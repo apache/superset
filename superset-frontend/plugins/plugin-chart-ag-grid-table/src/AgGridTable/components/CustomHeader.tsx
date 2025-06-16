@@ -26,11 +26,16 @@ import {
   ArrowUpOutlined,
   PlusOutlined,
 } from '@ant-design/icons';
+import { ColDef } from 'ag-grid-community';
 import CustomPopover from './CustomPopover';
-import { CustomColDef } from '..';
 import FilterIcon from './Filter';
 import KebabMenu from './KebabMenu';
-import { CustomHeaderParams, SortState, UserProvidedColDef } from '../../types';
+import {
+  CustomColDef,
+  CustomHeaderParams,
+  SortState,
+  UserProvidedColDef,
+} from '../../types';
 
 // Styled Components
 const Container = styled.div`
@@ -212,14 +217,16 @@ const CustomHeader: React.FC<CustomHeaderParams> = ({
     setIsMenuVisible(!isMenuVisible);
   };
 
+  const isTimeComparisonColumn = (col: ColDef<any, any>) =>
+    (col as UserProvidedColDef).timeComparisonKey === timeComparisonKey &&
+    !(col as UserProvidedColDef).isMain;
+
   const handleToggleComparison = (event: React.MouseEvent) => {
     event.stopPropagation();
 
     const allColumns = api.getColumnDefs();
-    const timeComparisonColumns = allColumns?.filter(
-      col =>
-        (col as UserProvidedColDef).timeComparisonKey === timeComparisonKey &&
-        !(col as UserProvidedColDef).isMain,
+    const timeComparisonColumns = allColumns?.filter(col =>
+      isTimeComparisonColumn(col),
     );
     const timeComparsionColIds = timeComparisonColumns?.map(
       item => (item as UserProvidedColDef).field || '',
@@ -300,7 +307,7 @@ const CustomHeader: React.FC<CustomHeaderParams> = ({
           {FilterIcon}
         </FilterIconWrapper>
       </CustomPopover>
-      {!isPercentMetric && (
+      {!isPercentMetric && !isTimeComparison && (
         <CustomPopover
           content={menuContent}
           isOpen={isMenuVisible}

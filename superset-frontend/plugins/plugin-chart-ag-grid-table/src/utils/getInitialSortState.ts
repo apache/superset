@@ -16,7 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { SortModelItem } from 'ag-grid-community';
+// All ag grid sort related stuff
+import { GridState, SortModelItem } from 'ag-grid-community';
 import { SortByItem } from '../types';
 
 const getInitialSortState = (sortBy?: SortByItem[]): SortModelItem[] => {
@@ -29,6 +30,36 @@ const getInitialSortState = (sortBy?: SortByItem[]): SortModelItem[] => {
     ];
   }
   return [];
+};
+
+export const shouldSort = ({
+  colId,
+  sortDir,
+  percentMetrics,
+  serverPagination,
+  gridInitialState,
+}: {
+  colId: string;
+  sortDir: string;
+  percentMetrics: string[];
+  serverPagination: boolean;
+  gridInitialState: GridState;
+}) => {
+  // percent metrics are not sortable
+  if (percentMetrics.includes(colId)) return false;
+  // if server pagination is not enabled, return false
+  // since this is server pagination sort
+  if (!serverPagination) return false;
+
+  const {
+    colId: initialColId = '',
+    sort: initialSortDir,
+  }: Partial<SortModelItem> = gridInitialState?.sort?.sortModel?.[0] || {};
+
+  // if the initial sort is the same as the current sort, return false
+  if (initialColId === colId && initialSortDir === sortDir) return false;
+
+  return true;
 };
 
 export default getInitialSortState;

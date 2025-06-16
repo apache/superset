@@ -196,4 +196,11 @@ export interface UserProvidedColDef extends ColDef {
   timeComparisonKey?: string;
 }
 
+export interface CustomColDef extends ColDef {
+  customMeta?: {
+    isMetric?: boolean;
+    isPercentMetric?: boolean;
+  };
+}
+
 export default {};

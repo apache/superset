@@ -33,9 +33,7 @@ import {
   type ColDef,
   ModuleRegistry,
   GridReadyEvent,
-  GridApi,
   GridState,
-  SortModelItem,
   CellClickedEvent,
 } from 'ag-grid-community';
 import './styles/ag-grid.css';
@@ -53,17 +51,11 @@ import { SearchOutlined } from '@ant-design/icons';
 import { debounce, isEqual } from 'lodash';
 import Pagination from './components/Pagination';
 import SearchSelectDropdown from './components/SearchSelectDropdown';
-import { SearchOption, SortByItem } from '../types';
-import getInitialSortState from '../utils/getInitialSortState';
+import { CustomColDef, SearchOption, SortByItem } from '../types';
+import getInitialSortState, { shouldSort } from '../utils/getInitialSortState';
+import { PAGE_SIZE_OPTIONS } from '../consts';
 
-export interface CustomColDef extends ColDef {
-  customMeta?: {
-    isMetric?: boolean;
-    isPercentMetric?: boolean;
-  };
-}
-
-export interface Props {
+export interface AgGridTableProps {
   gridTheme?: string;
   isDarkMode?: boolean;
   gridHeight?: number | null;
@@ -171,13 +163,10 @@ const StyledContainer = styled.div`
 
 const isSearchFocused = new Map<string, boolean>();
 
-const AgGridDataTable: FunctionComponent<Props> = memo(
+const AgGridDataTable: FunctionComponent<AgGridTableProps> = memo(
   ({
-    gridTheme = 'ag-theme-quartz',
-    isDarkMode = false,
     gridHeight = null,
     data = [],
-    onGridReady,
     colDefsFromProps,
     includeSearch,
     allowRearrangeColumns,
@@ -203,7 +192,6 @@ const AgGridDataTable: FunctionComponent<Props> = memo(
     showTotals,
   }) => {
     const gridRef = useRef<AgGridReact>(null);
-    const gridApiRef = useRef<GridApi | null>(null);
     const inputRef = useRef<HTMLInputElement>(null);
     const searchId = `search-${id}`;
     const gridInitialState: GridState = {
@@ -227,37 +215,13 @@ const AgGridDataTable: FunctionComponent<Props> = memo(
       [],
     );
 
-    // Handle grid ready event
-    const handleGridReady = useCallback(
-      (params: GridReadyEvent) => {
-        gridApiRef.current = params.api;
-        if (onGridReady) {
-          onGridReady(params);
-        }
-
-        // Optional: Auto-size columns on initial load
-        params.api.sizeColumnsToFit();
-      },
-      [onGridReady],
-    );
-
     // Memoize container style
     const containerStyle = useMemo(
       () => ({
-        height: gridHeight
-          ? includeSearch
-            ? `${gridHeight - 16}px`
-            : `${gridHeight}px`
-          : '100%',
+        height: gridHeight ? `${gridHeight}px` : '100%',
         width: '100%',
       }),
       [gridHeight],
-    );
-
-    // Memoize grid class name
-    const gridClassName = useMemo(
-      () => `ag-theme-quartz${isDarkMode ? '-dark' : ''}`,
-      [isDarkMode],
     );
 
     const [quickFilterText, setQuickFilterText] = useState<string>();
@@ -309,32 +273,6 @@ const AgGridDataTable: FunctionComponent<Props> = memo(
       },
       [serverPagination, debouncedSearch, searchId],
     );
-
-    const shouldSort = ({
-      colId,
-      sortDir,
-      percentMetrics,
-      serverPagination,
-      gridInitialState,
-    }: {
-      colId: string;
-      sortDir: string;
-      percentMetrics: string[];
-      serverPagination: boolean;
-      gridInitialState: GridState;
-    }) => {
-      if (percentMetrics.includes(colId)) return false;
-      if (!serverPagination) return false;
-
-      const initialSort: Partial<SortModelItem> =
-        gridInitialState?.sort?.sortModel?.[0] || {};
-      const { colId: initialColId = '', sort: initialSortDir = '' } =
-        initialSort;
-
-      if (initialColId === colId && initialSortDir === sortDir) return false;
-
-      return true;
-    };
 
     const handleColumnHeaderClick = useCallback(
       params => {
@@ -392,7 +330,7 @@ const AgGridDataTable: FunctionComponent<Props> = memo(
 
     return (
       <StyledContainer>
-        <div className={gridClassName} style={containerStyle}>
+        <div className="ag-theme-quartz" style={containerStyle}>
           <div className="dropdown-controls-container">
             {renderTimeComparisonDropdown && (
               <div className="time-comparison-dropdown">
@@ -446,12 +384,11 @@ const AgGridDataTable: FunctionComponent<Props> = memo(
             groupDefaultExpanded={-1}
             rowGroupPanelShow="always"
             enableCellTextSelection
-            onGridReady={handleGridReady}
             quickFilterText={serverPagination ? '' : quickFilterText}
             suppressMovableColumns={!allowRearrangeColumns}
             pagination={pagination}
             paginationPageSize={pageSize}
-            paginationPageSizeSelector={[10, 20, 50, 100, 200]}
+            paginationPageSizeSelector={PAGE_SIZE_OPTIONS}
             suppressDragLeaveHidesColumns
             pinnedBottomRowData={showTotals ? [cleanedTotals] : undefined}
             context={{
