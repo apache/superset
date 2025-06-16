@@ -190,8 +190,8 @@ configMountPath: "/app/pythonpath"
 extraConfigMountPath: "/app/configs"
 
 image:
-  repository: ghcr.io/neuro-inc/apolo-superset
-  tag: latest
+  repository: apachesuperset.docker.scarf.sh/apache/superset
+  tag: ~
   pullPolicy: IfNotPresent
 
 imagePullSecrets: []
