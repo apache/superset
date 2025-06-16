@@ -24,17 +24,22 @@ import re
 import urllib.parse
 from collections.abc import Iterable
 from dataclasses import dataclass
-from typing import Any, Generic, TypeVar
+from typing import Any, Generic, TYPE_CHECKING, TypeVar
 
 import sqlglot
+from jinja2 import nodes, Template
 from sqlglot import exp
 from sqlglot.dialects.dialect import Dialect, Dialects
 from sqlglot.errors import ParseError
 from sqlglot.optimizer.pushdown_predicates import pushdown_predicates
 from sqlglot.optimizer.scope import Scope, ScopeType, traverse_scope
 
-from superset.exceptions import SupersetParseError
+from superset.exceptions import QueryClauseValidationException, SupersetParseError
 from superset.sql.dialects.firebolt import Firebolt
+
+if TYPE_CHECKING:
+    from superset.models.core import Database
+
 
 logger = logging.getLogger(__name__)
 
@@ -53,6 +58,7 @@ SQLGLOT_DIALECTS = {
     # "databend": ???
     "databricks": Dialects.DATABRICKS,
     # "db2": ???
+    # "denodo": ???
     # "dremio": ???
     "drill": Dialects.DRILL,
     "druid": Dialects.DRUID,
@@ -67,14 +73,18 @@ SQLGLOT_DIALECTS = {
     "hive": Dialects.HIVE,
     # "ibmi": ???
     # "impala": ???
-    # "kustokql": ???
+    # "kustosql": ???
     # "kylin": ???
+    "mariadb": Dialects.MYSQL,
+    "motherduck": Dialects.DUCKDB,
     "mssql": Dialects.TSQL,
     "mysql": Dialects.MYSQL,
     "netezza": Dialects.POSTGRES,
+    "oceanbase": Dialects.MYSQL,
     # "ocient": ???
     # "odelasticsearch": ???
     "oracle": Dialects.ORACLE,
+    "parseable": Dialects.POSTGRES,
     # "pinot": ???
     "postgresql": Dialects.POSTGRES,
     "presto": Dialects.PRESTO,
@@ -90,6 +100,7 @@ SQLGLOT_DIALECTS = {
     "sqlite": Dialects.SQLITE,
     "starrocks": Dialects.STARROCKS,
     "superset": Dialects.SQLITE,
+    # "taosws": ???
     "teradatasql": Dialects.TERADATA,
     "trino": Dialects.TRINO,
     "vertica": Dialects.POSTGRES,
@@ -546,7 +557,7 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
             last_statement = statements.pop()
             target = statements[-1]
             for node in statements[-1].walk():
-                if hasattr(node, "comments"):
+                if hasattr(node, "comments"):  # pragma: no cover
                     target = node
 
             target.comments = target.comments or []
@@ -560,47 +571,9 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
         script: str,
         engine: str,
     ) -> list[SQLStatement]:
-        if dialect := SQLGLOT_DIALECTS.get(engine):
-            try:
-                return [
-                    cls(ast.sql(), engine, ast)
-                    for ast in cls._parse(script, engine)
-                    if ast
-                ]
-            except ValueError:
-                # `ast.sql()` might raise an error on some cases (eg, `SHOW TABLES
-                # FROM`). In this case, we rely on the tokenizer to generate the
-                # statements.
-                pass
-
-        # When we don't have a sqlglot dialect we can't rely on `ast.sql()` to correctly
-        # generate the SQL of each statement, so we tokenize the script and split it
-        # based on the location of semi-colons.
-        statements = []
-        start = 0
-        remainder = script
-
-        try:
-            tokens = sqlglot.tokenize(script, dialect)
-        except sqlglot.errors.TokenError as ex:
-            raise SupersetParseError(
-                script,
-                engine,
-                message="Unable to tokenize script",
-            ) from ex
-
-        for token in tokens:
-            if token.token_type == sqlglot.TokenType.SEMICOLON:
-                statement, start = script[start : token.start], token.end + 1
-                ast = cls._parse(statement, engine)[0]
-                statements.append(cls(statement.strip(), engine, ast))
-                remainder = script[start:]
-
-        if remainder.strip():
-            ast = cls._parse(remainder, engine)[0]
-            statements.append(cls(remainder.strip(), engine, ast))
-
-        return statements
+        return [
+            cls(ast=ast, engine=engine) for ast in cls._parse(script, engine) if ast
+        ]
 
     @classmethod
     def _parse_statement(
@@ -613,7 +586,11 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
         """
         statements = cls.split_script(statement, engine)
         if len(statements) != 1:
-            raise SupersetParseError("SQLStatement should have exactly one statement")
+            raise SupersetParseError(
+                statement,
+                engine,
+                message="SQLStatement should have exactly one statement",
+            )
 
         return statements[0]._parsed  # pylint: disable=protected-access
 
@@ -652,10 +629,13 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
                     exp.Create,
                     exp.Drop,
                     exp.TruncateTable,
+                    exp.Alter,
                 ),
             ):
                 return True
 
+            # depending on the dialect (Oracle, MS SQL) the `ALTER` is parsed as a
+            # command, not an expression
             if isinstance(node, exp.Command) and node.name == "ALTER":
                 return True
 
@@ -816,9 +796,16 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
         """
         Check if the statement has a subquery.
 
-        :return: True if the statement has a subquery at the top level.
+        :return: True if the statement has a subquery.
         """
-        return bool(self._parsed.find(exp.Subquery))
+        return bool(self._parsed.find(exp.Subquery)) or (
+            isinstance(self._parsed, exp.Select)
+            and any(
+                isinstance(expression, exp.Select)
+                for expression in self._parsed.walk()
+                if expression != self._parsed
+            )
+        )
 
     def parse_predicate(self, predicate: str) -> exp.Expression:
         """
@@ -928,11 +915,8 @@ def tokenize_kql(kql: str) -> list[tuple[KQLTokenType, str]]:
                 )
                 buffer = ch
             elif ch == "`" and script[i - 2 : i] == "``":
-                if buffer:
-                    tokens.extend(classify_non_string_kql(buffer))
-                    buffer = ""
                 state = KQLSplitState.INSIDE_MULTILINE_STRING
-                buffer = "`"
+                buffer = "```"
             else:
                 buffer += ch
         else:
@@ -1037,11 +1021,19 @@ class KustoKQLStatement(BaseSQLStatement[str]):
         engine: str,
     ) -> str:
         if engine != "kustokql":
-            raise SupersetParseError(f"Invalid engine: {engine}")
+            raise SupersetParseError(
+                statement,
+                engine,
+                message=f"Invalid engine: {engine}",
+            )
 
         statements = split_kql(statement)
         if len(statements) != 1:
-            raise SupersetParseError("SQLStatement should have exactly one statement")
+            raise SupersetParseError(
+                statement,
+                engine,
+                message="KustoKQLStatement should have exactly one statement",
+            )
 
         return statements[0].strip()
 
@@ -1117,7 +1109,7 @@ class KustoKQLStatement(BaseSQLStatement[str]):
         :return: True if any of the functions are present
         """
         logger.warning("Kusto KQL doesn't support checking for functions present.")
-        return True
+        return False
 
     def get_limit_value(self) -> int | None:
         """
@@ -1145,7 +1137,11 @@ class KustoKQLStatement(BaseSQLStatement[str]):
         Add a limit to the statement.
         """
         if method != LimitMethod.FORCE_LIMIT:
-            raise SupersetParseError("Kusto KQL only supports the FORCE_LIMIT method.")
+            raise SupersetParseError(
+                self._parsed,
+                self.engine,
+                message="Kusto KQL only supports the FORCE_LIMIT method.",
+            )
 
         tokens = tokenize_kql(self._parsed)
         found_limit_token = False
@@ -1346,3 +1342,96 @@ def is_cte(source: exp.Table, scope: Scope) -> bool:
     }
 
     return source.name in ctes_in_scope
+
+
+T = TypeVar("T", str, None)
+
+
+def remove_quotes(val: T) -> T:
+    """
+    Helper that removes surrounding quotes from strings.
+    """
+    if val is None:
+        return None
+
+    if val[0] in {'"', "'", "`"} and val[0] == val[-1]:
+        val = val[1:-1]
+
+    return val
+
+
+def extract_tables_from_jinja_sql(sql: str, database: Database) -> set[Table]:
+    """
+    Extract all table references in the Jinjafied SQL statement.
+
+    Due to Jinja templating, a multiphase approach is necessary as the Jinjafied SQL
+    statement may represent invalid SQL which is non-parsable by SQLGlot.
+
+    Firstly, we extract any tables referenced within the confines of specific Jinja
+    macros. Secondly, we replace these non-SQL Jinja calls with a pseudo-benign SQL
+    expression to help ensure that the resulting SQL statements are parsable by
+    SQLGlot.
+
+    :param sql: The Jinjafied SQL statement
+    :param database: The database associated with the SQL statement
+    :returns: The set of tables referenced in the SQL statement
+    :raises SupersetSecurityException: If SQLGlot is unable to parse the SQL statement
+    :raises jinja2.exceptions.TemplateError: If the Jinjafied SQL could not be rendered
+    """
+
+    from superset.jinja_context import (  # pylint: disable=import-outside-toplevel
+        get_template_processor,
+    )
+
+    processor = get_template_processor(database)
+    ast = processor.env.parse(sql)
+
+    tables = set()
+
+    for node in ast.find_all(nodes.Call):
+        if isinstance(node.node, nodes.Getattr) and node.node.attr in (
+            "latest_partition",
+            "latest_sub_partition",
+        ):
+            # Try to extract the table referenced in the macro.
+            try:
+                tables.add(
+                    Table(
+                        *[
+                            remove_quotes(part.strip())
+                            for part in node.args[0].as_const().split(".")[::-1]
+                            if len(node.args) == 1
+                        ]
+                    )
+                )
+            except nodes.Impossible:
+                pass
+
+            # Replace the potentially problematic Jinja macro with some benign SQL.
+            node.__class__ = nodes.TemplateData
+            node.fields = nodes.TemplateData.fields
+            node.data = "NULL"
+
+    # re-render template back into a string
+    code = processor.env.compile(ast)
+    template = Template.from_code(processor.env, code, globals=processor.env.globals)
+    rendered_sql = template.render(processor.get_context())
+
+    parsed_script = SQLScript(
+        processor.process_template(rendered_sql),
+        engine=database.db_engine_spec.engine,
+    )
+    for parsed_statement in parsed_script.statements:
+        tables |= parsed_statement.tables
+
+    return tables
+
+
+def sanitize_clause(clause: str, engine: str) -> str:
+    """
+    Make sure the SQL clause is valid.
+    """
+    try:
+        return SQLStatement(clause, engine).format()
+    except SupersetParseError as ex:
+        raise QueryClauseValidationException(f"Invalid SQL clause: {clause}") from ex

@@ -17,7 +17,7 @@
 from __future__ import annotations
 
 import logging
-from datetime import datetime, timezone
+from datetime import datetime
 from typing import Any
 
 import dateutil.parser
@@ -29,7 +29,7 @@ from superset.extensions import db
 from superset.models.core import Database
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
-from superset.sql_parse import Table
+from superset.sql.parse import Table
 from superset.utils.core import DatasourceType
 from superset.views.base import DatasourceFilter
 
@@ -198,7 +198,7 @@ class DatasetDAO(BaseDAO[SqlaTable]):
                 force_update = True
 
             if force_update:
-                attributes["changed_on"] = datetime.now(tz=timezone.utc)
+                attributes["changed_on"] = datetime.now()
 
         return super().update(item, attributes)
 

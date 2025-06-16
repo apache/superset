@@ -73,6 +73,7 @@ import {
   FullscreenOutlined,
   FundProjectionScreenOutlined,
   FunctionOutlined,
+  HighlightOutlined,
   InfoCircleOutlined,
   InfoCircleFilled,
   InsertRowAboveOutlined,
@@ -116,6 +117,7 @@ import {
   UnorderedListOutlined,
   WarningOutlined,
   KeyOutlined,
+  ExportOutlined,
 } from '@ant-design/icons';
 import { FC } from 'react';
 import { IconType } from './types';
@@ -178,6 +180,7 @@ const AntdIcons = {
   FullscreenOutlined,
   FundProjectionScreenOutlined,
   FunctionOutlined,
+  HighlightOutlined,
   InfoCircleOutlined,
   InfoCircleFilled,
   InsertRowAboveOutlined,
@@ -221,6 +224,7 @@ const AntdIcons = {
   UnorderedListOutlined,
   WarningOutlined,
   KeyOutlined,
+  ExportOutlined,
 } as const;
 
 type AntdIconNames = keyof typeof AntdIcons;

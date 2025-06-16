@@ -709,7 +709,7 @@ class TestPostChartDataApi(BaseTestChartDataApi):
         rv = self.post_assert_metric(CHART_DATA_URI, self.query_context_payload, "data")
         result = rv.json["result"][0]["query"]
         if get_example_database().backend != "presto":
-            assert "(\n    'boy' = 'boy'\n  )" in result
+            assert "(\n  'boy' = 'boy'\n)" in result
 
     @unittest.skip("Extremely flaky test on MySQL")
     @with_feature_flags(GLOBAL_ASYNC_QUERIES=True)

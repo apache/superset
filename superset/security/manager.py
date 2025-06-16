@@ -68,7 +68,7 @@ from superset.security.guest_token import (
     GuestTokenUser,
     GuestUser,
 )
-from superset.sql_parse import extract_tables_from_jinja_sql, Table
+from superset.sql.parse import extract_tables_from_jinja_sql, Table
 from superset.tasks.utils import get_current_user
 from superset.utils import json
 from superset.utils.core import (
