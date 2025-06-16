@@ -25,12 +25,14 @@ import { Feature, Map } from 'ol';
 import GeoJSON from 'ol/format/GeoJSON';
 import { ChartConfig } from '../types';
 import WKB from 'ol/format/WKB';
+import WKT from 'ol/format/WKT';
 import { register } from 'ol/proj/proj4';
 import proj4 from 'proj4';
 import { FeatureCollection } from 'geojson';
 import { FitOptions } from 'ol/View';
 import { getExtentFromFeatures } from './geometryUtil';
 import { MapProjections } from '../types';
+import { GeometryFormat } from '../thematic/constants';
 
 // default map extent of world if no features are found
 // TODO: move to generic config file or plugin configuration
@@ -83,18 +85,33 @@ const fitToData = (
 export const dataRecordsToOlFeatures = (
   dataRecords: DataRecord[],
   geomColumn: string,
+  geomFormat: GeometryFormat,
 ) => {
-  const wkbFormat = new WKB();
+  let format: WKB | WKT = new WKB();
+
+  if (geomFormat === GeometryFormat.WKT) {
+    format = new WKT();
+  }
   const features = dataRecords
     .map(item => {
-      const { [geomColumn]: wkb, ...props } = item;
-      if (typeof wkb !== 'string') {
+      const { [geomColumn]: geom, ...props } = item;
+      if (typeof geom !== 'string') {
         return undefined;
       }
 
-      const feature = wkbFormat.readFeature(wkb, {
+      let cleanedGeom = geom;
+      const opts: any = {
         featureProjection: 'EPSG:3857',
-      });
+      };
+      if (geomFormat === GeometryFormat.WKT && geom.startsWith('SRID=')) {
+        // WKT with SRID, strip it
+        const srid = geom.match(/SRID=(\d+);/);
+        if (srid) {
+          opts.dataProjection = `EPSG:${srid[1]}`;
+          cleanedGeom = cleanedGeom.replace(/SRID=\d+;/, '');
+        }
+      }
+      const feature = format.readFeature(cleanedGeom, opts);
       feature.setProperties(props);
 
       return feature;
@@ -132,11 +149,13 @@ export const fitMapToDataRecords = (
   olMap: Map,
   dataRecords: DataRecord[],
   geomColumn: string,
+  geomFormat: GeometryFormat,
   padding?: FitOptions['padding'] | undefined,
 ) => {
   const features = dataRecordsToOlFeatures(
     dataRecords,
     geomColumn,
+    geomFormat,
   ) as Feature[];
   fitToData(olMap, features, padding);
 };

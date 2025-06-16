@@ -27,4 +27,5 @@ export enum TimesliderTooltipFormat {
 export enum GeometryFormat {
   GEOJSON = 'GEOJSON',
   WKB = 'WKB',
+  WKT = 'WKT',
 }

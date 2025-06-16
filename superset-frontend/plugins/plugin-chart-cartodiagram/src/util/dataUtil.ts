@@ -21,6 +21,7 @@ import { Feature, FeatureCollection } from 'geojson';
 import { Feature as OlFeature } from 'ol';
 import GeoJSON from 'ol/format/GeoJSON';
 import { dataRecordsToOlFeatures } from './mapUtil';
+import { GeometryFormat } from '../thematic/constants';
 
 export const geojsonDataToFeatureCollection = (
   data: QueryData['data'],
@@ -50,14 +51,19 @@ export const geojsonDataToFeatureCollection = (
   return featureCollection;
 };
 
-export const wkbDataToFeatureCollection = (
+export const dataToFeatureCollection = (
   data: QueryData['data'],
   geomColumn: string,
+  geomFormat: GeometryFormat,
 ) => {
   const geojsonFormat = new GeoJSON({
     featureProjection: 'EPSG:3857',
   });
-  const olFeatures = dataRecordsToOlFeatures(data, geomColumn) as OlFeature[];
+  const olFeatures = dataRecordsToOlFeatures(
+    data,
+    geomColumn,
+    geomFormat,
+  ) as OlFeature[];
   const featureCollection = geojsonFormat.writeFeaturesObject(olFeatures);
 
   return featureCollection;

@@ -36,7 +36,7 @@ import { MAX_ZOOM_LEVEL, MIN_ZOOM_LEVEL } from '../util/zoomUtil';
 import MapMaxExtentViewControl from './components/MapMaxExtentControl/MapMaxExtentViewControl';
 import {
   geojsonDataToFeatureCollection,
-  wkbDataToFeatureCollection,
+  dataToFeatureCollection,
 } from '../util/dataUtil';
 import { MapViewConfigs } from '../types';
 
@@ -102,12 +102,13 @@ const config: ControlPanelConfig = {
               label: t('Geometry Format'),
               renderTrigger: false,
               description: t(
-                'The format of the geometry column. GeoJSON columns are expected to use WGS84 coordinates. The (E)WKB format allows for arbitrary projections, which will be read from the data.',
+                'The format of the geometry column. GeoJSON columns are expected to use WGS84 coordinates. The (E)WKB and (E)WKT formats allow for arbitrary projections, which will be read from the data.',
               ),
               default: GeometryFormat.GEOJSON,
               choices: [
                 [GeometryFormat.GEOJSON, t('GeoJSON')],
                 [GeometryFormat.WKB, t('(E)WKB')],
+                [GeometryFormat.WKT, t('(E)WKT')],
               ],
               clearable: false,
               validators: [validateNonEmpty],
@@ -238,8 +239,15 @@ const config: ControlPanelConfig = {
                 data: any,
                 formData: QueryFormData,
               ) => {
-                if (formData.geom_format === GeometryFormat.WKB) {
-                  return wkbDataToFeatureCollection(data, formData.geom_column);
+                if (
+                  formData.geom_format === GeometryFormat.WKB ||
+                  formData.geom_format === GeometryFormat.WKT
+                ) {
+                  return dataToFeatureCollection(
+                    data,
+                    formData.geom_column,
+                    formData.geom_format,
+                  );
                 }
                 return geojsonDataToFeatureCollection(
                   data,

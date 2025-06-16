@@ -185,11 +185,15 @@ export const OlChartMap = (props: OlChartMapProps) => {
         break;
       }
       default: {
-        if (geomFormat === GeometryFormat.WKB) {
+        if (
+          geomFormat === GeometryFormat.WKB ||
+          geomFormat === GeometryFormat.WKT
+        ) {
           fitMapToDataRecords(
             olMap,
             processedData as DataRecord[],
             geomColumn,
+            geomFormat,
             getMapExtentPadding(mapExtentPadding),
           );
         } else {
@@ -289,11 +293,15 @@ export const OlChartMap = (props: OlChartMapProps) => {
    */
   useEffect(() => {
     if (currentMapView.mode === 'FIT_DATA') {
-      if (geomFormat === GeometryFormat.WKB) {
+      if (
+        geomFormat === GeometryFormat.WKB ||
+        geomFormat === GeometryFormat.WKT
+      ) {
         fitMapToDataRecords(
           olMap,
           data,
           geomColumn,
+          geomFormat,
           getMapExtentPadding(mapExtentPadding),
         );
       } else {
@@ -329,7 +337,10 @@ export const OlChartMap = (props: OlChartMapProps) => {
       return processedData;
     }
     let filteredRecords;
-    if (geomFormat === GeometryFormat.WKB) {
+    if (
+      geomFormat === GeometryFormat.WKB ||
+      geomFormat === GeometryFormat.WKT
+    ) {
       filteredRecords = (processedData as DataRecord[]).filter(
         f => f[timeColumn] === timeFilter,
       );
@@ -382,10 +393,14 @@ export const OlChartMap = (props: OlChartMapProps) => {
     currentDataLayers?.forEach(dataLayer => {
       const source = dataLayer.getSource();
       let features: OlFeature[];
-      if (geomFormat === GeometryFormat.WKB) {
+      if (
+        geomFormat === GeometryFormat.WKB ||
+        geomFormat === GeometryFormat.WKT
+      ) {
         features = dataRecordsToOlFeatures(
           filteredData as DataRecord[],
           geomColumn,
+          geomFormat,
         ) as OlFeature[];
       } else {
         features = new GeoJSON().readFeatures(filteredData, {
