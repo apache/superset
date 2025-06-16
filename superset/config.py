@@ -41,7 +41,7 @@ from typing import Any, Callable, Iterator, Literal, TYPE_CHECKING, TypedDict
 import click
 from celery.schedules import crontab
 from flask import Blueprint
-from flask_appbuilder.security.manager import AUTH_DB
+from flask_appbuilder.security.manager import AUTH_DB,AUTH_OAUTH,AUTH_REMOTE_USER
 from flask_caching.backends.base import BaseCache
 from pandas import Series
 from pandas._libs.parsers import STR_NA_VALUES
@@ -52,6 +52,8 @@ from superset.advanced_data_type.plugins.internet_address import internet_addres
 from superset.advanced_data_type.plugins.internet_port import internet_port
 from superset.advanced_data_type.types import AdvancedDataType
 from superset.constants import CHANGE_ME_SECRET_KEY
+from superset.custom_sso_security_manager import CustomSsoSecurityManager
+from superset.custom_sso_security_manager import CustomSsoSecurityManager
 from superset.jinja_context import BaseTemplateProcessor
 from superset.key_value.types import JsonKeyValueCodec
 from superset.stats_logger import DummyStatsLogger
@@ -180,7 +182,10 @@ SUPERSET_DASHBOARD_PERIODICAL_REFRESH_LIMIT = 0
 SUPERSET_DASHBOARD_PERIODICAL_REFRESH_WARNING_MESSAGE = None
 
 SUPERSET_DASHBOARD_POSITION_DATA_LIMIT = 65535
-CUSTOM_SECURITY_MANAGER = None
+
+
+
+CUSTOM_SECURITY_MANAGER = CustomSsoSecurityManager
 SQLALCHEMY_TRACK_MODIFICATIONS = False
 # ---------------------------------------------------------
 
@@ -308,10 +313,10 @@ AUTH_RATE_LIMIT = "5 per second"
 # GLOBALS FOR APP Builder
 # ------------------------------
 # Uncomment to setup Your App name
-APP_NAME = "Superset"
+APP_NAME = "PESAPAL DATA"
 
 # Specify the App icon
-APP_ICON = "/static/assets/images/superset-logo-horiz.png"
+APP_ICON = "/static/assets/images/Pesapal_Logo.png"
 
 # Specify where clicking the logo would take the user'
 # Default value of None will take you to '/superset/welcome'
@@ -337,19 +342,58 @@ FAB_API_SWAGGER_UI = True
 # AUTH_DB : Is for database (username/password)
 # AUTH_LDAP : Is for LDAP
 # AUTH_REMOTE_USER : Is for using REMOTE_USER from web server
-AUTH_TYPE = AUTH_DB
+AUTH_TYPE = AUTH_OAUTH
+# AUTH_TYPE = AUTH_REMOTE_USER
+
+OAUTH_PROVIDERS = [
+    {
+        'name': 'signin-oidc',
+        'token_key': 'access_token',
+        'icon': 'fa-windows',
+        'remote_app': {
+            'client_id': '09beb220-4f0a-4045-ab35-c04e2440a2f8',
+            'client_secret': '7ffd19f9-c389-4968-9b1e-2080f5b50251',
+            # Replace with your actual client secret
+            'server_metadata_url': 'https://myaccount.pesapal.com/.well-known/openid-configuration',
+            'client_kwargs': {
+                'scope': 'openid profile roles',  # Scopes from your configuration
+                'code_challenge_method': 'S256'
+            },
+            'access_token_url': 'https://myaccount.pesapal.com/v2/connect/token',
+            'authorize_url': 'https://myaccount.pesapal.com/v2/connect/authorize',
+            'jwks_uri': 'https://myaccount.pesapal.com/.well-known/jwks',
+            'userinfo_endpoint': 'https://myaccount.pesapal.com/v2/connect/userinfo',
+            'access_token_method': 'POST',
+            'token_endpoint_auth_method': 'client_secret_post'
+        }
+    }
+]
 
 # Uncomment to setup Full admin role name
-# AUTH_ROLE_ADMIN = 'Admin'
+AUTH_ROLE_ADMIN = 'Admin'
 
 # Uncomment to setup Public role name, no authentication needed
-# AUTH_ROLE_PUBLIC = 'Public'
+AUTH_ROLE_PUBLIC = 'Public'
 
+AUTH_ROLES_MAPPING = {
+"DataEngineer": ["Admin"],
+"DataEngineerTech": ["Admin"],
+"DeputyCTO": ["Admin"],
+"TechExec": ["Admin"],
+"CTO": ["Admin"],
+"COO": ["Admin"],
+"CEO": ["Admin"],
+"JuniorDev": ["Admin"],
+"Developer": ["Alpha","Gamma"],
+"superset_admins": ["Admin"]
+}
 # Will allow user self registration
-# AUTH_USER_REGISTRATION = True
+AUTH_USER_REGISTRATION = False
 
 # The default user self registration role
-# AUTH_USER_REGISTRATION_ROLE = "Public"
+AUTH_USER_REGISTRATION_ROLE = "Public"
+
+AUTH_ROLES_SYNC_AT_LOGIN = False
 
 # When using LDAP Auth, setup the LDAP server
 # AUTH_LDAP_SERVER = "ldap://ldapserver.new"
@@ -449,7 +493,7 @@ class D3TimeFormat(TypedDict, total=False):
 
 D3_TIME_FORMAT: D3TimeFormat = {}
 
-CURRENCIES = ["USD", "EUR", "GBP", "INR", "MXN", "JPY", "CNY"]
+CURRENCIES = ["USD", "EUR", "GBP", "INR", "MXN", "JPY", "CNY","KES","UGX","TZS"]
 
 # ---------------------------------------------------
 # Feature flags
@@ -493,8 +537,8 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     "GLOBAL_ASYNC_QUERIES": False,
     "EMBEDDED_SUPERSET": False,
     # Enables Alerts and reports new implementation
-    "ALERT_REPORTS": False,
-    "ALERT_REPORT_TABS": False,
+    "ALERT_REPORTS": True,
+    "ALERT_REPORT_TABS": True,
     "ALERT_REPORT_SLACK_V2": False,
     "DASHBOARD_RBAC": False,
     "ENABLE_ADVANCED_DATA_TYPES": False,

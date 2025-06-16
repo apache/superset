@@ -77,7 +77,7 @@ services:
     container_name: superset_db
     restart: unless-stopped
     ports:
-      - "127.0.0.1:5432:5432"
+      - "5432:5432"
     volumes:
       - db_home:/var/lib/postgresql/data
       - ./docker/docker-entrypoint-initdb.d:/docker-entrypoint-initdb.d
@@ -94,7 +94,7 @@ services:
     command: ["/app/docker/docker-bootstrap.sh", "app"]
     restart: unless-stopped
     ports:
-      - 8088:8088
+      - 9004:8088
       # When in cypress-mode ->
       - 8081:8081
     extra_hosts:
@@ -177,7 +177,7 @@ services:
       # configuring the dev-server to use the host.docker.internal to connect to the backend
       superset: "http://superset:8088"
     ports:
-      - "127.0.0.1:9000:9000"  # exposing the dynamic webpack dev server
+      - "127.0.0.1:9010:9000"  # exposing the dynamic webpack dev server
     container_name: superset_node
     command: ["/app/docker/docker-frontend.sh"]
     env_file:

@@ -33,6 +33,7 @@ x-common-build: &common-build
     - apache/superset-cache:3.10-slim-bookworm
 
 services:
+
   redis:
     image: redis:7
     container_name: superset_cache
@@ -46,7 +47,7 @@ services:
         required: true
       - path: docker/.env-local # optional override
         required: false
-    image: postgres:16
+    image: postgres:15
     container_name: superset_db
     restart: unless-stopped
     volumes:
@@ -66,7 +67,7 @@ services:
     user: "root"
     restart: unless-stopped
     ports:
-      - 8088:8088
+      - 8090:8088
     depends_on:
       superset-init:
         condition: service_completed_successfully
