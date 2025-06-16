@@ -50,7 +50,20 @@
     {% endblock %}
 
     {{ js_bundle(assets_prefix, 'theme') }}
+    <style>
+      .spinner svg {
+        --primary-color: rgb(72, 72, 72);
+        --accent-color: rgb(80, 165, 197);
+        overflow: visible;
+      }
 
+      .spinner {
+        padding: 10px;
+        width: 50px;
+        height: 50px;
+        overflow: visible;
+      }
+    </style>
     <input
       type="hidden"
       name="csrf_token"
@@ -63,16 +76,66 @@
 
     {% block body %}
       <div id="app" data-bootstrap="{{ bootstrap_data }}">
-        <img
-          src="{{ assets_prefix }}/static/assets/images/loading.gif"
-          style="
-            width: 50px;
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-          "
-        />
+      <div class="spinner">
+        <svg
+        viewBox="-36 -25 72 50"
+        xmlns="http://www.w3.org/2000/svg"
+        overflow="visible"
+      >
+        <defs>
+          <filter id="shadow1" x="-50%" y="-50%" width="200%" height="200%">
+            <feDropShadow
+              dx="1"
+              dy="1"
+              stdDeviation="2"
+              flood-color="rgba(0,0,0,0.3)"
+            />
+          </filter>
+          <path
+            id="morphPath"
+            d="M 0,0 C 7,16 22,8.7 22,0 22,-8.7 7,-16 0,0 -7,16 -22,8.7 -22,-0 -22,-8.7 -7,-16 0,0 Z"
+            stroke-width="7"
+            fill="transparent"
+            filter="url(#shadow1)"
+          >
+            <animate
+              attributeName="d"
+              dur="8s"
+              repeatCount="indefinite"
+              values="M 0,0 C 7,16 22,8.7 22,0 22,-8.7 7,-16 0,0 -7,16 -22,8.7 -22,-0 -22,-8.7 -7,-16 0,0 Z;
+              M 0,0 C 7,16 22,8.7 22,0 22,-8.7 7,-16 0,0 -7,16 -22,8.7 -22,-0 -22,-8.7 -7,-16 0,0 Z;
+              M 0,-16 C 8.7,-16 16,-8.7 16,0 16,8.7 8.7,16 0,16 -8.7,16 -16,8.7 -16,-0 -16,-8.7 -8.7,-16 0,-16 Z;
+              M 0,-16 C 8.7,-16 16,-8.7 16,0 16,8.7 8.7,16 0,16 -8.7,16 -16,8.7 -16,-0 -16,-8.7 -8.7,-16 0,-16 Z;
+              M 0,0 C 7,-16 22,-8.7 22,0 22,8.7 7,16 0,0 -7,-16 -22,-8.7 -22,0 -22,8.7 -7,16 0,0 Z;
+              M 0,0 C 7,-16 22,-8.7 22,0 22,8.7 7,16 0,0 -7,-16 -22,-8.7 -22,0 -22,8.7 -7,16 0,0 Z;
+              M 0,16 C 8.7,16 16,8.7 16,0 16,-8.7 8.7,-16 0,-16 -8.7,-16 -16,-8.7 -16,0 -16,8.7 -8.7,16 0,16 Z;
+              M 0,16 C 8.7,16 16,8.7 16,0 16,-8.7 8.7,-16 0,-16 -8.7,-16 -16,-8.7 -16,0 -16,8.7 -8.7,16 0,16 Z;
+              M 0,0 C 7,16 22,8.7 22,0 22,-8.7 7,-16 0,0 -7,16 -22,8.7 -22,-0 -22,-8.7 -7,-16 0,0 Z"
+              keyTimes="0;0.1;0.2;0.4;0.5;0.6;0.7;0.9;1"
+            />
+          </path>
+        </defs>
+        <!-- First path with morphing animation -->
+        <use href="#morphPath" stroke="var(--accent-color, currentColor)" />
+
+        <!-- Second (repeated) path with dash animation -->
+        <use
+          href="#morphPath"
+          stroke="var(--primary-color, inherit)"
+          stroke-dasharray="108 10"
+        >
+          <animate
+            attributeName="stroke-dashoffset"
+            from="0"
+            to="130"
+            dur=".8s"
+            repeatCount="indefinite"
+          />
+        </use>
+      </svg>
+      </div>
+
+
       </div>
     {% endblock %}
 

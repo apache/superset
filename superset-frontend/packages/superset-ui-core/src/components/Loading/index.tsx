@@ -17,14 +17,36 @@
  * under the License.
  */
 
+import { useEffect, useState } from 'react';
 import { styled } from '@superset-ui/core';
 import cls from 'classnames';
-import { Loading as Loader } from '../assets';
 import type { LoadingProps } from './types';
 
-const LoaderImg = styled.img`
+export type PositionOption =
+  | 'floating'
+  | 'inline'
+  | 'inline-centered'
+  | 'normal';
+export interface Props {
+  position?: PositionOption;
+  className?: string;
+  image?: string;
+}
+
+const LoaderWrapper = styled.div`
+  /* TODO: leverage new theme */
+  & svg {
+    --primary-color: ${({ theme }) => theme.colors.grayscale.dark2};
+    --accent-color: ${({ theme }) => theme.colors.primary.base});
+    overflow: visible;
+  }
+
+  /* new styles */
+  padding: 10px;
+  width: 100px;
+  overflow: visible;
+
   z-index: 99;
-  width: 50px;
   height: unset;
   position: relative;
   margin: 10px;
@@ -38,7 +60,7 @@ const LoaderImg = styled.img`
     display: block;
   }
   &.floating {
-    padding: 0;
+    /* padding: 0; */
     margin: 0;
     position: absolute;
     left: 50%;
@@ -46,20 +68,23 @@ const LoaderImg = styled.img`
     transform: translate(-50%, -50%);
   }
 `;
-export function Loading({
-  position = 'floating',
-  image,
-  className,
-}: LoadingProps) {
+export function Loading({ position = 'floating', className }: LoadingProps) {
+  const [svgContent, setSvgContent] = useState('');
+
+  useEffect(() => {
+    console.log('Loading SVG');
+    fetch('/static/assets/images/spinner.svg')
+      .then(response => response.text())
+      .then(htmlString => {
+        setSvgContent(htmlString);
+      });
+  }, []);
+
   return (
-    <LoaderImg
+    <LoaderWrapper
       className={cls('loading', position, className)}
-      alt="Loading..."
-      src={image || Loader}
-      role="status"
-      aria-live="polite"
-      aria-label="Loading"
-      data-test="loading-indicator"
+      // eslint-disable-next-line react/no-danger
+      dangerouslySetInnerHTML={{ __html: svgContent }}
     />
   );
 }
