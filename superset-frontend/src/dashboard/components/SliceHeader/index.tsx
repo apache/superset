@@ -24,7 +24,13 @@ import {
   useRef,
   useState,
 } from 'react';
-import { css, getExtensionsRegistry, styled, t } from '@superset-ui/core';
+import {
+  css,
+  getExtensionsRegistry,
+  styled,
+  t,
+  useTheme,
+} from '@superset-ui/core';
 import { useUiConfig } from 'src/components/UiConfigContext';
 import { Tooltip } from 'src/components/Tooltip';
 import { useSelector } from 'react-redux';
@@ -33,9 +39,10 @@ import SliceHeaderControls from 'src/dashboard/components/SliceHeaderControls';
 import { SliceHeaderControlsProps } from 'src/dashboard/components/SliceHeaderControls/types';
 import FiltersBadge from 'src/dashboard/components/FiltersBadge';
 import { Icons } from 'src/components/Icons';
-import { RootState } from 'src/dashboard/types';
+import { Chart, RootState } from 'src/dashboard/types';
 import { getSliceHeaderTooltip } from 'src/dashboard/util/getSliceHeaderTooltip';
 import { DashboardPageIdContext } from 'src/dashboard/containers/DashboardPage';
+import RowCountLabel from 'src/components/RowCountLabel';
 
 const extensionsRegistry = getExtensionsRegistry();
 
@@ -176,6 +183,17 @@ const SliceHeader = forwardRef<HTMLDivElement, SliceHeaderProps>(
       ({ dashboardInfo }) => dashboardInfo.crossFiltersEnabled,
     );
 
+    const chart = useSelector<RootState, Chart>(
+      state => state.charts[slice.slice_id],
+    );
+
+    const theme = useTheme();
+
+    const firstQueryResponse = chart.queriesResponse?.[0];
+
+    const rowLimit = Number(formData.row_limit || 0);
+    const sqlRowCount = Number(firstQueryResponse?.sql_rowcount || 0);
+
     const canExplore = !editMode && supersetCanExplore;
 
     useEffect(() => {
@@ -262,8 +280,28 @@ const SliceHeader = forwardRef<HTMLDivElement, SliceHeaderProps>(
                   <CrossFilterIcon iconSize="m" />
                 </Tooltip>
               )}
+
               {!uiConfig.hideChartControls && (
                 <FiltersBadge chartId={slice.slice_id} />
+              )}
+
+              {sqlRowCount === rowLimit && (
+                <RowCountLabel
+                  css={theme => css`
+                    margin-right: -${theme.gridUnit * 4}px;
+                  `}
+                  rowcount={sqlRowCount}
+                  limit={rowLimit}
+                  label={
+                    <Icons.WarningOutlined
+                      iconSize="l"
+                      iconColor={theme.colors.warning.base}
+                      css={theme => css`
+                        padding: ${theme.gridUnit}px;
+                      `}
+                    />
+                  }
+                />
               )}
               {!uiConfig.hideChartControls && (
                 <SliceHeaderControls
