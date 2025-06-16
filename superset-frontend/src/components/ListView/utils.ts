@@ -64,6 +64,7 @@ const RisonParam: QueryParamConfig<string, any> = {
 };
 
 export const SELECT_WIDTH = 175;
+export const RANGE_WIDTH = 300;
 export const WIDER_DROPDOWN_WIDTH = '300px';
 
 export class ListViewError extends Error {

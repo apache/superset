@@ -24,14 +24,17 @@ import {
   ChangeEvent,
 } from 'react';
 
-import { t, styled, useTheme, css } from '@superset-ui/core';
+import { t, styled, useTheme } from '@superset-ui/core';
 import {
   Input,
   InfoTooltip,
   FormLabel,
   Icons,
+  Flex,
 } from '@superset-ui/core/components';
-import { BaseFilter, FilterHandler, FilterContainer } from './Base';
+import type { BaseFilter, FilterHandler } from './types';
+import { FilterContainer } from './Base';
+import { SELECT_WIDTH } from '../utils';
 
 interface SearchHeaderProps extends BaseFilter {
   Header: string;
@@ -76,15 +79,17 @@ function SearchFilter(
   }));
 
   return (
-    <FilterContainer>
-      <div
-        css={css`
-          display: flex;
-        `}
-      >
+    <FilterContainer
+      data-test="search-filter-container"
+      width={SELECT_WIDTH}
+      vertical
+      justify="center"
+      align="start"
+    >
+      <Flex>
         <FormLabel>{Header}</FormLabel>
         {toolTipDescription && <InfoTooltip tooltip={toolTipDescription} />}
-      </div>
+      </Flex>
       <StyledInput
         allowClear
         data-test="filters-search"

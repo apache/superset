@@ -26,17 +26,17 @@ import {
 
 import { withTheme } from '@superset-ui/core';
 
-import {
+import type {
   ListViewFilterValue as FilterValue,
   ListViewFilters as Filters,
   InternalFilter,
   SelectOption,
 } from '../types';
+import type { FilterHandler } from './types';
 import SearchFilter from './Search';
 import SelectFilter from './Select';
 import DateRangeFilter from './DateRange';
 import NumericalRangeFilter from './NumericalRange';
-import { FilterHandler } from './Base';
 
 interface UIFiltersProps {
   filters: Filters;

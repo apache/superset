@@ -20,15 +20,9 @@ import { useState, forwardRef, useImperativeHandle, RefObject } from 'react';
 import { styled, t } from '@superset-ui/core';
 import { InputNumber } from '@superset-ui/core/components/Input';
 import { FormLabel } from '@superset-ui/core/components/Form';
-import { BaseFilter, FilterHandler } from './Base';
-
-const RangeFilterContainer = styled.div`
-  display: inline-flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: flex-start;
-  width: 360px;
-`;
+import type { BaseFilter, FilterHandler } from './types';
+import { FilterContainer } from './Base';
+import { RANGE_WIDTH } from '../utils';
 
 const InputContainer = styled.div`
   display: flex;
@@ -103,7 +97,13 @@ function NumericalRangeFilter(
   }));
 
   return (
-    <RangeFilterContainer>
+    <FilterContainer
+      data-test="numerical-range-filter-container"
+      width={RANGE_WIDTH}
+      vertical
+      justify="center"
+      align="start"
+    >
       <FormLabel>{Header}</FormLabel>
       <InputContainer>
         <InputNumber
@@ -127,7 +127,7 @@ function NumericalRangeFilter(
           </ErrorMessage>
         )}
       </InputContainer>
-    </RangeFilterContainer>
+    </FilterContainer>
   );
 }
 

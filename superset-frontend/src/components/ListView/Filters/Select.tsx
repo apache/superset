@@ -27,7 +27,9 @@ import {
 import { t } from '@superset-ui/core';
 import { Select, AsyncSelect, FormLabel } from '@superset-ui/core/components';
 import { ListViewFilter as Filter, SelectOption } from '../types';
-import { FilterContainer, BaseFilter, FilterHandler } from './Base';
+import type { BaseFilter, FilterHandler } from './types';
+import { FilterContainer } from './Base';
+import { SELECT_WIDTH } from '../utils';
 
 interface SelectFilterProps extends BaseFilter {
   fetchSelects?: Filter['fetchSelects'];
@@ -90,7 +92,13 @@ function SelectFilter(
   );
   const placeholder = t('Choose...');
   return (
-    <FilterContainer>
+    <FilterContainer
+      data-test="select-filter-container"
+      width={SELECT_WIDTH}
+      vertical
+      justify="center"
+      align="start"
+    >
       <FormLabel>{Header}</FormLabel>
       {fetchSelects ? (
         <AsyncSelect
