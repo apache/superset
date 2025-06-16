@@ -119,7 +119,7 @@ const StyledContainer = styled.div`
     .ag-row,
     .ag-spanned-row {
       font-size: ${theme.typography.sizes.s}px;
-      font-weight: ${theme.typography.weights.bold};
+      font-weight: ${theme.typography.weights.medium};
     }
 
     .ag-root-wrapper {
