@@ -23,17 +23,23 @@ import { Tooltip } from '@superset-ui/chart-controls';
 import { t, styled } from '@superset-ui/core';
 
 const StyledTotalCell = styled.div`
-  font-weight: bold;
+  ${({ theme }) => `
+    font-weight: ${theme.typography.weights.bold};
+  `}
 `;
 
 const SummaryContainer = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 4px;
+  ${({ theme }) => `
+    display: flex;
+    align-items: center;
+    gap: ${theme.gridUnit}px;
+  `}
 `;
 
 const SummaryText = styled.div`
-  font-weight: bold;
+  ${({ theme }) => `
+    font-weight: ${theme.typography.weights.bold};
+  `}
 `;
 
 const SUMMARY_TOOLTIP_TEXT = t(
@@ -90,18 +96,12 @@ export const TotalsRenderer = ({
   return <StyledTotalCell>{value}</StyledTotalCell>;
 };
 
-export const CellRenderer = ({
+interface CellRendererProps {
+  value: number;
+  backgroundColor?: string;
+}
+
+export const CellRenderer: React.FC<CellRendererProps> = ({
   value,
   backgroundColor,
-}: {
-  value: number;
-  backgroundColor: string;
-}) => (
-  <div
-    style={{
-      ...(backgroundColor ? { backgroundColor } : {}),
-    }}
-  >
-    {value}
-  </div>
-);
+}) => <div style={{ backgroundColor }}>{value}</div>;

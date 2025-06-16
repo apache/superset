@@ -35,6 +35,7 @@ import {
   Currency,
   JsonObject,
 } from '@superset-ui/core';
+import { ColDef, Column, IHeaderParams } from 'ag-grid-community';
 
 export type CustomFormatter = (value: DataRecordValue) => string;
 
@@ -173,6 +174,26 @@ export interface AgGridTableChartTransformedProps<
 export enum ColorSchemeEnum {
   'Green' = 'Green',
   'Red' = 'Red',
+}
+
+export interface SortState {
+  colId: string;
+  sort: 'asc' | 'desc' | null;
+}
+
+export interface CustomContext {
+  initialSortState: SortState[];
+  onColumnHeaderClicked: (args: { column: SortState }) => void;
+}
+
+export interface CustomHeaderParams extends IHeaderParams {
+  context: CustomContext;
+  column: Column;
+}
+
+export interface UserProvidedColDef extends ColDef {
+  isMain?: boolean;
+  timeComparisonKey?: string;
 }
 
 export default {};

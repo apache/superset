@@ -22,8 +22,10 @@ import { Select } from 'antd';
 import { SearchOption } from '../../types';
 
 const StyledSelect = styled(Select)`
-  width: 120px;
-  margin-right: 8px;
+  ${({ theme }) => `
+    width: ${theme.gridUnit * 30}px;
+    margin-right: ${theme.gridUnit * 2}px;
+  `}
 `;
 
 interface SearchSelectDropdownProps {

@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-/* eslint-disable theme-colors/no-literal-colors */
 import { useEffect, useRef, useState, cloneElement } from 'react';
 import { styled } from '@superset-ui/core';
 
@@ -26,14 +25,16 @@ const PopoverWrapper = styled.div`
 `;
 
 const PopoverContainer = styled.div`
-  position: fixed;
-  background: #f8f8f8;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-  z-index: 99999;
-  min-width: 200px;
-  padding: 8px;
+  ${({ theme }) => `
+    position: fixed;
+    background: ${theme.colors.grayscale.light4};
+    border: 1px solid ${theme.colors.grayscale.light2};
+    border-radius: ${theme.borderRadius}px;
+    box-shadow: 0 ${theme.gridUnit / 2}px ${theme.gridUnit * 2}px ${theme.colors.grayscale.light1}40;
+    z-index: 99;
+    min-width: ${theme.gridUnit * 50}px;
+    padding: ${theme.gridUnit * 2}px;
+  `}
 `;
 
 interface Props {

@@ -111,44 +111,47 @@ const StyledContainer = styled.div`
 
     .time-comparison-dropdown {
       display: flex;
-      padding-right: 16px;
-      padding-top: 7px;
+      padding-right: ${theme.gridUnit * 4}px;
+      padding-top: ${theme.gridUnit * 1.75}px;
     }
 
     .ag-header,
     .ag-row,
     .ag-spanned-row {
-      font-size: 12px;
-      font-weight: 500;
+      font-size: ${theme.typography.sizes.s}px;
+      font-weight: ${theme.typography.weights.bold};
     }
 
     .ag-root-wrapper {
-      border-radius: 2px;
+      border-radius: ${theme.borderRadius}px;
     }
 
     .search-by-text {
-      margin-right: 5px;
+      margin-right: ${theme.gridUnit}px;
     }
+
     .input-container {
       margin-left: auto;
     }
+
     .input-wrapper {
       position: relative;
       display: flex;
       align-items: center;
       overflow: visible;
-      margin-bottom: 1rem;
+      margin-bottom: ${theme.gridUnit * 4}px;
     }
 
     .input-wrapper svg {
       pointer-events: none;
-      transform: translate(28px, 2px);
+      transform: translate(${theme.gridUnit * 7}px, ${theme.gridUnit / 2}px);
       color: ${theme.colors.grayscale.base};
     }
 
     .input-wrapper input {
       font-size: ${theme.typography.sizes.s}px;
-      padding: 0.375em 0.75em 0.375em 2.4em;
+      padding: ${theme.gridUnit * 1.5}px ${theme.gridUnit * 3}px
+        ${theme.gridUnit * 1.5}px ${theme.gridUnit * 8}px;
       line-height: 1.8;
       border-radius: ${theme.gridUnit}px;
       border: 1px solid ${theme.colors.grayscale.light2};
