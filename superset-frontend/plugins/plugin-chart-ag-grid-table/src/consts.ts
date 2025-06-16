@@ -17,7 +17,7 @@
  * under the License.
  */
 import { formatSelectOptions } from '@superset-ui/chart-controls';
-import { addLocaleData, t } from '@superset-ui/core';
+import { addLocaleData } from '@superset-ui/core';
 import i18n from './i18n';
 
 addLocaleData(i18n);
