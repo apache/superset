@@ -95,6 +95,7 @@ class ChartRenderer extends Component {
         isFeatureEnabled(FeatureFlag.DrillToDetail),
       inContextMenu: false,
       legendState: undefined,
+      legendIndex: 0,
     };
     this.hasQueryResponseChange = false;
 
@@ -109,6 +110,7 @@ class ChartRenderer extends Component {
     this.handleContextMenuClosed = this.handleContextMenuClosed.bind(this);
     this.handleLegendStateChanged = this.handleLegendStateChanged.bind(this);
     this.onContextMenuFallback = this.onContextMenuFallback.bind(this);
+    this.handleLegendScroll = this.handleLegendScroll.bind(this);
 
     this.hooks = {
       onAddFilter: this.handleAddFilter,
@@ -123,6 +125,7 @@ class ChartRenderer extends Component {
       setDataMask: dataMask => {
         this.props.actions?.updateDataMask(this.props.chartId, dataMask);
       },
+      onLegendScroll: this.handleLegendScroll,
     };
 
     // TODO: queriesResponse comes from Redux store but it's being edited by
@@ -244,6 +247,10 @@ class ChartRenderer extends Component {
       event.preventDefault();
       this.handleOnContextMenu(event.clientX, event.clientY);
     }
+  }
+
+  handleLegendScroll(legendIndex) {
+    this.setState({ legendIndex });
   }
 
   render() {
@@ -372,6 +379,7 @@ class ChartRenderer extends Component {
             emitCrossFilters={emitCrossFilters}
             legendState={this.state.legendState}
             enableNoResults={bypassNoResult}
+            legendIndex={this.state.legendIndex}
             {...drillToDetailProps}
           />
         </div>
