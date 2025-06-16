@@ -158,6 +158,7 @@ def test_get_schema_from_engine_params() -> None:
         == "dfs.test"
     )
 
+
 @pytest.mark.parametrize(
     "column_name,expected_result",
     [
@@ -167,7 +168,7 @@ def test_get_schema_from_engine_params() -> None:
 )
 def test_connect_make_label_compatible(column_name: str, expected_result: str) -> None:
     from superset.db_engine_specs.drill import (
-        DrillEngineSpec as spec, # noqa: N813
+        DrillEngineSpec as spec,  # noqa: N813
     )
 
     label = spec.make_label_compatible(column_name)
