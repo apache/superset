@@ -30,11 +30,8 @@ import Loading from 'src/components/Loading';
 import EditorAutoSync from 'src/SqlLab/components/EditorAutoSync';
 import useEffectEvent from 'src/hooks/useEffectEvent';
 import { LocationProvider } from './LocationContext';
-import { useExtensionsContext } from 'src/extensions/ExtensionsContext';
 
 export default function SqlLab() {
-  // TODO: Remove this when we have a better way to handle context initialization
-  useExtensionsContext();
   const lastInitializedAt = useSelector<SqlLabRootState, number>(
     state => state.sqlLab.queriesLastUpdate || 0,
   );

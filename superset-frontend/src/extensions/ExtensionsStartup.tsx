@@ -16,7 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { useEffect } from 'react';
 import * as supersetCore from '@apache-superset/core';
+import { useExtensionsContext } from './ExtensionsContext';
+import ExtensionsManager from './ExtensionsManager';
 import {
   authentication,
   core,
@@ -25,7 +28,6 @@ import {
   extensions,
   sqlLab,
 } from 'src/extensions';
-import ExtensionsManager from './ExtensionsManager';
 
 declare global {
   interface Window {
@@ -40,20 +42,33 @@ declare global {
   }
 }
 
-export default function setupExtensions() {
-  window.superset = {
-    ...supersetCore,
-    authentication,
-    core,
-    commands,
-    environment,
-    extensions,
-    sqlLab,
-  };
+const ExtensionsStartup = () => {
+  // Initialize the extensions context before initializing extensions
+  // This is a prerequisite for the ExtensionsManager to work correctly
+  useExtensionsContext();
 
-  try {
-    ExtensionsManager.getInstance().initialize();
-  } catch (error) {
-    console.error('Error setting up extensions:', error);
-  }
-}
+  useEffect(() => {
+    // Provide the implementations for @apache-superset/core
+    window.superset = {
+      ...supersetCore,
+      authentication,
+      core,
+      commands,
+      environment,
+      extensions,
+      sqlLab,
+    };
+
+    try {
+      // Initialize the extensions
+      ExtensionsManager.getInstance().initialize();
+      console.log('Extensions initialized successfully.');
+    } catch (error) {
+      console.error('Error setting up extensions:', error);
+    }
+  }, []);
+
+  return null;
+};
+
+export default ExtensionsStartup;

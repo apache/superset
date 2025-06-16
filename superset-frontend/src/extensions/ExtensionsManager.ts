@@ -33,8 +33,6 @@ import { ExtensionContext } from './core';
 class ExtensionsManager {
   private static instance: ExtensionsManager;
 
-  // TODO: Review this code to simplify the indexes and their usage.
-
   private extensionIndex: Map<string, core.Extension> = new Map();
 
   private contextIndex: Map<string, ExtensionContext> = new Map();
