@@ -159,12 +159,14 @@ export interface SliceHeaderExtension {
   dashboardId: number;
 }
 
+type ResourceType = 'dashboard' | 'chart';
+
 /**
  * Interface for extensions to Embed Modal
  */
 export interface DashboardEmbedModalExtensions {
-  dashboardId: string;
-  show: boolean;
+  resourceId: string;
+  resourceType: ResourceType;
   onHide: () => void;
 }
 

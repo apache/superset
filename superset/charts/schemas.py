@@ -26,6 +26,7 @@ from marshmallow.validate import Length, Range
 
 from superset import app
 from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
+from superset.dashboards.schemas import UserSchema
 from superset.db_engine_specs.base import builtin_time_grains
 from superset.utils import pandas_postprocessing, schema as utils
 from superset.utils.core import (
@@ -1603,6 +1604,18 @@ class ChartCacheWarmUpResponseSchema(Schema):
     )
 
 
+class EmbeddedChartConfigSchema(Schema):
+    allowed_domains = fields.List(fields.String())
+
+
+class EmbeddedChartResponseSchema(Schema):
+    uuid = fields.String()
+    allowed_domains = fields.List(fields.String())
+    dashboard_id = fields.String()
+    changed_on = fields.DateTime()
+    changed_by = fields.Nested(UserSchema)
+
+
 CHART_SCHEMAS = (
     ChartCacheWarmUpRequestSchema,
     ChartCacheWarmUpResponseSchema,
@@ -1628,4 +1641,6 @@ CHART_SCHEMAS = (
     ChartGetDatasourceResponseSchema,
     ChartCacheScreenshotResponseSchema,
     GetFavStarIdsSchema,
+    EmbeddedChartConfigSchema,
+    EmbeddedChartResponseSchema,
 )

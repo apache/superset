@@ -18,6 +18,7 @@
  */
 import { t } from '@superset-ui/core';
 
+import { HYDRATE_EMBEDDED } from 'src/embedded/embeddedChart/hydrateEmbedded';
 import {
   FETCH_ALL_SLICES_FAILED,
   FETCH_ALL_SLICES_STARTED,
@@ -39,6 +40,11 @@ export default function sliceEntitiesReducer(
 ) {
   const actionHandlers = {
     [HYDRATE_DASHBOARD]() {
+      return {
+        ...action.data.sliceEntities,
+      };
+    },
+    [HYDRATE_EMBEDDED]() {
       return {
         ...action.data.sliceEntities,
       };
