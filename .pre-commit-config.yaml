@@ -100,3 +100,22 @@ repos:
       - id: ruff
         args: [--fix]
       - id: ruff-format
+  - repo: local
+    hooks:
+    - id: pylint
+      name: pylint with custom Superset plugins
+      entry: bash
+      language: system
+      types: [python]
+      exclude: ^(tests/|superset/migrations/|scripts/|RELEASING/|docker/)
+      args:
+        - -c
+        - |
+          TARGET_BRANCH=${GITHUB_BASE_REF:-master}
+          git fetch origin "$TARGET_BRANCH"
+          files=$(git diff --name-only --diff-filter=ACM origin/"$TARGET_BRANCH"..HEAD | grep '^superset/.*\.py$' || true)
+          if [ -n "$files" ]; then
+            pylint --rcfile=.pylintrc --load-plugins=superset.extensions.pylint $files
+          else
+            echo "No Python files to lint."
+          fi
