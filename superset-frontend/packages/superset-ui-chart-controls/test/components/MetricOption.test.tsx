@@ -18,7 +18,6 @@
  */
 import '@testing-library/jest-dom';
 import { render } from '@superset-ui/core/spec';
-import { ThemeProvider, supersetTheme } from '@superset-ui/core';
 import {
   MetricOption,
   MetricOptionProps,
@@ -61,11 +60,7 @@ const defaultProps = {
 };
 
 const setup = (props: Partial<MetricOptionProps> = {}) =>
-  render(
-    <ThemeProvider theme={supersetTheme}>
-      <MetricOption {...defaultProps} {...props} />
-    </ThemeProvider>,
-  );
+  render(<MetricOption {...defaultProps} {...props} />);
 test('shows a label with verbose_name', () => {
   const { container } = setup();
   const lbl = container.getElementsByClassName('option-label');
