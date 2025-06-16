@@ -313,6 +313,8 @@ AUTH_RATE_LIMIT = "5 per second"
 # GLOBALS FOR APP Builder
 # ------------------------------
 # Uncomment to setup Your App name
+
+SUPERSET_WEBSERVER_URL = "https://dw.pesapalhosting.com:9004"
 APP_NAME = "PESAPAL DATA"
 
 # Specify the App icon
@@ -558,7 +560,7 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # query, and might break queries and/or allow users to bypass RLS. Use with care!
     "RLS_IN_SQLLAB": False,
     # Try to optimize SQL queries — for now only predicate pushdown is supported.
-    "OPTIMIZE_SQL": False,
+    "OPTIMIZE_SQL": True,
     # When impersonating a user, use the email prefix instead of the username
     "IMPERSONATE_WITH_EMAIL_PREFIX": False,
     # Enable caching per impersonation key (e.g username) in a datasource where user
