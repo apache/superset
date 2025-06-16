@@ -62,45 +62,38 @@ import { usePermissions } from 'src/hooks/usePermissions';
 import { useCrossFiltersScopingModal } from '../nativeFilters/FilterBar/CrossFilters/ScopingModal/useCrossFiltersScopingModal';
 import { ViewResultsModalTrigger } from './ViewResultsModalTrigger';
 
-// TODO: replace 3 dots with an icon
-const VerticalDotsContainer = styled.div`
-  .dot {
-    display: block;
-
-    height: ${({ theme }) => theme.sizeUnit}px;
-    width: ${({ theme }) => theme.sizeUnit}px;
-    border-radius: 50%;
-    margin: ${({ theme }) => theme.sizeUnit / 2}px 0;
-
-    background-color: ${({ theme }) => theme.colorTextLabel};
-  }
-
-  &:hover {
-    cursor: pointer;
-  }
-`;
-
 const RefreshTooltip = styled.div`
-  height: auto;
-  margin: ${({ theme }) => theme.sizeUnit}px 0;
-  color: ${({ theme }) => theme.colors.grayscale.base};
-  line-height: 21px;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  justify-content: flex-start;
+  ${({ theme }) => css`
+    height: auto;
+    margin: ${theme.sizeUnit}px 0;
+    color: ${theme.colorTextLabel};
+    line-height: 21px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: flex-start;
+  `}
 `;
 
 const getScreenshotNodeSelector = (chartId: string | number) =>
   `.dashboard-chart-id-${chartId}`;
 
-const VerticalDotsTrigger = () => (
-  <VerticalDotsContainer>
-    <span className="dot" />
-    <span className="dot" />
-    <span className="dot" />
-  </VerticalDotsContainer>
-);
+const VerticalDotsTrigger = () => {
+  const theme = useTheme();
+  return (
+    <Icons.EllipsisOutlined
+      css={css`
+        transform: rotate(90deg);
+        &:hover {
+          cursor: pointer;
+        }
+      `}
+      iconSize="xxl"
+      iconColor={theme.colorTextLabel}
+      className="dot"
+    />
+  );
+};
 
 export interface SliceHeaderControlsProps {
   slice: {
