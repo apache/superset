@@ -61,8 +61,10 @@ export function interceptExploreGet() {
 export function setFilter(filter: string, option: string) {
   interceptFiltering();
 
-  cy.get(`[aria-label="${filter}"]`).first().click();
-  cy.get(`[aria-label="${filter}"] [title="${option}"]`).click();
+  cy.get(`[aria-label^="${filter}"]`).first().click();
+  cy.get(`.ant-select-item-option[title="${option}"]`).first().click({
+    force: true,
+  });
 
   cy.wait('@filtering');
 }
@@ -76,17 +78,18 @@ export function saveChartToDashboard(dashboardName: string) {
     .should('be.enabled')
     .should('not.be.disabled')
     .click();
-  cy.getBySelLike('chart-modal').should('be.visible');
-  cy.get(
-    '[data-test="save-chart-modal-select-dashboard-form"] [aria-label="Select a dashboard"]',
-  )
-    .first()
-    .click();
-  cy.get(
-    '.ant-select-selection-search-input[aria-label="Select a dashboard"]',
-  ).type(dashboardName, { force: true });
-  cy.get(`.ant-select-item-option[title="${dashboardName}"]`).click();
-  cy.getBySel('btn-modal-save').click();
+  cy.getBySelLike('chart-modal')
+    .should('be.visible')
+    .within(() => {
+      cy.get('[data-test="save-chart-modal-select-dashboard-form"]')
+        .first()
+        .click();
+      cy.get('.ant-select-selection-search-input').type(dashboardName, {
+        force: true,
+      });
+      cy.get(`.ant-select-item-option[title="${dashboardName}"]`).click();
+      cy.getBySel('btn-modal-save').click();
+    });
 
   cy.wait('@update');
   cy.wait('@get');

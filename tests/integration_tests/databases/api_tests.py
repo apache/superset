@@ -1337,7 +1337,7 @@ class TestDatabaseApi(SupersetTestCase):
         expected_response_postgres = {
             "errors": [dataclasses.asdict(superset_error_postgres)]
         }
-        assert response.status_code == 500
+        assert response.status_code == 400
         if example_db.backend == "mysql":
             assert response_data == expected_response_mysql
         else:
@@ -2450,7 +2450,7 @@ class TestDatabaseApi(SupersetTestCase):
         url = "api/v1/database/test_connection/"
         rv = self.post_assert_metric(url, data, "test_connection")
 
-        assert rv.status_code == 500
+        assert rv.status_code == 400
         assert rv.headers["Content-Type"] == "application/json; charset=utf-8"
         response = json.loads(rv.data.decode("utf-8"))
         expected_response = {"errors": [dataclasses.asdict(superset_error)]}

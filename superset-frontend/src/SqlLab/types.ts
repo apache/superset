@@ -67,6 +67,7 @@ export interface QueryEditor {
   southPercent?: number;
   updatedAt?: number;
   cursorPosition?: CursorPosition;
+  isDataset?: boolean;
 }
 
 export type toastState = {
