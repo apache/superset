@@ -30,6 +30,7 @@ import * as saveModalActions from 'src/explore/actions/saveModalActions';
 import * as downloadAsImage from 'src/utils/downloadAsImage';
 import * as exploreUtils from 'src/explore/exploreUtils';
 import { FeatureFlag, VizType } from '@superset-ui/core';
+import { useUnsavedChangesPrompt } from 'src/hooks/useUnsavedChangesPrompt';
 import ExploreHeader from '.';
 
 const chartEndpoint = 'glob:*api/v1/chart/*';
@@ -39,6 +40,10 @@ fetchMock.get(chartEndpoint, { json: 'foo' });
 window.featureFlags = {
   [FeatureFlag.EmbeddableCharts]: true,
 };
+
+jest.mock('src/hooks/useUnsavedChangesPrompt', () => ({
+  useUnsavedChangesPrompt: jest.fn(),
+}));
 
 const createProps = (additionalProps = {}) => ({
   chart: {
@@ -134,6 +139,18 @@ fetchMock.post(
 describe('ExploreChartHeader', () => {
   jest.setTimeout(15000); // ✅ Applies to all tests in this suite
 
+  beforeEach(() => {
+    jest.clearAllMocks();
+
+    (useUnsavedChangesPrompt as jest.Mock).mockReturnValue({
+      showModal: false,
+      setShowModal: jest.fn(),
+      handleConfirmNavigation: jest.fn(),
+      handleSaveAndCloseModal: jest.fn(),
+      triggerManualSave: jest.fn(),
+    });
+  });
+
   test('Cancelling changes to the properties should reset previous properties', async () => {
     const props = createProps();
     render(<ExploreHeader {...props} />, { useRedux: true });
@@ -201,34 +218,175 @@ describe('ExploreChartHeader', () => {
   });
 
   test('Save chart', async () => {
-    const setSaveChartModalVisibility = jest.spyOn(
+    const setSaveChartModalVisibilitySpy = jest.spyOn(
       saveModalActions,
       'setSaveChartModalVisibility',
     );
+
+    const setSaveChartModalVisibilityMock =
+      setSaveChartModalVisibilitySpy as jest.Mock;
+
+    const triggerManualSave = jest.fn(() => {
+      setSaveChartModalVisibilityMock(true);
+    });
+
+    (useUnsavedChangesPrompt as jest.Mock).mockReturnValue({
+      showModal: false,
+      setShowModal: jest.fn(),
+      handleConfirmNavigation: jest.fn(),
+      handleSaveAndCloseModal: jest.fn(),
+      triggerManualSave,
+    });
+
     const props = createProps();
     render(<ExploreHeader {...props} />, { useRedux: true });
-    expect(await screen.findByText('Save')).toBeInTheDocument();
-    userEvent.click(screen.getByText('Save'));
-    expect(setSaveChartModalVisibility).toHaveBeenCalledWith(true);
-    setSaveChartModalVisibility.mockClear();
+
+    const saveButton: HTMLElement =
+      await screen.findByTestId('query-save-button');
+
+    expect(saveButton).toBeInTheDocument();
+
+    userEvent.click(saveButton);
+
+    expect(triggerManualSave).toHaveBeenCalled();
+    expect(setSaveChartModalVisibilityMock).toHaveBeenCalledWith(true);
+
+    setSaveChartModalVisibilityMock.mockClear();
   });
 
   test('Save disabled', async () => {
-    const setSaveChartModalVisibility = jest.spyOn(
-      saveModalActions,
-      'setSaveChartModalVisibility',
-    );
+    const triggerManualSave = jest.fn();
+
+    (useUnsavedChangesPrompt as jest.Mock).mockReturnValue({
+      showModal: false,
+      setShowModal: jest.fn(),
+      handleConfirmNavigation: jest.fn(),
+      handleSaveAndCloseModal: jest.fn(),
+      triggerManualSave,
+    });
+
     const props = createProps();
     render(<ExploreHeader {...props} saveDisabled />, { useRedux: true });
-    expect(await screen.findByText('Save')).toBeInTheDocument();
-    userEvent.click(screen.getByText('Save'));
-    expect(setSaveChartModalVisibility).not.toHaveBeenCalled();
-    setSaveChartModalVisibility.mockClear();
+
+    const saveButton: HTMLElement =
+      await screen.findByTestId('query-save-button');
+
+    expect(saveButton).toBeInTheDocument();
+    expect(saveButton).toBeDisabled();
+
+    userEvent.click(saveButton);
+
+    expect(triggerManualSave).not.toHaveBeenCalled();
+  });
+
+  test('should render UnsavedChangesModal when showModal is true', async () => {
+    const props = createProps();
+    (useUnsavedChangesPrompt as jest.Mock).mockReturnValue({
+      showModal: true,
+      setShowModal: jest.fn(),
+      handleConfirmNavigation: jest.fn(),
+      handleSaveAndCloseModal: jest.fn(),
+      triggerManualSave: jest.fn(),
+    });
+
+    render(<ExploreHeader {...props} />, { useRedux: true });
+
+    await waitFor(() => {
+      expect(
+        screen.getByText('Save changes to your chart?'),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByText('If you don’t save, changes will be lost.'),
+      ).toBeInTheDocument();
+    });
+  });
+
+  test('should call handleSaveAndCloseModal when clicking Save in UnsavedChangesModal', async () => {
+    const handleSaveAndCloseModal = jest.fn();
+
+    (useUnsavedChangesPrompt as jest.Mock).mockReturnValue({
+      showModal: true,
+      setShowModal: jest.fn(),
+      handleConfirmNavigation: jest.fn(),
+      handleSaveAndCloseModal,
+      triggerManualSave: jest.fn(),
+    });
+
+    const props = createProps();
+    render(<ExploreHeader {...props} />, { useRedux: true });
+
+    await waitFor(() =>
+      expect(
+        screen.getByTestId('unsaved-confirm-save-button'),
+      ).toBeInTheDocument(),
+    );
+
+    userEvent.click(screen.getByTestId('unsaved-confirm-save-button'));
+
+    expect(handleSaveAndCloseModal).toHaveBeenCalled();
+  });
+
+  test('should call handleConfirmNavigation when clicking Discard in UnsavedChangesModal', async () => {
+    const handleConfirmNavigation = jest.fn();
+
+    (useUnsavedChangesPrompt as jest.Mock).mockReturnValue({
+      showModal: true,
+      setShowModal: jest.fn(),
+      handleConfirmNavigation,
+      handleSaveAndCloseModal: jest.fn(),
+      triggerManualSave: jest.fn(),
+    });
+
+    const props = createProps();
+    render(<ExploreHeader {...props} />, { useRedux: true });
+
+    await waitFor(() =>
+      expect(
+        screen.getByTestId('unsaved-modal-discard-button'),
+      ).toBeInTheDocument(),
+    );
+
+    userEvent.click(screen.getByTestId('unsaved-modal-discard-button'));
+
+    expect(handleConfirmNavigation).toHaveBeenCalled();
+  });
+
+  test('should call setShowModal(false) when clicking close button in UnsavedChangesModal', async () => {
+    const setShowModal = jest.fn();
+
+    (useUnsavedChangesPrompt as jest.Mock).mockReturnValue({
+      showModal: true,
+      setShowModal,
+      handleConfirmNavigation: jest.fn(),
+      handleSaveAndCloseModal: jest.fn(),
+      triggerManualSave: jest.fn(),
+    });
+
+    const props = createProps();
+    render(<ExploreHeader {...props} />, { useRedux: true });
+
+    await waitFor(() =>
+      expect(screen.getByTestId('close-modal-btn')).toBeInTheDocument(),
+    );
+
+    userEvent.click(screen.getByTestId('close-modal-btn'));
+
+    expect(setShowModal).toHaveBeenCalledWith(false);
   });
 });
 
 describe('Additional actions tests', () => {
   jest.setTimeout(15000); // ✅ Applies to all tests in this suite
+
+  beforeEach(() => {
+    (useUnsavedChangesPrompt as jest.Mock).mockReturnValue({
+      showModal: false,
+      setShowModal: jest.fn(),
+      handleConfirmNavigation: jest.fn(),
+      handleSaveAndCloseModal: jest.fn(),
+      triggerManualSave: jest.fn(),
+    });
+  });
 
   test('Should render a button', async () => {
     const props = createProps();
@@ -356,6 +514,14 @@ describe('Additional actions tests', () => {
     beforeEach(() => {
       spyDownloadAsImage = sinon.spy(downloadAsImage, 'default');
       spyExportChart = sinon.spy(exploreUtils, 'exportChart');
+
+      (useUnsavedChangesPrompt as jest.Mock).mockReturnValue({
+        showModal: false,
+        setShowModal: jest.fn(),
+        handleConfirmNavigation: jest.fn(),
+        handleSaveAndCloseModal: jest.fn(),
+        triggerManualSave: jest.fn(),
+      });
     });
 
     afterEach(async () => {

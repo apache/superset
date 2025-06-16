@@ -54,6 +54,8 @@ import setPeriodicRunner, {
 import ReportModal from 'src/features/reports/ReportModal';
 import { deleteActiveReport } from 'src/features/reports/ReportModal/actions';
 import { PageHeaderWithActions } from '@superset-ui/core/components/PageHeaderWithActions';
+import UnsavedChangesModal from 'src/components/UnsavedChangesModal';
+import { useUnsavedChangesPrompt } from 'src/hooks/useUnsavedChangesPrompt';
 import DashboardEmbedModal from '../EmbeddedModal';
 import OverwriteConfirm from '../OverwriteConfirm';
 import {
@@ -460,6 +462,16 @@ const Header = () => {
     slug,
   ]);
 
+  const {
+    showModal: showUnsavedChangesModal,
+    setShowModal: setShowUnsavedChangesModal,
+    handleConfirmNavigation,
+    handleSaveAndCloseModal,
+  } = useUnsavedChangesPrompt({
+    hasUnsavedChanges,
+    onSave: overwriteDashboard,
+  });
+
   const showPropertiesModal = useCallback(() => {
     setShowingPropertiesModal(true);
   }, []);
@@ -815,6 +827,15 @@ const Header = () => {
             border-right: none;
           }
         `}
+      />
+
+      <UnsavedChangesModal
+        title="Save changes to your dashboard?"
+        body="If you don't save, changes will be lost."
+        showModal={showUnsavedChangesModal}
+        onHide={() => setShowUnsavedChangesModal(false)}
+        onConfirmNavigation={handleConfirmNavigation}
+        handleSave={handleSaveAndCloseModal}
       />
     </div>
   );
