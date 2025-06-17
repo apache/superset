@@ -19,7 +19,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useSelector } from 'react-redux';
 import { Menu } from 'src/components/Menu';
-import { t } from '@superset-ui/core';
+import { t, isFeatureEnabled, FeatureFlag } from '@superset-ui/core';
 import { isEmpty } from 'lodash';
 import { URL_PARAMS } from 'src/constants';
 import ShareMenuItems from 'src/dashboard/components/menu/ShareMenuItems';
@@ -192,7 +192,7 @@ export const useHeaderActionsMenu = ({
             {t('Edit properties')}
           </Menu.Item>
         )}
-        {editMode && (
+        {editMode && isFeatureEnabled(FeatureFlag.EnableCssTemplates) && (
           <Menu.Item key={MenuKeys.EditCss}>
             <CssEditor
               triggerNode={<div>{t('Edit CSS')}</div>}
