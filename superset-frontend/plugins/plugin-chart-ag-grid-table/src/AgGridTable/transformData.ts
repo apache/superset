@@ -214,7 +214,9 @@ export const transformData = (
     const headerLabel =
       col?.originalLabel && col?.key.includes('Main')
         ? col?.originalLabel
-        : col.label;
+        : col?.originalLabel && col?.config?.displayTypeIcon === false
+          ? ''
+          : col.label;
 
     return {
       field: colId,
