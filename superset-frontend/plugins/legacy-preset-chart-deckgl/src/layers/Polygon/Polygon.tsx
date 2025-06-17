@@ -103,6 +103,7 @@ export const getLayer: GetLayerType<PolygonLayer> = function ({
   onContextMenu,
   onSelect,
   selected,
+  emitCrossFilters,
 }) {
   const fd = formData as PolygonFormData;
   const fc = fd.fill_color_picker;
@@ -171,6 +172,7 @@ export const getLayer: GetLayerType<PolygonLayer> = function ({
       filterState,
       onContextMenu,
       setDataMask,
+      emitCrossFilters,
     }),
   });
 };
@@ -196,6 +198,7 @@ export type DeckGLPolygonProps = {
   ) => void;
   setDataMask?: SetDataMaskHook;
   filterState?: FilterState;
+  emitCrossFilters?: boolean;
 };
 
 export function getPoints(data: JsonObject[]) {
@@ -283,6 +286,7 @@ const DeckGLPolygon = (props: DeckGLPolygonProps) => {
       onContextMenu,
       setDataMask,
       filterState,
+      emitCrossFilters,
     } = props;
 
     if (props.payload.data.features === undefined) {
@@ -299,6 +303,7 @@ const DeckGLPolygon = (props: DeckGLPolygonProps) => {
       onContextMenu,
       setDataMask,
       filterState,
+      emitCrossFilters,
     });
 
     return [layer];

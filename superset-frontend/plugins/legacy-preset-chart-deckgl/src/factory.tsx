@@ -53,6 +53,7 @@ type DeckGLComponentProps = {
   width: number;
   filterState: FilterState;
   setDataMask: SetDataMaskHook;
+  emitCrossFilters: boolean;
 };
 
 export interface GetLayerTypeParams {
@@ -70,6 +71,7 @@ export interface GetLayerTypeParams {
   filterState?: FilterState;
   selected?: JsonObject[];
   onSelect?: (value: JsonValue) => void;
+  emitCrossFilters?: boolean;
 }
 
 export interface GetLayerType<T> {
@@ -120,6 +122,7 @@ export function createDeckGLComponent(
           filterState,
           setDataMask,
           onContextMenu,
+          emitCrossFilters,
         } = props;
 
         return getLayer({
@@ -130,6 +133,7 @@ export function createDeckGLComponent(
           setDataMask,
           onContextMenu,
           filterState,
+          emitCrossFilters,
         }) as Layer;
       },
       [setTooltip],
@@ -188,6 +192,7 @@ export function createCategoricalDeckGLComponent(
       setDataMask,
       filterState,
       onContextMenu,
+      emitCrossFilters,
     } = props;
 
     return (
@@ -205,6 +210,7 @@ export function createCategoricalDeckGLComponent(
         setDataMask={setDataMask}
         onContextMenu={onContextMenu}
         filterState={filterState}
+        emitCrossFilters={emitCrossFilters}
       />
     );
   };
