@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Color, PickingInfo } from '@deck.gl/core';
+import { Color } from '@deck.gl/core';
 import { GridLayer } from '@deck.gl/aggregation-layers';
 import { t, CategoricalColorNamespace, JsonObject } from '@superset-ui/core';
 
