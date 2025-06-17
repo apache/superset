@@ -84,7 +84,7 @@ const DatasourceContainer = styled.div`
   }
 
   .change-warning .bold {
-    font-weight: ${({ theme }) => theme.fontWeightStrong};
+    font-weight: ${({ theme }) => theme.fontWeightMedium};
   }
 
   .form-group.has-feedback > .help-block {

@@ -81,7 +81,7 @@ const StyledItem = styled.div<{
     cursor: ${onClick ? 'pointer' : 'default'};
     & .metadata-icon {
       color: ${
-        onClick && collapsed ? theme.colorPrimary : theme.colors.grayscale.base
+        onClick && collapsed ? theme.colorPrimary : theme.colorTextSecondary
       };
       padding-right: ${collapsed ? 0 : ICON_PADDING}px;
       & .anticon {
@@ -89,6 +89,7 @@ const StyledItem = styled.div<{
       }
     }
     & .metadata-text {
+      color: ${theme.colorTextSecondary};
       min-width: ${TEXT_MIN_WIDTH}px;
       overflow: hidden;
       text-overflow: ${collapsed ? 'unset' : 'ellipsis'};

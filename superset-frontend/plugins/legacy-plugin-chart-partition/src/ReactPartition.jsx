@@ -52,7 +52,7 @@ export default styled(Partition)`
     }
 
     .superset-legacy-chart-partition g text {
-      font-weight: ${theme.fontWeightStrong};
+      font-weight: ${theme.fontWeightMedium};
       fill: ${theme.colorText};
     }
 

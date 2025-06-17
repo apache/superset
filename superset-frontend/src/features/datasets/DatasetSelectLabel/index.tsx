@@ -35,7 +35,7 @@ const TooltipContent = styled.div`
   ${({ theme }) => `
     .tooltip-header {
       font-size: ${theme.fontSize}px;
-      font-weight: ${theme.fontWeightStrong};
+      font-weight: ${theme.fontWeightMedium};
     }
 
     .tooltip-description {

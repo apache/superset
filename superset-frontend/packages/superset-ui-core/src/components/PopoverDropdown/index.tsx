@@ -65,7 +65,7 @@ const MenuItem = styled(Menu.Item)`
     }
 
     &.active {
-      font-weight: ${({ theme }) => theme.fontWeightStrong};
+      font-weight: ${({ theme }) => theme.fontWeightMedium};
       background: ${({ theme }) => theme.colors.grayscale.light2};
     }
   }

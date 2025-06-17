@@ -35,7 +35,7 @@ export const StyledExtentButton = styled(Button)`
     background-color: ${theme.colors.primary.light4};
     color: ${theme.colorPrimaryText};
     font-size: ${theme.fontSizeSM}px;
-    font-weight: ${theme.fontWeightStrong};
+    font-weight: ${theme.fontWeightMedium};
     text-transform: uppercase;
     min-width: ${theme.sizeUnit * 36};
     min-height: ${theme.sizeUnit * 8};

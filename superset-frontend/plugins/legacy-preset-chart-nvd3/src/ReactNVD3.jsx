@@ -66,7 +66,7 @@ export default styled(NVD3)`
       }
     }
     .nvtooltip tr.highlight td {
-      font-weight: ${({ theme }) => theme.fontWeightStrong};
+      font-weight: ${({ theme }) => theme.fontWeightMedium};
       font-size: ${({ theme }) => theme.fontSize}px !important;
     }
     text.nv-axislabel {
@@ -146,15 +146,15 @@ export default styled(NVD3)`
   .superset-legacy-chart-nvd3-tr-highlight {
     border-top: 1px solid;
     border-bottom: 1px solid;
-    font-weight: ${({ theme }) => theme.fontWeightStrong};
+    font-weight: ${({ theme }) => theme.fontWeightMedium};
   }
   .superset-legacy-chart-nvd3-tr-total {
-    font-weight: ${({ theme }) => theme.fontWeightStrong};
+    font-weight: ${({ theme }) => theme.fontWeightMedium};
   }
   .nvtooltip {
     .tooltip-header {
       white-space: nowrap;
-      font-weight: ${({ theme }) => theme.fontWeightStrong};
+      font-weight: ${({ theme }) => theme.fontWeightMedium};
     }
     tbody tr:not(.tooltip-header) td:nth-of-type(2) {
       word-break: break-word;

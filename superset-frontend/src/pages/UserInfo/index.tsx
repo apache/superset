@@ -31,7 +31,7 @@ import { Icons, Collapse } from '@superset-ui/core/components';
 
 const StyledHeader = styled.div`
   ${({ theme }) => css`
-    font-weight: ${theme.fontWeightStrong};
+    font-weight: ${theme.fontWeightMedium};
     text-align: left;
     font-size: 18px;
     padding: ${theme.sizeUnit * 3}px;
@@ -72,7 +72,7 @@ const StyledLayout = styled.div`
 `;
 
 const DescriptionTitle = styled.span`
-  font-weight: ${({ theme }) => theme.fontWeightStrong};
+  font-weight: ${({ theme }) => theme.fontWeightMedium};
 `;
 
 enum ModalType {

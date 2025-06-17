@@ -63,7 +63,7 @@ const StyledHeader = styled.div<StyledHeaderProps>`
     ${theme.sizeUnit * MARGIN_MULTIPLIER}px
     ${theme.sizeUnit * (MARGIN_MULTIPLIER + 3)}px;
   font-size: ${theme.sizeUnit * 6}px;
-  font-weight: ${theme.fontWeightStrong};
+  font-weight: ${theme.fontWeightMedium};
   padding-bottom: ${theme.sizeUnit * MARGIN_MULTIPLIER}px;
 
   white-space: nowrap;
@@ -82,7 +82,7 @@ const StyledTitle = styled.div`
   ${({ theme }) => `
   margin-left: ${theme.sizeUnit * (MARGIN_MULTIPLIER + 3)}px;
   margin-bottom: ${theme.sizeUnit * MARGIN_MULTIPLIER}px;
-  font-weight: ${theme.fontWeightStrong};
+  font-weight: ${theme.fontWeightMedium};
   `}
 `;
 

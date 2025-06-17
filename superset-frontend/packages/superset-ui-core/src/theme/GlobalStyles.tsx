@@ -51,7 +51,7 @@ export const GlobalStyles = () => {
         h6,
         strong,
         th {
-          font-weight: ${theme.fontWeightStrong};
+          font-weight: ${theme.fontWeightMedium};
         }
 
         .echarts-tooltip[style*='visibility: hidden'] {

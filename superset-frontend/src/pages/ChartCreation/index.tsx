@@ -170,9 +170,9 @@ const StyledContainer = styled.div`
 `;
 
 const StyledStepTitle = styled.span`
-  ${({ theme: { fontSize, fontWeightStrong } }) => `
+  ${({ theme: { fontSize, fontWeightMedium } }) => `
       font-size: ${fontSize}px;
-      font-weight: ${fontWeightStrong};
+      font-weight: ${fontWeightMedium};
     `}
 `;
 

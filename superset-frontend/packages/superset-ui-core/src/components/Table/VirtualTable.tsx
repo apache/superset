@@ -53,7 +53,7 @@ const StyledCell = styled('div')<{ height?: number }>(
 const StyledTable = styled(AntTable)(
   ({ theme }) => `
     th.ant-table-cell {
-      font-weight: ${theme.fontWeightStrong};
+      font-weight: ${theme.fontWeightMedium};
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;

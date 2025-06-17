@@ -713,7 +713,7 @@ function DashboardList(props: DashboardListProps) {
           title={t('Import dashboards')}
           placement="bottomRight"
         >
-          <Icons.DownloadOutlined data-test="import-button" />
+          <Icons.DownloadOutlined iconSize="l" data-test="import-button" />
         </Tooltip>
       ),
       buttonStyle: 'link',

@@ -160,7 +160,7 @@ export const ScopingTreePanel = ({
           message={
             <span
               css={css`
-                font-weight: ${theme.fontWeightStrong};
+                font-weight: ${theme.fontWeightMedium};
               `}
             >
               {t('Cross-filtering is not enabled in this dashboard')}

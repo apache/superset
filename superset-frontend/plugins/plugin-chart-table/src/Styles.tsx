@@ -108,7 +108,7 @@ export default styled.div`
     }
 
     .dt-totals {
-      font-weight: ${theme.fontWeightStrong};
+      font-weight: ${theme.fontWeightMedium};
     }
 
     .dt-is-null {

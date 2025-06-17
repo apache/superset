@@ -267,7 +267,7 @@ export const allowedAntdTokens = [
   'fontSizeLG',
   'fontSizeSM',
   'fontSizeXL',
-  'fontWeightStrong',
+  'fontWeightMedium',
   'lineHeight',
   'lineHeightHeading1',
   'lineHeightHeading2',

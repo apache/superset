@@ -109,7 +109,7 @@ export default styled(ParallelCoordinates)`
       background: ${addAlpha(theme.colors.grayscale.dark2, 0.05)};
     }
     .parcoords .header {
-      font-weight: ${theme.fontWeightStrong};
+      font-weight: ${theme.fontWeightMedium};
     }
     .parcoords .cell {
       float: left;

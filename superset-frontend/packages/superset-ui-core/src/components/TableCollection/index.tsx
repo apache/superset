@@ -70,8 +70,8 @@ const StyledTable = styled(Table)`
         }
       }
     }
-    .ant-table-column-title{
-      line-height: normal;
+    .ant-table-column-title {
+      line-height: initial;
     }
     .ant-table-row:hover {
       .actions {

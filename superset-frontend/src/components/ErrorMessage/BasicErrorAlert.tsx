@@ -27,7 +27,7 @@ const StyledContent = styled.div`
 `;
 
 const StyledTitle = styled.span`
-  font-weight: ${({ theme }) => theme.fontWeightStrong};
+  font-weight: ${({ theme }) => theme.fontWeightMedium};
 `;
 
 interface BasicErrorAlertProps {

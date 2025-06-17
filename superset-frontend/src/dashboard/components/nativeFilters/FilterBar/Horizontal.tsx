@@ -56,7 +56,7 @@ const HorizontalBarContent = styled.div`
 
 const FilterBarEmptyStateContainer = styled.div`
   ${({ theme }) => `
-    font-weight: ${theme.fontWeightStrong};
+    font-weight: ${theme.fontWeightMedium};
     color: ${theme.colors.grayscale.base};
     font-size: ${theme.fontSizeSM}px;
     padding-left: ${theme.sizeUnit * 2}px;
