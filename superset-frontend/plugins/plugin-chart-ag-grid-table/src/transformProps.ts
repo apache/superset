@@ -237,6 +237,7 @@ const processComparisonColumns = (
           {
             ...col,
             originalLabel,
+            metricName: col.key,
             label: t('Main'),
             key: `${t('Main')} ${col.key}`,
             config: getComparisonColConfig(t('Main'), col.key, columnConfig),
@@ -251,6 +252,7 @@ const processComparisonColumns = (
           {
             ...col,
             originalLabel,
+            metricName: col.key,
             label: `#`,
             key: `# ${col.key}`,
             config: getComparisonColConfig(`#`, col.key, columnConfig),
@@ -265,6 +267,7 @@ const processComparisonColumns = (
           {
             ...col,
             originalLabel,
+            metricName: col.key,
             label: `△`,
             key: `△ ${col.key}`,
             config: getComparisonColConfig(`△`, col.key, columnConfig),
@@ -279,6 +282,7 @@ const processComparisonColumns = (
           {
             ...col,
             originalLabel,
+            metricName: col.key,
             label: `%`,
             key: `% ${col.key}`,
             config: getComparisonColConfig(`%`, col.key, columnConfig),

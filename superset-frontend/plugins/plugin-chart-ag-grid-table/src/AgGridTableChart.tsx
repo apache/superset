@@ -108,6 +108,8 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     totals,
     showTotals,
     columnColorFormatters,
+    basicColorColumnFormatters,
+    basicColorFormatters,
   } = props;
 
   const [searchOptions, setSearchOptions] = useState<SearchOption[]>([]);
@@ -168,6 +170,9 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     totals,
     columnColorFormatters,
     allowRearrangeColumns,
+    basicColorColumnFormatters,
+    basicColorFormatters,
+    isUsingTimeComparison,
     emitCrossFilters,
   );
 

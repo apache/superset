@@ -27,6 +27,7 @@ import CellBarRenderer, {
   CellRenderer,
   TotalsRenderer,
 } from './components/CellbarRenderer';
+import { BasicColorFormatterType } from '../types';
 
 export interface InputColumn {
   key: string;
@@ -38,6 +39,7 @@ export interface InputColumn {
   config: Record<string, any>;
   formatter?: Function;
   originalLabel?: string;
+  metricName?: string;
 }
 
 interface InputData {
@@ -175,10 +177,13 @@ export const transformData = (
   totals: DataRecord | undefined,
   columnColorFormatters: ColorFormatters,
   allowRearrangeColumns?: boolean,
+  basicColorColumnFormatters?: { [Key: string]: BasicColorFormatterType }[],
+  basicColorFormatters?: { [Key: string]: BasicColorFormatterType }[],
+  isUsingTimeComparison?: boolean,
   emitCrossFilters?: boolean,
 ) => {
   const cleanedTotals = cleanTotals(totals || {});
-  const colDefs: ColDef[] = columns.map(col => {
+  const colDefs: ColDef[] = columns.map((col, index, columns) => {
     const { config, isMetric, isPercentMetric, isNumeric } = col;
     const alignPositiveNegative =
       config.alignPositiveNegative === undefined
@@ -190,7 +195,15 @@ export const transformData = (
       Array.isArray(columnColorFormatters) &&
       columnColorFormatters.length > 0;
 
+    console.log(basicColorFormatters, 'basicColorFormatters');
+
+    const hasBasicColorFormatters =
+      isUsingTimeComparison &&
+      Array.isArray(basicColorFormatters) &&
+      basicColorFormatters.length > 0;
+
     const valueRange =
+      !hasBasicColorFormatters &&
       !hasColumnColorFormatters &&
       showCellBars &&
       (config.showCellBars || config.showCellBars === undefined) &&
@@ -296,11 +309,12 @@ export const transformData = (
               }
             });
         }
+
         const formattedValue = col?.formatter ? col?.formatter(value) : value;
         if (!valueRange)
           return CellRenderer({
             value: formattedValue,
-            backgroundColor: backgroundColor || '',
+            backgroundColor: '',
           });
         const CellWidth = cellWidth({
           value: value as number,
@@ -324,9 +338,38 @@ export const transformData = (
           background,
         });
       },
-      cellStyle: {
-        textAlign:
-          col?.config?.horizontalAlign || (col?.isNumeric ? 'right' : 'left'),
+      cellStyle: params => {
+        const { value, colDef } = params;
+        let backgroundColor;
+        if (hasColumnColorFormatters) {
+          columnColorFormatters!
+            .filter(formatter => {
+              const colTitle = formatter?.column?.includes('Main')
+                ? formatter?.column?.replace('Main', '').trim()
+                : formatter?.column;
+              return colTitle === colDef.field;
+            })
+            .forEach(formatter => {
+              const formatterResult =
+                value || value === 0
+                  ? formatter.getColorFromValue(value)
+                  : false;
+              if (formatterResult) {
+                backgroundColor = formatterResult;
+              }
+            });
+        }
+
+        if (hasBasicColorFormatters && col?.metricName) {
+          backgroundColor =
+            basicColorFormatters?.[0]?.[col.metricName]?.backgroundColor;
+        }
+
+        return {
+          backgroundColor: backgroundColor || '',
+          textAlign:
+            col?.config?.horizontalAlign || (col?.isNumeric ? 'right' : 'left'),
+        };
       },
       lockPinned: !allowRearrangeColumns,
       cellClass: params => {
