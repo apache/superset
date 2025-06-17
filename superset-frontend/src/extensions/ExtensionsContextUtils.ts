@@ -16,16 +16,17 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { ExtensionsContextType } from './ExtensionsContext';
 
-import { Avatar as AntdAvatar } from 'antd-v5';
-import { AvatarProps, GroupProps } from 'antd-v5/lib/avatar';
+let extensionsContextValue: ExtensionsContextType | null = null;
 
-export function Avatar(props: AvatarProps) {
-  return <AntdAvatar {...props} />;
-}
+export const setExtensionsContextValue = (value: ExtensionsContextType) => {
+  extensionsContextValue = value;
+};
 
-export function AvatarGroup(props: GroupProps) {
-  return <AntdAvatar.Group {...props} />;
-}
-
-export type { AvatarProps, GroupProps };
+export const getExtensionsContextValue = () => {
+  if (!extensionsContextValue) {
+    throw new Error('ExtensionsContext value is not set');
+  }
+  return extensionsContextValue;
+};

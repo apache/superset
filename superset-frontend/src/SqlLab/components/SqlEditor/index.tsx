@@ -61,7 +61,7 @@ import { Skeleton } from 'src/components';
 import { Switch } from 'src/components/Switch';
 import { Input } from 'src/components/Input';
 import { Menu } from 'src/components/Menu';
-import { Icons } from 'src/components/Icons';
+import { IconNameType, Icons } from 'src/components/Icons';
 import { detectOS } from 'src/utils/common';
 import {
   addNewQueryEditor,
@@ -115,6 +115,8 @@ import {
   LOG_ACTIONS_SQLLAB_STOP_QUERY,
   Logger,
 } from 'src/logger/LogUtils';
+import ExtensionsManager from 'src/extensions/ExtensionsManager';
+import { commands } from 'src/extensions';
 import { MenuItemType } from 'antd-v5/lib/menu/interface';
 import CopyToClipboard from 'src/components/CopyToClipboard';
 import TemplateParamsEditor from '../TemplateParamsEditor';
@@ -711,6 +713,25 @@ const SqlEditor: FC<Props> = ({
       ? t('Schedule the query periodically')
       : t('You must run the query successfully first');
 
+    const contributions =
+      ExtensionsManager.getInstance().getMenuContributions('sqllab.editor');
+
+    const secondaryContributions = (contributions?.secondary || []).map(
+      contribution => {
+        const command = ExtensionsManager.getInstance().getCommandContribution(
+          contribution.command,
+        )!;
+        return (
+          <Menu.Item
+            onClick={() => commands.executeCommand(command.command)}
+            title={command?.description}
+          >
+            {command?.title}
+          </Menu.Item>
+        );
+      },
+    );
+
     const menuItems: MenuItemType[] = [
       {
         key: 'render-html',
@@ -782,6 +803,7 @@ const SqlEditor: FC<Props> = ({
           </KeyboardShortcutButton>
         ),
       },
+      secondaryContributions,
     ].filter(Boolean) as MenuItemType[];
 
     return <Menu css={{ width: theme.gridUnit * 50 }} items={menuItems} />;
@@ -794,6 +816,29 @@ const SqlEditor: FC<Props> = ({
 
   const renderEditorBottomBar = (hideActions: boolean) => {
     const { allow_ctas: allowCTAS, allow_cvas: allowCVAS } = database || {};
+
+    const contributions =
+      ExtensionsManager.getInstance().getMenuContributions('sqllab.editor');
+
+    const primaryContributions = (contributions?.primary || []).map(
+      contribution => {
+        const command = ExtensionsManager.getInstance().getCommandContribution(
+          contribution.command,
+        )!;
+        const Icon = Icons[command?.icon as IconNameType];
+
+        return (
+          <Button
+            onClick={() => commands.executeCommand(command.command)}
+            tooltip={command?.description}
+            icon={<Icon iconSize="m" iconColor={theme.colors.primary.base} />}
+            buttonSize="small"
+          >
+            {command?.title}
+          </Button>
+        );
+      },
+    );
 
     const showMenu = allowCTAS || allowCVAS;
     const menuItems: MenuItemType[] = [
@@ -891,6 +936,7 @@ const SqlEditor: FC<Props> = ({
               <span>
                 <ShareSqlLabQuery queryEditorId={queryEditor.id} />
               </span>
+              <div>{primaryContributions}</div>
               <Dropdown
                 dropdownRender={() => renderDropdown()}
                 trigger={['click']}

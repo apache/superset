@@ -43,6 +43,7 @@ import { logEvent } from 'src/logger/actions';
 import { store } from 'src/views/store';
 import { RootContextProviders } from './RootContextProviders';
 import { ScrollToTop } from './ScrollToTop';
+import ExtensionsStartup from 'src/extensions/ExtensionsStartup';
 
 setupApp();
 setupPlugins();
@@ -77,6 +78,7 @@ const App = () => (
     <ScrollToTop />
     <LocationPathnameLogger />
     <RootContextProviders>
+      <ExtensionsStartup />
       <GlobalStyles />
       <Menu
         data={bootstrapData.common.menu_data}
