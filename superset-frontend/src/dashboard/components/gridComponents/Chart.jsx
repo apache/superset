@@ -428,16 +428,49 @@ const Chart = props => {
     // eslint-disable-next-line camelcase
     queriesResponse?.map(({ cached_dttm }) => cached_dttm) || [];
 
-  // Traduction of metrics and dimensions libella
+  // Translate metric and dimension labels before rendering the chart
   if (formData?.groupbyColumns && Array.isArray(formData.groupbyColumns)) {
+    // For each group-by column, if it's a string, pass it through the translation function `t`
+    // and fall back to the original string if no translation is found
     formData.groupbyColumns = formData.groupbyColumns.map(group =>
-      t(group, { fallback: group }),
+      typeof group === 'string' ? t(group, { fallback: group }) : group,
     );
   }
+
   if (formData?.metrics && Array.isArray(formData.metrics)) {
+    // Do the same translation step for each metric identifier
     formData.metrics = formData.metrics.map(metric =>
-      t(metric, { fallback: metric }),
+      typeof metric === 'string' ? t(metric, { fallback: metric }) : metric,
     );
+  }
+
+  const queryData = chart?.queriesResponse?.[0];
+
+  if (
+    slice?.viz_type === 'table' &&
+    queryData?.colnames &&
+    Array.isArray(queryData.colnames)
+  ) {
+    // Build a mapping from original column names to their translated labels
+    const colMap = {};
+    queryData.colnames.forEach(col => {
+      colMap[col] = typeof col === 'string' ? t(col, { fallback: col }) : col;
+    });
+
+    // Replace the column name array with translated labels
+    queryData.colnames = queryData.colnames.map(col => colMap[col]);
+
+    if (Array.isArray(queryData.data)) {
+      // For table data rows, remap each key (column) to its translated label
+      queryData.data = queryData.data.map(row => {
+        const newRow = {};
+        Object.entries(row).forEach(([key, value]) => {
+          const newKey = colMap[key] || key;
+          newRow[newKey] = value;
+        });
+        return newRow;
+      });
+    }
   }
 
   return (
