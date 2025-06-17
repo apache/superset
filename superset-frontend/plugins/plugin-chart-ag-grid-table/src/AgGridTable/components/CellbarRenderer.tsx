@@ -98,10 +98,21 @@ export const TotalsRenderer = ({
 
 interface CellRendererProps {
   value: number;
+  arrow?: string;
   backgroundColor?: string;
+  arrowColor?: string;
 }
 
 export const CellRenderer: React.FC<CellRendererProps> = ({
   value,
   backgroundColor,
-}) => <div style={{ backgroundColor }}>{value}</div>;
+  arrow,
+  arrowColor,
+}) => (
+  <div style={{ backgroundColor, display: 'flex' }}>
+    {arrow && (
+      <div style={{ marginRight: '10px', color: arrowColor }}>{arrow}</div>
+    )}
+    <div>{value}</div>
+  </div>
+);

@@ -177,7 +177,6 @@ export const transformData = (
   totals: DataRecord | undefined,
   columnColorFormatters: ColorFormatters,
   allowRearrangeColumns?: boolean,
-  basicColorColumnFormatters?: { [Key: string]: BasicColorFormatterType }[],
   basicColorFormatters?: { [Key: string]: BasicColorFormatterType }[],
   isUsingTimeComparison?: boolean,
   emitCrossFilters?: boolean,
@@ -292,29 +291,25 @@ export const transformData = (
             value: valueFormatted,
           });
         }
+        let arrow = '';
+        let arrowColor = '';
+        if (hasBasicColorFormatters && col?.metricName) {
+          arrow = basicColorFormatters?.[0]?.[col.metricName]?.mainArrow;
+          arrowColor =
+            basicColorFormatters?.[0]?.[
+              col.metricName
+            ]?.arrowColor?.toLowerCase();
+        }
 
         // Regular cell rendering logic
         if (!value) return null;
-        let backgroundColor;
-        if (hasColumnColorFormatters) {
-          columnColorFormatters!
-            .filter(formatter => formatter.column === colId)
-            .forEach(formatter => {
-              const formatterResult =
-                value || value === 0
-                  ? formatter.getColorFromValue(value as number)
-                  : false;
-              if (formatterResult) {
-                backgroundColor = formatterResult;
-              }
-            });
-        }
-
         const formattedValue = col?.formatter ? col?.formatter(value) : value;
         if (!valueRange)
           return CellRenderer({
             value: formattedValue,
             backgroundColor: '',
+            arrow,
+            arrowColor,
           });
         const CellWidth = cellWidth({
           value: value as number,
