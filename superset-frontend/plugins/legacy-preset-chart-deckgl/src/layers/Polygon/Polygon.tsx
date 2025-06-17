@@ -23,10 +23,13 @@
 
 import { memo, useCallback, useEffect, useRef, useState } from 'react';
 import {
+  ContextMenuFilters,
+  FilterState,
   HandlerFunction,
   JsonObject,
   JsonValue,
   QueryFormData,
+  SetDataMaskHook,
   t,
 } from '@superset-ui/core';
 
@@ -45,6 +48,7 @@ import {
   DeckGLContainerStyledWrapper,
 } from '../../DeckGLContainer';
 import { TooltipProps } from '../../components/Tooltip';
+import { GetLayerType } from '../../factory';
 
 const DOUBLE_CLICK_THRESHOLD = 250; // milliseconds
 
@@ -90,15 +94,17 @@ function setTooltipContent(formData: PolygonFormData) {
   };
 }
 
-export function getLayer(
-  formData: PolygonFormData,
-  payload: JsonObject,
-  onAddFilter: HandlerFunction,
-  setTooltip: (tooltip: TooltipProps['tooltip']) => void,
-  selected: JsonObject[],
-  onSelect: (value: JsonValue) => void,
-) {
-  const fd = formData;
+export const getLayer: GetLayerType<PolygonLayer> = function ({
+  formData,
+  payload,
+  setTooltip,
+  filterState,
+  setDataMask,
+  onContextMenu,
+  onSelect,
+  selected,
+}) {
+  const fd = formData as PolygonFormData;
   const fc = fd.fill_color_picker;
   const sc = fd.stroke_color_picker;
   let data = [...payload.data.features];
@@ -125,7 +131,11 @@ export function getLayer(
       number,
       number,
     ]) || [0, 0, 0, 0];
-    if (selected.length > 0 && !selected.includes(d[fd.line_column])) {
+    if (
+      selected &&
+      selected.length > 0 &&
+      !selected.includes(d[fd.line_column])
+    ) {
       baseColor[3] /= 2;
     }
 
@@ -158,12 +168,12 @@ export function getLayer(
       setTooltip,
       setTooltipContent: tooltipContentGenerator,
       onSelect,
-      filterState: {},
-      onContextMenu: () => {},
-      setDataMask: () => {},
+      filterState,
+      onContextMenu,
+      setDataMask,
     }),
   });
-}
+};
 
 export type PolygonFormData = QueryFormData & {
   break_points: string[];
@@ -179,6 +189,13 @@ export type DeckGLPolygonProps = {
   onAddFilter: HandlerFunction;
   width: number;
   height: number;
+  onContextMenu?: (
+    clientX: number,
+    clientY: number,
+    filters?: ContextMenuFilters,
+  ) => void;
+  setDataMask?: SetDataMaskHook;
+  filterState?: FilterState;
 };
 
 export function getPoints(data: JsonObject[]) {
@@ -259,28 +276,33 @@ const DeckGLPolygon = (props: DeckGLPolygonProps) => {
   );
 
   const getLayers = useCallback(() => {
+    const {
+      formData,
+      payload,
+      onAddFilter,
+      onContextMenu,
+      setDataMask,
+      filterState,
+    } = props;
+
     if (props.payload.data.features === undefined) {
       return [];
     }
 
-    const layer = getLayer(
-      props.formData,
-      props.payload,
-      props.onAddFilter,
+    const layer = getLayer({
+      formData,
+      payload,
+      onAddFilter,
       setTooltip,
       selected,
       onSelect,
-    );
+      onContextMenu,
+      setDataMask,
+      filterState,
+    });
 
     return [layer];
-  }, [
-    onSelect,
-    props.formData,
-    props.onAddFilter,
-    props.payload,
-    selected,
-    setTooltip,
-  ]);
+  }, [onSelect, selected, setTooltip, props]);
 
   const { payload, formData, setControlValue } = props;
 
