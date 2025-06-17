@@ -145,15 +145,17 @@ export default function TableChart<D extends DataRecord = DataRecord>(
       selectedComparisonColumns.length === 0 ||
       selectedComparisonColumns.includes('all')
     ) {
-      return columns;
+      return columns?.filter(col => col?.config?.visible !== false);
     }
 
-    return columns.filter(
-      col =>
-        !col.originalLabel ||
-        (col?.label || '').includes('Main') ||
-        selectedComparisonColumns.includes(col.label),
-    );
+    return columns
+      .filter(
+        col =>
+          !col.originalLabel ||
+          (col?.label || '').includes('Main') ||
+          selectedComparisonColumns.includes(col.label),
+      )
+      .filter(col => col?.config?.visible !== false);
   }, [columns, selectedComparisonColumns]);
 
   const transformedData = transformData(

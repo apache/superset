@@ -194,8 +194,6 @@ export const transformData = (
       Array.isArray(columnColorFormatters) &&
       columnColorFormatters.length > 0;
 
-    console.log(basicColorFormatters, 'basicColorFormatters');
-
     const hasBasicColorFormatters =
       isUsingTimeComparison &&
       Array.isArray(basicColorFormatters) &&
