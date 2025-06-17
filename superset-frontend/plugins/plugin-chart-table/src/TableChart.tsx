@@ -842,7 +842,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
             text-align: ${sharedStyle.textAlign};
             white-space: ${value instanceof Date ? 'nowrap' : undefined};
             position: relative;
-            background: ${backgroundColor || theme.colorWhite};
+            background: ${backgroundColor || undefined};
             padding-left: ${column.isChildColumn
               ? `${theme.sizeUnit * 5}px`
               : `${theme.sizeUnit}px`};
