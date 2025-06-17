@@ -166,6 +166,33 @@ function calculateMinWidth(headerName: string): number {
   return Math.max(baseWidth, 100);
 }
 
+function getHeaderLabel(col: InputColumn) {
+  let headerLabel: string | undefined;
+
+  const hasOriginalLabel = !!col?.originalLabel;
+  const isMain = col?.key?.includes('Main');
+  const hasDisplayTypeIcon = col?.config?.displayTypeIcon !== false;
+  const hasCustomColumnName = !!col?.config?.customColumnName;
+
+  if (hasOriginalLabel && hasCustomColumnName) {
+    if ('displayTypeIcon' in col.config) {
+      headerLabel =
+        hasDisplayTypeIcon && !isMain
+          ? `${col.label} ${col.config.customColumnName}`
+          : col.config.customColumnName;
+    } else {
+      headerLabel = col.config.customColumnName;
+    }
+  } else if (hasOriginalLabel && isMain) {
+    headerLabel = col.originalLabel;
+  } else if (hasOriginalLabel && !hasDisplayTypeIcon) {
+    headerLabel = '';
+  } else {
+    headerLabel = col?.label;
+  }
+  return headerLabel || '';
+}
+
 export const transformData = (
   columns: InputColumn[],
   data: InputData[],
@@ -211,13 +238,7 @@ export const transformData = (
       ? col?.key.replace('Main', '').trim()
       : col?.key;
 
-    const headerLabel =
-      col?.originalLabel && col?.key.includes('Main')
-        ? col?.originalLabel
-        : col?.originalLabel && col?.config?.displayTypeIcon === false
-          ? ''
-          : col.label;
-
+    const headerLabel = getHeaderLabel(col);
     return {
       field: colId,
       headerName: headerLabel,
