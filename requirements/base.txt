@@ -454,7 +454,7 @@ xlsxwriter==3.0.9
     # via
     #   apache-superset (pyproject.toml)
     #   pandas
-zipp==3.21.0
+zipp==3.23.0
     # via importlib-metadata
 zstandard==0.23.0
     # via flask-compress
