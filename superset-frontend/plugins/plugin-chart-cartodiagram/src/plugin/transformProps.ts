@@ -26,6 +26,7 @@ export default function transformProps(chartProps: ChartProps) {
   const { width, height, formData, hooks, theme } = chartProps;
   const {
     geomColumn,
+    geomFormat,
     selectedChart: selectedChartString,
     chartSize,
     layerConfigs,
@@ -42,6 +43,7 @@ export default function transformProps(chartProps: ChartProps) {
   const chartConfigs = getChartConfigs(
     selectedChart,
     geomColumn,
+    geomFormat,
     chartProps,
     chartTransformer,
   );
@@ -50,6 +52,7 @@ export default function transformProps(chartProps: ChartProps) {
     width,
     height,
     geomColumn,
+    geomFormat,
     selectedChart,
     chartConfigs,
     chartVizType: selectedChart.viz_type,

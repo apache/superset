@@ -28,7 +28,7 @@ import { SliderSingleProps } from 'antd/lib/slider';
 import VectorSource from 'ol/source/Vector';
 import VectorLayer from 'ol/layer/Vector';
 import { LayerConf, MapViewConfigs } from '../types';
-import { GeometryFormat, TimesliderTooltipFormat } from './constants';
+import { GeometryFormat, TimesliderTooltipFormat } from '../constants';
 
 export type DataFeatureCollection = FeatureCollection<
   Geometry,

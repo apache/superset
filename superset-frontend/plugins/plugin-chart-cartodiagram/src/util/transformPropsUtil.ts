@@ -23,12 +23,15 @@ import {
   DataRecord,
 } from '@superset-ui/core';
 import { isObject } from 'lodash';
+import WKB from 'ol/format/WKB';
 import {
   LocationConfigMapping,
   SelectedChartConfig,
   ChartConfig,
   ChartConfigFeature,
 } from '../types';
+import { GeometryFormat } from '../constants';
+import { wkbToGeoJSON, wktToGeoJSON } from './mapUtil';
 
 const COLUMN_SEPARATOR = ', ';
 
@@ -55,6 +58,42 @@ export const getGeojsonColumns = (columns: string[]) =>
     return [...prev, idx];
   }, []);
 
+export const getWkbColumns = (columns: string[]) =>
+  columns.reduce((prev, current, idx) => {
+    let isWkb;
+
+    try {
+      new WKB().readFeature(current);
+      isWkb = true;
+    } catch {
+      isWkb = false;
+    }
+    if (!isWkb) {
+      return [...prev];
+    }
+    return [...prev, idx];
+  }, []);
+
+const WktFormatIdentifiers = [
+  'SRID=',
+  'POINT',
+  'LINESTRING',
+  'POLYGON',
+  'MULTIPOINT',
+  'MULTILINESTRING',
+  'MULTIPOLYGON',
+];
+export const getWktColumns = (columns: string[]) =>
+  columns.reduce((prev, current, idx) => {
+    const isWkt = WktFormatIdentifiers.some(identifier =>
+      current.startsWith(identifier),
+    );
+    if (!isWkt) {
+      return [...prev];
+    }
+    return [...prev, idx];
+  }, []);
+
 /**
  * Create a column name ignoring provided indices.
  *
@@ -76,6 +115,7 @@ export const createColumnName = (columns: string[], ignoreIdx: number[]) =>
 export const groupByLocationGenericX = (
   data: DataRecord[],
   params: SelectedChartConfig['params'],
+  geomFormat: GeometryFormat,
   queryData: any,
 ) => {
   const locations: LocationConfigMapping = {};
@@ -95,16 +135,24 @@ export const groupByLocationGenericX = (
           return;
         }
 
-        const geojsonCols = getGeojsonColumns(labelMap);
+        let geomColumns: number[];
 
-        if (geojsonCols.length > 1) {
+        if (geomFormat === GeometryFormat.GEOJSON) {
+          geomColumns = getGeojsonColumns(labelMap);
+        } else if (geomFormat === GeometryFormat.WKB) {
+          geomColumns = getWkbColumns(labelMap);
+        } else {
+          geomColumns = getWktColumns(labelMap);
+        }
+
+        if (geomColumns.length > 1) {
           // TODO what should we do, if there is more than one geom column?
           console.log(
             'More than one geometry column detected. Using first found.',
           );
         }
-        const location = labelMap[geojsonCols[0]];
-        const filter = geojsonCols.length ? [geojsonCols[0]] : [];
+        const location = labelMap[geomColumns[0]];
+        const filter = geomColumns.length ? [geomColumns[0]] : [];
         const leftOverKey = createColumnName(labelMap, filter);
 
         if (!Object.keys(locations).includes(location)) {
@@ -171,6 +219,7 @@ export const groupByLocation = (data: DataRecord[], geomColumn: string) => {
 export const stripGeomFromColnamesAndTypes = (
   queryData: any,
   geomColumn: string,
+  geomFormat: GeometryFormat,
 ) => {
   const newColnames: string[] = [];
   const newColtypes: number[] = [];
@@ -180,8 +229,16 @@ export const stripGeomFromColnamesAndTypes = (
     }
 
     const parts = colname.split(COLUMN_SEPARATOR);
-    const geojsonColumns = getGeojsonColumns(parts);
-    const filter = geojsonColumns.length ? [geojsonColumns[0]] : [];
+    let geomColumns: number[];
+
+    if (geomFormat === GeometryFormat.GEOJSON) {
+      geomColumns = getGeojsonColumns(parts);
+    } else if (geomFormat === GeometryFormat.WKB) {
+      geomColumns = getWkbColumns(parts);
+    } else {
+      geomColumns = getWktColumns(parts);
+    }
+    const filter = geomColumns.length ? [geomColumns[0]] : [];
 
     const newColname = createColumnName(parts, filter);
     if (newColnames.includes(newColname)) {
@@ -202,21 +259,30 @@ export const stripGeomFromColnamesAndTypes = (
  *
  * @param queryData The querydata.
  * @param geomColumn Name of the geom column.
+ * @param geomFormat The format of the geometries.
  * @returns labelMap without the geom column.
  */
 export const stripGeomColumnFromLabelMap = (
   labelMap: { [key: string]: string[] },
   geomColumn: string,
+  geomFormat: GeometryFormat,
 ) => {
   const newLabelMap: Record<string, string[]> = {};
   Object.entries(labelMap).forEach(([key, value]) => {
     if (key === geomColumn) {
       return;
     }
-    const geojsonCols = getGeojsonColumns(value);
-    const filter = geojsonCols.length ? [geojsonCols[0]] : [];
+    let geomColumns;
+    if (geomFormat === GeometryFormat.GEOJSON) {
+      geomColumns = getGeojsonColumns(value);
+    } else if (geomFormat === GeometryFormat.WKB) {
+      geomColumns = getWkbColumns(value);
+    } else {
+      geomColumns = getWktColumns(value);
+    }
+    const filter = geomColumns.length ? [geomColumns[0]] : [];
     const columnName = createColumnName(value, filter);
-    const restItems = value.filter((v, idx) => !geojsonCols.includes(idx));
+    const restItems = value.filter((v, idx) => !geomColumns.includes(idx));
     newLabelMap[columnName] = restItems;
   });
   return newLabelMap;
@@ -232,15 +298,17 @@ export const stripGeomColumnFromLabelMap = (
 export const stripGeomColumnFromQueryData = (
   queryData: any,
   geomColumn: string,
+  geomFormat: GeometryFormat,
 ) => {
   const queryDataClone = {
     ...structuredClone(queryData),
-    ...stripGeomFromColnamesAndTypes(queryData, geomColumn),
+    ...stripGeomFromColnamesAndTypes(queryData, geomColumn, geomFormat),
   };
   if (queryDataClone.label_map) {
     queryDataClone.label_map = stripGeomColumnFromLabelMap(
       queryData.label_map,
       geomColumn,
+      geomFormat,
     );
   }
   return queryDataClone;
@@ -251,6 +319,7 @@ export const stripGeomColumnFromQueryData = (
  *
  * @param selectedChart The configuration of the referenced Superset chart
  * @param geomColumn The name of the geometry column
+ * @param geomFormat The format of the geometries
  * @param chartProps The properties provided within this OL plugin
  * @param chartTransformer The transformer function
  * @returns The chart configurations
@@ -258,6 +327,7 @@ export const stripGeomColumnFromQueryData = (
 export const getChartConfigs = (
   selectedChart: SelectedChartConfig,
   geomColumn: string,
+  geomFormat: GeometryFormat,
   chartProps: ChartProps,
   chartTransformer: any,
 ) => {
@@ -294,13 +364,17 @@ export const getChartConfigs = (
     dataByLocation = groupByLocationGenericX(
       data,
       selectedChart.params,
+      geomFormat,
       queryData,
     );
   } else {
     dataByLocation = groupByLocation(data, geomColumn);
   }
-
-  const strippedQueryData = stripGeomColumnFromQueryData(queryData, geomColumn);
+  const strippedQueryData = stripGeomColumnFromQueryData(
+    queryData,
+    geomColumn,
+    geomFormat,
+  );
 
   Object.keys(dataByLocation).forEach(location => {
     const config = {
@@ -314,9 +388,22 @@ export const getChartConfigs = (
     };
     const transformedProps = chartTransformer(config);
 
+    let geojsonFeature;
+
+    if (geomFormat === GeometryFormat.GEOJSON) {
+      geojsonFeature = {
+        type: 'Feature',
+        geometry: JSON.parse(location),
+      };
+    } else if (geomFormat === GeometryFormat.WKB) {
+      geojsonFeature = wkbToGeoJSON(location);
+    } else {
+      geojsonFeature = wktToGeoJSON(location);
+    }
+
     const feature: ChartConfigFeature = {
       type: 'Feature',
-      geometry: JSON.parse(location),
+      geometry: geojsonFeature.geometry,
       properties: {
         ...transformedProps,
       },

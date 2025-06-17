@@ -31,7 +31,7 @@ import {
   sharedControls,
 } from '@superset-ui/chart-controls';
 import { ColTypeMapping } from './types';
-import { GeometryFormat, TimesliderTooltipFormat } from './constants';
+import { GeometryFormat, TimesliderTooltipFormat } from '../constants';
 import { MAX_ZOOM_LEVEL, MIN_ZOOM_LEVEL } from '../util/zoomUtil';
 import MapMaxExtentViewControl from './components/MapMaxExtentControl/MapMaxExtentViewControl';
 import {
@@ -102,13 +102,13 @@ const config: ControlPanelConfig = {
               label: t('Geometry Format'),
               renderTrigger: false,
               description: t(
-                'The format of the geometry column. GeoJSON columns are expected to use WGS84 coordinates. The (E)WKB and (E)WKT formats allow for arbitrary projections, which will be read from the data.',
+                'The format of the geometry column. GeoJSON columns are expected to use WGS84 coordinates. The EWKB and EWKT formats allow for arbitrary projections, which will be read from the data.',
               ),
               default: GeometryFormat.GEOJSON,
               choices: [
                 [GeometryFormat.GEOJSON, t('GeoJSON')],
-                [GeometryFormat.WKB, t('(E)WKB')],
-                [GeometryFormat.WKT, t('(E)WKT')],
+                [GeometryFormat.WKB, t('EWKB')],
+                [GeometryFormat.WKT, t('EWKT')],
               ],
               clearable: false,
               validators: [validateNonEmpty],

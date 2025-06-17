@@ -20,7 +20,7 @@
 import { DataRecord } from '@superset-ui/core';
 import { SliderMarks } from 'antd/lib/slider';
 import { FeatureCollection } from 'geojson';
-import { TimesliderTooltipFormat } from '../constants';
+import { TimesliderTooltipFormat } from '../../constants';
 
 /**
  * Format a date based on given format.

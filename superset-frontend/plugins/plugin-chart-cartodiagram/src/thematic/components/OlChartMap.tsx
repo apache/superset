@@ -39,7 +39,7 @@ import { LayerConf, MapViewConfigs } from '../../types';
 import { MapMaxExtentConfigs, OlChartMapProps } from '../types';
 import { isDataLayerConf } from '../../typeguards';
 import { StyledFeatureTooltip } from './FeatureTooltip';
-import { GeometryFormat } from '../constants';
+import { GeometryFormat } from '../../constants';
 import { Legend } from './Legend';
 import { getMapExtentPadding } from '../../util/geometryUtil';
 

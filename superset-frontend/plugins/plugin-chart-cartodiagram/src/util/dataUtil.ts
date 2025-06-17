@@ -21,7 +21,7 @@ import { Feature, FeatureCollection } from 'geojson';
 import { Feature as OlFeature } from 'ol';
 import GeoJSON from 'ol/format/GeoJSON';
 import { dataRecordsToOlFeatures } from './mapUtil';
-import { GeometryFormat } from '../thematic/constants';
+import { GeometryFormat } from '../constants';
 
 export const geojsonDataToFeatureCollection = (
   data: QueryData['data'],

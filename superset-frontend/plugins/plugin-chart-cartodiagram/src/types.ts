@@ -28,6 +28,7 @@ import { Coordinate } from 'ol/coordinate';
 import { Map } from 'ol';
 import { Feature, FeatureCollection, Point } from 'geojson';
 import { Style } from 'geostyler-style';
+import { GeometryFormat } from './constants';
 
 export interface CartodiagramPluginStylesProps {
   height: number;
@@ -46,6 +47,7 @@ export type ChartConfig = FeatureCollection<
 
 interface CartodiagramPluginCustomizeProps {
   geomColumn: string;
+  geomFormat: GeometryFormat;
   selectedChart: string;
   chartConfigs: ChartConfig;
   chartSize: ZoomConfigs;

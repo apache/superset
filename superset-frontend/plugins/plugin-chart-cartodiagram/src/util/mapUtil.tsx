@@ -23,7 +23,6 @@
 import { DataRecord } from '@superset-ui/core';
 import { Feature, Map } from 'ol';
 import GeoJSON from 'ol/format/GeoJSON';
-import { ChartConfig } from '../types';
 import WKB from 'ol/format/WKB';
 import WKT from 'ol/format/WKT';
 import { register } from 'ol/proj/proj4';
@@ -31,12 +30,11 @@ import proj4 from 'proj4';
 import { FeatureCollection } from 'geojson';
 import { FitOptions } from 'ol/View';
 import { getExtentFromFeatures } from './geometryUtil';
-import { MapProjections } from '../types';
-import { GeometryFormat } from '../thematic/constants';
+import { ChartConfig, MapProjections } from '../types';
+import { GeometryFormat } from '../constants';
 
 // default map extent of world if no features are found
 // TODO: move to generic config file or plugin configuration
-// TODO: adapt to CRS other than Web Mercator
 const defaultExtent = [-16000000, -7279000, 20500000, 11000000];
 
 /**
@@ -48,7 +46,6 @@ const defaultExtent = [-16000000, -7279000, 20500000, 11000000];
 export const fitMapToCharts = (olMap: Map, chartConfigs: ChartConfig) => {
   const view = olMap.getView();
   const features = new GeoJSON().readFeatures(chartConfigs, {
-    // TODO: adapt to map projection
     featureProjection: 'EPSG:3857',
   });
 
@@ -75,6 +72,49 @@ const fitToData = (
   }
 };
 
+const extractSridFromWkt = (wkt: string) => {
+  const extract: { geom: string; srid: string | null } = {
+    geom: wkt,
+    srid: null,
+  };
+  if (wkt.startsWith('SRID=')) {
+    // WKT with SRID, strip it
+    const srid = wkt.match(/SRID=(\d+);/);
+    if (srid) {
+      extract.srid = `EPSG:${srid[1]}`;
+      extract.geom = wkt.replace(/SRID=\d+;/, '');
+    }
+  }
+  return extract;
+};
+
+export const wkbToGeoJSON = (wkb: string) => {
+  const format = new WKB();
+  const feature = format.readFeature(wkb, {
+    featureProjection: 'EPSG:3857',
+  });
+  return new GeoJSON().writeFeatureObject(feature, {
+    featureProjection: 'EPSG:3857',
+  });
+};
+
+export const wktToGeoJSON = (wkt: string) => {
+  const format = new WKT();
+  const wktOpts: any = {
+    featureProjection: 'EPSG:3857',
+    dataProjection: 'EPSG:4326', // default to WGS84
+  };
+  const extract = extractSridFromWkt(wkt);
+  const cleanedWkt = extract.geom;
+  if (extract.srid) {
+    wktOpts.dataProjection = extract.srid;
+  }
+  const feature = format.readFeature(cleanedWkt, wktOpts);
+  return new GeoJSON().writeFeatureObject(feature, {
+    featureProjection: 'EPSG:3857',
+  });
+};
+
 /**
  * Create OL Features from data records.
  *
@@ -85,7 +125,7 @@ const fitToData = (
 export const dataRecordsToOlFeatures = (
   dataRecords: DataRecord[],
   geomColumn: string,
-  geomFormat: GeometryFormat,
+  geomFormat: GeometryFormat.WKB | GeometryFormat.WKT,
 ) => {
   let format: WKB | WKT = new WKB();
 
@@ -103,12 +143,11 @@ export const dataRecordsToOlFeatures = (
       const opts: any = {
         featureProjection: 'EPSG:3857',
       };
-      if (geomFormat === GeometryFormat.WKT && geom.startsWith('SRID=')) {
-        // WKT with SRID, strip it
-        const srid = geom.match(/SRID=(\d+);/);
-        if (srid) {
-          opts.dataProjection = `EPSG:${srid[1]}`;
-          cleanedGeom = cleanedGeom.replace(/SRID=\d+;/, '');
+      if (geomFormat === GeometryFormat.WKT) {
+        const extract = extractSridFromWkt(geom);
+        cleanedGeom = extract.geom;
+        if (extract.srid) {
+          opts.dataProjection = extract.srid;
         }
       }
       const feature = format.readFeature(cleanedGeom, opts);
@@ -132,7 +171,6 @@ export const fitMapToData = (
   padding?: FitOptions['padding'] | undefined,
 ) => {
   const features = new GeoJSON().readFeatures(featureCollection, {
-    // TODO: adapt to map projection
     featureProjection: 'EPSG:3857',
   });
   fitToData(olMap, features, padding);
@@ -144,12 +182,14 @@ export const fitMapToData = (
  * @param olMap The OpenLayers map
  * @param dataRecords The data records to get the extent from.
  * @param geomColumn The name of the column holding the geodata.
+ * @param geomFormat The format of the geometry column.
+ * @param padding Optional padding for the fit operation.
  */
 export const fitMapToDataRecords = (
   olMap: Map,
   dataRecords: DataRecord[],
   geomColumn: string,
-  geomFormat: GeometryFormat,
+  geomFormat: GeometryFormat.WKB | GeometryFormat.WKT,
   padding?: FitOptions['padding'] | undefined,
 ) => {
   const features = dataRecordsToOlFeatures(

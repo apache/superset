@@ -22,7 +22,7 @@ import OlMap from 'ol/Map';
 import { ThematicMapPluginProps, ThematicMapPluginStylesProps } from './types';
 import OlChartMap from './components/OlChartMap';
 import TimeSlider from './components/TimeSlider';
-import { TIMESLIDER_HEIGHT } from './constants';
+import { TIMESLIDER_HEIGHT } from '../constants';
 
 import 'ol/ol.css';
 
