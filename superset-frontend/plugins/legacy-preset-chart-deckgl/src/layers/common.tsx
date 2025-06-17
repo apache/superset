@@ -49,6 +49,7 @@ export function commonLayerProps({
   onSelect,
   onContextMenu,
   filterState,
+  emitCrossFilters,
 }: {
   formData: QueryFormData;
   setDataMask?: SetDataMaskHook;
@@ -57,6 +58,7 @@ export function commonLayerProps({
   onSelect?: (value: JsonValue) => void;
   filterState?: FilterState;
   onContextMenu?: HandlerFunction;
+  emitCrossFilters?: boolean;
 }) {
   const fd = formData;
   let onHover;
@@ -93,19 +95,18 @@ export function commonLayerProps({
     };
   } else {
     onClick = (data: PickingInfo, event: any) => {
-      console.log('formData', formData, data);
+      console.log('emitCrossFilters', emitCrossFilters);
+      if (!emitCrossFilters) return;
+
       const crossFilters = getCrossFilterDataMask({
         data,
         filterState,
         formData,
       });
 
-      console.log('sdsdsdfsdf cross filters', crossFilters);
-
       if (event.leftButton && setDataMask !== undefined && crossFilters) {
         setDataMask(crossFilters.dataMask);
       } else if (event.rightButton && onContextMenu !== undefined) {
-        console.log('data', data);
         onContextMenu(event.center.x, event.center.y, {
           drillToDetail: [],
           crossFilter: crossFilters,

@@ -54,6 +54,7 @@ export const getLayer: GetLayerType<ScreenGridLayer> = function ({
   onContextMenu,
   payload,
   setTooltip,
+  emitCrossFilters,
 }) {
   const fd = formData;
   const c = fd.color_picker;
@@ -85,6 +86,7 @@ export const getLayer: GetLayerType<ScreenGridLayer> = function ({
       setTooltipContent,
       filterState,
       onContextMenu,
+      emitCrossFilters,
     }),
   });
 };

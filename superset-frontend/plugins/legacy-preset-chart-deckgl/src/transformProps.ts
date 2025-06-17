@@ -30,6 +30,7 @@ export default function transformProps(chartProps: ChartProps) {
     rawFormData,
     width,
     filterState,
+    emitCrossFilters,
   } = chartProps;
   const {
     onAddFilter = NOOP,
@@ -40,6 +41,7 @@ export default function transformProps(chartProps: ChartProps) {
 
   return {
     datasource,
+    emitCrossFilters,
     formData: rawFormData,
     height,
     onAddFilter,

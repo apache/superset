@@ -87,6 +87,7 @@ export type CategoricalDeckGLContainerProps = {
   filterState: FilterState;
   setDataMask: SetDataMaskHook;
   onContextMenu: HandlerFunction;
+  emitCrossFilters: boolean;
 };
 
 const CategoricalDeckGLContainer = (props: CategoricalDeckGLContainerProps) => {
@@ -159,6 +160,7 @@ const CategoricalDeckGLContainer = (props: CategoricalDeckGLContainerProps) => {
       onContextMenu,
       filterState,
       setDataMask,
+      emitCrossFilters,
     } = props;
     let features = payload.data.features ? [...payload.data.features] : [];
 
@@ -191,6 +193,7 @@ const CategoricalDeckGLContainer = (props: CategoricalDeckGLContainerProps) => {
         onContextMenu,
         filterState,
         setDataMask,
+        emitCrossFilters,
       }) as Layer,
     ];
   }, [addColor, categories, props, setTooltip]);

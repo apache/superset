@@ -48,6 +48,7 @@ export const getLayer: GetLayerType<PathLayer> = function ({
   filterState,
   setDataMask,
   setTooltip,
+  emitCrossFilters,
 }) {
   const fd = formData;
   const c = fd.color_picker;
@@ -80,6 +81,7 @@ export const getLayer: GetLayerType<PathLayer> = function ({
       setDataMask,
       filterState,
       onContextMenu,
+      emitCrossFilters,
     }),
   });
 };

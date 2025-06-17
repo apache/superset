@@ -42,6 +42,7 @@ export const getLayer: GetLayerType<HeatmapLayer> = ({
   setDataMask,
   setTooltip,
   payload,
+  emitCrossFilters,
 }) => {
   const fd = formData;
   const {
@@ -84,6 +85,7 @@ export const getLayer: GetLayerType<HeatmapLayer> = ({
       setDataMask,
       filterState,
       onContextMenu,
+      emitCrossFilters,
     }),
   });
 };

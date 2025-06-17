@@ -61,6 +61,7 @@ export const getLayer: GetLayerType<ArcLayer> = function ({
   filterState,
   setDataMask,
   onContextMenu,
+  emitCrossFilters,
 }) {
   const fd = formData;
   const data = payload.data.features;
@@ -82,6 +83,7 @@ export const getLayer: GetLayerType<ArcLayer> = function ({
       onContextMenu,
       setDataMask,
       filterState,
+      emitCrossFilters,
     }),
   });
 };

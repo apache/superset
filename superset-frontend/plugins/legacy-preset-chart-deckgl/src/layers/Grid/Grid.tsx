@@ -46,14 +46,12 @@ function setTooltipContent(o: JsonObject) {
 export const getLayer: GetLayerType<GridLayer> = function ({
   formData,
   payload,
-  onAddFilter,
   setTooltip,
   setDataMask,
   onContextMenu,
-  datasource,
   filterState,
+  emitCrossFilters,
 }) {
-  console.log('filterState', filterState);
   const fd = formData;
   const appliedScheme = fd.color_scheme;
   const colorScale = CategoricalColorNamespace.getScale(appliedScheme);
@@ -88,6 +86,7 @@ export const getLayer: GetLayerType<GridLayer> = function ({
       setTooltipContent,
       filterState,
       onContextMenu,
+      emitCrossFilters,
     }),
   });
 };

@@ -46,6 +46,7 @@ export const getLayer: GetLayerType<ContourLayer> = function ({
   setDataMask,
   onContextMenu,
   setTooltip,
+  emitCrossFilters,
 }) {
   const fd = formData;
   const {
@@ -102,6 +103,7 @@ export const getLayer: GetLayerType<ContourLayer> = function ({
       onContextMenu,
       setDataMask,
       filterState,
+      emitCrossFilters,
     }),
   });
 };
