@@ -784,7 +784,7 @@ const SqlEditor: FC<Props> = ({
       },
     ].filter(Boolean) as MenuItemType[];
 
-    return <Menu css={{ width: theme.gridUnit * 50 }} items={menuItems} />;
+    return <Menu css={{ width: theme.sizeUnit * 50 }} items={menuItems} />;
   };
 
   const onSaveQuery = async (query: QueryPayload, clientId: string) => {

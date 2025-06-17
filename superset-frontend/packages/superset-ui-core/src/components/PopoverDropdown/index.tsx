@@ -49,8 +49,8 @@ const menuItemStyles = (theme: any) => css`
     height: auto;
     line-height: 1.4;
 
-    padding-top: ${theme.gridUnit}px;
-    padding-bottom: ${theme.gridUnit}px;
+    padding-top: ${theme.sizeUnit}px;
+    padding-bottom: ${theme.sizeUnit}px;
 
     margin-top: 0;
     margin-bottom: 0;

@@ -25,8 +25,9 @@ import {
   FaveStar,
   Label,
   ListViewCard,
+  Icons,
+  MenuItem,
 } from '@superset-ui/core/components';
-import { Icons } from '@superset-ui/core/components/Icons';
 import Chart from 'src/types/Chart';
 import { FacePile } from 'src/components';
 import { handleChartDelete, CardStyles } from 'src/views/CRUD/utils';

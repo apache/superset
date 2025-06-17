@@ -1098,7 +1098,7 @@ class DatasourceEditor extends PureComponent {
         <span
           css={theme => css`
             display: block;
-            margin: ${theme.gridUnit * 4}px auto;
+            margin: ${theme.sizeUnit * 4}px auto;
             width: fit-content;
             color: ${theme.colors.grayscale.base};
           `}
@@ -1370,7 +1370,7 @@ class DatasourceEditor extends PureComponent {
                     <>
                       <div
                         css={theme => css`
-                          margin-bottom: ${theme.gridUnit * 4}px;
+                          margin-bottom: ${theme.sizeUnit * 4}px;
                         `}
                       >
                         <span
