@@ -294,9 +294,10 @@ export const transformData = (
         let arrow = '';
         let arrowColor = '';
         if (hasBasicColorFormatters && col?.metricName) {
-          arrow = basicColorFormatters?.[0]?.[col.metricName]?.mainArrow;
+          arrow =
+            basicColorFormatters?.[node?.rowIndex]?.[col.metricName]?.mainArrow;
           arrowColor =
-            basicColorFormatters?.[0]?.[
+            basicColorFormatters?.[node?.rowIndex]?.[
               col.metricName
             ]?.arrowColor?.toLowerCase();
         }
@@ -334,7 +335,7 @@ export const transformData = (
         });
       },
       cellStyle: params => {
-        const { value, colDef } = params;
+        const { value, colDef, rowIndex } = params;
         let backgroundColor;
         if (hasColumnColorFormatters) {
           columnColorFormatters!
@@ -357,7 +358,7 @@ export const transformData = (
 
         if (hasBasicColorFormatters && col?.metricName) {
           backgroundColor =
-            basicColorFormatters?.[0]?.[col.metricName]?.backgroundColor;
+            basicColorFormatters?.[rowIndex]?.[col.metricName]?.backgroundColor;
         }
 
         return {

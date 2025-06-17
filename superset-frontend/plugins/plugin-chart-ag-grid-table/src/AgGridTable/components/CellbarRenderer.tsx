@@ -46,6 +46,31 @@ const SUMMARY_TOOLTIP_TEXT = t(
   'Show total aggregations of selected metrics. Note that row limit does not apply to the result.',
 );
 
+const Bar = styled.div<{
+  offset: number;
+  percentage: number;
+  background: string;
+}>`
+  position: absolute;
+  left: ${({ offset }) => `${offset}%`};
+  top: 0;
+  height: 100%;
+  width: ${({ percentage }) => `${percentage}%`};
+  background-color: ${({ background }) => background};
+  z-index: 1;
+`;
+
+const CellContainer = styled.div<{ backgroundColor?: string }>`
+  display: flex;
+  background-color: ${({ backgroundColor }) =>
+    backgroundColor || 'transparent'};
+`;
+
+const ArrowContainer = styled.div<{ arrowColor?: string }>`
+  margin-right: 10px;
+  color: ${({ arrowColor }) => arrowColor || 'inherit'};
+`;
+
 export default function CellBarRenderer({
   value,
   percentage,
@@ -59,17 +84,7 @@ export default function CellBarRenderer({
 }) {
   return (
     <div>
-      <div
-        style={{
-          position: 'absolute',
-          left: `${offset}%`,
-          top: 0,
-          height: '100%',
-          width: `${percentage}%`,
-          backgroundColor: background,
-          zIndex: 1,
-        }}
-      />
+      <Bar offset={offset} percentage={percentage} background={background} />
       {value}
     </div>
   );
@@ -109,10 +124,8 @@ export const CellRenderer: React.FC<CellRendererProps> = ({
   arrow,
   arrowColor,
 }) => (
-  <div style={{ backgroundColor, display: 'flex' }}>
-    {arrow && (
-      <div style={{ marginRight: '10px', color: arrowColor }}>{arrow}</div>
-    )}
+  <CellContainer backgroundColor={backgroundColor}>
+    {arrow && <ArrowContainer arrowColor={arrowColor}>{arrow}</ArrowContainer>}
     <div>{value}</div>
-  </div>
+  </CellContainer>
 );
