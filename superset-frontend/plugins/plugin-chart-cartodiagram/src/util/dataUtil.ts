@@ -54,7 +54,7 @@ export const geojsonDataToFeatureCollection = (
 export const dataToFeatureCollection = (
   data: QueryData['data'],
   geomColumn: string,
-  geomFormat: GeometryFormat,
+  geomFormat: GeometryFormat.WKB | GeometryFormat.WKT,
 ) => {
   const geojsonFormat = new GeoJSON({
     featureProjection: 'EPSG:3857',

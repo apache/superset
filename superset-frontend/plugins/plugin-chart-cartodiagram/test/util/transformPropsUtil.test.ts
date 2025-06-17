@@ -37,8 +37,6 @@ import {
   groupedTimeseriesLabelMap,
   nonTimeSeriesWkbChartData,
   nonTimeSeriesWktChartData,
-  wkbGeom1,
-  wkbGeom2,
 } from '../testData';
 
 describe('transformPropsUtil', () => {
