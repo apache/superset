@@ -107,6 +107,59 @@ describe('getCrossFilterDataMask', () => {
     expect(dataMask).toStrictEqual(expected);
   });
 
+  it('handles latlong type with active filters', () => {
+    const latlongFormData = {
+      ...formData,
+      spatial: {
+        latCol: 'LAT',
+        lonCol: 'LON',
+        type: 'latlong',
+      },
+    };
+
+    const latlongPickingData = {
+      ...pickingData,
+      object: {
+        col: 14,
+        row: 34,
+        colorValue: 1369,
+        elevationValue: 1369,
+        count: 5,
+        pointIndices: [2, 1425, 4107, 4410, 4737],
+        points: [
+          {
+            position: [-122.4205965, 37.8054735],
+            weight: 1349,
+          },
+          {
+            position: [-122.4215375, 37.8058583],
+            weight: 8,
+          },
+        ],
+      },
+    };
+
+    const dataMask = getCrossFilterDataMask({
+      formData: latlongFormData,
+      data: latlongPickingData,
+      filterState: { value: [-122.4205965, 37.8054735] },
+    });
+
+    const expected = {
+      dataMask: {
+        extraFormData: {
+          filters: [],
+        },
+        filterState: {
+          value: null,
+        },
+      },
+      isCurrentValueSelected: true,
+    };
+
+    expect(dataMask).toStrictEqual(expected);
+  });
+
   it('handles delimited type', () => {
     const delimitedFormData = {
       ...formData,
@@ -114,6 +167,64 @@ describe('getCrossFilterDataMask', () => {
         lonlatCol: 'LONLAT',
         delimiter: ',',
         type: 'delimited',
+      },
+    };
+
+    const delimitedPickingData = {
+      ...pickingData,
+      object: {
+        points: [
+          {
+            position: [-122.4205965, 37.8054735],
+            weight: 1349,
+          },
+          {
+            position: [-122.4215375, 37.8058583],
+            weight: 8,
+          },
+        ],
+      },
+    };
+
+    const dataMask = getCrossFilterDataMask({
+      formData: delimitedFormData,
+      data: delimitedPickingData,
+      filterState: {},
+    });
+
+    const expected = {
+      dataMask: {
+        extraFormData: {
+          filters: [
+            {
+              col: {
+                expressionType: 'SQL',
+                label: 'LONLAT',
+                sqlExpression: '"LONLAT"',
+              },
+              op: '==',
+              val: `-122.4205965,37.8054735`,
+            },
+          ],
+        },
+        filterState: {
+          value: [`-122.4205965,37.8054735`],
+        },
+      },
+      isCurrentValueSelected: false,
+    };
+
+    expect(dataMask).toStrictEqual(expected);
+  });
+
+  it('handles delimited type with reversed lon/lat', () => {
+    const delimitedFormData = {
+      ...formData,
+      spatial: {
+        lonlatCol: 'LONLAT',
+        delimiter: ',',
+        type: 'delimited',
+        reverseLonLat: true,
       },
     };
 
