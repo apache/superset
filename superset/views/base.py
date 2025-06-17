@@ -352,8 +352,11 @@ def common_bootstrap_payload() -> dict[str, Any]:
     locale = get_locale()
     if request.args.get("locale"):
         try:
+            # Parse and stash the new locale in the session
             locale = Locale.parse(request.args.get("locale"))
             session["locale"] = str(locale)
+            # Tell Flask-Babel to drop any cached locale
+            # and re-invoke our localeselector
             refresh()
         except Exception as e:
             # Manage invalid locale : keep default locale
