@@ -51,6 +51,7 @@ export interface ModalProps {
   maskClosable?: boolean;
   zIndex?: number;
   bodyStyle?: CSSProperties;
+  openerRef?: React.RefObject<HTMLElement>;
 }
 
 export interface StyledModalProps {

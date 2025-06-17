@@ -79,7 +79,7 @@ import {
 import { useSelector } from 'react-redux';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import { Icons } from '@superset-ui/core/components/Icons';
-import { Typography } from '@superset-ui/core/components/Typography';
+import { useOpenerRef } from 'src/hooks/useOpenerRef';
 import NumberInput from './components/NumberInput';
 import { AlertReportCronScheduler } from './components/AlertReportCronScheduler';
 import { NotificationMethod } from './components/NotificationMethod';
@@ -421,6 +421,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   isReport = false,
   addSuccessToast,
 }) => {
+  const openerRef = useOpenerRef(show);
   const currentUser = useSelector<any, UserWithPermissionsAndRoles>(
     state => state.user,
   );
@@ -1451,11 +1452,8 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
       show={show}
       width="500px"
       centered
-      title={
-        <Typography.Title level={4} data-test="alert-report-modal-title">
-          {getTitleText()}
-        </Typography.Title>
-      }
+      title={<h4 data-test="alert-report-modal-title">{getTitleText()}</h4>}
+      openerRef={openerRef}
     >
       <Collapse
         expandIconPosition="right"

@@ -145,8 +145,8 @@ test('renders an enabled button if datasource and viz type are selected', async 
   userEvent.click(await screen.findByText(/test_db/i));
 
   userEvent.click(
-    screen.getByRole('button', {
-      name: /ballot all charts/i,
+    screen.getByRole('tab', {
+      name: /All charts/i,
     }),
   );
   userEvent.click(await screen.findByText('Table'));
@@ -160,8 +160,8 @@ test('double-click viz type does nothing if no datasource is selected', async ()
   await renderComponent();
 
   userEvent.click(
-    screen.getByRole('button', {
-      name: /ballot all charts/i,
+    screen.getByRole('tab', {
+      name: /All charts/i,
     }),
   );
   userEvent.dblClick(await screen.findByText('Table'));
@@ -181,8 +181,8 @@ test('double-click viz type submits with formatted URL if datasource is selected
   userEvent.click(await screen.findByText(/test_db/i));
 
   userEvent.click(
-    screen.getByRole('button', {
-      name: /ballot all charts/i,
+    screen.getByRole('tab', {
+      name: /All charts/i,
     }),
   );
   userEvent.dblClick(await screen.findByText('Table'));

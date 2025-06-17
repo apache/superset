@@ -61,8 +61,10 @@ export function interceptExploreGet() {
 export function setFilter(filter: string, option: string) {
   interceptFiltering();
 
-  cy.get(`[aria-label="${filter}"]`).first().click();
-  cy.get(`[aria-label="${filter}"] [title="${option}"]`).click();
+  cy.get(`[aria-label^="${filter}"]`).first().click();
+  cy.get(`.ant-select-item-option[title="${option}"]`).first().click({
+    force: true,
+  });
 
   cy.wait('@filtering');
 }

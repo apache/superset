@@ -417,11 +417,15 @@ const Selector: FC<{
 
   return (
     <SelectorLabel
+      aria-label={selector}
+      aria-selected={isSelected}
       ref={btnRef}
       key={selector}
       name={selector}
       className={cx(className, isSelected && 'selected')}
       onClick={() => onClick(selector, sectionId)}
+      tabIndex={0}
+      role="tab"
     >
       {icon}
       {selector}
@@ -655,7 +659,7 @@ export default function VizTypeGallery(props: VizTypeGalleryProps) {
       className={className}
       isSelectedVizMetadata={Boolean(selectedVizMetadata)}
     >
-      <LeftPane>
+      <LeftPane aria-label={t('Choose chart type')} role="tablist">
         <Selector
           css={({ sizeUnit }) =>
             // adjust style for not being inside a collapse

@@ -17,7 +17,7 @@
  * under the License.
  */
 import { ReactNode } from 'react';
-import { JsonValue } from '@superset-ui/core';
+import { JsonValue, t } from '@superset-ui/core';
 import { Radio } from '@superset-ui/core/components';
 import { ControlHeader } from '../../components/ControlHeader';
 
@@ -45,17 +45,54 @@ export default function RadioButtonControl({
   const currentValue = initialValue || options[0][0];
   return (
     <div>
-      <ControlHeader {...props} />
-      <Radio.Group
-        value={currentValue}
-        onChange={e => onChange(e.target.value)}
+      <div
+        role="tablist"
+        aria-label={typeof props.label === 'string' ? props.label : undefined}
       >
-        {options.map(([val, label]) => (
-          <Radio.Button key={JSON.stringify(val)} value={val}>
-            {label}
-          </Radio.Button>
-        ))}
-      </Radio.Group>
+        <ControlHeader {...props} />
+        <Radio.Group
+          value={currentValue}
+          onChange={e => onChange(e.target.value)}
+        >
+          {options.map(([val, label]) => (
+            <Radio.Button
+              // role="tab"
+              key={JSON.stringify(val)}
+              value={val}
+              aria-label={typeof label === 'string' ? label : undefined}
+              id={`tab-${val}`}
+              type="button"
+              aria-selected={val === currentValue}
+              className={`btn btn-default ${
+                val === currentValue ? 'active' : ''
+              }`}
+              onClick={e => {
+                e.currentTarget?.focus();
+                onChange(val);
+              }}
+            >
+              {label}
+            </Radio.Button>
+          ))}
+        </Radio.Group>
+      </div>
+      {/* accessibility begin */}
+      <div
+        aria-live="polite"
+        style={{
+          position: 'absolute',
+          left: '-9999px',
+          height: '1px',
+          width: '1px',
+          overflow: 'hidden',
+        }}
+      >
+        {t(
+          '%s tab selected',
+          options.find(([val]) => val === currentValue)?.[1],
+        )}
+      </div>
+      {/* accessibility end */}
     </div>
   );
 }

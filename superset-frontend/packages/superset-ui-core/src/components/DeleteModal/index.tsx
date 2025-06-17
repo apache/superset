@@ -17,9 +17,9 @@
  * under the License.
  */
 import { t, styled } from '@superset-ui/core';
-import { useState, ChangeEvent } from 'react';
+import { useState, useRef, useEffect, ChangeEvent } from 'react';
 import { FormLabel } from '../Form';
-import { Input } from '../Input';
+import { Input, InputRef } from '../Input';
 import { Modal } from '../Modal';
 import type { DeleteModalProps } from './types';
 
@@ -45,6 +45,13 @@ export function DeleteModal({
 }: DeleteModalProps) {
   const [disableChange, setDisableChange] = useState(true);
   const [confirmation, setConfirmation] = useState<string>('');
+  const inputRef = useRef<InputRef>(null);
+
+  useEffect(() => {
+    if (open && inputRef.current) {
+      inputRef.current.focus();
+    }
+  }, [open]);
 
   const hide = () => {
     setConfirmation('');
@@ -92,6 +99,7 @@ export function DeleteModal({
           value={confirmation}
           onChange={onChange}
           onPressEnter={onPressEnter}
+          ref={inputRef}
         />
       </StyledDiv>
     </Modal>

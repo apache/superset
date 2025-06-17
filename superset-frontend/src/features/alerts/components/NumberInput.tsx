@@ -35,6 +35,7 @@ export default function NumberInput({
   value,
   placeholder,
   onChange,
+  ...rest
 }: NumberInputProps) {
   const [isFocused, setIsFocused] = useState<boolean>(false);
 
@@ -48,6 +49,7 @@ export default function NumberInput({
       onFocus={() => setIsFocused(true)}
       onBlur={() => setIsFocused(false)}
       onChange={onChange}
+      {...rest}
     />
   );
 }

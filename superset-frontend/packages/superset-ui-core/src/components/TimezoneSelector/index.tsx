@@ -55,6 +55,7 @@ export default function TimezoneSelector({
   onTimezoneChange,
   timezone,
   minWidth = MIN_SELECT_WIDTH, // smallest size for current values
+  ...rest
 }: TimezoneSelectorProps) {
   const { TIMEZONE_OPTIONS, TIMEZONE_OPTIONS_SORT_COMPARATOR, validTimezone } =
     useMemo(() => {
@@ -155,6 +156,7 @@ export default function TimezoneSelector({
       value={validTimezone}
       options={TIMEZONE_OPTIONS}
       sortComparator={TIMEZONE_OPTIONS_SORT_COMPARATOR}
+      {...rest}
     />
   );
 }
