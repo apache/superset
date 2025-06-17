@@ -95,7 +95,6 @@ export function commonLayerProps({
     };
   } else {
     onClick = (data: PickingInfo, event: any) => {
-      console.log('emitCrossFilters', emitCrossFilters);
       if (!emitCrossFilters) return;
 
       const crossFilters = getCrossFilterDataMask({
