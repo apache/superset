@@ -163,6 +163,11 @@ export class ThemeController {
     // Set the theme with the *new* configuration object
     this.theme.setConfig(this.customizations);
 
+    if (newCustomizations.algorithm) {
+      this.changeThemeMode(newCustomizations.algorithm as ThemeMode);
+    }
+    this.changeThemeMode(ThemeMode.SYSTEM);
+
     this.persistTheme();
     this.notifyListeners();
   }
