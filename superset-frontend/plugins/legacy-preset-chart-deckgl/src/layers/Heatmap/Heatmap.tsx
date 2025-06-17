@@ -22,7 +22,7 @@ import { t, getSequentialSchemeRegistry, JsonObject } from '@superset-ui/core';
 import { commonLayerProps } from '../common';
 import sandboxedEval from '../../utils/sandbox';
 import { hexToRGB } from '../../utils/colors';
-import { createDeckGLComponent, getLayerType } from '../../factory';
+import { GetLayerType, createDeckGLComponent } from '../../factory';
 import TooltipRow from '../../TooltipRow';
 
 function setTooltipContent(o: JsonObject) {
@@ -35,12 +35,14 @@ function setTooltipContent(o: JsonObject) {
     </div>
   );
 }
-export const getLayer: getLayerType<unknown> = (
+export const getLayer: GetLayerType<HeatmapLayer> = ({
   formData,
-  payload,
-  onAddFilter,
+  onContextMenu,
+  filterState,
+  setDataMask,
   setTooltip,
-) => {
+  payload,
+}) => {
   const fd = formData;
   const {
     intensity = 1,
@@ -75,7 +77,14 @@ export const getLayer: getLayerType<unknown> = (
     getPosition: (d: { position: Position; weight: number }) => d.position,
     getWeight: (d: { position: number[]; weight: number }) =>
       d.weight ? d.weight : 1,
-    ...commonLayerProps({ formData: fd, setTooltip, setTooltipContent }),
+    ...commonLayerProps({
+      formData: fd,
+      setTooltip,
+      setTooltipContent,
+      setDataMask,
+      filterState,
+      onContextMenu,
+    }),
   });
 };
 

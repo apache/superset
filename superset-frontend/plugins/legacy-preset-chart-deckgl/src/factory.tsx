@@ -28,6 +28,8 @@ import {
   SetDataMaskHook,
   DataMask,
   FilterState,
+  JsonValue,
+  ContextMenuFilters,
 } from '@superset-ui/core';
 
 import {
@@ -58,10 +60,16 @@ export interface GetLayerTypeParams {
   payload: JsonObject;
   onAddFilter?: HandlerFunction;
   setTooltip: (tooltip: TooltipProps['tooltip']) => void;
-  setDataMask: (dataMask: DataMask) => void;
-  onContextMenu: (...props: any) => void;
+  setDataMask?: (dataMask: DataMask) => void;
+  onContextMenu?: (
+    clientX: number,
+    clientY: number,
+    filters?: ContextMenuFilters,
+  ) => void;
   datasource?: Datasource;
-  filterState: FilterState;
+  filterState?: FilterState;
+  selected?: JsonObject[];
+  onSelect?: (value: JsonValue) => void;
 }
 
 export interface GetLayerType<T> {

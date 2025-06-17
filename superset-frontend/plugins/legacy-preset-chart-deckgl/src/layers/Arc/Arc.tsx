@@ -17,16 +17,10 @@
  * under the License.
  */
 import { ArcLayer } from '@deck.gl/layers';
-import {
-  HandlerFunction,
-  JsonObject,
-  QueryFormData,
-  t,
-} from '@superset-ui/core';
+import { JsonObject, QueryFormData, t } from '@superset-ui/core';
 import { commonLayerProps } from '../common';
 import { GetLayerType, createCategoricalDeckGLComponent } from '../../factory';
 import TooltipRow from '../../TooltipRow';
-import { TooltipProps } from '../../components/Tooltip';
 import { Point } from '../../types';
 
 export function getPoints(data: JsonObject[]) {
