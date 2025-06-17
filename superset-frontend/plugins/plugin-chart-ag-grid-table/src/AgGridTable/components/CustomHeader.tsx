@@ -24,7 +24,8 @@ import { styled, t } from '@superset-ui/core';
 import {
   ArrowDownOutlined,
   ArrowUpOutlined,
-  PlusOutlined,
+  MinusCircleOutlined,
+  PlusCircleOutlined,
 } from '@ant-design/icons';
 import { ColDef } from 'ag-grid-community';
 import CustomPopover from './CustomPopover';
@@ -122,6 +123,7 @@ const ToggleButton = styled.div`
     padding: ${theme.gridUnit / 2}px;
     margin-left: ${theme.gridUnit}px;
     transition: transform 0.2s;
+    width: 60px;
 
     &:hover {
       background: ${theme.colors.grayscale.light4};
@@ -283,14 +285,11 @@ const CustomHeader: React.FC<CustomHeaderParams> = ({
                 : t('Show comparison columns')
             }
           >
-            <PlusOutlined
-              style={{
-                transform: areComparisonColumnsVisible
-                  ? 'rotate(45deg)'
-                  : 'rotate(0deg)',
-                transition: 'transform 0.2s',
-              }}
-            />
+            {areComparisonColumnsVisible ? (
+              <MinusCircleOutlined />
+            ) : (
+              <PlusCircleOutlined />
+            )}
           </ToggleButton>
         )}
       </HeaderContainer>
