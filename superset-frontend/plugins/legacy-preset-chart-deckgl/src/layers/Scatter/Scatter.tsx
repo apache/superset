@@ -70,6 +70,7 @@ export const getLayer: GetLayerType<ScatterplotLayer> = function ({
   filterState,
   onContextMenu,
   datasource,
+  emitCrossFilters,
 }) {
   const fd = formData;
   const dataWithRadius = payload.data.features.map((d: JsonObject) => {
@@ -102,6 +103,7 @@ export const getLayer: GetLayerType<ScatterplotLayer> = function ({
       setDataMask,
       filterState,
       onContextMenu,
+      emitCrossFilters,
     }),
   });
 };

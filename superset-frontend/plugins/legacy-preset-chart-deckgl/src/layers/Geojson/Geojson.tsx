@@ -129,6 +129,7 @@ export const getLayer: GetLayerType<GeoJsonLayer> = function ({
   setDataMask,
   payload,
   setTooltip,
+  emitCrossFilters,
 }) {
   const fd = formData;
   const fc = fd.fill_color_picker;
@@ -171,6 +172,7 @@ export const getLayer: GetLayerType<GeoJsonLayer> = function ({
       setDataMask,
       filterState,
       onContextMenu,
+      emitCrossFilters,
     }),
   });
 };

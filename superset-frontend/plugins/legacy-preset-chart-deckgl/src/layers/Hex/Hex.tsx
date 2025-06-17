@@ -18,19 +18,13 @@
  */
 import { Color } from '@deck.gl/core';
 import { HexagonLayer } from '@deck.gl/aggregation-layers';
-import {
-  t,
-  CategoricalColorNamespace,
-  QueryFormData,
-  JsonObject,
-} from '@superset-ui/core';
+import { t, CategoricalColorNamespace, JsonObject } from '@superset-ui/core';
 
 import { commonLayerProps, getAggFunc } from '../common';
 import sandboxedEval from '../../utils/sandbox';
 import { hexToRGB } from '../../utils/colors';
 import { GetLayerType, createDeckGLComponent } from '../../factory';
 import TooltipRow from '../../TooltipRow';
-import { TooltipProps } from '../../components/Tooltip';
 
 function setTooltipContent(o: JsonObject) {
   return (
@@ -55,6 +49,7 @@ export const getLayer: GetLayerType<HexagonLayer> = function ({
   onContextMenu,
   filterState,
   setDataMask,
+  emitCrossFilters,
 }) {
   const fd = formData;
   const appliedScheme = fd.color_scheme;
@@ -89,6 +84,7 @@ export const getLayer: GetLayerType<HexagonLayer> = function ({
       setDataMask,
       filterState,
       onContextMenu,
+      emitCrossFilters,
     }),
   });
 };
