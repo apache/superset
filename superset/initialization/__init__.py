@@ -145,6 +145,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         from superset.datasource.api import DatasourceRestApi
         from superset.embedded.api import EmbeddedDashboardRestApi
         from superset.embedded.view import EmbeddedView
+        from superset.extensions.view import ExtensionsView
         from superset.explore.api import ExploreRestApi
         from superset.explore.form_data.api import ExploreFormDataRestApi
         from superset.explore.permalink.api import ExplorePermalinkRestApi
@@ -333,6 +334,17 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             category="Manage",
             category_label=__("Manage"),
             category_icon="",
+        )
+
+        appbuilder.add_view(
+            ExtensionsView,
+            "Extensions",
+            label=__("Extensions"),
+            category="Manage",
+            category_label=__("Manage"),
+            menu_cond=lambda: feature_flag_manager.is_feature_enabled(
+                "ENABLE_EXTENSIONS"
+            ),
         )
 
         #

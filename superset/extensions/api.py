@@ -80,6 +80,7 @@ class ExtensionsRestApi(BaseSupersetApi):
         for extension in extensions.values():
             manifest: Manifest = extension.manifest
             extension_data: dict[str, Any] = {
+                "id": extension.id,
                 "name": extension.name,
                 "dependencies": manifest.get("dependencies", []),
                 "enabled": extension.enabled,

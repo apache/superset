@@ -119,7 +119,7 @@ def get_bundle_files_from_path(base_path: str) -> Generator[BundleFile, None, No
             yield BundleFile(name=rel_path, content=content)
 
 
-def get_loaded_extension(files: Iterable[BundleFile]) -> LoadedExtension:
+def get_loaded_extension(id: int, files: Iterable[BundleFile]) -> LoadedExtension:
     manifest: Manifest = {}
     frontend: dict[str, bytes] = {}
     backend: dict[str, bytes] = {}
@@ -147,7 +147,12 @@ def get_loaded_extension(files: Iterable[BundleFile]) -> LoadedExtension:
 
     name = manifest["name"]
     return LoadedExtension(
-        name=name, manifest=manifest, frontend=frontend, backend=backend, enabled=True
+        id=id,
+        name=name,
+        manifest=manifest,
+        frontend=frontend,
+        backend=backend,
+        enabled=True,
     )
 
 
@@ -155,9 +160,9 @@ def get_extensions() -> dict[str, LoadedExtension]:
     from superset.daos.extension import ExtensionDAO
 
     extensions: dict[str, LoadedExtension] = {}
-    for path in current_app.config["LOCAL_EXTENSIONS"]:
+    for i, path in enumerate(current_app.config["LOCAL_EXTENSIONS"]):
         files = get_bundle_files_from_path(path)
-        extension = get_loaded_extension(files)
+        extension = get_loaded_extension(i, files)
         extensions[extension.name] = extension
         logger.info(f"Loading extension {extension.name} from local filesystem")
 
@@ -166,6 +171,7 @@ def get_extensions() -> dict[str, LoadedExtension]:
     for db_extension in ExtensionDAO.get_extensions():
         if db_extension.name not in extensions:
             extension = LoadedExtension(
+                id=db_extension.id,
                 name=db_extension.name,
                 manifest=db_extension.manifest_dict,
                 backend=db_extension.backend_dict or {},

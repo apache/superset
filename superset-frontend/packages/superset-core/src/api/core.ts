@@ -110,6 +110,7 @@ export interface Extension {
   exposedModules: string[];
   extensionDependencies: string[];
   files: string[];
+  id: number;
   name: string;
   remoteEntry: string;
 }

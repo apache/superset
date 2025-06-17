@@ -332,6 +332,14 @@ class ExtensionsManager {
   public getCommandContribution(key: string): CommandContribution | undefined {
     return this.commandIndex.get(key);
   }
+
+  /**
+   * Retrieves all extensions.
+   * @returns An array of all registered extensions.
+   */
+  public getExtensions(): core.Extension[] {
+    return Array.from(this.extensionIndex.values());
+  }
 }
 
 export default ExtensionsManager;
