@@ -17,6 +17,7 @@
  * under the License.
  */
 
+import { PickingInfo } from '@deck.gl/core';
 import { JsonObject, QueryFormData } from '@superset-ui/core';
 import { getAggFunc, commonLayerProps } from './common';
 
@@ -138,8 +139,23 @@ describe('commonLayerProps', () => {
       onSelect: mockOnSelect,
     });
 
-    const mockObject = { object: { name: 'John Doe' } };
-    props.onClick?.(mockObject);
+    const pickingData = {
+      color: [],
+      index: 1,
+      coordinate: [-122.40138935788005, 37.77785781376027],
+      devicePixel: [345, 428],
+      pixel: [172, 116.484375],
+      pixelRatio: 2,
+      picked: true,
+      sourceLayer: {},
+      viewport: { zoom: 10 },
+      layer: {},
+      x: 172,
+      y: 116.484375,
+      object: { name: 'John Doe' },
+    } as unknown as PickingInfo;
+
+    props.onClick?.(pickingData, {});
     expect(mockOnSelect).toHaveBeenCalledWith('John Doe');
   });
 });
