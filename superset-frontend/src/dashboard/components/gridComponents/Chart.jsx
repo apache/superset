@@ -428,19 +428,22 @@ const Chart = props => {
     // eslint-disable-next-line camelcase
     queriesResponse?.map(({ cached_dttm }) => cached_dttm) || [];
 
-  // Translate metric and dimension labels before rendering the chart
-  if (formData?.groupbyColumns && Array.isArray(formData.groupbyColumns)) {
-    // For each group-by column, if it's a string, pass it through the translation function `t`
-    // and fall back to the original string if no translation is found
-    formData.groupbyColumns = formData.groupbyColumns.map(group =>
-      typeof group === 'string' ? t(group, { fallback: group }) : group,
+  // Only translate user-facing labels, not raw column or metric names
+  if (
+    Array.isArray(formData.groupbyLabels) &&
+    formData.groupbyLabels.length === formData.groupbyColumns?.length
+  ) {
+    formData.groupbyLabels = formData.groupbyLabels.map(label =>
+      t(label, { fallback: label }),
     );
   }
 
-  if (formData?.metrics && Array.isArray(formData.metrics)) {
-    // Do the same translation step for each metric identifier
-    formData.metrics = formData.metrics.map(metric =>
-      typeof metric === 'string' ? t(metric, { fallback: metric }) : metric,
+  if (
+    Array.isArray(formData.metricLabels) &&
+    formData.metricLabels.length === formData.metrics?.length
+  ) {
+    formData.metricLabels = formData.metricLabels.map(label =>
+      t(label, { fallback: label }),
     );
   }
 
@@ -451,17 +454,22 @@ const Chart = props => {
     queryData?.colnames &&
     Array.isArray(queryData.colnames)
   ) {
-    // Build a mapping from original column names to their translated labels
+    // Use columnLabels from formData if available, otherwise fall back to raw names
+    const colLabels = chart?.formData?.columnLabels;
     const colMap = {};
-    queryData.colnames.forEach(col => {
-      colMap[col] = typeof col === 'string' ? t(col, { fallback: col }) : col;
+
+    queryData.colnames.forEach((col, i) => {
+      const rawName = col;
+      const label =
+        Array.isArray(colLabels) && colLabels[i] ? colLabels[i] : rawName;
+      colMap[rawName] = t(label, { fallback: label });
     });
 
     // Replace the column name array with translated labels
     queryData.colnames = queryData.colnames.map(col => colMap[col]);
 
+    // Remap each row’s keys to the translated column labels
     if (Array.isArray(queryData.data)) {
-      // For table data rows, remap each key (column) to its translated label
       queryData.data = queryData.data.map(row => {
         const newRow = {};
         Object.entries(row).forEach(([key, value]) => {
