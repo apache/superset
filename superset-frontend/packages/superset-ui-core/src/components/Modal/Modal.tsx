@@ -301,12 +301,12 @@ const CustomModal = ({
   return (
     <StyledModal
       centered={!!centered}
-      // onOk={onHandledPrimaryAction}
-      // onCancel={handleOnHide}
+      onOk={onHandledPrimaryAction}
+      onCancel={handleOnHide}
       width={modalWidth}
       maxWidth={maxWidth}
       responsive={responsive}
-      // open={show}
+      open={show}
       title={<ModalTitle />}
       closeIcon={
         <span className="close" aria-hidden="true">

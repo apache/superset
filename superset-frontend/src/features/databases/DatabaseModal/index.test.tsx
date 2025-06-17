@@ -1658,40 +1658,40 @@ describe('dbReducer', () => {
   test('it will set state to payload from extra input change when schema_cache_timeout', () => {
     const action: DBReducerActionType = {
       type: ActionType.ExtraInputChange,
-      payload: { name: 'schema_cache_timeout', value: 'bar' },
+      payload: { name: 'schema_cache_timeout', value: '10' },
     };
     const currentState = dbReducer(databaseFixture, action);
 
     // extra should be serialized
     expect(currentState).toEqual({
       ...databaseFixture,
-      extra: '{"metadata_cache_timeout":{"schema_cache_timeout":"bar"}}',
+      extra: '{"metadata_cache_timeout":{"schema_cache_timeout":10}}',
     });
   });
 
   test('it will set state to payload from extra input change when table_cache_timeout', () => {
     const action: DBReducerActionType = {
       type: ActionType.ExtraInputChange,
-      payload: { name: 'table_cache_timeout', value: 'bar' },
+      payload: { name: 'table_cache_timeout', value: '10' },
     };
     const currentState = dbReducer(databaseFixture, action);
 
     // extra should be serialized
     expect(currentState).toEqual({
       ...databaseFixture,
-      extra: '{"metadata_cache_timeout":{"table_cache_timeout":"bar"}}',
+      extra: '{"metadata_cache_timeout":{"table_cache_timeout":10}}',
     });
   });
 
   test('it will overwrite state to payload from extra input change when table_cache_timeout', () => {
     const action: DBReducerActionType = {
       type: ActionType.ExtraInputChange,
-      payload: { name: 'table_cache_timeout', value: 'bar' },
+      payload: { name: 'table_cache_timeout', value: '10' },
     };
     const currentState = dbReducer(
       {
         ...databaseFixture,
-        extra: '{"metadata_cache_timeout":{"table_cache_timeout":"foo"}}',
+        extra: '{"metadata_cache_timeout":{"table_cache_timeout":5}}',
       },
       action,
     );
@@ -1699,7 +1699,7 @@ describe('dbReducer', () => {
     // extra should be serialized
     expect(currentState).toEqual({
       ...databaseFixture,
-      extra: '{"metadata_cache_timeout":{"table_cache_timeout":"bar"}}',
+      extra: '{"metadata_cache_timeout":{"table_cache_timeout":10}}',
     });
   });
 

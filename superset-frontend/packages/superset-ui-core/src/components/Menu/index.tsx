@@ -22,6 +22,7 @@ import { Menu as AntdMenu } from 'antd';
 import { MenuProps as AntdMenuProps } from 'antd/es/menu';
 
 export type MenuProps = AntdMenuProps;
+export type { ItemType, MenuItemType } from 'antd/es/menu/interface';
 
 export enum MenuItemKeyEnum {
   MenuItem = 'menu-item',

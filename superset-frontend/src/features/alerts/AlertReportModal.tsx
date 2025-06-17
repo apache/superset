@@ -51,6 +51,7 @@ import {
   Switch,
   TreeSelect,
   type CheckboxChangeEvent,
+  Typography,
 } from '@superset-ui/core/components';
 import TimezoneSelector from '@superset-ui/core/components/TimezoneSelector';
 import { propertyComparator } from '@superset-ui/core/components/Select/utils';
@@ -1452,8 +1453,12 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
       show={show}
       width="500px"
       centered
-      title={<h4 data-test="alert-report-modal-title">{getTitleText()}</h4>}
       openerRef={openerRef}
+      title={
+        <Typography.Title level={4} data-test="alert-report-modal-title">
+          {getTitleText()}
+        </Typography.Title>
+      }
     >
       <Collapse
         expandIconPosition="right"

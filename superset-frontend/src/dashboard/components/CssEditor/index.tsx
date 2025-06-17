@@ -110,11 +110,13 @@ class CssEditor extends PureComponent<CssEditorProps, CssEditorState> {
   renderTemplateSelector() {
     if (this.state.templates) {
       const menu = (
-        <Menu onClick={this.changeCssTemplate}>
-          {this.state.templates.map(template => (
-            <Menu.Item key={template.css}>{template.label}</Menu.Item>
-          ))}
-        </Menu>
+        <Menu
+          onClick={this.changeCssTemplate}
+          items={this.state.templates.map(template => ({
+            key: template.css,
+            label: template.label,
+          }))}
+        />
       );
       return (
         <Dropdown dropdownRender={() => menu} placement="bottomRight">

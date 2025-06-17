@@ -21,7 +21,6 @@ import { ReactChild, useCallback, Key } from 'react';
 import { t, styled } from '@superset-ui/core';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { Dropdown } from '@superset-ui/core/components';
-import { Menu } from '@superset-ui/core/components/Menu';
 
 enum MenuKeys {
   ExportOriginal = 'export_original',
@@ -69,22 +68,30 @@ export const ExportToCSVDropdown = ({
   return (
     <Dropdown
       trigger={['click']}
-      dropdownRender={() => (
-        <Menu onClick={handleMenuClick} selectable={false}>
-          <Menu.Item key={MenuKeys.ExportOriginal}>
-            <MenuItemContent>
-              {t('Original')}
-              <Icons.DownloadOutlined />
-            </MenuItemContent>
-          </Menu.Item>
-          <Menu.Item key={MenuKeys.ExportPivoted}>
-            <MenuItemContent>
-              {t('Pivoted')}
-              <Icons.DownloadOutlined />
-            </MenuItemContent>
-          </Menu.Item>
-        </Menu>
-      )}
+      menu={{
+        onClick: handleMenuClick,
+        selectable: false,
+        items: [
+          {
+            key: MenuKeys.ExportOriginal,
+            label: (
+              <MenuItemContent>
+                {t('Original')}
+                <Icons.DownloadOutlined />
+              </MenuItemContent>
+            ),
+          },
+          {
+            key: MenuKeys.ExportPivoted,
+            label: (
+              <MenuItemContent>
+                {t('Pivoted')}
+                <Icons.DownloadOutlined />
+              </MenuItemContent>
+            ),
+          },
+        ],
+      }}
     >
       {children}
     </Dropdown>

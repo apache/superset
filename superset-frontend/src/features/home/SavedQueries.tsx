@@ -31,7 +31,7 @@ import {
   Button,
   ListViewCard,
 } from '@superset-ui/core/components';
-import { Menu } from '@superset-ui/core/components/Menu';
+import { MenuItem } from '@superset-ui/core/components/Menu';
 import { copyQueryLink, useListViewResource } from 'src/views/CRUD/hooks';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { User } from 'src/types/bootstrapTypes';
@@ -197,21 +197,18 @@ export const SavedQueries = ({
       filters: getFilterValues(tab, WelcomeTable.SavedQueries, user),
     });
 
-  const renderMenu = useCallback(
-    (query: Query) => (
-      <Menu>
-        {canEdit && (
-          <Menu.Item>
-            <Link to={`/sqllab?savedQueryId=${query.id}`}>{t('Edit')}</Link>
-          </Menu.Item>
-        )}
-        <Menu.Item
-          onClick={() => {
-            if (query.id) {
-              copyQueryLink(query.id, addDangerToast, addSuccessToast);
-            }
-          }}
-        >
+  const menuItems = useCallback((query: Query) => {
+    const menuItems: MenuItem[] = [];
+    if (canEdit) {
+      menuItems.push({
+        key: 'edit',
+        label: <Link to={`/sqllab?savedQueryId=${query.id}`}>{t('Edit')}</Link>,
+      });
+    }
+    menuItems.push({
+      key: 'share-query',
+      label: (
+        <>
           <Icons.UploadOutlined
             iconSize="l"
             css={css`
@@ -220,21 +217,27 @@ export const SavedQueries = ({
             `}
           />
           {t('Share')}
-        </Menu.Item>
-        {canDelete && (
-          <Menu.Item
-            onClick={() => {
-              setQueryDeleteModal(true);
-              setCurrentlyEdited(query);
-            }}
-          >
-            {t('Delete')}
-          </Menu.Item>
-        )}
-      </Menu>
-    ),
-    [],
-  );
+        </>
+      ),
+      onClick: () => {
+        if (query.id) {
+          copyQueryLink(query.id, addDangerToast, addSuccessToast);
+        }
+      },
+    });
+
+    if (canDelete) {
+      menuItems.push({
+        key: 'delete-query',
+        label: t('Delete'),
+        onClick: () => {
+          setQueryDeleteModal(true);
+          setCurrentlyEdited(query);
+        },
+      });
+    }
+    return menuItems;
+  }, []);
 
   if (loading) return <LoadingCards cover={showThumbnails} />;
   return (
@@ -346,7 +349,9 @@ export const SavedQueries = ({
                       }}
                     >
                       <Dropdown
-                        dropdownRender={() => renderMenu(q)}
+                        menu={{
+                          items: menuItems(q),
+                        }}
                         trigger={['click', 'hover']}
                       >
                         <Button buttonSize="xsmall" buttonStyle="link">

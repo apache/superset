@@ -21,9 +21,7 @@ import { Menu } from '@superset-ui/core/components/Menu';
 import SaveDatasetActionButton from 'src/SqlLab/components/SaveDatasetActionButton';
 
 const overlayMenu = (
-  <Menu>
-    <Menu.Item>Save dataset</Menu.Item>
-  </Menu>
+  <Menu items={[{ label: 'Save dataset', key: 'save-dataset' }]} />
 );
 
 describe('SaveDatasetActionButton', () => {

@@ -18,8 +18,7 @@
  */
 import { Key } from 'react';
 import cx from 'classnames';
-import { styled, useTheme } from '@superset-ui/core';
-import { Menu } from '@superset-ui/core/components/Menu';
+import { css, useTheme } from '@superset-ui/core';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { Dropdown } from '../Dropdown';
 
@@ -45,13 +44,13 @@ interface HandleSelectProps {
   key: Key;
 }
 
-const MenuItem = styled(Menu.Item)`
-  &.ant-menu-item {
+const menuItemStyles = (theme: any) => css`
+  &.antd5-menu-item {
     height: auto;
     line-height: 1.4;
 
-    padding-top: ${({ theme }) => theme.sizeUnit}px;
-    padding-bottom: ${({ theme }) => theme.sizeUnit}px;
+    padding-top: ${theme.gridUnit}px;
+    padding-bottom: ${theme.gridUnit}px;
 
     margin-top: 0;
     margin-bottom: 0;
@@ -61,12 +60,12 @@ const MenuItem = styled(Menu.Item)`
     }
 
     &:hover {
-      background: ${({ theme }) => theme.colors.grayscale.light3};
+      background: ${theme.colors.grayscale.light3};
     }
 
     &.active {
-      font-weight: ${({ theme }) => theme.fontWeightStrong};
-      background: ${({ theme }) => theme.colors.grayscale.light2};
+      font-weight: ${theme.fontWeightStrong};
+      background: ${theme.colors.grayscale.light2};
     }
   }
 
@@ -91,22 +90,18 @@ const PopoverDropdown = (props: PopoverDropdownProps) => {
   return (
     <Dropdown
       trigger={['click']}
-      overlayStyle={{ zIndex: theme.zIndexPopupBase }}
-      dropdownRender={() => (
-        <Menu onClick={({ key }: HandleSelectProps) => onChange(key)}>
-          {options.map(option => (
-            <MenuItem
-              id="menu-item"
-              key={option.value}
-              className={cx('dropdown-item', {
-                active: option.value === value,
-              })}
-            >
-              {renderOption(option)}
-            </MenuItem>
-          ))}
-        </Menu>
-      )}
+      overlayStyle={{ zIndex: theme.zIndexBase }}
+      menu={{
+        onClick: ({ key }: HandleSelectProps) => onChange(key),
+        items: options.map(option => ({
+          key: option.value,
+          label: renderOption(option),
+          css: menuItemStyles(theme),
+          className: cx('dropdown-item', {
+            active: option.value === value,
+          }),
+        })),
+      }}
     >
       <div role="button" css={{ display: 'flex', alignItems: 'center' }}>
         {selected && renderButton(selected)}

@@ -25,11 +25,13 @@ export default {
 };
 
 const menu = (
-  <Menu>
-    <Menu.Item>1st menu item</Menu.Item>
-    <Menu.Item>2nd menu item</Menu.Item>
-    <Menu.Item>3rd menu item</Menu.Item>
-  </Menu>
+  <Menu
+    items={[
+      { label: '1st menu item', key: '1' },
+      { label: '2nd menu item', key: '2' },
+      { label: '3rd menu item', key: '3' },
+    ]}
+  />
 );
 
 const PLACEMENTS = [
