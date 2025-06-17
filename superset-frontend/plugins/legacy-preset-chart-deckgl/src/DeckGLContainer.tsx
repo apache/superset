@@ -60,7 +60,7 @@ export const DeckGLContainer = memo(
     const [lastUpdate, setLastUpdate] = useState<number | null>(null);
     const [viewState, setViewState] = useState(props.viewport);
     const prevViewport = usePrevious(props.viewport);
-    const glContextRef = useRef<WebGL2RenderingContext>(null);
+    const glContextRef = useRef<WebGL2RenderingContext | null>(null);
 
     useEffect(
       () => () => {
