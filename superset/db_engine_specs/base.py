@@ -373,9 +373,6 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     allows_cte_in_subquery = True
     # Define alias for CTE
     cte_alias = "__cte"
-    # This set will give keywords for select statements
-    # to consider for the engines with TOP SQL parsing
-    select_keywords: set[str] = {"SELECT"}
     # A set of disallowed connection query parameters by driver name
     disallow_uri_query_params: dict[str, set[str]] = {}
     # A Dict of query parameters that will always be used on every connection
@@ -1549,7 +1546,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         cols: list[ResultSetColumnType] | None = None,
     ) -> str:
         """
-        Generate a "SELECT * from [schema.]table_name" query with appropriate limit.
+        Generate a "SELECT * from [catalog.][schema.]table_name" query with limit.
 
         WARNING: expects only unquoted table and schema names.
 
@@ -1563,6 +1560,9 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         :param cols: Columns to include in query
         :return: SQL query
         """
+        if not cls.supports_cross_catalog_queries:
+            table = Table(table.table, table.schema, None)
+
         # pylint: disable=redefined-outer-name
         fields: str | list[Any] = "*"
         cols = cols or []

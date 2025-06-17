@@ -58,6 +58,7 @@ SQLGLOT_DIALECTS = {
     # "databend": ???
     "databricks": Dialects.DATABRICKS,
     # "db2": ???
+    # "denodo": ???
     # "dremio": ???
     "drill": Dialects.DRILL,
     "druid": Dialects.DRUID,
@@ -72,14 +73,18 @@ SQLGLOT_DIALECTS = {
     "hive": Dialects.HIVE,
     # "ibmi": ???
     # "impala": ???
-    # "kustokql": ???
+    # "kustosql": ???
     # "kylin": ???
+    "mariadb": Dialects.MYSQL,
+    "motherduck": Dialects.DUCKDB,
     "mssql": Dialects.TSQL,
     "mysql": Dialects.MYSQL,
     "netezza": Dialects.POSTGRES,
+    "oceanbase": Dialects.MYSQL,
     # "ocient": ???
     # "odelasticsearch": ???
     "oracle": Dialects.ORACLE,
+    "parseable": Dialects.POSTGRES,
     # "pinot": ???
     "postgresql": Dialects.POSTGRES,
     "presto": Dialects.PRESTO,
@@ -95,6 +100,7 @@ SQLGLOT_DIALECTS = {
     "sqlite": Dialects.SQLITE,
     "starrocks": Dialects.STARROCKS,
     "superset": Dialects.SQLITE,
+    # "taosws": ???
     "teradatasql": Dialects.TERADATA,
     "trino": Dialects.TRINO,
     "vertica": Dialects.POSTGRES,
