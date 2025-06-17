@@ -52,9 +52,7 @@ export const getLayer: GetLayerType<ScreenGridLayer> = function ({
   setDataMask,
   filterState,
   onContextMenu,
-  onAddFilter,
   payload,
-  datasource,
   setTooltip,
 }) {
   const fd = formData;
@@ -79,8 +77,6 @@ export const getLayer: GetLayerType<ScreenGridLayer> = function ({
     minColor: [c.r, c.g, c.b, 0],
     maxColor: [c.r, c.g, c.b, 255 * c.a],
     outline: false,
-    // disable GPU aggregation for object posiotion on picking (enables cross-filters)
-    gpuAggregation: false,
     getWeight: (d: any) => d.weight || 0,
     ...commonLayerProps({
       formData: fd,

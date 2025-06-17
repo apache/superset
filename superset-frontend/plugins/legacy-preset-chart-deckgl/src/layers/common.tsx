@@ -36,7 +36,7 @@ import {
   QueryFormData,
   SetDataMaskHook,
 } from '@superset-ui/core';
-import { PickingInfo } from '@deck.gl/core';
+import { Layer, PickingInfo } from '@deck.gl/core';
 import sandboxedEval from '../utils/sandbox';
 import { TooltipProps } from '../components/Tooltip';
 import { getCrossFilterDataMask } from '../utils/crossFiltersDataMask';
@@ -51,12 +51,12 @@ export function commonLayerProps({
   filterState,
 }: {
   formData: QueryFormData;
-  setDataMask: SetDataMaskHook;
+  setDataMask?: SetDataMaskHook;
   setTooltip: (tooltip: TooltipProps['tooltip']) => void;
   setTooltipContent: (content: JsonObject) => ReactNode;
   onSelect?: (value: JsonValue) => void;
-  filterState: FilterState;
-  onContextMenu: HandlerFunction;
+  filterState?: FilterState;
+  onContextMenu?: HandlerFunction;
 }) {
   const fd = formData;
   let onHover;
@@ -93,33 +93,32 @@ export function commonLayerProps({
     };
   } else {
     onClick = (data: PickingInfo, event: any) => {
-      if (event.leftButton && setDataMask !== undefined) {
-        setDataMask(
-          getCrossFilterDataMask({
-            data,
-            filterState,
-            formData,
-          })?.dataMask || {},
-        );
-      } else if (event.rightButton) {
+      console.log('formData', formData, data);
+      const crossFilters = getCrossFilterDataMask({
+        data,
+        filterState,
+        formData,
+      });
+
+      console.log('sdsdsdfsdf cross filters', crossFilters);
+
+      if (event.leftButton && setDataMask !== undefined && crossFilters) {
+        setDataMask(crossFilters.dataMask);
+      } else if (event.rightButton && onContextMenu !== undefined) {
         console.log('data', data);
         onContextMenu(event.center.x, event.center.y, {
           drillToDetail: [],
-          crossFilter: getCrossFilterDataMask({
-            data,
-            filterState,
-            formData,
-          }),
-          drillBy: { filters: [], groupbyFieldName: 'entity' },
+          crossFilter: crossFilters,
+          drillBy: {},
         });
       }
     };
   }
 
   return {
-    onClick,
+    onClick: onClick as Layer['onClick'],
     onHover,
-    pickable: true,
+    pickable: Boolean(onHover || onClick),
   };
 }
 
