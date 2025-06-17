@@ -127,12 +127,8 @@ const getFiltersBySpatialType = ({
 
       if (!col) return null;
 
-      const val = ngeohash.encode(
-        ...(reverseLonLat
-          ? position
-          : (position.reverse() as [number, number])),
-        12,
-      );
+      const [lon, lat] = position;
+      const val = ngeohash.encode(lat, lon, 12);
 
       values = [val];
 
