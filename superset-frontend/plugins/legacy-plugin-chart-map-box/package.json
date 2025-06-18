@@ -35,7 +35,7 @@
     "@superset-ui/chart-controls": "*",
     "@superset-ui/core": "*",
     "mapbox-gl": "*",
-    "react": "^17.0.2"
+    "react": "^18.2.0"
   },
   "publishConfig": {
     "access": "public"
