@@ -27,6 +27,8 @@ jobs:
         image: mysql:8.0
         env:
           MYSQL_ROOT_PASSWORD: root
+        volumes:
+          - ./.github/mysql.cnf:/etc/mysql/conf.d/mysql.cnf:ro
         ports:
           - 13306:3306
         options: >-
