@@ -830,8 +830,8 @@ const Header = () => {
       />
 
       <UnsavedChangesModal
-        title="Save changes to your dashboard?"
-        body="If you don't save, changes will be lost."
+        title={t('Save changes to your dashboard?')}
+        body={t("If you don't save, changes will be lost.")}
         showModal={showUnsavedChangesModal}
         onHide={() => setShowUnsavedChangesModal(false)}
         onConfirmNavigation={handleConfirmNavigation}

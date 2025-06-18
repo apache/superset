@@ -23,6 +23,7 @@ import {
   screen,
   userEvent,
   waitFor,
+  within,
 } from 'spec/helpers/testing-library';
 import fetchMock from 'fetch-mock';
 import * as chartAction from 'src/components/Chart/chartAction';
@@ -241,10 +242,9 @@ describe('ExploreChartHeader', () => {
     const props = createProps();
     render(<ExploreHeader {...props} />, { useRedux: true });
 
-    const saveButton: HTMLElement =
-      await screen.findByTestId('query-save-button');
-
-    expect(saveButton).toBeInTheDocument();
+    const saveButton: HTMLElement = await screen.findByRole('button', {
+      name: /save/i,
+    });
 
     userEvent.click(saveButton);
 
@@ -268,10 +268,10 @@ describe('ExploreChartHeader', () => {
     const props = createProps();
     render(<ExploreHeader {...props} saveDisabled />, { useRedux: true });
 
-    const saveButton: HTMLElement =
-      await screen.findByTestId('query-save-button');
+    const saveButton: HTMLElement = await screen.findByRole('button', {
+      name: /save/i,
+    });
 
-    expect(saveButton).toBeInTheDocument();
     expect(saveButton).toBeDisabled();
 
     userEvent.click(saveButton);
@@ -281,6 +281,7 @@ describe('ExploreChartHeader', () => {
 
   test('should render UnsavedChangesModal when showModal is true', async () => {
     const props = createProps();
+
     (useUnsavedChangesPrompt as jest.Mock).mockReturnValue({
       showModal: true,
       setShowModal: jest.fn(),
@@ -291,14 +292,13 @@ describe('ExploreChartHeader', () => {
 
     render(<ExploreHeader {...props} />, { useRedux: true });
 
-    await waitFor(() => {
-      expect(
-        screen.getByText('Save changes to your chart?'),
-      ).toBeInTheDocument();
-      expect(
-        screen.getByText('If you don’t save, changes will be lost.'),
-      ).toBeInTheDocument();
-    });
+    expect(await screen.findByRole('dialog')).toBeInTheDocument();
+    expect(
+      await screen.findByText('Save changes to your chart?'),
+    ).toBeInTheDocument();
+    expect(
+      await screen.findByText('If you don’t save, changes will be lost.'),
+    ).toBeInTheDocument();
   });
 
   test('should call handleSaveAndCloseModal when clicking Save in UnsavedChangesModal', async () => {
@@ -315,13 +315,12 @@ describe('ExploreChartHeader', () => {
     const props = createProps();
     render(<ExploreHeader {...props} />, { useRedux: true });
 
-    await waitFor(() =>
-      expect(
-        screen.getByTestId('unsaved-confirm-save-button'),
-      ).toBeInTheDocument(),
-    );
+    const modal: HTMLElement = await screen.findByRole('dialog');
+    const saveButton: HTMLElement = within(modal).getByRole('button', {
+      name: /save/i,
+    });
 
-    userEvent.click(screen.getByTestId('unsaved-confirm-save-button'));
+    userEvent.click(saveButton);
 
     expect(handleSaveAndCloseModal).toHaveBeenCalled();
   });
@@ -340,13 +339,12 @@ describe('ExploreChartHeader', () => {
     const props = createProps();
     render(<ExploreHeader {...props} />, { useRedux: true });
 
-    await waitFor(() =>
-      expect(
-        screen.getByTestId('unsaved-modal-discard-button'),
-      ).toBeInTheDocument(),
-    );
+    const modal: HTMLElement = await screen.findByRole('dialog');
+    const discardButton: HTMLElement = within(modal).getByRole('button', {
+      name: /discard/i,
+    });
 
-    userEvent.click(screen.getByTestId('unsaved-modal-discard-button'));
+    userEvent.click(discardButton);
 
     expect(handleConfirmNavigation).toHaveBeenCalled();
   });
@@ -365,11 +363,11 @@ describe('ExploreChartHeader', () => {
     const props = createProps();
     render(<ExploreHeader {...props} />, { useRedux: true });
 
-    await waitFor(() =>
-      expect(screen.getByTestId('close-modal-btn')).toBeInTheDocument(),
-    );
+    const closeButton: HTMLElement = await screen.findByRole('button', {
+      name: /close/i,
+    });
 
-    userEvent.click(screen.getByTestId('close-modal-btn'));
+    userEvent.click(closeButton);
 
     expect(setShowModal).toHaveBeenCalledWith(false);
   });

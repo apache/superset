@@ -17,22 +17,23 @@
  * under the License.
  */
 import { t, styled, css } from '@superset-ui/core';
-import { Icons, Modal } from '@superset-ui/core/components';
+import { Icons, Modal, Typography } from '@superset-ui/core/components';
 import { Button } from '@superset-ui/core/components/Button';
 import type { FC, ReactElement } from 'react';
 
-const StyledModalTitle = styled.h1`
-  ${({ theme }) => css`
-    color: ${theme.colors.grayscale.dark1};
+const StyledModalTitle = styled(Typography.Title)`
+  && {
     margin: 0;
-  `}
+  }
 `;
 
-const StyledModalBody = styled.p`
+const StyledModalBody = styled(Typography.Text)`
   ${({ theme }) => css`
-    color: ${theme.colors.grayscale.dark1};
-    margin: 0;
     padding: 0 ${theme.sizeUnit * 2}px;
+
+    && {
+      margin: 0;
+    }
   `}
 `;
 
@@ -92,7 +93,9 @@ const UnsavedChangesModal: FC<UnsavedChangesModalProps> = ({
         `}
       >
         <StyledWarningIcon />
-        <StyledModalTitle>{t(title)}</StyledModalTitle>
+        <StyledModalTitle type="secondary" level={2}>
+          {title}
+        </StyledModalTitle>
       </div>
     }
     footer={
@@ -123,7 +126,7 @@ const UnsavedChangesModal: FC<UnsavedChangesModalProps> = ({
       </div>
     }
   >
-    <StyledModalBody>{t(body)}</StyledModalBody>
+    <StyledModalBody type="secondary">{body}</StyledModalBody>
   </Modal>
 );
 
