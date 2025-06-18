@@ -457,9 +457,8 @@ const ResultSet = ({
             <div ref={calculateAlertRefHeight}>
               <Alert
                 type="warning"
-                message={t('%(rows)d rows returned', { rows })}
                 onClose={() => setAlertIsOpen(false)}
-                description={t(
+                message={t(
                   'The number of rows displayed is limited to %(rows)d by the dropdown.',
                   { rows },
                 )}
@@ -471,8 +470,7 @@ const ResultSet = ({
               <Alert
                 type="warning"
                 onClose={() => setAlertIsOpen(false)}
-                message={t('%(rows)d rows returned', { rows: rowsCount })}
-                description={
+                message={
                   isAdmin
                     ? displayMaxRowsReachedMessage.withAdmin
                     : displayMaxRowsReachedMessage.withoutAdmin
