@@ -23,8 +23,9 @@ import {
   AnyThemeConfig,
   ThemeStorage,
   ThemeControllerOptions,
+  themeObject,
 } from '@superset-ui/core';
-import { ThemeMode } from '@superset-ui/core/theme/types';
+import { SupersetTheme, ThemeMode } from '@superset-ui/core/theme/types';
 
 export class LocalStorageAdapter implements ThemeStorage {
   getItem(key: string): string | null {
@@ -41,7 +42,7 @@ export class LocalStorageAdapter implements ThemeStorage {
 }
 
 export class ThemeController {
-  private theme: Theme;
+  private themeObject: Theme;
 
   private storage: ThemeStorage;
 
@@ -63,11 +64,12 @@ export class ThemeController {
 
   private canUpdateModeFn: () => boolean;
 
-  constructor(options: ThemeControllerOptions = {}) {
+  constructor(options: ThemeControllerOptions = { themeObject }) {
     this.storage = options.storage || new LocalStorageAdapter();
     this.storageKey = options.storageKey || 'superset-theme';
     this.modeStorageKey = options.modeStorageKey || `${this.storageKey}-mode`;
     this.defaultTheme = options.defaultTheme || {};
+    this.themeObject = options.themeObject;
     this.systemMode = ThemeController.getSystemMode(); // Determine system mode once
 
     // Load initial mode from storage, or default to system
@@ -92,7 +94,7 @@ export class ThemeController {
       initialCustomizations,
       this.currentMode,
     );
-    this.theme = Theme.fromConfig(this.customizations);
+    this.themeObject.setConfig(this.customizations);
 
     if (options.onChange) {
       this.onChangeCallbacks.add(options.onChange);
@@ -118,7 +120,7 @@ export class ThemeController {
    * Get the current theme
    */
   public getTheme(): Theme {
-    return this.theme;
+    return this.themeObject;
   }
 
   /**
@@ -161,7 +163,7 @@ export class ThemeController {
     this.customizations = newCustomizations; // Update internal state
 
     // Set the theme with the *new* configuration object
-    this.theme.setConfig(this.customizations);
+    this.themeObject.setConfig(this.customizations);
 
     if (newCustomizations.algorithm) {
       this.changeThemeMode(newCustomizations.algorithm as ThemeMode);
@@ -220,7 +222,7 @@ export class ThemeController {
     );
 
     // Set the theme with the updated customizations
-    this.theme.setConfig(this.customizations);
+    this.themeObject.setConfig(this.customizations);
 
     this.persistTheme();
     this.notifyListeners();
@@ -235,7 +237,7 @@ export class ThemeController {
       this.defaultTheme,
       this.currentMode,
     );
-    this.theme.setConfig(this.customizations);
+    this.themeObject.setConfig(this.customizations);
     this.persistTheme();
     this.notifyListeners();
   }
@@ -266,7 +268,7 @@ export class ThemeController {
   private notifyListeners(): void {
     this.onChangeCallbacks.forEach(callback => {
       try {
-        callback(this.theme);
+        callback(this.themeObject);
       } catch (e) {
         console.error('Error in theme change callback:', e);
       }

@@ -380,6 +380,7 @@ export interface ThemeStorage {
 }
 
 export interface ThemeControllerOptions {
+  themeObject: Theme;
   storage?: ThemeStorage;
   storageKey?: string;
   modeStorageKey?: string;
