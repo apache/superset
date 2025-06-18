@@ -323,6 +323,9 @@ export const transformData = (
             ]?.arrowColor?.toLowerCase();
         }
 
+        const alignment =
+          col?.config?.horizontalAlign || (col?.isNumeric ? 'right' : 'left');
+
         // Regular cell rendering logic
         if (!value) return null;
         const formattedValue = col?.formatter ? col?.formatter(value) : value;
@@ -332,6 +335,7 @@ export const transformData = (
             backgroundColor: '',
             arrow,
             arrowColor,
+            alignment,
           });
         const CellWidth = cellWidth({
           value: value as number,
@@ -382,10 +386,12 @@ export const transformData = (
             basicColorFormatters?.[rowIndex]?.[col.metricName]?.backgroundColor;
         }
 
+        const textAlign =
+          col?.config?.horizontalAlign || (col?.isNumeric ? 'right' : 'left');
+
         return {
           backgroundColor: backgroundColor || '',
-          textAlign:
-            col?.config?.horizontalAlign || (col?.isNumeric ? 'right' : 'left'),
+          textAlign,
         };
       },
       lockPinned: !allowRearrangeColumns,

@@ -60,10 +60,11 @@ const Bar = styled.div<{
   z-index: 1;
 `;
 
-const CellContainer = styled.div<{ backgroundColor?: string }>`
+const CellContainer = styled.div<{ backgroundColor?: string; align?: string }>`
   display: flex;
   background-color: ${({ backgroundColor }) =>
     backgroundColor || 'transparent'};
+  justify-content: ${({ align }) => align || 'left'};
 `;
 
 const ArrowContainer = styled.div<{ arrowColor?: string }>`
@@ -116,6 +117,7 @@ interface CellRendererProps {
   arrow?: string;
   backgroundColor?: string;
   arrowColor?: string;
+  alignment?: string;
 }
 
 export const CellRenderer: React.FC<CellRendererProps> = ({
@@ -123,8 +125,9 @@ export const CellRenderer: React.FC<CellRendererProps> = ({
   backgroundColor,
   arrow,
   arrowColor,
+  alignment,
 }) => (
-  <CellContainer backgroundColor={backgroundColor}>
+  <CellContainer align={alignment} backgroundColor={backgroundColor}>
     {arrow && <ArrowContainer arrowColor={arrowColor}>{arrow}</ArrowContainer>}
     <div>{value}</div>
   </CellContainer>
