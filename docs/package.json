@@ -19,10 +19,10 @@
   },
   "dependencies": {
     "@ant-design/icons": "^5.5.2",
-    "@docusaurus/core": "3.7.0",
-    "@docusaurus/plugin-client-redirects": "3.7.0",
-    "@docusaurus/preset-classic": "3.7.0",
-    "@docusaurus/theme-mermaid": "3.7.0",
+    "@docusaurus/core": "3.8.1",
+    "@docusaurus/plugin-client-redirects": "3.8.1",
+    "@docusaurus/preset-classic": "3.8.1",
+    "@docusaurus/theme-mermaid": "3.8.1",
     "@emotion/styled": "^10.0.27",
     "@saucelabs/theme-github-codeblock": "^0.3.0",
     "@superset-ui/style": "^0.14.23",
@@ -35,7 +35,7 @@
     "react-dom": "^18.3.1",
     "react-github-btn": "^1.4.0",
     "react-svg-pan-zoom": "^3.13.1",
-    "swagger-ui-react": "^5.21.0"
+    "swagger-ui-react": "^5.25.2"
   },
   "devDependencies": {
     "@docusaurus/module-type-aliases": "^3.7.0",
