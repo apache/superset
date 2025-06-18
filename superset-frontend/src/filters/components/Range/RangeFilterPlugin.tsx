@@ -69,6 +69,21 @@ const SliderWrapper = styled.div`
   `}
 `;
 
+const TooltipContainer = styled.div`
+  ${({ theme }) => `
+    position: absolute;
+    top: -${theme.gridUnit * 10}px;
+    right: 0px;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+
+    .tooltip-icon {
+      margin-left: ${theme.gridUnit * 2}px;
+    }
+  `}
+`;
+
 const HorizontalLayout = styled.div`
   ${({ theme }) => `
     display: flex;
@@ -500,6 +515,7 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
               ? theme.colors.error.base
               : theme.colors.grayscale.base
           }
+          className="tooltip-icon"
         />
       </Tooltip>
     );
@@ -636,14 +652,21 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
             </HorizontalLayout>
           ) : (
             <>
-              {(rangeDisplayMode === RangeDisplayMode.Slider ||
-                rangeDisplayMode === RangeDisplayMode.SliderAndInput) &&
-                renderSlider()}
-              {(rangeDisplayMode === RangeDisplayMode.Input ||
-                rangeDisplayMode === RangeDisplayMode.SliderAndInput) &&
-                renderInputs()}
+              <div style={{ position: 'relative' }}>
+                {isOverflowingFilterBar && (
+                  <TooltipContainer>
+                    <InfoTooltip />
+                  </TooltipContainer>
+                )}
+                {(rangeDisplayMode === RangeDisplayMode.Slider ||
+                  rangeDisplayMode === RangeDisplayMode.SliderAndInput) &&
+                  renderSlider()}
+                {(rangeDisplayMode === RangeDisplayMode.Input ||
+                  rangeDisplayMode === RangeDisplayMode.SliderAndInput) &&
+                  renderInputs()}
 
-              <MessageDisplay />
+                <MessageDisplay />
+              </div>
             </>
           )}
         </StyledFormItem>
