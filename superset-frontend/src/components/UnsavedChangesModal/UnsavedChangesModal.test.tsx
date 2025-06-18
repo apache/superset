@@ -16,11 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { fireEvent, render, waitFor } from 'spec/helpers/testing-library';
+import { userEvent, render, screen } from 'spec/helpers/testing-library';
 import UnsavedChangesModal from '.';
 
 test('should render nothing if showModal is false', () => {
-  const { queryByTestId } = render(
+  const { queryByRole } = render(
     <UnsavedChangesModal
       showModal={false}
       onHide={() => {}}
@@ -29,11 +29,11 @@ test('should render nothing if showModal is false', () => {
     />,
   );
 
-  expect(queryByTestId('unsaved-changes-modal')).not.toBeInTheDocument();
+  expect(queryByRole('dialog')).not.toBeInTheDocument();
 });
 
 test('should render the UnsavedChangesModal component if showModal is true', async () => {
-  const { findByTestId } = render(
+  const { queryByRole } = render(
     <UnsavedChangesModal
       showModal
       onHide={() => {}}
@@ -42,15 +42,15 @@ test('should render the UnsavedChangesModal component if showModal is true', asy
     />,
   );
 
-  expect(await findByTestId('unsaved-changes-modal')).toBeInTheDocument();
+  expect(queryByRole('dialog')).toBeInTheDocument();
 });
 
-test('should only call onConfirmNavigation when click on the modal Discard button', async () => {
+test('should only call onConfirmNavigation when clicking the Discard button', async () => {
   const mockOnHide = jest.fn();
   const mockHandleSave = jest.fn();
   const mockOnConfirmNavigation = jest.fn();
 
-  const { findByTestId } = render(
+  render(
     <UnsavedChangesModal
       showModal
       onHide={mockOnHide}
@@ -59,28 +59,23 @@ test('should only call onConfirmNavigation when click on the modal Discard butto
     />,
   );
 
-  await waitFor(async () => {
-    expect(mockOnHide).toHaveBeenCalledTimes(0);
-    expect(mockHandleSave).toHaveBeenCalledTimes(0);
-    expect(mockOnConfirmNavigation).toHaveBeenCalledTimes(0);
-
-    const cancelButton: HTMLElement = await findByTestId(
-      'unsaved-modal-discard-button',
-    );
-    fireEvent.click(cancelButton);
-
-    expect(mockOnHide).toHaveBeenCalledTimes(0);
-    expect(mockHandleSave).toHaveBeenCalledTimes(0);
-    expect(mockOnConfirmNavigation).toHaveBeenCalled();
+  const discardButton: HTMLElement = await screen.findByRole('button', {
+    name: /discard/i,
   });
+
+  userEvent.click(discardButton);
+
+  expect(mockOnConfirmNavigation).toHaveBeenCalled();
+  expect(mockHandleSave).not.toHaveBeenCalled();
+  expect(mockOnHide).not.toHaveBeenCalled();
 });
 
-test('should only call handleSave when click on the modal Save button', async () => {
+test('should only call handleSave when clicking the Save button', async () => {
   const mockOnHide = jest.fn();
   const mockHandleSave = jest.fn();
   const mockOnConfirmNavigation = jest.fn();
 
-  const { findByTestId } = render(
+  render(
     <UnsavedChangesModal
       showModal
       onHide={mockOnHide}
@@ -89,18 +84,13 @@ test('should only call handleSave when click on the modal Save button', async ()
     />,
   );
 
-  await waitFor(async () => {
-    expect(mockOnHide).toHaveBeenCalledTimes(0);
-    expect(mockHandleSave).toHaveBeenCalledTimes(0);
-    expect(mockOnConfirmNavigation).toHaveBeenCalledTimes(0);
-
-    const confirmationButton: HTMLElement = await findByTestId(
-      'unsaved-confirm-save-button',
-    );
-    fireEvent.click(confirmationButton);
-
-    expect(mockHandleSave).toHaveBeenCalled();
-    expect(mockOnHide).toHaveBeenCalledTimes(0);
-    expect(mockOnConfirmNavigation).toHaveBeenCalledTimes(0);
+  const saveButton: HTMLElement = await screen.findByRole('button', {
+    name: /save/i,
   });
+
+  userEvent.click(saveButton);
+
+  expect(mockHandleSave).toHaveBeenCalled();
+  expect(mockOnHide).not.toHaveBeenCalled();
+  expect(mockOnConfirmNavigation).not.toHaveBeenCalled();
 });

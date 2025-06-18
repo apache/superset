@@ -23,7 +23,7 @@ import {
   screen,
   fireEvent,
   userEvent,
-  waitFor,
+  within,
 } from 'spec/helpers/testing-library';
 import fetchMock from 'fetch-mock';
 import { getExtensionsRegistry, JsonObject } from '@superset-ui/core';
@@ -506,16 +506,18 @@ test('should show UnsavedChangesModal when there are unsaved changes and user tr
 
   setup({ ...editableState });
 
-  await waitFor(() => {
-    expect(
-      screen.getByText('Save changes to your dashboard?'),
-    ).toBeInTheDocument();
+  const modalTitle: HTMLElement = await screen.findByText(
+    'Save changes to your dashboard?',
+  );
 
-    expect(
-      screen.getByText("If you don't save, changes will be lost."),
-    ).toBeInTheDocument();
-  });
+  const modalBody: HTMLElement = await screen.findByText(
+    "If you don't save, changes will be lost.",
+  );
+
+  expect(modalTitle).toBeInTheDocument();
+  expect(modalBody).toBeInTheDocument();
 });
+
 test('should call handleSaveAndCloseModal when Save is clicked in UnsavedChangesModal', async () => {
   const handleSaveAndCloseModal = jest.fn();
 
@@ -528,15 +530,11 @@ test('should call handleSaveAndCloseModal when Save is clicked in UnsavedChanges
 
   setup({ ...editableState });
 
-  await waitFor(() => {
-    expect(
-      screen.getByText('Save changes to your dashboard?'),
-    ).toBeInTheDocument();
+  const modal: HTMLElement = await screen.findByRole('dialog');
+  const saveButton: HTMLElement = within(modal).getByRole('button', {
+    name: /save/i,
   });
 
-  const saveButton: HTMLElement = screen.getByTestId(
-    'unsaved-confirm-save-button',
-  );
   userEvent.click(saveButton);
 
   expect(handleSaveAndCloseModal).toHaveBeenCalled();
@@ -554,15 +552,11 @@ test('should call handleConfirmNavigation when user confirms navigation in Unsav
 
   setup({ ...editableState });
 
-  await waitFor(() => {
-    expect(
-      screen.getByText('Save changes to your dashboard?'),
-    ).toBeInTheDocument();
+  const modal: HTMLElement = await screen.findByRole('dialog');
+  const discardButton: HTMLElement = within(modal).getByRole('button', {
+    name: /discard/i,
   });
 
-  const discardButton: HTMLElement = screen.getByTestId(
-    'unsaved-modal-discard-button',
-  );
   userEvent.click(discardButton);
 
   expect(handleConfirmNavigation).toHaveBeenCalled();
@@ -580,14 +574,12 @@ test('should call setShowUnsavedChangesModal(false) on cancel', async () => {
 
   setup({ ...editableState });
 
-  await waitFor(() => {
-    expect(
-      screen.getByText('Save changes to your dashboard?'),
-    ).toBeInTheDocument();
+  const modal: HTMLElement = await screen.findByRole('dialog');
+  const closeButton: HTMLElement = within(modal).getByRole('button', {
+    name: /close/i,
   });
 
-  const cancelButton: HTMLElement = screen.getByTestId('close-modal-btn');
-  userEvent.click(cancelButton);
+  userEvent.click(closeButton);
 
   expect(setShowModal).toHaveBeenCalledWith(false);
 });

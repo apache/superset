@@ -21,22 +21,21 @@ import Button from 'src/components/Button';
 import { t, styled, css } from '@superset-ui/core';
 import type { FC, ReactElement } from 'react';
 import { Icons } from 'src/components/Icons';
+import { Typography } from '..';
 
-const StyledModalTitle = styled.h1`
-  ${({ theme }) => css`
-    color: ${theme.colors.grayscale.dark1};
-    font-size: ${theme.typography.sizes.l}px;
-    font-weight: ${theme.typography.weights.bold};
+const StyledModalTitle = styled(Typography.Title)`
+  && {
     margin: 0;
-  `}
+  }
 `;
 
-const StyledModalBody = styled.p`
+const StyledModalBody = styled(Typography.Text)`
   ${({ theme }) => css`
-    color: ${theme.colors.grayscale.dark1};
-    font-size: ${theme.typography.sizes.m}px;
-    margin: 0;
     padding: 0 ${theme.gridUnit * 2}px;
+
+    && {
+      margin: 0;
+    }
   `}
 `;
 
@@ -96,7 +95,9 @@ const UnsavedChangesModal: FC<UnsavedChangesModalProps> = ({
         `}
       >
         <StyledWarningIcon />
-        <StyledModalTitle>{t(title)}</StyledModalTitle>
+        <StyledModalTitle type="secondary" level={2}>
+          {title}
+        </StyledModalTitle>
       </div>
     }
     footer={
@@ -127,7 +128,7 @@ const UnsavedChangesModal: FC<UnsavedChangesModalProps> = ({
       </div>
     }
   >
-    <StyledModalBody>{t(body)}</StyledModalBody>
+    <StyledModalBody type="secondary">{body}</StyledModalBody>
   </Modal>
 );
 
