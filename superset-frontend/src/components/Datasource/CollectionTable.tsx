@@ -197,9 +197,7 @@ export default class CRUDCollection extends PureComponent<
   }
 
   changeCollection(collection: any) {
-    console.log({ collection });
     const newCollectionArray = createCollectionArray(collection);
-    console.log({ newCollectionArray });
     this.setState({ collection, collectionArray: newCollectionArray });
 
     if (this.props.onChange) {

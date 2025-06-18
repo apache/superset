@@ -45,13 +45,13 @@ export function SupersetThemeProvider({
   );
 
   const [currentThemeMode, setCurrentThemeMode] = useState<ThemeMode>(
-    themeController.getThemeMode(),
+    themeController.getCurrentMode(),
   );
 
   useEffect(() => {
     const unsubscribe = themeController.onChange(theme => {
       setCurrentTheme(theme);
-      setCurrentThemeMode(themeController.getThemeMode());
+      setCurrentThemeMode(themeController.getCurrentMode());
     });
 
     return unsubscribe;

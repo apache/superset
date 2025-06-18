@@ -364,6 +364,7 @@ export enum ThemeMode {
   LIGHT = 'light',
   DARK = 'dark',
   SYSTEM = 'system',
+  COMPACT = 'compact',
 }
 
 export type SharedAntdTokens = Pick<AntdTokens, AllowedAntdTokenKeys>;

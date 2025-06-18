@@ -30,6 +30,7 @@ import {
   ThemeProvider,
   // eslint-disable-next-line no-restricted-imports
   supersetTheme,
+  themeObject,
 } from '@superset-ui/core';
 import { SupersetThemeProvider } from 'src/theme/ThemeProvider';
 import { ThemeController } from 'src/theme/ThemeController';
@@ -54,7 +55,7 @@ type Options = Omit<RenderOptions, 'queries'> & {
   store?: Store;
 };
 
-const themeController = new ThemeController({});
+const themeController = new ThemeController({ themeObject });
 
 export const createStore = (initialState: object = {}, reducers: object = {}) =>
   configureStore({

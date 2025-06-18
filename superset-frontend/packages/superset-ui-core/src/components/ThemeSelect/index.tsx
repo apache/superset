@@ -36,12 +36,11 @@ const ThemeSelect: React.FC<ThemeSelectProps> = ({
     changeThemeMode(mode);
   };
 
-  console.log({ themeMode });
-
   const themeIconMap: Record<ThemeMode, React.ReactNode> = {
     [ThemeMode.LIGHT]: <Icons.SunOutlined />,
     [ThemeMode.DARK]: <Icons.MoonOutlined />,
     [ThemeMode.SYSTEM]: <Icons.FormatPainterOutlined />,
+    [ThemeMode.COMPACT]: <Icons.CompressOutlined />,
   };
 
   return (
@@ -71,7 +70,7 @@ const ThemeSelect: React.FC<ThemeSelectProps> = ({
         }}
         trigger={['click']}
       >
-        {themeIconMap[themeMode]}
+        {themeIconMap[themeMode] || <Icons.FormatPainterOutlined />}
       </Dropdown>
     </Tooltip>
   );
