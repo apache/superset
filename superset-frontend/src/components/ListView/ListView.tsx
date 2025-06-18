@@ -422,17 +422,19 @@ function ListView<T extends object = any>({
                       <div className="divider" />
                       {firstAction && (
                         <Dropdown.Button
-                        overlay={dropdownActions.length > 0 ? dropdownMenu : undefined}
-                        onClick={() =>
-                          firstAction.onSelect(
-                            selectedFlatRows.map(r => r.original),
-                          )
-                        }
-                        type="primary"
+                          overlay={
+                            dropdownActions.length > 0 ? dropdownMenu : <></>
+                          }
+                          onClick={() =>
+                            firstAction.onSelect(
+                              selectedFlatRows.map(r => r.original),
+                            )
+                          }
+                          type="primary"
                         >
                           {firstAction.name}
                         </Dropdown.Button>
-                        )}
+                      )}
                     </>
                   )}
                 </>
