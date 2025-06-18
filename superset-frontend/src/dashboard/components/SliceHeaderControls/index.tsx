@@ -528,7 +528,7 @@ const SliceHeaderControls = (
           aria-label="More Options"
           aria-haspopup="true"
           css={theme => css`
-            padding: ${theme.gridUnit * 1.5}px;
+            padding: ${theme.gridUnit * 2}px;
           `}
         >
           <VerticalDotsTrigger />
