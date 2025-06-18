@@ -163,6 +163,26 @@ service and supporting infrastructure and backup strategy.
 To configure Superset metastore set `SQLALCHEMY_DATABASE_URI` config key on `superset_config`
 to the appropriate connection string.
 
+### Important MySQL Collation and Character Set Configuration
+
+When using MySQL as your metadata database, it's **critical** to configure the correct character set and collation to avoid data corruption and errors, especially when dealing with extended characters like emojis.
+
+Ensure the following:
+
+1. **Database Creation**: When creating the Superset metadata database (e.g., `superset`), explicitly specify `utf8mb4` and `utf8mb4_0900_ai_ci`:
+    ```sql
+    CREATE DATABASE superset DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci;
+    ```
+    This ensures newly created tables inherit the correct settings.
+
+2. **Connection String**: Your `SQLALCHEMY_DATABASE_URI` should include `charset=utf8mb4` to inform the database driver about the expected character set for the connection:
+    ```python
+    SQLALCHEMY_DATABASE_URI = "mysql://<UserName>:<DBPassword>@<Database Host>/<Database Name>?charset=utf8mb4"
+    ```
+    Adding `&binary_prefix=true` can sometimes be beneficial as well.
+
+Following these guidelines will help prevent common encoding errors like "Incorrect string value" or "Illegal mix of collations".
+
 ## Running on a WSGI HTTP Server
 
 While you can run Superset on NGINX or Apache, we recommend using Gunicorn in async mode. This
