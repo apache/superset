@@ -18,9 +18,13 @@
  */
 import { TimeGranularity } from '@superset-ui/core';
 import { PickingInfo } from '@deck.gl/core';
-import { getCrossFilterDataMask } from './crossFiltersDataMask';
+import {
+  getCrossFilterDataMask,
+  LayerFormData,
+  SpatialData,
+} from './crossFiltersDataMask';
 
-const formData = {
+const formData: LayerFormData = {
   metric: 'value',
   colorPicker: {
     r: 0,
@@ -60,7 +64,7 @@ describe('getCrossFilterDataMask', () => {
         latCol: 'LAT',
         lonCol: 'LON',
         type: 'latlong',
-      },
+      } as SpatialData,
     };
 
     const latlongPickingData = {
@@ -132,7 +136,7 @@ describe('getCrossFilterDataMask', () => {
         latCol: 'LAT',
         lonCol: 'LON',
         type: 'latlong',
-      },
+      } as SpatialData,
     };
 
     const latlongPickingData = {
@@ -185,7 +189,7 @@ describe('getCrossFilterDataMask', () => {
         lonlatCol: 'LONLAT',
         delimiter: ',',
         type: 'delimited',
-      },
+      } as SpatialData,
     };
 
     const delimitedPickingData = {
@@ -242,8 +246,8 @@ describe('getCrossFilterDataMask', () => {
         lonlatCol: 'LONLAT',
         delimiter: ',',
         type: 'delimited',
-        reverseLonLat: true,
-      },
+        reverseCheckbox: true,
+      } as SpatialData,
     };
 
     const delimitedPickingData = {
@@ -279,12 +283,12 @@ describe('getCrossFilterDataMask', () => {
                 sqlExpression: '"LONLAT"',
               },
               op: '==',
-              val: `-122.4205965,37.8054735`,
+              val: `37.8054735,-122.4205965`,
             },
           ],
         },
         filterState: {
-          value: [`-122.4205965,37.8054735`],
+          value: [`37.8054735,-122.4205965`],
         },
       },
       isCurrentValueSelected: false,
@@ -300,7 +304,7 @@ describe('getCrossFilterDataMask', () => {
         geohashCol: 'geohash',
         reverseCheckbox: false,
         type: 'geohash',
-      },
+      } as SpatialData,
     };
 
     const geohashPickingData = {
@@ -353,12 +357,12 @@ describe('getCrossFilterDataMask', () => {
         geohashCol: 'geohash',
         reverseCheckbox: false,
         type: 'geohash',
-      },
+      } as SpatialData,
       end_spatial: {
         latCol: 'LAT_DEST',
         lonCol: 'LON_DEST',
         type: 'latlong',
-      },
+      } as SpatialData,
     };
 
     const arkPickingData = {
@@ -425,7 +429,7 @@ describe('getCrossFilterDataMask', () => {
         latCol: 'LAT',
         lonCol: 'LON',
         type: 'latlong',
-      },
+      } as SpatialData,
     };
 
     const latlongGPUPickingData = {
