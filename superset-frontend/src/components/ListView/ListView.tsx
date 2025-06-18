@@ -25,7 +25,7 @@ import IndeterminateCheckbox from 'src/components/IndeterminateCheckbox';
 import Pagination from 'src/components/Pagination';
 import TableCollection from 'src/components/TableCollection';
 import BulkTagModal from 'src/features/tags/BulkTagModal';
-import { Dropdown, Menu } from 'antd';
+import { Dropdown, Menu } from 'src/components';
 import CardCollection from './CardCollection';
 import FilterControls from './Filters';
 import { CardSortSelect } from './CardSortSelect';
@@ -422,15 +422,13 @@ function ListView<T extends object = any>({
                       <div className="divider" />
                       {firstAction && (
                         <Dropdown.Button
-                          overlay={
-                            dropdownActions.length > 0 ? dropdownMenu : <></>
-                          }
-                          onClick={() =>
-                            firstAction.onSelect(
-                              selectedFlatRows.map(r => r.original),
-                            )
-                          }
-                          type="primary"
+                        overlay={dropdownActions.length > 0 ? dropdownMenu : undefined}
+                        onClick={() =>
+                          firstAction.onSelect(
+                            selectedFlatRows.map(r => r.original),
+                          )
+                        }
+                        type="primary"
                         >
                           {firstAction.name}
                         </Dropdown.Button>
