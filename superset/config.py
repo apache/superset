@@ -289,8 +289,8 @@ SHOW_STACKTRACE = False
 
 # Use all X-Forwarded headers when ENABLE_PROXY_FIX is True.
 # When proxying to a different port, set "x_port" to 0 to avoid downstream issues.
-ENABLE_PROXY_FIX = False
-PROXY_FIX_CONFIG = {"x_for": 1, "x_proto": 1, "x_host": 1, "x_port": 1, "x_prefix": 1}
+ENABLE_PROXY_FIX = True
+PROXY_FIX_CONFIG = {"x_for": 1, "x_proto": 1, "x_host": 1, "x_port": 0, "x_prefix": 1}
 
 # Configuration for scheduling queries from SQL Lab.
 SCHEDULED_QUERIES: dict[str, Any] = {}
@@ -313,6 +313,9 @@ AUTH_RATE_LIMIT = "5 per second"
 # GLOBALS FOR APP Builder
 # ------------------------------
 # Uncomment to setup Your App name
+
+# SUPERSET_WEBSERVER_URL = "https://dw.pesapalhosting.com:9004"
+# SUPERSET_WEBSERVER_BASEURL = "https://dw.pesapalhosting.com:9004"
 APP_NAME = "PESAPAL DATA"
 
 # Specify the App icon
@@ -558,7 +561,7 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # query, and might break queries and/or allow users to bypass RLS. Use with care!
     "RLS_IN_SQLLAB": False,
     # Try to optimize SQL queries — for now only predicate pushdown is supported.
-    "OPTIMIZE_SQL": False,
+    "OPTIMIZE_SQL": True,
     # When impersonating a user, use the email prefix instead of the username
     "IMPERSONATE_WITH_EMAIL_PREFIX": False,
     # Enable caching per impersonation key (e.g username) in a datasource where user
