@@ -17,45 +17,91 @@
  * under the License.
  */
 import { PickingInfo, Viewport } from '@deck.gl/core';
-import { ContextMenuFilters, QueryObjectFilterClause } from '@superset-ui/core';
+import {
+  ContextMenuFilters,
+  FilterState,
+  QueryObjectFilterClause,
+  SqlaFormData,
+} from '@superset-ui/core';
 import ngeohash from 'ngeohash';
+
+const GEOHASH_PRECISION = 12;
+const VIEWPORT_BUFFER_FACTOR = 0.01;
+const ZOOM_DIVISOR = 2;
 
 export const spatialTypes = {
   latlong: 'latlong',
   delimited: 'delimited',
   geohash: 'geohash',
-};
+} as const;
 
 type SpatialType = (typeof spatialTypes)[keyof typeof spatialTypes];
 
+export type SpatialData = {
+  latCol?: string;
+  lonCol?: string;
+  lonlatCol?: string;
+  reverseCheckbox?: boolean;
+  delimiter?: string;
+  type: SpatialType;
+  geohashCol?: string;
+  line_column?: string;
+};
+
+export interface LayerFormData extends SqlaFormData {
+  start_spatial?: SpatialData;
+  end_spatial?: SpatialData;
+  spatial?: SpatialData;
+  line_column?: string;
+  geojson?: string;
+}
+
+export interface FilterResult {
+  filters: QueryObjectFilterClause[];
+  values: FilterState;
+}
+
+export interface PositionBounds {
+  from: [number, number];
+  to: [number, number];
+}
+
+export interface ValidatedPickingData {
+  position?: [number, number];
+  positionBounds?: PositionBounds;
+  sourcePosition?: [number, number];
+  targetPosition?: [number, number];
+  path?: string;
+  geometry?: any;
+}
+
 const getFiltersBySpatialType = ({
-  spatialType,
   position,
   positionBounds,
-  latCol,
-  lonCol,
-  singleValueCol,
-  reverseLonLat,
-  delimiter,
+  spatialData,
   customColumnLabel,
 }: {
-  spatialType: SpatialType;
   position: [number, number];
-  positionBounds?: { from: number[]; to: number[] };
-  lonCol?: string;
-  latCol?: string;
-  singleValueCol?: string;
-  reverseLonLat?: boolean;
-  delimiter?: string;
+  spatialData: SpatialData;
+  positionBounds?: PositionBounds;
   customColumnLabel?: string;
 }) => {
+  const {
+    lonCol,
+    latCol,
+    lonlatCol,
+    geohashCol,
+    reverseCheckbox,
+    type,
+    delimiter,
+  } = spatialData;
   let values: any[] = [];
   let filters: QueryObjectFilterClause[] = [];
 
   if (!position && !positionBounds)
     throw new Error('Position of picked data is required');
 
-  switch (spatialType) {
+  switch (type) {
     case spatialTypes.latlong: {
       if (lonCol != null && latCol != null) {
         const cols = [lonCol, latCol];
@@ -116,11 +162,11 @@ const getFiltersBySpatialType = ({
       break;
     }
     case spatialTypes.delimited: {
-      const col = singleValueCol;
+      const col = lonlatCol ?? geohashCol;
 
-      if (!col) return null;
+      if (!col) throw new Error('Column is required');
 
-      const val = (reverseLonLat ? position.reverse() : position).join(
+      const val = (reverseCheckbox ? position.reverse() : position).join(
         delimiter,
       );
 
@@ -141,12 +187,12 @@ const getFiltersBySpatialType = ({
       break;
     }
     case spatialTypes.geohash: {
-      const col = singleValueCol;
+      const col = lonlatCol ?? geohashCol;
 
-      if (!col) return null;
+      if (!col) throw new Error('Column is required');
 
       const [lon, lat] = position;
-      const val = ngeohash.encode(lat, lon, 12);
+      const val = ngeohash.encode(lat, lon, GEOHASH_PRECISION);
 
       values = [val];
 
@@ -181,8 +227,9 @@ const calculatePickedPositionBounds = ({
 }: {
   pickedCoordinates: number[];
   viewport: Viewport;
-}) => {
-  const buffer = 0.01 / Math.pow(2, viewport.zoom / 2);
+}): PositionBounds => {
+  const buffer =
+    VIEWPORT_BUFFER_FACTOR / Math.pow(2, viewport.zoom / ZOOM_DIVISOR);
 
   return {
     from: [pickedCoordinates[0] - buffer, pickedCoordinates[1] - buffer],
@@ -213,120 +260,161 @@ const getSpatialColumnLabel = ({
   return '';
 };
 
+const getStartEndSpatialFilters = ({
+  formData,
+  data,
+}: {
+  formData: LayerFormData;
+  data: PickingInfo;
+}): FilterResult => {
+  const sourcePosition: [number, number] = data.object?.sourcePosition;
+  const targetPosition: [number, number] = data.object?.targetPosition;
+
+  if (!sourcePosition || !targetPosition)
+    throw new Error('Position of picked data is required');
+
+  if (!formData.start_spatial || !formData.end_spatial)
+    throw new Error('Spatial data is required');
+
+  const customColumnLabel = `Start ${getSpatialColumnLabel(formData.start_spatial)} end ${getSpatialColumnLabel(formData.end_spatial)}`;
+
+  const startSpatialFilters = getFiltersBySpatialType({
+    position: sourcePosition,
+    spatialData: formData.start_spatial,
+    customColumnLabel,
+  });
+
+  const endSpatialFilters = getFiltersBySpatialType({
+    position: targetPosition,
+    spatialData: formData.end_spatial,
+    customColumnLabel,
+  });
+
+  if (!startSpatialFilters || !endSpatialFilters) throw new Error('');
+
+  return {
+    values: [startSpatialFilters.values, endSpatialFilters.values],
+    filters: [
+      ...(startSpatialFilters.filters || []),
+      ...(endSpatialFilters.filters || []),
+    ],
+  };
+};
+
+const getSpatialFilters = ({
+  formData,
+  data,
+}: {
+  formData: LayerFormData;
+  data: PickingInfo;
+}): FilterResult => {
+  const position = (data.object?.points?.[0]?.position ||
+    data.object?.position) as [number, number];
+
+  let positionBounds: PositionBounds | undefined;
+
+  if (!position && data.coordinate && data.viewport) {
+    const pickedPositionBounds = calculatePickedPositionBounds({
+      pickedCoordinates: data.coordinate,
+      viewport: data.viewport,
+    });
+
+    positionBounds = pickedPositionBounds;
+  }
+
+  if (!formData.spatial) throw new Error('Spatial data is required');
+
+  return getFiltersBySpatialType({
+    position,
+    positionBounds,
+    spatialData: formData.spatial,
+  });
+};
+
+const getLineColumnFilters = ({
+  formData,
+  data,
+}: {
+  formData: LayerFormData;
+  data: PickingInfo;
+}): FilterResult => {
+  const path = (data?.object?.path || data.object?.polygon) as string;
+  const val = JSON.stringify(path);
+
+  if (!formData.line_column) throw new Error('Line column is required');
+  if (!path) throw new Error('Position of picked data is required');
+
+  return {
+    values: [val],
+    filters: [
+      {
+        col: {
+          expressionType: 'SQL',
+          sqlExpression: `REPLACE("${formData.line_column}", ' ', '')`,
+          label: formData.line_column,
+        },
+        op: '==',
+        val,
+      },
+    ],
+  };
+};
+
+const getGeojsonFilters = ({
+  formData,
+  data,
+}: {
+  formData: LayerFormData;
+  data: PickingInfo;
+}): FilterResult => {
+  const geometry = data.object?.geometry?.coordinates;
+
+  if (!geometry) throw new Error('Position of picked data is required');
+
+  const val = `%${JSON.stringify(geometry)}%`;
+
+  return {
+    values: [val],
+    filters: [
+      {
+        col: {
+          expressionType: 'SQL',
+          sqlExpression: `REPLACE("${formData.geojson}", ' ', '')`,
+          label: formData.geojson,
+        },
+        op: 'LIKE',
+        val,
+      },
+    ],
+  };
+};
+
 export const getCrossFilterDataMask = ({
   data,
   filterState,
   formData,
 }: {
   data: PickingInfo;
-  filterState: any;
-  formData: any;
+  filterState?: FilterState;
+  formData: LayerFormData;
 }) => {
-  let values: any[] = [];
+  let values: FilterState['value'] = [];
   let filters: QueryObjectFilterClause[] = [];
 
   if (formData.start_spatial && formData.end_spatial) {
-    const sourcePosition: [number, number] = data.object?.sourcePosition;
-    const targetPosition: [number, number] = data.object?.targetPosition;
-
-    if (!sourcePosition || !targetPosition)
-      throw new Error('Position of picked data is required');
-
-    const customColumnLabel = `Start ${getSpatialColumnLabel(formData.start_spatial)} end ${getSpatialColumnLabel(formData.end_spatial)}`;
-
-    const startSpatialFilters = getFiltersBySpatialType({
-      position: sourcePosition,
-      spatialType: formData.start_spatial.type,
-      latCol: formData.start_spatial.latCol,
-      lonCol: formData.start_spatial.lonCol,
-      singleValueCol:
-        formData.start_spatial.geohashCol || formData.start_spatial.line_column,
-      customColumnLabel,
-    });
-
-    const endSpatialFilters = getFiltersBySpatialType({
-      position: targetPosition,
-      spatialType: formData.end_spatial.type,
-      latCol: formData.end_spatial.latCol,
-      lonCol: formData.end_spatial.lonCol,
-      singleValueCol:
-        formData.end_spatial.geohashCol || formData.end_spatial.line_column,
-      customColumnLabel,
-    });
-
-    if (startSpatialFilters && endSpatialFilters) {
-      values = [startSpatialFilters.values, endSpatialFilters.values];
-      filters = [
-        ...startSpatialFilters?.filters,
-        ...endSpatialFilters?.filters,
-      ];
-    }
+    const result = getStartEndSpatialFilters({ formData, data });
+    ({ values, filters } = result);
   } else if (formData.spatial?.type) {
-    const position = (data.object?.points?.[0]?.position ||
-      data.object?.position) as [number, number];
-
-    let positionBounds;
-
-    if (!position && data.coordinate && data.viewport) {
-      const pickedPositionBounds = calculatePickedPositionBounds({
-        pickedCoordinates: data.coordinate,
-        viewport: data.viewport,
-      });
-
-      positionBounds = pickedPositionBounds;
-    }
-
-    const result = getFiltersBySpatialType({
-      position,
-      positionBounds,
-      spatialType: formData.spatial.type,
-      lonCol: formData.spatial.lonCol,
-      latCol: formData.spatial.latCol,
-      singleValueCol: formData.spatial.lonlatCol || formData.spatial.geohashCol,
-    });
-
-    if (result) {
-      ({ values, filters } = result);
-    }
+    const result = getSpatialFilters({ formData, data });
+    ({ values, filters } = result);
   } else if (formData.line_column) {
-    const path = (data?.object?.path || data.object?.polygon) as string;
-    const val = JSON.stringify(path);
-
-    if (!path) throw new Error('Position of picked data is required');
-
-    values = [val];
-
-    filters = [
-      {
-        col: {
-          expressionType: 'SQL',
-          sqlExpression: `REPLACE(${formData.line_column}, ' ', '')`,
-          label: formData.line_column,
-        },
-        op: '==',
-        val,
-      },
-    ];
+    const result = getLineColumnFilters({ formData, data });
+    ({ values, filters } = result);
   } else if (formData.geojson) {
-    const geometry = data.object?.geometry?.coordinates;
-
-    if (!geometry) throw new Error('Geometry of picked data is required');
-
-    const val = `%${JSON.stringify(geometry)}%`;
-
-    values = [val];
-
-    filters = [
-      {
-        col: {
-          expressionType: 'SQL',
-          sqlExpression: `REPLACE(${formData.geojson}, ' ', '')`,
-          label: formData.geojson,
-        },
-        op: 'LIKE',
-        val,
-      },
-    ];
+    const result = getGeojsonFilters({ formData, data });
+    ({ values, filters } = result);
+  } else {
+    throw new Error('No valid spatial configuration found in form data');
   }
 
   const isSelected =
