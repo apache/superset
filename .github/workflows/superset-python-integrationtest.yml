@@ -28,7 +28,7 @@ jobs:
         env:
           MYSQL_ROOT_PASSWORD: root
         volumes:
-          - ${{ github.workspace }}/mysql.cnf:/etc/mysql/conf.d/mysql.cnf
+          - ${{ github.workspace }}/my.cnf:/etc/mysql/conf.d/my.cnf
         ports:
           - 13306:3306
         options: >-
