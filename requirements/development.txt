@@ -470,7 +470,7 @@ nh3==0.2.21
     #   apache-superset
 nodeenv==1.8.0
     # via pre-commit
-numpy==1.26.4
+numpy==2.2.6
     # via
     #   -c requirements/base.txt
     #   apache-superset
@@ -927,7 +927,7 @@ wtforms-json==0.3.5
     # via
     #   -c requirements/base.txt
     #   apache-superset
-xlrd==2.0.1
+xlrd==2.0.2
     # via
     #   -c requirements/base.txt
     #   pandas
