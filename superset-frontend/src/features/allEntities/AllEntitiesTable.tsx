@@ -42,7 +42,7 @@ const AllEntitiesTableContainer = styled.div`
   .entity-title {
     font-family: Inter;
     font-size: ${({ theme }) => theme.fontSize}px;
-    font-weight: ${({ theme }) => theme.fontWeightMedium};
+    font-weight: ${({ theme }) => theme.fontWeightStrong};
     line-height: 17px;
     letter-spacing: 0px;
     text-align: left;

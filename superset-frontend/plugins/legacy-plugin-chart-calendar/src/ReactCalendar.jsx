@@ -196,7 +196,7 @@ export default styled(Calendar)`
 
     .cal-heatmap-container text.highlight-now {
       fill: ${theme.colorError};
-      font-weight: ${theme.fontWeightMedium};
+      font-weight: ${theme.fontWeightStrong};
     }
 
     .cal-heatmap-container .domain-background {

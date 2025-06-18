@@ -60,7 +60,7 @@ export const DropdownButton = ({
             height: 30px;
             box-shadow: none;
             font-size: ${theme.fontSizeSM}px;
-            font-weight: ${theme.fontWeightMedium};
+            font-weight: ${theme.fontWeightStrong};
           }
         `,
       ]}

@@ -40,7 +40,7 @@ const Container = styled.div<{
 
     & .no-results-title {
       font-size: ${theme.fontSizeLG}px;
-      font-weight: ${theme.fontWeightMedium};
+      font-weight: ${theme.fontWeightStrong};
       padding-bottom: ${theme.sizeUnit * 2};
     }
 

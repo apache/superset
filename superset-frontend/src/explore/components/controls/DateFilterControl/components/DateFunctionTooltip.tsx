@@ -119,11 +119,11 @@ const StyledTooltip = (props: any) => {
                 max-width: ${theme.sizeUnit * 125}px;
                 h3 {
                   font-size: ${theme.fontSize}px;
-                  font-weight: ${theme.fontWeightMedium};
+                  font-weight: ${theme.fontWeightStrong};
                 }
                 h4 {
                   font-size: ${theme.fontSize}px;
-                  font-weight: ${theme.fontWeightMedium};
+                  font-weight: ${theme.fontWeightStrong};
                 }
                 pre {
                   border: none;

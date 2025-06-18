@@ -71,7 +71,7 @@ const CrossFilterIcon = styled(Icons.ApartmentOutlined)`
 const ChartHeaderStyles = styled.div`
   ${({ theme }) => css`
     font-size: ${theme.fontSizeLG}px;
-    font-weight: ${theme.fontWeightMedium};
+    font-weight: ${theme.fontWeightStrong};
     margin-bottom: ${theme.sizeUnit}px;
     display: flex;
     max-width: 100%;

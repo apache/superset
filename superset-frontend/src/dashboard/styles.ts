@@ -21,7 +21,7 @@ import { css, SupersetTheme } from '@superset-ui/core';
 export const headerStyles = (theme: SupersetTheme) => css`
   body {
     h1 {
-      font-weight: ${theme.fontWeightMedium};
+      font-weight: ${theme.fontWeightStrong};
       line-height: 1.4;
       font-size: ${theme.fontSizeXXL}px;
       letter-spacing: -0.2px;
@@ -30,7 +30,7 @@ export const headerStyles = (theme: SupersetTheme) => css`
     }
 
     h2 {
-      font-weight: ${theme.fontWeightMedium};
+      font-weight: ${theme.fontWeightStrong};
       line-height: 1.4;
       font-size: ${theme.fontSizeXL}px;
       margin-top: ${theme.sizeUnit * 3}px;
@@ -41,7 +41,7 @@ export const headerStyles = (theme: SupersetTheme) => css`
     h4,
     h5,
     h6 {
-      font-weight: ${theme.fontWeightMedium};
+      font-weight: ${theme.fontWeightStrong};
       line-height: 1.4;
       font-size: ${theme.fontSizeLG}px;
       letter-spacing: 0.2px;

@@ -96,7 +96,7 @@ const Title = styled.div`
     align-items: center;
     column-gap: ${theme.sizeUnit}px;
     font-size: ${theme.fontSizeLG}px;
-    font-weight: ${theme.fontWeightMedium};
+    font-weight: ${theme.fontWeightStrong};
   `}
 `;
 const renderWell = (partitions: TableMetaData['partitions']) => {

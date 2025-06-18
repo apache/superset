@@ -158,7 +158,7 @@ const Styles = styled.div`
     width: ${({ theme }) => theme.sizeUnit * 7}px;
     display: inline-block;
     text-align: center;
-    font-weight: ${({ theme }) => theme.fontWeightMedium};
+    font-weight: ${({ theme }) => theme.fontWeightStrong};
   }
 `;
 

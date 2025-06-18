@@ -36,7 +36,7 @@ const TitleArea = styled.div`
     & > span {
       font-size: ${theme.fontSizeLG}px;
       flex-grow: 1;
-      font-weight: ${theme.fontWeightMedium};
+      font-weight: ${theme.fontWeightStrong};
     }
 
     & > div:first-of-type {

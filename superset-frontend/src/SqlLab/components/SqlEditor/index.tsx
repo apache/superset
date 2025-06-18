@@ -939,7 +939,7 @@ const SqlEditor: FC<Props> = ({
             <p
               css={css`
                 font-size: ${theme.fontSize}px;
-                font-weight: ${theme.fontWeightMedium};
+                font-weight: ${theme.fontWeightStrong};
                 color: ${theme.colorPrimaryText};
               `}
             >
@@ -950,7 +950,7 @@ const SqlEditor: FC<Props> = ({
             <p
               css={css`
                 font-size: ${theme.fontSize}px;
-                font-weight: ${theme.fontWeightMedium};
+                font-weight: ${theme.fontWeightStrong};
                 color: ${theme.colorPrimaryText};
               `}
             >

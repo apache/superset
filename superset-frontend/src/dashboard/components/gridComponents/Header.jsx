@@ -59,7 +59,7 @@ const defaultProps = {};
 
 const HeaderStyles = styled.div`
   ${({ theme }) => css`
-    font-weight: ${theme.fontWeightMedium};
+    font-weight: ${theme.fontWeightStrong};
     width: 100%;
     padding: ${theme.sizeUnit * 4}px 0;
 

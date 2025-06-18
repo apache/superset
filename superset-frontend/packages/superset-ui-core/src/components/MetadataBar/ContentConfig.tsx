@@ -21,7 +21,7 @@ import { Icons } from '@superset-ui/core/components/Icons';
 import { ContentType, MetadataType } from '.';
 
 const Header = styled.div`
-  font-weight: ${({ theme }) => theme.fontWeightMedium};
+  font-weight: ${({ theme }) => theme.fontWeightStrong};
 `;
 
 const Info = ({

@@ -27,7 +27,7 @@ export const Pill = styled.div`
     vertical-align: text-top;
     padding: ${theme.sizeUnit}px ${theme.sizeUnit * 2}px;
     font-size: ${theme.fontSize}px;
-    font-weight: ${theme.fontWeightMedium};
+    font-weight: ${theme.fontWeightStrong};
     min-width: 1em;
     min-height: 1em;
     line-height: 1em;
@@ -59,7 +59,7 @@ export const Pill = styled.div`
 
 export const SectionName = styled.span`
   ${({ theme }) => css`
-    font-weight: ${theme.fontWeightMedium};
+    font-weight: ${theme.fontWeightStrong};
   `}
 `;
 export const FilterName = styled.span`

@@ -94,11 +94,11 @@ export const Styles = styled.div`
 
     table.pvtTable .pvtTotalLabel {
       text-align: right;
-      font-weight: ${theme.fontWeightMedium};
+      font-weight: ${theme.fontWeightStrong};
     }
 
     table.pvtTable .pvtSubtotalLabel {
-      font-weight: ${theme.fontWeightMedium};
+      font-weight: ${theme.fontWeightStrong};
     }
 
     table.pvtTable tbody tr td {
@@ -117,7 +117,7 @@ export const Styles = styled.div`
 
     .pvtTotal,
     .pvtGrandTotal {
-      font-weight: ${theme.fontWeightMedium};
+      font-weight: ${theme.fontWeightStrong};
     }
 
     table.pvtTable tbody tr td.pvtRowTotal {

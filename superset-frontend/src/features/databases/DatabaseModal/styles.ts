@@ -355,7 +355,7 @@ export const TabHeader = styled.div`
 
 export const CreateHeaderTitle = styled.div`
   color: ${({ theme }) => theme.colorText};
-  font-weight: ${({ theme }) => theme.fontWeightMedium};
+  font-weight: ${({ theme }) => theme.fontWeightStrong};
   font-size: ${({ theme }) => theme.fontSize}px;
 `;
 
@@ -372,7 +372,7 @@ export const EditHeaderTitle = styled.div`
 export const EditHeaderSubtitle = styled.div`
   color: ${({ theme }) => theme.colorText};
   font-size: ${({ theme }) => theme.fontSizeLG}px;
-  font-weight: ${({ theme }) => theme.fontWeightMedium};
+  font-weight: ${({ theme }) => theme.fontWeightStrong};
 `;
 
 export const CredentialInfoForm = styled.div`
@@ -455,7 +455,7 @@ export const SelectDatabaseStyles = styled.div`
     margin: ${({ theme }) => theme.sizeUnit * 4}px;
     .available-label {
       font-size: ${({ theme }) => theme.fontSizeLG}px;
-      font-weight: ${({ theme }) => theme.fontWeightMedium};
+      font-weight: ${({ theme }) => theme.fontWeightStrong};
       margin: ${({ theme }) => theme.sizeUnit * 6}px 0;
     }
     .available-select {
@@ -489,7 +489,7 @@ export const StyledCatalogTable = styled.div`
 
   .gsheet-title {
     font-size: ${({ theme }) => theme.fontSizeLG}px;
-    font-weight: ${({ theme }) => theme.fontWeightMedium};
+    font-weight: ${({ theme }) => theme.fontWeightStrong};
     margin: ${({ theme }) => theme.sizeUnit * 10}px 0 16px;
   }
 

@@ -34,7 +34,7 @@ import type { DynamicEditableTitleProps } from './types';
 const titleStyles = (theme: SupersetTheme) => css`
   display: flex;
   font-size: ${theme.fontSizeXL}px;
-  font-weight: ${theme.fontWeightMedium};
+  font-weight: ${theme.fontWeightStrong};
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;

@@ -88,7 +88,7 @@ export class Theme {
     fontSizeXXL: '28',
     fontWeightNormal: '400',
     fontWeightLight: '300',
-    fontWeightMedium: '500',
+    fontWeightStrong: '500',
   };
 
   private antdConfig: AntdThemeConfig;

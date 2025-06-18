@@ -77,7 +77,7 @@ export const StyledCreateDatasetTitle = styled.div`
   ${({ theme }) => `
   margin: ${theme.sizeUnit * 4}px;
   font-size: ${theme.fontSizeXL}px;
-  font-weight: ${theme.fontWeightMedium};
+  font-weight: ${theme.fontWeightStrong};
   `}
 `;
 

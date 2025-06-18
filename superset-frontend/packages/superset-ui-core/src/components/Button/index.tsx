@@ -48,7 +48,7 @@ export function Button(props: ButtonProps) {
   } = props;
 
   const theme = useTheme();
-  const { fontSizeSM, fontWeightMedium } = theme;
+  const { fontSizeSM, fontWeightStrong } = theme;
 
   let height = 32;
   let padding = 18;
@@ -122,7 +122,7 @@ export function Button(props: ButtonProps) {
         justifyContent: 'center',
         lineHeight: 1.5715,
         fontSize: fontSizeSM,
-        fontWeight: fontWeightMedium,
+        fontWeight: fontWeightStrong,
         height,
         padding: `0px ${padding}px`,
         minWidth: cta ? theme.sizeUnit * 36 : undefined,

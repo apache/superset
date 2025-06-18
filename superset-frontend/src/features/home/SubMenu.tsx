@@ -43,7 +43,7 @@ const StyledHeader = styled.div<{ backgroundColor?: string }>`
     ${({ theme }) => theme.sizeUnit * 5}px;
   margin-bottom: ${({ theme }) => theme.sizeUnit * 4}px;
   .header {
-    font-weight: ${({ theme }) => theme.fontWeightMedium};
+    font-weight: ${({ theme }) => theme.fontWeightStrong};
     margin-right: ${({ theme }) => theme.sizeUnit * 3}px;
     text-align: left;
     font-size: 18px;

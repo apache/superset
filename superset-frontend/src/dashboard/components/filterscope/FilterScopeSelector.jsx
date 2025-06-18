@@ -182,7 +182,7 @@ const ScopeSelector = styled.div`
 
         .react-checkbox-tree {
           .rct-title .root {
-            font-weight: ${theme.fontWeightMedium};
+            font-weight: ${theme.fontWeightStrong};
           }
 
           .rct-text {
@@ -232,7 +232,7 @@ const ScopeSelector = styled.div`
           }
 
           &.root {
-            font-weight: ${theme.fontWeightMedium};
+            font-weight: ${theme.fontWeightStrong};
           }
         }
 

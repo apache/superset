@@ -91,7 +91,7 @@ export const VizTile = ({
           display: flex;
           align-items: center;
           color: ${theme.colors.grayscale.base};
-          font-weight: ${theme.fontWeightMedium};
+          font-weight: ${theme.fontWeightStrong};
           border-radius: 6px;
           white-space: nowrap;
           overflow: hidden;

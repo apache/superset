@@ -97,7 +97,7 @@ const SectionHeaderTextContainer = styled.div`
 const SectionHeader = styled.span`
   ${({ theme }) => css`
     font-size: ${theme.fontSize}px;
-    font-weight: ${theme.fontWeightMedium};
+    font-weight: ${theme.fontWeightStrong};
     line-height: 1.3;
     text-align: left;
     display: -webkit-box;

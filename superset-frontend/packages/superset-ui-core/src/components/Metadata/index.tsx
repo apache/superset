@@ -31,7 +31,7 @@ const MetadataWrapper = styled.div`
 const MetadataText = styled.span`
   font-size: ${({ theme }) => theme.fontSizeXS}px;
   color: ${({ theme }) => theme.colors.grayscale.light1};
-  font-weight: ${({ theme }) => theme.fontWeightMedium};
+  font-weight: ${({ theme }) => theme.fontWeightStrong};
 `;
 
 export type MetadataProps = {

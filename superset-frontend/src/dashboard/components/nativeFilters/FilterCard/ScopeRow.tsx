@@ -29,7 +29,7 @@ const getTooltipSection = (items: string[] | undefined, label: string) =>
     <>
       <span
         css={theme => css`
-          font-weight: ${theme.fontWeightMedium};
+          font-weight: ${theme.fontWeightStrong};
         `}
       >
         {label}:

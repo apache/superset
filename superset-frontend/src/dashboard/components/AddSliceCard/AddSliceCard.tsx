@@ -258,7 +258,7 @@ const AddSliceCard: FC<{
               data-test="card-title"
               css={(theme: Theme) => css`
                 margin-bottom: ${theme.sizeUnit * 2}px;
-                font-weight: ${theme.fontWeightMedium};
+                font-weight: ${theme.fontWeightStrong};
                 display: flex;
                 justify-content: space-between;
                 align-items: center;
