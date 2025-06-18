@@ -92,11 +92,11 @@ setup-mysql() {
     SET GLOBAL transaction_isolation='READ-COMMITTED';
     SET GLOBAL TRANSACTION ISOLATION LEVEL READ COMMITTED;
     DROP DATABASE IF EXISTS superset;
-    CREATE DATABASE superset DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+    CREATE DATABASE superset DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci;
     DROP DATABASE IF EXISTS sqllab_test_db;
-    CREATE DATABASE sqllab_test_db DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+    CREATE DATABASE sqllab_test_db DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci;
     DROP DATABASE IF EXISTS admin_database;
-    CREATE DATABASE admin_database DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+    CREATE DATABASE admin_database DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci;
     CREATE USER 'superset'@'%' IDENTIFIED BY 'superset';
     GRANT ALL ON *.* TO 'superset'@'%';
     FLUSH PRIVILEGES;
