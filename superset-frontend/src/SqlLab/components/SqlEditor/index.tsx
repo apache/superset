@@ -115,6 +115,7 @@ import {
   LOG_ACTIONS_SQLLAB_STOP_QUERY,
   Logger,
 } from 'src/logger/LogUtils';
+import { MenuItemType } from 'antd-v5/lib/menu/interface';
 import CopyToClipboard from 'src/components/CopyToClipboard';
 import TemplateParamsEditor from '../TemplateParamsEditor';
 import SouthPane from '../SouthPane';
@@ -709,59 +710,81 @@ const SqlEditor: FC<Props> = ({
     const scheduleToolTip = successful
       ? t('Schedule the query periodically')
       : t('You must run the query successfully first');
-    return (
-      <Menu css={{ width: theme.gridUnit * 50 }}>
-        <Menu.Item css={{ display: 'flex', justifyContent: 'space-between' }}>
-          {' '}
-          <span>{t('Render HTML')}</span>{' '}
-          <Switch
-            checked={renderHTMLEnabled}
-            onChange={handleToggleRenderHTMLEnabled}
-          />{' '}
-        </Menu.Item>
-        <Menu.Item css={{ display: 'flex', justifyContent: 'space-between' }}>
-          {' '}
-          <span>{t('Autocomplete')}</span>{' '}
-          <Switch
-            checked={autocompleteEnabled}
-            onChange={handleToggleAutocompleteEnabled}
-          />{' '}
-        </Menu.Item>
-        {isFeatureEnabled(FeatureFlag.EnableTemplateProcessing) && (
-          <Menu.Item>
-            <TemplateParamsEditor
-              language="json"
-              onChange={params => {
-                dispatch(queryEditorSetTemplateParams(qe, params));
+
+    const menuItems: MenuItemType[] = [
+      {
+        key: 'render-html',
+        label: (
+          <div css={{ display: 'flex', justifyContent: 'space-between' }}>
+            <span>{t('Render HTML')}</span>{' '}
+            <Switch
+              checked={renderHTMLEnabled}
+              onChange={(checked, event) => {
+                event.stopPropagation();
+                handleToggleRenderHTMLEnabled();
               }}
-              queryEditorId={qe.id}
             />
-          </Menu.Item>
-        )}
-        <Menu.Item onClick={() => formatCurrentQuery()}>
-          {t('Format SQL')}
-        </Menu.Item>
-        {!isEmpty(scheduledQueriesConf) && (
-          <Menu.Item>
-            <ScheduleQueryButton
-              defaultLabel={qe.name}
-              sql={qe.sql}
-              onSchedule={(query: Query) => dispatch(scheduleQuery(query))}
-              schema={qe.schema}
-              dbId={qe.dbId}
-              scheduleQueryWarning={scheduleQueryWarning}
-              tooltip={scheduleToolTip}
-              disabled={!successful}
+          </div>
+        ),
+      },
+      {
+        key: 'autocomplete',
+        label: (
+          <div css={{ display: 'flex', justifyContent: 'space-between' }}>
+            <span>{t('Autocomplete')}</span>
+            <Switch
+              checked={autocompleteEnabled}
+              onChange={(checked, event) => {
+                event.stopPropagation();
+                handleToggleAutocompleteEnabled();
+              }}
             />
-          </Menu.Item>
-        )}
-        <Menu.Item>
+          </div>
+        ),
+      },
+      isFeatureEnabled(FeatureFlag.EnableTemplateProcessing) && {
+        key: 'template-params',
+        label: (
+          <TemplateParamsEditor
+            language="json"
+            onChange={params => {
+              dispatch(queryEditorSetTemplateParams(qe, params));
+            }}
+            queryEditorId={qe.id}
+          />
+        ),
+      },
+      {
+        key: 'format-sql',
+        label: t('Format SQL'),
+        onClick: () => formatCurrentQuery(),
+      },
+      !isEmpty(scheduledQueriesConf) && {
+        key: 'schedule-query',
+        label: (
+          <ScheduleQueryButton
+            defaultLabel={qe.name}
+            sql={qe.sql}
+            onSchedule={(query: Query) => dispatch(scheduleQuery(query))}
+            schema={qe.schema}
+            dbId={qe.dbId}
+            scheduleQueryWarning={scheduleQueryWarning}
+            tooltip={scheduleToolTip}
+            disabled={!successful}
+          />
+        ),
+      },
+      {
+        key: 'keyboard-shortcuts',
+        label: (
           <KeyboardShortcutButton>
             {t('Keyboard shortcuts')}
           </KeyboardShortcutButton>
-        </Menu.Item>
-      </Menu>
-    );
+        ),
+      },
+    ].filter(Boolean) as MenuItemType[];
+
+    return <Menu css={{ width: theme.gridUnit * 50 }} items={menuItems} />;
   };
 
   const onSaveQuery = async (query: QueryPayload, clientId: string) => {
@@ -773,38 +796,32 @@ const SqlEditor: FC<Props> = ({
     const { allow_ctas: allowCTAS, allow_cvas: allowCVAS } = database || {};
 
     const showMenu = allowCTAS || allowCVAS;
-    const runMenuBtn = (
-      <Menu>
-        {allowCTAS && (
-          <Menu.Item
-            onClick={() => {
-              logAction(LOG_ACTIONS_SQLLAB_CREATE_TABLE_AS, {
-                shortcut: false,
-              });
-              setShowCreateAsModal(true);
-              setCreateAs(CtasEnum.Table);
-            }}
-            key="1"
-          >
-            {t('CREATE TABLE AS')}
-          </Menu.Item>
-        )}
-        {allowCVAS && (
-          <Menu.Item
-            onClick={() => {
-              logAction(LOG_ACTIONS_SQLLAB_CREATE_VIEW_AS, {
-                shortcut: false,
-              });
-              setShowCreateAsModal(true);
-              setCreateAs(CtasEnum.View);
-            }}
-            key="2"
-          >
-            {t('CREATE VIEW AS')}
-          </Menu.Item>
-        )}
-      </Menu>
-    );
+    const menuItems: MenuItemType[] = [
+      allowCTAS && {
+        key: '1',
+        label: t('CREATE TABLE AS'),
+        onClick: () => {
+          logAction(LOG_ACTIONS_SQLLAB_CREATE_TABLE_AS, {
+            shortcut: false,
+          });
+          setShowCreateAsModal(true);
+          setCreateAs(CtasEnum.Table);
+        },
+      },
+      allowCVAS && {
+        key: '2',
+        label: t('CREATE VIEW AS'),
+        onClick: () => {
+          logAction(LOG_ACTIONS_SQLLAB_CREATE_VIEW_AS, {
+            shortcut: false,
+          });
+          setShowCreateAsModal(true);
+          setCreateAs(CtasEnum.View);
+        },
+      },
+    ].filter(Boolean) as MenuItemType[];
+
+    const runMenuBtn = <Menu items={menuItems} />;
 
     return (
       <StyledToolbar className="sql-toolbar" id="js-sql-toolbar">
