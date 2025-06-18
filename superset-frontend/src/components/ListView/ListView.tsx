@@ -343,8 +343,9 @@ function ListView<T extends object = any>({
   const firstAction = bulkActions[0];
   const dropdownActions = bulkActions.slice(1);
 
-  const handleMenuClick = ({ key }: { key: string }) => {
-    const action = dropdownActions.find(a => a.key === key);
+  const handleMenuClick = (info: { key: React.Key }) => {
+    const keyStr = String(info.key);
+    const action = dropdownActions.find(a => a.key === keyStr);
     if (action) {
       action.onSelect(selectedFlatRows.map(r => r.original));
     }
