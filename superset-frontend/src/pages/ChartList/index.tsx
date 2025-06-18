@@ -827,14 +827,6 @@ function ChartList(props: ChartListProps) {
       >
         {confirmDelete => {
           const bulkActions: ListViewProps['bulkActions'] = [];
-          if (canDelete) {
-            bulkActions.push({
-              key: 'delete',
-              name: t('Delete'),
-              type: 'danger',
-              onSelect: confirmDelete,
-            });
-          }
           if (canExport) {
             bulkActions.push({
               key: 'export',
@@ -849,6 +841,14 @@ function ChartList(props: ChartListProps) {
               name: t('Certify'),
               type: 'primary',
               onSelect: openBulkCertifyModal,
+            });
+          }
+          if (canDelete) {
+            bulkActions.push({
+              key: 'delete',
+              name: t('Delete'),
+              type: 'danger',
+              onSelect: confirmDelete,
             });
           }
           return (

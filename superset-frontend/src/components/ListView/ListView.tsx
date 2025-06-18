@@ -20,12 +20,12 @@ import { t, styled } from '@superset-ui/core';
 import { useCallback, useEffect, useRef, useState, ReactNode } from 'react';
 import Alert from 'src/components/Alert';
 import cx from 'classnames';
-import Button from 'src/components/Button';
 import { Icons } from 'src/components/Icons';
 import IndeterminateCheckbox from 'src/components/IndeterminateCheckbox';
 import Pagination from 'src/components/Pagination';
 import TableCollection from 'src/components/TableCollection';
 import BulkTagModal from 'src/features/tags/BulkTagModal';
+import { Dropdown, Menu } from 'antd';
 import CardCollection from './CardCollection';
 import FilterControls from './Filters';
 import { CardSortSelect } from './CardSortSelect';
@@ -247,7 +247,7 @@ function ListView<T extends object = any>({
   initialSort = [],
   className = '',
   filters = [],
-  bulkActions = [],
+  bulkActions: initialBulkActions = [],
   bulkSelectEnabled = false,
   disableBulkSelect = () => {},
   renderBulkSelectCopy = selected => t('%s Selected', selected.length),
@@ -263,6 +263,18 @@ function ListView<T extends object = any>({
   addSuccessToast,
   addDangerToast,
 }: ListViewProps<T>) {
+  const [showBulkTagModal, setShowBulkTagModal] = useState<boolean>(false);
+
+  const bulkActions = [...initialBulkActions];
+  if (enableBulkTag) {
+    bulkActions.splice(1, 0, {
+      key: 'tag',
+      name: t('Add Tag'),
+      type: 'secondary',
+      onSelect: () => setShowBulkTagModal(true),
+    });
+  }
+
   const {
     getTableProps,
     getTableBodyProps,
@@ -316,7 +328,6 @@ function ListView<T extends object = any>({
   }, [query.filters]);
 
   const cardViewEnabled = Boolean(renderCard);
-  const [showBulkTagModal, setShowBulkTagModal] = useState<boolean>(false);
 
   useEffect(() => {
     // discard selections if bulk select is disabled
@@ -328,6 +339,24 @@ function ListView<T extends object = any>({
       gotoPage(0);
     }
   }, [gotoPage, loading, pageCount, pageIndex]);
+
+  const firstAction = bulkActions[0];
+  const dropdownActions = bulkActions.slice(1);
+
+  const handleMenuClick = ({ key }: { key: string }) => {
+    const action = dropdownActions.find(a => a.key === key);
+    if (action) {
+      action.onSelect(selectedFlatRows.map(r => r.original));
+    }
+  };
+
+  const dropdownMenu = (
+    <Menu onClick={handleMenuClick}>
+      {dropdownActions.map(action => (
+        <Menu.Item key={action.key}>{action.name}</Menu.Item>
+      ))}
+    </Menu>
+  );
 
   return (
     <ListViewStyles>
@@ -390,32 +419,21 @@ function ListView<T extends object = any>({
                         {t('Deselect all')}
                       </span>
                       <div className="divider" />
-                      {bulkActions.map(action => (
-                        <Button
-                          data-test="bulk-select-action"
-                          key={action.key}
-                          buttonStyle={action.type}
-                          cta
+                      {firstAction && (
+                        <Dropdown.Button
+                          overlay={
+                            dropdownActions.length > 0 ? dropdownMenu : <></>
+                          }
                           onClick={() =>
-                            action.onSelect(
+                            firstAction.onSelect(
                               selectedFlatRows.map(r => r.original),
                             )
                           }
+                          type="primary"
                         >
-                          {action.name}
-                        </Button>
-                      ))}
-                      {enableBulkTag && (
-                        <span
-                          data-test="bulk-select-tag-btn"
-                          role="button"
-                          tabIndex={0}
-                          className="tag-btn"
-                          onClick={() => setShowBulkTagModal(true)}
-                        >
-                          {t('Add Tag')}
-                        </span>
-                      )}
+                          {firstAction.name}
+                        </Dropdown.Button>
+                        )}
                     </>
                   )}
                 </>

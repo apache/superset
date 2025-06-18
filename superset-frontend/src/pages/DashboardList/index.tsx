@@ -742,14 +742,6 @@ function DashboardList(props: DashboardListProps) {
       >
         {confirmDelete => {
           const bulkActions: ListViewProps['bulkActions'] = [];
-          if (canDelete) {
-            bulkActions.push({
-              key: 'delete',
-              name: t('Delete'),
-              type: 'danger',
-              onSelect: confirmDelete,
-            });
-          }
           if (canExport) {
             bulkActions.push({
               key: 'export',
@@ -764,6 +756,14 @@ function DashboardList(props: DashboardListProps) {
               name: t('Certify'),
               type: 'primary',
               onSelect: openBulkCertifyModal,
+            });
+          }
+          if (canDelete) {
+            bulkActions.push({
+              key: 'delete',
+              name: t('Delete'),
+              type: 'danger',
+              onSelect: confirmDelete,
             });
           }
           return (
