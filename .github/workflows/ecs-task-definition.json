@@ -7,8 +7,8 @@
             "links": [],
             "portMappings": [
                 {
-                    "containerPort": 8080,
-                    "hostPort": 8080,
+                    "containerPort": 8082,
+                    "hostPort": 8082,
                     "protocol": "tcp"
                 }
             ],
@@ -22,7 +22,7 @@
                 },
                 {
                     "name": "SUPERSET_PORT",
-                    "value": "8080"
+                    "value": "8082"
                 },
                 {
                     "name": "SUPERSET_SECRET_KEY",

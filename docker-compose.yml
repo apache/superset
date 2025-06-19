@@ -29,6 +29,7 @@ x-superset-volumes: &superset-volumes
   - ./superset-frontend:/app/superset-frontend
   - superset_home:/app/superset_home
   - ./tests:/app/tests
+  - ../thales-sqlalchemy-drill:/app/sqlalchemy-drill
 x-common-build: &common-build
   context: .
   target: ${SUPERSET_BUILD_TARGET:-dev} # can use `dev` (default) or `lean`
@@ -109,7 +110,7 @@ services:
     container_name: superset_websocket
     build: ./superset-websocket
     ports:
-      - 8080:8080
+      - 8082:8082
     extra_hosts:
       - "host.docker.internal:host-gateway"
     depends_on:
@@ -133,7 +134,7 @@ services:
       # do not use this docker compose in production
       - ./docker/superset-websocket/config.json:/home/superset-websocket/config.json
     environment:
-      - PORT=8080
+      - PORT=8082
       - REDIS_HOST=redis
       - REDIS_PORT=6379
       - REDIS_SSL=false

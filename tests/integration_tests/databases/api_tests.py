@@ -332,7 +332,7 @@ class TestDatabaseApi(SupersetTestCase):
             return
         ssh_tunnel_properties = {
             "server_address": "123.132.123.1",
-            "server_port": 8080,
+            "server_port": 8082,
             "username": "foo",
             "password": "bar",
         }
@@ -383,7 +383,7 @@ class TestDatabaseApi(SupersetTestCase):
 
         ssh_tunnel_properties = {
             "server_address": "123.132.123.1",
-            "server_port": 8080,
+            "server_port": 8082,
             "username": "foo",
             "password": "bar",
         }
@@ -436,7 +436,7 @@ class TestDatabaseApi(SupersetTestCase):
 
         ssh_tunnel_properties = {
             "server_address": "123.132.123.1",
-            "server_port": 8080,
+            "server_port": 8082,
             "username": "foo",
             "password": "bar",
         }
@@ -485,7 +485,7 @@ class TestDatabaseApi(SupersetTestCase):
             return
         ssh_tunnel_properties = {
             "server_address": "123.132.123.1",
-            "server_port": 8080,
+            "server_port": 8082,
             "username": "foo",
             "password": "bar",
         }
@@ -553,7 +553,7 @@ class TestDatabaseApi(SupersetTestCase):
 
         ssh_tunnel_properties = {
             "server_address": "123.132.123.1",
-            "server_port": 8080,
+            "server_port": 8082,
             "username": "foo",
             "password": "bar",
         }
@@ -617,7 +617,7 @@ class TestDatabaseApi(SupersetTestCase):
 
         ssh_tunnel_properties = {
             "server_address": "123.132.123.1",
-            "server_port": 8080,
+            "server_port": 8082,
             "username": "foo",
             "password": "bar",
         }
@@ -686,7 +686,7 @@ class TestDatabaseApi(SupersetTestCase):
 
         ssh_tunnel_properties = {
             "server_address": "123.132.123.1",
-            "server_port": 8080,
+            "server_port": 8082,
             "username": "foo",
             "password": "bar",
         }
@@ -771,13 +771,13 @@ class TestDatabaseApi(SupersetTestCase):
             return
         initial_ssh_tunnel_properties = {
             "server_address": "123.132.123.1",
-            "server_port": 8080,
+            "server_port": 8082,
             "username": "foo",
             "password": "bar",
         }
         updated_ssh_tunnel_properties = {
             "server_address": "123.132.123.1",
-            "server_port": 8080,
+            "server_port": 8082,
             "username": "Test",
             "password": "new_bar",
         }
@@ -816,7 +816,7 @@ class TestDatabaseApi(SupersetTestCase):
         assert response_update.get("result")["ssh_tunnel"]["password"] == "XXXXXXXXXX"  # noqa: S105
         assert model_ssh_tunnel.username == "Test"
         assert model_ssh_tunnel.server_address == "123.132.123.1"
-        assert model_ssh_tunnel.server_port == 8080
+        assert model_ssh_tunnel.server_port == 8082
         # Cleanup
         model = db.session.query(Database).get(response.get("id"))
         db.session.delete(model)
@@ -845,7 +845,7 @@ class TestDatabaseApi(SupersetTestCase):
             return
         ssh_tunnel_properties = {
             "server_address": "123.132.123.1",
-            "server_port": 8080,
+            "server_port": 8082,
             "username": "foo",
             "password": "bar",
         }
@@ -947,7 +947,7 @@ class TestDatabaseApi(SupersetTestCase):
             return
         ssh_tunnel_properties = {
             "server_address": "123.132.123.1",
-            "server_port": 8080,
+            "server_port": 8082,
             "username": "foo",
             "password": "bar",
         }
@@ -958,7 +958,7 @@ class TestDatabaseApi(SupersetTestCase):
         }
         response_ssh_tunnel = {
             "server_address": "123.132.123.1",
-            "server_port": 8080,
+            "server_port": 8082,
             "username": "foo",
             "password": "XXXXXXXXXX",
         }
@@ -996,7 +996,7 @@ class TestDatabaseApi(SupersetTestCase):
             return
         ssh_tunnel_properties = {
             "server_address": "123.132.123.1",
-            "server_port": 8080,
+            "server_port": 8082,
             "username": "foo",
             "password": "bar",
         }

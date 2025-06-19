@@ -168,7 +168,7 @@ describe('asyncEvent middleware', () => {
     const config = {
       GLOBAL_ASYNC_QUERIES_TRANSPORT: 'ws',
       GLOBAL_ASYNC_QUERIES_POLLING_DELAY: 50,
-      GLOBAL_ASYNC_QUERIES_WEBSOCKET_URL: 'ws://127.0.0.1:8080/',
+      GLOBAL_ASYNC_QUERIES_WEBSOCKET_URL: 'ws://127.0.0.1:8082/',
     };
 
     beforeEach(async () => {

@@ -290,7 +290,7 @@ On helm this can be set on `extraSecretEnv.SUPERSET_SECRET_KEY` or `configOverri
 | supersetWebsockets.service.annotations | object | `{}` |  |
 | supersetWebsockets.service.loadBalancerIP | string | `nil` |  |
 | supersetWebsockets.service.nodePort.http | int | `"nil"` |  |
-| supersetWebsockets.service.port | int | `8080` |  |
+| supersetWebsockets.service.port | int | `8082` |  |
 | supersetWebsockets.service.type | string | `"ClusterIP"` |  |
 | supersetWebsockets.startupProbe.failureThreshold | int | `60` |  |
 | supersetWebsockets.startupProbe.httpGet.path | string | `"/health"` |  |

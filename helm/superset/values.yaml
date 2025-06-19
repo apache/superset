@@ -634,7 +634,7 @@ supersetWebsockets:
   # @default -- see `values.yaml`
   config:
     {
-      "port": 8080,
+      "port": 8082,
       "logLevel": "debug",
       "logToFile": false,
       "logFilename": "app.log",
@@ -655,7 +655,7 @@ supersetWebsockets:
     type: ClusterIP
     annotations: {}
     loadBalancerIP: ~
-    port: 8080
+    port: 8082
     nodePort:
       # -- (int)
       http: nil

@@ -669,24 +669,24 @@ def test_adjust_engine_params_fully_qualified() -> None:
     """
     from superset.db_engine_specs.trino import TrinoEngineSpec
 
-    url = make_url("trino://user:pass@localhost:8080/system/default")
+    url = make_url("trino://user:pass@localhost:8082/system/default")
 
     uri = TrinoEngineSpec.adjust_engine_params(url, {})[0]
-    assert str(uri) == "trino://user:pass@localhost:8080/system/default"
+    assert str(uri) == "trino://user:pass@localhost:8082/system/default"
 
     uri = TrinoEngineSpec.adjust_engine_params(
         url,
         {},
         schema="new_schema",
     )[0]
-    assert str(uri) == "trino://user:pass@localhost:8080/system/new_schema"
+    assert str(uri) == "trino://user:pass@localhost:8082/system/new_schema"
 
     uri = TrinoEngineSpec.adjust_engine_params(
         url,
         {},
         catalog="new_catalog",
     )[0]
-    assert str(uri) == "trino://user:pass@localhost:8080/new_catalog/default"
+    assert str(uri) == "trino://user:pass@localhost:8082/new_catalog/default"
 
     uri = TrinoEngineSpec.adjust_engine_params(
         url,
@@ -694,7 +694,7 @@ def test_adjust_engine_params_fully_qualified() -> None:
         catalog="new_catalog",
         schema="new_schema",
     )[0]
-    assert str(uri) == "trino://user:pass@localhost:8080/new_catalog/new_schema"
+    assert str(uri) == "trino://user:pass@localhost:8082/new_catalog/new_schema"
 
 
 def test_adjust_engine_params_catalog_only() -> None:
@@ -703,24 +703,24 @@ def test_adjust_engine_params_catalog_only() -> None:
     """
     from superset.db_engine_specs.trino import TrinoEngineSpec
 
-    url = make_url("trino://user:pass@localhost:8080/system")
+    url = make_url("trino://user:pass@localhost:8082/system")
 
     uri = TrinoEngineSpec.adjust_engine_params(url, {})[0]
-    assert str(uri) == "trino://user:pass@localhost:8080/system"
+    assert str(uri) == "trino://user:pass@localhost:8082/system"
 
     uri = TrinoEngineSpec.adjust_engine_params(
         url,
         {},
         schema="new_schema",
     )[0]
-    assert str(uri) == "trino://user:pass@localhost:8080/system/new_schema"
+    assert str(uri) == "trino://user:pass@localhost:8082/system/new_schema"
 
     uri = TrinoEngineSpec.adjust_engine_params(
         url,
         {},
         catalog="new_catalog",
     )[0]
-    assert str(uri) == "trino://user:pass@localhost:8080/new_catalog"
+    assert str(uri) == "trino://user:pass@localhost:8082/new_catalog"
 
     uri = TrinoEngineSpec.adjust_engine_params(
         url,
@@ -728,14 +728,14 @@ def test_adjust_engine_params_catalog_only() -> None:
         catalog="new_catalog",
         schema="new_schema",
     )[0]
-    assert str(uri) == "trino://user:pass@localhost:8080/new_catalog/new_schema"
+    assert str(uri) == "trino://user:pass@localhost:8082/new_catalog/new_schema"
 
 
 @pytest.mark.parametrize(
     "sqlalchemy_uri,result",
     [
-        ("trino://user:pass@localhost:8080/system", "system"),
-        ("trino://user:pass@localhost:8080/system/default", "system"),
+        ("trino://user:pass@localhost:8082/system", "system"),
+        ("trino://user:pass@localhost:8082/system/default", "system"),
         ("trino://trino@localhost:8081", None),
     ],
 )

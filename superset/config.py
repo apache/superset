@@ -326,7 +326,7 @@ LOGO_TOOLTIP = ""
 LOGO_RIGHT_TEXT: Callable[[], str] | str = ""
 
 # Enables SWAGGER UI for superset openapi spec
-# ex: http://localhost:8080/swagger/v1
+# ex: http://localhost:8082/swagger/v1
 FAB_API_SWAGGER_UI = True
 
 # ----------------------------------------------------
@@ -575,7 +575,7 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
 #                             |
 # -------------+              |    +----------+
 #     LOCAL    |              |    |  REMOTE  | :22 SSH
-#     CLIENT   | <== SSH ========> |  SERVER  | :8080 web service
+#     CLIENT   | <== SSH ========> |  SERVER  | :8082 web service
 # -------------+              |    +----------+
 #                             |
 #                          FIREWALL (only port 22 is open)
@@ -1538,7 +1538,7 @@ WEBDRIVER_CONFIGURATION = {
 WEBDRIVER_OPTION_ARGS = ["--headless"]
 
 # The base URL to query for accessing the user interface
-WEBDRIVER_BASEURL = "http://0.0.0.0:8080/"
+WEBDRIVER_BASEURL = "http://0.0.0.0:8082/"
 # The base URL for the email report hyperlinks.
 WEBDRIVER_BASEURL_USER_FRIENDLY = WEBDRIVER_BASEURL
 # Time selenium will wait for the page to load and render for the email report.
@@ -1777,7 +1777,7 @@ GLOBAL_ASYNC_QUERIES_TRANSPORT: Literal["polling", "ws"] = "polling"
 GLOBAL_ASYNC_QUERIES_POLLING_DELAY = int(
     timedelta(milliseconds=500).total_seconds() * 1000
 )
-GLOBAL_ASYNC_QUERIES_WEBSOCKET_URL = "ws://127.0.0.1:8080/"
+GLOBAL_ASYNC_QUERIES_WEBSOCKET_URL = "ws://127.0.0.1:8082/"
 
 # Global async queries cache backend configuration options:
 # - Set 'CACHE_TYPE' to 'RedisCache' for RedisCacheBackend.

@@ -451,7 +451,7 @@ class SupersetTestCase(TestCase):
         database = self.get_or_create(
             cls=models.Database,
             criteria={"database_name": database_name},
-            sqlalchemy_uri="db_for_macros_testing://user@host:8080/hive",
+            sqlalchemy_uri="db_for_macros_testing://user@host:8082/hive",
             id=db_id,
         )
 

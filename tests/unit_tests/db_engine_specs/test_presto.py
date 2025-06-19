@@ -98,7 +98,7 @@ def test_get_schema_from_engine_params() -> None:
 
     assert (
         PrestoEngineSpec.get_schema_from_engine_params(
-            make_url("presto://localhost:8080/hive/default"),
+            make_url("presto://localhost:8082/hive/default"),
             {},
         )
         == "default"
@@ -106,7 +106,7 @@ def test_get_schema_from_engine_params() -> None:
 
     assert (
         PrestoEngineSpec.get_schema_from_engine_params(
-            make_url("presto://localhost:8080/hive"),
+            make_url("presto://localhost:8082/hive"),
             {},
         )
         is None
@@ -162,24 +162,24 @@ def test_adjust_engine_params_fully_qualified() -> None:
     """
     from superset.db_engine_specs.presto import PrestoEngineSpec
 
-    url = make_url("presto://localhost:8080/hive/default")
+    url = make_url("presto://localhost:8082/hive/default")
 
     uri = PrestoEngineSpec.adjust_engine_params(url, {})[0]
-    assert str(uri) == "presto://localhost:8080/hive/default"
+    assert str(uri) == "presto://localhost:8082/hive/default"
 
     uri = PrestoEngineSpec.adjust_engine_params(
         url,
         {},
         schema="new_schema",
     )[0]
-    assert str(uri) == "presto://localhost:8080/hive/new_schema"
+    assert str(uri) == "presto://localhost:8082/hive/new_schema"
 
     uri = PrestoEngineSpec.adjust_engine_params(
         url,
         {},
         catalog="new_catalog",
     )[0]
-    assert str(uri) == "presto://localhost:8080/new_catalog/default"
+    assert str(uri) == "presto://localhost:8082/new_catalog/default"
 
     uri = PrestoEngineSpec.adjust_engine_params(
         url,
@@ -187,7 +187,7 @@ def test_adjust_engine_params_fully_qualified() -> None:
         catalog="new_catalog",
         schema="new_schema",
     )[0]
-    assert str(uri) == "presto://localhost:8080/new_catalog/new_schema"
+    assert str(uri) == "presto://localhost:8082/new_catalog/new_schema"
 
 
 def test_adjust_engine_params_catalog_only() -> None:
@@ -196,24 +196,24 @@ def test_adjust_engine_params_catalog_only() -> None:
     """
     from superset.db_engine_specs.presto import PrestoEngineSpec
 
-    url = make_url("presto://localhost:8080/hive")
+    url = make_url("presto://localhost:8082/hive")
 
     uri = PrestoEngineSpec.adjust_engine_params(url, {})[0]
-    assert str(uri) == "presto://localhost:8080/hive"
+    assert str(uri) == "presto://localhost:8082/hive"
 
     uri = PrestoEngineSpec.adjust_engine_params(
         url,
         {},
         schema="new_schema",
     )[0]
-    assert str(uri) == "presto://localhost:8080/hive/new_schema"
+    assert str(uri) == "presto://localhost:8082/hive/new_schema"
 
     uri = PrestoEngineSpec.adjust_engine_params(
         url,
         {},
         catalog="new_catalog",
     )[0]
-    assert str(uri) == "presto://localhost:8080/new_catalog"
+    assert str(uri) == "presto://localhost:8082/new_catalog"
 
     uri = PrestoEngineSpec.adjust_engine_params(
         url,
@@ -221,7 +221,7 @@ def test_adjust_engine_params_catalog_only() -> None:
         catalog="new_catalog",
         schema="new_schema",
     )[0]
-    assert str(uri) == "presto://localhost:8080/new_catalog/new_schema"
+    assert str(uri) == "presto://localhost:8082/new_catalog/new_schema"
 
 
 def test_get_default_catalog() -> None:
@@ -233,13 +233,13 @@ def test_get_default_catalog() -> None:
 
     database = Database(
         database_name="my_db",
-        sqlalchemy_uri="presto://localhost:8080/hive",
+        sqlalchemy_uri="presto://localhost:8082/hive",
     )
     assert PrestoEngineSpec.get_default_catalog(database) == "hive"
 
     database = Database(
         database_name="my_db",
-        sqlalchemy_uri="presto://localhost:8080/hive/default",
+        sqlalchemy_uri="presto://localhost:8082/hive/default",
     )
     assert PrestoEngineSpec.get_default_catalog(database) == "hive"
 

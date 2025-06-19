@@ -59,6 +59,11 @@ else
   echo "Skipping local overrides"
 fi
 
+if [ -d /app/sqlalchemy-drill ]; then
+  echo "Installing local sqlalchemy-drill in editable mode"
+  pip install -e /app/sqlalchemy-drill
+fi
+
 case "${1}" in
   worker)
     echo "Starting Celery worker..."

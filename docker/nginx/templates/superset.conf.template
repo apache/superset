@@ -21,7 +21,7 @@ upstream superset_app {
 }
 
 upstream superset_websocket {
-    server host.docker.internal:8080;
+    server host.docker.internal:8082;
     keepalive 100;
 }
 

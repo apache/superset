@@ -54,7 +54,7 @@ type ConfigType = {
 
 function defaultConfig(): ConfigType {
   return {
-    port: 8080,
+    port: 8082,
     logLevel: 'info',
     logToFile: false,
     logFilename: 'app.log',

@@ -316,7 +316,7 @@ jobs:
               issue_number: issue_number,
               owner: context.repo.owner,
               repo: context.repo.repo,
-              body: `@${{ github.actor }} Ephemeral environment spinning up at http://${{ steps.get-ip.outputs.ip }}:8080. Credentials are 'admin'/'admin'. Please allow several minutes for bootstrapping and startup.`
+              body: `@${{ github.actor }} Ephemeral environment spinning up at http://${{ steps.get-ip.outputs.ip }}:8082. Credentials are 'admin'/'admin'. Please allow several minutes for bootstrapping and startup.`
             });
       - name: Comment (failure)
         if: ${{ failure() }}

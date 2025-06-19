@@ -36,7 +36,7 @@ function connect() {
   Cookies.set(cookieName, tokens[socketCount], { path: '' });
 
   // Create WebSocket connection.
-  let url = `ws://127.0.0.1:8080?last_id=${ts()}`;
+  let url = `ws://127.0.0.1:8082?last_id=${ts()}`;
   const socket = new WebSocket(url);
 
   // Connection opened

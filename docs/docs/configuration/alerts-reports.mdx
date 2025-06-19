@@ -197,7 +197,7 @@ Please refer to `ExecutorType` in the codebase for other executor types.
 - It is recommended to run separate workers for the `sql_lab` and `email_reports` tasks. This can be
   done using the `queue` field in `task_annotations`.
 - Adjust `WEBDRIVER_BASEURL` in your configuration file if celery workers can’t access Superset via
-  its default value of `http://0.0.0.0:8080/`.
+  its default value of `http://0.0.0.0:8082/`.
 
 It's also possible to specify a minimum interval between each report's execution through the config file:
 

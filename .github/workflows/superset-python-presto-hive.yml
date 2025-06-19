@@ -41,7 +41,7 @@ jobs:
         ports:
           # Use custom ports for services to avoid accidentally connecting to
           # GitHub action runner's default installations
-          - 15433:8080
+          - 15433:8082
       redis:
         image: redis:7-alpine
         ports:

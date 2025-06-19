@@ -359,7 +359,7 @@ class PrestoBaseEngineSpec(BaseEngineSpec, metaclass=ABCMeta):
 
         For Presto the SQLAlchemy URI looks like this:
 
-            presto://localhost:8080/hive[/default]
+            presto://localhost:8082/hive[/default]
 
         """
         database = sqlalchemy_uri.database.strip("/")

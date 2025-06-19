@@ -243,15 +243,15 @@ def test_log_data_with_missing_values(mocker: MockerFixture) -> None:
             ["mock_tab_anchor_1", "mock_tab_anchor_2"],
             ["url1", "url2"],
             [
-                "http://0.0.0.0:8080/superset/dashboard/p/url1/",
-                "http://0.0.0.0:8080/superset/dashboard/p/url2/",
+                "http://0.0.0.0:8082/superset/dashboard/p/url1/",
+                "http://0.0.0.0:8082/superset/dashboard/p/url2/",
             ],
         ),
         # Test user select one tab to export in a dashboard report
         (
             "mock_tab_anchor_1",
             ["url1"],
-            ["http://0.0.0.0:8080/superset/dashboard/p/url1/"],
+            ["http://0.0.0.0:8082/superset/dashboard/p/url1/"],
         ),
     ],
 )
@@ -323,7 +323,7 @@ def test_get_dashboard_urls_with_exporting_dashboard_only(
 
     result: list[str] = class_instance.get_dashboard_urls()
 
-    assert "http://0.0.0.0:8080/superset/dashboard/p/url1/" == result[0]
+    assert "http://0.0.0.0:8082/superset/dashboard/p/url1/" == result[0]
 
 
 @patch(
@@ -344,8 +344,8 @@ def test_get_tab_urls(
     tab_anchors = ["1", "2"]
     result: list[str] = class_instance._get_tabs_urls(tab_anchors)
     assert result == [
-        "http://0.0.0.0:8080/superset/dashboard/p/uri1/",
-        "http://0.0.0.0:8080/superset/dashboard/p/uri2/",
+        "http://0.0.0.0:8082/superset/dashboard/p/uri1/",
+        "http://0.0.0.0:8082/superset/dashboard/p/uri2/",
     ]
 
 
@@ -371,7 +371,7 @@ def test_get_tab_url(
         urlParams=None,
     )
     result: str = class_instance._get_tab_url(dashboard_state)
-    assert result == "http://0.0.0.0:8080/superset/dashboard/p/uri/"
+    assert result == "http://0.0.0.0:8082/superset/dashboard/p/uri/"
 
 
 def create_report_schedule(
