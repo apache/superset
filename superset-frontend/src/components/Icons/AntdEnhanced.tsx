@@ -225,8 +225,8 @@ const AntdIcons = {
   FilterOutlined,
   UnorderedListOutlined,
   WarningOutlined,
-  KeyOutlined,
   ExportOutlined,
+  KeyOutlined,
 } as const;
 
 type AntdIconNames = keyof typeof AntdIcons;
