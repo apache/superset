@@ -54,6 +54,7 @@ import {
 import { Icons } from '@superset-ui/core/components/Icons';
 import { useChartIds } from 'src/dashboard/util/charts/useChartIds';
 import { useChartLayoutItems } from 'src/dashboard/util/useChartLayoutItems';
+import { ChartCustomizationItem } from 'src/dashboard/components/nativeFilters/ChartCustomization/types';
 import { FiltersOutOfScopeCollapsible } from '../FiltersOutOfScopeCollapsible';
 import { useFilterControlFactory } from '../useFilterControlFactory';
 import { FiltersDropdownContent } from '../FiltersDropdownContent';
@@ -61,6 +62,8 @@ import crossFiltersSelector from '../CrossFilters/selectors';
 import CrossFilter from '../CrossFilters/CrossFilter';
 import { useFilterOutlined } from '../useFilterOutlined';
 import { useChartsVerboseMaps } from '../utils';
+import GroupByFilterCard from '../../ChartCustomization/GroupByFilterCard';
+import { selectChartCustomizationItems } from '../../ChartCustomization/selectors';
 
 type FilterControlsProps = {
   dataMaskSelected: DataMaskStateWithId;
@@ -90,6 +93,12 @@ const FilterControls: FC<FilterControlsProps> = ({
   const chartIds = useChartIds();
   const chartLayoutItems = useChartLayoutItems();
   const verboseMaps = useChartsVerboseMaps();
+
+  // Get chart customization items from Redux state
+  const chartCustomizationItems = useSelector<
+    RootState,
+    ChartCustomizationItem[]
+  >(state => selectChartCustomizationItems(state));
 
   const selectedCrossFilters = useMemo(
     () =>
@@ -128,6 +137,32 @@ const FilterControls: FC<FilterControlsProps> = ({
   const dashboardHasTabs = useDashboardHasTabs();
   const showCollapsePanel = dashboardHasTabs && filtersWithValues.length > 0;
 
+  // Shared section styling
+  const sectionContainerStyle = useCallback(
+    (theme: SupersetTheme) => css`
+      margin-bottom: ${theme.gridUnit * 4}px;
+      padding: ${theme.gridUnit * 2}px;
+      background-color: ${theme.colors.grayscale.light5};
+      border-radius: ${theme.gridUnit}px;
+    `,
+    [],
+  );
+
+  const sectionHeaderStyle = useCallback(
+    (theme: SupersetTheme) => css`
+      margin-bottom: ${theme.gridUnit * 2}px;
+    `,
+    [],
+  );
+
+  const sectionTitleStyle = useCallback(
+    (theme: SupersetTheme) => css`
+      margin: 0;
+      font-size: ${theme.typography.sizes.s}px;
+      font-weight: ${theme.typography.weights.bold};
+    `,
+    [],
+  );
   const renderer = useCallback(
     ({ id }: Filter | Divider, index: number | undefined) => {
       const filterIndex = filtersWithValues.findIndex(f => f.id === id);
@@ -147,11 +182,43 @@ const FilterControls: FC<FilterControlsProps> = ({
   const renderVerticalContent = useCallback(
     () => (
       <>
-        {filtersInScope.map(renderer)}
+        {filtersInScope.length > 0 && (
+          <div css={sectionContainerStyle}>
+            <div css={sectionHeaderStyle}>
+              <h4 css={sectionTitleStyle}>{t('Filters')}</h4>
+            </div>
+            <div>{filtersInScope.map(renderer)}</div>
+          </div>
+        )}
+
+        {chartCustomizationItems.length > 0 && (
+          <div css={sectionContainerStyle}>
+            <div css={sectionHeaderStyle}>
+              <h4 css={sectionTitleStyle}>{t('Chart Customization')}</h4>
+            </div>
+            <div
+              css={(theme: SupersetTheme) => css`
+                display: flex;
+                flex-direction: column;
+                gap: ${theme.gridUnit * 2}px;
+              `}
+            >
+              {chartCustomizationItems
+                .filter(item => !item.removed)
+                .map(item => (
+                  <GroupByFilterCard key={item.id} customizationItem={item} />
+                ))}
+            </div>
+          </div>
+        )}
+
         {showCollapsePanel && (
           <FiltersOutOfScopeCollapsible
             filtersOutOfScope={filtersOutOfScope}
             forceRender={hasRequiredFirst}
+            hasTopMargin={
+              filtersInScope.length > 0 || chartCustomizationItems.length > 0
+            }
             renderer={renderer}
           />
         )}
@@ -163,6 +230,10 @@ const FilterControls: FC<FilterControlsProps> = ({
       showCollapsePanel,
       filtersOutOfScope,
       hasRequiredFirst,
+      chartCustomizationItems,
+      sectionContainerStyle,
+      sectionHeaderStyle,
+      sectionTitleStyle,
     ],
   );
 
@@ -237,6 +308,26 @@ const FilterControls: FC<FilterControlsProps> = ({
           flex: 1;
         `}
       >
+        {chartCustomizationItems.length > 0 && (
+          <div css={sectionContainerStyle}>
+            <div css={sectionHeaderStyle}>
+              <h4 css={sectionTitleStyle}>{t('Chart Customization')}</h4>
+            </div>
+            <div
+              css={(theme: SupersetTheme) => css`
+                display: flex;
+                flex-direction: column;
+                gap: ${theme.gridUnit * 2}px;
+              `}
+            >
+              {chartCustomizationItems
+                .filter(item => !item.removed)
+                .map(item => (
+                  <GroupByFilterCard key={item.id} customizationItem={item} />
+                ))}
+            </div>
+          </div>
+        )}
         <DropdownContainer
           items={items}
           dropdownTriggerIcon={
@@ -305,6 +396,10 @@ const FilterControls: FC<FilterControlsProps> = ({
       rendererCrossFilter,
       hasRequiredFirst,
       overflowedIds,
+      chartCustomizationItems,
+      sectionContainerStyle,
+      sectionHeaderStyle,
+      sectionTitleStyle,
     ],
   );
 
