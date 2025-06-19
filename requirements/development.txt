@@ -2,7 +2,7 @@
 #    uv pip compile requirements/development.in -c requirements/base.txt -o requirements/development.txt
 -e .
     # via -r requirements/development.in
-alembic==1.15.2
+alembic==1.16.2
     # via
     #   -c requirements/base.txt
     #   flask-migrate
@@ -833,6 +833,8 @@ tabulate==0.9.0
     #   apache-superset
 tomli==2.2.1
     # via
+    #   -c requirements/base.txt
+    #   alembic
     #   coverage
     #   pylint
     #   pytest
