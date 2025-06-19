@@ -18,7 +18,7 @@
  */
 import { forwardRef, RefObject } from 'react';
 import { css, QueryData, SupersetTheme } from '@superset-ui/core';
-import RowCountLabel from 'src/explore/components/RowCountLabel';
+import RowCountLabel from 'src/components/RowCountLabel';
 import CachedLabel from 'src/components/CachedLabel';
 import Timer from 'src/components/Timer';
 import { Type } from 'src/components/Label';
@@ -52,6 +52,7 @@ export const ChartPills = forwardRef(
   ) => {
     const isLoading = chartStatus === 'loading';
     const firstQueryResponse = queriesResponse?.[0];
+
     return (
       <div ref={ref}>
         <div

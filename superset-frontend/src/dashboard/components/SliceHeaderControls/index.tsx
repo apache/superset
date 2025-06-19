@@ -527,6 +527,9 @@ const SliceHeaderControls = (
           id={`slice_${slice.slice_id}-controls`}
           aria-label="More Options"
           aria-haspopup="true"
+          css={theme => css`
+            padding: ${theme.gridUnit * 2}px;
+          `}
         >
           <VerticalDotsTrigger />
         </Button>
