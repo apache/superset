@@ -172,8 +172,7 @@ export default function getFormDataWithExtraFilters({
           const targetDataset = item.customization?.dataset;
           if (!targetDataset) return false;
 
-          const targetParts = String(targetDataset).split('__');
-          const targetDatasetId = targetParts[0];
+          const targetDatasetId = String(targetDataset);
 
           return chartDatasetId === targetDatasetId;
         });

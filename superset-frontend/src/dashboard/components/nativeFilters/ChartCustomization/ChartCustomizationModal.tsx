@@ -19,6 +19,7 @@
 import { useState, useEffect, useMemo, useCallback, memo } from 'react';
 import { t, styled, css } from '@superset-ui/core';
 import { useSelector } from 'react-redux';
+import { isEmpty } from 'lodash';
 import { StyledModal } from 'src/components/Modal';
 import ErrorBoundary from 'src/components/ErrorBoundary';
 import { Form } from 'src/components/Form';
@@ -101,57 +102,104 @@ const ChartCustomizationModal = ({
   const [saveAlertVisible, setSaveAlertVisible] = useState(false);
   const [initialLoadComplete, setInitialLoadComplete] = useState(false);
 
+  const [erroredItems, setErroredItems] = useState<string[]>([]);
+
   const currentItem = useMemo(
     () => items.find(i => i.id === currentId),
     [items, currentId],
   );
 
-  const handleSave = useCallback(() => {
-    form
-      .validateFields()
-      .then(() => {
-        const formValues = form.getFieldsValue();
-        const updatedItems = items.map(item => {
-          const formItemValues = formValues.filters?.[item.id] || {};
-          return {
-            ...item,
-            customization: {
-              ...item.customization,
-              ...formItemValues,
-              dataset: formItemValues.dataset
-                ? typeof formItemValues.dataset === 'object' &&
-                  'value' in formItemValues.dataset
-                  ? formItemValues.dataset.value
-                  : formItemValues.dataset
-                : item.customization.dataset,
-            },
-          };
-        });
+  const hasUnsavedChanges = useCallback(() => {
+    const changed = form.getFieldValue('changed');
+    const isFieldsTouched = form.isFieldsTouched();
+    const hasNewItems = items.some(item => !item.id.startsWith('existing_'));
+    const hasRemovedItems = items.some(item => item.removed);
 
-        onSave(dashboardId, updatedItems);
-        onCancel();
-      })
-      .catch(() => {
-        setSaveAlertVisible(true);
-      });
-  }, [form, items, onSave, onCancel, dashboardId, setSaveAlertVisible]);
-  const hasUnsavedChanges = useCallback(
-    () => form.isFieldsTouched() || form.getFieldValue('changed'),
+    return changed || isFieldsTouched || hasNewItems || hasRemovedItems;
+  }, [form, items]);
+
+  const validateForm = useCallback(async () => {
+    try {
+      const values = await form.validateFields();
+      setErroredItems([]);
+      return values;
+    } catch (error: any) {
+      if (error?.errorFields) {
+        const errorItemIds = error.errorFields
+          .map((field: any) => field.name[1])
+          .filter((id: string) => id && items.some(item => item.id === id))
+          .map(String);
+        setErroredItems(errorItemIds);
+      }
+      return null;
+    }
+  }, [form, items]);
+
+  const resetForm = useCallback(
+    (isSaving = false) => {
+      setItems([]);
+      setCurrentId(null);
+      setSaveAlertVisible(false);
+      setInitialLoadComplete(false);
+      setErroredItems([]);
+
+      if (!isSaving) {
+        form.resetFields();
+        form.setFieldsValue({ changed: false });
+      }
+    },
     [form],
   );
 
-  const handleConfirmCancel = () => {
-    setSaveAlertVisible(false);
-    onCancel();
-  };
+  const handleSave = useCallback(async () => {
+    const values = await validateForm();
 
-  const handleCancel = () => {
+    if (values) {
+      const updatedItems = items.map(item => {
+        const formItemValues = values.filters?.[item.id] || {};
+        return {
+          ...item,
+          customization: {
+            ...item.customization,
+            ...formItemValues,
+            dataset: formItemValues.dataset
+              ? typeof formItemValues.dataset === 'object' &&
+                'value' in formItemValues.dataset
+                ? formItemValues.dataset.value
+                : formItemValues.dataset
+              : item.customization.dataset,
+          },
+        };
+      });
+
+      onSave(dashboardId, updatedItems);
+      resetForm(true);
+      onCancel();
+    } else if (erroredItems.length > 0) {
+      setCurrentId(erroredItems[0]);
+    }
+  }, [
+    validateForm,
+    items,
+    onSave,
+    dashboardId,
+    resetForm,
+    onCancel,
+    erroredItems,
+  ]);
+
+  const handleConfirmCancel = useCallback(() => {
+    resetForm();
+    onCancel();
+  }, [resetForm, onCancel]);
+
+  const handleCancel = useCallback(() => {
     if (hasUnsavedChanges()) {
       setSaveAlertVisible(true);
     } else {
-      onCancel();
+      handleConfirmCancel();
     }
-  };
+  }, [hasUnsavedChanges, handleConfirmCancel]);
 
   const existingItems = useSelector(selectChartCustomizationItems);
 
@@ -184,16 +232,18 @@ const ChartCustomizationModal = ({
           };
         });
 
-        form.setFieldsValue({
+        const initialFormValues = {
           filters: formFilters,
           changed: false,
-        });
+        };
+
+        form.setFieldsValue(initialFormValues);
       } else {
         const newItem = createDefaultChartCustomizationItem();
         setCurrentId(newItem.id);
         setItems([newItem]);
 
-        form.setFieldsValue({
+        const initialFormValues = {
           filters: {
             [newItem.id]: {
               name: '',
@@ -209,7 +259,9 @@ const ChartCustomizationModal = ({
             },
           },
           changed: false,
-        });
+        };
+
+        form.setFieldsValue(initialFormValues);
       }
       setInitialLoadComplete(true);
     }
@@ -219,6 +271,16 @@ const ChartCustomizationModal = ({
       setInitialLoadComplete(false);
     }
   }, [isOpen]);
+
+  useEffect(() => {
+    if (!isEmpty(items)) {
+      setErroredItems(prevErroredItems =>
+        prevErroredItems.filter(
+          f => !items.find(item => item.id === f)?.removed,
+        ),
+      );
+    }
+  }, [items]);
 
   return (
     <StyledModalWrapper
@@ -251,10 +313,7 @@ const ChartCustomizationModal = ({
               onDismiss={() => setSaveAlertVisible(false)}
               onCancel={handleCancel}
               handleSave={handleSave}
-              canSave={
-                !form.getFieldsError().some(e => e.errors.length) &&
-                hasUnsavedChanges()
-              }
+              canSave={!erroredItems.length && hasUnsavedChanges()}
               saveAlertVisible={false}
               onConfirmCancel={handleConfirmCancel}
             />
@@ -275,7 +334,7 @@ const ChartCustomizationModal = ({
                 setCurrentId(item.id);
 
                 const currentFilters = form.getFieldValue('filters') || {};
-                form.setFieldsValue({
+                const newFormValues = {
                   filters: {
                     ...currentFilters,
                     [item.id]: {
@@ -292,7 +351,9 @@ const ChartCustomizationModal = ({
                     },
                   },
                   changed: true,
-                });
+                };
+
+                form.setFieldsValue(newFormValues);
               }}
               onRemove={(id, shouldRemove) => {
                 if (shouldRemove) {

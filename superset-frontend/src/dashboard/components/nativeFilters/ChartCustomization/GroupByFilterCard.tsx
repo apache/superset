@@ -384,7 +384,6 @@ const GroupByFilterCard: FC<GroupByFilterCardProps> = ({
           setOptions([]);
         }
       } catch (error) {
-        console.warn('Failed to fetch filter values:', error);
         setOptions([]);
       } finally {
         setLoading(false);
@@ -448,6 +447,18 @@ const GroupByFilterCard: FC<GroupByFilterCardProps> = ({
       fetchFilterValues(dataset, columnName);
     }
   }, [dataset, columnName, fetchFilterValues]);
+
+  useEffect(() => {
+    if (!defaultValue) {
+      setSelectedValues([]);
+    } else if (Array.isArray(defaultValue)) {
+      setSelectedValues(defaultValue);
+    } else if (typeof defaultValue === 'string' && defaultValue.includes(',')) {
+      setSelectedValues(defaultValue.split(','));
+    } else {
+      setSelectedValues([defaultValue.toString()]);
+    }
+  }, [defaultValue]);
 
   return (
     <FilterValueContainer>

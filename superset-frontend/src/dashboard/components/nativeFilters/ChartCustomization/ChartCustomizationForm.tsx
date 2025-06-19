@@ -180,6 +180,23 @@ const ChartCustomizationForm: FC<Props> = ({ form, item, onUpdate }) => {
     [formChanged],
   );
 
+  // Helper function to set form values (similar to setNativeFilterFieldValues in FiltersConfigForm)
+  const setFormFieldValues = useCallback(
+    (values: object) => {
+      const currentFilters = form.getFieldValue('filters') || {};
+      form.setFieldsValue({
+        filters: {
+          ...currentFilters,
+          [item.id]: {
+            ...(currentFilters[item.id] || {}),
+            ...values,
+          },
+        },
+      });
+    },
+    [form, item.id],
+  );
+
   const ensureFilterSlot = useCallback(() => {
     const currentFilters = form.getFieldValue('filters') || {};
     if (!currentFilters[item.id]) {
@@ -249,15 +266,6 @@ const ChartCustomizationForm: FC<Props> = ({ form, item, onUpdate }) => {
                 dataset: currentItemValues.dataset,
                 datasetInfo: enhancedDataset,
               },
-            },
-          });
-
-          onUpdate({
-            ...item,
-            customization: {
-              ...customization,
-              dataset: currentItemValues.dataset,
-              datasetInfo: enhancedDataset,
             },
           });
         }
@@ -419,6 +427,7 @@ const ChartCustomizationForm: FC<Props> = ({ form, item, onUpdate }) => {
       fetchDatasetInfo();
     }
 
+    // Validate required fields after form initialization (similar to FiltersConfigForm)
     if (customization.isRequired) {
       setTimeout(() => {
         form
@@ -426,7 +435,7 @@ const ChartCustomizationForm: FC<Props> = ({ form, item, onUpdate }) => {
           .catch(() => {});
       }, 0);
     }
-  }, [item.id, fetchDatasetInfo]);
+  }, [item.id, fetchDatasetInfo, customization, form, ensureFilterSlot]);
 
   useEffect(() => {
     const formValues = form.getFieldValue('filters')?.[item.id] || {};
@@ -439,9 +448,15 @@ const ChartCustomizationForm: FC<Props> = ({ form, item, onUpdate }) => {
       fetchDatasetInfo();
     }
 
+    // Validate required fields when dependencies change (similar to FiltersConfigForm)
     if (isRequired && (!hasDataset || !hasColumn)) {
-      form.validateFields([['filters', item.id, 'isRequired']]).catch(() => {});
+      setTimeout(() => {
+        form
+          .validateFields([['filters', item.id, 'isRequired']])
+          .catch(() => {});
+      }, 0);
     }
+
     if (
       (hasDefaultValue || isRequired) &&
       hasDataset &&
@@ -464,30 +479,19 @@ const ChartCustomizationForm: FC<Props> = ({ form, item, onUpdate }) => {
     (dataMask: any) => {
       if (!dataMask.filterState) return;
 
-      ensureFilterSlot();
-      const filtersValue = form.getFieldValue('filters') || {};
-
-      form.setFieldsValue({
-        filters: {
-          ...filtersValue,
-          [item.id]: {
-            ...(filtersValue[item.id] || {}),
-            defaultDataMask: dataMask,
-            defaultValue: dataMask.filterState?.value,
-          },
-        },
+      setFormFieldValues({
+        defaultDataMask: dataMask,
+        defaultValue: dataMask.filterState?.value,
       });
 
-      onUpdate({
-        ...item,
-        customization: {
-          ...customization,
-          defaultDataMask: dataMask,
-          defaultValue: dataMask.filterState?.value,
-        },
-      });
+      // Validate the field after setting the value (similar to FiltersConfigForm)
+      setTimeout(() => {
+        form
+          .validateFields([['filters', item.id, 'defaultDataMask']])
+          .catch(() => {});
+      }, 0);
     },
-    [ensureFilterSlot, form, item, onUpdate, customization],
+    [setFormFieldValues, form, item.id],
   );
 
   const generatedFormData = useMemo(() => {
@@ -507,6 +511,70 @@ const ChartCustomizationForm: FC<Props> = ({ form, item, onUpdate }) => {
         sortMetric: formValues.sortMetric ?? customization.sortMetric,
       },
     });
+  }, [form, item.id, customization]);
+
+  // Add validation for default value when hasDefaultValue is true
+  const defaultValueValidator = useCallback(async () => {
+    const current = form.getFieldValue(['filters', item.id]) || {};
+    if (!current.hasDefaultValue && !current.isRequired) {
+      return Promise.resolve();
+    }
+
+    const val =
+      current.defaultDataMask?.filterState?.value ?? current.defaultValue;
+    if (!val) {
+      return Promise.reject(new Error(t('Please choose a valid value')));
+    }
+    return Promise.resolve();
+  }, [form, item.id]);
+
+  // Add validation for required fields when isRequired is true
+  const isRequiredValidator = useCallback(
+    async (_, isRequired) => {
+      if (!isRequired) {
+        return Promise.resolve();
+      }
+
+      const current = form.getFieldValue(['filters', item.id]) || {};
+      if (!current.dataset || !current.column) {
+        return Promise.reject(
+          new Error(
+            t(
+              'Dataset and column must be selected when "Dynamic group by value is required" is enabled',
+            ),
+          ),
+        );
+      }
+
+      return Promise.resolve();
+    },
+    [form, item.id],
+  );
+
+  // Calculate tooltip for hasDefaultValue checkbox (matching FiltersConfigForm logic)
+  const getDefaultValueTooltip = useCallback(() => {
+    const formValues = form.getFieldValue('filters')?.[item.id] || {};
+    const selectFirst = formValues.selectFirst ?? customization.selectFirst;
+    const isRequired = formValues.isRequired ?? customization.isRequired;
+    const hasDefaultValue =
+      formValues.hasDefaultValue ?? customization.hasDefaultValue;
+
+    if (selectFirst) {
+      return t(
+        'Default value set automatically when "Select first filter value by default" is checked',
+      );
+    }
+    if (isRequired) {
+      return t(
+        'Default value must be set when "Dynamic group by value is required" is checked',
+      );
+    }
+    if (hasDefaultValue) {
+      return t(
+        'Default value must be set when "Dynamic group by has a default value" is checked',
+      );
+    }
+    return t('Set a default value for this filter');
   }, [form, item.id, customization]);
 
   return (
@@ -544,9 +612,6 @@ const ChartCustomizationForm: FC<Props> = ({ form, item, onUpdate }) => {
         >
           <DatasetSelect
             onChange={(dataset: { label: string; value: number }) => {
-              ensureFilterSlot();
-              const currentFilters = form.getFieldValue('filters') || {};
-
               const datasetWithInfo = {
                 ...dataset,
                 table_name: dataset.label,
@@ -554,32 +619,13 @@ const ChartCustomizationForm: FC<Props> = ({ form, item, onUpdate }) => {
 
               const datasetId = dataset.value.toString();
 
-              form.setFieldsValue({
-                filters: {
-                  ...currentFilters,
-                  [item.id]: {
-                    ...(currentFilters[item.id] || {}),
-                    dataset: datasetId,
-                    datasetInfo: datasetWithInfo,
-                    column: null,
-                    defaultValueQueriesData: null,
-                    defaultValue: undefined,
-                    defaultDataMask: undefined,
-                  },
-                },
-              });
-
-              onUpdate({
-                ...item,
-                customization: {
-                  ...customization,
-                  dataset: datasetId,
-                  datasetInfo: datasetWithInfo,
-                  column: null,
-                  defaultValueQueriesData: null,
-                  defaultValue: undefined,
-                  defaultDataMask: undefined,
-                },
+              setFormFieldValues({
+                dataset: datasetId,
+                datasetInfo: datasetWithInfo,
+                column: null,
+                defaultValueQueriesData: null,
+                defaultValue: undefined,
+                defaultDataMask: undefined,
               });
 
               fetchDatasetInfo();
@@ -630,31 +676,12 @@ const ChartCustomizationForm: FC<Props> = ({ form, item, onUpdate }) => {
             })()}
             onChange={(column: string) => {
               setError(null);
-              const currentFilters = form.getFieldValue('filters') || {};
-              form.setFieldsValue({
-                filters: {
-                  ...currentFilters,
-                  [item.id]: {
-                    ...(currentFilters[item.id] || {}),
-                    column,
-                    defaultValueQueriesData: null,
-                    defaultValue: undefined,
-                    defaultDataMask: null,
-                  },
-                },
+              setFormFieldValues({
+                column,
+                defaultValueQueriesData: null,
+                defaultValue: undefined,
+                defaultDataMask: null,
               });
-
-              onUpdate({
-                ...item,
-                customization: {
-                  ...customization,
-                  column,
-                  defaultValueQueriesData: null,
-                  defaultValue: undefined,
-                  defaultDataMask: null,
-                },
-              });
-
               formChanged();
             }}
           />
@@ -690,42 +717,15 @@ const ChartCustomizationForm: FC<Props> = ({ form, item, onUpdate }) => {
               initialValue={customization.sortFilter ?? false}
               title={<CheckboxLabel>{t('Sort filter values')}</CheckboxLabel>}
               onChange={checked => {
-                ensureFilterSlot();
-                const currentFilters = form.getFieldValue('filters') || {};
-                const currentHasDefaultValue =
-                  currentFilters[item.id]?.hasDefaultValue;
-
-                form.setFieldsValue({
-                  filters: {
-                    ...currentFilters,
-                    [item.id]: {
-                      ...(currentFilters[item.id] || {}),
-                      sortFilter: checked,
-                      ...(checked
-                        ? {}
-                        : {
-                            sortAscending: undefined,
-                            sortMetric: undefined,
-                          }),
-                      hasDefaultValue: currentHasDefaultValue,
-                    },
-                  },
+                setFormFieldValues({
+                  sortFilter: checked,
+                  ...(checked === false
+                    ? {
+                        sortAscending: undefined,
+                        sortMetric: undefined,
+                      }
+                    : {}),
                 });
-                onUpdate({
-                  ...item,
-                  customization: {
-                    ...customization,
-                    sortFilter: checked,
-                    ...(checked === false
-                      ? {
-                          sortAscending: undefined,
-                          sortMetric: undefined,
-                        }
-                      : {}),
-                  },
-                });
-
-                formChanged();
               }}
             >
               <StyledFormItem
@@ -739,17 +739,9 @@ const ChartCustomizationForm: FC<Props> = ({ form, item, onUpdate }) => {
                     { label: t('Sort descending'), value: false },
                   ]}
                   onChange={value => {
-                    const currentFilters = form.getFieldValue('filters') || {};
-                    form.setFieldsValue({
-                      filters: {
-                        ...currentFilters,
-                        [item.id]: {
-                          ...(currentFilters[item.id] || {}),
-                          sortAscending: value.target.value,
-                        },
-                      },
+                    setFormFieldValues({
+                      sortAscending: value.target.value,
                     });
-                    formChanged();
                   }}
                 />
               </StyledFormItem>
@@ -782,37 +774,14 @@ const ChartCustomizationForm: FC<Props> = ({ form, item, onUpdate }) => {
                       label: metric.verbose_name ?? metric.metric_name,
                     }))}
                     onChange={value => {
-                      ensureFilterSlot();
-                      const currentFilters =
-                        form.getFieldValue('filters') || {};
-                      const currentHasDefaultValue =
-                        currentFilters[item.id]?.hasDefaultValue;
-
                       const stringValue =
                         value !== null && value !== undefined
                           ? String(value)
                           : undefined;
 
-                      form.setFieldsValue({
-                        filters: {
-                          ...currentFilters,
-                          [item.id]: {
-                            ...(currentFilters[item.id] || {}),
-                            sortMetric: stringValue,
-                            hasDefaultValue: currentHasDefaultValue,
-                          },
-                        },
+                      setFormFieldValues({
+                        sortMetric: stringValue,
                       });
-
-                      onUpdate({
-                        ...item,
-                        customization: {
-                          ...customization,
-                          sortMetric: stringValue,
-                        },
-                      });
-
-                      formChanged();
                     }}
                   />
                 </StyledFormItem>
@@ -842,57 +811,23 @@ const ChartCustomizationForm: FC<Props> = ({ form, item, onUpdate }) => {
                   {t('Dynamic group by has a default value')}
                 </CheckboxLabel>
               }
-              tooltip={
-                customization.isRequired
-                  ? t('Cannot set default value when filter value is required')
-                  : customization.selectFirst
-                    ? t(
-                        'Cannot set default value when "Select first filter value by default" is enabled',
-                      )
-                    : t('Set a default value for this filter')
-              }
+              tooltip={getDefaultValueTooltip()}
               onChange={checked => {
-                ensureFilterSlot();
-                const currentFilters = form.getFieldValue('filters') || {};
-
-                form.setFieldsValue({
-                  filters: {
-                    ...currentFilters,
-                    [item.id]: {
-                      ...(currentFilters[item.id] || {}),
-                      hasDefaultValue: checked,
-                      ...(checked ? { selectFirst: false } : {}),
-                      ...(checked === false
-                        ? {
-                            defaultDataMask: null,
-                            defaultValue: undefined,
-                            defaultValueQueriesData: null,
-                          }
-                        : {}),
-                    },
-                  },
-                });
-
-                onUpdate({
-                  ...item,
-                  customization: {
-                    ...customization,
-                    hasDefaultValue: checked,
-                    ...(checked === false
-                      ? {
-                          defaultDataMask: null,
-                          defaultValue: undefined,
-                          defaultValueQueriesData: null,
-                        }
-                      : {}),
-                  },
+                setFormFieldValues({
+                  hasDefaultValue: checked,
+                  ...(checked ? { selectFirst: false } : {}),
+                  ...(checked === false
+                    ? {
+                        defaultDataMask: null,
+                        defaultValue: undefined,
+                        defaultValueQueriesData: null,
+                      }
+                    : {}),
                 });
 
                 if (checked) {
                   fetchDefaultValueData();
                 }
-
-                formChanged();
               }}
             >
               <StyledFormItem
@@ -902,22 +837,7 @@ const ChartCustomizationForm: FC<Props> = ({ form, item, onUpdate }) => {
                 required={customization.hasDefaultValue}
                 rules={[
                   {
-                    validator: async (_, value) => {
-                      const current =
-                        form.getFieldValue(['filters', item.id]) || {};
-                      if (!current.hasDefaultValue && !current.isRequired) {
-                        return Promise.resolve();
-                      }
-
-                      const val =
-                        value?.filterState?.value ?? current.defaultValue;
-                      if (!val) {
-                        return Promise.reject(
-                          new Error(t('Please choose a valid value')),
-                        );
-                      }
-                      return Promise.resolve();
-                    },
+                    validator: defaultValueValidator,
                   },
                 ]}
               >
@@ -986,25 +906,7 @@ const ChartCustomizationForm: FC<Props> = ({ form, item, onUpdate }) => {
             name={['filters', item.id, 'isRequired']}
             rules={[
               {
-                validator: async (_, isRequired) => {
-                  if (!isRequired) {
-                    return Promise.resolve();
-                  }
-
-                  const current =
-                    form.getFieldValue(['filters', item.id]) || {};
-                  if (!current.dataset || !current.column) {
-                    return Promise.reject(
-                      new Error(
-                        t(
-                          'Dataset and column must be selected when "Dynamic group by value is required" is enabled',
-                        ),
-                      ),
-                    );
-                  }
-
-                  return Promise.resolve();
-                },
+                validator: isRequiredValidator,
               },
             ]}
           >
@@ -1017,45 +919,17 @@ const ChartCustomizationForm: FC<Props> = ({ form, item, onUpdate }) => {
               }
               tooltip={t('User must select a value before applying the filter')}
               onChange={checked => {
-                ensureFilterSlot();
-                const currentFilters = form.getFieldValue('filters') || {};
-
-                form.setFieldsValue({
-                  filters: {
-                    ...currentFilters,
-                    [item.id]: {
-                      ...(currentFilters[item.id] || {}),
-                      isRequired: checked,
-                      ...(checked
-                        ? {
-                            hasDefaultValue: false,
-                            defaultDataMask: null,
-                            defaultValue: undefined,
-                            defaultValueQueriesData: null,
-                          }
-                        : {}),
-                    },
-                  },
+                setFormFieldValues({
+                  isRequired: checked,
+                  ...(checked
+                    ? {
+                        hasDefaultValue: false,
+                        defaultDataMask: null,
+                        defaultValue: undefined,
+                        defaultValueQueriesData: null,
+                      }
+                    : {}),
                 });
-
-                onUpdate({
-                  ...item,
-                  customization: {
-                    ...customization,
-                    isRequired: checked,
-                    // When isRequired is enabled, disable hasDefaultValue
-                    ...(checked
-                      ? {
-                          hasDefaultValue: false,
-                          defaultDataMask: null,
-                          defaultValue: undefined,
-                          defaultValueQueriesData: null,
-                        }
-                      : {}),
-                  },
-                });
-
-                formChanged();
               }}
             >
               <div>
@@ -1111,28 +985,17 @@ const ChartCustomizationForm: FC<Props> = ({ form, item, onUpdate }) => {
                 </CheckboxLabel>
               }
               onChange={checked => {
-                ensureFilterSlot();
-                const currentFilters = form.getFieldValue('filters') || {};
-
-                form.setFieldsValue({
-                  filters: {
-                    ...currentFilters,
-                    [item.id]: {
-                      ...(currentFilters[item.id] || {}),
-                      selectFirst: checked,
-                      ...(checked
-                        ? {
-                            hasDefaultValue: false,
-                            defaultDataMask: null,
-                            defaultValue: undefined,
-                            defaultValueQueriesData: null,
-                          }
-                        : {}),
-                    },
-                  },
+                setFormFieldValues({
+                  selectFirst: checked,
+                  ...(checked
+                    ? {
+                        hasDefaultValue: false,
+                        defaultDataMask: null,
+                        defaultValue: undefined,
+                        defaultValueQueriesData: null,
+                      }
+                    : {}),
                 });
-
-                formChanged();
               }}
             >
               <div />

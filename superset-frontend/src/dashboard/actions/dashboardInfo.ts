@@ -153,9 +153,6 @@ function getAffectedChartIdsFromCustomization(
   const targetDatasets = chartCustomization
     .map(item => item.customization?.dataset)
     .filter(dataset => dataset !== null && dataset !== undefined) as string[];
-
-  console.log('Target datasets for customization:', targetDatasets);
-
   const charts = state.charts || {};
   if (targetDatasets.length === 0) {
     return [];
@@ -180,8 +177,7 @@ function getAffectedChartIdsFromCustomization(
       const chartDatasetId = chartDatasetParts[0];
 
       return targetDatasets.some(targetDataset => {
-        const targetParts = String(targetDataset).split('__');
-        const targetDatasetId = targetParts[0];
+        const targetDatasetId = String(targetDataset);
 
         return chartDatasetId === targetDatasetId;
       });
@@ -310,7 +306,6 @@ export function saveChartCustomization(
       try {
         parsedMetadata = json_metadata ? JSON.parse(json_metadata) : metadata;
       } catch (e) {
-        console.error('Error parsing json_metadata:', e);
         parsedMetadata = metadata || {};
       }
 
@@ -361,7 +356,6 @@ export function saveChartCustomization(
 
       return response;
     } catch (errorObject) {
-      console.error('Error saving chart customization:', errorObject);
       const errorText = await getErrorText(errorObject, 'dashboard');
       dispatch(addDangerToast(errorText));
       throw errorObject;
