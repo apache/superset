@@ -87,8 +87,6 @@ const LabeledErrorBoundInput = ({
   ...props
 }: LabeledErrorBoundInputProps) => {
   const hasError = !!errorMessage;
-  const hasBeenValidated =
-    'onBlur' in validationMethods && !!validationMethods.onBlur;
   return (
     <StyledFormGroup className={className}>
       <StyledAlignment>
@@ -100,13 +98,7 @@ const LabeledErrorBoundInput = ({
       <FormItem
         validateTrigger={Object.keys(validationMethods)}
         validateStatus={
-          isValidating
-            ? 'validating'
-            : hasError
-              ? 'error'
-              : hasBeenValidated
-                ? 'success'
-                : undefined
+          isValidating ? 'validating' : hasError ? 'error' : 'success'
         }
         help={errorMessage || helpText}
         hasFeedback={!!hasError}
