@@ -142,6 +142,7 @@ import {
   GoogleOutlined,
   DesktopOutlined,
   FormatPainterOutlined,
+  GroupOutlined,
   ExportOutlined,
   CompressOutlined,
 } from '@ant-design/icons';
@@ -217,6 +218,7 @@ const AntdIcons = {
   FunctionOutlined,
   GithubOutlined,
   GoogleOutlined,
+  GroupOutlined,
   HighlightOutlined,
   InfoCircleOutlined,
   InfoCircleFilled,
