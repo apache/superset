@@ -322,6 +322,7 @@ export interface FieldPropTypes {
   sslForced?: boolean;
   defaultDBName?: string;
   editNewDb?: boolean;
+  isValidating: boolean;
 }
 
 type ChangeMethodsType = FieldPropTypes['changeMethods'];
@@ -344,6 +345,7 @@ export interface DatabaseConnectionFormProps {
   editNewDb?: boolean;
   dbModel: DatabaseForm;
   db: Partial<DatabaseObject> | null;
+  isValidating: boolean;
   onParametersChange: (
     event: FormEvent<InputProps> | { target: HTMLInputElement },
   ) => void;
