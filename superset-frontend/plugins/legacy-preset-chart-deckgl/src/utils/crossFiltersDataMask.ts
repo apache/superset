@@ -290,7 +290,8 @@ const getStartEndSpatialFilters = ({
     customColumnLabel,
   });
 
-  if (!startSpatialFilters || !endSpatialFilters) throw new Error('');
+  if (!startSpatialFilters || !endSpatialFilters)
+    throw new Error('Failed to generate filters');
 
   return {
     values: [startSpatialFilters.values, endSpatialFilters.values],
