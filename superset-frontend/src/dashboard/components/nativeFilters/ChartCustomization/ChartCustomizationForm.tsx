@@ -858,7 +858,6 @@ const ChartCustomizationForm: FC<Props> = ({ form, item, onUpdate }) => {
                   const hasDatasetAndColumn =
                     !!currentItemValues.dataset && !!currentItemValues.column;
 
-                  // Calculate showDefaultValue similar to FiltersConfigForm
                   const showDefaultValue =
                     hasDatasetAndColumn && !isDefaultValueLoading;
 
