@@ -117,6 +117,7 @@ import {
   UnorderedListOutlined,
   WarningOutlined,
   KeyOutlined,
+  GroupOutlined,
   ExportOutlined,
 } from '@ant-design/icons';
 import { FC } from 'react';
@@ -180,6 +181,7 @@ const AntdIcons = {
   FullscreenOutlined,
   FundProjectionScreenOutlined,
   FunctionOutlined,
+  GroupOutlined,
   HighlightOutlined,
   InfoCircleOutlined,
   InfoCircleFilled,

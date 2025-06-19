@@ -29,15 +29,19 @@ import {
   createContext,
   FC,
 } from 'react';
+import { useSelector } from 'react-redux';
 import cx from 'classnames';
 import { styled, t, useTheme } from '@superset-ui/core';
+import { RootState } from 'src/dashboard/types';
 import { Icons } from 'src/components/Icons';
 import Loading from 'src/components/Loading';
 import { EmptyState } from 'src/components/EmptyState';
+import { selectChartCustomizationItems } from '../ChartCustomization/selectors';
 import { getFilterBarTestId } from './utils';
 import { VerticalBarProps } from './types';
 import Header from './Header';
 import FilterControls from './FilterControls/FilterControls';
+import { ChartCustomizationItem } from '../ChartCustomization/types';
 import CrossFiltersVertical from './CrossFilters/Vertical';
 
 const BarWrapper = styled.div<{ width: number }>`
@@ -153,33 +157,44 @@ const VerticalFilterBar: FC<VerticalBarProps> = ({
     () => ({ overflow: 'auto', height, overscrollBehavior: 'contain' }),
     [height],
   );
+  const chartCustomizationItems = useSelector<
+    RootState,
+    ChartCustomizationItem[]
+  >(state => selectChartCustomizationItems(state));
 
-  const filterControls = useMemo(
-    () =>
-      filterValues.length === 0 ? (
-        <FilterBarEmptyStateContainer>
-          <EmptyState
-            size="small"
-            title={t('No global filters are currently added')}
-            image="filter.svg"
-            description={
-              canEdit &&
-              t(
-                'Click on "Add or Edit Filters" option in Settings to create new dashboard filters',
-              )
-            }
-          />
-        </FilterBarEmptyStateContainer>
-      ) : (
-        <FilterControlsWrapper>
-          <FilterControls
-            dataMaskSelected={dataMaskSelected}
-            onFilterSelectionChange={onSelectionChange}
-          />
-        </FilterControlsWrapper>
-      ),
-    [canEdit, dataMaskSelected, filterValues.length, onSelectionChange],
-  );
+  const filterControls = useMemo(() => {
+    const hasFiltersOrCustomizations =
+      filterValues.length > 0 || chartCustomizationItems.length > 0;
+
+    return hasFiltersOrCustomizations ? (
+      <FilterControlsWrapper>
+        <FilterControls
+          dataMaskSelected={dataMaskSelected}
+          onFilterSelectionChange={onSelectionChange}
+        />
+      </FilterControlsWrapper>
+    ) : (
+      <FilterBarEmptyStateContainer>
+        <EmptyState
+          size="small"
+          title={t('No global filters are currently added')}
+          image="filter.svg"
+          description={
+            canEdit &&
+            t(
+              'Click on "Add or Edit Filters" option in Settings to create new dashboard filters',
+            )
+          }
+        />
+      </FilterBarEmptyStateContainer>
+    );
+  }, [
+    canEdit,
+    dataMaskSelected,
+    filterValues.length,
+    onSelectionChange,
+    chartCustomizationItems.length,
+  ]);
 
   return (
     <FilterBarScrollContext.Provider value={isScrolling}>
