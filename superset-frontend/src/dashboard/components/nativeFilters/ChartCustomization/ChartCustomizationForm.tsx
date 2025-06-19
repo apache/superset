@@ -105,6 +105,15 @@ const ChartCustomizationForm: FC<Props> = ({ form, item, onUpdate }) => {
     schema?: string;
     database?: { database_name: string };
   } | null>(null);
+  const [hasDefaultValue, setHasDefaultValue] = useState(
+    customization.hasDefaultValue ?? false,
+  );
+  const [isRequired, setIsRequired] = useState(
+    customization.isRequired ?? false,
+  );
+  const [selectFirst, setSelectFirst] = useState(
+    customization.selectFirst ?? false,
+  );
 
   const fetchedRef = useRef({
     dataset: null,
@@ -180,7 +189,7 @@ const ChartCustomizationForm: FC<Props> = ({ form, item, onUpdate }) => {
     [formChanged],
   );
 
-  // Helper function to set form values (similar to setNativeFilterFieldValues in FiltersConfigForm)
+  // Helper function to set form values (similar to se   tActiveFilterFieldValues in FiltersConfigForm)
   const setFormFieldValues = useCallback(
     (values: object) => {
       const currentFilters = form.getFieldValue('filters') || {};
@@ -448,7 +457,6 @@ const ChartCustomizationForm: FC<Props> = ({ form, item, onUpdate }) => {
       fetchDatasetInfo();
     }
 
-    // Validate required fields when dependencies change (similar to FiltersConfigForm)
     if (isRequired && (!hasDataset || !hasColumn)) {
       setTimeout(() => {
         form
@@ -458,12 +466,10 @@ const ChartCustomizationForm: FC<Props> = ({ form, item, onUpdate }) => {
     }
 
     if (
-      (hasDefaultValue || isRequired) &&
       hasDataset &&
       hasColumn &&
       (fetchedRef.current.dataset !== formValues.dataset ||
-        fetchedRef.current.column !== formValues.column ||
-        fetchedRef.current.hasDefaultValue !== hasDefaultValue)
+        fetchedRef.current.column !== formValues.column)
     ) {
       fetchedRef.current = {
         dataset: formValues.dataset,
@@ -475,6 +481,19 @@ const ChartCustomizationForm: FC<Props> = ({ form, item, onUpdate }) => {
     }
   }, [form, item.id, fetchDefaultValueData, fetchDatasetInfo]);
 
+  useEffect(() => {
+    const formValues = form.getFieldValue('filters')?.[item.id] || {};
+    const selectFirst = formValues.selectFirst ?? customization.selectFirst;
+    const hasValue = !!formValues.defaultDataMask?.filterState?.value;
+    const shouldHaveDefaultValue = selectFirst ? false : hasValue;
+    setHasDefaultValue(shouldHaveDefaultValue);
+    if (formValues.hasDefaultValue !== shouldHaveDefaultValue) {
+      setFormFieldValues({
+        hasDefaultValue: shouldHaveDefaultValue,
+      });
+    }
+  }, [form, item.id, setFormFieldValues, customization.selectFirst]);
+
   const setDataMask = useCallback(
     (dataMask: any) => {
       if (!dataMask.filterState) return;
@@ -482,9 +501,11 @@ const ChartCustomizationForm: FC<Props> = ({ form, item, onUpdate }) => {
       setFormFieldValues({
         defaultDataMask: dataMask,
         defaultValue: dataMask.filterState?.value,
+        hasDefaultValue: true,
       });
 
-      // Validate the field after setting the value (similar to FiltersConfigForm)
+      setHasDefaultValue(true);
+
       setTimeout(() => {
         form
           .validateFields([['filters', item.id, 'defaultDataMask']])
@@ -513,7 +534,6 @@ const ChartCustomizationForm: FC<Props> = ({ form, item, onUpdate }) => {
     });
   }, [form, item.id, customization]);
 
-  // Add validation for default value when hasDefaultValue is true
   const defaultValueValidator = useCallback(async () => {
     const current = form.getFieldValue(['filters', item.id]) || {};
     if (!current.hasDefaultValue && !current.isRequired) {
@@ -528,7 +548,6 @@ const ChartCustomizationForm: FC<Props> = ({ form, item, onUpdate }) => {
     return Promise.resolve();
   }, [form, item.id]);
 
-  // Add validation for required fields when isRequired is true
   const isRequiredValidator = useCallback(
     async (_, isRequired) => {
       if (!isRequired) {
@@ -551,14 +570,8 @@ const ChartCustomizationForm: FC<Props> = ({ form, item, onUpdate }) => {
     [form, item.id],
   );
 
-  // Calculate tooltip for hasDefaultValue checkbox (matching FiltersConfigForm logic)
+  // Calculate tooltip for hasDefaultValue checkbox   (matching FiltersConfigForm logic)
   const getDefaultValueTooltip = useCallback(() => {
-    const formValues = form.getFieldValue('filters')?.[item.id] || {};
-    const selectFirst = formValues.selectFirst ?? customization.selectFirst;
-    const isRequired = formValues.isRequired ?? customization.isRequired;
-    const hasDefaultValue =
-      formValues.hasDefaultValue ?? customization.hasDefaultValue;
-
     if (selectFirst) {
       return t(
         'Default value set automatically when "Select first filter value by default" is checked',
@@ -575,7 +588,7 @@ const ChartCustomizationForm: FC<Props> = ({ form, item, onUpdate }) => {
       );
     }
     return t('Set a default value for this filter');
-  }, [form, item.id, customization]);
+  }, [selectFirst, isRequired, hasDefaultValue]);
 
   return (
     <StyledForm
@@ -649,9 +662,6 @@ const ChartCustomizationForm: FC<Props> = ({ form, item, onUpdate }) => {
           }
           initialValue={customization.column}
           rules={[{ required: true, message: t('Please select a column') }]}
-          css={css`
-            width: 100%;
-          `}
         >
           <ColumnSelect
             allowClear
@@ -797,15 +807,11 @@ const ChartCustomizationForm: FC<Props> = ({ form, item, onUpdate }) => {
             <Input />
           </StyledFormItem>
 
-          <StyledFormItem name={['filters', item.id, 'defaultValue']}>
+          <StyledFormItem name={['filters', item.id, 'hasDefaultValue']}>
             <CollapsibleControl
-              checked={
-                form.getFieldValue('filters')?.[item.id]?.hasDefaultValue ??
-                customization.hasDefaultValue ??
-                false
-              }
+              checked={hasDefaultValue}
               initialValue={customization.hasDefaultValue ?? false}
-              disabled={customization.isRequired || customization.selectFirst}
+              disabled={isRequired || selectFirst}
               title={
                 <CheckboxLabel>
                   {t('Dynamic group by has a default value')}
@@ -813,6 +819,10 @@ const ChartCustomizationForm: FC<Props> = ({ form, item, onUpdate }) => {
               }
               tooltip={getDefaultValueTooltip()}
               onChange={checked => {
+                setHasDefaultValue(checked);
+                if (checked) {
+                  setSelectFirst(false);
+                }
                 setFormFieldValues({
                   hasDefaultValue: checked,
                   ...(checked ? { selectFirst: false } : {}),
@@ -828,6 +838,7 @@ const ChartCustomizationForm: FC<Props> = ({ form, item, onUpdate }) => {
                 if (checked) {
                   fetchDefaultValueData();
                 }
+                formChanged();
               }}
             >
               <StyledFormItem
@@ -841,63 +852,58 @@ const ChartCustomizationForm: FC<Props> = ({ form, item, onUpdate }) => {
                   },
                 ]}
               >
-                <StyledMarginTop>
-                  {(() => {
-                    const currentFilters = form.getFieldValue('filters') || {};
-                    const currentItemValues = currentFilters[item.id] || {};
+                {(() => {
+                  const currentFilters = form.getFieldValue('filters') || {};
+                  const currentItemValues = currentFilters[item.id] || {};
+                  const hasDatasetAndColumn =
+                    !!currentItemValues.dataset && !!currentItemValues.column;
 
-                    const hasDatasetAndColumn =
-                      !!currentItemValues.dataset && !!currentItemValues.column;
-                    const showDefaultValue =
-                      !hasDatasetAndColumn ||
-                      (!isDefaultValueLoading &&
-                        hasDatasetAndColumn &&
-                        currentItemValues.defaultValueQueriesData);
+                  // Calculate showDefaultValue similar to FiltersConfigForm
+                  const showDefaultValue =
+                    hasDatasetAndColumn && !isDefaultValueLoading;
 
-                    if (error) {
-                      return (
-                        <div style={{ color: theme.colors.error.base }}>
-                          {t('Cannot load filter: ')}{' '}
-                          {error.message || error.error || 'Unknown error'}
-                        </div>
-                      );
-                    }
+                  if (error || showDefaultValue) {
+                    return (
+                      <StyledMarginTop>
+                        {error ? (
+                          <div style={{ color: theme.colors.error.base }}>
+                            {t('Cannot load filter: ')}{' '}
+                            {error.message || error.error || 'Unknown error'}
+                          </div>
+                        ) : (
+                          <DefaultValue
+                            setDataMask={dataMask => {
+                              setFormFieldValues({
+                                defaultDataMask: dataMask,
+                                defaultValue: dataMask?.filterState?.value,
+                              });
+                              form.validateFields([
+                                ['filters', item.id, 'defaultDataMask'],
+                              ]);
+                              formChanged();
+                            }}
+                            hasDefaultValue={hasDefaultValue}
+                            filterId={item.id}
+                            hasDataset={hasDatasetAndColumn}
+                            form={form}
+                            formData={generatedFormData}
+                            enableNoResults
+                          />
+                        )}
+                      </StyledMarginTop>
+                    );
+                  }
 
-                    if (isDefaultValueLoading) {
-                      return <Loading position="inline-centered" />;
-                    }
-
-                    if (!hasDatasetAndColumn) {
-                      return (
-                        <div>
-                          {t(
-                            'Fill all required fields to enable "Default Value"',
-                          )}
-                        </div>
-                      );
-                    }
-
-                    if (
-                      showDefaultValue &&
-                      currentItemValues.defaultValueQueriesData
-                    ) {
-                      return (
-                        <DefaultValue
-                          key={`${item.id}-${currentItemValues.dataset}-${currentItemValues.column}`}
-                          filterId={item.id}
-                          form={form}
-                          formData={generatedFormData}
-                          setDataMask={setDataMask}
-                          hasDataset
-                          enableNoResults
-                          hasDefaultValue={currentItemValues.hasDefaultValue}
-                        />
-                      );
-                    }
-
-                    return <div>{t('Loading default value options...')}</div>;
-                  })()}
-                </StyledMarginTop>
+                  return (
+                    <StyledMarginTop>
+                      {isDefaultValueLoading ? (
+                        <Loading position="inline-centered" />
+                      ) : (
+                        t('Fill all required fields to enable "Default Value"')
+                      )}
+                    </StyledMarginTop>
+                  );
+                })()}
               </StyledFormItem>
             </CollapsibleControl>
           </StyledFormItem>
@@ -911,7 +917,8 @@ const ChartCustomizationForm: FC<Props> = ({ form, item, onUpdate }) => {
             ]}
           >
             <CollapsibleControl
-              checked={customization.isRequired || false}
+              checked={isRequired}
+              initialValue={customization.isRequired ?? false}
               title={
                 <CheckboxLabel>
                   {t('Dynamic group by value is required')}
@@ -919,6 +926,10 @@ const ChartCustomizationForm: FC<Props> = ({ form, item, onUpdate }) => {
               }
               tooltip={t('User must select a value before applying the filter')}
               onChange={checked => {
+                setIsRequired(checked);
+                if (checked) {
+                  setHasDefaultValue(false);
+                }
                 setFormFieldValues({
                   isRequired: checked,
                   ...(checked
@@ -930,6 +941,7 @@ const ChartCustomizationForm: FC<Props> = ({ form, item, onUpdate }) => {
                       }
                     : {}),
                 });
+                formChanged();
               }}
             >
               <div>
@@ -972,7 +984,8 @@ const ChartCustomizationForm: FC<Props> = ({ form, item, onUpdate }) => {
 
           <StyledFormItem name={['filters', item.id, 'selectFirst']}>
             <CollapsibleControl
-              checked={customization.selectFirst || false}
+              checked={selectFirst}
+              initialValue={customization.selectFirst ?? false}
               title={
                 <CheckboxLabel>
                   {t('Select first filter value by default')}
@@ -985,6 +998,10 @@ const ChartCustomizationForm: FC<Props> = ({ form, item, onUpdate }) => {
                 </CheckboxLabel>
               }
               onChange={checked => {
+                setSelectFirst(checked);
+                if (checked) {
+                  setHasDefaultValue(false);
+                }
                 setFormFieldValues({
                   selectFirst: checked,
                   ...(checked
@@ -996,6 +1013,7 @@ const ChartCustomizationForm: FC<Props> = ({ form, item, onUpdate }) => {
                       }
                     : {}),
                 });
+                formChanged();
               }}
             >
               <div />
