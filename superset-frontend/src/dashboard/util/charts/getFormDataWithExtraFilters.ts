@@ -23,15 +23,20 @@ import {
   DataRecordValue,
   JsonObject,
   PartialFilters,
+  ExtraFormData,
 } from '@superset-ui/core';
 import {
   ChartConfiguration,
   ChartQueryPayload,
-  ActiveFilters,
+  RootState,
 } from 'src/dashboard/types';
-import { getExtraFormData } from 'src/dashboard/components/nativeFilters/utils';
-import { areObjectsEqual } from 'src/reduxUtils';
+import {
+  getExtraFormData,
+  mergeExtraFormData,
+} from 'src/dashboard/components/nativeFilters/utils';
 import { isEqual } from 'lodash';
+import { areObjectsEqual } from 'src/reduxUtils';
+import { selectChartCustomizationItems } from '../../components/nativeFilters/ChartCustomization/selectors';
 import getEffectiveExtraFilters from './getEffectiveExtraFilters';
 import { getAllActiveFilters } from '../activeAllDashboardFilters';
 
@@ -49,6 +54,7 @@ interface CachedFormData {
   label_colors?: Record<string, string>;
   shared_label_colors?: string[];
   map_label_colors?: Record<string, string>;
+  chart_customization?: JsonObject;
   layer_filter_scope?: {
     [filterId: string]: number[];
   };
@@ -85,6 +91,7 @@ export interface GetFormDataWithExtraFiltersArguments {
   labelsColorMap?: Record<string, string>;
   sharedLabelsColors?: string[];
   allSliceIds: number[];
+  chartCustomization?: JsonObject;
   activeFilters?: ActiveFilters;
 }
 
@@ -119,6 +126,7 @@ export default function getFormDataWithExtraFilters({
   labelsColorMap,
   sharedLabelsColors,
   allSliceIds,
+  chartCustomization,
   activeFilters: passedActiveFilters,
 }: GetFormDataWithExtraFiltersArguments) {
   const cachedFormData = cachedFormdataByChart[sliceId];
@@ -142,6 +150,9 @@ export default function getFormDataWithExtraFilters({
     }) &&
     areObjectsEqual(cachedFormData?.extraControls, extraControls, {
       ignoreUndefined: true,
+    }) &&
+    areObjectsEqual(cachedFormData?.chart_customization, chartCustomization, {
+      ignoreUndefined: true,
     })
   ) {
     return cachedFormData;
@@ -161,49 +172,65 @@ export default function getFormDataWithExtraFilters({
     .filter(([, activeFilter]) => activeFilter.scope.includes(chart.id))
     .map(([filterId]) => filterId);
 
+  let extraFormData: ExtraFormData = {};
+
   if (filterIdsAppliedOnChart.length) {
-    const aggregatedFormData = getExtraFormData(
-      dataMask,
-      filterIdsAppliedOnChart,
-    );
-    extraData = {
-      extra_form_data: aggregatedFormData,
-    };
-
-    const isDeckMultiChart = chart.form_data?.viz_type === 'deck_multi';
-    const hasLayerScopeInActiveFilters =
-      passedActiveFilters &&
-      Object.values(passedActiveFilters).some(filter => filter.layerScope);
-
-    if (isDeckMultiChart || hasLayerScopeInActiveFilters) {
-      const filterDataMapping = createFilterDataMapping(
-        dataMask,
-        filterIdsAppliedOnChart,
-      );
-      extraData.filter_data_mapping = filterDataMapping;
-    }
+    extraFormData = getExtraFormData(dataMask, filterIdsAppliedOnChart);
   }
 
-  let layerFilterScope: { [filterId: string]: number[] } | undefined;
+  try {
+    const state = nativeFilters as unknown as RootState;
+    const chartCustomizationItems = selectChartCustomizationItems(state);
 
-  const isDeckMultiChart = chart.form_data?.viz_type === 'deck_multi';
-  const hasLayerScopeInActiveFilters =
-    passedActiveFilters &&
-    Object.values(passedActiveFilters).some(filter => filter.layerScope);
+    if (chartCustomizationItems && chartCustomizationItems.length > 0) {
+      const chartDataset = chart.form_data?.datasource;
+      if (chartDataset) {
+        const chartDatasetParts = String(chartDataset).split('__');
+        const chartDatasetId = chartDatasetParts[0];
 
-  if (isDeckMultiChart || hasLayerScopeInActiveFilters) {
-    layerFilterScope = {};
+        const matchingCustomizations = chartCustomizationItems.filter(item => {
+          if (item.removed) return false;
 
-    Object.entries(activeFilters).forEach(([filterId, activeFilter]) => {
-      if (activeFilter.layerScope?.[chart.id]) {
-        layerFilterScope![filterId] = activeFilter.layerScope[chart.id];
+          const targetDataset = item.customization?.dataset;
+          if (!targetDataset) return false;
+
+          // Target dataset from customization is just the ID (no __table suffix)
+          const targetDatasetId = String(targetDataset);
+
+          return chartDatasetId === targetDatasetId;
+        });
+
+        matchingCustomizations.forEach(item => {
+          const { customization } = item;
+
+          if (customization?.column) {
+            const customExtraFormData: ExtraFormData = {
+              groupby: [customization.column],
+            } as unknown as ExtraFormData;
+            if (customization.sortFilter && customization.sortMetric) {
+              (customExtraFormData as any).order_by_cols = [
+                JSON.stringify([
+                  customization.sortMetric,
+                  !customization.sortAscending,
+                ]),
+              ];
+            }
+
+            extraFormData = mergeExtraFormData(
+              extraFormData,
+              customExtraFormData,
+            );
+          }
+        });
       }
-    });
-
-    if (Object.keys(layerFilterScope).length === 0) {
-      layerFilterScope = undefined;
     }
+  } catch (error) {
+    console.error('Error applying chart customization:', error);
   }
+
+  extraData = {
+    extra_form_data: extraFormData,
+  };
 
   const formData: CachedFormDataWithExtraControls = {
     ...chart.form_data,
@@ -218,11 +245,17 @@ export default function getFormDataWithExtraFilters({
     extra_filters: getEffectiveExtraFilters(filters),
     ...extraData,
     ...extraControls,
+    ...(chartCustomization && { chart_customization: chartCustomization }),
     ...(layerFilterScope && { layer_filter_scope: layerFilterScope }),
   };
 
   cachedFiltersByChart[sliceId] = filters;
-  cachedFormdataByChart[sliceId] = { ...formData, dataMask, extraControls };
+  cachedFormdataByChart[sliceId] = {
+    ...formData,
+    dataMask,
+    extraControls,
+    ...(chartCustomization && { chart_customization: chartCustomization }),
+  };
 
   return formData;
 }
