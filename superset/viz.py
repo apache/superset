@@ -1535,12 +1535,39 @@ class DeckGLMultiLayer(BaseViz):
 
         features: dict[str, list[Any]] = {}
 
-        for slc in slices:
+        layer_filter_scope = self.form_data.get("layer_filter_scope", {})
+
+        for layer_index, slc in enumerate(slices):
             form_data = slc.form_data
 
-            form_data["extra_filters"] = self.form_data.get("extra_filters", [])
-            form_data["extra_form_data"] = self.form_data.get("extra_form_data", {})
-            form_data["adhoc_filters"] = self.form_data.get("adhoc_filters")
+            if layer_filter_scope:
+                filtered_extra_filters = []
+                for filter_item in self.form_data.get("extra_filters", []):
+                    filter_id = getattr(filter_item, "filterId", None)
+                    if filter_id:
+                        filter_scope = layer_filter_scope.get(filter_id, [])
+                        if not filter_scope or layer_index in filter_scope:
+                            filtered_extra_filters.append(filter_item)
+                    else:
+                        filtered_extra_filters.append(filter_item)
+
+                filtered_adhoc_filters = []
+                for filter_item in self.form_data.get("adhoc_filters", []):
+                    filter_id = getattr(filter_item, "filterId", None)
+                    if filter_id:
+                        filter_scope = layer_filter_scope.get(filter_id, [])
+                        if not filter_scope or layer_index in filter_scope:
+                            filtered_adhoc_filters.append(filter_item)
+                    else:
+                        filtered_adhoc_filters.append(filter_item)
+
+                form_data["extra_filters"] = filtered_extra_filters
+                form_data["adhoc_filters"] = filtered_adhoc_filters
+            else:
+                form_data["extra_filters"] = self.form_data.get("extra_filters", [])
+                form_data["adhoc_filters"] = self.form_data.get("adhoc_filters")
+
+            form_data["extra_form_data"] = self.form_data.get("extra_form_data")
 
             viz_type_name = form_data.get("viz_type")
             viz_class = viz_types.get(viz_type_name)

@@ -112,28 +112,62 @@ const DeckMulti = (props: DeckMultiProps) => {
       setViewport(getAdjustedViewport());
       setSubSlicesLayers({});
       payload.data.slices.forEach(
-        (subslice: { slice_id: number } & JsonObject) => {
-          // Filters applied to multi_deck are passed down to underlying charts
-          // note that dashboard contextual information (filter_immune_slices and such) aren't
-          // taken into consideration here
-          const extra_filters = [
+        (subslice: { slice_id: number } & JsonObject, layerIndex: number) => {
+          const layerFilterScope = formData.layer_filter_scope;
+
+          let layerSpecificExtraFilters = [
             ...(subslice.form_data.extra_filters || []),
             ...(formData.extra_filters || []),
             ...(formData.extra_form_data?.filters || []),
           ];
 
-          const adhoc_filters = [
+          let layerSpecificAdhocFilters = [
             ...(formData.adhoc_filters || []),
             ...(subslice.formData?.adhoc_filters || []),
             ...(formData.extra_form_data?.adhoc_filters || []),
           ];
 
+          if (layerFilterScope) {
+            const originalExtraFormDataFilters =
+              formData.extra_form_data?.filters || [];
+            const originalExtraFormDataAdhocFilters =
+              formData.extra_form_data?.adhoc_filters || [];
+
+            const layerShouldReceiveFilters = Object.values(
+              layerFilterScope,
+            ).some((layerIndices: number[]) =>
+              layerIndices.includes(layerIndex),
+            );
+
+            if (layerShouldReceiveFilters) {
+              layerSpecificExtraFilters = [
+                ...(subslice.form_data.extra_filters || []),
+                ...(formData.extra_filters || []),
+                ...originalExtraFormDataFilters,
+              ];
+
+              layerSpecificAdhocFilters = [
+                ...(formData.adhoc_filters || []),
+                ...(subslice.form_data.adhoc_filters || []),
+                ...originalExtraFormDataAdhocFilters,
+              ];
+            } else {
+              layerSpecificExtraFilters = [
+                ...(subslice.form_data.extra_filters || []),
+              ];
+
+              layerSpecificAdhocFilters = [
+                ...(subslice.form_data.adhoc_filters || []),
+              ];
+            }
+          }
+
           const subsliceCopy = {
             ...subslice,
             form_data: {
               ...subslice.form_data,
-              extra_filters,
-              adhoc_filters,
+              extra_filters: layerSpecificExtraFilters,
+              adhoc_filters: layerSpecificAdhocFilters,
             },
           };
 

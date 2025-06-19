@@ -45,14 +45,15 @@ interface CachedFormData {
   label_colors?: Record<string, string>;
   shared_label_colors?: string[];
   map_label_colors?: Record<string, string>;
+  layer_filter_scope?: {
+    [filterId: string]: number[];
+  };
 }
 
 export type CachedFormDataWithExtraControls = CachedFormData & {
   [key: string]: any;
 };
 
-// We cache formData objects so that our connected container components don't always trigger
-// render cascades. we cannot leverage the reselect library because our cache size is >1
 const cachedFiltersByChart: Record<number, DataRecordFilters> = {};
 const cachedFormdataByChart: Record<
   number,
@@ -79,9 +80,6 @@ export interface GetFormDataWithExtraFiltersArguments {
   allSliceIds: number[];
 }
 
-// this function merge chart's formData with dashboard filters value,
-// and generate a new formData which will be used in the new query.
-// filters param only contains those applicable to this chart.
 export default function getFormDataWithExtraFilters({
   chart,
   filters,
@@ -98,7 +96,6 @@ export default function getFormDataWithExtraFilters({
   sharedLabelsColors,
   allSliceIds,
 }: GetFormDataWithExtraFiltersArguments) {
-  // if dashboard metadata + filters have not changed, use cache if possible
   const cachedFormData = cachedFormdataByChart[sliceId];
   if (
     cachedFiltersByChart[sliceId] === filters &&
@@ -125,13 +122,14 @@ export default function getFormDataWithExtraFilters({
     return cachedFormData;
   }
 
-  let extraData: { extra_form_data?: JsonObject } = {};
   const activeFilters = getAllActiveFilters({
     chartConfiguration,
-    dataMask,
     nativeFilters,
+    dataMask,
     allSliceIds,
   });
+
+  let extraData = {};
   const filterIdsAppliedOnChart = Object.entries(activeFilters)
     .filter(([, { scope }]) => scope.includes(chart.id))
     .map(([filterId]) => filterId);
@@ -139,6 +137,21 @@ export default function getFormDataWithExtraFilters({
     extraData = {
       extra_form_data: getExtraFormData(dataMask, filterIdsAppliedOnChart),
     };
+  }
+
+  let layerFilterScope: { [filterId: string]: number[] } | undefined;
+  if (chart.form_data?.viz_type === 'deck_multi') {
+    layerFilterScope = {};
+
+    Object.entries(activeFilters).forEach(([filterId, activeFilter]) => {
+      if (activeFilter.layerScope?.[chart.id]) {
+        layerFilterScope![filterId] = activeFilter.layerScope[chart.id];
+      }
+    });
+
+    if (Object.keys(layerFilterScope).length === 0) {
+      layerFilterScope = undefined;
+    }
   }
 
   const formData: CachedFormDataWithExtraControls = {
@@ -154,6 +167,7 @@ export default function getFormDataWithExtraFilters({
     extra_filters: getEffectiveExtraFilters(filters),
     ...extraData,
     ...extraControls,
+    ...(layerFilterScope && { layer_filter_scope: layerFilterScope }),
   };
 
   cachedFiltersByChart[sliceId] = filters;

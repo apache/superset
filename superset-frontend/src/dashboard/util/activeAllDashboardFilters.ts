@@ -26,17 +26,27 @@ import { ActiveFilters, ChartConfiguration } from '../types';
 
 export const getRelevantDataMask = (
   dataMask: DataMaskStateWithId,
-  prop: string,
-): JsonObject | DataMaskStateWithId =>
-  Object.values(dataMask)
-    .filter(item => item[prop as keyof DataMaskWithId])
-    .reduce(
-      (prev, next) => ({
-        ...prev,
-        [next.id]: prop ? next[prop as keyof DataMaskWithId] : next,
-      }),
-      {},
-    );
+  filterId: string,
+): DataMaskStateWithId =>
+  dataMask[filterId] ? { [filterId]: dataMask[filterId] } : {};
+
+const extractLayerIndicesFromKeys = (
+  selectedLayers: string[],
+): { [chartId: number]: number[] } => {
+  const layerMap: { [chartId: number]: number[] } = {};
+  selectedLayers.forEach(layerKey => {
+    const match = layerKey.match(/^chart-(\d+)-layer-(\d+)$/);
+    if (match) {
+      const chartId = parseInt(match[1], 10);
+      const layerIndex = parseInt(match[2], 10);
+      if (!layerMap[chartId]) {
+        layerMap[chartId] = [];
+      }
+      layerMap[chartId].push(layerIndex);
+    }
+  });
+  return layerMap;
+};
 
 export const getAllActiveFilters = ({
   chartConfiguration,
@@ -51,7 +61,6 @@ export const getAllActiveFilters = ({
 }): ActiveFilters => {
   const activeFilters: ActiveFilters = {};
 
-  // Combine native filters with cross filters, because they have similar logic
   Object.values(dataMask).forEach(({ id: filterId, extraFormData = {} }) => {
     const scope =
       nativeFilters?.[filterId]?.chartsInScope ??
@@ -60,14 +69,24 @@ export const getAllActiveFilters = ({
       allSliceIds ??
       [];
     const filterType = nativeFilters?.[filterId]?.filterType;
-    const targets = nativeFilters?.[filterId]?.targets ?? scope;
-    // Iterate over all roots to find all affected charts
+    const targets = nativeFilters?.[filterId]?.targets;
+
+    const selectedLayers = (nativeFilters?.[filterId]?.scope as any)
+      ?.selectedLayers;
+
+    let layerScope;
+    if (selectedLayers && selectedLayers.length > 0) {
+      layerScope = extractLayerIndicesFromKeys(selectedLayers);
+    }
+
     activeFilters[filterId] = {
       scope,
-      filterType,
-      targets,
+      targets: targets || [],
       values: extraFormData,
+      filterType,
+      ...(layerScope && { layerScope }),
     };
   });
+
   return activeFilters;
 };
