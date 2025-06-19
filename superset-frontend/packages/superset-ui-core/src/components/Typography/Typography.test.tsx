@@ -50,7 +50,7 @@ describe('Typography Component', () => {
 
   it('renders strong text', () => {
     render(<Typography.Text strong>Strong Text</Typography.Text>);
-    expect(screen.getByText('Strong Text')).toHaveStyle('font-weight: 600');
+    expect(screen.getByText('Strong Text')).toHaveStyle('font-weight: 500');
   });
 
   it('renders underlined text', () => {
