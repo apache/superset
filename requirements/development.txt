@@ -41,6 +41,10 @@ backoff==2.2.1
     # via
     #   -c requirements/base.txt
     #   apache-superset
+backports-datetime-fromisoformat==2.0.3
+    # via
+    #   -c requirements/base.txt
+    #   marshmallow
 bcrypt==4.3.0
     # via
     #   -c requirements/base.txt
@@ -388,7 +392,7 @@ jsonpath-ng==1.7.0
     # via
     #   -c requirements/base.txt
     #   apache-superset
-jsonschema==4.23.0
+jsonschema==4.24.0
     # via
     #   -c requirements/base.txt
     #   flask-appbuilder
@@ -413,7 +417,7 @@ korean-lunar-calendar==0.3.1
     #   holidays
 lazy-object-proxy==1.10.0
     # via openapi-spec-validator
-limits==5.1.0
+limits==5.4.0
     # via
     #   -c requirements/base.txt
     #   flask-limiter
@@ -437,7 +441,7 @@ markupsafe==3.0.2
     #   mako
     #   werkzeug
     #   wtforms
-marshmallow==3.26.1
+marshmallow==4.0.0
     # via
     #   -c requirements/base.txt
     #   flask-appbuilder
@@ -518,7 +522,6 @@ packaging==25.0
     #   google-cloud-bigquery
     #   gunicorn
     #   limits
-    #   marshmallow
     #   matplotlib
     #   pytest
     #   shillelagh
@@ -748,7 +751,7 @@ rich==13.9.4
     # via
     #   -c requirements/base.txt
     #   flask-limiter
-rpds-py==0.25.0
+rpds-py==0.25.1
     # via
     #   -c requirements/base.txt
     #   jsonschema
@@ -862,6 +865,7 @@ typing-extensions==4.14.0
     #   cattrs
     #   exceptiongroup
     #   limits
+    #   marshmallow
     #   pyopenssl
     #   referencing
     #   rich
