@@ -97,7 +97,7 @@ const StyledHeader = styled.div<{ backgroundColor?: string }>`
     .ant-menu-item:hover,
     .ant-menu-item:has(> span > .active) {
       background-color: ${({ theme }) => theme.colorPrimaryBgHover};
-      color: ${({ theme }) => theme.colorPrimaryActive};
+      color: ${({ theme }) => theme.colorText};
     }
   }
 
