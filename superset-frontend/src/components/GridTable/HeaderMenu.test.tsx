@@ -25,45 +25,6 @@ import {
 } from 'spec/helpers/testing-library';
 import { HeaderMenu, type HeaderMenuProps } from './HeaderMenu';
 
-jest.mock('@superset-ui/core/components/Menu', () => {
-  const Menu = ({ children }: { children: React.ReactChild }) => (
-    <div data-test="mock-Menu">{children}</div>
-  );
-  Menu.Item = ({
-    children,
-    onClick,
-  }: {
-    children: React.ReactChild;
-    onClick: () => void;
-  }) => (
-    <button type="button" data-test="mock-Item" onClick={onClick}>
-      {children}
-    </button>
-  );
-  Menu.SubMenu = ({
-    title,
-    children,
-  }: {
-    title: React.ReactNode;
-    children: React.ReactNode;
-  }) => (
-    <div>
-      {title}
-      <button type="button" data-test="mock-SubMenu">
-        {children}
-      </button>
-    </div>
-  );
-  Menu.Divider = () => <div data-test="mock-Divider" />;
-  return { Menu };
-});
-
-jest.mock('@superset-ui/core/components/Dropdown', () => ({
-  MenuDotsDropdown: ({ overlay }: { overlay: React.ReactChild }) => (
-    <div data-test="mock-Dropdown">{overlay}</div>
-  ),
-}));
-
 jest.mock('src/utils/copy', () => jest.fn().mockImplementation(f => f()));
 
 const mockInvisibleColumn = {
