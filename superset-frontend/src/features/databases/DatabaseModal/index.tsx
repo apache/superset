@@ -1204,9 +1204,11 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
               onClick={onSave}
               loading={isLoading}
               disabled={
-                !hasValidated ||
-                isValidating ||
-                (validationErrors && Object.keys(validationErrors).length > 0)
+                !!(
+                  !hasValidated ||
+                  isValidating ||
+                  (validationErrors && Object.keys(validationErrors).length > 0)
+                )
               }
             >
               {t('Connect')}
