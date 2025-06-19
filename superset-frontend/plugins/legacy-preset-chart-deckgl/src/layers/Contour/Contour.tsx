@@ -97,7 +97,7 @@ export const getLayer: getLayerType<unknown> = function (
   });
 };
 
-function getPoints(data: any[]) {
+export function getPoints(data: any[]) {
   return data.map(d => d.position);
 }
 

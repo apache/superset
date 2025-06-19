@@ -62,6 +62,7 @@ export type DatasetObject = {
   filter_select_enabled?: boolean;
   fetch_values_predicate?: string;
   schema?: string;
+  catalog?: string;
   description: string | null;
   main_dttm_col: string;
   offset?: number;

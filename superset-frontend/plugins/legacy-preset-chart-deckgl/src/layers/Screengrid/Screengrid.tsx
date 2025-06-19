@@ -34,7 +34,7 @@ import {
 } from '../../DeckGLContainer';
 import { TooltipProps } from '../../components/Tooltip';
 
-function getPoints(data: JsonObject[]) {
+export function getPoints(data: JsonObject[]) {
   return data.map(d => d.position);
 }
 

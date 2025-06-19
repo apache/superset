@@ -27,17 +27,17 @@ from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
 from superset.models.core import Database
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
-from superset.sql_parse import Table
+from superset.sql.parse import Table
 from superset.utils import json
 from superset.utils.core import DatasourceType
 
 from ..utils.database import get_example_database
 from .helpers import (
-    get_example_url,
     get_slice_json,
     get_table_connector_registry,
     merge_slice,
     misc_dash_slices,
+    read_example_data,
     update_slice_ids,
 )
 
@@ -57,8 +57,8 @@ def gen_filter(
 
 
 def load_data(tbl_name: str, database: Database, sample: bool = False) -> None:
-    url = get_example_url("birth_names2.json.gz")
-    pdf = pd.read_json(url, compression="gzip")
+    pdf = read_example_data("birth_names2.json.gz", compression="gzip")
+
     # TODO(bkyryliuk): move load examples data into the pytest fixture
     if database.backend == "presto":
         pdf.ds = pd.to_datetime(pdf.ds, unit="ms")

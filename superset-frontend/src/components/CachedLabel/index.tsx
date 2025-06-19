@@ -18,10 +18,11 @@
  */
 import { useState, MouseEventHandler, FC } from 'react';
 
-import { t } from '@superset-ui/core';
+import { css, t } from '@superset-ui/core';
 import Label from 'src/components/Label';
 import { Tooltip } from 'src/components/Tooltip';
 import { TooltipContent } from './TooltipContent';
+import { Icons } from '../Icons';
 
 export interface CacheLabelProps {
   onClick?: MouseEventHandler<HTMLElement>;
@@ -44,14 +45,16 @@ const CacheLabel: FC<CacheLabelProps> = ({
     >
       <Label
         className={`${className}`}
+        css={theme => css`
+          gap: ${theme.gridUnit * 0.5}px;
+        `}
         type={labelType}
         onClick={onClick}
         onMouseOver={() => setHovered(true)}
         onMouseOut={() => setHovered(false)}
       >
-        {/* TODO: Remove fa-icon */}
-        {/* eslint-disable-next-line icons/no-fa-icons-usage */}
-        {t('Cached')} <i className="fa fa-refresh" />
+        {t('Cached')}
+        <Icons.SyncOutlined iconSize="m" />
       </Label>
     </Tooltip>
   );

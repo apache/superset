@@ -4,7 +4,7 @@
 # regarding copyright ownership.  The ASF licenses this file
 # to you under the Apache License, Version 2.0 (the
 # "License"); you may not use this file except in compliance
-# with the License.  You may obtain a copy of the License at
+# with the License. You may obtain a copy of the License at
 #
 #   http://www.apache.org/licenses/LICENSE-2.0
 #
@@ -44,6 +44,7 @@ class Slice(Base):  # type: ignore
 
 
 FORM_DATA_BAK_FIELD_NAME = "form_data_bak"
+QUERIES_BAK_FIELD_NAME = "queries_bak"
 
 
 class MigrateViz:
@@ -156,14 +157,26 @@ class MigrateViz:
             # because a source viz can be mapped to different target viz types
             slc.viz_type = clz.target_viz_type
 
-            # only backup params
-            slc.params = json.dumps(
-                {**clz.data, FORM_DATA_BAK_FIELD_NAME: form_data_bak}
-            )
+            backup: Any | dict[str, Any] = {FORM_DATA_BAK_FIELD_NAME: form_data_bak}
 
-            if "form_data" in (query_context := try_load_json(slc.query_context)):
-                query_context["form_data"] = clz.data
-                slc.query_context = json.dumps(query_context)
+            query_context = try_load_json(slc.query_context)
+            queries_bak = None
+
+            if query_context:
+                if "form_data" in query_context:
+                    query_context["form_data"] = clz.data
+
+                queries_bak = copy.deepcopy(query_context["queries"])
+
+                queries = clz._build_query()["queries"]
+                query_context["queries"] = queries
+            else:
+                query_context = clz._build_query()
+
+            slc.query_context = json.dumps(query_context)
+            backup[QUERIES_BAK_FIELD_NAME] = queries_bak
+            slc.params = json.dumps({**clz.data, **backup})
+
         except Exception as e:
             logger.warning(f"Failed to migrate slice {slc.id}: {e}")
 
@@ -177,9 +190,15 @@ class MigrateViz:
                 slc.params = json.dumps(form_data_bak)
                 slc.viz_type = form_data_bak.get("viz_type")
                 query_context = try_load_json(slc.query_context)
-                if "form_data" in query_context:
-                    query_context["form_data"] = form_data_bak
-                    slc.query_context = json.dumps(query_context)
+                queries_bak = form_data.get(QUERIES_BAK_FIELD_NAME, {})
+                if queries_bak:
+                    query_context["queries"] = queries_bak
+                    if "form_data" in query_context:
+                        query_context["form_data"] = form_data_bak
+                        slc.query_context = json.dumps(query_context)
+                else:
+                    slc.query_context = None
+
         except Exception as e:
             logger.warning(f"Failed to downgrade slice {slc.id}: {e}")
 
@@ -205,3 +224,6 @@ class MigrateViz:
             lambda current, total: logger.info(f"Downgraded {current}/{total} charts"),
         ):
             cls.downgrade_slice(slc)
+
+    def _build_query(self) -> Any | dict[str, Any]:
+        """Builds a query based on the form data."""

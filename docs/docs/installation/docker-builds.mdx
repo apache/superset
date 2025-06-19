@@ -64,6 +64,56 @@ check the [supersetbot docker](https://github.com/apache-superset/supersetbot)
 subcommand and the [docker.yml](https://github.com/apache/superset/blob/master/.github/workflows/docker.yml)
 GitHub action.
 
+## Building your own production Docker image
+
+Every Superset deployment will require its own set of drivers depending on the data warehouse(s),
+etc. so we recommend that users build their own Docker image by extending the `lean` image.
+
+Here's an example Dockerfile that does this. Follow the in-line comments to customize it for
+your desired Superset version and database drivers. The comments also note that a certain feature flag will
+have to be enabled in your config file.
+
+You would build the image with `docker build -t mysuperset:latest .` or `docker build -t ourcompanysuperset:4.1.2 .`
+
+```Dockerfile
+# change this to apache/superset:4.1.2 or whatever version you want to build from;
+# otherwise the default is the latest commit on GitHub master branch
+FROM apache/superset:master
+
+USER root
+
+# Set environment variable for Playwright
+ENV PLAYWRIGHT_BROWSERS_PATH=/usr/local/share/playwright-browsers
+
+# Install packages using uv into the virtual environment
+# Superset started using uv after the 4.1 branch; if you are building from apache/superset:4.1.x,
+# replace the first two lines with RUN pip install \
+RUN . /app/.venv/bin/activate && \
+    uv pip install \
+    # install psycopg2 for using PostgreSQL metadata store - could be a MySQL package if using that backend:
+    psycopg2-binary \
+    # add the driver(s) for your data warehouse(s), in this example we're showing for Microsoft SQL Server:
+    pymssql \
+    # package needed for using single-sign on authentication:
+    Authlib \
+    # openpyxl to be able to upload Excel files
+    openpyxl \
+    # Pillow for Alerts & Reports to generate PDFs of dashboards
+    Pillow \
+    # install Playwright for taking screenshots for Alerts & Reports. This assumes the feature flag PLAYWRIGHT_REPORTS_AND_THUMBNAILS is enabled
+    # That feature flag will default to True starting in 6.0.0
+    # Playwright works only with Chrome.
+    # If you are still using Selenium instead of Playwright, you would instead install here the selenium package and a headless browser & webdriver
+    playwright \
+    && playwright install-deps \
+    && PLAYWRIGHT_BROWSERS_PATH=/usr/local/share/playwright-browsers playwright install chromium
+
+# Switch back to the superset user
+USER superset
+
+CMD ["/app/docker/entrypoints/run-server.sh"]
+```
+
 ## Key ARGs in Dockerfile
 
 - `BUILD_TRANSLATIONS`: whether to build the translations into the image. For the

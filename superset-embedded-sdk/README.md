@@ -116,8 +116,11 @@ Example `POST /security/guest_token` payload:
 }
 ```
 
-Alternatively, a guest token can be created directly in your app with a json like the following, and then signed
-with the secret set in configuration variable `GUEST_TOKEN_JWT_SECRET` (see configuration file config.py)
+Alternatively, a guest token can be created directly in your app without interacting with the Superset API.
+To do this, you should update the `GUEST_TOKEN_JWT_SECRET`
+in the Superset [config.py](https://github.com/apache/superset/blob/master/superset/config.py). Also set the
+`GUEST_TOKEN_JWT_AUDIENCE` variable that matches what is set for the `aud` in the JSON payload:
+
 ```
 {
   "user": {
@@ -138,6 +141,13 @@ with the secret set in configuration variable `GUEST_TOKEN_JWT_SECRET` (see conf
   "type": "guest"
 }
 ```
+
+In this example, the configuration file includes the following setting:
+
+```python
+GUEST_TOKEN_JWT_AUDIENCE="superset"
+```
+
 
 ### Sandbox iframe
 

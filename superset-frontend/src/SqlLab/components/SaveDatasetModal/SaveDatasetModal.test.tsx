@@ -29,6 +29,7 @@ import fetchMock from 'fetch-mock';
 import { SaveDatasetModal } from 'src/SqlLab/components/SaveDatasetModal';
 import { createDatasource } from 'src/SqlLab/actions/sqlLab';
 import { user, testQuery, mockdatasets } from 'src/SqlLab/fixtures';
+import { FeatureFlag } from '@superset-ui/core';
 
 const mockedProps = {
   visible: true,
@@ -245,6 +246,90 @@ describe('SaveDatasetModal', () => {
       datasourceName: 'my dataset',
       dbId: 1,
       catalog: 'public',
+      schema: 'main',
+      sql: 'SELECT *',
+      templateParams: undefined,
+    });
+  });
+
+  it('does not renders a checkbox button when template processing is disabled', () => {
+    render(<SaveDatasetModal {...mockedProps} />, { useRedux: true });
+    expect(screen.queryByRole('checkbox')).not.toBeInTheDocument();
+  });
+
+  it('renders a checkbox button when template processing is enabled', () => {
+    // @ts-ignore
+    global.featureFlags = {
+      [FeatureFlag.EnableTemplateProcessing]: true,
+    };
+    render(<SaveDatasetModal {...mockedProps} />, { useRedux: true });
+    expect(screen.getByRole('checkbox')).toBeInTheDocument();
+  });
+
+  it('correctly includes template parameters when template processing is enabled', () => {
+    // @ts-ignore
+    global.featureFlags = {
+      [FeatureFlag.EnableTemplateProcessing]: true,
+    };
+    const propsWithTemplateParam = {
+      ...mockedProps,
+      datasource: {
+        ...testQuery,
+        templateParams: JSON.stringify({ my_param: 12 }),
+      },
+    };
+    render(<SaveDatasetModal {...propsWithTemplateParam} />, {
+      useRedux: true,
+    });
+    const inputFieldText = screen.getByDisplayValue(/unimportant/i);
+    fireEvent.change(inputFieldText, { target: { value: 'my dataset' } });
+
+    userEvent.click(screen.getByRole('checkbox'));
+
+    const saveConfirmationBtn = screen.getByRole('button', {
+      name: /save/i,
+    });
+    userEvent.click(saveConfirmationBtn);
+
+    expect(createDatasource).toHaveBeenCalledWith({
+      datasourceName: 'my dataset',
+      dbId: 1,
+      catalog: null,
+      schema: 'main',
+      sql: 'SELECT *',
+      templateParams: JSON.stringify({ my_param: 12 }),
+    });
+  });
+
+  it('correctly excludes template parameters when template processing is enabled', () => {
+    // @ts-ignore
+    global.featureFlags = {
+      [FeatureFlag.EnableTemplateProcessing]: true,
+    };
+    const propsWithTemplateParam = {
+      ...mockedProps,
+      datasource: {
+        ...testQuery,
+        templateParams: JSON.stringify({ my_param: 12 }),
+      },
+    };
+    render(<SaveDatasetModal {...propsWithTemplateParam} />, {
+      useRedux: true,
+    });
+    const inputFieldText = screen.getByDisplayValue(/unimportant/i);
+    fireEvent.change(inputFieldText, { target: { value: 'my dataset' } });
+
+    userEvent.click(screen.getByRole('checkbox'));
+
+    const saveConfirmationBtn = screen.getByRole('button', {
+      name: /save/i,
+    });
+    userEvent.click(saveConfirmationBtn);
+
+    expect(createDatasource).toHaveBeenCalledWith({
+      datasourceName: 'my dataset',
+      dbId: 1,
+      catalog: null,
       schema: 'main',
       sql: 'SELECT *',
       templateParams: undefined,

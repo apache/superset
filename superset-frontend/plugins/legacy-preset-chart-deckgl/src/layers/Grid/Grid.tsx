@@ -86,7 +86,7 @@ export function getLayer(
   });
 }
 
-function getPoints(data: JsonObject[]) {
+export function getPoints(data: JsonObject[]) {
   return data.map(d => d.position);
 }
 

@@ -129,7 +129,7 @@ test('table should be visible when expanded is true', async () => {
     name: 'Select database or type to search databases',
   });
   const schemaSelect = getByRole('combobox', {
-    name: 'Select schema or type to search schemas',
+    name: 'Select schema or type to search schemas: main',
   });
   const tableSelect = getAllByLabelText(
     /Select table or type to search tables/i,

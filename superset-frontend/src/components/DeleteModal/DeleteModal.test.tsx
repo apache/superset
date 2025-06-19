@@ -16,7 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { render, screen, userEvent } from 'spec/helpers/testing-library';
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+} from 'spec/helpers/testing-library';
 import DeleteModal from '.';
 
 test('Must display title and content', () => {
@@ -29,9 +34,23 @@ test('Must display title and content', () => {
   };
   render(<DeleteModal {...props} />);
   expect(screen.getByTestId('test-title')).toBeInTheDocument();
-  expect(screen.getByTestId('test-title')).toBeInTheDocument();
   expect(screen.getByTestId('test-description')).toBeInTheDocument();
-  expect(screen.getByTestId('test-description')).toBeInTheDocument();
+});
+
+test('Input should autofocus when modal opens', async () => {
+  const props = {
+    title: <div data-test="test-title">Title</div>,
+    description: <div data-test="test-description">Description</div>,
+    onConfirm: jest.fn(),
+    onHide: jest.fn(),
+    open: true,
+  };
+  render(<DeleteModal {...props} />);
+  const input = screen.getByTestId('delete-modal-input');
+  // waitFor because focus may happen after render due to useEffect
+  await waitFor(() => {
+    expect(input).toHaveFocus();
+  });
 });
 
 test('Calling "onHide"', () => {

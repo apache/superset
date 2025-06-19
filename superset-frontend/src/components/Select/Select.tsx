@@ -443,6 +443,7 @@ const Select = forwardRef(
         <StyledBulkActionsContainer className="select-bulk-actions" size={0}>
           <Button
             type="link"
+            buttonStyle="link"
             buttonSize="xsmall"
             disabled={bulkSelectCounts.selectable === 0}
             onMouseDown={e => {
@@ -455,6 +456,7 @@ const Select = forwardRef(
           </Button>
           <Button
             type="link"
+            buttonStyle="link"
             buttonSize="xsmall"
             disabled={bulkSelectCounts.deselectable === 0}
             onMouseDown={e => {
@@ -673,7 +675,14 @@ const Select = forwardRef(
         <StyledSelect
           id={name}
           allowClear={!isLoading && allowClear}
-          aria-label={ariaLabel}
+          aria-label={
+            isSingleMode &&
+            isLabeledValue(selectValue) &&
+            typeof selectValue.label === 'string'
+              ? `${ariaLabel || name}: ${selectValue.label}`
+              : ariaLabel || name
+          }
+          data-test={ariaLabel || name}
           autoClearSearchValue={autoClearSearchValue}
           dropdownRender={dropdownRender}
           filterOption={handleFilterOption}

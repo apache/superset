@@ -56,7 +56,6 @@
     "@types/d3-scale": "^2.1.1",
     "@types/d3-time": "^3.0.4",
     "@types/d3-time-format": "^4.0.3",
-    "@types/enzyme": "^3.10.18",
     "@types/fetch-mock": "^7.3.8",
     "@types/lodash": "^4.17.16",
     "@types/math-expression-evaluator": "^1.3.3",

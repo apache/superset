@@ -20,6 +20,7 @@ import logging
 import re
 from datetime import datetime
 from typing import Any, cast, TYPE_CHECKING
+from urllib import parse
 
 from flask import current_app
 from flask_babel import gettext as __
@@ -267,6 +268,8 @@ class ClickHouseConnectEngineSpec(BasicParametersMixin, ClickHouseEngineSpec):
     parameters_schema = ClickHouseParametersSchema()
     encryption_parameters = {"secure": "true"}
 
+    supports_dynamic_schema = True
+
     @classmethod
     def get_dbapi_exception_mapping(cls) -> dict[type[Exception], type[Exception]]:
         return {}
@@ -414,3 +417,15 @@ class ClickHouseConnectEngineSpec(BasicParametersMixin, ClickHouseEngineSpec):
         :return: Conditionally mutated label
         """
         return f"{label}_{md5_sha_from_str(label)[:6]}"
+
+    @classmethod
+    def adjust_engine_params(
+        cls,
+        uri: URL,
+        connect_args: dict[str, Any],
+        catalog: str | None = None,
+        schema: str | None = None,
+    ) -> tuple[URL, dict[str, Any]]:
+        if schema:
+            uri = uri.set(database=parse.quote(schema, safe=""))
+        return uri, connect_args

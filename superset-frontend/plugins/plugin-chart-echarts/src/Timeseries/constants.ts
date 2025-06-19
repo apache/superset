@@ -78,6 +78,7 @@ export const DEFAULT_FORM_DATA: EchartsTimeseriesFormData = {
   richTooltip: true,
   xAxisForceCategorical: false,
   xAxisLabelRotation: defaultXAxis.xAxisLabelRotation,
+  xAxisLabelInterval: defaultXAxis.xAxisLabelInterval,
   groupby: [],
   showValue: false,
   onlyTotal: false,

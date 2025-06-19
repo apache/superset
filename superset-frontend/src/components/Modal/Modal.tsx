@@ -71,6 +71,7 @@ export interface ModalProps {
   maskClosable?: boolean;
   zIndex?: number;
   bodyStyle?: CSSProperties;
+  openerRef?: React.RefObject<HTMLElement>;
 }
 
 interface StyledModalProps {
@@ -276,22 +277,34 @@ const CustomModal = ({
   resizableConfig = defaultResizableConfig(hideFooter),
   draggableConfig,
   destroyOnClose,
+  openerRef,
   ...rest
 }: ModalProps) => {
   const draggableRef = useRef<HTMLDivElement>(null);
   const [bounds, setBounds] = useState<DraggableBounds>();
   const [dragDisabled, setDragDisabled] = useState<boolean>(true);
+
+  const handleOnHide = () => {
+    openerRef?.current?.focus();
+    onHide();
+  };
+
   let FooterComponent;
   if (isValidElement(footer)) {
     // If a footer component is provided inject a closeModal function
     // so the footer can provide a "close" button if desired
     FooterComponent = cloneElement(footer, {
-      closeModal: onHide,
+      closeModal: handleOnHide,
     } as Partial<unknown>);
   }
   const modalFooter = isNil(FooterComponent)
     ? [
-        <Button key="back" onClick={onHide} cta data-test="modal-cancel-button">
+        <Button
+          key="back"
+          onClick={handleOnHide}
+          cta
+          data-test="modal-cancel-button"
+        >
           {t('Cancel')}
         </Button>,
         <Button
@@ -350,7 +363,7 @@ const CustomModal = ({
     <StyledModal
       centered={!!centered}
       onOk={onHandledPrimaryAction}
-      onCancel={onHide}
+      onCancel={handleOnHide}
       width={modalWidth}
       maxWidth={maxWidth}
       responsive={responsive}

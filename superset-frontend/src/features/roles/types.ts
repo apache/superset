@@ -48,6 +48,11 @@ export type UserObject = {
   roles: Array<RoleInfo>;
 };
 
+export type SelectOption = {
+  value: number;
+  label: string;
+};
+
 export type RoleInfo = {
   id: number;
   name: string;
@@ -56,7 +61,8 @@ export type RoleInfo = {
 export type RoleForm = {
   roleName: string;
   rolePermissions: number[];
-  roleUsers: number[];
+  roleUsers: SelectOption[];
+  roleGroups: number[];
 };
 
 export interface BaseModalProps {

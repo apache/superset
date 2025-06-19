@@ -99,7 +99,8 @@ const getElementByClassName = (className: string) =>
 const getElementsByClassName = (className: string) =>
   document.querySelectorAll(className)! as NodeListOf<HTMLElement>;
 
-const getSelect = () => screen.getByRole('combobox', { name: ARIA_LABEL });
+const getSelect = () =>
+  screen.getByRole('combobox', { name: new RegExp(ARIA_LABEL, 'i') });
 
 const getAllSelectOptions = () =>
   getElementsByClassName('.ant-select-item-option-content');

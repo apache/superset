@@ -120,6 +120,8 @@ type MenuChild = {
   usesRouter?: boolean;
   onClick?: () => void;
   'data-test'?: string;
+  id?: string;
+  'aria-controls'?: string;
 };
 
 export interface ButtonProps {
@@ -196,40 +198,47 @@ const SubMenuComponent: FunctionComponent<SubMenuProps> = props => {
     <StyledHeader>
       <Row className="menu" role="navigation">
         {props.name && <div className="header">{props.name}</div>}
-        <Menu mode={showMenu} disabledOverflow>
-          {props.tabs?.map(tab => {
+        <Menu
+          mode={showMenu}
+          disabledOverflow
+          role="tablist"
+          items={props.tabs?.map(tab => {
             if ((props.usesRouter || hasHistory) && !!tab.usesRouter) {
-              return (
-                <Menu.Item key={tab.label}>
-                  <div
+              return {
+                key: tab.label,
+                label: (
+                  <Link
+                    to={tab.url || ''}
                     role="tab"
+                    id={tab.id || tab.name}
                     data-test={tab['data-test']}
+                    aria-selected={tab.name === props.activeChild}
+                    aria-controls={tab['aria-controls'] || ''}
                     className={tab.name === props.activeChild ? 'active' : ''}
                   >
-                    <div>
-                      <Link to={tab.url || ''}>{tab.label}</Link>
-                    </div>
-                  </div>
-                </Menu.Item>
-              );
+                    {tab.label}
+                  </Link>
+                ),
+              };
             }
-
-            return (
-              <Menu.Item key={tab.label}>
+            return {
+              key: tab.label,
+              label: (
                 <div
                   className={cx('no-router', {
                     active: tab.name === props.activeChild,
                   })}
                   role="tab"
+                  aria-selected={tab.name === props.activeChild}
                 >
                   <a href={tab.url} onClick={tab.onClick}>
                     {tab.label}
                   </a>
                 </div>
-              </Menu.Item>
-            );
+              ),
+            };
           })}
-        </Menu>
+        />
         <div className={navRightStyle}>
           <Menu mode="horizontal" triggerSubMenuAction="click" disabledOverflow>
             {props.dropDownLinks?.map((link, i) => (

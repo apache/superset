@@ -16,7 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { styled, NO_TIME_RANGE } from '@superset-ui/core';
+import {
+  styled,
+  NO_TIME_RANGE,
+  getExtensionsRegistry,
+} from '@superset-ui/core';
 import { useCallback, useEffect } from 'react';
 import DateFilterControl from 'src/explore/components/controls/DateFilterControl';
 import { PluginFilterTimeProps } from './types';
@@ -60,6 +64,12 @@ export default function TimeFilterPlugin(props: PluginFilterTimeProps) {
     inputRef,
     isOverflowingFilterBar = false,
   } = props;
+  const extensionsRegistry = getExtensionsRegistry();
+
+  const DateFilterControlExtension = extensionsRegistry.get(
+    'filter.dateFilterControl',
+  );
+  const DateFilterComponent = DateFilterControlExtension ?? DateFilterControl;
 
   const handleTimeRangeChange = useCallback(
     (timeRange?: string): void => {
@@ -92,7 +102,7 @@ export default function TimeFilterPlugin(props: PluginFilterTimeProps) {
         onMouseEnter={setHoveredFilter}
         onMouseLeave={unsetHoveredFilter}
       >
-        <DateFilterControl
+        <DateFilterComponent
           value={filterState.value || NO_TIME_RANGE}
           name={props.formData.nativeFilterId || 'time_range'}
           onChange={handleTimeRangeChange}

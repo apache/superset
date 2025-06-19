@@ -16,42 +16,22 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { renderToStaticMarkup } from 'react-dom/server';
-import { Tag } from 'src/components';
+
+import DOMPurify from 'dompurify';
 
 type Props = {
-  title: string;
-  icon?: React.ReactNode;
-  body?: React.ReactNode;
-  meta?: string;
-  footer?: React.ReactNode;
+  title?: string;
+  body?: string;
+  footer?: string;
 };
 
-export const Tooltip: React.FC<Props> = ({
-  title,
-  icon,
-  body,
-  meta,
-  footer,
-}) => (
-  <div className="tooltip-detail">
-    <div className="tooltip-detail-head">
-      <div className="tooltip-detail-title">
-        {icon}
-        {title}
-      </div>
-      {meta && (
-        <span className="tooltip-detail-meta">
-          <Tag color="default">{meta}</Tag>
-        </span>
-      )}
+export function getTooltipHTML({ title, body, footer }: Props): string {
+  const html = `
+    <div class="tooltip-detail">
+      ${title ? `<div class="tooltip-detail-title">${title}</div>` : ''}
+      ${body ? `<div class="tooltip-detail-body">${body}</div>` : ''}
+      ${footer ? `<div class="tooltip-detail-footer">${footer}</div>` : ''}
     </div>
-    {body && <div className="tooltip-detail-body">{body ?? title}</div>}
-    {footer && <div className="tooltip-detail-footer">{footer}</div>}
-  </div>
-);
-
-export const getTooltipHTML = (props: Props) =>
-  `${renderToStaticMarkup(<Tooltip {...props} />)}`;
-
-export default Tooltip;
+  `;
+  return DOMPurify.sanitize(html);
+}

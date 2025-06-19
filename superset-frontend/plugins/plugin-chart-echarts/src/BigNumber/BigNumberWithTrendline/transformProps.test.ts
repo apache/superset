@@ -39,6 +39,7 @@ jest.mock('@superset-ui/core', () => ({
 jest.mock('../utils', () => ({
   getDateFormatter: jest.fn(() => (v: any) => `${v}pm`),
   parseMetricValue: jest.fn(val => Number(val)),
+  getOriginalLabel: jest.fn((metric, metrics) => metric),
 }));
 
 jest.mock('../../utils/tooltip', () => ({

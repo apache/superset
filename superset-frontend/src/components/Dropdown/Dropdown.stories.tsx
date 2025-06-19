@@ -24,11 +24,13 @@ export default {
 };
 
 const menu = (
-  <Menu>
-    <Menu.Item>1st menu item</Menu.Item>
-    <Menu.Item>2nd menu item</Menu.Item>
-    <Menu.Item>3rd menu item</Menu.Item>
-  </Menu>
+  <Menu
+    items={[
+      { label: 'Menu Item 1', key: '1' },
+      { label: 'Menu Item 2', key: '2' },
+      { label: 'Menu Item 3', key: '3' },
+    ]}
+  />
 );
 
 const customOverlay = (

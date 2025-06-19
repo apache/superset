@@ -56,7 +56,7 @@ from superset.models.helpers import (
     ExtraJSONMixin,
     ImportExportMixin,
 )
-from superset.sql_parse import CtasMethod, extract_tables_from_jinja_sql, Table
+from superset.sql.parse import CTASMethod, extract_tables_from_jinja_sql, Table
 from superset.sqllab.limiting_factor import LimitingFactor
 from superset.utils import json
 from superset.utils.core import (
@@ -128,7 +128,7 @@ class Query(
     )
     select_as_cta = Column(Boolean)
     select_as_cta_used = Column(Boolean, default=False)
-    ctas_method = Column(String(16), default=CtasMethod.TABLE)
+    ctas_method = Column(String(16), default=CTASMethod.TABLE.name)
 
     progress = Column(Integer, default=0)  # 1..100
     # # of rows in the result set or rows modified.

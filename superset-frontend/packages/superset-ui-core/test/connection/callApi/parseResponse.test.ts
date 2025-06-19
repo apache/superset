@@ -143,7 +143,7 @@ describe('parseResponse()', () => {
     const mockBigIntUrl = '/mock/get/bigInt';
     const mockGetBigIntPayload = `{
       "value": 9223372036854775807, "minus": { "value": -483729382918228373892, "str": "something" },
-      "number": 1234, "floatValue": { "plus": 0.3452211361231223, "minus": -0.3452211361231223 },
+      "number": 1234, "floatValue": { "plus": 0.3452211361231223, "minus": -0.3452211361231223, "even": 1234567890123456.0000000 },
       "string.constructor": "data.constructor",
       "constructor": "constructor"
     }`;
@@ -161,6 +161,7 @@ describe('parseResponse()', () => {
     expect(responseBigNumber.json.floatValue.minus).toEqual(
       -0.3452211361231223,
     );
+    expect(responseBigNumber.json.floatValue.even).toEqual(1234567890123456);
     expect(
       responseBigNumber.json.floatValue.plus +
         responseBigNumber.json.floatValue.minus,

@@ -19,21 +19,20 @@ import logging
 import random
 
 import geohash
-import pandas as pd
 from sqlalchemy import DateTime, Float, inspect, String
 
 import superset.utils.database as database_utils
 from superset import db
 from superset.models.slice import Slice
-from superset.sql_parse import Table
+from superset.sql.parse import Table
 from superset.utils.core import DatasourceType
 
 from .helpers import (
-    get_example_url,
     get_slice_json,
     get_table_connector_registry,
     merge_slice,
     misc_dash_slices,
+    read_example_data,
 )
 
 logger = logging.getLogger(__name__)
@@ -48,8 +47,9 @@ def load_long_lat_data(only_metadata: bool = False, force: bool = False) -> None
         table_exists = database.has_table(Table(tbl_name, schema))
 
         if not only_metadata and (not table_exists or force):
-            url = get_example_url("san_francisco.csv.gz")
-            pdf = pd.read_csv(url, encoding="utf-8", compression="gzip")
+            pdf = read_example_data(
+                "san_francisco.csv.gz", encoding="utf-8", compression="gzip"
+            )
             start = datetime.datetime.now().replace(
                 hour=0, minute=0, second=0, microsecond=0
             )

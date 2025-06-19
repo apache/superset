@@ -114,13 +114,32 @@ export type BasicColorFormatterType = {
   mainArrow: string;
 };
 
+export type SortByItem = {
+  id: string;
+  key: string;
+  desc?: boolean;
+};
+
+export type SearchOption = {
+  value: string;
+  label: string;
+};
+
+export interface ServerPaginationData {
+  pageSize?: number;
+  currentPage?: number;
+  sortBy?: SortByItem[];
+  searchText?: string;
+  searchColumn?: string;
+}
+
 export interface TableChartTransformedProps<D extends DataRecord = DataRecord> {
   timeGrain?: TimeGranularity;
   height: number;
   width: number;
   rowCount?: number;
   serverPagination: boolean;
-  serverPaginationData: { pageSize?: number; currentPage?: number };
+  serverPaginationData: ServerPaginationData;
   setDataMask: SetDataMaskHook;
   isRawRecords?: boolean;
   data: D[];
@@ -152,6 +171,11 @@ export interface TableChartTransformedProps<D extends DataRecord = DataRecord> {
   basicColorFormatters?: { [Key: string]: BasicColorFormatterType }[];
   basicColorColumnFormatters?: { [Key: string]: BasicColorFormatterType }[];
   startDateOffset?: string;
+  // For explore page to reset the server Pagination data
+  // if server page length is changed from control panel
+  hasServerPageLengthChanged: boolean;
+  serverPageLength: number;
+  slice_id: number;
 }
 
 export enum ColorSchemeEnum {
