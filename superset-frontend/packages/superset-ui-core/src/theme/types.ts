@@ -116,7 +116,7 @@ export interface SupersetSpecificTokens {
   fontSizeXXL: string;
   fontWeightNormal: string;
   fontWeightLight: string;
-  fontWeightMedium: string;
+  fontWeightStrong: number;
 
   brandLogoAlt: string;
   brandLogoUrl: string;
@@ -267,7 +267,6 @@ export const allowedAntdTokens = [
   'fontSizeLG',
   'fontSizeSM',
   'fontSizeXL',
-  'fontWeightStrong',
   'lineHeight',
   'lineHeightHeading1',
   'lineHeightHeading2',

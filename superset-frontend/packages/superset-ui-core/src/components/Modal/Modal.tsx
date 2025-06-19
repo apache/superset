@@ -73,7 +73,7 @@ export const StyledModal = styled(BaseModal)<StyledModalProps>`
       ${({ theme }) => theme.sizeUnit * 6}px;
 
     .ant-modal-title {
-      font-weight: ${({ theme }) => theme.fontWeightMedium};
+      font-weight: ${({ theme }) => theme.fontWeightStrong};
     }
 
     .ant-modal-title h4 {

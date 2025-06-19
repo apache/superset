@@ -166,9 +166,7 @@ test('renders clickable items with blue icons when the bar is collapsed', async 
     const clickableColor = window.getComputedStyle(images[0]).color;
     const nonClickableColor = window.getComputedStyle(images[1]).color;
     expect(clickableColor).toBe(hexToRgb(supersetTheme.colors.primary.base));
-    expect(nonClickableColor).toBe(
-      hexToRgb(supersetTheme.colors.grayscale.base),
-    );
+    expect(nonClickableColor).toBe(hexToRgb(supersetTheme.colorText));
   });
 });
 

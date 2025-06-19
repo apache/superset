@@ -76,12 +76,12 @@ export const BaseIconComponent: React.FC<
         width={
           iconSize
             ? `${themeObject.getFontSize(iconSize) || theme.fontSize}px`
-            : '24px'
+            : `${theme.fontSize}px`
         }
         height={
           iconSize
             ? `${themeObject.getFontSize(iconSize) || theme.fontSize}px`
-            : '24px'
+            : `${theme.fontSize}px`
         }
         {...(rest as CustomIconType)}
       />

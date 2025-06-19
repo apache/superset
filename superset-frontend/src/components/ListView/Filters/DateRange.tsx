@@ -24,7 +24,7 @@ import {
   RefObject,
 } from 'react';
 
-import { styled, t } from '@superset-ui/core';
+import { t } from '@superset-ui/core';
 import { Dayjs } from 'dayjs';
 import { useLocale } from 'src/hooks/useLocale';
 import { extendedDayjs } from '@superset-ui/core/utils/dates';
@@ -34,7 +34,9 @@ import {
   FormLabel,
   RangePicker,
 } from '@superset-ui/core/components';
-import { BaseFilter, FilterHandler } from './Base';
+import type { BaseFilter, FilterHandler } from './types';
+import { FilterContainer } from './Base';
+import { RANGE_WIDTH } from '../utils';
 
 interface DateRangeFilterProps extends BaseFilter {
   onSubmit: (val: number[] | string[]) => void;
@@ -43,14 +45,6 @@ interface DateRangeFilterProps extends BaseFilter {
 }
 
 type ValueState = [number, number] | [string, string] | null;
-
-const RangeFilterContainer = styled.div`
-  display: inline-flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: flex-start;
-  width: 360px;
-`;
 
 function DateRangeFilter(
   {
@@ -81,7 +75,13 @@ function DateRangeFilter(
   }
   return (
     <AntdThemeProvider locale={locale}>
-      <RangeFilterContainer>
+      <FilterContainer
+        data-test="date-range-filter-container"
+        vertical
+        justify="center"
+        align="start"
+        width={RANGE_WIDTH}
+      >
         <FormLabel>{Header}</FormLabel>
         <RangePicker
           placeholder={[t('Start date'), t('End date')]}
@@ -104,7 +104,7 @@ function DateRangeFilter(
             onSubmit(changeValue);
           }}
         />
-      </RangeFilterContainer>
+      </FilterContainer>
     </AntdThemeProvider>
   );
 }

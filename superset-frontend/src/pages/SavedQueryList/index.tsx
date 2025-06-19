@@ -226,7 +226,7 @@ function SavedQueryList({
           placement="bottomRight"
           data-test="import-tooltip-test"
         >
-          <Icons.DownloadOutlined data-test="import-icon" />
+          <Icons.DownloadOutlined data-test="import-icon" iconSize="l" />
         </Tooltip>
       ),
       buttonStyle: 'link',

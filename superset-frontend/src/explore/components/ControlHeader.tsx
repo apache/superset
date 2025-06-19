@@ -77,7 +77,7 @@ const ControlHeader: FC<ControlHeaderProps> = ({
       <span
         css={() => css`
           position: absolute;
-          top: 50%;
+          top: 60%;
           right: 0;
           padding-left: ${theme.sizeUnit}px;
           transform: translate(100%, -50%);

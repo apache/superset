@@ -26,6 +26,7 @@ export const FormItem = styled(Form.Item)`
     }
     .ant-form-item-label {
       & > label {
+        font-size: ${theme.fontSizeSM}px;
         &.ant-form-item-required:not(.ant-form-item-required-mark-optional) {
           &::before {
             display: none;

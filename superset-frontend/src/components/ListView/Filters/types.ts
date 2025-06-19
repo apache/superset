@@ -16,26 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { styled, css } from '@superset-ui/core';
-import { Flex } from '@superset-ui/core/components';
+import { ReactNode } from 'react';
 
-interface FilterContainerProps {
-  width?: number;
+export interface BaseFilter {
+  Header: ReactNode;
+  initialValue: any;
 }
-
-export const FilterContainer = styled(Flex)<FilterContainerProps>`
-  ${({ theme, width }) => css`
-    width: ${width ? `${width}px` : 'auto'};
-
-    label {
-      display: block;
-      font-size: ${theme.fontSizeSM}px;
-      color: ${theme.colorTextLabel};
-      margin-bottom: ${theme.sizeUnit}px;
-    }
-    .anticon-info-circle {
-      margin: 0px 0px ${theme.sizeUnit}px ${theme.sizeUnit}px;
-   }
-  }
-  `}
-`;
+export type FilterHandler = {
+  clearFilter: () => void;
+};
