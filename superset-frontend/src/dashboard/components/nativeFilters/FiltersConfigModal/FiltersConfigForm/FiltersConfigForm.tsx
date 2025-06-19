@@ -37,6 +37,7 @@ import {
   getClientErrorObject,
   useTheme,
   css,
+  getExtensionsRegistry,
 } from '@superset-ui/core';
 import { debounce, isEqual } from 'lodash';
 import {
@@ -588,6 +589,14 @@ const FiltersConfigForm = (
     .filter(filter => filter.type === 'filter_time')
     .some(filter => dependencies?.includes(filter.value));
 
+  const extensionsRegistry = getExtensionsRegistry();
+
+  const DateFilterControlExtension = extensionsRegistry.get(
+    'filter.dateFilterControl',
+  );
+
+  const DateFilterComponent = DateFilterControlExtension ?? DateFilterControl;
+
   useEffect(() => {
     if (datasetId) {
       cachedSupersetGet({
@@ -1034,7 +1043,7 @@ const FiltersConfigForm = (
                                             },
                                           ]}
                                         >
-                                          <DateFilterControl
+                                          <DateFilterComponent
                                             name="time_range"
                                             onChange={timeRange => {
                                               setNativeFilterFieldValues(
