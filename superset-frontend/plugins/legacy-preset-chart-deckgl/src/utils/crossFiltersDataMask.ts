@@ -26,7 +26,7 @@ import {
 import ngeohash from 'ngeohash';
 
 const GEOHASH_PRECISION = 12;
-const VIEWPORT_BUFFER_FACTOR = 0.01;
+const VIEWPORT_BUFFER_FACTOR = 0.3;
 const ZOOM_DIVISOR = 2;
 
 export const spatialTypes = {
