@@ -95,7 +95,7 @@ const UnsavedChangesModal: FC<UnsavedChangesModalProps> = ({
         `}
       >
         <StyledWarningIcon />
-        <StyledModalTitle type="secondary" level={2}>
+        <StyledModalTitle type="secondary" level={3}>
           {title}
         </StyledModalTitle>
       </div>
