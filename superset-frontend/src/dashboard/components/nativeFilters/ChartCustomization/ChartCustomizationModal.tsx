@@ -83,6 +83,7 @@ const Sidebar = styled.div`
 export interface ChartCustomizationModalProps {
   isOpen: boolean;
   dashboardId: number;
+  chartId?: number;
   initialItemId?: string;
   onCancel: () => void;
   onSave: (dashboardId: number, items: ChartCustomizationItem[]) => void;
@@ -91,6 +92,7 @@ export interface ChartCustomizationModalProps {
 const ChartCustomizationModal = ({
   isOpen,
   dashboardId,
+  chartId,
   initialItemId,
   onCancel,
   onSave,
@@ -102,7 +104,6 @@ const ChartCustomizationModal = ({
   const [saveAlertVisible, setSaveAlertVisible] = useState(false);
   const [initialLoadComplete, setInitialLoadComplete] = useState(false);
 
-  // Add error handling state (similar to FiltersConfigModal)
   const [erroredItems, setErroredItems] = useState<string[]>([]);
 
   const currentItem = useMemo(
@@ -110,7 +111,6 @@ const ChartCustomizationModal = ({
     [items, currentId],
   );
 
-  // Enhanced change detection (similar to FiltersConfigModal)
   const hasUnsavedChanges = useCallback(() => {
     const changed = form.getFieldValue('changed');
     const isFieldsTouched = form.isFieldsTouched();
@@ -120,7 +120,6 @@ const ChartCustomizationModal = ({
     return changed || isFieldsTouched || hasNewItems || hasRemovedItems;
   }, [form, items]);
 
-  // Enhanced form validation (similar to FiltersConfigModal)
   const validateForm = useCallback(async () => {
     try {
       const values = await form.validateFields();
@@ -138,7 +137,6 @@ const ChartCustomizationModal = ({
     }
   }, [form, items]);
 
-  // Enhanced form reset (similar to FiltersConfigModal)
   const resetForm = useCallback(
     (isSaving = false) => {
       setItems([]);
@@ -155,7 +153,6 @@ const ChartCustomizationModal = ({
     [form],
   );
 
-  // Enhanced save handler (similar to FiltersConfigModal)
   const handleSave = useCallback(async () => {
     const values = await validateForm();
 
@@ -181,7 +178,6 @@ const ChartCustomizationModal = ({
       resetForm(true);
       onCancel();
     } else if (erroredItems.length > 0) {
-      // Focus on the first error if validation fails
       setCurrentId(erroredItems[0]);
     }
   }, [
@@ -245,7 +241,7 @@ const ChartCustomizationModal = ({
 
         form.setFieldsValue(initialFormValues);
       } else {
-        const newItem = createDefaultChartCustomizationItem();
+        const newItem = createDefaultChartCustomizationItem(chartId);
         setCurrentId(newItem.id);
         setItems([newItem]);
 
@@ -278,7 +274,6 @@ const ChartCustomizationModal = ({
     }
   }, [isOpen]);
 
-  // Enhanced error handling effect (similar to FiltersConfigModal)
   useEffect(() => {
     if (!isEmpty(items)) {
       setErroredItems(prevErroredItems =>
@@ -334,18 +329,20 @@ const ChartCustomizationModal = ({
             <ChartCustomizationTitlePane
               items={items}
               currentId={currentId}
+              chartId={chartId}
               setCurrentId={setCurrentId}
               onChange={setCurrentId}
               onAdd={item => {
-                setItems([...items, item]);
-                setCurrentId(item.id);
+                const itemWithChartId = { ...item, chartId };
+                setItems([...items, itemWithChartId]);
+                setCurrentId(itemWithChartId.id);
 
                 const currentFilters = form.getFieldValue('filters') || {};
                 const newFormValues = {
                   filters: {
                     ...currentFilters,
-                    [item.id]: {
-                      name: item.customization.name || '',
+                    [itemWithChartId.id]: {
+                      name: itemWithChartId.customization.name || '',
                       column: null,
                       dataset: null,
                       description: '',
