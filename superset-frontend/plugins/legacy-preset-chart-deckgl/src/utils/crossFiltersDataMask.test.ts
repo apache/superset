@@ -461,7 +461,7 @@ describe('getCrossFilterDataMask', () => {
                 sqlExpression: '"LON"',
               },
               op: '>=',
-              val: -122.40170185788006,
+              val: -122.41076435788005,
             },
             {
               col: {
@@ -470,7 +470,7 @@ describe('getCrossFilterDataMask', () => {
                 sqlExpression: '"LAT"',
               },
               op: '>=',
-              val: 37.77754531376027,
+              val: 37.76848281376027,
             },
             {
               col: {
@@ -479,7 +479,7 @@ describe('getCrossFilterDataMask', () => {
                 sqlExpression: '"LON"',
               },
               op: '<=',
-              val: -122.40107685788004,
+              val: -122.39201435788004,
             },
             {
               col: {
@@ -488,14 +488,14 @@ describe('getCrossFilterDataMask', () => {
                 sqlExpression: '"LAT"',
               },
               op: '<=',
-              val: 37.77817031376027,
+              val: 37.78723281376027,
             },
           ],
         },
         filterState: {
           value: [
-            [-122.40170185788006, 37.77754531376027],
-            [-122.40107685788004, 37.77817031376027],
+            [-122.41076435788005, 37.76848281376027],
+            [-122.39201435788004, 37.78723281376027],
           ],
         },
       },
