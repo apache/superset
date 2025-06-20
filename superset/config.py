@@ -550,7 +550,7 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # Enabling this feature flag requires installing "playwright" pip package
     "PLAYWRIGHT_REPORTS_AND_THUMBNAILS": False,
     # Set to True to enable experimental chart plugins
-    "CHART_PLUGINS_EXPERIMENTAL": False,
+    "CHART_PLUGINS_EXPERIMENTAL": True,
     # Regardless of database configuration settings, force SQLLAB to run async using Celery  # noqa: E501
     "SQLLAB_FORCE_RUN_ASYNC": False,
     # Set to True to to enable factory resent CLI command
@@ -564,6 +564,8 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # Allow metrics and columns to be grouped into (potentially nested) folders in the
     # chart builder
     "DATASET_FOLDERS": False,
+    # Enable Table v2 time comparison feature
+    "TABLE_V2_TIME_COMPARISON_ENABLED": True,
 }
 
 # ------------------------------
