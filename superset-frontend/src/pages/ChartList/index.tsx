@@ -75,6 +75,7 @@ import { findPermission } from 'src/utils/findPermission';
 import { DashboardCrossLinks } from 'src/components/ListView/DashboardCrossLinks';
 import { ModifiedInfo } from 'src/components/AuditInfo';
 import { QueryObjectColumns } from 'src/views/CRUD/types';
+import BulkCertifyModal from 'src/features/bulkUpdate/BulkCertifyModal';
 
 const FlexRowContainer = styled.div`
   align-items: center;
@@ -213,6 +214,8 @@ function ChartList(props: ChartListProps) {
     sshTunnelPrivateKeyPasswordFields,
     setSSHTunnelPrivateKeyPasswordFields,
   ] = useState<string[]>([]);
+  const [showBulkCertifyModal, setShowBulkCertifyModal] = useState(false);
+  const [bulkSelected, setBulkSelected] = useState<Chart[]>([]);
 
   // TODO: Fix usage of localStorage keying on the user id
   const userSettings = dangerouslyGetItemDoNotUse(userId?.toString(), null) as {
@@ -231,6 +234,16 @@ function ChartList(props: ChartListProps) {
     showImportModal(false);
     refreshData();
     addSuccessToast(t('Chart imported'));
+  };
+
+  const openBulkCertifyModal = (selected: Chart[]) => {
+    setBulkSelected(selected);
+    setShowBulkCertifyModal(true);
+  };
+
+  const closeBulkCertifyModal = () => {
+    setShowBulkCertifyModal(false);
+    setBulkSelected([]);
   };
 
   const canCreate = hasPerm('can_write');
@@ -814,20 +827,28 @@ function ChartList(props: ChartListProps) {
       >
         {confirmDelete => {
           const bulkActions: ListViewProps['bulkActions'] = [];
-          if (canDelete) {
-            bulkActions.push({
-              key: 'delete',
-              name: t('Delete'),
-              type: 'danger',
-              onSelect: confirmDelete,
-            });
-          }
           if (canExport) {
             bulkActions.push({
               key: 'export',
               name: t('Export'),
               type: 'primary',
               onSelect: handleBulkChartExport,
+            });
+          }
+          if (canEdit) {
+            bulkActions.push({
+              key: 'certify',
+              name: t('Certify'),
+              type: 'primary',
+              onSelect: openBulkCertifyModal,
+            });
+          }
+          if (canDelete) {
+            bulkActions.push({
+              key: 'delete',
+              name: t('Delete'),
+              type: 'danger',
+              onSelect: confirmDelete,
             });
           }
           return (
@@ -865,7 +886,16 @@ function ChartList(props: ChartListProps) {
           );
         }}
       </ConfirmStatusChange>
-
+      <BulkCertifyModal
+        show={showBulkCertifyModal}
+        onHide={closeBulkCertifyModal}
+        selected={bulkSelected}
+        resourceName="chart"
+        resourceLabel={t('chart')}
+        refreshData={refreshData}
+        addSuccessToast={addSuccessToast}
+        addDangerToast={addDangerToast}
+      />
       <ImportModelsModal
         resourceName="chart"
         resourceLabel={t('chart')}

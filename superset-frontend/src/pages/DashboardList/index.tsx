@@ -71,6 +71,7 @@ import { DashboardStatus } from 'src/features/dashboards/types';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import { findPermission } from 'src/utils/findPermission';
 import { ModifiedInfo } from 'src/components/AuditInfo';
+import BulkCertifyModal from 'src/features/bulkUpdate/BulkCertifyModal';
 import { navigateTo } from 'src/utils/navigationUtils';
 
 const PAGE_SIZE = 25;
@@ -195,6 +196,8 @@ function DashboardList(props: DashboardListProps) {
     sshTunnelPrivateKeyPasswordFields,
     setSSHTunnelPrivateKeyPasswordFields,
   ] = useState<string[]>([]);
+  const [showBulkCertifyModal, setShowBulkCertifyModal] = useState(false);
+  const [bulkSelected, setBulkSelected] = useState<Dashboard[]>([]);
 
   const openDashboardImportModal = () => {
     showImportModal(true);
@@ -208,6 +211,16 @@ function DashboardList(props: DashboardListProps) {
     showImportModal(false);
     refreshData();
     addSuccessToast(t('Dashboard imported'));
+  };
+
+  const openBulkCertifyModal = (selected: Dashboard[]) => {
+    setBulkSelected(selected);
+    setShowBulkCertifyModal(true);
+  };
+
+  const closeBulkCertifyModal = () => {
+    setShowBulkCertifyModal(false);
+    setBulkSelected([]);
   };
 
   // TODO: Fix usage of localStorage keying on the user id
@@ -729,20 +742,28 @@ function DashboardList(props: DashboardListProps) {
       >
         {confirmDelete => {
           const bulkActions: ListViewProps['bulkActions'] = [];
-          if (canDelete) {
-            bulkActions.push({
-              key: 'delete',
-              name: t('Delete'),
-              type: 'danger',
-              onSelect: confirmDelete,
-            });
-          }
           if (canExport) {
             bulkActions.push({
               key: 'export',
               name: t('Export'),
               type: 'primary',
               onSelect: handleBulkDashboardExport,
+            });
+          }
+          if (canEdit) {
+            bulkActions.push({
+              key: 'certify',
+              name: t('Certify'),
+              type: 'primary',
+              onSelect: openBulkCertifyModal,
+            });
+          }
+          if (canDelete) {
+            bulkActions.push({
+              key: 'delete',
+              name: t('Delete'),
+              type: 'danger',
+              onSelect: confirmDelete,
             });
           }
           return (
@@ -814,7 +835,16 @@ function DashboardList(props: DashboardListProps) {
           );
         }}
       </ConfirmStatusChange>
-
+      <BulkCertifyModal
+        show={showBulkCertifyModal}
+        onHide={closeBulkCertifyModal}
+        selected={bulkSelected}
+        resourceName="dashboard"
+        resourceLabel={t('dashboard')}
+        refreshData={refreshData}
+        addSuccessToast={addSuccessToast}
+        addDangerToast={addDangerToast}
+      />
       <ImportModelsModal
         resourceName="dashboard"
         resourceLabel={t('dashboard')}
