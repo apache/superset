@@ -27,6 +27,7 @@ import { createDefaultChartCustomizationItem } from './utils';
 interface Props {
   items: ChartCustomizationItem[];
   currentId: string | null;
+  chartId?: number;
   onChange: (id: string) => void;
   onAdd: (item: ChartCustomizationItem) => void;
   onRemove: (id: string, shouldRemove?: boolean) => void;
@@ -54,6 +55,7 @@ const ActionsWrapper = styled.div`
 const ChartCustomizationTitlePane: FC<Props> = ({
   items,
   currentId,
+  chartId,
   onChange,
   onAdd,
   onRemove,
@@ -63,7 +65,7 @@ const ChartCustomizationTitlePane: FC<Props> = ({
   const listRef = useRef<HTMLDivElement>(null);
 
   const handleAdd = () => {
-    const newItem = createDefaultChartCustomizationItem();
+    const newItem = createDefaultChartCustomizationItem(chartId);
 
     onAdd(newItem);
     setCurrentId(newItem.id);

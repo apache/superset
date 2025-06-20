@@ -23,7 +23,7 @@ import { saveChartCustomization } from 'src/dashboard/actions/dashboardInfo';
 import ChartCustomizationModal from './ChartCustomizationModal';
 import { ChartCustomizationItem } from './types';
 
-export const useChartCustomizationModal = () => {
+export const useChartCustomizationModal = (chartId?: number) => {
   const [isOpen, setIsOpen] = useState(false);
   const dashboardId = useSelector<RootState, number>(
     state => state.dashboardInfo.id,
@@ -48,6 +48,7 @@ export const useChartCustomizationModal = () => {
       <ChartCustomizationModal
         isOpen={isOpen}
         dashboardId={dashboardId}
+        chartId={chartId}
         onCancel={closeChartCustomizationModal}
         onSave={handleSave}
       />
