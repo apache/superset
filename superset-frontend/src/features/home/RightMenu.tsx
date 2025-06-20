@@ -424,6 +424,7 @@ const RightMenu = ({
         css={css`
           display: flex;
           flex-direction: row;
+          align-items: center;
         `}
         selectable={false}
         mode="horizontal"
