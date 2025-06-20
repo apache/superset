@@ -87,7 +87,9 @@ class SQLParsingLibraryImportChecker(BaseChecker):
     def _is_disallowed(self, file_path: Path, root_mod: str) -> bool:
         # True if sqlglot is imported outside superset/sql,
         # or if any forbidden library is imported anywhere
-        in_superset_sql = file_path.match("**/superset/sql/**")
+        in_superset_sql = file_path.match("**/superset/sql/**/*.py") or file_path.match(
+            "**/superset/sql/*.py"
+        )
         return (root_mod == "sqlglot" and not in_superset_sql) or root_mod in {
             "sqlparse",
             "sqloxide",
