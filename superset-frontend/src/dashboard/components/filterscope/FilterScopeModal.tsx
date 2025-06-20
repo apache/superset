@@ -18,16 +18,19 @@
  */
 import { createRef, PureComponent } from 'react';
 import { styled } from '@superset-ui/core';
-import ModalTrigger, { ModalTriggerRef } from 'src/components/ModalTrigger';
+import {
+  ModalTrigger,
+  ModalTriggerRef,
+} from '@superset-ui/core/components/ModalTrigger';
 import FilterScope from 'src/dashboard/containers/FilterScope';
 
 type FilterScopeModalProps = {
   triggerNode: JSX.Element;
 };
 
-const FilterScopeModalBody = styled.div(({ theme: { gridUnit } }) => ({
-  padding: gridUnit * 2,
-  paddingBottom: gridUnit * 3,
+const FilterScopeModalBody = styled.div(({ theme: { sizeUnit } }) => ({
+  padding: sizeUnit * 2,
+  paddingBottom: sizeUnit * 3,
 }));
 
 export default class FilterScopeModal extends PureComponent<

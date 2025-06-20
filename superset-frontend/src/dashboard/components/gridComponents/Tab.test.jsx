@@ -104,7 +104,9 @@ describe('Tabs', () => {
       const titleElement = screen.getByTestId('editable-title');
       fireEvent.click(titleElement);
 
-      const titleInput = await screen.findByTestId('editable-title-input');
+      const titleInput = await screen.findByTestId(
+        'textarea-editable-title-input',
+      );
       fireEvent.change(titleInput, { target: { value: 'New title' } });
       fireEvent.blur(titleInput);
 

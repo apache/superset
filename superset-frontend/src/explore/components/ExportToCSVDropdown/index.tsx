@@ -19,8 +19,8 @@
 import { ReactChild, useCallback, Key } from 'react';
 
 import { t, styled } from '@superset-ui/core';
-import { Icons } from 'src/components/Icons';
-import { Dropdown } from 'src/components/Dropdown';
+import { Icons } from '@superset-ui/core/components/Icons';
+import { Dropdown } from '@superset-ui/core/components';
 
 enum MenuKeys {
   ExportOriginal = 'export_original',
@@ -39,8 +39,8 @@ const MenuItemContent = styled.div`
   justify-content: space-between;
 
   span[role='img'] {
-    font-size: ${({ theme }) => theme.typography.sizes.l}px;
-    margin-left: ${({ theme }) => theme.gridUnit * 4}px;
+    font-size: ${({ theme }) => theme.fontSizeLG}px;
+    margin-left: ${({ theme }) => theme.sizeUnit * 4}px;
   }
 `;
 

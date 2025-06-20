@@ -1553,6 +1553,9 @@ class TestRolePermission(SupersetTestCase):
             ["SupersetIndexView", "index"],
             ["SupersetIndexView", "patch_flask_locale"],
             ["DatabaseRestApi", "oauth2"],
+            ["SupersetAuthView", "login"],
+            ["SupersetAuthView", "logout"],
+            ["SupersetRegisterUserView", "register"],
         ]
         unsecured_views = []
         for view_class in appbuilder.baseviews:

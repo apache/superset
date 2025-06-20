@@ -2786,6 +2786,13 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
     # temporal change to remove the roles view from the security menu,
     # after migrating all views to frontend, we will set FAB_ADD_SECURITY_VIEWS = False
     def register_views(self) -> None:
+        from superset.views.auth import SupersetAuthView, SupersetRegisterUserView
+
+        self.auth_view = self.appbuilder.add_view_no_menu(SupersetAuthView)
+        self.registeruser_view = self.appbuilder.add_view_no_menu(
+            SupersetRegisterUserView
+        )
+
         super().register_views()
 
         for view in list(self.appbuilder.baseviews):

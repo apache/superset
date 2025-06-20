@@ -19,9 +19,9 @@
 import { ReactNode } from 'react';
 import { t, tn } from '@superset-ui/core';
 
-import { ErrorMessageComponentProps } from './types';
-import IssueCode from './IssueCode';
-import ErrorAlert from './ErrorAlert';
+import type { ErrorMessageComponentProps } from './types';
+import { IssueCode } from './IssueCode';
+import { ErrorAlert } from './ErrorAlert';
 
 interface DatabaseErrorExtra {
   owners?: string[];
@@ -32,7 +32,7 @@ interface DatabaseErrorExtra {
   engine_name: string | null;
 }
 
-function DatabaseErrorMessage({
+export function DatabaseErrorMessage({
   error,
   source,
   subtitle,
@@ -89,5 +89,3 @@ function DatabaseErrorMessage({
     />
   );
 }
-
-export default DatabaseErrorMessage;

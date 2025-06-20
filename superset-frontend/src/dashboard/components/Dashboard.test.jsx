@@ -17,7 +17,7 @@
  * under the License.
  */
 import { render, screen } from 'spec/helpers/testing-library';
-import { PluginContext } from 'src/components/DynamicPlugins';
+import { PluginContext } from 'src/components';
 
 import Dashboard from 'src/dashboard/components/Dashboard';
 import { CHART_TYPE } from 'src/dashboard/util/componentTypes';

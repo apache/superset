@@ -325,7 +325,10 @@ export default function transformProps(
       selectedMode,
       ...getChartPadding(showLegend, legendOrientation, legendMargin),
       animation: DEFAULT_GRAPH_SERIES_OPTION.animation,
-      label: DEFAULT_GRAPH_SERIES_OPTION.label,
+      label: {
+        ...DEFAULT_GRAPH_SERIES_OPTION.label,
+        color: theme.colorText,
+      },
       lineStyle: DEFAULT_GRAPH_SERIES_OPTION.lineStyle,
       emphasis: DEFAULT_GRAPH_SERIES_OPTION.emphasis,
     },

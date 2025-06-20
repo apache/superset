@@ -28,7 +28,7 @@ import {
   OptionProps,
   OptionItemInterface,
 } from 'src/explore/components/controls/DndColumnSelectControl/types';
-import { Tooltip } from 'src/components/Tooltip';
+import { Tooltip } from '@superset-ui/core/components';
 import { StyledColumnOption } from 'src/explore/components/optionRenderers';
 import { styled, isAdhocColumn } from '@superset-ui/core';
 import { ColumnMeta } from '@superset-ui/chart-controls';

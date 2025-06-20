@@ -18,7 +18,7 @@
  */
 import { act, render, screen, userEvent } from 'spec/helpers/testing-library';
 import { FeatureFlag, isFeatureEnabled } from '@superset-ui/core';
-import { Menu } from 'src/components/Menu';
+import { Menu } from '@superset-ui/core/components/Menu';
 import HeaderReportDropdown, { HeaderReportProps } from '.';
 
 const createProps = () => ({

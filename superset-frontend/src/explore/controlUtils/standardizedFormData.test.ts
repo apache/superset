@@ -25,9 +25,10 @@ import {
   TimeGranularity,
   VizType,
 } from '@superset-ui/core';
-import TableChartPlugin from '@superset-ui/plugin-chart-table';
-import { BigNumberTotalChartPlugin } from '@superset-ui/plugin-chart-echarts';
+// TODO: tests shouldn't depend on plugins
 import { sections } from '@superset-ui/chart-controls';
+import TableChartPlugin from '../../../plugins/plugin-chart-table/src';
+import { BigNumberTotalChartPlugin } from '../../../plugins/plugin-chart-echarts/src';
 import {
   StandardizedFormData,
   sharedMetricsKey,

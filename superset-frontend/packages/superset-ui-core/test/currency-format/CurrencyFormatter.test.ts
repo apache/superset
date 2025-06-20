@@ -23,7 +23,7 @@ import {
   NumberFormats,
 } from '@superset-ui/core';
 
-it('getCurrencySymbol', () => {
+test('getCurrencySymbol', () => {
   expect(
     getCurrencySymbol({ symbol: 'PLN', symbolPosition: 'prefix' }),
   ).toEqual('PLN');
@@ -36,7 +36,7 @@ it('getCurrencySymbol', () => {
   ).toThrow(RangeError);
 });
 
-it('CurrencyFormatter object fields', () => {
+test('CurrencyFormatter object fields', () => {
   const defaultCurrencyFormatter = new CurrencyFormatter({
     currency: { symbol: 'USD', symbolPosition: 'prefix' },
   });
@@ -60,7 +60,7 @@ it('CurrencyFormatter object fields', () => {
   });
 });
 
-it('CurrencyFormatter:hasValidCurrency', () => {
+test('CurrencyFormatter:hasValidCurrency', () => {
   const currencyFormatter = new CurrencyFormatter({
     currency: { symbol: 'USD', symbolPosition: 'prefix' },
   });
@@ -83,7 +83,7 @@ it('CurrencyFormatter:hasValidCurrency', () => {
   expect(currencyFormatterWithoutCurrency.hasValidCurrency()).toBe(false);
 });
 
-it('CurrencyFormatter:getNormalizedD3Format', () => {
+test('CurrencyFormatter:getNormalizedD3Format', () => {
   const currencyFormatter = new CurrencyFormatter({
     currency: { symbol: 'USD', symbolPosition: 'prefix' },
   });
@@ -112,7 +112,7 @@ it('CurrencyFormatter:getNormalizedD3Format', () => {
   expect(currencyFormatter4.getNormalizedD3Format()).toEqual(',.1');
 });
 
-it('CurrencyFormatter:format', () => {
+test('CurrencyFormatter:format', () => {
   const VALUE = 56100057;
   const currencyFormatterWithPrefix = new CurrencyFormatter({
     currency: { symbol: 'USD', symbolPosition: 'prefix' },

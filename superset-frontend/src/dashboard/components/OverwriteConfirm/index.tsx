@@ -17,7 +17,7 @@
  * under the License.
  */
 import { useSelector } from 'react-redux';
-import AsyncEsmComponent from 'src/components/AsyncEsmComponent';
+import { AsyncEsmComponent } from '@superset-ui/core/components';
 import { DashboardState, RootState } from 'src/dashboard/types';
 
 const Modal = AsyncEsmComponent(() => import('./OverwriteConfirmModal'));

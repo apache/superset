@@ -209,7 +209,7 @@ function WorldMap(element, props) {
       popupOnHover: !inContextMenu,
       highlightOnHover: !inContextMenu,
       borderWidth: 1,
-      borderColor: theme.colors.grayscale.light5,
+      borderColor: theme.colorSplit,
       highlightBorderColor: theme.colors.grayscale.light5,
       highlightFillColor: color,
       highlightBorderWidth: 1,
@@ -265,7 +265,7 @@ function WorldMap(element, props) {
         countryFeature =>
           !filterState.selectedValues.includes(countryFeature.id),
       )
-      .style('fill-opacity', theme.opacity.mediumLight);
+      .style('fill-opacity', 0.35);
 
     // hack to ensure that the clicked country's color is preserved
     // sometimes the fill color would get default grey value after applying cross filter

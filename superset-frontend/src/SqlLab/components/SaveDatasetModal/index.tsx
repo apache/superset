@@ -19,12 +19,15 @@
 
 import { useCallback, useState, FormEvent } from 'react';
 
-import { Radio, RadioChangeEvent } from 'src/components/Radio';
-import { AsyncSelect } from 'src/components';
-import { Input } from 'src/components/Input';
-import StyledModal from 'src/components/Modal';
-import Button from 'src/components/Button';
-import Checkbox from 'src/components/Checkbox';
+import { Radio, RadioChangeEvent } from '@superset-ui/core/components/Radio';
+import {
+  AsyncSelect,
+  Button,
+  Checkbox,
+  Modal,
+  Input,
+  type SelectValue,
+} from '@superset-ui/core/components';
 import {
   styled,
   t,
@@ -52,8 +55,6 @@ import {
 import { mountExploreUrl } from 'src/explore/exploreUtils';
 import { postFormData } from 'src/explore/exploreUtils/formData';
 import { URL_PARAMS } from 'src/constants';
-// eslint-disable-next-line no-restricted-imports
-import { SelectValue } from 'antd/lib/select'; // TODO: Remove antd
 import { isEmpty } from 'lodash';
 
 interface QueryDatabase {
@@ -102,16 +103,16 @@ interface SaveDatasetModalProps {
 const Styles = styled.div`
   ${({ theme }) => `
   .sdm-body {
-    margin: 0 ${theme.gridUnit * 2}px;
+    margin: 0 ${theme.sizeUnit * 2}px;
   }
   .sdm-input {
-    margin-left: ${theme.gridUnit * 10}px;
+    margin-left: ${theme.sizeUnit * 10}px;
     width: 401px;
   }
   .sdm-autocomplete {
     width: 401px;
     align-self: center;
-    margin-left: ${theme.gridUnit}px;
+    margin-left: ${theme.sizeUnit}px;
   }
   .sdm-radio {
     height: 30px;
@@ -123,7 +124,7 @@ const Styles = styled.div`
     padding-right: 0px;
   }
   .sdm-overwrite-msg {
-    margin: ${theme.gridUnit * 2}px;
+    margin: ${theme.sizeUnit * 2}px;
   }
   .sdm-overwrite-container {
     flex: 1 1 auto;
@@ -369,7 +370,7 @@ export const SaveDatasetModal = ({
   ) => option.value.toLowerCase().includes(inputValue.toLowerCase());
 
   return (
-    <StyledModal
+    <Modal
       show={visible}
       title={t('Save or Overwrite Dataset')}
       onHide={onHide}
@@ -386,8 +387,8 @@ export const SaveDatasetModal = ({
             <div style={{ display: 'flex', alignItems: 'center' }}>
               <Checkbox
                 checked={includeTemplateParameters}
-                onChange={checked =>
-                  setIncludeTemplateParameters(checked ?? false)
+                onChange={e =>
+                  setIncludeTemplateParameters(e.target.checked ?? false)
                 }
               />
               <span style={{ marginLeft: '5px' }}>
@@ -473,6 +474,6 @@ export const SaveDatasetModal = ({
           </div>
         )}
       </Styles>
-    </StyledModal>
+    </Modal>
   );
 };

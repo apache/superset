@@ -33,10 +33,10 @@ import {
 } from '@superset-ui/core';
 import { debounce, isEqual, isObjectLike, omit, pick } from 'lodash';
 import { Resizable } from 're-resizable';
-import { usePluginContext } from 'src/components/DynamicPlugins';
+import { Tooltip } from '@superset-ui/core/components';
+import { usePluginContext } from 'src/components';
 import { Global } from '@emotion/react';
-import { Tooltip } from 'src/components/Tooltip';
-import { Icons } from 'src/components/Icons';
+import { Icons } from '@superset-ui/core/components/Icons';
 import {
   getItem,
   setItem,
@@ -98,32 +98,31 @@ const propTypes = {
 
 const ExplorePanelContainer = styled.div`
   ${({ theme }) => css`
-    background: ${theme.colors.grayscale.light5};
     text-align: left;
     position: relative;
     width: 100%;
     max-height: 100%;
+    background-color: ${theme.colorBgContainer};
     min-height: 0;
     display: flex;
     flex: 1;
     flex-wrap: nowrap;
-    border-top: 1px solid ${theme.colors.grayscale.light2};
+    border-top: 1px solid ${theme.colorSplit};
     .explore-column {
       display: flex;
       flex-direction: column;
-      padding: ${theme.gridUnit * 2}px 0;
+      padding: ${theme.sizeUnit * 2}px 0;
       max-height: 100%;
     }
     .data-source-selection {
-      background-color: ${theme.colors.grayscale.light5};
-      padding: ${theme.gridUnit * 2}px 0;
-      border-right: 1px solid ${theme.colors.grayscale.light2};
+      padding: ${theme.sizeUnit * 2}px 0;
+      border-right: 1px solid ${theme.colorSplit};
     }
     .main-explore-content {
       flex: 1;
-      min-width: ${theme.gridUnit * 128}px;
-      border-left: 1px solid ${theme.colors.grayscale.light2};
-      padding: 0 ${theme.gridUnit * 4}px;
+      min-width: ${theme.sizeUnit * 128}px;
+      border-left: 1px solid ${theme.colorSplit};
+      padding: 0 ${theme.sizeUnit * 4}px;
       .panel {
         margin-bottom: 0;
       }
@@ -136,10 +135,10 @@ const ExplorePanelContainer = styled.div`
       position: relative;
       display: flex;
       flex-direction: row;
-      padding: 0 ${theme.gridUnit * 2}px 0 ${theme.gridUnit * 4}px;
+      padding: 0 ${theme.sizeUnit * 2}px 0 ${theme.sizeUnit * 4}px;
       justify-content: space-between;
       .horizontal-text {
-        font-size: ${theme.typography.sizes.m}px;
+        font-size: ${theme.fontSize}px;
       }
     }
     .no-show {
@@ -151,12 +150,11 @@ const ExplorePanelContainer = styled.div`
     }
     .sidebar {
       height: 100%;
-      background-color: ${theme.colors.grayscale.light4};
-      padding: ${theme.gridUnit * 2}px;
-      width: ${theme.gridUnit * 8}px;
+      padding: ${theme.sizeUnit * 2}px;
+      width: ${theme.sizeUnit * 8}px;
     }
     .collapse-icon > svg {
-      color: ${theme.colors.primary.base};
+      color: ${theme.colorPrimary};
     }
   `};
 `;

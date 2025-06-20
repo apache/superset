@@ -22,12 +22,8 @@ import {
   FunctionComponentElement,
   useMemo,
 } from 'react';
-import {
-  FAST_DEBOUNCE,
-  JsonObject,
-  JsonValue,
-  useTheme,
-} from '@superset-ui/core';
+import { JsonObject, JsonValue, useTheme } from '@superset-ui/core';
+import { Constants } from '@superset-ui/core/components';
 import { debounce } from 'lodash';
 import { ControlFormItemNode } from './ControlFormItem';
 
@@ -38,13 +34,13 @@ export type ControlFormRowProps = {
 };
 
 export function ControlFormRow({ children }: ControlFormRowProps) {
-  const { gridUnit } = useTheme();
+  const { sizeUnit } = useTheme();
   return (
     <div
       css={{
         display: 'flex',
         flexWrap: 'nowrap',
-        marginBottom: gridUnit,
+        marginBottom: sizeUnit,
         maxWidth: '100%',
       }}
     >
@@ -77,7 +73,7 @@ export default function ControlForm({
     () =>
       ({
         0: onChange,
-        [FAST_DEBOUNCE]: debounce(onChange, FAST_DEBOUNCE),
+        [Constants.FAST_DEBOUNCE]: debounce(onChange, Constants.FAST_DEBOUNCE),
       }) as Record<number, typeof onChange>,
     [onChange],
   );
@@ -92,7 +88,7 @@ export default function ControlForm({
           const {
             name,
             width,
-            debounceDelay = FAST_DEBOUNCE,
+            debounceDelay = Constants.FAST_DEBOUNCE,
             onChange: onItemValueChange,
           } = item.props;
           return cloneElement(item, {
@@ -128,8 +124,8 @@ export default function ControlForm({
     <div
       css={{
         label: {
-          color: theme.colors.text.label,
-          fontSize: theme.typography.sizes.s,
+          color: theme.colorTextLabel,
+          fontSize: theme.fontSizeSM,
         },
       }}
     >

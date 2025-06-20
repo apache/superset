@@ -122,7 +122,7 @@ export const setInScopeStatusOfFilters =
     // need to update native_filter_configuration in the dashboard metadata
     const metadata = cloneDeep(getState().dashboardInfo.metadata);
     const filterConfig: FilterConfiguration =
-      metadata.native_filter_configuration;
+      metadata.native_filter_configuration || [];
     const mergedFilterConfig = filterConfig.map(filter => {
       const filterWithScope = filtersWithScopes.find(
         scope => scope.id === filter.id,

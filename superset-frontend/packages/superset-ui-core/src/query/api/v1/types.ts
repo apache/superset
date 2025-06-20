@@ -43,7 +43,7 @@ export interface SupersetApiRequestOptions {
  * Superset API error types.
  * Ref: https://github.com/apache/incubator-superset/blob/318e5347bc6f88119725775baa4ab9a398a6f0b0/superset/errors.py#L24
  *
- * TODO: migrate superset-frontend/src/components/ErrorMessage/types.ts over
+ * TODO: migrate superset-frontend/@superset-ui/core/components/ErrorMessage/types.ts over
  */
 export enum SupersetApiErrorType {
   // Generic unknown error

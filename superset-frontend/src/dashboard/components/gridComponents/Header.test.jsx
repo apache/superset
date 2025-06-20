@@ -78,7 +78,7 @@ describe('Header', () => {
 
   it('should render an EditableTitle with meta.text', () => {
     setup();
-    const titleElement = screen.getByTestId('editable-title-input');
+    const titleElement = screen.getByTestId('editable-title');
     expect(titleElement).toBeInTheDocument();
     expect(titleElement).toHaveTextContent(props.component.meta.text);
   });
@@ -88,11 +88,11 @@ describe('Header', () => {
     setup({ editMode: true, updateComponents });
 
     // First click to enter edit mode
-    const titleButton = screen.getByTestId('editable-title-input');
+    const titleButton = screen.getByTestId('textarea-editable-title-input');
     fireEvent.click(titleButton);
 
     // Then change the input value and blur to trigger save
-    const titleInput = screen.getByTestId('editable-title-input');
+    const titleInput = screen.getByTestId('textarea-editable-title-input');
     fireEvent.change(titleInput, { target: { value: 'New title' } });
     fireEvent.blur(titleInput);
 

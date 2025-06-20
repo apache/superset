@@ -18,7 +18,7 @@
  */
 import PropTypes from 'prop-types';
 import cx from 'classnames';
-import { FormLabel } from 'src/components/Form';
+import { FormLabel } from '@superset-ui/core/components';
 
 const propTypes = {
   label: PropTypes.string.isRequired,

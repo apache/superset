@@ -19,9 +19,8 @@
 import SyntaxHighlighter from 'react-syntax-highlighter/dist/cjs/light';
 import sql from 'react-syntax-highlighter/dist/cjs/languages/hljs/sql';
 import github from 'react-syntax-highlighter/dist/cjs/styles/hljs/github';
-import { IconTooltip } from 'src/components/IconTooltip';
-import ModalTrigger from 'src/components/ModalTrigger';
-import { Icons } from 'src/components/Icons';
+import { IconTooltip, ModalTrigger } from '@superset-ui/core/components';
+import { Icons } from '@superset-ui/core/components/Icons';
 
 SyntaxHighlighter.registerLanguage('sql', sql);
 
@@ -43,7 +42,7 @@ export default function ShowSQL({
       modalTitle={title}
       triggerNode={
         triggerNode || (
-          <IconTooltip className="pull-left m-l-2" tooltip={tooltipText}>
+          <IconTooltip className="pull-left" tooltip={tooltipText}>
             <Icons.EyeOutlined iconSize="s" />
           </IconTooltip>
         )

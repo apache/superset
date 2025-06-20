@@ -20,9 +20,9 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { styled, useTheme, t } from '@superset-ui/core';
 import type { Column, GridApi } from 'ag-grid-community';
 
-import { Icons } from 'src/components/Icons';
+import { Icons } from '@superset-ui/core/components/Icons';
 import { PIVOT_COL_ID } from './constants';
-import HeaderMenu from './HeaderMenu';
+import { HeaderMenu } from './HeaderMenu';
 
 interface Params {
   enableFilterButton?: boolean;
@@ -63,9 +63,9 @@ const HeaderAction = styled.div`
     justify-content: center;
     width: 100%;
   }
-  & .antd5-dropdown-trigger {
+  & .ant-dropdown-trigger {
     cursor: context-menu;
-    padding: ${({ theme }) => theme.gridUnit * 2}px;
+    padding: ${({ theme }) => theme.sizeUnit * 2}px;
     background-color: var(--ag-background-color);
     box-shadow: 0 0 2px var(--ag-chip-border-color);
     border-radius: 50%;
@@ -80,7 +80,7 @@ const IconPlaceholder = styled.div`
   top: 0;
 `;
 
-const Header: React.FC<Params> = ({
+export const Header: React.FC<Params> = ({
   enableFilterButton,
   enableSorting,
   displayName,
@@ -195,5 +195,3 @@ const Header: React.FC<Params> = ({
     </>
   );
 };
-
-export default Header;

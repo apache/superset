@@ -73,6 +73,7 @@ jobs:
         with:
           persist-credentials: false
           submodules: recursive
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
       - name: Checkout using ref (workflow_dispatch)
         if: github.event_name == 'workflow_dispatch' && github.event.inputs.ref != ''
         uses: actions/checkout@v4
@@ -137,9 +138,16 @@ jobs:
           NODE_OPTIONS: "--max-old-space-size=4096"
         with:
           run: cypress-run-all ${{ env.USE_DASHBOARD }} ${{ matrix.app_root }}
+      - name: Set safe app root
+        if: failure()
+        id: set-safe-app-root
+        run: |
+          APP_ROOT="${{ matrix.app_root }}"
+          SAFE_APP_ROOT=${APP_ROOT//\//_}
+          echo "safe_app_root=$SAFE_APP_ROOT" >> $GITHUB_OUTPUT
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
         if: failure()
         with:
           path: ${{ github.workspace }}/superset-frontend/cypress-base/cypress/screenshots
-          name: cypress-artifact-${{ github.run_id }}-${{ github.job }}-${{ matrix.browser }}-${{ matrix.parallel_id }}
+          name: cypress-artifact-${{ github.run_id }}-${{ github.job }}-${{ matrix.browser }}-${{ matrix.parallel_id }}--${{ steps.set-safe-app-root.outputs.safe_app_root }}

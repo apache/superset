@@ -21,7 +21,7 @@ import 'src/public-path';
 import { lazy, Suspense } from 'react';
 import ReactDOM from 'react-dom';
 import { BrowserRouter as Router, Route } from 'react-router-dom';
-import { makeApi, t, logging } from '@superset-ui/core';
+import { makeApi, t, logging, themeObject } from '@superset-ui/core';
 import Switchboard from '@superset-ui/switchboard';
 import getBootstrapData, { applicationRoot } from 'src/utils/getBootstrapData';
 import setupClient from 'src/setup/setupClient';
@@ -29,11 +29,12 @@ import setupPlugins from 'src/setup/setupPlugins';
 import { useUiConfig } from 'src/components/UiConfigContext';
 import { RootContextProviders } from 'src/views/RootContextProviders';
 import { store, USER_LOADED } from 'src/views/store';
-import ErrorBoundary from 'src/components/ErrorBoundary';
-import Loading from 'src/components/Loading';
+import { Loading } from '@superset-ui/core/components';
+import { ErrorBoundary } from 'src/components';
 import { addDangerToast } from 'src/components/MessageToasts/actions';
 import ToastContainer from 'src/components/MessageToasts/ToastContainer';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
+import { AnyThemeConfig } from 'packages/superset-ui-core/src/theme/types';
 import { embeddedApi } from './api';
 import { getDataMaskChangeTrigger } from './utils';
 
@@ -242,6 +243,21 @@ window.addEventListener('message', function embeddedPageInitializer(event) {
     );
     Switchboard.defineMethod('getActiveTabs', embeddedApi.getActiveTabs);
     Switchboard.defineMethod('getDataMask', embeddedApi.getDataMask);
+    Switchboard.defineMethod(
+      'setThemeConfig',
+      (payload: { themeConfig: AnyThemeConfig }) => {
+        const { themeConfig } = payload;
+        log('Received setThemeConfig request:', themeConfig);
+
+        try {
+          themeObject.setConfig(themeConfig);
+          return { success: true, message: 'Theme applied' };
+        } catch (error) {
+          logging.error('Failed to apply theme config:', error);
+          throw new Error(`Failed to apply theme config: ${error.message}`);
+        }
+      },
+    );
     Switchboard.start();
   }
 });

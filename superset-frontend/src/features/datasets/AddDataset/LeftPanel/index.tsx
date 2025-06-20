@@ -19,8 +19,8 @@
 import { useEffect, SetStateAction, Dispatch, useCallback } from 'react';
 import { styled, t } from '@superset-ui/core';
 import TableSelector, { TableOption } from 'src/components/TableSelector';
-import { DatabaseObject } from 'src/components/DatabaseSelector';
-import { EmptyState } from 'src/components/EmptyState';
+import { EmptyState } from '@superset-ui/core/components';
+import { type DatabaseObject } from 'src/components';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
 import { LocalStorageKeys, getItem } from 'src/utils/localStorageHelpers';
 import {
@@ -28,6 +28,7 @@ import {
   DatasetObject,
 } from 'src/features/datasets/AddDataset/types';
 import { Table } from 'src/hooks/apiResources';
+import { Typography } from '@superset-ui/core/components/Typography';
 
 interface LeftPanelProps {
   setDataset: Dispatch<SetStateAction<object>>;
@@ -37,39 +38,39 @@ interface LeftPanelProps {
 
 const LeftPanelStyle = styled.div`
   ${({ theme }) => `
-    padding: ${theme.gridUnit * 4}px;
+    padding: ${theme.sizeUnit * 4}px;
     height: 100%;
     background-color: ${theme.colors.grayscale.light5};
     position: relative;
     .emptystate {
       height: auto;
-      margin-top: ${theme.gridUnit * 17.5}px;
+      margin-top: ${theme.sizeUnit * 17.5}px;
     }
     .section-title {
-      margin-top: ${theme.gridUnit * 5.5}px;
-      margin-bottom: ${theme.gridUnit * 11}px;
-      font-weight: ${theme.typography.weights.bold};
+      margin-top: ${theme.sizeUnit * 5.5}px;
+      margin-bottom: ${theme.sizeUnit * 11}px;
+      font-weight: ${theme.fontWeightStrong};
     }
     .table-title {
-      margin-top: ${theme.gridUnit * 11}px;
-      margin-bottom: ${theme.gridUnit * 6}px;
-      font-weight: ${theme.typography.weights.bold};
+      margin-top: ${theme.sizeUnit * 11}px;
+      margin-bottom: ${theme.sizeUnit * 6}px;
+      font-weight: ${theme.fontWeightStrong};
     }
     .options-list {
       overflow: auto;
       position: absolute;
       bottom: 0;
-      top: ${theme.gridUnit * 92.25}px;
-      left: ${theme.gridUnit * 3.25}px;
+      top: ${theme.sizeUnit * 92.25}px;
+      left: ${theme.sizeUnit * 3.25}px;
       right: 0;
 
       .no-scrollbar {
-        margin-right: ${theme.gridUnit * 4}px;
+        margin-right: ${theme.sizeUnit * 4}px;
       }
 
       .options {
         cursor: pointer;
-        padding: ${theme.gridUnit * 1.75}px;
+        padding: ${theme.sizeUnit * 1.75}px;
         border-radius: ${theme.borderRadius}px;
         :hover {
           background-color: ${theme.colors.grayscale.light4}
@@ -78,9 +79,9 @@ const LeftPanelStyle = styled.div`
 
       .options-highlighted {
         cursor: pointer;
-        padding: ${theme.gridUnit * 1.75}px;
+        padding: ${theme.sizeUnit * 1.75}px;
         border-radius: ${theme.borderRadius}px;
-        background-color: ${theme.colors.primary.dark1};
+        background-color: ${theme.colorPrimaryText};
         color: ${theme.colors.grayscale.light5};
       }
 
@@ -92,22 +93,22 @@ const LeftPanelStyle = styled.div`
     }
     form > span[aria-label="refresh"] {
       position: absolute;
-      top: ${theme.gridUnit * 69}px;
-      left: ${theme.gridUnit * 42.75}px;
-      font-size: ${theme.gridUnit * 4.25}px;
+      top: ${theme.sizeUnit * 69}px;
+      left: ${theme.sizeUnit * 42.75}px;
+      font-size: ${theme.sizeUnit * 4.25}px;
     }
     .table-form {
-      margin-bottom: ${theme.gridUnit * 8}px;
+      margin-bottom: ${theme.sizeUnit * 8}px;
     }
     .loading-container {
       position: absolute;
-      top: ${theme.gridUnit * 89.75}px;
+      top: ${theme.sizeUnit * 89.75}px;
       left: 0;
       right: 0;
       text-align: center;
       img {
-        width: ${theme.gridUnit * 20}px;
-        margin-bottom: ${theme.gridUnit * 2.5}px;
+        width: ${theme.sizeUnit * 20}px;
+        margin-bottom: ${theme.sizeUnit * 2.5}px;
       }
       p {
         color: ${theme.colors.grayscale.light1};
@@ -189,7 +190,9 @@ export default function LeftPanel({
       description={
         <span>
           {t('Manage your databases')}{' '}
-          <a href="/databaseview/list">{t('here')}</a>
+          <Typography.Link href="/databaseview/list">
+            {t('here')}
+          </Typography.Link>
         </span>
       }
       size="small"

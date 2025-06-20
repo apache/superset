@@ -1,0 +1,43 @@
+{
+  "compilerOptions": {
+    /* Type Checking */
+    "noImplicitAny": true,
+    "noImplicitReturns": true,
+    "noImplicitThis": true,
+    "noUnusedLocals": true,
+    "strictNullChecks": true,
+    "module": "esnext",
+    "moduleResolution": "node",
+
+    "types": ["jest", "node", "@testing-library/jest-dom"],
+    "typeRoots": ["node_modules/@types"],
+
+    /* Emit */
+    "declaration": true,
+    "declarationMap": true,
+    "importHelpers": false,
+    "noEmitOnError": true,
+    "outDir": "./dist",
+    "sourceMap": true,
+
+    /* JavaScript Support */
+    "allowJs": true,
+
+    /* Interop Constraints */
+    "allowSyntheticDefaultImports": true,
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+
+    /* Language and Environment */
+    "target": "esnext",
+    "jsx": "react-jsx",
+    "jsxImportSource": "@emotion/react",
+    "lib": ["dom", "dom.iterable", "esnext"],
+
+    /* Projects */
+    "composite": true,
+
+    /* Completeness */
+    "skipLibCheck": true
+  }
+}

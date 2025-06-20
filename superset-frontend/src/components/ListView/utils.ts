@@ -36,9 +36,9 @@ import {
 import rison from 'rison';
 import { isEqual } from 'lodash';
 import {
-  FetchDataConfig,
-  Filter,
-  FilterValue,
+  ListViewFetchDataConfig as FetchDataConfig,
+  ListViewFilter as Filter,
+  ListViewFilterValue as FilterValue,
   InnerFilterValue,
   InternalFilter,
   SortColumn,
@@ -63,7 +63,9 @@ const RisonParam: QueryParamConfig<string, any> = {
       : rison.decode(dataStr),
 };
 
-export const SELECT_WIDTH = 200;
+export const SELECT_WIDTH = 175;
+export const RANGE_WIDTH = 300;
+export const WIDER_DROPDOWN_WIDTH = '300px';
 
 export class ListViewError extends Error {
   name = 'ListViewError';
