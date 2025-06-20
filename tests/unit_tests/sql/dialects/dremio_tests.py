@@ -15,7 +15,18 @@
 # specific language governing permissions and limitations
 # under the License.
 
-from .dremio import Dremio
-from .firebolt import Firebolt, FireboltOld
+from sqlglot import parse_one
 
-__all__ = ["Dremio", "Firebolt", "FireboltOld"]
+from superset.sql.dialects.dremio import Dremio
+
+
+def test_regexp_split() -> None:
+    """
+    Test that regexp_split works correctly in Dremio dialect.
+    """
+    sql = "SELECT REGEXP_SPLIT(tags, ',', 'ALL', 1000) as t"
+
+    ast = parse_one(sql, dialect=Dremio)
+    regenerated = ast.sql(dialect=Dremio)
+
+    assert regenerated == "SELECT REGEXP_SPLIT(tags, ',', 'ALL', 1000) AS t"
