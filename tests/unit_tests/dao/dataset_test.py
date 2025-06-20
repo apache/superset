@@ -146,7 +146,7 @@ def test_validate_update_uniqueness(session: Session) -> None:
         ),
         (
             {"description": "test description"},
-            {"description": "test description"},
+            {"description": "test description", "changed_on": datetime(2025, 1, 1, 0, 0, 0)},
         ),
     ],
 )
@@ -158,7 +158,7 @@ def test_update_dataset_related_metadata_updates_changed_on(
     expected_attributes: dict[str, Any],
 ) -> None:
     """
-    Test that the changed_on property is updated when a metric or column is updated.
+    Test that the changed_on property is updated when any attributes are updated.
     """
     item = MagicMock()
     DatasetDAO.update(item, copy.deepcopy(attributes))
