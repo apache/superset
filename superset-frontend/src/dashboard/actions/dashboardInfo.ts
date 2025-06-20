@@ -36,6 +36,7 @@ export interface ChartCustomizationSavePayload {
   title?: string;
   description?: string;
   removed?: boolean;
+  chartId?: number;
   customization: {
     name: string;
     dataset: string | null;
@@ -276,6 +277,7 @@ export function saveChartCustomization(
       .map(item => ({
         id: item.id,
         title: item.title || '[untitled]',
+        chartId: item.chartId, // Include chart ID in saved data
         customization: {
           name: item.customization?.name || '',
           dataset: item.customization?.dataset || null,

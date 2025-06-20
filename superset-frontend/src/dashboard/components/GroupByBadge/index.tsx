@@ -107,10 +107,32 @@ export const GroupByBadge = ({ chartId }: GroupByBadgeProps) => {
       dashboardInfo.metadata?.chart_customization_config || [],
   );
 
-  const applicableGroupBys = useMemo(
-    () => chartCustomizationItems.filter(item => true),
-    [chartCustomizationItems, chartId],
-  );
+  const chartDataset = useSelector<RootState, string | null>(state => {
+    const chart = state.charts[chartId];
+    if (!chart?.latestQueryFormData?.datasource) {
+      return null;
+    }
+    const chartDatasetParts = String(
+      chart.latestQueryFormData.datasource,
+    ).split('__');
+    return chartDatasetParts[0];
+  });
+
+  const applicableGroupBys = useMemo(() => {
+    if (!chartDataset) {
+      return [];
+    }
+
+    return chartCustomizationItems.filter(item => {
+      if (item.removed) return false;
+
+      const targetDataset = item.customization?.dataset;
+      if (!targetDataset) return false;
+
+      const targetDatasetId = String(targetDataset);
+      return chartDataset === targetDatasetId;
+    });
+  }, [chartCustomizationItems, chartDataset]);
 
   const groupByCount = applicableGroupBys.length;
 

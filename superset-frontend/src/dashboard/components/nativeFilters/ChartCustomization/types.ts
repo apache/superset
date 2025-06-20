@@ -46,6 +46,7 @@ export interface ChartCustomizationItem {
   dataset?: string | null;
   description?: string;
   removeTimerId?: number;
+  chartId?: number;
   settings?: {
     sortFilter: boolean;
     hasDefaultValue: boolean;

@@ -436,7 +436,6 @@ const ChartCustomizationForm: FC<Props> = ({ form, item, onUpdate }) => {
       fetchDatasetInfo();
     }
 
-    // Validate required fields after form initialization (similar to FiltersConfigForm)
     if (customization.isRequired) {
       setTimeout(() => {
         form
@@ -484,36 +483,33 @@ const ChartCustomizationForm: FC<Props> = ({ form, item, onUpdate }) => {
   useEffect(() => {
     const formValues = form.getFieldValue('filters')?.[item.id] || {};
     const selectFirst = formValues.selectFirst ?? customization.selectFirst;
-    const hasValue = !!formValues.defaultDataMask?.filterState?.value;
-    const shouldHaveDefaultValue = selectFirst ? false : hasValue;
-    setHasDefaultValue(shouldHaveDefaultValue);
-    if (formValues.hasDefaultValue !== shouldHaveDefaultValue) {
+
+    if (selectFirst) {
+      setHasDefaultValue(false);
+      setIsRequired(false);
       setFormFieldValues({
-        hasDefaultValue: shouldHaveDefaultValue,
+        hasDefaultValue: false,
+        isRequired: false,
+        defaultDataMask: null,
+        defaultValue: undefined,
+        defaultValueQueriesData: null,
       });
+    } else {
+      setHasDefaultValue(
+        formValues.hasDefaultValue ?? customization.hasDefaultValue ?? false,
+      );
+      setIsRequired(formValues.isRequired ?? customization.isRequired ?? false);
     }
-  }, [form, item.id, setFormFieldValues, customization.selectFirst]);
 
-  const setDataMask = useCallback(
-    (dataMask: any) => {
-      if (!dataMask.filterState) return;
-
-      setFormFieldValues({
-        defaultDataMask: dataMask,
-        defaultValue: dataMask.filterState?.value,
-        hasDefaultValue: true,
-      });
-
-      setHasDefaultValue(true);
-
-      setTimeout(() => {
-        form
-          .validateFields([['filters', item.id, 'defaultDataMask']])
-          .catch(() => {});
-      }, 0);
-    },
-    [setFormFieldValues, form, item.id],
-  );
+    setSelectFirst(selectFirst);
+  }, [
+    form,
+    item.id,
+    setFormFieldValues,
+    customization.selectFirst,
+    customization.hasDefaultValue,
+    customization.isRequired,
+  ]);
 
   const generatedFormData = useMemo(() => {
     const formValues = form.getFieldValue('filters')?.[item.id] || {};
@@ -570,7 +566,7 @@ const ChartCustomizationForm: FC<Props> = ({ form, item, onUpdate }) => {
     [form, item.id],
   );
 
-  // Calculate tooltip for hasDefaultValue checkbox   (matching FiltersConfigForm logic)
+  // Calculate tooltip for hasDefaultValue checkbox (matching FiltersConfigForm logic)
   const getDefaultValueTooltip = useCallback(() => {
     if (selectFirst) {
       return t(
@@ -589,6 +585,48 @@ const ChartCustomizationForm: FC<Props> = ({ form, item, onUpdate }) => {
     }
     return t('Set a default value for this filter');
   }, [selectFirst, isRequired, hasDefaultValue]);
+
+  // Helper to check if all required fields are filled for default value display
+  const hasAllRequiredFields = useCallback(() => {
+    const formValues = form.getFieldValue('filters')?.[item.id] || {};
+    const name = formValues.name || customization.name || '';
+    const dataset = formValues.dataset || customization.dataset;
+    const column = formValues.column || customization.column;
+    return !!(name.trim() && dataset && column);
+  }, [
+    form,
+    item.id,
+    customization.name,
+    customization.dataset,
+    customization.column,
+  ]);
+
+  // Calculate if default value should be shown (similar to FiltersConfigForm logic)
+  const shouldShowDefaultValue = useCallback(() => {
+    const allFieldsFilled = hasAllRequiredFields();
+    const hasDatasetAndColumn = !!(
+      (form.getFieldValue('filters')?.[item.id]?.dataset ||
+        customization.dataset) &&
+      (form.getFieldValue('filters')?.[item.id]?.column || customization.column)
+    );
+
+    // For required filters, show if all fields are filled (like enableEmptyFilter behavior)
+    if (isRequired) {
+      return allFieldsFilled && !isDefaultValueLoading;
+    }
+
+    // For non-required filters with hasDefaultValue, show if dataset and column are present
+    return hasDefaultValue && hasDatasetAndColumn && !isDefaultValueLoading;
+  }, [
+    hasAllRequiredFields,
+    form,
+    item.id,
+    customization.dataset,
+    customization.column,
+    isRequired,
+    hasDefaultValue,
+    isDefaultValueLoading,
+  ]);
 
   return (
     <StyledForm
@@ -845,7 +883,7 @@ const ChartCustomizationForm: FC<Props> = ({ form, item, onUpdate }) => {
                 name={['filters', item.id, 'defaultDataMask']}
                 initialValue={customization.defaultDataMask || null}
                 label={<CheckboxLabel>{t('Default Value')}</CheckboxLabel>}
-                required={customization.hasDefaultValue}
+                required={hasDefaultValue}
                 rules={[
                   {
                     validator: defaultValueValidator,
@@ -853,13 +891,8 @@ const ChartCustomizationForm: FC<Props> = ({ form, item, onUpdate }) => {
                 ]}
               >
                 {(() => {
-                  const currentFilters = form.getFieldValue('filters') || {};
-                  const currentItemValues = currentFilters[item.id] || {};
-                  const hasDatasetAndColumn =
-                    !!currentItemValues.dataset && !!currentItemValues.column;
-
-                  const showDefaultValue =
-                    hasDatasetAndColumn && !isDefaultValueLoading;
+                  const showDefaultValue = shouldShowDefaultValue();
+                  const allFieldsFilled = hasAllRequiredFields();
 
                   if (error || showDefaultValue) {
                     return (
@@ -883,7 +916,7 @@ const ChartCustomizationForm: FC<Props> = ({ form, item, onUpdate }) => {
                             }}
                             hasDefaultValue={hasDefaultValue}
                             filterId={item.id}
-                            hasDataset={hasDatasetAndColumn}
+                            hasDataset={allFieldsFilled}
                             form={form}
                             formData={generatedFormData}
                             enableNoResults
@@ -927,57 +960,33 @@ const ChartCustomizationForm: FC<Props> = ({ form, item, onUpdate }) => {
               onChange={checked => {
                 setIsRequired(checked);
                 if (checked) {
+                  setHasDefaultValue(true);
+                  setSelectFirst(false);
+                } else {
                   setHasDefaultValue(false);
                 }
                 setFormFieldValues({
                   isRequired: checked,
                   ...(checked
                     ? {
+                        hasDefaultValue: true,
+                        selectFirst: false,
+                      }
+                    : {
                         hasDefaultValue: false,
                         defaultDataMask: null,
                         defaultValue: undefined,
                         defaultValueQueriesData: null,
-                      }
-                    : {}),
+                      }),
                 });
+
+                if (checked && hasAllRequiredFields()) {
+                  fetchDefaultValueData();
+                }
                 formChanged();
               }}
             >
-              <div>
-                {customization.isRequired && (
-                  <>
-                    <div
-                      style={{
-                        marginTop: 8,
-                        color: theme.colors.grayscale.base,
-                      }}
-                    >
-                      {t(
-                        'Users will need to select a value before they can see the filtered data',
-                      )}
-                    </div>
-                    {(() => {
-                      if (isDefaultValueLoading || error) {
-                        return (
-                          <StyledMarginTop>
-                            {isDefaultValueLoading ? (
-                              <Loading position="inline-centered" />
-                            ) : error ? (
-                              <div style={{ color: theme.colors.error.base }}>
-                                {t('Cannot load filter values: ')}{' '}
-                                {error.message ||
-                                  error.error ||
-                                  'Unknown error'}
-                              </div>
-                            ) : null}
-                          </StyledMarginTop>
-                        );
-                      }
-                      return null;
-                    })()}
-                  </>
-                )}
-              </div>
+              <div />
             </CollapsibleControl>
           </StyledFormItem>
 
@@ -988,24 +997,23 @@ const ChartCustomizationForm: FC<Props> = ({ form, item, onUpdate }) => {
               title={
                 <CheckboxLabel>
                   {t('Select first filter value by default')}
-                  <InfoTooltipWithTrigger
-                    placement="top"
-                    tooltip={t(
-                      'Default value set automatically when this option is checked',
-                    )}
-                  />
                 </CheckboxLabel>
               }
+              tooltip={t(
+                "When using this option, default value can't be set. Using this option may impact the load times for your dashboard.",
+              )}
               onChange={checked => {
                 setSelectFirst(checked);
                 if (checked) {
                   setHasDefaultValue(false);
+                  setIsRequired(false);
                 }
                 setFormFieldValues({
                   selectFirst: checked,
                   ...(checked
                     ? {
                         hasDefaultValue: false,
+                        isRequired: false,
                         defaultDataMask: null,
                         defaultValue: undefined,
                         defaultValueQueriesData: null,

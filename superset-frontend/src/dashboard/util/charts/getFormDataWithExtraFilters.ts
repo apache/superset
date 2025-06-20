@@ -194,10 +194,12 @@ export default function getFormDataWithExtraFilters({
           const targetDataset = item.customization?.dataset;
           if (!targetDataset) return false;
 
-          // Target dataset from customization is just the ID (no __table suffix)
           const targetDatasetId = String(targetDataset);
 
-          return chartDatasetId === targetDatasetId;
+          const datasetMatches = chartDatasetId === targetDatasetId;
+          const chartMatches = !item.chartId || item.chartId === chart.id;
+
+          return datasetMatches && chartMatches;
         });
 
         matchingCustomizations.forEach(item => {

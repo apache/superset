@@ -29,31 +29,32 @@ export function generateGroupById(): string {
 export const getChartCustomizationIds = (items: ChartCustomizationItem[]) =>
   items.map(item => item.id);
 
-export const createDefaultChartCustomizationItem =
-  (): ChartCustomizationItem => ({
-    id: generateGroupById(),
-    title: t('[untitled]'),
+export const createDefaultChartCustomizationItem = (
+  chartId?: number,
+): ChartCustomizationItem => ({
+  id: generateGroupById(),
+  title: t('[untitled]'),
+  dataset: null,
+  description: '',
+  removed: false,
+  chartId,
+  settings: {
+    sortFilter: false,
+    hasDefaultValue: false,
+    isRequired: false,
+    selectFirstByDefault: false,
+  },
+  customization: {
+    name: '',
     dataset: null,
-    description: '',
-    removed: false,
-    settings: {
-      sortFilter: false,
-      hasDefaultValue: false,
-      isRequired: false,
-      selectFirstByDefault: false,
-    },
-    customization: {
-      name: '',
-      dataset: null,
-      column: null,
-      sortAscending: true,
-      hasDefaultValue: false,
-      isRequired: false,
-      selectFirst: false,
-    },
-  });
+    column: null,
+    sortAscending: true,
+    hasDefaultValue: false,
+    isRequired: false,
+    selectFirst: false,
+  },
+});
 
-// Helper function to ensure customization object always has required properties
 export const ensureValidCustomization = (
   customization: Partial<GroupByCustomization> = {},
 ): GroupByCustomization => ({
