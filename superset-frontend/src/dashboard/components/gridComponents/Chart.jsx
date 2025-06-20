@@ -428,6 +428,59 @@ const Chart = props => {
     // eslint-disable-next-line camelcase
     queriesResponse?.map(({ cached_dttm }) => cached_dttm) || [];
 
+  // Only translate user-facing labels, not raw column or metric names
+  if (
+    Array.isArray(formData.groupbyLabels) &&
+    formData.groupbyLabels.length === formData.groupbyColumns?.length
+  ) {
+    formData.groupbyLabels = formData.groupbyLabels.map(label =>
+      t(label, { fallback: label }),
+    );
+  }
+
+  if (
+    Array.isArray(formData.metricLabels) &&
+    formData.metricLabels.length === formData.metrics?.length
+  ) {
+    formData.metricLabels = formData.metricLabels.map(label =>
+      t(label, { fallback: label }),
+    );
+  }
+
+  const queryData = chart?.queriesResponse?.[0];
+
+  if (
+    slice?.viz_type === 'table' &&
+    queryData?.colnames &&
+    Array.isArray(queryData.colnames)
+  ) {
+    // Use columnLabels from formData if available, otherwise fall back to raw names
+    const colLabels = chart?.formData?.columnLabels;
+    const colMap = {};
+
+    queryData.colnames.forEach((col, i) => {
+      const rawName = col;
+      const label =
+        Array.isArray(colLabels) && colLabels[i] ? colLabels[i] : rawName;
+      colMap[rawName] = t(label, { fallback: label });
+    });
+
+    // Replace the column name array with translated labels
+    queryData.colnames = queryData.colnames.map(col => colMap[col]);
+
+    // Remap each row’s keys to the translated column labels
+    if (Array.isArray(queryData.data)) {
+      queryData.data = queryData.data.map(row => {
+        const newRow = {};
+        Object.entries(row).forEach(([key, value]) => {
+          const newKey = colMap[key] || key;
+          newRow[newKey] = value;
+        });
+        return newRow;
+      });
+    }
+  }
+
   return (
     <SliceContainer
       className="chart-slice"
@@ -455,8 +508,8 @@ const Chart = props => {
         exportXLSX={exportXLSX}
         exportFullCSV={exportFullCSV}
         exportFullXLSX={exportFullXLSX}
-        updateSliceName={props.updateSliceName}
-        sliceName={props.sliceName}
+        updateSliceName={t(props.updateSliceName)}
+        sliceName={t(props.sliceName)}
         supersetCanExplore={supersetCanExplore}
         supersetCanShare={supersetCanShare}
         supersetCanCSV={supersetCanCSV}

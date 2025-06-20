@@ -30,6 +30,7 @@ from flask import (
     g,
     get_flashed_messages,
     redirect,
+    request,
     Response,
     session,
     url_for,
@@ -40,7 +41,7 @@ from flask_appbuilder.forms import DynamicForm
 from flask_appbuilder.models.sqla.filters import BaseFilter
 from flask_appbuilder.security.sqla.models import User
 from flask_appbuilder.widgets import ListWidget
-from flask_babel import get_locale, gettext as __
+from flask_babel import get_locale, gettext as __, refresh
 from flask_jwt_extended.exceptions import NoAuthorizationError
 from flask_wtf.form import FlaskForm
 from sqlalchemy.orm import Query
@@ -347,8 +348,21 @@ def cached_common_bootstrap_data(  # pylint: disable=unused-argument
 
 
 def common_bootstrap_payload() -> dict[str, Any]:
+    # get locale from URL, else use default locale
+    locale = get_locale()
+    if request.args.get("locale"):
+        try:
+            # Parse and stash the new locale in the session
+            locale = Locale.parse(request.args.get("locale"))
+            session["locale"] = str(locale)
+            # Tell Flask-Babel to drop any cached locale
+            # and re-invoke our localeselector
+            refresh()
+        except Exception as e:
+            # Manage invalid locale : keep default locale
+            logger.warning(f"Invalid locale '{request.args.get('locale')}': {e}")
     return {
-        **cached_common_bootstrap_data(utils.get_user_id(), get_locale()),
+        **cached_common_bootstrap_data(utils.get_user_id(), locale),
         "flash_messages": get_flashed_messages(with_categories=True),
     }
 

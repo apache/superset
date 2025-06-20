@@ -111,6 +111,14 @@ export const URL_PARAMS = {
     name: 'focused_chart',
     type: 'number',
   },
+  locale: {
+    name: 'locale',
+    type: 'string',
+  },
+  currencySymbol: {
+    name: 'currencySymbol',
+    type: 'string',
+  },
 } as const;
 
 export const RESERVED_CHART_URL_PARAMS: string[] = [

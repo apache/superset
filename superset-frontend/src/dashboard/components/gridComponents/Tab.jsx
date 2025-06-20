@@ -84,7 +84,9 @@ const TabTitleContainer = styled.div`
     margin: ${-gridUnit}px ${gridUnit * -2}px;
     transition: box-shadow 0.2s ease-in-out;
     ${
-      isHighlighted && `box-shadow: 0 0 ${gridUnit}px ${colors.primary.light1};`
+      isHighlighted
+        ? `box-shadow: 0 0 ${gridUnit}px ${colors.primary.light1};`
+        : ''
     }
   `}
 `;
@@ -312,8 +314,21 @@ const Tab = props => {
           ref={dragSourceRef}
         >
           <EditableTitle
-            title={component.meta.text}
-            defaultTitle={component.meta.defaultText}
+            title={
+              component.meta.text
+                ? t(component.meta.text, {
+                    fallback: component.meta.text,
+                  })
+                : ''
+            }
+            defaultTitle={
+              component.meta.defaultText &&
+              typeof component.meta.defaultText === 'string'
+                ? t(component.meta.defaultText, {
+                    fallback: component.meta.defaultText,
+                  })
+                : ''
+            }
             placeholder={component.meta.placeholder}
             canEdit={editMode && isFocused}
             onSaveTitle={handleChangeText}

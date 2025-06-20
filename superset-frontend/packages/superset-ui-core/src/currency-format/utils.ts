@@ -24,7 +24,15 @@ import {
   isSavedMetric,
   QueryFormMetric,
   ValueFormatter,
+  NumberFormatter,
 } from '@superset-ui/core';
+import countryToCurrencyRaw from 'country-to-currency';
+
+const countryToCurrency = countryToCurrencyRaw as Record<string, string>;
+const getCurrencyForLocale = (locale: string): string => {
+  const region = new Intl.Locale(locale).maximize().region ?? 'US';
+  return countryToCurrency[region] ?? 'USD';
+};
 
 export const buildCustomFormatters = (
   metrics: QueryFormMetric | QueryFormMetric[] | undefined,
@@ -40,18 +48,16 @@ export const buildCustomFormatters = (
       const actualCurrencyFormat = currencyFormat?.symbol
         ? currencyFormat
         : savedCurrencyFormats[metric];
-      return actualCurrencyFormat
-        ? {
-            ...acc,
-            [metric]: new CurrencyFormatter({
+
+      return {
+        ...acc,
+        [metric]: actualCurrencyFormat
+          ? new CurrencyFormatter({
               d3Format: actualD3Format,
               currency: actualCurrencyFormat,
-            }),
-          }
-        : {
-            ...acc,
-            [metric]: getNumberFormatter(actualD3Format),
-          };
+            })
+          : getNumberFormatter(actualD3Format),
+      };
     }
     return acc;
   }, {});
@@ -76,24 +82,57 @@ export const getValueFormatter = (
   d3Format: string | undefined,
   currencyFormat: Currency | undefined,
   key?: string,
-) => {
-  const customFormatter = getCustomFormatter(
-    buildCustomFormatters(
-      metrics,
-      savedCurrencyFormats,
-      savedColumnFormats,
-      d3Format,
-      currencyFormat,
-    ),
-    metrics,
-    key,
-  );
+): ValueFormatter => {
+  const params = new URLSearchParams(window.location.search);
+  const hasLocaleParam = params.has('locale') && !!params.get('locale');
+  const hasSymbolParam =
+    params.has('currencySymbol') && !!params.get('currencySymbol');
+  const isEmbedding = hasLocaleParam || hasSymbolParam;
 
-  if (customFormatter) {
-    return customFormatter;
+  if (!isEmbedding) {
+    const fmtD3 = d3Format ?? (key ? savedColumnFormats[key] : undefined);
+
+    const fmtCurrency =
+      (currencyFormat?.symbol ? currencyFormat : undefined) ??
+      (key ? savedCurrencyFormats[key] : undefined);
+
+    if (fmtCurrency?.symbol) {
+      return new CurrencyFormatter({
+        currency: fmtCurrency,
+        d3Format: fmtD3,
+      });
+    }
+    return getNumberFormatter(fmtD3);
   }
-  if (currencyFormat?.symbol) {
-    return new CurrencyFormatter({ currency: currencyFormat, d3Format });
+
+  const urlLocale = params.get('locale')!;
+  const currencySymbol = params.get('currencySymbol')!;
+
+  if (d3Format?.includes('%')) {
+    return getNumberFormatter(d3Format);
   }
-  return getNumberFormatter(d3Format);
+
+  try {
+    const currencyCode = getCurrencyForLocale(urlLocale);
+    const native = new Intl.NumberFormat(urlLocale, {
+      style: 'currency',
+      currency: currencyCode,
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    });
+    return new NumberFormatter({
+      id: `currency-${currencyCode}`,
+      formatFunc: (value: number) => {
+        let formatted = native.format(value);
+        if (currencySymbol) {
+          formatted = formatted.replace(/[\p{Sc}A-Z]{1,3}/gu, currencySymbol);
+        }
+        return formatted;
+      },
+      label: `Currency (${currencySymbol || currencyCode})`,
+      description: `Formats numbers as currency in ${currencySymbol || currencyCode}`,
+    });
+  } catch {
+    return getNumberFormatter(d3Format);
+  }
 };
