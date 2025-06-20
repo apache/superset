@@ -24,6 +24,7 @@ import EditPage from 'src/features/datasets/AddDataset/EditDataset';
 import DatasetPanel from 'src/features/datasets/AddDataset/DatasetPanel';
 import LeftPanel from 'src/features/datasets/AddDataset/LeftPanel';
 import Footer from 'src/features/datasets/AddDataset/Footer';
+import RightPanel from 'src/features/datasets/AddDataset/RightPanel';
 import {
   DatasetActionType,
   DatasetObject,
@@ -136,6 +137,10 @@ export default function AddDataset() {
     />
   );
 
+  const RightPanelComponent = () => (
+    <RightPanel dataset={dataset} setDataset={setDataset} />
+  );
+
   return (
     <DatasetLayout
       header={HeaderComponent()}
@@ -143,6 +148,7 @@ export default function AddDataset() {
       datasetPanel={
         editPageIsVisible ? EditPageComponent() : DatasetPanelComponent()
       }
+      rightPanel={editPageIsVisible ? null : RightPanelComponent()}
       footer={FooterComponent()}
     />
   );
