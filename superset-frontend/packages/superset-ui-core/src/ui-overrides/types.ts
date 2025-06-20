@@ -51,7 +51,7 @@ export type LoadDrillByOptions = (
 interface MenuObjectChildProps {
   label: string;
   name?: string;
-  icon?: string;
+  icon?: React.ReactNode;
   index?: number;
   url?: string;
   isFrontendRoute?: boolean;

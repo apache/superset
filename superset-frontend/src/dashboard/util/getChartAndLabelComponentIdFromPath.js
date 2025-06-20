@@ -22,8 +22,7 @@ export default function getChartAndLabelComponentIdFromPath(directPathToChild) {
   const result = {};
 
   if (directPathToChild.length > 0) {
-    const currentPath = directPathToChild.slice();
-
+    const currentPath = directPathToChild.slice().filter(x => x !== undefined);
     while (currentPath.length) {
       const componentId = currentPath.pop();
       const componentType = componentId.split('-')[0];

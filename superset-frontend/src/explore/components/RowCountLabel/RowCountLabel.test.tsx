@@ -51,7 +51,6 @@ test('RowCountLabel renders limit with danger and tooltip', async () => {
   userEvent.hover(screen.getByText(expectedText));
   const tooltip = await screen.findByRole('tooltip');
   expect(tooltip).toHaveTextContent('The row limit');
-  expect(tooltip).toHaveStyle('background: rgba(0, 0, 0, 0.902);');
 });
 
 test('RowCountLabel renders loading', () => {

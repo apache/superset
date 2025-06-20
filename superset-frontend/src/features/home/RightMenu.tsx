@@ -16,8 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-// TODO: Remove fa-icon
-/* eslint-disable icons/no-fa-icons-usage */
 import { Fragment, useState, useEffect, FC, PureComponent } from 'react';
 
 import rison from 'rison';
@@ -25,6 +23,7 @@ import { useSelector } from 'react-redux';
 import { Link } from 'react-router-dom';
 import { useQueryParams, BooleanParam } from 'use-query-params';
 import { get, isEmpty } from 'lodash';
+import ThemeEditor from '@superset-ui/core/components/ThemeEditor';
 
 import {
   t,
@@ -34,11 +33,13 @@ import {
   SupersetClient,
   getExtensionsRegistry,
   useTheme,
+  isFeatureEnabled,
+  FeatureFlag,
 } from '@superset-ui/core';
-import { Menu } from 'src/components/Menu';
-import { Tooltip } from 'src/components/Tooltip';
-import { Icons } from 'src/components/Icons';
-import Label from 'src/components/Label';
+import { Menu } from '@superset-ui/core/components/Menu';
+import { Label, Tooltip } from '@superset-ui/core/components';
+import { Icons } from '@superset-ui/core/components/Icons';
+import { Typography } from '@superset-ui/core/components/Typography';
 import { ensureAppRoot } from 'src/utils/pathUtils';
 import { findPermission } from 'src/utils/findPermission';
 import { isUserAdmin } from 'src/dashboard/util/permissionUtils';
@@ -51,7 +52,9 @@ import { RootState } from 'src/dashboard/types';
 import DatabaseModal from 'src/features/databases/DatabaseModal';
 import UploadDataModal from 'src/features/databases/UploadDataModel';
 import { uploadUserPerms } from 'src/views/CRUD/utils';
-import TelemetryPixel from 'src/components/TelemetryPixel';
+import TelemetryPixel from '@superset-ui/core/components/TelemetryPixel';
+import { useThemeContext } from 'src/theme/ThemeProvider';
+import ThemeSelect from '@superset-ui/core/components/ThemeSelect';
 import LanguagePicker from './LanguagePicker';
 import {
   ExtensionConfigs,
@@ -62,10 +65,10 @@ import {
 const extensionsRegistry = getExtensionsRegistry();
 
 const versionInfoStyles = (theme: SupersetTheme) => css`
-  padding: ${theme.gridUnit * 1.5}px ${theme.gridUnit * 4}px
-    ${theme.gridUnit * 4}px ${theme.gridUnit * 7}px;
+  padding: ${theme.sizeUnit * 1.5}px ${theme.sizeUnit * 4}px
+    ${theme.sizeUnit * 4}px ${theme.sizeUnit * 7}px;
   color: ${theme.colors.grayscale.base};
-  font-size: ${theme.typography.sizes.xs}px;
+  font-size: ${theme.fontSizeXS}px;
   white-space: nowrap;
 `;
 
@@ -79,7 +82,7 @@ const StyledDiv = styled.div<{ align: string }>`
   flex-direction: row;
   justify-content: ${({ align }) => align};
   align-items: center;
-  margin-right: ${({ theme }) => theme.gridUnit}px;
+  margin-right: ${({ theme }) => theme.sizeUnit}px;
 `;
 
 const StyledMenuItemWithIcon = styled.div`
@@ -90,8 +93,8 @@ const StyledMenuItemWithIcon = styled.div`
 `;
 
 const StyledAnchor = styled.a`
-  padding-right: ${({ theme }) => theme.gridUnit}px;
-  padding-left: ${({ theme }) => theme.gridUnit}px;
+  padding-right: ${({ theme }) => theme.sizeUnit}px;
+  padding-left: ${({ theme }) => theme.sizeUnit}px;
 `;
 
 const tagStyles = (theme: SupersetTheme) => css`
@@ -100,7 +103,7 @@ const tagStyles = (theme: SupersetTheme) => css`
 
 const styledChildMenu = (theme: SupersetTheme) => css`
   &:hover {
-    color: ${theme.colors.primary.base} !important;
+    color: ${theme.colorPrimary} !important;
     cursor: pointer !important;
   }
 `;
@@ -110,12 +113,12 @@ const { SubMenu } = Menu;
 const StyledSubMenu = styled(SubMenu)`
   ${({ theme }) => css`
     [data-icon='caret-down'] {
-      color: ${theme.colors.grayscale.base};
-      font-size: ${theme.typography.sizes.xxs}px;
-      margin-left: ${theme.gridUnit}px;
+      color: ${theme.colorIcon};
+      font-size: ${theme.fontSizeXS}px;
+      margin-left: ${theme.sizeUnit}px;
     }
-    &.antd5-menu-submenu-active {
-      .antd5-menu-title-content {
+    &.ant-menu-submenu-active {
+      .ant-menu-title-content {
         color: ${theme.colors.primary.base};
       }
     }
@@ -181,10 +184,16 @@ const RightMenu = ({
     useState<boolean>(false);
   const isAdmin = isUserAdmin(user);
   const showUploads = allowUploads || isAdmin;
+  const {
+    theme: themeEditorTheme,
+    setTheme,
+    changeThemeMode,
+    themeMode,
+  } = useThemeContext();
   const dropdownItems: MenuObjectProps[] = [
     {
       label: t('Data'),
-      icon: 'fa-database',
+      icon: <Icons.DatabaseOutlined data-test={`menu-item-${t('Data')}`} />,
       childs: [
         {
           label: t('Connect database'),
@@ -225,7 +234,7 @@ const RightMenu = ({
     {
       label: t('SQL query'),
       url: '/sqllab?new=true',
-      icon: 'fa-fw fa-search',
+      icon: <Icons.SearchOutlined data-test={`menu-item-${t('SQL query')}`} />,
       perm: 'can_sqllab',
       view: 'Superset',
     },
@@ -234,14 +243,16 @@ const RightMenu = ({
       url: Number.isInteger(dashboardId)
         ? `/chart/add?dashboard_id=${dashboardId}`
         : '/chart/add',
-      icon: 'fa-fw fa-bar-chart',
+      icon: <Icons.BarChartOutlined data-test={`menu-item-${t('Chart')}`} />,
       perm: 'can_write',
       view: 'Chart',
     },
     {
       label: t('Dashboard'),
       url: '/dashboard/new',
-      icon: 'fa-fw fa-dashboard',
+      icon: (
+        <Icons.DashboardOutlined data-test={`menu-item-${t('Dashboard')}`} />
+      ),
       perm: 'can_write',
       view: 'Dashboard',
     },
@@ -289,10 +300,6 @@ const RightMenu = ({
     }
   }, [canDatabase, canDataset]);
 
-  const menuIcon = (menu: MenuObjectProps) => (
-    <i data-test={`menu-item-${menu.label}`} className={`fa ${menu.icon}`} />
-  );
-
   const handleMenuSelection = (itemChose: any) => {
     if (itemChose.key === GlobalMenuDataOptions.DbConnection) {
       setShowDatabaseModal(true);
@@ -327,7 +334,10 @@ const RightMenu = ({
     ) : (
       <Menu.Item key={item.name} css={styledChildMenu}>
         {item.url ? (
-          <a href={ensureAppRoot(item.url)}> {item.label} </a>
+          <Typography.Link href={ensureAppRoot(item.url)}>
+            {' '}
+            {item.label}{' '}
+          </Typography.Link>
         ) : (
           item.label
         )}
@@ -400,7 +410,7 @@ const RightMenu = ({
       )}
       {environmentTag?.text && (
         <Label
-          css={{ borderRadius: `${theme.gridUnit * 125}px` }}
+          css={{ borderRadius: `${theme.sizeUnit * 125}px` }}
           color={
             /^#(?:[0-9a-f]{3}){1,2}$/i.test(environmentTag.color)
               ? environmentTag.color
@@ -414,6 +424,7 @@ const RightMenu = ({
         css={css`
           display: flex;
           flex-direction: row;
+          align-items: center;
         `}
         selectable={false}
         mode="horizontal"
@@ -428,7 +439,7 @@ const RightMenu = ({
             data-test="new-dropdown"
             title={
               <Icons.PlusOutlined
-                iconColor={theme.colors.primary.dark1}
+                iconColor={theme.colorPrimary}
                 data-test="new-dropdown-icon"
               />
             }
@@ -445,7 +456,7 @@ const RightMenu = ({
                       key={`sub2_${menu.label}`}
                       className="data-menu"
                       title={menu.label}
-                      icon={menuIcon(menu)}
+                      icon={menu.icon}
                     >
                       {menu?.childs?.map?.((item, idx) =>
                         typeof item !== 'string' && item.name && item.perm ? (
@@ -471,20 +482,12 @@ const RightMenu = ({
                   <Menu.Item key={menu.label}>
                     {isFrontendRoute(menu.url) ? (
                       <Link to={menu.url || ''}>
-                        <i
-                          data-test={`menu-item-${menu.label}`}
-                          className={`fa ${menu.icon}`}
-                        />{' '}
-                        {menu.label}
+                        {menu.icon} {menu.label}
                       </Link>
                     ) : (
-                      <a href={ensureAppRoot(menu.url || '')}>
-                        <i
-                          data-test={`menu-item-${menu.label}`}
-                          className={`fa ${menu.icon}`}
-                        />{' '}
-                        {menu.label}
-                      </a>
+                      <Typography.Link href={ensureAppRoot(menu.url || '')}>
+                        {menu.icon} {menu.label}
+                      </Typography.Link>
                     )}
                   </Menu.Item>
                 )
@@ -492,6 +495,20 @@ const RightMenu = ({
             })}
           </StyledSubMenu>
         )}
+        {isFeatureEnabled(FeatureFlag.ThemeAllowThemeEditorBeta) && (
+          <span>
+            <ThemeEditor theme={themeEditorTheme} setTheme={setTheme} />
+          </span>
+        )}
+        {isFeatureEnabled(FeatureFlag.ThemeEnableDarkThemeSwitch) && (
+          <span>
+            <ThemeSelect
+              changeThemeMode={changeThemeMode}
+              themeMode={themeMode}
+            />
+          </span>
+        )}
+
         <StyledSubMenu
           key="sub3_settings"
           title={t('Settings')}
@@ -514,7 +531,9 @@ const RightMenu = ({
                       {isFrontendRoute(child.url) ? (
                         <Link to={child.url || ''}>{menuItemDisplay}</Link>
                       ) : (
-                        <a href={child.url || ''}>{menuItemDisplay}</a>
+                        <Typography.Link href={child.url || ''}>
+                          {menuItemDisplay}
+                        </Typography.Link>
                       )}
                     </Menu.Item>
                   );
@@ -532,11 +551,15 @@ const RightMenu = ({
             <Menu.ItemGroup key="user-section" title={t('User')}>
               {navbarRight.user_info_url && (
                 <Menu.Item key="info">
-                  <a href={navbarRight.user_info_url}>{t('Info')}</a>
+                  <Typography.Link href={navbarRight.user_info_url}>
+                    {t('Info')}
+                  </Typography.Link>
                 </Menu.Item>
               )}
               <Menu.Item key="logout" onClick={handleLogout}>
-                <a href={navbarRight.user_logout_url}>{t('Logout')}</a>
+                <Typography.Link href={navbarRight.user_logout_url}>
+                  {t('Logout')}
+                </Typography.Link>
               </Menu.Item>
             </Menu.ItemGroup>,
           ]}
@@ -584,9 +607,9 @@ const RightMenu = ({
             title={navbarRight.documentation_text || t('Documentation')}
           >
             {navbarRight.documentation_icon ? (
-              <i className={navbarRight.documentation_icon} />
+              <Icons.BookOutlined />
             ) : (
-              <i className="fa fa-question" />
+              <Icons.QuestionCircleOutlined />
             )}
           </StyledAnchor>
           <span>&nbsp;</span>
@@ -603,7 +626,7 @@ const RightMenu = ({
             {navbarRight.bug_report_icon ? (
               <i className={navbarRight.bug_report_icon} />
             ) : (
-              <i className="fa fa-bug" />
+              <Icons.BugOutlined />
             )}
           </StyledAnchor>
           <span>&nbsp;</span>
@@ -611,8 +634,7 @@ const RightMenu = ({
       )}
       {navbarRight.user_is_anonymous && (
         <StyledAnchor href={navbarRight.user_login_url}>
-          <i className="fa fa-fw fa-sign-in" />
-          {t('Login')}
+          <Icons.LoginOutlined /> {t('Login')}
         </StyledAnchor>
       )}
       <TelemetryPixel
