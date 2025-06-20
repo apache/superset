@@ -562,7 +562,7 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # Adds a switch to the navbar to enable/disable the dark theme
     # This is used for development to expose what is dynamic (css-in-js) vs
     # what is managed by `.less` files.
-    "THEME_ALLOW_THEME_EDITOR_BETA": True,
+    "THEME_ALLOW_THEME_EDITOR_BETA": False,
     # Allow users to optionally specify date formats in email subjects, which will be parsed if enabled. # noqa: E501
     "DATE_FORMAT_IN_EMAIL_SUBJECT": False,
     # Allow metrics and columns to be grouped into (potentially nested) folders in the
@@ -668,9 +668,11 @@ EXTRA_CATEGORICAL_COLOR_SCHEMES: list[dict[str, Any]] = []
 # https://ant.design/theme-editor
 # To expose a JSON theme editor modal that can be triggered from the navbar
 # set the `ENABLE_THEME_EDITOR` feature flag to True.
-# THEME = { algorigthm: "dark"}
+#
+# To set up the dark theme:
+# THEME = {"algorithm": "dark"}
+
 THEME: dict[str, Any] = {}
-THEME = {"algorithm": "dark"}
 
 # EXTRA_SEQUENTIAL_COLOR_SCHEMES is used for adding custom sequential color schemes
 # EXTRA_SEQUENTIAL_COLOR_SCHEMES =  [
