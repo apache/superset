@@ -45,7 +45,7 @@
     "core-js": "3.40.0",
     "gh-pages": "^6.2.0",
     "jquery": "^3.7.1",
-    "memoize-one": "^5.2.1",
+    "memoize-one": "^6.0.0",
     "react": "^17.0.2",
     "react-dom": "^17.0.2",
     "react-loadable": "^5.5.0",
