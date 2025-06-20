@@ -23,9 +23,38 @@ import { EventHandlers } from '../types';
 export default function EchartsWaterfall(
   props: WaterfallChartTransformedProps,
 ) {
-  const { height, width, echartOptions, refs, onLegendStateChanged } = props;
+  const {
+    height,
+    width,
+    echartOptions,
+    setDataMask,
+    onContextMenu,
+    refs,
+    onLegendStateChanged,
+    emitCrossFilters,
+    filterState,
+    handleCrossFilter,
+  } = props;
 
   const eventHandlers: EventHandlers = {
+    click: params => {
+      if (!setDataMask || !emitCrossFilters) return;
+
+      const { name: value } = params;
+      if (value === 'Total') return;
+      const filterOptions = handleCrossFilter(
+        value,
+        filterState?.value === value,
+      );
+      if (!filterOptions) return;
+
+      setDataMask(filterOptions);
+    },
+    contextmenu: params => {
+      if (onContextMenu) {
+        onContextMenu(params.name, 0);
+      }
+    },
     legendselectchanged: payload => {
       onLegendStateChanged?.(payload.selected);
     },
@@ -39,11 +68,11 @@ export default function EchartsWaterfall(
 
   return (
     <Echart
-      refs={refs}
       height={height}
       width={width}
       echartOptions={echartOptions}
       eventHandlers={eventHandlers}
+      refs={refs}
     />
   );
 }
