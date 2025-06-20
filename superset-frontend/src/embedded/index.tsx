@@ -55,6 +55,13 @@ const LazyDashboardPage = lazy(
     ),
 );
 
+const LazyChartPage = lazy(
+  () =>
+    import(
+      /* webpackChunkName: "ChartPage" */ 'src/embedded/embeddedChart/index'
+    ),
+);
+
 const EmbededLazyDashboardPage = () => {
   const uiConfig = useUiConfig();
 
@@ -78,7 +85,9 @@ const EmbededLazyDashboardPage = () => {
       }
     });
   }
-
+  if (bootstrapData.embedded!.resource_type === 'chart') {
+    return <LazyChartPage sliceId={Number(bootstrapData.embedded!.chart_id)} />;
+  }
   return <LazyDashboardPage idOrSlug={bootstrapData.embedded!.dashboard_id} />;
 };
 

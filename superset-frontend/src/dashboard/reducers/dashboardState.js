@@ -17,6 +17,7 @@
  * under the License.
  */
 /* eslint-disable camelcase */
+import { HYDRATE_EMBEDDED } from 'src/embedded/embeddedChart/hydrateEmbedded';
 import {
   ADD_SLICE,
   ON_CHANGE,
@@ -56,6 +57,9 @@ import { HYDRATE_DASHBOARD } from '../actions/hydrate';
 export default function dashboardStateReducer(state = {}, action) {
   const actionHandlers = {
     [HYDRATE_DASHBOARD]() {
+      return { ...state, ...action.data.dashboardState };
+    },
+    [HYDRATE_EMBEDDED]() {
       return { ...state, ...action.data.dashboardState };
     },
     [UPDATE_CSS]() {

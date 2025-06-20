@@ -34,6 +34,7 @@ import { NATIVE_FILTER_PREFIX } from 'src/dashboard/components/nativeFilters/Fil
 import { HYDRATE_DASHBOARD } from 'src/dashboard/actions/hydrate';
 import { SaveFilterChangesType } from 'src/dashboard/components/nativeFilters/FiltersConfigModal/types';
 import { isEqual } from 'lodash';
+import { HYDRATE_EMBEDDED } from 'src/embedded/embeddedChart/hydrateEmbedded';
 import {
   AnyDataMaskAction,
   CLEAR_DATA_MASK_STATE,
@@ -187,6 +188,10 @@ const dataMaskReducer = produce(
           action.filters,
         );
         return cleanState;
+      // @ts-ignore
+      case HYDRATE_EMBEDDED:
+        // @ts-ignore
+        return action.data.dataMask;
       default:
         return draft;
     }

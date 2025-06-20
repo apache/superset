@@ -15,13 +15,15 @@
 # specific language governing permissions and limitations
 # under the License.
 # pylint: disable=too-many-lines
+import functools
 import logging
 from datetime import datetime
 from io import BytesIO
-from typing import Any, cast, Optional
+from typing import Any, Callable, cast, Optional
 from zipfile import is_zipfile, ZipFile
 
 from flask import redirect, request, Response, send_file, url_for
+from flask_appbuilder import permission_name
 from flask_appbuilder.api import expose, protect, rison, safe
 from flask_appbuilder.hooks import before_request
 from flask_appbuilder.models.sqla.interface import SQLAInterface
@@ -30,7 +32,7 @@ from marshmallow import ValidationError
 from werkzeug.wrappers import Response as WerkzeugResponse
 from werkzeug.wsgi import FileWrapper
 
-from superset import app, is_feature_enabled
+from superset import app, db, is_feature_enabled
 from superset.charts.filters import (
     ChartAllTextFilter,
     ChartCertifiedFilter,
@@ -47,6 +49,8 @@ from superset.charts.schemas import (
     ChartCacheWarmUpRequestSchema,
     ChartPostSchema,
     ChartPutSchema,
+    EmbeddedChartConfigSchema,
+    EmbeddedChartResponseSchema,
     get_delete_ids_schema,
     get_export_ids_schema,
     get_fav_star_ids_schema,
@@ -55,7 +59,10 @@ from superset.charts.schemas import (
     thumbnail_query_schema,
 )
 from superset.commands.chart.create import CreateChartCommand
-from superset.commands.chart.delete import DeleteChartCommand
+from superset.commands.chart.delete import (
+    DeleteChartCommand,
+    DeleteEmbeddedChartCommand,
+)
 from superset.commands.chart.exceptions import (
     ChartCreateFailedError,
     ChartDeleteFailedError,
@@ -78,8 +85,9 @@ from superset.commands.importers.exceptions import (
 )
 from superset.commands.importers.v1.utils import get_contents_from_bundle
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
-from superset.daos.chart import ChartDAO
+from superset.daos.chart import ChartDAO, EmbeddedChartDAO
 from superset.extensions import event_logger
+from superset.models.embedded_chart import EmbeddedChart
 from superset.models.slice import Slice
 from superset.tasks.thumbnails import cache_chart_thumbnail
 from superset.tasks.utils import get_current_user
@@ -102,6 +110,29 @@ from superset.views.filters import BaseFilterRelatedUsers, FilterRelatedOwners
 
 logger = logging.getLogger(__name__)
 config = app.config
+
+
+def with_chart(
+    f: Callable[[BaseSupersetModelRestApi, Slice], Response],
+) -> Callable[[BaseSupersetModelRestApi, str], Response]:
+    """
+    A decorator that looks up the chart by id and passes it to the api.
+    Route must include an <pk> parameter.
+    Responds with 403 or 404 without calling the route, if necessary.
+    """
+
+    def wraps(self: BaseSupersetModelRestApi, pk: str) -> Response:
+        try:
+            chart = ChartDAO.find_by_id(pk)
+            if not chart:
+                return self.response_404()
+            return f(self, chart)
+        except ChartForbiddenError:
+            return self.response_403()
+        except ValueError:
+            return self.response_404()
+
+    return functools.update_wrapper(wraps, f)
 
 
 class ChartRestApi(BaseSupersetModelRestApi):
@@ -129,6 +160,9 @@ class ChartRestApi(BaseSupersetModelRestApi):
         "screenshot",
         "cache_screenshot",
         "warm_up_cache",
+        "get_embedded",
+        "set_embedded",
+        "delete_embedded",
     }
     class_permission_name = "Chart"
     method_permission_name = MODEL_API_RW_METHOD_PERMISSION_MAP
@@ -255,6 +289,8 @@ class ChartRestApi(BaseSupersetModelRestApi):
 
     add_model_schema = ChartPostSchema()
     edit_model_schema = ChartPutSchema()
+    embedded_config_schema = EmbeddedChartConfigSchema()
+    embedded_response_schema = EmbeddedChartResponseSchema()
 
     openapi_spec_tag = "Charts"
     """ Override the name set for this collection of endpoints """
@@ -1150,4 +1186,172 @@ class ChartRestApi(BaseSupersetModelRestApi):
             ssh_tunnel_priv_key_passwords=ssh_tunnel_priv_key_passwords,
         )
         command.run()
+        return self.response(200, message="OK")
+
+    @expose("/<pk>/embedded", methods=("GET",))
+    @protect()
+    @safe
+    @permission_name("read")
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.get_embedded",
+        log_to_statsd=False,
+    )
+    @with_chart
+    def get_embedded(self, chart: Slice) -> Response:
+        """Get the chart's embedded configuration.
+        ---
+        get:
+          summary: Get the chart's embedded configuration
+          parameters:
+          - in: path
+            schema:
+              type: integer
+            name: id
+            description: The chart ID or slug
+          responses:
+            200:
+              description: Result contains the embedded chart config
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      result:
+                        $ref: '#/components/schemas/EmbeddedChartResponseSchema'
+            401:
+              $ref: '#/components/responses/401'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        if not chart.embedded:
+            return self.response(404)
+        embedded = chart.embedded[0]
+        result: EmbeddedChart = self.embedded_response_schema.dump(embedded)
+        return self.response(200, result=result)
+
+    @expose("/<pk>/embedded", methods=["POST", "PUT"])
+    @protect()
+    @safe
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.set_embedded",
+        log_to_statsd=False,
+    )
+    @with_chart
+    def set_embedded(self, chart: Slice) -> Response:
+        """Set a chart's embedded configuration.
+        ---
+        post:
+          summary: Set a chart's embedded configuration
+          parameters:
+          - in: path
+            schema:
+              type: string
+            name: id_or_slug
+            description: The chart id or slug
+          requestBody:
+            description: The embedded configuration to set
+            required: true
+            content:
+              application/json:
+                schema: EmbeddedChartConfigSchema
+          responses:
+            200:
+              description: Successfully set the configuration
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      result:
+                        $ref: '#/components/schemas/EmbeddedChartResponseSchema'
+            401:
+              $ref: '#/components/responses/401'
+            500:
+              $ref: '#/components/responses/500'
+        put:
+          description: >-
+            Sets a chart's embedded configuration.
+          parameters:
+          - in: path
+            schema:
+              type: string
+            name: id_or_slug
+            description: The chart id
+          requestBody:
+            description: The embedded configuration to set
+            required: true
+            content:
+              application/json:
+                schema: EmbeddedChartConfigSchema
+          responses:
+            200:
+              description: Successfully set the configuration
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      result:
+                        $ref: '#/components/schemas/EmbeddedChartResponseSchema'
+            401:
+              $ref: '#/components/responses/401'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        try:
+            body = self.embedded_config_schema.load(request.json)
+
+            embedded = EmbeddedChartDAO.upsert(
+                chart,
+                body["allowed_domains"],
+            )
+            db.session.commit()  # pylint: disable=consider-using-transaction
+
+            result = self.embedded_response_schema.dump(embedded)
+            return self.response(200, result=result)
+        except ValidationError as error:
+            db.session.rollback()  # pylint: disable=consider-using-transaction
+            return self.response_400(message=error.messages)
+
+    @expose("/<pk>/embedded", methods=("DELETE",))
+    @protect()
+    @safe
+    @permission_name("set_embedded")
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self,
+        *args,
+        **kwargs: f"{self.__class__.__name__}.delete_embedded",
+        log_to_statsd=False,
+    )
+    @with_chart
+    def delete_embedded(self, chart: Slice) -> Response:
+        """Delete a chart's embedded configuration.
+        ---
+        delete:
+          summary: Delete a chart's embedded configuration
+          parameters:
+          - in: path
+            schema:
+              type: string
+            name: id
+            description: The chart id
+          responses:
+            200:
+              description: Successfully removed the configuration
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      message:
+                        type: string
+            401:
+              $ref: '#/components/responses/401'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        DeleteEmbeddedChartCommand(chart).run()
         return self.response(200, message="OK")

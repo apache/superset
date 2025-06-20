@@ -813,7 +813,8 @@ const Header = () => {
         <DashboardEmbedModal
           show={showingEmbedModal}
           onHide={hideEmbedModal}
-          dashboardId={dashboardInfo.id}
+          resourceId={dashboardInfo.id}
+          resourceType="dashboard"
         />
       )}
       <Global

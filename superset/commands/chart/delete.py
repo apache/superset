@@ -23,18 +23,32 @@ from flask_babel import lazy_gettext as _
 from superset import security_manager
 from superset.commands.base import BaseCommand
 from superset.commands.chart.exceptions import (
+    ChartDeleteEmbeddedFailedError,
     ChartDeleteFailedError,
     ChartDeleteFailedReportsExistError,
     ChartForbiddenError,
     ChartNotFoundError,
 )
-from superset.daos.chart import ChartDAO
+from superset.daos.chart import ChartDAO, EmbeddedChartDAO
 from superset.daos.report import ReportScheduleDAO
 from superset.exceptions import SupersetSecurityException
 from superset.models.slice import Slice
 from superset.utils.decorators import on_error, transaction
 
 logger = logging.getLogger(__name__)
+
+
+class DeleteEmbeddedChartCommand(BaseCommand):
+    def __init__(self, chart: Slice):
+        self._chart = chart
+
+    @transaction(on_error=partial(on_error, reraise=ChartDeleteEmbeddedFailedError))
+    def run(self) -> None:
+        self.validate()
+        return EmbeddedChartDAO.delete(self._chart.embedded)
+
+    def validate(self) -> None:
+        pass
 
 
 class DeleteChartCommand(BaseCommand):
