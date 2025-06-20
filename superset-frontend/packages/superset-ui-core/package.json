@@ -57,7 +57,7 @@
     "regenerator-runtime": "^0.14.1",
     "rehype-raw": "^7.0.0",
     "rehype-sanitize": "^6.0.0",
-    "remark-gfm": "^3.0.1",
+    "remark-gfm": "^4.0.1",
     "reselect": "^4.0.0",
     "rison": "^0.1.1",
     "seedrandom": "^3.0.5",
