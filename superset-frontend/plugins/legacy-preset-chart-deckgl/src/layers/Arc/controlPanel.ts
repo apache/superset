@@ -81,7 +81,16 @@ const config: ControlPanelConfig = {
       label: t('Arc'),
       controlSetRows: [
         [
-          'color_picker',
+          {
+            name: 'color_picker',
+            config: {
+              label: t('Source Color'),
+              description: t('Color of the source location'),
+              type: 'ColorPickerControl',
+              default: PRIMARY_COLOR,
+              renderTrigger: true,
+            },
+          },
           {
             name: 'target_color_picker',
             config: {
@@ -104,8 +113,8 @@ const config: ControlPanelConfig = {
               ),
             },
           },
-          'color_scheme',
         ],
+        ['color_scheme'],
         [
           {
             name: 'stroke_width',
@@ -119,9 +128,9 @@ const config: ControlPanelConfig = {
               choices: formatSelectOptions([1, 2, 3, 4, 5]),
             },
           },
-          legendPosition,
         ],
-        [legendFormat, null],
+        [legendPosition],
+        [legendFormat],
       ],
     },
     {
