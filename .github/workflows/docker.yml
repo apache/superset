@@ -134,4 +134,4 @@ jobs:
         if: steps.check.outputs.docker
         shell: bash
         run: |
-          docker compose -f docker-compose-image-tag.yml up superset-init --exit-code-from superset-init
+          docker compose -f compose-image-tag.yml up superset-init --exit-code-from superset-init

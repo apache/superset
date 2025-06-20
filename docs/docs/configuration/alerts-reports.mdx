@@ -42,7 +42,7 @@ Note: All the components required (Firefox headless browser, Redis, Postgres db,
 All you need to do is add the required config variables described in this guide (See `Detailed Config`).
 
 If you are running a non-dev docker image, e.g., a stable release like `apache/superset:3.1.0`, that image does not include a headless browser.  Only the `superset_worker` container needs this headless browser to browse to the target chart or dashboard.
-You can either install and configure the headless browser - see "Custom Dockerfile" section below - or when deploying via `docker compose`, modify your `docker-compose.yml` file to use a dev image for the worker container and a stable release image for the `superset_app` container.
+You can either install and configure the headless browser - see "Custom Dockerfile" section below - or when deploying via `docker compose`, modify your `compose.yml` file to use a dev image for the worker container and a stable release image for the `superset_app` container.
 
 *Note*: In this context, a "dev image" is the same application software as its corresponding non-dev image, just bundled with additional tools.  So an image like `3.1.0-dev` is identical to `3.1.0` when it comes to stability, functionality, and running in production.  The actual "in-development" versions of Superset - cutting-edge and unstable - are not tagged with version numbers on Docker Hub and will display version `0.0.0-dev` within the Superset UI.
 
@@ -74,7 +74,7 @@ Note: when you configure an alert or a report, the Slack channel list takes chan
 
 ### Docker Compose specific
 
-#### You must have in your `docker-compose.yml`
+#### You must have in your `compose.yml`
 
 - A Redis message broker
 - PostgreSQL DB instead of SQLlite
