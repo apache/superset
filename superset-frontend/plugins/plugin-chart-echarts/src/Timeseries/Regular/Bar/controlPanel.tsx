@@ -46,7 +46,7 @@ import {
   DEFAULT_FORM_DATA,
   TIME_SERIES_DESCRIPTION_TEXT,
 } from '../../constants';
-import { StackControlsValue } from '../../../constants';
+import { StackControlsValue, BarChartStackControlOptions } from '../../../constants';
 
 const {
   logAxis,
@@ -255,7 +255,7 @@ function createAxisControl(axis: 'x' | 'y'): ControlSetRow[] {
           label: t('Truncate Axis'),
           default: truncateYAxis,
           renderTrigger: true,
-          description: t('It’s not recommended to truncate axis in Bar chart.'),
+          description: t("It's not recommended to truncate axis in Bar chart."),
           visibility: ({ controls }: ControlPanelsContainerProps) =>
             isXAxis ? isHorizontal(controls) : isVertical(controls),
           disableStash: true,
@@ -337,33 +337,17 @@ const config: ControlPanelConfig = {
         ...showValueSection,
         [
           {
-            name: 'stackDimension',
+            name: 'stack',
             config: {
+              // 'Stream' stacking is intentionally not available for Bar charts.
+              // See BarChartStackControlOptions in constants.ts for allowed options.
+              // If a user switches from a Streamed Area/Line chart to Bar, the override below resets it.
               type: 'SelectControl',
-              label: t('Split stack by'),
-              visibility: ({ controls }) =>
-                controls?.stack?.value === StackControlsValue.Stack,
+              label: t('Stacked Style'),
               renderTrigger: true,
-              description: t(
-                'Stack in groups, where each group corresponds to a dimension',
-              ),
-              shouldMapStateToProps: (
-                prevState,
-                state,
-                controlState,
-                chartState,
-              ) => true,
-              mapStateToProps: (state, controlState, chartState) => {
-                const value: JsonArray = state.controls.groupby
-                  .value as JsonArray;
-                const valueAsStringArr: string[][] = value.map(v => {
-                  if (v) return [v.toString(), v.toString()];
-                  return ['', ''];
-                });
-                return {
-                  choices: valueAsStringArr,
-                };
-              },
+              choices: BarChartStackControlOptions,
+              default: null,
+              description: t('Stack series on top of each other'),
             },
           },
         ],
@@ -391,11 +375,18 @@ const config: ControlPanelConfig = {
       ],
     },
   ],
-  formDataOverrides: formData => ({
-    ...formData,
-    metrics: getStandardizedControls().popAllMetrics(),
-    groupby: getStandardizedControls().popAllColumns(),
-  }),
+  formDataOverrides: formData => {
+    let newFormData: any = {
+      ...formData,
+      metrics: getStandardizedControls().popAllMetrics(),
+      groupby: getStandardizedControls().popAllColumns(),
+    };
+    // If switching to Bar chart and stack is 'Stream', reset to null (not allowed for Bar)
+    if (newFormData.stack === StackControlsValue.Stream) {
+      newFormData.stack = null;
+    }
+    return newFormData;
+  },
 };
 
 export default config;
