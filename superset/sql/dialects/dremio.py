@@ -33,16 +33,13 @@ class DremioRegexpSplit(exp.Func):
 
 
 class Dremio(Dialect):
-
     class Parser(parser.Parser):
-
         FUNCTIONS = {
             **parser.Parser.FUNCTIONS,
             "REGEXP_SPLIT": DremioRegexpSplit.from_arg_list,
         }
 
     class Generator(generator.Generator):
-
         TRANSFORMS = {
             **generator.Generator.TRANSFORMS,
             DremioRegexpSplit: rename_func("REGEXP_SPLIT"),
