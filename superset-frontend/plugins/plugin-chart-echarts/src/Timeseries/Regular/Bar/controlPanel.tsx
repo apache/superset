@@ -339,9 +339,7 @@ const config: ControlPanelConfig = {
           {
             name: 'stack',
             config: {
-              // 'Stream' stacking is intentionally not available for Bar charts.
-              // See BarChartStackControlOptions in constants.ts for allowed options.
-              // If a user switches from a Streamed Area/Line chart to Bar, the override below resets it.
+              // 'Stream' stack is disabled for Bar charts; see formDataOverrides.
               type: 'SelectControl',
               label: t('Stacked Style'),
               renderTrigger: true,
@@ -381,7 +379,7 @@ const config: ControlPanelConfig = {
       metrics: getStandardizedControls().popAllMetrics(),
       groupby: getStandardizedControls().popAllColumns(),
     };
-    // If switching to Bar chart and stack is 'Stream', reset to null (not allowed for Bar)
+    // Reset 'Stream' stack, as it is not supported for Bar charts.
     if (newFormData.stack === StackControlsValue.Stream) {
       newFormData.stack = null;
     }
