@@ -85,7 +85,7 @@ SQLGLOT_DIALECTS = {
     # "odelasticsearch": ???
     "oracle": Dialects.ORACLE,
     "parseable": Dialects.POSTGRES,
-    # "pinot": ???
+    "pinot": Dialects.MYSQL,
     "postgresql": Dialects.POSTGRES,
     "presto": Dialects.PRESTO,
     "pydoris": Dialects.DORIS,
