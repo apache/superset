@@ -500,15 +500,6 @@ const RightMenu = ({
             <ThemeEditor theme={themeEditorTheme} setTheme={setTheme} />
           </span>
         )}
-        {isFeatureEnabled(FeatureFlag.ThemeEnableDarkThemeSwitch) && (
-          <span>
-            <ThemeSelect
-              changeThemeMode={changeThemeMode}
-              themeMode={themeMode}
-            />
-          </span>
-        )}
-
         <StyledSubMenu
           key="sub3_settings"
           title={t('Settings')}

@@ -1,0 +1,53 @@
+---
+title: Theming
+hide_title: true
+sidebar_position: 12
+version: 1
+---
+# Theming Superset
+
+:::note
+apache-superset>=6.0
+:::
+
+Superset now rides on **Ant Design v5’s token-based theming**.
+Every Antd token works, plus a handful of Superset-specific ones for charts and dashboard chrome.
+
+## 1 — Create a theme
+
+1. Open the official **Ant Design Theme Editor**: <https://ant.design/theme-editor>
+2. Design your palette, typography, and component overrides.
+3. Open the `CONFIG` modal and paste the JSON.
+
+You can also extend with Superset-specific tokens (documented in the default theme object) before you import.
+
+## 2 — Apply it instance-wide
+
+```python
+# superset_config.py
+THEME = {
+    # Paste your JSON theme definition here
+}
+```
+
+Restart Superset to apply changes
+
+## 3 — Tweak live in the app (beta)
+
+Set the feature flag in your `superset_config`
+```python
+DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
+    {{ ... }}
+    THEME_ALLOW_THEME_EDITOR_BETA = True,
+}
+```
+
+- Enables a JSON editor panel inside Superset as a new icon in the navbar
+- Intended for testing/design and rapid in-context iteration
+- End-user theme switching & preferences coming later
+
+## 4 — Potential Next Steps
+
+- CRUD UI for managing multiple themes
+- Per-dashboard & per-workspace theme assignment
+- User-selectable theme preferences

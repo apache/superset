@@ -67,7 +67,6 @@ const ThemeEditor: React.FC<ThemeEditorProps> = ({
   const handleSave = (): void => {
     try {
       const parsedTheme = JSON.parse(jsonMetadata);
-      console.log('Parsed theme:', parsedTheme);
       setTheme?.(parsedTheme);
       setIsModalOpen(false);
     } catch (error) {
