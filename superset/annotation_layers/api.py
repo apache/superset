@@ -43,7 +43,7 @@ from superset.commands.annotation_layer.exceptions import (
 from superset.commands.annotation_layer.update import UpdateAnnotationLayerCommand
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.extensions import event_logger
-from superset.models.annotations import AnnotationLayer
+from superset.models.annotations import AnnotationLayer, Annotation
 from superset.views.base_api import (
     BaseSupersetModelRestApi,
     requires_json,
@@ -352,3 +352,67 @@ class AnnotationLayerRestApi(BaseSupersetModelRestApi):
             return self.response_422(message=str(ex))
         except AnnotationLayerDeleteFailedError as ex:
             return self.response_422(message=str(ex))
+
+    @expose("/<int:layer_id>/annotations", methods=("GET",))
+    @protect()
+    @safe
+    @permission_name("get")
+    def get_annotations(self, layer_id: int) -> Response:
+        """Get all annotations for a given layer.
+        ---
+        get:
+          summary: Get all annotations for a given layer
+          parameters:
+          - in: path
+            schema:
+              type: integer
+            name: layer_id
+            description: The annotation layer id
+          responses:
+            200:
+              description: Annotations fetched
+              content:
+                application/json:
+                  schema:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: integer
+                        start_dttm:
+                          type: string
+                          format: date-time
+                        end_dttm:
+                          type: string
+                          format: date-time
+                        short_descr:
+                          type: string
+                        long_descr:
+                          type: string
+                        json_metadata:
+                          type: string
+            404:
+              $ref: '#/components/responses/404'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        annotations = (
+            self.appbuilder.get_session.query(Annotation)
+            .filter(Annotation.layer_id == layer_id)
+            .all()
+        )
+        if not annotations:
+            return self.response_404()
+        result = [
+            {
+                "id": annotation.id,
+                "start_dttm": annotation.start_dttm,
+                "end_dttm": annotation.end_dttm,
+                "short_descr": annotation.short_descr,
+                "long_descr": annotation.long_descr,
+                "json_metadata": annotation.json_metadata,
+            }
+            for annotation in annotations
+        ]
+        return self.response(200, result=result)
