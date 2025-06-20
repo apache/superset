@@ -22,7 +22,7 @@ describe('SqlLab query tabs', () => {
   });
 
   const tablistSelector = '[data-test="sql-editor-tabs"] > [role="tablist"]';
-  const tabSelector = `${tablistSelector} [role="tab"]`;
+  const tabSelector = `${tablistSelector} [role="tab"]:not([type="button"])`;
 
   it('allows you to create and close a tab', () => {
     cy.get(tabSelector).then(tabs => {
@@ -80,9 +80,9 @@ describe('SqlLab query tabs', () => {
       // configure some editor settings
       cy.get(editorInput).type('some random query string', { force: true });
       cy.get(queryLimitSelector).parent().click({ force: true });
-      cy.get('.antd5-dropdown-menu')
+      cy.get('.ant-dropdown-menu')
         .last()
-        .find('.antd5-dropdown-menu-item')
+        .find('.ant-dropdown-menu-item')
         .first()
         .click({ force: true });
 

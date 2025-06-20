@@ -18,18 +18,12 @@
  */
 
 import '@testing-library/jest-dom';
-import { render, screen } from '@testing-library/react';
-import { ReactElement } from 'react';
+import { render, screen } from '@superset-ui/core/spec';
 import mockConsole, { RestoreConsole } from 'jest-mock-console';
 import { triggerResizeObserver } from 'resize-observer-polyfill';
 import { ErrorBoundary } from 'react-error-boundary';
 
-import {
-  promiseTimeout,
-  SuperChart,
-  supersetTheme,
-  ThemeProvider,
-} from '@superset-ui/core';
+import { promiseTimeout, SuperChart } from '@superset-ui/core';
 import { WrapperProps } from '../../../src/chart/components/SuperChart';
 
 import {
@@ -50,13 +44,6 @@ function getDimensionText(container: HTMLElement) {
   const dimensionEl = container.querySelector('.dimension');
   return dimensionEl?.textContent || '';
 }
-
-const renderWithTheme = (component: ReactElement) =>
-  render(component, {
-    wrapper: ({ children }) => (
-      <ThemeProvider theme={supersetTheme}>{children}</ThemeProvider>
-    ),
-  });
 
 describe('SuperChart', () => {
   jest.setTimeout(5000);
@@ -108,7 +95,7 @@ describe('SuperChart', () => {
 
     it('renders default FallbackComponent', async () => {
       expectedErrors = 1;
-      renderWithTheme(
+      render(
         <SuperChart
           chartType={ChartKeys.BUGGY}
           queriesData={[DEFAULT_QUERY_DATA]}
@@ -128,7 +115,7 @@ describe('SuperChart', () => {
         <div>Custom Fallback!</div>
       ));
 
-      renderWithTheme(
+      render(
         <SuperChart
           chartType={ChartKeys.BUGGY}
           queriesData={[DEFAULT_QUERY_DATA]}
@@ -144,7 +131,7 @@ describe('SuperChart', () => {
     it('call onErrorBoundary', async () => {
       expectedErrors = 1;
       const handleError = jest.fn();
-      renderWithTheme(
+      render(
         <SuperChart
           chartType={ChartKeys.BUGGY}
           queriesData={[DEFAULT_QUERY_DATA]}
@@ -163,7 +150,7 @@ describe('SuperChart', () => {
       expectedErrors = 1;
       const inactiveErrorHandler = jest.fn();
       const activeErrorHandler = jest.fn();
-      renderWithTheme(
+      render(
         <ErrorBoundary
           fallbackRender={() => <div>Error!</div>}
           onError={activeErrorHandler}
@@ -195,7 +182,7 @@ describe('SuperChart', () => {
 
   // Update the props test to wait for component to render
   it('passes the props to renderer correctly', async () => {
-    const { container } = renderWithTheme(
+    const { container } = render(
       <SuperChart
         chartType={ChartKeys.DILIGENT}
         queriesData={[DEFAULT_QUERY_DATA]}
@@ -273,7 +260,7 @@ describe('SuperChart', () => {
 
   // Update the resize observer trigger to ensure it's called after component mount
   it.skip('works when width and height are percent', async () => {
-    const { container } = renderWithTheme(
+    const { container } = render(
       <SuperChart
         chartType={ChartKeys.DILIGENT}
         queriesData={[DEFAULT_QUERY_DATA]}
@@ -321,7 +308,7 @@ describe('SuperChart', () => {
   });
 
   it('passes the props with multiple queries to renderer correctly', async () => {
-    const { container } = renderWithTheme(
+    const { container } = render(
       <SuperChart
         chartType={ChartKeys.DILIGENT}
         queriesData={DEFAULT_QUERIES_DATA}
@@ -341,7 +328,7 @@ describe('SuperChart', () => {
 
   describe('supports NoResultsComponent', () => {
     it('renders NoResultsComponent when queriesData is missing', () => {
-      renderWithTheme(
+      render(
         <SuperChart chartType={ChartKeys.DILIGENT} width="200" height="200" />,
       );
 
@@ -349,7 +336,7 @@ describe('SuperChart', () => {
     });
 
     it('renders NoResultsComponent when queriesData data is null', () => {
-      renderWithTheme(
+      render(
         <SuperChart
           chartType={ChartKeys.DILIGENT}
           queriesData={[{ data: null }]}
@@ -376,7 +363,7 @@ describe('SuperChart', () => {
     }
 
     it('works with width and height that are numbers', async () => {
-      const { container } = renderWithTheme(
+      const { container } = render(
         <SuperChart
           chartType={ChartKeys.DILIGENT}
           queriesData={[DEFAULT_QUERY_DATA]}
@@ -397,7 +384,7 @@ describe('SuperChart', () => {
       const wrapper = createSizedWrapper();
       document.body.appendChild(wrapper);
 
-      const { container } = renderWithTheme(
+      const { container } = render(
         <div style={{ width: '100%', height: '100%', position: 'absolute' }}>
           <SuperChart
             chartType={ChartKeys.DILIGENT}

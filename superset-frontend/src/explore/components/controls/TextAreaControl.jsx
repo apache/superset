@@ -18,13 +18,14 @@
  */
 import { Component } from 'react';
 import PropTypes from 'prop-types';
-import { TextArea } from 'src/components/Input';
-import { Tooltip, TooltipProps } from 'src/components/Tooltip';
+import {
+  Input,
+  Tooltip,
+  Button,
+  TextAreaEditor,
+  ModalTrigger,
+} from '@superset-ui/core/components';
 import { t, withTheme } from '@superset-ui/core';
-
-import Button from 'src/components/Button';
-import { TextAreaEditor } from 'src/components/AsyncAceEditor';
-import ModalTrigger from 'src/components/ModalTrigger';
 
 import ControlHeader from 'src/explore/components/ControlHeader';
 
@@ -56,7 +57,7 @@ const propTypes = {
     'vertical',
   ]),
   textAreaStyles: PropTypes.object,
-  tooltipOptions: PropTypes.oneOf([null, TooltipProps]),
+  tooltipOptions: PropTypes.object,
   hotkeys: PropTypes.array,
 };
 
@@ -88,7 +89,7 @@ class TextAreaControl extends Component {
     const minLines = inModal ? 40 : this.props.minLines || 12;
     if (this.props.language) {
       const style = {
-        border: `1px solid ${this.props.theme.colors.grayscale.light1}`,
+        border: `1px solid ${this.props.theme.colorBorder}`,
         minHeight: `${minLines}em`,
         width: 'auto',
         ...this.props.textAreaStyles,
@@ -134,7 +135,7 @@ class TextAreaControl extends Component {
 
     const textArea = (
       <div>
-        <TextArea
+        <Input.TextArea
           placeholder={t('textarea')}
           onChange={this.onControlChange.bind(this)}
           defaultValue={this.props.initialValue}
@@ -169,7 +170,10 @@ class TextAreaControl extends Component {
           <ModalTrigger
             modalTitle={controlHeader}
             triggerNode={
-              <Button buttonSize="small" className="m-t-5">
+              <Button
+                buttonSize="small"
+                style={{ marginTop: this.props.theme.sizeUnit }}
+              >
                 {t('Edit')} <strong>{this.props.language}</strong>{' '}
                 {t('in modal')}
               </Button>

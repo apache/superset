@@ -183,6 +183,7 @@ export default function transformProps(
             `${index * titleOffsetFromTitle + OFFSETS.titleFromCenter}%`,
           ],
           fontSize,
+          color: theme.colorTextSecondary,
         },
         detail: {
           offsetCenter: [
@@ -194,6 +195,7 @@ export default function transformProps(
             }%`,
           ],
           fontSize: FONT_SIZE_MULTIPLIERS.detailFontSize * fontSize,
+          color: theme.colorText,
         },
       };
       if (

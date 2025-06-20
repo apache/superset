@@ -17,9 +17,11 @@
  * under the License.
  */
 import { SupersetTheme, t } from '@superset-ui/core';
-import { Switch } from 'src/components/Switch';
-import InfoTooltip from 'src/components/InfoTooltip';
-import ValidatedInput from 'src/components/Form/LabeledErrorBoundInput';
+import { Switch } from '@superset-ui/core/components/Switch';
+import {
+  InfoTooltip,
+  LabeledErrorBoundInput as ValidatedInput,
+} from '@superset-ui/core/components';
 import { FieldPropTypes } from '../../types';
 import { toggleStyle, infoTooltip } from '../styles';
 
@@ -336,7 +338,6 @@ export const forceSSLField = ({
     <InfoTooltip
       tooltip={t('SSL Mode "require" will be used.')}
       placement="right"
-      viewBox="0 -5 24 24"
     />
   </div>
 );

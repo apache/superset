@@ -35,8 +35,10 @@ import {
   getSSHPrivateKeysNeeded,
   getSSHPrivateKeyPasswordsNeeded,
 } from 'src/views/CRUD/utils';
-import { FetchDataConfig } from 'src/components/ListView';
-import { FilterValue } from 'src/components/ListView/types';
+import type {
+  ListViewFetchDataConfig as FetchDataConfig,
+  ListViewFilterValue as FilterValue,
+} from 'src/components';
 import Chart, { Slice } from 'src/types/Chart';
 import copyTextToClipboard from 'src/utils/copy';
 import { ensureAppRoot } from 'src/utils/pathUtils';

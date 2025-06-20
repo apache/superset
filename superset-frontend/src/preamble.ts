@@ -23,11 +23,10 @@ import dayjs from 'dayjs';
 import {
   configure,
   makeApi,
-  // eslint-disable-next-line no-restricted-imports
-  supersetTheme, // TODO: DO not import theme directly
   initFeatureFlags,
+  // eslint-disable-next-line no-restricted-imports
+  themeObject, // TODO: DO not import theme directly
 } from '@superset-ui/core';
-import { merge } from 'lodash';
 import setupClient from './setup/setupClient';
 import setupColors from './setup/setupColors';
 import setupFormatters from './setup/setupFormatters';
@@ -69,10 +68,9 @@ setupFormatters(
 
 setupDashboardComponents();
 
-export const theme = merge(
-  supersetTheme,
-  bootstrapData.common.theme_overrides ?? {},
-);
+if (Object.keys(bootstrapData?.common?.theme_overrides || {}).length > 0) {
+  themeObject.setConfig(bootstrapData.common.theme_overrides);
+}
 
 const getMe = makeApi<void, User>({
   method: 'GET',

@@ -10,7 +10,7 @@ import { FormatLocaleDefinition } from 'd3-format';
 import { TimeLocaleDefinition } from 'd3-time-format';
 import { isPlainObject } from 'lodash';
 import { Languages } from 'src/features/home/LanguagePicker';
-import { FlashMessage } from '../components/FlashProvider';
+import type { FlashMessage } from 'src/components';
 
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -117,7 +117,7 @@ export interface NavBarProps {
 export interface MenuObjectChildProps {
   label: string;
   name?: string;
-  icon?: string;
+  icon?: React.ReactNode;
   index?: number;
   url?: string;
   onClick?: () => void;
