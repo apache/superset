@@ -74,7 +74,7 @@ cattrs==25.1.1
     # via
     #   -c requirements/base.txt
     #   requests-cache
-celery==5.5.2
+celery==5.5.3
     # via
     #   -c requirements/base.txt
     #   apache-superset
@@ -403,7 +403,7 @@ jsonschema-specifications==2025.4.1
     #   openapi-schema-validator
 kiwisolver==1.4.7
     # via matplotlib
-kombu==5.5.3
+kombu==5.5.4
     # via
     #   -c requirements/base.txt
     #   celery
@@ -517,6 +517,7 @@ packaging==25.0
     #   docker
     #   google-cloud-bigquery
     #   gunicorn
+    #   kombu
     #   limits
     #   marshmallow
     #   matplotlib

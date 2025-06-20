@@ -44,7 +44,7 @@ cachetools==5.5.2
     # via google-auth
 cattrs==25.1.1
     # via requests-cache
-celery==5.5.2
+celery==5.5.3
     # via apache-superset (pyproject.toml)
 certifi==2025.6.15
     # via
@@ -197,7 +197,7 @@ jsonschema-specifications==2025.4.1
     # via
     #   jsonschema
     #   openapi-schema-validator
-kombu==5.5.3
+kombu==5.5.4
     # via celery
 korean-lunar-calendar==0.3.1
     # via holidays
@@ -259,6 +259,7 @@ packaging==25.0
     #   apispec
     #   deprecation
     #   gunicorn
+    #   kombu
     #   limits
     #   marshmallow
     #   shillelagh
