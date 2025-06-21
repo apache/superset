@@ -127,7 +127,7 @@ into the container from PyPI at runtime. This file will be ignored by Git for
 the purposes of local development.
 
 Create the file `requirements-local.txt` in a subdirectory called `docker` that
-exists in the directory with your `docker-compose.yml` or `docker-compose-non-dev.yml` file.
+exists in the directory with your `compose.yml` or `compose-non-dev.yml` file.
 
 ```bash
 # Run from the repo root:
@@ -142,7 +142,7 @@ echo "mysqlclient" >> ./docker/requirements-local.txt
 ```
 
 **If you are running a stock (non-customized) Superset image**, you are done.
-Launch Superset with `docker compose -f docker-compose-non-dev.yml up` and
+Launch Superset with `docker compose -f compose-non-dev.yml up` and
 the driver should be present.
 
 You can check its presence by entering the running container with
