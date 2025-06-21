@@ -99,7 +99,7 @@ const StyledNav = styled(AntdMenu)`
       ::after {
         content: '';
         position: absolute;
-        width: 100%;
+        width: 98%;
         height: 2px;
         background-color: ${theme.colorPrimaryBorderHover};
         bottom: ${theme.sizeUnit / 4}px;
