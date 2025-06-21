@@ -29,6 +29,22 @@ import DashboardComponent from '../containers/DashboardComponent';
 import { Droppable } from './dnd/DragDroppable';
 import { GRID_GUTTER_SIZE, GRID_COLUMN_COUNT } from '../util/constants';
 import { TAB_TYPE } from '../util/componentTypes';
+import Button from 'src/components/Button';
+import { Input } from 'src/components/Input';
+import React, { useCallback, useEffect, useState } from 'react';
+import {dashboardAgentQuery} from 'src/dashboard/actions/dashboardAgentQuery';
+import Loading from 'src/components/Loading';
+import Modal from 'src/components/Modal';
+import {
+  FeatureFlag,
+  isFeatureEnabled 
+} from '@superset-ui/core';
+
+const queryDivStyle = styled.div`
+  width: 100%;
+`;
+
+const showAgentQuery = isFeatureEnabled(FeatureFlag.Show_Dashboard_Agent_Query);
 
 const propTypes = {
   depth: PropTypes.number.isRequired,
@@ -118,6 +134,10 @@ class DashboardGrid extends PureComponent {
     super(props);
     this.state = {
       isResizing: false,
+      queryText: '',
+      dashboard_query_result_loading: false,
+      showDashboardQueryResultsModal: false,
+      Agentic_Dasbhaord_Query_Response: ''
     };
     this.theme = this;
     this.handleResizeStart = this.handleResizeStart.bind(this);
@@ -126,6 +146,9 @@ class DashboardGrid extends PureComponent {
     this.getRowGuidePosition = this.getRowGuidePosition.bind(this);
     this.setGridRef = this.setGridRef.bind(this);
     this.handleChangeTab = this.handleChangeTab.bind(this);
+    this.handleInputQueryChange = this.handleInputQueryChange.bind(this);
+    this.submitDashboardQuery = this.submitDashboardQuery.bind(this);
+    this.hideDashboardModal = this.hideDashboardModal.bind(this);
   }
 
   getRowGuidePosition(resizeRef) {
@@ -178,6 +201,33 @@ class DashboardGrid extends PureComponent {
     this.props.setDirectPathToChild(pathToTabIndex);
   }
 
+  handleInputQueryChange(event) {
+    this.setState(() => ({
+      queryText: event.target.value,
+    }));
+  }
+
+  async submitDashboardQuery(queryText, dashboardId) {
+    this.setState(() => ({
+      dashboard_query_result_loading: true,
+    }));
+    const result = await dashboardAgentQuery(queryText, dashboardId)
+    this.setState(() => ({
+      dashboard_query_result_loading: false,
+    }));
+
+    this.setState(() => ({
+      showDashboardQueryResultsModal: true,
+      Agentic_Dasbhaord_Query_Response: result["result"]["Agentic Response"]
+    })); 
+  }
+
+  hideDashboardModal() {
+    this.setState(() => ({
+      showDashboardQueryResultsModal: false
+    }));    
+  }
+
   render() {
     const {
       gridComponent,
@@ -195,7 +245,7 @@ class DashboardGrid extends PureComponent {
       (width + GRID_GUTTER_SIZE) / GRID_COLUMN_COUNT;
 
     const columnWidth = columnPlusGutterWidth - GRID_GUTTER_SIZE;
-    const { isResizing } = this.state;
+    const { isResizing, queryText, dashboard_query_result_loading, showDashboardQueryResultsModal, Agentic_Dasbhaord_Query_Response } = this.state;
 
     const shouldDisplayEmptyState = gridComponent?.children?.length === 0;
     const shouldDisplayTopLevelTabEmptyState =
@@ -263,6 +313,30 @@ class DashboardGrid extends PureComponent {
 
     return width < 100 ? null : (
       <>
+        {showAgentQuery && (
+          <queryDivStyle>
+            <Input style={{width: '80%'}} value={queryText} onChange={this.handleInputQueryChange} />
+            <Button buttonStyle="primary" style={{width: '20%'}} onClick={() => this.submitDashboardQuery(queryText, dashboardId)}>Submit Query</Button>
+            {
+              dashboard_query_result_loading && (
+                <center><Loading position="normal" /></center>
+              )
+            }
+
+        <Modal
+          title="Dashboard Query Result"
+          show={showDashboardQueryResultsModal}
+          onHide={this.hideDashboardModal}
+          footer={null}
+          onHandledPrimaryAction={this.hideDashboardModal}
+        >
+          <div style={{whiteSpace: 'break-spaces'}}>
+            {Agentic_Dasbhaord_Query_Response}
+          </div>
+        </Modal>
+          </queryDivStyle>
+        )}
+        
         {shouldDisplayEmptyState && (
           <DashboardEmptyStateContainer>
             {shouldDisplayTopLevelTabEmptyState
