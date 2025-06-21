@@ -373,7 +373,6 @@ const RightMenu = ({
   };
 
   const theme = useTheme();
-
   return (
     <StyledDiv align={align}>
       {canDatabase && (
