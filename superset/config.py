@@ -551,7 +551,8 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     "PLAYWRIGHT_REPORTS_AND_THUMBNAILS": False,
     # Set to True to enable experimental chart plugins
     "CHART_PLUGINS_EXPERIMENTAL": False,
-    # Regardless of database configuration settings, force SQLLAB to run async using Celery  # noqa: E501
+    # Regardless of database configuration settings, force SQLLAB to run async
+    # using Celery
     "SQLLAB_FORCE_RUN_ASYNC": False,
     # Set to True to to enable factory resent CLI command
     "ENABLE_FACTORY_RESET_COMMAND": False,
@@ -559,11 +560,17 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # If on, you'll want to add "https://avatars.slack-edge.com" to the list of allowed
     # domains in your TALISMAN_CONFIG
     "SLACK_ENABLE_AVATARS": False,
-    # Adds a switch to the navbar to enable/disable the dark theme
-    # This is used for development to expose what is dynamic (css-in-js) vs
-    # what is managed by `.less` files.
-    "THEME_ALLOW_THEME_EDITOR_BETA": True,
-    # Allow users to optionally specify date formats in email subjects, which will be parsed if enabled. # noqa: E501
+    # Adds a switch to the navbar to easily switch between light and dark themes.
+    # This is intended to use for development, visual review, and theming-debugging
+    # purposes.
+    "THEME_ENABLE_DARK_THEME_SWITCH": False,
+    # Adds a theme editor as a modal dialog in the navbar. Allows people to type in JSON
+    # and see the changes applied to the current theme.
+    # This is intended to use for theme creation, visual review and theming-debugging
+    # purposes.
+    "THEME_ALLOW_THEME_EDITOR_BETA": False,
+    # Allow users to optionally specify date formats in email subjects, which will
+    # be parsed if enabled
     "DATE_FORMAT_IN_EMAIL_SUBJECT": False,
     # Allow metrics and columns to be grouped into (potentially nested) folders in the
     # chart builder
