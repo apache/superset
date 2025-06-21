@@ -197,7 +197,7 @@ class DatasetDAO(BaseDAO[SqlaTable]):
                 cls.update_metrics(item, attributes.pop("metrics"))
                 force_update = True
 
-            if force_update:
+            if attributes or force_update:
                 attributes["changed_on"] = datetime.now()
 
         return super().update(item, attributes)
