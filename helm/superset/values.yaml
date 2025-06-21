@@ -294,6 +294,7 @@ supersetNode:
     db_user: superset
     db_pass: superset
     db_name: superset
+    #db_conn_params: "sslmode=require"
   env: {}
   # -- If true, forces deployment to reload on each upgrade
   forceReload: false
