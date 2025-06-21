@@ -17,7 +17,6 @@
  * under the License.
  */
 import { setConfig as setHotLoaderConfig } from 'react-hot-loader';
-import 'abortcontroller-polyfill/dist/abortcontroller-polyfill-only';
 import dayjs from 'dayjs';
 // eslint-disable-next-line no-restricted-imports
 import {
