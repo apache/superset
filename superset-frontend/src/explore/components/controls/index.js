@@ -55,6 +55,7 @@ import LayerConfigsControl from './LayerConfigsControl/LayerConfigsControl';
 import MapViewControl from './MapViewControl/MapViewControl';
 import ZoomConfigControl from './ZoomConfigControl/ZoomConfigControl';
 import NumberControl from './NumberControl';
+import TimeRangeControl from './TimeRangeControl';
 
 const extensionsRegistry = getExtensionsRegistry();
 const DateFilterControlExtension = extensionsRegistry.get(
@@ -99,6 +100,7 @@ const controlMap = {
   TimeOffsetControl,
   ZoomConfigControl,
   NumberControl,
+  TimeRangeControl,
   ...sharedControlComponents,
 };
 export default controlMap;

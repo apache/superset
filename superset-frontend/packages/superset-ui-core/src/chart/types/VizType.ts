@@ -31,6 +31,7 @@ export enum VizType {
   Compare = 'compare',
   CountryMap = 'country_map',
   Funnel = 'funnel',
+  Gantt = 'gantt_chart',
   Gauge = 'gauge_chart',
   Graph = 'graph_chart',
   Handlebars = 'handlebars',
