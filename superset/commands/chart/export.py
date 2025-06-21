@@ -47,7 +47,7 @@ class ExportChartsCommand(ExportModelsCommand):
 
     @staticmethod
     def _file_name(model: Slice) -> str:
-        file_name = get_filename(model.slice_name, model.id)
+        file_name = get_filename(model.slice_name, model.id, skip_id=True)
         return f"charts/{file_name}.yaml"
 
     @staticmethod

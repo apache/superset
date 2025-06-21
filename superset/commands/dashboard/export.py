@@ -111,7 +111,7 @@ class ExportDashboardsCommand(ExportModelsCommand):
 
     @staticmethod
     def _file_name(model: Dashboard) -> str:
-        file_name = get_filename(model.dashboard_title, model.id)
+        file_name = get_filename(model.dashboard_title, model.id, skip_id=True)
         return f"dashboards/{file_name}.yaml"
 
     @staticmethod
