@@ -17,6 +17,7 @@
  * under the License.
  */
 
+import { PickingInfo } from '@deck.gl/core';
 import { JsonObject, QueryFormData } from '@superset-ui/core';
 import { getAggFunc, commonLayerProps } from './common';
 
@@ -99,22 +100,22 @@ describe('commonLayerProps', () => {
       ...partialformData,
       js_tooltip: 'tooltip => tooltip.content',
     } as QueryFormData;
-    const props = commonLayerProps(
+    const props = commonLayerProps({
       formData,
-      mockSetTooltip,
-      mockSetTooltipContent,
-    );
+      setTooltip: mockSetTooltip,
+      setTooltipContent: mockSetTooltipContent,
+    });
     expect(props.pickable).toBe(true);
     expect(props.onHover).toBeDefined();
   });
 
   it('calls onHover and sets tooltip', () => {
     const formData = { ...partialformData, js_tooltip: null } as QueryFormData;
-    const props = commonLayerProps(
+    const props = commonLayerProps({
       formData,
-      mockSetTooltip,
-      mockSetTooltipContent,
-    );
+      setTooltip: mockSetTooltip,
+      setTooltipContent: mockSetTooltipContent,
+    });
 
     const mockObject = { picked: true, x: 10, y: 20 };
     props.onHover?.(mockObject);
@@ -131,15 +132,30 @@ describe('commonLayerProps', () => {
       table_filter: true,
       line_column: 'name',
     } as QueryFormData;
-    const props = commonLayerProps(
+    const props = commonLayerProps({
       formData,
-      mockSetTooltip,
-      mockSetTooltipContent,
-      mockOnSelect,
-    );
+      setTooltip: mockSetTooltip,
+      setTooltipContent: mockSetTooltipContent,
+      onSelect: mockOnSelect,
+    });
 
-    const mockObject = { object: { name: 'John Doe' } };
-    props.onClick?.(mockObject);
+    const pickingData = {
+      color: [],
+      index: 1,
+      coordinate: [-122.40138935788005, 37.77785781376027],
+      devicePixel: [345, 428],
+      pixel: [172, 116.484375],
+      pixelRatio: 2,
+      picked: true,
+      sourceLayer: {},
+      viewport: { zoom: 10 },
+      layer: {},
+      x: 172,
+      y: 116.484375,
+      object: { name: 'John Doe' },
+    } as unknown as PickingInfo;
+
+    props.onClick?.(pickingData, {});
     expect(mockOnSelect).toHaveBeenCalledWith('John Doe');
   });
 });
