@@ -32,6 +32,10 @@ import { store } from './store';
 import '../preamble';
 
 const { common } = getBootstrapData();
+
+if (Object.keys(common?.theme || {}).length > 0) {
+  themeObject.setConfig(common.theme);
+}
 const themeController = new ThemeController({ themeObject });
 
 const extensionsRegistry = getExtensionsRegistry();
