@@ -108,9 +108,6 @@ export interface LegacySupersetTheme {
 }
 
 export interface SupersetSpecificTokens {
-  // Brand-related
-  brandIconMaxWidth: number;
-
   // Font-related
   fontSizeXS: string;
   fontSizeXXL: string;
@@ -118,6 +115,8 @@ export interface SupersetSpecificTokens {
   fontWeightLight: string;
   fontWeightStrong: number;
 
+  // Brand-related
+  brandIconMaxWidth: number;
   brandLogoAlt: string;
   brandLogoUrl: string;
   brandLogoMargin: string;
