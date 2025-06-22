@@ -313,7 +313,7 @@
     "eslint-plugin-storybook": "^0.8.0",
     "eslint-plugin-testing-library": "^6.4.0",
     "eslint-plugin-theme-colors": "file:eslint-rules/eslint-plugin-theme-colors",
-    "fetch-mock": "^9.1.0",
+    "fetch-mock": "^10.0.0",
     "fork-ts-checker-webpack-plugin": "^9.0.2",
     "history": "^5.3.0",
     "html-webpack-plugin": "^5.6.3",
