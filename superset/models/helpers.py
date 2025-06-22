@@ -1153,6 +1153,12 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         def handle_single_value(value: Optional[FilterValue]) -> Optional[FilterValue]:
             if operator == utils.FilterOperator.TEMPORAL_RANGE:
                 return value
+
+            if (
+                isinstance(value, (float, int))
+                and target_generic_type == utils.GenericDataType.NUMERIC
+            ):
+                value = float(value)
             if (
                 isinstance(value, (float, int))
                 and target_generic_type == utils.GenericDataType.TEMPORAL
@@ -1178,6 +1184,10 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 ):
                     # For backwards compatibility and edge cases
                     # where a column data type might have changed
+                    try:
+                        value = float(value)
+                    except ValueError:
+                        logger.warning(f"Unable to convert {value} to number")
                     return utils.cast_to_num(value)
                 if value == NULL_STRING:
                     return None
