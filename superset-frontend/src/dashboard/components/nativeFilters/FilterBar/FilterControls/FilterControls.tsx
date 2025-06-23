@@ -140,17 +140,17 @@ const FilterControls: FC<FilterControlsProps> = ({
   // Shared section styling
   const sectionContainerStyle = useCallback(
     (theme: SupersetTheme) => css`
-      margin-bottom: ${theme.gridUnit * 4}px;
-      padding: ${theme.gridUnit * 2}px;
+      margin-bottom: ${theme.sizeUnit * 4}px;
+      padding: ${theme.sizeUnit * 2}px;
       background-color: ${theme.colors.grayscale.light5};
-      border-radius: ${theme.gridUnit}px;
+      border-radius: ${theme.sizeUnit}px;
     `,
     [],
   );
 
   const sectionHeaderStyle = useCallback(
     (theme: SupersetTheme) => css`
-      margin-bottom: ${theme.gridUnit * 2}px;
+      margin-bottom: ${theme.sizeUnit * 2}px;
     `,
     [],
   );
@@ -158,8 +158,8 @@ const FilterControls: FC<FilterControlsProps> = ({
   const sectionTitleStyle = useCallback(
     (theme: SupersetTheme) => css`
       margin: 0;
-      font-size: ${theme.typography.sizes.s}px;
-      font-weight: ${theme.typography.weights.bold};
+      font-size: ${theme.fontSizeSM}px;
+      font-weight: 600;
     `,
     [],
   );
@@ -200,7 +200,7 @@ const FilterControls: FC<FilterControlsProps> = ({
               css={(theme: SupersetTheme) => css`
                 display: flex;
                 flex-direction: column;
-                gap: ${theme.gridUnit * 2}px;
+                gap: ${theme.sizeUnit * 2}px;
               `}
             >
               {chartCustomizationItems
@@ -216,9 +216,6 @@ const FilterControls: FC<FilterControlsProps> = ({
           <FiltersOutOfScopeCollapsible
             filtersOutOfScope={filtersOutOfScope}
             forceRender={hasRequiredFirst}
-            hasTopMargin={
-              filtersInScope.length > 0 || chartCustomizationItems.length > 0
-            }
             renderer={renderer}
           />
         )}
@@ -317,7 +314,7 @@ const FilterControls: FC<FilterControlsProps> = ({
               css={(theme: SupersetTheme) => css`
                 display: flex;
                 flex-direction: column;
-                gap: ${theme.gridUnit * 2}px;
+                gap: ${theme.sizeUnit * 2}px;
               `}
             >
               {chartCustomizationItems
