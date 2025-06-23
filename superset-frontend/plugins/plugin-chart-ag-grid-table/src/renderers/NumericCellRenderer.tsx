@@ -22,7 +22,7 @@ import { BasicColorFormatterType, InputColumn } from '../types';
 
 const StyledTotalCell = styled.div`
   ${({ theme }) => `
-    font-weight: ${theme.typography.weights.bold};
+    font-weight: ${theme.fontWeightStrong};
   `}
 `;
 

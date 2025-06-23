@@ -33,11 +33,11 @@ const PaginationContainer = styled.div`
     display: flex;
     align-items: center;
     justify-content: flex-end;
-    padding: ${theme.gridUnit * 2}px ${theme.gridUnit * 4}px;
+    padding: ${theme.sizeUnit * 2}px ${theme.sizeUnit * 4}px;
     border-top: 1px solid ${theme.colors.grayscale.light2};
-    font-size: ${theme.typography.sizes.m}px;
+    font-size: ${theme.fontSize}px;
     color: ${theme.colors.grayscale.dark1};
-    transform: translateY(-${theme.gridUnit}px);
+    transform: translateY(-${theme.sizeUnit}px);
     background: ${theme.colors.grayscale.light5};
   `}
 `;
@@ -46,15 +46,15 @@ const SelectWrapper = styled.div`
   ${({ theme }) => `
     position: relative;
     display: inline-block;
-    min-width: ${theme.gridUnit * 17}px;
+    min-width: ${theme.sizeUnit * 17}px;
   `}
 `;
 
 const StyledSelect = styled.select<{ numberLength: number }>`
   ${({ theme, numberLength }) => `
     width: auto;
-    margin: 0 ${theme.gridUnit * 2}px;
-    padding: ${theme.gridUnit}px ${theme.gridUnit * 6}px ${theme.gridUnit}px ${theme.gridUnit * 2}px;
+    margin: 0 ${theme.sizeUnit * 2}px;
+    padding: ${theme.sizeUnit}px ${theme.sizeUnit * 6}px ${theme.sizeUnit}px ${theme.sizeUnit * 2}px;
     border: 1px solid ${theme.colors.grayscale.light2};
     border-radius: ${theme.borderRadius}px;
     background: ${theme.colors.grayscale.light5};
@@ -64,8 +64,8 @@ const StyledSelect = styled.select<{ numberLength: number }>`
     /* Custom arrow styling */
     background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23000000'%3e%3cpath d='M7 10l5 5 5-5z'/%3e%3c/svg%3e");
     background-repeat: no-repeat;
-    background-position: right ${numberLength <= 2 ? `${theme.gridUnit * 2}px` : `${theme.gridUnit}px`} center;
-    background-size: ${theme.gridUnit * 6}px;
+    background-position: right ${numberLength <= 2 ? `${theme.sizeUnit * 2}px` : `${theme.sizeUnit}px`} center;
+    background-size: ${theme.sizeUnit * 6}px;
 
     &:hover {
       border-color: ${theme.colors.grayscale.dark1};
@@ -75,9 +75,9 @@ const StyledSelect = styled.select<{ numberLength: number }>`
 
 const PageInfo = styled.span`
   ${({ theme }) => `
-    margin: 0 ${theme.gridUnit * 6}px;
+    margin: 0 ${theme.sizeUnit * 6}px;
     span {
-      font-weight: ${theme.typography.weights.bold};
+      font-weight: ${theme.fontWeightStrong};
     }
   `}
 `;
@@ -85,7 +85,7 @@ const PageInfo = styled.span`
 const PageCount = styled.span`
   ${({ theme }) => `
     span {
-      font-weight: ${theme.typography.weights.bold};
+      font-weight: ${theme.fontWeightStrong};
     }
   `}
 `;
@@ -93,7 +93,7 @@ const PageCount = styled.span`
 const ButtonGroup = styled.div`
   ${({ theme }) => `
     display: flex;
-    gap: ${theme.gridUnit * 3}px;
+    gap: ${theme.sizeUnit * 3}px;
   `}
 `;
 
@@ -109,8 +109,8 @@ const PageButton = styled.div<PageButtonProps>`
     justify-content: center;
 
     svg {
-      height: ${theme.gridUnit * 3}px;
-      width: ${theme.gridUnit * 3}px;
+      height: ${theme.sizeUnit * 3}px;
+      width: ${theme.sizeUnit * 3}px;
       fill: ${disabled ? theme.colors.grayscale.light1 : theme.colors.grayscale.dark2};
     }
   `}

@@ -65,7 +65,7 @@ const StyledChartContainer = styled.div<{ height: number }>`
     }
 
     .dt-is-active-filter {
-      background: ${theme.colors.secondary.light3};
+      background: ${theme.colors.primary.light3};
     }
 
     .dt-truncate-cell {
@@ -91,15 +91,15 @@ const StyledChartContainer = styled.div<{ height: number }>`
 
     .time-comparison-dropdown {
       display: flex;
-      padding-right: ${theme.gridUnit * 4}px;
-      padding-top: ${theme.gridUnit * 1.75}px;
+      padding-right: ${theme.sizeUnit * 4}px;
+      padding-top: ${theme.sizeUnit * 1.75}px;
     }
 
     .ag-header,
     .ag-row,
     .ag-spanned-row {
-      font-size: ${theme.typography.sizes.s}px;
-      font-weight: ${theme.typography.weights.medium};
+      font-size: ${theme.fontSizeSM}px;
+      font-weight: ${theme.fontWeightStrong};
     }
 
     .ag-root-wrapper {
@@ -107,7 +107,7 @@ const StyledChartContainer = styled.div<{ height: number }>`
     }
 
     .search-by-text {
-      margin-right: ${theme.gridUnit}px;
+      margin-right: ${theme.sizeUnit}px;
     }
 
     .input-container {
@@ -119,21 +119,21 @@ const StyledChartContainer = styled.div<{ height: number }>`
       display: flex;
       align-items: center;
       overflow: visible;
-      margin-bottom: ${theme.gridUnit * 4}px;
+      margin-bottom: ${theme.sizeUnit * 4}px;
     }
 
     .input-wrapper svg {
       pointer-events: none;
-      transform: translate(${theme.gridUnit * 7}px, ${theme.gridUnit / 2}px);
+      transform: translate(${theme.sizeUnit * 7}px, ${theme.sizeUnit / 2}px);
       color: ${theme.colors.grayscale.base};
     }
 
     .input-wrapper input {
-      font-size: ${theme.typography.sizes.s}px;
-      padding: ${theme.gridUnit * 1.5}px ${theme.gridUnit * 3}px
-        ${theme.gridUnit * 1.5}px ${theme.gridUnit * 8}px;
+      font-size: ${theme.fontSizeSM}px;
+      padding: ${theme.sizeUnit * 1.5}px ${theme.sizeUnit * 3}px
+        ${theme.sizeUnit * 1.5}px ${theme.sizeUnit * 8}px;
       line-height: 1.8;
-      border-radius: ${theme.gridUnit}px;
+      border-radius: ${theme.borderRadius}px;
       border: 1px solid ${theme.colors.grayscale.light2};
       background-color: transparent;
       outline: none;

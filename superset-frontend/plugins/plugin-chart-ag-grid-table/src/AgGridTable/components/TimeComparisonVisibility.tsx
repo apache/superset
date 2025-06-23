@@ -83,9 +83,9 @@ const TimeComparisonVisibility: React.FC<TimeComparisonVisibilityProps> = ({
           <div
             css={css`
               max-width: 242px;
-              padding: 0 ${theme.gridUnit * 2}px;
+              padding: 0 ${theme.sizeUnit * 2}px;
               color: ${theme.colors.grayscale.base};
-              font-size: ${theme.typography.sizes.s}px;
+              font-size: ${theme.fontSizeSM}px;
             `}
           >
             {t(
@@ -104,7 +104,7 @@ const TimeComparisonVisibility: React.FC<TimeComparisonVisibilityProps> = ({
               <span
                 css={css`
                   float: right;
-                  font-size: ${theme.typography.sizes.s}px;
+                  font-size: ${theme.fontSizeSM}px;
                 `}
               >
                 {selectedComparisonColumns.includes(column.key) && (

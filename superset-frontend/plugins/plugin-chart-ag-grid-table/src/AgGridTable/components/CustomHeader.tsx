@@ -40,9 +40,9 @@ const Container = styled.div`
 
     .three-dots-menu {
       align-self: center;
-      margin-left: ${theme.gridUnit}px;
+      margin-left: ${theme.sizeUnit}px;
       cursor: pointer;
-      padding: ${theme.gridUnit / 2}px;
+      padding: ${theme.sizeUnit / 2}px;
       border-radius: ${theme.borderRadius}px;
     }
   `}
@@ -54,14 +54,14 @@ const HeaderContainer = styled.div`
     display: flex;
     align-items: center;
     cursor: pointer;
-    padding: 0 ${theme.gridUnit * 2}px;
+    padding: 0 ${theme.sizeUnit * 2}px;
     overflow: hidden;
   `}
 `;
 
 const HeaderLabel = styled.span`
   ${({ theme }) => `
-    font-weight: ${theme.typography.weights.bold};
+    font-weight: ${theme.fontWeightStrong};
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -74,7 +74,7 @@ const SortIconWrapper = styled.div`
   ${({ theme }) => `
     display: flex;
     align-items: center;
-    margin-left: ${theme.gridUnit * 2}px;
+    margin-left: ${theme.sizeUnit * 2}px;
   `}
 `;
 
@@ -86,15 +86,15 @@ const FilterIconWrapper = styled.div`
 
 const MenuContainer = styled.div`
   ${({ theme }) => `
-    min-width: ${theme.gridUnit * 45}px;
-    padding: ${theme.gridUnit}px 0;
+    min-width: ${theme.sizeUnit * 45}px;
+    padding: ${theme.sizeUnit}px 0;
 
     .menu-item {
-      padding: ${theme.gridUnit * 2}px ${theme.gridUnit * 4}px;
+      padding: ${theme.sizeUnit * 2}px ${theme.sizeUnit * 4}px;
       cursor: pointer;
       display: flex;
       align-items: center;
-      gap: ${theme.gridUnit * 2}px;
+      gap: ${theme.sizeUnit * 2}px;
 
       &:hover {
         background-color: ${theme.colors.primary.light4};
@@ -104,7 +104,7 @@ const MenuContainer = styled.div`
     .menu-divider {
       height: 1px;
       background-color: ${theme.colors.grayscale.light2};
-      margin: ${theme.gridUnit}px 0;
+      margin: ${theme.sizeUnit}px 0;
     }
   `}
 `;

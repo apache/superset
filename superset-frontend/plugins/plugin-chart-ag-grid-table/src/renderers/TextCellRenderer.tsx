@@ -19,21 +19,21 @@
  */
 
 import { isProbablyHTML, sanitizeHtml, t, styled } from '@superset-ui/core';
-import { InfoCircleOutlined } from '@ant-design/icons';
-import { Tooltip } from '@superset-ui/chart-controls';
+// import { InfoCircleOutlined } from '@ant-design/icons';
+// import { Tooltip } from '@superset-ui/chart-controls';
 import { CellRendererProps } from '../types';
 
 const SummaryContainer = styled.div`
   ${({ theme }) => `
     display: flex;
     align-items: center;
-    gap: ${theme.gridUnit}px;
+    gap: ${theme.sizeUnit}px;
   `}
 `;
 
 const SummaryText = styled.div`
   ${({ theme }) => `
-    font-weight: ${theme.typography.weights.bold};
+    font-weight: ${theme.fontWeightStrong};
   `}
 `;
 
@@ -52,9 +52,9 @@ export const TextCellRenderer = (params: CellRendererProps) => {
       return (
         <SummaryContainer>
           <SummaryText>{t('Summary')}</SummaryText>
-          <Tooltip overlay={SUMMARY_TOOLTIP_TEXT}>
+          {/* <Tooltip overlay={SUMMARY_TOOLTIP_TEXT}>
             <InfoCircleOutlined />
-          </Tooltip>
+          </Tooltip> */}
         </SummaryContainer>
       );
     }
