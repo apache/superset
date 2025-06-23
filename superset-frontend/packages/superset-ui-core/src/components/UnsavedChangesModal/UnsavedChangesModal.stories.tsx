@@ -18,10 +18,10 @@
  */
 
 import { ReactElement } from 'react';
-import UnsavedChangesModal, { type UnsavedChangesModalProps } from '.';
+import { UnsavedChangesModal, type UnsavedChangesModalProps } from '.';
 
 export default {
-  title: 'UnsavedChangesModal',
+  title: 'Components/UnsavedChangesModal',
   component: UnsavedChangesModal,
 };
 

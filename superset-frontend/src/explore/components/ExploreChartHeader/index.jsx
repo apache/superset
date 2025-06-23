@@ -20,7 +20,12 @@ import { useCallback, useEffect, useState } from 'react';
 import { useHistory } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
 import PropTypes from 'prop-types';
-import { Tooltip, Button, DeleteModal } from '@superset-ui/core/components';
+import {
+  Tooltip,
+  Button,
+  DeleteModal,
+  UnsavedChangesModal,
+} from '@superset-ui/core/components';
 import { AlteredSliceTag } from 'src/components';
 import { css, logging, SupersetClient, t } from '@superset-ui/core';
 import { chartPropShape } from 'src/dashboard/util/propShapes';
@@ -32,7 +37,6 @@ import { setSaveChartModalVisibility } from 'src/explore/actions/saveModalAction
 import { applyColors, resetColors } from 'src/utils/colorScheme';
 import ReportModal from 'src/features/reports/ReportModal';
 import { deleteActiveReport } from 'src/features/reports/ReportModal/actions';
-import UnsavedChangesModal from 'src/components/UnsavedChangesModal';
 import { useUnsavedChangesPrompt } from 'src/hooks/useUnsavedChangesPrompt';
 import { useExploreAdditionalActionsMenu } from '../useExploreAdditionalActionsMenu';
 import { useExploreMetadataBar } from './useExploreMetadataBar';

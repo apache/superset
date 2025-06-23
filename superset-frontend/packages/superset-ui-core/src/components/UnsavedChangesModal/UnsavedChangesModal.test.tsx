@@ -16,8 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { userEvent, render, screen } from 'spec/helpers/testing-library';
-import UnsavedChangesModal from '.';
+
+import { render, screen, userEvent } from '@superset-ui/core/spec';
+import { UnsavedChangesModal } from '.';
 
 test('should render nothing if showModal is false', () => {
   const { queryByRole } = render(

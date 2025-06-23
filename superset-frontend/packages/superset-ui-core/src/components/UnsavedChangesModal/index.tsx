@@ -23,6 +23,7 @@ import type { FC, ReactElement } from 'react';
 
 const StyledModalTitle = styled(Typography.Title)`
   && {
+    font-weight: 600;
     margin: 0;
   }
 `;
@@ -57,7 +58,7 @@ const StyledSaveBtn = styled(Button)`
 const StyledWarningIcon = styled(Icons.WarningOutlined)`
   ${({ theme }) => css`
     color: ${theme.colors.warning.base};
-    margin-right: ${theme.sizeUnit * 2}px;
+    margin-right: ${theme.sizeUnit * 4}px;
   `}
 `;
 
@@ -70,7 +71,7 @@ export type UnsavedChangesModalProps = {
   body?: string;
 };
 
-const UnsavedChangesModal: FC<UnsavedChangesModalProps> = ({
+export const UnsavedChangesModal: FC<UnsavedChangesModalProps> = ({
   showModal,
   onHide,
   handleSave,
@@ -84,7 +85,6 @@ const UnsavedChangesModal: FC<UnsavedChangesModalProps> = ({
     onHide={onHide}
     show={showModal}
     width="444px"
-    wrapProps={{ 'data-test': 'unsaved-changes-modal' }}
     title={
       <div
         css={css`
@@ -92,8 +92,8 @@ const UnsavedChangesModal: FC<UnsavedChangesModalProps> = ({
           display: flex;
         `}
       >
-        <StyledWarningIcon />
-        <StyledModalTitle type="secondary" level={3}>
+        <StyledWarningIcon iconSize="xl" />
+        <StyledModalTitle type="secondary" level={5}>
           {title}
         </StyledModalTitle>
       </div>
@@ -110,12 +110,10 @@ const UnsavedChangesModal: FC<UnsavedChangesModalProps> = ({
           htmlType="button"
           buttonSize="small"
           onClick={onConfirmNavigation}
-          data-test="unsaved-modal-discard-button"
         >
           {t('Discard')}
         </StyledDiscardBtn>
         <StyledSaveBtn
-          data-test="unsaved-confirm-save-button"
           htmlType="button"
           buttonSize="small"
           buttonStyle="primary"
@@ -129,5 +127,3 @@ const UnsavedChangesModal: FC<UnsavedChangesModalProps> = ({
     <StyledModalBody type="secondary">{body}</StyledModalBody>
   </Modal>
 );
-
-export default UnsavedChangesModal;
