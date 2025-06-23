@@ -21,7 +21,6 @@ import { t, styled, css, useTheme } from '@superset-ui/core';
 import { debounce } from 'lodash';
 import {
   Constants,
-  Form,
   FormItem,
   Input,
   Select,
@@ -40,12 +39,6 @@ import { ChartCustomizationItem } from './types';
 import { getFormData } from '../utils';
 
 const { TextArea } = Input;
-
-const StyledForm = styled(Form)`
-  .ant-form-item {
-    margin-bottom: ${({ theme }) => theme.sizeUnit * 4}px;
-  }
-`;
 
 const StyledContainer = styled.div`
   ${({ theme }) => `
