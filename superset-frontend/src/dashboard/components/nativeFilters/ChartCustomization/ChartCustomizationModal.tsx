@@ -19,7 +19,7 @@
 import { useState, useEffect, useMemo, useCallback, memo } from 'react';
 import { t, styled, css } from '@superset-ui/core';
 import { useSelector } from 'react-redux';
-import { isEmpty } from 'lodash';
+import { isEmpty, isEqual, sortBy, debounce } from 'lodash';
 import { StyledModal, Form } from '@superset-ui/core/components';
 import { ErrorBoundary } from 'src/components/ErrorBoundary';
 import Footer from 'src/dashboard/components/nativeFilters/FiltersConfigModal/Footer/Footer';
@@ -67,6 +67,13 @@ const StyledModalBody = styled.div<{ expanded: boolean }>`
   flex: 1;
 `;
 
+const StyledForm = styled(Form)`
+  width: 100%;
+  display: flex;
+  flex-direction: row;
+  height: 100%;
+`;
+
 const ContentArea = styled.div`
   flex-grow: 3;
   overflow-y: auto;
@@ -103,7 +110,6 @@ const ChartCustomizationModal = ({
   const [saveAlertVisible, setSaveAlertVisible] = useState(false);
   const [initialLoadComplete, setInitialLoadComplete] = useState(false);
 
-  // Add error handling state (similar to FiltersConfigModal)
   const [erroredItems, setErroredItems] = useState<string[]>([]);
 
   const currentItem = useMemo(
@@ -111,7 +117,6 @@ const ChartCustomizationModal = ({
     [items, currentId],
   );
 
-  // Enhanced change detection (similar to FiltersConfigModal)
   const hasUnsavedChanges = useCallback(() => {
     const changed = form.getFieldValue('changed');
     const isFieldsTouched = form.isFieldsTouched();
@@ -121,7 +126,6 @@ const ChartCustomizationModal = ({
     return changed || isFieldsTouched || hasNewItems || hasRemovedItems;
   }, [form, items]);
 
-  // Enhanced form validation (similar to FiltersConfigModal)
   const validateForm = useCallback(async () => {
     try {
       const values = await form.validateFields();
@@ -132,14 +136,36 @@ const ChartCustomizationModal = ({
         const errorItemIds = error.errorFields
           .map((field: any) => field.name[1])
           .filter((id: string) => id && items.some(item => item.id === id))
-          .map(String); // Ensure all IDs are strings
+          .map(String);
         setErroredItems(errorItemIds);
       }
       return null;
     }
   }, [form, items]);
 
-  // Enhanced form reset (similar to FiltersConfigModal)
+  const handleErroredItems = useCallback(() => {
+    const formValidationFields = form.getFieldsError();
+    const erroredItemIds: string[] = [];
+
+    formValidationFields.forEach(field => {
+      const itemId = field.name[1] as string;
+      if (field.errors.length > 0 && !erroredItemIds.includes(itemId)) {
+        erroredItemIds.push(itemId);
+      }
+    });
+
+    if (!erroredItemIds.length && erroredItems.length > 0) {
+      setErroredItems([]);
+      return;
+    }
+    if (
+      erroredItemIds.length > 0 &&
+      !isEqual(sortBy(erroredItems), sortBy(erroredItemIds))
+    ) {
+      setErroredItems(erroredItemIds);
+    }
+  }, [form, erroredItems]);
+
   const resetForm = useCallback(
     (isSaving = false) => {
       setItems([]);
@@ -156,7 +182,6 @@ const ChartCustomizationModal = ({
     [form],
   );
 
-  // Enhanced save handler (similar to FiltersConfigModal)
   const handleSave = useCallback(async () => {
     const values = await validateForm();
 
@@ -182,7 +207,6 @@ const ChartCustomizationModal = ({
       resetForm(true);
       onCancel();
     } else if (erroredItems.length > 0) {
-      // Focus on the first error if validation fails
       setCurrentId(erroredItems[0]);
     }
   }, [
@@ -209,6 +233,73 @@ const ChartCustomizationModal = ({
   }, [hasUnsavedChanges, handleConfirmCancel]);
 
   const existingItems = useSelector(selectChartCustomizationItems);
+
+  const addItem = useCallback(() => {
+    const item = createDefaultChartCustomizationItem(chartId);
+    setItems([...items, item]);
+    setCurrentId(item.id);
+  }, [items, chartId]);
+
+  const handleRemoveItem = useCallback(
+    (id: string, shouldRemove = true) => {
+      const item = items.find(i => i.id === id);
+      if (!item) return;
+
+      if (shouldRemove) {
+        const timerId = window.setTimeout(() => {
+          setItems(prev => prev.filter(i => i.id !== id));
+          if (currentId === id) {
+            const nextItem = items.find(i => i.id !== id && !i.removed);
+            setCurrentId(nextItem?.id || null);
+          }
+        }, 3000);
+
+        setItems(prev =>
+          prev.map(i =>
+            i.id === id ? { ...i, removed: true, removeTimerId: timerId } : i,
+          ),
+        );
+
+        if (currentId === id) {
+          const nextItem = items.find(i => i.id !== id && !i.removed);
+          setCurrentId(nextItem?.id || null);
+        }
+      } else {
+        setItems(prev =>
+          prev.map(i => {
+            if (i.id === id) {
+              if (i.removeTimerId) {
+                clearTimeout(i.removeTimerId);
+              }
+              return {
+                ...i,
+                removed: false,
+                removeTimerId: undefined,
+              };
+            }
+            return i;
+          }),
+        );
+
+        if (
+          currentId === null ||
+          items.find(i => i.id === currentId)?.removed
+        ) {
+          setCurrentId(id);
+        }
+      }
+    },
+    [items, currentId],
+  );
+
+  const handleValuesChange = useMemo(
+    () =>
+      debounce(() => {
+        setSaveAlertVisible(false);
+        handleErroredItems();
+      }, 1000),
+    [handleErroredItems],
+  );
 
   useEffect(() => {
     if (isOpen && !initialLoadComplete) {
@@ -320,7 +411,7 @@ const ChartCustomizationModal = ({
               onDismiss={() => setSaveAlertVisible(false)}
               onCancel={handleCancel}
               handleSave={handleSave}
-              canSave={!erroredItems.length && hasUnsavedChanges()}
+              canSave={!erroredItems.length}
               saveAlertVisible={false}
               onConfirmCancel={handleConfirmCancel}
             />
@@ -330,132 +421,61 @@ const ChartCustomizationModal = ({
     >
       <ErrorBoundary>
         <StyledModalBody expanded={expanded}>
-          <Sidebar>
-            <ChartCustomizationTitlePane
-              items={items}
-              currentId={currentId}
-              chartId={chartId}
-              setCurrentId={setCurrentId}
-              onChange={setCurrentId}
-              onAdd={item => {
-                const itemWithChartId = { ...item, chartId };
-                setItems([...items, itemWithChartId]);
-                setCurrentId(itemWithChartId.id);
+          <StyledForm
+            form={form}
+            layout="vertical"
+            onValuesChange={handleValuesChange}
+          >
+            <Sidebar>
+              <ChartCustomizationTitlePane
+                items={items}
+                currentId={currentId}
+                chartId={chartId}
+                setCurrentId={setCurrentId}
+                onChange={setCurrentId}
+                onAdd={addItem}
+                onRemove={handleRemoveItem}
+              />
+            </Sidebar>
 
-                const currentFilters = form.getFieldValue('filters') || {};
-                const newFormValues = {
-                  filters: {
-                    ...currentFilters,
-                    [itemWithChartId.id]: {
-                      name: itemWithChartId.customization.name || '',
-                      column: null,
-                      dataset: null,
-                      description: '',
-                      sortFilter: false,
-                      sortAscending: true,
-                      sortMetric: null,
-                      hasDefaultValue: false,
-                      isRequired: false,
-                      selectFirst: false,
-                    },
-                  },
-                  changed: true,
-                };
-
-                form.setFieldsValue(newFormValues);
-              }}
-              onRemove={(id, shouldRemove) => {
-                if (shouldRemove) {
-                  const timerId = window.setTimeout(() => {
-                    setItems(prev => {
-                      const updatedItems = prev.filter(i => i.id !== id);
-                      return updatedItems;
-                    });
-
-                    if (currentId === id) {
-                      const nextItem = items.find(
-                        i => i.id !== id && !i.removed,
-                      );
-                      setCurrentId(
-                        nextItem?.id || items.find(i => !i.removed)?.id || null,
-                      );
-                    }
-                  }, 3000);
-
-                  setItems(prev =>
-                    prev.map(i =>
-                      i.id === id
-                        ? { ...i, removed: true, removeTimerId: timerId }
-                        : i,
-                    ),
-                  );
-
-                  if (currentId === id) {
-                    const nextItem = items.find(i => i.id !== id && !i.removed);
-                    setCurrentId(
-                      nextItem?.id || items.find(i => !i.removed)?.id || null,
-                    );
-                  }
-                } else {
-                  setItems(prev =>
-                    prev.map(i => {
-                      if (i.id === id) {
-                        if (i.removeTimerId) {
-                          clearTimeout(i.removeTimerId);
-                        }
-                        return {
-                          ...i,
-                          removed: false,
-                          removeTimerId: undefined,
-                        };
+            <ContentArea>
+              {currentItem &&
+                (currentItem.removed ? (
+                  <RemovedFilter
+                    onClick={() => {
+                      if (currentItem.removeTimerId) {
+                        clearTimeout(currentItem.removeTimerId);
                       }
-                      return i;
-                    }),
-                  );
+                      setItems(prev =>
+                        prev.map(i =>
+                          i.id === currentItem.id
+                            ? { ...i, removed: false, removeTimerId: undefined }
+                            : i,
+                        ),
+                      );
+                    }}
+                  />
+                ) : (
+                  <ChartCustomizationForm
+                    form={form}
+                    item={currentItem}
+                    onUpdate={updatedItem => {
+                      setItems(prev =>
+                        prev.map(i =>
+                          i.id === updatedItem.id ? updatedItem : i,
+                        ),
+                      );
 
-                  if (currentId === null) {
-                    setCurrentId(id);
-                  }
-                }
-              }}
-            />
-          </Sidebar>
+                      form.setFieldsValue({
+                        changed: true,
+                      });
 
-          <ContentArea>
-            {currentItem &&
-              (currentItem.removed ? (
-                <RemovedFilter
-                  onClick={() => {
-                    if (currentItem.removeTimerId) {
-                      clearTimeout(currentItem.removeTimerId);
-                    }
-                    setItems(prev =>
-                      prev.map(i =>
-                        i.id === currentItem.id
-                          ? { ...i, removed: false, removeTimerId: undefined }
-                          : i,
-                      ),
-                    );
-                  }}
-                />
-              ) : (
-                <ChartCustomizationForm
-                  form={form}
-                  item={currentItem}
-                  onUpdate={updatedItem => {
-                    setItems(prev =>
-                      prev.map(i =>
-                        i.id === updatedItem.id ? updatedItem : i,
-                      ),
-                    );
-
-                    form.setFieldsValue({
-                      changed: true,
-                    });
-                  }}
-                />
-              ))}
-          </ContentArea>
+                      handleErroredItems();
+                    }}
+                  />
+                ))}
+            </ContentArea>
+          </StyledForm>
         </StyledModalBody>
       </ErrorBoundary>
     </StyledModalWrapper>
