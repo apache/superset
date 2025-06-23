@@ -166,6 +166,7 @@ trino = ["trino>=0.328.0"]
 prophet = ["prophet>=1.1.5, <2"]
 redshift = ["sqlalchemy-redshift>=0.8.1, <0.9"]
 rockset = ["rockset-sqlalchemy>=0.0.1, <1"]
+risingwave = ["sqlalchemy-risingwave"]
 shillelagh = ["shillelagh[all]>=1.2.18, <2"]
 singlestore = ["sqlalchemy-singlestoredb>=1.1.1, <2"]
 snowflake = ["snowflake-sqlalchemy>=1.2.4, <2"]
@@ -199,6 +200,7 @@ development = [
     "psutil",
     "pyfakefs",
     "pyinstrument>=4.0.2,<5",
+    "pylint",
     "pytest<8.0.0", # hairy issue with pytest >=8 where current_app proxies are not set in time
     "pytest-cov",
     "pytest-mock",
