@@ -41,7 +41,7 @@ Note that there are 3 major ways we support to run `docker compose`:
   pre-built images from docker-hub. For `docker compose` to work along with the
   Postgres image it boots up, you'll want to point to a `-dev`-suffixed TAG, as in
   `export TAG=5.0.0-dev` or `export TAG=4.1.2-dev`, with `latest-dev` being the default.
-  That's because The `dev` builds happen to package the `psycopg2-binary` required to connect
+  The `dev` builds include the `psycopg2-binary` required to connect
   to the Postgres database launched as part of the `docker compose` builds.
 
 More on these two approaches after setting up the requirements for either.
