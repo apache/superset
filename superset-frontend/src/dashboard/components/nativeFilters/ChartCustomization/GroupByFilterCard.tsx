@@ -17,11 +17,14 @@
  * under the License.
  */
 import { FC, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Form } from 'src/components/Form';
-import Popover from 'src/components/Popover';
-import { Typography, Select } from 'src/components';
-import { Icons } from 'src/components/Icons';
-import Loading from 'src/components/Loading';
+import {
+  Form,
+  Typography,
+  Select,
+  Icons,
+  Loading,
+  Popover,
+} from '@superset-ui/core/components';
 import {
   styled,
   t,
@@ -51,8 +54,8 @@ interface FilterOption {
 const Row = styled.div`
   display: flex;
   align-items: center;
-  margin: ${({ theme }) => theme.gridUnit}px 0;
-  font-size: ${({ theme }) => theme.typography.sizes.s}px;
+  margin: ${({ theme }) => theme.sizeUnit}px 0;
+  font-size: ${({ theme }) => theme.fontSizeSM}px;
 
   &:first-of-type {
     margin-top: 0;
@@ -65,7 +68,7 @@ const Row = styled.div`
 
 const RowLabel = styled.span`
   color: ${({ theme }) => theme.colors.grayscale.base};
-  padding-right: ${({ theme }) => theme.gridUnit * 4}px;
+  padding-right: ${({ theme }) => theme.sizeUnit * 4}px;
   margin-right: auto;
   white-space: nowrap;
 `;
@@ -88,14 +91,14 @@ const FilterValueContainer = styled.div`
   display: flex;
   flex-direction: column;
   width: 100%;
-  padding: ${({ theme }) => theme.gridUnit}px 0;
+  padding: ${({ theme }) => theme.sizeUnit}px 0;
 `;
 
 const FilterTitle = styled(Typography.Text)`
-  font-size: ${({ theme }) => theme.typography.sizes.s}px;
+  font-size: ${({ theme }) => theme.fontSizeSM}px;
   color: ${({ theme }) => theme.colors.grayscale.dark1};
-  font-weight: ${({ theme }) => theme.typography.weights.bold};
-  margin-bottom: ${({ theme }) => theme.gridUnit}px;
+  font-weight: 600;
+  margin-bottom: ${({ theme }) => theme.sizeUnit}px;
   display: flex;
   align-items: center;
   cursor: pointer;
@@ -125,16 +128,16 @@ const StyledSelect = styled.div`
 `;
 
 const NoDataMessage = styled.div`
-  padding: ${({ theme }) => theme.gridUnit}px;
+  padding: ${({ theme }) => theme.sizeUnit}px;
   color: ${({ theme }) => theme.colors.grayscale.base};
   text-align: center;
-  font-size: ${({ theme }) => theme.typography.sizes.s}px;
+  font-size: ${({ theme }) => theme.fontSizeSM}px;
 `;
 
 const Description = styled(Typography.Text)`
-  font-size: ${({ theme }) => theme.typography.sizes.s - 1}px;
+  font-size: ${({ theme }) => theme.fontSizeSM - 1}px;
   color: ${({ theme }) => theme.colors.grayscale.base};
-  margin-bottom: ${({ theme }) => theme.gridUnit}px;
+  margin-bottom: ${({ theme }) => theme.sizeUnit}px;
   display: block;
 `;
 
@@ -183,7 +186,7 @@ const GroupByFilterCardContent: FC<{
     <div>
       <Row
         css={theme => css`
-          margin-bottom: ${theme.gridUnit * 3}px;
+          margin-bottom: ${theme.sizeUnit * 3}px;
           justify-content: flex-start;
         `}
       >
@@ -191,15 +194,15 @@ const GroupByFilterCardContent: FC<{
           <Icons.GroupOutlined
             iconSize="s"
             css={theme => css`
-              margin-right: ${theme.gridUnit}px;
+              margin-right: ${theme.sizeUnit}px;
             `}
           />
           <TooltipWithTruncation
             title={titleTruncated ? title || t('Group By') : null}
           >
-            <Typography.Text strong ref={titleRef}>
-              {title || t('Group By')}
-            </Typography.Text>
+            <div ref={titleRef}>
+              <Typography.Text strong>{title || t('Group By')}</Typography.Text>
+            </div>
           </TooltipWithTruncation>
         </InternalRow>
       </Row>
@@ -221,13 +224,13 @@ const GroupByFilterCardContent: FC<{
       {description && (
         <Row
           css={theme => css`
-            margin-top: ${theme.gridUnit * 2}px;
+            margin-top: ${theme.sizeUnit * 2}px;
           `}
         >
           <Typography.Text
             type="secondary"
             css={theme => css`
-              font-size: ${theme.typography.sizes.s - 1}px;
+              font-size: ${theme.fontSizeSM - 1}px;
             `}
           >
             {description}
@@ -449,7 +452,6 @@ const GroupByFilterCard: FC<GroupByFilterCardProps> = ({
     }
   }, [dataset, columnName, fetchFilterValues]);
 
-  // Update selectedValues when defaultValue changes
   useEffect(() => {
     if (!defaultValue) {
       setSelectedValues([]);
@@ -485,7 +487,9 @@ const GroupByFilterCard: FC<GroupByFilterCardProps> = ({
           <TooltipWithTruncation
             title={titleElementsTruncated ? displayTitle : null}
           >
-            <FilterTitle ref={filterTitleRef}>{displayTitle}</FilterTitle>
+            <div ref={filterTitleRef}>
+              <FilterTitle>{displayTitle}</FilterTitle>
+            </div>
           </TooltipWithTruncation>
           {customizationItem.description && (
             <Description>{customizationItem.description}</Description>

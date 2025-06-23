@@ -18,8 +18,7 @@
  */
 import { FC, useRef } from 'react';
 import { styled, t, useTheme } from '@superset-ui/core';
-import Button from 'src/components/Button';
-import { Icons } from 'src/components/Icons';
+import { Button, Icons } from '@superset-ui/core/components';
 import ChartCustomizationTitleContainer from './ChartCustomizationTitleContainer';
 import { ChartCustomizationItem } from './types';
 import { createDefaultChartCustomizationItem } from './utils';
@@ -43,13 +42,13 @@ const PaneContainer = styled.div`
 const ListWrapper = styled.div`
   flex-grow: 1;
   overflow-y: auto;
-  margin-bottom: ${({ theme }) => theme.gridUnit * 2}px;
+  margin-bottom: ${({ theme }) => theme.sizeUnit * 2}px;
 `;
 
 const ActionsWrapper = styled.div`
   display: flex;
   flex-direction: column;
-  gap: ${({ theme }) => theme.gridUnit * 2}px;
+  gap: ${({ theme }) => theme.sizeUnit * 2}px;
 `;
 
 const ChartCustomizationTitlePane: FC<Props> = ({

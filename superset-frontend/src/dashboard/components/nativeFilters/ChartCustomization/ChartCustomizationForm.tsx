@@ -17,15 +17,20 @@
  * under the License.
  */
 import { FC, useEffect, useMemo, useState, useRef, useCallback } from 'react';
-import { t, styled, css, SLOW_DEBOUNCE, useTheme } from '@superset-ui/core';
+import { t, styled, css, useTheme } from '@superset-ui/core';
 import { debounce } from 'lodash';
-import { Form, FormItem } from 'src/components/Form';
-import { Input, TextArea } from 'src/components/Input';
-import { Radio } from 'src/components/Radio';
-import Select from 'src/components/Select/Select';
-import Collapse from 'src/components/Collapse';
-import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
-import Loading from 'src/components/Loading';
+import {
+  Constants,
+  Form,
+  FormItem,
+  Input,
+  Select,
+  Collapse,
+  InfoTooltip,
+  Loading,
+  Radio,
+  type SelectValue,
+} from '@superset-ui/core/components';
 import { getChartDataRequest } from 'src/components/Chart/chartAction';
 import { CollapsibleControl } from '../FiltersConfigModal/FiltersConfigForm/CollapsibleControl';
 import { ColumnSelect } from '../FiltersConfigModal/FiltersConfigForm/ColumnSelect';
@@ -34,9 +39,11 @@ import DefaultValue from '../FiltersConfigModal/FiltersConfigForm/DefaultValue';
 import { ChartCustomizationItem } from './types';
 import { getFormData } from '../utils';
 
+const { TextArea } = Input;
+
 const StyledForm = styled(Form)`
   .ant-form-item {
-    margin-bottom: ${({ theme }) => theme.gridUnit * 4}px;
+    margin-bottom: ${({ theme }) => theme.sizeUnit * 4}px;
   }
 `;
 
@@ -44,8 +51,8 @@ const StyledContainer = styled.div`
   ${({ theme }) => `
    display: flex;
    flex-direction: row;
-   gap: ${theme.gridUnit * 4}px;
-   padding: ${theme.gridUnit * 2}px;
+   gap: ${theme.sizeUnit * 4}px;
+   padding: ${theme.sizeUnit * 2}px;
  `}
 `;
 
@@ -53,34 +60,34 @@ const FORM_ITEM_WIDTH = 300;
 
 const StyledFormItem = styled(FormItem)`
   width: ${FORM_ITEM_WIDTH}px;
-  margin-bottom: ${({ theme }) => theme.gridUnit * 4}px;
+  margin-bottom: ${({ theme }) => theme.sizeUnit * 4}px;
 
   .ant-form-item-label > label {
-    font-size: ${({ theme }) => theme.typography.sizes.m}px;
-    font-weight: ${({ theme }) => theme.typography.weights.normal};
+    font-size: ${({ theme }) => theme.fontSizeSM}px;
+    font-weight: ${({ theme }) => theme.fontWeightNormal};
     color: ${({ theme }) => theme.colors.grayscale.dark1};
   }
 `;
 
 const CheckboxLabel = styled.span`
-  font-size: ${({ theme }) => theme.typography.sizes.m}px;
+  font-size: ${({ theme }) => theme.fontSizeSM}px;
   color: ${({ theme }) => theme.colors.grayscale.dark1};
-  font-weight: ${({ theme }) => theme.typography.weights.normal};
+  font-weight: ${({ theme }) => theme.fontWeightNormal};
 `;
 
 const StyledTextArea = styled(TextArea)`
-  min-height: ${({ theme }) => theme.gridUnit * 24}px;
+  min-height: ${({ theme }) => theme.sizeUnit * 24}px;
   resize: vertical;
 `;
 
 const StyledRadioGroup = styled(Radio.Group)`
   .ant-radio-wrapper {
-    font-size: ${({ theme }) => theme.typography.sizes.m}px;
+    font-size: ${({ theme }) => theme.fontSizeSM}px;
   }
 `;
 
 const StyledMarginTop = styled.div`
-  margin-top: ${({ theme }) => theme.gridUnit * 2}px;
+  margin-top: ${({ theme }) => theme.sizeUnit * 2}px;
 `;
 
 interface Props {
@@ -185,7 +192,7 @@ const ChartCustomizationForm: FC<Props> = ({ form, item, onUpdate }) => {
   }, [form, item, customization, onUpdate]);
 
   const debouncedFormChanged = useMemo(
-    () => debounce(formChanged, SLOW_DEBOUNCE),
+    () => debounce(formChanged, Constants.SLOW_DEBOUNCE),
     [formChanged],
   );
 
@@ -586,7 +593,6 @@ const ChartCustomizationForm: FC<Props> = ({ form, item, onUpdate }) => {
     return t('Set a default value for this filter');
   }, [selectFirst, isRequired, hasDefaultValue]);
 
-  // Helper to check if all required fields are filled for default value display
   const hasAllRequiredFields = useCallback(() => {
     const formValues = form.getFieldValue('filters')?.[item.id] || {};
     const name = formValues.name || customization.name || '';
@@ -601,7 +607,6 @@ const ChartCustomizationForm: FC<Props> = ({ form, item, onUpdate }) => {
     customization.column,
   ]);
 
-  // Calculate if default value should be shown (similar to FiltersConfigForm logic)
   const shouldShowDefaultValue = useCallback(() => {
     const allFieldsFilled = hasAllRequiredFields();
     const hasDatasetAndColumn = !!(
@@ -610,12 +615,10 @@ const ChartCustomizationForm: FC<Props> = ({ form, item, onUpdate }) => {
       (form.getFieldValue('filters')?.[item.id]?.column || customization.column)
     );
 
-    // For required filters, show if all fields are filled (like enableEmptyFilter behavior)
     if (isRequired) {
       return allFieldsFilled && !isDefaultValueLoading;
     }
 
-    // For non-required filters with hasDefaultValue, show if dataset and column are present
     return hasDefaultValue && hasDatasetAndColumn && !isDefaultValueLoading;
   }, [
     hasAllRequiredFields,
@@ -652,7 +655,7 @@ const ChartCustomizationForm: FC<Props> = ({ form, item, onUpdate }) => {
           label={
             <>
               {t('Dataset')}&nbsp;
-              <InfoTooltipWithTrigger
+              <InfoTooltip
                 tooltip={t('Select the dataset this group by will use')}
                 placement="right"
               />
@@ -692,7 +695,7 @@ const ChartCustomizationForm: FC<Props> = ({ form, item, onUpdate }) => {
           label={
             <>
               <CheckboxLabel>{t('Group by column')}</CheckboxLabel>&nbsp;
-              <InfoTooltipWithTrigger
+              <InfoTooltip
                 tooltip={t('Choose the column to group by')}
                 placement="right"
               />
@@ -736,7 +739,7 @@ const ChartCustomizationForm: FC<Props> = ({ form, item, onUpdate }) => {
         </StyledFormItem>
       </StyledContainer>
 
-      <Collapse defaultActiveKey={['settings']} expandIconPosition="right">
+      <Collapse>
         <Collapse.Panel header={t('Customization settings')} key="settings">
           <StyledFormItem
             name={['filters', item.id, 'description']}
@@ -800,7 +803,7 @@ const ChartCustomizationForm: FC<Props> = ({ form, item, onUpdate }) => {
                   label={
                     <>
                       <CheckboxLabel>{t('Sort Metric')}</CheckboxLabel>&nbsp;
-                      <InfoTooltipWithTrigger
+                      <InfoTooltip
                         placement="top"
                         tooltip={t(
                           'If a metric is specified, sorting will be done based on the metric value',
@@ -821,7 +824,13 @@ const ChartCustomizationForm: FC<Props> = ({ form, item, onUpdate }) => {
                       value: metric.metric_name,
                       label: metric.verbose_name ?? metric.metric_name,
                     }))}
-                    onChange={value => {
+                    labelRender={(option: { label: string; value: string }) =>
+                      option?.label
+                    }
+                    optionRender={(option: { label: string; value: string }) =>
+                      option?.label
+                    }
+                    onChange={(value: SelectValue) => {
                       const stringValue =
                         value !== null && value !== undefined
                           ? String(value)
