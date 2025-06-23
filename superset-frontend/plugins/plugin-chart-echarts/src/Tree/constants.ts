@@ -27,7 +27,6 @@ export const DEFAULT_TREE_SERIES_OPTION: TreeSeriesOption = {
   animation: true,
   animationDuration: 500,
   animationEasing: 'cubicOut',
-  lineStyle: { color: 'source', width: 1.5 },
 };
 
 export const DEFAULT_FORM_DATA: Partial<EchartsTreeFormData> = {

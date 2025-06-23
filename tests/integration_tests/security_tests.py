@@ -37,7 +37,7 @@ from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetSecurityException
 from superset.models.core import Database
 from superset.models.slice import Slice
-from superset.sql_parse import Table
+from superset.sql.parse import Table
 from superset.utils.core import (
     DatasourceType,
     backend,
@@ -1538,6 +1538,7 @@ class TestRolePermission(SupersetTestCase):
             ["AuthDBView", "login"],
             ["AuthDBView", "logout"],
             ["CurrentUserRestApi", "get_me"],
+            ["CurrentUserRestApi", "update_me"],
             ["CurrentUserRestApi", "get_my_roles"],
             ["UserRestApi", "avatar"],
             # TODO (embedded) remove Dashboard:embedded after uuids have been shipped
@@ -1552,6 +1553,9 @@ class TestRolePermission(SupersetTestCase):
             ["SupersetIndexView", "index"],
             ["SupersetIndexView", "patch_flask_locale"],
             ["DatabaseRestApi", "oauth2"],
+            ["SupersetAuthView", "login"],
+            ["SupersetAuthView", "logout"],
+            ["SupersetRegisterUserView", "register"],
         ]
         unsecured_views = []
         for view_class in appbuilder.baseviews:

@@ -14,10 +14,12 @@ apispec==6.6.1
     # via
     #   -c requirements/base.txt
     #   flask-appbuilder
-apsw==3.49.2.0
+apsw==3.50.1.0
     # via
     #   -c requirements/base.txt
     #   shillelagh
+astroid==3.3.10
+    # via pylint
 async-timeout==4.0.3
     # via
     #   -c requirements/base.txt
@@ -68,7 +70,7 @@ cachetools==5.5.2
     # via
     #   -c requirements/base.txt
     #   google-auth
-cattrs==24.1.3
+cattrs==25.1.1
     # via
     #   -c requirements/base.txt
     #   requests-cache
@@ -76,7 +78,7 @@ celery==5.5.2
     # via
     #   -c requirements/base.txt
     #   apache-superset
-certifi==2025.4.26
+certifi==2025.6.15
     # via
     #   -c requirements/base.txt
     #   requests
@@ -92,7 +94,7 @@ charset-normalizer==3.4.2
     # via
     #   -c requirements/base.txt
     #   requests
-click==8.2.0
+click==8.2.1
     # via
     #   -c requirements/base.txt
     #   apache-superset
@@ -160,6 +162,8 @@ deprecation==2.1.0
     # via
     #   -c requirements/base.txt
     #   apache-superset
+dill==0.4.0
+    # via pylint
 distlib==0.3.8
     # via virtualenv
 dnspython==2.7.0
@@ -280,7 +284,7 @@ google-api-core==2.23.0
     #   google-cloud-core
     #   pandas-gbq
     #   sqlalchemy-bigquery
-google-auth==2.40.1
+google-auth==2.40.3
     # via
     #   -c requirements/base.txt
     #   google-api-core
@@ -318,6 +322,7 @@ greenlet==3.1.1
     #   apache-superset
     #   gevent
     #   shillelagh
+    #   sqlalchemy
 grpcio==1.71.0
     # via
     #   apache-superset
@@ -367,6 +372,8 @@ isodate==0.7.2
     # via
     #   -c requirements/base.txt
     #   apache-superset
+isort==6.0.1
+    # via pylint
 itsdangerous==2.2.0
     # via
     #   -c requirements/base.txt
@@ -441,6 +448,8 @@ marshmallow-sqlalchemy==1.4.0
     #   flask-appbuilder
 matplotlib==3.9.0
     # via prophet
+mccabe==0.7.0
+    # via pylint
 mdurl==0.1.2
     # via
     #   -c requirements/base.txt
@@ -480,7 +489,9 @@ odfpy==1.4.1
     #   -c requirements/base.txt
     #   pandas
 openapi-schema-validator==0.6.3
-    # via openapi-spec-validator
+    # via
+    #   -c requirements/base.txt
+    #   openapi-spec-validator
 openapi-spec-validator==0.7.1
     # via apache-superset
 openpyxl==3.1.5
@@ -546,6 +557,7 @@ pillow==10.3.0
 platformdirs==4.3.8
     # via
     #   -c requirements/base.txt
+    #   pylint
     #   requests-cache
     #   virtualenv
 pluggy==1.5.0
@@ -628,11 +640,13 @@ pyjwt==2.10.1
     #   apache-superset
     #   flask-appbuilder
     #   flask-jwt-extended
+pylint==3.3.7
+    # via apache-superset
 pynacl==1.5.0
     # via
     #   -c requirements/base.txt
     #   paramiko
-pyopenssl==25.0.0
+pyopenssl==25.1.0
     # via
     #   -c requirements/base.txt
     #   shillelagh
@@ -707,7 +721,7 @@ referencing==0.36.2
     #   jsonschema
     #   jsonschema-path
     #   jsonschema-specifications
-requests==2.32.3
+requests==2.32.4
     # via
     #   -c requirements/base.txt
     #   docker
@@ -727,7 +741,9 @@ requests-cache==1.2.1
 requests-oauthlib==2.0.0
     # via google-auth-oauthlib
 rfc3339-validator==0.1.4
-    # via openapi-schema-validator
+    # via
+    #   -c requirements/base.txt
+    #   openapi-schema-validator
 rich==13.9.4
     # via
     #   -c requirements/base.txt
@@ -799,30 +815,29 @@ sqlalchemy-utils==0.38.3
     #   -c requirements/base.txt
     #   apache-superset
     #   flask-appbuilder
-sqlglot==26.17.1
+sqlglot==26.28.1
     # via
     #   -c requirements/base.txt
     #   apache-superset
 sqloxide==0.1.51
     # via apache-superset
-sqlparse==0.5.3
-    # via
-    #   -c requirements/base.txt
-    #   apache-superset
 sshtunnel==0.4.0
     # via
     #   -c requirements/base.txt
     #   apache-superset
 statsd==4.0.1
     # via apache-superset
-tabulate==0.8.10
+tabulate==0.9.0
     # via
     #   -c requirements/base.txt
     #   apache-superset
 tomli==2.2.1
     # via
     #   coverage
+    #   pylint
     #   pytest
+tomlkit==0.13.3
+    # via pylint
 tqdm==4.67.1
     # via
     #   cmdstanpy
@@ -838,11 +853,12 @@ trio-websocket==0.12.2
     # via
     #   -c requirements/base.txt
     #   selenium
-typing-extensions==4.13.2
+typing-extensions==4.14.0
     # via
     #   -c requirements/base.txt
     #   alembic
     #   apache-superset
+    #   astroid
     #   cattrs
     #   exceptiongroup
     #   limits

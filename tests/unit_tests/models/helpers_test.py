@@ -209,4 +209,4 @@ def test_values_for_column_double_percents(
         called_conn = pd.read_sql_query.call_args.kwargs["con"]
 
         assert called_sql.compare(expected_sql) is True
-        assert called_conn == engine
+        assert called_conn.engine == engine

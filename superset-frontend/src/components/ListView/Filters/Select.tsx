@@ -25,11 +25,11 @@ import {
 } from 'react';
 
 import { t } from '@superset-ui/core';
-import { Select } from 'src/components';
-import { Filter, SelectOption } from 'src/components/ListView/types';
-import { FormLabel } from 'src/components/Form';
-import AsyncSelect from 'src/components/Select/AsyncSelect';
-import { FilterContainer, BaseFilter, FilterHandler } from './Base';
+import { Select, AsyncSelect, FormLabel } from '@superset-ui/core/components';
+import { ListViewFilter as Filter, SelectOption } from '../types';
+import type { BaseFilter, FilterHandler } from './types';
+import { FilterContainer } from './Base';
+import { SELECT_WIDTH } from '../utils';
 
 interface SelectFilterProps extends BaseFilter {
   fetchSelects?: Filter['fetchSelects'];
@@ -38,6 +38,7 @@ interface SelectFilterProps extends BaseFilter {
   paginate?: boolean;
   selects: Filter['selects'];
   loading?: boolean;
+  dropdownStyle?: React.CSSProperties;
 }
 
 function SelectFilter(
@@ -49,6 +50,7 @@ function SelectFilter(
     onSelect,
     selects = [],
     loading = false,
+    dropdownStyle,
   }: SelectFilterProps,
   ref: RefObject<FilterHandler>,
 ) {
@@ -88,19 +90,26 @@ function SelectFilter(
     },
     [fetchSelects],
   );
-
+  const placeholder = t('Choose...');
   return (
-    <FilterContainer>
+    <FilterContainer
+      data-test="select-filter-container"
+      width={SELECT_WIDTH}
+      vertical
+      justify="center"
+      align="start"
+    >
+      <FormLabel>{Header}</FormLabel>
       {fetchSelects ? (
         <AsyncSelect
           allowClear
           ariaLabel={typeof Header === 'string' ? Header : name || t('Filter')}
           data-test="filters-select"
-          header={<FormLabel>{Header}</FormLabel>}
           onChange={onChange}
           onClear={onClear}
           options={fetchAndFormatSelects}
-          placeholder={t('Select or type a value')}
+          placeholder={placeholder}
+          dropdownStyle={dropdownStyle}
           showSearch
           value={selectedOption}
         />
@@ -109,12 +118,12 @@ function SelectFilter(
           allowClear
           ariaLabel={typeof Header === 'string' ? Header : name || t('Filter')}
           data-test="filters-select"
-          header={<FormLabel>{Header}</FormLabel>}
           labelInValue
           onChange={onChange}
           onClear={onClear}
           options={selects}
-          placeholder={t('Select or type a value')}
+          placeholder={placeholder}
+          dropdownStyle={dropdownStyle}
           showSearch
           value={selectedOption}
           loading={loading}
