@@ -34,11 +34,11 @@ import {
   DataMaskWithId,
   Filter,
   DataMask,
-  SLOW_DEBOUNCE,
   isNativeFilter,
   usePrevious,
   styled,
 } from '@superset-ui/core';
+import { Constants } from '@superset-ui/core/components';
 import { useHistory } from 'react-router-dom';
 import { updateDataMask, clearDataMask } from 'src/dataMask/actions';
 import { useImmer } from 'use-immer';
@@ -136,7 +136,7 @@ const publishDataMask = debounce(
       });
     }
   },
-  SLOW_DEBOUNCE,
+  Constants.SLOW_DEBOUNCE,
 );
 
 const FilterBar: FC<FiltersBarProps> = ({

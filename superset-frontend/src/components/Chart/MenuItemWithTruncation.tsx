@@ -19,10 +19,9 @@
 
 import { ReactNode, CSSProperties, useCallback } from 'react';
 import { css, truncationCSS, useCSSTextTruncation } from '@superset-ui/core';
-import { Menu } from 'src/components/Menu';
-import { Tooltip } from 'src/components/Tooltip';
-import { MenuItemProps } from 'antd-v5';
-import { ItemType } from 'antd-v5/es/menu/interface';
+import { Menu, type ItemType } from '@superset-ui/core/components/Menu';
+import { Tooltip } from '@superset-ui/core/components';
+import { MenuItemProps } from 'antd';
 
 export type MenuItemWithTruncationProps = {
   tooltipText: ReactNode;

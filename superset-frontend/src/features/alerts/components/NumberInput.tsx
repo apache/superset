@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { Input } from '@superset-ui/core/components';
 import { useState, ChangeEvent } from 'react';
 
 interface NumberInputProps {
@@ -39,7 +40,7 @@ export default function NumberInput({
   const [isFocused, setIsFocused] = useState<boolean>(false);
 
   return (
-    <input
+    <Input
       type="text"
       min={min}
       name={name}

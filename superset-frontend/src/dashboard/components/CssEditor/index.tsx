@@ -17,13 +17,15 @@
  * under the License.
  */
 import { Key, ReactNode, PureComponent } from 'react';
-import { Dropdown } from 'src/components/Dropdown';
+import {
+  Dropdown,
+  CssEditor as AceCssEditor,
+  Button,
+  ModalTrigger,
+} from '@superset-ui/core/components';
 import rison from 'rison';
-import { Menu } from 'src/components/Menu';
-import Button from 'src/components/Button';
+import { Menu } from '@superset-ui/core/components/Menu';
 import { t, styled, SupersetClient } from '@superset-ui/core';
-import ModalTrigger from 'src/components/ModalTrigger';
-import { CssEditor as AceCssEditor } from 'src/components/AsyncAceEditor';
 
 export interface CssEditorProps {
   initialCss: string;
@@ -45,14 +47,14 @@ const StyledWrapper = styled.div`
       display: flex;
       flex-direction: row;
       justify-content: space-between;
-      margin-bottom: ${theme.gridUnit * 2}px;
+      margin-bottom: ${theme.sizeUnit * 2}px;
 
       h5 {
-        margin-top: ${theme.gridUnit}px;
+        margin-top: ${theme.sizeUnit}px;
       }
     }
     .css-editor {
-      border: 1px solid ${theme.colors.grayscale.light1};
+      border: 1px solid ${theme.colorBorder};
     }
   `}
 `;

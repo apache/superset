@@ -19,7 +19,7 @@
 import configureStore from 'redux-mock-store';
 import { render, screen } from 'spec/helpers/testing-library';
 import { INVALID_DATE } from '@superset-ui/chart-controls';
-import { extendedDayjs } from 'src/utils/dates';
+import { extendedDayjs } from '@superset-ui/core/utils/dates';
 import TimeOffsetControls, {
   TimeOffsetControlsProps,
 } from './TimeOffsetControl';
