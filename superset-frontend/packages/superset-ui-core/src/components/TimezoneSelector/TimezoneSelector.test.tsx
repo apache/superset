@@ -35,9 +35,9 @@ const loadComponent = (mockCurrentTime?: string) => {
 const getSelectOptions = () =>
   waitFor(() => document.querySelectorAll('.ant-select-item-option-content'));
 
-const openSelectMenu = async () => {
+const openSelectMenu = () => {
   const searchInput = screen.getByRole('combobox');
-  await userEvent.click(searchInput);
+  userEvent.click(searchInput);
 };
 
 jest.spyOn(extendedDayjs.tz, 'guess').mockReturnValue('America/New_York');

@@ -120,9 +120,9 @@ describe('asyncEvent middleware', () => {
     });
 
     it('resolves with chart data on event done status', async () => {
-      await expect(
-        asyncEvent.waitForAsyncData(asyncPendingEvent),
-      ).resolves.toEqual([chartData]);
+      const actualResolved =
+        await asyncEvent.waitForAsyncData(asyncPendingEvent);
+      expect(actualResolved).toEqual([chartData]);
 
       expect(fetchMock.calls(EVENTS_ENDPOINT)).toHaveLength(1);
       expect(fetchMock.calls(CACHED_DATA_ENDPOINT)).toHaveLength(1);
@@ -134,10 +134,15 @@ describe('asyncEvent middleware', () => {
         status: 200,
         body: { result: [asyncErrorEvent] },
       });
-      const errorResponse = await parseErrorJson(asyncErrorEvent);
-      await expect(
-        asyncEvent.waitForAsyncData(asyncPendingEvent),
-      ).rejects.toEqual(errorResponse);
+      const errorResponse = parseErrorJson(asyncErrorEvent);
+      let error: any = null;
+      try {
+        await asyncEvent.waitForAsyncData(asyncPendingEvent);
+      } catch (err) {
+        error = err;
+      } finally {
+        expect(error).toEqual(errorResponse);
+      }
 
       expect(fetchMock.calls(EVENTS_ENDPOINT)).toHaveLength(1);
       expect(fetchMock.calls(CACHED_DATA_ENDPOINT)).toHaveLength(0);
@@ -153,10 +158,14 @@ describe('asyncEvent middleware', () => {
         status: 400,
       });
 
-      const errorResponse = [{ error: 'Bad Request' }];
-      await expect(
-        asyncEvent.waitForAsyncData(asyncPendingEvent),
-      ).rejects.toEqual(errorResponse);
+      let error = '';
+      try {
+        await asyncEvent.waitForAsyncData(asyncPendingEvent);
+      } catch (err) {
+        [{ error }] = err;
+      } finally {
+        expect(error).toEqual('Bad request');
+      }
 
       expect(fetchMock.calls(EVENTS_ENDPOINT)).toHaveLength(1);
       expect(fetchMock.calls(CACHED_DATA_ENDPOINT)).toHaveLength(1);
@@ -209,7 +218,7 @@ describe('asyncEvent middleware', () => {
 
       wsServer.send(JSON.stringify(asyncErrorEvent));
 
-      const errorResponse = await parseErrorJson(asyncErrorEvent);
+      const errorResponse = parseErrorJson(asyncErrorEvent);
 
       await expect(promise).rejects.toEqual(errorResponse);
 
@@ -229,9 +238,14 @@ describe('asyncEvent middleware', () => {
 
       wsServer.send(JSON.stringify(asyncDoneEvent));
 
-      const errorResponse = [{ error: 'Bad Request' }];
-
-      await expect(promise).rejects.toEqual(errorResponse);
+      let error = '';
+      try {
+        await promise;
+      } catch (err) {
+        [{ error }] = err;
+      } finally {
+        expect(error).toEqual('Bad request');
+      }
 
       expect(fetchMock.calls(CACHED_DATA_ENDPOINT)).toHaveLength(1);
       expect(fetchMock.calls(EVENTS_ENDPOINT)).toHaveLength(0);

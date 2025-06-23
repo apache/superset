@@ -72,7 +72,6 @@
     "@types/d3-time": "^3.0.4",
     "@types/d3-time-format": "^4.0.3",
     "@types/react-table": "^7.7.20",
-    "@types/fetch-mock": "^7.3.8",
     "@types/jquery": "^3.5.8",
     "@types/lodash": "^4.17.16",
     "@types/math-expression-evaluator": "^1.3.3",

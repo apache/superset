@@ -86,7 +86,7 @@ describe('SamplesPane', () => {
       useRedux: true,
     });
 
-    expect(await findByText('Error: Bad Request')).toBeVisible();
+    expect(await findByText('Error: Bad request')).toBeVisible();
   });
 
   test('force query, render and search', async () => {
