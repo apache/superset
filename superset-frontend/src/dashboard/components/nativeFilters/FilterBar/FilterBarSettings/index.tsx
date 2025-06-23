@@ -148,6 +148,7 @@ const FilterBarSettings = () => {
       toggleCrossFiltering,
       toggleFilterBarOrientation,
       openFilterConfigModal,
+      openChartCustomizationModal,
     ],
   );
 
@@ -213,6 +214,7 @@ const FilterBarSettings = () => {
                   <Icons.CheckOutlined
                     iconColor={theme.colorPrimary}
                     iconSize="m"
+                    aria-label="check"
                   />
                 )}
               </Space>
@@ -230,6 +232,7 @@ const FilterBarSettings = () => {
                     css={css`
                       vertical-align: middle;
                     `}
+                    aria-label="check"
                   />
                 )}
               </Space>
