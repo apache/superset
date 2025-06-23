@@ -632,11 +632,7 @@ const ChartCustomizationForm: FC<Props> = ({ form, item, onUpdate }) => {
   ]);
 
   return (
-    <StyledForm
-      layout="vertical"
-      form={form}
-      onValuesChange={() => formChanged()}
-    >
+    <div>
       <StyledContainer>
         <StyledFormItem
           name={['filters', item.id, 'name']}
@@ -777,6 +773,7 @@ const ChartCustomizationForm: FC<Props> = ({ form, item, onUpdate }) => {
                       }
                     : {}),
                 });
+                formChanged();
               }}
             >
               <StyledFormItem
@@ -793,6 +790,7 @@ const ChartCustomizationForm: FC<Props> = ({ form, item, onUpdate }) => {
                     setFormFieldValues({
                       sortAscending: value.target.value,
                     });
+                    formChanged();
                   }}
                 />
               </StyledFormItem>
@@ -833,6 +831,7 @@ const ChartCustomizationForm: FC<Props> = ({ form, item, onUpdate }) => {
                       setFormFieldValues({
                         sortMetric: stringValue,
                       });
+                      formChanged();
                     }}
                   />
                 </StyledFormItem>
@@ -1031,7 +1030,7 @@ const ChartCustomizationForm: FC<Props> = ({ form, item, onUpdate }) => {
           </StyledFormItem>
         </Collapse.Panel>
       </Collapse>
-    </StyledForm>
+    </div>
   );
 };
 
