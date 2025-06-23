@@ -162,6 +162,7 @@ class QueryRestApi(BaseSupersetModelRestApi):
         "user",
         "start_time",
         "sql_editor_id",
+        "uuid",
     ]
 
     allowed_rel_fields = {"database", "user"}
