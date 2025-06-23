@@ -19,9 +19,7 @@
 import { memo, useMemo, useState, useRef } from 'react';
 import { useSelector } from 'react-redux';
 import { styled, t } from '@superset-ui/core';
-import { Icons } from 'src/components/Icons';
-import Badge from 'src/components/Badge';
-import { Tooltip } from 'src/components/Tooltip';
+import { Icons, Badge, Tooltip } from '@superset-ui/core/components';
 import { ChartCustomizationItem } from '../nativeFilters/ChartCustomization/types';
 import { RootState } from '../../types';
 
@@ -35,9 +33,9 @@ const StyledGroupByCount = styled.div`
     justify-items: center;
     align-items: center;
     cursor: pointer;
-    margin-right: ${theme.gridUnit}px;
-    padding-left: ${theme.gridUnit * 2}px;
-    padding-right: ${theme.gridUnit * 2}px;
+    margin-right: ${theme.sizeUnit}px;
+    padding-left: ${theme.sizeUnit * 2}px;
+    padding-right: ${theme.sizeUnit * 2}px;
     background: ${theme.colors.grayscale.light4};
     border-radius: 4px;
     height: 100%;
@@ -56,16 +54,16 @@ const StyledGroupByCount = styled.div`
 
 const StyledBadge = styled(Badge)`
   ${({ theme }) => `
-    margin-left: ${theme.gridUnit * 2}px;
+    margin-left: ${theme.sizeUnit * 2}px;
     &>sup.antd5-badge-count {
-      padding: 0 ${theme.gridUnit}px;
-      min-width: ${theme.gridUnit * 4}px;
-      height: ${theme.gridUnit * 4}px;
+      padding: 0 ${theme.sizeUnit}px;
+      min-width: ${theme.sizeUnit * 4}px;
+      height: ${theme.sizeUnit * 4}px;
       line-height: 1.5;
-      font-weight: ${theme.typography.weights.medium};
-      font-size: ${theme.typography.sizes.s - 1}px;
+      font-weight: 500;
+      font-size: ${theme.fontSizeSM - 1}px;
       box-shadow: none;
-      padding: 0 ${theme.gridUnit}px;
+      padding: 0 ${theme.sizeUnit}px;
       background-color: ${theme.colors.primary.base};
     }
   `}
@@ -73,14 +71,14 @@ const StyledBadge = styled(Badge)`
 
 const TooltipContent = styled.div`
   ${({ theme }) => `
-    padding: ${theme.gridUnit * 2}px;
+    padding: ${theme.sizeUnit * 2}px;
     max-width: 300px;
   `}
 `;
 
 const GroupByInfo = styled.div`
   ${({ theme }) => `
-    margin-bottom: ${theme.gridUnit * 2}px;
+    margin-bottom: ${theme.sizeUnit * 2}px;
 
     &:last-child {
       margin-bottom: 0;
@@ -90,8 +88,8 @@ const GroupByInfo = styled.div`
 
 const GroupByLabel = styled.div`
   ${({ theme }) => `
-    font-weight: ${theme.typography.weights.bold};
-    margin-bottom: ${theme.gridUnit}px;
+    font-weight: 600;
+    margin-bottom: ${theme.sizeUnit}px;
   `}
 `;
 

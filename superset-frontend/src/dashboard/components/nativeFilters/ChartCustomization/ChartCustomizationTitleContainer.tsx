@@ -18,7 +18,7 @@
  */
 import { FC, forwardRef, MouseEvent } from 'react';
 import { styled, t } from '@superset-ui/core';
-import { Icons } from 'src/components/Icons';
+import { Icons } from '@superset-ui/core/components';
 import { ChartCustomizationItem } from './types';
 
 interface Props {
@@ -32,21 +32,21 @@ interface Props {
 const ListContainer = styled.div`
   display: flex;
   flex-direction: column;
-  gap: ${({ theme }) => theme.gridUnit * 2}px;
+  gap: ${({ theme }) => theme.sizeUnit * 2}px;
 `;
 
 const FilterTitle = styled.div<{ selected: boolean }>`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: ${({ theme }) => theme.gridUnit * 2}px
-    ${({ theme }) => theme.gridUnit * 3}px;
+  padding: ${({ theme }) => theme.sizeUnit * 2}px
+    ${({ theme }) => theme.sizeUnit * 3}px;
   background-color: ${({ theme, selected }) =>
     selected ? theme.colors.primary.light5 : theme.colors.grayscale.light4};
   border: 1px solid
     ${({ theme, selected }) =>
       selected ? theme.colors.primary.base : 'transparent'};
-  border-radius: ${({ theme }) => theme.gridUnit}px;
+  border-radius: ${({ theme }) => theme.sizeUnit}px;
   cursor: pointer;
 
   &:hover {
@@ -71,7 +71,7 @@ const UndoButton = styled.span`
   margin-left: auto;
   color: ${({ theme }) => theme.colors.primary.base};
   cursor: pointer;
-  font-size: ${({ theme }) => theme.typography.sizes.s}px;
+  font-size: ${({ theme }) => theme.fontSizeSM}px;
 
   &:hover {
     text-decoration: underline;
@@ -80,7 +80,7 @@ const UndoButton = styled.span`
 
 const TrashIcon = styled(Icons.DeleteOutlined)`
   cursor: pointer;
-  margin-left: ${({ theme }) => theme.gridUnit * 2}px;
+  margin-left: ${({ theme }) => theme.sizeUnit * 2}px;
   color: ${({ theme }) => theme.colors.grayscale.dark1};
 
   &:hover {

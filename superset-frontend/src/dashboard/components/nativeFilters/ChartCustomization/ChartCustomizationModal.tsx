@@ -20,9 +20,8 @@ import { useState, useEffect, useMemo, useCallback, memo } from 'react';
 import { t, styled, css } from '@superset-ui/core';
 import { useSelector } from 'react-redux';
 import { isEmpty } from 'lodash';
-import { StyledModal } from 'src/components/Modal';
-import ErrorBoundary from 'src/components/ErrorBoundary';
-import { Form } from 'src/components/Form';
+import { StyledModal, Form } from '@superset-ui/core/components';
+import { ErrorBoundary } from 'src/components/ErrorBoundary';
 import Footer from 'src/dashboard/components/nativeFilters/FiltersConfigModal/Footer/Footer';
 import { CancelConfirmationAlert } from 'src/dashboard/components/nativeFilters/FiltersConfigModal/Footer/CancelConfirmationAlert';
 import ChartCustomizationTitlePane from './ChartCustomizationTitlePane';
@@ -71,13 +70,13 @@ const StyledModalBody = styled.div<{ expanded: boolean }>`
 const ContentArea = styled.div`
   flex-grow: 3;
   overflow-y: auto;
-  padding: ${({ theme }) => theme.gridUnit * 4}px;
+  padding: ${({ theme }) => theme.sizeUnit * 4}px;
 `;
 
 const Sidebar = styled.div`
-  width: ${({ theme }) => theme.gridUnit * 60}px;
+  width: ${({ theme }) => theme.sizeUnit * 60}px;
   border-right: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
-  padding: ${({ theme }) => theme.gridUnit * 4}px;
+  padding: ${({ theme }) => theme.sizeUnit * 4}px;
 `;
 
 export interface ChartCustomizationModalProps {
@@ -104,6 +103,7 @@ const ChartCustomizationModal = ({
   const [saveAlertVisible, setSaveAlertVisible] = useState(false);
   const [initialLoadComplete, setInitialLoadComplete] = useState(false);
 
+  // Add error handling state (similar to FiltersConfigModal)
   const [erroredItems, setErroredItems] = useState<string[]>([]);
 
   const currentItem = useMemo(
@@ -111,6 +111,7 @@ const ChartCustomizationModal = ({
     [items, currentId],
   );
 
+  // Enhanced change detection (similar to FiltersConfigModal)
   const hasUnsavedChanges = useCallback(() => {
     const changed = form.getFieldValue('changed');
     const isFieldsTouched = form.isFieldsTouched();
@@ -120,6 +121,7 @@ const ChartCustomizationModal = ({
     return changed || isFieldsTouched || hasNewItems || hasRemovedItems;
   }, [form, items]);
 
+  // Enhanced form validation (similar to FiltersConfigModal)
   const validateForm = useCallback(async () => {
     try {
       const values = await form.validateFields();
@@ -137,6 +139,7 @@ const ChartCustomizationModal = ({
     }
   }, [form, items]);
 
+  // Enhanced form reset (similar to FiltersConfigModal)
   const resetForm = useCallback(
     (isSaving = false) => {
       setItems([]);
@@ -153,6 +156,7 @@ const ChartCustomizationModal = ({
     [form],
   );
 
+  // Enhanced save handler (similar to FiltersConfigModal)
   const handleSave = useCallback(async () => {
     const values = await validateForm();
 
@@ -178,6 +182,7 @@ const ChartCustomizationModal = ({
       resetForm(true);
       onCancel();
     } else if (erroredItems.length > 0) {
+      // Focus on the first error if validation fails
       setCurrentId(erroredItems[0]);
     }
   }, [
