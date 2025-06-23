@@ -248,6 +248,7 @@ const ChartCustomizationModal = ({
       if (shouldRemove) {
         const timerId = window.setTimeout(() => {
           setItems(prev => prev.filter(i => i.id !== id));
+
           if (currentId === id) {
             const nextItem = items.find(i => i.id !== id && !i.removed);
             setCurrentId(nextItem?.id || null);
@@ -259,11 +260,6 @@ const ChartCustomizationModal = ({
             i.id === id ? { ...i, removed: true, removeTimerId: timerId } : i,
           ),
         );
-
-        if (currentId === id) {
-          const nextItem = items.find(i => i.id !== id && !i.removed);
-          setCurrentId(nextItem?.id || null);
-        }
       } else {
         setItems(prev =>
           prev.map(i => {
