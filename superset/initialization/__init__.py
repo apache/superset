@@ -406,7 +406,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.add_api(LogRestApi)
         appbuilder.add_api(UserRegistrationsRestAPI)
         appbuilder.add_view(
-            LogModelView,
+            ActionLogView,
             "Action Log",
             label=__("Action Log"),
             category="Security",
