@@ -23,8 +23,8 @@ import { SearchOption } from '../../types';
 
 const StyledSelect = styled(Select)`
   ${({ theme }) => `
-    width: ${theme.gridUnit * 30}px;
-    margin-right: ${theme.gridUnit * 2}px;
+    width: ${theme.sizeUnit * 30}px;
+    margin-right: ${theme.sizeUnit * 2}px;
   `}
 `;
 

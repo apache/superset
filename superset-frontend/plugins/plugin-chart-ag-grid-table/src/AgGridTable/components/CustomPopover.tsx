@@ -30,10 +30,10 @@ const PopoverContainer = styled.div`
     background: ${theme.colors.grayscale.light4};
     border: 1px solid ${theme.colors.grayscale.light2};
     border-radius: ${theme.borderRadius}px;
-    box-shadow: 0 ${theme.gridUnit / 2}px ${theme.gridUnit * 2}px ${theme.colors.grayscale.light1}40;
+    box-shadow: 0 ${theme.sizeUnit / 2}px ${theme.sizeUnit * 2}px ${theme.colors.grayscale.light1}40;
     z-index: 99;
-    min-width: ${theme.gridUnit * 50}px;
-    padding: ${theme.gridUnit * 2}px;
+    min-width: ${theme.sizeUnit * 50}px;
+    padding: ${theme.sizeUnit * 2}px;
   `}
 `;
 

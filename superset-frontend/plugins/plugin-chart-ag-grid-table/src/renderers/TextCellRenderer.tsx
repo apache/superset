@@ -19,8 +19,8 @@
  */
 
 import { isProbablyHTML, sanitizeHtml, t, styled } from '@superset-ui/core';
-// import { InfoCircleOutlined } from '@ant-design/icons';
-// import { Tooltip } from '@superset-ui/chart-controls';
+import { InfoCircleOutlined } from '@ant-design/icons';
+import { Tooltip } from '@superset-ui/core/components';
 import { CellRendererProps } from '../types';
 
 const SummaryContainer = styled.div`
@@ -52,9 +52,9 @@ export const TextCellRenderer = (params: CellRendererProps) => {
       return (
         <SummaryContainer>
           <SummaryText>{t('Summary')}</SummaryText>
-          {/* <Tooltip overlay={SUMMARY_TOOLTIP_TEXT}>
+          <Tooltip overlay={SUMMARY_TOOLTIP_TEXT}>
             <InfoCircleOutlined />
-          </Tooltip> */}
+          </Tooltip>
         </SummaryContainer>
       );
     }
