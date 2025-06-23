@@ -16,18 +16,28 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { formatSelectOptions } from '@superset-ui/chart-controls';
-import { addLocaleData } from '@superset-ui/core';
-import i18n from './i18n';
 
-addLocaleData(i18n);
+const dateFilterComparator = (filterDate: Date, cellValue: Date) => {
+  const cellDate = new Date(cellValue);
+  cellDate.setHours(0, 0, 0, 0);
+  if (Number.isNaN(cellDate?.getTime())) return -1;
 
-export const SERVER_PAGE_SIZE_OPTIONS = formatSelectOptions<number>([
-  10, 20, 50, 100, 200,
-]);
+  const cellDay = cellDate.getDate();
+  const cellMonth = cellDate.getMonth();
+  const cellYear = cellDate.getFullYear();
 
-export const PAGE_SIZE_OPTIONS = [10, 20, 50, 100, 200];
+  const filterDay = filterDate.getDate();
+  const filterMonth = filterDate.getMonth();
+  const filterYear = filterDate.getFullYear();
 
-export const CUSTOM_AGG_FUNCS = {
-  queryTotal: 'Metric total',
+  if (cellYear < filterYear) return -1;
+  if (cellYear > filterYear) return 1;
+  if (cellMonth < filterMonth) return -1;
+  if (cellMonth > filterMonth) return 1;
+  if (cellDay < filterDay) return -1;
+  if (cellDay > filterDay) return 1;
+
+  return 0;
 };
+
+export default dateFilterComparator;

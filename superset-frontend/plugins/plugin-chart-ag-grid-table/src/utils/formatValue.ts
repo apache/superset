@@ -21,10 +21,12 @@ import {
   DataRecordValue,
   GenericDataType,
   getNumberFormatter,
+  isDefined,
   isProbablyHTML,
   sanitizeHtml,
 } from '@superset-ui/core';
-import { DataColumnMeta } from '../types';
+import { ValueFormatterParams, ValueGetterParams } from 'ag-grid-community';
+import { DataColumnMeta, InputColumn } from '../types';
 import DateWithFormatter from './DateWithFormatter';
 
 /**
@@ -78,3 +80,36 @@ export function formatColumnValue(
     value,
   );
 }
+
+export const valueFormatter = (
+  params: ValueFormatterParams,
+  col: InputColumn,
+): string => {
+  const { value, node } = params;
+  if (
+    isDefined(value) &&
+    value !== '' &&
+    !(value instanceof DateWithFormatter && value.input === null)
+  ) {
+    return col.formatter?.(value) || value;
+  }
+  if (node?.level === -1) {
+    return '';
+  }
+  return 'N/A';
+};
+
+export const valueGetter = (params: ValueGetterParams, col: InputColumn) => {
+  // @ts-ignore
+  if (params?.colDef?.isMain) {
+    const modifiedColId = `Main ${params.column.getColId()}`;
+    return params.data[modifiedColId];
+  }
+  if (isDefined(params.data?.[params.column.getColId()])) {
+    return params.data[params.column.getColId()];
+  }
+  if (col.isNumeric) {
+    return undefined;
+  }
+  return '';
+};

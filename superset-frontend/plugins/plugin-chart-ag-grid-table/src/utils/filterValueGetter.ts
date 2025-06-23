@@ -1,3 +1,4 @@
+/* eslint-disable camelcase */
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -16,18 +17,18 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { formatSelectOptions } from '@superset-ui/chart-controls';
-import { addLocaleData } from '@superset-ui/core';
-import i18n from './i18n';
+import { ValueGetterParams } from 'ag-grid-community';
 
-addLocaleData(i18n);
+const filterValueGetter = (params: ValueGetterParams) => {
+  const raw = params.data[params.colDef.field as string];
+  const formatter = params.colDef.valueFormatter as Function;
+  if (!raw || !formatter) return null;
+  const formatted = formatter({
+    value: raw,
+  });
 
-export const SERVER_PAGE_SIZE_OPTIONS = formatSelectOptions<number>([
-  10, 20, 50, 100, 200,
-]);
-
-export const PAGE_SIZE_OPTIONS = [10, 20, 50, 100, 200];
-
-export const CUSTOM_AGG_FUNCS = {
-  queryTotal: 'Metric total',
+  const numeric = parseFloat(String(formatted).replace('%', '').trim());
+  return Number.isNaN(numeric) ? null : numeric;
 };
+
+export default filterValueGetter;

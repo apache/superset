@@ -1,3 +1,4 @@
+/* eslint-disable camelcase */
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -16,18 +17,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { formatSelectOptions } from '@superset-ui/chart-controls';
-import { addLocaleData } from '@superset-ui/core';
-import i18n from './i18n';
+import { CUSTOM_AGG_FUNCS } from '../consts';
+import { InputColumn } from '../types';
 
-addLocaleData(i18n);
-
-export const SERVER_PAGE_SIZE_OPTIONS = formatSelectOptions<number>([
-  10, 20, 50, 100, 200,
-]);
-
-export const PAGE_SIZE_OPTIONS = [10, 20, 50, 100, 200];
-
-export const CUSTOM_AGG_FUNCS = {
-  queryTotal: 'Metric total',
-};
+export const getAggFunc = (col: InputColumn) =>
+  col.isMetric || col.isPercentMetric
+    ? CUSTOM_AGG_FUNCS.queryTotal
+    : col.isNumeric
+      ? 'sum'
+      : undefined;

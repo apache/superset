@@ -21,13 +21,7 @@
 
 import { useRef, useState } from 'react';
 import { styled, t } from '@superset-ui/core';
-import {
-  ArrowDownOutlined,
-  ArrowUpOutlined,
-  MinusCircleOutlined,
-  PlusCircleOutlined,
-} from '@ant-design/icons';
-import { ColDef } from 'ag-grid-community';
+import { ArrowDownOutlined, ArrowUpOutlined } from '@ant-design/icons';
 import CustomPopover from './CustomPopover';
 import FilterIcon from './Filter';
 import KebabMenu from './KebabMenu';
@@ -115,23 +109,6 @@ const MenuContainer = styled.div`
   `}
 `;
 
-const ToggleButton = styled.div`
-  ${({ theme }) => `
-    display: flex;
-    align-items: center;
-    cursor: pointer;
-    padding: ${theme.gridUnit / 2}px;
-    margin-left: ${theme.gridUnit}px;
-    transition: transform 0.2s;
-    width: 60px;
-
-    &:hover {
-      background: ${theme.colors.grayscale.light4};
-      border-radius: ${theme.borderRadius}px;
-    }
-  `}
-`;
-
 const getSortIcon = (
   sortState: SortState[],
   colId: string | null,
@@ -161,8 +138,6 @@ const CustomHeader: React.FC<CustomHeaderParams> = ({
   const filterContainerRef = useRef<HTMLDivElement>(null);
   const [isMenuVisible, setIsMenuVisible] = useState(false);
   const currentSort = initialSortState?.[0];
-  const [areComparisonColumnsVisible, setAreComparisonColumnsVisible] =
-    useState(true);
 
   const userColumn = column.getUserProvidedColDef() as UserProvidedColDef;
   const isMain = userColumn?.isMain;
@@ -219,27 +194,6 @@ const CustomHeader: React.FC<CustomHeaderParams> = ({
     setIsMenuVisible(!isMenuVisible);
   };
 
-  const isTimeComparisonColumn = (col: ColDef<any, any>) =>
-    (col as UserProvidedColDef).timeComparisonKey === timeComparisonKey &&
-    !(col as UserProvidedColDef).isMain;
-
-  const handleToggleComparison = (event: React.MouseEvent) => {
-    event.stopPropagation();
-
-    const allColumns = api.getColumnDefs();
-    const timeComparisonColumns = allColumns?.filter(col =>
-      isTimeComparisonColumn(col),
-    );
-    const timeComparsionColIds = timeComparisonColumns?.map(
-      item => (item as UserProvidedColDef).field || '',
-    ) as string[];
-    api.setColumnsVisible(timeComparsionColIds, !areComparisonColumnsVisible);
-
-    api.sizeColumnsToFit();
-
-    setAreComparisonColumnsVisible(!areComparisonColumnsVisible);
-  };
-
   const shouldShowAsc =
     !currentSort ||
     (currentSort?.colId === colId && currentSort?.sort === 'desc') ||
@@ -276,22 +230,6 @@ const CustomHeader: React.FC<CustomHeaderParams> = ({
         <SortIconWrapper>
           {getSortIcon(initialSortState, colId)}
         </SortIconWrapper>
-        {isMain && timeComparisonKey && (
-          <ToggleButton
-            onClick={handleToggleComparison}
-            title={
-              areComparisonColumnsVisible
-                ? t('Hide comparison columns')
-                : t('Show comparison columns')
-            }
-          >
-            {areComparisonColumnsVisible ? (
-              <MinusCircleOutlined />
-            ) : (
-              <PlusCircleOutlined />
-            )}
-          </ToggleButton>
-        )}
       </HeaderContainer>
 
       <CustomPopover

@@ -37,16 +37,9 @@ import {
   CellClickedEvent,
 } from 'ag-grid-community';
 import './styles/ag-grid.css';
-
 import { AgGridReact } from 'ag-grid-react';
 import { type FunctionComponent } from 'react';
-import {
-  styled,
-  css,
-  JsonObject,
-  DataRecordValue,
-  DataRecord,
-} from '@superset-ui/core';
+import { JsonObject, DataRecordValue, DataRecord } from '@superset-ui/core';
 import { SearchOutlined } from '@ant-design/icons';
 import { debounce, isEqual } from 'lodash';
 import Pagination from './components/Pagination';
@@ -58,7 +51,7 @@ import { PAGE_SIZE_OPTIONS } from '../consts';
 export interface AgGridTableProps {
   gridTheme?: string;
   isDarkMode?: boolean;
-  gridHeight?: number | null;
+  gridHeight?: number;
   updateInterval?: number;
   data?: any[];
   onGridReady?: (params: GridReadyEvent) => void;
@@ -85,87 +78,16 @@ export interface AgGridTableProps {
   renderTimeComparisonDropdown: () => JSX.Element | null;
   cleanedTotals: DataRecord;
   showTotals: boolean;
+  width: number;
 }
 
 ModuleRegistry.registerModules([AllCommunityModule, ClientSideRowModelModule]);
-
-const StyledContainer = styled.div`
-  ${({ theme }) => css`
-    .search-container {
-      display: flex;
-      justify-content: flex-end;
-    }
-
-    .dropdown-controls-container {
-      display: flex;
-      justify-content: flex-end;
-    }
-
-    .time-comparison-dropdown {
-      display: flex;
-      padding-right: ${theme.gridUnit * 4}px;
-      padding-top: ${theme.gridUnit * 1.75}px;
-    }
-
-    .ag-header,
-    .ag-row,
-    .ag-spanned-row {
-      font-size: ${theme.typography.sizes.s}px;
-      font-weight: ${theme.typography.weights.medium};
-    }
-
-    .ag-root-wrapper {
-      border-radius: ${theme.borderRadius}px;
-    }
-
-    .search-by-text {
-      margin-right: ${theme.gridUnit}px;
-    }
-
-    .input-container {
-      margin-left: auto;
-    }
-
-    .input-wrapper {
-      position: relative;
-      display: flex;
-      align-items: center;
-      overflow: visible;
-      margin-bottom: ${theme.gridUnit * 4}px;
-    }
-
-    .input-wrapper svg {
-      pointer-events: none;
-      transform: translate(${theme.gridUnit * 7}px, ${theme.gridUnit / 2}px);
-      color: ${theme.colors.grayscale.base};
-    }
-
-    .input-wrapper input {
-      font-size: ${theme.typography.sizes.s}px;
-      padding: ${theme.gridUnit * 1.5}px ${theme.gridUnit * 3}px
-        ${theme.gridUnit * 1.5}px ${theme.gridUnit * 8}px;
-      line-height: 1.8;
-      border-radius: ${theme.gridUnit}px;
-      border: 1px solid ${theme.colors.grayscale.light2};
-      background-color: transparent;
-      outline: none;
-
-      &:focus {
-        border-color: ${theme.colors.primary.base};
-      }
-
-      &::placeholder {
-        color: ${theme.colors.grayscale.light1};
-      }
-    }
-  `}
-`;
 
 const isSearchFocused = new Map<string, boolean>();
 
 const AgGridDataTable: FunctionComponent<AgGridTableProps> = memo(
   ({
-    gridHeight = null,
+    gridHeight,
     data = [],
     colDefsFromProps,
     includeSearch,
@@ -190,9 +112,12 @@ const AgGridDataTable: FunctionComponent<AgGridTableProps> = memo(
     renderTimeComparisonDropdown,
     cleanedTotals,
     showTotals,
+    width,
   }) => {
     const gridRef = useRef<AgGridReact>(null);
     const inputRef = useRef<HTMLInputElement>(null);
+    const rowData = useMemo(() => data, [data]);
+
     const searchId = `search-${id}`;
     const gridInitialState: GridState = {
       ...(serverPagination && {
@@ -216,12 +141,12 @@ const AgGridDataTable: FunctionComponent<AgGridTableProps> = memo(
     );
 
     // Memoize container style
-    const containerStyle = useMemo(
+    const containerStyles = useMemo(
       () => ({
-        height: gridHeight ? `${gridHeight}px` : '100%',
-        width: '100%',
+        height: gridHeight,
+        width,
       }),
-      [gridHeight],
+      [gridHeight, width],
     );
 
     const [quickFilterText, setQuickFilterText] = useState<string>();
@@ -238,9 +163,11 @@ const AgGridDataTable: FunctionComponent<AgGridTableProps> = memo(
     );
 
     useEffect(
-      () => () => {
-        debouncedSearch.cancel();
-      },
+      () =>
+        // Cleanup debounced search
+        () => {
+          debouncedSearch.cancel();
+        },
       [debouncedSearch],
     );
 
@@ -329,96 +256,93 @@ const AgGridDataTable: FunctionComponent<AgGridTableProps> = memo(
     };
 
     return (
-      <StyledContainer>
-        <div className="ag-theme-quartz" style={containerStyle}>
-          <div className="dropdown-controls-container">
-            {renderTimeComparisonDropdown && (
-              <div className="time-comparison-dropdown">
-                {renderTimeComparisonDropdown()}
-              </div>
-            )}
-            {includeSearch && (
-              <div className="search-container">
-                {serverPagination && (
-                  <div>
-                    <span className="search-by-text"> Search by :</span>
-                    <SearchSelectDropdown
-                      onChange={onSearchColChange}
-                      searchOptions={searchOptions}
-                      value={serverPaginationData?.searchColumn || ''}
-                    />
-                  </div>
-                )}
-                <div className="input-wrapper">
-                  <div className="input-container">
-                    <SearchOutlined />
-                    <input
-                      ref={inputRef}
-                      value={
-                        serverPagination ? searchValue : quickFilterText || ''
-                      }
-                      type="text"
-                      id="filter-text-box"
-                      placeholder="Search"
-                      onInput={onFilterTextBoxChanged}
-                      onFocus={handleSearchFocus}
-                      onBlur={handleSearchBlur}
-                    />
-                  </div>
+      <div className="ag-theme-quartz" style={containerStyles}>
+        <div className="dropdown-controls-container">
+          {renderTimeComparisonDropdown && (
+            <div className="time-comparison-dropdown">
+              {renderTimeComparisonDropdown()}
+            </div>
+          )}
+          {includeSearch && (
+            <div className="search-container">
+              {serverPagination && (
+                <div>
+                  <span className="search-by-text"> Search by :</span>
+                  <SearchSelectDropdown
+                    onChange={onSearchColChange}
+                    searchOptions={searchOptions}
+                    value={serverPaginationData?.searchColumn || ''}
+                  />
+                </div>
+              )}
+              <div className="input-wrapper">
+                <div className="input-container">
+                  <SearchOutlined />
+                  <input
+                    ref={inputRef}
+                    value={
+                      serverPagination ? searchValue : quickFilterText || ''
+                    }
+                    type="text"
+                    id="filter-text-box"
+                    placeholder="Search"
+                    onInput={onFilterTextBoxChanged}
+                    onFocus={handleSearchFocus}
+                    onBlur={handleSearchBlur}
+                  />
                 </div>
               </div>
-            )}
-          </div>
-
-          <AgGridReact
-            ref={gridRef}
-            rowData={data}
-            rowHeight={30}
-            columnDefs={colDefsFromProps}
-            defaultColDef={defaultColDef}
-            rowSelection="multiple"
-            animateRows
-            onCellClicked={handleCellClick}
-            initialState={gridInitialState}
-            suppressAggFuncInHeader
-            groupDefaultExpanded={-1}
-            rowGroupPanelShow="always"
-            enableCellTextSelection
-            quickFilterText={serverPagination ? '' : quickFilterText}
-            suppressMovableColumns={!allowRearrangeColumns}
-            pagination={pagination}
-            paginationPageSize={pageSize}
-            paginationPageSizeSelector={PAGE_SIZE_OPTIONS}
-            suppressDragLeaveHidesColumns
-            pinnedBottomRowData={showTotals ? [cleanedTotals] : undefined}
-            context={{
-              onColumnHeaderClicked: handleColumnHeaderClick,
-              initialSortState: getInitialSortState(
-                serverPaginationData?.sortBy || [],
-              ),
-              isActiveFilterValue,
-            }}
-          />
-          {serverPagination && (
-            <Pagination
-              currentPage={serverPaginationData?.currentPage || 0}
-              pageSize={
-                hasServerPageLengthChanged
-                  ? serverPageLength
-                  : serverPaginationData?.pageSize || 10
-              }
-              totalRows={rowCount || 0}
-              pageSizeOptions={[10, 20, 50, 100, 200]}
-              onServerPaginationChange={onServerPaginationChange}
-              onServerPageSizeChange={onServerPageSizeChange}
-            />
+            </div>
           )}
         </div>
-      </StyledContainer>
+
+        <AgGridReact
+          ref={gridRef}
+          rowData={rowData}
+          rowHeight={30}
+          columnDefs={colDefsFromProps}
+          defaultColDef={defaultColDef}
+          rowSelection="multiple"
+          animateRows
+          onCellClicked={handleCellClick}
+          initialState={gridInitialState}
+          suppressAggFuncInHeader
+          rowGroupPanelShow="always"
+          enableCellTextSelection
+          quickFilterText={serverPagination ? '' : quickFilterText}
+          suppressMovableColumns={!allowRearrangeColumns}
+          pagination={pagination}
+          paginationPageSize={pageSize}
+          paginationPageSizeSelector={PAGE_SIZE_OPTIONS}
+          suppressDragLeaveHidesColumns
+          pinnedBottomRowData={showTotals ? [cleanedTotals] : undefined}
+          context={{
+            onColumnHeaderClicked: handleColumnHeaderClick,
+            initialSortState: getInitialSortState(
+              serverPaginationData?.sortBy || [],
+            ),
+            isActiveFilterValue,
+          }}
+        />
+        {serverPagination && (
+          <Pagination
+            currentPage={serverPaginationData?.currentPage || 0}
+            pageSize={
+              hasServerPageLengthChanged
+                ? serverPageLength
+                : serverPaginationData?.pageSize || 10
+            }
+            totalRows={rowCount || 0}
+            pageSizeOptions={[10, 20, 50, 100, 200]}
+            onServerPaginationChange={onServerPaginationChange}
+            onServerPageSizeChange={onServerPageSizeChange}
+          />
+        )}
+      </div>
     );
   },
 );
 
 AgGridDataTable.displayName = 'AgGridDataTable';
 
-export default AgGridDataTable;
+export default memo(AgGridDataTable);

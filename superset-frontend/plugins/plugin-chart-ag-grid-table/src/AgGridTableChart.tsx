@@ -17,10 +17,9 @@
  * under the License.
  */
 import {
+  css,
   DataRecord,
   DataRecordValue,
-  DTTM_ALIAS,
-  ensureIsArray,
   GenericDataType,
   getTimeFormatterForGranularity,
   styled,
@@ -31,13 +30,15 @@ import { isEqual } from 'lodash';
 
 import {
   AgGridTableChartTransformedProps,
+  InputColumn,
   SearchOption,
   SortByItem,
 } from './types';
 import AgGridDataTable from './AgGridTable';
-import { InputColumn, transformData } from './AgGridTable/transformData';
 import { updateTableOwnState } from './utils/externalAPIs';
 import TimeComparisonVisibility from './AgGridTable/components/TimeComparisonVisibility';
+import { useColDefs } from './utils/useColDefs';
+import { getCrossFilterDataMask } from './utils/getCrossFilterDataMask';
 
 const getGridHeight = (
   height: number,
@@ -55,27 +56,97 @@ const getGridHeight = (
   return calculatedGridHeight;
 };
 
-const StyledChartContainer = styled.div`
-  height: ${({ height }: { height: number }) => height}px;
+const StyledChartContainer = styled.div<{ height: number }>`
+  ${({ theme, height }) => css`
+    height: ${height}px;
 
-  .dt-is-filter {
-    cursor: pointer;
-  }
+    .dt-is-filter {
+      cursor: pointer;
+    }
 
-  .dt-is-active-filter {
-    background: ${({ theme }) => theme.colors.secondary.light3};
-  }
+    .dt-is-active-filter {
+      background: ${theme.colors.secondary.light3};
+    }
 
-  .dt-truncate-cell {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-  .dt-truncate-cell:hover {
-    overflow: visible;
-    white-space: normal;
-    height: auto;
-  }
+    .dt-truncate-cell {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .dt-truncate-cell:hover {
+      overflow: visible;
+      white-space: normal;
+      height: auto;
+    }
+
+    .search-container {
+      display: flex;
+      justify-content: flex-end;
+    }
+
+    .dropdown-controls-container {
+      display: flex;
+      justify-content: flex-end;
+    }
+
+    .time-comparison-dropdown {
+      display: flex;
+      padding-right: ${theme.gridUnit * 4}px;
+      padding-top: ${theme.gridUnit * 1.75}px;
+    }
+
+    .ag-header,
+    .ag-row,
+    .ag-spanned-row {
+      font-size: ${theme.typography.sizes.s}px;
+      font-weight: ${theme.typography.weights.medium};
+    }
+
+    .ag-root-wrapper {
+      border-radius: ${theme.borderRadius}px;
+    }
+
+    .search-by-text {
+      margin-right: ${theme.gridUnit}px;
+    }
+
+    .input-container {
+      margin-left: auto;
+    }
+
+    .input-wrapper {
+      position: relative;
+      display: flex;
+      align-items: center;
+      overflow: visible;
+      margin-bottom: ${theme.gridUnit * 4}px;
+    }
+
+    .input-wrapper svg {
+      pointer-events: none;
+      transform: translate(${theme.gridUnit * 7}px, ${theme.gridUnit / 2}px);
+      color: ${theme.colors.grayscale.base};
+    }
+
+    .input-wrapper input {
+      font-size: ${theme.typography.sizes.s}px;
+      padding: ${theme.gridUnit * 1.5}px ${theme.gridUnit * 3}px
+        ${theme.gridUnit * 1.5}px ${theme.gridUnit * 8}px;
+      line-height: 1.8;
+      border-radius: ${theme.gridUnit}px;
+      border: 1px solid ${theme.colors.grayscale.light2};
+      background-color: transparent;
+      outline: none;
+
+      &:focus {
+        border-color: ${theme.colors.primary.base};
+      }
+
+      &::placeholder {
+        color: ${theme.colors.grayscale.light1};
+      }
+    }
+  `}
 `;
 
 export default function TableChart<D extends DataRecord = DataRecord>(
@@ -109,6 +180,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     showTotals,
     columnColorFormatters,
     basicColorFormatters,
+    width,
   } = props;
 
   const [searchOptions, setSearchOptions] = useState<SearchOption[]>([]);
@@ -158,14 +230,14 @@ export default function TableChart<D extends DataRecord = DataRecord>(
       .filter(col => col?.config?.visible !== false);
   }, [columns, selectedComparisonColumns]);
 
-  const transformedData = transformData(
-    isUsingTimeComparison
+  const colDefs = useColDefs({
+    columns: isUsingTimeComparison
       ? (filteredColumns as InputColumn[])
       : (columns as InputColumn[]),
     data,
     serverPagination,
     isRawRecords,
-    alignPositiveNegative,
+    defaultAlignPN: alignPositiveNegative,
     showCellBars,
     colorPositiveNegative,
     totals,
@@ -174,7 +246,8 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     basicColorFormatters,
     isUsingTimeComparison,
     emitCrossFilters,
-  );
+    alignPositiveNegative,
+  });
 
   const gridHeight = getGridHeight(
     height,
@@ -195,78 +268,21 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     [timeGrain],
   );
 
-  const getCrossFilterDataMask = (key: string, value: DataRecordValue) => {
-    let updatedFilters = { ...(filters || {}) };
-    if (filters && isActiveFilterValue(key, value)) {
-      updatedFilters = {};
-    } else {
-      updatedFilters = {
-        [key]: [value],
-      };
-    }
-    if (
-      Array.isArray(updatedFilters[key]) &&
-      updatedFilters[key].length === 0
-    ) {
-      delete updatedFilters[key];
-    }
-
-    const groupBy = Object.keys(updatedFilters);
-    const groupByValues = Object.values(updatedFilters);
-    const labelElements: string[] = [];
-    groupBy.forEach(col => {
-      const isTimestamp = col === DTTM_ALIAS;
-      const filterValues = ensureIsArray(updatedFilters?.[col]);
-      if (filterValues.length) {
-        const valueLabels = filterValues.map(value =>
-          isTimestamp ? timestampFormatter(value) : value,
-        );
-        labelElements.push(`${valueLabels.join(', ')}`);
-      }
-    });
-
-    return {
-      dataMask: {
-        extraFormData: {
-          filters:
-            groupBy.length === 0
-              ? []
-              : groupBy.map(col => {
-                  const val = ensureIsArray(updatedFilters?.[col]);
-                  if (!val.length)
-                    return {
-                      col,
-                      op: 'IS NULL' as const,
-                    };
-                  return {
-                    col,
-                    op: 'IN' as const,
-                    val: val.map(el =>
-                      el instanceof Date ? el.getTime() : el!,
-                    ),
-                    grain: col === DTTM_ALIAS ? timeGrain : undefined,
-                  };
-                }),
-        },
-        filterState: {
-          label: labelElements.join(', '),
-          value: groupByValues.length ? groupByValues : null,
-          filters:
-            updatedFilters && Object.keys(updatedFilters).length
-              ? updatedFilters
-              : null,
-        },
-      },
-      isCurrentValueSelected: isActiveFilterValue(key, value),
-    };
-  };
-
   const toggleFilter = useCallback(
     function toggleFilter(key: string, val: DataRecordValue) {
       if (!emitCrossFilters) {
         return;
       }
-      setDataMask(getCrossFilterDataMask(key, val).dataMask);
+      setDataMask(
+        getCrossFilterDataMask({
+          key,
+          value: val,
+          filters,
+          timeGrain,
+          isActiveFilterValue,
+          timestampFormatter,
+        }).dataMask,
+      );
     },
     [emitCrossFilters, getCrossFilterDataMask, setDataMask],
   );
@@ -344,8 +360,8 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     <StyledChartContainer height={height}>
       <AgGridDataTable
         gridHeight={gridHeight}
-        data={transformedData?.rowData || []}
-        colDefsFromProps={transformedData?.colDefs}
+        data={data || []}
+        colDefsFromProps={colDefs}
         includeSearch={!!includeSearch}
         allowRearrangeColumns={!!allowRearrangeColumns}
         pagination={!!pageSize && !serverPagination}
@@ -368,8 +384,9 @@ export default function TableChart<D extends DataRecord = DataRecord>(
         renderTimeComparisonDropdown={
           isUsingTimeComparison ? renderTimeComparisonVisibility : () => null
         }
-        cleanedTotals={transformedData?.cleanedTotals}
+        cleanedTotals={totals || {}}
         showTotals={showTotals}
+        width={width}
       />
     </StyledChartContainer>
   );

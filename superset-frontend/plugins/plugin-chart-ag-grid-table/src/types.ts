@@ -36,6 +36,7 @@ import {
   JsonObject,
 } from '@superset-ui/core';
 import { ColDef, Column, IHeaderParams } from 'ag-grid-community';
+import { CustomCellRendererProps } from 'ag-grid-react';
 
 export type CustomFormatter = (value: DataRecordValue) => string;
 
@@ -202,5 +203,35 @@ export interface CustomColDef extends ColDef {
     isPercentMetric?: boolean;
   };
 }
+
+export type TableDataColumnMeta = DataColumnMeta & {
+  config?: TableColumnConfig;
+};
+
+export interface InputColumn {
+  key: string;
+  label: string;
+  dataType: number;
+  isNumeric: boolean;
+  isMetric: boolean;
+  isPercentMetric: boolean;
+  config: Record<string, any>;
+  formatter?: Function;
+  originalLabel?: string;
+  metricName?: string;
+}
+
+export type CellRendererProps = CustomCellRendererProps & {
+  hasBasicColorFormatters: boolean | undefined;
+  col: InputColumn;
+  basicColorFormatters: {
+    [Key: string]: BasicColorFormatterType;
+  }[];
+  valueRange: any;
+  alignPositiveNegative: boolean;
+  colorPositiveNegative: boolean;
+  allowRenderHtml: boolean;
+  columns: InputColumn[];
+};
 
 export default {};

@@ -125,6 +125,7 @@
     "abortcontroller-polyfill": "^1.7.8",
     "ace-builds": "^1.41.0",
     "ag-grid-community": "^33.1.1",
+    "ag-grid-enterprise": "^33.1.1",
     "ag-grid-react": "^33.1.1",
     "antd": "4.10.3",
     "antd-v5": "npm:antd@^5.18.0",
