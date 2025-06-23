@@ -148,6 +148,7 @@ const FilterBarSettings = () => {
       toggleCrossFiltering,
       toggleFilterBarOrientation,
       openFilterConfigModal,
+      openChartCustomizationModal,
     ],
   );
 
@@ -215,6 +216,7 @@ const FilterBarSettings = () => {
                       vertical-align: -${theme.sizeUnit * 0.03125}em;
                     `}
                     iconSize="m"
+                    aria-label="check"
                   />
                 )}
               </Space>
@@ -232,6 +234,7 @@ const FilterBarSettings = () => {
                     css={css`
                       vertical-align: middle;
                     `}
+                    aria-label="check"
                   />
                 )}
               </Space>
