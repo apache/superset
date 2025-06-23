@@ -824,12 +824,13 @@ const ChartCustomizationForm: FC<Props> = ({ form, item, onUpdate }) => {
                       value: metric.metric_name,
                       label: metric.verbose_name ?? metric.metric_name,
                     }))}
-                    labelRender={(option: { label: string; value: string }) =>
-                      option?.label
+                    labelRender={(option: { label?: string; value?: string }) =>
+                      option?.label || option?.value
                     }
-                    optionRender={(option: { label: string; value: string }) =>
-                      option?.label
-                    }
+                    optionRender={(option: {
+                      label?: string;
+                      value?: string;
+                    }) => option?.label || option?.value}
                     onChange={(value: SelectValue) => {
                       const stringValue =
                         value !== null && value !== undefined
