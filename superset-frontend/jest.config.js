@@ -32,7 +32,7 @@ module.exports = {
       '<rootDir>/node_modules/@superset-ui/$1/src/$2',
     '^@superset-ui/([^/]+)$': '<rootDir>/node_modules/@superset-ui/$1/src',
   },
-  testEnvironment: 'jsdom',
+  testEnvironment: '<rootDir>/spec/helpers/jsDomWithFetchAPI.ts',
   modulePathIgnorePatterns: ['<rootDir>/packages/generator-superset'],
   setupFilesAfterEnv: ['<rootDir>/spec/helpers/setup.ts'],
   snapshotSerializers: ['@emotion/jest/serializer'],
