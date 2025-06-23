@@ -21,13 +21,12 @@ import {
   SupersetTheme,
   TimeseriesDataRecord,
 } from '@superset-ui/core';
-import { ControlComponentProps } from '@superset-ui/chart-controls';
 import { Map } from 'ol';
 import { FeatureCollection, GeoJsonProperties, Geometry } from 'geojson';
 import { SliderSingleProps } from 'antd/lib/slider';
 import VectorSource from 'ol/source/Vector';
 import VectorLayer from 'ol/layer/Vector';
-import { LayerConf, MapViewConfigs } from '../types';
+import { LayerConf, MapMaxExtentConfigs, MapViewConfigs } from '../types';
 import { GeometryFormat, TimesliderTooltipFormat } from '../constants';
 
 export type DataFeatureCollection = FeatureCollection<
@@ -98,23 +97,3 @@ export type LegendProps = {
   olMap: Map;
   layerConfigs: LayerConf[];
 };
-
-export type MapMaxExtentConfigs = {
-  extentMode: 'NONE' | 'CUSTOM';
-  maxX: number;
-  maxY: number;
-  minX: number;
-  minY: number;
-  fixedMaxX: number | undefined;
-  fixedMaxY: number | undefined;
-  fixedMinX: number | undefined;
-  fixedMinY: number | undefined;
-};
-
-export type MapMaxExtentConfigsControlProps =
-  ControlComponentProps<MapMaxExtentConfigs>;
-
-export interface MapMaxExtentTagProps {
-  value: MapMaxExtentConfigs;
-  className?: string;
-}

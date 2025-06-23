@@ -33,7 +33,7 @@ import {
 import { ColTypeMapping } from './types';
 import { GeometryFormat, TimesliderTooltipFormat } from '../constants';
 import { MAX_ZOOM_LEVEL, MIN_ZOOM_LEVEL } from '../util/zoomUtil';
-import MapMaxExtentViewControl from './components/MapMaxExtentControl/MapMaxExtentViewControl';
+import MapMaxExtentViewControl from '../components/MapMaxExtentControl/MapMaxExtentViewControl';
 import {
   geojsonDataToFeatureCollection,
   dataToFeatureCollection,

@@ -35,8 +35,8 @@ import {
   fitMapToDataRecords,
 } from '../../util/mapUtil';
 import { createLayer } from '../../util/layerUtil';
-import { LayerConf, MapViewConfigs } from '../../types';
-import { MapMaxExtentConfigs, OlChartMapProps } from '../types';
+import { LayerConf, MapMaxExtentConfigs, MapViewConfigs } from '../../types';
+import { OlChartMapProps } from '../types';
 import { isDataLayerConf } from '../../typeguards';
 import { StyledFeatureTooltip } from './FeatureTooltip';
 import { GeometryFormat } from '../../constants';

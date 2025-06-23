@@ -26,6 +26,7 @@ import { selectedChartMutator } from '../util/controlPanelUtil';
 import { MAX_ZOOM_LEVEL, MIN_ZOOM_LEVEL } from '../util/zoomUtil';
 import { MapViewConfigs } from '../types';
 import { GeometryFormat } from '../constants';
+import MapMaxExtentViewControl from '../components/MapMaxExtentControl/MapMaxExtentViewControl';
 
 const config: ControlPanelConfig = {
   controlPanelSections: [
@@ -126,9 +127,9 @@ const config: ControlPanelConfig = {
               type: 'MapViewControl',
               renderTrigger: true,
               description: t(
-                'The extent of the map on application start. FIT DATA automatically sets the extent so that all data points are included in the viewport. CUSTOM allows users to define the extent manually.',
+                'The map center on application start. FIT DATA automatically sets the center so that all data points are included in the viewport. CUSTOM allows users to define the center manually.',
               ),
-              label: t('Extent'),
+              label: t('Initial Map Center'),
               dontRefreshOnChange: true,
               default: {
                 mode: 'FIT_DATA',
@@ -160,7 +161,53 @@ const config: ControlPanelConfig = {
             },
           },
         ],
-
+        [
+          {
+            name: 'min_zoom',
+            config: {
+              type: 'SliderControl',
+              renderTrigger: true,
+              label: t('Min Zoom'),
+              description: t('The minimal zoom of the map'),
+              default: MIN_ZOOM_LEVEL,
+              min: MIN_ZOOM_LEVEL,
+              max: MAX_ZOOM_LEVEL,
+              step: 1,
+            },
+          },
+        ],
+        [
+          {
+            name: 'max_zoom',
+            config: {
+              type: 'SliderControl',
+              renderTrigger: true,
+              label: t('Max Zoom'),
+              description: t('The maximal zoom of the map'),
+              default: MAX_ZOOM_LEVEL,
+              min: MIN_ZOOM_LEVEL,
+              max: MAX_ZOOM_LEVEL,
+              step: 1,
+            },
+          },
+        ],
+        [
+          {
+            name: 'map_max_extent',
+            config: {
+              type: MapMaxExtentViewControl,
+              renderTrigger: true,
+              description: t(
+                "The constrained extent of the map on application start. NONE won't set any constrained extent. CUSTOM allows users to define the extent manually based on the current shown map extent.",
+              ),
+              label: t('Max. Extent'),
+              dontRefreshOnChange: true,
+              default: {
+                extentMode: 'NONE',
+              },
+            },
+          },
+        ],
         [
           {
             // name is referenced in 'index.ts' for setting default value
