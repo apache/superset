@@ -109,7 +109,7 @@ PACKAGE_JSON_FILE = str(files("superset") / "static/assets/package.json")
 #     "type": "image/png"
 #     "rel": "icon"
 # },
-FAVICONS = [{"href": "/static/assets/images/favicon.png"}]
+FAVICONS = [{"href": "/static/assets/images/winfo-favicon.jpg"}]
 
 
 def _try_json_readversion(filepath: str) -> str | None:
@@ -308,7 +308,7 @@ AUTH_RATE_LIMIT = "5 per second"
 # GLOBALS FOR APP Builder
 # ------------------------------
 # Uncomment to setup Your App name
-APP_NAME = "Superset"
+APP_NAME = "Winfo BI"
 
 # Specify the App icon
 APP_ICON = "/static/assets/images/superset-logo-horiz.png"
