@@ -235,7 +235,7 @@ nh3==0.2.21
     # via apache-superset (pyproject.toml)
 numexpr==2.10.2
     # via -r requirements/base.in
-numpy==1.26.4
+numpy==2.2.6
     # via
     #   apache-superset (pyproject.toml)
     #   bottleneck
@@ -448,7 +448,7 @@ wtforms==3.2.1
     #   wtforms-json
 wtforms-json==0.3.5
     # via apache-superset (pyproject.toml)
-xlrd==2.0.1
+xlrd==2.0.2
     # via pandas
 xlsxwriter==3.0.9
     # via
