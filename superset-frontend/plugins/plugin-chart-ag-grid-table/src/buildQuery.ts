@@ -26,9 +26,9 @@ import {
   QueryMode,
   QueryObject,
   removeDuplicates,
+  PostProcessingRule,
+  BuildQuery,
 } from '@superset-ui/core';
-import { PostProcessingRule } from '@superset-ui/core/src/query/types/PostProcessing';
-import { BuildQuery } from '@superset-ui/core/src/chart/registries/ChartBuildQueryRegistrySingleton';
 import {
   isTimeComparison,
   timeCompareOperator,
