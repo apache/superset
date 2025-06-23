@@ -258,7 +258,6 @@ const config = {
           name: 'vendors',
           test: new RegExp(
             `/node_modules/(${[
-              'abortcontroller-polyfill',
               'react',
               'react-dom',
               'prop-types',

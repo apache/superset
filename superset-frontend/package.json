@@ -120,7 +120,6 @@
     "@visx/scale": "^3.5.0",
     "@visx/tooltip": "^3.0.0",
     "@visx/xychart": "^3.5.1",
-    "abortcontroller-polyfill": "^1.7.8",
     "ag-grid-community": "33.1.1",
     "ag-grid-react": "33.1.1",
     "antd": "^5.24.6",
