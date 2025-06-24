@@ -1858,15 +1858,15 @@ SESSION_COOKIE_HTTPONLY = True  # Prevent cookie from being read by frontend JS?
 SESSION_COOKIE_SECURE = False  # Prevent cookie from being transmitted over non-tls?
 SESSION_COOKIE_SAMESITE: Literal["None", "Lax", "Strict"] | None = "Lax"
 # Whether to use server side sessions from flask-session or Flask secure cookies
-SESSION_SERVER_SIDE = False
+# SESSION_SERVER_SIDE = False
 # Example config using Redis as the backend for server side sessions
 # from flask_session import RedisSessionInterface
-# from redis import Redis
+from redis import Redis
 #
 # #
-# SESSION_SERVER_SIDE = True
-# SESSION_TYPE = "redis"
-# SESSION_REDIS = Redis(host="0.0.0.0", port=6379, db=0)
+SESSION_SERVER_SIDE = True
+SESSION_TYPE = "redis"
+SESSION_REDIS = Redis(host="redis", port=6379, db=0)
 #
 # Other possible config options and backends:
 # # https://flask-session.readthedocs.io/en/latest/config.html
