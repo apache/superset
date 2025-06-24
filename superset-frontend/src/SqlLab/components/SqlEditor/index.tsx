@@ -825,6 +825,7 @@ const SqlEditor: FC<Props> = ({
         const command = ExtensionsManager.getInstance().getCommandContribution(
           contribution.command,
         )!;
+        // @ts-ignore
         const Icon = Icons[command?.icon as IconNameType];
 
         return (

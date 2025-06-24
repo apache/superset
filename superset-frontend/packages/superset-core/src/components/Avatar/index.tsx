@@ -16,6 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+// @ts-ignore
+// eslint-disable-next-line no-restricted-syntax
 import React from 'react';
 import { Avatar as AntdAvatar } from 'antd';
 import type { AvatarProps, GroupProps as AvatarGroupProps } from './types';
