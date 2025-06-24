@@ -68,7 +68,7 @@ Don't forget to reload the page to take the new frontend into account though.
 
 ## Production
 
-It is possible to run Superset in non-development mode by using [`compose-non-dev.yml`](../compose-non-dev.yml). This file excludes the volumes needed for development.
+It is possible to run Superset in non-development mode by using [`docker-compose-non-dev.yml`](../docker-compose-non-dev.yml). This file excludes the volumes needed for development.
 
 ## Resource Constraints
 
