@@ -66,7 +66,7 @@ export class ThemeController {
 
   private mediaQuery: MediaQueryList;
 
-  constructor(options: ThemeControllerOptions = {}) {
+  constructor(options: ThemeControllerOptions = { themeObject }) {
     this.storage = options.storage || new LocalStorageAdapter();
     this.storageKey = options.storageKey || 'superset-theme';
     this.modeStorageKey = options.modeStorageKey || `${this.storageKey}-mode`;
@@ -152,6 +152,10 @@ export class ThemeController {
     return this.currentMode;
   }
 
+  /**
+   * Sets new theme customizations (e.g., from a JSON editor).
+   * This method updates the theme's appearance but preserves the current mode.
+   */
   public setTheme(newCustomizations: AnyThemeConfig): void {
     if (!this.canUpdateTheme()) {
       throw new Error('User does not have permission to update the theme');
@@ -170,6 +174,10 @@ export class ThemeController {
     this.notifyListeners();
   }
 
+  /**
+   * Changes the theme mode (light, dark, or system).
+   * This is for the mode switch.
+   */
   public changeThemeMode(newMode: ThemeMode): void {
     if (!this.canUpdateMode()) {
       throw new Error('User does not have permission to update the theme mode');
@@ -208,6 +216,9 @@ export class ThemeController {
     }
   };
 
+  /**
+   * Centralized method to apply the current customizations and mode.
+   */
   private applyTheme(): void {
     const newConfig = { ...this.customizations };
 
