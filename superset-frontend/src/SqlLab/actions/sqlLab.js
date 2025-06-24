@@ -452,7 +452,7 @@ export function runQueryFromSqlEditor(
       sqlEditorId: qe.id,
       tab: qe.name,
       catalog: qe.catalog,
-      schema: qe.schema,
+      schema: Array.isArray(qe.schema) ? qe.schema.length > 0 ? qe.schema[0] : "" : qe.schema,
       tempTable,
       templateParams: qe.templateParams,
       queryLimit: qe.queryLimit || defaultQueryLimit,
