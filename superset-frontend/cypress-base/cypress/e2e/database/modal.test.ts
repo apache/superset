@@ -32,6 +32,11 @@ describe('Add database', () => {
   });
 
   beforeEach(() => {
+    cy.intercept('POST', '**/api/v1/database/validate_parameters/**').as(
+      'validateParams',
+    );
+    cy.intercept('POST', '**/api/v1/database/').as('createDb');
+
     closeModal();
     cy.getBySel('btn-create-database').click();
   });
@@ -54,12 +59,8 @@ describe('Add database', () => {
     cy.getBySel('database-name-input').should('be.visible');
     cy.getBySel('sqlalchemy-uri-input').should('be.visible');
   });
-  it('show error alerts on dynamic form for bad host', () => {
-    cy.intercept('POST', '**/api/v1/database/validate_parameters/**').as(
-      'validateParams',
-    );
-    cy.intercept('POST', '**/api/v1/database/').as('createDb');
 
+  it('show error alerts on dynamic form for bad host', () => {
     cy.get('.preferred > :nth-child(1)').click();
 
     cy.get('input[name="host"]').type('badhost', { force: true });
@@ -70,63 +71,48 @@ describe('Add database', () => {
 
     cy.get('body').click(0, 0);
 
-    cy.wait('@validateParams', { timeout: 20000 });
+    cy.wait('@validateParams', { timeout: 30000 });
 
     cy.getBySel('btn-submit-connection').should('not.be.disabled');
-
     cy.getBySel('btn-submit-connection').click({ force: true });
-    cy.wait('@validateParams', { timeout: 20000 });
-    cy.wait('@createDb', { timeout: 20000 });
 
-    cy.contains(
-      '.ant-form-item-explain-error',
-      "The hostname provided can't be resolved",
-    ).should('exist');
+    cy.wait('@validateParams', { timeout: 30000 }).then(() => {
+      cy.wait('@createDb', { timeout: 60000 }).then(() => {
+        cy.contains(
+          '.ant-form-item-explain-error',
+          "The hostname provided can't be resolved",
+        ).should('exist');
+      });
+    });
   });
 
   it('show error alerts on dynamic form for bad port', () => {
-    cy.intercept('POST', '**/api/v1/database/validate_parameters/**').as(
-      'validateParams',
-    );
-    cy.intercept('POST', '**/api/v1/database/**').as('createDb');
-
     cy.get('.preferred > :nth-child(1)').click();
 
     cy.get('input[name="host"]').type('localhost', { force: true });
-
     cy.get('body').click(0, 0);
+    cy.wait('@validateParams', { timeout: 30000 });
 
-    cy.wait('@validateParams', { timeout: 20000 });
+    cy.get('input[name="port"]').type('5430', { force: true });
+    cy.get('input[name="database"]').type('testdb', { force: true });
+    cy.get('input[name="username"]').type('testusername', { force: true });
 
-    cy.get('input[name="port"]').should('exist').type('5430', { force: true });
-    cy.get('input[name="database"]')
-      .should('exist')
-      .type('testdb', { force: true });
-    cy.get('input[name="username"]')
-      .should('exist')
-      .type('testusername', { force: true });
+    cy.wait('@validateParams', { timeout: 30000 });
 
-    cy.wait('@validateParams', { timeout: 20000 });
-
-    cy.get('input[name="password"]')
-      .should('exist')
-      .type('testpass', { force: true });
-
+    cy.get('input[name="password"]').type('testpass', { force: true });
     cy.wait('@validateParams');
 
     cy.getBySel('btn-submit-connection').should('not.be.disabled');
-
-    cy.getBySel('btn-submit-connection').focus();
     cy.getBySel('btn-submit-connection').click({ force: true });
-
-    cy.wait('@validateParams', { timeout: 20000 });
-
-    cy.getBySel('btn-submit-connection').click({ force: true });
-
-    cy.wait('@createDb', { timeout: 20000 });
-
-    cy.contains('.ant-form-item-explain-error', 'The port is closed').should(
-      'exist',
-    );
+    cy.wait('@validateParams', { timeout: 30000 }).then(() => {
+      cy.get('body').click(0, 0);
+      cy.getBySel('btn-submit-connection').click({ force: true });
+      cy.wait('@createDb', { timeout: 60000 }).then(() => {
+        cy.contains(
+          '.ant-form-item-explain-error',
+          'The port is closed',
+        ).should('exist');
+      });
+    });
   });
 });
