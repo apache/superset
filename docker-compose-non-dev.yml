@@ -38,6 +38,8 @@ services:
     image: redis:7
     container_name: superset_cache
     restart: unless-stopped
+    ports:
+      - 6379:6379
     volumes:
       - redis:/data
 
