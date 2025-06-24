@@ -552,9 +552,10 @@ def sync_sso_roles_to_superset(app: Flask):
         return
 
     with app.app_context():
+        from superset.extensions import appbuilder
         from superset.extensions import db
-        sm = app.appbuilder.sm # Get the security manager
-
+        
+        sm = appbuilder.sm
         # Get all existing role names from Superset DB
         existing_roles = {role.name for role in sm.get_all_roles()}
         print(f"Found existing Superset roles: {existing_roles}")
