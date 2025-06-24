@@ -148,11 +148,6 @@ export const useColDefs = ({
       col: InputColumn,
     ): ColDef & {
       isMain: boolean;
-      customMeta: {
-        isNumeric: boolean | undefined;
-        isPercentMetric: boolean | undefined;
-        isMetric: boolean | undefined;
-      };
     } => {
       const {
         config,
@@ -253,7 +248,7 @@ export const useColDefs = ({
           alignPositiveNegative: alignPN || alignPositiveNegative,
           colorPositiveNegative,
         },
-        customMeta: {
+        context: {
           isMetric,
           isPercentMetric,
           isNumeric,

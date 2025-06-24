@@ -34,6 +34,7 @@ import {
   CurrencyFormatter,
   Currency,
   JsonObject,
+  Metric,
 } from '@superset-ui/core';
 import { ColDef, Column, IHeaderParams } from 'ag-grid-community';
 import { CustomCellRendererProps } from 'ag-grid-react';
@@ -170,6 +171,7 @@ export interface AgGridTableChartTransformedProps<
   columnColorFormatters: ColorFormatters;
   basicColorFormatters?: { [Key: string]: BasicColorFormatterType }[];
   basicColorColumnFormatters?: { [Key: string]: BasicColorFormatterType }[];
+  formData: TableChartFormData;
 }
 
 export enum ColorSchemeEnum {
@@ -198,9 +200,10 @@ export interface UserProvidedColDef extends ColDef {
 }
 
 export interface CustomColDef extends ColDef {
-  customMeta?: {
+  context?: {
     isMetric?: boolean;
     isPercentMetric?: boolean;
+    isNumeric?: boolean;
   };
 }
 
@@ -232,6 +235,28 @@ export type CellRendererProps = CustomCellRendererProps & {
   colorPositiveNegative: boolean;
   allowRenderHtml: boolean;
   columns: InputColumn[];
+};
+
+export type Dataset = {
+  changed_by?: {
+    first_name: string;
+    last_name: string;
+  };
+  created_by?: {
+    first_name: string;
+    last_name: string;
+  };
+  changed_on_humanized: string;
+  created_on_humanized: string;
+  description: string;
+  table_name: string;
+  owners: {
+    first_name: string;
+    last_name: string;
+  }[];
+  columns?: Column[];
+  metrics?: Metric[];
+  verbose_map?: Record<string, string>;
 };
 
 export default {};

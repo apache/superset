@@ -28,6 +28,7 @@ import {
 import { useCallback, useEffect, useState, useMemo } from 'react';
 import { isEqual } from 'lodash';
 
+import { CellClickedEvent, IMenuActionParams } from 'ag-grid-community';
 import {
   AgGridTableChartTransformedProps,
   InputColumn,
@@ -269,22 +270,27 @@ export default function TableChart<D extends DataRecord = DataRecord>(
   );
 
   const toggleFilter = useCallback(
-    function toggleFilter(key: string, val: DataRecordValue) {
-      if (!emitCrossFilters) {
-        return;
-      }
-      setDataMask(
-        getCrossFilterDataMask({
-          key,
-          value: val,
+    (event: CellClickedEvent | IMenuActionParams) => {
+      if (
+        emitCrossFilters &&
+        event.column &&
+        !(
+          event.column.getColDef().context?.isMetric ||
+          event.column.getColDef().context?.isPercentMetric
+        )
+      ) {
+        const crossFilterProps = {
+          key: event.column.getColId(),
+          value: event.value,
           filters,
           timeGrain,
           isActiveFilterValue,
           timestampFormatter,
-        }).dataMask,
-      );
+        };
+        setDataMask(getCrossFilterDataMask(crossFilterProps).dataMask);
+      }
     },
-    [emitCrossFilters, getCrossFilterDataMask, setDataMask],
+    [emitCrossFilters, setDataMask, filters, timeGrain],
   );
 
   const handleServerPaginationChange = useCallback(

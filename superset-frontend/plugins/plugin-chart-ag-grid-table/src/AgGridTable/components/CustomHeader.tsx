@@ -132,7 +132,7 @@ const CustomHeader: React.FC<CustomHeaderParams> = ({
 }) => {
   const { initialSortState, onColumnHeaderClicked } = context;
   const colId = column?.getColId();
-  const isPercentMetric = (column?.getColDef() as CustomColDef)?.customMeta
+  const isPercentMetric = (column?.getColDef() as CustomColDef)?.context
     ?.isPercentMetric;
   const [isPopoverVisible, setPopoverVisible] = useState(false);
   const filterContainerRef = useRef<HTMLDivElement>(null);
