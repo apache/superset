@@ -28,7 +28,6 @@
     "@types/d3-array": "^2.9.0",
     "@types/react-table": "^7.7.20",
     "ag-grid-community": "33.1.1",
-    "ag-grid-enterprise": "33.1.1",
     "ag-grid-react": "33.1.1",
     "classnames": "^2.5.1",
     "d3-array": "^2.4.0",
