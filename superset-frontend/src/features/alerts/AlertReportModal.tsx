@@ -591,8 +591,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   const formatOptionEnabled =
     isFeatureEnabled(FeatureFlag.AlertsAttachReports) || isReport;
   const tabsEnabled = isFeatureEnabled(FeatureFlag.AlertReportTabs);
-  // const filtersEnabled = isFeatureEnabled(FeatureFlag.AlertReportsFilter);
-  const filtersEnabled = true;
+  const filtersEnabled = isFeatureEnabled(FeatureFlag.AlertReportsFilter);
 
   const [notificationAddState, setNotificationAddState] =
     useState<NotificationAddStatus>('active');
