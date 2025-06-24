@@ -171,6 +171,7 @@ export default function transformProps(
     seriesType,
     seriesTypeB,
     showLegend,
+    showLegendToggle,
     showValue,
     showValueB,
     onlyTotal,
@@ -694,6 +695,9 @@ export default function transformProps(
         showLegend,
         theme,
         zoomable,
+        undefined,
+        undefined,
+        showLegendToggle,
       ),
       // @ts-ignore
       data: rawSeriesA

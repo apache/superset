@@ -55,7 +55,7 @@ export const showLegendToggleControl: ControlSetItem = {
       'Toggle to show/hide the "All/Invert" buttons in the legend.',
     ),
     visibility: ({ controls }: ControlPanelsContainerProps) =>
-      Boolean(controls?.show_legend?.value), // ✅ Display only if the legend is on
+      Boolean(controls?.show_legend?.value), // Display only if the legend is on
   },
 };
 const legendMarginControl: ControlSetItem = {
@@ -114,6 +114,7 @@ export const legendSection: ControlSetRow[] = [
   [<ControlSubSectionHeader>{t('Legend')}</ControlSubSectionHeader>],
   [showLegendControl],
   [legendTypeControl],
+  [showLegendToggleControl],
   [legendOrientationControl],
   [legendMarginControl],
 ];
