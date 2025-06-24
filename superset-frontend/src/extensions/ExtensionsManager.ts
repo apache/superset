@@ -87,6 +87,7 @@ class ExtensionsManager {
       }
       const context = new ExtensionContext();
       this.contextIndex.set(name, context);
+      // TODO: Activate based on activation events
       this.activateExtension(extension, context);
       this.indexContributions(extension);
     }

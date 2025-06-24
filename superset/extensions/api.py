@@ -39,6 +39,7 @@ class ExtensionsRestApi(BaseSupersetApi):
     allow_browser_login = True
     resource_name = "extensions"
 
+    # TODO: Support the q parameter
     @protect()
     @safe
     @expose("/", methods=("GET",))
@@ -87,14 +88,12 @@ class ExtensionsRestApi(BaseSupersetApi):
             }
             frontend = manifest.get("frontend")
             if frontend:
-                frontend_files = list(extension.frontend)
                 module_federation = frontend.get("moduleFederation", {})
                 remote_entry = frontend["remoteEntry"]
                 extension_data.update(
                     {
                         "remoteEntry": f"/api/v1/extensions/{extension.name}/{remote_entry}",  # noqa: E501
                         "exposedModules": module_federation.get("exposes", []),
-                        "files": frontend_files,
                         "contributions": frontend.get("contributions", {}),
                     }
                 )

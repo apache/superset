@@ -30,6 +30,7 @@ import withToasts from 'src/components/MessageToasts/withToasts';
 import { Tooltip } from 'src/components/Tooltip';
 import { Icons } from 'src/components/Icons';
 import { JsonModal, safeJsonObjectParse } from 'src/components/JsonModal';
+import { Popconfirm } from 'antd-v5';
 
 const PAGE_SIZE = 25;
 
@@ -101,6 +102,39 @@ const ExtensionsList: FunctionComponent<ExtensionsListProps> = ({
     console.log('Disabling extensions:', extensions);
   };
 
+  const enableDisableAction = (extension: Extension) => {
+    const { enabled, name } = extension;
+    const title = enabled ? t('Disable') : t('Enable');
+    const description = (
+      <>
+        {t('Are you sure you want to %s', title.toLowerCase())} <b>{name}</b>?
+      </>
+    );
+    const icon = enabled ? (
+      <Icons.StopOutlined iconSize="l" />
+    ) : (
+      <Icons.CheckCircleOutlined iconSize="l" />
+    );
+    const confirm = enabled
+      ? () => disableExtensions([extension])
+      : () => enableExtensions([extension]);
+    return (
+      <Popconfirm
+        title={title}
+        description={description}
+        onConfirm={confirm}
+        okText={t('Yes')}
+        cancelText={t('No')}
+      >
+        <Tooltip title={title} placement="bottom">
+          <span role="button" tabIndex={0} className="action-button">
+            {icon}
+          </span>
+        </Tooltip>
+      </Popconfirm>
+    );
+  };
+
   const columns = useMemo(
     () => [
       {
@@ -170,6 +204,7 @@ const ExtensionsList: FunctionComponent<ExtensionsListProps> = ({
                 </Tooltip>
               )}
             </ConfirmStatusChange>
+            {enableDisableAction(original)}
           </Actions>
         ),
         Header: t('Actions'),

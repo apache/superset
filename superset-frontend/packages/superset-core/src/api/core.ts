@@ -109,7 +109,6 @@ export interface Extension {
   enabled: boolean;
   exposedModules: string[];
   extensionDependencies: string[];
-  files: string[];
   id: number;
   name: string;
   remoteEntry: string;
