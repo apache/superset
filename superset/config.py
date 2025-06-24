@@ -549,6 +549,8 @@ class CustomAppInitializer(SupersetAppInitializer):
         # First, run the default Superset initialization
         super().__init__(app)
 
+        self.app = app
+
     def init_app(self) -> None:
         # Then, run the default `init_app` from the parent class
         super().init_app()
