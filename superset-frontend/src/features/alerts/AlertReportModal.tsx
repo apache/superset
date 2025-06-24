@@ -378,11 +378,11 @@ export const StyledInputContainer = styled.div`
       }
       .filters-add-container {
         flex: '.25';
-        padding: '7px 0';
+        padding: '${theme.sizeUnit * 3} 0';
 
         .filters-add-btn {
-          padding: 0;
-          color: ${theme.colors.primary.base};
+          padding: ${theme.sizeUnit * 2}px;
+          color: ${theme.colorTextTertiary};
         }
       }
     }
@@ -583,8 +583,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   const formatOptionEnabled =
     isFeatureEnabled(FeatureFlag.AlertsAttachReports) || isReport;
   const tabsEnabled = isFeatureEnabled(FeatureFlag.AlertReportTabs);
-  // const filtersEnabled = isFeatureEnabled(FeatureFlag.AlertReportsFilter);
-  const filtersEnabled = true;
+  const filtersEnabled = isFeatureEnabled(FeatureFlag.AlertReportsFilter);
 
   const [notificationAddState, setNotificationAddState] =
     useState<NotificationAddStatus>('active');
@@ -2219,69 +2218,6 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                     </>
                   )}
                 </StyledInputContainer>
-                {/* ------------------------- */}
-                <StyledInputContainer>
-                  <div className="control-label">
-                    {t('Content type')}
-                    <span className="required">*</span>
-                  </div>
-                  <Select
-                    ariaLabel={t('Select content type')}
-                    onChange={onContentTypeChange}
-                    value={contentType}
-                    options={CONTENT_TYPE_OPTIONS}
-                    placeholder={t('Select content type')}
-                  />
-                </StyledInputContainer>
-                <StyledInputContainer>
-                  {contentType === ContentType.Chart ? (
-                    <>
-                      <div className="control-label">
-                        {t('Select chart')}
-                        <span className="required">*</span>
-                      </div>
-                      <AsyncSelect
-                        ariaLabel={t('Chart')}
-                        name="chart"
-                        value={
-                          currentAlert?.chart?.label &&
-                          currentAlert?.chart?.value
-                            ? {
-                                value: currentAlert.chart.value,
-                                label: currentAlert.chart.label,
-                              }
-                            : undefined
-                        }
-                        options={loadChartOptions}
-                        onChange={onChartChange}
-                        placeholder={t('Select chart to use')}
-                      />
-                    </>
-                  ) : (
-                    <>
-                      <div className="control-label">
-                        {t('Select dashboard')}
-                        <span className="required">*</span>
-                      </div>
-                      <AsyncSelect
-                        ariaLabel={t('Dashboard')}
-                        name="dashboard"
-                        value={
-                          currentAlert?.dashboard?.label &&
-                          currentAlert?.dashboard?.value
-                            ? {
-                                value: currentAlert.dashboard.value,
-                                label: currentAlert.dashboard.label,
-                              }
-                            : undefined
-                        }
-                        options={loadDashboardOptions}
-                        onChange={onDashboardChange}
-                        placeholder={t('Select dashboard to use')}
-                      />
-                    </>
-                  )}
-                </StyledInputContainer>
                 <StyledInputContainer
                   css={
                     ['PDF', 'TEXT', 'CSV'].includes(reportFormat) &&
@@ -2418,44 +2354,6 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                     </AntdForm>
                   </StyledInputContainer>
                 )}
-                <StyledInputContainer
-                  css={
-                    ['PDF', 'TEXT', 'CSV'].includes(reportFormat) &&
-                    noMarginBottom
-                  }
-                >
-                  {formatOptionEnabled && (
-                    <>
-                      <div className="control-label">
-                        {t('Content format')}
-                        <span className="required">*</span>
-                      </div>
-                      <Select
-                        ariaLabel={t('Select format')}
-                        onChange={onFormatChange}
-                        value={reportFormat}
-                        options={
-                          contentType === ContentType.Dashboard
-                            ? ['pdf', 'png'].map(
-                                key =>
-                                  FORMAT_OPTIONS[key as FORMAT_OPTIONS_KEY],
-                              )
-                            : /* If chart is of text based viz type: show text
-                  format option */
-                              TEXT_BASED_VISUALIZATION_TYPES.includes(
-                                  chartVizType,
-                                )
-                              ? Object.values(FORMAT_OPTIONS)
-                              : ['pdf', 'png', 'csv'].map(
-                                  key =>
-                                    FORMAT_OPTIONS[key as FORMAT_OPTIONS_KEY],
-                                )
-                        }
-                        placeholder={t('Select format')}
-                      />
-                    </>
-                  )}
-                </StyledInputContainer>
                 {tabsEnabled && contentType === ContentType.Dashboard && (
                   <StyledInputContainer>
                     <>
