@@ -734,6 +734,7 @@ const transformProps = (
     columnColorFormatters,
     basicColorColumnFormatters,
     basicColorFormatters,
+    formData,
   };
 };
 
