@@ -541,58 +541,65 @@ def get_sso_role_names():
         print(f"Error fetching roles from Pesapal SSO: {e}. Sync will be skipped.")
         return set()
 
-def sync_sso_roles_to_superset(app: Flask):
-    """
-    Compares SSO roles with Superset roles and creates missing ones
-    with 'Public' permissions. This runs inside the app context.
-    """
-    sso_roles = get_sso_role_names()
-    if not sso_roles:
-        logger.warning("No roles returned from SSO, aborting sync.")
-        return
+# We import the default initializer to extend it
+from superset.app import SupersetAppInitializer
 
-    with app.app_context():
-        from superset.extensions import appbuilder
-        from superset.extensions import db
-        
-        sm = appbuilder.sm
-        # Get all existing role names from Superset DB
-        existing_roles = {role.name for role in sm.get_all_roles()}
-        print(f"Found existing Superset roles: {existing_roles}")
-        
-        # Determine which roles need to be created
-        # We also exclude roles that are specially mapped and shouldn't be created 1-to-1
-        special_mapping_keys = {"DataEngineer", "DataEngineerTech", "DeputyCTO", "TechExec", "CTO", "COO", "CEO", "JuniorDev", "superset_admins"}
-        
-        roles_to_create = sso_roles - existing_roles - special_mapping_keys
+class CustomAppInitializer(SupersetAppInitializer):
+    def __init__(self, app: Flask) -> None:
+        # First, run the default Superset initialization
+        super().__init__(app)
 
-        if not roles_to_create:
-            print("Superset roles are already in sync with SSO. No action needed.")
+    def init_app(self) -> None:
+        # Then, run the default `init_app` from the parent class
+        super().init_app()
+        
+        # NOW, all extensions are initialized, and we can safely run our code.
+        self.sync_sso_roles()
+
+    def sync_sso_roles(self):
+        print("Running custom SSO role synchronization...")
+        
+        sso_roles = get_sso_role_names()
+        if not sso_roles:
+            print("No roles returned from SSO, aborting sync.")
             return
 
-        print(f"New roles to be created: {roles_to_create}")
-        
-        # Get the 'Public' role to use its permissions as a template
-        public_role = sm.find_role("Public")
-        if not public_role:
-            print("Could not find the 'Public' role in Superset. Cannot create new roles. Please ensure the Public role exists.")
-            return
+        # We are running after init_app, so we need to push an app context
+        with self.app.app_context():
+            from superset.extensions import db, security_manager as sm
+
+            existing_roles = {role.name for role in sm.get_all_roles()}
+            print(f"Found existing Superset roles: {existing_roles}")
             
-        public_permissions = public_role.permissions
-        print(f"Using {len(public_permissions)} permissions from the 'Public' role as a template.")
+            special_mapping_keys = {"DataEngineer", "DataEngineerTech", "DeputyCTO", "TechExec", "CTO", "COO", "CEO", "JuniorDev", "superset_admins"}
+            roles_to_create = sso_roles - existing_roles - special_mapping_keys
 
-        # Create each new role
-        try:
-            for role_name in roles_to_create:
-                logger.info(f"Creating role: '{role_name}'")
-                sm.add_role(name=role_name, permissions=public_permissions)
-            logger.info("Successfully committed new roles to the database.")
-        except Exception as e:
-            logger.error(f"An error occurred while creating roles: {e}")
-            db.session.rollback()
+            if not roles_to_create:
+                print("Superset roles are already in sync with SSO. No action needed.")
+                return
 
-# This is the hook that Superset calls on startup.
-APP_INITIALIZER = sync_sso_roles_to_superset
+            print(f"New roles to be created: {roles_to_create}")
+            
+            public_role = sm.find_role("Public")
+            if not public_role:
+                print("Could not find 'Public' role. Cannot use it as a template.")
+                return
+            
+            public_permissions = public_role.permissions
+            
+            try:
+                for role_name in roles_to_create:
+                    logger.info(f"Creating role: '{role_name}'")
+                    sm.add_role(name=role_name, permissions=public_permissions)
+                db.session.commit() # We need to explicitly commit the session
+                logger.info("Successfully committed new roles to the database.")
+            except Exception as e:
+                logger.error(f"An error occurred while creating roles: {e}")
+                db.session.rollback()
+
+
+# Point APP_INITIALIZER to our new custom class
+APP_INITIALIZER = CustomAppInitializer
 
 
 def get_dynamic_role_mapping():
