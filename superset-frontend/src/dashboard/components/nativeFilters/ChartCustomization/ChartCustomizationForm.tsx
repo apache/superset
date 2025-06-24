@@ -17,8 +17,10 @@
  * under the License.
  */
 import { FC, useEffect, useMemo, useState, useRef, useCallback } from 'react';
+import { useSelector } from 'react-redux';
 import { t, styled, css, useTheme } from '@superset-ui/core';
 import { debounce } from 'lodash';
+import { DatasourcesState, ChartsState, RootState } from 'src/dashboard/types';
 import {
   Constants,
   FormItem,
@@ -35,6 +37,7 @@ import { CollapsibleControl } from '../FiltersConfigModal/FiltersConfigForm/Coll
 import { ColumnSelect } from '../FiltersConfigModal/FiltersConfigForm/ColumnSelect';
 import DatasetSelect from '../FiltersConfigModal/FiltersConfigForm/DatasetSelect';
 import DefaultValue from '../FiltersConfigModal/FiltersConfigForm/DefaultValue';
+import { mostUsedDataset } from '../FiltersConfigModal/FiltersConfigForm/utils';
 import { ChartCustomizationItem } from './types';
 import { getFormData } from '../utils';
 
@@ -63,9 +66,10 @@ const StyledFormItem = styled(FormItem)`
 `;
 
 const CheckboxLabel = styled.span`
-  font-size: ${({ theme }) => theme.fontSizeSM}px;
-  color: ${({ theme }) => theme.colors.grayscale.dark1};
-  font-weight: ${({ theme }) => theme.fontWeightNormal};
+  ${({ theme }) => `
+    font-size: ${theme.fontSizeSM}px;
+    color: ${theme.colorTextSecondary};
+  `}
 `;
 
 const StyledTextArea = styled(TextArea)`
@@ -96,6 +100,11 @@ const ChartCustomizationForm: FC<Props> = ({ form, item, onUpdate }) => {
     [item.customization],
   );
 
+  const loadedDatasets = useSelector<RootState, DatasourcesState>(
+    ({ datasources }) => datasources,
+  );
+  const charts = useSelector<RootState, ChartsState>(({ charts }) => charts);
+
   const [metrics, setMetrics] = useState<any[]>([]);
   const [isDefaultValueLoading, setIsDefaultValueLoading] = useState(false);
   const [error, setError] = useState<any>(null);
@@ -122,7 +131,53 @@ const ChartCustomizationForm: FC<Props> = ({ form, item, onUpdate }) => {
   });
 
   const datasetValue = useMemo(() => {
-    if (!customization.dataset) return undefined;
+    const fallbackDatasetId = mostUsedDataset(loadedDatasets, charts);
+
+    // Debug logging to understand the data flow
+    console.log('ChartCustomizationForm datasetValue calculation:', {
+      customizationDataset: customization.dataset,
+      fallbackDatasetId,
+      loadedDatasets: Object.keys(loadedDatasets),
+      loadedDatasetsValues: Object.values(loadedDatasets).map(d => ({
+        id: d.id,
+        table_name: d.table_name,
+      })),
+    });
+
+    if (!customization.dataset) {
+      if (fallbackDatasetId) {
+        const datasetInfo = Object.values(loadedDatasets).find(
+          dataset => dataset.id === fallbackDatasetId,
+        );
+
+        if (datasetInfo) {
+          // Create a simple string label instead of React component
+          const label =
+            datasetInfo.table_name +
+            (datasetInfo.schema ? ` (${datasetInfo.schema})` : '') +
+            (datasetInfo.database?.database_name
+              ? ` [${datasetInfo.database.database_name}]`
+              : '');
+
+          console.log('Using fallback dataset:', {
+            fallbackDatasetId,
+            label,
+            datasetInfo,
+          });
+
+          return {
+            value: fallbackDatasetId,
+            label,
+          };
+        }
+
+        return {
+          value: fallbackDatasetId,
+          label: `Dataset ${fallbackDatasetId}`,
+        };
+      }
+      return undefined;
+    }
 
     let datasetId: number;
 
@@ -138,14 +193,16 @@ const ChartCustomizationForm: FC<Props> = ({ form, item, onUpdate }) => {
     if (Number.isNaN(datasetId)) return undefined;
 
     if (datasetDetails && datasetDetails.id === datasetId) {
+      const label =
+        datasetDetails.table_name +
+        (datasetDetails.schema ? ` (${datasetDetails.schema})` : '') +
+        (datasetDetails.database?.database_name
+          ? ` [${datasetDetails.database.database_name}]`
+          : '');
+
       return {
         value: datasetId,
-        label:
-          datasetDetails.table_name +
-          (datasetDetails.schema ? ` (${datasetDetails.schema})` : '') +
-          (datasetDetails.database?.database_name
-            ? ` [${datasetDetails.database.database_name}]`
-            : ''),
+        label,
       };
     }
 
@@ -157,10 +214,17 @@ const ChartCustomizationForm: FC<Props> = ({ form, item, onUpdate }) => {
         };
       }
       if ('table_name' in customization.datasetInfo) {
+        const info = customization.datasetInfo as any;
+        const label =
+          info.table_name +
+          (info.schema ? ` (${info.schema})` : '') +
+          (info.database?.database_name
+            ? ` [${info.database.database_name}]`
+            : '');
+
         return {
           value: datasetId,
-          label: (customization.datasetInfo as { table_name: string })
-            .table_name,
+          label,
         };
       }
     }
@@ -169,7 +233,13 @@ const ChartCustomizationForm: FC<Props> = ({ form, item, onUpdate }) => {
       value: datasetId,
       label: `Dataset ${datasetId}`,
     };
-  }, [customization.dataset, customization.datasetInfo, datasetDetails]);
+  }, [
+    customization.dataset,
+    customization.datasetInfo,
+    datasetDetails,
+    loadedDatasets,
+    charts,
+  ]);
 
   const formChanged = useCallback(() => {
     form.setFields([{ name: 'changed', value: true }]);
@@ -189,7 +259,6 @@ const ChartCustomizationForm: FC<Props> = ({ form, item, onUpdate }) => {
     [formChanged],
   );
 
-  // Helper function to set form values (similar to se   tActiveFilterFieldValues in FiltersConfigForm)
   const setFormFieldValues = useCallback(
     (values: object) => {
       const currentFilters = form.getFieldValue('filters') || {};
@@ -290,6 +359,28 @@ const ChartCustomizationForm: FC<Props> = ({ form, item, onUpdate }) => {
       setMetrics([]);
     }
   }, [form, item.id, customization.dataset]);
+
+  useEffect(() => {
+    const formValues = form.getFieldValue('filters')?.[item.id] || {};
+    const dataset = formValues.dataset || customization.dataset;
+
+    if (dataset) {
+      let datasetId: number;
+      if (
+        typeof dataset === 'object' &&
+        dataset !== null &&
+        'value' in dataset
+      ) {
+        datasetId = Number((dataset as any).value);
+      } else {
+        datasetId = Number(dataset);
+      }
+
+      if (!Number.isNaN(datasetId)) {
+        fetchDatasetInfo();
+      }
+    }
+  }, [customization.dataset, fetchDatasetInfo]);
 
   const fetchDefaultValueData = useCallback(async () => {
     const formValues = form.getFieldValue('filters')?.[item.id] || {};
@@ -401,20 +492,24 @@ const ChartCustomizationForm: FC<Props> = ({ form, item, onUpdate }) => {
   useEffect(() => {
     ensureFilterSlot();
 
+    const fallbackDatasetId = mostUsedDataset(loadedDatasets, charts);
+    const defaultDataset = customization.dataset
+      ? String(
+          typeof customization.dataset === 'object' &&
+            customization.dataset !== null
+            ? (customization.dataset as any).value || customization.dataset
+            : customization.dataset,
+        )
+      : fallbackDatasetId
+        ? String(fallbackDatasetId)
+        : null;
+
     const initialValues = {
       filters: {
         [item.id]: {
           name: customization.name || '',
           description: customization.description || '',
-          dataset: customization.dataset
-            ? String(
-                typeof customization.dataset === 'object' &&
-                  customization.dataset !== null
-                  ? (customization.dataset as any).value ||
-                      customization.dataset
-                  : customization.dataset,
-              )
-            : null,
+          dataset: defaultDataset,
           column: customization.column || null,
           filterType: 'filter_select',
           sortFilter: customization.sortFilter || false,
@@ -432,7 +527,7 @@ const ChartCustomizationForm: FC<Props> = ({ form, item, onUpdate }) => {
 
     form.setFieldsValue(initialValues);
 
-    if (customization.dataset) {
+    if (customization.dataset || defaultDataset) {
       fetchDatasetInfo();
     }
 
@@ -443,7 +538,15 @@ const ChartCustomizationForm: FC<Props> = ({ form, item, onUpdate }) => {
           .catch(() => {});
       }, 0);
     }
-  }, [item.id, fetchDatasetInfo, customization, form, ensureFilterSlot]);
+  }, [
+    item.id,
+    fetchDatasetInfo,
+    customization,
+    form,
+    ensureFilterSlot,
+    loadedDatasets,
+    charts,
+  ]);
 
   useEffect(() => {
     const formValues = form.getFieldValue('filters')?.[item.id] || {};
@@ -566,7 +669,6 @@ const ChartCustomizationForm: FC<Props> = ({ form, item, onUpdate }) => {
     [form, item.id],
   );
 
-  // Calculate tooltip for hasDefaultValue checkbox (matching FiltersConfigForm logic)
   const getDefaultValueTooltip = useCallback(() => {
     if (selectFirst) {
       return t(
@@ -629,12 +731,12 @@ const ChartCustomizationForm: FC<Props> = ({ form, item, onUpdate }) => {
       <StyledContainer>
         <StyledFormItem
           name={['filters', item.id, 'name']}
-          label={t('Name')}
+          label={t('Dynamic group by name')}
           initialValue={customization.name || ''}
           rules={[{ required: true, message: t('Please enter a name') }]}
         >
           <Input
-            placeholder={t('Enter a name for this customization')}
+            placeholder={t('Name your dynamic group by')}
             onChange={debouncedFormChanged}
           />
         </StyledFormItem>
@@ -728,7 +830,7 @@ const ChartCustomizationForm: FC<Props> = ({ form, item, onUpdate }) => {
         </StyledFormItem>
       </StyledContainer>
 
-      <Collapse>
+      <Collapse defaultActiveKey={['settings']} expandIconPosition="right">
         <Collapse.Panel header={t('Customization settings')} key="settings">
           <StyledFormItem
             name={['filters', item.id, 'description']}
@@ -755,7 +857,7 @@ const ChartCustomizationForm: FC<Props> = ({ form, item, onUpdate }) => {
                 false
               }
               initialValue={customization.sortFilter ?? false}
-              title={<CheckboxLabel>{t('Sort filter values')}</CheckboxLabel>}
+              title={t('Sort filter values')}
               onChange={checked => {
                 setFormFieldValues({
                   sortFilter: checked,
@@ -845,11 +947,7 @@ const ChartCustomizationForm: FC<Props> = ({ form, item, onUpdate }) => {
               checked={hasDefaultValue}
               initialValue={customization.hasDefaultValue ?? false}
               disabled={isRequired || selectFirst}
-              title={
-                <CheckboxLabel>
-                  {t('Dynamic group by has a default value')}
-                </CheckboxLabel>
-              }
+              title={t('Dynamic group by has a default value')}
               tooltip={getDefaultValueTooltip()}
               onChange={checked => {
                 setHasDefaultValue(checked);
@@ -946,11 +1044,7 @@ const ChartCustomizationForm: FC<Props> = ({ form, item, onUpdate }) => {
             <CollapsibleControl
               checked={isRequired}
               initialValue={customization.isRequired ?? false}
-              title={
-                <CheckboxLabel>
-                  {t('Dynamic group by value is required')}
-                </CheckboxLabel>
-              }
+              title={t('Dynamic group by value is required')}
               tooltip={t('User must select a value before applying the filter')}
               onChange={checked => {
                 setIsRequired(checked);
@@ -989,11 +1083,7 @@ const ChartCustomizationForm: FC<Props> = ({ form, item, onUpdate }) => {
             <CollapsibleControl
               checked={selectFirst}
               initialValue={customization.selectFirst ?? false}
-              title={
-                <CheckboxLabel>
-                  {t('Select first filter value by default')}
-                </CheckboxLabel>
-              }
+              title={t('Select first filter value by default')}
               tooltip={t(
                 "When using this option, default value can't be set. Using this option may impact the load times for your dashboard.",
               )}

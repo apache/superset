@@ -31,6 +31,7 @@ export const getChartCustomizationIds = (items: ChartCustomizationItem[]) =>
 
 export const createDefaultChartCustomizationItem = (
   chartId?: number,
+  defaultDatasetId?: number,
 ): ChartCustomizationItem => ({
   id: generateGroupById(),
   title: t('[untitled]'),
@@ -46,7 +47,7 @@ export const createDefaultChartCustomizationItem = (
   },
   customization: {
     name: '',
-    dataset: null,
+    dataset: defaultDatasetId ? String(defaultDatasetId) : null,
     column: null,
     sortAscending: true,
     hasDefaultValue: false,

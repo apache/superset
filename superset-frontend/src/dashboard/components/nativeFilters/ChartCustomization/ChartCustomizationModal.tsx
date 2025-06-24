@@ -24,6 +24,8 @@ import { StyledModal, Form } from '@superset-ui/core/components';
 import { ErrorBoundary } from 'src/components/ErrorBoundary';
 import Footer from 'src/dashboard/components/nativeFilters/FiltersConfigModal/Footer/Footer';
 import { CancelConfirmationAlert } from 'src/dashboard/components/nativeFilters/FiltersConfigModal/Footer/CancelConfirmationAlert';
+import { DatasourcesState, ChartsState, RootState } from 'src/dashboard/types';
+import { mostUsedDataset } from '../FiltersConfigModal/FiltersConfigForm/utils';
 import ChartCustomizationTitlePane from './ChartCustomizationTitlePane';
 import ChartCustomizationForm from './ChartCustomizationForm';
 import { createDefaultChartCustomizationItem } from './utils';
@@ -234,11 +236,20 @@ const ChartCustomizationModal = ({
 
   const existingItems = useSelector(selectChartCustomizationItems);
 
+  const loadedDatasets = useSelector<RootState, DatasourcesState>(
+    ({ datasources }) => datasources,
+  );
+  const charts = useSelector<RootState, ChartsState>(({ charts }) => charts);
+
   const addItem = useCallback(() => {
-    const item = createDefaultChartCustomizationItem(chartId);
+    const fallbackDatasetId = mostUsedDataset(loadedDatasets, charts);
+    const item = createDefaultChartCustomizationItem(
+      chartId,
+      fallbackDatasetId,
+    );
     setItems([...items, item]);
     setCurrentId(item.id);
-  }, [items, chartId]);
+  }, [items, chartId, loadedDatasets, charts]);
 
   const handleRemoveItem = useCallback(
     (id: string, shouldRemove = true) => {
@@ -333,16 +344,40 @@ const ChartCustomizationModal = ({
 
         form.setFieldsValue(initialFormValues);
       } else {
-        const newItem = createDefaultChartCustomizationItem(chartId);
+        const fallbackDatasetId = mostUsedDataset(loadedDatasets, charts);
+        const newItem = createDefaultChartCustomizationItem(
+          chartId,
+          fallbackDatasetId,
+        );
         setCurrentId(newItem.id);
         setItems([newItem]);
+
+        const datasetInfo = fallbackDatasetId
+          ? Object.values(loadedDatasets).find(
+              dataset => dataset.id === fallbackDatasetId,
+            )
+          : null;
 
         const initialFormValues = {
           filters: {
             [newItem.id]: {
               name: '',
               description: '',
-              dataset: null,
+              dataset: fallbackDatasetId ? String(fallbackDatasetId) : null,
+              datasetInfo: datasetInfo
+                ? {
+                    value: fallbackDatasetId,
+                    label: `${datasetInfo.table_name}${
+                      datasetInfo.schema ? ` (${datasetInfo.schema})` : ''
+                    }${
+                      datasetInfo.database?.database_name
+                        ? ` [${datasetInfo.database.database_name}]`
+                        : ''
+                    }`,
+                    table_name: datasetInfo.table_name,
+                    schema: datasetInfo.schema,
+                  }
+                : null,
               column: null,
               sortFilter: false,
               sortAscending: true,
@@ -359,7 +394,16 @@ const ChartCustomizationModal = ({
       }
       setInitialLoadComplete(true);
     }
-  }, [isOpen, initialLoadComplete, existingItems, initialItemId, form]);
+  }, [
+    isOpen,
+    initialLoadComplete,
+    existingItems,
+    initialItemId,
+    form,
+    chartId,
+    loadedDatasets,
+    charts,
+  ]);
   useEffect(() => {
     if (!isOpen) {
       setInitialLoadComplete(false);
