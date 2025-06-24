@@ -18,9 +18,13 @@
  */
 import { Dispatch, AnyAction } from 'redux';
 import { ThunkAction, ThunkDispatch } from 'redux-thunk';
-import { makeApi, t, getErrorText } from '@superset-ui/core';
+import { makeApi, t, getClientErrorObject } from '@superset-ui/core';
 import { addDangerToast } from 'src/components/MessageToasts/actions';
-import { refreshChart } from 'src/components/Chart/chartAction';
+import {
+  getChartDataRequest,
+  refreshChart,
+} from 'src/components/Chart/chartAction';
+import { getFormData } from 'src/dashboard/components/nativeFilters/utils';
 import {
   ChartConfiguration,
   DashboardInfo,
@@ -28,7 +32,10 @@ import {
   GlobalChartCrossFilterConfig,
   RootState,
 } from 'src/dashboard/types';
-import { ChartCustomizationItem } from 'src/dashboard/components/nativeFilters/ChartCustomization/types';
+import {
+  ChartCustomizationItem,
+  FilterOption,
+} from 'src/dashboard/components/nativeFilters/ChartCustomization/types';
 import { onSave } from './dashboardState';
 
 export interface ChartCustomizationSavePayload {
@@ -222,8 +229,10 @@ export function saveFilterBarOrientation(orientation: any) {
         dispatch(onSave(lastModifiedTime));
       }
     } catch (errorObject) {
-      const errorText = await getErrorText(errorObject, 'dashboard');
-      dispatch(addDangerToast(errorText));
+      const { error } = await getClientErrorObject(errorObject);
+      dispatch(
+        addDangerToast(error || t('Failed to save filter bar orientation')),
+      );
       throw errorObject;
     }
   };
@@ -361,9 +370,131 @@ export function saveChartCustomization(
       return response;
     } catch (errorObject) {
       console.error('Error saving chart customization:', errorObject);
-      const errorText = await getErrorText(errorObject, 'dashboard');
-      dispatch(addDangerToast(errorText));
+      const { error } = await getClientErrorObject(errorObject);
+      dispatch(
+        addDangerToast(error || t('Failed to save chart customization')),
+      );
       throw errorObject;
     }
   };
 }
+
+export const INITIALIZE_CHART_CUSTOMIZATION = 'INITIALIZE_CHART_CUSTOMIZATION';
+export interface InitializeChartCustomization {
+  type: typeof INITIALIZE_CHART_CUSTOMIZATION;
+  chartCustomizationItems: ChartCustomizationItem[];
+}
+
+export function initializeChartCustomization(
+  chartCustomizationItems: ChartCustomizationItem[],
+): InitializeChartCustomization {
+  return {
+    type: INITIALIZE_CHART_CUSTOMIZATION,
+    chartCustomizationItems,
+  };
+}
+
+export const SET_CHART_CUSTOMIZATION_DATA_LOADING =
+  'SET_CHART_CUSTOMIZATION_DATA_LOADING';
+export interface SetChartCustomizationDataLoading {
+  type: typeof SET_CHART_CUSTOMIZATION_DATA_LOADING;
+  itemId: string;
+  isLoading: boolean;
+}
+
+export function setChartCustomizationDataLoading(
+  itemId: string,
+  isLoading: boolean,
+): SetChartCustomizationDataLoading {
+  return {
+    type: SET_CHART_CUSTOMIZATION_DATA_LOADING,
+    itemId,
+    isLoading,
+  };
+}
+
+export const SET_CHART_CUSTOMIZATION_DATA = 'SET_CHART_CUSTOMIZATION_DATA';
+export interface SetChartCustomizationData {
+  type: typeof SET_CHART_CUSTOMIZATION_DATA;
+  itemId: string;
+  data: FilterOption[];
+}
+
+export function setChartCustomizationData(
+  itemId: string,
+  data: FilterOption[],
+): SetChartCustomizationData {
+  return {
+    type: SET_CHART_CUSTOMIZATION_DATA,
+    itemId,
+    data,
+  };
+}
+
+export function loadChartCustomizationData(
+  itemId: string,
+  datasetId: string,
+  columnName: string,
+): ThunkAction<Promise<void>, RootState, null, AnyAction> {
+  return async (dispatch: ThunkDispatch<RootState, null, AnyAction>) => {
+    if (!datasetId || !columnName) {
+      return;
+    }
+
+    dispatch(setChartCustomizationDataLoading(itemId, true));
+
+    try {
+      const formData = getFormData({
+        datasetId: Number(datasetId),
+        groupby: columnName,
+        dashboardId: 0,
+        filterType: 'filter_select',
+      });
+
+      const response = await getChartDataRequest({
+        formData,
+      });
+
+      if (response?.json?.result) {
+        const data = response.json.result[0]?.data || [];
+        const uniqueValues = new Set();
+        const formattedData: FilterOption[] = [];
+
+        data.forEach((row: any) => {
+          const value = row[columnName];
+          if (
+            value !== null &&
+            value !== undefined &&
+            !uniqueValues.has(value)
+          ) {
+            uniqueValues.add(value);
+            formattedData.push({
+              label: value.toString(),
+              value: value.toString(),
+            });
+          }
+        });
+
+        formattedData.sort((a, b) => a.label.localeCompare(b.label));
+        dispatch(setChartCustomizationData(itemId, formattedData));
+      } else {
+        dispatch(setChartCustomizationData(itemId, []));
+      }
+    } catch (error) {
+      console.warn('Failed to load chart customization data:', error);
+      dispatch(setChartCustomizationData(itemId, []));
+    } finally {
+      dispatch(setChartCustomizationDataLoading(itemId, false));
+    }
+  };
+}
+
+export type AnyDashboardInfoAction =
+  | ReturnType<typeof dashboardInfoChanged>
+  | ReturnType<typeof nativeFiltersConfigChanged>
+  | ReturnType<typeof setFilterBarOrientation>
+  | ReturnType<typeof setCrossFiltersEnabled>
+  | ReturnType<typeof setChartCustomization>
+  | InitializeChartCustomization
+  | SetChartCustomizationDataLoading
+  | SetChartCustomizationData;

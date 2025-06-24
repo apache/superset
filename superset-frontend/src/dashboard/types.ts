@@ -34,7 +34,10 @@ import Database from 'src/types/Database';
 import { UrlParamEntries } from 'src/utils/urlUtils';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import Owner from 'src/types/Owner';
-import { ChartCustomizationItem } from './components/nativeFilters/ChartCustomization/types';
+import {
+  ChartCustomizationItem,
+  FilterOption,
+} from './components/nativeFilters/ChartCustomization/types';
 import { ChartState } from '../explore/types';
 
 export type { Dashboard } from 'src/types/Dashboard';
@@ -153,6 +156,8 @@ export type DashboardInfo = {
   changed_by?: Owner;
   created_by?: Owner;
   owners: Owner[];
+  chartCustomizationData?: { [itemId: string]: FilterOption[] };
+  chartCustomizationLoading?: { [itemId: string]: boolean };
   theme?: {
     id: number;
     name: string;
