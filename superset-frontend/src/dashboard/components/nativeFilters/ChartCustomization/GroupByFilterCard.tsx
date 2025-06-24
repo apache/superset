@@ -24,6 +24,7 @@ import {
   Icons,
   Loading,
   Popover,
+  Tooltip,
 } from '@superset-ui/core/components';
 import {
   styled,
@@ -136,12 +137,36 @@ const NoDataMessage = styled.div`
   font-size: ${({ theme }) => theme.fontSizeSM}px;
 `;
 
-const Description = styled(Typography.Text)`
-  font-size: ${({ theme }) => theme.fontSizeSM - 1}px;
-  color: ${({ theme }) => theme.colors.grayscale.base};
+const ToolTipContainer = styled.div`
+  font-size: ${({ theme }) => theme.fontSize}px;
+  display: flex;
   margin-bottom: ${({ theme }) => theme.sizeUnit}px;
-  display: block;
 `;
+
+const DescriptionTooltip = ({ description }: { description: string }) => (
+  <ToolTipContainer>
+    <Tooltip
+      title={description}
+      placement="right"
+      overlayInnerStyle={{
+        display: '-webkit-box',
+        WebkitLineClamp: 10,
+        WebkitBoxOrient: 'vertical',
+        overflow: 'hidden',
+        textOverflow: 'ellipsis',
+        whiteSpace: 'normal',
+      }}
+    >
+      <Icons.InfoCircleOutlined
+        className="text-muted"
+        role="button"
+        css={theme => ({
+          paddingLeft: `${theme.sizeUnit}px`,
+        })}
+      />
+    </Tooltip>
+  </ToolTipContainer>
+);
 
 const GroupByFilterCardContent: FC<{
   customizationItem: ChartCustomizationItem;
@@ -229,14 +254,7 @@ const GroupByFilterCardContent: FC<{
             margin-top: ${theme.sizeUnit * 2}px;
           `}
         >
-          <Typography.Text
-            type="secondary"
-            css={theme => css`
-              font-size: ${theme.fontSizeSM - 1}px;
-            `}
-          >
-            {description}
-          </Typography.Text>
+          <DescriptionTooltip description={description} />
         </Row>
       )}
     </div>
@@ -374,7 +392,7 @@ const GroupByFilterCard: FC<GroupByFilterCardProps> = ({
 
   const handleSearch = useMemo(
     () =>
-      debounce((search: string) => {
+      debounce(() => {
         if (datasetId && columnName) {
           dispatch(
             loadChartCustomizationData(
@@ -507,6 +525,11 @@ const GroupByFilterCard: FC<GroupByFilterCardProps> = ({
 
   const displayTitle = columnDisplayName;
 
+  // Get description from either location
+  const description =
+    customizationItem.description?.trim() ||
+    customizationItem.customization.description?.trim();
+
   return (
     <FilterValueContainer>
       <Popover
@@ -527,16 +550,21 @@ const GroupByFilterCard: FC<GroupByFilterCardProps> = ({
         arrow={false}
       >
         <div>
-          <TooltipWithTruncation
-            title={titleElementsTruncated ? displayTitle : null}
+          <div
+            css={css`
+              display: flex;
+              align-items: center;
+            `}
           >
-            <div ref={filterTitleRef}>
-              <FilterTitle>{displayTitle}</FilterTitle>
-            </div>
-          </TooltipWithTruncation>
-          {customizationItem.description && (
-            <Description>{customizationItem.description}</Description>
-          )}
+            <TooltipWithTruncation
+              title={titleElementsTruncated ? displayTitle : null}
+            >
+              <div ref={filterTitleRef}>
+                <FilterTitle>{displayTitle}</FilterTitle>
+              </div>
+            </TooltipWithTruncation>
+            {description && <DescriptionTooltip description={description} />}
+          </div>
         </div>
       </Popover>
 
