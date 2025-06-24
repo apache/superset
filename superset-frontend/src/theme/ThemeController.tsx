@@ -25,6 +25,7 @@ import {
   themeObject,
 } from '@superset-ui/core';
 import { ThemeMode } from '@superset-ui/core/theme/types';
+import getBootstrapData from 'src/utils/getBootstrapData';
 
 export class LocalStorageAdapter implements ThemeStorage {
   getItem(key: string): string | null {
@@ -65,12 +66,18 @@ export class ThemeController {
 
   private mediaQuery: MediaQueryList;
 
-  constructor(options: ThemeControllerOptions = { themeObject }) {
+  constructor(options: ThemeControllerOptions = {}) {
     this.storage = options.storage || new LocalStorageAdapter();
     this.storageKey = options.storageKey || 'superset-theme';
     this.modeStorageKey = options.modeStorageKey || `${this.storageKey}-mode`;
     this.defaultTheme = options.defaultTheme || {};
-    this.themeObject = options.themeObject;
+
+    // Load themeObject — either passed in or auto-loaded from bootstrap
+    if (options.themeObject) {
+      this.themeObject = options.themeObject;
+    } else {
+      this.themeObject = ThemeController.loadThemeFromBootstrap();
+    }
 
     // Load customizations from storage
     const savedThemeJson = this.storage.getItem(this.storageKey);
@@ -103,8 +110,28 @@ export class ThemeController {
   }
 
   /**
-   * Cleans up listeners. Should be called when the controller is no longer needed.
+   * Load theme object directly from bootstrapData if not provided explicitly
    */
+  private static loadThemeFromBootstrap(): Theme {
+    const bootstrapData = getBootstrapData().common;
+
+    let themeConfig: AnyThemeConfig = {};
+
+    if (bootstrapData.theme) {
+      themeConfig = bootstrapData.theme;
+    } else if (bootstrapData.themes) {
+      const systemMode = ThemeController.getSystemMode();
+      const preferred = systemMode;
+      if (bootstrapData.themes[preferred]) {
+        themeConfig = bootstrapData.themes[preferred];
+      }
+    } else {
+      console.warn('No theme data found in bootstrapData');
+    }
+
+    return themeObject.setConfig(themeConfig);
+  }
+
   public destroy(): void {
     this.mediaQuery.removeEventListener('change', this.handleSystemThemeChange);
   }
@@ -125,10 +152,6 @@ export class ThemeController {
     return this.currentMode;
   }
 
-  /**
-   * Sets new theme customizations (e.g., from a JSON editor).
-   * This method updates the theme's appearance but preserves the current mode.
-   */
   public setTheme(newCustomizations: AnyThemeConfig): void {
     if (!this.canUpdateTheme()) {
       throw new Error('User does not have permission to update the theme');
@@ -138,7 +161,6 @@ export class ThemeController {
     if (!newCustomizations.algorithm) {
       this.currentMode = ThemeMode.LIGHT;
     }
-
     if (newCustomizations?.algorithm) {
       this.currentMode = newCustomizations.algorithm as ThemeMode;
     }
@@ -148,10 +170,6 @@ export class ThemeController {
     this.notifyListeners();
   }
 
-  /**
-   * Changes the theme mode (light, dark, or system).
-   * This is for the mode switch.
-   */
   public changeThemeMode(newMode: ThemeMode): void {
     if (!this.canUpdateMode()) {
       throw new Error('User does not have permission to update the theme mode');
@@ -184,16 +202,12 @@ export class ThemeController {
     if (this.systemMode === newSystemMode) return;
 
     this.systemMode = newSystemMode;
-    // If the current mode is SYSTEM, we need to re-apply the theme
     if (this.currentMode === ThemeMode.SYSTEM) {
       this.applyTheme();
       this.notifyListeners();
     }
   };
 
-  /**
-   * Centralized method to apply the current customizations and mode.
-   */
   private applyTheme(): void {
     const newConfig = { ...this.customizations };
 
@@ -221,7 +235,6 @@ export class ThemeController {
 
   private persist(): void {
     this.storage.setItem(this.modeStorageKey, this.currentMode);
-
     const { algorithm, ...persistedCustomizations } = this.customizations;
     this.storage.setItem(
       this.storageKey,

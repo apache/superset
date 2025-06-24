@@ -33,10 +33,7 @@ import '../preamble';
 
 const { common } = getBootstrapData();
 
-if (Object.keys(common?.theme || {}).length > 0) {
-  themeObject.setConfig(common.theme);
-}
-const themeController = new ThemeController({ themeObject });
+const themeController = new ThemeController();
 
 const extensionsRegistry = getExtensionsRegistry();
 export const RootContextProviders: React.FC = ({ children }) => {
