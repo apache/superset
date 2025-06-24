@@ -60,6 +60,7 @@ dependencies = [
     # known issue with holidays 0.26.0 and above related to prophet lib #25017
     "holidays>=0.25, <0.26",
     "humanize",
+    "importlib_metadata",
     "isodate",
     "jsonpath-ng>=1.6.1, <2",
     "Mako>=1.2.2",

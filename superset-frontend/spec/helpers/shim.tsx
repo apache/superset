@@ -19,6 +19,7 @@
 import { AriaAttributes } from 'react';
 import 'core-js/stable';
 import 'regenerator-runtime/runtime';
+import 'abortcontroller-polyfill/dist/abortcontroller-polyfill-only';
 import jQuery from 'jquery';
 // https://jestjs.io/docs/jest-object#jestmockmodulename-factory-options
 // in order to mock modules in test case, so avoid absolute import module

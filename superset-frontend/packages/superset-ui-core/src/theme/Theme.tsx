@@ -66,7 +66,7 @@ export class Theme {
     brandLogoAlt: 'Apache Superset',
     brandLogoUrl: '/static/assets/images/superset-logo-horiz.png',
     brandLogoMargin: '18px',
-    brandLogoHref: 'https://superset.apache.org',
+    brandLogoHref: 'https://supserset.apache.org',
     brandLogoHeight: '24px',
 
     // Default colors

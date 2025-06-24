@@ -41,8 +41,8 @@ body:
       label: Superset version
       options:
         - master / latest-dev
-        - "5.0.0"
         - "4.1.2"
+        - "4.0.2"
     validations:
       required: true
   - type: dropdown

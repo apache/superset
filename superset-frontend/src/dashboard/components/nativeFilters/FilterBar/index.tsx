@@ -40,7 +40,7 @@ import {
 } from '@superset-ui/core';
 import { Constants } from '@superset-ui/core/components';
 import { useHistory } from 'react-router-dom';
-import { updateDataMask } from 'src/dataMask/actions';
+import { updateDataMask, clearDataMask } from 'src/dataMask/actions';
 import { useImmer } from 'use-immer';
 import { isEmpty, isEqual, debounce } from 'lodash';
 import { getInitialDataMask } from 'src/dataMask/reducer';
@@ -256,17 +256,25 @@ const FilterBar: FC<FiltersBarProps> = ({
   }, [dataMaskSelected, dispatch]);
 
   const handleClearAll = useCallback(() => {
+    const clearDataMaskIds: string[] = [];
+    let dispatchAllowed = false;
     filtersInScope.filter(isNativeFilter).forEach(filter => {
       const { id } = filter;
       if (dataMaskSelected[id]) {
+        if (filter.controlValues?.enableEmptyFilter) {
+          dispatchAllowed = false;
+        }
+        clearDataMaskIds.push(id);
         setDataMaskSelected(draft => {
           if (draft[id].filterState?.value !== undefined) {
             draft[id].filterState!.value = undefined;
           }
-          draft[id].extraFormData = {};
         });
       }
     });
+    if (dispatchAllowed) {
+      clearDataMaskIds.forEach(id => dispatch(clearDataMask(id)));
+    }
   }, [dataMaskSelected, dispatch, filtersInScope, setDataMaskSelected]);
 
   useFilterUpdates(dataMaskSelected, setDataMaskSelected);
