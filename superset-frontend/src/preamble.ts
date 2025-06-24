@@ -20,13 +20,7 @@ import { setConfig as setHotLoaderConfig } from 'react-hot-loader';
 import 'abortcontroller-polyfill/dist/abortcontroller-polyfill-only';
 import dayjs from 'dayjs';
 // eslint-disable-next-line no-restricted-imports
-import {
-  configure,
-  makeApi,
-  initFeatureFlags,
-  // eslint-disable-next-line no-restricted-imports
-  themeObject, // TODO: DO not import theme directly
-} from '@superset-ui/core';
+import { configure, makeApi, initFeatureFlags } from '@superset-ui/core';
 import setupClient from './setup/setupClient';
 import setupColors from './setup/setupColors';
 import setupFormatters from './setup/setupFormatters';
@@ -67,10 +61,6 @@ setupFormatters(
 );
 
 setupDashboardComponents();
-
-if (Object.keys(bootstrapData?.common?.theme_overrides || {}).length > 0) {
-  themeObject.setConfig(bootstrapData.common.theme_overrides);
-}
 
 const getMe = makeApi<void, User>({
   method: 'GET',
