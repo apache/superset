@@ -111,6 +111,13 @@ export class ThemeController {
 
   /**
    * Load theme object directly from bootstrapData if not provided explicitly
+   * Note that there is special logic/handling to support getting the first request
+   * where the backend doesn't know about user preferences yet.
+   * In that case, since the backend doesn't know about the user preferences,
+   * it will return both themes to the back as part of the bootstrap data, leaving
+   * the decision to the frontend to pick the right one under `bootstrapData.themes`
+   * once the backend knows about the user preferences, it will return only `bootstrapData.theme`
+   * which takes precedence over `bootstrapData.themes` (not available in this case)
    */
   private static loadThemeFromBootstrap(): Theme {
     const bootstrapData = getBootstrapData().common;
