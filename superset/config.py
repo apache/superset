@@ -1860,8 +1860,8 @@ SESSION_COOKIE_SAMESITE: Literal["None", "Lax", "Strict"] | None = "Lax"
 # Whether to use server side sessions from flask-session or Flask secure cookies
 # SESSION_SERVER_SIDE = True
 # Example config using Redis as the backend for server side sessions
-from flask_session import RedisSessionInterface
-# from redis import Redis
+# from flask_session import RedisSessionInterface
+from redis import Redis
 
 #
 SESSION_SERVER_SIDE = True
