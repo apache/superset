@@ -17,51 +17,51 @@
  * under the License.
  */
 
-const path = require('path');
-const { ModuleFederationPlugin } = require('webpack').container;
-const packageConfig = require('./package');
+const path = require("path");
+const { ModuleFederationPlugin } = require("webpack").container;
+const packageConfig = require("./package");
 
 module.exports = (env, argv) => {
-  const isProd = argv.mode === 'production';
+  const isProd = argv.mode === "production";
 
   return {
-    entry: isProd ? {} : './src/index.tsx',
-    mode: isProd ? 'production' : 'development',
+    entry: isProd ? {} : "./src/index.tsx",
+    mode: isProd ? "production" : "development",
     devServer: {
       port: 3000,
       headers: {
-        'Access-Control-Allow-Origin': '*',
+        "Access-Control-Allow-Origin": "*",
       },
     },
     output: {
       clean: true,
-      filename: isProd ? undefined : '[name].[contenthash].js',
-      chunkFilename: '[name].[contenthash].js',
-      path: path.resolve(__dirname, 'dist'),
+      filename: isProd ? undefined : "[name].[contenthash].js",
+      chunkFilename: "[name].[contenthash].js",
+      path: path.resolve(__dirname, "dist"),
       publicPath: `/api/v1/extensions/${packageConfig.name}/`,
     },
     resolve: {
-      extensions: ['.ts', '.tsx', '.js', '.jsx'],
+      extensions: [".ts", ".tsx", ".js", ".jsx"],
     },
-    externalsType: 'window',
+    externalsType: "window",
     externals: {
-      '@apache-superset/core': 'superset',
+      "@apache-superset/core": "superset",
     },
     module: {
       rules: [
         {
           test: /\.tsx?$/,
-          use: 'ts-loader',
+          use: "ts-loader",
           exclude: /node_modules/,
         },
       ],
     },
     plugins: [
       new ModuleFederationPlugin({
-        name: 'extension2',
-        filename: 'remoteEntry.[contenthash].js',
+        name: "extension2",
+        filename: "remoteEntry.[contenthash].js",
         exposes: {
-          './index': './src/index.tsx',
+          "./index": "./src/index.tsx",
         },
         shared: {
           react: {
@@ -69,14 +69,14 @@ module.exports = (env, argv) => {
             requiredVersion: packageConfig.peerDependencies.react,
             import: false,
           },
-          'react-dom': {
+          "react-dom": {
             singleton: true,
-            requiredVersion: packageConfig.peerDependencies['react-dom'],
+            requiredVersion: packageConfig.peerDependencies["react-dom"],
             import: false,
           },
-          'antd-v5': {
+          antd: {
             singleton: true,
-            requiredVersion: 'npm:antd@^5.18.0',
+            requiredVersion: packageConfig.peerDependencies["antd"],
             import: false,
           },
         },

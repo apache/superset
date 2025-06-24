@@ -17,14 +17,14 @@
  * under the License.
  */
 import { sqlLab as sqlLabType } from '@apache-superset/core';
-import { Disposable, Editor, Tab } from './core';
 import {
   QUERY_FAILED,
   QUERY_SUCCESS,
   querySuccess,
 } from 'src/SqlLab/actions/sqlLab';
-import { createActionListener } from './utils';
 import { RootState } from 'src/views/store';
+import { Disposable, Editor, Tab } from './core';
+import { createActionListener } from './utils';
 
 // TODO: Refactor to return all needed parameters. Add them to the interface.
 export const onDidQueryRun: typeof sqlLabType.onDidQueryRun = (

@@ -14,6 +14,7 @@
   "license": "Apache-2.0",
   "description": "",
   "peerDependencies": {
+    "antd": "^5.24.6",
     "@apache-superset/core": "file:../../../superset-frontend/packages/superset-core",
     "react": "^17.0.2",
     "react-dom": "^17.0.2"

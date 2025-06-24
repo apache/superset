@@ -52,7 +52,7 @@ const restrictedImportsRules = {
     message: 'Lodash Memoize is unsafe! Please use memoize-one instead',
   },
   'no-testing-library-react': {
-    name: '@testing-library/react',
+    name: '@superset-ui/core/spec',
     message: 'Please use spec/helpers/testing-library instead',
   },
   'no-testing-library-react-dom-utils': {
@@ -62,10 +62,6 @@ const restrictedImportsRules = {
   'no-antd': {
     name: 'antd',
     message: 'Please import Ant components from the index of src/components',
-  },
-  'no-antd-v5': {
-    name: 'antd-v5',
-    message: 'Please import Ant v5 components from the index of src/components',
   },
   'no-superset-theme': {
     name: '@superset-ui/core',
@@ -100,6 +96,15 @@ module.exports = {
         extensions: ['.js', '.jsx', '.ts', '.tsx', '.json'],
         // resolve modules from `/superset_frontend/node_modules` and `/superset_frontend`
         moduleDirectory: ['node_modules', '.'],
+      },
+      typescript: {
+        alwaysTryTypes: true,
+        project: [
+          './tsconfig.json',
+          './packages/superset-ui-core/tsconfig.json',
+          './packages/superset-ui-chart-controls/',
+          './plugins/*/tsconfig.json',
+        ],
       },
     },
     // only allow import from top level of module
@@ -302,9 +307,9 @@ module.exports = {
           'error',
           {
             paths: Object.values(restrictedImportsRules).filter(
-              r => r.name !== 'antd-v5',
+              r => r.name !== 'antd',
             ),
-            patterns: ['antd/*'],
+            patterns: [],
           },
         ],
       },
@@ -337,7 +342,9 @@ module.exports = {
       rules: {
         'import/no-extraneous-dependencies': [
           'error',
-          { devDependencies: true },
+          {
+            devDependencies: true,
+          },
         ],
         'no-only-tests/no-only-tests': 'error',
         'max-classes-per-file': 0,
@@ -380,7 +387,7 @@ module.exports = {
         'fixtures.*',
         'cypress-base/cypress/**/*',
         'Stories.tsx',
-        'packages/superset-ui-core/src/style/index.tsx',
+        'packages/superset-ui-core/src/theme/index.tsx',
       ],
       rules: {
         'theme-colors/no-literal-colors': 0,

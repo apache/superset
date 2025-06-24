@@ -21,6 +21,7 @@ import { getExtensionsContextValue } from './ExtensionsContextUtils';
 
 export class Column implements coreType.Column {
   name: string;
+
   type: string;
 
   constructor(name: string, type: string) {
@@ -31,6 +32,7 @@ export class Column implements coreType.Column {
 
 export class Table implements coreType.Table {
   name: string;
+
   columns: Column[];
 
   constructor(name: string, columns: Column[]) {
@@ -45,6 +47,7 @@ export class Table implements coreType.Table {
 
 export class Catalog implements coreType.Catalog {
   name: string;
+
   description?: string;
 
   constructor(name: string, description?: string) {
@@ -67,8 +70,11 @@ export class Schema implements coreType.Schema {
 
 export class Database implements coreType.Database {
   id: number;
+
   name: string;
+
   catalogs: Catalog[];
+
   schemas: Schema[];
 
   constructor(
@@ -130,18 +136,22 @@ export class Panel implements sqlLabType.Panel {
 
 export class Editor implements sqlLabType.Editor {
   content: string;
+
   database: Database;
+
   // TODO: Check later if we'll use objects instead of strings.
   catalog: string | null;
+
   schema: string;
+
   table: string;
 
   constructor(
     content: string,
     database: Database,
     catalog: string | null = null,
-    schema: string = '',
-    table: string = '',
+    schema = '',
+    table = '',
   ) {
     this.content = content;
     this.database = database;
@@ -153,8 +163,11 @@ export class Editor implements sqlLabType.Editor {
 
 export class Tab implements sqlLabType.Tab {
   id: string;
+
   title: string;
+
   editor: Editor;
+
   panels: Panel[];
 
   constructor(id: string, title: string, editor: Editor, panels: Panel[] = []) {

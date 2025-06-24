@@ -13,7 +13,9 @@
   "license": "Apache-2.0",
   "description": "",
   "peerDependencies": {
-    "react": "^17.0.2"
+    "antd": "^5.24.6",
+    "react": "^17.0.2",
+    "react-dom": "^17.0.2"
   },
   "devDependencies": {
     "@types/react": "^19.0.10",

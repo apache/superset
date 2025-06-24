@@ -19,18 +19,22 @@
 import { styled, useTheme, css, t } from '@superset-ui/core';
 import { FunctionComponent, useMemo } from 'react';
 import { useListViewResource } from 'src/views/CRUD/hooks';
-import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
-import ListView, {
-  ListViewProps,
-  Filters,
-  FilterOperator,
-} from 'src/components/ListView';
+import {
+  ConfirmStatusChange,
+  Tooltip,
+  Icons,
+} from '@superset-ui/core/components';
+import {
+  ListView,
+  ListViewFilterOperator as FilterOperator,
+  type ListViewProps,
+  type ListViewFilters,
+} from 'src/components';
 import SubMenu, { SubMenuProps } from 'src/features/home/SubMenu';
 import withToasts from 'src/components/MessageToasts/withToasts';
-import { Tooltip } from 'src/components/Tooltip';
-import { Icons } from 'src/components/Icons';
-import { JsonModal, safeJsonObjectParse } from 'src/components/JsonModal';
-import { Popconfirm } from 'antd-v5';
+import { JsonModal } from 'src/components/JsonModal';
+import { Popconfirm } from 'antd';
+import { safeJsonObjectParse } from 'src/components/JsonModal/utils';
 
 const PAGE_SIZE = 25;
 
@@ -215,7 +219,7 @@ const ExtensionsList: FunctionComponent<ExtensionsListProps> = ({
     [],
   );
 
-  const filterTypes: Filters = useMemo(
+  const filterTypes: ListViewFilters = useMemo(
     () => [
       {
         Header: t('Name'),

@@ -58,7 +58,7 @@ repos:
       - id: prettier
         additional_dependencies:
           - prettier@3.5.3
-        args: ["--ignore-path=./superset-frontend/.prettierignore"]
+        args: ["--ignore-path=./superset-frontend/.prettierignore", "--exclude", "site-packages"]
         files: "superset-frontend"
   - repo: local
     hooks:

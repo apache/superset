@@ -18,8 +18,6 @@
  */
 import { useEffect } from 'react';
 import * as supersetCore from '@apache-superset/core';
-import { useExtensionsContext } from './ExtensionsContext';
-import ExtensionsManager from './ExtensionsManager';
 import {
   authentication,
   core,
@@ -28,6 +26,8 @@ import {
   extensions,
   sqlLab,
 } from 'src/extensions';
+import { useExtensionsContext } from './ExtensionsContext';
+import ExtensionsManager from './ExtensionsManager';
 
 declare global {
   interface Window {
@@ -59,6 +59,8 @@ const ExtensionsStartup = () => {
       sqlLab,
     };
 
+    // TODO: This does not work when the user is not authenticated.
+    // We need to ensure that the extensions are initialized only when the user is authenticated.
     try {
       // Initialize the extensions
       ExtensionsManager.getInstance().initialize();

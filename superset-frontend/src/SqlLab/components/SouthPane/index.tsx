@@ -19,14 +19,17 @@
 import { createRef, useCallback, useMemo } from 'react';
 import { shallowEqual, useDispatch, useSelector } from 'react-redux';
 import { nanoid } from 'nanoid';
-import Tabs from 'src/components/Tabs';
+import Tabs from '@superset-ui/core/components/Tabs';
 import { css, styled, t, useTheme } from '@superset-ui/core';
 
 import { removeTables, setActiveSouthPaneTab } from 'src/SqlLab/actions/sqlLab';
 
-import Label from 'src/components/Label';
-import { Icons } from 'src/components/Icons';
+import { Label } from '@superset-ui/core/components';
+import { Icons } from '@superset-ui/core/components/Icons';
 import { SqlLabRootState } from 'src/SqlLab/types';
+import { useExtensionsContext } from 'src/extensions/ExtensionsContext';
+import ExtensionPlaceholder from 'src/extensions/ExtensionPlaceholder';
+import ExtensionsManager from 'src/extensions/ExtensionsManager';
 import QueryHistory from '../QueryHistory';
 import {
   STATUS_OPTIONS,
@@ -35,9 +38,6 @@ import {
 } from '../../constants';
 import Results from './Results';
 import TablePreview from '../TablePreview';
-import { useExtensionsContext } from 'src/extensions/ExtensionsContext';
-import ExtensionPlaceholder from 'src/extensions/ExtensionPlaceholder';
-import ExtensionsManager from 'src/extensions/ExtensionsManager';
 
 const TAB_HEIGHT = 130;
 
@@ -55,6 +55,11 @@ export interface SouthPaneProps {
 
 type StyledPaneProps = {
   height: number;
+};
+
+const TABS_KEYS = {
+  RESULTS: 'Results',
+  HISTORY: 'History',
 };
 
 const StyledPane = styled.div<StyledPaneProps>`
@@ -78,11 +83,11 @@ const StyledPane = styled.div<StyledPaneProps>`
   }
   .tab-content {
     .alert {
-      margin-top: ${({ theme }) => theme.gridUnit * 2}px;
+      margin-top: ${({ theme }) => theme.sizeUnit * 2}px;
     }
 
     button.fetch {
-      margin-top: ${({ theme }) => theme.gridUnit * 2}px;
+      margin-top: ${({ theme }) => theme.sizeUnit * 2}px;
     }
   }
 `;
@@ -97,7 +102,7 @@ const SouthPane = ({
   const theme = useTheme();
   const dispatch = useDispatch();
   const contributions =
-    ExtensionsManager.getInstance().getViewContributions('sqllab.panels');
+    ExtensionsManager.getInstance().getViewContributions('sqllab.panels') || [];
   const { viewProviders } = useExtensionsContext();
   const { offline, tables } = useSelector(
     ({ sqlLab: { offline, tables } }: SqlLabRootState) => ({
@@ -146,11 +151,73 @@ const SouthPane = ({
     [dispatch, pinnedTables],
   );
 
-  return offline ? (
-    <Label className="m-r-3" type={STATE_TYPE_MAP[STATUS_OPTIONS.offline]}>
-      {STATUS_OPTIONS_LOCALIZED.offline}
-    </Label>
-  ) : (
+  if (offline) {
+    return (
+      <Label type={STATE_TYPE_MAP[STATUS_OPTIONS.offline]}>
+        {STATUS_OPTIONS_LOCALIZED.offline}
+      </Label>
+    );
+  }
+
+  const tabItems = [
+    {
+      key: TABS_KEYS.RESULTS,
+      label: t('Results'),
+      children: (
+        <Results
+          height={innerTabContentHeight}
+          latestQueryId={latestQueryId}
+          displayLimit={displayLimit}
+          defaultQueryLimit={defaultQueryLimit}
+        />
+      ),
+      closable: false,
+    },
+    {
+      key: TABS_KEYS.HISTORY,
+      label: t('Query history'),
+      children: (
+        <QueryHistory
+          queryEditorId={queryEditorId}
+          displayLimit={displayLimit}
+          latestQueryId={latestQueryId}
+        />
+      ),
+      closable: false,
+    },
+    ...pinnedTables.map(({ id, dbId, catalog, schema, name }) => ({
+      key: pinnedTableKeys[id],
+      label: (
+        <>
+          <Icons.InsertRowAboveOutlined
+            iconSize="l"
+            css={css`
+              margin-bottom: ${theme.sizeUnit * 0.5}px;
+              margin-right: ${theme.sizeUnit}px;
+            `}
+          />
+          {`${schema}.${decodeURIComponent(name)}`}
+        </>
+      ),
+      children: (
+        <TablePreview
+          dbId={dbId}
+          catalog={catalog}
+          schema={schema}
+          tableName={name}
+        />
+      ),
+    })),
+    ...contributions.map(contribution => ({
+      key: contribution.id,
+      label: contribution.name,
+      children: viewProviders[contribution.id]?.() || <ExtensionPlaceholder />,
+      forceRender: true,
+      closable: false,
+    })),
+  ];
+
+  return (
     <StyledPane
       data-test="south-pane"
       className="SouthPane"
@@ -163,61 +230,11 @@ const SouthPane = ({
         className="SouthPaneTabs"
         onChange={switchTab}
         id={nanoid(11)}
-        fullWidth={false}
         animated={false}
         onEdit={removeTable}
         hideAdd
-      >
-        <Tabs.TabPane tab={t('Results')} key="Results" closable={false}>
-          <Results
-            height={innerTabContentHeight}
-            latestQueryId={latestQueryId}
-            displayLimit={displayLimit}
-            defaultQueryLimit={defaultQueryLimit}
-          />
-        </Tabs.TabPane>
-        <Tabs.TabPane tab={t('Query history')} key="History" closable={false}>
-          <QueryHistory
-            queryEditorId={queryEditorId}
-            displayLimit={displayLimit}
-            latestQueryId={latestQueryId}
-          />
-        </Tabs.TabPane>
-        {contributions?.map(contribution => (
-          <Tabs.TabPane
-            key={contribution.id}
-            tab={contribution.name}
-            closable={false}
-            forceRender
-          >
-            {viewProviders[contribution.id]?.() || <ExtensionPlaceholder />}
-          </Tabs.TabPane>
-        ))}
-        {pinnedTables.map(({ id, dbId, catalog, schema, name }) => (
-          <Tabs.TabPane
-            tab={
-              <>
-                <Icons.InsertRowAboveOutlined
-                  iconSize="l"
-                  css={css`
-                    margin-bottom: ${theme.gridUnit * 0.5}px;
-                    margin-right: ${theme.gridUnit}px;
-                  `}
-                />
-                {`${schema}.${decodeURIComponent(name)}`}
-              </>
-            }
-            key={pinnedTableKeys[id]}
-          >
-            <TablePreview
-              dbId={dbId}
-              catalog={catalog}
-              schema={schema}
-              tableName={name}
-            />
-          </Tabs.TabPane>
-        ))}
-      </Tabs>
+        items={tabItems}
+      />
     </StyledPane>
   );
 };

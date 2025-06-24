@@ -19,9 +19,8 @@
 import { authentication as authenticationType } from '@apache-superset/core';
 import { SupersetClient } from '@superset-ui/core';
 
-const getCSRFToken: typeof authenticationType.getCSRFToken = () => {
-  return SupersetClient.getCSRFToken();
-};
+const getCSRFToken: typeof authenticationType.getCSRFToken = () =>
+  SupersetClient.getCSRFToken();
 
 export const authentication: typeof authenticationType = {
   getCSRFToken,

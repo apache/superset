@@ -22,7 +22,7 @@
     "npm": "^11.1.0"
   },
   "peerDependencies": {
-    "antd-v5": "npm:antd@^5.18.0",
+    "antd": "^5.24.6",
     "react": "^17.0.2"
   },
   "scripts": {

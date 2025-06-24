@@ -61,7 +61,6 @@ dependencies = [
     # known issue with holidays 0.26.0 and above related to prophet lib #25017
     "holidays>=0.25, <0.26",
     "humanize",
-    "importlib_metadata",
     "isodate",
     "jsonpath-ng>=1.6.1, <2",
     "Mako>=1.2.2",
@@ -167,6 +166,7 @@ trino = ["trino>=0.328.0"]
 prophet = ["prophet>=1.1.5, <2"]
 redshift = ["sqlalchemy-redshift>=0.8.1, <0.9"]
 rockset = ["rockset-sqlalchemy>=0.0.1, <1"]
+risingwave = ["sqlalchemy-risingwave"]
 shillelagh = ["shillelagh[all]>=1.2.18, <2"]
 singlestore = ["sqlalchemy-singlestoredb>=1.1.1, <2"]
 snowflake = ["snowflake-sqlalchemy>=1.2.4, <2"]

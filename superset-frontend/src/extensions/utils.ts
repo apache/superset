@@ -16,9 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Disposable } from './core';
 import { AnyAction } from 'redux';
 import { listenerMiddleware, RootState, store } from 'src/views/store';
+import { Disposable } from './core';
 
 export function createActionListener<V>(
   actionType: string,

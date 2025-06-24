@@ -194,4 +194,38 @@ describe('BigNumberWithTrendline transformProps', () => {
     );
     expect(result.headerFormatter.format(500)).toBe('$500');
   });
+
+  it('should use last data point for comparison when big number comes from aggregated data', () => {
+    const chartProps = {
+      width: 500,
+      height: 400,
+      queriesData: [
+        {
+          data: [
+            { __timestamp: 3, value: 150 },
+            { __timestamp: 2, value: 100 },
+            { __timestamp: 1, value: 110 },
+          ] as unknown as BigNumberDatum[],
+          colnames: ['__timestamp', 'value'],
+          coltypes: ['TEMPORAL', 'NUMERIC'],
+        },
+        {
+          data: [{ value: 360 }],
+          colnames: ['value'],
+          coltypes: ['NUMERIC'],
+        },
+      ],
+      formData: { ...baseFormData, aggregation: 'SUM' },
+      rawFormData: baseRawFormData,
+      hooks: baseHooks,
+      datasource: baseDatasource,
+      theme: { colors: { grayscale: { light5: '#eee' } } },
+    };
+
+    const result = transformProps(
+      chartProps as unknown as BigNumberWithTrendlineChartProps,
+    );
+    expect(result.bigNumber).toBe(360);
+    expect(result.subheader).toBe('50.0% WoW');
+  });
 });
