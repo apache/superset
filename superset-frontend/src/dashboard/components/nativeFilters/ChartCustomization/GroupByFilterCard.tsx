@@ -28,27 +28,29 @@ import {
 import {
   styled,
   t,
-  SupersetClient,
   css,
   useTruncation,
   DataMaskStateWithId,
-  AdhocFilter,
+  DataMask,
 } from '@superset-ui/core';
 import { useDispatch, useSelector } from 'react-redux';
-import { debounce, isEqual } from 'lodash';
-import { saveChartCustomization } from 'src/dashboard/actions/dashboardInfo';
+import { debounce } from 'lodash';
+import {
+  saveChartCustomization,
+  loadChartCustomizationData,
+} from 'src/dashboard/actions/dashboardInfo';
+import { updateDataMask } from 'src/dataMask/actions';
+import {
+  postChartFormData,
+  updateQueryFormData,
+} from 'src/components/Chart/chartAction';
 import { TooltipWithTruncation } from 'src/dashboard/components/nativeFilters/FilterCard/TooltipWithTruncation';
 import { RootState } from '../../../types';
 import { mergeExtraFormData } from '../utils';
-import { ChartCustomizationItem } from './types';
+import { ChartCustomizationItem, FilterOption } from './types';
 
 interface GroupByFilterCardProps {
   customizationItem: ChartCustomizationItem;
-}
-
-interface FilterOption {
-  label: string;
-  value: string;
 }
 
 const Row = styled.div`
@@ -265,17 +267,74 @@ const GroupByFilterCard: FC<GroupByFilterCardProps> = ({
 
   const dispatch = useDispatch();
 
-  const columnDisplayName = useMemo(() => {
-    if (name) return name;
-    if (typeof column === 'string') return column;
-    return t('Group By');
-  }, [column, name]);
+  const chart = useSelector((state: RootState) =>
+    customizationItem?.chartId
+      ? state.charts?.[customizationItem.chartId]
+      : null,
+  );
+
+  const customizationFilterId = useMemo(
+    () => `chart_customization_${customizationItem.id}`,
+    [customizationItem.id],
+  );
+
+  // Get chart customization data from Redux state
+  const chartCustomizationData = useSelector<RootState, FilterOption[]>(
+    state =>
+      state.dashboardInfo.chartCustomizationData?.[customizationItem.id] || [],
+  );
+
+  const chartCustomizationLoading = useSelector<RootState, boolean>(
+    state =>
+      state.dashboardInfo.chartCustomizationLoading?.[customizationItem.id] ||
+      false,
+  );
+
+  const datasetId = useMemo(() => {
+    if (!dataset) return null;
+
+    // Handle string format (this is how it's actually stored)
+    if (typeof dataset === 'string') {
+      return dataset;
+    }
+
+    // Handle object format (fallback)
+    if (typeof dataset === 'object' && dataset !== null) {
+      if ('value' in dataset) {
+        return String((dataset as any).value);
+      }
+      if ('id' in dataset) {
+        return String((dataset as any).id);
+      }
+    }
+
+    return null;
+  }, [dataset]);
 
   const columnName = useMemo(() => {
-    if (typeof column === 'string') return column;
-    if (name) return name;
+    if (!column) return null;
+
+    if (typeof column === 'string') {
+      return column;
+    }
+
+    if (typeof column === 'object' && column !== null) {
+      if ('column_name' in column) {
+        return (column as any).column_name;
+      }
+      if ('name' in column) {
+        return (column as any).name;
+      }
+    }
+
     return null;
-  }, [column, name]);
+  }, [column]);
+
+  const columnDisplayName = useMemo(() => {
+    if (name) return name;
+    if (columnName) return columnName;
+    return t('Group By');
+  }, [columnName, name]);
 
   const useChartCustomizationDependencies = () => {
     const dataMask = useSelector<RootState, DataMaskStateWithId>(
@@ -309,105 +368,97 @@ const GroupByFilterCard: FC<GroupByFilterCardProps> = ({
 
   const dependencies = useChartCustomizationDependencies();
 
-  const fetchFilterValues = useCallback(
-    async (datasetId: string, columnName: string, search?: string) => {
-      setLoading(true);
-      try {
-        const queryParams = new URLSearchParams();
-
-        if (search) {
-          queryParams.append('q', search);
-        }
-
-        if (dependencies && Object.keys(dependencies).length > 0) {
-          queryParams.append('extra_form_data', JSON.stringify(dependencies));
-        }
-
-        const formData = {
-          datasource: `${datasetId}__table`,
-          viz_type: 'filter_select',
-          adhoc_filters: [] as AdhocFilter[],
-          extra_filters: [],
-          extra_form_data: dependencies,
-          granularity_sqla: 'ds',
-          groupby: [columnName],
-          metrics: ['count'],
-          row_limit: 1000,
-          time_range: 'No filter',
-        };
-
-        if (search) {
-          formData.adhoc_filters = [
-            {
-              clause: 'WHERE',
-              expressionType: 'SIMPLE',
-              operator: 'ILIKE',
-              subject: columnName,
-              comparator: `%${search}%`,
-            },
-          ];
-        }
-
-        const chartDataEndpoint = '/api/v1/chart/data';
-        const response = await SupersetClient.post({
-          endpoint: chartDataEndpoint,
-          jsonPayload: {
-            form_data: formData,
-          },
-        });
-
-        if (response?.json?.result) {
-          const data = response.json.result[0]?.data || [];
-
-          if (data.length > 0) {
-            const uniqueValues = new Set();
-            const formattedValues: FilterOption[] = [];
-
-            data.forEach((row: any) => {
-              const value = row[columnName];
-              if (
-                value !== null &&
-                value !== undefined &&
-                !uniqueValues.has(value)
-              ) {
-                uniqueValues.add(value);
-                formattedValues.push({
-                  label: value.toString(),
-                  value: value.toString(),
-                });
-              }
-            });
-
-            formattedValues.sort((a, b) => a.label.localeCompare(b.label));
-            setOptions(formattedValues);
-          } else {
-            setOptions([]);
-          }
-        } else {
-          setOptions([]);
-        }
-      } catch (error) {
-        console.warn('Failed to fetch filter values:', error);
-        setOptions([]);
-      } finally {
-        setLoading(false);
-      }
-    },
-    [dependencies],
+  const currentDataMask = useSelector<RootState, DataMask | undefined>(
+    state => state.dataMask[customizationFilterId],
   );
 
   const handleSearch = useMemo(
     () =>
       debounce((search: string) => {
-        if (dataset && columnName) {
-          fetchFilterValues(dataset, columnName, search);
+        if (datasetId && columnName) {
+          dispatch(
+            loadChartCustomizationData(
+              customizationItem.id,
+              datasetId,
+              columnName,
+            ),
+          );
         }
       }, 300),
-    [dataset, columnName, fetchFilterValues],
+    [datasetId, columnName, dispatch, customizationItem.id],
   );
+
+  // Load initial data when component mounts
+  useEffect(() => {
+    if (datasetId && columnName) {
+      dispatch(
+        loadChartCustomizationData(customizationItem.id, datasetId, columnName),
+      );
+    }
+  }, [datasetId, columnName, dispatch, customizationItem.id]);
+
+  // Reload data when dependencies change
+  useEffect(() => {
+    if (datasetId && columnName) {
+      dispatch(
+        loadChartCustomizationData(customizationItem.id, datasetId, columnName),
+      );
+    }
+  }, [datasetId, columnName, dispatch, customizationItem.id, dependencies]);
+
+  // Reload data when dataset or column changes
+  useEffect(() => {
+    if (datasetId && columnName) {
+      dispatch(
+        loadChartCustomizationData(customizationItem.id, datasetId, columnName),
+      );
+    }
+  }, [datasetId, columnName, dispatch, customizationItem.id]);
+
+  // Update options when data changes
+  useEffect(() => {
+    setOptions(chartCustomizationData);
+  }, [chartCustomizationData]);
+
+  // Update loading state
+  useEffect(() => {
+    setLoading(chartCustomizationLoading);
+  }, [chartCustomizationLoading]);
+
+  // Initialize data mask if not exists
+  useEffect(() => {
+    if (!currentDataMask && datasetId && columnName) {
+      dispatch(
+        updateDataMask(customizationFilterId, {
+          filterState: {
+            value: selectedValues.length > 0 ? selectedValues : undefined,
+          },
+          extraFormData: {},
+          ownState: {},
+        }),
+      );
+    }
+  }, [
+    currentDataMask,
+    datasetId,
+    columnName,
+    selectedValues,
+    dispatch,
+    customizationFilterId,
+  ]);
 
   const handleValuesChange = (values: string[]) => {
     setSelectedValues(values || []);
+
+    dispatch(
+      updateDataMask(customizationFilterId, {
+        filterState: {
+          value: values && values.length > 0 ? values : undefined,
+        },
+        extraFormData: {},
+        ownState: {},
+      }),
+    );
 
     if (customizationItem) {
       const updatedCustomization = {
@@ -427,6 +478,27 @@ const GroupByFilterCard: FC<GroupByFilterCardProps> = ({
         ]),
       );
     }
+
+    if (customizationItem?.chartId && chart?.latestQueryFormData) {
+      const { latestQueryFormData } = chart;
+
+      const newFormData = {
+        ...latestQueryFormData,
+        groupby: values && values.length > 0 ? values : [],
+      };
+
+      dispatch(updateQueryFormData(newFormData, customizationItem.chartId));
+      dispatch(
+        postChartFormData(
+          newFormData,
+          false,
+          undefined,
+          customizationItem.chartId,
+          undefined,
+          undefined,
+        ),
+      );
+    }
   };
 
   const hideHoverCard = useCallback(() => {
@@ -434,35 +506,6 @@ const GroupByFilterCard: FC<GroupByFilterCardProps> = ({
   }, []);
 
   const displayTitle = columnDisplayName;
-
-  const prevDependenciesRef = useRef(dependencies);
-
-  useEffect(() => {
-    if (dataset && columnName) {
-      if (!isEqual(prevDependenciesRef.current, dependencies)) {
-        fetchFilterValues(dataset, columnName);
-      }
-      prevDependenciesRef.current = dependencies;
-    }
-  }, [dataset, columnName, fetchFilterValues, dependencies]);
-
-  useEffect(() => {
-    if (dataset && columnName) {
-      fetchFilterValues(dataset, columnName);
-    }
-  }, [dataset, columnName, fetchFilterValues]);
-
-  useEffect(() => {
-    if (!defaultValue) {
-      setSelectedValues([]);
-    } else if (Array.isArray(defaultValue)) {
-      setSelectedValues(defaultValue);
-    } else if (typeof defaultValue === 'string' && defaultValue.includes(',')) {
-      setSelectedValues(defaultValue.split(','));
-    } else {
-      setSelectedValues([defaultValue.toString()]);
-    }
-  }, [defaultValue]);
 
   return (
     <FilterValueContainer>

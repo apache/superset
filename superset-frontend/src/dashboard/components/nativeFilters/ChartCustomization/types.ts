@@ -24,8 +24,8 @@ export interface GroupByCustomization {
     value: number;
     table_name: string;
   };
-  description?: string;
   column: string | null;
+  description?: string;
   sortFilter?: boolean;
   sortAscending?: boolean;
   sortMetric?: string;
@@ -33,10 +33,14 @@ export interface GroupByCustomization {
   defaultValue?: string;
   isRequired?: boolean;
   selectFirst?: boolean;
-  aggregation?: string;
-  isGroupByValueRequired?: boolean;
-  defaultDataMask?: null;
+  defaultDataMask?: any;
   defaultValueQueriesData?: any;
+  aggregation?: string;
+}
+
+export interface FilterOption {
+  label: string;
+  value: string;
 }
 
 export interface ChartCustomizationItem {
