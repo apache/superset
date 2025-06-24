@@ -125,7 +125,7 @@ jobs:
         run: sudo chown -R $USER:$USER /tmp/.superset
       - name: Start hadoop and hive
         if: steps.check.outputs.python
-        run: docker compose -f scripts/databases/hive/compose.yml up -d
+        run: docker compose -f scripts/databases/hive/docker-compose.yml up -d
       - name: Setup Python
         uses: ./.github/actions/setup-backend/
         if: steps.check.outputs.python
