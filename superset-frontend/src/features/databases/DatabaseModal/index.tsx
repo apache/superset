@@ -1214,6 +1214,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
               {t('Back')}
             </StyledFooterButton>
             <StyledFooterButton
+              data-test="btn-submit-connection"
               key="submit"
               buttonStyle="primary"
               onClick={onSave}
