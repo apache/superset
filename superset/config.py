@@ -1866,7 +1866,7 @@ from redis import Redis
 #
 SESSION_SERVER_SIDE = True
 SESSION_TYPE = "redis"
-SESSION_REDIS = Redis(host="185.191.3.19", port=6379, db=0)
+SESSION_REDIS = Redis(host="0.0.0.0", port=6379, db=0)
 #
 # Other possible config options and backends:
 # # https://flask-session.readthedocs.io/en/latest/config.html
