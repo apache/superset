@@ -669,17 +669,17 @@ COMMON_BOOTSTRAP_OVERRIDES_FUNC: Callable[  # noqa: E731
 # This is merely a default
 EXTRA_CATEGORICAL_COLOR_SCHEMES: list[dict[str, Any]] = []
 
-# THEME is used for setting a custom theme to Superset, it follows the ant design
-# theme structure
+# THEME and THEME_DARK are used for setting a custom theme to Superset,
+# it follows the ant design theme structure.
 # You can use the AntDesign theme editor to generate a theme structure
 # https://ant.design/theme-editor
-# To expose a JSON theme editor modal that can be triggered from the navbar
-# set the `ENABLE_THEME_EDITOR` feature flag to True.
-#
-# To set up the dark theme:
-# THEME = {"algorithm": "dark"}
+# The config are set as a callable returning an antd-compatible theme object
+# so that themes can be hot-swapped by fetching a theme object definition remotely
 
-THEME: dict[str, Any] = {}
+# Whether to respect the user's OS dark mode setting. If True, THEME_DARK must be set
+THEME_RESPECT_USER_OS_DARK_SETTING = False
+THEME: dict[str, Any] = lambda: {}  # NOQA
+THEME_DARK: dict[str, Any] = lambda: {"algorithm": "dark"}  # NOQA
 
 # EXTRA_SEQUENTIAL_COLOR_SCHEMES is used for adding custom sequential color schemes
 # EXTRA_SEQUENTIAL_COLOR_SCHEMES =  [

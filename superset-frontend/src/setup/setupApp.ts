@@ -24,6 +24,7 @@ import {
   ClientErrorObject,
 } from '@superset-ui/core';
 import setupErrorMessages from 'src/setup/setupErrorMessages';
+import parseCookie from 'src/utils/parseCookie';
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 declare global {
@@ -57,6 +58,28 @@ function toggleCheckbox(apiUrlPrefix: string, selector: string) {
         }
       }),
     );
+}
+
+function syncBrowserThemePreferenceWithCookie() {
+  try {
+    const getCurrentPreference = () =>
+      window.matchMedia('(prefers-color-scheme: dark)').matches
+        ? 'dark'
+        : 'light';
+
+    const setThemeCookie = theme => {
+      document.cookie = `superset_theme=${theme}; path=/; SameSite=Lax; secure`;
+    };
+
+    const currentPreference = getCurrentPreference();
+    const cookies = parseCookie();
+
+    if (cookies.superset_theme !== currentPreference) {
+      setThemeCookie(currentPreference);
+    }
+  } catch (err) {
+    console.warn('Failed to sync theme preference', err);
+  }
 }
 
 export default function setupApp() {
@@ -93,6 +116,9 @@ export default function setupApp() {
   // this allows for the server side generated menus to function
   window.$ = $;
   window.jQuery = $;
+
+  // set up the OS-level preference around light/dark mode
+  syncBrowserThemePreferenceWithCookie();
 
   // set up app wide custom error messages
   setupErrorMessages();
