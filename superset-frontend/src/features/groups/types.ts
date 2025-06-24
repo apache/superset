@@ -16,6 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { GroupObject, Role } from 'src/pages/GroupsList';
+
 export interface BaseGroupListModalProps {
   show: boolean;
   onHide: () => void;
@@ -28,4 +30,9 @@ export interface FormValues {
   description?: string;
   roles: number[];
   users: { value: number; label: string }[];
+}
+export interface GroupModalProps extends BaseGroupListModalProps {
+  roles: Role[];
+  isEditMode?: boolean;
+  group?: GroupObject;
 }

@@ -21,7 +21,7 @@ from sqlalchemy import DateTime, inspect
 
 import superset.utils.database as database_utils
 from superset import db
-from superset.sql_parse import Table
+from superset.sql.parse import Table
 
 from .helpers import get_table_connector_registry, read_example_data
 

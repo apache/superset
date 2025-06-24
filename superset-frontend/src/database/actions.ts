@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { makeApi } from '@superset-ui/core';
+import { SupersetClient, makeApi } from '@superset-ui/core';
 import { ThunkDispatch } from 'redux-thunk';
 import { AnyAction } from 'redux';
 import { QueryExecutePayload, QueryExecuteResponse } from './types';
@@ -29,6 +29,13 @@ export const executeQueryApi = makeApi<
   method: 'POST',
   endpoint: '/api/v1/sqllab/execute',
 });
+
+export function setQuery(query: string) {
+  return {
+    type: 'SET_QUERY',
+    payload: query,
+  };
+}
 
 export function setQueryIsLoading(isLoading: boolean) {
   return {
@@ -64,5 +71,18 @@ export function executeQuery(payload: QueryExecutePayload) {
     } finally {
       dispatch(setQueryIsLoading(false));
     }
+  };
+}
+
+export function formatQuery(sql: string) {
+  return function (dispatch: ThunkDispatch<any, undefined, AnyAction>) {
+    return SupersetClient.post({
+      endpoint: `/api/v1/sqllab/format_sql/`,
+      body: JSON.stringify({ sql }),
+      headers: { 'Content-Type': 'application/json' },
+    }).then(response => {
+      dispatch(setQuery(response.json.result));
+      return response;
+    });
   };
 }

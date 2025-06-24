@@ -68,7 +68,7 @@ from superset.security.guest_token import (
     GuestTokenUser,
     GuestUser,
 )
-from superset.sql_parse import extract_tables_from_jinja_sql, Table
+from superset.sql.parse import extract_tables_from_jinja_sql, Table
 from superset.tasks.utils import get_current_user
 from superset.utils import json
 from superset.utils.core import (
@@ -145,6 +145,7 @@ class SupersetUserApi(UserApi):
     search_columns = [
         "id",
         "roles",
+        "groups",
         "first_name",
         "last_name",
         "username",
@@ -274,13 +275,13 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         "UserGroupModelView",
         "Row Level Security",
         "Row Level Security Filters",
-        "RowLevelSecurityFiltersModelView",
         "Security",
         "SQL Lab",
         "User Registrations",
         "User's Statistics",
         # Guarding all AB_ADD_SECURITY_API = True REST APIs
         "RoleRestAPI",
+        "Group",
         "Role",
         "Permission",
         "PermissionViewMenu",
@@ -2785,12 +2786,19 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
     # temporal change to remove the roles view from the security menu,
     # after migrating all views to frontend, we will set FAB_ADD_SECURITY_VIEWS = False
     def register_views(self) -> None:
+        from superset.views.auth import SupersetAuthView, SupersetRegisterUserView
+
+        self.auth_view = self.appbuilder.add_view_no_menu(SupersetAuthView)
+        self.registeruser_view = self.appbuilder.add_view_no_menu(
+            SupersetRegisterUserView
+        )
+
         super().register_views()
 
         for view in list(self.appbuilder.baseviews):
             if isinstance(view, self.rolemodelview.__class__) and getattr(
                 view, "route_base", None
-            ) in ["/roles", "/users"]:
+            ) in ["/roles", "/users", "/groups"]:
                 self.appbuilder.baseviews.remove(view)
 
         security_menu = next(
@@ -2798,5 +2806,5 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         )
         if security_menu:
             for item in list(security_menu.childs):
-                if item.name in ["List Roles", "List Users"]:
+                if item.name in ["List Roles", "List Users", "List Groups"]:
                     security_menu.childs.remove(item)

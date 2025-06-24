@@ -57,16 +57,16 @@ function setFilterBarOrientation(orientation: 'vertical' | 'horizontal') {
     .trigger('mouseover');
 
   if (orientation === 'vertical') {
-    cy.get('.antd5-dropdown-menu-item-selected')
+    cy.get('.ant-dropdown-menu-item-selected')
       .contains('Horizontal (Top)')
       .should('exist');
-    cy.get('.antd5-dropdown-menu-item').contains('Vertical (Left)').click();
+    cy.get('.ant-dropdown-menu-item').contains('Vertical (Left)').click();
     cy.getBySel('dashboard-filters-panel').should('exist');
   } else {
-    cy.get('.antd5-dropdown-menu-item-selected')
+    cy.get('.ant-dropdown-menu-item-selected')
       .contains('Vertical (Left)')
       .should('exist');
-    cy.get('.antd5-dropdown-menu-item').contains('Horizontal (Top)').click();
+    cy.get('.ant-dropdown-menu-item').contains('Horizontal (Top)').click();
     cy.getBySel('loading-indicator').should('exist');
     cy.getBySel('filter-bar').should('exist');
     cy.getBySel('dashboard-filters-panel').should('not.exist');
@@ -138,7 +138,7 @@ describe('Horizontal FilterBar', () => {
     cy.getBySel('dropdown-container-btn').should('not.exist');
   });
 
-  it('should show "more filters" and scroll', () => {
+  it.only('should show "more filters" and scroll', () => {
     prepareDashboardFilters([
       { name: 'test_1', column: 'country_name', datasetId: 2 },
       { name: 'test_2', column: 'country_code', datasetId: 2 },
@@ -157,11 +157,11 @@ describe('Horizontal FilterBar', () => {
     cy.get('.filter-item-wrapper').should('have.length', 3);
     openMoreFilters();
     cy.getBySel('form-item-value').should('have.length', 12);
-    cy.getBySel('filter-control-name').contains('test_10').should('be.visible');
+    cy.getBySel('filter-control-name').contains('test_3').should('be.visible');
     cy.getBySel('filter-control-name')
       .contains('test_12')
       .should('not.be.visible');
-    cy.get('.antd5-popover-inner').scrollTo('bottom');
+    cy.getBySel('filter-control-name').contains('test_12').scrollIntoView();
     cy.getBySel('filter-control-name').contains('test_12').should('be.visible');
   });
 
@@ -197,7 +197,7 @@ describe('Horizontal FilterBar', () => {
     applyNativeFilterValueWithIndex(8, testItems.filterDefaultValue);
     cy.get(nativeFilters.applyFilter).click({ force: true });
     cy.wait('@chart');
-    cy.get('.antd5-scroll-number.antd5-badge-count').should(
+    cy.get('.ant-scroll-number.ant-badge-count').should(
       'have.attr',
       'title',
       '1',

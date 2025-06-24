@@ -24,7 +24,7 @@ from sqlalchemy.sql import select
 
 from superset.db_engine_specs.hive import HiveEngineSpec, upload_to_s3
 from superset.exceptions import SupersetException
-from superset.sql_parse import Table
+from superset.sql.parse import Table
 from tests.integration_tests.base_tests import SupersetTestCase
 from tests.integration_tests.test_app import app
 
