@@ -105,8 +105,8 @@ const CssTemplateModal: FunctionComponent<CssTemplateModalProps> = ({
 
   // Functions
   const hide = () => {
-    setIsHidden(true);
     onHide();
+    setCurrentCssTemplate(null);
   };
 
   const onSave = () => {
@@ -202,7 +202,7 @@ const CssTemplateModal: FunctionComponent<CssTemplateModalProps> = ({
         css: '',
       });
     }
-  }, [cssTemplate]);
+  }, [cssTemplate, show]);
 
   useEffect(() => {
     if (resource) {
