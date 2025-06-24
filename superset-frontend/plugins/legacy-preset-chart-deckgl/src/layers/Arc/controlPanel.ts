@@ -22,11 +22,14 @@ import timeGrainSqlaAnimationOverrides, {
   columnChoices,
   PRIMARY_COLOR,
 } from '../../utilities/controls';
-import { formatSelectOptions } from '../../utilities/utils';
+import {
+  COLOR_SCHEME_TYPES,
+  formatSelectOptions,
+  isColorSchemeTypeVisible,
+} from '../../utilities/utils';
 import {
   filterNulls,
   autozoom,
-  dimension,
   jsColumns,
   jsDataMutator,
   jsTooltip,
@@ -35,6 +38,10 @@ import {
   legendPosition,
   viewport,
   mapboxStyle,
+  deckGLColorSchemeTypeSelect,
+  deckGLCategoricalColor,
+  deckGLColorSchemeSelect,
+  deckGLGradientBreakpointsSelect,
 } from '../../utilities/Shared_DeckGL';
 
 const config: ControlPanelConfig = {
@@ -80,6 +87,7 @@ const config: ControlPanelConfig = {
     {
       label: t('Arc'),
       controlSetRows: [
+        [deckGLColorSchemeTypeSelect],
         [
           {
             name: 'color_picker',
@@ -89,6 +97,11 @@ const config: ControlPanelConfig = {
               type: 'ColorPickerControl',
               default: PRIMARY_COLOR,
               renderTrigger: true,
+              visibility: ({ controls }) =>
+                isColorSchemeTypeVisible(
+                  controls,
+                  COLOR_SCHEME_TYPES.fixed_color,
+                ),
             },
           },
           {
@@ -99,22 +112,17 @@ const config: ControlPanelConfig = {
               type: 'ColorPickerControl',
               default: PRIMARY_COLOR,
               renderTrigger: true,
+              visibility: ({ controls }) =>
+                isColorSchemeTypeVisible(
+                  controls,
+                  COLOR_SCHEME_TYPES.fixed_color,
+                ),
             },
           },
         ],
-        [
-          {
-            name: dimension.name,
-            config: {
-              ...dimension.config,
-              label: t('Categorical Color'),
-              description: t(
-                'Pick a dimension from which categorical colors are defined',
-              ),
-            },
-          },
-        ],
-        ['color_scheme'],
+        [deckGLCategoricalColor],
+        [deckGLColorSchemeSelect],
+        [deckGLGradientBreakpointsSelect],
         [
           {
             name: 'stroke_width',

@@ -16,8 +16,48 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { ControlStateMapping } from '@superset-ui/chart-controls';
+import { QueryFormData } from '@superset-ui/core';
+
+export const COLOR_SCHEME_TYPES = {
+  fixed_color: 'fixed_color',
+  categorical_palette: 'categorical_palette',
+  gradient_breakpoints: 'gradient_breakpoints',
+} as const;
+
+export type ColorSchemeType =
+  (typeof COLOR_SCHEME_TYPES)[keyof typeof COLOR_SCHEME_TYPES];
+
 /* eslint camelcase: 0 */
 
 export function formatSelectOptions(options: (string | number)[]) {
   return options.map(opt => [opt, opt.toString()]);
 }
+
+export const getSelectedColorSchemeType = (
+  formData: QueryFormData,
+): ColorSchemeType => {
+  const { color_scheme_type } = formData;
+  return color_scheme_type;
+};
+
+export const isColorSchemeTypeVisible = (
+  controls: ControlStateMapping,
+  colorSchemeType: ColorSchemeType,
+) => controls.color_scheme_type.value === colorSchemeType;
+
+export const getColorBySelectedColorSchemeType = (
+  colorSchemeType: ColorSchemeType,
+  data: any,
+) => {
+  switch (colorSchemeType) {
+    case COLOR_SCHEME_TYPES.fixed_color:
+      return '#000000';
+    case COLOR_SCHEME_TYPES.categorical_palette:
+      return data.color;
+    case COLOR_SCHEME_TYPES.gradient_breakpoints:
+      return ['#000000', '#ffffff'];
+    default:
+      return '#000000';
+  }
+};

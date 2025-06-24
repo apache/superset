@@ -25,9 +25,17 @@ import {
   t,
   validateNonEmpty,
   validateMapboxStylesUrl,
+  getCategoricalSchemeRegistry,
 } from '@superset-ui/core';
-import { D3_FORMAT_OPTIONS, sharedControls } from '@superset-ui/chart-controls';
+import {
+  CustomControlItem,
+  D3_FORMAT_OPTIONS,
+  sharedControls,
+} from '@superset-ui/chart-controls';
 import { columnChoices, PRIMARY_COLOR } from './controls';
+import { COLOR_SCHEME_TYPES, isColorSchemeTypeVisible } from './utils';
+
+const categoricalSchemeRegistry = getCategoricalSchemeRegistry();
 
 const DEFAULT_VIEWPORT = {
   longitude: 6.85236157047845,
@@ -51,8 +59,8 @@ const jsFunctionInfo = (
 );
 
 function jsFunctionControl(
-  label,
-  description,
+  label: string,
+  description: string,
   extraDescr = null,
   height = 100,
   defaultText = '',
@@ -196,7 +204,7 @@ export const lineColumn = {
     label: t('Lines column'),
     default: null,
     description: t('The database columns that contains lines information'),
-    mapStateToProps: state => ({
+    mapStateToProps: (state: any) => ({
       choices: columnChoices(state.datasource),
     }),
     validators: [validateNonEmpty],
@@ -307,7 +315,7 @@ export const spatial = {
     label: t('Longitude & Latitude'),
     validators: [validateNonEmpty],
     description: t('Point to your spatial columns'),
-    mapStateToProps: state => ({
+    mapStateToProps: (state: any) => ({
       choices: columnChoices(state.datasource),
     }),
   },
@@ -320,7 +328,7 @@ export const pointRadiusFixed = {
     label: t('Point Size'),
     default: { type: 'fix', value: 1000 },
     description: t('Fixed point radius'),
-    mapStateToProps: state => ({
+    mapStateToProps: (state: any) => ({
       datasource: state.datasource,
     }),
   },
@@ -395,8 +403,92 @@ export const geojsonColumn = {
     label: t('GeoJson Column'),
     validators: [validateNonEmpty],
     description: t('Select the geojson column'),
-    mapStateToProps: state => ({
+    mapStateToProps: (state: any) => ({
       choices: columnChoices(state.datasource),
     }),
   },
 };
+
+export const deckGLColorSchemeTypeSelect = {
+  name: 'color_scheme_type',
+  config: {
+    type: 'SelectControl',
+    label: t('Color Scheme Type'),
+    clearable: false,
+    validators: [],
+    choices: [
+      [COLOR_SCHEME_TYPES.fixed_color, t('Fixed color')],
+      [COLOR_SCHEME_TYPES.categorical_palette, t('Categorical palette')],
+      [COLOR_SCHEME_TYPES.gradient_breakpoints, t('Gradient (breakpoints)')],
+    ],
+    default: COLOR_SCHEME_TYPES.fixed_color,
+  },
+};
+
+export const deckGLFixedColor: CustomControlItem = {
+  name: 'color_picker',
+  config: {
+    type: 'ColorPickerControl',
+    label: t('Fixed Color'),
+    default: PRIMARY_COLOR,
+    description: t('Select the fixed color'),
+    visibility: ({ controls }) =>
+      isColorSchemeTypeVisible(controls, COLOR_SCHEME_TYPES.fixed_color),
+  },
+};
+
+export const deckGLCategoricalColor: CustomControlItem = {
+  name: dimension.name,
+  config: {
+    ...dimension.config,
+    label: t('Categorical Color'),
+    description: t(
+      'Pick a dimension from which categorical colors are defined',
+    ),
+    visibility: ({ controls }) =>
+      isColorSchemeTypeVisible(
+        controls,
+        COLOR_SCHEME_TYPES.categorical_palette,
+      ),
+  },
+};
+
+export const deckGLColorSchemeSelect: CustomControlItem = {
+  name: 'color_scheme',
+  config: {
+    type: 'ColorSchemeControl',
+    label: t('Color Scheme'),
+    default: categoricalSchemeRegistry.getDefaultKey(),
+    renderTrigger: true,
+    choices: () => categoricalSchemeRegistry.keys().map(s => [s, s]),
+    description: t('The color scheme for rendering chart'),
+    schemes: () => categoricalSchemeRegistry.getMap(),
+    visibility: ({ controls }) =>
+      isColorSchemeTypeVisible(
+        controls,
+        COLOR_SCHEME_TYPES.categorical_palette,
+      ),
+  },
+};
+
+export const deckGLGradientBreakpointsSelect: CustomControlItem = {
+  name: 'gradient_breakpoints',
+  config: {
+    label: t('Colors for gradient'),
+    type: 'GradientBreakpointsControl',
+    description: t('Enter gradient breakpoints'),
+    visibility: ({ controls }) =>
+      isColorSchemeTypeVisible(
+        controls,
+        COLOR_SCHEME_TYPES.gradient_breakpoints,
+      ),
+  },
+};
+
+export const deckGLColorSchemeControls = [
+  [deckGLColorSchemeTypeSelect],
+  [deckGLFixedColor],
+  [deckGLCategoricalColor],
+  [deckGLColorSchemeSelect],
+  [deckGLGradientBreakpointsSelect],
+];

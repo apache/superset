@@ -23,6 +23,11 @@ import {
   QueryFormData,
   t,
 } from '@superset-ui/core';
+import {
+  COLOR_SCHEME_TYPES,
+  getColorBySelectedColorSchemeType,
+  getSelectedColorSchemeType,
+} from '../../utilities/utils';
 import { commonLayerProps } from '../common';
 import { createCategoricalDeckGLComponent } from '../../factory';
 import TooltipRow from '../../TooltipRow';
@@ -70,12 +75,24 @@ export function getLayer(
   const sc = fd.color_picker;
   const tc = fd.target_color_picker;
 
+  const colorSchemeType = getSelectedColorSchemeType(fd);
+
   return new ArcLayer({
     data,
-    getSourceColor: (d: any) =>
-      d.sourceColor || d.color || [sc.r, sc.g, sc.b, 255 * sc.a],
-    getTargetColor: (d: any) =>
-      d.targetColor || d.color || [tc.r, tc.g, tc.b, 255 * tc.a],
+    getSourceColor: (d: any) => {
+      if (colorSchemeType === COLOR_SCHEME_TYPES.fixed_color) {
+        return [sc.r, sc.g, sc.b, 255 * sc.a];
+      }
+
+      return getColorBySelectedColorSchemeType(colorSchemeType, d);
+    },
+    getTargetColor: (d: any) => {
+      if (colorSchemeType === COLOR_SCHEME_TYPES.fixed_color) {
+        return [tc.r, tc.g, tc.b, 255 * tc.a];
+      }
+
+      return getColorBySelectedColorSchemeType(colorSchemeType, d);
+    },
     id: `path-layer-${fd.slice_id}` as const,
     getWidth: fd.stroke_width ? fd.stroke_width : 3,
     ...commonLayerProps(fd, setTooltip, setTooltipContent(fd)),

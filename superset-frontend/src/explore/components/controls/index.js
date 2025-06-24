@@ -55,6 +55,7 @@ import LayerConfigsControl from './LayerConfigsControl/LayerConfigsControl';
 import MapViewControl from './MapViewControl/MapViewControl';
 import ZoomConfigControl from './ZoomConfigControl/ZoomConfigControl';
 import NumberControl from './NumberControl';
+import GradientBreakpointsControl from './GradientBreakpointsControl';
 
 const extensionsRegistry = getExtensionsRegistry();
 const DateFilterControlExtension = extensionsRegistry.get(
@@ -78,6 +79,7 @@ const controlMap = {
   DndFilterSelect,
   DndMetricSelect,
   FixedOrMetricControl,
+  GradientBreakpointsControl,
   HiddenControl,
   LayerConfigsControl,
   MapViewControl,
