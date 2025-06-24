@@ -337,11 +337,11 @@ export const StyledInputContainer = styled.div`
     }
 
     .filters {
-      margin: ${theme.gridUnit * 3}px 0;
+      margin: ${theme.sizeUnit * 3}px 0;
 
       .filters-container {
         display: flex;
-        margin: ${theme.gridUnit * 2}px 0;
+        margin: ${theme.sizeUnit * 2}px 0;
       }
 
       .filters-dash-container {
@@ -349,7 +349,7 @@ export const StyledInputContainer = styled.div`
         flex-direction: column;
         max-width: 174px;
         flex: 1;
-        margin-right: ${theme.gridUnit * 4}px;
+        margin-right: ${theme.sizeUnit * 4}px;
 
         .control-label {
           flex: 1;
@@ -368,11 +368,11 @@ export const StyledInputContainer = styled.div`
 
       .filters-delete {
         display: flex;
-        margin-top: ${theme.gridUnit * 6}px;
+        margin-top: ${theme.sizeUnit * 6}px;
       }
 
       .filters-trashcan {
-        width: ${theme.gridUnit * 10}px;
+        width: ${theme.sizeUnit * 10}px;
         display: 'flex';
         color: ${theme.colors.grayscale.light1};
       }
