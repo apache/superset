@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 import { render, screen, userEvent } from '@superset-ui/core/spec';
 import { UnsavedChangesModal } from '.';
 

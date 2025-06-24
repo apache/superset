@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 import { ReactElement } from 'react';
 import { UnsavedChangesModal, type UnsavedChangesModalProps } from '.';
 
