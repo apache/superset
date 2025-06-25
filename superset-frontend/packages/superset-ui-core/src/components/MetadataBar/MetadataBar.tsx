@@ -19,7 +19,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useResizeDetector } from 'react-resize-detector';
 import { uniqWith } from 'lodash';
-import { styled, useTheme } from '@superset-ui/core';
+import { styled } from '@superset-ui/core';
 import { Tooltip } from '../Tooltip';
 import { TooltipPlacement } from '../Tooltip/types';
 import { ContentType } from './ContentType';
@@ -80,7 +80,7 @@ const StyledItem = styled.div<{
     padding-right: ${last ? 0 : SPACE_BETWEEN_ITEMS}px;
     cursor: ${onClick ? 'pointer' : 'default'};
     & .metadata-icon {
-      color: ${onClick && collapsed ? theme.colorPrimary : theme.colorTextBase};
+      color: ${onClick && collapsed ? theme.colorPrimary : theme.colorTextTertiary};
       padding-right: ${collapsed ? 0 : ICON_PADDING}px;
       & .anticon {
         line-height: 0;
@@ -132,8 +132,6 @@ const Item = ({
     );
   }, [barWidth, setIsTruncated, contentType]);
 
-  const theme = useTheme();
-
   const content = (
     <StyledItem
       collapsed={collapsed}
@@ -141,11 +139,7 @@ const Item = ({
       onClick={onClick ? () => onClick(type) : undefined}
       role={onClick ? 'button' : undefined}
     >
-      <Icon
-        iconSize="l"
-        iconColor={theme.colorTextTertiary}
-        className="metadata-icon"
-      />
+      <Icon iconSize="l" className="metadata-icon" />
       {!collapsed && (
         <span ref={ref} className="metadata-text">
           {title}
