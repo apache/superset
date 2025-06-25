@@ -100,6 +100,22 @@ jest.mock('src/dashboard/components/FiltersBadge', () => ({
   ),
 }));
 
+const MOCKED_CHART_ID = 312;
+
+const initialState = {
+  charts: {
+    [MOCKED_CHART_ID]: {
+      id: MOCKED_CHART_ID,
+      chartStatus: 'rendered',
+      queriesResponse: [{ sql_rowcount: 0 }],
+    },
+  },
+  dashboardInfo: {
+    crossFiltersEnabled: false,
+  },
+  dataMask: {},
+};
+
 const createProps = (overrides: any = {}) => ({
   filters: {}, // is in typing but not being used
   editMode: false,
@@ -113,8 +129,8 @@ const createProps = (overrides: any = {}) => ({
   supersetCanExplore: true,
   supersetCanCSV: true,
   slice: {
-    slice_id: 312,
-    slice_url: '/explore/?form_data=%7B%22slice_id%22%3A%20312%7D',
+    slice_id: MOCKED_CHART_ID,
+    slice_url: `/explore/?form_data=%7B%22slice_id%22%3A%20${MOCKED_CHART_ID}%7D`,
     slice_name: 'Vaccine Candidates per Phase',
     form_data: {
       adhoc_filters: [],
@@ -131,7 +147,7 @@ const createProps = (overrides: any = {}) => ({
       viz_type: VizType.Bar,
       x_ticks_layout: 'auto',
       y_axis_format: 'SMART_NUMBER',
-      slice_id: 312,
+      slice_id: MOCKED_CHART_ID,
     },
     viz_type: VizType.Bar,
     datasource: '58__table',
@@ -163,7 +179,11 @@ const createProps = (overrides: any = {}) => ({
 
 test('Should render', () => {
   const props = createProps();
-  render(<SliceHeader {...props} />, { useRedux: true, useRouter: true });
+  render(<SliceHeader {...props} />, {
+    useRedux: true,
+    useRouter: true,
+    initialState,
+  });
   expect(screen.getByTestId('slice-header')).toBeInTheDocument();
 });
 
@@ -203,7 +223,11 @@ test('Should render - default props', () => {
   // @ts-ignore
   delete props.supersetCanCSV;
 
-  render(<SliceHeader {...props} />, { useRedux: true, useRouter: true });
+  render(<SliceHeader {...props} />, {
+    useRedux: true,
+    useRouter: true,
+    initialState,
+  });
   expect(screen.getByTestId('slice-header')).toBeInTheDocument();
 });
 
@@ -243,7 +267,11 @@ test('Should render default props and "call" actions', () => {
   // @ts-ignore
   delete props.supersetCanCSV;
 
-  render(<SliceHeader {...props} />, { useRedux: true, useRouter: true });
+  render(<SliceHeader {...props} />, {
+    useRedux: true,
+    useRouter: true,
+    initialState,
+  });
   userEvent.click(screen.getByTestId('toggleExpandSlice'));
   userEvent.click(screen.getByTestId('forceRefresh'));
   userEvent.click(screen.getByTestId('exploreChart'));
@@ -256,7 +284,11 @@ test('Should render default props and "call" actions', () => {
 
 test('Should render title', () => {
   const props = createProps();
-  render(<SliceHeader {...props} />, { useRedux: true, useRouter: true });
+  render(<SliceHeader {...props} />, {
+    useRedux: true,
+    useRouter: true,
+    initialState,
+  });
   expect(screen.getByText('Vaccine Candidates per Phase')).toBeInTheDocument();
 });
 
@@ -269,7 +301,7 @@ test('Should render click to edit prompt and run onExploreChart on click', async
     <Router history={history}>
       <SliceHeader {...props} />
     </Router>,
-    { useRedux: true },
+    { useRedux: true, initialState },
   );
   userEvent.hover(screen.getByText('Vaccine Candidates per Phase'));
   expect(
@@ -286,7 +318,11 @@ test('Should render click to edit prompt and run onExploreChart on click', async
 test('Display cmd button in tooltip if running on MacOS', async () => {
   jest.spyOn(window.navigator, 'appVersion', 'get').mockReturnValue('Mac');
   const props = createProps();
-  render(<SliceHeader {...props} />, { useRedux: true, useRouter: true });
+  render(<SliceHeader {...props} />, {
+    useRedux: true,
+    useRouter: true,
+    initialState,
+  });
   userEvent.hover(screen.getByText('Vaccine Candidates per Phase'));
   expect(
     await screen.findByText('Click to edit Vaccine Candidates per Phase.'),
@@ -305,7 +341,7 @@ test('Should not render click to edit prompt and run onExploreChart on click if 
     <Router history={history}>
       <SliceHeader {...props} />
     </Router>,
-    { useRedux: true },
+    { useRedux: true, initialState },
   );
   userEvent.hover(screen.getByText('Vaccine Candidates per Phase'));
   expect(
@@ -327,7 +363,7 @@ test('Should not render click to edit prompt and run onExploreChart on click if 
     <Router history={history}>
       <SliceHeader {...props} />
     </Router>,
-    { useRedux: true },
+    { useRedux: true, initialState },
   );
   userEvent.hover(screen.getByText('Vaccine Candidates per Phase'));
   expect(
@@ -342,7 +378,11 @@ test('Should not render click to edit prompt and run onExploreChart on click if 
 
 test('Should render "annotationsLoading"', () => {
   const props = createProps();
-  render(<SliceHeader {...props} />, { useRedux: true, useRouter: true });
+  render(<SliceHeader {...props} />, {
+    useRedux: true,
+    useRouter: true,
+    initialState,
+  });
   expect(
     screen.getByRole('img', {
       name: 'Annotation layers are still loading.',
@@ -352,7 +392,11 @@ test('Should render "annotationsLoading"', () => {
 
 test('Should render "annotationsError"', () => {
   const props = createProps();
-  render(<SliceHeader {...props} />, { useRedux: true, useRouter: true });
+  render(<SliceHeader {...props} />, {
+    useRedux: true,
+    useRouter: true,
+    initialState,
+  });
   expect(
     screen.getByRole('img', {
       name: 'One or more annotation layers failed loading.',
@@ -364,7 +408,11 @@ test('Should not render "annotationsError" and "annotationsLoading"', () => {
   const props = createProps();
   props.annotationQuery = {};
   props.annotationError = {};
-  render(<SliceHeader {...props} />, { useRedux: true, useRouter: true });
+  render(<SliceHeader {...props} />, {
+    useRedux: true,
+    useRouter: true,
+    initialState,
+  });
   expect(
     screen.queryByRole('img', {
       name: 'One or more annotation layers failed loading.',
@@ -379,16 +427,24 @@ test('Should not render "annotationsError" and "annotationsLoading"', () => {
 
 test('Correct props to "FiltersBadge"', () => {
   const props = createProps();
-  render(<SliceHeader {...props} />, { useRedux: true, useRouter: true });
+  render(<SliceHeader {...props} />, {
+    useRedux: true,
+    useRouter: true,
+    initialState,
+  });
   expect(screen.getByTestId('FiltersBadge')).toHaveAttribute(
     'data-chart-id',
-    '312',
+    `${MOCKED_CHART_ID}`,
   );
 });
 
 test('Correct props to "SliceHeaderControls"', () => {
   const props = createProps();
-  render(<SliceHeader {...props} />, { useRedux: true, useRouter: true });
+  render(<SliceHeader {...props} />, {
+    useRedux: true,
+    useRouter: true,
+    initialState,
+  });
   expect(screen.getByTestId('SliceHeaderControls')).toHaveAttribute(
     'data-cached-dttm',
     '',
@@ -441,7 +497,11 @@ test('Correct props to "SliceHeaderControls"', () => {
 
 test('Correct actions to "SliceHeaderControls"', () => {
   const props = createProps();
-  render(<SliceHeader {...props} />, { useRedux: true, useRouter: true });
+  render(<SliceHeader {...props} />, {
+    useRedux: true,
+    useRouter: true,
+    initialState,
+  });
 
   expect(props.toggleExpandSlice).toHaveBeenCalledTimes(0);
   userEvent.click(screen.getByTestId('toggleExpandSlice'));
@@ -479,7 +539,48 @@ test('Add extension to SliceHeader', () => {
   ));
 
   const props = createProps();
-  render(<SliceHeader {...props} />, { useRedux: true, useRouter: true });
+  render(<SliceHeader {...props} />, {
+    useRedux: true,
+    useRouter: true,
+    initialState,
+  });
 
   expect(screen.getByText('This is an extension')).toBeInTheDocument();
+});
+
+test('Should render RowCountLabel when row limit is hit, and hide it otherwise', () => {
+  const props = createProps({
+    formData: {
+      ...createProps().formData,
+      row_limit: 10,
+    },
+  });
+  const rowCountState = {
+    ...initialState,
+    charts: {
+      [props.slice.slice_id]: {
+        queriesResponse: [
+          {
+            sql_rowcount: 10,
+          },
+        ],
+      },
+    },
+  };
+
+  const { rerender } = render(<SliceHeader {...props} />, {
+    useRedux: true,
+    useRouter: true,
+    initialState: rowCountState,
+  });
+
+  expect(screen.getByTestId('warning')).toBeInTheDocument();
+  rerender(
+    <SliceHeader
+      {...props}
+      formData={{ ...props.formData, row_limit: 1000 }}
+    />,
+  );
+
+  expect(screen.queryByTestId('warning')).not.toBeInTheDocument();
 });

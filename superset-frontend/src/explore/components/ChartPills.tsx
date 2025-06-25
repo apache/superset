@@ -23,7 +23,7 @@ import {
   type LabelType,
   Timer,
 } from '@superset-ui/core/components';
-import RowCountLabel from './RowCountLabel';
+import RowCountLabel from 'src/components/RowCountLabel';
 
 const CHART_STATUS_MAP = {
   failed: 'danger' as LabelType,
@@ -54,6 +54,7 @@ export const ChartPills = forwardRef(
   ) => {
     const isLoading = chartStatus === 'loading';
     const firstQueryResponse = queriesResponse?.[0];
+
     return (
       <div ref={ref}>
         <div

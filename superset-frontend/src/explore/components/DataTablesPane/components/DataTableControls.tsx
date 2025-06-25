@@ -25,7 +25,7 @@ import {
 } from 'src/explore/components/DataTableControl';
 import { applyFormattingToTabularData } from 'src/utils/common';
 import { getTimeColumns } from 'src/explore/components/DataTableControl/utils';
-import RowCountLabel from 'src/explore/components/RowCountLabel';
+import RowCountLabel from 'src/components/RowCountLabel';
 import { TableControlsProps } from '../types';
 
 export const TableControlsWrapper = styled.div`

@@ -26,7 +26,7 @@ import {
   t,
   useTheme,
 } from '@superset-ui/core';
-import RowCountLabel from 'src/explore/components/RowCountLabel';
+import RowCountLabel from 'src/components/RowCountLabel';
 import { Icons } from '@superset-ui/core/components/Icons';
 
 export type TableControlsProps = {
