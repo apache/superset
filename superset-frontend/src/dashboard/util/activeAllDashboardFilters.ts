@@ -16,12 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import {
-  DataMaskStateWithId,
-  PartialFilters,
-  JsonObject,
-  DataMaskWithId,
-} from '@superset-ui/core';
+import { DataMaskStateWithId, PartialFilters } from '@superset-ui/core';
 import { ActiveFilters, ChartConfiguration } from '../types';
 
 export const getRelevantDataMask = (
@@ -61,8 +56,31 @@ export const getAllActiveFilters = ({
 }): ActiveFilters => {
   const activeFilters: ActiveFilters = {};
 
+  const hasLayerSelectionsInAnyFilter = Object.values(dataMask).some(
+    ({ id: filterId }) => {
+      const selectedLayers = (nativeFilters?.[filterId]?.scope as any)
+        ?.selectedLayers;
+      return selectedLayers && selectedLayers.length > 0;
+    },
+  );
+
+  let masterSelectedLayers: string[] = [];
+  let masterExcluded: number[] = [];
+  if (hasLayerSelectionsInAnyFilter) {
+    Object.values(dataMask).forEach(({ id: filterId }) => {
+      const selectedLayers = (nativeFilters?.[filterId]?.scope as any)
+        ?.selectedLayers;
+      const excluded =
+        (nativeFilters?.[filterId]?.scope as any)?.excluded || [];
+      if (selectedLayers && selectedLayers.length > 0) {
+        masterSelectedLayers = selectedLayers;
+        masterExcluded = excluded;
+      }
+    });
+  }
+
   Object.values(dataMask).forEach(({ id: filterId, extraFormData = {} }) => {
-    const scope =
+    let scope =
       nativeFilters?.[filterId]?.chartsInScope ??
       chartConfiguration?.[parseInt(filterId, 10)]?.crossFilters
         ?.chartsInScope ??
@@ -71,12 +89,48 @@ export const getAllActiveFilters = ({
     const filterType = nativeFilters?.[filterId]?.filterType;
     const targets = nativeFilters?.[filterId]?.targets;
 
-    const selectedLayers = (nativeFilters?.[filterId]?.scope as any)
+    let selectedLayers = (nativeFilters?.[filterId]?.scope as any)
       ?.selectedLayers;
+    let excludedCharts =
+      (nativeFilters?.[filterId]?.scope as any)?.excluded || [];
+
+    if (hasLayerSelectionsInAnyFilter) {
+      selectedLayers = masterSelectedLayers;
+      excludedCharts = masterExcluded;
+    }
 
     let layerScope;
     if (selectedLayers && selectedLayers.length > 0) {
       layerScope = extractLayerIndicesFromKeys(selectedLayers);
+
+      const explicitlyTargetedCharts = new Set<number>();
+
+      selectedLayers.forEach((selectionKey: string) => {
+        const layerMatch = selectionKey.match(/^chart-(\d+)-layer-(\d+)$/);
+        if (layerMatch) {
+          explicitlyTargetedCharts.add(parseInt(layerMatch[1], 10));
+        }
+      });
+
+      const originalScope = scope;
+
+      originalScope.forEach((chartId: number) => {
+        if (!excludedCharts.includes(chartId)) {
+          const hasLayerSelections = selectedLayers.some((key: string) =>
+            key.startsWith(`chart-${chartId}-layer-`),
+          );
+
+          if (!hasLayerSelections) {
+            explicitlyTargetedCharts.add(chartId);
+          }
+        }
+      });
+
+      scope = Array.from(explicitlyTargetedCharts);
+    } else {
+      scope = scope.filter(
+        (chartId: number) => !excludedCharts.includes(chartId),
+      );
     }
 
     activeFilters[filterId] = {
