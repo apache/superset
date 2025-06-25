@@ -111,55 +111,41 @@ const DeckMulti = (props: DeckMultiProps) => {
     (formData: QueryFormData, payload: JsonObject, viewport?: Viewport) => {
       setViewport(getAdjustedViewport());
       setSubSlicesLayers({});
+
       payload.data.slices.forEach(
-        (subslice: { slice_id: number } & JsonObject, layerIndex: number) => {
+        (subslice: { slice_id: number } & JsonObject, payloadIndex: number) => {
+          const correctLayerIndex = formData.deck_slices
+            ? formData.deck_slices.indexOf(subslice.slice_id)
+            : payloadIndex;
+
           const layerFilterScope = formData.layer_filter_scope;
 
-          let layerSpecificExtraFilters = [
+          const layerSpecificExtraFilters = [
             ...(subslice.form_data.extra_filters || []),
             ...(formData.extra_filters || []),
-            ...(formData.extra_form_data?.filters || []),
           ];
 
-          let layerSpecificAdhocFilters = [
+          const layerSpecificAdhocFilters = [
             ...(formData.adhoc_filters || []),
             ...(subslice.formData?.adhoc_filters || []),
-            ...(formData.extra_form_data?.adhoc_filters || []),
           ];
 
           if (layerFilterScope) {
+            const filterDataMapping = formData.filter_data_mapping || {};
+
+            Object.entries(layerFilterScope).forEach(
+              ([filterId, filterScope]: [string, any]) => {
+                if (!filterScope || filterScope.includes(correctLayerIndex)) {
+                  const filtersFromThisFilter =
+                    filterDataMapping[filterId] || [];
+                  layerSpecificExtraFilters.push(...filtersFromThisFilter);
+                }
+              },
+            );
+          } else {
             const originalExtraFormDataFilters =
               formData.extra_form_data?.filters || [];
-            const originalExtraFormDataAdhocFilters =
-              formData.extra_form_data?.adhoc_filters || [];
-
-            const layerShouldReceiveFilters = Object.values(
-              layerFilterScope,
-            ).some((layerIndices: number[]) =>
-              layerIndices.includes(layerIndex),
-            );
-
-            if (layerShouldReceiveFilters) {
-              layerSpecificExtraFilters = [
-                ...(subslice.form_data.extra_filters || []),
-                ...(formData.extra_filters || []),
-                ...originalExtraFormDataFilters,
-              ];
-
-              layerSpecificAdhocFilters = [
-                ...(formData.adhoc_filters || []),
-                ...(subslice.form_data.adhoc_filters || []),
-                ...originalExtraFormDataAdhocFilters,
-              ];
-            } else {
-              layerSpecificExtraFilters = [
-                ...(subslice.form_data.extra_filters || []),
-              ];
-
-              layerSpecificAdhocFilters = [
-                ...(subslice.form_data.adhoc_filters || []),
-              ];
-            }
+            layerSpecificExtraFilters.push(...originalExtraFormDataFilters);
           }
 
           const subsliceCopy = {
@@ -193,7 +179,12 @@ const DeckMulti = (props: DeckMultiProps) => {
                   [subsliceCopy.slice_id]: layer,
                 }));
               })
-              .catch(() => {});
+              .catch(error => {
+                console.error(
+                  `Error loading layer for slice ${subsliceCopy.slice_id}:`,
+                  error,
+                );
+              });
           }
         },
       );

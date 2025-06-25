@@ -94,7 +94,10 @@ export const getAllActiveFilters = ({
     let excludedCharts =
       (nativeFilters?.[filterId]?.scope as any)?.excluded || [];
 
-    if (hasLayerSelectionsInAnyFilter) {
+    if (
+      hasLayerSelectionsInAnyFilter &&
+      (!selectedLayers || selectedLayers.length === 0)
+    ) {
       selectedLayers = masterSelectedLayers;
       excludedCharts = masterExcluded;
     }
@@ -113,7 +116,6 @@ export const getAllActiveFilters = ({
       });
 
       const originalScope = scope;
-
       originalScope.forEach((chartId: number) => {
         if (!excludedCharts.includes(chartId)) {
           const hasLayerSelections = selectedLayers.some((key: string) =>

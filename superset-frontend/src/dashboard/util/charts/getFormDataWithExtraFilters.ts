@@ -48,6 +48,9 @@ interface CachedFormData {
   layer_filter_scope?: {
     [filterId: string]: number[];
   };
+  filter_data_mapping?: {
+    [filterId: string]: any[];
+  };
 }
 
 export type CachedFormDataWithExtraControls = CachedFormData & {
@@ -79,6 +82,22 @@ export interface GetFormDataWithExtraFiltersArguments {
   sharedLabelsColors?: string[];
   allSliceIds: number[];
 }
+
+const createFilterDataMapping = (
+  dataMask: DataMaskStateWithId,
+  filterIdsAppliedOnChart: string[],
+): { [filterId: string]: any[] } => {
+  const filterDataMapping: { [filterId: string]: any[] } = {};
+
+  filterIdsAppliedOnChart.forEach(filterId => {
+    const filterFormData = getExtraFormData(dataMask, [filterId]);
+    if (filterFormData.filters && filterFormData.filters.length > 0) {
+      filterDataMapping[filterId] = filterFormData.filters;
+    }
+  });
+
+  return filterDataMapping;
+};
 
 export default function getFormDataWithExtraFilters({
   chart,
@@ -129,14 +148,27 @@ export default function getFormDataWithExtraFilters({
     allSliceIds,
   });
 
-  let extraData = {};
+  let extraData: JsonObject = {};
   const filterIdsAppliedOnChart = Object.entries(activeFilters)
     .filter(([, { scope }]) => scope.includes(chart.id))
     .map(([filterId]) => filterId);
+
   if (filterIdsAppliedOnChart.length) {
+    const aggregatedFormData = getExtraFormData(
+      dataMask,
+      filterIdsAppliedOnChart,
+    );
     extraData = {
-      extra_form_data: getExtraFormData(dataMask, filterIdsAppliedOnChart),
+      extra_form_data: aggregatedFormData,
     };
+
+    if (chart.form_data?.viz_type === 'deck_multi') {
+      const filterDataMapping = createFilterDataMapping(
+        dataMask,
+        filterIdsAppliedOnChart,
+      );
+      extraData.filter_data_mapping = filterDataMapping;
+    }
   }
 
   let layerFilterScope: { [filterId: string]: number[] } | undefined;
