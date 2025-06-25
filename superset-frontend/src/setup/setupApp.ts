@@ -62,20 +62,14 @@ function toggleCheckbox(apiUrlPrefix: string, selector: string) {
 
 function syncBrowserThemePreferenceWithCookie() {
   try {
-    const getCurrentPreference = () =>
-      window.matchMedia('(prefers-color-scheme: dark)').matches
-        ? 'dark'
-        : 'light';
-
-    const setThemeCookie = theme => {
-      document.cookie = `superset_theme=${theme}; path=/; SameSite=Lax; secure`;
-    };
-
-    const currentPreference = getCurrentPreference();
+    const currentPreference = window.matchMedia('(prefers-color-scheme: dark)')
+      .matches
+      ? 'dark'
+      : 'light';
     const cookies = parseCookie();
 
     if (cookies.superset_theme !== currentPreference) {
-      setThemeCookie(currentPreference);
+      document.cookie = `superset_theme=${currentPreference}; path=/; SameSite=Lax; secure`;
     }
   } catch (err) {
     console.warn('Failed to sync theme preference', err);

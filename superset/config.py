@@ -563,12 +563,12 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # Adds a switch to the navbar to easily switch between light and dark themes.
     # This is intended to use for development, visual review, and theming-debugging
     # purposes.
-    "THEME_ENABLE_DARK_THEME_SWITCH": False,
+    "THEME_ENABLE_DARK_THEME_SWITCH": True,
     # Adds a theme editor as a modal dialog in the navbar. Allows people to type in JSON
     # and see the changes applied to the current theme.
     # This is intended to use for theme creation, visual review and theming-debugging
     # purposes.
-    "THEME_ALLOW_THEME_EDITOR_BETA": False,
+    "THEME_ALLOW_THEME_EDITOR_BETA": True,
     # Allow users to optionally specify date formats in email subjects, which will
     # be parsed if enabled
     "DATE_FORMAT_IN_EMAIL_SUBJECT": False,

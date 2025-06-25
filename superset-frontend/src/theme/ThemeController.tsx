@@ -76,7 +76,7 @@ export class ThemeController {
     if (options.themeObject) {
       this.themeObject = options.themeObject;
     } else {
-      this.themeObject = ThemeController.loadThemeFromBootstrap();
+      this.themeObject = ThemeController.getThemeFromBootstrapData();
     }
 
     // Load customizations from storage
@@ -119,7 +119,7 @@ export class ThemeController {
    * once the backend knows about the user preferences, it will return only `bootstrapData.theme`
    * which takes precedence over `bootstrapData.themes` (not available in this case)
    */
-  private static loadThemeFromBootstrap(): Theme {
+  private static getThemeFromBootstrapData(): Theme {
     const bootstrapData = getBootstrapData().common;
 
     let themeConfig: AnyThemeConfig = {};
@@ -132,11 +132,8 @@ export class ThemeController {
       if (bootstrapData.themes[preferred]) {
         themeConfig = bootstrapData.themes[preferred];
       }
-    } else {
-      console.warn('No theme data found in bootstrapData');
     }
-
-    return themeObject.setConfig(themeConfig);
+    return Theme.fromConfig(themeConfig);
   }
 
   public destroy(): void {

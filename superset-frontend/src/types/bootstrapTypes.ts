@@ -11,6 +11,7 @@ import { TimeLocaleDefinition } from 'd3-time-format';
 import { isPlainObject } from 'lodash';
 import { Languages } from 'src/features/home/LanguagePicker';
 import type { FlashMessage } from 'src/components';
+import type { SerializableThemeConfig } from '@superset-ui/core/theme/types';
 
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -153,7 +154,12 @@ export interface CommonBootstrapData {
   language_pack: LanguagePack;
   extra_categorical_color_schemes: ColorSchemeConfig[];
   extra_sequential_color_schemes: SequentialSchemeConfig[];
-  theme: JsonObject;
+  // Depending on if the cookie is set, either theme or themes will be defined.
+  theme?: SerializableThemeConfig;
+  themes?: {
+    light: SerializableThemeConfig;
+    dark: SerializableThemeConfig;
+  };
   menu_data: MenuData;
   d3_format: Partial<FormatLocaleDefinition>;
   d3_time_format: Partial<TimeLocaleDefinition>;
