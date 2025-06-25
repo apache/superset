@@ -156,6 +156,13 @@ const Register = lazy(
 const GroupsList: LazyExoticComponent<any> = lazy(
   () => import(/* webpackChunkName: "GroupsList" */ 'src/pages/GroupsList'),
 );
+const UserRegistrations = lazy(
+  () =>
+    import(
+      /* webpackChunkName: "UserRegistrations" */ 'src/pages/UserRegistrations'
+    ),
+);
+
 type Routes = {
   path: string;
   Component: ComponentType;
@@ -167,6 +174,10 @@ export const routes: Routes = [
   {
     path: '/login/',
     Component: Login,
+  },
+  {
+    path: '/register/activation/:activationHash',
+    Component: Register,
   },
   {
     path: '/register/',
@@ -275,6 +286,10 @@ export const routes: Routes = [
     path: '/actionlog/list',
     Component: ActionLogList,
   },
+  {
+    path: '/registrations/',
+    Component: UserRegistrations,
+  },
 ];
 
 if (isFeatureEnabled(FeatureFlag.TaggingSystem)) {
@@ -289,6 +304,8 @@ if (isFeatureEnabled(FeatureFlag.TaggingSystem)) {
 }
 
 const user = getBootstrapData()?.user;
+const authRegistrationEnabled =
+  getBootstrapData()?.common.conf.AUTH_USER_REGISTRATION;
 const isAdmin = isUserAdmin(user);
 
 if (isAdmin) {
@@ -306,6 +323,13 @@ if (isAdmin) {
       Component: GroupsList,
     },
   );
+}
+
+if (authRegistrationEnabled) {
+  routes.push({
+    path: '/registrations/',
+    Component: UserRegistrations,
+  });
 }
 
 const frontEndRoutes: Record<string, boolean> = routes

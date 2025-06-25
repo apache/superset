@@ -164,3 +164,4 @@ export * from './Table';
 export * from './TableView';
 export * from './Tag';
 export * from './constants';
+export * from './Result';
