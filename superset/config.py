@@ -632,7 +632,7 @@ AUTH_ROLES_MAPPING = get_dynamic_role_mapping()
 # ---------------------------------------------------
 
 # Will allow user self registration
-AUTH_USER_REGISTRATION = True
+AUTH_USER_REGISTRATION = False
 
 # The default user self registration role
 AUTH_USER_REGISTRATION_ROLE = "Public"
