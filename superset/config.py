@@ -582,17 +582,17 @@ class CustomAppInitializer(SupersetAppInitializer):
 
             print(f"New roles to be created: {roles_to_create}")
             
-            public_role = sm.find_role("Public")
-            if not public_role:
-                print("Could not find 'Public' role. Cannot use it as a template.")
+            gamma_role = sm.find_role("Gamma")
+            if not gamma_role:
+                print("Could not find 'Gamma' role. Cannot use it as a template.")
                 return
             
-            public_permissions = public_role.permissions
+            gamma_permissions = gamma_role.permissions
             
             try:
                 for role_name in roles_to_create:
                     logger.info(f"Creating role: '{role_name}'")
-                    sm.add_role(name=role_name, permissions=public_permissions)
+                    sm.add_role(name=role_name, permissions=gamma_permissions)
                 db.session.commit() # We need to explicitly commit the session
                 logger.info("Successfully committed new roles to the database.")
             except Exception as e:
