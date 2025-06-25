@@ -35,6 +35,10 @@ import { UrlParamEntries } from 'src/utils/urlUtils';
 
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import Owner from 'src/types/Owner';
+import {
+  ChartCustomizationItem,
+  FilterOption,
+} from './components/nativeFilters/ChartCustomization/types';
 import { ChartState } from '../explore/types';
 
 export type { Dashboard } from 'src/types/Dashboard';
@@ -138,6 +142,7 @@ export type DashboardInfo = {
     shared_label_colors: string[];
     map_label_colors: JsonObject;
     cross_filters_enabled: boolean;
+    chart_customization_config?: ChartCustomizationItem[];
   };
   crossFiltersEnabled: boolean;
   filterBarOrientation: FilterBarOrientation;
@@ -146,6 +151,8 @@ export type DashboardInfo = {
   changed_by?: Owner;
   created_by?: Owner;
   owners: Owner[];
+  chartCustomizationData?: { [itemId: string]: FilterOption[] };
+  chartCustomizationLoading?: { [itemId: string]: boolean };
 };
 
 export type ChartsState = { [key: string]: Chart };

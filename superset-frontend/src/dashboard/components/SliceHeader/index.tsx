@@ -37,6 +37,7 @@ import { useSelector } from 'react-redux';
 import SliceHeaderControls from 'src/dashboard/components/SliceHeaderControls';
 import { SliceHeaderControlsProps } from 'src/dashboard/components/SliceHeaderControls/types';
 import FiltersBadge from 'src/dashboard/components/FiltersBadge';
+import GroupByBadge from 'src/dashboard/components/GroupByBadge';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { RootState } from 'src/dashboard/types';
 import { getSliceHeaderTooltip } from 'src/dashboard/util/getSliceHeaderTooltip';
@@ -279,6 +280,9 @@ const SliceHeader = forwardRef<HTMLDivElement, SliceHeaderProps>(
                 >
                   <CrossFilterIcon iconSize="m" />
                 </Tooltip>
+              )}
+              {!uiConfig.hideChartControls && (
+                <GroupByBadge chartId={slice.slice_id} />
               )}
               {!uiConfig.hideChartControls && (
                 <FiltersBadge chartId={slice.slice_id} />
