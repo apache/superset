@@ -21,8 +21,8 @@ import { CustomCellRendererProps } from 'ag-grid-react';
 import { BasicColorFormatterType, InputColumn } from '../types';
 
 const StyledTotalCell = styled.div`
-  ${({ theme }) => `
-    font-weight: ${theme.fontWeightStrong};
+  ${() => `
+    font-weight: bold;
   `}
 `;
 
