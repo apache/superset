@@ -27,6 +27,7 @@ import {
 import {
   css,
   getExtensionsRegistry,
+  QueryData,
   styled,
   SupersetTheme,
   t,
@@ -38,7 +39,7 @@ import { useSelector } from 'react-redux';
 import SliceHeaderControls from 'src/dashboard/components/SliceHeaderControls';
 import { SliceHeaderControlsProps } from 'src/dashboard/components/SliceHeaderControls/types';
 import FiltersBadge from 'src/dashboard/components/FiltersBadge';
-import { Chart, RootState } from 'src/dashboard/types';
+import { RootState } from 'src/dashboard/types';
 import { getSliceHeaderTooltip } from 'src/dashboard/util/getSliceHeaderTooltip';
 import { DashboardPageIdContext } from 'src/dashboard/containers/DashboardPage';
 import RowCountLabel from 'src/components/RowCountLabel';
@@ -183,13 +184,11 @@ const SliceHeader = forwardRef<HTMLDivElement, SliceHeaderProps>(
       ({ dashboardInfo }) => dashboardInfo.crossFiltersEnabled,
     );
 
-    const chart = useSelector<RootState, Chart>(
-      state => state.charts[slice.slice_id],
+    const firstQueryResponse = useSelector<RootState, QueryData | undefined>(
+      state => state.charts[slice.slice_id].queriesResponse?.[0],
     );
 
     const theme = useTheme();
-
-    const firstQueryResponse = chart.queriesResponse?.[0];
 
     const rowLimit = Number(formData.row_limit || -1);
     const sqlRowCount = Number(firstQueryResponse?.sql_rowcount || 0);
