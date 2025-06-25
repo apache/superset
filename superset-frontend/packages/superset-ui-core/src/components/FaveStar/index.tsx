@@ -71,7 +71,7 @@ export const FaveStar = ({
         <Icons.StarOutlined
           aria-label="unstarred"
           iconSize="l"
-          iconColor={theme.colors.grayscale.light1}
+          iconColor={theme.colorTextTertiary}
           name="favorite-unselected"
         />
       )}

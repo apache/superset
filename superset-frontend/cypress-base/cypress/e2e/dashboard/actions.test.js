@@ -62,6 +62,6 @@ describe('Dashboard actions', () => {
     // Verify the color of the outlined star (gray)
     cy.get('@starIconOutlinedAfter')
       .should('have.css', 'color')
-      .and('eq', 'rgb(133, 133, 133)');
+      .and('eq', 'rgba(0, 0, 0, 0.45)');
   });
 });
