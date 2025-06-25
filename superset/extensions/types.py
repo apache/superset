@@ -28,9 +28,9 @@ class BundleFile:
 
 @dataclass
 class LoadedExtension:
-    id: int
     name: str
     manifest: Manifest
     frontend: dict[str, bytes]
     backend: dict[str, bytes]
     enabled: bool
+    id: int | None = None

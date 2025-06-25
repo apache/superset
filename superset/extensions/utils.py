@@ -119,7 +119,7 @@ def get_bundle_files_from_path(base_path: str) -> Generator[BundleFile, None, No
             yield BundleFile(name=rel_path, content=content)
 
 
-def get_loaded_extension(id: int, files: Iterable[BundleFile]) -> LoadedExtension:
+def get_loaded_extension(files: Iterable[BundleFile]) -> LoadedExtension:
     manifest: Manifest = {}
     frontend: dict[str, bytes] = {}
     backend: dict[str, bytes] = {}
@@ -147,7 +147,6 @@ def get_loaded_extension(id: int, files: Iterable[BundleFile]) -> LoadedExtensio
 
     name = manifest["name"]
     return LoadedExtension(
-        id=id,
         name=name,
         manifest=manifest,
         frontend=frontend,
@@ -162,7 +161,8 @@ def get_extensions() -> dict[str, LoadedExtension]:
     extensions: dict[str, LoadedExtension] = {}
     for i, path in enumerate(current_app.config["LOCAL_EXTENSIONS"]):
         files = get_bundle_files_from_path(path)
-        extension = get_loaded_extension(i, files)
+        extension = get_loaded_extension(files)
+        extension.id = i
         extensions[extension.name] = extension
         logger.info(f"Loading extension {extension.name} from local filesystem")
 
