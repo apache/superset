@@ -297,7 +297,7 @@ describe('ExploreChartHeader', () => {
       await screen.findByText('Save changes to your chart?'),
     ).toBeInTheDocument();
     expect(
-      await screen.findByText('If you don’t save, changes will be lost.'),
+      await screen.findByText("If you don't save, changes will be lost."),
     ).toBeInTheDocument();
   });
 
