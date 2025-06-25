@@ -18,7 +18,12 @@
  */
 import { render } from 'spec/helpers/testing-library';
 import { setupAGGridModules } from 'src/setup/setupAGGridModules';
-import { GridTable } from '.';
+import GridTable from '.';
+
+jest.mock('src/components/ErrorBoundary', () => ({
+  __esModule: true,
+  default: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+}));
 
 const mockedProps = {
   queryId: 'abc',

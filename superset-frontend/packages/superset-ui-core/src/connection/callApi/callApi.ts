@@ -17,6 +17,7 @@
  * under the License.
  */
 
+import 'whatwg-fetch';
 import fetchRetry from 'fetch-retry';
 import { CallApi, Payload, JsonValue, JsonObject } from '../types';
 import {

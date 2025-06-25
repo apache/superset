@@ -19,11 +19,11 @@
 
 import { ErrorLevel, ErrorSource, ErrorTypeEnum } from '@superset-ui/core';
 import { render, screen, userEvent } from 'spec/helpers/testing-library';
-import { ErrorMessageWithStackTrace } from './ErrorMessageWithStackTrace';
-import { BasicErrorAlert } from './BasicErrorAlert';
+import ErrorMessageWithStackTrace from './ErrorMessageWithStackTrace';
+import BasicErrorAlert from './BasicErrorAlert';
 
 jest.mock(
-  '@superset-ui/core/components/Icons/AsyncIcon',
+  'src/components/Icons/AsyncIcon',
   () =>
     ({ fileName }: { fileName: string }) => (
       <span role="img" aria-label={fileName.replace('_', '-')} />

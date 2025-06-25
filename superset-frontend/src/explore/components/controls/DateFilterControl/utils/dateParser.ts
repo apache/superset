@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { extendedDayjs } from '@superset-ui/core/utils/dates';
+import { extendedDayjs } from 'src/utils/dates';
 import { Dayjs } from 'dayjs';
 import { CustomRangeType } from 'src/explore/components/controls/DateFilterControl/types';
 import { DAYJS_FORMAT } from './constants';

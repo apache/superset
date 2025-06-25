@@ -17,11 +17,8 @@
  * under the License.
  */
 import { t } from '@superset-ui/core';
-import {
-  Button,
-  type OnClickHandler,
-  Icons,
-} from '@superset-ui/core/components';
+import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
+import Button, { OnClickHandler } from 'src/components/Button';
 
 export interface ExploreResultsButtonProps {
   database?: {
@@ -38,14 +35,16 @@ const ExploreResultsButton = ({
   return (
     <Button
       buttonSize="small"
-      buttonStyle="secondary"
-      icon={<Icons.LineChartOutlined />}
       onClick={onClick}
       disabled={!allowsSubquery}
-      role="button"
       tooltip={t('Explore the result set in the data exploration view')}
       data-test="explore-results-button"
     >
+      <InfoTooltipWithTrigger
+        icon="line-chart"
+        placement="top"
+        label={t('explore')}
+      />{' '}
       {t('Create Chart')}
     </Button>
   );

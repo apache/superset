@@ -18,10 +18,10 @@
  */
 import { t } from '@superset-ui/core';
 
-import type { ErrorMessageComponentProps } from './types';
-import { ErrorAlert } from './ErrorAlert';
+import { ErrorMessageComponentProps } from './types';
+import ErrorAlert from './ErrorAlert';
 
-export function FrontendNetworkErrorMessage({
+function FrontendNetworkErrorMessage({
   error,
   subtitle,
   compact,
@@ -36,3 +36,4 @@ export function FrontendNetworkErrorMessage({
     />
   );
 }
+export default FrontendNetworkErrorMessage;

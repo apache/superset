@@ -35,7 +35,7 @@ from sqlglot.optimizer.pushdown_predicates import pushdown_predicates
 from sqlglot.optimizer.scope import Scope, ScopeType, traverse_scope
 
 from superset.exceptions import QueryClauseValidationException, SupersetParseError
-from superset.sql.dialects import Dremio, Firebolt
+from superset.sql.dialects.firebolt import Firebolt
 
 if TYPE_CHECKING:
     from superset.models.core import Database
@@ -59,7 +59,7 @@ SQLGLOT_DIALECTS = {
     "databricks": Dialects.DATABRICKS,
     # "db2": ???
     # "denodo": ???
-    "dremio": Dremio,
+    # "dremio": ???
     "drill": Dialects.DRILL,
     "druid": Dialects.DRUID,
     "duckdb": Dialects.DUCKDB,
@@ -85,7 +85,7 @@ SQLGLOT_DIALECTS = {
     # "odelasticsearch": ???
     "oracle": Dialects.ORACLE,
     "parseable": Dialects.POSTGRES,
-    "pinot": Dialects.MYSQL,
+    # "pinot": ???
     "postgresql": Dialects.POSTGRES,
     "presto": Dialects.PRESTO,
     "pydoris": Dialects.DORIS,

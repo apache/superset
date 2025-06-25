@@ -27,9 +27,8 @@ import {
   waitFor,
 } from 'spec/helpers/testing-library';
 import { api } from 'src/hooks/apiResources/queryApi';
-import { EmptyState } from '@superset-ui/core/components';
-import { DatabaseSelector } from '.';
-import type { DatabaseSelectorProps } from './types';
+import DatabaseSelector, { DatabaseSelectorProps } from '.';
+import { EmptyState } from '../EmptyState';
 
 const createProps = (): DatabaseSelectorProps => ({
   db: {
@@ -215,7 +214,7 @@ test('Refresh should work', async () => {
     name: 'Select schema or type to search schemas: public',
   });
 
-  await userEvent.click(select);
+  userEvent.click(select);
 
   await waitFor(() => {
     expect(fetchMock.calls(databaseApiRoute).length).toBe(1);
@@ -226,7 +225,7 @@ test('Refresh should work', async () => {
   });
 
   // click schema reload
-  await userEvent.click(screen.getByRole('button', { name: 'sync' }));
+  userEvent.click(screen.getByRole('button', { name: 'sync' }));
 
   await waitFor(() => {
     expect(fetchMock.calls(databaseApiRoute).length).toBe(1);
@@ -244,7 +243,7 @@ test('Should database select display options', async () => {
     name: 'Select database or type to search databases',
   });
   expect(select).toBeInTheDocument();
-  await userEvent.click(select);
+  userEvent.click(select);
   expect(await screen.findByText('test-mysql')).toBeInTheDocument();
 });
 
@@ -261,7 +260,7 @@ test('should display options in order of the api response', async () => {
     name: 'Select database or type to search databases',
   });
   expect(select).toBeInTheDocument();
-  await userEvent.click(select);
+  userEvent.click(select);
   const options = await screen.findAllByRole('option');
 
   expect(options[0]).toHaveTextContent(
@@ -291,7 +290,7 @@ test('Should fetch the search keyword when total count exceeds initial options',
     expect(fetchMock.calls(databaseApiRoute)).toHaveLength(1),
   );
   expect(select).toBeInTheDocument();
-  await userEvent.type(select, 'keywordtest');
+  userEvent.type(select, 'keywordtest');
   await waitFor(() =>
     expect(fetchMock.calls(databaseApiRoute)).toHaveLength(2),
   );
@@ -315,7 +314,7 @@ test('should show empty state if there are no options', async () => {
   const select = screen.getByRole('combobox', {
     name: 'Select database or type to search databases',
   });
-  await userEvent.click(select);
+  userEvent.click(select);
   const emptystate = await screen.findByText('empty');
   expect(emptystate).toBeInTheDocument();
   expect(screen.queryByText('test-mysql')).not.toBeInTheDocument();
@@ -328,7 +327,7 @@ test('Should schema select display options', async () => {
     name: 'Select schema or type to search schemas: public',
   });
   expect(select).toBeInTheDocument();
-  await userEvent.click(select);
+  userEvent.click(select);
   await waitFor(() => {
     expect(screen.queryByText('Loading...')).not.toBeInTheDocument();
   });
@@ -348,12 +347,12 @@ test('Sends the correct db when changing the database', async () => {
     name: 'Select database or type to search databases',
   });
   expect(select).toBeInTheDocument();
-  await userEvent.click(select);
-  await userEvent.click(await screen.findByText('test-mysql'));
+  userEvent.click(select);
+  userEvent.click(await screen.findByText('test-mysql'));
   await waitFor(() =>
     expect(props.onDbChange).toHaveBeenCalledWith(
       expect.objectContaining({
-        id: `mysql-test-mysql-2`,
+        id: 2,
         database_name: 'test-mysql',
         backend: 'mysql',
       }),
@@ -374,9 +373,9 @@ test('Sends the correct schema when changing the schema', async () => {
     name: 'Select schema or type to search schemas: public',
   });
   expect(select).toBeInTheDocument();
-  await userEvent.click(select);
-  const schemaOption = await screen.findByText('information_schema');
-  await userEvent.click(schemaOption);
+  userEvent.click(select);
+  const schemaOption = await screen.findAllByText('information_schema');
+  userEvent.click(schemaOption[1]);
   await waitFor(() =>
     expect(props.onSchemaChange).toHaveBeenCalledWith('information_schema'),
   );

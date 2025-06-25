@@ -23,7 +23,7 @@ import {
   screen,
   userEvent,
 } from 'spec/helpers/testing-library';
-import { HeaderMenu, type HeaderMenuProps } from './HeaderMenu';
+import HeaderMenu, { HeaderMenuProps } from './HeaderMenu';
 
 jest.mock('src/utils/copy', () => jest.fn().mockImplementation(f => f()));
 

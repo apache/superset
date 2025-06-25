@@ -24,7 +24,7 @@ import markdownSyntax from 'react-syntax-highlighter/dist/cjs/languages/hljs/mar
 import jsonSyntax from 'react-syntax-highlighter/dist/cjs/languages/hljs/json';
 import github from 'react-syntax-highlighter/dist/cjs/styles/hljs/github';
 import SyntaxHighlighter from 'react-syntax-highlighter/dist/cjs/light';
-import { Icons } from '@superset-ui/core/components/Icons';
+import { Icons } from 'src/components/Icons';
 import { ToastProps } from 'src/components/MessageToasts/withToasts';
 import copyTextToClipboard from 'src/utils/copy';
 
@@ -81,7 +81,7 @@ export default function SyntaxHighlighterCopy({
       <Icons.CopyOutlined
         tabIndex={0}
         role="button"
-        onClick={(e: React.MouseEvent<HTMLElement>) => {
+        onClick={e => {
           e.preventDefault();
           e.currentTarget.blur();
           copyToClipboard(children);

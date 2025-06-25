@@ -24,16 +24,17 @@ import {
   QueryFormData,
   styled,
   t,
-  useTheme,
 } from '@superset-ui/core';
 
 import { ControlConfig } from '@superset-ui/chart-controls';
 import AutoSizer from 'react-virtualized-auto-sizer';
 
 import { matchSorter, rankings } from 'match-sorter';
-import { Alert, Constants, Input } from '@superset-ui/core/components';
+import Alert from 'src/components/Alert';
 import { SaveDatasetModal } from 'src/SqlLab/components/SaveDatasetModal';
 import { getDatasourceAsSaveableDataset } from 'src/utils/datasourceUtils';
+import { Input } from 'src/components/Input';
+import { FAST_DEBOUNCE } from 'src/constants';
 import { ExploreActions } from 'src/explore/actions/exploreActions';
 import Control from 'src/explore/components/Control';
 import { useDebounceValue } from 'src/hooks/useDebounceValue';
@@ -74,29 +75,33 @@ export interface Props {
 
 const DatasourceContainer = styled.div`
   ${({ theme }) => css`
+    background-color: ${theme.colors.grayscale.light5};
     position: relative;
     height: 100%;
     display: flex;
     flex-direction: column;
     max-height: 100%;
+    .ant-collapse {
+      height: auto;
+    }
     .field-selections {
-      padding: 0 0 ${theme.sizeUnit}px;
+      padding: 0 0 ${theme.gridUnit}px;
       overflow: auto;
       height: 100%;
     }
     .field-length {
-      margin-bottom: ${theme.sizeUnit * 2}px;
-      font-size: ${theme.fontSizeSM}px;
+      margin-bottom: ${theme.gridUnit * 2}px;
+      font-size: ${theme.typography.sizes.s}px;
       color: ${theme.colors.grayscale.light1};
     }
     .form-control.input-md {
       display: inline-flex;
-      width: calc(100% - ${theme.sizeUnit * 8}px);
-      height: ${theme.sizeUnit * 8}px;
-      margin: ${theme.sizeUnit * 2}px auto;
+      width: calc(100% - ${theme.gridUnit * 8}px);
+      height: ${theme.gridUnit * 8}px;
+      margin: ${theme.gridUnit * 2}px auto;
     }
     .type-label {
-      font-size: ${theme.fontSizeSM}px;
+      font-size: ${theme.typography.sizes.s}px;
       color: ${theme.colors.grayscale.base};
     }
     .Control {
@@ -107,7 +112,7 @@ const DatasourceContainer = styled.div`
 
 const StyledInfoboxWrapper = styled.div`
   ${({ theme }) => css`
-    margin: 0 ${theme.sizeUnit * 2.5}px;
+    margin: 0 ${theme.gridUnit * 2.5}px;
 
     span {
       text-decoration: underline;
@@ -164,7 +169,7 @@ export default function DataSourcePanel({
 
   const [showSaveDatasetModal, setShowSaveDatasetModal] = useState(false);
   const [inputValue, setInputValue] = useState('');
-  const searchKeyword = useDebounceValue(inputValue, Constants.FAST_DEBOUNCE);
+  const searchKeyword = useDebounceValue(inputValue, FAST_DEBOUNCE);
 
   const filteredColumns = useMemo(() => {
     if (!searchKeyword) {
@@ -259,20 +264,18 @@ export default function DataSourcePanel({
     datasource.type &&
     saveableDatasets[datasource.type as keyof typeof saveableDatasets];
 
-  const theme = useTheme();
   const mainBody = useMemo(
     () => (
       <>
-        <div style={{ padding: theme.sizeUnit * 4 }}>
-          <Input
-            allowClear
-            onChange={evt => {
-              setInputValue(evt.target.value);
-            }}
-            value={inputValue}
-            placeholder={t('Search Metrics & Columns')}
-          />
-        </div>
+        <Input
+          allowClear
+          onChange={evt => {
+            setInputValue(evt.target.value);
+          }}
+          value={inputValue}
+          className="form-control input-md"
+          placeholder={t('Search Metrics & Columns')}
+        />
         <div className="field-selections" data-test="fieldSelections">
           {datasourceIsSaveable && showInfoboxCheck() && (
             <StyledInfoboxWrapper>

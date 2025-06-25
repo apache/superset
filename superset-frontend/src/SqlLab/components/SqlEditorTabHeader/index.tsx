@@ -20,8 +20,8 @@ import { useMemo, FC } from 'react';
 
 import { bindActionCreators } from 'redux';
 import { useSelector, useDispatch, shallowEqual } from 'react-redux';
-import { MenuDotsDropdown } from '@superset-ui/core/components';
-import { Menu, MenuItemType } from '@superset-ui/core/components/Menu';
+import { MenuDotsDropdown } from 'src/components/Dropdown';
+import { Menu } from 'src/components/Menu';
 import {
   styled,
   css,
@@ -38,7 +38,8 @@ import {
   toggleLeftBar,
 } from 'src/SqlLab/actions/sqlLab';
 import { QueryEditor, SqlLabRootState } from 'src/SqlLab/types';
-import { Icons, type IconType } from '@superset-ui/core/components/Icons';
+import { MenuItemType } from 'antd-v5/es/menu/interface';
+import { Icons, IconType } from 'src/components/Icons';
 
 const TabTitleWrapper = styled.div`
   display: flex;
@@ -50,14 +51,14 @@ const TabTitleWrapper = styled.div`
   }
 `;
 const TabTitle = styled.span`
-  margin-right: ${({ theme }) => theme.sizeUnit * 2}px;
+  margin-right: ${({ theme }) => theme.gridUnit * 2}px;
   text-transform: none;
 `;
 
 const IconContainer = styled.div`
   ${({ theme }) => css`
     display: inline-block;
-    margin: 0 ${theme.sizeUnit * 2}px 0 0px;
+    margin: 0 ${theme.gridUnit * 2}px 0 0px;
   `}
 `;
 interface Props {
@@ -121,7 +122,7 @@ const SqlEditorTabHeader: FC<Props> = ({ queryEditor }) => {
       [QueryState.Stopped]: theme.colors.warning.base,
       [QueryState.Pending]: theme.colors.grayscale.light1,
       [QueryState.Scheduled]: theme.colors.grayscale.light2,
-      [QueryState.Fetching]: theme.colorWarning,
+      [QueryState.Fetching]: theme.colors.secondary.base,
       [QueryState.TimedOut]: theme.colors.error.dark1,
     };
 
@@ -232,7 +233,7 @@ const SqlEditorTabHeader: FC<Props> = ({ queryEditor }) => {
       <TabTitle>{qe.name}</TabTitle>{' '}
       <StatusIcon
         className="status-icon"
-        iconSize="m"
+        iconSize="xs"
         iconColor={getStatusColor(queryState, theme)}
       />{' '}
     </TabTitleWrapper>

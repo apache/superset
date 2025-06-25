@@ -18,7 +18,7 @@
  */
 import { useEffect } from 'react';
 import { t } from '@superset-ui/core';
-import { Radio } from '@superset-ui/core/components/Radio';
+import { Radio } from 'src/components/Radio';
 import {
   CURRENT_RANGE_OPTIONS,
   CURRENT_CALENDAR_RANGE_SET,

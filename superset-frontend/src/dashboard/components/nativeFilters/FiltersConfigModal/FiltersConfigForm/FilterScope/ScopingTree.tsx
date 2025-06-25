@@ -19,10 +19,10 @@
 
 import { FC, useMemo, useState, memo } from 'react';
 import { NativeFilterScope } from '@superset-ui/core';
-import Tree from '@superset-ui/core/components/Tree';
+import { Tree } from 'src/components';
 import { DASHBOARD_ROOT_ID } from 'src/dashboard/util/constants';
-import { Tooltip } from '@superset-ui/core/components';
-import { Icons } from '@superset-ui/core/components/Icons';
+import { Tooltip } from 'src/components/Tooltip';
+import { Icons } from 'src/components/Icons';
 import { useFilterScopeTree } from './state';
 import { findFilterScope, getTreeCheckedItems } from './utils';
 

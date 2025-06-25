@@ -17,6 +17,7 @@
  * under the License.
  */
 import { isValidElement } from 'react';
+import FilterableTable from 'src/components/FilterableTable';
 import {
   render,
   screen,
@@ -24,7 +25,6 @@ import {
   within,
 } from 'spec/helpers/testing-library';
 import { setupAGGridModules } from 'src/setup/setupAGGridModules';
-import { FilterableTable } from '.';
 
 describe('FilterableTable', () => {
   beforeAll(() => {

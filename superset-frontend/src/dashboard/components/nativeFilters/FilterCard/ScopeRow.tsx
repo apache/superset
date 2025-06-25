@@ -17,42 +17,31 @@
  * under the License.
  */
 import { memo, useMemo } from 'react';
-import { t, useTruncation, css } from '@superset-ui/core';
-import { List } from '@superset-ui/core/components/List';
+import { t, useTruncation } from '@superset-ui/core';
 import { useFilterScope } from './useFilterScope';
-import { Row, RowLabel, RowTruncationCount, RowValue } from './Styles';
+import {
+  Row,
+  RowLabel,
+  RowTruncationCount,
+  RowValue,
+  TooltipList,
+  TooltipSectionLabel,
+} from './Styles';
 import { FilterCardRowProps } from './types';
 import { TooltipWithTruncation } from './TooltipWithTruncation';
 
 const getTooltipSection = (items: string[] | undefined, label: string) =>
   Array.isArray(items) && items.length > 0 ? (
     <>
-      <span
-        css={theme => css`
-          font-weight: ${theme.fontWeightStrong};
-        `}
-      >
-        {label}:
-      </span>
-      <List
-        size="small"
-        split={false}
-        dataSource={items}
-        renderItem={item => (
-          <List.Item
-            compact
-            css={theme => css`
-              && .scope-item {
-                color: ${theme.colorWhite};
-              }
-            `}
-          >
-            <span className="scope-item">• {item} </span>
-          </List.Item>
-        )}
-      />
+      <TooltipSectionLabel>{label}:</TooltipSectionLabel>
+      <TooltipList>
+        {items.map(item => (
+          <li>{item}</li>
+        ))}
+      </TooltipList>
     </>
   ) : null;
+
 export const ScopeRow = memo(({ filter }: FilterCardRowProps) => {
   const scope = useFilterScope(filter);
 

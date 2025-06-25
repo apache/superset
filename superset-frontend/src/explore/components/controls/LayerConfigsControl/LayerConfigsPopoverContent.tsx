@@ -18,9 +18,7 @@
  */
 import { css, JsonValue, styled, t } from '@superset-ui/core';
 // eslint-disable-next-line no-restricted-imports
-import { Button } from '@superset-ui/core/components/Button';
-import { Form } from '@superset-ui/core/components/Form';
-import Tabs from '@superset-ui/core/components/Tabs';
+import { Button, Form, Tabs } from 'antd'; // TODO: Remove antd
 import { mix } from 'polished';
 import { Data as GsData } from 'geostyler-data';
 import { Style as GsStyle } from 'geostyler-style';
@@ -60,12 +58,12 @@ export const StyledCloseButton = styled(Button)`
     line-height: 1.5715;
     border-radius: ${theme.borderRadius}px;
     background-color: ${theme.colors.primary.light4};
-    color: ${theme.colorPrimaryText};
-    font-size: ${theme.fontSizeSM}px;
-    font-weight: ${theme.fontWeightStrong};
+    color: ${theme.colors.primary.dark1};
+    font-size: ${theme.typography.sizes.s}px;
+    font-weight: ${theme.typography.weights.bold};
     text-transform: uppercase;
-    min-width: ${theme.sizeUnit * 36};
-    min-height: ${theme.sizeUnit * 8};
+    min-width: ${theme.gridUnit * 36};
+    min-height: ${theme.gridUnit * 8};
     box-shadow: none;
     border-width: 0px;
     border-style: none;
@@ -73,10 +71,10 @@ export const StyledCloseButton = styled(Button)`
     &:hover {
       background-color: ${mix(
         0.1,
-        theme.colorPrimary,
+        theme.colors.primary.base,
         theme.colors.primary.light4,
       )};
-      color: ${theme.colorPrimaryText};
+      color: ${theme.colors.primary.dark1};
     }
   `}
 `;
@@ -97,8 +95,8 @@ export const StyledControlNumberFormItem = styled(ControlFormItem)`
 export const StyledGeoStyler = styled(GeoStylerWrapper)`
   ${({ theme }) => css`
     h2 {
-      font-weight: ${theme.fontWeightNormal};
-      font-size: ${theme.fontSizeXL}px;
+      font-weight: ${theme.typography.weights.normal};
+      font-size: ${theme.typography.sizes.xl}px;
     }
     .ant-form-item-control {
       flex: unset;
@@ -112,19 +110,19 @@ export const StyledSaveButton = styled(Button)`
     margin-left: 4px;
     line-height: 1.5715;
     border-radius: ${theme.borderRadius}px;
-    background-color: ${theme.colorPrimary};
+    background-color: ${theme.colors.primary.base};
     color: ${theme.colors.grayscale.light5};
-    font-size: ${theme.fontSizeSM}px;
-    font-weight: ${theme.fontWeightStrong};
+    font-size: ${theme.typography.sizes.s}px;
+    font-weight: ${theme.typography.weights.bold};
     text-transform: uppercase;
-    min-width: ${theme.sizeUnit * 36};
-    min-height: ${theme.sizeUnit * 8};
+    min-width: ${theme.gridUnit * 36};
+    min-height: ${theme.gridUnit * 8};
     box-shadow: none;
     border-width: 0px;
     border-style: none;
     border-color: transparent;
     &:hover {
-      background-color: ${theme.colorPrimaryText};
+      background-color: ${theme.colors.primary.dark1};
     }
   `}
 `;
@@ -378,129 +376,121 @@ export const LayerConfigsPopoverContent: FC<
   return (
     <div>
       <Form key={JSON.stringify(formKey)}>
-        <Tabs
-          defaultActiveKey={LAYER_CONFIG_TABS.LAYER}
-          items={[
-            {
-              key: LAYER_CONFIG_TABS.LAYER,
-              label: layerTabLabel,
-              children: (
-                <>
-                  <StyledControlFormItem
-                    controlType="Input"
-                    label={layerUrlLabel}
-                    description={layerUrlDescription}
-                    placeholder={layerUrlPlaceholder}
-                    value={currentLayerConf.url}
-                    name="url"
-                    onChange={onLayerUrlChange}
-                  />
-                  <StyledControlFormItem
-                    controlType="Select"
-                    label={layerTypeLabel}
-                    description={layerTypeDescription}
-                    options={[
-                      { value: 'WMS', label: t('WMS') },
-                      { value: 'WFS', label: t('WFS') },
-                      { value: 'XYZ', label: t('XYZ') },
-                    ]}
-                    value={currentLayerConf.type}
-                    defaultValue={currentLayerConf.type}
-                    name="type"
-                    onChange={onLayerTypeChange}
-                  />
-                  {isWmsLayerConf(currentLayerConf) && (
-                    <StyledControlFormItem
-                      controlType="Select"
-                      label={serviceVersionLabel}
-                      description={serviceVersionDescription}
-                      options={wmsVersionOptions}
-                      value={wmsVersion}
-                      defaultValue={wmsVersionOptions[0].value as string}
-                      name="wmsVersion"
-                      onChange={onWmsVersionChange}
-                    />
-                  )}
-                  {isWfsLayerConf(currentLayerConf) && (
-                    <StyledControlFormItem
-                      controlType="Select"
-                      label={serviceVersionLabel}
-                      description={serviceVersionDescription}
-                      options={wfsVersionOptions}
-                      value={wfsVersion}
-                      defaultValue={wfsVersionOptions[0].value as string}
-                      name="wfsVersion"
-                      onChange={onWfsVersionChange}
-                    />
-                  )}
-                  {isWmsLayerConf(currentLayerConf) && (
-                    <StyledControlFormItem
-                      controlType="Input"
-                      label={layersParamLabel}
-                      description={layersParamDescription}
-                      placeholder={layersParamPlaceholder}
-                      value={currentLayerConf.layersParam}
-                      name="layersParam"
-                      onChange={onLayersParamChange}
-                    />
-                  )}
-                  {isWfsLayerConf(currentLayerConf) && (
-                    <StyledControlFormItem
-                      controlType="Input"
-                      label={layersParamLabel}
-                      description={layersParamDescription}
-                      placeholder={layersParamPlaceholder}
-                      value={currentLayerConf.typeName}
-                      name="typeName"
-                      onChange={onTypeNameChange}
-                    />
-                  )}
-                  <StyledControlFormItem
-                    controlType="Input"
-                    label={layerTitleLabel}
-                    description={layerTitleDescription}
-                    placeholder={layerTitlePlaceholder}
-                    value={currentLayerConf.title}
-                    name="title"
-                    onChange={onLayerTitleChange}
-                  />
-                  {isWfsLayerConf(currentLayerConf) && (
-                    <StyledControlNumberFormItem
-                      controlType="InputNumber"
-                      label={maxFeaturesLabel}
-                      description={maxFeaturesDescription}
-                      placeholder={maxFeaturesPlaceholder}
-                      value={currentLayerConf.maxFeatures}
-                      name="maxFeatures"
-                      onChange={onMaxFeaturesChange}
-                    />
-                  )}
-                  <StyledControlFormItem
-                    controlType="Input"
-                    label={attributionLabel}
-                    description={attributionDescription}
-                    placeholder={attributionPlaceholder}
-                    value={currentLayerConf.attribution}
-                    name="attribution"
-                    onChange={onAttributionChange}
-                  />
-                </>
-              ),
-            },
-            {
-              key: LAYER_CONFIG_TABS.GEOSTYLER,
-              label: styleTabLabel,
-              disabled: !isWfsLayerConf(currentLayerConf),
-              children: isWfsLayerConf(currentLayerConf) && (
-                <StyledGeoStyler
-                  style={currentLayerConf.style}
-                  onStyleChange={onStyleChange}
-                  data={geostylerData}
-                />
-              ),
-            },
-          ]}
-        />
+        <Tabs defaultActiveKey={LAYER_CONFIG_TABS.LAYER}>
+          <Tabs.TabPane tab={layerTabLabel} key={LAYER_CONFIG_TABS.LAYER}>
+            <StyledControlFormItem
+              controlType="Input"
+              label={layerUrlLabel}
+              description={layerUrlDescription}
+              placeholder={layerUrlPlaceholder}
+              value={currentLayerConf.url}
+              name="url"
+              onChange={onLayerUrlChange}
+            />
+            <StyledControlFormItem
+              controlType="Select"
+              label={layerTypeLabel}
+              description={layerTypeDescription}
+              options={[
+                { value: 'WMS', label: t('WMS') },
+                { value: 'WFS', label: t('WFS') },
+                { value: 'XYZ', label: t('XYZ') },
+              ]}
+              value={currentLayerConf.type}
+              defaultValue={currentLayerConf.type}
+              name="type"
+              onChange={onLayerTypeChange}
+            />
+            {isWmsLayerConf(currentLayerConf) && (
+              <StyledControlFormItem
+                controlType="Select"
+                label={serviceVersionLabel}
+                description={serviceVersionDescription}
+                options={wmsVersionOptions}
+                value={wmsVersion}
+                defaultValue={wmsVersionOptions[0].value as string}
+                name="wmsVersion"
+                onChange={onWmsVersionChange}
+              />
+            )}
+            {isWfsLayerConf(currentLayerConf) && (
+              <StyledControlFormItem
+                controlType="Select"
+                label={serviceVersionLabel}
+                description={serviceVersionDescription}
+                options={wfsVersionOptions}
+                value={wfsVersion}
+                defaultValue={wfsVersionOptions[0].value as string}
+                name="wfsVersion"
+                onChange={onWfsVersionChange}
+              />
+            )}
+            {isWmsLayerConf(currentLayerConf) && (
+              <StyledControlFormItem
+                controlType="Input"
+                label={layersParamLabel}
+                description={layersParamDescription}
+                placeholder={layersParamPlaceholder}
+                value={currentLayerConf.layersParam}
+                name="layersParam"
+                onChange={onLayersParamChange}
+              />
+            )}
+            {isWfsLayerConf(currentLayerConf) && (
+              <StyledControlFormItem
+                controlType="Input"
+                label={layersParamLabel}
+                description={layersParamDescription}
+                placeholder={layersParamPlaceholder}
+                value={currentLayerConf.typeName}
+                name="typeName"
+                onChange={onTypeNameChange}
+              />
+            )}
+            <StyledControlFormItem
+              controlType="Input"
+              label={layerTitleLabel}
+              description={layerTitleDescription}
+              placeholder={layerTitlePlaceholder}
+              value={currentLayerConf.title}
+              name="title"
+              onChange={onLayerTitleChange}
+            />
+            {isWfsLayerConf(currentLayerConf) && (
+              <StyledControlNumberFormItem
+                controlType="InputNumber"
+                label={maxFeaturesLabel}
+                description={maxFeaturesDescription}
+                placeholder={maxFeaturesPlaceholder}
+                value={currentLayerConf.maxFeatures}
+                name="maxFeatures"
+                onChange={onMaxFeaturesChange}
+              />
+            )}
+            <StyledControlFormItem
+              controlType="Input"
+              label={attributionLabel}
+              description={attributionDescription}
+              placeholder={attributionPlaceholder}
+              value={currentLayerConf.attribution}
+              name="attribution"
+              onChange={onAttributionChange}
+            />
+          </Tabs.TabPane>
+          <Tabs.TabPane
+            tab={styleTabLabel}
+            key={LAYER_CONFIG_TABS.GEOSTYLER}
+            disabled={!isWfsLayerConf(currentLayerConf)}
+          >
+            {isWfsLayerConf(currentLayerConf) && (
+              <StyledGeoStyler
+                style={currentLayerConf.style}
+                onStyleChange={onStyleChange}
+                data={geostylerData}
+              />
+            )}
+          </Tabs.TabPane>
+        </Tabs>
         <StyledButtonContainer>
           <StyledCloseButton type="default" onClick={onCloseClick}>
             {t('Close')}

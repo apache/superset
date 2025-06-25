@@ -19,7 +19,7 @@
 import { EventHandler, ChangeEvent, MouseEvent, ReactNode } from 'react';
 import { t, SupersetTheme } from '@superset-ui/core';
 import SupersetText from 'src/utils/textUtils';
-import { Input, Button } from '@superset-ui/core/components';
+import Button from 'src/components/Button';
 import { StyledInputContainer, wideButton } from './styles';
 import { DatabaseObject } from '../types';
 
@@ -53,7 +53,8 @@ const SqlAlchemyTab = ({
           <span className="required">*</span>
         </div>
         <div className="input-container">
-          <Input
+          <input
+            type="text"
             name="database_name"
             data-test="database-name-input"
             value={db?.database_name || ''}
@@ -71,7 +72,8 @@ const SqlAlchemyTab = ({
           <span className="required">*</span>
         </div>
         <div className="input-container">
-          <Input
+          <input
+            type="text"
             name="sqlalchemy_uri"
             data-test="sqlalchemy-uri-input"
             value={db?.sqlalchemy_uri || ''}

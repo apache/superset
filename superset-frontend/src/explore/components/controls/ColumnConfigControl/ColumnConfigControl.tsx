@@ -23,7 +23,6 @@ import {
   COLUMN_NAME_ALIASES,
   ControlComponentProps,
 } from '@superset-ui/chart-controls';
-import { Icons } from '@superset-ui/core/components';
 import ColumnConfigItem from './ColumnConfigItem';
 import {
   ColumnConfigInfo,
@@ -130,8 +129,8 @@ export default function ColumnConfigControl<T extends ColumnConfig>({
       <ControlHeader {...props} />
       <div
         css={{
-          border: `1px solid ${theme.colorBorder}`,
-          borderRadius: theme.borderRadius,
+          border: `1px solid ${theme.colors.grayscale.light2}`,
+          borderRadius: theme.gridUnit,
         }}
       >
         {columnsWithChildInfo.map(col => (
@@ -167,11 +166,11 @@ export default function ColumnConfigControl<T extends ColumnConfig>({
             role="button"
             tabIndex={-1}
             css={{
-              padding: theme.sizeUnit * 2,
+              padding: theme.gridUnit * 2,
               textAlign: 'center',
               cursor: 'pointer',
-              fontSize: theme.fontSizeXS,
-              color: theme.colorTextLabel,
+              fontSize: theme.typography.sizes.xs,
+              color: theme.colors.text.label,
               ':hover': {
                 backgroundColor: theme.colors.grayscale.light4,
               },
@@ -180,11 +179,16 @@ export default function ColumnConfigControl<T extends ColumnConfig>({
           >
             {showAllColumns ? (
               <>
-                <Icons.UpOutlined /> &nbsp; {t('Show less columns')}
+                {/* TODO: Remove fa-icon */}
+                {/* eslint-disable-next-line icons/no-fa-icons-usage */}
+                <i className="fa fa-angle-up" /> &nbsp; {t('Show less columns')}
               </>
             ) : (
               <>
-                <Icons.DownOutlined /> &nbsp; {t('Show all columns')}
+                {/* TODO: Remove fa-icon */}
+                {/* eslint-disable-next-line icons/no-fa-icons-usage */}
+                <i className="fa fa-angle-down" /> &nbsp;
+                {t('Show all columns')}
               </>
             )}
           </div>

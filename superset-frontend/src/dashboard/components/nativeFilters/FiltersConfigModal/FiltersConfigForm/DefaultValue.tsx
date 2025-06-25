@@ -24,7 +24,8 @@ import {
   AppSection,
   t,
 } from '@superset-ui/core';
-import { Loading, type FormInstance } from '@superset-ui/core/components';
+import { FormInstance } from 'src/components';
+import Loading from 'src/components/Loading';
 import { NativeFiltersForm } from '../types';
 import { getFormData } from '../../utils';
 import {

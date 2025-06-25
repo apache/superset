@@ -29,12 +29,12 @@ import PropTypes from 'prop-types';
 import cx from 'classnames';
 import {
   css,
+  FAST_DEBOUNCE,
   FeatureFlag,
   isFeatureEnabled,
   styled,
   t,
 } from '@superset-ui/core';
-import { Icons, Constants } from '@superset-ui/core/components';
 
 import {
   Draggable,
@@ -44,6 +44,7 @@ import DragHandle from 'src/dashboard/components/dnd/DragHandle';
 import DashboardComponent from 'src/dashboard/containers/DashboardComponent';
 import DeleteComponentButton from 'src/dashboard/components/DeleteComponentButton';
 import HoverMenu from 'src/dashboard/components/menu/HoverMenu';
+import { Icons } from 'src/components/Icons';
 import IconButton from 'src/dashboard/components/IconButton';
 import BackgroundStyleDropdown from 'src/dashboard/components/menu/BackgroundStyleDropdown';
 import WithPopoverMenu from 'src/dashboard/components/menu/WithPopoverMenu';
@@ -90,16 +91,16 @@ const GridRow = styled.div`
     height: fit-content;
 
     & > :not(:last-child):not(.hover-menu) {
-      ${!editMode && `margin-right: ${theme.sizeUnit * 4}px;`}
+      ${!editMode && `margin-right: ${theme.gridUnit * 4}px;`}
     }
 
     & .empty-droptarget {
       position: relative;
       align-self: center;
       &.empty-droptarget--vertical {
-        min-width: ${theme.sizeUnit * 4}px;
+        min-width: ${theme.gridUnit * 4}px;
         &:not(:last-child) {
-          width: ${theme.sizeUnit * 4}px;
+          width: ${theme.gridUnit * 4}px;
         }
         &:first-child:not(.droptarget-side) {
           z-index: ${EMPTY_CONTAINER_Z_INDEX};
@@ -111,7 +112,7 @@ const GridRow = styled.div`
       &.droptarget-side {
         z-index: ${EMPTY_CONTAINER_Z_INDEX};
         position: absolute;
-        width: ${theme.sizeUnit * 4}px;
+        width: ${theme.gridUnit * 4}px;
         &:first-child {
           inset-inline-start: 0;
         }
@@ -119,7 +120,7 @@ const GridRow = styled.div`
     }
 
     &.grid-row--empty {
-      min-height: ${theme.sizeUnit * 25}px;
+      min-height: ${theme.gridUnit * 25}px;
     }
   `}
 `;
@@ -131,7 +132,7 @@ const emptyRowContentStyles = theme => css`
   display: flex;
   align-items: center;
   justify-content: center;
-  color: ${theme.colorTextLabel};
+  color: ${theme.colors.text.label};
 `;
 
 const Row = props => {
@@ -221,7 +222,7 @@ const Row = props => {
         setContainerHeight(updatedHeight);
       }
     },
-    Constants.FAST_DEBOUNCE,
+    FAST_DEBOUNCE,
     [editMode, containerHeight],
   );
 
@@ -291,7 +292,7 @@ const Row = props => {
             <DeleteComponentButton onDelete={handleDeleteComponent} />
             <IconButton
               onClick={handleChangeFocus}
-              icon={<Icons.SettingOutlined iconSize="l" />}
+              icon={<Icons.SettingOutlined iconSize="xl" />}
             />
           </HoverMenu>
         )}

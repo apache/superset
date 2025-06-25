@@ -35,13 +35,13 @@ export interface CardSortSelectOption {
   value: any;
 }
 
-export interface ListViewFilter {
+export interface Filter {
   Header: ReactNode;
   key: string;
   id: string;
   toolTipDescription?: string;
   urlDisplay?: string;
-  operator?: ListViewFilterOperator;
+  operator?: FilterOperator;
   input?:
     | 'text'
     | 'textarea'
@@ -64,10 +64,9 @@ export interface ListViewFilter {
   dateFilterValueType?: 'unix' | 'iso';
   min?: number;
   max?: number;
-  dropdownStyle?: React.CSSProperties;
 }
 
-export type ListViewFilters = ListViewFilter[];
+export type Filters = Filter[];
 
 export type ViewModeType = 'card' | 'table';
 
@@ -82,25 +81,25 @@ export type InnerFilterValue =
   | { label: string; value: string | number }
   | [number | null, number | null];
 
-export interface ListViewFilterValue {
+export interface FilterValue {
   id: string;
   urlDisplay?: string;
   operator?: string;
   value: InnerFilterValue;
 }
 
-export interface ListViewFetchDataConfig {
+export interface FetchDataConfig {
   pageIndex: number;
   pageSize: number;
   sortBy: SortColumn[];
-  filters: ListViewFilterValue[];
+  filters: FilterValue[];
 }
 
-export interface InternalFilter extends ListViewFilterValue {
+export interface InternalFilter extends FilterValue {
   Header?: string;
 }
 
-export enum ListViewFilterOperator {
+export enum FilterOperator {
   StartsWith = 'sw',
   EndsWith = 'ew',
   Contains = 'ct',

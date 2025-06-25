@@ -17,7 +17,7 @@
  * under the License.
  */
 /* eslint-disable react/sort-prop-types */
-import * as d3 from 'd3v3';
+import d3 from 'd3';
 import PropTypes from 'prop-types';
 import { getSequentialSchemeRegistry } from '@superset-ui/core';
 

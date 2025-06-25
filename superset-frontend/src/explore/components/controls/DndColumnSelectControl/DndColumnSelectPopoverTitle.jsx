@@ -18,14 +18,14 @@
  */
 import { useCallback, useState } from 'react';
 import { t, styled, useTheme } from '@superset-ui/core';
-import { Input, Tooltip } from '@superset-ui/core/components';
-import { Icons } from '@superset-ui/core/components/Icons';
+import { Input } from 'src/components/Input';
+import { Tooltip } from 'src/components/Tooltip';
+import { Icons } from 'src/components/Icons';
 
 const StyledInput = styled(Input)`
   border-radius: ${({ theme }) => theme.borderRadius};
   height: 26px;
-  padding-left: ${({ theme }) => theme.sizeUnit * 2.5}px;
-  border-color: ${({ theme }) => theme.colorSplit};
+  padding-left: ${({ theme }) => theme.gridUnit * 2.5}px;
 `;
 
 export const DndColumnSelectPopoverTitle = ({

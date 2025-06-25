@@ -17,26 +17,26 @@
  * under the License.
  */
 import '@testing-library/jest-dom';
-import { render } from '@superset-ui/core/spec';
-import { GenericDataType } from '@superset-ui/core';
+import { render } from '@testing-library/react';
+import {
+  ThemeProvider,
+  supersetTheme,
+  GenericDataType,
+} from '@superset-ui/core';
 
 import { ColumnOption, ColumnOptionProps } from '../../src';
 
-jest.mock('@superset-ui/chart-controls/components/SQLPopover', () => ({
+jest.mock('../../src/components/SQLPopover', () => ({
   SQLPopover: () => <div data-test="mock-sql-popover" />,
 }));
-jest.mock(
-  '@superset-ui/chart-controls/components/ColumnTypeLabel/ColumnTypeLabel',
-  () => ({
-    ColumnTypeLabel: ({ type }: { type: string }) => (
-      <div data-test="mock-column-type-label">{type}</div>
-    ),
-  }),
-);
-
-jest.mock('@superset-ui/core/components/InfoTooltip', () => ({
-  InfoTooltip: () => <div data-test="mock-tooltip" />,
+jest.mock('../../src/components/ColumnTypeLabel/ColumnTypeLabel', () => ({
+  ColumnTypeLabel: ({ type }: { type: string }) => (
+    <div data-test="mock-column-type-label">{type}</div>
+  ),
 }));
+jest.mock('../../src/components/InfoTooltipWithTrigger', () => () => (
+  <div data-test="mock-info-tooltip-with-trigger" />
+));
 
 const defaultProps: ColumnOptionProps = {
   column: {
@@ -49,7 +49,11 @@ const defaultProps: ColumnOptionProps = {
 };
 
 const setup = (props: Partial<ColumnOptionProps> = {}) =>
-  render(<ColumnOption {...defaultProps} {...props} />);
+  render(
+    <ThemeProvider theme={supersetTheme}>
+      <ColumnOption {...defaultProps} {...props} />
+    </ThemeProvider>,
+  );
 test('shows a label with verbose_name', () => {
   const { container } = setup();
   const lbl = container.getElementsByClassName('option-label');
@@ -110,11 +114,11 @@ test('dttm column has correct column label if showType is true', () => {
     String(GenericDataType.Temporal),
   );
 });
-test('doesnt show InfoTooltip when no warning', () => {
+test('doesnt show InfoTooltipWithTrigger when no warning', () => {
   const { queryByText } = setup();
-  expect(queryByText('mock-tooltip')).not.toBeInTheDocument();
+  expect(queryByText('mock-info-tooltip-with-trigger')).not.toBeInTheDocument();
 });
-test('shows a warning with InfoTooltip when it contains warning', () => {
+test('shows a warning with InfoTooltipWithTrigger when it contains warning', () => {
   const { getByTestId } = setup({
     ...defaultProps,
     column: {
@@ -122,5 +126,5 @@ test('shows a warning with InfoTooltip when it contains warning', () => {
       warning_text: 'This is a warning',
     },
   });
-  expect(getByTestId('mock-tooltip')).toBeInTheDocument();
+  expect(getByTestId('mock-info-tooltip-with-trigger')).toBeInTheDocument();
 });

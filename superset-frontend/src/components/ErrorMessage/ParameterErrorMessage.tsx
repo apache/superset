@@ -20,10 +20,9 @@ import { ReactNode } from 'react';
 import { t, tn } from '@superset-ui/core';
 import levenshtein from 'js-levenshtein';
 
-import { List } from '@superset-ui/core/components';
 import { ErrorMessageComponentProps } from './types';
-import { IssueCode } from './IssueCode';
-import { ErrorAlert } from './ErrorAlert';
+import IssueCode from './IssueCode';
+import ErrorAlert from './ErrorAlert';
 
 interface ParameterErrorExtra {
   undefined_parameters?: string[];
@@ -52,7 +51,7 @@ const findMatches = (undefinedParameters: string[], templateKeys: string[]) => {
   return matches;
 };
 
-export function ParameterErrorMessage({
+function ParameterErrorMessage({
   error,
   source = 'sqllab',
   subtitle,
@@ -76,15 +75,11 @@ export function ParameterErrorMessage({
         {Object.keys(matches).length > 0 && (
           <>
             <p>{t('Did you mean:')}</p>
-            <List
-              split={false}
-              size="small"
-              dataSource={Object.entries(matches)}
-              renderItem={([undefinedParameter, templateKeys]) => (
-                <List.Item compact>
-                  <List.Item.Meta
-                    avatar={<span>•</span>}
-                    title={tn(
+            <ul>
+              {Object.entries(matches).map(
+                ([undefinedParameter, templateKeys]) => (
+                  <li>
+                    {tn(
                       '%(suggestion)s instead of "%(undefinedParameter)s?"',
                       '%(firstSuggestions)s or %(lastSuggestion)s instead of "%(undefinedParameter)s"?',
                       templateKeys.length,
@@ -95,10 +90,10 @@ export function ParameterErrorMessage({
                         undefinedParameter,
                       },
                     )}
-                  />
-                </List.Item>
+                  </li>
+                ),
               )}
-            />
+            </ul>
             <br />
           </>
         )}
@@ -111,6 +106,7 @@ export function ParameterErrorMessage({
       </p>
     </>
   );
+
   return (
     <ErrorAlert
       errorType={t('Parameter error')}
@@ -121,3 +117,5 @@ export function ParameterErrorMessage({
     />
   );
 }
+
+export default ParameterErrorMessage;

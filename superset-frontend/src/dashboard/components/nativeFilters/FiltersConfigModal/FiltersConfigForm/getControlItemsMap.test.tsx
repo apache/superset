@@ -18,7 +18,7 @@
  */
 import { Filter, NativeFilterType } from '@superset-ui/core';
 import { render, screen, userEvent } from 'spec/helpers/testing-library';
-import type { FormInstance } from '@superset-ui/core/components';
+import { FormInstance } from 'src/components';
 import getControlItemsMap, { ControlItemsProps } from './getControlItemsMap';
 import {
   getControlItems,
@@ -55,9 +55,7 @@ jest.mock('./ColumnSelect', () => ({
 }));
 
 const formMock: FormInstance = {
-  focusField: () => {},
-  getFieldWarning: () => [],
-  setFieldValue: () => {},
+  __INTERNAL__: { itemRef: () => () => {} },
   scrollToField: () => {},
   getFieldInstance: () => {},
   getFieldValue: () => {},

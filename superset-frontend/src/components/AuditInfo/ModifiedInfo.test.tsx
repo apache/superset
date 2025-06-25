@@ -39,7 +39,7 @@ test('should render a tooltip when user is provided', async () => {
   expect(dateElement).toBeInTheDocument();
   expect(screen.getByText(TEST_DATE)).toBeInTheDocument();
   expect(screen.queryByText('Modified by: Foo Bar')).not.toBeInTheDocument();
-  await userEvent.hover(dateElement);
+  userEvent.hover(dateElement);
   const tooltip = await screen.findByRole('tooltip');
   expect(tooltip).toBeInTheDocument();
   expect(screen.getByText('Modified by: Foo Bar')).toBeInTheDocument();
@@ -51,7 +51,7 @@ test('should render only the date if username is not provided', async () => {
   const dateElement = screen.getByTestId('audit-info-date');
   expect(dateElement).toBeInTheDocument();
   expect(screen.getByText(TEST_DATE)).toBeInTheDocument();
-  await userEvent.hover(dateElement);
+  userEvent.hover(dateElement);
   await waitFor(
     () => {
       const tooltip = screen.queryByRole('tooltip');

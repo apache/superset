@@ -16,13 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Icons } from '@superset-ui/core/components/Icons';
+import Button from 'src/components/Button';
+import { Icons } from 'src/components/Icons';
 import ToastContainer from 'src/components/MessageToasts/ToastContainer';
-import { Button } from '@superset-ui/core/components';
-import { CopyToClipboard } from '.';
+import CopyToClipboard from '.';
 
 export default {
-  title: 'Components/CopyToClipboard',
+  title: 'CopyToClipboard',
   component: CopyToClipboard,
 };
 

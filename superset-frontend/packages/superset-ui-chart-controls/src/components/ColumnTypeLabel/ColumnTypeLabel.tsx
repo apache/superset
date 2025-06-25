@@ -39,9 +39,9 @@ const TypeIconWrapper = styled.div`
     display: flex;
     justify-content: center;
     align-items: center;
-    width: ${theme.sizeUnit * 6}px;
-    height: ${theme.sizeUnit * 6}px;
-    margin-right: ${theme.sizeUnit}px;
+    width: ${theme.gridUnit * 6}px;
+    height: ${theme.gridUnit * 6}px;
+    margin-right: ${theme.gridUnit}px;
 
     && svg {
       margin-right: 0;

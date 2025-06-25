@@ -17,10 +17,7 @@
  * under the License.
  */
 import { useState, ReactNode } from 'react';
-import {
-  RawAntdSelect as AntdSelect,
-  type RawAntdSelectProps as AntdSelectProps,
-} from '@superset-ui/core/components';
+import AntdSelect, { SelectProps as AntdSelectProps } from 'antd/lib/select';
 
 export const { Option }: any = AntdSelect;
 
@@ -38,7 +35,7 @@ export type SelectProps<VT> = Omit<AntdSelectProps<VT>, 'options'> & {
 export default function Select<VT extends string | number>({
   creatable,
   onSearch,
-  popupMatchSelectWidth = false,
+  dropdownMatchSelectWidth = false,
   minWidth = '100%',
   showSearch: showSearch_ = true,
   onChange,
@@ -76,7 +73,7 @@ export default function Select<VT extends string | number>({
 
   return (
     <AntdSelect<VT>
-      popupMatchSelectWidth={popupMatchSelectWidth}
+      dropdownMatchSelectWidth={dropdownMatchSelectWidth}
       showSearch={showSearch}
       onSearch={handleSearch}
       onChange={handleChange}

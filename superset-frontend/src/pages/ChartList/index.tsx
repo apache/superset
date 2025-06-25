@@ -24,6 +24,8 @@ import {
   styled,
   SupersetClient,
   t,
+  useTheme,
+  css,
 } from '@superset-ui/core';
 import { useState, useMemo, useCallback } from 'react';
 import rison from 'rison';
@@ -40,43 +42,39 @@ import {
   useListViewResource,
 } from 'src/views/CRUD/hooks';
 import handleResourceExport from 'src/utils/export';
-import {
-  ConfirmStatusChange,
-  CertifiedBadge,
-  Tooltip,
-  FaveStar,
-  InfoTooltip,
-  Loading,
-  type LabeledValue,
-} from '@superset-ui/core/components';
-import {
-  FacePile,
-  ImportModal as ImportModelsModal,
-  ModifiedInfo,
-  GenericLink,
-  TagsList,
-  TagType,
-  ListView,
-  ListViewFilterOperator as FilterOperator,
-  DashboardCrossLinks,
-  type ListViewProps,
-  type ListViewFilters,
-  type ListViewFilter,
-} from 'src/components';
+import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
+import { TagsList } from 'src/components/Tags';
 import SubMenu, { SubMenuProps } from 'src/features/home/SubMenu';
+import FaveStar from 'src/components/FaveStar';
 import { Link, useHistory } from 'react-router-dom';
+import ListView, {
+  Filter,
+  FilterOperator,
+  Filters,
+  ListViewProps,
+  SelectOption,
+} from 'src/components/ListView';
+import Loading from 'src/components/Loading';
 import { dangerouslyGetItemDoNotUse } from 'src/utils/localStorageHelpers';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import PropertiesModal from 'src/explore/components/PropertiesModal';
+import ImportModelsModal from 'src/components/ImportModal/index';
 import Chart from 'src/types/Chart';
-import { Icons } from '@superset-ui/core/components/Icons';
+import Tag from 'src/types/TagType';
+import { Tooltip } from 'src/components/Tooltip';
+import { Icons } from 'src/components/Icons';
 import { nativeFilterGate } from 'src/dashboard/components/nativeFilters/utils';
-import { loadTags } from 'src/components/Tag/utils';
+import InfoTooltip from 'src/components/InfoTooltip';
+import CertifiedBadge from 'src/components/CertifiedBadge';
+import { GenericLink } from 'src/components/GenericLink/GenericLink';
+import { loadTags } from 'src/components/Tags/utils';
+import FacePile from 'src/components/FacePile';
 import ChartCard from 'src/features/charts/ChartCard';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import { findPermission } from 'src/utils/findPermission';
+import { DashboardCrossLinks } from 'src/components/ListView/DashboardCrossLinks';
+import { ModifiedInfo } from 'src/components/AuditInfo';
 import { QueryObjectColumns } from 'src/views/CRUD/types';
-import { WIDER_DROPDOWN_WIDTH } from 'src/components/ListView/utils';
 
 const FlexRowContainer = styled.div`
   align-items: center;
@@ -90,7 +88,7 @@ const FlexRowContainer = styled.div`
   }
 
   svg {
-    margin-right: ${({ theme }) => theme.sizeUnit}px;
+    margin-right: ${({ theme }) => theme.gridUnit}px;
   }
 `;
 
@@ -141,7 +139,7 @@ const createFetchDatasets = async (
   );
 
   return {
-    data: uniqBy<LabeledValue>(datasets, 'value'),
+    data: uniqBy<SelectOption>(datasets, 'value'),
     totalCount: json?.count,
   };
 };
@@ -157,10 +155,11 @@ interface ChartListProps {
 }
 
 const StyledActions = styled.div`
-  color: ${({ theme }) => theme.colorIcon};
+  color: ${({ theme }) => theme.colors.grayscale.base};
 `;
 
 function ChartList(props: ChartListProps) {
+  const theme = useTheme();
   const {
     addDangerToast,
     addSuccessToast,
@@ -308,7 +307,7 @@ function ChartList(props: ChartListProps) {
       }),
     );
     return {
-      data: uniqBy<LabeledValue>(dashboards, 'value'),
+      data: uniqBy<SelectOption>(dashboards, 'value'),
       totalCount: response?.json?.count,
     };
   };
@@ -363,7 +362,6 @@ function ChartList(props: ChartListProps) {
         ),
         Header: t('Name'),
         accessor: 'slice_name',
-        id: 'slice_name',
       },
       {
         Cell: ({
@@ -374,7 +372,6 @@ function ChartList(props: ChartListProps) {
         Header: t('Type'),
         accessor: 'viz_type',
         size: 'xxl',
-        id: 'viz_type',
       },
       {
         Cell: ({
@@ -393,7 +390,6 @@ function ChartList(props: ChartListProps) {
         accessor: 'datasource_id',
         disableSortBy: true,
         size: 'xl',
-        id: 'datasource_id',
       },
       {
         Cell: ({
@@ -405,7 +401,6 @@ function ChartList(props: ChartListProps) {
         accessor: 'dashboards',
         disableSortBy: true,
         size: 'xxl',
-        id: 'dashboards',
       },
       {
         Cell: ({
@@ -415,7 +410,7 @@ function ChartList(props: ChartListProps) {
         }: any) => (
           // Only show custom type tags
           <TagsList
-            tags={tags.filter((tag: TagType) =>
+            tags={tags.filter((tag: Tag) =>
               tag.type
                 ? tag.type === 1 || tag.type === 'TagTypes.custom'
                 : true,
@@ -427,7 +422,6 @@ function ChartList(props: ChartListProps) {
         accessor: 'tags',
         disableSortBy: true,
         hidden: !isFeatureEnabled(FeatureFlag.TaggingSystem),
-        id: 'tags',
       },
       {
         Cell: ({
@@ -439,7 +433,6 @@ function ChartList(props: ChartListProps) {
         accessor: 'owners',
         disableSortBy: true,
         size: 'xl',
-        id: 'owners',
       },
       {
         Cell: ({
@@ -453,7 +446,6 @@ function ChartList(props: ChartListProps) {
         Header: t('Last modified'),
         accessor: 'last_saved_at',
         size: 'xl',
-        id: 'last_saved_at',
       },
       {
         Cell: ({ row: { original } }: any) => {
@@ -544,7 +536,6 @@ function ChartList(props: ChartListProps) {
       {
         accessor: QueryObjectColumns.ChangedBy,
         hidden: true,
-        id: QueryObjectColumns.ChangedBy,
       },
     ],
     [
@@ -560,7 +551,7 @@ function ChartList(props: ChartListProps) {
     ],
   );
 
-  const favoritesFilter: ListViewFilter = useMemo(
+  const favoritesFilter: Filter = useMemo(
     () => ({
       Header: t('Favorite'),
       key: 'favorite',
@@ -577,7 +568,7 @@ function ChartList(props: ChartListProps) {
     [],
   );
 
-  const filters: ListViewFilters = useMemo(() => {
+  const filters: Filters = useMemo(() => {
     const filters_list = [
       {
         Header: t('Name'),
@@ -621,7 +612,6 @@ function ChartList(props: ChartListProps) {
         unfilteredLabel: t('All'),
         fetchSelects: createFetchDatasets,
         paginate: true,
-        dropdownStyle: { minWidth: WIDER_DROPDOWN_WIDTH },
       },
       ...(isFeatureEnabled(FeatureFlag.TaggingSystem) && canReadTag
         ? [
@@ -657,7 +647,6 @@ function ChartList(props: ChartListProps) {
           props.user,
         ),
         paginate: true,
-        dropdownStyle: { minWidth: WIDER_DROPDOWN_WIDTH },
       },
       {
         Header: t('Dashboard'),
@@ -668,7 +657,6 @@ function ChartList(props: ChartListProps) {
         unfilteredLabel: t('All'),
         fetchSelects: fetchDashboards,
         paginate: true,
-        dropdownStyle: { minWidth: WIDER_DROPDOWN_WIDTH },
       },
       ...(userId ? [favoritesFilter] : []),
       {
@@ -703,9 +691,8 @@ function ChartList(props: ChartListProps) {
           props.user,
         ),
         paginate: true,
-        dropdownStyle: { minWidth: WIDER_DROPDOWN_WIDTH },
       },
-    ] as ListViewFilters;
+    ] as Filters;
     return filters_list;
   }, [addDangerToast, favoritesFilter, props.user]);
 
@@ -775,7 +762,13 @@ function ChartList(props: ChartListProps) {
     subMenuButtons.push({
       name: (
         <>
-          <Icons.PlusOutlined iconSize="m" />
+          <Icons.PlusOutlined
+            iconColor={theme.colors.primary.light5}
+            iconSize="m"
+            css={css`
+              vertical-align: text-top;
+            `}
+          />
           <span>{t('Chart')}</span>
         </>
       ),
@@ -792,7 +785,10 @@ function ChartList(props: ChartListProps) {
           title={t('Import charts')}
           placement="bottomRight"
         >
-          <Icons.DownloadOutlined iconSize="l" data-test="import-button" />
+          <Icons.DownloadOutlined
+            data-test="import-button"
+            iconColor={theme.colors.primary.dark1}
+          />
         </Tooltip>
       ),
       buttonStyle: 'link',

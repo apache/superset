@@ -20,13 +20,10 @@ import { useCallback } from 'react';
 import { styled, t } from '@superset-ui/core';
 import type { Column, ColumnPinnedType, GridApi } from 'ag-grid-community';
 
-import { Icons } from '@superset-ui/core/components/Icons';
-import { Menu, MenuItem } from '@superset-ui/core/components/Menu';
+import { Icons } from 'src/components/Icons';
+import { MenuDotsDropdown, DropdownProps } from 'src/components/Dropdown';
+import { Menu, MenuItem } from 'src/components/Menu';
 import copyTextToClipboard from 'src/utils/copy';
-import {
-  MenuDotsDropdown,
-  type DropdownProps,
-} from '@superset-ui/core/components';
 import { PIVOT_COL_ID } from './constants';
 
 const IconEmpty = styled.span`
@@ -44,7 +41,7 @@ export type HeaderMenuProps = {
   onVisibleChange: DropdownProps['onOpenChange'];
 };
 
-export const HeaderMenu: React.FC<HeaderMenuProps> = ({
+const HeaderMenu: React.FC<HeaderMenuProps> = ({
   colId,
   api,
   pinnedLeft,
@@ -254,3 +251,5 @@ export const HeaderMenu: React.FC<HeaderMenuProps> = ({
     />
   );
 };
+
+export default HeaderMenu;

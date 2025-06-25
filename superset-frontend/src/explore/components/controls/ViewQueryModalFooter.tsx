@@ -19,7 +19,7 @@
 import { FC } from 'react';
 import { isObject } from 'lodash';
 import { t, SupersetClient } from '@superset-ui/core';
-import { Button } from '@superset-ui/core/components';
+import Button from 'src/components/Button';
 import { useHistory } from 'react-router-dom';
 
 interface SimpleDataSource {

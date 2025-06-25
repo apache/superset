@@ -21,8 +21,9 @@ import configureStore from 'redux-mock-store';
 import { fireEvent, render, waitFor } from 'spec/helpers/testing-library';
 import fetchMock from 'fetch-mock';
 import { ImportResourceName } from 'src/views/CRUD/types';
-import type { ImportModelsModalProps } from './types';
-import { ImportModal } from '.';
+import ImportModelsModal, {
+  ImportModelsModalProps,
+} from 'src/components/ImportModal';
 
 const mockStore = configureStore([thunk]);
 const store = mockStore({});
@@ -48,7 +49,7 @@ afterEach(() => {
 });
 
 const setup = (overrides: Partial<ImportModelsModalProps> = {}) =>
-  render(<ImportModal {...requiredProps} {...overrides} />, { store });
+  render(<ImportModelsModal {...requiredProps} {...overrides} />, { store });
 
 test('renders', () => {
   const { container } = setup();

@@ -19,7 +19,7 @@
 
 import { render, screen, fireEvent } from 'spec/helpers/testing-library';
 import { ErrorLevel, ErrorTypeEnum } from '@superset-ui/core';
-import { MarshmallowErrorMessage } from './MarshmallowErrorMessage';
+import MarshmallowErrorMessage from './MarshmallowErrorMessage';
 
 describe('MarshmallowErrorMessage', () => {
   const mockError = {

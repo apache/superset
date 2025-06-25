@@ -51,7 +51,7 @@ export function ControlFormItem({
   controlType,
   ...props
 }: ControlFormItemProps) {
-  const { sizeUnit } = useTheme();
+  const { gridUnit } = useTheme();
   const [hovered, setHovered] = useState(false);
   const [value, setValue] = useState(
     initialValue === undefined ? defaultValue : initialValue,
@@ -84,7 +84,7 @@ export function ControlFormItem({
   return (
     <div
       css={{
-        margin: 2 * sizeUnit,
+        margin: 2 * gridUnit,
         width,
         maxWidth: '100%',
         flex: 1,

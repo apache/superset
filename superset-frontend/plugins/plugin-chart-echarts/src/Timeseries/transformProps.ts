@@ -690,6 +690,7 @@ export default function transformProps(
   const onFocusedSeries = (seriesName: string | null) => {
     focusedSeries = seriesName;
   };
+
   return {
     echartOptions,
     emitCrossFilters,

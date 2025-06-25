@@ -18,13 +18,14 @@
  */
 import { useState, useMemo } from 'react';
 import { styled, t } from '@superset-ui/core';
-import { FormLabel, Select } from '@superset-ui/core/components';
+import { Select } from 'src/components';
+import { FormLabel } from 'src/components/Form';
 import { SELECT_WIDTH } from './utils';
 import { CardSortSelectOption, SortColumn } from './types';
 
 const SortContainer = styled.div`
   display: inline-flex;
-  font-size: ${({ theme }) => theme.fontSizeSM}px;
+  font-size: ${({ theme }) => theme.typography.sizes.s}px;
   align-items: center;
   text-align: left;
   width: ${SELECT_WIDTH}px;

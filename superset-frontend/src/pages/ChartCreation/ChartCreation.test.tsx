@@ -23,11 +23,18 @@ import {
   userEvent,
   waitFor,
 } from 'spec/helpers/testing-library';
+import { ReactElement } from 'react';
 import fetchMock from 'fetch-mock';
 import { createMemoryHistory } from 'history';
 import { ChartCreation } from 'src/pages/ChartCreation';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
-import { supersetTheme } from '@superset-ui/core';
+import { supersetTheme, ThemeProvider } from '@superset-ui/core';
+
+const renderWithTheme = (component: ReactElement, renderOptions = {}) =>
+  render(
+    <ThemeProvider theme={supersetTheme}>{component}</ThemeProvider>,
+    renderOptions,
+  );
 
 jest.mock('src/components/DynamicPlugins', () => ({
   usePluginContext: () => ({
@@ -38,7 +45,7 @@ jest.mock('src/components/DynamicPlugins', () => ({
 const mockDatasourceResponse = {
   result: [
     {
-      id: 'table_1',
+      id: 1,
       table_name: 'table',
       datasource_type: 'table',
       database: { database_name: 'test_db' },
@@ -88,21 +95,21 @@ const routeProps = {
   match: {} as any,
 };
 
+const renderOptions = {
+  useRouter: true,
+};
+
 async function renderComponent(user = mockUser) {
-  const rendered = render(
+  renderWithTheme(
     <ChartCreation
       user={user}
       addSuccessToast={() => null}
       theme={supersetTheme}
       {...routeProps}
     />,
-    {
-      useRedux: true,
-      useRouter: true,
-    },
+    renderOptions,
   );
   await waitFor(() => new Promise(resolve => setTimeout(resolve, 0)));
-  return rendered;
 }
 
 test('renders a select and a VizTypeGallery', async () => {
@@ -176,7 +183,6 @@ test('double-click viz type submits with formatted URL if datasource is selected
   await renderComponent();
 
   const datasourceSelect = screen.getByRole('combobox', { name: 'Dataset' });
-
   userEvent.click(datasourceSelect);
   userEvent.click(await screen.findByText(/test_db/i));
 
@@ -190,6 +196,6 @@ test('double-click viz type submits with formatted URL if datasource is selected
   expect(
     screen.getByRole('button', { name: 'Create new chart' }),
   ).toBeEnabled();
-  const formattedUrl = '/explore/?viz_type=table&datasource=table_1__table';
+  const formattedUrl = '/explore/?viz_type=table&datasource=1__table';
   expect(history.push).toHaveBeenCalledWith(formattedUrl);
 });

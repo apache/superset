@@ -21,7 +21,7 @@ import {
   LegendOrientation,
   LegendType,
   EchartsTimeseriesSeriesType,
-} from '../../src';
+} from '@superset-ui/plugin-chart-echarts';
 import transformProps from '../../src/MixedTimeseries/transformProps';
 import {
   EchartsMixedTimeseriesFormData,

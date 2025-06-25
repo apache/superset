@@ -31,26 +31,26 @@ import {
   SupersetTheme,
   t,
 } from '@superset-ui/core';
+import Modal from 'src/components/Modal';
+import Button from 'src/components/Button';
+import { Switch, SwitchProps } from 'src/components/Switch';
+import Collapse from 'src/components/Collapse';
 import {
-  Button,
-  Collapse,
-  Form,
-  Select,
+  AntdForm,
   AsyncSelect,
-  Modal,
-  Row,
   Col,
-  Input,
-  InputNumber,
+  Row,
+  Select,
   Upload,
-  type UploadChangeParam,
-  type UploadFile,
-} from '@superset-ui/core/components';
-import { Switch, SwitchProps } from '@superset-ui/core/components/Switch';
-import { Icons } from '@superset-ui/core/components/Icons';
+} from 'src/components';
+import { Icons } from 'src/components/Icons';
+import { Input, InputNumber } from 'src/components/Input';
 import rison from 'rison';
+// eslint-disable-next-line no-restricted-imports
+import { UploadChangeParam, UploadFile } from 'antd/lib/upload/interface'; // TODO: Remove antd
 import withToasts from 'src/components/MessageToasts/withToasts';
 import {
+  antdCollapseStyles,
   antDModalNoPaddingStyles,
   antDModalStyles,
   formStyles,
@@ -218,7 +218,7 @@ const UploadDataModal: FunctionComponent<UploadDataModalProps> = ({
   allowedExtensions,
   type = 'csv',
 }) => {
-  const [form] = Form.useForm();
+  const [form] = AntdForm.useForm();
   const [currentDatabaseId, setCurrentDatabaseId] = useState<number>(0);
   const [fileList, setFileList] = useState<UploadFile[]>([]);
   const [columns, setColumns] = useState<string[]>([]);
@@ -589,7 +589,7 @@ const UploadDataModal: FunctionComponent<UploadDataModalProps> = ({
       show={show}
       title={<UploadTitle />}
     >
-      <Form
+      <AntdForm
         form={form}
         onFinish={onFinish}
         data-test="dashboard-edit-properties-form"
@@ -600,475 +600,441 @@ const UploadDataModal: FunctionComponent<UploadDataModalProps> = ({
           expandIconPosition="right"
           accordion
           defaultActiveKey="general"
-          modalMode
-          items={[
-            {
-              key: 'general',
-              label: (
-                <div>
-                  <h4>{t('General information')}</h4>
-                  <p className="helper">{t('Upload a file to a database.')}</p>
-                </div>
-              ),
-              children: (
-                <>
-                  <Row>
-                    <Col span={24}>
-                      <StyledFormItem
-                        label={t('%(label)s file', {
-                          label: extensionsToLabel[type],
-                        })}
-                        name="file"
-                        required
-                        rules={[{ validator: validateUpload }]}
-                      >
-                        <Upload
-                          name="modelFile"
-                          id="modelFile"
-                          data-test="model-file-input"
-                          accept={allowedExtensionsToAccept[type]}
-                          fileList={fileList}
-                          onChange={onChangeFile}
-                          onRemove={onRemoveFile}
-                          // upload is handled by hook
-                          customRequest={() => {}}
-                        >
-                          <Button
-                            aria-label={t('Select')}
-                            icon={<Icons.UploadOutlined />}
-                            loading={fileLoading}
-                          >
-                            {t('Select')}
-                          </Button>
-                        </Upload>
-                      </StyledFormItem>
-                    </Col>
-                  </Row>
-                  <Row>
-                    <Col span={24}>
-                      <StyledFormItem>
-                        <SwitchContainer
-                          label={t('Preview uploaded file')}
-                          dataTest="previewUploadedFile"
-                          onChange={onChangePreviewUploadedFile}
-                          checked={previewUploadedFile}
-                        />
-                      </StyledFormItem>
-                    </Col>
-                  </Row>
-                  {previewUploadedFile && (
-                    <Row>
-                      <Col span={24}>
-                        <ColumnsPreview columns={columns} />
-                      </Col>
-                    </Row>
-                  )}
-                  <Row>
-                    <Col span={24}>
-                      <StyledFormItem
-                        label={t('Database')}
-                        required
-                        name="database"
-                        rules={[{ validator: validateDatabase }]}
-                      >
-                        <AsyncSelect
-                          ariaLabel={t('Select a database')}
-                          options={loadDatabaseOptions}
-                          onChange={onChangeDatabase}
-                          allowClear
-                          placeholder={t(
-                            'Select a database to upload the file to',
-                          )}
-                        />
-                      </StyledFormItem>
-                    </Col>
-                  </Row>
-                  <Row>
-                    <Col span={24}>
-                      <StyledFormItem label={t('Schema')} name="schema">
-                        <AsyncSelect
-                          ariaLabel={t('Select a schema')}
-                          options={loadSchemaOptions}
-                          onChange={onChangeSchema}
-                          allowClear
-                          placeholder={t(
-                            'Select a schema if the database supports this',
-                          )}
-                        />
-                      </StyledFormItem>
-                    </Col>
-                  </Row>
-                  <Row>
-                    <Col span={24}>
-                      <StyledFormItem
-                        label={t('Table name')}
-                        name="table_name"
-                        required
-                        rules={[
-                          { required: true, message: 'Table name is required' },
-                        ]}
-                      >
-                        <Input
-                          aria-label={t('Table Name')}
-                          name="table_name"
-                          data-test="properties-modal-name-input"
-                          type="text"
-                          placeholder={t('Name of table to be created')}
-                        />
-                      </StyledFormItem>
-                    </Col>
-                  </Row>
-                  {isFieldATypeSpecificField('delimiter', type) && (
-                    <Row>
-                      <Col span={24}>
-                        <StyledFormItemWithTip
-                          label={t('Delimiter')}
-                          tip={t('Select a delimiter for this data')}
-                          name="delimiter"
-                        >
-                          <Select
-                            ariaLabel={t('Choose a delimiter')}
-                            options={delimiterOptions}
-                            onChange={onChangeDelimiter}
-                            allowNewOptions
-                          />
-                        </StyledFormItemWithTip>
-                      </Col>
-                    </Row>
-                  )}
-                  {isFieldATypeSpecificField('sheet_name', type) && (
-                    <Row>
-                      <Col span={24}>
-                        <StyledFormItem
-                          label={t('Sheet name')}
-                          name="sheet_name"
-                        >
-                          <Select
-                            ariaLabel={t('Choose sheet name')}
-                            options={sheetNamesToOptions()}
-                            onChange={onSheetNameChange}
-                            allowNewOptions
-                            placeholder={t(
-                              'Select a sheet name from the uploaded file',
-                            )}
-                          />
-                        </StyledFormItem>
-                      </Col>
-                    </Row>
-                  )}
-                </>
-              ),
-            },
-            {
-              key: 'file-settings',
-              label: (
-                <div>
-                  <h4>{t('File settings')}</h4>
-                  <p className="helper">
-                    {t(
-                      'Adjust how spaces, blank lines, null values are handled and other file wide settings.',
+          css={(theme: SupersetTheme) => antdCollapseStyles(theme)}
+        >
+          <Collapse.Panel
+            header={
+              <div>
+                <h4>{t('General information')}</h4>
+                <p className="helper">{t('Upload a file to a database.')}</p>
+              </div>
+            }
+            key="general"
+          >
+            <Row>
+              <Col span={24}>
+                <StyledFormItem
+                  label={t('%(label)s file', {
+                    label: extensionsToLabel[type],
+                  })}
+                  name="file"
+                  required
+                  rules={[{ validator: validateUpload }]}
+                >
+                  <Upload
+                    name="modelFile"
+                    id="modelFile"
+                    data-test="model-file-input"
+                    accept={allowedExtensionsToAccept[type]}
+                    fileList={fileList}
+                    onChange={onChangeFile}
+                    onRemove={onRemoveFile}
+                    // upload is handled by hook
+                    customRequest={() => {}}
+                  >
+                    <Button
+                      aria-label={t('Select')}
+                      icon={<Icons.UploadOutlined />}
+                      loading={fileLoading}
+                    >
+                      {t('Select')}
+                    </Button>
+                  </Upload>
+                </StyledFormItem>
+              </Col>
+            </Row>
+            <Row>
+              <Col span={24}>
+                <StyledFormItem>
+                  <SwitchContainer
+                    label={t('Preview uploaded file')}
+                    dataTest="previewUploadedFile"
+                    onChange={onChangePreviewUploadedFile}
+                    checked={previewUploadedFile}
+                  />
+                </StyledFormItem>
+              </Col>
+            </Row>
+            {previewUploadedFile && (
+              <Row>
+                <Col span={24}>
+                  <ColumnsPreview columns={columns} />
+                </Col>
+              </Row>
+            )}
+            <Row>
+              <Col span={24}>
+                <StyledFormItem
+                  label={t('Database')}
+                  required
+                  name="database"
+                  rules={[{ validator: validateDatabase }]}
+                >
+                  <AsyncSelect
+                    ariaLabel={t('Select a database')}
+                    options={loadDatabaseOptions}
+                    onChange={onChangeDatabase}
+                    allowClear
+                    placeholder={t('Select a database to upload the file to')}
+                  />
+                </StyledFormItem>
+              </Col>
+            </Row>
+            <Row>
+              <Col span={24}>
+                <StyledFormItem label={t('Schema')} name="schema">
+                  <AsyncSelect
+                    ariaLabel={t('Select a schema')}
+                    options={loadSchemaOptions}
+                    onChange={onChangeSchema}
+                    allowClear
+                    placeholder={t(
+                      'Select a schema if the database supports this',
                     )}
-                  </p>
-                </div>
-              ),
-              children: (
-                <>
-                  <Row>
-                    <Col span={24}>
-                      <StyledFormItemWithTip
-                        label={t('If table already exists')}
-                        tip={t(
-                          'What should happen if the table already exists',
-                        )}
-                        name="already_exists"
-                      >
-                        <Select
-                          ariaLabel={t('Choose already exists')}
-                          options={tableAlreadyExistsOptions}
-                          onChange={() => {}}
-                        />
-                      </StyledFormItemWithTip>
-                    </Col>
-                  </Row>
-                  {isFieldATypeSpecificField('column_dates', type) && (
-                    <Row>
-                      <Col span={24}>
-                        <StyledFormItem
-                          label={t('Columns to be parsed as dates')}
-                          name="column_dates"
-                        >
-                          <Select
-                            ariaLabel={t(
-                              'Choose columns to be parsed as dates',
-                            )}
-                            mode="multiple"
-                            options={columnsToOptions()}
-                            allowClear
-                            allowNewOptions
-                            placeholder={t(
-                              'A comma separated list of columns that should be parsed as dates',
-                            )}
-                          />
-                        </StyledFormItem>
-                      </Col>
-                    </Row>
+                  />
+                </StyledFormItem>
+              </Col>
+            </Row>
+            <Row>
+              <Col span={24}>
+                <StyledFormItem
+                  label={t('Table name')}
+                  name="table_name"
+                  required
+                  rules={[
+                    { required: true, message: 'Table name is required' },
+                  ]}
+                >
+                  <Input
+                    aria-label={t('Table Name')}
+                    name="table_name"
+                    data-test="properties-modal-name-input"
+                    type="text"
+                    placeholder={t('Name of table to be created')}
+                  />
+                </StyledFormItem>
+              </Col>
+            </Row>
+            {isFieldATypeSpecificField('delimiter', type) && (
+              <Row>
+                <Col span={24}>
+                  <StyledFormItemWithTip
+                    label={t('Delimiter')}
+                    tip={t('Select a delimiter for this data')}
+                    name="delimiter"
+                  >
+                    <Select
+                      ariaLabel={t('Choose a delimiter')}
+                      options={delimiterOptions}
+                      onChange={onChangeDelimiter}
+                      allowNewOptions
+                    />
+                  </StyledFormItemWithTip>
+                </Col>
+              </Row>
+            )}
+            {isFieldATypeSpecificField('sheet_name', type) && (
+              <Row>
+                <Col span={24}>
+                  <StyledFormItem label={t('Sheet name')} name="sheet_name">
+                    <Select
+                      ariaLabel={t('Choose sheet name')}
+                      options={sheetNamesToOptions()}
+                      onChange={onSheetNameChange}
+                      allowNewOptions
+                      placeholder={t(
+                        'Select a sheet name from the uploaded file',
+                      )}
+                    />
+                  </StyledFormItem>
+                </Col>
+              </Row>
+            )}
+          </Collapse.Panel>
+          <Collapse.Panel
+            header={
+              <div>
+                <h4>{t('File settings')}</h4>
+                <p className="helper">
+                  {t(
+                    'Adjust how spaces, blank lines, null values are handled and other file wide settings.',
                   )}
-                  {isFieldATypeSpecificField('decimal_character', type) && (
-                    <Row>
-                      <Col span={24}>
-                        <StyledFormItemWithTip
-                          label={t('Decimal character')}
-                          tip={t('Character to interpret as decimal point')}
-                          name="decimal_character"
-                        >
-                          <Input type="text" />
-                        </StyledFormItemWithTip>
-                      </Col>
-                    </Row>
-                  )}
-                  {isFieldATypeSpecificField('null_values', type) && (
-                    <Row>
-                      <Col span={24}>
-                        <StyledFormItemWithTip
-                          label={t('Null Values')}
-                          tip={t(
-                            'Choose values that should be treated as null. Warning: Hive database supports only a single value',
-                          )}
-                          name="null_values"
-                        >
-                          <Select
-                            mode="multiple"
-                            options={nullValuesOptions}
-                            allowClear
-                            allowNewOptions
-                          />
-                        </StyledFormItemWithTip>
-                      </Col>
-                    </Row>
-                  )}
-                  {isFieldATypeSpecificField('skip_initial_space', type) && (
-                    <Row>
-                      <Col span={24}>
-                        <StyledFormItem name="skip_initial_space">
-                          <SwitchContainer
-                            label={t('Skip spaces after delimiter')}
-                            dataTest="skipInitialSpace"
-                          />
-                        </StyledFormItem>
-                      </Col>
-                    </Row>
-                  )}
-                  {isFieldATypeSpecificField('skip_blank_lines', type) && (
-                    <Row>
-                      <Col span={24}>
-                        <StyledFormItem name="skip_blank_lines">
-                          <SwitchContainer
-                            label={t(
-                              'Skip blank lines rather than interpreting them as Not A Number values',
-                            )}
-                            dataTest="skipBlankLines"
-                          />
-                        </StyledFormItem>
-                      </Col>
-                    </Row>
-                  )}
-                  {isFieldATypeSpecificField('day_first', type) && (
-                    <Row>
-                      <Col span={24}>
-                        <StyledFormItem name="day_first">
-                          <SwitchContainer
-                            label={t(
-                              'DD/MM format dates, international and European format',
-                            )}
-                            dataTest="dayFirst"
-                          />
-                        </StyledFormItem>
-                      </Col>
-                    </Row>
-                  )}
-                </>
-              ),
-            },
-            {
-              key: 'columns',
-              label: (
-                <div>
-                  <h4>{t('Columns')}</h4>
-                  <p className="helper">
-                    {t(
-                      'Adjust column settings such as specifying the columns to read, how duplicates are handled, column data types, and more.',
+                </p>
+              </div>
+            }
+            key="2"
+          >
+            <Row>
+              <Col span={24}>
+                <StyledFormItemWithTip
+                  label={t('If table already exists')}
+                  tip={t('What should happen if the table already exists')}
+                  name="already_exists"
+                >
+                  <Select
+                    ariaLabel={t('Choose already exists')}
+                    options={tableAlreadyExistsOptions}
+                    onChange={() => {}}
+                  />
+                </StyledFormItemWithTip>
+              </Col>
+            </Row>
+            {isFieldATypeSpecificField('column_dates', type) && (
+              <Row>
+                <Col span={24}>
+                  <StyledFormItem
+                    label={t('Columns to be parsed as dates')}
+                    name="column_dates"
+                  >
+                    <Select
+                      ariaLabel={t('Choose columns to be parsed as dates')}
+                      mode="multiple"
+                      options={columnsToOptions()}
+                      allowClear
+                      allowNewOptions
+                      placeholder={t(
+                        'Select column names from a dropdown list that should be parsed as dates.',
+                      )}
+                    />
+                  </StyledFormItem>
+                </Col>
+              </Row>
+            )}
+            {isFieldATypeSpecificField('decimal_character', type) && (
+              <Row>
+                <Col span={24}>
+                  <StyledFormItemWithTip
+                    label={t('Decimal character')}
+                    tip={t('Character to interpret as decimal point')}
+                    name="decimal_character"
+                  >
+                    <Input type="text" />
+                  </StyledFormItemWithTip>
+                </Col>
+              </Row>
+            )}
+            {isFieldATypeSpecificField('null_values', type) && (
+              <Row>
+                <Col span={24}>
+                  <StyledFormItemWithTip
+                    label={t('Null Values')}
+                    tip={t(
+                      'Choose values that should be treated as null. Warning: Hive database supports only a single value',
                     )}
-                  </p>
-                </div>
-              ),
-              children: (
-                <>
-                  <Row>
-                    <Col span={24}>
-                      <StyledFormItem
-                        label={t('Columns to read')}
-                        name="columns_read"
-                      >
-                        <Select
-                          ariaLabel={t('Choose columns to read')}
-                          mode="multiple"
-                          options={columnsToOptions()}
-                          allowClear
-                          allowNewOptions
-                          placeholder={t(
-                            'List of the column names that should be read',
-                          )}
-                        />
-                      </StyledFormItem>
-                    </Col>
-                  </Row>
-                  {isFieldATypeSpecificField('column_data_types', type) && (
-                    <Row>
-                      <Col span={24}>
-                        <StyledFormItemWithTip
-                          label={t('Column data types')}
-                          tip={t(
-                            'A dictionary with column names and their data types if you need to change the defaults. Example: {"user_id":"int"}. Check Python\'s Pandas library for supported data types.',
-                          )}
-                          name="column_data_types"
-                        >
-                          <Input
-                            aria-label={t('Column data types')}
-                            type="text"
-                          />
-                        </StyledFormItemWithTip>
-                      </Col>
-                    </Row>
+                    name="null_values"
+                  >
+                    <Select
+                      mode="multiple"
+                      options={nullValuesOptions}
+                      allowClear
+                      allowNewOptions
+                    />
+                  </StyledFormItemWithTip>
+                </Col>
+              </Row>
+            )}
+            {isFieldATypeSpecificField('skip_initial_space', type) && (
+              <Row>
+                <Col span={24}>
+                  <StyledFormItem name="skip_initial_space">
+                    <SwitchContainer
+                      label={t('Skip spaces after delimiter')}
+                      dataTest="skipInitialSpace"
+                    />
+                  </StyledFormItem>
+                </Col>
+              </Row>
+            )}
+            {isFieldATypeSpecificField('skip_blank_lines', type) && (
+              <Row>
+                <Col span={24}>
+                  <StyledFormItem name="skip_blank_lines">
+                    <SwitchContainer
+                      label={t(
+                        'Skip blank lines rather than interpreting them as Not A Number values',
+                      )}
+                      dataTest="skipBlankLines"
+                    />
+                  </StyledFormItem>
+                </Col>
+              </Row>
+            )}
+            {isFieldATypeSpecificField('day_first', type) && (
+              <Row>
+                <Col span={24}>
+                  <StyledFormItem name="day_first">
+                    <SwitchContainer
+                      label={t(
+                        'DD/MM format dates, international and European format',
+                      )}
+                      dataTest="dayFirst"
+                    />
+                  </StyledFormItem>
+                </Col>
+              </Row>
+            )}
+          </Collapse.Panel>
+          <Collapse.Panel
+            header={
+              <div>
+                <h4>{t('Columns')}</h4>
+                <p className="helper">
+                  {t(
+                    'Adjust column settings such as specifying the columns to read, how duplicates are handled, column data types, and more.',
                   )}
-                  <Row>
-                    <Col span={24}>
-                      <StyledFormItem name="dataframe_index">
-                        <SwitchContainer
-                          label={t('Create dataframe index')}
-                          dataTest="dataFrameIndex"
-                          onChange={setCurrentDataframeIndex}
-                        />
-                      </StyledFormItem>
-                    </Col>
-                  </Row>
-                  {currentDataframeIndex &&
-                    isFieldATypeSpecificField('index_column', type) && (
-                      <Row>
-                        <Col span={24}>
-                          <StyledFormItemWithTip
-                            label={t('Index column')}
-                            tip={t(
-                              'Column to use as the index of the dataframe. If None is given, Index label is used.',
-                            )}
-                            name="index_column"
-                          >
-                            <Select
-                              ariaLabel={t('Choose index column')}
-                              options={columns.map(column => ({
-                                value: column,
-                                label: column,
-                              }))}
-                              allowClear
-                              allowNewOptions
-                            />
-                          </StyledFormItemWithTip>
-                        </Col>
-                      </Row>
+                </p>
+              </div>
+            }
+            key="3"
+          >
+            <Row>
+              <Col span={24}>
+                <StyledFormItem
+                  label={t('Columns to read')}
+                  name="columns_read"
+                >
+                  <Select
+                    ariaLabel={t('Choose columns to read')}
+                    mode="multiple"
+                    options={columnsToOptions()}
+                    allowClear
+                    allowNewOptions
+                    placeholder={t(
+                      'List of the column names that should be read',
                     )}
-                  {currentDataframeIndex && (
-                    <Row>
-                      <Col span={24}>
-                        <StyledFormItemWithTip
-                          label={t('Index label')}
-                          tip={t(
-                            "Label for the index column. Don't use an existing column name.",
-                          )}
-                          name="index_label"
-                        >
-                          <Input aria-label={t('Index label')} type="text" />
-                        </StyledFormItemWithTip>
-                      </Col>
-                    </Row>
-                  )}
-                </>
-              ),
-            },
-            ...(isFieldATypeSpecificField('header_row', type) &&
+                  />
+                </StyledFormItem>
+              </Col>
+            </Row>
+            {isFieldATypeSpecificField('column_data_types', type) && (
+              <Row>
+                <Col span={24}>
+                  <StyledFormItemWithTip
+                    label={t('Column data types')}
+                    tip={t(
+                      'A dictionary with column names and their data types if you need to change the defaults. Example: {"user_id":"int"}. Check Python\'s Pandas library for supported data types.',
+                    )}
+                    name="column_data_types"
+                  >
+                    <Input aria-label={t('Column data types')} type="text" />
+                  </StyledFormItemWithTip>
+                </Col>
+              </Row>
+            )}
+            <Row>
+              <Col span={24}>
+                <StyledFormItem name="dataframe_index">
+                  <SwitchContainer
+                    label={t('Create dataframe index')}
+                    dataTest="dataFrameIndex"
+                    onChange={setCurrentDataframeIndex}
+                  />
+                </StyledFormItem>
+              </Col>
+            </Row>
+            {currentDataframeIndex &&
+              isFieldATypeSpecificField('index_column', type) && (
+                <Row>
+                  <Col span={24}>
+                    <StyledFormItemWithTip
+                      label={t('Index column')}
+                      tip={t(
+                        'Column to use as the index of the dataframe. If None is given, Index label is used.',
+                      )}
+                      name="index_column"
+                    >
+                      <Select
+                        ariaLabel={t('Choose index column')}
+                        options={columns.map(column => ({
+                          value: column,
+                          label: column,
+                        }))}
+                        allowClear
+                        allowNewOptions
+                      />
+                    </StyledFormItemWithTip>
+                  </Col>
+                </Row>
+              )}
+            {currentDataframeIndex && (
+              <Row>
+                <Col span={24}>
+                  <StyledFormItemWithTip
+                    label={t('Index label')}
+                    tip={t(
+                      "Label for the index column. Don't use an existing column name.",
+                    )}
+                    name="index_label"
+                  >
+                    <Input aria-label={t('Index label')} type="text" />
+                  </StyledFormItemWithTip>
+                </Col>
+              </Row>
+            )}
+          </Collapse.Panel>
+          {isFieldATypeSpecificField('header_row', type) &&
             isFieldATypeSpecificField('rows_to_read', type) &&
-            isFieldATypeSpecificField('skip_rows', type)
-              ? [
-                  {
-                    key: 'rows',
-                    label: (
-                      <div>
-                        <h4>{t('Rows')}</h4>
-                        <p className="helper">
-                          {t(
-                            'Set header rows and the number of rows to read or skip.',
-                          )}
-                        </p>
-                      </div>
-                    ),
-                    children: (
-                      <Row>
-                        <Col span={8}>
-                          <StyledFormItemWithTip
-                            label={t('Header row')}
-                            tip={t(
-                              'Row containing the headers to use as column names (0 is first line of data).',
-                            )}
-                            name="header_row"
-                            rules={[
-                              {
-                                required: true,
-                                message: 'Header row is required',
-                              },
-                            ]}
-                          >
-                            <InputNumber
-                              aria-label={t('Header row')}
-                              type="text"
-                              min={0}
-                            />
-                          </StyledFormItemWithTip>
-                        </Col>
-                        <Col span={8}>
-                          <StyledFormItemWithTip
-                            label={t('Rows to read')}
-                            tip={t(
-                              'Number of rows of file to read. Leave empty (default) to read all rows',
-                            )}
-                            name="rows_to_read"
-                          >
-                            <InputNumber
-                              aria-label={t('Rows to read')}
-                              min={1}
-                            />
-                          </StyledFormItemWithTip>
-                        </Col>
-                        <Col span={8}>
-                          <StyledFormItemWithTip
-                            label={t('Skip rows')}
-                            tip={t('Number of rows to skip at start of file.')}
-                            name="skip_rows"
-                            rules={[
-                              {
-                                required: true,
-                                message: 'Skip rows is required',
-                              },
-                            ]}
-                          >
-                            <InputNumber aria-label={t('Skip rows')} min={0} />
-                          </StyledFormItemWithTip>
-                        </Col>
-                      </Row>
-                    ),
-                  },
-                ]
-              : []),
-          ]}
-        />
-      </Form>
+            isFieldATypeSpecificField('skip_rows', type) && (
+              <Collapse.Panel
+                header={
+                  <div>
+                    <h4>{t('Rows')}</h4>
+                    <p className="helper">
+                      {t(
+                        'Set header rows and the number of rows to read or skip.',
+                      )}
+                    </p>
+                  </div>
+                }
+                key="4"
+              >
+                <Row>
+                  <Col span={8}>
+                    <StyledFormItemWithTip
+                      label={t('Header row')}
+                      tip={t(
+                        'Row containing the headers to use as column names (0 is first line of data).',
+                      )}
+                      name="header_row"
+                      rules={[
+                        { required: true, message: 'Header row is required' },
+                      ]}
+                    >
+                      <InputNumber
+                        aria-label={t('Header row')}
+                        type="text"
+                        min={0}
+                      />
+                    </StyledFormItemWithTip>
+                  </Col>
+                  <Col span={8}>
+                    <StyledFormItemWithTip
+                      label={t('Rows to read')}
+                      tip={t(
+                        'Number of rows of file to read. Leave empty (default) to read all rows',
+                      )}
+                      name="rows_to_read"
+                    >
+                      <InputNumber aria-label={t('Rows to read')} min={1} />
+                    </StyledFormItemWithTip>
+                  </Col>
+                  <Col span={8}>
+                    <StyledFormItemWithTip
+                      label={t('Skip rows')}
+                      tip={t('Number of rows to skip at start of file.')}
+                      name="skip_rows"
+                      rules={[
+                        { required: true, message: 'Skip rows is required' },
+                      ]}
+                    >
+                      <InputNumber aria-label={t('Skip rows')} min={0} />
+                    </StyledFormItemWithTip>
+                  </Col>
+                </Row>
+              </Collapse.Panel>
+            )}
+        </Collapse>
+      </AntdForm>
     </Modal>
   );
 };

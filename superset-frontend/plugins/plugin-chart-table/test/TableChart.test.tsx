@@ -17,7 +17,8 @@
  * under the License.
  */
 import '@testing-library/jest-dom';
-import { render, screen } from '@superset-ui/core/spec';
+import { render, screen } from '@testing-library/react';
+import { ThemeProvider, supersetTheme } from '@superset-ui/core';
 import TableChart from '../src/TableChart';
 import transformProps from '../src/transformProps';
 import DateWithFormatter from '../src/utils/DateWithFormatter';
@@ -267,7 +268,9 @@ describe('plugin-chart-table', () => {
     describe('TableChart', () => {
       it('render basic data', () => {
         render(
-          <TableChart {...transformProps(testData.basic)} sticky={false} />,
+          <ThemeProvider theme={supersetTheme}>
+            <TableChart {...transformProps(testData.basic)} sticky={false} />,
+          </ThemeProvider>,
         );
 
         const firstDataRow = screen.getAllByRole('rowgroup')[1];
@@ -286,10 +289,10 @@ describe('plugin-chart-table', () => {
 
       it('render advanced data', () => {
         render(
-          <>
+          <ThemeProvider theme={supersetTheme}>
             <TableChart {...transformProps(testData.advanced)} sticky={false} />
             ,
-          </>,
+          </ThemeProvider>,
         );
         const secondColumnHeader = screen.getByText('Sum of Num');
         expect(secondColumnHeader).toBeInTheDocument();
@@ -410,7 +413,9 @@ describe('plugin-chart-table', () => {
 
       it('render empty data', () => {
         render(
-          <TableChart {...transformProps(testData.empty)} sticky={false} />,
+          <ThemeProvider theme={supersetTheme}>
+            <TableChart {...transformProps(testData.empty)} sticky={false} />,
+          </ThemeProvider>,
         );
         expect(screen.getByText('No records found')).toBeInTheDocument();
       });
@@ -486,10 +491,14 @@ describe('plugin-chart-table', () => {
         );
         expect(getComputedStyle(screen.getByText('N/A')).background).toBe('');
       });
-      it('should display original label in grouped headers', () => {
+      it('should display originalLabel in grouped headers', () => {
         const props = transformProps(testData.comparison);
 
-        render(<TableChart {...props} sticky={false} />);
+        render(
+          <ThemeProvider theme={supersetTheme}>
+            <TableChart {...props} sticky={false} />
+          </ThemeProvider>,
+        );
         const groupHeaders = screen.getAllByRole('columnheader');
         expect(groupHeaders.length).toBeGreaterThan(0);
         const hasMetricHeaders = groupHeaders.some(

@@ -31,7 +31,7 @@ import {
   TimeseriesAnnotationLayer,
   TimeseriesDataRecord,
 } from '@superset-ui/core';
-import { OrientationType } from '../../src';
+import { OrientationType } from '@superset-ui/plugin-chart-echarts';
 import {
   transformEventAnnotation,
   transformFormulaAnnotation,

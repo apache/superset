@@ -17,8 +17,9 @@
  * under the License.
  */
 import { t, useTheme } from '@superset-ui/core';
-import { Icons } from '@superset-ui/core/components/Icons';
-import { Button, DropdownButton } from '@superset-ui/core/components';
+import { Icons } from 'src/components/Icons';
+import { DropdownButton } from 'src/components/DropdownButton';
+import Button from 'src/components/Button';
 
 interface SaveDatasetActionButtonProps {
   setShowSave: (arg0: boolean) => void;
@@ -40,7 +41,10 @@ const SaveDatasetActionButton = ({
       onClick={() => setShowSave(true)}
       dropdownRender={() => overlayMenu}
       icon={
-        <Icons.DownOutlined iconSize="xs" iconColor={theme.colorPrimaryText} />
+        <Icons.DownOutlined
+          iconSize="xs"
+          iconColor={theme.colors.primary.dark2}
+        />
       }
       trigger={['click']}
     >

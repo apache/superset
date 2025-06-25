@@ -28,7 +28,7 @@ import {
 } from '@superset-ui/core';
 import { invert, mapKeys } from 'lodash';
 
-import { now } from '@superset-ui/core/utils/dates';
+import { now } from 'src/utils/dates';
 import {
   addDangerToast as addDangerToastAction,
   addInfoToast as addInfoToastAction,

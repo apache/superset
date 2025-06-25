@@ -17,7 +17,7 @@
  * under the License.
  */
 import { t, styled } from '@superset-ui/core';
-import Tabs from '@superset-ui/core/components/Tabs';
+import Tabs from 'src/components/Tabs';
 import { ResultTypes, ResultsPaneProps } from '../types';
 import { useResultsPane } from './useResultsPane';
 
@@ -71,15 +71,28 @@ export const ResultsPaneOnDashboard = ({
     return <Wrapper>{resultsPanes[0]}</Wrapper>;
   }
 
-  const items = resultsPanes.map((pane, idx) => ({
-    key: idx === 0 ? ResultTypes.Results : `${ResultTypes.Results} ${idx + 1}`,
-    label: idx === 0 ? t('Results') : t('Results %s', idx + 1),
-    children: pane,
-  }));
+  const panes = resultsPanes.map((pane, idx) => {
+    if (idx === 0) {
+      return (
+        <Tabs.TabPane tab={t('Results')} key={ResultTypes.Results}>
+          {pane}
+        </Tabs.TabPane>
+      );
+    }
+
+    return (
+      <Tabs.TabPane
+        tab={t('Results %s', idx + 1)}
+        key={`${ResultTypes.Results} ${idx + 1}`}
+      >
+        {pane}
+      </Tabs.TabPane>
+    );
+  });
 
   return (
     <Wrapper>
-      <Tabs items={items} />
+      <Tabs fullWidth={false}>{panes}</Tabs>
     </Wrapper>
   );
 };

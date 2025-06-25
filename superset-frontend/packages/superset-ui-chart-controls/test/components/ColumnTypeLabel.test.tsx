@@ -17,7 +17,7 @@
  * under the License.
  */
 import { isValidElement } from 'react';
-import { render, screen } from '@superset-ui/core/spec';
+import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { GenericDataType } from '@superset-ui/core';
 

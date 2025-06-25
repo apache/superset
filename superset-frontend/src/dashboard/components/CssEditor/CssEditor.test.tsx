@@ -22,12 +22,12 @@ import {
   userEvent,
   waitFor,
 } from 'spec/helpers/testing-library';
-import { CssEditor as AceCssEditor } from '@superset-ui/core/components/AsyncAceEditor';
+import { CssEditor as AceCssEditor } from 'src/components/AsyncAceEditor';
 import { IAceEditorProps } from 'react-ace';
 import fetchMock from 'fetch-mock';
 import CssEditor from '.';
 
-jest.mock('@superset-ui/core/components/AsyncAceEditor', () => ({
+jest.mock('src/components/AsyncAceEditor', () => ({
   CssEditor: ({ value, onChange }: IAceEditorProps) => (
     <textarea
       defaultValue={value}

@@ -27,11 +27,10 @@ import {
   Ref,
   useState,
 } from 'react';
-import { merge } from 'lodash';
 
 import { useSelector } from 'react-redux';
 
-import { styled, themeObject } from '@superset-ui/core';
+import { styled } from '@superset-ui/core';
 import { use, init, EChartsType, registerLocale } from 'echarts/core';
 import {
   SankeyChart,
@@ -118,45 +117,6 @@ const loadLocale = async (locale: string) => {
   return lang?.default;
 };
 
-const getTheme = (options: any) => {
-  const token = themeObject.theme;
-  const theme = {
-    textStyle: {
-      color: token.colorText,
-      fontFamily: token.fontFamily,
-    },
-    title: {
-      textStyle: { color: token.colorText },
-    },
-    legend: {
-      textStyle: { color: token.colorTextSecondary },
-    },
-    tooltip: {
-      backgroundColor: token.colorBgContainer,
-      textStyle: { color: token.colorText },
-    },
-    axisPointer: {
-      lineStyle: { color: token.colorPrimary },
-      label: { color: token.colorText },
-    },
-  } as any;
-  if (options?.xAxis) {
-    theme.xAxis = {
-      axisLine: { lineStyle: { color: token.colorSplit } },
-      axisLabel: { color: token.colorTextSecondary },
-      splitLine: { lineStyle: { color: token.colorSplit } },
-    };
-  }
-  if (options?.yAxis) {
-    theme.yAxis = {
-      axisLine: { lineStyle: { color: token.colorSplit } },
-      axisLabel: { color: token.colorTextSecondary },
-      splitLine: { lineStyle: { color: token.colorSplit } },
-    };
-  }
-  return theme;
-};
-
 function Echart(
   {
     width,
@@ -224,12 +184,7 @@ function Echart(
         chartRef.current?.getZr().on(name, handler);
       });
 
-      const themedEchartOptions = merge(
-        {},
-        getTheme(echartOptions),
-        echartOptions,
-      );
-      chartRef.current?.setOption(themedEchartOptions, true);
+      chartRef.current?.setOption(echartOptions, true);
 
       // did mount
       handleSizeChange({ width, height });

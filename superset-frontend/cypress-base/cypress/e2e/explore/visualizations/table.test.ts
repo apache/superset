@@ -193,9 +193,7 @@ describe('Visualization > Table', () => {
     });
 
     // should display in raw records mode
-    cy.get(
-      'div[data-test="query_mode"] .ant-radio-button-wrapper-checked',
-    ).contains('Raw records');
+    cy.get('div[data-test="query_mode"] .btn.active').contains('Raw records');
     cy.get('div[data-test="all_columns"]').should('be.visible');
     cy.get('div[data-test="groupby"]').should('not.exist');
 
@@ -203,12 +201,8 @@ describe('Visualization > Table', () => {
     cy.get('[data-test="row-count-label"]').contains('100 rows');
 
     // should allow switch back to aggregate mode
-    cy.get('div[data-test="query_mode"] .ant-radio-button-wrapper')
-      .contains('Aggregate')
-      .click();
-    cy.get(
-      'div[data-test="query_mode"] .ant-radio-button-wrapper-checked',
-    ).contains('Aggregate');
+    cy.get('div[data-test="query_mode"] .btn').contains('Aggregate').click();
+    cy.get('div[data-test="query_mode"] .btn.active').contains('Aggregate');
     cy.get('div[data-test="all_columns"]').should('not.exist');
     cy.get('div[data-test="groupby"]').should('be.visible');
   });
@@ -260,8 +254,6 @@ describe('Visualization > Table', () => {
   });
 
   it('Test row limit with server pagination toggle', () => {
-    const serverPaginationSelector =
-      '[data-test="server_pagination-header"] div.pull-left [type="checkbox"]';
     cy.visitChartByParams({
       ...VIZ_DEFAULTS,
       metrics: ['count'],
@@ -269,7 +261,7 @@ describe('Visualization > Table', () => {
     });
 
     // Enable server pagination
-    cy.get(serverPaginationSelector).click();
+    cy.get('[data-test="server_pagination-header"] div.pull-left').click();
 
     // Click row limit control and select high value (200k)
     cy.get('div[aria-label="Row limit"]').click();
@@ -283,7 +275,7 @@ describe('Visualization > Table', () => {
     cy.get('[data-test="error-tooltip"]').should('not.exist');
 
     // Disable server pagination
-    cy.get(serverPaginationSelector).click();
+    cy.get('[data-test="server_pagination-header"] div.pull-left').click();
 
     // Verify error tooltip appears
     cy.get('[data-test="error-tooltip"]').should('be.visible');
@@ -292,17 +284,17 @@ describe('Visualization > Table', () => {
     cy.get('[data-test="error-tooltip"]').trigger('mouseover');
 
     // Verify tooltip content
-    cy.get('.ant-tooltip-inner').should('be.visible');
-    cy.get('.ant-tooltip-inner').should(
+    cy.get('.antd5-tooltip-inner').should('be.visible');
+    cy.get('.antd5-tooltip-inner').should(
       'contain',
       'Server pagination needs to be enabled for values over',
     );
 
     // Hide the tooltip by adding display:none style
-    cy.get('.ant-tooltip').invoke('attr', 'style', 'display: none');
+    cy.get('.antd5-tooltip').invoke('attr', 'style', 'display: none');
 
     // Enable server pagination again
-    cy.get(serverPaginationSelector).click();
+    cy.get('[data-test="server_pagination-header"] div.pull-left').click();
 
     cy.get('[data-test="error-tooltip"]').should('not.exist');
 
@@ -327,11 +319,11 @@ describe('Visualization > Table', () => {
       .trigger('mouseover');
 
     // Wait for tooltip content and verify
-    cy.get('.ant-tooltip-inner').should('exist');
-    cy.get('.ant-tooltip-inner').should('be.visible');
+    cy.get('.antd5-tooltip-inner').should('exist');
+    cy.get('.antd5-tooltip-inner').should('be.visible');
 
     // Verify tooltip content separately
-    cy.get('.ant-tooltip-inner').should('contain', 'Value cannot exceed');
+    cy.get('.antd5-tooltip-inner').should('contain', 'Value cannot exceed');
   });
 
   it('Test sorting with server pagination enabled', () => {
@@ -401,12 +393,12 @@ describe('Visualization > Table', () => {
 
     cy.wait('@chartData');
 
-    const searchInputSelector = '.dt-global-filter input';
-
     // Basic search test
-    cy.get(searchInputSelector).should('be.visible');
+    cy.get('span.dt-global-filter input.form-control.input-sm').should(
+      'be.visible',
+    );
 
-    cy.get(searchInputSelector).type('John');
+    cy.get('span.dt-global-filter input.form-control.input-sm').type('John');
 
     cy.wait('@chartData');
 
@@ -415,11 +407,11 @@ describe('Visualization > Table', () => {
     });
 
     // Clear and test case-insensitive search
-    cy.get(searchInputSelector).clear();
+    cy.get('span.dt-global-filter input.form-control.input-sm').clear();
 
     cy.wait('@chartData');
 
-    cy.get(searchInputSelector).type('mary');
+    cy.get('span.dt-global-filter input.form-control.input-sm').type('mary');
 
     cy.wait('@chartData');
 
@@ -428,9 +420,9 @@ describe('Visualization > Table', () => {
     });
 
     // Test special characters
-    cy.get(searchInputSelector).clear();
+    cy.get('span.dt-global-filter input.form-control.input-sm').clear();
 
-    cy.get(searchInputSelector).type('Nicole');
+    cy.get('span.dt-global-filter input.form-control.input-sm').type('Nicole');
 
     cy.wait('@chartData');
 
@@ -439,9 +431,9 @@ describe('Visualization > Table', () => {
     });
 
     // Test no results
-    cy.get(searchInputSelector).clear();
+    cy.get('span.dt-global-filter input.form-control.input-sm').clear();
 
-    cy.get(searchInputSelector).type('XYZ123');
+    cy.get('span.dt-global-filter input.form-control.input-sm').type('XYZ123');
 
     cy.wait('@chartData');
 
@@ -458,9 +450,9 @@ describe('Visualization > Table', () => {
 
     cy.get('.ant-select-item-option').contains('state').click();
 
-    cy.get(searchInputSelector).clear();
+    cy.get('span.dt-global-filter input.form-control.input-sm').clear();
 
-    cy.get(searchInputSelector).type('CA');
+    cy.get('span.dt-global-filter input.form-control.input-sm').type('CA');
 
     cy.wait('@chartData');
     cy.wait(1000);

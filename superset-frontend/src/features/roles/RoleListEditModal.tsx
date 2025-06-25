@@ -18,23 +18,21 @@
  */
 import { useEffect, useRef, useState } from 'react';
 import { t } from '@superset-ui/core';
-import Tabs from '@superset-ui/core/components/Tabs';
+import Tabs from 'src/components/Tabs';
 import { RoleObject } from 'src/pages/RolesList';
-import {
-  EmptyWrapperType,
-  FormModal,
-  TableView,
-  FormInstance,
-} from '@superset-ui/core/components';
+import TableView, { EmptyWrapperType } from 'src/components/TableView';
 import {
   BaseModalProps,
   FormattedPermission,
   RoleForm,
 } from 'src/features/roles/types';
+import { CellProps } from 'react-table';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
+import FormModal from 'src/components/Modal/FormModal';
 import { GroupObject } from 'src/pages/GroupsList';
+import { FormInstance } from 'src/components';
 import { fetchPaginatedData } from 'src/utils/fetchOptions';
-import { type UserObject } from 'src/pages/UsersList/types';
+import { UserObject } from 'src/pages/UsersList';
 import {
   GroupsField,
   PermissionsField,
@@ -68,29 +66,25 @@ const roleTabs = {
 const userColumns = [
   {
     accessor: 'first_name',
-    Header: t('First Name'),
-    id: 'first_name',
+    Header: 'First Name',
   },
   {
     accessor: 'last_name',
-    Header: t('Last Name'),
-    id: 'last_name',
+    Header: 'Last Name',
   },
   {
     accessor: 'username',
-    Header: t('User Name'),
-    id: 'username',
+    Header: 'User Name',
   },
   {
     accessor: 'email',
-    Header: t('Email'),
-    id: 'email',
+    Header: 'Email',
   },
   {
     accessor: 'active',
-    Header: t('Is Active?'),
-    Cell: ({ value }: { value: boolean }) => (value ? t('Yes') : t('No')),
-    id: 'active',
+    Header: 'Is Active?',
+    Cell: ({ cell }: CellProps<{ active: boolean }>) =>
+      cell.value ? 'Yes' : 'No',
   },
 ];
 

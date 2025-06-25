@@ -28,13 +28,13 @@ const Rose = ({ className, ...otherProps }) => (
       styles={theme => css`
         .tooltip {
           line-height: 1;
-          padding: ${theme.sizeUnit * 3}px;
+          padding: ${theme.gridUnit * 3}px;
           background: ${theme.colors.grayscale.dark2};
           color: ${theme.colors.grayscale.light5};
           border-radius: 4px;
           pointer-events: none;
           z-index: 1000;
-          font-size: ${theme.fontSizeSM}px;
+          font-size: ${theme.typography.sizes.s}px;
         }
       `}
     />
@@ -53,8 +53,9 @@ export default styled(Rose)`
     }
 
     .superset-legacy-chart-rose text {
-        font-size: ${theme.fontSizeSM}px;
-        font-family: ${theme.fontFamily};
+        font-weight: ${theme.typography.weights.normal};
+        font-size: ${theme.typography.sizes.s}px;
+        font-family: ${theme.typography.families.sansSerif};
         pointer-events: none;
     }
 

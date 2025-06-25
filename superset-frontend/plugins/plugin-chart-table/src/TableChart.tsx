@@ -52,16 +52,8 @@ import {
   t,
   tn,
   useTheme,
-  SupersetTheme,
 } from '@superset-ui/core';
-import {
-  Input,
-  Space,
-  RawAntdSelect as Select,
-  Dropdown,
-  Menu,
-  Tooltip,
-} from '@superset-ui/core/components';
+import { Dropdown, Menu, Tooltip } from '@superset-ui/chart-controls';
 import {
   CheckOutlined,
   InfoCircleOutlined,
@@ -70,7 +62,7 @@ import {
   PlusCircleOutlined,
   TableOutlined,
 } from '@ant-design/icons';
-import { isEmpty, debounce, isEqual } from 'lodash';
+import { debounce, isEmpty, isEqual } from 'lodash';
 import {
   ColorSchemeEnum,
   DataColumnMeta,
@@ -187,50 +179,49 @@ function SortIcon<D extends object>({ column }: { column: ColumnInstance<D> }) {
   return sortIcon;
 }
 
-function SearchInput({
+const SearchInput = ({
   count,
   value,
   onChange,
   onBlur,
   inputRef,
-}: SearchInputProps) {
-  return (
-    <Space direction="horizontal" size={4} className="dt-global-filter">
-      {t('Search')}
-      <Input
-        size="small"
-        aria-label={t('Search %s records', count)}
-        placeholder={tn('search.num_records', count)}
-        value={value}
-        onChange={onChange}
-        onBlur={onBlur}
-        ref={inputRef}
-      />
-    </Space>
-  );
-}
+}: SearchInputProps) => (
+  <span className="dt-global-filter">
+    {t('Search')}{' '}
+    <input
+      ref={inputRef}
+      aria-label={t('Search %s records', count)}
+      className="form-control input-sm"
+      placeholder={tn('search.num_records', count)}
+      value={value}
+      onChange={onChange}
+      onBlur={onBlur}
+    />
+  </span>
+);
 
 function SelectPageSize({
   options,
   current,
   onChange,
 }: SelectPageSizeRendererProps) {
-  const { Option } = Select;
-
   return (
-    <>
+    <span
+      className="dt-select-page-size form-inline"
+      role="group"
+      aria-label={t('Select page size')}
+    >
       <label htmlFor="pageSizeSelect" className="sr-only">
         {t('Select page size')}
       </label>
       {t('Show')}{' '}
-      <Select<number>
+      <select
         id="pageSizeSelect"
+        className="form-control input-sm"
         value={current}
-        onChange={value => onChange(value)}
-        size="small"
-        css={(theme: SupersetTheme) => css`
-          width: ${theme.sizeUnit * 18}px;
-        `}
+        onChange={e => {
+          onChange(Number((e.target as HTMLSelectElement).value));
+        }}
         aria-label={t('Show entries per page')}
       >
         {options.map(option => {
@@ -238,14 +229,14 @@ function SelectPageSize({
             ? option
             : [option, option];
           return (
-            <Option key={size} value={Number(size)}>
+            <option key={size} value={size}>
               {text}
-            </Option>
+            </option>
           );
         })}
-      </Select>{' '}
+      </select>{' '}
       {t('entries per page')}
-    </>
+    </span>
   );
 }
 
@@ -578,9 +569,9 @@ export default function TableChart<D extends DataRecord = DataRecord>(
             <div
               css={css`
                 max-width: 242px;
-                padding: 0 ${theme.sizeUnit * 2}px;
-                color: ${theme.colorText};
-                font-size: ${theme.fontSizeSM}px;
+                padding: 0 ${theme.gridUnit * 2}px;
+                color: ${theme.colors.grayscale.base};
+                font-size: ${theme.typography.sizes.s}px;
               `}
             >
               {t(
@@ -591,7 +582,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
               <Menu.Item key={column.key}>
                 <span
                   css={css`
-                    color: ${theme.colorText};
+                    color: ${theme.colors.grayscale.dark2};
                   `}
                 >
                   {column.label}
@@ -599,7 +590,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
                 <span
                   css={css`
                     float: right;
-                    font-size: ${theme.fontSizeSM}px;
+                    font-size: ${theme.typography.sizes.s}px;
                   `}
                 >
                   {selectedComparisonColumns.includes(column.key) && (
@@ -650,7 +641,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
             css={css`
               float: right;
               & svg {
-                color: ${theme.colorIcon} !important;
+                color: ${theme.colors.grayscale.base} !important;
               }
             `}
           >
@@ -681,7 +672,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
       <tr
         css={css`
           th {
-            border-right: 1px solid ${theme.colorSplit};
+            border-right: 2px solid ${theme.colors.grayscale.light2};
           }
           th:first-child {
             border-left: none;
@@ -764,6 +755,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
         isUsingTimeComparison &&
         Array.isArray(basicColorFormatters) &&
         basicColorFormatters.length > 0;
+
       const valueRange =
         !hasBasicColorFormatters &&
         !hasColumnColorFormatters &&
@@ -837,15 +829,15 @@ export default function TableChart<D extends DataRecord = DataRecord>(
                 ? basicColorColumnFormatters[row.index][column.key]?.mainArrow
                 : '';
           }
+
           const StyledCell = styled.td`
-            color: ${theme.colorText};
             text-align: ${sharedStyle.textAlign};
             white-space: ${value instanceof Date ? 'nowrap' : undefined};
             position: relative;
             background: ${backgroundColor || undefined};
             padding-left: ${column.isChildColumn
-              ? `${theme.sizeUnit * 5}px`
-              : `${theme.sizeUnit}px`};
+              ? `${theme.gridUnit * 5}px`
+              : `${theme.gridUnit}px`};
           `;
 
           const cellBarStyles = css`
@@ -876,9 +868,9 @@ export default function TableChart<D extends DataRecord = DataRecord>(
             color: ${basicColorFormatters &&
             basicColorFormatters[row.index][originKey]?.arrowColor ===
               ColorSchemeEnum.Green
-              ? theme.colorSuccess
-              : theme.colorError};
-            margin-right: ${theme.sizeUnit}px;
+              ? theme.colors.success.base
+              : theme.colors.error.base};
+            margin-right: ${theme.gridUnit}px;
           `;
 
           if (
@@ -888,9 +880,9 @@ export default function TableChart<D extends DataRecord = DataRecord>(
             arrowStyles = css`
               color: ${basicColorColumnFormatters[row.index][column.key]
                 ?.arrowColor === ColorSchemeEnum.Green
-                ? theme.colorSuccess
-                : theme.colorError};
-              margin-right: ${theme.sizeUnit}px;
+                ? theme.colors.success.base
+                : theme.colors.error.base};
+              margin-right: ${theme.gridUnit}px;
             `;
           }
 
@@ -979,7 +971,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
         },
         Header: ({ column: col, onClick, style, onDragStart, onDrop }) => (
           <th
-            id={`header-${column.originalLabel}`}
+            id={`header-${column.key}`}
             title={t('Shift + Click to sort by multiple columns')}
             className={[className, col.isSorted ? 'is-sorted' : ''].join(' ')}
             style={{
@@ -1035,8 +1027,8 @@ export default function TableChart<D extends DataRecord = DataRecord>(
                   display: flex;
                   align-items: center;
                   & svg {
-                    margin-left: ${theme.sizeUnit}px;
-                    color: ${theme.colorBorder} !important;
+                    margin-left: ${theme.gridUnit}px;
+                    color: ${theme.colors.grayscale.dark1} !important;
                   }
                 `}
               >

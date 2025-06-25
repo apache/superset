@@ -18,7 +18,7 @@
  */
 import * as uiCore from '@superset-ui/core';
 
-test('initializes feature flags', () => {
+it('initializes feature flags', () => {
   Object.defineProperty(window, 'featureFlags', {
     value: undefined,
   });
@@ -26,7 +26,7 @@ test('initializes feature flags', () => {
   expect(window.featureFlags).toEqual({});
 });
 
-test('initializes feature flags with predefined values', () => {
+it('initializes feature flags with predefined values', () => {
   Object.defineProperty(window, 'featureFlags', {
     value: undefined,
   });
@@ -37,7 +37,7 @@ test('initializes feature flags with predefined values', () => {
   expect(window.featureFlags).toEqual(featureFlags);
 });
 
-test('does nothing if feature flags are already initialized', () => {
+it('does nothing if feature flags are already initialized', () => {
   const featureFlags = { DRILL_BY: false };
   Object.defineProperty(window, 'featureFlags', {
     value: featureFlags,
@@ -46,7 +46,7 @@ test('does nothing if feature flags are already initialized', () => {
   expect(window.featureFlags).toEqual(featureFlags);
 });
 
-test('returns false and raises console error if feature flags have not been initialized', () => {
+it('returns false and raises console error if feature flags have not been initialized', () => {
   const logging = jest.spyOn(uiCore.logging, 'error');
   Object.defineProperty(window, 'featureFlags', {
     value: undefined,
@@ -56,14 +56,14 @@ test('returns false and raises console error if feature flags have not been init
   expect(logging).toHaveBeenCalledWith('Failed to query feature flag DRILL_BY');
 });
 
-test('returns false for unset feature flag', () => {
+it('returns false for unset feature flag', () => {
   Object.defineProperty(window, 'featureFlags', {
     value: {},
   });
   expect(uiCore.isFeatureEnabled(uiCore.FeatureFlag.DrillBy)).toEqual(false);
 });
 
-test('returns true for set feature flag', () => {
+it('returns true for set feature flag', () => {
   Object.defineProperty(window, 'featureFlags', {
     value: {
       DRILL_BY: true,

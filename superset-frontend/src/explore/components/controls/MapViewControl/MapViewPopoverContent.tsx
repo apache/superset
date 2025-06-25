@@ -17,7 +17,8 @@
  * under the License.
  */
 import { css, styled, t } from '@superset-ui/core';
-import { Button, Form } from '@superset-ui/core/components';
+import { Form } from 'src/components/Form';
+import Button from 'src/components/Button';
 import { FC, useEffect, useState } from 'react';
 import { mix } from 'polished';
 import { MapViewConfigs, MapViewPopoverContentProps } from './types';
@@ -35,12 +36,12 @@ export const StyledCloseButton = styled(Button)`
     line-height: 1.5715;
     border-radius: ${theme.borderRadius}px;
     background-color: ${theme.colors.primary.light4};
-    color: ${theme.colorPrimaryText};
-    font-size: ${theme.fontSizeSM}px;
-    font-weight: ${theme.fontWeightStrong};
+    color: ${theme.colors.primary.dark1};
+    font-size: ${theme.typography.sizes.s}px;
+    font-weight: ${theme.typography.weights.bold};
     text-transform: uppercase;
-    min-width: ${theme.sizeUnit * 36};
-    min-height: ${theme.sizeUnit * 8};
+    min-width: ${theme.gridUnit * 36};
+    min-height: ${theme.gridUnit * 8};
     box-shadow: none;
     border-width: 0px;
     border-style: none;
@@ -48,10 +49,10 @@ export const StyledCloseButton = styled(Button)`
     &:hover {
       background-color: ${mix(
         0.1,
-        theme.colorPrimary,
+        theme.colors.primary.base,
         theme.colors.primary.light4,
       )};
-      color: ${theme.colorPrimaryText};
+      color: ${theme.colors.primary.dark1};
     }
   `}
 `;
@@ -69,19 +70,19 @@ export const StyledSaveButton = styled(Button)`
     margin-left: 4px;
     line-height: 1.5715;
     border-radius: ${theme.borderRadius}px;
-    background-color: ${theme.colorPrimary};
+    background-color: ${theme.colors.primary.base};
     color: ${theme.colors.grayscale.light5};
-    font-size: ${theme.fontSizeSM}px;
-    font-weight: ${theme.fontWeightStrong};
+    font-size: ${theme.typography.sizes.s}px;
+    font-weight: ${theme.typography.weights.bold};
     text-transform: uppercase;
-    min-width: ${theme.sizeUnit * 36};
-    min-height: ${theme.sizeUnit * 8};
+    min-width: ${theme.gridUnit * 36};
+    min-height: ${theme.gridUnit * 8};
     box-shadow: none;
     border-width: 0px;
     border-style: none;
     border-color: transparent;
     &:hover {
-      background-color: ${theme.colorPrimaryText};
+      background-color: ${theme.colors.primary.dark1};
     }
   `}
 `;

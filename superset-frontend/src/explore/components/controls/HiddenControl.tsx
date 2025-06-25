@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Input } from '@superset-ui/core/components';
+import { Input } from 'src/components/Input';
 
 interface HiddenControlsProps {
   onChange: () => void;

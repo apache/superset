@@ -18,10 +18,10 @@
  */
 import { t } from '@superset-ui/core';
 
-import type { ErrorMessageComponentProps } from './types';
-import { ErrorAlert } from './ErrorAlert';
+import { ErrorMessageComponentProps } from './types';
+import ErrorAlert from './ErrorAlert';
 
-export function DatasetNotFoundErrorMessage({
+function DatasetNotFoundErrorMessage({
   error,
   subtitle,
 }: ErrorMessageComponentProps) {
@@ -35,3 +35,5 @@ export function DatasetNotFoundErrorMessage({
     />
   );
 }
+
+export default DatasetNotFoundErrorMessage;

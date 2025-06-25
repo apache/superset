@@ -24,25 +24,25 @@ export const defaultGaugeSeriesOption = (
 ): GaugeSeriesOption => ({
   splitLine: {
     lineStyle: {
-      color: theme.colorPrimary,
+      color: theme.colors.primary.base,
     },
   },
   axisLine: {
     lineStyle: {
-      color: [[1, theme.colorSplit]],
+      color: [[1, theme.colors.primary.light4]],
     },
   },
   axisLabel: {
-    color: theme.colorText,
+    color: theme.colors.grayscale.dark1,
   },
   axisTick: {
     lineStyle: {
       width: 2,
-      color: theme.colorPrimary,
+      color: theme.colors.primary.base,
     },
   },
   detail: {
-    color: theme.colorText,
+    color: 'auto',
   },
 });
 

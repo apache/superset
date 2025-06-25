@@ -21,12 +21,15 @@ import {
   styled,
   SupersetClient,
   t,
+  useTheme,
+  css,
 } from '@superset-ui/core';
 import { useState, useMemo, useEffect } from 'react';
 import rison from 'rison';
 import { useSelector } from 'react-redux';
 import { useQueryParams, BooleanParam } from 'use-query-params';
 import { LocalStorageKeys, setItem } from 'src/utils/localStorageHelpers';
+import Loading from 'src/components/Loading';
 import { useListViewResource } from 'src/views/CRUD/hooks';
 import {
   createErrorHandler,
@@ -35,23 +38,13 @@ import {
 } from 'src/views/CRUD/utils';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import SubMenu, { SubMenuProps } from 'src/features/home/SubMenu';
-import {
-  DeleteModal,
-  Tooltip,
-  List,
-  Loading,
-} from '@superset-ui/core/components';
-import {
-  ModifiedInfo,
-  ListView,
-  ListViewFilterOperator as FilterOperator,
-  ListViewFilters,
-} from 'src/components';
-import { Typography } from '@superset-ui/core/components/Typography';
+import DeleteModal from 'src/components/DeleteModal';
 import { getUrlParam } from 'src/utils/urlUtils';
 import { URL_PARAMS } from 'src/constants';
-import { Icons } from '@superset-ui/core/components/Icons';
+import { Tooltip } from 'src/components/Tooltip';
+import { Icons } from 'src/components/Icons';
 import { isUserAdmin } from 'src/dashboard/util/permissionUtils';
+import ListView, { FilterOperator, Filters } from 'src/components/ListView';
 import handleResourceExport from 'src/utils/export';
 import { ExtensionConfigs } from 'src/features/home/types';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
@@ -59,8 +52,8 @@ import type { MenuObjectProps } from 'src/types/bootstrapTypes';
 import DatabaseModal from 'src/features/databases/DatabaseModal';
 import UploadDataModal from 'src/features/databases/UploadDataModel';
 import { DatabaseObject } from 'src/features/databases/types';
+import { ModifiedInfo } from 'src/components/AuditInfo';
 import { QueryObjectColumns } from 'src/views/CRUD/types';
-import { WIDER_DROPDOWN_WIDTH } from 'src/components/ListView/utils';
 
 const extensionsRegistry = getExtensionsRegistry();
 const DatabaseDeleteRelatedExtension = extensionsRegistry.get(
@@ -89,18 +82,26 @@ interface DatabaseListProps {
 }
 
 const Actions = styled.div`
+  color: ${({ theme }) => theme.colors.grayscale.base};
+
   .action-button {
     display: inline-block;
     height: 100%;
-    color: ${({ theme }) => theme.colorIcon};
   }
 `;
 
 function BooleanDisplay({ value }: { value: Boolean }) {
+  const theme = useTheme();
   return value ? (
-    <Icons.CheckOutlined iconSize="s" />
+    <Icons.CheckOutlined
+      iconSize="s"
+      iconColor={theme.colors.grayscale.dark1}
+    />
   ) : (
-    <Icons.CloseOutlined iconSize="s" />
+    <Icons.CloseOutlined
+      iconSize="s"
+      iconColor={theme.colors.grayscale.light1}
+    />
   );
 }
 
@@ -110,6 +111,7 @@ function DatabaseList({
   addSuccessToast,
   user,
 }: DatabaseListProps) {
+  const theme = useTheme();
   const {
     state: {
       loading,
@@ -321,7 +323,13 @@ function DatabaseList({
         'data-test': 'btn-create-database',
         name: (
           <>
-            <Icons.PlusOutlined iconSize="m" />
+            <Icons.PlusOutlined
+              css={css`
+                vertical-align: text-top;
+              `}
+              iconColor={theme.colors.primary.light5}
+              iconSize="m"
+            />
             {t('Database')}
           </>
         ),
@@ -390,14 +398,12 @@ function DatabaseList({
       {
         accessor: 'database_name',
         Header: t('Name'),
-        id: 'database_name',
       },
       {
         accessor: 'backend',
         Header: t('Backend'),
         size: 'lg',
         disableSortBy: true, // TODO: api support for sorting by 'backend'
-        id: 'backend',
       },
       {
         accessor: 'allow_run_async',
@@ -418,7 +424,6 @@ function DatabaseList({
           row: { original: { allow_run_async: boolean } };
         }) => <BooleanDisplay value={allowRunAsync} />,
         size: 'sm',
-        id: 'allow_run_async',
       },
       {
         accessor: 'allow_dml',
@@ -437,7 +442,6 @@ function DatabaseList({
           },
         }: any) => <BooleanDisplay value={allowDML} />,
         size: 'sm',
-        id: 'allow_dml',
       },
       {
         accessor: 'allow_file_upload',
@@ -448,7 +452,6 @@ function DatabaseList({
           },
         }: any) => <BooleanDisplay value={allowFileUpload} />,
         size: 'md',
-        id: 'allow_file_upload',
       },
       {
         accessor: 'expose_in_sqllab',
@@ -459,7 +462,6 @@ function DatabaseList({
           },
         }: any) => <BooleanDisplay value={exposeInSqllab} />,
         size: 'md',
-        id: 'expose_in_sqllab',
       },
       {
         Cell: ({
@@ -473,7 +475,6 @@ function DatabaseList({
         Header: t('Last modified'),
         accessor: 'changed_on_delta_humanized',
         size: 'xl',
-        id: 'changed_on_delta_humanized',
       },
       {
         Cell: ({ row: { original } }: any) => {
@@ -565,13 +566,12 @@ function DatabaseList({
       {
         accessor: QueryObjectColumns.ChangedBy,
         hidden: true,
-        id: QueryObjectColumns.ChangedBy,
       },
     ],
     [canDelete, canEdit, canExport],
   );
 
-  const filters: ListViewFilters = useMemo(
+  const filters: Filters = useMemo(
     () => [
       {
         Header: t('Name'),
@@ -631,7 +631,6 @@ function DatabaseList({
           user,
         ),
         paginate: true,
-        dropdownStyle: { minWidth: WIDER_DROPDOWN_WIDTH },
       },
     ],
     [],
@@ -695,85 +694,70 @@ function DatabaseList({
               {databaseCurrentlyDeleting.dashboards.count >= 1 && (
                 <>
                   <h4>{t('Affected Dashboards')}</h4>
-                  <List
-                    split={false}
-                    size="small"
-                    dataSource={databaseCurrentlyDeleting.dashboards.result.slice(
-                      0,
-                      10,
-                    )}
-                    renderItem={(result: { id: number; title: string }) => (
-                      <List.Item key={result.id} compact>
-                        <List.Item.Meta
-                          avatar={<span>•</span>}
-                          title={
-                            <Typography.Link
+                  <ul>
+                    {databaseCurrentlyDeleting.dashboards.result
+                      .slice(0, 10)
+                      .map(
+                        (
+                          result: { id: number; title: string },
+                          index: number,
+                        ) => (
+                          <li key={result.id}>
+                            <a
                               href={`/superset/dashboard/${result.id}`}
                               target="_atRiskItem"
                             >
                               {result.title}
-                            </Typography.Link>
-                          }
-                        />
-                      </List.Item>
+                            </a>
+                          </li>
+                        ),
+                      )}
+                    {databaseCurrentlyDeleting.dashboards.result.length >
+                      10 && (
+                      <li>
+                        {t(
+                          '... and %s others',
+                          databaseCurrentlyDeleting.dashboards.result.length -
+                            10,
+                        )}
+                      </li>
                     )}
-                    footer={
-                      databaseCurrentlyDeleting.dashboards.result.length >
-                        10 && (
-                        <div>
-                          {t(
-                            '... and %s others',
-                            databaseCurrentlyDeleting.dashboards.result.length -
-                              10,
-                          )}
-                        </div>
-                      )
-                    }
-                  />
+                  </ul>
                 </>
               )}
               {databaseCurrentlyDeleting.charts.count >= 1 && (
                 <>
                   <h4>{t('Affected Charts')}</h4>
-                  <List
-                    split={false}
-                    size="small"
-                    dataSource={databaseCurrentlyDeleting.charts.result.slice(
-                      0,
-                      10,
+                  <ul>
+                    {databaseCurrentlyDeleting.charts.result.slice(0, 10).map(
+                      (
+                        result: {
+                          id: number;
+                          slice_name: string;
+                        },
+                        index: number,
+                      ) => (
+                        <li key={result.id}>
+                          <a
+                            href={`/explore/?slice_id=${result.id}`}
+                            target="_atRiskItem"
+                          >
+                            {result.slice_name}
+                          </a>
+                        </li>
+                      ),
                     )}
-                    renderItem={(result: {
-                      id: number;
-                      slice_name: string;
-                    }) => (
-                      <List.Item key={result.id} compact>
-                        <List.Item.Meta
-                          avatar={<span>•</span>}
-                          title={
-                            <Typography.Link
-                              href={`/explore/?slice_id=${result.id}`}
-                              target="_atRiskItem"
-                            >
-                              {result.slice_name}
-                            </Typography.Link>
-                          }
-                        />
-                      </List.Item>
+                    {databaseCurrentlyDeleting.charts.result.length > 10 && (
+                      <li>
+                        {t(
+                          '... and %s others',
+                          databaseCurrentlyDeleting.charts.result.length - 10,
+                        )}
+                      </li>
                     )}
-                    footer={
-                      databaseCurrentlyDeleting.charts.result.length > 10 && (
-                        <div>
-                          {t(
-                            '... and %s others',
-                            databaseCurrentlyDeleting.charts.result.length - 10,
-                          )}
-                        </div>
-                      )
-                    }
-                  />
+                  </ul>
                 </>
               )}
-
               {DatabaseDeleteRelatedExtension && (
                 <DatabaseDeleteRelatedExtension
                   database={databaseCurrentlyDeleting}

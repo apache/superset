@@ -25,7 +25,7 @@ import {
   StyledColumnOption,
   StyledMetricOption,
 } from 'src/explore/components/optionRenderers';
-import { Icons } from '@superset-ui/core/components/Icons';
+import { Icons } from 'src/components/Icons';
 
 import { DatasourcePanelDndItem } from '../types';
 
@@ -35,22 +35,17 @@ const DatasourceItemContainer = styled.div`
     align-items: center;
     justify-content: space-between;
     width: 100%;
-    height: ${theme.sizeUnit * 6}px;
-    padding: 0 ${theme.sizeUnit}px;
+    height: ${theme.gridUnit * 6}px;
+    padding: 0 ${theme.gridUnit}px;
 
     // hack to make the drag preview image corners rounded
     transform: translate(0, 0);
-    color: ${theme.colorText};
-    background-color: ${theme.colorBgLayout};
+    background-color: inherit;
     border-radius: 4px;
-
-    &:hover {
-      background-color: ${theme.colorPrimaryBgHover};
-    }
 
     > div {
       min-width: 0;
-      margin-right: ${theme.sizeUnit * 2}px;
+      margin-right: ${theme.gridUnit * 2}px;
     }
   `}
 `;

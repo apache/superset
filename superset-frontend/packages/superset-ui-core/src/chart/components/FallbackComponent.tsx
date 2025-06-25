@@ -18,7 +18,7 @@
  */
 
 import { t } from '@superset-ui/core';
-import { SupersetTheme } from '../..';
+import { SupersetTheme } from '../../style';
 import { FallbackPropsWithDimension } from './SuperChart';
 
 export type Props = FallbackPropsWithDimension;

@@ -32,13 +32,13 @@ import TemplateParamsEditor, {
   TemplateParamsEditorProps,
 } from 'src/SqlLab/components/TemplateParamsEditor';
 
-jest.mock('@superset-ui/core/components/Select/Select', () => () => (
+jest.mock('src/components/Select/Select', () => () => (
   <div data-test="mock-deprecated-select-select" />
 ));
-jest.mock('@superset-ui/core/components/Select/AsyncSelect', () => () => (
+jest.mock('src/components/Select/AsyncSelect', () => () => (
   <div data-test="mock-async-select" />
 ));
-jest.mock('@superset-ui/core/components/AsyncAceEditor', () => ({
+jest.mock('src/components/AsyncAceEditor', () => ({
   ConfigEditor: ({ value }: { value: string }) => (
     <div data-test="mock-async-ace-editor">{value}</div>
   ),

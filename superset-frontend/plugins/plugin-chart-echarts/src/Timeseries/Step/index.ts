@@ -17,7 +17,10 @@
  * under the License.
  */
 import { AnnotationType, Behavior, t } from '@superset-ui/core';
-import { EchartsTimeseriesChartProps, EchartsTimeseriesFormData } from '../..';
+import {
+  EchartsTimeseriesChartProps,
+  EchartsTimeseriesFormData,
+} from '@superset-ui/plugin-chart-echarts';
 import buildQuery from '../buildQuery';
 import controlPanel from './controlPanel';
 import transformProps from '../transformProps';

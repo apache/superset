@@ -20,7 +20,7 @@ import { PureComponent } from 'react';
 import rison from 'rison';
 import PropTypes from 'prop-types';
 import { CompactPicker } from 'react-color';
-import { Button, AsyncSelect, EmptyState } from '@superset-ui/core/components';
+import Button from 'src/components/Button';
 import {
   t,
   SupersetClient,
@@ -33,10 +33,12 @@ import {
   withTheme,
 } from '@superset-ui/core';
 import SelectControl from 'src/explore/components/controls/SelectControl';
+import { AsyncSelect } from 'src/components';
 import TextControl from 'src/explore/components/controls/TextControl';
 import CheckboxControl from 'src/explore/components/controls/CheckboxControl';
-import PopoverSection from '@superset-ui/core/components/PopoverSection';
+import PopoverSection from 'src/components/PopoverSection';
 import ControlHeader from 'src/explore/components/ControlHeader';
+import { EmptyState } from 'src/components/EmptyState';
 import {
   ANNOTATION_SOURCE_TYPES,
   ANNOTATION_TYPES,
@@ -899,7 +901,7 @@ class AnnotationLayer extends PureComponent {
     return (
       <>
         {this.props.error && (
-          <span style={{ color: this.props.theme.colorError }}>
+          <span style={{ color: this.props.theme.colors.error.base }}>
             ERROR: {this.props.error}
           </span>
         )}
@@ -965,19 +967,11 @@ class AnnotationLayer extends PureComponent {
         </div>
         <div style={{ display: 'flex', justifyContent: 'space-between' }}>
           {isNew ? (
-            <Button
-              buttonSize="small"
-              buttonStyle="secondary"
-              onClick={() => this.props.close()}
-            >
+            <Button buttonSize="small" onClick={() => this.props.close()}>
               {t('Cancel')}
             </Button>
           ) : (
-            <Button
-              buttonSize="small"
-              buttonStyle="secondary"
-              onClick={this.deleteAnnotation}
-            >
+            <Button buttonSize="small" onClick={this.deleteAnnotation}>
               {t('Remove')}
             </Button>
           )}

@@ -142,10 +142,9 @@ test('shows and hides the confirmation modal on deactivation', async () => {
 test('enables the "Save Changes" button', async () => {
   setup();
 
-  const allowedDomainsInput = await screen.findByRole('textbox', {
-    name: /Allowed Domains/i,
-  });
-
+  const allowedDomainsInput = await screen.findByLabelText(
+    new RegExp(/Allowed Domains/, 'i'),
+  );
   const saveChangesBtn = screen.getByRole('button', { name: 'Save changes' });
 
   expect(saveChangesBtn).toBeDisabled();

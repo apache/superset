@@ -17,8 +17,9 @@
  * under the License.
  */
 import { useEffect, useRef, useMemo } from 'react';
-import { Select, SQLEditor } from '@superset-ui/core/components';
+import { Select } from 'src/components';
 import { css, styled, t, useTheme } from '@superset-ui/core';
+import { SQLEditor } from 'src/components/AsyncAceEditor';
 import sqlKeywords from 'src/SqlLab/utils/sqlKeywords';
 import { getColumnKeywords } from 'src/explore/controlUtils/getColumnKeywords';
 import AdhocFilter from 'src/explore/components/controls/FilterControl/AdhocFilter';
@@ -28,8 +29,8 @@ import { Clauses, ExpressionTypes } from '../types';
 
 const StyledSelect = styled(Select)`
   ${({ theme }) => `
-    width: ${theme.sizeUnit * 30}px;
-    marginRight: ${theme.sizeUnit}px;
+    width: ${theme.gridUnit * 30}px;
+    marginRight: ${theme.gridUnit}px;
   `}
 `;
 
@@ -116,7 +117,7 @@ export default function AdhocFilterEditPopoverSqlTabContent({
       </div>
       <div
         css={css`
-          margin-top: ${theme.sizeUnit * 4}px;
+          margin-top: ${theme.gridUnit * 4}px;
         `}
       >
         <SQLEditor

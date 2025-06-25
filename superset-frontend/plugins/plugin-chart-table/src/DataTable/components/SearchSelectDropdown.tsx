@@ -18,10 +18,10 @@
  */
 /* eslint-disable import/no-extraneous-dependencies */
 import { styled } from '@superset-ui/core';
-import { RawAntdSelect } from '@superset-ui/core/components';
+import { Select } from 'antd';
 import { SearchOption } from '../../types';
 
-const StyledSelect = styled(RawAntdSelect)`
+const StyledSelect = styled(Select)`
   width: 120px;
   margin-right: 8px;
 `;
@@ -29,7 +29,7 @@ const StyledSelect = styled(RawAntdSelect)`
 interface SearchSelectDropdownProps {
   /** The currently selected search column value */
   value?: string;
-  /** Function triggered when a new search column is selected */
+  /** Callback triggered when a new search column is selected */
   onChange: (searchCol: string) => void;
   /** Available search column options to populate the dropdown */
   searchOptions: SearchOption[];

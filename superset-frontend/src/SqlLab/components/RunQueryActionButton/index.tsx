@@ -20,8 +20,9 @@ import { useMemo, FC, ReactElement } from 'react';
 
 import { t, styled, useTheme, SupersetTheme } from '@superset-ui/core';
 
-import { Button, DropdownButton } from '@superset-ui/core/components';
-import { Icons } from '@superset-ui/core/components/Icons';
+import Button from 'src/components/Button';
+import { Icons } from 'src/components/Icons';
+import { DropdownButton } from 'src/components/DropdownButton';
 import { detectOS } from 'src/utils/common';
 import { QueryButtonProps } from 'src/SqlLab/types';
 import useQueryEditor from 'src/SqlLab/hooks/useQueryEditor';
@@ -84,11 +85,11 @@ const StyledButton = styled.span`
     // this is to over ride a previous transition built into the component
     transition: background-color 0ms;
     &:last-of-type {
-      margin-right: ${({ theme }) => theme.sizeUnit * 2}px;
+      margin-right: ${({ theme }) => theme.gridUnit * 2}px;
     }
     span[name='caret-down'] {
       display: flex;
-      margin-left: ${({ theme }) => theme.sizeUnit * 1}px;
+      margin-left: ${({ theme }) => theme.gridUnit * 1}px;
     }
   }
 `;
@@ -151,14 +152,16 @@ const RunQueryActionButton = ({
               icon: (
                 <Icons.DownOutlined
                   iconColor={
-                    isDisabled ? theme.colorTextDisabled : theme.colorIcon
+                    isDisabled
+                      ? theme.colors.grayscale.base
+                      : theme.colors.grayscale.light5
                   }
                 />
               ),
               trigger: 'click',
             }
           : {
-              buttonStyle: shouldShowStopBtn ? 'danger' : 'primary',
+              buttonStyle: shouldShowStopBtn ? 'warning' : 'primary',
             })}
       >
         {buildText(shouldShowStopBtn, selectedText, theme)}

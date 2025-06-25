@@ -16,10 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { MainNav as Menu } from '@superset-ui/core/components/Menu';
+import { MainNav as Menu } from 'src/components/Menu';
 import { styled, css, useTheme } from '@superset-ui/core';
-import { Icons } from '@superset-ui/core/components/Icons';
-import { Typography } from '@superset-ui/core/components/Typography';
+import { Icons } from 'src/components/Icons';
 
 const { SubMenu } = Menu;
 export interface Languages {
@@ -40,7 +39,7 @@ const StyledLabel = styled.div`
   align-items: center;
 
   & i {
-    margin-right: ${({ theme }) => theme.sizeUnit * 2}px;
+    margin-right: ${({ theme }) => theme.gridUnit * 2}px;
   }
 
   & a {
@@ -63,8 +62,8 @@ export default function LanguagePicker(props: LanguagePickerProps) {
       css={css`
         [data-icon='caret-down'] {
           color: ${theme.colors.grayscale.base};
-          font-size: ${theme.fontSizeXS}px;
-          margin-left: ${theme.sizeUnit}px;
+          font-size: ${theme.typography.sizes.xxs}px;
+          margin-left: ${theme.gridUnit}px;
         }
       `}
       aria-label="Languages"
@@ -83,9 +82,7 @@ export default function LanguagePicker(props: LanguagePickerProps) {
         >
           <StyledLabel className="f16">
             <i className={`flag ${languages[langKey].flag}`} />
-            <Typography.Link href={languages[langKey].url}>
-              {languages[langKey].name}
-            </Typography.Link>
+            <a href={languages[langKey].url}>{languages[langKey].name}</a>
           </StyledLabel>
         </Menu.Item>
       ))}

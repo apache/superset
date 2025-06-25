@@ -46,7 +46,7 @@ export default styled(ParallelCoordinates)`
     }
     .parcoords svg,
     .parcoords canvas {
-      font-size: ${theme.fontSizeSM}px;
+      font-size: ${theme.typography.sizes.s}px;
       position: absolute;
     }
     .parcoords > canvas {
@@ -55,7 +55,7 @@ export default styled(ParallelCoordinates)`
 
     .parcoords text.label {
       font: 100%;
-      font-size: ${theme.fontSizeSM}px;
+      font-size: ${theme.typography.sizes.s}px;
       cursor: drag;
     }
     .parcoords rect.background {
@@ -74,7 +74,7 @@ export default styled(ParallelCoordinates)`
     .parcoords .axis line,
     .parcoords .axis path {
       fill: none;
-      stroke: ${theme.colorText};
+      stroke: ${theme.colors.grayscale.dark1};
       shape-rendering: crispEdges;
     }
     .parcoords canvas {
@@ -84,7 +84,7 @@ export default styled(ParallelCoordinates)`
       -o-transition: opacity 0.3s;
     }
     .parcoords canvas.faded {
-      opacity: 35%;
+      opacity: ${theme.opacity.mediumLight};
     }
     .parcoords {
       -webkit-touch-callout: none;
@@ -100,7 +100,7 @@ export default styled(ParallelCoordinates)`
     .parcoords .row,
     .parcoords .header {
       clear: left;
-      font-size: ${theme.fontSizeSM}px;
+      font-size: ${theme.typography.sizes.s}px;
       line-height: 18px;
       height: 18px;
       margin: 0px;
@@ -109,7 +109,7 @@ export default styled(ParallelCoordinates)`
       background: ${addAlpha(theme.colors.grayscale.dark2, 0.05)};
     }
     .parcoords .header {
-      font-weight: ${theme.fontWeightStrong};
+      font-weight: ${theme.typography.weights.bold};
     }
     .parcoords .cell {
       float: left;

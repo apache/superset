@@ -18,7 +18,6 @@
  */
 import { t } from '@superset-ui/core';
 
-import { Icons } from '@superset-ui/core/components';
 import { COLUMN_TYPE } from '../../../util/componentTypes';
 import { NEW_COLUMN_ID } from '../../../util/constants';
 import DraggableNewComponent from './DraggableNewComponent';
@@ -29,7 +28,7 @@ export default function DraggableNewColumn() {
       id={NEW_COLUMN_ID}
       type={COLUMN_TYPE}
       label={t('Column')}
-      IconComponent={Icons.ColumnWidthOutlined}
+      className="fa fa-long-arrow-down"
     />
   );
 }

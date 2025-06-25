@@ -277,7 +277,6 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         "table_name",
         "created_by",
         "changed_by",
-        "uuid",
     ]
     allowed_rel_fields = {"database", "owners", "created_by", "changed_by"}
     allowed_distinct_fields = {"catalog", "schema"}

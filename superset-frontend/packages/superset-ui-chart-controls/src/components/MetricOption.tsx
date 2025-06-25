@@ -18,16 +18,17 @@
  */
 import { useState, ReactNode, useLayoutEffect, RefObject } from 'react';
 
-import { css, styled, Metric, SupersetTheme } from '@superset-ui/core';
 import {
+  css,
+  styled,
+  Metric,
   SafeMarkdown,
-  Typography,
-  // TODO: somehow doesn't work with our main Tooltip (?)
-  RawAntdTooltip as Tooltip,
-  InfoTooltip,
-} from '@superset-ui/core/components';
+  SupersetTheme,
+} from '@superset-ui/core';
+import InfoTooltipWithTrigger from './InfoTooltipWithTrigger';
 import { ColumnTypeLabel } from './ColumnTypeLabel/ColumnTypeLabel';
 import CertifiedIconWithTooltip from './CertifiedIconWithTooltip';
+import Tooltip from './Tooltip';
 import { getMetricTooltipNode } from './labelUtils';
 import { SQLPopover } from './SQLPopover';
 
@@ -36,7 +37,7 @@ const FlexRowContainer = styled.div`
   display: flex;
 
   > svg {
-    margin-right: ${({ theme }) => theme.sizeUnit}px;
+    margin-right: ${({ theme }) => theme.gridUnit}px;
   }
 `;
 
@@ -60,26 +61,23 @@ export function MetricOption({
   url = '',
 }: MetricOptionProps) {
   const verbose = metric.verbose_name || metric.metric_name || metric.label;
+  const link = url ? (
+    <a href={url} target={openInNewWindow ? '_blank' : ''} rel="noreferrer">
+      {verbose}
+    </a>
+  ) : (
+    verbose
+  );
 
   const label = (
     <span
       className="option-label metric-option-label"
       css={(theme: SupersetTheme) => css`
-        margin-right: ${theme.sizeUnit}px;
+        margin-right: ${theme.gridUnit}px;
       `}
       ref={labelRef}
     >
-      {url ? (
-        <Typography.Link
-          href={url}
-          target={openInNewWindow ? '_blank' : ''}
-          rel="noreferrer"
-        >
-          {verbose}
-        </Typography.Link>
-      ) : (
-        verbose
-      )}
+      {link}
     </span>
   );
 
@@ -113,13 +111,15 @@ export function MetricOption({
         />
       )}
       {warningMarkdown && (
-        <InfoTooltip
-          type="warning"
+        <InfoTooltipWithTrigger
+          className="text-warning"
+          icon="warning"
           tooltip={<SafeMarkdown source={warningMarkdown} />}
           label={`warn-${metric.metric_name}`}
-          iconStyle={{ marginLeft: 0 }}
+          iconsStyle={{ marginLeft: 0 }}
           {...(metric.error_text && {
-            type: 'error',
+            className: 'text-danger',
+            icon: 'exclamation-circle',
           })}
         />
       )}

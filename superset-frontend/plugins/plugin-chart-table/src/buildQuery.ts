@@ -18,18 +18,17 @@
  */
 import {
   AdhocColumn,
-  BuildQuery,
-  PostProcessingRule,
-  QueryFormOrderBy,
-  QueryMode,
-  QueryObject,
   buildQueryContext,
   ensureIsArray,
   getMetricLabel,
   isPhysicalColumn,
+  QueryFormOrderBy,
+  QueryMode,
+  QueryObject,
   removeDuplicates,
 } from '@superset-ui/core';
-
+import { PostProcessingRule } from '@superset-ui/core/src/query/types/PostProcessing';
+import { BuildQuery } from '@superset-ui/core/src/chart/registries/ChartBuildQueryRegistrySingleton';
 import {
   isTimeComparison,
   timeCompareOperator,

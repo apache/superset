@@ -17,12 +17,9 @@
  * under the License.
  */
 import { css, SupersetTheme, t } from '@superset-ui/core';
-import {
-  FormLabel,
-  LabeledErrorBoundInput as ValidatedInput,
-} from '@superset-ui/core/components';
-import { Icons } from '@superset-ui/core/components/Icons';
-import { Typography } from '@superset-ui/core/components/Typography';
+import ValidatedInput from 'src/components/Form/LabeledErrorBoundInput';
+import FormLabel from 'src/components/Form/FormLabel';
+import { Icons } from 'src/components/Icons';
 import { StyledFooterButton, StyledCatalogTable } from '../styles';
 import { CatalogObject, FieldPropTypes } from '../../types';
 
@@ -37,9 +34,9 @@ export const TableCatalog = ({
   const catalogError = validationErrors || {};
   return (
     <StyledCatalogTable>
-      <Typography.Title level={4} className="gsheet-title">
+      <h4 className="gsheet-title">
         {t('Connect Google Sheets as tables to this database')}
-      </Typography.Title>
+      </h4>
       <div>
         {tableCatalog?.map((sheet: CatalogObject, idx: number) => (
           <>

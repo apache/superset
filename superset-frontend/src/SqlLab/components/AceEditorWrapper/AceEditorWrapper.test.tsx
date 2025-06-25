@@ -23,9 +23,9 @@ import { Store } from 'redux';
 import { initialState, defaultQueryEditor } from 'src/SqlLab/fixtures';
 import AceEditorWrapper from 'src/SqlLab/components/AceEditorWrapper';
 import {
+  AsyncAceEditorProps,
   FullSQLEditor,
-  type AsyncAceEditorProps,
-} from '@superset-ui/core/components';
+} from 'src/components/AsyncAceEditor';
 import {
   queryEditorSetCursorPosition,
   queryEditorSetDb,
@@ -36,14 +36,14 @@ fetchMock.get('glob:*/api/v1/database/*/function_names/', {
   function_names: [],
 });
 
-jest.mock('@superset-ui/core/components/Select/Select', () => () => (
+jest.mock('src/components/Select/Select', () => () => (
   <div data-test="mock-deprecated-select-select" />
 ));
-jest.mock('@superset-ui/core/components/Select/AsyncSelect', () => () => (
+jest.mock('src/components/Select/AsyncSelect', () => () => (
   <div data-test="mock-deprecated-async-select" />
 ));
 
-jest.mock('@superset-ui/core/components/AsyncAceEditor', () => ({
+jest.mock('src/components/AsyncAceEditor', () => ({
   FullSQLEditor: jest
     .fn()
     .mockImplementation((props: AsyncAceEditorProps) => (

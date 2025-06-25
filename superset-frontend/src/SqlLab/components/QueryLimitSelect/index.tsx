@@ -18,11 +18,12 @@
  */
 import { useDispatch } from 'react-redux';
 import { t } from '@superset-ui/core';
-import { Dropdown, Button } from '@superset-ui/core/components';
-import { Menu } from '@superset-ui/core/components/Menu';
-import { Icons } from '@superset-ui/core/components/Icons';
+import { Dropdown } from 'src/components/Dropdown';
+import { Menu } from 'src/components/Menu';
+import { Icons } from 'src/components/Icons';
 import { queryEditorSetQueryLimit } from 'src/SqlLab/actions/sqlLab';
 import useQueryEditor from 'src/SqlLab/hooks/useQueryEditor';
+import Button from 'src/components/Button';
 
 export interface QueryLimitSelectProps {
   queryEditorId: string;
@@ -74,7 +75,7 @@ const QueryLimitSelect = ({
       dropdownRender={() => renderQueryLimit(maxRow, setQueryLimit)}
       trigger={['click']}
     >
-      <Button size="small" showMarginRight={false} buttonStyle="link">
+      <Button size="small" showMarginRight={false} type="link">
         <span>{t('LIMIT')}:</span>
         <span className="limitDropdown">
           {convertToNumWithSpaces(queryLimit)}

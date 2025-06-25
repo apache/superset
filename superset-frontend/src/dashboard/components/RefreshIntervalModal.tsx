@@ -17,34 +17,29 @@
  * under the License.
  */
 import { createRef, PureComponent } from 'react';
-import {
-  FormLabel,
-  Alert,
-  Button,
-  Input,
-  Select,
-} from '@superset-ui/core/components';
+import Select from 'src/components/Select/Select';
 import { t, styled } from '@superset-ui/core';
+import Alert from 'src/components/Alert';
+import Button from 'src/components/Button';
+import { Input } from 'src/components/Input';
 
-import {
-  ModalTrigger,
-  ModalTriggerRef,
-} from '@superset-ui/core/components/ModalTrigger';
-import { propertyComparator } from '@superset-ui/core/components/Select/utils';
+import ModalTrigger, { ModalTriggerRef } from 'src/components/ModalTrigger';
+import { FormLabel } from 'src/components/Form';
+import { propertyComparator } from 'src/components/Select/utils';
 
 const StyledModalTrigger = styled(ModalTrigger)`
-  .ant-modal-body {
+  .antd5-modal-body {
     overflow: visible;
   }
 `;
 
 const RefreshWarningContainer = styled.div`
-  margin-top: ${({ theme }) => theme.sizeUnit * 6}px;
+  margin-top: ${({ theme }) => theme.gridUnit * 6}px;
 `;
 
 const StyledDiv = styled.div`
   display: flex;
-  margin-top: ${({ theme }) => theme.sizeUnit * 3}px;
+  margin-top: ${({ theme }) => theme.gridUnit * 3}px;
 `;
 
 const InnerStyledDiv = styled.div`
@@ -306,11 +301,7 @@ class RefreshIntervalModal extends PureComponent<
         }
         modalFooter={
           <>
-            <Button
-              onClick={this.onCancel}
-              buttonSize="small"
-              buttonStyle="secondary"
-            >
+            <Button onClick={this.onCancel} buttonSize="small">
               {t('Cancel')}
             </Button>
             <Button

@@ -17,7 +17,6 @@
  * under the License.
  */
 import { fireEvent, render, screen } from 'spec/helpers/testing-library';
-import { Input } from '@superset-ui/core/components';
 
 import Field from './Field';
 
@@ -26,7 +25,7 @@ const defaultProps = {
   value: '',
   label: 'mock',
   description: 'description',
-  control: <Input data-test="mock-text-control" />,
+  control: <input type="text" data-test="mock-text-control" />,
   onChange: jest.fn(),
   compact: false,
   inline: false,

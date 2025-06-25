@@ -17,17 +17,28 @@
  * under the License.
  */
 import { useState } from 'react';
+import { Tooltip } from 'src/components/Tooltip';
+import Modal from 'src/components/Modal';
+import { Icons } from 'src/components/Icons';
+import Alert from 'src/components/Alert';
 import { t, useTheme } from '@superset-ui/core';
-import {
-  Alert,
-  Icons,
-  Modal,
-  Tooltip,
-  Typography,
-} from '@superset-ui/core/components';
-import type { ErrorAlertProps } from './types';
 
-export const ErrorAlert: React.FC<ErrorAlertProps> = ({
+export interface ErrorAlertProps {
+  errorType?: string; // Strong text on the first line
+  message: React.ReactNode | string; // Text shown on the first line
+  type?: 'warning' | 'error' | 'info'; // Allows only 'warning' or 'error'
+  description?: React.ReactNode; // Text shown under the first line, not collapsible
+  descriptionDetails?: React.ReactNode | string; // Text shown under the first line, collapsible
+  descriptionDetailsCollapsed?: boolean; // Hides the collapsible section unless "Show more" is clicked, default true
+  descriptionPre?: boolean; // Uses pre-style to break lines, default true
+  compact?: boolean; // Shows the error icon with tooltip and modal, default false
+  children?: React.ReactNode; // Additional content to show in the modal
+  closable?: boolean; // Show close button, default true
+  showIcon?: boolean; // Show icon, default true
+  className?: string;
+}
+
+const ErrorAlert: React.FC<ErrorAlertProps> = ({
   errorType = t('Error'),
   message,
   type = 'error',
@@ -59,7 +70,7 @@ export const ErrorAlert: React.FC<ErrorAlertProps> = ({
         <Icons.ExclamationCircleOutlined />
       );
     const color =
-      type === 'warning' ? theme.colorWarningText : theme.colorErrorText;
+      type === 'warning' ? theme.colors.warning.base : theme.colors.error.base;
     return (
       <div className={className} style={{ cursor: 'pointer' }}>
         <span style={{ color }}>{icon} </span>
@@ -69,25 +80,19 @@ export const ErrorAlert: React.FC<ErrorAlertProps> = ({
   };
   const preStyle = {
     whiteSpace: 'pre-wrap',
-    fontFamily: theme.fontFamilyCode,
+    fontFamily: theme.typography.families.sansSerif,
   };
   const renderDescription = () => (
     <div>
-      {message && <div>{message}</div>}
       {description && (
-        <Typography.Paragraph
-          style={descriptionPre ? preStyle : {}}
-          data-testid="description"
-        >
+        <p style={descriptionPre ? preStyle : {}} data-testid="description">
           {description}
-        </Typography.Paragraph>
+        </p>
       )}
       {descriptionDetails && (
         <div>
           {isDescriptionVisible && (
-            <Typography.Paragraph style={descriptionPre ? preStyle : {}}>
-              {descriptionDetails}
-            </Typography.Paragraph>
+            <p style={descriptionPre ? preStyle : {}}>{descriptionDetails}</p>
           )}
           <span
             role="button"
@@ -103,13 +108,19 @@ export const ErrorAlert: React.FC<ErrorAlertProps> = ({
   );
   const renderAlert = (closable: boolean) => (
     <Alert
-      message={errorType}
       description={renderDescription()}
       type={type}
-      showIcon={showIcon}
+      showIcon
       closable={closable}
       className={className}
-    />
+    >
+      <strong>{errorType}</strong>
+      {message && (
+        <>
+          : <span>{message}</span>
+        </>
+      )}
+    </Alert>
   );
 
   if (compact) {
@@ -135,3 +146,5 @@ export const ErrorAlert: React.FC<ErrorAlertProps> = ({
 
   return renderAlert(closable);
 };
+
+export default ErrorAlert;

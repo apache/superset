@@ -18,9 +18,8 @@
  */
 import { ReactNode } from 'react';
 import { ErrorSource, t, SupersetError } from '@superset-ui/core';
-import { Typography } from '@superset-ui/core/components';
-import { getErrorMessageComponentRegistry } from './getErrorMessageComponentRegistry';
-import { ErrorAlert } from './ErrorAlert';
+import getErrorMessageComponentRegistry from './getErrorMessageComponentRegistry';
+import ErrorAlert from './ErrorAlert';
 
 const DEFAULT_TITLE = t('Unexpected error');
 
@@ -39,7 +38,7 @@ type Props = {
   compact?: boolean;
 };
 
-export function ErrorMessageWithStackTrace({
+export default function ErrorMessageWithStackTrace({
   title = DEFAULT_TITLE,
   error,
   subtitle,
@@ -76,13 +75,9 @@ export function ErrorMessageWithStackTrace({
     (link || stackTrace ? (
       <>
         {link && (
-          <Typography.Link
-            href={link}
-            target="_blank"
-            rel="noopener noreferrer"
-          >
+          <a href={link} target="_blank" rel="noopener noreferrer">
             {t('Request Access')}
-          </Typography.Link>
+          </a>
         )}
         <br />
         {stackTrace && <pre>{stackTrace}</pre>}

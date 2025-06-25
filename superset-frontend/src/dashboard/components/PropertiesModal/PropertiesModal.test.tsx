@@ -186,7 +186,7 @@ describe('PropertiesModal', () => {
     expect(screen.getByRole('heading', { name: 'Access' })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Colors' })).toBeInTheDocument();
     expect(
-      screen.getByRole('heading', { name: 'Advanced down' }),
+      screen.getByRole('heading', { name: 'Advanced' }),
     ).toBeInTheDocument();
     expect(
       screen.getByRole('heading', { name: 'Certification' }),
@@ -195,7 +195,7 @@ describe('PropertiesModal', () => {
 
     expect(screen.getByRole('button', { name: 'Close' })).toBeInTheDocument();
     expect(
-      screen.getByRole('button', { name: 'Advanced down' }),
+      screen.getByRole('button', { name: 'Advanced' }),
     ).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Cancel' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Save' })).toBeInTheDocument();
@@ -228,7 +228,7 @@ describe('PropertiesModal', () => {
     ).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Access' })).toBeInTheDocument();
     expect(
-      screen.getByRole('heading', { name: 'Advanced down' }),
+      screen.getByRole('heading', { name: 'Advanced' }),
     ).toBeInTheDocument();
     expect(
       screen.getByRole('heading', { name: 'Certification' }),
@@ -239,7 +239,7 @@ describe('PropertiesModal', () => {
 
     expect(screen.getByRole('button', { name: 'Close' })).toBeInTheDocument();
     expect(
-      screen.getByRole('button', { name: 'Advanced down' }),
+      screen.getByRole('button', { name: 'Advanced' }),
     ).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Cancel' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Save' })).toBeInTheDocument();
@@ -266,7 +266,7 @@ describe('PropertiesModal', () => {
 
     expect(screen.getAllByRole('textbox')).toHaveLength(4);
     expect(screen.getAllByRole('combobox')).toHaveLength(3);
-    userEvent.click(screen.getByRole('button', { name: 'Advanced down' }));
+    userEvent.click(screen.getByRole('button', { name: 'Advanced' }));
     expect(screen.getAllByRole('textbox')).toHaveLength(5);
     expect(screen.getAllByRole('combobox')).toHaveLength(3);
   });
@@ -372,9 +372,9 @@ describe('PropertiesModal', () => {
     const props = createProps();
     const propsWithDashboardInfo = { ...props, dashboardInfo };
 
+    const open = () => waitFor(() => userEvent.click(getSelect()));
     const getSelect = () =>
       screen.getByRole('combobox', { name: SupersetCore.t('Roles') });
-    const open = () => waitFor(() => userEvent.click(getSelect()));
 
     const getElementsByClassName = (className: string) =>
       document.querySelectorAll(className)! as NodeListOf<HTMLElement>;

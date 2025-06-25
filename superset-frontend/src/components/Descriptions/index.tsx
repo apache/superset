@@ -17,5 +17,5 @@
  * under the License.
  */
 
-export { Descriptions } from 'antd';
-export type { DescriptionsProps } from 'antd/es/descriptions';
+export { Descriptions } from 'antd-v5';
+export type { DescriptionsProps } from 'antd-v5/es/descriptions';

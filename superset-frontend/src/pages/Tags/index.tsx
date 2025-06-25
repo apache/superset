@@ -17,34 +17,38 @@
  * under the License.
  */
 import { useMemo, useState } from 'react';
-import { isFeatureEnabled, FeatureFlag, t } from '@superset-ui/core';
+import {
+  isFeatureEnabled,
+  FeatureFlag,
+  t,
+  useTheme,
+  css,
+} from '@superset-ui/core';
 import {
   Actions,
   createErrorHandler,
   createFetchRelated,
 } from 'src/views/CRUD/utils';
 import { useListViewResource, useFavoriteStatus } from 'src/views/CRUD/hooks';
-import {
-  ConfirmStatusChange,
-  Tooltip,
-  FaveStar,
-} from '@superset-ui/core/components';
-import {
-  Tag as AntdTag,
-  ListView,
-  ModifiedInfo,
-  ListViewFilterOperator as FilterOperator,
-  type ListViewFilters,
-  type ListViewProps,
-} from 'src/components';
+import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
 import SubMenu, { SubMenuProps } from 'src/features/home/SubMenu';
+import ListView, {
+  ListViewProps,
+  Filters,
+  FilterOperator,
+} from 'src/components/ListView';
 import { dangerouslyGetItemDoNotUse } from 'src/utils/localStorageHelpers';
 import withToasts from 'src/components/MessageToasts/withToasts';
-import { Icons } from '@superset-ui/core/components/Icons';
+import { Icons } from 'src/components/Icons';
+import { Tooltip } from 'src/components/Tooltip';
 import { Link } from 'react-router-dom';
 import { deleteTags } from 'src/features/tags/tags';
+// eslint-disable-next-line no-restricted-imports
+import { Tag as AntdTag } from 'antd'; // TODO: Remove antd
 import { QueryObjectColumns, Tag } from 'src/views/CRUD/types';
 import TagModal from 'src/features/tags/TagModal';
+import FaveStar from 'src/components/FaveStar';
+import { ModifiedInfo } from 'src/components/AuditInfo';
 
 const PAGE_SIZE = 25;
 
@@ -61,6 +65,7 @@ interface TagListProps {
 function TagList(props: TagListProps) {
   const { addDangerToast, addSuccessToast, user } = props;
   const { userId } = user;
+  const theme = useTheme();
 
   const initialFilters = useMemo(
     () => [
@@ -137,7 +142,15 @@ function TagList(props: TagListProps) {
     buttonAction: () => setShowTagModal(true),
     buttonText: (
       <>
-        <Icons.PlusOutlined iconSize="m" data-test="add-rule-empty" />
+        <Icons.PlusOutlined
+          iconSize="m"
+          iconColor={theme.colors.primary.light5}
+          css={css`
+            margin: auto ${theme.gridUnit * 2}px auto 0;
+            vertical-align: text-top;
+          `}
+          data-test="add-rule-empty"
+        />
         Create a new Tag
       </>
     ),
@@ -176,7 +189,6 @@ function TagList(props: TagListProps) {
         ),
         Header: t('Name'),
         accessor: 'name',
-        id: 'name',
       },
       {
         Cell: ({
@@ -190,7 +202,6 @@ function TagList(props: TagListProps) {
         Header: t('Last modified'),
         accessor: 'changed_on_delta_humanized',
         size: 'xl',
-        id: 'changed_on_delta_humanized',
       },
       {
         Cell: ({ row: { original } }: any) => {
@@ -256,13 +267,12 @@ function TagList(props: TagListProps) {
       {
         accessor: QueryObjectColumns.ChangedBy,
         hidden: true,
-        id: QueryObjectColumns.ChangedBy,
       },
     ],
     [userId, canDelete, refreshData, addSuccessToast, addDangerToast],
   );
 
-  const filters: ListViewFilters = useMemo(() => {
+  const filters: Filters = useMemo(() => {
     const filters_list = [
       {
         Header: t('Name'),
@@ -290,7 +300,7 @@ function TagList(props: TagListProps) {
         ),
         paginate: true,
       },
-    ] as ListViewFilters;
+    ] as Filters;
     return filters_list;
   }, [addDangerToast, props.user]);
 
@@ -330,7 +340,14 @@ function TagList(props: TagListProps) {
   subMenuButtons.push({
     name: (
       <>
-        <Icons.PlusOutlined iconSize="m" /> {t('Tag')}
+        <Icons.PlusOutlined
+          css={css`
+            vertical-align: text-top;
+          `}
+          iconSize="m"
+          iconColor={theme.colors.primary.light5}
+        />{' '}
+        {t('Tag')}
       </>
     ),
     buttonStyle: 'primary',

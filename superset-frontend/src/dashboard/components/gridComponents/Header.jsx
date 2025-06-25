@@ -21,8 +21,8 @@ import PropTypes from 'prop-types';
 import cx from 'classnames';
 import { css, styled } from '@superset-ui/core';
 
-import PopoverDropdown from '@superset-ui/core/components/PopoverDropdown';
-import { EditableTitle } from '@superset-ui/core/components';
+import PopoverDropdown from 'src/components/PopoverDropdown';
+import EditableTitle from 'src/components/EditableTitle';
 import { Draggable } from 'src/dashboard/components/dnd/DragDroppable';
 import DragHandle from 'src/dashboard/components/dnd/DragHandle';
 import AnchorLink from 'src/dashboard/components/AnchorLink';
@@ -59,20 +59,20 @@ const defaultProps = {};
 
 const HeaderStyles = styled.div`
   ${({ theme }) => css`
-    font-weight: ${theme.fontWeightStrong};
+    font-weight: ${theme.typography.weights.bold};
     width: 100%;
-    padding: ${theme.sizeUnit * 4}px 0;
+    padding: ${theme.gridUnit * 4}px 0;
 
     &.header-small {
-      font-size: ${theme.fontSizeLG}px;
+      font-size: ${theme.typography.sizes.l}px;
     }
 
     &.header-medium {
-      font-size: ${theme.fontSizeXL}px;
+      font-size: ${theme.typography.sizes.xl}px;
     }
 
     &.header-large {
-      font-size: ${theme.fontSizeXXL}px;
+      font-size: ${theme.typography.sizes.xxl}px;
     }
 
     .dashboard--editing .dashboard-grid & {
@@ -89,7 +89,7 @@ const HeaderStyles = styled.div`
       }
 
       &:hover:after {
-        border: 1px dashed ${theme.colorPrimary};
+        border: 1px dashed ${theme.colors.primary.base};
         z-index: 2;
       }
     }
@@ -103,14 +103,14 @@ const HeaderStyles = styled.div`
    * we'll not worry about double padding on top as it can serve as a visual separator
    */
     .grid-column > :not(:last-child) & {
-      margin-bottom: ${theme.sizeUnit * -4}px;
+      margin-bottom: ${theme.gridUnit * -4}px;
     }
 
     .background--white &,
     &.background--white,
     .dashboard-component-tabs & {
-      padding-left: ${theme.sizeUnit * 4}px;
-      padding-right: ${theme.sizeUnit * 4}px;
+      padding-left: ${theme.gridUnit * 4}px;
+      padding-right: ${theme.gridUnit * 4}px;
     }
   `}
 `;

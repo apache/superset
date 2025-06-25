@@ -18,13 +18,13 @@
  */
 import { useEffect, useMemo, useState } from 'react';
 import { css, t, useTheme } from '@superset-ui/core';
-import { Alert } from '@superset-ui/core/components';
+import Alert from 'src/components/Alert';
 import { Dataset } from 'src/components/Chart/types';
-import MetadataBar from '@superset-ui/core/components/MetadataBar';
+import MetadataBar from 'src/components/MetadataBar';
 import {
   ContentType,
   MetadataType,
-} from '@superset-ui/core/components/MetadataBar/ContentType';
+} from 'src/components/MetadataBar/ContentType';
 import { ResourceStatus } from 'src/hooks/apiResources/apiResources';
 import { cachedSupersetGet } from 'src/utils/cachedSupersetGet';
 
@@ -107,7 +107,7 @@ export const useDatasetMetadataBar = ({
       <div
         css={css`
           display: flex;
-          margin-bottom: ${theme.sizeUnit * 4}px;
+          margin-bottom: ${theme.gridUnit * 4}px;
         `}
       >
         {status === ResourceStatus.Complete && (
@@ -121,7 +121,7 @@ export const useDatasetMetadataBar = ({
         )}
       </div>
     );
-  }, [datasetProps, result, status, theme.sizeUnit]);
+  }, [datasetProps, result, status, theme.gridUnit]);
 
   return {
     metadataBar,

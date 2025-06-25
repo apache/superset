@@ -17,6 +17,7 @@
  * under the License.
  */
 import { t } from '@superset-ui/core';
+import { SelectValue } from 'antd/lib/select';
 import { ControlPanelConfig } from '@superset-ui/chart-controls';
 
 /**
@@ -25,7 +26,6 @@ import { ControlPanelConfig } from '@superset-ui/chart-controls';
  * @param controlPanel The control panel
  * @returns The layer configuration object or undefined if not found
  */
-
 export const getLayerConfig = (controlPanel: ControlPanelConfig) => {
   let layerConfig: any;
   controlPanel.controlPanelSections.forEach(section => {
@@ -57,7 +57,7 @@ export const getLayerConfig = (controlPanel: ControlPanelConfig) => {
  */
 export const selectedChartMutator = (
   response: Record<string, any>,
-  value: any,
+  value: SelectValue | undefined,
 ) => {
   if (!response?.result) {
     if (value && typeof value === 'string') {

@@ -34,7 +34,7 @@ test('render a control', () => {
   render(setup());
 
   const checkbox = screen.getByRole('checkbox');
-  expect(checkbox).toBeInTheDocument();
+  expect(checkbox).toBeVisible();
 });
 
 test('render null if type is not exit', () => {

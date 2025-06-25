@@ -25,16 +25,16 @@ import {
   useChangeEffect,
   getClientErrorObject,
 } from '@superset-ui/core';
-import { type FormInstance, Select } from '@superset-ui/core/components';
+import { Select, FormInstance } from 'src/components';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
 import { cachedSupersetGet } from 'src/utils/cachedSupersetGet';
-import { NativeFiltersForm, NativeFiltersFormItem } from '../types';
+import { NativeFiltersForm } from '../types';
 
 interface ColumnSelectProps {
   allowClear?: boolean;
   filterValues?: (column: Column) => boolean;
   form: FormInstance<NativeFiltersForm>;
-  formField?: keyof NativeFiltersFormItem;
+  formField?: string;
   filterId: string;
   datasetId?: number;
   value?: string | string[];

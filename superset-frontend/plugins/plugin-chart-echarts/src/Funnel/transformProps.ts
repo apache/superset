@@ -227,9 +227,7 @@ export default function transformProps(
   const defaultLabel = {
     formatter,
     show: showLabels,
-    color: theme.colorText,
-    textBorderColor: theme.colorBgBase,
-    textBorderWidth: 1,
+    color: theme.colors.grayscale.dark2,
   };
 
   const series: FunnelSeriesOption[] = [
@@ -247,6 +245,7 @@ export default function transformProps(
       label: {
         ...defaultLabel,
         position: labelLine ? 'outer' : 'inner',
+        textBorderColor: 'transparent',
       },
       emphasis: {
         label: {

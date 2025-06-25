@@ -16,10 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { css } from '@superset-ui/core';
-import { List } from '@superset-ui/core/components';
+import { styled } from '@superset-ui/core';
 import { ValidationObject } from './types';
 import { TRANSLATIONS } from './AlertReportModal';
+
+const StyledList = styled.ul`
+  margin-left: ${({ theme }) => theme.gridUnit * 2}px;
+  padding-inline-start: ${({ theme }) => theme.gridUnit * 3}px;
+`;
 
 export const buildErrorTooltipMessage = (
   validationStatus: ValidationObject,
@@ -34,23 +38,11 @@ export const buildErrorTooltipMessage = (
   return (
     <div>
       {TRANSLATIONS.ERROR_TOOLTIP_MESSAGE}
-      <List
-        dataSource={sectionErrors}
-        renderItem={err => (
-          <List.Item
-            css={theme => css`
-              &&& {
-                color: ${theme.colorWhite};
-              }
-            `}
-            compact
-          >
-            • {err}
-          </List.Item>
-        )}
-        size="small"
-        split={false}
-      />
+      <StyledList>
+        {sectionErrors.map(err => (
+          <li key={err}>{err}</li>
+        ))}
+      </StyledList>
     </div>
   );
 };

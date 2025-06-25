@@ -76,7 +76,7 @@ test('Column and value should be visible', () => {
 
 test('Tag should be closable', () => {
   setup(mockedProps);
-  const close = screen.getByLabelText('Close');
+  const close = screen.getByRole('button', { name: 'close' });
   expect(close).toBeInTheDocument();
   userEvent.click(close);
   expect(mockedProps.removeCrossFilter).toHaveBeenCalledWith(1);
@@ -87,6 +87,6 @@ test('Close icon should have role="button"', () => {
     ...mockedProps,
     onClick: jest.fn(),
   });
-  const button = screen.getByLabelText('Close');
+  const button = screen.getByRole('button');
   expect(button).toBeInTheDocument();
 });

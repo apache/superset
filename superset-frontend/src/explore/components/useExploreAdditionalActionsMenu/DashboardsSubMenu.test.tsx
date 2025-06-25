@@ -22,7 +22,7 @@ import {
   userEvent,
   waitFor,
 } from 'spec/helpers/testing-library';
-import { Menu } from '@superset-ui/core/components/Menu';
+import { Menu } from 'src/components/Menu';
 import DashboardItems from './DashboardsSubMenu';
 
 const asyncRender = (numberOfItems: number) => {

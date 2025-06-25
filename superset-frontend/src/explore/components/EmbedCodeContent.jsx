@@ -17,12 +17,18 @@
  * under the License.
  */
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { css, t } from '@superset-ui/core';
-import { Input, Space, Typography } from '@superset-ui/core/components';
-import { CopyToClipboard } from 'src/components';
+import { css, styled, t } from '@superset-ui/core';
+import { Input, TextArea } from 'src/components/Input';
+import CopyToClipboard from 'src/components/CopyToClipboard';
 import { URL_PARAMS } from 'src/constants';
 import { getChartPermalink } from 'src/utils/urlUtils';
-import { Icons } from '@superset-ui/core/components/Icons';
+import { CopyButton } from './DataTableControl';
+
+const CopyButtonEmbedCode = styled(CopyButton)`
+  && {
+    margin: 0 0 ${({ theme }) => theme.gridUnit}px;
+  }
+`;
 
 const EmbedCodeContent = ({ formData, addDangerToast }) => {
   const [height, setHeight] = useState('400');
@@ -86,12 +92,14 @@ const EmbedCodeContent = ({ formData, addDangerToast }) => {
           shouldShowText={false}
           text={html}
           copyNode={
-            <span role="button" aria-label="Copy to clipboard">
-              <Icons.CopyOutlined />
-            </span>
+            <CopyButtonEmbedCode buttonSize="xsmall">
+              {/* TODO: Remove fa-icon */}
+              {/* eslint-disable-next-line icons/no-fa-icons-usage */}
+              <i className="fa fa-clipboard" />
+            </CopyButtonEmbedCode>
           }
         />
-        <Input.TextArea
+        <TextArea
           data-test="embed-code-textarea"
           name="embedCode"
           disabled={!html}
@@ -100,42 +108,46 @@ const EmbedCodeContent = ({ formData, addDangerToast }) => {
           readOnly
           css={theme => css`
             resize: vertical;
-            margin-top: ${theme.sizeUnit * 2}px;
-            padding: ${theme.sizeUnit * 2}px;
-            font-size: ${theme.fontSizeSM}px;
+            padding: ${theme.gridUnit * 2}px;
+            font-size: ${theme.typography.sizes.s}px;
             border-radius: 4px;
-            background-color: ${theme.colorBgSpotlight};
+            background-color: ${theme.colors.secondary.light5};
           `}
         />
       </div>
-      <Space
-        direction="horizzontal"
+      <div
         css={theme => css`
-          margin-top: ${theme.margin}px;
+          display: flex;
+          margin-top: ${theme.gridUnit * 4}px;
+          & > div {
+            margin-right: ${theme.gridUnit * 2}px;
+          }
+          & > div:last-of-type {
+            margin-right: 0;
+            margin-left: ${theme.gridUnit * 2}px;
+          }
         `}
       >
         <div>
-          <Typography.Text type="secondary">
-            {t('Chart height')}
-          </Typography.Text>
+          <label htmlFor="embed-height">{t('Chart height')}</label>
           <Input
-            type="number"
+            type="text"
             defaultValue={height}
             name="height"
             onChange={handleInputChange}
           />
         </div>
         <div>
-          <Typography.Text type="secondary">{t('Chart width')}</Typography.Text>
+          <label htmlFor="embed-width">{t('Chart width')}</label>
           <Input
-            type="number"
+            type="text"
             defaultValue={width}
             name="width"
             onChange={handleInputChange}
             id="embed-width"
           />
         </div>
-      </Space>
+      </div>
     </div>
   );
 };

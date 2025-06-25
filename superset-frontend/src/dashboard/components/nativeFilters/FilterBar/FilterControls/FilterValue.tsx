@@ -44,8 +44,8 @@ import {
 import { useDispatch, useSelector } from 'react-redux';
 import { isEqual, isEqualWith } from 'lodash';
 import { getChartDataRequest } from 'src/components/Chart/chartAction';
-import { ErrorAlert, ErrorMessageWithStackTrace } from 'src/components';
-import { Loading, Constants } from '@superset-ui/core/components';
+import Loading from 'src/components/Loading';
+import ErrorMessageWithStackTrace from 'src/components/ErrorMessage/ErrorMessageWithStackTrace';
 import { waitForAsyncData } from 'src/middleware/asyncEvent';
 import { FilterBarOrientation, RootState } from 'src/dashboard/types';
 import {
@@ -53,6 +53,8 @@ import {
   setDirectPathToChild,
 } from 'src/dashboard/actions/dashboardState';
 import { RESPONSIVE_WIDTH } from 'src/filters/components/common';
+import { FAST_DEBOUNCE } from 'src/constants';
+import ErrorAlert from 'src/components/ErrorMessage/ErrorAlert';
 import { dispatchHoverAction, dispatchFocusAction } from './utils';
 import { FilterControlProps } from './types';
 import { getFormData } from '../../utils';
@@ -232,7 +234,7 @@ const FilterValue: FC<FilterControlProps> = ({
         () => {
           inputRef?.current?.focus();
         },
-        overflow ? Constants.FAST_DEBOUNCE : 0,
+        overflow ? FAST_DEBOUNCE : 0,
       );
     }
   }, [inputRef, outlinedFilterId, lastUpdated, filter.id, overflow]);

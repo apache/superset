@@ -18,7 +18,7 @@
  */
 import { ControlHeader } from '@superset-ui/chart-controls';
 import { css, styled, t } from '@superset-ui/core';
-import { Popover } from '@superset-ui/core/components';
+import Popover from 'src/components/Popover';
 import { FC, useState } from 'react';
 import { EditItem, LayerConf, LayerConfigsControlProps } from './types';
 import LayerConfigsPopoverContent from './LayerConfigsPopoverContent';
@@ -41,8 +41,8 @@ export const StyledFlatLayerTree = styled(FlatLayerTree)`
       margin: 4px;
 
       color: ${theme.colors.grayscale.light1};
-      font-size: ${theme.fontSizeSM}px;
-      font-weight: ${theme.fontWeightNormal};
+      font-size: ${theme.typography.sizes.s}px;
+      font-weight: ${theme.typography.weights.normal};
 
       &:hover {
         background-color: ${theme.colors.grayscale.light4};

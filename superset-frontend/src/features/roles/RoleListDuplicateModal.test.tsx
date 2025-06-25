@@ -36,10 +36,9 @@ const mockCreateRole = jest.mocked(createRole);
 const mockUpdateRolePermissions = jest.mocked(updateRolePermissions);
 
 jest.mock('src/components/MessageToasts/withToasts', () => ({
-  __esModule: true,
-  default: (Component: any) => Component,
   useToasts: () => mockToasts,
 }));
+
 describe('RoleListDuplicateModal', () => {
   const mockRole = {
     id: 1,

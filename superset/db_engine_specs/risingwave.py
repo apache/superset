@@ -21,6 +21,3 @@ class RisingWaveDbEngineSpec(PostgresEngineSpec):
     engine = "risingwave"
     engine_name = "RisingWave"
     default_driver = ""
-    sqlalchemy_uri_placeholder = (
-        "risingwave://user:password@host:port/dbname[?key=value&key=value...]"
-    )

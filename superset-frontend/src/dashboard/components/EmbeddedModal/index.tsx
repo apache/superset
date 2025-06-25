@@ -22,21 +22,16 @@ import {
   styled,
   SupersetApiError,
   t,
-  css,
   getExtensionsRegistry,
 } from '@superset-ui/core';
-import {
-  Button,
-  FormItem,
-  InfoTooltip,
-  Input,
-  Modal,
-  Loading,
-  Form,
-} from '@superset-ui/core/components';
+import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
+import Modal from 'src/components/Modal';
+import Loading from 'src/components/Loading';
+import Button from 'src/components/Button';
+import { Input } from 'src/components/Input';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
+import { FormItem } from 'src/components/Form';
 import { EmbeddedDashboard } from 'src/dashboard/types';
-import { Typography } from '@superset-ui/core/components/Typography';
 
 const extensionsRegistry = getExtensionsRegistry();
 
@@ -187,41 +182,31 @@ export const DashboardEmbedControls = ({ dashboardId, onHide }: Props) => {
       )}
       <p>
         {t('For further instructions, consult the')}{' '}
-        <Typography.Link href={docsUrl} target="_blank" rel="noreferrer">
+        <a href={docsUrl} target="_blank" rel="noreferrer">
           {docsDescription
             ? docsDescription()
             : t('Superset Embedded SDK documentation.')}
-        </Typography.Link>
+        </a>
       </p>
       <h3>{t('Settings')}</h3>
-      <Form layout="vertical">
-        <FormItem
-          name="allowed-domains"
-          label={
-            <span>
-              {t('Allowed Domains (comma separated)')}{' '}
-              <InfoTooltip
-                placement="top"
-                tooltip={t(
-                  'A list of domain names that can embed this dashboard. Leaving this field empty will allow embedding from any domain.',
-                )}
-              />
-            </span>
-          }
-        >
-          <Input
-            id="allowed-domains"
-            value={allowedDomains}
-            placeholder="superset.example.com"
-            onChange={event => setAllowedDomains(event.target.value)}
+      <FormItem>
+        <label htmlFor="allowed-domains">
+          {t('Allowed Domains (comma separated)')}{' '}
+          <InfoTooltipWithTrigger
+            tooltip={t(
+              'A list of domain names that can embed this dashboard. Leaving this field empty will allow embedding from any domain.',
+            )}
           />
-        </FormItem>
-      </Form>
-      <ButtonRow
-        css={theme => css`
-          margin-top: ${theme.margin}px;
-        `}
-      >
+        </label>
+        <Input
+          name="allowed-domains"
+          id="allowed-domains"
+          value={allowedDomains}
+          placeholder="superset.example.com"
+          onChange={event => setAllowedDomains(event.target.value)}
+        />
+      </FormItem>
+      <ButtonRow>
         {embedded ? (
           <>
             <Button

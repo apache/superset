@@ -16,21 +16,20 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { CustomControlItem } from '@superset-ui/chart-controls';
-import { ReactNode } from 'react';
 import {
-  Checkbox,
-  FormItem,
-  InfoTooltip,
-  Tooltip,
-  type FormInstance,
-} from '@superset-ui/core/components';
+  CustomControlItem,
+  InfoTooltipWithTrigger,
+} from '@superset-ui/chart-controls';
+import { ReactNode } from 'react';
+import { AntdCheckbox, FormInstance } from 'src/components';
 import {
   Filter,
   getChartControlPanelRegistry,
   styled,
   t,
 } from '@superset-ui/core';
+import { Tooltip } from 'src/components/Tooltip';
+import { FormItem } from 'src/components/Form';
 import {
   doesColumnMatchFilterType,
   getControlItems,
@@ -191,9 +190,9 @@ export default function getControlItemsMap({
               valuePropName="checked"
               colon={false}
             >
-              <Checkbox
+              <AntdCheckbox
                 disabled={controlItem.config.affectsDataMask && disabled}
-                onChange={checked => {
+                onChange={({ target: { checked } }) => {
                   if (controlItem.config.requiredFirst) {
                     setNativeFilterFieldValues(form, filterId, {
                       requiredFirst: {
@@ -211,16 +210,15 @@ export default function getControlItemsMap({
                   forceUpdate();
                 }}
               >
-                <>
-                  {controlItem.config.label}&nbsp;
-                  {controlItem.config.description && (
-                    <InfoTooltip
-                      placement="top"
-                      tooltip={controlItem.config.description}
-                    />
-                  )}
-                </>
-              </Checkbox>
+                {controlItem.config.label}&nbsp;
+                {controlItem.config.description && (
+                  <InfoTooltipWithTrigger
+                    placement="top"
+                    label={controlItem.config.name}
+                    tooltip={controlItem.config.description}
+                  />
+                )}
+              </AntdCheckbox>
             </StyledRowFormItem>
           </Tooltip>
         </>

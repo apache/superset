@@ -21,7 +21,7 @@ import { SupersetClient, logging, t } from '@superset-ui/core';
 import rison from 'rison';
 import { addDangerToast } from 'src/components/MessageToasts/actions';
 import { DatasetObject } from 'src/features/datasets/AddDataset/types';
-import type { DatabaseObject } from 'src/components';
+import { DatabaseObject } from 'src/components/DatabaseSelector';
 
 /**
  * Retrieves all pages of dataset results

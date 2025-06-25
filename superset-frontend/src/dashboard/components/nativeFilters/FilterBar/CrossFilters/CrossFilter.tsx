@@ -66,7 +66,7 @@ const CrossFilter = (props: {
         ${orientation === FilterBarOrientation.Vertical
           ? `
             display: block;
-            margin-bottom: ${theme.sizeUnit * 4}px;
+            margin-bottom: ${theme.gridUnit * 4}px;
           `
           : `
             display: flex;
@@ -93,15 +93,15 @@ const CrossFilter = (props: {
               ? `
                 width: 1px;
                 height: 22px;
-                margin-left: ${theme.sizeUnit * 4}px;
-                margin-right: ${theme.sizeUnit}px;
+                margin-left: ${theme.gridUnit * 4}px;
+                margin-right: ${theme.gridUnit}px;
               `
               : `
                 width: 100%;
                 height: 1px;
                 display: block;
-                margin-bottom: ${theme.sizeUnit * 4}px;
-                margin-top: ${theme.sizeUnit * 4}px;
+                margin-bottom: ${theme.gridUnit * 4}px;
+                margin-top: ${theme.gridUnit * 4}px;
             `}
             background: ${theme.colors.grayscale.light2};
           `}

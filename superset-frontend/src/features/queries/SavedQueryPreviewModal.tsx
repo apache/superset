@@ -18,7 +18,8 @@
  */
 import { FunctionComponent } from 'react';
 import { styled, t } from '@superset-ui/core';
-import { Button, Modal } from '@superset-ui/core/components';
+import Modal from 'src/components/Modal';
+import Button from 'src/components/Button';
 import SyntaxHighlighterCopy from 'src/features/queries/SyntaxHighlighterCopy';
 import withToasts, {
   ToastProps,
@@ -26,26 +27,26 @@ import withToasts, {
 import useQueryPreviewState from 'src/features/queries/hooks/useQueryPreviewState';
 
 const QueryTitle = styled.div`
-  color: ${({ theme }) => theme.colors.primary.light2};
-  font-size: ${({ theme }) => theme.fontSizeSM}px;
+  color: ${({ theme }) => theme.colors.secondary.light2};
+  font-size: ${({ theme }) => theme.typography.sizes.s}px;
   margin-bottom: 0;
 `;
 
 const QueryLabel = styled.div`
   color: ${({ theme }) => theme.colors.grayscale.dark2};
-  font-size: ${({ theme }) => theme.fontSize}px;
+  font-size: ${({ theme }) => theme.typography.sizes.m}px;
   padding: 4px 0 16px 0;
 `;
 
 const StyledModal = styled(Modal)`
-  .ant-modal-body {
+  .antd5-modal-body {
     padding: 24px;
   }
 
   pre {
-    font-size: ${({ theme }) => theme.fontSizeXS}px;
-    font-weight: ${({ theme }) => theme.fontWeightNormal};
-    line-height: ${({ theme }) => theme.fontSizeLG}px;
+    font-size: ${({ theme }) => theme.typography.sizes.xs}px;
+    font-weight: ${({ theme }) => theme.typography.weights.normal};
+    line-height: ${({ theme }) => theme.typography.sizes.l}px;
     height: 375px;
     border: none;
   }

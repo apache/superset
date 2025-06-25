@@ -24,24 +24,18 @@ import {
   useRef,
   useState,
 } from 'react';
-import {
-  css,
-  getExtensionsRegistry,
-  SupersetTheme,
-  styled,
-  t,
-} from '@superset-ui/core';
+import { css, getExtensionsRegistry, styled, t } from '@superset-ui/core';
 import { useUiConfig } from 'src/components/UiConfigContext';
-import { Tooltip, EditableTitle } from '@superset-ui/core/components';
+import { Tooltip } from 'src/components/Tooltip';
 import { useSelector } from 'react-redux';
+import EditableTitle from 'src/components/EditableTitle';
 import SliceHeaderControls from 'src/dashboard/components/SliceHeaderControls';
 import { SliceHeaderControlsProps } from 'src/dashboard/components/SliceHeaderControls/types';
 import FiltersBadge from 'src/dashboard/components/FiltersBadge';
-import { Icons } from '@superset-ui/core/components/Icons';
+import { Icons } from 'src/components/Icons';
 import { RootState } from 'src/dashboard/types';
 import { getSliceHeaderTooltip } from 'src/dashboard/util/getSliceHeaderTooltip';
 import { DashboardPageIdContext } from 'src/dashboard/containers/DashboardPage';
-import { Link } from 'react-router-dom';
 
 const extensionsRegistry = getExtensionsRegistry();
 
@@ -63,16 +57,16 @@ const annotationsError = t('One or more annotation layers failed loading.');
 const CrossFilterIcon = styled(Icons.ApartmentOutlined)`
   ${({ theme }) => `
     cursor: default;
-    color: ${theme.colorPrimary};
+    color: ${theme.colors.primary.base};
     line-height: 1.8;
   `}
 `;
 
 const ChartHeaderStyles = styled.div`
   ${({ theme }) => css`
-    font-size: ${theme.fontSizeLG}px;
-    font-weight: ${theme.fontWeightStrong};
-    margin-bottom: ${theme.sizeUnit}px;
+    font-size: ${theme.typography.sizes.l}px;
+    font-weight: ${theme.typography.weights.bold};
+    margin-bottom: ${theme.gridUnit}px;
     display: flex;
     max-width: 100%;
     align-items: flex-start;
@@ -87,7 +81,7 @@ const ChartHeaderStyles = styled.div`
       -webkit-line-clamp: 2;
       -webkit-box-orient: vertical;
 
-      & > span.ant-tooltip-open {
+      & > span.antd5-tooltip-open {
         display: inline;
       }
     }
@@ -113,18 +107,18 @@ const ChartHeaderStyles = styled.div`
     }
 
     .dropdown-menu.dropdown-menu-right {
-      top: ${theme.sizeUnit * 5}px;
+      top: ${theme.gridUnit * 5}px;
     }
 
     .divider {
-      margin: ${theme.sizeUnit}px 0;
+      margin: ${theme.gridUnit}px 0;
     }
 
     .refresh-tooltip {
       display: block;
-      height: ${theme.sizeUnit * 4}px;
-      margin: ${theme.sizeUnit}px 0;
-      color: ${theme.colorTextLabel};
+      height: ${theme.gridUnit * 4}px;
+      margin: ${theme.gridUnit}px 0;
+      color: ${theme.colors.text.label};
     }
   `}
 `;
@@ -201,22 +195,6 @@ const SliceHeader = forwardRef<HTMLDivElement, SliceHeaderProps>(
 
     const exploreUrl = `/explore/?dashboard_page_id=${dashboardPageId}&slice_id=${slice.slice_id}`;
 
-    const renderExploreLink = (title: string) => (
-      <Link
-        to={exploreUrl}
-        css={(theme: SupersetTheme) => css`
-          color: ${theme.colorText};
-          text-decoration: none;
-          :hover {
-            text-decoration: underline;
-          }
-          display: inline-block;
-        `}
-      >
-        {title}
-      </Link>
-    );
-
     return (
       <ChartHeaderStyles data-test="slice-header" ref={ref}>
         <div className="header-title" ref={headerRef}>
@@ -231,9 +209,7 @@ const SliceHeader = forwardRef<HTMLDivElement, SliceHeaderProps>(
               canEdit={editMode}
               onSaveTitle={updateSliceName}
               showTooltip={false}
-              renderLink={
-                canExplore && exploreUrl ? renderExploreLink : undefined
-              }
+              url={canExplore ? exploreUrl : undefined}
             />
           </Tooltip>
           {!!Object.values(annotationQuery).length && (
@@ -242,9 +218,12 @@ const SliceHeader = forwardRef<HTMLDivElement, SliceHeaderProps>(
               placement="top"
               title={annotationsLoading}
             >
-              <Icons.ReloadOutlined
-                className="warning"
+              {/* TODO: Remove fa-icon */}
+              {/* eslint-disable-next-line icons/no-fa-icons-usage */}
+              <i
+                role="img"
                 aria-label={annotationsLoading}
+                className="fa fa-refresh warning"
               />
             </Tooltip>
           )}
@@ -254,9 +233,12 @@ const SliceHeader = forwardRef<HTMLDivElement, SliceHeaderProps>(
               placement="top"
               title={annotationsError}
             >
-              <Icons.ExclamationCircleOutlined
-                className="danger"
+              {/* TODO: Remove fa-icon */}
+              {/* eslint-disable-next-line icons/no-fa-icons-usage */}
+              <i
+                role="img"
                 aria-label={annotationsError}
+                className="fa fa-exclamation-circle danger"
               />
             </Tooltip>
           )}

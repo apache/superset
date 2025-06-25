@@ -28,15 +28,14 @@ interface IconButtonProps {
 const StyledDiv = styled.div`
   display: flex;
   align-items: center;
-  cursor: pointer;
   color: ${({ theme }) => theme.colors.grayscale.base};
   &:hover {
-    color: ${({ theme }) => theme.colorPrimary};
+    color: ${({ theme }) => theme.colors.primary.base};
   }
 `;
 
 const StyledSpan = styled.span`
-  margin-left: ${({ theme }) => theme.sizeUnit * 2}px;
+  margin-left: ${({ theme }) => theme.gridUnit * 2}px;
 `;
 
 const IconButton = ({ icon, label, onClick }: IconButtonProps) => (

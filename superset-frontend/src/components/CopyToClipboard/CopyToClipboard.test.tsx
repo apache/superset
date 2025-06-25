@@ -22,7 +22,7 @@ import {
   userEvent,
   waitFor,
 } from 'spec/helpers/testing-library';
-import { CopyToClipboard } from '.';
+import CopyToClipboard from '.';
 
 test('renders with default props', () => {
   const text = 'Text';

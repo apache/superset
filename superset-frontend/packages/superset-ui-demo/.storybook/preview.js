@@ -12,6 +12,7 @@ import {
 } from '@superset-ui/core';
 import themeDecorator from './themeDecorator';
 
+import 'bootstrap/dist/css/bootstrap.min.css';
 import './storybook.css';
 
 export const decorators = [withJsx, themeDecorator];

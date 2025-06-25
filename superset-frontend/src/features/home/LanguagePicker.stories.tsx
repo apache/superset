@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { MainNav as Menu } from '@superset-ui/core/components/Menu'; // Ensure correct import path
+import { MainNav as Menu } from 'src/components/Menu'; // Ensure correct import path
 import LanguagePicker from './LanguagePicker'; // Ensure correct import path
 
 export default {

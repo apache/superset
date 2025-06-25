@@ -469,7 +469,8 @@ an account first if you don't have one, and reference your username
 while requesting access to push packages.
 
 ```bash
-twine upload dist/*
+twine upload dist/apache_superset-${SUPERSET_VERSION}-py3-none-any.whl
+twine upload dist/apache_superset-${SUPERSET_VERSION}.tar.gz
 ```
 
 Set your username to `__token__`

@@ -22,9 +22,9 @@ import { ChartSource } from 'src/types/ChartSource';
 import { useChartOwnerNames } from 'src/hooks/apiResources';
 import { ResourceStatus } from 'src/hooks/apiResources/apiResources';
 import { ErrorType } from '@superset-ui/core';
-import type { ErrorMessageComponentProps } from 'src/components/ErrorMessage/types';
-import { getErrorMessageComponentRegistry } from 'src/components/ErrorMessage';
 import { ChartErrorMessage } from './ChartErrorMessage';
+import { ErrorMessageComponentProps } from '../ErrorMessage/types';
+import getErrorMessageComponentRegistry from '../ErrorMessage/getErrorMessageComponentRegistry';
 
 // Mock the useChartOwnerNames hook
 jest.mock('src/hooks/apiResources', () => ({

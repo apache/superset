@@ -48,8 +48,8 @@ export const FiltersDropdownContent = ({
 }: FiltersDropdownContentProps) => (
   <div
     css={(theme: SupersetTheme) => css`
-      width: ${theme.sizeUnit * 56}px;
-      padding: ${theme.sizeUnit}px 0;
+      width: ${theme.gridUnit * 56}px;
+      padding: ${theme.gridUnit}px 0;
     `}
   >
     {overflowedCrossFilters.map(crossFilter =>
@@ -65,6 +65,7 @@ export const FiltersDropdownContent = ({
         filtersOutOfScope={filtersOutOfScope}
         renderer={renderer}
         forceRender={forceRenderOutOfScope}
+        horizontalOverflow
       />
     )}
   </div>

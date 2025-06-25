@@ -25,37 +25,30 @@ import {
   ChangeEvent,
 } from 'react';
 
+import Alert from 'src/components/Alert';
 import {
   SupersetClient,
   t,
   styled,
   getClientErrorObject,
 } from '@superset-ui/core';
-import {
-  Alert,
-  Button,
-  Constants,
-  EmptyWrapperType,
-  Input,
-  Loading,
-  Modal,
-  TableView,
-} from '@superset-ui/core/components';
-import {
-  ServerPagination,
-  SortByType,
-} from '@superset-ui/core/components/TableView/types';
-import { FacePile } from 'src/components';
+import TableView, { EmptyWrapperType } from 'src/components/TableView';
+import { ServerPagination, SortByType } from 'src/components/TableView/types';
+import StyledModal from 'src/components/Modal';
+import Button from 'src/components/Button';
 import { useListViewResource } from 'src/views/CRUD/hooks';
 import Dataset from 'src/types/Dataset';
 import { useDebouncedEffect } from 'src/explore/exploreUtils';
+import { SLOW_DEBOUNCE } from 'src/constants';
+import Loading from 'src/components/Loading';
+import { Input } from 'src/components/Input';
 import {
   PAGE_SIZE as DATASET_PAGE_SIZE,
   SORT_BY as DATASET_SORT_BY,
 } from 'src/features/datasets/constants';
 import withToasts from 'src/components/MessageToasts/withToasts';
-import { InputRef } from 'antd';
-import type { Datasource, ChangeDatasourceModalProps } from './types';
+import { InputRef } from 'antd-v5';
+import FacePile from '../FacePile';
 
 const CONFIRM_WARNING_MESSAGE = t(
   'Warning! Changing the dataset may break the chart if the metadata does not exist.',
@@ -66,8 +59,23 @@ const CHANGE_WARNING_MSG = t(
     'on columns or metadata that does not exist in the target dataset',
 );
 
-const CustomStyledModal = styled(Modal)`
-  .ant-modal-body {
+interface Datasource {
+  type: string;
+  id: number;
+  uid: string;
+}
+
+interface ChangeDatasourceModalProps {
+  addDangerToast: (msg: string) => void;
+  addSuccessToast: (msg: string) => void;
+  onChange: (uid: string) => void;
+  onDatasourceSave: (datasource: object, errors?: Array<any>) => {};
+  onHide: () => void;
+  show: boolean;
+}
+
+const CustomStyledModal = styled(StyledModal)`
+  .antd5-modal-body {
     display: flex;
     flex-direction: column;
   }
@@ -88,7 +96,7 @@ const ConfirmModalStyled = styled.div`
 
 const StyledSpan = styled.span`
   cursor: pointer;
-  color: ${({ theme }) => theme.colorPrimaryText};
+  color: ${({ theme }) => theme.colors.primary.dark1};
   &: hover {
     color: ${({ theme }) => theme.colors.primary.dark2};
   }
@@ -141,7 +149,7 @@ const ChangeDatasourceModal: FunctionComponent<ChangeDatasourceModalProps> = ({
         }),
       });
     },
-    Constants.SLOW_DEBOUNCE,
+    SLOW_DEBOUNCE,
     [filter, pageIndex, sortBy],
   );
 
@@ -211,24 +219,20 @@ const ChangeDatasourceModal: FunctionComponent<ChangeDatasourceModalProps> = ({
       ),
       Header: t('Name'),
       accessor: 'table_name',
-      id: 'table_name',
     },
     {
       Header: t('Type'),
       accessor: 'kind',
       disableSortBy: true,
-      id: 'kind',
     },
     {
       Header: t('Schema'),
       accessor: 'schema',
-      id: 'schema',
     },
     {
       Header: t('Connection'),
       accessor: 'database.database_name',
       disableSortBy: true,
-      id: 'database.database_name',
     },
     {
       Cell: ({
@@ -284,7 +288,7 @@ const ChangeDatasourceModal: FunctionComponent<ChangeDatasourceModalProps> = ({
             <Alert
               roomBelow
               type="warning"
-              css={theme => ({ marginBottom: theme.sizeUnit * 4 })}
+              css={theme => ({ marginBottom: theme.gridUnit * 4 })}
               message={
                 <>
                   <strong>{t('Warning!')}</strong> {CHANGE_WARNING_MSG}

@@ -16,10 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { TreeProps, TreeDataNode } from '@superset-ui/core/components/Tree';
+
+// eslint-disable-next-line no-restricted-imports
+import { DataNode, TreeProps } from 'antd/lib/tree'; // TODO: Remove antd
 import { ControlComponentProps } from '@superset-ui/chart-controls';
 import { Style } from 'geostyler-style';
-import { Data } from 'geostyler-data';
+import { CardStyleProps } from 'geostyler/dist/Component/CardStyle/CardStyle';
 
 export interface BaseLayerConf {
   title: string;
@@ -46,7 +48,7 @@ export interface WmsLayerConf extends BaseLayerConf {
   layersParam: string;
 }
 
-export interface FlatLayerDataNode extends TreeDataNode {
+export interface FlatLayerDataNode extends DataNode {
   layerConf: LayerConf;
 }
 
@@ -79,11 +81,8 @@ export interface LayerConfigsPopoverContentProps {
   layerConf: LayerConf;
 }
 
-export interface GeoStylerWrapperProps {
-  style?: Style;
+export interface GeoStylerWrapperProps extends CardStyleProps {
   className?: string;
-  onStyleChange?: (newStyle: Style) => void;
-  data?: Data;
 }
 
 export interface LayerTreeItemProps {

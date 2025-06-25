@@ -23,7 +23,7 @@ import FilterDivider from './FilterDivider';
 import { FilterDividerProps } from './types';
 
 export default {
-  title: 'Components/FilterDivider',
+  title: 'FilterDivider',
   component: FilterDivider,
 };
 

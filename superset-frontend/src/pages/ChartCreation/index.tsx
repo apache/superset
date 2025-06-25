@@ -30,7 +30,9 @@ import { withTheme, Theme } from '@emotion/react';
 import { getUrlParam } from 'src/utils/urlUtils';
 import { FilterPlugins, URL_PARAMS } from 'src/constants';
 import { Link, withRouter, RouteComponentProps } from 'react-router-dom';
-import { AsyncSelect, Button, Steps } from '@superset-ui/core/components';
+import Button from 'src/components/Button';
+import { AsyncSelect } from 'src/components';
+import { Steps } from 'src/components/Steps';
 import withToasts from 'src/components/MessageToasts/withToasts';
 
 import VizTypeGallery, {
@@ -43,7 +45,7 @@ import {
   Dataset,
   DatasetSelectLabel,
 } from 'src/features/datasets/DatasetSelectLabel';
-import { Icons } from '@superset-ui/core/components/Icons';
+import { Icons } from 'src/components/Icons';
 
 export interface ChartCreationProps extends RouteComponentProps {
   user: UserWithPermissionsAndRoles;
@@ -52,7 +54,7 @@ export interface ChartCreationProps extends RouteComponentProps {
 }
 
 export type ChartCreationState = {
-  datasource?: { label: string | ReactNode; value: string };
+  datasource?: { label: string; value: string };
   datasetName?: string | string[] | null;
   vizType: string | null;
   canCreateDataset: boolean;
@@ -75,23 +77,23 @@ const StyledContainer = styled.div`
     width: 100%;
     max-width: ${MAX_ADVISABLE_VIZ_GALLERY_WIDTH}px;
     max-height: calc(100vh - ${ESTIMATED_NAV_HEIGHT}px);
-    border-radius: ${theme.borderRadius}px;
-    background-color: ${theme.colorBgContainer};
+    border-radius: ${theme.gridUnit}px;
+    background-color: ${theme.colors.grayscale.light5};
     margin-left: auto;
     margin-right: auto;
-    padding-left: ${theme.sizeUnit * 4}px;
-    padding-right: ${theme.sizeUnit * 4}px;
-    padding-bottom: ${theme.sizeUnit * 4}px;
+    padding-left: ${theme.gridUnit * 4}px;
+    padding-right: ${theme.gridUnit * 4}px;
+    padding-bottom: ${theme.gridUnit * 4}px;
 
     h3 {
-      padding-bottom: ${theme.sizeUnit * 3}px;
+      padding-bottom: ${theme.gridUnit * 3}px;
     }
 
     & .dataset {
       display: flex;
       flex-direction: row;
       align-items: center;
-      margin-bottom: ${theme.sizeUnit * 5}px;
+      margin-bottom: ${theme.gridUnit * 5}px;
 
       & > div {
         min-width: 200px;
@@ -99,15 +101,15 @@ const StyledContainer = styled.div`
       }
 
       & > span {
-        color: ${theme.colorText};
-        margin-left: ${theme.sizeUnit * 4}px;
+        color: ${theme.colors.grayscale.light1};
+        margin-left: ${theme.gridUnit * 4}px;
       }
     }
 
     & .viz-gallery {
-      border: 1px solid ${theme.colorBorder};
-      border-radius: ${theme.borderRadius}px;
-      margin: ${theme.sizeUnit}px 0px;
+      border: 1px solid ${theme.colors.grayscale.light2};
+      border-radius: ${theme.gridUnit}px;
+      margin: ${theme.gridUnit}px 0px;
       max-height: calc(100vh - ${ELEMENTS_EXCEPT_VIZ_GALLERY}px);
       flex: 1;
     }
@@ -120,38 +122,38 @@ const StyledContainer = styled.div`
       align-items: center;
 
       & > span {
-        color: ${theme.colorText};
-        margin-right: ${theme.sizeUnit * 4}px;
+        color: ${theme.colors.grayscale.light1};
+        margin-right: ${theme.gridUnit * 4}px;
       }
     }
 
     /* The following extra ampersands (&&&&) are used to boost selector specificity */
 
-    &&&& .ant-steps-item-tail {
+    &&&& .antd5-steps-item-tail {
       display: none;
     }
 
-    &&&& .ant-steps-item-icon {
-      margin-right: ${theme.sizeUnit * 2}px;
-      width: ${theme.sizeUnit * 5}px;
-      height: ${theme.sizeUnit * 5}px;
-      line-height: ${theme.sizeUnit * 5}px;
+    &&&& .antd5-steps-item-icon {
+      margin-right: ${theme.gridUnit * 2}px;
+      width: ${theme.gridUnit * 5}px;
+      height: ${theme.gridUnit * 5}px;
+      line-height: ${theme.gridUnit * 5}px;
     }
 
-    &&&& .ant-steps-item-title {
-      line-height: ${theme.sizeUnit * 5}px;
+    &&&& .antd5-steps-item-title {
+      line-height: ${theme.gridUnit * 5}px;
     }
 
-    &&&& .ant-steps-item-content {
+    &&&& .antd5-steps-item-content {
       overflow: unset;
 
-      .ant-steps-item-description {
-        margin-top: ${theme.sizeUnit}px;
-        padding-bottom: ${theme.sizeUnit}px;
+      .antd5-steps-item-description {
+        margin-top: ${theme.gridUnit}px;
+        padding-bottom: ${theme.gridUnit}px;
       }
     }
 
-    &&&& .ant-tooltip-open {
+    &&&& .antd5-tooltip-open {
       display: inline;
     }
 
@@ -160,26 +162,30 @@ const StyledContainer = styled.div`
     }
 
     &&&& .ant-select-selection-placeholder {
-      padding-left: ${theme.sizeUnit * 3}px;
+      padding-left: ${theme.gridUnit * 3}px;
     }
 
     &&&& .ant-select-selection-item {
-      padding-left: ${theme.sizeUnit * 3}px;
+      padding-left: ${theme.gridUnit * 3}px;
     }
   `}
 `;
 
 const StyledStepTitle = styled.span`
-  ${({ theme: { fontSize, fontWeightStrong } }) => `
-      font-size: ${fontSize}px;
-      font-weight: ${fontWeightStrong};
+  ${({
+    theme: {
+      typography: { sizes, weights },
+    },
+  }) => `
+      font-size: ${sizes.m}px;
+      font-weight: ${weights.bold};
     `}
 `;
 
 const StyledStepDescription = styled.div`
-  ${({ theme: { sizeUnit } }) => `
-    margin-top: ${sizeUnit * 4}px;
-    margin-bottom: ${sizeUnit * 3}px;
+  ${({ theme: { gridUnit } }) => `
+    margin-top: ${gridUnit * 4}px;
+    margin-bottom: ${gridUnit * 3}px;
   `}
 `;
 
@@ -210,6 +216,10 @@ export class ChartCreation extends PureComponent<
     if (params) {
       this.loadDatasources(params, 0, 1).then(r => {
         const datasource = r.data[0];
+        // override here to force styling of option label
+        // which expects a reactnode instead of string
+        // @ts-expect-error
+        datasource.label = datasource.customLabel;
         this.setState({ datasource });
       });
       this.props.addSuccessToast(t('The dataset has been saved'));
@@ -229,7 +239,7 @@ export class ChartCreation extends PureComponent<
     this.props.history.push(this.exploreUrl());
   }
 
-  changeDatasource(datasource: { label: string | ReactNode; value: string }) {
+  changeDatasource(datasource: { label: string; value: string }) {
     this.setState({ datasource });
   }
 
@@ -266,13 +276,15 @@ export class ChartCreation extends PureComponent<
       endpoint: `/api/v1/dataset/?q=${query}`,
     }).then((response: JsonResponse) => {
       const list: {
+        customLabel: ReactNode;
         id: number;
-        label: string | ReactNode;
+        label: string;
         value: string;
       }[] = response.json.result.map((item: Dataset) => ({
         id: item.id,
         value: `${item.id}__${item.datasource_type}`,
-        label: DatasetSelectLabel(item),
+        customLabel: DatasetSelectLabel(item),
+        label: item.table_name,
       }));
       return {
         data: list,

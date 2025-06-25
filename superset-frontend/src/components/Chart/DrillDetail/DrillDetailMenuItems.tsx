@@ -37,7 +37,7 @@ import {
   t,
 } from '@superset-ui/core';
 import { useSelector } from 'react-redux';
-import { Menu } from '@superset-ui/core/components/Menu';
+import { Menu } from 'src/components/Menu';
 import { RootState } from 'src/dashboard/types';
 import { getSubmenuYOffset } from '../utils';
 import { MenuItemTooltip } from '../DisabledMenuItemTooltip';
@@ -96,8 +96,8 @@ const Filter = ({
 
 const StyledFilter = styled(Filter)`
   ${({ theme }) => `
-     font-weight: ${theme.fontWeightStrong};
-     color: ${theme.colorPrimary};
+     font-weight: ${theme.typography.weights.bold};
+     color: ${theme.colors.primary.base};
    `}
 `;
 

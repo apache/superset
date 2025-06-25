@@ -101,6 +101,6 @@ test('should remove the filters on close', () => {
   expect(screen.getByText('platform')).toBeInTheDocument();
   expect(screen.getByText('GB')).toBeInTheDocument();
 
-  userEvent.click(screen.getByLabelText('Close'));
+  userEvent.click(screen.getByRole('button', { name: 'close' }));
   expect(setFilters).toHaveBeenCalledWith([]);
 });

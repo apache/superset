@@ -33,11 +33,11 @@ import logging
 import pkgutil
 from collections import defaultdict
 from importlib import import_module
-from importlib.metadata import entry_points
 from pathlib import Path
 from typing import Any, Optional
 
 import sqlalchemy.dialects
+from importlib_metadata import entry_points
 from sqlalchemy.engine.default import DefaultDialect
 from sqlalchemy.exc import NoSuchModuleError
 

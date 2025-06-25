@@ -46,8 +46,8 @@ const StyledDiv = styled.div`
     }
 
     .paired-ttest-table .scrollbar-content {
-      padding-left: ${theme.sizeUnit}px;
-      padding-right: ${theme.sizeUnit}px;
+      padding-left: ${theme.gridUnit}px;
+      padding-right: ${theme.gridUnit}px;
       margin-bottom: 0;
     }
 
@@ -56,7 +56,7 @@ const StyledDiv = styled.div`
     }
 
     .paired-ttest-table h1 {
-      margin-left: ${theme.sizeUnit}px;
+      margin-left: ${theme.gridUnit}px;
     }
 
     .reactable-data tr {
@@ -74,19 +74,19 @@ const StyledDiv = styled.div`
     }
 
     .reactable-data tr .false {
-      color: ${theme.colorError};
+      color: ${theme.colors.error.base};
     }
 
     .reactable-data tr .true {
-      color: ${theme.colorSuccess};
+      color: ${theme.colors.success.base};
     }
 
     .reactable-data tr .control {
-      color: ${theme.colorPrimary};
+      color: ${theme.colors.primary.base};
     }
 
     .reactable-data tr .invalid {
-      color: ${theme.colorWarning};
+      color: ${theme.colors.warning.base};
     }
 
     .reactable-data .control td {
@@ -104,13 +104,13 @@ const StyledDiv = styled.div`
     .reactable-header-sort-asc:after {
       content: '\\25bc';
       position: absolute;
-      right: ${theme.sizeUnit * 3}px;
+      right: ${theme.gridUnit * 3}px;
     }
 
     .reactable-header-sort-desc:after {
       content: '\\25b2';
       position: absolute;
-      right: ${theme.sizeUnit * 3}px;
+      right: ${theme.gridUnit * 3}px;
     }
   `}
 `;

@@ -18,13 +18,13 @@
  */
 import { SupersetTheme, css } from '@superset-ui/core';
 import { ReactElement } from 'react';
-import { Tooltip } from '@superset-ui/core/components';
-import { Icons } from '@superset-ui/core/components/Icons';
+import { Tooltip } from 'src/components/Tooltip';
+import { Icons } from 'src/components/Icons';
 import { NotificationMethodOption } from '../types';
 
 const notificationStyledIcon = (theme: SupersetTheme) => css`
   color: ${theme.colors.grayscale.light1};
-  margin-right: ${theme.sizeUnit * 2}px;
+  margin-right: ${theme.gridUnit * 2}px;
 `;
 
 export default function RecipientIcon({ type }: { type: string }) {

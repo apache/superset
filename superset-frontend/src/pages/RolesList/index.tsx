@@ -18,25 +18,24 @@
  */
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { t, SupersetClient } from '@superset-ui/core';
+import { css, t, SupersetClient, useTheme } from '@superset-ui/core';
 import { useListViewResource } from 'src/views/CRUD/hooks';
 import RoleListAddModal from 'src/features/roles/RoleListAddModal';
 import RoleListEditModal from 'src/features/roles/RoleListEditModal';
 import RoleListDuplicateModal from 'src/features/roles/RoleListDuplicateModal';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import SubMenu, { SubMenuProps } from 'src/features/home/SubMenu';
-import { ConfirmStatusChange, DeleteModal } from '@superset-ui/core/components';
-import {
-  ListView,
-  ListViewFilterOperator as FilterOperator,
-  ListViewActionsBar,
-  type ListViewProps,
-  type ListViewActionProps,
-  type ListViewFilters,
-} from 'src/components';
+import ActionsBar, { ActionProps } from 'src/components/ListView/ActionsBar';
+import ListView, {
+  ListViewProps,
+  Filters,
+  FilterOperator,
+} from 'src/components/ListView';
+import DeleteModal from 'src/components/DeleteModal';
+import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
 import { FormattedPermission, UserObject } from 'src/features/roles/types';
 import { isUserAdmin } from 'src/dashboard/util/permissionUtils';
-import { Icons } from '@superset-ui/core/components/Icons';
+import { Icons } from 'src/components/Icons';
 import { fetchPaginatedData } from 'src/utils/fetchOptions';
 import { fetchUserOptions } from 'src/features/groups/utils';
 import { GroupObject } from '../GroupsList';
@@ -70,6 +69,7 @@ enum ModalType {
 }
 
 function RolesList({ addDangerToast, addSuccessToast, user }: RolesListProps) {
+  const theme = useTheme();
   const {
     state: {
       loading,
@@ -254,9 +254,7 @@ function RolesList({ addDangerToast, addSuccessToast, user }: RolesListProps) {
               ]
             : [];
 
-          return (
-            <ListViewActionsBar actions={actions as ListViewActionProps[]} />
-          );
+          return <ActionsBar actions={actions as ActionProps[]} />;
         },
         Header: t('Actions'),
         id: 'actions',
@@ -275,7 +273,14 @@ function RolesList({ addDangerToast, addSuccessToast, user }: RolesListProps) {
       {
         name: (
           <>
-            <Icons.PlusOutlined iconSize="m" />
+            <Icons.PlusOutlined
+              iconColor={theme.colors.primary.light5}
+              iconSize="m"
+              css={css`
+                margin: auto ${theme.gridUnit * 2}px auto 0;
+                vertical-align: text-top;
+              `}
+            />
             {t('Role')}
           </>
         ),
@@ -294,7 +299,7 @@ function RolesList({ addDangerToast, addSuccessToast, user }: RolesListProps) {
     );
   }
 
-  const filters: ListViewFilters = useMemo(
+  const filters: Filters = useMemo(
     () => [
       {
         Header: t('Name'),
@@ -352,7 +357,14 @@ function RolesList({ addDangerToast, addSuccessToast, user }: RolesListProps) {
       },
       buttonText: (
         <>
-          <Icons.PlusOutlined iconSize="m" />
+          <Icons.PlusOutlined
+            iconColor={theme.colors.primary.light5}
+            iconSize="m"
+            css={css`
+              margin: auto ${theme.gridUnit * 2}px auto 0;
+              vertical-align: text-top;
+            `}
+          />
           {t('Role')}
         </>
       ),

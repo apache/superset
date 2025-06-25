@@ -20,8 +20,7 @@
 import { render, screen } from 'spec/helpers/testing-library';
 import { Provider } from 'react-redux';
 import { store } from 'src/views/store';
-import type { FlashMessage } from './types';
-import { FlashProvider } from '.';
+import FlashProvider, { FlashMessage } from './index';
 
 test('Rerendering correctly with default props', () => {
   const messages: FlashMessage[] = [];

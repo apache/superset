@@ -23,7 +23,7 @@ import {
   CheckboxChecked,
   CheckboxUnchecked,
   CheckboxHalfChecked,
-} from '@superset-ui/core/components/Checkbox/CheckboxIcons';
+} from 'src/components/Checkbox/CheckboxIcons';
 
 const treeIcons = {
   check: <CheckboxChecked />,

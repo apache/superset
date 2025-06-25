@@ -16,10 +16,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import Owner from 'src/types/Owner';
+import { Tooltip } from 'src/components/Tooltip';
 import getOwnerName from 'src/utils/getOwnerName';
 import { t } from '@superset-ui/core';
-import { Tooltip } from '@superset-ui/core/components';
-import type { ModifiedInfoProps } from './types';
+
+export type ModifiedInfoProps = {
+  user?: Owner;
+  date: string;
+};
 
 export const ModifiedInfo = ({ user, date }: ModifiedInfoProps) => {
   const dateSpan = (
@@ -39,5 +44,3 @@ export const ModifiedInfo = ({ user, date }: ModifiedInfoProps) => {
   }
   return dateSpan;
 };
-
-export type { ModifiedInfoProps };

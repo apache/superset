@@ -20,7 +20,7 @@ import { SyntheticEvent } from 'react';
 import domToImage from 'dom-to-image-more';
 import { kebabCase } from 'lodash';
 // eslint-disable-next-line no-restricted-imports
-import { SupersetTheme, t } from '@superset-ui/core';
+import { t, supersetTheme } from '@superset-ui/core';
 import { addWarningToast } from 'src/components/MessageToasts/actions';
 
 /**
@@ -45,7 +45,6 @@ export default function downloadAsImage(
   selector: string,
   description: string,
   isExactSelector = false,
-  theme?: SupersetTheme,
 ) {
   return (event: SyntheticEvent) => {
     const elementToPrint = isExactSelector
@@ -72,7 +71,7 @@ export default function downloadAsImage(
 
     return domToImage
       .toJpeg(elementToPrint, {
-        bgcolor: theme?.colors.grayscale.light4,
+        bgcolor: supersetTheme.colors.grayscale.light4,
         filter,
       })
       .then((dataUrl: string) => {

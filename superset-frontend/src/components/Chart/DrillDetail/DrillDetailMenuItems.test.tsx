@@ -28,7 +28,7 @@ import setupPlugins from 'src/setup/setupPlugins';
 import { getMockStoreWithNativeFilters } from 'spec/fixtures/mockStore';
 import chartQueries, { sliceId } from 'spec/fixtures/mockChartQueries';
 import { BinaryQueryObjectFilterClause, VizType } from '@superset-ui/core';
-import { Menu } from '@superset-ui/core/components/Menu';
+import { Menu } from 'src/components/Menu';
 import DrillDetailMenuItems, {
   DrillDetailMenuItemsProps,
 } from './DrillDetailMenuItems';
@@ -144,13 +144,12 @@ const setupMenu = (filters: BinaryQueryObjectFilterClause[]) => {
  * Drill to Detail modal should appear with correct initial filters
  */
 const expectDrillToDetailModal = async (
-  buttonName: string | null,
+  buttonName: string,
   filters: BinaryQueryObjectFilterClause[] = [],
 ) => {
-  if (buttonName) {
-    const button = screen.getByRole('menuitem', { name: buttonName });
-    userEvent.click(button);
-  }
+  const button = screen.getByRole('menuitem', { name: buttonName });
+
+  userEvent.click(button);
   const modal = await screen.findByRole('dialog', {
     name: `Drill to detail: ${chartName}`,
   });
@@ -283,14 +282,13 @@ const expectDrillToDetailByAll = async (
     'drill-to-detail-by-submenu',
   );
 
+  const menuItemName = 'Drill to detail by all';
   const drillToDetailBySubmenuItem = await within(
     drillToDetailBySubMenus[1],
-  ).findByText(/all/i);
+  ).findByRole('menuitem', { name: menuItemName });
 
   await expectMenuItemEnabled(drillToDetailBySubmenuItem);
-
-  userEvent.click(drillToDetailBySubmenuItem);
-  await expectDrillToDetailModal(null, filters);
+  await expectDrillToDetailModal(menuItemName, filters);
 };
 
 beforeAll(() => {

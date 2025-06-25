@@ -78,7 +78,6 @@ const config: ControlPanelConfig = {
         ['adhoc_filters'],
         ['series_limit'],
         ['series_limit_metric'],
-        ['row_limit'],
         [
           {
             name: 'whiskerOptions',

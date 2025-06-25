@@ -17,9 +17,17 @@
  * under the License.
  */
 import { setConfig as setHotLoaderConfig } from 'react-hot-loader';
+import 'abortcontroller-polyfill/dist/abortcontroller-polyfill-only';
 import dayjs from 'dayjs';
 // eslint-disable-next-line no-restricted-imports
-import { configure, makeApi, initFeatureFlags } from '@superset-ui/core';
+import {
+  configure,
+  makeApi,
+  // eslint-disable-next-line no-restricted-imports
+  supersetTheme, // TODO: DO not import theme directly
+  initFeatureFlags,
+} from '@superset-ui/core';
+import { merge } from 'lodash';
 import setupClient from './setup/setupClient';
 import setupColors from './setup/setupColors';
 import setupFormatters from './setup/setupFormatters';
@@ -60,6 +68,11 @@ setupFormatters(
 );
 
 setupDashboardComponents();
+
+export const theme = merge(
+  supersetTheme,
+  bootstrapData.common.theme_overrides ?? {},
+);
 
 const getMe = makeApi<void, User>({
   method: 'GET',

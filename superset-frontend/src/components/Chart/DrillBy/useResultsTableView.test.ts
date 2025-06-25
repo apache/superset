@@ -75,7 +75,7 @@ test('Displays results table for 1 query', () => {
   render(result.current, { useRedux: true });
   expect(screen.queryByRole('tablist')).not.toBeInTheDocument();
   expect(screen.getByRole('table')).toBeInTheDocument();
-  expect(screen.getAllByTestId('sort-header')).toHaveLength(2);
+  expect(screen.getAllByRole('columnheader')).toHaveLength(2);
   expect(screen.getAllByTestId('table-row')).toHaveLength(4);
 });
 
@@ -94,7 +94,7 @@ test('Displays results for 2 queries', async () => {
 
   expect(within(getActiveTabElement()).getByRole('table')).toBeInTheDocument();
   expect(
-    within(getActiveTabElement()).getAllByTestId('sort-header'),
+    within(getActiveTabElement()).getAllByRole('columnheader'),
   ).toHaveLength(2);
   expect(
     within(getActiveTabElement()).getAllByTestId('table-row'),
@@ -104,7 +104,7 @@ test('Displays results for 2 queries', async () => {
 
   await waitFor(() => {
     expect(
-      within(getActiveTabElement()).getAllByTestId('sort-header'),
+      within(getActiveTabElement()).getAllByRole('columnheader'),
     ).toHaveLength(3);
   });
   expect(

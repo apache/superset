@@ -18,65 +18,91 @@
  */
 
 import { css, styled, SupersetTheme } from '@superset-ui/core';
-import { Button, JsonEditor } from '@superset-ui/core/components';
+import { JsonEditor } from 'src/components/AsyncAceEditor';
+import Button from 'src/components/Button';
 
 const CTAS_CVAS_SCHEMA_FORM_HEIGHT = 108;
 const EXPOSE_IN_SQLLAB_FORM_HEIGHT = CTAS_CVAS_SCHEMA_FORM_HEIGHT + 153;
 const EXPOSE_ALL_FORM_HEIGHT = EXPOSE_IN_SQLLAB_FORM_HEIGHT + 102;
 const MODAL_BODY_HEIGHT = 180.5;
 
+const anticonHeight = 12;
+
 export const no_margin_bottom = css`
   margin-bottom: 0;
 `;
 
 export const labelMarginBottom = (theme: SupersetTheme) => css`
-  margin-bottom: ${theme.sizeUnit * 2}px;
+  margin-bottom: ${theme.gridUnit * 2}px;
 `;
 
 export const marginBottom = (theme: SupersetTheme) => css`
-  margin-bottom: ${theme.sizeUnit * 4}px;
+  margin-bottom: ${theme.gridUnit * 4}px;
 `;
 
 export const StyledFormHeader = styled.header`
-  padding: ${({ theme }) => theme.sizeUnit * 2}px
-    ${({ theme }) => theme.sizeUnit * 4}px;
-  line-height: ${({ theme }) => theme.sizeUnit * 6}px;
+  padding: ${({ theme }) => theme.gridUnit * 2}px
+    ${({ theme }) => theme.gridUnit * 4}px;
+  line-height: ${({ theme }) => theme.gridUnit * 6}px;
 
   .helper-top {
     padding-bottom: 0;
-    color: ${({ theme }) => theme.colorText};
-    font-size: ${({ theme }) => theme.fontSizeSM}px;
+    color: ${({ theme }) => theme.colors.grayscale.base};
+    font-size: ${({ theme }) => theme.typography.sizes.s}px;
     margin: 0;
   }
 
   .subheader-text {
-    line-height: ${({ theme }) => theme.sizeUnit * 4.25}px;
+    line-height: ${({ theme }) => theme.gridUnit * 4.25}px;
   }
 
   .helper-bottom {
     padding-top: 0;
-    color: ${({ theme }) => theme.colorText};
-    font-size: ${({ theme }) => theme.fontSizeSM}px;
+    color: ${({ theme }) => theme.colors.grayscale.base};
+    font-size: ${({ theme }) => theme.typography.sizes.s}px;
     margin: 0;
   }
 
   h4 {
-    color: ${({ theme }) => theme.colorText};
-    font-size: ${({ theme }) => theme.fontSizeLG}px;
+    color: ${({ theme }) => theme.colors.grayscale.dark2};
+    font-size: ${({ theme }) => theme.typography.sizes.l}px;
     margin: 0;
     padding: 0;
-    line-height: ${({ theme }) => theme.sizeUnit * 8}px;
+    line-height: ${({ theme }) => theme.gridUnit * 8}px;
   }
 
   .select-db {
-    padding-bottom: ${({ theme }) => theme.sizeUnit * 2}px;
+    padding-bottom: ${({ theme }) => theme.gridUnit * 2}px;
     .helper {
       margin: 0;
     }
 
     h4 {
-      margin: 0 0 ${({ theme }) => theme.sizeUnit * 4}px;
+      margin: 0 0 ${({ theme }) => theme.gridUnit * 4}px;
     }
+  }
+`;
+
+export const antdCollapseStyles = (theme: SupersetTheme) => css`
+  .ant-collapse-header {
+    padding-top: ${theme.gridUnit * 3.5}px;
+    padding-bottom: ${theme.gridUnit * 2.5}px;
+
+    .anticon.ant-collapse-arrow {
+      top: calc(50% - ${anticonHeight / 2}px);
+    }
+    .helper {
+      color: ${theme.colors.grayscale.base};
+    }
+  }
+  h4 {
+    font-size: 16px;
+    margin-top: 0;
+    margin-bottom: ${theme.gridUnit}px;
+  }
+  p.helper {
+    margin-bottom: 0;
+    padding: 0;
   }
 `;
 
@@ -93,7 +119,7 @@ export const antDTabsStyles = css`
 `;
 
 export const antDModalNoPaddingStyles = css`
-  .ant-modal-body {
+  .antd5-modal-body {
     padding-left: 0;
     padding-right: 0;
     padding-top: 0;
@@ -101,108 +127,112 @@ export const antDModalNoPaddingStyles = css`
 `;
 
 export const infoTooltip = (theme: SupersetTheme) => css`
-  margin-bottom: ${theme.sizeUnit * 5}px;
+  margin-bottom: ${theme.gridUnit * 5}px;
   svg {
-    margin-bottom: ${theme.sizeUnit * 0.25}px;
+    margin-bottom: ${theme.gridUnit * 0.25}px;
   }
   display: flex;
 `;
 
 export const toggleStyle = (theme: SupersetTheme) => css`
-  padding-left: ${theme.sizeUnit * 2}px;
-  padding-right: ${theme.sizeUnit * 2}px;
+  padding-left: ${theme.gridUnit * 2}px;
+  padding-right: ${theme.gridUnit * 2}px;
 `;
 
 export const formScrollableStyles = (theme: SupersetTheme) => css`
-  padding: ${theme.sizeUnit * 4}px ${theme.sizeUnit * 4}px 0;
+  padding: ${theme.gridUnit * 4}px ${theme.gridUnit * 4}px 0;
 `;
 
 export const antDModalStyles = (theme: SupersetTheme) => css`
   .ant-select-dropdown {
-    height: ${theme.sizeUnit * 40}px;
+    height: ${theme.gridUnit * 40}px;
   }
 
-  .ant-modal-header {
-    padding: ${theme.sizeUnit * 4.5}px ${theme.sizeUnit * 4}px
-      ${theme.sizeUnit * 4}px;
+  .antd5-modal-header {
+    padding: ${theme.gridUnit * 4.5}px ${theme.gridUnit * 4}px
+      ${theme.gridUnit * 4}px;
   }
 
-  .ant-modal-close-x .close {
+  .antd5-modal-close-x .close {
     opacity: 1;
   }
 
-  .ant-modal-body {
-    height: ${theme.sizeUnit * MODAL_BODY_HEIGHT}px;
+  .antd5-modal-body {
+    height: ${theme.gridUnit * MODAL_BODY_HEIGHT}px;
   }
 
-  .ant-modal-footer {
-    height: ${theme.sizeUnit * 16.25}px;
+  .antd5-modal-footer {
+    height: ${theme.gridUnit * 16.25}px;
   }
 `;
 
 export const antDAlertStyles = (theme: SupersetTheme) => css`
-  margin: ${theme.sizeUnit * 4}px 0;
+  margin: ${theme.gridUnit * 4}px 0;
 `;
 
 export const StyledAlertMargin = styled.div`
   ${({ theme }) => css`
-    margin: 0 ${theme.sizeUnit * 4}px ${theme.sizeUnit * 4}px;
+    margin: 0 ${theme.gridUnit * 4}px ${theme.gridUnit * 4}px;
   `}
 `;
 
 export const antDErrorAlertStyles = (theme: SupersetTheme) => css`
-  margin: ${theme.sizeUnit * 8}px ${theme.sizeUnit * 4}px;
+  margin: ${theme.gridUnit * 8}px ${theme.gridUnit * 4}px;
 `;
 
 export const antdWarningAlertStyles = (theme: SupersetTheme) => css`
-  margin: ${theme.sizeUnit * 4}px 0;
+  margin: ${theme.gridUnit * 4}px 0;
 
-  .ant-alert-message {
+  .antd5-alert-message {
     margin: 0;
   }
 `;
 
 export const formHelperStyles = (theme: SupersetTheme) => css`
   .required {
-    margin-left: ${theme.sizeUnit / 2}px;
-    color: ${theme.colorError};
+    margin-left: ${theme.gridUnit / 2}px;
+    color: ${theme.colors.error.base};
   }
 
   .helper {
     display: block;
-    padding: ${theme.sizeUnit}px 0;
+    padding: ${theme.gridUnit}px 0;
     color: ${theme.colors.grayscale.light1};
-    font-size: ${theme.fontSizeSM}px;
+    font-size: ${theme.typography.sizes.s}px;
     text-align: left;
   }
 `;
 
 export const wideButton = (theme: SupersetTheme) => css`
   width: 100%;
-  border: 1px solid ${theme.colorPrimaryText};
-  color: ${theme.colorPrimaryText};
+  border: 1px solid ${theme.colors.primary.dark2};
+  color: ${theme.colors.primary.dark2};
   &:hover,
   &:focus {
-    border: 1px solid ${theme.colorPrimary};
-    color: ${theme.colorPrimary};
+    border: 1px solid ${theme.colors.primary.dark1};
+    color: ${theme.colors.primary.dark1};
   }
 `;
 
 export const formStyles = (theme: SupersetTheme) => css`
   .form-group {
-    margin-bottom: ${theme.sizeUnit * 4}px;
+    margin-bottom: ${theme.gridUnit * 4}px;
     &-w-50 {
       display: inline-block;
-      width: ${`calc(50% - ${theme.sizeUnit * 4}px)`};
+      width: ${`calc(50% - ${theme.gridUnit * 4}px)`};
       & + .form-group-w-50 {
-        margin-left: ${theme.sizeUnit * 8}px;
+        margin-left: ${theme.gridUnit * 8}px;
       }
     }
   }
+  .control-label {
+    color: ${theme.colors.grayscale.dark1};
+    font-size: ${theme.typography.sizes.s}px;
+  }
   .helper {
     color: ${theme.colors.grayscale.light1};
-    font-size: ${theme.fontSizeSM}px;
-    margin-top: ${theme.sizeUnit * 1.5}px;
+    font-size: ${theme.typography.sizes.s}px;
+    margin-top: ${theme.gridUnit * 1.5}px;
   }
   .ant-tabs-content-holder {
     overflow: auto;
@@ -212,24 +242,30 @@ export const formStyles = (theme: SupersetTheme) => css`
 
 export const validatedFormStyles = (theme: SupersetTheme) => css`
   label {
-    color: ${theme.colorText};
-    font-size: ${theme.fontSizeSM}px;
+    color: ${theme.colors.grayscale.dark1};
+    font-size: ${theme.typography.sizes.s}px;
     margin-bottom: 0;
   }
 `;
 
 export const StyledInputContainer = styled.div`
   ${({ theme }) => css`
-    margin-bottom: ${theme.sizeUnit * 6}px;
+    margin-bottom: ${theme.gridUnit * 6}px;
     &.mb-0 {
       margin-bottom: 0;
     }
     &.mb-8 {
-      margin-bottom: ${theme.sizeUnit * 2}px;
+      margin-bottom: ${theme.gridUnit * 2}px;
+    }
+
+    .control-label {
+      color: ${theme.colors.grayscale.dark1};
+      font-size: ${theme.typography.sizes.s}px;
+      margin-bottom: ${theme.gridUnit * 2}px;
     }
 
     &.extra-container {
-      padding-top: ${theme.sizeUnit * 2}px;
+      padding-top: ${theme.gridUnit * 2}px;
     }
 
     .input-container {
@@ -238,14 +274,14 @@ export const StyledInputContainer = styled.div`
 
       label {
         display: flex;
-        margin-left: ${theme.sizeUnit * 2}px;
-        margin-top: ${theme.sizeUnit * 0.75}px;
-        font-family: ${theme.fontFamily};
-        font-size: ${theme.fontSize}px;
+        margin-left: ${theme.gridUnit * 2}px;
+        margin-top: ${theme.gridUnit * 0.75}px;
+        font-family: ${theme.typography.families.sansSerif};
+        font-size: ${theme.typography.sizes.m}px;
       }
 
       i {
-        margin: 0 ${theme.sizeUnit}px;
+        margin: 0 ${theme.gridUnit}px;
       }
     }
 
@@ -267,10 +303,10 @@ export const StyledInputContainer = styled.div`
     textarea,
     input[type='text'],
     input[type='number'] {
-      padding: ${theme.sizeUnit * 1.5}px ${theme.sizeUnit * 2}px;
+      padding: ${theme.gridUnit * 1.5}px ${theme.gridUnit * 2}px;
       border-style: none;
-      border: 1px solid ${theme.colorBorder};
-      border-radius: ${theme.borderRadius}px;
+      border: 1px solid ${theme.colors.grayscale.light2};
+      border-radius: ${theme.gridUnit}px;
 
       &[name='name'] {
         flex: 0 1 auto;
@@ -281,12 +317,15 @@ export const StyledInputContainer = styled.div`
       height: 0;
       overflow: hidden;
       transition: height 0.25s;
-      margin-left: ${theme.sizeUnit * 8}px;
+      margin-left: ${theme.gridUnit * 8}px;
       margin-bottom: 0;
       padding: 0;
+      .control-label {
+        margin-bottom: 0;
+      }
       &.open {
         height: ${CTAS_CVAS_SCHEMA_FORM_HEIGHT}px;
-        padding-right: ${theme.sizeUnit * 5}px;
+        padding-right: ${theme.gridUnit * 5}px;
       }
     }
   `}
@@ -294,21 +333,21 @@ export const StyledInputContainer = styled.div`
 
 export const StyledJsonEditor = styled(JsonEditor)`
   flex: 1 1 auto;
-  border: 1px solid ${({ theme }) => theme.colorBorder};
-  border-radius: ${({ theme }) => theme.borderRadius}px;
+  border: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
+  border-radius: ${({ theme }) => theme.gridUnit}px;
 `;
 
 export const StyledExpandableForm = styled.div`
-  padding-top: ${({ theme }) => theme.sizeUnit}px;
+  padding-top: ${({ theme }) => theme.gridUnit}px;
   .input-container {
-    padding-top: ${({ theme }) => theme.sizeUnit}px;
-    padding-bottom: ${({ theme }) => theme.sizeUnit}px;
+    padding-top: ${({ theme }) => theme.gridUnit}px;
+    padding-bottom: ${({ theme }) => theme.gridUnit}px;
   }
   &.expandable {
     height: 0;
     overflow: hidden;
     transition: height 0.25s;
-    margin-left: ${({ theme }) => theme.sizeUnit * 7}px;
+    margin-left: ${({ theme }) => theme.gridUnit * 7}px;
     &.open {
       height: ${EXPOSE_IN_SQLLAB_FORM_HEIGHT}px;
       &.ctas-open {
@@ -319,24 +358,27 @@ export const StyledExpandableForm = styled.div`
 `;
 
 export const StyledAlignment = styled.div`
-  padding: 0 ${({ theme }) => theme.sizeUnit * 4}px;
-  margin-top: ${({ theme }) => theme.sizeUnit * 6}px;
+  padding: 0 ${({ theme }) => theme.gridUnit * 4}px;
+  margin-top: ${({ theme }) => theme.gridUnit * 6}px;
 `;
 
 export const buttonLinkStyles = (theme: SupersetTheme) => css`
+  font-weight: ${theme.typography.weights.normal};
   text-transform: initial;
-  padding-right: ${theme.sizeUnit * 2}px;
+  padding-right: ${theme.gridUnit * 2}px;
 `;
 
 export const importDbButtonLinkStyles = (theme: SupersetTheme) => css`
-  font-size: ${theme.sizeUnit * 3.5}px;
+  font-size: ${theme.gridUnit * 3.5}px;
+  font-weight: ${theme.typography.weights.normal};
   text-transform: initial;
-  padding-right: ${theme.sizeUnit * 2}px;
+  padding-right: ${theme.gridUnit * 2}px;
 `;
 
 export const alchemyButtonLinkStyles = (theme: SupersetTheme) => css`
+  font-weight: ${theme.typography.weights.normal};
   text-transform: initial;
-  padding: ${theme.sizeUnit * 8}px 0 0;
+  padding: ${theme.gridUnit * 8}px 0 0;
   margin-left: 0px;
 `;
 
@@ -348,31 +390,31 @@ export const TabHeader = styled.div`
 
   .helper {
     color: ${({ theme }) => theme.colors.grayscale.base};
-    font-size: ${({ theme }) => theme.fontSizeSM}px;
+    font-size: ${({ theme }) => theme.typography.sizes.s}px;
     margin: 0px;
   }
 `;
 
 export const CreateHeaderTitle = styled.div`
-  color: ${({ theme }) => theme.colorText};
-  font-weight: ${({ theme }) => theme.fontWeightStrong};
-  font-size: ${({ theme }) => theme.fontSize}px;
+  color: ${({ theme }) => theme.colors.grayscale.dark2};
+  font-weight: ${({ theme }) => theme.typography.weights.bold};
+  font-size: ${({ theme }) => theme.typography.sizes.m}px;
 `;
 
 export const CreateHeaderSubtitle = styled.div`
-  color: ${({ theme }) => theme.colorText};
-  font-size: ${({ theme }) => theme.fontSizeSM}px;
+  color: ${({ theme }) => theme.colors.grayscale.dark1};
+  font-size: ${({ theme }) => theme.typography.sizes.s}px;
 `;
 
 export const EditHeaderTitle = styled.div`
   color: ${({ theme }) => theme.colors.grayscale.light1};
-  font-size: ${({ theme }) => theme.fontSizeSM}px;
+  font-size: ${({ theme }) => theme.typography.sizes.s}px;
 `;
 
 export const EditHeaderSubtitle = styled.div`
-  color: ${({ theme }) => theme.colorText};
-  font-size: ${({ theme }) => theme.fontSizeLG}px;
-  font-weight: ${({ theme }) => theme.fontWeightStrong};
+  color: ${({ theme }) => theme.colors.grayscale.dark1};
+  font-size: ${({ theme }) => theme.typography.sizes.l}px;
+  font-weight: ${({ theme }) => theme.typography.weights.bold};
 `;
 
 export const CredentialInfoForm = styled.div`
@@ -381,9 +423,9 @@ export const CredentialInfoForm = styled.div`
   }
 
   .label-select {
-    color: ${({ theme }) => theme.colorText};
+    color: ${({ theme }) => theme.colors.grayscale.dark1};
     font-size: 11px;
-    margin: 0 5px ${({ theme }) => theme.sizeUnit * 2}px;
+    margin: 0 5px ${({ theme }) => theme.gridUnit * 2}px;
   }
 
   .label-paste {
@@ -393,7 +435,7 @@ export const CredentialInfoForm = styled.div`
   }
 
   .input-container {
-    margin: ${({ theme }) => theme.sizeUnit * 4}px 0;
+    margin: ${({ theme }) => theme.gridUnit * 4}px 0;
     display: flex;
     flex-direction: column;
 }
@@ -401,11 +443,11 @@ export const CredentialInfoForm = styled.div`
   .input-form {
     height: 100px;
     width: 100%;
-    border: 1px solid ${({ theme }) => theme.colorBorder};
-    border-radius: ${({ theme }) => theme.borderRadius}px;
+    border: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
+    border-radius: ${({ theme }) => theme.gridUnit}px;
     resize: vertical;
-    padding: ${({ theme }) => theme.sizeUnit * 1.5}px
-      ${({ theme }) => theme.sizeUnit * 2}px;
+    padding: ${({ theme }) => theme.gridUnit * 1.5}px
+      ${({ theme }) => theme.gridUnit * 2}px;
     &::placeholder {
       color: ${({ theme }) => theme.colors.grayscale.light1};
     }
@@ -421,7 +463,7 @@ export const CredentialInfoForm = styled.div`
     .credentials-uploaded {
       display: flex;
       align-items: center;
-      gap: ${({ theme }) => theme.sizeUnit * 3}px;
+      gap: ${({ theme }) => theme.gridUnit * 3}px;
       width: fit-content;
     }
 
@@ -443,20 +485,20 @@ export const SelectDatabaseStyles = styled.div`
     display: flex;
     flex-wrap: wrap;
     justify-content: space-between;
-    margin: ${({ theme }) => theme.sizeUnit * 4}px;
+    margin: ${({ theme }) => theme.gridUnit * 4}px;
   }
 
   .preferred-item {
     width: 32%;
-    margin-bottom: ${({ theme }) => theme.sizeUnit * 2.5}px;
+    margin-bottom: ${({ theme }) => theme.gridUnit * 2.5}px;
   }
 
   .available {
-    margin: ${({ theme }) => theme.sizeUnit * 4}px;
+    margin: ${({ theme }) => theme.gridUnit * 4}px;
     .available-label {
-      font-size: ${({ theme }) => theme.fontSizeLG}px;
-      font-weight: ${({ theme }) => theme.fontWeightStrong};
-      margin: ${({ theme }) => theme.sizeUnit * 6}px 0;
+      font-size: ${({ theme }) => theme.typography.sizes.l}px;
+      font-weight: ${({ theme }) => theme.typography.weights.bold};
+      margin: ${({ theme }) => theme.gridUnit * 6}px 0;
     }
     .available-select {
       width: 100%;
@@ -464,19 +506,25 @@ export const SelectDatabaseStyles = styled.div`
   }
 
   .label-available-select {
-    font-size: ${({ theme }) => theme.fontSizeSM}px;
+    font-size: ${({ theme }) => theme.typography.sizes.s}px;
+  }
+
+  .control-label {
+    color: ${({ theme }) => theme.colors.grayscale.dark1};
+    font-size: ${({ theme }) => theme.typography.sizes.s}px;
+    margin-bottom: ${({ theme }) => theme.gridUnit * 2}px;
   }
 `;
 
 export const StyledFooterButton = styled(Button)`
-  width: ${({ theme }) => theme.sizeUnit * 40}px;
+  width: ${({ theme }) => theme.gridUnit * 40}px;
 `;
 
 export const StyledStickyHeader = styled.div`
   position: sticky;
   top: 0;
-  z-index: ${({ theme }) => theme.zIndexPopupBase};
-  background: ${({ theme }) => theme.colorBgLayout};
+  z-index: ${({ theme }) => theme.zIndex.max};
+  background: ${({ theme }) => theme.colors.grayscale.light5};
   height: auto;
 `;
 
@@ -488,9 +536,9 @@ export const StyledCatalogTable = styled.div`
   }
 
   .gsheet-title {
-    font-size: ${({ theme }) => theme.fontSizeLG}px;
-    font-weight: ${({ theme }) => theme.fontWeightStrong};
-    margin: ${({ theme }) => theme.sizeUnit * 10}px 0 16px;
+    font-size: ${({ theme }) => theme.typography.sizes.l}px;
+    font-weight: ${({ theme }) => theme.typography.weights.bold};
+    margin: ${({ theme }) => theme.gridUnit * 10}px 0 16px;
   }
 
   .catalog-label {
@@ -516,7 +564,6 @@ export const StyledCatalogTable = styled.div`
 `;
 
 export const StyledUploadWrapper = styled.div`
-  margin: ${({ theme }) => theme.sizeUnit * 4}px;
   .ant-progress-inner {
     display: none;
   }

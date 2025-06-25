@@ -17,8 +17,8 @@
  * under the License.
  */
 import { t, SupersetTheme, useTheme } from '@superset-ui/core';
-import { Tooltip } from '@superset-ui/core/components';
-import { Icons } from '@superset-ui/core/components/Icons';
+import { Tooltip } from 'src/components/Tooltip';
+import { Icons } from 'src/components/Icons';
 import { AlertState } from '../types';
 
 function getStatusColor(
@@ -28,17 +28,19 @@ function getStatusColor(
 ) {
   switch (status) {
     case AlertState.Working:
-      return theme.colorPrimaryText;
+      return theme.colors.primary.base;
     case AlertState.Error:
-      return theme.colorErrorText;
+      return theme.colors.error.base;
     case AlertState.Success:
-      return isReportEnabled ? theme.colorSuccessText : theme.colorErrorText;
+      return isReportEnabled
+        ? theme.colors.success.base
+        : theme.colors.warning.base;
     case AlertState.Noop:
-      return theme.colorSuccessText;
+      return theme.colors.success.base;
     case AlertState.Grace:
-      return theme.colorErrorText;
+      return theme.colors.warning.base;
     default:
-      return theme.colorText;
+      return theme.colors.grayscale.base;
   }
 }
 

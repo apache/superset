@@ -26,8 +26,10 @@ import {
 } from 'react-router-dom';
 import { bindActionCreators } from 'redux';
 import { css } from '@superset-ui/core';
-import { Layout, Loading } from '@superset-ui/core/components';
-import { ErrorBoundary } from 'src/components';
+import { GlobalStyles } from 'src/GlobalStyles';
+import ErrorBoundary from 'src/components/ErrorBoundary';
+import Loading from 'src/components/Loading';
+import { Layout } from 'src/components';
 import Menu from 'src/features/home/Menu';
 import getBootstrapData, { applicationRoot } from 'src/utils/getBootstrapData';
 import ToastContainer from 'src/components/MessageToasts/ToastContainer';
@@ -75,6 +77,7 @@ const App = () => (
     <ScrollToTop />
     <LocationPathnameLogger />
     <RootContextProviders>
+      <GlobalStyles />
       <Menu
         data={bootstrapData.common.menu_data}
         isFrontendRoute={isFrontendRoute}
@@ -83,22 +86,20 @@ const App = () => (
         {routes.map(({ path, Component, props = {}, Fallback = Loading }) => (
           <Route path={path} key={path}>
             <Suspense fallback={<Fallback />}>
-              <Layout>
-                <Layout.Content
+              <Layout.Content
+                css={css`
+                  display: flex;
+                  flex-direction: column;
+                `}
+              >
+                <ErrorBoundary
                   css={css`
-                    display: flex;
-                    flex-direction: column;
+                    margin: 16px;
                   `}
                 >
-                  <ErrorBoundary
-                    css={css`
-                      margin: 16px;
-                    `}
-                  >
-                    <Component user={bootstrapData.user} {...props} />
-                  </ErrorBoundary>
-                </Layout.Content>
-              </Layout>
+                  <Component user={bootstrapData.user} {...props} />
+                </ErrorBoundary>
+              </Layout.Content>
             </Suspense>
           </Route>
         ))}

@@ -17,12 +17,7 @@
  * under the License.
  */
 import { SAMPLE_DASHBOARD_1, TABBED_DASHBOARD } from 'cypress/utils/urls';
-import {
-  drag,
-  resize,
-  setSelectSearchInput,
-  waitForChartLoad,
-} from 'cypress/utils';
+import { drag, resize, waitForChartLoad } from 'cypress/utils';
 import { edit } from 'brace';
 import {
   interceptExploreUpdate,
@@ -39,12 +34,21 @@ function editDashboard() {
   cy.getBySel('edit-dashboard-button').click();
 }
 
+function closeModal() {
+  cy.getBySel('properties-modal-cancel-button').click({ force: true });
+}
+
 function openProperties() {
-  cy.getBySel('actions-trigger').click({ force: true });
-  cy.getBySel('header-actions-menu')
-    .contains('Edit properties')
-    .click({ force: true });
-  cy.get('.ant-modal-body').should('be.visible');
+  cy.get('body').then($body => {
+    if ($body.find('[data-test="properties-modal-cancel-button"]').length) {
+      closeModal();
+    }
+    cy.getBySel('actions-trigger').click({ force: true });
+    cy.getBySel('header-actions-menu')
+      .contains('Edit properties')
+      .click({ force: true });
+    cy.get('.antd5-modal-body').should('be.visible');
+  });
 }
 
 function assertMetadata(text: string) {
@@ -61,7 +65,7 @@ function assertMetadata(text: string) {
 }
 
 function openAdvancedProperties() {
-  cy.get('.ant-modal-body')
+  cy.get('.antd5-modal-body')
     .contains('Advanced')
     .should('be.visible')
     .click({ force: true });
@@ -146,10 +150,12 @@ function selectColorScheme(
   target = 'dashboard-edit-properties-form',
 ) {
   cy.get(`[data-test="${target}"] input[aria-label="Select color scheme"]`)
-    .should('exist')
+    .first()
     .then($input => {
-      setSelectSearchInput($input, color.slice(0, 5));
+      cy.wrap($input).click({ force: true });
+      cy.wrap($input).type(color.slice(0, 5), { force: true });
     });
+  cy.getBySel(color).click({ force: true });
 }
 
 function saveAndGo(dashboard = 'Tabbed Dashboard') {
@@ -1089,7 +1095,7 @@ describe('Dashboard edit', () => {
       cy.allowConsoleErrors(['Error: A valid color scheme is required']);
       writeMetadata('{"color_scheme":"wrongcolorscheme"}');
       applyChanges();
-      cy.get('.ant-modal-body')
+      cy.get('.antd5-modal-body')
         .contains('A valid color scheme is required')
         .should('be.visible');
     });
@@ -1124,7 +1130,7 @@ describe('Dashboard edit', () => {
 
     it('should filter charts', () => {
       interceptCharts();
-      cy.get('input[type="checkbox"]').click();
+      cy.get('[role="checkbox"]').click();
       cy.getBySel('dashboard-charts-filter-search-input').type('Unicode');
       cy.wait('@filtering');
       cy.getBySel('chart-card')
@@ -1134,8 +1140,8 @@ describe('Dashboard edit', () => {
     });
 
     // TODO fix this test! This was the #1 flaky test as of 4/21/23 according to cypress dashboard.
-    it.skip('should disable the Save button when undoing', () => {
-      cy.get('input[type="checkbox"]').click();
+    xit('should disable the Save button when undoing', () => {
+      cy.get('[role="checkbox"]').click();
       dragComponent('Unicode Cloud', 'card-title', false);
       cy.getBySel('header-save-button').should('be.enabled');
       discardChanges();
@@ -1149,13 +1155,13 @@ describe('Dashboard edit', () => {
     });
 
     it('should add charts', () => {
-      cy.get('input[type="checkbox"]').click();
+      cy.get('[role="checkbox"]').click();
       dragComponent();
       cy.getBySel('dashboard-component-chart-holder').should('have.length', 1);
     });
 
     it.skip('should remove added charts', () => {
-      cy.get('input[type="checkbox"]').click();
+      cy.get('[role="checkbox"]').click();
       dragComponent('Unicode Cloud');
       cy.getBySel('dashboard-component-chart-holder').should('have.length', 1);
       cy.getBySel('dashboard-delete-component-button').click();
@@ -1198,7 +1204,7 @@ describe('Dashboard edit', () => {
     });
 
     it('should save', () => {
-      cy.get('input[type="checkbox"]').click();
+      cy.get('[role="checkbox"]').click();
       dragComponent();
       cy.getBySel('header-save-button').should('be.enabled');
       saveChanges();

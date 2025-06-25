@@ -19,7 +19,7 @@
 import BoundsControl, { BoundsControlProps } from './BoundsControl';
 
 export default {
-  title: 'Components/BoundsControl',
+  title: 'BoundsControl',
   component: BoundsControl,
 };
 

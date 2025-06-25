@@ -24,7 +24,7 @@ import {
   ClientErrorObject,
   getClientErrorObject,
 } from '@superset-ui/core';
-import { AsyncSelect } from '@superset-ui/core/components';
+import { AsyncSelect } from 'src/components';
 import { cachedSupersetGet } from 'src/utils/cachedSupersetGet';
 import {
   Dataset,
@@ -66,10 +66,12 @@ const DatasetSelect = ({ onChange, value }: DatasetSelectProps) => {
     })
       .then((response: JsonResponse) => {
         const list: {
-          label: string | ReactNode;
+          customLabel: ReactNode;
+          label: string;
           value: string | number;
         }[] = response.json.result.map((item: Dataset) => ({
-          label: DatasetSelectLabel(item),
+          customLabel: DatasetSelectLabel(item),
+          label: item.table_name,
           value: item.id,
         }));
         return {

@@ -16,8 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { styled, t } from '@superset-ui/core';
-import { SafeMarkdown } from '@superset-ui/core/components';
+import { SafeMarkdown, styled, t } from '@superset-ui/core';
 import Handlebars from 'handlebars';
 import dayjs from 'dayjs';
 import { useMemo, useState } from 'react';

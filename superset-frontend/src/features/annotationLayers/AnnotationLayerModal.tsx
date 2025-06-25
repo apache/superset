@@ -21,9 +21,8 @@ import { FunctionComponent, useState, useEffect, ChangeEvent } from 'react';
 import { css, styled, t, useTheme } from '@superset-ui/core';
 import { useSingleViewResource } from 'src/views/CRUD/hooks';
 
-import { Icons } from '@superset-ui/core/components/Icons';
-import { Typography } from '@superset-ui/core/components/Typography';
-import { Input, Modal } from '@superset-ui/core/components';
+import { Icons } from 'src/components/Icons';
+import Modal from 'src/components/Modal';
 import withToasts from 'src/components/MessageToasts/withToasts';
 
 import { OnlyKeyWithType } from 'src/utils/types';
@@ -44,28 +43,28 @@ interface AnnotationLayerModalProps {
 }
 
 const StyledAnnotationLayerTitle = styled.div`
-  margin: ${({ theme }) => theme.sizeUnit * 2}px auto
-    ${({ theme }) => theme.sizeUnit * 4}px auto;
+  margin: ${({ theme }) => theme.gridUnit * 2}px auto
+    ${({ theme }) => theme.gridUnit * 4}px auto;
 `;
 
 const LayerContainer = styled.div`
-  margin-bottom: ${({ theme }) => theme.sizeUnit * 10}px;
+  margin-bottom: ${({ theme }) => theme.gridUnit * 10}px;
 
   .control-label {
-    margin-bottom: ${({ theme }) => theme.sizeUnit * 2}px;
+    margin-bottom: ${({ theme }) => theme.gridUnit * 2}px;
   }
 
   .required {
-    margin-left: ${({ theme }) => theme.sizeUnit / 2}px;
-    color: ${({ theme }) => theme.colorError};
+    margin-left: ${({ theme }) => theme.gridUnit / 2}px;
+    color: ${({ theme }) => theme.colors.error.base};
   }
 
   textarea,
   input[type='text'] {
-    padding: ${({ theme }) => theme.sizeUnit * 1.5}px
-      ${({ theme }) => theme.sizeUnit * 2}px;
-    border: 1px solid ${({ theme }) => theme.colorBorder};
-    border-radius: ${({ theme }) => theme.borderRadius}px;
+    padding: ${({ theme }) => theme.gridUnit * 1.5}px
+      ${({ theme }) => theme.gridUnit * 2}px;
+    border: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
+    border-radius: ${({ theme }) => theme.gridUnit}px;
     width: 50%;
   }
 
@@ -236,19 +235,19 @@ const AnnotationLayerModal: FunctionComponent<AnnotationLayerModalProps> = ({
       show={show}
       width="55%"
       title={
-        <Typography.Title level={4} data-test="annotation-layer-modal-title">
+        <h4 data-test="annotation-layer-modal-title">
           {isEditMode ? (
             <Icons.EditOutlined
               iconSize="l"
               css={css`
-                margin: auto ${theme.sizeUnit * 2}px auto 0;
+                margin: auto ${theme.gridUnit * 2}px auto 0;
               `}
             />
           ) : (
             <Icons.PlusOutlined
               iconSize="m"
               css={css`
-                margin: auto ${theme.sizeUnit * 2}px auto 0;
+                margin: auto ${theme.gridUnit * 2}px auto 0;
                 vertical-align: text-top;
               `}
             />
@@ -256,18 +255,18 @@ const AnnotationLayerModal: FunctionComponent<AnnotationLayerModalProps> = ({
           {isEditMode
             ? t('Edit annotation layer properties')
             : t('Add annotation layer')}
-        </Typography.Title>
+        </h4>
       }
     >
       <StyledAnnotationLayerTitle>
-        <Typography.Title level={4}>{t('Basic information')}</Typography.Title>
+        <h4>{t('Basic information')}</h4>
       </StyledAnnotationLayerTitle>
       <LayerContainer>
         <div className="control-label">
           {t('Annotation layer name')}
           <span className="required">*</span>
         </div>
-        <Input
+        <input
           name="name"
           onChange={onTextChange}
           type="text"
@@ -276,7 +275,7 @@ const AnnotationLayerModal: FunctionComponent<AnnotationLayerModalProps> = ({
       </LayerContainer>
       <LayerContainer>
         <div className="control-label">{t('description')}</div>
-        <Input.TextArea
+        <textarea
           name="descr"
           value={currentLayer?.descr}
           placeholder={t('Description (this can be seen in the list)')}

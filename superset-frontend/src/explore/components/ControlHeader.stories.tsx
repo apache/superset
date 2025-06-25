@@ -19,7 +19,7 @@
 import ControlHeader, { ControlHeaderProps } from './ControlHeader';
 
 export default {
-  title: 'Components/ControlHeader',
+  title: 'ControlHeader',
   component: ControlHeader,
 };
 

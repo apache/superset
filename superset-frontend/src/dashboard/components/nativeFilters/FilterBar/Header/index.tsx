@@ -19,8 +19,8 @@
 /* eslint-disable no-param-reassign */
 import { css, styled, t } from '@superset-ui/core';
 import { memo, FC } from 'react';
-import { Icons } from '@superset-ui/core/components/Icons';
-import { Button } from '@superset-ui/core/components';
+import { Icons } from 'src/components/Icons';
+import Button from 'src/components/Button';
 import { getFilterBarTestId } from '../utils';
 import FilterBarSettings from '../FilterBarSettings';
 
@@ -31,12 +31,12 @@ const TitleArea = styled.div`
     flex-direction: row;
     justify-content: space-between;
     margin: 0;
-    padding: 0 ${theme.sizeUnit * 2}px ${theme.sizeUnit * 2}px;
+    padding: 0 ${theme.gridUnit * 2}px ${theme.gridUnit * 2}px;
 
     & > span {
-      font-size: ${theme.fontSizeLG}px;
+      font-size: ${theme.typography.sizes.l}px;
       flex-grow: 1;
-      font-weight: ${theme.fontWeightStrong};
+      font-weight: ${theme.typography.weights.bold};
     }
 
     & > div:first-of-type {
@@ -55,8 +55,8 @@ const HeaderButton = styled(Button)`
 
 const Wrapper = styled.div`
   ${({ theme }) => `
-    padding: ${theme.sizeUnit * 3}px ${theme.sizeUnit * 2}px ${
-      theme.sizeUnit
+    padding: ${theme.gridUnit * 3}px ${theme.gridUnit * 2}px ${
+      theme.gridUnit
     }px;
   `}
 `;

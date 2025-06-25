@@ -23,12 +23,8 @@ import {
   OutPortal,
 } from 'react-reverse-portal';
 import { styled, SupersetTheme, truncationCSS } from '@superset-ui/core';
-import {
-  FormItem as StyledFormItem,
-  Form,
-  Icons,
-  Tooltip,
-} from '@superset-ui/core/components';
+import { FormItem as StyledFormItem, Form } from 'src/components/Form';
+import { Tooltip } from 'src/components/Tooltip';
 import { FilterBarOrientation } from 'src/dashboard/types';
 import { checkIsMissingRequiredValue } from '../utils';
 import FilterValue from './FilterValue';
@@ -44,14 +40,15 @@ const FilterStyledIcon = styled.div`
 `;
 
 const VerticalFilterControlTitle = styled.h4`
-  font-size: ${({ theme }) => theme.fontSizeSM}px;
-  color: ${({ theme }) => theme.colorText};
+  font-size: ${({ theme }) => theme.typography.sizes.s}px;
+  color: ${({ theme }) => theme.colors.grayscale.dark1};
+  margin: 0;
   overflow-wrap: anywhere;
 `;
 
 const HorizontalFilterControlTitle = styled(VerticalFilterControlTitle)`
-  font-weight: ${({ theme }) => theme.fontWeightNormal};
-  color: ${({ theme }) => theme.colorText};
+  font-weight: ${({ theme }) => theme.typography.weights.normal};
+  color: ${({ theme }) => theme.colors.grayscale.base};
   ${truncationCSS};
 `;
 
@@ -66,6 +63,7 @@ const VerticalFilterControlTitleBox = styled.div`
   flex-direction: row;
   align-items: center;
   justify-content: space-between;
+  margin-bottom: ${({ theme }) => theme.gridUnit}px;
 `;
 
 const HorizontalFilterControlTitleBox = styled(VerticalFilterControlTitleBox)`
@@ -78,38 +76,25 @@ const HorizontalOverflowFilterControlTitleBox = styled(
   width: 100%;
 `;
 
-const AllFilterControlContainer = styled(Form)`
-  // TODO this is a hack related to having form items inside others which is not
-  // normal antd-expected usage
-  .ant-form-item .ant-form-item {
-    margin-bottom: 0 !important;
-  }
-`;
-
-const VerticalFilterControlContainer = styled(AllFilterControlContainer)`
+const VerticalFilterControlContainer = styled(Form)`
   width: 100%;
-
-  .ant-form-item {
-    margin-bottom: ${({ theme }) => theme.sizeUnit * 2}px;
-  }
-
   && .ant-form-item-label > label {
     text-transform: none;
     width: 100%;
-    padding-right: ${({ theme }) => theme.sizeUnit * 11}px;
+    padding-right: ${({ theme }) => theme.gridUnit * 11}px;
   }
   .ant-form-item-tooltip {
-    margin-bottom: ${({ theme }) => theme.sizeUnit}px;
+    margin-bottom: ${({ theme }) => theme.gridUnit}px;
   }
 `;
 
-const HorizontalFilterControlContainer = styled(AllFilterControlContainer)`
+const HorizontalFilterControlContainer = styled(Form)`
   && .ant-form-item-label > label {
     margin-bottom: 0;
     text-transform: none;
   }
   .ant-form-item-tooltip {
-    margin-bottom: ${({ theme }) => theme.sizeUnit}px;
+    margin-bottom: ${({ theme }) => theme.gridUnit}px;
   }
 `;
 
@@ -164,7 +149,7 @@ const HorizontalFormItem = styled(StyledFormItem)<{
   .ant-form-item-label {
     overflow: visible;
     padding-bottom: 0;
-    margin-right: ${({ theme }) => theme.sizeUnit * 2}px;
+    margin-right: ${({ theme }) => theme.gridUnit * 2}px;
     label.ant-form-item-required:not(.ant-form-item-required-mark-optional) {
       &::after {
         display: none;
@@ -235,15 +220,15 @@ const useFilterControlDisplay = (
   }, [orientation, overflow, inverseSelection]);
 
 const ToolTipContainer = styled.div`
-  font-size: ${({ theme }) => theme.fontSize}px;
+  font-size: ${({ theme }) => theme.typography.sizes.m}px;
   display: flex;
 `;
 
 const RequiredFieldIndicator = () => (
   <span
     css={(theme: SupersetTheme) => ({
-      color: theme.colorError,
-      fontSize: `${theme.fontSizeSM}px`,
+      color: theme.colors.error.base,
+      fontSize: `${theme.typography.sizes.s}px`,
       paddingLeft: '1px',
     })}
   >
@@ -265,11 +250,13 @@ const DescriptionToolTip = ({ description }: { description: string }) => (
         whiteSpace: 'normal',
       }}
     >
-      <Icons.InfoCircleOutlined
-        className="text-muted"
-        role="button"
+      {/* TODO: Remove fa-icon */}
+      {/* eslint-disable-next-line icons/no-fa-icons-usage */}
+      <i
+        className="fa fa-info-circle text-muted"
         css={(theme: SupersetTheme) => ({
-          paddingLeft: `${theme.sizeUnit}px`,
+          paddingLeft: `${theme.gridUnit}px`,
+          cursor: 'pointer',
         })}
       />
     </Tooltip>

@@ -18,11 +18,17 @@
  */
 import { useState, forwardRef, useImperativeHandle, RefObject } from 'react';
 import { styled, t } from '@superset-ui/core';
-import { InputNumber } from '@superset-ui/core/components/Input';
-import { FormLabel } from '@superset-ui/core/components/Form';
-import type { BaseFilter, FilterHandler } from './types';
-import { FilterContainer } from './Base';
-import { RANGE_WIDTH } from '../utils';
+import { InputNumber } from 'src/components/Input';
+import { FormLabel } from 'src/components/Form';
+import { BaseFilter, FilterHandler } from './Base';
+
+const RangeFilterContainer = styled.div`
+  display: inline-flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+  width: 360px;
+`;
 
 const InputContainer = styled.div`
   display: flex;
@@ -32,16 +38,16 @@ const InputContainer = styled.div`
 `;
 
 const StyledDivider = styled.span`
-  margin: 0 ${({ theme }) => theme.sizeUnit * 2}px;
+  margin: 0 ${({ theme }) => theme.gridUnit * 2}px;
   color: ${({ theme }) => theme.colors.grayscale.base};
-  font-weight: ${({ theme }) => theme.fontWeightNormal};
-  font-size: ${({ theme }) => theme.fontSize}px;
+  font-weight: ${({ theme }) => theme.typography.weights.bold};
+  font-size: ${({ theme }) => theme.typography.sizes.m}px;
 `;
 
 const ErrorMessage = styled.div`
   color: ${({ theme }) => theme.colors.error.base};
-  font-size: ${({ theme }) => theme.fontSizeSM}px;
-  font-weight: ${({ theme }) => theme.fontWeightNormal};
+  font-size: ${({ theme }) => theme.typography.sizes.s}px;
+  font-weight: ${({ theme }) => theme.typography.weights.bold};
   position: absolute;
   bottom: -50%;
   left: 0;
@@ -97,13 +103,7 @@ function NumericalRangeFilter(
   }));
 
   return (
-    <FilterContainer
-      data-test="numerical-range-filter-container"
-      width={RANGE_WIDTH}
-      vertical
-      justify="center"
-      align="start"
-    >
+    <RangeFilterContainer>
       <FormLabel>{Header}</FormLabel>
       <InputContainer>
         <InputNumber
@@ -127,7 +127,7 @@ function NumericalRangeFilter(
           </ErrorMessage>
         )}
       </InputContainer>
-    </FilterContainer>
+    </RangeFilterContainer>
   );
 }
 

@@ -52,19 +52,19 @@ export default styled(CountryMap)`
     }
 
     .superset-legacy-chart-country-map .text-layer {
-      color: ${theme.colorText};
+      color: ${theme.colors.grayscale.dark1};
       text-anchor: middle;
       pointer-events: none;
     }
 
     .superset-legacy-chart-country-map text.result-text {
-      font-weight: ${theme.fontWeightLight};
-      font-size: ${theme.fontSizeXL}px;
+      font-weight: ${theme.typography.weights.light};
+      font-size: ${theme.typography.sizes.xl}px;
     }
 
     .superset-legacy-chart-country-map text.big-text {
-      font-weight: ${theme.fontWeightStrong};
-      font-size: ${theme.fontSizeLG}px;
+      font-weight: ${theme.typography.weights.bold};
+      font-size: ${theme.typography.sizes.l}px;
     }
 
     .superset-legacy-chart-country-map path.region {

@@ -18,7 +18,7 @@
  */
 
 import { useCallback, useMemo } from 'react';
-import { Tag } from 'src/components/Tag';
+import { Tag } from 'src/components/Tags';
 import {
   BinaryQueryObjectFilterClause,
   css,
@@ -27,7 +27,7 @@ import {
   useTheme,
 } from '@superset-ui/core';
 import RowCountLabel from 'src/explore/components/RowCountLabel';
-import { Icons } from '@superset-ui/core/components/Icons';
+import { Icons } from 'src/components/Icons';
 
 export type TableControlsProps = {
   filters: BinaryQueryObjectFilterClause[];
@@ -83,8 +83,8 @@ export default function TableControls({
       css={css`
         display: flex;
         justify-content: space-between;
-        padding: ${theme.sizeUnit / 2}px 0;
-        margin-bottom: ${theme.sizeUnit * 2}px;
+        padding: ${theme.gridUnit / 2}px 0;
+        margin-bottom: ${theme.gridUnit * 2}px;
       `}
     >
       <div
@@ -105,7 +105,7 @@ export default function TableControls({
           >
             <span
               css={css`
-                margin-right: ${theme.sizeUnit}px;
+                margin-right: ${theme.gridUnit}px;
               `}
             >
               {colName}

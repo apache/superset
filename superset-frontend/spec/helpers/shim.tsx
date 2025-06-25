@@ -19,6 +19,7 @@
 import { AriaAttributes } from 'react';
 import 'core-js/stable';
 import 'regenerator-runtime/runtime';
+import 'abortcontroller-polyfill/dist/abortcontroller-polyfill-only';
 import jQuery from 'jquery';
 // https://jestjs.io/docs/jest-object#jestmockmodulename-factory-options
 // in order to mock modules in test case, so avoid absolute import module
@@ -86,7 +87,7 @@ jest.mock('rehype-raw', () => () => jest.fn());
 
 // Mocks the Icon component due to its async nature
 // Tests should override this when needed
-jest.mock('@superset-ui/core/components/Icons/AsyncIcon', () => ({
+jest.mock('src/components/Icons/AsyncIcon', () => ({
   __esModule: true,
   default: ({
     fileName,

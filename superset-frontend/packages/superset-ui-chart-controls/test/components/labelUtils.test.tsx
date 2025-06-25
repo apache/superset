@@ -16,14 +16,19 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { render, screen } from '@superset-ui/core/spec';
+import { ReactElement } from 'react';
+import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
+import { ThemeProvider, supersetTheme } from '@superset-ui/core';
 import {
   getColumnLabelText,
   getColumnTooltipNode,
   getMetricTooltipNode,
   getColumnTypeTooltipNode,
 } from '../../src/components/labelUtils';
+
+const renderWithTheme = (ui: ReactElement) =>
+  render(<ThemeProvider theme={supersetTheme}>{ui}</ThemeProvider>);
 
 test("should get column name when column doesn't have verbose_name", () => {
   expect(
@@ -73,7 +78,7 @@ test('should get null for column datatype tooltip when type is blank', () => {
 });
 
 test('should get column datatype rendered as tooltip when column has a type', () => {
-  render(
+  renderWithTheme(
     <>
       {getColumnTypeTooltipNode({
         id: 123,
@@ -91,7 +96,7 @@ test('should get column datatype rendered as tooltip when column has a type', ()
 
 test('should get column name, verbose name and description when it has a verbose name', () => {
   const ref = { current: { scrollWidth: 100, clientWidth: 100 } };
-  render(
+  renderWithTheme(
     <>
       {getColumnTooltipNode(
         {
@@ -115,7 +120,7 @@ test('should get column name, verbose name and description when it has a verbose
 
 test('should get column name as tooltip if it overflowed', () => {
   const ref = { current: { scrollWidth: 200, clientWidth: 100 } };
-  render(
+  renderWithTheme(
     <>
       {getColumnTooltipNode(
         {
@@ -136,7 +141,7 @@ test('should get column name as tooltip if it overflowed', () => {
 
 test('should get column name, verbose name and description as tooltip if it overflowed', () => {
   const ref = { current: { scrollWidth: 200, clientWidth: 100 } };
-  render(
+  renderWithTheme(
     <>
       {getColumnTooltipNode(
         {
@@ -175,7 +180,7 @@ test('should get null as tooltip in metric', () => {
 
 test('should get metric name, verbose name and description as tooltip in metric', () => {
   const ref = { current: { scrollWidth: 100, clientWidth: 100 } };
-  render(
+  renderWithTheme(
     <>
       {getMetricTooltipNode(
         {
@@ -198,7 +203,7 @@ test('should get metric name, verbose name and description as tooltip in metric'
 
 test('should get metric name as tooltip if it overflowed', () => {
   const ref = { current: { scrollWidth: 200, clientWidth: 100 } };
-  render(
+  renderWithTheme(
     <>
       {getMetricTooltipNode(
         {
@@ -219,7 +224,7 @@ test('should get metric name as tooltip if it overflowed', () => {
 
 test('should get metric name, verbose name and description in tooltip if it overflowed', () => {
   const ref = { current: { scrollWidth: 200, clientWidth: 100 } };
-  render(
+  renderWithTheme(
     <>
       {getMetricTooltipNode(
         {

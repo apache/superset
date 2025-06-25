@@ -36,6 +36,7 @@ const DraggableNewDynamicComponent: FC<DraggableNewDynamicComponent> = ({
     type={DYNAMIC_TYPE}
     label={metadata.name}
     meta={{ metadata, componentKey }}
+    className={`fa fa-${metadata.iconName}`}
   />
 );
 

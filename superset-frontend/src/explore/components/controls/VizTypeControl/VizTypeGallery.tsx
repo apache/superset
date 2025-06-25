@@ -39,10 +39,13 @@ import {
   chartLabelWeight,
   chartLabelExplanations,
 } from '@superset-ui/core';
-import { Input, Collapse, Tooltip, Label } from '@superset-ui/core/components';
-import { Icons } from '@superset-ui/core/components/Icons';
+import { AntdCollapse } from 'src/components';
+import { Tooltip } from 'src/components/Tooltip';
+import { Input } from 'src/components/Input';
+import Label from 'src/components/Label';
+import { usePluginContext } from 'src/components/DynamicPlugins';
+import { Icons } from 'src/components/Icons';
 import { nativeFilterGate } from 'src/dashboard/components/nativeFilters/utils';
-import { usePluginContext } from 'src/components';
 import scrollIntoView from 'scroll-into-view-if-needed';
 
 interface VizTypeGalleryProps {
@@ -100,31 +103,30 @@ const VizPickerLayout = styled.div<{ isSelectedVizMetadata: boolean }>`
 
 const SectionTitle = styled.h3`
   margin-top: 0;
-  margin-bottom: ${({ theme }) => theme.sizeUnit * 2}px;
-  font-size: ${({ theme }) => theme.fontSizeLG}px;
-  font-weight: ${({ theme }) => theme.fontWeightStrong};
-  line-height: ${({ theme }) => theme.sizeUnit * 6}px;
+  margin-bottom: ${({ theme }) => theme.gridUnit * 2}px;
+  font-size: ${({ theme }) => theme.typography.sizes.l}px;
+  font-weight: ${({ theme }) => theme.typography.weights.bold};
+  line-height: ${({ theme }) => theme.gridUnit * 6}px;
 `;
 
 const LeftPane = styled.div`
   grid-area: sidebar;
   display: flex;
   flex-direction: column;
-  border-right: 1px solid ${({ theme }) => theme.colorBorder};
+  border-right: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
   overflow: auto;
 
   .ant-collapse .ant-collapse-item {
     .ant-collapse-header {
-      font-size: ${({ theme }) => theme.fontSizeSM}px;
-      color: ${({ theme }) => theme.colorText};
-      padding-left: ${({ theme }) => theme.sizeUnit * 2}px;
-      padding-bottom: ${({ theme }) => theme.sizeUnit}px;
+      font-size: ${({ theme }) => theme.typography.sizes.s}px;
+      color: ${({ theme }) => theme.colors.grayscale.base};
+      padding-left: ${({ theme }) => theme.gridUnit * 2}px;
+      padding-bottom: ${({ theme }) => theme.gridUnit}px;
     }
-
     .ant-collapse-content .ant-collapse-content-box {
       display: flex;
       flex-direction: column;
-      padding: 0 ${({ theme }) => theme.sizeUnit * 2}px;
+      padding: 0 ${({ theme }) => theme.gridUnit * 2}px;
     }
   }
 `;
@@ -137,12 +139,12 @@ const RightPane = styled.div`
 const SearchWrapper = styled.div`
   ${({ theme }) => `
     grid-area: search;
-    margin-top: ${theme.sizeUnit * 3}px;
-    margin-bottom: ${theme.sizeUnit}px;
-    margin-left: ${theme.sizeUnit * 3}px;
-    margin-right: ${theme.sizeUnit * 3}px;
-    .ant-input-affix-wrapper {
-      padding-left: ${theme.sizeUnit * 2}px;
+    margin-top: ${theme.gridUnit * 3}px;
+    margin-bottom: ${theme.gridUnit}px;
+    margin-left: ${theme.gridUnit * 3}px;
+    margin-right: ${theme.gridUnit * 3}px;
+    .antd5-input-affix-wrapper {
+      padding-left: ${theme.gridUnit * 2}px;
     }
   `}
 `;
@@ -152,7 +154,7 @@ const InputIconAlignment = styled.div`
   display: flex;
   justify-content: center;
   align-items: center;
-  color: ${({ theme }) => theme.colorIcon};
+  color: ${({ theme }) => theme.colors.grayscale.base};
 `;
 
 const SelectorLabel = styled.button`
@@ -162,25 +164,24 @@ const SelectorLabel = styled.button`
     flex-direction: row;
     align-items: center;
     cursor: pointer;
-    margin: ${theme.sizeUnit}px 0;
-    padding: 0 ${theme.sizeUnit}px;
+    margin: ${theme.gridUnit}px 0;
+    padding: 0 ${theme.gridUnit}px;
     border-radius: ${theme.borderRadius}px;
     line-height: 2em;
     text-overflow: ellipsis;
     white-space: nowrap;
     position: relative;
-    color: ${theme.colorText};
 
     &:focus {
       outline: initial;
     }
 
     &.selected {
-      background-color: ${theme.colorPrimaryBgHover};
-      color: ${theme.colorPrimaryTextActive};
+      background-color: ${theme.colors.primary.base};
+      color: ${theme.colors.primary.light5};
 
       svg {
-        color: ${theme.colorIcon};
+        color: ${theme.colors.primary.light5};
       }
 
       &:hover {
@@ -191,7 +192,7 @@ const SelectorLabel = styled.button`
     }
 
     & > span[role="img"] {
-      margin-right: ${theme.sizeUnit * 2}px;
+      margin-right: ${theme.gridUnit * 2}px;
     }
 
     .cancel {
@@ -205,23 +206,23 @@ const IconsPane = styled.div`
   display: grid;
   grid-template-columns: repeat(
     auto-fill,
-    ${({ theme }) => theme.sizeUnit * THUMBNAIL_GRID_UNITS}px
+    ${({ theme }) => theme.gridUnit * THUMBNAIL_GRID_UNITS}px
   );
   grid-auto-rows: max-content;
   justify-content: space-evenly;
-  grid-gap: ${({ theme }) => theme.sizeUnit * 2}px;
+  grid-gap: ${({ theme }) => theme.gridUnit * 2}px;
   justify-items: center;
   // for some reason this padding doesn't seem to apply at the bottom of the container. Why is a mystery.
-  padding: ${({ theme }) => theme.sizeUnit * 2}px;
+  padding: ${({ theme }) => theme.gridUnit * 2}px;
 `;
 
 const DetailsPane = (theme: SupersetTheme) => css`
   grid-area: details;
-  border-top: 1px solid ${theme.colorBorder};
+  border-top: 1px solid ${theme.colors.grayscale.light2};
 `;
 
 const DetailsPopulated = (theme: SupersetTheme) => css`
-  padding: ${theme.sizeUnit * 4}px;
+  padding: ${theme.gridUnit * 4}px;
   display: grid;
   grid-template-columns: 1fr 1fr;
   grid-template-rows: auto auto 1fr;
@@ -235,15 +236,15 @@ const DetailsPopulated = (theme: SupersetTheme) => css`
 // (plus grid layout) enables the description to scroll while the header stays in place.
 const TagsWrapper = styled.div`
   grid-area: viz-tags;
-  width: ${({ theme }) => theme.sizeUnit * 120}px;
-  padding-right: ${({ theme }) => theme.sizeUnit * 14}px;
-  padding-bottom: ${({ theme }) => theme.sizeUnit * 2}px;
+  width: ${({ theme }) => theme.gridUnit * 120}px;
+  padding-right: ${({ theme }) => theme.gridUnit * 14}px;
+  padding-bottom: ${({ theme }) => theme.gridUnit * 2}px;
 `;
 
 const Description = styled.p`
   grid-area: description;
   overflow: auto;
-  padding-right: ${({ theme }) => theme.sizeUnit * 14}px;
+  padding-right: ${({ theme }) => theme.gridUnit * 14}px;
   margin: 0;
 `;
 
@@ -253,54 +254,54 @@ const Examples = styled.div`
   flex-direction: row;
   flex-wrap: nowrap;
   overflow: auto;
-  gap: ${({ theme }) => theme.sizeUnit * 4}px;
+  gap: ${({ theme }) => theme.gridUnit * 4}px;
 
   img {
     height: 100%;
-    border-radius: ${({ theme }) => theme.borderRadius}px;
-    border: 1px solid ${({ theme }) => theme.colorBorder};
+    border-radius: ${({ theme }) => theme.gridUnit}px;
+    border: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
   }
 `;
 
 const thumbnailContainerCss = (theme: SupersetTheme) => css`
   cursor: pointer;
-  width: ${theme.sizeUnit * THUMBNAIL_GRID_UNITS}px;
+  width: ${theme.gridUnit * THUMBNAIL_GRID_UNITS}px;
   position: relative;
 
   img {
-    min-width: ${theme.sizeUnit * THUMBNAIL_GRID_UNITS}px;
-    min-height: ${theme.sizeUnit * THUMBNAIL_GRID_UNITS}px;
-    border: 1px solid ${theme.colorBorder};
-    border-radius: ${theme.borderRadius}px;
-    transition: border-color ${theme.motionDurationMid};
+    min-width: ${theme.gridUnit * THUMBNAIL_GRID_UNITS}px;
+    min-height: ${theme.gridUnit * THUMBNAIL_GRID_UNITS}px;
+    border: 1px solid ${theme.colors.grayscale.light2};
+    border-radius: ${theme.gridUnit}px;
+    transition: border-color ${theme.transitionTiming};
   }
 
   &.selected img {
-    border: 2px solid ${theme.colorPrimaryBorder};
+    border: 2px solid ${theme.colors.primary.light2};
   }
 
   &:hover:not(.selected) img {
-    border: 1px solid ${theme.colorBorder};
+    border: 1px solid ${theme.colors.grayscale.light1};
   }
 
   .viztype-label {
-    margin-top: ${theme.sizeUnit * 2}px;
+    margin-top: ${theme.gridUnit * 2}px;
     text-align: center;
   }
 `;
 
 const HighlightLabel = styled.div`
   ${({ theme }) => `
-    border: 1px solid ${theme.colorPrimaryText};
+    border: 1px solid ${theme.colors.primary.dark1};
     box-sizing: border-box;
-    border-radius: ${theme.borderRadius}px;
+    border-radius: ${theme.gridUnit}px;
     background: ${theme.colors.grayscale.light5};
-    line-height: ${theme.sizeUnit * 2.5}px;
-    color: ${theme.colorPrimaryText};
-    font-size: ${theme.fontSizeSM}px;
-    font-weight: ${theme.fontWeightStrong};
+    line-height: ${theme.gridUnit * 2.5}px;
+    color: ${theme.colors.primary.dark1};
+    font-size: ${theme.typography.sizes.s}px;
+    font-weight: ${theme.typography.weights.bold};
     text-align: center;
-    padding: ${theme.sizeUnit * 0.5}px ${theme.sizeUnit}px;
+    padding: ${theme.gridUnit * 0.5}px ${theme.gridUnit}px;
     cursor: pointer;
 
     div {
@@ -311,13 +312,13 @@ const HighlightLabel = styled.div`
 
 const ThumbnailLabelWrapper = styled.div`
   position: absolute;
-  right: ${({ theme }) => theme.sizeUnit}px;
-  top: ${({ theme }) => theme.sizeUnit * 19}px;
+  right: ${({ theme }) => theme.gridUnit}px;
+  top: ${({ theme }) => theme.gridUnit * 19}px;
 `;
 
 const TitleLabelWrapper = styled.div`
   display: inline-block !important;
-  margin-left: ${({ theme }) => theme.sizeUnit * 2}px;
+  margin-left: ${({ theme }) => theme.gridUnit * 2}px;
 `;
 
 interface ThumbnailProps {
@@ -661,10 +662,10 @@ export default function VizTypeGallery(props: VizTypeGalleryProps) {
     >
       <LeftPane aria-label={t('Choose chart type')} role="tablist">
         <Selector
-          css={({ sizeUnit }) =>
+          css={({ gridUnit }) =>
             // adjust style for not being inside a collapse
             css`
-              margin: ${sizeUnit * 2}px;
+              margin: ${gridUnit * 2}px;
               margin-bottom: 0;
             `
           }
@@ -679,10 +680,10 @@ export default function VizTypeGallery(props: VizTypeGalleryProps) {
           onClick={clickSelector}
         />
         <Selector
-          css={({ sizeUnit }) =>
+          css={({ gridUnit }) =>
             // adjust style for not being inside a collapse
             css`
-              margin: ${sizeUnit * 2}px;
+              margin: ${gridUnit * 2}px;
               margin-bottom: 0;
             `
           }
@@ -696,37 +697,37 @@ export default function VizTypeGallery(props: VizTypeGalleryProps) {
           }
           onClick={clickSelector}
         />
-        <Collapse
+        <AntdCollapse
           expandIconPosition="right"
           ghost
           defaultActiveKey={Sections.Category}
-          items={Object.keys(sectionMap).map(sectionId => {
+        >
+          {Object.keys(sectionMap).map(sectionId => {
             const section = sectionMap[sectionId as keyof typeof sectionMap];
 
-            return {
-              key: sectionId,
-              label: <span className="header">{section.title}</span>,
-              children: (
-                <>
-                  {section.selectors.map((selector: string) => (
-                    <Selector
-                      key={selector}
-                      selector={selector}
-                      sectionId={sectionId}
-                      icon={section.icon}
-                      isSelected={
-                        !isActivelySearching &&
-                        selector === activeSelector &&
-                        sectionId === activeSection
-                      }
-                      onClick={clickSelector}
-                    />
-                  ))}
-                </>
-              ),
-            };
+            return (
+              <AntdCollapse.Panel
+                header={<span className="header">{section.title}</span>}
+                key={sectionId}
+              >
+                {section.selectors.map((selector: string) => (
+                  <Selector
+                    key={selector}
+                    selector={selector}
+                    sectionId={sectionId}
+                    icon={section.icon}
+                    isSelected={
+                      !isActivelySearching &&
+                      selector === activeSelector &&
+                      sectionId === activeSection
+                    }
+                    onClick={clickSelector}
+                  />
+                ))}
+              </AntdCollapse.Panel>
+            );
           })}
-        />
+        </AntdCollapse>
       </LeftPane>
 
       <SearchWrapper>
@@ -798,8 +799,8 @@ export default function VizTypeGallery(props: VizTypeGalleryProps) {
               {selectedVizMetadata?.tags.map(tag => (
                 <Label
                   key={tag}
-                  css={({ sizeUnit }) => css`
-                    margin-bottom: ${sizeUnit * 2}px;
+                  css={({ gridUnit }) => css`
+                    margin-bottom: ${gridUnit * 2}px;
                   `}
                 >
                   {tag}

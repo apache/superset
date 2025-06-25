@@ -36,12 +36,12 @@ Note that there are 3 major ways we support to run `docker compose`:
   at the time you fire this up will be reflected, but changes to the code
   while `up` won't be reflected in the app
 1. **docker-compose-image-tag.yml** where we fetch an image from docker-hub say for the
-  `5.0.0` release for instance, and fire it up so you can try it. Here what's in
+  `3.0.0` release for instance, and fire it up so you can try it. Here what's in
   the local branch has no effects on what's running, we just fetch and run
   pre-built images from docker-hub. For `docker compose` to work along with the
   Postgres image it boots up, you'll want to point to a `-dev`-suffixed TAG, as in
-  `export TAG=5.0.0-dev` or `export TAG=4.1.2-dev`, with `latest-dev` being the default.
-  The `dev` builds include the `psycopg2-binary` required to connect
+  `export TAG=4.0.0-dev` or `export TAG=3.0.0-dev`, with `latest-dev` being the default.
+  That's because The `dev` builds happen to package the `psycopg2-binary` required to connect
   to the Postgres database launched as part of the `docker compose` builds.
 
 More on these two approaches after setting up the requirements for either.
@@ -113,7 +113,7 @@ docker compose -f docker-compose-non-dev.yml up
 
 ```bash
 # Set the version you want to run
-export TAG=5.0.0
+export TAG=3.1.1
 # Fetch the tag you're about to check out (assuming you shallow-cloned the repo)
 git fetch --depth=1 origin tag $TAG
 # Could also fetch all tags too if you've got bandwidth to spare
@@ -129,8 +129,8 @@ Refer to the docker-related documentation to learn more about existing tags you 
 from Docker Hub.
 
 :::note
-For option #2 and #3, we recommend checking out the release tag from the git repository
-(ie: `git checkout 5.0.0`) for more guaranteed results. This ensures that the `docker-compose.*.yml`
+For option #2 and #3, we recommend checking out the release tag from the better repository
+(ie: `git checkout 4.0.0`) for more guaranteed results. This ensures that the `docker-compose.*.yml`
 configurations and that the mounted `docker/` scripts are in sync with the image you are
 looking to fire up.
 :::
@@ -143,7 +143,7 @@ its metadata database. In production, this database should be backed up.  The de
 with docker compose will store that data in a PostgreSQL database contained in a Docker
 [volume](https://docs.docker.com/storage/volumes/), which is not backed up.
 
-Again, **THE DOCKER-COMPOSE INSTALLATION IS NOT PRODUCTION-READY OUT OF THE BOX.**
+Again, **DO NOT USE THIS FOR PRODUCTION**
 
 :::
 

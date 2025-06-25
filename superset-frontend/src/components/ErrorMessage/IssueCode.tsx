@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Icons } from '@superset-ui/core/components';
+import { Icons } from 'src/components/Icons';
 import { useTheme } from '@superset-ui/core';
 
 interface IssueCodeProps {
@@ -24,7 +24,7 @@ interface IssueCodeProps {
   message: string;
 }
 
-export function IssueCode({ code, message }: IssueCodeProps) {
+export default function IssueCode({ code, message }: IssueCodeProps) {
   const theme = useTheme();
   return (
     <>

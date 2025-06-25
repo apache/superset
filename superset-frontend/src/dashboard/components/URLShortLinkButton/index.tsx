@@ -18,18 +18,13 @@
  */
 import { useState } from 'react';
 import { getClientErrorObject, t, useTheme } from '@superset-ui/core';
-import {
-  Button,
-  Icons,
-  Popover,
-  type PopoverProps,
-} from '@superset-ui/core/components';
-import { CopyToClipboard } from 'src/components';
+import Popover, { PopoverProps } from 'src/components/Popover';
+import CopyToClipboard from 'src/components/CopyToClipboard';
 import { getDashboardPermalink } from 'src/utils/urlUtils';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
 import { shallowEqual, useSelector } from 'react-redux';
 import { RootState } from 'src/dashboard/types';
-import { Typography } from '@superset-ui/core/components/Typography';
+import { Icons } from 'src/components/Icons';
 
 export type URLShortLinkButtonProps = {
   dashboardId: number;
@@ -102,27 +97,28 @@ export default function URLShortLinkButton({
             }
           />
           &nbsp;&nbsp;
-          <Typography.Link href={emailLink} aria-label="Email link">
+          <a href={emailLink} aria-label="Email link">
             <Icons.MailOutlined
               iconSize="m"
               iconColor={theme.colors.primary.dark1}
             />
-          </Typography.Link>
+          </a>
         </div>
       }
     >
-      <Button
+      <span
+        className="short-link-trigger btn btn-default btn-sm"
         tabIndex={-1}
-        buttonStyle="link"
-        icon={
-          <Icons.LinkOutlined iconSize="m" className="short-link-trigger" />
-        }
+        role="button"
         onClick={e => {
           e.stopPropagation();
           getCopyUrl();
         }}
         aria-label={t('Copy URL')}
-      />
+      >
+        <Icons.LinkOutlined iconSize="m" className="short-link-trigger" />
+        &nbsp;
+      </span>
     </Popover>
   );
 }

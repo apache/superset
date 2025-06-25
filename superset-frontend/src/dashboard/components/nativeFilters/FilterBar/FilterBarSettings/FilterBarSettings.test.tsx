@@ -18,8 +18,9 @@
  */
 
 import fetchMock from 'fetch-mock';
-import { waitFor, render, screen, within } from 'spec/helpers/testing-library';
+import { waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { render, screen, within } from 'spec/helpers/testing-library';
 import { DashboardInfo, FilterBarOrientation } from 'src/dashboard/types';
 import * as mockedMessageActions from 'src/components/MessageToasts/actions';
 import FilterBarSettings from '.';
@@ -240,7 +241,7 @@ test('On failed request, restore previous selection', async () => {
   // Verify error toast
   await waitFor(() => {
     expect(dangerToastSpy).toHaveBeenCalledWith(
-      'Sorry, there was an error saving this dashboard: Bad Request',
+      'Sorry, there was an error saving this dashboard: Unknown Error',
     );
   });
 

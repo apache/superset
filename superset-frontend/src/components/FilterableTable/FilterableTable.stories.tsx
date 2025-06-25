@@ -16,11 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import type { FilterableTableProps } from './types';
-import { FilterableTable } from '.';
+import FilterableTable, { FilterableTableProps } from '.';
 
 export default {
-  title: 'Components/FilterableTable',
+  title: 'FilterableTable',
   component: FilterableTable,
 };
 

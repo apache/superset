@@ -25,15 +25,12 @@ import github from 'react-syntax-highlighter/dist/cjs/styles/hljs/github';
 import { LoadingCards } from 'src/pages/Home';
 import { TableTab } from 'src/views/CRUD/types';
 import withToasts from 'src/components/MessageToasts/withToasts';
-import {
-  Dropdown,
-  DeleteModal,
-  Button,
-  ListViewCard,
-} from '@superset-ui/core/components';
-import { MenuItem } from '@superset-ui/core/components/Menu';
+import { Dropdown } from 'src/components/Dropdown';
+import { MenuItem } from 'src/components/Menu';
 import { copyQueryLink, useListViewResource } from 'src/views/CRUD/hooks';
-import { Icons } from '@superset-ui/core/components/Icons';
+import ListViewCard from 'src/components/ListViewCard';
+import DeleteModal from 'src/components/DeleteModal';
+import { Icons } from 'src/components/Icons';
 import { User } from 'src/types/bootstrapTypes';
 import {
   CardContainer,
@@ -45,6 +42,7 @@ import {
 import { assetUrl } from 'src/utils/assetUrl';
 import { ensureAppRoot } from 'src/utils/pathUtils';
 import { navigateTo } from 'src/utils/navigationUtils';
+import { Button } from 'src/components';
 import SubMenu from './SubMenu';
 import EmptyState from './EmptyState';
 import { WelcomeTable } from './types';
@@ -80,7 +78,7 @@ export const CardStyles = styled.div`
   a {
     text-decoration: none;
   }
-  .ant-card-cover {
+  .antd5-card-cover {
     border-bottom: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
     & > div {
       height: 171px;
@@ -90,7 +88,7 @@ export const CardStyles = styled.div`
     background-size: contain;
     background-repeat: no-repeat;
     background-position: center;
-    background-color: ${({ theme }) => theme.colors.primary.light3};
+    background-color: ${({ theme }) => theme.colors.secondary.light3};
     display: inline-block;
     width: 100%;
     height: 179px;
@@ -101,26 +99,26 @@ export const CardStyles = styled.div`
 
 const QueryData = styled.div`
   svg {
-    margin-left: ${({ theme }) => theme.sizeUnit * 10}px;
+    margin-left: ${({ theme }) => theme.gridUnit * 10}px;
   }
   .query-title {
-    padding: ${({ theme }) => theme.sizeUnit * 2 + 2}px;
-    font-size: ${({ theme }) => theme.fontSizeLG}px;
+    padding: ${({ theme }) => theme.gridUnit * 2 + 2}px;
+    font-size: ${({ theme }) => theme.typography.sizes.l}px;
   }
 `;
 
 const QueryContainer = styled.div`
   pre {
-    height: ${({ theme }) => theme.sizeUnit * 40}px;
+    height: ${({ theme }) => theme.gridUnit * 40}px;
     border: none !important;
     background-color: ${({ theme }) =>
       theme.colors.grayscale.light5} !important;
     overflow: hidden;
-    padding: ${({ theme }) => theme.sizeUnit * 4}px !important;
+    padding: ${({ theme }) => theme.gridUnit * 4}px !important;
   }
 `;
 
-export const SavedQueries = ({
+const SavedQueries = ({
   user,
   addDangerToast,
   addSuccessToast,
@@ -212,7 +210,7 @@ export const SavedQueries = ({
           <Icons.UploadOutlined
             iconSize="l"
             css={css`
-              margin-right: ${theme.sizeUnit}px;
+              margin-right: ${theme.gridUnit}px;
               vertical-align: baseline;
             `}
           />
@@ -261,7 +259,6 @@ export const SavedQueries = ({
       )}
       <SubMenu
         activeChild={activeTab}
-        backgroundColor="transparent"
         tabs={[
           {
             name: TableTab.Mine,
@@ -283,13 +280,17 @@ export const SavedQueries = ({
                 `}
               >
                 <Icons.PlusOutlined
-                  iconColor={theme.colorPrimary}
+                  css={css`
+                    margin: auto ${theme.gridUnit * 2}px auto 0;
+                    vertical-align: text-top;
+                  `}
                   iconSize="m"
+                  iconColor={theme.colors.primary.dark1}
                 />
                 {t('SQL Query')}
               </Link>
             ),
-            buttonStyle: 'secondary',
+            buttonStyle: 'tertiary',
           },
           {
             name: t('View All »'),
@@ -354,8 +355,8 @@ export const SavedQueries = ({
                         }}
                         trigger={['click', 'hover']}
                       >
-                        <Button buttonSize="xsmall" buttonStyle="link">
-                          <Icons.MoreOutlined iconColor={theme.colorText} />
+                        <Button buttonSize="xsmall" type="link">
+                          <Icons.MoreOutlined iconSize="xl" />
                         </Button>
                       </Dropdown>
                     </ListViewCard.Actions>

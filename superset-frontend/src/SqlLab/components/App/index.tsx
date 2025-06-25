@@ -45,13 +45,13 @@ const SqlLabStyles = styled.div`
       right: 0;
       bottom: 0;
       left: 0;
-      padding: 0 ${theme.sizeUnit * 2}px;
+      padding: 0 ${theme.gridUnit * 2}px;
 
       pre:not(.code) {
         padding: 0 !important;
         margin: 0;
         border: none;
-        font-size: ${theme.fontSizeSM}px;
+        font-size: ${theme.typography.sizes.s}px;
         background: transparent !important;
       }
 
@@ -76,7 +76,7 @@ const SqlLabStyles = styled.div`
       .ant-tabs-content {
         height: 100%;
         position: relative;
-        background-color: ${theme.colorBgContainer};
+        background-color: ${theme.colors.grayscale.light5};
         overflow-x: auto;
         overflow-y: auto;
 
@@ -89,11 +89,11 @@ const SqlLabStyles = styled.div`
         }
       }
 
-      .ResultsModal .ant-modal-body {
-        min-height: ${theme.sizeUnit * 140}px;
+      .ResultsModal .antd5-modal-body {
+        min-height: ${theme.gridUnit * 140}px;
       }
 
-      .ant-modal-body {
+      .antd5-modal-body {
         overflow: auto;
       }
     }

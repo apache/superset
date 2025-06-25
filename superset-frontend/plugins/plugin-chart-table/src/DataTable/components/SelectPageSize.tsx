@@ -17,9 +17,8 @@
  * under the License.
  */
 import { memo } from 'react';
-import { css, t } from '@superset-ui/core';
+import { t } from '@superset-ui/core';
 import { formatSelectOptions } from '@superset-ui/chart-controls';
-import { RawAntdSelect } from '@superset-ui/core/components';
 
 export type SizeOption = [number, string];
 
@@ -34,18 +33,16 @@ function DefaultSelectRenderer({
   options,
   onChange,
 }: SelectPageSizeRendererProps) {
-  const { Option } = RawAntdSelect;
-
   return (
     <span className="dt-select-page-size form-inline">
       {t('Show')}{' '}
-      <RawAntdSelect<number>
+      <select
+        className="form-control input-sm"
         value={current}
-        onChange={value => onChange(value)}
-        size="small"
-        css={theme => css`
-          width: ${theme.sizeUnit * 18}px;
-        `}
+        onBlur={() => {}}
+        onChange={e => {
+          onChange(Number((e.target as HTMLSelectElement).value));
+        }}
       >
         {options.map(option => {
           const [size, text] = Array.isArray(option)
@@ -53,16 +50,16 @@ function DefaultSelectRenderer({
             : [option, option];
           const sizeLabel = size === 0 ? t('all') : size;
           return (
-            <Option
-              key={size}
-              value={Number(size)}
+            <option
               aria-label={t('Show %s entries', sizeLabel)}
+              key={size}
+              value={size}
             >
               {text}
-            </Option>
+            </option>
           );
         })}
-      </RawAntdSelect>{' '}
+      </select>{' '}
       {t('entries')}
     </span>
   );

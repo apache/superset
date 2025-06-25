@@ -17,7 +17,8 @@
  * under the License.
  */
 import '@testing-library/jest-dom';
-import { screen, render, fireEvent, act } from '@superset-ui/core/spec';
+import { screen, render, fireEvent, act } from '@testing-library/react';
+import { ThemeProvider, supersetTheme } from '@superset-ui/core';
 import OptionDescription from '../src/OptionDescription';
 
 const defaultProps = {
@@ -38,10 +39,14 @@ afterEach(() => {
 describe('OptionDescription', () => {
   beforeEach(() => {
     const props = { option: { ...defaultProps.option } };
-    render(<OptionDescription {...props} />);
+    render(
+      <ThemeProvider theme={supersetTheme}>
+        <OptionDescription {...props} />
+      </ThemeProvider>,
+    );
   });
 
-  it('renders an InfoTooltip', () => {
+  it('renders an InfoTooltipWithTrigger', () => {
     const tooltipTrigger = screen.getByLabelText('Show info tooltip');
     expect(tooltipTrigger).toBeInTheDocument();
 

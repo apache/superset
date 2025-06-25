@@ -16,10 +16,16 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { FC } from 'react';
 import configureStore from 'redux-mock-store';
 import thunk from 'redux-thunk';
 import fetchMock from 'fetch-mock';
-import { isFeatureEnabled } from '@superset-ui/core';
+import { Provider } from 'react-redux';
+import {
+  supersetTheme,
+  ThemeProvider,
+  isFeatureEnabled,
+} from '@superset-ui/core';
 import {
   render,
   screen,
@@ -65,6 +71,12 @@ jest.mock('@superset-ui/core', () => ({
 
 const mockedIsFeatureEnabled = isFeatureEnabled as jest.Mock;
 
+const standardProvider: FC = ({ children }) => (
+  <ThemeProvider theme={supersetTheme}>
+    <Provider store={store}>{children}</Provider>
+  </ThemeProvider>
+);
+
 const unsavedQueryEditor = {
   id: defaultProps.queryEditorId,
   dbId: 9888,
@@ -74,6 +86,22 @@ const unsavedQueryEditor = {
   autorun: true,
   templateParams: '{ "my_value": "foo" }',
 };
+
+const standardProviderWithUnsaved: FC = ({ children }) => (
+  <ThemeProvider theme={supersetTheme}>
+    <Provider
+      store={mockStore({
+        ...initialState,
+        sqlLab: {
+          ...initialState.sqlLab,
+          unsavedQueryEditor,
+        },
+      })}
+    >
+      {children}
+    </Provider>
+  </ThemeProvider>
+);
 
 describe('ShareSqlLabQuery', () => {
   const storeQueryUrl = 'glob:*/api/v1/sqllab/permalink';
@@ -105,8 +133,7 @@ describe('ShareSqlLabQuery', () => {
     it('calls storeQuery() with the query when getCopyUrl() is called', async () => {
       await act(async () => {
         render(<ShareSqlLabQuery {...defaultProps} />, {
-          useRedux: true,
-          store,
+          wrapper: standardProvider,
         });
       });
       const button = screen.getByRole('button');
@@ -123,14 +150,7 @@ describe('ShareSqlLabQuery', () => {
     it('calls storeQuery() with unsaved changes', async () => {
       await act(async () => {
         render(<ShareSqlLabQuery {...defaultProps} />, {
-          useRedux: true,
-          store: mockStore({
-            ...initialState,
-            sqlLab: {
-              ...initialState.sqlLab,
-              unsavedQueryEditor,
-            },
-          }),
+          wrapper: standardProviderWithUnsaved,
         });
       });
       const button = screen.getByRole('button');

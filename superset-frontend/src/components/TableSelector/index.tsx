@@ -23,7 +23,8 @@ import {
   useMemo,
   useEffect,
 } from 'react';
-import type { SelectValue } from '@superset-ui/core/components';
+// eslint-disable-next-line no-restricted-imports
+import { SelectValue } from 'antd/lib/select'; // TODO: Remove antd
 
 import {
   styled,
@@ -31,16 +32,15 @@ import {
   getClientErrorMessage,
   getClientErrorObject,
 } from '@superset-ui/core';
-import {
-  FormLabel,
-  CertifiedBadge,
-  Select,
-} from '@superset-ui/core/components';
-import { DatabaseSelector } from 'src/components';
-import { Icons } from '@superset-ui/core/components/Icons';
-import type { DatabaseObject } from 'src/components/DatabaseSelector/types';
-import RefreshLabel from '@superset-ui/core/components/RefreshLabel';
-import WarningIconWithTooltip from '@superset-ui/core/components/WarningIconWithTooltip';
+import { Select } from 'src/components';
+import { FormLabel } from 'src/components/Form';
+import { Icons } from 'src/components/Icons';
+import DatabaseSelector, {
+  DatabaseObject,
+} from 'src/components/DatabaseSelector';
+import RefreshLabel from 'src/components/RefreshLabel';
+import CertifiedBadge from 'src/components/CertifiedBadge';
+import WarningIconWithTooltip from 'src/components/WarningIconWithTooltip';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
 import { useTables, Table } from 'src/hooks/apiResources';
 
@@ -52,8 +52,8 @@ const TableSelectorWrapper = styled.div`
       display: flex;
       align-items: center;
       width: ${REFRESH_WIDTH}px;
-      margin-left: ${theme.sizeUnit}px;
-      margin-top: ${theme.sizeUnit * 5}px;
+      margin-left: ${theme.gridUnit}px;
+      margin-top: ${theme.gridUnit * 5}px;
     }
 
     .section {
@@ -63,7 +63,7 @@ const TableSelectorWrapper = styled.div`
     }
 
     .divider {
-      border-bottom: 1px solid ${theme.colorSplit};
+      border-bottom: 1px solid ${theme.colors.secondary.light5};
       margin: 15px 0;
     }
 
@@ -73,7 +73,7 @@ const TableSelectorWrapper = styled.div`
 
     .select {
       flex: 1;
-      max-width: calc(100% - ${theme.sizeUnit + REFRESH_WIDTH}px)
+      max-width: calc(100% - ${theme.gridUnit + REFRESH_WIDTH}px)
     }
   `}
 `;
@@ -85,7 +85,7 @@ const TableLabel = styled.span`
 
   svg,
   small {
-    margin-right: ${({ theme }) => theme.sizeUnit}px;
+    margin-right: ${({ theme }) => theme.gridUnit}px;
   }
 `;
 
@@ -218,12 +218,11 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
       data
         ? data.options.map(table => ({
             value: table.value,
-            label: customTableOptionLabelRenderer ? (
-              customTableOptionLabelRenderer(table)
-            ) : (
-              <TableOption table={table} />
-            ),
+            label: <TableOption table={table} />,
             text: table.value,
+            ...(customTableOptionLabelRenderer && {
+              customLabel: customTableOptionLabelRenderer(table),
+            }),
           }))
         : [],
     [data, customTableOptionLabelRenderer],

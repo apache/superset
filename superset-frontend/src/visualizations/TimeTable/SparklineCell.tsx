@@ -34,7 +34,7 @@ import {
   XYChart,
   buildChartTheme,
 } from '@visx/xychart';
-import { extendedDayjs } from '@superset-ui/core/utils/dates';
+import { extendedDayjs } from 'src/utils/dates';
 
 interface Props {
   ariaLabel: string;
@@ -208,7 +208,7 @@ const SparklineCell = ({
           snapTooltipToDatumX
           snapTooltipToDatumY
           verticalCrosshairStyle={{
-            stroke: `${theme.colorText}`,
+            stroke: `${theme.colors.grayscale.dark1}`,
             strokeDasharray: '3 3',
             strokeWidth: 1,
           }}

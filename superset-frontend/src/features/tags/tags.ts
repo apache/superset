@@ -18,7 +18,7 @@
  */
 import { JsonObject, SupersetClient } from '@superset-ui/core';
 import rison from 'rison';
-import { TagType } from 'src/components';
+import Tag from 'src/types/TagType';
 
 export const OBJECT_TYPES_VALUES = Object.freeze([
   'dashboard',
@@ -94,13 +94,13 @@ export function fetchTags(
     endpoint: `/api/v1/${objectType}/${objectId}`,
   })
     .then(({ json }) =>
-      callback(json.result.tags.filter((tag: TagType) => tag.type === 1)),
+      callback(json.result.tags.filter((tag: Tag) => tag.type === 1)),
     )
     .catch(response => error(response));
 }
 export function deleteTaggedObjects(
   { objectType, objectId }: { objectType: string; objectId: number },
-  tag: TagType,
+  tag: Tag,
   callback: (text: string) => void,
   error: (response: string) => void,
 ) {
@@ -128,7 +128,7 @@ export function deleteTaggedObjects(
 }
 
 export function deleteTags(
-  tags: TagType[],
+  tags: Tag[],
   callback: (text: string) => void,
   error: (response: string) => void,
 ) {

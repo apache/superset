@@ -79,20 +79,16 @@ describe('Dashboards list', () => {
 
     it('should sort correctly in list mode', () => {
       cy.getBySel('sort-header').eq(1).click();
-      cy.getBySel('loading-indicator').should('not.exist');
       cy.getBySel('table-row').first().contains('Supported Charts Dashboard');
       cy.getBySel('sort-header').eq(1).click();
-      cy.getBySel('loading-indicator').should('not.exist');
       cy.getBySel('table-row').first().contains("World Bank's Data");
       cy.getBySel('sort-header').eq(1).click();
     });
 
     it('should bulk select in list mode', () => {
       toggleBulkSelect();
-      cy.get('[aria-label="Select all"]').click();
-      cy.get('.ant-checkbox-input')
-        .should('be.checked')
-        .should('have.length', 6);
+      cy.get('#header-toggle-all').click();
+      cy.get('[aria-label="checkbox-on"]').should('have.length', 6);
       cy.getBySel('bulk-select-copy').contains('5 Selected');
       cy.getBySel('bulk-select-action')
         .should('have.length', 2)
@@ -101,7 +97,7 @@ describe('Dashboards list', () => {
           expect($btns).to.contain('Export');
         });
       cy.getBySel('bulk-select-deselect-all').click();
-      cy.get('input[type="checkbox"]:checked').should('have.length', 0);
+      cy.get('[aria-label="checkbox-on"]').should('have.length', 0);
       cy.getBySel('bulk-select-copy').contains('0 Selected');
       cy.getBySel('bulk-select-action').should('not.exist');
     });
@@ -199,8 +195,6 @@ describe('Dashboards list', () => {
       cy.get('[data-test="table-row"] input[type="checkbox"]').eq(1).click();
       cy.getBySel('bulk-select-action').eq(0).contains('Delete').click();
       confirmDelete(true);
-      cy.getBySel('loading-indicator').should('exist');
-      cy.getBySel('loading-indicator').should('not.exist');
       cy.getBySel('table-row')
         .eq(0)
         .should('not.contain', '3 - Sample dashboard');

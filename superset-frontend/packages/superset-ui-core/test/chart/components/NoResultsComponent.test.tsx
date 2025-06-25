@@ -17,12 +17,17 @@
  * under the License.
  */
 
-import { render, screen } from '@superset-ui/core/spec';
+import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
+import { ThemeProvider, supersetTheme } from '../../../src/style';
 import NoResultsComponent from '../../../src/chart/components/NoResultsComponent';
 
 const renderNoResultsComponent = () =>
-  render(<NoResultsComponent height="400" width="300" />);
+  render(
+    <ThemeProvider theme={supersetTheme}>
+      <NoResultsComponent height="400" width="300" />
+    </ThemeProvider>,
+  );
 
 test('renders the no results error', () => {
   renderNoResultsComponent();

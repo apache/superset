@@ -20,12 +20,9 @@ import { useState, useCallback, FocusEvent, FC } from 'react';
 
 import { t, useTheme } from '@superset-ui/core';
 
-import {
-  Input,
-  CronPicker,
-  Select,
-  type CronError,
-} from '@superset-ui/core/components';
+import { Select } from 'src/components';
+import { Input } from 'src/components/Input';
+import { CronPicker, CronError } from 'src/components/CronPicker';
 import { StyledInputContainer } from '../AlertReportModal';
 
 export interface AlertReportCronSchedulerProps {
@@ -107,7 +104,7 @@ export const AlertReportCronScheduler: FC<AlertReportCronSchedulerProps> = ({
           <Input
             type="text"
             name="crontab"
-            style={error ? { borderColor: theme.colorError } : {}}
+            style={error ? { borderColor: theme.colors.error.base } : {}}
             placeholder={t('CRON expression')}
             value={value}
             onBlur={handleBlur}

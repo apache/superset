@@ -20,14 +20,14 @@ import { useMemo } from 'react';
 import PropTypes from 'prop-types';
 import Mustache from 'mustache';
 import { scaleLinear } from 'd3-scale';
-import {
-  InfoTooltip,
-  TableView,
-  Typography,
-} from '@superset-ui/core/components';
+import TableView from 'src/components/TableView';
 import { styled, t } from '@superset-ui/core';
-import { MetricOption } from '@superset-ui/chart-controls';
+import {
+  InfoTooltipWithTrigger,
+  MetricOption,
+} from '@superset-ui/chart-controls';
 import sortNumericValues from 'src/utils/sortNumericValues';
+
 import FormattedNumber from './FormattedNumber';
 import SparklineCell from './SparklineCell';
 
@@ -128,7 +128,7 @@ const TimeTable = ({
           <>
             {columnConfig.label}{' '}
             {columnConfig.tooltip && (
-              <InfoTooltip
+              <InfoTooltipWithTrigger
                 tooltip={columnConfig.tooltip}
                 label={`tt-col-${i}`}
                 placement="top"
@@ -258,13 +258,9 @@ const TimeTable = ({
         const column = row;
         if (fullUrl) {
           return (
-            <Typography.Link
-              href={fullUrl}
-              rel="noopener noreferrer"
-              target="_blank"
-            >
+            <a href={fullUrl} rel="noopener noreferrer" target="_blank">
               {column.label}
-            </Typography.Link>
+            </a>
           );
         }
         return column.label;

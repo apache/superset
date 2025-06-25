@@ -18,7 +18,7 @@
  */
 import { SyntheticEvent } from 'react';
 import { logging, t } from '@superset-ui/core';
-import { Menu } from '@superset-ui/core/components/Menu';
+import { Menu } from 'src/components/Menu';
 import { LOG_ACTIONS_DASHBOARD_DOWNLOAD_AS_IMAGE } from 'src/logger/LogUtils';
 import downloadAsImage from 'src/utils/downloadAsImage';
 import { useToasts } from 'src/components/MessageToasts/withToasts';

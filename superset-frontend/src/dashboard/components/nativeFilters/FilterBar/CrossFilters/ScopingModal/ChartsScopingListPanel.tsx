@@ -27,14 +27,14 @@ import {
 } from 'src/dashboard/types';
 import { useSelector } from 'react-redux';
 import { CHART_TYPE } from 'src/dashboard/util/componentTypes';
-import { Icons } from '@superset-ui/core/components/Icons';
-import { Button } from '@superset-ui/core/components';
+import { Icons } from 'src/components/Icons';
+import Button from 'src/components/Button';
 import { FilterTitle } from 'src/dashboard/components/nativeFilters/FiltersConfigModal/FilterTitleContainer';
 import { NEW_CHART_SCOPING_ID } from './constants';
 
 const AddButtonContainer = styled.div`
   ${({ theme }) => css`
-    margin-top: ${theme.sizeUnit * 2}px;
+    margin-top: ${theme.gridUnit * 2}px;
     & button > [role='img']:first-of-type {
       line-height: 0;
     }
@@ -44,7 +44,7 @@ const AddButtonContainer = styled.div`
     button > span > :first-of-type {
       margin-right: 0;
     }
-    .ant-btn > .anticon + span {
+    .antd5-btn > .anticon + span {
       margin-left: 0;
     }
   `}
@@ -73,12 +73,12 @@ const ScopingTitle = ({
       <Icons.DeleteOutlined
         iconColor={theme.colors.grayscale.light3}
         iconSize="xl"
-        onClick={(event: React.MouseEvent<HTMLElement>) => {
+        onClick={event => {
           event.stopPropagation();
           onRemove(id);
         }}
         css={css`
-          margin: auto auto auto ${theme.sizeUnit}px;
+          margin: auto auto auto ${theme.gridUnit}px;
         `}
       />
     </FilterTitle>
@@ -151,7 +151,7 @@ export const ChartsScopingListPanel = ({
           width: 100%;
           height: 1px;
           background-color: ${theme.colors.grayscale.light3};
-          margin: ${theme.sizeUnit * 3}px 0;
+          margin: ${theme.gridUnit * 3}px 0;
         `}
       />
       {customScopedCharts.map(chartInfo => (

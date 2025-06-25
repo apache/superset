@@ -17,12 +17,11 @@
  * under the License.
  */
 import { render, screen, userEvent } from 'spec/helpers/testing-library';
-import {
-  AlteredSliceTag,
+import AlteredSliceTag, {
   alterForComparison,
   formatValueHandler,
   isEqualish,
-} from '.';
+} from 'src/components/AlteredSliceTag';
 import { defaultProps } from './AlteredSliceTagMocks';
 
 const controlsMap = {

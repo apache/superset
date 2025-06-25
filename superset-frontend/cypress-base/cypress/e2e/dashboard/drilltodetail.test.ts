@@ -34,8 +34,8 @@ function openModalFromMenu(chartType: string) {
   cy.get(
     `[data-test-viz-type='${chartType}'] [aria-label='More Options']`,
   ).click();
-  cy.get('.ant-dropdown')
-    .not('.ant-dropdown-hidden')
+  cy.get('.antd5-dropdown')
+    .not('.antd5-dropdown-hidden')
     .find("[role='menu'] [role='menuitem']")
     .eq(5)
     .should('contain', 'Drill to detail')
@@ -46,8 +46,8 @@ function openModalFromMenu(chartType: string) {
 function drillToDetail(targetMenuItem: string) {
   interceptSamples();
 
-  cy.get('.ant-dropdown')
-    .not('.ant-dropdown-hidden')
+  cy.get('.antd5-dropdown')
+    .not('.antd5-dropdown-hidden')
     .first()
     .find("[role='menu'] [role='menuitem']")
     .contains(new RegExp(`^${targetMenuItem}$`))
@@ -61,14 +61,14 @@ function drillToDetail(targetMenuItem: string) {
 const drillToDetailBy = (targetDrill: string) => {
   interceptSamples();
 
-  cy.get('.ant-dropdown:not(.ant-dropdown-hidden)')
+  cy.get('.antd5-dropdown:not(.antd5-dropdown-hidden)')
     .should('be.visible')
     .find("[role='menu'] [role='menuitem']")
     .contains(/^Drill to detail by$/)
     .trigger('mouseover', { force: true });
 
   cy.get(
-    '.ant-dropdown-menu-submenu:not(.ant-dropdown-menu-submenu-hidden) [data-test="drill-to-detail-by-submenu"]',
+    '.antd5-dropdown-menu-submenu:not(.antd5-dropdown-menu-submenu-hidden) [data-test="drill-to-detail-by-submenu"]',
   )
     .should('be.visible')
     .find('[role="menuitem"]')
@@ -121,10 +121,7 @@ function testTimeChart(vizType: string) {
   });
 }
 
-// TODO fix this test, it has issues with autoscrolling and the locked title
-// flakes intricately when the righClick is obstructed by the title.
-// Tried many option around scrollIntoView, force, etc. but no luck.
-describe.skip('Drill to detail modal', () => {
+describe('Drill to detail modal', () => {
   beforeEach(() => {
     closeModal();
   });
@@ -466,7 +463,7 @@ describe.skip('Drill to detail modal', () => {
             });
 
           // close the filter and test that data was reloaded
-          cy.getBySel('filter-col').find("[aria-label='Close']").click();
+          cy.getBySel('filter-col').find("[aria-label='close']").click();
           cy.wait('@samples');
           cy.getBySel('row-count-label').should('contain', '75.7k rows');
           cy.get('.ant-pagination-item-active').should('contain', '1');

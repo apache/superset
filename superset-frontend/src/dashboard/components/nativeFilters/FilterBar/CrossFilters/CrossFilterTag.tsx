@@ -25,29 +25,30 @@ import {
   useCSSTextTruncation,
 } from '@superset-ui/core';
 import { CrossFilterIndicator } from 'src/dashboard/components/nativeFilters/selectors';
-import { Tag } from 'src/components/Tag';
-import { Tooltip } from '@superset-ui/core/components';
+import { Tag } from 'src/components';
+import { Tooltip } from 'src/components/Tooltip';
 import { FilterBarOrientation } from 'src/dashboard/types';
+import { CustomCloseIcon } from 'src/components/Tags/Tag';
 import { ellipsisCss } from './styles';
 
 const StyledCrossFilterValue = styled.b`
   ${({ theme }) => `
-    max-width: ${theme.sizeUnit * 25}px;
+    max-width: ${theme.gridUnit * 25}px;
   `}
   ${ellipsisCss}
 `;
 
 const StyledCrossFilterColumn = styled('span')`
   ${({ theme }) => `
-    max-width: ${theme.sizeUnit * 25}px;
-    padding-right: ${theme.sizeUnit}px;
+    max-width: ${theme.gridUnit * 25}px;
+    padding-right: ${theme.gridUnit}px;
   `}
   ${ellipsisCss}
 `;
 
 const StyledTag = styled(Tag)`
   ${({ theme }) => `
-    border: 1px solid ${theme.colorBorder};
+    border: 1px solid ${theme.colors.grayscale.light3};
     border-radius: 2px;
     .anticon-close {
       vertical-align: middle;
@@ -73,15 +74,15 @@ const CrossFilterTag = (props: {
       css={css`
         ${orientation === FilterBarOrientation.Vertical
           ? `
-            margin-top: ${theme.sizeUnit * 2}px;
+            margin-top: ${theme.gridUnit * 2}px;
           `
           : `
-            margin-left: ${theme.sizeUnit * 2}px;
+            margin-left: ${theme.gridUnit * 2}px;
           `}
       `}
       closable
       onClose={() => removeCrossFilter(filter.emitterId)}
-      editable
+      closeIcon={CustomCloseIcon}
     >
       <Tooltip title={columnIsTruncated ? columnLabel : null}>
         <StyledCrossFilterColumn ref={columnRef}>

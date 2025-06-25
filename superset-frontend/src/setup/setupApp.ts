@@ -93,6 +93,7 @@ export default function setupApp() {
   // this allows for the server side generated menus to function
   window.$ = $;
   window.jQuery = $;
+  require('bootstrap');
 
   // set up app wide custom error messages
   setupErrorMessages();

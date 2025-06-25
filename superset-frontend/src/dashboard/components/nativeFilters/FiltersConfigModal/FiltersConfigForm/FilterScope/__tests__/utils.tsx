@@ -18,11 +18,11 @@
  */
 import { useEffect } from 'react';
 import { Provider } from 'react-redux';
+import { AntdForm, FormInstance } from 'src/components';
 import FiltersConfigForm, {
   FilterPanels,
 } from 'src/dashboard/components/nativeFilters/FiltersConfigModal/FiltersConfigForm/FiltersConfigForm';
 import { mockStoreWithChartsInTabsAndRoot } from 'spec/fixtures/mockStore';
-import { Form, type FormInstance } from '@superset-ui/core/components';
 
 export const createMockedProps = () => ({
   expanded: false,
@@ -48,7 +48,7 @@ interface MockModalProps {
 
 export const createMockModal = ({ scope, formRef }: MockModalProps) => {
   const MockModalComponent = () => {
-    const [form] = Form.useForm();
+    const [form] = AntdForm.useForm();
 
     useEffect(() => {
       // Create a new ref object instead of modifying the parameter
@@ -71,9 +71,9 @@ export const createMockModal = ({ scope, formRef }: MockModalProps) => {
 
     return (
       <Provider store={mockStoreWithChartsInTabsAndRoot}>
-        <Form form={form}>
+        <AntdForm form={form}>
           <FiltersConfigForm form={form} {...createMockedProps()} />
-        </Form>
+        </AntdForm>
       </Provider>
     );
   };

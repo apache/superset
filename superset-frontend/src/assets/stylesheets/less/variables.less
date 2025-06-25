@@ -1,0 +1,212 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+
+/************************************************************************/
+/* COLORS                                                               */
+/* Please attempt to use and standardize on these colors,               */
+/* rather than including specific color values in                       */
+/* component styles. This will allow us to more easily adjust theming   */
+/************************************************************************/
+
+@primary-color: #20a7c9;
+@indicator-color: @primary-color;
+
+@brand-primary-dark1: #1a85a0;
+@brand-primary-dark2: #156378;
+@brand-primary-light1: #79cade;
+@brand-primary-light2: #a5dae9;
+@brand-primary-light3: #d2edf4;
+@brand-primary-light4: #e9f6f9;
+@brand-primary-light5: #f3f8fa;
+
+@brand-secondary: #444e7c;
+@brand-secondary-dark1: #363e63;
+@brand-secondary-dark2: #282e4a;
+@brand-secondary-dark3: #1b1f31;
+@brand-secondary-light1: #8e94b0;
+@brand-secondary-light2: #b4b8ca;
+@brand-secondary-light3: #d9dbe4;
+@brand-secondary-light4: #eceef2;
+@brand-secondary-light5: #f5f5f8;
+
+@almost-black: #263238;
+@gray-dark: #484848;
+@gray-light: #e0e0e0;
+@gray-light5: #666666;
+@gray: #879399;
+@gray-bg: #f7f7f7;
+@gray-heading: #a3a3a3;
+@menu-hover: #f2f3f5;
+@lightest: #ffffff;
+@darkest: #000000;
+
+/**************************** text-specific *****************************/
+@link: #1985a0;
+@link-hover: darken(@link, @colorstop-one);
+
+/***************************** status colors ****************************/
+@info: #66bcfe;
+@info-dark1: #4d8cbe;
+@info-dark2: #315e7e;
+@info-light1: #b3defe;
+@info-light2: #eff8fe;
+
+@danger: #e04355;
+@danger-dark1: #a7323f;
+@danger-dark2: #6f212a;
+@danger-light1: #efa1aa;
+@danger-light2: #faedee;
+
+@success: #5ac189;
+@success-dark1: #439066;
+@success-dark2: #2b6144;
+@success-light1: #ace1c4;
+@success-light2: #eef8f3;
+
+@warning: #fcc700;
+@warning-dark1: #bc9501;
+@warning-dark2: #7d6300;
+@warning-light1: #fde380;
+@warning-light2: #fef9e6;
+
+/* general component effects */
+@shadow-highlight: @primary-color;
+
+/************************************************************************/
+/* OPACITIES                                                            */
+/* Used in LESS filters, e.g. fade(@someColorVar, @someOpacityBelow)    */
+/************************************************************************/
+@opacity-light: 10%;
+@opacity-medium-light: 35%;
+@opacity-medium-heavy: 60%;
+@opacity-heavy: 80%;
+
+/************************************************************************/
+/* SHADES & TINTS                                                       */
+/* Used in LESS filters for shadint/tinting,                            */
+/* e.g. shade(@someColorVar, @colorstop-one) to darken                  */
+/* or tint(@someColorVar, @colorstop-one) to lighten                    */
+/************************************************************************/
+@colorstop-one: 20%;
+@colorstop-two: 40%;
+@colorstop-three: 60%;
+@colorstop-four: 80%;
+
+/************************************************************************/
+/* LAYOUT                                                               */
+/* Widths and heights of things, that might be referred to often        */
+/************************************************************************/
+
+/* builder component pane */
+@builder-pane-width: 374px;
+
+/************************************************************************/
+/* Z-INDEX                                                              */
+/* Think of the site as "layers" rather than an arms race of numbers    */
+/* Keep these to a minimum                                              */
+/* Label semantic "layers" and add comments for usage notes             */
+/* Use double dash modifiers to step up/down from a base layer          */
+/* e.g. z-whatever--modifier                                            */
+/************************************************************************/
+
+/************************ toast messages, popovers **********************/
+@z-index-max: 3000;
+
+/***** filters, dashboard editor widgets, Explore reloading overlay *****/
+@z-index-dropdown: @z-index-above-dashboard-charts + 1;
+@z-index-above-dashboard-charts: 10;
+
+/******************************** charts ********************************/
+@z-index-chart--dragging: @z-index-chart + 1;
+@z-index-chart: 1;
+
+/************************************************************************/
+/* TYPOGRAPHY                                                           */
+/* Commonly used font weights, line heights, etc. These should be the   */
+/* core values used to build more complex styles for headers, etc.      */
+/************************************************************************/
+
+// *************************** Weights **********************************
+@font-weight-light: 200;
+@font-weight-normal: 400;
+@font-weight-bold: 600;
+
+// ***************************** Font Sizes *****************************
+@font-size-base: 14px; // Base `rem` units on this, as needed.
+
+@font-size-xxs: 9px;
+@font-size-xs: 10px;
+@font-size-s: 12px;
+@font-size-m: @font-size-base;
+@font-size-l: 16px;
+@font-size-xl: 21px;
+@font-size-xxl: 28px;
+
+// **************************** Line Heights ****************************
+@line-height-base: 1.4;
+// Ranged Sizes
+@line-height-tight: 1;
+@line-height-normal: @line-height-base;
+@line-height-loose: 2;
+
+// ****************************** Features *******************************
+@use-ligatures: false;
+
+// setting up OTF settings based on @use-ligatures:
+.set-otf-options(@use-ligatures);
+
+.set-otf-options(true) {
+  @font-feature-settings:
+    'liga' on,
+    'calt' on;
+}
+
+.set-otf-options(false) {
+  @font-feature-settings:
+    'liga' off,
+    'calt' off;
+}
+
+// ****************************** Families ******************************
+@font-family-sans-serif: 'Inter', Helvetica, Arial;
+@font-family-serif: Georgia, 'Times New Roman', Times, serif;
+@font-family-monospace: 'Fira Code', 'Courier New', monospace;
+@font-family-base: @font-family-sans-serif;
+
+/************************************************************************/
+/* TRANSITIONS                                                          */
+/* Timing and easings presets used in CSS transitions                   */
+/************************************************************************/
+@timing-normal: 0.3s;
+
+/************************************************************************/
+/* BORDER RADII                                                         */
+/* Standard border-radius settings                                      */
+/************************************************************************/
+@border-radius-normal: 4px;
+@border-radius-large: (@border-radius-normal * 2);
+
+/************************************************************************/
+/* BOOTSTRAP/BOOTSWATCH/COSMO                                           */
+/* These are the legacy Cosmo theme overrides to Bootswatch's           */
+/* overrides to Bootstrap. We should consolidate/deprecate these        */
+/* in favor of custom/reusable CSS wherever possible                    */
+/************************************************************************/
+
+@import '../less/cosmo/variables.less';

@@ -18,25 +18,20 @@
  */
 import type { Column, GridApi } from 'ag-grid-community';
 import { act, fireEvent, render } from 'spec/helpers/testing-library';
-import { Header } from './Header';
+import Header from './Header';
 import { PIVOT_COL_ID } from './constants';
 
-jest.mock('@superset-ui/core/components/Dropdown', () => ({
+jest.mock('src/components/Dropdown', () => ({
   Dropdown: () => <div data-test="mock-dropdown" />,
 }));
 
-jest.mock('@superset-ui/core/components/Icons', () => {
-  const actualIcons = jest.requireActual('@superset-ui/core/components/Icons');
-  return {
-    __esModule: true,
-    Icons: {
-      ...actualIcons.Icons, // retain the real `Icons` export
-      Sort: jest.fn(() => <div data-test="mock-sort" />),
-      SortAsc: jest.fn(() => <div data-test="mock-sort-asc" />),
-      SortDesc: jest.fn(() => <div data-test="mock-sort-desc" />),
-    },
-  };
-});
+jest.mock('src/components/Icons', () => ({
+  Icons: {
+    Sort: jest.fn(() => <div data-test="mock-sort" />),
+    SortAsc: jest.fn(() => <div data-test="mock-sort-asc" />),
+    SortDesc: jest.fn(() => <div data-test="mock-sort-desc" />),
+  },
+}));
 
 class MockApi extends EventTarget {
   getAllDisplayedColumns() {

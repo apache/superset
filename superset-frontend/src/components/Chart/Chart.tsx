@@ -30,8 +30,9 @@ import {
   ChartDataResponse,
 } from '@superset-ui/core';
 import { PLACEHOLDER_DATASOURCE } from 'src/dashboard/constants';
-import { EmptyState, Loading } from '@superset-ui/core/components';
-import { ErrorBoundary } from 'src/components';
+import Loading from 'src/components/Loading';
+import { EmptyState } from 'src/components/EmptyState';
+import ErrorBoundary from 'src/components/ErrorBoundary';
 import { Logger, LOG_ACTIONS_RENDER_CHART } from 'src/logger/LogUtils';
 import { URL_PARAMS } from 'src/constants';
 import { getUrlParam } from 'src/utils/urlUtils';
@@ -135,7 +136,7 @@ const Styles = styled.div<{ height: number; width?: number }>`
 
   .chart-tooltip {
     opacity: 0.75;
-    font-size: ${({ theme }) => theme.fontSizeSM}px;
+    font-size: ${({ theme }) => theme.typography.sizes.s}px;
   }
 
   .slice_container {
@@ -150,7 +151,7 @@ const Styles = styled.div<{ height: number; width?: number }>`
     }
 
     .alert {
-      margin: ${({ theme }) => theme.sizeUnit * 2}px;
+      margin: ${({ theme }) => theme.gridUnit * 2}px;
     }
   }
 `;
@@ -166,7 +167,7 @@ const LoadingDiv = styled.div`
 const MessageSpan = styled.span`
   display: block;
   text-align: center;
-  margin: ${({ theme }) => theme.sizeUnit * 4}px auto;
+  margin: ${({ theme }) => theme.gridUnit * 4}px auto;
   width: fit-content;
   color: ${({ theme }) => theme.colors.grayscale.base};
 `;

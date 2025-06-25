@@ -18,8 +18,8 @@
  */
 import { forwardRef, ReactNode } from 'react';
 
-import { styled, t } from '@superset-ui/core';
-import { Icons } from '@superset-ui/core/components/Icons';
+import { styled, t, useTheme } from '@superset-ui/core';
+import { Icons } from 'src/components/Icons';
 import { FilterRemoval } from './types';
 import DraggableFilter from './DraggableFilter';
 
@@ -27,31 +27,33 @@ export const FilterTitle = styled.div`
   ${({ theme }) => `
       display: flex;
       align-items: center;
-      padding: ${theme.sizeUnit * 2}px;
+      padding: ${theme.gridUnit * 2}px;
+      width: 100%;
       border-radius: ${theme.borderRadius}px;
       cursor: pointer;
       &.active {
-        color: ${theme.colorPrimaryActive};
+        color: ${theme.colors.grayscale.dark1};
         border-radius: ${theme.borderRadius}px;
-        background-color: ${theme.colorPrimaryBg};
+        background-color: ${theme.colors.secondary.light4};
         span, .anticon {
-          color: ${theme.colorIcon};
+          color: ${theme.colors.grayscale.dark1};
         }
       }
       &:hover {
-        color: ${theme.colorPrimaryHover};
+        color: ${theme.colors.primary.light1};
         span, .anticon {
-          color: ${theme.colorPrimaryHover};
+          color: ${theme.colors.primary.light1};
         }
       }
       &.errored div, &.errored .warning {
-        color: ${theme.colorError};
+        align-items: center;
+        color: ${theme.colors.error.base};
       }
   `}
 `;
 
 const StyledWarning = styled(Icons.ExclamationCircleOutlined)`
-  color: ${({ theme }) => theme.colorErrorText};
+  color: ${({ theme }) => theme.colors.error.base};
   &.anticon {
     margin-left: auto;
   }
@@ -89,6 +91,7 @@ const FilterTitleContainer = forwardRef<HTMLDivElement, Props>(
     },
     ref,
   ) => {
+    const theme = useTheme();
     const renderComponent = (id: string) => {
       const isRemoved = !!removedFilters[id];
       const isErrored = erroredFilters.includes(id);
@@ -107,7 +110,7 @@ const FilterTitleContainer = forwardRef<HTMLDivElement, Props>(
           onClick={() => onChange(id)}
           className={classNames.join(' ')}
         >
-          <div css={{ display: 'flex', width: '100%', alignItems: 'center' }}>
+          <div css={{ display: 'flex', width: '100%' }}>
             <div
               css={{
                 alignItems: 'center',
@@ -138,8 +141,9 @@ const FilterTitleContainer = forwardRef<HTMLDivElement, Props>(
           <div css={{ alignSelf: 'flex-start', marginLeft: 'auto' }}>
             {isRemoved ? null : (
               <Icons.DeleteOutlined
-                iconSize="l"
-                onClick={(event: React.MouseEvent<HTMLElement>) => {
+                iconColor={theme.colors.grayscale.light3}
+                iconSize="m"
+                onClick={event => {
                   event.stopPropagation();
                   onRemove(id);
                 }}

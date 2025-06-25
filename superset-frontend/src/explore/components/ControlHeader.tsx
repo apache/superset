@@ -16,10 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { FC, ReactNode } from 'react';
+import { FC, ReactNode, useMemo, useRef } from 'react';
 import { t, css, useTheme, SupersetTheme } from '@superset-ui/core';
-import { FormLabel, InfoTooltip, Tooltip } from '@superset-ui/core/components';
-import { Icons } from '@superset-ui/core/components/Icons';
+import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
+import { Tooltip } from 'src/components/Tooltip';
+import { FormLabel } from 'src/components/Form';
+import { Icons } from 'src/components/Icons';
 
 type ValidationError = string;
 
@@ -62,7 +64,23 @@ const ControlHeader: FC<ControlHeaderProps> = ({
   warning,
   danger,
 }) => {
-  const theme = useTheme();
+  const { gridUnit, colors } = useTheme();
+  const hasHadNoErrors = useRef(false);
+  const labelColor = useMemo(() => {
+    if (!validationErrors.length) {
+      hasHadNoErrors.current = true;
+    }
+
+    if (hasHadNoErrors.current) {
+      if (validationErrors.length) {
+        return colors.error.base;
+      }
+
+      return 'unset';
+    }
+
+    return colors.warning.base;
+  }, [colors.error.base, colors.warning.base, validationErrors.length]);
 
   if (!label) {
     return null;
@@ -77,9 +95,9 @@ const ControlHeader: FC<ControlHeaderProps> = ({
       <span
         css={() => css`
           position: absolute;
-          top: 60%;
+          top: 50%;
           right: 0;
-          padding-left: ${theme.sizeUnit}px;
+          padding-left: ${gridUnit}px;
           transform: translate(100%, -50%);
           white-space: nowrap;
         `}
@@ -100,11 +118,11 @@ const ControlHeader: FC<ControlHeaderProps> = ({
         )}
         {renderTrigger && (
           <span>
-            <InfoTooltip
+            <InfoTooltipWithTrigger
               label={t('bolt')}
               tooltip={t('Changing this control takes effect instantly')}
               placement="top"
-              type="notice"
+              icon="bolt"
             />{' '}
           </span>
         )}
@@ -117,12 +135,11 @@ const ControlHeader: FC<ControlHeaderProps> = ({
       <div className="pull-left">
         <FormLabel
           css={(theme: SupersetTheme) => css`
-            margin-bottom: ${theme.sizeUnit * 0.5}px;
+            margin-bottom: ${theme.gridUnit * 0.5}px;
             position: relative;
-            font-size: ${theme.fontSizeSM}px;
           `}
         >
-          {leftNode && <span>{leftNode} </span>}
+          {leftNode && <span>{leftNode}</span>}
           <span
             role="button"
             tabIndex={0}
@@ -135,7 +152,7 @@ const ControlHeader: FC<ControlHeaderProps> = ({
             <span>
               <Tooltip id="error-tooltip" placement="top" title={warning}>
                 <Icons.WarningOutlined
-                  iconColor={theme.colorWarning}
+                  iconColor={colors.warning.base}
                   css={css`
                     vertical-align: baseline;
                   `}
@@ -147,8 +164,8 @@ const ControlHeader: FC<ControlHeaderProps> = ({
           {danger && (
             <span>
               <Tooltip id="error-tooltip" placement="top" title={danger}>
-                <Icons.CloseCircleOutlined
-                  iconColor={theme.colorErrorText}
+                <Icons.ExclamationCircleOutlined
+                  iconColor={colors.error.base}
                   iconSize="s"
                 />
               </Tooltip>{' '}
@@ -161,7 +178,12 @@ const ControlHeader: FC<ControlHeaderProps> = ({
                 placement="top"
                 title={validationErrors?.join(' ')}
               >
-                <Icons.CloseCircleOutlined iconColor={theme.colorErrorText} />
+                <Icons.ExclamationCircleOutlined
+                  css={css`
+                    ${iconStyles};
+                    color: ${labelColor};
+                  `}
+                />
               </Tooltip>{' '}
             </span>
           )}

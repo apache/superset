@@ -17,8 +17,7 @@
  * under the License.
  */
 import { fireEvent, render } from 'spec/helpers/testing-library';
-import { JsonModal } from '.';
-import { convertBigIntStrToNumber } from './utils';
+import { JsonModal, convertBigIntStrToNumber } from '.';
 
 jest.mock('react-json-tree', () => ({
   JSONTree: () => <div data-test="mock-json-tree" />,

@@ -118,8 +118,10 @@ test('skips select all options', async () => {
   const tableSelect = screen.getByRole('combobox', {
     name: 'Select table or type to search tables',
   });
-  await userEvent.click(tableSelect);
-  expect(await screen.findByText('table_a')).toBeInTheDocument();
+  userEvent.click(tableSelect);
+  expect(
+    await screen.findByRole('option', { name: 'table_a' }),
+  ).toBeInTheDocument();
   expect(
     screen.queryByRole('option', { name: /Select All/i }),
   ).not.toBeInTheDocument();
@@ -138,13 +140,17 @@ test('renders table options without Select All option', async () => {
   });
 
   await act(async () => {
-    await userEvent.click(tableSelect);
+    userEvent.click(tableSelect);
   });
 
   await waitFor(
     () => {
-      expect(screen.getByText('table_a')).toBeInTheDocument();
-      expect(screen.getByText('table_b')).toBeInTheDocument();
+      expect(
+        screen.getByRole('option', { name: 'table_a' }),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByRole('option', { name: 'table_b' }),
+      ).toBeInTheDocument();
     },
     { timeout: 10000 },
   );
@@ -171,18 +177,20 @@ test('table select retain value if not in SQL Lab mode', async () => {
   expect(getSelectItemContainer(tableSelect)).toHaveLength(0);
 
   await act(async () => {
-    await userEvent.click(tableSelect);
+    userEvent.click(tableSelect);
   });
 
   await waitFor(
     () => {
-      expect(screen.getByText('table_a')).toBeInTheDocument();
+      expect(
+        screen.getByRole('option', { name: 'table_a' }),
+      ).toBeInTheDocument();
     },
     { timeout: 10000 },
   );
 
   await act(async () => {
-    await userEvent.click(screen.getByText('table_a'));
+    userEvent.click(screen.getAllByText('table_a')[1]);
   });
 
   await waitFor(
@@ -242,20 +250,21 @@ test('table multi select retain all the values selected', async () => {
   expect(screen.queryByText('table_a')).not.toBeInTheDocument();
   expect(getSelectItemContainer(tableSelect)).toHaveLength(0);
 
-  await userEvent.click(tableSelect);
+  userEvent.click(tableSelect);
 
   await waitFor(async () => {
     const item = await screen.findAllByText('table_b');
-    await userEvent.click(item[item.length - 1]);
+    userEvent.click(item[item.length - 1]);
   });
 
   await waitFor(async () => {
     const item = await screen.findAllByText('table_c');
-    await userEvent.click(item[item.length - 1]);
+    userEvent.click(item[item.length - 1]);
   });
 
-  const selections = await screen.findAllByRole('option', { selected: true });
-  expect(selections).toHaveLength(2);
-  expect(selections[0]).toHaveTextContent('table_b');
-  expect(selections[1]).toHaveTextContent('table_c');
+  const selection1 = await screen.findByRole('option', { name: 'table_b' });
+  expect(selection1).toHaveAttribute('aria-selected', 'true');
+
+  const selection2 = await screen.findByRole('option', { name: 'table_c' });
+  expect(selection2).toHaveAttribute('aria-selected', 'true');
 });

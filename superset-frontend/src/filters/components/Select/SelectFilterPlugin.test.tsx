@@ -141,9 +141,7 @@ describe('SelectFilterPlugin', () => {
     const filterSelect = screen.getAllByRole('combobox')[0];
     userEvent.click(filterSelect);
     userEvent.click(screen.getByTitle('girl'));
-    expect(
-      await screen.findByRole('option', { name: /girl/i }),
-    ).toBeInTheDocument();
+    expect(await screen.findByTitle(/girl/i)).toBeInTheDocument();
     expect(setDataMask).toHaveBeenCalledWith({
       extraFormData: {
         filters: [
@@ -330,9 +328,7 @@ describe('SelectFilterPlugin', () => {
     userEvent.click(filterSelect);
     expect(await screen.findByRole('combobox')).toBeInTheDocument();
     await userEvent.type(screen.getByRole('combobox'), '1');
-    expect(
-      await screen.findByRole('option', { name: String(bigValue) }),
-    ).toBeInTheDocument();
+    expect(screen.queryByLabelText(String(bigValue))).toBeInTheDocument();
   });
 
   test('Is/Is Not select is visible when inverseSelection is true', () => {

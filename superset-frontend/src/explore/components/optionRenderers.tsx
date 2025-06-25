@@ -38,15 +38,15 @@ const OptionContainer = styled.div`
     text-overflow: ellipsis;
     white-space: nowrap;
     & ~ i {
-      margin-left: ${({ theme }) => theme.sizeUnit}px;
+      margin-left: ${({ theme }) => theme.gridUnit}px;
     }
   }
   .type-label {
-    margin-right: ${({ theme }) => theme.sizeUnit * 3}px;
-    width: ${({ theme }) => theme.sizeUnit * 7}px;
+    margin-right: ${({ theme }) => theme.gridUnit * 3}px;
+    width: ${({ theme }) => theme.gridUnit * 7}px;
     display: inline-block;
     text-align: center;
-    font-weight: ${({ theme }) => theme.fontWeightStrong};
+    font-weight: ${({ theme }) => theme.typography.weights.bold};
   }
 `;
 

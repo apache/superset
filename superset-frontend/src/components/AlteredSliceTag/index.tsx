@@ -19,25 +19,56 @@
 import { useCallback, useEffect, useMemo, useState, FC } from 'react';
 
 import { isEqual, isEmpty } from 'lodash';
-import { t } from '@superset-ui/core';
+import { QueryFormData, t } from '@superset-ui/core';
 import { sanitizeFormData } from 'src/explore/exploreUtils/formData';
 import getControlsForVizType from 'src/utils/getControlsForVizType';
+import Label from 'src/components/Label';
+import { Icons } from 'src/components/Icons';
 import { safeStringify } from 'src/utils/safeStringify';
-import {
-  Label,
-  Icons,
-  Tooltip,
-  ModalTrigger,
-  TableView,
-} from '@superset-ui/core/components';
-import type {
-  AlteredSliceTagProps,
-  ControlMap,
-  DiffItemType,
-  DiffType,
-  FilterItemType,
-  RowType,
-} from './types';
+import { Tooltip } from 'src/components/Tooltip';
+import ModalTrigger from '../ModalTrigger';
+import TableView from '../TableView';
+
+interface AlteredSliceTagProps {
+  origFormData: QueryFormData;
+  currentFormData: QueryFormData;
+}
+
+export interface ControlMap {
+  [key: string]: {
+    label?: string;
+    type?: string;
+  };
+}
+
+type FilterItemType = {
+  comparator?: string | string[];
+  subject: string;
+  operator: string;
+  label?: string;
+};
+
+export type DiffItemType<
+  T = FilterItemType | number | string | Record<string | number, any>,
+> =
+  | T[]
+  | boolean
+  | number
+  | string
+  | Record<string | number, any>
+  | null
+  | undefined;
+
+export type DiffType = {
+  before: DiffItemType;
+  after: DiffItemType;
+};
+
+export type RowType = {
+  before: string | number;
+  after: string | number;
+  control: string;
+};
 
 export const alterForComparison = (
   value?: string | null | [],
@@ -120,7 +151,7 @@ export const getRowsFromDiffs = (
 export const isEqualish = (val1: string, val2: string): boolean =>
   isEqual(alterForComparison(val1), alterForComparison(val2));
 
-export const AlteredSliceTag: FC<AlteredSliceTagProps> = props => {
+const AlteredSliceTag: FC<AlteredSliceTagProps> = props => {
   const [rows, setRows] = useState<RowType[]>([]);
   const [hasDiffs, setHasDiffs] = useState<boolean>(false);
 
@@ -160,21 +191,18 @@ export const AlteredSliceTag: FC<AlteredSliceTagProps> = props => {
       {
         accessor: 'control',
         Header: t('Control'),
-        id: 'control',
       },
       {
         accessor: 'before',
         Header: t('Before'),
-        id: 'before',
       },
       {
         accessor: 'after',
         Header: t('After'),
-        id: 'after',
       },
     ];
     // set the wrap text in the specific columns.
-    const columnsForWrapText = ['control', 'before', 'after'];
+    const columnsForWrapText = ['Control', 'Before', 'After'];
 
     return (
       <TableView
@@ -217,4 +245,4 @@ export const AlteredSliceTag: FC<AlteredSliceTagProps> = props => {
   );
 };
 
-export type { AlteredSliceTagProps };
+export default AlteredSliceTag;

@@ -10,7 +10,7 @@ import { FormatLocaleDefinition } from 'd3-format';
 import { TimeLocaleDefinition } from 'd3-time-format';
 import { isPlainObject } from 'lodash';
 import { Languages } from 'src/features/home/LanguagePicker';
-import type { FlashMessage } from 'src/components';
+import { FlashMessage } from '../components/FlashProvider';
 
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -117,7 +117,7 @@ export interface NavBarProps {
 export interface MenuObjectChildProps {
   label: string;
   name?: string;
-  icon?: React.ReactNode;
+  icon?: string;
   index?: number;
   url?: string;
   onClick?: () => void;
@@ -153,7 +153,7 @@ export interface CommonBootstrapData {
   language_pack: LanguagePack;
   extra_categorical_color_schemes: ColorSchemeConfig[];
   extra_sequential_color_schemes: SequentialSchemeConfig[];
-  theme: JsonObject;
+  theme_overrides: JsonObject;
   menu_data: MenuData;
   d3_format: Partial<FormatLocaleDefinition>;
   d3_time_format: Partial<TimeLocaleDefinition>;

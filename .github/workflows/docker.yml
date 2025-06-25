@@ -111,9 +111,6 @@ jobs:
           docker compose up superset-init --exit-code-from superset-init
 
   docker-compose-image-tag:
-    # Run this job only on pushes to master (not for PRs)
-    # goal is to check that building the latest image works, not required for all PR pushes
-    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
     runs-on: ubuntu-24.04
     steps:
       - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"

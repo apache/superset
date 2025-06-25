@@ -23,7 +23,7 @@ import {
   userEvent,
   waitFor,
 } from 'spec/helpers/testing-library';
-import { Menu } from '@superset-ui/core/components/Menu';
+import { Menu } from 'src/components/Menu';
 import downloadAsPdf from 'src/utils/downloadAsPdf';
 import DownloadAsPdf from './DownloadAsPdf';
 

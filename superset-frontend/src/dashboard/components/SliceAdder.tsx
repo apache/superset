@@ -23,15 +23,11 @@ import { FixedSizeList as List } from 'react-window';
 // @ts-ignore
 import { createFilter } from 'react-search-input';
 import { t, styled, css } from '@superset-ui/core';
-import {
-  Button,
-  Checkbox,
-  InfoTooltip,
-  Input,
-  Loading,
-  Select,
-} from '@superset-ui/core/components';
-import { Icons } from '@superset-ui/core/components/Icons';
+import { Input } from 'src/components/Input';
+import { Select } from 'src/components';
+import Loading from 'src/components/Loading';
+import Button from 'src/components/Button';
+import { Icons } from 'src/components/Icons';
 import {
   LocalStorageKeys,
   getItem,
@@ -46,6 +42,8 @@ import {
   NEW_COMPONENTS_SOURCE_ID,
 } from 'src/dashboard/util/constants';
 import { debounce, pickBy } from 'lodash';
+import Checkbox from 'src/components/Checkbox';
+import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
 import { Dispatch } from 'redux';
 import { Slice } from 'src/dashboard/types';
 import { withTheme, Theme } from '@emotion/react';
@@ -99,15 +97,15 @@ const Controls = styled.div`
     display: flex;
     flex-direction: row;
     padding:
-      ${theme.sizeUnit * 4}px
-      ${theme.sizeUnit * 3}px
-      ${theme.sizeUnit * 4}px
-      ${theme.sizeUnit * 3}px;
+      ${theme.gridUnit * 4}px
+      ${theme.gridUnit * 3}px
+      ${theme.gridUnit * 4}px
+      ${theme.gridUnit * 3}px;
   `}
 `;
 
 const StyledSelect = styled(Select)<{ id?: string }>`
-  margin-left: ${({ theme }) => theme.sizeUnit * 2}px;
+  margin-left: ${({ theme }) => theme.gridUnit * 2}px;
   min-width: 150px;
 `;
 
@@ -115,7 +113,7 @@ const NewChartButtonContainer = styled.div`
   ${({ theme }) => css`
     display: flex;
     justify-content: flex-end;
-    padding-right: ${theme.sizeUnit * 2}px;
+    padding-right: ${theme.gridUnit * 2}px;
   `}
 `;
 
@@ -123,7 +121,7 @@ const NewChartButton = styled(Button)`
   ${({ theme }) => css`
     height: auto;
     & > .anticon > span {
-      margin: auto -${theme.sizeUnit}px auto 0;
+      margin: auto -${theme.gridUnit}px auto 0;
     }
     & > [role='img']:first-of-type {
       padding-bottom: 1px;
@@ -329,7 +327,7 @@ class SliceAdder extends Component<SliceAdderProps, SliceAdderState> {
     );
   }
 
-  onShowOnlyMyCharts = (showOnlyMyCharts: boolean) => {
+  onShowOnlyMyCharts(showOnlyMyCharts: boolean) {
     if (!showOnlyMyCharts) {
       this.slicesRequest = this.props.fetchSlices(
         undefined,
@@ -347,7 +345,7 @@ class SliceAdder extends Component<SliceAdderProps, SliceAdderState> {
       ),
     }));
     setItem(LocalStorageKeys.DashboardEditorShowOnlyMyCharts, showOnlyMyCharts);
-  };
+  }
 
   render() {
     const { theme } = this.props;
@@ -366,15 +364,16 @@ class SliceAdder extends Component<SliceAdderProps, SliceAdderState> {
           <NewChartButton
             buttonStyle="link"
             buttonSize="xsmall"
-            icon={
-              <Icons.PlusOutlined iconSize="m" iconColor={theme.colorPrimary} />
-            }
             onClick={() =>
               navigateTo(`/chart/add?dashboard_id=${this.props.dashboardId}`, {
                 newWindow: true,
               })
             }
           >
+            <Icons.PlusOutlined
+              iconSize="m"
+              iconColor={theme.colors.primary.dark1}
+            />
             {t('Create new chart')}
           </NewChartButton>
         </NewChartButtonContainer>
@@ -406,17 +405,17 @@ class SliceAdder extends Component<SliceAdderProps, SliceAdderState> {
             flex-direction: row;
             justify-content: flex-start;
             align-items: center;
-            gap: ${theme.sizeUnit}px;
-            padding: 0 ${theme.sizeUnit * 3}px ${theme.sizeUnit * 4}px
-              ${theme.sizeUnit * 3}px;
+            gap: ${theme.gridUnit}px;
+            padding: 0 ${theme.gridUnit * 3}px ${theme.gridUnit * 4}px
+              ${theme.gridUnit * 3}px;
           `}
         >
           <Checkbox
-            onChange={e => this.onShowOnlyMyCharts(e.target.checked)}
+            onChange={this.onShowOnlyMyCharts}
             checked={this.state.showOnlyMyCharts}
           />
           {t('Show only my charts')}
-          <InfoTooltip
+          <InfoTooltipWithTrigger
             placement="top"
             tooltip={t(
               `You can choose to display all charts that you have access to or only the ones you own.

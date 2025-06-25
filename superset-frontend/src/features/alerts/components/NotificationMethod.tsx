@@ -34,9 +34,9 @@ import {
   t,
   useTheme,
 } from '@superset-ui/core';
-import { Icons } from '@superset-ui/core/components/Icons';
-import { Input, Select } from '@superset-ui/core/components';
-import RefreshLabel from '@superset-ui/core/components/RefreshLabel';
+import { Select } from 'src/components';
+import { Icons } from 'src/components/Icons';
+import RefreshLabel from 'src/components/RefreshLabel';
 import {
   NotificationMethodOption,
   NotificationSetting,
@@ -46,7 +46,7 @@ import { StyledInputContainer } from '../AlertReportModal';
 
 const StyledNotificationMethod = styled.div`
   ${({ theme }) => `
-    margin-bottom: ${theme.sizeUnit * 3}px;
+    margin-bottom: ${theme.gridUnit * 3}px;
 
     .input-container {
       textarea {
@@ -55,50 +55,50 @@ const StyledNotificationMethod = styled.div`
 
       &.error {
         input {
-          border-color: ${theme.colorError};
+          border-color: ${theme.colors.error.base};
         }
       }
 
       .helper {
-        margin-top: ${theme.sizeUnit * 2}px;
-        font-size: ${theme.fontSizeSM}px;
+        margin-top: ${theme.gridUnit * 2}px;
+        font-size: ${theme.typography.sizes.s}px;
         color: ${theme.colors.grayscale.base};
       }
     }
 
     .inline-container {
-      margin-bottom: ${theme.sizeUnit * 2}px;
+      margin-bottom: ${theme.gridUnit * 2}px;
 
       > div {
         margin: 0px;
       }
 
       .delete-button {
-        margin-left: ${theme.sizeUnit * 2}px;
-        padding-top: ${theme.sizeUnit}px;
+        margin-left: ${theme.gridUnit * 2}px;
+        padding-top: ${theme.gridUnit}px;
       }
       .anticon {
-        margin-left: ${theme.sizeUnit}px;
+        margin-left: ${theme.gridUnit}px;
       }
     }
 
     .ghost-button {
-      color: ${theme.colorPrimaryText};
+      color: ${theme.colors.primary.dark1};
       display: inline-flex;
       align-items: center;
-      font-size: ${theme.fontSizeSM}px;
+      font-size: ${theme.typography.sizes.s}px;
       cursor: pointer;
 
       .icon {
-        width: ${theme.sizeUnit * 3}px;
-        height: ${theme.sizeUnit * 3}px;
-        font-size: ${theme.fontSizeSM}px;
-        margin-right: ${theme.sizeUnit}px;
+        width: ${theme.gridUnit * 3}px;
+        height: ${theme.gridUnit * 3}px;
+        font-size: ${theme.typography.sizes.s}px;
+        margin-right: ${theme.gridUnit}px;
       }
     }
 
     .ghost-button + .ghost-button {
-      margin-left: ${theme.sizeUnit * 4}px;
+      margin-left: ${theme.gridUnit * 4}px;
     }
 
     .ghost-button:first-child[style*='none'] + .ghost-button {
@@ -485,7 +485,7 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
                     {TRANSLATIONS.EMAIL_SUBJECT_NAME}
                   </div>
                   <div className={`input-container ${error ? 'error' : ''}`}>
-                    <Input
+                    <input
                       type="text"
                       name="email_subject"
                       value={email_subject}
@@ -496,8 +496,8 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
                   {error && (
                     <div
                       style={{
-                        color: theme.colorError,
-                        fontSize: theme.sizeUnit * 3,
+                        color: theme.colors.error.base,
+                        fontSize: theme.gridUnit * 3,
                       }}
                     >
                       {TRANSLATIONS.EMAIL_SUBJECT_ERROR_TEXT}
@@ -525,7 +525,7 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
                 ].includes(method) ? (
                   <>
                     <div className="input-container">
-                      <Input.TextArea
+                      <textarea
                         name="To"
                         data-test="recipients"
                         value={recipientValue}
@@ -573,7 +573,7 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
                     {TRANSLATIONS.EMAIL_CC_NAME}
                   </div>
                   <div className="input-container">
-                    <Input.TextArea
+                    <textarea
                       name="CC"
                       data-test="cc"
                       value={ccValue}
@@ -594,7 +594,7 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
                     {TRANSLATIONS.EMAIL_BCC_NAME}
                   </div>
                   <div className="input-container">
-                    <Input.TextArea
+                    <textarea
                       name="BCC"
                       data-test="bcc"
                       value={bccValue}

@@ -29,10 +29,7 @@ import {
 import Chart from 'src/types/Chart';
 import { intersection } from 'lodash';
 import rison from 'rison';
-import type {
-  ListViewFetchDataConfig as FetchDataConfig,
-  ListViewFilterValue as FilterValue,
-} from 'src/components';
+import { FetchDataConfig, FilterValue } from 'src/components/ListView';
 import SupersetText from 'src/utils/textUtils';
 import { findPermission } from 'src/utils/findPermission';
 import { User } from 'src/types/bootstrapTypes';
@@ -365,15 +362,14 @@ export const CardContainer = styled.div<{
   ${({ showThumbnails, theme }) => `
     overflow: hidden;
     display: grid;
-    justify-content: start;
-    grid-gap: ${theme.sizeUnit * 12}px ${theme.sizeUnit * 4}px;
+    grid-gap: ${theme.gridUnit * 12}px ${theme.gridUnit * 4}px;
     grid-template-columns: repeat(auto-fit, 300px);
     max-height: ${showThumbnails ? '314' : '148'}px;
-    margin-top: ${theme.sizeUnit * -6}px;
+    margin-top: ${theme.gridUnit * -6}px;
     padding: ${
       showThumbnails
-        ? `${theme.sizeUnit * 8 + 3}px ${theme.sizeUnit * 20}px`
-        : `${theme.sizeUnit * 8 + 1}px ${theme.sizeUnit * 20}px`
+        ? `${theme.gridUnit * 8 + 3}px ${theme.gridUnit * 9}px`
+        : `${theme.gridUnit * 8 + 1}px ${theme.gridUnit * 9}px`
     };
   `}
 `;
@@ -383,7 +379,7 @@ export const CardStyles = styled.div`
   a {
     text-decoration: none;
   }
-  .ant-card-cover > div {
+  .antd5-card-cover > div {
     /* Height is calculated based on 300px width, to keep the same aspect ratio as the 800*450 thumbnails */
     height: 168px;
   }

@@ -18,8 +18,7 @@
  */
 import { ReactElement } from 'react';
 import { render, screen } from 'spec/helpers/testing-library';
-import type { ErrorBoundaryProps } from './types';
-import { ErrorBoundary } from '.';
+import ErrorBoundary, { ErrorBoundaryProps } from '.';
 
 const mockedProps: Partial<ErrorBoundaryProps> = {
   children: <span>Error children</span>,

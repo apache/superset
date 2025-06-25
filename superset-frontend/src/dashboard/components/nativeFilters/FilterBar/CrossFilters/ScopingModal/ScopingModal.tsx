@@ -19,7 +19,7 @@
 import { useCallback, useMemo, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { isDefined, NativeFilterScope, t } from '@superset-ui/core';
-import { Modal } from '@superset-ui/core/components';
+import Modal from 'src/components/Modal';
 import {
   ChartConfiguration,
   RootState,

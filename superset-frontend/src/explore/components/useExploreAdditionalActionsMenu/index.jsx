@@ -27,8 +27,10 @@ import {
   useTheme,
   VizType,
 } from '@superset-ui/core';
-import { Icons, ModalTrigger, Button } from '@superset-ui/core/components';
-import { Menu } from '@superset-ui/core/components/Menu';
+import { Icons } from 'src/components/Icons';
+import { Menu } from 'src/components/Menu';
+import ModalTrigger from 'src/components/ModalTrigger';
+import Button from 'src/components/Button';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
 import { exportChart, getChartKey } from 'src/explore/exploreUtils';
 import downloadAsImage from 'src/utils/downloadAsImage';
@@ -77,25 +79,25 @@ export const MenuItemWithCheckboxContainer = styled.div`
     align-items: center;
 
     & svg {
-      width: ${theme.sizeUnit * 3}px;
-      height: ${theme.sizeUnit * 3}px;
+      width: ${theme.gridUnit * 3}px;
+      height: ${theme.gridUnit * 3}px;
     }
 
     & span[role='checkbox'] {
       display: inline-flex;
-      margin-right: ${theme.sizeUnit}px;
+      margin-right: ${theme.gridUnit}px;
     }
   `}
 `;
 
 export const MenuTrigger = styled(Button)`
   ${({ theme }) => css`
-    width: ${theme.sizeUnit * 8}px;
-    height: ${theme.sizeUnit * 8}px;
+    width: ${theme.gridUnit * 8}px;
+    height: ${theme.gridUnit * 8}px;
     padding: 0;
     border: 1px solid ${theme.colors.primary.dark2};
 
-    &.ant-btn > span.anticon {
+    &.antd5-btn > span.anticon {
       line-height: 0;
       transition: inherit;
     }
@@ -386,7 +388,7 @@ export const useExploreAdditionalActionsMenu = (
                     addDangerToast={addDangerToast}
                   />
                 }
-                maxWidth={`${theme.sizeUnit * 100}px`}
+                maxWidth={`${theme.gridUnit * 100}px`}
                 destroyOnClose
                 responsive
               />
@@ -447,7 +449,7 @@ export const useExploreAdditionalActionsMenu = (
       latestQueryFormData,
       showReportSubMenu,
       slice,
-      theme.sizeUnit,
+      theme.gridUnit,
     ],
   );
   return [menu, isDropdownVisible, setIsDropdownVisible];

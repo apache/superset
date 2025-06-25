@@ -132,7 +132,6 @@ export const getSlicePayload = (
             adhocFilters[filtersKey].push({
               ...filter,
               comparator: 'No filter',
-              isExtra: false,
             });
           }
         },

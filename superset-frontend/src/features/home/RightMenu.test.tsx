@@ -200,7 +200,6 @@ test('renders', async () => {
   const { container } = render(<RightMenu {...mockedProps} />, {
     useRedux: true,
     useQueryParams: true,
-    useTheme: true,
   });
   // expect(await screen.findByText(/Settings/i)).toBeInTheDocument();
   await waitFor(() => expect(container).toBeInTheDocument());
@@ -213,7 +212,6 @@ test('If user has permission to upload files AND connect DBs we query existing D
   const { container } = render(<RightMenu {...mockedProps} />, {
     useRedux: true,
     useQueryParams: true,
-    useTheme: true,
   });
   await waitFor(() => expect(container).toBeVisible());
   const callsD = fetchMock.calls(/database\/\?q/);
@@ -248,7 +246,6 @@ test('If only examples DB exist we must show the Connect Database option', async
     useRedux: true,
     useQueryParams: true,
     useRouter: true,
-    useTheme: true,
   });
   const dropdown = screen.getByTestId('new-dropdown-icon');
   userEvent.hover(dropdown);
@@ -280,7 +277,6 @@ test('If more than just examples DB exist we must show the Create dataset option
     useRedux: true,
     useQueryParams: true,
     useRouter: true,
-    useTheme: true,
   });
   const dropdown = screen.getByTestId('new-dropdown-icon');
   userEvent.hover(dropdown);
@@ -312,7 +308,6 @@ test('If there is a DB with allow_file_upload set as True the option should be e
     useRedux: true,
     useQueryParams: true,
     useRouter: true,
-    useTheme: true,
   });
   const dropdown = screen.getByTestId('new-dropdown-icon');
   userEvent.hover(dropdown);
@@ -349,7 +344,6 @@ test('If there is NOT a DB with allow_file_upload set as True the option should 
     useRedux: true,
     useQueryParams: true,
     useRouter: true,
-    useTheme: true,
   });
   const dropdown = screen.getByTestId('new-dropdown-icon');
   userEvent.hover(dropdown);
@@ -369,7 +363,6 @@ test('Logs out and clears local storage item redux', async () => {
     useRedux: true,
     useQueryParams: true,
     useRouter: true,
-    useTheme: true,
   });
 
   // Set an item in local storage to test if it gets cleared

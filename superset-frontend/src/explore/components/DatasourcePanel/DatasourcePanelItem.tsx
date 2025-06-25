@@ -26,22 +26,22 @@ import {
   useTheme,
 } from '@superset-ui/core';
 
-import { Icons } from '@superset-ui/core/components/Icons';
-import { Tooltip } from '@superset-ui/core/components/Tooltip';
+import { Icons } from 'src/components/Icons';
+import { Tooltip } from 'src/components/Tooltip';
 import DatasourcePanelDragOption from './DatasourcePanelDragOption';
 import { DndItemType } from '../DndItemType';
 import { DndItemValue, FlattenedItem, Folder } from './types';
 
 const LabelWrapper = styled.div`
   ${({ theme }) => css`
-    color: ${theme.colorText};
+    color: ${theme.colors.grayscale.dark1};
     overflow: hidden;
     text-overflow: ellipsis;
-    font-size: ${theme.fontSizeSM}px;
-    background-color: ${theme.colorBgTextActive};
-    margin: ${theme.sizeUnit * 2}px 0;
+    font-size: ${theme.typography.sizes.s}px;
+    background-color: ${theme.colors.grayscale.light4};
+    margin: ${theme.gridUnit * 2}px 0;
     border-radius: ${theme.borderRadius}px;
-    padding: 0 ${theme.sizeUnit}px;
+    padding: 0 ${theme.gridUnit}px;
 
     &:first-of-type {
       margin-top: 0;
@@ -51,12 +51,9 @@ const LabelWrapper = styled.div`
     }
 
     padding: 0;
-    cursor: grab;
-    &:active {
-      cursor: grabbing;
-    }
+    cursor: pointer;
     &:hover {
-      background-color: ${theme.colorBgTextHover};
+      background-color: ${theme.colors.grayscale.light3};
     }
 
     & > span {
@@ -69,7 +66,7 @@ const LabelWrapper = styled.div`
 
     .metric-option {
       & > svg {
-        min-width: ${theme.sizeUnit * 4}px;
+        min-width: ${theme.gridUnit * 4}px;
       }
       & > .option-label {
         overflow: hidden;
@@ -96,8 +93,9 @@ const SectionHeaderTextContainer = styled.div`
 
 const SectionHeader = styled.span`
   ${({ theme }) => css`
-    font-size: ${theme.fontSize}px;
-    font-weight: ${theme.fontWeightStrong};
+    color: ${theme.colors.grayscale.dark1};
+    font-size: ${theme.typography.sizes.m}px;
+    font-weight: ${theme.typography.weights.medium};
     line-height: 1.3;
     text-align: left;
     display: -webkit-box;
@@ -111,7 +109,7 @@ const SectionHeader = styled.span`
 const Divider = styled.div`
   ${({ theme }) => css`
     height: 16px;
-    border-bottom: 1px solid ${theme.colorSplit};
+    border-bottom: 1px solid ${theme.colors.grayscale.light3};
   `}
 `;
 
@@ -164,7 +162,7 @@ const DatasourcePanelItem = ({
               css={
                 tooltipNode &&
                 css`
-                  margin-top: ${theme.sizeUnit}px;
+                  margin-top: ${theme.gridUnit}px;
                 `
               }
             >
@@ -183,14 +181,14 @@ const DatasourcePanelItem = ({
   const folder = folderMap.get(item.folderId);
   if (!folder) return null;
 
-  const indentation = item.depth * theme.sizeUnit * 4;
+  const indentation = item.depth * theme.gridUnit * 4;
 
   return (
     <div
       style={{
         ...style,
-        paddingLeft: theme.sizeUnit * 4 + indentation,
-        paddingRight: theme.sizeUnit * 4,
+        paddingLeft: theme.gridUnit * 4 + indentation,
+        paddingRight: theme.gridUnit * 4,
       }}
     >
       {item.type === 'header' && (
@@ -212,7 +210,7 @@ const DatasourcePanelItem = ({
         <div
           css={css`
             display: flex;
-            gap: ${theme.sizeUnit * 2}px;
+            gap: ${theme.gridUnit * 2}px;
             justify-content: space-between;
             align-items: baseline;
           `}

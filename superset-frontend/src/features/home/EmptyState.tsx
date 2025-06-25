@@ -16,10 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import {
-  Button,
-  EmptyState as EmptyStateComponent,
-} from '@superset-ui/core/components';
+import Button from 'src/components/Button';
+import { EmptyState as EmptyStateComponent } from 'src/components/EmptyState';
 import { TableTab } from 'src/views/CRUD/types';
 import { styled, t } from '@superset-ui/core';
 import { navigateTo } from 'src/utils/navigationUtils';
@@ -37,7 +35,7 @@ const ICONS = {
   [WelcomeTable.Charts]: 'empty-charts.svg',
   [WelcomeTable.Dashboards]: 'empty-dashboard.svg',
   [WelcomeTable.Recents]: 'union.svg',
-  [WelcomeTable.SavedQueries]: 'empty.svg',
+  [WelcomeTable.SavedQueries]: 'empty-queries.svg',
 } as const;
 
 const REDIRECTS = {
@@ -85,7 +83,7 @@ export default function EmptyState({
 
     return (
       <Button
-        buttonStyle="secondary"
+        buttonStyle="default"
         onClick={() => {
           navigateTo(url);
         }}

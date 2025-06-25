@@ -130,6 +130,10 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         from superset.cachekeys.api import CacheRestApi
         from superset.charts.api import ChartRestApi
         from superset.charts.data.api import ChartDataRestApi
+        from superset.connectors.sqla.views import (
+            RowLevelSecurityView,
+            TableModelView,
+        )
         from superset.css_templates.api import CssTemplateRestApi
         from superset.dashboards.api import DashboardRestApi
         from superset.dashboards.filter_state.api import DashboardFilterStateRestApi
@@ -178,10 +182,6 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             SavedQueryView,
             TableSchemaView,
             TabStateView,
-        )
-        from superset.views.sqla import (
-            RowLevelSecurityView,
-            TableModelView,
         )
         from superset.views.sqllab import SqllabView
         from superset.views.tags import TagModelView, TagView

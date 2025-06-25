@@ -17,17 +17,17 @@
  * under the License.
  */
 
-import { t } from '@superset-ui/core';
 import { getDatabaseDocumentationLinks } from 'src/views/CRUD/hooks';
-import { UploadFile } from '@superset-ui/core/components/Upload';
-import { Typography } from '@superset-ui/core/components/Typography';
-import { DatabaseForm, DatabaseObject } from '../types';
+// eslint-disable-next-line no-restricted-imports
+import { UploadFile } from 'antd/lib/upload/interface'; // TODO: Remove antd
+import { t } from '@superset-ui/core';
 import {
   EditHeaderTitle,
   EditHeaderSubtitle,
   StyledFormHeader,
   StyledStickyHeader,
 } from './styles';
+import { DatabaseForm, DatabaseObject } from '../types';
 
 const supersetTextDocs = getDatabaseDocumentationLinks();
 
@@ -101,9 +101,7 @@ const ModalHeader = ({
           stepLast: 2,
         })}
       </p>
-      <Typography.Title level={4}>
-        {t('Enter Primary Credentials')}
-      </Typography.Title>
+      <h4>{t('Enter Primary Credentials')}</h4>
       <p className="helper-bottom">
         {t('Need help? Learn how to connect your database')}{' '}
         <a
@@ -127,9 +125,7 @@ const ModalHeader = ({
             stepLast: 3,
           })}
         </p>
-        <Typography.Title level={4} className="step-3-text">
-          {t('Database connected')}
-        </Typography.Title>
+        <h4 className="step-3-text">{t('Database connected')}</h4>
         <p className="subheader-text">
           {t(`Create a dataset to begin visualizing your data as a chart or go to
           SQL Lab to query your data.`)}
@@ -147,11 +143,11 @@ const ModalHeader = ({
             stepLast: 3,
           })}
         </p>
-        <Typography.Title level={4}>
+        <h4>
           {t('Enter the required %(dbModelName)s credentials', {
             dbModelName: dbModel.name,
           })}
-        </Typography.Title>
+        </h4>
         <p className="helper-bottom">
           {t('Need help? Learn more about')}{' '}
           <a
@@ -167,21 +163,17 @@ const ModalHeader = ({
   );
 
   const noDbHeader = (
-    <StyledStickyHeader>
-      <StyledFormHeader>
-        <div className="select-db">
-          <p className="helper-top">
-            {t('STEP %(stepCurr)s OF %(stepLast)s', {
-              stepCurr: 1,
-              stepLast: 3,
-            })}
-          </p>
-          <Typography.Title level={4}>
-            {t('Select a database to connect')}
-          </Typography.Title>
-        </div>
-      </StyledFormHeader>
-    </StyledStickyHeader>
+    <StyledFormHeader>
+      <div className="select-db">
+        <p className="helper-top">
+          {t('STEP %(stepCurr)s OF %(stepLast)s', {
+            stepCurr: 1,
+            stepLast: 3,
+          })}
+        </p>
+        <h4>{t('Select a database to connect')}</h4>
+      </div>
+    </StyledFormHeader>
   );
 
   const importDbHeader = (
@@ -193,11 +185,11 @@ const ModalHeader = ({
             stepLast: 2,
           })}
         </p>
-        <Typography.Title level={4}>
+        <h4>
           {t('Enter the required %(dbModelName)s credentials', {
             dbModelName: dbModel.name,
           })}
-        </Typography.Title>
+        </h4>
         <p className="helper-bottom">{fileCheck ? fileList[0].name : ''}</p>
       </StyledFormHeader>
     </StyledStickyHeader>

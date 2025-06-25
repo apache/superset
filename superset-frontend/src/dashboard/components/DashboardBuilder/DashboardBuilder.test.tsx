@@ -17,12 +17,7 @@
  * under the License.
  */
 import fetchMock from 'fetch-mock';
-import {
-  fireEvent,
-  render,
-  within,
-  screen,
-} from 'spec/helpers/testing-library';
+import { fireEvent, render, within } from 'spec/helpers/testing-library';
 import DashboardBuilder from 'src/dashboard/components/DashboardBuilder/DashboardBuilder';
 import useStoredSidebarWidth from 'src/components/ResizableSidebar/useStoredSidebarWidth';
 import {
@@ -53,13 +48,13 @@ jest.mock('src/dashboard/actions/dashboardState', () => ({
 jest.mock('src/components/ResizableSidebar/useStoredSidebarWidth');
 
 // mock following dependent components to fix the prop warnings
-jest.mock('@superset-ui/core/components/Select/Select', () => () => (
+jest.mock('src/components/Select/Select', () => () => (
   <div data-test="mock-select" />
 ));
-jest.mock('@superset-ui/core/components/Select/AsyncSelect', () => () => (
+jest.mock('src/components/Select/AsyncSelect', () => () => (
   <div data-test="mock-async-select" />
 ));
-jest.mock('@superset-ui/core/components/PageHeaderWithActions', () => ({
+jest.mock('src/components/PageHeaderWithActions', () => ({
   PageHeaderWithActions: () => (
     <div data-test="mock-page-header-with-actions" />
   ),
@@ -171,12 +166,13 @@ describe('DashboardBuilder', () => {
       dashboardLayout: undoableDashboardLayoutWithTabs,
     });
     const parentSize = await findByTestId('grid-container');
-    const first_tab = screen.getByText('tab1');
-    expect(first_tab).toBeInTheDocument();
+    const expectedCount =
+      undoableDashboardLayoutWithTabs.present.TABS_ID.children.length;
     const tabPanels = within(parentSize).getAllByRole('tabpanel', {
       // to include invisible tab panels
-      hidden: false,
+      hidden: true,
     });
+    expect(tabPanels.length).toBe(expectedCount);
     expect(
       within(tabPanels[0]).getAllByTestId('mock-dashboard-grid').length,
     ).toBe(1);
@@ -191,15 +187,15 @@ describe('DashboardBuilder', () => {
       },
     });
     const parentSize = await findByTestId('grid-container');
-    const second_tab = screen.getByText('tab2');
-    expect(second_tab).toBeInTheDocument();
-    fireEvent.click(second_tab);
+    const expectedCount =
+      undoableDashboardLayoutWithTabs.present.TABS_ID.children.length;
     const tabPanels = within(parentSize).getAllByRole('tabpanel', {
       // to include invisible tab panels
       hidden: true,
     });
+    expect(tabPanels.length).toBe(expectedCount);
     expect(
-      within(tabPanels[0]).getAllByTestId('mock-dashboard-grid').length,
+      within(tabPanels[1]).getAllByTestId('mock-dashboard-grid').length,
     ).toBe(1);
   });
 

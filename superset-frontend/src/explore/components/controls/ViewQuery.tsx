@@ -28,21 +28,20 @@ import rison from 'rison';
 import { styled, SupersetClient, t } from '@superset-ui/core';
 import SyntaxHighlighter from 'react-syntax-highlighter/dist/cjs/light';
 import github from 'react-syntax-highlighter/dist/cjs/styles/hljs/github';
-import { Icons, Switch, Button, Skeleton } from '@superset-ui/core/components';
-import { CopyToClipboard } from 'src/components';
+import CopyToClipboard from 'src/components/CopyToClipboard';
 import { CopyButton } from 'src/explore/components/DataTableControl';
 import markdownSyntax from 'react-syntax-highlighter/dist/cjs/languages/hljs/markdown';
 import htmlSyntax from 'react-syntax-highlighter/dist/cjs/languages/hljs/htmlbars';
 import sqlSyntax from 'react-syntax-highlighter/dist/cjs/languages/hljs/sql';
 import jsonSyntax from 'react-syntax-highlighter/dist/cjs/languages/hljs/json';
 import { useHistory } from 'react-router-dom';
+import { Switch } from 'src/components/Switch';
+import { Button, Skeleton } from 'src/components';
 
 const CopyButtonViewQuery = styled(CopyButton)`
-  ${({ theme }) => `
-		&& {
-			margin: 0 0 ${theme.sizeUnit}px;
-		}
-  `}
+  && {
+    margin: 0 0 ${({ theme }) => theme.gridUnit}px;
+  }
 `;
 
 SyntaxHighlighter.registerLanguage('markdown', markdownSyntax);
@@ -66,14 +65,14 @@ const StyledHeaderMenuContainer = styled.div`
   display: flex;
   flex-direction: row;
   justify-content: space-between;
-  margin-top: ${({ theme }) => -theme.sizeUnit * 4}px;
+  margin-top: ${({ theme }) => -theme.gridUnit * 4}px;
   align-items: flex-end;
 `;
 
 const StyledHeaderActionContainer = styled.div`
   display: flex;
   flex-direction: row;
-  column-gap: ${({ theme }) => theme.sizeUnit * 2}px;
+  column-gap: ${({ theme }) => theme.gridUnit * 2}px;
 `;
 
 const StyledSyntaxHighlighter = styled(SyntaxHighlighter)`
@@ -81,7 +80,7 @@ const StyledSyntaxHighlighter = styled(SyntaxHighlighter)`
 `;
 
 const StyledLabel = styled.label`
-  font-size: ${({ theme }) => theme.fontSize}px;
+  font-size: ${({ theme }) => theme.typography.sizes.m}px;
 `;
 
 const DATASET_BACKEND_QUERY = {
@@ -156,10 +155,7 @@ const ViewQuery: FC<ViewQueryProps> = props => {
             text={currentSQL}
             shouldShowText={false}
             copyNode={
-              <CopyButtonViewQuery
-                buttonSize="small"
-                icon={<Icons.CopyOutlined />}
-              >
+              <CopyButtonViewQuery buttonSize="small">
                 {t('Copy')}
               </CopyButtonViewQuery>
             }

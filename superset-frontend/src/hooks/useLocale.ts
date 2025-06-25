@@ -17,6 +17,7 @@
  * under the License.
  */
 
+import { Locale } from 'antd-v5/es/locale';
 import dayjs from 'dayjs';
 import { useEffect, useState } from 'react';
 import { useSelector } from 'react-redux';
@@ -36,26 +37,22 @@ import 'dayjs/locale/sk';
 import 'dayjs/locale/sl';
 import 'dayjs/locale/nl';
 
-/* eslint-disable no-restricted-imports */
-import { Locale } from 'antd/es/locale';
-
 export const LOCALE_MAPPING = {
-  en: () => import('antd/locale/en_US'),
-  fr: () => import('antd/locale/fr_FR'),
-  es: () => import('antd/locale/es_ES'),
-  it: () => import('antd/locale/it_IT'),
-  zh: () => import('antd/locale/zh_CN'),
-  ja: () => import('antd/locale/ja_JP'),
-  de: () => import('antd/locale/de_DE'),
-  pt: () => import('antd/locale/pt_PT'),
-  pt_BR: () => import('antd/locale/pt_BR'),
-  ru: () => import('antd/locale/ru_RU'),
-  ko: () => import('antd/locale/ko_KR'),
-  sk: () => import('antd/locale/sk_SK'),
-  sl: () => import('antd/locale/sl_SI'),
-  nl: () => import('antd/locale/nl_NL'),
+  en: () => import('antd-v5/locale/en_US'),
+  fr: () => import('antd-v5/locale/fr_FR'),
+  es: () => import('antd-v5/locale/es_ES'),
+  it: () => import('antd-v5/locale/it_IT'),
+  zh: () => import('antd-v5/locale/zh_CN'),
+  ja: () => import('antd-v5/locale/ja_JP'),
+  de: () => import('antd-v5/locale/de_DE'),
+  pt: () => import('antd-v5/locale/pt_PT'),
+  pt_BR: () => import('antd-v5/locale/pt_BR'),
+  ru: () => import('antd-v5/locale/ru_RU'),
+  ko: () => import('antd-v5/locale/ko_KR'),
+  sk: () => import('antd-v5/locale/sk_SK'),
+  sl: () => import('antd-v5/locale/sl_SI'),
+  nl: () => import('antd-v5/locale/nl_NL'),
 };
-/* eslint-enable no-restricted-imports */
 
 export const useLocale = (): Locale | undefined | null => {
   const [datePickerLocale, setDatePickerLocale] = useState<

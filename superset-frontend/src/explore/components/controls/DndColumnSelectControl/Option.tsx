@@ -18,7 +18,7 @@
  */
 import { useCallback } from 'react';
 import { css, styled, t, useTheme } from '@superset-ui/core';
-import { Icons, InfoTooltip } from '@superset-ui/core/components';
+import { Icons } from 'src/components/Icons';
 import {
   CaretContainer,
   CloseContainer,
@@ -26,9 +26,10 @@ import {
   Label,
 } from 'src/explore/components/controls/OptionControls';
 import { OptionProps } from 'src/explore/components/controls/DndColumnSelectControl/types';
+import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
 
-const StyledInfoTooltip = styled(InfoTooltip)`
-  margin: 0 ${({ theme }) => theme.sizeUnit}px;
+const StyledInfoTooltipWithTrigger = styled(InfoTooltipWithTrigger)`
+  margin: 0 ${({ theme }) => theme.gridUnit}px;
 `;
 
 export default function Option({
@@ -70,9 +71,10 @@ export default function Option({
       )}
       <Label data-test="control-label">{children}</Label>
       {(!!datasourceWarningMessage || isExtra) && (
-        <StyledInfoTooltip
-          type="warning"
+        <StyledInfoTooltipWithTrigger
+          icon="exclamation-triangle"
           placement="top"
+          bsStyle="warning"
           tooltip={
             datasourceWarningMessage ||
             t(`
@@ -87,7 +89,7 @@ export default function Option({
           <Icons.RightOutlined
             iconSize="m"
             css={css`
-              margin: ${theme.sizeUnit}px;
+              margin-top: ${theme.gridUnit}px;
             `}
             iconColor={theme.colors.grayscale.light1}
           />

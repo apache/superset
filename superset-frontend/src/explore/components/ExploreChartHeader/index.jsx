@@ -20,17 +20,19 @@ import { useCallback, useEffect, useState } from 'react';
 import { useHistory } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
 import PropTypes from 'prop-types';
-import { Tooltip, Button, DeleteModal } from '@superset-ui/core/components';
-import { AlteredSliceTag } from 'src/components';
-import { css, logging, SupersetClient, t } from '@superset-ui/core';
+import { Tooltip } from 'src/components/Tooltip';
+import { css, logging, SupersetClient, t, useTheme } from '@superset-ui/core';
 import { chartPropShape } from 'src/dashboard/util/propShapes';
-import { Icons } from '@superset-ui/core/components/Icons';
+import AlteredSliceTag from 'src/components/AlteredSliceTag';
+import Button from 'src/components/Button';
+import { Icons } from 'src/components/Icons';
 import PropertiesModal from 'src/explore/components/PropertiesModal';
 import { sliceUpdated } from 'src/explore/actions/exploreActions';
-import { PageHeaderWithActions } from '@superset-ui/core/components/PageHeaderWithActions';
+import { PageHeaderWithActions } from 'src/components/PageHeaderWithActions';
 import { setSaveChartModalVisibility } from 'src/explore/actions/saveModalActions';
 import { applyColors, resetColors } from 'src/utils/colorScheme';
 import ReportModal from 'src/features/reports/ReportModal';
+import DeleteModal from 'src/components/DeleteModal';
 import { deleteActiveReport } from 'src/features/reports/ReportModal/actions';
 import { useExploreAdditionalActionsMenu } from '../useExploreAdditionalActionsMenu';
 import { useExploreMetadataBar } from './useExploreMetadataBar';
@@ -62,9 +64,9 @@ const saveButtonStyles = theme => css`
 const additionalItemsStyles = theme => css`
   display: flex;
   align-items: center;
-  margin-left: ${theme.sizeUnit}px;
+  margin-left: ${theme.gridUnit}px;
   & > span {
-    margin-right: ${theme.sizeUnit * 3}px;
+    margin-right: ${theme.gridUnit * 3}px;
   }
 `;
 
@@ -84,6 +86,7 @@ export const ExploreChartHeader = ({
   saveDisabled,
   metadata,
 }) => {
+  const theme = useTheme();
   const dispatch = useDispatch();
   const { latestQueryFormData, sliceFormData } = chart;
   const [isPropertiesModalOpen, setIsPropertiesModalOpen] = useState(false);
@@ -238,8 +241,11 @@ export const ExploreChartHeader = ({
                 disabled={saveDisabled}
                 data-test="query-save-button"
                 css={saveButtonStyles}
-                icon={<Icons.SaveOutlined />}
               >
+                <Icons.SaveOutlined
+                  iconSize="l"
+                  iconColor={theme.colors.primary.dark2}
+                />
                 {t('Save')}
               </Button>
             </div>

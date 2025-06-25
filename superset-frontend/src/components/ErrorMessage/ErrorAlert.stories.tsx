@@ -17,8 +17,8 @@
  * under the License.
  */
 import { Meta, StoryFn } from '@storybook/react';
-import { Card, Col, Layout, Row } from '@superset-ui/core/components';
-import { ErrorAlert } from './ErrorAlert';
+import { Layout, Row, Col, Card } from 'antd-v5';
+import ErrorAlert from './ErrorAlert';
 
 const { Content } = Layout;
 
@@ -32,8 +32,12 @@ Please check your query and ensure it follows the correct syntax.`;
 const detailsExample = `Additional details about the issue are provided here.
 This content is shown when the user clicks "Show more".`;
 
+const ErrorCard: React.FC<{ children: React.ReactNode }> = ({ children }) => (
+  <Card>{children}</Card>
+);
+
 export default {
-  title: 'Components/ErrorMessage/ErrorAlert',
+  title: 'Components/ErrorAlert',
   component: ErrorAlert,
 } as Meta;
 
@@ -43,12 +47,12 @@ export const Gallery: StoryFn = () => (
       <h2>Non-Compact Errors</h2>
       <Row gutter={[16, 16]}>
         <Col xs={48} sm={24} md={16} lg={16} xl={12}>
-          <Card>
+          <ErrorCard>
             <ErrorAlert message="Only message props was passed here" />
-          </Card>
+          </ErrorCard>
         </Col>
         <Col xs={48} sm={24} md={16} lg={16} xl={12}>
-          <Card>
+          <ErrorCard>
             <ErrorAlert
               errorType="Database Connection Error"
               type="warning"
@@ -56,10 +60,10 @@ export const Gallery: StoryFn = () => (
               descriptionDetails={detailsExample}
               descriptionDetailsCollapsed
             />
-          </Card>
+          </ErrorCard>
         </Col>
         <Col xs={48} sm={24} md={16} lg={16} xl={12}>
-          <Card>
+          <ErrorCard>
             <ErrorAlert
               errorType="Error"
               message="SQL Syntax Error - No defaults set here"
@@ -68,10 +72,10 @@ export const Gallery: StoryFn = () => (
               descriptionDetailsCollapsed
               descriptionPre
             />
-          </Card>
+          </ErrorCard>
         </Col>
         <Col xs={48} sm={24} md={16} lg={16} xl={12}>
-          <Card>
+          <ErrorCard>
             <ErrorAlert
               errorType="Error"
               message="See the details below"
@@ -80,10 +84,10 @@ export const Gallery: StoryFn = () => (
               descriptionDetails={detailsExample}
               descriptionDetailsCollapsed={false}
             />
-          </Card>
+          </ErrorCard>
         </Col>
         <Col xs={48} sm={24} md={16} lg={16} xl={12}>
-          <Card>
+          <ErrorCard>
             <ErrorAlert
               errorType="Informational Warning"
               message="This is a non-pre-wrap styled description"
@@ -93,31 +97,31 @@ export const Gallery: StoryFn = () => (
               descriptionDetailsCollapsed={false}
               descriptionPre={false}
             />
-          </Card>
+          </ErrorCard>
         </Col>
         <Col xs={24} sm={12} md={8} lg={8} xl={6}>
-          <Card>
+          <ErrorCard>
             <ErrorAlert
               errorType="Error"
               message="Something went wrong"
               type="error"
             />
-          </Card>
+          </ErrorCard>
         </Col>
         <Col xs={24} sm={12} md={8} lg={8} xl={6}>
-          <Card>
+          <ErrorCard>
             <ErrorAlert
               errorType="Warning"
               message="Be cautious"
               type="warning"
             />
-          </Card>
+          </ErrorCard>
         </Col>
       </Row>
       <h2>Compact Errors (with Modal)</h2>
       <Row gutter={[16, 16]}>
         <Col xs={24} sm={12} md={8} lg={8} xl={6}>
-          <Card>
+          <ErrorCard>
             <ErrorAlert
               errorType="Error"
               message="Compact mode example"
@@ -127,10 +131,10 @@ export const Gallery: StoryFn = () => (
               description={sqlErrorDescription}
               descriptionDetails={detailsExample}
             />
-          </Card>
+          </ErrorCard>
         </Col>
         <Col xs={24} sm={12} md={8} lg={8} xl={6}>
-          <Card>
+          <ErrorCard>
             <ErrorAlert
               errorType="Warning"
               message="Compact mode example"
@@ -139,7 +143,7 @@ export const Gallery: StoryFn = () => (
               descriptionDetails={detailsExample}
               descriptionDetailsCollapsed
             />
-          </Card>
+          </ErrorCard>
         </Col>
       </Row>
     </Content>

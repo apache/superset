@@ -25,14 +25,15 @@ import {
   getChartMetadataRegistry,
   getClientErrorObject,
 } from '@superset-ui/core';
-import { EmptyState, Loading } from '@superset-ui/core/components';
+import Loading from 'src/components/Loading';
+import { EmptyState } from 'src/components/EmptyState';
 import { getChartDataRequest } from 'src/components/Chart/chartAction';
 import { ResultsPaneProps, QueryResultInterface } from '../types';
 import { SingleQueryResultPane } from './SingleQueryResultPane';
 import { TableControls } from './DataTableControls';
 
 const Error = styled.pre`
-  margin-top: ${({ theme }) => `${theme.sizeUnit * 4}px`};
+  margin-top: ${({ theme }) => `${theme.gridUnit * 4}px`};
 `;
 
 const cache = new WeakMap();
@@ -110,7 +111,7 @@ export const useResultsPane = ({
   if (errorMessage) {
     const title = t('Run a query to display results');
     return Array(queryCount).fill(
-      <EmptyState image="document.svg" title={title} size="small" />,
+      <EmptyState image="document.svg" title={title} />,
     );
   }
 
@@ -136,7 +137,7 @@ export const useResultsPane = ({
   if (resultResp.length === 0) {
     const title = t('No results were returned for this query');
     return Array(queryCount).fill(
-      <EmptyState image="document.svg" title={title} size="small" />,
+      <EmptyState image="document.svg" title={title} />,
     );
   }
   const resultRespToDisplay = isQueryCountDynamic

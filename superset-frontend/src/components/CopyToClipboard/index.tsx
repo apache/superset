@@ -16,12 +16,24 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Component, cloneElement, ReactElement } from 'react';
+import { Component, cloneElement, ReactNode, ReactElement } from 'react';
 import { t } from '@superset-ui/core';
+import { Tooltip } from 'src/components/Tooltip';
+import withToasts from 'src/components/MessageToasts/withToasts';
 import copyTextToClipboard from 'src/utils/copy';
-import { Tooltip } from '@superset-ui/core/components';
-import withToasts from '../MessageToasts/withToasts';
-import type { CopyToClipboardProps } from './types';
+
+export interface CopyToClipboardProps {
+  copyNode?: ReactNode;
+  getText?: (callback: (data: string) => void) => void;
+  onCopyEnd?: () => void;
+  shouldShowText?: boolean;
+  text?: string;
+  wrapped?: boolean;
+  tooltipText?: string;
+  addDangerToast: (msg: string) => void;
+  addSuccessToast: (msg: string) => void;
+  hideTooltip?: boolean;
+}
 
 const defaultProps: Partial<CopyToClipboardProps> = {
   copyNode: <span>{t('Copy')}</span>,
@@ -32,7 +44,7 @@ const defaultProps: Partial<CopyToClipboardProps> = {
   hideTooltip: false,
 };
 
-class CopyToClip extends Component<CopyToClipboardProps> {
+class CopyToClipboard extends Component<CopyToClipboardProps> {
   static defaultProps = defaultProps;
 
   constructor(props: CopyToClipboardProps) {
@@ -104,7 +116,9 @@ class CopyToClip extends Component<CopyToClipboardProps> {
     return (
       <span css={{ display: 'inline-flex', alignItems: 'center' }}>
         {this.props.shouldShowText && this.props.text && (
-          <span data-test="short-url">{this.props.text}</span>
+          <span className="m-r-5" data-test="short-url">
+            {this.props.text}
+          </span>
         )}
         {this.renderTooltip('pointer')}
       </span>
@@ -120,5 +134,4 @@ class CopyToClip extends Component<CopyToClipboardProps> {
   }
 }
 
-export const CopyToClipboard = withToasts(CopyToClip);
-export type { CopyToClipboardProps };
+export default withToasts(CopyToClipboard);

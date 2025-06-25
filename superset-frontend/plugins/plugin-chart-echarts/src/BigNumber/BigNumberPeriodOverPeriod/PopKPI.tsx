@@ -26,8 +26,7 @@ import {
   t,
   useTheme,
 } from '@superset-ui/core';
-import { Tooltip } from '@superset-ui/core/components';
-import { DEFAULT_DATE_PATTERN } from '@superset-ui/chart-controls';
+import { DEFAULT_DATE_PATTERN, Tooltip } from '@superset-ui/chart-controls';
 import { isEmpty } from 'lodash';
 import {
   ColorSchemeEnum,
@@ -39,11 +38,11 @@ import { useOverflowDetection } from './useOverflowDetection';
 
 const MetricNameText = styled.div<{ metricNameFontSize?: number }>`
   ${({ theme, metricNameFontSize }) => `
-    font-family: ${theme.fontFamily};
-    font-weight: ${theme.fontWeightNormal};
-    font-size: ${metricNameFontSize || theme.fontSizeSM * 2}px;
+    font-family: ${theme.typography.families.sansSerif};
+    font-weight: ${theme.typography.weights.normal};
+    font-size: ${metricNameFontSize || theme.typography.sizes.s * 2}px;
     text-align: center;
-    margin-bottom: ${theme.sizeUnit * 3}px;
+    margin-bottom: ${theme.gridUnit * 3}px;
   `}
 `;
 
@@ -60,10 +59,10 @@ const NumbersContainer = styled.div`
 
 const ComparisonValue = styled.div<PopKPIComparisonValueStyleProps>`
   ${({ theme, subheaderFontSize }) => `
-    font-weight: ${theme.fontWeightLight};
+    font-weight: ${theme.typography.weights.light};
     display: flex;
     justify-content: center;
-    font-size: ${String(subheaderFontSize) || 20}px;
+    font-size: ${subheaderFontSize || 20}px;
     flex: 1 1 0px;
   `}
 `;
@@ -72,9 +71,9 @@ const SymbolWrapper = styled.span<PopKPIComparisonSymbolStyleProps>`
   ${({ theme, backgroundColor, textColor }) => `
     background-color: ${backgroundColor};
     color: ${textColor};
-    padding: ${theme.sizeUnit}px ${theme.sizeUnit * 2}px;
-    border-radius: ${theme.borderRadius}px;
-    margin-right: ${theme.sizeUnit}px;
+    padding: ${theme.gridUnit}px ${theme.gridUnit * 2}px;
+    border-radius: ${theme.gridUnit * 2}px;
+    margin-right: ${theme.gridUnit}px;
   `}
 `;
 
@@ -139,9 +138,9 @@ export default function PopKPI(props: PopKPIProps) {
   }, [currentTimeRangeFilter, shift, startDateOffset, dashboardTimeRange]);
 
   const theme = useTheme();
-  const flexGap = theme.sizeUnit * 5;
+  const flexGap = theme.gridUnit * 5;
   const wrapperDivStyles = css`
-    font-family: ${theme.fontFamily};
+    font-family: ${theme.typography.families.sansSerif};
     display: flex;
     justify-content: center;
     align-items: center;
@@ -151,19 +150,19 @@ export default function PopKPI(props: PopKPIProps) {
   `;
 
   const bigValueContainerStyles = css`
-    font-size: ${String(headerFontSize) || 60}px;
-    font-weight: ${theme.fontWeightNormal};
+    font-size: ${headerFontSize || 60}px;
+    font-weight: ${theme.typography.weights.normal};
     text-align: center;
-    margin-bottom: ${theme.sizeUnit * 4}px;
+    margin-bottom: ${theme.gridUnit * 4}px;
   `;
 
   const SubtitleText = styled.div`
     ${({ theme }) => `
-    font-family: ${theme.fontFamily};
-    font-weight: ${theme.fontWeightNormal};
+    font-family: ${theme.typography.families.sansSerif};
+    font-weight: ${theme.typography.weights.medium};
     text-align: center;
     margin-top: -10px;
-    margin-bottom: ${theme.sizeUnit * 4}px;
+    margin-bottom: ${theme.gridUnit * 4}px;
   `}
   `;
 
@@ -175,21 +174,21 @@ export default function PopKPI(props: PopKPIProps) {
     if (percentDifferenceNumber > 0) {
       // Positive difference
       return comparisonColorScheme === ColorSchemeEnum.Green
-        ? theme.colorSuccess
-        : theme.colorError;
+        ? theme.colors.success.base
+        : theme.colors.error.base;
     }
     // Negative difference
     return comparisonColorScheme === ColorSchemeEnum.Red
-      ? theme.colorSuccess
-      : theme.colorError;
+      ? theme.colors.success.base
+      : theme.colors.error.base;
   };
 
   const arrowIndicatorStyle = css`
     color: ${getArrowIndicatorColor()};
-    margin-left: ${theme.sizeUnit}px;
+    margin-left: ${theme.gridUnit}px;
   `;
 
-  const defaultBackgroundColor = theme.colorBgContainer;
+  const defaultBackgroundColor = theme.colors.grayscale.light4;
   const defaultTextColor = theme.colors.grayscale.base;
   const { backgroundColor, textColor } = useMemo(() => {
     let bgColor = defaultBackgroundColor;
@@ -205,7 +204,9 @@ export default function PopKPI(props: PopKPIProps) {
       bgColor = useSuccess
         ? theme.colors.success.light2
         : theme.colors.error.light2;
-      txtColor = useSuccess ? theme.colorSuccess : theme.colorError;
+      txtColor = useSuccess
+        ? theme.colors.success.base
+        : theme.colors.error.base;
     }
 
     return {

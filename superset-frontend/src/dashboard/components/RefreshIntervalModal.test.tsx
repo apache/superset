@@ -19,7 +19,6 @@
 import { isValidElement } from 'react';
 import { render, screen, userEvent } from 'spec/helpers/testing-library';
 import fetchMock from 'fetch-mock';
-import { Icons } from '@superset-ui/core/components/Icons';
 
 import RefreshIntervalModal from 'src/dashboard/components/RefreshIntervalModal';
 import { Provider } from 'react-redux';
@@ -31,7 +30,7 @@ const createProps = () => ({
   addSuccessToast: jest.fn(),
   addDangerToast: jest.fn(),
   customCss:
-    '.header-with-actions .right-button-panel .ant-dropdown-trigger{margin-left: 100px;}',
+    '.header-with-actions .right-button-panel .antd5-dropdown-trigger{margin-left: 100px;}',
   dashboardId: 1,
   dashboardInfo: {
     id: 1,
@@ -118,7 +117,7 @@ const displayOptions = async () => {
 };
 
 const defaultRefreshIntervalModalProps = {
-  triggerNode: <Icons.EditOutlined />,
+  triggerNode: <i className="fa fa-edit" />,
   refreshFrequency: 0,
   onChange: jest.fn(),
   editMode: true,

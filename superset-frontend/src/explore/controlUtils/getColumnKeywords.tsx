@@ -19,7 +19,7 @@
 
 import { ColumnMeta } from '@superset-ui/chart-controls';
 import { t } from '@superset-ui/core';
-import { getTooltipHTML } from '@superset-ui/core/components/AsyncAceEditor';
+import { getTooltipHTML } from 'src/components/AsyncAceEditor';
 import { COLUMN_AUTOCOMPLETE_SCORE } from 'src/SqlLab/constants';
 
 export function getColumnKeywords(columns: ColumnMeta[]) {

@@ -21,7 +21,7 @@ import { t } from '@superset-ui/core';
 
 import PopoverDropdown, {
   OnChangeHandler,
-} from '@superset-ui/core/components/PopoverDropdown';
+} from 'src/components/PopoverDropdown';
 
 interface MarkdownModeDropdownProps {
   id: string;

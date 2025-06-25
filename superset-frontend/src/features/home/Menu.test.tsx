@@ -171,7 +171,7 @@ const mockedProps = {
     brand: {
       path: '/superset/welcome/',
       icon: '/static/assets/images/superset-logo-horiz.png',
-      alt: 'Apache Superset',
+      alt: 'Superset',
       width: '126',
       tooltip: '',
       text: '',
@@ -255,7 +255,6 @@ test('should render', async () => {
     useRedux: true,
     useQueryParams: true,
     useRouter: true,
-    useTheme: true,
   });
   expect(await screen.findByText(/sources/i)).toBeInTheDocument();
   expect(container).toBeInTheDocument();
@@ -267,7 +266,6 @@ test('should render the navigation', async () => {
     useRedux: true,
     useQueryParams: true,
     useRouter: true,
-    useTheme: true,
   });
   expect(await screen.findByRole('navigation')).toBeInTheDocument();
 });
@@ -283,7 +281,6 @@ test('should render the brand', async () => {
     useRedux: true,
     useQueryParams: true,
     useRouter: true,
-    useTheme: true,
   });
   expect(await screen.findByAltText(alt)).toBeInTheDocument();
   const image = screen.getByAltText(alt);
@@ -299,7 +296,6 @@ test('should render the environment tag', async () => {
     useRedux: true,
     useQueryParams: true,
     useRouter: true,
-    useTheme: true,
   });
   expect(await screen.findByText(environment_tag.text)).toBeInTheDocument();
 });
@@ -313,7 +309,6 @@ test('should render all the top navbar menu items', async () => {
     useRedux: true,
     useQueryParams: true,
     useRouter: true,
-    useTheme: true,
   });
   expect(await screen.findByText(menu[0].label)).toBeInTheDocument();
   menu.forEach(item => {
@@ -330,7 +325,6 @@ test('should render the top navbar child menu items', async () => {
     useRedux: true,
     useQueryParams: true,
     useRouter: true,
-    useTheme: true,
   });
   const sources = await screen.findByText('Sources');
   userEvent.hover(sources);
@@ -350,7 +344,6 @@ test('should render the dropdown items', async () => {
     useRedux: true,
     useQueryParams: true,
     useRouter: true,
-    useTheme: true,
   });
   const dropdown = screen.getByTestId('new-dropdown-icon');
   userEvent.hover(dropdown);
@@ -381,7 +374,6 @@ test('should render the Settings', async () => {
     useRedux: true,
     useQueryParams: true,
     useRouter: true,
-    useTheme: true,
   });
   const settings = await screen.findByText('Settings');
   expect(settings).toBeInTheDocument();
@@ -393,7 +385,6 @@ test('should render the Settings menu item', async () => {
     useRedux: true,
     useQueryParams: true,
     useRouter: true,
-    useTheme: true,
   });
   userEvent.hover(screen.getByText('Settings'));
   const label = await screen.findByText('Security');
@@ -409,7 +400,6 @@ test('should render the Settings dropdown child menu items', async () => {
     useRedux: true,
     useQueryParams: true,
     useRouter: true,
-    useTheme: true,
   });
   userEvent.hover(screen.getByText('Settings'));
   const listUsers = await screen.findByText('List Users');
@@ -422,7 +412,6 @@ test('should render the plus menu (+) when user is not anonymous', async () => {
     useRedux: true,
     useQueryParams: true,
     useRouter: true,
-    useTheme: true,
   });
   expect(await screen.findByTestId('new-dropdown')).toBeInTheDocument();
 });
@@ -433,7 +422,6 @@ test('should NOT render the plus menu (+) when user is anonymous', async () => {
     useRedux: true,
     useQueryParams: true,
     useRouter: true,
-    useTheme: true,
   });
   expect(await screen.findByText(/sources/i)).toBeInTheDocument();
   expect(screen.queryByTestId('new-dropdown')).not.toBeInTheDocument();
@@ -451,7 +439,6 @@ test('should render the user actions when user is not anonymous', async () => {
     useRedux: true,
     useQueryParams: true,
     useRouter: true,
-    useTheme: true,
   });
   userEvent.hover(screen.getByText('Settings'));
   const user = await screen.findByText('User');
@@ -470,7 +457,6 @@ test('should NOT render the user actions when user is anonymous', async () => {
     useRedux: true,
     useQueryParams: true,
     useRouter: true,
-    useTheme: true,
   });
   expect(await screen.findByText(/sources/i)).toBeInTheDocument();
   expect(screen.queryByText('User')).not.toBeInTheDocument();
@@ -488,7 +474,6 @@ test('should render the About section and version_string, sha or build_number wh
     useRedux: true,
     useQueryParams: true,
     useRouter: true,
-    useTheme: true,
   });
   userEvent.hover(screen.getByText('Settings'));
   const about = await screen.findByText('About');
@@ -512,7 +497,6 @@ test('should render the Documentation link when available', async () => {
     useRedux: true,
     useQueryParams: true,
     useRouter: true,
-    useTheme: true,
   });
   userEvent.hover(screen.getByText('Settings'));
   const doc = await screen.findByTitle('Documentation');
@@ -531,7 +515,6 @@ test('should render the Bug Report link when available', async () => {
     useRedux: true,
     useQueryParams: true,
     useRouter: true,
-    useTheme: true,
   });
   const bugReport = await screen.findByTitle('Report a bug');
   expect(bugReport).toHaveAttribute('href', bug_report_url);
@@ -549,7 +532,6 @@ test('should render the Login link when user is anonymous', async () => {
     useRedux: true,
     useQueryParams: true,
     useRouter: true,
-    useTheme: true,
   });
   const login = await screen.findByText('Login');
   expect(login).toHaveAttribute('href', user_login_url);
@@ -561,7 +543,6 @@ test('should render the Language Picker', async () => {
     useRedux: true,
     useQueryParams: true,
     useRouter: true,
-    useTheme: true,
   });
   expect(await screen.findByLabelText('Languages')).toBeInTheDocument();
 });
@@ -572,7 +553,6 @@ test('should hide create button without proper roles', async () => {
     useRedux: true,
     useQueryParams: true,
     useRouter: true,
-    useTheme: true,
   });
   expect(await screen.findByText(/sources/i)).toBeInTheDocument();
   expect(screen.queryByTestId('new-dropdown')).not.toBeInTheDocument();
@@ -584,7 +564,6 @@ test('should render without QueryParamProvider', async () => {
     useRedux: true,
     useRouter: true,
     useQueryParams: true,
-    useTheme: true,
   });
   expect(await screen.findByText(/sources/i)).toBeInTheDocument();
   expect(screen.queryByTestId('new-dropdown')).not.toBeInTheDocument();
@@ -603,7 +582,6 @@ test('should render an extension component if one is supplied', async () => {
     useRouter: true,
     useQueryParams: true,
     useRedux: true,
-    useTheme: true,
   });
 
   const extension = await screen.findAllByText(

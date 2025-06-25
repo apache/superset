@@ -35,10 +35,8 @@ import {
   getSSHPrivateKeysNeeded,
   getSSHPrivateKeyPasswordsNeeded,
 } from 'src/views/CRUD/utils';
-import type {
-  ListViewFetchDataConfig as FetchDataConfig,
-  ListViewFilterValue as FilterValue,
-} from 'src/components';
+import { FetchDataConfig } from 'src/components/ListView';
+import { FilterValue } from 'src/components/ListView/types';
 import Chart, { Slice } from 'src/types/Chart';
 import copyTextToClipboard from 'src/utils/copy';
 import { ensureAppRoot } from 'src/utils/pathUtils';
@@ -760,98 +758,137 @@ export function useDatabaseValidation() {
   const [validationErrors, setValidationErrors] = useState<JsonObject | null>(
     null,
   );
-  const [isValidating, setIsValidating] = useState(false);
-  const [hasValidated, setHasValidated] = useState(false);
-
   const getValidation = useCallback(
-    async (database: Partial<DatabaseObject> | null, onCreate = false) => {
+    (database: Partial<DatabaseObject> | null, onCreate = false) => {
       if (database?.parameters?.ssh) {
+        // TODO: /validate_parameters/ and related utils should support ssh tunnel
         setValidationErrors(null);
-        setIsValidating(false);
-        setHasValidated(true);
-        return Promise.resolve([]);
+        return [];
       }
 
-      setIsValidating(true);
-
-      try {
-        await SupersetClient.post({
+      return (
+        SupersetClient.post({
           endpoint: '/api/v1/database/validate_parameters/',
           body: JSON.stringify(transformDB(database)),
           headers: { 'Content-Type': 'application/json' },
-        });
-        setValidationErrors(null);
-        setIsValidating(false);
-        setHasValidated(true);
-        return [];
-      } catch (error) {
-        if (typeof error.json === 'function') {
-          return error.json().then(({ errors = [] }) => {
-            const parsedErrors = errors
-              .filter((err: { error_type: string }) => {
-                const allowed = [
-                  'CONNECTION_MISSING_PARAMETERS_ERROR',
-                  'CONNECTION_ACCESS_DENIED_ERROR',
-                  'INVALID_PAYLOAD_SCHEMA_ERROR',
-                ];
-                return allowed.includes(err.error_type) || onCreate;
-              })
-              .reduce((acc: JsonObject, err_2: any) => {
-                const { message, extra } = err_2;
+        })
+          .then(() => {
+            setValidationErrors(null);
+          })
+          // eslint-disable-next-line consistent-return
+          .catch(e => {
+            if (typeof e.json === 'function') {
+              return e.json().then(({ errors = [] }: JsonObject) => {
+                const parsedErrors = errors
+                  .filter((error: { error_type: string }) => {
+                    const skipValidationError = ![
+                      'CONNECTION_MISSING_PARAMETERS_ERROR',
+                      'CONNECTION_ACCESS_DENIED_ERROR',
+                    ].includes(error.error_type);
+                    return skipValidationError || onCreate;
+                  })
+                  .reduce(
+                    (
+                      obj: {},
+                      {
+                        error_type,
+                        extra,
+                        message,
+                      }: {
+                        error_type: string;
+                        extra: {
+                          invalid?: string[];
+                          missing?: string[];
+                          name: string;
+                          catalog: {
+                            name: string;
+                            url: string;
+                            idx: number;
+                          };
+                          issue_codes?: {
+                            code?: number;
+                            message?: string;
+                          }[];
+                        };
+                        message: string;
+                      },
+                    ) => {
+                      if (extra.catalog) {
+                        if (extra.catalog.name) {
+                          return {
+                            ...obj,
+                            error_type,
+                            [extra.catalog.idx]: {
+                              name: message,
+                            },
+                          };
+                        }
+                        if (extra.catalog.url) {
+                          return {
+                            ...obj,
+                            error_type,
+                            [extra.catalog.idx]: {
+                              url: message,
+                            },
+                          };
+                        }
 
-                if (extra?.catalog) {
-                  const { idx } = extra.catalog;
-                  acc[idx] = {
-                    ...acc[idx],
-                    ...(extra.catalog.name ? { name: message } : {}),
-                    ...(extra.catalog.url ? { url: message } : {}),
-                  };
-                  return acc;
-                }
+                        return {
+                          ...obj,
+                          error_type,
+                          [extra.catalog.idx]: {
+                            name: message,
+                            url: message,
+                          },
+                        };
+                      }
+                      // if extra.invalid doesn't exist then the
+                      // error can't be mapped to a parameter
+                      // so leave it alone
+                      if (extra.invalid) {
+                        return {
+                          ...obj,
+                          [extra.invalid[0]]: message,
+                          error_type,
+                        };
+                      }
+                      if (extra.missing) {
+                        return {
+                          ...obj,
+                          error_type,
+                          ...Object.assign(
+                            {},
+                            ...extra.missing.map(field => ({
+                              [field]: 'This is a required field',
+                            })),
+                          ),
+                        };
+                      }
+                      if (extra.issue_codes?.length) {
+                        return {
+                          ...obj,
+                          error_type,
+                          description: message || extra.issue_codes[0]?.message,
+                        };
+                      }
 
-                if (extra?.invalid) {
-                  extra.invalid.forEach((field: string) => {
-                    acc[field] = message;
-                  });
-                }
-
-                if (extra?.missing) {
-                  extra.missing.forEach((field_1: string) => {
-                    acc[field_1] = 'This is a required field';
-                  });
-                }
-
-                if (extra?.issue_codes?.length) {
-                  acc.description = message || extra.issue_codes[0]?.message;
-                }
-
-                return acc;
-              }, {});
-
-            setValidationErrors(parsedErrors);
-            setIsValidating(false);
-            setHasValidated(true);
-            return parsedErrors;
-          });
-        }
-
-        console.error('Unexpected error during validation:', error);
-        setIsValidating(false);
-        setHasValidated(true);
-        return {};
-      }
+                      return obj;
+                    },
+                    {},
+                  );
+                setValidationErrors(parsedErrors);
+                return parsedErrors;
+              });
+            }
+            // eslint-disable-next-line no-console
+            console.error(e);
+          })
+      );
     },
     [setValidationErrors],
   );
 
-  return [
-    validationErrors,
-    getValidation,
-    setValidationErrors,
-    isValidating,
-    hasValidated,
-    setHasValidated,
-  ] as const;
+  return [validationErrors, getValidation, setValidationErrors] as const;
 }
 
 export const reportSelector = (

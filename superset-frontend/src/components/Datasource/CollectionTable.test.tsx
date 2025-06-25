@@ -28,9 +28,12 @@ const props = {
 };
 
 test('renders a table', () => {
-  const { container } = render(<CollectionTable {...props} />);
-  const tableBody = container.querySelector('.ant-table-tbody');
-  expect(tableBody).toBeInTheDocument();
-  const rows = tableBody?.getElementsByTagName('tr');
-  expect(rows).toHaveLength(mockDatasource['7__table'].columns.length + 1);
+  const { length } = mockDatasource['7__table'].columns;
+  const { getByRole } = render(<CollectionTable {...props} />);
+  expect(getByRole('table')).toBeInTheDocument();
+  expect(
+    getByRole('table')
+      .getElementsByTagName('tbody')[0]
+      .getElementsByClassName('row'),
+  ).toHaveLength(length);
 });

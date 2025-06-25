@@ -79,11 +79,7 @@ test('Should render', async () => {
   expect(container.children).toHaveLength(1);
   userEvent.type(screen.getByRole('combobox'), 'column_name');
   await waitFor(() => {
-    expect(
-      screen.getByRole('option', {
-        name: 'column_name_01',
-      }),
-    ).toBeInTheDocument();
+    expect(screen.getByTitle('column_name_01')).toBeInTheDocument();
   });
   await waitFor(() => {
     expect(screen.getByTitle('column_name_02')).toBeInTheDocument();
@@ -130,11 +126,7 @@ test('Should filter results', async () => {
   expect(container.children).toHaveLength(1);
   userEvent.type(screen.getByRole('combobox'), 'column_name');
   await waitFor(() => {
-    expect(
-      screen.getByRole('option', {
-        name: 'column_name_01',
-      }),
-    ).toBeInTheDocument();
+    expect(screen.getByTitle('column_name_01')).toBeInTheDocument();
   });
   await waitFor(() => {
     expect(screen.queryByTitle('column_name_02')).not.toBeInTheDocument();

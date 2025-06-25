@@ -20,7 +20,6 @@ import {
   getMetricLabel,
   DataRecordValue,
   tooltipHtml,
-  themeObject,
 } from '@superset-ui/core';
 import type { EChartsCoreOption } from 'echarts/core';
 import type { TreeSeriesOption } from 'echarts/charts';
@@ -182,7 +181,7 @@ export default function transformProps(
       }
     });
   }
-  const { theme } = themeObject;
+
   const series: TreeSeriesOption[] = [
     {
       type: 'tree',
@@ -190,7 +189,6 @@ export default function transformProps(
       label: {
         ...DEFAULT_TREE_SERIES_OPTION.label,
         position: nodeLabelPosition,
-        color: theme.colorText,
       },
       emphasis: { focus: emphasis },
       animation: DEFAULT_TREE_SERIES_OPTION.animation,
@@ -199,10 +197,7 @@ export default function transformProps(
       symbol,
       roam,
       symbolSize,
-      lineStyle: {
-        color: theme.colorText,
-        width: 1.5,
-      },
+      lineStyle: DEFAULT_TREE_SERIES_OPTION.lineStyle,
       select: DEFAULT_TREE_SERIES_OPTION.select,
       leaves: { label: { position: childLabelPosition } },
     },

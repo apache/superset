@@ -16,53 +16,52 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ReactNode, useCallback } from 'react';
-import { Divider, Form, Typography } from '@superset-ui/core/components';
+import { ReactNode, PureComponent } from 'react';
+import { Form } from 'src/components/Form';
+
 import { recurseReactClone } from './utils';
 import Field from './Field';
 
 interface FieldsetProps {
   children: ReactNode;
-  onChange: (updatedItem: Record<string, any>) => void;
+  onChange: Function;
   item: Record<string, any>;
-  title?: ReactNode;
-  compact?: boolean;
+  title: ReactNode;
+  compact: boolean;
 }
 
 type fieldKeyType = string | number;
 
-export default function Fieldset({
-  children,
-  onChange,
-  item,
-  title = null,
-  compact = false,
-}: FieldsetProps) {
-  const handleChange = useCallback(
-    (fieldKey: fieldKeyType, val: any) => {
-      onChange({
-        ...item,
-        [fieldKey]: val,
-      });
-    },
-    [onChange, item],
-  );
+export default class Fieldset extends PureComponent<FieldsetProps> {
+  static defaultProps = {
+    compact: false,
+    title: null,
+  };
 
-  const propExtender = (field: { props: { fieldKey: fieldKeyType } }) => ({
-    onChange: handleChange,
-    value: item[field.props.fieldKey],
-    compact,
-  });
+  constructor(props: FieldsetProps) {
+    super(props);
+    this.onChange = this.onChange.bind(this);
+  }
 
-  return (
-    <Form className="CRUD" layout="vertical">
-      {title && (
-        <Typography.Title level={5}>
-          {title} <Divider />
-        </Typography.Title>
-      )}
+  onChange(fieldKey: fieldKeyType, val: any) {
+    return this.props.onChange({
+      ...this.props.item,
+      [fieldKey]: val,
+    });
+  }
 
-      {recurseReactClone(children, Field, propExtender)}
-    </Form>
-  );
+  render() {
+    const { title } = this.props;
+    const propExtender = (field: { props: { fieldKey: fieldKeyType } }) => ({
+      onChange: this.onChange,
+      value: this.props.item[field.props.fieldKey],
+      compact: this.props.compact,
+    });
+    return (
+      <Form className="CRUD" layout="vertical">
+        {title && <legend>{title}</legend>}
+        {recurseReactClone(this.props.children, Field, propExtender)}
+      </Form>
+    );
+  }
 }

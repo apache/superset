@@ -18,15 +18,13 @@
  */
 import { t } from '@superset-ui/core';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
-import {
-  Checkbox,
-  FormModal,
-  Select,
-  Input,
-  FormItem,
-  FormInstance,
-} from '@superset-ui/core/components';
-import { Group, Role, UserObject } from 'src/pages/UsersList/types';
+import FormModal from 'src/components/Modal/FormModal';
+import { FormItem } from 'src/components/Form';
+import { Input } from 'src/components/Input';
+import Checkbox from 'src/components/Checkbox';
+import Select from 'src/components/Select/Select';
+import { Group, Role, UserObject } from 'src/pages/UsersList';
+import { FormInstance } from 'src/components';
 import { Actions } from 'src/constants';
 import { BaseUserListModalProps, FormValues } from './types';
 import { createUser, updateUser, atLeastOneRoleOrGroup } from './utils';
@@ -197,7 +195,7 @@ function UserListModal({
                 label: role.name,
               }))}
               getPopupContainer={trigger =>
-                trigger.closest('.ant-modal-content')
+                trigger.closest('.antd5-modal-content')
               }
             />
           </FormItem>
@@ -216,7 +214,7 @@ function UserListModal({
                 label: group.name,
               }))}
               getPopupContainer={trigger =>
-                trigger.closest('.ant-modal-content')
+                trigger.closest('.antd5-modal-content')
               }
             />
           </FormItem>

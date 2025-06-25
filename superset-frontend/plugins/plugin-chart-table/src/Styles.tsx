@@ -16,50 +16,36 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 import { css, styled } from '@superset-ui/core';
 
 export default styled.div`
   ${({ theme }) => css`
-    /* Base table styles */
     table {
       width: 100%;
       min-width: auto;
       max-width: none;
       margin: 0;
-      border-collapse: collapse;
     }
 
-    /* Cell styling */
     th,
     td {
       min-width: 4.3em;
-      padding: 0.75rem;
-      vertical-align: top;
     }
 
-    /* Header styling */
     thead > tr > th {
       padding-right: 0;
       position: relative;
-      background-color: ${theme.colorBgBase};
+      background: ${theme.colors.grayscale.light5};
       text-align: left;
-      border-bottom: 2px solid ${theme.colorSplit};
-      color: ${theme.colorText};
-      vertical-align: bottom;
     }
-
-    /* Icons in header */
     th svg {
-      margin: 1px ${theme.sizeUnit / 2}px;
-      fill-opacity: 0.2;
+      color: ${theme.colors.grayscale.light2};
+      margin: ${theme.gridUnit / 2}px;
     }
-
     th.is-sorted svg {
-      color: ${theme.colorText};
-      fill-opacity: 1;
+      color: ${theme.colors.grayscale.base};
     }
-
-    /* Table body styling */
     .table > tbody > tr:first-of-type > td,
     .table > tbody > tr:first-of-type > th {
       border-top: 0;
@@ -67,113 +53,58 @@ export default styled.div`
 
     .table > tbody tr td {
       font-feature-settings: 'tnum' 1;
-      border-top: 1px solid ${theme.colorSplit};
     }
 
-    /* Bootstrap-like condensed table styles */
-    table.table-condensed,
-    table.table-sm {
-      font-size: ${theme.fontSizeSM}px;
-    }
-
-    table.table-condensed th,
-    table.table-condensed td,
-    table.table-sm th,
-    table.table-sm td {
-      padding: 0.3rem;
-    }
-
-    /* Bootstrap-like bordered table styles */
-    table.table-bordered {
-      border: 1px solid ${theme.colorSplit};
-    }
-
-    table.table-bordered th,
-    table.table-bordered td {
-      border: 1px solid ${theme.colorSplit};
-    }
-
-    /* Bootstrap-like striped table styles */
-    table.table-striped tbody tr:nth-of-type(odd) {
-      background-color: ${theme.colorBgLayout};
-    }
-
-    /* Controls and metrics */
     .dt-controls {
       padding-bottom: 0.65em;
     }
-
     .dt-metric {
       text-align: right;
     }
-
     .dt-totals {
-      font-weight: ${theme.fontWeightStrong};
+      font-weight: ${theme.typography.weights.bold};
     }
-
     .dt-is-null {
-      color: ${theme.colorTextTertiary};
+      color: ${theme.colors.grayscale.light1};
     }
-
     td.dt-is-filter {
       cursor: pointer;
     }
-
     td.dt-is-filter:hover {
-      background-color: ${theme.colorPrimaryBgHover};
+      background-color: ${theme.colors.secondary.light4};
     }
-
     td.dt-is-active-filter,
     td.dt-is-active-filter:hover {
-      background-color: ${theme.colorPrimaryBgHover};
+      background-color: ${theme.colors.secondary.light3};
     }
 
     .dt-global-filter {
       float: right;
     }
 
-    /* Cell truncation */
     .dt-truncate-cell {
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
     }
-
     .dt-truncate-cell:hover {
       overflow: visible;
       white-space: normal;
       height: auto;
     }
 
-    /* Pagination styling */
     .dt-pagination {
       text-align: right;
       /* use padding instead of margin so clientHeight can capture it */
       padding-top: 0.5em;
     }
-
-    .dt-pagination .pagination > li > a,
-    .dt-pagination .pagination > li > span {
-      background-color: ${theme.colorBgBase};
-      color: ${theme.colorText};
-      border-color: ${theme.colorBorderSecondary};
-    }
-
-    .dt-pagination .pagination > li.active > a,
-    .dt-pagination .pagination > li.active > span,
-    .dt-pagination .pagination > li.active > a:focus,
-    .dt-pagination .pagination > li.active > a:hover,
-    .dt-pagination .pagination > li.active > span:focus,
-    .dt-pagination .pagination > li.active > span:hover {
-      background-color: ${theme.colorPrimary};
-      color: ${theme.colorBgContainer};
-      border-color: ${theme.colorBorderSecondary};
+    .dt-pagination .pagination {
+      margin: 0;
     }
 
     .pagination > li > span.dt-pagination-ellipsis:focus,
     .pagination > li > span.dt-pagination-ellipsis:hover {
-      background: ${theme.colorBgLayout};
-      border-color: ${theme.colorBorderSecondary};
+      background: ${theme.colors.grayscale.light5};
     }
 
     .dt-no-results {
@@ -182,9 +113,8 @@ export default styled.div`
     }
 
     .right-border-only {
-      border-right: 2px solid ${theme.colorSplit};
+      border-right: 2px solid ${theme.colors.grayscale.light2};
     }
-
     table .right-border-only:last-child {
       border-right: none;
     }

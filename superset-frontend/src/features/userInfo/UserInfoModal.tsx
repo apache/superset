@@ -17,8 +17,10 @@
  * under the License.
  */
 import { SupersetClient, t } from '@superset-ui/core';
-import { FormModal, FormItem, Input } from '@superset-ui/core/components';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
+import FormModal from 'src/components/Modal/FormModal';
+import { FormItem } from 'src/components/Form';
+import { Input } from 'src/components/Input';
 import { User } from 'src/types/bootstrapTypes';
 import { BaseUserListModalProps, FormValues } from '../users/types';
 

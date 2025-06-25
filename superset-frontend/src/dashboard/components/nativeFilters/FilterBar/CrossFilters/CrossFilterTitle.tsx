@@ -24,15 +24,15 @@ import {
   useTheme,
   useCSSTextTruncation,
 } from '@superset-ui/core';
-import { Tooltip } from '@superset-ui/core/components';
+import { Tooltip } from 'src/components/Tooltip';
 import { FilterBarOrientation } from 'src/dashboard/types';
-import { Icons } from '@superset-ui/core/components/Icons';
+import { Icons } from 'src/components/Icons';
 import { ellipsisCss } from './styles';
 
 const StyledCrossFilterTitle = styled.div`
   ${({ theme }) => `
     display: flex;
-    font-size: ${theme.fontSizeSM}px;
+    font-size: ${theme.typography.sizes.s}px;
     color: ${theme.colors.grayscale.base};
     vertical-align: middle;
     align-items: center;
@@ -43,7 +43,7 @@ const StyledIconSearch = styled(Icons.SearchOutlined)`
   ${({ theme }) => `
     & > span.anticon.anticon-search {
       color: ${theme.colors.grayscale.light1};
-      margin-left: ${theme.sizeUnit}px;
+      margin-left: ${theme.gridUnit}px;
       transition: 0.3s;
       vertical-align: middle;
       line-height: 0;
@@ -68,8 +68,8 @@ const CrossFilterChartTitle = (props: {
         <span
           css={css`
             max-width: ${orientation === FilterBarOrientation.Vertical
-              ? `${theme.sizeUnit * 45}px`
-              : `${theme.sizeUnit * 15}px`};
+              ? `${theme.gridUnit * 45}px`
+              : `${theme.gridUnit * 15}px`};
             line-height: 1.4;
             ${ellipsisCss}
           `}

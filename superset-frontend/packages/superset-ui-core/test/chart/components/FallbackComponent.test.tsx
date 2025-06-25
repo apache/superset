@@ -17,23 +17,30 @@
  * under the License.
  */
 
-import { render } from '@superset-ui/core/spec';
+import { render } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { FallbackProps } from 'react-error-boundary';
+import { ThemeProvider, supersetTheme } from '../../../src/style';
 
 import FallbackComponent from '../../../src/chart/components/FallbackComponent';
 
-const setup = (props: Partial<FallbackProps> & FallbackProps['error']) =>
-  render(<FallbackComponent {...props} />);
+const renderWithTheme = (
+  props: Partial<FallbackProps> & FallbackProps['error'],
+) =>
+  render(
+    <ThemeProvider theme={supersetTheme}>
+      <FallbackComponent {...props} />
+    </ThemeProvider>,
+  );
 
 const ERROR = new Error('CaffeineOverLoadException');
 
 test('renders error only', () => {
-  const { getByText } = setup({ error: ERROR });
+  const { getByText } = renderWithTheme({ error: ERROR });
   expect(getByText('Error: CaffeineOverLoadException')).toBeInTheDocument();
 });
 
 test('renders when nothing is given', () => {
-  const { getByText } = setup({});
+  const { getByText } = renderWithTheme({});
   expect(getByText('Unknown Error')).toBeInTheDocument();
 });

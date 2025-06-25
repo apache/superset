@@ -18,7 +18,7 @@
  */
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useSelector } from 'react-redux';
-import { Menu } from '@superset-ui/core/components/Menu';
+import { Menu } from 'src/components/Menu';
 import { t } from '@superset-ui/core';
 import { isEmpty } from 'lodash';
 import { URL_PARAMS } from 'src/constants';
@@ -164,6 +164,7 @@ export const useHeaderActionsMenu = ({
     const isEmbedded = !dashboardInfo?.userId;
     const refreshIntervalOptions =
       dashboardInfo.common?.conf?.DASHBOARD_AUTO_REFRESH_INTERVALS;
+
     return (
       <Menu
         selectable={false}
@@ -286,7 +287,9 @@ export const useHeaderActionsMenu = ({
         {editMode && !isEmpty(dashboardInfo?.metadata?.filter_scopes) && (
           <Menu.Item key={MenuKeys.SetFilterMapping}>
             <FilterScopeModal
-              triggerNode={<div>{t('Set filter mapping')}</div>}
+              triggerNode={
+                <div className="m-r-5">{t('Set filter mapping')}</div>
+              }
             />
           </Menu.Item>
         )}

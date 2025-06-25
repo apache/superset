@@ -28,17 +28,19 @@ import {
   getLabelsColorMap,
   CategoricalColorNamespace,
 } from '@superset-ui/core';
+// eslint-disable-next-line no-restricted-imports
+import AntdSelect from 'antd/lib/select'; // TODO: Remove antd
 import { sortBy } from 'lodash';
 import ControlHeader from 'src/explore/components/ControlHeader';
-import {
-  Tooltip,
-  Select,
-  type SelectOptionsType,
-} from '@superset-ui/core/components';
-import { Icons } from '@superset-ui/core/components/Icons';
-import { handleFilterOptionHelper } from '@superset-ui/core/components/Select/utils';
+import { Tooltip } from 'src/components/Tooltip';
+import { Icons } from 'src/components/Icons';
+import { SelectOptionsType } from 'src/components/Select/types';
+import { StyledSelect } from 'src/components/Select/styles';
+import { handleFilterOptionHelper } from 'src/components/Select/utils';
 import { getColorNamespace } from 'src/utils/colorScheme';
 import ColorSchemeLabel from './ColorSchemeLabel';
+
+const { Option, OptGroup } = AntdSelect;
 
 export type OptionData = SelectOptionsType[number]['options'][number];
 
@@ -174,14 +176,11 @@ const ColorSchemeControl = ({
   const options = useMemo(() => {
     if (showDashboardLockedOption) {
       return [
-        {
-          value: 'dashboard',
-          label: (
-            <Tooltip title={DASHBOARD_CONTEXT_TOOLTIP}>
-              {t('Dashboard scheme')}
-            </Tooltip>
-          ),
-        },
+        <Option value="dashboard" label={t('Dashboard')} key="dashboard">
+          <Tooltip title={DASHBOARD_CONTEXT_TOOLTIP}>
+            {t('Dashboard scheme')}
+          </Tooltip>
+        </Option>,
       ];
     }
     const schemesObject = typeof schemes === 'function' ? schemes() : schemes;
@@ -209,13 +208,14 @@ const ColorSchemeControl = ({
             : currentScheme.colors;
         }
         const option = {
-          label: (
+          customLabel: (
             <ColorSchemeLabel
               id={currentScheme.id}
               label={currentScheme.label}
               colors={colors}
             />
           ) as ReactNode,
+          label: schemesObject?.[value]?.label || value,
           value,
         };
         acc[currentScheme.group ?? ColorSchemeGroup.Other].options.push(option);
@@ -251,18 +251,25 @@ const ColorSchemeControl = ({
       nonEmptyGroups.length === 1 &&
       nonEmptyGroups[0].title === ColorSchemeGroup.Other
     ) {
-      return nonEmptyGroups[0].options.map(opt => ({
-        value: opt.value,
-        label: opt.customLabel || opt.label,
-      }));
+      return nonEmptyGroups[0].options.map((opt, index) => (
+        <Option value={opt.value} label={opt.label} key={index}>
+          {opt.customLabel}
+        </Option>
+      ));
     }
-    return nonEmptyGroups.map(group => ({
-      label: group.label,
-      options: group.options.map(opt => ({
-        value: opt.value,
-        label: opt.customLabel || opt.label,
-      })),
-    }));
+    return nonEmptyGroups.map((group, groupIndex) => (
+      <OptGroup label={group.label} key={groupIndex}>
+        {group.options.map((opt, optIndex) => (
+          <Option
+            value={opt.value}
+            label={opt.label}
+            key={`${groupIndex}-${optIndex}`}
+          >
+            {opt.customLabel}
+          </Option>
+        ))}
+      </OptGroup>
+    ));
   }, [choices, hasDashboardScheme, hasSharedLabelsColor, isLinear, schemes]);
 
   // We can't pass on change directly because it receives a second
@@ -301,15 +308,15 @@ const ColorSchemeControl = ({
           />
         }
       />
-      <Select
+      <StyledSelect
         css={css`
           width: 100%;
           & .ant-select-item.ant-select-item-group {
-            padding-left: ${theme.sizeUnit}px;
-            font-size: ${theme.fontSize}px;
+            padding-left: ${theme.gridUnit}px;
+            font-size: ${theme.typography.sizes.m}px;
           }
           & .ant-select-item-option-grouped {
-            padding-left: ${theme.sizeUnit * 3}px;
+            padding-left: ${theme.gridUnit * 3}px;
           }
         `}
         aria-label={t('Select color scheme')}
@@ -318,9 +325,8 @@ const ColorSchemeControl = ({
         onChange={handleOnChange}
         placeholder={t('Select scheme')}
         value={currentScheme}
-        showSearch
         getPopupContainer={triggerNode => triggerNode.parentNode}
-        options={options}
+        showSearch
         filterOption={(search, option) =>
           handleFilterOptionHelper(
             search,
@@ -329,7 +335,9 @@ const ColorSchemeControl = ({
             true,
           )
         }
-      />
+      >
+        {options}
+      </StyledSelect>
     </>
   );
 };

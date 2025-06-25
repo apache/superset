@@ -43,7 +43,6 @@ describe('OAuth2ClientField', () => {
     getValidation: jest.fn(),
     clearValidationErrors: jest.fn(),
     field: 'test',
-    isValidating: false,
     db: {
       configuration_method: 'dynamic_form',
       database_name: 'test',

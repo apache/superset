@@ -145,14 +145,6 @@ const ActionLogList: LazyExoticComponent<any> = lazy(
   () => import(/* webpackChunkName: "ActionLogList" */ 'src/pages/ActionLog'),
 );
 
-const Login = lazy(
-  () => import(/* webpackChunkName: "Login" */ 'src/pages/Login'),
-);
-
-const Register = lazy(
-  () => import(/* webpackChunkName: "Register" */ 'src/pages/Register'),
-);
-
 const GroupsList: LazyExoticComponent<any> = lazy(
   () => import(/* webpackChunkName: "GroupsList" */ 'src/pages/GroupsList'),
 );
@@ -164,18 +156,6 @@ type Routes = {
 }[];
 
 export const routes: Routes = [
-  {
-    path: '/login/',
-    Component: Login,
-  },
-  {
-    path: '/register/',
-    Component: Register,
-  },
-  {
-    path: '/logout/',
-    Component: Login,
-  },
   {
     path: '/superset/welcome/',
     Component: Home,

@@ -18,7 +18,6 @@
  */
 import fetchMock from 'fetch-mock';
 import {
-  screen,
   render,
   userEvent,
   waitForElementToBeRemoved,
@@ -123,7 +122,7 @@ describe('ResultsPaneOnDashboard', () => {
       useRedux: true,
     });
     expect(await findByText('0 rows')).toBeVisible();
-    expect(await findByText('Bad request')).toBeVisible();
+    expect(await findByText('Bad Request')).toBeVisible();
   });
 
   test('force query, render and search', async () => {
@@ -169,20 +168,11 @@ describe('ResultsPaneOnDashboard', () => {
       sliceId: 196,
       vizType: VizType.MixedTimeseries,
     });
-
-    render(<ResultsPaneOnDashboard {...props} />, {
+    const { findByText } = render(<ResultsPaneOnDashboard {...props} />, {
       useRedux: true,
     });
-
-    await waitForElementToBeRemoved(() =>
-      screen.queryByRole('status', { name: 'Loading' }),
-    );
-
-    const tab1 = document.querySelector('[data-node-key="results"]');
-    const tab2 = document.querySelector('[data-node-key="results 2"]');
-
-    expect(tab1).toBeVisible();
-    expect(tab2).toBeVisible();
+    expect(await findByText('Results')).toBeVisible();
+    expect(await findByText('Results 2')).toBeVisible();
   });
 
   test('dynamic number of results pane', async () => {
@@ -203,21 +193,14 @@ describe('ResultsPaneOnDashboard', () => {
       sliceId: 196,
       vizType: VizType.MixedTimeseries,
     });
-
-    render(<ResultsPaneOnDashboard {...props} />, {
-      useRedux: true,
-    });
-
-    await waitForElementToBeRemoved(() =>
-      screen.queryByRole('status', { name: 'Loading' }),
+    const { findByText, queryByText } = render(
+      <ResultsPaneOnDashboard {...props} />,
+      {
+        useRedux: true,
+      },
     );
-
-    const tab1 = document.querySelector('[data-node-key="results"]');
-    const tab2 = document.querySelector('[data-node-key="results 2"]');
-    const tab3 = document.querySelector('[data-node-key="results 3"]');
-
-    expect(tab1).toBeVisible();
-    expect(tab2).toBeVisible();
-    expect(tab3).toBeNull();
+    expect(await findByText('Results')).toBeVisible();
+    expect(await findByText('Results 2')).toBeVisible();
+    expect(queryByText('Results 3')).not.toBeInTheDocument();
   });
 });

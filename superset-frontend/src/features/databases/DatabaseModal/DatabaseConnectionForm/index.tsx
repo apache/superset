@@ -17,7 +17,7 @@
  * under the License.
  */
 import { SupersetTheme } from '@superset-ui/core';
-import { Form } from '@superset-ui/core/components';
+import { Form } from 'src/components/Form';
 import { FormFieldOrder, FORM_FIELD_MAP } from './constants';
 import { formScrollableStyles, validatedFormStyles } from '../styles';
 import { DatabaseConnectionFormProps } from '../../types';
@@ -40,7 +40,6 @@ const DatabaseConnectionForm = ({
   sslForced,
   validationErrors,
   clearValidationErrors,
-  isValidating,
 }: DatabaseConnectionFormProps) => {
   const parameters = dbModel?.parameters as {
     properties: {
@@ -91,7 +90,6 @@ const DatabaseConnectionForm = ({
               isEditMode,
               sslForced,
               editNewDb,
-              isValidating,
               placeholder: getPlaceholder ? getPlaceholder(field) : undefined,
             }),
           )}

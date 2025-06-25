@@ -17,12 +17,9 @@
  * under the License.
  */
 import { t, styled } from '@superset-ui/core';
-import { Icons } from '@superset-ui/core/components/Icons';
-import { Alert, Image } from '@superset-ui/core/components';
-import Table, {
-  ColumnsType,
-  TableSize,
-} from '@superset-ui/core/components/Table';
+import { Icons } from 'src/components/Icons';
+import Alert from 'src/components/Alert';
+import Table, { ColumnsType, TableSize } from 'src/components/Table';
 // @ts-ignore
 import LOADING_GIF from 'src/assets/images/loading.gif';
 import { DatasetObject } from 'src/features/datasets/AddDataset/types';
@@ -58,20 +55,20 @@ const MARGIN_MULTIPLIER = 3;
 const StyledHeader = styled.div<StyledHeaderProps>`
   ${({ theme, position }) => `
   position: ${position};
-  margin: ${theme.sizeUnit * (MARGIN_MULTIPLIER + 1)}px
-    ${theme.sizeUnit * MARGIN_MULTIPLIER}px
-    ${theme.sizeUnit * MARGIN_MULTIPLIER}px
-    ${theme.sizeUnit * (MARGIN_MULTIPLIER + 3)}px;
-  font-size: ${theme.sizeUnit * 6}px;
-  font-weight: ${theme.fontWeightStrong};
-  padding-bottom: ${theme.sizeUnit * MARGIN_MULTIPLIER}px;
+  margin: ${theme.gridUnit * (MARGIN_MULTIPLIER + 1)}px
+    ${theme.gridUnit * MARGIN_MULTIPLIER}px
+    ${theme.gridUnit * MARGIN_MULTIPLIER}px
+    ${theme.gridUnit * (MARGIN_MULTIPLIER + 3)}px;
+  font-size: ${theme.gridUnit * 6}px;
+  font-weight: ${theme.typography.weights.medium};
+  padding-bottom: ${theme.gridUnit * MARGIN_MULTIPLIER}px;
 
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 
   .anticon:first-of-type {
-    margin-right: ${theme.sizeUnit * 2}px;
+    margin-right: ${theme.gridUnit * 2}px;
     vertical-align: text-top;
   }
 
@@ -80,16 +77,16 @@ const StyledHeader = styled.div<StyledHeaderProps>`
 
 const StyledTitle = styled.div`
   ${({ theme }) => `
-  margin-left: ${theme.sizeUnit * (MARGIN_MULTIPLIER + 3)}px;
-  margin-bottom: ${theme.sizeUnit * MARGIN_MULTIPLIER}px;
-  font-weight: ${theme.fontWeightStrong};
+  margin-left: ${theme.gridUnit * (MARGIN_MULTIPLIER + 3)}px;
+  margin-bottom: ${theme.gridUnit * MARGIN_MULTIPLIER}px;
+  font-weight: ${theme.typography.weights.bold};
   `}
 `;
 
 const LoaderContainer = styled.div`
   ${({ theme }) => `
-  padding: ${theme.sizeUnit * 8}px
-    ${theme.sizeUnit * 6}px;
+  padding: ${theme.gridUnit * 8}px
+    ${theme.gridUnit * 6}px;
   box-sizing: border-box;
   display: flex;
   align-items: center;
@@ -108,17 +105,17 @@ const StyledLoader = styled.div`
   max-width: 50%;
   width: ${LOADER_WIDTH}px;
 
-  .ant-image {
+  img {
     width: ${SPINNER_WIDTH}px;
     margin-left: ${(LOADER_WIDTH - SPINNER_WIDTH) * HALF}px;
   }
 
   div {
     width: 100%;
-    margin-top: ${theme.sizeUnit * MARGIN_MULTIPLIER}px;
+    margin-top: ${theme.gridUnit * MARGIN_MULTIPLIER}px;
     text-align: center;
-    font-weight: ${theme.fontWeightNormal};
-    font-size: ${theme.fontSizeLG}px;
+    font-weight: ${theme.typography.weights.normal};
+    font-size: ${theme.typography.sizes.l}px;
     color: ${theme.colors.grayscale.light1};
   }
   `}
@@ -127,9 +124,9 @@ const StyledLoader = styled.div`
 const TableContainerWithBanner = styled.div`
   ${({ theme }) => `
   position: relative;
-  margin: ${theme.sizeUnit * MARGIN_MULTIPLIER}px;
-  margin-left: ${theme.sizeUnit * (MARGIN_MULTIPLIER + 3)}px;
-  height: calc(100% - ${theme.sizeUnit * 60}px);
+  margin: ${theme.gridUnit * MARGIN_MULTIPLIER}px;
+  margin-left: ${theme.gridUnit * (MARGIN_MULTIPLIER + 3)}px;
+  height: calc(100% - ${theme.gridUnit * 60}px);
   overflow: auto;
   `}
 `;
@@ -137,9 +134,9 @@ const TableContainerWithBanner = styled.div`
 const TableContainerWithoutBanner = styled.div`
   ${({ theme }) => `
   position: relative;
-  margin: ${theme.sizeUnit * MARGIN_MULTIPLIER}px;
-  margin-left: ${theme.sizeUnit * (MARGIN_MULTIPLIER + 3)}px;
-  height: calc(100% - ${theme.sizeUnit * 30}px);
+  margin: ${theme.gridUnit * MARGIN_MULTIPLIER}px;
+  margin-left: ${theme.gridUnit * (MARGIN_MULTIPLIER + 3)}px;
+  height: calc(100% - ${theme.gridUnit * 30}px);
   overflow: auto;
   `}
 `;
@@ -155,16 +152,17 @@ const TableScrollContainer = styled.div`
 const StyledAlert = styled(Alert)`
   ${({ theme }) => `
   border: 1px solid ${theme.colors.info.base};
-  padding: ${theme.sizeUnit * 4}px;
-  margin: ${theme.sizeUnit * 6}px ${theme.sizeUnit * 6}px
-    ${theme.sizeUnit * 8}px;
+  padding: ${theme.gridUnit * 4}px;
+  margin: ${theme.gridUnit * 6}px ${theme.gridUnit * 6}px
+    ${theme.gridUnit * 8}px;
   .view-dataset-button {
     position: absolute;
-    top: ${theme.sizeUnit * 4}px;
-    right: ${theme.sizeUnit * 4}px;
+    top: ${theme.gridUnit * 4}px;
+    right: ${theme.gridUnit * 4}px;
+    font-weight: ${theme.typography.weights.normal};
 
     &:hover {
-      color: ${theme.colorPrimary};
+      color: ${theme.colors.secondary.dark3};
       text-decoration: underline;
     }
   }
@@ -270,7 +268,7 @@ const DatasetPanel = ({
     loader = (
       <LoaderContainer>
         <StyledLoader>
-          <Image preview={false} alt={ALT_LOADING} src={LOADING_GIF} />
+          <img alt={ALT_LOADING} src={LOADING_GIF} />
           <div>{REFRESHING}</div>
         </StyledLoader>
       </LoaderContainer>
