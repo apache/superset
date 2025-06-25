@@ -19,7 +19,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useResizeDetector } from 'react-resize-detector';
 import { uniqWith } from 'lodash';
-import { styled } from '@superset-ui/core';
+import { styled, useTheme } from '@superset-ui/core';
 import { Tooltip } from '../Tooltip';
 import { TooltipPlacement } from '../Tooltip/types';
 import { ContentType } from './ContentType';
@@ -132,6 +132,8 @@ const Item = ({
     );
   }, [barWidth, setIsTruncated, contentType]);
 
+  const theme = useTheme();
+
   const content = (
     <StyledItem
       collapsed={collapsed}
@@ -139,7 +141,11 @@ const Item = ({
       onClick={onClick ? () => onClick(type) : undefined}
       role={onClick ? 'button' : undefined}
     >
-      <Icon iconSize="l" className="metadata-icon" />
+      <Icon
+        iconSize="l"
+        iconColor={theme.colorTextTertiary}
+        className="metadata-icon"
+      />
       {!collapsed && (
         <span ref={ref} className="metadata-text">
           {title}
