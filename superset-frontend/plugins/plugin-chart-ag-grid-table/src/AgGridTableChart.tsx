@@ -41,20 +41,12 @@ import TimeComparisonVisibility from './AgGridTable/components/TimeComparisonVis
 import { useColDefs } from './utils/useColDefs';
 import { getCrossFilterDataMask } from './utils/getCrossFilterDataMask';
 
-const getGridHeight = (
-  height: number,
-  serverPagination: boolean,
-  hasPageLength: boolean,
-  includeSearch: boolean | undefined,
-) => {
+const getGridHeight = (height: number, includeSearch: boolean | undefined) => {
   let calculatedGridHeight = height;
-  if (serverPagination || hasPageLength) {
-    calculatedGridHeight -= 80;
-  }
   if (includeSearch) {
     calculatedGridHeight -= 16;
   }
-  return calculatedGridHeight;
+  return calculatedGridHeight - 80;
 };
 
 const StyledChartContainer = styled.div<{ height: number }>`
@@ -173,7 +165,6 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     percentMetrics,
     hasServerPageLengthChanged,
     serverPageLength,
-    hasPageLength,
     emitCrossFilters,
     filters,
     timeGrain,
@@ -255,12 +246,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     alignPositiveNegative,
   });
 
-  const gridHeight = getGridHeight(
-    height,
-    serverPagination,
-    hasPageLength,
-    includeSearch,
-  );
+  const gridHeight = getGridHeight(height, includeSearch);
 
   const isActiveFilterValue = useCallback(
     function isActiveFilterValue(key: string, val: DataRecordValue) {
