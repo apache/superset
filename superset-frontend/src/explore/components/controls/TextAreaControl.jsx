@@ -25,7 +25,7 @@ import {
   TextAreaEditor,
   ModalTrigger,
 } from '@superset-ui/core/components';
-import { t, withTheme, css } from '@superset-ui/core';
+import { t, withTheme } from '@superset-ui/core';
 
 import ControlHeader from 'src/explore/components/ControlHeader';
 
@@ -112,11 +112,6 @@ class TextAreaControl extends Component {
       const codeEditor = (
         <div>
           <TextAreaEditor
-            css={css`
-              .ace_gutter-active-line {
-                background-color: inherit;
-              }
-            `}
             mode={this.props.language}
             style={style}
             minLines={minLines}
