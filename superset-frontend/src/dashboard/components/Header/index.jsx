@@ -26,7 +26,6 @@ import {
   FeatureFlag,
   t,
   getExtensionsRegistry,
-  useTheme,
 } from '@superset-ui/core';
 import { Global } from '@emotion/react';
 import { shallowEqual, useDispatch, useSelector } from 'react-redux';
@@ -161,7 +160,6 @@ const discardChanges = () => {
 };
 
 const Header = () => {
-  const theme = useTheme();
   const dispatch = useDispatch();
   const [didNotifyMaxUndoHistoryToast, setDidNotifyMaxUndoHistoryToast] =
     useState(false);
@@ -652,10 +650,7 @@ const Header = () => {
                   data-test="header-save-button"
                   aria-label={t('Save')}
                 >
-                  <Icons.SaveOutlined
-                    iconColor={hasUnsavedChanges && theme.colors.primary.light5}
-                    iconSize="m"
-                  />
+                  <Icons.SaveOutlined iconSize="m" />
                   {t('Save')}
                 </Button>
               </div>
