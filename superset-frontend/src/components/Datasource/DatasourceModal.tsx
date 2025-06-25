@@ -18,8 +18,6 @@
  */
 import { FunctionComponent, useState, useRef } from 'react';
 import { useSelector } from 'react-redux';
-import Alert from 'src/components/Alert';
-import Button from 'src/components/Button';
 import {
   styled,
   SupersetClient,
@@ -30,12 +28,17 @@ import {
   css,
 } from '@superset-ui/core';
 
-import { Icons } from 'src/components/Icons';
-import Modal from 'src/components/Modal';
-import AsyncEsmComponent from 'src/components/AsyncEsmComponent';
-import ErrorMessageWithStackTrace from 'src/components/ErrorMessage/ErrorMessageWithStackTrace';
+import {
+  Icons,
+  Alert,
+  Button,
+  Modal,
+  AsyncEsmComponent,
+} from '@superset-ui/core/components';
 import withToasts from 'src/components/MessageToasts/withToasts';
-import { DatasetObject } from '../../features/datasets/types';
+import { ErrorMessageWithStackTrace } from 'src/components';
+import type { DatasetObject } from 'src/features/datasets/types';
+import type { DatasourceModalProps } from './types';
 
 const DatasourceEditor = AsyncEsmComponent(() => import('./DatasourceEditor'));
 
@@ -58,17 +61,11 @@ const StyledDatasourceModal = styled(Modal)`
   .modal-footer {
     flex: 0 1 auto;
   }
-`;
 
-interface DatasourceModalProps {
-  addSuccessToast: (msg: string) => void;
-  addDangerToast: (msg: string) => void;
-  datasource: DatasetObject;
-  onChange: () => {};
-  onDatasourceSave: (datasource: object, errors?: Array<any>) => {};
-  onHide: () => {};
-  show: boolean;
-}
+  .ant-tabs-top {
+    margin-top: -${({ theme }) => theme.sizeUnit * 4}px;
+  }
+`;
 
 function buildExtraJsonObject(
   item: DatasetObject['metrics'][0] | DatasetObject['columns'][0],
@@ -245,8 +242,8 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
     <div>
       <Alert
         css={theme => ({
-          marginTop: theme.gridUnit * 4,
-          marginBottom: theme.gridUnit * 4,
+          marginTop: theme.sizeUnit * 4,
+          marginBottom: theme.sizeUnit * 4,
         })}
         type="warning"
         showIcon
@@ -280,7 +277,7 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
           <Icons.EditOutlined
             iconSize="l"
             css={css`
-              margin: auto ${theme.gridUnit * 2}px auto 0;
+              margin: auto ${theme.sizeUnit * 2}px auto 0;
             `}
             data-test="edit-alt"
           />
@@ -294,7 +291,7 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
           <Button
             data-test="datasource-modal-cancel"
             buttonSize="small"
-            className="m-r-5"
+            buttonStyle="secondary"
             onClick={onHide}
           >
             {t('Cancel')}

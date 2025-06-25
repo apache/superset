@@ -19,16 +19,18 @@
 import { useState, useEffect, FC } from 'react';
 
 import { t, styled, SupersetClient } from '@superset-ui/core';
-import { FormLabel } from 'src/components/Form';
-import Modal from 'src/components/Modal';
-import AsyncSelect from 'src/components/Select/AsyncSelect';
-import Button from 'src/components/Button';
-import { loadTags } from 'src/components/Tags/utils';
+import {
+  FormLabel,
+  AsyncSelect,
+  Button,
+  Modal,
+} from '@superset-ui/core/components';
+import { loadTags } from 'src/components/Tag/utils';
 import { TaggableResourceOption } from 'src/features/tags/TagModal';
 
 const BulkTagModalContainer = styled.div`
   .bulk-tag-text {
-    margin-bottom: ${({ theme }) => theme.gridUnit * 2.5}px;
+    margin-bottom: ${({ theme }) => theme.sizeUnit * 2.5}px;
   }
 `;
 

@@ -35,6 +35,8 @@ jest.mock('./utils');
 const mockCreateRole = jest.mocked(createRole);
 
 jest.mock('src/components/MessageToasts/withToasts', () => ({
+  __esModule: true,
+  default: (Component: any) => Component,
   useToasts: () => mockToasts,
 }));
 
