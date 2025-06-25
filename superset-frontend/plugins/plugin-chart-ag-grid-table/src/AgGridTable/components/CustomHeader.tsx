@@ -109,15 +109,15 @@ const MenuContainer = styled.div`
   `}
 `;
 
-const getSortIcon = (
-  sortState: SortState[],
-  colId: string | null,
-): React.ReactNode => {
+const getSortIcon = (sortState: SortState[], colId: string | null) => {
   if (!sortState?.length || !colId) return null;
-  const currentSort = sortState[0];
-  if (currentSort.colId === colId) {
-    if (currentSort.sort === 'asc') return <ArrowUpOutlined />;
-    if (currentSort.sort === 'desc') return <ArrowDownOutlined />;
+  const { colId: currentCol, sort } = sortState[0];
+  if (currentCol === colId) {
+    return sort === 'asc' ? (
+      <ArrowUpOutlined />
+    ) : sort === 'desc' ? (
+      <ArrowDownOutlined />
+    ) : null;
   }
   return null;
 };
@@ -132,100 +132,90 @@ const CustomHeader: React.FC<CustomHeaderParams> = ({
 }) => {
   const { initialSortState, onColumnHeaderClicked } = context;
   const colId = column?.getColId();
-  const isPercentMetric = (column?.getColDef() as CustomColDef)?.context
-    ?.isPercentMetric;
-  const [isPopoverVisible, setPopoverVisible] = useState(false);
-  const filterContainerRef = useRef<HTMLDivElement>(null);
-  const [isMenuVisible, setIsMenuVisible] = useState(false);
+  const colDef = column?.getColDef() as CustomColDef;
+  const userColDef = column.getUserProvidedColDef() as UserProvidedColDef;
+  const isPercentMetric = colDef?.context?.isPercentMetric;
+
+  const [isFilterVisible, setFilterVisible] = useState(false);
+  const [isMenuVisible, setMenuVisible] = useState(false);
+  const filterRef = useRef<HTMLDivElement>(null);
+
   const currentSort = initialSortState?.[0];
-
-  const userColumn = column.getUserProvidedColDef() as UserProvidedColDef;
-  const isMain = userColumn?.isMain;
-  const timeComparisonKey = userColumn?.timeComparisonKey || '';
+  const isMain = userColDef?.isMain;
+  const isTimeComparison = !isMain && userColDef?.timeComparisonKey;
   const sortKey = isMain ? colId.replace('Main', '').trim() : colId;
-  const isTimeComparison = !isMain && timeComparisonKey;
 
+  // Sorting logic
   const clearSort = () => {
     onColumnHeaderClicked({ column: { colId: sortKey, sort: null } });
     setSort(null, false);
   };
 
-  const handleSortAsc = () => {
-    onColumnHeaderClicked({ column: { colId: sortKey, sort: 'asc' } });
-    setSort('asc', false);
+  const applySort = (direction: 'asc' | 'desc') => {
+    onColumnHeaderClicked({ column: { colId: sortKey, sort: direction } });
+    setSort(direction, false);
   };
 
-  const handleSortDesc = () => {
-    onColumnHeaderClicked({ column: { colId: sortKey, sort: 'desc' } });
-    setSort('desc', false);
+  const getNextSortDirection = (): 'asc' | 'desc' | null => {
+    if (currentSort?.colId !== colId) return 'asc';
+    if (currentSort?.sort === 'asc') return 'desc';
+    return null;
   };
 
-  const handleSort = () => {
-    if (isTimeComparison) return;
+  const toggleSort = () => {
+    if (!enableSorting || isTimeComparison) return;
 
-    if (!enableSorting) return;
-
-    const current = initialSortState?.[0];
-
-    if (!current || current.colId !== colId) {
-      handleSortAsc();
-    } else if (current.sort === 'asc') {
-      handleSortDesc();
-    } else {
-      clearSort();
-    }
+    const next = getNextSortDirection();
+    if (next) applySort(next);
+    else clearSort();
   };
 
-  const handleFilterClick = async (event: React.MouseEvent) => {
-    event.stopPropagation();
-    setPopoverVisible(!isPopoverVisible);
+  const handleFilterClick = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setFilterVisible(!isFilterVisible);
 
     const filterInstance = await api.getColumnFilterInstance<any>(column);
     const filterEl = filterInstance?.eGui;
-
-    if (!filterEl || !filterContainerRef.current) return;
-
-    filterContainerRef.current.innerHTML = '';
-    filterContainerRef.current.appendChild(filterEl);
+    if (filterEl && filterRef.current) {
+      filterRef.current.innerHTML = '';
+      filterRef.current.appendChild(filterEl);
+    }
   };
 
-  const handleMenuClick = (event: React.MouseEvent) => {
-    event.stopPropagation();
-    setIsMenuVisible(!isMenuVisible);
+  const handleMenuClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setMenuVisible(!isMenuVisible);
   };
 
-  const shouldShowAsc =
-    !currentSort ||
-    (currentSort?.colId === colId && currentSort?.sort === 'desc') ||
-    currentSort?.colId !== colId;
-  const shouldShowDesc =
-    !currentSort ||
-    (currentSort?.colId === colId && currentSort?.sort === 'asc') ||
-    currentSort?.colId !== colId;
+  const menuContent = () => {
+    const isCurrentColSorted = currentSort?.colId === colId;
+    const currentDirection = isCurrentColSorted ? currentSort?.sort : null;
+    return (
+      <MenuContainer>
+        {!isTimeComparison && currentDirection !== 'asc' && (
+          <div onClick={() => applySort('asc')} className="menu-item">
+            <ArrowUpOutlined /> {t('Sort Ascending')}
+          </div>
+        )}
 
-  const menuContent = (
-    <MenuContainer>
-      {shouldShowAsc && !isTimeComparison && (
-        <div onClick={handleSortAsc} className="menu-item">
-          <ArrowUpOutlined /> {t('Sort Ascending')}
-        </div>
-      )}
-      {shouldShowDesc && !isTimeComparison && (
-        <div onClick={handleSortDesc} className="menu-item">
-          <ArrowDownOutlined /> {t('Sort Descending')}
-        </div>
-      )}
-      {currentSort && currentSort?.colId === colId && (
-        <div onClick={clearSort} className="menu-item">
-          <span style={{ fontSize: 16 }}>↻</span> {t('Clear Sort')}
-        </div>
-      )}
-    </MenuContainer>
-  );
+        {!isTimeComparison && currentDirection !== 'desc' && (
+          <div onClick={() => applySort('desc')} className="menu-item">
+            <ArrowDownOutlined /> {t('Sort Descending')}
+          </div>
+        )}
+
+        {isCurrentColSorted && (
+          <div onClick={clearSort} className="menu-item">
+            <span style={{ fontSize: 16 }}>↻</span> {t('Clear Sort')}
+          </div>
+        )}
+      </MenuContainer>
+    );
+  };
 
   return (
     <Container>
-      <HeaderContainer onClick={handleSort} className="custom-header">
+      <HeaderContainer onClick={toggleSort} className="custom-header">
         <HeaderLabel>{displayName}</HeaderLabel>
         <SortIconWrapper>
           {getSortIcon(initialSortState, colId)}
@@ -233,9 +223,9 @@ const CustomHeader: React.FC<CustomHeaderParams> = ({
       </HeaderContainer>
 
       <CustomPopover
-        content={<div ref={filterContainerRef} />}
-        isOpen={isPopoverVisible}
-        onClose={() => setPopoverVisible(false)}
+        content={<div ref={filterRef} />}
+        isOpen={isFilterVisible}
+        onClose={() => setFilterVisible(false)}
       >
         <FilterIconWrapper
           className="header-filter"
@@ -244,11 +234,12 @@ const CustomHeader: React.FC<CustomHeaderParams> = ({
           {FilterIcon}
         </FilterIconWrapper>
       </CustomPopover>
+
       {!isPercentMetric && !isTimeComparison && (
         <CustomPopover
           content={menuContent}
           isOpen={isMenuVisible}
-          onClose={() => setIsMenuVisible(false)}
+          onClose={() => setMenuVisible(false)}
         >
           <div className="three-dots-menu" onClick={handleMenuClick}>
             <KebabMenu />
