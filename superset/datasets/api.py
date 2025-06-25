@@ -17,7 +17,6 @@
 # pylint: disable=too-many-lines
 from __future__ import annotations
 
-import copy
 import logging
 from datetime import datetime
 from io import BytesIO
@@ -27,12 +26,12 @@ from zipfile import is_zipfile, ZipFile
 from flask import request, Response, send_file
 from flask_appbuilder.api import expose, protect, rison, safe
 from flask_appbuilder.api.schemas import get_item_schema
-from flask_appbuilder.models.filters import Filters
 from flask_appbuilder.const import (
+    API_FILTERS_RIS_KEY,
     API_RESULT_RES_KEY,
     API_SELECT_COLUMNS_RIS_KEY,
-    API_FILTERS_RIS_KEY,
 )
+from flask_appbuilder.models.filters import Filters
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_babel import ngettext
 from jinja2.exceptions import TemplateSyntaxError
@@ -304,19 +303,16 @@ class DatasetRestApi(BaseSupersetModelRestApi):
     def _handle_filters_args(self, rison_args: Dict[str, Any]) -> Filters:
         """
         Handle filters arguments passed to the API endpoint.
-
         Parses and applies filtering criteria provided as Rison-encoded arguments
-        to construct a Filters instance. This method ensures that each request 
-        uses an isolated Filters instance to avoid shared state issues 
+        to construct a Filters instance. This method ensures that each request
+        uses an isolated Filters instance to avoid shared state issues
         in concurrent or asynchronous environments.
-
         Example input:
             rison_args = {
                 "filters": [
                     {"col": "table_name", "opr": "eq", "value": "some_table"}
                 ]
             }
-
         :param rison_args: A dictionary of arguments parsed from the API request's
                           Rison-encoded `q` parameter.
         :returns: A Filters instance containing the applied filters.
@@ -327,7 +323,6 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         # self._filters.clear_filters()
         filters.rest_add_filters(rison_args.get(API_FILTERS_RIS_KEY, []))
         return filters.get_joined_filters(self._base_filters)
-
 
     @expose("/", methods=("POST",))
     @protect()
