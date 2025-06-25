@@ -721,14 +721,12 @@ const SqlEditor: FC<Props> = ({
         const command = ExtensionsManager.getInstance().getCommandContribution(
           contribution.command,
         )!;
-        return (
-          <Menu.Item
-            onClick={() => commands.executeCommand(command.command)}
-            title={command?.description}
-          >
-            {command?.title}
-          </Menu.Item>
-        );
+        return {
+          key: command.command,
+          label: command.title,
+          title: command.description,
+          onClick: () => commands.executeCommand(command.command),
+        };
       },
     );
 
@@ -803,7 +801,7 @@ const SqlEditor: FC<Props> = ({
           </KeyboardShortcutButton>
         ),
       },
-      secondaryContributions,
+      ...secondaryContributions,
     ].filter(Boolean) as MenuItemType[];
 
     return <Menu css={{ width: theme.sizeUnit * 50 }} items={menuItems} />;

@@ -35,6 +35,7 @@ import withToasts from 'src/components/MessageToasts/withToasts';
 import { JsonModal } from 'src/components/JsonModal';
 import { Popconfirm } from 'antd';
 import { safeJsonObjectParse } from 'src/components/JsonModal/utils';
+import ExtensionsManager from './ExtensionsManager';
 
 const PAGE_SIZE = 25;
 
@@ -99,34 +100,36 @@ const ExtensionsList: FunctionComponent<ExtensionsListProps> = ({
   };
 
   const enableExtensions = (extensions: Extension[]) => {
-    console.log('Enabling extensions:', extensions);
+    extensions.forEach(extension =>
+      ExtensionsManager.getInstance().enableExtensionByName(extension.name),
+    );
   };
 
   const disableExtensions = (extensions: Extension[]) => {
-    console.log('Disabling extensions:', extensions);
+    extensions.forEach(extension =>
+      ExtensionsManager.getInstance().disableExtensionByName(extension.name),
+    );
   };
 
-  const enableDisableAction = (extension: Extension) => {
-    const { enabled, name } = extension;
-    const title = enabled ? t('Disable') : t('Enable');
+  const confirmationAction = (
+    actionName: string,
+    actionFn: (extensions: Extension[]) => void,
+    extension: Extension,
+    icon: React.ReactNode,
+  ) => {
+    const { name } = extension;
+    const title = t(actionName);
     const description = (
       <>
-        {t('Are you sure you want to %s', title.toLowerCase())} <b>{name}</b>?
+        {t('Are you sure you want to %s', actionName.toLowerCase())}{' '}
+        <b>{name}</b>?
       </>
     );
-    const icon = enabled ? (
-      <Icons.StopOutlined iconSize="l" />
-    ) : (
-      <Icons.CheckCircleOutlined iconSize="l" />
-    );
-    const confirm = enabled
-      ? () => disableExtensions([extension])
-      : () => enableExtensions([extension]);
     return (
       <Popconfirm
         title={title}
         description={description}
-        onConfirm={confirm}
+        onConfirm={() => actionFn([extension])}
         okText={t('Yes')}
         cancelText={t('No')}
       >
@@ -145,11 +148,18 @@ const ExtensionsList: FunctionComponent<ExtensionsListProps> = ({
         Header: t('Name'),
         accessor: 'name',
         size: 'lg',
+        id: 'name',
+        Cell: ({
+          row: {
+            original: { name },
+          },
+        }: any) => name,
       },
       {
         Header: t('Contributions'),
         accessor: 'contributions',
         size: 'lg',
+        id: 'contributions',
         Cell: ({
           row: {
             original: { contributions },
@@ -172,6 +182,7 @@ const ExtensionsList: FunctionComponent<ExtensionsListProps> = ({
       {
         Header: t('Enabled'),
         accessor: 'enabled',
+        id: 'enabled',
         size: 'lg',
         Cell: ({
           row: {
@@ -182,33 +193,22 @@ const ExtensionsList: FunctionComponent<ExtensionsListProps> = ({
       {
         Cell: ({ row: { original } }: any) => (
           <Actions className="actions">
-            <ConfirmStatusChange
-              title={t('Please confirm')}
-              description={
-                <>
-                  {t('Are you sure you want to delete')} <b>{original.name}</b>?
-                </>
-              }
-              onConfirm={deleteExtensions}
-            >
-              {deleteExtensions => (
-                <Tooltip
-                  id="delete-action-tooltip"
-                  title={t('Delete')}
-                  placement="bottom"
-                >
-                  <span
-                    role="button"
-                    tabIndex={0}
-                    className="action-button"
-                    onClick={() => deleteExtensions([original])}
-                  >
-                    <Icons.DeleteOutlined iconSize="l" />
-                  </span>
-                </Tooltip>
-              )}
-            </ConfirmStatusChange>
-            {enableDisableAction(original)}
+            {confirmationAction(
+              t('Delete'),
+              deleteExtensions,
+              original,
+              <Icons.DeleteOutlined iconSize="l" />,
+            )}
+            {confirmationAction(
+              original.enabled ? t('Disable') : t('Enable'),
+              original.enabled ? disableExtensions : enableExtensions,
+              original,
+              original.enabled ? (
+                <Icons.StopOutlined iconSize="l" />
+              ) : (
+                <Icons.CheckCircleOutlined iconSize="l" />
+              ),
+            )}
           </Actions>
         ),
         Header: t('Actions'),

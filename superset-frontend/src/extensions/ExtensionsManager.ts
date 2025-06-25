@@ -37,15 +37,22 @@ class ExtensionsManager {
 
   private contextIndex: Map<string, ExtensionContext> = new Map();
 
-  private menuIndex: Map<string, MenuContribution> = new Map();
-
-  private viewIndex: Map<string, ViewContribution[]> = new Map();
-
-  private commandIndex: Map<string, CommandContribution> = new Map();
+  private extensionContributions: Map<
+    string,
+    {
+      menus?: Record<string, MenuContribution>;
+      views?: Record<string, ViewContribution[]>;
+      commands?: CommandContribution[];
+    }
+  > = new Map();
 
   // eslint-disable-next-line no-useless-constructor
   private constructor() {}
 
+  /**
+   * Singleton instance getter.
+   * @returns The singleton instance of ExtensionsManager.
+   */
   public static getInstance(): ExtensionsManager {
     if (!ExtensionsManager.instance) {
       ExtensionsManager.instance = new ExtensionsManager();
@@ -68,9 +75,9 @@ class ExtensionsManager {
     await Promise.all(
       extensions.map(async extension => {
         if (extension.remoteEntry) {
-          const loadedExtension = await this.loadModule(extension);
+          extension = await this.loadModule(extension);
           if (extension.enabled) {
-            this.enableExtension(loadedExtension);
+            this.enableExtension(extension);
           }
         }
         this.extensionIndex.set(extension.name, extension);
@@ -78,6 +85,10 @@ class ExtensionsManager {
     );
   }
 
+  /**
+   * Enables an extension by its instance.
+   * @param extension The extension to enable.
+   */
   public enableExtension(extension: core.Extension): void {
     const { name } = extension;
     if (extension && typeof extension.activate === 'function') {
@@ -93,9 +104,26 @@ class ExtensionsManager {
     }
   }
 
-  public disableExtension(name: string): void {
+  /**
+   * Enables an extension by its name.
+   * @param name The name of the extension to enable.
+   */
+  public enableExtensionByName(name: string): void {
     const extension = this.extensionIndex.get(name);
-    if (extension && typeof extension.deactivate === 'function') {
+    if (extension) {
+      this.enableExtension(extension);
+    } else {
+      logging.warn(`Extension ${name} not found`);
+    }
+  }
+
+  /**
+   * Disables an extension by its name.
+   * @param name The name of the extension to disable.
+   */
+  public disableExtensionByName(name: string): void {
+    const extension = this.extensionIndex.get(name);
+    if (extension) {
       this.deactivateExtension(extension.name);
       this.contextIndex.delete(name);
       this.removeContributions(extension);
@@ -162,17 +190,19 @@ class ExtensionsManager {
    * @param name The name of the extension to deactivate.
    * @returns True if deactivated, false otherwise.
    */
-  public deactivateExtension(name: string): boolean {
+  private deactivateExtension(name: string): boolean {
     const extension = this.extensionIndex.get(name);
     const context = this.contextIndex.get(name);
-    if (extension && typeof extension.deactivate === 'function' && context) {
+    if (extension && context) {
       try {
-        // Dispose all disposables in the context
+        // Dispose of all disposables in the context
         if (context.disposables) {
           context.disposables.forEach(d => d.dispose());
           context.disposables = [];
         }
-        extension.deactivate();
+        if (typeof extension.deactivate === 'function') {
+          extension.deactivate();
+        }
         return true;
       } catch (err) {
         logging.warn(`Error deactivating ${name}`, err);
@@ -186,68 +216,11 @@ class ExtensionsManager {
    * @param extension The extension to index.
    */
   private indexContributions(extension: core.Extension): void {
-    const { contributions } = extension;
-
-    if (contributions.menus) {
-      this.indexMenus(contributions.menus);
-    }
-
-    if (contributions.views) {
-      this.indexViews(contributions.views);
-    }
-
-    if (contributions.commands) {
-      this.indexCommands(contributions.commands);
-    }
-  }
-
-  /**
-   * Indexes menu contributions.
-   * @param menus The menus to index.
-   */
-  private indexMenus(menus: Record<string, MenuContribution>): void {
-    Object.entries(menus).forEach(([key, menu]) => {
-      if (!this.menuIndex.has(key)) {
-        this.menuIndex.set(key, { ...menu });
-      } else {
-        const existing = this.menuIndex.get(key)!;
-        existing.primary = [
-          ...(existing.primary || []),
-          ...(menu.primary || []),
-        ];
-        existing.secondary = [
-          ...(existing.secondary || []),
-          ...(menu.secondary || []),
-        ];
-        existing.context = [
-          ...(existing.context || []),
-          ...(menu.context || []),
-        ];
-      }
-    });
-  }
-
-  /**
-   * Indexes view contributions.
-   * @param views The views to index.
-   */
-  private indexViews(views: Record<string, ViewContribution[]>): void {
-    Object.entries(views).forEach(([key, viewList]) => {
-      if (!this.viewIndex.has(key)) {
-        this.viewIndex.set(key, [...viewList]);
-      } else {
-        this.viewIndex.set(key, [...this.viewIndex.get(key)!, ...viewList]);
-      }
-    });
-  }
-
-  /**
-   * Indexes command contributions.
-   * @param commands The commands to index.
-   */
-  private indexCommands(commands: CommandContribution[]): void {
-    commands.forEach(command => {
-      this.commandIndex.set(command.command, command);
+    const { contributions, name } = extension;
+    this.extensionContributions.set(name, {
+      menus: contributions.menus,
+      views: contributions.views,
+      commands: contributions.commands,
     });
   }
 
@@ -256,47 +229,8 @@ class ExtensionsManager {
    * @param extension The extension whose contributions should be removed.
    */
   private removeContributions(extension: core.Extension): void {
-    const { contributions } = extension;
-
-    if (contributions.menus) {
-      this.removeMenus(contributions.menus);
-    }
-    if (contributions.views) {
-      this.removeViews(contributions.views);
-    }
-    if (contributions.commands) {
-      this.removeCommands(contributions.commands);
-    }
-  }
-
-  /**
-   * Removes menu contributions.
-   * @param menus The menus to remove.
-   */
-  private removeMenus(menus: Record<string, MenuContribution>): void {
-    Object.keys(menus).forEach(key => {
-      this.menuIndex.delete(key);
-    });
-  }
-
-  /**
-   * Removes view contributions.
-   * @param views The views to remove.
-   */
-  private removeViews(views: Record<string, ViewContribution[]>): void {
-    Object.keys(views).forEach(key => {
-      this.viewIndex.delete(key);
-    });
-  }
-
-  /**
-   * Removes command contributions.
-   * @param commands The commands to remove.
-   */
-  private removeCommands(commands: CommandContribution[]): void {
-    commands.forEach(command => {
-      this.commandIndex.delete(command.command);
-    });
+    const { name } = extension;
+    this.extensionContributions.delete(name);
   }
 
   /**
@@ -305,7 +239,27 @@ class ExtensionsManager {
    * @returns The menu contributions matching the key, or undefined if not found.
    */
   public getMenuContributions(key: string): MenuContribution | undefined {
-    return this.menuIndex.get(key);
+    const merged: MenuContribution = {
+      context: [],
+      primary: [],
+      secondary: [],
+    };
+    for (const ext of this.extensionContributions.values()) {
+      if (ext.menus && ext.menus[key]) {
+        const menu = ext.menus[key];
+        if (menu.context) merged.context!.push(...menu.context);
+        if (menu.primary) merged.primary!.push(...menu.primary);
+        if (menu.secondary) merged.secondary!.push(...menu.secondary);
+      }
+    }
+    if (
+      (merged.context?.length ?? 0) === 0 &&
+      (merged.primary?.length ?? 0) === 0 &&
+      (merged.secondary?.length ?? 0) === 0
+    ) {
+      return undefined;
+    }
+    return merged;
   }
 
   /**
@@ -314,7 +268,13 @@ class ExtensionsManager {
    * @returns An array of view contributions matching the key, or undefined if not found.
    */
   public getViewContributions(key: string): ViewContribution[] | undefined {
-    return this.viewIndex.get(key);
+    let result: ViewContribution[] = [];
+    for (const ext of this.extensionContributions.values()) {
+      if (ext.views && ext.views[key]) {
+        result = result.concat(ext.views[key]);
+      }
+    }
+    return result.length > 0 ? result : undefined;
   }
 
   /**
@@ -322,7 +282,13 @@ class ExtensionsManager {
    * @returns An array of all command contributions.
    */
   public getCommandContributions(): CommandContribution[] {
-    return Array.from(this.commandIndex.values());
+    const result: CommandContribution[] = [];
+    for (const ext of this.extensionContributions.values()) {
+      if (ext.commands) {
+        result.push(...ext.commands);
+      }
+    }
+    return result;
   }
 
   /**
@@ -331,7 +297,13 @@ class ExtensionsManager {
    * @returns The command contribution matching the key, or undefined if not found.
    */
   public getCommandContribution(key: string): CommandContribution | undefined {
-    return this.commandIndex.get(key);
+    for (const ext of this.extensionContributions.values()) {
+      if (ext.commands) {
+        const found = ext.commands.find(cmd => cmd.command === key);
+        if (found) return found;
+      }
+    }
+    return undefined;
   }
 
   /**
@@ -340,6 +312,15 @@ class ExtensionsManager {
    */
   public getExtensions(): core.Extension[] {
     return Array.from(this.extensionIndex.values());
+  }
+
+  /**
+   * Retrieves a specific extension by its name.
+   * @param name The name of the extension.
+   * @returns The extension matching the name, or undefined if not found.
+   */
+  public getExtension(name: string): core.Extension | undefined {
+    return this.extensionIndex.get(name);
   }
 }
 
