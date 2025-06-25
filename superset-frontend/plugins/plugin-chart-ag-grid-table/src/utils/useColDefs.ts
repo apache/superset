@@ -268,6 +268,7 @@ export const useColDefs = ({
           timeComparisonKey: originalLabel,
         }),
         wrapText: !config?.truncateLongCells,
+        autoHeight: !config?.truncateLongCells,
       };
     },
     [
