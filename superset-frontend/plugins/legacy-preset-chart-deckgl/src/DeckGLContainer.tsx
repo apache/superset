@@ -64,12 +64,7 @@ export const DeckGLContainer = memo(
 
     useEffect(
       () => () => {
-        if (glContextRef.current) {
-          const ext = glContextRef.current.getExtension('WEBGL_lose_context');
-          if (ext) {
-            ext.loseContext();
-          }
-        }
+        glContextRef.current?.getExtension('WEBGL_lose_context')?.loseContext();
       },
       [],
     );

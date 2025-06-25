@@ -24,6 +24,7 @@
 import { memo, useCallback, useEffect, useRef, useState } from 'react';
 import {
   ContextMenuFilters,
+  ensureIsArray,
   FilterState,
   HandlerFunction,
   JsonObject,
@@ -132,11 +133,7 @@ export const getLayer: GetLayerType<PolygonLayer> = function ({
       number,
       number,
     ]) || [0, 0, 0, 0];
-    if (
-      selected &&
-      selected.length > 0 &&
-      !selected.includes(d[fd.line_column])
-    ) {
+    if (!ensureIsArray(selected).includes(d[fd.line_column])) {
       baseColor[3] /= 2;
     }
 
