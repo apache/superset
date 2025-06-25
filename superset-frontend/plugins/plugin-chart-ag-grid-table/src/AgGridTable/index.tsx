@@ -309,6 +309,7 @@ const AgGridDataTable: FunctionComponent<AgGridTableProps> = memo(
           headerHeight={36}
           rowHeight={30}
           columnDefs={colDefsFromProps}
+          onColumnGroupOpened={params => params.api.sizeColumnsToFit()}
           defaultColDef={defaultColDef}
           rowSelection="multiple"
           animateRows
