@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import * as supersetCore from '@apache-superset/core';
 import {
   authentication,
@@ -28,6 +28,8 @@ import {
 } from 'src/extensions';
 import { useExtensionsContext } from './ExtensionsContext';
 import ExtensionsManager from './ExtensionsManager';
+import { useSelector } from 'react-redux';
+import { RootState } from 'src/views/store';
 
 declare global {
   interface Window {
@@ -47,7 +49,18 @@ const ExtensionsStartup = () => {
   // This is a prerequisite for the ExtensionsManager to work correctly
   useExtensionsContext();
 
+  const [initialized, setInitialized] = useState(false);
+
+  const userId = useSelector<RootState, number | undefined>(
+    ({ user }) => user.userId,
+  );
+
   useEffect(() => {
+    // Skip initialization if already initialized or if user is not logged in
+    if (initialized || !userId) {
+      return;
+    }
+
     // Provide the implementations for @apache-superset/core
     window.superset = {
       ...supersetCore,
@@ -59,16 +72,16 @@ const ExtensionsStartup = () => {
       sqlLab,
     };
 
-    // TODO: This does not work when the user is not authenticated.
-    // We need to ensure that the extensions are initialized only when the user is authenticated.
+    // Initialize extensions
     try {
-      // Initialize the extensions
       ExtensionsManager.getInstance().initialize();
       console.log('Extensions initialized successfully.');
     } catch (error) {
       console.error('Error setting up extensions:', error);
+    } finally {
+      setInitialized(true);
     }
-  }, []);
+  }, [initialized, userId]);
 
   return null;
 };
