@@ -47,7 +47,6 @@ from pandas import Series
 from pandas._libs.parsers import STR_NA_VALUES
 from sqlalchemy.engine.url import URL
 from sqlalchemy.orm.query import Query
-import requests
 
 from superset.advanced_data_type.plugins.internet_address import internet_address
 from superset.advanced_data_type.plugins.internet_port import internet_port
@@ -290,8 +289,8 @@ SHOW_STACKTRACE = False
 
 # Use all X-Forwarded headers when ENABLE_PROXY_FIX is True.
 # When proxying to a different port, set "x_port" to 0 to avoid downstream issues.
-ENABLE_PROXY_FIX = False
-PROXY_FIX_CONFIG = {"x_for": 1, "x_proto": 1, "x_host": 1, "x_port": 1, "x_prefix": 1}
+ENABLE_PROXY_FIX = True
+PROXY_FIX_CONFIG = {"x_for": 1, "x_proto": 1, "x_host": 1, "x_port": 0, "x_prefix": 1}
 
 # Configuration for scheduling queries from SQL Lab.
 SCHEDULED_QUERIES: dict[str, Any] = {}
@@ -379,266 +378,26 @@ AUTH_ROLE_ADMIN = 'Admin'
 # Uncomment to setup Public role name, no authentication needed
 AUTH_ROLE_PUBLIC = 'Public'
 
-# AUTH_ROLES_MAPPING = {
-# "DataEngineer": ["Admin"],
-# "DataEngineerTech": ["Admin"],
-# "DeputyCTO": ["Admin"],
-# "TechExec": ["Admin"],
-# "CTO": ["Admin"],
-# "COO": ["Admin"],
-# "CEO": ["Admin"],
-# "JuniorDev": ["Admin"],
-# "Developer": ["Alpha","Gamma"],
-# "superset_admins": ["Admin"]
-# }
-
-
-# def get_dynamic_role_mapping():
-#     """
-#     Fetches an M2M token and then uses it to get roles from the Pesapal SSO API.
-#     """
-#     # special mapping to superset roles
-#     special_mapping = {
-#         "DataEngineer": ["Admin"],
-#         "DataEngineerTech": ["Admin"],
-#         "DeputyCTO": ["Admin"],
-#         "TechExec": ["Admin"],
-#         "CTO": ["Admin"],
-#         "COO": ["Admin"],
-#         "CEO": ["Admin"],
-#         "JuniorDev": ["Admin"],
-#         "superset_admins": ["Admin"]
-#     }
-
-#     # It's highly recommended to use environment variables instead of hardcoding
-#     client_id = OAUTH_PROVIDERS[0]["remote_app"]["client_id"]
-#     client_secret = OAUTH_PROVIDERS[0]["remote_app"]["client_secret"]
-
-#     # ===== STEP 1: Get M2M Access Token ====
-
-#     # The token URL
-#     token_url = "https://myaccount.pesapal.com/v2/connect/clientapptoken"
-
-#     # grant_type should be in the body as form data
-#     token_payload = {'grant_type': 'client_credentials'}
-
-#     access_token = None
-
-#     try:
-#         # print("Attempting to get M2M access token from Pesapal...")
-#         token_response = requests.post(
-#             token_url,
-#             auth=(client_id, client_secret),  # This  creates the Basic Auth header
-#             data=token_payload,
-#             # This sends the payload as 'application/x-www-form-urlencoded'
-#             timeout=10
-#         )
-#         # This will raise an exception for 4xx or 5xx status codes
-#         token_response.raise_for_status()
-#         token_data = token_response.json()
-#         access_token = token_data.get("access_token")
-
-#         if not access_token:
-#             print(f"Failed to get access_token from Pesapal. Response: {token_data}")
-#             return {}
-
-#         print("Successfully obtained M2M access token.")
-
-#     except requests.exceptions.RequestException as e:
-#         # The exception object 'e' now contains the response, so we can log it
-#         if e.response is not None:
-#             print(
-#                 f"Failed to get M2M token. Status: {e.response.status_code}. Response: {e.response.text}")
-#         else:
-#             print(f"Failed to connect to Pesapal M2M token endpoint: {e}")
-#         return {}
-
-#     # ===== STEP 2: Get Required Roles using the Access Token =====
-
-#     roles_url = "https://myaccount.pesapal.com/api/ssoservices/roles/get-required-roles"
-#     headers = {
-#         "Authorization": f"Bearer {access_token}",
-#         "Content-Type": "application/json",
-#         "Accept": "application/json"
-#     }
-#     roles_payload = {
-#         "client_app_key": client_id
-#     }
-
-#     final_mapping = special_mapping.copy()
-
-#     try:
-#         # print("Attempting to get required roles from Pesapal API...")
-#         response = requests.post(roles_url, json=roles_payload, headers=headers,
-#                                  timeout=10)
-#         response.raise_for_status()
-
-#         data = response.json()
-
-#         # # for my debugging purposes
-#         # formated_data = json.dumps(data, indent=4)
-
-#         # print(f"Received response from Pesapal API: {formated_data}")
-
-#         if data.get("response_code") == 1 and "supported_roles" in data:
-#             # print("Successfully fetched roles from Pesapal API.")
-#             for role in data["supported_roles"]:
-#                 role_code = role.get("role_name_code")
-#                 if role_code and role_code not in final_mapping:
-#                     final_mapping[role_code] = [role_code]
-#         else:
-#             print(f"Pesapal roles API returned an error: {data.get('message')}")
-
-#     except requests.exceptions.RequestException as e:
-#         print(f"Failed to connect to Pesapal roles API: {e}")
-
-#     print(f"Final AUTH_ROLES_MAPPING will be: {final_mapping}")
-#     return final_mapping
-
-
-# AUTH_ROLES_MAPPING = get_dynamic_role_mapping()
-
-# === REPLACING THE ABOVE WITH AUTOMATIC ROLE CREATION AND MAPPING ===
-
-def get_sso_role_names():
-    """
-    Fetches the list of role names from the Pesapal SSO API.
-    This function is self-contained and only makes external API calls.
-    """    
-    
-    client_id = OAUTH_PROVIDERS[0]["remote_app"]["client_id"]
-    client_secret = OAUTH_PROVIDERS[0]["remote_app"]["client_secret"]
-    
-    token_url = "https://myaccount.pesapal.com/v2/connect/clientapptoken"
-    token_payload = {'grant_type': 'client_credentials'}
-
-    try:
-        token_response = requests.post(
-            token_url, auth=(client_id, client_secret), data=token_payload, timeout=15
-        )
-        token_response.raise_for_status()
-        sso_access_token = token_response.json().get("access_token")
-        if not sso_access_token:
-            print("Failed to get Pesapal M2M token. SSO sync will be skipped.")
-            return set()
-
-        roles_url = "https://myaccount.pesapal.com/api/ssoservices/roles/get-required-roles"
-        headers = {"Authorization": f"Bearer {sso_access_token}"}
-        roles_payload = {"client_app_key": client_id}
-        
-        response = requests.post(roles_url, json=roles_payload, headers=headers, timeout=15)
-        response.raise_for_status()
-        data = response.json()
-        
-        if data.get("response_code") == 1 and "supported_roles" in data:
-            role_names = {role.get("role_name_code") for role in data["supported_roles"] if role.get("role_name_code")}
-            print(f"Successfully fetched {len(role_names)} roles from SSO.")
-            return role_names
-        else:
-            print(f"Pesapal roles API returned an error: {data.get('message')}")
-            return set()
-    except requests.RequestException as e:
-        print(f"Error fetching roles from Pesapal SSO: {e}. Sync will be skipped.")
-        return set()
-
-# We import the default initializer to extend it
-from superset.app import SupersetAppInitializer
-
-class CustomAppInitializer(SupersetAppInitializer):
-    def __init__(self, app: Flask) -> None:
-        # First, run the default Superset initialization
-        super().__init__(app)
-
-        self.app = app
-
-    def init_app(self) -> None:
-        # Then, run the default `init_app` from the parent class
-        super().init_app()
-        
-        # NOW, all extensions are initialized, and we can safely run our code.
-        self.sync_sso_roles()
-
-    def sync_sso_roles(self):
-        print("Running custom SSO role synchronization...")
-        
-        sso_roles = get_sso_role_names()
-        if not sso_roles:
-            print("No roles returned from SSO, aborting sync.")
-            return
-
-        # We are running after init_app, so we need to push an app context
-        with self.app.app_context():
-            from superset.extensions import db, security_manager as sm
-
-            existing_roles = {role.name for role in sm.get_all_roles()}
-            print(f"Found existing Superset roles: {existing_roles}")
-            
-            special_mapping_keys = {"DataEngineer", "DataEngineerTech", "DeputyCTO", "TechExec", "CTO", "COO", "CEO", "JuniorDev", "superset_admins"}
-            roles_to_create = sso_roles - existing_roles - special_mapping_keys
-
-            if not roles_to_create:
-                print("Superset roles are already in sync with SSO. No action needed.")
-                return
-
-            print(f"New roles to be created: {roles_to_create}")
-            
-            public_role = sm.find_role("Public")
-            if not public_role:
-                print("Could not find 'Public' role. Cannot use it as a template.")
-                return
-            
-            public_permissions = public_role.permissions
-            
-            try:
-                for role_name in roles_to_create:
-                    logger.info(f"Creating role: '{role_name}'")
-                    sm.add_role(name=role_name, permissions=public_permissions)
-                db.session.commit() # We need to explicitly commit the session
-                logger.info("Successfully committed new roles to the database.")
-            except Exception as e:
-                logger.error(f"An error occurred while creating roles: {e}")
-                db.session.rollback()
-
-
-# Point APP_INITIALIZER to our new custom class
-APP_INITIALIZER = CustomAppInitializer
-
-
-def get_dynamic_role_mapping():
-    """
-    Creates the AUTH_ROLES_MAPPING dictionary.
-    """
-    # Special mapping to superset roles
-    special_mapping = {
-        "DataEngineer": ["Admin"], "DataEngineerTech": ["Admin"], "DeputyCTO": ["Admin"],
-        "TechExec": ["Admin"], "CTO": ["Admin"], "COO": ["Admin"], "CEO": ["Admin"],
-        "JuniorDev": ["Admin"], "superset_admins": ["Admin"]
-    }
-    
-    # Fetch all roles from SSO
-    sso_roles = get_sso_role_names()
-    
-    final_mapping = special_mapping.copy()
-    
-    # Create 1-to-1 mappings for any role not in the special map
-    for role_code in sso_roles:
-        if role_code not in final_mapping:
-            final_mapping[role_code] = [role_code]
-            
-    print(f"Final AUTH_ROLES_MAPPING has been generated with {len(final_mapping)} entries.")
-    return final_mapping
-
-AUTH_ROLES_MAPPING = get_dynamic_role_mapping()
-# ---------------------------------------------------
-
+AUTH_ROLES_MAPPING = {
+"DataEngineer": ["Admin"],
+"DataEngineerTech": ["Admin"],
+"DeputyCTO": ["Admin"],
+"TechExec": ["Admin"],
+"CTO": ["Admin"],
+"COO": ["Admin"],
+"CEO": ["Admin"],
+"JuniorDev": ["Admin"],
+"Developer": ["Alpha","Gamma"],
+"superset_admins": ["Admin"]
+}
 # Will allow user self registration
 AUTH_USER_REGISTRATION = False
 
 # The default user self registration role
 AUTH_USER_REGISTRATION_ROLE = "Public"
 
-AUTH_ROLES_SYNC_AT_LOGIN = True
-#message
+AUTH_ROLES_SYNC_AT_LOGIN = False
+
 # When using LDAP Auth, setup the LDAP server
 # AUTH_LDAP_SERVER = "ldap://ldapserver.new"
 
@@ -1999,15 +1758,13 @@ SESSION_COOKIE_HTTPONLY = True  # Prevent cookie from being read by frontend JS?
 SESSION_COOKIE_SECURE = False  # Prevent cookie from being transmitted over non-tls?
 SESSION_COOKIE_SAMESITE: Literal["None", "Lax", "Strict"] | None = "Lax"
 # Whether to use server side sessions from flask-session or Flask secure cookies
-# SESSION_SERVER_SIDE = False
+SESSION_SERVER_SIDE = False
 # Example config using Redis as the backend for server side sessions
 # from flask_session import RedisSessionInterface
-from redis import Redis
 #
-# #
-SESSION_SERVER_SIDE = True
-SESSION_TYPE = "redis"
-SESSION_REDIS = Redis(host="redis", port=6379, db=0)
+# SESSION_SERVER_SIDE = True
+# SESSION_TYPE = "redis"
+# SESSION_REDIS = Redis(host="localhost", port=6379, db=0)
 #
 # Other possible config options and backends:
 # # https://flask-session.readthedocs.io/en/latest/config.html
