@@ -118,6 +118,7 @@ const AgGridDataTable: FunctionComponent<AgGridTableProps> = memo(
     const gridRef = useRef<AgGridReact>(null);
     const inputRef = useRef<HTMLInputElement>(null);
     const rowData = useMemo(() => data, [data]);
+    const containerRef = useRef<HTMLDivElement>(null);
 
     const searchId = `search-${id}`;
     const gridInitialState: GridState = {
@@ -202,33 +203,36 @@ const AgGridDataTable: FunctionComponent<AgGridTableProps> = memo(
       [serverPagination, debouncedSearch, searchId],
     );
 
+    const handleColSort = (colId: string, sortDir: string) => {
+      const isSortable = shouldSort({
+        colId,
+        sortDir,
+        percentMetrics,
+        serverPagination: !!serverPagination,
+        gridInitialState,
+      });
+
+      if (!isSortable) return;
+
+      if (sortDir == null) {
+        onSortChange([]);
+        return;
+      }
+
+      onSortChange([
+        {
+          id: colId,
+          key: colId,
+          desc: sortDir === 'desc',
+        },
+      ]);
+    };
+
     const handleColumnHeaderClick = useCallback(
       params => {
         const colId = params?.column?.colId;
         const sortDir = params?.column?.sort;
-
-        const isSortable = shouldSort({
-          colId,
-          sortDir,
-          percentMetrics,
-          serverPagination: !!serverPagination,
-          gridInitialState,
-        });
-
-        if (!isSortable) return;
-
-        if (sortDir == null) {
-          onSortChange([]);
-          return;
-        }
-
-        onSortChange([
-          {
-            id: colId,
-            key: colId,
-            desc: sortDir === 'desc',
-          },
-        ]);
+        handleColSort(colId, sortDir);
       },
       [serverPagination, gridInitialState, percentMetrics, onSortChange],
     );
@@ -247,8 +251,17 @@ const AgGridDataTable: FunctionComponent<AgGridTableProps> = memo(
       }
     }, [hasServerPageLengthChanged]);
 
+    const onGridReady = (params: GridReadyEvent) => {
+      // This will make columns fill the grid width
+      params.api.sizeColumnsToFit();
+    };
+
     return (
-      <div className="ag-theme-quartz" style={containerStyles}>
+      <div
+        className="ag-theme-quartz"
+        style={containerStyles}
+        ref={containerRef}
+      >
         <div className="dropdown-controls-container">
           {renderTimeComparisonDropdown && (
             <div className="time-comparison-dropdown">
@@ -290,7 +303,10 @@ const AgGridDataTable: FunctionComponent<AgGridTableProps> = memo(
 
         <AgGridReact
           ref={gridRef}
+          onGridReady={onGridReady}
+          className="ag-container"
           rowData={rowData}
+          headerHeight={36}
           rowHeight={30}
           columnDefs={colDefsFromProps}
           defaultColDef={defaultColDef}

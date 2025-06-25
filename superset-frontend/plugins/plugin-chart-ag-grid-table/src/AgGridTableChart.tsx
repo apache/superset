@@ -80,6 +80,11 @@ const StyledChartContainer = styled.div<{ height: number }>`
       height: auto;
     }
 
+    .ag-container {
+      border-radius: 0px;
+      border: var(--ag-wrapper-border);
+    }
+
     .search-container {
       display: flex;
       justify-content: flex-end;
@@ -104,7 +109,7 @@ const StyledChartContainer = styled.div<{ height: number }>`
     }
 
     .ag-root-wrapper {
-      border-radius: ${theme.borderRadius}px;
+      border-radius: 0px;
     }
 
     .search-by-text {

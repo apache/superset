@@ -28,8 +28,6 @@ import {
 const PaginationContainer = styled.div`
   ${({ theme }) => `
     border: 1px solid ${theme.colors.grayscale.light2};
-    border-bottom-left-radius: ${theme.borderRadius * 2.5}px;
-    border-bottom-right-radius: ${theme.borderRadius * 2.5}px;
     display: flex;
     align-items: center;
     justify-content: flex-end;
