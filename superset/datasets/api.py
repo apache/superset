@@ -320,7 +320,6 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         filters = self.datamodel.get_filters(
             search_columns=self.search_columns, search_filters=self.search_filters
         )
-        # self._filters.clear_filters()
         filters.rest_add_filters(rison_args.get(API_FILTERS_RIS_KEY, []))
         return filters.get_joined_filters(self._base_filters)
 
