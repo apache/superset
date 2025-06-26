@@ -16,9 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-/* eslint-disable import/no-extraneous-dependencies */
 import { styled } from '@superset-ui/core';
-import { Select } from 'antd';
+import { Select } from '@superset-ui/core/components/Select';
 import { SearchOption } from '../../types';
 
 const StyledSelect = styled(Select)`
