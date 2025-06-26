@@ -801,6 +801,7 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
         :param force: whether to force refresh the cache
         :return: The table/schema pairs
         """
+        catalog = catalog or self.get_default_catalog()
         try:
             with self.get_inspector(catalog=catalog, schema=schema) as inspector:
                 return {
@@ -835,6 +836,7 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
         :param force: whether to force refresh the cache
         :return: set of views
         """
+        catalog = catalog or self.get_default_catalog()
         try:
             with self.get_inspector(catalog=catalog, schema=schema) as inspector:
                 return {
