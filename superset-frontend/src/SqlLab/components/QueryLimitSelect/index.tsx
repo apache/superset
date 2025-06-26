@@ -19,12 +19,11 @@
 import { useDispatch } from 'react-redux';
 import { t } from '@superset-ui/core';
 import { Dropdown } from 'src/components/Dropdown';
-import { Menu } from 'src/components/Menu';
-import { Input } from 'src/components/Input';
 import { Icons } from 'src/components/Icons';
 import { queryEditorSetQueryLimit } from 'src/SqlLab/actions/sqlLab';
 import useQueryEditor from 'src/SqlLab/hooks/useQueryEditor';
 import Button from 'src/components/Button';
+import Select from 'src/components/Select/Select';
 
 export interface QueryLimitSelectProps {
   queryEditorId: string;
@@ -44,36 +43,27 @@ function renderQueryLimit(
 
   // Construct limit dropdown as increasing powers of ten until we reach SQL_MAX_ROW
   for (let i = 10; i < maxRow; i *= 10) {
-    limitDropdown.push(i);
+    limitDropdown.push({
+      value: i,
+    });
   }
-  limitDropdown.push(maxRow);
+  limitDropdown.push({
+    value: maxRow,
+  });
 
   return (
-    <Menu>
-      {[...new Set(limitDropdown)].map(limit => (
-        <Menu.Item key={`${limit}`} onClick={() => setQueryLimit(limit)}>
-          {/* // eslint-disable-line no-use-before-define */}
-          {convertToNumWithSpaces(limit)}{' '}
-        </Menu.Item>
-      ))}
-      <Menu.Item>
-        <Input
-          type="number"
-          placeholder="custom limit"
-          min="1"
-          onClick={e => e.stopPropagation()}
-          onKeyDown={event => {
-            if (event.key === 'Enter') {
-              const val = (event.target as HTMLInputElement).value;
-              let limit = parseInt(val, 10);
-              if (limit < 1) limit = 1;
-              setQueryLimit(limit);
-              convertToNumWithSpaces(limit);
-            }
-          }}
-        />
-      </Menu.Item>
-    </Menu>
+    <Select
+      options={limitDropdown}
+      allowNewOptions
+      onChange={value => {
+        let limit_val = parseInt(value.toString(), 10);
+        if (Number.isNaN(limit_val)) limit_val = 10;
+        if (limit_val < 1) limit_val = 1;
+        if (limit_val > maxRow) limit_val = maxRow;
+        setQueryLimit(limit_val);
+        convertToNumWithSpaces(limit_val);
+      }}
+    />
   );
 }
 
