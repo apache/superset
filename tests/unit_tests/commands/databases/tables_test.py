@@ -34,6 +34,7 @@ def database_with_catalog(mocker: MockerFixture) -> MagicMock:
 
     database = mocker.MagicMock()
     database.database_name = "test_database"
+    database.get_default_catalog.return_value = "catalog1"
     database.get_all_table_names_in_schema.return_value = {
         ("table1", "schema1", "catalog1"),
         ("table2", "schema1", "catalog1"),
@@ -57,6 +58,7 @@ def database_without_catalog(mocker: MockerFixture) -> MagicMock:
 
     database = mocker.MagicMock()
     database.database_name = "test_database"
+    database.get_default_catalog.return_value = None
     database.get_all_table_names_in_schema.return_value = {
         ("table1", "schema1", None),
         ("table2", "schema1", None),
