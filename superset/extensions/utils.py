@@ -155,6 +155,28 @@ def get_loaded_extension(files: Iterable[BundleFile]) -> LoadedExtension:
     )
 
 
+def build_extension_data(extension):
+    manifest: Manifest = extension.manifest
+    extension_data: dict[str, Any] = {
+        "id": extension.id,
+        "name": extension.name,
+        "dependencies": manifest.get("dependencies", []),
+        "enabled": extension.enabled,
+    }
+    frontend = manifest.get("frontend")
+    if frontend:
+        module_federation = frontend.get("moduleFederation", {})
+        remote_entry = frontend["remoteEntry"]
+        extension_data.update(
+            {
+                "remoteEntry": f"/api/v1/extensions/{extension.name}/{remote_entry}",  # noqa: E501
+                "exposedModules": module_federation.get("exposes", []),
+                "contributions": frontend.get("contributions", {}),
+            }
+        )
+    return extension_data
+
+
 def get_extensions() -> dict[str, LoadedExtension]:
     from superset.daos.extension import ExtensionDAO
 
@@ -170,15 +192,20 @@ def get_extensions() -> dict[str, LoadedExtension]:
 
     for db_extension in ExtensionDAO.get_extensions():
         if db_extension.name not in extensions:
-            extension = LoadedExtension(
-                id=db_extension.id,
-                name=db_extension.name,
-                manifest=db_extension.manifest_dict,
-                backend=db_extension.backend_dict or {},
-                frontend=db_extension.frontend_dict or {},
-                enabled=db_extension.enabled,
-            )
+            extension = build_loaded_extension(db_extension)
             extensions[extension.name] = extension
             logger.info(f"Loading extension {db_extension.name} from metastore")
 
     return extensions
+
+
+def build_loaded_extension(db_extension):
+    extension = LoadedExtension(
+        id=db_extension.id,
+        name=db_extension.name,
+        manifest=db_extension.manifest_dict,
+        backend=db_extension.backend_dict or {},
+        frontend=db_extension.frontend_dict or {},
+        enabled=db_extension.enabled,
+    )
+    return extension

@@ -29,8 +29,9 @@ from superset.daos.extension import ExtensionDAO
 from superset.extensions import event_logger
 from superset.extensions.models import Extension
 from superset.extensions.schemas import ExtensionPutSchema
-from superset.extensions.types import Manifest
 from superset.extensions.utils import (
+    build_loaded_extension,
+    build_extension_data,
     get_bundle_files_from_zip,
     get_extensions,
     get_loaded_extension,
@@ -55,10 +56,10 @@ class ExtensionsRestApi(BaseSupersetModelRestApi):
     @protect()
     @safe
     @expose("/", methods=("GET",))
-    def get(self, **kwargs: Any) -> Response:  # TODO: The module comes as a parameter
+    def get_list(self, **kwargs: Any) -> Response:
         """List all enabled extensions.
         ---
-        get:
+        get_list:
           summary: List all enabled extensions.
           responses:
             200:
@@ -89,28 +90,56 @@ class ExtensionsRestApi(BaseSupersetModelRestApi):
         result = []
         extensions = get_extensions()
         for extension in extensions.values():
-            manifest: Manifest = extension.manifest
-            extension_data: dict[str, Any] = {
-                "id": extension.id,
-                "name": extension.name,
-                "dependencies": manifest.get("dependencies", []),
-                "enabled": extension.enabled,
-            }
-            frontend = manifest.get("frontend")
-            if frontend:
-                module_federation = frontend.get("moduleFederation", {})
-                remote_entry = frontend["remoteEntry"]
-                extension_data.update(
-                    {
-                        "remoteEntry": f"/api/v1/extensions/{extension.name}/{remote_entry}",  # noqa: E501
-                        "exposedModules": module_federation.get("exposes", []),
-                        "contributions": frontend.get("contributions", {}),
-                    }
-                )
-
+            extension_data = build_extension_data(extension)
             result.append(extension_data)
 
         return self.response(200, result=result)
+
+    @protect()
+    @safe
+    @expose("/<int:pk>", methods=("GET",))
+    def get(self, pk: int, **kwargs: Any) -> Response:
+        """Get an extension by its primary key.
+        ---
+        get:
+          summary: Get an extension by its primary key.
+          parameters:
+          - in: path
+            schema:
+              type: integer
+            name: pk
+          responses:
+            200:
+              description: Extension details
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                        result:
+                            type: array
+                            items:
+                              type: object
+                              properties:
+                                remoteEntry:
+                                  type: string
+                                remoteEntry:
+                                  type: string
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            422:
+              $ref: '#/components/responses/422'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        extension = ExtensionDAO.find_by_id(pk)
+        if not extension:
+            return self.response_404()
+        extension = build_loaded_extension(extension)
+        extension_data = build_extension_data(extension)
+        return self.response(200, result=extension_data)
 
     @protect()
     @safe
