@@ -18,7 +18,7 @@
  */
 import { act, fireEvent, render, screen } from 'spec/helpers/testing-library';
 import { store } from 'src/views/store';
-import FacePile from '.';
+import { FacePile } from '.';
 import { getRandomColor } from './utils';
 
 const users = [...new Array(10)].map((_, i) => ({

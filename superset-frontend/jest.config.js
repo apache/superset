@@ -16,10 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 // timezone for unit tests
 process.env.TZ = 'America/New_York';
-
 module.exports = {
   testRegex:
     '\\/superset-frontend\\/(spec|src|plugins|packages|tools)\\/.*(_spec|\\.test)\\.[jt]sx?$',
@@ -30,9 +28,11 @@ module.exports = {
     '^src/(.*)$': '<rootDir>/src/$1',
     '^spec/(.*)$': '<rootDir>/spec/$1',
     // mapping plugins of superset-ui to source code
-    '@superset-ui/(.*)$': '<rootDir>/node_modules/@superset-ui/$1/src',
+    '^@superset-ui/([^/]+)/(.*)$':
+      '<rootDir>/node_modules/@superset-ui/$1/src/$2',
+    '^@superset-ui/([^/]+)$': '<rootDir>/node_modules/@superset-ui/$1/src',
   },
-  testEnvironment: 'jsdom',
+  testEnvironment: '<rootDir>/spec/helpers/jsDomWithFetchAPI.ts',
   modulePathIgnorePatterns: ['<rootDir>/packages/generator-superset'],
   setupFilesAfterEnv: ['<rootDir>/spec/helpers/setup.ts'],
   snapshotSerializers: ['@emotion/jest/serializer'],
@@ -55,7 +55,7 @@ module.exports = {
   ],
   coverageReporters: ['lcov', 'json-summary', 'html', 'text'],
   transformIgnorePatterns: [
-    'node_modules/(?!d3-(interpolate|color|time)|remark-gfm|markdown-table|micromark-*.|decode-named-character-reference|character-entities|mdast-util-*.|unist-util-*.|ccount|escape-string-regexp|nanoid|@rjsf/*.|sinon|echarts|zrender|fetch-mock|pretty-ms|parse-ms|ol|@babel/runtime|@emotion|cheerio|cheerio/lib|parse5|dom-serializer|entities|htmlparser2|rehype-sanitize|hast-util-sanitize|unified|unist-.*|hast-.*|rehype-.*|remark-.*|mdast-.*|micromark-.*|parse-entities|property-information|space-separated-tokens|comma-separated-tokens|bail|devlop|zwitch|longest-streak|jest-enzyme)',
+    'node_modules/(?!d3-(interpolate|color|time)|remark-gfm|markdown-table|micromark-*.|decode-named-character-reference|character-entities|mdast-util-*.|unist-util-*.|ccount|escape-string-regexp|nanoid|@rjsf/*.|sinon|echarts|zrender|fetch-mock|pretty-ms|parse-ms|ol|@babel/runtime|@emotion|cheerio|cheerio/lib|parse5|dom-serializer|entities|htmlparser2|rehype-sanitize|hast-util-sanitize|unified|unist-.*|hast-.*|rehype-.*|remark-.*|mdast-.*|micromark-.*|parse-entities|property-information|space-separated-tokens|comma-separated-tokens|bail|devlop|zwitch|longest-streak|jest-enzyme|geostyler|geostyler-.*)',
   ],
   preset: 'ts-jest',
   transform: {

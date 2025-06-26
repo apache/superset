@@ -16,12 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import Icons from 'src/components/Icons';
+import { Icons } from '@superset-ui/core/components/Icons';
 import { css, styled, t } from '@superset-ui/core';
-// eslint-disable-next-line no-restricted-imports
-import { Button, Tree } from 'antd'; // TODO: Remove antd
-// eslint-disable-next-line no-restricted-imports
-import { TreeProps } from 'antd/lib/tree'; // TODO: Remove antd
+import { Button } from '@superset-ui/core/components';
+import Tree, { TreeProps } from '@superset-ui/core/components/Tree';
 import { forwardRef } from 'react';
 import { FlatLayerDataNode, FlatLayerTreeProps, LayerConf } from './types';
 import { handleDrop } from './dragDropUtil';
@@ -39,8 +37,8 @@ export const StyledLayerTreeItem = styled(LayerTreeItem)`
     border: none;
     border-radius: ${theme.borderRadius}px;
     background-color: ${theme.colors.grayscale.light3};
-    font-size: ${theme.typography.sizes.s}px;
-    font-weight: ${theme.typography.weights.normal};
+    font-size: ${theme.fontSizeSM}px;
+    font-weight: ${theme.fontWeightNormal};
 
     &:hover {
       background-color: ${theme.colors.grayscale.light3};
@@ -49,13 +47,13 @@ export const StyledLayerTreeItem = styled(LayerTreeItem)`
     & .layer-tree-item-close {
       border-right: solid;
       border-right-width: 1px;
-      border-right-color: ${theme.colors.grayscale.light2};
+      border-right-color: ${theme.colorSplit};
     }
 
     & .layer-tree-item-edit {
       border-left: solid;
       border-left-width: 1px;
-      border-left-color: ${theme.colors.grayscale.light2};
+      border-left-color: ${theme.colorSplit};
     }
 
     & .layer-tree-item-title {
@@ -65,8 +63,8 @@ export const StyledLayerTreeItem = styled(LayerTreeItem)`
 
     & .layer-tree-item-type {
       padding-left: 4px;
-      font-size: ${theme.typography.sizes.xs}px;
-      font-family: ${theme.typography.families.monospace};
+      font-size: ${theme.fontSizeXS}px;
+      font-family: ${theme.fontFamilyCode};
     }
 
     & > button {
@@ -120,7 +118,9 @@ export const FlatLayerTree = forwardRef<HTMLDivElement, FlatLayerTreeProps>(
 
     const treeData = layerConfigsToTreeData(layerConfigs);
 
-    const onDrop: TreeProps['onDrop'] = info => {
+    const onDrop = (
+      info: Parameters<NonNullable<TreeProps<FlatLayerDataNode>['onDrop']>>[0],
+    ) => {
       const data = handleDrop(info, treeData);
       const movedLayerConfigs = treeDataToLayerConfigs(data);
       onMoveLayer(movedLayerConfigs);

@@ -32,3 +32,23 @@ export default function getBootstrapData(): BootstrapData {
   // Add a fallback to ensure the returned value is always of type BootstrapData
   return cachedBootstrapData ?? DEFAULT_BOOTSTRAP_DATA;
 }
+
+const APPLICATION_ROOT_NO_TRAILING_SLASH =
+  getBootstrapData().common.application_root.replace(/\/$/, '');
+
+const STATIC_ASSETS_PREFIX_NO_TRAILING_SLASH =
+  getBootstrapData().common.static_assets_prefix.replace(/\/$/, '');
+
+/**
+ * @returns The configured application root
+ */
+export function applicationRoot(): string {
+  return APPLICATION_ROOT_NO_TRAILING_SLASH;
+}
+
+/**
+ * @returns The configured static assets prefix
+ */
+export function staticAssetsPrefix(): string {
+  return STATIC_ASSETS_PREFIX_NO_TRAILING_SLASH;
+}

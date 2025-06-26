@@ -36,13 +36,16 @@ import {
   addReport,
   editReport,
 } from 'src/features/reports/ReportModal/actions';
-import Alert from 'src/components/Alert';
-import TimezoneSelector from 'src/components/TimezoneSelector';
-import LabeledErrorBoundInput from 'src/components/Form/LabeledErrorBoundInput';
-import Icons from 'src/components/Icons';
-import { CronError } from 'src/components/CronPicker';
-import { Radio, RadioChangeEvent } from 'src/components/Radio';
-import { Input } from 'src/components/Input';
+import {
+  Alert,
+  Input,
+  LabeledErrorBoundInput,
+  type CronError,
+} from '@superset-ui/core/components';
+import TimezoneSelector from '@superset-ui/core/components/TimezoneSelector';
+import { Icons } from '@superset-ui/core/components/Icons';
+import { Typography } from '@superset-ui/core/components/Typography';
+import { Radio, RadioChangeEvent } from '@superset-ui/core/components/Radio';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import { ChartState } from 'src/explore/types';
 import {
@@ -252,7 +255,7 @@ function ReportModal({
   const renderMessageContentSection = (
     <>
       <StyledMessageContentTitle>
-        <h4>{t('Message content')}</h4>
+        <Typography.Title level={4}>{t('Message content')}</Typography.Title>
       </StyledMessageContentTitle>
       <div className="inline-container">
         <Radio.GroupWrapper
@@ -348,9 +351,12 @@ function ReportModal({
 
       <StyledBottomSection>
         <StyledScheduleTitle>
-          <h4 css={(theme: SupersetTheme) => SectionHeaderStyle(theme)}>
+          <Typography.Title
+            level={5}
+            css={(theme: SupersetTheme) => SectionHeaderStyle(theme)}
+          >
             {t('Schedule')}
-          </h4>
+          </Typography.Title>
           <p>{t('The report will be sent to your email at')}</p>
         </StyledScheduleTitle>
 

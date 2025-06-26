@@ -25,12 +25,15 @@ import github from 'react-syntax-highlighter/dist/cjs/styles/hljs/github';
 import { LoadingCards } from 'src/pages/Home';
 import { TableTab } from 'src/views/CRUD/types';
 import withToasts from 'src/components/MessageToasts/withToasts';
-import { Dropdown } from 'src/components/Dropdown';
-import { Menu } from 'src/components/Menu';
+import {
+  Dropdown,
+  DeleteModal,
+  Button,
+  ListViewCard,
+} from '@superset-ui/core/components';
+import { MenuItem } from '@superset-ui/core/components/Menu';
 import { copyQueryLink, useListViewResource } from 'src/views/CRUD/hooks';
-import ListViewCard from 'src/components/ListViewCard';
-import DeleteModal from 'src/components/DeleteModal';
-import Icons from 'src/components/Icons';
+import { Icons } from '@superset-ui/core/components/Icons';
 import { User } from 'src/types/bootstrapTypes';
 import {
   CardContainer,
@@ -39,7 +42,9 @@ import {
   PAGE_SIZE,
   shortenSQL,
 } from 'src/views/CRUD/utils';
-import { Button } from 'src/components';
+import { assetUrl } from 'src/utils/assetUrl';
+import { ensureAppRoot } from 'src/utils/pathUtils';
+import { navigateTo } from 'src/utils/navigationUtils';
 import SubMenu from './SubMenu';
 import EmptyState from './EmptyState';
 import { WelcomeTable } from './types';
@@ -75,7 +80,7 @@ export const CardStyles = styled.div`
   a {
     text-decoration: none;
   }
-  .antd5-card-cover {
+  .ant-card-cover {
     border-bottom: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
     & > div {
       height: 171px;
@@ -85,7 +90,7 @@ export const CardStyles = styled.div`
     background-size: contain;
     background-repeat: no-repeat;
     background-position: center;
-    background-color: ${({ theme }) => theme.colors.secondary.light3};
+    background-color: ${({ theme }) => theme.colors.primary.light3};
     display: inline-block;
     width: 100%;
     height: 179px;
@@ -96,26 +101,26 @@ export const CardStyles = styled.div`
 
 const QueryData = styled.div`
   svg {
-    margin-left: ${({ theme }) => theme.gridUnit * 10}px;
+    margin-left: ${({ theme }) => theme.sizeUnit * 10}px;
   }
   .query-title {
-    padding: ${({ theme }) => theme.gridUnit * 2 + 2}px;
-    font-size: ${({ theme }) => theme.typography.sizes.l}px;
+    padding: ${({ theme }) => theme.sizeUnit * 2 + 2}px;
+    font-size: ${({ theme }) => theme.fontSizeLG}px;
   }
 `;
 
 const QueryContainer = styled.div`
   pre {
-    height: ${({ theme }) => theme.gridUnit * 40}px;
+    height: ${({ theme }) => theme.sizeUnit * 40}px;
     border: none !important;
     background-color: ${({ theme }) =>
       theme.colors.grayscale.light5} !important;
     overflow: hidden;
-    padding: ${({ theme }) => theme.gridUnit * 4}px !important;
+    padding: ${({ theme }) => theme.sizeUnit * 4}px !important;
   }
 `;
 
-const SavedQueries = ({
+export const SavedQueries = ({
   user,
   addDangerToast,
   addSuccessToast,
@@ -192,44 +197,47 @@ const SavedQueries = ({
       filters: getFilterValues(tab, WelcomeTable.SavedQueries, user),
     });
 
-  const renderMenu = useCallback(
-    (query: Query) => (
-      <Menu>
-        {canEdit && (
-          <Menu.Item>
-            <Link to={`/sqllab?savedQueryId=${query.id}`}>{t('Edit')}</Link>
-          </Menu.Item>
-        )}
-        <Menu.Item
-          onClick={() => {
-            if (query.id) {
-              copyQueryLink(query.id, addDangerToast, addSuccessToast);
-            }
-          }}
-        >
+  const menuItems = useCallback((query: Query) => {
+    const menuItems: MenuItem[] = [];
+    if (canEdit) {
+      menuItems.push({
+        key: 'edit',
+        label: <Link to={`/sqllab?savedQueryId=${query.id}`}>{t('Edit')}</Link>,
+      });
+    }
+    menuItems.push({
+      key: 'share-query',
+      label: (
+        <>
           <Icons.UploadOutlined
             iconSize="l"
             css={css`
-              margin-right: ${theme.gridUnit}px;
+              margin-right: ${theme.sizeUnit}px;
               vertical-align: baseline;
             `}
           />
           {t('Share')}
-        </Menu.Item>
-        {canDelete && (
-          <Menu.Item
-            onClick={() => {
-              setQueryDeleteModal(true);
-              setCurrentlyEdited(query);
-            }}
-          >
-            {t('Delete')}
-          </Menu.Item>
-        )}
-      </Menu>
-    ),
-    [],
-  );
+        </>
+      ),
+      onClick: () => {
+        if (query.id) {
+          copyQueryLink(query.id, addDangerToast, addSuccessToast);
+        }
+      },
+    });
+
+    if (canDelete) {
+      menuItems.push({
+        key: 'delete-query',
+        label: t('Delete'),
+        onClick: () => {
+          setQueryDeleteModal(true);
+          setCurrentlyEdited(query);
+        },
+      });
+    }
+    return menuItems;
+  }, []);
 
   if (loading) return <LoadingCards cover={showThumbnails} />;
   return (
@@ -253,6 +261,7 @@ const SavedQueries = ({
       )}
       <SubMenu
         activeChild={activeTab}
+        backgroundColor="transparent"
         tabs={[
           {
             name: TableTab.Mine,
@@ -274,23 +283,19 @@ const SavedQueries = ({
                 `}
               >
                 <Icons.PlusOutlined
-                  css={css`
-                    margin: auto ${theme.gridUnit * 2}px auto 0;
-                    vertical-align: text-top;
-                  `}
+                  iconColor={theme.colorPrimary}
                   iconSize="m"
-                  iconColor={theme.colors.primary.dark1}
                 />
                 {t('SQL Query')}
               </Link>
             ),
-            buttonStyle: 'tertiary',
+            buttonStyle: 'secondary',
           },
           {
             name: t('View All »'),
             buttonStyle: 'link',
             onClick: () => {
-              window.location.href = '/savedqueryview/list';
+              navigateTo('/savedqueryview/list');
             },
           },
         ]}
@@ -301,9 +306,11 @@ const SavedQueries = ({
             <CardStyles key={q.id}>
               <ListViewCard
                 imgURL=""
-                url={`/sqllab?savedQueryId=${q.id}`}
+                url={ensureAppRoot(`/sqllab?savedQueryId=${q.id}`)}
                 title={q.label}
-                imgFallbackURL="/static/assets/images/empty-query.svg"
+                imgFallbackURL={assetUrl(
+                  '/static/assets/images/empty-query.svg',
+                )}
                 description={t('Modified %s', q.changed_on_delta_humanized)}
                 cover={
                   q?.sql?.length && showThumbnails && featureFlag ? (
@@ -342,11 +349,13 @@ const SavedQueries = ({
                       }}
                     >
                       <Dropdown
-                        dropdownRender={() => renderMenu(q)}
+                        menu={{
+                          items: menuItems(q),
+                        }}
                         trigger={['click', 'hover']}
                       >
-                        <Button buttonSize="xsmall" type="link">
-                          <Icons.MoreOutlined iconSize="xl" />
+                        <Button buttonSize="xsmall" buttonStyle="link">
+                          <Icons.MoreOutlined iconColor={theme.colorText} />
                         </Button>
                       </Dropdown>
                     </ListViewCard.Actions>

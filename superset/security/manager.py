@@ -25,6 +25,7 @@ from typing import Any, Callable, cast, NamedTuple, Optional, TYPE_CHECKING
 
 from flask import current_app, Flask, g, Request
 from flask_appbuilder import Model
+from flask_appbuilder.security.sqla.apis import RoleApi, UserApi
 from flask_appbuilder.security.sqla.manager import SecurityManager
 from flask_appbuilder.security.sqla.models import (
     assoc_group_role,
@@ -40,8 +41,6 @@ from flask_appbuilder.security.sqla.models import (
 from flask_appbuilder.security.views import (
     PermissionModelView,
     PermissionViewModelView,
-    RoleModelView,
-    UserModelView,
     ViewMenuModelView,
 )
 from flask_appbuilder.widgets import ListWidget
@@ -69,7 +68,7 @@ from superset.security.guest_token import (
     GuestTokenUser,
     GuestUser,
 )
-from superset.sql_parse import extract_tables_from_jinja_sql, Table
+from superset.sql.parse import extract_tables_from_jinja_sql, Table
 from superset.tasks.utils import get_current_user
 from superset.utils import json
 from superset.utils.core import (
@@ -126,26 +125,53 @@ class SupersetRoleListWidget(ListWidget):  # pylint: disable=too-few-public-meth
         super().__init__(**kwargs)
 
 
-UserModelView.list_widget = SupersetSecurityListWidget
-RoleModelView.list_widget = SupersetRoleListWidget
+class SupersetRoleApi(RoleApi):
+    """
+    Overriding the RoleApi to be able to delete roles with permissions
+    """
+
+    def pre_delete(self, item: Model) -> None:
+        """
+        Overriding this method to be able to delete items when they have constraints
+        """
+        item.permissions = []
+
+
+class SupersetUserApi(UserApi):
+    """
+    Overriding the UserApi to be able to delete users
+    """
+
+    search_columns = [
+        "id",
+        "roles",
+        "groups",
+        "first_name",
+        "last_name",
+        "username",
+        "active",
+        "email",
+        "last_login",
+        "login_count",
+        "fail_login_count",
+        "created_on",
+        "changed_on",
+    ]
+
+    def pre_delete(self, item: Model) -> None:
+        """
+        Overriding this method to be able to delete items when they have constraints
+        """
+        item.roles = []
+
+
 PermissionViewModelView.list_widget = SupersetSecurityListWidget
 PermissionModelView.list_widget = SupersetSecurityListWidget
 
 # Limiting routes on FAB model views
-UserModelView.include_route_methods = RouteMethod.CRUD_SET | {
-    RouteMethod.ACTION,
-    RouteMethod.API_READ,
-    RouteMethod.ACTION_POST,
-    "userinfo",
-}
-RoleModelView.include_route_methods = RouteMethod.CRUD_SET
 PermissionViewModelView.include_route_methods = {RouteMethod.LIST}
 PermissionModelView.include_route_methods = {RouteMethod.LIST}
 ViewMenuModelView.include_route_methods = {RouteMethod.LIST}
-
-RoleModelView.list_columns = ["name"]
-RoleModelView.edit_columns = ["name", "permissions", "user"]
-RoleModelView.related_views = []
 
 
 def freeze_value(value: Any) -> str:
@@ -218,6 +244,9 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
     userstatschartview = None
     READ_ONLY_MODEL_VIEWS = {"Database", "DynamicPlugin"}
 
+    role_api = SupersetRoleApi
+    user_api = SupersetUserApi
+
     USER_MODEL_VIEWS = {
         "RegisterUserModelView",
         "UserDBModelView",
@@ -235,9 +264,10 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
     ADMIN_ONLY_VIEW_MENUS = {
         "Access Requests",
-        "Action Log",
+        "Action Logs",
         "Log",
         "List Users",
+        "UsersListView",
         "List Roles",
         "List Groups",
         "ResetPasswordView",
@@ -245,12 +275,13 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         "UserGroupModelView",
         "Row Level Security",
         "Row Level Security Filters",
-        "RowLevelSecurityFiltersModelView",
         "Security",
         "SQL Lab",
         "User Registrations",
         "User's Statistics",
         # Guarding all AB_ADD_SECURITY_API = True REST APIs
+        "RoleRestAPI",
+        "Group",
         "Role",
         "Permission",
         "PermissionViewMenu",
@@ -279,6 +310,8 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
     }
 
     ADMIN_ONLY_PERMISSIONS = {
+        "update_roles_users",
+        "list_roles",
         "can_update_role",
         "all_query_access",
         "can_grant_guest_token",
@@ -1126,7 +1159,9 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         """
         Find a List of models by a list of ids, if defined applies `base_filter`
         """
-        query = self.get_session.query(Role).filter(Role.id.in_(role_ids))
+        query = self.get_session.query(self.role_model).filter(
+            self.role_model.id.in_(role_ids)
+        )
         return query.all()
 
     def copy_role(
@@ -2747,3 +2782,34 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         return current_app.config["AUTH_ROLE_ADMIN"] in [
             role.name for role in self.get_user_roles()
         ]
+
+    # temporal change to remove the roles view from the security menu,
+    # after migrating all views to frontend, we will set FAB_ADD_SECURITY_VIEWS = False
+    def register_views(self) -> None:
+        from superset.views.auth import SupersetAuthView, SupersetRegisterUserView
+
+        self.auth_view = self.appbuilder.add_view_no_menu(SupersetAuthView)
+        self.registeruser_view = self.appbuilder.add_view_no_menu(
+            SupersetRegisterUserView
+        )
+
+        super().register_views()
+
+        for view in list(self.appbuilder.baseviews):
+            if isinstance(view, self.rolemodelview.__class__) and getattr(
+                view, "route_base", None
+            ) in ["/roles", "/users", "/groups", "registrations"]:
+                self.appbuilder.baseviews.remove(view)
+
+        security_menu = next(
+            (m for m in self.appbuilder.menu.get_list() if m.name == "Security"), None
+        )
+        if security_menu:
+            for item in list(security_menu.childs):
+                if item.name in [
+                    "List Roles",
+                    "List Users",
+                    "List Groups",
+                    "User Registrations",
+                ]:
+                    security_menu.childs.remove(item)

@@ -156,9 +156,15 @@ export function sortAndFilterSeries(
     case SortSeriesType.Avg:
       aggregator = name => ({ name, value: meanBy(rows, name) });
       break;
-    default:
-      aggregator = name => ({ name, value: name.toLowerCase() });
-      break;
+    default: {
+      const collator = new Intl.Collator(undefined, {
+        numeric: true,
+        sensitivity: 'base',
+      });
+      return seriesNames.sort((a, b) =>
+        sortSeriesAscending ? collator.compare(a, b) : collator.compare(b, a),
+      );
+    }
   }
 
   const sortedValues = seriesNames.map(aggregator);
@@ -438,10 +444,10 @@ export function getLegendProps(
     selected: legendState,
     selector: ['all', 'inverse'],
     selectorLabel: {
-      fontFamily: theme.typography.families.sansSerif,
-      fontSize: theme.typography.sizes.s,
-      color: theme.colors.grayscale.base,
-      borderColor: theme.colors.grayscale.base,
+      fontFamily: theme.fontFamily,
+      fontSize: theme.fontSizeSM,
+      color: theme.colorText,
+      borderColor: theme.colorBorder,
     },
   };
   const MIN_LEGEND_WIDTH = 0;

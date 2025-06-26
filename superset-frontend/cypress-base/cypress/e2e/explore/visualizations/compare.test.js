@@ -18,7 +18,7 @@
  */
 describe('Visualization > Compare', () => {
   beforeEach(() => {
-    cy.intercept('POST', '/superset/explore_json/**').as('getJson');
+    cy.intercept('POST', '**/superset/explore_json/**').as('getJson');
   });
 
   const COMPARE_FORM_DATA = {
@@ -89,7 +89,7 @@ describe('Visualization > Compare', () => {
   it('should allow type to search color schemes and apply the scheme', () => {
     verify(COMPARE_FORM_DATA);
 
-    cy.get('#controlSections-tab-display').click();
+    cy.get('#controlSections-tab-CUSTOMIZE').click();
     cy.get('.Control[data-test="color_scheme"]').scrollIntoView();
     cy.get('.Control[data-test="color_scheme"] input[type="search"]').focus();
     cy.focused().type('supersetColors{enter}');

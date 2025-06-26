@@ -24,7 +24,7 @@ import configureStore from 'redux-mock-store';
 import fetchMock from 'fetch-mock';
 
 // Only import components that are directly referenced in tests
-import ListView from 'src/components/ListView/ListView';
+import { ListView } from './ListView';
 
 const middlewares = [thunk];
 const mockStore = configureStore(middlewares);
@@ -47,18 +47,22 @@ const mockedProps = {
       accessor: 'id',
       Header: 'ID',
       sortable: true,
+      id: 'id',
     },
     {
       accessor: 'age',
       Header: 'Age',
+      id: 'age',
     },
     {
       accessor: 'name',
       Header: 'Name',
+      id: 'name',
     },
     {
       accessor: 'time',
       Header: 'Time',
+      id: 'time',
     },
   ],
   filters: [
@@ -189,7 +193,7 @@ describe('ListView', () => {
   });
 
   it('handles bulk actions on 1 row', async () => {
-    const checkboxes = screen.getAllByRole('checkbox', { name: '' });
+    const checkboxes = screen.getAllByRole('checkbox');
     await userEvent.click(checkboxes[1]); // Index 1 is the first row checkbox
 
     const bulkActionButton = within(
