@@ -16,129 +16,73 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import configureStore from 'redux-mock-store';
-import thunk from 'redux-thunk';
-import { Store } from 'redux';
+import { useDispatch } from 'react-redux';
+import { t } from '@superset-ui/core';
+import { Dropdown, Button } from '@superset-ui/core/components';
+import { Menu } from '@superset-ui/core/components/Menu';
+import { Icons } from '@superset-ui/core/components/Icons';
+import { queryEditorSetQueryLimit } from 'src/SqlLab/actions/sqlLab';
+import useQueryEditor from 'src/SqlLab/hooks/useQueryEditor';
 
-import { render, screen } from 'spec/helpers/testing-library';
-import { initialState, defaultQueryEditor } from 'src/SqlLab/fixtures';
-import QueryLimitSelect, {
-  QueryLimitSelectProps,
-  convertToNumWithSpaces,
-} from 'src/SqlLab/components/QueryLimitSelect';
+export interface QueryLimitSelectProps {
+  queryEditorId: string;
+  maxRow: number;
+  defaultQueryLimit: number;
+}
 
-const middlewares = [thunk];
-const mockStore = configureStore(middlewares);
+export function convertToNumWithSpaces(num: number) {
+  return num.toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, '$1 ');
+}
 
-jest.mock('src/components/Select/Select', () => () => (
-  <div data-test="mock-deprecated-select-select" />
-));
-jest.mock('src/components/Select/AsyncSelect', () => () => (
-  <div data-test="mock-deprecated-async-select" />
-));
+function renderQueryLimit(
+  maxRow: number,
+  setQueryLimit: (limit: number) => void,
+) {
+  const limitDropdown = [];
 
-const defaultQueryLimit = 100;
+  // Construct limit dropdown as increasing powers of ten until we reach SQL_MAX_ROW
+  for (let i = 10; i < maxRow; i *= 10) {
+    limitDropdown.push(i);
+  }
+  limitDropdown.push(maxRow);
 
-const setup = (props?: Partial<QueryLimitSelectProps>, store?: Store) =>
-  render(
-    <QueryLimitSelect
-      queryEditorId={defaultQueryEditor.id}
-      maxRow={100000}
-      defaultQueryLimit={defaultQueryLimit}
-      {...props}
-    />,
-    {
-      useRedux: true,
-      ...(store && { store }),
-    },
+  return (
+    <Menu
+      items={[...new Set(limitDropdown)].map(limit => ({
+        key: `${limit}`,
+        onClick: () => setQueryLimit(limit),
+        label: `${convertToNumWithSpaces(limit)} `,
+      }))}
+    />
   );
+}
 
-describe('QueryLimitSelect', () => {
-  it('renders current query limit size', () => {
-    const queryLimit = 10;
-    const { getByText } = setup(
-      {
-        queryEditorId: defaultQueryEditor.id,
-      },
-      mockStore({
-        ...initialState,
-        sqlLab: {
-          ...initialState.sqlLab,
-          queryEditors: [
-            {
-              ...defaultQueryEditor,
-              queryLimit,
-            },
-          ],
-        },
-      }),
-    );
-    expect(getByText(queryLimit)).toBeInTheDocument();
-  });
+const QueryLimitSelect = ({
+  queryEditorId,
+  maxRow,
+  defaultQueryLimit,
+}: QueryLimitSelectProps) => {
+  const dispatch = useDispatch();
 
-  it('renders default query limit for initial queryEditor', () => {
-    const { getByText } = setup({}, mockStore(initialState));
-    expect(getByText(defaultQueryLimit)).toBeInTheDocument();
-  });
+  const queryEditor = useQueryEditor(queryEditorId, ['id', 'queryLimit']);
+  const queryLimit = queryEditor.queryLimit || defaultQueryLimit;
+  const setQueryLimit = (updatedQueryLimit: number) =>
+    dispatch(queryEditorSetQueryLimit(queryEditor, updatedQueryLimit));
 
-  it('renders queryLimit from unsavedQueryEditor', () => {
-    const queryLimit = 10000;
-    const { getByText } = setup(
-      {},
-      mockStore({
-        ...initialState,
-        sqlLab: {
-          ...initialState.sqlLab,
-          unsavedQueryEditor: {
-            id: defaultQueryEditor.id,
-            queryLimit,
-          },
-        },
-      }),
-    );
-    expect(getByText(convertToNumWithSpaces(queryLimit))).toBeInTheDocument();
-  });
+  return (
+    <Dropdown
+      dropdownRender={() => renderQueryLimit(maxRow, setQueryLimit)}
+      trigger={['click']}
+    >
+      <Button size="small" showMarginRight={false} buttonStyle="link">
+        <span>{t('LIMIT')}:</span>
+        <span className="limitDropdown">
+          {convertToNumWithSpaces(queryLimit)}
+        </span>
+        <Icons.CaretDownOutlined iconSize="m" />
+      </Button>
+    </Dropdown>
+  );
+};
 
-  it('renders the Select component', () => {
-    setup({ maxRow: 50000 }, mockStore(initialState));
-
-    expect(screen.getByRole('button', { name: /LIMIT:/i })).toBeInTheDocument();
-    expect(screen.getByText(/100/i)).toBeInTheDocument();
-  });
-
-  it('renders dropdown select correctly when maxRow is less than 10', async () => {
-    const queryLimit = 5;
-    const { getByText } = setup(
-      { maxRow: 5 },
-      mockStore({
-        ...initialState,
-        sqlLab: {
-          ...initialState.sqlLab,
-          unsavedQueryEditor: {
-            id: defaultQueryEditor.id,
-            queryLimit,
-          },
-        },
-      }),
-    );
-    expect(getByText(convertToNumWithSpaces(queryLimit))).toBeInTheDocument();
-  });
-
-  it('renders dropdown select correctly when maxRow is a multiple of 10', async () => {
-    const queryLimit = 10000;
-    const { getByText } = setup(
-      { maxRow: 10000 },
-      mockStore({
-        ...initialState,
-        sqlLab: {
-          ...initialState.sqlLab,
-          unsavedQueryEditor: {
-            id: defaultQueryEditor.id,
-            queryLimit,
-          },
-        },
-      }),
-    );
-    expect(getByText(convertToNumWithSpaces(queryLimit))).toBeInTheDocument();
-  });
-});
+export default QueryLimitSelect;
