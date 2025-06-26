@@ -31,6 +31,7 @@ import {
   SortState,
   UserProvidedColDef,
 } from '../../types';
+import useOutsideClick from '../../utils/useOutsideclick';
 
 // Styled Components
 const Container = styled.div`
@@ -151,6 +152,7 @@ const CustomHeader: React.FC<CustomHeaderParams> = ({
   const [isFilterVisible, setFilterVisible] = useState(false);
   const [isMenuVisible, setMenuVisible] = useState(false);
   const filterRef = useRef<HTMLDivElement>(null);
+  const popoverContentRef = useRef<HTMLDivElement>(null);
 
   const currentSort = initialSortState?.[0];
   const isMain = userColDef?.isMain;
@@ -228,6 +230,17 @@ const CustomHeader: React.FC<CustomHeaderParams> = ({
 
   const className = `#chart-id-${slice_id} .ag-root-wrapper`;
 
+  const handleFilterClose = () => {
+    if (isFilterVisible) {
+      setFilterVisible(false);
+    }
+  };
+
+  // The filter popover gets closed even when clicking on one of filter options
+  // possibly due to some ant popover logic
+  // this hook prevents the filter popover from closing when clicking on one of filter options
+  useOutsideClick(popoverContentRef, handleFilterClose);
+
   return (
     <Container>
       <HeaderContainer onClick={toggleSort} className="custom-header">
@@ -242,12 +255,12 @@ const CustomHeader: React.FC<CustomHeaderParams> = ({
           root: 'filter-popover',
         }}
         content={
-          <StyledAntdPopover>
+          <StyledAntdPopover ref={popoverContentRef}>
             <div ref={filterRef} />
           </StyledAntdPopover>
         }
         open={isFilterVisible}
-        onOpenChange={setFilterVisible}
+        onOpenChange={visible => visible && setFilterVisible(true)}
         trigger="click"
         getPopupContainer={() =>
           document.querySelector(className) || document.body
