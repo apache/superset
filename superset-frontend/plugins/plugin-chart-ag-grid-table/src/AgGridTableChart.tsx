@@ -108,6 +108,10 @@ const StyledChartContainer = styled.div<{ height: number }>`
       margin-right: ${theme.sizeUnit}px;
     }
 
+    .ant-popover-inner {
+      padding: 0px;
+    }
+
     .input-container {
       margin-left: auto;
     }
@@ -244,6 +248,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     isUsingTimeComparison,
     emitCrossFilters,
     alignPositiveNegative,
+    slice_id,
   });
 
   const gridHeight = getGridHeight(height, includeSearch);

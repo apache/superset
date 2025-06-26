@@ -56,6 +56,7 @@ type UseColDefsProps = {
   isUsingTimeComparison?: boolean;
   emitCrossFilters?: boolean;
   alignPositiveNegative: boolean;
+  slice_id: number;
 };
 
 type ValueRange = [number, number];
@@ -142,6 +143,7 @@ export const useColDefs = ({
   isUsingTimeComparison,
   emitCrossFilters,
   alignPositiveNegative,
+  slice_id,
 }: UseColDefsProps) => {
   const getCommonColProps = useCallback(
     (
@@ -258,6 +260,9 @@ export const useColDefs = ({
         ...(serverPagination && {
           headerComponent: CustomHeader,
           comparator: () => 0,
+          headerComponentParams: {
+            slice_id,
+          },
         }),
         isMain,
         ...(!isMain &&

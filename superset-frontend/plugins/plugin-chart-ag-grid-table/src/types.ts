@@ -192,6 +192,7 @@ export interface CustomContext {
 export interface CustomHeaderParams extends IHeaderParams {
   context: CustomContext;
   column: Column;
+  slice_id: number;
 }
 
 export interface UserProvidedColDef extends ColDef {

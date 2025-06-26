@@ -22,7 +22,7 @@
 import { useRef, useState } from 'react';
 import { styled, t } from '@superset-ui/core';
 import { ArrowDownOutlined, ArrowUpOutlined } from '@ant-design/icons';
-import CustomPopover from './CustomPopover';
+import { Popover } from '@superset-ui/core/components/Popover';
 import FilterIcon from './Filter';
 import KebabMenu from './KebabMenu';
 import {
@@ -109,6 +109,17 @@ const MenuContainer = styled.div`
   `}
 `;
 
+const StyledAntdPopover = styled.div`
+  ${({ theme }) => `
+    background: ${theme.colors.grayscale.light4};
+    border: 1px solid ${theme.colors.grayscale.light2};
+    border-radius: ${theme.borderRadius}px;
+    box-shadow: 0 ${theme.sizeUnit / 2}px ${theme.sizeUnit * 2}px ${theme.colors.grayscale.light1}40;
+    min-width: ${theme.sizeUnit * 50}px;
+    padding: ${theme.sizeUnit * 2}px;
+  `}
+`;
+
 const getSortIcon = (sortState: SortState[], colId: string | null) => {
   if (!sortState?.length || !colId) return null;
   const { colId: currentCol, sort } = sortState[0];
@@ -129,6 +140,7 @@ const CustomHeader: React.FC<CustomHeaderParams> = ({
   context,
   column,
   api,
+  slice_id,
 }) => {
   const { initialSortState, onColumnHeaderClicked } = context;
   const colId = column?.getColId();
@@ -214,6 +226,8 @@ const CustomHeader: React.FC<CustomHeaderParams> = ({
     </MenuContainer>
   );
 
+  const className = `#chart-id-${slice_id} .ag-root-wrapper`;
+
   return (
     <Container>
       <HeaderContainer onClick={toggleSort} className="custom-header">
@@ -223,10 +237,19 @@ const CustomHeader: React.FC<CustomHeaderParams> = ({
         </SortIconWrapper>
       </HeaderContainer>
 
-      <CustomPopover
-        content={<div ref={filterRef} />}
-        isOpen={isFilterVisible}
-        onClose={() => setFilterVisible(false)}
+      <Popover
+        content={
+          <StyledAntdPopover>
+            <div ref={filterRef} />
+          </StyledAntdPopover>
+        }
+        open={isFilterVisible}
+        onOpenChange={setFilterVisible}
+        trigger="click"
+        getPopupContainer={() =>
+          document.querySelector(className) || document.body
+        }
+        arrow={false}
       >
         <FilterIconWrapper
           className="header-filter"
@@ -234,18 +257,23 @@ const CustomHeader: React.FC<CustomHeaderParams> = ({
         >
           {FilterIcon}
         </FilterIconWrapper>
-      </CustomPopover>
+      </Popover>
 
       {!isPercentMetric && !isTimeComparison && (
-        <CustomPopover
-          content={menuContent}
-          isOpen={isMenuVisible}
-          onClose={() => setMenuVisible(false)}
+        <Popover
+          content={<StyledAntdPopover>{menuContent}</StyledAntdPopover>}
+          open={isMenuVisible}
+          onOpenChange={setMenuVisible}
+          trigger="click"
+          getPopupContainer={() =>
+            document.querySelector(className) || document.body
+          }
+          arrow={false}
         >
           <div className="three-dots-menu" onClick={handleMenuClick}>
             <KebabMenu />
           </div>
-        </CustomPopover>
+        </Popover>
       )}
     </Container>
   );
