@@ -18,12 +18,11 @@
  */
 import { useDispatch } from 'react-redux';
 import { t } from '@superset-ui/core';
-import { Dropdown } from 'src/components/Dropdown';
-import { Icons } from 'src/components/Icons';
+import { Dropdown, Button } from '@superset-ui/core/components';
+import { Menu } from '@superset-ui/core/components/Menu';
+import { Icons } from '@superset-ui/core/components/Icons';
 import { queryEditorSetQueryLimit } from 'src/SqlLab/actions/sqlLab';
 import useQueryEditor from 'src/SqlLab/hooks/useQueryEditor';
-import Button from 'src/components/Button';
-import Select from 'src/components/Select/Select';
 
 export interface QueryLimitSelectProps {
   queryEditorId: string;
@@ -43,26 +42,17 @@ function renderQueryLimit(
 
   // Construct limit dropdown as increasing powers of ten until we reach SQL_MAX_ROW
   for (let i = 10; i < maxRow; i *= 10) {
-    limitDropdown.push({
-      value: i,
-    });
+    limitDropdown.push(i);
   }
-  limitDropdown.push({
-    value: maxRow,
-  });
+  limitDropdown.push(maxRow);
 
   return (
-    <Select
-      options={limitDropdown}
-      allowNewOptions
-      onChange={value => {
-        let limit_val = parseInt(value.toString(), 10);
-        if (Number.isNaN(limit_val)) limit_val = 10;
-        if (limit_val < 1) limit_val = 1;
-        if (limit_val > maxRow) limit_val = maxRow;
-        setQueryLimit(limit_val);
-        convertToNumWithSpaces(limit_val);
-      }}
+    <Menu
+      items={[...new Set(limitDropdown)].map(limit => ({
+        key: `${limit}`,
+        onClick: () => setQueryLimit(limit),
+        label: `${convertToNumWithSpaces(limit)} `,
+      }))}
     />
   );
 }
@@ -84,7 +74,7 @@ const QueryLimitSelect = ({
       dropdownRender={() => renderQueryLimit(maxRow, setQueryLimit)}
       trigger={['click']}
     >
-      <Button size="small" showMarginRight={false} type="link">
+      <Button size="small" showMarginRight={false} buttonStyle="link">
         <span>{t('LIMIT')}:</span>
         <span className="limitDropdown">
           {convertToNumWithSpaces(queryLimit)}
