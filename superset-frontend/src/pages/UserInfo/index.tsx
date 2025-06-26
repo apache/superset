@@ -66,7 +66,6 @@ const StyledLayout = styled.div`
       padding-left: ${theme.sizeUnit * 4}px;
       position: relative;
       height: ${theme.sizeUnit * 15}px;
-      background-color: ${theme.colors.grayscale.light5};
     }
   `}
 `;
