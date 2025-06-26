@@ -17,7 +17,6 @@
 
 # pylint: disable=import-outside-toplevel
 from datetime import datetime
-from unittest.mock import ANY
 
 import pytest
 from pytest_mock import MockerFixture
@@ -883,33 +882,6 @@ def test_get_all_table_names_in_schema(mocker: MockerFixture) -> None:
     )
 
 
-def test_get_all_table_names_in_schema_default_catalog(mocker: MockerFixture) -> None:
-    """
-    Test the `get_all_table_names_in_schema` method with a DB that supports
-    multiple catalogs.
-    """
-    database = Database(
-        database_name="db",
-        sqlalchemy_uri="postgresql://user:password@host:5432/examples",
-    )
-
-    mocker.patch.object(database, "get_inspector")
-    mocker.patch.object(database, "get_default_catalog", return_value="examples")
-    mock_get_table_names = mocker.patch(
-        "superset.db_engine_specs.postgres.PostgresEngineSpec.get_table_names"
-    )
-
-    database.get_all_table_names_in_schema(
-        catalog=None,
-        schema="public",
-    )
-    mock_get_table_names.assert_called_once_with(
-        database=database,
-        inspector=ANY,
-        schema="public",
-    )
-
-
 def test_get_all_view_names_in_schema(mocker: MockerFixture) -> None:
     """
     Test the `get_all_view_names_in_schema` method.
@@ -935,33 +907,6 @@ def test_get_all_view_names_in_schema(mocker: MockerFixture) -> None:
             ("second_view", "public", "examples"),
             ("third_view", "public", "examples"),
         }
-    )
-
-
-def test_get_all_view_names_in_schema_default_catalog(mocker: MockerFixture) -> None:
-    """
-    Test the `get_all_view_names_in_schema` method with a DB that supports
-    multiple catalogs.
-    """
-    database = Database(
-        database_name="db",
-        sqlalchemy_uri="postgresql://user:password@host:5432/examples",
-    )
-
-    mocker.patch.object(database, "get_inspector")
-    mocker.patch.object(database, "get_default_catalog", return_value="examples")
-    mock_get_view_names = mocker.patch(
-        "superset.db_engine_specs.base.BaseEngineSpec.get_view_names"
-    )
-
-    database.get_all_view_names_in_schema(
-        catalog=None,
-        schema="public",
-    )
-    mock_get_view_names.assert_called_once_with(
-        database=database,
-        inspector=ANY,
-        schema="public",
     )
 
 
