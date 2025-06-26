@@ -37,7 +37,6 @@ import {
   CellClickedEvent,
   IMenuActionParams,
 } from 'ag-grid-community';
-import './styles/ag-grid.css';
 import { AgGridReact } from 'ag-grid-react';
 import { type FunctionComponent } from 'react';
 import { JsonObject, DataRecordValue, DataRecord } from '@superset-ui/core';
@@ -48,6 +47,7 @@ import SearchSelectDropdown from './components/SearchSelectDropdown';
 import { SearchOption, SortByItem } from '../types';
 import getInitialSortState, { shouldSort } from '../utils/getInitialSortState';
 import { PAGE_SIZE_OPTIONS } from '../consts';
+import useTableTheme from '../utils/useTableTheme';
 
 export interface AgGridTableProps {
   gridTheme?: string;
@@ -255,6 +255,7 @@ const AgGridDataTable: FunctionComponent<AgGridTableProps> = memo(
       // This will make columns fill the grid width
       params.api.sizeColumnsToFit();
     };
+    const theme = useTableTheme();
 
     return (
       <div
@@ -304,13 +305,14 @@ const AgGridDataTable: FunctionComponent<AgGridTableProps> = memo(
         <AgGridReact
           ref={gridRef}
           onGridReady={onGridReady}
+          theme={theme}
           className="ag-container"
           rowData={rowData}
           headerHeight={36}
           rowHeight={30}
           columnDefs={colDefsFromProps}
-          onColumnGroupOpened={params => params.api.sizeColumnsToFit()}
           defaultColDef={defaultColDef}
+          onColumnGroupOpened={params => params.api.sizeColumnsToFit()}
           rowSelection="multiple"
           animateRows
           onCellClicked={handleCrossFilter}
