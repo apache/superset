@@ -187,31 +187,32 @@ const CustomHeader: React.FC<CustomHeaderParams> = ({
     setMenuVisible(!isMenuVisible);
   };
 
-  const menuContent = () => {
-    const isCurrentColSorted = currentSort?.colId === colId;
-    const currentDirection = isCurrentColSorted ? currentSort?.sort : null;
-    return (
-      <MenuContainer>
-        {!isTimeComparison && currentDirection !== 'asc' && (
-          <div onClick={() => applySort('asc')} className="menu-item">
-            <ArrowUpOutlined /> {t('Sort Ascending')}
-          </div>
-        )}
+  const isCurrentColSorted = currentSort?.colId === colId;
+  const currentDirection = isCurrentColSorted ? currentSort?.sort : null;
+  const shouldShowAsc =
+    !isTimeComparison && (!currentDirection || currentDirection === 'desc');
+  const shouldShowDesc =
+    !isTimeComparison && (!currentDirection || currentDirection === 'asc');
 
-        {!isTimeComparison && currentDirection !== 'desc' && (
-          <div onClick={() => applySort('desc')} className="menu-item">
-            <ArrowDownOutlined /> {t('Sort Descending')}
-          </div>
-        )}
-
-        {isCurrentColSorted && (
-          <div onClick={clearSort} className="menu-item">
-            <span style={{ fontSize: 16 }}>↻</span> {t('Clear Sort')}
-          </div>
-        )}
-      </MenuContainer>
-    );
-  };
+  const menuContent = (
+    <MenuContainer>
+      {shouldShowAsc && (
+        <div onClick={() => applySort('asc')} className="menu-item">
+          <ArrowUpOutlined /> {t('Sort Ascending')}
+        </div>
+      )}
+      {shouldShowDesc && (
+        <div onClick={() => applySort('desc')} className="menu-item">
+          <ArrowDownOutlined /> {t('Sort Descending')}
+        </div>
+      )}
+      {currentSort && currentSort?.colId === colId && (
+        <div onClick={clearSort} className="menu-item">
+          <span style={{ fontSize: 16 }}>↻</span> {t('Clear Sort')}
+        </div>
+      )}
+    </MenuContainer>
+  );
 
   return (
     <Container>
