@@ -44,6 +44,8 @@ describe('transformPropsUtil', () => {
     x_axis: 'mydate',
   };
 
+  const sliceId = 1;
+
   const groupedTimeseriesQueryData = {
     label_map: groupedTimeseriesLabelMap,
   };
@@ -290,6 +292,7 @@ describe('transformPropsUtil', () => {
         GeometryFormat.GEOJSON,
         chartProps,
         chartTransformer,
+        sliceId,
       );
 
       expect(chartTransformer).toHaveBeenCalledTimes(2);
@@ -301,6 +304,7 @@ describe('transformPropsUtil', () => {
         GeometryFormat.GEOJSON,
         chartProps,
         chartTransformer,
+        sliceId,
       );
 
       expect(result).toEqual(
@@ -321,6 +325,7 @@ describe('transformPropsUtil', () => {
         GeometryFormat.GEOJSON,
         chartProps,
         chartTransformer,
+        sliceId,
       );
       expect(result.features).toHaveLength(2);
       expect(result.features[0].geometry).toEqual(JSON.parse(geom1));
@@ -333,6 +338,7 @@ describe('transformPropsUtil', () => {
         GeometryFormat.WKB,
         wkbChartProps,
         chartTransformer,
+        sliceId,
       );
 
       expect(result.features).toHaveLength(2);
@@ -347,6 +353,7 @@ describe('transformPropsUtil', () => {
         GeometryFormat.WKT,
         wktChartProps,
         chartTransformer,
+        sliceId,
       );
 
       expect(result.features).toHaveLength(2);
