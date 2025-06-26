@@ -18,7 +18,7 @@
  */
 import { CategoricalColorScale } from '@superset-ui/core';
 import type { SeriesOption } from 'echarts';
-import { EchartsTimeseriesSeriesType } from '@superset-ui/plugin-chart-echarts';
+import { EchartsTimeseriesSeriesType } from '../../src';
 import {
   transformSeries,
   transformNegativeLabelsPosition,
