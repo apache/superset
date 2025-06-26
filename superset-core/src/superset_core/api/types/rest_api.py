@@ -14,3 +14,24 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+
+from abc import ABC, abstractmethod
+from typing import Type
+
+from flask_appbuilder.api import BaseApi
+
+
+class RestApi(BaseApi):
+    allow_browser_login = True
+
+
+class CoreRestApi(ABC):
+    @staticmethod
+    @abstractmethod
+    def add_api(api: Type[RestApi]) -> None:
+        """
+        Add a REST API to the Superset API.
+
+        :param api: A REST API instance.
+        """
+        ...

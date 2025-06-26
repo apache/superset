@@ -31,9 +31,12 @@ from flask_appbuilder.utils.base import get_safe_redirect
 from flask_babel import gettext as __, refresh
 from flask_compress import Compress
 from flask_session import Session
+from superset_core import api as core_api
 from werkzeug.middleware.proxy_fix import ProxyFix
 
 from superset.constants import CHANGE_ME_SECRET_KEY
+from superset.core.api.types.models import HostModelsApi
+from superset.core.api.types.rest_api import HostRestApi
 from superset.databases.utils import make_url_safe
 from superset.extensions import (
     _event_logger,
@@ -141,10 +144,10 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         from superset.datasource.api import DatasourceRestApi
         from superset.embedded.api import EmbeddedDashboardRestApi
         from superset.embedded.view import EmbeddedView
-        from superset.extensions.view import ExtensionsView
         from superset.explore.api import ExploreRestApi
         from superset.explore.form_data.api import ExploreFormDataRestApi
         from superset.explore.permalink.api import ExplorePermalinkRestApi
+        from superset.extensions.view import ExtensionsView
         from superset.importexport.api import ImportExportRestApi
         from superset.queries.api import QueryRestApi
         from superset.queries.saved_queries.api import SavedQueryRestApi
@@ -463,6 +466,12 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             icon="fa-lock",
         )
 
+    def init_core_api(self) -> None:
+        global core_api
+
+        core_api.models = HostModelsApi()
+        core_api.rest_api = HostRestApi()
+
     def init_extensions(self) -> None:
         from superset.extensions.utils import (
             eager_import,
@@ -472,19 +481,25 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
 
         try:
             extensions = get_extensions()
-            for extension in extensions.values():
-                if backend_files := extension.backend:
-                    install_in_memory_importer(backend_files)
-
-                backend = extension.manifest.get("backend")
-                if backend and (entrypoints := backend.get("entryPoints")):
-                    for entrypoint in entrypoints:
-                        eager_import(entrypoint)
         except Exception:  # pylint: disable=broad-except  # noqa: S110
             # If the db hasn't been initialized yet, an exception will be raised.
             # It's fine to ignore this, as in this case there are no extensions
             # present yet.
-            pass
+            return
+
+        for extension in extensions.values():
+            if backend_files := extension.backend:
+                install_in_memory_importer(backend_files)
+
+            backend = extension.manifest.get("backend")
+
+            if backend and (entrypoints := backend.get("entryPoints")):
+                for entrypoint in entrypoints:
+                    try:
+                        eager_import(entrypoint)
+                    except Exception as ex:  # pylint: disable=broad-except  # noqa: S110
+                        # Surface exceptions during initialization of extensions
+                        print(ex)
 
     def init_app_in_ctx(self) -> None:
         """
@@ -509,6 +524,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         self.init_views()
 
         if feature_flag_manager.is_feature_enabled("ENABLE_EXTENSIONS"):
+            self.init_core_api()
             self.init_extensions()
 
     def check_secret_key(self) -> None:

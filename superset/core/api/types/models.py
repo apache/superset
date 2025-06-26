@@ -14,3 +14,27 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+
+from typing import Any
+
+from superset_core.api.types.models import CoreModelsApi
+
+
+class HostModelsApi(CoreModelsApi):
+    @staticmethod
+    def get_datasets(ids: list[int] | None) -> list[Any]:
+        from superset.daos.dataset import DatasetDAO
+
+        if not ids:
+            return DatasetDAO.find_all()
+
+        return DatasetDAO.find_by_ids(ids)
+
+    @staticmethod
+    def get_databases(ids: list[int] | None) -> list[Any]:
+        from superset.daos.database import DatabaseDAO
+
+        if not ids:
+            return DatabaseDAO.find_all()
+
+        return DatabaseDAO.find_by_ids(ids)

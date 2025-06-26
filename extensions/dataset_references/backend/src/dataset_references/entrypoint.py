@@ -14,9 +14,8 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-
-from superset_core.api import add_api
+from superset_core.api import rest_api
 
 from .api import DatasetReferencesAPI
 
-add_api(DatasetReferencesAPI)
+rest_api.add_api(DatasetReferencesAPI)

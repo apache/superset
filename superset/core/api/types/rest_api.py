@@ -14,3 +14,17 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+
+from typing import Type
+
+from superset_core.api.types.rest_api import CoreRestApi, RestApi
+
+from superset.extensions import appbuilder
+
+
+class HostRestApi(CoreRestApi):
+    @staticmethod
+    def add_api(api: Type[RestApi]) -> None:
+        api.resource_name = "extensions/" + (api.resource_name or "")
+        view = appbuilder.add_api(api)
+        appbuilder._add_permission(view, True)

@@ -20,12 +20,11 @@ from typing import Any, Callable, Optional
 
 import celery
 from flask import Flask
-from flask_appbuilder import SQLA
+from flask_appbuilder import AppBuilder, SQLA
 from flask_caching.backends.base import BaseCache
 from flask_migrate import Migrate
 from flask_talisman import Talisman
 from flask_wtf.csrf import CSRFProtect
-from superset_core import appbuilder
 from werkzeug.local import LocalProxy
 
 from superset.async_events.async_query_manager import AsyncQueryManager
@@ -116,6 +115,7 @@ class ProfilingExtension:  # pylint: disable=too-few-public-methods
 
 
 APP_DIR = os.path.join(os.path.dirname(__file__), os.path.pardir)
+appbuilder = AppBuilder(update_perms=False)
 async_query_manager_factory = AsyncQueryManagerFactory()
 async_query_manager: AsyncQueryManager = LocalProxy(
     async_query_manager_factory.instance

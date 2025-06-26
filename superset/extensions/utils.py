@@ -28,6 +28,7 @@ from zipfile import ZipFile
 
 from flask import current_app
 
+from superset.extensions.models import Extension
 from superset.extensions.types import BundleFile, LoadedExtension, Manifest
 from superset.utils.core import check_is_safe_zip
 
@@ -155,7 +156,7 @@ def get_loaded_extension(files: Iterable[BundleFile]) -> LoadedExtension:
     )
 
 
-def build_extension_data(extension):
+def build_extension_data(extension: LoadedExtension) -> dict[str, Any]:
     manifest: Manifest = extension.manifest
     extension_data: dict[str, Any] = {
         "id": extension.id,
@@ -163,8 +164,7 @@ def build_extension_data(extension):
         "dependencies": manifest.get("dependencies", []),
         "enabled": extension.enabled,
     }
-    frontend = manifest.get("frontend")
-    if frontend:
+    if frontend := manifest.get("frontend"):
         module_federation = frontend.get("moduleFederation", {})
         remote_entry = frontend["remoteEntry"]
         extension_data.update(
@@ -199,7 +199,7 @@ def get_extensions() -> dict[str, LoadedExtension]:
     return extensions
 
 
-def build_loaded_extension(db_extension):
+def build_loaded_extension(db_extension: Extension) -> LoadedExtension:
     extension = LoadedExtension(
         id=db_extension.id,
         name=db_extension.name,

@@ -15,11 +15,11 @@
 # specific language governing permissions and limitations
 # under the License.
 
-from superset_core.api import add_api
+from superset_core.api import rest_api
 
 from .api import Extension1API
 from .utils import foo
 
 print(foo())
 
-add_api(Extension1API)
+rest_api.add_api(Extension1API)

@@ -1,6 +1,6 @@
 from flask import Response
 from flask_appbuilder.api import expose, permission_name, protect, safe
-from superset_core.api import RestApi
+from superset_core.api.types.rest_api import RestApi
 
 
 class Extension1API(RestApi):

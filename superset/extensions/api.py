@@ -24,14 +24,15 @@ from flask.wrappers import Response
 from flask_appbuilder.api import expose, protect, safe
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from marshmallow import ValidationError
+
 from superset import db
 from superset.daos.extension import ExtensionDAO
 from superset.extensions import event_logger
 from superset.extensions.models import Extension
 from superset.extensions.schemas import ExtensionPutSchema
 from superset.extensions.utils import (
-    build_loaded_extension,
     build_extension_data,
+    build_loaded_extension,
     get_bundle_files_from_zip,
     get_extensions,
     get_loaded_extension,
@@ -137,8 +138,8 @@ class ExtensionsRestApi(BaseSupersetModelRestApi):
         extension = ExtensionDAO.find_by_id(pk)
         if not extension:
             return self.response_404()
-        extension = build_loaded_extension(extension)
-        extension_data = build_extension_data(extension)
+        loaded_extension = build_loaded_extension(extension)
+        extension_data = build_extension_data(loaded_extension)
         return self.response(200, result=extension_data)
 
     @protect()
@@ -305,8 +306,8 @@ class ExtensionsRestApi(BaseSupersetModelRestApi):
               $ref: '#/components/responses/500'
         """
         try:
-            # TODO: Just supporting enabled field for now. We need to check if we'll need more
-            # and also handle specific exceptions.
+            # TODO: Just supporting enabled field for now. We need to check if we'll
+            # need more and also handle specific exceptions.
             item = self.edit_model_schema.load(request.json)
             model = ExtensionDAO.find_by_id(pk)
             if not model:

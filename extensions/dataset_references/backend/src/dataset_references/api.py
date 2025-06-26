@@ -4,10 +4,9 @@ from datetime import datetime, timedelta
 from flask import request, Response
 from flask_appbuilder.api import expose, permission_name, protect, safe
 from sqlglot.dialects.dialect import Dialects
-from superset_core.api import RestApi
+from superset_core.api import models
+from superset_core.api.types.rest_api import RestApi
 
-from superset import db
-from superset.daos.database import DatabaseDAO
 from superset.sql.parse import (
     extract_tables_from_statement,
     SQLScript,
@@ -38,55 +37,46 @@ class DatasetReferencesAPI(RestApi):
             )
         }
 
-        # Retrieve all table owners from the database
-        owners = db.session.execute(
-            """
-            SELECT DISTINCT t.table_name, u.first_name, u.last_name
-            FROM tables t
-            JOIN sqlatable_user tu on tu.table_id = t.id
-            JOIN ab_user u ON u.id = tu.user_id
-            ORDER BY t.table_name, u.first_name, u.last_name
-            """
-        )
-
-        # Build a mapping: table_name -> list of owner full names
+        datasets = models.get_datasets()
         owners_map = {}
-        for row in owners:
-            table_name = row[0]
-            owner_full_name = f"{row[1]} {row[2]}".strip()
-            owners_map.setdefault(table_name, []).append(owner_full_name)
 
-        # Get estimated row counts from PostgreSQL's pg_class and pg_namespace
-        # Only works for tables in the current database/schema
-        row_counts = {}
-        if tables:
-            table_names = ", ".join(f"'{t}'" for t in tables)
-            count_estimates = (
-                DatabaseDAO()
-                .find_by_id(1)
-                .get_df(
-                    f"""
-                        SELECT
-                            relname AS table_name,
-                            reltuples::BIGINT AS estimated_row_count
-                        FROM pg_class
-                        WHERE relname IN ({table_names})
-                    """
-                )
-            )
-            for _, row in count_estimates.iterrows():
-                table_name = row["table_name"]
-                estimated_row_count = row["estimated_row_count"]
-                row_counts[table_name] = estimated_row_count
+        # Retrieve all table owners from the database
+        for dataset in datasets:
+            table_name = dataset.table_name
+            owners_map[table_name] = [
+                f"{owner.first_name} {owner.last_name}" for owner in dataset.owners
+            ]
 
+        # # Get estimated row counts from PostgreSQL's pg_class and pg_namespace
+        # # Only works for tables in the current database/schema
+        # row_counts = {}
+        # if tables:
+        #     table_names = ", ".join(f"'{t}'" for t in tables)
+        #     count_estimates = (
+        #         models.get_database(1)
+        #         .get_df(
+        #             f"""
+        #                 SELECT
+        #                     relname AS table_name,
+        #                     reltuples::BIGINT AS estimated_row_count
+        #                 FROM pg_class
+        #                 WHERE relname IN ({table_names})
+        #             """
+        #         )
+        #     )
+        #     for _, row in count_estimates.iterrows():
+        #         table_name = row["table_name"]
+        #         estimated_row_count = row["estimated_row_count"]
+        #         row_counts[table_name] = estimated_row_count
         result = []
         for table_name in tables:
             # Generate a random date within the last 60 days
-            days_ago = random.randint(0, 60)
+            days_ago = random.randint(0, 60)  # noqa: S311
             latest_partition = (datetime.today() - timedelta(days=days_ago)).strftime(
                 "%Y-%m-%d"
             )
-            estimated_row_count = row_counts.get(table_name)
+            # estimated_row_count = row_counts.get(table_name)
+            estimated_row_count = random.randint(0, 100000)  # noqa: S311
             result.append(
                 {
                     "dataset_name": table_name,
