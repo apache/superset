@@ -77,6 +77,10 @@ const StyledChartContainer = styled.div<{ height: number }>`
       border: var(--ag-wrapper-border);
     }
 
+    .filter-popover {
+      z-index: 1 !important;
+    }
+
     .search-container {
       display: flex;
       justify-content: flex-end;

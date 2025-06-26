@@ -238,6 +238,9 @@ const CustomHeader: React.FC<CustomHeaderParams> = ({
       </HeaderContainer>
 
       <Popover
+        classNames={{
+          root: 'filter-popover',
+        }}
         content={
           <StyledAntdPopover>
             <div ref={filterRef} />
