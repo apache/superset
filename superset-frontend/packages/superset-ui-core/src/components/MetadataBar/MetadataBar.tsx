@@ -80,7 +80,7 @@ const StyledItem = styled.div<{
     padding-right: ${last ? 0 : SPACE_BETWEEN_ITEMS}px;
     cursor: ${onClick ? 'pointer' : 'default'};
     & .metadata-icon {
-      color: ${onClick && collapsed ? theme.colorPrimary : theme.colorTextBase};
+      color: ${onClick && collapsed ? theme.colorPrimary : theme.colorTextTertiary};
       padding-right: ${collapsed ? 0 : ICON_PADDING}px;
       & .anticon {
         line-height: 0;
