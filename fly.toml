@@ -9,7 +9,7 @@ primary_region = 'waw'
 [build]
 
 [http_service]
-  internal_port = 8080
+  internal_port = 8088
   force_https = true
   auto_stop_machines = 'stop'
   auto_start_machines = true
