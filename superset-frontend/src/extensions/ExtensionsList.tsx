@@ -17,7 +17,7 @@
  * under the License.
  */
 import { styled, useTheme, css, t } from '@superset-ui/core';
-import { FunctionComponent, useMemo } from 'react';
+import { FunctionComponent, useMemo, useState } from 'react';
 import { useListViewResource } from 'src/views/CRUD/hooks';
 import {
   ConfirmStatusChange,
@@ -36,6 +36,7 @@ import { JsonModal } from 'src/components/JsonModal';
 import { Popconfirm } from 'antd';
 import { safeJsonObjectParse } from 'src/components/JsonModal/utils';
 import ExtensionsManager from './ExtensionsManager';
+import UploadModal from './UploadModal';
 
 const PAGE_SIZE = 25;
 
@@ -79,6 +80,9 @@ const ExtensionsList: FunctionComponent<ExtensionsListProps> = ({
   addSuccessToast,
 }) => {
   const theme = useTheme();
+
+  const [uploadOpen, setUploadOpen] = useState(false);
+
   const {
     state: { loading, resourceCount, resourceCollection, bulkSelectEnabled },
     fetchData,
@@ -89,10 +93,6 @@ const ExtensionsList: FunctionComponent<ExtensionsListProps> = ({
     t('Extensions'),
     addDangerToast,
   );
-
-  const newExtension = () => {
-    console.log('New extension');
-  };
 
   const deleteExtensions = (extensions: Extension[]) => {
     console.log('Deleting extensions:', extensions);
@@ -271,7 +271,7 @@ const ExtensionsList: FunctionComponent<ExtensionsListProps> = ({
             {t('Extension')}
           </>
         ),
-        onClick: newExtension,
+        onClick: () => setUploadOpen(true),
         buttonStyle: 'primary',
       },
     ],
@@ -279,6 +279,14 @@ const ExtensionsList: FunctionComponent<ExtensionsListProps> = ({
 
   return (
     <>
+      <UploadModal
+        onHide={() => setUploadOpen(false)}
+        onUploadSuccess={() => {
+          setUploadOpen(false);
+          refreshData();
+        }}
+        show={uploadOpen}
+      />
       <SubMenu {...menuData} />
       <ConfirmStatusChange
         title={t('Please confirm')}
