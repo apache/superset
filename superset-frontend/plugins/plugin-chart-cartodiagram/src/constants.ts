@@ -29,3 +29,7 @@ export enum GeometryFormat {
   WKB = 'WKB',
   WKT = 'WKT',
 }
+
+// copy of
+// superset-frontend/plugins/plugin-chart-echarts/src/constants.ts
+export const NULL_STRING = '<NULL>';

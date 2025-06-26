@@ -37,6 +37,7 @@ export default function transformProps(chartProps: ChartProps) {
     minZoom,
     chartBackgroundColor,
     chartBackgroundBorderRadius,
+    sliceId,
   } = formData;
   const { setControlValue = () => {} } = hooks;
   const selectedChart = parseSelectedChart(selectedChartString);
@@ -49,6 +50,7 @@ export default function transformProps(chartProps: ChartProps) {
     geomFormat,
     chartProps,
     chartTransformer,
+    sliceId,
   );
 
   return {

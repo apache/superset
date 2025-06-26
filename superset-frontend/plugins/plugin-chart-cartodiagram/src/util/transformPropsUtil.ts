@@ -18,9 +18,20 @@
  */
 
 import {
+  CategoricalColorNamespace,
+  ChartDataResponseResult,
   ChartProps,
   convertKeysToCamelCase,
   DataRecord,
+  DataRecordValue,
+  ensureIsArray,
+  GenericDataType,
+  getColumnLabel,
+  getTimeFormatter,
+  normalizeTimestamp,
+  NumberFormatter,
+  TimeFormatter,
+  ValueFormatter,
 } from '@superset-ui/core';
 import { isObject } from 'lodash';
 import WKB from 'ol/format/WKB';
@@ -30,7 +41,7 @@ import {
   ChartConfig,
   ChartConfigFeature,
 } from '../types';
-import { GeometryFormat } from '../constants';
+import { GeometryFormat, NULL_STRING } from '../constants';
 import { wkbToGeoJSON, wktToGeoJSON } from './mapUtil';
 
 const COLUMN_SEPARATOR = ', ';
@@ -314,6 +325,128 @@ export const stripGeomColumnFromQueryData = (
   return queryDataClone;
 };
 
+// copy of
+// superset-frontend/plugins/plugin-chart-echarts/src/utils/series.ts
+export const formatSeriesName = (
+  name: DataRecordValue | undefined,
+  {
+    numberFormatter,
+    timeFormatter,
+    coltype,
+  }: {
+    numberFormatter?: ValueFormatter;
+    timeFormatter?: TimeFormatter;
+    coltype?: GenericDataType;
+  } = {},
+) => {
+  if (name === undefined || name === null) {
+    return NULL_STRING;
+  }
+  if (typeof name === 'boolean' || typeof name === 'bigint') {
+    return name.toString();
+  }
+  if (name instanceof Date || coltype === GenericDataType.Temporal) {
+    const normalizedName =
+      typeof name === 'string' ? normalizeTimestamp(name) : name;
+    const d =
+      normalizedName instanceof Date
+        ? normalizedName
+        : new Date(normalizedName);
+
+    return timeFormatter ? timeFormatter(d) : d.toISOString();
+  }
+  if (typeof name === 'number') {
+    return numberFormatter ? numberFormatter(name) : name.toString();
+  }
+  return name;
+};
+
+// copy of
+// superset-frontend/plugins/plugin-chart-echarts/src/utils/series.ts
+export const extractGroupbyLabel = ({
+  datum = {},
+  groupby,
+  numberFormatter,
+  timeFormatter,
+  coltypeMapping = {},
+}: {
+  datum?: DataRecord;
+  groupby?: string[] | null;
+  numberFormatter?: NumberFormatter;
+  timeFormatter?: TimeFormatter;
+  coltypeMapping?: Record<string, GenericDataType>;
+}) =>
+  ensureIsArray(groupby)
+    .map(val =>
+      formatSeriesName(datum[val], {
+        numberFormatter,
+        timeFormatter,
+        ...(coltypeMapping[val] && { coltype: coltypeMapping[val] }),
+      }),
+    )
+    .join(', ');
+
+// copy of
+// superset-frontend/plugins/plugin-chart-echarts/src/utils/series.ts
+export const getColtypesMapping = ({
+  coltypes = [],
+  colnames = [],
+}: Pick<ChartDataResponseResult, 'coltypes' | 'colnames'>): Record<
+  string,
+  GenericDataType
+> =>
+  colnames.reduce(
+    (accumulator, item, index) => ({ ...accumulator, [item]: coltypes[index] }),
+    {},
+  );
+
+/**
+ * Reserve label colors for the chart.
+ *
+ * We call the CategoricalColorNamespace singleton to reserve
+ * label colors for the chart. This is necessary to ensure that
+ * we do not run into color collisions when rendering multiple
+ * charts in the same cartodiagram.
+ *
+ * TODO This only works in the context of a dashboard,
+ *      since only there, the CategoricalColorNamespace singleton is being used.
+ *      In the explore view, label colors cannot be reserved without changing
+ *      the overall color handling in superset.
+ *
+ * @param formData The formdata of the underlying chart
+ * @param dataByLocation The data grouped by location
+ * @param strippedQueryData The query data without the geom column
+ * @param sliceId The id of the chart slice
+ */
+export const reserveLabelColors = (
+  formData: Record<string, any>,
+  dataByLocation: LocationConfigMapping,
+  strippedQueryData: any,
+  sliceId: number,
+) => {
+  // Call color singleton to reserve label colors
+  // get needed control values from underlying chart config
+  const { colorScheme = '', groupby, dateFormat } = formData;
+  const colorFn = CategoricalColorNamespace.getScale(colorScheme as string);
+  const groupbyLabels = groupby.map(getColumnLabel);
+  Object.keys(dataByLocation).forEach(location => {
+    const coltypeMapping = getColtypesMapping({
+      ...strippedQueryData,
+      data: dataByLocation[location],
+    });
+    dataByLocation[location].forEach(datum => {
+      const name = extractGroupbyLabel({
+        datum,
+        groupby: groupbyLabels,
+        coltypeMapping,
+        timeFormatter: getTimeFormatter(dateFormat),
+      });
+
+      colorFn(name, sliceId);
+    });
+  });
+};
+
 /**
  * Create the chart configurations depending on the referenced Superset chart.
  *
@@ -330,9 +463,11 @@ export const getChartConfigs = (
   geomFormat: GeometryFormat,
   chartProps: ChartProps,
   chartTransformer: any,
+  sliceId: number,
 ) => {
   const chartFormDataSnake = selectedChart.params;
   const chartFormData = convertKeysToCamelCase(chartFormDataSnake);
+  chartFormData.sliceId = sliceId;
 
   const baseConfig = {
     ...chartProps,
@@ -374,6 +509,15 @@ export const getChartConfigs = (
     queryData,
     geomColumn,
     geomFormat,
+  );
+
+  // We have to reserve the label colors before
+  // transforming the chart props.
+  reserveLabelColors(
+    baseConfig.formData,
+    dataByLocation,
+    strippedQueryData,
+    sliceId,
   );
 
   Object.keys(dataByLocation).forEach(location => {
