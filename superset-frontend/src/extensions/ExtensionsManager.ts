@@ -74,15 +74,19 @@ class ExtensionsManager {
     const extensions: core.Extension[] = response.json.result;
     await Promise.all(
       extensions.map(async extension => {
-        if (extension.remoteEntry) {
-          extension = await this.loadModule(extension);
-          if (extension.enabled) {
-            await this.enableExtension(extension);
-          }
-        }
-        this.extensionIndex.set(extension.name, extension);
+        await this.initializeExtension(extension);
       }),
     );
+  }
+
+  public async initializeExtension(extension: core.Extension) {
+    if (extension.remoteEntry) {
+      extension = await this.loadModule(extension);
+      if (extension.enabled) {
+        await this.enableExtension(extension);
+      }
+    }
+    this.extensionIndex.set(extension.name, extension);
   }
 
   /**

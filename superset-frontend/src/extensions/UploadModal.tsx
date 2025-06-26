@@ -27,6 +27,7 @@ import {
   UploadFile,
 } from '@superset-ui/core/components';
 import { useState } from 'react';
+import ExtensionsManager from './ExtensionsManager';
 
 type UploadProps = {
   show: boolean;
@@ -58,15 +59,17 @@ const UploadModal = ({ show, onHide, onUploadSuccess }: UploadProps) => {
       const file: File = fileList[0].originFileObj as File;
       const formData = new FormData();
       formData.append('bundle', file);
-      await SupersetClient.post({
+      let response = await SupersetClient.post({
         endpoint: '/api/v1/extensions/import/',
         body: formData,
         headers: { Accept: 'application/json' },
       });
-      // TODO: We need to load a single extension from the backend and
-      // initialize it in the ExtensionsManager
-      // to make it available in the frontend.
-
+      const { id } = response.json;
+      response = await SupersetClient.get({
+        endpoint: `/api/v1/extensions/${id}`,
+      });
+      const extension = response.json.result;
+      ExtensionsManager.getInstance().initializeExtension(extension);
       onUploadSuccess();
     } catch (err) {
       setError(t('Failed to upload the extension. Please try again.'));

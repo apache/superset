@@ -226,8 +226,8 @@ class ExtensionsRestApi(BaseSupersetModelRestApi):
                   schema:
                     type: object
                     properties:
-                      message:
-                        type: string
+                      id:
+                        type: integer
             400:
               $ref: '#/components/responses/400'
             401:
@@ -246,7 +246,7 @@ class ExtensionsRestApi(BaseSupersetModelRestApi):
             try:
                 files = get_bundle_files_from_zip(uploaded_file)
                 extension = get_loaded_extension(files)
-                ExtensionDAO.upsert(
+                result = ExtensionDAO.upsert(
                     name=extension.name,
                     manifest=extension.manifest,
                     frontend=extension.frontend,
@@ -257,7 +257,7 @@ class ExtensionsRestApi(BaseSupersetModelRestApi):
             except Exception as ex:
                 self.response_400(message=str(ex))
 
-        return self.response(200, message="OK")
+        return self.response(200, id=result.id)
 
     @expose("/<int:pk>", methods=("PUT",))
     @protect()
