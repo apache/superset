@@ -2079,6 +2079,159 @@ class TestGuestTokens(SupersetTestCase):
         assert guest_user is not None
         assert "test_guest" == guest_user.username
 
+    def create_guest_token_with_attributes(self):
+        user = {
+            "username": "test_guest_with_attrs",
+            "first_name": "Test",
+            "last_name": "Guest",
+            "attributes": {
+                "department": "Engineering",
+                "region": "US",
+                "role": "developer",
+                "team": "data-platform"
+            }
+        }
+        resources = [{"some": "resource"}]
+        rls = [{"dataset": 1, "clause": "access = 1"}]
+        return security_manager.create_guest_access_token(user, resources, rls)
+
+    def test_create_guest_access_token_with_attributes(self):
+        """Test creating guest access token with user attributes."""
+        user_with_attributes = {
+            "username": "test_guest_attrs",
+            "first_name": "Test",
+            "last_name": "Guest",
+            "attributes": {
+                "department": "Engineering",
+                "region": "US",
+                "clearance_level": "standard",
+                "projects": ["analytics", "ml-platform"],
+                "team_lead": True
+            }
+        }
+        resources = [{"type": "dashboard", "id": "test-dashboard"}]
+        rls = [{"dataset": 1, "clause": "id = 1"}]
+        
+        token = security_manager.create_guest_access_token(user_with_attributes, resources, rls)
+        
+        # Decode and verify the token contains attributes
+        aud = get_url_host()
+        decoded_token = jwt.decode(
+            token,
+            self.app.config["GUEST_TOKEN_JWT_SECRET"],
+            algorithms=[self.app.config["GUEST_TOKEN_JWT_ALGO"]],
+            audience=aud,
+        )
+        
+        assert "user" in decoded_token
+        user = decoded_token["user"]
+        assert "attributes" in user
+        assert user["attributes"]["department"] == "Engineering"
+        assert user["attributes"]["region"] == "US"
+        assert user["attributes"]["clearance_level"] == "standard"
+        assert user["attributes"]["projects"] == ["analytics", "ml-platform"]
+        assert user["attributes"]["team_lead"] is True
+
+    def test_get_guest_user_with_attributes(self):
+        """Test that guest user properly retains attributes from token."""
+        token = self.create_guest_token_with_attributes()
+        fake_request = FakeRequest()
+        fake_request.headers[current_app.config["GUEST_TOKEN_HEADER_NAME"]] = token
+
+        guest_user = security_manager.get_guest_user_from_request(fake_request)
+
+        assert guest_user is not None
+        assert "test_guest_with_attrs" == guest_user.username
+        
+        # Verify attributes are accessible through guest_token
+        assert hasattr(guest_user, 'guest_token')
+        token_user = guest_user.guest_token["user"]
+        assert "attributes" in token_user
+        assert token_user["attributes"]["department"] == "Engineering"
+        assert token_user["attributes"]["region"] == "US"
+        assert token_user["attributes"]["role"] == "developer"
+        assert token_user["attributes"]["team"] == "data-platform"
+
+    def test_create_guest_access_token_without_attributes(self):
+        """Test creating guest access token without user attributes (backward compatibility)."""
+        user_without_attributes = {
+            "username": "test_guest_no_attrs",
+            "first_name": "Test",
+            "last_name": "Guest"
+        }
+        resources = [{"type": "dashboard", "id": "test-dashboard"}]
+        rls = [{"dataset": 1, "clause": "id = 1"}]
+        
+        token = security_manager.create_guest_access_token(user_without_attributes, resources, rls)
+        
+        # Decode and verify the token works without attributes
+        aud = get_url_host()
+        decoded_token = jwt.decode(
+            token,
+            self.app.config["GUEST_TOKEN_JWT_SECRET"],
+            algorithms=[self.app.config["GUEST_TOKEN_JWT_ALGO"]],
+            audience=aud,
+        )
+        
+        assert "user" in decoded_token
+        user = decoded_token["user"]
+        assert "attributes" not in user
+        assert user["username"] == "test_guest_no_attrs"
+
+    def test_create_guest_access_token_with_empty_attributes(self):
+        """Test creating guest access token with empty attributes."""
+        user_with_empty_attributes = {
+            "username": "test_guest_empty_attrs",
+            "first_name": "Test",
+            "last_name": "Guest",
+            "attributes": {}
+        }
+        resources = [{"type": "dashboard", "id": "test-dashboard"}]
+        rls = [{"dataset": 1, "clause": "id = 1"}]
+        
+        token = security_manager.create_guest_access_token(user_with_empty_attributes, resources, rls)
+        
+        # Decode and verify the token contains empty attributes
+        aud = get_url_host()
+        decoded_token = jwt.decode(
+            token,
+            self.app.config["GUEST_TOKEN_JWT_SECRET"],
+            algorithms=[self.app.config["GUEST_TOKEN_JWT_ALGO"]],
+            audience=aud,
+        )
+        
+        assert "user" in decoded_token
+        user = decoded_token["user"]
+        assert "attributes" in user
+        assert user["attributes"] == {}
+
+    def test_create_guest_access_token_with_null_attributes(self):
+        """Test creating guest access token with null attributes."""
+        user_with_null_attributes = {
+            "username": "test_guest_null_attrs",
+            "first_name": "Test",
+            "last_name": "Guest",
+            "attributes": None
+        }
+        resources = [{"type": "dashboard", "id": "test-dashboard"}]
+        rls = [{"dataset": 1, "clause": "id = 1"}]
+        
+        token = security_manager.create_guest_access_token(user_with_null_attributes, resources, rls)
+        
+        # Decode and verify the token contains null attributes
+        aud = get_url_host()
+        decoded_token = jwt.decode(
+            token,
+            self.app.config["GUEST_TOKEN_JWT_SECRET"],
+            algorithms=[self.app.config["GUEST_TOKEN_JWT_ALGO"]],
+            audience=aud,
+        )
+        
+        assert "user" in decoded_token
+        user = decoded_token["user"]
+        assert "attributes" in user
+        assert user["attributes"] is None
+
     def test_get_guest_user_with_request_form(self):
         token = self.create_guest_token()
         fake_request = FakeRequest()
