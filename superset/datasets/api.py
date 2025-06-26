@@ -221,7 +221,6 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         "datasource_name",
         "name",
         "column_formats",
-        "currency_formats",
         "granularity_sqla",
         "time_grain_sqla",
         "order_by_choices",
@@ -278,6 +277,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         "table_name",
         "created_by",
         "changed_by",
+        "uuid",
     ]
     allowed_rel_fields = {"database", "owners", "created_by", "changed_by"}
     allowed_distinct_fields = {"catalog", "schema"}

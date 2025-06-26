@@ -48,7 +48,7 @@ from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.models.sql_lab import Query
 from superset.result_set import SupersetResultSet
-from superset.sql_parse import Table
+from superset.sql.parse import Table
 from superset.utils import core as utils, json
 from superset.utils.core import backend
 from superset.utils.database import get_example_database
@@ -108,19 +108,6 @@ class TestCore(SupersetTestCase):
         yield dashboard
         db.session.delete(dashboard)
         db.session.commit()
-
-    def test_login(self):
-        resp = self.get_resp("/login/", data=dict(username="admin", password="general"))  # noqa: S106, C408
-        assert "User confirmation needed" not in resp
-
-        resp = self.get_resp("/logout/", follow_redirects=True)
-        assert "User confirmation needed" in resp
-
-        resp = self.get_resp(
-            "/login/",
-            data=dict(username="admin", password="wrongPassword"),  # noqa: S106, C408
-        )
-        assert "User confirmation needed" in resp
 
     def test_dashboard_endpoint(self):
         self.login(ADMIN_USERNAME)

@@ -27,12 +27,12 @@ from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.models.sql_lab import Query
 from superset.utils.core import backend
 from superset.utils.database import get_example_database
-from tests.integration_tests.db_engine_specs.base_tests import TestDbEngineSpec
+from tests.integration_tests.base_tests import SupersetTestCase
 from tests.integration_tests.fixtures.certificates import ssl_certificate
 from tests.integration_tests.fixtures.database import default_db_extra
 
 
-class TestPostgresDbEngineSpec(TestDbEngineSpec):
+class TestPostgresDbEngineSpec(SupersetTestCase):
     def test_get_table_names(self):
         """
         DB Eng Specs (postgres): Test get table names

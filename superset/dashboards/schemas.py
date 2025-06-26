@@ -259,7 +259,6 @@ class DashboardDatasetSchema(Schema):
     id = fields.Int()
     uid = fields.Str()
     column_formats = fields.Dict()
-    currency_formats = fields.Dict()
     database = fields.Nested(DatabaseSchema)
     default_endpoint = fields.String()
     filter_select = fields.Bool()

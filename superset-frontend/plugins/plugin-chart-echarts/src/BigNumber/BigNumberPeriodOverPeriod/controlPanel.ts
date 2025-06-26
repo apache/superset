@@ -28,6 +28,8 @@ import {
   subheaderFontSize,
   subtitleControl,
   subtitleFontSize,
+  showMetricNameControl,
+  metricNameFontSizeWithVisibility,
 } from '../sharedControls';
 import { ColorSchemeEnum } from './types';
 
@@ -70,6 +72,8 @@ const config: ControlPanelConfig = {
         ],
         [subtitleControl],
         [subtitleFontSize],
+        [showMetricNameControl],
+        [metricNameFontSizeWithVisibility],
         [
           {
             ...subheaderFontSize,

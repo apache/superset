@@ -90,6 +90,15 @@ const processDataRecords = memoizeOne(function processDataRecords(
   return data;
 });
 
+// Create a map to store cached values per slice
+const sliceCache = new Map<
+  number,
+  {
+    cachedServerLength: number;
+    passedColumns?: DataColumnMeta[];
+  }
+>();
+
 const calculateDifferences = (
   originalValue: number,
   comparisonValue: number,
@@ -480,6 +489,7 @@ const transformProps = (
     comparison_color_enabled: comparisonColorEnabled = false,
     comparison_color_scheme: comparisonColorScheme = ColorSchemeEnum.Green,
     comparison_type,
+    slice_id,
   } = formData;
   const isUsingTimeComparison =
     !isEmpty(time_compare) &&
@@ -675,6 +685,26 @@ const transformProps = (
     conditionalFormatting,
   );
 
+  // Get cached values for this slice
+  const cachedValues = sliceCache.get(slice_id);
+  let hasServerPageLengthChanged = false;
+
+  if (
+    cachedValues?.cachedServerLength !== undefined &&
+    cachedValues.cachedServerLength !== serverPageLength
+  ) {
+    hasServerPageLengthChanged = true;
+  }
+
+  // Update cache with new values
+  sliceCache.set(slice_id, {
+    cachedServerLength: serverPageLength,
+    passedColumns:
+      Array.isArray(passedColumns) && passedColumns?.length > 0
+        ? passedColumns
+        : cachedValues?.passedColumns,
+  });
+
   const startDateOffset = chartProps.rawFormData?.start_date_offset;
   return {
     height,
@@ -682,7 +712,10 @@ const transformProps = (
     isRawRecords: queryMode === QueryMode.Raw,
     data: passedData,
     totals,
-    columns: passedColumns,
+    columns:
+      Array.isArray(passedColumns) && passedColumns?.length > 0
+        ? passedColumns
+        : cachedValues?.passedColumns || [],
     serverPagination,
     metrics,
     percentMetrics,
@@ -697,7 +730,9 @@ const transformProps = (
     includeSearch,
     rowCount,
     pageSize: serverPagination
-      ? serverPageLength
+      ? serverPaginationData?.pageSize
+        ? serverPaginationData?.pageSize
+        : serverPageLength
       : getPageSize(pageLength, data.length, columns.length),
     filters: filterState.filters,
     emitCrossFilters,
@@ -711,6 +746,9 @@ const transformProps = (
     basicColorFormatters,
     startDateOffset,
     basicColorColumnFormatters,
+    hasServerPageLengthChanged,
+    serverPageLength,
+    slice_id,
   };
 };
 

@@ -36,6 +36,7 @@ jest.mock('@superset-ui/core', () => ({
 jest.mock('../utils', () => ({
   getDateFormatter: jest.fn(() => (v: any) => `${v}pm`),
   parseMetricValue: jest.fn(val => Number(val)),
+  getOriginalLabel: jest.fn((metric, metrics) => metric),
 }));
 
 describe('BigNumberTotal transformProps', () => {
@@ -101,6 +102,38 @@ describe('BigNumberTotal transformProps', () => {
       chartProps as unknown as BigNumberTotalChartProps,
     );
     expect(result.subtitle).toBe('test');
+  });
+
+  const baseChartProps = {
+    width: 400,
+    height: 300,
+    queriesData: [{ data: [], coltypes: [] }],
+    rawFormData: { dummy: 'raw' },
+    hooks: { onContextMenu: jest.fn() },
+    datasource: {
+      currencyFormats: { value: '$0,0.00' },
+      columnFormats: { value: '$0,0.00' },
+      metrics: [{ metric_name: 'value', d3format: '.2f' }],
+    },
+  };
+
+  it('uses subtitle font size when subtitle is provided', () => {
+    const result = transformProps({
+      ...baseChartProps,
+      formData: {
+        subtitle: 'Subtitle wins',
+        subheader: 'Fallback subheader',
+        subtitleFontSize: 0.4,
+        subheaderFontSize: 0.99,
+        metric: 'value',
+        headerFontSize: 0.3,
+        yAxisFormat: 'SMART_NUMBER',
+        timeFormat: 'smart_date',
+      },
+    } as unknown as BigNumberTotalChartProps);
+
+    expect(result.subtitle).toBe('Subtitle wins');
+    expect(result.subtitleFontSize).toBe(0.4);
   });
 
   it('should compute bigNumber using parseMetricValue when data exists', () => {

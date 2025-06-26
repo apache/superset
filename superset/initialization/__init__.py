@@ -130,10 +130,6 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         from superset.cachekeys.api import CacheRestApi
         from superset.charts.api import ChartRestApi
         from superset.charts.data.api import ChartDataRestApi
-        from superset.connectors.sqla.views import (
-            RowLevelSecurityView,
-            TableModelView,
-        )
         from superset.css_templates.api import CssTemplateRestApi
         from superset.dashboards.api import DashboardRestApi
         from superset.dashboards.filter_state.api import DashboardFilterStateRestApi
@@ -154,7 +150,11 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         from superset.reports.api import ReportScheduleRestApi
         from superset.reports.logs.api import ReportExecutionLogRestApi
         from superset.row_level_security.api import RLSRestApi
-        from superset.security.api import RoleRestAPI, SecurityRestApi
+        from superset.security.api import (
+            RoleRestAPI,
+            SecurityRestApi,
+            UserRegistrationsRestAPI,
+        )
         from superset.sqllab.api import SqlLabRestApi
         from superset.sqllab.permalink.api import SqlLabPermalinkRestApi
         from superset.tags.api import TagRestApi
@@ -174,16 +174,23 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         from superset.views.dynamic_plugins import DynamicPluginsView
         from superset.views.error_handling import set_app_error_handlers
         from superset.views.explore import ExplorePermalinkView, ExploreView
+        from superset.views.groups import GroupsListView
         from superset.views.log.api import LogRestApi
-        from superset.views.log.views import LogModelView
+        from superset.views.logs import ActionLogView
         from superset.views.roles import RolesListView
         from superset.views.sql_lab.views import (
             SavedQueryView,
             TableSchemaView,
             TabStateView,
         )
+        from superset.views.sqla import (
+            RowLevelSecurityView,
+            TableModelView,
+        )
         from superset.views.sqllab import SqllabView
         from superset.views.tags import TagModelView, TagView
+        from superset.views.user_info import UserInfoView
+        from superset.views.user_registrations import UserRegistrationsView
         from superset.views.users.api import CurrentUserRestApi, UserRestApi
         from superset.views.users_list import UsersListView
 
@@ -224,6 +231,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.add_api(TagRestApi)
         appbuilder.add_api(SqlLabRestApi)
         appbuilder.add_api(SqlLabPermalinkRestApi)
+        appbuilder.add_api(LogRestApi)
         #
         # Setup regular views
         #
@@ -282,9 +290,26 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         )
 
         appbuilder.add_view(
+            UserRegistrationsView,
+            "User Registrations",
+            label=__("User Registrations"),
+            category="Security",
+            category_label=__("Security"),
+            menu_cond=lambda: bool(appbuilder.app.config["AUTH_USER_REGISTRATION"]),
+        )
+
+        appbuilder.add_view(
             UsersListView,
             "List Users",
             label=__("List Users"),
+            category="Security",
+            category_label=__("Security"),
+        )
+
+        appbuilder.add_view(
+            GroupsListView,
+            "List Groups",
+            label=__("List Groups"),
             category="Security",
             category_label=__("Security"),
         )
@@ -330,6 +355,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.add_view_no_menu(TagView)
         appbuilder.add_view_no_menu(ReportView)
         appbuilder.add_view_no_menu(RoleRestAPI)
+        appbuilder.add_view_no_menu(UserInfoView)
 
         #
         # Add links
@@ -370,8 +396,9 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             menu_cond=lambda: feature_flag_manager.is_feature_enabled("TAGGING_SYSTEM"),
         )
         appbuilder.add_api(LogRestApi)
+        appbuilder.add_api(UserRegistrationsRestAPI)
         appbuilder.add_view(
-            LogModelView,
+            ActionLogView,
             "Action Log",
             label=__("Action Log"),
             category="Security",

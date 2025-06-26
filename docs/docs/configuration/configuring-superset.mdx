@@ -302,6 +302,15 @@ AUTH_USER_REGISTRATION = True
 AUTH_USER_REGISTRATION_ROLE = "Public"
 ```
 
+In case you want to assign the `Admin` role on new user registration, it can be assigned as follows:
+```python
+AUTH_USER_REGISTRATION_ROLE = "Admin"
+```
+If you encounter the [issue](https://github.com/apache/superset/issues/13243) of not being able to list users from the Superset main page settings, although a newly registered user has an `Admin` role, please re-run `superset init` to sync the required permissions. Below is the command to re-run `superset init` using docker compose.
+```
+docker-compose exec superset superset init
+```
+
 Then, create a `CustomSsoSecurityManager` that extends `SupersetSecurityManager` and overrides
 `oauth_user_info`:
 

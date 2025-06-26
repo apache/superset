@@ -30,7 +30,7 @@ from sqlalchemy.dialects import sqlite
 from sqlalchemy.engine.url import make_url, URL
 from sqlalchemy.sql import sqltypes
 
-from superset.sql_parse import Table
+from superset.sql.parse import Table
 from superset.superset_typing import ResultSetColumnType, SQLAColumnType
 from superset.utils.core import GenericDataType
 from tests.unit_tests.db_engine_specs.utils import assert_column_spec
@@ -47,32 +47,6 @@ def test_get_text_clause_with_colon() -> None:
         "SELECT foo FROM tbl WHERE foo = '123:456')"
     )
     assert text_clause.text == "SELECT foo FROM tbl WHERE foo = '123\\:456')"
-
-
-def test_parse_sql_single_statement() -> None:
-    """
-    `parse_sql` should properly strip leading and trailing spaces and semicolons
-    """
-
-    from superset.db_engine_specs.base import BaseEngineSpec
-
-    queries = BaseEngineSpec.parse_sql(" SELECT foo FROM tbl ; ")
-    assert queries == ["SELECT foo FROM tbl"]
-
-
-def test_parse_sql_multi_statement() -> None:
-    """
-    For string with multiple SQL-statements `parse_sql` method should return list
-    where each element represents the single SQL-statement
-    """
-
-    from superset.db_engine_specs.base import BaseEngineSpec
-
-    queries = BaseEngineSpec.parse_sql("SELECT foo FROM tbl1; SELECT bar FROM tbl2;")
-    assert queries == [
-        "SELECT foo FROM tbl1",
-        "SELECT bar FROM tbl2",
-    ]
 
 
 def test_validate_db_uri(mocker: MockerFixture) -> None:
@@ -206,9 +180,6 @@ def test_select_star(mocker: MockerFixture) -> None:
     """
     from superset.db_engine_specs.base import BaseEngineSpec
 
-    class NoLimitDBEngineSpec(BaseEngineSpec):
-        allow_limit_clause = False
-
     cols: list[ResultSetColumnType] = [
         {
             "column_name": "a",
@@ -235,7 +206,7 @@ def test_select_star(mocker: MockerFixture) -> None:
 
     sql = BaseEngineSpec.select_star(
         database=database,
-        table=Table("my_table"),
+        table=Table("my_table", "my_schema", "my_catalog"),
         engine=engine,
         limit=100,
         show_cols=True,
@@ -243,19 +214,7 @@ def test_select_star(mocker: MockerFixture) -> None:
         latest_partition=False,
         cols=cols,
     )
-    assert sql == "SELECT a\nFROM my_table\nLIMIT ?\nOFFSET ?"
-
-    sql = NoLimitDBEngineSpec.select_star(
-        database=database,
-        table=Table("my_table"),
-        engine=engine,
-        limit=100,
-        show_cols=True,
-        indent=True,
-        latest_partition=False,
-        cols=cols,
-    )
-    assert sql == "SELECT a\nFROM my_table"
+    assert sql == "SELECT\n  a\nFROM my_schema.my_table\nLIMIT ?\nOFFSET ?"
 
 
 def test_extra_table_metadata(mocker: MockerFixture) -> None:

@@ -35,7 +35,7 @@ import {
   BigNumberWithTrendlineChartProps,
   TimeSeriesDatum,
 } from '../types';
-import { getDateFormatter, parseMetricValue } from '../utils';
+import { getDateFormatter, parseMetricValue, getOriginalLabel } from '../utils';
 import { getDefaultTooltip } from '../../utils/tooltip';
 import { Refs } from '../../types';
 
@@ -62,6 +62,7 @@ export default function transformProps(
     compareLag: compareLag_,
     compareSuffix = '',
     timeFormat,
+    metricNameFontSize,
     headerFontSize,
     metric = 'value',
     showTimestamp,
@@ -96,6 +97,9 @@ export default function transformProps(
   const aggregatedData = hasAggregatedData ? aggregatedQueryData.data[0] : null;
   const refs: Refs = {};
   const metricName = getMetricLabel(metric);
+  const metrics = chartProps.datasource?.metrics || [];
+  const originalLabel = getOriginalLabel(metric, metrics);
+  const showMetricName = chartProps.rawFormData?.show_metric_name ?? false;
   const compareLag = Number(compareLag_) || 0;
   let formattedSubheader = subheader;
 
@@ -153,11 +157,13 @@ export default function transformProps(
   if (compareLag > 0 && sortedData.length > 0) {
     const compareIndex = compareLag;
     if (compareIndex < sortedData.length) {
-      const compareValue = sortedData[compareIndex][1];
+      const compareFromValue = sortedData[compareIndex][1];
+      const compareToValue = sortedData[0][1];
       // compare values must both be non-nulls
-      if (bigNumber !== null && compareValue !== null) {
-        percentChange = compareValue
-          ? (Number(bigNumber) - compareValue) / Math.abs(compareValue)
+      if (compareToValue !== null && compareFromValue !== null) {
+        percentChange = compareFromValue
+          ? (Number(compareToValue) - compareFromValue) /
+            Math.abs(compareFromValue)
           : 0;
         formattedSubheader = `${formatPercentChange(
           percentChange,
@@ -200,7 +206,7 @@ export default function transformProps(
     metric,
     currencyFormats,
     columnFormats,
-    yAxisFormat,
+    metricEntry?.d3format || yAxisFormat,
     currencyFormat,
   );
 
@@ -303,6 +309,9 @@ export default function transformProps(
     headerFormatter,
     formatTime,
     formData,
+    metricName: originalLabel,
+    showMetricName,
+    metricNameFontSize,
     headerFontSize,
     subtitleFontSize,
     subtitle,

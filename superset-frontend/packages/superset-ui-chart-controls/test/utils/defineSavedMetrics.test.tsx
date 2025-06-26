@@ -41,7 +41,6 @@ describe('defineSavedMetrics', () => {
       columns: [],
       verbose_map: {},
       column_formats: {},
-      currency_formats: {},
       datasource_name: 'my_datasource',
       description: 'this is my datasource',
     };
