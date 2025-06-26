@@ -91,7 +91,6 @@ SQLGLOT_DIALECTS = {
     "pydoris": Dialects.DORIS,
     "redshift": Dialects.REDSHIFT,
     "risingwave": Dialects.RISINGWAVE,
-    # "rockset": ???
     "shillelagh": Dialects.SQLITE,
     "singlestore": Dialects.MYSQL,
     "snowflake": Dialects.SNOWFLAKE,
