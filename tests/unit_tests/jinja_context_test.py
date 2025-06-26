@@ -1435,3 +1435,541 @@ def test_get_time_filter(
         assert cache.get_time_filter(*args, **kwargs) == time_filter, description
         assert cache.removed_filters == removed_filters
         assert cache.applied_filters == applied_filters
+
+
+def test_get_guest_user_attribute_no_request_context(mocker: MockerFixture) -> None:
+    """
+    Test that get_guest_user_attribute returns default when no request context.
+    """
+    mocker.patch("superset.jinja_context.has_request_context", return_value=False)
+    
+    cache = ExtraCache()
+    result = cache.get_guest_user_attribute("department", "default_dept")
+    assert result == "default_dept"
+
+
+def test_get_guest_user_attribute_no_user(mocker: MockerFixture) -> None:
+    """
+    Test that get_guest_user_attribute returns default when no user in context.
+    """
+    mocker.patch("superset.jinja_context.has_request_context", return_value=True)
+    mock_g = mocker.patch("superset.jinja_context.g")
+    mock_g.user = None
+    
+    cache = ExtraCache()
+    result = cache.get_guest_user_attribute("department", "default_dept")
+    assert result == "default_dept"
+
+
+def test_get_guest_user_attribute_not_guest_user(mocker: MockerFixture) -> None:
+    """
+    Test that get_guest_user_attribute returns default when user is not a guest user.
+    """
+    mocker.patch("superset.jinja_context.has_request_context", return_value=True)
+    mock_g = mocker.patch("superset.jinja_context.g")
+    
+    # Create a regular user (not guest)
+    regular_user = mocker.Mock()
+    regular_user.is_guest_user = False
+    mock_g.user = regular_user
+    
+    cache = ExtraCache()
+    result = cache.get_guest_user_attribute("department", "default_dept")
+    assert result == "default_dept"
+
+
+def test_get_guest_user_attribute_with_attributes(mocker: MockerFixture) -> None:
+    """
+    Test that get_guest_user_attribute returns correct attribute value for guest user.
+    """
+    mocker.patch("superset.jinja_context.has_request_context", return_value=True)
+    mock_g = mocker.patch("superset.jinja_context.g")
+    
+    # Create guest user with attributes
+    guest_user = mocker.Mock()
+    guest_user.is_guest_user = True
+    guest_user.guest_token = {
+        "user": {
+            "username": "test_guest",
+            "attributes": {
+                "department": "Engineering",
+                "region": "US",
+                "role": "developer"
+            }
+        },
+        "resources": [{"type": "dashboard", "id": "test-id"}],
+        "rls_rules": []
+    }
+    mock_g.user = guest_user
+    
+    cache = ExtraCache()
+    
+    # Test existing attribute
+    result = cache.get_guest_user_attribute("department")
+    assert result == "Engineering"
+    
+    # Test another existing attribute
+    result = cache.get_guest_user_attribute("region")
+    assert result == "US"
+    
+    # Test non-existing attribute returns default
+    result = cache.get_guest_user_attribute("non_existing", "default_value")
+    assert result == "default_value"
+
+
+def test_get_guest_user_attribute_without_attributes(mocker: MockerFixture) -> None:
+    """
+    Test that get_guest_user_attribute returns default when guest user has no attributes.
+    """
+    mocker.patch("superset.jinja_context.has_request_context", return_value=True)
+    mock_g = mocker.patch("superset.jinja_context.g")
+    
+    # Create guest user without attributes
+    guest_user = mocker.Mock()
+    guest_user.is_guest_user = True
+    guest_user.guest_token = {
+        "user": {
+            "username": "test_guest"
+        },
+        "resources": [{"type": "dashboard", "id": "test-id"}],
+        "rls_rules": []
+    }
+    mock_g.user = guest_user
+    
+    cache = ExtraCache()
+    result = cache.get_guest_user_attribute("department", "default_dept")
+    assert result == "default_dept"
+
+
+def test_get_guest_user_attribute_empty_attributes(mocker: MockerFixture) -> None:
+    """
+    Test that get_guest_user_attribute returns default when guest user has empty attributes.
+    """
+    mocker.patch("superset.jinja_context.has_request_context", return_value=True)
+    mock_g = mocker.patch("superset.jinja_context.g")
+    
+    # Create guest user with empty attributes
+    guest_user = mocker.Mock()
+    guest_user.is_guest_user = True
+    guest_user.guest_token = {
+        "user": {
+            "username": "test_guest",
+            "attributes": {}
+        },
+        "resources": [{"type": "dashboard", "id": "test-id"}],
+        "rls_rules": []
+    }
+    mock_g.user = guest_user
+    
+    cache = ExtraCache()
+    result = cache.get_guest_user_attribute("department", "default_dept")
+    assert result == "default_dept"
+
+
+def test_get_guest_user_attribute_null_attributes(mocker: MockerFixture) -> None:
+    """
+    Test that get_guest_user_attribute returns default when guest user has null attributes.
+    """
+    mocker.patch("superset.jinja_context.has_request_context", return_value=True)
+    mock_g = mocker.patch("superset.jinja_context.g")
+    
+    # Create guest user with null attributes
+    guest_user = mocker.Mock()
+    guest_user.is_guest_user = True
+    guest_user.guest_token = {
+        "user": {
+            "username": "test_guest",
+            "attributes": None
+        },
+        "resources": [{"type": "dashboard", "id": "test-id"}],
+        "rls_rules": []
+    }
+    mock_g.user = guest_user
+    
+    cache = ExtraCache()
+    result = cache.get_guest_user_attribute("department", "default_dept")
+    assert result == "default_dept"
+
+
+def test_get_guest_user_attribute_cache_key_behavior(mocker: MockerFixture) -> None:
+    """
+    Test that get_guest_user_attribute correctly handles cache key behavior.
+    """
+    mocker.patch("superset.jinja_context.has_request_context", return_value=True)
+    mock_g = mocker.patch("superset.jinja_context.g")
+    
+    # Create guest user with attributes
+    guest_user = mocker.Mock()
+    guest_user.is_guest_user = True
+    guest_user.guest_token = {
+        "user": {
+            "username": "test_guest",
+            "attributes": {
+                "department": "Engineering",
+                "region": "US"
+            }
+        },
+        "resources": [{"type": "dashboard", "id": "test-id"}],
+        "rls_rules": []
+    }
+    mock_g.user = guest_user
+    
+    cache = ExtraCache()
+    # Mock the cache_key_wrapper method
+    cache.cache_key_wrapper = mocker.Mock()
+    
+    # Test with add_to_cache_keys=True (default)
+    result = cache.get_guest_user_attribute("department")
+    assert result == "Engineering"
+    cache.cache_key_wrapper.assert_called_once_with("guest_user_attribute:department:Engineering")
+    
+    # Reset mock
+    cache.cache_key_wrapper.reset_mock()
+    
+    # Test with add_to_cache_keys=False
+    result = cache.get_guest_user_attribute("region", add_to_cache_keys=False)
+    assert result == "US"
+    cache.cache_key_wrapper.assert_not_called()
+
+
+def test_get_guest_user_attribute_none_value_no_cache(mocker: MockerFixture) -> None:
+    """
+    Test that None values are not added to cache keys.
+    """
+    mocker.patch("superset.jinja_context.has_request_context", return_value=True)
+    mock_g = mocker.patch("superset.jinja_context.g")
+    
+    # Create guest user with attributes including None value
+    guest_user = mocker.Mock()
+    guest_user.is_guest_user = True
+    guest_user.guest_token = {
+        "user": {
+            "username": "test_guest",
+            "attributes": {
+                "department": "Engineering",
+                "nullable_field": None
+            }
+        },
+        "resources": [{"type": "dashboard", "id": "test-id"}],
+        "rls_rules": []
+    }
+    mock_g.user = guest_user
+    
+    cache = ExtraCache()
+    # Mock the cache_key_wrapper method
+    cache.cache_key_wrapper = mocker.Mock()
+    
+    # Test None value doesn't get cached
+    result = cache.get_guest_user_attribute("nullable_field")
+    assert result is None
+    cache.cache_key_wrapper.assert_not_called()
+
+
+def test_get_guest_user_attribute_no_guest_token(mocker: MockerFixture) -> None:
+    """
+    Test that get_guest_user_attribute returns default when guest user has no guest_token attribute.
+    """
+    mocker.patch("superset.jinja_context.has_request_context", return_value=True)
+    mock_g = mocker.patch("superset.jinja_context.g")
+    
+    # Create mock guest user without guest_token
+    guest_user = mocker.Mock()
+    guest_user.is_guest_user = True
+    del guest_user.guest_token  # Remove guest_token attribute
+    mock_g.user = guest_user
+    
+    cache = ExtraCache()
+    result = cache.get_guest_user_attribute("department", "default_dept")
+    assert result == "default_dept"
+
+
+def test_get_guest_user_attribute_various_data_types(mocker: MockerFixture) -> None:
+    """
+    Test that get_guest_user_attribute handles various data types in attributes.
+    """
+    mocker.patch("superset.jinja_context.has_request_context", return_value=True)
+    mock_g = mocker.patch("superset.jinja_context.g")
+    
+    # Create guest user with various data types in attributes
+    guest_user = mocker.Mock()
+    guest_user.is_guest_user = True
+    guest_user.guest_token = {
+        "user": {
+            "username": "test_guest",
+            "attributes": {
+                "string_attr": "text_value",
+                "int_attr": 42,
+                "float_attr": 3.14,
+                "bool_attr": True,
+                "list_attr": ["item1", "item2"],
+                "dict_attr": {"nested": "value"}
+            }
+        },
+        "resources": [{"type": "dashboard", "id": "test-id"}],
+        "rls_rules": []
+    }
+    mock_g.user = guest_user
+    
+    cache = ExtraCache()
+    
+    # Test different data types
+    assert cache.get_guest_user_attribute("string_attr") == "text_value"
+    assert cache.get_guest_user_attribute("int_attr") == 42
+    assert cache.get_guest_user_attribute("float_attr") == 3.14
+    assert cache.get_guest_user_attribute("bool_attr") is True
+    assert cache.get_guest_user_attribute("list_attr") == ["item1", "item2"]
+    assert cache.get_guest_user_attribute("dict_attr") == {"nested": "value"}
+
+
+def test_guest_token_attributes_support(mocker: MockerFixture) -> None:
+    """
+    Test that guest tokens properly support the attributes field.
+    """
+    from superset.security.guest_token import GuestUser, GuestTokenResourceType
+    
+    # Create a guest token with attributes
+    guest_token_with_attributes = {
+        "user": {
+            "username": "test_guest",
+            "first_name": "Test",
+            "last_name": "Guest",
+            "attributes": {
+                "department": "Engineering",
+                "region": "US",
+                "role": "developer",
+                "team": "data-platform",
+                "clearance_level": "standard"
+            }
+        },
+        "resources": [
+            {
+                "type": GuestTokenResourceType.DASHBOARD,
+                "id": "test-dashboard-id"
+            }
+        ],
+        "rls_rules": [],
+        "iat": 1234567890,
+        "exp": 1234567890 + 3600
+    }
+    
+    mock_role = mocker.Mock()
+    guest_user = GuestUser(token=guest_token_with_attributes, roles=[mock_role])
+    
+    # Verify guest user has access to the original token
+    assert hasattr(guest_user, 'guest_token')
+    assert guest_user.guest_token == guest_token_with_attributes
+    
+    # Verify attributes are accessible through the token
+    token_user = guest_user.guest_token["user"]
+    assert "attributes" in token_user
+    assert token_user["attributes"]["department"] == "Engineering"
+    assert token_user["attributes"]["region"] == "US"
+    assert token_user["attributes"]["role"] == "developer"
+
+
+def test_guest_token_without_attributes(mocker: MockerFixture) -> None:
+    """
+    Test that guest tokens work properly when no attributes are provided.
+    """
+    from superset.security.guest_token import GuestUser, GuestTokenResourceType
+    
+    # Create a guest token without attributes
+    guest_token_without_attributes = {
+        "user": {
+            "username": "test_guest",
+            "first_name": "Test",
+            "last_name": "Guest"
+        },
+        "resources": [
+            {
+                "type": GuestTokenResourceType.DASHBOARD,
+                "id": "test-dashboard-id"
+            }
+        ],
+        "rls_rules": [],
+        "iat": 1234567890,
+        "exp": 1234567890 + 3600
+    }
+    
+    mock_role = mocker.Mock()
+    guest_user = GuestUser(token=guest_token_without_attributes, roles=[mock_role])
+    
+    # Verify guest user is created successfully
+    assert hasattr(guest_user, 'guest_token')
+    assert guest_user.guest_token == guest_token_without_attributes
+    
+    # Verify attributes field is not present
+    token_user = guest_user.guest_token["user"]
+    assert "attributes" not in token_user
+
+
+def test_guest_token_with_empty_attributes(mocker: MockerFixture) -> None:
+    """
+    Test that guest tokens handle empty attributes gracefully.
+    """
+    from superset.security.guest_token import GuestUser, GuestTokenResourceType
+    
+    # Create a guest token with empty attributes
+    guest_token_with_empty_attributes = {
+        "user": {
+            "username": "test_guest",
+            "first_name": "Test",
+            "last_name": "Guest",
+            "attributes": {}
+        },
+        "resources": [
+            {
+                "type": GuestTokenResourceType.DASHBOARD,
+                "id": "test-dashboard-id"
+            }
+        ],
+        "rls_rules": [],
+        "iat": 1234567890,
+        "exp": 1234567890 + 3600
+    }
+    
+    mock_role = mocker.Mock()
+    guest_user = GuestUser(token=guest_token_with_empty_attributes, roles=[mock_role])
+    
+    # Verify guest user is created successfully
+    assert hasattr(guest_user, 'guest_token')
+    
+    # Verify empty attributes are handled
+    token_user = guest_user.guest_token["user"]
+    assert "attributes" in token_user
+    assert token_user["attributes"] == {}
+
+
+def test_guest_token_with_null_attributes(mocker: MockerFixture) -> None:
+    """
+    Test that guest tokens handle null attributes gracefully.
+    """
+    from superset.security.guest_token import GuestUser, GuestTokenResourceType
+    
+    # Create a guest token with null attributes
+    guest_token_with_null_attributes = {
+        "user": {
+            "username": "test_guest",
+            "first_name": "Test",
+            "last_name": "Guest",
+            "attributes": None
+        },
+        "resources": [
+            {
+                "type": GuestTokenResourceType.DASHBOARD,
+                "id": "test-dashboard-id"
+            }
+        ],
+        "rls_rules": [],
+        "iat": 1234567890,
+        "exp": 1234567890 + 3600
+    }
+    
+    mock_role = mocker.Mock()
+    guest_user = GuestUser(token=guest_token_with_null_attributes, roles=[mock_role])
+    
+    # Verify guest user is created successfully
+    assert hasattr(guest_user, 'guest_token')
+    
+    # Verify null attributes are handled
+    token_user = guest_user.guest_token["user"]
+    assert "attributes" in token_user
+    assert token_user["attributes"] is None
+
+
+def test_get_guest_user_attribute_integration(mocker: MockerFixture) -> None:
+    """
+    Integration test for get_guest_user_attribute with real GuestUser object.
+    """
+    from superset.security.guest_token import GuestUser, GuestTokenResourceType
+    
+    mocker.patch("superset.jinja_context.has_request_context", return_value=True)
+    mock_g = mocker.patch("superset.jinja_context.g")
+    
+    # Create a real GuestUser object with attributes
+    guest_token_with_attributes = {
+        "user": {
+            "username": "integration_test_user",
+            "first_name": "Integration",
+            "last_name": "Test",
+            "attributes": {
+                "department": "Data Science",
+                "region": "EU",
+                "access_level": "premium",
+                "team_lead": True,
+                "projects": ["analytics", "ml-platform"]
+            }
+        },
+        "resources": [
+            {
+                "type": GuestTokenResourceType.DASHBOARD,
+                "id": "integration-test-dashboard"
+            }
+        ],
+        "rls_rules": [],
+        "iat": 1234567890,
+        "exp": 1234567890 + 3600
+    }
+    
+    mock_role = mocker.Mock()
+    guest_user = GuestUser(token=guest_token_with_attributes, roles=[mock_role])
+    mock_g.user = guest_user
+    
+    cache = ExtraCache()
+    cache.cache_key_wrapper = mocker.Mock()
+    
+    # Test various attribute types
+    assert cache.get_guest_user_attribute("department") == "Data Science"
+    assert cache.get_guest_user_attribute("region") == "EU"
+    assert cache.get_guest_user_attribute("access_level") == "premium"
+    assert cache.get_guest_user_attribute("team_lead") is True
+    assert cache.get_guest_user_attribute("projects") == ["analytics", "ml-platform"]
+    
+    # Test non-existing attribute with default
+    assert cache.get_guest_user_attribute("non_existing", "default") == "default"
+    
+    # Test cache key behavior
+    cache.cache_key_wrapper.assert_any_call("guest_user_attribute:department:Data Science")
+    cache.cache_key_wrapper.assert_any_call("guest_user_attribute:region:EU")
+    cache.cache_key_wrapper.assert_any_call("guest_user_attribute:access_level:premium")
+    cache.cache_key_wrapper.assert_any_call("guest_user_attribute:team_lead:True")
+
+
+def test_guest_token_serialization_with_attributes() -> None:
+    """
+    Test that guest tokens with attributes can be serialized/deserialized.
+    """
+    import json
+    
+    guest_token_data = {
+        "user": {
+            "username": "test_user",
+            "first_name": "Test",
+            "last_name": "User",
+            "attributes": {
+                "department": "Engineering",
+                "region": "US",
+                "roles": ["admin", "user"],
+                "metadata": {
+                    "team": "platform",
+                    "manager": "jane.doe"
+                }
+            }
+        },
+        "resources": [{"type": "dashboard", "id": "test-id"}],
+        "rls_rules": [],
+        "iat": 1234567890,
+        "exp": 1234567890 + 3600
+    }
+    
+    # Test serialization
+    serialized = json.dumps(guest_token_data)
+    assert serialized is not None
+    
+    # Test deserialization
+    deserialized = json.loads(serialized)
+    assert deserialized["user"]["attributes"]["department"] == "Engineering"
+    assert deserialized["user"]["attributes"]["region"] == "US"
+    assert deserialized["user"]["attributes"]["roles"] == ["admin", "user"]
+    assert deserialized["user"]["attributes"]["metadata"]["team"] == "platform"
+    assert deserialized["user"]["attributes"]["metadata"]["manager"] == "jane.doe"

@@ -112,7 +112,8 @@ class ExtraCache:
         r"current_user_rls_rules\([^()]*\)|"
         r"current_user_roles\([^()]*\)|"
         r"cache_key_wrapper\([^()]*\)|"
-        r"url_param\([^()]*\)"
+        r"url_param\([^()]*\)|"
+        r"get_guest_user_attribute\([^()]*\)|"
         r")"
         r"[^{}]*?(\}\}|\%\})"
     )
@@ -283,6 +284,49 @@ class ExtraCache:
         if add_to_cache_keys:
             self.cache_key_wrapper(result)
         return result
+
+    def get_guest_user_attribute(self, attribute_name: str, default: str | None = None, add_to_cache_keys: bool = True) -> str | None:
+        """
+        Get a specific user attribute from guest user.
+        
+        Args:
+            attribute_name: Name of the attribute to retrieve
+            default: Default value if attribute not found
+            add_to_cache_keys: Whether the value should be included in the cache key
+        
+        Returns:
+            Attribute value or default
+        """
+
+        # Check if we have a request context and user
+        if not has_request_context():
+            return default
+        
+        if not hasattr(g, 'user') or g.user is None:
+            return default
+        
+        user = g.user
+        
+        # Check if current user is a guest user
+        if not (hasattr(user, 'is_guest_user') and user.is_guest_user):
+            return default
+        
+        # Get attributes from guest token
+        if hasattr(user, 'guest_token') and user.guest_token:
+            token = user.guest_token
+            token_user = token.get('user', {})
+            user_attributes = token_user.get('attributes') or {}
+            
+            # Only add to cache key if the variable actually exists in guest token
+            if attribute_name in user_attributes:
+                result = user_attributes[attribute_name]
+                if add_to_cache_keys and result is not None:
+                    self.cache_key_wrapper(f"guest_user_attribute:{attribute_name}:{result}")
+                return result
+            else:
+                return default
+
+        return default
 
     def filter_values(
         self, column: str, default: str | None = None, remove_filter: bool = False
@@ -761,6 +805,9 @@ class JinjaTemplateProcessor(BaseTemplateProcessor):
                 "get_filters": partial(safe_proxy, extra_cache.get_filters),
                 "dataset": partial(safe_proxy, dataset_macro_with_context),
                 "get_time_filter": partial(safe_proxy, extra_cache.get_time_filter),
+                "get_guest_user_attribute": partial(
+                    safe_proxy, extra_cache.get_guest_user_attribute
+                ),
             }
         )
 

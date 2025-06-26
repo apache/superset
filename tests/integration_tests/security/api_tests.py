@@ -124,6 +124,171 @@ class TestSecurityGuestTokenApi(SupersetTestCase):
         assert resource == decoded_token["resources"][0]
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    def test_post_guest_token_with_attributes(self):
+        """
+        Security API: Create a guest token with user attributes
+        """
+        self.dash = db.session.query(Dashboard).filter_by(slug="births").first()
+        self.embedded = EmbeddedDashboardDAO.upsert(self.dash, [])
+        self.login(ADMIN_USERNAME)
+        
+        user = {
+            "username": "bob_with_attrs",
+            "first_name": "Bob",
+            "last_name": "Also Bob",
+            "attributes": {
+                "department": "Engineering",
+                "region": "US",
+                "role": "developer",
+                "team": "data-platform",
+                "clearance_level": "standard",
+                "projects": ["analytics", "ml-platform"],
+                "team_lead": True
+            }
+        }
+        resource = {"type": "dashboard", "id": str(self.embedded.uuid)}
+        rls_rule = {"dataset": 1, "clause": "1=1"}
+        params = {"user": user, "resources": [resource], "rls": [rls_rule]}
+
+        response = self.client.post(
+            self.uri, data=json.dumps(params), content_type="application/json"
+        )
+
+        self.assert200(response)
+        token = json.loads(response.data)["token"]
+        decoded_token = jwt.decode(
+            token,
+            self.app.config["GUEST_TOKEN_JWT_SECRET"],
+            audience=get_url_host(),
+            algorithms=["HS256"],
+        )
+        
+        # Verify user attributes are preserved in the token
+        assert user == decoded_token["user"]
+        assert "attributes" in decoded_token["user"]
+        assert decoded_token["user"]["attributes"]["department"] == "Engineering"
+        assert decoded_token["user"]["attributes"]["region"] == "US"
+        assert decoded_token["user"]["attributes"]["role"] == "developer"
+        assert decoded_token["user"]["attributes"]["team"] == "data-platform"
+        assert decoded_token["user"]["attributes"]["clearance_level"] == "standard"
+        assert decoded_token["user"]["attributes"]["projects"] == ["analytics", "ml-platform"]
+        assert decoded_token["user"]["attributes"]["team_lead"] is True
+        assert resource == decoded_token["resources"][0]
+
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    def test_post_guest_token_with_empty_attributes(self):
+        """
+        Security API: Create a guest token with empty user attributes
+        """
+        self.dash = db.session.query(Dashboard).filter_by(slug="births").first()
+        self.embedded = EmbeddedDashboardDAO.upsert(self.dash, [])
+        self.login(ADMIN_USERNAME)
+        
+        user = {
+            "username": "bob_empty_attrs",
+            "first_name": "Bob",
+            "last_name": "Also Bob",
+            "attributes": {}
+        }
+        resource = {"type": "dashboard", "id": str(self.embedded.uuid)}
+        rls_rule = {"dataset": 1, "clause": "1=1"}
+        params = {"user": user, "resources": [resource], "rls": [rls_rule]}
+
+        response = self.client.post(
+            self.uri, data=json.dumps(params), content_type="application/json"
+        )
+
+        self.assert200(response)
+        token = json.loads(response.data)["token"]
+        decoded_token = jwt.decode(
+            token,
+            self.app.config["GUEST_TOKEN_JWT_SECRET"],
+            audience=get_url_host(),
+            algorithms=["HS256"],
+        )
+        
+        # Verify empty attributes are preserved in the token
+        assert user == decoded_token["user"]
+        assert "attributes" in decoded_token["user"]
+        assert decoded_token["user"]["attributes"] == {}
+        assert resource == decoded_token["resources"][0]
+
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    def test_post_guest_token_with_null_attributes(self):
+        """
+        Security API: Create a guest token with null user attributes
+        """
+        self.dash = db.session.query(Dashboard).filter_by(slug="births").first()
+        self.embedded = EmbeddedDashboardDAO.upsert(self.dash, [])
+        self.login(ADMIN_USERNAME)
+        
+        user = {
+            "username": "bob_null_attrs",
+            "first_name": "Bob",
+            "last_name": "Also Bob",
+            "attributes": None
+        }
+        resource = {"type": "dashboard", "id": str(self.embedded.uuid)}
+        rls_rule = {"dataset": 1, "clause": "1=1"}
+        params = {"user": user, "resources": [resource], "rls": [rls_rule]}
+
+        response = self.client.post(
+            self.uri, data=json.dumps(params), content_type="application/json"
+        )
+
+        self.assert200(response)
+        token = json.loads(response.data)["token"]
+        decoded_token = jwt.decode(
+            token,
+            self.app.config["GUEST_TOKEN_JWT_SECRET"],
+            audience=get_url_host(),
+            algorithms=["HS256"],
+        )
+        
+        # Verify null attributes are preserved in the token
+        assert user == decoded_token["user"]
+        assert "attributes" in decoded_token["user"]
+        assert decoded_token["user"]["attributes"] is None
+        assert resource == decoded_token["resources"][0]
+
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    def test_post_guest_token_without_attributes_backward_compatibility(self):
+        """
+        Security API: Create a guest token without attributes (backward compatibility)
+        """
+        self.dash = db.session.query(Dashboard).filter_by(slug="births").first()
+        self.embedded = EmbeddedDashboardDAO.upsert(self.dash, [])
+        self.login(ADMIN_USERNAME)
+        
+        user = {
+            "username": "bob_no_attrs",
+            "first_name": "Bob",
+            "last_name": "Also Bob"
+            # Note: no attributes field
+        }
+        resource = {"type": "dashboard", "id": str(self.embedded.uuid)}
+        rls_rule = {"dataset": 1, "clause": "1=1"}
+        params = {"user": user, "resources": [resource], "rls": [rls_rule]}
+
+        response = self.client.post(
+            self.uri, data=json.dumps(params), content_type="application/json"
+        )
+
+        self.assert200(response)
+        token = json.loads(response.data)["token"]
+        decoded_token = jwt.decode(
+            token,
+            self.app.config["GUEST_TOKEN_JWT_SECRET"],
+            audience=get_url_host(),
+            algorithms=["HS256"],
+        )
+        
+        # Verify user without attributes works and no attributes field is present
+        assert user == decoded_token["user"]
+        assert "attributes" not in decoded_token["user"]
+        assert resource == decoded_token["resources"][0]
+
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_post_guest_token_bad_resources(self):
         self.login(ADMIN_USERNAME)
         user = {"username": "bob", "first_name": "Bob", "last_name": "Also Bob"}
