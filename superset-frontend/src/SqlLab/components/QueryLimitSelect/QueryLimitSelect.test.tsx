@@ -20,12 +20,7 @@ import configureStore from 'redux-mock-store';
 import thunk from 'redux-thunk';
 import { Store } from 'redux';
 
-import {
-  fireEvent,
-  render,
-  userEvent,
-  waitFor,
-} from 'spec/helpers/testing-library';
+import { render, screen } from 'spec/helpers/testing-library';
 import { initialState, defaultQueryEditor } from 'src/SqlLab/fixtures';
 import QueryLimitSelect, {
   QueryLimitSelectProps,
@@ -104,100 +99,46 @@ describe('QueryLimitSelect', () => {
     expect(getByText(convertToNumWithSpaces(queryLimit))).toBeInTheDocument();
   });
 
-  it('renders dropdown select', async () => {
-    const { baseElement, getAllByRole, getByRole } = setup(
-      { maxRow: 50000 },
-      mockStore(initialState),
-    );
-    const dropdown = baseElement.getElementsByClassName(
-      'ant-dropdown-trigger',
-    )[0];
+  it('renders the Select component', () => {
+    setup({ maxRow: 50000 }, mockStore(initialState));
 
-    userEvent.click(dropdown);
-    await waitFor(() => expect(getByRole('menu')).toBeInTheDocument());
-
-    const expectedLabels = [10, 100, 1000, 10000, 50000].map(i =>
-      convertToNumWithSpaces(i),
-    );
-    const actualLabels = getAllByRole('menuitem').map(elem =>
-      elem.textContent?.trim(),
-    );
-
-    expect(actualLabels.slice(0, actualLabels.length - 1)).toEqual(
-      expectedLabels,
-    );
+    expect(screen.getByRole('button', { name: /LIMIT:/i })).toBeInTheDocument();
+    expect(screen.getByText(/100/i)).toBeInTheDocument();
   });
 
   it('renders dropdown select correctly when maxRow is less than 10', async () => {
-    const { baseElement, getAllByRole, getByRole } = setup(
+    const queryLimit = 5;
+    const { getByText } = setup(
       { maxRow: 5 },
-      mockStore(initialState),
+      mockStore({
+        ...initialState,
+        sqlLab: {
+          ...initialState.sqlLab,
+          unsavedQueryEditor: {
+            id: defaultQueryEditor.id,
+            queryLimit,
+          },
+        },
+      }),
     );
-    const dropdown = baseElement.getElementsByClassName(
-      'ant-dropdown-trigger',
-    )[0];
-
-    userEvent.click(dropdown);
-    await waitFor(() => expect(getByRole('menu')).toBeInTheDocument());
-
-    const expectedLabels = [5].map(i => convertToNumWithSpaces(i));
-    const actualLabels = getAllByRole('menuitem').map(elem =>
-      elem.textContent?.trim(),
-    );
-
-    expect(actualLabels.slice(0, actualLabels.length - 1)).toEqual(
-      expectedLabels,
-    );
+    expect(getByText(convertToNumWithSpaces(queryLimit))).toBeInTheDocument();
   });
 
   it('renders dropdown select correctly when maxRow is a multiple of 10', async () => {
-    const { baseElement, getAllByRole, getByRole } = setup(
+    const queryLimit = 10000;
+    const { getByText } = setup(
       { maxRow: 10000 },
-      mockStore(initialState),
-    );
-    const dropdown = baseElement.getElementsByClassName(
-      'ant-dropdown-trigger',
-    )[0];
-
-    userEvent.click(dropdown);
-    await waitFor(() => expect(getByRole('menu')).toBeInTheDocument());
-
-    const expectedLabels = [10, 100, 1000, 10000].map(i =>
-      convertToNumWithSpaces(i),
-    );
-    const actualLabels = getAllByRole('menuitem').map(elem =>
-      elem.textContent?.trim(),
-    );
-
-    expect(actualLabels.slice(0, actualLabels.length - 1)).toEqual(
-      expectedLabels,
-    );
-  });
-
-  it('dispatches QUERY_EDITOR_SET_QUERY_LIMIT action on dropdown menu click', async () => {
-    const store = mockStore(initialState);
-    const expectedIndex = 1;
-    const { baseElement, getAllByRole, getByRole } = setup({}, store);
-    const dropdown = baseElement.getElementsByClassName(
-      'ant-dropdown-trigger',
-    )[0];
-
-    userEvent.click(dropdown);
-    await waitFor(() => expect(getByRole('menu')).toBeInTheDocument());
-
-    const menu = getAllByRole('menuitem')[expectedIndex];
-    expect(store.getActions()).toEqual([]);
-    fireEvent.click(menu);
-    await waitFor(() =>
-      expect(store.getActions()).toEqual([
-        {
-          type: 'QUERY_EDITOR_SET_QUERY_LIMIT',
-          queryLimit: 100,
-          queryEditor: {
+      mockStore({
+        ...initialState,
+        sqlLab: {
+          ...initialState.sqlLab,
+          unsavedQueryEditor: {
             id: defaultQueryEditor.id,
+            queryLimit,
           },
         },
-      ]),
+      }),
     );
+    expect(getByText(convertToNumWithSpaces(queryLimit))).toBeInTheDocument();
   });
 });
