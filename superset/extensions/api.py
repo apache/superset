@@ -21,29 +21,40 @@ from zipfile import is_zipfile, ZipFile
 
 from flask import request, send_file
 from flask.wrappers import Response
-from flask_appbuilder.api import expose, permission_name, protect, safe
-
+from flask_appbuilder.api import expose, protect, safe
+from flask_appbuilder.models.sqla.interface import SQLAInterface
+from marshmallow import ValidationError
 from superset import db
 from superset.daos.extension import ExtensionDAO
 from superset.extensions import event_logger
+from superset.extensions.models import Extension
+from superset.extensions.schemas import ExtensionPutSchema
 from superset.extensions.types import Manifest
 from superset.extensions.utils import (
     get_bundle_files_from_zip,
     get_extensions,
     get_loaded_extension,
 )
-from superset.views.base_api import BaseSupersetApi, requires_form_data, statsd_metrics
+from superset.views.base_api import (
+    BaseSupersetModelRestApi,
+    requires_form_data,
+    requires_json,
+    statsd_metrics,
+)
 
 
-class ExtensionsRestApi(BaseSupersetApi):
+# TODO: Refactor to use commands
+class ExtensionsRestApi(BaseSupersetModelRestApi):
+    datamodel = SQLAInterface(Extension)
     allow_browser_login = True
     resource_name = "extensions"
+
+    edit_model_schema = ExtensionPutSchema()
 
     # TODO: Support the q parameter
     @protect()
     @safe
     @expose("/", methods=("GET",))
-    @permission_name("read")
     def get(self, **kwargs: Any) -> Response:  # TODO: The module comes as a parameter
         """List all enabled extensions.
         ---
@@ -75,7 +86,6 @@ class ExtensionsRestApi(BaseSupersetApi):
             500:
               $ref: '#/components/responses/500'
         """
-        # TODO: Move code to command
         result = []
         extensions = get_extensions()
         for extension in extensions.values():
@@ -105,7 +115,6 @@ class ExtensionsRestApi(BaseSupersetApi):
     @protect()
     @safe
     @expose("/<name>/<file>", methods=("GET",))
-    @permission_name("read")
     def content(self, name: str, file: str) -> Response:
         """Get a frontend chunk of an extension.
         ---
@@ -220,3 +229,61 @@ class ExtensionsRestApi(BaseSupersetApi):
                 self.response_400(message=str(ex))
 
         return self.response(200, message="OK")
+
+    @expose("/<int:pk>", methods=("PUT",))
+    @protect()
+    @safe
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.put",
+        log_to_statsd=False,
+    )
+    @requires_json
+    def put(self, pk: int) -> Response:
+        """Update an extension.
+        ---
+        put:
+          summary: Change an extension
+          parameters:
+          - in: path
+            schema:
+              type: integer
+            name: pk
+          requestBody:
+            description: Extension schema
+            required: true
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/{{self.__class__.__name__}}.put'
+          responses:
+            200:
+              description: Extension changed
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      result:
+                        type: boolean
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            422:
+              $ref: '#/components/responses/422'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        try:
+            # TODO: Just supporting enabled field for now. We need to check if we'll need more
+            # and also handle specific exceptions.
+            item = self.edit_model_schema.load(request.json)
+            model = ExtensionDAO.find_by_id(pk)
+            if not model:
+                return self.response_404()
+            ExtensionDAO.update(item=model, attributes={"enabled": item["enabled"]})
+            return self.response(200, result=True)
+
+        except ValidationError as error:
+            return self.response_400(message=error.messages)

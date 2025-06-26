@@ -69,7 +69,7 @@ class ExtensionsManager {
       return;
     }
     const response = await SupersetClient.get({
-      endpoint: `/api/v1/extensions/`,
+      endpoint: '/api/v1/extensions/',
     });
     const extensions: core.Extension[] = response.json.result;
     await Promise.all(
@@ -77,7 +77,7 @@ class ExtensionsManager {
         if (extension.remoteEntry) {
           extension = await this.loadModule(extension);
           if (extension.enabled) {
-            this.enableExtension(extension);
+            await this.enableExtension(extension);
           }
         }
         this.extensionIndex.set(extension.name, extension);
@@ -89,7 +89,7 @@ class ExtensionsManager {
    * Enables an extension by its instance.
    * @param extension The extension to enable.
    */
-  public enableExtension(extension: core.Extension): void {
+  public async enableExtension(extension: core.Extension): Promise<void> {
     const { name } = extension;
     if (extension && typeof extension.activate === 'function') {
       // If already enabled, do nothing
@@ -101,6 +101,16 @@ class ExtensionsManager {
       // TODO: Activate based on activation events
       this.activateExtension(extension, context);
       this.indexContributions(extension);
+
+      if (!extension.enabled) {
+        extension.enabled = true;
+        await SupersetClient.put({
+          endpoint: `/api/v1/extensions/${extension.id}`,
+          jsonPayload: {
+            enabled: extension.enabled,
+          },
+        });
+      }
     }
   }
 
@@ -108,10 +118,10 @@ class ExtensionsManager {
    * Enables an extension by its name.
    * @param name The name of the extension to enable.
    */
-  public enableExtensionByName(name: string): void {
+  public async enableExtensionByName(name: string): Promise<void> {
     const extension = this.extensionIndex.get(name);
     if (extension) {
-      this.enableExtension(extension);
+      return this.enableExtension(extension);
     } else {
       logging.warn(`Extension ${name} not found`);
     }
@@ -121,12 +131,22 @@ class ExtensionsManager {
    * Disables an extension by its name.
    * @param name The name of the extension to disable.
    */
-  public disableExtensionByName(name: string): void {
+  public async disableExtensionByName(name: string): Promise<void> {
     const extension = this.extensionIndex.get(name);
     if (extension) {
       this.deactivateExtension(extension.name);
       this.contextIndex.delete(name);
       this.removeContributions(extension);
+
+      if (extension.enabled) {
+        extension.enabled = false;
+        await SupersetClient.put({
+          endpoint: `/api/v1/extensions/${extension.id}`,
+          jsonPayload: {
+            enabled: extension.enabled,
+          },
+        });
+      }
     }
   }
 

@@ -86,9 +86,8 @@ const ExtensionsList: FunctionComponent<ExtensionsListProps> = ({
     refreshData,
   } = useListViewResource<Extension>(
     'extensions',
-    t('extensions'),
+    t('Extensions'),
     addDangerToast,
-    false,
   );
 
   const newExtension = () => {
@@ -99,16 +98,22 @@ const ExtensionsList: FunctionComponent<ExtensionsListProps> = ({
     console.log('Deleting extensions:', extensions);
   };
 
-  const enableExtensions = (extensions: Extension[]) => {
-    extensions.forEach(extension =>
-      ExtensionsManager.getInstance().enableExtensionByName(extension.name),
+  const enableExtensions = async (extensions: Extension[]) => {
+    await Promise.all(
+      extensions.map(extension =>
+        ExtensionsManager.getInstance().enableExtensionByName(extension.name),
+      ),
     );
+    refreshData();
   };
 
-  const disableExtensions = (extensions: Extension[]) => {
-    extensions.forEach(extension =>
-      ExtensionsManager.getInstance().disableExtensionByName(extension.name),
+  const disableExtensions = async (extensions: Extension[]) => {
+    await Promise.all(
+      extensions.map(extension =>
+        ExtensionsManager.getInstance().disableExtensionByName(extension.name),
+      ),
     );
+    refreshData();
   };
 
   const confirmationAction = (
@@ -216,7 +221,7 @@ const ExtensionsList: FunctionComponent<ExtensionsListProps> = ({
         disableSortBy: true,
       },
     ],
-    [],
+    [loading], // We need to monitor loading to avoid stale state in actions
   );
 
   const filterTypes: ListViewFilters = useMemo(
@@ -306,8 +311,8 @@ const ExtensionsList: FunctionComponent<ExtensionsListProps> = ({
           return (
             <ListView<Extension>
               columns={columns}
-              data={resourceCollection}
               count={resourceCount}
+              data={resourceCollection}
               initialSort={[{ id: 'name', desc: false }]}
               pageSize={PAGE_SIZE}
               fetchData={fetchData}
