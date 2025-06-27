@@ -23,16 +23,18 @@ import {
   NativeFilterType,
   Divider,
   styled,
-  SLOW_DEBOUNCE,
   t,
   css,
   useTheme,
 } from '@superset-ui/core';
 import { useDispatch } from 'react-redux';
-import { AntdForm } from 'src/components';
-import { Icons } from 'src/components/Icons';
-import ErrorBoundary from 'src/components/ErrorBoundary';
-import { StyledModal } from 'src/components/Modal';
+import {
+  Constants,
+  Form,
+  Icons,
+  StyledModal,
+} from '@superset-ui/core/components';
+import { ErrorBoundary } from 'src/components';
 import { testWithId } from 'src/utils/testUtils';
 import { updateCascadeParentIds } from 'src/dashboard/actions/nativeFilters';
 import useEffectEvent from 'src/hooks/useEffectEvent';
@@ -72,8 +74,9 @@ const StyledModalWrapper = styled(StyledModal)<{ expanded: boolean }>`
     min-width: auto;
   }
 
-  .antd5-modal-body {
+  .ant-modal-body {
     padding: 0px;
+    overflow: auto;
   }
 
   ${({ expanded }) =>
@@ -81,10 +84,10 @@ const StyledModalWrapper = styled(StyledModal)<{ expanded: boolean }>`
     css`
       height: 100%;
 
-      .antd5-modal-body {
+      .ant-modal-body {
         flex: 1 1 auto;
       }
-      .antd5-modal-content {
+      .ant-modal-content {
         height: 100%;
       }
     `}
@@ -96,17 +99,17 @@ export const StyledModalBody = styled.div<{ expanded: boolean }>`
   flex-direction: row;
   flex: 1;
   .filters-list {
-    width: ${({ theme }) => theme.gridUnit * 50}px;
+    width: ${({ theme }) => theme.sizeUnit * 50}px;
     overflow: auto;
   }
 `;
 
-export const StyledForm = styled(AntdForm)`
+export const StyledForm = styled(Form)`
   width: 100%;
 `;
 
 export const StyledExpandButtonWrapper = styled.div`
-  margin-left: ${({ theme }) => theme.gridUnit * 4}px;
+  margin-left: ${({ theme }) => theme.sizeUnit * 4}px;
 `;
 
 export const FILTERS_CONFIG_MODAL_TEST_ID = 'filters-config-modal';
@@ -156,7 +159,7 @@ function FiltersConfigModal({
   const dispatch = useDispatch();
   const theme = useTheme();
 
-  const [form] = AntdForm.useForm<NativeFiltersForm>();
+  const [form] = Form.useForm<NativeFiltersForm>();
 
   const configFormRef = useRef<any>();
 
@@ -554,7 +557,11 @@ function FiltersConfigModal({
       .forEach(filterId => {
         const result = hasCircularDependency(dependencyMap, filterId);
         const field = {
-          name: ['filters', filterId, 'dependencies'],
+          name: ['filters', filterId, 'dependencies'] as [
+            'filters',
+            string,
+            'dependencies',
+          ],
           errors: result ? [t('Cyclic dependency detected')] : [],
         };
         form.setFields([field]);
@@ -615,7 +622,7 @@ function FiltersConfigModal({
         }
         setSaveAlertVisible(false);
         handleErroredFilters();
-      }, SLOW_DEBOUNCE),
+      }, Constants.SLOW_DEBOUNCE),
     [handleErroredFilters],
   );
 

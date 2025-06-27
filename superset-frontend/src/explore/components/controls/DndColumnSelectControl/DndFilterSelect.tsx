@@ -30,7 +30,7 @@ import {
   isColumnMeta,
   isTemporalColumn,
 } from '@superset-ui/chart-controls';
-import Modal from 'src/components/Modal';
+import { Modal } from '@superset-ui/core/components';
 import {
   OPERATOR_ENUM_TO_OPERATOR_TYPE,
   Operators,

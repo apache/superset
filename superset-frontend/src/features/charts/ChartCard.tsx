@@ -18,18 +18,19 @@
  */
 import { isFeatureEnabled, FeatureFlag, t, css } from '@superset-ui/core';
 import { Link, useHistory } from 'react-router-dom';
-import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
-import { Icons } from 'src/components/Icons';
+import {
+  ConfirmStatusChange,
+  Button,
+  Dropdown,
+  FaveStar,
+  Label,
+  ListViewCard,
+  Icons,
+  MenuItem,
+} from '@superset-ui/core/components';
 import Chart from 'src/types/Chart';
-
-import ListViewCard from 'src/components/ListViewCard';
-import Label from 'src/components/Label';
-import { Dropdown } from 'src/components/Dropdown';
-import { MenuItem } from 'src/components/Menu';
-import FaveStar from 'src/components/FaveStar';
-import FacePile from 'src/components/FacePile';
+import { FacePile } from 'src/components';
 import { handleChartDelete, CardStyles } from 'src/views/CRUD/utils';
-import Button from 'src/components/Button';
 import { assetUrl } from 'src/utils/assetUrl';
 
 interface ChartCardProps {
@@ -183,9 +184,7 @@ export default function ChartCard({
         )}
         description={t('Modified %s', chart.changed_on_delta_humanized)}
         coverLeft={<FacePile users={chart.owners || []} />}
-        coverRight={
-          <Label type="secondary">{chart.datasource_name_text}</Label>
-        }
+        coverRight={<Label>{chart.datasource_name_text}</Label>}
         linkComponent={Link}
         actions={
           <ListViewCard.Actions
@@ -202,7 +201,7 @@ export default function ChartCard({
               />
             )}
             <Dropdown menu={{ items: menuItems }} trigger={['click', 'hover']}>
-              <Button buttonSize="xsmall" type="link">
+              <Button buttonSize="xsmall" type="link" buttonStyle="link">
                 <Icons.MoreOutlined iconSize="xl" />
               </Button>
             </Dropdown>

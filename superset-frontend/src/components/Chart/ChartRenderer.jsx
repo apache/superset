@@ -30,7 +30,7 @@ import {
   FeatureFlag,
 } from '@superset-ui/core';
 import { Logger, LOG_ACTIONS_RENDER_CHART } from 'src/logger/LogUtils';
-import { EmptyState } from 'src/components/EmptyState';
+import { EmptyState } from '@superset-ui/core/components';
 import { ChartSource } from 'src/types/ChartSource';
 import ChartContextMenu from './ChartContextMenu/ChartContextMenu';
 
@@ -323,7 +323,7 @@ class ChartRenderer extends Component {
       );
     } else {
       noResultsComponent = (
-        <EmptyState size="small" title={noResultTitle} image={noResultImage} />
+        <EmptyState title={noResultTitle} image={noResultImage} size="small" />
       );
     }
 

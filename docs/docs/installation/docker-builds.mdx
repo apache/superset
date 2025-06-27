@@ -16,7 +16,7 @@ https://hub.docker.com/r/apache/superset) using GitHub Actions.
 Different sets of images are built and/or published at different times:
 
 - **Published releases** (`release`): published using
-  tags like `3.0.0` and the `latest` tag.
+  tags like `5.0.0` and the `latest` tag.
 - **Pull request iterations** (`pull_request`): for each pull request, while
   we actively build the docker to validate the build, we do
   not publish those images for security reasons, we simply `docker build --load`
@@ -32,7 +32,7 @@ for the build, and/or base image.
 Here are the build presets that are exposed through the `supersetbot docker` utility:
 
 - `lean`: The default Docker image, including both frontend and backend. Tags
-  without a build_preset are lean builds (ie: `latest`, `4.0.0`, `3.0.0`, ...). `lean`
+  without a build_preset are lean builds (ie: `latest`, `5.0.0`, `4.1.2`, ...). `lean`
   builds do not contain database
   drivers, meaning you need to install your own. That applies to analytics databases **AND
   the metadata database**. You'll likely want to layer either `mysqlclient` or `psycopg2-binary`
@@ -73,10 +73,10 @@ Here's an example Dockerfile that does this. Follow the in-line comments to cust
 your desired Superset version and database drivers. The comments also note that a certain feature flag will
 have to be enabled in your config file.
 
-You would build the image with `docker build -t mysuperset:latest .` or `docker build -t ourcompanysuperset:4.1.2 .`
+You would build the image with `docker build -t mysuperset:latest .` or `docker build -t ourcompanysuperset:5.0.0 .`
 
 ```Dockerfile
-# change this to apache/superset:4.1.2 or whatever version you want to build from;
+# change this to apache/superset:5.0.0 or whatever version you want to build from;
 # otherwise the default is the latest commit on GitHub master branch
 FROM apache/superset:master
 
@@ -86,7 +86,7 @@ USER root
 ENV PLAYWRIGHT_BROWSERS_PATH=/usr/local/share/playwright-browsers
 
 # Install packages using uv into the virtual environment
-# Superset started using uv after the 4.1 branch; if you are building from apache/superset:4.1.x,
+# Superset started using uv after the 4.1 branch; if you are building from apache/superset:4.1.x or an older version,
 # replace the first two lines with RUN pip install \
 RUN . /app/.venv/bin/activate && \
     uv pip install \

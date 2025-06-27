@@ -145,9 +145,24 @@ const ActionLogList: LazyExoticComponent<any> = lazy(
   () => import(/* webpackChunkName: "ActionLogList" */ 'src/pages/ActionLog'),
 );
 
+const Login = lazy(
+  () => import(/* webpackChunkName: "Login" */ 'src/pages/Login'),
+);
+
+const Register = lazy(
+  () => import(/* webpackChunkName: "Register" */ 'src/pages/Register'),
+);
+
 const GroupsList: LazyExoticComponent<any> = lazy(
   () => import(/* webpackChunkName: "GroupsList" */ 'src/pages/GroupsList'),
 );
+const UserRegistrations = lazy(
+  () =>
+    import(
+      /* webpackChunkName: "UserRegistrations" */ 'src/pages/UserRegistrations'
+    ),
+);
+
 type Routes = {
   path: string;
   Component: ComponentType;
@@ -156,6 +171,22 @@ type Routes = {
 }[];
 
 export const routes: Routes = [
+  {
+    path: '/login/',
+    Component: Login,
+  },
+  {
+    path: '/register/activation/:activationHash',
+    Component: Register,
+  },
+  {
+    path: '/register/',
+    Component: Register,
+  },
+  {
+    path: '/logout/',
+    Component: Login,
+  },
   {
     path: '/superset/welcome/',
     Component: Home,
@@ -255,6 +286,10 @@ export const routes: Routes = [
     path: '/actionlog/list',
     Component: ActionLogList,
   },
+  {
+    path: '/registrations/',
+    Component: UserRegistrations,
+  },
 ];
 
 if (isFeatureEnabled(FeatureFlag.TaggingSystem)) {
@@ -269,6 +304,8 @@ if (isFeatureEnabled(FeatureFlag.TaggingSystem)) {
 }
 
 const user = getBootstrapData()?.user;
+const authRegistrationEnabled =
+  getBootstrapData()?.common.conf.AUTH_USER_REGISTRATION;
 const isAdmin = isUserAdmin(user);
 
 if (isAdmin) {
@@ -286,6 +323,13 @@ if (isAdmin) {
       Component: GroupsList,
     },
   );
+}
+
+if (authRegistrationEnabled) {
+  routes.push({
+    path: '/registrations/',
+    Component: UserRegistrations,
+  });
 }
 
 const frontEndRoutes: Record<string, boolean> = routes
