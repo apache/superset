@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useHistory } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
 import PropTypes from 'prop-types';
@@ -38,6 +38,7 @@ import { applyColors, resetColors } from 'src/utils/colorScheme';
 import ReportModal from 'src/features/reports/ReportModal';
 import { deleteActiveReport } from 'src/features/reports/ReportModal/actions';
 import { useUnsavedChangesPrompt } from 'src/hooks/useUnsavedChangesPrompt';
+import { getChartFormDiffs } from 'src/utils/getChartFormDiffs';
 import { useExploreAdditionalActionsMenu } from '../useExploreAdditionalActionsMenu';
 import { useExploreMetadataBar } from './useExploreMetadataBar';
 
@@ -185,8 +186,25 @@ export const ExploreChartHeader = ({
     );
 
   const metadataBar = useExploreMetadataBar(metadata, slice);
-
   const oldSliceName = slice?.slice_name;
+
+  const originalFormData = useMemo(() => {
+    if (!sliceFormData) return {};
+    return {
+      ...sliceFormData,
+      chartTitle: oldSliceName,
+    };
+  }, [sliceFormData, oldSliceName]);
+
+  const currentFormData = useMemo(
+    () => ({ ...formData, chartTitle: sliceName }),
+    [formData, sliceName],
+  );
+
+  const formDiffs = useMemo(
+    () => getChartFormDiffs(originalFormData, currentFormData),
+    [originalFormData, currentFormData],
+  );
 
   const {
     showModal: showUnsavedChangesModal,
@@ -195,7 +213,7 @@ export const ExploreChartHeader = ({
     handleSaveAndCloseModal,
     triggerManualSave,
   } = useUnsavedChangesPrompt({
-    hasUnsavedChanges: !saveDisabled,
+    hasUnsavedChanges: Object.keys(formDiffs).length > 0,
     onSave: () => dispatch(setSaveChartModalVisibility(true)),
     isSaveModalVisible,
     manualSaveOnUnsavedChanges: true,
@@ -246,11 +264,9 @@ export const ExploreChartHeader = ({
             {sliceFormData ? (
               <AlteredSliceTag
                 className="altered"
-                origFormData={{
-                  ...sliceFormData,
-                  chartTitle: oldSliceName,
-                }}
-                currentFormData={{ ...formData, chartTitle: sliceName }}
+                diffs={formDiffs}
+                origFormData={originalFormData}
+                currentFormData={currentFormData}
               />
             ) : null}
             {metadataBar}
