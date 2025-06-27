@@ -135,6 +135,7 @@ class DatasetPostSchema(Schema):
     normalize_columns = fields.Boolean(load_default=False)
     always_filter_main_dttm = fields.Boolean(load_default=False)
     template_params = fields.String(allow_none=True)
+    uuid = fields.UUID(allow_none=True)
 
 
 class DatasetPutSchema(Schema):
@@ -161,6 +162,7 @@ class DatasetPutSchema(Schema):
     extra = fields.String(allow_none=True)
     is_managed_externally = fields.Boolean(allow_none=True, dump_default=False)
     external_url = fields.String(allow_none=True)
+    uuid = fields.UUID(allow_none=True)
 
     def handle_error(
         self,
