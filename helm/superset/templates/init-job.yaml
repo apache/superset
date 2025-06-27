@@ -62,6 +62,9 @@ spec:
       {{- if .Values.init.initContainers }}
       initContainers: {{-  tpl (toYaml .Values.init.initContainers) . | nindent 6 }}
       {{- end }}
+      {{- with .Values.hostAliases }}
+      hostAliases: {{- toYaml . | nindent 6 }}
+      {{- end }}
       containers:
       - name: {{ template "superset.name" . }}-init-db
         image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
