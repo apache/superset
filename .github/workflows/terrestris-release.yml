@@ -29,7 +29,7 @@ jobs:
           file: Dockerfile
           target: lean
           tags: |
-            ghcr.io/${{ github.repository }}:5.0.0rc2-${{ github.sha }}
+            ghcr.io/${{ github.repository }}:5.0.0-${{ github.sha }}
             ghcr.io/${{ github.repository }}:latest
 
       - name: Logout from GitHub Container Registry
