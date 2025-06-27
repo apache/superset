@@ -20,7 +20,7 @@ import {
   TimePicker as AntdTimePicker,
   TimePickerProps,
   TimeRangePickerProps,
-} from 'antd-v5';
+} from 'antd';
 
 const commonCss = { width: '100%' };
 
