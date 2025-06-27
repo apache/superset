@@ -55,7 +55,7 @@ from superset.exceptions import (
 )
 from superset.extensions import cache_manager, security_manager
 from superset.models.helpers import QueryResult
-from superset.sql_parse import sanitize_clause
+from superset.sql.parse import sanitize_clause
 from superset.superset_typing import (
     Column,
     Metric,
@@ -324,7 +324,8 @@ class BaseViz:  # pylint: disable=too-many-public-methods
     def process_query_filters(self) -> None:
         utils.convert_legacy_filters_into_adhoc(self.form_data)
         merge_extra_filters(self.form_data)
-        utils.split_adhoc_filters_into_base_filters(self.form_data)
+        engine = self.datasource.database.db_engine_spec.engine
+        utils.split_adhoc_filters_into_base_filters(self.form_data, engine)
 
     @staticmethod
     @deprecated(deprecated_in="3.0")
@@ -392,7 +393,8 @@ class BaseViz:  # pylint: disable=too-many-public-methods
         for param in ("where", "having"):
             clause = self.form_data.get(param)
             if clause:
-                sanitized_clause = sanitize_clause(clause)
+                engine = self.datasource.database.db_engine_spec.engine
+                sanitized_clause = sanitize_clause(clause, engine)
                 if sanitized_clause != clause:
                     self.form_data[param] = sanitized_clause
 
@@ -1523,6 +1525,81 @@ class DeckGLMultiLayer(BaseViz):
     def query_obj(self) -> QueryObjectDict:
         return {}
 
+    def _filter_items_by_scope(
+        self,
+        items: list[Any],
+        layer_index: int,
+        layer_filter_scope: dict[str, list[int]],
+    ) -> list[Any]:
+        """Filter items based on layer filter scope."""
+        filtered_items = []
+        for filter_item in items:
+            filter_id = getattr(filter_item, "filterId", None)
+            if filter_id:
+                filter_scope = layer_filter_scope.get(filter_id, [])
+                if filter_scope is None:
+                    filter_scope = []
+                if not filter_scope or layer_index in filter_scope:
+                    filtered_items.append(filter_item)
+            else:
+                filtered_items.append(filter_item)
+        return filtered_items
+
+    def _process_extra_form_data_filters(
+        self,
+        layer_index: int,
+        layer_filter_scope: dict[str, list[int]],
+        filter_data_mapping: dict[str, list[Any]],
+        extra_form_data: dict[str, Any],
+    ) -> dict[str, Any]:
+        """Process extra_form_data filters with layer-specific filtering."""
+        if not extra_form_data or not filter_data_mapping:
+            return extra_form_data
+
+        filtered_extra_form_data_filters = []
+        for filter_id, filter_scope in layer_filter_scope.items():
+            if filter_scope is None:
+                filter_scope = []
+
+            if not filter_scope or layer_index in filter_scope:
+                filters_from_this_filter = filter_data_mapping.get(filter_id, [])
+                filtered_extra_form_data_filters.extend(filters_from_this_filter)
+
+        return {
+            **extra_form_data,
+            "filters": filtered_extra_form_data_filters,
+        }
+
+    def _apply_layer_filtering(
+        self, form_data: dict[str, Any], layer_index: int
+    ) -> dict[str, Any]:
+        """Apply layer-specific filtering to form data."""
+        layer_filter_scope = self.form_data.get("layer_filter_scope", {})
+        filter_data_mapping = self.form_data.get("filter_data_mapping", {})
+
+        if not layer_filter_scope:
+            form_data["extra_filters"] = self.form_data.get("extra_filters", [])
+            form_data["adhoc_filters"] = self.form_data.get("adhoc_filters")
+            form_data["extra_form_data"] = self.form_data.get("extra_form_data")
+            return form_data
+
+        filtered_extra_filters = self._filter_items_by_scope(
+            self.form_data.get("extra_filters", []), layer_index, layer_filter_scope
+        )
+        filtered_adhoc_filters = self._filter_items_by_scope(
+            self.form_data.get("adhoc_filters", []), layer_index, layer_filter_scope
+        )
+
+        extra_form_data = self.form_data.get("extra_form_data", {})
+        filtered_extra_form_data = self._process_extra_form_data_filters(
+            layer_index, layer_filter_scope, filter_data_mapping, extra_form_data
+        )
+
+        form_data["extra_filters"] = filtered_extra_filters
+        form_data["adhoc_filters"] = filtered_adhoc_filters
+        form_data["extra_form_data"] = filtered_extra_form_data
+        return form_data
+
     @deprecated(deprecated_in="3.0")
     def get_data(self, df: pd.DataFrame) -> VizData:
         # Late imports to avoid circular import issues
@@ -1535,39 +1612,9 @@ class DeckGLMultiLayer(BaseViz):
 
         features: dict[str, list[Any]] = {}
 
-        layer_filter_scope = self.form_data.get("layer_filter_scope", {})
-
         for layer_index, slc in enumerate(slices):
             form_data = slc.form_data
-
-            if layer_filter_scope:
-                filtered_extra_filters = []
-                for filter_item in self.form_data.get("extra_filters", []):
-                    filter_id = getattr(filter_item, "filterId", None)
-                    if filter_id:
-                        filter_scope = layer_filter_scope.get(filter_id, [])
-                        if not filter_scope or layer_index in filter_scope:
-                            filtered_extra_filters.append(filter_item)
-                    else:
-                        filtered_extra_filters.append(filter_item)
-
-                filtered_adhoc_filters = []
-                for filter_item in self.form_data.get("adhoc_filters", []):
-                    filter_id = getattr(filter_item, "filterId", None)
-                    if filter_id:
-                        filter_scope = layer_filter_scope.get(filter_id, [])
-                        if not filter_scope or layer_index in filter_scope:
-                            filtered_adhoc_filters.append(filter_item)
-                    else:
-                        filtered_adhoc_filters.append(filter_item)
-
-                form_data["extra_filters"] = filtered_extra_filters
-                form_data["adhoc_filters"] = filtered_adhoc_filters
-            else:
-                form_data["extra_filters"] = self.form_data.get("extra_filters", [])
-                form_data["adhoc_filters"] = self.form_data.get("adhoc_filters")
-
-            form_data["extra_form_data"] = self.form_data.get("extra_form_data")
+            form_data = self._apply_layer_filtering(form_data, layer_index)
 
             viz_type_name = form_data.get("viz_type")
             viz_class = viz_types.get(viz_type_name)
@@ -1585,7 +1632,7 @@ class DeckGLMultiLayer(BaseViz):
         return {
             "features": features,
             "mapboxApiKey": config["MAPBOX_API_KEY"],
-            "slices": [slc.data for slc in slices],
+            "slices": [slc.data for slc in slices if slc.data is not None],
         }
 
 

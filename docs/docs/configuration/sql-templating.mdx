@@ -250,6 +250,14 @@ Will be rendered as:
 SELECT * FROM users WHERE role IN ('admin', 'viewer')
 ```
 
+**Current User RLS Rules**
+
+The `{{ current_user_rls_rules() }}` macro returns an array of RLS rules applied to the current dataset for the logged in user.
+
+If you have caching enabled in your Superset configuration, then the list of RLS Rules will be used
+by Superset when calculating the cache key. A cache key is a unique identifier that determines if there's a
+cache hit in the future and Superset can retrieve cached data.
+
 **Custom URL Parameters**
 
 The `{{ url_param('custom_variable') }}` macro lets you define arbitrary URL
