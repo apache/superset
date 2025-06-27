@@ -214,7 +214,13 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
     }
     const activeTab = getItem(LocalStorageKeys.HomepageActivityFilter, null);
     setActiveState(collapseState.length > 0 ? collapseState : DEFAULT_TAB_ARR);
-    getRecentActivityObjs(user.userId!, recent, addDangerToast, otherTabFilters)
+    getRecentActivityObjs(
+      user.userId!,
+      recent,
+      addDangerToast,
+      otherTabFilters,
+      canWriteChart,
+    )
       .then(res => {
         const data: ActivityData | null = {};
         data[TableTab.Other] = res.other;
