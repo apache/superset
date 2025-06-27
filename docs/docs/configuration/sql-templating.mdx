@@ -292,6 +292,41 @@ Here's a concrete example:
   WHERE country_code = 'US'
   ```
 
+**Guest User Attributes**
+
+The `{{ get_guest_user_attribute('attribute_name') }}` macro returns a specific attribute value from the guest user context.
+This is useful when working with embedded Superset where guest tokens can contain custom attributes that need to be
+accessed in SQL queries.
+
+This macro only works when the current user is a guest user (authenticated via guest token). If the current user is
+not a guest user, or if the specified attribute doesn't exist, the macro will return `None` or the provided default value.
+
+If you have caching enabled in your Superset configuration, then by default the attribute value will be used
+by Superset when calculating the cache key. A cache key is a unique identifier that determines if there's a
+cache hit in the future and Superset can retrieve cached data.
+
+You can disable the inclusion of the attribute value in the calculation of the
+cache key by adding the following parameter to your Jinja code:
+
+```
+{{ get_guest_user_attribute('department', add_to_cache_keys=False) }}
+```
+
+You can also provide a default value if the attribute is not found:
+
+```
+{{ get_guest_user_attribute('region', default='US') }}
+```
+
+Here's a concrete example of using guest user attributes in a query:
+
+```sql
+SELECT *
+FROM sales_data
+WHERE region = '{{ get_guest_user_attribute("user_region", default="global") }}'
+  AND department = '{{ get_guest_user_attribute("department") }}'
+```
+
 **Explicitly Including Values in Cache Key**
 
 The `{{ cache_key_wrapper() }}` function explicitly instructs Superset to add a value to the
