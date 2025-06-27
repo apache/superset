@@ -65,7 +65,7 @@
     "xss": "^1.0.14"
   },
   "devDependencies": {
-    "@emotion/styled": "^11.3.0",
+    "@emotion/styled": "^11.14.1",
     "@types/d3-format": "^3.0.4",
     "@types/d3-interpolate": "^3.0.4",
     "@types/d3-scale": "^2.1.1",
@@ -88,7 +88,7 @@
     "antd": "^5.24.6",
     "@emotion/cache": "^11.4.0",
     "@emotion/react": "^11.4.1",
-    "@emotion/styled": "^11.3.0",
+    "@emotion/styled": "^11.14.1",
     "@testing-library/dom": "^8.20.1",
     "@testing-library/jest-dom": "*",
     "@testing-library/react": "^12.1.5",
