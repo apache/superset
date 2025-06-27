@@ -29,6 +29,7 @@ export const TITLE_POSITION_OPTIONS: [string, string][] = [
   ['Left', t('Left')],
   ['Top', t('Top')],
 ];
+
 export const titleControls: ControlPanelSectionConfig = {
   label: t('Chart Title'),
   tabOverride: 'customize',

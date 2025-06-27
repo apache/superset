@@ -135,6 +135,20 @@ position:
       - GRID_ID
       - ROW-cUv-aKn4Yt
     type: CHART
+  CHART-Df3UIo8Y9s:
+    children: []
+    id: CHART-Df3UIo8Y9s
+    meta:
+      chartId: 1495
+      height: 50
+      sliceName: Gantt
+      uuid: c91c242e-ec16-43e4-84fd-1c69336e0a99
+      width: 4
+    parents:
+    - ROOT_ID
+    - GRID_ID
+    - ROW-W7YILGiS0-
+    type: CHART
   CHART-DqaJJ8Fse6:
     children: []
     id: CHART-DqaJJ8Fse6
@@ -370,6 +384,7 @@ position:
       - ROW-Jq9auQfs6-
       - ROW-3XARWMYOfz
       - ROW-ux6j1ePT8I
+      - ROW-FHBKXbZT5Z
     id: GRID_ID
     parents:
       - ROOT_ID
@@ -386,10 +401,20 @@ position:
     type: ROOT
   ROW-3XARWMYOfz:
     children:
+      - CHART-Yi0u5d9otw
       - CHART-33vjmwrGX1
       - CHART-3tEC_8e-uS
-      - CHART-A4qrvR24Ne
     id: ROW-3XARWMYOfz
+    meta:
+      background: BACKGROUND_TRANSPARENT
+    parents:
+      - ROOT_ID
+      - GRID_ID
+    type: ROW
+  ROW-FHBKXbZT5Z:
+    children:
+    - CHART-KE7lk61Tbt
+    id: ROW-FHBKXbZT5Z
     meta:
       background: BACKGROUND_TRANSPARENT
     parents:
@@ -398,9 +423,9 @@ position:
     type: ROW
   ROW-Jq9auQfs6-:
     children:
+      - CHART-jzyy9Sa3pS
       - CHART-qZh51tuuRH
       - CHART-j2o9aZo4HY
-      - CHART-Yi0u5d9otw
     id: ROW-Jq9auQfs6-
     meta:
       background: BACKGROUND_TRANSPARENT
@@ -434,9 +459,9 @@ position:
     type: ROW
   ROW-UxgGmS9gb3:
     children:
+      - CHART-EpsTnvUMuW
       - CHART-4Zm6Q1VGY5
       - CHART-AFzv0kyWG_
-      - CHART-jzyy9Sa3pS
     id: ROW-UxgGmS9gb3
     meta:
       background: BACKGROUND_TRANSPARENT
@@ -447,8 +472,8 @@ position:
   ROW-W7YILGiS0-:
     children:
       - CHART-gfrGP3BD76
+      - CHART-Df3UIo8Y9s
       - CHART-jC2_mEgWeL
-      - CHART-SjTqfJNmup
     id: ROW-W7YILGiS0-
     meta:
       background: BACKGROUND_TRANSPARENT
@@ -458,9 +483,9 @@ position:
     type: ROW
   ROW-cUv-aKn4Yt:
     children:
+      - CHART-SjTqfJNmup
       - CHART-CR0-igYucm
       - CHART-t5t_tQe43g
-      - CHART-EpsTnvUMuW
     id: ROW-cUv-aKn4Yt
     meta:
       background: BACKGROUND_TRANSPARENT
@@ -470,9 +495,9 @@ position:
     type: ROW
   ROW-ux6j1ePT8I:
     children:
+      - CHART-A4qrvR24Ne
       - CHART-DqaJJ8Fse6
       - CHART-XwFZukVv8E
-      - CHART-KE7lk61Tbt
     id: ROW-ux6j1ePT8I
     meta:
       background: BACKGROUND_TRANSPARENT
