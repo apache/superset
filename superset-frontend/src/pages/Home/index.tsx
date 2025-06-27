@@ -146,6 +146,7 @@ export const LoadingCards = ({ cover }: LoadingProps) => (
 );
 
 function Welcome({ user, addDangerToast }: WelcomeProps) {
+  const canWriteChart = userHasPermission(user, 'Charts', 'menu_access');
   const canReadSavedQueries = userHasPermission(user, 'SavedQuery', 'can_read');
   const userid = user.userId;
   const id = userid!.toString(); // confident that user is not a guest user
@@ -262,16 +263,20 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
           );
           return Promise.resolve();
         }),
-      getUserOwnedObjects(id, 'chart')
-        .then(r => {
-          setChartData(r);
-          return Promise.resolve();
-        })
-        .catch((err: unknown) => {
-          setChartData([]);
-          addDangerToast(t('There was an issue fetching your chart: %s', err));
-          return Promise.resolve();
-        }),
+      canWriteChart
+        ? getUserOwnedObjects(id, 'chart')
+            .then(r => {
+              setChartData(r);
+              return Promise.resolve();
+            })
+            .catch((err: unknown) => {
+              setChartData([]);
+              addDangerToast(
+                t('There was an issue fetching your chart: %s', err),
+              );
+              return Promise.resolve();
+            })
+        : Promise.resolve(),
       canReadSavedQueries
         ? getUserOwnedObjects(id, 'saved_query', ownSavedQueryFilters)
             .then(r => {
@@ -396,23 +401,27 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
                       />
                     ),
                 },
-                {
-                  key: 'charts',
-                  label: t('Charts'),
-                  children:
-                    !chartData || isRecentActivityLoading ? (
-                      <LoadingCards cover={checked} />
-                    ) : (
-                      <ChartTable
-                        showThumbnails={checked}
-                        user={user}
-                        mine={chartData}
-                        otherTabData={activityData?.[TableTab.Other]}
-                        otherTabFilters={otherTabFilters}
-                        otherTabTitle={otherTabTitle}
-                      />
-                    ),
-                },
+                ...(canWriteChart
+                  ? [
+                      {
+                        key: 'charts',
+                        label: t('Charts'),
+                        children:
+                          !chartData || isRecentActivityLoading ? (
+                            <LoadingCards cover={checked} />
+                          ) : (
+                            <ChartTable
+                              showThumbnails={checked}
+                              user={user}
+                              mine={chartData}
+                              otherTabData={activityData?.[TableTab.Other]}
+                              otherTabFilters={otherTabFilters}
+                              otherTabTitle={otherTabTitle}
+                            />
+                          ),
+                      },
+                    ]
+                  : []),
                 ...(canReadSavedQueries
                   ? [
                       {
