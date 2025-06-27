@@ -23,7 +23,7 @@ import { t, useTheme } from '@superset-ui/core';
 import { useDispatch, useSelector } from 'react-redux';
 import { createSelector } from '@reduxjs/toolkit';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
-import Loading from 'src/components/Loading';
+import { Loading } from '@superset-ui/core/components';
 import {
   useDashboard,
   useDashboardCharts,
@@ -70,8 +70,6 @@ const DashboardBuilder = lazy(
       'src/dashboard/components/DashboardBuilder/DashboardBuilder'
     ),
 );
-
-const originalDocumentTitle = document.title;
 
 type PageProps = {
   idOrSlug: string;
@@ -204,7 +202,7 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
       document.title = dashboard_title;
     }
     return () => {
-      document.title = originalDocumentTitle;
+      document.title = 'Superset';
     };
   }, [dashboard_title]);
 

@@ -31,18 +31,22 @@ import {
   tn,
   styled,
 } from '@superset-ui/core';
-// eslint-disable-next-line no-restricted-imports
-import { LabeledValue as AntdLabeledValue } from 'antd/lib/select'; // TODO: Remove antd
 import { debounce, isUndefined } from 'lodash';
 import { useImmerReducer } from 'use-immer';
-import { Select } from 'src/components';
-// eslint-disable-next-line no-restricted-imports
-import { Space } from 'antd'; // Import Space directly from antd
-import { SLOW_DEBOUNCE } from 'src/constants';
-import { hasOption, propertyComparator } from 'src/components/Select/utils';
+import {
+  FormItem,
+  LabeledValue,
+  Select,
+  Space,
+  Constants,
+} from '@superset-ui/core/components';
+import {
+  hasOption,
+  propertyComparator,
+} from '@superset-ui/core/components/Select/utils';
 import { FilterBarOrientation } from 'src/dashboard/types';
 import { getDataRecordFormatter, getSelectExtraFormData } from '../../utils';
-import { FilterPluginStyle, StatusMessage, StyledFormItem } from '../common';
+import { FilterPluginStyle, StatusMessage } from '../common';
 import { PluginFilterSelectProps, SelectValue } from './types';
 
 type DataMaskAction =
@@ -99,10 +103,7 @@ const StyledSpace = styled(Space)<{
 
   &.ant-space {
     .ant-space-item {
-      width: ${({ inverseSelection, appSection }) =>
-        !inverseSelection || appSection === AppSection.FilterConfigModal
-          ? '100%'
-          : 'auto'};
+      width: ${({ inverseSelection }) => (!inverseSelection ? '100%' : 'auto')};
     }
   }
 `;
@@ -250,7 +251,7 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
             },
           });
         }
-      }, SLOW_DEBOUNCE),
+      }, Constants.SLOW_DEBOUNCE),
     [dispatchDataMask, initialColtypeMap, searchAllOptions],
   );
 
@@ -309,7 +310,7 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
   }, [multiSelect, search, uniqueOptions]);
 
   const sortComparator = useCallback(
-    (a: AntdLabeledValue, b: AntdLabeledValue) => {
+    (a: LabeledValue, b: LabeledValue) => {
       const labelComparator = propertyComparator('label');
       if (formData.sortAscending) {
         return labelComparator(a, b);
@@ -335,7 +336,13 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
       return;
     }
 
-    // Case 2: Handle the default to first Value case
+    if (filterState.value !== undefined) {
+      // Set the filter state value if it is defined
+      updateDataMask(filterState.value);
+      return;
+    }
+
+    // Handle the default to first Value case
     if (defaultToFirstItem) {
       // Set to first item if defaultToFirstItem is true
       const firstItem: SelectValue = data[0]
@@ -345,7 +352,7 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
         updateDataMask(firstItem);
       }
     } else if (formData?.defaultValue) {
-      // Case 3 : Handle defalut value case
+      // Handle defalut value case
       updateDataMask(formData.defaultValue);
     }
   }, [
@@ -392,7 +399,7 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
 
   return (
     <FilterPluginStyle height={height} width={width}>
-      <StyledFormItem
+      <FormItem
         validateStatus={filterState.validateStatus}
         extra={formItemExtra}
       >
@@ -445,7 +452,7 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
             className="select-container"
           />
         </StyledSpace>
-      </StyledFormItem>
+      </FormItem>
     </FilterPluginStyle>
   );
 }

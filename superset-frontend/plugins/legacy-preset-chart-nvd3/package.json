@@ -31,11 +31,11 @@
   "dependencies": {
     "d3": "^3.5.17",
     "d3-tip": "^0.9.1",
-    "dompurify": "^3.2.4",
     "fast-safe-stringify": "^2.1.1",
     "lodash": "^4.17.21",
     "dayjs": "^1.11.13",
     "nvd3-fork": "^2.0.5",
+    "dompurify": "^3.2.4",
     "prop-types": "^15.8.1",
     "urijs": "^1.19.11"
   },

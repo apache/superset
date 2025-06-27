@@ -19,26 +19,30 @@
 
 import { useMemo, useState } from 'react';
 import rison from 'rison';
-import { t, SupersetClient, useTheme, css } from '@superset-ui/core';
+import { t, SupersetClient } from '@superset-ui/core';
 import { Link, useHistory } from 'react-router-dom';
 import { useListViewResource } from 'src/views/CRUD/hooks';
 import { createFetchRelated, createErrorHandler } from 'src/views/CRUD/utils';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import SubMenu, { SubMenuProps } from 'src/features/home/SubMenu';
-import ActionsBar, { ActionProps } from 'src/components/ListView/ActionsBar';
-import ListView, {
-  ListViewProps,
-  Filters,
-  FilterOperator,
-} from 'src/components/ListView';
-import DeleteModal from 'src/components/DeleteModal';
-import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
+import { Typography } from '@superset-ui/core/components/Typography';
+
+import { DeleteModal, ConfirmStatusChange } from '@superset-ui/core/components';
+import {
+  ModifiedInfo,
+  ListView,
+  ListViewFilterOperator as FilterOperator,
+  ListViewActionsBar,
+  type ListViewActionProps,
+  type ListViewProps,
+  type ListViewFilters,
+} from 'src/components';
 import AnnotationLayerModal from 'src/features/annotationLayers/AnnotationLayerModal';
 import { AnnotationLayerObject } from 'src/features/annotationLayers/types';
-import { ModifiedInfo } from 'src/components/AuditInfo';
 import { QueryObjectColumns } from 'src/views/CRUD/types';
-import { Icons } from 'src/components/Icons';
+import { Icons } from '@superset-ui/core/components/Icons';
 import { navigateTo } from 'src/utils/navigationUtils';
+import { WIDER_DROPDOWN_WIDTH } from 'src/components/ListView/utils';
 
 const PAGE_SIZE = 25;
 
@@ -57,7 +61,6 @@ function AnnotationLayersList({
   addSuccessToast,
   user,
 }: AnnotationLayersListProps) {
-  const theme = useTheme();
   const {
     state: {
       loading,
@@ -149,12 +152,18 @@ function AnnotationLayersList({
             return <Link to={`/annotationlayer/${id}/annotation`}>{name}</Link>;
           }
 
-          return <a href={`/annotationlayer/${id}/annotation`}>{name}</a>;
+          return (
+            <Typography.Link href={`/annotationlayer/${id}/annotation`}>
+              {name}
+            </Typography.Link>
+          );
         },
+        id: 'name',
       },
       {
         accessor: 'descr',
         Header: t('Description'),
+        id: 'descr',
       },
       {
         Cell: ({
@@ -168,6 +177,7 @@ function AnnotationLayersList({
         Header: t('Last modified'),
         accessor: 'changed_on',
         size: 'xl',
+        id: 'changed_on',
       },
       {
         Cell: ({ row: { original } }: any) => {
@@ -195,7 +205,9 @@ function AnnotationLayersList({
               : null,
           ].filter(item => !!item);
 
-          return <ActionsBar actions={actions as ActionProps[]} />;
+          return (
+            <ListViewActionsBar actions={actions as ListViewActionProps[]} />
+          );
         },
         Header: t('Actions'),
         id: 'actions',
@@ -206,6 +218,7 @@ function AnnotationLayersList({
       {
         accessor: QueryObjectColumns.ChangedBy,
         hidden: true,
+        id: QueryObjectColumns.ChangedBy,
       },
     ],
     [canDelete, canCreate],
@@ -217,13 +230,7 @@ function AnnotationLayersList({
     subMenuButtons.push({
       name: (
         <>
-          <Icons.PlusOutlined
-            iconColor={theme.colors.primary.light5}
-            iconSize="m"
-            css={css`
-              vertical-align: text-top;
-            `}
-          />
+          <Icons.PlusOutlined iconSize="m" />
           {t('Annotation layer')}
         </>
       ),
@@ -242,7 +249,7 @@ function AnnotationLayersList({
     });
   }
 
-  const filters: Filters = useMemo(
+  const filters: ListViewFilters = useMemo(
     () => [
       {
         Header: t('Name'),
@@ -270,6 +277,7 @@ function AnnotationLayersList({
           user,
         ),
         paginate: true,
+        dropdownStyle: { minWidth: WIDER_DROPDOWN_WIDTH },
       },
     ],
     [],
@@ -281,10 +289,7 @@ function AnnotationLayersList({
     buttonAction: () => handleAnnotationLayerEdit(null),
     buttonText: (
       <>
-        <Icons.PlusOutlined
-          iconSize="m"
-          iconColor={theme.colors.primary.light5}
-        />
+        <Icons.PlusOutlined iconSize="m" />
         {t('Annotation layer')}
       </>
     ),
