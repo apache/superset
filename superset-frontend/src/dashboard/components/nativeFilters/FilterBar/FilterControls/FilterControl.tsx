@@ -286,6 +286,8 @@ const FilterControl = ({
   parentRef,
   orientation = FilterBarOrientation.Vertical,
   overflow = false,
+  clearAllTrigger,
+  onClearAllComplete,
 }: FilterControlProps) => {
   const portalNode = useMemo(() => createHtmlPortalNode(), []);
   const [isFilterActive, setIsFilterActive] = useState(false);
@@ -358,6 +360,8 @@ const FilterControl = ({
           orientation={orientation}
           overflow={overflow}
           validateStatus={validateStatus}
+          clearAllTrigger={clearAllTrigger}
+          onClearAllComplete={onClearAllComplete}
         />
       </InPortal>
       <FilterControlContainer
