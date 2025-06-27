@@ -29,11 +29,12 @@ import {
   core,
 } from '@apache-superset/core';
 import { ExtensionContext } from './core';
+import rison from 'rison';
 
 class ExtensionsManager {
   private static instance: ExtensionsManager;
 
-  private extensionIndex: Map<string, core.Extension> = new Map();
+  private extensionIndex: Map<number, core.Extension> = new Map();
 
   private contextIndex: Map<string, ExtensionContext> = new Map();
 
@@ -64,7 +65,7 @@ class ExtensionsManager {
    * Initializes extensions.
    * @throws Error if initialization fails.
    */
-  public async initialize(): Promise<void> {
+  public async initializeExtensions(): Promise<void> {
     if (!isFeatureEnabled(FeatureFlag.EnableExtensions)) {
       return;
     }
@@ -79,6 +80,23 @@ class ExtensionsManager {
     );
   }
 
+  /**
+   * Initializes an extension by its id.
+   * @param id The id of the extension to initialize.
+   */
+  public async initializeExtensionById(id: number): Promise<void> {
+    const response = await SupersetClient.get({
+      endpoint: `/api/v1/extensions/${id}`,
+    });
+    const extension: core.Extension = response.json.result;
+    this.initializeExtension(extension);
+  }
+
+  /**
+   * Initializes an extension by its instance.
+   * If the extension has a remote entry, it will load the module.
+   * @param extension The extension to initialize.
+   */
   public async initializeExtension(extension: core.Extension) {
     if (extension.remoteEntry) {
       extension = await this.loadModule(extension);
@@ -86,7 +104,7 @@ class ExtensionsManager {
         await this.enableExtension(extension);
       }
     }
-    this.extensionIndex.set(extension.name, extension);
+    this.extensionIndex.set(extension.id, extension);
   }
 
   /**
@@ -119,29 +137,32 @@ class ExtensionsManager {
   }
 
   /**
-   * Enables an extension by its name.
-   * @param name The name of the extension to enable.
+   * Enables an extension by its id.
+   * @param id The id of the extension to enable.
    */
-  public async enableExtensionByName(name: string): Promise<void> {
-    const extension = this.extensionIndex.get(name);
+  public async enableExtensionById(id: number): Promise<void> {
+    const extension = this.extensionIndex.get(id);
     if (extension) {
       return this.enableExtension(extension);
     } else {
-      logging.warn(`Extension ${name} not found`);
+      logging.warn(`Extension with id ${id} not found`);
     }
   }
 
-  /**
-   * Disables an extension by its name.
-   * @param name The name of the extension to disable.
-   */
-  public async disableExtensionByName(name: string): Promise<void> {
-    const extension = this.extensionIndex.get(name);
-    if (extension) {
-      this.deactivateExtension(extension.name);
-      this.contextIndex.delete(name);
-      this.removeContributions(extension);
+  private deactivateAndCleanupExtension(extension: core.Extension) {
+    this.deactivateExtension(extension.id);
+    this.contextIndex.delete(extension.name);
+    this.removeContributions(extension);
+  }
 
+  /**
+   * Disables an extension by its id.
+   * @param id The id of the extension to disable.
+   */
+  public async disableExtensionById(id: number): Promise<void> {
+    const extension = this.extensionIndex.get(id);
+    if (extension) {
+      this.deactivateAndCleanupExtension(extension);
       if (extension.enabled) {
         extension.enabled = false;
         await SupersetClient.put({
@@ -151,7 +172,30 @@ class ExtensionsManager {
           },
         });
       }
+    } else {
+      logging.warn(`Extension with id ${id} not found`);
     }
+  }
+
+  /**
+   * Removes extensions by their ids.
+   * This will deactivate the extensions, remove their contributions,
+   * and delete them from the server.
+   * @param ids The ids of the extensions to remove.
+   */
+  public async removeExtensionsByIds(ids: number[]): Promise<void> {
+    ids.forEach(id => {
+      const extension = this.extensionIndex.get(id);
+      if (extension) {
+        this.deactivateAndCleanupExtension(extension);
+        this.extensionIndex.delete(id);
+      } else {
+        logging.warn(`Extension with id ${id} not found`);
+      }
+    });
+    await SupersetClient.delete({
+      endpoint: `/api/v1/extensions/?q=${rison.encode(ids)}`,
+    });
   }
 
   /**
@@ -211,12 +255,14 @@ class ExtensionsManager {
 
   /**
    * Deactivates an extension.
-   * @param name The name of the extension to deactivate.
+   * @param id The id of the extension to deactivate.
    * @returns True if deactivated, false otherwise.
    */
-  private deactivateExtension(name: string): boolean {
-    const extension = this.extensionIndex.get(name);
-    const context = this.contextIndex.get(name);
+  private deactivateExtension(id: number): boolean {
+    const extension = this.extensionIndex.get(id);
+    const context = extension
+      ? this.contextIndex.get(extension.name)
+      : undefined;
     if (extension && context) {
       try {
         // Dispose of all disposables in the context
@@ -229,7 +275,7 @@ class ExtensionsManager {
         }
         return true;
       } catch (err) {
-        logging.warn(`Error deactivating ${name}`, err);
+        logging.warn(`Error deactivating ${extension.name}`, err);
       }
     }
     return false;
@@ -339,12 +385,12 @@ class ExtensionsManager {
   }
 
   /**
-   * Retrieves a specific extension by its name.
-   * @param name The name of the extension.
-   * @returns The extension matching the name, or undefined if not found.
+   * Retrieves a specific extension by its id.
+   * @param id The id of the extension.
+   * @returns The extension matching the id, or undefined if not found.
    */
-  public getExtension(name: string): core.Extension | undefined {
-    return this.extensionIndex.get(name);
+  public getExtension(id: number): core.Extension | undefined {
+    return this.extensionIndex.get(id);
   }
 }
 

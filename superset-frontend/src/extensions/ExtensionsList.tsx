@@ -94,14 +94,26 @@ const ExtensionsList: FunctionComponent<ExtensionsListProps> = ({
     addDangerToast,
   );
 
-  const deleteExtensions = (extensions: Extension[]) => {
-    console.log('Deleting extensions:', extensions);
+  const deleteExtensions = async (extensions: Extension[]) => {
+    try {
+      await ExtensionsManager.getInstance().removeExtensionsByIds(
+        extensions.map(extension => extension.id),
+      );
+      refreshData();
+      addSuccessToast(
+        t('Successfully deleted %s extension(s)', extensions.length),
+      );
+    } catch (error) {
+      addDangerToast(
+        t('There was an error deleting the extension(s): %s', error.message),
+      );
+    }
   };
 
   const enableExtensions = async (extensions: Extension[]) => {
     await Promise.all(
       extensions.map(extension =>
-        ExtensionsManager.getInstance().enableExtensionByName(extension.name),
+        ExtensionsManager.getInstance().enableExtensionById(extension.id),
       ),
     );
     refreshData();
@@ -110,7 +122,7 @@ const ExtensionsList: FunctionComponent<ExtensionsListProps> = ({
   const disableExtensions = async (extensions: Extension[]) => {
     await Promise.all(
       extensions.map(extension =>
-        ExtensionsManager.getInstance().disableExtensionByName(extension.name),
+        ExtensionsManager.getInstance().disableExtensionById(extension.id),
       ),
     );
     refreshData();

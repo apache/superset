@@ -19,6 +19,8 @@ from marshmallow import (
     Schema,
 )
 
+delete_schema = {"type": "array", "items": {"type": "integer"}}
+
 
 class ExtensionPutSchema(Schema):
     enabled = fields.Boolean(

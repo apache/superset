@@ -21,7 +21,7 @@ from zipfile import is_zipfile, ZipFile
 
 from flask import request, send_file
 from flask.wrappers import Response
-from flask_appbuilder.api import expose, protect, safe
+from flask_appbuilder.api import expose, protect, safe, rison
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from marshmallow import ValidationError
 
@@ -29,7 +29,7 @@ from superset import db
 from superset.daos.extension import ExtensionDAO
 from superset.extensions import event_logger
 from superset.extensions.models import Extension
-from superset.extensions.schemas import ExtensionPutSchema
+from superset.extensions.schemas import delete_schema, ExtensionPutSchema
 from superset.extensions.utils import (
     build_extension_data,
     build_loaded_extension,
@@ -317,3 +317,51 @@ class ExtensionsRestApi(BaseSupersetModelRestApi):
 
         except ValidationError as error:
             return self.response_400(message=error.messages)
+
+    @expose("/", methods=("DELETE",))
+    @protect()
+    @safe
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.delete",
+        log_to_statsd=False,
+    )
+    @rison(delete_schema)
+    def delete(self, **kwargs: Any) -> Response:
+        """Delete extensions.
+        ---
+        delete:
+          summary: Delete extensions
+          parameters:
+            - in: query
+              name: q
+              content:
+                application/json:
+                  schema:
+                    $ref: '#/components/schemas/delete_schema'
+          responses:
+            200:
+              description: Extensions deleted
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      result:
+                        type: boolean
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            422:
+              $ref: '#/components/responses/422'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        ids = kwargs["rison"]
+        if not ids or not isinstance(ids, list):
+            return self.response_400(message="Invalid or missing ids")
+
+        ExtensionDAO.remove_by_ids(ids)
+        db.session.commit()
+        return self.response(200, result=True)

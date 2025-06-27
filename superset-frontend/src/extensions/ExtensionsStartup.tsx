@@ -74,7 +74,7 @@ const ExtensionsStartup = () => {
 
     // Initialize extensions
     try {
-      ExtensionsManager.getInstance().initialize();
+      ExtensionsManager.getInstance().initializeExtensions();
       console.log('Extensions initialized successfully.');
     } catch (error) {
       console.error('Error setting up extensions:', error);

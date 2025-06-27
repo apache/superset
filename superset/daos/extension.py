@@ -79,3 +79,9 @@ class ExtensionDAO(BaseDAO[Extension]):
     @staticmethod
     def get_extensions() -> list[Extension]:
         return db.session.query(Extension).all()
+
+    @staticmethod
+    def remove_by_ids(ids: list[int]) -> None:
+        db.session.query(Extension).filter(Extension.id.in_(ids)).delete(
+            synchronize_session=False
+        )

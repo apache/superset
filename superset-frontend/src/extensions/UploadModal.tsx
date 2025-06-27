@@ -65,11 +65,13 @@ const UploadModal = ({ show, onHide, onUploadSuccess }: UploadProps) => {
         headers: { Accept: 'application/json' },
       });
       const { id } = response.json;
-      response = await SupersetClient.get({
-        endpoint: `/api/v1/extensions/${id}`,
-      });
-      const extension = response.json.result;
-      ExtensionsManager.getInstance().initializeExtension(extension);
+      ExtensionsManager.getInstance().initializeExtensionById(id);
+
+      // TODO: We also need to initilize the backend contributions in
+      // the future. Currently, we only handle the frontend which means
+      // the backend part will not be available until the server is restarted.
+
+      setFileList([]);
       onUploadSuccess();
     } catch (err) {
       setError(t('Failed to upload the extension. Please try again.'));
@@ -96,10 +98,12 @@ const UploadModal = ({ show, onHide, onUploadSuccess }: UploadProps) => {
       onHandledPrimaryAction={onUpload}
       onHide={handleHide}
       width="500px"
+      height="100px"
       primaryButtonName="Upload"
       centered
       show={show}
       title={t('Upload Extension')}
+      destroyOnClose={true}
     >
       <Upload
         name="modelFile"
