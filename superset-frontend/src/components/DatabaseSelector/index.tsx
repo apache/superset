@@ -196,7 +196,7 @@ export function DatabaseSelector({
               />
             ),
             value: row.id,
-            id: `${row.backend}-${row.database_name}-${row.id}`,
+            id: row.id,
             database_name: row.database_name,
             backend: row.backend,
             allow_multi_catalog: row.allow_multi_catalog,
