@@ -27,6 +27,9 @@ import { removeTables, setActiveSouthPaneTab } from 'src/SqlLab/actions/sqlLab';
 import { Label } from '@superset-ui/core/components';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { SqlLabRootState } from 'src/SqlLab/types';
+import { useExtensionsContext } from 'src/extensions/ExtensionsContext';
+import ExtensionPlaceholder from 'src/extensions/ExtensionPlaceholder';
+import ExtensionsManager from 'src/extensions/ExtensionsManager';
 import QueryHistory from '../QueryHistory';
 import {
   STATUS_OPTIONS,
@@ -98,6 +101,9 @@ const SouthPane = ({
 }: SouthPaneProps) => {
   const theme = useTheme();
   const dispatch = useDispatch();
+  const contributions =
+    ExtensionsManager.getInstance().getViewContributions('sqllab.panels') || [];
+  const { viewProviders } = useExtensionsContext();
   const { offline, tables } = useSelector(
     ({ sqlLab: { offline, tables } }: SqlLabRootState) => ({
       offline,
@@ -201,6 +207,13 @@ const SouthPane = ({
           tableName={name}
         />
       ),
+    })),
+    ...contributions.map(contribution => ({
+      key: contribution.id,
+      label: contribution.name,
+      children: viewProviders[contribution.id]?.() || <ExtensionPlaceholder />,
+      forceRender: true,
+      closable: false,
     })),
   ];
 

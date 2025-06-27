@@ -575,6 +575,9 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # Allow metrics and columns to be grouped into (potentially nested) folders in the
     # chart builder
     "DATASET_FOLDERS": False,
+    # Enable Superset extensions, which allow users to add custom functionality
+    # to Superset without modifying the core codebase.
+    "ENABLE_EXTENSIONS": False,
 }
 
 # ------------------------------
@@ -1964,6 +1967,8 @@ CATALOGS_SIMPLIFIED_MIGRATION: bool = False
 # keeping a web API call open for this long.
 SYNC_DB_PERMISSIONS_IN_ASYNC_MODE: bool = False
 
+
+LOCAL_EXTENSIONS: list[str] = []
 
 # -------------------------------------------------------------------
 # *                WARNING:  STOP EDITING  HERE                    *

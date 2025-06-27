@@ -1,0 +1,17 @@
+{
+  "compilerOptions": {
+    "baseUrl": ".",
+    "moduleResolution": "node",
+    "jsx": "react",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "paths": {
+      "@apache-superset/core": [
+        "../../../superset-frontend/packages/superset-core/src"
+      ]
+    }
+  },
+  "include": ["src"]
+}
