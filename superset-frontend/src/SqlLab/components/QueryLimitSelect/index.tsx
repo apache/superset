@@ -54,8 +54,9 @@ function renderQueryLimit(
       options={limitDropdown}
       allowNewOptions
       onChange={value => {
-        let limit_val = parseInt(value.toString(), 10);
-        if (Number.isNaN(limit_val)) limit_val = 10;
+        let limit_val = value;
+        if (limit_val === undefined) limit_val = 10;
+        limit_val = parseInt(limit_val.toString(), 10);
         if (limit_val < 1) limit_val = 1;
         if (limit_val > maxRow) limit_val = maxRow;
         setQueryLimit(limit_val);
