@@ -17,7 +17,7 @@
  * under the License.
  */
 import { core as coreType, sqlLab as sqlLabType } from '@apache-superset/core';
-import { getExtensionsContextValue } from './ExtensionsContextUtils';
+import { getExtensionsContextValue } from '../extensions/ExtensionsContextUtils';
 
 export class Column implements coreType.Column {
   name: string;

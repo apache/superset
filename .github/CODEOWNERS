@@ -31,12 +31,10 @@
 **/*.geojson @villebro @rusackas
 /superset-frontend/plugins/legacy-plugin-chart-country-map/ @villebro @rusackas
 
-# Notify some committers of changes in extensions
+# Notify PMC members of changes to extension-related files
 
-/superset/extensions/ @michael-s-molina @rusackas @villebro
-/superset-frontend/src/extensions/ @michael-s-molina @rusackas @villebro
-/superset-frontend/src/packages/superset-extensions-sdk/ @michael-s-molina @rusackas @villebro
-/superset-frontend/src/packages/superset-primitives/ @michael-s-molina @rusackas @villebro
-/superset-frontend/src/packages/superset-types/ @michael-s-molina @rusackas @villebro
-/superset-primitives/ @michael-s-molina @rusackas @villebro
-/superset-sdk/ @michael-s-molina @rusackas @villebro
+/superset-core/ @michael-s-molina @villebro
+/superset-cli/ @michael-s-molina @villebro
+/superset-frontend/src/packages/superset-core/ @michael-s-molina @villebro
+/superset-frontend/src/core/ @michael-s-molina @villebro
+/superset-frontend/src/extensions/ @michael-s-molina @villebro

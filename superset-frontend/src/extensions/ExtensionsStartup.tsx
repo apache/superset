@@ -25,7 +25,7 @@ import {
   environment,
   extensions,
   sqlLab,
-} from 'src/extensions';
+} from 'src/core';
 import { useExtensionsContext } from './ExtensionsContext';
 import ExtensionsManager from './ExtensionsManager';
 import { useSelector } from 'react-redux';

@@ -118,7 +118,7 @@ import {
   Logger,
 } from 'src/logger/LogUtils';
 import ExtensionsManager from 'src/extensions/ExtensionsManager';
-import { commands } from 'src/extensions';
+import { commands } from 'src/core';
 import { CopyToClipboard } from 'src/components';
 import TemplateParamsEditor from '../TemplateParamsEditor';
 import SouthPane from '../SouthPane';

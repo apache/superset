@@ -18,7 +18,7 @@
  */
 import { AnyAction } from 'redux';
 import { listenerMiddleware, RootState, store } from 'src/views/store';
-import { Disposable } from './core';
+import { Disposable } from '../core';
 
 export function createActionListener<V>(
   actionType: string,

@@ -28,7 +28,7 @@ import {
   ViewContribution,
   core,
 } from '@apache-superset/core';
-import { ExtensionContext } from './core';
+import { ExtensionContext } from '../core/core';
 import rison from 'rison';
 
 class ExtensionsManager {
