@@ -21,9 +21,12 @@ import { t, css } from '@superset-ui/core';
 import SubMenu, { SubMenuProps } from 'src/features/home/SubMenu';
 import { useListViewResource } from 'src/views/CRUD/hooks';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
-import ListView, { Filters, FilterOperator } from 'src/components/ListView';
-// eslint-disable-next-line no-restricted-imports
-import { Typography } from 'antd-v5';
+import {
+  ListView,
+  ListViewFilterOperator,
+  type ListViewFilter,
+} from 'src/components/ListView';
+import { Typography } from '@superset-ui/core/components';
 import { fetchUserOptions } from 'src/features/groups/utils';
 
 export type ActionLogObject = {
@@ -62,52 +65,55 @@ function ActionLogList() {
     addDangerToast,
     false,
   );
-  const filters: Filters = useMemo(
+  const filters: ListViewFilter[] = useMemo(
     () => [
       {
         Header: t('Users'),
         key: 'user',
         id: 'user',
         input: 'select',
-        operator: FilterOperator.RelationOneMany,
+        operator: ListViewFilterOperator.RelationOneMany,
         unfilteredLabel: t('All'),
-        fetchSelects: async (filterValue, page, pageSize) =>
-          fetchUserOptions(filterValue, page, pageSize, addDangerToast),
+        fetchSelects: async (
+          filterValue: string,
+          page: number,
+          pageSize: number,
+        ) => fetchUserOptions(filterValue, page, pageSize, addDangerToast),
       },
       {
         Header: t('Dashboard Id'),
         key: 'dashboard_id',
         id: 'dashboard_id',
         input: 'search',
-        operator: FilterOperator.Equals,
+        operator: ListViewFilterOperator.Equals,
       },
       {
         Header: t('Slice Id'),
         key: 'slice_id',
         id: 'slice_id',
         input: 'search',
-        operator: FilterOperator.Equals,
+        operator: ListViewFilterOperator.Equals,
       },
       {
         Header: t('Action'),
         key: 'action',
         id: 'action',
         input: 'search',
-        operator: FilterOperator.Contains,
+        operator: ListViewFilterOperator.Contains,
       },
       {
         Header: t('JSON'),
         key: 'json',
         id: 'json',
         input: 'search',
-        operator: FilterOperator.Contains,
+        operator: ListViewFilterOperator.Contains,
       },
       {
         Header: t('dttm'),
         key: 'dttm',
         id: 'dttm',
         input: 'datetime_range',
-        operator: FilterOperator.Between,
+        operator: ListViewFilterOperator.Between,
         dateFilterValueType: 'iso',
       },
       {
@@ -115,14 +121,14 @@ function ActionLogList() {
         key: 'referrer',
         id: 'referrer',
         input: 'search',
-        operator: FilterOperator.Equals,
+        operator: ListViewFilterOperator.Equals,
       },
       {
         Header: t('Duration Ms'),
         key: 'duration_ms',
         id: 'duration_ms',
         input: 'search',
-        operator: FilterOperator.Equals,
+        operator: ListViewFilterOperator.Equals,
       },
     ],
     [],

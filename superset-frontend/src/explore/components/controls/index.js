@@ -17,6 +17,7 @@
  * under the License.
  */
 import { sharedControlComponents } from '@superset-ui/chart-controls';
+import { getExtensionsRegistry } from '@superset-ui/core';
 import AnnotationLayerControl from './AnnotationLayerControl';
 import BoundsControl from './BoundsControl';
 import CheckboxControl from './CheckboxControl';
@@ -56,6 +57,12 @@ import ZoomConfigControl from './ZoomConfigControl/ZoomConfigControl';
 import NumberControl from './NumberControl';
 import TimeRangeControl from './TimeRangeControl';
 
+const extensionsRegistry = getExtensionsRegistry();
+const DateFilterControlExtension = extensionsRegistry.get(
+  'filter.dateFilterControl',
+);
+const DateFilterComponent = DateFilterControlExtension ?? DateFilterControl;
+
 const controlMap = {
   AnnotationLayerControl,
   BoundsControl,
@@ -66,7 +73,7 @@ const controlMap = {
   ColumnConfigControl,
   CurrencyControl,
   DatasourceControl,
-  DateFilterControl,
+  DateFilterControl: DateFilterComponent,
   DndColumnSelectControl,
   DndColumnSelect,
   DndFilterSelect,

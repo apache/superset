@@ -122,6 +122,7 @@ export default function transformProps(
     theme,
     inContextMenu,
     emitCrossFilters,
+    legendIndex,
   } = chartProps;
 
   let focusedSeries: string | null = null;
@@ -467,6 +468,7 @@ export default function transformProps(
     setControlValue = () => {},
     onContextMenu,
     onLegendStateChanged,
+    onLegendScroll,
   } = hooks;
 
   const addYAxisLabelOffset = !!yAxisTitle;
@@ -642,6 +644,7 @@ export default function transformProps(
         legendState,
         padding,
       ),
+      scrollDataIndex: legendIndex || 0,
       data: legendData as string[],
     },
     series: dedupSeries(reorderForecastSeries(series) as SeriesOption[]),
@@ -687,7 +690,6 @@ export default function transformProps(
   const onFocusedSeries = (seriesName: string | null) => {
     focusedSeries = seriesName;
   };
-
   return {
     echartOptions,
     emitCrossFilters,
@@ -710,5 +712,6 @@ export default function transformProps(
     },
     refs,
     coltypeMapping: dataTypes,
+    onLegendScroll,
   };
 }

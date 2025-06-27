@@ -30,7 +30,7 @@ import {
   FeatureFlag,
 } from '@superset-ui/core';
 import { Logger, LOG_ACTIONS_RENDER_CHART } from 'src/logger/LogUtils';
-import { EmptyState } from 'src/components/EmptyState';
+import { EmptyState } from '@superset-ui/core/components';
 import { ChartSource } from 'src/types/ChartSource';
 import ChartContextMenu from './ChartContextMenu/ChartContextMenu';
 
@@ -95,6 +95,7 @@ class ChartRenderer extends Component {
         isFeatureEnabled(FeatureFlag.DrillToDetail),
       inContextMenu: false,
       legendState: undefined,
+      legendIndex: 0,
     };
     this.hasQueryResponseChange = false;
 
@@ -109,6 +110,7 @@ class ChartRenderer extends Component {
     this.handleContextMenuClosed = this.handleContextMenuClosed.bind(this);
     this.handleLegendStateChanged = this.handleLegendStateChanged.bind(this);
     this.onContextMenuFallback = this.onContextMenuFallback.bind(this);
+    this.handleLegendScroll = this.handleLegendScroll.bind(this);
 
     this.hooks = {
       onAddFilter: this.handleAddFilter,
@@ -123,6 +125,7 @@ class ChartRenderer extends Component {
       setDataMask: dataMask => {
         this.props.actions?.updateDataMask(this.props.chartId, dataMask);
       },
+      onLegendScroll: this.handleLegendScroll,
     };
 
     // TODO: queriesResponse comes from Redux store but it's being edited by
@@ -248,6 +251,10 @@ class ChartRenderer extends Component {
     }
   }
 
+  handleLegendScroll(legendIndex) {
+    this.setState({ legendIndex });
+  }
+
   render() {
     const { chartAlert, chartStatus, chartId, emitCrossFilters } = this.props;
 
@@ -318,7 +325,7 @@ class ChartRenderer extends Component {
       );
     } else {
       noResultsComponent = (
-        <EmptyState size="small" title={noResultTitle} image={noResultImage} />
+        <EmptyState title={noResultTitle} image={noResultImage} size="small" />
       );
     }
 
@@ -374,6 +381,7 @@ class ChartRenderer extends Component {
             emitCrossFilters={emitCrossFilters}
             legendState={this.state.legendState}
             enableNoResults={bypassNoResult}
+            legendIndex={this.state.legendIndex}
             {...drillToDetailProps}
           />
         </div>

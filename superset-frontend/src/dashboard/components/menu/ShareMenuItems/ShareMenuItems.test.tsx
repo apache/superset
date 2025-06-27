@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { Menu } from 'src/components/Menu';
+import { Menu } from '@superset-ui/core/components/Menu';
 import {
   render,
   screen,

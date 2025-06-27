@@ -26,6 +26,7 @@ import {
   BRAND_COLOR,
   styled,
   BinaryQueryObjectFilterClause,
+  themeObject,
 } from '@superset-ui/core';
 import Echart from '../components/Echart';
 import { BigNumberVizProps } from './types';
@@ -212,6 +213,7 @@ class BigNumberVis extends PureComponent<BigNumberVizProps, BigNumberVisState> {
     const hasThresholdColorFormatter =
       Array.isArray(colorThresholdFormatters) &&
       colorThresholdFormatters.length > 0;
+    const { theme } = themeObject;
 
     let numberColor;
     if (hasThresholdColorFormatter) {
@@ -224,7 +226,7 @@ class BigNumberVis extends PureComponent<BigNumberVizProps, BigNumberVisState> {
         }
       });
     } else {
-      numberColor = 'black';
+      numberColor = theme.colorText;
     }
 
     const container = this.createTemporaryContainer();
@@ -394,7 +396,7 @@ class BigNumberVis extends PureComponent<BigNumberVizProps, BigNumberVisState> {
   }
 
   getTotalElementsHeight() {
-    const marginPerElement = 8; // theme.gridUnit = 4, so margin-bottom = 8px
+    const marginPerElement = 8; // theme.sizeUnit = 4, so margin-bottom = 8px
 
     const refs = [
       this.metricNameRef,
@@ -517,7 +519,7 @@ class BigNumberVis extends PureComponent<BigNumberVizProps, BigNumberVisState> {
 
 export default styled(BigNumberVis)`
   ${({ theme }) => `
-    font-family: ${theme.typography.families.sansSerif};
+    font-family: ${theme.fontFamily};
     position: relative;
     display: flex;
     flex-direction: column;
@@ -534,29 +536,29 @@ export default styled(BigNumberVis)`
       justify-content: center;
       align-items: flex-start;
       .alert {
-        font-size: ${theme.typography.sizes.s};
+        font-size: ${theme.fontSizeSM};
         margin: -0.5em 0 0.4em;
         line-height: 1;
-        padding: ${theme.gridUnit}px;
-        border-radius: ${theme.gridUnit}px;
+        padding: ${theme.sizeUnit}px;
+        border-radius: ${theme.borderRadius}px;
       }
     }
 
     .kicker {
       line-height: 1em;
-      margin-bottom: ${theme.gridUnit * 2}px;
+      margin-bottom: ${theme.sizeUnit * 2}px;
     }
 
     .metric-name {
       line-height: 1em;
-      margin-bottom: ${theme.gridUnit * 2}px;
+      margin-bottom: ${theme.sizeUnit * 2}px;
     }
 
     .header-line {
       position: relative;
       line-height: 1em;
       white-space: nowrap;
-      margin-bottom:${theme.gridUnit * 2}px;
+      margin-bottom:${theme.sizeUnit * 2}px;
       span {
         position: absolute;
         bottom: 0;
@@ -565,19 +567,19 @@ export default styled(BigNumberVis)`
 
     .subheader-line {
       line-height: 1em;
-      margin-bottom: ${theme.gridUnit * 2}px;
+      margin-bottom: ${theme.sizeUnit * 2}px;
     }
 
     .subtitle-line {
       line-height: 1em;
-      margin-bottom: ${theme.gridUnit * 2}px;
+      margin-bottom: ${theme.sizeUnit * 2}px;
     }
 
     &.is-fallback-value {
       .kicker,
       .header-line,
       .subheader-line {
-        opacity: ${theme.opacity.mediumHeavy};
+        opacity: 60%;
       }
     }
   `}
