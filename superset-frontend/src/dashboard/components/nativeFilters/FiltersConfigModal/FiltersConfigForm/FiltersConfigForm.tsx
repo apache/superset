@@ -55,6 +55,7 @@ import { PluginFilterSelectCustomizeProps } from 'src/filters/components/Select/
 import { useSelector } from 'react-redux';
 import { getChartDataRequest } from 'src/components/Chart/chartAction';
 import {
+  Alert,
   Constants,
   FormItem,
   type FormInstance,
@@ -1438,14 +1439,26 @@ const FiltersConfigForm = (
           label: FilterTabs.scoping.name,
           forceRender: true,
           children: (
-            <FilterScope
-              updateFormValues={updateFormValues}
-              pathToFormValue={['filters', filterId]}
-              forceUpdate={forceUpdate}
-              filterScope={filterToEdit?.scope}
-              formFilterScope={formFilter?.scope}
-              initiallyExcludedCharts={initiallyExcludedCharts}
-            />
+            <>
+              <Alert
+                type="info"
+                message={t('About filter scoping')}
+                style={{ margin: theme.sizeUnit * 2 }}
+                description={t(
+                  'Dashboard filters are only applied when the same dataset ' +
+                    'is shared across multiple charts OR when column names ' +
+                    'match across different datasets within the same dashboard.',
+                )}
+              />
+              <FilterScope
+                updateFormValues={updateFormValues}
+                pathToFormValue={['filters', filterId]}
+                forceUpdate={forceUpdate}
+                filterScope={filterToEdit?.scope}
+                formFilterScope={formFilter?.scope}
+                initiallyExcludedCharts={initiallyExcludedCharts}
+              />
+            </>
           ),
         },
       ]}
