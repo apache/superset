@@ -19,7 +19,7 @@
 
 import { css, SupersetTheme } from '@superset-ui/core';
 import { useRef, useState } from 'react';
-import { Tooltip } from 'src/components/Tooltip';
+import { Tooltip } from '@superset-ui/core/components';
 
 type ColorSchemeLabelProps = {
   colors: string[];
@@ -55,8 +55,8 @@ export default function ColorSchemeLabel(props: ColorSchemeLabelProps) {
       <span
         data-test="color"
         key={`${id}-${i}`}
-        css={(theme: { gridUnit: number }) => css`
-          padding-left: ${theme.gridUnit / 2}px;
+        css={(theme: { sizeUnit: number }) => css`
+          padding-left: ${theme.sizeUnit / 2}px;
           :before {
             content: '';
             display: inline-block;
@@ -100,7 +100,7 @@ export default function ColorSchemeLabel(props: ColorSchemeLabelProps) {
           ref={labelNameRef}
           css={(theme: SupersetTheme) => css`
             min-width: 125px;
-            padding-right: ${theme.gridUnit * 2}px;
+            padding-right: ${theme.sizeUnit * 2}px;
             text-overflow: ellipsis;
             overflow: hidden;
             white-space: nowrap;
@@ -115,7 +115,7 @@ export default function ColorSchemeLabel(props: ColorSchemeLabelProps) {
             text-overflow: ellipsis;
             overflow: hidden;
             white-space: nowrap;
-            padding-right: ${theme.gridUnit}px;
+            padding-right: ${theme.sizeUnit}px;
           `}
         >
           {colorsList()}

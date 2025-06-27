@@ -23,16 +23,17 @@ export const Styles = styled.div`
   ${({ theme, isDashboardEditMode }) => css`
     table.pvtTable {
       position: ${isDashboardEditMode ? 'inherit' : 'relative'};
-      width: calc(100% - ${theme.gridUnit}px);
-      font-size: ${theme.typography.sizes.s}px;
+      width: calc(100% - ${theme.sizeUnit}px);
+      font-size: ${theme.fontSizeSM}px;
       text-align: left;
-      margin: ${theme.gridUnit}px;
+      margin: ${theme.sizeUnit}px;
       border-collapse: separate;
-      font-family: ${theme.typography.families.sansSerif};
+      font-family: ${theme.fontFamily};
       line-height: 1.4;
     }
 
     table thead {
+      background-color: ${theme.colorBgBase};
       position: ${isDashboardEditMode ? 'inherit' : 'sticky'};
       top: 0;
     }
@@ -43,12 +44,11 @@ export const Styles = styled.div`
 
     table.pvtTable thead tr th,
     table.pvtTable tbody tr th {
-      background-color: ${theme.colors.grayscale.light5};
-      border-top: 1px solid ${theme.colors.grayscale.light2};
-      border-left: 1px solid ${theme.colors.grayscale.light2};
-      font-size: ${theme.typography.sizes.s}px;
-      padding: ${theme.gridUnit}px;
-      font-weight: ${theme.typography.weights.normal};
+      border-top: 1px solid ${theme.colorSplit};
+      border-left: 1px solid ${theme.colorSplit};
+      font-size: ${theme.fontSizeSM}px;
+      padding: ${theme.sizeUnit}px;
+      font-weight: ${theme.fontWeightNormal};
     }
 
     table.pvtTable tbody tr.pvtRowTotals {
@@ -94,16 +94,16 @@ export const Styles = styled.div`
 
     table.pvtTable .pvtTotalLabel {
       text-align: right;
-      font-weight: ${theme.typography.weights.bold};
+      font-weight: ${theme.fontWeightStrong};
     }
 
     table.pvtTable .pvtSubtotalLabel {
-      font-weight: ${theme.typography.weights.bold};
+      font-weight: ${theme.fontWeightStrong};
     }
 
     table.pvtTable tbody tr td {
       color: ${theme.colors.primary.dark2};
-      padding: ${theme.gridUnit}px;
+      padding: ${theme.sizeUnit}px;
       background-color: ${theme.colors.grayscale.light5};
       border-top: 1px solid ${theme.colors.grayscale.light2};
       border-left: 1px solid ${theme.colors.grayscale.light2};
@@ -117,7 +117,7 @@ export const Styles = styled.div`
 
     .pvtTotal,
     .pvtGrandTotal {
-      font-weight: ${theme.typography.weights.bold};
+      font-weight: ${theme.fontWeightStrong};
     }
 
     table.pvtTable tbody tr td.pvtRowTotal {
@@ -133,7 +133,7 @@ export const Styles = styled.div`
     }
 
     .toggle {
-      padding-right: ${theme.gridUnit}px;
+      padding-right: ${theme.sizeUnit}px;
       cursor: pointer;
     }
 

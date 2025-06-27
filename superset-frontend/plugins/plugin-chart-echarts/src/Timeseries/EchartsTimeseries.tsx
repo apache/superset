@@ -57,6 +57,7 @@ export default function EchartsTimeseries({
   refs,
   emitCrossFilters,
   coltypeMapping,
+  onLegendScroll,
 }: TimeseriesChartTransformedProps) {
   const { stack } = formData;
   const echartRef = useRef<EchartsHandler | null>(null);
@@ -158,6 +159,9 @@ export default function EchartsTimeseries({
     },
     mouseover: params => {
       onFocusedSeries(params.seriesName);
+    },
+    legendscroll: payload => {
+      onLegendScroll?.(payload.scrollDataIndex);
     },
     legendselectchanged: payload => {
       onLegendStateChanged?.(payload.selected);

@@ -16,22 +16,23 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { extendedDayjs } from 'src/utils/dates';
+import { extendedDayjs } from '@superset-ui/core/utils/dates';
 import { t, styled } from '@superset-ui/core';
-import TableView, { EmptyWrapperType } from 'src/components/TableView';
-import { TagsList } from 'src/components/Tags';
-import FacePile from 'src/components/FacePile';
-import Tag from 'src/types/TagType';
-import { EmptyState } from 'src/components/EmptyState';
-import { NumberParam, useQueryParam } from 'use-query-params';
+import {
+  TableView,
+  EmptyWrapperType,
+} from '@superset-ui/core/components/TableView';
+import { EmptyState } from '@superset-ui/core/components';
+import { FacePile, TagsList, type TagType } from 'src/components';
 import { TaggedObject, TaggedObjects } from 'src/types/TaggedObject';
+import { Typography } from '@superset-ui/core/components/Typography';
 
 const MAX_TAGS_TO_SHOW = 3;
 const PAGE_SIZE = 10;
 
 const AllEntitiesTableContainer = styled.div`
   text-align: left;
-  border-radius: ${({ theme }) => theme.gridUnit * 1}px 0;
+  border-radius: ${({ theme }) => theme.borderRadius}px 0;
   .table {
     table-layout: fixed;
   }
@@ -40,12 +41,12 @@ const AllEntitiesTableContainer = styled.div`
   }
   .entity-title {
     font-family: Inter;
-    font-size: ${({ theme }) => theme.typography.sizes.m}px;
-    font-weight: ${({ theme }) => theme.typography.weights.medium};
+    font-size: ${({ theme }) => theme.fontSize}px;
+    font-weight: ${({ theme }) => theme.fontWeightStrong};
     line-height: 17px;
     letter-spacing: 0px;
     text-align: left;
-    margin: ${({ theme }) => theme.gridUnit * 4}px 0;
+    margin: ${({ theme }) => theme.sizeUnit * 4}px 0;
   }
 `;
 
@@ -53,24 +54,25 @@ interface AllEntitiesTableProps {
   search?: string;
   setShowTagModal: (show: boolean) => void;
   objects: TaggedObjects;
+  canEditTag: boolean;
 }
 
 export default function AllEntitiesTable({
   search = '',
   setShowTagModal,
   objects,
+  canEditTag,
 }: AllEntitiesTableProps) {
   type objectType = 'dashboard' | 'chart' | 'query';
 
-  const [tagId] = useQueryParam('id', NumberParam);
-  const showListViewObjs =
-    objects.dashboard.length > 0 ||
-    objects.chart.length > 0 ||
-    objects.query.length > 0;
+  const showDashboardList = objects.dashboard.length > 0;
+  const showChartList = objects.chart.length > 0;
+  const showQueryList = objects.query.length > 0;
+  const showListViewObjs = showDashboardList || showChartList || showQueryList;
 
   const renderTable = (type: objectType) => {
     const data = objects[type].map((o: TaggedObject) => ({
-      [type]: <a href={o.url}>{o.name}</a>,
+      [type]: <Typography.Link href={o.url}>{o.name}</Typography.Link>,
       modified: extendedDayjs.utc(o.changed_on).fromNow(),
       tags: o.tags,
       owners: o.owners,
@@ -86,6 +88,7 @@ export default function AllEntitiesTable({
           {
             accessor: type,
             Header: 'Title',
+            id: type,
           },
           {
             Cell: ({
@@ -95,17 +98,16 @@ export default function AllEntitiesTable({
             }: {
               row: {
                 original: {
-                  tags: Tag[];
+                  tags: TagType[];
                 };
               };
             }) => (
               // Only show custom type tags
               <TagsList
                 tags={tags.filter(
-                  (tag: Tag) =>
+                  (tag: TagType) =>
                     tag.type !== undefined &&
-                    ['TagType.custom', 1].includes(tag.type) &&
-                    tag.id !== tagId,
+                    ['TagType.custom', 1].includes(tag.type),
                 )}
                 maxTags={MAX_TAGS_TO_SHOW}
               />
@@ -113,6 +115,7 @@ export default function AllEntitiesTable({
             Header: t('Tags'),
             accessor: 'tags',
             disableSortBy: true,
+            id: 'tags',
           },
           {
             Cell: ({
@@ -124,6 +127,7 @@ export default function AllEntitiesTable({
             accessor: 'owners',
             disableSortBy: true,
             size: 'xl',
+            id: 'owners',
           },
         ]}
       />
@@ -134,20 +138,34 @@ export default function AllEntitiesTable({
     <AllEntitiesTableContainer>
       {showListViewObjs ? (
         <>
-          <div className="entity-title">{t('Dashboards')}</div>
-          {renderTable('dashboard')}
-          <div className="entity-title">{t('Charts')}</div>
-          {renderTable('chart')}
-          <div className="entity-title">{t('Queries')}</div>
-          {renderTable('query')}
+          {showDashboardList && (
+            <>
+              <div className="entity-title">{t('Dashboards')}</div>
+              {renderTable('dashboard')}
+            </>
+          )}
+          {showChartList && (
+            <>
+              <div className="entity-title">{t('Charts')}</div>
+              {renderTable('chart')}
+            </>
+          )}
+          {showQueryList && (
+            <>
+              <div className="entity-title">{t('Queries')}</div>
+              {renderTable('query')}
+            </>
+          )}
         </>
       ) : (
         <EmptyState
           image="dashboard.svg"
           size="large"
           title={t('No entities have this tag currently assigned')}
-          buttonAction={() => setShowTagModal(true)}
-          buttonText={t('Add tag to entities')}
+          {...(canEditTag && {
+            buttonAction: () => setShowTagModal(true),
+            buttonText: t('Add tag to entities'),
+          })}
         />
       )}
     </AllEntitiesTableContainer>

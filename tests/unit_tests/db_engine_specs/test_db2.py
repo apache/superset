@@ -18,7 +18,7 @@
 import pytest  # noqa: F401
 from pytest_mock import MockerFixture
 
-from superset.sql_parse import Table
+from superset.sql.parse import Table
 
 
 def test_epoch_to_dttm() -> None:

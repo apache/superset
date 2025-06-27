@@ -18,8 +18,8 @@
  */
 import { ReactNode } from 'react';
 import { styled, t } from '@superset-ui/core';
-import { Tooltip } from 'src/components/Tooltip';
 import { Link } from 'react-router-dom';
+import { Tooltip } from '@superset-ui/core/components';
 
 export type CrossLinksTooltipProps = {
   children: ReactNode;

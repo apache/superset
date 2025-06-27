@@ -21,8 +21,9 @@ import { withTheme } from '@emotion/react';
 import PropTypes from 'prop-types';
 import classNames from 'classnames';
 import { addAlpha, css, styled, t } from '@superset-ui/core';
-import { EmptyState } from 'src/components/EmptyState';
-import { Icons } from 'src/components/Icons';
+import { EmptyState } from '@superset-ui/core/components';
+import { Icons } from '@superset-ui/core/components/Icons';
+import { navigateTo } from 'src/utils/navigationUtils';
 import { componentShape } from '../util/propShapes';
 import DashboardComponent from '../containers/DashboardComponent';
 import { Droppable } from './dnd/DragDroppable';
@@ -60,36 +61,36 @@ const GridContent = styled.div`
     flex-direction: column;
     /* gutters between rows */
     & > div:not(:last-child):not(.empty-droptarget) {
-      ${!editMode && `margin-bottom: ${theme.gridUnit * 4}px`};
+      ${!editMode && `margin-bottom: ${theme.sizeUnit * 4}px`};
     }
 
     .empty-droptarget {
       width: 100%;
-      height: ${theme.gridUnit * 4}px;
+      height: ${theme.sizeUnit * 4}px;
       display: flex;
       align-items: center;
       justify-content: center;
-      border-radius: ${theme.gridUnit}px;
+      border-radius: ${theme.borderRadius}px;
       overflow: hidden;
 
       &:before {
         content: '';
         display: block;
-        width: calc(100% - ${theme.gridUnit * 2}px);
-        height: calc(100% - ${theme.gridUnit * 2}px);
+        width: calc(100% - ${theme.sizeUnit * 2}px);
+        height: calc(100% - ${theme.sizeUnit * 2}px);
         border: 1px dashed transparent;
-        border-radius: ${theme.gridUnit}px;
+        border-radius: ${theme.borderRadius}px;
         opacity: 0.5;
       }
     }
 
     & > .empty-droptarget:first-child {
-      height: ${theme.gridUnit * 4}px;
-      margin-top: ${theme.gridUnit * -4}px;
+      height: ${theme.sizeUnit * 4}px;
+      margin-top: ${theme.sizeUnit * -4}px;
     }
 
     & > .empty-droptarget:last-child {
-      height: ${theme.gridUnit * 24}px;
+      height: ${theme.sizeUnit * 24}px;
     }
 
     & > .empty-droptarget.empty-droptarget--full:only-child {
@@ -105,16 +106,9 @@ const GridColumnGuide = styled.div`
       position: absolute;
       top: 0;
       min-height: 100%;
-      background-color: ${addAlpha(
-        theme.colors.primary.base,
-        parseFloat(theme.opacity.light) / 100,
-      )};
+      background-color: ${addAlpha(theme.colorPrimary, 0.1)};
       pointer-events: none;
-      box-shadow: inset 0 0 0 1px
-        ${addAlpha(
-          theme.colors.primary.base,
-          parseFloat(theme.opacity.mediumHeavy) / 100,
-        )};
+      box-shadow: inset 0 0 0 1px ${addAlpha(theme.colorPrimary, 0.6)};
     }
   `};
 `;
@@ -216,19 +210,14 @@ class DashboardGrid extends PureComponent {
         size="large"
         buttonText={
           <>
-            <Icons.PlusOutlined
-              iconSize="m"
-              iconColor={theme.colors.primary.light5}
-            />
+            <Icons.PlusOutlined iconSize="m" color={theme.colorPrimary} />
             {t('Create a new chart')}
           </>
         }
         buttonAction={() => {
-          window.open(
-            `/chart/add?dashboard_id=${dashboardId}`,
-            '_blank',
-            'noopener noreferrer',
-          );
+          navigateTo(`/chart/add?dashboard_id=${dashboardId}`, {
+            newWindow: true,
+          });
         }}
         image="chart.svg"
       />
@@ -243,19 +232,14 @@ class DashboardGrid extends PureComponent {
         )}
         buttonText={
           <>
-            <Icons.PlusOutlined
-              iconSize="m"
-              iconColor={theme.colors.primary.light5}
-            />
+            <Icons.PlusOutlined iconSize="m" color={theme.colorPrimary} />
             {t('Create a new chart')}
           </>
         }
         buttonAction={() => {
-          window.open(
-            `/chart/add?dashboard_id=${dashboardId}`,
-            '_blank',
-            'noopener noreferrer',
-          );
+          navigateTo(`/chart/add?dashboard_id=${dashboardId}`, {
+            newWindow: true,
+          });
         }}
         image="chart.svg"
       />

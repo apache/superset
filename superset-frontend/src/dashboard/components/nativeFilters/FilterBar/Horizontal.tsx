@@ -19,7 +19,7 @@
 
 import { FC, memo, useMemo } from 'react';
 import { DataMaskStateWithId, styled, t } from '@superset-ui/core';
-import Loading from 'src/components/Loading';
+import { Loading } from '@superset-ui/core/components';
 import { RootState } from 'src/dashboard/types';
 import { useChartLayoutItems } from 'src/dashboard/util/useChartLayoutItems';
 import { useChartIds } from 'src/dashboard/util/charts/useChartIds';
@@ -32,10 +32,10 @@ import crossFiltersSelector from './CrossFilters/selectors';
 
 const HorizontalBar = styled.div`
   ${({ theme }) => `
-    padding: ${theme.gridUnit * 3}px ${theme.gridUnit * 2}px ${
-      theme.gridUnit * 3
-    }px ${theme.gridUnit * 4}px;
-    background: ${theme.colors.grayscale.light5};
+    padding: ${theme.sizeUnit * 3}px ${theme.sizeUnit * 2}px ${
+      theme.sizeUnit * 3
+    }px ${theme.sizeUnit * 4}px;
+    background: ${theme.colorBgBase};
     box-shadow: inset 0px -2px 2px -1px ${theme.colors.grayscale.light2};
   `}
 `;
@@ -47,10 +47,8 @@ const HorizontalBarContent = styled.div`
     flex-wrap: nowrap;
     align-items: center;
     justify-content: flex-start;
-    line-height: 0;
-
     .loading {
-      margin: ${theme.gridUnit * 2}px auto ${theme.gridUnit * 2}px;
+      margin: ${theme.sizeUnit * 2}px auto ${theme.sizeUnit * 2}px;
       padding: 0;
     }
   `}
@@ -58,10 +56,10 @@ const HorizontalBarContent = styled.div`
 
 const FilterBarEmptyStateContainer = styled.div`
   ${({ theme }) => `
-    font-weight: ${theme.typography.weights.bold};
+    font-weight: ${theme.fontWeightStrong};
     color: ${theme.colors.grayscale.base};
-    font-size: ${theme.typography.sizes.s}px;
-    padding-left: ${theme.gridUnit * 2}px;
+    font-size: ${theme.fontSizeSM}px;
+    padding-left: ${theme.sizeUnit * 2}px;
   `}
 `;
 

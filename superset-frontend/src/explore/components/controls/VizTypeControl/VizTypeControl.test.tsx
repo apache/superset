@@ -26,8 +26,9 @@ import {
   waitFor,
 } from 'spec/helpers/testing-library';
 import { stateWithoutNativeFilters } from 'spec/fixtures/mockStore';
-import { DynamicPluginProvider } from 'src/components/DynamicPlugins';
+import { DynamicPluginProvider } from 'src/components';
 import { testWithId } from 'src/utils/testUtils';
+import TimeTableChartPlugin from 'src/visualizations/TimeTable';
 import {
   BigNumberTotalChartPlugin,
   EchartsAreaChartPlugin,
@@ -36,9 +37,8 @@ import {
   EchartsTimeseriesBarChartPlugin,
   EchartsTimeseriesChartPlugin,
   EchartsTimeseriesLineChartPlugin,
-} from '@superset-ui/plugin-chart-echarts';
-import TableChartPlugin from '@superset-ui/plugin-chart-table';
-import TimeTableChartPlugin from 'src/visualizations/TimeTable';
+} from '../../../../../plugins/plugin-chart-echarts/src';
+import TableChartPlugin from '../../../../../plugins/plugin-chart-table/src';
 import VizTypeControl, { VIZ_TYPE_CONTROL_TEST_ID } from './index';
 
 jest.useFakeTimers();
@@ -222,7 +222,7 @@ describe('VizTypeControl', () => {
 
     const visualizations = screen.getByTestId(getTestId('viz-row'));
 
-    userEvent.click(screen.getByRole('button', { name: 'ballot All charts' }));
+    userEvent.click(screen.getByRole('tab', { name: 'All charts' }));
 
     expect(
       await within(visualizations).findByText('Line Chart'),
@@ -247,7 +247,7 @@ describe('VizTypeControl', () => {
 
   it('Submit on viz type double-click', async () => {
     await waitForRenderWrapper();
-    userEvent.click(screen.getByRole('button', { name: 'ballot All charts' }));
+    userEvent.click(screen.getByRole('tab', { name: 'All charts' }));
     const visualizations = screen.getByTestId(getTestId('viz-row'));
     userEvent.click(within(visualizations).getByText('Bar Chart'));
 

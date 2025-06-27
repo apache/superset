@@ -18,8 +18,7 @@
  */
 
 import { t } from '@superset-ui/core';
-// eslint-disable-next-line no-restricted-imports
-import { Tag } from 'antd'; // TODO: Remove antd
+import { Tag } from 'src/components';
 import { FC } from 'react';
 import { ExtentTagProps } from './types';
 

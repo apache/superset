@@ -11,8 +11,8 @@
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS
+ * OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
  */
@@ -24,8 +24,8 @@ import {
   t,
   useTheme,
 } from '@superset-ui/core';
-import { Icons } from 'src/components/Icons';
-import Tabs from 'src/components/Tabs';
+import { Icons } from '@superset-ui/core/components/Icons';
+import Tabs from '@superset-ui/core/components/Tabs';
 import {
   getItem,
   setItem,
@@ -38,10 +38,18 @@ import {
 } from './components';
 import { DataTablesPaneProps, ResultTypes } from './types';
 
+const StyledDiv = styled.div`
+  ${({ theme }) => `
+    display: flex;
+    height: 100%;
+    flex-direction: column;
+    `}
+`;
+
 const SouthPane = styled.div`
   ${({ theme }) => `
     position: relative;
-    background-color: ${theme.colors.grayscale.light5};
+    background-color: ${theme.colorBgContainer};
     z-index: 5;
     overflow: hidden;
 
@@ -58,21 +66,19 @@ const SouthPane = styled.div`
     }
 
     .ant-tabs-tabpane {
-      display: flex;
-      flex-direction: column;
       height: 100%;
+      position: relative;
 
       .table-condensed {
         height: 100%;
         overflow: auto;
-        margin-bottom: ${theme.gridUnit * 4}px;
+        margin-bottom: ${theme.sizeUnit * 4}px;
 
         .table {
-          margin-bottom: ${theme.gridUnit * 2}px;
+          margin-bottom: ${theme.sizeUnit * 2}px;
         }
       }
-
-      .pagination-container > ul[role='navigation'] {
+     .pagination-container > ul[role='navigation'] {
         margin-top: 0;
       }
     }
@@ -158,12 +164,9 @@ export const DataTablesPane = ({
 
   const CollapseButton = useMemo(() => {
     const caretIcon = panelOpen ? (
-      <Icons.CaretUpOutlined
-        iconSize="l"
-        aria-label={t('Collapse data panel')}
-      />
+      <Icons.UpOutlined aria-label={t('Collapse data panel')} />
     ) : (
-      <Icons.DownOutlined iconSize="l" aria-label={t('Expand data panel')} />
+      <Icons.DownOutlined aria-label={t('Expand data panel')} />
     );
     return (
       <TableControlsWrapper>
@@ -197,37 +200,19 @@ export const DataTablesPane = ({
     actions,
     isVisible: ResultTypes.Results === activeTabKey,
     canDownload,
-  }).map((pane, idx) => {
-    if (idx === 0) {
-      return (
-        <Tabs.TabPane tab={t('Results')} key={ResultTypes.Results}>
-          {pane}
-        </Tabs.TabPane>
-      );
-    }
-    if (idx > 0) {
-      return (
-        <Tabs.TabPane
-          tab={t('Results %s', idx + 1)}
-          key={`${ResultTypes.Results} ${idx + 1}`}
-        >
-          {pane}
-        </Tabs.TabPane>
-      );
-    }
-    return null;
-  });
+  }).map((pane, idx) => ({
+    key: idx === 0 ? ResultTypes.Results : `${ResultTypes.Results} ${idx + 1}`,
+    label: idx === 0 ? t('Results') : t('Results %s', idx + 1),
+    children: pane,
+  }));
 
-  return (
-    <SouthPane data-test="some-purposeful-instance">
-      <Tabs
-        fullWidth={false}
-        tabBarExtraContent={CollapseButton}
-        activeKey={panelOpen ? activeTabKey : ''}
-        onTabClick={handleTabClick}
-      >
-        {queryResultsPanes}
-        <Tabs.TabPane tab={t('Samples')} key={ResultTypes.Samples}>
+  const tabItems = [
+    ...queryResultsPanes,
+    {
+      key: ResultTypes.Samples,
+      label: t('Samples'),
+      children: (
+        <StyledDiv>
           <SamplesPane
             datasource={datasource}
             queryForce={queryForce}
@@ -236,8 +221,19 @@ export const DataTablesPane = ({
             isVisible={ResultTypes.Samples === activeTabKey}
             canDownload={canDownload}
           />
-        </Tabs.TabPane>
-      </Tabs>
+        </StyledDiv>
+      ),
+    },
+  ];
+
+  return (
+    <SouthPane data-test="some-purposeful-instance">
+      <Tabs
+        tabBarExtraContent={CollapseButton}
+        activeKey={panelOpen ? activeTabKey : ''}
+        onTabClick={handleTabClick}
+        items={tabItems}
+      />
     </SouthPane>
   );
 };

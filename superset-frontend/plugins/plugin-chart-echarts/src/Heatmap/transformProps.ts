@@ -150,7 +150,7 @@ export default function transformProps(
       data: data.map(row =>
         colnames.map(col => {
           const value = row[col];
-          if (!value) {
+          if (value === null || value === undefined) {
             return NULL_STRING;
           }
           if (typeof value === 'boolean' || typeof value === 'bigint') {

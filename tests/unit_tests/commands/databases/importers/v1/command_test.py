@@ -17,6 +17,7 @@
 
 import copy
 import json
+from typing import Any
 
 from pytest_mock import MockerFixture
 from sqlalchemy.orm.session import Session
@@ -48,3 +49,47 @@ def test_import_database_with_encrypted_extra(
     uuid = configs["databases/examples.yaml"]["uuid"]
     database = db.session.query(Database).filter_by(uuid=uuid).one()
     assert database.encrypted_extra == '{"secret": "info"}'
+
+
+def test_import_mask_password(
+    mocker: MockerFixture,
+    session: Session,
+) -> None:
+    """
+    Test that passwords are masked when importing databases.
+    """
+    from superset import db, security_manager
+    from superset.commands.database.importers.v1 import ImportDatabasesCommand
+    from superset.models.core import Database
+
+    mocker.patch("superset.commands.database.importers.v1.utils.add_permissions")
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+
+    configs: dict[str, dict[str, Any]] = {
+        "databases/examples.yaml": {
+            "database_name": "examples",
+            "sqlalchemy_uri": "postgresql://user:password@localhost:5432/superset",
+            "cache_timeout": None,
+            "expose_in_sqllab": True,
+            "allow_run_async": False,
+            "allow_ctas": False,
+            "allow_cvas": False,
+            "extra": {},
+            "uuid": "a2dc77af-e654-49bb-b321-40f6b559a1ee",
+            "version": "1.0.0",
+            "password": None,
+            "allow_csv_upload": False,
+        },
+    }
+
+    engine = db.session.get_bind()
+    Database.metadata.create_all(engine)  # pylint: disable=no-member
+
+    ImportDatabasesCommand._import(configs)
+    uuid = configs["databases/examples.yaml"]["uuid"]
+    database = db.session.query(Database).filter_by(uuid=uuid).one()
+    assert (
+        database.sqlalchemy_uri
+        == "postgresql://user:XXXXXXXXXX@localhost:5432/superset"
+    )
+    assert database.password == "password"  # noqa: S105

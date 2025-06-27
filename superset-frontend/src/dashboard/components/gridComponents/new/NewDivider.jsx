@@ -18,6 +18,7 @@
  */
 import { t } from '@superset-ui/core';
 
+import { Icons } from '@superset-ui/core/components';
 import { DIVIDER_TYPE } from '../../../util/componentTypes';
 import { NEW_DIVIDER_ID } from '../../../util/constants';
 import DraggableNewComponent from './DraggableNewComponent';
@@ -28,7 +29,7 @@ export default function DraggableNewDivider() {
       id={NEW_DIVIDER_ID}
       type={DIVIDER_TYPE}
       label={t('Divider')}
-      className="divider-placeholder"
+      IconComponent={Icons.LineOutlined}
     />
   );
 }

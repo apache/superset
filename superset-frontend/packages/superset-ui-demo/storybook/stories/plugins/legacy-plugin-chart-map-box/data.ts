@@ -5539,5 +5539,5 @@ export const generateData = (theme: SupersetTheme) => ({
   ],
   renderWhileDragging: true,
   tooltip: null,
-  color: theme.colors.primary.base,
+  color: theme.colorPrimary,
 });

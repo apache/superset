@@ -89,6 +89,7 @@ def test_import_dataset(mocker: MockerFixture, session: Session) -> None:
                 "d3format": None,
                 "extra": {"warning_markdown": None},
                 "warning_text": None,
+                "uuid": "00000000-0000-0000-0000-000000000001",
             }
         ],
         "columns": [
@@ -106,7 +107,48 @@ def test_import_dataset(mocker: MockerFixture, session: Session) -> None:
                 "extra": {
                     "certified_by": "User",
                 },
+                "uuid": "00000000-0000-0000-0000-000000000002",
             }
+        ],
+        "folders": [
+            {
+                "uuid": "00000000-0000-0000-0000-000000000000",
+                "type": "folder",
+                "name": "Engineering",
+                "children": [
+                    {
+                        "uuid": "00000000-0000-0000-0000-000000000001",
+                        "type": "folder",
+                        "name": "Core",
+                        "children": [
+                            {
+                                "uuid": "00000000-0000-0000-0000-000000000004",
+                                "type": "metric",
+                                "name": "cnt",
+                            },
+                        ],
+                    },
+                ],
+            },
+            {
+                "uuid": "00000000-0000-0000-0000-000000000002",
+                "type": "folder",
+                "name": "Sales",
+                "children": [
+                    {
+                        "uuid": "00000000-0000-0000-0000-000000000003",
+                        "type": "folder",
+                        "name": "Core",
+                        "children": [
+                            {
+                                "uuid": "00000000-0000-0000-0000-000000000005",
+                                "type": "column",
+                                "name": "profit",
+                            },
+                        ],
+                    },
+                ],
+            },
         ],
         "database_uuid": database.uuid,
         "database_id": database.id,
@@ -139,6 +181,9 @@ def test_import_dataset(mocker: MockerFixture, session: Session) -> None:
     assert sqla_table.metrics[0].d3format is None
     assert sqla_table.metrics[0].extra == '{"warning_markdown": null}'
     assert sqla_table.metrics[0].warning_text is None
+    assert sqla_table.metrics[0].uuid == uuid.UUID(
+        "00000000-0000-0000-0000-000000000001"
+    )
     assert len(sqla_table.columns) == 1
     assert sqla_table.columns[0].column_name == "profit"
     assert sqla_table.columns[0].verbose_name is None
@@ -151,8 +196,129 @@ def test_import_dataset(mocker: MockerFixture, session: Session) -> None:
     assert sqla_table.columns[0].description is None
     assert sqla_table.columns[0].python_date_format is None
     assert sqla_table.columns[0].extra == '{"certified_by": "User"}'
+    assert sqla_table.columns[0].uuid == uuid.UUID(
+        "00000000-0000-0000-0000-000000000002"
+    )
+    assert sqla_table.folders == [
+        {
+            "uuid": "00000000-0000-0000-0000-000000000000",
+            "type": "folder",
+            "name": "Engineering",
+            "children": [
+                {
+                    "uuid": "00000000-0000-0000-0000-000000000001",
+                    "type": "folder",
+                    "name": "Core",
+                    "children": [
+                        {
+                            "uuid": "00000000-0000-0000-0000-000000000004",
+                            "type": "metric",
+                            "name": "cnt",
+                        },
+                    ],
+                },
+            ],
+        },
+        {
+            "uuid": "00000000-0000-0000-0000-000000000002",
+            "type": "folder",
+            "name": "Sales",
+            "children": [
+                {
+                    "uuid": "00000000-0000-0000-0000-000000000003",
+                    "type": "folder",
+                    "name": "Core",
+                    "children": [
+                        {
+                            "uuid": "00000000-0000-0000-0000-000000000005",
+                            "type": "column",
+                            "name": "profit",
+                        },
+                    ],
+                },
+            ],
+        },
+    ]
     assert sqla_table.database.uuid == database.uuid
     assert sqla_table.database.id == database.id
+
+
+def test_import_dataset_no_folder(mocker: MockerFixture, session: Session) -> None:
+    """
+    Test importing a dataset that was exported without folders.
+    """
+    from superset import security_manager
+    from superset.commands.dataset.importers.v1.utils import import_dataset
+    from superset.connectors.sqla.models import SqlaTable
+    from superset.models.core import Database
+
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+
+    engine = db.session.get_bind()
+    SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
+
+    database = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
+    db.session.add(database)
+    db.session.flush()
+
+    dataset_uuid = uuid.uuid4()
+    config = {
+        "table_name": "my_table",
+        "main_dttm_col": "ds",
+        "description": "This is the description",
+        "default_endpoint": None,
+        "offset": -8,
+        "cache_timeout": 3600,
+        "catalog": "public",
+        "schema": "my_schema",
+        "sql": None,
+        "params": {
+            "remote_id": 64,
+            "database_name": "examples",
+            "import_time": 1606677834,
+        },
+        "template_params": {
+            "answer": "42",
+        },
+        "filter_select_enabled": True,
+        "fetch_values_predicate": "foo IN (1, 2)",
+        "extra": {"warning_markdown": "*WARNING*"},
+        "uuid": dataset_uuid,
+        "metrics": [
+            {
+                "metric_name": "cnt",
+                "verbose_name": None,
+                "metric_type": None,
+                "expression": "COUNT(*)",
+                "description": None,
+                "d3format": None,
+                "extra": {"warning_markdown": None},
+                "warning_text": None,
+            }
+        ],
+        "columns": [
+            {
+                "column_name": "profit",
+                "verbose_name": None,
+                "is_dttm": None,
+                "is_active": None,
+                "type": "INTEGER",
+                "groupby": None,
+                "filterable": None,
+                "expression": "revenue-expenses",
+                "description": None,
+                "python_date_format": None,
+                "extra": {
+                    "certified_by": "User",
+                },
+            }
+        ],
+        "database_uuid": database.uuid,
+        "database_id": database.id,
+    }
+
+    sqla_table = import_dataset(config)
+    assert sqla_table.folders is None
 
 
 def test_import_dataset_duplicate_column(

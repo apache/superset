@@ -23,7 +23,7 @@ import {
   userEvent,
   waitFor,
 } from 'spec/helpers/testing-library';
-import { Menu } from 'src/components/Menu';
+import { Menu } from '@superset-ui/core/components/Menu';
 import fetchMock from 'fetch-mock';
 import { logging } from '@superset-ui/core';
 import { DownloadScreenshotFormat } from './types';

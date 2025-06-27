@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { getOverrideHtmlSchema } from '../../src/components/SafeMarkdown';
+import { getOverrideHtmlSchema } from '../../src/components/SafeMarkdown/SafeMarkdown';
 
 describe('getOverrideHtmlSchema', () => {
   it('should append the override items', () => {

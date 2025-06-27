@@ -444,10 +444,10 @@ export function getLegendProps(
     selected: legendState,
     selector: ['all', 'inverse'],
     selectorLabel: {
-      fontFamily: theme.typography.families.sansSerif,
-      fontSize: theme.typography.sizes.s,
-      color: theme.colors.grayscale.base,
-      borderColor: theme.colors.grayscale.base,
+      fontFamily: theme.fontFamily,
+      fontSize: theme.fontSizeSM,
+      color: theme.colorText,
+      borderColor: theme.colorBorder,
     },
   };
   const MIN_LEGEND_WIDTH = 0;

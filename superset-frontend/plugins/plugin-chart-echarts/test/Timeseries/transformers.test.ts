@@ -17,8 +17,12 @@
  * under the License.
  */
 import { CategoricalColorScale } from '@superset-ui/core';
-import { EchartsTimeseriesSeriesType } from '@superset-ui/plugin-chart-echarts';
-import { transformSeries } from '../../src/Timeseries/transformers';
+import type { SeriesOption } from 'echarts';
+import { EchartsTimeseriesSeriesType } from '../../src';
+import {
+  transformSeries,
+  transformNegativeLabelsPosition,
+} from '../../src/Timeseries/transformers';
 
 // Mock the colorScale function
 const mockColorScale = jest.fn(
@@ -80,5 +84,109 @@ describe('transformSeries', () => {
     expect((result as any).itemStyle.borderWidth).toBe(0);
     expect((result as any).itemStyle.borderType).toBeUndefined();
     expect((result as any).itemStyle.borderColor).toBeUndefined();
+  });
+});
+
+describe('transformNegativeLabelsPosition', () => {
+  test('label position bottom of negative value no Horizontal', () => {
+    const isHorizontal = false;
+    const series: SeriesOption = {
+      data: [
+        [2020, 1],
+        [2021, 3],
+        [2022, -2],
+        [2023, -5],
+        [2024, 4],
+      ],
+      type: EchartsTimeseriesSeriesType.Bar,
+      stack: undefined,
+    };
+    const result =
+      Array.isArray(series.data) && series.type === 'bar' && !series.stack
+        ? transformNegativeLabelsPosition(series, isHorizontal)
+        : series.data;
+    expect((result as any)[0].label).toBe(undefined);
+    expect((result as any)[1].label).toBe(undefined);
+    expect((result as any)[2].label.position).toBe('outside');
+    expect((result as any)[3].label.position).toBe('outside');
+    expect((result as any)[4].label).toBe(undefined);
+  });
+
+  test('label position left of negative value is Horizontal', () => {
+    const isHorizontal = true;
+    const series: SeriesOption = {
+      data: [
+        [1, 2020],
+        [-3, 2021],
+        [2, 2022],
+        [-4, 2023],
+        [-6, 2024],
+      ],
+      type: EchartsTimeseriesSeriesType.Bar,
+      stack: undefined,
+    };
+
+    const result =
+      Array.isArray(series.data) && series.type === 'bar' && !series.stack
+        ? transformNegativeLabelsPosition(series, isHorizontal)
+        : series.data;
+    expect((result as any)[0].label).toBe(undefined);
+    expect((result as any)[1].label.position).toBe('outside');
+    expect((result as any)[2].label).toBe(undefined);
+    expect((result as any)[3].label.position).toBe('outside');
+    expect((result as any)[4].label.position).toBe('outside');
+  });
+
+  test('label position to line type', () => {
+    const isHorizontal = false;
+    const series: SeriesOption = {
+      data: [
+        [2020, 1],
+        [2021, 3],
+        [2022, -2],
+        [2023, -5],
+        [2024, 4],
+      ],
+      type: EchartsTimeseriesSeriesType.Line,
+      stack: undefined,
+    };
+
+    const result =
+      Array.isArray(series.data) &&
+      !series.stack &&
+      series.type !== 'line' &&
+      series.type === 'bar'
+        ? transformNegativeLabelsPosition(series, isHorizontal)
+        : series.data;
+    expect((result as any)[0].label).toBe(undefined);
+    expect((result as any)[1].label).toBe(undefined);
+    expect((result as any)[2].label).toBe(undefined);
+    expect((result as any)[3].label).toBe(undefined);
+    expect((result as any)[4].label).toBe(undefined);
+  });
+
+  test('label position to bar type and stack', () => {
+    const isHorizontal = false;
+    const series: SeriesOption = {
+      data: [
+        [2020, 1],
+        [2021, 3],
+        [2022, -2],
+        [2023, -5],
+        [2024, 4],
+      ],
+      type: EchartsTimeseriesSeriesType.Bar,
+      stack: 'obs',
+    };
+
+    const result =
+      Array.isArray(series.data) && series.type === 'bar' && !series.stack
+        ? transformNegativeLabelsPosition(series, isHorizontal)
+        : series.data;
+    expect((result as any)[0].label).toBe(undefined);
+    expect((result as any)[1].label).toBe(undefined);
+    expect((result as any)[2].label).toBe(undefined);
+    expect((result as any)[3].label).toBe(undefined);
+    expect((result as any)[4].label).toBe(undefined);
   });
 });

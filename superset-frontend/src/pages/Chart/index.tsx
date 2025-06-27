@@ -28,7 +28,7 @@ import {
   t,
   getClientErrorObject,
 } from '@superset-ui/core';
-import Loading from 'src/components/Loading';
+import { Loading } from '@superset-ui/core/components';
 import { addDangerToast } from 'src/components/MessageToasts/actions';
 import { getUrlParam } from 'src/utils/urlUtils';
 import { URL_PARAMS } from 'src/constants';

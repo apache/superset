@@ -19,11 +19,12 @@
 // eslint-disable-next-line no-restricted-syntax -- whole React import is required for `ControlPopover.test.tsx` Jest test passing.
 import React, { FC, useCallback, useRef, useEffect, useState } from 'react';
 
-import Popover, {
+import {
+  Popover,
   PopoverProps as BasePopoverProps,
-} from 'src/components/Popover';
+} from '@superset-ui/core/components';
 
-import { TooltipPlacement } from 'src/components/Tooltip';
+import { TooltipPlacement } from '@superset-ui/core/components/Tooltip/types';
 
 const sectionContainerId = 'controlSections';
 export const getSectionContainerElement = () =>

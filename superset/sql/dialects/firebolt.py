@@ -48,7 +48,7 @@ class Firebolt(Dialect):
             self,
             this: exp.Expression | None = None,
         ) -> exp.Expression | None:
-            if not this:
+            if not this:  # pragma: no cover
                 return this
 
             return self.expression(exp.Not, this=self.expression(exp.Paren, this=this))
@@ -109,42 +109,15 @@ class FireboltOld(Firebolt):
             expressions = self._parse_wrapped_csv(self._parse_expression)
             offset = self._match_pair(TokenType.WITH, TokenType.ORDINALITY)
 
-            alias = self._parse_table_alias() if with_alias else None
-
-            if alias:
-                if self.dialect.UNNEST_COLUMN_ONLY:
-                    if alias.args.get("columns"):
-                        self.raise_error("Unexpected extra column alias in unnest.")
-
-                    alias.set("columns", [alias.this])
-                    alias.set("this", None)
-
-                columns = alias.args.get("columns") or []
-                if offset and len(expressions) < len(columns):
-                    offset = columns.pop()
-
-            if not offset and self._match_pair(TokenType.WITH, TokenType.OFFSET):
-                self._match(TokenType.ALIAS)
-                offset = self._parse_id_var(
-                    any_token=False, tokens=self.UNNEST_OFFSET_ALIAS_TOKENS
-                ) or exp.to_identifier("offset")
-
             return self.expression(
                 exp.Unnest,
                 expressions=expressions,
-                alias=alias,
                 offset=offset,
             )
 
     class Generator(Firebolt.Generator):
         def join_sql(self, expression: exp.Join) -> str:
-            if not self.SEMI_ANTI_JOIN_WITH_SIDE and expression.kind in (
-                "SEMI",
-                "ANTI",
-            ):
-                side = None
-            else:
-                side = expression.side
+            side = expression.side
 
             op_sql = " ".join(
                 op
@@ -168,9 +141,6 @@ class FireboltOld(Firebolt):
             this = expression.this
             this_sql = self.sql(this)
 
-            if exprs := self.expressions(expression):
-                this_sql = f"{this_sql},{self.seg(exprs)}"
-
             if on_sql:
                 on_sql = self.indent(on_sql, skip_first=True)
                 space = self.seg(" " * self.pad) if self.pretty else " "
@@ -189,7 +159,6 @@ class FireboltOld(Firebolt):
 
                 return f", {this_sql}"
 
-            if op_sql != "STRAIGHT_JOIN":
-                op_sql = f"{op_sql} JOIN" if op_sql else "JOIN"
+            op_sql = f"{op_sql} JOIN" if op_sql else "JOIN"
 
             return f"{self.seg(op_sql)} {this_sql}{match_cond}{on_sql}"

@@ -173,6 +173,10 @@ export type DeckGLPolygonProps = {
   height: number;
 };
 
+export function getPoints(data: JsonObject[]) {
+  return data.flatMap(getPointsFromPolygon);
+}
+
 const DeckGLPolygon = (props: DeckGLPolygonProps) => {
   const containerRef = useRef<DeckGLContainerHandle>();
 
@@ -183,7 +187,7 @@ const DeckGLPolygon = (props: DeckGLPolygonProps) => {
       viewport = fitViewport(viewport, {
         width: props.width,
         height: props.height,
-        points: features.flatMap(getPointsFromPolygon),
+        points: getPoints(features),
       });
     }
     if (viewport.zoom < 0) {
