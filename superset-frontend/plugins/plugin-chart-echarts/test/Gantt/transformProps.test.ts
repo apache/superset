@@ -29,7 +29,7 @@ import {
 
 describe('Gantt transformProps', () => {
   const formData: EchartsGanttFormData = {
-    viz_type: 'echarts_Gantt',
+    viz_type: 'gantt_chart',
     datasource: '1__table',
 
     startTime: 'startTime',

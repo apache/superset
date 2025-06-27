@@ -34,7 +34,7 @@ export type EchartsGanttChartTransformedProps =
 
 export type EchartsGanttFormData = QueryFormData &
   LegendFormData & {
-    viz_type: 'echarts_Gantt';
+    viz_type: 'gantt_chart';
     startTime: QueryFormColumn;
     endTime: QueryFormColumn;
     yAxis: QueryFormColumn;
