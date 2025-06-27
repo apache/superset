@@ -107,25 +107,32 @@ describe('Gantt transformProps', () => {
         echartOptions: expect.objectContaining({
           useUTC: true,
           xAxis: {
+            name: '',
+            nameGap: 0,
+            nameLocation: 'middle',
             max: Date.UTC(2025, 1, 1, 19, 0, 0),
             min: undefined,
             type: AxisType.Time,
-            nameGap: 0,
-            nameLocation: 'middle',
             axisLabel: {
               hideOverlap: true,
               formatter: expect.anything(),
             },
           },
           yAxis: {
+            name: '',
+            nameGap: 0,
+            nameLocation: 'middle',
             type: AxisType.Value,
             // always 0
             min: 0,
             // equals unique categories count
             max: 2,
-            // always disabled because markLines are used instead
-            show: false,
-            nameGap: 0,
+            axisLabel: {
+              show: false,
+            },
+            splitLine: {
+              show: false,
+            },
           },
           legend: expect.objectContaining({
             show: true,

@@ -94,6 +94,10 @@ const config: ControlPanelConfig = {
       ],
     },
     {
+      ...sections.titleControls,
+      controlSetRows: [...sections.titleControls.controlSetRows.slice(0, -1)],
+    },
+    {
       label: t('Chart Options'),
       expanded: true,
       tabOverride: 'customize',
@@ -120,26 +124,7 @@ const config: ControlPanelConfig = {
             },
           },
         ],
-        [
-          {
-            name: sections.xAxisTitleMarginControl.name,
-            config: {
-              ...sections.xAxisTitleMarginControl.config,
-              default: 0,
-            },
-          },
-        ],
         ['x_axis_time_format'],
-        [<ControlSubSectionHeader>{t('Y Axis')}</ControlSubSectionHeader>],
-        [
-          {
-            name: sections.yAxisTitleMarginControl.name,
-            config: {
-              ...sections.yAxisTitleMarginControl.config,
-              default: 30,
-            },
-          },
-        ],
         [<ControlSubSectionHeader>{t('Tooltip')}</ControlSubSectionHeader>],
         [tooltipTimeFormatControl],
         [tooltipValuesFormatControl],

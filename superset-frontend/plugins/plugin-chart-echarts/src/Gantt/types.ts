@@ -46,8 +46,11 @@ export type EchartsGanttFormData = QueryFormData &
     tooltipValuesFormat?: string;
     colorScheme?: string;
     zoomable?: boolean;
+    xAxisTitle?: string;
     xAxisTitleMargin?: number;
+    yAxisTitle?: string;
     yAxisTitleMargin?: number;
+    yAxisTitlePosition?: string;
     xAxisTimeBounds?: [string | null, string | null];
     subcategories?: boolean;
     showExtraControls?: boolean;

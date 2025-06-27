@@ -132,7 +132,9 @@ export default function transformProps(chartProps: EchartsGanttChartProps) {
     legendOrientation,
     legendType,
     showLegend,
+    yAxisTitle,
     yAxisTitleMargin,
+    xAxisTitle,
     xAxisTitleMargin,
     xAxisTimeBounds,
     subcategories,
@@ -243,10 +245,10 @@ export default function transformProps(chartProps: EchartsGanttChartProps) {
   const padding = getPadding(
     showLegend && seriesMap.size > 1,
     legendOrientation,
-    true,
+    false,
     zoomable,
     legendMargin,
-    true,
+    !!xAxisTitle,
     'Left',
     convertInteger(yAxisTitleMargin),
     convertInteger(xAxisTitleMargin),
@@ -393,6 +395,7 @@ export default function transformProps(chartProps: EchartsGanttChartProps) {
     },
     series,
     xAxis: {
+      name: xAxisTitle,
       nameLocation: 'middle',
       type: AxisType.Time,
       nameGap: convertInteger(xAxisTitleMargin),
@@ -404,8 +407,15 @@ export default function transformProps(chartProps: EchartsGanttChartProps) {
       max: bounds[1],
     },
     yAxis: {
-      show: false,
+      name: yAxisTitle,
       nameGap: convertInteger(yAxisTitleMargin),
+      nameLocation: 'middle',
+      axisLabel: {
+        show: false,
+      },
+      splitLine: {
+        show: false,
+      },
       type: AxisType.Value,
       min: 0,
       max: seriesCount,
