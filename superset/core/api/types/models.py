@@ -22,7 +22,7 @@ from superset_core.api.types.models import CoreModelsApi
 
 class HostModelsApi(CoreModelsApi):
     @staticmethod
-    def get_datasets(ids: list[int] | None) -> list[Any]:
+    def get_datasets(ids: list[int] | None = None) -> list[Any]:
         from superset.daos.dataset import DatasetDAO
 
         if not ids:
@@ -31,7 +31,7 @@ class HostModelsApi(CoreModelsApi):
         return DatasetDAO.find_by_ids(ids)
 
     @staticmethod
-    def get_databases(ids: list[int] | None) -> list[Any]:
+    def get_databases(ids: list[int] | None = None) -> list[Any]:
         from superset.daos.database import DatabaseDAO
 
         if not ids:
