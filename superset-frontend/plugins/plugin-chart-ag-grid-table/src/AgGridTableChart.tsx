@@ -40,6 +40,7 @@ import { updateTableOwnState } from './utils/externalAPIs';
 import TimeComparisonVisibility from './AgGridTable/components/TimeComparisonVisibility';
 import { useColDefs } from './utils/useColDefs';
 import { getCrossFilterDataMask } from './utils/getCrossFilterDataMask';
+import { useIsDark } from './utils/useTableTheme';
 
 const getGridHeight = (height: number, includeSearch: boolean | undefined) => {
   let calculatedGridHeight = height;
@@ -49,8 +50,11 @@ const getGridHeight = (height: number, includeSearch: boolean | undefined) => {
   return calculatedGridHeight - 80;
 };
 
-const StyledChartContainer = styled.div<{ height: number }>`
-  ${({ theme, height }) => css`
+const StyledChartContainer = styled.div<{
+  height: number;
+  inputTextColor: string;
+}>`
+  ${({ theme, height, inputTextColor }) => css`
     height: ${height}px;
 
     .dt-is-filter {
@@ -139,6 +143,7 @@ const StyledChartContainer = styled.div<{ height: number }>`
     }
 
     .input-wrapper input {
+      color: ${inputTextColor};
       font-size: ${theme.fontSizeSM}px;
       padding: ${theme.sizeUnit * 1.5}px ${theme.sizeUnit * 3}px
         ${theme.sizeUnit * 1.5}px ${theme.sizeUnit * 8}px;
@@ -193,6 +198,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
   } = props;
 
   const [searchOptions, setSearchOptions] = useState<SearchOption[]>([]);
+  const inputTextColor = useIsDark() ? '#FFFFFF' : '#000000';
 
   useEffect(() => {
     const options = columns
@@ -367,7 +373,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
   );
 
   return (
-    <StyledChartContainer height={height}>
+    <StyledChartContainer inputTextColor={inputTextColor} height={height}>
       <AgGridDataTable
         gridHeight={gridHeight}
         data={data || []}
