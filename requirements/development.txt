@@ -878,7 +878,7 @@ url-normalize==2.2.1
     # via
     #   -c requirements/base.txt
     #   requests-cache
-urllib3==1.26.20
+urllib3==2.5.0
     # via
     #   -c requirements/base.txt
     #   docker
