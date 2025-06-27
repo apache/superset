@@ -462,6 +462,9 @@ supersetWorker:
   readinessProbe: {}
   # -- Set priorityClassName for supersetWorker pods
   priorityClassName: ~
+  ## Tolerations to be added to node pods
+  tolerations: [ ]
+
 
 # Superset beat configuration (to trigger scheduled jobs like reports)
 supersetCeleryBeat:
