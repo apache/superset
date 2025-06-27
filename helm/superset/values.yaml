@@ -294,7 +294,8 @@ supersetNode:
     db_user: superset
     db_pass: superset
     db_name: superset
-    #db_conn_params: "sslmode=require"
+    # -- If you're bringing your own PostgreSQL, you can set extra connection parameters (eg. sslmode=require).
+    db_conn_params: ""
   env: {}
   # -- If true, forces deployment to reload on each upgrade
   forceReload: false
