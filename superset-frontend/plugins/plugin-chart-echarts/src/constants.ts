@@ -20,7 +20,6 @@
 import { JsonValue, t, TimeGranularity } from '@superset-ui/core';
 import { ReactNode } from 'react';
 import {
-  LabelPositionEnum,
   LegendFormData,
   LegendOrientation,
   LegendType,
@@ -47,21 +46,6 @@ export const TIMESERIES_CONSTANTS = {
   extraControlsOffset: 22,
 };
 
-export const LABEL_POSITION: [LabelPositionEnum, string][] = [
-  [LabelPositionEnum.Top, 'Top'],
-  [LabelPositionEnum.Left, 'Left'],
-  [LabelPositionEnum.Right, 'Right'],
-  [LabelPositionEnum.Bottom, 'Bottom'],
-  [LabelPositionEnum.Inside, 'Inside'],
-  [LabelPositionEnum.InsideLeft, 'Inside left'],
-  [LabelPositionEnum.InsideRight, 'Inside right'],
-  [LabelPositionEnum.InsideTop, 'Inside top'],
-  [LabelPositionEnum.InsideBottom, 'Inside bottom'],
-  [LabelPositionEnum.InsideTopLeft, 'Inside top left'],
-  [LabelPositionEnum.InsideBottomLeft, 'Inside bottom left'],
-  [LabelPositionEnum.InsideTopRight, 'Inside top right'],
-  [LabelPositionEnum.InsideBottomRight, 'Inside bottom right'],
-];
 
 export enum OpacityEnum {
   Transparent = 0,
