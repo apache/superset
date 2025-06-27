@@ -23,6 +23,7 @@ import { memo, useCallback, useEffect, useRef, useState } from 'react';
 import { isEqual } from 'lodash';
 import {
   Datasource,
+  ensureIsArray,
   HandlerFunction,
   JsonObject,
   JsonValue,
@@ -135,7 +136,7 @@ const DeckMulti = (props: DeckMultiProps) => {
 
             Object.entries(layerFilterScope).forEach(
               ([filterId, filterScope]: [string, any]) => {
-                if (!filterScope || filterScope.includes(correctLayerIndex)) {
+                if (ensureIsArray(filterScope).includes(correctLayerIndex)) {
                   const filtersFromThisFilter =
                     filterDataMapping[filterId] || [];
                   layerSpecificExtraFilters.push(...filtersFromThisFilter);

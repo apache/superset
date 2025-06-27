@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Charts, Layout, LayoutItem } from 'src/dashboard/types';
+import { Charts, Layout, LayoutItem, Slice } from 'src/dashboard/types';
 import {
   CHART_TYPE,
   DASHBOARD_ROOT_TYPE,
@@ -39,9 +39,14 @@ export const getNodeTitle = (node: LayoutItem) =>
 
 export const generateChartSubNodes = (
   chartId: number,
-  chart: any,
+  chart: {
+    form_data?: {
+      viz_type?: string;
+      deck_slices?: number[];
+    };
+  } & Partial<Pick<Charts[keyof Charts], 'queriesResponse'>>,
   buildTreeLeafTitle: BuildTreeLeafTitle,
-  sliceEntities?: any,
+  sliceEntities?: Record<number, Slice>,
 ): TreeItem[] => {
   const subNodes: TreeItem[] = [];
 
@@ -53,7 +58,8 @@ export const generateChartSubNodes = (
 
       if (chart.queriesResponse?.[0]?.data?.slices) {
         const slice = chart.queriesResponse[0].data.slices.find(
-          (s: any) => s.slice_id === sliceId,
+          (s: { slice_id: number; slice_name?: string }) =>
+            s.slice_id === sliceId,
         );
         if (slice?.slice_name) {
           sliceName = slice.slice_name;
@@ -91,7 +97,7 @@ export const buildTree = (
   validNodes: string[],
   initiallyExcludedCharts: number[],
   buildTreeLeafTitle: BuildTreeLeafTitle,
-  sliceEntities?: any,
+  sliceEntities?: Record<number, Slice>,
 ) => {
   if (!node) {
     return;

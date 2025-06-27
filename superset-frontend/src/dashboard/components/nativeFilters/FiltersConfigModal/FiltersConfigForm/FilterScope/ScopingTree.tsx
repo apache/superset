@@ -18,7 +18,7 @@
  */
 
 import { FC, useMemo, useState, memo } from 'react';
-import { NativeFilterScope, styled } from '@superset-ui/core';
+import { NativeFilterScope, styled, css } from '@superset-ui/core';
 import Tree from '@superset-ui/core/components/Tree';
 import { DASHBOARD_ROOT_ID } from 'src/dashboard/util/constants';
 import { Tooltip } from '@superset-ui/core/components';
@@ -54,8 +54,18 @@ const buildTreeLeafTitle = (
 
   if (isDeckMultiChart) {
     title = (
-      <span style={{ display: 'inline-flex', alignItems: 'center' }}>
-        <Icons.CheckSquareOutlined style={{ marginRight: 4, fontSize: 16 }} />
+      <span
+        css={css`
+          display: inline-flex;
+          align-items: center;
+        `}
+      >
+        <Icons.CheckSquareOutlined
+          iconSize="l"
+          css={css`
+            margin-right: 4px;
+          `}
+        />
         {label}
       </span>
     );
@@ -83,9 +93,11 @@ const separateKeys = (
 };
 
 const extractParentChartIds = (layerKeys: string[]): Set<number> => {
+  const LAYER_KEY_REGEX = /^chart-(\d+)-layer-\d+$/;
   const parentChartIds = new Set<number>();
+
   layerKeys.forEach(layerKey => {
-    const match = layerKey.match(/^chart-(\d+)-layer-\d+$/);
+    const match = layerKey.match(LAYER_KEY_REGEX);
     if (match) {
       const chartId = parseInt(match[1], 10);
       parentChartIds.add(chartId);
