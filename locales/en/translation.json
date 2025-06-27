@@ -296,5 +296,7 @@
     "Days leading to purchase": "Days leading to purchase",
     "# First Elements": "# First-click elements",
     "# LastClick Elements": "# Last-click elements",
-    "Publisher overview": "Publisher overview"
+    "Publisher overview": "Publisher overview",
+    "Summary": "Summary",
+    "Show total aggregations of selected metrics. Note that row limit does not apply to the result.": "Show total aggregations of selected metrics. Note that row limit does not apply to the result."
 }

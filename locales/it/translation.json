@@ -296,5 +296,7 @@
     "Days leading to purchase": "Giorni precedenti l'acquisto",
     "# First Elements": "# Elementi primo click",
     "# LastClick Elements": "# Elementi ultimo click",
-    "Publisher overview": "Panoramica publisher"
+    "Publisher overview": "Panoramica publisher",
+    "Summary": "",
+    "Show total aggregations of selected metrics. Note that row limit does not apply to the result.": ""
 }

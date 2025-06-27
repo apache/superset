@@ -282,10 +282,10 @@
     "Channels: Last": "Kanalen: laatste",
     "Publishers: First": "Publishers: eerste",
     "Publishers: Last": "Publishers: laatste",
-    "Post-view transactions": "Transacties na weergave",
-    "Post-view AOV": "AOV na weergave",
-    "Post-view sales value": "Verkoopwaarde na weergave",
-    "Post-click sales value": "Verkoopwaarde na kliks",
+    "Post-view transactions": "Post-view transacties",
+    "Post-view AOV": "Post-view AOV",
+    "Post-view sales value": "Post-view verkoopwaarde",
+    "Post-click sales value": "Post-click verkoopwaarde",
     "eCPM": "eCPM",
     "Total views": "Aantal weergaven",
     "Total clicks": "Aantal kliks",
@@ -296,5 +296,7 @@
     "Days leading to purchase": "Dagen voor aankoop",
     "# First Elements": "# Eerste klik elementen",
     "# LastClick Elements": "# Laatste klik elementen",
-    "Publisher overview": "Publishers overzicht"
+    "Publisher overview": "Publishers overzicht",
+    "Summary": "",
+    "Show total aggregations of selected metrics. Note that row limit does not apply to the result.": "Toon de totale aggregatie van de geselecteerde metrieken. Merk op dat de rijlimiet niet van toepassing is op het resultaat."
 }

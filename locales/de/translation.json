@@ -296,5 +296,7 @@
     "Days leading to purchase": "Tage bis zum Kauf",
     "# First Elements": "Elemente (erster Klick)",
     "# LastClick Elements": "Elemente (letzter Klick)",
-    "Publisher overview": "Publisher-Übersicht"
+    "Publisher overview": "Publisher-Übersicht",
+    "Summary": "Zusammenfassung",
+    "Show total aggregations of selected metrics. Note that row limit does not apply to the result.": "Hier siehst du die Gesamtaggregationen ausgewählter Metriken. Das Zeilenlimit gilt nicht für das Ergebnis."
 }
