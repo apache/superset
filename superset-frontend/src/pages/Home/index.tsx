@@ -146,7 +146,7 @@ export const LoadingCards = ({ cover }: LoadingProps) => (
 );
 
 function Welcome({ user, addDangerToast }: WelcomeProps) {
-  const canWriteChart = userHasPermission(user, 'Charts', 'menu_access');
+  const canWriteChart = userHasPermission(user, 'Chart', 'can_write');
   const canReadSavedQueries = userHasPermission(user, 'SavedQuery', 'can_read');
   const userid = user.userId;
   const id = userid!.toString(); // confident that user is not a guest user
