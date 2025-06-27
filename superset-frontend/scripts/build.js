@@ -25,39 +25,11 @@
  */
 process.env.PATH = `./node_modules/.bin:${process.env.PATH}`;
 
-const { sync } = require('rimraf');
 const { spawnSync } = require('child_process');
 const fastGlob = require('fast-glob');
-const { argv } = require('yargs')
-  .option('lint', {
-    describe: 'whether to run ESLint',
-    type: 'boolean',
-    // lint is slow, so not turning it on by default
-    default: false,
-  })
-  .option('babel', {
-    describe: 'Whether to run Babel',
-    type: 'boolean',
-    default: true,
-  })
-  .option('clean', {
-    describe: 'Whether to clean cache',
-    type: 'boolean',
-    default: false,
-  })
-  .option('type', {
-    describe: 'Whether to run tsc',
-    type: 'boolean',
-    default: true,
-  });
+const { argv } = require('yargs');
 
-const {
-  _: globs,
-  lint: shouldLint,
-  babel: shouldRunBabel,
-  clean: shouldCleanup,
-  type: shouldRunTyping,
-} = argv;
+const { _: globs } = argv;
 const glob = globs.length > 1 ? `{${globs.join(',')}}` : globs[0] || '*';
 
 const BABEL_CONFIG = '--config-file=../../babel.config.js';
@@ -105,35 +77,19 @@ function getPackages(packagePattern, tsOnly = false) {
 
 let scope = getPackages(glob);
 
-if (shouldLint) {
-  run(`npm run eslint -- . --fix {packages,plugins}/${scope}/{src,test}`);
-}
+console.log('--- Run babel --------');
+const babelCommand = `lerna exec --stream --concurrency 10 --scope ${scope}
+        -- babel ${BABEL_CONFIG} src --extensions ".ts,.tsx,.js,.jsx" --copy-files`;
+run(`${babelCommand} --out-dir lib`);
 
-if (shouldCleanup) {
-  // these modules will be installed by `npm link` but not useful for actual build
-  const dirtyModules = 'node_modules/@types/react,node_modules/@superset-ui';
-  const cachePath = `./node_modules/${scope}/{lib,esm,tsconfig.tsbuildinfo,${dirtyModules}}`;
-  console.log(`\n>> Cleaning up ${cachePath}`);
-  sync(cachePath);
-}
+console.log('--- Run babel esm ---');
+// run again with
+run(`${babelCommand} --out-dir esm`, {
+  env: { ...process.env, NODE_ENV: 'production', BABEL_OUTPUT: 'esm' },
+});
 
-if (shouldRunBabel) {
-  console.log('--- Run babel --------');
-  const babelCommand = `lerna exec --stream --concurrency 10 --scope ${scope}
-         -- babel ${BABEL_CONFIG} src --extensions ".ts,.tsx,.js,.jsx" --copy-files`;
-  run(`${babelCommand} --out-dir lib`);
-
-  console.log('--- Run babel esm ---');
-  // run again with
-  run(`${babelCommand} --out-dir esm`, {
-    env: { ...process.env, NODE_ENV: 'production', BABEL_OUTPUT: 'esm' },
-  });
-}
-
-if (shouldRunTyping) {
-  console.log('--- Run tsc ---');
-  // only run tsc for packages with ts files
-  scope = getPackages(glob, true);
-  run(`lerna exec --stream --concurrency 3 --scope ${scope} \
-       -- ../../scripts/tsc.sh --build`);
-}
+console.log('--- Run tsc ---');
+// only run tsc for packages with ts files
+scope = getPackages(glob, true);
+run(`lerna exec --stream --concurrency 3 --scope ${scope} \
+      -- ../../scripts/tsc.sh --build`);

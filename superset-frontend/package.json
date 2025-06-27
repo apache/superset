@@ -196,7 +196,6 @@
     "redux-localstorage": "^0.4.1",
     "redux-thunk": "^2.1.0",
     "redux-undo": "^1.0.0-beta9-9-7",
-    "rimraf": "^6.0.1",
     "rison": "^0.1.1",
     "scroll-into-view-if-needed": "^3.1.0",
     "simple-zstd": "^1.4.2",
