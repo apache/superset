@@ -32,6 +32,7 @@ import {
   UserProvidedColDef,
 } from '../../types';
 import useOutsideClick from '../../utils/useOutsideclick';
+import { useIsDark } from '../../utils/useTableTheme';
 
 // Styled Components
 const Container = styled.div`
@@ -241,6 +242,8 @@ const CustomHeader: React.FC<CustomHeaderParams> = ({
   // this hook prevents the filter popover from closing when clicking on one of filter options
   useOutsideClick(popoverContentRef, handleFilterClose);
 
+  const isDarkTheme = useIsDark();
+
   return (
     <Container>
       <HeaderContainer onClick={toggleSort} className="custom-header">
@@ -287,7 +290,7 @@ const CustomHeader: React.FC<CustomHeaderParams> = ({
           arrow={false}
         >
           <div className="three-dots-menu" onClick={handleMenuClick}>
-            <KebabMenu />
+            <KebabMenu color={isDarkTheme ? 'white' : 'black'} />
           </div>
         </Popover>
       )}

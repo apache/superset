@@ -25,11 +25,15 @@ import {
 // eslint-disable-next-line import/no-extraneous-dependencies
 import tinycolor from 'tinycolor2';
 
-const useTableTheme = () => {
+export const useIsDark = () => {
   const theme = useTheme();
+  return tinycolor(theme.colorBgContainer).isDark();
+};
+
+const useTableTheme = () => {
   const baseTheme = themeQuartz;
-  const isDark = tinycolor(theme.colorBgContainer).isDark();
-  const tableTheme = isDark
+  const isDarkTheme = useIsDark();
+  const tableTheme = isDarkTheme
     ? baseTheme.withPart(colorSchemeDark)
     : baseTheme.withPart(colorSchemeLight);
   return tableTheme;

@@ -84,6 +84,7 @@ const StyledChartContainer = styled.div<{ height: number }>`
     .search-container {
       display: flex;
       justify-content: flex-end;
+      margin-bottom: ${theme.sizeUnit * 4}px;
     }
 
     .dropdown-controls-container {
@@ -107,9 +108,13 @@ const StyledChartContainer = styled.div<{ height: number }>`
     .ag-root-wrapper {
       border-radius: 0px;
     }
+    .search-by-text-container {
+      display: flex;
+      align-items: center;
+    }
 
     .search-by-text {
-      margin-right: ${theme.sizeUnit}px;
+      margin-right: ${theme.sizeUnit * 2}px;
     }
 
     .ant-popover-inner {
@@ -125,7 +130,6 @@ const StyledChartContainer = styled.div<{ height: number }>`
       display: flex;
       align-items: center;
       overflow: visible;
-      margin-bottom: ${theme.sizeUnit * 4}px;
     }
 
     .input-wrapper svg {
