@@ -19,9 +19,9 @@ Before you begin, make sure you have:
 
 There are several ways to install Superset:
 
-1. [Using Docker Compose](/tutorials/getting-started/docker-compose)
-2. [Using pip](/tutorials/getting-started/pip-installation)
-3. [Using Kubernetes](/tutorials/getting-started/kubernetes)
+1. [Using Docker Compose](/developer_portal/getting-started/docker-compose)
+2. [Using pip](/developer_portal/getting-started/pip-installation)
+3. [Using Kubernetes](/developer_portal/getting-started/kubernetes)
 
 For most users, the Docker Compose method is recommended for simplicity.
 
@@ -34,7 +34,7 @@ Once you have Superset installed, you'll want to:
 3. Build your first chart
 4. Assemble your first dashboard
 
-Follow our [First Steps Guide](/tutorials/getting-started/first-steps) to learn how.
+Follow our [First Steps Guide](/developer_portal/getting-started/first-steps) to learn how.
 
 ## Next Steps
 

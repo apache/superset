@@ -212,14 +212,19 @@ const config: Config = {
         docItemComponent: '@theme/DocItem',
         includeCurrentVersion: true,
         // Show version dropdown
-        lastVersion: '1.1.0',
-        onlyIncludeVersions: ['current', '1.1.0', '1.0.0'],
+        lastVersion: '1.2.0',
+        onlyIncludeVersions: ['current', '1.2.0', '1.1.0', '1.0.0'],
         // Set the default version to redirect to
         versions: {
           current: {
             label: 'Next',
             path: 'next',
             banner: 'unreleased',
+          },
+          '1.2.0': {
+            label: '1.2.0',
+            path: '1.2.0',
+            banner: 'none',
           },
           '1.1.0': {
             label: '1.1.0',
@@ -243,24 +248,48 @@ const config: Config = {
     [
       '@docusaurus/plugin-content-docs',
       {
-        id: 'tutorials',
-        path: 'tutorials',
-        routeBasePath: 'tutorials',
+        id: 'developer_portal',
+        path: 'developer_portal',
+        routeBasePath: 'developer_portal',
         sidebarPath: require.resolve('./sidebarTutorials.js'),
         editUrl:
-          'https://github.com/apache/superset/edit/master/docs/tutorials',
+          'https://github.com/apache/superset/edit/master/docs/developer_portal',
         remarkPlugins: [require('remark-import-partial')],
         // Enable MDX v2
         docItemComponent: '@theme/DocItem',
         includeCurrentVersion: true,
-        // We'll create versions later, for now just show the current version
+        // Show version dropdown
+        lastVersion: '1.2.0',
+        onlyIncludeVersions: ['current', '1.2.0', '1.1.0', '1.0.0'],
+        // Set the default version to redirect to
         versions: {
           current: {
             label: 'Next',
-            path: '',
+            path: 'next',
             banner: 'unreleased',
           },
+          '1.2.0': {
+            label: '1.2.0',
+            path: '1.2.0',
+            banner: 'none',
+          },
+          '1.1.0': {
+            label: '1.1.0',
+            path: '1.1.0',
+            banner: 'none',
+          },
+          '1.0.0': {
+            label: '1.0.0',
+            path: '1.0.0',
+            banner: 'none',
+          },
         },
+        // This sets which version is shown when accessing /developer_portal/
+        // without a specific version
+        disableVersioning: false,
+        // Show version dropdown in navbar
+        showLastUpdateAuthor: true,
+        showLastUpdateTime: true,
       },
     ],
   ],
@@ -310,34 +339,6 @@ const config: Config = {
       },
       items: [
         {
-          label: 'Tutorials',
-          to: '/tutorials',
-          items: [
-            {
-              label: 'Introduction',
-              to: '/tutorials',
-            },
-            {
-              label: 'Getting Started',
-              to: '/tutorials/getting-started',
-            },
-          ],
-        },
-        {
-          label: 'Tutorials',
-          to: '/tutorials',
-          items: [
-            {
-              label: 'Introduction',
-              to: '/tutorials',
-            },
-            {
-              label: 'Getting Started',
-              to: '/tutorials/getting-started',
-            },
-          ],
-        },
-        {
           label: 'Documentation',
           to: '/docs/intro',
           items: [
@@ -352,29 +353,7 @@ const config: Config = {
           ],
         },
         {
-          label: 'Component Library',
-          to: '/components',
-          items: [
-            {
-              label: 'Introduction',
-              to: '/components',
-            },
-            {
-              label: 'UI Components',
-              to: '/components/ui-components/button',
-            },
-            {
-              label: 'Chart Components',
-              to: '/components/chart-components/bar-chart',
-            },
-            {
-              label: 'Layout Components',
-              to: '/components/layout-components/grid',
-            },
-          ],
-        },
-        {
-          label: 'Community',
+          label: 'Community Resources',
           to: '/community',
           items: [
             {
@@ -396,6 +375,42 @@ const config: Config = {
             {
               label: 'Stack Overflow',
               href: 'https://stackoverflow.com/questions/tagged/apache-superset',
+            },
+          ],
+        },
+        {
+          label: 'Component Playground',
+          to: '/components',
+          items: [
+            {
+              label: 'Introduction',
+              to: '/components',
+            },
+            {
+              label: 'UI Components',
+              to: '/components/ui-components/button',
+            },
+            {
+              label: 'Chart Components',
+              to: '/components/chart-components/bar-chart',
+            },
+            {
+              label: 'Layout Components',
+              to: '/components/layout-components/grid',
+            },
+          ],
+        },
+        {
+          label: 'Developer Portal',
+          to: '/developer_portal',
+          items: [
+            {
+              label: 'Introduction',
+              to: '/developer_portal',
+            },
+            {
+              label: 'Getting Started',
+              to: '/developer_portal/getting-started',
             },
           ],
         },
