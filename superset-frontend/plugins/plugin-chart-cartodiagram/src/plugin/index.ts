@@ -25,6 +25,7 @@ import example1 from '../images/example1.png';
 import example2 from '../images/example2.png';
 import { CartodiagramPluginConstructorOpts } from '../types';
 import { getLayerConfig } from '../util/controlPanelUtil';
+import { getMapDefaultLayers } from '../util/bootstrapDataUtil';
 
 export default class CartodiagramPlugin extends ChartPlugin {
   constructor(opts: CartodiagramPluginConstructorOpts) {
@@ -41,17 +42,18 @@ export default class CartodiagramPlugin extends ChartPlugin {
       ],
     });
 
-    if (opts.defaultLayers) {
-      const layerConfig = getLayerConfig(controlPanel);
-
-      // set defaults for layer config if found
-      if (layerConfig) {
-        layerConfig.config.default = opts.defaultLayers;
-      } else {
+    const layerConfig = getLayerConfig(controlPanel);
+    const mapDefaultLayers = getMapDefaultLayers();
+    if (layerConfig) {
+      if (mapDefaultLayers.length > 0) {
+        layerConfig.config.default = mapDefaultLayers;
+      }
+      if (opts?.defaultLayers) {
         // eslint-disable-next-line no-console
-        console.warn(
-          'Cannot set defaultLayers. layerConfig not found in control panel. Please check if the path to layerConfig should be adjusted.',
+        console.error(
+          'Warning: [ThematicMapPlugin] Setting defaultLayers via MainPreset.js is deprecated. Please use MAP_DEFAULT_LAYERS in your config file instead.',
         );
+        layerConfig.config.default = opts.defaultLayers;
       }
     }
 

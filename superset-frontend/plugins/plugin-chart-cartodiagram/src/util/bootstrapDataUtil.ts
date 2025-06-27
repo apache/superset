@@ -33,3 +33,9 @@ export const getMapProjections = () => {
   const mapProjections = bootstrapData?.common?.conf?.MAP_PROJECTIONS;
   return mapProjections ?? {};
 };
+
+export const getMapDefaultLayers = () => {
+  const bootstrapData = getBootstrapData();
+  const mapDefaultLayers = bootstrapData?.common?.conf?.MAP_DEFAULT_LAYERS;
+  return mapDefaultLayers ?? [];
+};

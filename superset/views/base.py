@@ -108,6 +108,7 @@ FRONTEND_CONF_KEYS = (
     "JWT_ACCESS_CSRF_COOKIE_NAME",
     "SQLLAB_QUERY_RESULT_TIMEOUT",
     "MAP_PROJECTIONS",
+    "MAP_DEFAULT_LAYERS",
 )
 
 logger = logging.getLogger(__name__)

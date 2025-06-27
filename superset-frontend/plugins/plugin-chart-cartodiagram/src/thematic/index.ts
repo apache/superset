@@ -25,7 +25,10 @@ import example1 from './images/example1.png';
 import { ThematicMapPluginConstructorOpts } from './types';
 import { getLayerConfig } from '../util/controlPanelUtil';
 import { getDefaultStyle } from '../util/layerUtil';
-import { getMapProjections } from '../util/bootstrapDataUtil';
+import {
+  getMapDefaultLayers,
+  getMapProjections,
+} from '../util/bootstrapDataUtil';
 import { registerMapProjections } from '../util/mapUtil';
 
 export default class ThematicMapPlugin extends ChartPlugin {
@@ -50,10 +53,19 @@ export default class ThematicMapPlugin extends ChartPlugin {
     });
 
     const layerConfig = getLayerConfig(controlPanel);
+    const mapDefaultLayers = getMapDefaultLayers();
     if (layerConfig) {
-      if (opts.defaultLayers) {
+      if (mapDefaultLayers.length > 0) {
+        layerConfig.config.default = mapDefaultLayers;
+      }
+      if (opts?.defaultLayers) {
+        // eslint-disable-next-line no-console
+        console.error(
+          'Warning: [ThematicMapPlugin] Setting defaultLayers via MainPreset.js is deprecated. Please use MAP_DEFAULT_LAYERS in your config file instead.',
+        );
         layerConfig.config.default = opts.defaultLayers;
       }
+
       layerConfig.config.default.unshift({
         type: 'DATA',
         title: t('Data Layer'),

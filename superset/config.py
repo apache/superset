@@ -1886,6 +1886,20 @@ ENVIRONMENT_TAG_CONFIG = {
 #
 MAP_PROJECTIONS = {}
 
+# Default layers that will be added to all visualizations of plugin-chart-cartodiagram.
+# For a list of supported types, and configuration details see the README.md
+# of plugin-chart-cartodiagram.
+MAP_DEFAULT_LAYERS = [
+    {
+        "type": "WMS",
+        "version": "1.3.0",
+        "url": "https://ows.terrestris.de/osm-gray/service",
+        "layersParam": "OSM-WMS",
+        "title": "OpenStreetMap",
+        "attribution": "© Map data from <a href=\"openstreetmap.org/copyright\">OpenStreetMap</a>. Service provided by <a href=\"https://www.terrestris.de\">terrestris GmbH & Co. KG</a>",
+    },
+]
+
 # Extra related query filters make it possible to limit which objects are shown
 # in the UI. For examples, to only show "admin" or users starting with the letter "b" in
 # the "Owners" dropdowns, you could add the following in your config:
