@@ -16,7 +16,7 @@
 # specific language governing permissions and limitations
 # under the License.
 #
-urllib3>=1.26.19, <2.0.0
+urllib3==2.5.0
 werkzeug>=3.0.1
 numexpr>=2.9.0
 
