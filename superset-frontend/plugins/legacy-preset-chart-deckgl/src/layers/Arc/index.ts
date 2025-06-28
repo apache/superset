@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t, ChartMetadata, ChartPlugin } from '@superset-ui/core';
+import { t, ChartMetadata, ChartPlugin, Behavior } from '@superset-ui/core';
 import thumbnail from './images/thumbnail.png';
 import example from './images/example.png';
 import transformProps from '../../transformProps';
@@ -25,6 +25,11 @@ import controlPanel from './controlPanel';
 const metadata = new ChartMetadata({
   category: t('Map'),
   credits: ['https://uber.github.io/deck.gl'],
+  behaviors: [
+    Behavior.InteractiveChart,
+    Behavior.DrillBy,
+    Behavior.DrillToDetail,
+  ],
   description: t(
     'Plot the distance (like flight paths) between origin and destination.',
   ),

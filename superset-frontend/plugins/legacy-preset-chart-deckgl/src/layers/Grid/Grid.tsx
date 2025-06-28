@@ -18,19 +18,13 @@
  */
 import { Color } from '@deck.gl/core';
 import { GridLayer } from '@deck.gl/aggregation-layers';
-import {
-  t,
-  CategoricalColorNamespace,
-  JsonObject,
-  QueryFormData,
-} from '@superset-ui/core';
+import { t, CategoricalColorNamespace, JsonObject } from '@superset-ui/core';
 
 import { commonLayerProps, getAggFunc } from '../common';
 import sandboxedEval from '../../utils/sandbox';
 import { hexToRGB } from '../../utils/colors';
-import { createDeckGLComponent } from '../../factory';
+import { createDeckGLComponent, GetLayerType } from '../../factory';
 import TooltipRow from '../../TooltipRow';
-import { TooltipProps } from '../../components/Tooltip';
 
 function setTooltipContent(o: JsonObject) {
   return (
@@ -49,12 +43,15 @@ function setTooltipContent(o: JsonObject) {
   );
 }
 
-export function getLayer(
-  formData: QueryFormData,
-  payload: JsonObject,
-  onAddFilter: () => void,
-  setTooltip: (tooltip: TooltipProps['tooltip']) => void,
-) {
+export const getLayer: GetLayerType<GridLayer> = function ({
+  formData,
+  payload,
+  setTooltip,
+  setDataMask,
+  onContextMenu,
+  filterState,
+  emitCrossFilters,
+}) {
   const fd = formData;
   const appliedScheme = fd.color_scheme;
   const colorScale = CategoricalColorNamespace.getScale(appliedScheme);
@@ -82,9 +79,17 @@ export function getLayer(
     getElevationValue: aggFunc,
     // @ts-ignore
     getColorValue: aggFunc,
-    ...commonLayerProps(fd, setTooltip, setTooltipContent),
+    ...commonLayerProps({
+      formData: fd,
+      setDataMask,
+      setTooltip,
+      setTooltipContent,
+      filterState,
+      onContextMenu,
+      emitCrossFilters,
+    }),
   });
-}
+};
 
 export function getPoints(data: JsonObject[]) {
   return data.map(d => d.position);
