@@ -197,6 +197,8 @@ const Chart = props => {
           ? descriptionRef.current?.offsetHeight
           : 0;
       setDescriptionHeight(descriptionHeight);
+    } else {
+      setDescriptionHeight(0);
     }
   }, [isExpanded]);
 
