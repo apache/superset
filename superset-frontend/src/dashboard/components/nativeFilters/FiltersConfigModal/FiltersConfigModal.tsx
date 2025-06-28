@@ -466,6 +466,30 @@ function FiltersConfigModal({
 
     handleErroredFilters();
 
+    // Validate dependencies to prevent saving cyclic dependencies
+    validateDependencies();
+    
+    // Check if validation added any dependency errors
+    const fieldsWithErrors = form.getFieldsError();
+    const hasDependencyErrors = fieldsWithErrors.some(field => 
+      field.name?.[0] === 'filters' && 
+      field.name?.[2] === 'dependencies' && 
+      field.errors?.length > 0
+    );
+
+    if (hasDependencyErrors) {
+      // Focus on the first filter with dependency errors
+      const errorField = fieldsWithErrors.find(field => 
+        field.name?.[0] === 'filters' && 
+        field.name?.[2] === 'dependencies' && 
+        field.errors?.length > 0
+      );
+      if (errorField) {
+        setCurrentFilterId(errorField.name[1] as string);
+      }
+      return;
+    }
+
     if (values) {
       const [updatedFilterConfigMap, modifiedParentFilters] =
         cleanDeletedParents(values);
