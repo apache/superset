@@ -17,7 +17,6 @@
  * under the License.
  */
 import { GenericDataType } from '@superset-ui/core';
-import { noop } from 'lodash';
 import transformProps from './transformProps';
 import { BigNumberWithTrendlineChartProps, BigNumberDatum } from '../types';
 
@@ -41,7 +40,7 @@ jest.mock('../utils', () => ({
   getDateFormatter: jest.fn(() => (v: any) => `${v}pm`),
   parseMetricValue: jest.fn(val => Number(val)),
   getOriginalLabel: jest.fn((metric, metrics) => {
-    noop(metrics);
+    console.log(metrics);
     return metric;
   }),
 }));

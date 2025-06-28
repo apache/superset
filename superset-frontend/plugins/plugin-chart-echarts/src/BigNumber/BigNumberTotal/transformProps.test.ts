@@ -19,7 +19,6 @@
 
 import { GenericDataType } from '@superset-ui/core';
 import { getColorFormatters } from '@superset-ui/chart-controls';
-import { noop } from 'lodash';
 import { BigNumberTotalChartProps } from '../types';
 import transformProps from './transformProps';
 
@@ -38,7 +37,7 @@ jest.mock('../utils', () => ({
   getDateFormatter: jest.fn(() => (v: any) => `${v}pm`),
   parseMetricValue: jest.fn(val => Number(val)),
   getOriginalLabel: jest.fn((metric, metrics) => {
-    noop(metrics);
+    console.log(metrics);
     return metric;
   }),
 }));
