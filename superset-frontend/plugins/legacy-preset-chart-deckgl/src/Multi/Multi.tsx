@@ -23,6 +23,7 @@ import { memo, useCallback, useEffect, useRef, useState } from 'react';
 import { isEqual } from 'lodash';
 import {
   Datasource,
+  ensureIsArray,
   HandlerFunction,
   JsonObject,
   JsonValue,
@@ -111,29 +112,49 @@ const DeckMulti = (props: DeckMultiProps) => {
     (formData: QueryFormData, payload: JsonObject, viewport?: Viewport) => {
       setViewport(getAdjustedViewport());
       setSubSlicesLayers({});
+
       payload.data.slices.forEach(
-        (subslice: { slice_id: number } & JsonObject) => {
-          // Filters applied to multi_deck are passed down to underlying charts
-          // note that dashboard contextual information (filter_immune_slices and such) aren't
-          // taken into consideration here
-          const extra_filters = [
+        (subslice: { slice_id: number } & JsonObject, payloadIndex: number) => {
+          const correctLayerIndex = formData.deck_slices
+            ? formData.deck_slices.indexOf(subslice.slice_id)
+            : payloadIndex;
+
+          const layerFilterScope = formData.layer_filter_scope;
+
+          const layerSpecificExtraFilters = [
             ...(subslice.form_data.extra_filters || []),
             ...(formData.extra_filters || []),
-            ...(formData.extra_form_data?.filters || []),
           ];
 
-          const adhoc_filters = [
+          const layerSpecificAdhocFilters = [
             ...(formData.adhoc_filters || []),
             ...(subslice.formData?.adhoc_filters || []),
-            ...(formData.extra_form_data?.adhoc_filters || []),
           ];
+
+          if (layerFilterScope) {
+            const filterDataMapping = formData.filter_data_mapping || {};
+
+            Object.entries(layerFilterScope).forEach(
+              ([filterId, filterScope]: [string, any]) => {
+                if (ensureIsArray(filterScope).includes(correctLayerIndex)) {
+                  const filtersFromThisFilter =
+                    filterDataMapping[filterId] || [];
+                  layerSpecificExtraFilters.push(...filtersFromThisFilter);
+                }
+              },
+            );
+          } else {
+            const originalExtraFormDataFilters =
+              formData.extra_form_data?.filters || [];
+            layerSpecificExtraFilters.push(...originalExtraFormDataFilters);
+          }
 
           const subsliceCopy = {
             ...subslice,
             form_data: {
               ...subslice.form_data,
-              extra_filters,
-              adhoc_filters,
+              extra_filters: layerSpecificExtraFilters,
+              adhoc_filters: layerSpecificAdhocFilters,
             },
           };
 
@@ -159,7 +180,12 @@ const DeckMulti = (props: DeckMultiProps) => {
                   [subsliceCopy.slice_id]: layer,
                 }));
               })
-              .catch(() => {});
+              .catch(error => {
+                console.error(
+                  `Error loading layer for slice ${subsliceCopy.slice_id}:`,
+                  error,
+                );
+              });
           }
         },
       );
