@@ -181,7 +181,7 @@ const HorizontalFormItem = styled(StyledFormItem)<{
   }
 
   .select-container {
-    ${({ inverseSelection, theme }) =>
+    ${({ inverseSelection }) =>
       inverseSelection &&
       `
       width: 164px;

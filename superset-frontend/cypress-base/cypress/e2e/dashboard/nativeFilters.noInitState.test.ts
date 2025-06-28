@@ -21,30 +21,21 @@ import qs from 'querystring';
 import {
   dashboardView,
   nativeFilters,
-  exploreView,
   dataTestChartName,
 } from 'cypress/support/directories';
 
 import {
   addCountryNameFilter,
-  addParentFilterWithValue,
   applyAdvancedTimeRangeFilterOnDashboard,
   applyNativeFilterValueWithIndex,
   cancelNativeFilterSettings,
-  checkNativeFilterTooltip,
-  clickOnAddFilterInModal,
-  collapseFilterOnLeftPanel,
   deleteNativeFilter,
   enterNativeFilterEditModal,
-  expandFilterOnLeftPanel,
   fillNativeFilterForm,
-  getNativeFilterPlaceholderWithIndex,
   inputNativeFilterDefaultValue,
   saveNativeFilterSettings,
-  nativeFilterTooltips,
   undoDeleteNativeFilter,
   validateFilterContentOnDashboard,
-  valueNativeFilterOptions,
   validateFilterNameOnDashboard,
   testItems,
   WORLD_HEALTH_CHARTS,
@@ -55,19 +46,19 @@ import {
   visitDashboard,
 } from './shared_dashboard_functions';
 
-function selectFilter(index: number) {
-  cy.get("[data-test='filter-title-container'] [draggable='true']")
-    .eq(index)
-    .click();
-}
+// function selectFilter(index: number) {
+//   cy.get("[data-test='filter-title-container'] [draggable='true']")
+//     .eq(index)
+//     .click();
+// }
 
-function closeFilterModal() {
-  cy.get('body').then($body => {
-    if ($body.find('[data-test="native-filter-modal-cancel-button"]').length) {
-      cy.getBySel('native-filter-modal-cancel-button').click();
-    }
-  });
-}
+// function closeFilterModal() {
+//   cy.get('body').then($body => {
+//     if ($body.find('[data-test="native-filter-modal-cancel-button"]').length) {
+//       cy.getBySel('native-filter-modal-cancel-button').click();
+//     }
+//   });
+// }
 
 describe('Native filters', () => {
   describe('Nativefilters initial state not required', () => {

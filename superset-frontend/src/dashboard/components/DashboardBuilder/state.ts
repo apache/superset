@@ -30,7 +30,7 @@ import {
 export const useNativeFilters = () => {
   const [isInitialized, setIsInitialized] = useState(false);
   const showNativeFilters = useSelector<RootState, boolean>(
-    state => getUrlParam(URL_PARAMS.showFilters) ?? true,
+    () => getUrlParam(URL_PARAMS.showFilters) ?? true,
   );
   const canEdit = useSelector<RootState, boolean>(
     ({ dashboardInfo }) => dashboardInfo.dash_edit_perm,

@@ -31,7 +31,7 @@ const mockAddDangerToast = jest.fn();
 
 jest.mock('src/utils/downloadAsImage', () => ({
   __esModule: true,
-  default: jest.fn(() => (_e: SyntheticEvent) => {}),
+  default: jest.fn(() => (_e: SyntheticEvent) => console.log(_e)),
 }));
 
 jest.mock('src/components/MessageToasts/withToasts', () => ({

@@ -28,9 +28,7 @@ const colorTypes = [
   'grayscale',
 ];
 
-const AntDFunctionalColors = ({ antdTheme }) => {
-  const { antd } = supersetTheme;
-
+const AntDFunctionalColors = () => {
   // Define color types and variants dynamically
   const variants = [
     'active',
@@ -44,7 +42,6 @@ const AntDFunctionalColors = ({ antdTheme }) => {
     'bg',
   ];
 
-  const { colors } = supersetTheme;
   return (
     <table
       style={{ borderCollapse: 'collapse', width: '100%', textAlign: 'left' }}
@@ -63,32 +60,29 @@ const AntDFunctionalColors = ({ antdTheme }) => {
         </tr>
       </thead>
       <tbody>
-        {colorTypes.map(type => {
-          const typeKey = `color${type}`;
-          return (
-            <tr key={type}>
-              <td style={{ border: '1px solid #ddd', padding: '8px' }}>
-                <strong>{type}</strong>
-              </td>
-              {variants.map(variant => {
-                const color = themeObject.getColorVariants(type)[variant];
-                return (
-                  <td
-                    key={variant}
-                    style={{
-                      border: '1px solid #ddd',
-                      padding: '8px',
-                      backgroundColor: color || 'transparent',
-                      color: [`color${type}${variant}`],
-                    }}
-                  >
-                    {color ? <code>{color}</code> : '-'}
-                  </td>
-                );
-              })}
-            </tr>
-          );
-        })}
+        {colorTypes.map(type => (
+          <tr key={type}>
+            <td style={{ border: '1px solid #ddd', padding: '8px' }}>
+              <strong>{type}</strong>
+            </td>
+            {variants.map(variant => {
+              const color = themeObject.getColorVariants(type)[variant];
+              return (
+                <td
+                  key={variant}
+                  style={{
+                    border: '1px solid #ddd',
+                    padding: '8px',
+                    backgroundColor: color || 'transparent',
+                    color: `color${type}${variant}`,
+                  }}
+                >
+                  {color ? <code>{color}</code> : '-'}
+                </td>
+              );
+            })}
+          </tr>
+        ))}
       </tbody>
     </table>
   );
@@ -159,7 +153,7 @@ export const ThemeColors = () => {
       </table>
       <h2>Ant Design Theme Colors</h2>
       <h3>Functional Colors</h3>
-      <AntDFunctionalColors antdTheme={supersetTheme.antd} />
+      <AntDFunctionalColors />
       <h2>The supersetTheme object</h2>
       <pre>
         <code>{JSON.stringify(supersetTheme, null, 2)}</code>
