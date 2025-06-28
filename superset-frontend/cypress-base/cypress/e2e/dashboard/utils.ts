@@ -289,7 +289,6 @@ export function fillNativeFilterForm(
     .type(name, { scrollBehavior: false, force: true });
 
   if (dataset) {
-<<<<<<< HEAD
     cy.get('div[aria-label="Dataset"]').within(() => {
       cy.get('input').then($input => {
         setSelectSearchInput($input, dataset, true);
@@ -304,35 +303,6 @@ export function fillNativeFilterForm(
         setSelectSearchInput($input, filterColumn, true);
       });
     });
-=======
-    cy.get(nativeFilters.modal.container)
-      .find(nativeFilters.filtersPanel.datasetName)
-      .last()
-      .click({ force: true, scrollBehavior: false });
-    cy.get(nativeFilters.modal.container)
-      .find(nativeFilters.filtersPanel.datasetName)
-      .type(`${dataset}`, { scrollBehavior: false });
-    cy.get(nativeFilters.silentLoading).should('not.exist');
-    cy.get(`[label="${dataset}"]`).click({ multiple: true, force: true });
-  }
-  cy.get(nativeFilters.silentLoading).should('not.exist');
-  if (filterColumn) {
-    // Target and alias the column field
-    cy.contains('label', 'Column').closest('.ant-form-item').as('columnField');
-
-    cy.get('@columnField').find('.ant-select-selector').click();
-
-    cy.get('@columnField')
-      .find('.ant-select-selection-search-input')
-      .should('be.visible')
-      .type(filterColumn, { delay: 100 });
-
-    cy.get('.ant-select-dropdown')
-      .should('be.visible')
-      .contains('.ant-select-item-option', filterColumn)
-      .should('be.visible')
-      .click();
->>>>>>> b2ebe9d6ae (korbit ai review changes)
   }
 }
 

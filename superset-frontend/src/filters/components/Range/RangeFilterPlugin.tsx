@@ -23,15 +23,17 @@ import {
   isEqualArray,
   NumberFormats,
   styled,
-  t,
   useTheme,
+  t,
 } from '@superset-ui/core';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState, useRef } from 'react';
 import { FilterBarOrientation } from 'src/dashboard/types';
-import Metadata from '@superset-ui/core/components/Metadata';
+// import Metadata from '@superset-ui/core/components/Metadata';
 import { isNumber } from 'lodash';
-import { FormItem, InputNumber } from '@superset-ui/core/components';
-import { PluginFilterRangeProps } from './types';
+import { InputNumber } from '@superset-ui/core/components/Input';
+import Slider from '@superset-ui/core/components/Slider';
+import { FormItem, Tooltip, Icons } from '@superset-ui/core/components';
+import { PluginFilterRangeProps, RangeDisplayMode } from './types';
 import { StatusMessage, FilterPluginStyle } from '../common';
 import { getRangeExtraFormData } from '../../utils';
 import { SingleValueType } from './SingleValueType';
@@ -52,8 +54,7 @@ const Wrapper = styled.div`
   justify-content: space-between;
   width: 100%;
 
-  .ant-input-number {
-    width: 100%;
+  .antd5-input-number {
     min-width: 80px;
     position: relative;
   }
@@ -61,22 +62,22 @@ const Wrapper = styled.div`
 
 const SliderWrapper = styled.div`
   ${({ theme }) => `
-    margin: ${theme.gridUnit * 4}px 0;
-    padding: 0 ${theme.gridUnit}px;
+    margin: ${theme.sizeUnit * 4}px 0;
+    padding: 0 ${theme.sizeUnit}px;
   `}
 `;
 
 const TooltipContainer = styled.div`
   ${({ theme }) => `
     position: absolute;
-    top: -${theme.gridUnit * 10}px;
+    top: -${theme.sizeUnit * 10}px;
     right: 0px;
     z-index: 100;
     display: flex;
     align-items: center;
 
     .tooltip-icon {
-      margin-left: ${theme.gridUnit * 2}px;
+      margin-left: ${theme.sizeUnit * 2}px;
     }
   `}
 `;
@@ -85,13 +86,13 @@ const HorizontalLayout = styled.div`
   ${({ theme }) => `
     display: flex;
     flex-direction: column;
-    gap: ${theme.gridUnit * 4}px;
+    gap: ${theme.sizeUnit * 4}px;
     width: 100%;
 
     .controls-container {
       display: flex;
       align-items: center;
-      gap: ${theme.gridUnit * 4}px;
+      gap: ${theme.sizeUnit * 4}px;
       width: 100%;
 
       .slider-wrapper {
@@ -115,7 +116,7 @@ const HorizontalLayout = styled.div`
     .message-container {
       width: 100%;
       text-align: center;
-      padding-top: ${theme.gridUnit * 2}px;
+      padding-top: ${theme.sizeUnit * 2}px;
     }
   `}
 `;
@@ -628,44 +629,42 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
         <h4>{t('Chosen non-numeric column')}</h4>
       ) : (
         <FormItem aria-labelledby={`filter-name-${formData.nativeFilterId}`}>
-          <Wrapper
-            tabIndex={-1}
-            ref={inputRef}
-            onFocus={setFocusedFilter}
-            onBlur={unsetFocusedFilter}
-            onMouseEnter={setHoveredFilter}
-            onMouseLeave={unsetHoveredFilter}
-            onMouseDown={() => setFilterActive(true)}
-            onMouseUp={() => setFilterActive(false)}
-          >
-            {(enableSingleValue === SingleValueType.Minimum ||
-              enableSingleValue === SingleValueType.Exact ||
-              enableSingleValue === undefined) && (
-              <InputNumber
-                value={inputValue[minIndex]}
-                onChange={val => handleChange(val, minIndex)}
-                placeholder={`${min}`}
-                status={filterState.validateStatus}
-                data-test="range-filter-from-input"
-              />
-            )}
-            {enableSingleValue === undefined && (
-              <StyledDivider>-</StyledDivider>
-            )}
-            {(enableSingleValue === SingleValueType.Maximum ||
-              enableSingleValue === undefined) && (
-              <InputNumber
-                value={inputValue[maxIndex]}
-                onChange={val => handleChange(val, maxIndex)}
-                placeholder={`${max}`}
-                data-test="range-filter-to-input"
-                status={filterState.validateStatus}
-              />
-            )}
-          </Wrapper>
-          {(rangeInput ||
-            filterBarOrientation === FilterBarOrientation.Vertical) &&
-            !filterState.validateStatus && <Metadata value={metadataText} />}
+          {filterBarOrientation === FilterBarOrientation.Horizontal &&
+          !isOverflowingFilterBar ? (
+            <HorizontalLayout>
+              <div className="controls-container">
+                <InfoTooltip />
+                {(rangeDisplayMode === RangeDisplayMode.Slider ||
+                  rangeDisplayMode === RangeDisplayMode.SliderAndInput) && (
+                  <div className="slider-wrapper">
+                    <div className="slider-container">{renderSlider()}</div>
+                  </div>
+                )}
+                {(rangeDisplayMode === RangeDisplayMode.Input ||
+                  rangeDisplayMode === RangeDisplayMode.SliderAndInput) && (
+                  <div className="inputs-container">{renderInputs()}</div>
+                )}
+              </div>
+            </HorizontalLayout>
+          ) : (
+            <>
+              <div style={{ position: 'relative' }}>
+                {isOverflowingFilterBar && (
+                  <TooltipContainer>
+                    <InfoTooltip />
+                  </TooltipContainer>
+                )}
+                {(rangeDisplayMode === RangeDisplayMode.Slider ||
+                  rangeDisplayMode === RangeDisplayMode.SliderAndInput) &&
+                  renderSlider()}
+                {(rangeDisplayMode === RangeDisplayMode.Input ||
+                  rangeDisplayMode === RangeDisplayMode.SliderAndInput) &&
+                  renderInputs()}
+
+                <MessageDisplay />
+              </div>
+            </>
+          )}
         </FormItem>
       )}
     </FilterPluginStyle>
