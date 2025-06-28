@@ -25,13 +25,14 @@ import {
 } from 'spec/helpers/testing-library';
 import { Menu } from '@superset-ui/core/components/Menu';
 import downloadAsPdf from 'src/utils/downloadAsPdf';
+import { noop } from 'lodash';
 import DownloadAsPdf from './DownloadAsPdf';
 
 const mockAddDangerToast = jest.fn();
 
 jest.mock('src/utils/downloadAsPdf', () => ({
   __esModule: true,
-  default: jest.fn(() => (_e: SyntheticEvent) => {}),
+  default: jest.fn(() => (_e: SyntheticEvent) => noop(_e)),
 }));
 
 jest.mock('src/components/MessageToasts/withToasts', () => ({
