@@ -471,17 +471,20 @@ function FiltersConfigModal({
     
     // Check if validation added any dependency errors
     const fieldsWithErrors = form.getFieldsError();
+    const FORM_FIELD_FILTERS_INDEX = 0;
+    const FORM_FIELD_DEPENDENCIES_INDEX = 2;
+    
     const hasDependencyErrors = fieldsWithErrors.some(field => 
-      field.name?.[0] === 'filters' && 
-      field.name?.[2] === 'dependencies' && 
+      field.name?.[FORM_FIELD_FILTERS_INDEX] === 'filters' && 
+      field.name?.[FORM_FIELD_DEPENDENCIES_INDEX] === 'dependencies' && 
       field.errors?.length > 0
     );
 
     if (hasDependencyErrors) {
       // Focus on the first filter with dependency errors
       const errorField = fieldsWithErrors.find(field => 
-        field.name?.[0] === 'filters' && 
-        field.name?.[2] === 'dependencies' && 
+        field.name?.[FORM_FIELD_FILTERS_INDEX] === 'filters' && 
+        field.name?.[FORM_FIELD_DEPENDENCIES_INDEX] === 'dependencies' && 
         field.errors?.length > 0
       );
       if (errorField) {
