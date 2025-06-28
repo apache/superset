@@ -22,6 +22,7 @@ import example1 from '../images/example1.jpg';
 import example2 from '../images/example2.jpg';
 import buildQuery from './buildQuery';
 import controlPanel from './controlPanel';
+import { serverPaginationControlSetRow } from './controls/pagination';
 import transformProps from './transformProps';
 
 export default class HandlebarsChartPlugin extends ChartPlugin {
@@ -43,9 +44,24 @@ export default class HandlebarsChartPlugin extends ChartPlugin {
       exampleGallery: [{ url: example1 }, { url: example2 }],
     });
 
+    const cleanedControlPanel = {
+      ...controlPanel,
+      controlPanelSections: controlPanel.controlPanelSections.map(section => {
+        if (section?.label === t('Query')) {
+          return {
+            ...section,
+            controlSetRows: section.controlSetRows.filter(
+              row => row !== serverPaginationControlSetRow,
+            ),
+          };
+        }
+        return section;
+      }),
+    };
+
     super({
       buildQuery,
-      controlPanel,
+      controlPanel: cleanedControlPanel,
       loadChart: () => import('../Handlebars'),
       metadata,
       transformProps,
