@@ -768,7 +768,25 @@ function mapStateToProps(state) {
   const fieldsToOmit = hasQueryMode
     ? retainQueryModeRequirements(hiddenFormData)
     : Object.keys(hiddenFormData ?? {});
-  const form_data = omit(getFormDataFromControls(controls), fieldsToOmit);
+
+  const controlsBasedFormData = omit(
+    getFormDataFromControls(controls),
+    fieldsToOmit,
+  );
+  const isDeckGLChart = explore.form_data?.viz_type === 'deck_multi';
+
+  const form_data = isDeckGLChart
+    ? {
+        ...controlsBasedFormData,
+        ...(explore.form_data?.layer_filter_scope && {
+          layer_filter_scope: explore.form_data.layer_filter_scope,
+        }),
+        ...(explore.form_data?.filter_data_mapping && {
+          filter_data_mapping: explore.form_data.filter_data_mapping,
+        }),
+      }
+    : controlsBasedFormData;
+
   const slice_id = form_data.slice_id ?? slice?.slice_id ?? 0; // 0 - unsaved chart
   form_data.extra_form_data = mergeExtraFormData(
     { ...form_data.extra_form_data },

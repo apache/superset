@@ -223,6 +223,22 @@ export const getFormDataWithDashboardContext = (
   const dashboardColorScheme = dashboardContextFormData.color_scheme;
   const appliedColorScheme = dashboardColorScheme || ownColorScheme;
 
+  const deckGLProperties: JsonObject = {};
+  const isDeckGLChart =
+    exploreFormData.viz_type === 'deck_multi' ||
+    dashboardContextFormData.viz_type === 'deck_multi';
+
+  if (isDeckGLChart) {
+    if (dashboardContextFormData.layer_filter_scope) {
+      deckGLProperties.layer_filter_scope =
+        dashboardContextFormData.layer_filter_scope;
+    }
+    if (dashboardContextFormData.filter_data_mapping) {
+      deckGLProperties.filter_data_mapping =
+        dashboardContextFormData.filter_data_mapping;
+    }
+  }
+
   return {
     ...exploreFormData,
     ...dashboardContextFormData,
@@ -232,5 +248,6 @@ export const getFormDataWithDashboardContext = (
     own_color_scheme: ownColorScheme,
     color_scheme: appliedColorScheme,
     dashboard_color_scheme: dashboardColorScheme,
+    ...deckGLProperties,
   };
 };

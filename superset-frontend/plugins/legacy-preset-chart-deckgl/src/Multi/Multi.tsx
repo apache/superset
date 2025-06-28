@@ -126,27 +126,42 @@ const DeckMulti = (props: DeckMultiProps) => {
             ...(formData.extra_filters || []),
           ];
 
+          // Start with the original layer's adhoc filters
           const layerSpecificAdhocFilters = [
-            ...(formData.adhoc_filters || []),
             ...(subslice.formData?.adhoc_filters || []),
           ];
 
           if (layerFilterScope) {
             const filterDataMapping = formData.filter_data_mapping || {};
+            let shouldAddDashboardAdhocFilters = false;
 
             Object.entries(layerFilterScope).forEach(
               ([filterId, filterScope]: [string, any]) => {
-                if (ensureIsArray(filterScope).includes(correctLayerIndex)) {
+                const shouldApplyFilter =
+                  ensureIsArray(filterScope).includes(correctLayerIndex);
+
+                if (shouldApplyFilter) {
+                  shouldAddDashboardAdhocFilters = true;
                   const filtersFromThisFilter =
                     filterDataMapping[filterId] || [];
                   layerSpecificExtraFilters.push(...filtersFromThisFilter);
                 }
               },
             );
+
+            // Add dashboard adhoc filters only if this layer should be filtered
+            if (shouldAddDashboardAdhocFilters) {
+              const dashboardAdhocFilters = formData.adhoc_filters || [];
+              layerSpecificAdhocFilters.push(...dashboardAdhocFilters);
+            }
           } else {
             const originalExtraFormDataFilters =
               formData.extra_form_data?.filters || [];
             layerSpecificExtraFilters.push(...originalExtraFormDataFilters);
+
+            // When no layer filter scope, apply all dashboard adhoc filters
+            const dashboardAdhocFilters = formData.adhoc_filters || [];
+            layerSpecificAdhocFilters.push(...dashboardAdhocFilters);
           }
 
           const subsliceCopy = {
@@ -175,6 +190,7 @@ const DeckMulti = (props: DeckMultiProps) => {
                   [],
                   props.onSelect,
                 );
+
                 setSubSlicesLayers(subSlicesLayers => ({
                   ...subSlicesLayers,
                   [subsliceCopy.slice_id]: layer,

@@ -24,7 +24,11 @@ import {
   JsonObject,
   PartialFilters,
 } from '@superset-ui/core';
-import { ChartConfiguration, ChartQueryPayload } from 'src/dashboard/types';
+import {
+  ChartConfiguration,
+  ChartQueryPayload,
+  ActiveFilters,
+} from 'src/dashboard/types';
 import { getExtraFormData } from 'src/dashboard/components/nativeFilters/utils';
 import { areObjectsEqual } from 'src/reduxUtils';
 import { isEqual } from 'lodash';
@@ -81,6 +85,7 @@ export interface GetFormDataWithExtraFiltersArguments {
   labelsColorMap?: Record<string, string>;
   sharedLabelsColors?: string[];
   allSliceIds: number[];
+  activeFilters?: ActiveFilters;
 }
 
 const createFilterDataMapping = (
@@ -114,6 +119,7 @@ export default function getFormDataWithExtraFilters({
   labelsColorMap,
   sharedLabelsColors,
   allSliceIds,
+  activeFilters: passedActiveFilters,
 }: GetFormDataWithExtraFiltersArguments) {
   const cachedFormData = cachedFormdataByChart[sliceId];
   if (
@@ -141,16 +147,18 @@ export default function getFormDataWithExtraFilters({
     return cachedFormData;
   }
 
-  const activeFilters = getAllActiveFilters({
-    chartConfiguration,
-    nativeFilters,
-    dataMask,
-    allSliceIds,
-  });
+  const activeFilters: ActiveFilters =
+    passedActiveFilters ||
+    getAllActiveFilters({
+      chartConfiguration,
+      nativeFilters,
+      dataMask,
+      allSliceIds,
+    });
 
   let extraData: JsonObject = {};
   const filterIdsAppliedOnChart = Object.entries(activeFilters)
-    .filter(([, { scope }]) => scope.includes(chart.id))
+    .filter(([, activeFilter]) => activeFilter.scope.includes(chart.id))
     .map(([filterId]) => filterId);
 
   if (filterIdsAppliedOnChart.length) {
@@ -162,7 +170,12 @@ export default function getFormDataWithExtraFilters({
       extra_form_data: aggregatedFormData,
     };
 
-    if (chart.form_data?.viz_type === 'deck_multi') {
+    const isDeckMultiChart = chart.form_data?.viz_type === 'deck_multi';
+    const hasLayerScopeInActiveFilters =
+      passedActiveFilters &&
+      Object.values(passedActiveFilters).some(filter => filter.layerScope);
+
+    if (isDeckMultiChart || hasLayerScopeInActiveFilters) {
       const filterDataMapping = createFilterDataMapping(
         dataMask,
         filterIdsAppliedOnChart,
@@ -172,7 +185,13 @@ export default function getFormDataWithExtraFilters({
   }
 
   let layerFilterScope: { [filterId: string]: number[] } | undefined;
-  if (chart.form_data?.viz_type === 'deck_multi') {
+
+  const isDeckMultiChart = chart.form_data?.viz_type === 'deck_multi';
+  const hasLayerScopeInActiveFilters =
+    passedActiveFilters &&
+    Object.values(passedActiveFilters).some(filter => filter.layerScope);
+
+  if (isDeckMultiChart || hasLayerScopeInActiveFilters) {
     layerFilterScope = {};
 
     Object.entries(activeFilters).forEach(([filterId, activeFilter]) => {
