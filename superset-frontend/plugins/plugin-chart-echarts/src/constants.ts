@@ -90,6 +90,15 @@ export const AreaChartStackControlOptions: [
   Exclude<ReactNode, null | undefined | boolean>,
 ][] = [...StackControlOptions, [StackControlsValue.Expand, t('Expand')]];
 
+// For Bar charts, only allow 'None' and 'Stack' (no 'Stream')
+export const BarChartStackControlOptions: [
+  JsonValue,
+  Exclude<ReactNode, null | undefined | boolean>,
+][] = [
+  [null, t('None')],
+  [StackControlsValue.Stack, t('Stack')],
+];
+
 export const TIMEGRAIN_TO_TIMESTAMP = {
   [TimeGranularity.HOUR]: 3600 * 1000,
   [TimeGranularity.DAY]: 3600 * 1000 * 24,
