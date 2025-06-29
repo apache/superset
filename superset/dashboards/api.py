@@ -133,6 +133,8 @@ from superset.views.filters import (
     FilterRelatedOwners,
 )
 
+from superset.dashboards.dashboard_agentic_query.dashboard_agentic_query import ask_agent_query
+
 logger = logging.getLogger(__name__)
 
 
@@ -181,6 +183,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         "screenshot",
         "put_filters",
         "put_colors",
+        "query_dashboard",
     }
     resource_name = "dashboard"
     allow_browser_login = True
@@ -1827,5 +1830,25 @@ class DashboardRestApi(BaseSupersetModelRestApi):
                 "last_modified_time": dash.changed_on.replace(
                     microsecond=0
                 ).timestamp(),
+            },
+        )
+
+    @expose("/query_dashboard/", methods=("POST",))
+    @protect()
+    @statsd_metrics
+    @requires_json
+    def query_dashboard(self) -> Response:
+        body = request.json
+        dashboard_query = body["query"]
+        dashboard_id = body["dashboardId"] 
+
+        query_agentic_response = ask_agent_query(dashboard_query, dashboard_id)
+        
+        return self.response(
+            200,
+            result={
+                "result": {
+                    "Agentic Response": query_agentic_response
+                }
             },
         )

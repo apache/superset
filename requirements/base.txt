@@ -442,3 +442,5 @@ xlsxwriter==3.0.9
     #   pandas
 zstandard==0.23.0
     # via flask-compress
+langchain==0.3.18
+langchain-openai==0.3.5
