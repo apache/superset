@@ -82,9 +82,7 @@ module.exports = {
   ],
   parser: '@babel/eslint-parser',
   parserOptions: {
-    ecmaFeatures: {
-      experimentalObjectRestSpread: true,
-    },
+    ecmaVersion: 2018,
   },
   env: {
     browser: true,
