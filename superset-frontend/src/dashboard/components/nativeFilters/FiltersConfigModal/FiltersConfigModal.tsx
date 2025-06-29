@@ -457,6 +457,38 @@ function FiltersConfigModal({
     }
   }, [form, erroredFilters]);
 
+  /**
+   * Helper function to find dependency validation errors in form fields.
+   * This function improves code maintainability by centralizing the logic
+   * for detecting cyclic dependency errors and extracting the problematic filter ID.
+   * 
+   * @param fields - Array of form field error objects from Ant Design Form
+   * @returns Object containing error status and filter ID, or null if no dependency errors
+   */
+  const findDependencyError = (fields: any[]) => {
+    // Form field structure constants for better readability
+    const FORM_FIELD_FILTERS_INDEX = 0;
+    const FORM_FIELD_DEPENDENCIES_INDEX = 2;
+    const FILTER_ID_INDEX = 1;
+    
+    // Find the first field with dependency validation errors
+    const errorField = fields.find(field => 
+      field.name?.[FORM_FIELD_FILTERS_INDEX] === 'filters' && 
+      field.name?.[FORM_FIELD_DEPENDENCIES_INDEX] === 'dependencies' && 
+      field.errors?.length > 0
+    );
+    
+    if (errorField) {
+      return {
+        hasError: true,
+        filterId: errorField.name[FILTER_ID_INDEX] as string,
+        errors: errorField.errors
+      };
+    }
+    
+    return null;
+  };
+
   const handleSave = async () => {
     const values: NativeFiltersForm | null = await validateForm(
       form,
@@ -465,6 +497,19 @@ function FiltersConfigModal({
     );
 
     handleErroredFilters();
+
+    // Validate dependencies to prevent saving cyclic dependencies
+    validateDependencies();
+    
+    // Check for cyclic dependency errors and handle user feedback
+    const fieldsWithErrors = form.getFieldsError();
+    const dependencyError = findDependencyError(fieldsWithErrors);
+    
+    if (dependencyError) {
+      // Focus on the problematic filter to guide user attention
+      setCurrentFilterId(dependencyError.filterId);
+      return; // Prevent saving when cyclic dependencies are detected
+    }
 
     if (values) {
       const [updatedFilterConfigMap, modifiedParentFilters] =
