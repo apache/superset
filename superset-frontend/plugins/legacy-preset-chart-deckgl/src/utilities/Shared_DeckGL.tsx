@@ -135,7 +135,7 @@ export const autozoom = {
   },
 };
 
-export const dimension = {
+export const dimension: CustomControlItem = {
   name: 'dimension',
   config: {
     ...sharedControls.groupby,
@@ -436,7 +436,7 @@ export const deckGLColorSchemeTypeSelect = {
     choices: [
       [COLOR_SCHEME_TYPES.fixed_color, t('Fixed color')],
       [COLOR_SCHEME_TYPES.categorical_palette, t('Categorical palette')],
-      [COLOR_SCHEME_TYPES.gradient_breakpoints, t('Gradient (breakpoints)')],
+      [COLOR_SCHEME_TYPES.color_breakpoints, t('Gradient (breakpoints)')],
     ],
     default: COLOR_SCHEME_TYPES.fixed_color,
   },
@@ -448,6 +448,7 @@ export const deckGLFixedColor: CustomControlItem = {
     type: 'ColorPickerControl',
     label: t('Fixed Color'),
     default: PRIMARY_COLOR,
+    renderTrigger: true,
     description: t('Select the fixed color'),
     visibility: ({ controls }) =>
       isColorSchemeTypeVisible(controls, COLOR_SCHEME_TYPES.fixed_color),
@@ -488,24 +489,28 @@ export const deckGLColorSchemeSelect: CustomControlItem = {
   },
 };
 
-export const deckGLGradientBreakpointsSelect: CustomControlItem = {
-  name: 'gradient_breakpoints',
+export const deckGLColorBreakpointsSelect: CustomControlItem = {
+  name: 'color_breakpoints',
   config: {
     label: t('Colors for gradient'),
-    type: 'GradientBreakpointsControl',
+    type: 'ColorBreakpointsControl',
     description: t('Enter gradient breakpoints'),
     visibility: ({ controls }) =>
-      isColorSchemeTypeVisible(
-        controls,
-        COLOR_SCHEME_TYPES.gradient_breakpoints,
-      ),
+      isColorSchemeTypeVisible(controls, COLOR_SCHEME_TYPES.color_breakpoints),
   },
 };
 
-export const deckGLColorSchemeControls = [
+export const deckGLCategoricalColorSchemeControls = [
   [deckGLColorSchemeTypeSelect],
   [deckGLFixedColor],
   [deckGLCategoricalColor],
   [deckGLColorSchemeSelect],
-  [deckGLGradientBreakpointsSelect],
+  [deckGLColorBreakpointsSelect],
+];
+
+export const deckGLColorSchemeControls = [
+  [deckGLColorSchemeTypeSelect],
+  [deckGLFixedColor],
+  [deckGLColorSchemeSelect],
+  [deckGLColorBreakpointsSelect],
 ];

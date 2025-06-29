@@ -20,11 +20,21 @@ import { Color } from '@deck.gl/core';
 import { GridLayer } from '@deck.gl/aggregation-layers';
 import { t, CategoricalColorNamespace, JsonObject } from '@superset-ui/core';
 
-import { commonLayerProps, getAggFunc } from '../common';
+import {
+  commonLayerProps,
+  getAggFunc,
+  getColorForBreakpoints,
+} from '../common';
 import sandboxedEval from '../../utils/sandbox';
 import { hexToRGB } from '../../utils/colors';
 import { createDeckGLComponent, GetLayerType } from '../../factory';
 import TooltipRow from '../../TooltipRow';
+import {
+  COLOR_SCHEME_TYPES,
+  getColorBySelectedColorSchemeType,
+  getSelectedColorSchemeType,
+} from '../../utilities/utils';
+import { ColorBreakpointType } from '../../types';
 
 function setTooltipContent(o: JsonObject) {
   return (
@@ -55,9 +65,7 @@ export const getLayer: GetLayerType<GridLayer> = function ({
   const fd = formData;
   const appliedScheme = fd.color_scheme;
   const colorScale = CategoricalColorNamespace.getScale(appliedScheme);
-  const colorRange = colorScale
-    .range()
-    .map(color => hexToRGB(color)) as Color[];
+  let colorRange: Color[] | undefined;
   let data = payload.data.features;
 
   if (fd.js_data_mutator) {
@@ -67,17 +75,47 @@ export const getLayer: GetLayerType<GridLayer> = function ({
   }
 
   const aggFunc = getAggFunc(fd.js_agg_function, p => p.weight);
+  let colorAggFunc = getAggFunc(fd.js_agg_function, p => p.weight);
+
+  const colorSchemeType = getSelectedColorSchemeType(fd);
+
+  const selectedColor = getColorBySelectedColorSchemeType(colorSchemeType, fd);
+
+  if (colorSchemeType === COLOR_SCHEME_TYPES.fixed_color) {
+    colorRange = [selectedColor];
+  } else if (colorSchemeType === COLOR_SCHEME_TYPES.categorical_palette) {
+    colorRange = colorScale.range().map(color => hexToRGB(color)) as Color[];
+  } else if (colorSchemeType === COLOR_SCHEME_TYPES.color_breakpoints) {
+    const colorBreakpoints = fd.color_breakpoints;
+    colorRange = colorBreakpoints.map((colorBreakpoint: ColorBreakpointType) =>
+      colorBreakpoint.color
+        ? [
+            colorBreakpoint.color.r,
+            colorBreakpoint.color.g,
+            colorBreakpoint.color.b,
+            255 * (colorBreakpoint.color.a / 100),
+          ]
+        : [0, 0, 0, 0],
+    );
+
+    console.log('colorRange', colorRange);
+
+    colorAggFunc = p =>
+      getColorForBreakpoints(fd.js_agg_function, p, colorBreakpoints);
+  }
 
   return new GridLayer({
     id: `grid-layer-${fd.slice_id}` as const,
     data,
     cellSize: fd.grid_size,
     extruded: fd.extruded,
+    colorDomain: colorRange ? [0, colorRange.length] : undefined,
     colorRange,
     outline: false,
     // @ts-ignore
     getElevationValue: aggFunc,
     // @ts-ignore
+<<<<<<< HEAD
     getColorValue: aggFunc,
     ...commonLayerProps({
       formData: fd,
@@ -88,6 +126,10 @@ export const getLayer: GetLayerType<GridLayer> = function ({
       onContextMenu,
       emitCrossFilters,
     }),
+=======
+    getColorValue: colorAggFunc,
+    ...commonLayerProps(fd, setTooltip, setTooltipContent),
+>>>>>>> d8d46d952 (Add working Grid color breakpoints)
   });
 };
 

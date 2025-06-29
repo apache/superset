@@ -25,7 +25,6 @@ import {
 } from '@superset-ui/core';
 import {
   COLOR_SCHEME_TYPES,
-  getColorBySelectedColorSchemeType,
   getSelectedColorSchemeType,
 } from '../../utilities/utils';
 import { commonLayerProps } from '../common';
@@ -87,14 +86,14 @@ export const getLayer: GetLayerType<ArcLayer> = function ({
         return [sc.r, sc.g, sc.b, 255 * sc.a];
       }
 
-      return getColorBySelectedColorSchemeType(colorSchemeType, d);
+      return d.targetColor || d.color;
     },
     getTargetColor: (d: any) => {
       if (colorSchemeType === COLOR_SCHEME_TYPES.fixed_color) {
         return [tc.r, tc.g, tc.b, 255 * tc.a];
       }
 
-      return getColorBySelectedColorSchemeType(colorSchemeType, d);
+      return d.targetColor || d.color;
     },
     id: `path-layer-${fd.slice_id}` as const,
     getWidth: fd.stroke_width ? fd.stroke_width : 3,

@@ -37,6 +37,7 @@ import {
   SetDataMaskHook,
 } from '@superset-ui/core';
 import { Layer, PickingInfo } from '@deck.gl/core';
+import { ColorBreakpointType } from 'src/types';
 import sandboxedEval from '../utils/sandbox';
 import { TooltipProps } from '../components/Tooltip';
 import { getCrossFilterDataMask } from '../utils/crossFiltersDataMask';
@@ -181,3 +182,22 @@ export function getAggFunc(
 
   return (arr: number[]) => d3func(arr.map(x => accessor(x)));
 }
+
+export const getColorForBreakpoints = (
+  jsAggFunction: string,
+  point: any,
+  colorBreakpoints: ColorBreakpointType[],
+) => {
+  const aggResult = getAggFunc(jsAggFunction, p => p.weight)(point);
+
+  if (aggResult === undefined) return undefined;
+
+  if (Array.isArray(aggResult)) return undefined;
+
+  const breapointForPoint = colorBreakpoints.findIndex(
+    breakpoint =>
+      aggResult >= breakpoint.minValue && aggResult <= breakpoint.maxValue,
+  );
+
+  return breapointForPoint;
+};

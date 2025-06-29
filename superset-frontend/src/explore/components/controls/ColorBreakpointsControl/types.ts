@@ -27,10 +27,10 @@ export interface ColorType {
   a: number;
 }
 
-export interface GradientBreakpointType {
-  color?: ColorType | undefined;
-  minValue?: any | undefined;
-  maxValue?: any | undefined;
+export interface ColorBreakpointType {
+  color?: ColorType;
+  minValue?: number;
+  maxValue?: number;
 }
 
 export interface ErrorMapType {
@@ -39,34 +39,34 @@ export interface ErrorMapType {
   maxValue: string[];
 }
 
-export interface GradientBreakpointsControlProps
+export interface ColorBreakpointsControlProps
   extends ControlComponentProps<OptionValueType[]> {
   contours?: {};
 }
 
-export interface GradientBreakpointsPopoverTriggerProps {
+export interface ColorBreakpointsPopoverTriggerProps {
   description?: string;
   hovered?: boolean;
-  value?: GradientBreakpointType;
+  value?: ColorBreakpointType;
   children?: ReactNode;
-  saveGradientBreakpoint: (gradientBreakpoint: GradientBreakpointType) => void;
+  saveColorBreakpoint: (gradientBreakpoint: ColorBreakpointType) => void;
   isControlled?: boolean;
   visible?: boolean;
   toggleVisibility?: (visibility: boolean) => void;
 }
 
-export interface GradientBreakpointsPopoverControlProps {
+export interface ColorBreakpointsPopoverControlProps {
   description?: string;
   hovered?: boolean;
-  value?: GradientBreakpointType;
-  onSave?: (gradientBreakpoint: GradientBreakpointType) => void;
+  value?: ColorBreakpointType;
+  onSave?: (gradientBreakpoint: ColorBreakpointType) => void;
   onClose?: () => void;
 }
 
-export interface GradientBreakpointOptionProps {
-  gradientBreakpoint: GradientBreakpointType;
+export interface ColorBreakpointOptionProps {
+  gradientBreakpoint: ColorBreakpointType;
   index: number;
-  saveGradientBreakpoint: (gradientBreakpoint: GradientBreakpointType) => void;
+  saveGradientBreakpoint: (gradientBreakpoint: ColorBreakpointType) => void;
   onClose: (index: number) => void;
   onShift: (hoverIndex: number, dragIndex: number) => void;
 }

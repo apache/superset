@@ -87,7 +87,25 @@ const config: ControlPanelConfig = {
     {
       label: t('Arc'),
       controlSetRows: [
-        [deckGLColorSchemeTypeSelect],
+        [
+          {
+            name: 'color_scheme_type',
+            config: {
+              type: 'SelectControl',
+              label: t('Color Scheme Type'),
+              clearable: false,
+              validators: [],
+              choices: [
+                [COLOR_SCHEME_TYPES.fixed_color, t('Fixed color')],
+                [
+                  COLOR_SCHEME_TYPES.categorical_palette,
+                  t('Categorical palette'),
+                ],
+              ],
+              default: COLOR_SCHEME_TYPES.fixed_color,
+            },
+          },
+        ],
         [
           {
             name: 'color_picker',
@@ -122,7 +140,6 @@ const config: ControlPanelConfig = {
         ],
         [deckGLCategoricalColor],
         [deckGLColorSchemeSelect],
-        [deckGLGradientBreakpointsSelect],
         [
           {
             name: 'stroke_width',
