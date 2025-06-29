@@ -18,17 +18,17 @@
  */
 import { useState } from 'react';
 import ControlPopover from '../ControlPopover/ControlPopover';
-import { GradientBreakpointsPopoverTriggerProps } from './types';
-import GradientBreakpointsPopoverControl from './GradientBreakpointPopoverControl';
+import { ColorBreakpointsPopoverTriggerProps } from './types';
+import ColorBreakpointsPopoverControl from './ColorBreakpointPopoverControl';
 
-const GradientBreakpointsPopoverTrigger = ({
+const ColorBreakpointsPopoverTrigger = ({
   value: initialValue,
-  saveGradientBreakpoint,
+  saveColorBreakpoint,
   isControlled,
   visible: controlledVisibility,
   toggleVisibility,
   ...props
-}: GradientBreakpointsPopoverTriggerProps) => {
+}: ColorBreakpointsPopoverTriggerProps) => {
   const [isVisible, setIsVisible] = useState(false);
 
   const visible = isControlled ? controlledVisibility : isVisible;
@@ -36,9 +36,9 @@ const GradientBreakpointsPopoverTrigger = ({
     isControlled && toggleVisibility ? toggleVisibility : setIsVisible;
 
   const popoverContent = (
-    <GradientBreakpointsPopoverControl
+    <ColorBreakpointsPopoverControl
       value={initialValue}
-      onSave={saveGradientBreakpoint}
+      onSave={saveColorBreakpoint}
       onClose={() => setVisibility(false)}
     />
   );
@@ -57,4 +57,4 @@ const GradientBreakpointsPopoverTrigger = ({
   );
 };
 
-export default GradientBreakpointsPopoverTrigger;
+export default ColorBreakpointsPopoverTrigger;

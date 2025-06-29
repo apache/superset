@@ -23,9 +23,9 @@ import ControlHeader from '../../ControlHeader';
 import TextControl from '../TextControl';
 import ColorPickerControl from '../ColorPickerControl';
 import {
-  GradientBreakpointsPopoverControlProps,
+  ColorBreakpointsPopoverControlProps,
   ColorType,
-  GradientBreakpointType,
+  ColorBreakpointType,
   ErrorMapType,
 } from './types';
 
@@ -38,7 +38,7 @@ const StyledRow = styled(Row)`
   gap: ${({ theme }) => theme.sizeUnit * 2}px;
 `;
 
-const determineErrorMap = (gradientBreakpoint: GradientBreakpointType) => {
+const determineErrorMap = (gradientBreakpoint: ColorBreakpointType) => {
   const errorMap: ErrorMapType = {
     minValue: [],
     maxValue: [],
@@ -75,14 +75,16 @@ const determineErrorMap = (gradientBreakpoint: GradientBreakpointType) => {
   return errorMap;
 };
 
-// const convertContourToNumeric = (contour: GradientBreakpointType) => {
-//   const formattedContour = { ...contour };
-//   const numericKeys = ['lowerThreshold', 'upperThreshold', 'strokeWidth'];
-//   numericKeys.forEach(key => {
-//     formattedContour[key] = Number(formattedContour[key]);
-//   });
-//   return formattedContour;
-// };
+const convertColorBreakpointToNumeric = (
+  colorBreakpoint: ColorBreakpointType,
+) => {
+  const formattedColorBreapoint = {
+    color: colorBreakpoint.color,
+    minValue: Number(colorBreakpoint.minValue),
+    maxValue: Number(colorBreakpoint.maxValue),
+  };
+  return formattedColorBreapoint;
+};
 
 // const formatIsoline = (contour: GradientBreakpointType) => ({
 //   color: contour.color,
@@ -98,17 +100,17 @@ const determineErrorMap = (gradientBreakpoint: GradientBreakpointType) => {
 //   strokeWidth: undefined,
 // });
 
-const DEFAULT_CONTOUR: GradientBreakpointType = {
+const DEFAULT_CONTOUR: ColorBreakpointType = {
   minValue: undefined,
   maxValue: undefined,
   color: undefined,
 };
 
-const GradientBreakpointsPopoverControl = ({
+const ColorBreakpointsPopoverControl = ({
   value: initialValue,
   onSave,
   onClose,
-}: GradientBreakpointsPopoverControlProps) => {
+}: ColorBreakpointsPopoverControlProps) => {
   const [gradientBreakpoint, setGradientBreakpoint] = useState(
     initialValue || DEFAULT_CONTOUR,
   );
@@ -134,7 +136,15 @@ const GradientBreakpointsPopoverControl = ({
       typeof gradientBreakpoint.color.a === 'number';
 
     const errors = determineErrorMap(gradientBreakpoint);
-    if (errors !== validationErrors) setValidationErrors(errors);
+    if (
+      JSON.stringify(errors.minValue) !==
+        JSON.stringify(validationErrors.minValue) ||
+      JSON.stringify(errors.maxValue) !==
+        JSON.stringify(validationErrors.maxValue) ||
+      JSON.stringify(errors.color) !== JSON.stringify(validationErrors.color)
+    ) {
+      setValidationErrors(errors);
+    }
 
     const sectionIsComplete = validMinValue && validMaxValue && validColor;
 
@@ -168,8 +178,7 @@ const GradientBreakpointsPopoverControl = ({
 
   const handleSave = () => {
     if (isComplete && onSave) {
-      const newContour = {};
-      onSave(newContour);
+      onSave(convertColorBreakpointToNumeric(gradientBreakpoint));
       if (onClose) onClose();
     }
   };
@@ -242,4 +251,4 @@ const GradientBreakpointsPopoverControl = ({
   );
 };
 
-export default GradientBreakpointsPopoverControl;
+export default ColorBreakpointsPopoverControl;

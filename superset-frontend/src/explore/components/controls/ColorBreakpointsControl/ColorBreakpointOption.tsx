@@ -18,8 +18,8 @@
  */
 
 import { styled, t } from '@superset-ui/core';
-import { GradientBreakpointOptionProps } from './types';
-import GradientBreakpointsPopoverTrigger from './GradientBreakpointsPopoverTrigger';
+import { ColorBreakpointOptionProps } from './types';
+import ColorBreakpointsPopoverTrigger from './ColorBreakpointsPopoverTrigger';
 import OptionWrapper from '../DndColumnSelectControl/OptionWrapper';
 
 const StyledOptionWrapper = styled(OptionWrapper)`
@@ -39,13 +39,13 @@ const ColorPatch = styled.div<{ formattedColor: string }>`
   margin: 0 ${({ theme }) => theme.sizeUnit}px;
 `;
 
-const GradientBreakpointOption = ({
+const ColorBreakpointOption = ({
   gradientBreakpoint,
   index,
   saveGradientBreakpoint,
   onClose,
   onShift,
-}: GradientBreakpointOptionProps) => {
+}: ColorBreakpointOptionProps) => {
   const { color, minValue, maxValue } = gradientBreakpoint;
 
   const formattedColor = color
@@ -70,8 +70,8 @@ const GradientBreakpointOption = ({
   );
 
   return (
-    <GradientBreakpointsPopoverTrigger
-      saveGradientBreakpoint={saveGradientBreakpoint}
+    <ColorBreakpointsPopoverTrigger
+      saveColorBreakpoint={saveGradientBreakpoint}
       value={gradientBreakpoint}
     >
       <StyledOptionWrapper
@@ -83,8 +83,8 @@ const GradientBreakpointOption = ({
         onShiftOptions={onShift}
         tooltipOverlay={overlay}
       />
-    </GradientBreakpointsPopoverTrigger>
+    </ColorBreakpointsPopoverTrigger>
   );
 };
 
-export default GradientBreakpointOption;
+export default ColorBreakpointOption;

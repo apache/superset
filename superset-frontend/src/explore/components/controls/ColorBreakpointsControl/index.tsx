@@ -20,14 +20,11 @@
 import { useState, useEffect } from 'react';
 import { styled, t } from '@superset-ui/core';
 import DndSelectLabel from 'src/explore/components/controls/DndColumnSelectControl/DndSelectLabel';
-import GradientBreakpointOption from './GradientBreakpointOption';
-import {
-  GradientBreakpointType,
-  GradientBreakpointsControlProps,
-} from './types';
-import GradientBreakpointsPopoverTrigger from './GradientBreakpointsPopoverTrigger';
+import ColorBreakpointOption from './ColorBreakpointOption';
+import { ColorBreakpointType, ColorBreakpointsControlProps } from './types';
+import ColorBreakpointsPopoverTrigger from './ColorBreakpointsPopoverTrigger';
 
-const DEFAULT_GRADIENT_BREAKPOINTS: GradientBreakpointType[] = [
+const DEFAULT_COLOR_BREAKPOINTS: ColorBreakpointType[] = [
   {
     minValue: 1,
     maxValue: 10,
@@ -52,23 +49,18 @@ const NewContourFormatPlaceholder = styled('div')`
   left: 0;
 `;
 
-const GradientBreakpointsControl = ({
+const ColorBreakpointsControl = ({
   onChange,
   ...props
-}: GradientBreakpointsControlProps) => {
+}: ColorBreakpointsControlProps) => {
   const [popoverVisible, setPopoverVisible] = useState(false);
-  const [gradientBreakpoints, setGradientBreakpoints] = useState<
-    GradientBreakpointType[]
-  >(props?.value ? props?.value : DEFAULT_GRADIENT_BREAKPOINTS);
+  const [colorBreakpoints, setColorBreakpoints] = useState<
+    ColorBreakpointType[]
+  >(props?.value ? props?.value : DEFAULT_COLOR_BREAKPOINTS);
 
   useEffect(() => {
-    // add z-index to contours
-    const newContours = gradientBreakpoints.map((contour, index) => ({
-      ...contour,
-      zIndex: (index + 1) * 10,
-    }));
-    onChange?.(newContours);
-  }, [onChange, gradientBreakpoints]);
+    onChange?.(colorBreakpoints);
+  }, [colorBreakpoints, onChange]);
 
   const togglePopover = (visible: boolean) => {
     setPopoverVisible(visible);
@@ -78,37 +70,37 @@ const GradientBreakpointsControl = ({
     togglePopover(true);
   };
 
-  const saveContour = (contour: GradientBreakpointType) => {
-    setGradientBreakpoints([...gradientBreakpoints, contour]);
+  const saveContour = (contour: ColorBreakpointType) => {
+    setColorBreakpoints([...colorBreakpoints, contour]);
     togglePopover(false);
   };
 
   const removeContour = (index: number) => {
-    const newContours = [...gradientBreakpoints];
+    const newContours = [...colorBreakpoints];
     newContours.splice(index, 1);
-    setGradientBreakpoints(newContours);
+    setColorBreakpoints(newContours);
   };
 
   const onShiftContour = (hoverIndex: number, dragIndex: number) => {
-    const newContours = [...gradientBreakpoints];
+    const newContours = [...colorBreakpoints];
     [newContours[hoverIndex], newContours[dragIndex]] = [
       newContours[dragIndex],
       newContours[hoverIndex],
     ];
-    setGradientBreakpoints(newContours);
+    setColorBreakpoints(newContours);
   };
 
-  const editContour = (contour: GradientBreakpointType, index: number) => {
-    const newContours = [...gradientBreakpoints];
+  const editContour = (contour: ColorBreakpointType, index: number) => {
+    const newContours = [...colorBreakpoints];
     newContours[index] = contour;
-    setGradientBreakpoints(newContours);
+    setColorBreakpoints(newContours);
   };
 
   const valuesRenderer = () =>
-    gradientBreakpoints.map((contour, index) => (
-      <GradientBreakpointOption
+    colorBreakpoints.map((contour, index) => (
+      <ColorBreakpointOption
         key={index}
-        saveGradientBreakpoint={(newContour: GradientBreakpointType) =>
+        saveGradientBreakpoint={(newContour: ColorBreakpointType) =>
           editContour(newContour, index)
         }
         gradientBreakpoint={contour}
@@ -131,16 +123,16 @@ const GradientBreakpointsControl = ({
         onClickGhostButton={handleClickGhostButton}
         {...props}
       />
-      <GradientBreakpointsPopoverTrigger
-        saveGradientBreakpoint={saveContour}
+      <ColorBreakpointsPopoverTrigger
+        saveColorBreakpoint={saveContour}
         isControlled
         visible={popoverVisible}
         toggleVisibility={setPopoverVisible}
       >
         <NewContourFormatPlaceholder />
-      </GradientBreakpointsPopoverTrigger>
+      </ColorBreakpointsPopoverTrigger>
     </>
   );
 };
 
-export default GradientBreakpointsControl;
+export default ColorBreakpointsControl;
