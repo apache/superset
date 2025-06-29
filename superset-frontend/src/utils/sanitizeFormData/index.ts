@@ -16,25 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import type { QueryFormData } from '@superset-ui/core';
-import { DiffType } from 'src/types/DiffType';
+import { JsonObject } from '@superset-ui/core';
+import { omit } from 'lodash';
 
-export interface AlteredSliceTagProps {
-  className?: string;
-  diffs: Record<string, DiffType>;
-  origFormData: QueryFormData;
-  currentFormData: QueryFormData;
-}
+const TEMPORARY_CONTROLS: string[] = ['url_params'];
 
-export interface ControlMap {
-  [key: string]: {
-    label?: string;
-    type?: string;
-  };
-}
-
-export type RowType = {
-  before: string | number;
-  after: string | number;
-  control: string;
-};
+export const sanitizeFormData = (formData: JsonObject): JsonObject =>
+  omit(formData, TEMPORARY_CONTROLS);

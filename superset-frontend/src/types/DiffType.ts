@@ -16,25 +16,25 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import type { QueryFormData } from '@superset-ui/core';
-import { DiffType } from 'src/types/DiffType';
+export type FilterItemType = {
+  comparator?: string | string[];
+  subject: string;
+  operator: string;
+  label?: string;
+};
 
-export interface AlteredSliceTagProps {
-  className?: string;
-  diffs: Record<string, DiffType>;
-  origFormData: QueryFormData;
-  currentFormData: QueryFormData;
-}
+export type DiffItemType<
+  T = FilterItemType | number | string | Record<string | number, any>,
+> =
+  | T[]
+  | boolean
+  | number
+  | string
+  | Record<string | number, any>
+  | null
+  | undefined;
 
-export interface ControlMap {
-  [key: string]: {
-    label?: string;
-    type?: string;
-  };
-}
-
-export type RowType = {
-  before: string | number;
-  after: string | number;
-  control: string;
+export type DiffType = {
+  before: DiffItemType;
+  after: DiffItemType;
 };
