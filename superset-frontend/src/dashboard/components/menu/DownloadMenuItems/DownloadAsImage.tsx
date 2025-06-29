@@ -27,6 +27,7 @@ export default function DownloadAsImage({
   text,
   logEvent,
   dashboardTitle,
+  ...props
 }: {
   text: string;
   dashboardTitle: string;
@@ -50,6 +51,7 @@ export default function DownloadAsImage({
       onClick={e => {
         onDownloadImage(e.domEvent);
       }}
+      {...props}
     >
       {text}
     </Menu.Item>
