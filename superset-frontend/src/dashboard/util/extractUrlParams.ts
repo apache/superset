@@ -29,7 +29,7 @@ export default function extractUrlParams(
   urlParamType: UrlParamType,
 ): JsonObject {
   const queryParams = new URLSearchParams(window.location.search);
-  return queryParams.entries().reduce((acc, [key, value]) => {
+  return [...queryParams.entries()].reduce((acc, [key, value]) => {
     if (
       (urlParamType === 'regular' && reservedQueryParams.has(key)) ||
       (urlParamType === 'reserved' && !reservedQueryParams.has(key))
