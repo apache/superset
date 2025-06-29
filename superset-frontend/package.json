@@ -274,7 +274,6 @@
     "@types/sinon": "^17.0.3",
     "@types/testing-library__jest-dom": "^5.14.9",
     "@types/tinycolor2": "^1.4.3",
-    "@types/yargs": "12 - 18",
     "@typescript-eslint/eslint-plugin": "^7.18.0",
     "@typescript-eslint/parser": "^7.18.0",
     "babel-jest": "^29.7.0",
