@@ -71,6 +71,16 @@ const defaultProps = {
   isEditable: true,
 };
 
+const getDatasetType = datasource => {
+  if (datasource.type === 'query') {
+    return 'query';
+  }
+  if (datasource.type === 'table' && datasource.sql) {
+    return 'virtual_dataset';
+  }
+  return 'physical_dataset';
+};
+
 const Styles = styled.div`
   .data-container {
     display: flex;
@@ -134,10 +144,9 @@ const VISIBLE_TITLE_LENGTH = 25;
 
 // Assign icon for each DatasourceType.  If no icon assignment is found in the lookup, no icon will render
 export const datasourceIconLookup = {
-  [DatasourceType.Query]: (
-    <Icons.ConsoleSqlOutlined className="datasource-svg" />
-  ),
-  [DatasourceType.Table]: <Icons.TableOutlined className="datasource-svg" />,
+  query: <Icons.ConsoleSqlOutlined className="datasource-svg" />,
+  physical_dataset: <Icons.TableOutlined className="datasource-svg" />,
+  virtual_dataset: <Icons.ConsoleSqlOutlined className="datasource-svg" />,
 };
 
 // Render title for datasource with tooltip only if text is longer than VISIBLE_TITLE_LENGTH
@@ -397,7 +406,7 @@ class DatasourceControl extends PureComponent {
     return (
       <Styles data-test="datasource-control" className="DatasourceControl">
         <div className="data-container">
-          {datasourceIconLookup[datasource?.type]}
+          {datasourceIconLookup[getDatasetType(datasource)]}
           {renderDatasourceTitle(titleText, tooltip)}
           {healthCheckMessage && (
             <Tooltip title={healthCheckMessage}>
