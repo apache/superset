@@ -2512,7 +2512,10 @@ class TestGuestTokens(SupersetTestCase):
         assert token_user["attributes"]["team"] == "data-platform"
 
     def test_create_guest_access_token_without_attributes(self):
-        """Test creating guest access token without user attributes (backward compatibility)."""
+        """Test creating guest access token without user attributes.
+
+        This test ensures backward compatibility.
+        """
         user_without_attributes = {
             "username": "test_guest_no_attrs",
             "first_name": "Test",
