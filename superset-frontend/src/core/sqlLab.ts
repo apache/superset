@@ -23,18 +23,22 @@ import {
   querySuccess,
 } from 'src/SqlLab/actions/sqlLab';
 import { RootState } from 'src/views/store';
-import { Disposable, Editor, Tab } from './core';
+import { Disposable, Editor } from './core';
 import { createActionListener } from './utils';
 
 // TODO: Refactor to return all needed parameters. Add them to the interface.
 export const onDidQueryRun: typeof sqlLabType.onDidQueryRun = (
-  listener: (e: string) => void,
+  listener: (editor: sqlLabType.Editor) => void,
   thisArgs?: any,
 ): Disposable =>
   createActionListener(
     QUERY_SUCCESS,
     listener,
-    (action: ReturnType<typeof querySuccess>) => action.query.sql,
+    (action: ReturnType<typeof querySuccess>, state: RootState) => {
+      const { query } = action;
+      const { dbId, catalog, schema, sql } = query;
+      return new Editor(sql, dbId, catalog, schema);
+    },
     thisArgs,
   );
 
@@ -56,27 +60,14 @@ export const onDidQueryFail: typeof sqlLabType.onDidQueryFail = (
   );
 
 // TODO: This will monitor multiple Redux actions.
-export const onDidChangeTabState: typeof sqlLabType.onDidChangeTabState = (
-  listener: (e: Tab) => void,
-  thisArgs?: any,
-): Disposable =>
-  createActionListener(
-    'QUERY_EDITOR_SETDB',
-    listener,
-    (action: { type: string; dbId: number }, state: RootState) => {
-      const { sqlLab } = state;
-      const { databases, queryEditors, lastUpdatedActiveTab } = sqlLab;
-      const activeEditor = queryEditors.find(
-        (editor: { id: string }) => editor.id === lastUpdatedActiveTab,
-      );
-      const database = databases[action.dbId];
-      const editor = new Editor(activeEditor.sql, {
-        ...database,
-        name: database.database_name,
-      });
-      return new Tab(lastUpdatedActiveTab, activeEditor.name, editor);
-    },
-  );
+export const onDidChangeEditorDatabase: typeof sqlLabType.onDidChangeEditorDatabase =
+  (listener: (e: number) => void, thisArgs?: any): Disposable =>
+    createActionListener(
+      'QUERY_EDITOR_SETDB',
+      listener,
+      (action: { type: string; queryEditor: { dbId: number } }) =>
+        action.queryEditor.dbId,
+    );
 
 // TODO: Make it typeof sqlLabType
 export const sqlLab = {
@@ -93,5 +84,5 @@ export const sqlLab = {
   ],
   onDidQueryRun,
   onDidQueryFail,
-  onDidChangeTabState,
+  onDidChangeEditorDatabase,
 };

@@ -22,7 +22,7 @@ import React, { useEffect } from "react";
 import { core, sqlLab } from "@apache-superset/core";
 
 const Example: React.FC = () => {
-  const [database, setDatabase] = React.useState<core.Database | null>(null);
+  const [databaseId, setDatabaseId] = React.useState<number | null>(null);
   const [logs, setLogs] = React.useState<string[]>([]);
 
   const containerStyle: React.CSSProperties = {
@@ -33,21 +33,19 @@ const Example: React.FC = () => {
   };
 
   useEffect(() => {
-    const queryRun = sqlLab.onDidQueryRun((sql: string) =>
-      setLogs((prevLogs) => [...prevLogs, sql])
+    const queryRun = sqlLab.onDidQueryRun((editor: sqlLab.Editor) =>
+      setLogs((prevLogs) => [...prevLogs, editor.content])
     );
     const queryFail = sqlLab.onDidQueryFail((error: string) =>
       setLogs((prevLogs) => [...prevLogs, error])
     );
-    const tabStateChanged = sqlLab.onDidChangeTabState((tab: sqlLab.Tab) => {
-      const { editor } = tab;
-      const { database } = editor;
-      setDatabase(database);
-    });
+    const onDidChangeEditorDatabase = sqlLab.onDidChangeEditorDatabase(
+      (databaseId: number) => setDatabaseId(databaseId)
+    );
     return () => {
       queryRun.dispose();
       queryFail.dispose();
-      tabStateChanged.dispose();
+      onDidChangeEditorDatabase.dispose();
     };
   }, []);
 
@@ -55,7 +53,7 @@ const Example: React.FC = () => {
     <div style={containerStyle}>
       I'm an extension that shows a log of successful and failed queries.
       <br />
-      <div>{database ? String(database) : "No database selected"}</div>
+      {databaseId && <div>Database changed to: {databaseId}</div>}
       <br />
       <ul>
         {logs.map((log) => (

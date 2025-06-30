@@ -24,7 +24,7 @@ import { MetadataRow } from "./types";
 const Main: React.FC = () => {
   const [metadata, setMetadata] = React.useState<MetadataRow[]>([]);
 
-  const onQueryRun = async (sql: string) => {
+  const onQueryRun = async (editor: sqlLab.Editor) => {
     try {
       const csrfToken = await authentication.getCSRFToken();
       const response = await fetch(
@@ -36,7 +36,8 @@ const Main: React.FC = () => {
             "X-CSRFToken": csrfToken!,
           },
           body: JSON.stringify({
-            sql,
+            databaseId: editor.databaseId,
+            sql: editor.content,
           }),
         }
       );

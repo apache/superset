@@ -125,38 +125,36 @@ export class ExtensionContext implements coreType.ExtensionContext {
 }
 
 export class Panel implements sqlLabType.Panel {
-  activate(): void {
-    // Implementation for activating the panel
-  }
+  id: string;
 
-  dispose(): void {
-    // Implementation for disposing the panel
+  constructor(id: string) {
+    this.id = id;
   }
 }
 
 export class Editor implements sqlLabType.Editor {
   content: string;
 
-  database: Database;
+  databaseId: number;
+
+  schema: string;
 
   // TODO: Check later if we'll use objects instead of strings.
   catalog: string | null;
 
-  schema: string;
-
-  table: string;
+  table: string | null;
 
   constructor(
     content: string,
-    database: Database,
-    catalog: string | null = null,
+    databaseId: number,
     schema = '',
-    table = '',
+    catalog: string | null = null,
+    table: string | null = null,
   ) {
     this.content = content;
-    this.database = database;
-    this.catalog = catalog;
+    this.databaseId = databaseId;
     this.schema = schema;
+    this.catalog = catalog;
     this.table = table;
   }
 }
