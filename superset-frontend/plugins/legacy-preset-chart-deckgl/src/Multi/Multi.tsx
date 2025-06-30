@@ -22,12 +22,14 @@
 import { memo, useCallback, useEffect, useRef, useState } from 'react';
 import { isEqual } from 'lodash';
 import {
+  AdhocFilter,
   Datasource,
   ensureIsArray,
   HandlerFunction,
   JsonObject,
   JsonValue,
   QueryFormData,
+  QueryObjectFilterClause,
   SupersetClient,
   usePrevious,
 } from '@superset-ui/core';
@@ -108,111 +110,147 @@ const DeckMulti = (props: DeckMultiProps) => {
     }
   }, []);
 
+  const getLayerIndex = useCallback(
+    (sliceId: number, payloadIndex: number, deckSlices?: number[]): number =>
+      deckSlices ? deckSlices.indexOf(sliceId) : payloadIndex,
+    [],
+  );
+
+  const processLayerFilters = useCallback(
+    (
+      subslice: JsonObject,
+      formData: QueryFormData,
+      layerIndex: number,
+    ): {
+      extraFilters: (AdhocFilter | QueryObjectFilterClause)[];
+      adhocFilters: AdhocFilter[];
+    } => {
+      const layerFilterScope = formData.layer_filter_scope;
+
+      const extraFilters: (AdhocFilter | QueryObjectFilterClause)[] = [
+        ...(subslice.form_data.extra_filters || []),
+        ...(formData.extra_filters || []),
+      ];
+
+      const adhocFilters: AdhocFilter[] = [
+        ...(subslice.form_data?.adhoc_filters || []),
+      ];
+
+      if (layerFilterScope) {
+        const filterDataMapping = formData.filter_data_mapping || {};
+        let shouldAddDashboardAdhocFilters = false;
+
+        Object.entries(layerFilterScope).forEach(
+          ([filterId, filterScope]: [string, number[]]) => {
+            const shouldApplyFilter =
+              ensureIsArray(filterScope).includes(layerIndex);
+
+            if (shouldApplyFilter) {
+              shouldAddDashboardAdhocFilters = true;
+              const filtersFromThisFilter = filterDataMapping[filterId] || [];
+              extraFilters.push(...filtersFromThisFilter);
+            }
+          },
+        );
+
+        if (shouldAddDashboardAdhocFilters) {
+          const dashboardAdhocFilters = formData.adhoc_filters || [];
+          adhocFilters.push(...dashboardAdhocFilters);
+        }
+      } else {
+        const originalExtraFormDataFilters =
+          formData.extra_form_data?.filters || [];
+        extraFilters.push(...originalExtraFormDataFilters);
+
+        const dashboardAdhocFilters = formData.adhoc_filters || [];
+        adhocFilters.push(...dashboardAdhocFilters);
+      }
+
+      return { extraFilters, adhocFilters };
+    },
+    [],
+  );
+
+  const createLayerFromData = useCallback(
+    (subslice: JsonObject, json: JsonObject): Layer =>
+      // @ts-ignore TODO(hainenber): define proper type for `form_data.viz_type` and call signature for functions in layerGenerators.
+      layerGenerators[subslice.form_data.viz_type](
+        subslice.form_data,
+        json,
+        props.onAddFilter,
+        setTooltip,
+        props.datasource,
+        [],
+        props.onSelect,
+      ),
+    [props.onAddFilter, props.onSelect, props.datasource, setTooltip],
+  );
+
+  const loadSingleLayer = useCallback(
+    (
+      subslice: JsonObject,
+      formData: QueryFormData,
+      payloadIndex: number,
+    ): void => {
+      const layerIndex = getLayerIndex(
+        subslice.slice_id,
+        payloadIndex,
+        formData.deck_slices,
+      );
+
+      const { extraFilters, adhocFilters } = processLayerFilters(
+        subslice,
+        formData,
+        layerIndex,
+      );
+
+      const subsliceCopy = {
+        ...subslice,
+        form_data: {
+          ...subslice.form_data,
+          extra_filters: extraFilters,
+          adhoc_filters: adhocFilters,
+        },
+      } as any as JsonObject & { slice_id: number };
+
+      const url = getExploreLongUrl(subsliceCopy.form_data, 'json');
+
+      if (url) {
+        SupersetClient.get({ endpoint: url })
+          .then(({ json }) => {
+            const layer = createLayerFromData(subsliceCopy, json);
+            setSubSlicesLayers(subSlicesLayers => ({
+              ...subSlicesLayers,
+              [subsliceCopy.slice_id]: layer,
+            }));
+          })
+          .catch(error => {
+            console.error(
+              `Error loading layer for slice ${subsliceCopy.slice_id}:`,
+              error,
+            );
+          });
+      }
+    },
+    [getLayerIndex, processLayerFilters, createLayerFromData],
+  );
+
   const loadLayers = useCallback(
-    (formData: QueryFormData, payload: JsonObject, viewport?: Viewport) => {
+    (
+      formData: QueryFormData,
+      payload: JsonObject,
+      viewport?: Viewport,
+    ): void => {
       setViewport(getAdjustedViewport());
       setSubSlicesLayers({});
 
       payload.data.slices.forEach(
         (subslice: { slice_id: number } & JsonObject, payloadIndex: number) => {
-          const correctLayerIndex = formData.deck_slices
-            ? formData.deck_slices.indexOf(subslice.slice_id)
-            : payloadIndex;
-
-          const layerFilterScope = formData.layer_filter_scope;
-
-          const layerSpecificExtraFilters = [
-            ...(subslice.form_data.extra_filters || []),
-            ...(formData.extra_filters || []),
-          ];
-
-          // Start with the original layer's adhoc filters
-          const layerSpecificAdhocFilters = [
-            ...(subslice.formData?.adhoc_filters || []),
-          ];
-
-          if (layerFilterScope) {
-            const filterDataMapping = formData.filter_data_mapping || {};
-            let shouldAddDashboardAdhocFilters = false;
-
-            Object.entries(layerFilterScope).forEach(
-              ([filterId, filterScope]: [string, any]) => {
-                const shouldApplyFilter =
-                  ensureIsArray(filterScope).includes(correctLayerIndex);
-
-                if (shouldApplyFilter) {
-                  shouldAddDashboardAdhocFilters = true;
-                  const filtersFromThisFilter =
-                    filterDataMapping[filterId] || [];
-                  layerSpecificExtraFilters.push(...filtersFromThisFilter);
-                }
-              },
-            );
-
-            // Add dashboard adhoc filters only if this layer should be filtered
-            if (shouldAddDashboardAdhocFilters) {
-              const dashboardAdhocFilters = formData.adhoc_filters || [];
-              layerSpecificAdhocFilters.push(...dashboardAdhocFilters);
-            }
-          } else {
-            const originalExtraFormDataFilters =
-              formData.extra_form_data?.filters || [];
-            layerSpecificExtraFilters.push(...originalExtraFormDataFilters);
-
-            // When no layer filter scope, apply all dashboard adhoc filters
-            const dashboardAdhocFilters = formData.adhoc_filters || [];
-            layerSpecificAdhocFilters.push(...dashboardAdhocFilters);
-          }
-
-          const subsliceCopy = {
-            ...subslice,
-            form_data: {
-              ...subslice.form_data,
-              extra_filters: layerSpecificExtraFilters,
-              adhoc_filters: layerSpecificAdhocFilters,
-            },
-          };
-
-          const url = getExploreLongUrl(subsliceCopy.form_data, 'json');
-
-          if (url) {
-            SupersetClient.get({
-              endpoint: url,
-            })
-              .then(({ json }) => {
-                // @ts-ignore TODO(hainenber): define proper type for `form_data.viz_type` and call signature for functions in layerGenerators.
-                const layer = layerGenerators[subsliceCopy.form_data.viz_type](
-                  subsliceCopy.form_data,
-                  json,
-                  props.onAddFilter,
-                  setTooltip,
-                  props.datasource,
-                  [],
-                  props.onSelect,
-                );
-
-                setSubSlicesLayers(subSlicesLayers => ({
-                  ...subSlicesLayers,
-                  [subsliceCopy.slice_id]: layer,
-                }));
-              })
-              .catch(error => {
-                console.error(
-                  `Error loading layer for slice ${subsliceCopy.slice_id}:`,
-                  error,
-                );
-              });
-          }
+          loadSingleLayer(subslice, formData, payloadIndex);
         },
       );
     },
-    [
-      props.datasource,
-      props.onAddFilter,
-      props.onSelect,
-      setTooltip,
-      getAdjustedViewport,
-    ],
+    [getAdjustedViewport, loadSingleLayer],
   );
 
   const prevDeckSlices = usePrevious(props.formData.deck_slices);

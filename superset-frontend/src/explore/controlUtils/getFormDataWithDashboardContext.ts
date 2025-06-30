@@ -30,8 +30,9 @@ import {
   QueryFormData,
   QueryObjectFilterClause,
   SimpleAdhocFilter,
+  isAdhocColumn,
 } from '@superset-ui/core';
-import { simpleFilterToAdhoc } from 'src/utils/simpleFilterToAdhoc';
+import { simpleFilterToAdhoc } from '../../utils/simpleFilterToAdhoc';
 
 const removeExtraFieldForNewCharts = (
   filters: AdhocFilter[],
@@ -112,6 +113,7 @@ const mergeFilterBoxToFormData = (
 const mergeNativeFiltersToFormData = (
   exploreFormData: QueryFormData,
   dashboardFormData: JsonObject,
+  isDeckGLChart: boolean,
 ) => {
   const nativeFiltersData: JsonObject = {};
   const extraFormData = dashboardFormData.extra_form_data || {};
@@ -142,24 +144,93 @@ const mergeNativeFiltersToFormData = (
     nativeFiltersData.extras = extras;
   }
 
-  nativeFiltersData.adhoc_filters = ensureIsArray(
-    extraFormData.adhoc_filters,
-  ).map(filter => ({
-    ...filter,
-    isExtra: true,
-  }));
+  const getLayerScopedFilterSubjects = (): Set<string> => {
+    if (!isDeckGLChart) return new Set();
 
-  const appendFilters = ensureIsArray(extraFormData.filters).map(extraFilter =>
-    simpleFilterToAdhoc({ ...extraFilter, isExtra: true }),
-  );
-  Object.keys(exploreFormData).forEach(key => {
-    if (key.match(/adhoc_filter.*/)) {
-      nativeFiltersData[key] = [
-        ...ensureIsArray(nativeFiltersData[key]),
-        ...appendFilters,
-      ];
+    const filterDataMapping =
+      dashboardFormData.filter_data_mapping ||
+      exploreFormData.filter_data_mapping ||
+      {};
+
+    const scopedSubjects = new Set<string>();
+
+    const getSubjectString = (filter: AdhocFilter): string => {
+      if ('subject' in filter) {
+        const { subject } = filter;
+        if (typeof subject === 'string') {
+          return subject;
+        }
+        if (isAdhocColumn(subject)) {
+          const adhocColumn = subject as any;
+          return adhocColumn.label || adhocColumn.optionName || '';
+        }
+      }
+      if ('col' in filter && typeof (filter as any).col === 'string') {
+        return (filter as any).col;
+      }
+      return '';
+    };
+
+    Object.values(filterDataMapping).forEach((filters: AdhocFilter[]) => {
+      if (Array.isArray(filters)) {
+        filters.forEach((filter: AdhocFilter) => {
+          const subject = getSubjectString(filter);
+          if (subject) {
+            scopedSubjects.add(subject);
+          }
+        });
+      }
+    });
+
+    return scopedSubjects;
+  };
+
+  const layerScopedSubjects = getLayerScopedFilterSubjects();
+
+  const shouldExcludeFilter = (
+    filter: AdhocFilter | QueryObjectFilterClause,
+  ): boolean => {
+    let subject = '';
+
+    if ('subject' in filter) {
+      const { subject: filterSubject } = filter;
+      if (typeof filterSubject === 'string') {
+        subject = filterSubject;
+      } else if (isAdhocColumn(filterSubject)) {
+        const adhocColumn = filterSubject as any;
+        subject = adhocColumn.label || adhocColumn.optionName || '';
+      }
+    } else if ('col' in filter && typeof filter.col === 'string') {
+      subject = filter.col;
     }
-  });
+
+    return layerScopedSubjects.has(subject);
+  };
+
+  const adhocFilters = ensureIsArray(extraFormData.adhoc_filters)
+    .filter((filter: AdhocFilter) => !shouldExcludeFilter(filter))
+    .map((filter: AdhocFilter) => ({
+      ...filter,
+      isExtra: true,
+    }));
+
+  nativeFiltersData.adhoc_filters = adhocFilters;
+
+  // Keep legacy filters in their original format, just filter out layer-scoped ones
+  const legacyFilters = ensureIsArray(extraFormData.filters)
+    .filter(
+      (extraFilter: QueryObjectFilterClause) =>
+        !shouldExcludeFilter(extraFilter),
+    )
+    .map((extraFilter: QueryObjectFilterClause) => ({
+      ...extraFilter,
+      isExtra: true,
+    }));
+
+  if (legacyFilters.length > 0) {
+    nativeFiltersData.filters = legacyFilters;
+  }
+
   return nativeFiltersData;
 };
 
@@ -187,6 +258,10 @@ export const getFormDataWithDashboardContext = (
   exploreFormData: QueryFormData,
   dashboardContextFormData: JsonObject,
 ) => {
+  const isDeckGLChartCheck =
+    exploreFormData.viz_type === 'deck_multi' ||
+    dashboardContextFormData.viz_type === 'deck_multi';
+
   const filterBoxData = mergeFilterBoxToFormData(
     exploreFormData,
     dashboardContextFormData,
@@ -194,6 +269,7 @@ export const getFormDataWithDashboardContext = (
   const nativeFiltersData = mergeNativeFiltersToFormData(
     exploreFormData,
     dashboardContextFormData,
+    isDeckGLChartCheck,
   );
   const adhocFilters = [
     ...Object.keys(exploreFormData),
@@ -204,17 +280,22 @@ export const getFormDataWithDashboardContext = (
     .reduce(
       (acc, key) => ({
         ...acc,
-        [key]: removeExtraFieldForNewCharts(
-          applyTimeRangeFilters(
-            dashboardContextFormData,
-            removeAdhocFilterDuplicates([
-              ...ensureIsArray(exploreFormData[key]),
-              ...ensureIsArray(filterBoxData[key]),
-              ...ensureIsArray(nativeFiltersData[key]),
-            ]),
-          ),
-          exploreFormData.slice_id === 0,
-        ),
+        [key]: (() => {
+          const beforeDuplicates = [
+            ...ensureIsArray(exploreFormData[key]),
+            ...ensureIsArray(filterBoxData[key]),
+            ...ensureIsArray(nativeFiltersData[key]),
+          ];
+
+          const afterDuplicates = removeAdhocFilterDuplicates(beforeDuplicates);
+
+          const final = removeExtraFieldForNewCharts(
+            applyTimeRangeFilters(dashboardContextFormData, afterDuplicates),
+            exploreFormData.slice_id === 0,
+          );
+
+          return final;
+        })(),
       }),
       {},
     );
@@ -224,11 +305,8 @@ export const getFormDataWithDashboardContext = (
   const appliedColorScheme = dashboardColorScheme || ownColorScheme;
 
   const deckGLProperties: JsonObject = {};
-  const isDeckGLChart =
-    exploreFormData.viz_type === 'deck_multi' ||
-    dashboardContextFormData.viz_type === 'deck_multi';
 
-  if (isDeckGLChart) {
+  if (isDeckGLChartCheck) {
     if (dashboardContextFormData.layer_filter_scope) {
       deckGLProperties.layer_filter_scope =
         dashboardContextFormData.layer_filter_scope;
