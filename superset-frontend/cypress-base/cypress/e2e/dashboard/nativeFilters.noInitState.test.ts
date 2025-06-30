@@ -224,7 +224,10 @@ describe('Native filters', () => {
         cy.get('[data-test="range-filter-to-input"]').clear();
         cy.get('[data-test="range-filter-to-input"]').type(to);
 
-        cy.get(nativeFilters.applyFilter).click();
+        cy.get(nativeFilters.applyFilter)
+          .should('exist')
+          .should('not.be.disabled')
+          .click();
 
         cy.get('[data-test="range-filter-from-input"]')
           .invoke('val')
@@ -257,7 +260,6 @@ describe('Native filters', () => {
       it('User can change the display mode to "Slider"', () => {
         enterNativeFilterEditModal(false);
 
-        // Re-create filter
         fillNativeFilterForm(
           testItems.filterType.numerical,
           testItems.filterNumericalColumn,
@@ -266,14 +268,30 @@ describe('Native filters', () => {
         );
 
         expandFilterConfiguration();
-        selectRangeTypeOption('Slider');
+
+        cy.contains('Range Type')
+          .should('be.visible')
+          .closest('.ant-form-item')
+          .within(() => {
+            cy.get('.ant-select-selector').click({ force: true });
+          });
+
+        cy.get('.ant-select-dropdown:visible .ant-select-item-option')
+          .contains(/^Slider$/)
+          .click({ force: true });
+
+        cy.get('.ant-select-selector').should('contain.text', 'Slider');
 
         saveNativeFilterSettings([]);
-        cy.wait(500);
 
-        cy.get('[data-test="range-filter-from-input"]').should('not.exist');
-        cy.get('[data-test="range-filter-to-input"]').should('not.exist');
-        cy.get('[data-test="range-filter-slider"]').should('exist');
+        cy.get('.ant-slider', { timeout: 10000 }).should('be.visible');
+
+        cy.get('[data-test="range-filter-from-input"]', {
+          timeout: 5000,
+        }).should('not.exist');
+        cy.get('[data-test="range-filter-to-input"]', { timeout: 5000 }).should(
+          'not.exist',
+        );
       });
 
       it('User can change the display mode to "Slider and range input"', () => {
