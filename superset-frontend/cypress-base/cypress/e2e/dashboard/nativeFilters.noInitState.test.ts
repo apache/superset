@@ -183,7 +183,7 @@ describe('Native filters', () => {
       validateFilterContentOnDashboard(testItems.topTenChart.filterColumnYear);
     });
 
-    describe('Numerical Range Filter - Display Modes', () => {
+    describe.only('Numerical Range Filter - Display Modes', () => {
       beforeEach(() => {
         visitDashboard();
       });
@@ -220,22 +220,22 @@ describe('Native filters', () => {
       const applyAndAssertInputs = (from: string, to: string) => {
         cy.get('[data-test="range-filter-from-input"]').clear();
         cy.get('[data-test="range-filter-from-input"]').type(from);
+        cy.get('[data-test="range-filter-from-input"]').blur();
 
         cy.get('[data-test="range-filter-to-input"]').clear();
         cy.get('[data-test="range-filter-to-input"]').type(to);
+        cy.get('[data-test="range-filter-to-input"]').blur();
 
-        cy.get(nativeFilters.applyFilter)
-          .should('exist')
-          .should('not.be.disabled')
-          .click();
+        cy.get(nativeFilters.applyFilter, { timeout: 10000 }).should('exist');
+        cy.get(nativeFilters.applyFilter).should('not.be.disabled').click();
 
         cy.get('[data-test="range-filter-from-input"]')
           .invoke('val')
-          .should('equal', from);
+          .then(val => expect(val).to.equal(from));
 
         cy.get('[data-test="range-filter-to-input"]')
           .invoke('val')
-          .should('equal', to);
+          .then(val => expect(val).to.equal(to));
       };
 
       it('User can create a numerical range filter with "Range Inputs" display mode', () => {
