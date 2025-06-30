@@ -183,7 +183,7 @@ describe('Native filters', () => {
       validateFilterContentOnDashboard(testItems.topTenChart.filterColumnYear);
     });
 
-    describe.only('Numerical Range Filter - Display Modes', () => {
+    describe('Numerical Range Filter - Display Modes', () => {
       beforeEach(() => {
         visitDashboard();
       });
