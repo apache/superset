@@ -285,15 +285,20 @@ class ExtraCache:
             self.cache_key_wrapper(result)
         return result
 
-    def get_guest_user_attribute(self, attribute_name: str, default: str | None = None, add_to_cache_keys: bool = True) -> str | None:
+    def get_guest_user_attribute(
+        self,
+        attribute_name: str,
+        default: str | None = None,
+        add_to_cache_keys: bool = True,
+    ) -> str | None:
         """
         Get a specific user attribute from guest user.
-        
+
         Args:
             attribute_name: Name of the attribute to retrieve
             default: Default value if attribute not found
             add_to_cache_keys: Whether the value should be included in the cache key
-        
+
         Returns:
             Attribute value or default
         """
@@ -301,27 +306,29 @@ class ExtraCache:
         # Check if we have a request context and user
         if not has_request_context():
             return default
-        
-        if not hasattr(g, 'user') or g.user is None:
+
+        if not hasattr(g, "user") or g.user is None:
             return default
-        
+
         user = g.user
-        
+
         # Check if current user is a guest user
-        if not (hasattr(user, 'is_guest_user') and user.is_guest_user):
+        if not (hasattr(user, "is_guest_user") and user.is_guest_user):
             return default
-        
+
         # Get attributes from guest token
-        if hasattr(user, 'guest_token') and user.guest_token:
+        if hasattr(user, "guest_token") and user.guest_token:
             token = user.guest_token
-            token_user = token.get('user', {})
-            user_attributes = token_user.get('attributes') or {}
-            
+            token_user = token.get("user", {})
+            user_attributes = token_user.get("attributes") or {}
+
             # Only add to cache key if the variable actually exists in guest token
             if attribute_name in user_attributes:
                 result = user_attributes[attribute_name]
                 if add_to_cache_keys and result is not None:
-                    self.cache_key_wrapper(f"guest_user_attribute:{attribute_name}:{result}")
+                    self.cache_key_wrapper(
+                        f"guest_user_attribute:{attribute_name}:{result}"
+                    )
                 return result
             else:
                 return default

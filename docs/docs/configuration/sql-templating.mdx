@@ -294,12 +294,47 @@ Here's a concrete example:
 
 **Guest User Attributes**
 
-The `{{ get_guest_user_attribute('attribute_name') }}` macro returns a specific attribute value from the guest user context.
-This is useful when working with embedded Superset where guest tokens can contain custom attributes that need to be
-accessed in SQL queries.
+The `{{ get_guest_user_attribute('attribute_name') }}` macro returns a specific attribute value from the
+guest user context. This is useful when working with embedded Superset where guest tokens can contain
+custom attributes that need to be accessed in SQL queries.
 
 This macro only works when the current user is a guest user (authenticated via guest token). If the current user is
 not a guest user, or if the specified attribute doesn't exist, the macro will return `None` or the provided default value.
+
+Guest user attributes are set when creating guest tokens via the `/security/guest_token` API endpoint.
+The attributes are passed in the `user` object within the request payload.
+
+Here's an example of how to create a guest token with custom attributes:
+
+```json
+{
+  "user": {
+    "username": "bob_with_attrs",
+    "first_name": "Bob",
+    "last_name": "Smith",
+    "attributes": {
+      "department": "Engineering",
+      "region": "US",
+      "role": "developer",
+      "team": "data-platform",
+      "clearance_level": "standard",
+      "projects": ["analytics", "ml-platform"],
+      "team_lead": true
+    }
+  },
+  "resources": [{
+    "type": "dashboard",
+    "id": "dashboard-uuid"
+  }],
+  "rls": []
+}
+```
+
+The `attributes` field in the `user` object can contain any custom key-value pairs that your application needs.
+These attributes will be available in SQL queries through the `get_guest_user_attribute()` macro.
+
+For more information about setting up embedded Superset and creating guest tokens, see the
+[embedded SDK documentation](https://www.npmjs.com/package/@superset-ui/embedded-sdk) and [networking settings](/docs/configuration/networking-settings#html-embedding-of-dashboards-and-charts).
 
 If you have caching enabled in your Superset configuration, then by default the attribute value will be used
 by Superset when calculating the cache key. A cache key is a unique identifier that determines if there's a
