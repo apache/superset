@@ -18,7 +18,7 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime
-from typing import Any
+from typing import Any, Dict, List, Optional, Tuple
 
 from flask import g
 from flask_appbuilder.models.sqla.interface import SQLAInterface
@@ -31,7 +31,9 @@ from superset.commands.dashboard.exceptions import (
     DashboardUpdateFailedError,
 )
 from superset.daos.base import BaseDAO
-from superset.dashboards.filters import DashboardAccessFilter, is_uuid
+from superset.dashboards.filters import (
+    DashboardAccessFilter, is_uuid,
+)
 from superset.exceptions import SupersetSecurityException
 from superset.extensions import db
 from superset.models.core import FavStar, FavStarClassName
@@ -435,6 +437,36 @@ class DashboardDAO(BaseDAO[Dashboard]):
         )
         if fav:
             db.session.delete(fav)
+
+    @classmethod
+    def list_dashboards(
+        cls,
+        filters: Optional[Dict[str, Any]] = None,
+        order_column: str = "changed_on",
+        order_direction: str = "desc",
+        page: int = 0,
+        page_size: int = 100,
+        search: Optional[str] = None,
+        search_columns: Optional[list[str]] = ["dashboard_title", "slug"],
+    ) -> Tuple[List[Dashboard], int]:
+        """
+        List dashboards using the generic BaseDAO.list method with dashboard-specific
+        configuration.
+        
+        This method leverages the generic list functionality from BaseDAO while
+        providing
+        dashboard-specific search columns.
+        """
+        return cls.list(
+            filters=filters,
+            order_column=order_column,
+            order_direction=order_direction,
+            page=page,
+            page_size=page_size,
+            search=search,
+            search_columns=search_columns,
+            custom_filters=None,
+        )
 
 
 class EmbeddedDashboardDAO(BaseDAO[EmbeddedDashboard]):
