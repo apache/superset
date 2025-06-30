@@ -18,17 +18,17 @@ msgid ""
 msgstr ""
 "Project-Id-Version:  \n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2025-04-29 12:34+0330\n"
+"POT-Creation-Date: 2025-06-30 15:01+0300\n"
 "PO-Revision-Date: 2023-09-17 12:57+0300\n"
 "Last-Translator: \n"
 "Language: uk\n"
 "Language-Team: \n"
 "Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && "
-"n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2)\n"
+"n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2);\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Generated-By: Babel 2.9.1\n"
+"Generated-By: Babel 2.17.0\n"
 
 msgid ""
 "\n"
@@ -148,6 +148,9 @@ msgstr " Для додавання обчислених стовпців"
 msgid " to add metrics"
 msgstr " Додати показники"
 
+msgid " to check for details."
+msgstr ""
+
 msgid " to edit or add columns and metrics."
 msgstr " редагувати або додати стовпці та показники."
 
@@ -156,6 +159,10 @@ msgstr " Щоб позначити стовпець як стовпчик час
 
 msgid " to open SQL Lab. From there you can save the query as a dataset."
 msgstr " відкрити SQL Lab. Звідти ви можете зберегти запит як набір даних."
+
+#, fuzzy
+msgid " to see details."
+msgstr "Див. Деталі запиту"
 
 msgid " to visualize your data."
 msgstr " Візуалізувати свої дані."
@@ -308,6 +315,10 @@ msgstr[2] ""
 #, python-format
 msgid "%s saved metric(s)"
 msgstr "%s збережені метрики"
+
+#, fuzzy, python-format
+msgid "%s tab selected"
+msgstr "%s вибраний"
 
 #, python-format
 msgid "%s updated"
@@ -617,6 +628,10 @@ msgstr "> = (Більший або рівний)"
 msgid "A Big Number"
 msgstr "Велика кількість"
 
+#, fuzzy
+msgid "A comma separated list of columns that should be parsed as dates"
+msgstr "Стовпці, які слід проаналізувати як дати"
+
 msgid "A comma-separated list of schemas that files are allowed to upload to."
 msgstr "Список схем, відокремлений комами, до яких файли дозволяють завантажувати."
 
@@ -629,7 +644,7 @@ msgstr "База даних з тим самим іменем вже існує.
 msgid "A date is required when using custom date shift"
 msgstr ""
 
-#, fuzzy
+#, fuzzy, python-brace-format
 msgid ""
 "A dictionary with column names and their data types if you need to change"
 " the defaults. Example: {\"user_id\":\"int\"}. Check Python's Pandas "
@@ -780,6 +795,10 @@ msgstr "Дія"
 msgid "Action Log"
 msgstr "Журнал дій"
 
+#, fuzzy
+msgid "Action Logs"
+msgstr "Журнал дій"
+
 msgid "Actions"
 msgstr "Дії"
 
@@ -832,6 +851,10 @@ msgstr "Роздільник"
 #, fuzzy
 msgid "Add Filter"
 msgstr "Додати фільтр"
+
+#, fuzzy
+msgid "Add Group"
+msgstr "Додайте правило"
 
 #, fuzzy
 msgid "Add Layer"
@@ -1091,6 +1114,11 @@ msgstr "Виберіть приладову панель"
 msgid "After"
 msgstr "Після"
 
+msgid ""
+"After making the changes, copy the query and paste in the virtual dataset"
+" SQL snippet settings."
+msgstr ""
+
 msgid "Aggregate"
 msgstr "Сукупний"
 
@@ -1130,6 +1158,12 @@ msgstr "Агрегація"
 
 msgid "Aggregation function"
 msgstr "Функція агрегації"
+
+msgid ""
+"Aggregation method used to compute the Big Number from the Trendline.For "
+"non-additive metrics like ratios, averages, distinct counts, etc use "
+"NONE."
+msgstr ""
 
 msgid "Alert"
 msgstr "Насторожений"
@@ -1225,6 +1259,10 @@ msgstr "Всі фільтри"
 
 msgid "All panels"
 msgstr "Всі панелі"
+
+#, fuzzy
+msgid "All records"
+msgstr "RAW Records"
 
 msgid "Allow CREATE TABLE AS"
 msgstr "Дозволити створити таблицю як"
@@ -1336,10 +1374,6 @@ msgstr ""
 
 msgid "An error has occurred"
 msgstr "Сталася помилка"
-
-#, fuzzy, python-format
-msgid "An error has occurred while syncing virtual dataset columns"
-msgstr "Помилка сталася під час отримання наборів даних: %s"
 
 msgid "An error occurred"
 msgstr "Виникла помилка"
@@ -1471,6 +1505,10 @@ msgstr ""
 #, python-format
 msgid "An error occurred while fetching user values: %s"
 msgstr "Помилка сталася під час отримання значень користувачів: %s"
+
+#, fuzzy
+msgid "An error occurred while formatting SQL"
+msgstr "Під час завантаження SQL сталася помилка"
 
 #, python-format
 msgid "An error occurred while importing %s: %s"
@@ -1742,6 +1780,10 @@ msgstr "Ви впевнені, що хочете видалити вибрані
 msgid "Are you sure you want to delete the selected datasets?"
 msgstr "Ви впевнені, що хочете видалити вибрані набори даних?"
 
+#, fuzzy
+msgid "Are you sure you want to delete the selected groups?"
+msgstr "Ви впевнені, що хочете видалити вибрані правила?"
+
 msgid "Are you sure you want to delete the selected layers?"
 msgstr "Ви впевнені, що хочете видалити вибрані шари?"
 
@@ -1972,9 +2014,6 @@ msgstr "До"
 msgid "Big Number"
 msgstr "Велике число"
 
-msgid "Big Number Font Size"
-msgstr "Розмір шрифту великого числа"
-
 msgid "Big Number with Time Period Comparison"
 msgstr ""
 
@@ -1984,6 +2023,10 @@ msgstr "Велика кількість з Trendline"
 #, fuzzy
 msgid "Bins"
 msgstr "у"
+
+#, python-format
+msgid "Block %(block_num)s out of %(block_count)s"
+msgstr ""
 
 #, fuzzy
 msgid "Border color"
@@ -2149,8 +2192,9 @@ msgstr "Скасувати"
 msgid "CC recipients"
 msgstr "недавні"
 
-msgid "CREATE DATASET"
-msgstr "Створити набір даних"
+#, fuzzy
+msgid "COPY QUERY"
+msgstr "Скопіюйте URL -адресу запитів"
 
 msgid "CREATE TABLE AS"
 msgstr "Створити таблицю як"
@@ -2477,12 +2521,15 @@ msgstr "Діаграма [%s] збережена"
 msgid "Chart [%s] was added to dashboard [%s]"
 msgstr "Діаграма [%s] була додана до інформаційної панелі [%s]"
 
+#, python-brace-format
 msgid "Chart [{}] has been overwritten"
 msgstr "Діаграма [{}] була перезаписана"
 
+#, python-brace-format
 msgid "Chart [{}] has been saved"
 msgstr "Діаграма [{}] збережена"
 
+#, python-brace-format
 msgid "Chart [{}] was added to dashboard [{}]"
 msgstr "Діаграма [{}] була додана до інформаційної панелі [{}]"
 
@@ -2634,6 +2681,9 @@ msgstr "Стовпці, які слід проаналізувати як дат
 msgid "Choose columns to read"
 msgstr "Стовпці для читання"
 
+msgid "Choose how many X-Axis labels to show"
+msgstr ""
+
 #, fuzzy
 msgid "Choose index column"
 msgstr "Стовпчик індексу"
@@ -2680,6 +2730,10 @@ msgid ""
 msgstr ""
 "Виберіть, чи повинна країна затінювати метрику, або призначати колір на "
 "основі категоричної кольорової палітру"
+
+#, fuzzy
+msgid "Choose..."
+msgstr "Виберіть базу даних ..."
 
 msgid "Chord Diagram"
 msgstr "Акордна діаграма"
@@ -2827,9 +2881,6 @@ msgstr "Колапс ряд"
 
 msgid "Collapse tab content"
 msgstr "Вміст вкладки колапсу"
-
-msgid "Collapse table preview"
-msgstr "Попередній перегляд таблиці колапсу"
 
 msgid "Color"
 msgstr "Забарвлення"
@@ -3110,6 +3161,10 @@ msgstr "Показати пароль."
 msgid "Confirm overwrite"
 msgstr "Підтвердити перезапис"
 
+#, fuzzy
+msgid "Confirm password"
+msgstr "Показати пароль."
+
 msgid "Confirm save"
 msgstr "Підтвердьте збереження"
 
@@ -3262,6 +3317,7 @@ msgstr "Не вдалося знайти об'єкт Viz"
 msgid "Could not load database driver"
 msgstr "Не вдалося завантажити драйвер бази даних"
 
+#, python-brace-format
 msgid "Could not load database driver: {}"
 msgstr "Не вдалося завантажити драйвер бази даних: {}"
 
@@ -3364,9 +3420,6 @@ msgstr "Створення джерела даних та створення н�
 
 msgid "Creator"
 msgstr "Творець"
-
-msgid "Credentials uploaded"
-msgstr ""
 
 msgid "Crimson"
 msgstr "Малиновий"
@@ -3548,10 +3601,15 @@ msgstr "Темний режим"
 msgid "Dashboard"
 msgstr "Дашборд"
 
+#, fuzzy
+msgid "Dashboard Id"
+msgstr "панель приладів"
+
 #, python-format
 msgid "Dashboard [%s] just got created and chart [%s] was added to it"
 msgstr "Дашборд [%s] був щойно створений, а діаграма [%s] була додана до нього"
 
+#, python-brace-format
 msgid "Dashboard [{}] just got created and chart [{}] was added to it"
 msgstr "Дашборд [{}] був щойно створений, і діаграма [{}] була додана до нього"
 
@@ -3729,9 +3787,6 @@ msgstr "База даних необхідна для сповіщень"
 
 msgid "Database name"
 msgstr "Назва бази даних"
-
-msgid "Database not allowed to change"
-msgstr "База даних не дозволяється змінювати"
 
 msgid "Database not found."
 msgstr "База даних не знайдена."
@@ -3946,6 +4001,7 @@ msgstr "Виберіть схему"
 msgid "Default URL"
 msgstr "URL -адреса за замовчуванням"
 
+#, python-brace-format
 msgid ""
 "Default URL to redirect to when accessing from the dataset list page.\n"
 "            Accepts relative URLs such as <span style=„white-space: "
@@ -4081,6 +4137,10 @@ msgstr "Видалити базу даних?"
 msgid "Delete Dataset?"
 msgstr "Видалити набір даних?"
 
+#, fuzzy
+msgid "Delete Group?"
+msgstr "видаляти"
+
 msgid "Delete Layer?"
 msgstr "Видалити шар?"
 
@@ -4116,6 +4176,10 @@ msgstr "Видалити базу даних"
 msgid "Delete email report"
 msgstr "Видалити звіт електронної пошти"
 
+#, fuzzy
+msgid "Delete group"
+msgstr "видаляти"
+
 msgid "Delete query"
 msgstr "Видалити запит"
 
@@ -4132,6 +4196,14 @@ msgstr "Видаліть цей контейнер і збережіть, щоб
 #, fuzzy
 msgid "Delete user"
 msgstr "Видалити запит"
+
+#, fuzzy, python-format
+msgid "Delete user registration"
+msgstr "Видалено: %s"
+
+#, fuzzy
+msgid "Delete user registration?"
+msgstr "Видалити анотацію?"
 
 msgid "Deleted"
 msgstr "Видалений"
@@ -4204,11 +4276,23 @@ msgid "Deleted %s"
 msgstr "Видалено %s"
 
 #, fuzzy, python-format
+msgid "Deleted group: %s"
+msgstr "Видалено: %s"
+
+#, fuzzy, python-format
+msgid "Deleted groups: %s"
+msgstr "Видалено: %s"
+
+#, fuzzy, python-format
 msgid "Deleted role: %s"
 msgstr "Видалено: %s"
 
 #, fuzzy, python-format
 msgid "Deleted roles: %s"
+msgstr "Видалено: %s"
+
+#, fuzzy, python-format
+msgid "Deleted user registration for user: %s"
 msgstr "Видалено: %s"
 
 #, fuzzy, python-format
@@ -4533,6 +4617,10 @@ msgstr "Спустіть тимчасовий стовпець або натис
 msgid "Drop columns/metrics here or click"
 msgstr "Спустіть тут стовпці/метрики або натисніть"
 
+#, fuzzy
+msgid "Dttm"
+msgstr "dttm"
+
 msgid "Duplicate"
 msgstr "Дублікат"
 
@@ -4599,6 +4687,10 @@ msgstr ""
 "цієї бази даних. Якщо залишатись не встановлено, кеш ніколи не "
 "закінчується. "
 
+#, fuzzy
+msgid "Duration Ms"
+msgstr "Тривалість"
+
 msgid "Duration in ms (1.40008 => 1ms 400µs 80ns)"
 msgstr "Тривалість в МС (1,40008 => 1 мс 400 мк 80ns)"
 
@@ -4623,9 +4715,6 @@ msgstr "Echarts"
 
 msgid "EMAIL_REPORTS_CTA"
 msgstr "Email_reports_cta"
-
-msgid "END (EXCLUSIVE)"
-msgstr "Кінець (ексклюзивний)"
 
 msgid "ERROR"
 msgstr "Помилка"
@@ -4663,6 +4752,10 @@ msgstr "Редагувати Дашборд"
 msgid "Edit Dataset "
 msgstr "Редагувати набір даних "
 
+#, fuzzy
+msgid "Edit Group"
+msgstr "Правило редагування"
+
 msgid "Edit Log"
 msgstr "Редагувати журнал"
 
@@ -4678,10 +4771,6 @@ msgstr "режим редагування"
 
 msgid "Edit Rule"
 msgstr "Правило редагування"
-
-#, fuzzy
-msgid "Edit Tag"
-msgstr "Редагувати журнал"
 
 #, fuzzy
 msgid "Edit User"
@@ -4717,6 +4806,10 @@ msgstr "Редагувати звіт електронної пошти"
 msgid "Edit formatter"
 msgstr "Редагувати форматер"
 
+#, fuzzy
+msgid "Edit group"
+msgstr "Правило редагування"
+
 msgid "Edit properties"
 msgstr "Редагувати властивості"
 
@@ -4726,6 +4819,10 @@ msgstr "Редагувати запит"
 #, fuzzy
 msgid "Edit role"
 msgstr "режим редагування"
+
+#, fuzzy
+msgid "Edit tag"
+msgstr "Редагувати журнал"
 
 msgid "Edit template"
 msgstr "Редагувати шаблон"
@@ -4873,6 +4970,10 @@ msgstr "Кінець"
 msgid "End (Longitude, Latitude): "
 msgstr "Кінець (довгота, широта): "
 
+#, fuzzy
+msgid "End (exclusive)"
+msgstr "Кінець (ексклюзивний)"
+
 msgid "End Longitude & Latitude"
 msgstr "Кінцева довгота та широта"
 
@@ -4928,6 +5029,18 @@ msgstr "Введіть повноекранний"
 msgid "Enter report name"
 msgstr "Назва звіту"
 
+#, fuzzy
+msgid "Enter the group's description"
+msgstr "Сховати опис діаграми"
+
+#, fuzzy
+msgid "Enter the group's label"
+msgstr "Ім'я сповіщення"
+
+#, fuzzy
+msgid "Enter the group's name"
+msgstr "Ім'я сповіщення"
+
 #, python-format
 msgid "Enter the required %(dbModelName)s credentials"
 msgstr "Введіть необхідні дані %(dbModelName)s"
@@ -4947,6 +5060,9 @@ msgid "Enter the user's last name"
 msgstr "Ім'я сповіщення"
 
 msgid "Enter the user's username"
+msgstr ""
+
+msgid "Enter your login and password below:"
 msgstr ""
 
 msgid "Entity"
@@ -4970,12 +5086,12 @@ msgid "Error deleting %s"
 msgstr "Помилка під час отримання даних: %s"
 
 #, fuzzy
+msgid "Error executing query. "
+msgstr "Виконаний запит"
+
+#, fuzzy
 msgid "Error faving chart"
 msgstr "Сталася помилка збереження набору даних"
-
-#, python-format
-msgid "Error in jinja expression in HAVING clause: %(msg)s"
-msgstr "Помилка в виразі jinja у HAVING фразі: %(msg)s"
 
 #, python-format
 msgid "Error in jinja expression in RLS filters: %(msg)s"
@@ -5019,18 +5135,6 @@ msgstr "Сталася помилка збереження набору дани
 msgid "Error unfaving chart"
 msgstr "Сталася помилка збереження набору даних"
 
-#, fuzzy
-msgid "Error while adding role!"
-msgstr "Помилка під час отримання діаграм"
-
-#, fuzzy
-msgid "Error while adding user!"
-msgstr "Помилка під час отримання діаграм"
-
-#, fuzzy
-msgid "Error while duplicating role!"
-msgstr "Помилка під час отримання діаграм"
-
 msgid "Error while fetching charts"
 msgstr "Помилка під час отримання діаграм"
 
@@ -5039,28 +5143,16 @@ msgid "Error while fetching data: %s"
 msgstr "Помилка під час отримання даних: %s"
 
 #, fuzzy
-msgid "Error while fetching permissions"
+msgid "Error while fetching groups"
 msgstr "Помилка під час отримання діаграм"
 
 #, fuzzy
 msgid "Error while fetching roles"
 msgstr "Помилка під час отримання діаграм"
 
-#, fuzzy
-msgid "Error while fetching users"
-msgstr "Помилка під час отримання діаграм"
-
 #, python-format
 msgid "Error while rendering virtual dataset query: %(msg)s"
 msgstr "Помилка під час надання віртуального запиту набору даних: %(msg)s"
-
-#, fuzzy
-msgid "Error while updating role!"
-msgstr "Помилка під час отримання діаграм"
-
-#, fuzzy
-msgid "Error while updating user!"
-msgstr "Помилка під час отримання діаграм"
 
 #, python-format
 msgid "Error: %(error)s"
@@ -5148,9 +5240,6 @@ msgstr "Розгорнути панель даних"
 
 msgid "Expand row"
 msgstr "Розширити ряд"
-
-msgid "Expand table preview"
-msgstr "Розширити попередній перегляд таблиці"
 
 msgid "Expand tool bar"
 msgstr "Розгорнути панель інструментів"
@@ -5240,6 +5329,7 @@ msgstr "Додаткові параметри"
 msgid "Extra data for JS"
 msgstr "Додаткові дані для JS"
 
+#, python-brace-format
 msgid ""
 "Extra data to specify table metadata. Currently supports metadata of the "
 "format: `{ \"certification\": { \"certified_by\": \"Data Platform Team\","
@@ -5320,7 +5410,7 @@ msgstr "Не вдалося зберегти перехресне фільтру
 msgid "Failed to start remote query on a worker."
 msgstr "Не вдалося запустити віддалений запит на працівника."
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "Failed to stop query."
 msgstr "Не вдалося зупинити запит. %s"
 
@@ -5334,6 +5424,10 @@ msgstr "Не вдалося оновити звіт"
 #, python-format
 msgid "Failed to verify select options: %s"
 msgstr "Не вдалося перевірити вибрати параметри: %s"
+
+#, fuzzy
+msgid "False"
+msgstr "Є помилковим"
 
 msgid "Favorite"
 msgstr "Улюблені"
@@ -5392,6 +5486,9 @@ msgstr "Заповніть усі необхідні поля, щоб увімк
 
 msgid "Fill method"
 msgstr "Метод заповнення"
+
+msgid "Fill out the registration form"
+msgstr ""
 
 msgid "Filled"
 msgstr "Наповнений"
@@ -5500,6 +5597,10 @@ msgstr "Закінчити"
 
 msgid "First"
 msgstr "Перший"
+
+#, fuzzy
+msgid "First Name"
+msgstr "Назва діаграми"
 
 #, fuzzy
 msgid "First name"
@@ -5634,6 +5735,11 @@ msgstr ""
 msgid "Format SQL"
 msgstr "Формат D3"
 
+#, fuzzy
+msgid "Format SQL query"
+msgstr "Формат D3"
+
+#, python-brace-format
 msgid ""
 "Format data labels. Use variables: {name}, {value}, {percent}. \\n "
 "represents a new line. ECharts compatibility:\n"
@@ -5773,6 +5879,10 @@ msgstr "Сітка"
 msgid "Grid Size"
 msgstr "Розмір сітки"
 
+#, fuzzy
+msgid "Group"
+msgstr "Група"
+
 msgid "Group By"
 msgstr "Група"
 
@@ -5783,6 +5893,10 @@ msgid "Group Key"
 msgstr "Груповий ключ"
 
 msgid "Group by"
+msgstr "Група"
+
+#, fuzzy
+msgid "Groups"
 msgstr "Група"
 
 msgid "Guest user cannot modify chart payload"
@@ -5934,11 +6048,6 @@ msgstr ""
 "значення"
 
 msgid ""
-"If changes are made to your SQL query, columns in your dataset will be "
-"synced when saving the dataset."
-msgstr ""
-
-msgid ""
 "If enabled, this control sorts the results/values descending, otherwise "
 "it sorts the results ascending."
 msgstr ""
@@ -5975,6 +6084,10 @@ msgstr "Імпорт %s"
 
 msgid "Import Dashboard(s)"
 msgstr "Імпортувати Дашборд(и)"
+
+#, fuzzy
+msgid "Import Error"
+msgstr "Помилка тайм -ауту"
 
 msgid "Import chart failed for an unknown reason"
 msgstr "Діаграма імпорту не вдалася з невідомих причин"
@@ -6014,8 +6127,15 @@ msgid ""
 "service account or configure an OAuth2 client."
 msgstr ""
 
+msgid "In this view you can preview the first 25 rows. "
+msgstr ""
+
 msgid "Include Series"
 msgstr "Включіть серію"
+
+#, fuzzy
+msgid "Include Template Parameters"
+msgstr "Параметри шаблону"
 
 msgid "Include a description that will be sent with your report"
 msgstr "Включіть опис, який буде надіслано з вашим звітом"
@@ -6219,6 +6339,10 @@ msgid "Invert current page"
 msgstr "Інвертуйте поточну сторінку"
 
 #, fuzzy
+msgid "Is Active?"
+msgstr "Звіти про електронну пошту активні"
+
+#, fuzzy
 msgid "Is active?"
 msgstr "Звіти про електронну пошту активні"
 
@@ -6402,6 +6526,10 @@ msgstr "Великий"
 
 msgid "Last"
 msgstr "Останній"
+
+#, fuzzy
+msgid "Last Name"
+msgstr "назва набору даних"
 
 #, python-format
 msgid "Last Updated %s"
@@ -6646,6 +6774,10 @@ msgstr "Лінії кодування"
 msgid "Link Copied!"
 msgstr "Посилання скопійовано!"
 
+#, fuzzy
+msgid "List Groups"
+msgstr "Розділений номер"
+
 msgid "List Roles"
 msgstr ""
 
@@ -6698,6 +6830,10 @@ msgstr "Завантаження ..."
 
 msgid "Locate the chart"
 msgstr "Знайдіть діаграму"
+
+#, fuzzy
+msgid "Log"
+msgstr "журнал"
 
 msgid "Log Scale"
 msgstr "Журнал"
@@ -6863,6 +6999,9 @@ msgstr "Маркери"
 
 msgid "Markup type"
 msgstr "Тип розмітки"
+
+msgid "Match system"
+msgstr ""
 
 msgid "Match time shift color with original series"
 msgstr ""
@@ -7343,6 +7482,10 @@ msgstr "Ще немає %s"
 msgid "No Data"
 msgstr "Немає даних"
 
+#, fuzzy, python-format
+msgid "No Logs yet"
+msgstr "Ще немає %s"
+
 msgid "No Results"
 msgstr "Немає результатів"
 
@@ -7433,6 +7576,18 @@ msgstr "Налаштування форми не зберігалися"
 msgid "No global filters are currently added"
 msgstr "Наразі глобальні фільтри не додаються"
 
+#, fuzzy
+msgid "No groups"
+msgstr "Не згрупований"
+
+#, fuzzy
+msgid "No groups yet"
+msgstr "Ще немає правил"
+
+#, fuzzy
+msgid "No items"
+msgstr "Немає фільтрів"
+
 msgid "No matching records found"
 msgstr "Не знайдено відповідних записів"
 
@@ -7459,6 +7614,10 @@ msgstr ""
 "Для цього запиту жодних результатів не було. Якщо ви очікували повернення"
 " результатів, переконайтеся, що будь -які фільтри налаштовані належним "
 "чином, а дані містять дані для вибраного діапазону часу."
+
+#, fuzzy
+msgid "No roles"
+msgstr "Ще немає правил"
 
 #, fuzzy
 msgid "No roles yet"
@@ -7494,6 +7653,10 @@ msgstr "Не знайдено тимчасових стовпців"
 
 msgid "No time columns"
 msgstr "Немає часу стовпців"
+
+#, fuzzy
+msgid "No user registrations yet"
+msgstr "Ще немає правил"
 
 #, fuzzy
 msgid "No users yet"
@@ -7781,6 +7944,9 @@ msgstr ""
 msgid "Only single queries supported"
 msgstr "Підтримуються лише одиночні запити"
 
+msgid "Only the default catalog is supported for this connection"
+msgstr ""
+
 msgid "Oops! An error occurred!"
 msgstr "На жаль! Виникла помилка!"
 
@@ -7805,7 +7971,15 @@ msgstr "Непрозорість, очікує значення від 0 до 10
 msgid "Open Datasource tab"
 msgstr "Вкладка Відкрийте DataSource"
 
+#, fuzzy
+msgid "Open SQL Lab in a new tab"
+msgstr "Запустіть запит на новій вкладці"
+
 msgid "Open in SQL Lab"
+msgstr "Відкрито в лабораторії SQL"
+
+#, fuzzy
+msgid "Open in SQL lab"
 msgstr "Відкрито в лабораторії SQL"
 
 msgid "Open query in SQL Lab"
@@ -8060,6 +8234,10 @@ msgid "Password is required"
 msgstr "Потрібен тип"
 
 #, fuzzy
+msgid "Password:"
+msgstr "Пароль"
+
+#, fuzzy
 msgid "Passwords do not match!"
 msgstr "Дашбордів не існує"
 
@@ -8098,6 +8276,10 @@ msgstr "Зміна відсотків"
 
 msgid "Percentage difference between the time periods"
 msgstr ""
+
+#, fuzzy
+msgid "Percentage metric calculation"
+msgstr "Відсоткові показники"
 
 msgid "Percentage metrics"
 msgstr "Відсоткові показники"
@@ -8277,11 +8459,35 @@ msgstr "Будь-ласка підтвердіть"
 msgid "Please enter a SQLAlchemy URI to test"
 msgstr "Будь ласка, введіть URI SQLALCHEMY для тестування"
 
+#, fuzzy
+msgid "Please enter a valid email"
+msgstr "Будь ласка, введіть URI SQLALCHEMY для тестування"
+
 msgid "Please enter a valid email address"
 msgstr ""
 
 msgid "Please enter valid text. Spaces alone are not permitted."
 msgstr ""
+
+#, fuzzy
+msgid "Please enter your email"
+msgstr "Будь-ласка підтвердіть"
+
+#, fuzzy
+msgid "Please enter your first name"
+msgstr "Ім'я сповіщення"
+
+#, fuzzy
+msgid "Please enter your last name"
+msgstr "Ім'я сповіщення"
+
+#, fuzzy
+msgid "Please enter your password"
+msgstr "Будь-ласка підтвердіть"
+
+#, fuzzy
+msgid "Please enter your username"
+msgstr "Етикетка для вашого запиту"
 
 msgid "Please provide a valid range"
 msgstr ""
@@ -8311,6 +8517,10 @@ msgid "Please save your dashboard first, then try creating a new email report."
 msgstr ""
 "Спочатку збережіть свою інформаційну панель, а потім спробуйте створити "
 "новий звіт на електронну пошту."
+
+#, fuzzy
+msgid "Please select at least one role or group"
+msgstr "Будь ласка, виберіть хоча б одну групу"
 
 msgid "Please select both a Dataset and a Chart type to proceed"
 msgstr "Виберіть як набір даних, так і тип діаграми, щоб продовжити"
@@ -8516,9 +8726,6 @@ msgstr "Покладіть свій код сюди"
 msgid "Python datetime string pattern"
 msgstr "Python DateTime String шаблон"
 
-msgid "QUERY DATA IN SQL LAB"
-msgstr "Дані запиту в лабораторії SQL"
-
 msgid "Quarter"
 msgstr "Чверть"
 
@@ -8544,6 +8751,10 @@ msgstr "Запит B"
 
 msgid "Query History"
 msgstr "Історія запитів"
+
+#, fuzzy
+msgid "Query data in SQL Lab"
+msgstr "Дані запиту в лабораторії SQL"
 
 msgid "Query does not exist"
 msgstr "Запити не існує"
@@ -8574,9 +8785,6 @@ msgstr "Запит був зупинений"
 
 msgid "Query was stopped."
 msgstr "Запит зупинився."
-
-msgid "RANGE TYPE"
-msgstr "Тип дальності"
 
 msgid "RGB Color"
 msgstr "RGB Колір"
@@ -8624,6 +8832,10 @@ msgstr "Діапазон фільтрів плагін за допомогою A
 
 msgid "Range labels"
 msgstr "Етикетки діапазону"
+
+#, fuzzy
+msgid "Range type"
+msgstr "Тип дальності"
 
 msgid "Ranges"
 msgstr "Діапазони"
@@ -8684,6 +8896,10 @@ msgstr "Зверніться до"
 msgid "Referenced columns not available in DataFrame."
 msgstr "Посилання на стовпці недоступні в даних даних."
 
+#, fuzzy
+msgid "Referrer"
+msgstr "Оновлювати"
+
 msgid "Refetch results"
 msgstr "Результати переробки"
 
@@ -8714,6 +8930,17 @@ msgstr "Освіжаючі діаграми"
 
 msgid "Refreshing columns"
 msgstr "Освіжаючі стовпці"
+
+#, fuzzy
+msgid "Register"
+msgstr "Попередній фільтр"
+
+#, fuzzy
+msgid "Registration date"
+msgstr "Дата початку"
+
+msgid "Registration hash"
+msgstr ""
 
 msgid "Regular"
 msgstr "Регулярний"
@@ -8919,6 +9146,14 @@ msgstr "Скинути"
 msgid "Reset columns"
 msgstr "Виберіть стовпець"
 
+#, fuzzy, python-format
+msgid "Reset my password"
+msgstr "%s пароль"
+
+#, fuzzy, python-format
+msgid "Reset password"
+msgstr "%s пароль"
+
 msgid "Reset state"
 msgstr "Скидання стану"
 
@@ -8994,35 +9229,11 @@ msgid "Role Name"
 msgstr "Ім'я сповіщення"
 
 #, fuzzy
-msgid "Role is required"
-msgstr "Значення потрібно"
-
-#, fuzzy
 msgid "Role name is required"
 msgstr "Ім'я потрібно"
 
-#, fuzzy
-msgid "Role successfully updated!"
-msgstr "Успішно змінили набір даних!"
-
-msgid "Role was successfully created!"
-msgstr ""
-
-msgid "Role was successfully duplicated!"
-msgstr ""
-
 msgid "Roles"
 msgstr "Ролі"
-
-msgid ""
-"Roles is a list which defines access to the dashboard. Granting a role "
-"access to a dashboard will bypass dataset level checks. If no roles are "
-"defined, regular access permissions apply."
-msgstr ""
-"Ролі - це список, який визначає доступ до інформаційної панелі. Надання "
-"ролі доступу до інформаційної панелі буде обходити перевірки рівня набору"
-" даних. Якщо не визначено ролей, застосовуються регулярні дозволи на "
-"доступ."
 
 msgid ""
 "Roles is a list which defines access to the dashboard. Granting a role "
@@ -9074,6 +9285,12 @@ msgstr "Рядок"
 
 msgid "Row Level Security"
 msgstr "Безпека на рівні рядків"
+
+msgid ""
+"Row Limit: percentages are calculated based on the subset of data "
+"retrieved, respecting the row limit. All Records: Percentages are "
+"calculated based on the total dataset, ignoring the row limit."
+msgstr ""
 
 #, fuzzy
 msgid ""
@@ -9139,8 +9356,8 @@ msgstr "Вибір запуску"
 msgid "Running"
 msgstr "Біг"
 
-#, python-format
-msgid "Running statement %(statement_num)s out of %(statement_count)s"
+#, fuzzy, python-format
+msgid "Running block %(block_num)s out of %(block_count)s"
 msgstr "Запуск оператора %(statement_num)s з %(statement_count)s"
 
 msgid "SAT"
@@ -9199,6 +9416,10 @@ msgstr "Вираз SQL"
 msgid "SQL query"
 msgstr "SQL -запит"
 
+#, fuzzy
+msgid "SQL was formatted"
+msgstr "Формат y Axis"
+
 msgid "SQLAlchemy URI"
 msgstr "Sqlalchemy uri"
 
@@ -9234,9 +9455,6 @@ msgstr "Тунелювання SSH не ввімкнено"
 
 msgid "SSL Mode \"require\" will be used."
 msgstr "Буде використаний режим SSL \"вимагати\"."
-
-msgid "START (INCLUSIVE)"
-msgstr "Почати (включно)"
 
 #, python-format
 msgid "STEP %(stepCurr)s OF %(stepLast)s"
@@ -9524,6 +9742,10 @@ msgstr "Обраний"
 msgid "Select ..."
 msgstr "Виберіть ..."
 
+#, fuzzy
+msgid "Select All"
+msgstr "Скасувати всі"
+
 msgid "Select Delivery Method"
 msgstr "Виберіть метод доставки"
 
@@ -9611,9 +9833,6 @@ msgstr "Виберіть усі дані"
 msgid "Select all items"
 msgstr "Виберіть усі елементи"
 
-msgid "Select an aggregation method to apply to the metric."
-msgstr ""
-
 #, fuzzy
 msgid "Select catalog or type to search catalogs"
 msgstr "Виберіть таблицю або введіть для пошукових таблиць"
@@ -9637,9 +9856,6 @@ msgstr "Виберіть кольорову гаму"
 
 msgid "Select column"
 msgstr "Виберіть стовпець"
-
-msgid "Select column names from a dropdown list that should be parsed as dates."
-msgstr "Виберіть імена стовпців зі списку, що випадає, які слід розібрати як дати."
 
 msgid ""
 "Select columns that will be displayed in the table. You can multiselect "
@@ -9700,6 +9916,10 @@ msgstr "Виберіть за замовчуванням значення First 
 msgid "Select format"
 msgstr "Формат значення"
 
+#, fuzzy
+msgid "Select groups"
+msgstr "Виберіть власників"
+
 msgid ""
 "Select one or many metrics to display, that will be displayed in the "
 "percentages of total. Percentage metrics will be calculated only from "
@@ -9717,9 +9937,6 @@ msgstr "Виберіть оператор"
 
 #, fuzzy
 msgid "Select or type a custom value..."
-msgstr "Виберіть або введіть значення"
-
-msgid "Select or type a value"
 msgstr "Виберіть або введіть значення"
 
 #, fuzzy
@@ -9801,6 +10018,10 @@ msgstr ""
 msgid "Select the geojson column"
 msgstr "Виберіть стовпчик Geojson"
 
+#, fuzzy
+msgid "Select users"
+msgstr "Виберіть власників"
+
 #, python-format
 msgid ""
 "Select values in highlighted field(s) in the control panel. Then run the "
@@ -9863,12 +10084,20 @@ msgstr "Довжина сторінки сервера"
 msgid "Server pagination"
 msgstr "Сервер Пагінування"
 
+#, python-format
+msgid "Server pagination needs to be enabled for values over %s"
+msgstr ""
+
 msgid "Service Account"
 msgstr "Рахунок служби"
 
 #, fuzzy
 msgid "Service version"
 msgstr "Рахунок служби"
+
+#, fuzzy, python-format
+msgid "Set %s as default datetime column"
+msgstr "DateTime за замовчуванням"
 
 msgid "Set auto-refresh interval"
 msgstr "Встановіть інтервал автоматичного рефреша"
@@ -9983,6 +10212,10 @@ msgstr "Показувати журнал"
 msgid "Show Markers"
 msgstr "Шоу маркерів"
 
+#, fuzzy
+msgid "Show Metric Name"
+msgstr "Показати метричні назви"
+
 msgid "Show Metric Names"
 msgstr "Показати метричні назви"
 
@@ -10046,7 +10279,7 @@ msgstr "Показати точки даних як маркери кола на
 msgid "Show empty columns"
 msgstr "Показати порожні стовпці"
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "Show entries per page"
 msgstr "Показати показник"
 
@@ -10078,6 +10311,10 @@ msgstr "Чи слід показувати незначні кліщі на ос
 
 msgid "Show only my charts"
 msgstr "Показати лише мої діаграми"
+
+#, fuzzy
+msgid "Show original SQL"
+msgstr "Початкове значення"
 
 msgid "Show password."
 msgstr "Показати пароль."
@@ -10174,6 +10411,14 @@ msgstr "Показує список усіх серій, доступних на
 msgid "Shows or hides markers for the time series"
 msgstr "Показує або приховує маркери для часових рядів"
 
+#, fuzzy
+msgid "Sign in"
+msgstr "Не в"
+
+#, fuzzy
+msgid "Sign in with"
+msgstr "Увійти за допомогою"
+
 msgid "Significance Level"
 msgstr "Рівень значущості"
 
@@ -10218,6 +10463,10 @@ msgstr "Пропустити ряди"
 msgid "Skip spaces after delimiter"
 msgstr "Пропустити простори після розмежування"
 
+#, fuzzy
+msgid "Slice Id"
+msgstr "Ширина лінії"
+
 msgid "Slug"
 msgstr "Слимак"
 
@@ -10242,6 +10491,10 @@ msgstr "Суцільний"
 
 msgid "Some roles do not exist"
 msgstr "Деяких ролей не існує"
+
+#, fuzzy
+msgid "Something went wrong while saving the user info"
+msgstr "Вибач, щось пішло не так. Спробуйте ще раз пізніше."
 
 msgid ""
 "Something went wrong with embedded authentication. Check the dev console "
@@ -10393,6 +10646,9 @@ msgstr ""
 msgid "Split number"
 msgstr "Розділений номер"
 
+msgid "Split stack by"
+msgstr ""
+
 msgid "Square kilometers"
 msgstr "Квадратні кілометри"
 
@@ -10404,6 +10660,9 @@ msgstr "Квадратні милі"
 
 msgid "Stack"
 msgstr "Стек"
+
+msgid "Stack in groups, where each group corresponds to a dimension"
+msgstr ""
 
 msgid "Stack series"
 msgstr "Серія стека"
@@ -10428,6 +10687,10 @@ msgstr "Почати"
 
 msgid "Start (Longitude, Latitude): "
 msgstr "Початок (довгота, широта): "
+
+#, fuzzy
+msgid "Start (inclusive)"
+msgstr "Почати (включно)"
 
 msgid "Start Longitude & Latitude"
 msgstr "Почніть довготу та широту"
@@ -10459,10 +10722,6 @@ msgstr "Розпочато"
 
 msgid "State"
 msgstr "Держави"
-
-#, python-format
-msgid "Statement %(statement_num)s out of %(statement_count)s"
-msgstr "Заява %(statement_num)s з %(statement_count)s"
 
 msgid "Statistical"
 msgstr "Статистичний"
@@ -10541,19 +10800,12 @@ msgstr "Стильні кінці смуги прогресу з круглою 
 msgid "Subdomain"
 msgstr "Субдомен"
 
-msgid "Subheader Font Size"
-msgstr "Розмір шрифту підзаголовка"
-
 msgid "Submit"
 msgstr "Подавати"
 
 #, fuzzy
 msgid "Subtitle"
 msgstr "Назва вкладки"
-
-#, fuzzy
-msgid "Subtitle Font Size"
-msgstr "Розмір міхура"
 
 msgid "Subtotal"
 msgstr "Суттєвий"
@@ -11150,6 +11402,14 @@ msgstr ""
 msgid "The function to use when aggregating points into groups"
 msgstr "Функція, яку слід використовувати при агрегуванні точок у групи"
 
+#, fuzzy
+msgid "The group has been created successfully."
+msgstr "Звіт створений"
+
+#, fuzzy
+msgid "The group has been updated successfully."
+msgstr "Анотація оновлена"
+
 msgid "The height of the current zoom level to compute all heights from"
 msgstr ""
 
@@ -11212,6 +11472,7 @@ msgstr ""
 "Metadata_params у додатковому полі налаштовані не правильно. Ключ %(key)s"
 " є недійсним."
 
+#, python-brace-format
 msgid ""
 "The metadata_params in Extra field is not configured correctly. The key "
 "%{key}s is invalid."
@@ -11332,6 +11593,10 @@ msgstr ""
 
 msgid "The password provided when connecting to a database is not valid."
 msgstr "Пароль, наданий при підключенні до бази даних, не є дійсним."
+
+#, fuzzy
+msgid "The password reset was successful"
+msgstr "Ця інформаційна панель була успішно збережена."
 
 msgid ""
 "The passwords for the databases below are needed in order to import them "
@@ -11518,6 +11783,18 @@ msgstr ""
 msgid "The rich tooltip shows a list of all series for that point in time"
 msgstr "Багата підказка показує список усіх серій для цього моменту часу"
 
+#, fuzzy
+msgid "The role has been created successfully."
+msgstr "Звіт створений"
+
+#, fuzzy
+msgid "The role has been duplicated successfully."
+msgstr "Звіт створений"
+
+#, fuzzy
+msgid "The role has been updated successfully."
+msgstr "Анотація оновлена"
+
 msgid ""
 "The row limit set for the chart was reached. The chart may show partial "
 "data."
@@ -11661,6 +11938,10 @@ msgid "The time unit used for the grouping of blocks"
 msgstr "Одиниця часу, що використовується для групування блоків"
 
 #, fuzzy
+msgid "The two passwords that you entered do not match!"
+msgstr "Дашбордів не існує"
+
+#, fuzzy
 msgid "The type of the layer"
 msgstr "Додайте назву діаграми"
 
@@ -11673,8 +11954,16 @@ msgstr "Одиниця виміру для заданого радіуса то�
 msgid "The upper limit of the threshold range of the Isoband"
 msgstr ""
 
+#, fuzzy
+msgid "The user has been updated successfully."
+msgstr "Ця інформаційна панель була успішно збережена."
+
 msgid "The user seems to have been deleted"
 msgstr "Здається, користувач видалив"
+
+#, fuzzy
+msgid "The user was updated successfully"
+msgstr "Ця інформаційна панель була успішно збережена."
 
 msgid "The user/password combination is not valid (Incorrect password for user)."
 msgstr ""
@@ -11759,6 +12048,22 @@ msgstr ""
 "Для цього компонента недостатньо місця. Спробуйте зменшити його ширину "
 "або збільшити ширину призначення."
 
+#, fuzzy
+msgid "There was an error creating the group. Please, try again."
+msgstr "Сталася помилка, що завантажує схеми"
+
+#, fuzzy
+msgid "There was an error creating the role. Please, try again."
+msgstr "Сталася помилка, що завантажує схеми"
+
+#, fuzzy
+msgid "There was an error creating the user. Please, try again."
+msgstr "Сталася помилка, що завантажує схеми"
+
+#, fuzzy
+msgid "There was an error duplicating the role. Please, try again."
+msgstr "Існувала проблема, що дублювання набору даних."
+
 msgid "There was an error fetching dataset"
 msgstr "Був набір даних про помилку"
 
@@ -11793,13 +12098,33 @@ msgstr "Сталася помилка, що завантажує схеми"
 msgid "There was an error loading the tables"
 msgstr "Сталася помилка, що завантажує таблиці"
 
-#, fuzzy, python-format
+#, fuzzy
+msgid "There was an error loading users."
+msgstr "Сталася помилка, що завантажує таблиці"
+
+#, fuzzy
 msgid "There was an error retrieving dashboard tabs."
 msgstr "Вибачте, була помилка збереження цієї інформаційної панелі: %s"
 
 #, python-format
 msgid "There was an error saving the favorite status: %s"
 msgstr "Була помилка, щоб зберегти улюблений статус: %s"
+
+#, fuzzy
+msgid "There was an error updating the group. Please, try again."
+msgstr "Сталася помилка, що завантажує схеми"
+
+#, fuzzy
+msgid "There was an error updating the role. Please, try again."
+msgstr "Сталася помилка, що завантажує схеми"
+
+#, fuzzy
+msgid "There was an error updating the user. Please, try again."
+msgstr "Сталася помилка, що завантажує схеми"
+
+#, fuzzy
+msgid "There was an error while fetching users"
+msgstr "Був набір даних про помилку"
 
 msgid "There was an error with your request"
 msgstr "Була помилка з вашим запитом"
@@ -11811,6 +12136,10 @@ msgstr "Видаляло проблему: %s"
 #, python-format
 msgid "There was an issue deleting %s: %s"
 msgstr "Виникло питання видалення %s: %s"
+
+#, fuzzy, python-format
+msgid "There was an issue deleting registration for user: %s"
+msgstr "Існували правила видалення проблеми: %s"
 
 #, python-format
 msgid "There was an issue deleting rules: %s"
@@ -11909,6 +12238,10 @@ msgstr ""
 msgid "This action will permanently delete %s."
 msgstr "Ця дія назавжди видаляє %s."
 
+#, fuzzy
+msgid "This action will permanently delete the group."
+msgstr "Ця дія назавжди видаляє шар."
+
 msgid "This action will permanently delete the layer."
 msgstr "Ця дія назавжди видаляє шар."
 
@@ -11921,6 +12254,10 @@ msgstr "Ця дія назавжди видаляє збережений зап�
 
 msgid "This action will permanently delete the template."
 msgstr "Ця дія назавжди видаляє шаблон."
+
+#, fuzzy
+msgid "This action will permanently delete the user registration."
+msgstr "Ця дія назавжди видаляє шар."
 
 #, fuzzy
 msgid "This action will permanently delete the user."
@@ -12039,11 +12376,14 @@ msgstr ""
 msgid "This dashboard was saved successfully."
 msgstr "Ця інформаційна панель була успішно збережена."
 
+#, fuzzy
 msgid ""
-"This database does not allow for DDL/DML, and the query could not be "
-"parsed to confirm it is a read-only query. Please contact your "
-"administrator for more assistance."
+"This database does not allow for DDL/DML, but the query mutates data. "
+"Please contact your administrator for more assistance."
 msgstr ""
+"База даних, на яку посилається в цьому запиті, не було знайдено. "
+"Зверніться до адміністратора для отримання додаткової допомоги або "
+"повторіть спробу."
 
 msgid "This database is managed externally, and can't be edited in Superset"
 msgstr "Ця база даних керує зовні, і не може бути відредагована в суперсеті"
@@ -12062,7 +12402,9 @@ msgstr "Цей набір даних не використовується дл�
 msgid "This defines the element to be plotted on the chart"
 msgstr "Це визначає елемент, який потрібно побудувати на діаграмі"
 
-msgid "This email is already associated with an account."
+msgid ""
+"This email is already associated with an account. Please choose another "
+"one."
 msgstr ""
 
 msgid ""
@@ -12116,6 +12458,9 @@ msgstr "Це може бути спровоковано:"
 
 msgid "This metric might be incompatible with current dataset"
 msgstr "Цей показник може бути несумісним із поточним набором даних"
+
+msgid "This name is already taken. Please choose another one."
+msgstr ""
 
 msgid "This option has been disabled by the administrator."
 msgstr ""
@@ -12198,6 +12543,10 @@ msgstr "Поріг мітки"
 
 msgid "Threshold alpha level for determining significance"
 msgstr "Пороговий рівень альфа для визначення значущості"
+
+#, fuzzy
+msgid "Threshold for Other"
+msgstr "Поріг мітки"
 
 #, fuzzy
 msgid "Threshold: "
@@ -12434,7 +12783,7 @@ msgstr "Всього (%(aggfunc)s)"
 msgid "Total (%(aggregatorName)s)"
 msgstr "Всього (%(aggregatorName)s)"
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "Total (Sum)"
 msgstr "Всього: %s"
 
@@ -12480,6 +12829,10 @@ msgstr "Трикутник"
 
 msgid "Trigger Alert If..."
 msgstr "Тригер, якщо ..."
+
+#, fuzzy
+msgid "True"
+msgstr "Зміст"
 
 msgid "Truncate Axis"
 msgstr "Усікатна вісь"
@@ -12639,6 +12992,10 @@ msgstr ""
 
 msgid "Unable to parse SQL"
 msgstr ""
+
+#, fuzzy
+msgid "Unable to read the file, please refresh and try again."
+msgstr "Завантажити зображення не вдалося, оновити та повторіть спробу."
 
 msgid "Unable to retrieve dashboard colors"
 msgstr "Не в змозі отримати кольори панелі панелі"
@@ -12921,6 +13278,14 @@ msgstr ""
 msgid "User"
 msgstr "Користувач"
 
+#, fuzzy
+msgid "User Name"
+msgstr "Ім'я користувача"
+
+#, fuzzy
+msgid "User Registrations"
+msgstr "Використовуйте пропорції площі"
+
 msgid "User doesn't have the proper permissions."
 msgstr "Користувач не має належних дозволів."
 
@@ -12930,11 +13295,9 @@ msgstr "Користувач повинен вибрати значення пе
 msgid "User query"
 msgstr "Запит користувача"
 
-msgid "User was successfully created!"
-msgstr ""
-
-msgid "User was successfully updated!"
-msgstr ""
+#, fuzzy
+msgid "User registrations"
+msgstr "Використовуйте пропорції площі"
 
 msgid "Username"
 msgstr "Ім'я користувача"
@@ -12942,6 +13305,10 @@ msgstr "Ім'я користувача"
 #, fuzzy
 msgid "Username is required"
 msgstr "Ім'я потрібно"
+
+#, fuzzy
+msgid "Username:"
+msgstr "Ім'я користувача"
 
 #, fuzzy
 msgid "Users"
@@ -13030,6 +13397,9 @@ msgstr "Значення залежать від інших фільтрів"
 
 msgid "Values dependent on"
 msgstr "Значення, залежні від"
+
+msgid "Values less than this percentage will be grouped into the Other category."
+msgstr ""
 
 msgid ""
 "Values selected in other filters will affect the filter options to only "
@@ -13250,13 +13620,13 @@ msgstr "Не зміг перевірити ваш запит"
 msgid "Waterfall Chart"
 msgstr "Шукайте всі діаграми"
 
-msgid ""
-"We are unable to connect to your database. Click \"See more\" for "
-"database-provided information that may help troubleshoot the issue."
-msgstr ""
-"Ми не можемо підключитися до вашої бази даних. Клацніть \"Дивіться "
-"більше\", щоб отримати інформацію, надану базою даних, яка може допомогти"
-" усунути проблеми."
+#, fuzzy, python-format
+msgid "We are unable to connect to your database."
+msgstr "Неможливо підключитися до бази даних “%(database)s”."
+
+#, fuzzy
+msgid "We are working on your query"
+msgstr "Етикетка для вашого запиту"
 
 #, python-format
 msgid "We can't seem to resolve column \"%(column)s\" at line %(location)s."
@@ -13400,10 +13770,12 @@ msgstr ""
 "Коли надається лише первинна метрика, використовується категорична "
 "кольорова шкала."
 
+#, fuzzy
 msgid ""
 "When specifying SQL, the datasource acts as a view. Superset will use "
 "this statement as a subquery while grouping and filtering on the "
-"generated parent queries."
+"generated parent queries.If changes are made to your SQL query, columns "
+"in your dataset will be synced when saving the dataset."
 msgstr ""
 "При вказівці SQL, DataSource виступає як погляд. Superset "
 "використовуватиме це твердження як підрозділ під час групування та "
@@ -13506,6 +13878,10 @@ msgstr "Чи відображати мітки."
 
 msgid "Whether to display the legend (toggles)"
 msgstr "Чи відображати легенду (перемикає)"
+
+#, fuzzy
+msgid "Whether to display the metric name"
+msgstr "Чи відображати метричну назву як заголовок"
 
 msgid "Whether to display the metric name as a title"
 msgstr "Чи відображати метричну назву як заголовок"
@@ -13678,6 +14054,10 @@ msgstr "Формат X Axis"
 msgid "X Axis Label"
 msgstr "X мітка вісь"
 
+#, fuzzy
+msgid "X Axis Label Interval"
+msgstr "X мітка вісь"
+
 msgid "X Axis Title"
 msgstr "Назва X Axis"
 
@@ -13789,6 +14169,10 @@ msgstr "Так, переписати зміни"
 
 #, python-format
 msgid "You are adding tags to %s %ss"
+msgstr ""
+
+#, fuzzy, python-format
+msgid "You are edting a query from the virtual dataset "
 msgstr ""
 
 msgid ""
@@ -13974,9 +14358,6 @@ msgstr ""
 "повністю скасувати наступні дії. Ви можете зберегти свій поточний стан "
 "для скидання історії."
 
-msgid "You may have an error in your SQL statement. {message}"
-msgstr ""
-
 msgid ""
 "You must be a dataset owner in order to edit. Please reach out to a "
 "dataset owner to request modifications or edit access."
@@ -14161,9 +14542,6 @@ msgstr "насторожений"
 msgid "alert condition"
 msgstr "Умова попередження"
 
-msgid "alert dark"
-msgstr "насторожити темно"
-
 msgid "alerts"
 msgstr "попередження"
 
@@ -14204,6 +14582,7 @@ msgstr "основа"
 msgid "below (example:"
 msgstr "нижче (приклад:"
 
+#, python-brace-format
 msgid "between {down} and {up} {name}"
 msgstr "між {down} і {up} {name}"
 
@@ -14439,9 +14818,6 @@ msgstr "записи"
 msgid "error"
 msgstr "помилка"
 
-msgid "error dark"
-msgstr "помилка темна"
-
 msgid "error_message"
 msgstr "повідомлення про помилку"
 
@@ -14465,9 +14841,6 @@ msgstr "щомісяця"
 
 msgid "expand"
 msgstr "розширити"
-
-msgid "explore"
-msgstr "досліджувати"
 
 msgid "failed"
 msgstr "провалився"
@@ -14564,6 +14937,7 @@ msgstr "останній розділ:"
 msgid "left"
 msgstr "лівий"
 
+#, python-brace-format
 msgid "less than {min} {name}"
 msgstr "менше {min} {name}"
 
@@ -14611,6 +14985,7 @@ msgstr "монотонний"
 msgid "month"
 msgstr "місяць"
 
+#, python-brace-format
 msgid "more than {max} {name}"
 msgstr "більше {max} {name}"
 
@@ -14795,9 +15170,6 @@ msgstr "іконка типу рядка"
 msgid "success"
 msgstr "успіх"
 
-msgid "success dark"
-msgstr "успіх темний"
-
 msgid "sum"
 msgstr "сума"
 
@@ -14830,7 +15202,7 @@ msgstr "іконка невідомого типу"
 msgid "unset"
 msgstr "Червень"
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "updated"
 msgstr "%s оновлено"
 
