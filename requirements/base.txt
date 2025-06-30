@@ -209,6 +209,7 @@ markupsafe==3.0.2
     #   wtforms
 marshmallow==3.26.1
     # via
+    #   apache-superset (pyproject.toml)
     #   flask-appbuilder
     #   marshmallow-sqlalchemy
 marshmallow-sqlalchemy==1.4.0
@@ -392,6 +393,8 @@ typing-extensions==4.14.0
     #   alembic
     #   cattrs
     #   limits
+    #   pyopenssl
+    #   referencing
     #   selenium
     #   shillelagh
 tzdata==2025.2
