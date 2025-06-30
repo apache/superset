@@ -813,6 +813,268 @@ class TestBaseDeckGLViz(SupersetTestCase):
             assert expected_results.get(mock_key) == adhoc_filters
 
 
+class TestDeckGLMultiLayer(SupersetTestCase):
+    def test_filter_items_by_scope_with_filter_id(self):
+        """Test _filter_items_by_scope method with items having filterId."""
+        datasource = self.get_datasource_mock()
+        form_data = {}
+        test_viz = viz.DeckGLMultiLayer(datasource, form_data)
+
+        filter_item_1 = Mock()
+        filter_item_1.filterId = "filter_1"
+        filter_item_2 = Mock()
+        filter_item_2.filterId = "filter_2"
+        filter_item_3 = Mock()
+        filter_item_3.filterId = "filter_3"
+
+        items = [filter_item_1, filter_item_2, filter_item_3]
+        layer_index = 0
+        layer_filter_scope = {"filter_1": [0, 1], "filter_2": [1], "filter_3": []}
+
+        result = test_viz._filter_items_by_scope(items, layer_index, layer_filter_scope)
+
+        assert len(result) == 2
+        assert filter_item_1 in result
+        assert filter_item_3 in result
+        assert filter_item_2 not in result
+
+    def test_filter_items_by_scope_without_filter_id(self):
+        """Test _filter_items_by_scope method with items without filterId."""
+        datasource = self.get_datasource_mock()
+        form_data = {}
+        test_viz = viz.DeckGLMultiLayer(datasource, form_data)
+
+        filter_item_1 = Mock()
+        del filter_item_1.filterId
+        filter_item_2 = Mock()
+        filter_item_2.filterId = None
+
+        items = [filter_item_1, filter_item_2]
+        layer_index = 0
+        layer_filter_scope = {"filter_1": [1]}
+
+        result = test_viz._filter_items_by_scope(items, layer_index, layer_filter_scope)
+
+        assert len(result) == 2
+        assert filter_item_1 in result
+        assert filter_item_2 in result
+
+    def test_process_extra_form_data_filters(self):
+        """Test _process_extra_form_data_filters method."""
+        datasource = self.get_datasource_mock()
+        form_data = {}
+        test_viz = viz.DeckGLMultiLayer(datasource, form_data)
+
+        layer_index = 0
+        layer_filter_scope = {"filter_1": [0, 1], "filter_2": [1], "filter_3": []}
+        filter_data_mapping = {
+            "filter_1": [{"column": "col1", "op": "==", "val": "value1"}],
+            "filter_2": [{"column": "col2", "op": "!=", "val": "value2"}],
+            "filter_3": [{"column": "col3", "op": ">", "val": 100}],
+        }
+        extra_form_data = {"existing_key": "existing_value"}
+
+        result = test_viz._process_extra_form_data_filters(
+            layer_index, layer_filter_scope, filter_data_mapping, extra_form_data
+        )
+
+        expected_filters = [
+            {"column": "col1", "op": "==", "val": "value1"},
+            {"column": "col3", "op": ">", "val": 100},
+        ]
+        assert result["filters"] == expected_filters
+        assert result["existing_key"] == "existing_value"
+
+    def test_process_extra_form_data_filters_empty_inputs(self):
+        """Test _process_extra_form_data_filters with empty inputs."""
+        datasource = self.get_datasource_mock()
+        form_data = {}
+        test_viz = viz.DeckGLMultiLayer(datasource, form_data)
+
+        result = test_viz._process_extra_form_data_filters(0, {}, {}, {})
+        assert result == {}
+
+        extra_form_data = {"key": "value"}
+        result = test_viz._process_extra_form_data_filters(0, {}, {}, extra_form_data)
+        assert result == extra_form_data
+
+    def test_apply_layer_filtering_without_layer_filter_scope(self):
+        """Test _apply_layer_filtering when layer_filter_scope is empty."""
+        datasource = self.get_datasource_mock()
+        form_data = {
+            "extra_filters": [Mock(), Mock()],
+            "adhoc_filters": [Mock()],
+            "extra_form_data": {"key": "value"},
+        }
+        test_viz = viz.DeckGLMultiLayer(datasource, form_data)
+
+        layer_form_data = {"viz_type": "deck_scatter"}
+        layer_index = 0
+
+        result = test_viz._apply_layer_filtering(layer_form_data, layer_index)
+
+        assert result["extra_filters"] == form_data["extra_filters"]
+        assert result["adhoc_filters"] == form_data["adhoc_filters"]
+        assert result["extra_form_data"] == form_data["extra_form_data"]
+
+    def test_apply_layer_filtering_with_layer_filter_scope(self):
+        """Test _apply_layer_filtering with layer_filter_scope."""
+        datasource = self.get_datasource_mock()
+
+        extra_filter_1 = Mock()
+        extra_filter_1.filterId = "filter_1"
+        extra_filter_2 = Mock()
+        extra_filter_2.filterId = "filter_2"
+
+        adhoc_filter_1 = Mock()
+        adhoc_filter_1.filterId = "filter_1"
+
+        form_data = {
+            "layer_filter_scope": {"filter_1": [0], "filter_2": [1]},
+            "filter_data_mapping": {
+                "filter_1": [{"column": "col1", "op": "==", "val": "value1"}]
+            },
+            "extra_filters": [extra_filter_1, extra_filter_2],
+            "adhoc_filters": [adhoc_filter_1],
+            "extra_form_data": {"existing": "data"},
+        }
+        test_viz = viz.DeckGLMultiLayer(datasource, form_data)
+
+        layer_form_data = {"viz_type": "deck_scatter"}
+        layer_index = 0
+
+        result = test_viz._apply_layer_filtering(layer_form_data, layer_index)
+
+        assert len(result["extra_filters"]) == 1
+        assert result["extra_filters"][0].filterId == "filter_1"
+        assert len(result["adhoc_filters"]) == 1
+        assert result["adhoc_filters"][0].filterId == "filter_1"
+        assert result["extra_form_data"]["filters"] == [
+            {"column": "col1", "op": "==", "val": "value1"}
+        ]
+
+    @patch("superset.viz.viz_types")
+    @patch("superset.db.session")
+    def test_get_data_with_layer_filtering(self, mock_db_session, mock_viz_types):
+        """Test get_data method with layer filtering enabled."""
+        datasource = self.get_datasource_mock()
+
+        slice_1 = Mock()
+        slice_1.form_data = {"viz_type": "deck_scatter", "layer_name": "Layer 1"}
+        slice_1.data = {"features": [{"type": "Feature"}]}
+        slice_1.datasource = datasource
+
+        slice_2 = Mock()
+        slice_2.form_data = {"viz_type": "deck_path", "layer_name": "Layer 2"}
+        slice_2.data = {"features": [{"type": "Feature"}]}
+        slice_2.datasource = datasource
+
+        # Mock the database query to return our slice objects
+        mock_db_session.query.return_value.filter.return_value.all.return_value = [
+            slice_1,
+            slice_2,
+        ]
+
+        mock_scatter_viz_class = Mock()
+        mock_scatter_viz_instance = Mock()
+        mock_scatter_viz_instance.get_payload.return_value = {
+            "data": {"features": [{"id": 1}]}
+        }
+        mock_scatter_viz_class.return_value = mock_scatter_viz_instance
+
+        mock_path_viz_class = Mock()
+        mock_path_viz_instance = Mock()
+        mock_path_viz_instance.get_payload.return_value = {
+            "data": {"features": [{"id": 2}]}
+        }
+        mock_path_viz_class.return_value = mock_path_viz_instance
+
+        mock_viz_types.get.side_effect = lambda viz_type: {
+            "deck_scatter": mock_scatter_viz_class,
+            "deck_path": mock_path_viz_class,
+        }.get(viz_type)
+
+        form_data = {
+            "layer_filter_scope": {"filter_1": [0], "filter_2": [1]},
+            "filter_data_mapping": {
+                "filter_1": [{"column": "col1", "op": "==", "val": "value1"}],
+                "filter_2": [{"column": "col2", "op": "!=", "val": "value2"}],
+            },
+            "deck_slices": [1, 2],  # Use integer IDs instead of Mock objects
+        }
+
+        with patch("superset.viz.config", {"MAPBOX_API_KEY": "test_key"}):
+            test_viz = viz.DeckGLMultiLayer(datasource, form_data)
+
+            test_viz._apply_layer_filtering = Mock(
+                side_effect=lambda form_data, idx: form_data
+            )
+
+            result = test_viz.get_data(pd.DataFrame())
+
+            assert test_viz._apply_layer_filtering.call_count == 2
+            test_viz._apply_layer_filtering.assert_any_call(slice_1.form_data, 0)
+            test_viz._apply_layer_filtering.assert_any_call(slice_2.form_data, 1)
+
+            assert isinstance(result, dict)
+            assert "features" in result
+            assert "mapboxApiKey" in result
+            assert "slices" in result
+            assert result["mapboxApiKey"] == "test_key"
+
+    @patch("superset.viz.viz_types")
+    @patch("superset.db.session")
+    def test_get_data_filters_none_data_slices(self, mock_db_session, mock_viz_types):
+        """Test get_data method filters out slices with None data."""
+        datasource = self.get_datasource_mock()
+
+        slice_1 = Mock()
+        slice_1.form_data = {"viz_type": "deck_scatter"}
+        slice_1.data = {"features": [{"type": "Feature"}]}
+        slice_1.datasource = datasource
+
+        slice_2 = Mock()
+        slice_2.form_data = {"viz_type": "deck_path"}
+        slice_2.data = None
+        slice_2.datasource = datasource
+
+        # Mock the database query to return our slice objects
+        mock_db_session.query.return_value.filter.return_value.all.return_value = [
+            slice_1,
+            slice_2,
+        ]
+
+        mock_viz_class = Mock()
+        mock_viz_instance = Mock()
+        mock_viz_instance.get_payload.return_value = {"data": {"features": []}}
+        mock_viz_class.return_value = mock_viz_instance
+        mock_viz_types.get.return_value = mock_viz_class
+
+        form_data = {"deck_slices": [1, 2]}  # Use integer IDs instead of Mock objects
+
+        with patch("superset.viz.config", {"MAPBOX_API_KEY": "test_key"}):
+            test_viz = viz.DeckGLMultiLayer(datasource, form_data)
+            result = test_viz.get_data(pd.DataFrame())
+
+            assert isinstance(result, dict)
+            assert len(result["slices"]) == 1
+            assert result["slices"][0] == slice_1.data
+
+    def test_get_data_empty_deck_slices(self):
+        """Test get_data method with empty deck_slices."""
+        datasource = self.get_datasource_mock()
+        form_data = {"deck_slices": []}
+
+        with patch("superset.viz.config", {"MAPBOX_API_KEY": "test_key"}):
+            test_viz = viz.DeckGLMultiLayer(datasource, form_data)
+            result = test_viz.get_data(pd.DataFrame())
+
+            assert isinstance(result, dict)
+            assert result["features"] == {}
+            assert result["slices"] == []
+            assert result["mapboxApiKey"] == "test_key"
+
+
 class TestTimeSeriesViz(SupersetTestCase):
     def test_timeseries_unicode_data(self):
         datasource = self.get_datasource_mock()

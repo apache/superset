@@ -1624,7 +1624,12 @@ class DeckGLMultiLayer(BaseViz):
             viz_instance = viz_class(datasource=slc.datasource, form_data=form_data)
             payload = viz_instance.get_payload()
 
-            if payload and "data" in payload and "features" in payload["data"]:
+            if (
+                payload
+                and "data" in payload
+                and payload["data"] is not None
+                and "features" in payload["data"]
+            ):
                 if viz_type_name not in features:
                     features[viz_type_name] = []
                 features[viz_type_name].extend(payload["data"]["features"])
