@@ -131,7 +131,7 @@ class TestSecurityGuestTokenApi(SupersetTestCase):
         self.dash = db.session.query(Dashboard).filter_by(slug="births").first()
         self.embedded = EmbeddedDashboardDAO.upsert(self.dash, [])
         self.login(ADMIN_USERNAME)
-        
+
         user = {
             "username": "bob_with_attrs",
             "first_name": "Bob",
@@ -143,8 +143,8 @@ class TestSecurityGuestTokenApi(SupersetTestCase):
                 "team": "data-platform",
                 "clearance_level": "standard",
                 "projects": ["analytics", "ml-platform"],
-                "team_lead": True
-            }
+                "team_lead": True,
+            },
         }
         resource = {"type": "dashboard", "id": str(self.embedded.uuid)}
         rls_rule = {"dataset": 1, "clause": "1=1"}
@@ -162,7 +162,7 @@ class TestSecurityGuestTokenApi(SupersetTestCase):
             audience=get_url_host(),
             algorithms=["HS256"],
         )
-        
+
         # Verify user attributes are preserved in the token
         assert user == decoded_token["user"]
         assert "attributes" in decoded_token["user"]
@@ -171,7 +171,10 @@ class TestSecurityGuestTokenApi(SupersetTestCase):
         assert decoded_token["user"]["attributes"]["role"] == "developer"
         assert decoded_token["user"]["attributes"]["team"] == "data-platform"
         assert decoded_token["user"]["attributes"]["clearance_level"] == "standard"
-        assert decoded_token["user"]["attributes"]["projects"] == ["analytics", "ml-platform"]
+        assert decoded_token["user"]["attributes"]["projects"] == [
+            "analytics",
+            "ml-platform",
+        ]
         assert decoded_token["user"]["attributes"]["team_lead"] is True
         assert resource == decoded_token["resources"][0]
 
@@ -183,12 +186,12 @@ class TestSecurityGuestTokenApi(SupersetTestCase):
         self.dash = db.session.query(Dashboard).filter_by(slug="births").first()
         self.embedded = EmbeddedDashboardDAO.upsert(self.dash, [])
         self.login(ADMIN_USERNAME)
-        
+
         user = {
             "username": "bob_empty_attrs",
             "first_name": "Bob",
             "last_name": "Also Bob",
-            "attributes": {}
+            "attributes": {},
         }
         resource = {"type": "dashboard", "id": str(self.embedded.uuid)}
         rls_rule = {"dataset": 1, "clause": "1=1"}
@@ -206,7 +209,7 @@ class TestSecurityGuestTokenApi(SupersetTestCase):
             audience=get_url_host(),
             algorithms=["HS256"],
         )
-        
+
         # Verify empty attributes are preserved in the token
         assert user == decoded_token["user"]
         assert "attributes" in decoded_token["user"]
@@ -221,12 +224,12 @@ class TestSecurityGuestTokenApi(SupersetTestCase):
         self.dash = db.session.query(Dashboard).filter_by(slug="births").first()
         self.embedded = EmbeddedDashboardDAO.upsert(self.dash, [])
         self.login(ADMIN_USERNAME)
-        
+
         user = {
             "username": "bob_null_attrs",
             "first_name": "Bob",
             "last_name": "Also Bob",
-            "attributes": None
+            "attributes": None,
         }
         resource = {"type": "dashboard", "id": str(self.embedded.uuid)}
         rls_rule = {"dataset": 1, "clause": "1=1"}
@@ -244,7 +247,7 @@ class TestSecurityGuestTokenApi(SupersetTestCase):
             audience=get_url_host(),
             algorithms=["HS256"],
         )
-        
+
         # Verify null attributes are preserved in the token
         assert user == decoded_token["user"]
         assert "attributes" in decoded_token["user"]
@@ -259,11 +262,11 @@ class TestSecurityGuestTokenApi(SupersetTestCase):
         self.dash = db.session.query(Dashboard).filter_by(slug="births").first()
         self.embedded = EmbeddedDashboardDAO.upsert(self.dash, [])
         self.login(ADMIN_USERNAME)
-        
+
         user = {
             "username": "bob_no_attrs",
             "first_name": "Bob",
-            "last_name": "Also Bob"
+            "last_name": "Also Bob",
             # Note: no attributes field
         }
         resource = {"type": "dashboard", "id": str(self.embedded.uuid)}
@@ -282,7 +285,7 @@ class TestSecurityGuestTokenApi(SupersetTestCase):
             audience=get_url_host(),
             algorithms=["HS256"],
         )
-        
+
         # Verify user without attributes works and no attributes field is present
         assert user == decoded_token["user"]
         assert "attributes" not in decoded_token["user"]
