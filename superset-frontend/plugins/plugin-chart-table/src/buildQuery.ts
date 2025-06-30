@@ -116,7 +116,10 @@ const buildQuery: BuildQuery<TableChartFormData> = (
       }
     }
 
-    if (extra_form_data?.time_compare) {
+    if (
+      extra_form_data?.time_compare &&
+      !timeOffsets.includes(extra_form_data.time_compare)
+    ) {
       timeOffsets = [extra_form_data.time_compare];
     }
 
