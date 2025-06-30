@@ -59,7 +59,8 @@ def requires_api_key(f):
         if not provided_api_key:
             logger.warning(f"Missing API key for endpoint: {f.__name__}")
             error_data = {
-                "error": "Missing Authorization header. Use 'Authorization: Bearer <api-key>' or 'X-API-Key: <api-key>'",
+                "error": "Missing Authorization header. Use 'Authorization: Bearer <api-key>' or 'X-API-Key: "
+                         "<api-key>'",
                 "error_type": "authentication_required",
                 "timestamp": datetime.now(timezone.utc)
             }
@@ -165,20 +166,12 @@ def health():
 @mcp_api.route("/list_dashboards", methods=["GET", "POST"])
 @requires_api_key
 def list_dashboards():
-    """List available dashboards with advanced filtering support using existing Superset filters"""
+    """List available dashboards using DashboardDAO.list_dashboards method"""
     logger.info(f"list_dashboards called with method: {request.method}")
+
     try:
         from superset.daos.dashboard import DashboardDAO
         from superset.extensions import security_manager
-        from superset.dashboards.filters import (
-            DashboardTitleOrSlugFilter,
-            DashboardCreatedByMeFilter,
-            DashboardHasCreatedByFilter,
-            DashboardTagIdFilter,
-            DashboardTagNameFilter,
-            DashboardFavoriteFilter,
-            DashboardCertifiedFilter,
-        )
 
         # Set up a user context for the MCP service
         admin_username = current_app.config.get("MCP_ADMIN_USERNAME", "admin")
@@ -191,14 +184,6 @@ def list_dashboards():
         else:
             g.user = admin_user
             logger.debug(f"Using admin user context: {admin_user.username}")
-
-        # Define search filters mapping (same as dashboard API)
-        search_filters = {
-            "dashboard_title": [DashboardTitleOrSlugFilter],
-            "id": [DashboardFavoriteFilter, DashboardCertifiedFilter],
-            "created_by": [DashboardCreatedByMeFilter, DashboardHasCreatedByFilter],
-            "tags": [DashboardTagIdFilter, DashboardTagNameFilter],
-        }
 
         # Input validation
         if request.method == "GET":
@@ -217,7 +202,6 @@ def list_dashboards():
                 serialized_error = serialize_mcp_response(error_data, MCPErrorResponseSchema)
                 return jsonify(serialized_error), 400
             query_params = validated
-            select_columns = query_params.get("select_columns", [])
         else:
             logger.debug("Processing POST request with JSON body")
             try:
@@ -234,8 +218,35 @@ def list_dashboards():
                 }
                 serialized_error = serialize_mcp_response(error_data, MCPErrorResponseSchema)
                 return jsonify(serialized_error), 400
-            select_columns = validated.get("select_columns", [])
             query_params = validated
+
+        # Extract parameters for DAO method
+        page = query_params.get("page", 0)
+        page_size = query_params.get("page_size", 100)
+        order_column = query_params.get("order_column", "changed_on")
+        order_direction = query_params.get("order_direction", "desc")
+        search = query_params.get("search", None)
+
+        # Convert filters to the format expected by DAO
+        filters = {}
+        if "filters" in query_params:
+            filters = query_params["filters"]
+
+        logger.info(
+            f"Calling DashboardDAO.list_dashboards with page={page}, page_size={page_size}, orde"
+            f"r_column={order_column}, order_direction={order_direction}")
+
+        # Use the new DAO method
+        dashboards, total_count = DashboardDAO.list_dashboards(
+            filters=filters,
+            order_column=order_column,
+            order_direction=order_direction,
+            page=page,
+            page_size=page_size,
+            search=search
+        )
+
+        logger.info(f"Retrieved {len(dashboards)} dashboards from DAO (total: {total_count})")
 
         # Define default essential columns
         default_columns = [
@@ -276,38 +287,9 @@ def list_dashboards():
 
         logger.debug(f"Loading columns: {columns_to_load}")
 
-        # Use DashboardDAO to get dashboards instead of direct SQLAlchemy
-        logger.info("Fetching dashboards using DashboardDAO")
-        dashboards = DashboardDAO.find_all()
-        logger.info(f"Retrieved {len(dashboards)} dashboards from DAO")
-
-        # Apply security context - filter dashboards based on user access
-        accessible_dashboards = []
-        for dashboard in dashboards:
-            try:
-                # Check if user has access to this dashboard
-                security_manager.raise_for_access(dashboard=dashboard)
-                accessible_dashboards.append(dashboard)
-            except Exception as access_error:
-                logger.debug(f"User does not have access to dashboard {dashboard.id}: {access_error}")
-                # Skip this dashboard if user doesn't have access
-                continue
-
-        logger.info(f"After security filtering: {len(accessible_dashboards)} accessible dashboards")
-
-        # Apply filters
-        if request.method == "GET":
-            logger.debug("Applying GET filters")
-            filtered_dashboards = apply_query_filters(accessible_dashboards, query_params, search_filters)
-        else:
-            logger.debug("Applying POST filters")
-            filtered_dashboards = apply_rest_filters(accessible_dashboards, validated, search_filters)
-
-        logger.info(f"After filtering: {len(filtered_dashboards)} dashboards")
-
         # Build response based on requested columns
         result = []
-        for dashboard in filtered_dashboards:
+        for dashboard in dashboards:
             dashboard_data = {}
 
             # Only include fields that were specifically requested
@@ -348,324 +330,55 @@ def list_dashboards():
                 dashboard_data["owners"] = [serialize_user_object(owner) for owner in
                                             dashboard.owners] if dashboard.owners else []
 
-            if "roles" in columns_to_load:
-                dashboard_data["roles"] = [serialize_role_object(role) for role in
-                                           dashboard.roles] if dashboard.roles else []
-
-            if "certified_by" in columns_to_load:
-                dashboard_data["certified_by"] = dashboard.certified_by
-                dashboard_data["certification_details"] = dashboard.certification_details
-
-            if "css" in columns_to_load:
-                dashboard_data["css"] = dashboard.css
-
-            if "json_metadata" in columns_to_load:
-                dashboard_data["json_metadata"] = dashboard.json_metadata
-
-            if "position_json" in columns_to_load:
-                dashboard_data["position_json"] = dashboard.position_json
-
-            if "thumbnail_url" in columns_to_load:
-                dashboard_data["thumbnail_url"] = dashboard.thumbnail_url
-
-            if "is_managed_externally" in columns_to_load:
-                dashboard_data["is_managed_externally"] = dashboard.is_managed_externally
-
-            if "chart_count" in columns_to_load:
-                dashboard_data["chart_count"] = len(dashboard.slices) if dashboard.slices else 0
-
-            if "charts" in columns_to_load:
-                dashboard_data["charts"] = [serialize_chart_object(chart) for chart in
-                                            dashboard.slices] if dashboard.slices else []
-
             result.append(dashboard_data)
 
         # Calculate pagination info
-        page = int(request.args.get("page", 0)) if request.method == "GET" else validated.get("page", 0)
-        page_size = int(request.args.get("page_size", 100)) if request.method == "GET" else validated.get(
-            "page_size", 100)
-        total_count = len(filtered_dashboards)
-        total_pages = (total_count + page_size - 1) // page_size
-        start_idx = page * page_size
-        end_idx = start_idx + page_size
-        paginated_dashboards = result[start_idx:end_idx]
-
-        logger.debug(
-            f"Pagination: page={page}, page_size={page_size}, total={total_count}, showing={len(paginated_dashboards)}")
+        total_pages = (total_count + page_size - 1) // page_size if page_size > 0 else 0
 
         response_data = {
-            "dashboards": paginated_dashboards,
-            "count": len(paginated_dashboards),
+            "dashboards": result,
+            "count": len(result),
             "total_count": total_count,
             "page": page,
             "page_size": page_size,
             "total_pages": total_pages,
+            "has_previous": page > 0,
+            "has_next": page < total_pages - 1,
             "columns_requested": columns_to_load,
-            "columns_loaded": list(set([col for dashboard in paginated_dashboards for col in dashboard.keys()])),
-            "filters_applied": get_applied_filters_info(request),
+            "columns_loaded": list(set([col for dashboard in result for col in dashboard.keys()])),
+            "filters_applied": {},
             "pagination": {
                 "page": page,
                 "page_size": page_size,
                 "total_count": total_count,
                 "total_pages": total_pages,
                 "has_next": page < total_pages - 1,
-                "has_prev": page > 0
-            }
+                "has_previous": page > 0
+            },
+            "timestamp": datetime.now(timezone.utc)
         }
 
         # Try to serialize response using schema, fallback to direct response if it fails
         try:
             serialized_response = serialize_mcp_response(response_data, MCPDashboardListResponseSchema)
-            logger.info(f"list_dashboards completed successfully: {len(paginated_dashboards)} dashboards returned")
+            logger.info(f"Successfully returned {len(result)} dashboards")
             return jsonify(serialized_response)
         except Exception as serialization_error:
             logger.warning(
                 f"Schema serialization failed for list_dashboards, using direct response: {serialization_error}")
             # Return response directly without schema serialization as fallback
             return jsonify(response_data)
+
     except Exception as e:
         logger.error(f"Error in list_dashboards: {e}", exc_info=True)
         error_data = {
-            "error": str(e),
+            "error": "Internal server error",
             "error_type": "internal_error",
+            "details": {"message": str(e)},
             "timestamp": datetime.now(timezone.utc)
         }
         serialized_error = serialize_mcp_response(error_data, MCPErrorResponseSchema)
         return jsonify(serialized_error), 500
-
-
-def apply_query_filters(dashboards, args, search_filters):
-    """Apply filters from query parameters using existing Superset filters"""
-    logger.debug(f"Applying query filters: {args}")
-    filtered_dashboards = dashboards
-
-    # Apply dashboard_title filter
-    if args.get("dashboard_title"):
-        # Apply the filter logic manually since we don't have a query object
-        search_term = args.get("dashboard_title").lower()
-        filtered_dashboards = [
-            d for d in filtered_dashboards
-            if search_term in d.dashboard_title.lower() or
-               (d.slug and search_term in d.slug.lower())
-        ]
-        logger.debug(f"Applied dashboard_title filter: {len(filtered_dashboards)} dashboards remaining")
-
-    # Apply published filter
-    if args.get("published") is not None:
-        published_value = args.get("published")
-        # Convert string to boolean for proper comparison
-        if isinstance(published_value, str):
-            published_value = published_value.lower() == "true"
-        filtered_dashboards = [
-            d for d in filtered_dashboards
-            if d.published == published_value
-        ]
-        logger.debug(f"Applied published filter: {len(filtered_dashboards)} dashboards remaining")
-
-    # Apply certified filter
-    if args.get("certified") is not None:
-        certified_value = args.get("certified")
-        # Convert string to boolean for proper comparison
-        if isinstance(certified_value, str):
-            certified_value = certified_value.lower() == "true"
-        filtered_dashboards = [
-            d for d in filtered_dashboards
-            if (certified_value and d.certified_by and d.certified_by != "") or
-               (not certified_value and (not d.certified_by or d.certified_by == ""))
-        ]
-        logger.debug(f"Applied certified filter: {len(filtered_dashboards)} dashboards remaining")
-
-    # Apply favorite filter (simplified for MCP service)
-    if args.get("favorite") is not None:
-        favorite_value = args.get("favorite")
-        # For MCP service, we'll skip favorite filtering since it requires user context
-        # This could be enhanced later with proper user context
-        logger.debug("Skipping favorite filter (requires user context)")
-
-    # Apply changed_by filter
-    if args.get("changed_by"):
-        changed_by_name = args.get("changed_by").lower()
-        filtered_dashboards = [
-            d for d in filtered_dashboards
-            if d.changed_by_name and changed_by_name in d.changed_by_name.lower()
-        ]
-        logger.debug(f"Applied changed_by filter: {len(filtered_dashboards)} dashboards remaining")
-
-    # Apply created_by filter
-    if args.get("created_by"):
-        created_by_name = args.get("created_by").lower()
-        filtered_dashboards = [
-            d for d in filtered_dashboards
-            if d.created_by_name and created_by_name in d.created_by_name.lower()
-        ]
-        logger.debug(f"Applied created_by filter: {len(filtered_dashboards)} dashboards remaining")
-
-    # Apply owner filter
-    if args.get("owner"):
-        owner_name = args.get("owner").lower()
-        filtered_dashboards = [
-            d for d in filtered_dashboards
-            if d.owners and any(owner.username.lower() == owner_name for owner in d.owners)
-        ]
-        logger.debug(f"Applied owner filter: {len(filtered_dashboards)} dashboards remaining")
-
-    # Apply chart count filters
-    if args.get("chart_count") is not None:
-        chart_count = args.get("chart_count")
-        filtered_dashboards = [
-            d for d in filtered_dashboards
-            if len(d.slices) == chart_count
-        ]
-        logger.debug(f"Applied chart_count filter: {len(filtered_dashboards)} dashboards remaining")
-
-    if args.get("chart_count_min") is not None:
-        chart_count_min = args.get("chart_count_min")
-        filtered_dashboards = [
-            d for d in filtered_dashboards
-            if len(d.slices) >= chart_count_min
-        ]
-        logger.debug(f"Applied chart_count_min filter: {len(filtered_dashboards)} dashboards remaining")
-
-    if args.get("chart_count_max") is not None:
-        chart_count_max = args.get("chart_count_max")
-        filtered_dashboards = [
-            d for d in filtered_dashboards
-            if len(d.slices) <= chart_count_max
-        ]
-        logger.debug(f"Applied chart_count_max filter: {len(filtered_dashboards)} dashboards remaining")
-
-    # Apply tags filter
-    if args.get("tags"):
-        tag_names = [tag.strip().lower() for tag in args.get("tags").split(",")]
-        filtered_dashboards = [
-            d for d in filtered_dashboards
-            if d.tags and any(tag.name.lower() in tag_names for tag in d.tags)
-        ]
-        logger.debug(f"Applied tags filter: {len(filtered_dashboards)} dashboards remaining")
-
-    # Apply ordering
-    order_column = args.get("order_column")
-    order_direction = args.get("order_direction", "asc")
-
-    if order_column:
-        reverse = order_direction == "desc"
-        if order_column == "dashboard_title":
-            filtered_dashboards.sort(key=lambda d: d.dashboard_title.lower(), reverse=reverse)
-        elif order_column == "changed_on":
-            filtered_dashboards.sort(key=lambda d: d.changed_on or datetime.min, reverse=reverse)
-        elif order_column == "created_on":
-            filtered_dashboards.sort(key=lambda d: d.created_on or datetime.min, reverse=reverse)
-        elif order_column == "chart_count":
-            filtered_dashboards.sort(key=lambda d: len(d.slices), reverse=reverse)
-        elif order_column == "published":
-            filtered_dashboards.sort(key=lambda d: d.published, reverse=reverse)
-        logger.debug(f"Applied ordering: {order_column} {order_direction}")
-
-    logger.debug(f"Query filtering completed: {len(filtered_dashboards)} dashboards returned")
-    return filtered_dashboards
-
-
-def apply_rest_filters(dashboards, rest_filters, search_filters):
-    """Apply filters from REST API JSON body using existing Superset filters"""
-    logger.debug(f"Applying REST filters: {rest_filters}")
-    filtered_dashboards = dashboards
-
-    # Apply filters from the filters array
-    for filter_obj in rest_filters.get("filters", []):
-        col = filter_obj.get("col")
-        opr = filter_obj.get("opr")
-        value = filter_obj.get("value")
-
-        if col == "dashboard_title" and opr == "sw":
-            # Starts with filter
-            search_term = value.lower()
-            filtered_dashboards = [
-                d for d in filtered_dashboards
-                if d.dashboard_title.lower().startswith(search_term)
-            ]
-        elif col == "dashboard_title" and opr == "in":
-            # Contains filter
-            search_term = value.lower()
-            filtered_dashboards = [
-                d for d in filtered_dashboards
-                if search_term in d.dashboard_title.lower()
-            ]
-        elif col == "published" and opr == "eq":
-            # Published filter
-            published_value = value
-            # Convert string to boolean for proper comparison
-            if isinstance(published_value, str):
-                published_value = published_value.lower() == "true"
-            filtered_dashboards = [
-                d for d in filtered_dashboards
-                if d.published == published_value
-            ]
-        elif col == "certified" and opr == "eq":
-            # Certified filter
-            certified_value = value
-            # Convert string to boolean for proper comparison
-            if isinstance(certified_value, str):
-                certified_value = certified_value.lower() == "true"
-            filtered_dashboards = [
-                d for d in filtered_dashboards
-                if (certified_value and d.certified_by and d.certified_by != "") or
-                   (not certified_value and (not d.certified_by or d.certified_by == ""))
-            ]
-        elif col == "changed_by" and opr == "in":
-            # Changed by filter
-            changed_by_name = value.lower()
-            filtered_dashboards = [
-                d for d in filtered_dashboards
-                if d.changed_by_name and changed_by_name in d.changed_by_name.lower()
-            ]
-        elif col == "created_by" and opr == "in":
-            # Created by filter
-            created_by_name = value.lower()
-            filtered_dashboards = [
-                d for d in filtered_dashboards
-                if d.created_by_name and created_by_name in d.created_by_name.lower()
-            ]
-        elif col == "chart_count" and opr == "eq":
-            # Chart count filter
-            chart_count = value
-            filtered_dashboards = [
-                d for d in filtered_dashboards
-                if len(d.slices) == chart_count
-            ]
-        elif col == "chart_count" and opr == "gte":
-            # Chart count min filter
-            chart_count_min = value
-            filtered_dashboards = [
-                d for d in filtered_dashboards
-                if len(d.slices) >= chart_count_min
-            ]
-        elif col == "chart_count" and opr == "lte":
-            # Chart count max filter
-            chart_count_max = value
-            filtered_dashboards = [
-                d for d in filtered_dashboards
-                if len(d.slices) <= chart_count_max
-            ]
-
-    # Apply ordering
-    order_column = rest_filters.get("order_column")
-    order_direction = rest_filters.get("order_direction", "asc")
-
-    if order_column:
-        reverse = order_direction == "desc"
-        if order_column == "dashboard_title":
-            filtered_dashboards.sort(key=lambda d: d.dashboard_title.lower(), reverse=reverse)
-        elif order_column == "changed_on":
-            filtered_dashboards.sort(key=lambda d: d.changed_on or datetime.min, reverse=reverse)
-        elif order_column == "created_on":
-            filtered_dashboards.sort(key=lambda d: d.created_on or datetime.min, reverse=reverse)
-        elif order_column == "chart_count":
-            filtered_dashboards.sort(key=lambda d: len(d.slices), reverse=reverse)
-        elif order_column == "published":
-            filtered_dashboards.sort(key=lambda d: d.published, reverse=reverse)
-
-    logger.debug(f"REST filtering completed: {len(filtered_dashboards)} dashboards returned")
-    return filtered_dashboards
 
 
 def get_applied_filters_info(request):
@@ -807,6 +520,7 @@ def handle_500(error):
     error_data = {
         "error": "Internal server error",
         "error_type": "internal_error",
+        "details": {"message": str(e)},
         "timestamp": datetime.now(timezone.utc)
     }
     serialized_error = serialize_mcp_response(error_data, MCPErrorResponseSchema)
