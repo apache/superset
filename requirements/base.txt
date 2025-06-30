@@ -9,7 +9,9 @@ apispec==6.3.0
 apsw==3.46.0.0
     # via shillelagh
 async-timeout==4.0.3
-    # via -r requirements/base.in
+    # via
+    #   -r requirements/base.in
+    #   redis
 attrs==24.2.0
     # via
     #   cattrs
@@ -94,6 +96,11 @@ email-validator==2.2.0
     # via flask-appbuilder
 et-xmlfile==2.0.0
     # via openpyxl
+exceptiongroup==1.3.0
+    # via
+    #   cattrs
+    #   trio
+    #   trio-websocket
 flask==2.3.3
     # via
     #   apache-superset (pyproject.toml)
@@ -148,7 +155,6 @@ greenlet==3.0.3
     # via
     #   apache-superset (pyproject.toml)
     #   shillelagh
-    #   sqlalchemy
 gunicorn==23.0.0
     # via apache-superset (pyproject.toml)
 h11==0.16.0
@@ -204,6 +210,7 @@ markupsafe==3.0.2
     #   wtforms
 marshmallow==3.23.1
     # via
+    #   apache-superset (pyproject.toml)
     #   flask-appbuilder
     #   marshmallow-sqlalchemy
 marshmallow-sqlalchemy==0.28.2
@@ -224,6 +231,7 @@ numpy==1.26.4
     #   bottleneck
     #   numexpr
     #   pandas
+    #   pyarrow
 odfpy==1.4.1
     # via pandas
 openpyxl==3.1.5
@@ -376,8 +384,11 @@ typing-extensions==4.12.2
     # via
     #   apache-superset (pyproject.toml)
     #   alembic
+    #   cattrs
+    #   exceptiongroup
     #   flask-limiter
     #   limits
+    #   rich
     #   selenium
     #   shillelagh
 tzdata==2024.2
