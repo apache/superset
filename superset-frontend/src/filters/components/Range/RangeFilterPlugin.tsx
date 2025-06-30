@@ -565,7 +565,7 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
       );
     }
     return (
-      <SliderWrapper>
+      <SliderWrapper data-test="range-filter-slider">
         <Slider
           min={min}
           max={max}
