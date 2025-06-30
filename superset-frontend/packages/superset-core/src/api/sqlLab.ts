@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Event, Database, Catalog, Schema, Table } from './core';
+import { Event, Database } from './core';
 
 export declare namespace sqlLab {
   export interface Editor {

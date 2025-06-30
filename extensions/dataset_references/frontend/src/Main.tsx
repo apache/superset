@@ -24,36 +24,34 @@ import { MetadataRow } from "./types";
 const Main: React.FC = () => {
   const [metadata, setMetadata] = React.useState<MetadataRow[]>([]);
 
-  const onQueryRun = async (editor: sqlLab.Editor) => {
-    try {
-      const csrfToken = await authentication.getCSRFToken();
-      const response = await fetch(
-        "/api/v1/extensions/dataset_references/metadata",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "X-CSRFToken": csrfToken!,
-          },
-          body: JSON.stringify({
-            databaseId: editor.databaseId,
-            sql: editor.content,
-          }),
-        }
-      );
-      const data = await response.json();
-      setMetadata(data.result);
-    } catch (err) {
-      setMetadata([]);
-    }
-  };
-
   useEffect(() => {
-    const queryRun = sqlLab.onDidQueryRun(onQueryRun);
+    const queryRun = sqlLab.onDidQueryRun(async (editor: sqlLab.Editor) => {
+      try {
+        const csrfToken = await authentication.getCSRFToken();
+        const response = await fetch(
+          "/api/v1/extensions/dataset_references/metadata",
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "X-CSRFToken": csrfToken!,
+            },
+            body: JSON.stringify({
+              databaseId: editor.databaseId,
+              sql: editor.content,
+            }),
+          }
+        );
+        const data = await response.json();
+        setMetadata(data.result);
+      } catch (err) {
+        setMetadata([]);
+      }
+    });
     return () => {
       queryRun.dispose();
     };
-  }, [onQueryRun]);
+  }, []);
 
   return <Table metadata={metadata} />;
 };

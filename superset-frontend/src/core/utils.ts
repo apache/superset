@@ -19,9 +19,10 @@
 import { AnyAction } from 'redux';
 import { listenerMiddleware, RootState, store } from 'src/views/store';
 import { Disposable } from '../core';
+import { AnyListenerPredicate } from '@reduxjs/toolkit';
 
-export function createActionListener<V>(
-  actionType: string,
+export function createActionListener<V, S>(
+  predicate: AnyListenerPredicate<S>,
   listener: (v: V) => void,
   valueParser: (action: AnyAction, state: RootState) => V,
   thisArgs?: any,
@@ -29,7 +30,7 @@ export function createActionListener<V>(
   const boundListener = thisArgs ? listener.bind(thisArgs) : listener;
 
   const unsubscribe = listenerMiddleware.startListening({
-    type: actionType,
+    predicate,
     effect: (action: AnyAction) => {
       const state = store.getState();
       boundListener(valueParser(action, state));

@@ -20,21 +20,33 @@ import { sqlLab as sqlLabType } from '@apache-superset/core';
 import {
   QUERY_FAILED,
   QUERY_SUCCESS,
+  QUERY_EDITOR_SETDB,
   querySuccess,
 } from 'src/SqlLab/actions/sqlLab';
-import { RootState } from 'src/views/store';
+import { RootState, store } from 'src/views/store';
 import { Disposable, Editor } from './core';
 import { createActionListener } from './utils';
+import { AnyListenerPredicate } from '@reduxjs/toolkit';
 
-// TODO: Refactor to return all needed parameters. Add them to the interface.
+const predicate = (actionType: string): AnyListenerPredicate<RootState> => {
+  const { sqlLab } = store.getState();
+  const { unsavedQueryEditor, lastUpdatedActiveTab } = sqlLab;
+  const selectedEditor = unsavedQueryEditor.id || lastUpdatedActiveTab;
+  return action => {
+    return (
+      action.type === actionType && action.query?.sqlEditorId === selectedEditor
+    );
+  };
+};
+
 export const onDidQueryRun: typeof sqlLabType.onDidQueryRun = (
   listener: (editor: sqlLabType.Editor) => void,
   thisArgs?: any,
 ): Disposable =>
   createActionListener(
-    QUERY_SUCCESS,
+    predicate(QUERY_SUCCESS),
     listener,
-    (action: ReturnType<typeof querySuccess>, state: RootState) => {
+    (action: ReturnType<typeof querySuccess>) => {
       const { query } = action;
       const { dbId, catalog, schema, sql } = query;
       return new Editor(sql, dbId, catalog, schema);
@@ -47,7 +59,7 @@ export const onDidQueryFail: typeof sqlLabType.onDidQueryFail = (
   thisArgs?: any,
 ): Disposable =>
   createActionListener(
-    QUERY_FAILED,
+    predicate(QUERY_FAILED),
     listener,
     (action: {
       type: string;
@@ -59,14 +71,14 @@ export const onDidQueryFail: typeof sqlLabType.onDidQueryFail = (
     thisArgs,
   );
 
-// TODO: This will monitor multiple Redux actions.
 export const onDidChangeEditorDatabase: typeof sqlLabType.onDidChangeEditorDatabase =
   (listener: (e: number) => void, thisArgs?: any): Disposable =>
     createActionListener(
-      'QUERY_EDITOR_SETDB',
+      predicate(QUERY_EDITOR_SETDB),
       listener,
       (action: { type: string; queryEditor: { dbId: number } }) =>
         action.queryEditor.dbId,
+      thisArgs,
     );
 
 // TODO: Make it typeof sqlLabType
