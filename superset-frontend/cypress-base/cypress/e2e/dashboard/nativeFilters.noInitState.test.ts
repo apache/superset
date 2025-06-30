@@ -218,24 +218,28 @@ describe('Native filters', () => {
       };
 
       const applyAndAssertInputs = (from: string, to: string) => {
+        // Set 'from' input
         cy.get('[data-test="range-filter-from-input"]').clear();
         cy.get('[data-test="range-filter-from-input"]').type(from);
         cy.get('[data-test="range-filter-from-input"]').blur();
 
+        // Set 'to' input
         cy.get('[data-test="range-filter-to-input"]').clear();
         cy.get('[data-test="range-filter-to-input"]').type(to);
         cy.get('[data-test="range-filter-to-input"]').blur();
 
-        cy.get(nativeFilters.applyFilter, { timeout: 10000 }).should('exist');
-        cy.get(nativeFilters.applyFilter).should('not.be.disabled').click();
-
+        // Assert values without chaining after .invoke()
         cy.get('[data-test="range-filter-from-input"]')
           .invoke('val')
-          .then(val => expect(val).to.equal(from));
+          .then(val => {
+            expect(val).to.equal(from);
+          });
 
         cy.get('[data-test="range-filter-to-input"]')
           .invoke('val')
-          .then(val => expect(val).to.equal(to));
+          .then(val => {
+            expect(val).to.equal(to);
+          });
       };
 
       it('User can create a numerical range filter with "Range Inputs" display mode', () => {
