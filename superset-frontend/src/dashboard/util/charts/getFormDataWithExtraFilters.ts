@@ -25,18 +25,14 @@ import {
   PartialFilters,
   ExtraFormData,
 } from '@superset-ui/core';
-import {
-  ChartConfiguration,
-  ChartQueryPayload,
-  RootState,
-} from 'src/dashboard/types';
+import { ChartConfiguration, ChartQueryPayload } from 'src/dashboard/types';
+import { ChartCustomizationItem } from 'src/dashboard/components/nativeFilters/ChartCustomization/types';
 import {
   getExtraFormData,
   mergeExtraFormData,
 } from 'src/dashboard/components/nativeFilters/utils';
 import { isEqual } from 'lodash';
 import { areObjectsEqual } from 'src/reduxUtils';
-import { selectChartCustomizationItems } from '../../components/nativeFilters/ChartCustomization/selectors';
 import getEffectiveExtraFilters from './getEffectiveExtraFilters';
 import { getAllActiveFilters } from '../activeAllDashboardFilters';
 
@@ -78,6 +74,7 @@ const cachedFormdataByChart: Record<
 
 export interface GetFormDataWithExtraFiltersArguments {
   chartConfiguration: ChartConfiguration;
+  chartCustomizationItems?: ChartCustomizationItem[];
   chart: ChartQueryPayload;
   filters: DataRecordFilters;
   colorScheme?: string;
@@ -116,6 +113,7 @@ export default function getFormDataWithExtraFilters({
   filters,
   nativeFilters,
   chartConfiguration,
+  chartCustomizationItems,
   colorScheme,
   ownColorScheme,
   colorNamespace,
@@ -179,9 +177,7 @@ export default function getFormDataWithExtraFilters({
   }
 
   try {
-    const state = nativeFilters as unknown as RootState;
-    const chartCustomizationItems = selectChartCustomizationItems(state);
-
+    // Use the chart customization items passed as parameter
     if (chartCustomizationItems && chartCustomizationItems.length > 0) {
       const chartDataset = chart.form_data?.datasource;
       if (chartDataset) {
@@ -206,16 +202,38 @@ export default function getFormDataWithExtraFilters({
           const { customization } = item;
 
           if (customization?.column) {
-            const customExtraFormData: ExtraFormData = {
+            const customExtraFormData: JsonObject = {
               groupby: [customization.column],
-            } as unknown as ExtraFormData;
+            };
+
             if (customization.sortFilter && customization.sortMetric) {
-              (customExtraFormData as any).order_by_cols = [
+              customExtraFormData.order_by_cols = [
                 JSON.stringify([
                   customization.sortMetric,
                   !customization.sortAscending,
                 ]),
               ];
+            }
+
+            const customizationFilterId = `chart_customization_${item.id}`;
+            const customizationDataMask = dataMask[customizationFilterId];
+            const selectedValues = customizationDataMask?.filterState?.value;
+
+            if (
+              selectedValues &&
+              Array.isArray(selectedValues) &&
+              selectedValues.length > 0
+            ) {
+              if (!customExtraFormData.filters) {
+                customExtraFormData.filters = [];
+              }
+              if (Array.isArray(customExtraFormData.filters)) {
+                customExtraFormData.filters.push({
+                  col: customization.column,
+                  op: 'IN',
+                  val: selectedValues,
+                });
+              }
             }
 
             extraFormData = mergeExtraFormData(
