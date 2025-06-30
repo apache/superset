@@ -88,6 +88,7 @@ export type EchartsMixedTimeseriesFormData = QueryFormData & {
   yAxisIndexB?: number;
   groupby: QueryFormColumn[];
   groupbyB: QueryFormColumn[];
+  showLegendToggle?: boolean;
 } & LegendFormData &
   TitleFormData;
 
