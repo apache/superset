@@ -23,6 +23,7 @@ import {
 import { t } from '@superset-ui/core';
 import {
   autozoom,
+  deckGLColorSchemeControls,
   extruded,
   filterNulls,
   gridSize,
@@ -52,7 +53,8 @@ const config: ControlPanelConfig = {
       label: t('Map'),
       controlSetRows: [
         [mapboxStyle],
-        ['color_scheme', viewport],
+        ...deckGLColorSchemeControls,
+        [viewport],
         [autozoom],
         [gridSize],
         [extruded],
