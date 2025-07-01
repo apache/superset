@@ -42,7 +42,7 @@ export interface ErrorMapType {
 
 export interface ColorBreakpointsControlProps
   extends ControlComponentProps<OptionValueType[]> {
-  contours?: {};
+  breakpoints: ColorBreakpointType[];
 }
 
 export interface ColorBreakpointsPopoverTriggerProps {

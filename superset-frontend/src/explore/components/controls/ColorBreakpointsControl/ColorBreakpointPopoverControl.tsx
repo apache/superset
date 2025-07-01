@@ -66,7 +66,7 @@ const determineErrorMap = (
 
     if (newMinValue >= newMaxValue) {
       errorMap.minValue.push(
-        'Min value should be smaller or equal to max value',
+        t('Min value should be smaller or equal to max value'),
       );
     }
 
@@ -81,8 +81,10 @@ const determineErrorMap = (
     );
 
     if (isBreakpointDuplicate) {
-      errorMap.minValue.push('The values overlap other breakpoint values');
-      errorMap.maxValue.push('The values overlap other breakpoint values');
+      const overlapMsg = t('The values overlap other breakpoint values');
+
+      errorMap.minValue.push(overlapMsg);
+      errorMap.maxValue.push(overlapMsg);
     }
   }
 
@@ -197,7 +199,7 @@ const ColorBreakpointsPopoverControl = ({
       <StyledRow>
         <Col flex="1">
           <ControlHeader
-            name="isoband-color"
+            name="color"
             label={t('Color for breakpoint')}
             validationErrors={validationErrors.color}
             hovered
@@ -211,7 +213,7 @@ const ColorBreakpointsPopoverControl = ({
       <StyledRow>
         <Col flex="1">
           <ControlHeader
-            name="isoband-threshold-lower"
+            name="min-value"
             label={t('Min value')}
             validationErrors={validationErrors.minValue}
             hovered
@@ -223,7 +225,7 @@ const ColorBreakpointsPopoverControl = ({
         </Col>
         <Col flex="1">
           <ControlHeader
-            name="isoband-threshold-upper"
+            name="max-value"
             label={t('Max value')}
             validationErrors={validationErrors.maxValue}
             hovered
@@ -235,15 +237,20 @@ const ColorBreakpointsPopoverControl = ({
         </Col>
       </StyledRow>
       <ContourActionsContainer>
-        <Button buttonSize="small" onClick={onClose} variant="filled">
+        <Button
+          buttonSize="small"
+          onClick={onClose}
+          variant="filled"
+          aria-label={t('Close color breakpoint editor')}
+        >
           {t('Close')}
         </Button>
         <Button
-          data-test="adhoc-filter-edit-popover-save-button"
           disabled={!isComplete || containsErrors()}
           buttonStyle="primary"
           buttonSize="small"
           onClick={handleSave}
+          aria-label={t('Save color breakpoint values')}
         >
           {t('Save')}
         </Button>
