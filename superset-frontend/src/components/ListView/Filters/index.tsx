@@ -26,16 +26,17 @@ import {
 
 import { withTheme } from '@superset-ui/core';
 
-import {
-  FilterValue,
-  Filters,
+import type {
+  ListViewFilterValue as FilterValue,
+  ListViewFilters as Filters,
   InternalFilter,
   SelectOption,
-} from 'src/components/ListView/types';
+} from '../types';
+import type { FilterHandler } from './types';
 import SearchFilter from './Search';
 import SelectFilter from './Select';
 import DateRangeFilter from './DateRange';
-import { FilterHandler } from './Base';
+import NumericalRangeFilter from './NumericalRange';
 
 interface UIFiltersProps {
   filters: Filters;
@@ -76,6 +77,10 @@ function UIFilters(
             toolTipDescription,
             onFilterUpdate,
             loading,
+            dateFilterValueType,
+            min,
+            max,
+            dropdownStyle,
           },
           index,
         ) => {
@@ -105,6 +110,7 @@ function UIFilters(
                 paginate={paginate}
                 selects={selects}
                 loading={loading ?? false}
+                dropdownStyle={dropdownStyle}
               />
             );
           }
@@ -133,6 +139,21 @@ function UIFilters(
                 ref={filterRefs[index]}
                 Header={Header}
                 initialValue={initialValue}
+                key={key}
+                name={id}
+                onSubmit={value => updateFilterValue(index, value)}
+                dateFilterValueType={dateFilterValueType || 'unix'}
+              />
+            );
+          }
+          if (input === 'numerical_range') {
+            return (
+              <NumericalRangeFilter
+                ref={filterRefs[index]}
+                Header={Header}
+                initialValue={initialValue}
+                min={min}
+                max={max}
                 key={key}
                 name={id}
                 onSubmit={value => updateFilterValue(index, value)}

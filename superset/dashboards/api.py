@@ -254,6 +254,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         "roles",
         "slug",
         "tags",
+        "uuid",
     )
     search_filters = {
         "dashboard_title": [DashboardTitleOrSlugFilter],
@@ -1306,6 +1307,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
                 current_user=current_user,
                 dashboard_id=dashboard.id,
                 force=False,
+                cache_key=cache_key,
             )
             return self.response(
                 202,

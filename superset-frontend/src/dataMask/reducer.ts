@@ -27,10 +27,13 @@ import {
   Filter,
   FilterConfiguration,
   Filters,
+  FilterState,
+  ExtraFormData,
 } from '@superset-ui/core';
 import { NATIVE_FILTER_PREFIX } from 'src/dashboard/components/nativeFilters/FiltersConfigModal/utils';
 import { HYDRATE_DASHBOARD } from 'src/dashboard/actions/hydrate';
 import { SaveFilterChangesType } from 'src/dashboard/components/nativeFilters/FiltersConfigModal/types';
+import { isEqual } from 'lodash';
 import {
   AnyDataMaskAction,
   CLEAR_DATA_MASK_STATE,
@@ -38,6 +41,11 @@ import {
   UPDATE_DATA_MASK,
 } from './actions';
 import { areObjectsEqual } from '../reduxUtils';
+
+type FilterWithExtaFromData = Filter & {
+  extraFormData?: ExtraFormData;
+  filterState?: FilterState;
+};
 
 export function getInitialDataMask(
   id?: string | number,
@@ -106,10 +114,27 @@ function updateDataMaskForFilterChanges(
   });
 
   filterChanges.modified.forEach((filter: Filter) => {
+    const existingFilter = draftDataMask[filter.id] as FilterWithExtaFromData;
+
+    // Check if targets are equal
+    const areTargetsEqual = isEqual(existingFilter?.targets, filter?.targets);
+
+    // Preserve state only if filter exists, has enableEmptyFilter=true and targets match
+    const shouldPreserveState =
+      existingFilter &&
+      areTargetsEqual &&
+      (filter.controlValues?.enableEmptyFilter ||
+        filter.controlValues?.defaultToFirstItem);
+
     mergedDataMask[filter.id] = {
       ...getInitialDataMask(filter.id),
       ...filter.defaultDataMask,
       ...filter,
+      // Preserve extraFormData and filterState if conditions match
+      ...(shouldPreserveState && {
+        extraFormData: existingFilter.extraFormData,
+        filterState: existingFilter.filterState,
+      }),
     };
   });
 

@@ -34,17 +34,18 @@ import {
   DataMaskWithId,
   Filter,
   DataMask,
-  SLOW_DEBOUNCE,
   isNativeFilter,
   usePrevious,
   styled,
 } from '@superset-ui/core';
+import { Constants } from '@superset-ui/core/components';
 import { useHistory } from 'react-router-dom';
-import { updateDataMask, clearDataMask } from 'src/dataMask/actions';
+import { updateDataMask } from 'src/dataMask/actions';
 import { useImmer } from 'use-immer';
 import { isEmpty, isEqual, debounce } from 'lodash';
 import { getInitialDataMask } from 'src/dataMask/reducer';
 import { URL_PARAMS } from 'src/constants';
+import { applicationRoot } from 'src/utils/getBootstrapData';
 import { getUrlParam } from 'src/utils/urlUtils';
 import { useTabId } from 'src/hooks/useTabId';
 import { logEvent } from 'src/logger/actions';
@@ -120,13 +121,22 @@ const publishDataMask = debounce(
     // replace params only when current page is /superset/dashboard
     // this prevents a race condition between updating filters and navigating to Explore
     if (window.location.pathname.includes('/superset/dashboard')) {
-      history.location.pathname = window.location.pathname;
+      // The history API is part of React router and understands that a basename may exist.
+      // Internally it treats all paths as if they are relative to the root and appends
+      // it when necessary. We strip any prefix so that history.replace adds it back and doesn't
+      // double it up.
+      const appRoot = applicationRoot();
+      let replacement_pathname = window.location.pathname;
+      if (appRoot !== '/' && replacement_pathname.startsWith(appRoot)) {
+        replacement_pathname = replacement_pathname.substring(appRoot.length);
+      }
+      history.location.pathname = replacement_pathname;
       history.replace({
         search: newParams.toString(),
       });
     }
   },
-  SLOW_DEBOUNCE,
+  Constants.SLOW_DEBOUNCE,
 );
 
 const FilterBar: FC<FiltersBarProps> = ({
@@ -246,25 +256,17 @@ const FilterBar: FC<FiltersBarProps> = ({
   }, [dataMaskSelected, dispatch]);
 
   const handleClearAll = useCallback(() => {
-    const clearDataMaskIds: string[] = [];
-    let dispatchAllowed = false;
     filtersInScope.filter(isNativeFilter).forEach(filter => {
       const { id } = filter;
       if (dataMaskSelected[id]) {
-        if (filter.controlValues?.enableEmptyFilter) {
-          dispatchAllowed = false;
-        }
-        clearDataMaskIds.push(id);
         setDataMaskSelected(draft => {
           if (draft[id].filterState?.value !== undefined) {
             draft[id].filterState!.value = undefined;
           }
+          draft[id].extraFormData = {};
         });
       }
     });
-    if (dispatchAllowed) {
-      clearDataMaskIds.forEach(id => dispatch(clearDataMask(id)));
-    }
   }, [dataMaskSelected, dispatch, filtersInScope, setDataMaskSelected]);
 
   useFilterUpdates(dataMaskSelected, setDataMaskSelected);

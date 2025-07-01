@@ -20,7 +20,7 @@
 import { t } from '@superset-ui/core';
 import { RoleObject } from 'src/pages/RolesList';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
-import FormModal from 'src/components/Modal/FormModal';
+import { FormModal } from '@superset-ui/core/components';
 import { RoleNameField } from './RoleFormItems';
 import { BaseModalProps, RoleForm } from './types';
 import { createRole, updateRolePermissions } from './utils';
@@ -45,9 +45,11 @@ function RoleListDuplicateModal({
       if (permission_ids.length > 0) {
         await updateRolePermissions(roleResponse.id, permission_ids);
       }
-      addSuccessToast(t('Role was successfully duplicated!'));
+      addSuccessToast(t('The role has been duplicated successfully.'));
     } catch (err) {
-      addDangerToast(t('Error while duplicating role!'));
+      addDangerToast(
+        t('There was an error duplicating the role. Please, try again.'),
+      );
       throw err;
     }
   };

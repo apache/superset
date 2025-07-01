@@ -2132,9 +2132,9 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
         new_tag = db.session.query(Tag).filter(Tag.name == "second_tag").one()
 
         # get existing tag and add a new one
-        new_tags = [tag.id for tag in chart.tags if tag.type == TagType.custom]
-        new_tags.append(new_tag.id)
-        update_payload = {"tags": new_tags}
+        new_tags = {tag.id for tag in chart.tags if tag.type == TagType.custom}
+        new_tags.add(new_tag.id)
+        update_payload = {"tags": list(new_tags)}
 
         uri = f"api/v1/chart/{chart.id}"
         rv = self.put_assert_metric(uri, update_payload, "put")
@@ -2142,7 +2142,7 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
         model = db.session.query(Slice).get(chart.id)
 
         # Clean up system tags
-        tag_list = [tag.id for tag in model.tags if tag.type == TagType.custom]
+        tag_list = {tag.id for tag in model.tags if tag.type == TagType.custom}
         assert tag_list == new_tags
 
     @pytest.mark.usefixtures("create_chart_with_tag")
@@ -2191,9 +2191,9 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
         new_tag = db.session.query(Tag).filter(Tag.name == "second_tag").one()
 
         # get existing tag and add a new one
-        new_tags = [tag.id for tag in chart.tags if tag.type == TagType.custom]
-        new_tags.append(new_tag.id)
-        update_payload = {"tags": new_tags}
+        new_tags = {tag.id for tag in chart.tags if tag.type == TagType.custom}
+        new_tags.add(new_tag.id)
+        update_payload = {"tags": list(new_tags)}
 
         uri = f"api/v1/chart/{chart.id}"
         rv = self.put_assert_metric(uri, update_payload, "put")
@@ -2201,7 +2201,7 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
         model = db.session.query(Slice).get(chart.id)
 
         # Clean up system tags
-        tag_list = [tag.id for tag in model.tags if tag.type == TagType.custom]
+        tag_list = {tag.id for tag in model.tags if tag.type == TagType.custom}
         assert tag_list == new_tags
 
         security_manager.add_permission_role(alpha_role, write_tags_perm)
