@@ -31,6 +31,8 @@ import {
 
 const ContourActionsContainer = styled.div`
   margin-top: ${({ theme }) => theme.sizeUnit * 2}px;
+  display: flex;
+  justify-content: flex-end;
 `;
 
 const StyledRow = styled(Row)`
@@ -38,69 +40,68 @@ const StyledRow = styled(Row)`
   gap: ${({ theme }) => theme.sizeUnit * 2}px;
 `;
 
-const determineErrorMap = (gradientBreakpoint: ColorBreakpointType) => {
+const determineErrorMap = (
+  colorBreakpoint: ColorBreakpointType,
+  colorBreakpoints: ColorBreakpointType[],
+) => {
   const errorMap: ErrorMapType = {
     minValue: [],
     maxValue: [],
     color: [],
   };
-  const minValueError = validateNumber(gradientBreakpoint.minValue);
+  const minValueError = validateNumber(colorBreakpoint.minValue);
   if (minValueError) errorMap.minValue.push(minValueError);
 
-  const maxValueError = validateNumber(gradientBreakpoint.maxValue);
+  const maxValueError = validateNumber(colorBreakpoint.maxValue);
   if (maxValueError) errorMap.maxValue.push(maxValueError);
 
-  // Isoband only validation
-  // if (tab === GradientBreakpointType.Isoband) {
-  //   const upperThresholdError = legacyValidateInteger(contour.upperThreshold);
-  //   if (upperThresholdError) errorMap.upperThreshold.push(upperThresholdError);
-  //   if (
-  //     !upperThresholdError &&
-  //     !lowerThresholdError &&
-  //     contour.upperThreshold &&
-  //     contour.lowerThreshold
-  //   ) {
-  //     const lower = parseFloat(contour.lowerThreshold);
-  //     const upper = parseFloat(contour.upperThreshold);
-  //     if (lower >= upper) {
-  //       errorMap.lowerThreshold.push(
-  //         t('Lower threshold must be lower than upper threshold'),
-  //       );
-  //       errorMap.upperThreshold.push(
-  //         t('Upper threshold must be greater than lower threshold'),
-  //       );
-  //     }
-  //   }
-  // }
+  if (minValueError || maxValueError) return errorMap;
+
+  if (
+    Number(colorBreakpoint.minValue) >= 0 &&
+    Number(colorBreakpoint.maxValue) >= 0
+  ) {
+    const newMinValue = Number(colorBreakpoint.minValue);
+    const newMaxValue = Number(colorBreakpoint.maxValue);
+
+    if (newMinValue >= newMaxValue) {
+      errorMap.minValue.push(
+        'Min value should be smaller or equal to max value',
+      );
+    }
+
+    const otherBreakpoints = colorBreakpoints.filter(
+      breakpoint => breakpoint.id !== colorBreakpoint.id,
+    );
+
+    const isBreakpointDuplicate = !!otherBreakpoints?.find(
+      breakpoint =>
+        Number(breakpoint.minValue) <= newMaxValue &&
+        Number(breakpoint.maxValue) >= newMinValue,
+    );
+
+    if (isBreakpointDuplicate) {
+      errorMap.minValue.push('The values overlap other breakpoint values');
+      errorMap.maxValue.push('The values overlap other breakpoint values');
+    }
+  }
+
   return errorMap;
 };
 
 const convertColorBreakpointToNumeric = (
   colorBreakpoint: ColorBreakpointType,
 ) => {
-  const formattedColorBreapoint = {
+  const formattedColorBreakpoint = {
     color: colorBreakpoint.color,
     minValue: Number(colorBreakpoint.minValue),
     maxValue: Number(colorBreakpoint.maxValue),
   };
-  return formattedColorBreapoint;
+  return formattedColorBreakpoint;
 };
 
-// const formatIsoline = (contour: GradientBreakpointType) => ({
-//   color: contour.color,
-//   lowerThreshold: contour.lowerThreshold,
-//   upperThreshold: undefined,
-//   strokeWidth: contour.strokeWidth,
-// });
-
-// const formatIsoband = (contour: GradientBreakpointType) => ({
-//   color: contour.color,
-//   lowerThreshold: contour.lowerThreshold,
-//   upperThreshold: contour.upperThreshold,
-//   strokeWidth: undefined,
-// });
-
 const DEFAULT_CONTOUR: ColorBreakpointType = {
+  id: undefined,
   minValue: undefined,
   maxValue: undefined,
   color: undefined,
@@ -110,32 +111,35 @@ const ColorBreakpointsPopoverControl = ({
   value: initialValue,
   onSave,
   onClose,
+  colorBreakpoints,
 }: ColorBreakpointsPopoverControlProps) => {
-  const [gradientBreakpoint, setGradientBreakpoint] = useState(
+  const [colorBreakpoint, setColorBreakpoint] = useState(
     initialValue || DEFAULT_CONTOUR,
   );
   const [validationErrors, setValidationErrors] = useState(
-    determineErrorMap(initialValue || DEFAULT_CONTOUR),
+    determineErrorMap(initialValue || DEFAULT_CONTOUR, colorBreakpoints),
   );
   const [isComplete, setIsComplete] = useState(false);
 
   useEffect(() => {
     const validMinValue =
-      Boolean(gradientBreakpoint.minValue) || gradientBreakpoint.minValue === 0;
+      Boolean(colorBreakpoint.minValue) ||
+      Number(colorBreakpoint.minValue) === 0;
     const validMaxValue =
-      Boolean(gradientBreakpoint.maxValue) || gradientBreakpoint.maxValue === 0;
+      Boolean(colorBreakpoint.maxValue) ||
+      Number(colorBreakpoint.maxValue) === 0;
     const validColor =
-      typeof gradientBreakpoint.color === 'object' &&
-      'r' in gradientBreakpoint.color &&
-      typeof gradientBreakpoint.color.r === 'number' &&
-      'g' in gradientBreakpoint.color &&
-      typeof gradientBreakpoint.color.g === 'number' &&
-      'b' in gradientBreakpoint.color &&
-      typeof gradientBreakpoint.color.b === 'number' &&
-      'a' in gradientBreakpoint.color &&
-      typeof gradientBreakpoint.color.a === 'number';
+      typeof colorBreakpoint.color === 'object' &&
+      'r' in colorBreakpoint.color &&
+      typeof colorBreakpoint.color.r === 'number' &&
+      'g' in colorBreakpoint.color &&
+      typeof colorBreakpoint.color.g === 'number' &&
+      'b' in colorBreakpoint.color &&
+      typeof colorBreakpoint.color.b === 'number' &&
+      'a' in colorBreakpoint.color &&
+      typeof colorBreakpoint.color.a === 'number';
 
-    const errors = determineErrorMap(gradientBreakpoint);
+    const errors = determineErrorMap(colorBreakpoint, colorBreakpoints);
     if (
       JSON.stringify(errors.minValue) !==
         JSON.stringify(validationErrors.minValue) ||
@@ -149,24 +153,29 @@ const ColorBreakpointsPopoverControl = ({
     const sectionIsComplete = validMinValue && validMaxValue && validColor;
 
     if (sectionIsComplete !== isComplete) setIsComplete(sectionIsComplete);
-  }, [gradientBreakpoint, isComplete, validationErrors]);
+  }, [colorBreakpoint, isComplete, validationErrors, colorBreakpoints]);
 
   const updateColor = (rgb: ColorType) => {
-    const newContour = { ...gradientBreakpoint };
-    newContour.color = { ...rgb, a: 100 };
-    setGradientBreakpoint(newContour);
+    setColorBreakpoint({
+      ...colorBreakpoint,
+      color: { ...rgb, a: 100 },
+    });
   };
 
-  const updateMinValue = (value: number | string) => {
-    const newContour = { ...gradientBreakpoint };
-    newContour.minValue = value;
-    setGradientBreakpoint(newContour);
+  const updateMinValue = (value: number) => {
+    const newBreakpoint = { ...colorBreakpoint };
+    newBreakpoint.minValue = value;
+    setColorBreakpoint({
+      ...colorBreakpoint,
+      minValue: value,
+    });
   };
 
-  const updateMaxValue = (value: number | string) => {
-    const newContour = { ...gradientBreakpoint };
-    newContour.maxValue = value;
-    setGradientBreakpoint(newContour);
+  const updateMaxValue = (value: number) => {
+    setColorBreakpoint({
+      ...colorBreakpoint,
+      maxValue: value,
+    });
   };
 
   const containsErrors = () => {
@@ -178,62 +187,55 @@ const ColorBreakpointsPopoverControl = ({
 
   const handleSave = () => {
     if (isComplete && onSave) {
-      onSave(convertColorBreakpointToNumeric(gradientBreakpoint));
+      onSave(convertColorBreakpointToNumeric(colorBreakpoint));
       if (onClose) onClose();
     }
   };
 
   return (
     <>
+      <StyledRow>
+        <Col flex="1">
+          <ControlHeader
+            name="isoband-color"
+            label={t('Color for breakpoint')}
+            validationErrors={validationErrors.color}
+            hovered
+          />
+          <ColorPickerControl
+            value={colorBreakpoint.color}
+            onChange={updateColor}
+          />
+        </Col>
+      </StyledRow>
+      <StyledRow>
+        <Col flex="1">
+          <ControlHeader
+            name="isoband-threshold-lower"
+            label={t('Min value')}
+            validationErrors={validationErrors.minValue}
+            hovered
+          />
+          <TextControl
+            value={colorBreakpoint.minValue}
+            onChange={updateMinValue}
+          />
+        </Col>
+        <Col flex="1">
+          <ControlHeader
+            name="isoband-threshold-upper"
+            label={t('Max value')}
+            validationErrors={validationErrors.maxValue}
+            hovered
+          />
+          <TextControl
+            value={colorBreakpoint.maxValue}
+            onChange={updateMaxValue}
+          />
+        </Col>
+      </StyledRow>
       <ContourActionsContainer>
-        <StyledRow>
-          <Col flex="1">
-            <ControlHeader
-              name="isoband-threshold-lower"
-              label={t('Min value')}
-              description={t(
-                'The lower limit of the threshold range of the Isoband',
-              )}
-              validationErrors={validationErrors.minValue}
-              hovered
-            />
-            <TextControl
-              value={gradientBreakpoint.minValue || ''}
-              onChange={updateMinValue}
-            />
-          </Col>
-          <Col flex="1">
-            <ControlHeader
-              name="isoband-threshold-upper"
-              label={t('Max value')}
-              description={t(
-                'The upper limit of the threshold range of the Isoband',
-              )}
-              validationErrors={validationErrors.maxValue}
-              hovered
-            />
-            <TextControl
-              value={gradientBreakpoint.maxValue || ''}
-              onChange={updateMaxValue}
-            />
-          </Col>
-        </StyledRow>
-        <StyledRow>
-          <Col flex="1">
-            <ControlHeader
-              name="isoband-color"
-              label={t('Color')}
-              description={t('The color of the isoband')}
-              validationErrors={validationErrors.color}
-              hovered
-            />
-            <ColorPickerControl
-              value={gradientBreakpoint.color}
-              onChange={updateColor}
-            />
-          </Col>
-        </StyledRow>
-        <Button buttonSize="small" onClick={onClose} cta>
+        <Button buttonSize="small" onClick={onClose} variant="filled">
           {t('Close')}
         </Button>
         <Button
@@ -242,7 +244,6 @@ const ColorBreakpointsPopoverControl = ({
           buttonStyle="primary"
           buttonSize="small"
           onClick={handleSave}
-          cta
         >
           {t('Save')}
         </Button>

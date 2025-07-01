@@ -17,73 +17,46 @@
  * under the License.
  */
 
-import { styled, t } from '@superset-ui/core';
+import { styled } from '@superset-ui/core';
 import { ColorBreakpointOptionProps } from './types';
-import ColorBreakpointsPopoverTrigger from './ColorBreakpointsPopoverTrigger';
-import OptionWrapper from '../DndColumnSelectControl/OptionWrapper';
-
-const StyledOptionWrapper = styled(OptionWrapper)`
-  max-width: 100%;
-  min-width: 100%;
-`;
-
-const StyledListItem = styled.li`
-  display: flex;
-  align-items: center;
-`;
-
-const ColorPatch = styled.div<{ formattedColor: string }>`
-  background-color: ${({ formattedColor }) => formattedColor};
-  height: ${({ theme }) => theme.sizeUnit}px;
-  width: ${({ theme }) => theme.sizeUnit}px;
-  margin: 0 ${({ theme }) => theme.sizeUnit}px;
-`;
+import ColorBreakpointPopoverTrigger from './ColorBreakpointPopoverTrigger';
+import { DragContainer } from '../OptionControls';
+import Option from '../DndColumnSelectControl/Option';
 
 const ColorBreakpointOption = ({
-  gradientBreakpoint,
+  breakpoint,
+  colorBreakpoints,
   index,
-  saveGradientBreakpoint,
+  saveColorBreakpoint,
   onClose,
-  onShift,
 }: ColorBreakpointOptionProps) => {
-  const { color, minValue, maxValue } = gradientBreakpoint;
+  const { color, minValue, maxValue } = breakpoint;
+
+  const BreakpointColorPreview = styled.div`
+    width: ${({ theme }) => theme.sizeUnit * 3}px;
+    height: ${({ theme }) => theme.sizeUnit * 3}px;
+    border-radius: ${({ theme }) => theme.sizeUnit / 2}px;
+    background: ${(props: { color: string }) => props.color};
+    margin-right: ${({ theme }) => theme.sizeUnit * 1.5}px;
+  `;
 
   const formattedColor = color
     ? `rgba(${color.r}, ${color.g}, ${color.b}, 1)`
     : 'undefined';
 
-  const overlay = (
-    <div className="contour-tooltip-overlay">
-      <StyledListItem>
-        {t('Min value`: ')}
-        {minValue}
-      </StyledListItem>
-      <StyledListItem>
-        {t('Color: ')}
-        <ColorPatch formattedColor={formattedColor} /> {formattedColor}
-      </StyledListItem>
-      <StyledListItem>
-        {t('Max value`: ')}
-        {maxValue}
-      </StyledListItem>
-    </div>
-  );
-
   return (
-    <ColorBreakpointsPopoverTrigger
-      saveColorBreakpoint={saveGradientBreakpoint}
-      value={gradientBreakpoint}
+    <ColorBreakpointPopoverTrigger
+      saveColorBreakpoint={saveColorBreakpoint}
+      value={breakpoint}
+      colorBreakpoints={colorBreakpoints}
     >
-      <StyledOptionWrapper
-        index={index}
-        label="Gradient Breakpoint"
-        type="ContourOption"
-        withCaret
-        clickClose={onClose}
-        onShiftOptions={onShift}
-        tooltipOverlay={overlay}
-      />
-    </ColorBreakpointsPopoverTrigger>
+      <DragContainer>
+        <Option index={index} clickClose={onClose} canDelete withCaret>
+          <BreakpointColorPreview color={formattedColor} />
+          {`${minValue} - ${maxValue}`}
+        </Option>
+      </DragContainer>
+    </ColorBreakpointPopoverTrigger>
   );
 };
 
