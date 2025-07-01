@@ -1965,10 +1965,10 @@
     fs-extra "^11.1.1"
     tslib "^2.6.0"
 
-"@docusaurus/tsconfig@^3.8.0":
-  version "3.8.0"
-  resolved "https://registry.yarnpkg.com/@docusaurus/tsconfig/-/tsconfig-3.8.0.tgz#ea7ee0917e1562cf0a6e95e049c42f1f61351f32"
-  integrity sha512-utLl48nNjSYBoq47RKukZ9fPLEX3nJWThzrujb0ndQQ1jc/gh4RhTRaAqItH9nImnsgGKmLMnyoMBpfGmoop+w==
+"@docusaurus/tsconfig@^3.8.1":
+  version "3.8.1"
+  resolved "https://registry.yarnpkg.com/@docusaurus/tsconfig/-/tsconfig-3.8.1.tgz#a1f7daadfc93455289200647f4ee10cdca540f7b"
+  integrity sha512-XBWCcqhRHhkhfolnSolNL+N7gj3HVE3CoZVqnVjfsMzCoOsuQw2iCLxVVHtO+rePUUfouVZHURDgmqIySsF66A==
 
 "@docusaurus/types@3.8.1":
   version "3.8.1"
