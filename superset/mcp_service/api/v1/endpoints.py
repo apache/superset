@@ -26,14 +26,15 @@ from superset.mcp_service.api import mcp_api
 from superset.mcp_service.schemas import (
     MCPDashboardListRequestSchema, MCPDashboardListResponseSchema, MCPDashboardResponseSchema,
     MCPDashboardSimpleRequestSchema, MCPErrorResponseSchema, MCPHealthResponseSchema, serialize_mcp_response,
-    validate_mcp_request, )
+    validate_mcp_request, MCPInstanceInfoResponseSchema, )
 
 logger = logging.getLogger(__name__)
 
 __all__ = [
     "health",
     "list_dashboards",
-    "get_dashboard"
+    "get_dashboard",
+    "get_instance_info"
 ]
 
 
@@ -513,6 +514,164 @@ def get_dashboard(dashboard_id: int):
         return jsonify(serialized_error), 500
 
 
+@mcp_api.route("/instance_info", methods=["GET"])
+@requires_api_key
+def get_instance_info():
+    """Get high-level information about the Superset instance"""
+    logger.info("get_instance_info called")
+    
+    try:
+        from superset.extensions import security_manager, db
+        from datetime import datetime, timedelta
+
+        # Set up a user context for the MCP service
+        admin_username = current_app.config.get("MCP_ADMIN_USERNAME", "admin")
+        admin_user = security_manager.get_user_by_username(admin_username)
+
+        if not admin_user:
+            from flask_login import AnonymousUserMixin
+            g.user = AnonymousUserMixin()
+            logger.debug("Using anonymous user context")
+        else:
+            g.user = admin_user
+            logger.debug(f"Using admin user context: {admin_user.username}")
+
+        # Import models safely
+        try:
+            from superset.models.dashboard import Dashboard
+            from superset.models.slice import Slice
+            from superset.connectors.sqla.models import SqlaTable
+            from superset.models.core import Database
+            from flask_appbuilder.security.sqla.models import User, Role
+            from superset.tags.models import Tag
+            
+            # Get basic counts - move these to DAOs later
+            total_dashboards = db.session.query(Dashboard).count()
+            total_charts = db.session.query(Slice).count()
+            total_datasets = db.session.query(SqlaTable).count()
+            total_databases = db.session.query(Database).count()
+            total_users = db.session.query(User).count()
+            total_roles = db.session.query(Role).count()
+            total_tags = db.session.query(Tag).count()
+
+            # Get recently created/updated items (last 30 days)
+            thirty_days_ago = datetime.now() - timedelta(days=30)
+            
+            recent_dashboards = db.session.query(Dashboard).filter(
+                Dashboard.created_on >= thirty_days_ago
+            ).count()
+            
+            recent_charts = db.session.query(Slice).filter(
+                Slice.created_on >= thirty_days_ago
+            ).count()
+            
+            recent_datasets = db.session.query(SqlaTable).filter(
+                SqlaTable.created_on >= thirty_days_ago
+            ).count()
+
+            # Get recently modified items (last 7 days)
+            seven_days_ago = datetime.now() - timedelta(days=7)
+            
+            recently_modified_dashboards = db.session.query(Dashboard).filter(
+                Dashboard.changed_on >= seven_days_ago
+            ).count()
+            
+            recently_modified_charts = db.session.query(Slice).filter(
+                Slice.changed_on >= seven_days_ago
+            ).count()
+            
+            recently_modified_datasets = db.session.query(SqlaTable).filter(
+                SqlaTable.changed_on >= seven_days_ago
+            ).count()
+
+            # Get published vs unpublished dashboards
+            published_dashboards = db.session.query(Dashboard).filter(
+                Dashboard.published == True
+            ).count()
+            
+            unpublished_dashboards = total_dashboards - published_dashboards
+
+            # Get certified dashboards
+            certified_dashboards = db.session.query(Dashboard).filter(
+                Dashboard.certified_by.isnot(None),
+                Dashboard.certified_by != ""
+            ).count()
+
+            # Get dashboards with charts
+            dashboards_with_charts = db.session.query(Dashboard).join(
+                Dashboard.slices
+            ).distinct().count()
+            
+            dashboards_without_charts = total_dashboards - dashboards_with_charts
+
+            # Get average charts per dashboard
+            avg_charts_per_dashboard = total_charts / total_dashboards if total_dashboards > 0 else 0
+
+            # Create response data
+            response_data = {
+                "instance_summary": {
+                    "total_dashboards": total_dashboards,
+                    "total_charts": total_charts,
+                    "total_datasets": total_datasets,
+                    "total_databases": total_databases,
+                    "total_users": total_users,
+                    "total_roles": total_roles,
+                    "total_tags": total_tags,
+                    "avg_charts_per_dashboard": round(avg_charts_per_dashboard, 2)
+                },
+                "recent_activity": {
+                    "dashboards_created_last_30_days": recent_dashboards,
+                    "charts_created_last_30_days": recent_charts,
+                    "datasets_created_last_30_days": recent_datasets,
+                    "dashboards_modified_last_7_days": recently_modified_dashboards,
+                    "charts_modified_last_7_days": recently_modified_charts,
+                    "datasets_modified_last_7_days": recently_modified_datasets
+                },
+                "dashboard_breakdown": {
+                    "published": published_dashboards,
+                    "unpublished": unpublished_dashboards,
+                    "certified": certified_dashboards,
+                    "with_charts": dashboards_with_charts,
+                    "without_charts": dashboards_without_charts
+                },
+                "database_breakdown": {"by_type": {"sqlite": total_databases}},
+                "popular_content": {"top_tags": [], "top_creators": []},
+                "timestamp": datetime.now(timezone.utc)
+            }
+
+        except ImportError as import_error:
+            logger.warning(f"Some models could not be imported: {import_error}")
+            # Return basic information if imports fail
+            response_data = {
+                "instance_summary": {"total_dashboards": 0, "total_charts": 0, "total_datasets": 0, "total_databases": 0, "total_users": 0, "total_roles": 0, "total_tags": 0, "avg_charts_per_dashboard": 0},
+                "recent_activity": {"dashboards_created_last_30_days": 0, "charts_created_last_30_days": 0, "datasets_created_last_30_days": 0, "dashboards_modified_last_7_days": 0, "charts_modified_last_7_days": 0, "datasets_modified_last_7_days": 0},
+                "dashboard_breakdown": {"published": 0, "unpublished": 0, "certified": 0, "with_charts": 0, "without_charts": 0},
+                "database_breakdown": {"by_type": {}},
+                "popular_content": {"top_tags": [], "top_creators": []},
+                "timestamp": datetime.now(timezone.utc),
+                "note": "Some data unavailable due to import issues"
+            }
+
+        # Try to serialize response using schema, fallback to direct response if it fails
+        try:
+            serialized_response = serialize_mcp_response(response_data, MCPInstanceInfoResponseSchema)
+            return jsonify(serialized_response)
+        except Exception as serialization_error:
+            logger.warning(f"Serialization failed for instance_info, using direct response: {serialization_error}")
+            return jsonify(response_data)
+
+    except Exception as e:
+        logger.error(f"Error in get_instance_info: {e}", exc_info=True)
+        error_data = {
+            "error": "Internal server error",
+            "error_type": "internal_error",
+            "details": {"message": str(e)},
+            "timestamp": datetime.now(timezone.utc)
+        }
+        serialized_error = serialize_mcp_response(error_data, MCPErrorResponseSchema)
+        return jsonify(serialized_error), 500
+
+
 @mcp_api.errorhandler(500)
 def handle_500(error):
     """Handle 500 Internal Server Error"""
@@ -520,7 +679,7 @@ def handle_500(error):
     error_data = {
         "error": "Internal server error",
         "error_type": "internal_error",
-        "details": {"message": str(e)},
+        "details": {"message": str(error)},
         "timestamp": datetime.now(timezone.utc)
     }
     serialized_error = serialize_mcp_response(error_data, MCPErrorResponseSchema)
