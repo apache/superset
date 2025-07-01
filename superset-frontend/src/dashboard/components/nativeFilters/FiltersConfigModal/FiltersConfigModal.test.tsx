@@ -309,12 +309,19 @@ test.skip('validates the default value', async () => {
 });
 
 test('validates the pre-filter value', async () => {
+  jest.useFakeTimers();
+
   defaultRender();
+
   userEvent.click(screen.getByText(FILTER_SETTINGS_REGEX));
   userEvent.click(getCheckbox(PRE_FILTER_REGEX));
-  expect(
-    await screen.findByText(PRE_FILTER_REQUIRED_REGEX),
-  ).toBeInTheDocument();
+
+  jest.runOnlyPendingTimers();
+  jest.useRealTimers();
+
+  await waitFor(() => {
+    expect(screen.getByText(PRE_FILTER_REQUIRED_REGEX)).toBeInTheDocument();
+  });
 });
 
 // eslint-disable-next-line jest/no-disabled-tests
