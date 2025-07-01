@@ -45,11 +45,7 @@ import {
   getColorBreakpointsBuckets,
 } from '../../utils';
 
-import {
-  commonLayerProps,
-  getColorForBreakpoints,
-  getColorRange,
-} from '../common';
+import { commonLayerProps, getColorForBreakpoints } from '../common';
 import sandboxedEval from '../../utils/sandbox';
 import getPointsFromPolygon from '../../utils/getPointsFromPolygon';
 import fitViewport, { Viewport } from '../../utils/fitViewport';

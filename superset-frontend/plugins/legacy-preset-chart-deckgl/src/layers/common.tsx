@@ -37,10 +37,10 @@ import {
   QueryFormData,
   SetDataMaskHook,
 } from '@superset-ui/core';
-import { Layer, PickingInfo } from '@deck.gl/core';
+import { Layer, PickingInfo , Color} from '@deck.gl/core';
 import { ColorBreakpointType } from 'src/types';
-import { Color } from '@deck.gl/core';
 import { ScaleLinear } from 'd3-scale';
+import { ColorBreakpointType } from '../types';
 import sandboxedEval from '../utils/sandbox';
 import { TooltipProps } from '../components/Tooltip';
 import { getCrossFilterDataMask } from '../utils/crossFiltersDataMask';
