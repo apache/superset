@@ -36,6 +36,7 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 
 from superset.constants import CHANGE_ME_SECRET_KEY
 from superset.core.api.types.models import HostModelsApi
+from superset.core.api.types.query import HostQueryApi
 from superset.core.api.types.rest_api import HostRestApi
 from superset.databases.utils import make_url_safe
 from superset.extensions import (
@@ -471,6 +472,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
 
         core_api.models = HostModelsApi()
         core_api.rest_api = HostRestApi()
+        core_api.query = HostQueryApi()
 
     def init_extensions(self) -> None:
         from superset.extensions.utils import (

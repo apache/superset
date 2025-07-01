@@ -16,30 +16,51 @@
 # under the License.
 
 from abc import ABC, abstractmethod
-from typing import Any
+from typing import Any, Type
+
+from flask_sqlalchemy import BaseQuery
+from sqlalchemy.orm import scoped_session
 
 
 class CoreModelsApi(ABC):
     @staticmethod
     @abstractmethod
-    def get_datasets(ids: list[int] | None = None) -> list[Any]:
+    def get_session() -> scoped_session: ...
+
+    @staticmethod
+    @abstractmethod
+    def get_dataset_model() -> Type[Any]:
+        """
+        Retrieve the Dataset (SqlaTable) SQLAlchemy model.
+        """
+        ...
+
+    @staticmethod
+    @abstractmethod
+    def get_database_model() -> Type[Any]:
+        """
+        Retrieve the Database SQLAlchemy model.
+        """
+        ...
+
+    @staticmethod
+    @abstractmethod
+    def get_datasets(query: BaseQuery) -> list[Any]:
         """
         Retrieve Dataset (SqlaTable) entities.
 
-        :param ids: the ids of the SqlaTable entities to retrieve.
-            Leave undefined to retrieve all entities (not recommended).
+        :param query: A query with the Dataset model as the primary entity.
         :returns: SqlaTable entities.
         """
         ...
 
     @staticmethod
     @abstractmethod
-    def get_databases(ids: list[int] | None = None) -> list[Any]:
+    def get_databases(query: BaseQuery) -> list[Any]:
         """
         Retrieve Database entities.
 
-        :param ids: the ids of the Database entities to retrieve.
-            Leave undefined to retrieve all entities (not recommended).
+        :param query: A query with the Database model as the primary entity.
         :returns: Database entities.
         """
         ...

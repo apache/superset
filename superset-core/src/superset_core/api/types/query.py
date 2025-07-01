@@ -15,10 +15,13 @@
 # specific language governing permissions and limitations
 # under the License.
 
-from .types.models import CoreModelsApi
-from .types.query import CoreQueryApi
-from .types.rest_api import CoreRestApi
+from abc import ABC, abstractmethod
+from typing import Any
 
-models: CoreModelsApi
-rest_api: CoreRestApi
-query: CoreQueryApi
+from sqlglot import Dialects
+
+
+class CoreQueryApi(ABC):
+    @staticmethod
+    @abstractmethod
+    def get_sqlglot_dialect(database: Any) -> Dialects: ...

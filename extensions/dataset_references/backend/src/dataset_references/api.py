@@ -3,8 +3,7 @@ from datetime import datetime, timedelta
 
 from flask import request, Response
 from flask_appbuilder.api import expose, permission_name, protect, safe
-from sqlglot.dialects.dialect import Dialects
-from superset_core.api import models
+from superset_core.api import models, query
 from superset_core.api.types.rest_api import RestApi
 
 from superset.sql.parse import (
@@ -23,21 +22,26 @@ class DatasetReferencesAPI(RestApi):
     @safe
     @permission_name("read")
     def metadata(self) -> Response:
-        # TODO: Discuss how to access host things from extensions.
-        # Examples include utility functions, commands, and database connections.
-        # Ideally, we want to use the same versioned API approach as the frontend.
+        sql: str = request.json.get("sql")
+        database_id: int = request.json.get("databaseId")
+
+        session = models.get_session()
+        database_model = models.get_database_model()
+        database_query = session.query(database_model).filter_by(id=database_id)
+        database = models.get_databases(database_query)[0]
+        print(database)
+        dialect = query.get_sqlglot_dialect(database)
 
         tables = {
             table.table
-            for statement in SQLScript(
-                request.json.get("sql"), Dialects.POSTGRES
-            ).statements
-            for table in extract_tables_from_statement(
-                statement._parsed, Dialects.POSTGRES
-            )
+            for statement in SQLScript(sql, dialect).statements
+            for table in extract_tables_from_statement(statement._parsed, dialect)
         }
 
-        datasets = models.get_datasets()
+        dataset_model = models.get_dataset_model()
+        dataset_query = session.query(dataset_model)
+        datasets = models.get_datasets(dataset_query)
+
         owners_map = {}
 
         # Retrieve all table owners from the database

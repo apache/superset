@@ -15,26 +15,58 @@
 # specific language governing permissions and limitations
 # under the License.
 
-from typing import Any
+from typing import Any, Type
 
+from flask_sqlalchemy import BaseQuery
+from sqlalchemy.orm import scoped_session
 from superset_core.api.types.models import CoreModelsApi
 
 
 class HostModelsApi(CoreModelsApi):
     @staticmethod
-    def get_datasets(ids: list[int] | None = None) -> list[Any]:
-        from superset.daos.dataset import DatasetDAO
+    def get_session() -> scoped_session:
+        from superset import db
 
-        if not ids:
-            return DatasetDAO.find_all()
-
-        return DatasetDAO.find_by_ids(ids)
+        return db.session
 
     @staticmethod
-    def get_databases(ids: list[int] | None = None) -> list[Any]:
+    def get_dataset_model() -> Type[Any]:
+        """
+        Retrieve the Dataset (SqlaTable) SQLAlchemy model.
+        """
+        from superset.connectors.sqla.models import SqlaTable
+
+        return SqlaTable
+
+    @staticmethod
+    def get_database_model() -> Type[Any]:
+        """
+        Retrieve the Database SQLAlchemy model.
+        """
+        from superset.models.core import Database
+
+        return Database
+
+    @staticmethod
+    def get_datasets(query: BaseQuery) -> list[Any]:
+        """
+        Retrieve Dataset (SqlaTable) entities.
+
+        :param query: A query with the Dataset model as the primary entity.
+        :returns: SqlaTable entities.
+        """
+        from superset.daos.dataset import DatasetDAO
+
+        return DatasetDAO.query(query)
+
+    @staticmethod
+    def get_databases(query: BaseQuery) -> list[Any]:
+        """
+        Retrieve Database entities.
+
+        :param query: A query with the Database model as the primary entity.
+        :returns: Database entities.
+        """
         from superset.daos.database import DatabaseDAO
 
-        if not ids:
-            return DatabaseDAO.find_all()
-
-        return DatabaseDAO.find_by_ids(ids)
+        return DatabaseDAO.query(query)

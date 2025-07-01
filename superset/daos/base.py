@@ -21,6 +21,7 @@ from typing import Any, Generic, get_args, TypeVar
 from flask_appbuilder.models.filters import BaseFilter
 from flask_appbuilder.models.sqla import Model
 from flask_appbuilder.models.sqla.interface import SQLAInterface
+from flask_sqlalchemy import BaseQuery
 from sqlalchemy.exc import StatementError
 
 from superset.extensions import db
@@ -184,3 +185,15 @@ class BaseDAO(Generic[T]):
 
         for item in items:
             db.session.delete(item)
+
+    @classmethod
+    def query(cls, query: BaseQuery) -> list[T]:
+        """
+        Get all that fit the `base_filter` based on a BaseQuery object
+        """
+        if cls.base_filter:
+            data_model = SQLAInterface(cls.model_cls, db.session)
+            query = cls.base_filter(  # pylint: disable=not-callable
+                cls.id_column_name, data_model
+            ).apply(query, None)
+        return query.all()
