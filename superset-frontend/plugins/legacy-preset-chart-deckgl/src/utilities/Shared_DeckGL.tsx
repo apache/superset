@@ -528,7 +528,6 @@ export const deckGLColorBreakpointsSelect: CustomControlItem = {
   config: {
     label: t('Breakpoint colors'),
     type: 'ColorBreakpointsControl',
-    description: t('Enter gradient breakpoints'),
     visibility: ({ controls }) =>
       isColorSchemeTypeVisible(controls, COLOR_SCHEME_TYPES.color_breakpoints),
   },
