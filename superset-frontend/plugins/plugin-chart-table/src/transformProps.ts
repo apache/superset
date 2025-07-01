@@ -49,6 +49,7 @@ import {
   BasicColorFormatterType,
   ColorSchemeEnum,
   DataColumnMeta,
+  TableChartFormData,
   TableChartProps,
   TableChartTransformedProps,
   TableColumnConfig,
@@ -459,7 +460,7 @@ const transformProps = (
   const {
     height,
     width,
-    rawFormData: formData,
+    rawFormData: originalFormData,
     queriesData = [],
     filterState,
     ownState: serverPaginationData,
@@ -470,6 +471,11 @@ const transformProps = (
     },
     emitCrossFilters,
   } = chartProps;
+
+  const formData = {
+    ...originalFormData,
+    ...originalFormData.extra_form_data,
+  } as TableChartFormData;
 
   const {
     align_pn: alignPositiveNegative = true,
