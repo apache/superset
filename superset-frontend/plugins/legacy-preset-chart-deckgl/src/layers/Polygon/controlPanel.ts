@@ -109,7 +109,7 @@ const config: ControlPanelConfig = {
                 [COLOR_SCHEME_TYPES.linear_palette, t('Linear palette')],
                 [COLOR_SCHEME_TYPES.color_breakpoints, t('Color breakpoints')],
               ],
-              default: COLOR_SCHEME_TYPES.fixed_color,
+              default: COLOR_SCHEME_TYPES.linear_palette,
             },
           },
           fillColorPicker,

@@ -36,7 +36,11 @@ import {
   sharedControls,
 } from '@superset-ui/chart-controls';
 import { columnChoices, PRIMARY_COLOR } from './controls';
-import { COLOR_SCHEME_TYPES, isColorSchemeTypeVisible } from './utils';
+import {
+  COLOR_SCHEME_TYPES,
+  ColorSchemeType,
+  isColorSchemeTypeVisible,
+} from './utils';
 
 const categoricalSchemeRegistry = getCategoricalSchemeRegistry();
 const sequentialSchemeRegistry = getSequentialSchemeRegistry();
@@ -522,7 +526,7 @@ export const deckGLLinearColorSchemeSelect: CustomControlItem = {
 export const deckGLColorBreakpointsSelect: CustomControlItem = {
   name: 'color_breakpoints',
   config: {
-    label: t('Colors for gradient'),
+    label: t('Breakpoint colors'),
     type: 'ColorBreakpointsControl',
     description: t('Enter gradient breakpoints'),
     visibility: ({ controls }) =>
@@ -530,7 +534,6 @@ export const deckGLColorBreakpointsSelect: CustomControlItem = {
   },
 };
 
-// controls for categorical deckgl Charts
 export const deckGLCategoricalColorSchemeControls = [
   [deckGLCategoricalColorSchemeTypeSelect],
   [deckGLFixedColor],
@@ -539,10 +542,32 @@ export const deckGLCategoricalColorSchemeControls = [
   [deckGLColorBreakpointsSelect],
 ];
 
-// most of the Charts are using a categorical color palette, even though they are not categorical
-export const deckGLColorSchemeControls = [
-  [deckGLCategoricalColorSchemeTypeSelect],
+export const generateDeckGLColorSchemeControls = ({
+  defaultSchemeType,
+  disableCategoricalColumn = false,
+}: {
+  defaultSchemeType?: ColorSchemeType;
+  disableCategoricalColumn?: boolean;
+}) => [
+  [
+    {
+      name: 'color_scheme_type',
+      config: {
+        type: 'SelectControl',
+        label: t('Color Scheme Type'),
+        clearable: false,
+        validators: [],
+        choices: [
+          [COLOR_SCHEME_TYPES.fixed_color, t('Fixed color')],
+          [COLOR_SCHEME_TYPES.categorical_palette, t('Categorical palette')],
+          [COLOR_SCHEME_TYPES.color_breakpoints, t('Color breakpoints')],
+        ],
+        default: defaultSchemeType || COLOR_SCHEME_TYPES.categorical_palette,
+      },
+    },
+  ],
   [deckGLFixedColor],
+  disableCategoricalColumn ? [] : [deckGLCategoricalColor],
   [deckGLCategoricalColorSchemeSelect],
   [deckGLColorBreakpointsSelect],
 ];

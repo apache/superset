@@ -33,9 +33,10 @@ import {
   viewport,
   spatial,
   mapboxStyle,
-  deckGLColorSchemeControls,
   legendPosition,
+  generateDeckGLColorSchemeControls,
 } from '../../utilities/Shared_DeckGL';
+import { COLOR_SCHEME_TYPES } from '../../utilities/utils';
 
 const config: ControlPanelConfig = {
   controlPanelSections: [
@@ -55,7 +56,10 @@ const config: ControlPanelConfig = {
       controlSetRows: [
         [mapboxStyle],
         [viewport],
-        ...deckGLColorSchemeControls,
+        ...generateDeckGLColorSchemeControls({
+          defaultSchemeType: COLOR_SCHEME_TYPES.categorical_palette,
+          disableCategoricalColumn: true,
+        }),
         [legendPosition],
         [autozoom],
         [gridSize],
