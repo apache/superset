@@ -53,6 +53,7 @@ export type EchartsRadarFormData = QueryFormData &
     isCircle: boolean;
     numberFormat: string;
     dateFormat: string;
+    showLegendToggle: boolean;
     isNormalized: boolean;
   };
 
