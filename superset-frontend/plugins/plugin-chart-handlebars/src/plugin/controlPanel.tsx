@@ -54,7 +54,6 @@ const config: ControlPanelConfig = {
         [percentMetricsControlSetItem],
         [timeSeriesLimitMetricControlSetItem, orderByControlSetItem],
         [orderDescendingControlSetItem],
-        // serverPaginationControlSetRow,
         [rowLimitControlSetItem, serverPageLengthControlSetItem],
         [includeTimeControlSetItem],
         [showTotalsControlSetItem],
