@@ -22,6 +22,7 @@ import { QueryFormData } from '@superset-ui/core';
 export const COLOR_SCHEME_TYPES = {
   fixed_color: 'fixed_color',
   categorical_palette: 'categorical_palette',
+  linear_palette: 'linear_palette',
   color_breakpoints: 'color_breakpoints',
 } as const;
 
@@ -45,22 +46,3 @@ export const isColorSchemeTypeVisible = (
   controls: ControlStateMapping,
   colorSchemeType: ColorSchemeType,
 ) => controls.color_scheme_type.value === colorSchemeType;
-
-export const getColorBySelectedColorSchemeType = (
-  colorSchemeType: ColorSchemeType,
-  data: any,
-) => {
-  console.log('data', data);
-  switch (colorSchemeType) {
-    case COLOR_SCHEME_TYPES.fixed_color: {
-      const color = data.color_picker;
-      return [color.r, color.g, color.b, 255 * color.a];
-    }
-    case COLOR_SCHEME_TYPES.categorical_palette:
-      return data.color;
-    case COLOR_SCHEME_TYPES.color_breakpoints:
-      return ['#000000', '#ffffff'];
-    default:
-      return '#000000';
-  }
-};

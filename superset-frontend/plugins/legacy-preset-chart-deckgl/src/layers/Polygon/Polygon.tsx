@@ -36,11 +36,20 @@ import {
 
 import { PolygonLayer } from '@deck.gl/layers';
 
+import { Color } from '@deck.gl/core';
 import Legend from '../../components/Legend';
 import TooltipRow from '../../TooltipRow';
-import { getBuckets, getBreakPointColorScaler } from '../../utils';
+import {
+  getBuckets,
+  getBreakPointColorScaler,
+  getColorBreakpointsBuckets,
+} from '../../utils';
 
-import { commonLayerProps } from '../common';
+import {
+  commonLayerProps,
+  getColorForBreakpoints,
+  getColorRange,
+} from '../common';
 import sandboxedEval from '../../utils/sandbox';
 import getPointsFromPolygon from '../../utils/getPointsFromPolygon';
 import fitViewport, { Viewport } from '../../utils/fitViewport';
@@ -50,6 +59,10 @@ import {
 } from '../../DeckGLContainer';
 import { TooltipProps } from '../../components/Tooltip';
 import { GetLayerType } from '../../factory';
+import {
+  COLOR_SCHEME_TYPES,
+  getSelectedColorSchemeType,
+} from '../../utilities/utils';
 
 const DOUBLE_CLICK_THRESHOLD = 250; // milliseconds
 
@@ -107,8 +120,10 @@ export const getLayer: GetLayerType<PolygonLayer> = function ({
   emitCrossFilters,
 }) {
   const fd = formData as PolygonFormData;
-  const fc = fd.fill_color_picker;
-  const sc = fd.stroke_color_picker;
+  const fc: { r: number; g: number; b: number; a: number } =
+    fd.fill_color_picker;
+  const sc: { r: number; g: number; b: number; a: number } =
+    fd.stroke_color_picker;
   let data = [...payload.data.features];
 
   if (fd.js_data_mutator) {
@@ -117,17 +132,46 @@ export const getLayer: GetLayerType<PolygonLayer> = function ({
     data = jsFnMutator(data);
   }
 
+  const colorSchemeType = getSelectedColorSchemeType(fd);
+
   const metricLabel = fd.metric ? fd.metric.label || fd.metric : null;
   const accessor = (d: JsonObject) => d[metricLabel];
   // base color for the polygons
-  const baseColorScaler =
-    fd.metric === null
-      ? () => [fc.r, fc.g, fc.b, 255 * fc.a]
-      : getBreakPointColorScaler(fd, data, accessor);
+  let baseColorScaler: (data: any) => Color = () => [
+    fc.r,
+    fc.g,
+    fc.b,
+    255 * fc.a,
+  ];
+
+  if (colorSchemeType === COLOR_SCHEME_TYPES.fixed_color) {
+    baseColorScaler = () => [fc.r, fc.g, fc.b, 255 * fc.a];
+  } else if (colorSchemeType === COLOR_SCHEME_TYPES.linear_palette) {
+    baseColorScaler =
+      fd.metric === null
+        ? () => [fc.r, fc.g, fc.b, 255 * fc.a]
+        : getBreakPointColorScaler(fd, data, accessor);
+  } else if (colorSchemeType === COLOR_SCHEME_TYPES.color_breakpoints) {
+    const colorBreakpoints = fd.color_breakpoints;
+
+    baseColorScaler = (data: number[]) => {
+      const breakpointIndex = getColorForBreakpoints(
+        accessor,
+        data,
+        colorBreakpoints,
+      );
+      const breakpointColor =
+        breakpointIndex !== undefined &&
+        colorBreakpoints[breakpointIndex].color;
+      return breakpointColor
+        ? [breakpointColor.r, breakpointColor.g, breakpointColor.b, 255]
+        : [0, 0, 0, 0];
+    };
+  }
 
   // when polygons are selected, reduce the opacity of non-selected polygons
   const colorScaler = (d: JsonObject): [number, number, number, number] => {
-    const baseColor = (baseColorScaler?.(d) as [
+    const baseColor = (baseColorScaler(d) as [
       number,
       number,
       number,
@@ -154,7 +198,7 @@ export const getLayer: GetLayerType<PolygonLayer> = function ({
     stroked: fd.stroked,
     getPolygon: getPointsFromPolygon,
     getFillColor: colorScaler,
-    getLineColor: [sc.r, sc.g, sc.b, 255 * sc.a],
+    getLineColor: sc && [sc.r, sc.g, sc.b, 255 * sc.a],
     getLineWidth: fd.line_width,
     extruded: fd.extruded,
     lineWidthUnits: fd.line_width_unit,
@@ -313,7 +357,10 @@ const DeckGLPolygon = (props: DeckGLPolygonProps) => {
     : null;
   const accessor = (d: JsonObject) => d[metricLabel];
 
-  const buckets = getBuckets(formData, payload.data.features, accessor);
+  const colorSchemeType = getSelectedColorSchemeType(formData);
+  const buckets = colorSchemeType
+    ? getColorBreakpointsBuckets(formData)
+    : getBuckets(formData, payload.data.features, accessor);
 
   return (
     <div style={{ position: 'relative' }}>

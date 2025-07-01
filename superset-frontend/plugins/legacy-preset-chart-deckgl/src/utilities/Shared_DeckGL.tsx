@@ -26,16 +26,21 @@ import {
   validateNonEmpty,
   validateMapboxStylesUrl,
   getCategoricalSchemeRegistry,
+  getSequentialSchemeRegistry,
+  SequentialScheme,
 } from '@superset-ui/core';
 import {
   CustomControlItem,
   D3_FORMAT_OPTIONS,
+  SharedControlConfig,
+  getColorControlsProps,
   sharedControls,
 } from '@superset-ui/chart-controls';
 import { columnChoices, PRIMARY_COLOR } from './controls';
 import { COLOR_SCHEME_TYPES, isColorSchemeTypeVisible } from './utils';
 
 const categoricalSchemeRegistry = getCategoricalSchemeRegistry();
+const sequentialSchemeRegistry = getSequentialSchemeRegistry();
 
 let deckglTiles;
 
@@ -247,7 +252,7 @@ export const lineWidth = {
   },
 };
 
-export const fillColorPicker = {
+export const fillColorPicker: CustomControlItem = {
   name: 'fill_color_picker',
   config: {
     label: t('Fill Color'),
@@ -257,10 +262,12 @@ export const fillColorPicker = {
     type: 'ColorPickerControl',
     default: PRIMARY_COLOR,
     renderTrigger: true,
+    visibility: ({ controls }) =>
+      isColorSchemeTypeVisible(controls, COLOR_SCHEME_TYPES.fixed_color),
   },
 };
 
-export const strokeColorPicker = {
+export const strokeColorPicker: CustomControlItem = {
   name: 'stroke_color_picker',
   config: {
     label: t('Stroke Color'),
@@ -270,6 +277,8 @@ export const strokeColorPicker = {
     type: 'ColorPickerControl',
     default: PRIMARY_COLOR,
     renderTrigger: true,
+    visibility: ({ controls }) =>
+      isColorSchemeTypeVisible(controls, COLOR_SCHEME_TYPES.fixed_color),
   },
 };
 
@@ -426,7 +435,7 @@ export const geojsonColumn = {
   },
 };
 
-export const deckGLColorSchemeTypeSelect = {
+export const deckGLCategoricalColorSchemeTypeSelect = {
   name: 'color_scheme_type',
   config: {
     type: 'SelectControl',
@@ -436,9 +445,9 @@ export const deckGLColorSchemeTypeSelect = {
     choices: [
       [COLOR_SCHEME_TYPES.fixed_color, t('Fixed color')],
       [COLOR_SCHEME_TYPES.categorical_palette, t('Categorical palette')],
-      [COLOR_SCHEME_TYPES.color_breakpoints, t('Gradient (breakpoints)')],
+      [COLOR_SCHEME_TYPES.color_breakpoints, t('Color breakpoints')],
     ],
-    default: COLOR_SCHEME_TYPES.fixed_color,
+    default: COLOR_SCHEME_TYPES.categorical_palette,
   },
 };
 
@@ -471,7 +480,7 @@ export const deckGLCategoricalColor: CustomControlItem = {
   },
 };
 
-export const deckGLColorSchemeSelect: CustomControlItem = {
+export const deckGLCategoricalColorSchemeSelect: CustomControlItem = {
   name: 'color_scheme',
   config: {
     type: 'ColorSchemeControl',
@@ -489,6 +498,28 @@ export const deckGLColorSchemeSelect: CustomControlItem = {
   },
 };
 
+export const deckGLLinearColorSchemeSelect: CustomControlItem = {
+  name: 'linear_color_scheme',
+  config: {
+    type: 'ColorSchemeControl',
+    label: t('Linear Color Scheme'),
+    choices: () =>
+      (sequentialSchemeRegistry.values() as SequentialScheme[]).map(value => [
+        value.id,
+        value.label,
+      ]),
+    default: sequentialSchemeRegistry.getDefaultKey(),
+    clearable: false,
+    description: '',
+    renderTrigger: true,
+    schemes: () => sequentialSchemeRegistry.getMap(),
+    isLinear: true,
+    mapStateToProps: state => getColorControlsProps(state),
+    visibility: ({ controls }) =>
+      isColorSchemeTypeVisible(controls, COLOR_SCHEME_TYPES.linear_palette),
+  },
+};
+
 export const deckGLColorBreakpointsSelect: CustomControlItem = {
   name: 'color_breakpoints',
   config: {
@@ -500,17 +531,19 @@ export const deckGLColorBreakpointsSelect: CustomControlItem = {
   },
 };
 
+// controls for categorical deckgl Charts
 export const deckGLCategoricalColorSchemeControls = [
-  [deckGLColorSchemeTypeSelect],
+  [deckGLCategoricalColorSchemeTypeSelect],
   [deckGLFixedColor],
   [deckGLCategoricalColor],
-  [deckGLColorSchemeSelect],
+  [deckGLCategoricalColorSchemeSelect],
   [deckGLColorBreakpointsSelect],
 ];
 
+// most of the Charts are using a categorical color palette, even though they are not categorical
 export const deckGLColorSchemeControls = [
-  [deckGLColorSchemeTypeSelect],
+  [deckGLCategoricalColorSchemeTypeSelect],
   [deckGLFixedColor],
-  [deckGLColorSchemeSelect],
+  [deckGLCategoricalColorSchemeSelect],
   [deckGLColorBreakpointsSelect],
 ];

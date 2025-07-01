@@ -34,6 +34,7 @@ import {
   spatial,
   mapboxStyle,
   deckGLColorSchemeControls,
+  legendPosition,
 } from '../../utilities/Shared_DeckGL';
 
 const config: ControlPanelConfig = {
@@ -55,6 +56,7 @@ const config: ControlPanelConfig = {
         [mapboxStyle],
         [viewport],
         ...deckGLColorSchemeControls,
+        [legendPosition],
         [autozoom],
         [gridSize],
         [extruded],

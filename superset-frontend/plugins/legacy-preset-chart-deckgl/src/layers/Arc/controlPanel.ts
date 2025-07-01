@@ -38,10 +38,8 @@ import {
   legendPosition,
   viewport,
   mapboxStyle,
-  deckGLColorSchemeTypeSelect,
   deckGLCategoricalColor,
-  deckGLColorSchemeSelect,
-  deckGLGradientBreakpointsSelect,
+  deckGLCategoricalColorSchemeSelect,
 } from '../../utilities/Shared_DeckGL';
 
 const config: ControlPanelConfig = {
@@ -139,7 +137,7 @@ const config: ControlPanelConfig = {
           },
         ],
         [deckGLCategoricalColor],
-        [deckGLColorSchemeSelect],
+        [deckGLCategoricalColorSchemeSelect],
         [
           {
             name: 'stroke_width',

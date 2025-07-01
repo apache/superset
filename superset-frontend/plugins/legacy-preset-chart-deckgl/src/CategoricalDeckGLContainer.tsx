@@ -52,6 +52,7 @@ import {
   ColorSchemeType,
   getSelectedColorSchemeType,
 } from './utilities/utils';
+import { getColorBreakpointsBuckets } from './utils';
 
 const { getScale } = CategoricalColorNamespace;
 
@@ -60,18 +61,24 @@ function getCategories(fd: QueryFormData, data: JsonObject[]) {
   const fixedColor = [c.r, c.g, c.b, 255 * c.a];
   const appliedScheme = fd.color_scheme;
   const colorFn = getScale(appliedScheme);
-  const categories: Record<any, { color: any; enabled: boolean }> = {};
-  data.forEach(d => {
-    if (d.cat_color != null && !categories.hasOwnProperty(d.cat_color)) {
-      let color;
-      if (fd.dimension) {
-        color = hexToRGB(colorFn(d.cat_color, fd.sliceId), c.a * 255);
-      } else {
-        color = fixedColor;
+  let categories: Record<any, { color: any; enabled: boolean }> = {};
+
+  const colorSchemeType = getSelectedColorSchemeType(fd);
+  if (colorSchemeType === COLOR_SCHEME_TYPES.color_breakpoints) {
+    categories = getColorBreakpointsBuckets(fd);
+  } else {
+    data.forEach(d => {
+      if (d.cat_color != null && !categories.hasOwnProperty(d.cat_color)) {
+        let color;
+        if (fd.dimension) {
+          color = hexToRGB(colorFn(d.cat_color, fd.sliceId), c.a * 255);
+        } else {
+          color = fixedColor;
+        }
+        categories[d.cat_color] = { color, enabled: true };
       }
-      categories[d.cat_color] = { color, enabled: true };
-    }
-  });
+    });
+  }
 
   return categories;
 }
@@ -144,12 +151,10 @@ const CategoricalDeckGLContainer = (props: CategoricalDeckGLContainerProps) => {
       fd: QueryFormData,
       selectedColorScheme: ColorSchemeType,
     ) => {
-      const c = fd.color_picker || { r: 0, g: 0, b: 0, a: 1 };
       const appliedScheme = fd.color_scheme;
       const colorFn = getScale(appliedScheme);
       let color: ColorType;
 
-      console.log('data', data);
       switch (selectedColorScheme) {
         case COLOR_SCHEME_TYPES.fixed_color: {
           color = fd.color_picker || { r: 0, g: 0, b: 0, a: 100 };
@@ -210,8 +215,6 @@ const CategoricalDeckGLContainer = (props: CategoricalDeckGLContainerProps) => {
 
     // Add colors from categories or fixed color
     features = addColor(features, fd, selectedColorScheme);
-
-    console.log('features', features);
 
     // Apply user defined data mutator if defined
     if (fd.js_data_mutator) {

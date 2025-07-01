@@ -17,11 +17,11 @@
  * under the License.
  */
 import { HeatmapLayer } from '@deck.gl/aggregation-layers';
-import { Position, Color } from '@deck.gl/core';
+import { Position } from '@deck.gl/core';
 import { t, getSequentialSchemeRegistry, JsonObject } from '@superset-ui/core';
-import { commonLayerProps } from '../common';
+import { getSelectedColorSchemeType } from '../../utilities/utils';
+import { commonLayerProps, getColorRange } from '../common';
 import sandboxedEval from '../../utils/sandbox';
-import { hexToRGB } from '../../utils/colors';
 import { GetLayerType, createDeckGLComponent } from '../../factory';
 import TooltipRow from '../../TooltipRow';
 
@@ -63,10 +63,9 @@ export const getLayer: GetLayerType<HeatmapLayer> = ({
   const colorScale = getSequentialSchemeRegistry()
     ?.get(colorScheme)
     ?.createLinearScale([0, 6]);
-  const colorRange = colorScale
-    ?.range()
-    ?.map(color => hexToRGB(color))
-    ?.reverse() as Color[];
+
+  const colorSchemeType = getSelectedColorSchemeType(fd);
+  const colorRange = getColorRange(fd, colorSchemeType, colorScale)?.reverse();
 
   return new HeatmapLayer({
     id: `heatmap-layer-${fd.slice_id}` as const,

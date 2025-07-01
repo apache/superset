@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Color } from '@deck.gl/core';
 import { HexagonLayer } from '@deck.gl/aggregation-layers';
 import { t, CategoricalColorNamespace, JsonObject } from '@superset-ui/core';
 

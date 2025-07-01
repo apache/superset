@@ -40,6 +40,8 @@ import CategoricalDeckGLContainer from './CategoricalDeckGLContainer';
 import fitViewport, { Viewport } from './utils/fitViewport';
 import { Point } from './types';
 import { TooltipProps } from './components/Tooltip';
+import { getColorBreakpointsBuckets } from './utils';
+import Legend from './components/Legend';
 
 type DeckGLComponentProps = {
   datasource: Datasource;
@@ -103,6 +105,9 @@ export function createDeckGLComponent(
       }
       return props.viewport;
     };
+    const [categories, setCategories] = useState<JsonObject>(
+      getColorBreakpointsBuckets(props.formData) || [],
+    );
 
     const [viewport, setViewport] = useState(getAdjustedViewport());
 
@@ -139,6 +144,12 @@ export function createDeckGLComponent(
       [setTooltip],
     );
 
+    useEffect(() => {
+      const categories = getColorBreakpointsBuckets(props.formData);
+
+      setCategories(categories);
+    }, [props]);
+
     const [layer, setLayer] = useState(computeLayer(props));
 
     useEffect(() => {
@@ -161,17 +172,25 @@ export function createDeckGLComponent(
     const { formData, payload, setControlValue, height, width } = props;
 
     return (
-      <DeckGLContainerStyledWrapper
-        ref={containerRef}
-        mapboxApiAccessToken={payload.data.mapboxApiKey}
-        viewport={viewport}
-        layers={[layer]}
-        mapStyle={formData.mapbox_style}
-        setControlValue={setControlValue}
-        width={width}
-        height={height}
-        onViewportChange={setViewport}
-      />
+      <div style={{ position: 'relative' }}>
+        <DeckGLContainerStyledWrapper
+          ref={containerRef}
+          mapboxApiAccessToken={payload.data.mapboxApiKey}
+          viewport={viewport}
+          layers={[layer]}
+          mapStyle={formData.mapbox_style}
+          setControlValue={setControlValue}
+          width={width}
+          height={height}
+          onViewportChange={setViewport}
+        />
+        <Legend
+          forceCategorical
+          categories={categories}
+          format={props.formData.legend_format}
+          position={props.formData.legend_position}
+        />
+      </div>
     );
   });
 }
