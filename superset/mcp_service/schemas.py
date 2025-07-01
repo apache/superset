@@ -224,6 +224,52 @@ class MCPAvailableFiltersResponseSchema(Schema):
     categories = fields.List(fields.String(), description="Filter categories")
 
 # =============================================================================
+# MCP Instance Information Schemas
+# =============================================================================
+
+class MCPInstanceSummarySchema(Schema):
+    """Schema for instance summary information"""
+    total_dashboards = fields.Integer(description="Total number of dashboards")
+    total_charts = fields.Integer(description="Total number of charts")
+    total_datasets = fields.Integer(description="Total number of datasets")
+    total_databases = fields.Integer(description="Total number of databases")
+    total_users = fields.Integer(description="Total number of users")
+    total_roles = fields.Integer(description="Total number of roles")
+    total_tags = fields.Integer(description="Total number of tags")
+    avg_charts_per_dashboard = fields.Float(description="Average charts per dashboard")
+
+class MCPRecentActivitySchema(Schema):
+    """Schema for recent activity information"""
+    dashboards_created_last_30_days = fields.Integer(description="Dashboards created in last 30 days")
+    charts_created_last_30_days = fields.Integer(description="Charts created in last 30 days")
+    datasets_created_last_30_days = fields.Integer(description="Datasets created in last 30 days")
+    dashboards_modified_last_7_days = fields.Integer(description="Dashboards modified in last 7 days")
+    charts_modified_last_7_days = fields.Integer(description="Charts modified in last 7 days")
+    datasets_modified_last_7_days = fields.Integer(description="Datasets modified in last 7 days")
+
+class MCPDashboardBreakdownSchema(Schema):
+    """Schema for dashboard breakdown information"""
+    published = fields.Integer(description="Number of published dashboards")
+    unpublished = fields.Integer(description="Number of unpublished dashboards")
+    certified = fields.Integer(description="Number of certified dashboards")
+    with_charts = fields.Integer(description="Number of dashboards with charts")
+    without_charts = fields.Integer(description="Number of dashboards without charts")
+
+class MCPPopularContentSchema(Schema):
+    """Schema for popular content information"""
+    top_tags = fields.List(fields.Dict(), description="Top tags by usage")
+    top_creators = fields.List(fields.Dict(), description="Top creators by dashboard count")
+
+class MCPInstanceInfoResponseSchema(Schema):
+    """Response schema for instance information"""
+    instance_summary = fields.Nested(MCPInstanceSummarySchema, description="Instance summary")
+    recent_activity = fields.Nested(MCPRecentActivitySchema, description="Recent activity")
+    dashboard_breakdown = fields.Nested(MCPDashboardBreakdownSchema, description="Dashboard breakdown")
+    database_breakdown = fields.Dict(description="Database breakdown by type")
+    popular_content = fields.Nested(MCPPopularContentSchema, description="Popular content")
+    timestamp = fields.DateTime(description="Response timestamp")
+
+# =============================================================================
 # MCP Chart Schemas (extending only when needed)
 # =============================================================================
 
