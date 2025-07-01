@@ -126,12 +126,12 @@ const TIME_GRAIN_REGEX = /^time grain$/i;
 const FILTER_SETTINGS_REGEX = /^filter settings$/i;
 const DEFAULT_VALUE_REGEX = /^filter has default value$/i;
 const MULTIPLE_REGEX = /^can select multiple values$/i;
-const REQUIRED_REGEX = /^filter value is required$/i;
+const FILTER_REQUIRED_REGEX = /^filter value is required/i;
 const DEPENDENCIES_REGEX = /^values are dependent on other filters$/i;
-const FIRST_VALUE_REGEX = /^select first filter value by default$/i;
-const INVERSE_SELECTION_REGEX = /^inverse selection$/i;
-const SEARCH_ALL_REGEX = /^dynamically search all filter values$/i;
-const PRE_FILTER_REGEX = /^pre-filter available values$/i;
+const FIRST_VALUE_REGEX = /^select first filter value by default/i;
+const INVERSE_SELECTION_REGEX = /^inverse selection/i;
+const SEARCH_ALL_REGEX = /^dynamically search all filter values/i;
+const PRE_FILTER_REGEX = /^pre-filter available values/i;
 const SORT_REGEX = /^sort filter values$/i;
 const SAVE_REGEX = /^save$/i;
 const NAME_REQUIRED_REGEX = /^name is required$/i;
@@ -175,15 +175,13 @@ function queryCheckbox(name: RegExp) {
 test('renders a value filter type', () => {
   defaultRender();
 
-  userEvent.click(screen.getByText(FILTER_SETTINGS_REGEX));
-
   expect(screen.getByText(FILTER_TYPE_REGEX)).toBeInTheDocument();
   expect(screen.getByText(FILTER_NAME_REGEX)).toBeInTheDocument();
   expect(screen.getByText(DATASET_REGEX)).toBeInTheDocument();
   expect(screen.getByText(COLUMN_REGEX)).toBeInTheDocument();
 
   expect(getCheckbox(DEFAULT_VALUE_REGEX)).not.toBeChecked();
-  expect(getCheckbox(REQUIRED_REGEX)).not.toBeChecked();
+  expect(getCheckbox(FILTER_REQUIRED_REGEX)).not.toBeChecked();
   expect(queryCheckbox(DEPENDENCIES_REGEX)).not.toBeInTheDocument();
   expect(getCheckbox(FIRST_VALUE_REGEX)).not.toBeChecked();
   expect(getCheckbox(INVERSE_SELECTION_REGEX)).not.toBeChecked();
@@ -201,13 +199,11 @@ test('renders a numerical range filter type', async () => {
 
   await waitFor(() => userEvent.click(screen.getByText(NUMERICAL_RANGE_REGEX)));
 
-  userEvent.click(screen.getByText(FILTER_SETTINGS_REGEX));
-
   expect(screen.getByText(FILTER_TYPE_REGEX)).toBeInTheDocument();
   expect(screen.getByText(FILTER_NAME_REGEX)).toBeInTheDocument();
   expect(screen.getByText(DATASET_REGEX)).toBeInTheDocument();
   expect(screen.getByText(COLUMN_REGEX)).toBeInTheDocument();
-  expect(screen.getByText(REQUIRED_REGEX)).toBeInTheDocument();
+  expect(screen.getByText(FILTER_REQUIRED_REGEX)).toBeInTheDocument();
 
   expect(getCheckbox(DEFAULT_VALUE_REGEX)).not.toBeChecked();
   expect(getCheckbox(PRE_FILTER_REGEX)).not.toBeChecked();
@@ -309,12 +305,19 @@ test.skip('validates the default value', async () => {
 });
 
 test('validates the pre-filter value', async () => {
+  jest.useFakeTimers();
+
   defaultRender();
+
   userEvent.click(screen.getByText(FILTER_SETTINGS_REGEX));
   userEvent.click(getCheckbox(PRE_FILTER_REGEX));
-  expect(
-    await screen.findByText(PRE_FILTER_REQUIRED_REGEX),
-  ).toBeInTheDocument();
+
+  jest.runOnlyPendingTimers();
+  jest.useRealTimers();
+
+  await waitFor(() => {
+    expect(screen.getByText(PRE_FILTER_REQUIRED_REGEX)).toBeInTheDocument();
+  });
 });
 
 // eslint-disable-next-line jest/no-disabled-tests
@@ -388,7 +391,9 @@ test('deletes a filter', async () => {
     createNewOnOpen: false,
     onSave,
   });
-  const removeButtons = screen.getAllByRole('img', { name: 'trash' });
+  const removeButtons = screen.getAllByRole('button', {
+    name: 'delete',
+  });
   userEvent.click(removeButtons[2]);
 
   userEvent.click(screen.getByRole('button', { name: SAVE_REGEX }));
@@ -423,7 +428,9 @@ test('deletes a filter including dependencies', async () => {
     createNewOnOpen: false,
     onSave,
   });
-  const removeButtons = screen.getAllByRole('img', { name: 'trash' });
+  const removeButtons = screen.getAllByRole('button', {
+    name: 'delete',
+  });
   userEvent.click(removeButtons[1]);
   userEvent.click(screen.getByRole('button', { name: SAVE_REGEX }));
   await waitFor(() =>
@@ -513,7 +520,9 @@ test('rearranges three filters and deletes one of them', async () => {
   });
 
   const draggableFilters = screen.getAllByRole('tab');
-  const deleteButtons = screen.getAllByRole('img', { name: 'trash' });
+  const deleteButtons = screen.getAllByRole('button', {
+    name: 'delete',
+  });
   userEvent.click(deleteButtons[1]);
 
   fireEvent.dragStart(draggableFilters[0]);

@@ -32,9 +32,11 @@ from flask import (
     redirect,
     Response,
     session,
+    url_for,
 )
 from flask_appbuilder import BaseView, Model, ModelView
 from flask_appbuilder.actions import action
+from flask_appbuilder.const import AUTH_OAUTH, AUTH_OID
 from flask_appbuilder.forms import DynamicForm
 from flask_appbuilder.models.sqla.filters import BaseFilter
 from flask_appbuilder.security.sqla.models import User
@@ -108,6 +110,7 @@ FRONTEND_CONF_KEYS = (
     "JWT_ACCESS_CSRF_COOKIE_NAME",
     "SQLLAB_QUERY_RESULT_TIMEOUT",
     "SYNC_DB_PERMISSIONS_IN_ASYNC_MODE",
+    "TABLE_VIZ_MAX_ROW_SERVER",
 )
 
 logger = logging.getLogger(__name__)
@@ -256,7 +259,8 @@ def menu_data(user: User) -> dict[str, Any]:
     return {
         "menu": appbuilder.menu.get_data(),
         "brand": {
-            "path": appbuilder.app.config["LOGO_TARGET_PATH"] or "/superset/welcome/",
+            "path": appbuilder.app.config["LOGO_TARGET_PATH"]
+            or url_for("Superset.welcome"),
             "icon": appbuilder.app_icon,
             "alt": appbuilder.app_name,
             "tooltip": appbuilder.app.config["LOGO_TOOLTIP"],
@@ -279,9 +283,7 @@ def menu_data(user: User) -> dict[str, Any]:
             "show_language_picker": len(languages) > 1,
             "user_is_anonymous": user.is_anonymous,
             "user_info_url": (
-                None
-                if is_feature_enabled("MENU_HIDE_USER_INFO")
-                else appbuilder.get_url_for_userinfo
+                None if is_feature_enabled("MENU_HIDE_USER_INFO") else "/user_info/"
             ),
             "user_logout_url": appbuilder.get_url_for_logout,
             "user_login_url": appbuilder.get_url_for_login,
@@ -319,11 +321,47 @@ def cached_common_bootstrap_data(  # pylint: disable=unused-argument
 
     # verify client has google sheets installed
     available_specs = get_available_engine_specs()
-    frontend_config["HAS_GSHEETS_INSTALLED"] = bool(available_specs[GSheetsEngineSpec])
+    frontend_config["HAS_GSHEETS_INSTALLED"] = (
+        GSheetsEngineSpec in available_specs
+        and bool(available_specs[GSheetsEngineSpec])
+    )
 
     language = locale.language if locale else "en"
+    auth_type = appbuilder.app.config["AUTH_TYPE"]
+    auth_user_registration = appbuilder.app.config["AUTH_USER_REGISTRATION"]
+    frontend_config["AUTH_USER_REGISTRATION"] = auth_user_registration
+    should_show_recaptcha = auth_user_registration and (auth_type != AUTH_OAUTH)
+
+    if auth_user_registration:
+        frontend_config["AUTH_USER_REGISTRATION_ROLE"] = appbuilder.app.config[
+            "AUTH_USER_REGISTRATION_ROLE"
+        ]
+    if should_show_recaptcha:
+        frontend_config["RECAPTCHA_PUBLIC_KEY"] = appbuilder.app.config[
+            "RECAPTCHA_PUBLIC_KEY"
+        ]
+
+    frontend_config["AUTH_TYPE"] = auth_type
+    if auth_type == AUTH_OAUTH:
+        oauth_providers = []
+        for provider in appbuilder.sm.oauth_providers:
+            oauth_providers.append(
+                {
+                    "name": provider["name"],
+                    "icon": provider["icon"],
+                }
+            )
+        frontend_config["AUTH_PROVIDERS"] = oauth_providers
+
+    if auth_type == AUTH_OID:
+        oid_providers = []
+        for provider in appbuilder.sm.openid_providers:
+            oid_providers.append(provider)
+        frontend_config["AUTH_PROVIDERS"] = oid_providers
 
     bootstrap_data = {
+        "application_root": conf["APPLICATION_ROOT"],
+        "static_assets_prefix": conf["STATIC_ASSETS_PREFIX"],
         "conf": frontend_config,
         "locale": language,
         "language_pack": get_language_pack(language),
@@ -333,7 +371,7 @@ def cached_common_bootstrap_data(  # pylint: disable=unused-argument
         "feature_flags": get_feature_flags(),
         "extra_sequential_color_schemes": conf["EXTRA_SEQUENTIAL_COLOR_SCHEMES"],
         "extra_categorical_color_schemes": conf["EXTRA_CATEGORICAL_COLOR_SCHEMES"],
-        "theme_overrides": conf["THEME_OVERRIDES"],
+        "theme": conf["THEME"],
         "menu_data": menu_data(g.user),
     }
     bootstrap_data.update(conf["COMMON_BOOTSTRAP_OVERRIDES_FUNC"](bootstrap_data))

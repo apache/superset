@@ -49,7 +49,6 @@ from sqlalchemy import (
     String,
     Table as DBTable,
     Text,
-    update,
 )
 from sqlalchemy.engine.base import Connection
 from sqlalchemy.ext.declarative import declared_attr
@@ -69,6 +68,7 @@ from sqlalchemy.sql import column, ColumnElement, literal_column, table
 from sqlalchemy.sql.elements import ColumnClause, TextClause
 from sqlalchemy.sql.expression import Label
 from sqlalchemy.sql.selectable import Alias, TableClause
+from sqlalchemy.types import JSON
 
 from superset import app, db, is_feature_enabled, security_manager
 from superset.commands.dataset.exceptions import DatasetNotFoundError
@@ -104,7 +104,7 @@ from superset.models.helpers import (
     QueryResult,
 )
 from superset.models.slice import Slice
-from superset.sql_parse import Table
+from superset.sql.parse import Table
 from superset.superset_typing import (
     AdhocColumn,
     AdhocMetric,
@@ -312,10 +312,6 @@ class BaseDatasource(AuditMixinNullable, ImportExportMixin):  # pylint: disable=
     def column_formats(self) -> dict[str, str | None]:
         return {m.metric_name: m.d3format for m in self.metrics if m.d3format}
 
-    @property
-    def currency_formats(self) -> dict[str, dict[str, str | None] | None]:
-        return {m.metric_name: m.currency_json for m in self.metrics if m.currency_json}
-
     def add_missing_metrics(self, metrics: list[SqlMetric]) -> None:
         existing_metrics = {m.metric_name for m in self.metrics}
         for metric in metrics:
@@ -378,7 +374,6 @@ class BaseDatasource(AuditMixinNullable, ImportExportMixin):  # pylint: disable=
             "id": self.id,
             "uid": self.uid,
             "column_formats": self.column_formats,
-            "currency_formats": self.currency_formats,
             "description": self.description,
             "database": self.database.data,  # pylint: disable=no-member
             "default_endpoint": self.default_endpoint,
@@ -400,6 +395,7 @@ class BaseDatasource(AuditMixinNullable, ImportExportMixin):  # pylint: disable=
             # one to many
             "columns": [o.data for o in self.columns],
             "metrics": [o.data for o in self.metrics],
+            "folders": self.folders,
             # TODO deprecate, move logic to JS
             "order_by_choices": self.order_by_choices,
             "owners": [owner.id for owner in self.owners],
@@ -424,7 +420,7 @@ class BaseDatasource(AuditMixinNullable, ImportExportMixin):  # pylint: disable=
             # pull out all required metrics from the form_data
             for metric_param in METRIC_FORM_DATA_PARAMS:
                 for metric in utils.as_list(form_data.get(metric_param) or []):
-                    metric_names.add(utils.get_metric_name(metric))
+                    metric_names.add(utils.get_metric_name(metric, self.verbose_map))
                     if utils.is_adhoc_metric(metric):
                         column_ = metric.get("column") or {}
                         if column_name := column_.get("column_name"):
@@ -476,6 +472,7 @@ class BaseDatasource(AuditMixinNullable, ImportExportMixin):  # pylint: disable=
             metric
             for metric in data["metrics"]
             if metric["metric_name"] in metric_names
+            or metric["verbose_name"] in metric_names
         ]
 
         filtered_columns: list[Column] = []
@@ -796,7 +793,8 @@ class AnnotationDatasource(BaseDatasource):
             qry = qry.filter(Annotation.end_dttm <= query_obj["to_dttm"])
         status = QueryStatus.SUCCESS
         try:
-            df = pd.read_sql_query(qry.statement, db.engine)
+            with db.engine.connect() as con:
+                df = pd.read_sql_query(qry.statement, con)
         except Exception as ex:  # pylint: disable=broad-except
             df = pd.DataFrame()
             status = QueryStatus.FAILED
@@ -1018,6 +1016,7 @@ class TableColumn(AuditMixinNullable, ImportExportMixin, CertificationMixin, Mod
             "filterable",
             "groupby",
             "id",
+            "uuid",
             "is_certified",
             "is_dttm",
             "python_date_format",
@@ -1042,7 +1041,7 @@ class SqlMetric(AuditMixinNullable, ImportExportMixin, CertificationMixin, Model
     metric_type = Column(String(32))
     description = Column(utils.MediumText())
     d3format = Column(String(128))
-    currency = Column(String(128))
+    currency = Column(JSON, nullable=True)
     warning_text = Column(Text)
     table_id = Column(Integer, ForeignKey("tables.id", ondelete="CASCADE"))
     expression = Column(utils.MediumText(), nullable=False)
@@ -1065,7 +1064,7 @@ class SqlMetric(AuditMixinNullable, ImportExportMixin, CertificationMixin, Model
         "extra",
         "warning_text",
     ]
-    update_from_object_fields = list(s for s in export_fields if s != "table_id")  # noqa: C400
+    update_from_object_fields = [s for s in export_fields if s != "table_id"]
     export_parent = "table"
 
     def __repr__(self) -> str:
@@ -1098,16 +1097,6 @@ class SqlMetric(AuditMixinNullable, ImportExportMixin, CertificationMixin, Model
         return self.perm
 
     @property
-    def currency_json(self) -> dict[str, str | None] | None:
-        try:
-            return json.loads(self.currency or "{}") or None
-        except (TypeError, json.JSONDecodeError) as exc:
-            logger.error(
-                "Unable to load currency json: %r. Leaving empty.", exc, exc_info=True
-            )
-            return None
-
-    @property
     def data(self) -> dict[str, Any]:
         attrs = (
             "certification_details",
@@ -1117,6 +1106,7 @@ class SqlMetric(AuditMixinNullable, ImportExportMixin, CertificationMixin, Model
             "description",
             "expression",
             "id",
+            "uuid",
             "is_certified",
             "metric_name",
             "warning_markdown",
@@ -1193,6 +1183,7 @@ class SqlaTable(
     extra = Column(Text)
     normalize_columns = Column(Boolean, default=False)
     always_filter_main_dttm = Column(Boolean, default=False)
+    folders = Column(JSON, nullable=True)
 
     baselink = "tablemodelview"
 
@@ -1214,6 +1205,7 @@ class SqlaTable(
         "extra",
         "normalize_columns",
         "always_filter_main_dttm",
+        "folders",
     ]
     update_from_object_fields = [f for f in export_fields if f != "database_id"]
     export_parent = "database"
@@ -1496,7 +1488,7 @@ class SqlaTable(
         :rtype: sqlalchemy.sql.column
         """
         expression_type = metric.get("expressionType")
-        label = utils.get_metric_name(metric)
+        label = utils.get_metric_name(metric, self.verbose_map)
 
         if expression_type == utils.AdhocMetricExpressionType.SIMPLE:
             metric_column = metric.get("column") or {}
@@ -2031,21 +2023,6 @@ class SqlaTable(
         security_manager.dataset_before_update(mapper, connection, target)
 
     @staticmethod
-    def update_column(  # pylint: disable=unused-argument
-        mapper: Mapper, connection: Connection, target: SqlMetric | TableColumn
-    ) -> None:
-        """
-        :param mapper: Unused.
-        :param connection: Unused.
-        :param target: The metric or column that was updated.
-        """
-        session = inspect(target).session  # pylint: disable=disallowed-name
-
-        # Forces an update to the table's changed_on value when a metric or column on the  # noqa: E501
-        # table is updated. This busts the cache key for all charts that use the table.
-        session.execute(update(SqlaTable).where(SqlaTable.id == target.table.id))
-
-    @staticmethod
     def after_insert(
         mapper: Mapper,
         connection: Connection,
@@ -2080,8 +2057,6 @@ class SqlaTable(
 sa.event.listen(SqlaTable, "before_update", SqlaTable.before_update)
 sa.event.listen(SqlaTable, "after_insert", SqlaTable.after_insert)
 sa.event.listen(SqlaTable, "after_delete", SqlaTable.after_delete)
-sa.event.listen(SqlMetric, "after_update", SqlaTable.update_column)
-sa.event.listen(TableColumn, "after_update", SqlaTable.update_column)
 
 RLSFilterRoles = DBTable(
     "rls_filter_roles",

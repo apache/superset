@@ -17,7 +17,7 @@
  * under the License.
  */
 /* eslint-env browser */
-import { extendedDayjs } from 'src/utils/dates';
+import { extendedDayjs } from '@superset-ui/core/utils/dates';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   styled,
@@ -35,10 +35,14 @@ import {
   LOG_ACTIONS_FORCE_REFRESH_DASHBOARD,
   LOG_ACTIONS_TOGGLE_EDIT_DASHBOARD,
 } from 'src/logger/LogUtils';
-import Icons from 'src/components/Icons';
-import { Button } from 'src/components/';
+import { Icons } from '@superset-ui/core/components/Icons';
+import {
+  Button,
+  Tooltip,
+  DeleteModal,
+  UnsavedChangesModal,
+} from '@superset-ui/core/components';
 import { findPermission } from 'src/utils/findPermission';
-import { Tooltip } from 'src/components/Tooltip';
 import { safeStringify } from 'src/utils/safeStringify';
 import PublishedStatus from 'src/dashboard/components/PublishedStatus';
 import UndoRedoKeyListeners from 'src/dashboard/components/UndoRedoKeyListeners';
@@ -53,9 +57,9 @@ import setPeriodicRunner, {
   stopPeriodicRender,
 } from 'src/dashboard/util/setPeriodicRunner';
 import ReportModal from 'src/features/reports/ReportModal';
-import DeleteModal from 'src/components/DeleteModal';
 import { deleteActiveReport } from 'src/features/reports/ReportModal/actions';
-import { PageHeaderWithActions } from 'src/components/PageHeaderWithActions';
+import { PageHeaderWithActions } from '@superset-ui/core/components/PageHeaderWithActions';
+import { useUnsavedChangesPrompt } from 'src/hooks/useUnsavedChangesPrompt';
 import DashboardEmbedModal from '../EmbeddedModal';
 import OverwriteConfirm from '../OverwriteConfirm';
 import {
@@ -95,7 +99,7 @@ import { useHeaderActionsMenu } from './useHeaderActionsDropdownMenu';
 const extensionsRegistry = getExtensionsRegistry();
 
 const headerContainerStyle = theme => css`
-  border-bottom: 1px solid ${theme.colors.grayscale.light2};
+  border-bottom: 1px solid ${theme.colorSplit};
 `;
 
 const editButtonStyle = theme => css`
@@ -107,12 +111,12 @@ const actionButtonsStyle = theme => css`
   align-items: center;
 
   .action-schedule-report {
-    margin-left: ${theme.gridUnit * 2}px;
+    margin-left: ${theme.sizeUnit * 2}px;
   }
 
   .undoRedo {
     display: flex;
-    margin-right: ${theme.gridUnit * 2}px;
+    margin-right: ${theme.sizeUnit * 2}px;
   }
 `;
 
@@ -140,13 +144,16 @@ const undoRedoDisabled = theme => css`
 `;
 
 const saveBtnStyle = theme => css`
-  min-width: ${theme.gridUnit * 17}px;
-  height: ${theme.gridUnit * 8}px;
+  min-width: ${theme.sizeUnit * 17}px;
+  height: ${theme.sizeUnit * 8}px;
+  span > :first-of-type {
+    margin-right: 0;
+  }
 `;
 
 const discardBtnStyle = theme => css`
-  min-width: ${theme.gridUnit * 22}px;
-  height: ${theme.gridUnit * 8}px;
+  min-width: ${theme.sizeUnit * 22}px;
+  height: ${theme.sizeUnit * 8}px;
 `;
 
 const discardChanges = () => {
@@ -459,6 +466,16 @@ const Header = () => {
     slug,
   ]);
 
+  const {
+    showModal: showUnsavedChangesModal,
+    setShowModal: setShowUnsavedChangesModal,
+    handleConfirmNavigation,
+    handleSaveAndCloseModal,
+  } = useUnsavedChangesPrompt({
+    hasUnsavedChanges,
+    onSave: overwriteDashboard,
+  });
+
   const showPropertiesModal = useCallback(() => {
     setShowingPropertiesModal(true);
   }, []);
@@ -632,7 +649,7 @@ const Header = () => {
                   css={discardBtnStyle}
                   buttonSize="small"
                   onClick={discardChanges}
-                  buttonStyle="default"
+                  buttonStyle="secondary"
                   data-test="discard-changes-button"
                   aria-label={t('Discard')}
                 >
@@ -647,6 +664,7 @@ const Header = () => {
                   data-test="header-save-button"
                   aria-label={t('Save')}
                 >
+                  <Icons.SaveOutlined iconSize="m" />
                   {t('Save')}
                 </Button>
               </div>
@@ -809,10 +827,19 @@ const Header = () => {
       )}
       <Global
         styles={css`
-          .antd5-menu-vertical {
+          .ant-menu-vertical {
             border-right: none;
           }
         `}
+      />
+
+      <UnsavedChangesModal
+        title={t('Save changes to your dashboard?')}
+        body={t("If you don't save, changes will be lost.")}
+        showModal={showUnsavedChangesModal}
+        onHide={() => setShowUnsavedChangesModal(false)}
+        onConfirmNavigation={handleConfirmNavigation}
+        handleSave={handleSaveAndCloseModal}
       />
     </div>
   );

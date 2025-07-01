@@ -16,12 +16,16 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { Icons } from '@superset-ui/core/components';
+import { useTheme } from '@superset-ui/core';
+
 interface IssueCodeProps {
   code: number;
   message: string;
 }
 
-export default function IssueCode({ code, message }: IssueCodeProps) {
+export function IssueCode({ code, message }: IssueCodeProps) {
+  const theme = useTheme();
   return (
     <>
       {message}{' '}
@@ -31,9 +35,7 @@ export default function IssueCode({ code, message }: IssueCodeProps) {
         target="_blank"
         aria-label="Superset docs link"
       >
-        {/* TODO: Remove fa-icon */}
-        {/* eslint-disable-next-line icons/no-fa-icons-usage */}
-        <i className="fa fa-external-link" />
+        <Icons.Full iconSize="m" iconColor={theme.colors.primary.dark1} />
       </a>
     </>
   );

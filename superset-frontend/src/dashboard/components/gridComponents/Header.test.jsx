@@ -78,7 +78,7 @@ describe('Header', () => {
 
   it('should render an EditableTitle with meta.text', () => {
     setup();
-    const titleElement = screen.getByTestId('editable-title-input');
+    const titleElement = screen.getByTestId('editable-title');
     expect(titleElement).toBeInTheDocument();
     expect(titleElement).toHaveTextContent(props.component.meta.text);
   });
@@ -88,11 +88,11 @@ describe('Header', () => {
     setup({ editMode: true, updateComponents });
 
     // First click to enter edit mode
-    const titleButton = screen.getByTestId('editable-title-input');
+    const titleButton = screen.getByTestId('textarea-editable-title-input');
     fireEvent.click(titleButton);
 
     // Then change the input value and blur to trigger save
-    const titleInput = screen.getByTestId('editable-title-input');
+    const titleInput = screen.getByTestId('textarea-editable-title-input');
     fireEvent.change(titleInput, { target: { value: 'New title' } });
     fireEvent.blur(titleInput);
 
@@ -105,7 +105,7 @@ describe('Header', () => {
 
   it('should render a DeleteComponentButton when focused in editMode', () => {
     setup({ editMode: true });
-    const trashButton = screen.getByRole('img', { name: 'trash' });
+    const trashButton = screen.getByRole('img', { name: 'delete' });
     expect(trashButton).toBeInTheDocument();
   });
 
@@ -113,7 +113,7 @@ describe('Header', () => {
     const deleteComponent = sinon.spy();
     setup({ editMode: true, deleteComponent });
 
-    const trashButton = screen.getByRole('img', { name: 'trash' });
+    const trashButton = screen.getByRole('img', { name: 'delete' });
     fireEvent.click(trashButton.parentElement);
 
     expect(deleteComponent.callCount).toBe(1);

@@ -546,9 +546,7 @@ describe('NotificationMethod', () => {
       );
 
       // Wait for RefreshLabel to be rendered (it may have a tooltip with the provided content)
-      const refreshLabel = await waitFor(() =>
-        screen.getByLabelText('refresh'),
-      );
+      const refreshLabel = await waitFor(() => screen.getByLabelText('sync'));
       // Simulate a click on the RefreshLabel
       userEvent.click(refreshLabel);
       // Verify that the SupersetClient.get was called indicating that updateSlackOptions executed

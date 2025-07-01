@@ -47,10 +47,11 @@ import {
   useSelectFiltersInScope,
 } from 'src/dashboard/components/nativeFilters/state';
 import { FilterBarOrientation, RootState } from 'src/dashboard/types';
-import DropdownContainer, {
-  Ref as DropdownContainerRef,
-} from 'src/components/DropdownContainer';
-import Icons from 'src/components/Icons';
+import {
+  DropdownContainer,
+  type DropdownRef as DropdownContainerRef,
+} from '@superset-ui/core/components';
+import { Icons } from '@superset-ui/core/components/Icons';
 import { useChartIds } from 'src/dashboard/util/charts/useChartIds';
 import { useChartLayoutItems } from 'src/dashboard/util/useChartLayoutItems';
 import { FiltersOutOfScopeCollapsible } from '../FiltersOutOfScopeCollapsible';
@@ -145,7 +146,6 @@ const FilterControls: FC<FilterControlsProps> = ({
           <FiltersOutOfScopeCollapsible
             filtersOutOfScope={filtersOutOfScope}
             forceRender={hasRequiredFirst}
-            hasTopMargin={filtersInScope.length > 0}
             renderer={renderer}
           />
         )}
@@ -226,7 +226,7 @@ const FilterControls: FC<FilterControlsProps> = ({
     () => (
       <div
         css={(theme: SupersetTheme) => css`
-          padding: 0 ${theme.gridUnit * 4}px;
+          padding: 0 ${theme.sizeUnit * 4}px;
           min-width: 0;
           flex: 1;
         `}
@@ -234,7 +234,7 @@ const FilterControls: FC<FilterControlsProps> = ({
         <DropdownContainer
           items={items}
           dropdownTriggerIcon={
-            <Icons.FilterSmall
+            <Icons.FilterOutlined
               css={css`
                 && {
                   margin-right: -4px;

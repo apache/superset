@@ -172,7 +172,7 @@ it('Uses callbacks on click', () => {
 
   const chart4Container = screen.getByText('chart 4').closest('div');
   if (chart4Container) {
-    userEvent.click(within(chart4Container).getByLabelText('trash'));
+    userEvent.click(within(chart4Container).getByLabelText('delete'));
   }
   expect(DEFAULT_PROPS.removeCustomScope).toHaveBeenCalledWith(4);
 });

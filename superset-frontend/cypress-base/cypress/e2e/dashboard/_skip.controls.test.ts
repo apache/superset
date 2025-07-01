@@ -47,12 +47,12 @@ describe.skip('Dashboard top-level controls', () => {
       // Solution: pause the network before clicking, assert, then unpause network.
       cy.get('[data-test="refresh-chart-menu-item"]').should(
         'have.class',
-        'antd5-dropdown-menu-item-disabled',
+        'ant-dropdown-menu-item-disabled',
       );
       waitForChartLoad(mapSpec);
       cy.get('[data-test="refresh-chart-menu-item"]').should(
         'not.have.class',
-        'antd5-dropdown-menu-item-disabled',
+        'ant-dropdown-menu-item-disabled',
       );
     });
   });
@@ -62,10 +62,10 @@ describe.skip('Dashboard top-level controls', () => {
     // should allow force refresh
     WORLD_HEALTH_CHARTS.forEach(waitForChartLoad);
     getChartAliasesBySpec(WORLD_HEALTH_CHARTS).then(aliases => {
-      cy.get('[aria-label="more-horiz"]').click();
+      cy.get('[aria-label="ellipsis"]').click();
       cy.get('[data-test="refresh-dashboard-menu-item"]').should(
         'not.have.class',
-        'antd5-dropdown-menu-item-disabled',
+        'ant-dropdown-menu-item-disabled',
       );
 
       cy.get('[data-test="refresh-dashboard-menu-item"]').click({
@@ -73,7 +73,7 @@ describe.skip('Dashboard top-level controls', () => {
       });
       cy.get('[data-test="refresh-dashboard-menu-item"]').should(
         'have.class',
-        'antd5-dropdown-menu-item-disabled',
+        'ant-dropdown-menu-item-disabled',
       );
 
       // wait all charts force refreshed.
@@ -91,10 +91,10 @@ describe.skip('Dashboard top-level controls', () => {
         });
       });
     });
-    cy.get('[aria-label="more-horiz"]').click();
+    cy.get('[aria-label="ellipsis"]').click();
     cy.get('[data-test="refresh-dashboard-menu-item"]').and(
       'not.have.class',
-      'antd5-dropdown-menu-item-disabled',
+      'ant-dropdown-menu-item-disabled',
     );
   });
 });

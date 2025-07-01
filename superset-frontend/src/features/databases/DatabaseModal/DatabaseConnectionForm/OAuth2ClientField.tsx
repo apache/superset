@@ -18,11 +18,7 @@
  */
 
 import { useState } from 'react';
-import { css, SupersetTheme } from '@superset-ui/core';
-
-import Collapse from 'src/components/Collapse';
-import { Input } from 'src/components/Input';
-import { FormItem } from 'src/components/Form';
+import { Input, Collapse, FormItem } from '@superset-ui/core/components';
 import { CustomParametersChangeType, FieldPropTypes } from '../../types';
 
 const LABELS = {
@@ -32,16 +28,6 @@ const LABELS = {
   TOKEN_URI: 'Token Request URI',
   SCOPE: 'Scope',
 };
-
-const collapseStyle = (theme: SupersetTheme) => css`
-  .ant-collapse-header {
-    padding-bottom: ${theme.gridUnit * 1.5}px !important;
-    padding-top: ${theme.gridUnit * 1.5}px !important;
-  }
-  .anticon.ant-collapse-arrow {
-    top: 0 !important;
-  }
-`;
 
 interface OAuth2ClientInfo {
   id: string;
@@ -91,51 +77,55 @@ export const OAuth2ClientField = ({
   };
 
   return (
-    <Collapse>
-      <Collapse.Panel
-        header="OAuth2 client information"
-        key="1"
-        css={collapseStyle}
-      >
-        <FormItem label={LABELS.CLIENT_ID}>
-          <Input
-            data-test="client-id"
-            value={oauth2ClientInfo.id}
-            onChange={handleChange('id')}
-          />
-        </FormItem>
-        <FormItem label={LABELS.SECRET}>
-          <Input
-            data-test="client-secret"
-            type="password"
-            value={oauth2ClientInfo.secret}
-            onChange={handleChange('secret')}
-          />
-        </FormItem>
-        <FormItem label={LABELS.AUTH_URI}>
-          <Input
-            data-test="client-authorization-request-uri"
-            placeholder="https://"
-            value={oauth2ClientInfo.authorization_request_uri}
-            onChange={handleChange('authorization_request_uri')}
-          />
-        </FormItem>
-        <FormItem label={LABELS.TOKEN_URI}>
-          <Input
-            data-test="client-token-request-uri"
-            placeholder="https://"
-            value={oauth2ClientInfo.token_request_uri}
-            onChange={handleChange('token_request_uri')}
-          />
-        </FormItem>
-        <FormItem label={LABELS.SCOPE}>
-          <Input
-            data-test="client-scope"
-            value={oauth2ClientInfo.scope}
-            onChange={handleChange('scope')}
-          />
-        </FormItem>
-      </Collapse.Panel>
-    </Collapse>
+    <Collapse
+      items={[
+        {
+          key: 'oauth2-client-information',
+          label: 'OAuth2 client information',
+          children: (
+            <>
+              <FormItem label={LABELS.CLIENT_ID}>
+                <Input
+                  data-test="client-id"
+                  value={oauth2ClientInfo.id}
+                  onChange={handleChange('id')}
+                />
+              </FormItem>
+              <FormItem label={LABELS.SECRET}>
+                <Input
+                  data-test="client-secret"
+                  type="password"
+                  value={oauth2ClientInfo.secret}
+                  onChange={handleChange('secret')}
+                />
+              </FormItem>
+              <FormItem label={LABELS.AUTH_URI}>
+                <Input
+                  data-test="client-authorization-request-uri"
+                  placeholder="https://"
+                  value={oauth2ClientInfo.authorization_request_uri}
+                  onChange={handleChange('authorization_request_uri')}
+                />
+              </FormItem>
+              <FormItem label={LABELS.TOKEN_URI}>
+                <Input
+                  data-test="client-token-request-uri"
+                  placeholder="https://"
+                  value={oauth2ClientInfo.token_request_uri}
+                  onChange={handleChange('token_request_uri')}
+                />
+              </FormItem>
+              <FormItem label={LABELS.SCOPE}>
+                <Input
+                  data-test="client-scope"
+                  value={oauth2ClientInfo.scope}
+                  onChange={handleChange('scope')}
+                />
+              </FormItem>
+            </>
+          ),
+        },
+      ]}
+    />
   );
 };

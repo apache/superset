@@ -20,7 +20,7 @@ import { render, screen, userEvent } from 'spec/helpers/testing-library';
 import CollectionControl from '.';
 
 jest.mock('@superset-ui/chart-controls', () => ({
-  InfoTooltipWithTrigger: (props: any) => (
+  InfoTooltip: (props: any) => (
     <button
       onClick={props.onClick}
       type="button"
@@ -105,10 +105,10 @@ test('Should have add button', async () => {
   render(<CollectionControl {...props} />);
 
   expect(
-    await screen.findByRole('button', { name: 'plus-large' }),
+    await screen.findByRole('button', { name: 'plus' }),
   ).toBeInTheDocument();
   expect(props.onChange).toHaveBeenCalledTimes(0);
-  userEvent.click(screen.getByRole('button', { name: 'plus-large' }));
+  userEvent.click(screen.getByRole('button', { name: 'plus' }));
   expect(props.onChange).toHaveBeenCalledWith([
     { key: 'hrYAZ5iBH' },
     undefined,
@@ -120,10 +120,10 @@ test('Should have remove button', async () => {
   render(<CollectionControl {...props} />);
 
   expect(
-    await screen.findByRole('button', { name: 'remove-item' }),
+    await screen.findByRole('button', { name: 'Show info tooltip' }),
   ).toBeInTheDocument();
   expect(props.onChange).toHaveBeenCalledTimes(0);
-  userEvent.click(screen.getByRole('button', { name: 'remove-item' }));
+  userEvent.click(screen.getByRole('button', { name: 'Show info tooltip' }));
   expect(props.onChange).toHaveBeenCalledWith([]);
 });
 

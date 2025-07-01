@@ -52,6 +52,7 @@ with open(VERSION_INFO_FILE, "w") as version_file:
 version_string = version_string.replace("-dev", ".dev0")
 
 setup(
+    name="apache_superset",
     version=version_string,
     packages=find_packages(),
     include_package_data=True,

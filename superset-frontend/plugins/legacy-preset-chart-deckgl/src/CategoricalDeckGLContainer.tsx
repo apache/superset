@@ -136,7 +136,7 @@ const CategoricalDeckGLContainer = (props: CategoricalDeckGLContainerProps) => {
     return data.map(d => {
       let color;
       if (fd.dimension) {
-        color = hexToRGB(colorFn(d.cat_color, fd.sliceId), c.a * 255);
+        color = hexToRGB(colorFn(d.cat_color, fd.slice_id), c.a * 255);
 
         return { ...d, color };
       }

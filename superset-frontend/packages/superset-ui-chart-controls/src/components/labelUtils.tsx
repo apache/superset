@@ -29,18 +29,18 @@ const TooltipSectionWrapper = styled.div`
     overflow: hidden;
     text-overflow: ellipsis;
 
-    font-size: ${theme.typography.sizes.s}px;
+    font-size: ${theme.fontSizeSM}px;
     line-height: 1.2;
 
     &:not(:last-of-type) {
-      margin-bottom: ${theme.gridUnit * 2}px;
+      margin-bottom: ${theme.sizeUnit * 2}px;
     }
   `}
 `;
 
 const TooltipSectionLabel = styled.span`
   ${({ theme }) => css`
-    font-weight: ${theme.typography.weights.bold};
+    font-weight: ${theme.fontWeightStrong};
   `}
 `;
 
@@ -97,7 +97,7 @@ export const getColumnTooltipNode = (
   );
 };
 
-type MetricType = Omit<Metric, 'id'> & { label?: string };
+type MetricType = Omit<Metric, 'id' | 'uuid'> & { label?: string };
 
 export const getMetricTooltipNode = (
   metric: MetricType,

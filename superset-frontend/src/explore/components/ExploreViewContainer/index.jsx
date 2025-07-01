@@ -33,10 +33,10 @@ import {
 } from '@superset-ui/core';
 import { debounce, isEqual, isObjectLike, omit, pick } from 'lodash';
 import { Resizable } from 're-resizable';
-import { usePluginContext } from 'src/components/DynamicPlugins';
+import { Tooltip } from '@superset-ui/core/components';
+import { usePluginContext } from 'src/components';
 import { Global } from '@emotion/react';
-import { Tooltip } from 'src/components/Tooltip';
-import Icons from 'src/components/Icons';
+import { Icons } from '@superset-ui/core/components/Icons';
 import {
   getItem,
   setItem,
@@ -50,6 +50,7 @@ import {
   LOG_ACTIONS_MOUNT_EXPLORER,
   LOG_ACTIONS_CHANGE_EXPLORE_CONTROLS,
 } from 'src/logger/LogUtils';
+import { ensureAppRoot } from 'src/utils/pathUtils';
 import { getUrlParam } from 'src/utils/urlUtils';
 import cx from 'classnames';
 import * as chartActions from 'src/components/Chart/chartAction';
@@ -97,32 +98,31 @@ const propTypes = {
 
 const ExplorePanelContainer = styled.div`
   ${({ theme }) => css`
-    background: ${theme.colors.grayscale.light5};
     text-align: left;
     position: relative;
     width: 100%;
     max-height: 100%;
+    background-color: ${theme.colorBgContainer};
     min-height: 0;
     display: flex;
     flex: 1;
     flex-wrap: nowrap;
-    border-top: 1px solid ${theme.colors.grayscale.light2};
+    border-top: 1px solid ${theme.colorSplit};
     .explore-column {
       display: flex;
       flex-direction: column;
-      padding: ${theme.gridUnit * 2}px 0;
+      padding: ${theme.sizeUnit * 2}px 0;
       max-height: 100%;
     }
     .data-source-selection {
-      background-color: ${theme.colors.grayscale.light5};
-      padding: ${theme.gridUnit * 2}px 0;
-      border-right: 1px solid ${theme.colors.grayscale.light2};
+      padding: ${theme.sizeUnit * 2}px 0;
+      border-right: 1px solid ${theme.colorSplit};
     }
     .main-explore-content {
       flex: 1;
-      min-width: ${theme.gridUnit * 128}px;
-      border-left: 1px solid ${theme.colors.grayscale.light2};
-      padding: 0 ${theme.gridUnit * 4}px;
+      min-width: ${theme.sizeUnit * 128}px;
+      border-left: 1px solid ${theme.colorSplit};
+      padding: 0 ${theme.sizeUnit * 4}px;
       .panel {
         margin-bottom: 0;
       }
@@ -135,10 +135,10 @@ const ExplorePanelContainer = styled.div`
       position: relative;
       display: flex;
       flex-direction: row;
-      padding: 0 ${theme.gridUnit * 2}px 0 ${theme.gridUnit * 4}px;
+      padding: 0 ${theme.sizeUnit * 2}px 0 ${theme.sizeUnit * 4}px;
       justify-content: space-between;
       .horizontal-text {
-        font-size: ${theme.typography.sizes.m}px;
+        font-size: ${theme.fontSize}px;
       }
     }
     .no-show {
@@ -150,12 +150,11 @@ const ExplorePanelContainer = styled.div`
     }
     .sidebar {
       height: 100%;
-      background-color: ${theme.colors.grayscale.light4};
-      padding: ${theme.gridUnit * 2}px;
-      width: ${theme.gridUnit * 8}px;
+      padding: ${theme.sizeUnit * 2}px;
+      width: ${theme.sizeUnit * 8}px;
     }
     .collapse-icon > svg {
-      color: ${theme.colors.primary.base};
+      color: ${theme.colorPrimary};
     }
   `};
 `;
@@ -215,7 +214,7 @@ const updateHistory = debounce(
         stateModifier = 'pushState';
       }
       // avoid race condition in case user changes route before explore updates the url
-      if (window.location.pathname.startsWith('/explore')) {
+      if (window.location.pathname.startsWith(ensureAppRoot('/explore'))) {
         const url = mountExploreUrl(
           standalone ? URL_PARAMS.standalone.name : null,
           {
@@ -267,6 +266,15 @@ function ExploreViewContainer(props) {
   const tabId = useTabId();
 
   const theme = useTheme();
+
+  useEffect(() => {
+    if (props.sliceName) {
+      document.title = props.sliceName;
+    }
+    return () => {
+      document.title = 'Superset';
+    };
+  }, [props.sliceName]);
 
   const addHistory = useCallback(
     async ({ isReplace = false, title } = {}) => {
@@ -585,6 +593,7 @@ function ExploreViewContainer(props) {
         reports={props.reports}
         saveDisabled={errorMessage || props.chart.chartStatus === 'loading'}
         metadata={props.metadata}
+        isSaveModalVisible={props.isSaveModalVisible}
       />
       <ExplorePanelContainer id="explore-container">
         <Global
@@ -635,10 +644,13 @@ function ExploreViewContainer(props) {
               className="action-button"
               onClick={toggleCollapse}
             >
-              <Icons.Expand
+              <Icons.VerticalAlignTopOutlined
+                iconSize="xl"
+                css={css`
+                  transform: rotate(-90deg);
+                `}
                 className="collapse-icon"
                 iconColor={theme.colors.primary.base}
-                iconSize="l"
               />
             </span>
           </div>
@@ -661,10 +673,13 @@ function ExploreViewContainer(props) {
           >
             <span role="button" tabIndex={0} className="action-button">
               <Tooltip title={t('Open Datasource tab')}>
-                <Icons.Collapse
+                <Icons.VerticalAlignTopOutlined
+                  iconSize="xl"
+                  css={css`
+                    transform: rotate(90deg);
+                  `}
                   className="collapse-icon"
                   iconColor={theme.colors.primary.base}
-                  iconSize="l"
                 />
               </Tooltip>
             </span>
@@ -727,6 +742,17 @@ const retainQueryModeRequirements = hiddenFormData =>
     key => !QUERY_MODE_REQUISITES.has(key),
   );
 
+function patchBigNumberTotalFormData(form_data, slice) {
+  if (
+    form_data.viz_type === 'big_number_total' &&
+    !form_data.subtitle &&
+    slice?.form_data?.subheader
+  ) {
+    return { ...form_data, subtitle: slice.form_data.subheader };
+  }
+  return form_data;
+}
+
 function mapStateToProps(state) {
   const {
     explore,
@@ -761,6 +787,25 @@ function mapStateToProps(state) {
     dashboardId = undefined;
   }
 
+  if (
+    form_data.viz_type === 'big_number_total' &&
+    slice?.form_data?.subheader &&
+    (!controls.subtitle?.value || controls.subtitle.value === '')
+  ) {
+    controls.subtitle = {
+      ...controls.subtitle,
+      value: slice.form_data.subheader,
+    };
+    if (slice?.form_data?.subheader_font_size) {
+      controls.subtitle_font_size = {
+        ...controls.subtitle_font_size,
+        value: slice.form_data.subheader_font_size,
+      };
+    }
+  }
+
+  const patchedFormData = patchBigNumberTotalFormData(form_data, slice);
+
   return {
     isDatasourceMetaLoading: explore.isDatasourceMetaLoading,
     datasource,
@@ -782,7 +827,7 @@ function mapStateToProps(state) {
     slice,
     sliceName: explore.sliceName ?? slice?.slice_name ?? null,
     triggerRender: explore.triggerRender,
-    form_data,
+    form_data: patchedFormData,
     table_name: datasource.table_name,
     vizType: form_data.viz_type,
     standalone: !!explore.standalone,
