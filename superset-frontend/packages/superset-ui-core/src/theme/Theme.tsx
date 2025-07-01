@@ -80,6 +80,7 @@ export class Theme {
     // Forcing some default tokens
     fontFamily: `'Inter', Helvetica, Arial`,
     fontFamilyCode: `'Fira Code', 'Courier New', monospace`,
+    fontFeatureSettings: '"tnum" 1',
 
     // Extra tokens
     transitionTiming: 0.3,
