@@ -70,8 +70,8 @@ const ColorBreakpointsControl = ({
     togglePopover(true);
   };
 
-  const saveColorBreakpoint = (contour: ColorBreakpointType) => {
-    setColorBreakpoints([...colorBreakpoints, contour]);
+  const saveColorBreakpoint = (breakpoint: ColorBreakpointType) => {
+    setColorBreakpoints([...colorBreakpoints, breakpoint]);
     togglePopover(false);
   };
 
@@ -79,15 +79,6 @@ const ColorBreakpointsControl = ({
     const newBreakpoints = [...colorBreakpoints];
     newBreakpoints.splice(index, 1);
     setColorBreakpoints(newBreakpoints);
-  };
-
-  const onShiftContour = (hoverIndex: number, dragIndex: number) => {
-    const newContours = [...colorBreakpoints];
-    [newContours[hoverIndex], newContours[dragIndex]] = [
-      newContours[dragIndex],
-      newContours[hoverIndex],
-    ];
-    setColorBreakpoints(newContours);
   };
 
   const editColorBreakpoint = (
@@ -113,7 +104,7 @@ const ColorBreakpointsControl = ({
         colorBreakpoints={colorBreakpoints}
         index={index}
         onClose={removeColorBreakpoint}
-        onShift={onShiftContour}
+        onShift={() => {}}
       />
     ));
 

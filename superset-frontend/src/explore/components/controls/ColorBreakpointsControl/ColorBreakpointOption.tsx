@@ -23,6 +23,14 @@ import ColorBreakpointPopoverTrigger from './ColorBreakpointPopoverTrigger';
 import { DragContainer } from '../OptionControls';
 import Option from '../DndColumnSelectControl/Option';
 
+const BreakpointColorPreview = styled.div`
+  width: ${({ theme }) => theme.sizeUnit * 3}px;
+  height: ${({ theme }) => theme.sizeUnit * 3}px;
+  border-radius: ${({ theme }) => theme.sizeUnit / 2}px;
+  background: ${(props: { color: string }) => props.color};
+  margin-right: ${({ theme }) => theme.sizeUnit * 1.5}px;
+`;
+
 const ColorBreakpointOption = ({
   breakpoint,
   colorBreakpoints,
@@ -31,14 +39,6 @@ const ColorBreakpointOption = ({
   onClose,
 }: ColorBreakpointOptionProps) => {
   const { color, minValue, maxValue } = breakpoint;
-
-  const BreakpointColorPreview = styled.div`
-    width: ${({ theme }) => theme.sizeUnit * 3}px;
-    height: ${({ theme }) => theme.sizeUnit * 3}px;
-    border-radius: ${({ theme }) => theme.sizeUnit / 2}px;
-    background: ${(props: { color: string }) => props.color};
-    margin-right: ${({ theme }) => theme.sizeUnit * 1.5}px;
-  `;
 
   const formattedColor = color
     ? `rgba(${color.r}, ${color.g}, ${color.b}, 1)`
