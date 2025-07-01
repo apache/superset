@@ -26,6 +26,7 @@ import {
   Datasource,
   ensureIsArray,
   HandlerFunction,
+  isDefined,
   JsonObject,
   JsonValue,
   QueryFormData,
@@ -197,12 +198,40 @@ const DeckMulti = (props: DeckMultiProps) => {
         payloadIndex,
         formData.deck_slices,
       );
-
-      const { extraFilters, adhocFilters } = processLayerFilters(
-        subslice,
-        formData,
-        layerIndex,
-      );
+      let extraFilters: (AdhocFilter | QueryObjectFilterClause)[] = [];
+      let adhocFilters: AdhocFilter[] = [];
+      const isExplore = (window.location.href || '').includes('explore');
+      if (isExplore) {
+        // in explore all the filters are in the adhoc_filters
+        const adhocFiltersFromFormData = formData.adhoc_filters || [];
+        const finalAdhocFilters = adhocFiltersFromFormData
+          .map((filter: AdhocFilter & { layerFilterScope?: number[] }) => {
+            if (!isDefined(filter?.layerFilterScope)) {
+              return filter;
+            }
+            if (
+              Array.isArray(filter.layerFilterScope) &&
+              filter.layerFilterScope.length > 0
+            ) {
+              if (filter.layerFilterScope.includes(-1)) {
+                return filter;
+              }
+              if (filter.layerFilterScope.includes(layerIndex)) {
+                return filter;
+              }
+            }
+            return undefined;
+          })
+          .filter(filter => isDefined(filter));
+        adhocFilters = finalAdhocFilters;
+      } else {
+        const {
+          extraFilters: processLayerFiltersResultExtraFilters,
+          adhocFilters: processLayerFiltersResultAdhocFilters,
+        } = processLayerFilters(subslice, formData, layerIndex);
+        extraFilters = processLayerFiltersResultExtraFilters;
+        adhocFilters = processLayerFiltersResultAdhocFilters;
+      }
 
       const subsliceCopy = {
         ...subslice,
