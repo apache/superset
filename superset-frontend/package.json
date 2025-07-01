@@ -164,7 +164,6 @@
     "ol": "^7.5.2",
     "polished": "^4.3.1",
     "prop-types": "^15.8.1",
-    "query-string": "^6.13.7",
     "re-resizable": "^6.10.1",
     "react": "^17.0.2",
     "react-checkbox-tree": "^1.8.0",

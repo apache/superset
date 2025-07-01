@@ -18,7 +18,6 @@
  */
 import { useEffect, useCallback, useMemo, useState } from 'react';
 import { shallowEqual, useDispatch, useSelector } from 'react-redux';
-import querystring from 'query-string';
 
 import { SqlLabRootState, Table } from 'src/SqlLab/types';
 import {
@@ -103,7 +102,7 @@ const SqlEditorLeftBar = ({
   noop(_emptyResultsWithSearch); // This is to avoid unused variable warning, can be removed if not needed
 
   useEffect(() => {
-    const bool = querystring.parse(window.location.search).db;
+    const bool = new URLSearchParams(window.location.search).get('db');
     const userSelected = getItem(
       LocalStorageKeys.Database,
       null,
