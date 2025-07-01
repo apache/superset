@@ -16,25 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import type { QueryFormData } from '@superset-ui/core';
-import { DiffType } from 'src/types/DiffType';
+import { sanitizeFormData } from '.';
 
-export interface AlteredSliceTagProps {
-  className?: string;
-  diffs: Record<string, DiffType>;
-  origFormData: QueryFormData;
-  currentFormData: QueryFormData;
-}
-
-export interface ControlMap {
-  [key: string]: {
-    label?: string;
-    type?: string;
-  };
-}
-
-export type RowType = {
-  before: string | number;
-  after: string | number;
-  control: string;
-};
+test('sanitizeFormData removes temporary control values', () => {
+  expect(
+    sanitizeFormData({
+      url_params: { foo: 'bar' },
+      metrics: ['foo', 'bar'],
+    }),
+  ).toEqual({ metrics: ['foo', 'bar'] });
+});
