@@ -147,14 +147,14 @@ export class Editor implements sqlLabType.Editor {
   constructor(
     content: string,
     databaseId: number,
-    schema = '',
     catalog: string | null = null,
+    schema = '',
     table: string | null = null,
   ) {
     this.content = content;
     this.databaseId = databaseId;
-    this.schema = schema;
     this.catalog = catalog;
+    this.schema = schema;
     this.table = table;
   }
 }

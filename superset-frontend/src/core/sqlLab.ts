@@ -24,20 +24,44 @@ import {
   querySuccess,
 } from 'src/SqlLab/actions/sqlLab';
 import { RootState, store } from 'src/views/store';
-import { Disposable, Editor } from './core';
+import { Disposable, Editor, Panel, Tab } from './core';
 import { createActionListener } from './utils';
 import { AnyListenerPredicate } from '@reduxjs/toolkit';
+import type { SqlLabRootState } from 'src/SqlLab/types';
 
-const predicate = (actionType: string): AnyListenerPredicate<RootState> => {
-  const { sqlLab } = store.getState();
+const activeEditorId = () => {
+  const { sqlLab }: { sqlLab: SqlLabRootState['sqlLab'] } = store.getState();
   const { unsavedQueryEditor, lastUpdatedActiveTab } = sqlLab;
-  const selectedEditor = unsavedQueryEditor.id || lastUpdatedActiveTab;
-  return action => {
-    return (
-      action.type === actionType && action.query?.sqlEditorId === selectedEditor
-    );
-  };
+  return unsavedQueryEditor.id || lastUpdatedActiveTab;
 };
+
+const getCurrentTab: typeof sqlLabType.getCurrentTab = () => {
+  const { sqlLab }: { sqlLab: SqlLabRootState['sqlLab'] } = store.getState();
+  const { queryEditors } = sqlLab;
+  const queryEditor = queryEditors.find(
+    editor => editor.id === activeEditorId(),
+  );
+  if (queryEditor) {
+    const { id, name } = queryEditor;
+    const editor = new Editor(
+      queryEditor.sql,
+      queryEditor.dbId!,
+      queryEditor.catalog,
+      queryEditor.schema,
+      null, // TODO: Populate table if needed
+    );
+    const panels: Panel[] = []; // TODO: Populate panels
+
+    return new Tab(id, name, editor, panels);
+  }
+  return undefined;
+};
+
+const predicate =
+  (actionType: string): AnyListenerPredicate<RootState> =>
+  action =>
+    action.type === actionType &&
+    action.query?.sqlEditorId === activeEditorId();
 
 export const onDidQueryRun: typeof sqlLabType.onDidQueryRun = (
   listener: (editor: sqlLabType.Editor) => void,
@@ -94,6 +118,7 @@ export const sqlLab = {
       name: 'database3',
     },
   ],
+  getCurrentTab,
   onDidQueryRun,
   onDidQueryFail,
   onDidChangeEditorDatabase,

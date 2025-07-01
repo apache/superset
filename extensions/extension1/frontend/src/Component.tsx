@@ -19,11 +19,12 @@
 
 // eslint-disable-next-line no-restricted-syntax
 import React, { useEffect } from "react";
-import { authentication, Avatar } from "@apache-superset/core";
+import { authentication, sqlLab, Avatar } from "@apache-superset/core";
 import binaryImage from "./assets/binary.jpg";
 
 const Component: React.FC = () => {
   const [apiResponse, setApiResponse] = React.useState<string | null>(null);
+  const currentTab = sqlLab.getCurrentTab();
 
   useEffect(() => {
     const callApi = async () => {
@@ -47,7 +48,6 @@ const Component: React.FC = () => {
   const containerStyle: React.CSSProperties = {
     display: "flex",
     flexDirection: "row",
-    minHeight: "300px",
     justifyContent: "center",
     alignItems: "center",
     padding: "20px",
@@ -62,6 +62,17 @@ const Component: React.FC = () => {
         </div>
         <div>This avatar was imported from Superset!</div>
       </div>
+      {currentTab ? (
+        <pre>
+          {`Tab ID: ${currentTab.id}\nTitle: ${currentTab.title}\n\nEditor Properties:\n`}
+          {`  database: ${currentTab.editor.databaseId || "N/A"}\n`}
+          {`  catalog: ${currentTab.editor.catalog ?? "N/A"}\n`}
+          {`  schema: ${currentTab.editor.schema ?? "N/A"}\n`}
+          {`  table: ${currentTab.editor.table ?? "N/A"}\n`}
+        </pre>
+      ) : (
+        "No tab selected"
+      )}
       <div>
         <h3>API Response: {apiResponse}</h3>
       </div>

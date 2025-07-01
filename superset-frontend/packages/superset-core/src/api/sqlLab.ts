@@ -43,7 +43,7 @@ export declare namespace sqlLab {
     /**
      * The table name associated with the editor.
      */
-    table: string | null;
+    table: string | null; // TODO: Revisit if we actually need the table property
   }
 
   export interface Panel {
@@ -79,7 +79,7 @@ export declare namespace sqlLab {
    * Events and functions that are available in the context of a tab.
    */
 
-  export const getCurrentTab: () => Tab;
+  export const getCurrentTab: () => Tab | undefined;
 
   export const onDidChangeEditorContent: Event<string>;
 
