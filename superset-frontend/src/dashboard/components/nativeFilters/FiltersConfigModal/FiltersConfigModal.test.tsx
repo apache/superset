@@ -610,20 +610,20 @@ test('prevents saving cyclic dependencies created indirectly', async () => {
 
   // STEP 1: Set up Filter 1 → depends on Filter 2 (should succeed)
   const filterTabs = screen.getAllByRole('tab');
-  userEvent.click(filterTabs[0]); // Select first filter
+  await userEvent.click(filterTabs[0]); // Select first filter
 
   // Enable the dependencies option for Filter 1
   const dependenciesCheckbox = screen.getByRole('checkbox', { name: DEPENDENCIES_REGEX });
-  userEvent.click(dependenciesCheckbox);
+  await userEvent.click(dependenciesCheckbox);
 
   // Set Filter 1 to depend on Filter 2
   const dependencySelect = screen.getByRole('combobox', { name: /values dependent on/i });
-  userEvent.click(dependencySelect);
+  await userEvent.click(dependencySelect);
   const filter2Option = screen.getByText('country');
-  userEvent.click(filter2Option);
+  await userEvent.click(filter2Option);
 
   // Save this configuration (should work as there's no cycle yet)
-  userEvent.click(screen.getByRole('button', { name: SAVE_REGEX }));
+  await userEvent.click(screen.getByRole('button', { name: SAVE_REGEX }));
   await waitFor(() => expect(onSave).toHaveBeenCalledTimes(1));
 
   // Verify the save was successful with correct dependency structure
@@ -652,35 +652,35 @@ test('prevents saving cyclic dependencies created indirectly', async () => {
   });
 
   const filterTabs2 = screen.getAllByRole('tab');
-  userEvent.click(filterTabs2[1]); // Select second filter (Filter 2)
+  await userEvent.click(filterTabs2[1]); // Select second filter (Filter 2)
 
   // Try to set Filter 2 to depend on Filter 1 (creating A→B→A cycle)
   const dependenciesCheckbox2 = screen.getByRole('checkbox', { name: DEPENDENCIES_REGEX });
-  userEvent.click(dependenciesCheckbox2);
+  await userEvent.click(dependenciesCheckbox2);
 
   const dependencySelect2 = screen.getByRole('combobox', { name: /values dependent on/i });
-  userEvent.click(dependencySelect2);
+  await userEvent.click(dependencySelect2);
   const filter1Option = screen.getByText('state');
-  userEvent.click(filter1Option);
+  await userEvent.click(filter1Option);
 
   // STEP 3: Attempt to save the cyclic configuration (should be blocked)
-  userEvent.click(screen.getByRole('button', { name: SAVE_REGEX }));
+  await userEvent.click(screen.getByRole('button', { name: SAVE_REGEX }));
 
   // Verify that save was prevented due to cyclic dependency detection
   await waitFor(() => {
     expect(onSave).not.toHaveBeenCalled();
-  }, { timeout: 3000 });
+  }, { timeout: 1000 });
 
   // Verify that user receives appropriate error feedback
   await waitFor(() => {
     expect(screen.getByText(/cyclic dependency detected/i)).toBeInTheDocument();
-  }, { timeout: 3000 });
+  }, { timeout: 1000 });
 
   // Verify that focus is moved to the problematic filter for user guidance
   await waitFor(() => {
     const activeTab = screen.getByRole('tab', { selected: true });
     expect(activeTab).toHaveTextContent('country'); // Should focus on Filter 2
-  }, { timeout: 3000 });
+  }, { timeout: 1000 });
 });
 
 test('detects immediate cyclic dependency and prevents setup', async () => {
@@ -707,30 +707,30 @@ test('detects immediate cyclic dependency and prevents setup', async () => {
 
   // Try to immediately set Filter 2 to depend on Filter 1 (immediate cycle)
   const filterTabs = screen.getAllByRole('tab');
-  userEvent.click(filterTabs[1]); // Select Filter 2
+  await userEvent.click(filterTabs[1]); // Select Filter 2
 
   // Enable dependencies for Filter 2
   const dependenciesCheckbox = screen.getByRole('checkbox', { name: DEPENDENCIES_REGEX });
-  userEvent.click(dependenciesCheckbox);
+  await userEvent.click(dependenciesCheckbox);
 
   // Attempt to select Filter 1 as dependency (creating immediate cycle)
   const dependencySelect = screen.getByRole('combobox', { name: /values dependent on/i });
-  userEvent.click(dependencySelect);
+  await userEvent.click(dependencySelect);
   const filter1Option = screen.getByText('state');
-  userEvent.click(filter1Option);
+  await userEvent.click(filter1Option);
 
   // Verify immediate cycle detection (real-time validation)
   await waitFor(() => {
     expect(screen.getByText(/cyclic dependency detected/i)).toBeInTheDocument();
-  }, { timeout: 3000 });
+  }, { timeout: 1000 });
 
   // Verify save button is not functional when cycle exists
   const saveButton = screen.getByRole('button', { name: SAVE_REGEX });
-  userEvent.click(saveButton);
+  await userEvent.click(saveButton);
   
   await waitFor(() => {
     expect(onSave).not.toHaveBeenCalled();
-  }, { timeout: 2000 });
+  }, { timeout: 1000 });
 });
 
 test('handles complex multi-filter cyclic dependencies', async () => {
@@ -758,25 +758,25 @@ test('handles complex multi-filter cyclic dependencies', async () => {
 
   // Try to set Filter 3 (C) to depend on Filter 1 (A), creating A→B→C→A
   const filterTabs = screen.getAllByRole('tab');
-  userEvent.click(filterTabs[2]); // Select Filter 3 (city)
+  await userEvent.click(filterTabs[2]); // Select Filter 3 (city)
 
   const dependenciesCheckbox = screen.getByRole('checkbox', { name: DEPENDENCIES_REGEX });
-  userEvent.click(dependenciesCheckbox);
+  await userEvent.click(dependenciesCheckbox);
 
   const dependencySelect = screen.getByRole('combobox', { name: /values dependent on/i });
-  userEvent.click(dependencySelect);
+  await userEvent.click(dependencySelect);
   const filter1Option = screen.getByText('state');
-  userEvent.click(filter1Option);
+  await userEvent.click(filter1Option);
 
   // Attempt to save the complex cycle
-  userEvent.click(screen.getByRole('button', { name: SAVE_REGEX }));
+  await userEvent.click(screen.getByRole('button', { name: SAVE_REGEX }));
 
   // Verify cycle detection works for complex scenarios
   await waitFor(() => {
     expect(onSave).not.toHaveBeenCalled();
-  }, { timeout: 3000 });
+  }, { timeout: 1000 });
 
   await waitFor(() => {
     expect(screen.getByText(/cyclic dependency detected/i)).toBeInTheDocument();
-  }, { timeout: 3000 });
+  }, { timeout: 1000 });
 });
