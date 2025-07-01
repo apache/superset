@@ -73,6 +73,10 @@ const restrictedImportsRules = {
     message:
       'Please use the theme directly from the ThemeProvider rather than importing supersetTheme.',
   },
+  'no-query-string': {
+    name: 'query-string',
+    message: 'Please use the URLSearchParams API instead of query-string.',
+  },
 };
 
 module.exports = {
