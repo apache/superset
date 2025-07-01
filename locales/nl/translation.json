@@ -297,6 +297,6 @@
     "# First Elements": "# Eerste klik elementen",
     "# LastClick Elements": "# Laatste klik elementen",
     "Publisher overview": "Publishers overzicht",
-    "Summary": "",
-    "Show total aggregations of selected metrics. Note that row limit does not apply to the result.": "Toon de totale aggregatie van de geselecteerde metrieken. Merk op dat de rijlimiet niet van toepassing is op het resultaat."
+    "Summary": "Samenvatting",
+    "Show total aggregations of selected metrics. Note that row limit does not apply to the result.": "Toon totale aggregaties van geselecteerde statistieken. Let op: de regellimiet is niet van toepassing op het resultaat."
 }

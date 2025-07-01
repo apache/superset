@@ -297,6 +297,6 @@
     "# First Elements": "# Elementi primo click",
     "# LastClick Elements": "# Elementi ultimo click",
     "Publisher overview": "Panoramica publisher",
-    "Summary": "",
-    "Show total aggregations of selected metrics. Note that row limit does not apply to the result.": ""
+    "Summary": "Riepilogo",
+    "Show total aggregations of selected metrics. Note that row limit does not apply to the result.": "Mostra le aggregazioni totali delle metriche selezionate. Tieni presente che il limite delle righe non si applica al risultato."
 }
