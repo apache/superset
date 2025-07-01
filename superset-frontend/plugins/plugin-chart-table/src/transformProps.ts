@@ -42,14 +42,13 @@ import {
   getColorFormatters,
 } from '@superset-ui/chart-controls';
 
-import { isEmpty } from 'lodash';
+import { isEmpty, merge } from 'lodash';
 import isEqualColumns from './utils/isEqualColumns';
 import DateWithFormatter from './utils/DateWithFormatter';
 import {
   BasicColorFormatterType,
   ColorSchemeEnum,
   DataColumnMeta,
-  TableChartFormData,
   TableChartProps,
   TableChartTransformedProps,
   TableColumnConfig,
@@ -472,10 +471,11 @@ const transformProps = (
     emitCrossFilters,
   } = chartProps;
 
-  const formData = {
-    ...originalFormData,
-    ...originalFormData.extra_form_data,
-  } as TableChartFormData;
+  const formData = merge(
+    {},
+    originalFormData,
+    originalFormData.extra_form_data,
+  );
 
   const {
     align_pn: alignPositiveNegative = true,
