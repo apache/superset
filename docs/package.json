@@ -26,7 +26,7 @@
     "@emotion/styled": "^10.0.27",
     "@saucelabs/theme-github-codeblock": "^0.3.0",
     "@superset-ui/style": "^0.14.23",
-    "antd": "^5.25.1",
+    "antd": "^5.26.3",
     "docusaurus-plugin-less": "^2.0.2",
     "less": "^4.3.0",
     "less-loader": "^12.3.0",
