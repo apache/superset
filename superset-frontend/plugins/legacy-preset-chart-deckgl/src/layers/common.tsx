@@ -34,9 +34,9 @@ import {
   JsonValue,
   QueryFormData,
 } from '@superset-ui/core';
-import { ColorBreakpointType } from 'src/types';
 import { Color } from '@deck.gl/core';
 import { ScaleLinear } from 'd3-scale';
+import { ColorBreakpointType } from '../types';
 import sandboxedEval from '../utils/sandbox';
 import { TooltipProps } from '../components/Tooltip';
 import { COLOR_SCHEME_TYPES, ColorSchemeType } from '../utilities/utils';

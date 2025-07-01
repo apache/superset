@@ -32,7 +32,6 @@ import {
 import {
   CustomControlItem,
   D3_FORMAT_OPTIONS,
-  SharedControlConfig,
   getColorControlsProps,
   sharedControls,
 } from '@superset-ui/chart-controls';
