@@ -18,7 +18,6 @@
  */
 import { useEffect, useCallback, useMemo, useState } from 'react';
 import { shallowEqual, useDispatch, useSelector } from 'react-redux';
-import querystring from 'query-string';
 
 import { SqlLabRootState, Table } from 'src/SqlLab/types';
 import {
@@ -100,7 +99,7 @@ const SqlEditorLeftBar = ({
   );
 
   useEffect(() => {
-    const bool = querystring.parse(window.location.search).db;
+    const bool = new URLSearchParams(window.location.search).get('db');
     const userSelected = getItem(
       LocalStorageKeys.Database,
       null,

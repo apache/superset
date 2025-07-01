@@ -456,25 +456,23 @@ function RowLevelSecurityModal(props: RowLevelSecurityModalProps) {
             />
           </StyledInputContainer>
           <StyledInputContainer>
-            <div className="control-label">
-              <LabeledErrorBoundInput
-                id="clause"
-                name="clause"
-                value={currentRule ? currentRule.clause : ''}
-                required
-                validationMethods={{
-                  onChange: ({ target }: { target: HTMLInputElement }) =>
-                    onTextChange(target),
-                }}
-                css={noMargins}
-                label={t('Clause')}
-                hasTooltip
-                tooltipText={t(
-                  'This is the condition that will be added to the WHERE clause. For example, to only return rows for a particular client, you might define a regular filter with the clause `client_id = 9`. To display no rows unless a user belongs to a RLS filter role, a base filter can be created with the clause `1 = 0` (always false).',
-                )}
-                data-test="clause-test"
-              />
-            </div>
+            <LabeledErrorBoundInput
+              id="clause"
+              name="clause"
+              value={currentRule ? currentRule.clause : ''}
+              required
+              validationMethods={{
+                onChange: ({ target }: { target: HTMLInputElement }) =>
+                  onTextChange(target),
+              }}
+              css={noMargins}
+              label={t('Clause')}
+              hasTooltip
+              tooltipText={t(
+                'This is the condition that will be added to the WHERE clause. For example, to only return rows for a particular client, you might define a regular filter with the clause `client_id = 9`. To display no rows unless a user belongs to a RLS filter role, a base filter can be created with the clause `1 = 0` (always false).',
+              )}
+              data-test="clause-test"
+            />
           </StyledInputContainer>
           <StyledInputContainer>
             <div className="control-label">{t('Description')}</div>

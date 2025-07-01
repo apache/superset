@@ -444,6 +444,7 @@ markupsafe==3.0.2
 marshmallow==3.26.1
     # via
     #   -c requirements/base-constraint.txt
+    #   apache-superset
     #   flask-appbuilder
     #   marshmallow-sqlalchemy
 marshmallow-sqlalchemy==1.4.0
@@ -885,7 +886,7 @@ url-normalize==2.2.1
     # via
     #   -c requirements/base-constraint.txt
     #   requests-cache
-urllib3==1.26.20
+urllib3==2.5.0
     # via
     #   -c requirements/base-constraint.txt
     #   docker
