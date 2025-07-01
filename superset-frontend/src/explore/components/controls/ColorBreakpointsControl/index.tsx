@@ -24,23 +24,7 @@ import ColorBreakpointOption from './ColorBreakpointOption';
 import { ColorBreakpointType, ColorBreakpointsControlProps } from './types';
 import ColorBreakpointPopoverTrigger from './ColorBreakpointPopoverTrigger';
 
-const DEFAULT_COLOR_BREAKPOINTS: ColorBreakpointType[] = [
-  {
-    minValue: 1,
-    maxValue: 10,
-    color: { r: 0, g: 0, b: 255, a: 100 },
-  },
-  {
-    minValue: 11,
-    maxValue: 20,
-    color: { r: 0, g: 255, b: 0, a: 100 },
-  },
-  {
-    minValue: 21,
-    maxValue: 25,
-    color: { r: 255, g: 0, b: 0, a: 100 },
-  },
-];
+const DEFAULT_COLOR_BREAKPOINTS: ColorBreakpointType[] = [];
 
 const NewContourFormatPlaceholder = styled('div')`
   position: relative;

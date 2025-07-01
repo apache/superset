@@ -33,8 +33,9 @@ import {
   pointRadiusFixed,
   multiplier,
   mapboxStyle,
-  deckGLCategoricalColorSchemeControls,
+  generateDeckGLColorSchemeControls,
 } from '../../utilities/Shared_DeckGL';
+import { COLOR_SCHEME_TYPES } from '../../utilities/utils';
 
 const config: ControlPanelConfig = {
   onInit: controlState => ({
@@ -129,7 +130,9 @@ const config: ControlPanelConfig = {
       controlSetRows: [
         [legendPosition],
         [legendFormat],
-        ...deckGLCategoricalColorSchemeControls,
+        ...generateDeckGLColorSchemeControls({
+          defaultSchemeType: COLOR_SCHEME_TYPES.fixed_color,
+        }),
       ],
     },
     {
