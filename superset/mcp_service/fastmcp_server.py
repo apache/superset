@@ -376,44 +376,90 @@ def get_dashboard_info(dashboard_id: int) -> Any:
 
 @mcp.tool()
 def health_check() -> Any:
-    """Check the health of the MCP service"""
+    """
+    Check the health status of the Superset MCP service
+    
+    Returns:
+        Dictionary containing service health information
+    """
     logger.info("health_check called")
-
+    
     try:
-        logger.debug(f"Making GET request to {API_BASE_URL}/health")
-
         # Call the Flask API endpoint with authentication
         response = requests.get(
             f"{API_BASE_URL}/health",
             headers=API_HEADERS,
-            timeout=10  # Shorter timeout for health checks
+            timeout=10
         )
-
-        logger.debug(f"Response status code: {response.status_code}")
-
+        
+        logger.debug(f"Health check response status code: {response.status_code}")
+        
         if response.status_code == 200:
             data = response.json()
-            logger.info("Health check successful")
-            # The Flask API already validates the response, so we can return it directly
+            logger.info("Health check completed successfully")
             return data
-        elif response.status_code == 401:
-            logger.error("Authentication failed. Check your API key.")
-            return {"error": "Authentication failed. Check your API key."}
         else:
-            logger.error(f"Health check failed with status {response.status_code}: {response.text}")
-            return {
-                "error": f"API call failed: {response.status_code}",
-                "details": response.text}
-
-    except requests.exceptions.Timeout:
-        logger.error("Health check timeout")
-        return {"error": "Health check timeout - API server may be unavailable"}
-    except requests.exceptions.ConnectionError:
-        logger.error("Health check connection error - API server may be down")
-        return {"error": "Connection error - API server may be down"}
+            error_msg = f"Health check failed with status {response.status_code}: {response.text}"
+            logger.error(error_msg)
+            return {"error": error_msg, "status_code": response.status_code}
+            
+    except requests.exceptions.RequestException as e:
+        error_msg = f"Health check request failed: {str(e)}"
+        logger.error(error_msg, exc_info=True)
+        return {"error": error_msg, "error_type": "request_exception"}
     except Exception as e:
-        logger.error(f"Unexpected error in health_check: {e}", exc_info=True)
-        return {"error": str(e)}
+        error_msg = f"Unexpected error in health check: {str(e)}"
+        logger.error(error_msg, exc_info=True)
+        return {"error": error_msg, "error_type": "unexpected_error"}
+
+
+@mcp.tool()
+def get_superset_instance_high_level_information() -> Any:
+    """
+    Get high-level information about the Superset instance
+    
+    This tool provides an overview of the Superset instance including:
+    - Total counts of dashboards, charts, datasets, databases, users, etc.
+    - Recent activity (items created/modified in last 30/7 days)
+    - Dashboard breakdown (published, unpublished, certified, etc.)
+    - Database breakdown by type
+    - Popular content (top tags, top creators)
+    
+    This is useful for LLMs to understand the scope and context of the instance
+    before diving into specific queries.
+    
+    Returns:
+        Dictionary containing comprehensive instance information
+    """
+    logger.info("get_superset_instance_high_level_information called")
+    
+    try:
+        # Call the Flask API endpoint with authentication
+        response = requests.get(
+            f"{API_BASE_URL}/instance_info",
+            headers=API_HEADERS,
+            timeout=30
+        )
+        
+        logger.debug(f"Instance info response status code: {response.status_code}")
+        
+        if response.status_code == 200:
+            data = response.json()
+            logger.info("Successfully retrieved instance information")
+            return data
+        else:
+            error_msg = f"Instance info request failed with status {response.status_code}: {response.text}"
+            logger.error(error_msg)
+            return {"error": error_msg, "status_code": response.status_code}
+            
+    except requests.exceptions.RequestException as e:
+        error_msg = f"Instance info request failed: {str(e)}"
+        logger.error(error_msg, exc_info=True)
+        return {"error": error_msg, "error_type": "request_exception"}
+    except Exception as e:
+        error_msg = f"Unexpected error in instance info: {str(e)}"
+        logger.error(error_msg, exc_info=True)
+        return {"error": error_msg, "error_type": "unexpected_error"}
 
 
 @mcp.tool()
