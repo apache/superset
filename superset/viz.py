@@ -1648,6 +1648,77 @@ class BaseDeckGLViz(BaseViz):
     credits = '<a href="https://uber.github.io/deck.gl/">deck.gl</a>'
     spatial_control_keys: list[str] = []
 
+    def __init__(
+        self, datasource: BaseDatasource, form_data: dict[str, Any], **kwargs
+    ) -> None:
+        # Apply layer-specific filtering for deck multi layer charts in edit mode
+        if self._should_apply_layer_filtering(form_data):
+            form_data = self._apply_multilayer_filtering(form_data)
+        super().__init__(datasource, form_data, **kwargs)
+
+    def _should_apply_layer_filtering(self, form_data: dict[str, Any]) -> bool:
+        """Check if this is a deck layer that's part of a multilayer setup."""
+        return (
+            "slice_id" in form_data
+            and "adhoc_filters" in form_data
+            and self._has_layer_scoped_filters(form_data)
+        )
+
+    def _has_layer_scoped_filters(self, form_data: dict[str, Any]) -> bool:
+        """Check if any filter has layerFilterScope (indicates multilayer context)."""
+        for filter_item in form_data.get("adhoc_filters", []):
+            if (
+                isinstance(filter_item, dict)
+                and filter_item.get("layerFilterScope") is not None
+            ):
+                return True
+        return False
+
+    def _apply_multilayer_filtering(self, form_data: dict[str, Any]) -> dict[str, Any]:
+        """
+        Filter adhoc_filters based on layer scope for this specific layer.
+
+        In deck multi-layer charts, each individual layer should only receive:
+        1. Global filters (filters without layerFilterScope)
+        2. Filters specifically scoped to this layer
+
+        This prevents over-filtering when multiple layer-scoped filters are present.
+        """
+        slice_id = form_data.get("slice_id")
+        deck_slices = self._get_deck_slices_from_filters(form_data)
+
+        if not deck_slices or slice_id not in deck_slices:
+            return form_data
+
+        layer_index = deck_slices.index(slice_id)
+        filtered_adhoc_filters = []
+
+        for filter_item in form_data.get("adhoc_filters", []):
+            layer_scope = self._get_filter_layer_scope(filter_item)
+
+            # Include global filters (no layer scope) or filters scoped to this layer
+            if layer_scope is None or layer_index in layer_scope:
+                filtered_adhoc_filters.append(filter_item)
+
+        modified_form_data = form_data.copy()
+        modified_form_data["adhoc_filters"] = filtered_adhoc_filters
+        return modified_form_data
+
+    def _get_deck_slices_from_filters(
+        self, form_data: dict[str, Any]
+    ) -> list[int] | None:
+        """Extract deck_slices from any filter that contains it."""
+        for filter_item in form_data.get("adhoc_filters", []):
+            if isinstance(filter_item, dict) and "deck_slices" in filter_item:
+                return filter_item["deck_slices"]
+        return None
+
+    def _get_filter_layer_scope(self, filter_item: Any) -> list[int] | None:
+        """Extract layerFilterScope from a filter item."""
+        if isinstance(filter_item, dict):
+            return filter_item.get("layerFilterScope")
+        return getattr(filter_item, "layerFilterScope", None)
+
     @deprecated(deprecated_in="3.0")
     def get_metrics(self) -> list[str]:
         # pylint: disable=attribute-defined-outside-init
