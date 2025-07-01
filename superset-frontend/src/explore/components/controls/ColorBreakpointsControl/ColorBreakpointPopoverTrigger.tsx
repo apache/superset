@@ -19,7 +19,7 @@
 import { useState } from 'react';
 import ControlPopover from '../ControlPopover/ControlPopover';
 import { ColorBreakpointsPopoverTriggerProps } from './types';
-import ColorBreakpointsPopoverControl from './ColorBreakpointPopoverControl';
+import ColorBreakpointPopoverControl from './ColorBreakpointPopoverControl';
 
 const ColorBreakpointsPopoverTrigger = ({
   value: initialValue,
@@ -27,6 +27,7 @@ const ColorBreakpointsPopoverTrigger = ({
   isControlled,
   visible: controlledVisibility,
   toggleVisibility,
+  colorBreakpoints,
   ...props
 }: ColorBreakpointsPopoverTriggerProps) => {
   const [isVisible, setIsVisible] = useState(false);
@@ -36,8 +37,9 @@ const ColorBreakpointsPopoverTrigger = ({
     isControlled && toggleVisibility ? toggleVisibility : setIsVisible;
 
   const popoverContent = (
-    <ColorBreakpointsPopoverControl
+    <ColorBreakpointPopoverControl
       value={initialValue}
+      colorBreakpoints={colorBreakpoints}
       onSave={saveColorBreakpoint}
       onClose={() => setVisibility(false)}
     />

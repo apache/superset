@@ -28,6 +28,7 @@ export interface ColorType {
 }
 
 export interface ColorBreakpointType {
+  id?: number;
   color?: ColorType;
   minValue?: number;
   maxValue?: number;
@@ -49,24 +50,27 @@ export interface ColorBreakpointsPopoverTriggerProps {
   hovered?: boolean;
   value?: ColorBreakpointType;
   children?: ReactNode;
-  saveColorBreakpoint: (gradientBreakpoint: ColorBreakpointType) => void;
+  saveColorBreakpoint: (colorBreakpoint: ColorBreakpointType) => void;
   isControlled?: boolean;
   visible?: boolean;
   toggleVisibility?: (visibility: boolean) => void;
+  colorBreakpoints: ColorBreakpointType[];
 }
 
 export interface ColorBreakpointsPopoverControlProps {
   description?: string;
   hovered?: boolean;
   value?: ColorBreakpointType;
-  onSave?: (gradientBreakpoint: ColorBreakpointType) => void;
+  onSave?: (colorBreakpoint: ColorBreakpointType) => void;
   onClose?: () => void;
+  colorBreakpoints: ColorBreakpointType[];
 }
 
 export interface ColorBreakpointOptionProps {
-  gradientBreakpoint: ColorBreakpointType;
+  breakpoint: ColorBreakpointType;
+  colorBreakpoints: ColorBreakpointType[];
   index: number;
-  saveGradientBreakpoint: (gradientBreakpoint: ColorBreakpointType) => void;
+  saveColorBreakpoint: (colorBreakpoint: ColorBreakpointType) => void;
   onClose: (index: number) => void;
   onShift: (hoverIndex: number, dragIndex: number) => void;
 }

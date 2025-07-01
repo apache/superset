@@ -22,7 +22,7 @@ import { styled, t } from '@superset-ui/core';
 import DndSelectLabel from 'src/explore/components/controls/DndColumnSelectControl/DndSelectLabel';
 import ColorBreakpointOption from './ColorBreakpointOption';
 import { ColorBreakpointType, ColorBreakpointsControlProps } from './types';
-import ColorBreakpointsPopoverTrigger from './ColorBreakpointsPopoverTrigger';
+import ColorBreakpointPopoverTrigger from './ColorBreakpointPopoverTrigger';
 
 const DEFAULT_COLOR_BREAKPOINTS: ColorBreakpointType[] = [
   {
@@ -70,15 +70,15 @@ const ColorBreakpointsControl = ({
     togglePopover(true);
   };
 
-  const saveContour = (contour: ColorBreakpointType) => {
+  const saveColorBreakpoint = (contour: ColorBreakpointType) => {
     setColorBreakpoints([...colorBreakpoints, contour]);
     togglePopover(false);
   };
 
-  const removeContour = (index: number) => {
-    const newContours = [...colorBreakpoints];
-    newContours.splice(index, 1);
-    setColorBreakpoints(newContours);
+  const removeColorBreakpoint = (index: number) => {
+    const newBreakpoints = [...colorBreakpoints];
+    newBreakpoints.splice(index, 1);
+    setColorBreakpoints(newBreakpoints);
   };
 
   const onShiftContour = (hoverIndex: number, dragIndex: number) => {
@@ -90,27 +90,34 @@ const ColorBreakpointsControl = ({
     setColorBreakpoints(newContours);
   };
 
-  const editContour = (contour: ColorBreakpointType, index: number) => {
-    const newContours = [...colorBreakpoints];
-    newContours[index] = contour;
-    setColorBreakpoints(newContours);
+  const editColorBreakpoint = (
+    breakpoint: ColorBreakpointType,
+    index: number,
+  ) => {
+    const newBreakpoints = [...colorBreakpoints];
+    newBreakpoints[index] = {
+      ...breakpoint,
+      id: index,
+    };
+    setColorBreakpoints(newBreakpoints);
   };
 
   const valuesRenderer = () =>
-    colorBreakpoints.map((contour, index) => (
+    colorBreakpoints.map((breakpoint, index) => (
       <ColorBreakpointOption
         key={index}
-        saveGradientBreakpoint={(newContour: ColorBreakpointType) =>
-          editContour(newContour, index)
+        saveColorBreakpoint={(newBreakpoint: ColorBreakpointType) =>
+          editColorBreakpoint(newBreakpoint, index)
         }
-        gradientBreakpoint={contour}
+        breakpoint={breakpoint}
+        colorBreakpoints={colorBreakpoints}
         index={index}
-        onClose={removeContour}
+        onClose={removeColorBreakpoint}
         onShift={onShiftContour}
       />
     ));
 
-  const ghostButtonText = t('Click to add new color');
+  const ghostButtonText = t('Click to add new breakpoint');
 
   return (
     <>
@@ -123,14 +130,15 @@ const ColorBreakpointsControl = ({
         onClickGhostButton={handleClickGhostButton}
         {...props}
       />
-      <ColorBreakpointsPopoverTrigger
-        saveColorBreakpoint={saveContour}
+      <ColorBreakpointPopoverTrigger
+        saveColorBreakpoint={saveColorBreakpoint}
+        colorBreakpoints={colorBreakpoints}
         isControlled
         visible={popoverVisible}
         toggleVisibility={setPopoverVisible}
       >
         <NewContourFormatPlaceholder />
-      </ColorBreakpointsPopoverTrigger>
+      </ColorBreakpointPopoverTrigger>
     </>
   );
 };
