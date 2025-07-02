@@ -88,7 +88,7 @@ describe('CodeSyntaxHighlighter', () => {
     languages.forEach(language => {
       const { unmount } = render(
         <CodeSyntaxHighlighter language={language}>
-          Test content for {language}
+          {`Test content for ${language}`}
         </CodeSyntaxHighlighter>,
       );
 

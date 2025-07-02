@@ -20,7 +20,7 @@ import { useEffect } from 'react';
 import { styled, t } from '@superset-ui/core';
 import CodeSyntaxHighlighter, {
   SupportedLanguage,
-  ThemedCodeSyntaxHighlighterProps,
+  CodeSyntaxHighlighterProps,
   preloadLanguages,
 } from '@superset-ui/core/components/CodeSyntaxHighlighter';
 import { Icons } from '@superset-ui/core/components/Icons';
@@ -65,7 +65,7 @@ const SyntaxHighlighterWrapper = styled.div`
 `;
 
 interface SyntaxHighlighterCopyProps
-  extends Omit<ThemedCodeSyntaxHighlighterProps, 'children'> {
+  extends Omit<CodeSyntaxHighlighterProps, 'children'> {
   children: string;
   addDangerToast?: ToastProps['addDangerToast'];
   addSuccessToast?: ToastProps['addSuccessToast'];

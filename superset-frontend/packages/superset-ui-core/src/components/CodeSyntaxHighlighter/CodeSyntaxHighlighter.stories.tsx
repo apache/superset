@@ -18,7 +18,7 @@
  */
 import { Typography, Flex, Space } from '@superset-ui/core/components';
 import CodeSyntaxHighlighter from '.';
-import type { ThemedCodeSyntaxHighlighterProps, SupportedLanguage } from '.';
+import type { CodeSyntaxHighlighterProps, SupportedLanguage } from '.';
 
 const { Title, Text, Paragraph } = Typography;
 
@@ -170,9 +170,7 @@ export const LanguageGallery = () => (
 );
 
 // Interactive playground
-export const InteractivePlayground = (
-  args: ThemedCodeSyntaxHighlighterProps,
-) => (
+export const InteractivePlayground = (args: CodeSyntaxHighlighterProps) => (
   <CodeSyntaxHighlighter {...args}>
     {args.children || sampleCode[args.language || 'sql']}
   </CodeSyntaxHighlighter>
