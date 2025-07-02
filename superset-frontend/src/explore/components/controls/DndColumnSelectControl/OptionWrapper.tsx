@@ -78,41 +78,13 @@ export default function OptionWrapper(
   const [, drop] = useDrop({
     accept: type,
 
-    hover: (item: OptionItemInterface, monitor: DropTargetMonitor) => {
-      if (!ref.current) {
-        return;
-      }
+    drop: (item: OptionItemInterface) => {
+      // Instead of repetitive calls on drag,
+      // we only execute the shift on drop
       const { dragIndex } = item;
       const hoverIndex = index;
 
-      // Don't replace items with themselves
-      if (dragIndex === hoverIndex) {
-        return;
-      }
-      // Determine rectangle on screen
-      const hoverBoundingRect = ref.current?.getBoundingClientRect();
-      // Get vertical middle
-      const hoverMiddleY =
-        (hoverBoundingRect.bottom - hoverBoundingRect.top) / 2;
-      // Determine mouse position
-      const clientOffset = monitor.getClientOffset();
-      // Get pixels to the top
-      const hoverClientY = clientOffset
-        ? clientOffset.y - hoverBoundingRect.top
-        : 0;
-      // Only perform the move when the mouse has crossed half of the items height
-      // When dragging downwards, only move when the cursor is below 50%
-      // When dragging upwards, only move when the cursor is above 50%
-      // Dragging downwards
-      if (dragIndex < hoverIndex && hoverClientY < hoverMiddleY) {
-        return;
-      }
-      // Dragging upwards
-      if (dragIndex > hoverIndex && hoverClientY > hoverMiddleY) {
-        return;
-      }
-
-      // Time to actually perform the action
+      if (dragIndex === hoverIndex) return;
       onShiftOptions(dragIndex, hoverIndex);
       // eslint-disable-next-line no-param-reassign
       item.dragIndex = hoverIndex;
