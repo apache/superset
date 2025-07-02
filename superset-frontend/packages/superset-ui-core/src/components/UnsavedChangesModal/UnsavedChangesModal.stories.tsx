@@ -16,25 +16,32 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import type { QueryFormData } from '@superset-ui/core';
-import { DiffType } from 'src/types/DiffType';
+import { ReactElement } from 'react';
+import { UnsavedChangesModal, type UnsavedChangesModalProps } from '.';
 
-export interface AlteredSliceTagProps {
-  className?: string;
-  diffs: Record<string, DiffType>;
-  origFormData: QueryFormData;
-  currentFormData: QueryFormData;
-}
+export default {
+  title: 'Components/UnsavedChangesModal',
+  component: UnsavedChangesModal,
+};
 
-export interface ControlMap {
-  [key: string]: {
-    label?: string;
-    type?: string;
-  };
-}
+export const InteractiveUnsavedChangesModal = (
+  props: UnsavedChangesModalProps,
+): ReactElement => (
+  <UnsavedChangesModal {...props}>
+    If you don't save, changes will be lost.
+  </UnsavedChangesModal>
+);
 
-export type RowType = {
-  before: string | number;
-  after: string | number;
-  control: string;
+InteractiveUnsavedChangesModal.args = {
+  showModal: true,
+  onHide: () => {},
+  handleSave: () => {},
+  onConfirmNavigation: () => {},
+  title: 'Unsaved Changes',
+};
+
+InteractiveUnsavedChangesModal.argTypes = {
+  onHide: { action: 'onHide' },
+  handleSave: { action: 'handleSave' },
+  onConfirmNavigation: { action: 'onConfirmNavigation' },
 };
