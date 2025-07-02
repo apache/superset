@@ -95,22 +95,22 @@ export function commonLayerProps({
     };
   } else {
     onClick = (data: PickingInfo, event: any) => {
-      if (!emitCrossFilters) return;
-
-      const crossFilters = getCrossFilterDataMask({
-        data,
-        filterState,
-        formData,
-      });
-
-      if (event.leftButton && setDataMask !== undefined && crossFilters) {
-        setDataMask(crossFilters.dataMask);
-      } else if (event.rightButton && onContextMenu !== undefined) {
-        onContextMenu(event.center.x, event.center.y, {
-          drillToDetail: [],
-          crossFilter: crossFilters,
-          drillBy: {},
+      if (emitCrossFilters) {
+        const crossFilters = getCrossFilterDataMask({
+          data,
+          filterState,
+          formData,
         });
+
+        if (event.leftButton && setDataMask !== undefined && crossFilters) {
+          setDataMask(crossFilters.dataMask);
+        } else if (event.rightButton && onContextMenu !== undefined) {
+          onContextMenu(event.center.x, event.center.y, {
+            drillToDetail: [],
+            crossFilter: crossFilters,
+            drillBy: {},
+          });
+        }
       }
     };
   }
