@@ -17,14 +17,15 @@
  * under the License.
  */
 import { useState, useEffect, useMemo, useCallback, memo } from 'react';
-import { t, styled, css } from '@superset-ui/core';
+import { t, useTheme } from '@superset-ui/core';
 import { useSelector } from 'react-redux';
 import { isEmpty, isEqual, sortBy, debounce } from 'lodash';
-import { StyledModal, Form } from '@superset-ui/core/components';
-import { ErrorBoundary } from 'src/components/ErrorBoundary';
-import Footer from 'src/dashboard/components/nativeFilters/FiltersConfigModal/Footer/Footer';
-import { CancelConfirmationAlert } from 'src/dashboard/components/nativeFilters/FiltersConfigModal/Footer/CancelConfirmationAlert';
-import { DatasourcesState, ChartsState, RootState } from 'src/dashboard/types';
+import { Form } from '@superset-ui/core/components';
+import type {
+  DatasourcesState,
+  ChartsState,
+  RootState,
+} from 'src/dashboard/types';
 import { mostUsedDataset } from '../FiltersConfigModal/FiltersConfigForm/utils';
 import ChartCustomizationTitlePane from './ChartCustomizationTitlePane';
 import ChartCustomizationForm from './ChartCustomizationForm';
@@ -32,61 +33,7 @@ import { createDefaultChartCustomizationItem } from './utils';
 import { ChartCustomizationItem } from './types';
 import RemovedFilter from '../FiltersConfigModal/FiltersConfigForm/RemovedFilter';
 import { selectChartCustomizationItems } from './selectors';
-
-const MIN_WIDTH = 880;
-const MODAL_MARGIN = 16;
-
-const StyledModalWrapper = styled(StyledModal)<{ expanded: boolean }>`
-  min-width: ${MIN_WIDTH}px;
-  width: ${({ expanded }) => (expanded ? '100%' : MIN_WIDTH)} !important;
-
-  @media (max-width: ${MIN_WIDTH + MODAL_MARGIN * 2}px) {
-    width: 100% !important;
-    min-width: auto;
-  }
-
-  .antd5-modal-body {
-    padding: 0px;
-  }
-
-  ${({ expanded }) =>
-    expanded &&
-    css`
-      height: 100%;
-      .antd5-modal-body {
-        flex: 1 1 auto;
-      }
-      .antd5-modal-content {
-        height: 100%;
-      }
-    `}
-`;
-
-const StyledModalBody = styled.div<{ expanded: boolean }>`
-  display: flex;
-  height: ${({ expanded }) => (expanded ? '100%' : '700px')};
-  flex-direction: row;
-  flex: 1;
-`;
-
-const StyledForm = styled(Form)`
-  width: 100%;
-  display: flex;
-  flex-direction: row;
-  height: 100%;
-`;
-
-const ContentArea = styled.div`
-  flex-grow: 3;
-  overflow-y: auto;
-  padding: ${({ theme }) => theme.sizeUnit * 4}px;
-`;
-
-const Sidebar = styled.div`
-  width: ${({ theme }) => theme.sizeUnit * 60}px;
-  border-right: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
-  padding: ${({ theme }) => theme.sizeUnit * 4}px;
-`;
+import { BaseConfigModal } from '../ConfigModal/BaseConfigModal';
 
 export interface ChartCustomizationModalProps {
   isOpen: boolean;
@@ -105,7 +52,8 @@ const ChartCustomizationModal = ({
   onCancel,
   onSave,
 }: ChartCustomizationModalProps) => {
-  const [expanded] = useState(false);
+  const theme = useTheme();
+  const [expanded, setExpanded] = useState(false);
   const [form] = Form.useForm();
   const [items, setItems] = useState<ChartCustomizationItem[]>([]);
   const [currentId, setCurrentId] = useState<string | null>(null);
@@ -249,7 +197,46 @@ const ChartCustomizationModal = ({
     );
     setItems([...items, item]);
     setCurrentId(item.id);
-  }, [items, chartId, loadedDatasets, charts]);
+
+    if (fallbackDatasetId) {
+      const datasetInfo = Object.values(loadedDatasets).find(
+        dataset => dataset.id === Number(fallbackDatasetId),
+      );
+
+      const currentFormValues = form.getFieldsValue();
+      const formattedDataset = datasetInfo
+        ? {
+            value: fallbackDatasetId,
+            label: `${datasetInfo.table_name}${
+              datasetInfo.schema ? ` (${datasetInfo.schema})` : ''
+            }`,
+            table_name: datasetInfo.table_name,
+            schema: datasetInfo.schema,
+          }
+        : {
+            value: fallbackDatasetId,
+            label: `Dataset ${fallbackDatasetId}`,
+          };
+
+      form.setFieldsValue({
+        filters: {
+          ...currentFormValues.filters,
+          [item.id]: {
+            name: '',
+            description: '',
+            dataset: formattedDataset,
+            column: null,
+            sortFilter: false,
+            sortAscending: true,
+            sortMetric: null,
+            hasDefaultValue: false,
+            isRequired: false,
+            selectFirst: false,
+          },
+        },
+      });
+    }
+  }, [items, chartId, loadedDatasets, charts, form]);
 
   const handleRemoveItem = useCallback(
     (id: string, shouldRemove = true) => {
@@ -308,6 +295,10 @@ const ChartCustomizationModal = ({
     [handleErroredItems],
   );
 
+  const handleToggleExpand = useCallback(() => {
+    setExpanded(!expanded);
+  }, [expanded]);
+
   useEffect(() => {
     if (isOpen && !initialLoadComplete) {
       form.resetFields();
@@ -324,15 +315,31 @@ const ChartCustomizationModal = ({
 
         const formFilters: Record<string, any> = {};
         existingItems.forEach(item => {
+          const datasetId = item.customization.dataset;
+          const datasetInfo = datasetId
+            ? Object.values(loadedDatasets).find(
+                dataset => dataset.id === Number(datasetId),
+              )
+            : null;
+
           formFilters[item.id] = {
             ...item.customization,
-            dataset: item.customization.dataset
-              ? typeof item.customization.dataset === 'object'
-                ? item.customization.dataset
-                : {
-                    value: item.customization.dataset,
-                    label: `Dataset ${item.customization.dataset}`,
-                  }
+            dataset: datasetId
+              ? typeof datasetId === 'object'
+                ? datasetId
+                : datasetInfo
+                  ? {
+                      value: datasetId,
+                      label: `${datasetInfo.table_name}${
+                        datasetInfo.schema ? ` (${datasetInfo.schema})` : ''
+                      }`,
+                      table_name: datasetInfo.table_name,
+                      schema: datasetInfo.schema,
+                    }
+                  : {
+                      value: datasetId,
+                      label: `Dataset ${datasetId}`,
+                    }
               : null,
           };
         });
@@ -354,7 +361,7 @@ const ChartCustomizationModal = ({
 
         const datasetInfo = fallbackDatasetId
           ? Object.values(loadedDatasets).find(
-              dataset => dataset.id === fallbackDatasetId,
+              dataset => dataset.id === Number(fallbackDatasetId),
             )
           : null;
 
@@ -363,21 +370,18 @@ const ChartCustomizationModal = ({
             [newItem.id]: {
               name: '',
               description: '',
-              dataset: fallbackDatasetId ? String(fallbackDatasetId) : null,
-              datasetInfo: datasetInfo
+              dataset: datasetInfo
                 ? {
                     value: fallbackDatasetId,
                     label: `${datasetInfo.table_name}${
                       datasetInfo.schema ? ` (${datasetInfo.schema})` : ''
-                    }${
-                      datasetInfo.database?.database_name
-                        ? ` [${datasetInfo.database.database_name}]`
-                        : ''
                     }`,
                     table_name: datasetInfo.table_name,
                     schema: datasetInfo.schema,
                   }
-                : null,
+                : fallbackDatasetId
+                  ? String(fallbackDatasetId)
+                  : null,
               column: null,
               sortFilter: false,
               sortAscending: true,
@@ -420,105 +424,112 @@ const ChartCustomizationModal = ({
     }
   }, [items]);
 
-  return (
-    <StyledModalWrapper
-      open={isOpen}
-      onCancel={handleCancel}
-      onOk={handleSave}
-      title={t('Chart customization')}
-      expanded={expanded}
-      destroyOnClose
-      centered
-      maskClosable={false}
-      footer={
+  const leftPane = (
+    <div
+      css={{
+        minWidth: '290px',
+        maxWidth: '290px',
+        height: '100%',
+        display: 'flex',
+        flexDirection: 'column',
+        overflow: 'hidden',
+        borderRight: `1px solid ${theme.colorSplit}`,
+      }}
+    >
+      <ChartCustomizationTitlePane
+        items={items}
+        currentId={currentId}
+        chartId={chartId}
+        setCurrentId={setCurrentId}
+        onChange={setCurrentId}
+        onAdd={addItem}
+        onRemove={handleRemoveItem}
+      />
+    </div>
+  );
+
+  const rightPane = (
+    <div
+      css={{
+        flex: 1,
+        overflow: 'auto',
+        padding: `${theme.sizeUnit * 4}px`,
+      }}
+    >
+      {items.map(item => (
         <div
-          css={css`
-            display: flex;
-            justify-content: flex-end;
-            align-items: flex-end;
-          `}
+          key={item.id}
+          css={{
+            display: item.id === currentId ? 'block' : 'none',
+          }}
         >
-          {saveAlertVisible ? (
-            <CancelConfirmationAlert
-              title={t('There are unsaved changes.')}
-              onConfirm={handleConfirmCancel}
-              onDismiss={() => setSaveAlertVisible(false)}
-            >
-              {t('Are you sure you want to cancel?')}
-            </CancelConfirmationAlert>
+          {item.removed ? (
+            <RemovedFilter
+              onClick={() => {
+                if (item.removeTimerId) {
+                  clearTimeout(item.removeTimerId);
+                }
+                setItems(prev =>
+                  prev.map(i =>
+                    i.id === item.id
+                      ? { ...i, removed: false, removeTimerId: undefined }
+                      : i,
+                  ),
+                );
+              }}
+            />
           ) : (
-            <Footer
-              onDismiss={() => setSaveAlertVisible(false)}
-              onCancel={handleCancel}
-              handleSave={handleSave}
-              canSave={!erroredItems.length}
-              saveAlertVisible={false}
-              onConfirmCancel={handleConfirmCancel}
+            <ChartCustomizationForm
+              form={form}
+              item={item}
+              onUpdate={updatedItem => {
+                setItems(prev =>
+                  prev.map(i => (i.id === updatedItem.id ? updatedItem : i)),
+                );
+
+                form.setFieldsValue({
+                  changed: true,
+                });
+
+                handleErroredItems();
+              }}
             />
           )}
         </div>
-      }
+      ))}
+    </div>
+  );
+
+  const content = (
+    <div
+      css={{
+        display: 'flex',
+        height: '100%',
+      }}
     >
-      <ErrorBoundary>
-        <StyledModalBody expanded={expanded}>
-          <StyledForm
-            form={form}
-            layout="vertical"
-            onValuesChange={handleValuesChange}
-          >
-            <Sidebar>
-              <ChartCustomizationTitlePane
-                items={items}
-                currentId={currentId}
-                chartId={chartId}
-                setCurrentId={setCurrentId}
-                onChange={setCurrentId}
-                onAdd={addItem}
-                onRemove={handleRemoveItem}
-              />
-            </Sidebar>
+      {leftPane}
+      {rightPane}
+    </div>
+  );
 
-            <ContentArea>
-              {currentItem &&
-                (currentItem.removed ? (
-                  <RemovedFilter
-                    onClick={() => {
-                      if (currentItem.removeTimerId) {
-                        clearTimeout(currentItem.removeTimerId);
-                      }
-                      setItems(prev =>
-                        prev.map(i =>
-                          i.id === currentItem.id
-                            ? { ...i, removed: false, removeTimerId: undefined }
-                            : i,
-                        ),
-                      );
-                    }}
-                  />
-                ) : (
-                  <ChartCustomizationForm
-                    form={form}
-                    item={currentItem}
-                    onUpdate={updatedItem => {
-                      setItems(prev =>
-                        prev.map(i =>
-                          i.id === updatedItem.id ? updatedItem : i,
-                        ),
-                      );
-
-                      form.setFieldsValue({
-                        changed: true,
-                      });
-
-                      handleErroredItems();
-                    }}
-                  />
-                ))}
-            </ContentArea>
-          </StyledForm>
-        </StyledModalBody>
-      </ErrorBoundary>
-    </StyledModalWrapper>
+  return (
+    <BaseConfigModal
+      isOpen={isOpen}
+      title={t('Chart customization')}
+      expanded={expanded}
+      onCancel={handleCancel}
+      onSave={handleSave}
+      leftPane={content}
+      rightPane={null}
+      form={form}
+      onValuesChange={handleValuesChange}
+      onToggleExpand={handleToggleExpand}
+      canSave={!erroredItems.length}
+      saveAlertVisible={saveAlertVisible}
+      onDismissSaveAlert={() => setSaveAlertVisible(false)}
+      onConfirmCancel={handleConfirmCancel}
+      testId="chart-customization-modal"
+    />
   );
 };
 export default memo(ChartCustomizationModal);
