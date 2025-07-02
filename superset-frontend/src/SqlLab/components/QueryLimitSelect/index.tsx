@@ -52,6 +52,7 @@ function renderQueryLimit(
   return (
     <Select
       options={limitDropdown}
+      className="selectLimitDropdown"
       allowNewOptions
       onChange={value => {
         let limit_val = value;
