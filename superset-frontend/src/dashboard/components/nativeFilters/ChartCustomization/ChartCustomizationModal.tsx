@@ -76,11 +76,17 @@ const ChartCustomizationModal = ({
       const values = await form.validateFields();
       setErroredItems([]);
       return values;
-    } catch (error: any) {
-      if (error?.errorFields) {
-        const errorItemIds = error.errorFields
-          .map((field: any) => field.name[1])
-          .filter((id: string) => id && items.some(item => item.id === id))
+    } catch (error: unknown) {
+      if (error && typeof error === 'object' && 'errorFields' in error) {
+        const { errorFields } = error as {
+          errorFields: Array<{ name: (string | number)[] }>;
+        };
+        const errorItemIds = errorFields
+          .map(field => field.name[1])
+          .filter(
+            (id: string | number) =>
+              id && items.some(item => item.id === String(id)),
+          )
           .map(String);
         setErroredItems(errorItemIds);
       }
