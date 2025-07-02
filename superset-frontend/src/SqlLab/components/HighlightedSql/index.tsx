@@ -16,176 +16,88 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import {
-  FC,
-  KeyboardEvent,
-  MouseEvent,
-  useCallback,
-  useEffect,
-  useState,
-} from 'react';
-import rison from 'rison';
-import { styled, SupersetClient, t } from '@superset-ui/core';
-import { Icons, Switch, Button, Skeleton } from '@superset-ui/core/components';
-import { CopyToClipboard } from 'src/components';
-import { CopyButton } from 'src/explore/components/DataTableControl';
-import CodeSyntaxHighlighter, {
-  SupportedLanguage,
-  preloadLanguages,
-} from '@superset-ui/core/components/CodeSyntaxHighlighter';
-import { useHistory } from 'react-router-dom';
+import { t } from '@superset-ui/core';
+import { ModalTrigger } from '@superset-ui/core/components';
+import CodeSyntaxHighlighter from '@superset-ui/core/components/CodeSyntaxHighlighter';
 
-const CopyButtonViewQuery = styled(CopyButton)`
-  ${({ theme }) => `
-		&& {
-			margin: 0 0 ${theme.sizeUnit}px;
-		}
-  `}
-`;
-
-export interface ViewQueryProps {
+export interface HighlightedSqlProps {
   sql: string;
-  datasource: string;
-  language?: SupportedLanguage;
+  rawSql?: string;
+  maxWidth?: number;
+  maxLines?: number;
+  shrink?: any;
 }
 
-const StyledSyntaxContainer = styled.div`
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-`;
+interface HighlightedSqlModalTypes {
+  rawSql?: string;
+  sql: string;
+}
 
-const StyledHeaderMenuContainer = styled.div`
-  display: flex;
-  flex-direction: row;
-  justify-content: space-between;
-  margin-top: ${({ theme }) => -theme.sizeUnit * 4}px;
-  align-items: flex-end;
-`;
+interface TriggerNodeProps {
+  shrink: boolean;
+  sql: string;
+  maxLines: number;
+  maxWidth: number;
+}
 
-const StyledHeaderActionContainer = styled.div`
-  display: flex;
-  flex-direction: row;
-  column-gap: ${({ theme }) => theme.sizeUnit * 2}px;
-`;
-
-const StyledCodeSyntaxHighlighter = styled(CodeSyntaxHighlighter)`
-  flex: 1;
-`;
-
-const StyledLabel = styled.label`
-  font-size: ${({ theme }) => theme.fontSize}px;
-`;
-
-const DATASET_BACKEND_QUERY = {
-  keys: ['none'],
-  columns: ['database.backend'],
+const shrinkSql = (sql: string, maxLines: number, maxWidth: number) => {
+  const ssql = sql || '';
+  let lines = ssql.split('\n');
+  if (lines.length >= maxLines) {
+    lines = lines.slice(0, maxLines);
+    lines.push('{...}');
+  }
+  return lines
+    .map(line =>
+      line.length > maxWidth ? `${line.slice(0, maxWidth)}{...}` : line,
+    )
+    .join('\n');
 };
 
-const ViewQuery: FC<ViewQueryProps> = props => {
-  const { sql, language = 'sql', datasource } = props;
-  const datasetId = datasource.split('__')[0];
-  const [formattedSQL, setFormattedSQL] = useState<string>();
-  const [showFormatSQL, setShowFormatSQL] = useState(true);
-  const history = useHistory();
-  const currentSQL = (showFormatSQL ? formattedSQL : sql) ?? sql;
-
-  // Preload the language when component mounts to ensure smooth experience
-  useEffect(() => {
-    preloadLanguages([language]);
-  }, [language]);
-
-  const formatCurrentQuery = useCallback(() => {
-    if (formattedSQL) {
-      setShowFormatSQL(val => !val);
-    } else {
-      const queryParams = rison.encode(DATASET_BACKEND_QUERY);
-      SupersetClient.get({
-        endpoint: `/api/v1/dataset/${datasetId}?q=${queryParams}`,
-      })
-        .then(({ json }) =>
-          SupersetClient.post({
-            endpoint: `/api/v1/sqllab/format_sql/`,
-            body: JSON.stringify({
-              sql,
-              engine: json.result.database.backend,
-            }),
-            headers: { 'Content-Type': 'application/json' },
-          }),
-        )
-        .then(({ json }) => {
-          setFormattedSQL(json.result);
-          setShowFormatSQL(true);
-        })
-        .catch(() => {
-          setShowFormatSQL(true);
-        });
-    }
-  }, [sql, datasetId, formattedSQL]);
-
-  const navToSQLLab = useCallback(
-    (domEvent: KeyboardEvent<HTMLElement> | MouseEvent<HTMLElement>) => {
-      const requestedQuery = {
-        datasourceKey: datasource,
-        sql: currentSQL,
-      };
-      if (domEvent.metaKey || domEvent.ctrlKey) {
-        domEvent.preventDefault();
-        window.open(
-          `/sqllab?datasourceKey=${datasource}&sql=${currentSQL}`,
-          '_blank',
-        );
-      } else {
-        history.push('/sqllab', { state: { requestedQuery } });
-      }
-    },
-    [history, datasource, currentSQL],
-  );
-
-  useEffect(() => {
-    formatCurrentQuery();
-  }, [sql]);
-
+function TriggerNode({ shrink, sql, maxLines, maxWidth }: TriggerNodeProps) {
   return (
-    <StyledSyntaxContainer key={sql}>
-      <StyledHeaderMenuContainer>
-        <StyledHeaderActionContainer>
-          <CopyToClipboard
-            text={currentSQL}
-            shouldShowText={false}
-            copyNode={
-              <CopyButtonViewQuery
-                buttonSize="small"
-                icon={<Icons.CopyOutlined />}
-              >
-                {t('Copy')}
-              </CopyButtonViewQuery>
-            }
-          />
-          <Button onClick={navToSQLLab}>{t('View in SQL Lab')}</Button>
-        </StyledHeaderActionContainer>
-        <StyledHeaderActionContainer>
-          <Switch
-            id="formatSwitch"
-            checked={!showFormatSQL}
-            onChange={formatCurrentQuery}
-          />
-          <StyledLabel htmlFor="formatSwitch">
-            {t('Show original SQL')}
-          </StyledLabel>
-        </StyledHeaderActionContainer>
-      </StyledHeaderMenuContainer>
-      {!formattedSQL && <Skeleton active />}
-      {formattedSQL && (
-        <StyledCodeSyntaxHighlighter
-          language={language}
-          customStyle={{ flex: 1 }}
-        >
-          {currentSQL}
-        </StyledCodeSyntaxHighlighter>
-      )}
-    </StyledSyntaxContainer>
+    <CodeSyntaxHighlighter language="sql">
+      {shrink ? shrinkSql(sql, maxLines, maxWidth) : sql}
+    </CodeSyntaxHighlighter>
   );
-};
+}
 
-export default ViewQuery;
+function HighlightSqlModal({ rawSql, sql }: HighlightedSqlModalTypes) {
+  return (
+    <div>
+      <h4>{t('Source SQL')}</h4>
+      <CodeSyntaxHighlighter language="sql">{sql}</CodeSyntaxHighlighter>
+      {rawSql && rawSql !== sql && (
+        <div>
+          <h4>{t('Executed SQL')}</h4>
+          <CodeSyntaxHighlighter language="sql">{rawSql}</CodeSyntaxHighlighter>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function HighlightedSql({
+  sql,
+  rawSql,
+  maxWidth = 50,
+  maxLines = 5,
+  shrink = false,
+}: HighlightedSqlProps) {
+  return (
+    <ModalTrigger
+      modalTitle={t('SQL')}
+      modalBody={<HighlightSqlModal rawSql={rawSql} sql={sql} />}
+      triggerNode={
+        <TriggerNode
+          shrink={shrink}
+          sql={sql}
+          maxLines={maxLines}
+          maxWidth={maxWidth}
+        />
+      }
+    />
+  );
+}
+
+export default HighlightedSql;
