@@ -34,21 +34,11 @@ interface Props {
 }
 
 const PaneContainer = styled.div`
-  display: flex;
-  flex-direction: column;
   height: 100%;
-`;
-
-const ListWrapper = styled.div`
-  flex-grow: 1;
-  overflow-y: auto;
-  margin-bottom: ${({ theme }) => theme.sizeUnit * 2}px;
-`;
-
-const ActionsWrapper = styled.div`
   display: flex;
   flex-direction: column;
-  gap: ${({ theme }) => theme.sizeUnit * 2}px;
+  padding: ${({ theme }) => theme.sizeUnit * 3}px;
+  padding-top: 2px;
 `;
 
 const ChartCustomizationTitlePane: FC<Props> = ({
@@ -79,17 +69,30 @@ const ChartCustomizationTitlePane: FC<Props> = ({
 
   return (
     <PaneContainer>
-      <ListWrapper ref={listRef}>
+      <div
+        ref={listRef}
+        css={{
+          flex: 1,
+          overflowY: 'auto',
+        }}
+      >
         <ChartCustomizationTitleContainer
           items={items}
           currentId={currentId}
           onChange={onChange}
           onRemove={onRemove}
         />
-      </ListWrapper>
-
-      <ActionsWrapper>
+      </div>
+      <div
+        css={{
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'flex-start',
+          paddingTop: theme.sizeUnit * 3,
+        }}
+      >
         <Button
+          buttonSize="default"
           buttonStyle="secondary"
           aria-label={t('Add dynamic group by')}
           icon={
@@ -103,7 +106,7 @@ const ChartCustomizationTitlePane: FC<Props> = ({
         >
           {t('Add dynamic group by')}
         </Button>
-      </ActionsWrapper>
+      </div>
     </PaneContainer>
   );
 };
