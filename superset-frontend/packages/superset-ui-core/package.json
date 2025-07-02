@@ -29,7 +29,7 @@
     "@fontsource/fira-code": "^5.0.18",
     "@fontsource/inter": "^5.0.20",
     "@types/json-bigint": "^1.0.4",
-    "ace-builds": "^1.41.0",
+    "ace-builds": "^1.43.0",
     "brace": "^0.11.1",
     "classnames": "^2.2.5",
     "csstype": "^3.1.3",
