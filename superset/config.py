@@ -1215,6 +1215,12 @@ ALLOWED_USER_CSV_SCHEMA_FUNC = allowed_schemas_for_csv_upload
 # Values that should be treated as nulls for the csv uploads.
 CSV_DEFAULT_NA_NAMES = list(STR_NA_VALUES)
 
+# S3 settings for report templates
+REPORT_TEMPLATE_S3_ENDPOINT = os.environ.get("REPORT_TEMPLATE_S3_ENDPOINT", "http://minio:9000")
+REPORT_TEMPLATE_S3_BUCKET = os.environ.get("REPORT_TEMPLATE_S3_BUCKET", "reports")
+REPORT_TEMPLATE_S3_ACCESS_KEY = os.environ.get("REPORT_TEMPLATE_S3_ACCESS_KEY", "minioadmin")
+REPORT_TEMPLATE_S3_SECRET_KEY = os.environ.get("REPORT_TEMPLATE_S3_SECRET_KEY", "minioadmin")
+
 # A dictionary of items that gets merged into the Jinja context for
 # SQL Lab. The existing context gets updated with this dictionary,
 # meaning values for existing keys get overwritten by the content of this
