@@ -133,17 +133,6 @@ const ChartCustomizationForm: FC<Props> = ({ form, item, onUpdate }) => {
   const datasetValue = useMemo(() => {
     const fallbackDatasetId = mostUsedDataset(loadedDatasets, charts);
 
-    // Debug logging to understand the data flow
-    console.log('ChartCustomizationForm datasetValue calculation:', {
-      customizationDataset: customization.dataset,
-      fallbackDatasetId,
-      loadedDatasets: Object.keys(loadedDatasets),
-      loadedDatasetsValues: Object.values(loadedDatasets).map(d => ({
-        id: d.id,
-        table_name: d.table_name,
-      })),
-    });
-
     if (!customization.dataset) {
       if (fallbackDatasetId) {
         const datasetInfo = Object.values(loadedDatasets).find(
@@ -158,12 +147,6 @@ const ChartCustomizationForm: FC<Props> = ({ form, item, onUpdate }) => {
             (datasetInfo.database?.database_name
               ? ` [${datasetInfo.database.database_name}]`
               : '');
-
-          console.log('Using fallback dataset:', {
-            fallbackDatasetId,
-            label,
-            datasetInfo,
-          });
 
           return {
             value: fallbackDatasetId,
