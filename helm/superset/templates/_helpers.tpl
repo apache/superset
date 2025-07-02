@@ -150,7 +150,8 @@ release: {{ .Release.Name }}
 {{- define "supersetNode.selectorLabels" -}}
 app: {{ include "superset.name" . }}
 release: {{ .Release.Name }}
-{{ include .Values.supersetNode.podLabels . }}
+platform.apolo.us/preset: {{ .Values.supersetNode.preset_name }}
+platform.apolo.us/component: app
 {{- end }}
 
 {{- define "supersetWebsockets.selectorLabels" -}}
@@ -216,12 +217,4 @@ Selector labels
 {{- define "app.selectorLabels" -}}
 app.kubernetes.io/name: {{ include "app.name" . }}
 app.kubernetes.io/instance: {{ .Release.Name }}
-{{- end }}
-
-{{/*
-Pod-specific labels
-*/}}
-{{- define "app.apoloPodLabels" -}}
-platform.apolo.us/preset: {{ .Values.preset_name }}
-platform.apolo.us/component: app
 {{- end }}
