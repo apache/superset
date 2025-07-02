@@ -110,7 +110,9 @@ describe('Horizontal FilterBar', () => {
       { name: 'test_3', column: 'region', datasetId: 2 },
     ]);
     setFilterBarOrientation('horizontal');
-    cy.get('.filter-item-wrapper').should('have.length', 3);
+    cy.get('.filter-item-wrapper')
+      .not('[data-test="chart-customization-card"]')
+      .should('have.length', 3);
   });
 
   it('should show "more filters" on window resizing up and down', () => {
