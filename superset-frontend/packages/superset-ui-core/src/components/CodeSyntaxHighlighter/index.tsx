@@ -19,7 +19,7 @@
 import { useEffect, useState } from 'react';
 import SyntaxHighlighterBase from 'react-syntax-highlighter/dist/cjs/light';
 import github from 'react-syntax-highlighter/dist/cjs/styles/hljs/github';
-import atomOneDark from 'react-syntax-highlighter/dist/cjs/styles/hljs/atom-one-dark';
+import tomorrow from 'react-syntax-highlighter/dist/cjs/styles/hljs/tomorrow-night';
 import { themeObject } from '@superset-ui/core';
 
 export type SupportedLanguage = 'sql' | 'htmlbars' | 'markdown' | 'json';
@@ -67,6 +67,7 @@ const registerLanguage = async (language: SupportedLanguage): Promise<void> => {
  * A themed syntax highlighter component that automatically adapts to Superset's current theme.
  * Supports light/dark mode switching and provides consistent styling across the application.
  * Languages are loaded lazily to improve initial page load performance.
+ * Uses ultra-neutral themes for professional, consistent appearance.
  */
 export const CodeSyntaxHighlighter: React.FC<CodeSyntaxHighlighterProps> = ({
   children,
@@ -92,7 +93,7 @@ export const CodeSyntaxHighlighter: React.FC<CodeSyntaxHighlighterProps> = ({
   }, [language]);
 
   const isDark = themeObject.isThemeDark();
-  const themeStyle = overrideStyle || (isDark ? atomOneDark : github);
+  const themeStyle = overrideStyle || (isDark ? tomorrow : github);
 
   const defaultCustomStyle: React.CSSProperties = {
     background: themeObject.theme.colorBgElevated,
