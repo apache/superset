@@ -202,7 +202,7 @@ const FilterControls: FC<FilterControlsProps> = ({
                 .map(item => (
                   <div
                     key={item.id}
-                    className="filter-item-wrapper"
+                    className="chart-customization-wrapper"
                     data-test="chart-customization-card"
                   >
                     <GroupByFilterCard customizationItem={item} />
@@ -322,7 +322,7 @@ const FilterControls: FC<FilterControlsProps> = ({
                 .map(item => (
                   <div
                     key={item.id}
-                    className="filter-item-wrapper"
+                    className="chart-customization-wrapper"
                     data-test="chart-customization-card"
                   >
                     <GroupByFilterCard customizationItem={item} />
