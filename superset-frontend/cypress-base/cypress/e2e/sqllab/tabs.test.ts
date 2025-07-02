@@ -80,7 +80,7 @@ describe('SqlLab query tabs', () => {
       // configure some editor settings
       cy.get(editorInput).type('some random query string', { force: true });
       cy.get(queryLimitSelector).parent().click({ force: true });
-      cy.get('.ant-select-selection-search-input').click({ force: true });
+      cy.get('.selectLimitDropdown').click({ force: true });
 
       // open a new tab by a button
       cy.get('[data-test="add-tab-icon"]:visible:last').click({ force: true });
