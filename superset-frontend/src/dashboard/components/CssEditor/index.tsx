@@ -103,9 +103,8 @@ class CssEditor extends PureComponent<CssEditorProps, CssEditorState> {
   }
 
   changeCssTemplate(info: { key: Key }) {
-    const templateName = String(info.key);
     const selectedTemplate = this.state.templates?.find(
-      template => template.label === templateName,
+      template => template.label === info.key,
     );
     if (selectedTemplate) {
       this.changeCss(selectedTemplate.css);
