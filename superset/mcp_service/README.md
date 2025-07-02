@@ -72,13 +72,18 @@ Both approaches connect to the FastMCP service. For more details, see the [FastM
 
 ### REST API (Port 5008)
 - `GET /api/mcp/v1/health` - Service health check
-- `GET /api/mcp/v1/list_dashboards` - List dashboards with filtering
+- `GET /api/mcp/v1/list_dashboards` - List dashboards with simple filtering (query parameters)
+- `POST /api/mcp/v1/list_dashboards` - List dashboards with advanced filtering (JSON payload)
 - `GET /api/mcp/v1/dashboard/<id>` - Get dashboard details
+- `GET /api/mcp/v1/instance_info` - Get Superset instance information
 
-### FastMCP (Port 5009)
-- Tools for dashboard discovery and management
-- Resource templates for dashboard operations
-- Prompt templates for common tasks
+### FastMCP Tools (Port 5009)
+- `list_dashboards` - Advanced filtering with complex filter objects
+- `list_dashboards_simple` - Simple filtering with individual parameters
+- `get_dashboard_info` - Get detailed dashboard information
+- `health_check` - Service health verification
+- `get_superset_instance_high_level_information` - Instance metadata
+- `get_available_filters` - Available filter options
 
 ## Authentication
 
@@ -99,6 +104,12 @@ export MCP_API_KEY="your-secret-api-key-here"
 
 ## Development
 
-The service runs alongside but independtly of Superset
+The service runs alongside but independently of Superset. It provides:
+
+- **REST API**: Direct HTTP access to dashboard data
+- **FastMCP Tools**: AI-friendly interface for Claude Desktop and other MCP clients
+- **Dual Filtering**: Both simple query parameters and advanced JSON filtering
+- **Authentication**: API key-based security
+- **Standalone Operation**: Independent of main Superset web server
 
 For more details, see the [architecture documentation](README_ARCHITECTURE.md). 

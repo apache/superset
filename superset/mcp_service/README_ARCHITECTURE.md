@@ -4,48 +4,38 @@ The Superset MCP (Model Context Protocol) service provides programmatic access t
 
 ## Architecture Overview
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                        MCP Service                              │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                 │
-│  ┌─────────────────┐    ┌─────────────────┐    ┌──────────────┐ │
-│  │   Flask Server  │    │  FastMCP Server │    │   Proxy      │ │
-│  │   (Port 5008)   │    │  (Port 5009)    │    │   Scripts    │ │
-│  └─────────────────┘    └─────────────────┘    └──────────────┘ │
-│           │                       │                      │      │
-│           │                       │                      │      │
-│  ┌─────────────────┐    ┌─────────────────┐    ┌──────────────┐ │
-│  │   REST API      │    │   FastMCP       │    │   run_proxy  │ │
-│  │   Endpoints     │    │   Tools         │    │   .sh        │ │
-│  │                 │    │                 │    │              │ │
-│  │ • /health       │    │ • list_dashboards│   │ • Local proxy│ │
-│  │ • /list_dashboards│  │ • get_dashboard │   │   for free    │ │
-│  │ • /dashboard/<id>│   │ • health_check  │   │   users       │ │
-│  └─────────────────┘    └─────────────────┘    └──────────────┘ │
-│           │                       │                      │      │
-│           │                       │                      │      │
-│  ┌─────────────────┐    ┌─────────────────┐    ┌──────────────┐ │
-│  │   API Layer     │    │   HTTP Client   │    │   simple_    │ │
-│  │   (api/v1/)     │    │   (requests)    │    │   proxy.py   │ │
-│  │                 │    │                 │    │              │ │
-│  │ • Authentication│    │ • Internal API  │    │ • Background │ │
-│  │ • Request/Response│  │   calls         │    │   proxy      │ │
-│  │ • Error handling│    │ • JSON parsing  │    │   process    │ │
-│  └─────────────────┘    └─────────────────┘    └──────────────┘ │
-│           │                       │                      │      │
-│           └───────────────────────┼──────────────────────┘      │
-│                                   │                             │
-│  ┌─────────────────────────────────────────────────────────────┐ │
-│  │                    Superset Core                            │ │
-│  │                                                             │ │
-│  │  ┌─────────────────┐    ┌─────────────────┐    ┌──────────┐ │ │
-│  │  │   Database      │    │   Models        │    │   DAOs   │ │ │
-│  │  │   (SQLAlchemy)  │    │   (Dashboard,   │    │          │ │ │
-│  │  │                 │    │    Chart, etc.) │    │          │ │ │
-│  │  └─────────────────┘    └─────────────────┘    └──────────┘ │ │
-│  └─────────────────────────────────────────────────────────────┘ │
-└─────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TB
+  subgraph MCP_Service["MCP Service"]
+    direction TB
+
+    subgraph Flask_Stack["Flask Server (Port 5008)"]
+      FS["Flask Server"]
+      FRest["REST API Endpoints\n• GET /health\n• GET/POST /list_dashboards\n• GET /dashboard/<id>\n• GET /instance_info"]
+      FAPI["API Layer\n• Authentication\n• Request/Response\n• Error handling"]
+      FS --> FRest --> FAPI
+    end
+
+    subgraph FastMCP_Stack["FastMCP Server (Port 5009)"]
+      FM["FastMCP Server"]
+      FTools["FastMCP Tools\n• list_dashboards (advanced)\n• list_dashboards_simple\n• get_dashboard_info\n• health_check\n• get_superset_instance_high_level_information\n• get_available_filters"]
+      FM --> FTools
+    end
+
+    FAPI --> SupersetCore
+    FTools --> FRest
+  end
+
+  subgraph SupersetCore["Superset Core"]
+    DB["Database (SQLAlchemy)"]
+    Models["Models\n• Dashboard\n• Chart\n• User"]
+    DAOs["Data Access Objects\n• DashboardDAO\n• Security Manager"]
+    DB --> Models --> DAOs
+  end
+
+  style Flask_Stack fill:#e1f5fe
+  style FastMCP_Stack fill:#f3e5f5
+  style SupersetCore fill:#fff3e0
 ```
 
 ## Components
@@ -63,10 +53,10 @@ The Superset MCP (Model Context Protocol) service provides programmatic access t
 - **Purpose**: Model Context Protocol server for AI tool integration
 - **Port**: 5009 (server port + 1)
 - **Features**:
-  - Tools for dashboard discovery and management
-  - Resource templates for dashboard operations
-  - Prompt templates for common tasks
-  - Internal HTTP client for API calls
+  - 6 FastMCP tools for dashboard operations
+  - Direct HTTP calls to REST API endpoints
+  - JSON parsing and error handling
+  - Authentication via API headers
 
 ### 3. REST API (`api/v1/endpoints.py`)
 - **Purpose**: HTTP endpoints for dashboard operations
@@ -75,6 +65,7 @@ The Superset MCP (Model Context Protocol) service provides programmatic access t
   - `GET /list_dashboards` - Simple filtering with query parameters
   - `POST /list_dashboards` - Advanced filtering with JSON payload
   - `GET /dashboard/<id>` - Get specific dashboard details
+  - `GET /instance_info` - Get Superset instance information
 
 ### 4. Data Schemas (`schemas.py`)
 - **Purpose**: Request/response validation and serialization
@@ -85,18 +76,26 @@ The Superset MCP (Model Context Protocol) service provides programmatic access t
   - Column selection handling
 
 ### 5. Proxy Scripts
-- **`run_proxy.sh`**: Shell script for local proxy setup
+- **`run_proxy.sh`**: Shell script for local proxy setup for Claude Desktop
 - **`simple_proxy.py`**: Python proxy for background operation
-- **Purpose**: Enable Claude Desktop integration for free users
+- **Purpose**: Enable Claude Desktop integration for free users (not part of core architecture)
 
 ## Data Flow
 
-1. **Client Request** → Flask Server (REST) or FastMCP Server
+### REST API Flow
+1. **Client Request** → Flask Server (REST API)
 2. **Authentication** → API key validation
 3. **Request Processing** → Parameter parsing and validation
 4. **Database Query** → Superset models and DAOs
 5. **Response Formatting** → Schema validation and serialization
-6. **Client Response** → JSON or FastMCP format
+6. **Client Response** → JSON format
+
+### FastMCP Flow
+1. **Client Request** → FastMCP Server
+2. **Tool Execution** → FastMCP tool processes request
+3. **HTTP Call** → Internal HTTP request to REST API
+4. **REST Processing** → Same as REST API flow (steps 2-5)
+5. **Client Response** → FastMCP format
 
 ## Key Features
 
@@ -104,8 +103,9 @@ The Superset MCP (Model Context Protocol) service provides programmatic access t
 - **Flexible Filtering**: Simple query params + advanced JSON filters
 - **Column Selection**: Dynamic column loading based on requests
 - **Authentication**: API key-based security
-- **Proxy Support**: Local proxy for Claude Desktop integration
 - **Standalone Operation**: Independent of main Superset web server
+- **FastMCP Tools**: 6 tools covering all dashboard operations
+- **Error Handling**: Comprehensive error handling and logging
 
 ## Configuration
 
