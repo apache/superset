@@ -150,6 +150,7 @@ release: {{ .Release.Name }}
 {{- define "supersetNode.selectorLabels" -}}
 app: {{ include "superset.name" . }}
 release: {{ .Release.Name }}
+{{ include .Values.supersetNode.podLabels . }}
 {{- end }}
 
 {{- define "supersetWebsockets.selectorLabels" -}}
