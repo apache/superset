@@ -35,7 +35,7 @@
     "react-dom": "^18.3.1",
     "react-github-btn": "^1.4.0",
     "react-svg-pan-zoom": "^3.13.1",
-    "swagger-ui-react": "^5.25.2"
+    "swagger-ui-react": "^5.25.3"
   },
   "devDependencies": {
     "@docusaurus/module-type-aliases": "^3.8.1",
