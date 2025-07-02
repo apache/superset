@@ -83,6 +83,7 @@ const SavedQueryPreviewModal: FunctionComponent<
         onHide={onHide}
         show={show}
         title={t('Query preview')}
+        width={800}
         footer={
           <>
             <Button
