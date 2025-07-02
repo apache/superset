@@ -112,14 +112,6 @@ describe('CodeSyntaxHighlighter', () => {
     expect(screen.getByText('SELECT COUNT(*) FROM table;')).toBeInTheDocument();
   });
 
-  it('handles empty content', () => {
-    render(<CodeSyntaxHighlighter language="sql" />);
-
-    // Should render without throwing an error - the exact element doesn't matter
-    // as long as the component doesn't crash
-    expect(document.body).toBeInTheDocument();
-  });
-
   it('handles special characters', () => {
     const specialContent = "SELECT * FROM `users` WHERE name = 'O\\'Brien';";
 

@@ -259,12 +259,6 @@ export const StylingExamples = () => (
 // Performance and edge cases
 export const EdgeCases = () => (
   <Space direction="vertical" size="large" style={{ width: '100%' }}>
-    {/* Empty content */}
-    <div>
-      <Title level={3}>Empty Content</Title>
-      <CodeSyntaxHighlighter language="sql" />
-    </div>
-
     {/* Very long single line */}
     <div>
       <Title level={3}>Very Long Single Line</Title>
