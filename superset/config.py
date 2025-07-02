@@ -87,6 +87,10 @@ EVENT_LOGGER = DBEventLogger()
 
 SUPERSET_LOG_VIEW = True
 
+# this config is used to enable/disable the folowing security menu items:
+#  List Users, List Roles, List Groups
+SUPERSET_SECURITY_VIEW_MENU = True
+
 BASE_DIR = str(files("superset"))
 if "SUPERSET_HOME" in os.environ:
     DATA_DIR = os.environ["SUPERSET_HOME"]
