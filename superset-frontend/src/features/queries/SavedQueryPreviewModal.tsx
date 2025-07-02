@@ -41,14 +41,6 @@ const StyledModal = styled(Modal)`
   .ant-modal-body {
     padding: 24px;
   }
-
-  pre {
-    font-size: ${({ theme }) => theme.fontSizeXS}px;
-    font-weight: ${({ theme }) => theme.fontWeightNormal};
-    line-height: ${({ theme }) => theme.fontSizeLG}px;
-    height: 375px;
-    border: none;
-  }
 `;
 
 type SavedQueryObject = {
