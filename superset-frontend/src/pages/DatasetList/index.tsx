@@ -468,7 +468,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
                           'You must be a dataset owner in order to edit. Please reach out to a dataset owner to request modifications or edit access.',
                         )
                   }
-                  placement="bottomRight"
+                  placement="bottom"
                 >
                   <span
                     role="button"
