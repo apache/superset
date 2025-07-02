@@ -287,7 +287,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             category="Security",
             category_label=__("Security"),
             menu_cond=lambda: bool(
-                appbuilder.app.config["SUPERSET_SECURITY_VIEW_MENU"]
+                appbuilder.app.config.get("SUPERSET_SECURITY_VIEW_MENU", True)
             ),
         )
 
@@ -307,7 +307,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             category="Security",
             category_label=__("Security"),
             menu_cond=lambda: bool(
-                appbuilder.app.config["SUPERSET_SECURITY_VIEW_MENU"]
+                appbuilder.app.config.get("SUPERSET_SECURITY_VIEW_MENU", True)
             ),
         )
 
@@ -318,7 +318,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             category="Security",
             category_label=__("Security"),
             menu_cond=lambda: bool(
-                appbuilder.app.config["SUPERSET_SECURITY_VIEW_MENU"]
+                appbuilder.app.config.get("SUPERSET_SECURITY_VIEW_MENU", True)
             ),
         )
 
