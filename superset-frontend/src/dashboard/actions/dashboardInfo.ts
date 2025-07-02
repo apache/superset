@@ -200,7 +200,7 @@ export function setChartCustomization(
   return { type: SAVE_CHART_CUSTOMIZATION_COMPLETE, chartCustomization };
 }
 
-export function saveFilterBarOrientation(orientation: any) {
+export function saveFilterBarOrientation(orientation: FilterBarOrientation) {
   return async (dispatch: Dispatch, getState: () => RootState) => {
     const { id, metadata } = getState().dashboardInfo;
     const updateDashboard = makeApi<
@@ -231,7 +231,12 @@ export function saveFilterBarOrientation(orientation: any) {
     } catch (errorObject) {
       const { error } = await getClientErrorObject(errorObject);
       dispatch(
-        addDangerToast(error || t('Failed to save filter bar orientation')),
+        addDangerToast(
+          t(
+            'Sorry, there was an error saving this dashboard: %s',
+            error || 'Bad Request',
+          ),
+        ),
       );
       throw errorObject;
     }
@@ -286,7 +291,7 @@ export function saveChartCustomization(
       .map(item => ({
         id: item.id,
         title: item.title || '[untitled]',
-        chartId: item.chartId, // Include chart ID in saved data
+        chartId: item.chartId,
         customization: {
           name: item.customization?.name || '',
           dataset: item.customization?.dataset || null,

@@ -206,7 +206,13 @@ const FilterControls: FC<FilterControlsProps> = ({
               {chartCustomizationItems
                 .filter(item => !item.removed)
                 .map(item => (
-                  <GroupByFilterCard key={item.id} customizationItem={item} />
+                  <div
+                    key={item.id}
+                    className="filter-item-wrapper"
+                    data-test="chart-customization-card"
+                  >
+                    <GroupByFilterCard customizationItem={item} />
+                  </div>
                 ))}
             </div>
           </div>
@@ -320,7 +326,13 @@ const FilterControls: FC<FilterControlsProps> = ({
               {chartCustomizationItems
                 .filter(item => !item.removed)
                 .map(item => (
-                  <GroupByFilterCard key={item.id} customizationItem={item} />
+                  <div
+                    key={item.id}
+                    className="filter-item-wrapper"
+                    data-test="chart-customization-card"
+                  >
+                    <GroupByFilterCard customizationItem={item} />
+                  </div>
                 ))}
             </div>
           </div>
