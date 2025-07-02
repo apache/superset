@@ -62,11 +62,6 @@ const ChartCustomizationModal = ({
 
   const [erroredItems, setErroredItems] = useState<string[]>([]);
 
-  const currentItem = useMemo(
-    () => items.find(i => i.id === currentId),
-    [items, currentId],
-  );
-
   const hasUnsavedChanges = useCallback(() => {
     const changed = form.getFieldValue('changed');
     const isFieldsTouched = form.isFieldsTouched();
