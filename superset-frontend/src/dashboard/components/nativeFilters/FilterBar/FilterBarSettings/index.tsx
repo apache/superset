@@ -251,7 +251,7 @@ const FilterBarSettings = () => {
     filterValues,
   ]);
 
-  if (!menuItems.length) {
+  if (!menuItems.length || !canEdit) {
     return null;
   }
 
