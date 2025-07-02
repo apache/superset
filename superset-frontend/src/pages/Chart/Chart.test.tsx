@@ -30,9 +30,12 @@ import { LocalStorageKeys } from 'src/utils/localStorageHelpers';
 import getFormDataWithExtraFilters from 'src/dashboard/util/charts/getFormDataWithExtraFilters';
 import { URL_PARAMS } from 'src/constants';
 import { JsonObject, VizType } from '@superset-ui/core';
-
+import { useUnsavedChangesPrompt } from 'src/hooks/useUnsavedChangesPrompt';
 import ChartPage from '.';
 
+jest.mock('src/hooks/useUnsavedChangesPrompt', () => ({
+  useUnsavedChangesPrompt: jest.fn(),
+}));
 jest.mock('re-resizable', () => ({
   Resizable: () => <div data-test="mock-re-resizable" />,
 }));
@@ -48,6 +51,17 @@ jest.mock(
 jest.mock('src/dashboard/util/charts/getFormDataWithExtraFilters');
 
 describe('ChartPage', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+
+    (useUnsavedChangesPrompt as jest.Mock).mockReturnValue({
+      showModal: false,
+      setShowModal: jest.fn(),
+      handleConfirmNavigation: jest.fn(),
+      handleSaveAndCloseModal: jest.fn(),
+    });
+  });
+
   afterEach(() => {
     fetchMock.reset();
   });

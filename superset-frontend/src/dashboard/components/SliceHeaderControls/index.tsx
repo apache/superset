@@ -518,9 +518,11 @@ const SliceHeaderControls = (
         <Button
           id={`slice_${slice.slice_id}-controls`}
           buttonStyle="link"
-          css={{ padding: `0px ${theme.sizeUnit}px` }}
           aria-label="More Options"
           aria-haspopup="true"
+          css={theme => css`
+            padding: ${theme.sizeUnit * 2}px;
+          `}
         >
           <VerticalDotsTrigger />
         </Button>

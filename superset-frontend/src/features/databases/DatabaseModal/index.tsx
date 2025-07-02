@@ -594,8 +594,14 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
 
   const [tabKey, setTabKey] = useState<string>(DEFAULT_TAB_KEY);
   const [availableDbs, getAvailableDbs] = useAvailableDatabases();
-  const [validationErrors, getValidation, setValidationErrors] =
-    useDatabaseValidation();
+  const [
+    validationErrors,
+    getValidation,
+    setValidationErrors,
+    isValidating,
+    hasValidated,
+    setHasValidated,
+  ] = useDatabaseValidation();
   const [hasConnectedDb, setHasConnectedDb] = useState<boolean>(false);
   const [showCTAbtns, setShowCTAbtns] = useState(false);
   const [dbName, setDbName] = useState('');
@@ -754,7 +760,8 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
 
   const handleClearValidationErrors = useCallback(() => {
     setValidationErrors(null);
-  }, [setValidationErrors]);
+    setHasValidated(false);
+  }, [setValidationErrors, setHasValidated]);
 
   const handleParametersChange = useCallback(
     ({ target }: { target: HTMLInputElement }) => {
@@ -812,7 +819,6 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
 
   const onSave = async () => {
     let dbConfigExtraExtensionOnSaveError;
-
     setLoading(true);
 
     dbConfigExtraExtension
@@ -1208,10 +1214,18 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
               {t('Back')}
             </StyledFooterButton>
             <StyledFooterButton
+              data-test="btn-submit-connection"
               key="submit"
               buttonStyle="primary"
               onClick={onSave}
               loading={isLoading}
+              disabled={
+                !!(
+                  !hasValidated ||
+                  isValidating ||
+                  (validationErrors && Object.keys(validationErrors).length > 0)
+                )
+              }
             >
               {t('Connect')}
             </StyledFooterButton>
@@ -1452,6 +1466,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
             onChange={(event: ChangeEvent<HTMLInputElement>) =>
               setPasswords({ ...passwords, [database]: event.target.value })
             }
+            isValidating={isValidating}
             validationMethods={{ onBlur: () => {} }}
             errorMessage={validationErrors?.password_needed}
             label={t('%s PASSWORD', database.slice(10))}
@@ -1460,6 +1475,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         )}
         {sshTunnelPasswordFields?.indexOf(database) >= 0 && (
           <ValidatedInput
+            isValidating={isValidating}
             id="ssh_tunnel_password_needed"
             name="ssh_tunnel_password_needed"
             required
@@ -1480,6 +1496,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
           <ValidatedInput
             id="ssh_tunnel_private_key_needed"
             name="ssh_tunnel_private_key_needed"
+            isValidating={isValidating}
             required
             value={sshTunnelPrivateKeys[database]}
             onChange={(event: ChangeEvent<HTMLInputElement>) =>
@@ -1498,6 +1515,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
           <ValidatedInput
             id="ssh_tunnel_private_key_password_needed"
             name="ssh_tunnel_private_key_password_needed"
+            isValidating={isValidating}
             required
             value={sshTunnelPrivateKeyPasswords[database]}
             onChange={(event: ChangeEvent<HTMLInputElement>) =>
@@ -1553,6 +1571,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         <ValidatedInput
           id="confirm_overwrite"
           name="confirm_overwrite"
+          isValidating={isValidating}
           required
           validationMethods={{ onBlur: () => {} }}
           errorMessage={validationErrors?.confirm_overwrite}
@@ -1688,6 +1707,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   const renderDatabaseConnectionForm = () => (
     <>
       <DatabaseConnectionForm
+        isValidating={isValidating}
         isEditMode={isEditMode}
         db={db as DatabaseObject}
         sslForced={false}

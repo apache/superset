@@ -16,8 +16,6 @@
 # under the License.
 
 # pylint: disable=import-outside-toplevel
-
-
 from datetime import datetime
 
 import pytest

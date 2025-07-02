@@ -240,7 +240,7 @@ test('On failed request, restore previous selection', async () => {
   // Verify error toast
   await waitFor(() => {
     expect(dangerToastSpy).toHaveBeenCalledWith(
-      'Sorry, there was an error saving this dashboard: Unknown Error',
+      'Sorry, there was an error saving this dashboard: Bad Request',
     );
   });
 

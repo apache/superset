@@ -16,9 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { styled, css, SupersetTheme, t } from '../..';
-import { error as errorIcon } from '../assets/svgs';
-import { Button, Icons, InfoTooltip, Tooltip } from '..';
+import { styled, t } from '@superset-ui/core';
+import { Button, Icons, InfoTooltip, Tooltip, Flex } from '..';
 import { Input } from '../Input';
 import { FormLabel } from './FormLabel';
 import { FormItem } from './FormItem';
@@ -30,28 +29,6 @@ const StyledInput = styled(Input)`
 
 const StyledInputPassword = styled(Input.Password)`
   margin: ${({ theme }) => `${theme.sizeUnit}px 0 ${theme.sizeUnit * 2}px`};
-`;
-
-const alertIconStyles = (theme: SupersetTheme, hasError: boolean) => css`
-  .ant-form-item-children-icon {
-    display: none;
-  }
-  ${hasError &&
-  `.ant-form-item-control-input-content {
-      position: relative;
-      &:after {
-        content: ' ';
-        display: inline-block;
-        background: ${theme.colorError};
-        mask: url(${errorIcon});
-        mask-size: cover;
-        width: ${theme.sizeUnit * 4}px;
-        height: ${theme.sizeUnit * 4}px;
-        position: absolute;
-        right: ${theme.sizeUnit * 1.25}px;
-        top: ${theme.sizeUnit * 2.75}px;
-      }
-    }`}
 `;
 
 const StyledFormGroup = styled('div')`
@@ -66,19 +43,8 @@ const StyledFormGroup = styled('div')`
   }
 `;
 
-const StyledAlignment = styled.div`
-  display: flex;
-  align-items: center;
-`;
-
 const StyledFormLabel = styled(FormLabel)`
   margin-bottom: 0;
-`;
-
-const iconReset = css`
-  &.anticon > * {
-    line-height: 0;
-  }
 `;
 
 export const LabeledErrorBoundInput = ({
@@ -94,60 +60,62 @@ export const LabeledErrorBoundInput = ({
   visibilityToggle,
   get_url,
   description,
+  isValidating = false,
   ...props
-}: LabeledErrorBoundInputProps) => (
-  <StyledFormGroup className={className}>
-    <StyledAlignment>
-      <StyledFormLabel htmlFor={id} required={required}>
-        {label}
-      </StyledFormLabel>
-      {hasTooltip && <InfoTooltip tooltip={`${tooltipText}`} />}
-    </StyledAlignment>
-    <FormItem
-      css={(theme: SupersetTheme) => alertIconStyles(theme, !!errorMessage)}
-      validateTrigger={Object.keys(validationMethods)}
-      validateStatus={errorMessage ? 'error' : 'success'}
-      help={errorMessage || helpText}
-      hasFeedback={!!errorMessage}
-    >
-      {visibilityToggle || props.name === 'password' ? (
-        <StyledInputPassword
-          {...props}
-          {...validationMethods}
-          iconRender={visible =>
-            visible ? (
-              <Tooltip title={t('Hide password.')}>
-                <Icons.EyeInvisibleOutlined iconSize="m" css={iconReset} />
-              </Tooltip>
-            ) : (
-              <Tooltip title={t('Show password.')}>
-                <Icons.EyeOutlined
-                  iconSize="m"
-                  css={iconReset}
-                  data-test="icon-eye"
-                />
-              </Tooltip>
-            )
-          }
-          role="textbox"
-        />
-      ) : (
-        <StyledInput {...props} {...validationMethods} />
-      )}
-      {get_url && description ? (
-        <Button
-          htmlType="button"
-          buttonStyle="secondary"
-          onClick={() => {
-            window.open(get_url);
-            return true;
-          }}
-        >
-          Get {description}
-        </Button>
-      ) : (
-        <br />
-      )}
-    </FormItem>
-  </StyledFormGroup>
-);
+}: LabeledErrorBoundInputProps) => {
+  const hasError = !!errorMessage;
+  return (
+    <StyledFormGroup className={className}>
+      <Flex align="center">
+        <StyledFormLabel htmlFor={id} required={required}>
+          {label}
+        </StyledFormLabel>
+        {hasTooltip && <InfoTooltip tooltip={`${tooltipText}`} />}
+      </Flex>
+      <FormItem
+        validateTrigger={Object.keys(validationMethods)}
+        validateStatus={
+          isValidating ? 'validating' : hasError ? 'error' : 'success'
+        }
+        help={errorMessage || helpText}
+        hasFeedback={!!hasError}
+      >
+        {visibilityToggle || props.name === 'password' ? (
+          <StyledInputPassword
+            {...props}
+            {...validationMethods}
+            iconRender={visible =>
+              visible ? (
+                <Tooltip title={t('Hide password.')}>
+                  <Icons.EyeInvisibleOutlined iconSize="m" />
+                </Tooltip>
+              ) : (
+                <Tooltip title={t('Show password.')}>
+                  <Icons.EyeOutlined iconSize="m" data-test="icon-eye" />
+                </Tooltip>
+              )
+            }
+            role="textbox"
+          />
+        ) : (
+          <StyledInput {...props} {...validationMethods} />
+        )}
+        {get_url && description ? (
+          <Button
+            type="link"
+            htmlType="button"
+            onClick={() => {
+              window.open(get_url);
+              return true;
+            }}
+          >
+            Get {description}
+          </Button>
+        ) : (
+          <br />
+        )}
+      </FormItem>
+    </StyledFormGroup>
+  );
+};
+export default LabeledErrorBoundInput;

@@ -123,7 +123,7 @@ describe('ResultsPaneOnDashboard', () => {
       useRedux: true,
     });
     expect(await findByText('0 rows')).toBeVisible();
-    expect(await findByText('Bad Request')).toBeVisible();
+    expect(await findByText('Bad request')).toBeVisible();
   });
 
   test('force query, render and search', async () => {

@@ -212,7 +212,9 @@ export function AsyncAceEditor(
                   background-color: ${token.colorBgElevated} !important;
                   color: ${token.colorTextSecondary} !important;
                 }
-
+                .ace_editor.ace_editor .ace_gutter .ace_gutter-active-line {
+                  background-color: ${token.colorBorderSecondary};
+                }
                 /* Adjust selection color */
                 .ace_editor .ace_selection {
                   background-color: ${token.colorPrimaryBgHover} !important;

@@ -1353,11 +1353,15 @@ describe('DatabaseModal', () => {
         expect(usernameField).toHaveValue('');
         expect(passwordField).toHaveValue('');
 
+        expect(connectButton).toBeDisabled();
+
         userEvent.type(hostField, 'localhost');
         userEvent.type(portField, '5432');
         userEvent.type(databaseNameField, 'postgres');
         userEvent.type(usernameField, 'testdb');
         userEvent.type(passwordField, 'demoPassword');
+
+        await waitFor(() => expect(connectButton).toBeEnabled());
 
         expect(await screen.findByDisplayValue(/5432/i)).toBeInTheDocument();
         expect(hostField).toHaveValue('localhost');
@@ -1366,9 +1370,10 @@ describe('DatabaseModal', () => {
         expect(usernameField).toHaveValue('testdb');
         expect(passwordField).toHaveValue('demoPassword');
 
+        expect(connectButton).toBeEnabled();
         userEvent.click(connectButton);
         await waitFor(() => {
-          expect(fetchMock.calls(VALIDATE_PARAMS_ENDPOINT).length).toEqual(6);
+          expect(fetchMock.calls(VALIDATE_PARAMS_ENDPOINT).length).toEqual(5);
         });
       });
     });

@@ -40,6 +40,7 @@ const DatabaseConnectionForm = ({
   sslForced,
   validationErrors,
   clearValidationErrors,
+  isValidating,
 }: DatabaseConnectionFormProps) => {
   const parameters = dbModel?.parameters as {
     properties: {
@@ -90,6 +91,7 @@ const DatabaseConnectionForm = ({
               isEditMode,
               sslForced,
               editNewDb,
+              isValidating,
               placeholder: getPlaceholder ? getPlaceholder(field) : undefined,
             }),
           )}
