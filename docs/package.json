@@ -39,7 +39,7 @@
   },
   "devDependencies": {
     "@docusaurus/module-type-aliases": "^3.8.1",
-    "@docusaurus/tsconfig": "^3.8.0",
+    "@docusaurus/tsconfig": "^3.8.1",
     "@types/react": "^19.1.8",
     "@typescript-eslint/eslint-plugin": "^5.0.0",
     "@typescript-eslint/parser": "^5.0.0",
