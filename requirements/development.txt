@@ -176,6 +176,8 @@ et-xmlfile==2.0.0
     # via
     #   -c requirements/base.txt
     #   openpyxl
+    # via fastmcp
+fastmcp==2.10.0
 filelock==3.12.2
     # via virtualenv
 flask==2.3.3
