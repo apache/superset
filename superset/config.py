@@ -87,8 +87,8 @@ EVENT_LOGGER = DBEventLogger()
 
 SUPERSET_LOG_VIEW = True
 
-# this config is used to enable/disable the folowing security menu items:
-#  List Users, List Roles, List Groups
+# This config is used to enable/disable the folowing security menu items:
+# List Users, List Roles, List Groups
 SUPERSET_SECURITY_VIEW_MENU = True
 
 BASE_DIR = str(files("superset"))
