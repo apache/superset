@@ -17,12 +17,7 @@
  * under the License.
  */
 import { useRef } from 'react';
-import {
-  useDrag,
-  useDrop,
-  DropTargetMonitor,
-  DragSourceMonitor,
-} from 'react-dnd';
+import { useDrag, useDrop, DragSourceMonitor } from 'react-dnd';
 import { DragContainer } from 'src/explore/components/controls/OptionControls';
 import {
   OptionProps,
