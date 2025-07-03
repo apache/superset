@@ -11990,10 +11990,10 @@ swagger-client@^3.35.5:
     ramda "^0.30.1"
     ramda-adjunct "^5.1.0"
 
-swagger-ui-react@^5.25.3:
-  version "5.25.3"
-  resolved "https://registry.yarnpkg.com/swagger-ui-react/-/swagger-ui-react-5.25.3.tgz#214d63b22ac5337011dcdc170ca48a54c75bbaa0"
-  integrity sha512-R9nVMbwH3J/on8ZEctHlN86l6QucaOy6wUnm7npIwTJOgv+qnJ/t+VkSW1NW6l7a9uDg+PxkbDC0jo9YI9MCEA==
+swagger-ui-react@^5.26.0:
+  version "5.26.0"
+  resolved "https://registry.yarnpkg.com/swagger-ui-react/-/swagger-ui-react-5.26.0.tgz#b15a903d556cc0ec2a56a969beb9d5bc9ea52910"
+  integrity sha512-4e6bP9bdJyh+SqQW0lxulPn/SDno4+oWrKXsuon5Z9kjtV0zeoWEJ1c70Qxp8kN/c3caFwec8OyxDNhvo14pkw==
   dependencies:
     "@babel/runtime-corejs3" "^7.27.1"
     "@scarf/scarf" "=1.4.0"
