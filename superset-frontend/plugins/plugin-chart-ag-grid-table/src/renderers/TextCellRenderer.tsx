@@ -18,24 +18,11 @@
  * under the License.
  */
 
-import { isProbablyHTML, sanitizeHtml, t, styled } from '@superset-ui/core';
+import { isProbablyHTML, sanitizeHtml, t } from '@superset-ui/core';
 import { InfoCircleOutlined } from '@ant-design/icons';
 import { Tooltip } from '@superset-ui/core/components';
 import { CellRendererProps } from '../types';
-
-const SummaryContainer = styled.div`
-  ${({ theme }) => `
-    display: flex;
-    align-items: center;
-    gap: ${theme.sizeUnit}px;
-  `}
-`;
-
-const SummaryText = styled.div`
-  ${({ theme }) => `
-    font-weight: ${theme.fontWeightStrong};
-  `}
-`;
+import { SummaryContainer, SummaryText } from '../styles';
 
 const SUMMARY_TOOLTIP_TEXT = t(
   'Show total aggregations of selected metrics. Note that row limit does not apply to the result.',

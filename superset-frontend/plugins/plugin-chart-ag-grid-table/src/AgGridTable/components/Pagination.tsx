@@ -17,82 +17,21 @@
  * under the License.
  */
 /* eslint-disable theme-colors/no-literal-colors */
-import { styled, t } from '@superset-ui/core';
+import { t } from '@superset-ui/core';
 import {
   VerticalLeftOutlined,
   VerticalRightOutlined,
   LeftOutlined,
   RightOutlined,
 } from '@ant-design/icons';
-import { Select } from '@superset-ui/core/components';
-
-const PaginationContainer = styled.div`
-  ${({ theme }) => `
-    border: 1px solid ${theme.colors.grayscale.light2};
-    display: flex;
-    align-items: center;
-    justify-content: flex-end;
-    padding: ${theme.sizeUnit * 2}px ${theme.sizeUnit * 4}px;
-    border-top: 1px solid ${theme.colors.grayscale.light2};
-    font-size: ${theme.fontSize}px;
-    color: ${theme.colorTextBase};
-    transform: translateY(-${theme.sizeUnit}px);
-    background: ${theme.colorBgBase};
-  `}
-`;
-
-const SelectWrapper = styled.div`
-  ${({ theme }) => `
-    position: relative;
-    margin-left: ${theme.sizeUnit * 2}px;
-    display: inline-block;
-    min-width: ${theme.sizeUnit * 17}px;
-    overflow: hidden;
-  `}
-`;
-
-const PageInfo = styled.span`
-  ${({ theme }) => `
-    margin: 0 ${theme.sizeUnit * 6}px;
-    span {
-      font-weight: ${theme.fontWeightStrong};
-    }
-  `}
-`;
-
-const PageCount = styled.span`
-  ${({ theme }) => `
-    span {
-      font-weight: ${theme.fontWeightStrong};
-    }
-  `}
-`;
-
-const ButtonGroup = styled.div`
-  ${({ theme }) => `
-    display: flex;
-    gap: ${theme.sizeUnit * 3}px;
-  `}
-`;
-
-interface PageButtonProps {
-  disabled?: boolean;
-}
-
-const PageButton = styled.div<PageButtonProps>`
-  ${({ theme, disabled }) => `
-    cursor: ${disabled ? 'not-allowed' : 'pointer'};
-    display: flex;
-    align-items: center;
-    justify-content: center;
-
-    svg {
-      height: ${theme.sizeUnit * 3}px;
-      width: ${theme.sizeUnit * 3}px;
-      fill: ${disabled ? theme.colors.grayscale.light1 : theme.colors.grayscale.dark2};
-    }
-  `}
-`;
+import { ButtonGroup, Select } from '@superset-ui/core/components';
+import {
+  PaginationContainer,
+  SelectWrapper,
+  PageInfo,
+  PageCount,
+  PageButton,
+} from '../../styles';
 
 interface PaginationProps {
   currentPage: number;

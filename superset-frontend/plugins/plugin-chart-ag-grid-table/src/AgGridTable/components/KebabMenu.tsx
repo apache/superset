@@ -16,12 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-const KebabMenu = ({ size = 14, color = 'black' }) => (
+const KebabMenu = ({ size = 14 }) => (
   <svg
     width={size}
     height={size}
     viewBox="0 0 16 16"
-    fill={color}
+    fill="currentColor"
     xmlns="http://www.w3.org/2000/svg"
   >
     <circle cx="8" cy="3" r="1.2" />

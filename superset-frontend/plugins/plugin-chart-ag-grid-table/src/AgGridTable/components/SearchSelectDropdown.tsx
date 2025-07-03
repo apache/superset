@@ -16,16 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { styled } from '@superset-ui/core';
-import { Select } from '@superset-ui/core/components/Select';
 import { SearchOption } from '../../types';
-
-const StyledSelect = styled(Select)`
-  ${({ theme }) => `
-    width: ${theme.sizeUnit * 30}px;
-    margin-right: ${theme.sizeUnit * 2}px;
-  `}
-`;
+import { StyledSelect } from '../../styles';
 
 interface SearchSelectDropdownProps {
   /** The currently selected search column value */

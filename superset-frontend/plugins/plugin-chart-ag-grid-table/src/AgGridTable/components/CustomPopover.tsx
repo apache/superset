@@ -17,25 +17,7 @@
  * under the License.
  */
 import { useEffect, useRef, useState, cloneElement } from 'react';
-import { styled } from '@superset-ui/core';
-
-const PopoverWrapper = styled.div`
-  position: relative;
-  display: inline-block;
-`;
-
-const PopoverContainer = styled.div`
-  ${({ theme }) => `
-    position: fixed;
-    background: ${theme.colors.grayscale.light4};
-    border: 1px solid ${theme.colors.grayscale.light2};
-    border-radius: ${theme.borderRadius}px;
-    box-shadow: 0 ${theme.sizeUnit / 2}px ${theme.sizeUnit * 2}px ${theme.colors.grayscale.light1}40;
-    z-index: 99;
-    min-width: ${theme.sizeUnit * 50}px;
-    padding: ${theme.sizeUnit * 2}px;
-  `}
-`;
+import { PopoverContainer, PopoverWrapper } from '../../styles';
 
 interface Props {
   content: React.ReactNode;

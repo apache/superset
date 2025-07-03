@@ -120,7 +120,7 @@ function cellBackground({
 
   const r = value < 0 ? 150 : 0;
   const g = value >= 0 ? 150 : 0;
-  return `rgba(${r},${g},0,1.0)`;
+  return `rgba(${r},${g},0,0.2)`;
 }
 
 export const NumericCellRenderer = (

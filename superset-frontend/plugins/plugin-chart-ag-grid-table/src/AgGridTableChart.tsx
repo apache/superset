@@ -17,12 +17,10 @@
  * under the License.
  */
 import {
-  css,
   DataRecord,
   DataRecordValue,
   GenericDataType,
   getTimeFormatterForGranularity,
-  styled,
   t,
 } from '@superset-ui/core';
 import { useCallback, useEffect, useState, useMemo } from 'react';
@@ -40,7 +38,7 @@ import { updateTableOwnState } from './utils/externalAPIs';
 import TimeComparisonVisibility from './AgGridTable/components/TimeComparisonVisibility';
 import { useColDefs } from './utils/useColDefs';
 import { getCrossFilterDataMask } from './utils/getCrossFilterDataMask';
-import { useIsDark } from './utils/useTableTheme';
+import { StyledChartContainer } from './styles';
 
 const getGridHeight = (height: number, includeSearch: boolean | undefined) => {
   let calculatedGridHeight = height;
@@ -49,131 +47,6 @@ const getGridHeight = (height: number, includeSearch: boolean | undefined) => {
   }
   return calculatedGridHeight - 80;
 };
-
-const StyledChartContainer = styled.div<{
-  height: number;
-  inputTextColor: string;
-}>`
-  ${({ theme, height, inputTextColor }) => css`
-    height: ${height}px;
-
-    --ag-background-color: ${theme.colorBgBase};
-    --ag-foreground-color: ${theme.colorText};
-    --ag-header-background-color: ${theme.colorBgBase};
-    --ag-header-foreground-color: ${theme.colorText};
-
-    .dt-is-filter {
-      cursor: pointer;
-      :hover {
-        background-color: ${theme.colorPrimaryBgHover};
-      }
-    }
-
-    .dt-is-active-filter {
-      background: ${theme.colors.primary.light3};
-      :hover {
-        background-color: ${theme.colorPrimaryBgHover};
-      }
-    }
-
-    .dt-truncate-cell {
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
-    .dt-truncate-cell:hover {
-      overflow: visible;
-      white-space: normal;
-      height: auto;
-    }
-
-    .ag-container {
-      border-radius: 0px;
-      border: var(--ag-wrapper-border);
-    }
-
-    .filter-popover {
-      z-index: 1 !important;
-    }
-
-    .search-container {
-      display: flex;
-      justify-content: flex-end;
-      margin-bottom: ${theme.sizeUnit * 4}px;
-    }
-
-    .dropdown-controls-container {
-      display: flex;
-      justify-content: flex-end;
-    }
-
-    .time-comparison-dropdown {
-      display: flex;
-      padding-right: ${theme.sizeUnit * 4}px;
-      padding-top: ${theme.sizeUnit * 1.75}px;
-    }
-
-    .ag-header,
-    .ag-row,
-    .ag-spanned-row {
-      font-size: ${theme.fontSizeSM}px;
-      font-weight: ${theme.fontWeightStrong};
-    }
-
-    .ag-root-wrapper {
-      border-radius: 0px;
-    }
-    .search-by-text-container {
-      display: flex;
-      align-items: center;
-    }
-
-    .search-by-text {
-      margin-right: ${theme.sizeUnit * 2}px;
-    }
-
-    .ant-popover-inner {
-      padding: 0px;
-    }
-
-    .input-container {
-      margin-left: auto;
-    }
-
-    .input-wrapper {
-      position: relative;
-      display: flex;
-      align-items: center;
-      overflow: visible;
-    }
-
-    .input-wrapper svg {
-      pointer-events: none;
-      transform: translate(${theme.sizeUnit * 7}px, ${theme.sizeUnit / 2}px);
-      color: ${theme.colors.grayscale.base};
-    }
-
-    .input-wrapper input {
-      color: ${inputTextColor};
-      font-size: ${theme.fontSizeSM}px;
-      padding: ${theme.sizeUnit * 1.5}px ${theme.sizeUnit * 3}px
-        ${theme.sizeUnit * 1.5}px ${theme.sizeUnit * 8}px;
-      line-height: 1.8;
-      border-radius: ${theme.borderRadius}px;
-      border: 1px solid ${theme.colors.grayscale.light2};
-      background-color: transparent;
-      outline: none;
-
-      &:focus {
-        border-color: ${theme.colors.primary.base};
-      }
-
-      &::placeholder {
-        color: ${theme.colors.grayscale.light1};
-      }
-    }
-  `}
-`;
 
 export default function TableChart<D extends DataRecord = DataRecord>(
   props: AgGridTableChartTransformedProps<D> & {},
@@ -209,7 +82,6 @@ export default function TableChart<D extends DataRecord = DataRecord>(
   } = props;
 
   const [searchOptions, setSearchOptions] = useState<SearchOption[]>([]);
-  const inputTextColor = useIsDark() ? '#FFFFFF' : '#000000';
 
   useEffect(() => {
     const options = columns
@@ -384,7 +256,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
   );
 
   return (
-    <StyledChartContainer inputTextColor={inputTextColor} height={height}>
+    <StyledChartContainer height={height}>
       <AgGridDataTable
         gridHeight={gridHeight}
         data={data || []}

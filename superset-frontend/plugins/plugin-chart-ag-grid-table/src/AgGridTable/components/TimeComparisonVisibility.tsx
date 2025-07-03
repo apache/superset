@@ -20,7 +20,8 @@
 import { useState } from 'react';
 import { Dropdown, Menu } from 'antd';
 import { TableOutlined, DownOutlined, CheckOutlined } from '@ant-design/icons';
-import { css, useTheme, t } from '@superset-ui/core';
+import { t } from '@superset-ui/core';
+import { InfoText, ColumnLabel, CheckIconWrapper } from '../../styles';
 
 interface ComparisonColumn {
   key: string;
@@ -39,7 +40,6 @@ const TimeComparisonVisibility: React.FC<TimeComparisonVisibilityProps> = ({
   onSelectionChange,
 }) => {
   const [showComparisonDropdown, setShowComparisonDropdown] = useState(false);
-  const theme = useTheme();
 
   const allKey = comparisonColumns[0].key;
 
@@ -80,37 +80,19 @@ const TimeComparisonVisibility: React.FC<TimeComparisonVisibilityProps> = ({
           onBlur={handleOnBlur}
           selectedKeys={selectedComparisonColumns}
         >
-          <div
-            css={css`
-              max-width: 242px;
-              padding: 0 ${theme.sizeUnit * 2}px;
-              color: ${theme.colors.grayscale.base};
-              font-size: ${theme.fontSizeSM}px;
-            `}
-          >
+          <InfoText>
             {t(
               'Select columns that will be displayed in the table. You can multiselect columns.',
             )}
-          </div>
+          </InfoText>
           {comparisonColumns.map((column: ComparisonColumn) => (
             <Menu.Item key={column.key}>
-              <span
-                css={css`
-                  color: ${theme.colors.grayscale.dark2};
-                `}
-              >
-                {column.label}
-              </span>
-              <span
-                css={css`
-                  float: right;
-                  font-size: ${theme.fontSizeSM}px;
-                `}
-              >
+              <ColumnLabel>{column.label}</ColumnLabel>
+              <CheckIconWrapper>
                 {selectedComparisonColumns.includes(column.key) && (
                   <CheckOutlined />
                 )}
-              </span>
+              </CheckIconWrapper>
             </Menu.Item>
           ))}
         </Menu>
