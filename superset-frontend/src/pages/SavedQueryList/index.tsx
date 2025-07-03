@@ -23,7 +23,6 @@ import {
   styled,
   SupersetClient,
   t,
-  css,
 } from '@superset-ui/core';
 import { useCallback, useMemo, useState, MouseEvent } from 'react';
 import { Link, useHistory } from 'react-router-dom';
