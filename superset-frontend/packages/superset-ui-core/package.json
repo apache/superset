@@ -52,7 +52,7 @@
     "react-draggable": "^4.4.6",
     "react-resize-detector": "^7.1.2",
     "react-ultimate-pagination": "^1.3.2",
-    "react-error-boundary": "^5.0.0",
+    "react-error-boundary": "^6.0.0",
     "react-markdown": "^8.0.7",
     "regenerator-runtime": "^0.14.1",
     "rehype-raw": "^7.0.0",
