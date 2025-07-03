@@ -45,10 +45,7 @@ interface TagCardProps {
 function TagCard({
   tag,
   hasPerm,
-  bulkSelectEnabled,
-  tagFilter,
   refreshData,
-  userId,
   addDangerToast,
   addSuccessToast,
   showThumbnails,

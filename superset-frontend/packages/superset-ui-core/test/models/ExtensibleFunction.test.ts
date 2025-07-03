@@ -17,6 +17,8 @@
  * under the License.
  */
 
+/* eslint-disable @typescript-eslint/no-unsafe-declaration-merging */
+
 import { ExtensibleFunction } from '@superset-ui/core';
 
 describe('ExtensibleFunction', () => {

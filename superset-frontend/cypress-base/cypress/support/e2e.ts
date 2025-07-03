@@ -18,7 +18,6 @@
  */
 import '@cypress/code-coverage/support';
 import '@applitools/eyes-cypress/commands';
-import failOnConsoleError from 'cypress-fail-on-console-error';
 import { expect } from 'chai';
 import rison from 'rison';
 

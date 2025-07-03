@@ -33,7 +33,6 @@ interface SupersetParseErrorExtra {
  */
 function InvalidSQLErrorMessage({
   error,
-  source,
   subtitle,
 }: ErrorMessageComponentProps<SupersetParseErrorExtra>) {
   const { extra, level, message } = error;

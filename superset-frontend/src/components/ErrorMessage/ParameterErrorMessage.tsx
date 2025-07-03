@@ -53,7 +53,6 @@ const findMatches = (undefinedParameters: string[], templateKeys: string[]) => {
 
 function ParameterErrorMessage({
   error,
-  source = 'sqllab',
   subtitle,
 }: ErrorMessageComponentProps<ParameterErrorExtra>) {
   const { extra = { issue_codes: [] }, level, message } = error;

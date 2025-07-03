@@ -35,6 +35,7 @@ import {
 } from 'spec/helpers/testing-library';
 import ShareSqlLabQuery from 'src/SqlLab/components/ShareSqlLabQuery';
 import { initialState } from 'src/SqlLab/fixtures';
+import { omit } from 'lodash';
 
 const mockStore = configureStore([thunk]);
 const defaultProps = {
@@ -137,7 +138,7 @@ describe('ShareSqlLabQuery', () => {
         });
       });
       const button = screen.getByRole('button');
-      const { id: _id, remoteId: _remoteId, ...expected } = mockQueryEditor;
+      const expected = omit(mockQueryEditor, ['id', 'remoteId']);
       userEvent.click(button);
       await waitFor(() =>
         expect(fetchMock.calls(storeQueryUrl)).toHaveLength(1),
@@ -154,7 +155,7 @@ describe('ShareSqlLabQuery', () => {
         });
       });
       const button = screen.getByRole('button');
-      const { id: _id, ...expected } = unsavedQueryEditor;
+      const expected = omit(unsavedQueryEditor, ['id']);
       userEvent.click(button);
       await waitFor(() =>
         expect(fetchMock.calls(storeQueryUrl)).toHaveLength(1),

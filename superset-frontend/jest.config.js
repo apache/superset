@@ -37,6 +37,7 @@ module.exports = {
   setupFilesAfterEnv: ['<rootDir>/spec/helpers/setup.ts'],
   snapshotSerializers: ['@emotion/jest/serializer'],
   testEnvironmentOptions: {
+    globalsCleanup: true,
     url: 'http://localhost',
   },
   collectCoverageFrom: [

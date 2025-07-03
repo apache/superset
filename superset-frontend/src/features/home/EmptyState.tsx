@@ -57,11 +57,7 @@ export interface EmptyStateProps {
   otherTabTitle?: string;
 }
 
-export default function EmptyState({
-  tableName,
-  tab,
-  otherTabTitle,
-}: EmptyStateProps) {
+export default function EmptyState({ tableName, tab }: EmptyStateProps) {
   const getActionButton = () => {
     if (tableName === WelcomeTable.Recents) {
       return null;
