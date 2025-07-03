@@ -1396,9 +1396,7 @@ const FiltersConfigForm = (
                                         >
                                           <Icons.SyncOutlined
                                             iconSize="xl"
-                                            iconColor={
-                                              theme.colors.primary.base
-                                            }
+                                            iconColor={theme.colorPrimary}
                                             css={css`
                                               margin-left: ${theme.sizeUnit *
                                               2}px;

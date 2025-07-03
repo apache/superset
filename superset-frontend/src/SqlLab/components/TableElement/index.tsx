@@ -231,7 +231,7 @@ const TableElement = ({ table, ...props }: TableElementProps) => {
             >
               <Icons.TableOutlined
                 iconSize="m"
-                iconColor={theme.colors.primary.dark2}
+                iconColor={theme.colorPrimary}
               />
             </IconTooltip>
           }

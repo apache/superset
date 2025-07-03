@@ -432,7 +432,7 @@ class DatasourceControl extends PureComponent {
           >
             <Icons.MoreOutlined
               IconSize="xl"
-              iconColor={theme.colors.primary.base}
+              iconColor={theme.colorPrimary}
               className="datasource-modal-trigger"
               data-test="datasource-menu-trigger"
             />
