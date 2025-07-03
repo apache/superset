@@ -79,7 +79,6 @@ const getFiltersBySpatialType = ({
   position,
   positionBounds,
   spatialData,
-  customColumnLabel,
 }: {
   position: [number, number];
   spatialData: SpatialData;
@@ -113,11 +112,7 @@ const getFiltersBySpatialType = ({
             ...cols.map(
               (col, index) =>
                 ({
-                  col: {
-                    expressionType: 'SQL',
-                    sqlExpression: `"${col}"`,
-                    label: customColumnLabel ?? `${lonCol}, ${latCol}`,
-                  },
+                  col,
                   op: '==',
                   val: position[index],
                 }) as QueryObjectFilterClause,
@@ -126,19 +121,11 @@ const getFiltersBySpatialType = ({
         } else if (positionBounds) {
           values = [positionBounds.from, positionBounds.to];
 
-          const crossFilterColumnLabel =
-            customColumnLabel ??
-            `From ${lonCol}, ${latCol} to ${lonCol}, ${latCol}`;
-
           filters = [
             ...cols.map(
               (col, index) =>
                 ({
-                  col: {
-                    expressionType: 'SQL',
-                    sqlExpression: `"${col}"`,
-                    label: crossFilterColumnLabel,
-                  },
+                  col,
                   op: '>=',
                   val: positionBounds.from[index],
                 }) as QueryObjectFilterClause,
@@ -146,11 +133,7 @@ const getFiltersBySpatialType = ({
             ...cols.map(
               (col, index) =>
                 ({
-                  col: {
-                    expressionType: 'SQL',
-                    sqlExpression: `"${col}"`,
-                    label: crossFilterColumnLabel,
-                  },
+                  col,
                   op: '<=',
                   val: positionBounds.to[index],
                 }) as QueryObjectFilterClause,
@@ -174,11 +157,7 @@ const getFiltersBySpatialType = ({
 
       filters = [
         {
-          col: {
-            expressionType: 'SQL',
-            sqlExpression: `"${col}"`,
-            label: customColumnLabel ?? col,
-          },
+          col,
           op: '==',
           val,
         },
@@ -198,11 +177,7 @@ const getFiltersBySpatialType = ({
 
       filters = [
         {
-          col: {
-            expressionType: 'SQL',
-            sqlExpression: `"${col}"`,
-            label: customColumnLabel ?? col,
-          },
+          col,
           op: '==',
           val,
         },
@@ -351,7 +326,7 @@ const getLineColumnFilters = ({
       {
         col: {
           expressionType: 'SQL',
-          sqlExpression: `REPLACE("${formData.line_column}", ' ', '')`,
+          sqlExpression: `REPLACE(${formData.line_column}, ' ', '')`,
           label: formData.line_column,
         },
         op: '==',
@@ -380,7 +355,7 @@ const getGeojsonFilters = ({
       {
         col: {
           expressionType: 'SQL',
-          sqlExpression: `REPLACE("${formData.geojson}", ' ', '')`,
+          sqlExpression: `REPLACE(${formData.geojson}, ' ', '')`,
           label: formData.geojson,
         },
         op: 'LIKE',
