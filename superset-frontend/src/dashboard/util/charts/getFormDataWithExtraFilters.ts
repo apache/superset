@@ -27,10 +27,7 @@ import {
 } from '@superset-ui/core';
 import { ChartConfiguration, ChartQueryPayload } from 'src/dashboard/types';
 import { ChartCustomizationItem } from 'src/dashboard/components/nativeFilters/ChartCustomization/types';
-import {
-  getExtraFormData,
-  mergeExtraFormData,
-} from 'src/dashboard/components/nativeFilters/utils';
+import { getExtraFormData } from 'src/dashboard/components/nativeFilters/utils';
 import { isEqual } from 'lodash';
 import { areObjectsEqual } from 'src/reduxUtils';
 import getEffectiveExtraFilters from './getEffectiveExtraFilters';
@@ -89,25 +86,162 @@ export interface GetFormDataWithExtraFiltersArguments {
   sharedLabelsColors?: string[];
   allSliceIds: number[];
   chartCustomization?: JsonObject;
-  activeFilters?: ActiveFilters;
 }
 
-const createFilterDataMapping = (
+function processNativeFilters(
+  chartConfiguration: ChartConfiguration,
   dataMask: DataMaskStateWithId,
-  filterIdsAppliedOnChart: string[],
-): { [filterId: string]: any[] } => {
-  const filterDataMapping: { [filterId: string]: any[] } = {};
+  nativeFilters: PartialFilters,
+  allSliceIds: number[],
+  chartId: number,
+): ExtraFormData {
+  const activeFilters = getAllActiveFilters({
+    chartConfiguration,
+    dataMask,
+    nativeFilters,
+    allSliceIds,
+  });
 
-  filterIdsAppliedOnChart.forEach(filterId => {
-    const filterFormData = getExtraFormData(dataMask, [filterId]);
-    if (filterFormData.filters && filterFormData.filters.length > 0) {
-      filterDataMapping[filterId] = filterFormData.filters;
+  const filterIdsAppliedOnChart = Object.entries(activeFilters)
+    .filter(([, { scope }]) => scope.includes(chartId))
+    .map(([filterId]) => filterId);
+
+  if (filterIdsAppliedOnChart.length === 0) {
+    return {};
+  }
+
+  return getExtraFormData(dataMask, filterIdsAppliedOnChart);
+}
+
+function processGroupByCustomizations(
+  chartCustomizationItems: ChartCustomizationItem[],
+  chart: ChartQueryPayload,
+  groupByState: Record<string, { selectedValues: string[] }>,
+): {
+  groupby?: string[];
+  order_by_cols?: string[];
+  filters?: any[];
+} {
+  if (!chartCustomizationItems || chartCustomizationItems.length === 0) {
+    return {};
+  }
+
+  const chartDataset = chart.form_data?.datasource;
+  if (!chartDataset) {
+    return {};
+  }
+
+  const chartDatasetParts = String(chartDataset).split('__');
+  const chartDatasetId = chartDatasetParts[0];
+
+  const matchingCustomizations = chartCustomizationItems.filter(item => {
+    if (item.removed) return false;
+
+    const targetDataset = item.customization?.dataset;
+    if (!targetDataset) return false;
+
+    const targetDatasetId = String(targetDataset);
+    const datasetMatches = chartDatasetId === targetDatasetId;
+
+    const chartMatches = !item.chartId || item.chartId === chart.id;
+
+    return datasetMatches && chartMatches;
+  });
+
+  const chartType = chart.form_data?.viz_type;
+  if (chartType === 'big_number' || chartType === 'big_number_total') {
+    if (matchingCustomizations.length > 0) {
+      console.warn(
+        `Skipping group-by customizations for chart type: ${chartType}`,
+      );
+    }
+    return {};
+  }
+
+  const groupByFormData: {
+    groupby?: string[];
+    order_by_cols?: string[];
+    filters?: any[];
+  } = {};
+
+  const groupByColumns = new Set<string>();
+  const allFilters: any[] = [];
+  let orderByConfig: string[] | undefined;
+
+  matchingCustomizations.forEach(item => {
+    const { customization } = item;
+    const groupById = `chart_customization_${item.id}`;
+
+    const selectedValues = groupByState[groupById]?.selectedValues || [];
+
+    if (customization?.column) {
+      let columnName: string;
+      if (typeof customization.column === 'string') {
+        columnName = customization.column;
+      } else if (
+        typeof customization.column === 'object' &&
+        customization.column !== null
+      ) {
+        const columnObj = customization.column as any;
+        columnName =
+          columnObj.column_name || columnObj.name || String(columnObj);
+      } else {
+        console.warn('Invalid column format:', customization.column);
+        return;
+      }
+
+      if (!columnName || columnName.trim() === '') {
+        console.warn('Empty column name in customization:', item.id);
+        return;
+      }
+
+      const existingGroupBy = chart.form_data?.groupby || [];
+      if (existingGroupBy.includes(columnName)) {
+        console.warn(
+          `Column ${columnName} already in chart's groupby, skipping customization`,
+        );
+        return;
+      }
+
+      groupByColumns.add(columnName);
+
+      if (selectedValues.length > 0) {
+        allFilters.push({
+          col: columnName,
+          op: 'IN',
+          val: selectedValues,
+        });
+      }
+
+      if (customization.sortFilter && customization.sortMetric) {
+        orderByConfig = [
+          JSON.stringify([
+            customization.sortMetric,
+            !customization.sortAscending,
+          ]),
+        ];
+      }
     }
   });
 
-  return filterDataMapping;
-};
+  if (groupByColumns.size > 0) {
+    groupByFormData.groupby = Array.from(groupByColumns);
+  }
 
+  if (allFilters.length > 0) {
+    groupByFormData.filters = allFilters;
+  }
+
+  if (orderByConfig) {
+    groupByFormData.order_by_cols = orderByConfig;
+  }
+
+  return groupByFormData;
+}
+
+// this function merge chart's formData with dashboard filters value,
+// and generate a new formData which will be used in the new query.
+// filters param only contains those applicable to this chart.
 export default function getFormDataWithExtraFilters({
   chart,
   filters,
@@ -156,100 +290,32 @@ export default function getFormDataWithExtraFilters({
     return cachedFormData;
   }
 
-  const activeFilters: ActiveFilters =
-    passedActiveFilters ||
-    getAllActiveFilters({
-      chartConfiguration,
-      nativeFilters,
-      dataMask,
-      allSliceIds,
-    });
+  const nativeFilterExtraFormData = processNativeFilters(
+    chartConfiguration,
+    dataMask,
+    nativeFilters,
+    allSliceIds,
+    chart.id,
+  );
 
-  let extraData: JsonObject = {};
-  const filterIdsAppliedOnChart = Object.entries(activeFilters)
-    .filter(([, activeFilter]) => activeFilter.scope.includes(chart.id))
-    .map(([filterId]) => filterId);
-
-  let extraFormData: ExtraFormData = {};
-
-  if (filterIdsAppliedOnChart.length) {
-    extraFormData = getExtraFormData(dataMask, filterIdsAppliedOnChart);
-  }
-
-  try {
-    // Use the chart customization items passed as parameter
-    if (chartCustomizationItems && chartCustomizationItems.length > 0) {
-      const chartDataset = chart.form_data?.datasource;
-      if (chartDataset) {
-        const chartDatasetParts = String(chartDataset).split('__');
-        const chartDatasetId = chartDatasetParts[0];
-
-        const matchingCustomizations = chartCustomizationItems.filter(item => {
-          if (item.removed) return false;
-
-          const targetDataset = item.customization?.dataset;
-          if (!targetDataset) return false;
-
-          const targetDatasetId = String(targetDataset);
-
-          const datasetMatches = chartDatasetId === targetDatasetId;
-          const chartMatches = !item.chartId || item.chartId === chart.id;
-
-          return datasetMatches && chartMatches;
-        });
-
-        matchingCustomizations.forEach(item => {
-          const { customization } = item;
-
-          if (customization?.column) {
-            const customExtraFormData: JsonObject = {
-              groupby: [customization.column],
-            };
-
-            if (customization.sortFilter && customization.sortMetric) {
-              customExtraFormData.order_by_cols = [
-                JSON.stringify([
-                  customization.sortMetric,
-                  !customization.sortAscending,
-                ]),
-              ];
-            }
-
-            const customizationFilterId = `chart_customization_${item.id}`;
-            const customizationDataMask = dataMask[customizationFilterId];
-            const selectedValues = customizationDataMask?.filterState?.value;
-
-            if (
-              selectedValues &&
-              Array.isArray(selectedValues) &&
-              selectedValues.length > 0
-            ) {
-              if (!customExtraFormData.filters) {
-                customExtraFormData.filters = [];
-              }
-              if (Array.isArray(customExtraFormData.filters)) {
-                customExtraFormData.filters.push({
-                  col: customization.column,
-                  op: 'IN',
-                  val: selectedValues,
-                });
-              }
-            }
-
-            extraFormData = mergeExtraFormData(
-              extraFormData,
-              customExtraFormData,
-            );
-          }
-        });
+  const groupByState: Record<string, { selectedValues: string[] }> = {};
+  Object.entries(dataMask).forEach(([key, mask]) => {
+    if (key.startsWith('chart_customization_')) {
+      const selectedValues = mask.filterState?.value;
+      if (Array.isArray(selectedValues)) {
+        groupByState[key] = { selectedValues };
       }
     }
-  } catch (error) {
-    console.error('Error applying chart customization:', error);
-  }
+  });
 
-  extraData = {
-    extra_form_data: extraFormData,
+  const groupByFormData = processGroupByCustomizations(
+    chartCustomizationItems || [],
+    chart,
+    groupByState,
+  );
+
+  const extraData = {
+    extra_form_data: nativeFilterExtraFormData,
   };
 
   const formData: CachedFormDataWithExtraControls = {
@@ -265,6 +331,7 @@ export default function getFormDataWithExtraFilters({
     extra_filters: getEffectiveExtraFilters(filters),
     ...extraData,
     ...extraControls,
+    ...groupByFormData,
     ...(chartCustomization && { chart_customization: chartCustomization }),
     ...(layerFilterScope && { layer_filter_scope: layerFilterScope }),
   };
