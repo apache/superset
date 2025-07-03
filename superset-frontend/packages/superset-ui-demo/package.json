@@ -33,7 +33,7 @@
   "dependencies": {
     "@emotion/cache": "^11.14.0",
     "@emotion/react": "^11.14.0",
-    "@emotion/styled": "^11.14.0",
+    "@emotion/styled": "^11.14.1",
     "@mihkeleidast/storybook-addon-source": "^1.0.1",
     "@react-icons/all-files": "^4.1.0",
     "@storybook/addon-actions": "8.1.11",

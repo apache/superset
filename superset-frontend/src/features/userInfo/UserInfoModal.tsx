@@ -55,7 +55,7 @@ function UserInfoModal({
       addSuccessToast(
         isEditMode
           ? t('The user was updated successfully')
-          : t('The password reset was successfull'),
+          : t('The password reset was successful'),
       );
       onSave();
     } catch (error) {

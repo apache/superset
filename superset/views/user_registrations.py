@@ -14,30 +14,21 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from flask_appbuilder import permission_name
+from flask_appbuilder.api import expose
+from flask_appbuilder.security.decorators import has_access
 
-from datetime import datetime
-from typing import Optional
+from superset.superset_typing import FlaskResponse
 
-import pytest
-
-from tests.unit_tests.db_engine_specs.utils import assert_convert_dttm
-from tests.unit_tests.fixtures.common import dttm  # noqa: F401
+from .base import BaseSupersetView
 
 
-@pytest.mark.parametrize(
-    "target_type,expected_result",
-    [
-        ("Date", "DATE '2019-01-02'"),
-        ("DateTime", "DATETIME '2019-01-02 03:04:05.678900'"),
-        ("Timestamp", "TIMESTAMP '2019-01-02T03:04:05.678900'"),
-        ("UnknownType", None),
-    ],
-)
-def test_convert_dttm(
-    target_type: str,
-    expected_result: Optional[str],
-    dttm: datetime,  # noqa: F811
-) -> None:
-    from superset.db_engine_specs.rockset import RocksetEngineSpec as spec  # noqa: N813
+class UserRegistrationsView(BaseSupersetView):
+    route_base = "/"
+    class_permission_name = "security"
 
-    assert_convert_dttm(spec, target_type, expected_result, dttm)
+    @expose("/registrations/")
+    @has_access
+    @permission_name("read")
+    def list(self) -> FlaskResponse:
+        return super().render_app_template()

@@ -35,6 +35,7 @@ import {
   CacheProvider as EmotionCacheProvider,
 } from '@emotion/react';
 import createCache from '@emotion/cache';
+import { noop } from 'lodash';
 import { GlobalStyles } from './GlobalStyles';
 
 import {
@@ -66,7 +67,7 @@ export class Theme {
     brandLogoAlt: 'Apache Superset',
     brandLogoUrl: '/static/assets/images/superset-logo-horiz.png',
     brandLogoMargin: '18px',
-    brandLogoHref: 'https://superset.apache.org',
+    brandLogoHref: '/',
     brandLogoHeight: '24px',
 
     // Default colors
@@ -285,6 +286,7 @@ export class Theme {
     antdConfig: AntdThemeConfig,
     emotionCache: any,
   ): void {
+    noop(theme, antdConfig, emotionCache);
     // Overridden at runtime by SupersetThemeProvider using setThemeState
   }
 
