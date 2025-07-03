@@ -28,9 +28,19 @@ import {
   variance as d3variance,
   deviation as d3deviation,
 } from 'd3-array';
-import { JsonObject, JsonValue, QueryFormData } from '@superset-ui/core';
+import {
+  CategoricalColorScale,
+  JsonObject,
+  JsonValue,
+  QueryFormData,
+} from '@superset-ui/core';
+import { Color } from '@deck.gl/core';
+import { ScaleLinear } from 'd3-scale';
+import { ColorBreakpointType } from '../types';
 import sandboxedEval from '../utils/sandbox';
 import { TooltipProps } from '../components/Tooltip';
+import { COLOR_SCHEME_TYPES, ColorSchemeType } from '../utilities/utils';
+import { hexToRGB } from '../utils/colors';
 
 export function commonLayerProps(
   formData: QueryFormData,
@@ -140,3 +150,59 @@ export function getAggFunc(
 
   return (arr: number[]) => d3func(arr.map(x => accessor(x)));
 }
+
+export const getColorForBreakpoints = (
+  aggFunc: (arr: number[]) => number | number[] | undefined,
+  point: number[],
+  colorBreakpoints: ColorBreakpointType[],
+) => {
+  const aggResult = aggFunc(point);
+
+  if (aggResult === undefined) return undefined;
+
+  if (Array.isArray(aggResult)) return undefined;
+
+  const breapointForPoint = colorBreakpoints.findIndex(
+    breakpoint =>
+      aggResult >= breakpoint.minValue && aggResult <= breakpoint.maxValue,
+  );
+
+  return breapointForPoint >= 0 ? breapointForPoint : 0;
+};
+
+export const getColorRange = (
+  fd: QueryFormData,
+  colorSchemeType: ColorSchemeType,
+  colorScale?: CategoricalColorScale | ScaleLinear<string, string>,
+) => {
+  let colorRange: Color[] | undefined;
+  switch (colorSchemeType) {
+    case COLOR_SCHEME_TYPES.linear_palette:
+    case COLOR_SCHEME_TYPES.categorical_palette: {
+      colorRange = colorScale?.range().map(color => hexToRGB(color)) as Color[];
+      break;
+    }
+    case COLOR_SCHEME_TYPES.color_breakpoints: {
+      const colorBreakpoints = fd.color_breakpoints;
+      colorRange = colorBreakpoints.map(
+        (colorBreakpoint: ColorBreakpointType) =>
+          colorBreakpoint.color
+            ? [
+                colorBreakpoint.color.r,
+                colorBreakpoint.color.g,
+                colorBreakpoint.color.b,
+                255 * (colorBreakpoint.color.a / 100),
+              ]
+            : [0, 0, 0, 0],
+      );
+      break;
+    }
+    default: {
+      const color = fd.color_picker || { r: 0, g: 0, b: 0, a: 0 };
+
+      colorRange = [[color.r, color.g, color.b, 255 * color.a]];
+    }
+  }
+
+  return colorRange;
+};

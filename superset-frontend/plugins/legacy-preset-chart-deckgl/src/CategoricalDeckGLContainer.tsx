@@ -43,9 +43,15 @@ import {
   DeckGLContainerHandle,
   DeckGLContainerStyledWrapper,
 } from './DeckGLContainer';
-import { Point } from './types';
+import { ColorBreakpointType, ColorType, Point } from './types';
 import { getLayerType } from './factory';
 import { TooltipProps } from './components/Tooltip';
+import {
+  COLOR_SCHEME_TYPES,
+  ColorSchemeType,
+  getSelectedColorSchemeType,
+} from './utilities/utils';
+import { getColorBreakpointsBuckets } from './utils';
 
 const { getScale } = CategoricalColorNamespace;
 
@@ -54,18 +60,24 @@ function getCategories(fd: QueryFormData, data: JsonObject[]) {
   const fixedColor = [c.r, c.g, c.b, 255 * c.a];
   const appliedScheme = fd.color_scheme;
   const colorFn = getScale(appliedScheme);
-  const categories: Record<any, { color: any; enabled: boolean }> = {};
-  data.forEach(d => {
-    if (d.cat_color != null && !categories.hasOwnProperty(d.cat_color)) {
-      let color;
-      if (fd.dimension) {
-        color = hexToRGB(colorFn(d.cat_color, fd.sliceId), c.a * 255);
-      } else {
-        color = fixedColor;
+  let categories: Record<any, { color: any; enabled: boolean }> = {};
+
+  const colorSchemeType = getSelectedColorSchemeType(fd);
+  if (colorSchemeType === COLOR_SCHEME_TYPES.color_breakpoints) {
+    categories = getColorBreakpointsBuckets(fd);
+  } else {
+    data.forEach(d => {
+      if (d.cat_color != null && !categories.hasOwnProperty(d.cat_color)) {
+        let color;
+        if (fd.dimension) {
+          color = hexToRGB(colorFn(d.cat_color, fd.sliceId), c.a * 255);
+        } else {
+          color = fixedColor;
+        }
+        categories[d.cat_color] = { color, enabled: true };
       }
-      categories[d.cat_color] = { color, enabled: true };
-    }
-  });
+    });
+  }
 
   return categories;
 }
@@ -128,29 +140,67 @@ const CategoricalDeckGLContainer = (props: CategoricalDeckGLContainerProps) => {
     }
   }, []);
 
-  const addColor = useCallback((data: JsonObject[], fd: QueryFormData) => {
-    const c = fd.color_picker || { r: 0, g: 0, b: 0, a: 1 };
-    const appliedScheme = fd.color_scheme;
-    const colorFn = getScale(appliedScheme);
+  const addColor = useCallback(
+    (
+      data: JsonObject[],
+      fd: QueryFormData,
+      selectedColorScheme: ColorSchemeType,
+    ) => {
+      const appliedScheme = fd.color_scheme;
+      const colorFn = getScale(appliedScheme);
+      let color: ColorType;
 
-    return data.map(d => {
-      let color;
-      if (fd.dimension) {
-        color = hexToRGB(colorFn(d.cat_color, fd.slice_id), c.a * 255);
+      switch (selectedColorScheme) {
+        case COLOR_SCHEME_TYPES.fixed_color: {
+          color = fd.color_picker || { r: 0, g: 0, b: 0, a: 100 };
 
-        return { ...d, color };
+          return data.map(d => ({
+            ...d,
+            color: [color.r, color.g, color.b, color.a * 255],
+          }));
+        }
+        case COLOR_SCHEME_TYPES.categorical_palette: {
+          return data.map(d => ({
+            ...d,
+            color: hexToRGB(colorFn(d.cat_color, fd.slice_id)),
+          }));
+        }
+        case COLOR_SCHEME_TYPES.color_breakpoints: {
+          return data.map(d => {
+            const breakpointForPoint: ColorBreakpointType =
+              fd.color_breakpoints?.find(
+                (breakpoint: ColorBreakpointType) =>
+                  d.metric >= breakpoint.minValue &&
+                  d.metric <= breakpoint.maxValue,
+              );
+
+            return {
+              ...d,
+              color: [
+                breakpointForPoint?.color.r,
+                breakpointForPoint?.color.g,
+                breakpointForPoint?.color.b,
+                (breakpointForPoint?.color.a / 100) * 255,
+              ],
+            };
+          });
+        }
+        default: {
+          return [];
+        }
       }
-
-      return d;
-    });
-  }, []);
+    },
+    [],
+  );
 
   const getLayers = useCallback(() => {
     const { getLayer, payload, formData: fd, onAddFilter } = props;
     let features = payload.data.features ? [...payload.data.features] : [];
 
+    const selectedColorScheme = getSelectedColorSchemeType(fd);
+
     // Add colors from categories or fixed color
-    features = addColor(features, fd);
+    features = addColor(features, fd, selectedColorScheme);
 
     // Apply user defined data mutator if defined
     if (fd.js_data_mutator) {

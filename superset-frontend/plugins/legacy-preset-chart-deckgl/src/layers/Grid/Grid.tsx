@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Color } from '@deck.gl/core';
 import { GridLayer } from '@deck.gl/aggregation-layers';
 import {
   t,
@@ -25,12 +24,20 @@ import {
   QueryFormData,
 } from '@superset-ui/core';
 
-import { commonLayerProps, getAggFunc } from '../common';
+import {
+  commonLayerProps,
+  getAggFunc,
+  getColorForBreakpoints,
+  getColorRange,
+} from '../common';
 import sandboxedEval from '../../utils/sandbox';
-import { hexToRGB } from '../../utils/colors';
 import { createDeckGLComponent } from '../../factory';
 import TooltipRow from '../../TooltipRow';
 import { TooltipProps } from '../../components/Tooltip';
+import {
+  COLOR_SCHEME_TYPES,
+  getSelectedColorSchemeType,
+} from '../../utilities/utils';
 
 function setTooltipContent(o: JsonObject) {
   return (
@@ -58,9 +65,6 @@ export function getLayer(
   const fd = formData;
   const appliedScheme = fd.color_scheme;
   const colorScale = CategoricalColorNamespace.getScale(appliedScheme);
-  const colorRange = colorScale
-    .range()
-    .map(color => hexToRGB(color)) as Color[];
   let data = payload.data.features;
 
   if (fd.js_data_mutator) {
@@ -69,19 +73,33 @@ export function getLayer(
     data = jsFnMutator(data);
   }
 
+  const colorSchemeType = getSelectedColorSchemeType(fd);
+  const colorRange = getColorRange(fd, colorSchemeType, colorScale);
+
+  const colorBreakpoints = fd.color_breakpoints;
+
   const aggFunc = getAggFunc(fd.js_agg_function, p => p.weight);
+
+  const colorAggFunc =
+    colorSchemeType === COLOR_SCHEME_TYPES.color_breakpoints
+      ? (p: number[]) => getColorForBreakpoints(aggFunc, p, colorBreakpoints)
+      : aggFunc;
 
   return new GridLayer({
     id: `grid-layer-${fd.slice_id}` as const,
     data,
     cellSize: fd.grid_size,
     extruded: fd.extruded,
+    colorDomain:
+      colorSchemeType === COLOR_SCHEME_TYPES.color_breakpoints && colorRange
+        ? [0, colorRange.length]
+        : undefined,
     colorRange,
     outline: false,
     // @ts-ignore
     getElevationValue: aggFunc,
     // @ts-ignore
-    getColorValue: aggFunc,
+    getColorValue: colorAggFunc,
     ...commonLayerProps(fd, setTooltip, setTooltipContent),
   });
 }
