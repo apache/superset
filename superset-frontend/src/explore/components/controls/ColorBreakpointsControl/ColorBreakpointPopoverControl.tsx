@@ -58,8 +58,8 @@ const determineErrorMap = (
   if (minValueError || maxValueError) return errorMap;
 
   if (
-    Number(colorBreakpoint.minValue) >= 0 &&
-    Number(colorBreakpoint.maxValue) >= 0
+    !Number.isNaN(colorBreakpoint.minValue) &&
+    !Number.isNaN(colorBreakpoint.maxValue)
   ) {
     const newMinValue = Number(colorBreakpoint.minValue);
     const newMaxValue = Number(colorBreakpoint.maxValue);
