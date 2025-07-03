@@ -18,7 +18,7 @@ msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
 "POT-Creation-Date: 2025-07-03 14:13+0300\n"
-"PO-Revision-Date: 2025-07-03 14:17+0300\n"
+"PO-Revision-Date: 2025-07-03 14:20+0300\n"
 "Last-Translator: Polina Fam\n"
 "Language-Team: Russian <>\n"
 "Language: ru\n"
@@ -9222,9 +9222,8 @@ msgstr "SQL-запрос скопирован!"
 msgid "SQL Lab"
 msgstr "SQL Lab"
 
-#, fuzzy
 msgid "SQL Lab queries"
-msgstr "сохраненные(ых) запросы(ов)"
+msgstr "SQL Lab запросы"
 
 #, python-format
 msgid ""
@@ -14276,9 +14275,8 @@ msgstr "изменение"
 msgid "chart"
 msgstr "диаграмма"
 
-#, fuzzy
 msgid "charts"
-msgstr "Диаграммы"
+msgstr "диаграмм(ы)"
 
 msgid "choose WHERE or HAVING..."
 msgstr "выберите WHERE или HAVING..."
@@ -14347,9 +14345,8 @@ msgstr "кумулятивная сумма"
 msgid "dashboard"
 msgstr "дашборд"
 
-#, fuzzy
 msgid "dashboards"
-msgstr "Дашборды"
+msgstr "дашборды(ов)"
 
 msgid "database"
 msgstr "база данных"
