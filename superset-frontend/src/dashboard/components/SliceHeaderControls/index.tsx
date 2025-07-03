@@ -88,7 +88,7 @@ const VerticalDotsTrigger = () => {
           cursor: pointer;
         }
       `}
-      iconSize="xxl"
+      iconSize="xl"
       iconColor={theme.colorTextLabel}
       className="dot"
     />
@@ -522,6 +522,7 @@ const SliceHeaderControls = (
           aria-haspopup="true"
           css={theme => css`
             padding: ${theme.sizeUnit * 2}px;
+            padding-right: 0px;
           `}
         >
           <VerticalDotsTrigger />

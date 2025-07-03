@@ -103,8 +103,12 @@ class CssEditor extends PureComponent<CssEditorProps, CssEditorState> {
   }
 
   changeCssTemplate(info: { key: Key }) {
-    const keyAsString = String(info.key);
-    this.changeCss(keyAsString);
+    const selectedTemplate = this.state.templates?.find(
+      template => template.label === info.key,
+    );
+    if (selectedTemplate) {
+      this.changeCss(selectedTemplate.css);
+    }
   }
 
   renderTemplateSelector() {
@@ -113,7 +117,7 @@ class CssEditor extends PureComponent<CssEditorProps, CssEditorState> {
         <Menu
           onClick={this.changeCssTemplate}
           items={this.state.templates.map(template => ({
-            key: template.css,
+            key: template.label,
             label: template.label,
           }))}
         />

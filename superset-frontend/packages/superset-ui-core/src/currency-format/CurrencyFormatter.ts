@@ -21,6 +21,8 @@ import { ExtensibleFunction } from '../models';
 import { getNumberFormatter, NumberFormats } from '../number-format';
 import { Currency } from '../query';
 
+/* eslint-disable @typescript-eslint/no-unsafe-declaration-merging */
+
 interface CurrencyFormatterConfig {
   d3Format?: string;
   currency: Currency;

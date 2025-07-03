@@ -95,6 +95,8 @@ const FilterValue: FC<FilterControlProps> = ({
   orientation = FilterBarOrientation.Vertical,
   overflow = false,
   validateStatus,
+  clearAllTrigger,
+  onClearAllComplete,
 }) => {
   const { id, targets, filterType, adhoc_filters, time_range } = filter;
   const metadata = getChartMetadataRegistry().get(filterType);
@@ -273,6 +275,8 @@ const FilterValue: FC<FilterControlProps> = ({
       setFocusedFilter,
       unsetFocusedFilter,
       setFilterActive,
+      clearAllTrigger,
+      onClearAllComplete,
     }),
     [
       setDataMask,
@@ -281,13 +285,15 @@ const FilterValue: FC<FilterControlProps> = ({
       unsetHoveredFilter,
       setFocusedFilter,
       unsetFocusedFilter,
+      clearAllTrigger,
+      onClearAllComplete,
     ],
   );
 
   const filterState = useMemo(
     () => ({
-      validateStatus,
       ...filter.dataMask?.filterState,
+      validateStatus,
     }),
     [filter.dataMask?.filterState, validateStatus],
   );
