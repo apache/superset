@@ -23,26 +23,167 @@ cache_timeout: null
 catalog: examples
 schema: public
 sql: |-
-  SELECT * FROM (VALUES
-    (1718870400000, 1718874000000, 'Project Alpha', 'Design Phase', 'Initial design and architecture planning for Alpha.', 'Completed', 'High'),
-    (1718872800000, 1718877200000, 'Project Alpha', 'Development Phase', 'Core feature development for Alpha project.', 'In Progress', 'High'),
-    (1718876400000, 1718880000000, 'Project Alpha', 'Testing Phase', 'Internal testing and bug fixing for Alpha features.', 'Planned', 'Medium'),
-    (1718878800000, 1718882400000, 'Project Alpha', 'Deployment Phase', 'Preparation and execution of Alpha deployment.', 'On Hold', 'High'),
-    (1718880000000, 1718883600000, 'Project Beta', 'Design Phase', 'Gathering requirements and conceptual design for Beta.', 'Completed', 'Medium'),
-    (1718882400000, 1718886000000, 'Project Beta', 'Development Phase', 'Module-wise development for Beta project.', 'In Progress', 'Medium'),
-    (1718884800000, 1718888400000, 'Project Beta', 'Testing Phase', 'User acceptance testing for Beta release.', 'Planned', 'High'),
-    (1718887200000, 1718890800000, 'Project Beta', 'Deployment Phase', 'Final checks and release of Beta version.', 'Planned', 'Medium'),
-    (1718889600000, 1718893200000, 'Project Gamma', 'Design Phase', 'System design and database schema for Gamma.', 'Completed', 'Low'),
-    (1718892000000, 1718895600000, 'Project Gamma', 'Development Phase', 'Backend API and frontend integration for Gamma.', 'In Progress', 'High'),
-    (1718894400000, 1718898000000, 'Project Gamma', 'Testing Phase', 'Automated test suite execution for Gamma.', 'Planned', 'Medium'),
-    (1718896800000, 1718900400000, 'Project Gamma', 'Deployment Phase', 'Handover and post-deployment support for Gamma.', 'Planned', 'Low'),
-    (1718900000000, 1718904000000, 'Project Alpha', 'Risk Assessment', 'Analyzing potential risks and mitigation strategies.', 'Completed', 'High'),
-    (1718902000000, 1718906000000, 'Project Beta', 'Client Review', 'Review meeting with key stakeholders for Beta.', 'In Progress', 'High'),
-    (1718904000000, 1718908000000, 'Project Gamma', 'Documentation', 'Creating technical and user documentation.', 'Planned', 'Low'),
-    (1718906000000, 1718910000000, 'Project Alpha', 'Feature Implementation', 'Implementing new requested features for Alpha.', 'In Progress', 'High'),
-    (1718908000000, 1718912000000, 'Project Beta', 'User Acceptance Testing', 'Final UAT before production release.', 'Planned', 'High'),
-    (1718910000000, 1718914000000, 'Project Gamma', 'Bug Fixing', 'Addressing critical bugs reported post-release.', 'In Progress', 'Medium')
-  ) AS data(start_time, end_time, project, phase, description, status, priority);
+  SELECT
+    1718870400000 AS start_time,
+    1718874000000 AS end_time,
+    'Project Alpha' AS project,
+    'Design Phase' AS phase,
+    'Initial design and architecture planning for Alpha.' AS description,
+    'Completed' AS status,
+    'High' AS priority
+  UNION ALL
+  SELECT
+      1718872800000,
+      1718877200000,
+      'Project Alpha',
+      'Development Phase',
+      'Core feature development for Alpha project.',
+      'In Progress',
+      'High'
+  UNION ALL
+  SELECT
+      1718876400000,
+      1718880000000,
+      'Project Alpha',
+      'Testing Phase',
+      'Internal testing and bug fixing for Alpha features.',
+      'Planned',
+      'Medium'
+  UNION ALL
+  SELECT
+      1718878800000,
+      1718882400000,
+      'Project Alpha',
+      'Deployment Phase',
+      'Preparation and execution of Alpha deployment.',
+      'On Hold',
+      'High'
+  UNION ALL
+  SELECT
+      1718880000000,
+      1718883600000,
+      'Project Beta',
+      'Design Phase',
+      'Gathering requirements and conceptual design for Beta.',
+      'Completed',
+      'Medium'
+  UNION ALL
+  SELECT
+      1718882400000,
+      1718886000000,
+      'Project Beta',
+      'Development Phase',
+      'Module-wise development for Beta project.',
+      'In Progress',
+      'Medium'
+  UNION ALL
+  SELECT
+      1718884800000,
+      1718888400000,
+      'Project Beta',
+      'Testing Phase',
+      'User acceptance testing for Beta release.',
+      'Planned',
+      'High'
+  UNION ALL
+  SELECT
+      1718887200000,
+      1718890800000,
+      'Project Beta',
+      'Deployment Phase',
+      'Final checks and release of Beta version.',
+      'Planned',
+      'Medium'
+  UNION ALL
+  SELECT
+      1718889600000,
+      1718893200000,
+      'Project Gamma',
+      'Design Phase',
+      'System design and database schema for Gamma.',
+      'Completed',
+      'Low'
+  UNION ALL
+  SELECT
+      1718892000000,
+      1718895600000,
+      'Project Gamma',
+      'Development Phase',
+      'Backend API and frontend integration for Gamma.',
+      'In Progress',
+      'High'
+  UNION ALL
+  SELECT
+      1718894400000,
+      1718898000000,
+      'Project Gamma',
+      'Testing Phase',
+      'Automated test suite execution for Gamma.',
+      'Planned',
+      'Medium'
+  UNION ALL
+  SELECT
+      1718896800000,
+      1718900400000,
+      'Project Gamma',
+      'Deployment Phase',
+      'Handover and post-deployment support for Gamma.',
+      'Planned',
+      'Low'
+  UNION ALL
+  SELECT
+      1718900000000,
+      1718904000000,
+      'Project Alpha',
+      'Risk Assessment',
+      'Analyzing potential risks and mitigation strategies.',
+      'Completed',
+      'High'
+  UNION ALL
+  SELECT
+      1718902000000,
+      1718906000000,
+      'Project Beta',
+      'Client Review',
+      'Review meeting with key stakeholders for Beta.',
+      'In Progress',
+      'High'
+  UNION ALL
+  SELECT
+      1718904000000,
+      1718908000000,
+      'Project Gamma',
+      'Documentation',
+      'Creating technical and user documentation.',
+      'Planned',
+      'Low'
+  UNION ALL
+  SELECT
+      1718906000000,
+      1718910000000,
+      'Project Alpha',
+      'Feature Implementation',
+      'Implementing new requested features for Alpha.',
+      'In Progress',
+      'High'
+  UNION ALL
+  SELECT
+      1718908000000,
+      1718912000000,
+      'Project Beta',
+      'User Acceptance Testing',
+      'Final UAT before production release.',
+      'Planned',
+      'High'
+  UNION ALL
+  SELECT
+      1718910000000,
+      1718914000000,
+      'Project Gamma',
+      'Bug Fixing',
+      'Addressing critical bugs reported post-release.',
+      'In Progress',
+      'Medium';
 params: null
 template_params: null
 filter_select_enabled: true
