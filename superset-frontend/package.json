@@ -175,7 +175,7 @@
     "react-google-recaptcha": "^3.1.0",
     "react-hot-loader": "^4.13.1",
     "react-intersection-observer": "^9.16.0",
-    "react-json-tree": "^0.17.0",
+    "react-json-tree": "^0.20.0",
     "react-lines-ellipsis": "^0.15.4",
     "react-loadable": "^5.5.0",
     "react-redux": "^7.2.9",
