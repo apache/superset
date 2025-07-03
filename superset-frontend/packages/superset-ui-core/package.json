@@ -44,7 +44,7 @@
     "fetch-retry": "^6.0.0",
     "jed": "^1.1.1",
     "lodash": "^4.17.21",
-    "math-expression-evaluator": "^2.0.6",
+    "math-expression-evaluator": "^2.0.7",
     "pretty-ms": "^9.2.0",
     "re-resizable": "^6.10.1",
     "react-ace": "^10.1.0",
