@@ -39,7 +39,7 @@ import {
 import { DataTablesPaneProps, ResultTypes } from './types';
 
 const StyledDiv = styled.div`
-  ${({ theme }) => `
+  ${() => `
     display: flex;
     height: 100%;
     flex-direction: column;

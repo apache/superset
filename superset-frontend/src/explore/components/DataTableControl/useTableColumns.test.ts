@@ -75,51 +75,50 @@ const expectedDisplayValues = {
 
 test('useTableColumns with no options', () => {
   const hook = renderHook(() => useTableColumns(colnames, coltypes, data));
-  expect(hook.result.current).toEqual([
-    {
-      Cell: expect.any(Function),
-      Header: 'col01',
-      accessor: expect.any(Function),
-      id: 'col01',
-    },
-    {
-      Cell: expect.any(Function),
-      Header: 'col02',
-      accessor: expect.any(Function),
-      id: 'col02',
-    },
-    {
-      Cell: expect.any(Function),
-      Header: ASCII_KEY,
-      accessor: expect.any(Function),
-      id: ASCII_KEY,
-    },
-    {
-      Cell: expect.any(Function),
-      Header: UNICODE_KEY,
-      accessor: expect.any(Function),
-      id: UNICODE_KEY,
-    },
-    {
-      Cell: expect.any(Function),
-      Header: expect.objectContaining({
-        type: expect.objectContaining({
-          name: 'DataTableTemporalHeaderCell',
-        }),
-        props: expect.objectContaining({
-          onTimeColumnChange: expect.any(Function),
-        }),
-      }),
-      accessor: expect.any(Function),
-      id: NUMTIME_KEY,
-    },
-    {
-      Cell: expect.any(Function),
-      Header: STRTIME_KEY,
-      accessor: expect.any(Function),
-      id: STRTIME_KEY,
-    },
-  ]);
+  expect(hook.result.current).toMatchInlineSnapshot(`
+    [
+      {
+        "Cell": [Function],
+        "Header": "col01",
+        "accessor": [Function],
+        "id": "col01",
+      },
+      {
+        "Cell": [Function],
+        "Header": "col02",
+        "accessor": [Function],
+        "id": "col02",
+      },
+      {
+        "Cell": [Function],
+        "Header": " !"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_\`abcdefghijklmnopqrstuvwxyz{|}~",
+        "accessor": [Function],
+        "id": " !"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_\`abcdefghijklmnopqrstuvwxyz{|}~",
+      },
+      {
+        "Cell": [Function],
+        "Header": "你好. 吃了吗?",
+        "accessor": [Function],
+        "id": "你好. 吃了吗?",
+      },
+      {
+        "Cell": [Function],
+        "Header": <DataTableTemporalHeaderCell
+          columnName="numtime"
+          isOriginalTimeColumn={false}
+          onTimeColumnChange={[Function]}
+        />,
+        "accessor": [Function],
+        "id": "numtime",
+      },
+      {
+        "Cell": [Function],
+        "Header": "strtime",
+        "accessor": [Function],
+        "id": "strtime",
+      },
+    ]
+  `);
   hook.result.current.forEach((col: JsonObject) => {
     expect(col.accessor(data[0])).toBe(data[0][col.id]);
   });
@@ -139,51 +138,50 @@ test('useTableColumns with options', () => {
       col01: { Header: 'Header' },
     }),
   );
-  expect(hook.result.current).toEqual([
-    {
-      Cell: expect.any(Function),
-      Header: 'Header',
-      accessor: expect.any(Function),
-      id: 'col01',
-    },
-    {
-      Cell: expect.any(Function),
-      Header: 'col02',
-      accessor: expect.any(Function),
-      id: 'col02',
-    },
-    {
-      Cell: expect.any(Function),
-      Header: ASCII_KEY,
-      accessor: expect.any(Function),
-      id: ASCII_KEY,
-    },
-    {
-      Cell: expect.any(Function),
-      Header: UNICODE_KEY,
-      accessor: expect.any(Function),
-      id: UNICODE_KEY,
-    },
-    {
-      Cell: expect.any(Function),
-      Header: expect.objectContaining({
-        type: expect.objectContaining({
-          name: 'DataTableTemporalHeaderCell',
-        }),
-        props: expect.objectContaining({
-          onTimeColumnChange: expect.any(Function),
-        }),
-      }),
-      accessor: expect.any(Function),
-      id: NUMTIME_KEY,
-    },
-    {
-      Cell: expect.any(Function),
-      Header: STRTIME_KEY,
-      accessor: expect.any(Function),
-      id: STRTIME_KEY,
-    },
-  ]);
+  expect(hook.result.current).toMatchInlineSnapshot(`
+    [
+      {
+        "Cell": [Function],
+        "Header": "Header",
+        "accessor": [Function],
+        "id": "col01",
+      },
+      {
+        "Cell": [Function],
+        "Header": "col02",
+        "accessor": [Function],
+        "id": "col02",
+      },
+      {
+        "Cell": [Function],
+        "Header": " !"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_\`abcdefghijklmnopqrstuvwxyz{|}~",
+        "accessor": [Function],
+        "id": " !"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_\`abcdefghijklmnopqrstuvwxyz{|}~",
+      },
+      {
+        "Cell": [Function],
+        "Header": "你好. 吃了吗?",
+        "accessor": [Function],
+        "id": "你好. 吃了吗?",
+      },
+      {
+        "Cell": [Function],
+        "Header": <DataTableTemporalHeaderCell
+          columnName="numtime"
+          isOriginalTimeColumn={false}
+          onTimeColumnChange={[Function]}
+        />,
+        "accessor": [Function],
+        "id": "numtime",
+      },
+      {
+        "Cell": [Function],
+        "Header": "strtime",
+        "accessor": [Function],
+        "id": "strtime",
+      },
+    ]
+  `);
   hook.result.current.forEach((col: JsonObject) => {
     expect(col.accessor(data[0])).toBe(data[0][col.id]);
   });

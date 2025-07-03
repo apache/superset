@@ -16,37 +16,29 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import qs from 'querystring';
 import {
-  dashboardView,
   nativeFilters,
   exploreView,
   dataTestChartName,
 } from 'cypress/support/directories';
 
 import {
-  addCountryNameFilter,
   addParentFilterWithValue,
-  applyAdvancedTimeRangeFilterOnDashboard,
   applyNativeFilterValueWithIndex,
   cancelNativeFilterSettings,
   checkNativeFilterTooltip,
   clickOnAddFilterInModal,
   collapseFilterOnLeftPanel,
-  deleteNativeFilter,
   enterNativeFilterEditModal,
   expandFilterOnLeftPanel,
-  fillNativeFilterForm,
   getNativeFilterPlaceholderWithIndex,
   inputNativeFilterDefaultValue,
   saveNativeFilterSettings,
   nativeFilterTooltips,
-  undoDeleteNativeFilter,
   validateFilterContentOnDashboard,
   valueNativeFilterOptions,
   validateFilterNameOnDashboard,
   testItems,
-  WORLD_HEALTH_CHARTS,
 } from './utils';
 import {
   prepareDashboardFilters,

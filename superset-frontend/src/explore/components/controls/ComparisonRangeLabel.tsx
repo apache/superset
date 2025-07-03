@@ -19,7 +19,7 @@
 
 import { useEffect, useState } from 'react';
 import { useSelector } from 'react-redux';
-import { isEmpty, isEqual } from 'lodash';
+import { isEmpty, isEqual, noop } from 'lodash';
 import {
   BinaryAdhocFilter,
   css,
@@ -61,6 +61,8 @@ const oldChoices = {
 export const ComparisonRangeLabel = ({
   multi = true,
 }: ComparisonRangeLabelProps) => {
+  noop(multi); // This is to avoid unused variable warning, can be removed if not needed
+
   const [labels, setLabels] = useState<string[]>([]);
   const currentTimeRangeFilters = useSelector<RootState, BinaryAdhocFilter[]>(
     state =>

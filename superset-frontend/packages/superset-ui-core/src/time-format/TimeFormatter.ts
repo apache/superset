@@ -21,6 +21,8 @@ import { isRequired } from '../utils';
 import { TimeFormatFunction } from './types';
 import stringifyTimeInput from './utils/stringifyTimeInput';
 
+/* eslint-disable @typescript-eslint/no-unsafe-declaration-merging */
+
 export const PREVIEW_TIME = new Date(Date.UTC(2017, 1, 14, 11, 22, 33));
 
 // Use type augmentation to indicate that
