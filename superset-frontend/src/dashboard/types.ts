@@ -39,6 +39,7 @@ import {
   ChartCustomizationItem,
   FilterOption,
 } from './components/nativeFilters/ChartCustomization/types';
+import { GroupByCustomizationsState } from './reducers/groupByCustomizations';
 import { ChartState } from '../explore/types';
 
 export type { Dashboard } from 'src/types/Dashboard';
@@ -183,6 +184,7 @@ export type RootState = {
   dataMask: DataMaskStateWithId;
   impressionId: string;
   nativeFilters: NativeFiltersState;
+  groupByCustomizations: GroupByCustomizationsState;
   user: UserWithPermissionsAndRoles;
 };
 
