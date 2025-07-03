@@ -94,6 +94,10 @@ export default class MainPreset extends Preset {
         ]
       : [];
 
+    const agGridTablePlugin = isFeatureEnabled(FeatureFlag.AgGridTableEnabled)
+      ? [new AgGridTableChartPlugin().configure({ key: VizType.TableAgGrid })]
+      : [];
+
     super({
       name: 'Legacy charts',
       presets: [new DeckGLChartPreset()],
@@ -186,9 +190,7 @@ export default class MainPreset extends Preset {
           ],
         }).configure({ key: VizType.Cartodiagram }),
         ...experimentalPlugins,
-        ...(isFeatureEnabled(FeatureFlag.AgGridTableEnabled) && [
-          new AgGridTableChartPlugin().configure({ key: VizType.TableAgGrid }),
-        ]),
+        ...agGridTablePlugin,
       ],
     });
   }
