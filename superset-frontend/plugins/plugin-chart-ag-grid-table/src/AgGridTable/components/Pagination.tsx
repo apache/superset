@@ -24,13 +24,14 @@ import {
   LeftOutlined,
   RightOutlined,
 } from '@ant-design/icons';
-import { ButtonGroup, Select } from '@superset-ui/core/components';
+import { Select } from '@superset-ui/core/components';
 import {
   PaginationContainer,
   SelectWrapper,
   PageInfo,
   PageCount,
   PageButton,
+  ButtonGroup,
 } from '../../styles';
 
 interface PaginationProps {
