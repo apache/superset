@@ -154,6 +154,17 @@ describe('Horizontal FilterBar', () => {
       { name: 'test_12', column: 'year', datasetId: 2 },
     ]);
     setFilterBarOrientation('horizontal');
+
+    cy.window()
+      .its('__store')
+      .invoke('getState')
+      .then(state => {
+        expect(
+          state.dashboardState.metadata.chart_customization_config,
+        ).to.deep.equal([]);
+        expect(state.dashboardState.chartCustomization.items).to.deep.equal([]);
+      });
+
     cy.getBySel('form-item-value').should('have.length', 4);
     openMoreFilters();
     cy.getBySel('form-item-value').should('have.length', 12);
