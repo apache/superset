@@ -48,14 +48,8 @@ import {
 } from '../../constants';
 import { StackControlsValue } from '../../../constants';
 
-const {
-  logAxis,
-  minorSplitLine,
-  truncateYAxis,
-  yAxisBounds,
-  zoomable,
-  orientation,
-} = DEFAULT_FORM_DATA;
+const { logAxis, minorSplitLine, truncateYAxis, yAxisBounds, orientation } =
+  DEFAULT_FORM_DATA;
 
 function createAxisTitleControl(axis: 'x' | 'y'): ControlSetRow[] {
   const isXAxis = axis === 'x';
@@ -363,18 +357,7 @@ const config: ControlPanelConfig = {
           },
         ],
         [minorTicks],
-        [
-          {
-            name: 'zoomable',
-            config: {
-              type: 'CheckboxControl',
-              label: t('Data Zoom'),
-              default: zoomable,
-              renderTrigger: true,
-              description: t('Enable data zooming controls'),
-            },
-          },
-        ],
+        ['zoomable'],
         ...legendSection,
         [<ControlSubSectionHeader>{t('X Axis')}</ControlSubSectionHeader>],
         ...createAxisControl('x'),

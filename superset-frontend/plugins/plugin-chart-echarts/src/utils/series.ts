@@ -685,3 +685,20 @@ export function extractTooltipKeys(
   }
   return [forecastValue[0][TOOLTIP_SERIES_KEY]];
 }
+
+export function groupData(data: DataRecord[], by?: string | null) {
+  const seriesMap: Map<DataRecordValue | undefined, DataRecord[]> = new Map();
+  if (by) {
+    data.forEach(datum => {
+      const value = seriesMap.get(datum[by]);
+      if (value) {
+        value.push(datum);
+      } else {
+        seriesMap.set(datum[by], [datum]);
+      }
+    });
+  } else {
+    seriesMap.set(undefined, data);
+  }
+  return seriesMap;
+}
