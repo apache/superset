@@ -61,6 +61,7 @@ export enum FeatureFlag {
   EnableDashboardScreenshotEndpoints = 'ENABLE_DASHBOARD_SCREENSHOT_ENDPOINTS',
   EnableDashboardDownloadWebDriverScreenshot = 'ENABLE_DASHBOARD_DOWNLOAD_WEBDRIVER_SCREENSHOT',
   TableV2TimeComparisonEnabled = 'TABLE_V2_TIME_COMPARISON_ENABLED',
+  AgGridTableEnabled = 'AG_GRID_TABLE_ENABLED',
 }
 
 export type ScheduleQueriesProps = {

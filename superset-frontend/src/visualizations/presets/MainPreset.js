@@ -91,7 +91,6 @@ export default class MainPreset extends Preset {
           new BigNumberPeriodOverPeriodChartPlugin().configure({
             key: VizType.BigNumberPeriodOverPeriod,
           }),
-          new AgGridTableChartPlugin().configure({ key: VizType.TableAgGrid }),
         ]
       : [];
 
@@ -187,6 +186,9 @@ export default class MainPreset extends Preset {
           ],
         }).configure({ key: VizType.Cartodiagram }),
         ...experimentalPlugins,
+        ...(isFeatureEnabled(FeatureFlag.AgGridTableEnabled) && [
+          new AgGridTableChartPlugin().configure({ key: VizType.TableAgGrid }),
+        ]),
       ],
     });
   }
