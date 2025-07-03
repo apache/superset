@@ -88,7 +88,7 @@ const VerticalDotsTrigger = () => {
           cursor: pointer;
         }
       `}
-      iconSize="xxl"
+      iconSize="xl"
       iconColor={theme.colorTextLabel}
       className="dot"
     />
