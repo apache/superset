@@ -36,6 +36,8 @@ interface CommonFiltersBarProps {
     filter: Pick<Filter, 'id'> & Partial<Filter>,
     dataMask: Partial<DataMask>,
   ) => void;
+  clearAllTriggers?: Record<string, boolean>;
+  onClearAllComplete?: (filterId: string) => void;
 }
 
 interface VerticalBarConfig {
