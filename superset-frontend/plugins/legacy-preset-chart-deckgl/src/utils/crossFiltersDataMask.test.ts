@@ -100,20 +100,12 @@ describe('getCrossFilterDataMask', () => {
         extraFormData: {
           filters: [
             {
-              col: {
-                expressionType: 'SQL',
-                label: 'LON, LAT',
-                sqlExpression: '"LON"',
-              },
+              col: 'LON',
               op: '==',
               val: -122.4205965,
             },
             {
-              col: {
-                expressionType: 'SQL',
-                label: 'LON, LAT',
-                sqlExpression: '"LAT"',
-              },
+              col: 'LAT',
               op: '==',
               val: 37.8054735,
             },
@@ -121,6 +113,7 @@ describe('getCrossFilterDataMask', () => {
         },
         filterState: {
           value: [-122.4205965, 37.8054735],
+          customColumnLabel: 'LON, LAT',
         },
       },
       isCurrentValueSelected: false,
@@ -174,6 +167,7 @@ describe('getCrossFilterDataMask', () => {
         },
         filterState: {
           value: null,
+          customColumnLabel: 'LON, LAT',
         },
       },
       isCurrentValueSelected: true,
@@ -219,11 +213,7 @@ describe('getCrossFilterDataMask', () => {
         extraFormData: {
           filters: [
             {
-              col: {
-                expressionType: 'SQL',
-                label: 'LONLAT',
-                sqlExpression: '"LONLAT"',
-              },
+              col: 'LONLAT',
               op: '==',
               val: `-122.4205965,37.8054735`,
             },
@@ -277,11 +267,7 @@ describe('getCrossFilterDataMask', () => {
         extraFormData: {
           filters: [
             {
-              col: {
-                expressionType: 'SQL',
-                label: 'LONLAT',
-                sqlExpression: '"LONLAT"',
-              },
+              col: 'LONLAT',
               op: '==',
               val: `37.8054735,-122.4205965`,
             },
@@ -330,11 +316,7 @@ describe('getCrossFilterDataMask', () => {
         extraFormData: {
           filters: [
             {
-              col: {
-                expressionType: 'SQL',
-                label: 'geohash',
-                sqlExpression: '"geohash"',
-              },
+              col: 'geohash',
               op: '==',
               val: `9q8zn620c751`,
             },
@@ -384,29 +366,17 @@ describe('getCrossFilterDataMask', () => {
         extraFormData: {
           filters: [
             {
-              col: {
-                expressionType: 'SQL',
-                label: 'Start geohash end LAT_DEST, LON_DEST',
-                sqlExpression: '"geohash"',
-              },
+              col: 'geohash',
               op: '==',
               val: `9q8zn620c751`,
             },
             {
-              col: {
-                expressionType: 'SQL',
-                label: 'Start geohash end LAT_DEST, LON_DEST',
-                sqlExpression: '"LON_DEST"',
-              },
+              col: 'LON_DEST',
               op: '==',
               val: -122.4215375,
             },
             {
-              col: {
-                expressionType: 'SQL',
-                label: 'Start geohash end LAT_DEST, LON_DEST',
-                sqlExpression: '"LAT_DEST"',
-              },
+              col: 'LAT_DEST',
               op: '==',
               val: 37.8058583,
             },
@@ -414,6 +384,7 @@ describe('getCrossFilterDataMask', () => {
         },
         filterState: {
           value: [['9q8zn620c751'], [-122.4215375, 37.8058583]],
+          customColumnLabel: 'Start geohash end LAT_DEST, LON_DEST',
         },
       },
       isCurrentValueSelected: false,
@@ -455,38 +426,22 @@ describe('getCrossFilterDataMask', () => {
         extraFormData: {
           filters: [
             {
-              col: {
-                expressionType: 'SQL',
-                label: 'From LON, LAT to LON, LAT',
-                sqlExpression: '"LON"',
-              },
+              col: 'LON',
               op: '>=',
               val: -122.41076435788005,
             },
             {
-              col: {
-                expressionType: 'SQL',
-                label: 'From LON, LAT to LON, LAT',
-                sqlExpression: '"LAT"',
-              },
+              col: 'LAT',
               op: '>=',
               val: 37.76848281376027,
             },
             {
-              col: {
-                expressionType: 'SQL',
-                label: 'From LON, LAT to LON, LAT',
-                sqlExpression: '"LON"',
-              },
+              col: 'LON',
               op: '<=',
               val: -122.39201435788004,
             },
             {
-              col: {
-                expressionType: 'SQL',
-                label: 'From LON, LAT to LON, LAT',
-                sqlExpression: '"LAT"',
-              },
+              col: 'LAT',
               op: '<=',
               val: 37.78723281376027,
             },
@@ -497,6 +452,7 @@ describe('getCrossFilterDataMask', () => {
             [-122.41076435788005, 37.76848281376027],
             [-122.39201435788004, 37.78723281376027],
           ],
+          customColumnLabel: 'From LON, LAT to LON, LAT',
         },
       },
       isCurrentValueSelected: false,

@@ -59,6 +59,7 @@ export interface LayerFormData extends SqlaFormData {
 export interface FilterResult {
   filters: QueryObjectFilterClause[];
   values: FilterState;
+  customColumnLabel?: string;
 }
 
 export interface PositionBounds {
@@ -83,7 +84,6 @@ const getFiltersBySpatialType = ({
   position: [number, number];
   spatialData: SpatialData;
   positionBounds?: PositionBounds;
-  customColumnLabel?: string;
 }) => {
   const {
     lonCol,
@@ -96,6 +96,7 @@ const getFiltersBySpatialType = ({
   } = spatialData;
   let values: any[] = [];
   let filters: QueryObjectFilterClause[] = [];
+  let customColumnLabel;
 
   if (!position && !positionBounds)
     throw new Error('Position of picked data is required');
@@ -107,6 +108,7 @@ const getFiltersBySpatialType = ({
 
         if (position) {
           values = position;
+          customColumnLabel = cols.join(', ');
 
           filters = [
             ...cols.map(
@@ -120,6 +122,7 @@ const getFiltersBySpatialType = ({
           ];
         } else if (positionBounds) {
           values = [positionBounds.from, positionBounds.to];
+          customColumnLabel = `From ${lonCol}, ${latCol} to ${lonCol}, ${latCol}`;
 
           filters = [
             ...cols.map(
@@ -193,6 +196,7 @@ const getFiltersBySpatialType = ({
   return {
     filters,
     values,
+    customColumnLabel,
   };
 };
 
@@ -256,13 +260,11 @@ const getStartEndSpatialFilters = ({
   const startSpatialFilters = getFiltersBySpatialType({
     position: sourcePosition,
     spatialData: formData.start_spatial,
-    customColumnLabel,
   });
 
   const endSpatialFilters = getFiltersBySpatialType({
     position: targetPosition,
     spatialData: formData.end_spatial,
-    customColumnLabel,
   });
 
   if (!startSpatialFilters || !endSpatialFilters)
@@ -274,6 +276,7 @@ const getStartEndSpatialFilters = ({
       ...(startSpatialFilters.filters || []),
       ...(endSpatialFilters.filters || []),
     ],
+    customColumnLabel,
   };
 };
 
@@ -376,19 +379,20 @@ export const getCrossFilterDataMask = ({
 }) => {
   let values: FilterState['value'] = [];
   let filters: QueryObjectFilterClause[] = [];
+  let customColumnLabel: string | undefined;
 
   if (formData.start_spatial && formData.end_spatial) {
     const result = getStartEndSpatialFilters({ formData, data });
-    ({ values, filters } = result);
+    ({ values, filters, customColumnLabel } = result);
   } else if (formData.spatial?.type) {
     const result = getSpatialFilters({ formData, data });
-    ({ values, filters } = result);
+    ({ values, filters, customColumnLabel } = result);
   } else if (formData.line_column) {
     const result = getLineColumnFilters({ formData, data });
-    ({ values, filters } = result);
+    ({ values, filters, customColumnLabel } = result);
   } else if (formData.geojson) {
     const result = getGeojsonFilters({ formData, data });
-    ({ values, filters } = result);
+    ({ values, filters, customColumnLabel } = result);
   } else {
     throw new Error('No valid spatial configuration found in form data');
   }
@@ -410,6 +414,7 @@ export const getCrossFilterDataMask = ({
       },
       filterState: {
         value: values.length ? values : null,
+        ...(customColumnLabel ? { customColumnLabel } : {}),
       },
     },
     isCurrentValueSelected: isSelected || false,

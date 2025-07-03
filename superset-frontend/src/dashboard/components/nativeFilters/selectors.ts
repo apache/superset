@@ -170,8 +170,11 @@ export const getCrossFilterIndicator = (
   const filters = dataMask?.extraFormData?.filters;
   const label = extractLabel(filterState);
   const filtersState = filterState?.filters;
+  const customColumnLabel = filterState?.customColumnLabel;
   const column =
-    filters?.[0]?.col || (filtersState && Object.keys(filtersState)[0]);
+    customColumnLabel ||
+    filters?.[0]?.col ||
+    (filtersState && Object.keys(filtersState)[0]);
 
   const chartLayoutItem = chartLayoutItems.find(
     layoutItem => layoutItem?.meta?.chartId === chartId,
