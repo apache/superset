@@ -20,7 +20,6 @@ import { render, screen } from 'spec/helpers/testing-library';
 import { MemoryRouter } from 'react-router-dom';
 import Register from './index';
 
-// Mock getBootstrapData to return consistent test data
 jest.mock('src/utils/getBootstrapData', () => ({
   __esModule: true,
   default: () => ({
@@ -32,7 +31,6 @@ jest.mock('src/utils/getBootstrapData', () => ({
   }),
 }));
 
-// Mock react-google-recaptcha
 jest.mock('react-google-recaptcha', () => ({
   __esModule: true,
   default: () => <div data-test="captcha-input" />,
@@ -45,49 +43,40 @@ const renderRegister = () =>
     </MemoryRouter>,
   );
 
-describe('Register Component', () => {
-  test('should render register form elements', () => {
-    renderRegister();
+test('should render register form elements', () => {
+  renderRegister();
 
-    // Check if register form is visible
-    expect(screen.getByTestId('register-form')).toBeInTheDocument();
+  expect(screen.getByTestId('register-form')).toBeInTheDocument();
+  expect(screen.getByTestId('username-input')).toBeInTheDocument();
+  expect(screen.getByTestId('first-name-input')).toBeInTheDocument();
+  expect(screen.getByTestId('last-name-input')).toBeInTheDocument();
+  expect(screen.getByTestId('email-input')).toBeInTheDocument();
+  expect(screen.getByTestId('password-input')).toBeInTheDocument();
+  expect(screen.getByTestId('confirm-password-input')).toBeInTheDocument();
+  expect(screen.getByTestId('register-button')).toBeInTheDocument();
+  expect(
+    screen.getByText('Fill out the registration form'),
+  ).toBeInTheDocument();
+});
 
-    // Check if all form inputs are visible
-    expect(screen.getByTestId('username-input')).toBeInTheDocument();
-    expect(screen.getByTestId('first-name-input')).toBeInTheDocument();
-    expect(screen.getByTestId('last-name-input')).toBeInTheDocument();
-    expect(screen.getByTestId('email-input')).toBeInTheDocument();
-    expect(screen.getByTestId('password-input')).toBeInTheDocument();
-    expect(screen.getByTestId('confirm-password-input')).toBeInTheDocument();
+test('should render form labels', () => {
+  renderRegister();
 
-    // Check if register button is visible
-    expect(screen.getByTestId('register-button')).toBeInTheDocument();
+  expect(screen.getByText('Username')).toBeInTheDocument();
+  expect(screen.getByText('First Name')).toBeInTheDocument();
+  expect(screen.getByText('Last Name')).toBeInTheDocument();
+  expect(screen.getByText('Email')).toBeInTheDocument();
+  expect(screen.getByText('Password')).toBeInTheDocument();
+  expect(screen.getByText('Confirm password')).toBeInTheDocument();
+});
 
-    // Check if the form title is present
-    expect(
-      screen.getByText('Fill out the registration form'),
-    ).toBeInTheDocument();
-  });
+test('should render input placeholders', () => {
+  renderRegister();
 
-  test('should render form labels', () => {
-    renderRegister();
-
-    expect(screen.getByText('Username')).toBeInTheDocument();
-    expect(screen.getByText('First Name')).toBeInTheDocument();
-    expect(screen.getByText('Last Name')).toBeInTheDocument();
-    expect(screen.getByText('Email')).toBeInTheDocument();
-    expect(screen.getByText('Password')).toBeInTheDocument();
-    expect(screen.getByText('Confirm password')).toBeInTheDocument();
-  });
-
-  test('should render input placeholders', () => {
-    renderRegister();
-
-    expect(screen.getByPlaceholderText('Username')).toBeInTheDocument();
-    expect(screen.getByPlaceholderText('First name')).toBeInTheDocument();
-    expect(screen.getByPlaceholderText('Last name')).toBeInTheDocument();
-    expect(screen.getByPlaceholderText('Email')).toBeInTheDocument();
-    expect(screen.getByPlaceholderText('Password')).toBeInTheDocument();
-    expect(screen.getByPlaceholderText('Confirm password')).toBeInTheDocument();
-  });
+  expect(screen.getByPlaceholderText('Username')).toBeInTheDocument();
+  expect(screen.getByPlaceholderText('First name')).toBeInTheDocument();
+  expect(screen.getByPlaceholderText('Last name')).toBeInTheDocument();
+  expect(screen.getByPlaceholderText('Email')).toBeInTheDocument();
+  expect(screen.getByPlaceholderText('Password')).toBeInTheDocument();
+  expect(screen.getByPlaceholderText('Confirm password')).toBeInTheDocument();
 });

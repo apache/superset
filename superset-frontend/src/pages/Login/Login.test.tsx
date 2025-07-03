@@ -19,13 +19,12 @@
 import { render, screen } from 'spec/helpers/testing-library';
 import Login from './index';
 
-// Mock getBootstrapData to return consistent test data
 jest.mock('src/utils/getBootstrapData', () => ({
   __esModule: true,
   default: () => ({
     common: {
       conf: {
-        AUTH_TYPE: 1, // AuthType.AuthDB
+        AUTH_TYPE: 1,
         AUTH_PROVIDERS: [],
         AUTH_USER_REGISTRATION: false,
       },
@@ -33,28 +32,24 @@ jest.mock('src/utils/getBootstrapData', () => ({
   }),
 }));
 
-describe('Login Component', () => {
-  test('should render login form elements', () => {
-    render(<Login />);
-    expect(screen.getByTestId('login-form')).toBeInTheDocument();
-    expect(screen.getByTestId('username-input')).toBeInTheDocument();
-    expect(screen.getByTestId('password-input')).toBeInTheDocument();
-    expect(screen.getByTestId('login-button')).toBeInTheDocument();
-    expect(screen.getByText('Sign in')).toBeInTheDocument();
-  });
+test('should render login form elements', () => {
+  render(<Login />);
+  expect(screen.getByTestId('login-form')).toBeInTheDocument();
+  expect(screen.getByTestId('username-input')).toBeInTheDocument();
+  expect(screen.getByTestId('password-input')).toBeInTheDocument();
+  expect(screen.getByTestId('login-button')).toBeInTheDocument();
+  expect(screen.getByText('Sign in')).toBeInTheDocument();
+});
 
-  test('should render username and password labels', () => {
-    render(<Login />);
+test('should render username and password labels', () => {
+  render(<Login />);
+  expect(screen.getByText('Username:')).toBeInTheDocument();
+  expect(screen.getByText('Password:')).toBeInTheDocument();
+});
 
-    expect(screen.getByText('Username:')).toBeInTheDocument();
-    expect(screen.getByText('Password:')).toBeInTheDocument();
-  });
-
-  test('should render form instruction text', () => {
-    render(<Login />);
-
-    expect(
-      screen.getByText('Enter your login and password below:'),
-    ).toBeInTheDocument();
-  });
+test('should render form instruction text', () => {
+  render(<Login />);
+  expect(
+    screen.getByText('Enter your login and password below:'),
+  ).toBeInTheDocument();
 });
