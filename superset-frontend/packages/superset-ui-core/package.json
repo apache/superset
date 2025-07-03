@@ -27,7 +27,7 @@
     "@ant-design/icons": "^5.2.6",
     "@babel/runtime": "^7.25.6",
     "@fontsource/fira-code": "^5.0.18",
-    "@fontsource/inter": "^5.0.20",
+    "@fontsource/inter": "^5.2.6",
     "@types/json-bigint": "^1.0.4",
     "ace-builds": "^1.43.0",
     "brace": "^0.11.1",
