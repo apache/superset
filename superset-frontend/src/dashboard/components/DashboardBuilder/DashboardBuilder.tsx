@@ -291,9 +291,9 @@ const StyledDashboardContent = styled.div<{
       width: 0;
       flex: 1;
       position: relative;
-      margin-top: ${theme.sizeUnit * 6}px;
+      margin-top: ${theme.sizeUnit * 4}px;
       margin-right: ${theme.sizeUnit * 8}px;
-      margin-bottom: ${theme.sizeUnit * 6}px;
+      margin-bottom: ${theme.sizeUnit * 4}px;
       margin-left: ${marginLeft}px;
 
       ${editMode &&
