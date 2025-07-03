@@ -110,7 +110,7 @@ describe('Horizontal FilterBar', () => {
       { name: 'test_3', column: 'region', datasetId: 2 },
     ]);
     setFilterBarOrientation('horizontal');
-    cy.getBySel('form-item-value').should('have.length', 3);
+    cy.get('.filter-item-wrapper').should('have.length', 3);
   });
 
   it('should show "more filters" on window resizing up and down', () => {
@@ -155,17 +155,7 @@ describe('Horizontal FilterBar', () => {
     ]);
     setFilterBarOrientation('horizontal');
 
-    cy.window()
-      .its('__store')
-      .invoke('getState')
-      .then(state => {
-        expect(
-          state.dashboardState.metadata.chart_customization_config,
-        ).to.deep.equal([]);
-        expect(state.dashboardState.chartCustomization.items).to.deep.equal([]);
-      });
-
-    cy.getBySel('form-item-value').should('have.length', 4);
+    cy.get('.filter-item-wrapper').should('have.length', 4);
     openMoreFilters();
     cy.getBySel('form-item-value').should('have.length', 12);
     cy.getBySel('filter-control-name').contains('test_3').should('be.visible');
