@@ -18,7 +18,7 @@
   "license": "Apache-2.0",
   "dependencies": {
     "cookie": "^0.7.0",
-    "hot-shots": "^10.2.1",
+    "hot-shots": "^11.1.0",
     "ioredis": "^4.28.0",
     "jsonwebtoken": "^9.0.2",
     "lodash": "^4.17.21",
@@ -39,7 +39,7 @@
     "@types/ws": "^8.5.12",
     "@typescript-eslint/eslint-plugin": "^8.26.0",
     "@typescript-eslint/parser": "^8.33.0",
-    "eslint": "^9.27.0",
+    "eslint": "^9.30.0",
     "eslint-config-prettier": "^10.1.5",
     "eslint-plugin-lodash": "^8.0.0",
     "globals": "^16.0.0",

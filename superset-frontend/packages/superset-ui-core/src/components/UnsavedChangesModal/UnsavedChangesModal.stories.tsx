@@ -16,16 +16,32 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { ReactElement } from 'react';
+import { UnsavedChangesModal, type UnsavedChangesModalProps } from '.';
 
-// /superset/sqllab_viz
-interface SqlLabPostRequest {
-  data: {
-    schema: string;
-    sql: string;
-    dbId: number;
-    templateParams?: string | undefined;
-    datasourceName: string;
-    metrics?: string[];
-    columns?: string[];
-  };
-}
+export default {
+  title: 'Components/UnsavedChangesModal',
+  component: UnsavedChangesModal,
+};
+
+export const InteractiveUnsavedChangesModal = (
+  props: UnsavedChangesModalProps,
+): ReactElement => (
+  <UnsavedChangesModal {...props}>
+    If you don't save, changes will be lost.
+  </UnsavedChangesModal>
+);
+
+InteractiveUnsavedChangesModal.args = {
+  showModal: true,
+  onHide: () => {},
+  handleSave: () => {},
+  onConfirmNavigation: () => {},
+  title: 'Unsaved Changes',
+};
+
+InteractiveUnsavedChangesModal.argTypes = {
+  onHide: { action: 'onHide' },
+  handleSave: { action: 'handleSave' },
+  onConfirmNavigation: { action: 'onConfirmNavigation' },
+};
