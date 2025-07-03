@@ -16,25 +16,44 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useArgs } from '@storybook/preview-api';
-import TimezoneSelector, { TimezoneSelectorProps } from './index';
+import TextControl from 'src/explore/components/controls/TextControl';
+import CheckboxControl from 'src/explore/components/controls/CheckboxControl';
+import FormRow from '.';
 
 export default {
+<<<<<<<< HEAD:superset-frontend/src/components/TimezoneSelector/TimezoneSelector.stories.tsx
   title: 'TimezoneSelector',
   component: TimezoneSelector,
+========
+  title: 'FormRow',
+>>>>>>>> a71c97383 (Revert "Merge branch 'apache:master' into master"):superset-frontend/src/components/FormRow/FormRow.stories.tsx
 };
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-export const InteractiveTimezoneSelector = (args: TimezoneSelectorProps) => {
-  const [{ timezone }, updateArgs] = useArgs();
-  const onTimezoneChange = (value: string) => {
-    updateArgs({ timezone: value });
-  };
+export const InteractiveFormRow = ({ isCheckbox, ...rest }: any) => {
+  const control = isCheckbox ? (
+    <CheckboxControl label="Checkbox" />
+  ) : (
+    <TextControl />
+  );
   return (
-    <TimezoneSelector timezone={timezone} onTimezoneChange={onTimezoneChange} />
+    <div style={{ width: 300 }}>
+      <FormRow {...rest} control={control} isCheckbox={isCheckbox} />
+    </div>
   );
 };
 
-InteractiveTimezoneSelector.args = {
-  timezone: 'America/Los_Angeles',
+InteractiveFormRow.args = {
+  label: 'Label',
+  tooltip: 'Tooltip',
+  control: <TextControl />,
+  isCheckbox: false,
+};
+
+InteractiveFormRow.argTypes = {
+  control: {
+    defaultValue: <TextControl />,
+    table: {
+      disable: true,
+    },
+  },
 };
