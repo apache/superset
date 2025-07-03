@@ -32,6 +32,7 @@ import dashboardInfo from 'src/dashboard/reducers/dashboardInfo';
 import dashboardState from 'src/dashboard/reducers/dashboardState';
 import dashboardFilters from 'src/dashboard/reducers/dashboardFilters';
 import nativeFilters from 'src/dashboard/reducers/nativeFilters';
+import groupByCustomizations from 'src/dashboard/reducers/groupByCustomizations';
 import dashboardDatasources from 'src/dashboard/reducers/datasources';
 import sliceEntities from 'src/dashboard/reducers/sliceEntities';
 import dashboardLayout from 'src/dashboard/reducers/undoableDashboardLayout';
@@ -143,6 +144,7 @@ const reducers = {
   saveModal,
   explore,
   database: databaseReducer,
+  groupByCustomizations,
 };
 
 /* In some cases the jinja template injects two separate React apps into basic.html
