@@ -22,7 +22,6 @@
 import { useRef, useState } from 'react';
 import { styled, t } from '@superset-ui/core';
 import { ArrowDownOutlined, ArrowUpOutlined } from '@ant-design/icons';
-import { Popover } from '@superset-ui/core/components/Popover';
 import FilterIcon from './Filter';
 import KebabMenu from './KebabMenu';
 import {
@@ -31,7 +30,7 @@ import {
   SortState,
   UserProvidedColDef,
 } from '../../types';
-import useOutsideClick from '../../utils/useOutsideclick';
+import CustomPopover from './CustomPopover';
 import { useIsDark } from '../../utils/useTableTheme';
 
 // Styled Components
@@ -111,17 +110,6 @@ const MenuContainer = styled.div`
   `}
 `;
 
-const StyledAntdPopover = styled.div`
-  ${({ theme }) => `
-    background: ${theme.colors.grayscale.light4};
-    border: 1px solid ${theme.colors.grayscale.light2};
-    border-radius: ${theme.borderRadius}px;
-    box-shadow: 0 ${theme.sizeUnit / 2}px ${theme.sizeUnit * 2}px ${theme.colors.grayscale.light1}40;
-    min-width: ${theme.sizeUnit * 50}px;
-    padding: ${theme.sizeUnit * 2}px;
-  `}
-`;
-
 const getSortIcon = (sortState: SortState[], colId: string | null) => {
   if (!sortState?.length || !colId) return null;
   const { colId: currentCol, sort } = sortState[0];
@@ -142,7 +130,6 @@ const CustomHeader: React.FC<CustomHeaderParams> = ({
   context,
   column,
   api,
-  slice_id,
 }) => {
   const { initialSortState, onColumnHeaderClicked } = context;
   const colId = column?.getColId();
@@ -153,7 +140,6 @@ const CustomHeader: React.FC<CustomHeaderParams> = ({
   const [isFilterVisible, setFilterVisible] = useState(false);
   const [isMenuVisible, setMenuVisible] = useState(false);
   const filterRef = useRef<HTMLDivElement>(null);
-  const popoverContentRef = useRef<HTMLDivElement>(null);
 
   const currentSort = initialSortState?.[0];
   const isMain = userColDef?.isMain;
@@ -229,19 +215,6 @@ const CustomHeader: React.FC<CustomHeaderParams> = ({
     </MenuContainer>
   );
 
-  const className = `#chart-id-${slice_id} .ag-root-wrapper`;
-
-  const handleFilterClose = () => {
-    if (isFilterVisible) {
-      setFilterVisible(false);
-    }
-  };
-
-  // The filter popover gets closed even when clicking on one of filter options
-  // possibly due to some ant popover logic
-  // this hook prevents the filter popover from closing when clicking on one of filter options
-  useOutsideClick(popoverContentRef, handleFilterClose);
-
   const isDarkTheme = useIsDark();
 
   return (
@@ -253,46 +226,29 @@ const CustomHeader: React.FC<CustomHeaderParams> = ({
         </SortIconWrapper>
       </HeaderContainer>
 
-      <Popover
-        classNames={{
-          root: 'filter-popover',
-        }}
-        content={
-          <StyledAntdPopover ref={popoverContentRef}>
-            <div ref={filterRef} />
-          </StyledAntdPopover>
-        }
-        open={isFilterVisible}
-        onOpenChange={visible => visible && setFilterVisible(true)}
-        trigger="click"
-        getPopupContainer={() =>
-          document.querySelector(className) || document.body
-        }
-        arrow={false}
+      <CustomPopover
+        content={<div ref={filterRef} />}
+        isOpen={isFilterVisible}
+        onClose={() => setFilterVisible(false)}
       >
         <FilterIconWrapper
           className="header-filter"
           onClick={handleFilterClick}
         >
-          {FilterIcon}
+          {FilterIcon({ fill: isDarkTheme ? 'white' : 'black' })}
         </FilterIconWrapper>
-      </Popover>
+      </CustomPopover>
 
       {!isPercentMetric && !isTimeComparison && (
-        <Popover
-          content={<StyledAntdPopover>{menuContent}</StyledAntdPopover>}
-          open={isMenuVisible}
-          onOpenChange={setMenuVisible}
-          trigger="click"
-          getPopupContainer={() =>
-            document.querySelector(className) || document.body
-          }
-          arrow={false}
+        <CustomPopover
+          content={menuContent}
+          isOpen={isMenuVisible}
+          onClose={() => setMenuVisible(false)}
         >
           <div className="three-dots-menu" onClick={handleMenuClick}>
             <KebabMenu color={isDarkTheme ? 'white' : 'black'} />
           </div>
-        </Popover>
+        </CustomPopover>
       )}
     </Container>
   );

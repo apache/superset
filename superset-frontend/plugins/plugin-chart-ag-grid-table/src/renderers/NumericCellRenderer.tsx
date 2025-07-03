@@ -19,6 +19,7 @@
 import { styled } from '@superset-ui/core';
 import { CustomCellRendererProps } from 'ag-grid-react';
 import { BasicColorFormatterType, InputColumn } from '../types';
+import { useIsDark } from '../utils/useTableTheme';
 
 const StyledTotalCell = styled.div`
   ${() => `
@@ -107,17 +108,19 @@ function cellOffset({
 function cellBackground({
   value,
   colorPositiveNegative = false,
+  isDarkTheme = false,
 }: {
   value: number;
   colorPositiveNegative: boolean;
+  isDarkTheme: boolean;
 }) {
   if (!colorPositiveNegative) {
-    return 'rgba(0,0,0,0.2)'; // transparent or neutral
+    return isDarkTheme ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.2)'; // transparent or neutral
   }
 
   const r = value < 0 ? 150 : 0;
   const g = value >= 0 ? 150 : 0;
-  return `rgba(${r},${g},0,0.2)`;
+  return `rgba(${r},${g},0,1.0)`;
 }
 
 export const NumericCellRenderer = (
@@ -145,6 +148,8 @@ export const NumericCellRenderer = (
     alignPositiveNegative,
     colorPositiveNegative,
   } = params;
+
+  const isDarkTheme = useIsDark();
 
   if (node?.rowPinned === 'bottom') {
     return <StyledTotalCell>{valueFormatted ?? value}</StyledTotalCell>;
@@ -175,6 +180,7 @@ export const NumericCellRenderer = (
       </CellContainer>
     );
   }
+
   const CellWidth = cellWidth({
     value: value as number,
     valueRange,
@@ -188,6 +194,7 @@ export const NumericCellRenderer = (
   const background = cellBackground({
     value: value as number,
     colorPositiveNegative,
+    isDarkTheme,
   });
 
   return (

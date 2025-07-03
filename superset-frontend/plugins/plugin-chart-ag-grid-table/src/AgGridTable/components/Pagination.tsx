@@ -24,10 +24,10 @@ import {
   LeftOutlined,
   RightOutlined,
 } from '@ant-design/icons';
-import { useIsDark } from '../../utils/useTableTheme';
+import { Select } from '@superset-ui/core/components';
 
-const PaginationContainer = styled.div<{ paginationBackground: string }>`
-  ${({ theme, paginationBackground }) => `
+const PaginationContainer = styled.div`
+  ${({ theme }) => `
     border: 1px solid ${theme.colors.grayscale.light2};
     display: flex;
     align-items: center;
@@ -37,44 +37,17 @@ const PaginationContainer = styled.div<{ paginationBackground: string }>`
     font-size: ${theme.fontSize}px;
     color: ${theme.colorTextBase};
     transform: translateY(-${theme.sizeUnit}px);
-    background: ${paginationBackground};
+    background: ${theme.colorBgBase};
   `}
 `;
 
 const SelectWrapper = styled.div`
   ${({ theme }) => `
     position: relative;
+    margin-left: ${theme.sizeUnit * 2}px;
     display: inline-block;
     min-width: ${theme.sizeUnit * 17}px;
-  `}
-`;
-
-const StyledSelect = styled.select<{
-  numberLength: number;
-  isDarkTheme: boolean;
-  textColor: string;
-  backgroundColor: string;
-}>`
-  ${({ theme, numberLength, isDarkTheme, textColor, backgroundColor }) => `
-    width: auto;
-    margin: 0 ${theme.sizeUnit * 2}px;
-    padding: ${theme.sizeUnit}px ${theme.sizeUnit * 6}px ${theme.sizeUnit}px ${theme.sizeUnit * 2}px;
-    border: 1px solid ${theme.colors.grayscale.light2};
-    border-radius: ${theme.borderRadius}px;
-    background: ${backgroundColor};
-    appearance: none;
-    cursor: pointer;
-    color: ${textColor};
-
-    /* Custom arrow styling */
-    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='${isDarkTheme ? '%23ffffff' : '%23000000'}'%3e%3cpath d='M7 10l5 5 5-5z'/%3e%3c/svg%3e");
-    background-repeat: no-repeat;
-    background-position: right ${numberLength <= 2 ? `${theme.sizeUnit * 2}px` : `${theme.sizeUnit}px`} center;
-    background-size: ${theme.sizeUnit * 6}px;
-
-    &:hover {
-      border-color: ${theme.colors.grayscale.dark1};
-    }
+    overflow: hidden;
   `}
 `;
 
@@ -128,6 +101,7 @@ interface PaginationProps {
   pageSizeOptions: number[];
   onServerPaginationChange: (pageNumber: number, pageSize: number) => void;
   onServerPageSizeChange: (pageSize: number) => void;
+  sliceId: number;
 }
 
 const Pagination: React.FC<PaginationProps> = ({
@@ -137,13 +111,11 @@ const Pagination: React.FC<PaginationProps> = ({
   pageSizeOptions = [10, 20, 50, 100, 200],
   onServerPaginationChange = () => {},
   onServerPageSizeChange = () => {},
+  sliceId,
 }) => {
   const totalPages = Math.ceil(totalRows / pageSize);
   const startRow = currentPage * pageSize + 1;
   const endRow = Math.min((currentPage + 1) * pageSize, totalRows);
-  const isDarkTheme = useIsDark();
-  const paginationBackground = isDarkTheme ? '#2B2B2B' : '#FFFFFF';
-  const paginationTextColor = isDarkTheme ? '#FFFFFF' : '#000000';
 
   const handleNextPage = (disabled: boolean) => () => {
     if (disabled) return;
@@ -165,28 +137,26 @@ const Pagination: React.FC<PaginationProps> = ({
     onServerPaginationChange(totalPages - 1, pageSize);
   };
 
+  const selectOptions = pageSizeOptions.map(size => ({
+    value: size,
+    label: size,
+  }));
+
   return (
-    <PaginationContainer paginationBackground={paginationBackground}>
+    <PaginationContainer>
       <span>{t('Page Size:')}</span>
       <SelectWrapper>
-        <StyledSelect
-          numberLength={pageSize.toString().length}
-          onChange={e => {
-            onServerPageSizeChange(Number(e.target.value));
+        <Select
+          value={`${pageSize}`}
+          options={selectOptions}
+          onChange={(value: string) => {
+            onServerPageSizeChange(Number(value));
           }}
-          isDarkTheme={isDarkTheme}
-          value={pageSize}
-          textColor={paginationTextColor}
-          backgroundColor={paginationBackground}
-        >
-          {pageSizeOptions.map(size => (
-            <option key={size} value={size}>
-              {size}
-            </option>
-          ))}
-        </StyledSelect>
+          getPopupContainer={() =>
+            document.getElementById(`chart-id-${sliceId}`) as HTMLElement
+          }
+        />
       </SelectWrapper>
-
       <PageInfo>
         <span>{startRow}</span> {t('to')} <span>{endRow}</span> {t('of')}{' '}
         <span>{totalRows}</span>

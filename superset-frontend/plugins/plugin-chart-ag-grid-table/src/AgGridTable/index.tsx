@@ -347,6 +347,7 @@ const AgGridDataTable: FunctionComponent<AgGridTableProps> = memo(
             pageSizeOptions={[10, 20, 50, 100, 200]}
             onServerPaginationChange={onServerPaginationChange}
             onServerPageSizeChange={onServerPageSizeChange}
+            sliceId={id}
           />
         )}
       </div>

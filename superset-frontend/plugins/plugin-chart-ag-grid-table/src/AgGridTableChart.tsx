@@ -57,12 +57,23 @@ const StyledChartContainer = styled.div<{
   ${({ theme, height, inputTextColor }) => css`
     height: ${height}px;
 
+    --ag-background-color: ${theme.colorBgBase};
+    --ag-foreground-color: ${theme.colorText};
+    --ag-header-background-color: ${theme.colorBgBase};
+    --ag-header-foreground-color: ${theme.colorText};
+
     .dt-is-filter {
       cursor: pointer;
+      :hover {
+        background-color: ${theme.colorPrimaryBgHover};
+      }
     }
 
     .dt-is-active-filter {
       background: ${theme.colors.primary.light3};
+      :hover {
+        background-color: ${theme.colorPrimaryBgHover};
+      }
     }
 
     .dt-truncate-cell {
