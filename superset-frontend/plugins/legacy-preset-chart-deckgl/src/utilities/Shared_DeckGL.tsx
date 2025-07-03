@@ -526,7 +526,7 @@ export const deckGLLinearColorSchemeSelect: CustomControlItem = {
 export const deckGLColorBreakpointsSelect: CustomControlItem = {
   name: 'color_breakpoints',
   config: {
-    label: t('Breakpoint colors'),
+    label: t('Color breakpoints'),
     type: 'ColorBreakpointsControl',
     visibility: ({ controls }) =>
       isColorSchemeTypeVisible(controls, COLOR_SCHEME_TYPES.color_breakpoints),
