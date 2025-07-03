@@ -414,7 +414,7 @@ export const getCrossFilterDataMask = ({
       },
       filterState: {
         value: values.length ? values : null,
-        ...(customColumnLabel ? { customColumnLabel } : {}),
+        ...(customColumnLabel && values.length ? { customColumnLabel } : {}),
       },
     },
     isCurrentValueSelected: isSelected || false,
