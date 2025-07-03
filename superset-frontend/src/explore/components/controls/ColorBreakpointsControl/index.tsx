@@ -55,7 +55,13 @@ const ColorBreakpointsControl = ({
   };
 
   const saveColorBreakpoint = (breakpoint: ColorBreakpointType) => {
-    setColorBreakpoints([...colorBreakpoints, breakpoint]);
+    setColorBreakpoints([
+      ...colorBreakpoints,
+      {
+        ...breakpoint,
+        id: colorBreakpoints.length,
+      },
+    ]);
     togglePopover(false);
   };
 
