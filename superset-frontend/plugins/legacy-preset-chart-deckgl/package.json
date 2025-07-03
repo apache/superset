@@ -31,7 +31,7 @@
     "@mapbox/geojson-extent": "^1.0.1",
     "@math.gl/web-mercator": "^4.1.0",
     "@types/d3-array": "^2.0.0",
-    "@types/geojson": "^7946.0.15",
+    "@types/geojson": "^7946.0.16",
     "bootstrap-slider": "^11.0.2",
     "d3-array": "^1.2.4",
     "d3-color": "^1.4.1",
