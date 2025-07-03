@@ -21,16 +21,16 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2025-04-29 12:34+0330\n"
+"POT-Creation-Date: 2025-07-03 14:13+0300\n"
 "PO-Revision-Date: 2024-10-20 00:07+0330\n"
 "Last-Translator: Emad Rad <codewithemad@gmail.com>\n"
 "Language: fa\n"
 "Language-Team: fa <LL@li.org>\n"
-"Plural-Forms: nplurals=2; plural=(n > 1)\n"
+"Plural-Forms: nplurals=2; plural=(n > 1);\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Generated-By: Babel 2.9.1\n"
+"Generated-By: Babel 2.17.0\n"
 
 msgid ""
 "\n"
@@ -150,6 +150,9 @@ msgstr "برای اضافه کردن ستون‌های محاسبه‌شده"
 msgid " to add metrics"
 msgstr "برای افزودن معیارها"
 
+msgid " to check for details."
+msgstr ""
+
 msgid " to edit or add columns and metrics."
 msgstr "برای ویرایش یا اضافه کردن ستون‌ها و معیارها."
 
@@ -160,6 +163,10 @@ msgid " to open SQL Lab. From there you can save the query as a dataset."
 msgstr ""
 "برای باز کردن SQL Lab. از اینجا شما می‌توانید کوئری را به عنوان یک مجموعه"
 " داده ذخیره کنید."
+
+#, fuzzy
+msgid " to see details."
+msgstr "جزئیات کوئری را ببینید"
 
 msgid " to visualize your data."
 msgstr "برای تصویرسازی داده‌های شما."
@@ -314,6 +321,10 @@ msgstr[1] ""
 #, python-format
 msgid "%s saved metric(s)"
 msgstr "%s معیار(ها) ذخیره شد(شدند)"
+
+#, fuzzy, python-format
+msgid "%s tab selected"
+msgstr "%s انتخاب شد"
 
 #, python-format
 msgid "%s updated"
@@ -626,6 +637,10 @@ msgstr "بزرگتر یا برابر"
 msgid "A Big Number"
 msgstr "یک عدد بزرگ"
 
+#, fuzzy
+msgid "A comma separated list of columns that should be parsed as dates"
+msgstr "ستون‌ها را برای تجزیه به عنوان تاریخ انتخاب کنید"
+
 msgid "A comma-separated list of schemas that files are allowed to upload to."
 msgstr ""
 "یک لیست جدا شده با کاما از طرح‌هایی که فایل‌ها مجاز به بارگذاری در آن "
@@ -640,6 +655,7 @@ msgstr "یک پایگاه داده با همین نام از قبل وجود د�
 msgid "A date is required when using custom date shift"
 msgstr ""
 
+#, python-brace-format
 msgid ""
 "A dictionary with column names and their data types if you need to change"
 " the defaults. Example: {\"user_id\":\"int\"}. Check Python's Pandas "
@@ -788,6 +804,10 @@ msgstr "عملیات"
 msgid "Action Log"
 msgstr "گزارش فعالیت"
 
+#, fuzzy
+msgid "Action Logs"
+msgstr "گزارش فعالیت"
+
 msgid "Actions"
 msgstr "عملیات"
 
@@ -839,6 +859,10 @@ msgstr "تقسیم‌کننده"
 #, fuzzy
 msgid "Add Filter"
 msgstr "فیلتر اضافه کنید"
+
+#, fuzzy
+msgid "Add Group"
+msgstr "افزودن قانون"
 
 #, fuzzy
 msgid "Add Layer"
@@ -1092,6 +1116,11 @@ msgstr "داشبوردها را انتخاب کنید"
 msgid "After"
 msgstr "بعد از"
 
+msgid ""
+"After making the changes, copy the query and paste in the virtual dataset"
+" SQL snippet settings."
+msgstr ""
+
 msgid "Aggregate"
 msgstr "تجمیع"
 
@@ -1127,6 +1156,12 @@ msgstr "تجمیع"
 
 msgid "Aggregation function"
 msgstr "توابع تجمیع"
+
+msgid ""
+"Aggregation method used to compute the Big Number from the Trendline.For "
+"non-additive metrics like ratios, averages, distinct counts, etc use "
+"NONE."
+msgstr ""
 
 msgid "Alert"
 msgstr "هشدار"
@@ -1222,6 +1257,10 @@ msgstr "تمام فیلترها"
 
 msgid "All panels"
 msgstr "همه پنل‌ها"
+
+#, fuzzy
+msgid "All records"
+msgstr "رکوردهای خام"
 
 msgid "Allow CREATE TABLE AS"
 msgstr "اجازه دهید CREATE TABLE AS"
@@ -1331,10 +1370,6 @@ msgstr "یک موتور باید هنگام عبور پارامترهای فرد
 
 msgid "An error has occurred"
 msgstr "یک خطا رخ داده است"
-
-#, fuzzy, python-format
-msgid "An error has occurred while syncing virtual dataset columns"
-msgstr "در حین دریافت مجموعه داده‌ها خطایی رخ داد: %s"
 
 msgid "An error occurred"
 msgstr "یک خطا رخ داد"
@@ -1457,6 +1492,10 @@ msgstr "در حین دریافت متادیتای جدول خطایی رخ دا�
 #, python-format
 msgid "An error occurred while fetching user values: %s"
 msgstr "هنگام دریافت مقادیر کاربر، خطایی رخ داد: %s"
+
+#, fuzzy
+msgid "An error occurred while formatting SQL"
+msgstr "یک خطا در حین بارگذاری SQL رخ داد."
 
 #, python-format
 msgid "An error occurred while importing %s: %s"
@@ -1727,6 +1766,10 @@ msgstr "آیا مطمئن هستید که می‌خواهید داشبوردها
 msgid "Are you sure you want to delete the selected datasets?"
 msgstr "آیا مطمئن هستید که می‌خواهید داده‌های انتخاب‌شده را حذف کنید؟"
 
+#, fuzzy
+msgid "Are you sure you want to delete the selected groups?"
+msgstr "آیا مطمئن هستید که می‌خواهید قوانین انتخاب شده را حذف کنید؟"
+
 msgid "Are you sure you want to delete the selected layers?"
 msgstr "آیا از حذف لایه‌های انتخاب‌شده مطمئن هستید؟"
 
@@ -1957,9 +2000,6 @@ msgstr "قبل از"
 msgid "Big Number"
 msgstr "عدد بزرگ"
 
-msgid "Big Number Font Size"
-msgstr "اندازه فونت عدد بزرگ"
-
 msgid "Big Number with Time Period Comparison"
 msgstr "عدد بزرگ با مقایسه دوره زمانی"
 
@@ -1968,6 +2008,10 @@ msgstr "عدد بزرگ با خط روند"
 
 msgid "Bins"
 msgstr "باین‌ها"
+
+#, python-format
+msgid "Block %(block_num)s out of %(block_count)s"
+msgstr ""
 
 #, fuzzy
 msgid "Border color"
@@ -2131,8 +2175,9 @@ msgstr "لغو"
 msgid "CC recipients"
 msgstr "گیرندگان"
 
-msgid "CREATE DATASET"
-msgstr "ایجاد مجموعه داده"
+#, fuzzy
+msgid "COPY QUERY"
+msgstr "کپی کردن نشانی درخواست"
 
 msgid "CREATE TABLE AS"
 msgstr "جدول را ایجاد کنید به عنوان"
@@ -2453,12 +2498,15 @@ msgstr "چارت [%s] ذخیره شد"
 msgid "Chart [%s] was added to dashboard [%s]"
 msgstr "چارت [%s] به داشبورد [%s] اضافه شد"
 
+#, python-brace-format
 msgid "Chart [{}] has been overwritten"
 msgstr "چارت [{}] مجدداً نوشته شده است"
 
+#, python-brace-format
 msgid "Chart [{}] has been saved"
 msgstr "چارت [{}] ذخیره شد"
 
+#, python-brace-format
 msgid "Chart [{}] was added to dashboard [{}]"
 msgstr "چارت [{}] به داشبورد [{}] اضافه شد"
 
@@ -2605,6 +2653,9 @@ msgstr "ستون‌ها را برای تجزیه به عنوان تاریخ ان
 msgid "Choose columns to read"
 msgstr "ستون‌ها را برای خواندن انتخاب کنید"
 
+msgid "Choose how many X-Axis labels to show"
+msgstr ""
+
 msgid "Choose index column"
 msgstr "ستون اندیس را انتخاب کنید"
 
@@ -2646,6 +2697,10 @@ msgid ""
 msgstr ""
 "انتخاب کنید که آیا یک کشور باید بر اساس معیار سایه‌زده شود یا رنگی بر "
 "اساس پالت رنگ‌های دسته‌ای به آن تخصیص داده شود."
+
+#, fuzzy
+msgid "Choose..."
+msgstr "یک پایگاه داده انتخاب کنید..."
 
 msgid "Chord Diagram"
 msgstr "نمودار چرخشی"
@@ -2792,9 +2847,6 @@ msgstr "جمع کردن ردیف"
 
 msgid "Collapse tab content"
 msgstr "محتوای زبانه را جمع کنید"
-
-msgid "Collapse table preview"
-msgstr "مشاهده پیش‌نمایش جدول را جمع کنید"
 
 msgid "Color"
 msgstr "رنگ"
@@ -3065,6 +3117,10 @@ msgstr "نمایش رمز عبور."
 msgid "Confirm overwrite"
 msgstr "تأیید بازنویسی"
 
+#, fuzzy
+msgid "Confirm password"
+msgstr "نمایش رمز عبور."
+
 msgid "Confirm save"
 msgstr "تأیید ذخیره سازی"
 
@@ -3212,6 +3268,7 @@ msgstr "توانایی پیدا کردن شیء نمایشی وجود ندارد
 msgid "Could not load database driver"
 msgstr "نمی‌توان درایور پایگاه داده را بارگذاری کرد"
 
+#, python-brace-format
 msgid "Could not load database driver: {}"
 msgstr "نمی‌توان درایور پایگاه داده را بارگذاری کرد: {}"
 
@@ -3312,9 +3369,6 @@ msgstr "ایجاد یک منبع داده و ایجاد یک تب جدید"
 
 msgid "Creator"
 msgstr "سازنده"
-
-msgid "Credentials uploaded"
-msgstr ""
 
 msgid "Crimson"
 msgstr "قرمز پررنگ"
@@ -3487,10 +3541,15 @@ msgstr "حالت تاریک"
 msgid "Dashboard"
 msgstr "داشبورد"
 
+#, fuzzy
+msgid "Dashboard Id"
+msgstr "داشبورد"
+
 #, python-format
 msgid "Dashboard [%s] just got created and chart [%s] was added to it"
 msgstr "داشبورد [%s] به تازگی ایجاد شد و نمودار [%s] به آن اضافه گردید."
 
+#, python-brace-format
 msgid "Dashboard [{}] just got created and chart [{}] was added to it"
 msgstr "داشبورد [{}] تازه ایجاد شد و نمودار [{}] به آن اضافه شد"
 
@@ -3664,9 +3723,6 @@ msgstr "داده‌بان برای هشدارها الزامی است"
 
 msgid "Database name"
 msgstr "نام پایگاه داده"
-
-msgid "Database not allowed to change"
-msgstr "تغییر پایگاه داده مجاز نیست"
 
 msgid "Database not found."
 msgstr "پایگاه داده یافت نشد."
@@ -3873,6 +3929,7 @@ msgstr "طرح پیش‌فرض"
 msgid "Default URL"
 msgstr "آدرس پیش‌فرض"
 
+#, python-brace-format
 msgid ""
 "Default URL to redirect to when accessing from the dataset list page.\n"
 "            Accepts relative URLs such as <span style=„white-space: "
@@ -4012,6 +4069,10 @@ msgstr "آیا می‌خواهید پایگاه داده را حذف کنید؟"
 msgid "Delete Dataset?"
 msgstr "آیا می‌خواهید داده‌نما را حذف کنید؟"
 
+#, fuzzy
+msgid "Delete Group?"
+msgstr "آیا الگو را حذف می‌کنید؟"
+
 msgid "Delete Layer?"
 msgstr "لایه را حذف کنید؟"
 
@@ -4047,6 +4108,10 @@ msgstr "حذف پایگاه داده"
 msgid "Delete email report"
 msgstr "حذف گزارش ایمیل"
 
+#, fuzzy
+msgid "Delete group"
+msgstr "فایل را انتخاب کنید"
+
 msgid "Delete query"
 msgstr "حذف کوئری"
 
@@ -4063,6 +4128,14 @@ msgstr "این کانتینر را حذف کنید و ذخیره کنید تا �
 #, fuzzy
 msgid "Delete user"
 msgstr "حذف کوئری"
+
+#, fuzzy, python-format
+msgid "Delete user registration"
+msgstr "حذف شده: %s"
+
+#, fuzzy
+msgid "Delete user registration?"
+msgstr "حذف یادداشت؟"
 
 msgid "Deleted"
 msgstr "حذف شد"
@@ -4126,11 +4199,23 @@ msgid "Deleted %s"
 msgstr "%s حذف شد"
 
 #, fuzzy, python-format
+msgid "Deleted group: %s"
+msgstr "حذف شده: %s"
+
+#, fuzzy, python-format
+msgid "Deleted groups: %s"
+msgstr "حذف شده: %s"
+
+#, fuzzy, python-format
 msgid "Deleted role: %s"
 msgstr "حذف شده: %s"
 
 #, fuzzy, python-format
 msgid "Deleted roles: %s"
+msgstr "حذف شده: %s"
+
+#, fuzzy, python-format
+msgid "Deleted user registration for user: %s"
 msgstr "حذف شده: %s"
 
 #, fuzzy, python-format
@@ -4452,6 +4537,10 @@ msgstr "یک ستون موقتی را اینجا رها کنید یا کلیک �
 msgid "Drop columns/metrics here or click"
 msgstr "ستون‌ها/معیارها را اینجا رها کنید یا کلیک کنید"
 
+#, fuzzy
+msgid "Dttm"
+msgstr "تاریخ و زمان"
+
 msgid "Duplicate"
 msgstr "تکراری"
 
@@ -4517,6 +4606,10 @@ msgstr ""
 "مدت زمان (به ثانیه) زمان خواب کش متاداده برای جداول این پایگاه داده. اگر "
 "تنظیم نشود، کش هرگز منقضی نمی‌شود."
 
+#, fuzzy
+msgid "Duration Ms"
+msgstr "مدت زمان"
+
 msgid "Duration in ms (1.40008 => 1ms 400µs 80ns)"
 msgstr ""
 "مدت زمان به میلی‌ثانیه (۱.۴۰۰۰۸ => ۱ میلی‌ثانیه ۴۰۰ میکروثانیه ۸۰ "
@@ -4545,9 +4638,6 @@ msgstr "ای چارتس"
 
 msgid "EMAIL_REPORTS_CTA"
 msgstr "ایمیل گزارشات"
-
-msgid "END (EXCLUSIVE)"
-msgstr "پایان (غیر قابل شامل)"
 
 msgid "ERROR"
 msgstr "خطا"
@@ -4585,6 +4675,10 @@ msgstr "ویرایش داشبورد"
 msgid "Edit Dataset "
 msgstr "ویرایش مجموعه داده"
 
+#, fuzzy
+msgid "Edit Group"
+msgstr "ویرایش قانون"
+
 msgid "Edit Log"
 msgstr "ثبت ویرایش"
 
@@ -4600,9 +4694,6 @@ msgstr "حالت ویرایش"
 
 msgid "Edit Rule"
 msgstr "ویرایش قانون"
-
-msgid "Edit Tag"
-msgstr "ویرایش برچسب"
 
 #, fuzzy
 msgid "Edit User"
@@ -4638,6 +4729,10 @@ msgstr "گزارش ایمیل را ویرایش کنید"
 msgid "Edit formatter"
 msgstr "ویرایش فرمت کننده"
 
+#, fuzzy
+msgid "Edit group"
+msgstr "ویرایش قانون"
+
 msgid "Edit properties"
 msgstr "ویرایش ویژگی‌ها"
 
@@ -4647,6 +4742,10 @@ msgstr "ویرایش کوئری"
 #, fuzzy
 msgid "Edit role"
 msgstr "حالت ویرایش"
+
+#, fuzzy
+msgid "Edit tag"
+msgstr "ویرایش برچسب"
 
 msgid "Edit template"
 msgstr "ویرایش الگو"
@@ -4794,6 +4893,10 @@ msgstr "پایان"
 msgid "End (Longitude, Latitude): "
 msgstr "پایان (طول جغرافیایی، عرض جغرافیایی):"
 
+#, fuzzy
+msgid "End (exclusive)"
+msgstr "پایان (غیر قابل شامل)"
+
 msgid "End Longitude & Latitude"
 msgstr "طول جغرافیایی و عرض جغرافیایی انتهایی"
 
@@ -4847,6 +4950,18 @@ msgstr "ورود به حالت تمام صفحه"
 msgid "Enter report name"
 msgstr "نام گزارش را وارد کنید"
 
+#, fuzzy
+msgid "Enter the group's description"
+msgstr "توضیحات نمودار را پنهان کن"
+
+#, fuzzy
+msgid "Enter the group's label"
+msgstr "نام هشدار را وارد کنید"
+
+#, fuzzy
+msgid "Enter the group's name"
+msgstr "نام هشدار را وارد کنید"
+
 #, python-format
 msgid "Enter the required %(dbModelName)s credentials"
 msgstr "اطلاعات اعتبارسنجی مورد نیاز %(dbModelName)s را وارد کنید"
@@ -4866,6 +4981,9 @@ msgid "Enter the user's last name"
 msgstr "نام هشدار را وارد کنید"
 
 msgid "Enter the user's username"
+msgstr ""
+
+msgid "Enter your login and password below:"
 msgstr ""
 
 msgid "Entity"
@@ -4888,12 +5006,12 @@ msgid "Error deleting %s"
 msgstr "خطا در حین دریافت داده‌ها: %s"
 
 #, fuzzy
+msgid "Error executing query. "
+msgstr "کوئری اجرا شده"
+
+#, fuzzy
 msgid "Error faving chart"
 msgstr "خطا در ذخیره‌سازی مجموعه داده"
-
-#, python-format
-msgid "Error in jinja expression in HAVING clause: %(msg)s"
-msgstr "خطا در عبارت جینجا در بند HAVING: %(msg)s"
 
 #, python-format
 msgid "Error in jinja expression in RLS filters: %(msg)s"
@@ -4933,18 +5051,6 @@ msgstr "خطا در ذخیره‌سازی مجموعه داده"
 msgid "Error unfaving chart"
 msgstr "خطا در ذخیره‌سازی مجموعه داده"
 
-#, fuzzy
-msgid "Error while adding role!"
-msgstr "خطا در هنگام دریافت نمودارها"
-
-#, fuzzy
-msgid "Error while adding user!"
-msgstr "خطا در هنگام دریافت نمودارها"
-
-#, fuzzy
-msgid "Error while duplicating role!"
-msgstr "خطا در هنگام دریافت نمودارها"
-
 msgid "Error while fetching charts"
 msgstr "خطا در هنگام دریافت نمودارها"
 
@@ -4953,28 +5059,16 @@ msgid "Error while fetching data: %s"
 msgstr "خطا در حین دریافت داده‌ها: %s"
 
 #, fuzzy
-msgid "Error while fetching permissions"
+msgid "Error while fetching groups"
 msgstr "خطا در هنگام دریافت نمودارها"
 
 #, fuzzy
 msgid "Error while fetching roles"
 msgstr "خطا در هنگام دریافت نمودارها"
 
-#, fuzzy
-msgid "Error while fetching users"
-msgstr "خطا در هنگام دریافت نمودارها"
-
 #, python-format
 msgid "Error while rendering virtual dataset query: %(msg)s"
 msgstr "خطا در هنگام نمایش کوئری مجموعه داده مجازی: %(msg)s"
-
-#, fuzzy
-msgid "Error while updating role!"
-msgstr "خطا در هنگام دریافت نمودارها"
-
-#, fuzzy
-msgid "Error while updating user!"
-msgstr "خطا در هنگام دریافت نمودارها"
 
 #, python-format
 msgid "Error: %(error)s"
@@ -5063,9 +5157,6 @@ msgstr "پانل داده را گسترش دهید"
 msgid "Expand row"
 msgstr "گسترش ردیف"
 
-msgid "Expand table preview"
-msgstr "گسترش پیش‌نمایش جدول"
-
 msgid "Expand tool bar"
 msgstr "گسترش نوار ابزار"
 
@@ -5151,6 +5242,7 @@ msgstr "پارامترهای اضافی"
 msgid "Extra data for JS"
 msgstr "داده‌های اضافی برای JS"
 
+#, python-brace-format
 msgid ""
 "Extra data to specify table metadata. Currently supports metadata of the "
 "format: `{ \"certification\": { \"certified_by\": \"Data Platform Team\","
@@ -5231,7 +5323,7 @@ msgstr "خطا در ذخیره‌سازی دامنه فیلتر متقاطع"
 msgid "Failed to start remote query on a worker."
 msgstr "شروع کوئری ریموت بر روی یک کارگر با شکست مواجه شد."
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "Failed to stop query."
 msgstr "متوقف کردن کوئری با شکست مواجه شد. %s"
 
@@ -5244,6 +5336,10 @@ msgstr "به‌روزرسانی گزارش ناموفق بود"
 #, python-format
 msgid "Failed to verify select options: %s"
 msgstr "تأیید گزینه‌های انتخابی ناموفق بود: %s"
+
+#, fuzzy
+msgid "False"
+msgstr "غلط است"
 
 msgid "Favorite"
 msgstr "علاقه‌مند"
@@ -5299,6 +5395,9 @@ msgstr "تمام فیلدهای مورد نیاز را پر کنید تا \"مق
 
 msgid "Fill method"
 msgstr "روش پر کردن"
+
+msgid "Fill out the registration form"
+msgstr ""
 
 msgid "Filled"
 msgstr "پر شده"
@@ -5406,6 +5505,10 @@ msgstr "پایان"
 
 msgid "First"
 msgstr "اولین"
+
+#, fuzzy
+msgid "First Name"
+msgstr "نام نمودار"
 
 #, fuzzy
 msgid "First name"
@@ -5533,6 +5636,11 @@ msgstr "داده‌های فرم در کش یافت نشد، به متاداده
 msgid "Format SQL"
 msgstr "فرمت SQL"
 
+#, fuzzy
+msgid "Format SQL query"
+msgstr "فرمت SQL"
+
+#, python-brace-format
 msgid ""
 "Format data labels. Use variables: {name}, {value}, {percent}. \\n "
 "represents a new line. ECharts compatibility:\n"
@@ -5672,6 +5780,10 @@ msgstr "شبکه"
 msgid "Grid Size"
 msgstr "اندازه شبکه"
 
+#, fuzzy
+msgid "Group"
+msgstr "گروه‌بندی بر اساس"
+
 msgid "Group By"
 msgstr "گروه بندی"
 
@@ -5682,6 +5794,10 @@ msgid "Group Key"
 msgstr "کلید گروه"
 
 msgid "Group by"
+msgstr "گروه‌بندی بر اساس"
+
+#, fuzzy
+msgid "Groups"
 msgstr "گروه‌بندی بر اساس"
 
 msgid "Guest user cannot modify chart payload"
@@ -5829,11 +5945,6 @@ msgid "If a metric is specified, sorting will be done based on the metric value"
 msgstr "اگر یک معیار مشخص شده باشد، مرتب‌سازی بر اساس ارزش معیار انجام خواهد شد."
 
 msgid ""
-"If changes are made to your SQL query, columns in your dataset will be "
-"synced when saving the dataset."
-msgstr ""
-
-msgid ""
 "If enabled, this control sorts the results/values descending, otherwise "
 "it sorts the results ascending."
 msgstr ""
@@ -5843,6 +5954,9 @@ msgstr ""
 #, fuzzy
 msgid "If table already exists"
 msgstr "برچسب قبلاً وجود دارد"
+
+msgid "If you don't save, changes will be lost."
+msgstr ""
 
 msgid "Ignore cache when generating report"
 msgstr "هنگام تولید گزارش، کش را نادیده بگیرید"
@@ -5871,6 +5985,10 @@ msgstr "وارد کردن %s"
 
 msgid "Import Dashboard(s)"
 msgstr "وارد کردن داشبورد(ها)"
+
+#, fuzzy
+msgid "Import Error"
+msgstr "خطای تایم‌اوت"
 
 msgid "Import chart failed for an unknown reason"
 msgstr "وارد کردن نمودار به دلایل نامعلوم شکست خورد"
@@ -5910,8 +6028,15 @@ msgid ""
 "service account or configure an OAuth2 client."
 msgstr ""
 
+msgid "In this view you can preview the first 25 rows. "
+msgstr ""
+
 msgid "Include Series"
 msgstr "شامل سری‌ها"
+
+#, fuzzy
+msgid "Include Template Parameters"
+msgstr "پارامترهای الگو"
 
 msgid "Include a description that will be sent with your report"
 msgstr "توضیحی را شامل کنید که با گزارش شما ارسال خواهد شد."
@@ -6112,6 +6237,10 @@ msgid "Invert current page"
 msgstr "برعکس کردن صفحه فعلی"
 
 #, fuzzy
+msgid "Is Active?"
+msgstr "هشدار فعال است"
+
+#, fuzzy
 msgid "Is active?"
 msgstr "هشدار فعال است"
 
@@ -6290,6 +6419,10 @@ msgstr "بزرگ"
 
 msgid "Last"
 msgstr "آخرین"
+
+#, fuzzy
+msgid "Last Name"
+msgstr "نام مجموعه داده"
 
 #, python-format
 msgid "Last Updated %s"
@@ -6529,6 +6662,10 @@ msgstr "رمزگذاری خطوط"
 msgid "Link Copied!"
 msgstr "لینک کپی شد!"
 
+#, fuzzy
+msgid "List Groups"
+msgstr "عدد را تقسیم کن"
+
 msgid "List Roles"
 msgstr ""
 
@@ -6580,6 +6717,10 @@ msgstr "در حال بارگذاری..."
 
 msgid "Locate the chart"
 msgstr "نقشه را پیدا کنید"
+
+#, fuzzy
+msgid "Log"
+msgstr "لاگ"
 
 msgid "Log Scale"
 msgstr "مقیاس لگاریتمی"
@@ -6741,6 +6882,9 @@ msgstr "نشانگرها"
 
 msgid "Markup type"
 msgstr "نوع نشانه‌گذاری"
+
+msgid "Match system"
+msgstr ""
 
 msgid "Match time shift color with original series"
 msgstr ""
@@ -7214,6 +7358,10 @@ msgstr "هنوز هیچ %s وجود ندارد"
 msgid "No Data"
 msgstr "هیچ داده‌ای وجود ندارد"
 
+#, fuzzy, python-format
+msgid "No Logs yet"
+msgstr "هنوز هیچ %s وجود ندارد"
+
 msgid "No Results"
 msgstr "نتیجه‌ای یافت نشد"
 
@@ -7302,6 +7450,18 @@ msgstr "هیچ تنظیمات فرمی حفظ نشده است"
 msgid "No global filters are currently added"
 msgstr "در حال حاضر فیلترهای جهانی اضافه نشده‌اند."
 
+#, fuzzy
+msgid "No groups"
+msgstr "غیر گروه‌بندی شده توسط"
+
+#, fuzzy
+msgid "No groups yet"
+msgstr "هنوز هیچ قانونی وجود ندارد"
+
+#, fuzzy
+msgid "No items"
+msgstr "هیچ فیلترى نیست"
+
 msgid "No matching records found"
 msgstr "هیچ رکوردی پیدا نشد"
 
@@ -7328,6 +7488,10 @@ msgstr ""
 "هیچ نتیجه‌ای برای این کوئری برنگردانده شد. اگر انتظار داشتید نتایجی "
 "برگردانده شود، اطمینان حاصل کنید که هر گونه فیلتر به درستی پیکربندی شده و"
 " منبع داده حاوی داده‌های مورد نیاز برای بازه زمانی انتخاب شده است."
+
+#, fuzzy
+msgid "No roles"
+msgstr "هنوز هیچ قانونی وجود ندارد"
 
 #, fuzzy
 msgid "No roles yet"
@@ -7361,6 +7525,10 @@ msgstr "عمودهای زمانی یافت نشدند"
 
 msgid "No time columns"
 msgstr "بدون ستون‌های زمانی"
+
+#, fuzzy
+msgid "No user registrations yet"
+msgstr "هنوز هیچ قانونی وجود ندارد"
 
 #, fuzzy
 msgid "No users yet"
@@ -7633,6 +7801,10 @@ msgstr ""
 msgid "Only single queries supported"
 msgstr "فقط تماس‌های تکی پشتیبانی می‌شوند"
 
+#, fuzzy
+msgid "Only the default catalog is supported for this connection"
+msgstr "کاتالوگ پیش‌فرضی که باید برای اتصال استفاده شود."
+
 msgid "Oops! An error occurred!"
 msgstr "اوه! یک خطا رخ داده است!"
 
@@ -7657,7 +7829,15 @@ msgstr "شفافیت، انتظار مقادیر بین ۰ تا ۱۰۰ دارد.
 msgid "Open Datasource tab"
 msgstr "برگه داده‌منبع را باز کنید"
 
+#, fuzzy
+msgid "Open SQL Lab in a new tab"
+msgstr "در یک تب جدید کوئری را اجرا کنید"
+
 msgid "Open in SQL Lab"
+msgstr "در SQL Lab باز کنید"
+
+#, fuzzy
+msgid "Open in SQL lab"
 msgstr "در SQL Lab باز کنید"
 
 msgid "Open query in SQL Lab"
@@ -7911,6 +8091,10 @@ msgid "Password is required"
 msgstr "نوع الزامی است"
 
 #, fuzzy
+msgid "Password:"
+msgstr "رمز عبور"
+
+#, fuzzy
 msgid "Passwords do not match!"
 msgstr "داشبوردها وجود ندارند"
 
@@ -7946,6 +8130,10 @@ msgstr "درصد تغییر"
 
 msgid "Percentage difference between the time periods"
 msgstr "اختلاف درصدی بین دوره‌های زمانی"
+
+#, fuzzy
+msgid "Percentage metric calculation"
+msgstr "معیارهای درصدی"
 
 msgid "Percentage metrics"
 msgstr "معیارهای درصدی"
@@ -8125,11 +8313,35 @@ msgstr "لطفاً تأیید کنید"
 msgid "Please enter a SQLAlchemy URI to test"
 msgstr "لطفاً یک URI SQLAlchemy برای آزمایش وارد کنید."
 
+#, fuzzy
+msgid "Please enter a valid email"
+msgstr "لطفاً یک URI SQLAlchemy برای آزمایش وارد کنید."
+
 msgid "Please enter a valid email address"
 msgstr ""
 
 msgid "Please enter valid text. Spaces alone are not permitted."
 msgstr "لطفاً متن معتبر وارد کنید. تنها فضاها مجاز نیستند."
+
+#, fuzzy
+msgid "Please enter your email"
+msgstr "لطفاً تأیید کنید"
+
+#, fuzzy
+msgid "Please enter your first name"
+msgstr "نام هشدار را وارد کنید"
+
+#, fuzzy
+msgid "Please enter your last name"
+msgstr "نام هشدار را وارد کنید"
+
+#, fuzzy
+msgid "Please enter your password"
+msgstr "لطفاً تأیید کنید"
+
+#, fuzzy
+msgid "Please enter your username"
+msgstr "برچسب برای کوئریی شما"
 
 msgid "Please provide a valid range"
 msgstr ""
@@ -8159,6 +8371,10 @@ msgid "Please save your dashboard first, then try creating a new email report."
 msgstr ""
 "لطفاً ابتدا داشبورد خود را ذخیره کنید، سپس سعی کنید یک گزارش ایمیلی جدید "
 "ایجاد کنید."
+
+#, fuzzy
+msgid "Please select at least one role or group"
+msgstr "لطفاً حداقل یک گروه‌بندی انتخاب کنید."
 
 msgid "Please select both a Dataset and a Chart type to proceed"
 msgstr "لطفاً هم یک مجموعه داده و هم نوع نمودار را برای ادامه انتخاب کنید."
@@ -8362,9 +8578,6 @@ msgstr "کد خود را اینجا قرار دهید"
 msgid "Python datetime string pattern"
 msgstr "الگوی رشته تاریخ و زمان پایتون"
 
-msgid "QUERY DATA IN SQL LAB"
-msgstr "کوئری داده‌ها در آزمایشگاه SQL"
-
 msgid "Quarter"
 msgstr "سه‌ماه"
 
@@ -8390,6 +8603,10 @@ msgstr "کوئریی ب"
 
 msgid "Query History"
 msgstr "تاریخچه درخواست‌ها"
+
+#, fuzzy
+msgid "Query data in SQL Lab"
+msgstr "کوئری داده‌ها در آزمایشگاه SQL"
 
 msgid "Query does not exist"
 msgstr "کوئری وجود ندارد"
@@ -8420,9 +8637,6 @@ msgstr "کوئری متوقف شد"
 
 msgid "Query was stopped."
 msgstr "کوئری متوقف شد."
-
-msgid "RANGE TYPE"
-msgstr "نوع دامنه"
 
 msgid "RGB Color"
 msgstr "رنگ RGB"
@@ -8468,6 +8682,10 @@ msgstr "پلاگین فیلتر بازه‌ای با استفاده از AntD"
 
 msgid "Range labels"
 msgstr "برچسب‌های محدوده"
+
+#, fuzzy
+msgid "Range type"
+msgstr "نوع دامنه"
 
 msgid "Ranges"
 msgstr "محدوده‌ها"
@@ -8528,6 +8746,10 @@ msgstr "به مورد اشاره کنید"
 msgid "Referenced columns not available in DataFrame."
 msgstr "ستون‌های مرجع در DataFrame موجود نیستند."
 
+#, fuzzy
+msgid "Referrer"
+msgstr "به‌روز رسانی"
+
 msgid "Refetch results"
 msgstr "دوباره دریافت نتایج"
 
@@ -8558,6 +8780,17 @@ msgstr "به‌روزرسانی نمودارها"
 
 msgid "Refreshing columns"
 msgstr "بارگذاری مجدد ستون‌ها"
+
+#, fuzzy
+msgid "Register"
+msgstr "پیش‌فیلتر"
+
+#, fuzzy
+msgid "Registration date"
+msgstr "تاریخ شروع"
+
+msgid "Registration hash"
+msgstr ""
 
 msgid "Regular"
 msgstr "معمولی"
@@ -8758,6 +8991,14 @@ msgstr "بازنشانی"
 msgid "Reset columns"
 msgstr "ستون را انتخاب کنید"
 
+#, fuzzy, python-format
+msgid "Reset my password"
+msgstr "%s رمز عبور"
+
+#, fuzzy, python-format
+msgid "Reset password"
+msgstr "%s رمز عبور"
+
 msgid "Reset state"
 msgstr "تنظیم مجدد وضعیت"
 
@@ -8833,34 +9074,11 @@ msgid "Role Name"
 msgstr "نام هشدار"
 
 #, fuzzy
-msgid "Role is required"
-msgstr "ارزش الزامی است"
-
-#, fuzzy
 msgid "Role name is required"
 msgstr "نام الزامی است"
 
-#, fuzzy
-msgid "Role successfully updated!"
-msgstr "دیتاست با موفقیت تغییر کرد!"
-
-msgid "Role was successfully created!"
-msgstr ""
-
-msgid "Role was successfully duplicated!"
-msgstr ""
-
 msgid "Roles"
 msgstr "نقش‌ها"
-
-msgid ""
-"Roles is a list which defines access to the dashboard. Granting a role "
-"access to a dashboard will bypass dataset level checks. If no roles are "
-"defined, regular access permissions apply."
-msgstr ""
-"نقش‌ها فهرستی هستند که دسترسی به داشبورد را تعریف می‌کنند. اعطای دسترسی "
-"یک نقش به یک داشبورد، بررسی‌های سطح داده‌ را نادیده می‌گیرد. اگر هیچ نقشی"
-" تعریف نشده باشد، مجوزهای دسترسی معمولی اعمال می‌شوند."
 
 msgid ""
 "Roles is a list which defines access to the dashboard. Granting a role "
@@ -8909,6 +9127,12 @@ msgstr "ردیف"
 
 msgid "Row Level Security"
 msgstr "امنیت سطح ردیف"
+
+msgid ""
+"Row Limit: percentages are calculated based on the subset of data "
+"retrieved, respecting the row limit. All Records: Percentages are "
+"calculated based on the total dataset, ignoring the row limit."
+msgstr ""
 
 msgid ""
 "Row containing the headers to use as column names (0 is first line of "
@@ -8971,8 +9195,8 @@ msgstr "اجرای انتخاب"
 msgid "Running"
 msgstr "در حال اجرا"
 
-#, python-format
-msgid "Running statement %(statement_num)s out of %(statement_count)s"
+#, fuzzy, python-format
+msgid "Running block %(block_num)s out of %(block_count)s"
 msgstr "در حال اجرای بیانیه %(statement_num)s از %(statement_count)s"
 
 msgid "SAT"
@@ -9027,6 +9251,10 @@ msgstr "عبارت SQL"
 msgid "SQL query"
 msgstr "کوئری SQL"
 
+#, fuzzy
+msgid "SQL was formatted"
+msgstr "قالب محور Y"
+
 msgid "SQLAlchemy URI"
 msgstr "URI SQLAlchemy"
 
@@ -9062,9 +9290,6 @@ msgstr "تکمیل تونل SSH فعال نیست"
 
 msgid "SSL Mode \"require\" will be used."
 msgstr "حالت SSL \"الزامی\" استفاده خواهد شد."
-
-msgid "START (INCLUSIVE)"
-msgstr "شروع (شامل)"
 
 #, python-format
 msgid "STEP %(stepCurr)s OF %(stepLast)s"
@@ -9135,6 +9360,14 @@ msgstr "ذخیره به عنوان:"
 
 msgid "Save changes"
 msgstr "تغییرات را ذخیره کنید"
+
+#, fuzzy
+msgid "Save changes to your chart?"
+msgstr "تغییرات را ذخیره کنید"
+
+#, fuzzy
+msgid "Save changes to your dashboard?"
+msgstr "ذخیره و رفتن به داشبورد"
 
 msgid "Save chart"
 msgstr "نمودار را ذخیره کن"
@@ -9349,6 +9582,10 @@ msgstr "انتخاب کنید"
 msgid "Select ..."
 msgstr "انتخاب کنید ..."
 
+#, fuzzy
+msgid "Select All"
+msgstr "غیرفعال کردن همه"
+
 msgid "Select Delivery Method"
 msgstr "روش تحویل را انتخاب کنید"
 
@@ -9433,9 +9670,6 @@ msgstr "تمام داده‌ها را انتخاب کنید"
 msgid "Select all items"
 msgstr "همه اقلام را انتخاب کنید"
 
-msgid "Select an aggregation method to apply to the metric."
-msgstr ""
-
 msgid "Select catalog or type to search catalogs"
 msgstr "فهرست یا نوع را برای جستجوی فهرست‌ها انتخاب کنید"
 
@@ -9457,10 +9691,6 @@ msgstr "انتخاب طرح رنگ"
 
 msgid "Select column"
 msgstr "ستون را انتخاب کنید"
-
-#, fuzzy
-msgid "Select column names from a dropdown list that should be parsed as dates."
-msgstr "یک لیست جدا شده با ویرگول از ستون‌هایی که باید به‌عنوان تاریخ تجزیه شوند"
 
 msgid ""
 "Select columns that will be displayed in the table. You can multiselect "
@@ -9517,6 +9747,10 @@ msgstr "به طور پیش‌فرض اولین مقدار فیلتر را انت
 msgid "Select format"
 msgstr "انتخاب فرمت"
 
+#, fuzzy
+msgid "Select groups"
+msgstr "مالکین را انتخاب کنید"
+
 msgid ""
 "Select one or many metrics to display, that will be displayed in the "
 "percentages of total. Percentage metrics will be calculated only from "
@@ -9540,9 +9774,6 @@ msgstr "عملگر انتخاب"
 
 msgid "Select or type a custom value..."
 msgstr "یک مقدار سفارشی را انتخاب کنید یا تایپ کنید..."
-
-msgid "Select or type a value"
-msgstr "یک مقدار را انتخاب یا وارد کنید"
 
 msgid "Select or type currency symbol"
 msgstr "نماد ارز را انتخاب کنید یا وارد کنید"
@@ -9620,6 +9851,10 @@ msgstr ""
 msgid "Select the geojson column"
 msgstr "ستون geojson را انتخاب کنید"
 
+#, fuzzy
+msgid "Select users"
+msgstr "مالکین را انتخاب کنید"
+
 #, python-format
 msgid ""
 "Select values in highlighted field(s) in the control panel. Then run the "
@@ -9679,12 +9914,20 @@ msgstr "طول صفحه سرور"
 msgid "Server pagination"
 msgstr "صفحه‌بندی سرور"
 
+#, python-format
+msgid "Server pagination needs to be enabled for values over %s"
+msgstr ""
+
 msgid "Service Account"
 msgstr "حساب خدمات"
 
 #, fuzzy
 msgid "Service version"
 msgstr "حساب خدمات"
+
+#, fuzzy, python-format
+msgid "Set %s as default datetime column"
+msgstr "تاریخ و زمان پیش‌فرض"
 
 msgid "Set auto-refresh interval"
 msgstr "فواصل تازه‌سازی خودکار را تنظیم کنید"
@@ -9799,6 +10042,10 @@ msgstr "نمایش لاگ"
 msgid "Show Markers"
 msgstr "نمایش نشانگرها"
 
+#, fuzzy
+msgid "Show Metric Name"
+msgstr "نمایش نام‌های متریک"
+
 msgid "Show Metric Names"
 msgstr "نمایش نام‌های متریک"
 
@@ -9861,7 +10108,7 @@ msgstr "نقاط داده را به عنوان نشانگرهای دایره‌�
 msgid "Show empty columns"
 msgstr "ستون‌های خالی را نمایش بدهید"
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "Show entries per page"
 msgstr "نمایش %s ورودی‌ها"
 
@@ -9892,6 +10139,10 @@ msgstr "نشان دادن نوارهای فرعی روی محور‌ها."
 
 msgid "Show only my charts"
 msgstr "فقط نمودارهای من را نمایش بده"
+
+#, fuzzy
+msgid "Show original SQL"
+msgstr "مقدار اصلی"
 
 msgid "Show password."
 msgstr "نمایش رمز عبور."
@@ -9984,6 +10235,14 @@ msgstr "فهرستی از تمام سری‌های موجود در آن زمان
 msgid "Shows or hides markers for the time series"
 msgstr "نشان دادن یا پنهان کردن نشانگرها برای سری‌های زمانی"
 
+#, fuzzy
+msgid "Sign in"
+msgstr "نه در"
+
+#, fuzzy
+msgid "Sign in with"
+msgstr "ورود با"
+
 msgid "Significance Level"
 msgstr "سطح معناداری"
 
@@ -10029,6 +10288,10 @@ msgstr "ردیف‌ها را رد کن"
 msgid "Skip spaces after delimiter"
 msgstr "فضاها را بعد از جداکننده نادیده بگیرید"
 
+#, fuzzy
+msgid "Slice Id"
+msgstr "عرض خط"
+
 msgid "Slug"
 msgstr "اسلاگ"
 
@@ -10053,6 +10316,10 @@ msgstr "سخت"
 
 msgid "Some roles do not exist"
 msgstr "برخی از نقش‌ها وجود ندارند"
+
+#, fuzzy
+msgid "Something went wrong while saving the user info"
+msgstr "متأسفم، مشکلی پیش آمده است. لطفاً دوباره تلاش کنید."
 
 msgid ""
 "Something went wrong with embedded authentication. Check the dev console "
@@ -10202,6 +10469,9 @@ msgstr ""
 msgid "Split number"
 msgstr "عدد را تقسیم کن"
 
+msgid "Split stack by"
+msgstr ""
+
 msgid "Square kilometers"
 msgstr "کیلومتر مربع"
 
@@ -10213,6 +10483,9 @@ msgstr "مایل مربع"
 
 msgid "Stack"
 msgstr "پشته"
+
+msgid "Stack in groups, where each group corresponds to a dimension"
+msgstr ""
 
 msgid "Stack series"
 msgstr "سری استک"
@@ -10237,6 +10510,10 @@ msgstr "شروع"
 
 msgid "Start (Longitude, Latitude): "
 msgstr "شروع (طول جغرافیایی، عرض جغرافیایی):"
+
+#, fuzzy
+msgid "Start (inclusive)"
+msgstr "شروع (شامل)"
 
 msgid "Start Longitude & Latitude"
 msgstr "طول و عرض اولیه"
@@ -10268,10 +10545,6 @@ msgstr "شروع شد"
 
 msgid "State"
 msgstr "ایالت"
-
-#, python-format
-msgid "Statement %(statement_num)s out of %(statement_count)s"
-msgstr "بیانیه %(statement_num)s از %(statement_count)s"
 
 msgid "Statistical"
 msgstr "آماری"
@@ -10350,19 +10623,12 @@ msgstr "انتهای نوار پیشرفت را با یک سرگرد طراحی 
 msgid "Subdomain"
 msgstr "زیر دامنه"
 
-msgid "Subheader Font Size"
-msgstr "اندازه فونت زیرعنوان"
-
 msgid "Submit"
 msgstr "ارسال"
 
 #, fuzzy
 msgid "Subtitle"
 msgstr "عنوان برگه"
-
-#, fuzzy
-msgid "Subtitle Font Size"
-msgstr "اندازه حباب"
 
 msgid "Subtotal"
 msgstr "زیرمجموعه"
@@ -10951,6 +11217,14 @@ msgstr ""
 msgid "The function to use when aggregating points into groups"
 msgstr "عملکردی که هنگام تجمیع نقاط به گروه‌ها استفاده می‌شود"
 
+#, fuzzy
+msgid "The group has been created successfully."
+msgstr "گزارش ایجاد شده است"
+
+#, fuzzy
+msgid "The group has been updated successfully."
+msgstr "توضیحات به‌روزرسانی شده‌اند."
+
 msgid "The height of the current zoom level to compute all heights from"
 msgstr ""
 
@@ -11015,6 +11289,7 @@ msgstr ""
 "پارامترهای متاداده در فیلد اضافی به درستی پیکربندی نشده‌اند. کلید %(key)s"
 " نامعتبر است."
 
+#, python-brace-format
 msgid ""
 "The metadata_params in Extra field is not configured correctly. The key "
 "%{key}s is invalid."
@@ -11128,6 +11403,10 @@ msgstr "رمز عبور ارائه شده برای نام کاربری \"%(usern
 
 msgid "The password provided when connecting to a database is not valid."
 msgstr "رمز عبوری که هنگام اتصال به پایگاه داده ارائه شده است معتبر نیست."
+
+#, fuzzy
+msgid "The password reset was successful"
+msgstr "این داشبورد با موفقیت ذخیره شد."
 
 msgid ""
 "The passwords for the databases below are needed in order to import them "
@@ -11312,6 +11591,18 @@ msgstr ""
 msgid "The rich tooltip shows a list of all series for that point in time"
 msgstr "ابزارک غنی فهرستی از تمام سری‌ها برای آن نقطه زمانی را نمایش می‌دهد"
 
+#, fuzzy
+msgid "The role has been created successfully."
+msgstr "گزارش ایجاد شده است"
+
+#, fuzzy
+msgid "The role has been duplicated successfully."
+msgstr "گزارش ایجاد شده است"
+
+#, fuzzy
+msgid "The role has been updated successfully."
+msgstr "توضیحات به‌روزرسانی شده‌اند."
+
 msgid ""
 "The row limit set for the chart was reached. The chart may show partial "
 "data."
@@ -11453,6 +11744,10 @@ msgid "The time unit used for the grouping of blocks"
 msgstr "واحد زمانی مورد استفاده برای گروه‌بندی بلوک‌ها"
 
 #, fuzzy
+msgid "The two passwords that you entered do not match!"
+msgstr "داشبوردها وجود ندارند"
+
+#, fuzzy
 msgid "The type of the layer"
 msgstr "نام نمودار را اضافه کنید"
 
@@ -11465,8 +11760,16 @@ msgstr "واحد اندازه‌گیری برای شعاع نقطه مشخص ش�
 msgid "The upper limit of the threshold range of the Isoband"
 msgstr "حد بالایی دامنه آستانه ایزوبند"
 
+#, fuzzy
+msgid "The user has been updated successfully."
+msgstr "این داشبورد با موفقیت ذخیره شد."
+
 msgid "The user seems to have been deleted"
 msgstr "به نظر می‌رسد کاربر حذف شده است."
+
+#, fuzzy
+msgid "The user was updated successfully"
+msgstr "این داشبورد با موفقیت ذخیره شد."
 
 msgid "The user/password combination is not valid (Incorrect password for user)."
 msgstr "ترکیب نام کاربری/رمز عبور معتبر نیست (رمز عبور نادرست برای کاربر)."
@@ -11546,6 +11849,22 @@ msgstr ""
 "برای این قسمت فضای کافی وجود ندارد. سعی کنید عرض آن را کاهش دهید یا عرض "
 "مقصد را افزایش دهید."
 
+#, fuzzy
+msgid "There was an error creating the group. Please, try again."
+msgstr "خطا در بارگذاری طرح‌ها وجود داشت"
+
+#, fuzzy
+msgid "There was an error creating the role. Please, try again."
+msgstr "خطا در بارگذاری طرح‌ها وجود داشت"
+
+#, fuzzy
+msgid "There was an error creating the user. Please, try again."
+msgstr "خطا در بارگذاری طرح‌ها وجود داشت"
+
+#, fuzzy
+msgid "There was an error duplicating the role. Please, try again."
+msgstr "در هنگام کپی‌کردن مجموعه‌داده مشکلی پیش آمده است."
+
 msgid "There was an error fetching dataset"
 msgstr "خطایی در بازیابی مجموعه داده وجود داشت."
 
@@ -11580,12 +11899,32 @@ msgid "There was an error loading the tables"
 msgstr "خطایی در بارگذاری جدول‌ها وجود داشت"
 
 #, fuzzy
+msgid "There was an error loading users."
+msgstr "خطایی در بارگذاری جدول‌ها وجود داشت"
+
+#, fuzzy
 msgid "There was an error retrieving dashboard tabs."
 msgstr "متاسفیم، خطایی در ذخیره‌سازی این داشبورد رخ داد: %s"
 
 #, python-format
 msgid "There was an error saving the favorite status: %s"
 msgstr "خطایی در ذخیره وضعیت مورد علاقه رخ داد: %s"
+
+#, fuzzy
+msgid "There was an error updating the group. Please, try again."
+msgstr "خطا در بارگذاری طرح‌ها وجود داشت"
+
+#, fuzzy
+msgid "There was an error updating the role. Please, try again."
+msgstr "خطا در بارگذاری طرح‌ها وجود داشت"
+
+#, fuzzy
+msgid "There was an error updating the user. Please, try again."
+msgstr "خطا در بارگذاری طرح‌ها وجود داشت"
+
+#, fuzzy
+msgid "There was an error while fetching users"
+msgstr "خطایی در بازیابی مجموعه داده وجود داشت."
 
 msgid "There was an error with your request"
 msgstr "در درخواست شما خطایی رخ داده است"
@@ -11597,6 +11936,10 @@ msgstr "یک مشکل در حذف وجود داشت: %s"
 #, python-format
 msgid "There was an issue deleting %s: %s"
 msgstr "حین حذف %s مشکلی پیش آمد: %s"
+
+#, fuzzy, python-format
+msgid "There was an issue deleting registration for user: %s"
+msgstr "مشکلی در حذف قوانین وجود داشت: %s"
 
 #, python-format
 msgid "There was an issue deleting rules: %s"
@@ -11693,6 +12036,10 @@ msgstr ""
 msgid "This action will permanently delete %s."
 msgstr "این عمل به طور دائمی %s را حذف خواهد کرد."
 
+#, fuzzy
+msgid "This action will permanently delete the group."
+msgstr "این عمل لایه را به طور دائم حذف خواهد کرد."
+
 msgid "This action will permanently delete the layer."
 msgstr "این عمل لایه را به طور دائم حذف خواهد کرد."
 
@@ -11705,6 +12052,10 @@ msgstr "این عمل به طور دائم جستجوی ذخیره شده را �
 
 msgid "This action will permanently delete the template."
 msgstr "این عمل الگو را به طور دائمی حذف خواهد کرد."
+
+#, fuzzy
+msgid "This action will permanently delete the user registration."
+msgstr "این عمل لایه را به طور دائم حذف خواهد کرد."
 
 #, fuzzy
 msgid "This action will permanently delete the user."
@@ -11830,11 +12181,13 @@ msgstr ""
 msgid "This dashboard was saved successfully."
 msgstr "این داشبورد با موفقیت ذخیره شد."
 
+#, fuzzy
 msgid ""
-"This database does not allow for DDL/DML, and the query could not be "
-"parsed to confirm it is a read-only query. Please contact your "
-"administrator for more assistance."
+"This database does not allow for DDL/DML, but the query mutates data. "
+"Please contact your administrator for more assistance."
 msgstr ""
+"پایگاه داده‌ای که در این کوئری به آن اشاره شده است پیدا نشد. لطفاً برای "
+"کمک بیشتر با یک مدیر تماس بگیرید یا دوباره تلاش کنید."
 
 msgid "This database is managed externally, and can't be edited in Superset"
 msgstr ""
@@ -11859,7 +12212,9 @@ msgstr "این مجموعه داده برای تولید هیچ نموداری �
 msgid "This defines the element to be plotted on the chart"
 msgstr "این عنصر را برای ترسیم روی نمودار تعریف می‌کند."
 
-msgid "This email is already associated with an account."
+msgid ""
+"This email is already associated with an account. Please choose another "
+"one."
 msgstr ""
 
 msgid ""
@@ -11916,6 +12271,9 @@ msgstr "این ممکن است توسط موارد زیر فعال شود:"
 
 msgid "This metric might be incompatible with current dataset"
 msgstr "این متریک ممکن است با مجموعه داده‌های کنونی سازگار نباشد."
+
+msgid "This name is already taken. Please choose another one."
+msgstr ""
 
 msgid "This option has been disabled by the administrator."
 msgstr "این گزینه توسط مدیر غیرفعال شده است."
@@ -12000,6 +12358,10 @@ msgstr "آستانه"
 
 msgid "Threshold alpha level for determining significance"
 msgstr "سطح آلفای آستانه برای تعیین معناداری"
+
+#, fuzzy
+msgid "Threshold for Other"
+msgstr "آستانه"
 
 msgid "Threshold: "
 msgstr "آستانه:"
@@ -12233,7 +12595,7 @@ msgstr "مجموع (%(aggfunc)s)"
 msgid "Total (%(aggregatorName)s)"
 msgstr "مجموع (%(aggregatorName)s)"
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "Total (Sum)"
 msgstr "مجموع: %s"
 
@@ -12279,6 +12641,10 @@ msgstr "مثلث"
 
 msgid "Trigger Alert If..."
 msgstr "هشدار را در صورت... فعال کنید"
+
+#, fuzzy
+msgid "True"
+msgstr "سه‌شنبه"
 
 msgid "Truncate Axis"
 msgstr "برش محور"
@@ -12431,6 +12797,10 @@ msgstr ""
 
 msgid "Unable to parse SQL"
 msgstr "عدم امکان پارس کردن SQL"
+
+#, fuzzy
+msgid "Unable to read the file, please refresh and try again."
+msgstr "دانلود تصویر ناموفق بود، لطفاً صفحه را تازه‌سازی کرده و دوباره تلاش کنید."
 
 msgid "Unable to retrieve dashboard colors"
 msgstr "نمی‌توان رنگ‌های داشبورد را بازیابی کرد"
@@ -12700,6 +13070,14 @@ msgstr ""
 msgid "User"
 msgstr "کاربر"
 
+#, fuzzy
+msgid "User Name"
+msgstr "نام کاربری"
+
+#, fuzzy
+msgid "User Registrations"
+msgstr "استفاده از نسبت‌های مساحتی"
+
 msgid "User doesn't have the proper permissions."
 msgstr "کاربر مجوزهای لازم را ندارد."
 
@@ -12709,11 +13087,9 @@ msgstr "کاربر باید یک مقدار را قبل از اعمال فیلت
 msgid "User query"
 msgstr "کوئری کاربر"
 
-msgid "User was successfully created!"
-msgstr ""
-
-msgid "User was successfully updated!"
-msgstr ""
+#, fuzzy
+msgid "User registrations"
+msgstr "استفاده از نسبت‌های مساحتی"
 
 msgid "Username"
 msgstr "نام کاربری"
@@ -12721,6 +13097,10 @@ msgstr "نام کاربری"
 #, fuzzy
 msgid "Username is required"
 msgstr "نام الزامی است"
+
+#, fuzzy
+msgid "Username:"
+msgstr "نام کاربری"
 
 #, fuzzy
 msgid "Users"
@@ -12805,6 +13185,9 @@ msgstr "مقادیر به فیلترهای دیگر وابسته هستند"
 
 msgid "Values dependent on"
 msgstr "مقادیر وابسته به"
+
+msgid "Values less than this percentage will be grouped into the Other category."
+msgstr ""
 
 msgid ""
 "Values selected in other filters will affect the filter options to only "
@@ -13023,13 +13406,13 @@ msgstr "نتوانستم کوئری شما را بررسی کنم."
 msgid "Waterfall Chart"
 msgstr "نمودار آبشار"
 
-msgid ""
-"We are unable to connect to your database. Click \"See more\" for "
-"database-provided information that may help troubleshoot the issue."
-msgstr ""
-"ما قادر به اتصال به پایگاه داده شما نیستیم. برای مشاهده اطلاعات ارائه شده"
-" توسط پایگاه داده که ممکن است به عیب‌یابی مشکل کمک کند، روی \"مشاهده "
-"بیشتر\" کلیک کنید."
+#, fuzzy, python-format
+msgid "We are unable to connect to your database."
+msgstr "نمی‌توان به پایگاه داده \"%(database)s\" متصل شد."
+
+#, fuzzy
+msgid "We are working on your query"
+msgstr "برچسب برای کوئریی شما"
 
 #, python-format
 msgid "We can't seem to resolve column \"%(column)s\" at line %(location)s."
@@ -13164,10 +13547,12 @@ msgstr ""
 "زمانی که فقط یک معیار اصلی ارائه شود، از یک مقیاس رنگ دسته‌ای استفاده "
 "می‌شود."
 
+#, fuzzy
 msgid ""
 "When specifying SQL, the datasource acts as a view. Superset will use "
 "this statement as a subquery while grouping and filtering on the "
-"generated parent queries."
+"generated parent queries.If changes are made to your SQL query, columns "
+"in your dataset will be synced when saving the dataset."
 msgstr ""
 "زمانی که SQL مشخص می‌شود، منبع داده به عنوان یک نما عمل می‌کند. سوپردیت "
 "این عبارت را به عنوان یک زیرکوئری در حین گروه بندی و فیلتر کردن روی "
@@ -13271,6 +13656,10 @@ msgstr "آیا برچسب‌ها نمایش داده شوند."
 
 msgid "Whether to display the legend (toggles)"
 msgstr "آیا باید نشانگر (تغییرات) را نمایش داد؟"
+
+#, fuzzy
+msgid "Whether to display the metric name"
+msgstr "آیا نام معیار به عنوان عنوان نمایش داده شود؟"
 
 msgid "Whether to display the metric name as a title"
 msgstr "آیا نام معیار به عنوان عنوان نمایش داده شود؟"
@@ -13440,6 +13829,10 @@ msgstr "قالب محور X"
 msgid "X Axis Label"
 msgstr "برچسب محور X"
 
+#, fuzzy
+msgid "X Axis Label Interval"
+msgstr "برچسب محور X"
+
 msgid "X Axis Title"
 msgstr "عنوان محور X"
 
@@ -13550,6 +13943,10 @@ msgstr "بله، تغییرات را بازنویسی کنید"
 #, python-format
 msgid "You are adding tags to %s %ss"
 msgstr "شما در حال اضافه کردن برچسب به %s %ss هستید"
+
+#, fuzzy, python-format
+msgid "You are edting a query from the virtual dataset "
+msgstr ""
 
 msgid ""
 "You are importing one or more charts that already exist. Overwriting "
@@ -13729,9 +14126,6 @@ msgstr ""
 "شما از تمام % (historyLength)s فضای لغو استفاده کرده‌اید و قادر به لغو "
 "کامل اقدامات بعدی نخواهید بود. می‌توانید وضعیت فعلی خود را ذخیره کنید تا "
 "تاریخچه را تنظیم مجدد کنید."
-
-msgid "You may have an error in your SQL statement. {message}"
-msgstr "شما ممکن است در عبارت SQL خود یک خطا داشته باشید. {message}"
 
 msgid ""
 "You must be a dataset owner in order to edit. Please reach out to a "
@@ -13917,9 +14311,6 @@ msgstr "هشدار"
 msgid "alert condition"
 msgstr "شرط هشدار"
 
-msgid "alert dark"
-msgstr "هشدار تاریک"
-
 msgid "alerts"
 msgstr "هشدارها"
 
@@ -13959,6 +14350,7 @@ msgstr "پایه"
 msgid "below (example:"
 msgstr "زیر (نمونه:"
 
+#, python-brace-format
 msgid "between {down} and {up} {name}"
 msgstr "بین {down} و {up} {name}"
 
@@ -13991,6 +14383,10 @@ msgstr "تغییر"
 
 msgid "chart"
 msgstr "نمودار"
+
+#, fuzzy
+msgid "charts"
+msgstr "نمودارها"
 
 msgid "choose WHERE or HAVING..."
 msgstr "WHERE یا HAVING را انتخاب کنید..."
@@ -14056,6 +14452,10 @@ msgstr "جمع تجمعی"
 
 msgid "dashboard"
 msgstr "داشبورد"
+
+#, fuzzy
+msgid "dashboards"
+msgstr "داشبوردها"
 
 msgid "database"
 msgstr "پایگاه داده"
@@ -14187,9 +14587,6 @@ msgstr "ورودی‌ها"
 msgid "error"
 msgstr "خطا"
 
-msgid "error dark"
-msgstr "خطای تاریک"
-
 msgid "error_message"
 msgstr "error_message"
 
@@ -14213,9 +14610,6 @@ msgstr "هر ماه"
 
 msgid "expand"
 msgstr "گسترش دهید"
-
-msgid "explore"
-msgstr "جستجو"
 
 msgid "failed"
 msgstr "شکست خورد"
@@ -14310,6 +14704,7 @@ msgstr "آخرین بخش:"
 msgid "left"
 msgstr "چپ"
 
+#, python-brace-format
 msgid "less than {min} {name}"
 msgstr "کمتر از {min} {name}"
 
@@ -14356,6 +14751,7 @@ msgstr "یکنواخت"
 msgid "month"
 msgstr "ماه"
 
+#, python-brace-format
 msgid "more than {max} {name}"
 msgstr "بیش از {max} {name}"
 
@@ -14537,9 +14933,6 @@ msgstr "آیکون نوع رشته"
 msgid "success"
 msgstr "موفقیت"
 
-msgid "success dark"
-msgstr "موفقیت تاریک"
-
 msgid "sum"
 msgstr "جمع"
 
@@ -14571,7 +14964,7 @@ msgstr "نوع آیکون ناشناخته"
 msgid "unset"
 msgstr "ژوئن"
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "updated"
 msgstr "%s به روز شد"
 

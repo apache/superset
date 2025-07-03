@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2025-06-26 15:18+0200\n"
+"POT-Creation-Date: 2025-07-03 14:13+0300\n"
 "PO-Revision-Date: 2025-06-26 15:34+0200\n"
 "Last-Translator: \n"
 "Language: fr\n"
@@ -26,7 +26,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Generated-By: Babel 2.10.3\n"
+"Generated-By: Babel 2.17.0\n"
 
 msgid ""
 "\n"
@@ -648,6 +648,7 @@ msgstr "Une base de données avec le même nom existe déjà."
 msgid "A date is required when using custom date shift"
 msgstr ""
 
+#, python-brace-format
 msgid ""
 "A dictionary with column names and their data types if you need to change"
 " the defaults. Example: {\"user_id\":\"int\"}. Check Python's Pandas "
@@ -1547,7 +1548,7 @@ msgstr ""
 "Une erreur s'est produite lors de l'extraction des valeurs de "
 "l’utilisateur·rice : %s"
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "An error occurred while formatting SQL"
 msgstr "Une erreur s'est produite lors de l'importation de %s : %s"
 
@@ -2642,12 +2643,15 @@ msgstr "Le graphique [%s] a été sauvegardé"
 msgid "Chart [%s] was added to dashboard [%s]"
 msgstr "Le graphique [%s] ajouté au tableau de bord [%s]"
 
+#, python-brace-format
 msgid "Chart [{}] has been overwritten"
 msgstr "Le graphique [{}] a été écrasé"
 
+#, python-brace-format
 msgid "Chart [{}] has been saved"
 msgstr "Le graphique [{}] a été sauvegardé"
 
+#, python-brace-format
 msgid "Chart [{}] was added to dashboard [{}]"
 msgstr "Le graphique [{}] ajouté au tableau de bord [{}]"
 
@@ -3493,6 +3497,7 @@ msgstr "Impossible de trouver l'objet viz"
 msgid "Could not load database driver"
 msgstr "Impossible de charger le pilote de la base de données"
 
+#, python-brace-format
 msgid "Could not load database driver: {}"
 msgstr "Impossible de charger le pilote de la base de données : {}"
 
@@ -3813,6 +3818,7 @@ msgstr "tableau de bord"
 msgid "Dashboard [%s] just got created and chart [%s] was added to it"
 msgstr "Le tableau de bord [%s] a été créé et le graphique [%s] y a été ajouté"
 
+#, python-brace-format
 msgid "Dashboard [{}] just got created and chart [{}] was added to it"
 msgstr "Le tableau de bord [{}] a été créé et le graphique [{}] y a été ajouté"
 
@@ -4206,6 +4212,7 @@ msgstr "Schéma par défaut"
 msgid "Default URL"
 msgstr "URL par défaut"
 
+#, python-brace-format
 msgid ""
 "Default URL to redirect to when accessing from the dataset list page.\n"
 "            Accepts relative URLs such as <span style=„white-space: "
@@ -4406,7 +4413,7 @@ msgstr "Supprimez ce conteneur et sauvegardez pour supprimer ce message."
 msgid "Delete user"
 msgstr "Supprimer la requête"
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "Delete user registration"
 msgstr "%s supprimé"
 
@@ -5572,6 +5579,7 @@ msgstr "Paramètres supplémentaires"
 msgid "Extra data for JS"
 msgstr "Données supplémentaires pour JS"
 
+#, python-brace-format
 msgid ""
 "Extra data to specify table metadata. Currently supports metadata of the "
 "format: `{ \"certification\": { \"certified_by\": \"Data Platform Team\","
@@ -6012,6 +6020,7 @@ msgstr "Format D3"
 msgid "Format SQL query"
 msgstr "Exporter la requête"
 
+#, python-brace-format
 msgid ""
 "Format data labels. Use variables: {name}, {value}, {percent}. \\n "
 "represents a new line. ECharts compatibility:\n"
@@ -6360,6 +6369,9 @@ msgstr ""
 #, fuzzy
 msgid "If table already exists"
 msgstr "Cet ensemble de filtre existe déjà"
+
+msgid "If you don't save, changes will be lost."
+msgstr ""
 
 #, fuzzy
 msgid "Ignore cache when generating report"
@@ -7885,7 +7897,7 @@ msgstr "Pas encore de %s"
 msgid "No Data"
 msgstr "Aucune donnée"
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "No Logs yet"
 msgstr "Pas encore de %s"
 
@@ -10098,6 +10110,14 @@ msgstr "Enregistrer sous :"
 msgid "Save changes"
 msgstr "Enregistrer les modifications"
 
+#, fuzzy
+msgid "Save changes to your chart?"
+msgstr "Enregistrer les modifications"
+
+#, fuzzy
+msgid "Save changes to your dashboard?"
+msgstr "Enregistrer et aller au tableau de bord"
+
 msgid "Save chart"
 msgstr "Enregistrer le graphique"
 
@@ -12191,6 +12211,7 @@ msgstr ""
 "Le paramètre metadata_params dans Champ supplémentaire n'est pas "
 "correctement configuré. La clé %(key)s est invalide."
 
+#, python-brace-format
 msgid ""
 "The metadata_params in Extra field is not configured correctly. The key "
 "%{key}s is invalid."
@@ -12316,7 +12337,7 @@ msgid "The password provided when connecting to a database is not valid."
 msgstr "Le mot de passe fourni à une base de données est invalide."
 
 #, fuzzy
-msgid "The password reset was successfull"
+msgid "The password reset was successful"
 msgstr "Ce Tableau de Bord a été sauvegardé avec succès."
 
 msgid ""
@@ -15079,7 +15100,7 @@ msgstr "Oui, écraser les modifications"
 msgid "You are adding tags to %s %ss"
 msgstr ""
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "You are edting a query from the virtual dataset "
 msgstr ""
 
@@ -15506,6 +15527,7 @@ msgstr "base"
 msgid "below (example:"
 msgstr "ci-dessous (exemple :"
 
+#, python-brace-format
 msgid "between {down} and {up} {name}"
 msgstr "entre {down} et {up} {name}"
 
@@ -15542,6 +15564,10 @@ msgstr "changement"
 
 msgid "chart"
 msgstr "graphique"
+
+#, fuzzy
+msgid "charts"
+msgstr "Graphiques"
 
 msgid "choose WHERE or HAVING..."
 msgstr "choisir WHERE ou HAVING..."
@@ -15607,6 +15633,10 @@ msgstr "cumsum"
 
 msgid "dashboard"
 msgstr "tableau de bord"
+
+#, fuzzy
+msgid "dashboards"
+msgstr "Tableaux de bord"
 
 msgid "database"
 msgstr "base de données"
@@ -15876,6 +15906,7 @@ msgstr "dernière partition :"
 msgid "left"
 msgstr "restant"
 
+#, python-brace-format
 msgid "less than {min} {name}"
 msgstr "moins de {min} {name}"
 
@@ -15929,6 +15960,7 @@ msgstr "monotone"
 msgid "month"
 msgstr "mois"
 
+#, python-brace-format
 msgid "more than {max} {name}"
 msgstr "plus de {max} {name}"
 
