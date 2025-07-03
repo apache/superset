@@ -40,7 +40,7 @@ from flask_appbuilder import Model
 from flask_appbuilder.models.decorators import renders
 from flask_appbuilder.models.mixins import AuditMixin
 from flask_appbuilder.security.sqla.models import User
-from flask_babel import lazy_gettext as _
+from flask_babel import get_locale, lazy_gettext as _
 from jinja2.exceptions import TemplateError
 from markupsafe import escape, Markup
 from sqlalchemy import and_, Column, or_, UniqueConstraint
@@ -546,10 +546,28 @@ class AuditMixinNullable(AuditMixin):
 
     @property
     def changed_on_humanized(self) -> str:
+        locale = str(get_locale() or 'en')
+        try:
+            humanize.i18n.activate(locale)
+            result = humanize.naturaltime(datetime.now() - self.changed_on)
+            humanize.i18n.deactivate()
+            return result
+        except:
+            pass
+        # Fallback to English
         return humanize.naturaltime(datetime.now() - self.changed_on)
 
     @property
     def created_on_humanized(self) -> str:
+        locale = str(get_locale() or 'en')
+        try:
+            humanize.i18n.activate(locale)
+            result = humanize.naturaltime(datetime.now() - self.created_on)
+            humanize.i18n.deactivate()
+            return result
+        except:
+            pass
+        # Fallback to English
         return humanize.naturaltime(datetime.now() - self.created_on)
 
     @renders("changed_on")
