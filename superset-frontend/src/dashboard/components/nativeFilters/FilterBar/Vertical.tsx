@@ -125,6 +125,8 @@ const VerticalFilterBar: FC<VerticalBarProps> = ({
   onSelectionChange,
   toggleFiltersBar,
   width,
+  clearAllTriggers,
+  onClearAllComplete,
 }) => {
   const theme = useTheme();
   const [isScrolling, setIsScrolling] = useState(false);
@@ -180,6 +182,8 @@ const VerticalFilterBar: FC<VerticalBarProps> = ({
           <FilterControls
             dataMaskSelected={dataMaskSelected}
             onFilterSelectionChange={onSelectionChange}
+            clearAllTriggers={clearAllTriggers}
+            onClearAllComplete={onClearAllComplete}
           />
         </FilterControlsWrapper>
       ),
