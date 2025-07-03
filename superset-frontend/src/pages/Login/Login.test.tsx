@@ -38,7 +38,7 @@ test('should render login form elements', () => {
   expect(screen.getByTestId('username-input')).toBeInTheDocument();
   expect(screen.getByTestId('password-input')).toBeInTheDocument();
   expect(screen.getByTestId('login-button')).toBeInTheDocument();
-  expect(screen.getByText('Sign in')).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: 'Sign in' })).toBeInTheDocument();
 });
 
 test('should render username and password labels', () => {
