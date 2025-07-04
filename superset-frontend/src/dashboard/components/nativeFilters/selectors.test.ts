@@ -65,17 +65,22 @@ describe('getCrossFilterIndicator', () => {
     });
   });
 
-  it('returns correct indicator with column from customColumnLabel', () => {
+  it('returns correct indicator with column and customColumnLabel', () => {
     const dataMask = {
-      filterState: { customColumnLabel: 'label', value: 'valA' },
+      filterState: {
+        value: 'valA',
+        filters: { col: 'col' },
+        customColumnLabel: 'label',
+      },
       extraFormData: {},
     };
     const result = getCrossFilterIndicator(chartId, dataMask, chartLayoutItems);
     expect(result).toEqual({
-      column: 'label',
+      column: 'col',
       name: 'Test Chart',
       path: ['ROOT_ID', 'chart-123'],
       value: 'valA',
+      customColumnLabel: 'label',
     });
   });
 
