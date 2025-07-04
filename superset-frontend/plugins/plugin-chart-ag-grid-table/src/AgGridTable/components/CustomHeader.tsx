@@ -70,6 +70,7 @@ const CustomHeader: React.FC<CustomHeaderParams> = ({
   const [isFilterVisible, setFilterVisible] = useState(false);
   const [isMenuVisible, setMenuVisible] = useState(false);
   const filterRef = useRef<HTMLDivElement>(null);
+  const isFilterActive = column?.isFilterActive();
 
   const currentSort = initialSortState?.[0];
   const isMain = userColDef?.isMain;
@@ -162,6 +163,7 @@ const CustomHeader: React.FC<CustomHeaderParams> = ({
         <FilterIconWrapper
           className="header-filter"
           onClick={handleFilterClick}
+          isFilterActive={isFilterActive}
         >
           <FilterIcon />
         </FilterIconWrapper>
