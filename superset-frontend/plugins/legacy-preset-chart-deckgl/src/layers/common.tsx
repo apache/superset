@@ -67,7 +67,7 @@ export function commonLayerProps(
     };
   } else if (fd.table_filter && onSelect !== undefined) {
     onClick = (o: any) => {
-      onSelect(o.object[fd.line_column]);
+      onSelect(o.object[fd.line_column.replace('_geojson', '')]);
       return true;
     };
   }
