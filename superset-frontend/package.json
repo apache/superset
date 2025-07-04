@@ -142,7 +142,7 @@
     "geostyler-openlayers-parser": "^4.3.0",
     "geostyler-qgis-parser": "2.0.1",
     "geostyler-style": "7.5.0",
-    "geostyler-wfs-parser": "^2.0.3",
+    "geostyler-wfs-parser": "^3.0.1",
     "googleapis": "^130.0.0",
     "html-webpack-plugin": "^5.6.3",
     "immer": "^10.1.1",
