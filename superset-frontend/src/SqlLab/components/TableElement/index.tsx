@@ -378,7 +378,7 @@ const TableElement = ({ table, ...props }: TableElementProps) => {
   return (
     <Collapse
       activeKey={props.activeKey}
-      expandIconPosition="right"
+      expandIconPosition="end"
       onChange={props.onChange}
       ghost
       items={[
