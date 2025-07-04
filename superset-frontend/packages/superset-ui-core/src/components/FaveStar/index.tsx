@@ -64,7 +64,7 @@ export const FaveStar = ({
         <Icons.StarFilled
           aria-label="starred"
           iconSize="l"
-          iconColor={theme.colors.warning.base}
+          iconColor={theme.colorWarning}
           name="favorite-selected"
         />
       ) : (
