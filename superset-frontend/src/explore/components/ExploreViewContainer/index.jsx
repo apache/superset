@@ -775,17 +775,21 @@ function mapStateToProps(state) {
   );
   const isDeckGLChart = explore.form_data?.viz_type === 'deck_multi';
 
-  const form_data = isDeckGLChart
-    ? {
-        ...controlsBasedFormData,
-        ...(explore.form_data?.layer_filter_scope && {
-          layer_filter_scope: explore.form_data.layer_filter_scope,
-        }),
-        ...(explore.form_data?.filter_data_mapping && {
-          filter_data_mapping: explore.form_data.filter_data_mapping,
-        }),
-      }
-    : controlsBasedFormData;
+  const getDeckGLFormData = () => {
+    const formData = { ...controlsBasedFormData };
+
+    if (explore.form_data?.layer_filter_scope) {
+      formData.layer_filter_scope = explore.form_data.layer_filter_scope;
+    }
+
+    if (explore.form_data?.filter_data_mapping) {
+      formData.filter_data_mapping = explore.form_data.filter_data_mapping;
+    }
+
+    return formData;
+  };
+
+  const form_data = isDeckGLChart ? getDeckGLFormData() : controlsBasedFormData;
 
   const slice_id = form_data.slice_id ?? slice?.slice_id ?? 0; // 0 - unsaved chart
   form_data.extra_form_data = mergeExtraFormData(

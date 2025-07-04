@@ -289,7 +289,8 @@ export const getFormDataWithDashboardContext = (
     };
   }
 
-  // Default behavior: dashboard context takes precedence
+  // Default behavior: Dashboard context overrides explore data, but adhoc filters, color schemes
+  // and specific properties from filterBox and native filters take final precedence
   return {
     ...exploreFormData,
     ...dashboardContextFormData,

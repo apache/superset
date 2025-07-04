@@ -204,7 +204,9 @@ export interface FilterScope {
   targets: FilterTarget[];
 }
 
+// Matches layer keys in format: 'chart-123-layer-456' where 123 is chartId and 456 is layerId
 const LAYER_KEY_REGEX = /^chart-(\d+)-layer-(\d+)$/;
+// Matches chart keys in format: 'chart-123' where 123 is chartId
 const CHART_KEY_REGEX = /^chart-(\d+)$/;
 
 export function parseFilterTarget(scopeKey: string): FilterTarget | null {
@@ -239,6 +241,8 @@ export function getFilterScope(
     const target = parseFilterTarget(scopeKey);
     if (target) {
       targets.push(target);
+    } else {
+      console.warn(`Invalid filter scope key format: ${scopeKey}`);
     }
   });
 
@@ -267,6 +271,13 @@ export function aggregateFiltersForTarget(
   return aggregatedFormData;
 }
 
+function createTargetKey(target: FilterTarget): string {
+  if (target.type === 'LAYER') {
+    return `${target.chartId}-${target.layerId}`;
+  }
+  return target.chartId;
+}
+
 export function groupFiltersByTarget(
   dataMask: DataMaskStateWithId,
   filterScopes: Record<string, string[]>,
@@ -282,10 +293,7 @@ export function groupFiltersByTarget(
 
     scope.targets.forEach(target => {
       const filterData = dataMask[filterId]?.extraFormData || {};
-      const targetKey =
-        target.type === 'LAYER'
-          ? `${target.chartId}-${target.layerId}`
-          : target.chartId;
+      const targetKey = createTargetKey(target);
 
       if (target.type === 'CHART') {
         const existing = chartFilters.get(targetKey) || {};
@@ -305,7 +313,7 @@ export function buildFilterScopesFromFilters(
 ): Record<string, string[]> {
   const filterScopes: Record<string, string[]> = {};
 
-  Object.values(filters).forEach((filter: any) => {
+  Object.values(filters).forEach((filter: Filter) => {
     if (filter.chartsInScope) {
       filterScopes[filter.id] = filter.chartsInScope.map(
         (chartId: number) => `chart-${chartId}`,
@@ -324,13 +332,6 @@ export function getLayerSpecificExtraFormData(
 ): ExtraFormData {
   let extraFormData: ExtraFormData = {};
 
-  if (layerId) {
-    const layerKey = `${chartId}-${layerId}`;
-    const layerFilterData = dataMask[layerKey];
-    if (layerFilterData?.extraFormData) {
-      return layerFilterData.extraFormData;
-    }
-  }
   filterIds.forEach(filterId => {
     const filterData = dataMask[filterId];
     if (filterData?.extraFormData) {
@@ -340,6 +341,17 @@ export function getLayerSpecificExtraFormData(
       );
     }
   });
+
+  if (layerId) {
+    const layerKey = `${chartId}-${layerId}`;
+    const layerFilterData = dataMask[layerKey];
+    if (layerFilterData?.extraFormData) {
+      extraFormData = mergeExtraFormData(
+        extraFormData,
+        layerFilterData.extraFormData,
+      );
+    }
+  }
 
   return extraFormData;
 }

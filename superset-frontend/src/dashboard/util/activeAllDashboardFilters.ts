@@ -25,22 +25,29 @@ export const getRelevantDataMask = (
 ): DataMaskStateWithId =>
   dataMask[filterId] ? { [filterId]: dataMask[filterId] } : {};
 
-const extractLayerIndicesFromKeys = (
-  selectedLayers: string[],
-): { [chartId: number]: number[] } => {
+interface LayerInfo {
+  layerMap: { [chartId: number]: number[] };
+  chartIds: Set<number>;
+}
+
+const extractLayerIndicesFromKeys = (selectedLayers: string[]): LayerInfo => {
   const layerMap: { [chartId: number]: number[] } = {};
+  const chartIds = new Set<number>();
   selectedLayers.forEach(layerKey => {
     const match = layerKey.match(/^chart-(\d+)-layer-(\d+)$/);
     if (match) {
       const chartId = parseInt(match[1], 10);
       const layerIndex = parseInt(match[2], 10);
-      if (!layerMap[chartId]) {
-        layerMap[chartId] = [];
+      if (!Number.isNaN(chartId)) {
+        if (!layerMap[chartId]) {
+          layerMap[chartId] = [];
+        }
+        layerMap[chartId].push(layerIndex);
+        chartIds.add(chartId);
       }
-      layerMap[chartId].push(layerIndex);
     }
   });
-  return layerMap;
+  return { layerMap, chartIds };
 };
 
 export const getAllActiveFilters = ({
@@ -104,16 +111,10 @@ export const getAllActiveFilters = ({
 
     let layerScope;
     if (selectedLayers && selectedLayers.length > 0) {
-      layerScope = extractLayerIndicesFromKeys(selectedLayers);
+      const layerInfo = extractLayerIndicesFromKeys(selectedLayers);
+      layerScope = layerInfo.layerMap;
 
-      const explicitlyTargetedCharts = new Set<number>();
-
-      selectedLayers.forEach((selectionKey: string) => {
-        const layerMatch = selectionKey.match(/^chart-(\d+)-layer-(\d+)$/);
-        if (layerMatch) {
-          explicitlyTargetedCharts.add(parseInt(layerMatch[1], 10));
-        }
-      });
+      const explicitlyTargetedCharts = new Set<number>(layerInfo.chartIds);
 
       const originalScope = scope;
       originalScope.forEach((chartId: number) => {
