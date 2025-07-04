@@ -213,8 +213,6 @@ service:
 ingress:
   enabled: false
   ingressClassName: ~
-  forwardAuth:
-    enabled: false
   annotations: {}
     # kubernetes.io/tls-acme: "true"
     ## Extend timeout to allow long running queries.
