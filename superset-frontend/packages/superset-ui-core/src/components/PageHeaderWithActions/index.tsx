@@ -151,7 +151,7 @@ export const PageHeaderWithActions = ({
           {showMenuDropdown && (
             <Dropdown
               trigger={['click']}
-              dropdownRender={() => additionalActionsMenu}
+              popupRender={() => additionalActionsMenu}
               {...menuDropdownProps}
             >
               <Button

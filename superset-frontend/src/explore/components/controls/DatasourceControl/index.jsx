@@ -422,7 +422,7 @@ class DatasourceControl extends PureComponent {
             <WarningIconWithTooltip warningMarkdown={extra.warning_markdown} />
           )}
           <Dropdown
-            dropdownRender={() =>
+            popupRender={() =>
               datasource.type === DatasourceType.Query
                 ? queryDatasourceMenu
                 : defaultDatasourceMenu

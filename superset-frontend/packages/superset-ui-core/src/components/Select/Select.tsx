@@ -492,7 +492,7 @@ const Select = forwardRef(
       ],
     );
 
-    const dropdownRender = (
+    const popupRender = (
       originNode: ReactElement & { ref?: RefObject<HTMLElement> },
     ) =>
       dropDownRenderHelper(
@@ -694,7 +694,7 @@ const Select = forwardRef(
           }
           data-test={ariaLabel || name}
           autoClearSearchValue={autoClearSearchValue}
-          dropdownRender={dropdownRender}
+          popupRender={popupRender}
           filterOption={handleFilterOption}
           filterSort={sortComparatorWithSearch}
           getPopupContainer={
