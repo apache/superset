@@ -24,10 +24,12 @@ import {
   forwardRef,
   memo,
   ReactNode,
+  MouseEvent,
   useCallback,
   useEffect,
   useImperativeHandle,
   useState,
+  useRef,
 } from 'react';
 import { isEqual } from 'lodash';
 import { StaticMap } from 'react-map-gl';
@@ -58,6 +60,14 @@ export const DeckGLContainer = memo(
     const [lastUpdate, setLastUpdate] = useState<number | null>(null);
     const [viewState, setViewState] = useState(props.viewport);
     const prevViewport = usePrevious(props.viewport);
+    const glContextRef = useRef<WebGL2RenderingContext | null>(null);
+
+    useEffect(
+      () => () => {
+        glContextRef.current?.getExtension('WEBGL_lose_context')?.loseContext();
+      },
+      [],
+    );
 
     useImperativeHandle(ref, () => ({ setTooltip }), []);
 
@@ -106,7 +116,13 @@ export const DeckGLContainer = memo(
 
     return (
       <>
-        <div style={{ position: 'relative', width, height }}>
+        <div
+          style={{ position: 'relative', width, height }}
+          onContextMenu={(e: MouseEvent<HTMLDivElement>) => {
+            e.preventDefault();
+            e.stopPropagation();
+          }}
+        >
           <DeckGL
             controller
             width={width}
@@ -114,6 +130,9 @@ export const DeckGLContainer = memo(
             layers={layers()}
             viewState={viewState}
             onViewStateChange={onViewStateChange}
+            onAfterRender={context => {
+              glContextRef.current = context.gl;
+            }}
           >
             <StaticMap
               preserveDrawingBuffer

@@ -28,16 +28,38 @@ import {
   variance as d3variance,
   deviation as d3deviation,
 } from 'd3-array';
-import { JsonObject, JsonValue, QueryFormData } from '@superset-ui/core';
+import {
+  FilterState,
+  HandlerFunction,
+  JsonObject,
+  JsonValue,
+  QueryFormData,
+  SetDataMaskHook,
+} from '@superset-ui/core';
+import { Layer, PickingInfo } from '@deck.gl/core';
 import sandboxedEval from '../utils/sandbox';
 import { TooltipProps } from '../components/Tooltip';
+import { getCrossFilterDataMask } from '../utils/crossFiltersDataMask';
 
-export function commonLayerProps(
-  formData: QueryFormData,
-  setTooltip: (tooltip: TooltipProps['tooltip']) => void,
-  setTooltipContent: (content: JsonObject) => ReactNode,
-  onSelect?: (value: JsonValue) => void,
-) {
+export function commonLayerProps({
+  formData,
+  setDataMask,
+  setTooltip,
+  setTooltipContent,
+  onSelect,
+  onContextMenu,
+  filterState,
+  emitCrossFilters,
+}: {
+  formData: QueryFormData;
+  setDataMask?: SetDataMaskHook;
+  setTooltip: (tooltip: TooltipProps['tooltip']) => void;
+  setTooltipContent: (content: JsonObject) => ReactNode;
+  onSelect?: (value: JsonValue) => void;
+  filterState?: FilterState;
+  onContextMenu?: HandlerFunction;
+  emitCrossFilters?: boolean;
+}) {
   const fd = formData;
   let onHover;
   let tooltipContentGenerator = setTooltipContent;
@@ -58,6 +80,7 @@ export function commonLayerProps(
       return true;
     };
   }
+
   let onClick;
   if (fd.js_onclick_href) {
     onClick = (o: any) => {
@@ -70,12 +93,30 @@ export function commonLayerProps(
       onSelect(o.object[fd.line_column]);
       return true;
     };
+  } else if (emitCrossFilters) {
+    onClick = (data: PickingInfo, event: any) => {
+      const crossFilters = getCrossFilterDataMask({
+        data,
+        filterState,
+        formData,
+      });
+
+      if (event.leftButton && setDataMask !== undefined && crossFilters) {
+        setDataMask(crossFilters.dataMask);
+      } else if (event.rightButton && onContextMenu !== undefined) {
+        onContextMenu(event.center.x, event.center.y, {
+          drillToDetail: [],
+          crossFilter: crossFilters,
+          drillBy: {},
+        });
+      }
+    };
   }
 
   return {
-    onClick,
+    onClick: onClick as Layer['onClick'],
     onHover,
-    pickable: Boolean(onHover),
+    pickable: Boolean(onHover || onClick),
   };
 }
 

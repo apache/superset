@@ -157,6 +157,7 @@ export type Indicator = {
   value?: any;
   status?: IndicatorStatus;
   path?: string[];
+  customColumnLabel?: string;
 };
 
 export type CrossFilterIndicator = Indicator & { emitterId: number };
@@ -170,6 +171,7 @@ export const getCrossFilterIndicator = (
   const filters = dataMask?.extraFormData?.filters;
   const label = extractLabel(filterState);
   const filtersState = filterState?.filters;
+  const customColumnLabel = filterState?.customColumnLabel;
   const column =
     filters?.[0]?.col || (filtersState && Object.keys(filtersState)[0]);
 
@@ -185,6 +187,7 @@ export const getCrossFilterIndicator = (
       '',
     path: [...(chartLayoutItem?.parents ?? []), chartLayoutItem?.id || ''],
     value: label,
+    customColumnLabel,
   };
   return filterObject;
 };

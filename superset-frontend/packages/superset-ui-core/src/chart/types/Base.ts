@@ -55,7 +55,11 @@ export enum AppSection {
   Embedded = 'EMBEDDED',
 }
 
-export type FilterState = { value?: any; [key: string]: any };
+export type FilterState = {
+  value?: any;
+  customColumnLabel?: string;
+  [key: string]: any;
+};
 
 export type DataMask = {
   extraFormData?: ExtraFormData;
