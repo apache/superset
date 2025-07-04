@@ -81,7 +81,7 @@ class DatasetReferencesAPI(RestApi):
             else:
                 # For other databases, we simulate row counts
                 for table in tables:
-                    row_counts[table] = random.randint(0, 10)
+                    row_counts[table] = random.randint(0, 100_000)
 
         result = []
         for table_name in tables:
