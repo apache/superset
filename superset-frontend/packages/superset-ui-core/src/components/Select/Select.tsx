@@ -104,7 +104,7 @@ const Select = forwardRef(
       onBlur,
       onChange,
       onClear,
-      onDropdownVisibleChange,
+      onOpenChange,
       onDeselect,
       onSearch,
       onSelect,
@@ -398,8 +398,8 @@ const Select = forwardRef(
       if (!isDropdownVisible) {
         setSelectOptions(initialOptionsSorted);
       }
-      if (onDropdownVisibleChange) {
-        onDropdownVisibleChange(isDropdownVisible);
+      if (onOpenChange) {
+        onOpenChange(isDropdownVisible);
       }
     };
 
@@ -708,7 +708,7 @@ const Select = forwardRef(
           notFoundContent={isLoading ? t('Loading...') : notFoundContent}
           onBlur={handleOnBlur}
           onDeselect={handleOnDeselect}
-          onDropdownVisibleChange={handleOnDropdownVisibleChange}
+          onOpenChange={handleOnDropdownVisibleChange}
           // @ts-ignore
           onPaste={onPaste}
           onPopupScroll={undefined}

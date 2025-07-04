@@ -62,7 +62,7 @@ export type AntdExposedProps = Pick<
   | 'onBlur'
   | 'onPopupScroll'
   | 'onSearch'
-  | 'onDropdownVisibleChange'
+  | 'onOpenChange'
   | 'optionRender'
   | 'placeholder'
   | 'showArrow'

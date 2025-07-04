@@ -129,7 +129,7 @@ const AsyncSelect = forwardRef(
       onError,
       onChange,
       onClear,
-      onDropdownVisibleChange,
+      onOpenChange,
       onDeselect,
       onSearch,
       onSelect,
@@ -441,8 +441,8 @@ const AsyncSelect = forwardRef(
         }
       }
 
-      if (onDropdownVisibleChange) {
-        onDropdownVisibleChange(isDropdownVisible);
+      if (onOpenChange) {
+        onOpenChange(isDropdownVisible);
       }
     };
 
@@ -618,7 +618,7 @@ const AsyncSelect = forwardRef(
           notFoundContent={isLoading ? t('Loading...') : notFoundContent}
           onBlur={handleOnBlur}
           onDeselect={handleOnDeselect}
-          onDropdownVisibleChange={handleOnDropdownVisibleChange}
+          onOpenChange={handleOnDropdownVisibleChange}
           // @ts-ignore
           onPaste={onPaste}
           onPopupScroll={handlePagination}
