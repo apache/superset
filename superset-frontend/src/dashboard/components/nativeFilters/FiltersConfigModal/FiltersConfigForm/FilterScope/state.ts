@@ -44,7 +44,7 @@ export function useFilterScopeTree(
 
   const charts = useSelector<RootState, Charts>(({ charts }) => charts);
 
-  const sliceEntities = useSelector<RootState, any>(state => {
+  const sliceEntities = useSelector<RootState, Slice>(state => {
     if (!state.sliceEntities) {
       console.warn('sliceEntities not found in state');
       return {};
