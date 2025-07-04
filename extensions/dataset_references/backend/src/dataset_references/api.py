@@ -22,6 +22,7 @@ from flask_appbuilder.api import expose, permission_name, protect, safe
 from dataset_references.query_parsing import extract_tables
 from superset_core.api import models, query
 from superset_core.api.types.rest_api import RestApi
+from sqlglot import Dialects
 
 
 class DatasetReferencesAPI(RestApi):
@@ -37,13 +38,12 @@ class DatasetReferencesAPI(RestApi):
         sql: str = request.json.get("sql")
         database_id: int = request.json.get("databaseId")
 
+        # Access to the metadata database using core APIs to retrive dataset owners
         session = models.get_session()
         database_model = models.get_database_model()
         database_query = session.query(database_model).filter_by(id=database_id)
         database = models.get_databases(database_query)[0]
         dialect = query.get_sqlglot_dialect(database)
-
-        tables = extract_tables(sql, dialect=dialect)
 
         dataset_model = models.get_dataset_model()
         dataset_query = session.query(dataset_model)
@@ -51,34 +51,38 @@ class DatasetReferencesAPI(RestApi):
 
         owners_map = {}
 
-        # Retrieve all table owners from the database
         for dataset in datasets:
             table_name = dataset.table_name
             owners_map[table_name] = [
                 f"{owner.first_name} {owner.last_name}" for owner in dataset.owners
             ]
 
-        # # Get estimated row counts from PostgreSQL's pg_class and pg_namespace
-        # # Only works for tables in the current database/schema
-        # row_counts = {}
-        # if tables:
-        #     table_names = ", ".join(f"'{t}'" for t in tables)
-        #     count_estimates = (
-        #         models.get_database(1)
-        #         .get_df(
-        #             f"""
-        #                 SELECT
-        #                     relname AS table_name,
-        #                     reltuples::BIGINT AS estimated_row_count
-        #                 FROM pg_class
-        #                 WHERE relname IN ({table_names})
-        #             """
-        #         )
-        #     )
-        #     for _, row in count_estimates.iterrows():
-        #         table_name = row["table_name"]
-        #         estimated_row_count = row["estimated_row_count"]
-        #         row_counts[table_name] = estimated_row_count
+        # Access to first-class dependencies like SQL Glot
+        tables = extract_tables(sql, dialect=dialect)
+
+        # Access to an analytical database to get estimated row counts
+        row_counts = {}
+        if tables:
+            if dialect == Dialects.POSTGRES:
+                table_names = ", ".join(f"'{t}'" for t in tables)
+                count_estimates = database.get_df(
+                    sql=f"""
+                            SELECT
+                                relname AS table_name,
+                                reltuples::BIGINT AS estimated_row_count
+                            FROM pg_class
+                            WHERE relname IN ({table_names})
+                        """
+                )
+                for _, row in count_estimates.iterrows():
+                    table_name = row["table_name"]
+                    estimated_row_count = row["estimated_row_count"]
+                    row_counts[table_name] = estimated_row_count
+            else:
+                # For other databases, we simulate row counts
+                for table in tables:
+                    row_counts[table] = random.randint(0, 10)
+
         result = []
         for table_name in tables:
             # Generate a random date within the last 60 days
@@ -86,14 +90,12 @@ class DatasetReferencesAPI(RestApi):
             latest_partition = (datetime.today() - timedelta(days=days_ago)).strftime(
                 "%Y-%m-%d"
             )
-            # estimated_row_count = row_counts.get(table_name)
-            estimated_row_count = random.randint(0, 100000)  # noqa: S311
             result.append(
                 {
                     "dataset_name": table_name,
                     "owners": owners_map.get(table_name, []),
                     "latest_partition": latest_partition,
-                    "estimated_row_count": estimated_row_count,
+                    "estimated_row_count": row_counts.get(table_name),
                 }
             )
 

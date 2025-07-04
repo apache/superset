@@ -24,6 +24,13 @@ class Table:
     schema: str | None = None
     catalog: str | None = None
 
+    def __init__(
+        self, table: str, schema: str | None = None, catalog: str | None = None
+    ):
+        self.table = table
+        self.schema = schema
+        self.catalog = catalog
+
 
 def is_cte(source: exp.Table, scope: Scope) -> bool:
     parent_sources = scope.parent.sources if scope.parent else {}
@@ -39,7 +46,7 @@ def is_cte(source: exp.Table, scope: Scope) -> bool:
 def extract_tables(sql, dialect: Dialects | None = None) -> list[Table]:
     statements = parse(sql, dialect=dialect)
     return [
-        table
+        table.table
         for statement in statements
         for table in extract_tables_from_statement(statement, dialect)
     ]
