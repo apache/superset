@@ -119,7 +119,7 @@ const StyledLoader = styled.div`
     text-align: center;
     font-weight: ${theme.fontWeightNormal};
     font-size: ${theme.fontSizeLG}px;
-    color: ${theme.colors.grayscale.light1};
+    color: ${theme.colorTextSecondary};
   }
   `}
 `;
@@ -154,7 +154,7 @@ const TableScrollContainer = styled.div`
 
 const StyledAlert = styled(Alert)`
   ${({ theme }) => `
-  border: 1px solid ${theme.colors.info.base};
+  border: 1px solid ${theme.colorInfoText};
   padding: ${theme.sizeUnit * 4}px;
   margin: ${theme.sizeUnit * 6}px ${theme.sizeUnit * 6}px
     ${theme.sizeUnit * 8}px;

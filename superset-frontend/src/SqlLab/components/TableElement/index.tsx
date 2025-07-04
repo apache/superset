@@ -231,7 +231,7 @@ const TableElement = ({ table, ...props }: TableElementProps) => {
             >
               <Icons.TableOutlined
                 iconSize="m"
-                iconColor={theme.colors.primary.dark2}
+                iconColor={theme.colorPrimary}
               />
             </IconTooltip>
           }
@@ -378,7 +378,7 @@ const TableElement = ({ table, ...props }: TableElementProps) => {
   return (
     <Collapse
       activeKey={props.activeKey}
-      expandIconPosition="right"
+      expandIconPosition="end"
       onChange={props.onChange}
       ghost
       items={[

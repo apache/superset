@@ -467,7 +467,7 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
             invertSelection={inverseSelection && excludeFilterValues}
             options={options}
             sortComparator={sortComparator}
-            onDropdownVisibleChange={setFilterActive}
+            onOpenChange={setFilterActive}
             className="select-container"
           />
         </StyledSpace>

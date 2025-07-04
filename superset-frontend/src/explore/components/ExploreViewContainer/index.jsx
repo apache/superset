@@ -650,7 +650,7 @@ function ExploreViewContainer(props) {
                   transform: rotate(-90deg);
                 `}
                 className="collapse-icon"
-                iconColor={theme.colors.primary.base}
+                iconColor={theme.colorPrimary}
               />
             </span>
           </div>
@@ -679,7 +679,7 @@ function ExploreViewContainer(props) {
                     transform: rotate(90deg);
                   `}
                   className="collapse-icon"
-                  iconColor={theme.colors.primary.base}
+                  iconColor={theme.colorPrimary}
                 />
               </Tooltip>
             </span>

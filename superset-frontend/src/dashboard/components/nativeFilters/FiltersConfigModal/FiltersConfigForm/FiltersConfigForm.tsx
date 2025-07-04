@@ -906,7 +906,7 @@ const FiltersConfigForm = (
                   onChange={key => {
                     handleActiveFilterPanelChange(key);
                   }}
-                  expandIconPosition="right"
+                  expandIconPosition="end"
                   key={`native-filter-config-${filterId}`}
                   items={[
                     ...(formFilter?.filterType !== 'filter_time'
@@ -1508,9 +1508,7 @@ const FiltersConfigForm = (
                                         >
                                           <Icons.SyncOutlined
                                             iconSize="xl"
-                                            iconColor={
-                                              theme.colors.primary.base
-                                            }
+                                            iconColor={theme.colorPrimary}
                                             css={css`
                                               margin-left: ${theme.sizeUnit *
                                               2}px;

@@ -57,7 +57,7 @@ const StyledSaveBtn = styled(Button)`
 
 const StyledWarningIcon = styled(Icons.WarningOutlined)`
   ${({ theme }) => css`
-    color: ${theme.colors.warning.base};
+    color: ${theme.colorWarning};
     margin-right: ${theme.sizeUnit * 4}px;
   `}
 `;

@@ -123,7 +123,7 @@ class CssEditor extends PureComponent<CssEditorProps, CssEditorState> {
         />
       );
       return (
-        <Dropdown dropdownRender={() => menu} placement="bottomRight">
+        <Dropdown popupRender={() => menu} placement="bottomRight">
           <Button>{t('Load a CSS template')}</Button>
         </Dropdown>
       );

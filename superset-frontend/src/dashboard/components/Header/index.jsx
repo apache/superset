@@ -103,7 +103,7 @@ const headerContainerStyle = theme => css`
 `;
 
 const editButtonStyle = theme => css`
-  color: ${theme.colors.primary.dark2};
+  color: ${theme.colorPrimary};
 `;
 
 const actionButtonsStyle = theme => css`

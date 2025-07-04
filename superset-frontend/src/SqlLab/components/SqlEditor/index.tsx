@@ -892,7 +892,7 @@ const SqlEditor: FC<Props> = ({
                 <ShareSqlLabQuery queryEditorId={queryEditor.id} />
               </span>
               <Dropdown
-                dropdownRender={() => renderDropdown()}
+                popupRender={() => renderDropdown()}
                 trigger={['click']}
               >
                 <Button

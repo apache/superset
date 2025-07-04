@@ -45,7 +45,7 @@ export const StyledSelect = styled(Select, {
 })<{ headerPosition?: string; oneLine?: boolean }>`
   ${({ theme, headerPosition, oneLine }) => `
     .ant-select-item-option-active:not(.ant-select-item-option-disabled) {
-      outline: 2px solid ${theme.colors.primary.base};
+      outline: 2px solid ${theme.colorPrimary};
       outline-offset: -2px;
     }
     flex: ${headerPosition === 'left' ? 1 : 0};

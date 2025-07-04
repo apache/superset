@@ -81,7 +81,7 @@ export const CardStyles = styled.div`
     text-decoration: none;
   }
   .ant-card-cover {
-    border-bottom: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
+    border-bottom: 1px solid ${({ theme }) => theme.colorBorder};
     & > div {
       height: 171px;
     }
@@ -90,7 +90,7 @@ export const CardStyles = styled.div`
     background-size: contain;
     background-repeat: no-repeat;
     background-position: center;
-    background-color: ${({ theme }) => theme.colors.primary.light3};
+    background-color: ${({ theme }) => theme.colorPrimaryBg};
     display: inline-block;
     width: 100%;
     height: 179px;

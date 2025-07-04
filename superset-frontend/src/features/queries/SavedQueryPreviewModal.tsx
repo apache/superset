@@ -26,13 +26,13 @@ import withToasts, {
 import useQueryPreviewState from 'src/features/queries/hooks/useQueryPreviewState';
 
 const QueryTitle = styled.div`
-  color: ${({ theme }) => theme.colors.primary.light2};
+  color: ${({ theme }) => theme.colorPrimary};
   font-size: ${({ theme }) => theme.fontSizeSM}px;
   margin-bottom: 0;
 `;
 
 const QueryLabel = styled.div`
-  color: ${({ theme }) => theme.colors.grayscale.dark2};
+  color: ${({ theme }) => theme.colorTextLabel};
   font-size: ${({ theme }) => theme.fontSize}px;
   padding: 4px 0 16px 0;
 `;

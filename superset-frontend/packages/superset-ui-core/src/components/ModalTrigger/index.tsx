@@ -39,7 +39,7 @@ export interface ModalTriggerProps {
   resizableConfig?: any;
   draggable?: boolean;
   draggableConfig?: any;
-  destroyOnClose?: boolean;
+  destroyOnHidden?: boolean;
 }
 
 export interface ModalTriggerRef {
@@ -63,7 +63,7 @@ export const ModalTrigger = forwardRef(
       tooltip,
       modalFooter,
       triggerNode,
-      destroyOnClose = true,
+      destroyOnHidden = true,
       modalBody,
       draggableConfig = {},
       resizableConfig = {},
@@ -120,7 +120,7 @@ export const ModalTrigger = forwardRef(
           resizableConfig={resizableConfig}
           draggable={draggable}
           draggableConfig={draggableConfig}
-          destroyOnClose={destroyOnClose}
+          destroyOnHidden={destroyOnHidden}
         >
           {modalBody}
         </Modal>

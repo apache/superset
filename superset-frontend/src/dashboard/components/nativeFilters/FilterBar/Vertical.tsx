@@ -211,7 +211,7 @@ const VerticalFilterBar: FC<VerticalBarProps> = ({
               marginBottom: `${theme.sizeUnit * 3}px`,
             }}
             className="collapse-icon"
-            iconColor={theme.colors.primary.base}
+            iconColor={theme.colorPrimary}
             {...getFilterBarTestId('expand-button')}
           />
           <Icons.FilterOutlined
