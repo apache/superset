@@ -40,11 +40,20 @@ const CustomPopover: React.FC<Props> = ({
     const updatePosition = () => {
       const rect = triggerRef.current?.getBoundingClientRect();
       if (rect) {
+        const popoverWidth = popoverRef.current?.offsetWidth || 200;
+        const windowWidth = window.innerWidth;
+        const rightEdgePosition = rect.left + 10 + 160 + popoverWidth;
+
+        // Check if popover would spill out of the window
+        const shouldUseOffset = rightEdgePosition <= windowWidth;
+
         setPosition({
           top: rect.bottom + 8,
           left: Math.max(
             0,
-            rect.right - (popoverRef.current?.offsetWidth || 0),
+            rect.right -
+              (popoverRef.current?.offsetWidth || 0) +
+              (shouldUseOffset ? 170 : 0),
           ),
         });
       }
@@ -82,7 +91,7 @@ const CustomPopover: React.FC<Props> = ({
           ref={popoverRef}
           style={{
             top: `${position.top}px`,
-            left: `${position.left + 10}px`,
+            left: `${position.left}px`,
           }}
         >
           {content}
