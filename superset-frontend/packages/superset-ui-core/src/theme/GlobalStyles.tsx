@@ -58,17 +58,6 @@ export const GlobalStyles = () => {
           display: none !important;
         }
 
-        .ant-dropdown,
-        .ant-dropdown,
-        .ant-select-dropdown,
-        .ant-modal-wrap,
-        .ant-modal-mask,
-        .ant-picker-dropdown,
-        .ant-popover,
-        .ant-popover {
-          z-index: ${theme.zIndexPopupBase} !important;
-        }
-
         .no-wrap {
           white-space: nowrap;
         }
