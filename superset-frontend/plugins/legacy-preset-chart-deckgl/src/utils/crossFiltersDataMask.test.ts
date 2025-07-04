@@ -167,7 +167,6 @@ describe('getCrossFilterDataMask', () => {
         },
         filterState: {
           value: null,
-          customColumnLabel: 'LON, LAT',
         },
       },
       isCurrentValueSelected: true,
