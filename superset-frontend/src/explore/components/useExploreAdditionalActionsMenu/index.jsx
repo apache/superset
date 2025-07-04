@@ -387,7 +387,7 @@ export const useExploreAdditionalActionsMenu = (
                   />
                 }
                 maxWidth={`${theme.sizeUnit * 100}px`}
-                destroyOnClose
+                destroyOnHidden
                 responsive
               />
             </Menu.Item>
