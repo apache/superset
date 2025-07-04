@@ -87,14 +87,14 @@ class ReportTemplateRestApi(BaseSupersetModelRestApi):
             )
             odt_bytes = obj["Body"].read()
             odt_template = ODTTemplate(source=odt_bytes)
-            rendered = odt_template.render(context)
-            buffer = BytesIO(rendered)
+            rendered = odt_template.generate(data=context).render()
+            buffer = BytesIO(rendered.getvalue())
             buffer.seek(0)
             return send_file(
                 buffer,
                 mimetype="application/vnd.oasis.opendocument.text",
                 as_attachment=True,
-                download_name=f"{utils.get_user_username()}_{template.name}.odt",
+                download_name=f"{template.name}.odt",
             )
         except Exception as ex:  # pylint: disable=broad-except
             logger.error("Error generating report: %s", ex, exc_info=True)

@@ -38,7 +38,7 @@ export default function ReportTemplateModal({ show, onHide }: ReportTemplateModa
   const onGenerate = () => {
     if (!selected) return;
     SupersetClient.post({
-      endpoint: `/api/v1/report_template/${selected.value}/generate`,
+      endpoint: `/api/v1/report_template/${selected}/generate`,
       parseMethod: 'raw',
     })
       .then((response: Response) => response.blob())

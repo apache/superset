@@ -36,3 +36,5 @@ marshmallow-sqlalchemy>=1.3.0,<1.4.1
 
 # needed for python 3.12 support
 openapi-schema-validator>=0.6.3
+boto3>=1.38.46
+relatorio>=0.11.1
