@@ -774,10 +774,17 @@ function ChartList(props: ChartListProps) {
   if (canCreate) {
     subMenuButtons.push({
       name: (
-        <>
+        <span
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            lineHeight: 0,
+            verticalAlign: 'middle',
+          }}
+        >
           <Icons.PlusOutlined iconSize="m" />
           <span>{t('Chart')}</span>
-        </>
+        </span>
       ),
       buttonStyle: 'primary',
       onClick: () => {
