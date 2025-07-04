@@ -893,11 +893,11 @@ describe('UploadDataModal Collapse Tabs', () => {
       useRedux: true,
     });
     const generalInfoTab = screen.getByRole('tab', {
-      name: /right General information Upload a file to a database./i,
+      name: /expanded General information Upload a file to a database./i,
     });
     expect(generalInfoTab).toHaveAttribute('aria-expanded', 'true');
     const fileSettingsTab = screen.getByRole('tab', {
-      name: /right File Settings Adjust how spaces, blank lines, null values are handled and other file wide settings./i,
+      name: /collapsed File settings Adjust how spaces, blank lines, null values are handled and other file wide settings./i,
     });
     userEvent.click(fileSettingsTab);
     expect(fileSettingsTab).toHaveAttribute('aria-expanded', 'true');
@@ -911,11 +911,11 @@ describe('UploadDataModal Collapse Tabs', () => {
       useRedux: true,
     });
     const generalInfoTab = screen.getByRole('tab', {
-      name: /right General information Upload a file to a database./i,
+      name: /expanded General information Upload a file to a database./i,
     });
     expect(generalInfoTab).toHaveAttribute('aria-expanded', 'true');
     const fileSettingsTab = screen.getByRole('tab', {
-      name: /right File Settings Adjust how spaces, blank lines, null values are handled and other file wide settings./i,
+      name: /collapsed File settings Adjust how spaces, blank lines, null values are handled and other file wide settings./i,
     });
     userEvent.click(fileSettingsTab);
     expect(fileSettingsTab).toHaveAttribute('aria-expanded', 'true');
@@ -929,11 +929,11 @@ describe('UploadDataModal Collapse Tabs', () => {
       useRedux: true,
     });
     const generalInfoTab = screen.getByRole('tab', {
-      name: /right General information Upload a file to a database./i,
+      name: /expanded General information Upload a file to a database./i,
     });
     expect(generalInfoTab).toHaveAttribute('aria-expanded', 'true');
     const fileSettingsTab = screen.getByRole('tab', {
-      name: /right File Settings Adjust how spaces, blank lines, null values are handled and other file wide settings./i,
+      name: /collapsed File settings Adjust how spaces, blank lines, null values are handled and other file wide settings./i,
     });
     userEvent.click(fileSettingsTab);
     expect(fileSettingsTab).toHaveAttribute('aria-expanded', 'true');
