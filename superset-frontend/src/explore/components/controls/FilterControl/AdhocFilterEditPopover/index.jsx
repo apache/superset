@@ -88,6 +88,11 @@ const FilterActionsContainer = styled.div`
   margin-top: ${({ theme }) => theme.sizeUnit * 2}px;
 `;
 
+const LayerSelectContainer = styled.div`
+  margin-top: ${({ theme }) => theme.sizeUnit * 2}px;
+  margin-bottom: ${({ theme }) => theme.sizeUnit * 12}px;
+`;
+
 export default class AdhocFilterEditPopover extends Component {
   constructor(props) {
     super(props);
@@ -374,15 +379,14 @@ export default class AdhocFilterEditPopover extends Component {
           ]}
         />
         {hasDeckSlices && (
-          <>
-            <div>Layer Selected</div>
+          <LayerSelectContainer>
             <Select
               options={this.state.layerOptions}
               onChange={this.onLayerChange}
               value={selectedLayers}
               mode="multiple"
             />
-          </>
+          </LayerSelectContainer>
         )}
 
         <FilterActionsContainer>
