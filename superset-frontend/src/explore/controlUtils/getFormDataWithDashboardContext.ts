@@ -194,6 +194,7 @@ const applyTimeRangeFilters = (
 export const getFormDataWithDashboardContext = (
   exploreFormData: QueryFormData,
   dashboardContextFormData: JsonObject,
+  saveAction?: string | null,
 ) => {
   const filterBoxData = mergeFilterBoxToFormData(
     exploreFormData,
@@ -274,6 +275,21 @@ export const getFormDataWithDashboardContext = (
     }
   }
 
+  if (saveAction === 'overwrite') {
+    return {
+      ...dashboardContextFormData,
+      ...filterBoxData,
+      ...nativeFiltersData,
+      ...adhocFilters,
+      ...exploreFormData, // Explore form data comes last to override
+      own_color_scheme: ownColorScheme,
+      color_scheme: appliedColorScheme,
+      dashboard_color_scheme: dashboardColorScheme,
+      ...deckGLProperties,
+    };
+  }
+
+  // Default behavior: dashboard context takes precedence
   return {
     ...exploreFormData,
     ...dashboardContextFormData,

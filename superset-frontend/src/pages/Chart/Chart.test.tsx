@@ -41,7 +41,7 @@ jest.mock(
   () =>
     ({ exploreState }: { exploreState: JsonObject }) => (
       <div data-test="mock-explore-chart-panel">
-        {JSON.stringify(exploreState)}
+        {JSON.stringify(exploreState?.form_data || {})}
       </div>
     ),
 );
