@@ -44,62 +44,125 @@ const createProps = () =>
     addSuccessToast: jest.fn(),
   }) as PropertiesModalProps;
 
-fetchMock.get('glob:*/api/v1/chart/318', {
-  body: {
-    description_columns: {},
-    id: 318,
-    label_columns: {
-      cache_timeout: 'Cache Timeout',
-      'dashboards.dashboard_title': 'Dashboards Dashboard Title',
-      'dashboards.id': 'Dashboards Id',
-      description: 'Description',
-      'owners.first_name': 'Owners First Name',
-      'owners.id': 'Owners Id',
-      'owners.last_name': 'Owners Last Name',
-      'owners.username': 'Owners Username',
-      params: 'Params',
-      slice_name: 'Slice Name',
-      viz_type: 'Viz Type',
-    },
-    result: {
-      cache_timeout: null,
-      certified_by: 'John Doe',
-      certification_details: 'Sample certification',
-      dashboards: [
-        {
-          dashboard_title: 'FCC New Coder Survey 2018',
-          id: 23,
+let callCount = 0;
+fetchMock.get('glob:*/api/v1/chart/318', () => {
+  if (callCount === 0) {
+    callCount = 1;
+    return {
+      body: {
+        description_columns: {},
+        id: 318,
+        label_columns: {
+          cache_timeout: 'Cache Timeout',
+          'dashboards.dashboard_title': 'Dashboards Dashboard Title',
+          'dashboards.id': 'Dashboards Id',
+          description: 'Description',
+          'owners.first_name': 'Owners First Name',
+          'owners.id': 'Owners Id',
+          'owners.last_name': 'Owners Last Name',
+          'owners.username': 'Owners Username',
+          params: 'Params',
+          slice_name: 'Slice Name',
+          viz_type: 'Viz Type',
         },
-      ],
-      description: null,
-      owners: [
-        {
-          first_name: 'Superset',
-          id: 1,
-          last_name: 'Admin',
-          username: 'admin',
+        result: {
+          cache_timeout: null,
+          certified_by: 'John Doe',
+          certification_details: 'Sample certification',
+          dashboards: [
+            {
+              dashboard_title: 'FCC New Coder Survey 2018',
+              id: 23,
+            },
+          ],
+          description: null,
+          owners: [
+            {
+              first_name: 'Superset',
+              id: 1,
+              last_name: 'Admin',
+              username: 'admin',
+            },
+          ],
+          params:
+            '{"adhoc_filters": [], "all_columns_x": ["age"], "color_scheme": "supersetColors", "datasource": "42__table", "granularity_sqla": "time_start", "groupby": null, "label_colors": {}, "link_length": "25", "queryFields": {"groupby": "groupby"}, "row_limit": 10000, "slice_id": 1380, "time_range": "No filter", "url_params": {}, "viz_type": "histogram", "x_axis_label": "age", "y_axis_label": "count"}',
+          slice_name: 'Age distribution of respondents',
+          viz_type: VizType.Histogram,
         },
+        show_columns: [
+          'cache_timeout',
+          'dashboards.dashboard_title',
+          'dashboards.id',
+          'description',
+          'owners.first_name',
+          'owners.id',
+          'owners.last_name',
+          'owners.username',
+          'params',
+          'slice_name',
+          'viz_type',
+        ],
+        show_title: 'Show Slice',
+      },
+    };
+  }
+  return {
+    body: {
+      description_columns: {},
+      id: 318,
+      label_columns: {
+        cache_timeout: 'Cache Timeout',
+        'dashboards.dashboard_title': 'Dashboards Dashboard Title',
+        'dashboards.id': 'Dashboards Id',
+        description: 'Description',
+        'owners.first_name': 'Owners First Name',
+        'owners.id': 'Owners Id',
+        'owners.last_name': 'Owners Last Name',
+        'owners.username': 'Owners Username',
+        params: 'Params',
+        slice_name: 'Test chart new name',
+        viz_type: 'Viz Type',
+      },
+      result: {
+        cache_timeout: '1000',
+        certified_by: 'Test certified by',
+        certification_details: 'Test certification details',
+        dashboards: [
+          {
+            dashboard_title: 'FCC New Coder Survey 2018',
+            id: 23,
+          },
+        ],
+        description: 'Test description',
+        owners: [
+          {
+            first_name: 'Superset',
+            id: 1,
+            last_name: 'Admin',
+            username: 'admin',
+          },
+        ],
+        params:
+          '{"adhoc_filters": [], "all_columns_x": ["age"], "color_scheme": "supersetColors", "datasource": "42__table", "granularity_sqla": "time_start", "groupby": null, "label_colors": {}, "link_length": "25", "queryFields": {"groupby": "groupby"}, "row_limit": 10000, "slice_id": 1380, "time_range": "No filter", "url_params": {}, "viz_type": "histogram", "x_axis_label": "age", "y_axis_label": "count"}',
+        slice_name: 'Test chart new name',
+        viz_type: VizType.Histogram,
+      },
+      show_columns: [
+        'cache_timeout',
+        'dashboards.dashboard_title',
+        'dashboards.id',
+        'description',
+        'owners.first_name',
+        'owners.id',
+        'owners.last_name',
+        'owners.username',
+        'params',
+        'slice_name',
+        'viz_type',
       ],
-      params:
-        '{"adhoc_filters": [], "all_columns_x": ["age"], "color_scheme": "supersetColors", "datasource": "42__table", "granularity_sqla": "time_start", "groupby": null, "label_colors": {}, "link_length": "25", "queryFields": {"groupby": "groupby"}, "row_limit": 10000, "slice_id": 1380, "time_range": "No filter", "url_params": {}, "viz_type": "histogram", "x_axis_label": "age", "y_axis_label": "count"}',
-      slice_name: 'Age distribution of respondents',
-      viz_type: VizType.Histogram,
+      show_title: 'Show Slice',
     },
-    show_columns: [
-      'cache_timeout',
-      'dashboards.dashboard_title',
-      'dashboards.id',
-      'description',
-      'owners.first_name',
-      'owners.id',
-      'owners.last_name',
-      'owners.username',
-      'params',
-      'slice_name',
-      'viz_type',
-    ],
-    show_title: 'Show Slice',
-  },
+  };
 });
 
 fetchMock.get('glob:*/api/v1/chart/related/owners?q=(filter:%27%27)', {
