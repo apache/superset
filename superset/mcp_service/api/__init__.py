@@ -1,4 +1,3 @@
-#
 # Licensed to the Apache Software Foundation (ASF) under one
 # or more contributor license agreements.  See the NOTICE file
 # distributed with this work for additional information
@@ -15,5 +14,25 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-#
--e .[development,bigquery,cors,druid,fastmcp,gevent,gsheets,mysql,postgres,presto,prophet,trino,thumbnails]
+
+"""MCP Service API package"""
+import logging
+from flask import Blueprint
+from flask_appbuilder import AppBuilder
+
+logger = logging.getLogger(__name__)
+
+# Create the main API blueprint
+mcp_api = Blueprint("mcp_api", __name__, url_prefix="/api/mcp/v1")
+
+# Import endpoints at module level to ensure routes are registered before blueprint registration
+from superset.mcp_service.api.v1.endpoints import (  # noqa
+    health,
+    list_dashboards
+)
+
+def init_app(app: AppBuilder) -> None:
+    """Initialize the MCP API with the Flask app"""
+    logger.info("Initializing MCP API with Flask app")
+
+    app.register_blueprint(mcp_api)
