@@ -1,15 +1,27 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
 import random
 from datetime import datetime, timedelta
 
 from flask import request, Response
 from flask_appbuilder.api import expose, permission_name, protect, safe
+from dataset_references.query_parsing import extract_tables
 from superset_core.api import models, query
 from superset_core.api.types.rest_api import RestApi
-
-from superset.sql.parse import (
-    extract_tables_from_statement,
-    SQLScript,
-)
 
 
 class DatasetReferencesAPI(RestApi):
@@ -29,14 +41,9 @@ class DatasetReferencesAPI(RestApi):
         database_model = models.get_database_model()
         database_query = session.query(database_model).filter_by(id=database_id)
         database = models.get_databases(database_query)[0]
-        print(database)
         dialect = query.get_sqlglot_dialect(database)
 
-        tables = {
-            table.table
-            for statement in SQLScript(sql, dialect).statements
-            for table in extract_tables_from_statement(statement._parsed, dialect)
-        }
+        tables = extract_tables(sql, dialect=dialect)
 
         dataset_model = models.get_dataset_model()
         dataset_query = session.query(dataset_model)
