@@ -24,7 +24,7 @@
     "lib"
   ],
   "dependencies": {
-    "@deck.gl/aggregation-layers": "^9.0.38",
+    "@deck.gl/aggregation-layers": "^9.1.12",
     "@deck.gl/core": "^9.0.37",
     "@deck.gl/layers": "^9.0.38",
     "@deck.gl/react": "^9.1.4",
