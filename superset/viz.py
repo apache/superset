@@ -1649,7 +1649,7 @@ class BaseDeckGLViz(BaseViz):
     spatial_control_keys: list[str] = []
 
     def __init__(
-        self, datasource: BaseDatasource, form_data: dict[str, Any], **kwargs
+        self, datasource: BaseDatasource, form_data: dict[str, Any], **kwargs: Any
     ) -> None:
         # Apply layer-specific filtering for deck multi layer charts in edit mode
         if self._should_apply_layer_filtering(form_data):

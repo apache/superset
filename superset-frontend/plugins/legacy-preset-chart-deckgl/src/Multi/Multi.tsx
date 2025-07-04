@@ -223,7 +223,7 @@ const DeckMulti = (props: DeckMultiProps) => {
             return undefined;
           })
           .filter(filter => isDefined(filter));
-        adhocFilters = finalAdhocFilters;
+        adhocFilters = finalAdhocFilters as AdhocFilter[];
       } else {
         const {
           extraFilters: processLayerFiltersResultExtraFilters,
