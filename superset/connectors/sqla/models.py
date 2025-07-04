@@ -522,6 +522,13 @@ class BaseDatasource(AuditMixinNullable, ImportExportMixin):  # pylint: disable=
         def handle_single_value(value: FilterValue | None) -> FilterValue | None:
             if operator == utils.FilterOperator.TEMPORAL_RANGE:
                 return value
+
+            if (
+                isinstance(value, (float, int))
+                and target_generic_type == utils.GenericDataType.NUMERIC
+            ):
+                value = float(value)
+
             if (
                 isinstance(value, (float, int))
                 and target_generic_type == utils.GenericDataType.TEMPORAL
@@ -547,6 +554,10 @@ class BaseDatasource(AuditMixinNullable, ImportExportMixin):  # pylint: disable=
                 ):
                     # For backwards compatibility and edge cases
                     # where a column data type might have changed
+                    try:
+                        value = float(value)
+                    except ValueError:
+                        logger.warning(f"Unable to convert {value} to float")
                     return utils.cast_to_num(value)
                 if value == NULL_STRING:
                     return None
