@@ -29,7 +29,7 @@ const Main: React.FC = () => {
       try {
         const csrfToken = await authentication.getCSRFToken();
         const response = await fetch(
-          "/api/v1/extensions/dataset_references/metadata",
+          "/extensions/dataset_references/metadata",
           {
             method: "POST",
             headers: {

@@ -25,6 +25,11 @@ from superset.extensions import appbuilder
 class HostRestApi(CoreRestApi):
     @staticmethod
     def add_api(api: Type[RestApi]) -> None:
-        api.resource_name = "extensions/" + (api.resource_name or "")
+        view = appbuilder.add_api(api)
+        appbuilder._add_permission(view, True)
+
+    @staticmethod
+    def add_extension_api(api: Type[RestApi]) -> None:
+        api.route_base = "/extensions/" + (api.resource_name or "")
         view = appbuilder.add_api(api)
         appbuilder._add_permission(view, True)

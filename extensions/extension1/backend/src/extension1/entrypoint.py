@@ -22,4 +22,4 @@ from .utils import foo
 
 print(foo())
 
-rest_api.add_api(Extension1API)
+rest_api.add_extension_api(Extension1API)

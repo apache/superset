@@ -30,7 +30,7 @@ const Component: React.FC = () => {
     const callApi = async () => {
       try {
         const csrfToken = await authentication.getCSRFToken();
-        const response = await fetch("/api/v1/extensions/extension1/hello", {
+        const response = await fetch("/extensions/extension1/hello", {
           method: "GET",
           headers: {
             "X-CSRFToken": csrfToken!,

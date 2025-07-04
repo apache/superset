@@ -18,4 +18,4 @@ from superset_core.api import rest_api
 
 from .api import DatasetReferencesAPI
 
-rest_api.add_api(DatasetReferencesAPI)
+rest_api.add_extension_api(DatasetReferencesAPI)

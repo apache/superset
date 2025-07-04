@@ -35,3 +35,13 @@ class CoreRestApi(ABC):
         :param api: A REST API instance.
         """
         ...
+
+    @staticmethod
+    @abstractmethod
+    def add_extension_api(api: Type[RestApi]) -> None:
+        """
+        Add an extension REST API to the Superset API.
+
+        :param api: An extension REST API instance.
+        """
+        ...
