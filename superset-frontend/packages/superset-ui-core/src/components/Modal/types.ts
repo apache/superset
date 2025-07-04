@@ -34,7 +34,7 @@ export interface ModalProps {
   show: boolean;
   name?: string;
   title: ReactNode;
-  width?: string;
+  width?: string | number;
   maxWidth?: string;
   responsive?: boolean;
   hideFooter?: boolean;
