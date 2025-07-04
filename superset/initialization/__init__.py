@@ -28,6 +28,7 @@ from flask import abort, Flask, redirect, request, session, url_for
 from flask_appbuilder import expose, IndexView
 from flask_appbuilder.api import safe
 from flask_appbuilder.utils.base import get_safe_redirect
+# using lazy_gettext since initialization happens prior to the request scope and confuses flask-babel
 from flask_babel import lazy_gettext as _, refresh
 from flask_compress import Compress
 from flask_session import Session
