@@ -17,7 +17,6 @@
  * under the License.
  */
 import { Children, ReactElement, Fragment } from 'react';
-
 import cx from 'classnames';
 import { Button as AntdButton } from 'antd';
 import { useTheme } from '@superset-ui/core';
@@ -90,7 +89,12 @@ export function Button(props: ButtonProps) {
   const element = children as ReactElement;
 
   let renderedChildren = [];
-  if (element && element.type === Fragment) {
+  if (
+    element &&
+    (element.type === Fragment ||
+      element.type === 'span' ||
+      element?.props?.css !== undefined)
+  ) {
     renderedChildren = Children.toArray(element.props.children);
   } else {
     renderedChildren = Children.toArray(children);
@@ -130,8 +134,9 @@ export function Button(props: ButtonProps) {
         marginLeft: 0,
         '& + .superset-button': {
           marginLeft: theme.sizeUnit * 2,
+          boxShadow: 'unset',
         },
-        '& > span > :first-of-type': {
+        '& svg': {
           marginRight: firstChildMargin,
         },
       }}
