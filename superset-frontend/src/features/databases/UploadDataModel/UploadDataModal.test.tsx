@@ -27,7 +27,6 @@ import {
   userEvent,
   fireEvent,
 } from 'spec/helpers/testing-library';
-import { UploadFile } from '@superset-ui/core/components/Upload';
 
 const csvProps = {
   show: true,
@@ -112,15 +111,15 @@ const getCommonElements = () => ({
 });
 
 // Helper function to check element visibility
-const expectElementsVisible = elements => {
-  elements.forEach(element => {
+const expectElementsVisible = (elements: any[]) => {
+  elements.forEach((element: any) => {
     expect(element).toBeInTheDocument();
   });
 };
 
 // Helper function to check element absence
-const expectElementsNotVisible = elements => {
-  elements.forEach(element => {
+const expectElementsNotVisible = (elements: any[]) => {
+  elements.forEach((element: any) => {
     expect(element).not.toBeInTheDocument();
   });
 };
@@ -436,7 +435,11 @@ describe('UploadDataModal - Form Validation', () => {
 
 describe('UploadDataModal - Form Submission', () => {
   // Helper function to fill out form
-  const fillForm = async (fileType, fileName, mimeType = 'text/csv') => {
+  const fillForm = async (
+    fileType: string,
+    fileName: string,
+    mimeType = 'text/csv',
+  ) => {
     const selectButton = screen.getByRole('button', { name: 'Select' });
     await userEvent.click(selectButton);
 
@@ -508,7 +511,7 @@ describe('UploadDataModal - Form Submission', () => {
 });
 
 describe('File Extension Validation', () => {
-  const createTestFile = fileName => ({
+  const createTestFile = (fileName: string) => ({
     name: fileName,
     uid: 'xp',
     size: 100,
