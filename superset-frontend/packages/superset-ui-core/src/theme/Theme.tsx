@@ -22,12 +22,20 @@ import React from 'react';
 import { theme as antdThemeImport, ConfigProvider } from 'antd';
 import tinycolor from 'tinycolor2';
 
+// @fontsource/* v5.1+ doesn't play nice with eslint-import plugin v2.31+
+/* eslint-disable import/extensions */
 import '@fontsource/inter/200.css';
+/* eslint-disable import/extensions */
 import '@fontsource/inter/400.css';
+/* eslint-disable import/extensions */
 import '@fontsource/inter/500.css';
+/* eslint-disable import/extensions */
 import '@fontsource/inter/600.css';
+/* eslint-disable import/extensions */
 import '@fontsource/fira-code/400.css';
+/* eslint-disable import/extensions */
 import '@fontsource/fira-code/500.css';
+/* eslint-disable import/extensions */
 import '@fontsource/fira-code/600.css';
 
 import {
