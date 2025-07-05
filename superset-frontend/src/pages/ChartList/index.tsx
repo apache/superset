@@ -282,7 +282,7 @@ function ChartList(props: ChartListProps) {
         }
       : {};
     const queryParams = rison.encode({
-      columns: ['dashboard_title', 'id'],
+      select_columns: ['dashboard_title', 'id'],
       keys: ['none'],
       order_column: 'dashboard_title',
       order_direction: 'asc',
