@@ -172,10 +172,10 @@ class ChartPostSchema(Schema):
     slice_name = fields.String(
         metadata={"description": slice_name_description},
         required=True,
-        validate=Length(1, 250),
+        validate=[validate.And(Length(1, 250),validate.Regexp(regex='^[a-zA-Z0-9%#_]+$',error='Field must contain only alphanumeric characters, %, #, or _'))],
     )
     description = fields.String(
-        metadata={"description": description_description}, allow_none=True
+        metadata={"description": description_description}, allow_none=True, validate=validate.Regexp(regex='^[a-zA-Z0-9%#_]+$',error='Field must contain only alphanumeric characters, %, #, or _')
     )
     viz_type = fields.String(
         metadata={
@@ -216,10 +216,10 @@ class ChartPostSchema(Schema):
         fields.Integer(metadata={"description": dashboards_description})
     )
     certified_by = fields.String(
-        metadata={"description": certified_by_description}, allow_none=True
+        metadata={"description": certified_by_description}, allow_none=True, validate=validate.Regexp(regex='^[a-zA-Z0-9%#_]+$',error='Field must contain only alphanumeric characters, %, #, or _')
     )
     certification_details = fields.String(
-        metadata={"description": certification_details_description}, allow_none=True
+        metadata={"description": certification_details_description}, allow_none=True, validate=validate.Regexp(regex='^[a-zA-Z0-9%#_]+$',error='Field must contain only alphanumeric characters, %, #, or _')
     )
     is_managed_externally = fields.Boolean(allow_none=True, dump_default=False)
     external_url = fields.String(allow_none=True)
@@ -233,10 +233,10 @@ class ChartPutSchema(Schema):
     slice_name = fields.String(
         metadata={"description": slice_name_description},
         allow_none=True,
-        validate=Length(0, 250),
+        validate=[validate.And(Length(0, 250),validate.Regexp(regex='^[a-zA-Z0-9%#_]+$',error='Field must contain only alphanumeric characters, %, #, or _'))],
     )
     description = fields.String(
-        metadata={"description": description_description}, allow_none=True
+        metadata={"description": description_description}, allow_none=True, validate=validate.Regexp(regex='^[a-zA-Z0-9%#_]+$',error='Field must contain only alphanumeric characters, %, #, or _')
     )
     viz_type = fields.String(
         metadata={
@@ -271,10 +271,10 @@ class ChartPutSchema(Schema):
         fields.Integer(metadata={"description": dashboards_description})
     )
     certified_by = fields.String(
-        metadata={"description": certified_by_description}, allow_none=True
+        metadata={"description": certified_by_description}, allow_none=True, validate=validate.Regexp(regex='^[a-zA-Z0-9%#_]+$',error='Field must contain only alphanumeric characters, %, #, or _')
     )
     certification_details = fields.String(
-        metadata={"description": certification_details_description}, allow_none=True
+        metadata={"description": certification_details_description}, allow_none=True, validate=validate.Regexp(regex='^[a-zA-Z0-9%#_]+$',error='Field must contain only alphanumeric characters, %, #, or _')
     )
     is_managed_externally = fields.Boolean(allow_none=True, dump_default=False)
     external_url = fields.String(allow_none=True)
