@@ -283,3 +283,28 @@ You are talking about dependency CVEs: identified vulnerabilities in software th
 We address these dependency CVEs as best we can by regularly updating our dependencies to newer versions. We use bots to assist with that and cheerfully welcome pull requests from humans that fix dependency CVEs.
 
 The Superset [security team](https://superset.apache.org/docs/security/#reporting-security-vulnerabilities) focuses primarily on vulnerabilities _in Superset itself_. See our [CVEs page](https://superset.apache.org/docs/security/cves) for a list of past Superset CVEs.
+
+## How are dashboard filters broadcasted?
+
+In Superset, **filters on a dashboard are broadcasted to other charts by default** based on matching **column names**, even across different datasets.
+
+### Default behavior
+
+When you add a filter to a dashboard (e.g. selecting `country = Canada`), it will **automatically apply to all charts** that contain a column named `country`, regardless of which dataset they use. This default setting is labeled **"All panels"** in the filter’s configuration modal.
+
+If two datasets both have a `country` column, the filter will be applied to both. Superset assumes the shared column name reflects the same semantic dimension.
+
+### Things to watch out for
+
+- Superset only matches by **column name**, not content. If one dataset uses `country = Canada` and another uses `country = CA`, the filter might produce **invalid or empty results**.
+- This can lead to confusion or broken dashboards unless the datasets are aligned and filterable by the same values.
+- When building dashboards that mix datasets, consider how your dimensions are named and whether their values match.
+
+### Controlling filter scope
+
+To manage this, open the **filter configuration modal**, and go to the **“Scoping”** tab. From there, you can:
+- Limit the filter to specific charts.
+- Avoid broadcasting to charts using datasets with incompatible dimension values.
+- See exactly which charts will be affected.
+
+This behavior is powerful, but it does require some care. Align your dataset schemas and be deliberate with scoping to avoid unexpected cross-chart filtering.
