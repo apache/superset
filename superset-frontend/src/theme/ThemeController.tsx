@@ -25,6 +25,7 @@ import {
   themeObject,
 } from '@superset-ui/core';
 import { ThemeMode } from '@superset-ui/core/theme/types';
+import getBootstrapData from 'src/utils/getBootstrapData';
 
 export class LocalStorageAdapter implements ThemeStorage {
   getItem(key: string): string | null {
@@ -70,7 +71,13 @@ export class ThemeController {
     this.storageKey = options.storageKey || 'superset-theme';
     this.modeStorageKey = options.modeStorageKey || `${this.storageKey}-mode`;
     this.defaultTheme = options.defaultTheme || {};
-    this.themeObject = options.themeObject;
+
+    // Load themeObject — either passed in or auto-loaded from bootstrap
+    if (options.themeObject) {
+      this.themeObject = options.themeObject;
+    } else {
+      this.themeObject = ThemeController.getThemeFromBootstrapData();
+    }
 
     // Load customizations from storage
     const savedThemeJson = this.storage.getItem(this.storageKey);
@@ -103,8 +110,32 @@ export class ThemeController {
   }
 
   /**
-   * Cleans up listeners. Should be called when the controller is no longer needed.
+   * Load theme object directly from bootstrapData if not provided explicitly
+   * Note that there is special logic/handling to support getting the first request
+   * where the backend doesn't know about user preferences yet.
+   * In that case, since the backend doesn't know about the user preferences,
+   * it will return both themes to the back as part of the bootstrap data, leaving
+   * the decision to the frontend to pick the right one under `bootstrapData.themes`
+   * once the backend knows about the user preferences, it will return only `bootstrapData.theme`
+   * which takes precedence over `bootstrapData.themes` (not available in this case)
    */
+  private static getThemeFromBootstrapData(): Theme {
+    const bootstrapData = getBootstrapData().common;
+
+    let themeConfig: AnyThemeConfig = {};
+
+    if (bootstrapData.theme) {
+      themeConfig = bootstrapData.theme;
+    } else if (bootstrapData.themes) {
+      const systemMode = ThemeController.getSystemMode();
+      const preferred = systemMode;
+      if (bootstrapData.themes[preferred]) {
+        themeConfig = bootstrapData.themes[preferred];
+      }
+    }
+    return Theme.fromConfig(themeConfig);
+  }
+
   public destroy(): void {
     this.mediaQuery.removeEventListener('change', this.handleSystemThemeChange);
   }
@@ -138,7 +169,6 @@ export class ThemeController {
     if (!newCustomizations.algorithm) {
       this.currentMode = ThemeMode.LIGHT;
     }
-
     if (newCustomizations?.algorithm) {
       this.currentMode = newCustomizations.algorithm as ThemeMode;
     }
@@ -184,7 +214,6 @@ export class ThemeController {
     if (this.systemMode === newSystemMode) return;
 
     this.systemMode = newSystemMode;
-    // If the current mode is SYSTEM, we need to re-apply the theme
     if (this.currentMode === ThemeMode.SYSTEM) {
       this.applyTheme();
       this.notifyListeners();
@@ -221,7 +250,6 @@ export class ThemeController {
 
   private persist(): void {
     this.storage.setItem(this.modeStorageKey, this.currentMode);
-
     const { algorithm, ...persistedCustomizations } = this.customizations;
     this.storage.setItem(
       this.storageKey,

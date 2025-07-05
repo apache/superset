@@ -30,6 +30,7 @@ from flask import (
     g,
     get_flashed_messages,
     redirect,
+    request,
     Response,
     session,
     url_for,
@@ -292,6 +293,27 @@ def menu_data(user: User) -> dict[str, Any]:
     }
 
 
+def get_theme_bootstrap_data() -> dict[str, Any]:
+    """
+    On frst call, the cookie related to light/dark may not be set,
+    so we send both the dark and light themes
+    in the "themes" key. Once the cookie is set, we simply use the `theme` key.
+    Logic on the frontend looks for `theme`, and if it's not available, falls back
+    to `themes` and picks the right one
+    """
+    theme_cookie = request.cookies.get("superset_theme")
+    if conf["THEME_RESPECT_USER_OS_DARK_SETTING"] or theme_cookie == "light":
+        return {"theme": conf["THEME"]()}
+    elif theme_cookie == "dark":
+        return {"theme": conf["THEME_DARK"]()}
+    return {
+        "themes": {
+            "light": conf["THEME"](),
+            "dark": conf["THEME_DARK"](),
+        }
+    }
+
+
 @cache_manager.cache.memoize(timeout=60)
 def cached_common_bootstrap_data(  # pylint: disable=unused-argument
     user_id: int | None, locale: Locale | None
@@ -371,10 +393,10 @@ def cached_common_bootstrap_data(  # pylint: disable=unused-argument
         "feature_flags": get_feature_flags(),
         "extra_sequential_color_schemes": conf["EXTRA_SEQUENTIAL_COLOR_SCHEMES"],
         "extra_categorical_color_schemes": conf["EXTRA_CATEGORICAL_COLOR_SCHEMES"],
-        "theme": conf["THEME"],
         "menu_data": menu_data(g.user),
     }
     bootstrap_data.update(conf["COMMON_BOOTSTRAP_OVERRIDES_FUNC"](bootstrap_data))
+    bootstrap_data.update(get_theme_bootstrap_data())
     return bootstrap_data
 
 
