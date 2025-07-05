@@ -26,7 +26,6 @@ import { JsonObject, JsonValue, QueryFormData, t } from '@superset-ui/core';
 import sandboxedEval from '../../utils/sandbox';
 import { commonLayerProps } from '../common';
 import TooltipRow from '../../TooltipRow';
-// eslint-disable-next-line import/extensions
 import fitViewport, { Viewport } from '../../utils/fitViewport';
 import {
   DeckGLContainerHandle,

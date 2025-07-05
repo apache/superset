@@ -37,7 +37,6 @@ import type { Layer } from '@deck.gl/core';
 import Legend from './components/Legend';
 import { hexToRGB } from './utils/colors';
 import sandboxedEval from './utils/sandbox';
-// eslint-disable-next-line import/extensions
 import fitViewport, { Viewport } from './utils/fitViewport';
 import {
   DeckGLContainerHandle,
