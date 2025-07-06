@@ -1,4 +1,3 @@
-#
 # Licensed to the Apache Software Foundation (ASF) under one
 # or more contributor license agreements.  See the NOTICE file
 # distributed with this work for additional information
@@ -15,5 +14,25 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-#
--e .[development,bigquery,cors,druid,fastmcp,gevent,gsheets,mysql,postgres,presto,prophet,trino,thumbnails]
+"""CLI module for MCP service"""
+import os
+import click
+from superset.mcp_service.server import run_server
+
+@click.group()
+def mcp():
+    """Model Context Protocol service commands"""
+    pass
+
+@mcp.command()
+@click.option("--host", default="0.0.0.0", help="Host to bind to")
+@click.option("--port", default=5008, help="Port to bind to")
+@click.option("--debug", is_flag=True, help="Enable debug mode")
+@click.option("--sql-debug", is_flag=True, help="Enable SQL query logging")
+def run(host: str, port: int, debug: bool, sql_debug: bool) -> None:
+    """Run the MCP service"""
+    if sql_debug:
+        os.environ["SQLALCHEMY_DEBUG"] = "1"
+        click.echo("🔍 SQL Debug mode enabled")
+    
+    run_server(host=host, port=port, debug=debug)
