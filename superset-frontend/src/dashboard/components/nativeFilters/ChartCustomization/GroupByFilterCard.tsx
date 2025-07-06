@@ -172,9 +172,11 @@ const GroupByFilterCardContent: FC<{
   customizationItem: ChartCustomizationItem;
   hidePopover: () => void;
 }> = ({ customizationItem }) => {
-  const { title, description, customization } = customizationItem;
-  const { dataset, aggregation } = customization || {};
+  const { description, customization } = customizationItem;
+  const { dataset, aggregation, name } = customization || {};
   const [titleRef, , titleTruncated] = useTruncation();
+
+  const displayName = name?.trim() || t('Dynamic group by');
 
   const datasetLabel = useMemo(() => {
     const { datasetInfo, dataset: datasetValue } =
@@ -224,11 +226,9 @@ const GroupByFilterCardContent: FC<{
               margin-right: ${theme.sizeUnit}px;
             `}
           />
-          <TooltipWithTruncation
-            title={titleTruncated ? title || t('Group By') : null}
-          >
+          <TooltipWithTruncation title={titleTruncated ? displayName : null}>
             <div ref={titleRef}>
-              <Typography.Text strong>{title || t('Group By')}</Typography.Text>
+              <Typography.Text strong>{displayName}</Typography.Text>
             </div>
           </TooltipWithTruncation>
         </InternalRow>
@@ -455,6 +455,26 @@ const GroupByFilterCard: FC<GroupByFilterCardProps> = ({
     dispatch,
     customizationFilterId,
   ]);
+
+  // Update selectedValues when defaultValue changes
+  useEffect(() => {
+    let newSelectedValues: string[] = [];
+
+    if (defaultValue) {
+      if (Array.isArray(defaultValue)) {
+        newSelectedValues = defaultValue;
+      } else if (
+        typeof defaultValue === 'string' &&
+        defaultValue.includes(',')
+      ) {
+        newSelectedValues = defaultValue.split(',');
+      } else {
+        newSelectedValues = [defaultValue.toString()];
+      }
+    }
+
+    setSelectedValues(newSelectedValues);
+  }, [JSON.stringify(defaultValue)]);
 
   const handleValuesChange = (values: string[]) => {
     setSelectedValues(values || []);
