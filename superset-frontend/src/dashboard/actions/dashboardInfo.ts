@@ -306,7 +306,7 @@ export function saveChartCustomization(
       .filter(item => !item.removed)
       .map(item => ({
         id: item.id,
-        title: item.title || '[untitled]',
+        title: item.title || item.customization?.name || '',
         chartId: item.chartId,
         customization: {
           name: item.customization?.name || '',
