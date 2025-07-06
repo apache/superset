@@ -17,16 +17,16 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2025-04-29 12:34+0330\n"
+"POT-Creation-Date: 2025-06-30 15:01+0300\n"
 "PO-Revision-Date: 2019-02-02 22:28+0900\n"
 "Last-Translator: \n"
 "Language: ko\n"
 "Language-Team: ko <LL@li.org>\n"
-"Plural-Forms: nplurals=1; plural=0\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Generated-By: Babel 2.9.1\n"
+"Generated-By: Babel 2.17.0\n"
 
 msgid ""
 "\n"
@@ -127,6 +127,9 @@ msgstr "컬럼 목록"
 msgid " to add metrics"
 msgstr "메트릭"
 
+msgid " to check for details."
+msgstr ""
+
 msgid " to edit or add columns and metrics."
 msgstr ""
 
@@ -135,6 +138,10 @@ msgstr ""
 
 msgid " to open SQL Lab. From there you can save the query as a dataset."
 msgstr ""
+
+#, fuzzy
+msgid " to see details."
+msgstr "저장된 Query"
 
 msgid " to visualize your data."
 msgstr ""
@@ -278,6 +285,10 @@ msgstr[0] "%s 에러"
 #, python-format
 msgid "%s saved metric(s)"
 msgstr ""
+
+#, fuzzy, python-format
+msgid "%s tab selected"
+msgstr "테이블 선택"
 
 #, python-format
 msgid "%s updated"
@@ -589,6 +600,10 @@ msgstr ""
 msgid "A Big Number"
 msgstr "테이블 명"
 
+#, fuzzy
+msgid "A comma separated list of columns that should be parsed as dates"
+msgstr "드롭다운 목록에서 날짜로 처리할 열 이름을 선택합니다."
+
 msgid "A comma-separated list of schemas that files are allowed to upload to."
 msgstr ""
 
@@ -602,6 +617,7 @@ msgstr "같은 이름의 데이터베이스가 이미 존재합니다"
 msgid "A date is required when using custom date shift"
 msgstr ""
 
+#, python-brace-format
 msgid ""
 "A dictionary with column names and their data types if you need to change"
 " the defaults. Example: {\"user_id\":\"int\"}. Check Python's Pandas "
@@ -736,6 +752,10 @@ msgstr "활동"
 msgid "Action Log"
 msgstr "활동 기록"
 
+#, fuzzy
+msgid "Action Logs"
+msgstr "활동 기록"
+
 msgid "Actions"
 msgstr "주석"
 
@@ -789,6 +809,10 @@ msgstr ""
 #, fuzzy
 msgid "Add Filter"
 msgstr "테이블 추가"
+
+#, fuzzy
+msgid "Add Group"
+msgstr "D3 포멧"
 
 #, fuzzy
 msgid "Add Layer"
@@ -1043,6 +1067,11 @@ msgstr "대시보드 저장"
 msgid "After"
 msgstr "분기"
 
+msgid ""
+"After making the changes, copy the query and paste in the virtual dataset"
+" SQL snippet settings."
+msgstr ""
+
 #, fuzzy
 msgid "Aggregate"
 msgstr "생성자"
@@ -1077,6 +1106,12 @@ msgid "Aggregation Method"
 msgstr "생성자"
 
 msgid "Aggregation function"
+msgstr ""
+
+msgid ""
+"Aggregation method used to compute the Big Number from the Trendline.For "
+"non-additive metrics like ratios, averages, distinct counts, etc use "
+"NONE."
 msgstr ""
 
 #, fuzzy
@@ -1174,6 +1209,10 @@ msgstr "필터"
 msgid "All panels"
 msgstr ""
 
+#, fuzzy
+msgid "All records"
+msgstr "차트 추가"
+
 msgid "Allow CREATE TABLE AS"
 msgstr ""
 
@@ -1270,10 +1309,6 @@ msgstr ""
 
 msgid "An error has occurred"
 msgstr ""
-
-#, fuzzy, python-format
-msgid "An error has occurred while syncing virtual dataset columns"
-msgstr "데이터 베이스 목록을 가져오는 도중 에러가 발생하였습니다."
 
 msgid "An error occurred"
 msgstr ""
@@ -1400,6 +1435,10 @@ msgstr ""
 
 #, fuzzy, python-format
 msgid "An error occurred while fetching user values: %s"
+msgstr "데이터 베이스 목록을 가져오는 도중 에러가 발생하였습니다."
+
+#, fuzzy, python-format
+msgid "An error occurred while formatting SQL"
 msgstr "데이터 베이스 목록을 가져오는 도중 에러가 발생하였습니다."
 
 #, fuzzy, python-format
@@ -1684,6 +1723,9 @@ msgstr ""
 msgid "Are you sure you want to delete the selected datasets?"
 msgstr ""
 
+msgid "Are you sure you want to delete the selected groups?"
+msgstr ""
+
 msgid "Are you sure you want to delete the selected layers?"
 msgstr ""
 
@@ -1918,9 +1960,6 @@ msgstr "새로고침 간격"
 msgid "Big Number"
 msgstr ""
 
-msgid "Big Number Font Size"
-msgstr ""
-
 msgid "Big Number with Time Period Comparison"
 msgstr ""
 
@@ -1930,6 +1969,10 @@ msgstr ""
 #, fuzzy
 msgid "Bins"
 msgstr "활동"
+
+#, python-format
+msgid "Block %(block_num)s out of %(block_count)s"
+msgstr ""
 
 #, fuzzy
 msgid "Border color"
@@ -2072,8 +2115,8 @@ msgid "CC recipients"
 msgstr ""
 
 #, fuzzy
-msgid "CREATE DATASET"
-msgstr "데이터소스 선택"
+msgid "COPY QUERY"
+msgstr "Query 저장"
 
 msgid "CREATE TABLE AS"
 msgstr ""
@@ -2397,12 +2440,15 @@ msgstr "주석 레이어"
 msgid "Chart [%s] was added to dashboard [%s]"
 msgstr ""
 
+#, python-brace-format
 msgid "Chart [{}] has been overwritten"
 msgstr ""
 
+#, python-brace-format
 msgid "Chart [{}] has been saved"
 msgstr ""
 
+#, python-brace-format
 msgid "Chart [{}] was added to dashboard [{}]"
 msgstr ""
 
@@ -2561,6 +2607,9 @@ msgstr ""
 msgid "Choose columns to read"
 msgstr "컬럼 보기"
 
+msgid "Choose how many X-Axis labels to show"
+msgstr ""
+
 #, fuzzy
 msgid "Choose index column"
 msgstr "컬럼 수정"
@@ -2599,6 +2648,10 @@ msgid ""
 "Choose whether a country should be shaded by the metric, or assigned a "
 "color based on a categorical color palette"
 msgstr ""
+
+#, fuzzy
+msgid "Choose..."
+msgstr "데이터소스 선택"
 
 msgid "Chord Diagram"
 msgstr ""
@@ -2740,10 +2793,6 @@ msgstr ""
 
 msgid "Collapse tab content"
 msgstr ""
-
-#, fuzzy
-msgid "Collapse table preview"
-msgstr "데이터 미리보기"
 
 msgid "Color"
 msgstr ""
@@ -3013,6 +3062,10 @@ msgstr "대시보드 보기"
 msgid "Confirm overwrite"
 msgstr ""
 
+#, fuzzy
+msgid "Confirm password"
+msgstr "대시보드 보기"
+
 msgid "Confirm save"
 msgstr ""
 
@@ -3169,6 +3222,7 @@ msgstr ""
 msgid "Could not load database driver"
 msgstr "데이터베이스 드라이버를 로드할 수 없습니다"
 
+#, python-brace-format
 msgid "Could not load database driver: {}"
 msgstr ""
 
@@ -3279,9 +3333,6 @@ msgstr ""
 
 msgid "Creator"
 msgstr "생성자"
-
-msgid "Credentials uploaded"
-msgstr ""
 
 #, fuzzy
 msgid "Crimson"
@@ -3464,10 +3515,15 @@ msgstr ""
 msgid "Dashboard"
 msgstr "대시보드"
 
+#, fuzzy
+msgid "Dashboard Id"
+msgstr "대시보드"
+
 #, python-format
 msgid "Dashboard [%s] just got created and chart [%s] was added to it"
 msgstr ""
 
+#, python-brace-format
 msgid "Dashboard [{}] just got created and chart [{}] was added to it"
 msgstr ""
 
@@ -3643,9 +3699,6 @@ msgstr ""
 
 msgid "Database name"
 msgstr "데이터소스 명"
-
-msgid "Database not allowed to change"
-msgstr ""
 
 msgid "Database not found."
 msgstr "데이터베이스를 찾을 수 없습니다."
@@ -3864,6 +3917,7 @@ msgstr "테이블 선택"
 msgid "Default URL"
 msgstr ""
 
+#, python-brace-format
 msgid ""
 "Default URL to redirect to when accessing from the dataset list page.\n"
 "            Accepts relative URLs such as <span style=„white-space: "
@@ -3975,6 +4029,10 @@ msgstr "데이터베이스 선택"
 msgid "Delete Dataset?"
 msgstr ""
 
+#, fuzzy
+msgid "Delete Group?"
+msgstr "삭제"
+
 msgid "Delete Layer?"
 msgstr "삭제"
 
@@ -4011,6 +4069,10 @@ msgstr "데이터베이스 선택"
 msgid "Delete email report"
 msgstr ""
 
+#, fuzzy
+msgid "Delete group"
+msgstr "삭제"
+
 msgid "Delete query"
 msgstr "삭제"
 
@@ -4027,6 +4089,14 @@ msgstr ""
 #, fuzzy
 msgid "Delete user"
 msgstr "삭제"
+
+#, fuzzy, python-format
+msgid "Delete user registration"
+msgstr "삭제"
+
+#, fuzzy
+msgid "Delete user registration?"
+msgstr "주석"
 
 #, fuzzy
 msgid "Deleted"
@@ -4082,11 +4152,23 @@ msgid "Deleted %s"
 msgstr "삭제"
 
 #, fuzzy, python-format
+msgid "Deleted group: %s"
+msgstr "삭제"
+
+#, fuzzy, python-format
+msgid "Deleted groups: %s"
+msgstr "삭제"
+
+#, fuzzy, python-format
 msgid "Deleted role: %s"
 msgstr "삭제"
 
 #, fuzzy, python-format
 msgid "Deleted roles: %s"
+msgstr "삭제"
+
+#, fuzzy, python-format
+msgid "Deleted user registration for user: %s"
 msgstr "삭제"
 
 #, fuzzy, python-format
@@ -4391,6 +4473,10 @@ msgstr ""
 msgid "Drop columns/metrics here or click"
 msgstr ""
 
+#, fuzzy
+msgid "Dttm"
+msgstr "날짜/시간"
+
 msgid "Duplicate"
 msgstr ""
 
@@ -4444,6 +4530,10 @@ msgid ""
 "database. If left unset, the cache never expires. "
 msgstr ""
 
+#, fuzzy
+msgid "Duration Ms"
+msgstr "주석"
+
 msgid "Duration in ms (1.40008 => 1ms 400µs 80ns)"
 msgstr ""
 
@@ -4467,9 +4557,6 @@ msgid "ECharts"
 msgstr "차트"
 
 msgid "EMAIL_REPORTS_CTA"
-msgstr ""
-
-msgid "END (EXCLUSIVE)"
 msgstr ""
 
 #, fuzzy
@@ -4511,6 +4598,10 @@ msgstr "대시보드 수정"
 msgid "Edit Dataset "
 msgstr "차트 수정"
 
+#, fuzzy
+msgid "Edit Group"
+msgstr "Query 검색"
+
 msgid "Edit Log"
 msgstr "로그 수정"
 
@@ -4527,10 +4618,6 @@ msgstr "Query 검색"
 #, fuzzy
 msgid "Edit Rule"
 msgstr "Query 검색"
-
-#, fuzzy
-msgid "Edit Tag"
-msgstr "로그 수정"
 
 #, fuzzy
 msgid "Edit User"
@@ -4567,6 +4654,10 @@ msgstr ""
 msgid "Edit formatter"
 msgstr ""
 
+#, fuzzy
+msgid "Edit group"
+msgstr "Query 검색"
+
 msgid "Edit properties"
 msgstr ""
 
@@ -4576,6 +4667,10 @@ msgstr "저장된 Query 수정"
 #, fuzzy
 msgid "Edit role"
 msgstr "Query 검색"
+
+#, fuzzy
+msgid "Edit tag"
+msgstr "로그 수정"
 
 msgid "Edit template"
 msgstr "템플릿 불러오기"
@@ -4723,6 +4818,9 @@ msgstr "끝 시간"
 msgid "End (Longitude, Latitude): "
 msgstr ""
 
+msgid "End (exclusive)"
+msgstr ""
+
 msgid "End Longitude & Latitude"
 msgstr ""
 
@@ -4779,6 +4877,18 @@ msgstr ""
 msgid "Enter report name"
 msgstr "차트 유형"
 
+#, fuzzy
+msgid "Enter the group's description"
+msgstr "설명"
+
+#, fuzzy
+msgid "Enter the group's label"
+msgstr "테이블 명"
+
+#, fuzzy
+msgid "Enter the group's name"
+msgstr "테이블 명"
+
 #, python-format
 msgid "Enter the required %(dbModelName)s credentials"
 msgstr ""
@@ -4798,6 +4908,9 @@ msgid "Enter the user's last name"
 msgstr "테이블 명"
 
 msgid "Enter the user's username"
+msgstr ""
+
+msgid "Enter your login and password below:"
 msgstr ""
 
 msgid "Entity"
@@ -4822,12 +4935,12 @@ msgid "Error deleting %s"
 msgstr "데이터 베이스 목록을 가져오는 도중 에러가 발생하였습니다."
 
 #, fuzzy
+msgid "Error executing query. "
+msgstr "저장된 Query 수정"
+
+#, fuzzy
 msgid "Error faving chart"
 msgstr "차트 수정"
-
-#, python-format
-msgid "Error in jinja expression in HAVING clause: %(msg)s"
-msgstr ""
 
 #, python-format
 msgid "Error in jinja expression in RLS filters: %(msg)s"
@@ -4871,18 +4984,6 @@ msgid "Error unfaving chart"
 msgstr "차트 수정"
 
 #, fuzzy
-msgid "Error while adding role!"
-msgstr "데이터 베이스 목록을 가져오는 도중 에러가 발생하였습니다."
-
-#, fuzzy
-msgid "Error while adding user!"
-msgstr "데이터 베이스 목록을 가져오는 도중 에러가 발생하였습니다."
-
-#, fuzzy
-msgid "Error while duplicating role!"
-msgstr "데이터 베이스 목록을 가져오는 도중 에러가 발생하였습니다."
-
-#, fuzzy
 msgid "Error while fetching charts"
 msgstr "데이터 베이스 목록을 가져오는 도중 에러가 발생하였습니다."
 
@@ -4891,28 +4992,16 @@ msgid "Error while fetching data: %s"
 msgstr "데이터 베이스 목록을 가져오는 도중 에러가 발생하였습니다."
 
 #, fuzzy
-msgid "Error while fetching permissions"
+msgid "Error while fetching groups"
 msgstr "데이터 베이스 목록을 가져오는 도중 에러가 발생하였습니다."
 
 #, fuzzy
 msgid "Error while fetching roles"
 msgstr "데이터 베이스 목록을 가져오는 도중 에러가 발생하였습니다."
 
-#, fuzzy
-msgid "Error while fetching users"
-msgstr "데이터 베이스 목록을 가져오는 도중 에러가 발생하였습니다."
-
 #, python-format
 msgid "Error while rendering virtual dataset query: %(msg)s"
 msgstr ""
-
-#, fuzzy
-msgid "Error while updating role!"
-msgstr "데이터 베이스 목록을 가져오는 도중 에러가 발생하였습니다."
-
-#, fuzzy
-msgid "Error while updating user!"
-msgstr "데이터 베이스 목록을 가져오는 도중 에러가 발생하였습니다."
 
 #, python-format
 msgid "Error: %(error)s"
@@ -5005,10 +5094,6 @@ msgstr ""
 msgid "Expand row"
 msgstr ""
 
-#, fuzzy
-msgid "Expand table preview"
-msgstr "데이터 미리보기"
-
 msgid "Expand tool bar"
 msgstr ""
 
@@ -5093,6 +5178,7 @@ msgstr ""
 msgid "Extra data for JS"
 msgstr ""
 
+#, python-brace-format
 msgid ""
 "Extra data to specify table metadata. Currently supports metadata of the "
 "format: `{ \"certification\": { \"certified_by\": \"Data Platform Team\","
@@ -5184,6 +5270,10 @@ msgstr ""
 msgid "Failed to verify select options: %s"
 msgstr ""
 
+#, fuzzy
+msgid "False"
+msgstr "테이블 수정"
+
 msgid "Favorite"
 msgstr ""
 
@@ -5241,6 +5331,9 @@ msgstr ""
 #, fuzzy
 msgid "Fill method"
 msgstr "주석 레이어"
+
+msgid "Fill out the registration form"
+msgstr ""
 
 #, fuzzy
 msgid "Filled"
@@ -5345,6 +5438,10 @@ msgstr ""
 
 msgid "First"
 msgstr ""
+
+#, fuzzy
+msgid "First Name"
+msgstr "차트 유형"
 
 #, fuzzy
 msgid "First name"
@@ -5463,6 +5560,11 @@ msgstr ""
 msgid "Format SQL"
 msgstr ""
 
+#, fuzzy
+msgid "Format SQL query"
+msgstr "Query 저장"
+
+#, python-brace-format
 msgid ""
 "Format data labels. Use variables: {name}, {value}, {percent}. \\n "
 "represents a new line. ECharts compatibility:\n"
@@ -5612,6 +5714,9 @@ msgstr ""
 msgid "Grid Size"
 msgstr ""
 
+msgid "Group"
+msgstr ""
+
 msgid "Group By"
 msgstr ""
 
@@ -5622,6 +5727,9 @@ msgid "Group Key"
 msgstr ""
 
 msgid "Group by"
+msgstr ""
+
+msgid "Groups"
 msgstr ""
 
 msgid "Guest user cannot modify chart payload"
@@ -5770,11 +5878,6 @@ msgid "If a metric is specified, sorting will be done based on the metric value"
 msgstr ""
 
 msgid ""
-"If changes are made to your SQL query, columns in your dataset will be "
-"synced when saving the dataset."
-msgstr ""
-
-msgid ""
 "If enabled, this control sorts the results/values descending, otherwise "
 "it sorts the results ascending."
 msgstr ""
@@ -5809,6 +5912,10 @@ msgid "Import %s"
 msgstr "대시보드 가져오기"
 
 msgid "Import Dashboard(s)"
+msgstr "대시보드 가져오기"
+
+#, fuzzy
+msgid "Import Error"
 msgstr "대시보드 가져오기"
 
 msgid "Import chart failed for an unknown reason"
@@ -5855,8 +5962,15 @@ msgid ""
 "service account or configure an OAuth2 client."
 msgstr ""
 
+msgid "In this view you can preview the first 25 rows. "
+msgstr ""
+
 msgid "Include Series"
 msgstr ""
+
+#, fuzzy
+msgid "Include Template Parameters"
+msgstr "주석"
 
 msgid "Include a description that will be sent with your report"
 msgstr ""
@@ -6059,6 +6173,10 @@ msgid "Invert current page"
 msgstr "Superset 튜토리얼"
 
 #, fuzzy
+msgid "Is Active?"
+msgstr "차트 유형"
+
+#, fuzzy
 msgid "Is active?"
 msgstr "차트 유형"
 
@@ -6246,6 +6364,10 @@ msgstr "Query 공유"
 
 msgid "Last"
 msgstr ""
+
+#, fuzzy
+msgid "Last Name"
+msgstr "데이터소스 명"
 
 #, python-format
 msgid "Last Updated %s"
@@ -6485,6 +6607,10 @@ msgstr ""
 msgid "Link Copied!"
 msgstr "복사됨!"
 
+#, fuzzy
+msgid "List Groups"
+msgstr "저장된 Query 수정"
+
 msgid "List Roles"
 msgstr ""
 
@@ -6540,6 +6666,10 @@ msgstr ""
 #, fuzzy
 msgid "Locate the chart"
 msgstr "새 차트 생성"
+
+#, fuzzy
+msgid "Log"
+msgstr "로그"
 
 msgid "Log Scale"
 msgstr ""
@@ -6701,6 +6831,9 @@ msgid "Markers"
 msgstr ""
 
 msgid "Markup type"
+msgstr ""
+
+msgid "Match system"
 msgstr ""
 
 msgid "Match time shift color with original series"
@@ -7186,6 +7319,10 @@ msgid "No Data"
 msgstr ""
 
 #, fuzzy
+msgid "No Logs yet"
+msgstr "차트"
+
+#, fuzzy
 msgid "No Results"
 msgstr "결과"
 
@@ -7280,6 +7417,17 @@ msgstr ""
 msgid "No global filters are currently added"
 msgstr ""
 
+msgid "No groups"
+msgstr ""
+
+#, fuzzy
+msgid "No groups yet"
+msgstr "차트"
+
+#, fuzzy
+msgid "No items"
+msgstr "테이블 추가"
+
 msgid "No matching records found"
 msgstr ""
 
@@ -7304,6 +7452,10 @@ msgid ""
 "returned, ensure any filters are configured properly and the datasource "
 "contains data for the selected time range."
 msgstr ""
+
+#, fuzzy
+msgid "No roles"
+msgstr "차트"
 
 #, fuzzy
 msgid "No roles yet"
@@ -7338,6 +7490,10 @@ msgstr ""
 
 msgid "No time columns"
 msgstr ""
+
+#, fuzzy
+msgid "No user registrations yet"
+msgstr "차트"
 
 #, fuzzy
 msgid "No users yet"
@@ -7605,6 +7761,9 @@ msgstr ""
 msgid "Only single queries supported"
 msgstr "오직 하나의 쿼리만 지원됩니다"
 
+msgid "Only the default catalog is supported for this connection"
+msgstr ""
+
 msgid "Oops! An error occurred!"
 msgstr ""
 
@@ -7629,7 +7788,15 @@ msgstr ""
 msgid "Open Datasource tab"
 msgstr "데이터소스 명"
 
+#, fuzzy
+msgid "Open SQL Lab in a new tab"
+msgstr "새로운 탭에서 Query실행"
+
 msgid "Open in SQL Lab"
+msgstr "SQL Lab"
+
+#, fuzzy
+msgid "Open in SQL lab"
 msgstr "SQL Lab"
 
 msgid "Open query in SQL Lab"
@@ -7868,6 +8035,10 @@ msgid "Password is required"
 msgstr "데이터소스"
 
 #, fuzzy
+msgid "Password:"
+msgstr "비밀번호"
+
+#, fuzzy
 msgid "Passwords do not match!"
 msgstr "대시보드가 존재하지 않습니다"
 
@@ -7907,6 +8078,10 @@ msgstr "Superset 튜토리얼"
 
 msgid "Percentage difference between the time periods"
 msgstr ""
+
+#, fuzzy
+msgid "Percentage metric calculation"
+msgstr "메트릭"
 
 #, fuzzy
 msgid "Percentage metrics"
@@ -8076,11 +8251,33 @@ msgstr ""
 msgid "Please enter a SQLAlchemy URI to test"
 msgstr ""
 
+msgid "Please enter a valid email"
+msgstr ""
+
 msgid "Please enter a valid email address"
 msgstr ""
 
 msgid "Please enter valid text. Spaces alone are not permitted."
 msgstr ""
+
+msgid "Please enter your email"
+msgstr ""
+
+#, fuzzy
+msgid "Please enter your first name"
+msgstr "테이블 명"
+
+#, fuzzy
+msgid "Please enter your last name"
+msgstr "테이블 명"
+
+#, fuzzy
+msgid "Please enter your password"
+msgstr "비밀번호"
+
+#, fuzzy
+msgid "Please enter your username"
+msgstr "차트 유형"
 
 msgid "Please provide a valid range"
 msgstr ""
@@ -8104,6 +8301,10 @@ msgstr ""
 
 msgid "Please save your dashboard first, then try creating a new email report."
 msgstr ""
+
+#, fuzzy
+msgid "Please select at least one role or group"
+msgstr "적어도 하나의 'Group by'필드를 선택하세요"
 
 msgid "Please select both a Dataset and a Chart type to proceed"
 msgstr ""
@@ -8313,9 +8514,6 @@ msgstr ""
 msgid "Python datetime string pattern"
 msgstr ""
 
-msgid "QUERY DATA IN SQL LAB"
-msgstr ""
-
 msgid "Quarter"
 msgstr "분기"
 
@@ -8344,6 +8542,10 @@ msgstr "Query 공유"
 
 msgid "Query History"
 msgstr "Query 실행 이력"
+
+#, fuzzy
+msgid "Query data in SQL Lab"
+msgstr "새로운 탭에서 Query실행"
 
 #, fuzzy
 msgid "Query does not exist"
@@ -8376,9 +8578,6 @@ msgid "Query was stopped"
 msgstr ""
 
 msgid "Query was stopped."
-msgstr ""
-
-msgid "RANGE TYPE"
 msgstr ""
 
 msgid "RGB Color"
@@ -8432,6 +8631,10 @@ msgstr ""
 
 msgid "Range labels"
 msgstr ""
+
+#, fuzzy
+msgid "Range type"
+msgstr "차트 유형"
 
 #, fuzzy
 msgid "Ranges"
@@ -8491,6 +8694,10 @@ msgstr "월"
 msgid "Referenced columns not available in DataFrame."
 msgstr ""
 
+#, fuzzy
+msgid "Referrer"
+msgstr "새로고침 간격"
+
 msgid "Refetch results"
 msgstr "검색 결과"
 
@@ -8524,6 +8731,17 @@ msgstr "데이터 베이스 목록을 가져오는 도중 에러가 발생하였
 #, fuzzy
 msgid "Refreshing columns"
 msgstr "컬럼 수정"
+
+#, fuzzy
+msgid "Register"
+msgstr "필터"
+
+#, fuzzy
+msgid "Registration date"
+msgstr "시작 시간"
+
+msgid "Registration hash"
+msgstr ""
 
 msgid "Regular"
 msgstr ""
@@ -8728,6 +8946,14 @@ msgstr ""
 msgid "Reset columns"
 msgstr "컬럼 목록"
 
+#, fuzzy, python-format
+msgid "Reset my password"
+msgstr "비밀번호"
+
+#, fuzzy, python-format
+msgid "Reset password"
+msgstr "비밀번호"
+
 msgid "Reset state"
 msgstr ""
 
@@ -8804,31 +9030,11 @@ msgid "Role Name"
 msgstr "테이블 명"
 
 #, fuzzy
-msgid "Role is required"
-msgstr "데이터소스"
-
-#, fuzzy
 msgid "Role name is required"
 msgstr "데이터소스"
 
-#, fuzzy
-msgid "Role successfully updated!"
-msgstr "데이터소스 선택"
-
-msgid "Role was successfully created!"
-msgstr ""
-
-msgid "Role was successfully duplicated!"
-msgstr ""
-
 msgid "Roles"
 msgstr "역할"
-
-msgid ""
-"Roles is a list which defines access to the dashboard. Granting a role "
-"access to a dashboard will bypass dataset level checks. If no roles are "
-"defined, regular access permissions apply."
-msgstr ""
 
 msgid ""
 "Roles is a list which defines access to the dashboard. Granting a role "
@@ -8876,6 +9082,12 @@ msgstr ""
 #, fuzzy
 msgid "Row Level Security"
 msgstr "저수준 보안"
+
+msgid ""
+"Row Limit: percentages are calculated based on the subset of data "
+"retrieved, respecting the row limit. All Records: Percentages are "
+"calculated based on the total dataset, ignoring the row limit."
+msgstr ""
 
 msgid ""
 "Row containing the headers to use as column names (0 is first line of "
@@ -8940,7 +9152,7 @@ msgid "Running"
 msgstr ""
 
 #, python-format
-msgid "Running statement %(statement_num)s out of %(statement_count)s"
+msgid "Running block %(block_num)s out of %(block_count)s"
 msgstr ""
 
 msgid "SAT"
@@ -8989,6 +9201,10 @@ msgstr ""
 msgid "SQL query"
 msgstr "Query 저장"
 
+#, fuzzy
+msgid "SQL was formatted"
+msgstr "D3 포멧"
+
 msgid "SQLAlchemy URI"
 msgstr ""
 
@@ -9028,9 +9244,6 @@ msgid "SSH Tunneling is not enabled"
 msgstr ""
 
 msgid "SSL Mode \"require\" will be used."
-msgstr ""
-
-msgid "START (INCLUSIVE)"
 msgstr ""
 
 #, python-format
@@ -9337,6 +9550,10 @@ msgstr "삭제"
 msgid "Select ..."
 msgstr ""
 
+#, fuzzy
+msgid "Select All"
+msgstr "테이블 선택"
+
 msgid "Select Delivery Method"
 msgstr ""
 
@@ -9429,9 +9646,6 @@ msgstr "테이블 선택"
 msgid "Select all items"
 msgstr "테이블 선택"
 
-msgid "Select an aggregation method to apply to the metric."
-msgstr ""
-
 msgid "Select catalog or type to search catalogs"
 msgstr ""
 
@@ -9457,9 +9671,6 @@ msgstr ""
 #, fuzzy
 msgid "Select column"
 msgstr "컬럼 목록"
-
-msgid "Select column names from a dropdown list that should be parsed as dates."
-msgstr "드롭다운 목록에서 날짜로 처리할 열 이름을 선택합니다."
 
 msgid ""
 "Select columns that will be displayed in the table. You can multiselect "
@@ -9521,6 +9732,10 @@ msgstr ""
 msgid "Select format"
 msgstr "D3 포멧"
 
+#, fuzzy
+msgid "Select groups"
+msgstr "필터"
+
 msgid ""
 "Select one or many metrics to display, that will be displayed in the "
 "percentages of total. Percentage metrics will be calculated only from "
@@ -9537,9 +9752,6 @@ msgid "Select operator"
 msgstr ""
 
 msgid "Select or type a custom value..."
-msgstr ""
-
-msgid "Select or type a value"
 msgstr ""
 
 msgid "Select or type currency symbol"
@@ -9613,6 +9825,10 @@ msgstr ""
 msgid "Select the geojson column"
 msgstr "테이블 선택"
 
+#, fuzzy
+msgid "Select users"
+msgstr "삭제"
+
 #, python-format
 msgid ""
 "Select values in highlighted field(s) in the control panel. Then run the "
@@ -9675,10 +9891,18 @@ msgstr ""
 msgid "Server pagination"
 msgstr ""
 
+#, python-format
+msgid "Server pagination needs to be enabled for values over %s"
+msgstr ""
+
 msgid "Service Account"
 msgstr ""
 
 msgid "Service version"
+msgstr ""
+
+#, python-format
+msgid "Set %s as default datetime column"
 msgstr ""
 
 msgid "Set auto-refresh interval"
@@ -9790,6 +10014,10 @@ msgid "Show Markers"
 msgstr ""
 
 #, fuzzy
+msgid "Show Metric Name"
+msgstr "메트릭 보기"
+
+#, fuzzy
 msgid "Show Metric Names"
 msgstr "메트릭 보기"
 
@@ -9859,7 +10087,7 @@ msgstr ""
 msgid "Show empty columns"
 msgstr "컬럼 수정"
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "Show entries per page"
 msgstr "메트릭 보기"
 
@@ -9890,6 +10118,10 @@ msgstr ""
 
 msgid "Show only my charts"
 msgstr ""
+
+#, fuzzy
+msgid "Show original SQL"
+msgstr "원본 값"
 
 #, fuzzy
 msgid "Show password."
@@ -9972,6 +10204,13 @@ msgstr ""
 msgid "Shows or hides markers for the time series"
 msgstr ""
 
+#, fuzzy
+msgid "Sign in"
+msgstr "주석"
+
+msgid "Sign in with"
+msgstr ""
+
 msgid "Significance Level"
 msgstr ""
 
@@ -10019,6 +10258,9 @@ msgstr "%s 에러"
 msgid "Skip spaces after delimiter"
 msgstr ""
 
+msgid "Slice Id"
+msgstr ""
+
 msgid "Slug"
 msgstr ""
 
@@ -10041,6 +10283,9 @@ msgstr ""
 
 msgid "Some roles do not exist"
 msgstr "몇몇 역할이 존재하지 않습니다"
+
+msgid "Something went wrong while saving the user info"
+msgstr ""
 
 msgid ""
 "Something went wrong with embedded authentication. Check the dev console "
@@ -10193,6 +10438,9 @@ msgstr ""
 msgid "Split number"
 msgstr ""
 
+msgid "Split stack by"
+msgstr ""
+
 #, fuzzy
 msgid "Square kilometers"
 msgstr "필터"
@@ -10206,6 +10454,9 @@ msgid "Square miles"
 msgstr "저장된 Query"
 
 msgid "Stack"
+msgstr ""
+
+msgid "Stack in groups, where each group corresponds to a dimension"
 msgstr ""
 
 msgid "Stack series"
@@ -10231,6 +10482,10 @@ msgstr "시작 시간"
 
 msgid "Start (Longitude, Latitude): "
 msgstr ""
+
+#, fuzzy
+msgid "Start (inclusive)"
+msgstr "시작 시간"
 
 msgid "Start Longitude & Latitude"
 msgstr ""
@@ -10264,10 +10519,6 @@ msgstr "상태"
 
 msgid "State"
 msgstr "상태"
-
-#, python-format
-msgid "Statement %(statement_num)s out of %(statement_count)s"
-msgstr ""
 
 msgid "Statistical"
 msgstr ""
@@ -10346,18 +10597,12 @@ msgstr ""
 msgid "Subdomain"
 msgstr ""
 
-msgid "Subheader Font Size"
-msgstr ""
-
 msgid "Submit"
 msgstr ""
 
 #, fuzzy
 msgid "Subtitle"
 msgstr "제목"
-
-msgid "Subtitle Font Size"
-msgstr ""
 
 msgid "Subtotal"
 msgstr ""
@@ -10920,6 +11165,13 @@ msgstr ""
 msgid "The function to use when aggregating points into groups"
 msgstr ""
 
+msgid "The group has been created successfully."
+msgstr ""
+
+#, fuzzy
+msgid "The group has been updated successfully."
+msgstr "주석 레이어"
+
 msgid "The height of the current zoom level to compute all heights from"
 msgstr ""
 
@@ -10975,6 +11227,7 @@ msgid ""
 "%(key)s is invalid."
 msgstr ""
 
+#, python-brace-format
 msgid ""
 "The metadata_params in Extra field is not configured correctly. The key "
 "%{key}s is invalid."
@@ -11068,6 +11321,9 @@ msgid "The password provided for username \"%(username)s\" is incorrect."
 msgstr ""
 
 msgid "The password provided when connecting to a database is not valid."
+msgstr ""
+
+msgid "The password reset was successful"
 msgstr ""
 
 msgid ""
@@ -11211,6 +11467,16 @@ msgstr ""
 msgid "The rich tooltip shows a list of all series for that point in time"
 msgstr ""
 
+msgid "The role has been created successfully."
+msgstr ""
+
+msgid "The role has been duplicated successfully."
+msgstr ""
+
+#, fuzzy
+msgid "The role has been updated successfully."
+msgstr "주석 레이어"
+
 msgid ""
 "The row limit set for the chart was reached. The chart may show partial "
 "data."
@@ -11322,6 +11588,10 @@ msgid "The time unit used for the grouping of blocks"
 msgstr ""
 
 #, fuzzy
+msgid "The two passwords that you entered do not match!"
+msgstr "대시보드가 존재하지 않습니다"
+
+#, fuzzy
 msgid "The type of the layer"
 msgstr "새 차트 생성"
 
@@ -11334,7 +11604,14 @@ msgstr ""
 msgid "The upper limit of the threshold range of the Isoband"
 msgstr ""
 
+#, fuzzy
+msgid "The user has been updated successfully."
+msgstr "주석 레이어"
+
 msgid "The user seems to have been deleted"
+msgstr ""
+
+msgid "The user was updated successfully"
 msgstr ""
 
 msgid "The user/password combination is not valid (Incorrect password for user)."
@@ -11407,6 +11684,22 @@ msgid ""
 msgstr ""
 
 #, fuzzy
+msgid "There was an error creating the group. Please, try again."
+msgstr "데이터 베이스 목록을 가져오는 도중 에러가 발생하였습니다."
+
+#, fuzzy
+msgid "There was an error creating the role. Please, try again."
+msgstr "데이터 베이스 목록을 가져오는 도중 에러가 발생하였습니다."
+
+#, fuzzy
+msgid "There was an error creating the user. Please, try again."
+msgstr "데이터 베이스 목록을 가져오는 도중 에러가 발생하였습니다."
+
+#, fuzzy
+msgid "There was an error duplicating the role. Please, try again."
+msgstr "데이터 베이스 목록을 가져오는 도중 에러가 발생하였습니다."
+
+#, fuzzy
 msgid "There was an error fetching dataset"
 msgstr "데이터 베이스 목록을 가져오는 도중 에러가 발생하였습니다."
 
@@ -11444,12 +11737,32 @@ msgid "There was an error loading the tables"
 msgstr ""
 
 #, fuzzy
+msgid "There was an error loading users."
+msgstr "데이터 베이스 목록을 가져오는 도중 에러가 발생하였습니다."
+
+#, fuzzy
 msgid "There was an error retrieving dashboard tabs."
 msgstr "데이터 베이스 목록을 가져오는 도중 에러가 발생하였습니다."
 
 #, python-format
 msgid "There was an error saving the favorite status: %s"
 msgstr ""
+
+#, fuzzy
+msgid "There was an error updating the group. Please, try again."
+msgstr "데이터 베이스 목록을 가져오는 도중 에러가 발생하였습니다."
+
+#, fuzzy
+msgid "There was an error updating the role. Please, try again."
+msgstr "데이터 베이스 목록을 가져오는 도중 에러가 발생하였습니다."
+
+#, fuzzy
+msgid "There was an error updating the user. Please, try again."
+msgstr "데이터 베이스 목록을 가져오는 도중 에러가 발생하였습니다."
+
+#, fuzzy
+msgid "There was an error while fetching users"
+msgstr "데이터 베이스 목록을 가져오는 도중 에러가 발생하였습니다."
 
 msgid "There was an error with your request"
 msgstr ""
@@ -11461,6 +11774,10 @@ msgstr "데이터 베이스 목록을 가져오는 도중 에러가 발생하였
 #, python-format
 msgid "There was an issue deleting %s: %s"
 msgstr ""
+
+#, fuzzy, python-format
+msgid "There was an issue deleting registration for user: %s"
+msgstr "데이터 베이스 목록을 가져오는 도중 에러가 발생하였습니다."
 
 #, fuzzy, python-format
 msgid "There was an issue deleting rules: %s"
@@ -11554,6 +11871,9 @@ msgstr ""
 msgid "This action will permanently delete %s."
 msgstr ""
 
+msgid "This action will permanently delete the group."
+msgstr ""
+
 msgid "This action will permanently delete the layer."
 msgstr ""
 
@@ -11564,6 +11884,9 @@ msgid "This action will permanently delete the saved query."
 msgstr ""
 
 msgid "This action will permanently delete the template."
+msgstr ""
+
+msgid "This action will permanently delete the user registration."
 msgstr ""
 
 msgid "This action will permanently delete the user."
@@ -11660,9 +11983,8 @@ msgid "This dashboard was saved successfully."
 msgstr ""
 
 msgid ""
-"This database does not allow for DDL/DML, and the query could not be "
-"parsed to confirm it is a read-only query. Please contact your "
-"administrator for more assistance."
+"This database does not allow for DDL/DML, but the query mutates data. "
+"Please contact your administrator for more assistance."
 msgstr ""
 
 msgid "This database is managed externally, and can't be edited in Superset"
@@ -11682,7 +12004,9 @@ msgstr ""
 msgid "This defines the element to be plotted on the chart"
 msgstr ""
 
-msgid "This email is already associated with an account."
+msgid ""
+"This email is already associated with an account. Please choose another "
+"one."
 msgstr ""
 
 msgid ""
@@ -11725,6 +12049,9 @@ msgid "This may be triggered by:"
 msgstr ""
 
 msgid "This metric might be incompatible with current dataset"
+msgstr ""
+
+msgid "This name is already taken. Please choose another one."
 msgstr ""
 
 msgid "This option has been disabled by the administrator."
@@ -11796,6 +12123,9 @@ msgid "Threshold"
 msgstr ""
 
 msgid "Threshold alpha level for determining significance"
+msgstr ""
+
+msgid "Threshold for Other"
 msgstr ""
 
 msgid "Threshold: "
@@ -12091,6 +12421,10 @@ msgstr ""
 msgid "Trigger Alert If..."
 msgstr ""
 
+#, fuzzy
+msgid "True"
+msgstr "Query 공유"
+
 msgid "Truncate Axis"
 msgstr ""
 
@@ -12229,6 +12563,9 @@ msgid ""
 msgstr ""
 
 msgid "Unable to parse SQL"
+msgstr ""
+
+msgid "Unable to read the file, please refresh and try again."
 msgstr ""
 
 msgid "Unable to retrieve dashboard colors"
@@ -12505,6 +12842,14 @@ msgstr ""
 msgid "User"
 msgstr "사용자"
 
+#, fuzzy
+msgid "User Name"
+msgstr "Query 검색"
+
+#, fuzzy
+msgid "User Registrations"
+msgstr "대시보드"
+
 msgid "User doesn't have the proper permissions."
 msgstr ""
 
@@ -12514,11 +12859,9 @@ msgstr ""
 msgid "User query"
 msgstr "Query 공유"
 
-msgid "User was successfully created!"
-msgstr ""
-
-msgid "User was successfully updated!"
-msgstr ""
+#, fuzzy
+msgid "User registrations"
+msgstr "대시보드"
 
 #, fuzzy
 msgid "Username"
@@ -12527,6 +12870,10 @@ msgstr "Query 검색"
 #, fuzzy
 msgid "Username is required"
 msgstr "데이터소스"
+
+#, fuzzy
+msgid "Username:"
+msgstr "Query 검색"
 
 #, fuzzy
 msgid "Users"
@@ -12605,6 +12952,9 @@ msgid "Values are dependent on other filters"
 msgstr ""
 
 msgid "Values dependent on"
+msgstr ""
+
+msgid "Values less than this percentage will be grouped into the Other category."
 msgstr ""
 
 msgid ""
@@ -12798,9 +13148,10 @@ msgstr ""
 msgid "Waterfall Chart"
 msgstr "차트 추가"
 
-msgid ""
-"We are unable to connect to your database. Click \"See more\" for "
-"database-provided information that may help troubleshoot the issue."
+msgid "We are unable to connect to your database."
+msgstr ""
+
+msgid "We are working on your query"
 msgstr ""
 
 #, python-format
@@ -12924,7 +13275,8 @@ msgstr ""
 msgid ""
 "When specifying SQL, the datasource acts as a view. Superset will use "
 "this statement as a subquery while grouping and filtering on the "
-"generated parent queries."
+"generated parent queries.If changes are made to your SQL query, columns "
+"in your dataset will be synced when saving the dataset."
 msgstr ""
 
 msgid ""
@@ -13009,6 +13361,9 @@ msgid "Whether to display the labels."
 msgstr ""
 
 msgid "Whether to display the legend (toggles)"
+msgstr ""
+
+msgid "Whether to display the metric name"
 msgstr ""
 
 msgid "Whether to display the metric name as a title"
@@ -13175,6 +13530,10 @@ msgstr ""
 msgid "X Axis Label"
 msgstr ""
 
+#, fuzzy
+msgid "X Axis Label Interval"
+msgstr "새로고침 간격"
+
 msgid "X Axis Title"
 msgstr ""
 
@@ -13285,6 +13644,10 @@ msgstr ""
 
 #, python-format
 msgid "You are adding tags to %s %ss"
+msgstr ""
+
+#, fuzzy, python-format
+msgid "You are edting a query from the virtual dataset "
 msgstr ""
 
 msgid ""
@@ -13435,9 +13798,6 @@ msgid ""
 "You have used all %(historyLength)s undo slots and will not be able to "
 "fully undo subsequent actions. You may save your current state to reset "
 "the history."
-msgstr ""
-
-msgid "You may have an error in your SQL statement. {message}"
 msgstr ""
 
 msgid ""
@@ -13605,10 +13965,6 @@ msgstr ""
 msgid "alert condition"
 msgstr "활동"
 
-#, fuzzy
-msgid "alert dark"
-msgstr "시작 시간"
-
 msgid "alerts"
 msgstr ""
 
@@ -13650,6 +14006,7 @@ msgstr ""
 msgid "below (example:"
 msgstr ""
 
+#, python-brace-format
 msgid "between {down} and {up} {name}"
 msgstr ""
 
@@ -13898,9 +14255,6 @@ msgstr "저장된 Query"
 msgid "error"
 msgstr "%s 에러"
 
-msgid "error dark"
-msgstr ""
-
 #, fuzzy
 msgid "error_message"
 msgstr "에러 메시지"
@@ -13926,10 +14280,6 @@ msgstr "월"
 
 msgid "expand"
 msgstr ""
-
-#, fuzzy
-msgid "explore"
-msgstr "생성자"
 
 #, fuzzy
 msgid "failed"
@@ -14022,6 +14372,7 @@ msgstr ""
 msgid "left"
 msgstr "삭제"
 
+#, python-brace-format
 msgid "less than {min} {name}"
 msgstr ""
 
@@ -14072,6 +14423,7 @@ msgstr "월"
 msgid "month"
 msgstr "월"
 
+#, python-brace-format
 msgid "more than {max} {name}"
 msgstr ""
 
@@ -14258,9 +14610,6 @@ msgid "string type icon"
 msgstr ""
 
 msgid "success"
-msgstr ""
-
-msgid "success dark"
 msgstr ""
 
 msgid "sum"
