@@ -2736,7 +2736,7 @@ class TestDatabaseApi(SupersetTestCase):
         )
         form_data = {
             "formData": (buf, "database_export.zip"),
-            "passwords": json.dumps({"databases/imported_database.yaml": "SECRET"}),
+            "passwords": json.dumps({"databases/database_1.yaml": "SECRET"}),
         }
         rv = self.client.post(uri, data=form_data, content_type="multipart/form-data")
         response = json.loads(rv.data.decode("utf-8"))
@@ -2831,9 +2831,7 @@ class TestDatabaseApi(SupersetTestCase):
         )
         form_data = {
             "formData": (buf, "database_export.zip"),
-            "ssh_tunnel_passwords": json.dumps(
-                {"databases/imported_database.yaml": "TEST"}
-            ),
+            "ssh_tunnel_passwords": json.dumps({"databases/database_1.yaml": "TEST"}),
         }
         rv = self.client.post(uri, data=form_data, content_type="multipart/form-data")
         response = json.loads(rv.data.decode("utf-8"))
@@ -2930,10 +2928,10 @@ class TestDatabaseApi(SupersetTestCase):
         form_data = {
             "formData": (buf, "database_export.zip"),
             "ssh_tunnel_private_keys": json.dumps(
-                {"databases/imported_database.yaml": "TestPrivateKey"}
+                {"databases/database_1.yaml": "TestPrivateKey"}
             ),
             "ssh_tunnel_private_key_passwords": json.dumps(
-                {"databases/imported_database.yaml": "TEST"}
+                {"databases/database_1.yaml": "TEST"}
             ),
         }
         rv = self.client.post(uri, data=form_data, content_type="multipart/form-data")
@@ -3184,9 +3182,7 @@ class TestDatabaseApi(SupersetTestCase):
         buf = self.create_import_v1_zip_file("database", databases=[db_config])
         form_data = {
             "formData": (buf, "database_export.zip"),
-            "passwords": json.dumps(
-                {"databases/DB_with_expand_rows_enabled.yaml": "SECRET"}
-            ),
+            "passwords": json.dumps({"databases/database_1.yaml": "SECRET"}),
         }
         rv = self.client.post(uri, data=form_data, content_type="multipart/form-data")
         response = json.loads(rv.data.decode("utf-8"))
