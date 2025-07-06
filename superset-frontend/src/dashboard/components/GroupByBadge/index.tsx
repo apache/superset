@@ -142,7 +142,6 @@ export const GroupByBadge = ({ chartId }: GroupByBadgeProps) => {
       <h4>{t('Chart Customization')}</h4>
       {applicableGroupBys.map(groupBy => (
         <GroupByInfo key={groupBy.id}>
-          <GroupByLabel>{groupBy.title || t('Group By')}</GroupByLabel>
           <div>
             {t('Grouped by: %s', groupBy.customization?.name || t('None'))}
           </div>
