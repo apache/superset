@@ -2592,7 +2592,7 @@ class TestDatabaseApi(SupersetTestCase):
                     "error_type": "GENERIC_COMMAND_ERROR",
                     "level": "warning",
                     "extra": {
-                        "databases/imported_database.yaml": "Database already exists and `overwrite=true` was not passed",  # noqa: E501
+                        "databases/database.yaml": "Database already exists and `overwrite=true` was not passed",  # noqa: E501
                         "issue_codes": [
                             {
                                 "code": 1010,

@@ -2443,7 +2443,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
                     "error_type": "GENERIC_COMMAND_ERROR",
                     "level": "warning",
                     "extra": {
-                        "dashboards/imported_dashboard.yaml": "Dashboard already exists and `overwrite=true` was not passed",  # noqa: E501
+                        "dashboards/dashboard.yaml": "Dashboard already exists and `overwrite=true` was not passed",  # noqa: E501
                         "issue_codes": [
                             {
                                 "code": 1010,
