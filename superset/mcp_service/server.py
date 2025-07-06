@@ -15,111 +15,122 @@
 # specific language governing permissions and limitations
 # under the License.
 
-"""Standalone server for the Model Context Protocol (MCP) service"""
+"""
+Merged MCP server for Apache Superset (replaces both server.py and fastmcp_server.py)
+
+This file provides:
+- FastMCP server setup, tool registration, and middleware (init_fastmcp_server)
+- Unified entrypoint for running the MCP service (HTTP)
+"""
 import logging
 import os
-import threading
-import time
-from typing import Optional
 
-import werkzeug.serving
-from flask import Flask
+def init_fastmcp_server() -> 'FastMCP':
+    """
+    Initialize and configure the FastMCP server with all tools and middleware.
+    Returns a configured FastMCP instance (not running).
+    """
+    from fastmcp import FastMCP
+    from superset.mcp_service.middleware import LoggingMiddleware, PrivateToolMiddleware
+    from superset.mcp_service.dao_wrapper import mcp_auth_hook
+    logger = logging.getLogger(__name__)
+    logger.setLevel(logging.DEBUG)
 
-from superset.app import SupersetApp
-from superset.extensions import csrf, db
-from superset.mcp_service.api import init_app
+    mcp = FastMCP(
+        "Superset MCP Server",
+        instructions="""
+You are connected to the Apache Superset MCP (Model Context Protocol) service. This service provides programmatic access to Superset dashboards, charts, datasets, and instance metadata via a set of high-level tools. 
 
-# Global Flask app instance
-_app = None
+Available tools include:
+- list_dashboards: Advanced dashboard listing with complex filters (use 'filters' for advanced queries, 1-based pagination)
+- list_dashboards_simple: Simple dashboard listing with basic filters (1-based pagination)
+- get_dashboard_info: Get detailed information about a dashboard by its integer ID
+- get_superset_instance_info: Get high-level statistics and metadata about the Superset instance (no arguments)
+- get_dashboard_available_filters: List all available dashboard filter fields and operators
 
-def create_app(config_module: Optional[str] = None) -> Flask:
-    """Create and configure the Flask application for MCP service"""
-    global _app
-    
-    app = SupersetApp(__name__)
-    
-    # Load configuration
-    config_module = config_module or os.environ.get("SUPERSET_CONFIG", "superset.config")
-    app.config.from_object(config_module)
-    
-    # Configure security settings
-    app.config.setdefault("AUTH_ROLE_ADMIN", "Admin")
-    app.config.setdefault("AUTH_ROLE_PUBLIC", "Public")
-    app.config.setdefault("AUTH_TYPE", "AUTH_DB")
-    app.config.setdefault("SECRET_KEY", "your-secret-key-here")
-    
-    # Initialize extensions
-    db.init_app(app)
-    csrf.init_app(app)
-    init_app(app)
-    
-    _app = app
-    return app
+General usage tips:
+- For listing tools, 'page' is 1-based (first page is 1)
+- Use 'filters' to narrow down results (see get_dashboard_available_filters for supported fields and operators)
+- Use get_dashboard_info with a valid dashboard ID from the listing tools
+- For instance-wide stats, call get_superset_instance_info with no arguments
+- All tools return structured, Pydantic-typed responses
 
-def start_fastmcp(host: str, port: int) -> None:
-    """Start FastMCP server in background thread"""
-    env_key = f"FASTMCP_RUNNING_{port}"
-    
-    if os.environ.get(env_key):
-        print(f"FastMCP already running on {host}:{port}")
-        return
-    
-    os.environ[env_key] = "1"
-    
-    def run_fastmcp():
-        try:
-            print(f"Starting FastMCP on {host}:{port}")
-            from superset.mcp_service.fastmcp_server import mcp
-            mcp.run(transport="streamable-http", host=host, port=port)
-        except Exception as e:
-            print(f"FastMCP failed: {e}")
-            os.environ.pop(env_key, None)
-    
-    thread = threading.Thread(target=run_fastmcp, daemon=True)
-    thread.start()
-    time.sleep(0.5)
+If you are unsure which tool to use, start with list_dashboards_simple to see available dashboards, or get_superset_instance_info for a summary of the Superset instance.
+"""
+    )
 
-def configure_logging(debug: bool) -> None:
-    """Configure logging based on debug mode"""
+    # Import and register all FastMCP tools
+    from superset.mcp_service.tools import (
+        list_dashboards,
+        list_dashboards_simple,
+        get_dashboard_info,
+        get_superset_instance_info,
+        get_dashboard_available_filters,
+        get_dataset_available_filters,
+        list_datasets,
+        list_datasets_simple,
+        list_charts,
+        list_charts_simple,
+        get_chart_info,
+        get_chart_available_filters,
+        get_dataset_info,
+        create_chart_simple,
+    )
+
+    mcp.add_tool(mcp.tool()(mcp_auth_hook(list_dashboards)))
+    mcp.add_tool(mcp.tool()(mcp_auth_hook(list_dashboards_simple)))
+    mcp.add_tool(mcp.tool()(mcp_auth_hook(get_dashboard_info)))
+    mcp.add_tool(mcp.tool()(mcp_auth_hook(get_superset_instance_info)))
+    mcp.add_tool(mcp.tool()(mcp_auth_hook(get_dashboard_available_filters)))
+    mcp.add_tool(mcp.tool()(mcp_auth_hook(get_dataset_available_filters)))
+    mcp.add_tool(mcp.tool()(mcp_auth_hook(list_datasets)))
+    mcp.add_tool(mcp.tool()(mcp_auth_hook(list_datasets_simple)))
+    mcp.add_tool(mcp.tool()(mcp_auth_hook(list_charts)))
+    mcp.add_tool(mcp.tool()(mcp_auth_hook(list_charts_simple)))
+    mcp.add_tool(mcp.tool()(mcp_auth_hook(get_chart_info)))
+    mcp.add_tool(mcp.tool()(mcp_auth_hook(get_chart_available_filters)))
+    mcp.add_tool(mcp.tool()(mcp_auth_hook(get_dataset_info)))
+    mcp.add_tool(mcp.tool()(mcp_auth_hook(create_chart_simple)))
+
+    mcp.add_middleware(LoggingMiddleware())
+    mcp.add_middleware(PrivateToolMiddleware())
+
+    logger.info("MCP Server initialized with modular tools structure")
+    return mcp
+
+def configure_logging(debug: bool = False) -> None:
+    """Configure logging for the MCP service."""
     if debug or os.environ.get("SQLALCHEMY_DEBUG"):
         logging.basicConfig(
             level=logging.INFO,
             format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
         )
-        
         for logger_name in ['sqlalchemy.engine', 'sqlalchemy.pool', 'sqlalchemy.dialects']:
             logging.getLogger(logger_name).setLevel(logging.INFO)
-        
         print("🔍 SQL Debug logging enabled")
 
 def run_server(host: str = "0.0.0.0", port: int = 5008, debug: bool = False) -> None:
-    """Run the MCP service server"""
+    """
+    Run the MCP service server with REST API and FastMCP endpoints.
+    Only supports HTTP (streamable-http) transport.
+    """
     configure_logging(debug)
-    
     print(f"Creating MCP app...")
-    app = create_app()
-    
-    # Start FastMCP on next port
-    fastmcp_port = port + 1
-    start_fastmcp(host, fastmcp_port)
-    
-    api_key = app.config.get("MCP_API_KEY", "your-secret-api-key-here")
-    print(f"🚀 MCP Service starting on {host}:{port}")
-    print(f"📡 FastMCP server on {host}:{fastmcp_port}")
-    print(f"🔑 API Key: {api_key}")
-    
-    werkzeug.serving.run_simple(
-        hostname=host,
-        port=port,
-        application=app,
-        use_reloader=False,
-        use_debugger=debug,
-        threaded=True
-    )
+    # init_flask_app()
+    mcp = init_fastmcp_server()
 
-def get_app() -> Optional[Flask]:
-    """Get the shared Flask app instance"""
-    return _app
+    env_key = f"FASTMCP_RUNNING_{port}"
+    if not os.environ.get(env_key):
+        os.environ[env_key] = "1"
+        try:
+            print(f"Starting FastMCP on {host}:{port}")
+            mcp.run(transport="streamable-http", host=host, port=port)
+        except Exception as e:
+            print(f"FastMCP failed: {e}")
+            os.environ.pop(env_key, None)
+    else:
+        print(f"FastMCP already running on {host}:{port}")
 
 if __name__ == "__main__":
-    run_server() 
+    run_server()
+
