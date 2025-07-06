@@ -22,11 +22,10 @@ from collections import defaultdict
 from io import BytesIO
 from unittest import mock
 from unittest.mock import patch, MagicMock
-from zipfile import is_zipfile, ZipFile
+from zipfile import is_zipfile
 
 import prison
 import pytest
-import yaml
 
 from unittest.mock import Mock
 
@@ -69,8 +68,6 @@ from tests.integration_tests.fixtures.world_bank_dashboard import (
 from tests.integration_tests.fixtures.importexport import (
     database_config,
     dataset_config,
-    database_metadata_config,
-    dataset_metadata_config,
     database_with_ssh_tunnel_config_password,
     database_with_ssh_tunnel_config_private_key,
     database_with_ssh_tunnel_config_mix_credentials,
@@ -169,22 +166,6 @@ class TestDatabaseApi(SupersetTestCase):
             db.session.delete(self._database)
             db.session.commit()
             self._database = None
-
-    def create_database_import(self):
-        buf = BytesIO()
-        with ZipFile(buf, "w") as bundle:
-            with bundle.open("database_export/metadata.yaml", "w") as fp:
-                fp.write(yaml.safe_dump(database_metadata_config).encode())
-            with bundle.open(
-                "database_export/databases/imported_database.yaml", "w"
-            ) as fp:
-                fp.write(yaml.safe_dump(database_config).encode())
-            with bundle.open(
-                "database_export/datasets/imported_dataset.yaml", "w"
-            ) as fp:
-                fp.write(yaml.safe_dump(dataset_config).encode())
-        buf.seek(0)
-        return buf
 
     def test_get_items(self):
         """
@@ -2552,7 +2533,7 @@ class TestDatabaseApi(SupersetTestCase):
         self.login(ADMIN_USERNAME)
         uri = "api/v1/database/import/"
 
-        buf = self.create_database_import()
+        buf = self.create_import_v1_zip_file("database", datasets=[dataset_config])
         form_data = {
             "formData": (buf, "database_export.zip"),
         }
@@ -2585,7 +2566,7 @@ class TestDatabaseApi(SupersetTestCase):
         self.login(ADMIN_USERNAME)
         uri = "api/v1/database/import/"
 
-        buf = self.create_database_import()
+        buf = self.create_import_v1_zip_file("database", datasets=[dataset_config])
         form_data = {
             "formData": (buf, "database_export.zip"),
         }
@@ -2596,7 +2577,7 @@ class TestDatabaseApi(SupersetTestCase):
         assert response == {"message": "OK"}
 
         # import again without overwrite flag
-        buf = self.create_database_import()
+        buf = self.create_import_v1_zip_file("database", datasets=[dataset_config])
         form_data = {
             "formData": (buf, "database_export.zip"),
         }
@@ -2627,7 +2608,7 @@ class TestDatabaseApi(SupersetTestCase):
         }
 
         # import with overwrite flag
-        buf = self.create_database_import()
+        buf = self.create_import_v1_zip_file("database", datasets=[dataset_config])
         form_data = {
             "formData": (buf, "database_export.zip"),
             "overwrite": "true",
@@ -2656,20 +2637,7 @@ class TestDatabaseApi(SupersetTestCase):
         self.login(ADMIN_USERNAME)
         uri = "api/v1/database/import/"
 
-        buf = BytesIO()
-        with ZipFile(buf, "w") as bundle:
-            with bundle.open("database_export/metadata.yaml", "w") as fp:
-                fp.write(yaml.safe_dump(dataset_metadata_config).encode())
-            with bundle.open(
-                "database_export/databases/imported_database.yaml", "w"
-            ) as fp:
-                fp.write(yaml.safe_dump(database_config).encode())
-            with bundle.open(
-                "database_export/datasets/imported_dataset.yaml", "w"
-            ) as fp:
-                fp.write(yaml.safe_dump(dataset_config).encode())
-        buf.seek(0)
-
+        buf = self.create_import_v1_zip_file("dataset")
         form_data = {
             "formData": (buf, "database_export.zip"),
         }
@@ -2712,20 +2680,11 @@ class TestDatabaseApi(SupersetTestCase):
             "postgresql://username:XXXXXXXXXX@host:12345/db"
         )
 
-        buf = BytesIO()
-        with ZipFile(buf, "w") as bundle:
-            with bundle.open("database_export/metadata.yaml", "w") as fp:
-                fp.write(yaml.safe_dump(database_metadata_config).encode())
-            with bundle.open(
-                "database_export/databases/imported_database.yaml", "w"
-            ) as fp:
-                fp.write(yaml.safe_dump(masked_database_config).encode())
-            with bundle.open(
-                "database_export/datasets/imported_dataset.yaml", "w"
-            ) as fp:
-                fp.write(yaml.safe_dump(dataset_config).encode())
-        buf.seek(0)
-
+        buf = self.create_import_v1_zip_file(
+            "database",
+            databases=[masked_database_config],
+            datasets=[dataset_config],
+        )
         form_data = {
             "formData": (buf, "database_export.zip"),
         }
@@ -2770,16 +2729,11 @@ class TestDatabaseApi(SupersetTestCase):
             "vertica+vertica_python://hackathon:XXXXXXXXXX@host:5433/dbname?ssl=1"
         )
 
-        buf = BytesIO()
-        with ZipFile(buf, "w") as bundle:
-            with bundle.open("database_export/metadata.yaml", "w") as fp:
-                fp.write(yaml.safe_dump(database_metadata_config).encode())
-            with bundle.open(
-                "database_export/databases/imported_database.yaml", "w"
-            ) as fp:
-                fp.write(yaml.safe_dump(masked_database_config).encode())
-        buf.seek(0)
-
+        buf = self.create_import_v1_zip_file(
+            "database",
+            databases=[masked_database_config],
+            datasets=[dataset_config],
+        )
         form_data = {
             "formData": (buf, "database_export.zip"),
             "passwords": json.dumps({"databases/imported_database.yaml": "SECRET"}),
@@ -2818,21 +2772,11 @@ class TestDatabaseApi(SupersetTestCase):
         mock_schema_is_feature_enabled.return_value = True
 
         masked_database_config = database_with_ssh_tunnel_config_password.copy()
-
-        buf = BytesIO()
-        with ZipFile(buf, "w") as bundle:
-            with bundle.open("database_export/metadata.yaml", "w") as fp:
-                fp.write(yaml.safe_dump(database_metadata_config).encode())
-            with bundle.open(
-                "database_export/databases/imported_database.yaml", "w"
-            ) as fp:
-                fp.write(yaml.safe_dump(masked_database_config).encode())
-            with bundle.open(
-                "database_export/datasets/imported_dataset.yaml", "w"
-            ) as fp:
-                fp.write(yaml.safe_dump(dataset_config).encode())
-        buf.seek(0)
-
+        buf = self.create_import_v1_zip_file(
+            "database",
+            databases=[masked_database_config],
+            datasets=[dataset_config],
+        )
         form_data = {
             "formData": (buf, "database_export.zip"),
         }
@@ -2880,16 +2824,11 @@ class TestDatabaseApi(SupersetTestCase):
 
         masked_database_config = database_with_ssh_tunnel_config_password.copy()
 
-        buf = BytesIO()
-        with ZipFile(buf, "w") as bundle:
-            with bundle.open("database_export/metadata.yaml", "w") as fp:
-                fp.write(yaml.safe_dump(database_metadata_config).encode())
-            with bundle.open(
-                "database_export/databases/imported_database.yaml", "w"
-            ) as fp:
-                fp.write(yaml.safe_dump(masked_database_config).encode())
-        buf.seek(0)
-
+        buf = self.create_import_v1_zip_file(
+            "database",
+            databases=[masked_database_config],
+            datasets=[dataset_config],
+        )
         form_data = {
             "formData": (buf, "database_export.zip"),
             "ssh_tunnel_passwords": json.dumps(
@@ -2930,21 +2869,11 @@ class TestDatabaseApi(SupersetTestCase):
         mock_schema_is_feature_enabled.return_value = True
 
         masked_database_config = database_with_ssh_tunnel_config_private_key.copy()
-
-        buf = BytesIO()
-        with ZipFile(buf, "w") as bundle:
-            with bundle.open("database_export/metadata.yaml", "w") as fp:
-                fp.write(yaml.safe_dump(database_metadata_config).encode())
-            with bundle.open(
-                "database_export/databases/imported_database.yaml", "w"
-            ) as fp:
-                fp.write(yaml.safe_dump(masked_database_config).encode())
-            with bundle.open(
-                "database_export/datasets/imported_dataset.yaml", "w"
-            ) as fp:
-                fp.write(yaml.safe_dump(dataset_config).encode())
-        buf.seek(0)
-
+        buf = self.create_import_v1_zip_file(
+            "database",
+            databases=[masked_database_config],
+            datasets=[dataset_config],
+        )
         form_data = {
             "formData": (buf, "database_export.zip"),
         }
@@ -2994,17 +2923,10 @@ class TestDatabaseApi(SupersetTestCase):
         mock_schema_is_feature_enabled.return_value = True
 
         masked_database_config = database_with_ssh_tunnel_config_private_key.copy()
-
-        buf = BytesIO()
-        with ZipFile(buf, "w") as bundle:
-            with bundle.open("database_export/metadata.yaml", "w") as fp:
-                fp.write(yaml.safe_dump(database_metadata_config).encode())
-            with bundle.open(
-                "database_export/databases/imported_database.yaml", "w"
-            ) as fp:
-                fp.write(yaml.safe_dump(masked_database_config).encode())
-        buf.seek(0)
-
+        buf = self.create_import_v1_zip_file(
+            "database",
+            databases=[masked_database_config],
+        )
         form_data = {
             "formData": (buf, "database_export.zip"),
             "ssh_tunnel_private_keys": json.dumps(
@@ -3047,21 +2969,11 @@ class TestDatabaseApi(SupersetTestCase):
         uri = "api/v1/database/import/"
 
         masked_database_config = database_with_ssh_tunnel_config_private_key.copy()
-
-        buf = BytesIO()
-        with ZipFile(buf, "w") as bundle:
-            with bundle.open("database_export/metadata.yaml", "w") as fp:
-                fp.write(yaml.safe_dump(database_metadata_config).encode())
-            with bundle.open(
-                "database_export/databases/imported_database.yaml", "w"
-            ) as fp:
-                fp.write(yaml.safe_dump(masked_database_config).encode())
-            with bundle.open(
-                "database_export/datasets/imported_dataset.yaml", "w"
-            ) as fp:
-                fp.write(yaml.safe_dump(dataset_config).encode())
-        buf.seek(0)
-
+        buf = self.create_import_v1_zip_file(
+            "database",
+            databases=[masked_database_config],
+            datasets=[dataset_config],
+        )
         form_data = {
             "formData": (buf, "database_export.zip"),
         }
@@ -3106,20 +3018,11 @@ class TestDatabaseApi(SupersetTestCase):
 
         masked_database_config = database_with_ssh_tunnel_config_no_credentials.copy()
 
-        buf = BytesIO()
-        with ZipFile(buf, "w") as bundle:
-            with bundle.open("database_export/metadata.yaml", "w") as fp:
-                fp.write(yaml.safe_dump(database_metadata_config).encode())
-            with bundle.open(
-                "database_export/databases/imported_database.yaml", "w"
-            ) as fp:
-                fp.write(yaml.safe_dump(masked_database_config).encode())
-            with bundle.open(
-                "database_export/datasets/imported_dataset.yaml", "w"
-            ) as fp:
-                fp.write(yaml.safe_dump(dataset_config).encode())
-        buf.seek(0)
-
+        buf = self.create_import_v1_zip_file(
+            "database",
+            databases=[masked_database_config],
+            datasets=[dataset_config],
+        )
         form_data = {
             "formData": (buf, "database_export.zip"),
         }
@@ -3164,20 +3067,11 @@ class TestDatabaseApi(SupersetTestCase):
 
         masked_database_config = database_with_ssh_tunnel_config_mix_credentials.copy()
 
-        buf = BytesIO()
-        with ZipFile(buf, "w") as bundle:
-            with bundle.open("database_export/metadata.yaml", "w") as fp:
-                fp.write(yaml.safe_dump(database_metadata_config).encode())
-            with bundle.open(
-                "database_export/databases/imported_database.yaml", "w"
-            ) as fp:
-                fp.write(yaml.safe_dump(masked_database_config).encode())
-            with bundle.open(
-                "database_export/datasets/imported_dataset.yaml", "w"
-            ) as fp:
-                fp.write(yaml.safe_dump(dataset_config).encode())
-        buf.seek(0)
-
+        buf = self.create_import_v1_zip_file(
+            "database",
+            databases=[masked_database_config],
+            datasets=[dataset_config],
+        )
         form_data = {
             "formData": (buf, "database_export.zip"),
         }
@@ -3224,20 +3118,11 @@ class TestDatabaseApi(SupersetTestCase):
             database_with_ssh_tunnel_config_private_pass_only.copy()
         )
 
-        buf = BytesIO()
-        with ZipFile(buf, "w") as bundle:
-            with bundle.open("database_export/metadata.yaml", "w") as fp:
-                fp.write(yaml.safe_dump(database_metadata_config).encode())
-            with bundle.open(
-                "database_export/databases/imported_database.yaml", "w"
-            ) as fp:
-                fp.write(yaml.safe_dump(masked_database_config).encode())
-            with bundle.open(
-                "database_export/datasets/imported_dataset.yaml", "w"
-            ) as fp:
-                fp.write(yaml.safe_dump(dataset_config).encode())
-        buf.seek(0)
-
+        buf = self.create_import_v1_zip_file(
+            "database",
+            databases=[masked_database_config],
+            datasets=[dataset_config],
+        )
         form_data = {
             "formData": (buf, "database_export.zip"),
         }
@@ -3296,17 +3181,7 @@ class TestDatabaseApi(SupersetTestCase):
             "uuid": "b8a1ccd3-779d-4ab7-8ad8-9ab119d7ff90",
             "version": "1.0.0",
         }
-
-        buf = BytesIO()
-        with ZipFile(buf, "w") as bundle:
-            with bundle.open("database_export/metadata.yaml", "w") as fp:
-                fp.write(yaml.safe_dump(database_metadata_config).encode())
-            with bundle.open(
-                "database_export/databases/DB_with_expand_rows_enabled.yaml", "w"
-            ) as fp:
-                fp.write(yaml.safe_dump(db_config).encode())
-        buf.seek(0)
-
+        buf = self.create_import_v1_zip_file("database", databases=[db_config])
         form_data = {
             "formData": (buf, "database_export.zip"),
             "passwords": json.dumps(

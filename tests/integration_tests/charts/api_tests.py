@@ -18,11 +18,10 @@
 from io import BytesIO
 from unittest import mock
 from unittest.mock import patch
-from zipfile import is_zipfile, ZipFile
+from zipfile import is_zipfile
 
 import prison
 import pytest
-import yaml
 from flask_babel import lazy_gettext as _
 from parameterized import parameterized
 from sqlalchemy import and_
@@ -56,10 +55,8 @@ from tests.integration_tests.fixtures.energy_dashboard import (
 )
 from tests.integration_tests.fixtures.importexport import (
     chart_config,
-    chart_metadata_config,
     database_config,
     dataset_config,
-    dataset_metadata_config,
 )
 from tests.integration_tests.fixtures.tags import (
     create_custom_tags,  # noqa: F401
@@ -309,22 +306,6 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
             "can_export",
             "can_warm_up_cache",
         }
-
-    def create_chart_import(self):
-        buf = BytesIO()
-        with ZipFile(buf, "w") as bundle:
-            with bundle.open("chart_export/metadata.yaml", "w") as fp:
-                fp.write(yaml.safe_dump(chart_metadata_config).encode())
-            with bundle.open(
-                "chart_export/databases/imported_database.yaml", "w"
-            ) as fp:
-                fp.write(yaml.safe_dump(database_config).encode())
-            with bundle.open("chart_export/datasets/imported_dataset.yaml", "w") as fp:
-                fp.write(yaml.safe_dump(dataset_config).encode())
-            with bundle.open("chart_export/charts/imported_chart.yaml", "w") as fp:
-                fp.write(yaml.safe_dump(chart_config).encode())
-        buf.seek(0)
-        return buf
 
     def test_delete_chart(self):
         """
@@ -1757,7 +1738,7 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
         self.login(ADMIN_USERNAME)
         uri = "api/v1/chart/import/"
 
-        buf = self.create_chart_import()
+        buf = self.create_import_v1_zip_file("chart")
         form_data = {
             "formData": (buf, "chart_export.zip"),
         }
@@ -1795,7 +1776,7 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
         self.login(ADMIN_USERNAME)
         uri = "api/v1/chart/import/"
 
-        buf = self.create_chart_import()
+        buf = self.create_import_v1_zip_file("chart")
         form_data = {
             "formData": (buf, "chart_export.zip"),
         }
@@ -1806,7 +1787,7 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
         assert response == {"message": "OK"}
 
         # import again without overwrite flag
-        buf = self.create_chart_import()
+        buf = self.create_import_v1_zip_file("chart")
         form_data = {
             "formData": (buf, "chart_export.zip"),
         }
@@ -1834,7 +1815,7 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
         }
 
         # import with overwrite flag
-        buf = self.create_chart_import()
+        buf = self.create_import_v1_zip_file("chart")
         form_data = {
             "formData": (buf, "chart_export.zip"),
             "overwrite": "true",
@@ -1867,20 +1848,7 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
         self.login(ADMIN_USERNAME)
         uri = "api/v1/chart/import/"
 
-        buf = BytesIO()
-        with ZipFile(buf, "w") as bundle:
-            with bundle.open("chart_export/metadata.yaml", "w") as fp:
-                fp.write(yaml.safe_dump(dataset_metadata_config).encode())
-            with bundle.open(
-                "chart_export/databases/imported_database.yaml", "w"
-            ) as fp:
-                fp.write(yaml.safe_dump(database_config).encode())
-            with bundle.open("chart_export/datasets/imported_dataset.yaml", "w") as fp:
-                fp.write(yaml.safe_dump(dataset_config).encode())
-            with bundle.open("chart_export/charts/imported_chart.yaml", "w") as fp:
-                fp.write(yaml.safe_dump(chart_config).encode())
-        buf.seek(0)
-
+        buf = self.create_import_v1_zip_file("dataset", charts=[chart_config])
         form_data = {
             "formData": (buf, "chart_export.zip"),
         }
