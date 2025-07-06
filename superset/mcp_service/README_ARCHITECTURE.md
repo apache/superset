@@ -1,115 +1,140 @@
-# MCP Service Architecture
+# Superset MCP Service Architecture
 
-The Superset MCP (Model Context Protocol) service provides programmatic access to Superset dashboards through both REST API and FastMCP interfaces.
+**⚠️ The Superset MCP service is under active development and not yet complete. Functionality, APIs, and tool coverage are evolving rapidly. See [SIP-171](https://github.com/apache/superset/issues/33870) for the roadmap and proposal.**
 
-## Architecture Overview
+The Superset MCP service exposes high-level tools for dashboards, charts, and datasets via the FastMCP protocol. All read/list/count operations use Superset DAOs, wrapped by `MCPDAOWrapper` to enforce security and user context. Mutations (create/update/delete) will use Superset command objects in future versions.
+
+## Flow Overview
 
 ```mermaid
-flowchart TB
-  subgraph MCP_Service["MCP Service"]
-    direction TB
-
-    subgraph Flask_Stack["Flask Server (Port 5008)"]
-      FS["Flask Server"]
-      FRest["REST API Endpoints\n• GET /health\n• GET/POST /list_dashboards\n• GET /dashboard/<id>\n• GET /instance_info"]
-      FAPI["API Layer\n• Authentication\n• Request/Response\n• Error handling"]
-      FS --> FRest --> FAPI
+graph TD
+    subgraph FastMCP Service
+        A[LLM/Agent or Client]
+        B[FastMCP Tool Call]
+        C[MCPDAOWrapper]
+        D1[DashboardDAO]
+        D2[ChartDAO]
+        D3[DatasetDAO]
+        E[Superset DB]
+        F[Superset Command - planned for mutations]
     end
 
-    subgraph FastMCP_Stack["FastMCP Server (Port 5009)"]
-      FM["FastMCP Server"]
-      FTools["FastMCP Tools\n• list_dashboards (advanced)\n• list_dashboards_simple\n• get_dashboard_info\n• health_check\n• get_superset_instance_high_level_information\n• get_available_filters"]
-      FM --> FTools
-    end
-
-    FAPI --> SupersetCore
-    FTools --> FRest
-  end
-
-  subgraph SupersetCore["Superset Core"]
-    DB["Database (SQLAlchemy)"]
-    Models["Models\n• Dashboard\n• Chart\n• User"]
-    DAOs["Data Access Objects\n• DashboardDAO\n• Security Manager"]
-    DB --> Models --> DAOs
-  end
-
-  style Flask_Stack fill:#e1f5fe
-  style FastMCP_Stack fill:#f3e5f5
-  style SupersetCore fill:#fff3e0
+    A --> B
+    B --> C
+    C -- list/count/info --> D1
+    C -- list/count/info --> D2
+    C -- list/count/info --> D3
+    D1 --> E
+    D2 --> E
+    D3 --> E
+    B -. "create/update/delete (planned)" .-> F
+    F -.uses.-> C
+    F --> D1
+    F --> D2
+    F --> D3
+    F --> E
 ```
 
-## Components
+## Modular Tool Structure
 
-### 1. Flask Server (`server.py`)
-- **Purpose**: Main HTTP server providing REST API endpoints
-- **Port**: 5008 (configurable)
-- **Features**:
-  - Flask application with Superset integration
-  - Database connection management
-  - Authentication middleware
-  - Automatic FastMCP server startup
+All tools are organized by domain for clarity and maintainability:
 
-### 2. FastMCP Server (`fastmcp_server.py`)
-- **Purpose**: Model Context Protocol server for AI tool integration
-- **Port**: 5009 (server port + 1)
-- **Features**:
-  - 6 FastMCP tools for dashboard operations
-  - Direct HTTP calls to REST API endpoints
-  - JSON parsing and error handling
-  - Authentication via API headers
+- `superset/mcp_service/tools/dashboard/`
+- `superset/mcp_service/tools/dataset/`
+- `superset/mcp_service/tools/chart/`
+- `superset/mcp_service/tools/system/`
 
-### 3. REST API (`api/v1/endpoints.py`)
-- **Purpose**: HTTP endpoints for dashboard operations
-- **Endpoints**:
-  - `GET /health` - Service health check
-  - `GET /list_dashboards` - Simple filtering with query parameters
-  - `POST /list_dashboards` - Advanced filtering with JSON payload
-  - `GET /dashboard/<id>` - Get specific dashboard details
-  - `GET /instance_info` - Get Superset instance information
+Each tool is a standalone Python module. Shared utilities live in `tools/base.py`.
 
-### 4. Data Schemas (`schemas.py`)
-- **Purpose**: Request/response validation and serialization
-- **Features**:
-  - Pydantic models for API contracts
-  - Filter validation and parsing
-  - Response formatting
-  - Column selection handling
+## Pydantic Model/Data Flow
 
-### 5. Proxy Scripts
-- **`run_proxy.sh`**: Shell script for local proxy setup for Claude Desktop
-- **`simple_proxy.py`**: Python proxy for background operation
-- **Purpose**: Enable Claude Desktop integration for free users (not part of core architecture)
+```mermaid
+graph TD
+    subgraph Tool Layer
+        T[FastMCP Tool]
+        PI[Pydantic Input Model]
+        PO[Pydantic Output Model]
+    end
+    subgraph Service Layer
+        W[MCPDAOWrapper]
+        DAO[DAO -DashboardDAO, ChartDAO, DatasetDAO]
+    end
+    subgraph Data Layer
+        DB[Superset DB]
+        SA[SQLAlchemy Models]
+    end
 
-## Data Flow
+    T -- input schema --> PI
+    PI -- validated params --> W
+    W -- calls --> DAO
+    DAO -- queries --> DB
+    DB -- returns --> SA
+    SA -- returned by --> W
+    W -- SQLAlchemy models --> T
+    T -- builds --> PO
+    PO -- response schema --> T
+```
 
-### REST API Flow
-1. **Client Request** → Flask Server (REST API)
-2. **Authentication** → API key validation
-3. **Request Processing** → Parameter parsing and validation
-4. **Database Query** → Superset models and DAOs
-5. **Response Formatting** → Schema validation and serialization
-6. **Client Response** → JSON format
+- **Pydantic Input Model**: Defines and validates tool input parameters.
+- **MCPDAOWrapper**: Calls the DAO and returns SQLAlchemy models.
+- **FastMCP Tool**: Converts SQLAlchemy models to the Pydantic output model for the response.
+- **Pydantic Output Model**: Defines the structured response returned by each tool.
+- All tool contracts are strongly typed, ensuring robust agent and client integration for dashboards, charts, and datasets.
 
-### FastMCP Flow
-1. **Client Request** → FastMCP Server
-2. **Tool Execution** → FastMCP tool processes request
-3. **HTTP Call** → Internal HTTP request to REST API
-4. **REST Processing** → Same as REST API flow (steps 2-5)
-5. **Client Response** → FastMCP format
+## How to Add a New Tool
 
-## Key Features
+1. **Choose the Right Domain**
+   - Place your tool in the appropriate subfolder under `tools/` (e.g., `tools/chart/`).
+2. **Define Schemas**
+   - Use Pydantic models for all input and output.
+   - Add `description` to every field for LLM/OpenAPI friendliness.
+   - Place shared schemas in `pydantic_schemas/`.
+3. **Implement the Tool**
+   - Use `log_tool_call` from `tools/base.py` for logging.
+   - Use `MCPDAOWrapper` for DAO access and security.
+   - Follow the style and conventions of existing tools.
+4. **Register the Tool**
+   - Add your tool to `tools/__init__.py` in the `MCP_TOOLS` dict and `__all__` list.
+5. **Test**
+   - Add unit tests in `tests/unit_tests/mcp_service/`.
+   - Add integration tests in `tests/integration_tests/mcp_service/` if needed.
 
-- **Dual Interface**: REST API + FastMCP for maximum compatibility
-- **Flexible Filtering**: Simple query params + advanced JSON filters
-- **Column Selection**: Dynamic column loading based on requests
-- **Authentication**: API key-based security
-- **Standalone Operation**: Independent of main Superset web server
-- **FastMCP Tools**: 6 tools covering all dashboard operations
-- **Error Handling**: Comprehensive error handling and logging
+See existing tools in each domain for examples and best practices.
 
-## Configuration
+## Security and Permissions
 
-- **API Key**: `MCP_API_KEY` environment variable
-- **Ports**: Configurable via CLI arguments
-- **Debug Mode**: SQL and application logging
-- **Database**: Uses Superset's existing database connection 
+All authentication, impersonation, RBAC, and access logging for MCP tools is now handled by the `mcp_auth_hook` decorator. This decorator:
+
+- Sets up the Flask user context (`g.user`) for every tool call, so all downstream DAO/model code sees the correct user.
+- Supports impersonation ("run as this user") and is ready for OIDC/OAuth/Okta integration.
+- Provides hooks for endpoint-level permissioning and RBAC (role-based access control).
+- Provides a hook for access and action logging (for observability/audit).
+
+By default, all access is allowed (admin mode), but you can override the hooks in `dao_wrapper.py` for enterprise integration. The `MCPDAOWrapper` no longer manages user context directly; all context is set up by the decorator at the tool entrypoint.
+
+See `superset/mcp_service/dao_wrapper.py` for details and extension points.
+
+## Tool/DAO Mapping
+- **list_dashboards, get_dashboard_info**: DashboardDAO
+- **list_dashboards_simple**: DashboardDAO
+- **list_datasets, list_datasets_simple**: DatasetDAO
+- **list_charts, get_chart_info, list_charts_simple**: ChartDAO
+- **get_superset_instance_info**: System metadata
+- **Mutations (planned)**: Use Superset command objects for all create/update/delete actions
+
+## Filtering & Search
+
+All list tools support both advanced (object-based) and simple (field-based) filters, as well as free-text search across key fields. See the README for usage examples.
+
+## Current Status & Roadmap
+
+- All list/info tools for dashboards, datasets, and charts are implemented, with full search and filter support.
+- Chart creation (`create_chart_simple`) is available.
+- System info and available filters are implemented.
+- Full unit and integration test coverage for all tools, including search and error handling.
+- Protocol-level tests for agent compatibility.
+- **Planned:** Mutations (create/update/delete) via Superset command objects, more granular RBAC, and richer system tools.
+
+## References
+- [SIP-171: MCP Service Proposal](https://github.com/apache/superset/issues/33870)
+- [Main README](./README.md)

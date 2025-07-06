@@ -1,0 +1,129 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+
+"""
+Get dashboard info FastMCP tool
+
+This module contains the FastMCP tool for getting detailed information
+about a specific dashboard.
+"""
+import logging
+from datetime import datetime, timezone
+from typing import Annotated
+
+from pydantic import Field
+from superset.daos.dashboard import DashboardDAO
+from superset.mcp_service.dao_wrapper import MCPDAOWrapper
+from superset.mcp_service.pydantic_schemas.dashboard_schemas import (
+    ChartInfo,
+    DashboardErrorResponse,
+    DashboardInfoResponse,
+    RoleInfo,
+    TagInfo,
+    UserInfo,
+)
+
+logger = logging.getLogger(__name__)
+
+
+def get_dashboard_info(
+    dashboard_id: Annotated[
+        int,
+        Field(description="ID of the dashboard to retrieve information for")
+    ]
+) -> DashboardInfoResponse | DashboardErrorResponse:
+    """
+    Get detailed information about a specific dashboard.
+    Parameters
+    ----------
+    dashboard_id : int
+        ID of the dashboard to retrieve information for.
+    Returns
+    -------
+    DashboardInfoResponse or DashboardErrorResponse
+        Detailed dashboard information or error response.
+    """
+
+    try:
+        # Use the generic DAO wrapper
+        dao_wrapper = MCPDAOWrapper(DashboardDAO, "dashboard")
+        dashboard, error_type, error_message = dao_wrapper.info(dashboard_id)
+
+        if dashboard is None:
+            # Handle error cases
+            error_data = DashboardErrorResponse(
+                error=error_message,
+                error_type=error_type,
+                timestamp=datetime.now(timezone.utc)
+            )
+            logger.warning(
+                f"Dashboard {dashboard_id} error: {error_type} - {error_message}")
+            return error_data
+
+        # Create dashboard response using Pydantic constructor - most Pythonic approach
+        response = DashboardInfoResponse(
+            # Core dashboard attributes
+            id=dashboard.id,
+            dashboard_title=dashboard.dashboard_title or "Untitled",
+            slug=dashboard.slug or "",
+            description=dashboard.description,
+            css=dashboard.css,
+            certified_by=dashboard.certified_by,
+            certification_details=dashboard.certification_details,
+            json_metadata=dashboard.json_metadata,
+            position_json=dashboard.position_json,
+            published=dashboard.published,
+            is_managed_externally=dashboard.is_managed_externally,
+            external_url=dashboard.external_url,
+
+            # Audit fields
+            created_on=dashboard.created_on,
+            changed_on=dashboard.changed_on,
+            created_by=getattr(
+                dashboard.created_by, 'username',
+                None) if dashboard.created_by else None,
+            changed_by=getattr(
+                dashboard.changed_by, 'username',
+                None) if dashboard.changed_by else None,
+
+            # UUID and computed fields
+            uuid=str(dashboard.uuid) if dashboard.uuid else None,
+            url=dashboard.url,
+            thumbnail_url=dashboard.thumbnail_url,
+            created_on_humanized=dashboard.created_on_humanized,
+            changed_on_humanized=dashboard.changed_on_humanized,
+            chart_count=len(dashboard.slices) if dashboard.slices else 0,
+
+            # Related entities - use model_validate for each type for proper
+            # serialization
+            owners=[UserInfo.model_validate(owner, from_attributes=True) for owner in
+                    dashboard.owners] if dashboard.owners else [],
+            tags=[TagInfo.model_validate(tag, from_attributes=True) for tag in
+                  dashboard.tags] if dashboard.tags else [],
+            roles=[RoleInfo.model_validate(role, from_attributes=True) for role in
+                   dashboard.roles] if dashboard.roles else [],
+            charts=[ChartInfo.model_validate(chart, from_attributes=True) for chart in
+                    dashboard.slices] if dashboard.slices else []
+        )
+
+        logger.info(
+            f"Dashboard response created successfully for dashboard {dashboard.id}")
+        return response
+    except Exception as e:
+        error_msg = f"Unexpected error in get_dashboard_info: {str(e)}"
+        logger.error(error_msg, exc_info=True)
+        raise
