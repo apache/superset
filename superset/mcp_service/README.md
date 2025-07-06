@@ -1,115 +1,93 @@
 # Superset MCP Service
 
-A Model Context Protocol (MCP) service for Apache Superset that provides programmatic access to dashboards, charts, and datasets through both REST API and FastMCP endpoints.
+The Superset Model Context Protocol (MCP) service provides a universal, schema-driven interface for programmatic access to Superset dashboards, charts, datasets, and instance metadata. It is designed for LLM agents and automation tools to interact with Superset securely and efficiently, following the [SIP-171 MCP proposal](https://github.com/apache/superset/issues/33870).
 
-## Quick Start
+**⚠️ This functionality is under active development and not yet complete. Expect breaking changes and evolving APIs.**
 
-### Installation
+## 🚀 Quickstart
 
-The MCP service is included with Superset. For FastMCP support (optional), install the extra:
+### 1. Install Requirements
 
 ```bash
-pip install "apache-superset[fastmcp]"
+uv pip install -r requirements/development.txt
+uv pip install -e .
+source .venv/bin/activate
 ```
 
-### Running the Service
+### 2. Run the MCP Service
 
-#### CLI Command
 ```bash
-# Basic usage
-superset mcp run
-
-# With custom port and debug
 superset mcp run --port 5008 --debug --sql-debug
 ```
 
-#### PyCharm Debugging
-Create a PyCharm run configuration:
+### 3. Test Your Setup
 
-**Script path:** `./venv/bin/superset`  
-**Parameters:** `mcp run --port 5008 --debug --sql-debug`  
-**Working directory:** `/path/to/superset`
-
-This runs the service with debug mode enabled on port 5008.
-
-### Claude Desktop Integration
-
-#### For Claude Pro, Max, Team, and Enterprise Plans
-Users on paid plans can use direct remote server integration:
-
-```json
-{
-  "mcpServers": {
-    "Superset MCP": {
-      "url": "http://your-server-url:your-port/mcp/",
-      "auth": {
-        "type": "bearer",
-        "token": "your-api-key"
-      }
-    }
-  }
-}
-```
-
-#### For Free Claude Desktop Users
-Free users need to use a local proxy script since remote server support is not available:
-
-```json
-{
-  "mcpServers": {
-    "Superset MCP Proxy": {
-      "command": "/path/to/superset/superset/mcp_service/run_proxy.sh",
-      "args": [],
-      "env": {}
-    }
-  }
-}
-```
-
-Both approaches connect to the FastMCP service. For more details, see the [FastMCP Claude Desktop integration guide](https://gofastmcp.com/integrations/claude-desktop).
-
-## API Endpoints
-
-### REST API (Port 5008)
-- `GET /api/mcp/v1/health` - Service health check
-- `GET /api/mcp/v1/list_dashboards` - List dashboards with simple filtering (query parameters)
-- `POST /api/mcp/v1/list_dashboards` - List dashboards with advanced filtering (JSON payload)
-- `GET /api/mcp/v1/dashboard/<id>` - Get dashboard details
-- `GET /api/mcp/v1/instance_info` - Get Superset instance information
-
-### FastMCP Tools (Port 5009)
-- `list_dashboards` - Advanced filtering with complex filter objects
-- `list_dashboards_simple` - Simple filtering with individual parameters
-- `get_dashboard_info` - Get detailed dashboard information
-- `health_check` - Service health verification
-- `get_superset_instance_high_level_information` - Instance metadata
-- `get_available_filters` - Available filter options
-
-## Authentication
-
-Use API key authentication:
-```bash
-curl -H "Authorization: Bearer your-secret-api-key-here" http://localhost:5008/api/mcp/v1/health
-```
-
-Default API key: `your-secret-api-key-here` (for development)
-
-## Configuration
-
-Set environment variables to customize behavior:
+Run the unit and integration tests to verify your environment:
 
 ```bash
-export MCP_API_KEY="your-secret-api-key-here"
+pytest tests/unit_tests/mcp_service/ --maxfail=1 -v
+# For integration tests:
+python tests/integration_tests/mcp_service/run_mcp_tests.py
 ```
 
-## Development
+## Available Tools
 
-The service runs alongside but independently of Superset. It provides:
+All tools are modular, strongly typed, and use Pydantic v2 schemas. Every field is documented for LLM/OpenAPI compatibility.
 
-- **REST API**: Direct HTTP access to dashboard data
-- **FastMCP Tools**: AI-friendly interface for Claude Desktop and other MCP clients
-- **Dual Filtering**: Both simple query parameters and advanced JSON filtering
-- **Authentication**: API key-based security
-- **Standalone Operation**: Independent of main Superset web server
+**Dashboards**
+- `list_dashboards` (advanced filtering, search)
+- `list_dashboards_simple` (simple filtering, search)
+- `get_dashboard_info`
+- `get_dashboard_available_filters`
 
-For more details, see the [architecture documentation](README_ARCHITECTURE.md). 
+**Datasets**
+- `list_datasets` (advanced filtering, search)
+- `list_datasets_simple` (simple filtering, search)
+- `get_dataset_info`
+- `get_dataset_available_filters`
+
+**Charts**
+- `list_charts` (advanced filtering, search)
+- `list_charts_simple` (simple filtering, search)
+- `get_chart_info`
+- `get_chart_available_filters`
+- `create_chart_simple`
+
+**System**
+- `get_superset_instance_info`
+
+See the architecture doc for full tool signatures and usage.
+
+## Filtering & Search
+
+All `list_*` tools support:
+- **Filters**: Complex (list of filter objects) or simple (field=value).
+- **Search**: Free-text search across key fields (e.g., dashboard title, chart name, dataset table name).
+
+Example:
+```python
+list_dashboards(search="churn", filters=[{"col": "published", "opr": "eq", "value": True}])
+```
+
+## Modular Structure
+
+- Tools are organized by domain: `tools/dashboard/`, `tools/dataset/`, `tools/chart/`, `tools/system/`.
+- All input/output is validated with Pydantic v2.
+- Shared schemas live in `pydantic_schemas/`.
+- All tool calls are logged and RBAC/auth hooks are pluggable.
+
+## What's Implemented
+
+- All list/info tools for dashboards, datasets, and charts, with full search and filter support.
+- Chart creation (`create_chart_simple`).
+- System info and available filters.
+- Full unit and integration test coverage for all tools, including search and error handling.
+- Protocol-level tests for agent compatibility.
+- **Note:** The API and toolset are still evolving and not all planned features are implemented yet.
+
+## Further Reading
+
+- [Architecture & Roadmap](./README_ARCHITECTURE.md)
+- [SIP-171: MCP Service Proposal](https://github.com/apache/superset/issues/33870)
+- [Integration Tests](../../tests/integration_tests/mcp_service/README_mcp_tests.md)
+- [Superset Docs](https://superset.apache.org/docs/)

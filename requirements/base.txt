@@ -392,6 +392,8 @@ typing-extensions==4.14.0
     #   alembic
     #   cattrs
     #   limits
+    #   pyopenssl
+    #   referencing
     #   selenium
     #   shillelagh
 tzdata==2025.2
