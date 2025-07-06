@@ -36,6 +36,7 @@ import {
   ChartCustomizationItem,
   FilterOption,
 } from 'src/dashboard/components/nativeFilters/ChartCustomization/types';
+import { removeDataMask } from 'src/dataMask/actions';
 import { onSave } from './dashboardState';
 
 export interface ChartCustomizationSavePayload {
@@ -286,6 +287,21 @@ export function saveChartCustomization(
     getState: () => RootState,
   ) {
     const { id, metadata, json_metadata } = getState().dashboardInfo;
+
+    const currentState = getState();
+    const currentChartCustomizationItems =
+      currentState.dashboardInfo.metadata?.chart_customization_config || [];
+
+    const removedItems = currentChartCustomizationItems.filter(
+      currentItem =>
+        !chartCustomizationItems.some(
+          newItem => newItem.id === currentItem.id,
+        ) ||
+        chartCustomizationItems.some(
+          newItem => newItem.id === currentItem.id && newItem.removed,
+        ),
+    );
+
     const simpleItems = chartCustomizationItems
       .filter(item => !item.removed)
       .map(item => ({
@@ -351,13 +367,26 @@ export function saveChartCustomization(
       if (updatedDashboard.json_metadata) {
         dispatch(setChartCustomization(simpleItems));
 
+        removedItems.forEach(removedItem => {
+          const customizationFilterId = `chart_customization_${removedItem.id}`;
+          dispatch(removeDataMask(customizationFilterId));
+        });
+
         const state = getState();
         const affectedChartIds = getAffectedChartIdsFromCustomization(
           simpleItems,
           state,
         );
 
-        affectedChartIds.forEach(chartId => {
+        removedItems.forEach(removedItem => {
+          if (removedItem.chartId) {
+            affectedChartIds.push(removedItem.chartId);
+          }
+        });
+
+        const uniqueAffectedChartIds = [...new Set(affectedChartIds)];
+
+        uniqueAffectedChartIds.forEach(chartId => {
           const chart = state.charts[chartId];
           if (
             chart?.latestQueryFormData &&
