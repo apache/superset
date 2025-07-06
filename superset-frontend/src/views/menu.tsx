@@ -43,7 +43,7 @@ const emotionCache = createCache({
   key: 'menu',
 });
 
-const app = (
+const App = () => (
   // @ts-ignore: emotion types defs are incompatible between core and cache
   <CacheProvider value={emotionCache}>
     <ThemeProvider theme={theme}>
@@ -63,4 +63,4 @@ const app = (
   </CacheProvider>
 );
 
-ReactDOM.render(app, document.getElementById('app-menu'));
+ReactDOM.render(<App />, document.getElementById('app-menu'));
