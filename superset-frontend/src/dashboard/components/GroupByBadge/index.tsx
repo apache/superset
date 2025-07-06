@@ -86,13 +86,6 @@ const GroupByInfo = styled.div`
   `}
 `;
 
-const GroupByLabel = styled.div`
-  ${({ theme }) => `
-    font-weight: 600;
-    margin-bottom: ${theme.sizeUnit}px;
-  `}
-`;
-
 export const GroupByBadge = ({ chartId }: GroupByBadgeProps) => {
   const [tooltipVisible, setTooltipVisible] = useState(false);
   const triggerRef = useRef<HTMLDivElement>(null);
