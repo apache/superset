@@ -47,7 +47,6 @@ import Chart, { Slice } from 'src/types/Chart';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import { type TagType } from 'src/components';
 import { loadTags } from 'src/components/Tag/utils';
-import { fetchTags, OBJECT_TYPES } from 'src/features/tags/tags';
 
 export type PropertiesModalProps = {
   slice: Slice;
