@@ -2699,7 +2699,7 @@ class TestDatabaseApi(SupersetTestCase):
                     "error_type": "GENERIC_COMMAND_ERROR",
                     "level": "warning",
                     "extra": {
-                        "databases/imported_database.yaml": {
+                        "databases/database_1.yaml": {
                             "_schema": ["Must provide a password for the database"]
                         },
                         "issue_codes": [
@@ -2791,7 +2791,7 @@ class TestDatabaseApi(SupersetTestCase):
                     "error_type": "GENERIC_COMMAND_ERROR",
                     "level": "warning",
                     "extra": {
-                        "databases/imported_database.yaml": {
+                        "databases/database_1.yaml": {
                             "_schema": ["Must provide a password for the ssh tunnel"]
                         },
                         "issue_codes": [
@@ -2888,7 +2888,7 @@ class TestDatabaseApi(SupersetTestCase):
                     "error_type": "GENERIC_COMMAND_ERROR",
                     "level": "warning",
                     "extra": {
-                        "databases/imported_database.yaml": {
+                        "databases/database_1.yaml": {
                             "_schema": [
                                 "Must provide a private key for the ssh tunnel",
                                 "Must provide a private key password for the ssh tunnel",  # noqa: E501
@@ -3137,7 +3137,7 @@ class TestDatabaseApi(SupersetTestCase):
                     "error_type": "GENERIC_COMMAND_ERROR",
                     "level": "warning",
                     "extra": {
-                        "databases/imported_database.yaml": {
+                        "databases/database_1.yaml": {
                             "_schema": [
                                 "Must provide a private key for the ssh tunnel",
                                 "Must provide a private key password for the ssh tunnel",  # noqa: E501
