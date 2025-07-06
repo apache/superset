@@ -408,13 +408,15 @@ class QueryContextProcessor:
 
     def is_valid_date_range(self, date_range: str) -> bool:
         try:
-            # Attempt to parse the string as a date range in the format YYYY-MM-DD:YYYY-MM-DD
+            # Attempt to parse the string as a date range in the format
+            # YYYY-MM-DD:YYYY-MM-DD
             start_date, end_date = date_range.split(":")
             datetime.strptime(start_date.strip(), "%Y-%m-%d")
             datetime.strptime(end_date.strip(), "%Y-%m-%d")
             return True
         except ValueError:
-            # If parsing fails, it's not a valid date range in the format YYYY-MM-DD:YYYY-MM-DD
+            # If parsing fails, it's not a valid date range in the format
+            # YYYY-MM-DD:YYYY-MM-DD
             return False
 
     def get_offset_custom_or_inherit(
