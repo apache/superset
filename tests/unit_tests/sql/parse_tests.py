@@ -1163,7 +1163,6 @@ def test_custom_dialect(app: None) -> None:
         "pydoris",
         "redshift",
         "risingwave",
-        "rockset",
         "shillelagh",
         "snowflake",
         "solr",
@@ -1236,7 +1235,7 @@ WHERE
     """.strip()
 
     assert SQLStatement(sql, "sqlite").optimize().format() == optimized
-    assert SQLStatement(sql, "dremio").optimize().format() == not_optimized
+    assert SQLStatement(sql, "crate").optimize().format() == not_optimized
 
     # also works for scripts
     assert SQLScript(sql, "sqlite").optimize().format() == optimized

@@ -186,9 +186,11 @@ class QueryContextProcessor:
         label_map.update(
             {
                 column_name: [
-                    str(query_obj.columns[idx])
-                    if not is_adhoc_column(query_obj.columns[idx])
-                    else cast(AdhocColumn, query_obj.columns[idx])["sqlExpression"],
+                    (
+                        str(query_obj.columns[idx])
+                        if not is_adhoc_column(query_obj.columns[idx])
+                        else cast(AdhocColumn, query_obj.columns[idx])["sqlExpression"]
+                    ),
                 ]
                 for idx, column_name in enumerate(query_obj.column_names)
             }
@@ -196,12 +198,22 @@ class QueryContextProcessor:
         label_map.update(
             {
                 metric_name: [
-                    str(query_obj.metrics[idx])
-                    if not is_adhoc_metric(query_obj.metrics[idx])
-                    else str(cast(AdhocMetric, query_obj.metrics[idx])["sqlExpression"])
-                    if cast(AdhocMetric, query_obj.metrics[idx])["expressionType"]
-                    == "SQL"
-                    else metric_name,
+                    (
+                        str(query_obj.metrics[idx])
+                        if not is_adhoc_metric(query_obj.metrics[idx])
+                        else (
+                            str(
+                                cast(AdhocMetric, query_obj.metrics[idx])[
+                                    "sqlExpression"
+                                ]
+                            )
+                            if cast(AdhocMetric, query_obj.metrics[idx])[
+                                "expressionType"
+                            ]
+                            == "SQL"
+                            else metric_name
+                        )
+                    ),
                 ]
                 for idx, metric_name in enumerate(query_obj.metric_names)
                 if query_obj and query_obj.metrics
@@ -741,6 +753,47 @@ class QueryContextProcessor:
 
         return df.to_dict(orient="records")
 
+    def ensure_totals_available(self) -> None:
+        queries_needing_totals = []
+        totals_queries = []
+
+        for i, query in enumerate(self._query_context.queries):
+            needs_totals = any(
+                pp.get("operation") == "contribution"
+                for pp in getattr(query, "post_processing", []) or []
+            )
+
+            if needs_totals:
+                queries_needing_totals.append(i)
+
+            is_totals_query = (
+                not query.columns and query.metrics and not query.post_processing
+            )
+            if is_totals_query:
+                totals_queries.append(i)
+
+        if not queries_needing_totals or not totals_queries:
+            return
+
+        totals_idx = totals_queries[0]
+        totals_query = self._query_context.queries[totals_idx]
+
+        totals_query.row_limit = None
+
+        result = self._query_context.get_query_result(totals_query)
+        df = result.df
+
+        totals = {
+            col: df[col].sum() for col in df.columns if df[col].dtype.kind in "biufc"
+        }
+
+        for idx in queries_needing_totals:
+            query = self._query_context.queries[idx]
+            if hasattr(query, "post_processing") and query.post_processing:
+                for pp in query.post_processing:
+                    if pp.get("operation") == "contribution":
+                        pp["options"]["contribution_totals"] = totals
+
     def get_payload(
         self,
         cache_query_context: bool | None = False,
@@ -748,7 +801,8 @@ class QueryContextProcessor:
     ) -> dict[str, Any]:
         """Returns the query results with both metadata and data"""
 
-        # Get all the payloads from the QueryObjects
+        self.ensure_totals_available()
+
         query_results = [
             get_query_results(
                 query_obj.result_type or self._query_context.result_type,
@@ -758,6 +812,7 @@ class QueryContextProcessor:
             )
             for query_obj in self._query_context.queries
         ]
+
         return_value = {"queries": query_results}
 
         if cache_query_context:
@@ -858,13 +913,24 @@ class QueryContextProcessor:
         from superset.commands.chart.data.get_data_command import ChartDataCommand
 
         if not (chart := ChartDAO.find_by_id(annotation_layer["value"])):
-            raise QueryObjectValidationError(_("The chart does not exist"))
+            raise QueryObjectValidationError(
+                _(
+                    f"""Chart with ID {annotation_layer["value"]} (referenced by
+                    annotation layer '{annotation_layer["name"]}') was not found.
+                    Please verify that the chart exists and is accessible."""
+                )
+            )
 
         try:
             if chart.viz_type in viz_types:
                 if not chart.datasource:
                     raise QueryObjectValidationError(
-                        _("The chart datasource does not exist"),
+                        _(
+                            f"""The dataset for chart ID {chart.id} (referenced by
+                            annotation layer '{annotation_layer["name"]}') was
+                            not found. Please check that the dataset exists and
+                            is accessible."""
+                        )
                     )
 
                 form_data = chart.form_data.copy()
@@ -881,7 +947,12 @@ class QueryContextProcessor:
 
             if not (query_context := chart.get_query_context()):
                 raise QueryObjectValidationError(
-                    _("The chart query context does not exist"),
+                    _(
+                        f"""The query context for chart ID {chart.id} (referenced
+                        by annotation layer '{annotation_layer["name"]}') was not found.
+                        Please ensure the chart is properly configured and has a valid
+                        query context."""
+                    )
                 )
 
             if overrides := annotation_layer.get("overrides"):

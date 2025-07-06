@@ -26,16 +26,25 @@ from collections.abc import Iterable
 from dataclasses import dataclass
 from typing import Any, Generic, TYPE_CHECKING, TypeVar
 
-import sqlglot
+import sqlglot  # pylint: disable=disallowed-sql-import
 from jinja2 import nodes, Template
-from sqlglot import exp
-from sqlglot.dialects.dialect import Dialect, Dialects
-from sqlglot.errors import ParseError
-from sqlglot.optimizer.pushdown_predicates import pushdown_predicates
-from sqlglot.optimizer.scope import Scope, ScopeType, traverse_scope
+from sqlglot import exp  # pylint: disable=disallowed-sql-import
+from sqlglot.dialects.dialect import (  # pylint: disable=disallowed-sql-import
+    Dialect,
+    Dialects,
+)
+from sqlglot.errors import ParseError  # pylint: disable=disallowed-sql-import
+from sqlglot.optimizer.pushdown_predicates import (  # pylint: disable=disallowed-sql-import
+    pushdown_predicates,
+)
+from sqlglot.optimizer.scope import (  # pylint: disable=disallowed-sql-import
+    Scope,
+    ScopeType,
+    traverse_scope,
+)
 
 from superset.exceptions import QueryClauseValidationException, SupersetParseError
-from superset.sql.dialects.firebolt import Firebolt
+from superset.sql.dialects import Dremio, Firebolt
 
 if TYPE_CHECKING:
     from superset.models.core import Database
@@ -59,7 +68,7 @@ SQLGLOT_DIALECTS = {
     "databricks": Dialects.DATABRICKS,
     # "db2": ???
     # "denodo": ???
-    # "dremio": ???
+    "dremio": Dremio,
     "drill": Dialects.DRILL,
     "druid": Dialects.DRUID,
     "duckdb": Dialects.DUCKDB,
@@ -75,7 +84,7 @@ SQLGLOT_DIALECTS = {
     # "impala": ???
     # "kustosql": ???
     # "kylin": ???
-    "mariadb: ": Dialects.MYSQL,
+    "mariadb": Dialects.MYSQL,
     "motherduck": Dialects.DUCKDB,
     "mssql": Dialects.TSQL,
     "mysql": Dialects.MYSQL,
@@ -85,13 +94,12 @@ SQLGLOT_DIALECTS = {
     # "odelasticsearch": ???
     "oracle": Dialects.ORACLE,
     "parseable": Dialects.POSTGRES,
-    # "pinot": ???
+    "pinot": Dialects.MYSQL,
     "postgresql": Dialects.POSTGRES,
     "presto": Dialects.PRESTO,
     "pydoris": Dialects.DORIS,
     "redshift": Dialects.REDSHIFT,
     "risingwave": Dialects.RISINGWAVE,
-    # "rockset": ???
     "shillelagh": Dialects.SQLITE,
     "singlestore": Dialects.MYSQL,
     "snowflake": Dialects.SNOWFLAKE,

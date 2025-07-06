@@ -26,12 +26,13 @@ import {
 } from 'react';
 
 import { RouteComponentProps, useHistory } from 'react-router-dom';
-import { extendedDayjs } from 'src/utils/dates';
+import { extendedDayjs } from '@superset-ui/core/utils/dates';
 import {
   Behavior,
   css,
   isFeatureEnabled,
   FeatureFlag,
+  useTheme,
   getChartMetadataRegistry,
   styled,
   t,
@@ -40,14 +41,17 @@ import {
   QueryFormData,
 } from '@superset-ui/core';
 import { useSelector } from 'react-redux';
-import { Menu } from 'src/components/Menu';
-import { NoAnimationDropdown } from 'src/components/Dropdown';
+import { Menu } from '@superset-ui/core/components/Menu';
+import {
+  NoAnimationDropdown,
+  Tooltip,
+  Button,
+  ModalTrigger,
+} from '@superset-ui/core/components';
 import ShareMenuItems from 'src/dashboard/components/menu/ShareMenuItems';
 import downloadAsImage from 'src/utils/downloadAsImage';
 import { getSliceHeaderTooltip } from 'src/dashboard/util/getSliceHeaderTooltip';
-import { Tooltip } from 'src/components/Tooltip';
-import { Icons } from 'src/components/Icons';
-import ModalTrigger from 'src/components/ModalTrigger';
+import { Icons } from '@superset-ui/core/components/Icons';
 import ViewQueryModal from 'src/explore/components/controls/ViewQueryModal';
 import { ResultsPaneOnDashboard } from 'src/explore/components/DataTablesPane';
 import { DrillDetailMenuItems } from 'src/components/Chart/DrillDetail';
@@ -55,52 +59,41 @@ import { LOG_ACTIONS_CHART_DOWNLOAD_AS_IMAGE } from 'src/logger/LogUtils';
 import { MenuKeys, RootState } from 'src/dashboard/types';
 import DrillDetailModal from 'src/components/Chart/DrillDetail/DrillDetailModal';
 import { usePermissions } from 'src/hooks/usePermissions';
-import Button from 'src/components/Button';
 import { useCrossFiltersScopingModal } from '../nativeFilters/FilterBar/CrossFilters/ScopingModal/useCrossFiltersScopingModal';
 import { ViewResultsModalTrigger } from './ViewResultsModalTrigger';
 
-// TODO: replace 3 dots with an icon
-const VerticalDotsContainer = styled.div`
-  padding: ${({ theme }) => theme.gridUnit / 4}px
-    ${({ theme }) => theme.gridUnit * 1.5}px;
-
-  .dot {
-    display: block;
-
-    height: ${({ theme }) => theme.gridUnit}px;
-    width: ${({ theme }) => theme.gridUnit}px;
-    border-radius: 50%;
-    margin: ${({ theme }) => theme.gridUnit / 2}px 0;
-
-    background-color: ${({ theme }) => theme.colors.text.label};
-  }
-
-  &:hover {
-    cursor: pointer;
-  }
-`;
-
 const RefreshTooltip = styled.div`
-  height: auto;
-  margin: ${({ theme }) => theme.gridUnit}px 0;
-  color: ${({ theme }) => theme.colors.grayscale.base};
-  line-height: 21px;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  justify-content: flex-start;
+  ${({ theme }) => css`
+    height: auto;
+    margin: ${theme.sizeUnit}px 0;
+    color: ${theme.colorTextLabel};
+    line-height: 21px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: flex-start;
+  `}
 `;
 
 const getScreenshotNodeSelector = (chartId: string | number) =>
   `.dashboard-chart-id-${chartId}`;
 
-const VerticalDotsTrigger = () => (
-  <VerticalDotsContainer>
-    <span className="dot" />
-    <span className="dot" />
-    <span className="dot" />
-  </VerticalDotsContainer>
-);
+const VerticalDotsTrigger = () => {
+  const theme = useTheme();
+  return (
+    <Icons.EllipsisOutlined
+      css={css`
+        transform: rotate(90deg);
+        &:hover {
+          cursor: pointer;
+        }
+      `}
+      iconSize="xl"
+      iconColor={theme.colorTextLabel}
+      className="dot"
+    />
+  );
+};
 
 export interface SliceHeaderControlsProps {
   slice: {
@@ -172,6 +165,7 @@ const SliceHeaderControls = (
   const [modalFilters, setFilters] = useState<BinaryQueryObjectFilterClause[]>(
     [],
   );
+  const theme = useTheme();
 
   const canEditCrossFilters =
     useSelector<RootState, boolean>(
@@ -241,7 +235,7 @@ const SliceHeaderControls = (
         // menu closes with a delay, we need to hide it manually,
         // so that we don't capture it on the screenshot
         const menu = document.querySelector(
-          '.antd5-dropdown:not(.antd5-dropdown-hidden)',
+          '.ant-dropdown:not(.ant-dropdown-hidden)',
         ) as HTMLElement;
         if (menu) {
           menu.style.visibility = 'hidden';
@@ -250,7 +244,7 @@ const SliceHeaderControls = (
           getScreenshotNodeSelector(props.slice.slice_id),
           props.slice.slice_name,
           true,
-          // @ts-ignore
+          theme,
         )(domEvent).then(() => {
           if (menu) {
             menu.style.visibility = 'visible';
@@ -503,7 +497,6 @@ const SliceHeaderControls = (
       )}
     </Menu>
   );
-
   return (
     <>
       {isFullSize && (
@@ -515,7 +508,7 @@ const SliceHeaderControls = (
         />
       )}
       <NoAnimationDropdown
-        dropdownRender={() => menu}
+        popupRender={() => menu}
         overlayStyle={dropdownOverlayStyle}
         trigger={['click']}
         placement="bottomRight"
@@ -523,10 +516,14 @@ const SliceHeaderControls = (
         onOpenChange={visible => setIsDropdownVisible(visible)}
       >
         <Button
-          type="link"
           id={`slice_${slice.slice_id}-controls`}
+          buttonStyle="link"
           aria-label="More Options"
           aria-haspopup="true"
+          css={theme => css`
+            padding: ${theme.sizeUnit * 2}px;
+            padding-right: 0px;
+          `}
         >
           <VerticalDotsTrigger />
         </Button>

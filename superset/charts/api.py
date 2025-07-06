@@ -236,6 +236,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
         "slice_name",
         "viz_type",
         "tags",
+        "uuid",
     ]
     base_order = ("changed_on", "desc")
     base_filters = [["id", ChartFilter, lambda: []]]

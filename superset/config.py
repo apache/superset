@@ -67,7 +67,7 @@ logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
     from flask_appbuilder.security.sqla import models
-    from sqlglot import Dialect, Dialects
+    from sqlglot import Dialect, Dialects  # pylint: disable=disallowed-sql-import
 
     from superset.connectors.sqla.models import SqlaTable
     from superset.models.core import Database
@@ -86,6 +86,10 @@ STATS_LOGGER = DummyStatsLogger()
 EVENT_LOGGER = DBEventLogger()
 
 SUPERSET_LOG_VIEW = True
+
+# This config is used to enable/disable the folowing security menu items:
+# List Users, List Roles, List Groups
+SUPERSET_SECURITY_VIEW_MENU = True
 
 BASE_DIR = str(files("superset"))
 if "SUPERSET_HOME" in os.environ:
@@ -211,7 +215,7 @@ SQLALCHEMY_ENGINE_OPTIONS = {}
 # implement a function that takes a single argument of type 'sqla.engine.url',
 # returns a password and set SQLALCHEMY_CUSTOM_PASSWORD_STORE.
 #
-# e.g.:
+# example:
 # def lookup_password(url):
 #     return 'secret'
 # SQLALCHEMY_CUSTOM_PASSWORD_STORE = lookup_password
@@ -551,7 +555,8 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     "PLAYWRIGHT_REPORTS_AND_THUMBNAILS": False,
     # Set to True to enable experimental chart plugins
     "CHART_PLUGINS_EXPERIMENTAL": False,
-    # Regardless of database configuration settings, force SQLLAB to run async using Celery  # noqa: E501
+    # Regardless of database configuration settings, force SQLLAB to run async
+    # using Celery
     "SQLLAB_FORCE_RUN_ASYNC": False,
     # Set to True to to enable factory resent CLI command
     "ENABLE_FACTORY_RESET_COMMAND": False,
@@ -559,7 +564,17 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # If on, you'll want to add "https://avatars.slack-edge.com" to the list of allowed
     # domains in your TALISMAN_CONFIG
     "SLACK_ENABLE_AVATARS": False,
-    # Allow users to optionally specify date formats in email subjects, which will be parsed if enabled. # noqa: E501
+    # Adds a switch to the navbar to easily switch between light and dark themes.
+    # This is intended to use for development, visual review, and theming-debugging
+    # purposes.
+    "THEME_ENABLE_DARK_THEME_SWITCH": False,
+    # Adds a theme editor as a modal dialog in the navbar. Allows people to type in JSON
+    # and see the changes applied to the current theme.
+    # This is intended to use for theme creation, visual review and theming-debugging
+    # purposes.
+    "THEME_ALLOW_THEME_EDITOR_BETA": False,
+    # Allow users to optionally specify date formats in email subjects, which will
+    # be parsed if enabled
     "DATE_FORMAT_IN_EMAIL_SUBJECT": False,
     # Allow metrics and columns to be grouped into (potentially nested) folders in the
     # chart builder
@@ -658,24 +673,17 @@ COMMON_BOOTSTRAP_OVERRIDES_FUNC: Callable[  # noqa: E731
 # This is merely a default
 EXTRA_CATEGORICAL_COLOR_SCHEMES: list[dict[str, Any]] = []
 
-# THEME_OVERRIDES is used for adding custom theme to superset
-# example code for "My theme" custom scheme
-# THEME_OVERRIDES = {
-#   "borderRadius": 4,
-#   "colors": {
-#     "primary": {
-#       "base": 'red',
-#     },
-#     "secondary": {
-#       "base": 'green',
-#     },
-#     "grayscale": {
-#       "base": 'orange',
-#     }
-#   }
-# }
+# THEME is used for setting a custom theme to Superset, it follows the ant design
+# theme structure
+# You can use the AntDesign theme editor to generate a theme structure
+# https://ant.design/theme-editor
+# To expose a JSON theme editor modal that can be triggered from the navbar
+# set the `ENABLE_THEME_EDITOR` feature flag to True.
+#
+# To set up the dark theme:
+# THEME = {"algorithm": "dark"}
 
-THEME_OVERRIDES: dict[str, Any] = {}
+THEME: dict[str, Any] = {}
 
 # EXTRA_SEQUENTIAL_COLOR_SCHEMES is used for adding custom sequential color schemes
 # EXTRA_SEQUENTIAL_COLOR_SCHEMES =  [
@@ -1627,6 +1635,7 @@ CONTENT_SECURITY_POLICY_WARNING = True
 
 # Do you want Talisman enabled?
 TALISMAN_ENABLED = utils.cast_to_boolean(os.environ.get("TALISMAN_ENABLED", True))
+TALISMAN_ENABLED = False
 
 # If you want Talisman, how do you want it configured??
 # For more information on setting up Talisman, please refer to
@@ -1644,6 +1653,7 @@ TALISMAN_CONFIG = {
             "https://static.scarf.sh/",
             # "https://cdn.brandfolder.io", # Uncomment when SLACK_ENABLE_AVATARS is True  # noqa: E501
             "ows.terrestris.de",
+            "https://cdn.document360.io",
         ],
         "worker-src": ["'self'", "blob:"],
         "connect-src": [
@@ -1675,6 +1685,7 @@ TALISMAN_DEV_CONFIG = {
             "https://static.scarf.sh/",
             "https://cdn.brandfolder.io",
             "ows.terrestris.de",
+            "https://cdn.document360.io",
         ],
         "worker-src": ["'self'", "blob:"],
         "connect-src": [
@@ -1806,7 +1817,10 @@ GUEST_TOKEN_JWT_SECRET = "test-guest-secret-change-me"  # noqa: S105
 GUEST_TOKEN_JWT_ALGO = "HS256"  # noqa: S105
 GUEST_TOKEN_HEADER_NAME = "X-GuestToken"  # noqa: S105
 GUEST_TOKEN_JWT_EXP_SECONDS = 300  # 5 minutes
-# Guest token audience for the embedded superset, either string or callable
+# Audience for the Superset guest token used in embedded mode.
+# Can be a string or a callable. Defaults to WEBDRIVER_BASEURL.
+# When generating the guest token, ensure the
+# payload's `aud` matches GUEST_TOKEN_JWT_AUDIENCE.
 GUEST_TOKEN_JWT_AUDIENCE: Callable[[], str] | str | None = None
 
 # A callable that can be supplied to do extra validation of guest token configuration
