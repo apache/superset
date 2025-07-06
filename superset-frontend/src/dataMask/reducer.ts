@@ -37,6 +37,7 @@ import { isEqual } from 'lodash';
 import {
   AnyDataMaskAction,
   CLEAR_DATA_MASK_STATE,
+  REMOVE_DATA_MASK,
   SET_DATA_MASK_FOR_FILTER_CHANGES_COMPLETE,
   UPDATE_DATA_MASK,
 } from './actions';
@@ -187,6 +188,9 @@ const dataMaskReducer = produce(
           action.filters,
         );
         return cleanState;
+      case REMOVE_DATA_MASK:
+        delete draft[action.filterId];
+        return draft;
       default:
         return draft;
     }
