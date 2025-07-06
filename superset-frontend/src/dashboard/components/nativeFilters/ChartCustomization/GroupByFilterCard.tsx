@@ -296,7 +296,6 @@ const GroupByFilterCard: FC<GroupByFilterCardProps> = ({
     [customizationItem.id],
   );
 
-  // Get chart customization data from Redux state
   const chartCustomizationData = useSelector<RootState, FilterOption[]>(
     state =>
       state.dashboardInfo.chartCustomizationData?.[customizationItem.id] || [],
@@ -311,12 +310,10 @@ const GroupByFilterCard: FC<GroupByFilterCardProps> = ({
   const datasetId = useMemo(() => {
     if (!dataset) return null;
 
-    // Handle string format (this is how it's actually stored)
     if (typeof dataset === 'string') {
       return dataset;
     }
 
-    // Handle object format (fallback)
     if (typeof dataset === 'object' && dataset !== null) {
       if ('value' in dataset) {
         return String((dataset as any).value);
@@ -406,7 +403,6 @@ const GroupByFilterCard: FC<GroupByFilterCardProps> = ({
     [datasetId, columnName, dispatch, customizationItem.id],
   );
 
-  // Load initial data when component mounts
   useEffect(() => {
     if (datasetId && columnName) {
       dispatch(
@@ -415,7 +411,6 @@ const GroupByFilterCard: FC<GroupByFilterCardProps> = ({
     }
   }, [datasetId, columnName, dispatch, customizationItem.id]);
 
-  // Reload data when dependencies change
   useEffect(() => {
     if (datasetId && columnName) {
       dispatch(
@@ -424,7 +419,6 @@ const GroupByFilterCard: FC<GroupByFilterCardProps> = ({
     }
   }, [datasetId, columnName, dispatch, customizationItem.id, dependencies]);
 
-  // Reload data when dataset or column changes
   useEffect(() => {
     if (datasetId && columnName) {
       dispatch(
@@ -433,17 +427,14 @@ const GroupByFilterCard: FC<GroupByFilterCardProps> = ({
     }
   }, [datasetId, columnName, dispatch, customizationItem.id]);
 
-  // Update options when data changes
   useEffect(() => {
     setOptions(chartCustomizationData);
   }, [chartCustomizationData]);
 
-  // Update loading state
   useEffect(() => {
     setLoading(chartCustomizationLoading);
   }, [chartCustomizationLoading]);
 
-  // Initialize data mask if not exists
   useEffect(() => {
     if (!currentDataMask && datasetId && columnName) {
       dispatch(
@@ -525,7 +516,6 @@ const GroupByFilterCard: FC<GroupByFilterCardProps> = ({
 
   const displayTitle = columnDisplayName;
 
-  // Get description from either location
   const description =
     customizationItem.description?.trim() ||
     customizationItem.customization.description?.trim();
