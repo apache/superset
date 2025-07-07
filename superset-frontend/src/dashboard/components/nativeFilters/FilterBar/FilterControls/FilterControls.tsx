@@ -393,6 +393,33 @@ const FilterControls: FC<FilterControlsProps> = ({
           flex: 1;
         `}
       >
+        {chartCustomizationItems.length > 0 && (
+          <CollapsibleSection
+            title={t('Chart Customization')}
+            isOpen={sectionsOpen.chartCustomization}
+            onToggle={() => toggleSection('chartCustomization')}
+          >
+            <div
+              css={(theme: SupersetTheme) => css`
+                display: flex;
+                flex-direction: column;
+                gap: ${theme.sizeUnit * 2}px;
+              `}
+            >
+              {chartCustomizationItems
+                .filter(item => !item.removed)
+                .map(item => (
+                  <div
+                    key={item.id}
+                    className="chart-customization-wrapper"
+                    data-test="chart-customization-card"
+                  >
+                    <GroupByFilterCard customizationItem={item} />
+                  </div>
+                ))}
+            </div>
+          </CollapsibleSection>
+        )}
         <DropdownContainer
           items={items}
           dropdownTriggerIcon={
@@ -461,6 +488,9 @@ const FilterControls: FC<FilterControlsProps> = ({
       rendererCrossFilter,
       hasRequiredFirst,
       overflowedIds,
+      chartCustomizationItems,
+      sectionsOpen,
+      toggleSection,
     ],
   );
 
