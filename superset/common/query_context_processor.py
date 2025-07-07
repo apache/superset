@@ -495,12 +495,13 @@ class QueryContextProcessor:
                     # Use the specified range directly
                     query_object_clone.from_dttm = offset_from_dttm
                     query_object_clone.to_dttm = offset_to_dttm
-                elif self.is_valid_date(offset) or offset == "inherit":
-                    offset = self.get_offset_custom_or_inherit(
-                        offset,
-                        outer_from_dttm,
-                        outer_to_dttm,
-                    )
+                else:
+                    if self.is_valid_date(offset) or offset == "inherit":
+                        offset = self.get_offset_custom_or_inherit(
+                            offset,
+                            outer_from_dttm,
+                            outer_to_dttm,
+                        )
                     query_object_clone.from_dttm = get_past_or_future(
                         offset,
                         outer_from_dttm,
