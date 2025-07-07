@@ -1838,5 +1838,5 @@ def get_user_agent(database: Database, source: QuerySource | None) -> str:
 def activate_humanize_locale() -> str:
     locale = session.get("locale", "en")
     if (locale != "en"):
-        locale = LOCALES_LANGUAGE_MAP.get(locale, "fa_IR")
+        locale = LOCALES_LANGUAGE_MAP.get(locale, "en_US")
         humanize.i18n.activate(locale)
