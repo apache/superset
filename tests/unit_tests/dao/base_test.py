@@ -16,11 +16,9 @@
 # under the License.
 
 from sqlalchemy.orm.session import Session
-from flask_appbuilder.models.filters import BaseFilter
-import pytest
+
 
 def test_base_dao_list_returns_results(user_with_data: Session) -> None:
-    """Test that BaseDAO.list returns results for the model."""
     from superset.daos.user import UserDAO
     results, total = UserDAO.list()
     assert total >= 1
@@ -28,7 +26,6 @@ def test_base_dao_list_returns_results(user_with_data: Session) -> None:
 
 
 def test_base_dao_list_with_filters(user_with_data: Session) -> None:
-    """Test that BaseDAO.list applies filters correctly."""
     from superset.daos.user import UserDAO
     results, total = UserDAO.list(filters={"username": "testuser"})
     assert total >= 1
@@ -36,7 +33,6 @@ def test_base_dao_list_with_filters(user_with_data: Session) -> None:
 
 
 def test_base_dao_list_with_non_matching_filter(user_with_data: Session) -> None:
-    """Test that BaseDAO.list returns empty for non-matching filters."""
     from superset.daos.user import UserDAO
     results, total = UserDAO.list(filters={"username": "doesnotexist"})
     assert total == 0
@@ -44,14 +40,12 @@ def test_base_dao_list_with_non_matching_filter(user_with_data: Session) -> None
 
 
 def test_base_dao_count_returns_value(user_with_data: Session) -> None:
-    """Test that BaseDAO.count returns a count for the model."""
     from superset.daos.user import UserDAO
     count = UserDAO.count()
     assert count >= 1
 
 
 def test_base_dao_count_with_filters(user_with_data: Session) -> None:
-    """Test that BaseDAO.count applies filters correctly."""
     from superset.daos.user import UserDAO
     count = UserDAO.count(filters={"username": "testuser"})
     assert count >= 1
@@ -60,7 +54,6 @@ def test_base_dao_count_with_filters(user_with_data: Session) -> None:
 
 
 def test_base_dao_list_and_count_skip_base_filter(user_with_data: Session) -> None:
-    """Test that skip_base_filter argument works for list and count."""
     from superset.daos.user import UserDAO
     results, total = UserDAO.list()
     results_skip, total_skip = UserDAO.list()
@@ -138,6 +131,7 @@ def test_base_dao_list_custom_filter(user_with_data: Session) -> None:
     from superset.daos.user import UserDAO
     from flask_appbuilder.security.sqla.models import User
     from flask_appbuilder.models.sqla.interface import SQLAInterface
+    from flask_appbuilder.models.filters import BaseFilter
     datamodel = SQLAInterface(User, user_with_data)
     class EmailDomainFilter(BaseFilter):
         def apply(self, query, value):
@@ -157,6 +151,7 @@ def test_base_dao_list_custom_filter(user_with_data: Session) -> None:
 def test_base_dao_list_base_filter(user_with_data: Session) -> None:
     from superset.daos.user import UserDAO
     from flask_appbuilder.security.sqla.models import User
+    from flask_appbuilder.models.filters import BaseFilter
     class OnlyActiveFilter(BaseFilter):
         def apply(self, query, value):
             return query.filter(User.active == True)
