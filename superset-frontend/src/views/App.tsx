@@ -17,7 +17,6 @@
  * under the License.
  */
 import { Suspense, useEffect } from 'react';
-import { hot } from 'react-hot-loader/root';
 import {
   BrowserRouter as Router,
   Switch,
@@ -108,4 +107,4 @@ const App = () => (
   </Router>
 );
 
-export default hot(App);
+export default App;

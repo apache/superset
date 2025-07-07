@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { FC } from 'react';
+import { FC, PropsWithChildren } from 'react';
 import { styled, useTheme, css } from '@superset-ui/core';
 import { Skeleton } from '../Skeleton';
 import { Card } from '../Card';
@@ -134,7 +134,7 @@ const ThinSkeleton = styled(Skeleton)`
 
 const paragraphConfig = { rows: 1, width: 150 };
 
-const AnchorLink: FC<LinkProps> = ({ to, children }) => (
+const AnchorLink: FC<PropsWithChildren<LinkProps>> = ({ to, children }) => (
   <a href={to}>{children}</a>
 );
 

@@ -53,7 +53,7 @@ export function FormModal({
   }, [onSave, resetForm]);
 
   const handleFormSubmit = useCallback(
-    async values => {
+    async (values: Object) => {
       try {
         setIsSaving(true);
         await formSubmitHandler(values);
@@ -111,7 +111,7 @@ export function FormModal({
         onValuesChange={onFormChange}
         onFieldsChange={onFormChange}
       >
-        {typeof children === 'function' ? children(form) : children}
+        {children}
       </Form>
     </Modal>
   );
