@@ -51,6 +51,19 @@ class BaseDAO(Generic[T]):
         )[0]
 
     @classmethod
+    def _apply_base_filter(cls, query, skip_base_filter: bool = False, data_model=None):
+        """
+        Apply the base_filter to the query if it exists and skip_base_filter is False.
+        """
+        if cls.base_filter and not skip_base_filter:
+            if data_model is None:
+                data_model = SQLAInterface(cls.model_cls, db.session)
+            query = cls.base_filter( # pylint: disable=not-callable
+                cls.id_column_name, data_model
+            ).apply(query, None)
+        return query
+
+    @classmethod
     def find_by_id(
         cls,
         model_id: str | int,
@@ -60,11 +73,7 @@ class BaseDAO(Generic[T]):
         Find a model by id, if defined applies `base_filter`
         """
         query = db.session.query(cls.model_cls)
-        if cls.base_filter and not skip_base_filter:
-            data_model = SQLAInterface(cls.model_cls, db.session)
-            query = cls.base_filter(  # pylint: disable=not-callable
-                cls.id_column_name, data_model
-            ).apply(query, None)
+        query = cls._apply_base_filter(query, skip_base_filter)
         id_column = getattr(cls.model_cls, cls.id_column_name)
         try:
             return query.filter(id_column == model_id).one_or_none()
@@ -85,11 +94,7 @@ class BaseDAO(Generic[T]):
         if id_col is None:
             return []
         query = db.session.query(cls.model_cls).filter(id_col.in_(model_ids))
-        if cls.base_filter and not skip_base_filter:
-            data_model = SQLAInterface(cls.model_cls, db.session)
-            query = cls.base_filter(  # pylint: disable=not-callable
-                cls.id_column_name, data_model
-            ).apply(query, None)
+        query = cls._apply_base_filter(query, skip_base_filter)
         return query.all()
 
     @classmethod
@@ -98,11 +103,7 @@ class BaseDAO(Generic[T]):
         Get all that fit the `base_filter`
         """
         query = db.session.query(cls.model_cls)
-        if cls.base_filter:
-            data_model = SQLAInterface(cls.model_cls, db.session)
-            query = cls.base_filter(  # pylint: disable=not-callable
-                cls.id_column_name, data_model
-            ).apply(query, None)
+        query = cls._apply_base_filter(query)
         return query.all()
 
     @classmethod
@@ -111,11 +112,7 @@ class BaseDAO(Generic[T]):
         Get the first that fit the `base_filter`
         """
         query = db.session.query(cls.model_cls)
-        if cls.base_filter:
-            data_model = SQLAInterface(cls.model_cls, db.session)
-            query = cls.base_filter(  # pylint: disable=not-callable
-                cls.id_column_name, data_model
-            ).apply(query, None)
+        query = cls._apply_base_filter(query)
         return query.filter_by(**filter_by).one_or_none()
 
     @classmethod
@@ -215,6 +212,7 @@ class BaseDAO(Generic[T]):
         :param custom_filters: Dictionary of custom FAB filter classes to apply
         :return: Tuple of (items, total_count)
         """
+
         # Create SQLAInterface instance for FAB-compatible query generation
         data_model = SQLAInterface(cls.model_cls, db.session)
 
@@ -222,10 +220,7 @@ class BaseDAO(Generic[T]):
         query = data_model.session.query(cls.model_cls)
 
         # Apply base filter if defined
-        if cls.base_filter:
-            query = cls.base_filter(  # pylint: disable=not-callable
-                cls.id_column_name, data_model
-            ).apply(query, None)
+        query = cls._apply_base_filter(query, data_model=data_model)
 
         # Apply search filter
         if search and search_columns:
@@ -292,12 +287,9 @@ class BaseDAO(Generic[T]):
         :param filters: Dictionary of column_name: value to filter by
         :return: Number of records matching the filter
         """
+        data_model = SQLAInterface(cls.model_cls, db.session)
         query = db.session.query(cls.model_cls)
-        if cls.base_filter and not skip_base_filter:
-            data_model = SQLAInterface(cls.model_cls, db.session)
-            query = cls.base_filter(  # pylint: disable=not-callable
-                cls.id_column_name, data_model
-            ).apply(query, None)
+        query = cls._apply_base_filter(query, skip_base_filter=skip_base_filter, data_model=data_model)
 
         if filters:
             for column_name, value in filters.items():
