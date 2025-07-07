@@ -96,8 +96,7 @@ export const getLayer: GetLayerType<GridLayer> = function ({
     // @ts-ignore
     getElevationValue: aggFunc,
     // @ts-ignore
-<<<<<<< HEAD
-    getColorValue: aggFunc,
+    getColorValue: colorAggFunc,
     ...commonLayerProps({
       formData: fd,
       setDataMask,
@@ -107,10 +106,6 @@ export const getLayer: GetLayerType<GridLayer> = function ({
       onContextMenu,
       emitCrossFilters,
     }),
-=======
-    getColorValue: colorAggFunc,
-    ...commonLayerProps(fd, setTooltip, setTooltipContent),
->>>>>>> d8d46d952 (Add working Grid color breakpoints)
   });
 };
 

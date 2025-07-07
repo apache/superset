@@ -20,10 +20,7 @@
  */
 
 import { ScreenGridLayer } from '@deck.gl/aggregation-layers';
-import {
-  CategoricalColorNamespace,
-  JsonObject,
-} from '@superset-ui/core';
+import { CategoricalColorNamespace, JsonObject, t } from '@superset-ui/core';
 import { Color } from '@deck.gl/core';
 import {
   COLOR_SCHEME_TYPES,
@@ -104,8 +101,6 @@ export const getLayer: GetLayerType<ScreenGridLayer> = function ({
     colorRange:
       colorSchemeType === 'default' ? defaultScreenGridColorRange : colorRange,
     outline: false,
-<<<<<<< HEAD
-    getWeight: (d: any) => d.weight || 0,
     ...commonLayerProps({
       formData: fd,
       setDataMask,
@@ -115,11 +110,8 @@ export const getLayer: GetLayerType<ScreenGridLayer> = function ({
       onContextMenu,
       emitCrossFilters,
     }),
-=======
     getWeight: aggFunc,
     colorScaleType: colorSchemeType === 'default' ? 'linear' : 'quantize',
-    ...commonLayerProps(fd, setTooltip, setTooltipContent),
->>>>>>> 5bc552651 (Add new color options to Grid, Hex, Scatter and Screengrid Charts)
   });
 };
 

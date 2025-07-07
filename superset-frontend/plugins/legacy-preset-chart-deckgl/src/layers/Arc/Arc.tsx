@@ -17,12 +17,7 @@
  * under the License.
  */
 import { ArcLayer } from '@deck.gl/layers';
-import {
-  HandlerFunction,
-  JsonObject,
-  QueryFormData,
-  t,
-} from '@superset-ui/core';
+import { JsonObject, QueryFormData, t } from '@superset-ui/core';
 import {
   COLOR_SCHEME_TYPES,
   getSelectedColorSchemeType,
