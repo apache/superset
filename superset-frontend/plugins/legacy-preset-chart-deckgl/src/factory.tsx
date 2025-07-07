@@ -25,6 +25,11 @@ import {
   JsonObject,
   HandlerFunction,
   usePrevious,
+  SetDataMaskHook,
+  DataMask,
+  FilterState,
+  JsonValue,
+  ContextMenuFilters,
 } from '@superset-ui/core';
 
 import {
@@ -36,37 +41,56 @@ import fitViewport, { Viewport } from './utils/fitViewport';
 import { Point } from './types';
 import { TooltipProps } from './components/Tooltip';
 
-type deckGLComponentProps = {
+type DeckGLComponentProps = {
   datasource: Datasource;
   formData: QueryFormData;
   height: number;
   onAddFilter: HandlerFunction;
+  onContextMenu: HandlerFunction;
   payload: JsonObject;
   setControlValue: () => void;
   viewport: Viewport;
   width: number;
+  filterState: FilterState;
+  setDataMask: SetDataMaskHook;
+  emitCrossFilters: boolean;
 };
-export interface getLayerType<T> {
-  (
-    formData: QueryFormData,
-    payload: JsonObject,
-    onAddFilter: HandlerFunction | undefined,
-    setTooltip: (tooltip: TooltipProps['tooltip']) => void,
-    datasource?: Datasource,
-  ): T;
+
+export interface GetLayerTypeParams {
+  formData: QueryFormData;
+  payload: JsonObject;
+  onAddFilter?: HandlerFunction;
+  setTooltip: (tooltip: TooltipProps['tooltip']) => void;
+  setDataMask?: (dataMask: DataMask) => void;
+  onContextMenu?: (
+    clientX: number,
+    clientY: number,
+    filters?: ContextMenuFilters,
+  ) => void;
+  datasource?: Datasource;
+  filterState?: FilterState;
+  selected?: JsonObject[];
+  onSelect?: (value: JsonValue) => void;
+  emitCrossFilters?: boolean;
 }
-interface getPointsType {
+
+export interface GetLayerType<T> {
+  (params: GetLayerTypeParams): T;
+}
+
+interface GetPointsType {
   (data: JsonObject[]): Point[];
 }
 
 export function createDeckGLComponent(
-  getLayer: getLayerType<unknown>,
-  getPoints: getPointsType,
+  getLayer: GetLayerType<unknown>,
+  getPoints: GetPointsType,
 ) {
   // Higher order component
-  return memo((props: deckGLComponentProps) => {
+  return memo((props: DeckGLComponentProps) => {
     const containerRef = useRef<DeckGLContainerHandle>();
     const prevFormData = usePrevious(props.formData);
+    const prevFilterState = usePrevious(props.filterState);
     const prevPayload = usePrevious(props.payload);
     const getAdjustedViewport = () => {
       const { width, height, formData } = props;
@@ -90,10 +114,27 @@ export function createDeckGLComponent(
     }, []);
 
     const computeLayer = useCallback(
-      (props: deckGLComponentProps) => {
-        const { formData, payload, onAddFilter } = props;
+      (props: DeckGLComponentProps) => {
+        const {
+          formData,
+          payload,
+          onAddFilter,
+          filterState,
+          setDataMask,
+          onContextMenu,
+          emitCrossFilters,
+        } = props;
 
-        return getLayer(formData, payload, onAddFilter, setTooltip) as Layer;
+        return getLayer({
+          formData,
+          payload,
+          onAddFilter,
+          setTooltip,
+          setDataMask,
+          onContextMenu,
+          filterState,
+          emitCrossFilters,
+        }) as Layer;
       },
       [setTooltip],
     );
@@ -102,12 +143,20 @@ export function createDeckGLComponent(
 
     useEffect(() => {
       // Only recompute the layer if anything BUT the viewport has changed
-      const prevFdNoVP = { ...prevFormData, viewport: null };
-      const currFdNoVP = { ...props.formData, viewport: null };
+      const prevFdNoVP = {
+        ...prevFormData,
+        ...prevFilterState,
+        viewport: null,
+      };
+      const currFdNoVP = {
+        ...props.formData,
+        ...props.filterState,
+        viewport: null,
+      };
       if (!isEqual(prevFdNoVP, currFdNoVP) || prevPayload !== props.payload) {
         setLayer(computeLayer(props));
       }
-    }, [computeLayer, prevFormData, prevPayload, props]);
+    }, [computeLayer, prevFormData, prevFilterState, prevPayload, props]);
 
     const { formData, payload, setControlValue, height, width } = props;
 
@@ -128,10 +177,10 @@ export function createDeckGLComponent(
 }
 
 export function createCategoricalDeckGLComponent(
-  getLayer: getLayerType<Layer>,
-  getPoints: getPointsType,
+  getLayer: GetLayerType<Layer>,
+  getPoints: GetPointsType,
 ) {
-  return function Component(props: deckGLComponentProps) {
+  return function Component(props: DeckGLComponentProps) {
     const {
       datasource,
       formData,
@@ -140,6 +189,10 @@ export function createCategoricalDeckGLComponent(
       setControlValue,
       viewport,
       width,
+      setDataMask,
+      filterState,
+      onContextMenu,
+      emitCrossFilters,
     } = props;
 
     return (
@@ -154,6 +207,10 @@ export function createCategoricalDeckGLComponent(
         getPoints={getPoints}
         width={width}
         height={height}
+        setDataMask={setDataMask}
+        onContextMenu={onContextMenu}
+        filterState={filterState}
+        emitCrossFilters={emitCrossFilters}
       />
     );
   };

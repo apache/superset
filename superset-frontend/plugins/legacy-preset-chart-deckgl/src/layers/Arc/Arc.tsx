@@ -17,16 +17,10 @@
  * under the License.
  */
 import { ArcLayer } from '@deck.gl/layers';
-import {
-  HandlerFunction,
-  JsonObject,
-  QueryFormData,
-  t,
-} from '@superset-ui/core';
+import { JsonObject, QueryFormData, t } from '@superset-ui/core';
 import { commonLayerProps } from '../common';
-import { createCategoricalDeckGLComponent } from '../../factory';
+import { GetLayerType, createCategoricalDeckGLComponent } from '../../factory';
 import TooltipRow from '../../TooltipRow';
-import { TooltipProps } from '../../components/Tooltip';
 import { Point } from '../../types';
 
 export function getPoints(data: JsonObject[]) {
@@ -60,12 +54,16 @@ function setTooltipContent(formData: QueryFormData) {
   );
 }
 
-export function getLayer(
-  fd: QueryFormData,
-  payload: JsonObject,
-  onAddFilter: HandlerFunction,
-  setTooltip: (tooltip: TooltipProps['tooltip']) => void,
-) {
+export const getLayer: GetLayerType<ArcLayer> = function ({
+  formData,
+  payload,
+  setTooltip,
+  filterState,
+  setDataMask,
+  onContextMenu,
+  emitCrossFilters,
+}) {
+  const fd = formData;
   const data = payload.data.features;
   const sc = fd.color_picker;
   const tc = fd.target_color_picker;
@@ -78,8 +76,16 @@ export function getLayer(
       d.targetColor || d.color || [tc.r, tc.g, tc.b, 255 * tc.a],
     id: `path-layer-${fd.slice_id}` as const,
     getWidth: fd.stroke_width ? fd.stroke_width : 3,
-    ...commonLayerProps(fd, setTooltip, setTooltipContent(fd)),
+    ...commonLayerProps({
+      formData: fd,
+      setTooltip,
+      setTooltipContent: setTooltipContent(fd),
+      onContextMenu,
+      setDataMask,
+      filterState,
+      emitCrossFilters,
+    }),
   });
-}
+};
 
 export default createCategoricalDeckGLComponent(getLayer, getPoints);
