@@ -20,7 +20,6 @@ import { useState, useEffect } from 'react';
 import { Button, Row, Col } from '@superset-ui/core/components';
 import { styled, t, validateNumber } from '@superset-ui/core';
 import ControlHeader from '../../ControlHeader';
-import TextControl from '../TextControl';
 import ColorPickerControl from '../ColorPickerControl';
 import {
   ColorBreakpointsPopoverControlProps,
@@ -28,14 +27,26 @@ import {
   ColorBreakpointType,
   ErrorMapType,
 } from './types';
+import NumberControl from '../NumberControl';
 
 const ColorBreakpointActionsContainer = styled.div`
-  margin-top: ${({ theme }) => theme.sizeUnit * 2}px;
+  margin-top: ${({ theme }) => theme.sizeUnit * 8}px;
+  display: flex;
+  justify-content: flex-end;
 `;
 
 const StyledRow = styled(Row)`
-  width: 100%;
   gap: ${({ theme }) => theme.sizeUnit * 2}px;
+`;
+
+const ValuesRow = styled(Row)`
+  gap: ${({ theme }) => theme.sizeUnit * 2}px;
+  display: flex;
+  align-items: flex-end;
+`;
+
+const NumberControlsDivider = styled.div`
+  padding: 6px 0;
 `;
 
 const determineErrorMap = (
@@ -211,7 +222,7 @@ const ColorBreakpointsPopoverControl = ({
           />
         </Col>
       </StyledRow>
-      <StyledRow>
+      <ValuesRow>
         <Col flex="1">
           <ControlHeader
             name="min-value"
@@ -219,11 +230,12 @@ const ColorBreakpointsPopoverControl = ({
             validationErrors={validationErrors.minValue}
             hovered
           />
-          <TextControl
+          <NumberControl
             value={colorBreakpoint.minValue}
             onChange={updateMinValue}
           />
         </Col>
+        <NumberControlsDivider>-</NumberControlsDivider>
         <Col flex="1">
           <ControlHeader
             name="max-value"
@@ -231,19 +243,18 @@ const ColorBreakpointsPopoverControl = ({
             validationErrors={validationErrors.maxValue}
             hovered
           />
-          <TextControl
+          <NumberControl
             value={colorBreakpoint.maxValue}
             onChange={updateMaxValue}
           />
         </Col>
-      </StyledRow>
+      </ValuesRow>
       <ColorBreakpointActionsContainer>
         <Button
           buttonSize="small"
           buttonStyle="secondary"
           onClick={onClose}
           aria-label={t('Close color breakpoint editor')}
-          cta
         >
           {t('Close')}
         </Button>
