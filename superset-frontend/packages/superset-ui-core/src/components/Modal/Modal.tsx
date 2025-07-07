@@ -214,7 +214,7 @@ const CustomModal = ({
   resizable = false,
   resizableConfig = defaultResizableConfig(hideFooter),
   draggableConfig,
-  destroyOnClose,
+  destroyOnHidden,
   openerRef,
   ...rest
 }: ModalProps) => {
@@ -344,7 +344,7 @@ const CustomModal = ({
       mask={shouldShowMask}
       draggable={draggable}
       resizable={resizable}
-      destroyOnClose={destroyOnClose}
+      destroyOnHidden={destroyOnHidden}
       {...rest}
     >
       {children}
