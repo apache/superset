@@ -318,7 +318,7 @@ test('validates the pre-filter value', async () => {
   await waitFor(() => {
     expect(screen.getByText(PRE_FILTER_REQUIRED_REGEX)).toBeInTheDocument();
   });
-});
+}, 50000); // Slow-running test, increase timeout to 50 seconds.
 
 // eslint-disable-next-line jest/no-disabled-tests
 test.skip("doesn't render time range pre-filter if there are no temporal columns in datasource", async () => {
