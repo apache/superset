@@ -140,7 +140,6 @@ const ChartCustomizationForm: FC<Props> = ({ form, item, onUpdate }) => {
         );
 
         if (datasetInfo) {
-          // Create a simple string label instead of React component
           const label =
             datasetInfo.table_name +
             (datasetInfo.schema ? ` (${datasetInfo.schema})` : '') +
