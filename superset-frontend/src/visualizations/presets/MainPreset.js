@@ -80,6 +80,7 @@ import {
 import { PivotTableChartPlugin as PivotTableChartPluginV2 } from '@superset-ui/plugin-chart-pivot-table';
 import { HandlebarsChartPlugin } from '@superset-ui/plugin-chart-handlebars';
 import { FilterPlugins } from 'src/constants';
+import AgGridTableChartPlugin from '@superset-ui/plugin-chart-ag-grid-table';
 import TimeTableChartPlugin from '../TimeTable';
 
 export default class MainPreset extends Preset {
@@ -92,6 +93,10 @@ export default class MainPreset extends Preset {
             key: VizType.BigNumberPeriodOverPeriod,
           }),
         ]
+      : [];
+
+    const agGridTablePlugin = isFeatureEnabled(FeatureFlag.AgGridTableEnabled)
+      ? [new AgGridTableChartPlugin().configure({ key: VizType.TableAgGrid })]
       : [];
 
     super({
@@ -187,6 +192,7 @@ export default class MainPreset extends Preset {
           ],
         }).configure({ key: VizType.Cartodiagram }),
         ...experimentalPlugins,
+        ...agGridTablePlugin,
       ],
     });
   }
