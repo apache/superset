@@ -331,6 +331,16 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             category_icon="",
         )
 
+        appbuilder.add_link(
+            "Report Templates",
+            label=__("Report Templates"),
+            href=f"{app_root}/report_template/list/",
+            icon="fa-file-text",
+            category="Manage",
+            category_label=__("Manage"),
+            category_icon="",
+        )
+
         #
         # Setup views with no menu
         #
