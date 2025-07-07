@@ -2622,6 +2622,12 @@ class TestDatasetApi(SupersetTestCase):
         }
 
     def test_import_dataset_currency_config(self):
+        """
+        Dataset API: Test import metric with currency config.
+
+        This test confirms that importing a metric with a currency config
+        set as either string (for backwards compatibility) or dict works properly.
+        """
         self.login(ADMIN_USERNAME)
         uri = "api/v1/dataset/import/"
         dataset_with_currency = copy.deepcopy(dataset_config)
@@ -2629,6 +2635,19 @@ class TestDatasetApi(SupersetTestCase):
             "symbol": "USD",
             "symbolPosition": "left",
         }
+        dataset_with_currency["metrics"].append(
+            {
+                "metric_name": "count_new",
+                "verbose_name": "",
+                "metric_type": None,
+                "expression": "count(1)",
+                "description": None,
+                "d3format": None,
+                "extra": {},
+                "warning_text": None,
+                "currency": '{"symbol": "EUR","symbolPosition": "left"}',
+            }
+        )
 
         buf = self.create_import_v1_zip_file(
             "dataset", datasets=[dataset_with_currency]
@@ -2649,6 +2668,14 @@ class TestDatasetApi(SupersetTestCase):
         assert database.database_name == database_config["database_name"]
 
         assert len(database.tables) == 1
+        assert len(database.tables[0].metrics) == 2
+        final_metrics = []
+        for metric in database.tables[0].metrics:
+            final_metrics.append(metric.currency)
+        assert final_metrics == [
+            {"symbol": "USD", "symbolPosition": "left"},
+            {"symbol": "EUR", "symbolPosition": "left"},
+        ]
         dataset = database.tables[0]
         assert dataset.table_name == dataset_with_currency["table_name"]
         assert str(dataset.uuid) == dataset_with_currency["uuid"]

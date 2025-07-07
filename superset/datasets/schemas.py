@@ -247,12 +247,15 @@ class ImportMetricCurrencySchema(Schema):
 class ImportV1MetricSchema(Schema):
     # pylint: disable=unused-argument
     @pre_load
-    def fix_extra(self, data: dict[str, Any], **kwargs: Any) -> dict[str, Any]:
+    def fix_fields(self, data: dict[str, Any], **kwargs: Any) -> dict[str, Any]:
         """
-        Fix for extra initially being exported as a string.
+        Fix for extra and currency initially being exported as a string.
         """
         if isinstance(data.get("extra"), str):
             data["extra"] = json.loads(data["extra"])
+
+        if isinstance(data.get("currency"), str):
+            data["currency"] = json.loads(data["currency"])
 
         return data
 
