@@ -16,11 +16,12 @@
 # under the License.
 from __future__ import annotations
 
-from typing import Any, Generic, get_args, TypeVar
+from typing import Any, Dict, Generic, get_args, List, Optional, Tuple, TypeVar
 
 from flask_appbuilder.models.filters import BaseFilter
 from flask_appbuilder.models.sqla import Model
 from flask_appbuilder.models.sqla.interface import SQLAInterface
+from sqlalchemy import asc, desc, or_
 from sqlalchemy.exc import StatementError
 
 from superset.extensions import db
@@ -184,3 +185,126 @@ class BaseDAO(Generic[T]):
 
         for item in items:
             db.session.delete(item)
+
+    @classmethod
+    def list(
+        cls,
+        filters: Optional[Dict[str, Any]] = None,
+        order_column: str = "id",
+        order_direction: str = "desc",
+        page: int = 0,
+        page_size: int = 100,
+        search: Optional[str] = None,
+        search_columns: Optional[List[str]] = None,
+        custom_filters: Optional[Dict[str, BaseFilter]] = None,
+    ) -> Tuple[List[T], int]:
+        """
+        Generic list method for filtered, sorted, and paginated results.
+
+        This method provides FAB-compatible query generation using SQLAInterface
+        and can be used by any DAO that extends BaseDAO.
+
+        :param filters: Dictionary of simple filters to apply (column_name: value)
+        :param order_column: Column to order by (default: 'id')
+        :param order_direction: Order direction ('asc' or 'desc')
+        :param page: Page number (0-based)
+        :param page_size: Number of items per page
+        :param search: Search term for text search across search_columns
+        :param search_columns: List of columns to search in (if None, uses model's
+        searchable columns)
+        :param custom_filters: Dictionary of custom FAB filter classes to apply
+        :return: Tuple of (items, total_count)
+        """
+        # Create SQLAInterface instance for FAB-compatible query generation
+        data_model = SQLAInterface(cls.model_cls, db.session)
+
+        # Start with base query
+        query = data_model.session.query(cls.model_cls)
+
+        # Apply base filter if defined
+        if cls.base_filter:
+            query = cls.base_filter(  # pylint: disable=not-callable
+                cls.id_column_name, data_model
+            ).apply(query, None)
+
+        # Apply search filter
+        if search and search_columns:
+            search_filters = []
+            for column_name in search_columns:
+                if hasattr(cls.model_cls, column_name):
+                    column = getattr(cls.model_cls, column_name)
+                    search_filters.append(column.ilike(f"%{search}%"))
+            if search_filters:
+                query = query.filter(or_(*search_filters))
+
+        # Apply custom FAB filters
+        if custom_filters:
+            for filter_name, filter_class in custom_filters.items():
+                custom_filter = filter_class  # Already an instance
+                query = custom_filter.apply(
+                    query, filters.get(filter_name) if filters else None)
+
+        # Apply simple filters
+        if filters:
+            for column_name, value in filters.items():
+                # Skip if it's a custom filter (already handled above)
+                if custom_filters and column_name in custom_filters:
+                    continue
+
+                if hasattr(cls.model_cls, column_name):
+                    column = getattr(cls.model_cls, column_name)
+
+                    # Handle different value types
+                    if isinstance(value, str) and value.lower() in ('true', 'false'):
+                        # Boolean conversion
+                        bool_value = value.lower() == 'true'
+                        query = query.filter(column == bool_value)
+                    elif isinstance(value, (list, tuple)):
+                        query = query.filter(column.in_(value))
+                    elif value is not None:
+                        query = query.filter(column == value)
+
+        # Get total count before pagination
+        total_count = query.count()
+
+        # Apply ordering
+        if hasattr(cls.model_cls, order_column):
+            column = getattr(cls.model_cls, order_column)
+            if order_direction.lower() == "desc":
+                query = query.order_by(desc(column))
+            else:
+                query = query.order_by(asc(column))
+
+        # Apply pagination
+        query = query.offset(page * page_size).limit(page_size)
+
+        # Execute query
+        items = query.all()
+
+        return items, total_count
+
+    @classmethod
+    def count(
+        cls, filters: Optional[dict] = None, skip_base_filter: bool = False) -> int:
+        """
+        Count the number of records for the model, optionally filtered by column values.
+
+        :param filters: Dictionary of column_name: value to filter by
+        :return: Number of records matching the filter
+        """
+        query = db.session.query(cls.model_cls)
+        if cls.base_filter and not skip_base_filter:
+            data_model = SQLAInterface(cls.model_cls, db.session)
+            query = cls.base_filter(  # pylint: disable=not-callable
+                cls.id_column_name, data_model
+            ).apply(query, None)
+
+        if filters:
+            for column_name, value in filters.items():
+                if hasattr(cls.model_cls, column_name):
+                    column = getattr(cls.model_cls, column_name)
+                    if isinstance(value, (list, tuple)):
+                        query = query.filter(column.in_(value))
+                    else:
+                        query = query.filter(column == value)
+        return query.count()
