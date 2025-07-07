@@ -109,6 +109,7 @@
     "@superset-ui/plugin-chart-handlebars": "file:./plugins/plugin-chart-handlebars",
     "@superset-ui/plugin-chart-pivot-table": "file:./plugins/plugin-chart-pivot-table",
     "@superset-ui/plugin-chart-table": "file:./plugins/plugin-chart-table",
+    "@superset-ui/plugin-chart-ag-grid-table": "file:./plugins/plugin-chart-ag-grid-table",
     "@superset-ui/plugin-chart-word-cloud": "file:./plugins/plugin-chart-word-cloud",
     "@superset-ui/switchboard": "file:./packages/superset-ui-switchboard",
     "@types/d3-format": "^3.0.1",
