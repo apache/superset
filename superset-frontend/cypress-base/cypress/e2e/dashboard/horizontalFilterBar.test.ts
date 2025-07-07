@@ -154,7 +154,6 @@ describe('Horizontal FilterBar', () => {
       { name: 'test_12', column: 'year', datasetId: 2 },
     ]);
     setFilterBarOrientation('horizontal');
-
     cy.get('.filter-item-wrapper').should('have.length', 4);
     openMoreFilters();
     cy.getBySel('form-item-value').should('have.length', 12);
