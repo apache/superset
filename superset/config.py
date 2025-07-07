@@ -1392,6 +1392,17 @@ DISALLOWED_SQL_FUNCTIONS: dict[str, set[str]] = {
 }
 
 
+# ---------------------------------------------------
+# ClickHouse-connect driver settings
+# ---------------------------------------------------
+# Enable or disable automatic column-label mutation in the clickhouse-connect driver.
+# When True (the default), the driver will rename duplicate or conflicting labels
+# for backward compatibility. When False, labels are left exactly as defined—
+# necessary if your ClickHouse query refers to its own aliases within the same SELECT.
+CLICKHOUSE_CONNECT_ENABLE_LABEL_MUTATION: bool = True
+# ---------------------------------------------------
+
+
 # A function that intercepts the SQL to be executed and can alter it.
 # A common use case for this is around adding some sort of comment header to the SQL
 # with information such as the username and worker node information

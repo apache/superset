@@ -410,13 +410,17 @@ class ClickHouseConnectEngineSpec(BasicParametersMixin, ClickHouseEngineSpec):
     @staticmethod
     def _mutate_label(label: str) -> str:
         """
-        Suffix with the first six characters from the md5 of the label to avoid
-        collisions with original column names
+         Conditionally suffix the label with the first six characters from the md5 of the label
+         to avoid collisions with original column names when the
+         `CLICKHOUSE_CONNECT_ENABLE_LABEL_MUTATION` setting is enabled (Default).
 
-        :param label: Expected expression label
-        :return: Conditionally mutated label
-        """
-        return f"{label}_{md5_sha_from_str(label)[:6]}"
+         :param label: Expected expression label
+         :return: Mutated label if mutation is enabled, otherwise the original label
+         """
+        if current_app.config.get("CLICKHOUSE_CONNECT_ENABLE_LABEL_MUTATION", True):
+            return f"{label}_{md5_sha_from_str(label)[:6]}"
+        return label
+
 
     @classmethod
     def adjust_engine_params(
