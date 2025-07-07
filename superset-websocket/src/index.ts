@@ -238,10 +238,10 @@ export const subscribeToGlobalStream = async (
   while (true) {
     try {
       const reply = await redis.xread(
-        'BLOCK',
-        opts.redisStreamReadBlockMs,
         'COUNT',
         opts.redisStreamReadCount,
+        'BLOCK',
+        opts.redisStreamReadBlockMs,
         'STREAMS',
         stream,
         lastFirehoseId,
