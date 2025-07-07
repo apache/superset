@@ -418,6 +418,19 @@ class QueryContextProcessor:
             # If parsing fails, it's not a valid date in the format YYYY-MM-DD
             return False
 
+    def is_valid_date_range(self, date_range: str) -> bool:
+        try:
+            # Attempt to parse the string as a date range in the format
+            # YYYY-MM-DD:YYYY-MM-DD
+            start_date, end_date = date_range.split(":")
+            datetime.strptime(start_date.strip(), "%Y-%m-%d")
+            datetime.strptime(end_date.strip(), "%Y-%m-%d")
+            return True
+        except ValueError:
+            # If parsing fails, it's not a valid date range in the format
+            # YYYY-MM-DD:YYYY-MM-DD
+            return False
+
     def get_offset_custom_or_inherit(
         self,
         offset: str,
@@ -482,17 +495,32 @@ class QueryContextProcessor:
                 #      filters: [{col: 'dttm_col', op: 'TEMPORAL_RANGE', val: '2020 : 2021'}],  # noqa: E501
                 #    }
                 original_offset = offset
-                if self.is_valid_date(offset) or offset == "inherit":
-                    offset = self.get_offset_custom_or_inherit(
+                if self.is_valid_date_range(offset):
+                    try:
+                        # Parse the specified range
+                        offset_from_dttm, offset_to_dttm = (
+                            get_since_until_from_time_range(time_range=offset)
+                        )
+                    except ValueError as ex:
+                        raise QueryObjectValidationError(str(ex)) from ex
+
+                    # Use the specified range directly
+                    query_object_clone.from_dttm = offset_from_dttm
+                    query_object_clone.to_dttm = offset_to_dttm
+                else:
+                    if self.is_valid_date(offset) or offset == "inherit":
+                        offset = self.get_offset_custom_or_inherit(
+                            offset,
+                            outer_from_dttm,
+                            outer_to_dttm,
+                        )
+                    query_object_clone.from_dttm = get_past_or_future(
                         offset,
                         outer_from_dttm,
-                        outer_to_dttm,
                     )
-                query_object_clone.from_dttm = get_past_or_future(
-                    offset,
-                    outer_from_dttm,
-                )
-                query_object_clone.to_dttm = get_past_or_future(offset, outer_to_dttm)
+                    query_object_clone.to_dttm = get_past_or_future(
+                        offset, outer_to_dttm
+                    )
 
                 x_axis_label = get_x_axis_label(query_object.columns)
                 query_object_clone.granularity = (
@@ -519,14 +547,19 @@ class QueryContextProcessor:
                         flt.get("val"), str
                     ):
                         time_range = cast(str, flt.get("val"))
-                        (
-                            new_outer_from_dttm,
-                            new_outer_to_dttm,
-                        ) = get_since_until_from_time_range(
-                            time_range=time_range,
-                            time_shift=offset,
-                        )
-                        flt["val"] = f"{new_outer_from_dttm} : {new_outer_to_dttm}"
+                        if self.is_valid_date_range(offset):
+                            flt["val"] = (
+                                f"{query_object_clone.from_dttm} : {query_object_clone.to_dttm}"  # noqa: E501
+                            )
+                        else:
+                            (
+                                new_outer_from_dttm,
+                                new_outer_to_dttm,
+                            ) = get_since_until_from_time_range(
+                                time_range=time_range,
+                                time_shift=offset,
+                            )
+                            flt["val"] = f"{new_outer_from_dttm} : {new_outer_to_dttm}"
             query_object_clone.filter = [
                 flt
                 for flt in query_object_clone.filter

@@ -42,7 +42,7 @@ import {
   getColorFormatters,
 } from '@superset-ui/chart-controls';
 
-import { isEmpty } from 'lodash';
+import { isEmpty, merge } from 'lodash';
 import isEqualColumns from './utils/isEqualColumns';
 import DateWithFormatter from './utils/DateWithFormatter';
 import {
@@ -459,7 +459,7 @@ const transformProps = (
   const {
     height,
     width,
-    rawFormData: formData,
+    rawFormData: originalFormData,
     queriesData = [],
     filterState,
     ownState: serverPaginationData,
@@ -470,6 +470,12 @@ const transformProps = (
     },
     emitCrossFilters,
   } = chartProps;
+
+  const formData = merge(
+    {},
+    originalFormData,
+    originalFormData.extra_form_data,
+  );
 
   const {
     align_pn: alignPositiveNegative = true,
