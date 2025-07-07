@@ -29,10 +29,8 @@ import {
   ErrorMapType,
 } from './types';
 
-const ContourActionsContainer = styled.div`
+const ColorBreakpointActionsContainer = styled.div`
   margin-top: ${({ theme }) => theme.sizeUnit * 2}px;
-  display: flex;
-  justify-content: flex-end;
 `;
 
 const StyledRow = styled(Row)`
@@ -102,7 +100,7 @@ const convertColorBreakpointToNumeric = (
   return formattedColorBreakpoint;
 };
 
-const DEFAULT_CONTOUR: ColorBreakpointType = {
+const DEFAULT_COLOR_BREAKPOINT: ColorBreakpointType = {
   id: undefined,
   minValue: undefined,
   maxValue: undefined,
@@ -116,10 +114,13 @@ const ColorBreakpointsPopoverControl = ({
   colorBreakpoints,
 }: ColorBreakpointsPopoverControlProps) => {
   const [colorBreakpoint, setColorBreakpoint] = useState(
-    initialValue || DEFAULT_CONTOUR,
+    initialValue || DEFAULT_COLOR_BREAKPOINT,
   );
   const [validationErrors, setValidationErrors] = useState(
-    determineErrorMap(initialValue || DEFAULT_CONTOUR, colorBreakpoints),
+    determineErrorMap(
+      initialValue || DEFAULT_COLOR_BREAKPOINT,
+      colorBreakpoints,
+    ),
   );
   const [isComplete, setIsComplete] = useState(false);
 
@@ -236,12 +237,13 @@ const ColorBreakpointsPopoverControl = ({
           />
         </Col>
       </StyledRow>
-      <ContourActionsContainer>
+      <ColorBreakpointActionsContainer>
         <Button
           buttonSize="small"
+          buttonStyle="secondary"
           onClick={onClose}
-          variant="filled"
           aria-label={t('Close color breakpoint editor')}
+          cta
         >
           {t('Close')}
         </Button>
@@ -254,7 +256,7 @@ const ColorBreakpointsPopoverControl = ({
         >
           {t('Save')}
         </Button>
-      </ContourActionsContainer>
+      </ColorBreakpointActionsContainer>
     </>
   );
 };

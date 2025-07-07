@@ -26,7 +26,7 @@ import ColorBreakpointPopoverTrigger from './ColorBreakpointPopoverTrigger';
 
 const DEFAULT_COLOR_BREAKPOINTS: ColorBreakpointType[] = [];
 
-const NewContourFormatPlaceholder = styled('div')`
+const NewColorBreakpointFormatPlaceholder = styled('div')`
   position: relative;
   width: calc(100% - ${({ theme }) => theme.sizeUnit}px);
   bottom: ${({ theme }) => theme.sizeUnit * 4}px;
@@ -118,7 +118,7 @@ const ColorBreakpointsControl = ({
         visible={popoverVisible}
         toggleVisibility={setPopoverVisible}
       >
-        <NewContourFormatPlaceholder />
+        <NewColorBreakpointFormatPlaceholder />
       </ColorBreakpointPopoverTrigger>
     </>
   );
