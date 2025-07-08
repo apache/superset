@@ -58,6 +58,7 @@ export default function downloadAsPdf(
 
     const options = {
       margin: 10,
+      compression: getBootstrapData().common?.pdf_compression_level,
       filename: `${generateFileStem(description)}.pdf`,
       image: { type: 'jpeg', quality: 1 },
       html2canvas: { scale: 2 },

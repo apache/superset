@@ -373,6 +373,7 @@ def cached_common_bootstrap_data(  # pylint: disable=unused-argument
         "extra_categorical_color_schemes": conf["EXTRA_CATEGORICAL_COLOR_SCHEMES"],
         "theme": conf["THEME"],
         "menu_data": menu_data(g.user),
+        "pdf_compression_level": conf["PDF_COMPRESSION_LEVEL"],
     }
     bootstrap_data.update(conf["COMMON_BOOTSTRAP_OVERRIDES_FUNC"](bootstrap_data))
     return bootstrap_data
