@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import os
 from typing import Any
 
 from flask import Response, send_file, request
@@ -47,6 +48,85 @@ class ReportTemplateRestApi(BaseSupersetModelRestApi):
 
     openapi_spec_tag = "Report Templates"
 
+    @expose("/", methods=("GET",))
+    @protect()
+    @safe
+    @statsd_metrics
+    def get_list(self) -> Response:
+        """List templates with limit/offset pagination."""
+        limit = request.args.get("limit", type=int) or 25
+        offset = request.args.get("offset", type=int) or 0
+        query = self.datamodel.session.query(ReportTemplate)
+        total = query.count()
+        templates = query.offset(offset).limit(limit).all()
+        result = [
+            {
+                "id": t.id,
+                "name": t.name,
+                "description": t.description,
+                "dataset_id": t.dataset_id,
+            }
+            for t in templates
+        ]
+        return self.response(200, result=result, count=total)
+
+    def _storage_paths(self, cfg: Any, key: str) -> tuple[str, str]:
+        s3_bucket = cfg.get("REPORT_TEMPLATE_S3_BUCKET")
+        local_dir = cfg.get("REPORT_TEMPLATE_LOCAL_DIR")
+        return s3_bucket, os.path.join(local_dir, key)
+
+    def _upload(self, file, key: str) -> None:
+        cfg = current_app.config
+        bucket, local_path = self._storage_paths(cfg, key)
+        s3 = boto3.client(
+            "s3",
+            endpoint_url=cfg.get("REPORT_TEMPLATE_S3_ENDPOINT"),
+            aws_access_key_id=cfg.get("REPORT_TEMPLATE_S3_ACCESS_KEY"),
+            aws_secret_access_key=cfg.get("REPORT_TEMPLATE_S3_SECRET_KEY"),
+        )
+        try:
+            s3.upload_fileobj(file, bucket, key)
+        except Exception:  # pylint: disable=broad-except
+            logger.warning("Falling back to local storage", exc_info=True)
+            os.makedirs(os.path.dirname(local_path), exist_ok=True)
+            file.seek(0)
+            file.save(local_path)
+
+    def _read(self, key: str) -> bytes:
+        cfg = current_app.config
+        bucket, local_path = self._storage_paths(cfg, key)
+        s3 = boto3.client(
+            "s3",
+            endpoint_url=cfg.get("REPORT_TEMPLATE_S3_ENDPOINT"),
+            aws_access_key_id=cfg.get("REPORT_TEMPLATE_S3_ACCESS_KEY"),
+            aws_secret_access_key=cfg.get("REPORT_TEMPLATE_S3_SECRET_KEY"),
+        )
+        try:
+            obj = s3.get_object(Bucket=bucket, Key=key)
+            return obj["Body"].read()
+        except Exception:  # pylint: disable=broad-except
+            logger.warning("Reading template from local storage", exc_info=True)
+            with open(local_path, "rb") as f:
+                return f.read()
+
+    def _delete(self, key: str) -> None:
+        cfg = current_app.config
+        bucket, local_path = self._storage_paths(cfg, key)
+        s3 = boto3.client(
+            "s3",
+            endpoint_url=cfg.get("REPORT_TEMPLATE_S3_ENDPOINT"),
+            aws_access_key_id=cfg.get("REPORT_TEMPLATE_S3_ACCESS_KEY"),
+            aws_secret_access_key=cfg.get("REPORT_TEMPLATE_S3_SECRET_KEY"),
+        )
+        try:
+            s3.delete_object(Bucket=bucket, Key=key)
+        except Exception:  # pylint: disable=broad-except
+            logger.warning("Could not delete from S3", exc_info=True)
+        try:
+            os.remove(local_path)
+        except FileNotFoundError:
+            pass
+
 
     @expose("/", methods=("POST",))
     @protect()
@@ -65,16 +145,9 @@ class ReportTemplateRestApi(BaseSupersetModelRestApi):
         description = request.form.get("description")
         if not file or not name or not dataset_id:
             return self.response_400(message="Missing required fields")
-        cfg = current_app.config
-        s3 = boto3.client(
-            "s3",
-            endpoint_url=cfg.get("REPORT_TEMPLATE_S3_ENDPOINT"),
-            aws_access_key_id=cfg.get("REPORT_TEMPLATE_S3_ACCESS_KEY"),
-            aws_secret_access_key=cfg.get("REPORT_TEMPLATE_S3_SECRET_KEY"),
-        )
         key = f"templates/{utils.shortid()}_{secure_filename(file.filename)}"
         try:
-            s3.upload_fileobj(file, cfg.get("REPORT_TEMPLATE_S3_BUCKET"), key)
+            self._upload(file, key)
             template = ReportTemplate(
                 name=name,
                 description=description,
@@ -101,20 +174,10 @@ class ReportTemplateRestApi(BaseSupersetModelRestApi):
         template = self.datamodel.session.get(ReportTemplate, pk)
         if not template:
             return self.response_404()
-        cfg = current_app.config
-        s3 = boto3.client(
-            "s3",
-            endpoint_url=cfg.get("REPORT_TEMPLATE_S3_ENDPOINT"),
-            aws_access_key_id=cfg.get("REPORT_TEMPLATE_S3_ACCESS_KEY"),
-            aws_secret_access_key=cfg.get("REPORT_TEMPLATE_S3_SECRET_KEY"),
-        )
         try:
-            s3.delete_object(
-                Bucket=cfg.get("REPORT_TEMPLATE_S3_BUCKET"),
-                Key=template.template_path,
-            )
+            self._delete(template.template_path)
         except Exception:  # pylint: disable=broad-except
-            logger.warning("Could not delete template file", exc_info=True)
+            logger.warning("Error deleting template", exc_info=True)
         self.datamodel.session.delete(template)
         self.datamodel.session.commit()
         return self.response(200, message="OK")
@@ -128,19 +191,8 @@ class ReportTemplateRestApi(BaseSupersetModelRestApi):
         template = self.datamodel.session.get(ReportTemplate, pk)
         if not template:
             return self.response_404()
-        cfg = current_app.config
-        s3 = boto3.client(
-            "s3",
-            endpoint_url=cfg.get("REPORT_TEMPLATE_S3_ENDPOINT"),
-            aws_access_key_id=cfg.get("REPORT_TEMPLATE_S3_ACCESS_KEY"),
-            aws_secret_access_key=cfg.get("REPORT_TEMPLATE_S3_SECRET_KEY"),
-        )
         try:
-            obj = s3.get_object(
-                Bucket=cfg.get("REPORT_TEMPLATE_S3_BUCKET"),
-                Key=template.template_path,
-            )
-            data = obj["Body"].read()
+            data = self._read(template.template_path)
             buffer = BytesIO(data)
             buffer.seek(0)
             filename = secure_filename(template.name or "template") + ".odt"
@@ -175,18 +227,7 @@ class ReportTemplateRestApi(BaseSupersetModelRestApi):
         try:
             df = dataset.database.get_df(sql, dataset.catalog, dataset.schema)
             context = {"data": df.to_dict(orient="records")}
-            cfg = current_app.config
-            s3 = boto3.client(
-                "s3",
-                endpoint_url=cfg.get("REPORT_TEMPLATE_S3_ENDPOINT"),
-                aws_access_key_id=cfg.get("REPORT_TEMPLATE_S3_ACCESS_KEY"),
-                aws_secret_access_key=cfg.get("REPORT_TEMPLATE_S3_SECRET_KEY"),
-            )
-            obj = s3.get_object(
-                Bucket=cfg.get("REPORT_TEMPLATE_S3_BUCKET"),
-                Key=template.template_path,
-            )
-            odt_bytes = obj["Body"].read()
+            odt_bytes = self._read(template.template_path)
             odt_template = ODTTemplate(source=odt_bytes)
             rendered = odt_template.generate(data=context).render()
             buffer = BytesIO(rendered.getvalue())
