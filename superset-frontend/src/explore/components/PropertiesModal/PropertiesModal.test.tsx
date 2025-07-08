@@ -431,13 +431,17 @@ test('Should display only custom tags when tagging system is enabled', async () 
   const props = createProps();
   renderModal(props);
 
-  await waitFor(() => {
-    expect(screen.getByRole('heading', { name: 'Tags' })).toBeInTheDocument();
-    expect(screen.getByRole('combobox', { name: 'Tags' })).toBeInTheDocument();
+  await waitFor(async () => {
+    expect(
+      await screen.findByRole('heading', { name: 'Tags' }),
+    ).toBeInTheDocument();
+    expect(
+      await screen.findByRole('combobox', { name: 'Tags' }),
+    ).toBeInTheDocument();
   });
 
-  await waitFor(() => {
-    expect(screen.getByText('my test tag')).toBeInTheDocument();
+  await waitFor(async () => {
+    expect(await screen.findByText('my test tag')).toBeInTheDocument();
     expect(screen.queryByText('type:chart')).not.toBeInTheDocument();
     expect(screen.queryByText('owner:1')).not.toBeInTheDocument();
   });
