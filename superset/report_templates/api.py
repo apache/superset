@@ -129,16 +129,16 @@ class ReportTemplateRestApi(BaseSupersetModelRestApi):
     def _delete(self, key: str) -> None:
         cfg = current_app.config
         bucket, local_path = self._storage_paths(cfg, key)
-        s3 = boto3.client(
-            "s3",
-            endpoint_url=cfg.get("REPORT_TEMPLATE_S3_ENDPOINT"),
-            aws_access_key_id=cfg.get("REPORT_TEMPLATE_S3_ACCESS_KEY"),
-            aws_secret_access_key=cfg.get("REPORT_TEMPLATE_S3_SECRET_KEY"),
-        )
         try:
+            s3 = boto3.client(
+                "s3",
+                endpoint_url=cfg.get("REPORT_TEMPLATE_S3_ENDPOINT"),
+                aws_access_key_id=cfg.get("REPORT_TEMPLATE_S3_ACCESS_KEY"),
+                aws_secret_access_key=cfg.get("REPORT_TEMPLATE_S3_SECRET_KEY"),
+            )
             s3.delete_object(Bucket=bucket, Key=key)
-        except Exception:  # pylint: disable=broad-except
-            logger.warning("Could not delete from S3", exc_info=True)
+        except Exception as ex:  # pylint: disable=broad-except
+            logger.warning("Could not delete from S3: %s", ex)
         try:
             os.remove(local_path)
         except FileNotFoundError:
