@@ -114,7 +114,7 @@ PACKAGE_JSON_FILE = str(files("superset") / "static/assets/package.json")
 #     "rel": "icon"
 # },
 FAVICONS = [{"href": "/static/assets/images/favicon.png"}]
-PDF_COMPRESSION_LEVEL: Literal["NONE", "FAST", "MEDIUM", "SLOW"] = "SLOW"
+PDF_COMPRESSION_LEVEL: Literal["NONE", "FAST", "MEDIUM", "SLOW"] = "MEDIUM"
 
 
 def _try_json_readversion(filepath: str) -> str | None:
