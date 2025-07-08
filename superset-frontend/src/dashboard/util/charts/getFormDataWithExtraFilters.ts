@@ -23,9 +23,12 @@ import {
   DataRecordValue,
   JsonObject,
   PartialFilters,
-  ExtraFormData,
 } from '@superset-ui/core';
-import { ChartConfiguration, ChartQueryPayload } from 'src/dashboard/types';
+import {
+  ChartConfiguration,
+  ChartQueryPayload,
+  ActiveFilters,
+} from 'src/dashboard/types';
 import { ChartCustomizationItem } from 'src/dashboard/components/nativeFilters/ChartCustomization/types';
 import { getExtraFormData } from 'src/dashboard/components/nativeFilters/utils';
 import { isEqual } from 'lodash';
@@ -86,32 +89,24 @@ export interface GetFormDataWithExtraFiltersArguments {
   sharedLabelsColors?: string[];
   allSliceIds: number[];
   chartCustomization?: JsonObject;
+  activeFilters?: ActiveFilters;
 }
 
-function processNativeFilters(
-  chartConfiguration: ChartConfiguration,
+const createFilterDataMapping = (
   dataMask: DataMaskStateWithId,
-  nativeFilters: PartialFilters,
-  allSliceIds: number[],
-  chartId: number,
-): ExtraFormData {
-  const activeFilters = getAllActiveFilters({
-    chartConfiguration,
-    dataMask,
-    nativeFilters,
-    allSliceIds,
+  filterIdsAppliedOnChart: string[],
+): { [filterId: string]: any[] } => {
+  const filterDataMapping: { [filterId: string]: any[] } = {};
+
+  filterIdsAppliedOnChart.forEach(filterId => {
+    const filterFormData = getExtraFormData(dataMask, [filterId]);
+    if (filterFormData.filters && filterFormData.filters.length > 0) {
+      filterDataMapping[filterId] = filterFormData.filters;
+    }
   });
 
-  const filterIdsAppliedOnChart = Object.entries(activeFilters)
-    .filter(([, { scope }]) => scope.includes(chartId))
-    .map(([filterId]) => filterId);
-
-  if (filterIdsAppliedOnChart.length === 0) {
-    return {};
-  }
-
-  return getExtraFormData(dataMask, filterIdsAppliedOnChart);
-}
+  return filterDataMapping;
+};
 
 function processGroupByCustomizations(
   chartCustomizationItems: ChartCustomizationItem[],
@@ -290,13 +285,63 @@ export default function getFormDataWithExtraFilters({
     return cachedFormData;
   }
 
-  const nativeFilterExtraFormData = processNativeFilters(
-    chartConfiguration,
-    dataMask,
-    nativeFilters,
-    allSliceIds,
-    chart.id,
-  );
+  const activeFilters: ActiveFilters =
+    passedActiveFilters ||
+    getAllActiveFilters({
+      chartConfiguration,
+      nativeFilters,
+      dataMask,
+      allSliceIds,
+    });
+
+  let extraData: JsonObject = {};
+  const filterIdsAppliedOnChart = Object.entries(activeFilters)
+    .filter(([, activeFilter]) => activeFilter.scope.includes(chart.id))
+    .map(([filterId]) => filterId);
+
+  if (filterIdsAppliedOnChart.length) {
+    const aggregatedFormData = getExtraFormData(
+      dataMask,
+      filterIdsAppliedOnChart,
+    );
+    extraData = {
+      extra_form_data: aggregatedFormData,
+    };
+
+    const isDeckMultiChart = chart.form_data?.viz_type === 'deck_multi';
+    const hasLayerScopeInActiveFilters =
+      passedActiveFilters &&
+      Object.values(passedActiveFilters).some(filter => filter.layerScope);
+
+    if (isDeckMultiChart || hasLayerScopeInActiveFilters) {
+      const filterDataMapping = createFilterDataMapping(
+        dataMask,
+        filterIdsAppliedOnChart,
+      );
+      extraData.filter_data_mapping = filterDataMapping;
+    }
+  }
+
+  let layerFilterScope: { [filterId: string]: number[] } | undefined;
+
+  const isDeckMultiChart = chart.form_data?.viz_type === 'deck_multi';
+  const hasLayerScopeInActiveFilters =
+    passedActiveFilters &&
+    Object.values(passedActiveFilters).some(filter => filter.layerScope);
+
+  if (isDeckMultiChart || hasLayerScopeInActiveFilters) {
+    layerFilterScope = {};
+
+    Object.entries(activeFilters).forEach(([filterId, activeFilter]) => {
+      if (activeFilter.layerScope?.[chart.id]) {
+        layerFilterScope![filterId] = activeFilter.layerScope[chart.id];
+      }
+    });
+
+    if (Object.keys(layerFilterScope).length === 0) {
+      layerFilterScope = undefined;
+    }
+  }
 
   const groupByState: Record<string, { selectedValues: string[] }> = {};
   Object.entries(dataMask).forEach(([key, mask]) => {
@@ -313,10 +358,6 @@ export default function getFormDataWithExtraFilters({
     chart,
     groupByState,
   );
-
-  const extraData = {
-    extra_form_data: nativeFilterExtraFormData,
-  };
 
   const formData: CachedFormDataWithExtraControls = {
     ...chart.form_data,
