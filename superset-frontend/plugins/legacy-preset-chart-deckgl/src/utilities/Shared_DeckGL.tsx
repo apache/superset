@@ -30,6 +30,7 @@ import {
   SequentialScheme,
 } from '@superset-ui/core';
 import {
+  ControlPanelState,
   CustomControlItem,
   D3_FORMAT_OPTIONS,
   getColorControlsProps,
@@ -236,7 +237,7 @@ export const lineColumn = {
     label: t('Lines column'),
     default: null,
     description: t('The database columns that contains lines information'),
-    mapStateToProps: (state: any) => ({
+    mapStateToProps: (state: ControlPanelState) => ({
       choices: columnChoices(state.datasource),
     }),
     validators: [validateNonEmpty],
@@ -351,7 +352,7 @@ export const spatial = {
     label: t('Longitude & Latitude'),
     validators: [validateNonEmpty],
     description: t('Point to your spatial columns'),
-    mapStateToProps: (state: any) => ({
+    mapStateToProps: (state: ControlPanelState) => ({
       choices: columnChoices(state.datasource),
     }),
   },
@@ -364,7 +365,7 @@ export const pointRadiusFixed = {
     label: t('Point Size'),
     default: { type: 'fix', value: 1000 },
     description: t('Fixed point radius'),
-    mapStateToProps: (state: any) => ({
+    mapStateToProps: (state: ControlPanelState) => ({
       datasource: state.datasource,
     }),
   },
@@ -432,13 +433,13 @@ export const geojsonColumn = {
     label: t('GeoJson Column'),
     validators: [validateNonEmpty],
     description: t('Select the geojson column'),
-    mapStateToProps: (state: any) => ({
+    mapStateToProps: (state: ControlPanelState) => ({
       choices: columnChoices(state.datasource),
     }),
   },
 };
 
-export const deckGLCategoricalColorSchemeTypeSelect = {
+export const deckGLCategoricalColorSchemeTypeSelect: CustomControlItem = {
   name: 'color_scheme_type',
   config: {
     type: 'SelectControl',

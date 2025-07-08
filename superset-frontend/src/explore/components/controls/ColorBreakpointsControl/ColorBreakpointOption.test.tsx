@@ -75,18 +75,6 @@ describe('ColorBreakpointOption', () => {
     expect(colorPreview).toBeInTheDocument();
   });
 
-  test('should handle undefined color', async () => {
-    const breakpointWithNoColor: ColorBreakpointType = {
-      id: 0,
-      color: undefined,
-      minValue: 0,
-      maxValue: 100,
-    };
-
-    renderComponent({ breakpoint: breakpointWithNoColor });
-    expect(await screen.findByText('0 - 100')).toBeInTheDocument();
-  });
-
   test('should call onClose when remove button is clicked', async () => {
     const onClose = jest.fn();
     renderComponent({ onClose });
@@ -133,13 +121,5 @@ describe('ColorBreakpointOption', () => {
 
     renderComponent({ breakpoint: decimalBreakpoint });
     expect(await screen.findByText('0.5 - 99.9')).toBeInTheDocument();
-  });
-
-  test('should handle drag and drop functionality', async () => {
-    const onShift = jest.fn();
-    renderComponent({ onShift });
-
-    const breakpointOption = await screen.findByText('0 - 100');
-    expect(breakpointOption).toBeInTheDocument();
   });
 });

@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useState, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import { Button, Row, Col, InputNumber } from '@superset-ui/core/components';
 import { styled, t, validateNumber } from '@superset-ui/core';
 import ControlHeader from '../../ControlHeader';
@@ -69,35 +69,49 @@ const determineErrorMap = (
 
   if (minValueError || maxValueError) return errorMap;
 
-  if (
-    !Number.isNaN(colorBreakpoint.minValue) &&
-    !Number.isNaN(colorBreakpoint.maxValue)
-  ) {
-    const newMinValue = Number(colorBreakpoint.minValue);
-    const newMaxValue = Number(colorBreakpoint.maxValue);
+  const newMinValue = Number(colorBreakpoint.minValue);
+  const newMaxValue = Number(colorBreakpoint.maxValue);
 
-    if (newMinValue >= newMaxValue) {
-      errorMap.minValue.push(
-        t('Min value should be smaller or equal to max value'),
-      );
-    }
+  if (Number.isNaN(newMinValue) || Number.isNaN(newMaxValue)) {
+    return errorMap;
+  }
 
-    const otherBreakpoints = colorBreakpoints.filter(
-      breakpoint => breakpoint.id !== colorBreakpoint.id,
+  if (newMinValue >= newMaxValue) {
+    errorMap.minValue.push(
+      t('Min value should be smaller or equal to max value'),
     );
+  }
 
-    const isBreakpointDuplicate = !!otherBreakpoints?.find(
-      breakpoint =>
-        Number(breakpoint.minValue) <= newMaxValue &&
-        Number(breakpoint.maxValue) >= newMinValue,
-    );
+  const otherBreakpoints = colorBreakpoints.filter(
+    breakpoint => breakpoint.id !== colorBreakpoint.id,
+  );
 
-    if (isBreakpointDuplicate) {
-      const overlapMsg = t('The values overlap other breakpoint values');
+  const isBreakpointDuplicate = !!otherBreakpoints?.find(
+    breakpoint =>
+      Number(breakpoint.minValue) <= newMaxValue &&
+      Number(breakpoint.maxValue) >= newMinValue,
+  );
 
-      errorMap.minValue.push(overlapMsg);
-      errorMap.maxValue.push(overlapMsg);
-    }
+  if (isBreakpointDuplicate) {
+    const overlapMsg = t('The values overlap other breakpoint values');
+
+    errorMap.minValue.push(overlapMsg);
+    errorMap.maxValue.push(overlapMsg);
+  }
+
+  const validColor =
+    typeof colorBreakpoint.color === 'object' &&
+    'r' in colorBreakpoint.color &&
+    typeof colorBreakpoint.color.r === 'number' &&
+    'g' in colorBreakpoint.color &&
+    typeof colorBreakpoint.color.g === 'number' &&
+    'b' in colorBreakpoint.color &&
+    typeof colorBreakpoint.color.b === 'number' &&
+    'a' in colorBreakpoint.color &&
+    typeof colorBreakpoint.color.a === 'number';
+
+  if (!validColor) {
+    errorMap.color.push(t('Invalid color'));
   }
 
   return errorMap;
@@ -130,47 +144,20 @@ const ColorBreakpointsPopoverControl = ({
   const [colorBreakpoint, setColorBreakpoint] = useState(
     initialValue || DEFAULT_COLOR_BREAKPOINT,
   );
-  const [validationErrors, setValidationErrors] = useState(
-    determineErrorMap(
-      initialValue || DEFAULT_COLOR_BREAKPOINT,
-      colorBreakpoints,
-    ),
+
+  const useValidationErrors = (
+    colorBreakpoint: ColorBreakpointType,
+    colorBreakpoints: ColorBreakpointType[],
+  ) =>
+    useMemo(
+      () => determineErrorMap(colorBreakpoint, colorBreakpoints),
+      [colorBreakpoint, colorBreakpoints],
+    );
+
+  const validationErrors = useValidationErrors(
+    colorBreakpoint,
+    colorBreakpoints,
   );
-  const [isComplete, setIsComplete] = useState(false);
-
-  useEffect(() => {
-    const validMinValue =
-      Boolean(colorBreakpoint.minValue) ||
-      Number(colorBreakpoint.minValue) === 0;
-    const validMaxValue =
-      Boolean(colorBreakpoint.maxValue) ||
-      Number(colorBreakpoint.maxValue) === 0;
-    const validColor =
-      typeof colorBreakpoint.color === 'object' &&
-      'r' in colorBreakpoint.color &&
-      typeof colorBreakpoint.color.r === 'number' &&
-      'g' in colorBreakpoint.color &&
-      typeof colorBreakpoint.color.g === 'number' &&
-      'b' in colorBreakpoint.color &&
-      typeof colorBreakpoint.color.b === 'number' &&
-      'a' in colorBreakpoint.color &&
-      typeof colorBreakpoint.color.a === 'number';
-
-    const errors = determineErrorMap(colorBreakpoint, colorBreakpoints);
-    if (
-      JSON.stringify(errors.minValue) !==
-        JSON.stringify(validationErrors.minValue) ||
-      JSON.stringify(errors.maxValue) !==
-        JSON.stringify(validationErrors.maxValue) ||
-      JSON.stringify(errors.color) !== JSON.stringify(validationErrors.color)
-    ) {
-      setValidationErrors(errors);
-    }
-
-    const sectionIsComplete = validMinValue && validMaxValue && validColor;
-
-    if (sectionIsComplete !== isComplete) setIsComplete(sectionIsComplete);
-  }, [colorBreakpoint, isComplete, validationErrors, colorBreakpoints]);
 
   const updateColor = (rgb: ColorType) => {
     setColorBreakpoint({
@@ -180,8 +167,6 @@ const ColorBreakpointsPopoverControl = ({
   };
 
   const updateMinValue = (value: number) => {
-    const newBreakpoint = { ...colorBreakpoint };
-    newBreakpoint.minValue = value;
     setColorBreakpoint({
       ...colorBreakpoint,
       minValue: value,
@@ -195,15 +180,12 @@ const ColorBreakpointsPopoverControl = ({
     });
   };
 
-  const containsErrors = () => {
-    const keys = Object.keys(validationErrors);
-    return keys.some(
-      key => validationErrors[key as keyof ErrorMapType].length > 0,
-    );
-  };
+  const containsErrors = Object.values(validationErrors).some(
+    errors => errors.length > 0,
+  );
 
   const handleSave = () => {
-    if (isComplete && onSave) {
+    if (!containsErrors && onSave) {
       onSave(convertColorBreakpointToNumeric(colorBreakpoint));
       if (onClose) onClose();
     }
@@ -266,7 +248,7 @@ const ColorBreakpointsPopoverControl = ({
           {t('Close')}
         </Button>
         <Button
-          disabled={!isComplete || containsErrors()}
+          disabled={containsErrors}
           buttonStyle="primary"
           buttonSize="small"
           onClick={handleSave}

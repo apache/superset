@@ -77,7 +77,7 @@ export const getLayer: GetLayerType<ScreenGridLayer> = function ({
     'default';
   const colorRange = getColorRange(fd, colorSchemeType, colorScale);
 
-  const aggFunc = (d: any) => d.weight || 0;
+  const aggFunc = (d: JsonObject) => d.weight || 0;
 
   const defaultScreenGridColorRange = [
     [255, 255, 178],

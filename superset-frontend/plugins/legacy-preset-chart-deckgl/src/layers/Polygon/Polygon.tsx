@@ -132,42 +132,46 @@ export const getLayer: GetLayerType<PolygonLayer> = function ({
 
   const metricLabel = fd.metric ? fd.metric.label || fd.metric : null;
   const accessor = (d: JsonObject) => d[metricLabel];
-  // base color for the polygons
-  let baseColorScaler: (data: any) => Color = () => [
-    fc.r,
-    fc.g,
-    fc.b,
-    255 * fc.a,
-  ];
+  let baseColorScaler: () => Color;
 
-  if (colorSchemeType === COLOR_SCHEME_TYPES.fixed_color) {
-    baseColorScaler = () => [fc.r, fc.g, fc.b, 255 * fc.a];
-  } else if (colorSchemeType === COLOR_SCHEME_TYPES.linear_palette) {
-    baseColorScaler =
-      fd.metric === null
-        ? () => [fc.r, fc.g, fc.b, 255 * fc.a]
-        : getBreakPointColorScaler(fd, data, accessor);
-  } else if (colorSchemeType === COLOR_SCHEME_TYPES.color_breakpoints) {
-    const colorBreakpoints = fd.color_breakpoints;
+  switch (colorSchemeType) {
+    case COLOR_SCHEME_TYPES.fixed_color:
+      baseColorScaler = () => [fc.r, fc.g, fc.b, 255 * fc.a];
+      break;
 
-    baseColorScaler = (data: number[]) => {
-      const breakpointIndex = getColorForBreakpoints(
-        accessor,
-        data,
-        colorBreakpoints,
-      );
-      const breakpointColor =
-        breakpointIndex !== undefined &&
-        colorBreakpoints[breakpointIndex].color;
-      return breakpointColor
-        ? [breakpointColor.r, breakpointColor.g, breakpointColor.b, 255]
-        : [0, 0, 0, 0];
-    };
+    case COLOR_SCHEME_TYPES.linear_palette:
+      baseColorScaler =
+        fd.metric === null
+          ? () => [fc.r, fc.g, fc.b, 255 * fc.a]
+          : getBreakPointColorScaler(fd, data, accessor);
+      break;
+
+    case COLOR_SCHEME_TYPES.color_breakpoints: {
+      const colorBreakpoints = fd.color_breakpoints;
+      baseColorScaler = () => {
+        const breakpointIndex = getColorForBreakpoints(
+          accessor,
+          data,
+          colorBreakpoints,
+        );
+        const breakpointColor =
+          breakpointIndex !== undefined &&
+          colorBreakpoints[breakpointIndex].color;
+        return breakpointColor
+          ? [breakpointColor.r, breakpointColor.g, breakpointColor.b, 255]
+          : [0, 0, 0, 0];
+      };
+      break;
+    }
+
+    default:
+      baseColorScaler = () => [fc.r, fc.g, fc.b, 255 * fc.a];
+      break;
   }
 
   // when polygons are selected, reduce the opacity of non-selected polygons
   const colorScaler = (d: JsonObject): [number, number, number, number] => {
-    const baseColor = (baseColorScaler(d) as [
+    const baseColor = (baseColorScaler() as [
       number,
       number,
       number,
@@ -194,11 +198,11 @@ export const getLayer: GetLayerType<PolygonLayer> = function ({
     stroked: fd.stroked,
     getPolygon: getPointsFromPolygon,
     getFillColor: colorScaler,
-    getLineColor: sc && [sc.r, sc.g, sc.b, 255 * sc.a],
+    getLineColor: sc ? [sc.r, sc.g, sc.b, 255 * sc.a] : undefined,
     getLineWidth: fd.line_width,
     extruded: fd.extruded,
     lineWidthUnits: fd.line_width_unit,
-    getElevation: (d: any) => getElevation(d, colorScaler),
+    getElevation: (d: JsonObject) => getElevation(d, colorScaler),
     elevationScale: fd.multiplier,
     fp64: true,
     ...commonLayerProps({
