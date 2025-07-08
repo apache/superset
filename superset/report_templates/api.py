@@ -95,7 +95,7 @@ class ReportTemplateRestApi(BaseSupersetModelRestApi):
             with open(local_path, "rb") as fp:
                 s3.upload_fileobj(fp, bucket, key)
         except Exception:  # pylint: disable=broad-except
-            logger.warning("Failed to upload template to S3", exc_info=True)
+            logger.warning("Failed to upload template to S3")
 
     def _read(self, key: str) -> bytes:
         cfg = current_app.config
@@ -123,7 +123,7 @@ class ReportTemplateRestApi(BaseSupersetModelRestApi):
                 f.write(data)
             return data
         except Exception:  # pylint: disable=broad-except
-            logger.error("Unable to read template from S3 or local", exc_info=True)
+            logger.error("Unable to read template from S3 or local")
             raise
 
     def _delete(self, key: str) -> None:
@@ -175,7 +175,7 @@ class ReportTemplateRestApi(BaseSupersetModelRestApi):
             self.datamodel.session.commit()
             return self.response(201, id=template.id)
         except Exception as ex:  # pylint: disable=broad-except
-            logger.error("Error uploading template: %s", ex, exc_info=True)
+            logger.error("Error uploading template: %s", ex)
             return self.response(500, message=str(ex))
 
     @expose("/<int:pk>", methods=("DELETE",))
@@ -194,7 +194,7 @@ class ReportTemplateRestApi(BaseSupersetModelRestApi):
         try:
             self._delete(template.template_path)
         except Exception:  # pylint: disable=broad-except
-            logger.warning("Error deleting template", exc_info=True)
+            logger.warning("Error deleting template")
         self.datamodel.session.delete(template)
         self.datamodel.session.commit()
         return self.response(200, message="OK")
@@ -220,7 +220,7 @@ class ReportTemplateRestApi(BaseSupersetModelRestApi):
                 download_name=filename,
             )
         except Exception as ex:  # pylint: disable=broad-except
-            logger.error("Error downloading template: %s", ex, exc_info=True)
+            logger.error("Error downloading template: %s", ex)
             return self.response(500, message=str(ex))
 
     @expose("/<int:pk>/generate", methods=("POST",))
@@ -256,5 +256,5 @@ class ReportTemplateRestApi(BaseSupersetModelRestApi):
                 download_name=f"{template.name}.odt",
             )
         except Exception as ex:  # pylint: disable=broad-except
-            logger.error("Error generating report: %s", ex, exc_info=True)
+            logger.error("Error generating report: %s", ex)
             return self.response(500, message=str(ex))
