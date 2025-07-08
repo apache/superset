@@ -21,6 +21,7 @@ import domToPdf from 'dom-to-pdf';
 import { kebabCase } from 'lodash';
 import { logging, t } from '@superset-ui/core';
 import { addWarningToast } from 'src/components/MessageToasts/actions';
+import getBootstrapData from 'src/utils/getBootstrapData';
 
 /**
  * generate a consistent file stem from a description and date
