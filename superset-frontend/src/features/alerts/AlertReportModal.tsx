@@ -1461,7 +1461,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
       }
     >
       <Collapse
-        expandIconPosition="right"
+        expandIconPosition="end"
         defaultActiveKey="general"
         accordion
         modalMode

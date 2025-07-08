@@ -16,22 +16,31 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { SearchOption } from '../../types';
+import { StyledSelect } from '../../styles';
 
-import { REGISTER } from 'cypress/utils/urls';
+interface SearchSelectDropdownProps {
+  /** The currently selected search column value */
+  value?: string;
+  /** Callback triggered when a new search column is selected */
+  onChange: (searchCol: string) => void;
+  /** Available search column options to populate the dropdown */
+  searchOptions: SearchOption[];
+}
 
-describe('Register view', () => {
-  beforeEach(() => {
-    cy.visit(REGISTER);
-  });
+function SearchSelectDropdown({
+  value,
+  onChange,
+  searchOptions,
+}: SearchSelectDropdownProps) {
+  return (
+    <StyledSelect
+      className="search-select"
+      value={value || (searchOptions?.[0]?.value ?? '')}
+      options={searchOptions}
+      onChange={onChange}
+    />
+  );
+}
 
-  it('should load register page', () => {
-    cy.getBySel('register-form').should('be.visible');
-    cy.getBySel('username-input').should('be.visible');
-    cy.getBySel('first-name-input').should('be.visible');
-    cy.getBySel('last-name-input').should('be.visible');
-    cy.getBySel('email-input').should('be.visible');
-    cy.getBySel('password-input').should('be.visible');
-    cy.getBySel('confirm-password-input').should('be.visible');
-    cy.getBySel('register-button').should('be.visible');
-  });
-});
+export default SearchSelectDropdown;
