@@ -78,36 +78,53 @@ class ReportTemplateRestApi(BaseSupersetModelRestApi):
     def _upload(self, file, key: str) -> None:
         cfg = current_app.config
         bucket, local_path = self._storage_paths(cfg, key)
-        s3 = boto3.client(
-            "s3",
-            endpoint_url=cfg.get("REPORT_TEMPLATE_S3_ENDPOINT"),
-            aws_access_key_id=cfg.get("REPORT_TEMPLATE_S3_ACCESS_KEY"),
-            aws_secret_access_key=cfg.get("REPORT_TEMPLATE_S3_SECRET_KEY"),
-        )
+
+        # always save locally
+        os.makedirs(os.path.dirname(local_path), exist_ok=True)
+        file.seek(0)
+        file.save(local_path)
+
+        # try uploading to S3 as well
         try:
-            s3.upload_fileobj(file, bucket, key)
+            s3 = boto3.client(
+                "s3",
+                endpoint_url=cfg.get("REPORT_TEMPLATE_S3_ENDPOINT"),
+                aws_access_key_id=cfg.get("REPORT_TEMPLATE_S3_ACCESS_KEY"),
+                aws_secret_access_key=cfg.get("REPORT_TEMPLATE_S3_SECRET_KEY"),
+            )
+            with open(local_path, "rb") as fp:
+                s3.upload_fileobj(fp, bucket, key)
         except Exception:  # pylint: disable=broad-except
-            logger.warning("Falling back to local storage", exc_info=True)
-            os.makedirs(os.path.dirname(local_path), exist_ok=True)
-            file.seek(0)
-            file.save(local_path)
+            logger.warning("Failed to upload template to S3", exc_info=True)
 
     def _read(self, key: str) -> bytes:
         cfg = current_app.config
         bucket, local_path = self._storage_paths(cfg, key)
-        s3 = boto3.client(
-            "s3",
-            endpoint_url=cfg.get("REPORT_TEMPLATE_S3_ENDPOINT"),
-            aws_access_key_id=cfg.get("REPORT_TEMPLATE_S3_ACCESS_KEY"),
-            aws_secret_access_key=cfg.get("REPORT_TEMPLATE_S3_SECRET_KEY"),
-        )
+
+        # try local first
         try:
-            obj = s3.get_object(Bucket=bucket, Key=key)
-            return obj["Body"].read()
-        except Exception:  # pylint: disable=broad-except
-            logger.warning("Reading template from local storage", exc_info=True)
             with open(local_path, "rb") as f:
                 return f.read()
+        except FileNotFoundError:
+            pass
+
+        # fallback to S3
+        try:
+            s3 = boto3.client(
+                "s3",
+                endpoint_url=cfg.get("REPORT_TEMPLATE_S3_ENDPOINT"),
+                aws_access_key_id=cfg.get("REPORT_TEMPLATE_S3_ACCESS_KEY"),
+                aws_secret_access_key=cfg.get("REPORT_TEMPLATE_S3_SECRET_KEY"),
+            )
+            obj = s3.get_object(Bucket=bucket, Key=key)
+            data = obj["Body"].read()
+            os.makedirs(os.path.dirname(local_path), exist_ok=True)
+            with open(local_path, "wb") as f:
+                f.write(data)
+            return data
+        except Exception:  # pylint: disable=broad-except
+            logger.error("Unable to read template from S3 or local", exc_info=True)
+            raise
 
     def _delete(self, key: str) -> None:
         cfg = current_app.config
