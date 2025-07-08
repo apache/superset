@@ -49,6 +49,15 @@ jobs:
       with:
         export_default_credentials: true     
 
+    # Setup SSH key from GitHub secrets
+    - name: Setup SSH key from secrets
+      run: |
+        mkdir -p ~/.ssh
+        echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/google_compute_engine
+        echo "${{ secrets.SSH_PUBLIC_KEY }}" > ~/.ssh/google_compute_engine.pub
+        chmod 600 ~/.ssh/google_compute_engine
+        chmod 644 ~/.ssh/google_compute_engine.pub
+
     # Step to set environment variables based on the selected origin environment
     - name: Set Environment Variables for Origin
       if: github.event_name == 'workflow_dispatch'
@@ -120,6 +129,51 @@ jobs:
             exit 1
             ;;          
         esac        
+
+    # Wait for SSH key propagation and test connectivity
+    - name: Wait for SSH key propagation
+      run: |
+        echo "Waiting for SSH key to propagate..."
+        sleep 30
+        
+        # Test connectivity to destiny VM
+        max_attempts=5
+        attempt=1
+        while [ $attempt -le $max_attempts ]; do
+          echo "Testing SSH connection to destiny VM (attempt $attempt/$max_attempts)..."
+          if gcloud compute ssh ${{ env.GCE_DESTINY_VM_NAME }} --zone ${{ env.GCE_DESTINY_ZONE }} --project ${{ env.GCE_DESTINY_PROJECT }} --command "echo 'SSH connection successful'" --ssh-flag="-o ConnectTimeout=10"; then
+            echo "SSH connection to destiny VM successful"
+            break
+          else
+            echo "SSH connection failed, retrying in 10 seconds..."
+            sleep 10
+            ((attempt++))
+          fi
+        done
+        
+        if [ $attempt -gt $max_attempts ]; then
+          echo "Failed to establish SSH connection to destiny VM after $max_attempts attempts"
+          exit 1
+        fi
+        
+        # Test connectivity to origin VM
+        attempt=1
+        while [ $attempt -le $max_attempts ]; do
+          echo "Testing SSH connection to origin VM (attempt $attempt/$max_attempts)..."
+          if gcloud compute ssh ${{ env.GCE_ORIGIN_VM_NAME }} --zone ${{ env.GCE_ORIGIN_ZONE }} --project ${{ env.GCE_ORIGIN_PROJECT }} --command "echo 'SSH connection successful'" --ssh-flag="-o ConnectTimeout=10"; then
+            echo "SSH connection to origin VM successful"
+            break
+          else
+            echo "SSH connection failed, retrying in 10 seconds..."
+            sleep 10
+            ((attempt++))
+          fi
+        done
+        
+        if [ $attempt -gt $max_attempts ]; then
+          echo "Failed to establish SSH connection to origin VM after $max_attempts attempts"
+          exit 1
+        fi
 
     # Step to generate a database dump file on the origin VM
     - name: Generate backup dump file on destiny VM
