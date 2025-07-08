@@ -107,18 +107,18 @@ def load_long_lat_data(only_metadata: bool = False, force: bool = False) -> None
         "granularity_sqla": "day",
         "since": "2014-01-01",
         "until": "now",
-        "viz_type": "mapbox",
+        "viz_type": "osm",
         "all_columns_x": "LON",
         "all_columns_y": "LAT",
-        "mapbox_style": "mapbox://styles/mapbox/light-v9",
+        "mapbox_style": "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
         "all_columns": ["occupancy"],
         "row_limit": 500000,
     }
 
     logger.debug("Creating a slice")
     slc = Slice(
-        slice_name="Mapbox Long/Lat",
-        viz_type="mapbox",
+        slice_name="OSM Long/Lat",
+        viz_type="osm",
         datasource_type=DatasourceType.TABLE,
         datasource_id=tbl.id,
         params=get_slice_json(slice_data),
