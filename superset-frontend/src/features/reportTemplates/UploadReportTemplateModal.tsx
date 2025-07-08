@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { t, SupersetClient } from '@superset-ui/core';
 import { Modal, Input, Button } from '@superset-ui/core/components';
+import DatasetSelect from 'src/dashboard/components/nativeFilters/FiltersConfigModal/FiltersConfigForm/DatasetSelect';
 
 interface UploadReportTemplateModalProps {
   show: boolean;
@@ -18,26 +19,26 @@ export default function UploadReportTemplateModal({
   addSuccessToast,
 }: UploadReportTemplateModalProps) {
   const [name, setName] = useState('');
-  const [datasetId, setDatasetId] = useState('');
+  const [dataset, setDataset] = useState<{ label: string; value: number } | null>(null);
   const [description, setDescription] = useState('');
   const [file, setFile] = useState<File | null>(null);
 
   const reset = () => {
     setName('');
-    setDatasetId('');
+    setDataset(null);
     setDescription('');
     setFile(null);
   };
 
   const handleUpload = () => {
-    if (!file || !name || !datasetId) {
+    if (!file || !name || !dataset) {
       addDangerToast(t('All fields are required'));
       return;
     }
     const form = new FormData();
     form.append('template', file);
     form.append('name', name);
-    form.append('dataset_id', datasetId);
+    form.append('dataset_id', String(dataset.value));
     if (description) form.append('description', description);
     SupersetClient.post({
       endpoint: '/api/v1/report_template/',
@@ -80,11 +81,10 @@ export default function UploadReportTemplateModal({
         />
       </div>
       <div className="field">
-        <label htmlFor="template-dataset">{t('Dataset id')}</label>
-        <Input
-          id="template-dataset"
-          value={datasetId}
-          onChange={e => setDatasetId(e.target.value)}
+        <label htmlFor="template-dataset">{t('Dataset')}</label>
+        <DatasetSelect
+          onChange={(opt: { label: string; value: number }) => setDataset(opt)}
+          value={dataset || undefined}
         />
       </div>
       <div className="field">
