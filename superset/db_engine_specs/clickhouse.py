@@ -410,8 +410,8 @@ class ClickHouseConnectEngineSpec(BasicParametersMixin, ClickHouseEngineSpec):
     @staticmethod
     def _mutate_label(label: str) -> str:
         """
-         Conditionally suffix the label with the first six characters from the md5 of the label
-         to avoid collisions with original column names when the
+         Conditionally suffix the label with the first six characters from the md5
+         of the label to avoid collisions with original column names when the
          `CLICKHOUSE_CONNECT_ENABLE_LABEL_MUTATION` setting is enabled (Default).
 
          :param label: Expected expression label
