@@ -27,7 +27,6 @@ import {
   ColorBreakpointType,
   ErrorMapType,
 } from './types';
-import NumberControl from '../NumberControl';
 
 const ColorBreakpointActionsContainer = styled.div`
   margin-top: ${({ theme }) => theme.sizeUnit * 8}px;
