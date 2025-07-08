@@ -17,7 +17,7 @@
  * under the License.
  */
 import { useState, useEffect } from 'react';
-import { Button, Row, Col } from '@superset-ui/core/components';
+import { Button, Row, Col, InputNumber } from '@superset-ui/core/components';
 import { styled, t, validateNumber } from '@superset-ui/core';
 import ControlHeader from '../../ControlHeader';
 import ColorPickerControl from '../ColorPickerControl';
@@ -47,6 +47,10 @@ const ValuesRow = styled(Row)`
 
 const NumberControlsDivider = styled.div`
   padding: 6px 0;
+`;
+
+const FullWidthInputNumber = styled(InputNumber)`
+  width: 100%;
 `;
 
 const determineErrorMap = (
@@ -207,7 +211,7 @@ const ColorBreakpointsPopoverControl = ({
   };
 
   return (
-    <>
+    <div role="dialog">
       <StyledRow>
         <Col flex="1">
           <ControlHeader
@@ -219,6 +223,7 @@ const ColorBreakpointsPopoverControl = ({
           <ColorPickerControl
             value={colorBreakpoint.color}
             onChange={updateColor}
+            data-test="color-picker"
           />
         </Col>
       </StyledRow>
@@ -230,9 +235,10 @@ const ColorBreakpointsPopoverControl = ({
             validationErrors={validationErrors.minValue}
             hovered
           />
-          <NumberControl
+          <FullWidthInputNumber
             value={colorBreakpoint.minValue}
             onChange={updateMinValue}
+            data-test="min-value-input"
           />
         </Col>
         <NumberControlsDivider>-</NumberControlsDivider>
@@ -243,9 +249,10 @@ const ColorBreakpointsPopoverControl = ({
             validationErrors={validationErrors.maxValue}
             hovered
           />
-          <NumberControl
+          <FullWidthInputNumber
             value={colorBreakpoint.maxValue}
             onChange={updateMaxValue}
+            data-test="max-value-input"
           />
         </Col>
       </ValuesRow>
@@ -255,6 +262,7 @@ const ColorBreakpointsPopoverControl = ({
           buttonStyle="secondary"
           onClick={onClose}
           aria-label={t('Close color breakpoint editor')}
+          data-test="close-button"
         >
           {t('Close')}
         </Button>
@@ -264,11 +272,12 @@ const ColorBreakpointsPopoverControl = ({
           buttonSize="small"
           onClick={handleSave}
           aria-label={t('Save color breakpoint values')}
+          data-test="save-button"
         >
           {t('Save')}
         </Button>
       </ColorBreakpointActionsContainer>
-    </>
+    </div>
   );
 };
 

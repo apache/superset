@@ -50,9 +50,12 @@ const ColorBreakpointOption = ({
       value={breakpoint}
       colorBreakpoints={colorBreakpoints}
     >
-      <DragContainer>
+      <DragContainer data-test="color-breakpoint-trigger">
         <Option index={index} clickClose={onClose} canDelete withCaret>
-          <BreakpointColorPreview color={formattedColor} />
+          <BreakpointColorPreview
+            color={formattedColor}
+            data-test="color-preview"
+          />
           {`${minValue} - ${maxValue}`}
         </Option>
       </DragContainer>
