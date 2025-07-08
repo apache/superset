@@ -42,6 +42,7 @@ from superset.jinja_context import (
     dataset_macro,
     ExtraCache,
     get_template_processor,
+    JsonValue,
     metric_macro,
     safe_proxy,
     TimeFilter,
@@ -1873,7 +1874,7 @@ def test_get_guest_user_attribute_cache_key_behavior(mocker: MockerFixture) -> N
     result = cache.get_guest_user_attribute("department")
     assert result == "Engineering"
     mock_cache_wrapper.assert_called_once_with(
-        "guest_user_attribute:department:Engineering"
+        'guest_user_attribute:department:"Engineering"'
     )
 
     # Reset mock
@@ -2217,10 +2218,406 @@ def test_get_guest_user_attribute_integration(mocker: MockerFixture) -> None:
     assert cache.get_guest_user_attribute("non_existing", "default") == "default"
 
     # Test cache key behavior
-    mock_cache_wrapper.assert_any_call("guest_user_attribute:department:Data Science")
-    mock_cache_wrapper.assert_any_call("guest_user_attribute:region:EU")
-    mock_cache_wrapper.assert_any_call("guest_user_attribute:access_level:premium")
-    mock_cache_wrapper.assert_any_call("guest_user_attribute:team_lead:True")
+    mock_cache_wrapper.assert_any_call('guest_user_attribute:department:"Data Science"')
+    mock_cache_wrapper.assert_any_call('guest_user_attribute:region:"EU"')
+    mock_cache_wrapper.assert_any_call('guest_user_attribute:access_level:"premium"')
+    mock_cache_wrapper.assert_any_call("guest_user_attribute:team_lead:true")
+
+
+def test_get_guest_user_attribute_json_value_types(mocker: MockerFixture) -> None:
+    """
+    Test that get_guest_user_attribute properly handles all JSON-native types.
+    """
+    mocker.patch("superset.jinja_context.has_request_context", return_value=True)
+    mock_g = mocker.patch("superset.jinja_context.g")
+
+    # Create guest user with attributes of various JSON-native types
+    guest_user = mocker.Mock()
+    guest_user.is_guest_user = True
+    guest_user.guest_token = {
+        "user": {
+            "username": "test_guest",
+            "attributes": {
+                "string_attr": "hello world",
+                "int_attr": 42,
+                "float_attr": 3.14159,
+                "bool_true": True,
+                "bool_false": False,
+                "null_attr": None,
+                "list_attr": [1, "two", 3.0, True, None],
+                "dict_attr": {
+                    "nested_string": "value",
+                    "nested_int": 123,
+                    "nested_bool": False,
+                    "nested_list": ["a", "b", "c"],
+                    "nested_dict": {"deep": "value"},
+                },
+                "empty_list": [],
+                "empty_dict": {},
+            },
+        },
+        "resources": [{"type": "dashboard", "id": "test-id"}],
+        "rls_rules": [],
+    }
+    mock_g.user = guest_user
+
+    cache = ExtraCache()
+
+    # Test string type
+    result = cache.get_guest_user_attribute("string_attr")
+    assert result == "hello world"
+    assert isinstance(result, str)
+
+    # Test integer type
+    result = cache.get_guest_user_attribute("int_attr")
+    assert result == 42
+    assert isinstance(result, int)
+
+    # Test float type
+    result = cache.get_guest_user_attribute("float_attr")
+    assert result == 3.14159
+    assert isinstance(result, float)
+
+    # Test boolean types
+    result = cache.get_guest_user_attribute("bool_true")
+    assert result is True
+    assert isinstance(result, bool)
+
+    result = cache.get_guest_user_attribute("bool_false")
+    assert result is False
+    assert isinstance(result, bool)
+
+    # Test null/None type
+    result = cache.get_guest_user_attribute("null_attr")
+    assert result is None
+
+    # Test list type
+    result = cache.get_guest_user_attribute("list_attr")
+    expected_list = [1, "two", 3.0, True, None]
+    assert result == expected_list
+    assert isinstance(result, list)
+
+    # Test dict type
+    result = cache.get_guest_user_attribute("dict_attr")
+    expected_dict = {
+        "nested_string": "value",
+        "nested_int": 123,
+        "nested_bool": False,
+        "nested_list": ["a", "b", "c"],
+        "nested_dict": {"deep": "value"},
+    }
+    assert result == expected_dict
+    assert isinstance(result, dict)
+
+    # Test empty collections
+    result = cache.get_guest_user_attribute("empty_list")
+    assert result == []
+    assert isinstance(result, list)
+
+    result = cache.get_guest_user_attribute("empty_dict")
+    assert result == {}
+    assert isinstance(result, dict)
+
+
+def test_get_guest_user_attribute_json_value_defaults(mocker: MockerFixture) -> None:
+    """
+    Test that get_guest_user_attribute properly handles default values of all
+    JSON-native types.
+    """
+    mocker.patch("superset.jinja_context.has_request_context", return_value=True)
+    mock_g = mocker.patch("superset.jinja_context.g")
+
+    # Create guest user with empty attributes
+    guest_user = mocker.Mock()
+    guest_user.is_guest_user = True
+    guest_user.guest_token = {
+        "user": {
+            "username": "test_guest",
+            "attributes": {},
+        },
+        "resources": [{"type": "dashboard", "id": "test-id"}],
+        "rls_rules": [],
+    }
+    mock_g.user = guest_user
+
+    cache = ExtraCache()
+
+    # Test default string
+    result = cache.get_guest_user_attribute("missing_attr", default="default_string")
+    assert result == "default_string"
+    assert isinstance(result, str)
+
+    # Test default integer
+    result = cache.get_guest_user_attribute("missing_attr", default=100)
+    assert result == 100
+    assert isinstance(result, int)
+
+    # Test default float
+    result = cache.get_guest_user_attribute("missing_attr", default=2.71)
+    assert result == 2.71
+    assert isinstance(result, float)
+
+    # Test default boolean
+    result = cache.get_guest_user_attribute("missing_attr", default=True)
+    assert result is True
+    assert isinstance(result, bool)
+
+    result = cache.get_guest_user_attribute("missing_attr", default=False)
+    assert result is False
+    assert isinstance(result, bool)
+
+    # Test default None
+    result = cache.get_guest_user_attribute("missing_attr", default=None)
+    assert result is None
+
+    # Test default list - using JsonValue compatible types
+    default_list: list[JsonValue] = ["default", "values"]
+    result = cache.get_guest_user_attribute("missing_attr", default=default_list)
+    assert result == default_list
+    assert isinstance(result, list)
+
+    # Test default dict - using JsonValue compatible types
+    default_dict: dict[str, JsonValue] = {"key": "value", "nested": {"deep": "data"}}
+    result = cache.get_guest_user_attribute("missing_attr", default=default_dict)
+    assert result == default_dict
+    assert isinstance(result, dict)
+
+    # Test default empty collections
+    empty_list: list[JsonValue] = []
+    result = cache.get_guest_user_attribute("missing_attr", default=empty_list)
+    assert result == []
+    assert isinstance(result, list)
+
+    empty_dict: dict[str, JsonValue] = {}
+    result = cache.get_guest_user_attribute("missing_attr", default=empty_dict)
+    assert result == {}
+    assert isinstance(result, dict)
+
+
+def test_get_guest_user_attribute_json_cache_key_serialization(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test that get_guest_user_attribute properly serializes different JSON types
+    for cache keys.
+    """
+    mocker.patch("superset.jinja_context.has_request_context", return_value=True)
+    mock_g = mocker.patch("superset.jinja_context.g")
+
+    # Create guest user with various attribute types
+    guest_user = mocker.Mock()
+    guest_user.is_guest_user = True
+    guest_user.guest_token = {
+        "user": {
+            "username": "test_guest",
+            "attributes": {
+                "string_attr": "test_string",
+                "int_attr": 42,
+                "float_attr": 3.14,
+                "bool_attr": True,
+                "list_attr": ["item1", "item2"],
+                "dict_attr": {
+                    "key2": "value2",
+                    "key1": "value1",
+                },  # Unsorted to test sort_keys
+                "null_attr": None,
+                "nested_dict": {"level1": {"level2": ["array", "items"]}},
+            },
+        },
+        "resources": [{"type": "dashboard", "id": "test-id"}],
+        "rls_rules": [],
+    }
+    mock_g.user = guest_user
+
+    cache = ExtraCache()
+    mock_cache_wrapper = mocker.Mock()
+    cache.cache_key_wrapper = mock_cache_wrapper  # type: ignore
+
+    # Test string serialization
+    cache.get_guest_user_attribute("string_attr")
+    mock_cache_wrapper.assert_called_with(
+        'guest_user_attribute:string_attr:"test_string"'
+    )
+
+    # Test integer serialization
+    mock_cache_wrapper.reset_mock()
+    cache.get_guest_user_attribute("int_attr")
+    mock_cache_wrapper.assert_called_with("guest_user_attribute:int_attr:42")
+
+    # Test float serialization
+    mock_cache_wrapper.reset_mock()
+    cache.get_guest_user_attribute("float_attr")
+    mock_cache_wrapper.assert_called_with("guest_user_attribute:float_attr:3.14")
+
+    # Test boolean serialization
+    mock_cache_wrapper.reset_mock()
+    cache.get_guest_user_attribute("bool_attr")
+    mock_cache_wrapper.assert_called_with("guest_user_attribute:bool_attr:true")
+
+    # Test list serialization
+    mock_cache_wrapper.reset_mock()
+    cache.get_guest_user_attribute("list_attr")
+    mock_cache_wrapper.assert_called_with(
+        'guest_user_attribute:list_attr:["item1", "item2"]'
+    )
+
+    # Test dict serialization (with sorted keys)
+    mock_cache_wrapper.reset_mock()
+    cache.get_guest_user_attribute("dict_attr")
+    mock_cache_wrapper.assert_called_with(
+        'guest_user_attribute:dict_attr:{"key1": "value1", "key2": "value2"}'
+    )
+
+    # Test None value (should not be added to cache)
+    mock_cache_wrapper.reset_mock()
+    cache.get_guest_user_attribute("null_attr")
+    mock_cache_wrapper.assert_not_called()
+
+    # Test nested dict serialization
+    mock_cache_wrapper.reset_mock()
+    cache.get_guest_user_attribute("nested_dict")
+    expected_json = '{"level1": {"level2": ["array", "items"]}}'
+    mock_cache_wrapper.assert_called_with(
+        f"guest_user_attribute:nested_dict:{expected_json}"
+    )
+
+
+def test_get_guest_user_attribute_json_cache_key_consistency(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test that identical data structures produce identical cache keys regardless
+    of order.
+    """
+    mocker.patch("superset.jinja_context.has_request_context", return_value=True)
+    mock_g = mocker.patch("superset.jinja_context.g")
+
+    # Create two guest users with identical dict data but different key order
+    guest_user1 = mocker.Mock()
+    guest_user1.is_guest_user = True
+    guest_user1.guest_token = {
+        "user": {
+            "username": "test_guest1",
+            "attributes": {
+                "config": {"theme": "dark", "notifications": True, "lang": "en"}
+            },
+        },
+        "resources": [{"type": "dashboard", "id": "test-id"}],
+        "rls_rules": [],
+    }
+
+    guest_user2 = mocker.Mock()
+    guest_user2.is_guest_user = True
+    guest_user2.guest_token = {
+        "user": {
+            "username": "test_guest2",
+            "attributes": {
+                "config": {
+                    "lang": "en",
+                    "theme": "dark",
+                    "notifications": True,
+                }  # Different order
+            },
+        },
+        "resources": [{"type": "dashboard", "id": "test-id"}],
+        "rls_rules": [],
+    }
+
+    cache = ExtraCache()
+    mock_cache_wrapper = mocker.Mock()
+    cache.cache_key_wrapper = mock_cache_wrapper  # type: ignore
+
+    # Test first user
+    mock_g.user = guest_user1
+    cache.get_guest_user_attribute("config")
+    first_call_args = mock_cache_wrapper.call_args[0][0]
+
+    # Test second user
+    mock_cache_wrapper.reset_mock()
+    mock_g.user = guest_user2
+    cache.get_guest_user_attribute("config")
+    second_call_args = mock_cache_wrapper.call_args[0][0]
+
+    # Both should produce the same cache key due to sort_keys=True
+    assert first_call_args == second_call_args
+    expected_json = '{"lang": "en", "notifications": true, "theme": "dark"}'
+    assert first_call_args == f"guest_user_attribute:config:{expected_json}"
+
+
+def test_get_guest_user_attribute_json_edge_cases(mocker: MockerFixture) -> None:
+    """
+    Test edge cases for JSON value handling in get_guest_user_attribute.
+    """
+    mocker.patch("superset.jinja_context.has_request_context", return_value=True)
+    mock_g = mocker.patch("superset.jinja_context.g")
+
+    # Create guest user with edge case attributes
+    guest_user = mocker.Mock()
+    guest_user.is_guest_user = True
+    guest_user.guest_token = {
+        "user": {
+            "username": "test_guest",
+            "attributes": {
+                "zero_int": 0,
+                "zero_float": 0.0,
+                "false_bool": False,
+                "empty_string": "",
+                "whitespace_string": "   ",
+                "special_chars": "Hello \"World\" with 'quotes' and \n newlines",
+                "unicode_string": "Hello 🌍 World",
+                "large_number": 9007199254740991,  # JavaScript MAX_SAFE_INTEGER
+                "scientific_notation": 1.23e-4,
+                "deeply_nested": {
+                    "level1": {"level2": {"level3": {"level4": "deep_value"}}}
+                },
+            },
+        },
+        "resources": [{"type": "dashboard", "id": "test-id"}],
+        "rls_rules": [],
+    }
+    mock_g.user = guest_user
+
+    cache = ExtraCache()
+
+    # Test zero values (should not be confused with falsy defaults)
+    assert cache.get_guest_user_attribute("zero_int") == 0
+    assert cache.get_guest_user_attribute("zero_float") == 0.0
+    assert cache.get_guest_user_attribute("false_bool") is False
+
+    # Test empty string (should not be confused with None)
+    assert cache.get_guest_user_attribute("empty_string") == ""
+    assert cache.get_guest_user_attribute("whitespace_string") == "   "
+
+    # Test special characters
+    result = cache.get_guest_user_attribute("special_chars")
+    assert result == "Hello \"World\" with 'quotes' and \n newlines"
+
+    # Test unicode
+    result = cache.get_guest_user_attribute("unicode_string")
+    assert result == "Hello 🌍 World"
+
+    # Test large numbers
+    result = cache.get_guest_user_attribute("large_number")
+    assert result == 9007199254740991
+
+    # Test scientific notation
+    result = cache.get_guest_user_attribute("scientific_notation")
+    assert result == 1.23e-4
+
+    # Test deeply nested structure
+    result = cache.get_guest_user_attribute("deeply_nested")
+    expected = {"level1": {"level2": {"level3": {"level4": "deep_value"}}}}
+    assert result == expected
+
+    # Test accessing nested values works
+    if isinstance(result, dict):
+        level1 = result["level1"]
+        if isinstance(level1, dict):
+            level2 = level1["level2"]
+            if isinstance(level2, dict):
+                level3 = level2["level3"]
+                if isinstance(level3, dict):
+                    assert level3["level4"] == "deep_value"
 
 
 def test_guest_token_serialization_with_attributes() -> None:

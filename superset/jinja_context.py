@@ -89,6 +89,11 @@ ALLOWED_TYPES = (
 )
 COLLECTION_TYPES = ("list", "dict", "tuple", "set")
 
+# Type alias for JSON-native types
+JsonValue = Union[
+    str, int, float, bool, list["JsonValue"], dict[str, "JsonValue"], None
+]
+
 
 @lru_cache(maxsize=LRU_CACHE_MAX_SIZE)
 def context_addons() -> dict[str, Any]:
@@ -304,19 +309,31 @@ class ExtraCache:
     def get_guest_user_attribute(
         self,
         attribute_name: str,
-        default: str | None = None,
+        default: JsonValue = None,
         add_to_cache_keys: bool = True,
-    ) -> str | None:
+    ) -> JsonValue:
         """
         Get a specific user attribute from guest user.
 
+        This function retrieves attributes from the guest user token and supports
+        all JSON-native types (string, number, boolean, array, object, null).
+
         Args:
             attribute_name: Name of the attribute to retrieve
-            default: Default value if attribute not found
+            default: Default value if attribute not found (can be any JSON-native type)
             add_to_cache_keys: Whether the value should be included in the cache key
 
         Returns:
-            Attribute value or default
+            The attribute value from the guest user token, or the default value.
+            Can be any JSON-native type: string, number, boolean, array, object, or
+            null.
+
+        Examples:
+            {{ get_guest_user_attribute('department') }}  # Returns: "Engineering"
+            {{ get_guest_user_attribute('is_admin') }}    # Returns: True
+            {{ get_guest_user_attribute('permissions') }} # Returns: ["read", "write"]
+            {{ get_guest_user_attribute('config') }}      # Returns: {"theme": "dark"}
+            {{ get_guest_user_attribute('missing', 'default') }} # Returns: "default"
         """
 
         # Check if we have a request context and user
@@ -342,8 +359,10 @@ class ExtraCache:
             if attribute_name in user_attributes:
                 result = user_attributes[attribute_name]
                 if add_to_cache_keys and result is not None:
+                    # Use json.dumps for consistent serialization of all types
+                    cache_value = json.dumps(result, sort_keys=True)
                     self.cache_key_wrapper(
-                        f"guest_user_attribute:{attribute_name}:{result}"
+                        f"guest_user_attribute:{attribute_name}:{cache_value}"
                     )
                 return result
             else:
