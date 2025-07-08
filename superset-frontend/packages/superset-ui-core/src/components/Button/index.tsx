@@ -134,7 +134,6 @@ export function Button(props: ButtonProps) {
         marginLeft: 0,
         '& + .superset-button': {
           marginLeft: theme.sizeUnit * 2,
-          boxShadow: 'unset',
         },
         '& svg': {
           marginRight: firstChildMargin,
