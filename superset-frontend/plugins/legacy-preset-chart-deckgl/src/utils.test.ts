@@ -26,8 +26,7 @@ describe('getColorBreakpointsBuckets', () => {
       { minValue: 11, maxValue: 20, color: { r: 0, g: 255, b: 0, a: 100 } },
       { minValue: 21, maxValue: 30, color: { r: 0, g: 0, b: 255, a: 100 } },
     ];
-    const fd = { color_breakpoints };
-    const result = getColorBreakpointsBuckets(fd as any);
+    const result = getColorBreakpointsBuckets(color_breakpoints);
     expect(result).toEqual({
       '0 - 10': { color: [255, 0, 0], enabled: true },
       '11 - 20': { color: [0, 255, 0], enabled: true },
@@ -36,14 +35,12 @@ describe('getColorBreakpointsBuckets', () => {
   });
 
   it('returns empty object if color_breakpoints is empty', () => {
-    const fd = { color_breakpoints: [] };
-    const result = getColorBreakpointsBuckets(fd as any);
+    const result = getColorBreakpointsBuckets([]);
     expect(result).toEqual({});
   });
 
   it('returns empty object if color_breakpoints is missing', () => {
-    const fd = {};
-    const result = getColorBreakpointsBuckets(fd as any);
+    const result = getColorBreakpointsBuckets({} as any);
     expect(result).toEqual({});
   });
 });

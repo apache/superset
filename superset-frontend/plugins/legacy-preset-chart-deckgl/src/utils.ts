@@ -241,8 +241,13 @@ export function buildTileLayer(url: string, id: string) {
 export function getColorBreakpointsBuckets(
   colorBreakpoints: ColorBreakpointType[],
 ) {
-  const buckets: Record<string, { color: Color; enabled: boolean }> = {};
   const breakpoints = colorBreakpoints || [];
+
+  const buckets: Record<string, { color: Color; enabled: boolean }> = {};
+
+  if (!breakpoints || !breakpoints.length) {
+    return buckets;
+  }
 
   breakpoints.forEach((breakpoint: ColorBreakpointType) => {
     const range = `${breakpoint.minValue} - ${breakpoint.maxValue}`;
