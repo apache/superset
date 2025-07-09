@@ -30,6 +30,9 @@ import {
 // eslint-disable-next-line import/prefer-default-export
 export const useNativeFilters = () => {
   const [isInitialized, setIsInitialized] = useState(false);
+  const showNativeFilters = useSelector<RootState, boolean>(
+    () => getUrlParam(URL_PARAMS.showFilters) ?? true,
+  );
   const canEdit = useSelector<RootState, boolean>(
     ({ dashboardInfo }) => dashboardInfo.dash_edit_perm,
   );
@@ -42,7 +45,7 @@ export const useNativeFilters = () => {
   );
 
   const nativeFiltersEnabled =
-    canEdit || (!canEdit && filterValues.length !== 0);
+    showNativeFilters && (canEdit || (!canEdit && filterValues.length !== 0));
 
   const requiredFirstFilter = useMemo(
     () => filterValues.filter(filter => filter.requiredFirst),

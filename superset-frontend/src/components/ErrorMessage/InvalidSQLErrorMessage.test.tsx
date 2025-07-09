@@ -18,7 +18,7 @@
 
 import { render, cleanup } from 'spec/helpers/testing-library';
 import { ErrorLevel, ErrorSource, ErrorTypeEnum } from '@superset-ui/core';
-import InvalidSQLErrorMessage from './InvalidSQLErrorMessage';
+import { InvalidSQLErrorMessage } from './InvalidSQLErrorMessage';
 
 const defaultProps = {
   error: {
@@ -34,6 +34,21 @@ const defaultProps = {
   },
   source: 'test' as ErrorSource,
   subtitle: 'Test subtitle',
+};
+
+const missingExtraProps = {
+  ...defaultProps,
+  error: {
+    error_type: ErrorTypeEnum.INVALID_SQL_ERROR,
+    message: 'SQLStatement should have exactly one statement',
+    level: 'error' as ErrorLevel,
+    extra: {
+      sql: null,
+      line: null,
+      column: null,
+      engine: null,
+    },
+  },
 };
 
 const renderComponent = (overrides = {}) =>
@@ -58,6 +73,12 @@ describe('InvalidSQLErrorMessage', () => {
     expect(getByText('SELECT * FFROM table')).toBeInTheDocument();
 
     unmount();
+  });
+
+  it('renders the error message with the empty extra properties', () => {
+    const { getByText } = renderComponent(missingExtraProps);
+    expect(getByText('Unable to parse SQL')).toBeInTheDocument();
+    expect(getByText(missingExtraProps.error.message)).toBeInTheDocument();
   });
 
   it('displays the SQL error line and column indicator', async () => {

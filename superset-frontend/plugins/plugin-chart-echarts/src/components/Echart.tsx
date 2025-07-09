@@ -25,11 +25,13 @@ import {
   useLayoutEffect,
   useCallback,
   Ref,
+  useState,
 } from 'react';
+import { merge } from 'lodash';
 
 import { useSelector } from 'react-redux';
 
-import { styled } from '@superset-ui/core';
+import { styled, themeObject } from '@superset-ui/core';
 import { use, init, EChartsType, registerLocale } from 'echarts/core';
 import {
   SankeyChart,
@@ -46,10 +48,12 @@ import {
   TreemapChart,
   HeatmapChart,
   SunburstChart,
+  CustomChart,
 } from 'echarts/charts';
 import { CanvasRenderer } from 'echarts/renderers';
 import {
   TooltipComponent,
+  TitleComponent,
   GridComponent,
   VisualMapComponent,
   LegendComponent,
@@ -81,6 +85,7 @@ use([
   CanvasRenderer,
   BarChart,
   BoxplotChart,
+  CustomChart,
   FunnelChart,
   GaugeChart,
   GraphChart,
@@ -102,9 +107,59 @@ use([
   LegendComponent,
   ToolboxComponent,
   TooltipComponent,
+  TitleComponent,
   VisualMapComponent,
   LabelLayout,
 ]);
+
+const loadLocale = async (locale: string) => {
+  let lang;
+  try {
+    lang = await import(`echarts/lib/i18n/lang${locale}`);
+  } catch (e) {
+    console.error(`Locale ${locale} not supported in ECharts`, e);
+  }
+  return lang?.default;
+};
+
+const getTheme = (options: any) => {
+  const token = themeObject.theme;
+  const theme = {
+    textStyle: {
+      color: token.colorText,
+      fontFamily: token.fontFamily,
+    },
+    title: {
+      textStyle: { color: token.colorText },
+    },
+    legend: {
+      textStyle: { color: token.colorTextSecondary },
+    },
+    tooltip: {
+      backgroundColor: token.colorBgContainer,
+      textStyle: { color: token.colorText },
+    },
+    axisPointer: {
+      lineStyle: { color: token.colorPrimary },
+      label: { color: token.colorText },
+    },
+  } as any;
+  if (options?.xAxis) {
+    theme.xAxis = {
+      axisLine: { lineStyle: { color: token.colorSplit } },
+      axisLabel: { color: token.colorTextSecondary },
+      splitLine: { lineStyle: { color: token.colorSplit } },
+    };
+  }
+  if (options?.yAxis) {
+    theme.yAxis = {
+      axisLine: { lineStyle: { color: token.colorSplit } },
+      axisLabel: { color: token.colorTextSecondary },
+      splitLine: { lineStyle: { color: token.colorSplit } },
+    };
+  }
+  return theme;
+};
 
 function Echart(
   {
@@ -123,6 +178,7 @@ function Echart(
     // eslint-disable-next-line no-param-reassign
     refs.divRef = divRef;
   }
+  const [didMount, setDidMount] = useState(false);
   const chartRef = useRef<EChartsType>();
   const currentSelection = useMemo(
     () => Object.keys(selectedValues) || [],
@@ -148,20 +204,20 @@ function Echart(
   );
 
   useEffect(() => {
-    const loadLocaleAndInitChart = async () => {
-      if (!divRef.current) return;
-
-      const lang = await import(`echarts/lib/i18n/lang${locale}`).catch(e => {
-        console.error(`Locale ${locale} not supported in ECharts`, e);
-      });
-      if (lang?.default) {
-        registerLocale(locale, lang.default);
+    loadLocale(locale).then(localeObj => {
+      if (localeObj) {
+        registerLocale(locale, localeObj);
       }
-
+      if (!divRef.current) return;
       if (!chartRef.current) {
         chartRef.current = init(divRef.current, null, { locale });
       }
+      setDidMount(true);
+    });
+  }, [locale]);
 
+  useEffect(() => {
+    if (didMount) {
       Object.entries(eventHandlers || {}).forEach(([name, handler]) => {
         chartRef.current?.off(name);
         chartRef.current?.on(name, handler);
@@ -172,14 +228,19 @@ function Echart(
         chartRef.current?.getZr().on(name, handler);
       });
 
-      chartRef.current.setOption(echartOptions, true);
+      const themedEchartOptions = merge(
+        {},
+        getTheme(echartOptions),
+        echartOptions,
+      );
+      chartRef.current?.setOption(themedEchartOptions, true);
 
       // did mount
       handleSizeChange({ width, height });
-    };
+    }
+  }, [didMount, echartOptions, eventHandlers, zrEventHandlers]);
 
-    loadLocaleAndInitChart();
-  }, [echartOptions, eventHandlers, zrEventHandlers, locale]);
+  useEffect(() => () => chartRef.current?.dispose(), []);
 
   // highlighting
   useEffect(() => {

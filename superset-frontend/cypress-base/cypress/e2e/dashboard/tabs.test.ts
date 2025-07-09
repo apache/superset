@@ -116,7 +116,7 @@ describe('Dashboard tabs', () => {
       });
     });
 
-    cy.intercept('/superset/explore_json/?*').as('legacyChartData');
+    cy.intercept('**/superset/explore_json/?*').as('legacyChartData');
     // click row level tab, send 1 more query
     cy.get('.ant-tabs-tab').contains('row tab 2').click();
 
@@ -131,7 +131,7 @@ describe('Dashboard tabs', () => {
       expect(requestParams.viz_type).eq(LINE_CHART.viz);
     });
 
-    cy.intercept('POST', '/api/v1/chart/data?*').as('v1ChartData');
+    cy.intercept('POST', '**/api/v1/chart/data?*').as('v1ChartData');
 
     // click top level tab, send 1 more query
     cy.get('.ant-tabs-tab').contains('Tab B').click();

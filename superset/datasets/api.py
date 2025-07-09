@@ -35,7 +35,7 @@ from flask_babel import ngettext
 from jinja2.exceptions import TemplateSyntaxError
 from marshmallow import ValidationError
 
-from superset import event_logger
+from superset import event_logger, is_feature_enabled
 from superset.commands.dataset.create import CreateDatasetCommand
 from superset.commands.dataset.delete import DeleteDatasetCommand
 from superset.commands.dataset.duplicate import DuplicateDatasetCommand
@@ -194,8 +194,10 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         "metrics.id",
         "metrics.metric_name",
         "metrics.metric_type",
+        "metrics.uuid",
         "metrics.verbose_name",
         "metrics.warning_text",
+        "folders",
         "datasource_type",
         "url",
         "extra",
@@ -219,7 +221,6 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         "datasource_name",
         "name",
         "column_formats",
-        "currency_formats",
         "granularity_sqla",
         "time_grain_sqla",
         "order_by_choices",
@@ -276,6 +277,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         "table_name",
         "created_by",
         "changed_by",
+        "uuid",
     ]
     allowed_rel_fields = {"database", "owners", "created_by", "changed_by"}
     allowed_distinct_fields = {"catalog", "schema"}
@@ -621,9 +623,11 @@ class DatasetRestApi(BaseSupersetModelRestApi):
             return self.response(201, id=new_model.id, result=item)
         except DatasetInvalidError as ex:
             return self.response_422(
-                message=ex.normalized_messages()
-                if isinstance(ex, ValidationError)
-                else str(ex)
+                message=(
+                    ex.normalized_messages()
+                    if isinstance(ex, ValidationError)
+                    else str(ex)
+                )
             )
         except DatasetCreateFailedError as ex:
             logger.error(
@@ -1152,6 +1156,14 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         response["id"] = pk
         response[API_RESULT_RES_KEY] = show_model_schema.dump(item, many=False)
 
+        # remove folders from resposne if `DATASET_FOLDERS` is disabled, so that it's
+        # possible to inspect if the feature is supported or not
+        if (
+            not is_feature_enabled("DATASET_FOLDERS")
+            and "folders" in response[API_RESULT_RES_KEY]
+        ):
+            del response[API_RESULT_RES_KEY]["folders"]
+
         if parse_boolean_string(request.args.get("include_rendered_sql")):
             try:
                 processor = get_template_processor(database=item.database)
@@ -1176,14 +1188,16 @@ class DatasetRestApi(BaseSupersetModelRestApi):
 
         def render_item_list(item_list: list[dict[str, Any]]) -> list[dict[str, Any]]:
             return [
-                {
-                    **item,
-                    "rendered_expression": processor.process_template(
-                        item["expression"]
-                    ),
-                }
-                if item.get("expression")
-                else item
+                (
+                    {
+                        **item,
+                        "rendered_expression": processor.process_template(
+                            item["expression"]
+                        ),
+                    }
+                    if item.get("expression")
+                    else item
+                )
                 for item in item_list
             ]
 

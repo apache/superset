@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 
-from typing import Any
+from typing import Any, Optional
 
 from marshmallow import Schema
 from sqlalchemy.orm import Session  # noqa: F401
@@ -43,7 +43,11 @@ class ImportSavedQueriesCommand(ImportModelsCommand):
     import_error = SavedQueryImportError
 
     @staticmethod
-    def _import(configs: dict[str, Any], overwrite: bool = False) -> None:
+    def _import(
+        configs: dict[str, Any],
+        overwrite: bool = False,
+        contents: Optional[dict[str, Any]] = None,
+    ) -> None:
         # discover databases associated with saved queries
         database_uuids: set[str] = set()
         for file_name, config in configs.items():

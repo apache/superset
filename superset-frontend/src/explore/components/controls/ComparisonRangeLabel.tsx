@@ -19,7 +19,7 @@
 
 import { useEffect, useState } from 'react';
 import { useSelector } from 'react-redux';
-import { isEmpty, isEqual } from 'lodash';
+import { isEmpty, isEqual, noop } from 'lodash';
 import {
   BinaryAdhocFilter,
   css,
@@ -35,7 +35,7 @@ import ControlHeader, {
 } from 'src/explore/components/ControlHeader';
 import { RootState } from 'src/views/store';
 import { DEFAULT_DATE_PATTERN } from '@superset-ui/chart-controls';
-import { extendedDayjs } from 'src/utils/dates';
+import { extendedDayjs } from '@superset-ui/core/utils/dates';
 
 const DAYJS_FORMAT = 'YYYY-MM-DD';
 
@@ -61,6 +61,8 @@ const oldChoices = {
 export const ComparisonRangeLabel = ({
   multi = true,
 }: ComparisonRangeLabelProps) => {
+  noop(multi); // This is to avoid unused variable warning, can be removed if not needed
+
   const [labels, setLabels] = useState<string[]>([]);
   const currentTimeRangeFilters = useSelector<RootState, BinaryAdhocFilter[]>(
     state =>
@@ -182,8 +184,8 @@ export const ComparisonRangeLabel = ({
         <>
           <div
             css={theme => css`
-              font-size: ${theme.typography.sizes.m}px;
-              color: ${theme.colors.grayscale.dark1};
+              font-size: ${theme.fontSize}px;
+              color: ${theme.colorText};
             `}
             key={label}
           >

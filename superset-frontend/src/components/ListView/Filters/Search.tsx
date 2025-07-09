@@ -24,13 +24,17 @@ import {
   ChangeEvent,
 } from 'react';
 
-import { t, styled, useTheme, css } from '@superset-ui/core';
-import Icons from 'src/components/Icons';
-import { Input as AntdInput } from 'src/components/Input';
-import { SELECT_WIDTH } from 'src/components/ListView/utils';
-import { FormLabel } from 'src/components/Form';
-import InfoTooltip from 'src/components/InfoTooltip';
-import { BaseFilter, FilterHandler } from './Base';
+import { t, styled, useTheme } from '@superset-ui/core';
+import {
+  Input,
+  InfoTooltip,
+  FormLabel,
+  Icons,
+  Flex,
+} from '@superset-ui/core/components';
+import type { BaseFilter, FilterHandler } from './types';
+import { FilterContainer } from './Base';
+import { SELECT_WIDTH } from '../utils';
 
 interface SearchHeaderProps extends BaseFilter {
   Header: string;
@@ -39,12 +43,8 @@ interface SearchHeaderProps extends BaseFilter {
   toolTipDescription: string | undefined;
 }
 
-const Container = styled.div`
-  width: ${SELECT_WIDTH}px;
-`;
-
-const StyledInput = styled(AntdInput)`
-  border-radius: ${({ theme }) => theme.gridUnit}px;
+const StyledInput = styled(Input)`
+  border-radius: ${({ theme }) => theme.borderRadius}px;
 `;
 
 function SearchFilter(
@@ -79,18 +79,17 @@ function SearchFilter(
   }));
 
   return (
-    <Container>
-      <div
-        css={css`
-          display: flex;
-          align-items: start;
-        `}
-      >
+    <FilterContainer
+      data-test="search-filter-container"
+      width={SELECT_WIDTH}
+      vertical
+      justify="center"
+      align="start"
+    >
+      <Flex>
         <FormLabel>{Header}</FormLabel>
-        {toolTipDescription && (
-          <InfoTooltip tooltip={toolTipDescription} viewBox="0 -7 28 28" />
-        )}
-      </div>
+        {toolTipDescription && <InfoTooltip tooltip={toolTipDescription} />}
+      </Flex>
       <StyledInput
         allowClear
         data-test="filters-search"
@@ -107,7 +106,7 @@ function SearchFilter(
           />
         }
       />
-    </Container>
+    </FilterContainer>
   );
 }
 

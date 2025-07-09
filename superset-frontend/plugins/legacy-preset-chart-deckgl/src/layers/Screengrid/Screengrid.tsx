@@ -18,23 +18,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-/* eslint no-underscore-dangle: ["error", { "allow": ["", "__timestamp"] }] */
 
-import { memo, useCallback, useEffect, useRef, useState } from 'react';
 import { ScreenGridLayer } from '@deck.gl/aggregation-layers';
-import { JsonObject, JsonValue, QueryFormData, t } from '@superset-ui/core';
+import { JsonObject, t } from '@superset-ui/core';
 import sandboxedEval from '../../utils/sandbox';
 import { commonLayerProps } from '../common';
 import TooltipRow from '../../TooltipRow';
-// eslint-disable-next-line import/extensions
-import fitViewport, { Viewport } from '../../utils/fitViewport';
-import {
-  DeckGLContainerHandle,
-  DeckGLContainerStyledWrapper,
-} from '../../DeckGLContainer';
-import { TooltipProps } from '../../components/Tooltip';
+import { GetLayerType, createDeckGLComponent } from '../../factory';
 
-function getPoints(data: JsonObject[]) {
+export function getPoints(data: JsonObject[]) {
   return data.map(d => d.position);
 }
 
@@ -55,12 +47,15 @@ function setTooltipContent(o: JsonObject) {
   );
 }
 
-export function getLayer(
-  formData: QueryFormData,
-  payload: JsonObject,
-  onAddFilter: () => void,
-  setTooltip: (tooltip: TooltipProps['tooltip']) => void,
-) {
+export const getLayer: GetLayerType<ScreenGridLayer> = function ({
+  formData,
+  setDataMask,
+  filterState,
+  onContextMenu,
+  payload,
+  setTooltip,
+  emitCrossFilters,
+}) {
   const fd = formData;
   const c = fd.color_picker;
   let data = payload.data.features.map((d: JsonObject) => ({
@@ -84,77 +79,16 @@ export function getLayer(
     maxColor: [c.r, c.g, c.b, 255 * c.a],
     outline: false,
     getWeight: (d: any) => d.weight || 0,
-    ...commonLayerProps(fd, setTooltip, setTooltipContent),
+    ...commonLayerProps({
+      formData: fd,
+      setDataMask,
+      setTooltip,
+      setTooltipContent,
+      filterState,
+      onContextMenu,
+      emitCrossFilters,
+    }),
   });
-}
-
-export type DeckGLScreenGridProps = {
-  formData: QueryFormData;
-  payload: JsonObject;
-  setControlValue: (control: string, value: JsonValue) => void;
-  viewport: Viewport;
-  width: number;
-  height: number;
-  onAddFilter: () => void;
 };
 
-const DeckGLScreenGrid = (props: DeckGLScreenGridProps) => {
-  const containerRef = useRef<DeckGLContainerHandle>();
-
-  const getAdjustedViewport = useCallback(() => {
-    const features = props.payload.data.features || [];
-
-    const { width, height, formData } = props;
-
-    if (formData.autozoom) {
-      return fitViewport(props.viewport, {
-        width,
-        height,
-        points: getPoints(features),
-      });
-    }
-    return props.viewport;
-  }, [props]);
-
-  const [stateFormData, setStateFormData] = useState(props.payload.form_data);
-  const [viewport, setViewport] = useState(getAdjustedViewport());
-
-  useEffect(() => {
-    if (props.payload.form_data !== stateFormData) {
-      setViewport(getAdjustedViewport());
-      setStateFormData(props.payload.form_data);
-    }
-  }, [getAdjustedViewport, props.payload.form_data, stateFormData]);
-
-  const setTooltip = useCallback((tooltip: TooltipProps['tooltip']) => {
-    const { current } = containerRef;
-    if (current) {
-      current.setTooltip(tooltip);
-    }
-  }, []);
-
-  const getLayers = useCallback(() => {
-    const layer = getLayer(props.formData, props.payload, () => {}, setTooltip);
-
-    return [layer];
-  }, [props.formData, props.payload, setTooltip]);
-
-  const { formData, payload, setControlValue } = props;
-
-  return (
-    <div>
-      <DeckGLContainerStyledWrapper
-        ref={containerRef}
-        viewport={viewport}
-        layers={getLayers()}
-        setControlValue={setControlValue}
-        mapStyle={formData.mapbox_style}
-        mapboxApiAccessToken={payload.data.mapboxApiKey}
-        width={props.width}
-        height={props.height}
-      />
-    </div>
-  );
-};
-
-export default memo(DeckGLScreenGrid);
+export default createDeckGLComponent(getLayer, getPoints);

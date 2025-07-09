@@ -21,7 +21,7 @@ import { Position } from '@deck.gl/core';
 import { t } from '@superset-ui/core';
 import { commonLayerProps } from '../common';
 import sandboxedEval from '../../utils/sandbox';
-import { createDeckGLComponent, getLayerType } from '../../factory';
+import { GetLayerType, createDeckGLComponent } from '../../factory';
 import { ColorType } from '../../types';
 import TooltipRow from '../../TooltipRow';
 
@@ -39,12 +39,15 @@ function setTooltipContent(o: any) {
     </div>
   );
 }
-export const getLayer: getLayerType<unknown> = function (
+export const getLayer: GetLayerType<ContourLayer> = function ({
   formData,
   payload,
-  onAddFilter,
+  filterState,
+  setDataMask,
+  onContextMenu,
   setTooltip,
-) {
+  emitCrossFilters,
+}) {
   const fd = formData;
   const {
     aggregation = 'SUM',
@@ -93,11 +96,19 @@ export const getLayer: getLayerType<unknown> = function (
     getPosition: (d: { position: number[]; weight: number }) =>
       d.position as Position,
     getWeight: (d: { weight: number }) => d.weight || 0,
-    ...commonLayerProps(fd, setTooltip, setTooltipContent),
+    ...commonLayerProps({
+      formData: fd,
+      setTooltip,
+      setTooltipContent,
+      onContextMenu,
+      setDataMask,
+      filterState,
+      emitCrossFilters,
+    }),
   });
 };
 
-function getPoints(data: any[]) {
+export function getPoints(data: any[]) {
   return data.map(d => d.position);
 }
 

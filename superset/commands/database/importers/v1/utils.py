@@ -69,7 +69,11 @@ def import_database(
     # Before it gets removed in import_from_dict
     ssh_tunnel_config = config.pop("ssh_tunnel", None)
 
+    # set SQLAlchemy URI via `set_sqlalchemy_uri` so that the password gets masked
+    sqlalchemy_uri = config.pop("sqlalchemy_uri")
     database: Database = Database.import_from_dict(config, recursive=False)
+    database.set_sqlalchemy_uri(sqlalchemy_uri)
+
     if database.id is None:
         db.session.flush()
 

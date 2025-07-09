@@ -17,11 +17,13 @@
  * under the License.
  */
 import * as redux from 'redux';
+import { useUnsavedChangesPrompt } from 'src/hooks/useUnsavedChangesPrompt';
 import {
   render,
   screen,
   fireEvent,
   userEvent,
+  within,
 } from 'spec/helpers/testing-library';
 import fetchMock from 'fetch-mock';
 import { getExtensionsRegistry, JsonObject } from '@superset-ui/core';
@@ -166,6 +168,10 @@ const onRefresh = jest.fn();
 const dashboardInfoChanged = jest.fn();
 const dashboardTitleChanged = jest.fn();
 
+jest.mock('src/hooks/useUnsavedChangesPrompt', () => ({
+  useUnsavedChangesPrompt: jest.fn(),
+}));
+
 beforeAll(() => {
   jest.spyOn(redux, 'bindActionCreators').mockImplementation(() => ({
     addSuccessToast,
@@ -195,6 +201,15 @@ beforeAll(() => {
 
 beforeEach(() => {
   jest.clearAllMocks();
+
+  (useUnsavedChangesPrompt as jest.Mock).mockReturnValue({
+    showModal: false,
+    setShowModal: jest.fn(),
+    handleConfirmNavigation: jest.fn(),
+    handleSaveAndCloseModal: jest.fn(),
+  });
+
+  window.history.pushState({}, 'Test page', '/dashboard?standalone=1');
 });
 
 test('should render', () => {
@@ -204,7 +219,7 @@ test('should render', () => {
 
 test('should render the title', () => {
   setup();
-  expect(screen.getByTestId('editable-title')).toHaveTextContent(
+  expect(screen.getByTestId('editable-title-input')).toHaveDisplayValue(
     'Dashboard Title',
   );
 });
@@ -438,6 +453,36 @@ test('should NOT render MetadataBar when embedded', () => {
   ).not.toBeInTheDocument();
 });
 
+test('should hide edit button and navbar, and show Exit fullscreen when in fullscreen mode', () => {
+  const fullscreenState = {
+    ...initialState,
+    dashboardState: {
+      ...initialState.dashboardState,
+      isFullscreenMode: true,
+    },
+  };
+
+  setup(fullscreenState);
+  expect(screen.queryByTestId('edit-dashboard-button')).not.toBeInTheDocument();
+  expect(screen.getByTestId('actions-trigger')).toBeInTheDocument();
+  expect(screen.queryByTestId('main-navigation')).not.toBeInTheDocument();
+});
+
+test('should show Exit fullscreen when in fullscreen mode', async () => {
+  setup();
+
+  fireEvent.click(screen.getByTestId('actions-trigger'));
+
+  expect(await screen.findByText('Exit fullscreen')).toBeInTheDocument();
+});
+
+test('should have fullscreen option in dropdown', async () => {
+  setup();
+  await openActionsDropdown();
+  expect(screen.getByText('Exit fullscreen')).toBeInTheDocument();
+  expect(screen.queryByText('Enter fullscreen')).not.toBeInTheDocument();
+});
+
 test('should render MetadataBar when not in edit mode and not embedded', () => {
   const state = {
     dashboardInfo: {
@@ -449,4 +494,92 @@ test('should render MetadataBar when not in edit mode and not embedded', () => {
   expect(
     screen.getByText(state.dashboardInfo.changed_on_delta_humanized),
   ).toBeInTheDocument();
+});
+
+test('should show UnsavedChangesModal when there are unsaved changes and user tries to navigate', async () => {
+  (useUnsavedChangesPrompt as jest.Mock).mockReturnValue({
+    showModal: true,
+    setShowModal: jest.fn(),
+    handleConfirmNavigation: jest.fn(),
+    handleSaveAndCloseModal: jest.fn(),
+  });
+
+  setup({ ...editableState });
+
+  const modalTitle: HTMLElement = await screen.findByText(
+    'Save changes to your dashboard?',
+  );
+
+  const modalBody: HTMLElement = await screen.findByText(
+    "If you don't save, changes will be lost.",
+  );
+
+  expect(modalTitle).toBeInTheDocument();
+  expect(modalBody).toBeInTheDocument();
+});
+
+test('should call handleSaveAndCloseModal when Save is clicked in UnsavedChangesModal', async () => {
+  const handleSaveAndCloseModal = jest.fn();
+
+  (useUnsavedChangesPrompt as jest.Mock).mockReturnValue({
+    showModal: true,
+    setShowModal: jest.fn(),
+    handleConfirmNavigation: jest.fn(),
+    handleSaveAndCloseModal,
+  });
+
+  setup({ ...editableState });
+
+  const modal: HTMLElement = await screen.findByRole('dialog');
+  const saveButton: HTMLElement = within(modal).getByRole('button', {
+    name: /save/i,
+  });
+
+  userEvent.click(saveButton);
+
+  expect(handleSaveAndCloseModal).toHaveBeenCalled();
+});
+
+test('should call handleConfirmNavigation when user confirms navigation in UnsavedChangesModal', async () => {
+  const handleConfirmNavigation = jest.fn();
+
+  (useUnsavedChangesPrompt as jest.Mock).mockReturnValue({
+    showModal: true,
+    setShowModal: jest.fn(),
+    handleConfirmNavigation,
+    handleSaveAndCloseModal: jest.fn(),
+  });
+
+  setup({ ...editableState });
+
+  const modal: HTMLElement = await screen.findByRole('dialog');
+  const discardButton: HTMLElement = within(modal).getByRole('button', {
+    name: /discard/i,
+  });
+
+  userEvent.click(discardButton);
+
+  expect(handleConfirmNavigation).toHaveBeenCalled();
+});
+
+test('should call setShowUnsavedChangesModal(false) on cancel', async () => {
+  const setShowModal = jest.fn();
+
+  (useUnsavedChangesPrompt as jest.Mock).mockReturnValue({
+    showModal: true,
+    setShowModal,
+    handleConfirmNavigation: jest.fn(),
+    handleSaveAndCloseModal: jest.fn(),
+  });
+
+  setup({ ...editableState });
+
+  const modal: HTMLElement = await screen.findByRole('dialog');
+  const closeButton: HTMLElement = within(modal).getByRole('button', {
+    name: /close/i,
+  });
+
+  userEvent.click(closeButton);
+
+  expect(setShowModal).toHaveBeenCalledWith(false);
 });

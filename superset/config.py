@@ -67,7 +67,7 @@ logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
     from flask_appbuilder.security.sqla import models
-    from sqlglot import Dialect, Dialects
+    from sqlglot import Dialect, Dialects  # pylint: disable=disallowed-sql-import
 
     from superset.connectors.sqla.models import SqlaTable
     from superset.models.core import Database
@@ -86,6 +86,10 @@ STATS_LOGGER = DummyStatsLogger()
 EVENT_LOGGER = DBEventLogger()
 
 SUPERSET_LOG_VIEW = True
+
+# This config is used to enable/disable the folowing security menu items:
+# List Users, List Roles, List Groups
+SUPERSET_SECURITY_VIEW_MENU = True
 
 BASE_DIR = str(files("superset"))
 if "SUPERSET_HOME" in os.environ:
@@ -211,7 +215,7 @@ SQLALCHEMY_ENGINE_OPTIONS = {}
 # implement a function that takes a single argument of type 'sqla.engine.url',
 # returns a password and set SQLALCHEMY_CUSTOM_PASSWORD_STORE.
 #
-# e.g.:
+# example:
 # def lookup_password(url):
 #     return 'secret'
 # SQLALCHEMY_CUSTOM_PASSWORD_STORE = lookup_password
@@ -418,6 +422,29 @@ class D3Format(TypedDict, total=False):
 D3_FORMAT: D3Format = {}
 
 
+# Override the default mapbox tiles
+# Default values are equivalent to
+# DECKGL_BASE_MAP = [
+#   ['https://tile.openstreetmap.org/{z}/{x}/{y}.png', 'Streets (OSM)'],
+#   ['https://tile.osm.ch/osm-swiss-style/{z}/{x}/{y}.png', 'Topography (OSM)'],
+#   ['mapbox://styles/mapbox/streets-v9', 'Streets'],
+#   ['mapbox://styles/mapbox/dark-v9', 'Dark'],
+#   ['mapbox://styles/mapbox/light-v9', 'Light'],
+#   ['mapbox://styles/mapbox/satellite-streets-v9', 'Satellite Streets'],
+#   ['mapbox://styles/mapbox/satellite-v9', 'Satellite'],
+#   ['mapbox://styles/mapbox/outdoors-v9', 'Outdoors'],
+# ]
+# for adding your own map tiles, you can use the following format:
+# - tile:// + your_personal_url or openstreetmap_url
+#   example:
+#   DECKGL_BASE_MAP = [
+#       ['tile://https://c.tile.openstreetmap.org/{z}/{x}/{y}.png', 'OpenStreetMap']
+#    ]
+# Enable CORS and set map url in origins option.
+# Add also map url in connect-src of TALISMAN_CONFIG variable
+DECKGL_BASE_MAP: list[list[str, str]] = None
+
+
 # Override the default d3 locale for time format
 # Default values are equivalent to
 # D3_TIME_FORMAT = {
@@ -553,7 +580,8 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     "PLAYWRIGHT_REPORTS_AND_THUMBNAILS": False,
     # Set to True to enable experimental chart plugins
     "CHART_PLUGINS_EXPERIMENTAL": False,
-    # Regardless of database configuration settings, force SQLLAB to run async using Celery  # noqa: E501
+    # Regardless of database configuration settings, force SQLLAB to run async
+    # using Celery
     "SQLLAB_FORCE_RUN_ASYNC": False,
     # Set to True to to enable factory resent CLI command
     "ENABLE_FACTORY_RESET_COMMAND": False,
@@ -561,8 +589,25 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # If on, you'll want to add "https://avatars.slack-edge.com" to the list of allowed
     # domains in your TALISMAN_CONFIG
     "SLACK_ENABLE_AVATARS": False,
-    # Allow users to optionally specify date formats in email subjects, which will be parsed if enabled. # noqa: E501
+    # Adds a switch to the navbar to easily switch between light and dark themes.
+    # This is intended to use for development, visual review, and theming-debugging
+    # purposes.
+    "THEME_ENABLE_DARK_THEME_SWITCH": False,
+    # Adds a theme editor as a modal dialog in the navbar. Allows people to type in JSON
+    # and see the changes applied to the current theme.
+    # This is intended to use for theme creation, visual review and theming-debugging
+    # purposes.
+    "THEME_ALLOW_THEME_EDITOR_BETA": False,
+    # Allow users to optionally specify date formats in email subjects, which will
+    # be parsed if enabled
     "DATE_FORMAT_IN_EMAIL_SUBJECT": False,
+    # Allow metrics and columns to be grouped into (potentially nested) folders in the
+    # chart builder
+    "DATASET_FOLDERS": False,
+    # Enable Table V2 Viz plugin
+    "AG_GRID_TABLE_ENABLED": False,
+    # Enable Table v2 time comparison feature
+    "TABLE_V2_TIME_COMPARISON_ENABLED": False,
 }
 
 # ------------------------------
@@ -657,24 +702,17 @@ COMMON_BOOTSTRAP_OVERRIDES_FUNC: Callable[  # noqa: E731
 # This is merely a default
 EXTRA_CATEGORICAL_COLOR_SCHEMES: list[dict[str, Any]] = []
 
-# THEME_OVERRIDES is used for adding custom theme to superset
-# example code for "My theme" custom scheme
-# THEME_OVERRIDES = {
-#   "borderRadius": 4,
-#   "colors": {
-#     "primary": {
-#       "base": 'red',
-#     },
-#     "secondary": {
-#       "base": 'green',
-#     },
-#     "grayscale": {
-#       "base": 'orange',
-#     }
-#   }
-# }
+# THEME is used for setting a custom theme to Superset, it follows the ant design
+# theme structure
+# You can use the AntDesign theme editor to generate a theme structure
+# https://ant.design/theme-editor
+# To expose a JSON theme editor modal that can be triggered from the navbar
+# set the `ENABLE_THEME_EDITOR` feature flag to True.
+#
+# To set up the dark theme:
+# THEME = {"algorithm": "dark"}
 
-THEME_OVERRIDES: dict[str, Any] = {}
+THEME: dict[str, Any] = {}
 
 # EXTRA_SEQUENTIAL_COLOR_SCHEMES is used for adding custom sequential color schemes
 # EXTRA_SEQUENTIAL_COLOR_SCHEMES =  [
@@ -764,7 +802,7 @@ SCREENSHOT_WAIT_FOR_ERROR_MODAL_INVISIBLE = 5
 SCREENSHOT_PLAYWRIGHT_WAIT_EVENT = "load"
 # Default timeout for Playwright browser context for all operations
 SCREENSHOT_PLAYWRIGHT_DEFAULT_TIMEOUT = int(
-    timedelta(seconds=30).total_seconds() * 1000
+    timedelta(seconds=60).total_seconds() * 1000
 )
 
 # ---------------------------------------------------
@@ -820,9 +858,14 @@ STORE_CACHE_KEYS_IN_METADATA_DB = False
 
 # CORS Options
 # NOTE: enabling this requires installing the cors-related python dependencies
-# `pip install .[cors]` or `pip install apache-superset[cors]`, depending
-ENABLE_CORS = False
-CORS_OPTIONS: dict[Any, Any] = {}
+# `pip install .[cors]` or `pip install apache_superset[cors]`, depending
+ENABLE_CORS = True
+CORS_OPTIONS: dict[Any, Any] = {
+    "origins": [
+        "https://tile.openstreetmap.org",
+        "https://tile.osm.ch",
+    ]
+}
 
 # Sanitizes the HTML content used in markdowns to allow its rendering in a safe manner.
 # Disabling this option is not recommended for security reasons. If you wish to allow
@@ -968,6 +1011,10 @@ MAPBOX_API_KEY = os.environ.get("MAPBOX_API_KEY", "")
 # Maximum number of rows returned for any analytical database query
 SQL_MAX_ROW = 100000
 
+# Maximum number of rows for any query with Server Pagination in Table Viz type
+TABLE_VIZ_MAX_ROW_SERVER = 500000
+
+
 # Maximum number of rows displayed in SQL Lab UI
 # Is set to avoid out of memory/localstorage issues in browsers. Does not affect
 # exported CSVs
@@ -1019,6 +1066,7 @@ class CeleryConfig:  # pylint: disable=too-few-public-methods
         "superset.tasks.scheduler",
         "superset.tasks.thumbnails",
         "superset.tasks.cache",
+        "superset.tasks.slack",
     )
     result_backend = "db+sqlite:///celery_results.sqlite"
     worker_prefetch_multiplier = 1
@@ -1049,6 +1097,11 @@ class CeleryConfig:  # pylint: disable=too-few-public-methods
         #     "task": "prune_logs",
         #     "schedule": crontab(minute="*", hour="*"),
         #     "kwargs": {"retention_period_days": 180},
+        # },
+        # Uncomment to enable Slack channel cache warm-up
+        # "slack.cache_channels": {
+        #     "task": "slack.cache_channels",
+        #     "schedule": crontab(minute="0", hour="*"),
         # },
     }
 
@@ -1249,6 +1302,7 @@ ENABLE_CHUNK_ENCODING = False
 SILENCE_FAB = True
 
 FAB_ADD_SECURITY_VIEWS = True
+FAB_ADD_SECURITY_API = True
 FAB_ADD_SECURITY_PERMISSION_VIEW = False
 FAB_ADD_SECURITY_VIEW_MENU_VIEW = False
 FAB_ADD_SECURITY_PERMISSION_VIEWS_VIEW = False
@@ -1287,7 +1341,7 @@ TRACKING_URL_TRANSFORMER = lambda url: url  # noqa: E731
 DB_POLL_INTERVAL_SECONDS: dict[str, int] = {}
 
 # Interval between consecutive polls when using Presto Engine
-# See here: https://github.com/dropbox/PyHive/blob/8eb0aeab8ca300f3024655419b93dad926c1a351/pyhive/presto.py#L93  # pylint: disable=line-too-long,useless-suppression  # noqa: E501
+# See here: https://github.com/dropbox/PyHive/blob/8eb0aeab8ca300f3024655419b93dad926c1a351/pyhive/presto.py#L93  # noqa: E501
 PRESTO_POLL_INTERVAL = int(timedelta(seconds=1).total_seconds())
 
 # Allow list of custom authentications for each DB engine.
@@ -1492,6 +1546,7 @@ EMAIL_REPORTS_CTA = "Explore in Superset"
 # Slack API token for the superset reports, either string or callable
 SLACK_API_TOKEN: Callable[[], str] | str | None = None
 SLACK_PROXY = None
+SLACK_CACHE_TIMEOUT = int(timedelta(days=1).total_seconds())
 
 # The webdriver to use for generating reports. Use one of the following
 # firefox
@@ -1516,7 +1571,7 @@ WEBDRIVER_AUTH_FUNC = None
 
 # Any config options to be passed as-is to the webdriver
 WEBDRIVER_CONFIGURATION = {
-    "options": {"capabilities": {}, "preferences": {}},
+    "options": {"capabilities": {}, "preferences": {}, "binary_location": ""},
     "service": {"log_output": "/dev/null", "service_args": [], "port": 0, "env": {}},
 }
 
@@ -1614,6 +1669,7 @@ CONTENT_SECURITY_POLICY_WARNING = True
 
 # Do you want Talisman enabled?
 TALISMAN_ENABLED = utils.cast_to_boolean(os.environ.get("TALISMAN_ENABLED", True))
+TALISMAN_ENABLED = False
 
 # If you want Talisman, how do you want it configured??
 # For more information on setting up Talisman, please refer to
@@ -1631,12 +1687,15 @@ TALISMAN_CONFIG = {
             "https://static.scarf.sh/",
             # "https://cdn.brandfolder.io", # Uncomment when SLACK_ENABLE_AVATARS is True  # noqa: E501
             "ows.terrestris.de",
+            "https://cdn.document360.io",
         ],
         "worker-src": ["'self'", "blob:"],
         "connect-src": [
             "'self'",
             "https://api.mapbox.com",
             "https://events.mapbox.com",
+            "https://tile.openstreetmap.org",
+            "https://tile.osm.ch",
         ],
         "object-src": "'none'",
         "style-src": [
@@ -1662,12 +1721,15 @@ TALISMAN_DEV_CONFIG = {
             "https://static.scarf.sh/",
             "https://cdn.brandfolder.io",
             "ows.terrestris.de",
+            "https://cdn.document360.io",
         ],
         "worker-src": ["'self'", "blob:"],
         "connect-src": [
             "'self'",
             "https://api.mapbox.com",
             "https://events.mapbox.com",
+            "https://tile.openstreetmap.org",
+            "https://tile.osm.ch",
         ],
         "object-src": "'none'",
         "style-src": [
@@ -1793,7 +1855,10 @@ GUEST_TOKEN_JWT_SECRET = "test-guest-secret-change-me"  # noqa: S105
 GUEST_TOKEN_JWT_ALGO = "HS256"  # noqa: S105
 GUEST_TOKEN_HEADER_NAME = "X-GuestToken"  # noqa: S105
 GUEST_TOKEN_JWT_EXP_SECONDS = 300  # 5 minutes
-# Guest token audience for the embedded superset, either string or callable
+# Audience for the Superset guest token used in embedded mode.
+# Can be a string or a callable. Defaults to WEBDRIVER_BASEURL.
+# When generating the guest token, ensure the
+# payload's `aud` matches GUEST_TOKEN_JWT_AUDIENCE.
 GUEST_TOKEN_JWT_AUDIENCE: Callable[[], str] | str | None = None
 
 # A callable that can be supplied to do extra validation of guest token configuration

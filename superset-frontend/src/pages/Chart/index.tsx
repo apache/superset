@@ -28,7 +28,7 @@ import {
   t,
   getClientErrorObject,
 } from '@superset-ui/core';
-import Loading from 'src/components/Loading';
+import { Loading } from '@superset-ui/core/components';
 import { addDangerToast } from 'src/components/MessageToasts/actions';
 import { getUrlParam } from 'src/utils/urlUtils';
 import { URL_PARAMS } from 'src/constants';
@@ -108,7 +108,9 @@ const getDashboardContextFormData = () => {
       filterBoxFilters,
       dataMask,
       dashboardId,
+      activeFilters,
     } = dashboardContext;
+
     const dashboardContextWithFilters = getFormDataWithExtraFilters({
       chart: { id: sliceId },
       filters: getAppliedFilterValues(sliceId, filterBoxFilters),
@@ -122,6 +124,7 @@ const getDashboardContextFormData = () => {
       sliceId,
       allSliceIds: [sliceId],
       extraControls: {},
+      ...(activeFilters && { activeFilters }),
     });
     Object.assign(dashboardContextWithFilters, {
       dashboardId,
@@ -143,16 +146,18 @@ export default function ExplorePage() {
       URL_PARAMS.saveAction,
     ) as SaveActionType | null;
     const dashboardContextFormData = getDashboardContextFormData();
+
     if (!isExploreInitialized.current || !!saveAction) {
       fetchExploreData(exploreUrlParams)
         .then(({ result }) => {
-          const formData =
-            !isExploreInitialized.current && dashboardContextFormData
-              ? getFormDataWithDashboardContext(
-                  result.form_data,
-                  dashboardContextFormData,
-                )
-              : result.form_data;
+          const formData = dashboardContextFormData
+            ? getFormDataWithDashboardContext(
+                result.form_data,
+                dashboardContextFormData,
+                saveAction,
+              )
+            : result.form_data;
+
           dispatch(
             hydrateExplore({
               ...result,
