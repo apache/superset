@@ -601,3 +601,59 @@ describe('File Extension Validation', () => {
     });
   });
 });
+
+describe('UploadDataModal Collapse Tabs', () => {
+  it('renders the collaps tab CSV correctly and resets to default tab after closing', () => {
+    const { rerender } = render(<UploadDataModal {...csvProps} />, {
+      useRedux: true,
+    });
+    const generalInfoTab = screen.getByRole('tab', {
+      name: /expanded General information Upload a file to a database./i,
+    });
+    expect(generalInfoTab).toHaveAttribute('aria-expanded', 'true');
+    const fileSettingsTab = screen.getByRole('tab', {
+      name: /collapsed File settings Adjust how spaces, blank lines, null values are handled and other file wide settings./i,
+    });
+    userEvent.click(fileSettingsTab);
+    expect(fileSettingsTab).toHaveAttribute('aria-expanded', 'true');
+    rerender(<UploadDataModal {...csvProps} show={false} />);
+    rerender(<UploadDataModal {...csvProps} />);
+    expect(generalInfoTab).toHaveAttribute('aria-expanded', 'true');
+  });
+
+  it('renders the collaps tab Excel correctly and resets to default tab after closing', () => {
+    const { rerender } = render(<UploadDataModal {...excelProps} />, {
+      useRedux: true,
+    });
+    const generalInfoTab = screen.getByRole('tab', {
+      name: /expanded General information Upload a file to a database./i,
+    });
+    expect(generalInfoTab).toHaveAttribute('aria-expanded', 'true');
+    const fileSettingsTab = screen.getByRole('tab', {
+      name: /collapsed File settings Adjust how spaces, blank lines, null values are handled and other file wide settings./i,
+    });
+    userEvent.click(fileSettingsTab);
+    expect(fileSettingsTab).toHaveAttribute('aria-expanded', 'true');
+    rerender(<UploadDataModal {...excelProps} show={false} />);
+    rerender(<UploadDataModal {...excelProps} />);
+    expect(generalInfoTab).toHaveAttribute('aria-expanded', 'true');
+  });
+
+  it('renders the collaps tab Columnar correctly and resets to default tab after closing', () => {
+    const { rerender } = render(<UploadDataModal {...columnarProps} />, {
+      useRedux: true,
+    });
+    const generalInfoTab = screen.getByRole('tab', {
+      name: /expanded General information Upload a file to a database./i,
+    });
+    expect(generalInfoTab).toHaveAttribute('aria-expanded', 'true');
+    const fileSettingsTab = screen.getByRole('tab', {
+      name: /collapsed File settings Adjust how spaces, blank lines, null values are handled and other file wide settings./i,
+    });
+    userEvent.click(fileSettingsTab);
+    expect(fileSettingsTab).toHaveAttribute('aria-expanded', 'true');
+    rerender(<UploadDataModal {...columnarProps} show={false} />);
+    rerender(<UploadDataModal {...columnarProps} />);
+    expect(generalInfoTab).toHaveAttribute('aria-expanded', 'true');
+  });
+});
