@@ -16,11 +16,17 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ReactElement, cloneElement } from 'react';
 
-import { Dropdown as AntdDropdown, DropdownProps } from 'antd';
-import { styled } from '@superset-ui/core';
+import { ReactElement, cloneElement } from 'react';
+import {
+  Dropdown as AntdDropdown,
+  DropdownProps,
+  Space,
+} from 'antd';
+import { styled, useTheme } from '@superset-ui/core';
 import { Icons } from '@superset-ui/core/components/Icons';
+
+import { Button, type ButtonProps } from '../Button';
 import {
   IconOrientation,
   type NoAnimationDropdownProps,
@@ -32,14 +38,12 @@ const MenuDots = styled.div`
   height: ${({ theme }) => theme.sizeUnit * 0.75}px;
   border-radius: 50%;
   background-color: ${({ theme }) => theme.colors.grayscale.light1};
-
   font-weight: ${({ theme }) => theme.fontWeightNormal};
   display: inline-flex;
   position: relative;
 
   &:hover {
     background-color: ${({ theme }) => theme.colorPrimary};
-
     &::before,
     &::after {
       background-color: ${({ theme }) => theme.colorPrimary};
@@ -110,8 +114,63 @@ export const NoAnimationDropdown = (props: NoAnimationDropdownProps) => {
   );
 };
 
+const CustomDropdownButton = (
+  props: ButtonProps & DropdownProps,
+) => {
+  const theme = useTheme();
+  const {
+    // Dropdown-specific props
+    overlay,
+    placement = 'bottomRight',
+
+    // Button-specific props
+    children,
+    buttonStyle,
+    disabled,
+    ...rest
+  } = props;
+
+  return (
+    <Space.Compact
+      css={{
+        display: 'inline-flex',
+        '& .superset-button + .superset-button': {
+          marginLeft: 0,
+        },
+      }}
+    >
+      <Button
+        {...rest}
+        buttonStyle={buttonStyle}
+        disabled={disabled}
+        showMarginRight={false}
+      >
+        {children}
+      </Button>
+      <Dropdown overlay={overlay} placement={placement}>
+        <Button
+          buttonStyle={buttonStyle}
+          disabled={disabled}
+          showMarginRight={false}
+          icon={<Icons.CaretDownOutlined />}
+          css={{
+            padding: `0 ${theme.sizeUnit * 2}px`,
+            // Minor style adjustment for the trigger
+            borderLeft:
+              buttonStyle === 'tertiary'
+                ? `1px solid ${theme.colors.grayscale.light2}`
+                : 'none',
+          }}
+        />
+      </Dropdown>
+    </Space.Compact>
+  );
+};
+
 export const Dropdown = (props: DropdownProps) => (
   <AntdDropdown autoFocus {...props} />
 );
+
+Dropdown.Button = CustomDropdownButton;
 
 export type { DropdownProps, NoAnimationDropdownProps, MenuDotsDropdownProps };

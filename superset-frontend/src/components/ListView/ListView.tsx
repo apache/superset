@@ -1,18 +1,18 @@
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
+ * or more contributor license agreements. See the NOTICE file
  * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
+ * regarding copyright ownership. The ASF licenses this file
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
+ * with the License. You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
+ * KIND, either express or implied. See the License for the
  * specific language governing permissions and limitations
  * under the License.
  */
@@ -112,7 +112,8 @@ const BulkSelectWrapper = styled(Alert)`
     }
 
     .divider {
-      margin: ${`${-theme.sizeUnit * 2}px 0 ${-theme.sizeUnit * 2}px ${theme.sizeUnit * 4}px`};
+      margin: ${`${-theme.sizeUnit * 2}px 0 ${-theme.sizeUnit * 2}px ${theme.sizeUnit * 4
+    }px`};
       width: 1px;
       height: ${theme.sizeUnit * 8}px;
       box-shadow: inset -1px 0px 0px ${theme.colorBorder};
@@ -259,7 +260,7 @@ export function ListView<T extends object = any>({
   filters = [],
   bulkActions: initialBulkActions = [],
   bulkSelectEnabled = false,
-  disableBulkSelect = () => {},
+  disableBulkSelect = () => { },
   renderBulkSelectCopy = selected => t('%s Selected', selected.length),
   renderCard,
   showThumbnails,
@@ -274,6 +275,7 @@ export function ListView<T extends object = any>({
   addDangerToast,
 }: ListViewProps<T>) {
   const [showBulkTagModal, setShowBulkTagModal] = useState<boolean>(false);
+  const [isBulkActionLoading, setIsBulkActionLoading] = useState(false);
 
   const bulkActions = [...initialBulkActions];
   if (enableBulkTag) {
@@ -361,6 +363,15 @@ export function ListView<T extends object = any>({
     }
   };
 
+  const handleBulkActionClick = async () => {
+    setIsBulkActionLoading(true);
+    try {
+      await firstAction.onSelect(selectedFlatRows.map(r => r.original));
+    } finally {
+      setIsBulkActionLoading(false);
+    }
+  };
+
   const dropdownMenu = (
     <Menu onClick={handleMenuClick}>
       {dropdownActions.map(action => (
@@ -432,34 +443,16 @@ export function ListView<T extends object = any>({
                       </span>
                       <div className="divider" />
                       {firstAction && (
-                        <Dropdown
+                        <Dropdown.Button
                           overlay={
                             dropdownActions.length > 0 ? dropdownMenu : <></>
                           }
+                          onClick={handleBulkActionClick}
+                          loading={isBulkActionLoading}
+                          type="primary"
                         >
-                          <Button
-                            onClick={() =>
-                              firstAction.onSelect(
-                                selectedFlatRows.map(r => r.original),
-                              )
-                            }
-                            buttonStyle="primary"
-                          >
-                            {firstAction.name}
-                          </Button>
-                        </Dropdown>
-                      )}
-                      {enableBulkTag && (
-                        <span
-                          data-test="bulk-select-tag-btn"
-                          role="button"
-                          style={{ cursor: 'pointer' }}
-                          tabIndex={0}
-                          className="tag-btn"
-                          onClick={() => setShowBulkTagModal(true)}
-                        >
-                          {t('Add Tag')}
-                        </span>
+                          {firstAction.name}
+                        </Dropdown.Button>
                       )}
                     </>
                   )}
