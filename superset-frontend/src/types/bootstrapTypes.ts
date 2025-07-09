@@ -157,7 +157,7 @@ export interface CommonBootstrapData {
   menu_data: MenuData;
   d3_format: Partial<FormatLocaleDefinition>;
   d3_time_format: Partial<TimeLocaleDefinition>;
-  pdf_compression_level: string;
+  pdf_compression_level: 'NONE' | 'FAST' | 'MEDIUM' | 'SLOW';
 }
 
 export interface BootstrapData {
