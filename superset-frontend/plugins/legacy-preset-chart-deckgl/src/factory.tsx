@@ -106,7 +106,7 @@ export function createDeckGLComponent(
       return props.viewport;
     };
     const [categories, setCategories] = useState<JsonObject>(
-      getColorBreakpointsBuckets(props.formData) || [],
+      getColorBreakpointsBuckets(props.formData.color_breakpoints) || [],
     );
 
     const [viewport, setViewport] = useState(getAdjustedViewport());
@@ -145,7 +145,9 @@ export function createDeckGLComponent(
     );
 
     useEffect(() => {
-      const categories = getColorBreakpointsBuckets(props.formData);
+      const categories = getColorBreakpointsBuckets(
+        props.formData.color_breakpoints,
+      );
 
       setCategories(categories);
     }, [props]);

@@ -55,10 +55,7 @@ import {
 } from '../../DeckGLContainer';
 import { TooltipProps } from '../../components/Tooltip';
 import { GetLayerType } from '../../factory';
-import {
-  COLOR_SCHEME_TYPES,
-  getSelectedColorSchemeType,
-} from '../../utilities/utils';
+import { COLOR_SCHEME_TYPES } from '../../utilities/utils';
 
 const DOUBLE_CLICK_THRESHOLD = 250; // milliseconds
 
@@ -128,7 +125,7 @@ export const getLayer: GetLayerType<PolygonLayer> = function ({
     data = jsFnMutator(data);
   }
 
-  const colorSchemeType = getSelectedColorSchemeType(fd);
+  const colorSchemeType = fd.color_scheme_type;
 
   const metricLabel = fd.metric ? fd.metric.label || fd.metric : null;
   const accessor = (d: JsonObject) => d[metricLabel];
@@ -357,9 +354,9 @@ const DeckGLPolygon = (props: DeckGLPolygonProps) => {
     : null;
   const accessor = (d: JsonObject) => d[metricLabel];
 
-  const colorSchemeType = getSelectedColorSchemeType(formData);
+  const colorSchemeType = formData.color_scheme_type;
   const buckets = colorSchemeType
-    ? getColorBreakpointsBuckets(formData)
+    ? getColorBreakpointsBuckets(formData.color_breakpoints)
     : getBuckets(formData, payload.data.features, accessor);
 
   return (

@@ -28,10 +28,7 @@ import {
 import sandboxedEval from '../../utils/sandbox';
 import { createDeckGLComponent, GetLayerType } from '../../factory';
 import TooltipRow from '../../TooltipRow';
-import {
-  COLOR_SCHEME_TYPES,
-  getSelectedColorSchemeType,
-} from '../../utilities/utils';
+import { COLOR_SCHEME_TYPES } from '../../utilities/utils';
 
 function setTooltipContent(o: JsonObject) {
   return (
@@ -72,7 +69,7 @@ export const getLayer: GetLayerType<GridLayer> = function ({
 
   const colorBreakpoints = fd.color_breakpoints;
 
-  const colorSchemeType = getSelectedColorSchemeType(fd);
+  const colorSchemeType = fd.color_scheme_type;
   const colorRange = getColorRange({
     defaultBreakpointsColor: fd.breakpoints_default_color,
     colorSchemeType,

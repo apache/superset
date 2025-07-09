@@ -18,10 +18,7 @@
  */
 import { ArcLayer } from '@deck.gl/layers';
 import { JsonObject, QueryFormData, t } from '@superset-ui/core';
-import {
-  COLOR_SCHEME_TYPES,
-  getSelectedColorSchemeType,
-} from '../../utilities/utils';
+import { COLOR_SCHEME_TYPES } from '../../utilities/utils';
 import { commonLayerProps } from '../common';
 import { GetLayerType, createCategoricalDeckGLComponent } from '../../factory';
 import TooltipRow from '../../TooltipRow';
@@ -72,7 +69,7 @@ export const getLayer: GetLayerType<ArcLayer> = function ({
   const sc = fd.color_picker;
   const tc = fd.target_color_picker;
 
-  const colorSchemeType = getSelectedColorSchemeType(fd);
+  const colorSchemeType = fd.color_scheme_type;
 
   return new ArcLayer({
     data,

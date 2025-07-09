@@ -35,13 +35,6 @@ export function formatSelectOptions(options: (string | number)[]) {
   return options.map(opt => [opt, opt.toString()]);
 }
 
-export const getSelectedColorSchemeType = (
-  formData: QueryFormData,
-): ColorSchemeType => {
-  const { color_scheme_type } = formData;
-  return color_scheme_type;
-};
-
 export const isColorSchemeTypeVisible = (
   controls: ControlStateMapping,
   colorSchemeType: ColorSchemeType,

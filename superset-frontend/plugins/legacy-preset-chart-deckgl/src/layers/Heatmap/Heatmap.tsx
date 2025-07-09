@@ -19,7 +19,6 @@
 import { HeatmapLayer } from '@deck.gl/aggregation-layers';
 import { Position } from '@deck.gl/core';
 import { t, getSequentialSchemeRegistry, JsonObject } from '@superset-ui/core';
-import { getSelectedColorSchemeType } from '../../utilities/utils';
 import { commonLayerProps, getColorRange } from '../common';
 import sandboxedEval from '../../utils/sandbox';
 import { GetLayerType, createDeckGLComponent } from '../../factory';
@@ -64,7 +63,7 @@ export const getLayer: GetLayerType<HeatmapLayer> = ({
     ?.get(colorScheme)
     ?.createLinearScale([0, 6]);
 
-  const colorSchemeType = getSelectedColorSchemeType(fd);
+  const colorSchemeType = fd.color_scheme_type;
   const colorRange = getColorRange({
     defaultBreakpointsColor: fd.default_color,
     colorBreakpoints: fd.color_breakpoints,

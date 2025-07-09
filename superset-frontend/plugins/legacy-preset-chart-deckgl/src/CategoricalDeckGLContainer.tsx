@@ -47,11 +47,7 @@ import {
 import { GetLayerType } from './factory';
 import { ColorBreakpointType, ColorType, Point } from './types';
 import { TooltipProps } from './components/Tooltip';
-import {
-  COLOR_SCHEME_TYPES,
-  ColorSchemeType,
-  getSelectedColorSchemeType,
-} from './utilities/utils';
+import { COLOR_SCHEME_TYPES, ColorSchemeType } from './utilities/utils';
 import { getColorBreakpointsBuckets } from './utils';
 
 const { getScale } = CategoricalColorNamespace;
@@ -63,9 +59,9 @@ function getCategories(fd: QueryFormData, data: JsonObject[]) {
   const colorFn = getScale(appliedScheme);
   let categories: Record<any, { color: any; enabled: boolean }> = {};
 
-  const colorSchemeType = getSelectedColorSchemeType(fd);
+  const colorSchemeType = fd.color_scheme_type;
   if (colorSchemeType === COLOR_SCHEME_TYPES.color_breakpoints) {
-    categories = getColorBreakpointsBuckets(fd);
+    categories = getColorBreakpointsBuckets(fd.color_breakpoints);
   } else {
     data.forEach(d => {
       if (d.cat_color != null && !categories.hasOwnProperty(d.cat_color)) {
@@ -211,7 +207,7 @@ const CategoricalDeckGLContainer = (props: CategoricalDeckGLContainerProps) => {
     } = props;
     let features = payload.data.features ? [...payload.data.features] : [];
 
-    const selectedColorScheme = getSelectedColorSchemeType(fd);
+    const selectedColorScheme = fd.color_scheme_type;
 
     // Add colors from categories or fixed color
     features = addColor(features, fd, selectedColorScheme);

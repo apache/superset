@@ -19,10 +19,7 @@
 import { HexagonLayer } from '@deck.gl/aggregation-layers';
 import { t, CategoricalColorNamespace, JsonObject } from '@superset-ui/core';
 
-import {
-  COLOR_SCHEME_TYPES,
-  getSelectedColorSchemeType,
-} from '../../utilities/utils';
+import { COLOR_SCHEME_TYPES } from '../../utilities/utils';
 import {
   commonLayerProps,
   getAggFunc,
@@ -69,7 +66,7 @@ export const getLayer: GetLayerType<HexagonLayer> = function ({
     data = jsFnMutator(data);
   }
 
-  const colorSchemeType = getSelectedColorSchemeType(fd);
+  const colorSchemeType = fd.color_scheme_type;
   const colorRange = getColorRange({
     defaultBreakpointsColor: fd.default_color,
     colorBreakpoints: fd.color_breakpoints,

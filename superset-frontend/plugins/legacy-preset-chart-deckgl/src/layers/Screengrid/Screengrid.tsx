@@ -22,11 +22,7 @@
 import { ScreenGridLayer } from '@deck.gl/aggregation-layers';
 import { CategoricalColorNamespace, JsonObject, t } from '@superset-ui/core';
 import { Color } from '@deck.gl/core';
-import {
-  COLOR_SCHEME_TYPES,
-  ColorSchemeType,
-  getSelectedColorSchemeType,
-} from '../../utilities/utils';
+import { COLOR_SCHEME_TYPES, ColorSchemeType } from '../../utilities/utils';
 import sandboxedEval from '../../utils/sandbox';
 import { commonLayerProps, getColorRange } from '../common';
 import TooltipRow from '../../TooltipRow';
@@ -73,8 +69,7 @@ export const getLayer: GetLayerType<ScreenGridLayer> = function ({
     data = jsFnMutator(data);
   }
 
-  const colorSchemeType = getSelectedColorSchemeType(fd) as ColorSchemeType &
-    'default';
+  const colorSchemeType = fd.color_scheme_type as ColorSchemeType & 'default';
   const colorRange = getColorRange({
     defaultBreakpointsColor: fd.default_color,
     colorBreakpoints: fd.color_breakpoints,

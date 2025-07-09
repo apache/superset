@@ -236,10 +236,13 @@ export function buildTileLayer(url: string, id: string) {
       return [bitmapLayer];
     },
   } as TileLayerProps);
+}
 
-export function getColorBreakpointsBuckets(fd: QueryFormData) {
+export function getColorBreakpointsBuckets(
+  colorBreakpoints: ColorBreakpointType[],
+) {
   const buckets: Record<string, { color: Color; enabled: boolean }> = {};
-  const breakpoints = fd.color_breakpoints || [];
+  const breakpoints = colorBreakpoints || [];
 
   breakpoints.forEach((breakpoint: ColorBreakpointType) => {
     const range = `${breakpoint.minValue} - ${breakpoint.maxValue}`;
