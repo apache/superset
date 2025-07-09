@@ -30,8 +30,8 @@ import {
   EmptyState,
   type EmptyStateProps,
 } from '@superset-ui/core/components';
-import { Dropdown, Menu } from 'src/components';
-import CardCollection from './CardCollection';
+import { Dropdown } from 'src/components/Dropdown';
+import { Menu } from 'src/components/Menu';import CardCollection from './CardCollection';
 import FilterControls from './Filters';
 import { CardSortSelect } from './CardSortSelect';
 import {
