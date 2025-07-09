@@ -27,7 +27,7 @@ import {
   Checkbox,
   Icons,
   EmptyState,
-  Dropdown,
+  DropdownButton,
   Menu,
   type EmptyStateProps,
 } from '@superset-ui/core/components';
@@ -426,9 +426,9 @@ export function ListView<T extends object = any>({
               onClose={disableBulkSelect}
               message={
                 <>
-                  <div className="selectedCopy" data-test="bulk-select-copy">
+                  <span className="selectedCopy" data-test="bulk-select-copy">
                     {renderBulkSelectCopy(selectedFlatRows)}
-                  </div>
+                  </span>
                   {Boolean(selectedFlatRows.length) && (
                     <>
                       <span
@@ -441,10 +441,9 @@ export function ListView<T extends object = any>({
                       >
                         {t('Deselect all')}
                       </span>
-                      <div className="divider" />
                       {firstAction && (
-                        <Dropdown.Button
-                          overlay={
+                        <DropdownButton
+                          popupRender={() =>
                             dropdownActions.length > 0 ? dropdownMenu : <></>
                           }
                           onClick={handleBulkActionClick}
@@ -452,7 +451,7 @@ export function ListView<T extends object = any>({
                           type="primary"
                         >
                           {firstAction.name}
-                        </Dropdown.Button>
+                        </DropdownButton>
                       )}
                     </>
                   )}
