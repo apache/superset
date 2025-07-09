@@ -28,7 +28,7 @@ const BreakpointColorPreview = styled.div`
   height: ${({ theme }) => theme.sizeUnit * 3}px;
   border-radius: ${({ theme }) => theme.sizeUnit / 2}px;
   background: ${(props: { color: string }) => props.color};
-  margin-right: ${({ theme }) => theme.sizeUnit * 1.5}px;
+  margin-right: ${({ theme }) => theme.sizeUnit}px;
 `;
 
 const ColorBreakpointOption = ({

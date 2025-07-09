@@ -17,7 +17,6 @@
  * under the License.
  */
 import { ControlStateMapping } from '@superset-ui/chart-controls';
-import { QueryFormData } from '@superset-ui/core';
 
 export const COLOR_SCHEME_TYPES = {
   fixed_color: 'fixed_color',
