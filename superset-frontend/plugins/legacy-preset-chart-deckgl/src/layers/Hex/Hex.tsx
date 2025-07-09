@@ -82,7 +82,7 @@ export const getLayer: GetLayerType<HexagonLayer> = function ({
       : aggFunc;
 
   return new HexagonLayer({
-    id: `hex-layer-${fd.slice_id}` as const,
+    id: `hex-layer-${fd.slice_id}-${JSON.stringify(colorBreakpoints)}` as const,
     data,
     radius: fd.grid_size,
     extruded: fd.extruded,

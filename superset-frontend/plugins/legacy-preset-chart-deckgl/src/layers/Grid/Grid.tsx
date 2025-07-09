@@ -83,7 +83,7 @@ export const getLayer: GetLayerType<GridLayer> = function ({
       : aggFunc;
 
   return new GridLayer({
-    id: `grid-layer-${fd.slice_id}` as const,
+    id: `grid-layer-${fd.slice_id}-${JSON.stringify(colorBreakpoints)}` as const,
     data,
     cellSize: fd.grid_size,
     extruded: fd.extruded,

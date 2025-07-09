@@ -104,7 +104,7 @@ const ColorBreakpointsControl = ({
     <>
       <DndSelectLabel
         onDrop={() => {}}
-        canDrop={() => true}
+        canDrop={() => false}
         valuesRenderer={valuesRenderer}
         accept={[]}
         ghostButtonText={ghostButtonText}
