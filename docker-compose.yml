@@ -106,7 +106,8 @@ services:
     environment:
       CYPRESS_CONFIG: "${CYPRESS_CONFIG:-}"
       SUPERSET_LOG_LEVEL: "${SUPERSET_LOG_LEVEL:-info}"
-      DEBUGGER: "1"
+      # If set to "1", make sure debugpy is available via requirements-local.txt
+      DEBUGGER: "0"
 
   superset-websocket:
     container_name: superset_websocket
