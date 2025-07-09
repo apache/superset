@@ -41,9 +41,12 @@ jobs:
       - name: Check for uncommitted changes
         if: steps.check.outputs.python
         run: |
-          uv --version
-          git diff
-          if [[ -n "$(git diff)" ]]; then
+
+          # reporting git diff to stdout for logging/debugging purposes
+          gif diff
+
+          # nasty regex to filter out the "# vias"-related comments which may be different based on OS
+          if [[ -n "$(git diff -U0 | grep '^[-+]' | grep -vE '^[-+]{3}' | grep -vE '^[-+][[:space:]]*#' | grep -vE '^[-+][[:space:]]*$')" ]]; then
             echo "ERROR: The pinned dependencies are not up-to-date."
             echo "Please run './scripts/uv-pip-compile.sh' and commit the changes."
             echo "Find more information about it here: https://github.com/apache/superset/tree/master/requirements"
