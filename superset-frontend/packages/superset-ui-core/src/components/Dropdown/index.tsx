@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -18,11 +18,7 @@
  */
 
 import { ReactElement, cloneElement } from 'react';
-import {
-  Dropdown as AntdDropdown,
-  DropdownProps,
-  Space,
-} from 'antd';
+import { Dropdown as AntdDropdown, DropdownProps, Space } from 'antd';
 import { styled, useTheme } from '@superset-ui/core';
 import { Icons } from '@superset-ui/core/components/Icons';
 
@@ -114,9 +110,7 @@ export const NoAnimationDropdown = (props: NoAnimationDropdownProps) => {
   );
 };
 
-const CustomDropdownButton = (
-  props: ButtonProps & DropdownProps,
-) => {
+const CustomDropdownButton = (props: ButtonProps & DropdownProps) => {
   const theme = useTheme();
   const {
     // Dropdown-specific props

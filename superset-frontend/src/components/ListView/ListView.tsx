@@ -111,8 +111,9 @@ const BulkSelectWrapper = styled(Alert)`
     }
 
     .divider {
-      margin: ${`${-theme.sizeUnit * 2}px 0 ${-theme.sizeUnit * 2}px ${theme.sizeUnit * 4
-    }px`};
+      margin: ${-theme.sizeUnit * 2}px 0 ${-theme.sizeUnit * 2}px ${
+        theme.sizeUnit * 4
+      }px;
       width: 1px;
       height: ${theme.sizeUnit * 8}px;
       box-shadow: inset -1px 0px 0px ${theme.colorBorder};
@@ -259,7 +260,7 @@ export function ListView<T extends object = any>({
   filters = [],
   bulkActions: initialBulkActions = [],
   bulkSelectEnabled = false,
-  disableBulkSelect = () => { },
+  disableBulkSelect = () => {},
   renderBulkSelectCopy = selected => t('%s Selected', selected.length),
   renderCard,
   showThumbnails,
@@ -475,7 +476,7 @@ export function ListView<T extends object = any>({
               getTableBodyProps={getTableBodyProps}
               prepareRow={prepareRow}
               headerGroups={headerGroups}
-              setSortBy={setSortBy}
+              setSortBy={setSortby}
               rows={rows}
               columns={columns}
               loading={loading}
