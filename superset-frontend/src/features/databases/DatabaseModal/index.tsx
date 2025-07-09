@@ -728,10 +728,12 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       (errorMsg: string) => {
         setTestInProgress(false);
         addDangerToast(errorMsg);
+        setHasValidated(false);
       },
       (errorMsg: string) => {
         setTestInProgress(false);
         addSuccessToast(errorMsg);
+        setHasValidated(true);
       },
     );
   };
