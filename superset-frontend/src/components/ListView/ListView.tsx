@@ -28,10 +28,10 @@ import {
   Checkbox,
   Icons,
   EmptyState,
+  Dropdown,
+  Menu,
   type EmptyStateProps,
 } from '@superset-ui/core/components';
-import { Dropdown } from '@superset-ui/core/components';
-import { Menu } from '@superset-ui/core/components';
 import CardCollection from './CardCollection';
 import FilterControls from './Filters';
 import { CardSortSelect } from './CardSortSelect';
@@ -432,20 +432,23 @@ export function ListView<T extends object = any>({
                       </span>
                       <div className="divider" />
                       {firstAction && (
-                        <Dropdown.Button
+                        <Dropdown
                           overlay={
                             dropdownActions.length > 0 ? dropdownMenu : <></>
                           }
-                          onClick={() =>
-                            firstAction.onSelect(
-                              selectedFlatRows.map(r => r.original),
-                            )
-                          }
-                          type="primary"
                         >
-                          {action.name}
-                        </Button>
-                      ))}
+                          <Button
+                            onClick={() =>
+                              firstAction.onSelect(
+                                selectedFlatRows.map(r => r.original),
+                              )
+                            }
+                            buttonStyle="primary"
+                          >
+                            {firstAction.name}
+                          </Button>
+                        </Dropdown>
+                      )}
                       {enableBulkTag && (
                         <span
                           data-test="bulk-select-tag-btn"
