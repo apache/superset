@@ -23,7 +23,7 @@ import Button from 'src/components/Button';
 
 import Chart from 'src/types/Chart';
 import { Dashboard } from 'src/pages/DashboardList';
-import { Col, Row } from 'src/components';
+import { Col, Row } from '@superset-ui/core/components';
 
 interface BulkCertifyModalProps {
   onHide: () => void;
