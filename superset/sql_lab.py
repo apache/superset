@@ -475,7 +475,9 @@ def execute_sql_statements(  # noqa: C901
             db.session.commit()
 
             # Hook to allow environment-specific mutation (usually comments) to the SQL
-            query.executed_sql = database.mutate_sql_based_on_config(block, is_split=config["MUTATE_AFTER_SPLIT"])
+            query.executed_sql = database.mutate_sql_based_on_config(
+                block, is_split=config["MUTATE_AFTER_SPLIT"]
+            )
 
             try:
                 result_set = execute_query(query, cursor, log_params)
