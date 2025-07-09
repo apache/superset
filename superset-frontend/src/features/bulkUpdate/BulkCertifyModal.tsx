@@ -16,14 +16,9 @@
 import { useState, FC } from 'react';
 
 import { t, SupersetClient } from '@superset-ui/core';
-import { FormLabel } from 'src/components/Form';
-import Modal from 'src/components/Modal';
-import { Input } from 'src/components/Input';
-import Button from 'src/components/Button';
-
 import Chart from 'src/types/Chart';
 import { Dashboard } from 'src/pages/DashboardList';
-import { Col, Row } from '@superset-ui/core/components';
+import { Input, Modal, Button ,FormLabel, Col, Row } from '@superset-ui/core/components';
 
 interface BulkCertifyModalProps {
   onHide: () => void;
