@@ -311,6 +311,7 @@ describe('DashboardBuilder', () => {
 
     const filterbar = getByTestId('dashboard-filters-panel');
     expect(filterbar).toHaveStyleRule('width', `${OPEN_FILTER_BAR_WIDTH}px`);
+  });
 
   it('should not render the filter bar when nativeFiltersEnabled is false', () => {
     jest.spyOn(useNativeFiltersModule, 'useNativeFilters').mockReturnValue({
