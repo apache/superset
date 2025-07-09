@@ -8,11 +8,11 @@ version: 1
 
 ## CORS
 
-To configure CORS, or cross-origin resource sharing, the following dependency must be installed:
 
-```python
-pip install apache_superset[cors]
-```
+:::note
+In Superset versions prior to `5.x` you have to install to install `flask-cors with` with `pip install apache-superset[cors]` to enable CORS support.
+:::
+
 
 The following keys in `superset_config.py` can be specified to configure CORS:
 
