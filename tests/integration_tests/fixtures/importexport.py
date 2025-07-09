@@ -67,7 +67,7 @@ dashboard_export: dict[str, Any] = {
                 "css": "",
                 "dashboard_title": "Births 2",
                 "description": None,
-                "json_metadata": '{"timed_refresh_immune_slices": [], "expanded_slices": {}, "refresh_frequency": 0, "default_filters": "{}", "color_scheme": null, "remote_id": 1}',  # noqa: E501
+                "json_metadata": '{"timed_refresh_immune_slices": [], "expanded_slices": {}, "expand_all_slices": "False", "refresh_frequency": 0, "default_filters": "{}", "color_scheme": null, "remote_id": 1}',  # noqa: E501
                 "position_json": '{"CHART--jvaBFZx78":{"children":[],"id":"CHART--jvaBFZx78","meta":{"chartId":83,"height":50,"sliceName":"Number of California Births","uuid":"c77bb4b3-09f4-4d9a-a9e2-66a627c64343","width":4},"parents":["ROOT_ID","GRID_ID","ROW-se_5H8KNiO"],"type":"CHART"},"DASHBOARD_VERSION_KEY":"v2","GRID_ID":{"children":["ROW-se_5H8KNiO"],"id":"GRID_ID","parents":["ROOT_ID"],"type":"GRID"},"HEADER_ID":{"id":"HEADER_ID","meta":{"text":"Births"},"type":"HEADER"},"ROOT_ID":{"children":["GRID_ID"],"id":"ROOT_ID","type":"ROOT"},"ROW-se_5H8KNiO":{"children":["CHART--jvaBFZx78"],"id":"ROW-se_5H8KNiO","meta":{"background":"BACKGROUND_TRANSPARENT"},"parents":["ROOT_ID","GRID_ID"],"type":"ROW"}}',  # noqa: E501
                 "slices": [
                     {
@@ -679,6 +679,7 @@ dashboard_config: dict[str, Any] = {
             "83": {"region": {"scope": ["ROOT_ID"], "immune": [83]}},
         },
         "expanded_slices": {"83": True},
+        "expand_all_slices": False,
         "refresh_frequency": 0,
         "default_filters": "{}",
         "color_scheme": None,

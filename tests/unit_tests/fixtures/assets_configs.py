@@ -170,6 +170,7 @@ dashboards_config_1: dict[str, Any] = {
         "metadata": {
             "timed_refresh_immune_slices": [],
             "expanded_slices": {},
+            "expand_all_slices": False,
             "refresh_frequency": 0,
             "default_filters": "{}",
             "color_scheme": "supersetColors",
@@ -247,6 +248,7 @@ dashboards_config_2: dict[str, Any] = {
         "metadata": {
             "timed_refresh_immune_slices": [],
             "expanded_slices": {},
+            "expand_all_slices": False,
             "refresh_frequency": 0,
             "default_filters": "{}",
             "color_scheme": "supersetColors",
