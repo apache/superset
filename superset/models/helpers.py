@@ -103,6 +103,7 @@ logger = logging.getLogger(__name__)
 VIRTUAL_TABLE_ALIAS = "virtual_table"
 SERIES_LIMIT_SUBQ_ALIAS = "series_limit"
 ADVANCED_DATA_TYPES = config["ADVANCED_DATA_TYPES"]
+DEFAULT_LOCALE = "en"
 
 
 def validate_adhoc_subquery(
@@ -544,31 +545,28 @@ class AuditMixinNullable(AuditMixin):
         # Convert naive datetime to UTC
         return self.changed_on.astimezone(pytz.utc).strftime("%Y-%m-%dT%H:%M:%S.%f%z")
 
-    @property
-    def changed_on_humanized(self) -> str:
-        locale = str(get_locale() or 'en')
+    def _format_time_humanized(self, timestamp: datetime) -> str:
+        locale = str(get_locale() or DEFAULT_LOCALE)
+        time_diff = datetime.now() - timestamp
+        # Skip activation for 'en' locale as it's humanize's default locale
+        if locale == DEFAULT_LOCALE:
+            return humanize.naturaltime(time_diff)
         try:
             humanize.i18n.activate(locale)
-            result = humanize.naturaltime(datetime.now() - self.changed_on)
+            result = humanize.naturaltime(time_diff)
             humanize.i18n.deactivate()
             return result
-        except:
-            pass
-        # Fallback to English
-        return humanize.naturaltime(datetime.now() - self.changed_on)
+        except Exception as e:
+            logger.warning(f"Locale '{locale}' is not supported in humanize: {e}")
+            return humanize.naturaltime(time_diff)
+
+    @property
+    def changed_on_humanized(self) -> str:
+        return self._format_time_humanized(self.changed_on)
 
     @property
     def created_on_humanized(self) -> str:
-        locale = str(get_locale() or 'en')
-        try:
-            humanize.i18n.activate(locale)
-            result = humanize.naturaltime(datetime.now() - self.created_on)
-            humanize.i18n.deactivate()
-            return result
-        except:
-            pass
-        # Fallback to English
-        return humanize.naturaltime(datetime.now() - self.created_on)
+        return self._format_time_humanized(self.created_on)
 
     @renders("changed_on")
     def modified(self) -> Markup:
