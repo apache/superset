@@ -70,6 +70,8 @@ const getDeckGLTiles = () => {
   return deckglTiles;
 };
 
+export const DEFAULT_DECKGL_COLOR = { r: 158, g: 158, b: 158, a: 1 };
+
 const DEFAULT_VIEWPORT = {
   longitude: 6.85236157047845,
   latitude: 31.222656842808707,
@@ -444,6 +446,7 @@ export const deckGLCategoricalColorSchemeTypeSelect: CustomControlItem = {
   config: {
     type: 'SelectControl',
     label: t('Color Scheme Type'),
+    description: t('Select the type of color scheme to use.'),
     clearable: false,
     validators: [],
     choices: [
@@ -514,7 +517,7 @@ export const deckGLLinearColorSchemeSelect: CustomControlItem = {
       ]),
     default: sequentialSchemeRegistry.getDefaultKey(),
     clearable: false,
-    description: '',
+    description: t('Select a linear color scheme'),
     renderTrigger: true,
     schemes: () => sequentialSchemeRegistry.getMap(),
     isLinear: true,
@@ -529,6 +532,22 @@ export const deckGLColorBreakpointsSelect: CustomControlItem = {
   config: {
     label: t('Color breakpoints'),
     type: 'ColorBreakpointsControl',
+    description: t('Define color breakpoints for the data'),
+    renderTrigger: true,
+    visibility: ({ controls }) =>
+      isColorSchemeTypeVisible(controls, COLOR_SCHEME_TYPES.color_breakpoints),
+  },
+};
+
+const breakpointsDefaultColor: CustomControlItem = {
+  name: 'breakpoints_default_color',
+  config: {
+    label: t('Default color'),
+    type: 'ColorPickerControl',
+    description: t(
+      "The color used when a value doesn't match any defined breakpoints.",
+    ),
+    default: DEFAULT_DECKGL_COLOR,
     renderTrigger: true,
     visibility: ({ controls }) =>
       isColorSchemeTypeVisible(controls, COLOR_SCHEME_TYPES.color_breakpoints),
@@ -556,6 +575,7 @@ export const generateDeckGLColorSchemeControls = ({
       config: {
         type: 'SelectControl',
         label: t('Color Scheme Type'),
+        description: t('Select the type of color scheme to use.'),
         clearable: false,
         validators: [],
         choices: [
@@ -570,5 +590,6 @@ export const generateDeckGLColorSchemeControls = ({
   [deckGLFixedColor],
   disableCategoricalColumn ? [] : [deckGLCategoricalColor],
   [deckGLCategoricalColorSchemeSelect],
+  [breakpointsDefaultColor],
   [deckGLColorBreakpointsSelect],
 ];

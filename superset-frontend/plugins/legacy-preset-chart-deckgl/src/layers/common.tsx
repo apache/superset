@@ -45,6 +45,7 @@ import { TooltipProps } from '../components/Tooltip';
 import { getCrossFilterDataMask } from '../utils/crossFiltersDataMask';
 import { COLOR_SCHEME_TYPES, ColorSchemeType } from '../utilities/utils';
 import { hexToRGB } from '../utils/colors';
+import { DEFAULT_DECKGL_COLOR } from '../utilities/Shared_DeckGL';
 
 export function commonLayerProps({
   formData,
@@ -203,14 +204,22 @@ export const getColorForBreakpoints = (
       aggResult >= breakpoint.minValue && aggResult <= breakpoint.maxValue,
   );
 
-  return breapointForPoint >= 0 ? breapointForPoint : 0;
+  return breapointForPoint + 1;
 };
 
-export const getColorRange = (
-  fd: QueryFormData,
-  colorSchemeType: ColorSchemeType,
-  colorScale?: CategoricalColorScale | ScaleLinear<string, string>,
-) => {
+export const getColorRange = ({
+  colorSchemeType,
+  fixedColor,
+  colorBreakpoints,
+  colorScale,
+  defaultBreakpointsColor,
+}: {
+  colorSchemeType: ColorSchemeType;
+  defaultBreakpointsColor: { r: number; g: number; b: number; a: number };
+  fixedColor?: { r: number; g: number; b: number; a: number };
+  colorBreakpoints?: ColorBreakpointType[];
+  colorScale?: CategoricalColorScale | ScaleLinear<string, string>;
+}) => {
   let colorRange: Color[] | undefined;
   switch (colorSchemeType) {
     case COLOR_SCHEME_TYPES.linear_palette:
@@ -219,24 +228,44 @@ export const getColorRange = (
       break;
     }
     case COLOR_SCHEME_TYPES.color_breakpoints: {
-      const colorBreakpoints = fd.color_breakpoints;
-      colorRange = colorBreakpoints.map(
+      const defaultColorArray: Color = defaultBreakpointsColor
+        ? [
+            defaultBreakpointsColor.r,
+            defaultBreakpointsColor.g,
+            defaultBreakpointsColor.b,
+            defaultBreakpointsColor.a * 255,
+          ]
+        : [
+            DEFAULT_DECKGL_COLOR.r,
+            DEFAULT_DECKGL_COLOR.g,
+            DEFAULT_DECKGL_COLOR.b,
+            DEFAULT_DECKGL_COLOR.a * 255,
+          ];
+
+      colorRange = colorBreakpoints?.map(
         (colorBreakpoint: ColorBreakpointType) =>
           colorBreakpoint.color
             ? [
                 colorBreakpoint.color.r,
                 colorBreakpoint.color.g,
                 colorBreakpoint.color.b,
-                255 * (colorBreakpoint.color.a / 100),
+                colorBreakpoint.color.a * 255,
               ]
-            : [0, 0, 0, 0],
+            : defaultColorArray,
       );
+      colorRange?.unshift(defaultColorArray);
+
       break;
     }
     default: {
-      const color = fd.color_picker || { r: 0, g: 0, b: 0, a: 0 };
+      const color = fixedColor || {
+        r: DEFAULT_DECKGL_COLOR.r,
+        g: DEFAULT_DECKGL_COLOR.g,
+        b: DEFAULT_DECKGL_COLOR.b,
+        a: DEFAULT_DECKGL_COLOR.a,
+      };
 
-      colorRange = [[color.r, color.g, color.b, 255 * color.a]];
+      colorRange = [[color.r, color.g, color.b, color.a * 255]];
     }
   }
 

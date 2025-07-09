@@ -65,7 +65,13 @@ export const getLayer: GetLayerType<HeatmapLayer> = ({
     ?.createLinearScale([0, 6]);
 
   const colorSchemeType = getSelectedColorSchemeType(fd);
-  const colorRange = getColorRange(fd, colorSchemeType, colorScale)?.reverse();
+  const colorRange = getColorRange({
+    defaultBreakpointsColor: fd.default_color,
+    colorBreakpoints: fd.color_breakpoints,
+    fixedColor: fd.color_picker,
+    colorSchemeType,
+    colorScale,
+  })?.reverse();
 
   return new HeatmapLayer({
     id: `heatmap-layer-${fd.slice_id}` as const,

@@ -70,10 +70,16 @@ export const getLayer: GetLayerType<GridLayer> = function ({
     data = jsFnMutator(data);
   }
 
-  const colorSchemeType = getSelectedColorSchemeType(fd);
-  const colorRange = getColorRange(fd, colorSchemeType, colorScale);
-
   const colorBreakpoints = fd.color_breakpoints;
+
+  const colorSchemeType = getSelectedColorSchemeType(fd);
+  const colorRange = getColorRange({
+    defaultBreakpointsColor: fd.breakpoints_default_color,
+    colorSchemeType,
+    colorScale,
+    colorBreakpoints,
+    fixedColor: fd.color_picker,
+  });
 
   const aggFunc = getAggFunc(fd.js_agg_function, p => p.weight);
 

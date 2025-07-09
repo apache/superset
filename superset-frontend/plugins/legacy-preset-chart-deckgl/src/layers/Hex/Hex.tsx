@@ -70,7 +70,13 @@ export const getLayer: GetLayerType<HexagonLayer> = function ({
   }
 
   const colorSchemeType = getSelectedColorSchemeType(fd);
-  const colorRange = getColorRange(fd, colorSchemeType, colorScale);
+  const colorRange = getColorRange({
+    defaultBreakpointsColor: fd.default_color,
+    colorBreakpoints: fd.color_breakpoints,
+    fixedColor: fd.color_picker,
+    colorSchemeType,
+    colorScale,
+  });
 
   const colorBreakpoints = fd.color_breakpoints;
 

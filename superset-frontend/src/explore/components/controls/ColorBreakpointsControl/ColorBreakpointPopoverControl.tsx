@@ -162,7 +162,7 @@ const ColorBreakpointsPopoverControl = ({
   const updateColor = (rgb: ColorType) => {
     setColorBreakpoint({
       ...colorBreakpoint,
-      color: { ...rgb, a: 100 },
+      color: { ...rgb },
     });
   };
 
