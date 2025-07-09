@@ -176,6 +176,7 @@ export default function Login() {
                 ]}
               >
                 <Input
+                  autoFocus
                   prefix={<Icons.UserOutlined iconSize="l" />}
                   data-test="username-input"
                 />
