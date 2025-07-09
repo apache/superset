@@ -110,7 +110,7 @@ describe('SupersetClient', () => {
     networkCalls.map((url: string) =>
       expect(fetchMock.calls(url)[0][1]?.headers).toStrictEqual({
         Accept: 'application/json',
-        'X-CSRFToken': '',
+        'X-CSRFToken': '1234',
       }),
     );
 

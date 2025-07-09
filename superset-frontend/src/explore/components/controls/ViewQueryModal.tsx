@@ -25,7 +25,7 @@ import {
   getClientErrorObject,
   QueryFormData,
 } from '@superset-ui/core';
-import Loading from 'src/components/Loading';
+import { Loading } from '@superset-ui/core/components';
 import { getChartDataRequest } from 'src/components/Chart/chartAction';
 import ViewQuery from 'src/explore/components/controls/ViewQuery';
 
@@ -91,7 +91,7 @@ const ViewQueryModal: FC<Props> = ({ latestQueryFormData }) => {
           <ViewQuery
             datasource={latestQueryFormData.datasource}
             sql={item.query}
-            language={item.language || undefined}
+            language="sql"
           />
         ) : null,
       )}

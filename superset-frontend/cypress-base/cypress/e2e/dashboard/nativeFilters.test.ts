@@ -16,37 +16,29 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import qs from 'querystring';
 import {
-  dashboardView,
   nativeFilters,
   exploreView,
   dataTestChartName,
 } from 'cypress/support/directories';
 
 import {
-  addCountryNameFilter,
   addParentFilterWithValue,
-  applyAdvancedTimeRangeFilterOnDashboard,
   applyNativeFilterValueWithIndex,
   cancelNativeFilterSettings,
   checkNativeFilterTooltip,
   clickOnAddFilterInModal,
   collapseFilterOnLeftPanel,
-  deleteNativeFilter,
   enterNativeFilterEditModal,
   expandFilterOnLeftPanel,
-  fillNativeFilterForm,
   getNativeFilterPlaceholderWithIndex,
   inputNativeFilterDefaultValue,
   saveNativeFilterSettings,
   nativeFilterTooltips,
-  undoDeleteNativeFilter,
   validateFilterContentOnDashboard,
   valueNativeFilterOptions,
   validateFilterNameOnDashboard,
   testItems,
-  WORLD_HEALTH_CHARTS,
 } from './utils';
 import {
   prepareDashboardFilters,
@@ -293,7 +285,11 @@ describe('Native filters', () => {
 
     it('Verify setting options and tooltips for value filter', () => {
       enterNativeFilterEditModal(false);
-      cy.contains('Filter value is required').should('be.visible').click();
+      cy.contains('Filter value is required').scrollIntoView();
+
+      cy.contains('Filter value is required').should('be.visible').click({
+        force: true,
+      });
       checkNativeFilterTooltip(0, nativeFilterTooltips.preFilter);
       checkNativeFilterTooltip(1, nativeFilterTooltips.defaultValue);
       cy.get(nativeFilters.modal.container).should('be.visible');

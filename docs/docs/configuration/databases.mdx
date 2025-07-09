@@ -71,7 +71,6 @@ are compatible with Superset.
 | [Parseable](/docs/configuration/databases#parseable)                    | `pip install sqlalchemy-parseable`                                                 | `parseable://<UserName>:<DBPassword>@<Database Host>/<Stream Name>`                                                                                    |
 | [PostgreSQL](/docs/configuration/databases#postgres)                    | `pip install psycopg2`                                                             | `postgresql://<UserName>:<DBPassword>@<Database Host>/<Database Name>`                                                                                 |
 | [Presto](/docs/configuration/databases#presto)                          | `pip install pyhive`                                                               | `presto://{username}:{password}@{hostname}:{port}/{database}`                                                                                                                                            |
-| [Rockset](/docs/configuration/databases#rockset)                        | `pip install rockset-sqlalchemy`                                                   | `rockset://<api_key>:@<api_server>`                                                                                                                    |
 | [SAP Hana](/docs/configuration/databases#hana) | `pip install hdbcli sqlalchemy-hana` or `pip install apache_superset[hana]` | `hana://{username}:{password}@{host}:{port}` |
 | [SingleStore](/docs/configuration/databases#singlestore)                | `pip install sqlalchemy-singlestoredb`                                               | `singlestoredb://{username}:{password}@{host}:{port}/{database}`                                                                                     |
 | [StarRocks](/docs/configuration/databases#starrocks)                    | `pip install starrocks`                                                            | `starrocks://<User>:<Password>@<Host>:<Port>/<Catalog>.<Database>`                                                                                     |
@@ -1173,25 +1172,6 @@ The expected connection string is formatted as follows:
 ```
 risingwave://root@{hostname}:{port}/{database}?sslmode=disable
 ```
-
-#### Rockset
-
-The connection string for Rockset is:
-
-```
-rockset://{api key}:@{api server}
-```
-
-Get your API key from the [Rockset console](https://console.rockset.com/apikeys).
-Find your API server from the [API reference](https://rockset.com/docs/rest-api/#introduction). Omit the `https://` portion of the URL.
-
-To target to a specific virtual instance, use this URI format:
-
-```
-rockset://{api key}:@{api server}/{VI ID}
-```
-
-For more complete instructions, we recommend the [Rockset documentation](https://docs.rockset.com/apache-superset/).
 
 #### Snowflake
 
