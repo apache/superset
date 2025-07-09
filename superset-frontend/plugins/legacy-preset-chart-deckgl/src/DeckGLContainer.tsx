@@ -68,6 +68,9 @@ export const DeckGLContainer = memo(
     const prevViewport = usePrevious(props.viewport);
     const glContextRef = useRef<WebGL2RenderingContext | null>(null);
 
+    const mapStyle =
+      'tile://https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png';
+
     useEffect(
       () => () => {
         glContextRef.current?.getExtension('WEBGL_lose_context')?.loseContext();
@@ -109,15 +112,15 @@ export const DeckGLContainer = memo(
 
     const layers = useCallback(() => {
       if (
-        (props.mapStyle?.startsWith(TILE_LAYER_PREFIX) ||
-          OSM_LAYER_KEYWORDS.some(tilek => props.mapStyle?.includes(tilek))) &&
+        (mapStyle?.startsWith(TILE_LAYER_PREFIX) ||
+          OSM_LAYER_KEYWORDS.some(tilek => mapStyle?.includes(tilek))) &&
         props.layers.some(
           l => typeof l !== 'function' && l?.id === 'tile-layer',
         ) === false
       ) {
         props.layers.unshift(
           buildTileLayer(
-            (props.mapStyle ?? '').replace(TILE_LAYER_PREFIX, ''),
+            (mapStyle ?? '').replace(TILE_LAYER_PREFIX, ''),
             'tile-layer',
           ),
         );
@@ -130,9 +133,11 @@ export const DeckGLContainer = memo(
       }
 
       return props.layers as Layer[];
-    }, [props.layers, props.mapStyle]);
+    }, [props.layers, mapStyle]);
 
     const { children = null, height, width } = props;
+
+    console.log(mapStyle, 'mapStyle');
 
     return (
       <>
@@ -154,10 +159,10 @@ export const DeckGLContainer = memo(
               glContextRef.current = context.gl;
             }}
           >
-            {props.mapStyle?.startsWith(MAPBOX_LAYER_PREFIX) && (
+            {mapStyle?.startsWith(MAPBOX_LAYER_PREFIX) && (
               <StaticMap
                 preserveDrawingBuffer
-                mapStyle={props.mapStyle || 'light'}
+                mapStyle="tile://https://tiles.stadiamaps.com/tiles/alidade_dark/{z}/{x}/{y}.png"
                 mapboxApiAccessToken={props.mapboxApiAccessToken}
               />
             )}
