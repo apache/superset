@@ -104,6 +104,14 @@ class CeleryConfig:
   broker_url = CELERY_REDIS_URL
   result_backend = CELERY_REDIS_URL
 
+  {{ if .Values.celeryConfigOverrides }}
+  # Overrides
+  {{- range $key, $value := .Values.celeryConfigOverrides }}
+  # {{ $key }}
+  {{ tpl $value $ }}
+  {{- end }}
+  {{- end }}
+
 CELERY_CONFIG = CeleryConfig
 RESULTS_BACKEND = RedisCache(
       host=env('REDIS_HOST'),
