@@ -132,26 +132,26 @@ export const getLayer: GetLayerType<PolygonLayer> = function ({
 
   const metricLabel = fd.metric ? fd.metric.label || fd.metric : null;
   const accessor = (d: JsonObject) => d[metricLabel];
-  let baseColorScaler: () => Color;
+  let baseColorScaler: (d: JsonObject) => Color;
 
   switch (colorSchemeType) {
-    case COLOR_SCHEME_TYPES.fixed_color:
+    case COLOR_SCHEME_TYPES.fixed_color: {
       baseColorScaler = () => [fc.r, fc.g, fc.b, 255 * fc.a];
       break;
-
-    case COLOR_SCHEME_TYPES.linear_palette:
+    }
+    case COLOR_SCHEME_TYPES.linear_palette: {
       baseColorScaler =
         fd.metric === null
           ? () => [fc.r, fc.g, fc.b, 255 * fc.a]
           : getBreakPointColorScaler(fd, data, accessor);
       break;
-
+    }
     case COLOR_SCHEME_TYPES.color_breakpoints: {
       const colorBreakpoints = fd.color_breakpoints;
-      baseColorScaler = () => {
+      baseColorScaler = data => {
         const breakpointIndex = getColorForBreakpoints(
           accessor,
-          data,
+          data as number[],
           colorBreakpoints,
         );
         const breakpointColor =
@@ -171,7 +171,7 @@ export const getLayer: GetLayerType<PolygonLayer> = function ({
 
   // when polygons are selected, reduce the opacity of non-selected polygons
   const colorScaler = (d: JsonObject): [number, number, number, number] => {
-    const baseColor = (baseColorScaler() as [
+    const baseColor = (baseColorScaler(d) as [
       number,
       number,
       number,
