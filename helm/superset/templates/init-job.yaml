@@ -101,7 +101,7 @@ spec:
         command: {{  tpl (toJson .Values.init.command) . }}
         resources: {{- toYaml .Values.init.resources | nindent 10 }}
       {{- if .Values.init.extraContainers }}
-          {{- toYaml .Values.init.extraContainers | nindent 6 }}
+          {{- tpl (toYaml .Values.init.extraContainers) . | nindent 6 }}
       {{- end }}
       {{- with .Values.nodeSelector }}
       nodeSelector: {{- toYaml . | nindent 8 }}
