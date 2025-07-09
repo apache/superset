@@ -19,14 +19,16 @@
 import { Link } from 'react-router-dom';
 import { isFeatureEnabled, FeatureFlag, t } from '@superset-ui/core';
 import { CardStyles } from 'src/views/CRUD/utils';
-import { Dropdown } from 'src/components/Dropdown';
-import { MenuItem } from 'src/components/Menu';
-import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
-import ListViewCard from 'src/components/ListViewCard';
-import { Icons } from 'src/components/Icons';
+import {
+  Button,
+  Dropdown,
+  ConfirmStatusChange,
+  ListViewCard,
+} from '@superset-ui/core/components';
+import { MenuItem } from '@superset-ui/core/components/Menu';
+import { Icons } from '@superset-ui/core/components/Icons';
 import { Tag } from 'src/views/CRUD/types';
 import { deleteTags } from 'src/features/tags/tags';
-import { Button } from 'src/components';
 import { assetUrl } from 'src/utils/assetUrl';
 
 interface TagCardProps {
@@ -45,10 +47,7 @@ interface TagCardProps {
 function TagCard({
   tag,
   hasPerm,
-  bulkSelectEnabled,
-  tagFilter,
   refreshData,
-  userId,
   addDangerToast,
   addSuccessToast,
   showThumbnails,
@@ -112,7 +111,7 @@ function TagCard({
             }}
           >
             <Dropdown menu={{ items: menuItems }} trigger={['click', 'hover']}>
-              <Button buttonSize="xsmall" type="link">
+              <Button buttonSize="xsmall" buttonStyle="link">
                 <Icons.MoreOutlined iconSize="xl" />
               </Button>
             </Dropdown>

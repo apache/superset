@@ -21,16 +21,10 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { css, t, useTheme } from '@superset-ui/core';
 import { useListViewResource } from 'src/views/CRUD/hooks';
 import SubMenu, { SubMenuProps } from 'src/features/home/SubMenu';
-import ActionsBar, { ActionProps } from 'src/components/ListView/ActionsBar';
-import ListView, {
-  ListViewProps,
-  Filters,
-  FilterOperator,
-} from 'src/components/ListView';
-import DeleteModal from 'src/components/DeleteModal';
-import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
+import { ActionsBar, ActionProps } from 'src/components/ListView/ActionsBar';
+import { ListView, ListViewProps } from 'src/components/ListView';
+import { type ListViewFilters, ListViewFilterOperator } from 'src/components';
 import { isUserAdmin } from 'src/dashboard/util/permissionUtils';
-import { Icons } from 'src/components/Icons';
 import {
   GroupListAddModal,
   GroupListEditModal,
@@ -38,7 +32,13 @@ import {
 import { useToasts } from 'src/components/MessageToasts/withToasts';
 import { deleteGroup, fetchUserOptions } from 'src/features/groups/utils';
 import { fetchPaginatedData } from 'src/utils/fetchOptions';
-import { Tooltip } from 'src/components/Tooltip';
+import {
+  Tooltip,
+  Icons,
+  ConfirmStatusChange,
+  DeleteModal,
+} from '@superset-ui/core/components';
+import { WIDER_DROPDOWN_WIDTH } from 'src/components/ListView/utils';
 
 const PAGE_SIZE = 25;
 
@@ -277,10 +277,10 @@ function GroupsList({ user }: GroupsListProps) {
         name: (
           <>
             <Icons.PlusOutlined
-              iconColor={theme.colors.primary.light5}
+              iconColor={theme.colorText}
               iconSize="m"
               css={css`
-                margin: auto ${theme.gridUnit * 2}px auto 0;
+                margin: auto ${theme.sizeUnit * 2}px auto 0;
                 vertical-align: text-top;
               `}
             />
@@ -302,51 +302,53 @@ function GroupsList({ user }: GroupsListProps) {
     );
   }
 
-  const filters: Filters = useMemo(
+  const filters: ListViewFilters = useMemo(
     () => [
       {
         Header: t('Name'),
         key: 'name',
         id: 'name',
         input: 'search',
-        operator: FilterOperator.Contains,
+        operator: ListViewFilterOperator.Contains,
       },
       {
         Header: t('Label'),
         key: 'label',
         id: 'label',
         input: 'search',
-        operator: FilterOperator.Contains,
+        operator: ListViewFilterOperator.Contains,
       },
       {
         Header: t('Description'),
         key: 'description',
         id: 'description',
         input: 'search',
-        operator: FilterOperator.Contains,
+        operator: ListViewFilterOperator.Contains,
       },
       {
         Header: t('Roles'),
         key: 'roles',
         id: 'roles',
         input: 'select',
-        operator: FilterOperator.RelationManyMany,
+        operator: ListViewFilterOperator.RelationManyMany,
         unfilteredLabel: t('All'),
         selects: roles?.map(role => ({
           label: role.name,
           value: role.id,
         })),
         loading: loadingState.roles,
+        dropdownStyle: { minWidth: WIDER_DROPDOWN_WIDTH },
       },
       {
         Header: t('Users'),
         key: 'users',
         id: 'users',
         input: 'select',
-        operator: FilterOperator.RelationManyMany,
+        operator: ListViewFilterOperator.RelationManyMany,
         unfilteredLabel: t('All'),
         fetchSelects: async (filterValue, page, pageSize) =>
           fetchUserOptions(filterValue, page, pageSize, addDangerToast),
+        dropdownStyle: { minWidth: WIDER_DROPDOWN_WIDTH },
       },
     ],
     [loadingState.roles, roles],
@@ -362,10 +364,10 @@ function GroupsList({ user }: GroupsListProps) {
       buttonText: (
         <>
           <Icons.PlusOutlined
-            iconColor={theme.colors.primary.light5}
+            iconColor={theme.colorText}
             iconSize="m"
             css={css`
-              margin: auto ${theme.gridUnit * 2}px auto 0;
+              margin: auto ${theme.sizeUnit * 2}px auto 0;
               vertical-align: text-top;
             `}
           />

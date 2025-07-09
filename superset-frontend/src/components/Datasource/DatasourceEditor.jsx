@@ -19,10 +19,8 @@
 import rison from 'rison';
 import { PureComponent, useCallback } from 'react';
 import PropTypes from 'prop-types';
-import { Radio } from 'src/components/Radio';
-import Card from 'src/components/Card';
-import Alert from 'src/components/Alert';
-import Badge from 'src/components/Badge';
+import { connect } from 'react-redux';
+import { Radio } from '@superset-ui/core/components/Radio';
 import {
   css,
   isFeatureEnabled,
@@ -31,52 +29,62 @@ import {
   FeatureFlag,
   styled,
   SupersetClient,
+  themeObject,
   t,
   withTheme,
   getClientErrorObject,
   getExtensionsRegistry,
 } from '@superset-ui/core';
-import { Select, AsyncSelect, Row, Col } from 'src/components';
-import { FormLabel } from 'src/components/Form';
-import Button from 'src/components/Button';
-import Tabs from 'src/components/Tabs';
-import CertifiedBadge from 'src/components/CertifiedBadge';
-import WarningIconWithTooltip from 'src/components/WarningIconWithTooltip';
-import DatabaseSelector from 'src/components/DatabaseSelector';
-import Label from 'src/components/Label';
-import Loading from 'src/components/Loading';
+import Tabs from '@superset-ui/core/components/Tabs';
+import WarningIconWithTooltip from '@superset-ui/core/components/WarningIconWithTooltip';
 import TableSelector from 'src/components/TableSelector';
-import EditableTitle from 'src/components/EditableTitle';
 import CheckboxControl from 'src/explore/components/controls/CheckboxControl';
 import TextControl from 'src/explore/components/controls/TextControl';
 import TextAreaControl from 'src/explore/components/controls/TextAreaControl';
 import SpatialControl from 'src/explore/components/controls/SpatialControl';
 import withToasts from 'src/components/MessageToasts/withToasts';
-import { Icons } from 'src/components/Icons';
 import CurrencyControl from 'src/explore/components/controls/CurrencyControl';
+import {
+  Alert,
+  AsyncSelect,
+  Badge,
+  Button,
+  Card,
+  CertifiedBadge,
+  Col,
+  Divider,
+  EditableTitle,
+  FormLabel,
+  Icons,
+  Loading,
+  Row,
+  Select,
+  Typography,
+  Label,
+} from '@superset-ui/core/components';
+import { FilterableTable } from 'src/components';
 import {
   executeQuery,
   formatQuery,
   resetDatabaseState,
 } from 'src/database/actions';
-import { connect } from 'react-redux';
 import Mousetrap from 'mousetrap';
+import { DatabaseSelector } from '../DatabaseSelector';
 import CollectionTable from './CollectionTable';
 import Fieldset from './Fieldset';
 import Field from './Field';
 import { fetchSyncedColumns, updateColumns } from './utils';
-import FilterableTable from '../FilterableTable';
 
 const extensionsRegistry = getExtensionsRegistry();
 
 const DatasourceContainer = styled.div`
   .change-warning {
     margin: 16px 10px 0;
-    color: ${({ theme }) => theme.colors.warning.base};
+    color: ${({ theme }) => theme.colorWarning};
   }
 
   .change-warning .bold {
-    font-weight: ${({ theme }) => theme.typography.weights.bold};
+    font-weight: ${({ theme }) => theme.fontWeightStrong};
   }
 
   .form-group.has-feedback > .help-block {
@@ -93,7 +101,7 @@ const FlexRowContainer = styled.div`
   display: flex;
 
   svg {
-    margin-right: ${({ theme }) => theme.gridUnit}px;
+    margin-right: ${({ theme }) => theme.sizeUnit}px;
   }
 `;
 
@@ -105,15 +113,15 @@ const StyledTableTabs = styled(Tabs)`
 `;
 
 const StyledBadge = styled(Badge)`
-  .antd5-badge-count {
-    line-height: ${({ theme }) => theme.gridUnit * 4}px;
-    height: ${({ theme }) => theme.gridUnit * 4}px;
-    margin-left: ${({ theme }) => theme.gridUnit}px;
+  .ant-badge-count {
+    line-height: ${({ theme }) => theme.sizeUnit * 4}px;
+    height: ${({ theme }) => theme.sizeUnit * 4}px;
+    margin-left: ${({ theme }) => theme.sizeUnit}px;
   }
 `;
 
 const EditLockContainer = styled.div`
-  font-size: ${({ theme }) => theme.typography.sizes.s}px;
+  font-size: ${({ theme }) => theme.fontSizeSM}px;
   display: flex;
   align-items: center;
   a {
@@ -123,14 +131,14 @@ const EditLockContainer = styled.div`
 
 const ColumnButtonWrapper = styled.div`
   text-align: right;
-  ${({ theme }) => `margin-bottom: ${theme.gridUnit * 2}px`}
+  ${({ theme }) => `margin-bottom: ${theme.sizeUnit * 2}px`}
 `;
 
 const StyledLabelWrapper = styled.div`
   display: flex;
   align-items: center;
   span {
-    margin-right: ${({ theme }) => theme.gridUnit}px;
+    margin-right: ${({ theme }) => theme.sizeUnit}px;
   }
 `;
 
@@ -140,14 +148,14 @@ const StyledColumnsTabWrapper = styled.div`
   }
 
   .ant-tag {
-    margin-top: ${({ theme }) => theme.gridUnit}px;
+    margin-top: ${({ theme }) => theme.sizeUnit}px;
   }
 `;
 
 const StyledButtonWrapper = styled.span`
   ${({ theme }) => `
-    margin-top: ${theme.gridUnit * 3}px;
-    margin-left: ${theme.gridUnit * 3}px;
+    margin-top: ${theme.sizeUnit * 3}px;
+    margin-left: ${theme.sizeUnit * 3}px;
     button>span>:first-of-type {
       margin-right: 0;
     }
@@ -163,6 +171,15 @@ const DATA_TYPES = [
   { value: 'DATETIME', label: t('DATETIME') },
   { value: 'BOOLEAN', label: t('BOOLEAN') },
 ];
+
+const TABS_KEYS = {
+  SOURCE: 'SOURCE',
+  METRICS: 'METRICS',
+  COLUMNS: 'COLUMNS',
+  CALCULATED_COLUMNS: 'CALCULATED_COLUMNS',
+  SETTINGS: 'SETTINGS',
+  SPATIAL: 'SPATIAL',
+};
 
 const DATASOURCE_TYPES_ARR = [
   { key: 'physical', label: t('Physical (table or view)') },
@@ -322,13 +339,13 @@ function ColumnCollectionTable({
                 /* Note the fragmented translations may not work. */
                 <div>
                   {t('The pattern of timestamp format. For strings use ')}
-                  <a href="https://docs.python.org/2/library/datetime.html#strftime-strptime-behavior">
+                  <Typography.Link href="https://docs.python.org/2/library/datetime.html#strftime-strptime-behavior">
                     {t('Python datetime string pattern')}
-                  </a>
+                  </Typography.Link>
                   {t(' expression which needs to adhere to the ')}
-                  <a href="https://en.wikipedia.org/wiki/ISO_8601">
+                  <Typography.Link href="https://en.wikipedia.org/wiki/ISO_8601">
                     {t('ISO 8601')}
-                  </a>
+                  </Typography.Link>
                   {t(` standard to ensure that the lexicographical ordering
                       coincides with the chronological ordering. If the
                       timestamp format does not adhere to the ISO 8601 standard
@@ -424,9 +441,7 @@ function ColumnCollectionTable({
                 ),
               main_dttm_col: (value, _onItemChange, _label, record) => {
                 const checked = datasource.main_dttm_col === record.column_name;
-                const disabled = !columns.find(
-                  column => column.column_name === record.column_name,
-                ).is_dttm;
+                const disabled = !record?.is_dttm;
                 return (
                   <Radio
                     aria-label={t(
@@ -478,9 +493,7 @@ function ColumnCollectionTable({
                 ),
               main_dttm_col: (value, _onItemChange, _label, record) => {
                 const checked = datasource.main_dttm_col === record.column_name;
-                const disabled = !columns.find(
-                  column => column.column_name === record.column_name,
-                ).is_dttm;
+                const disabled = !record?.is_dttm;
                 return (
                   <Radio
                     aria-label={t(
@@ -548,7 +561,11 @@ StackedField.propTypes = {
 };
 
 function FormContainer({ children }) {
-  return <Card padded>{children}</Card>;
+  return (
+    <Card padded style={{ backgroundColor: themeObject.theme.colorBgLayout }}>
+      {children}
+    </Card>
+  );
 }
 
 FormContainer.propTypes = {
@@ -637,7 +654,7 @@ class DatasourceEditor extends PureComponent {
         col => !!col.expression,
       ),
       metadataLoading: false,
-      activeTabKey: 0,
+      activeTabKey: TABS_KEYS.SOURCE,
       datasourceType: props.datasource.sql
         ? DATASOURCE_TYPES.virtual.key
         : DATASOURCE_TYPES.physical.key,
@@ -1036,11 +1053,11 @@ class DatasourceEditor extends PureComponent {
   renderSpatialTab() {
     const { datasource } = this.state;
     const { spatials, all_cols: allCols } = datasource;
-    return (
-      <Tabs.TabPane
-        tab={<CollectionTabTitle collection={spatials} title={t('Spatial')} />}
-        key={4}
-      >
+
+    return {
+      key: TABS_KEYS.SPATIAL,
+      label: <CollectionTabTitle collection={spatials} title={t('Spatial')} />,
+      children: (
         <CollectionTable
           tableColumns={['name', 'config']}
           onChange={this.onDatasourcePropChange.bind(this, 'spatials')}
@@ -1060,15 +1077,15 @@ class DatasourceEditor extends PureComponent {
             ),
           }}
         />
-      </Tabs.TabPane>
-    );
+      ),
+    };
   }
 
   renderSqlEditorOverlay = () => (
     <div
       css={theme => css`
         position: absolute;
-        background: ${theme.colors.secondary.light5};
+        background: ${theme.colorBgLayout};
         align-items: center;
         display: flex;
         height: 100%;
@@ -1081,9 +1098,9 @@ class DatasourceEditor extends PureComponent {
         <span
           css={theme => css`
             display: block;
-            margin: ${theme.gridUnit * 4}px auto;
+            margin: ${theme.sizeUnit * 4}px auto;
             width: fit-content;
-            color: ${theme.colors.grayscale.base};
+            color: ${theme.colorText};
           `}
         >
           {t('We are working on your query')}
@@ -1099,10 +1116,8 @@ class DatasourceEditor extends PureComponent {
         target="_blank"
         rel="noopener noreferrer"
         css={theme => css`
-          color: ${isError
-            ? theme.colors.error.base
-            : theme.colors.grayscale.base};
-          font-size: ${theme.typography.sizes.s}px;
+          color: ${isError ? theme.colorErrorText : theme.colorText};
+          font-size: ${theme.fontSizeSM}px;
           text-decoration: underline;
         `}
       >
@@ -1115,7 +1130,7 @@ class DatasourceEditor extends PureComponent {
     <>
       <span
         css={theme => css`
-          font-size: ${theme.typography.sizes.s}px;
+          font-size: ${theme.fontSizeSM}px;
         `}
       >
         {this.props.database?.error && t('Error executing query. ')}
@@ -1123,7 +1138,8 @@ class DatasourceEditor extends PureComponent {
       {this.renderOpenInSqlLabLink(true)}
       <span
         css={theme => css`
-          font-size: ${theme.typography.sizes.s}px;
+          font-size: ${theme.fontSizeSM}px;
+          margin-right: ${theme.sizeUnit}px;
         `}
       >
         {t(' to check for details.')}
@@ -1142,19 +1158,26 @@ class DatasourceEditor extends PureComponent {
     return (
       <div>
         <EditLockContainer>
-          <span role="button" tabIndex={0} onClick={this.onChangeEditMode}>
+          <span
+            css={theme => css`
+              color: ${theme.colorTextTertiary};
+            `}
+            role="button"
+            tabIndex={0}
+            onClick={this.onChangeEditMode}
+          >
             {this.state.isEditMode ? (
               <Icons.UnlockOutlined
                 iconSize="xl"
                 css={theme => css`
-                  margin: auto ${theme.gridUnit}px auto 0;
+                  margin: auto ${theme.sizeUnit}px auto 0;
                 `}
               />
             ) : (
               <Icons.LockOutlined
                 iconSize="xl"
                 css={theme => ({
-                  margin: `auto ${theme.gridUnit}px auto 0`,
+                  margin: `auto ${theme.sizeUnit}px auto 0`,
                 })}
               />
             )}
@@ -1166,7 +1189,11 @@ class DatasourceEditor extends PureComponent {
             <div>{t('Click the lock to prevent further changes.')}</div>
           )}
         </EditLockContainer>
-        <div className="m-l-10 m-t-20 m-b-10">
+        <div
+          css={theme => css`
+            margin-top: ${theme.sizeUnit * 3}px;
+          `}
+        >
           {DATASOURCE_TYPES_ARR.map(type => (
             <Radio
               key={type.key}
@@ -1180,7 +1207,7 @@ class DatasourceEditor extends PureComponent {
             </Radio>
           ))}
         </div>
-        <hr />
+        <Divider />
         <Fieldset item={datasource} onChange={this.onDatasourceChange} compact>
           {this.state.datasourceType === DATASOURCE_TYPES.virtual.key && (
             <div>
@@ -1267,6 +1294,9 @@ class DatasourceEditor extends PureComponent {
                         </>
                       ) : (
                         <TextAreaControl
+                          css={theme => css`
+                            margin-top: ${theme.sizeUnit * 2}px;
+                          `}
                           hotkeys={[
                             {
                               name: 'formatQuery',
@@ -1296,6 +1326,8 @@ class DatasourceEditor extends PureComponent {
                           display: flex;
                         `}
                       >
+                        {this.props.database?.error &&
+                          this.renderSqlErrorMessage()}
                         <Button
                           disabled={this.props.database?.isLoading}
                           tooltip={t('Open SQL Lab in a new tab')}
@@ -1308,7 +1340,7 @@ class DatasourceEditor extends PureComponent {
                           <Icons.ExportOutlined
                             iconSize="s"
                             css={theme => ({
-                              color: theme.colors.primary.dark1,
+                              color: theme.colorPrimaryBg,
                             })}
                           />
                         </Button>
@@ -1325,27 +1357,24 @@ class DatasourceEditor extends PureComponent {
                           <Icons.CaretRightFilled
                             iconSize="s"
                             css={theme => ({
-                              color: theme.colors.grayscale.light5,
+                              color: theme.colorIcon,
                             })}
                           />
                         </Button>
                       </div>
-                    }
-                    errorMessage={
-                      this.props.database?.error && this.renderSqlErrorMessage()
                     }
                   />
                   {this.props.database?.queryResult && (
                     <>
                       <div
                         css={theme => css`
-                          margin-bottom: ${theme.gridUnit * 4}px;
+                          margin-bottom: ${theme.sizeUnit * 4}px;
                         `}
                       >
                         <span
                           css={theme => css`
-                            color: ${theme.colors.grayscale.base};
-                            font-size: ${theme.typography.sizes.s}px;
+                            color: ${theme.colorText};
+                            font-size: ${theme.fontSizeSM}px;
                           `}
                         >
                           {t(
@@ -1355,8 +1384,8 @@ class DatasourceEditor extends PureComponent {
                         {this.renderOpenInSqlLabLink()}
                         <span
                           css={theme => css`
-                            color: ${theme.colors.grayscale.base};
-                            font-size: ${theme.typography.sizes.s}px;
+                            color: ${theme.colorText};
+                            font-size: ${theme.fontSizeSM}px;
                           `}
                         >
                           {t(' to see details.')}
@@ -1451,7 +1480,7 @@ class DatasourceEditor extends PureComponent {
     if (this.state.errors.length > 0) {
       return (
         <Alert
-          css={theme => ({ marginBottom: theme.gridUnit * 4 })}
+          css={theme => ({ marginBottom: theme.sizeUnit * 4 })}
           type="error"
           message={
             <>
@@ -1587,7 +1616,12 @@ class DatasourceEditor extends PureComponent {
                   warningMarkdown={record.warning_markdown}
                 />
               )}
-              <EditableTitle canEdit title={v} onSaveTitle={onChange} />
+              <EditableTitle
+                canEdit
+                title={v}
+                onSaveTitle={onChange}
+                maxWidth={300}
+              />
             </FlexRowContainer>
           ),
           verbose_name: (v, onChange) => (
@@ -1635,7 +1669,7 @@ class DatasourceEditor extends PureComponent {
       <DatasourceContainer data-test="datasource-editor">
         {this.renderErrors()}
         <Alert
-          css={theme => ({ marginBottom: theme.gridUnit * 4 })}
+          css={theme => ({ marginBottom: theme.sizeUnit * 4 })}
           type="warning"
           message={
             <>
@@ -1648,111 +1682,122 @@ class DatasourceEditor extends PureComponent {
           }
         />
         <StyledTableTabs
-          fullWidth={false}
           id="table-tabs"
           data-test="edit-dataset-tabs"
           onChange={this.handleTabSelect}
           defaultActiveKey={activeTabKey}
-        >
-          <Tabs.TabPane key={0} tab={t('Source')}>
-            {this.renderSourceFieldset(theme)}
-          </Tabs.TabPane>
-          <Tabs.TabPane
-            tab={
-              <CollectionTabTitle
-                collection={sortedMetrics}
-                title={t('Metrics')}
-              />
-            }
-            key={1}
-          >
-            {this.renderMetricCollection()}
-          </Tabs.TabPane>
-          <Tabs.TabPane
-            tab={
-              <CollectionTabTitle
-                collection={this.state.databaseColumns}
-                title={t('Columns')}
-              />
-            }
-            key={2}
-          >
-            <StyledColumnsTabWrapper>
-              <ColumnButtonWrapper>
-                <StyledButtonWrapper>
-                  <Button
-                    buttonSize="small"
-                    buttonStyle="tertiary"
-                    onClick={this.syncMetadata}
-                    className="sync-from-source"
-                    disabled={this.state.isEditMode}
-                  >
-                    <Icons.DatabaseOutlined iconSize="m" />
-                    {t('Sync columns from source')}
-                  </Button>
-                </StyledButtonWrapper>
-              </ColumnButtonWrapper>
-              <ColumnCollectionTable
-                className="columns-table"
-                columns={this.state.databaseColumns}
-                datasource={datasource}
-                onColumnsChange={databaseColumns =>
-                  this.setColumns({ databaseColumns })
-                }
-                onDatasourceChange={this.onDatasourceChange}
-              />
-              {this.state.metadataLoading && <Loading />}
-            </StyledColumnsTabWrapper>
-          </Tabs.TabPane>
-          <Tabs.TabPane
-            tab={
-              <CollectionTabTitle
-                collection={this.state.calculatedColumns}
-                title={t('Calculated columns')}
-              />
-            }
-            key={3}
-          >
-            <StyledColumnsTabWrapper>
-              <ColumnCollectionTable
-                columns={this.state.calculatedColumns}
-                onColumnsChange={calculatedColumns =>
-                  this.setColumns({ calculatedColumns })
-                }
-                columnLabelTooltips={{
-                  column_name: t(
-                    'This field is used as a unique identifier to attach ' +
-                      'the calculated dimension to charts. It is also used ' +
-                      'as the alias in the SQL query.',
-                  ),
-                }}
-                onDatasourceChange={this.onDatasourceChange}
-                datasource={datasource}
-                editableColumnName
-                showExpression
-                allowAddItem
-                allowEditDataType
-                itemGenerator={() => ({
-                  column_name: t('<new column>'),
-                  filterable: true,
-                  groupby: true,
-                  expression: t('<enter SQL expression here>'),
-                  __expanded: true,
-                })}
-              />
-            </StyledColumnsTabWrapper>
-          </Tabs.TabPane>
-          <Tabs.TabPane key={4} tab={t('Settings')}>
-            <Row gutter={16}>
-              <Col xs={24} md={12}>
-                <FormContainer>{this.renderSettingsFieldset()}</FormContainer>
-              </Col>
-              <Col xs={24} md={12}>
-                <FormContainer>{this.renderAdvancedFieldset()}</FormContainer>
-              </Col>
-            </Row>
-          </Tabs.TabPane>
-        </StyledTableTabs>
+          items={[
+            {
+              key: TABS_KEYS.SOURCE,
+              label: t('Source'),
+              children: this.renderSourceFieldset(theme),
+            },
+            {
+              key: TABS_KEYS.METRICS,
+              label: (
+                <CollectionTabTitle
+                  collection={sortedMetrics}
+                  title={t('Metrics')}
+                />
+              ),
+              children: this.renderMetricCollection(),
+            },
+            {
+              key: TABS_KEYS.COLUMNS,
+              label: (
+                <CollectionTabTitle
+                  collection={this.state.databaseColumns}
+                  title={t('Columns')}
+                />
+              ),
+              children: (
+                <StyledColumnsTabWrapper>
+                  <ColumnButtonWrapper>
+                    <StyledButtonWrapper>
+                      <Button
+                        buttonSize="small"
+                        buttonStyle="tertiary"
+                        onClick={this.syncMetadata}
+                        className="sync-from-source"
+                        disabled={this.state.isEditMode}
+                      >
+                        <Icons.DatabaseOutlined iconSize="m" />
+                        {t('Sync columns from source')}
+                      </Button>
+                    </StyledButtonWrapper>
+                  </ColumnButtonWrapper>
+                  <ColumnCollectionTable
+                    className="columns-table"
+                    columns={this.state.databaseColumns}
+                    datasource={datasource}
+                    onColumnsChange={databaseColumns =>
+                      this.setColumns({ databaseColumns })
+                    }
+                    onDatasourceChange={this.onDatasourceChange}
+                  />
+                  {this.state.metadataLoading && <Loading />}
+                </StyledColumnsTabWrapper>
+              ),
+            },
+            {
+              key: TABS_KEYS.CALCULATED_COLUMNS,
+              label: (
+                <CollectionTabTitle
+                  collection={this.state.calculatedColumns}
+                  title={t('Calculated columns')}
+                />
+              ),
+              children: (
+                <StyledColumnsTabWrapper>
+                  <ColumnCollectionTable
+                    columns={this.state.calculatedColumns}
+                    onColumnsChange={calculatedColumns =>
+                      this.setColumns({ calculatedColumns })
+                    }
+                    columnLabelTooltips={{
+                      column_name: t(
+                        'This field is used as a unique identifier to attach ' +
+                          'the calculated dimension to charts. It is also used ' +
+                          'as the alias in the SQL query.',
+                      ),
+                    }}
+                    onDatasourceChange={this.onDatasourceChange}
+                    datasource={datasource}
+                    editableColumnName
+                    showExpression
+                    allowAddItem
+                    allowEditDataType
+                    itemGenerator={() => ({
+                      column_name: t('<new column>'),
+                      filterable: true,
+                      groupby: true,
+                      expression: t('<enter SQL expression here>'),
+                      expanded: true,
+                    })}
+                  />
+                </StyledColumnsTabWrapper>
+              ),
+            },
+            {
+              key: TABS_KEYS.SETTINGS,
+              label: t('Settings'),
+              children: (
+                <Row gutter={16}>
+                  <Col xs={24} md={12}>
+                    <FormContainer>
+                      {this.renderSettingsFieldset()}
+                    </FormContainer>
+                  </Col>
+                  <Col xs={24} md={12}>
+                    <FormContainer>
+                      {this.renderAdvancedFieldset()}
+                    </FormContainer>
+                  </Col>
+                </Row>
+              ),
+            },
+          ]}
+        />
       </DatasourceContainer>
     );
   }

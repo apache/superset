@@ -18,17 +18,18 @@
  */
 import {
   AdhocColumn,
+  BuildQuery,
+  PostProcessingRule,
+  QueryFormOrderBy,
+  QueryMode,
+  QueryObject,
   buildQueryContext,
   ensureIsArray,
   getMetricLabel,
   isPhysicalColumn,
-  QueryFormOrderBy,
-  QueryMode,
-  QueryObject,
   removeDuplicates,
 } from '@superset-ui/core';
-import { PostProcessingRule } from '@superset-ui/core/src/query/types/PostProcessing';
-import { BuildQuery } from '@superset-ui/core/src/chart/registries/ChartBuildQueryRegistrySingleton';
+
 import {
   isTimeComparison,
   timeCompareOperator,
@@ -113,6 +114,13 @@ const buildQuery: BuildQuery<TableChartFormData> = (
       if (customOrInheritShifts.includes('inherit')) {
         timeOffsets = timeOffsets.concat(['inherit']);
       }
+    }
+
+    if (
+      extra_form_data?.time_compare &&
+      !timeOffsets.includes(extra_form_data.time_compare)
+    ) {
+      timeOffsets = [extra_form_data.time_compare];
     }
 
     let temporalColumnAdded = false;

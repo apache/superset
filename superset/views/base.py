@@ -36,6 +36,7 @@ from flask import (
 )
 from flask_appbuilder import BaseView, Model, ModelView
 from flask_appbuilder.actions import action
+from flask_appbuilder.const import AUTH_OAUTH, AUTH_OID
 from flask_appbuilder.forms import DynamicForm
 from flask_appbuilder.models.sqla.filters import BaseFilter
 from flask_appbuilder.security.sqla.models import User
@@ -326,6 +327,37 @@ def cached_common_bootstrap_data(  # pylint: disable=unused-argument
     )
 
     language = locale.language if locale else "en"
+    auth_type = appbuilder.app.config["AUTH_TYPE"]
+    auth_user_registration = appbuilder.app.config["AUTH_USER_REGISTRATION"]
+    frontend_config["AUTH_USER_REGISTRATION"] = auth_user_registration
+    should_show_recaptcha = auth_user_registration and (auth_type != AUTH_OAUTH)
+
+    if auth_user_registration:
+        frontend_config["AUTH_USER_REGISTRATION_ROLE"] = appbuilder.app.config[
+            "AUTH_USER_REGISTRATION_ROLE"
+        ]
+    if should_show_recaptcha:
+        frontend_config["RECAPTCHA_PUBLIC_KEY"] = appbuilder.app.config[
+            "RECAPTCHA_PUBLIC_KEY"
+        ]
+
+    frontend_config["AUTH_TYPE"] = auth_type
+    if auth_type == AUTH_OAUTH:
+        oauth_providers = []
+        for provider in appbuilder.sm.oauth_providers:
+            oauth_providers.append(
+                {
+                    "name": provider["name"],
+                    "icon": provider["icon"],
+                }
+            )
+        frontend_config["AUTH_PROVIDERS"] = oauth_providers
+
+    if auth_type == AUTH_OID:
+        oid_providers = []
+        for provider in appbuilder.sm.openid_providers:
+            oid_providers.append(provider)
+        frontend_config["AUTH_PROVIDERS"] = oid_providers
 
     bootstrap_data = {
         "application_root": conf["APPLICATION_ROOT"],
@@ -336,10 +368,11 @@ def cached_common_bootstrap_data(  # pylint: disable=unused-argument
         "d3_format": conf.get("D3_FORMAT"),
         "d3_time_format": conf.get("D3_TIME_FORMAT"),
         "currencies": conf.get("CURRENCIES"),
+        "deckgl_tiles": conf.get("DECKGL_BASE_MAP"),
         "feature_flags": get_feature_flags(),
         "extra_sequential_color_schemes": conf["EXTRA_SEQUENTIAL_COLOR_SCHEMES"],
         "extra_categorical_color_schemes": conf["EXTRA_CATEGORICAL_COLOR_SCHEMES"],
-        "theme_overrides": conf["THEME_OVERRIDES"],
+        "theme": conf["THEME"],
         "menu_data": menu_data(g.user),
     }
     bootstrap_data.update(conf["COMMON_BOOTSTRAP_OVERRIDES_FUNC"](bootstrap_data))

@@ -26,33 +26,27 @@ import {
 } from 'react';
 import rison from 'rison';
 import { styled, SupersetClient, t } from '@superset-ui/core';
-import SyntaxHighlighter from 'react-syntax-highlighter/dist/cjs/light';
-import github from 'react-syntax-highlighter/dist/cjs/styles/hljs/github';
-import CopyToClipboard from 'src/components/CopyToClipboard';
+import { Icons, Switch, Button, Skeleton } from '@superset-ui/core/components';
+import { CopyToClipboard } from 'src/components';
 import { CopyButton } from 'src/explore/components/DataTableControl';
-import markdownSyntax from 'react-syntax-highlighter/dist/cjs/languages/hljs/markdown';
-import htmlSyntax from 'react-syntax-highlighter/dist/cjs/languages/hljs/htmlbars';
-import sqlSyntax from 'react-syntax-highlighter/dist/cjs/languages/hljs/sql';
-import jsonSyntax from 'react-syntax-highlighter/dist/cjs/languages/hljs/json';
+import CodeSyntaxHighlighter, {
+  SupportedLanguage,
+  preloadLanguages,
+} from '@superset-ui/core/components/CodeSyntaxHighlighter';
 import { useHistory } from 'react-router-dom';
-import { Switch } from 'src/components/Switch';
-import { Button, Skeleton } from 'src/components';
 
 const CopyButtonViewQuery = styled(CopyButton)`
-  && {
-    margin: 0 0 ${({ theme }) => theme.gridUnit}px;
-  }
+  ${({ theme }) => `
+		&& {
+			margin: 0 0 ${theme.sizeUnit}px;
+		}
+  `}
 `;
-
-SyntaxHighlighter.registerLanguage('markdown', markdownSyntax);
-SyntaxHighlighter.registerLanguage('html', htmlSyntax);
-SyntaxHighlighter.registerLanguage('sql', sqlSyntax);
-SyntaxHighlighter.registerLanguage('json', jsonSyntax);
 
 export interface ViewQueryProps {
   sql: string;
   datasource: string;
-  language?: string;
+  language?: SupportedLanguage;
 }
 
 const StyledSyntaxContainer = styled.div`
@@ -65,22 +59,22 @@ const StyledHeaderMenuContainer = styled.div`
   display: flex;
   flex-direction: row;
   justify-content: space-between;
-  margin-top: ${({ theme }) => -theme.gridUnit * 4}px;
+  margin-top: ${({ theme }) => -theme.sizeUnit * 4}px;
   align-items: flex-end;
 `;
 
 const StyledHeaderActionContainer = styled.div`
   display: flex;
   flex-direction: row;
-  column-gap: ${({ theme }) => theme.gridUnit * 2}px;
+  column-gap: ${({ theme }) => theme.sizeUnit * 2}px;
 `;
 
-const StyledSyntaxHighlighter = styled(SyntaxHighlighter)`
+const StyledThemedSyntaxHighlighter = styled(CodeSyntaxHighlighter)`
   flex: 1;
 `;
 
 const StyledLabel = styled.label`
-  font-size: ${({ theme }) => theme.typography.sizes.m}px;
+  font-size: ${({ theme }) => theme.fontSize}px;
 `;
 
 const DATASET_BACKEND_QUERY = {
@@ -95,6 +89,11 @@ const ViewQuery: FC<ViewQueryProps> = props => {
   const [showFormatSQL, setShowFormatSQL] = useState(true);
   const history = useHistory();
   const currentSQL = (showFormatSQL ? formattedSQL : sql) ?? sql;
+
+  // Preload the language when component mounts to ensure smooth experience
+  useEffect(() => {
+    preloadLanguages([language]);
+  }, [language]);
 
   const formatCurrentQuery = useCallback(() => {
     if (formattedSQL) {
@@ -155,7 +154,10 @@ const ViewQuery: FC<ViewQueryProps> = props => {
             text={currentSQL}
             shouldShowText={false}
             copyNode={
-              <CopyButtonViewQuery buttonSize="small">
+              <CopyButtonViewQuery
+                buttonSize="small"
+                icon={<Icons.CopyOutlined />}
+              >
                 {t('Copy')}
               </CopyButtonViewQuery>
             }
@@ -175,9 +177,12 @@ const ViewQuery: FC<ViewQueryProps> = props => {
       </StyledHeaderMenuContainer>
       {!formattedSQL && <Skeleton active />}
       {formattedSQL && (
-        <StyledSyntaxHighlighter language={language} style={github}>
+        <StyledThemedSyntaxHighlighter
+          language={language}
+          customStyle={{ flex: 1 }}
+        >
           {currentSQL}
-        </StyledSyntaxHighlighter>
+        </StyledThemedSyntaxHighlighter>
       )}
     </StyledSyntaxContainer>
   );

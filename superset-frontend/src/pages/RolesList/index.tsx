@@ -18,26 +18,28 @@
  */
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { css, t, SupersetClient, useTheme } from '@superset-ui/core';
+import { t, SupersetClient } from '@superset-ui/core';
 import { useListViewResource } from 'src/views/CRUD/hooks';
 import RoleListAddModal from 'src/features/roles/RoleListAddModal';
 import RoleListEditModal from 'src/features/roles/RoleListEditModal';
 import RoleListDuplicateModal from 'src/features/roles/RoleListDuplicateModal';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import SubMenu, { SubMenuProps } from 'src/features/home/SubMenu';
-import ActionsBar, { ActionProps } from 'src/components/ListView/ActionsBar';
-import ListView, {
-  ListViewProps,
-  Filters,
-  FilterOperator,
-} from 'src/components/ListView';
-import DeleteModal from 'src/components/DeleteModal';
-import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
+import { ConfirmStatusChange, DeleteModal } from '@superset-ui/core/components';
+import {
+  ListView,
+  ListViewFilterOperator as FilterOperator,
+  ListViewActionsBar,
+  type ListViewProps,
+  type ListViewActionProps,
+  type ListViewFilters,
+} from 'src/components';
 import { FormattedPermission, UserObject } from 'src/features/roles/types';
 import { isUserAdmin } from 'src/dashboard/util/permissionUtils';
-import { Icons } from 'src/components/Icons';
+import { Icons } from '@superset-ui/core/components/Icons';
 import { fetchPaginatedData } from 'src/utils/fetchOptions';
 import { fetchUserOptions } from 'src/features/groups/utils';
+import { WIDER_DROPDOWN_WIDTH } from 'src/components/ListView/utils';
 import { GroupObject } from '../GroupsList';
 
 const PAGE_SIZE = 25;
@@ -69,7 +71,6 @@ enum ModalType {
 }
 
 function RolesList({ addDangerToast, addSuccessToast, user }: RolesListProps) {
-  const theme = useTheme();
   const {
     state: {
       loading,
@@ -254,7 +255,9 @@ function RolesList({ addDangerToast, addSuccessToast, user }: RolesListProps) {
               ]
             : [];
 
-          return <ActionsBar actions={actions as ActionProps[]} />;
+          return (
+            <ListViewActionsBar actions={actions as ListViewActionProps[]} />
+          );
         },
         Header: t('Actions'),
         id: 'actions',
@@ -273,14 +276,7 @@ function RolesList({ addDangerToast, addSuccessToast, user }: RolesListProps) {
       {
         name: (
           <>
-            <Icons.PlusOutlined
-              iconColor={theme.colors.primary.light5}
-              iconSize="m"
-              css={css`
-                margin: auto ${theme.gridUnit * 2}px auto 0;
-                vertical-align: text-top;
-              `}
-            />
+            <Icons.PlusOutlined iconSize="m" />
             {t('Role')}
           </>
         ),
@@ -299,7 +295,7 @@ function RolesList({ addDangerToast, addSuccessToast, user }: RolesListProps) {
     );
   }
 
-  const filters: Filters = useMemo(
+  const filters: ListViewFilters = useMemo(
     () => [
       {
         Header: t('Name'),
@@ -317,6 +313,7 @@ function RolesList({ addDangerToast, addSuccessToast, user }: RolesListProps) {
         unfilteredLabel: t('All'),
         fetchSelects: async (filterValue, page, pageSize) =>
           fetchUserOptions(filterValue, page, pageSize, addDangerToast),
+        dropdownStyle: { minWidth: WIDER_DROPDOWN_WIDTH },
       },
       {
         Header: t('Permissions'),
@@ -330,6 +327,7 @@ function RolesList({ addDangerToast, addSuccessToast, user }: RolesListProps) {
           value: permission.id,
         })),
         loading: loadingState.permissions,
+        dropdownStyle: { minWidth: WIDER_DROPDOWN_WIDTH },
       },
       {
         Header: t('Groups'),
@@ -343,6 +341,7 @@ function RolesList({ addDangerToast, addSuccessToast, user }: RolesListProps) {
           value: group.id,
         })),
         loading: loadingState.groups,
+        dropdownStyle: { minWidth: WIDER_DROPDOWN_WIDTH },
       },
     ],
     [permissions, groups, loadingState.groups, loadingState.permissions],
@@ -357,14 +356,7 @@ function RolesList({ addDangerToast, addSuccessToast, user }: RolesListProps) {
       },
       buttonText: (
         <>
-          <Icons.PlusOutlined
-            iconColor={theme.colors.primary.light5}
-            iconSize="m"
-            css={css`
-              margin: auto ${theme.gridUnit * 2}px auto 0;
-              vertical-align: text-top;
-            `}
-          />
+          <Icons.PlusOutlined iconSize="m" />
           {t('Role')}
         </>
       ),

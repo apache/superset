@@ -18,7 +18,7 @@
  */
 import { JsonObject, SupersetClient } from '@superset-ui/core';
 import rison from 'rison';
-import Tag from 'src/types/TagType';
+import { TagType } from 'src/components';
 
 export const OBJECT_TYPES_VALUES = Object.freeze([
   'dashboard',
@@ -74,11 +74,10 @@ export function fetchTags(
   {
     objectType,
     objectId,
-    includeTypes = false,
   }: {
     objectType: string;
     objectId: number;
-    includeTypes: boolean;
+    includeTypes?: boolean;
   },
   callback: (json: JsonObject) => void,
   error: (response: Response) => void,
@@ -94,13 +93,13 @@ export function fetchTags(
     endpoint: `/api/v1/${objectType}/${objectId}`,
   })
     .then(({ json }) =>
-      callback(json.result.tags.filter((tag: Tag) => tag.type === 1)),
+      callback(json.result.tags.filter((tag: TagType) => tag.type === 1)),
     )
     .catch(response => error(response));
 }
 export function deleteTaggedObjects(
   { objectType, objectId }: { objectType: string; objectId: number },
-  tag: Tag,
+  tag: TagType,
   callback: (text: string) => void,
   error: (response: string) => void,
 ) {
@@ -128,7 +127,7 @@ export function deleteTaggedObjects(
 }
 
 export function deleteTags(
-  tags: Tag[],
+  tags: TagType[],
   callback: (text: string) => void,
   error: (response: string) => void,
 ) {
@@ -151,11 +150,10 @@ export function addTag(
   {
     objectType,
     objectId,
-    includeTypes = false,
   }: {
     objectType: string;
     objectId: number;
-    includeTypes: boolean;
+    includeTypes?: boolean;
   },
   tag: string,
   callback: (text: string) => void,

@@ -30,7 +30,7 @@ import {
   FeatureFlag,
 } from '@superset-ui/core';
 import { Logger, LOG_ACTIONS_RENDER_CHART } from 'src/logger/LogUtils';
-import { EmptyState } from 'src/components/EmptyState';
+import { EmptyState } from '@superset-ui/core/components';
 import { ChartSource } from 'src/types/ChartSource';
 import ChartContextMenu from './ChartContextMenu/ChartContextMenu';
 
@@ -164,6 +164,8 @@ class ChartRenderer extends Component {
         nextProps.labelsColorMap !== this.props.labelsColorMap ||
         nextProps.formData.color_scheme !== this.props.formData.color_scheme ||
         nextProps.formData.stack !== this.props.formData.stack ||
+        nextProps.formData.subcategories !==
+          this.props.formData.subcategories ||
         nextProps.cacheBusterProp !== this.props.cacheBusterProp ||
         nextProps.emitCrossFilters !== this.props.emitCrossFilters
       );
@@ -323,7 +325,7 @@ class ChartRenderer extends Component {
       );
     } else {
       noResultsComponent = (
-        <EmptyState size="small" title={noResultTitle} image={noResultImage} />
+        <EmptyState title={noResultTitle} image={noResultImage} size="small" />
       );
     }
 

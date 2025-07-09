@@ -17,7 +17,7 @@
  * under the License.
  */
 import { FC } from 'react';
-import Button, { OnClickHandler } from 'src/components/Button';
+import { Button, type OnClickHandler } from '@superset-ui/core/components';
 import { t } from '@superset-ui/core';
 import { CancelConfirmationAlert } from './CancelConfirmationAlert';
 

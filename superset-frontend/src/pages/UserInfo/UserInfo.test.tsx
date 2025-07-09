@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 import fetchMock from 'fetch-mock';
 import {
   render,
@@ -60,8 +59,8 @@ const mockUser: UserWithPermissionsAndRoles = {
 };
 
 describe('UserInfo', () => {
-  const renderPage = async () => {
-    await act(async () => {
+  const renderPage = async () =>
+    act(async () => {
       render(
         <MemoryRouter>
           <QueryParamProvider>
@@ -71,7 +70,6 @@ describe('UserInfo', () => {
         { useRedux: true, store },
       );
     });
-  };
 
   beforeEach(() => {
     fetchMock.restore();
@@ -84,7 +82,7 @@ describe('UserInfo', () => {
     });
   });
 
-  afterAll(() => {
+  afterEach(() => {
     fetchMock.restore();
   });
 
@@ -112,15 +110,24 @@ describe('UserInfo', () => {
 
   it('opens the reset password modal on button click', async () => {
     await renderPage();
+
     const button = await screen.findByTestId('reset-password-button');
-    fireEvent.click(button);
+    await act(async () => {
+      fireEvent.click(button);
+    });
+
     expect(await screen.findByText(/Reset password/i)).toBeInTheDocument();
   });
 
   it('opens the edit user modal on button click', async () => {
     await renderPage();
+
     const button = await screen.findByTestId('edit-user-button');
-    fireEvent.click(button);
-    expect(await screen.getAllByText(/Edit user/i).length).toBeGreaterThan(0);
+    await act(async () => {
+      fireEvent.click(button);
+    });
+
+    const modals = await screen.findAllByText(/Edit user/i);
+    expect(modals.length).toBeGreaterThan(0);
   });
 });
