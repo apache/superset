@@ -7,6 +7,11 @@ To alter the pinned dependency, you can edit/alter the `.in` and `pyproject.toml
 ```bash
 ./scripts/uv-pip-compile.sh
 ```
+:::warning
+The pinned dependencies are based on the `current` version of python supported in Superset.
+Output of `./scripts/uv-pip-compile.sh` may vary slightly based on the python version you are using to run the command.
+Check the `pyproject.toml` file for the current version of python supported.
+:::
 
 This will generate the pinned requirements in the `.txt` files, which will be used in our CI/CD pipelines and in the Docker images.
 
