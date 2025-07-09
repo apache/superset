@@ -24,7 +24,6 @@ import TableCollection from '@superset-ui/core/components/TableCollection';
 import BulkTagModal from 'src/features/tags/BulkTagModal';
 import {
   Alert,
-  Button,
   Checkbox,
   Icons,
   EmptyState,
