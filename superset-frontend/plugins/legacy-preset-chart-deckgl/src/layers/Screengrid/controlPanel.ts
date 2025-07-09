@@ -35,6 +35,7 @@ import {
   mapboxStyle,
   deckGLFixedColor,
   deckGLCategoricalColorSchemeSelect,
+  deckGLCategoricalColorSchemeTypeSelect,
 } from '../../utilities/Shared_DeckGL';
 import { COLOR_SCHEME_TYPES } from '../../utilities/utils';
 
@@ -64,10 +65,7 @@ const config: ControlPanelConfig = {
           {
             name: 'color_scheme_type',
             config: {
-              type: 'SelectControl',
-              label: t('Color Scheme Type'),
-              clearable: false,
-              validators: [],
+              ...deckGLCategoricalColorSchemeTypeSelect.config,
               choices: [
                 ['default', 'Default'],
                 [COLOR_SCHEME_TYPES.fixed_color, t('Fixed color')],

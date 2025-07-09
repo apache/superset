@@ -28,6 +28,7 @@ import {
 } from '@superset-ui/core';
 import {
   autozoom,
+  deckGLCategoricalColorSchemeTypeSelect,
   deckGLFixedColor,
   deckGLLinearColorSchemeSelect,
   filterNulls,
@@ -106,10 +107,7 @@ const config: ControlPanelConfig = {
           {
             name: 'color_scheme_type',
             config: {
-              type: 'SelectControl',
-              label: t('Color Scheme Type'),
-              clearable: false,
-              validators: [],
+              ...deckGLCategoricalColorSchemeTypeSelect.config,
               choices: [
                 [COLOR_SCHEME_TYPES.fixed_color, t('Fixed color')],
                 [COLOR_SCHEME_TYPES.linear_palette, t('Linear palette')],

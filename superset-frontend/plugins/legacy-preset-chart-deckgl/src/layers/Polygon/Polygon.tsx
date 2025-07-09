@@ -56,6 +56,7 @@ import {
 import { TooltipProps } from '../../components/Tooltip';
 import { GetLayerType } from '../../factory';
 import { COLOR_SCHEME_TYPES } from '../../utilities/utils';
+import { DEFAULT_DECKGL_COLOR } from '../../utilities/Shared_DeckGL';
 
 const DOUBLE_CLICK_THRESHOLD = 250; // milliseconds
 
@@ -117,6 +118,7 @@ export const getLayer: GetLayerType<PolygonLayer> = function ({
     fd.fill_color_picker;
   const sc: { r: number; g: number; b: number; a: number } =
     fd.stroke_color_picker;
+  const defaultBreakpointColor = fd.deafult_breakpoint_color;
   let data = [...payload.data.features];
 
   if (fd.js_data_mutator) {
@@ -153,10 +155,22 @@ export const getLayer: GetLayerType<PolygonLayer> = function ({
         );
         const breakpointColor =
           breakpointIndex !== undefined &&
-          colorBreakpoints[breakpointIndex].color;
+          colorBreakpoints[breakpointIndex - 1]?.color;
         return breakpointColor
           ? [breakpointColor.r, breakpointColor.g, breakpointColor.b, 255]
-          : [0, 0, 0, 0];
+          : defaultBreakpointColor
+            ? [
+                defaultBreakpointColor.r,
+                defaultBreakpointColor.g,
+                defaultBreakpointColor.b,
+                defaultBreakpointColor.a * 255,
+              ]
+            : [
+                DEFAULT_DECKGL_COLOR.r,
+                DEFAULT_DECKGL_COLOR.g,
+                DEFAULT_DECKGL_COLOR.b,
+                DEFAULT_DECKGL_COLOR.a * 255,
+              ];
       };
       break;
     }

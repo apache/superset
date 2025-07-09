@@ -448,6 +448,7 @@ export const deckGLCategoricalColorSchemeTypeSelect: CustomControlItem = {
     label: t('Color Scheme Type'),
     description: t('Select the type of color scheme to use.'),
     clearable: false,
+    renderTrigger: true,
     validators: [],
     choices: [
       [COLOR_SCHEME_TYPES.fixed_color, t('Fixed color')],
@@ -539,8 +540,8 @@ export const deckGLColorBreakpointsSelect: CustomControlItem = {
   },
 };
 
-const breakpointsDefaultColor: CustomControlItem = {
-  name: 'breakpoints_default_color',
+export const breakpointsDefaultColor: CustomControlItem = {
+  name: 'deafult_breakpoint_color',
   config: {
     label: t('Default color'),
     type: 'ColorPickerControl',
@@ -577,6 +578,7 @@ export const generateDeckGLColorSchemeControls = ({
         label: t('Color Scheme Type'),
         description: t('Select the type of color scheme to use.'),
         clearable: false,
+        renderTrigger: true,
         validators: [],
         choices: [
           [COLOR_SCHEME_TYPES.fixed_color, t('Fixed color')],

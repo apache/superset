@@ -47,6 +47,7 @@ import {
   deckGLCategoricalColorSchemeTypeSelect,
   deckGLLinearColorSchemeSelect,
   deckGLColorBreakpointsSelect,
+  breakpointsDefaultColor,
 } from '../../utilities/Shared_DeckGL';
 import { dndLineColumn } from '../../utilities/sharedDndControls';
 
@@ -115,6 +116,7 @@ const config: ControlPanelConfig = {
           fillColorPicker,
           strokeColorPicker,
           deckGLLinearColorSchemeSelect,
+          breakpointsDefaultColor,
           deckGLColorBreakpointsSelect,
         ],
         [filled, stroked],

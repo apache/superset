@@ -49,6 +49,7 @@ import { ColorBreakpointType, ColorType, Point } from './types';
 import { TooltipProps } from './components/Tooltip';
 import { COLOR_SCHEME_TYPES, ColorSchemeType } from './utilities/utils';
 import { getColorBreakpointsBuckets } from './utils';
+import { DEFAULT_DECKGL_COLOR } from './utilities/Shared_DeckGL';
 
 const { getScale } = CategoricalColorNamespace;
 
@@ -167,6 +168,19 @@ const CategoricalDeckGLContainer = (props: CategoricalDeckGLContainerProps) => {
           }));
         }
         case COLOR_SCHEME_TYPES.color_breakpoints: {
+          const defaultBreakpointColor = fd.deafult_breakpoint_color
+            ? [
+                fd.deafult_breakpoint_color.r,
+                fd.deafult_breakpoint_color.g,
+                fd.deafult_breakpoint_color.b,
+                fd.deafult_breakpoint_color.a * 255,
+              ]
+            : [
+                DEFAULT_DECKGL_COLOR.r,
+                DEFAULT_DECKGL_COLOR.g,
+                DEFAULT_DECKGL_COLOR.b,
+                DEFAULT_DECKGL_COLOR.a * 255,
+              ];
           return data.map(d => {
             const breakpointForPoint: ColorBreakpointType =
               fd.color_breakpoints?.find(
@@ -177,12 +191,14 @@ const CategoricalDeckGLContainer = (props: CategoricalDeckGLContainerProps) => {
 
             return {
               ...d,
-              color: [
-                breakpointForPoint?.color.r,
-                breakpointForPoint?.color.g,
-                breakpointForPoint?.color.b,
-                (breakpointForPoint?.color.a / 100) * 255,
-              ],
+              color: breakpointForPoint
+                ? [
+                    breakpointForPoint?.color.r,
+                    breakpointForPoint?.color.g,
+                    breakpointForPoint?.color.b,
+                    breakpointForPoint?.color.a * 255,
+                  ]
+                : defaultBreakpointColor,
             };
           });
         }
