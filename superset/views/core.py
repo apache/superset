@@ -32,7 +32,6 @@ from flask import (
     redirect,
     request,
     Response,
-    safe_join,
     send_file,
     url_for,
 )
@@ -44,6 +43,7 @@ from flask_appbuilder.security.decorators import (
 )
 from flask_babel import gettext as __, lazy_gettext as _
 from sqlalchemy.exc import SQLAlchemyError
+from werkzeug.utils import safe_join
 
 from superset import (
     app,
