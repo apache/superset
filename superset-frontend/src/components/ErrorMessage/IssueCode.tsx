@@ -35,7 +35,7 @@ export function IssueCode({ code, message }: IssueCodeProps) {
         target="_blank"
         aria-label="Superset docs link"
       >
-        <Icons.Full iconSize="m" iconColor={theme.colors.primary.dark1} />
+        <Icons.Full iconSize="m" iconColor={theme.colorPrimary} />
       </a>
     </>
   );

@@ -131,6 +131,8 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
     parentRef,
     inputRef,
     filterBarOrientation,
+    clearAllTrigger,
+    onClearAllComplete,
   } = props;
   const {
     enableEmptyFilter,
@@ -270,7 +272,7 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
         updateDataMask(values);
       }
     },
-    [updateDataMask],
+    [updateDataMask, formData.nativeFilterId, clearAllTrigger],
   );
 
   const placeholderText =
@@ -371,6 +373,23 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
   }, [JSON.stringify(dataMask)]);
 
   useEffect(() => {
+    if (clearAllTrigger) {
+      dispatchDataMask({
+        type: 'filterState',
+        extraFormData: {},
+        filterState: {
+          value: undefined,
+          label: undefined,
+        },
+      });
+
+      updateDataMask(null);
+      setSearch('');
+      onClearAllComplete?.(formData.nativeFilterId);
+    }
+  }, [clearAllTrigger, onClearAllComplete, updateDataMask]);
+
+  useEffect(() => {
     if (prevExcludeFilterValues.current !== excludeFilterValues) {
       dispatchDataMask({
         type: 'filterState',
@@ -448,7 +467,7 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
             invertSelection={inverseSelection && excludeFilterValues}
             options={options}
             sortComparator={sortComparator}
-            onDropdownVisibleChange={setFilterActive}
+            onOpenChange={setFilterActive}
             className="select-container"
           />
         </StyledSpace>
