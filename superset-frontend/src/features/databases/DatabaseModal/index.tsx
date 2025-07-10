@@ -253,6 +253,7 @@ export type DBReducerActionType =
 
 const StyledBtns = styled.div`
   display: flex;
+  justify-content: center;
   padding: ${({ theme }) => theme.sizeUnit * 5}px;
 `;
 
@@ -702,6 +703,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
 
   // Test Connection logic
   const testConnection = () => {
+    handleClearValidationErrors();
     if (!db?.sqlalchemy_uri) {
       addDangerToast(t('Please enter a SQLAlchemy URI to test'));
       return;
@@ -823,7 +825,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   const onSave = async () => {
     let dbConfigExtraExtensionOnSaveError;
     setLoading(true);
-
+    setHasValidated(false);
     dbConfigExtraExtension
       ?.onSave(extraExtensionComponentState, db)
       .then(({ error }: { error: any }) => {
