@@ -35,7 +35,6 @@ import {
   SupersetTheme,
   t,
   isNativeFilterWithDataMask,
-  styled,
 } from '@superset-ui/core';
 import {
   createHtmlPortalNode,
@@ -72,80 +71,6 @@ type FilterControlsProps = {
   clearAllTriggers?: Record<string, boolean>;
   onClearAllComplete?: (filterId: string) => void;
 };
-
-const SectionHeader = styled.div`
-  ${({ theme }) => css`
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: ${theme.sizeUnit * 3}px ${theme.sizeUnit * 4}px
-      ${theme.sizeUnit * 2}px;
-    border-bottom: 1px solid ${theme.colorSplit};
-    background: ${theme.colorBgContainer};
-    cursor: pointer;
-    user-select: none;
-
-    &:hover {
-      background: ${theme.colorBgTextHover};
-    }
-
-    h4 {
-      margin: 0;
-      font-size: ${theme.fontSizeSM}px;
-      font-weight: ${theme.fontWeightStrong};
-      color: ${theme.colorText};
-    }
-
-    .section-icon {
-      color: ${theme.colorTextSecondary};
-      transition: transform 0.2s ease;
-    }
-  `}
-`;
-
-const SectionContainer = styled.div`
-  ${({ theme }) => css`
-    border: 1px solid ${theme.colorSplit};
-    border-radius: ${theme.borderRadius}px;
-    margin-bottom: ${theme.sizeUnit * 3}px;
-    background: ${theme.colorBgContainer};
-    overflow: hidden;
-  `}
-`;
-
-const SectionContent = styled.div`
-  ${({ theme }) => css`
-    padding: ${theme.sizeUnit * 3}px;
-  `}
-`;
-
-interface CollapsibleSectionProps {
-  title: string;
-  isOpen: boolean;
-  onToggle: () => void;
-  children: React.ReactNode;
-}
-
-const CollapsibleSection: FC<CollapsibleSectionProps> = ({
-  title,
-  isOpen,
-  onToggle,
-  children,
-}) => (
-  <SectionContainer>
-    <SectionHeader onClick={onToggle}>
-      <h4>{title}</h4>
-      <Icons.UpOutlined
-        className="section-icon"
-        iconSize="m"
-        css={css`
-          transform: ${isOpen ? 'rotate(0deg)' : 'rotate(180deg)'};
-        `}
-      />
-    </SectionHeader>
-    {isOpen && <SectionContent>{children}</SectionContent>}
-  </SectionContainer>
-);
 
 const FilterControls: FC<FilterControlsProps> = ({
   dataMaskSelected,
@@ -212,20 +137,32 @@ const FilterControls: FC<FilterControlsProps> = ({
   const dashboardHasTabs = useDashboardHasTabs();
   const showCollapsePanel = dashboardHasTabs && filtersWithValues.length > 0;
 
-  // State for collapsible sections
-  const [sectionsOpen, setSectionsOpen] = useState({
-    filters: true,
-    crossFilters: true,
-    chartCustomization: true,
-  });
+  // Shared section styling
+  const sectionContainerStyle = useCallback(
+    (theme: SupersetTheme) => css`
+      margin-bottom: ${theme.sizeUnit * 4}px;
+      padding: ${theme.sizeUnit * 2}px;
+      background-color: ${theme.colors.grayscale.light5};
+      border-radius: ${theme.sizeUnit}px;
+    `,
+    [],
+  );
 
-  const toggleSection = useCallback((section: keyof typeof sectionsOpen) => {
-    setSectionsOpen(prev => ({
-      ...prev,
-      [section]: !prev[section],
-    }));
-  }, []);
+  const sectionHeaderStyle = useCallback(
+    (theme: SupersetTheme) => css`
+      margin-bottom: ${theme.sizeUnit * 2}px;
+    `,
+    [],
+  );
 
+  const sectionTitleStyle = useCallback(
+    (theme: SupersetTheme) => css`
+      margin: 0;
+      font-size: ${theme.fontSizeSM}px;
+      font-weight: 600;
+    `,
+    [],
+  );
   const renderer = useCallback(
     ({ id }: Filter | Divider, index: number | undefined) => {
       const filterIndex = filtersWithValues.findIndex(f => f.id === id);
@@ -246,38 +183,19 @@ const FilterControls: FC<FilterControlsProps> = ({
     () => (
       <>
         {filtersInScope.length > 0 && (
-          <CollapsibleSection
-            title={t('Filters')}
-            isOpen={sectionsOpen.filters}
-            onToggle={() => toggleSection('filters')}
-          >
-            {filtersInScope.map(renderer)}
-          </CollapsibleSection>
-        )}
-
-        {selectedCrossFilters.length > 0 && (
-          <CollapsibleSection
-            title={t('Cross-filters')}
-            isOpen={sectionsOpen.crossFilters}
-            onToggle={() => toggleSection('crossFilters')}
-          >
-            {selectedCrossFilters.map((crossFilter, index) => (
-              <CrossFilter
-                key={`${crossFilter.name}${crossFilter.emitterId}`}
-                filter={crossFilter}
-                orientation={FilterBarOrientation.Vertical}
-                last={index === selectedCrossFilters.length - 1}
-              />
-            ))}
-          </CollapsibleSection>
+          <div css={sectionContainerStyle}>
+            <div css={sectionHeaderStyle}>
+              <h4 css={sectionTitleStyle}>{t('Filters')}</h4>
+            </div>
+            <div>{filtersInScope.map(renderer)}</div>
+          </div>
         )}
 
         {chartCustomizationItems.length > 0 && (
-          <CollapsibleSection
-            title={t('Chart Customization')}
-            isOpen={sectionsOpen.chartCustomization}
-            onToggle={() => toggleSection('chartCustomization')}
-          >
+          <div css={sectionContainerStyle}>
+            <div css={sectionHeaderStyle}>
+              <h4 css={sectionTitleStyle}>{t('Chart Customization')}</h4>
+            </div>
             <div
               css={(theme: SupersetTheme) => css`
                 display: flex;
@@ -288,16 +206,10 @@ const FilterControls: FC<FilterControlsProps> = ({
               {chartCustomizationItems
                 .filter(item => !item.removed)
                 .map(item => (
-                  <div
-                    key={item.id}
-                    className="chart-customization-wrapper"
-                    data-test="chart-customization-card"
-                  >
-                    <GroupByFilterCard customizationItem={item} />
-                  </div>
+                  <GroupByFilterCard key={item.id} customizationItem={item} />
                 ))}
             </div>
-          </CollapsibleSection>
+          </div>
         )}
 
         {showCollapsePanel && (
@@ -316,9 +228,9 @@ const FilterControls: FC<FilterControlsProps> = ({
       filtersOutOfScope,
       hasRequiredFirst,
       chartCustomizationItems,
-      selectedCrossFilters,
-      sectionsOpen,
-      toggleSection,
+      sectionContainerStyle,
+      sectionHeaderStyle,
+      sectionTitleStyle,
     ],
   );
 
@@ -394,11 +306,10 @@ const FilterControls: FC<FilterControlsProps> = ({
         `}
       >
         {chartCustomizationItems.length > 0 && (
-          <CollapsibleSection
-            title={t('Chart Customization')}
-            isOpen={sectionsOpen.chartCustomization}
-            onToggle={() => toggleSection('chartCustomization')}
-          >
+          <div css={sectionContainerStyle}>
+            <div css={sectionHeaderStyle}>
+              <h4 css={sectionTitleStyle}>{t('Chart Customization')}</h4>
+            </div>
             <div
               css={(theme: SupersetTheme) => css`
                 display: flex;
@@ -409,16 +320,10 @@ const FilterControls: FC<FilterControlsProps> = ({
               {chartCustomizationItems
                 .filter(item => !item.removed)
                 .map(item => (
-                  <div
-                    key={item.id}
-                    className="chart-customization-wrapper"
-                    data-test="chart-customization-card"
-                  >
-                    <GroupByFilterCard customizationItem={item} />
-                  </div>
+                  <GroupByFilterCard key={item.id} customizationItem={item} />
                 ))}
             </div>
-          </CollapsibleSection>
+          </div>
         )}
         <DropdownContainer
           items={items}
@@ -489,8 +394,9 @@ const FilterControls: FC<FilterControlsProps> = ({
       hasRequiredFirst,
       overflowedIds,
       chartCustomizationItems,
-      sectionsOpen,
-      toggleSection,
+      sectionContainerStyle,
+      sectionHeaderStyle,
+      sectionTitleStyle,
     ],
   );
 
