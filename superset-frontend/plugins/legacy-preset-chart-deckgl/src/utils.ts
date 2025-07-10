@@ -25,7 +25,6 @@ import {
   QueryFormData,
   SequentialScheme,
 } from '@superset-ui/core';
-import { BitmapLayer, PathLayer } from '@deck.gl/layers';
 import { Color } from '@deck.gl/core';
 import { hexToRGB } from './utils/colors';
 import { ColorBreakpointType } from './types';
