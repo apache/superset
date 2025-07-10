@@ -61,6 +61,19 @@ const translations: Partial<Record<Locale, typeof en>> = {
     'table.next_page': ['下一页'],
     'search.num_records': ['%s条记录...'],
   },
+  ru: {
+    'Query Mode': ['Режим запроса'],
+    Aggregate: ['Агрегация'],
+    'Raw Records': ['Сырые записи'],
+    'Emit Filter Events': ['Отправлять события фильтрации'],
+    'Show Cell Bars': ['Наложить гистограммы на ячейки'],
+    'page_size.show': ['Показать'],
+    'page_size.all': ['Все'],
+    'page_size.entries': ['записи'],
+    'table.previous_page': ['Назад'],
+    'table.next_page': ['Вперед'],
+    'search.num_records': ['%s запись', '%s записей...'],
+  },
 };
 
 export default translations;
