@@ -90,6 +90,7 @@ export interface Dataset {
   database?: Record<string, unknown>;
   normalize_columns?: boolean;
   always_filter_main_dttm?: boolean;
+  extra?: object;
 }
 
 export interface ControlPanelState {
