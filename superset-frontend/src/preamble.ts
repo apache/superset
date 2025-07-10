@@ -24,6 +24,7 @@ import {
   makeApi,
   initFeatureFlags,
   SupersetClient,
+  LanguagePack,
 } from '@superset-ui/core';
 import setupClient from './setup/setupClient';
 import setupColors from './setup/setupColors';
@@ -50,11 +51,11 @@ setupClient({ appRoot: applicationRoot() });
   const lang = bootstrapData.common.locale || 'en';
   if (lang !== 'en') {
     try {
-      const { json: languagePack } = await SupersetClient.get({
+      // Second call to configure to set the language pack
+      const { json } = await SupersetClient.get({
         endpoint: `/superset/language_pack/${lang}/`,
       });
-      // Second call to configure to set the language pack
-      configure({ languagePack });
+      configure({ languagePack: json as LanguagePack });
       dayjs.locale(lang);
     } catch (err) {
       console.warn(
