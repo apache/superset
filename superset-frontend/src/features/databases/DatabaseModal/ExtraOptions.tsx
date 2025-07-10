@@ -91,10 +91,10 @@ const ExtraOptions = ({
   const [activeKey, setActiveKey] = useState<string[] | undefined>();
 
   useEffect(() => {
-    if (!expandableModalIsOpen) {
+    if (!expandableModalIsOpen && activeKey !== undefined) {
       setActiveKey(undefined);
     }
-  }, [expandableModalIsOpen]);
+  }, [expandableModalIsOpen, activeKey]);
 
   return (
     <Collapse
