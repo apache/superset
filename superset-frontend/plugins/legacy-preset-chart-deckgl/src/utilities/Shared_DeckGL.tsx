@@ -46,7 +46,7 @@ import {
 const categoricalSchemeRegistry = getCategoricalSchemeRegistry();
 const sequentialSchemeRegistry = getSequentialSchemeRegistry();
 
-let deckglTiles;
+let deckglTiles: string[][];
 
 export const DEFAULT_DECKGL_TILES = [
   ['https://tile.openstreetmap.org/{z}/{x}/{y}.png', 'Streets (OSM)'],
