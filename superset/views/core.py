@@ -20,11 +20,22 @@ from __future__ import annotations
 import contextlib
 import logging
 import os
+import re
 from datetime import datetime
 from typing import Any, Callable, cast
 from urllib import parse
 
-from flask import abort, flash, g, redirect, request, Response, send_file, url_for
+from flask import (
+    abort,
+    flash,
+    g,
+    redirect,
+    request,
+    Response,
+    safe_join,
+    send_file,
+    url_for,
+)
 from flask_appbuilder import expose
 from flask_appbuilder.security.decorators import (
     has_access,
@@ -895,16 +906,16 @@ class Superset(BaseSupersetView):
     @event_logger.log_this
     @expose("/language_pack/<lang>/")
     def language_pack(self, lang: str) -> FlaskResponse:
-        base_dir = os.path.join(
-            os.path.dirname(__file__),
-            "..",
-            "translations",
-            lang,
-            "LC_MESSAGES",
-            "messages.json",
-        )
-        if os.path.isfile(base_dir):
-            return send_file(base_dir, mimetype="application/json")
+        # Only allow expected language formats like "en", "pt_BR", etc.
+        if not re.match(r"^[a-z]{2,3}(_[A-Z]{2})?$", lang):
+            abort(400, "Invalid language code")
+
+        base_dir = os.path.join(os.path.dirname(__file__), "..", "translations")
+        file_path = safe_join(base_dir, lang, "LC_MESSAGES", "messages.json")
+
+        if file_path and os.path.isfile(file_path):
+            return send_file(file_path, mimetype="application/json")
+
         return json_error_response(
             "Language pack doesn't exist on the server", status=404
         )
