@@ -599,9 +599,7 @@ const GroupByFilterCard: FC<GroupByFilterCardProps> = ({
         </Form.Item>
       </Form>
 
-      {selectedValues.length === 0 && !loading && (
-        <NoDataMessage>{t('No selection')}</NoDataMessage>
-      )}
+      {selectedValues.length === 0 && !loading && null}
 
       {loading && (
         <div style={{ textAlign: 'center', marginTop: 8 }}>
