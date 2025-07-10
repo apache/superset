@@ -23,7 +23,7 @@ const schemes = [
   {
     id: 'blue_white_yellow',
     label: 'blue/white/yellow',
-    colors: ['#00d1c1', 'rgba(0, 0, 0, 0)', '#ffb400'],
+    colors: ['#00d1c1', '#ffffff', '#ffb400'],
   },
   {
     id: 'fire',
