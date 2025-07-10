@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: avsarcoteli@gmail.com\n"
-"POT-Creation-Date: 2025-06-30 15:01+0300\n"
+"POT-Creation-Date: 2025-07-10 15:17+0300\n"
 "PO-Revision-Date: 2024-02-25 14:00+0300\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: tr\n"
@@ -1909,11 +1909,21 @@ msgstr ""
 msgid "Bottom to Top"
 msgstr ""
 
+#, fuzzy
+msgid "Bounds"
+msgstr "saniye"
+
 msgid ""
 "Bounds for numerical X axis. Not applicable for temporal or categorical "
 "axes. When left empty, the bounds are dynamically defined based on the "
 "min/max of the data. Note that this feature will only expand the axis "
 "range. It won't narrow the data's extent."
+msgstr ""
+
+msgid ""
+"Bounds for the X-axis. Selected time merges with min/max date of the "
+"data. When left empty, bounds dynamically defined based on the min/max of"
+" the data."
 msgstr ""
 
 msgid ""
@@ -2439,9 +2449,6 @@ msgstr ""
 msgid "Choice of [Point Radius] must be present in [Group By]"
 msgstr ""
 
-msgid "Choose File"
-msgstr "Dosya Seçin"
-
 msgid "Choose a chart for displaying on the map"
 msgstr ""
 
@@ -2492,6 +2499,10 @@ msgid "Choose index column"
 msgstr "Kolon seç"
 
 msgid "Choose notification method and recipients."
+msgstr ""
+
+#, python-format
+msgid "Choose numbers between %(min)s and %(max)s"
 msgstr ""
 
 msgid "Choose one of the available databases from the panel on the left."
@@ -2561,6 +2572,10 @@ msgstr ""
 
 msgid "Clear"
 msgstr "Temizle"
+
+#, fuzzy
+msgid "Clear Sort"
+msgstr "Formu temizle"
 
 msgid "Clear all"
 msgstr "Tümünü temizle"
@@ -2652,6 +2667,9 @@ msgid "Clustering Radius"
 msgstr ""
 
 msgid "Code"
+msgstr ""
+
+msgid "Code Copied!"
 msgstr ""
 
 msgid "Collapse all"
@@ -2813,6 +2831,9 @@ msgstr ""
 #, fuzzy
 msgid "Columns to read"
 msgstr "Kolonlar bulunamadı"
+
+msgid "Columns to show in the tooltip."
+msgstr ""
 
 msgid "Combine metrics"
 msgstr ""
@@ -3010,6 +3031,10 @@ msgstr ""
 
 msgid "Copy and Paste JSON credentials"
 msgstr ""
+
+#, fuzzy
+msgid "Copy code to clipboard"
+msgstr "Panoya kopyala"
 
 msgid "Copy link"
 msgstr "Linki kopyala"
@@ -3893,7 +3918,7 @@ msgstr ""
 msgid "Delete user"
 msgstr "Sorguyu sil"
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "Delete user registration"
 msgstr "Silindi: %s"
 
@@ -4150,6 +4175,11 @@ msgid "Distribution"
 msgstr ""
 
 msgid "Divider"
+msgstr ""
+
+msgid ""
+"Divides each category into subcategories based on the values in the "
+"dimension. It can be used to exclude intersections."
 msgstr ""
 
 msgid "Do you want a donut or a pie?"
@@ -4600,6 +4630,10 @@ msgstr ""
 
 msgid "End Longitude & Latitude"
 msgstr ""
+
+#, fuzzy
+msgid "End Time"
+msgstr "Bitiş tarihi"
 
 msgid "End angle"
 msgstr ""
@@ -5067,9 +5101,6 @@ msgstr ""
 msgid "Field is required"
 msgstr ""
 
-msgid "File"
-msgstr ""
-
 msgid "File extension is not allowed."
 msgstr ""
 
@@ -5101,9 +5132,6 @@ msgstr "Filtre"
 
 msgid "Filter Configuration"
 msgstr ""
-
-msgid "Filter List"
-msgstr "Filtre Listesi"
 
 msgid "Filter Settings"
 msgstr "Ayarları Filtrele"
@@ -5374,6 +5402,15 @@ msgstr ""
 msgid "GROUP BY"
 msgstr ""
 
+#, fuzzy
+msgid "Gantt Chart"
+msgstr "Grafik yok"
+
+msgid ""
+"Gantt chart visualizes important events over a time span. Every data "
+"point displayed as a separate event along a horizontal line."
+msgstr ""
+
 msgid "Gauge Chart"
 msgstr ""
 
@@ -5617,6 +5654,9 @@ msgstr ""
 msgid "If table already exists"
 msgstr "Veriseti %(name)s zaten var"
 
+msgid "If you don't save, changes will be lost."
+msgstr ""
+
 msgid "Ignore cache when generating report"
 msgstr ""
 
@@ -5641,9 +5681,6 @@ msgstr "İçe aktar"
 #, python-format
 msgid "Import %s"
 msgstr "İçe aktar %s"
-
-msgid "Import Dashboard(s)"
-msgstr "Dashboard(ları) İçe Aktar"
 
 #, fuzzy
 msgid "Import Error"
@@ -6488,6 +6525,12 @@ msgstr ""
 msgid "Mapbox"
 msgstr ""
 
+#, python-format
+msgid ""
+"Mapbox base layer map style (see Mapbox documentation: %s) or tile server"
+" URL."
+msgstr ""
+
 msgid "March"
 msgstr "Mart"
 
@@ -6695,6 +6738,9 @@ msgstr ""
 msgid "Metrics"
 msgstr ""
 
+msgid "Metrics to show in the tooltip."
+msgstr ""
+
 msgid "Middle"
 msgstr ""
 
@@ -6714,6 +6760,9 @@ msgid "Min Width"
 msgstr ""
 
 msgid "Min periods"
+msgstr ""
+
+msgid "Min value cannot be greater than max value"
 msgstr ""
 
 msgid "Min/max (no outliers)"
@@ -6743,9 +6792,6 @@ msgid "Minimum threshold in percentage points for showing labels."
 msgstr ""
 
 msgid "Minimum value"
-msgstr ""
-
-msgid "Minimum value cannot be higher than maximum value"
 msgstr ""
 
 msgid "Minimum value for label to be displayed on graph."
@@ -7304,6 +7350,10 @@ msgstr ""
 msgid "Number of steps to take between ticks when displaying the Y scale"
 msgstr ""
 
+#, python-format
+msgid "Numbers must be within %(min)s and %(max)s"
+msgstr ""
+
 msgid "Numeric column used to calculate the histogram."
 msgstr ""
 
@@ -7602,6 +7652,14 @@ msgstr ""
 msgid "PDF download failed, please refresh and try again."
 msgstr ""
 
+#, fuzzy
+msgid "Page"
+msgstr "Kullanım"
+
+#, fuzzy
+msgid "Page Size:"
+msgstr "Şema seç"
+
 msgid "Page length"
 msgstr ""
 
@@ -7897,10 +7955,7 @@ msgstr ""
 msgid "Please enter your username"
 msgstr "Rapor ismi"
 
-msgid "Please provide a valid range"
-msgstr ""
-
-msgid "Please provide a value within range"
+msgid "Please provide a valid min or max value"
 msgstr ""
 
 msgid "Please re-enter the password."
@@ -8216,6 +8271,14 @@ msgstr ""
 msgid "Range"
 msgstr ""
 
+#, fuzzy
+msgid "Range Inputs"
+msgstr "Filtre tipi"
+
+#, fuzzy
+msgid "Range Type"
+msgstr "Filtre tipi"
+
 msgid "Range filter"
 msgstr ""
 
@@ -8253,9 +8316,6 @@ msgstr "Son Kullanılanlar"
 msgid "Recipients are separated by \",\" or \";\""
 msgstr ""
 
-msgid "Record Count"
-msgstr ""
-
 msgid "Rectangle"
 msgstr ""
 
@@ -8290,9 +8350,6 @@ msgstr "Yenile"
 
 msgid "Refetch results"
 msgstr ""
-
-msgid "Refresh"
-msgstr "Yenile"
 
 msgid "Refresh dashboard"
 msgstr "Dashboardı yenile"
@@ -8523,11 +8580,11 @@ msgstr ""
 msgid "Reset columns"
 msgstr "Kolon seç"
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "Reset my password"
 msgstr "%s ŞİFRE"
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "Reset password"
 msgstr "%s ŞİFRE"
 
@@ -8741,9 +8798,6 @@ msgstr ""
 msgid "SQL"
 msgstr ""
 
-msgid "SQL Copied!"
-msgstr ""
-
 msgid "SQL Lab"
 msgstr ""
 
@@ -8881,6 +8935,14 @@ msgstr ""
 
 msgid "Save changes"
 msgstr "Değişiklikleri kaydet"
+
+#, fuzzy
+msgid "Save changes to your chart?"
+msgstr "Değişiklikleri kaydet"
+
+#, fuzzy
+msgid "Save changes to your dashboard?"
+msgstr "Kaydet & dashboarda git"
 
 msgid "Save chart"
 msgstr "Grafiği kaydet"
@@ -9749,6 +9811,13 @@ msgstr ""
 msgid "Slice Id"
 msgstr ""
 
+#, fuzzy
+msgid "Slider"
+msgstr "Kullanıcı"
+
+msgid "Slider and range input"
+msgstr ""
+
 msgid "Slug"
 msgstr ""
 
@@ -9827,6 +9896,10 @@ msgstr ""
 
 msgid "Sort"
 msgstr ""
+
+#, fuzzy
+msgid "Sort Ascending"
+msgstr "Artan sıralama için tıklayın"
 
 msgid "Sort Descending"
 msgstr ""
@@ -9967,6 +10040,10 @@ msgstr ""
 msgid "Start Longitude & Latitude"
 msgstr ""
 
+#, fuzzy
+msgid "Start Time"
+msgstr "Başlangıç tarihi"
+
 msgid "Start angle"
 msgstr ""
 
@@ -10062,6 +10139,10 @@ msgstr ""
 
 msgid "Style the ends of the progress bar with a round cap"
 msgstr ""
+
+#, fuzzy
+msgid "Subcategories"
+msgstr "Kategori"
 
 msgid "Subdomain"
 msgstr ""
@@ -10214,6 +10295,10 @@ msgstr ""
 msgid "Table Name"
 msgstr "Tablo ismi"
 
+#, fuzzy
+msgid "Table V2"
+msgstr "Tablo"
+
 #, python-format
 msgid ""
 "Table [%(table)s] could not be found, please double check your database "
@@ -10333,9 +10418,6 @@ msgid ""
 "databases."
 msgstr ""
 
-msgid "Test Connection"
-msgstr ""
-
 msgid "Test connection"
 msgstr ""
 
@@ -10407,15 +10489,6 @@ msgstr "Grafiğin adını ekleyin"
 msgid ""
 "The category of source nodes used to assign colors. If a node is "
 "associated with more than one category, only the first will be used."
-msgstr ""
-
-msgid "The chart datasource does not exist"
-msgstr ""
-
-msgid "The chart does not exist"
-msgstr ""
-
-msgid "The chart query context does not exist"
 msgstr ""
 
 msgid ""
@@ -11720,6 +11793,10 @@ msgstr ""
 msgid "Time-series Table"
 msgstr ""
 
+#, fuzzy
+msgid "Timeline"
+msgstr "Zaman aralığı"
+
 msgid "Timeout error"
 msgstr ""
 
@@ -11759,6 +11836,13 @@ msgid "To get a readable URL for your dashboard"
 msgstr ""
 
 msgid "Tooltip"
+msgstr ""
+
+#, fuzzy
+msgid "Tooltip (columns)"
+msgstr "Kolon seç"
+
+msgid "Tooltip (metrics)"
 msgstr ""
 
 msgid "Tooltip Contents"
@@ -12216,9 +12300,6 @@ msgid "Use only a single value."
 msgstr ""
 
 msgid "Use the Advanced Analytics options below"
-msgstr ""
-
-msgid "Use the edit button to change this field"
 msgstr ""
 
 msgid "Use this section if you want a query that aggregates"
@@ -13030,7 +13111,7 @@ msgstr "Evet, değişiklikleri üstüne yaz"
 msgid "You are adding tags to %s %ss"
 msgstr ""
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "You are edting a query from the virtual dataset "
 msgstr ""
 
@@ -13245,9 +13326,6 @@ msgstr "Sorgunuz kaydedildi"
 
 msgid "Your query was updated"
 msgstr "Sorgunuz güncellendi"
-
-msgid "Your range is not within the dataset range"
-msgstr ""
 
 msgid "Your report could not be deleted"
 msgstr ""
@@ -13689,7 +13767,9 @@ msgstr ""
 msgid "is"
 msgstr "Bitiş"
 
-msgid "is expected to be a Mapbox URL"
+msgid ""
+"is expected to be a Mapbox/OSM URL (eg. mapbox://styles/...) or a tile "
+"server URL (eg. tile://http...)"
 msgstr ""
 
 msgid "is expected to be a number"
@@ -13795,6 +13875,9 @@ msgid "numeric type icon"
 msgstr ""
 
 msgid "nvd3"
+msgstr ""
+
+msgid "of"
 msgstr ""
 
 msgid "offline"
@@ -13970,6 +14053,9 @@ msgstr ""
 msgid "textarea"
 msgstr ""
 
+msgid "to"
+msgstr ""
+
 msgid "top"
 msgstr ""
 
@@ -14000,6 +14086,10 @@ msgstr ""
 
 msgid "value descending"
 msgstr ""
+
+#, fuzzy
+msgid "valuename"
+msgstr "Tablo ismi"
 
 msgid "var"
 msgstr ""

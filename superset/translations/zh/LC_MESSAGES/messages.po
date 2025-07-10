@@ -18,7 +18,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Apache Superset 0.22.1\n"
 "Report-Msgid-Bugs-To: zhouyao94@qq.com\n"
-"POT-Creation-Date: 2025-06-30 15:01+0300\n"
+"POT-Creation-Date: 2025-07-10 15:17+0300\n"
 "PO-Revision-Date: 2019-01-04 22:19+0800\n"
 "Last-Translator: cdmikechen \n"
 "Language: zh\n"
@@ -2022,12 +2022,22 @@ msgid "Bottom to Top"
 msgstr "自下而上"
 
 #, fuzzy
+msgid "Bounds"
+msgstr "Y 界限"
+
+#, fuzzy
 msgid ""
 "Bounds for numerical X axis. Not applicable for temporal or categorical "
 "axes. When left empty, the bounds are dynamically defined based on the "
 "min/max of the data. Note that this feature will only expand the axis "
 "range. It won't narrow the data's extent."
 msgstr "Y轴的边界。当空时，边界是根据数据的最小/最大值动态定义的。请注意，此功能只会扩展轴范围。它不会缩小数据范围。"
+
+msgid ""
+"Bounds for the X-axis. Selected time merges with min/max date of the "
+"data. When left empty, bounds dynamically defined based on the min/max of"
+" the data."
+msgstr ""
 
 msgid ""
 "Bounds for the Y-axis. When left empty, the bounds are dynamically "
@@ -2591,9 +2601,6 @@ msgstr "[标签] 的选择项必须出现在 [Group By]"
 msgid "Choice of [Point Radius] must be present in [Group By]"
 msgstr "[点半径] 的选择项必须出现在 [Group By]"
 
-msgid "Choose File"
-msgstr "选择文件"
-
 #, fuzzy
 msgid "Choose a chart for displaying on the map"
 msgstr "选择图表或看板，不能都全部选择"
@@ -2648,6 +2655,10 @@ msgstr "索引字段"
 #, fuzzy
 msgid "Choose notification method and recipients."
 msgstr "新增通知方法"
+
+#, fuzzy, python-format
+msgid "Choose numbers between %(min)s and %(max)s"
+msgstr "截图宽度必须位于 %(min)spx - %(max)spx 之间"
 
 msgid "Choose one of the available databases from the panel on the left."
 msgstr "从左侧的面板中选择一个可用的数据库"
@@ -2722,6 +2733,10 @@ msgstr "条件"
 
 msgid "Clear"
 msgstr "清除"
+
+#, fuzzy
+msgid "Clear Sort"
+msgstr "清除表单"
 
 msgid "Clear all"
 msgstr "清除所有"
@@ -2819,6 +2834,10 @@ msgstr "聚合半径"
 
 msgid "Code"
 msgstr "代码"
+
+#, fuzzy
+msgid "Code Copied!"
+msgstr "SQL复制成功！"
 
 msgid "Collapse all"
 msgstr "全部折叠"
@@ -2993,6 +3012,10 @@ msgstr "行上分组所依据的列"
 #, fuzzy
 msgid "Columns to read"
 msgstr "要读取的列"
+
+#, fuzzy
+msgid "Columns to show in the tooltip."
+msgstr "列标题提示"
 
 msgid "Combine metrics"
 msgstr "整合指标"
@@ -3198,6 +3221,10 @@ msgstr ""
 
 msgid "Copy and Paste JSON credentials"
 msgstr "复制和粘贴JSON凭据"
+
+#, fuzzy
+msgid "Copy code to clipboard"
+msgstr "复制到剪贴板"
 
 msgid "Copy link"
 msgstr "复制链接"
@@ -4135,7 +4162,7 @@ msgstr "删除此容器并保存以移除此消息。"
 msgid "Delete user"
 msgstr "删除查询"
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "Delete user registration"
 msgstr "已删除：%s"
 
@@ -4408,6 +4435,11 @@ msgstr "分布"
 
 msgid "Divider"
 msgstr "分隔"
+
+msgid ""
+"Divides each category into subcategories based on the values in the "
+"dimension. It can be used to exclude intersections."
+msgstr ""
 
 msgid "Do you want a donut or a pie?"
 msgstr "是否用圆环圈替代饼图？"
@@ -4887,6 +4919,10 @@ msgstr "结束"
 #, fuzzy
 msgid "End Longitude & Latitude"
 msgstr "终点的经度/纬度"
+
+#, fuzzy
+msgid "End Time"
+msgstr "结束时间"
 
 msgid "End angle"
 msgstr "结束角度"
@@ -5380,9 +5416,6 @@ msgstr "字段不能由JSON解码。%(msg)s"
 msgid "Field is required"
 msgstr "字段是必需的"
 
-msgid "File"
-msgstr "文件"
-
 msgid "File extension is not allowed."
 msgstr ""
 
@@ -5417,9 +5450,6 @@ msgstr "过滤器"
 #, fuzzy
 msgid "Filter Configuration"
 msgstr "过滤配置"
-
-msgid "Filter List"
-msgstr "过滤列表"
 
 #, fuzzy
 msgid "Filter Settings"
@@ -5712,6 +5742,15 @@ msgstr "进一步定制如何显示每个指标"
 msgid "GROUP BY"
 msgstr "分组"
 
+#, fuzzy
+msgid "Gantt Chart"
+msgstr "圆点图"
+
+msgid ""
+"Gantt chart visualizes important events over a time span. Every data "
+"point displayed as a separate event along a horizontal line."
+msgstr ""
+
 msgid "Gauge Chart"
 msgstr "仪表图"
 
@@ -5976,6 +6015,9 @@ msgstr ""
 msgid "If table already exists"
 msgstr "标签已存在"
 
+msgid "If you don't save, changes will be lost."
+msgstr ""
+
 #, fuzzy
 msgid "Ignore cache when generating report"
 msgstr "生成报告时忽略缓存"
@@ -6001,9 +6043,6 @@ msgstr "导入"
 #, python-format
 msgid "Import %s"
 msgstr "导入 %s"
-
-msgid "Import Dashboard(s)"
-msgstr "导入看板"
 
 #, fuzzy
 msgid "Import Error"
@@ -6904,6 +6943,12 @@ msgstr "MapBox地图"
 msgid "Mapbox"
 msgstr "MapBox地图"
 
+#, python-format
+msgid ""
+"Mapbox base layer map style (see Mapbox documentation: %s) or tile server"
+" URL."
+msgstr ""
+
 msgid "March"
 msgstr "三月"
 
@@ -7118,6 +7163,10 @@ msgid "Metrics"
 msgstr "指标"
 
 #, fuzzy
+msgid "Metrics to show in the tooltip."
+msgstr "是否在单元格内显示数值"
+
+#, fuzzy
 msgid "Middle"
 msgstr "中间"
 
@@ -7139,6 +7188,10 @@ msgstr "最小宽度"
 
 msgid "Min periods"
 msgstr "最小周期"
+
+#, fuzzy
+msgid "Min value cannot be greater than max value"
+msgstr "起始日期不能晚于结束日期"
 
 msgid "Min/max (no outliers)"
 msgstr "最大最小值（忽略离群值）"
@@ -7170,10 +7223,6 @@ msgstr "标签显示百分比最小阈值"
 #, fuzzy
 msgid "Minimum value"
 msgstr "最小值"
-
-#, fuzzy
-msgid "Minimum value cannot be higher than maximum value"
-msgstr "起始日期不能晚于结束日期"
 
 msgid "Minimum value for label to be displayed on graph."
 msgstr "在图形上显示标签的最小值。"
@@ -7423,7 +7472,7 @@ msgstr "还没有 %s"
 msgid "No Data"
 msgstr "没有数据"
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "No Logs yet"
 msgstr "还没有 %s"
 
@@ -7782,6 +7831,10 @@ msgstr "显示 X 刻度时，在刻度之间表示的步骤数"
 msgid "Number of steps to take between ticks when displaying the Y scale"
 msgstr "显示 Y 刻度时，在刻度之间表示的步骤数"
 
+#, fuzzy, python-format
+msgid "Numbers must be within %(min)s and %(max)s"
+msgstr "截图宽度必须位于 %(min)spx - %(max)spx 之间"
+
 #, fuzzy
 msgid "Numeric column used to calculate the histogram."
 msgstr "选择数值列来绘制直方图"
@@ -8097,6 +8150,14 @@ msgstr "所有者是一个用户列表，这些用户有权限修改仪表板。
 msgid "PDF download failed, please refresh and try again."
 msgstr "图片发送失败，请刷新或重试"
 
+#, fuzzy
+msgid "Page"
+msgstr "用途"
+
+#, fuzzy
+msgid "Page Size:"
+msgstr "选择标签"
+
 msgid "Page length"
 msgstr "页长"
 
@@ -8409,11 +8470,9 @@ msgstr "请确认"
 msgid "Please enter your username"
 msgstr "为您的查询设置标签"
 
-msgid "Please provide a valid range"
-msgstr ""
-
-msgid "Please provide a value within range"
-msgstr ""
+#, fuzzy
+msgid "Please provide a valid min or max value"
+msgstr "请输入要测试的SQLAlchemy URI"
 
 msgid "Please re-enter the password."
 msgstr "请重新输入密码。"
@@ -8753,6 +8812,14 @@ msgstr "半径（英里）"
 msgid "Range"
 msgstr "范围"
 
+#, fuzzy
+msgid "Range Inputs"
+msgstr "范围"
+
+#, fuzzy
+msgid "Range Type"
+msgstr "范围类型"
+
 msgid "Range filter"
 msgstr "范围过滤"
 
@@ -8790,9 +8857,6 @@ msgstr "最近"
 msgid "Recipients are separated by \",\" or \";\""
 msgstr "收件人之间用 \",\" 或者 \";\" 隔开"
 
-msgid "Record Count"
-msgstr "记录数"
-
 msgid "Rectangle"
 msgstr "长方形"
 
@@ -8827,9 +8891,6 @@ msgstr "刷新"
 
 msgid "Refetch results"
 msgstr "重新获取结果"
-
-msgid "Refresh"
-msgstr "刷新"
 
 msgid "Refresh dashboard"
 msgstr "刷新看板"
@@ -9078,11 +9139,11 @@ msgstr "重置"
 msgid "Reset columns"
 msgstr "选择列"
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "Reset my password"
 msgstr "%s 密码"
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "Reset password"
 msgstr "%s 密码"
 
@@ -9306,9 +9367,6 @@ msgstr ""
 msgid "SQL"
 msgstr "SQL"
 
-msgid "SQL Copied!"
-msgstr "SQL复制成功！"
-
 msgid "SQL Lab"
 msgstr "SQL 工具箱"
 
@@ -9465,6 +9523,14 @@ msgstr "另存为："
 #, fuzzy
 msgid "Save changes"
 msgstr "保存更改"
+
+#, fuzzy
+msgid "Save changes to your chart?"
+msgstr "保存更改"
+
+#, fuzzy
+msgid "Save changes to your dashboard?"
+msgstr "保存并转到看板"
 
 msgid "Save chart"
 msgstr "图表保存"
@@ -10396,6 +10462,13 @@ msgstr "在分隔符之后跳过空格。"
 msgid "Slice Id"
 msgstr "线宽"
 
+#, fuzzy
+msgid "Slider"
+msgstr "线性"
+
+msgid "Slider and range input"
+msgstr ""
+
 msgid "Slug"
 msgstr "Slug"
 
@@ -10482,6 +10555,10 @@ msgstr "抱歉，您的浏览器不支持复制操作。使用 Ctrl / Cmd + C！
 
 msgid "Sort"
 msgstr "排序:"
+
+#, fuzzy
+msgid "Sort Ascending"
+msgstr "升序排序"
 
 msgid "Sort Descending"
 msgstr "降序"
@@ -10633,6 +10710,10 @@ msgstr "开始 (包含)"
 msgid "Start Longitude & Latitude"
 msgstr "起始经度/纬度"
 
+#, fuzzy
+msgid "Start Time"
+msgstr "开始时间"
+
 msgid "Start angle"
 msgstr "开始角度"
 
@@ -10738,6 +10819,10 @@ msgstr "风格"
 
 msgid "Style the ends of the progress bar with a round cap"
 msgstr "用圆帽设置进度条末端的样式"
+
+#, fuzzy
+msgid "Subcategories"
+msgstr "分类"
 
 msgid "Subdomain"
 msgstr "子域"
@@ -10895,6 +10980,10 @@ msgstr "在数据库 %(db)s 中找不到表 %(table)s"
 msgid "Table Name"
 msgstr "表名"
 
+#, fuzzy
+msgid "Table V2"
+msgstr "表"
+
 #, fuzzy, python-format
 msgid ""
 "Table [%(table)s] could not be found, please double check your database "
@@ -11026,9 +11115,6 @@ msgid ""
 "databases."
 msgstr "当浏览器窗口关闭或导航到其他页面时，终止正在运行的查询。适用于Presto、Hive、MySQL、Postgres和Snowflake数据库"
 
-msgid "Test Connection"
-msgstr "测试连接"
-
 msgid "Test connection"
 msgstr "测试连接"
 
@@ -11103,17 +11189,6 @@ msgid ""
 "The category of source nodes used to assign colors. If a node is "
 "associated with more than one category, only the first will be used."
 msgstr "用于分配颜色的源节点类别。如果一个节点与多个类别关联，则只使用第一个类别"
-
-#, fuzzy
-msgid "The chart datasource does not exist"
-msgstr "图表不存在"
-
-msgid "The chart does not exist"
-msgstr "图表不存在"
-
-#, fuzzy
-msgid "The chart query context does not exist"
-msgstr "图表不存在"
 
 msgid ""
 "The classic. Great for showing how much of a company each investor gets, "
@@ -12490,6 +12565,10 @@ msgstr "时间序列-周期轴"
 msgid "Time-series Table"
 msgstr "时间序列-表格"
 
+#, fuzzy
+msgid "Timeline"
+msgstr "时区"
+
 msgid "Timeout error"
 msgstr "超时错误"
 
@@ -12530,6 +12609,14 @@ msgstr "为看板生成一个可读的 URL"
 
 msgid "Tooltip"
 msgstr "提示"
+
+#, fuzzy
+msgid "Tooltip (columns)"
+msgstr "提示内容"
+
+#, fuzzy
+msgid "Tooltip (metrics)"
+msgstr "按指标排序提示"
 
 #, fuzzy
 msgid "Tooltip Contents"
@@ -13012,10 +13099,6 @@ msgstr "只使用一个值"
 msgid "Use the Advanced Analytics options below"
 msgstr "使用下面的高级分析选项"
 
-#, fuzzy
-msgid "Use the edit button to change this field"
-msgstr "使用编辑按钮更改此字段"
-
 msgid "Use this section if you want a query that aggregates"
 msgstr ""
 
@@ -13351,7 +13434,7 @@ msgstr "无法检查你的查询语句"
 msgid "Waterfall Chart"
 msgstr "瀑布图"
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "We are unable to connect to your database."
 msgstr "不能连接到数据库\"%(database)s\""
 
@@ -13881,7 +13964,7 @@ msgstr "是的，覆盖"
 msgid "You are adding tags to %s %ss"
 msgstr "你给 %s %ss 添加了标签"
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "You are edting a query from the virtual dataset "
 msgstr ""
 
@@ -14107,9 +14190,6 @@ msgstr "您的查询已保存"
 
 msgid "Your query was updated"
 msgstr "您的查询已更新"
-
-msgid "Your range is not within the dataset range"
-msgstr ""
 
 msgid "Your report could not be deleted"
 msgstr "这个报告无法被删除"
@@ -14595,9 +14675,10 @@ msgstr "无效状态。"
 msgid "is"
 msgstr "处于"
 
-#, fuzzy
-msgid "is expected to be a Mapbox URL"
-msgstr "应该为MapBox的URL"
+msgid ""
+"is expected to be a Mapbox/OSM URL (eg. mapbox://styles/...) or a tile "
+"server URL (eg. tile://http...)"
+msgstr ""
 
 msgid "is expected to be a number"
 msgstr "应该为数字"
@@ -14714,6 +14795,9 @@ msgstr ""
 
 msgid "nvd3"
 msgstr "nvd3"
+
+msgid "of"
+msgstr ""
 
 #, fuzzy
 msgid "offline"
@@ -14911,6 +14995,10 @@ msgid "textarea"
 msgstr "文本区域"
 
 #, fuzzy
+msgid "to"
+msgstr "顶部"
+
+#, fuzzy
 msgid "top"
 msgstr "顶部"
 
@@ -14944,6 +15032,10 @@ msgstr "升序"
 
 msgid "value descending"
 msgstr "降序"
+
+#, fuzzy
+msgid "valuename"
+msgstr "表名"
 
 #, fuzzy
 msgid "var"

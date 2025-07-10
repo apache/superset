@@ -25,7 +25,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2025-06-30 15:01+0300\n"
+"POT-Creation-Date: 2025-07-10 15:17+0300\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -1888,11 +1888,20 @@ msgstr ""
 msgid "Bottom to Top"
 msgstr ""
 
+msgid "Bounds"
+msgstr ""
+
 msgid ""
 "Bounds for numerical X axis. Not applicable for temporal or categorical "
 "axes. When left empty, the bounds are dynamically defined based on the "
 "min/max of the data. Note that this feature will only expand the axis "
 "range. It won't narrow the data's extent."
+msgstr ""
+
+msgid ""
+"Bounds for the X-axis. Selected time merges with min/max date of the "
+"data. When left empty, bounds dynamically defined based on the min/max of"
+" the data."
 msgstr ""
 
 msgid ""
@@ -2411,9 +2420,6 @@ msgstr ""
 msgid "Choice of [Point Radius] must be present in [Group By]"
 msgstr ""
 
-msgid "Choose File"
-msgstr ""
-
 msgid "Choose a chart for displaying on the map"
 msgstr ""
 
@@ -2460,6 +2466,10 @@ msgid "Choose index column"
 msgstr ""
 
 msgid "Choose notification method and recipients."
+msgstr ""
+
+#, python-format
+msgid "Choose numbers between %(min)s and %(max)s"
 msgstr ""
 
 msgid "Choose one of the available databases from the panel on the left."
@@ -2526,6 +2536,9 @@ msgid "Clause"
 msgstr ""
 
 msgid "Clear"
+msgstr ""
+
+msgid "Clear Sort"
 msgstr ""
 
 msgid "Clear all"
@@ -2616,6 +2629,9 @@ msgid "Clustering Radius"
 msgstr ""
 
 msgid "Code"
+msgstr ""
+
+msgid "Code Copied!"
 msgstr ""
 
 msgid "Collapse all"
@@ -2771,6 +2787,9 @@ msgid "Columns to group by on the rows"
 msgstr ""
 
 msgid "Columns to read"
+msgstr ""
+
+msgid "Columns to show in the tooltip."
 msgstr ""
 
 msgid "Combine metrics"
@@ -2964,6 +2983,9 @@ msgid "Copy URL"
 msgstr ""
 
 msgid "Copy and Paste JSON credentials"
+msgstr ""
+
+msgid "Copy code to clipboard"
 msgstr ""
 
 msgid "Copy link"
@@ -4090,6 +4112,11 @@ msgstr ""
 msgid "Divider"
 msgstr ""
 
+msgid ""
+"Divides each category into subcategories based on the values in the "
+"dimension. It can be used to exclude intersections."
+msgstr ""
+
 msgid "Do you want a donut or a pie?"
 msgstr ""
 
@@ -4525,6 +4552,9 @@ msgid "End (exclusive)"
 msgstr ""
 
 msgid "End Longitude & Latitude"
+msgstr ""
+
+msgid "End Time"
 msgstr ""
 
 msgid "End angle"
@@ -4973,9 +5003,6 @@ msgstr ""
 msgid "Field is required"
 msgstr ""
 
-msgid "File"
-msgstr ""
-
 msgid "File extension is not allowed."
 msgstr ""
 
@@ -5004,9 +5031,6 @@ msgid "Filter"
 msgstr ""
 
 msgid "Filter Configuration"
-msgstr ""
-
-msgid "Filter List"
 msgstr ""
 
 msgid "Filter Settings"
@@ -5272,6 +5296,14 @@ msgstr ""
 msgid "GROUP BY"
 msgstr ""
 
+msgid "Gantt Chart"
+msgstr ""
+
+msgid ""
+"Gantt chart visualizes important events over a time span. Every data "
+"point displayed as a separate event along a horizontal line."
+msgstr ""
+
 msgid "Gauge Chart"
 msgstr ""
 
@@ -5508,6 +5540,9 @@ msgstr ""
 msgid "If table already exists"
 msgstr ""
 
+msgid "If you don't save, changes will be lost."
+msgstr ""
+
 msgid "Ignore cache when generating report"
 msgstr ""
 
@@ -5531,9 +5566,6 @@ msgstr ""
 
 #, python-format
 msgid "Import %s"
-msgstr ""
-
-msgid "Import Dashboard(s)"
 msgstr ""
 
 msgid "Import Error"
@@ -6349,6 +6381,12 @@ msgstr ""
 msgid "Mapbox"
 msgstr ""
 
+#, python-format
+msgid ""
+"Mapbox base layer map style (see Mapbox documentation: %s) or tile server"
+" URL."
+msgstr ""
+
 msgid "March"
 msgstr ""
 
@@ -6556,6 +6594,9 @@ msgstr ""
 msgid "Metrics"
 msgstr ""
 
+msgid "Metrics to show in the tooltip."
+msgstr ""
+
 msgid "Middle"
 msgstr ""
 
@@ -6575,6 +6616,9 @@ msgid "Min Width"
 msgstr ""
 
 msgid "Min periods"
+msgstr ""
+
+msgid "Min value cannot be greater than max value"
 msgstr ""
 
 msgid "Min/max (no outliers)"
@@ -6604,9 +6648,6 @@ msgid "Minimum threshold in percentage points for showing labels."
 msgstr ""
 
 msgid "Minimum value"
-msgstr ""
-
-msgid "Minimum value cannot be higher than maximum value"
 msgstr ""
 
 msgid "Minimum value for label to be displayed on graph."
@@ -7153,6 +7194,10 @@ msgstr ""
 msgid "Number of steps to take between ticks when displaying the Y scale"
 msgstr ""
 
+#, python-format
+msgid "Numbers must be within %(min)s and %(max)s"
+msgstr ""
+
 msgid "Numeric column used to calculate the histogram."
 msgstr ""
 
@@ -7448,6 +7493,12 @@ msgstr ""
 msgid "PDF download failed, please refresh and try again."
 msgstr ""
 
+msgid "Page"
+msgstr ""
+
+msgid "Page Size:"
+msgstr ""
+
 msgid "Page length"
 msgstr ""
 
@@ -7736,10 +7787,7 @@ msgstr ""
 msgid "Please enter your username"
 msgstr ""
 
-msgid "Please provide a valid range"
-msgstr ""
-
-msgid "Please provide a value within range"
+msgid "Please provide a valid min or max value"
 msgstr ""
 
 msgid "Please re-enter the password."
@@ -8053,6 +8101,12 @@ msgstr ""
 msgid "Range"
 msgstr ""
 
+msgid "Range Inputs"
+msgstr ""
+
+msgid "Range Type"
+msgstr ""
+
 msgid "Range filter"
 msgstr ""
 
@@ -8089,9 +8143,6 @@ msgstr ""
 msgid "Recipients are separated by \",\" or \";\""
 msgstr ""
 
-msgid "Record Count"
-msgstr ""
-
 msgid "Rectangle"
 msgstr ""
 
@@ -8124,9 +8175,6 @@ msgid "Referrer"
 msgstr ""
 
 msgid "Refetch results"
-msgstr ""
-
-msgid "Refresh"
 msgstr ""
 
 msgid "Refresh dashboard"
@@ -8566,9 +8614,6 @@ msgstr ""
 msgid "SQL"
 msgstr ""
 
-msgid "SQL Copied!"
-msgstr ""
-
 msgid "SQL Lab"
 msgstr ""
 
@@ -8702,6 +8747,12 @@ msgid "Save as:"
 msgstr ""
 
 msgid "Save changes"
+msgstr ""
+
+msgid "Save changes to your chart?"
+msgstr ""
+
+msgid "Save changes to your dashboard?"
 msgstr ""
 
 msgid "Save chart"
@@ -9544,6 +9595,12 @@ msgstr ""
 msgid "Slice Id"
 msgstr ""
 
+msgid "Slider"
+msgstr ""
+
+msgid "Slider and range input"
+msgstr ""
+
 msgid "Slug"
 msgstr ""
 
@@ -9621,6 +9678,9 @@ msgid "Sorry, your browser does not support copying. Use Ctrl / Cmd + C!"
 msgstr ""
 
 msgid "Sort"
+msgstr ""
+
+msgid "Sort Ascending"
 msgstr ""
 
 msgid "Sort Descending"
@@ -9761,6 +9821,9 @@ msgstr ""
 msgid "Start Longitude & Latitude"
 msgstr ""
 
+msgid "Start Time"
+msgstr ""
+
 msgid "Start angle"
 msgstr ""
 
@@ -9855,6 +9918,9 @@ msgid "Style"
 msgstr ""
 
 msgid "Style the ends of the progress bar with a round cap"
+msgstr ""
+
+msgid "Subcategories"
 msgstr ""
 
 msgid "Subdomain"
@@ -10006,6 +10072,9 @@ msgstr ""
 msgid "Table Name"
 msgstr ""
 
+msgid "Table V2"
+msgstr ""
+
 #, python-format
 msgid ""
 "Table [%(table)s] could not be found, please double check your database "
@@ -10122,9 +10191,6 @@ msgid ""
 "databases."
 msgstr ""
 
-msgid "Test Connection"
-msgstr ""
-
 msgid "Test connection"
 msgstr ""
 
@@ -10195,15 +10261,6 @@ msgstr ""
 msgid ""
 "The category of source nodes used to assign colors. If a node is "
 "associated with more than one category, only the first will be used."
-msgstr ""
-
-msgid "The chart datasource does not exist"
-msgstr ""
-
-msgid "The chart does not exist"
-msgstr ""
-
-msgid "The chart query context does not exist"
 msgstr ""
 
 msgid ""
@@ -11477,6 +11534,9 @@ msgstr ""
 msgid "Time-series Table"
 msgstr ""
 
+msgid "Timeline"
+msgstr ""
+
 msgid "Timeout error"
 msgstr ""
 
@@ -11516,6 +11576,12 @@ msgid "To get a readable URL for your dashboard"
 msgstr ""
 
 msgid "Tooltip"
+msgstr ""
+
+msgid "Tooltip (columns)"
+msgstr ""
+
+msgid "Tooltip (metrics)"
 msgstr ""
 
 msgid "Tooltip Contents"
@@ -11960,9 +12026,6 @@ msgid "Use only a single value."
 msgstr ""
 
 msgid "Use the Advanced Analytics options below"
-msgstr ""
-
-msgid "Use the edit button to change this field"
 msgstr ""
 
 msgid "Use this section if you want a query that aggregates"
@@ -12983,9 +13046,6 @@ msgstr ""
 msgid "Your query was updated"
 msgstr ""
 
-msgid "Your range is not within the dataset range"
-msgstr ""
-
 msgid "Your report could not be deleted"
 msgstr ""
 
@@ -13419,7 +13479,9 @@ msgstr ""
 msgid "is"
 msgstr ""
 
-msgid "is expected to be a Mapbox URL"
+msgid ""
+"is expected to be a Mapbox/OSM URL (eg. mapbox://styles/...) or a tile "
+"server URL (eg. tile://http...)"
 msgstr ""
 
 msgid "is expected to be a number"
@@ -13525,6 +13587,9 @@ msgid "numeric type icon"
 msgstr ""
 
 msgid "nvd3"
+msgstr ""
+
+msgid "of"
 msgstr ""
 
 msgid "offline"
@@ -13697,6 +13762,9 @@ msgstr ""
 msgid "textarea"
 msgstr ""
 
+msgid "to"
+msgstr ""
+
 msgid "top"
 msgstr ""
 
@@ -13724,6 +13792,9 @@ msgid "value ascending"
 msgstr ""
 
 msgid "value descending"
+msgstr ""
+
+msgid "valuename"
 msgstr ""
 
 msgid "var"

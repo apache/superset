@@ -17,8 +17,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2025-06-30 15:01+0300\n"
-"PO-Revision-Date: 2025-06-30 17:24+0300\n"
+"POT-Creation-Date: 2025-07-10 15:17+0300\n"
+"PO-Revision-Date: 2025-07-10 15:20+0300\n"
 "Last-Translator: Polina Fam\n"
 "Language-Team: Russian <>\n"
 "Language: ru\n"
@@ -2028,6 +2028,10 @@ msgstr "Снизу справа"
 msgid "Bottom to Top"
 msgstr "Снизу вверх"
 
+#, fuzzy
+msgid "Bounds"
+msgstr "Показывать границы оси Y"
+
 msgid ""
 "Bounds for numerical X axis. Not applicable for temporal or categorical axes. "
 "When left empty, the bounds are dynamically defined based on the min/max of the "
@@ -2037,6 +2041,11 @@ msgstr ""
 "Если оставить поле пустым, границы динамически определяются на основе "
 "минимального/максимального значения данных. Обратите внимание, что эта функция "
 "только расширит диапазон осей. Она не изменит размер диаграммы."
+
+msgid ""
+"Bounds for the X-axis. Selected time merges with min/max date of the data. When "
+"left empty, bounds dynamically defined based on the min/max of the data."
+msgstr ""
 
 msgid ""
 "Bounds for the Y-axis. When left empty, the bounds are dynamically defined based "
@@ -2589,9 +2598,6 @@ msgstr "[Метка] должна присутствовать в [Группи�
 msgid "Choice of [Point Radius] must be present in [Group By]"
 msgstr "[Радиус точки] должен присутствовать в [Группировать по]"
 
-msgid "Choose File"
-msgstr "Выберите файл"
-
 msgid "Choose a chart for displaying on the map"
 msgstr "Выберите диаграмму для отображения на карте"
 
@@ -2639,6 +2645,10 @@ msgstr "Выберите индексный столбец"
 
 msgid "Choose notification method and recipients."
 msgstr "Выбрать способ уведомления и получателей"
+
+#, fuzzy, python-format
+msgid "Choose numbers between %(min)s and %(max)s"
+msgstr "Ширина скриншота должна быть между %(min)spx и %(max)spx"
 
 msgid "Choose one of the available databases from the panel on the left."
 msgstr "Выберите одну из доступных баз данных из панели слева."
@@ -2711,6 +2721,10 @@ msgstr "Оператор"
 
 msgid "Clear"
 msgstr "Очистить"
+
+#, fuzzy
+msgid "Clear Sort"
+msgstr "Очистить форму"
 
 msgid "Clear all"
 msgstr "Сбросить"
@@ -2809,6 +2823,10 @@ msgstr "Радиус кластера"
 
 msgid "Code"
 msgstr "Редактор"
+
+#, fuzzy
+msgid "Code Copied!"
+msgstr "SQL-запрос скопирован!"
 
 msgid "Collapse all"
 msgstr "Свернуть все"
@@ -2969,6 +2987,10 @@ msgstr "Столбцы для группировки по строкам"
 
 msgid "Columns to read"
 msgstr "Столбцы для чтения"
+
+#, fuzzy
+msgid "Columns to show in the tooltip."
+msgstr "Всплывающая подсказка заголовка столбца"
 
 msgid "Combine metrics"
 msgstr "Объединить меры"
@@ -3173,6 +3195,10 @@ msgstr "Скопировать URL"
 
 msgid "Copy and Paste JSON credentials"
 msgstr "Скопировать и вставить JSON-данные"
+
+#, fuzzy
+msgid "Copy code to clipboard"
+msgstr "Скопировать в буфер обмена"
 
 msgid "Copy link"
 msgstr "Скопировать ссылку"
@@ -4083,7 +4109,7 @@ msgstr "Удалите этот контейнер и сохраните изм�
 msgid "Delete user"
 msgstr "Удалить запрос"
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "Delete user registration"
 msgstr "Удалено: %s"
 
@@ -4373,6 +4399,11 @@ msgstr "Распределение"
 
 msgid "Divider"
 msgstr "Разделитель"
+
+msgid ""
+"Divides each category into subcategories based on the values in the dimension. It "
+"can be used to exclude intersections."
+msgstr ""
 
 msgid "Do you want a donut or a pie?"
 msgstr "Кольцевая или круговая диаграмма"
@@ -4848,6 +4879,10 @@ msgstr "КОНЕЦ (НЕ ВКЛЮЧИТЕЛЬНО)"
 msgid "End Longitude & Latitude"
 msgstr "Конечные долгота и широта"
 
+#, fuzzy
+msgid "End Time"
+msgstr "Дата окончания"
+
 msgid "End angle"
 msgstr "Конечный угол"
 
@@ -5314,9 +5349,6 @@ msgstr "Поле не может быть декодировано с помощ
 msgid "Field is required"
 msgstr "Поле обязательно к заполнению"
 
-msgid "File"
-msgstr "Файл"
-
 msgid "File extension is not allowed."
 msgstr "Данное расширение файла не поддерживается."
 
@@ -5346,9 +5378,6 @@ msgstr "Фильтр"
 
 msgid "Filter Configuration"
 msgstr "Конфигурация фильтра"
-
-msgid "Filter List"
-msgstr "Список фильтров"
 
 msgid "Filter Settings"
 msgstr "Настройки фильтра"
@@ -5638,6 +5667,15 @@ msgstr "Дальнейшая настройка отображения кажд�
 msgid "GROUP BY"
 msgstr ""
 
+#, fuzzy
+msgid "Gantt Chart"
+msgstr "Граф"
+
+msgid ""
+"Gantt chart visualizes important events over a time span. Every data point "
+"displayed as a separate event along a horizontal line."
+msgstr ""
+
 msgid "Gauge Chart"
 msgstr "Индикаторная диаграмма"
 
@@ -5883,6 +5921,9 @@ msgstr "Если включено, сортирует результаты по 
 msgid "If table already exists"
 msgstr "Если таблица уже существует"
 
+msgid "If you don't save, changes will be lost."
+msgstr ""
+
 msgid "Ignore cache when generating report"
 msgstr "Игнорировать кэш при создании отчета"
 
@@ -5908,9 +5949,6 @@ msgstr "Импорт"
 #, python-format
 msgid "Import %s"
 msgstr "Импортировать %s"
-
-msgid "Import Dashboard(s)"
-msgstr "Импортировать дашборд(ы)"
 
 #, fuzzy
 msgid "Import Error"
@@ -6758,6 +6796,11 @@ msgstr "Mapbox"
 msgid "Mapbox"
 msgstr "Mapbox"
 
+#, fuzzy, python-format
+msgid ""
+"Mapbox base layer map style (see Mapbox documentation: %s) or tile server URL."
+msgstr "Стиль базового слоя карты. Подробнее в документации Mapbox: %s"
+
 msgid "March"
 msgstr "Март"
 
@@ -6971,6 +7014,10 @@ msgstr ""
 msgid "Metrics"
 msgstr "Меры"
 
+#, fuzzy
+msgid "Metrics to show in the tooltip."
+msgstr "Отобразить итоговое значение во всплывающей подсказке"
+
 msgid "Middle"
 msgstr "Середина"
 
@@ -6991,6 +7038,10 @@ msgstr "Минимальная ширина"
 
 msgid "Min periods"
 msgstr "Минимальный период"
+
+#, fuzzy
+msgid "Min value cannot be greater than max value"
+msgstr "Дата начала не может быть позже даты конца"
 
 msgid "Min/max (no outliers)"
 msgstr "Мин/макс (без выбросов)"
@@ -7022,10 +7073,6 @@ msgstr "Минимальный порог для отображения мето
 
 msgid "Minimum value"
 msgstr "Минимум"
-
-#, fuzzy
-msgid "Minimum value cannot be higher than maximum value"
-msgstr "Дата начала не может быть позже даты конца"
 
 msgid "Minimum value for label to be displayed on graph."
 msgstr "Минимальное значение метки для отображения на диаграмме"
@@ -7259,7 +7306,7 @@ msgstr "Пока нет %s"
 msgid "No Data"
 msgstr "Нет данных"
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "No Logs yet"
 msgstr "Пока нет %s"
 
@@ -7596,6 +7643,10 @@ msgstr "Количество шагов между делениями оси X"
 msgid "Number of steps to take between ticks when displaying the Y scale"
 msgstr "Количество шагов между делениями оси Y"
 
+#, fuzzy, python-format
+msgid "Numbers must be within %(min)s and %(max)s"
+msgstr "Ширина скриншота должна быть между %(min)spx и %(max)spx"
+
 msgid "Numeric column used to calculate the histogram."
 msgstr "Числовой столбец для расчета гистограммы"
 
@@ -7931,6 +7982,14 @@ msgid "PDF download failed, please refresh and try again."
 msgstr ""
 "Произошла ошибка скачивания PDF-файла. Обновите страницу и попробуйте заново."
 
+#, fuzzy
+msgid "Page"
+msgstr "Использование"
+
+#, fuzzy
+msgid "Page Size:"
+msgstr "Выберите размер страницы"
+
 msgid "Page length"
 msgstr "Размер страницы"
 
@@ -8243,11 +8302,9 @@ msgstr "Пожалуйста, подтвердите действие"
 msgid "Please enter your username"
 msgstr "Метка для вашего запроса"
 
-msgid "Please provide a valid range"
-msgstr ""
-
-msgid "Please provide a value within range"
-msgstr ""
+#, fuzzy
+msgid "Please provide a valid min or max value"
+msgstr "Введите SQLAlchemy URI для проверки"
 
 msgid "Please re-enter the password."
 msgstr "Пожалуйста, введите пароль еще раз"
@@ -8565,6 +8622,14 @@ msgstr "Радиус в милях"
 msgid "Range"
 msgstr "Интервал"
 
+#, fuzzy
+msgid "Range Inputs"
+msgstr "Диапазоны"
+
+#, fuzzy
+msgid "Range Type"
+msgstr "ТИП ИНТЕРВАЛА"
+
 msgid "Range filter"
 msgstr "Диапазон"
 
@@ -8602,9 +8667,6 @@ msgstr "Недавние"
 msgid "Recipients are separated by \",\" or \";\""
 msgstr "Список получателей, разделенный \",\" или \";\""
 
-msgid "Record Count"
-msgstr "Кол-во записей"
-
 msgid "Rectangle"
 msgstr "Прямоугольник"
 
@@ -8640,9 +8702,6 @@ msgstr "Обновить"
 
 msgid "Refetch results"
 msgstr "Выполнить запрос повторно"
-
-msgid "Refresh"
-msgstr "Обновить"
 
 msgid "Refresh dashboard"
 msgstr "Обновить дашборд"
@@ -8884,11 +8943,11 @@ msgstr "Сбросить"
 msgid "Reset columns"
 msgstr "Сбросить столбцы"
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "Reset my password"
 msgstr "%s ПАРОЛЬ"
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "Reset password"
 msgstr "%s ПАРОЛЬ"
 
@@ -9102,9 +9161,6 @@ msgstr ""
 msgid "SQL"
 msgstr "SQL"
 
-msgid "SQL Copied!"
-msgstr "SQL-запрос скопирован!"
-
 msgid "SQL Lab"
 msgstr "SQL Lab"
 
@@ -9249,6 +9305,14 @@ msgstr "Сохранить как:"
 
 msgid "Save changes"
 msgstr "Сохранить изменения"
+
+#, fuzzy
+msgid "Save changes to your chart?"
+msgstr "Сохранить изменения"
+
+#, fuzzy
+msgid "Save changes to your dashboard?"
+msgstr "Сохранить и перейти к дашборду"
 
 msgid "Save chart"
 msgstr "Сохранить диаграмму"
@@ -10145,6 +10209,13 @@ msgstr "Пропускать пробелы после разделителя"
 msgid "Slice Id"
 msgstr "Толщина линии"
 
+#, fuzzy
+msgid "Slider"
+msgstr "Сплошной"
+
+msgid "Slider and range input"
+msgstr ""
+
 msgid "Slug"
 msgstr "Читаемый URL"
 
@@ -10228,6 +10299,10 @@ msgstr ""
 
 msgid "Sort"
 msgstr "Сортировка"
+
+#, fuzzy
+msgid "Sort Ascending"
+msgstr "По возрастанию"
 
 msgid "Sort Descending"
 msgstr "Сортировать по убыванию"
@@ -10370,6 +10445,10 @@ msgstr "НАЧАЛО (ВКЛЮЧИТЕЛЬНО)"
 msgid "Start Longitude & Latitude"
 msgstr "Начальные долгота и широта"
 
+#, fuzzy
+msgid "Start Time"
+msgstr "Дата начала"
+
 msgid "Start angle"
 msgstr "Начальный угол"
 
@@ -10466,6 +10545,10 @@ msgstr "Стиль"
 
 msgid "Style the ends of the progress bar with a round cap"
 msgstr "Скруглять элементы визуализации"
+
+#, fuzzy
+msgid "Subcategories"
+msgstr "Категория"
 
 msgid "Subdomain"
 msgstr "Подблок"
@@ -10621,6 +10704,10 @@ msgstr "Таблица %(table)s не была найдена в базе дан
 msgid "Table Name"
 msgstr "Имя таблицы"
 
+#, fuzzy
+msgid "Table V2"
+msgstr "Таблица"
+
 #, python-format
 msgid ""
 "Table [%(table)s] could not be found, please double check your database "
@@ -10747,9 +10834,6 @@ msgstr ""
 "переключился на другую вкладку. Доступно для баз данных Presto, Hive, MySQL, "
 "Postgres и Snowflake."
 
-msgid "Test Connection"
-msgstr "Тестовое соединение"
-
 msgid "Test connection"
 msgstr "Проверить соединение"
 
@@ -10837,15 +10921,6 @@ msgid ""
 msgstr ""
 "Категория исходных вершин предназначена для задания цветов. Если вершина связана "
 "более, чем с одной категорией, только первая будет использована."
-
-msgid "The chart datasource does not exist"
-msgstr "Источник данных для диаграммы не существует"
-
-msgid "The chart does not exist"
-msgstr "Диаграмма не существует"
-
-msgid "The chart query context does not exist"
-msgstr "Контекст запроса для диаграммы не существует"
 
 msgid ""
 "The classic. Great for showing how much of a company each investor gets, what "
@@ -12302,6 +12377,10 @@ msgstr "Сводная таблица временных периодов"
 msgid "Time-series Table"
 msgstr "Таблица временных рядов"
 
+#, fuzzy
+msgid "Timeline"
+msgstr "Часовой пояс"
+
 msgid "Timeout error"
 msgstr "Ошибка таймаута"
 
@@ -12344,6 +12423,14 @@ msgstr "Для получения читаемого URL-адреса дашбо
 
 msgid "Tooltip"
 msgstr "Всплывающая подсказка"
+
+#, fuzzy
+msgid "Tooltip (columns)"
+msgstr "Содержимое подсказки"
+
+#, fuzzy
+msgid "Tooltip (metrics)"
+msgstr "Сортировать по мере"
 
 msgid "Tooltip Contents"
 msgstr "Содержимое подсказки"
@@ -12814,9 +12901,6 @@ msgstr "Используйте только одно значение"
 msgid "Use the Advanced Analytics options below"
 msgstr "Используйте настройки Расширенной аналитики ниже"
 
-msgid "Use the edit button to change this field"
-msgstr "Используйте кнопку редактирования для изменения поля"
-
 msgid "Use this section if you want a query that aggregates"
 msgstr "Используйте эту секцию для получения агрегированных данных"
 
@@ -13170,7 +13254,7 @@ msgstr "Не удалось проверить запрос"
 msgid "Waterfall Chart"
 msgstr "Водопад"
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "We are unable to connect to your database."
 msgstr "Не удалось подключиться к базе данных \"%(database)s\""
 
@@ -13710,7 +13794,6 @@ msgstr "Да, перезаписать изменения"
 msgid "You are adding tags to %s %ss"
 msgstr "Вы применяете теги к %s %s"
 
-#, python-format
 msgid "You are edting a query from the virtual dataset "
 msgstr ""
 
@@ -13949,9 +14032,6 @@ msgstr "Ваш запрос был сохранен"
 
 msgid "Your query was updated"
 msgstr "Ваш запрос был сохранен"
-
-msgid "Your range is not within the dataset range"
-msgstr ""
 
 msgid "Your report could not be deleted"
 msgstr "Не удается удалить рассылку"
@@ -14398,8 +14478,10 @@ msgstr "некорректный email"
 msgid "is"
 msgstr "Бины"
 
-msgid "is expected to be a Mapbox URL"
-msgstr "ожидается URL-адрес Mapbox"
+msgid ""
+"is expected to be a Mapbox/OSM URL (eg. mapbox://styles/...) or a tile server URL "
+"(eg. tile://http...)"
+msgstr ""
 
 msgid "is expected to be a number"
 msgstr "ожидается число"
@@ -14512,6 +14594,9 @@ msgstr "иконка для типа `numeric`"
 
 msgid "nvd3"
 msgstr "nvd3"
+
+msgid "of"
+msgstr ""
 
 msgid "offline"
 msgstr "оффлайн"
@@ -14692,6 +14777,10 @@ msgstr "иконка для типа `temporal`"
 msgid "textarea"
 msgstr "текстовая область"
 
+#, fuzzy
+msgid "to"
+msgstr "сверху"
+
 msgid "top"
 msgstr "сверху"
 
@@ -14723,6 +14812,10 @@ msgstr "по возрастанию значения"
 
 msgid "value descending"
 msgstr "по убыванию значения"
+
+#, fuzzy
+msgid "valuename"
+msgstr "Имя таблицы"
 
 msgid "var"
 msgstr "дисперсия"

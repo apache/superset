@@ -13,7 +13,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version:  superset-ds\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2025-06-30 15:01+0300\n"
+"POT-Creation-Date: 2025-07-10 15:17+0300\n"
 "PO-Revision-Date: 2024-05-08 14:41+0000\n"
 "Last-Translator: \n"
 "Language: nl\n"
@@ -2070,6 +2070,10 @@ msgstr "Onder rechts"
 msgid "Bottom to Top"
 msgstr "Onderaan naar boven"
 
+#, fuzzy
+msgid "Bounds"
+msgstr "Y Grenzen"
+
 msgid ""
 "Bounds for numerical X axis. Not applicable for temporal or categorical "
 "axes. When left empty, the bounds are dynamically defined based on the "
@@ -2081,6 +2085,12 @@ msgstr ""
 "gedefinieerd op basis van de min/max van de gegevens. Merk op dat deze "
 "functie alleen de as groter maakt. Het zal de grootte van de gegevens "
 "niet verkleinen."
+
+msgid ""
+"Bounds for the X-axis. Selected time merges with min/max date of the "
+"data. When left empty, bounds dynamically defined based on the min/max of"
+" the data."
+msgstr ""
 
 msgid ""
 "Bounds for the Y-axis. When left empty, the bounds are dynamically "
@@ -2648,9 +2658,6 @@ msgstr "Keuze van [Label] moet aanwezig zijn in [Groep door]"
 msgid "Choice of [Point Radius] must be present in [Group By]"
 msgstr "Keuze van [Punt radius] moet aanwezig zijn in [Groep door]"
 
-msgid "Choose File"
-msgstr "Kies Bestand"
-
 #, fuzzy
 msgid "Choose a chart for displaying on the map"
 msgstr "Kies een grafiek of een dashboard, niet beide"
@@ -2705,6 +2712,10 @@ msgstr "Index Kolom"
 #, fuzzy
 msgid "Choose notification method and recipients."
 msgstr "Meldingsmethode toevoegen"
+
+#, fuzzy, python-format
+msgid "Choose numbers between %(min)s and %(max)s"
+msgstr "Schermafbeelding breedte moet liggen tussen %(min)spx en %(max)spx"
 
 msgid "Choose one of the available databases from the panel on the left."
 msgstr "Kies een van de beschikbare databases uit het paneel aan de linkerkant."
@@ -2783,6 +2794,10 @@ msgstr "Clausule"
 
 msgid "Clear"
 msgstr "Verwijder"
+
+#, fuzzy
+msgid "Clear Sort"
+msgstr "Formulier wissen"
 
 msgid "Clear all"
 msgstr "Wis alles"
@@ -2883,6 +2898,10 @@ msgstr "Clusteringsradius"
 
 msgid "Code"
 msgstr "Code"
+
+#, fuzzy
+msgid "Code Copied!"
+msgstr "SQL gekopieerd!"
 
 msgid "Collapse all"
 msgstr "Alles inklappen"
@@ -3052,6 +3071,10 @@ msgstr "Kolommen om te groeperen op de rijen"
 #, fuzzy
 msgid "Columns to read"
 msgstr "Kolommen om te Lezen"
+
+#, fuzzy
+msgid "Columns to show in the tooltip."
+msgstr "Kolomkop tooltip"
 
 msgid "Combine metrics"
 msgstr "Combineer metrieken"
@@ -3264,6 +3287,10 @@ msgstr ""
 
 msgid "Copy and Paste JSON credentials"
 msgstr "Kopieer en plak JSON aanmeldgegevens"
+
+#, fuzzy
+msgid "Copy code to clipboard"
+msgstr "Kopieer naar klembord"
 
 msgid "Copy link"
 msgstr "Kopieer link"
@@ -4214,7 +4241,7 @@ msgstr "Verwijder deze container en sla op om dit bericht te verwijderen."
 msgid "Delete user"
 msgstr "Verwijder query"
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "Delete user registration"
 msgstr "Verwijderd: %s"
 
@@ -4508,6 +4535,11 @@ msgstr "Verspreiding"
 
 msgid "Divider"
 msgstr "Verdeler"
+
+msgid ""
+"Divides each category into subcategories based on the values in the "
+"dimension. It can be used to exclude intersections."
+msgstr ""
 
 msgid "Do you want a donut or a pie?"
 msgstr "Wil je een donut of een taart?"
@@ -4983,6 +5015,10 @@ msgstr "EINDE (EXCLUSIEF)"
 
 msgid "End Longitude & Latitude"
 msgstr "Eind Lengtegraad & Breedtegraad"
+
+#, fuzzy
+msgid "End Time"
+msgstr "Eind datum"
 
 msgid "End angle"
 msgstr "Einde hoek"
@@ -5470,9 +5506,6 @@ msgstr "Veld kan niet gedecodeerd worden door JSON. %(msg)s"
 msgid "Field is required"
 msgstr "Veld is verplicht"
 
-msgid "File"
-msgstr "Bestand"
-
 #, fuzzy
 msgid "File extension is not allowed."
 msgstr "Data-URI is niet toegestaan."
@@ -5505,9 +5538,6 @@ msgstr "Filter"
 
 msgid "Filter Configuration"
 msgstr "Filter configuratie"
-
-msgid "Filter List"
-msgstr "Filter Lijst"
 
 msgid "Filter Settings"
 msgstr "Filter Instellingen"
@@ -5808,6 +5838,15 @@ msgstr "Verder aanpassen hoe elke metriek weer te geven"
 msgid "GROUP BY"
 msgstr "GROUP BY"
 
+#, fuzzy
+msgid "Gantt Chart"
+msgstr "Grafiek diagram"
+
+msgid ""
+"Gantt chart visualizes important events over a time span. Every data "
+"point displayed as a separate event along a horizontal line."
+msgstr ""
+
 msgid "Gauge Chart"
 msgstr "Gauge Grafiek"
 
@@ -6067,6 +6106,9 @@ msgstr ""
 msgid "If table already exists"
 msgstr "Label bestaat al"
 
+msgid "If you don't save, changes will be lost."
+msgstr ""
+
 msgid "Ignore cache when generating report"
 msgstr "Negeer cache bij genereren van rapport"
 
@@ -6093,9 +6135,6 @@ msgstr "Importeer"
 #, python-format
 msgid "Import %s"
 msgstr "Importeer %s"
-
-msgid "Import Dashboard(s)"
-msgstr "Importeer Dashboard(s)"
 
 #, fuzzy
 msgid "Import Error"
@@ -6968,6 +7007,12 @@ msgstr "KaartBox"
 msgid "Mapbox"
 msgstr "Kaartbox"
 
+#, fuzzy, python-format
+msgid ""
+"Mapbox base layer map style (see Mapbox documentation: %s) or tile server"
+" URL."
+msgstr "Basislaag kaartstijl. Zie Mapbox documentatie: %s"
+
 msgid "March"
 msgstr "Maart"
 
@@ -7186,6 +7231,10 @@ msgstr ""
 msgid "Metrics"
 msgstr "Metrieken"
 
+#, fuzzy
+msgid "Metrics to show in the tooltip."
+msgstr "Of de numerieke waarden binnen de cellen moeten worden weergegeven"
+
 msgid "Middle"
 msgstr "Midden"
 
@@ -7206,6 +7255,10 @@ msgstr "Min Dikte"
 
 msgid "Min periods"
 msgstr "Min periodes"
+
+#, fuzzy
+msgid "Min value cannot be greater than max value"
+msgstr "Van datum kan niet groter zijn dan tot datum"
 
 msgid "Min/max (no outliers)"
 msgstr "Min/max (geen outliers)"
@@ -7237,10 +7290,6 @@ msgstr "Minimale drempelwaarde in percentage voor het tonen van labels."
 
 msgid "Minimum value"
 msgstr "Minimale waarde"
-
-#, fuzzy
-msgid "Minimum value cannot be higher than maximum value"
-msgstr "Van datum kan niet groter zijn dan tot datum"
 
 msgid "Minimum value for label to be displayed on graph."
 msgstr "Minimale waarde van het label op grafiek."
@@ -7478,7 +7527,7 @@ msgstr "Nog geen %s"
 msgid "No Data"
 msgstr "Geen Data"
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "No Logs yet"
 msgstr "Nog geen %s"
 
@@ -7822,6 +7871,10 @@ msgstr "Aantal stappen tussen ticks bij het weergeven van de X-schaal"
 msgid "Number of steps to take between ticks when displaying the Y scale"
 msgstr "Aantal stappen tussen ticks bij het weergeven van de Y-schaal"
 
+#, fuzzy, python-format
+msgid "Numbers must be within %(min)s and %(max)s"
+msgstr "Schermafbeelding breedte moet liggen tussen %(min)spx en %(max)spx"
+
 #, fuzzy
 msgid "Numeric column used to calculate the histogram."
 msgstr "Selecteer de numerieke kolommen om het histogram te tekenen"
@@ -8159,6 +8212,14 @@ msgstr ""
 "Afbeelding downloaden mislukt, gelieve te vernieuwen en probeer het "
 "opnieuw."
 
+#, fuzzy
+msgid "Page"
+msgstr "Gebruik"
+
+#, fuzzy
+msgid "Page Size:"
+msgstr "page_size.all"
+
 msgid "Page length"
 msgstr "Pagina lengte"
 
@@ -8479,11 +8540,9 @@ msgstr "Gelieve te bevestigen"
 msgid "Please enter your username"
 msgstr "Label voor uw zoekopdracht"
 
-msgid "Please provide a valid range"
-msgstr ""
-
-msgid "Please provide a value within range"
-msgstr ""
+#, fuzzy
+msgid "Please provide a valid min or max value"
+msgstr "Voer een SQLAlchemy URI in om te testen"
 
 msgid "Please re-enter the password."
 msgstr "Voer het wachtwoord opnieuw in."
@@ -8808,6 +8867,14 @@ msgstr "Radius in mijlen"
 msgid "Range"
 msgstr "Bereik"
 
+#, fuzzy
+msgid "Range Inputs"
+msgstr "Bereiken"
+
+#, fuzzy
+msgid "Range Type"
+msgstr "BEREIK TYPE"
+
 msgid "Range filter"
 msgstr "Bereik filter"
 
@@ -8844,9 +8911,6 @@ msgstr "Recente"
 
 msgid "Recipients are separated by \",\" or \";\""
 msgstr "Ontvangers worden gescheiden door “,” of “;”"
-
-msgid "Record Count"
-msgstr "Record Aantal"
 
 msgid "Rectangle"
 msgstr "Rechthoek"
@@ -8886,9 +8950,6 @@ msgstr "Vernieuwen"
 
 msgid "Refetch results"
 msgstr "Resultaten opnieuw ophalen"
-
-msgid "Refresh"
-msgstr "Vernieuwen"
 
 msgid "Refresh dashboard"
 msgstr "Vernieuw dashboard"
@@ -9132,11 +9193,11 @@ msgstr "Reset"
 msgid "Reset columns"
 msgstr "Selecteer kolom"
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "Reset my password"
 msgstr "%s WACHTWOORD"
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "Reset password"
 msgstr "%s WACHTWOORD"
 
@@ -9362,9 +9423,6 @@ msgstr "SHA"
 msgid "SQL"
 msgstr "SQL"
 
-msgid "SQL Copied!"
-msgstr "SQL gekopieerd!"
-
 msgid "SQL Lab"
 msgstr "SQL-lab"
 
@@ -9511,6 +9569,14 @@ msgstr "Opslaan als:"
 
 msgid "Save changes"
 msgstr "Wijzigingen opslaan"
+
+#, fuzzy
+msgid "Save changes to your chart?"
+msgstr "Wijzigingen opslaan"
+
+#, fuzzy
+msgid "Save changes to your dashboard?"
+msgstr "Opslaan en naar dashboard gaan"
 
 msgid "Save chart"
 msgstr "Grafiek opslaan"
@@ -10452,6 +10518,13 @@ msgstr "Sla spaties over na het scheidingsteken"
 msgid "Slice Id"
 msgstr "Lijndikte"
 
+#, fuzzy
+msgid "Slider"
+msgstr "Stevig"
+
+msgid "Slider and range input"
+msgstr ""
+
 msgid "Slug"
 msgstr "Slak"
 
@@ -10535,6 +10608,10 @@ msgstr "Sorry, uw browser ondersteunt het kopiëren niet. Gebruik Ctrl / Cmd + C
 
 msgid "Sort"
 msgstr "Sorteren"
+
+#, fuzzy
+msgid "Sort Ascending"
+msgstr "Sorteer oplopend"
 
 msgid "Sort Descending"
 msgstr "Sorteer Aflopend"
@@ -10678,6 +10755,10 @@ msgstr "START (INCLUSIEF)"
 msgid "Start Longitude & Latitude"
 msgstr "Start Lengtegraad & Breedtegraad"
 
+#, fuzzy
+msgid "Start Time"
+msgstr "Start datum"
+
 msgid "Start angle"
 msgstr "Start hoek"
 
@@ -10779,6 +10860,10 @@ msgstr "Stijl"
 
 msgid "Style the ends of the progress bar with a round cap"
 msgstr "Stijl de uiteindes van de voortgangsbalk met een ronde dop"
+
+#, fuzzy
+msgid "Subcategories"
+msgstr "Categorie"
 
 msgid "Subdomain"
 msgstr "Subdomein"
@@ -10934,6 +11019,10 @@ msgstr "Tabwl %(table)s werd niet gevonden in de database %(db)s"
 msgid "Table Name"
 msgstr "Tabel Naam"
 
+#, fuzzy
+msgid "Table V2"
+msgstr "Tabel"
+
 #, fuzzy, python-format
 msgid ""
 "Table [%(table)s] could not be found, please double check your database "
@@ -11063,9 +11152,6 @@ msgstr ""
 "navigeert naar een andere pagina. Beschikbaar voor Presto, Hive, MySQL, "
 "Postgres en Snowflake databases."
 
-msgid "Test Connection"
-msgstr "Test Connectie"
-
 msgid "Test connection"
 msgstr "Test connectie"
 
@@ -11153,15 +11239,6 @@ msgstr ""
 "De categorie van bronnodes die worden gebruikt om kleuren toe te wijzen. "
 "Als een knooppunt is gekoppeld met meer dan één categorie, zal alleen de "
 "eerste worden gebruikt."
-
-msgid "The chart datasource does not exist"
-msgstr "De grafiek gegevensbron bestaat niet"
-
-msgid "The chart does not exist"
-msgstr "De grafiek bestaat niet"
-
-msgid "The chart query context does not exist"
-msgstr "De query context van de grafiek bestaat niet"
 
 msgid ""
 "The classic. Great for showing how much of a company each investor gets, "
@@ -12719,6 +12796,10 @@ msgstr "Tijdreeks Periodieke Pivoting"
 msgid "Time-series Table"
 msgstr "Tijdreeks Tabel"
 
+#, fuzzy
+msgid "Timeline"
+msgstr "Tijdzone"
+
 msgid "Timeout error"
 msgstr "Timeout fout"
 
@@ -12759,6 +12840,14 @@ msgstr "Om een leesbare URL voor uw dashboard te krijgen"
 
 msgid "Tooltip"
 msgstr "Tooltip"
+
+#, fuzzy
+msgid "Tooltip (columns)"
+msgstr "Tooltip inhoud"
+
+#, fuzzy
+msgid "Tooltip (metrics)"
+msgstr "Tooltip sorteren op metriek"
 
 msgid "Tooltip Contents"
 msgstr "Tooltip inhoud"
@@ -13250,9 +13339,6 @@ msgstr "Gebruik slechts één waarde."
 msgid "Use the Advanced Analytics options below"
 msgstr "Gebruik de onderstaande geavanceerde Analytics opties"
 
-msgid "Use the edit button to change this field"
-msgstr "Gebruik de bewerk knop om dit veld te wijzigen"
-
 msgid "Use this section if you want a query that aggregates"
 msgstr "Gebruik deze sectie als u een query wilt welke aggregeert"
 
@@ -13633,7 +13719,7 @@ msgstr "Kon uw query niet controleren"
 msgid "Waterfall Chart"
 msgstr "Waterval Diagram"
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "We are unable to connect to your database."
 msgstr "Kan geen verbinding maken met database “%(database)s”."
 
@@ -14198,7 +14284,7 @@ msgstr "Ja, wijzigingen overschrijven"
 msgid "You are adding tags to %s %ss"
 msgstr "U voegt labels toe aan %s %ss"
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "You are edting a query from the virtual dataset "
 msgstr ""
 
@@ -14450,9 +14536,6 @@ msgstr "Uw zoekopdracht werd opgeslagen"
 
 msgid "Your query was updated"
 msgstr "Uw zoekopdracht werd bijgewerkt"
-
-msgid "Your range is not within the dataset range"
-msgstr ""
 
 msgid "Your report could not be deleted"
 msgstr "Uw rapport kon niet worden verwijderd"
@@ -14910,8 +14993,10 @@ msgstr "Ongeldige permalink sleutel"
 msgid "is"
 msgstr "in"
 
-msgid "is expected to be a Mapbox URL"
-msgstr "wordt verwacht een Mapbox URL te zijn"
+msgid ""
+"is expected to be a Mapbox/OSM URL (eg. mapbox://styles/...) or a tile "
+"server URL (eg. tile://http...)"
+msgstr ""
 
 msgid "is expected to be a number"
 msgstr "wordt verwacht dat het een getal is"
@@ -15026,6 +15111,9 @@ msgstr "numeriek type icoon"
 
 msgid "nvd3"
 msgstr "nvd3"
+
+msgid "of"
+msgstr ""
 
 msgid "offline"
 msgstr "offline"
@@ -15206,6 +15294,10 @@ msgstr "tijdelijk type icoon"
 msgid "textarea"
 msgstr "tekstveld"
 
+#, fuzzy
+msgid "to"
+msgstr "bovenkant"
+
 msgid "top"
 msgstr "bovenkant"
 
@@ -15238,6 +15330,10 @@ msgstr "waarde oplopend"
 
 msgid "value descending"
 msgstr "waarde aflopend"
+
+#, fuzzy
+msgid "valuename"
+msgstr "Tabel Naam"
 
 msgid "var"
 msgstr "var"
