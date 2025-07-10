@@ -99,23 +99,31 @@ const BulkSelectWrapper = styled(Alert)`
     margin-bottom: 0;
     color: ${theme.colorText};
     background-color: ${theme.colorPrimaryBg};
+    
+    .ant-alert-message {
+      display: flex;
+      align-items: center;
+    }
 
     .selectedCopy {
       display: inline-block;
       padding: ${theme.sizeUnit * 2}px 0;
+      white-space: nowrap;
+      flex-shrink: 0;
     }
 
     .deselect-all, .tag-btn {
       color: ${theme.colorPrimary};
       margin-left: ${theme.sizeUnit * 4}px;
+      white-space: nowrap;
+      flex-shrink: 0;
     }
 
     .divider {
-      margin: ${-theme.sizeUnit * 2}px 0 ${-theme.sizeUnit * 2}px ${
-        theme.sizeUnit * 4
-      }px;
+      margin-left: ${theme.sizeUnit * 4}px;
+      margin-right: ${theme.sizeUnit * 4}px;
       width: 1px;
-      height: ${theme.sizeUnit * 8}px;
+      height: 32px;
       box-shadow: inset -1px 0px 0px ${theme.colorBorder};
       display: inline-flex;
       vertical-align: middle;
@@ -260,7 +268,7 @@ export function ListView<T extends object = any>({
   filters = [],
   bulkActions: initialBulkActions = [],
   bulkSelectEnabled = false,
-  disableBulkSelect = () => {},
+  disableBulkSelect = () => { },
   renderBulkSelectCopy = selected => t('%s Selected', selected.length),
   renderCard,
   showThumbnails,
@@ -442,16 +450,19 @@ export function ListView<T extends object = any>({
                         {t('Deselect all')}
                       </span>
                       {firstAction && (
-                        <DropdownButton
-                          popupRender={() =>
-                            dropdownActions.length > 0 ? dropdownMenu : <></>
-                          }
-                          onClick={handleBulkActionClick}
-                          loading={isBulkActionLoading}
-                          type="primary"
-                        >
-                          {firstAction.name}
-                        </DropdownButton>
+                        <>
+                          <div className="divider" />
+                          <DropdownButton
+                            popupRender={() =>
+                              dropdownActions.length > 0 ? dropdownMenu : <></>
+                            }
+                            onClick={handleBulkActionClick}
+                            loading={isBulkActionLoading}
+                            type="primary"
+                          >
+                            {firstAction.name}
+                          </DropdownButton>
+                        </>
                       )}
                     </>
                   )}
