@@ -19,6 +19,20 @@
 import { getColorBreakpointsBuckets } from './utils';
 import { ColorBreakpointType } from './types';
 
+jest.mock('@deck.gl/geo-layers', () => ({
+  GeoBoundingBox: jest.fn(),
+  TileLayer: jest.fn(),
+}));
+
+jest.mock('@deck.gl/layers', () => ({
+  BitmapLayer: jest.fn(),
+  PathLayer: jest.fn(),
+}));
+
+jest.mock('@deck.gl/core', () => ({
+  Color: jest.fn(),
+}));
+
 describe('getColorBreakpointsBuckets', () => {
   it('returns correct buckets for multiple breakpoints', () => {
     const color_breakpoints: ColorBreakpointType[] = [
