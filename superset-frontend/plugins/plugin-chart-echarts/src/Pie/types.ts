@@ -47,6 +47,7 @@ export type EchartsPieFormData = QueryFormData &
     dateFormat: string;
     showLabelsThreshold: number;
     roseType: 'radius' | 'area' | null;
+    showLegendToggle: true;
     thresholdForOther: number;
   };
 
