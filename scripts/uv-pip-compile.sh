@@ -24,7 +24,8 @@ ADDITIONAL_ARGS="$@"
 # Generate the requirements/base.txt file
 uv pip compile pyproject.toml requirements/base.in -o requirements/base.txt $ADDITIONAL_ARGS
 
-# Generate the requirements/development.txt file, making sure requirements/base.txt is a constraint to keep the versions in sync
+# Generate the requirements/development.txt file, making sure requirements/base.txt is a constraint to keep the versions in sync. Note that `development.txt` is a Superset of `base.txt` where version for the shared libs should match their version.
 uv pip compile requirements/development.in -c requirements/base.txt -o requirements/development.txt $ADDITIONAL_ARGS
 
+# NOTE translation is intended as a "supplemental" set of pins that can be combined with either base or dev as needed
 uv pip compile requirements/translations.in -o requirements/translations.txt $ADDITIONAL_ARGS

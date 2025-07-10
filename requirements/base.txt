@@ -104,6 +104,7 @@ flask==2.3.3
     #   flask-babel
     #   flask-caching
     #   flask-compress
+    #   flask-cors
     #   flask-jwt-extended
     #   flask-limiter
     #   flask-login
@@ -111,13 +112,15 @@ flask==2.3.3
     #   flask-session
     #   flask-sqlalchemy
     #   flask-wtf
-flask-appbuilder==4.7.0
+flask-appbuilder==4.8.0
     # via apache-superset (pyproject.toml)
 flask-babel==2.0.0
     # via flask-appbuilder
 flask-caching==2.3.1
     # via apache-superset (pyproject.toml)
 flask-compress==1.17
+    # via apache-superset (pyproject.toml)
+flask-cors==4.0.2
     # via apache-superset (pyproject.toml)
 flask-jwt-extended==4.7.1
     # via flask-appbuilder
@@ -209,6 +212,7 @@ markupsafe==3.0.2
     #   wtforms
 marshmallow==3.26.1
     # via
+    #   apache-superset (pyproject.toml)
     #   flask-appbuilder
     #   marshmallow-sqlalchemy
 marshmallow-sqlalchemy==1.4.0
@@ -392,6 +396,8 @@ typing-extensions==4.14.0
     #   alembic
     #   cattrs
     #   limits
+    #   pyopenssl
+    #   referencing
     #   selenium
     #   shillelagh
 tzdata==2025.2

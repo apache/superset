@@ -214,7 +214,7 @@ const CustomModal = ({
   resizable = false,
   resizableConfig = defaultResizableConfig(hideFooter),
   draggableConfig,
-  destroyOnClose,
+  destroyOnHidden,
   openerRef,
   ...rest
 }: ModalProps) => {
@@ -228,13 +228,16 @@ const CustomModal = ({
   };
 
   let FooterComponent;
-  if (isValidElement(footer)) {
+
+  // This safely avoids injecting "closeModal" into native elements like <div> or <span>
+  if (isValidElement(footer) && typeof footer.type === 'function')
     // If a footer component is provided inject a closeModal function
     // so the footer can provide a "close" button if desired
     FooterComponent = cloneElement(footer, {
       closeModal: handleOnHide,
     } as Partial<unknown>);
-  }
+  else FooterComponent = footer;
+
   const modalFooter = isNil(FooterComponent)
     ? [
         <Button
@@ -309,7 +312,7 @@ const CustomModal = ({
       open={show}
       title={<ModalTitle />}
       closeIcon={
-        <span className="close" aria-hidden="true">
+        <span data-test="close-modal-btn" className="close" aria-hidden="true">
           ×
         </span>
       }
@@ -341,7 +344,7 @@ const CustomModal = ({
       mask={shouldShowMask}
       draggable={draggable}
       resizable={resizable}
-      destroyOnClose={destroyOnClose}
+      destroyOnHidden={destroyOnHidden}
       {...rest}
     >
       {children}
