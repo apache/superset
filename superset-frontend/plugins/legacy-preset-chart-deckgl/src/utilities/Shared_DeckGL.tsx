@@ -46,30 +46,6 @@ import {
 const categoricalSchemeRegistry = getCategoricalSchemeRegistry();
 const sequentialSchemeRegistry = getSequentialSchemeRegistry();
 
-let deckglTiles: string[][];
-
-export const DEFAULT_DECKGL_TILES = [
-  ['https://tile.openstreetmap.org/{z}/{x}/{y}.png', 'Streets (OSM)'],
-  ['https://tile.osm.ch/osm-swiss-style/{z}/{x}/{y}.png', 'Topography (OSM)'],
-  ['mapbox://styles/mapbox/streets-v9', 'Streets (Mapbox)'],
-  ['mapbox://styles/mapbox/dark-v9', 'Dark (Mapbox)'],
-  ['mapbox://styles/mapbox/light-v9', 'Light (Mapbox)'],
-  ['mapbox://styles/mapbox/satellite-streets-v9', 'Satellite Streets (Mapbox)'],
-  ['mapbox://styles/mapbox/satellite-v9', 'Satellite (Mapbox)'],
-  ['mapbox://styles/mapbox/outdoors-v9', 'Outdoors (Mapbox)'],
-];
-
-const getDeckGLTiles = () => {
-  if (!deckglTiles) {
-    const appContainer = document.getElementById('app');
-    const { common } = JSON.parse(
-      appContainer?.getAttribute('data-bootstrap') || '{}',
-    );
-    deckglTiles = common?.deckgl_tiles ?? DEFAULT_DECKGL_TILES;
-  }
-  return deckglTiles;
-};
-
 export const DEFAULT_DECKGL_COLOR = { r: 158, g: 158, b: 158, a: 1 };
 
 const DEFAULT_VIEWPORT = {
@@ -419,10 +395,17 @@ export const mapboxStyle = {
     renderTrigger: true,
     freeForm: true,
     validators: [validateMapboxStylesUrl],
-    choices: getDeckGLTiles(),
-    default: getDeckGLTiles()[0][0],
+    choices: [
+      ['mapbox://styles/mapbox/streets-v9', t('Streets')],
+      ['mapbox://styles/mapbox/dark-v9', t('Dark')],
+      ['mapbox://styles/mapbox/light-v9', t('Light')],
+      ['mapbox://styles/mapbox/satellite-streets-v9', t('Satellite Streets')],
+      ['mapbox://styles/mapbox/satellite-v9', t('Satellite')],
+      ['mapbox://styles/mapbox/outdoors-v9', t('Outdoors')],
+    ],
+    default: 'mapbox://styles/mapbox/light-v9',
     description: t(
-      'Mapbox base layer map style (see Mapbox documentation: %s) or tile server URL.',
+      'Base layer map style. See Mapbox documentation: %s',
       'https://docs.mapbox.com/help/glossary/style-url/',
     ),
   },

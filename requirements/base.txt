@@ -104,7 +104,6 @@ flask==2.3.3
     #   flask-babel
     #   flask-caching
     #   flask-compress
-    #   flask-cors
     #   flask-jwt-extended
     #   flask-limiter
     #   flask-login
@@ -119,8 +118,6 @@ flask-babel==2.0.0
 flask-caching==2.3.1
     # via apache-superset (pyproject.toml)
 flask-compress==1.17
-    # via apache-superset (pyproject.toml)
-flask-cors==4.0.2
     # via apache-superset (pyproject.toml)
 flask-jwt-extended==4.7.1
     # via flask-appbuilder
