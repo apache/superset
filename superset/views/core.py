@@ -19,11 +19,12 @@ from __future__ import annotations
 
 import contextlib
 import logging
+import os
 from datetime import datetime
 from typing import Any, Callable, cast
 from urllib import parse
 
-from flask import abort, flash, g, redirect, request, Response, url_for
+from flask import abort, flash, g, redirect, request, Response, send_file, url_for
 from flask_appbuilder import expose
 from flask_appbuilder.security.decorators import (
     has_access,
@@ -890,6 +891,23 @@ class Superset(BaseSupersetView):
 
         datasource.raise_for_access()
         return json_success(json.dumps(sanitize_datasource_data(datasource.data)))
+
+    @event_logger.log_this
+    @expose("/language_pack/<lang>/")
+    def language_pack(self, lang: str) -> FlaskResponse:
+        base_dir = os.path.join(
+            os.path.dirname(__file__),
+            "..",
+            "translations",
+            lang,
+            "LC_MESSAGES",
+            "messages.json",
+        )
+        if os.path.isfile(base_dir):
+            return send_file(base_dir, mimetype="application/json")
+        return json_error_response(
+            "Language pack doesn't exist on the server", status=404
+        )
 
     @event_logger.log_this
     @expose("/welcome/")
