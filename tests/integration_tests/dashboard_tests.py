@@ -103,6 +103,7 @@ class TestDashboard(SupersetTestCase):
         return positions
 
     def test_get_dashboard(self):
+        db.session.flush()
         for dash in db.session.query(Dashboard):
             assert escape(dash.dashboard_title) in self.client.get(dash.url).get_data(
                 as_text=True
