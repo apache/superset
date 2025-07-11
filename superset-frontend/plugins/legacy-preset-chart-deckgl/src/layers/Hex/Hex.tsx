@@ -68,7 +68,7 @@ export const getLayer: GetLayerType<HexagonLayer> = function ({
 
   const colorSchemeType = fd.color_scheme_type;
   const colorRange = getColorRange({
-    defaultBreakpointsColor: fd.default_color,
+    defaultBreakpointsColor: fd.deafult_breakpoint_color,
     colorBreakpoints: fd.color_breakpoints,
     fixedColor: fd.color_picker,
     colorSchemeType,
@@ -83,6 +83,9 @@ export const getLayer: GetLayerType<HexagonLayer> = function ({
     colorSchemeType === COLOR_SCHEME_TYPES.color_breakpoints
       ? (p: number[]) => getColorForBreakpoints(aggFunc, p, colorBreakpoints)
       : aggFunc;
+
+  console.log('colorBreakpoints', colorBreakpoints);
+  console.log('colorRange', colorRange);
 
   return new HexagonLayer({
     id: `hex-layer-${fd.slice_id}-${JSON.stringify(colorBreakpoints)}` as const,
