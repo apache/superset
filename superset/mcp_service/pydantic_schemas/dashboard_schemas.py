@@ -64,7 +64,7 @@ Example usage:
 """
 
 from datetime import datetime
-from typing import Any, Dict, List, Optional, Union, Mapping
+from typing import Any, Dict, List, Optional, Union, Mapping, Literal
 from pydantic import BaseModel, Field, ConfigDict
 
 
@@ -144,25 +144,6 @@ class PaginationInfo(BaseModel):
     model_config = ConfigDict(ser_json_timedelta="iso8601")
 
 
-class DashboardListResponse(BaseModel):
-    """Response for dashboard list operations"""
-    dashboards: List[DashboardListItem] = Field(..., description="List of dashboards")
-    count: int = Field(..., description="Number of dashboards in current page")
-    total_count: int = Field(..., description="Total number of dashboards")
-    page: int = Field(..., description="Current page number")
-    page_size: int = Field(..., description="Page size")
-    total_pages: int = Field(..., description="Total number of pages")
-    has_previous: bool = Field(..., description="Whether there is a previous page")
-    has_next: bool = Field(..., description="Whether there is a next page")
-    columns_requested: List[str] = Field(..., description="Columns that were requested")
-    columns_loaded: List[str] = Field(..., description="Columns that were actually loaded")
-    filters_applied: Dict[str, Any] = Field(..., description="Filters that were applied")
-    pagination: PaginationInfo = Field(..., description="Pagination information")
-    timestamp: datetime = Field(..., description="Response timestamp")
-    
-    model_config = ConfigDict(ser_json_timedelta="iso8601")
-
-
 class DashboardInfoResponse(BaseModel):
     """Detailed dashboard information response - maps exactly to Dashboard model"""
     
@@ -204,6 +185,24 @@ class DashboardInfoResponse(BaseModel):
     
     model_config = ConfigDict(from_attributes=True, ser_json_timedelta="iso8601")
 
+
+class DashboardListResponse(BaseModel):
+    dashboards: List[DashboardInfoResponse]
+    count: int
+    total_count: int
+    page: int
+    page_size: int
+    total_pages: int
+    has_previous: bool
+    has_next: bool
+    columns_requested: Optional[List[str]] = None
+    columns_loaded: Optional[List[str]] = None
+    filters_applied: List[dict] = Field(
+        default_factory=list, description="List of advanced filter dicts applied to the query.")
+    pagination: Optional[PaginationInfo] = None
+    timestamp: Optional[datetime] = None
+
+    model_config = ConfigDict(ser_json_timedelta="iso8601")
 
 class DashboardErrorResponse(BaseModel):
     """Error response for dashboard operations"""
@@ -281,6 +280,30 @@ class DashboardAvailableFiltersResponse(BaseModel):
     filters: Dict[str, Any] = Field(..., description="Available filters and their metadata")
     operators: List[str] = Field(..., description="Supported filter operators")
     columns: List[str] = Field(..., description="Available columns for filtering")
+
+
+class DashboardFilter(BaseModel):
+    """
+    Filter object for dashboard listing.
+    col: The column to filter on. Must be one of the allowed filter fields.
+    opr: The operator to use. Must be one of the supported operators.
+    value: The value to filter by (type depends on col and opr).
+    """
+    col: Literal[
+        "dashboard_title",
+        "published",
+        "changed_by",
+        "created_by",
+        "owner",
+        "certified",
+        "favorite",
+        "chart_count",
+        "tags"
+    ] = Field(..., description="Column to filter on. See get_dashboard_available_filters for allowed values.")
+    opr: Literal[
+        "eq", "ne", "in", "nin", "sw", "ew", "gte", "lte", "gt", "lt"
+    ] = Field(..., description="Operator to use. See get_dashboard_available_filters for allowed values.")
+    value: Any = Field(..., description="Value to filter by (type depends on col and opr)")
 
 
 class DashboardSimpleFilters(BaseModel):
