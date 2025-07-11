@@ -57,8 +57,10 @@ enum AuthType {
 
 const StyledCard = styled(Card)`
   ${({ theme }) => css`
-    width: 40%;
+    max-width: 400px;
+    width: 100%;
     margin-top: ${theme.marginXL}px;
+    color: ${theme.colorBgContainer};
     background: ${theme.colorBgBase};
     .antd5-form-item-label label {
       color: ${theme.colorPrimary};
@@ -110,9 +112,11 @@ export default function Login() {
   return (
     <Flex
       justify="center"
+      align="center"
       data-test="login-form"
       css={css`
         width: 100%;
+        height: calc(100vh - 200px);
       `}
     >
       <StyledCard title={t('Sign in')} padded>
@@ -172,6 +176,7 @@ export default function Login() {
                 ]}
               >
                 <Input
+                  autoFocus
                   prefix={<Icons.UserOutlined iconSize="l" />}
                   data-test="username-input"
                 />

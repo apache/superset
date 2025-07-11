@@ -34,7 +34,7 @@ export interface ModalProps {
   show: boolean;
   name?: string;
   title: ReactNode;
-  width?: string;
+  width?: string | number;
   maxWidth?: string;
   responsive?: boolean;
   hideFooter?: boolean;
@@ -47,7 +47,7 @@ export interface ModalProps {
   resizableConfig?: ResizableProps;
   draggable?: boolean;
   draggableConfig?: DraggableProps;
-  destroyOnClose?: boolean;
+  destroyOnHidden?: boolean;
   maskClosable?: boolean;
   zIndex?: number;
   bodyStyle?: CSSProperties;
