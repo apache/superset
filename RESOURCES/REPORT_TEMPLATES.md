@@ -17,16 +17,13 @@ specific language governing permissions and limitations
 under the License.
 -->
 
-# Report Templates
+# Шаблоны отчетов
 
-Superset provides a simple API to manage and generate reports from ODT templates.
-Templates can be stored on Amazon S3 and are always kept in a local directory as
-well. When the S3 storage is unavailable the system falls back to the local
-storage so that templates can still be uploaded and used.
+Superset предоставляет простой API для загрузки, хранения и генерации отчетов по ODT-шаблонам. Файлы можно сохранять в хранилище S3 и обязательно — в локальной директории. Если доступ к S3 отсутствует, приложение использует локальное хранилище, так что загрузка и использование шаблонов продолжают работать.
 
-## Configuration
+## Конфигурация
 
-The following configuration values control where templates are stored:
+Ниже приведены параметры конфигурации, определяющие, где хранятся шаблоны:
 
 ```
 REPORT_TEMPLATE_S3_ENDPOINT = 'http://minio:9000'
@@ -36,23 +33,15 @@ REPORT_TEMPLATE_S3_SECRET_KEY = 'minioadmin'
 REPORT_TEMPLATE_LOCAL_DIR = '/tmp/report_templates'
 ```
 
-`REPORT_TEMPLATE_LOCAL_DIR` is required and defines the directory where files are
-stored on disk. When S3 is reachable every upload is saved locally and then
-uploaded to S3. If the upload to S3 fails the template remains available locally.
+Переменная `REPORT_TEMPLATE_LOCAL_DIR` обязательна и указывает директорию на диске. При доступном S3 файл сначала сохраняется локально, а затем загружается на S3. Если загрузка на S3 не удалась, шаблон остаётся доступным в локальном хранилище.
 
 ## REST API
 
-The `ReportTemplateRestApi` exposes the following endpoints:
+Ресурс `ReportTemplateRestApi` предоставляет следующие эндпоинты:
 
-- `GET /api/v1/report_template/?limit=25&offset=0` – list templates with
-  pagination. The response includes `result` and `count` fields.
-- `POST /api/v1/report_template/` – upload a new template. The request must use
-  `multipart/form-data` with the fields `template` (ODT file), `name`,
-  `dataset_id` and optional `description`.
-- `DELETE /api/v1/report_template/<id>` – delete a template and remove the file
-  from S3 and the local directory.
-- `GET /api/v1/report_template/<id>/download` – download the template file.
-- `POST /api/v1/report_template/<id>/generate` – generate a report using the
-  template and return the rendered ODT file.
-
+- `GET /api/v1/report_template/?limit=25&offset=0` – получить список шаблонов с пагинацией. В ответе поля `result` и `count`.
+- `POST /api/v1/report_template/` – загрузить новый шаблон. Используется форма `multipart/form-data` с полями `template` (файл ODT), `name`, `dataset_id` и необязательным `description`.
+- `DELETE /api/v1/report_template/<id>` – удалить шаблон из S3 и локальной директории.
+- `GET /api/v1/report_template/<id>/download` – скачать файл шаблона.
+- `POST /api/v1/report_template/<id>/generate` – сгенерировать отчёт по шаблону и вернуть готовый ODT-файл.
 
