@@ -97,6 +97,8 @@ export const StyledModal = styled(BaseModal)<StyledModalProps>`
         ${theme.sizeUnit * 4}px;
       top: 0;
       right: 0;
+      display: flex;
+      justify-content: center;
     }
 
     .ant-modal-close:hover {
