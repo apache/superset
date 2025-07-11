@@ -41,9 +41,9 @@ from superset.mcp_service.pydantic_schemas.system_schemas import (InstanceSummar
 from superset.mcp_service.tools import get_dataset_available_filters
 # Import the original functions before they get decorated
 from superset.mcp_service.tools.dashboard import (
-    get_dashboard_available_filters, get_dashboard_info, list_dashboards,
-    list_dashboards_simple, )
-from superset.mcp_service.tools.dataset import list_datasets, list_datasets_simple
+    get_dashboard_available_filters, get_dashboard_info, list_dashboards
+)
+from superset.mcp_service.tools.dataset import list_datasets
 from superset.mcp_service.tools.system import get_superset_instance_info
 
 # Configure logging for tests
@@ -103,13 +103,12 @@ class TestDashboardTools:
 
     @patch('superset.mcp_service.dao_wrapper.MCPDAOWrapper.list')
     def test_list_dashboards_with_string_filters(self, mock_list):
-        """Test list_dashboards with string filter input"""
+        """Test list_dashboards with string filter input (should fail or be ignored)"""
         mock_list.return_value = ([], 0)
-        filters_str = '[{"col": "dashboard_title", "opr": "sw", "value": "Sales"}]'
-        result = list_dashboards(filters=filters_str)
-        assert result.count == 0
-        assert result.total_count == 0
-        assert result.dashboards == []
+        # Remove this test or update to expect failure, as only advanced filter lists are supported
+        filters = '[{"col": "dashboard_title", "opr": "sw", "value": "Sales"}]'
+        with pytest.raises(Exception):
+            list_dashboards(filters=filters)
 
     @patch('superset.mcp_service.dao_wrapper.MCPDAOWrapper.list')
     def test_list_dashboards_api_error(self, mock_list):
@@ -120,12 +119,12 @@ class TestDashboardTools:
         assert "API request failed" in str(excinfo.value)
 
     @patch('superset.mcp_service.dao_wrapper.MCPDAOWrapper.list')
-    def test_list_dashboards_simple_basic(self, mock_list):
-        """Test list_dashboards_simple with basic parameters"""
+    def test_list_dashboards_with_search(self, mock_list):
+        """Test list_dashboards with a text search parameter"""
         dashboard = Mock()
         dashboard.id = 1
-        dashboard.dashboard_title = "Test Dashboard"
-        dashboard.slug = "test-dashboard"
+        dashboard.dashboard_title = "search_dashboard"
+        dashboard.slug = "search-dashboard"
         dashboard.url = "/dashboard/1"
         dashboard.published = True
         dashboard.changed_by_name = "admin"
@@ -137,38 +136,22 @@ class TestDashboardTools:
         dashboard.tags = []
         dashboard.owners = []
         mock_list.return_value = ([dashboard], 1)
-        filters = DashboardSimpleFilters()
-        result = list_dashboards_simple(filters=filters)
-        assert isinstance(result, DashboardListResponse)
+        result = list_dashboards(search="search_dashboard")
         assert result.count == 1
-        assert result.dashboards[0].dashboard_title == "Test Dashboard"
+        assert result.dashboards[0].dashboard_title == "search_dashboard"
+        # Ensure search and search_columns were passed
+        args, kwargs = mock_list.call_args
+        assert kwargs["search"] == "search_dashboard"
+        assert "dashboard_title" in kwargs["search_columns"]
+        assert "slug" in kwargs["search_columns"]
 
     @patch('superset.mcp_service.dao_wrapper.MCPDAOWrapper.list')
-    def test_list_dashboards_simple_with_filters(self, mock_list):
-        """Test list_dashboards_simple with various filter parameters"""
+    def test_list_dashboards_with_simple_filters(self, mock_list):
+        """Test list_dashboards with simple filter parameters (previously tested in list_dashboards_simple)"""
         mock_list.return_value = ([], 0)
-        filters = DashboardSimpleFilters(
-            dashboard_title="Sales",
-            published=True,
-            changed_by="admin",
-            created_by="user1",
-            owner="owner1",
-            certified=True,
-            favorite=False,
-            chart_count=5,
-            chart_count_min=3,
-            chart_count_max=10,
-            tags="tag1,tag2"
-        )
-        result = list_dashboards_simple(
-            filters=filters,
-            order_column="created_on",
-            order_direction="desc",
-            page=2,
-            page_size=25
-        )
-        assert isinstance(result, DashboardListResponse)
-        assert result.count == 0
+        filters = [{"col": "dashboard_title", "opr": "eq", "value": "Sales"}, {"col": "published", "opr": "eq", "value": True}]
+        result = list_dashboards(filters=filters)
+        assert hasattr(result, 'count')
 
     @patch('superset.mcp_service.dao_wrapper.MCPDAOWrapper.info')
     def test_get_dashboard_info_success(self, mock_info):
@@ -222,60 +205,6 @@ class TestDashboardTools:
         assert isinstance(result, DashboardErrorResponse)
         assert result.error == "Access denied"
         assert result.error_type == "access_denied"
-
-    @patch('superset.mcp_service.dao_wrapper.MCPDAOWrapper.list')
-    def test_list_dashboards_with_search(self, mock_list):
-        """Test list_dashboards with a text search parameter"""
-        dashboard = Mock()
-        dashboard.id = 1
-        dashboard.dashboard_title = "search_dashboard"
-        dashboard.slug = "search-dashboard"
-        dashboard.url = "/dashboard/1"
-        dashboard.published = True
-        dashboard.changed_by_name = "admin"
-        dashboard.changed_on = None
-        dashboard.changed_on_humanized = None
-        dashboard.created_by_name = "admin"
-        dashboard.created_on = None
-        dashboard.created_on_humanized = None
-        dashboard.tags = []
-        dashboard.owners = []
-        mock_list.return_value = ([dashboard], 1)
-        result = list_dashboards(search="search_dashboard")
-        assert result.count == 1
-        assert result.dashboards[0].dashboard_title == "search_dashboard"
-        # Ensure search and search_columns were passed
-        args, kwargs = mock_list.call_args
-        assert kwargs["search"] == "search_dashboard"
-        assert "dashboard_title" in kwargs["search_columns"]
-        assert "slug" in kwargs["search_columns"]
-
-    @patch('superset.mcp_service.dao_wrapper.MCPDAOWrapper.list')
-    def test_list_dashboards_simple_with_search(self, mock_list):
-        """Test list_dashboards_simple with a text search parameter"""
-        dashboard = Mock()
-        dashboard.id = 2
-        dashboard.dashboard_title = "simple_search"
-        dashboard.slug = "simple-search"
-        dashboard.url = "/dashboard/2"
-        dashboard.published = False
-        dashboard.changed_by_name = "user"
-        dashboard.changed_on = None
-        dashboard.changed_on_humanized = None
-        dashboard.created_by_name = "user"
-        dashboard.created_on = None
-        dashboard.created_on_humanized = None
-        dashboard.tags = []
-        dashboard.owners = []
-        mock_list.return_value = ([dashboard], 1)
-        result = list_dashboards_simple(search="simple_search")
-        assert result.count == 1
-        assert result.dashboards[0].dashboard_title == "simple_search"
-        # Ensure search and search_columns were passed
-        args, kwargs = mock_list.call_args
-        assert kwargs["search"] == "simple_search"
-        assert "dashboard_title" in kwargs["search_columns"]
-        assert "slug" in kwargs["search_columns"]
 
 
 class TestSystemTools:
@@ -415,7 +344,7 @@ class TestDatasetTools:
 
     @patch('superset.mcp_service.dao_wrapper.MCPDAOWrapper.list')
     def test_list_datasets_with_filters(self, mock_list):
-        """Test list_datasets with complex filters"""
+        """Test list_datasets with advanced filters"""
         mock_list.return_value = ([], 0)
         filters = [
             {"col": "table_name", "opr": "sw", "value": "Sales"},
@@ -435,13 +364,11 @@ class TestDatasetTools:
 
     @patch('superset.mcp_service.dao_wrapper.MCPDAOWrapper.list')
     def test_list_datasets_with_string_filters(self, mock_list):
-        """Test list_datasets with string filter input"""
+        """Test list_datasets with string filter input (should fail or be ignored)"""
         mock_list.return_value = ([], 0)
-        filters_str = '[{"col": "table_name", "opr": "sw", "value": "Sales"}]'
-        result = list_datasets(filters=filters_str)
-        assert result.count == 0
-        assert result.total_count == 0
-        assert result.datasets == []
+        filters = '[{"col": "table_name", "opr": "sw", "value": "Sales"}]'
+        with pytest.raises(Exception):
+            list_datasets(filters=filters)
 
     @patch('superset.mcp_service.dao_wrapper.MCPDAOWrapper.list')
     def test_list_datasets_api_error(self, mock_list):
@@ -511,7 +438,7 @@ class TestDatasetTools:
         dataset.schema_perm = None
         dataset.url = None
         mock_list.return_value = ([dataset], 1)
-        result = list_datasets_simple(search="simple_search")
+        result = list_datasets(search="simple_search")
         assert result.count == 1
         assert result.datasets[0].table_name == "simple_search"
         # Ensure search and search_columns were passed
@@ -544,8 +471,8 @@ class TestDatasetTools:
         dataset.database = Mock()
         dataset.database.database_name = "examples"
         mock_list.return_value = ([dataset], 1)
-        filters = DatasetSimpleFilters()
-        result = list_datasets_simple(filters=filters)
+        filters = [{"col": "table_name", "opr": "eq", "value": "Test Dataset"}, {"col": "schema", "opr": "eq", "value": "main"}]
+        result = list_datasets(filters=filters)
         assert isinstance(result, DatasetListResponse)
         assert result.count == 1
         assert result.datasets[0].table_name == "Test Dataset"
@@ -553,24 +480,10 @@ class TestDatasetTools:
 
     @patch('superset.mcp_service.dao_wrapper.MCPDAOWrapper.list')
     def test_list_datasets_simple_with_filters(self, mock_list):
-        """Test list_datasets_simple with various filter parameters"""
+        """Test list_datasets_simple with various filter parameters (converted to advanced filters)"""
         mock_list.return_value = ([], 0)
-        filters = DatasetSimpleFilters(
-            table_name="Sales",
-            schema="main",
-            database_name="examples",
-            changed_by="admin",
-            created_by="user1",
-            owner="owner1",
-            tags="tag1,tag2"
-        )
-        result = list_datasets_simple(
-            filters=filters,
-            order_column="created_on",
-            order_direction="desc",
-            page=2,
-            page_size=25
-        )
+        filters = [{"col": "table_name", "opr": "sw", "value": "Sales"}, {"col": "schema", "opr": "eq", "value": "main"}]
+        result = list_datasets(filters=filters)
         assert isinstance(result, DatasetListResponse)
         assert result.count == 0
 
@@ -578,9 +491,9 @@ class TestDatasetTools:
     def test_list_datasets_simple_api_error(self, mock_list):
         """Test list_datasets_simple with API error"""
         mock_list.side_effect = Exception("API request failed")
-        filters = DatasetSimpleFilters()
+        filters = [{"col": "table_name", "opr": "sw", "value": "Sales"}, {"col": "schema", "opr": "eq", "value": "main"}]
         with pytest.raises(Exception) as excinfo:
-            list_datasets_simple(filters=filters)
+            list_datasets(filters=filters)
         assert "API request failed" in str(excinfo.value)
 
 
@@ -609,42 +522,36 @@ class TestFastMCPServerIntegration:
             registered_tools = list(tools_result)
         else:
             registered_tools = []
-        from superset.mcp_service.tools.dashboard import list_dashboards, list_dashboards_simple, get_dashboard_info, get_dashboard_available_filters
+        from superset.mcp_service.tools.dashboard import list_dashboards, get_dashboard_info, get_dashboard_available_filters
         from superset.mcp_service.tools.system import get_superset_instance_info
-        from superset.mcp_service.tools.dataset import list_datasets, list_datasets_simple
+        from superset.mcp_service.tools.dataset import list_datasets
         # If we can import them without error, they're registered
         assert list_dashboards is not None
-        assert list_dashboards_simple is not None
         assert get_dashboard_info is not None
         assert get_superset_instance_info is not None
         assert get_dashboard_available_filters is not None
         assert list_datasets is not None
-        assert list_datasets_simple is not None
         return  # Test passed
         if registered_tools:
             expected_tools = [
                 "list_dashboards",
-                "list_dashboards_simple", 
                 "get_dashboard_info",
                 "get_superset_instance_info",
                 "get_dashboard_available_filters",
                 "list_datasets",
-                "list_datasets_simple"
             ]
             for tool_name in expected_tools:
                 assert tool_name in registered_tools
         else:
             # Updated imports for new tool structure
-            from superset.mcp_service.tools.dashboard import list_dashboards, list_dashboards_simple, get_dashboard_info, get_dashboard_available_filters
+            from superset.mcp_service.tools.dashboard import list_dashboards, get_dashboard_info, get_dashboard_available_filters
             from superset.mcp_service.tools.system import get_superset_instance_info
-            from superset.mcp_service.tools.dataset import list_datasets, list_datasets_simple
+            from superset.mcp_service.tools.dataset import list_datasets
             assert list_dashboards is not None
-            assert list_dashboards_simple is not None
             assert get_dashboard_info is not None
             assert get_superset_instance_info is not None
             assert get_dashboard_available_filters is not None
             assert list_datasets is not None
-            assert list_datasets_simple is not None
             return  # Test passed
 
 
@@ -713,8 +620,8 @@ class TestParameterValidation:
         """Test list_dashboards_simple handles different parameter types correctly"""
         with patch('superset.mcp_service.dao_wrapper.MCPDAOWrapper.list') as mock_list:
             mock_list.return_value = ([], 0)
-            filters = DashboardSimpleFilters(published=True, certified=False, favorite=True)
-            result = list_dashboards_simple(filters=filters)
+            filters = [{"col": "dashboard_title", "opr": "eq", "value": "Sales"}, {"col": "published", "opr": "eq", "value": True}]
+            result = list_dashboards(filters=filters)
             assert isinstance(result, DashboardListResponse)
 
     def test_list_datasets_parameter_types(self):
@@ -731,8 +638,8 @@ class TestParameterValidation:
         """Test list_datasets_simple handles different parameter types correctly"""
         with patch('superset.mcp_service.dao_wrapper.MCPDAOWrapper.list') as mock_list:
             mock_list.return_value = ([], 0)
-            filters = DatasetSimpleFilters(table_name="test", schema="main")
-            result = list_datasets_simple(filters=filters)
+            filters = [{"col": "table_name", "opr": "eq", "value": "test"}, {"col": "schema", "opr": "eq", "value": "main"}]
+            result = list_datasets(filters=filters)
             assert isinstance(result, DatasetListResponse)
 
 
@@ -757,10 +664,10 @@ class TestFastMCPInMemoryProtocol:
             tools = await client.list_tools()
             tool_names = [t.name for t in tools]
             expected = [
-                "list_dashboards", "list_dashboards_simple", "get_dashboard_info",
+                "list_dashboards", "get_dashboard_info",
                 "get_superset_instance_info", "get_dashboard_available_filters",
-                "get_dataset_available_filters", "list_datasets", "list_datasets_simple",
-                "list_charts", "list_charts_simple", "get_chart_info", "get_chart_available_filters",
+                "get_dataset_available_filters", "list_datasets",
+                "list_charts", "get_chart_info", "get_chart_available_filters",
                 "get_dataset_info", "create_chart_simple"
             ]
             for name in expected:

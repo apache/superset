@@ -36,6 +36,7 @@ from .dashboard_schemas import (
     serialize_role_object,
     serialize_chart_object,
     DashboardAvailableFiltersResponse,
+    DashboardFilter,
 )
 from .system_schemas import (
     SupersetInstanceInfoResponse,
@@ -53,6 +54,7 @@ from .dataset_schemas import (
     DatasetAvailableFiltersResponse,
     DatasetInfoResponse,
     DatasetErrorResponse,
+    DatasetFilter,
 )
 from .chart_schemas import (
     ChartListResponse,
@@ -64,6 +66,7 @@ from .chart_schemas import (
     serialize_chart_object,
     CreateSimpleChartRequest,
     CreateSimpleChartResponse,
+    ChartFilter,
 )
 
 __all__ = [
@@ -102,4 +105,7 @@ __all__ = [
     "ChartErrorResponse",
     "CreateSimpleChartRequest",
     "CreateSimpleChartResponse",
+    "ChartFilter",
+    "DashboardFilter",
+    "DatasetFilter",
 ] 
