@@ -132,6 +132,9 @@ export function Button(props: ButtonProps) {
         minWidth: cta ? theme.sizeUnit * 36 : undefined,
         minHeight: cta ? theme.sizeUnit * 8 : undefined,
         marginLeft: 0,
+        '& > .ant-btn-icon': {
+          display: 'inline-flex',
+        },
         '& + .superset-button': {
           marginLeft: theme.sizeUnit * 2,
         },

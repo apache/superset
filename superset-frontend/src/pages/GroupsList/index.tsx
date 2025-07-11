@@ -18,7 +18,7 @@
  */
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { css, t, useTheme } from '@superset-ui/core';
+import { t, useTheme } from '@superset-ui/core';
 import { useListViewResource } from 'src/views/CRUD/hooks';
 import SubMenu, { SubMenuProps } from 'src/features/home/SubMenu';
 import { ActionsBar, ActionProps } from 'src/components/ListView/ActionsBar';
@@ -76,7 +76,6 @@ enum ModalType {
 }
 
 function GroupsList({ user }: GroupsListProps) {
-  const theme = useTheme();
   const { addDangerToast, addSuccessToast } = useToasts();
   const {
     state: {
@@ -275,17 +274,10 @@ function GroupsList({ user }: GroupsListProps) {
     subMenuButtons.push(
       {
         name: (
-          <>
-            <Icons.PlusOutlined
-              iconColor={theme.colorText}
-              iconSize="m"
-              css={css`
-                margin: auto ${theme.sizeUnit * 2}px auto 0;
-                vertical-align: text-top;
-              `}
-            />
+          <span className="ant-btn-icon">
+            <Icons.PlusOutlined iconSize="m" />
             {t('Group')}
-          </>
+          </span>
         ),
         buttonStyle: 'primary',
         onClick: () => {
@@ -362,17 +354,10 @@ function GroupsList({ user }: GroupsListProps) {
         openModal(ModalType.ADD);
       },
       buttonText: (
-        <>
-          <Icons.PlusOutlined
-            iconColor={theme.colorText}
-            iconSize="m"
-            css={css`
-              margin: auto ${theme.sizeUnit * 2}px auto 0;
-              vertical-align: text-top;
-            `}
-          />
+        <span className="ant-btn-icon">
+          <Icons.PlusOutlined iconSize="m" />
           {t('Group')}
-        </>
+        </span>
       ),
     }),
   };

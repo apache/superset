@@ -228,12 +228,8 @@ function AnnotationLayersList({
 
   if (canCreate) {
     subMenuButtons.push({
-      name: (
-        <>
-          <Icons.PlusOutlined iconSize="m" />
-          {t('Annotation layer')}
-        </>
-      ),
+      icon: <Icons.PlusOutlined iconSize="m" />,
+      name: <span>{t('Annotation layer')}</span>,
       buttonStyle: 'primary',
       onClick: () => {
         handleAnnotationLayerEdit(null);
@@ -288,10 +284,10 @@ function AnnotationLayersList({
     image: 'filter-results.svg',
     buttonAction: () => handleAnnotationLayerEdit(null),
     buttonText: (
-      <>
+      <span className="ant-btn-icon">
         <Icons.PlusOutlined iconSize="m" />
         {t('Annotation layer')}
-      </>
+      </span>
     ),
   };
 
