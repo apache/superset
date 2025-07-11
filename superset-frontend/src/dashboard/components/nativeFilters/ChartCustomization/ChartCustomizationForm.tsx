@@ -32,14 +32,10 @@ import {
   Radio,
   type SelectValue,
 } from '@superset-ui/core/components';
-import { getChartDataRequest } from 'src/components/Chart/chartAction';
 import { CollapsibleControl } from '../FiltersConfigModal/FiltersConfigForm/CollapsibleControl';
-import { ColumnSelect } from '../FiltersConfigModal/FiltersConfigForm/ColumnSelect';
 import DatasetSelect from '../FiltersConfigModal/FiltersConfigForm/DatasetSelect';
-import DefaultValue from '../FiltersConfigModal/FiltersConfigForm/DefaultValue';
 import { mostUsedDataset } from '../FiltersConfigModal/FiltersConfigForm/utils';
 import { ChartCustomizationItem } from './types';
-import { getFormData } from '../utils';
 
 const { TextArea } = Input;
 
@@ -367,35 +363,8 @@ const ChartCustomizationForm: FC<Props> = ({ form, item, onUpdate }) => {
   const fetchDefaultValueData = useCallback(async () => {
     const formValues = form.getFieldValue('filters')?.[item.id] || {};
     const dataset = formValues.dataset || customization.dataset;
-    const column = formValues.column || customization.column;
-    const hasDefaultValue =
-      formValues.hasDefaultValue ?? customization.hasDefaultValue;
-    const isRequired = formValues.isRequired ?? customization.isRequired;
 
-    if (hasDefaultValue && !isRequired) {
-      ensureFilterSlot();
-      const currentFilters = form.getFieldValue('filters') || {};
-      form.setFieldsValue({
-        filters: {
-          ...currentFilters,
-          [item.id]: {
-            ...(currentFilters[item.id] || {}),
-            hasDefaultValue,
-          },
-        },
-      });
-
-      onUpdate({
-        ...item,
-        customization: {
-          ...customization,
-          hasDefaultValue,
-        },
-      });
-    }
-
-    if (!dataset || !column) {
-      setIsDefaultValueLoading(false);
+    if (!dataset) {
       return;
     }
 
@@ -406,19 +375,19 @@ const ChartCustomizationForm: FC<Props> = ({ form, item, onUpdate }) => {
         throw new Error('Invalid dataset ID');
       }
 
-      const formData = getFormData({
-        datasetId,
-        dashboardId: 0,
-        groupby: column,
-        filterType: 'filter_select',
-        controlValues: {
-          sortAscending:
-            formValues.sortAscending ?? customization.sortAscending,
-          sortMetric: formValues.sortMetric ?? customization.sortMetric,
-        },
-      });
+      const response = await fetch(`/api/v1/dataset/${datasetId}`);
+      const data = await response.json();
 
-      const { json } = await getChartDataRequest({ formData });
+      if (!data?.result?.columns) {
+        throw new Error('No columns found in dataset');
+      }
+
+      const columns = data.result.columns
+        .filter((col: any) => col.filterable !== false)
+        .map((col: any) => ({
+          label: col.verbose_name || col.column_name || col.name,
+          value: col.column_name || col.name,
+        }));
 
       ensureFilterSlot();
       const currentFilters = form.getFieldValue('filters') || {};
@@ -428,7 +397,7 @@ const ChartCustomizationForm: FC<Props> = ({ form, item, onUpdate }) => {
           ...currentFilters,
           [item.id]: {
             ...(currentFilters[item.id] || {}),
-            defaultValueQueriesData: json.result,
+            defaultValueQueriesData: columns,
             filterType: 'filter_select',
             hasDefaultValue: true,
           },
@@ -439,7 +408,7 @@ const ChartCustomizationForm: FC<Props> = ({ form, item, onUpdate }) => {
         ...item,
         customization: {
           ...customization,
-          defaultValueQueriesData: json.result,
+          defaultValueQueriesData: columns,
           hasDefaultValue:
             formValues.hasDefaultValue ?? customization.hasDefaultValue,
         },
@@ -447,7 +416,7 @@ const ChartCustomizationForm: FC<Props> = ({ form, item, onUpdate }) => {
 
       setError(null);
     } catch (error) {
-      console.error('Error fetching default value data:', error);
+      console.error('Error fetching dataset columns:', error);
       setError(error);
 
       ensureFilterSlot();
@@ -596,35 +565,15 @@ const ChartCustomizationForm: FC<Props> = ({ form, item, onUpdate }) => {
     customization.isRequired,
   ]);
 
-  const generatedFormData = useMemo(() => {
-    const formValues = form.getFieldValue('filters')?.[item.id] || {};
-    const dataset = formValues.dataset || customization.dataset;
-    const column = formValues.column || customization.column;
-
-    const datasetId = dataset ? Number(dataset.value || dataset) : undefined;
-
-    return getFormData({
-      datasetId,
-      groupby: column || '',
-      dashboardId: 0,
-      filterType: 'filter_select',
-      controlValues: {
-        sortAscending: formValues.sortAscending ?? customization.sortAscending,
-        sortMetric: formValues.sortMetric ?? customization.sortMetric,
-      },
-    });
-  }, [form, item.id, customization]);
-
   const defaultValueValidator = useCallback(async () => {
     const current = form.getFieldValue(['filters', item.id]) || {};
     if (!current.hasDefaultValue && !current.isRequired) {
       return Promise.resolve();
     }
 
-    const val =
-      current.defaultDataMask?.filterState?.value ?? current.defaultValue;
-    if (!val) {
-      return Promise.reject(new Error(t('Please choose a valid value')));
+    const { column } = current;
+    if (!column) {
+      return Promise.reject(new Error(t('Please select a column')));
     }
     return Promise.resolve();
   }, [form, item.id]);
@@ -636,11 +585,11 @@ const ChartCustomizationForm: FC<Props> = ({ form, item, onUpdate }) => {
       }
 
       const current = form.getFieldValue(['filters', item.id]) || {};
-      if (!current.dataset || !current.column) {
+      if (!current.dataset) {
         return Promise.reject(
           new Error(
             t(
-              'Dataset and column must be selected when "Dynamic group by value is required" is enabled',
+              'Dataset must be selected when "Dynamic group by value is required" is enabled',
             ),
           ),
         );
@@ -674,35 +623,25 @@ const ChartCustomizationForm: FC<Props> = ({ form, item, onUpdate }) => {
     const formValues = form.getFieldValue('filters')?.[item.id] || {};
     const name = formValues.name || customization.name || '';
     const dataset = formValues.dataset || customization.dataset;
-    const column = formValues.column || customization.column;
-    return !!(name.trim() && dataset && column);
-  }, [
-    form,
-    item.id,
-    customization.name,
-    customization.dataset,
-    customization.column,
-  ]);
+    return !!(name.trim() && dataset);
+  }, [form, item.id, customization.name, customization.dataset]);
 
   const shouldShowDefaultValue = useCallback(() => {
     const allFieldsFilled = hasAllRequiredFields();
-    const hasDatasetAndColumn = !!(
-      (form.getFieldValue('filters')?.[item.id]?.dataset ||
-        customization.dataset) &&
-      (form.getFieldValue('filters')?.[item.id]?.column || customization.column)
+    const hasDataset = !!(
+      form.getFieldValue('filters')?.[item.id]?.dataset || customization.dataset
     );
 
     if (isRequired) {
       return allFieldsFilled && !isDefaultValueLoading;
     }
 
-    return hasDefaultValue && hasDatasetAndColumn && !isDefaultValueLoading;
+    return hasDefaultValue && hasDataset && !isDefaultValueLoading;
   }, [
     hasAllRequiredFields,
     form,
     item.id,
     customization.dataset,
-    customization.column,
     isRequired,
     hasDefaultValue,
     isDefaultValueLoading,
@@ -756,56 +695,6 @@ const ChartCustomizationForm: FC<Props> = ({ form, item, onUpdate }) => {
               });
 
               fetchDatasetInfo();
-              formChanged();
-            }}
-          />
-        </StyledFormItem>
-      </StyledContainer>
-
-      <StyledContainer>
-        <StyledFormItem
-          name={['filters', item.id, 'column']}
-          label={
-            <>
-              <CheckboxLabel>{t('Group by column')}</CheckboxLabel>&nbsp;
-              <InfoTooltip
-                tooltip={t('Choose the column to group by')}
-                placement="right"
-              />
-            </>
-          }
-          initialValue={customization.column}
-          rules={[{ required: true, message: t('Please select a column') }]}
-        >
-          <ColumnSelect
-            allowClear
-            form={form}
-            formField="column"
-            filterId={item.id}
-            filterValues={(column: any) => column.filterable !== false}
-            datasetId={(() => {
-              const formValues = form.getFieldValue('filters')?.[item.id] || {};
-              const dataset = formValues.dataset || customization.dataset;
-              if (dataset) {
-                if (
-                  typeof dataset === 'object' &&
-                  dataset !== null &&
-                  'value' in dataset
-                ) {
-                  return Number((dataset as any).value);
-                }
-                return Number(dataset);
-              }
-              return undefined;
-            })()}
-            onChange={(column: string) => {
-              setError(null);
-              setFormFieldValues({
-                column,
-                defaultValueQueriesData: null,
-                defaultValue: undefined,
-                defaultDataMask: null,
-              });
               formChanged();
             }}
           />
@@ -967,7 +856,6 @@ const ChartCustomizationForm: FC<Props> = ({ form, item, onUpdate }) => {
               >
                 {(() => {
                   const showDefaultValue = shouldShowDefaultValue();
-                  const allFieldsFilled = hasAllRequiredFields();
 
                   if (error || showDefaultValue) {
                     return (
@@ -978,24 +866,40 @@ const ChartCustomizationForm: FC<Props> = ({ form, item, onUpdate }) => {
                             {error.message || error.error || 'Unknown error'}
                           </div>
                         ) : (
-                          <DefaultValue
-                            setDataMask={dataMask => {
-                              setFormFieldValues({
-                                defaultDataMask: dataMask,
-                                defaultValue: dataMask?.filterState?.value,
-                              });
-                              form.validateFields([
-                                ['filters', item.id, 'defaultDataMask'],
-                              ]);
-                              formChanged();
-                            }}
-                            hasDefaultValue={hasDefaultValue}
-                            filterId={item.id}
-                            hasDataset={allFieldsFilled}
-                            form={form}
-                            formData={generatedFormData}
-                            enableNoResults
-                          />
+                          <div>
+                            <StyledFormItem
+                              name={['filters', item.id, 'column']}
+                              label={t('Select Column')}
+                              initialValue={customization.column || null}
+                              rules={[
+                                {
+                                  required: hasDefaultValue,
+                                  message: t('Please select a column'),
+                                },
+                              ]}
+                            >
+                              <Select
+                                allowClear
+                                placeholder={t('Select column')}
+                                value={customization.column || null}
+                                onChange={(value: string) => {
+                                  if (value) {
+                                    setFormFieldValues({
+                                      column: value,
+                                    });
+                                    form.validateFields([
+                                      ['filters', item.id, 'column'],
+                                    ]);
+                                    formChanged();
+                                  }
+                                }}
+                                options={
+                                  form.getFieldValue('filters')?.[item.id]
+                                    ?.defaultValueQueriesData || []
+                                }
+                              />
+                            </StyledFormItem>
+                          </div>
                         )}
                       </StyledMarginTop>
                     );
