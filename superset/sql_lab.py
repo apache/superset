@@ -27,7 +27,7 @@ from typing import Any, cast, Optional, TYPE_CHECKING, TypeVar, Union
 import backoff
 import msgpack
 from celery.exceptions import SoftTimeLimitExceeded
-from flask import current_app
+from flask import current_app, g
 from flask_babel import gettext as __
 
 from superset import (
@@ -375,6 +375,9 @@ def execute_sql_statements(  # noqa: C901
         # only asynchronous queries
         stats_logger.timing("sqllab.query.time_pending", now_as_float() - start_time)
 
+    # Disabling metadata suspension during the query
+    # because it causes errors
+    g.disable_session_suspend = True
     query = get_query(query_id=query_id)
     payload: dict[str, Any] = {"query_id": query_id}
     database = query.database
