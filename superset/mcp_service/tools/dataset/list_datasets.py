@@ -33,34 +33,13 @@ from superset.mcp_service.pydantic_schemas import (
     PaginationInfo,
     serialize_dataset_object,
 )
+from superset.mcp_service.pydantic_schemas.dataset_schemas import DatasetFilter
 
 logger = logging.getLogger(__name__)
 
-class DatasetFilter(BaseModel):
-    """
-    Filter object for dataset listing.
-    col: The column to filter on. Must be one of the allowed filter fields.
-    opr: The operator to use. Must be one of the supported operators.
-    value: The value to filter by (type depends on col and opr).
-    """
-    col: Literal[
-        "table_name",
-        "schema",
-        "database_name",
-        "changed_by",
-        "created_by",
-        "owner",
-        "is_virtual",
-        "tags"
-    ] = Field(..., description="Column to filter on. See get_dataset_available_filters for allowed values.")
-    opr: Literal[
-        "eq", "ne", "in", "nin", "sw", "ew"
-    ] = Field(..., description="Operator to use. See get_dataset_available_filters for allowed values.")
-    value: Any = Field(..., description="Value to filter by (type depends on col and opr)")
-
 def list_datasets(
     filters: Annotated[
-        Optional[conlist(DatasetFilter, min_length=1)],
+        Optional[conlist(DatasetFilter, min_length=0)],
         Field(description="List of filter objects (column, operator, value)")
     ] = None,
     columns: Annotated[
@@ -72,7 +51,7 @@ def list_datasets(
         Field(description="List of keys to include in the response")
     ] = None,
     order_column: Annotated[
-        Optional[constr(strip_whitespace=True, min_length=1)],
+        Optional[constr(strip_whitespace=True, min_length=0)],
         Field(description="Column to order results by")
     ] = None,
     order_direction: Annotated[
@@ -112,9 +91,16 @@ def list_datasets(
                     simple_filters[col] = f"{value}%"
     dao_wrapper = MCPDAOWrapper(DatasetDAO, "dataset")
     search_columns = [
-        "id", "table_name", "db_schema", "database_name", "description",
-        "changed_by", "changed_by_name", "created_by", "created_by_name",
-        "tags", "owners", "is_virtual", "database_id", "schema_perm", "url"
+        "id",
+        "database",
+        "owners",
+        "catalog",
+        "schema",
+        "sql",
+        "table_name",
+        "created_by",
+        "changed_by",
+        "uuid",
     ]
     datasets, total_count = dao_wrapper.list(
         filters=simple_filters,

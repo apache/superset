@@ -133,7 +133,7 @@ class MCPDAOWrapper:
     
     def list(
         self,
-        filters: Optional[Dict[str, Any]] = None,
+        filters: Optional[list[dict] | Dict[str, Any]] = None,
         order_column: str = "changed_on",
         order_direction: str = "desc",
         page: int = 0,
@@ -142,26 +142,10 @@ class MCPDAOWrapper:
         search_columns: Optional[List[str]] = None,
     ) -> Tuple[List[T], int]:
         """
-        List items using the DAO's list method
-        
-        Args:
-            filters: Dictionary of filters to apply
-            order_column: Column to order by
-            order_direction: Order direction ('asc' or 'desc')
-            page: Page number (0-based)
-            page_size: Number of items per page
-            search: Search term for text search
-            search_columns: List of columns to search in
-        
-        Returns:
-            Tuple of (items, total_count)
+        List items using the DAO's list method. Supports advanced filters: a list of dicts with col, opr, value, or a simple dict for backward compatibility.
         """
         self.logger.info(f"Listing {self.model_name}s with filters: {filters}")
-        
         try:
-            # User context now handled by mcp_auth_hook
-            
-            # Use the DAO's list method
             items, total_count = self.dao_class.list(
                 filters=filters,
                 order_column=order_column,
@@ -171,20 +155,19 @@ class MCPDAOWrapper:
                 search=search,
                 search_columns=search_columns,
             )
-            
             self.logger.info(f"Retrieved {len(items)} {self.model_name}s (total: {total_count})")
             return items, total_count
-            
         except Exception as e:
             error_msg = f"Unexpected error listing {self.model_name}s: {str(e)}"
             self.logger.error(error_msg, exc_info=True)
-            # Return empty results on error
             return [], 0
-    
-    def count(self, filters: Optional[dict] = None) -> int:
-        """Return the count of records, optionally filtered."""
+
+    def count(self, filters: Optional[List[dict] | dict] = None) -> int:
+        """
+        Return the count of records, optionally filtered. Supports advanced filters: a list of dicts with col, opr, value, or a simple dict for backward compatibility.
+        """
         if filters is None:
-            filters = {}
+            filters = []
         try:
             return self.dao_class.count(filters)
         except Exception as e:

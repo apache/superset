@@ -26,28 +26,8 @@ from datetime import datetime, timezone
 from pydantic import BaseModel, conlist, constr, PositiveInt, Field
 from superset.mcp_service.pydantic_schemas.dashboard_schemas import PaginationInfo
 from superset.daos.chart import ChartDAO
+from superset.mcp_service.pydantic_schemas.chart_schemas import ChartFilter
 
-
-class ChartFilter(BaseModel):
-    """
-    Filter object for chart listing.
-    col: The column to filter on. Must be one of the allowed filter fields.
-    opr: The operator to use. Must be one of the supported operators.
-    value: The value to filter by (type depends on col and opr).
-    """
-    col: Literal[
-        "slice_name",
-        "viz_type",
-        "datasource_name",
-        "changed_by",
-        "created_by",
-        "owner",
-        "tags"
-    ] = Field(..., description="Column to filter on. See get_chart_available_filters for allowed values.")
-    opr: Literal[
-        "eq", "ne", "sw", "in", "not_in", "like", "ilike", "gt", "lt", "gte", "lte", "is_null", "is_not_null"
-    ] = Field(..., description="Operator to use. See get_chart_available_filters for allowed values.")
-    value: Any = Field(..., description="Value to filter by (type depends on col and opr)")
 
 def list_charts(
     filters: Annotated[
@@ -91,23 +71,9 @@ def list_charts(
     List charts with advanced filtering (MCP tool).
     Returns a ChartListResponse Pydantic model (not a dict), matching list_dashboards and list_datasets.
     """
-    # Convert complex filters to simple filters for DAO
-    simple_filters = {}
-    if filters:
-        for filter_obj in filters:
-            if isinstance(filter_obj, ChartFilter):
-                col = filter_obj.col
-                value = filter_obj.value
-                if filter_obj.opr == 'eq':
-                    simple_filters[col] = value
-                elif filter_obj.opr == 'sw':
-                    simple_filters[col] = f"{value}%"
-                else:
-                    # Add support for other operators as needed
-                    simple_filters[col] = value
     chart_wrapper = MCPDAOWrapper(ChartDAO, "chart")
     charts, total_count = chart_wrapper.list(
-        filters=simple_filters,
+        filters=filters,
         order_column=order_column or "changed_on",
         order_direction=order_direction or "desc",
         page=max(page - 1, 0),
@@ -133,10 +99,10 @@ def list_charts(
         page_size=page_size,
         total_pages=total_pages,
         has_previous=page > 1,
-        has_next=page < total_pages,
+        has_next=page < total_pages - 1,
         columns_requested=columns or [],
         columns_loaded=columns or [],
-        filters_applied=simple_filters,
+        filters_applied=filters or [],
         pagination=pagination_info,
         timestamp=datetime.now(timezone.utc),
     )

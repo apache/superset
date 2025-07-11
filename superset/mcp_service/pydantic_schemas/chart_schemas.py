@@ -46,23 +46,6 @@ class ChartListItem(BaseModel):
     owners: List[UserInfo] = Field(default_factory=list, description="Chart owners")
     model_config = ConfigDict(from_attributes=True, ser_json_timedelta="iso8601")
 
-class ChartListResponse(BaseModel):
-    """Response for chart list operations"""
-    charts: List[ChartListItem] = Field(..., description="List of charts")
-    count: int = Field(..., description="Number of charts in current page")
-    total_count: int = Field(..., description="Total number of charts")
-    page: int = Field(..., description="Current page number")
-    page_size: int = Field(..., description="Page size")
-    total_pages: int = Field(..., description="Total number of pages")
-    has_previous: bool = Field(..., description="Whether there is a previous page")
-    has_next: bool = Field(..., description="Whether there is a next page")
-    columns_requested: List[str] = Field(..., description="Columns that were requested")
-    columns_loaded: List[str] = Field(..., description="Columns that were actually loaded")
-    filters_applied: Dict[str, Any] = Field(..., description="Filters that were applied")
-    pagination: PaginationInfo = Field(..., description="Pagination information")
-    timestamp: datetime = Field(..., description="Response timestamp")
-    model_config = ConfigDict(ser_json_timedelta="iso8601")
-
 class ChartSimpleFilters(BaseModel):
     slice_name: Optional[str] = Field(None, description="Filter by chart name (partial match)")
     viz_type: Optional[str] = Field(None, description="Filter by visualization type")
@@ -80,6 +63,22 @@ class ChartAvailableFiltersResponse(BaseModel):
 class ChartInfoResponse(BaseModel):
     chart: ChartListItem = Field(..., description="Detailed chart info")
     model_config = ConfigDict(from_attributes=True, ser_json_timedelta="iso8601")
+
+class ChartListResponse(BaseModel):
+    charts: List[ChartInfoResponse]
+    count: int
+    total_count: int
+    page: int
+    page_size: int
+    total_pages: int
+    has_previous: bool
+    has_next: bool
+    columns_requested: Optional[List[str]] = None
+    columns_loaded: Optional[List[str]] = None
+    filters_applied: List[dict] = Field(default_factory=list, description="List of advanced filter dicts applied to the query.")
+    pagination: Optional[PaginationInfo] = None
+    timestamp: Optional[datetime] = None
+    model_config = ConfigDict(ser_json_timedelta="iso8601")
 
 class ChartErrorResponse(BaseModel):
     error: str = Field(..., description="Error message")
@@ -137,3 +136,24 @@ class CreateSimpleChartResponse(BaseModel):
     thumbnail_url: Optional[str] = Field(None, description="URL to a thumbnail image of the chart, if requested.")
     embed_html: Optional[str] = Field(None, description="HTML snippet (e.g., iframe) to embed the chart, if requested.")
     error: Optional[str] = Field(None, description="Error message, if creation failed") 
+
+class ChartFilter(BaseModel):
+    """
+    Filter object for chart listing.
+    col: The column to filter on. Must be one of the allowed filter fields.
+    opr: The operator to use. Must be one of the supported operators.
+    value: The value to filter by (type depends on col and opr).
+    """
+    col: Literal[
+        "slice_name",
+        "viz_type",
+        "datasource_name",
+        "changed_by",
+        "created_by",
+        "owner",
+        "tags"
+    ] = Field(..., description="Column to filter on. See get_chart_available_filters for allowed values.")
+    opr: Literal[
+        "eq", "ne", "sw", "in", "not_in", "like", "ilike", "gt", "lt", "gte", "lte", "is_null", "is_not_null"
+    ] = Field(..., description="Operator to use. See get_chart_available_filters for allowed values.")
+    value: Any = Field(..., description="Value to filter by (type depends on col and opr)") 

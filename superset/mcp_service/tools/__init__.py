@@ -24,19 +24,16 @@ Each tool is implemented in its own module for better organization and maintaina
 
 from .dataset import (
     list_datasets,
-    list_datasets_simple,
     get_dataset_info,
     get_dataset_available_filters,
 )
 from .dashboard import (
     list_dashboards,
-    list_dashboards_simple,
     get_dashboard_info,
     get_dashboard_available_filters,
 )
 from .chart import (
     list_charts,
-    list_charts_simple,
     get_chart_info,
     get_chart_available_filters,
     create_chart_simple,
@@ -48,17 +45,14 @@ from .system import get_superset_instance_info
 MCP_TOOLS = {
     # dashboard
     "list_dashboards": __import__("superset.mcp_service.tools.dashboard", fromlist=["list_dashboards"]).list_dashboards,
-    "list_dashboards_simple": __import__("superset.mcp_service.tools.dashboard", fromlist=["list_dashboards_simple"]).list_dashboards_simple,
     "get_dashboard_info": __import__("superset.mcp_service.tools.dashboard", fromlist=["get_dashboard_info"]).get_dashboard_info,
     "get_dashboard_available_filters": __import__("superset.mcp_service.tools.dashboard", fromlist=["get_dashboard_available_filters"]).get_dashboard_available_filters,
     # dataset
     "list_datasets": __import__("superset.mcp_service.tools.dataset", fromlist=["list_datasets"]).list_datasets,
-    "list_datasets_simple": __import__("superset.mcp_service.tools.dataset", fromlist=["list_datasets_simple"]).list_datasets_simple,
     "get_dataset_info": __import__("superset.mcp_service.tools.dataset", fromlist=["get_dataset_info"]).get_dataset_info,
     "get_dataset_available_filters": __import__("superset.mcp_service.tools.dataset", fromlist=["get_dataset_available_filters"]).get_dataset_available_filters,
     # chart
     "list_charts": __import__("superset.mcp_service.tools.chart", fromlist=["list_charts"]).list_charts,
-    "list_charts_simple": __import__("superset.mcp_service.tools.chart", fromlist=["list_charts_simple"]).list_charts_simple,
     "get_chart_info": __import__("superset.mcp_service.tools.chart", fromlist=["get_chart_info"]).get_chart_info,
     "get_chart_available_filters": __import__("superset.mcp_service.tools.chart", fromlist=["get_chart_available_filters"]).get_chart_available_filters,
     # system
@@ -68,17 +62,14 @@ MCP_TOOLS = {
 __all__ = [
     # dashboard
     "list_dashboards",
-    "list_dashboards_simple",
     "get_dashboard_info",
     "get_dashboard_available_filters",
     # dataset
     "list_datasets",
-    "list_datasets_simple",
     "get_dataset_info",
     "get_dataset_available_filters",
     # chart
     "list_charts",
-    "list_charts_simple",
     "get_chart_info",
     "get_chart_available_filters",
     "create_chart_simple",
