@@ -159,6 +159,7 @@ export type DashboardInfo = {
   owners: Owner[];
   chartCustomizationData?: { [itemId: string]: FilterOption[] };
   chartCustomizationLoading?: { [itemId: string]: boolean };
+  pendingChartCustomizations?: Record<string, ChartCustomizationItem>;
   theme?: {
     id: number;
     name: string;

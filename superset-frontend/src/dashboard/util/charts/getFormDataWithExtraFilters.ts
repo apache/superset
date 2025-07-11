@@ -112,6 +112,7 @@ function processGroupByCustomizations(
   chartCustomizationItems: ChartCustomizationItem[],
   chart: ChartQueryPayload,
   groupByState: Record<string, { selectedValues: string[] }>,
+  chartCustomizationDataMask: Record<string, DataMask>,
 ): {
   groupby?: string[];
   order_by_cols?: string[];
@@ -145,11 +146,6 @@ function processGroupByCustomizations(
 
   const chartType = chart.form_data?.viz_type;
   if (chartType === 'big_number' || chartType === 'big_number_total') {
-    if (matchingCustomizations.length > 0) {
-      console.warn(
-        `Skipping group-by customizations for chart type: ${chartType}`,
-      );
-    }
     return {};
   }
 
@@ -171,7 +167,13 @@ function processGroupByCustomizations(
 
     if (customization?.column) {
       let columnName: string;
-      if (typeof customization.column === 'string') {
+
+      const dataMaskEntry = chartCustomizationDataMask[groupById];
+      const pendingColumn = dataMaskEntry?.ownState?.column;
+
+      if (pendingColumn) {
+        columnName = pendingColumn;
+      } else if (typeof customization.column === 'string') {
         columnName = customization.column;
       } else if (
         typeof customization.column === 'object' &&
@@ -192,9 +194,6 @@ function processGroupByCustomizations(
 
       const existingGroupBy = chart.form_data?.groupby || [];
       if (existingGroupBy.includes(columnName)) {
-        console.warn(
-          `Column ${columnName} already in chart's groupby, skipping customization`,
-        );
         return;
       }
 
@@ -257,6 +256,9 @@ export default function getFormDataWithExtraFilters({
   activeFilters: passedActiveFilters,
 }: GetFormDataWithExtraFiltersArguments) {
   const cachedFormData = cachedFormdataByChart[sliceId];
+  const dataMaskEqual = areObjectsEqual(cachedFormData?.dataMask, dataMask, {
+    ignoreUndefined: true,
+  });
   if (
     cachedFiltersByChart[sliceId] === filters &&
     areObjectsEqual(cachedFormData?.own_color_scheme, ownColorScheme) &&
@@ -272,9 +274,7 @@ export default function getFormDataWithExtraFilters({
     }) &&
     isEqual(cachedFormData?.shared_label_colors, sharedLabelsColors) &&
     !!cachedFormData &&
-    areObjectsEqual(cachedFormData?.dataMask, dataMask, {
-      ignoreUndefined: true,
-    }) &&
+    dataMaskEqual &&
     areObjectsEqual(cachedFormData?.extraControls, extraControls, {
       ignoreUndefined: true,
     }) &&
@@ -344,12 +344,14 @@ export default function getFormDataWithExtraFilters({
   }
 
   const groupByState: Record<string, { selectedValues: string[] }> = {};
+  const chartCustomizationDataMask: Record<string, DataMask> = {};
   Object.entries(dataMask).forEach(([key, mask]) => {
     if (key.startsWith('chart_customization_')) {
       const selectedValues = mask.filterState?.value;
       if (Array.isArray(selectedValues)) {
         groupByState[key] = { selectedValues };
       }
+      chartCustomizationDataMask[key] = mask;
     }
   });
 
@@ -357,6 +359,7 @@ export default function getFormDataWithExtraFilters({
     chartCustomizationItems || [],
     chart,
     groupByState,
+    chartCustomizationDataMask,
   );
 
   const formData: CachedFormDataWithExtraControls = {

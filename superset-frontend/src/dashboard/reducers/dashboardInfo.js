@@ -26,6 +26,9 @@ import {
   INITIALIZE_CHART_CUSTOMIZATION,
   SET_CHART_CUSTOMIZATION_DATA_LOADING,
   SET_CHART_CUSTOMIZATION_DATA,
+  SET_PENDING_CHART_CUSTOMIZATION,
+  CLEAR_PENDING_CHART_CUSTOMIZATION,
+  CLEAR_ALL_PENDING_CHART_CUSTOMIZATIONS,
 } from '../actions/dashboardInfo';
 import { HYDRATE_DASHBOARD } from '../actions/hydrate';
 
@@ -130,6 +133,27 @@ export default function dashboardStateReducer(state = {}, action) {
           ...state.chartCustomizationData,
           [action.itemId]: action.data,
         },
+      };
+    case SET_PENDING_CHART_CUSTOMIZATION:
+      return {
+        ...state,
+        pendingChartCustomizations: {
+          ...state.pendingChartCustomizations,
+          [action.pendingCustomization.id]: action.pendingCustomization,
+        },
+      };
+    case CLEAR_PENDING_CHART_CUSTOMIZATION:
+      return {
+        ...state,
+        pendingChartCustomizations: {
+          ...state.pendingChartCustomizations,
+          [action.itemId]: undefined,
+        },
+      };
+    case CLEAR_ALL_PENDING_CHART_CUSTOMIZATIONS:
+      return {
+        ...state,
+        pendingChartCustomizations: {},
       };
     default:
       return state;
