@@ -422,29 +422,6 @@ class D3Format(TypedDict, total=False):
 D3_FORMAT: D3Format = {}
 
 
-# Override the default mapbox tiles
-# Default values are equivalent to
-# DECKGL_BASE_MAP = [
-#   ['https://tile.openstreetmap.org/{z}/{x}/{y}.png', 'Streets (OSM)'],
-#   ['https://tile.osm.ch/osm-swiss-style/{z}/{x}/{y}.png', 'Topography (OSM)'],
-#   ['mapbox://styles/mapbox/streets-v9', 'Streets'],
-#   ['mapbox://styles/mapbox/dark-v9', 'Dark'],
-#   ['mapbox://styles/mapbox/light-v9', 'Light'],
-#   ['mapbox://styles/mapbox/satellite-streets-v9', 'Satellite Streets'],
-#   ['mapbox://styles/mapbox/satellite-v9', 'Satellite'],
-#   ['mapbox://styles/mapbox/outdoors-v9', 'Outdoors'],
-# ]
-# for adding your own map tiles, you can use the following format:
-# - tile:// + your_personal_url or openstreetmap_url
-#   example:
-#   DECKGL_BASE_MAP = [
-#       ['tile://https://c.tile.openstreetmap.org/{z}/{x}/{y}.png', 'OpenStreetMap']
-#    ]
-# Enable CORS and set map url in origins option.
-# Add also map url in connect-src of TALISMAN_CONFIG variable
-DECKGL_BASE_MAP: list[list[str, str]] = None
-
-
 # Override the default d3 locale for time format
 # Default values are equivalent to
 # D3_TIME_FORMAT = {
@@ -857,13 +834,8 @@ STORE_CACHE_KEYS_IN_METADATA_DB = False
 # CORS Options
 # NOTE: enabling this requires installing the cors-related python dependencies
 # `pip install .[cors]` or `pip install apache_superset[cors]`, depending
-ENABLE_CORS = True
-CORS_OPTIONS: dict[Any, Any] = {
-    "origins": [
-        "https://tile.openstreetmap.org",
-        "https://tile.osm.ch",
-    ]
-}
+ENABLE_CORS = False
+CORS_OPTIONS: dict[Any, Any] = {}
 
 # Sanitizes the HTML content used in markdowns to allow its rendering in a safe manner.
 # Disabling this option is not recommended for security reasons. If you wish to allow
@@ -1692,8 +1664,6 @@ TALISMAN_CONFIG = {
             "'self'",
             "https://api.mapbox.com",
             "https://events.mapbox.com",
-            "https://tile.openstreetmap.org",
-            "https://tile.osm.ch",
         ],
         "object-src": "'none'",
         "style-src": [
@@ -1726,8 +1696,6 @@ TALISMAN_DEV_CONFIG = {
             "'self'",
             "https://api.mapbox.com",
             "https://events.mapbox.com",
-            "https://tile.openstreetmap.org",
-            "https://tile.osm.ch",
         ],
         "object-src": "'none'",
         "style-src": [

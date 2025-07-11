@@ -36,11 +36,16 @@ import {
 
 import { PolygonLayer } from '@deck.gl/layers';
 
+import { Color } from '@deck.gl/core';
 import Legend from '../../components/Legend';
 import TooltipRow from '../../TooltipRow';
-import { getBuckets, getBreakPointColorScaler } from '../../utils';
+import {
+  getBuckets,
+  getBreakPointColorScaler,
+  getColorBreakpointsBuckets,
+} from '../../utils';
 
-import { commonLayerProps } from '../common';
+import { commonLayerProps, getColorForBreakpoints } from '../common';
 import sandboxedEval from '../../utils/sandbox';
 import getPointsFromPolygon from '../../utils/getPointsFromPolygon';
 import fitViewport, { Viewport } from '../../utils/fitViewport';
@@ -50,6 +55,8 @@ import {
 } from '../../DeckGLContainer';
 import { TooltipProps } from '../../components/Tooltip';
 import { GetLayerType } from '../../factory';
+import { COLOR_SCHEME_TYPES } from '../../utilities/utils';
+import { DEFAULT_DECKGL_COLOR } from '../../utilities/Shared_DeckGL';
 
 const DOUBLE_CLICK_THRESHOLD = 250; // milliseconds
 
@@ -107,8 +114,11 @@ export const getLayer: GetLayerType<PolygonLayer> = function ({
   emitCrossFilters,
 }) {
   const fd = formData as PolygonFormData;
-  const fc = fd.fill_color_picker;
-  const sc = fd.stroke_color_picker;
+  const fc: { r: number; g: number; b: number; a: number } =
+    fd.fill_color_picker;
+  const sc: { r: number; g: number; b: number; a: number } =
+    fd.stroke_color_picker;
+  const defaultBreakpointColor = fd.deafult_breakpoint_color;
   let data = [...payload.data.features];
 
   if (fd.js_data_mutator) {
@@ -117,17 +127,62 @@ export const getLayer: GetLayerType<PolygonLayer> = function ({
     data = jsFnMutator(data);
   }
 
+  const colorSchemeType = fd.color_scheme_type;
+
   const metricLabel = fd.metric ? fd.metric.label || fd.metric : null;
   const accessor = (d: JsonObject) => d[metricLabel];
-  // base color for the polygons
-  const baseColorScaler =
-    fd.metric === null
-      ? () => [fc.r, fc.g, fc.b, 255 * fc.a]
-      : getBreakPointColorScaler(fd, data, accessor);
+  let baseColorScaler: (d: JsonObject) => Color;
+
+  switch (colorSchemeType) {
+    case COLOR_SCHEME_TYPES.fixed_color: {
+      baseColorScaler = () => [fc.r, fc.g, fc.b, 255 * fc.a];
+      break;
+    }
+    case COLOR_SCHEME_TYPES.linear_palette: {
+      baseColorScaler =
+        fd.metric === null
+          ? () => [fc.r, fc.g, fc.b, 255 * fc.a]
+          : getBreakPointColorScaler(fd, data, accessor);
+      break;
+    }
+    case COLOR_SCHEME_TYPES.color_breakpoints: {
+      const colorBreakpoints = fd.color_breakpoints;
+      baseColorScaler = data => {
+        const breakpointIndex = getColorForBreakpoints(
+          accessor,
+          data as number[],
+          colorBreakpoints,
+        );
+        const breakpointColor =
+          breakpointIndex !== undefined &&
+          colorBreakpoints[breakpointIndex - 1]?.color;
+        return breakpointColor
+          ? [breakpointColor.r, breakpointColor.g, breakpointColor.b, 255]
+          : defaultBreakpointColor
+            ? [
+                defaultBreakpointColor.r,
+                defaultBreakpointColor.g,
+                defaultBreakpointColor.b,
+                defaultBreakpointColor.a * 255,
+              ]
+            : [
+                DEFAULT_DECKGL_COLOR.r,
+                DEFAULT_DECKGL_COLOR.g,
+                DEFAULT_DECKGL_COLOR.b,
+                DEFAULT_DECKGL_COLOR.a * 255,
+              ];
+      };
+      break;
+    }
+
+    default:
+      baseColorScaler = () => [fc.r, fc.g, fc.b, 255 * fc.a];
+      break;
+  }
 
   // when polygons are selected, reduce the opacity of non-selected polygons
   const colorScaler = (d: JsonObject): [number, number, number, number] => {
-    const baseColor = (baseColorScaler?.(d) as [
+    const baseColor = (baseColorScaler(d) as [
       number,
       number,
       number,
@@ -154,11 +209,11 @@ export const getLayer: GetLayerType<PolygonLayer> = function ({
     stroked: fd.stroked,
     getPolygon: getPointsFromPolygon,
     getFillColor: colorScaler,
-    getLineColor: [sc.r, sc.g, sc.b, 255 * sc.a],
+    getLineColor: sc ? [sc.r, sc.g, sc.b, 255 * sc.a] : undefined,
     getLineWidth: fd.line_width,
     extruded: fd.extruded,
     lineWidthUnits: fd.line_width_unit,
-    getElevation: (d: any) => getElevation(d, colorScaler),
+    getElevation: (d: JsonObject) => getElevation(d, colorScaler),
     elevationScale: fd.multiplier,
     fp64: true,
     ...commonLayerProps({
@@ -313,7 +368,10 @@ const DeckGLPolygon = (props: DeckGLPolygonProps) => {
     : null;
   const accessor = (d: JsonObject) => d[metricLabel];
 
-  const buckets = getBuckets(formData, payload.data.features, accessor);
+  const colorSchemeType = formData.color_scheme_type;
+  const buckets = colorSchemeType
+    ? getColorBreakpointsBuckets(formData.color_breakpoints)
+    : getBuckets(formData, payload.data.features, accessor);
 
   return (
     <div style={{ position: 'relative' }}>

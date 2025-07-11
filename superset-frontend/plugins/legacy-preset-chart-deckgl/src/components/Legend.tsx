@@ -21,6 +21,7 @@
  */
 import { memo } from 'react';
 import { formatNumber, styled } from '@superset-ui/core';
+import { Color } from '@deck.gl/core';
 
 const StyledLegend = styled.div`
   ${({ theme }) => `
@@ -59,7 +60,7 @@ export type LegendProps = {
   format: string | null;
   forceCategorical?: boolean;
   position?: null | 'tl' | 'tr' | 'bl' | 'br';
-  categories: Record<string, { enabled: boolean; color: number[] | undefined }>;
+  categories: Record<string, { enabled: boolean; color: Color | undefined }>;
   toggleCategory?: (key: string) => void;
   showSingleCategory?: (key: string) => void;
 };

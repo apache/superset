@@ -25,33 +25,28 @@ import {
   t,
   validateNonEmpty,
   validateMapboxStylesUrl,
+  getCategoricalSchemeRegistry,
+  getSequentialSchemeRegistry,
+  SequentialScheme,
 } from '@superset-ui/core';
-import { D3_FORMAT_OPTIONS, sharedControls } from '@superset-ui/chart-controls';
+import {
+  ControlPanelState,
+  CustomControlItem,
+  D3_FORMAT_OPTIONS,
+  getColorControlsProps,
+  sharedControls,
+} from '@superset-ui/chart-controls';
 import { columnChoices, PRIMARY_COLOR } from './controls';
+import {
+  COLOR_SCHEME_TYPES,
+  ColorSchemeType,
+  isColorSchemeTypeVisible,
+} from './utils';
 
-let deckglTiles;
+const categoricalSchemeRegistry = getCategoricalSchemeRegistry();
+const sequentialSchemeRegistry = getSequentialSchemeRegistry();
 
-export const DEFAULT_DECKGL_TILES = [
-  ['https://tile.openstreetmap.org/{z}/{x}/{y}.png', 'Streets (OSM)'],
-  ['https://tile.osm.ch/osm-swiss-style/{z}/{x}/{y}.png', 'Topography (OSM)'],
-  ['mapbox://styles/mapbox/streets-v9', 'Streets (Mapbox)'],
-  ['mapbox://styles/mapbox/dark-v9', 'Dark (Mapbox)'],
-  ['mapbox://styles/mapbox/light-v9', 'Light (Mapbox)'],
-  ['mapbox://styles/mapbox/satellite-streets-v9', 'Satellite Streets (Mapbox)'],
-  ['mapbox://styles/mapbox/satellite-v9', 'Satellite (Mapbox)'],
-  ['mapbox://styles/mapbox/outdoors-v9', 'Outdoors (Mapbox)'],
-];
-
-const getDeckGLTiles = () => {
-  if (!deckglTiles) {
-    const appContainer = document.getElementById('app');
-    const { common } = JSON.parse(
-      appContainer?.getAttribute('data-bootstrap') || '{}',
-    );
-    deckglTiles = common?.deckgl_tiles ?? DEFAULT_DECKGL_TILES;
-  }
-  return deckglTiles;
-};
+export const DEFAULT_DECKGL_COLOR = { r: 158, g: 158, b: 158, a: 1 };
 
 const DEFAULT_VIEWPORT = {
   longitude: 6.85236157047845,
@@ -75,8 +70,8 @@ const jsFunctionInfo = (
 );
 
 function jsFunctionControl(
-  label,
-  description,
+  label: string,
+  description: string,
   extraDescr = null,
   height = 100,
   defaultText = '',
@@ -127,7 +122,7 @@ export const autozoom = {
   },
 };
 
-export const dimension = {
+export const dimension: CustomControlItem = {
   name: 'dimension',
   config: {
     ...sharedControls.groupby,
@@ -220,7 +215,7 @@ export const lineColumn = {
     label: t('Lines column'),
     default: null,
     description: t('The database columns that contains lines information'),
-    mapStateToProps: state => ({
+    mapStateToProps: (state: ControlPanelState) => ({
       choices: columnChoices(state.datasource),
     }),
     validators: [validateNonEmpty],
@@ -239,7 +234,7 @@ export const lineWidth = {
   },
 };
 
-export const fillColorPicker = {
+export const fillColorPicker: CustomControlItem = {
   name: 'fill_color_picker',
   config: {
     label: t('Fill Color'),
@@ -249,10 +244,12 @@ export const fillColorPicker = {
     type: 'ColorPickerControl',
     default: PRIMARY_COLOR,
     renderTrigger: true,
+    visibility: ({ controls }) =>
+      isColorSchemeTypeVisible(controls, COLOR_SCHEME_TYPES.fixed_color),
   },
 };
 
-export const strokeColorPicker = {
+export const strokeColorPicker: CustomControlItem = {
   name: 'stroke_color_picker',
   config: {
     label: t('Stroke Color'),
@@ -262,6 +259,8 @@ export const strokeColorPicker = {
     type: 'ColorPickerControl',
     default: PRIMARY_COLOR,
     renderTrigger: true,
+    visibility: ({ controls }) =>
+      isColorSchemeTypeVisible(controls, COLOR_SCHEME_TYPES.fixed_color),
   },
 };
 
@@ -331,7 +330,7 @@ export const spatial = {
     label: t('Longitude & Latitude'),
     validators: [validateNonEmpty],
     description: t('Point to your spatial columns'),
-    mapStateToProps: state => ({
+    mapStateToProps: (state: ControlPanelState) => ({
       choices: columnChoices(state.datasource),
     }),
   },
@@ -344,7 +343,7 @@ export const pointRadiusFixed = {
     label: t('Point Size'),
     default: { type: 'fix', value: 1000 },
     description: t('Fixed point radius'),
-    mapStateToProps: state => ({
+    mapStateToProps: (state: ControlPanelState) => ({
       datasource: state.datasource,
     }),
   },
@@ -396,10 +395,17 @@ export const mapboxStyle = {
     renderTrigger: true,
     freeForm: true,
     validators: [validateMapboxStylesUrl],
-    choices: getDeckGLTiles(),
-    default: getDeckGLTiles()[0][0],
+    choices: [
+      ['mapbox://styles/mapbox/streets-v9', t('Streets')],
+      ['mapbox://styles/mapbox/dark-v9', t('Dark')],
+      ['mapbox://styles/mapbox/light-v9', t('Light')],
+      ['mapbox://styles/mapbox/satellite-streets-v9', t('Satellite Streets')],
+      ['mapbox://styles/mapbox/satellite-v9', t('Satellite')],
+      ['mapbox://styles/mapbox/outdoors-v9', t('Outdoors')],
+    ],
+    default: 'mapbox://styles/mapbox/light-v9',
     description: t(
-      'Mapbox base layer map style (see Mapbox documentation: %s) or tile server URL.',
+      'Base layer map style. See Mapbox documentation: %s',
       'https://docs.mapbox.com/help/glossary/style-url/',
     ),
   },
@@ -412,8 +418,163 @@ export const geojsonColumn = {
     label: t('GeoJson Column'),
     validators: [validateNonEmpty],
     description: t('Select the geojson column'),
-    mapStateToProps: state => ({
+    mapStateToProps: (state: ControlPanelState) => ({
       choices: columnChoices(state.datasource),
     }),
   },
 };
+
+export const deckGLCategoricalColorSchemeTypeSelect: CustomControlItem = {
+  name: 'color_scheme_type',
+  config: {
+    type: 'SelectControl',
+    label: t('Color Scheme Type'),
+    description: t('Select the type of color scheme to use.'),
+    clearable: false,
+    renderTrigger: true,
+    validators: [],
+    choices: [
+      [COLOR_SCHEME_TYPES.fixed_color, t('Fixed color')],
+      [COLOR_SCHEME_TYPES.categorical_palette, t('Categorical palette')],
+      [COLOR_SCHEME_TYPES.color_breakpoints, t('Color breakpoints')],
+    ],
+    default: COLOR_SCHEME_TYPES.categorical_palette,
+  },
+};
+
+export const deckGLFixedColor: CustomControlItem = {
+  name: 'color_picker',
+  config: {
+    type: 'ColorPickerControl',
+    label: t('Fixed Color'),
+    default: PRIMARY_COLOR,
+    renderTrigger: true,
+    description: t('Select the fixed color'),
+    visibility: ({ controls }) =>
+      isColorSchemeTypeVisible(controls, COLOR_SCHEME_TYPES.fixed_color),
+  },
+};
+
+export const deckGLCategoricalColor: CustomControlItem = {
+  name: dimension.name,
+  config: {
+    ...dimension.config,
+    label: t('Categorical Color'),
+    description: t(
+      'Pick a dimension from which categorical colors are defined',
+    ),
+    visibility: ({ controls }) =>
+      isColorSchemeTypeVisible(
+        controls,
+        COLOR_SCHEME_TYPES.categorical_palette,
+      ),
+  },
+};
+
+export const deckGLCategoricalColorSchemeSelect: CustomControlItem = {
+  name: 'color_scheme',
+  config: {
+    type: 'ColorSchemeControl',
+    label: t('Color Scheme'),
+    default: categoricalSchemeRegistry.getDefaultKey(),
+    renderTrigger: true,
+    choices: () => categoricalSchemeRegistry.keys().map(s => [s, s]),
+    description: t('The color scheme for rendering chart'),
+    schemes: () => categoricalSchemeRegistry.getMap(),
+    visibility: ({ controls }) =>
+      isColorSchemeTypeVisible(
+        controls,
+        COLOR_SCHEME_TYPES.categorical_palette,
+      ),
+  },
+};
+
+export const deckGLLinearColorSchemeSelect: CustomControlItem = {
+  name: 'linear_color_scheme',
+  config: {
+    type: 'ColorSchemeControl',
+    label: t('Linear Color Scheme'),
+    choices: () =>
+      (sequentialSchemeRegistry.values() as SequentialScheme[]).map(value => [
+        value.id,
+        value.label,
+      ]),
+    default: sequentialSchemeRegistry.getDefaultKey(),
+    clearable: false,
+    description: t('Select a linear color scheme'),
+    renderTrigger: true,
+    schemes: () => sequentialSchemeRegistry.getMap(),
+    isLinear: true,
+    mapStateToProps: state => getColorControlsProps(state),
+    visibility: ({ controls }) =>
+      isColorSchemeTypeVisible(controls, COLOR_SCHEME_TYPES.linear_palette),
+  },
+};
+
+export const deckGLColorBreakpointsSelect: CustomControlItem = {
+  name: 'color_breakpoints',
+  config: {
+    label: t('Color breakpoints'),
+    type: 'ColorBreakpointsControl',
+    description: t('Define color breakpoints for the data'),
+    renderTrigger: true,
+    visibility: ({ controls }) =>
+      isColorSchemeTypeVisible(controls, COLOR_SCHEME_TYPES.color_breakpoints),
+  },
+};
+
+export const breakpointsDefaultColor: CustomControlItem = {
+  name: 'deafult_breakpoint_color',
+  config: {
+    label: t('Default color'),
+    type: 'ColorPickerControl',
+    description: t(
+      "The color used when a value doesn't match any defined breakpoints.",
+    ),
+    default: DEFAULT_DECKGL_COLOR,
+    renderTrigger: true,
+    visibility: ({ controls }) =>
+      isColorSchemeTypeVisible(controls, COLOR_SCHEME_TYPES.color_breakpoints),
+  },
+};
+
+export const deckGLCategoricalColorSchemeControls = [
+  [deckGLCategoricalColorSchemeTypeSelect],
+  [deckGLFixedColor],
+  [deckGLCategoricalColor],
+  [deckGLCategoricalColorSchemeSelect],
+  [deckGLColorBreakpointsSelect],
+];
+
+export const generateDeckGLColorSchemeControls = ({
+  defaultSchemeType,
+  disableCategoricalColumn = false,
+}: {
+  defaultSchemeType?: ColorSchemeType;
+  disableCategoricalColumn?: boolean;
+}) => [
+  [
+    {
+      name: 'color_scheme_type',
+      config: {
+        type: 'SelectControl',
+        label: t('Color Scheme Type'),
+        description: t('Select the type of color scheme to use.'),
+        clearable: false,
+        renderTrigger: true,
+        validators: [],
+        choices: [
+          [COLOR_SCHEME_TYPES.fixed_color, t('Fixed color')],
+          [COLOR_SCHEME_TYPES.categorical_palette, t('Categorical palette')],
+          [COLOR_SCHEME_TYPES.color_breakpoints, t('Color breakpoints')],
+        ],
+        default: defaultSchemeType || COLOR_SCHEME_TYPES.categorical_palette,
+      },
+    },
+  ],
+  [deckGLFixedColor],
+  disableCategoricalColumn ? [] : [deckGLCategoricalColor],
+  [deckGLCategoricalColorSchemeSelect],
+  [breakpointsDefaultColor],
+  [deckGLColorBreakpointsSelect],
+];
