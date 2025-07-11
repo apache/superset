@@ -50,7 +50,7 @@ import {
   userHasPermission,
   isUserAdmin,
 } from 'src/dashboard/util/permissionUtils';
-import ErrorMessageWithStackTrace from 'src/components/ErrorMessage/ErrorMessageWithStackTrace';
+import { ErrorMessageWithStackTrace } from 'src/components/ErrorMessage/ErrorMessageWithStackTrace';
 import ViewQueryModalFooter from 'src/explore/components/controls/ViewQueryModalFooter';
 import ViewQuery from 'src/explore/components/controls/ViewQuery';
 import { SaveDatasetModal } from 'src/SqlLab/components/SaveDatasetModal';
@@ -292,7 +292,7 @@ class DatasourceControl extends PureComponent {
         extra = datasource.extra; // eslint-disable-line prefer-destructuring
       }
     }
-    const isMissingDatasource = !datasource?.id || extra?.error;
+    const isMissingDatasource = !datasource?.id || Boolean(extra?.error);
     let isMissingParams = false;
     if (isMissingDatasource) {
       const datasourceId = getUrlParam(URL_PARAMS.datasourceId);
