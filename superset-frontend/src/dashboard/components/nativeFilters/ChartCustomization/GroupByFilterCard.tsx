@@ -43,7 +43,7 @@ import { updateDataMask } from 'src/dataMask/actions';
 import { TooltipWithTruncation } from 'src/dashboard/components/nativeFilters/FilterCard/TooltipWithTruncation';
 import { RootState } from '../../../types';
 import { mergeExtraFormData } from '../utils';
-import { ChartCustomizationItem, FilterOption } from './types';
+import { ChartCustomizationItem } from './types';
 
 interface GroupByFilterCardProps {
   customizationItem: ChartCustomizationItem;
@@ -123,13 +123,6 @@ const StyledSelect = styled.div`
   .ant-select-selection-search {
     cursor: pointer;
   }
-`;
-
-const NoDataMessage = styled.div`
-  padding: ${({ theme }) => theme.sizeUnit}px;
-  color: ${({ theme }) => theme.colors.grayscale.base};
-  text-align: center;
-  font-size: ${({ theme }) => theme.fontSizeSM}px;
 `;
 
 const ToolTipContainer = styled.div`
@@ -260,7 +253,7 @@ const GroupByFilterCard: FC<GroupByFilterCardProps> = ({
 }) => {
   const theme = useTheme();
   const { customization } = customizationItem;
-  const { name, dataset, defaultValue, column } = customization || {};
+  const { name, dataset, column } = customization || {};
   const [filterTitleRef, , titleElementsTruncated] = useTruncation();
 
   const [loading, setLoading] = useState(false);
@@ -278,11 +271,6 @@ const GroupByFilterCard: FC<GroupByFilterCardProps> = ({
 
   const currentDataMask = useSelector<RootState, DataMask | undefined>(
     state => state.dataMask[customizationFilterId],
-  );
-
-  const chartCustomizationData = useSelector<RootState, FilterOption[]>(
-    state =>
-      state.dashboardInfo.chartCustomizationData?.[customizationItem.id] || [],
   );
 
   const chartCustomizationLoading = useSelector<RootState, boolean>(
