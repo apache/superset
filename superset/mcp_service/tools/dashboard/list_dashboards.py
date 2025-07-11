@@ -29,33 +29,9 @@ from pydantic import BaseModel, conlist, constr, Field, PositiveInt
 from superset.daos.dashboard import DashboardDAO
 from superset.mcp_service.dao_wrapper import MCPDAOWrapper
 from superset.mcp_service.pydantic_schemas.dashboard_schemas import (
-    DashboardListItem, DashboardListResponse, PaginationInfo, TagInfo, UserInfo, )
+    DashboardListItem, DashboardListResponse, PaginationInfo, TagInfo, UserInfo, DashboardFilter)
 
 logger = logging.getLogger(__name__)
-
-
-class DashboardFilter(BaseModel):
-    """
-    Filter object for dashboard listing.
-    col: The column to filter on. Must be one of the allowed filter fields.
-    opr: The operator to use. Must be one of the supported operators.
-    value: The value to filter by (type depends on col and opr).
-    """
-    col: Literal[
-        "dashboard_title",
-        "published",
-        "changed_by",
-        "created_by",
-        "owner",
-        "certified",
-        "favorite",
-        "chart_count",
-        "tags"
-    ] = Field(..., description="Column to filter on. See get_dashboard_available_filters for allowed values.")
-    opr: Literal[
-        "eq", "ne", "in", "nin", "sw", "ew", "gte", "lte", "gt", "lt"
-    ] = Field(..., description="Operator to use. See get_dashboard_available_filters for allowed values.")
-    value: Any = Field(..., description="Value to filter by (type depends on col and opr)")
 
 
 def list_dashboards(
@@ -100,27 +76,27 @@ def list_dashboards(
     ADVANCED FILTERING: List dashboards using complex filter objects and JSON payload
     Returns a DashboardListResponse Pydantic model (not a dict), matching list_dashboards_simple.
     """
-    # Convert complex filters to simple filters for DAO
-    simple_filters = {}
-    if filters:
-        for filter_obj in filters:
-            if isinstance(filter_obj, DashboardFilter):
-                col = filter_obj.col
-                value = filter_obj.value
-                if filter_obj.opr == 'eq':
-                    simple_filters[col] = value
-                elif filter_obj.opr == 'sw':
-                    simple_filters[col] = f"{value}%"
-    # Use the generic DAO wrapper
     dao_wrapper = MCPDAOWrapper(DashboardDAO, "dashboard")
+    search_columns = (
+        "created_by",
+        "changed_by",
+        "dashboard_title",
+        "id",
+        "owners",
+        "published",
+        "roles",
+        "slug",
+        "tags",
+        "uuid",
+    )
     dashboards, total_count = dao_wrapper.list(
-        filters=simple_filters,
+        filters=filters,
         order_column=order_column or "changed_on",
         order_direction=order_direction or "desc",
         page=max(page - 1, 0),
         page_size=page_size,
         search=search,
-        search_columns=["dashboard_title", "slug"]
+        search_columns=search_columns
     )
     columns_to_load = []
     if select_columns:
@@ -174,11 +150,11 @@ def list_dashboards(
         page=page,
         page_size=page_size,
         total_pages=total_pages,
-        has_previous=page > 0,
+        has_previous=page > 1,
         has_next=page < total_pages - 1,
-        columns_requested=columns_to_load,
-        columns_loaded=list(set([col for item in dashboard_items for col in item.model_dump().keys()])),
-        filters_applied=simple_filters,
+        columns_requested=columns or [],
+        columns_loaded=columns or [],
+        filters_applied=filters or [],
         pagination=pagination_info,
         timestamp=datetime.now(timezone.utc)
     )

@@ -39,16 +39,9 @@ async def test_tool(client, tool_name, payload, label, issues):
 
 async def main():
     from fastmcp import Client
-    logger.info("Starting integration test for list_dashboards and list_dashboards_simple tools")
+    logger.info("Starting integration test for list_dashboards tool")
     issues = []
     async with Client("http://localhost:5008/mcp") as client:
-        # Test list_dashboards_simple with default params
-        await test_tool(client, "list_dashboards_simple", {}, "(default)", issues)
-        # Test list_dashboards_simple with a filter
-        await test_tool(client, "list_dashboards_simple", {"filters": {"published": True}}, "(published=True)", issues)
-        # Test list_dashboards_simple with pagination
-        await test_tool(client, "list_dashboards_simple", {"page": 1, "page_size": 2}, "(page=1, page_size=2)", issues)
-
         # Test list_dashboards (advanced) with default params
         await test_tool(client, "list_dashboards", {}, "(default)", issues)
         # Test list_dashboards with a filter (dashboard_title sw 'USA')
@@ -63,7 +56,7 @@ async def main():
         for tool_name, label, msg in issues:
             logger.warning(f"  {tool_name} {label}: {msg}")
     else:
-        logger.info("All list_dashboards and list_dashboards_simple calls returned successfully with no errors or warnings.")
+        logger.info("All list_dashboards calls returned successfully with no errors or warnings.")
 
 if __name__ == "__main__":
     import asyncio
