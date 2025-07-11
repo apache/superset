@@ -41,6 +41,13 @@ import {
 import { Constants } from '@superset-ui/core/components';
 import { useHistory } from 'react-router-dom';
 import { updateDataMask } from 'src/dataMask/actions';
+import {
+  saveChartCustomization,
+  clearAllPendingChartCustomizations,
+  ChartCustomizationSavePayload,
+} from 'src/dashboard/actions/dashboardInfo';
+import { ChartCustomizationItem } from 'src/dashboard/components/nativeFilters/ChartCustomization/types';
+
 import { useImmer } from 'use-immer';
 import { isEmpty, isEqual, debounce } from 'lodash';
 import { getInitialDataMask } from 'src/dataMask/reducer';
@@ -276,16 +283,52 @@ const FilterBar: FC<FiltersBarProps> = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dashboardId, dataMaskAppliedText, history, updateKey, tabId]);
 
+  const pendingChartCustomizations = useSelector<
+    RootState,
+    Record<string, ChartCustomizationItem> | undefined
+  >(state => state.dashboardInfo.pendingChartCustomizations);
+
   const handleApply = useCallback(() => {
     dispatch(logEvent(LOG_ACTIONS_CHANGE_DASHBOARD_FILTER, {}));
     setUpdateKey(1);
 
+    // Apply filter changes
     Object.entries(dataMaskSelected).forEach(([filterId, dataMask]) => {
       if (dataMask) {
         dispatch(updateDataMask(filterId, dataMask));
       }
     });
-  }, [dataMaskSelected, dispatch]);
+
+    if (
+      pendingChartCustomizations &&
+      Object.keys(pendingChartCustomizations).length > 0
+    ) {
+      Object.values(pendingChartCustomizations).forEach(
+        (customization: any) => {
+          if (customization && customization.customization?.column) {
+            const customizationFilterId = `chart_customization_${customization.id}`;
+            const dataMask = {
+              extraFormData: {},
+              filterState: {},
+              ownState: {
+                column: customization.customization.column,
+              },
+            };
+            dispatch(updateDataMask(customizationFilterId, dataMask));
+          }
+        },
+      );
+
+      const pendingItems = Object.values(pendingChartCustomizations).filter(
+        Boolean,
+      ) as ChartCustomizationSavePayload[];
+      if (pendingItems.length > 0) {
+        dispatch(saveChartCustomization(pendingItems));
+      }
+
+      dispatch(clearAllPendingChartCustomizations());
+    }
+  }, [dataMaskSelected, dispatch, pendingChartCustomizations]);
 
   const handleClearAll = useCallback(() => {
     const newClearAllTriggers = { ...clearAllTriggers };
@@ -302,7 +345,15 @@ const FilterBar: FC<FiltersBarProps> = ({
       }
     });
     setClearAllTriggers(newClearAllTriggers);
-  }, [dataMaskSelected, filtersInScope, setDataMaskSelected, clearAllTriggers]);
+
+    dispatch(clearAllPendingChartCustomizations());
+  }, [
+    dataMaskSelected,
+    filtersInScope,
+    setDataMaskSelected,
+    clearAllTriggers,
+    dispatch,
+  ]);
 
   const handleClearAllComplete = useCallback((filterId: string) => {
     setClearAllTriggers(prev => {
@@ -313,11 +364,17 @@ const FilterBar: FC<FiltersBarProps> = ({
   }, []);
 
   useFilterUpdates(dataMaskSelected, setDataMaskSelected);
-  const isApplyDisabled = checkIsApplyDisabled(
-    dataMaskSelected,
-    dataMaskApplied,
-    filtersInScope.filter(isNativeFilter),
-  );
+
+  const hasPendingChartCustomizations =
+    pendingChartCustomizations &&
+    Object.keys(pendingChartCustomizations).length > 0;
+
+  const isApplyDisabled =
+    checkIsApplyDisabled(
+      dataMaskSelected,
+      dataMaskApplied,
+      filtersInScope.filter(isNativeFilter),
+    ) && !hasPendingChartCustomizations;
   const isInitialized = useInitialization();
 
   const actions = useMemo(
