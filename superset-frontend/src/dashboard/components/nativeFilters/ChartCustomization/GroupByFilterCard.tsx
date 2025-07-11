@@ -31,15 +31,13 @@ import {
   css,
   useTruncation,
   DataMaskStateWithId,
-  DataMask,
   useTheme,
 } from '@superset-ui/core';
 import { useDispatch, useSelector } from 'react-redux';
 import {
-  saveChartCustomization,
   loadChartCustomizationData,
+  setPendingChartCustomization,
 } from 'src/dashboard/actions/dashboardInfo';
-import { updateDataMask } from 'src/dataMask/actions';
 import { TooltipWithTruncation } from 'src/dashboard/components/nativeFilters/FilterCard/TooltipWithTruncation';
 import { RootState } from '../../../types';
 import { mergeExtraFormData } from '../utils';
@@ -264,19 +262,14 @@ const GroupByFilterCard: FC<GroupByFilterCardProps> = ({
 
   const dispatch = useDispatch();
 
-  const customizationFilterId = useMemo(
-    () => `chart_customization_${customizationItem.id}`,
-    [customizationItem.id],
-  );
-
-  const currentDataMask = useSelector<RootState, DataMask | undefined>(
-    state => state.dataMask[customizationFilterId],
-  );
-
   const chartCustomizationLoading = useSelector<RootState, boolean>(
     state =>
       state.dashboardInfo.chartCustomizationLoading?.[customizationItem.id] ||
       false,
+  );
+
+  const pendingChartCustomizations = useSelector<RootState, any>(
+    state => state.dashboardInfo.pendingChartCustomizations,
   );
 
   const datasetId = useMemo(() => {
@@ -301,8 +294,9 @@ const GroupByFilterCard: FC<GroupByFilterCardProps> = ({
   const columnName = useMemo(() => {
     if (!column) return null;
 
-    // Check if there's a pending column change in the data mask
-    const pendingColumn = currentDataMask?.ownState?.column;
+    const pendingCustomization =
+      pendingChartCustomizations?.[customizationItem.id];
+    const pendingColumn = pendingCustomization?.customization?.column;
     if (pendingColumn) {
       return pendingColumn;
     }
@@ -321,7 +315,7 @@ const GroupByFilterCard: FC<GroupByFilterCardProps> = ({
     }
 
     return null;
-  }, [column, currentDataMask?.ownState?.column]);
+  }, [column, pendingChartCustomizations, customizationItem.id]);
 
   const columnDisplayName = useMemo(() => {
     if (name) return name;
@@ -458,7 +452,6 @@ const GroupByFilterCard: FC<GroupByFilterCardProps> = ({
         </div>
       </Popover>
 
-      {/* Column Selection */}
       <div
         css={css`
           margin-bottom: ${theme.sizeUnit * 2}px;
@@ -471,31 +464,17 @@ const GroupByFilterCard: FC<GroupByFilterCardProps> = ({
             value={columnName || null}
             onChange={(value: string) => {
               if (value) {
-                dispatch(
-                  updateDataMask(customizationFilterId, {
-                    filterState: {
-                      value: undefined,
-                    },
-                    extraFormData: {},
-                    ownState: {
-                      column: value,
-                    },
-                  }),
-                );
-
                 const updatedCustomization = {
                   ...customizationItem.customization,
                   column: value,
                 };
 
                 dispatch(
-                  saveChartCustomization([
-                    {
-                      id: customizationItem.id,
-                      title: customizationItem.title,
-                      customization: updatedCustomization,
-                    },
-                  ]),
+                  setPendingChartCustomization({
+                    id: customizationItem.id,
+                    title: customizationItem.title,
+                    customization: updatedCustomization,
+                  }),
                 );
               }
             }}

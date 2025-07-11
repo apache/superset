@@ -302,29 +302,7 @@ export function saveChartCustomization(
         ),
     );
 
-    const simpleItems = chartCustomizationItems
-      .filter(item => !item.removed)
-      .map(item => ({
-        id: item.id,
-        title: item.title || item.customization?.name || '',
-        chartId: item.chartId,
-        customization: {
-          name: item.customization?.name || '',
-          dataset: item.customization?.dataset || null,
-          datasetInfo: item.customization?.datasetInfo,
-          column: item.customization?.column || null,
-          description: item.customization?.description,
-          sortFilter: !!item.customization?.sortFilter,
-          sortAscending: item.customization?.sortAscending !== false,
-          sortMetric: item.customization?.sortMetric || undefined,
-          hasDefaultValue: !!item.customization?.hasDefaultValue,
-          defaultValue: item.customization?.defaultValue,
-          isRequired: !!item.customization?.isRequired,
-          selectFirst: !!item.customization?.selectFirst,
-          defaultDataMask: item.customization?.defaultDataMask,
-          defaultValueQueriesData: item.customization?.defaultValueQueriesData,
-        },
-      }));
+    const simpleItems = chartCustomizationItems.filter(item => !item.removed);
 
     const updateDashboard = makeApi<
       Partial<DashboardInfo>,
@@ -523,6 +501,50 @@ export function loadChartCustomizationData(
   };
 }
 
+export const SET_PENDING_CHART_CUSTOMIZATION =
+  'SET_PENDING_CHART_CUSTOMIZATION';
+export interface SetPendingChartCustomization {
+  type: typeof SET_PENDING_CHART_CUSTOMIZATION;
+  pendingCustomization: ChartCustomizationSavePayload;
+}
+
+export function setPendingChartCustomization(
+  pendingCustomization: ChartCustomizationSavePayload,
+): SetPendingChartCustomization {
+  return {
+    type: SET_PENDING_CHART_CUSTOMIZATION,
+    pendingCustomization,
+  };
+}
+
+export const CLEAR_PENDING_CHART_CUSTOMIZATION =
+  'CLEAR_PENDING_CHART_CUSTOMIZATION';
+export interface ClearPendingChartCustomization {
+  type: typeof CLEAR_PENDING_CHART_CUSTOMIZATION;
+  itemId: string;
+}
+
+export function clearPendingChartCustomization(
+  itemId: string,
+): ClearPendingChartCustomization {
+  return {
+    type: CLEAR_PENDING_CHART_CUSTOMIZATION,
+    itemId,
+  };
+}
+
+export const CLEAR_ALL_PENDING_CHART_CUSTOMIZATIONS =
+  'CLEAR_ALL_PENDING_CHART_CUSTOMIZATIONS';
+export interface ClearAllPendingChartCustomizations {
+  type: typeof CLEAR_ALL_PENDING_CHART_CUSTOMIZATIONS;
+}
+
+export function clearAllPendingChartCustomizations(): ClearAllPendingChartCustomizations {
+  return {
+    type: CLEAR_ALL_PENDING_CHART_CUSTOMIZATIONS,
+  };
+}
+
 export type AnyDashboardInfoAction =
   | ReturnType<typeof dashboardInfoChanged>
   | ReturnType<typeof nativeFiltersConfigChanged>
@@ -531,4 +553,7 @@ export type AnyDashboardInfoAction =
   | ReturnType<typeof setChartCustomization>
   | InitializeChartCustomization
   | SetChartCustomizationDataLoading
-  | SetChartCustomizationData;
+  | SetChartCustomizationData
+  | SetPendingChartCustomization
+  | ClearPendingChartCustomization
+  | ClearAllPendingChartCustomizations;
