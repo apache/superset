@@ -90,6 +90,14 @@ export class Theme {
     fontWeightNormal: '400',
     fontWeightLight: '300',
     fontWeightStrong: 500,
+
+    // Components
+    Button: {
+      algorithm: true,
+      defaultShadow: '',
+      dangerShadow: '',
+      primaryShadow: '',
+    },
   };
 
   private antdConfig: AntdThemeConfig;
