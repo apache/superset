@@ -68,7 +68,13 @@ from superset.utils import core as utils, json
 from superset.utils.filters import get_dataset_access_filters
 from superset.views.error_handling import json_error_response
 
-from .utils import bootstrap_user_data
+from .utils import bootstrap_user_data, get_config_value
+
+DEFAULT_THEME_SETTINGS = {
+    "enforced": False,
+    "allowSwitching": True,
+    "allowOSPreference": True,
+}
 
 FRONTEND_CONF_KEYS = (
     "SUPERSET_WEBSERVER_TIMEOUT",
@@ -298,36 +304,28 @@ def get_theme_bootstrap_data() -> dict[str, Any]:
     Returns the theme data to be sent to the client.
     """
     # Get theme configs
-    default_theme = (
-        conf["THEME_DEFAULT"]()
-        if callable(conf["THEME_DEFAULT"])
-        else conf["THEME_DEFAULT"]
-    )
-    dark_theme = (
-        conf["THEME_DARK"]() if callable(conf["THEME_DARK"]) else conf["THEME_DARK"]
-    )
-    theme_settings = (
-        conf["THEME_SETTINGS"]()
-        if callable(conf["THEME_SETTINGS"])
-        else conf["THEME_SETTINGS"]
-    )
+    default_theme = get_config_value(conf, "THEME_DEFAULT")
+    dark_theme = get_config_value(conf, "THEME_DARK")
+    theme_settings = get_config_value(conf, "THEME_SETTINGS")
 
     # Validate and warn if invalid
     if not is_valid_theme(default_theme):
-        logger.warning("Invalid THEME_DEFAULT configuration, using empty theme")
+        logger.warning(
+            "Invalid THEME_DEFAULT configuration: %s, using empty theme", default_theme
+        )
         default_theme = {}
 
     if not is_valid_theme(dark_theme):
-        logger.warning("Invalid THEME_DARK configuration, using empty theme")
+        logger.warning(
+            "Invalid THEME_DARK configuration: %s, using empty theme", dark_theme
+        )
         dark_theme = {}
 
     if not is_valid_theme_settings(theme_settings):
-        logger.warning("Invalid THEME_SETTINGS configuration, using defaults")
-        theme_settings = {
-            "enforced": False,
-            "allowSwitching": True,
-            "allowOSPreference": True,
-        }
+        logger.warning(
+            "Invalid THEME_SETTINGS configuration: %s, using defaults", theme_settings
+        )
+        theme_settings = DEFAULT_THEME_SETTINGS
 
     return {
         "theme": {
