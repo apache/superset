@@ -18,7 +18,6 @@
  */
 import { FC, useCallback, useEffect, useMemo, useState } from 'react';
 import {
-  Form,
   Typography,
   Select,
   Icons,
@@ -33,18 +32,14 @@ import {
   useTruncation,
   DataMaskStateWithId,
   DataMask,
+  useTheme,
 } from '@superset-ui/core';
 import { useDispatch, useSelector } from 'react-redux';
-import { debounce } from 'lodash';
 import {
   saveChartCustomization,
   loadChartCustomizationData,
 } from 'src/dashboard/actions/dashboardInfo';
 import { updateDataMask } from 'src/dataMask/actions';
-import {
-  postChartFormData,
-  updateQueryFormData,
-} from 'src/components/Chart/chartAction';
 import { TooltipWithTruncation } from 'src/dashboard/components/nativeFilters/FilterCard/TooltipWithTruncation';
 import { RootState } from '../../../types';
 import { mergeExtraFormData } from '../utils';
@@ -175,7 +170,6 @@ const GroupByFilterCardContent: FC<{
   const { description, customization } = customizationItem;
   const { dataset, aggregation, name } = customization || {};
   const [titleRef, , titleTruncated] = useTruncation();
-
   const displayName = name?.trim() || t('Dynamic group by');
 
   const datasetLabel = useMemo(() => {
@@ -264,36 +258,26 @@ const GroupByFilterCardContent: FC<{
 const GroupByFilterCard: FC<GroupByFilterCardProps> = ({
   customizationItem,
 }) => {
+  const theme = useTheme();
   const { customization } = customizationItem;
   const { name, dataset, defaultValue, column } = customization || {};
   const [filterTitleRef, , titleElementsTruncated] = useTruncation();
 
-  const [options, setOptions] = useState<FilterOption[]>([]);
   const [loading, setLoading] = useState(false);
-  const [selectedValues, setSelectedValues] = useState<string[]>(() => {
-    if (!defaultValue) return [];
-
-    if (Array.isArray(defaultValue)) return defaultValue;
-
-    if (typeof defaultValue === 'string' && defaultValue.includes(',')) {
-      return defaultValue.split(',');
-    }
-
-    return [defaultValue.toString()];
-  });
   const [isHoverCardVisible, setIsHoverCardVisible] = useState(false);
+  const [columnOptions, setColumnOptions] = useState<
+    { label: string; value: string }[]
+  >([]);
 
   const dispatch = useDispatch();
-
-  const chart = useSelector((state: RootState) =>
-    customizationItem?.chartId
-      ? state.charts?.[customizationItem.chartId]
-      : null,
-  );
 
   const customizationFilterId = useMemo(
     () => `chart_customization_${customizationItem.id}`,
     [customizationItem.id],
+  );
+
+  const currentDataMask = useSelector<RootState, DataMask | undefined>(
+    state => state.dataMask[customizationFilterId],
   );
 
   const chartCustomizationData = useSelector<RootState, FilterOption[]>(
@@ -329,6 +313,12 @@ const GroupByFilterCard: FC<GroupByFilterCardProps> = ({
   const columnName = useMemo(() => {
     if (!column) return null;
 
+    // Check if there's a pending column change in the data mask
+    const pendingColumn = currentDataMask?.ownState?.column;
+    if (pendingColumn) {
+      return pendingColumn;
+    }
+
     if (typeof column === 'string') {
       return column;
     }
@@ -343,7 +333,7 @@ const GroupByFilterCard: FC<GroupByFilterCardProps> = ({
     }
 
     return null;
-  }, [column]);
+  }, [column, currentDataMask?.ownState?.column]);
 
   const columnDisplayName = useMemo(() => {
     if (name) return name;
@@ -383,34 +373,6 @@ const GroupByFilterCard: FC<GroupByFilterCardProps> = ({
 
   const dependencies = useChartCustomizationDependencies();
 
-  const currentDataMask = useSelector<RootState, DataMask | undefined>(
-    state => state.dataMask[customizationFilterId],
-  );
-
-  const handleSearch = useMemo(
-    () =>
-      debounce(() => {
-        if (datasetId && columnName) {
-          dispatch(
-            loadChartCustomizationData(
-              customizationItem.id,
-              datasetId,
-              columnName,
-            ),
-          );
-        }
-      }, 300),
-    [datasetId, columnName, dispatch, customizationItem.id],
-  );
-
-  useEffect(() => {
-    if (datasetId && columnName) {
-      dispatch(
-        loadChartCustomizationData(customizationItem.id, datasetId, columnName),
-      );
-    }
-  }, [datasetId, columnName, dispatch, customizationItem.id]);
-
   useEffect(() => {
     if (datasetId && columnName) {
       dispatch(
@@ -420,115 +382,45 @@ const GroupByFilterCard: FC<GroupByFilterCardProps> = ({
   }, [datasetId, columnName, dispatch, customizationItem.id, dependencies]);
 
   useEffect(() => {
-    if (datasetId && columnName) {
-      dispatch(
-        loadChartCustomizationData(customizationItem.id, datasetId, columnName),
-      );
-    }
-  }, [datasetId, columnName, dispatch, customizationItem.id]);
-
-  useEffect(() => {
-    setOptions(chartCustomizationData);
-  }, [chartCustomizationData]);
-
-  useEffect(() => {
     setLoading(chartCustomizationLoading);
   }, [chartCustomizationLoading]);
 
   useEffect(() => {
-    if (!currentDataMask && datasetId && columnName) {
-      dispatch(
-        updateDataMask(customizationFilterId, {
-          filterState: {
-            value: selectedValues.length > 0 ? selectedValues : undefined,
-          },
-          extraFormData: {},
-          ownState: {},
-        }),
-      );
-    }
-  }, [
-    currentDataMask,
-    datasetId,
-    columnName,
-    selectedValues,
-    dispatch,
-    customizationFilterId,
-  ]);
+    const fetchColumnOptions = async () => {
+      if (!dataset) return;
 
-  // Update selectedValues when defaultValue changes
-  useEffect(() => {
-    let newSelectedValues: string[] = [];
+      try {
+        const datasetId =
+          typeof dataset === 'string'
+            ? dataset
+            : typeof dataset === 'object' &&
+                dataset !== null &&
+                'value' in dataset
+              ? (dataset as any).value
+              : null;
 
-    if (defaultValue) {
-      if (Array.isArray(defaultValue)) {
-        newSelectedValues = defaultValue;
-      } else if (
-        typeof defaultValue === 'string' &&
-        defaultValue.includes(',')
-      ) {
-        newSelectedValues = defaultValue.split(',');
-      } else {
-        newSelectedValues = [defaultValue.toString()];
+        if (!datasetId) return;
+
+        const response = await fetch(`/api/v1/dataset/${datasetId}`);
+        const data = await response.json();
+
+        if (data?.result?.columns) {
+          const options = data.result.columns
+            .filter((col: any) => col.filterable !== false)
+            .map((col: any) => ({
+              label: col.verbose_name || col.column_name || col.name,
+              value: col.column_name || col.name,
+            }));
+          setColumnOptions(options);
+        }
+      } catch (error) {
+        console.warn('Failed to fetch column options:', error);
+        setColumnOptions([]);
       }
-    }
+    };
 
-    setSelectedValues(newSelectedValues);
-  }, [JSON.stringify(defaultValue)]);
-
-  const handleValuesChange = (values: string[]) => {
-    setSelectedValues(values || []);
-
-    dispatch(
-      updateDataMask(customizationFilterId, {
-        filterState: {
-          value: values && values.length > 0 ? values : undefined,
-        },
-        extraFormData: {},
-        ownState: {},
-      }),
-    );
-
-    if (customizationItem) {
-      const updatedCustomization = {
-        ...customizationItem.customization,
-        defaultValue:
-          values && values.length > 0 ? values.join(',') : undefined,
-        defaultValueArray: values && values.length > 0 ? values : undefined,
-      };
-
-      dispatch(
-        saveChartCustomization([
-          {
-            id: customizationItem.id,
-            title: customizationItem.title,
-            customization: updatedCustomization,
-          },
-        ]),
-      );
-    }
-
-    if (customizationItem?.chartId && chart?.latestQueryFormData) {
-      const { latestQueryFormData } = chart;
-
-      const newFormData = {
-        ...latestQueryFormData,
-        groupby: values && values.length > 0 ? values : [],
-      };
-
-      dispatch(updateQueryFormData(newFormData, customizationItem.chartId));
-      dispatch(
-        postChartFormData(
-          newFormData,
-          false,
-          undefined,
-          customizationItem.chartId,
-          undefined,
-          undefined,
-        ),
-      );
-    }
-  };
+    fetchColumnOptions();
+  }, [dataset]);
 
   const hideHoverCard = useCallback(() => {
     setIsHoverCardVisible(false);
@@ -578,37 +470,62 @@ const GroupByFilterCard: FC<GroupByFilterCardProps> = ({
         </div>
       </Popover>
 
-      <Form initialValues={{ values: selectedValues }}>
-        <Form.Item name="values" noStyle>
-          <StyledSelect>
-            <Select
-              mode="multiple"
-              placeholder={t('Select values')}
-              options={options}
-              loading={loading}
-              onSearch={handleSearch}
-              filterOption={false}
-              showSearch
-              autoClearSearchValue
-              allowClear
-              onChange={handleValuesChange}
-              value={selectedValues}
-              showArrow
-            />
-          </StyledSelect>
-        </Form.Item>
-      </Form>
+      {/* Column Selection */}
+      <div
+        css={css`
+          margin-bottom: ${theme.sizeUnit * 2}px;
+        `}
+      >
+        <StyledSelect>
+          <Select
+            allowClear
+            placeholder={t('Search columns...')}
+            value={columnName || null}
+            onChange={(value: string) => {
+              if (value) {
+                dispatch(
+                  updateDataMask(customizationFilterId, {
+                    filterState: {
+                      value: undefined,
+                    },
+                    extraFormData: {},
+                    ownState: {
+                      column: value,
+                    },
+                  }),
+                );
 
-      {selectedValues.length === 0 && !loading && null}
+                const updatedCustomization = {
+                  ...customizationItem.customization,
+                  column: value,
+                };
+
+                dispatch(
+                  saveChartCustomization([
+                    {
+                      id: customizationItem.id,
+                      title: customizationItem.title,
+                      customization: updatedCustomization,
+                    },
+                  ]),
+                );
+              }
+            }}
+            options={columnOptions}
+            showSearch
+            filterOption={(input, option) =>
+              ((option?.label as string) ?? '')
+                .toLowerCase()
+                .includes(input.toLowerCase())
+            }
+          />
+        </StyledSelect>
+      </div>
 
       {loading && (
         <div style={{ textAlign: 'center', marginTop: 8 }}>
           <Loading position="inline" />
         </div>
-      )}
-
-      {!loading && options.length === 0 && columnName && (
-        <NoDataMessage>{t('No data available')}</NoDataMessage>
       )}
     </FilterValueContainer>
   );
