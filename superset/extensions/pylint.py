@@ -85,18 +85,18 @@ class SQLParsingLibraryImportChecker(BaseChecker):
     }
 
     def _is_disallowed(self, file_path: Path, root_mod: str) -> bool:
-        # True if sqlglot is imported outside superset/sql,
-        # or if any forbidden library is imported anywhere
+        # Never allow sqlparse/sqloxide
+        if root_mod in {"sqlparse", "sqloxide"}:
+            return True
+
+        # Allow sqlglot inside superset/sql and in the config
         allowed = {
-            "**/supersql/sql/**/*.py",
-            "**/supersql/sql/*.py",
+            "**/superset/sql/**/*.py",
+            "**/superset/sql/*.py",
             "**/superset/config.py",
         }
-        in_superset_sql = any(file_path.match(pattern) for pattern in allowed)
-        return (root_mod == "sqlglot" and not in_superset_sql) or root_mod in {
-            "sqlparse",
-            "sqloxide",
-        }
+        valid = any(file_path.match(pattern) for pattern in allowed)
+        return root_mod == "sqlglot" and not valid
 
     def visit_import(self, node: nodes.Import) -> None:
         root_file = Path(node.root().file or "")

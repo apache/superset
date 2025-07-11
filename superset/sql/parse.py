@@ -26,18 +26,18 @@ from collections.abc import Iterable
 from dataclasses import dataclass
 from typing import Any, Generic, TYPE_CHECKING, TypeVar
 
-import sqlglot  # pylint: disable=disallowed-sql-import
+import sqlglot
 from jinja2 import nodes, Template
-from sqlglot import exp  # pylint: disable=disallowed-sql-import
-from sqlglot.dialects.dialect import (  # pylint: disable=disallowed-sql-import
+from sqlglot import exp
+from sqlglot.dialects.dialect import (
     Dialect,
     Dialects,
 )
-from sqlglot.errors import ParseError  # pylint: disable=disallowed-sql-import
-from sqlglot.optimizer.pushdown_predicates import (  # pylint: disable=disallowed-sql-import
+from sqlglot.errors import ParseError
+from sqlglot.optimizer.pushdown_predicates import (
     pushdown_predicates,
 )
-from sqlglot.optimizer.scope import (  # pylint: disable=disallowed-sql-import
+from sqlglot.optimizer.scope import (
     Scope,
     ScopeType,
     traverse_scope,
