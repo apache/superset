@@ -20,7 +20,14 @@ from superset.themes.types import ThemeMode, ThemeSettingsKey
 
 
 def _is_valid_theme_mode(mode: str) -> bool:
-    """Check if a string is a valid theme mode"""
+    """Validate if a string represents a valid theme mode.
+
+    Args:
+    mode: String to validate against ThemeMode enum
+
+    Returns:
+    bool: True if mode is a valid ThemeMode value, False otherwise
+    """
     try:
         ThemeMode(mode)
         return True
@@ -41,7 +48,18 @@ def _is_valid_algorithm(algorithm: Any) -> bool:
 
 
 def is_valid_theme(theme: Dict[str, Any]) -> bool:
-    """Check if a theme is valid"""
+    """Validate theme dictionary structure and types.
+
+    A valid theme can be empty or must contain properly typed fields:
+
+    token (dict)
+    components (dict)
+    hashed (bool)
+    inherit (bool)
+    algorithm (str or list of str matching ThemeMode)
+    Returns:
+    bool: True if theme structure is valid, False otherwise
+    """
     try:
         if not isinstance(theme, dict):
             return False

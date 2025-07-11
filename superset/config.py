@@ -568,7 +568,7 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # Adds a switch to the navbar to easily switch between light and dark themes.
     # This is intended to use for development, visual review, and theming-debugging
     # purposes.
-    "THEME_ENABLE_DARK_THEME_SWITCH": True,
+    "THEME_ENABLE_DARK_THEME_SWITCH": False,
     # Adds a theme editor as a modal dialog in the navbar. Allows people to type in JSON
     # and see the changes applied to the current theme.
     # This is intended to use for theme creation, visual review and theming-debugging
@@ -725,8 +725,8 @@ THEME_DARK: Theme = {}
 # Example:
 # THEME_SETTINGS = {
 #     "enforced": False,         # If True, forces the default theme and ignores user preferences  # noqa: E501
-#     "allowSwitching": True,    # Allow user to switch between themes (default and dark)  # noqa: E501
-#     "allowOSPreference": True, # Allow the app to Auto-detect and set system theme preference  # noqa: E501
+#     "allowSwitching": True,    # Allows user to switch between themes (default and dark)  # noqa: E501
+#     "allowOSPreference": True, # Allows the app to Auto-detect and set system theme preference  # noqa: E501
 # }
 THEME_SETTINGS: ThemeSettings = {}
 # ---------------------------------------------------
