@@ -284,7 +284,7 @@ class DatasourceControl extends PureComponent {
     const { datasource, onChange, theme } = this.props;
     let extra;
     if (datasource?.extra) {
-      if (isString(datasource.extra)) {
+      if (typeof datasource.extra === 'string') {
         try {
           extra = JSON.parse(datasource.extra);
         } catch {} // eslint-disable-line no-empty
