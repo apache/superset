@@ -38,6 +38,7 @@ import {
   ConfirmStatusChange,
   DeleteModal,
 } from '@superset-ui/core/components';
+import { WIDER_DROPDOWN_WIDTH } from 'src/components/ListView/utils';
 
 const PAGE_SIZE = 25;
 
@@ -276,7 +277,7 @@ function GroupsList({ user }: GroupsListProps) {
         name: (
           <>
             <Icons.PlusOutlined
-              iconColor={theme.colors.primary.light5}
+              iconColor={theme.colorText}
               iconSize="m"
               css={css`
                 margin: auto ${theme.sizeUnit * 2}px auto 0;
@@ -336,6 +337,7 @@ function GroupsList({ user }: GroupsListProps) {
           value: role.id,
         })),
         loading: loadingState.roles,
+        dropdownStyle: { minWidth: WIDER_DROPDOWN_WIDTH },
       },
       {
         Header: t('Users'),
@@ -346,6 +348,7 @@ function GroupsList({ user }: GroupsListProps) {
         unfilteredLabel: t('All'),
         fetchSelects: async (filterValue, page, pageSize) =>
           fetchUserOptions(filterValue, page, pageSize, addDangerToast),
+        dropdownStyle: { minWidth: WIDER_DROPDOWN_WIDTH },
       },
     ],
     [loadingState.roles, roles],
@@ -361,7 +364,7 @@ function GroupsList({ user }: GroupsListProps) {
       buttonText: (
         <>
           <Icons.PlusOutlined
-            iconColor={theme.colors.primary.light5}
+            iconColor={theme.colorText}
             iconSize="m"
             css={css`
               margin: auto ${theme.sizeUnit * 2}px auto 0;

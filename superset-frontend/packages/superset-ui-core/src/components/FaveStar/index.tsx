@@ -64,14 +64,14 @@ export const FaveStar = ({
         <Icons.StarFilled
           aria-label="starred"
           iconSize="l"
-          iconColor={theme.colors.warning.base}
+          iconColor={theme.colorWarning}
           name="favorite-selected"
         />
       ) : (
         <Icons.StarOutlined
           aria-label="unstarred"
           iconSize="l"
-          iconColor={theme.colors.grayscale.light1}
+          iconColor={theme.colorTextTertiary}
           name="favorite-unselected"
         />
       )}

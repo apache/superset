@@ -468,7 +468,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
                           'You must be a dataset owner in order to edit. Please reach out to a dataset owner to request modifications or edit access.',
                         )
                   }
-                  placement="bottomRight"
+                  placement="bottom"
                 >
                   <span
                     role="button"
@@ -664,7 +664,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
           placement="bottomRight"
         >
           <Icons.DownloadOutlined
-            iconColor={theme.colors.primary.dark1}
+            iconColor={theme.colorPrimary}
             data-test="import-button"
             iconSize="l"
           />

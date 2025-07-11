@@ -36,7 +36,6 @@ from sqlalchemy.exc import SQLAlchemyError
 from superset import (
     app,
     appbuilder,
-    conf,
     db,
     event_logger,
     is_feature_enabled,
@@ -572,7 +571,7 @@ class Superset(BaseSupersetView):
             title = _("Explore")
 
         return self.render_template(
-            "superset/basic.html",
+            "superset/spa.html",
             bootstrap_data=json.dumps(
                 bootstrap_data, default=json.pessimistic_json_iso_dttm_ser
             ),
@@ -904,8 +903,6 @@ class Superset(BaseSupersetView):
     def welcome(self) -> FlaskResponse:
         """Personalized welcome page"""
         if not g.user or not get_user_id():
-            if conf["PUBLIC_ROLE_LIKE"]:
-                return self.render_template("superset/public_welcome.html")
             return redirect(appbuilder.get_url_for_login)
 
         if welcome_dashboard_id := (

@@ -40,12 +40,13 @@ dependencies = [
     "click>=8.0.3",
     "click-option-group",
     "colorama",
+    "flask-cors>=4.0.2, <5.0",
     "croniter>=0.3.28",
     "cron-descriptor",
     "cryptography>=42.0.4, <45.0.0",
     "deprecation>=2.1.0, <2.2.0",
     "flask>=2.2.5, <3.0.0",
-    "flask-appbuilder>=4.7.0, <5.0.0",
+    "flask-appbuilder>=4.8.0, <5.0.0",
     "flask-caching>=2.1.0, <3",
     "flask-compress>=1.13, <2.0",
     "flask-talisman>=1.0.0, <2.0",
@@ -64,6 +65,8 @@ dependencies = [
     "jsonpath-ng>=1.6.1, <2",
     "Mako>=1.2.2",
     "markdown>=3.0",
+    # marshmallow>=4 has issues: https://github.com/apache/superset/issues/33162
+    "marshmallow>=3.0, <4",
     "msgpack>=1.0.0, <1.1",
     "nh3>=0.2.11, <0.3",
     "numpy>1.23.5, <2.3",
@@ -113,7 +116,6 @@ bigquery = [
 ]
 clickhouse = ["clickhouse-connect>=0.5.14, <1.0"]
 cockroachdb = ["cockroachdb>=0.3.5, <0.4"]
-cors = ["flask-cors>=4.0.2, <5.0"]
 crate = ["sqlalchemy-cratedb>=0.40.1, <1"]
 databend = ["databend-sqlalchemy>=0.3.2, <1.0"]
 databricks = [
@@ -164,7 +166,6 @@ presto = ["pyhive[presto]>=0.6.5"]
 trino = ["trino>=0.328.0"]
 prophet = ["prophet>=1.1.5, <2"]
 redshift = ["sqlalchemy-redshift>=0.8.1, <0.9"]
-rockset = ["rockset-sqlalchemy>=0.0.1, <1"]
 risingwave = ["sqlalchemy-risingwave"]
 shillelagh = ["shillelagh[all]>=1.2.18, <2"]
 singlestore = ["sqlalchemy-singlestoredb>=1.1.1, <2"]

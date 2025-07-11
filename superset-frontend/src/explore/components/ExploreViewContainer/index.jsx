@@ -593,6 +593,7 @@ function ExploreViewContainer(props) {
         reports={props.reports}
         saveDisabled={errorMessage || props.chart.chartStatus === 'loading'}
         metadata={props.metadata}
+        isSaveModalVisible={props.isSaveModalVisible}
       />
       <ExplorePanelContainer id="explore-container">
         <Global
@@ -649,7 +650,7 @@ function ExploreViewContainer(props) {
                   transform: rotate(-90deg);
                 `}
                 className="collapse-icon"
-                iconColor={theme.colors.primary.base}
+                iconColor={theme.colorPrimary}
               />
             </span>
           </div>
@@ -678,7 +679,7 @@ function ExploreViewContainer(props) {
                     transform: rotate(90deg);
                   `}
                   className="collapse-icon"
-                  iconColor={theme.colors.primary.base}
+                  iconColor={theme.colorPrimary}
                 />
               </Tooltip>
             </span>
@@ -768,7 +769,29 @@ function mapStateToProps(state) {
   const fieldsToOmit = hasQueryMode
     ? retainQueryModeRequirements(hiddenFormData)
     : Object.keys(hiddenFormData ?? {});
-  const form_data = omit(getFormDataFromControls(controls), fieldsToOmit);
+
+  const controlsBasedFormData = omit(
+    getFormDataFromControls(controls),
+    fieldsToOmit,
+  );
+  const isDeckGLChart = explore.form_data?.viz_type === 'deck_multi';
+
+  const getDeckGLFormData = () => {
+    const formData = { ...controlsBasedFormData };
+
+    if (explore.form_data?.layer_filter_scope) {
+      formData.layer_filter_scope = explore.form_data.layer_filter_scope;
+    }
+
+    if (explore.form_data?.filter_data_mapping) {
+      formData.filter_data_mapping = explore.form_data.filter_data_mapping;
+    }
+
+    return formData;
+  };
+
+  const form_data = isDeckGLChart ? getDeckGLFormData() : controlsBasedFormData;
+
   const slice_id = form_data.slice_id ?? slice?.slice_id ?? 0; // 0 - unsaved chart
   form_data.extra_form_data = mergeExtraFormData(
     { ...form_data.extra_form_data },
