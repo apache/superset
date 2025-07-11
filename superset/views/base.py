@@ -62,6 +62,8 @@ from superset.db_engine_specs.gsheets import GSheetsEngineSpec
 from superset.extensions import cache_manager
 from superset.reports.models import ReportRecipientType
 from superset.superset_typing import FlaskResponse
+from superset.themes.utils import is_valid_theme, is_valid_theme_settings
+from superset.translations.utils import get_language_pack
 from superset.utils import core as utils, json
 from superset.utils.filters import get_dataset_access_filters
 from superset.views.error_handling import json_error_response
@@ -291,6 +293,51 @@ def menu_data(user: User) -> dict[str, Any]:
     }
 
 
+def get_theme_bootstrap_data() -> dict[str, Any]:
+    """
+    Returns the theme data to be sent to the client.
+    """
+    # Get theme configs
+    default_theme = (
+        conf["THEME_DEFAULT"]()
+        if callable(conf["THEME_DEFAULT"])
+        else conf["THEME_DEFAULT"]
+    )
+    dark_theme = (
+        conf["THEME_DARK"]() if callable(conf["THEME_DARK"]) else conf["THEME_DARK"]
+    )
+    theme_settings = (
+        conf["THEME_SETTINGS"]()
+        if callable(conf["THEME_SETTINGS"])
+        else conf["THEME_SETTINGS"]
+    )
+
+    # Validate and warn if invalid
+    if not is_valid_theme(default_theme):
+        logger.warning("Invalid THEME_DEFAULT configuration, using empty theme")
+        default_theme = {}
+
+    if not is_valid_theme(dark_theme):
+        logger.warning("Invalid THEME_DARK configuration, using empty theme")
+        dark_theme = {}
+
+    if not is_valid_theme_settings(theme_settings):
+        logger.warning("Invalid THEME_SETTINGS configuration, using defaults")
+        theme_settings = {
+            "enforced": False,
+            "allowSwitching": True,
+            "allowOSPreference": True,
+        }
+
+    return {
+        "theme": {
+            "default": default_theme,
+            "dark": dark_theme,
+            "settings": theme_settings,
+        }
+    }
+
+
 @cache_manager.cache.memoize(timeout=60)
 def cached_common_bootstrap_data(  # pylint: disable=unused-argument
     user_id: int | None, locale: Locale | None
@@ -369,10 +416,12 @@ def cached_common_bootstrap_data(  # pylint: disable=unused-argument
         "feature_flags": get_feature_flags(),
         "extra_sequential_color_schemes": conf["EXTRA_SEQUENTIAL_COLOR_SCHEMES"],
         "extra_categorical_color_schemes": conf["EXTRA_CATEGORICAL_COLOR_SCHEMES"],
-        "theme": conf["THEME"],
         "menu_data": menu_data(g.user),
     }
+
     bootstrap_data.update(conf["COMMON_BOOTSTRAP_OVERRIDES_FUNC"](bootstrap_data))
+    bootstrap_data.update(get_theme_bootstrap_data())
+
     return bootstrap_data
 
 

@@ -16,27 +16,65 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 import {
   Theme,
   AnyThemeConfig,
   ThemeStorage,
   ThemeControllerOptions,
-  themeObject,
+  themeObject as supersetThemeObject,
 } from '@superset-ui/core';
-import { ThemeMode } from '@superset-ui/core/theme/types';
+import {
+  type ThemeAlgorithmCombination,
+  ThemeMode,
+} from '@superset-ui/core/theme/types';
+import type {
+  BootstrapThemeData,
+  BootstrapThemeDataConfig,
+  SerializableThemeSettings,
+} from 'src/types/bootstrapTypes';
+import getBootstrapData from 'src/utils/getBootstrapData';
+
+const DEFAULT_THEME_SETTINGS = {
+  enforced: false,
+  allowSwitching: true,
+  allowOSPreference: true,
+} as const;
+
+const STORAGE_KEYS = {
+  THEME_MODE: 'superset-theme-mode',
+} as const;
+
+const VALID_ALGORITHM_COMBINATIONS: ReadonlyArray<ReadonlySet<ThemeMode>> = [
+  new Set([ThemeMode.DARK, ThemeMode.COMPACT]),
+  new Set([ThemeMode.DEFAULT, ThemeMode.COMPACT]),
+] as const;
+
+const MEDIA_QUERY_DARK_SCHEME = '(prefers-color-scheme: dark)';
 
 export class LocalStorageAdapter implements ThemeStorage {
   getItem(key: string): string | null {
-    return localStorage.getItem(key);
+    try {
+      return localStorage.getItem(key);
+    } catch (error) {
+      console.warn('Failed to read from localStorage:', error);
+      return null;
+    }
   }
 
   setItem(key: string, value: string): void {
-    localStorage.setItem(key, value);
+    try {
+      localStorage.setItem(key, value);
+    } catch (error) {
+      console.warn('Failed to write to localStorage:', error);
+    }
   }
 
   removeItem(key: string): void {
-    localStorage.removeItem(key);
+    try {
+      localStorage.removeItem(key);
+    } catch (error) {
+      console.warn('Failed to remove from localStorage:', error);
+    }
   }
 }
 
@@ -45,202 +83,550 @@ export class ThemeController {
 
   private storage: ThemeStorage;
 
-  private storageKey: string;
-
   private modeStorageKey: string;
 
   private defaultTheme: AnyThemeConfig;
 
-  private systemMode: ThemeMode.DARK | ThemeMode.LIGHT;
+  private darkTheme: AnyThemeConfig | null;
+
+  private themeSettings: SerializableThemeSettings;
+
+  private systemMode: ThemeMode.DARK | ThemeMode.DEFAULT;
 
   private currentMode: ThemeMode;
 
-  private customizations: AnyThemeConfig = {};
+  private readonly hasBootstrapThemes: boolean;
 
   private onChangeCallbacks: Set<(theme: Theme) => void> = new Set();
 
-  private canUpdateThemeFn: () => boolean;
-
-  private canUpdateModeFn: () => boolean;
-
   private mediaQuery: MediaQueryList;
 
-  constructor(options: ThemeControllerOptions = { themeObject }) {
-    this.storage = options.storage || new LocalStorageAdapter();
-    this.storageKey = options.storageKey || 'superset-theme';
-    this.modeStorageKey = options.modeStorageKey || `${this.storageKey}-mode`;
-    this.defaultTheme = options.defaultTheme || {};
-    this.themeObject = options.themeObject;
+  constructor(options: ThemeControllerOptions = {}) {
+    const {
+      storage = new LocalStorageAdapter(),
+      modeStorageKey = STORAGE_KEYS.THEME_MODE,
+      themeObject: fallbackThemeObject = supersetThemeObject,
+      defaultTheme = (supersetThemeObject.theme as AnyThemeConfig) ?? {},
+      onChange = null,
+    } = options;
 
-    // Load customizations from storage
-    const savedThemeJson = this.storage.getItem(this.storageKey);
-    if (savedThemeJson) {
-      try {
-        this.customizations = JSON.parse(savedThemeJson);
-      } catch (e) {
-        console.error('Failed to parse saved theme:', e);
-        this.storage.removeItem(this.storageKey);
-      }
+    this.storage = storage;
+    this.modeStorageKey = modeStorageKey;
+
+    // Initialize bootstrap data and themes
+    const {
+      bootstrapDefaultTheme,
+      bootstrapDarkTheme,
+      bootstrapThemeSettings,
+      hasBootstrapThemes,
+    }: BootstrapThemeData = this.loadBootstrapData();
+
+    this.hasBootstrapThemes = hasBootstrapThemes;
+    this.themeSettings = bootstrapThemeSettings || {};
+
+    // Set themes based on bootstrap data availability
+    if (this.hasBootstrapThemes) {
+      this.darkTheme = bootstrapDarkTheme || bootstrapDefaultTheme || null;
+      this.defaultTheme =
+        bootstrapDefaultTheme || bootstrapDarkTheme || defaultTheme;
+    } else {
+      this.darkTheme = null;
+      this.defaultTheme = defaultTheme;
     }
 
-    // Determine initial mode
-    this.systemMode = ThemeController.getSystemMode();
-    const savedMode = this.storage.getItem(this.modeStorageKey) as ThemeMode;
-    this.currentMode = savedMode || ThemeMode.SYSTEM;
-
-    // Apply the initial theme and mode
-    this.applyTheme();
-
-    if (options.onChange) {
-      this.onChangeCallbacks.add(options.onChange);
-    }
-    this.canUpdateThemeFn = options.canUpdateTheme || (() => true);
-    this.canUpdateModeFn = options.canUpdateMode || (() => true);
-
-    // Listen for system theme changes to enable dynamic `SYSTEM` mode
-    this.mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+    // Initialize system theme detection
+    this.systemMode = ThemeController.getSystemPreferredMode();
+    this.mediaQuery = window.matchMedia(MEDIA_QUERY_DARK_SCHEME);
     this.mediaQuery.addEventListener('change', this.handleSystemThemeChange);
+
+    // Initialize theme and mode
+    this.currentMode = this.determineInitialMode();
+    const { theme, themeObject } =
+      this.createInitialThemeObject(fallbackThemeObject);
+
+    this.themeObject = themeObject;
+
+    // Setup change callback
+    if (onChange) this.onChangeCallbacks.add(onChange);
+
+    // Apply initial theme and persist mode
+    this.applyTheme(theme);
+    this.persistMode();
   }
 
+  // Public Methods
+
   /**
-   * Cleans up listeners. Should be called when the controller is no longer needed.
+   * Cleans up listeners and references. Should be called when the controller is no longer needed.
    */
   public destroy(): void {
     this.mediaQuery.removeEventListener('change', this.handleSystemThemeChange);
+    this.onChangeCallbacks.clear();
   }
 
-  public canUpdateTheme(): boolean {
-    return this.canUpdateThemeFn();
+  /**
+   * Check if the user can update the theme.
+   */
+  public canSetTheme(): boolean {
+    return !this.themeSettings?.enforced;
   }
 
-  public canUpdateMode(): boolean {
-    return this.canUpdateModeFn();
+  /**
+   * Check if the user can update the theme mode.
+   */
+  public canSetMode(): boolean {
+    return this.isModeUpdatable();
   }
 
+  /**
+   * Returns the current theme object.
+   */
   public getTheme(): Theme {
     return this.themeObject;
   }
 
+  /**
+   * Returns the current theme mode.
+   */
   public getCurrentMode(): ThemeMode {
     return this.currentMode;
   }
 
   /**
-   * Sets new theme customizations (e.g., from a JSON editor).
-   * This method updates the theme's appearance but preserves the current mode.
+   * Sets new theme.
+   * @param theme - The new theme to apply
+   * @throws {Error} If the user does not have permission to update the theme
    */
-  public setTheme(newCustomizations: AnyThemeConfig): void {
-    if (!this.canUpdateTheme()) {
-      throw new Error('User does not have permission to update the theme');
-    }
-    this.customizations = newCustomizations;
+  public setTheme(theme: AnyThemeConfig): void {
+    this.validateThemeUpdatePermission();
 
-    if (!newCustomizations.algorithm) {
-      this.currentMode = ThemeMode.LIGHT;
-    }
+    const { mode, normalizedTheme } = this.normalizeTheme(theme);
+    this.currentMode = mode;
 
-    if (newCustomizations?.algorithm) {
-      this.currentMode = newCustomizations.algorithm as ThemeMode;
-    }
-
-    this.applyTheme();
-    this.persist();
-    this.notifyListeners();
+    this.updateTheme(normalizedTheme);
   }
 
   /**
-   * Changes the theme mode (light, dark, or system).
-   * This is for the mode switch.
+   * Sets the theme mode (light, dark, or system).
+   * @param mode - The new theme mode to apply
+   * @throws {Error} If the user does not have permission to update the theme mode
    */
-  public changeThemeMode(newMode: ThemeMode): void {
-    if (!this.canUpdateMode()) {
-      throw new Error('User does not have permission to update the theme mode');
+  public setThemeMode(mode: ThemeMode): void {
+    this.validateModeUpdatePermission(mode);
+
+    if (this.currentMode === mode) return;
+
+    const theme: AnyThemeConfig | null = this.getThemeForMode(mode);
+    if (!theme) {
+      console.warn(`Theme for mode ${mode} not found, falling back to default`);
+      this.fallbackToDefaultMode();
+      return;
     }
-    if (this.currentMode === newMode) return;
 
-    this.currentMode = newMode;
-
-    this.applyTheme();
-    this.persist();
-    this.notifyListeners();
+    this.currentMode = mode;
+    this.updateTheme(theme);
   }
 
+  /**
+   * Resets the theme to the default theme.
+   */
   public resetTheme(): void {
-    this.customizations = this.defaultTheme;
-    this.applyTheme();
-    this.persist();
-    this.notifyListeners();
+    this.currentMode = ThemeMode.DEFAULT;
+    const defaultTheme: AnyThemeConfig =
+      this.getThemeForMode(ThemeMode.DEFAULT) || this.defaultTheme;
+
+    this.updateTheme(defaultTheme);
   }
 
-  public onChange(callback: (theme: Theme) => void): () => void {
-    this.onChangeCallbacks.add(callback);
-    return () => {
-      this.onChangeCallbacks.delete(callback);
-    };
-  }
-
+  /**
+   * Handles system theme changes with error recovery.
+   */
   private handleSystemThemeChange = (): void => {
-    const newSystemMode = ThemeController.getSystemMode();
-    if (this.systemMode === newSystemMode) return;
+    try {
+      const newSystemMode: ThemeMode.DARK | ThemeMode.DEFAULT =
+        ThemeController.getSystemPreferredMode();
 
-    this.systemMode = newSystemMode;
-    // If the current mode is SYSTEM, we need to re-apply the theme
-    if (this.currentMode === ThemeMode.SYSTEM) {
-      this.applyTheme();
-      this.notifyListeners();
+      // Update systemMode regardless of current mode
+      const oldSystemMode: ThemeMode.DARK | ThemeMode.DEFAULT = this.systemMode;
+      this.systemMode = newSystemMode;
+
+      // Only update theme if currently in SYSTEM mode and the preference changed
+      if (
+        this.currentMode === ThemeMode.SYSTEM &&
+        oldSystemMode !== newSystemMode
+      ) {
+        const newTheme: AnyThemeConfig | null = this.getThemeForMode(
+          ThemeMode.SYSTEM,
+        );
+
+        if (newTheme) this.updateTheme(newTheme);
+      }
+    } catch (error) {
+      console.error('Failed to handle system theme change:', error);
     }
   };
 
   /**
-   * Centralized method to apply the current customizations and mode.
+   * Updates the theme.
+   * @param theme - The new theme to apply
    */
-  private applyTheme(): void {
-    const newConfig = { ...this.customizations };
+  private updateTheme(theme?: AnyThemeConfig): void {
+    try {
+      // If no config provided, use current mode to get theme
+      const config: AnyThemeConfig =
+        theme || this.getThemeForMode(this.currentMode) || this.defaultTheme;
 
-    switch (this.currentMode) {
-      case ThemeMode.DARK:
-        newConfig.algorithm = 'dark';
-        break;
-      case ThemeMode.LIGHT:
-        newConfig.algorithm = 'default';
-        break;
-      case ThemeMode.SYSTEM:
-        newConfig.algorithm =
-          this.systemMode === ThemeMode.DARK ? 'dark' : 'default';
-        break;
-      case ThemeMode.COMPACT:
-        newConfig.algorithm = 'compact';
-        break;
-      default:
-        newConfig.algorithm = 'default';
-        break;
+      // Normalize the theme
+      const { normalizedTheme } = this.normalizeTheme(config);
+
+      this.applyTheme(normalizedTheme);
+      this.persistMode();
+      this.notifyListeners();
+    } catch (error) {
+      console.error('Failed to update theme:', error);
+      this.fallbackToDefaultMode();
     }
-
-    this.themeObject.setConfig(newConfig);
   }
 
-  private persist(): void {
-    this.storage.setItem(this.modeStorageKey, this.currentMode);
+  /**
+   * Fallback to default mode with error recovery.
+   */
+  private fallbackToDefaultMode(): void {
+    this.currentMode = ThemeMode.DEFAULT;
 
-    const { algorithm, ...persistedCustomizations } = this.customizations;
-    this.storage.setItem(
-      this.storageKey,
-      JSON.stringify(persistedCustomizations),
+    // Get the default theme which will have the correct algorithm
+    const defaultTheme: AnyThemeConfig =
+      this.getThemeForMode(ThemeMode.DEFAULT) || this.defaultTheme;
+
+    this.applyTheme(defaultTheme);
+    this.persistMode();
+    this.notifyListeners();
+  }
+
+  /**
+   * Registers a callback to be called when the theme changes.
+   * @param callback - The callback to be called on theme change
+   * @returns A function to unsubscribe from the theme change events
+   */
+  public onChange(callback: (theme: Theme) => void): () => void {
+    this.onChangeCallbacks.add(callback);
+    return () => this.onChangeCallbacks.delete(callback);
+  }
+
+  // Private Helper Methods
+
+  /**
+   * Loads and validates bootstrap theme data.
+   */
+  private loadBootstrapData(): BootstrapThemeData {
+    const {
+      common: { theme = {} as BootstrapThemeDataConfig },
+    } = getBootstrapData();
+
+    const {
+      default: defaultTheme,
+      dark: darkTheme,
+      settings: themeSettings,
+    } = theme;
+
+    const hasValidDefault: boolean = this.hasKeys(defaultTheme);
+    const hasValidDark: boolean = this.hasKeys(darkTheme);
+    const hasValidSettings: boolean = this.hasKeys(themeSettings);
+
+    return {
+      bootstrapDefaultTheme: hasValidDefault ? defaultTheme : null,
+      bootstrapDarkTheme: hasValidDark ? darkTheme : null,
+      bootstrapThemeSettings: hasValidSettings ? themeSettings : null,
+      hasBootstrapThemes: hasValidDefault || hasValidDark,
+    };
+  }
+
+  /**
+   * Checks if an object has keys (not empty).
+   */
+  private hasKeys(obj: Record<string, any> | undefined | null): boolean {
+    return Boolean(
+      obj && typeof obj === 'object' && Object.keys(obj).length > 0,
     );
   }
 
+  /**
+   * Determines if mode updates are allowed.
+   */
+  private isModeUpdatable(): boolean {
+    if (!this.themeSettings || Object.keys(this.themeSettings).length === 0)
+      return DEFAULT_THEME_SETTINGS.allowSwitching;
+
+    return !this.themeSettings.enforced && !!this.themeSettings.allowSwitching;
+  }
+
+  /**
+   * Normalizes the theme configuration to ensure it has a valid algorithm.
+   * @param theme - The theme configuration to normalize
+   * @returns An object with normalized mode and algorithm.
+   */
+  private normalizeTheme(theme: AnyThemeConfig): {
+    mode: ThemeMode;
+    normalizedTheme: AnyThemeConfig;
+  } {
+    const algorithm: ThemeMode | ThemeAlgorithmCombination =
+      this.getValidAlgorithm(
+        (theme?.algorithm || ThemeMode.DEFAULT) as
+          | ThemeMode
+          | ThemeAlgorithmCombination,
+      );
+
+    // Extract the mode from the valid algorithm
+    let mode: ThemeMode;
+
+    if (Array.isArray(algorithm))
+      mode =
+        algorithm.find(
+          (m: ThemeMode) => m === ThemeMode.DARK || m === ThemeMode.DEFAULT,
+        ) || ThemeMode.DEFAULT;
+    else mode = algorithm as ThemeMode;
+
+    return {
+      mode,
+      normalizedTheme: {
+        ...theme,
+        algorithm,
+      } as AnyThemeConfig,
+    };
+  }
+
+  /**
+   * Returns the appropriate theme configuration for a given mode.
+   * @param mode - The theme mode to get the configuration for
+   * @returns The theme configuration for the specified mode or null if not available
+   */
+  private getThemeForMode(mode: ThemeMode): AnyThemeConfig | null {
+    const { allowOSPreference = DEFAULT_THEME_SETTINGS.allowOSPreference } =
+      this.themeSettings;
+
+    let resolvedMode: ThemeMode = mode;
+
+    if (mode === ThemeMode.SYSTEM) {
+      if (!allowOSPreference) return null;
+      resolvedMode = ThemeController.getSystemPreferredMode();
+    }
+
+    // When we don't have bootstrap themes, we need to create variants using algorithm
+    if (!this.hasBootstrapThemes) {
+      if (resolvedMode === ThemeMode.DARK)
+        return {
+          ...this.defaultTheme,
+          algorithm: ThemeMode.DARK,
+        };
+
+      return {
+        ...this.defaultTheme,
+        algorithm: ThemeMode.DEFAULT,
+      };
+    }
+
+    // When we have bootstrap themes, use them
+    if (resolvedMode === ThemeMode.DARK)
+      return this.darkTheme || this.defaultTheme;
+
+    return this.defaultTheme;
+  }
+
+  /**
+   * Creates the initial theme object.
+   * This sets the theme based on the current mode and ensures it has the correct algorithm.
+   * @param defaultThemeObject - The fallback theme object to use if no theme is set
+   * @returns An object containing the theme and the themeObject
+   */
+  private createInitialThemeObject(defaultThemeObject: Theme): {
+    theme: AnyThemeConfig;
+    themeObject: Theme;
+  } {
+    let theme: AnyThemeConfig | null = this.getThemeForMode(this.currentMode);
+    theme = theme || (defaultThemeObject.theme as AnyThemeConfig);
+
+    const { normalizedTheme } = this.normalizeTheme(theme);
+
+    return {
+      theme: normalizedTheme,
+      themeObject: Theme.fromConfig(normalizedTheme),
+    };
+  }
+
+  /**
+   * Determines the initial theme mode with error recovery.
+   */
+  private determineInitialMode(): ThemeMode {
+    const {
+      enforced = DEFAULT_THEME_SETTINGS.enforced,
+      allowOSPreference = DEFAULT_THEME_SETTINGS.allowOSPreference,
+    } = this.themeSettings;
+
+    // Enforced mode always takes precedence
+    if (enforced) {
+      this.storage.removeItem(this.modeStorageKey);
+      return ThemeMode.DEFAULT;
+    }
+
+    // Try to restore saved mode
+    const savedMode: ThemeMode | null = this.loadSavedMode();
+    if (savedMode && this.isValidThemeMode(savedMode)) return savedMode;
+
+    // Fallback to system preference if allowed and available
+    if (allowOSPreference && this.getThemeForMode(this.systemMode))
+      return ThemeMode.SYSTEM;
+
+    return ThemeMode.DEFAULT;
+  }
+
+  /**
+   * Safely loads saved theme mode from storage.
+   */
+  private loadSavedMode(): ThemeMode | null {
+    try {
+      return this.storage.getItem(this.modeStorageKey) as ThemeMode;
+    } catch (error) {
+      console.warn('Failed to load saved theme mode:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Validates if a theme mode is valid and supported.
+   * This checks if the mode is one of the known ThemeMode values.
+   * @param mode - The theme mode to validate
+   * @returns {boolean} True if the mode is valid, false otherwise
+   */
+  private isValidThemeMode(mode: ThemeMode): boolean {
+    if (!Object.values(ThemeMode).includes(mode)) return false;
+
+    // Validate that we have the required theme data for the mode
+    switch (mode) {
+      case ThemeMode.DARK:
+        return !!(this.darkTheme || this.defaultTheme);
+      case ThemeMode.DEFAULT:
+        return !!this.defaultTheme;
+      case ThemeMode.SYSTEM:
+        return this.themeSettings?.allowOSPreference !== false;
+      default:
+        return true;
+    }
+  }
+
+  /**
+   * Validates permission to update theme.
+   */
+  private validateThemeUpdatePermission(): void {
+    if (!this.canSetTheme())
+      throw new Error('User does not have permission to update the theme');
+  }
+
+  /**
+   * Validates permission to update mode.
+   * @param newMode - The new mode to validate
+   * @throws {Error} If the user does not have permission to update the theme mode
+   * @throws {Error} If the new mode is SYSTEM and OS preference is not allowed
+   */
+  private validateModeUpdatePermission(newMode: ThemeMode): void {
+    const { allowOSPreference = true } = this.themeSettings;
+
+    if (!this.canSetMode())
+      throw new Error('User does not have permission to update the theme mode');
+
+    if (newMode === ThemeMode.SYSTEM && !allowOSPreference)
+      throw new Error('System theme mode is not allowed');
+  }
+
+  /**
+   * Validates theme algorithm combinations.
+   * This checks if the provided algorithm is a valid combination of ThemeMode values.
+   * @param algorithm - The theme algorithm to validate
+   * @returns {boolean} True if the algorithms combination is valid, false otherwise
+   */
+  private isValidAlgorithmCombination(
+    algorithm: ThemeAlgorithmCombination,
+  ): boolean {
+    const inputSet = new Set(algorithm);
+    return VALID_ALGORITHM_COMBINATIONS.some(
+      validCombination =>
+        inputSet.size === validCombination.size &&
+        [...inputSet].every(item => validCombination.has(item)),
+    );
+  }
+
+  /**
+   * Checks if the algorithm is a valid combination or a simple one.
+   * @param algorithm - The theme mode or combination to convert
+   * @returns A valid ThemeMode or ThemeAlgorithmCombination
+   */
+  private getValidAlgorithm(
+    algorithm: ThemeMode | ThemeAlgorithmCombination,
+  ): ThemeMode | ThemeAlgorithmCombination {
+    if (Array.isArray(algorithm) && this.isValidAlgorithmCombination(algorithm))
+      return algorithm as ThemeAlgorithmCombination;
+
+    switch (algorithm) {
+      case ThemeMode.DARK:
+      case ThemeMode.COMPACT:
+        return algorithm;
+      case ThemeMode.SYSTEM:
+        return this.systemMode;
+      default:
+        return ThemeMode.DEFAULT;
+    }
+  }
+
+  /**
+   * Applies the current theme configuration.
+   * This method sets the theme on the themeObject and applies it to Theme.
+   * It also handles any errors that may occur during the application of the theme.
+   * @param theme - The theme configuration to apply
+   */
+  private applyTheme(theme: AnyThemeConfig): void {
+    try {
+      this.themeObject.setConfig(theme);
+    } catch (error) {
+      console.error('Failed to apply theme:', error);
+      this.fallbackToDefaultMode();
+    }
+  }
+
+  /**
+   * Persists the current theme mode to storage.
+   */
+  private persistMode(): void {
+    try {
+      this.storage.setItem(this.modeStorageKey, this.currentMode);
+    } catch (error) {
+      console.warn('Failed to persist theme mode:', error);
+    }
+  }
+
+  /**
+   * Notifies all registered listeners about theme changes.
+   */
   private notifyListeners(): void {
     this.onChangeCallbacks.forEach(callback => {
       try {
         callback(this.themeObject);
-      } catch (e) {
-        console.error('Error in theme change callback:', e);
+      } catch (error) {
+        console.error('Error in theme change callback:', error);
       }
     });
   }
 
-  static getSystemMode(): ThemeMode.DARK | ThemeMode.LIGHT {
-    const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-    return isDark ? ThemeMode.DARK : ThemeMode.LIGHT;
+  /**
+   * Gets the system's preferred theme mode.
+   * @returns {ThemeMode.DARK | ThemeMode.DEFAULT} The system's preferred theme mode
+   */
+  static getSystemPreferredMode(): ThemeMode.DARK | ThemeMode.DEFAULT {
+    try {
+      return window.matchMedia(MEDIA_QUERY_DARK_SCHEME).matches
+        ? ThemeMode.DARK
+        : ThemeMode.DEFAULT;
+    } catch (error) {
+      console.warn('Failed to detect system theme preference:', error);
+      return ThemeMode.DEFAULT;
+    }
   }
 }
