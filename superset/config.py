@@ -57,6 +57,7 @@ from superset.key_value.types import JsonKeyValueCodec
 from superset.stats_logger import DummyStatsLogger
 from superset.superset_typing import CacheConfig
 from superset.tasks.types import ExecutorType
+from superset.themes.types import Theme, ThemeSettings
 from superset.utils import core as utils
 from superset.utils.core import NO_TIME_RANGE, parse_boolean_string, QuerySource
 from superset.utils.encrypt import SQLAlchemyUtilsAdapter
@@ -567,7 +568,7 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # Adds a switch to the navbar to easily switch between light and dark themes.
     # This is intended to use for development, visual review, and theming-debugging
     # purposes.
-    "THEME_ENABLE_DARK_THEME_SWITCH": False,
+    "THEME_ENABLE_DARK_THEME_SWITCH": True,
     # Adds a theme editor as a modal dialog in the navbar. Allows people to type in JSON
     # and see the changes applied to the current theme.
     # This is intended to use for theme creation, visual review and theming-debugging
@@ -677,18 +678,58 @@ COMMON_BOOTSTRAP_OVERRIDES_FUNC: Callable[  # noqa: E731
 # This is merely a default
 EXTRA_CATEGORICAL_COLOR_SCHEMES: list[dict[str, Any]] = []
 
-# THEME is used for setting a custom theme to Superset, it follows the ant design
-# theme structure
-# You can use the AntDesign theme editor to generate a theme structure
-# https://ant.design/theme-editor
+# ---------------------------------------------------
+# Theme Configuration for Superset
+# ---------------------------------------------------
+# Superset supports custom theming through Ant Design's theme structure.
+# This allows users to customize colors, fonts, and other UI elements.
+#
+# Theme Generation:
+# - Use the Ant Design theme editor: https://ant.design/theme-editor
+# - Export or coypt the generated theme JSON and assign to the variables below
+#
 # To expose a JSON theme editor modal that can be triggered from the navbar
 # set the `ENABLE_THEME_EDITOR` feature flag to True.
 #
-# To set up the dark theme:
-# THEME = {"algorithm": "dark"}
+# Theme Structure:
+# Each theme should follow Ant Design's theme format
+# Example:
+# THEME_DEFAULT = {
+#       "token": {
+#            "colorPrimary": "#2893B3",
+#            "colorSuccess": "#5ac189",
+#            "colorWarning": "#fcc700",
+#            "colorError": "#e04355",
+#            "fontFamily": "'Inter', Helvetica, Arial",
+#            ... # other tokens
+#       },
+#       ... # other theme properties
+# }
 
-THEME: dict[str, Any] = {}
 
+# Default theme configuration
+# Leave empty to use Superset's default theme
+THEME_DEFAULT: Theme = {}
+
+# Dark theme configuration
+# Applied when user selects dark mode
+THEME_DARK: Theme = {}
+
+# Theme behavior and user preference settings
+# Controls how themes are applied and what options users have
+# - enforced: Forces the default theme always, overriding all other settings
+# - allowSwitching: Allows users to manually switch between default and dark themes.
+#   To expose a theme switcher in the UI, set `THEME_ENABLE_DARK_THEME_SWITCH` feature flag to True.  # noqa: E501
+# - allowOSPreference: Allows the app to automatically use the system's preferred theme mode  # noqa: E501
+#
+# Example:
+# THEME_SETTINGS = {
+#     "enforced": False,         # If True, forces the default theme and ignores user preferences  # noqa: E501
+#     "allowSwitching": True,    # Allow user to switch between themes (default and dark)  # noqa: E501
+#     "allowOSPreference": True, # Allow the app to Auto-detect and set system theme preference  # noqa: E501
+# }
+THEME_SETTINGS: ThemeSettings = {}
+# ---------------------------------------------------
 # EXTRA_SEQUENTIAL_COLOR_SCHEMES is used for adding custom sequential color schemes
 # EXTRA_SEQUENTIAL_COLOR_SCHEMES =  [
 #     {

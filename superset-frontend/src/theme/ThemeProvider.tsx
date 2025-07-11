@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 import {
   createContext,
   useCallback,
@@ -62,8 +61,8 @@ export function SupersetThemeProvider({
     [themeController],
   );
 
-  const changeThemeMode = useCallback(
-    (newMode: ThemeMode) => themeController.changeThemeMode(newMode),
+  const setThemeMode = useCallback(
+    (newMode: ThemeMode) => themeController.setThemeMode(newMode),
     [themeController],
   );
 
@@ -77,10 +76,10 @@ export function SupersetThemeProvider({
       theme: currentTheme,
       themeMode: currentThemeMode,
       setTheme,
-      changeThemeMode,
+      setThemeMode,
       resetTheme,
     }),
-    [currentTheme, currentThemeMode, setTheme, changeThemeMode, resetTheme],
+    [currentTheme, currentThemeMode, setTheme, setThemeMode, resetTheme],
   );
 
   return (
@@ -96,9 +95,10 @@ export function SupersetThemeProvider({
  * React hook to use the theme context
  */
 export function useThemeContext(): ThemeContextType {
-  const context = useContext(ThemeContext);
-  if (!context) {
+  const context: ThemeContextType | null = useContext(ThemeContext);
+
+  if (!context)
     throw new Error('useThemeContext must be used within a ThemeProvider');
-  }
+
   return context;
 }

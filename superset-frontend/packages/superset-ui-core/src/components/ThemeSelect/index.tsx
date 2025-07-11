@@ -22,22 +22,22 @@ import { t } from '@superset-ui/core';
 import { ThemeMode } from '../../theme/types';
 
 export interface ThemeSelectProps {
-  changeThemeMode: (newMode: ThemeMode) => void;
+  setThemeMode: (newMode: ThemeMode) => void;
   tooltipTitle?: string;
   themeMode: ThemeMode;
 }
 
 const ThemeSelect: React.FC<ThemeSelectProps> = ({
-  changeThemeMode,
+  setThemeMode,
   tooltipTitle = 'Select theme',
   themeMode,
 }) => {
   const handleSelect = (mode: ThemeMode) => {
-    changeThemeMode(mode);
+    setThemeMode(mode);
   };
 
   const themeIconMap: Record<ThemeMode, React.ReactNode> = {
-    [ThemeMode.LIGHT]: <Icons.SunOutlined />,
+    [ThemeMode.DEFAULT]: <Icons.SunOutlined />,
     [ThemeMode.DARK]: <Icons.MoonOutlined />,
     [ThemeMode.SYSTEM]: <Icons.FormatPainterOutlined />,
     [ThemeMode.COMPACT]: <Icons.CompressOutlined />,
@@ -49,9 +49,9 @@ const ThemeSelect: React.FC<ThemeSelectProps> = ({
         menu={{
           items: [
             {
-              key: ThemeMode.LIGHT,
+              key: ThemeMode.DEFAULT,
               label: t('Light'),
-              onClick: () => handleSelect(ThemeMode.LIGHT),
+              onClick: () => handleSelect(ThemeMode.DEFAULT),
               icon: <Icons.SunOutlined />,
             },
             {
