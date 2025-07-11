@@ -16,17 +16,17 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import RadioButtonControl from './RadioButtonControl';
-import { CustomTooltipControl } from '../customTooltipControls';
 
-export * from './RadioButtonControl';
-export * from '../customTooltipControls';
+export { default as CustomTooltipControl } from './CustomTooltipControl';
+export { TooltipTemplateService } from './TooltipTemplateService';
 
-/**
- * Shared chart controls. Can be referred via string shortcuts in chart control
- * configs.
- */
-export default {
-  RadioButtonControl,
-  CustomTooltipControl,
-};
+export type {
+  TooltipField,
+  CustomTooltipConfig,
+  CustomTooltipControlProps,
+} from './CustomTooltipControl';
+
+export type {
+  TooltipData,
+  ProcessedTooltipData,
+} from './TooltipTemplateService';

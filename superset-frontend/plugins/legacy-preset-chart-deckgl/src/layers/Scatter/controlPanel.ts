@@ -34,6 +34,8 @@ import {
   pointRadiusFixed,
   multiplier,
   mapboxStyle,
+  tooltipContents,
+  tooltipTemplate,
 } from '../../utilities/Shared_DeckGL';
 
 const config: ControlPanelConfig = {
@@ -56,6 +58,8 @@ const config: ControlPanelConfig = {
         [spatial, null],
         ['row_limit', filterNulls],
         ['adhoc_filters'],
+        [tooltipContents],
+        [tooltipTemplate],
       ],
     },
     {

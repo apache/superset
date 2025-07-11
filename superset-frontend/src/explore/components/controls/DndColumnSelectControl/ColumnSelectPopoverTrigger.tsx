@@ -19,7 +19,13 @@
 import { useCallback, useEffect, useMemo, useState, ReactNode } from 'react';
 
 import { useSelector } from 'react-redux';
-import { AdhocColumn, t, isAdhocColumn } from '@superset-ui/core';
+import {
+  AdhocColumn,
+  t,
+  isAdhocColumn,
+  Metric,
+  QueryFormMetric,
+} from '@superset-ui/core';
 import { ColumnMeta, isColumnMeta } from '@superset-ui/chart-controls';
 import { ExplorePopoverContent } from 'src/explore/components/ExploreContentPopover';
 import { SaveDatasetModal } from 'src/SqlLab/components/SaveDatasetModal';
@@ -38,6 +44,8 @@ interface ColumnSelectPopoverTriggerProps {
   children: ReactNode;
   isTemporal?: boolean;
   disabledTabs?: Set<string>;
+  metrics?: Metric[];
+  selectedMetrics?: QueryFormMetric[];
 }
 
 const defaultPopoverLabel = t('My column');
@@ -51,6 +59,8 @@ const ColumnSelectPopoverTrigger = ({
   children,
   isTemporal,
   disabledTabs,
+  metrics,
+  selectedMetrics,
   ...props
 }: ColumnSelectPopoverTriggerProps) => {
   // @ts-ignore
@@ -112,6 +122,8 @@ const ColumnSelectPopoverTrigger = ({
           getCurrentTab={getCurrentTab}
           isTemporal={isTemporal}
           disabledTabs={disabledTabs}
+          metrics={metrics}
+          selectedMetrics={selectedMetrics}
         />
       </ExplorePopoverContent>
     ),
@@ -125,28 +137,40 @@ const ColumnSelectPopoverTrigger = ({
       onColumnEdit,
       popoverLabel,
       disabledTabs,
+      metrics,
+      selectedMetrics,
     ],
   );
 
   const onLabelChange = useCallback(
-    (e: any) => {
+    (e: React.ChangeEvent<HTMLInputElement>) => {
       setPopoverLabel(e.target.value);
       setHasCustomLabel(true);
     },
     [setPopoverLabel, setHasCustomLabel],
   );
 
-  const popoverTitle = useMemo(
-    () => (
+  const popoverTitle = useMemo(() => {
+    // For tooltip contents, show a static title instead of editable
+    if (disabledTabs?.has('saved') && disabledTabs?.has('sqlExpression')) {
+      return <span>{t('Tooltip contents')}</span>;
+    }
+    // Default behavior for other uses
+    return (
       <DndColumnSelectPopoverTitle
         title={popoverLabel}
         onChange={onLabelChange}
         isEditDisabled={isTitleEditDisabled}
         hasCustomLabel={hasCustomLabel}
       />
-    ),
-    [hasCustomLabel, isTitleEditDisabled, onLabelChange, popoverLabel],
-  );
+    );
+  }, [
+    hasCustomLabel,
+    isTitleEditDisabled,
+    onLabelChange,
+    popoverLabel,
+    disabledTabs,
+  ]);
 
   return (
     <>

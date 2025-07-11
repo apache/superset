@@ -36,6 +36,8 @@ import {
   mapboxStyle,
   spatial,
   viewport,
+  tooltipContents,
+  tooltipTemplate,
 } from '../../utilities/Shared_DeckGL';
 
 const INTENSITY_OPTIONS = Array.from(
@@ -58,6 +60,8 @@ const config: ControlPanelConfig = {
         ['row_limit'],
         [filterNulls],
         ['adhoc_filters'],
+        [tooltipContents],
+        [tooltipTemplate],
         [
           {
             name: 'intensity',

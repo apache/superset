@@ -400,3 +400,233 @@ export const geojsonColumn = {
     }),
   },
 };
+
+export const tooltipContents = {
+  name: 'tooltip_contents',
+  config: {
+    type: 'DndColumnMetricSelect',
+    label: t('Tooltip contents'),
+    multi: true,
+    freeForm: true,
+    clearable: true,
+    default: [],
+    description: t(
+      'Drag columns and metrics here to customize tooltip content. Order matters - items will appear in the same order in tooltips. Click the button to manually select columns and metrics.',
+    ),
+    ghostButtonText: t('Drop columns/metrics here or click'),
+    disabledTabs: new Set(['saved', 'sqlExpression']),
+    mapStateToProps: state => {
+      const { datasource, form_data: formData } = state;
+
+      const selectedMetrics = [];
+
+      if (formData) {
+        // Scan form_data for FixedOrMetricControl patterns
+        Object.values(formData).forEach(value => {
+          if (value?.type === 'metric' && value?.value) {
+            selectedMetrics.push(value.value);
+          }
+        });
+
+        // Also check standard metrics field
+        if (formData.metrics) {
+          selectedMetrics.push(
+            ...(Array.isArray(formData.metrics)
+              ? formData.metrics
+              : [formData.metrics]),
+          );
+        }
+
+        // Add point_radius_fixed metric if it exists
+        if (formData.point_radius_fixed?.value) {
+          selectedMetrics.push(formData.point_radius_fixed.value);
+        }
+      }
+      return {
+        columns: datasource?.columns || [],
+        savedMetrics: datasource?.metrics || [],
+        datasource,
+        selectedMetrics: [...new Set(selectedMetrics)], // Remove duplicates
+        disabledTabs: new Set(['saved', 'sqlExpression']),
+      };
+    },
+  },
+};
+
+const generateHandlebarsTooltipTemplate = contents => {
+  if (!contents || contents.length === 0) {
+    return `<div class="custom-tooltip">
+  <div><strong>Sample:</strong> {{tooltip_column_name}}</div>
+</div>`;
+  }
+
+  const templateVariables = [];
+  const templateRows = [];
+  const conditionalExamples = [];
+
+  contents.forEach((item, index) => {
+    let variableName = '';
+    let label = '';
+    let dataType = 'string';
+
+    if (typeof item === 'string') {
+      variableName = `tooltip_${item}`;
+      label = item;
+    } else if (item?.item_type === 'column') {
+      variableName = `tooltip_${item.column_name}`;
+      label =
+        item.verbose_name ||
+        item.column_name ||
+        item.label ||
+        `Column ${index + 1}`;
+      dataType = item.type || 'string';
+    } else if (item?.item_type === 'metric') {
+      variableName = `tooltip_${item.metric_name || item.label}`;
+      label =
+        item.verbose_name ||
+        item.metric_name ||
+        item.label ||
+        `Metric ${index + 1}`;
+      dataType = 'metric';
+    } else if (item?.column_name) {
+      variableName = `tooltip_${item.column_name}`;
+      label = item.verbose_name || item.column_name || `Column ${index + 1}`;
+      dataType = item.type || 'string';
+    } else if (item?.metric_name || item?.label) {
+      variableName = `tooltip_${item.metric_name || item.label}`;
+      label =
+        item.verbose_name ||
+        item.metric_name ||
+        item.label ||
+        `Metric ${index + 1}`;
+      dataType = 'metric';
+    } else {
+      const possibleName = item?.name || item?.id || String(item);
+      if (possibleName) {
+        variableName = `tooltip_${possibleName}`;
+        label = possibleName;
+      }
+    }
+
+    if (variableName) {
+      templateVariables.push(`{{${variableName}}}`);
+
+      if (dataType === 'metric' || dataType === 'number') {
+        templateRows.push(
+          `  <div><strong>${label}:</strong> <span class="metric-value">{{formatNumber ${variableName}}}</span></div>`,
+        );
+      } else if (
+        dataType === 'datetime' ||
+        label.toLowerCase().includes('date') ||
+        label.toLowerCase().includes('time')
+      ) {
+        templateRows.push(
+          `  <div><strong>${label}:</strong> <span class="date-value">{{dateFormat ${variableName} format="YYYY-MM-DD HH:mm:ss"}}</span></div>`,
+        );
+      } else {
+        templateRows.push(
+          `  <div><strong>${label}:</strong> {{default ${variableName} "N/A"}}</div>`,
+        );
+      }
+
+      if (index < 2) {
+        conditionalExamples.push(`  {{#if ${variableName}}}
+    <div><strong>${label}:</strong> {{${variableName}}}</div>
+  {{/if}}`);
+      }
+    }
+  });
+
+  if (templateRows.length === 0) {
+    return `<div class="custom-tooltip">
+  <div><strong>Sample:</strong> {{tooltip_column_name}}</div>
+</div>`;
+  }
+
+  const basicTemplate = `<div class="custom-tooltip">
+  <div class="tooltip-header">
+    <h4>{{title}}</h4>
+  </div>
+  <div class="tooltip-content">
+${templateRows.join('\n')}
+  </div>
+</div>`;
+
+  const conditionalTemplate =
+    conditionalExamples.length > 0
+      ? `
+
+<!-- Alternative with conditional display -->
+<!--
+<div class="custom-tooltip">
+${conditionalExamples.join('\n')}
+</div>
+-->`
+      : '';
+
+  return `${basicTemplate}${conditionalTemplate}
+
+<!-- Available variables: ${templateVariables.join(', ')} -->`;
+};
+
+export const tooltipTemplate = {
+  name: 'tooltip_template',
+  config: {
+    type: 'TextAreaControl',
+    label: t('Customize tooltips template'),
+    language: 'html',
+    height: 200,
+    offerEditInModal: false,
+    default: '',
+    renderTrigger: true,
+    description: t(
+      'Handlebars template for custom tooltips with advanced formatting helpers. Available variables will be populated based on your tooltip contents selection above.',
+    ),
+    placeholder: t(
+      'Template will be auto-generated based on tooltip contents above...',
+    ),
+    shouldMapStateToProps: (prevState, state) => {
+      const prevTooltipContents = prevState?.form_data?.tooltip_contents || [];
+      const currentTooltipContents = state?.form_data?.tooltip_contents || [];
+      const prevTemplate = prevState?.form_data?.tooltip_template;
+      const currentTemplate = state?.form_data?.tooltip_template;
+
+      return (
+        JSON.stringify(prevTooltipContents) !==
+          JSON.stringify(currentTooltipContents) ||
+        prevTemplate !== currentTemplate ||
+        !currentTemplate ||
+        currentTemplate.includes(
+          'Drop columns/metrics in "Tooltip contents" above',
+        )
+      );
+    },
+    mapStateToProps: state => {
+      const { form_data: formData } = state;
+      const tooltipContents = formData?.tooltip_contents || [];
+      const generatedTemplate =
+        generateHandlebarsTooltipTemplate(tooltipContents);
+      const currentValue = formData?.tooltip_template;
+      const shouldUseGenerated =
+        !currentValue ||
+        currentValue ===
+          '[jinja template reference - this fills up when items are dropped in dnd]' ||
+        currentValue.trim() === '' ||
+        currentValue.includes(
+          'Drop columns/metrics in "Tooltip contents" above',
+        );
+
+      return {
+        value: shouldUseGenerated ? generatedTemplate : currentValue,
+        placeholder:
+          tooltipContents.length > 0
+            ? t(
+                'Template auto-generated from tooltip contents above. Edit to customize with Handlebars syntax.',
+              )
+            : t(
+                'Add fields to "Tooltip contents" above to generate template automatically...',
+              ),
+      };
+    },
+  },
+};

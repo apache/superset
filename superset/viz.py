@@ -1757,7 +1757,33 @@ class DeckScatterViz(BaseDeckGLViz):
             "type": "fix",
             "value": 500,
         }
-        return super().query_obj()
+
+        query_obj = super().query_obj()
+
+        tooltip_contents = self.form_data.get("tooltip_contents", [])
+        if tooltip_contents and query_obj.get("metrics"):
+            tooltip_columns = []
+            for item in tooltip_contents:
+                if isinstance(item, str):
+                    tooltip_columns.append(item)
+                elif isinstance(item, dict) and item.get("item_type") == "column":
+                    if item.get("column_name"):
+                        tooltip_columns.append(item["column_name"])
+
+            existing_metrics = query_obj.get("metrics", [])
+            for col in tooltip_columns:
+                escaped_col = f'"{col}"'
+
+                tooltip_metric = {
+                    "expressionType": "SQL",
+                    "sqlExpression": f"MAX({escaped_col})",
+                    "label": f"tooltip_{col}",
+                }
+                existing_metrics.append(tooltip_metric)
+
+            query_obj["metrics"] = existing_metrics
+
+        return query_obj
 
     @deprecated(deprecated_in="3.0")
     def get_metrics(self) -> list[str]:
@@ -1770,7 +1796,7 @@ class DeckScatterViz(BaseDeckGLViz):
 
     @deprecated(deprecated_in="3.0")
     def get_properties(self, data: dict[str, Any]) -> dict[str, Any]:
-        return {
+        properties = {
             "metric": data.get(self.metric_label) if self.metric_label else None,
             "radius": (
                 self.fixed_value
@@ -1783,6 +1809,21 @@ class DeckScatterViz(BaseDeckGLViz):
             "position": data.get("spatial"),
             DTTM_ALIAS: data.get(DTTM_ALIAS),
         }
+
+        if tooltip_contents := self.form_data.get("tooltip_contents", []):
+            for item in tooltip_contents:
+                if isinstance(item, str):
+                    tooltip_key = f"tooltip_{item}"
+                    if tooltip_key in data:
+                        properties[tooltip_key] = data[tooltip_key]
+                elif isinstance(item, dict) and item.get("item_type") == "column":
+                    column_name = item.get("column_name")
+                    if column_name:
+                        tooltip_key = f"tooltip_{column_name}"
+                        if tooltip_key in data:
+                            properties[tooltip_key] = data[tooltip_key]
+
+        return properties
 
     @deprecated(deprecated_in="3.0")
     def get_data(self, df: pd.DataFrame) -> VizData:
