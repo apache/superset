@@ -659,6 +659,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     columnName: string,
     datasetId: number | string,
     vizType = 'filter_select',
+    adhocFilters = []
   ) => {
     if (vizType === 'filter_time') {
       return;
@@ -674,6 +675,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
         viz_type: vizType,
         type: 'NATIVE_FILTER',
         dashboardId,
+        adhoc_filters: adhocFilters,
       },
       force: false,
       ownState: {},
@@ -1383,8 +1385,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     const filters = Object.values(tabNativeFilters).flat();
     const filter = filters.filter((f: any) => f.id === nativeFilterId)[0];
 
-    const { filterType } = filter;
-
+    const { filterType, adhoc_filters: adhocFilters } = filter;
     const filterAlreadyExist = nativeFilterData.some(
       filter => filter.nativeFilterId === nativeFilterId,
     );
@@ -1425,6 +1426,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
         viz_type: 'filter_select',
         type: 'NATIVE_FILTER',
         dashboardId,
+        adhoc_filters: adhocFilters,
       },
       force: false,
       ownState: {},
@@ -1441,6 +1443,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
         columnName,
         datasetId,
         filterType,
+        adhocFilters
       ).then(optionFilterValues => {
         setNativeFilterData(
           nativeFilterData.map((filter, index) =>
