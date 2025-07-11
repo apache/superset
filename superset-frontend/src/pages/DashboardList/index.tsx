@@ -74,6 +74,8 @@ import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import { findPermission } from 'src/utils/findPermission';
 import { navigateTo } from 'src/utils/navigationUtils';
 import { WIDER_DROPDOWN_WIDTH } from 'src/components/ListView/utils';
+import { isUserAdmin } from 'src/dashboard/util/permissionUtils';
+import IconButton from 'src/dashboard/components/IconButton';
 
 const PAGE_SIZE = 25;
 const PASSWORDS_NEEDED_MESSAGE = t(
@@ -415,6 +417,11 @@ function DashboardList(props: DashboardListProps) {
       },
       {
         Cell: ({ row: { original } }: any) => {
+          // Verify owner or isAdmin
+          const allowEdit: boolean =
+            original.owners.map((o: Owner) => o.id).includes(user.userId) ||
+            isUserAdmin(user);
+
           const handleDelete = () =>
             handleDashboardDelete(
               original,
@@ -441,20 +448,25 @@ function DashboardList(props: DashboardListProps) {
                   {confirmDelete => (
                     <Tooltip
                       id="delete-action-tooltip"
-                      title={t('Delete')}
+                      title={
+                        allowEdit
+                          ? t('Delete')
+                          : t(
+                              'You must be a dashboard owner in order to delete. Please reach out to a dashboard owner to request modifications or edit access.',
+                            )
+                      }
                       placement="bottom"
                     >
-                      <span
-                        role="button"
-                        tabIndex={0}
-                        className="action-button"
+                      <IconButton
+                        disabled={!allowEdit}
                         onClick={confirmDelete}
-                      >
-                        <Icons.DeleteOutlined
-                          iconSize="l"
-                          data-test="dashboard-list-trash-icon"
-                        />
-                      </span>
+                        icon={
+                          <Icons.DeleteOutlined
+                            iconSize="l"
+                            data-test="dashboard-list-trash-icon"
+                          />
+                        }
+                      />
                     </Tooltip>
                   )}
                 </ConfirmStatusChange>
@@ -465,30 +477,31 @@ function DashboardList(props: DashboardListProps) {
                   title={t('Export')}
                   placement="bottom"
                 >
-                  <span
-                    role="button"
-                    tabIndex={0}
-                    className="action-button"
+                  <IconButton
                     onClick={handleExport}
-                  >
-                    <Icons.UploadOutlined iconSize="l" />
-                  </span>
+                    icon={<Icons.UploadOutlined iconSize="l" />}
+                  />
                 </Tooltip>
               )}
               {canEdit && (
                 <Tooltip
                   id="edit-action-tooltip"
-                  title={t('Edit')}
+                  title={
+                    allowEdit
+                      ? t('Edit')
+                      : t(
+                          'You must be a dashboard owner in order to edit. Please reach out to a dashboard owner to request modifications or edit access.',
+                        )
+                  }
                   placement="bottom"
                 >
-                  <span
-                    role="button"
-                    tabIndex={0}
-                    className="action-button"
+                  <IconButton
+                    disabled={!allowEdit}
                     onClick={handleEdit}
-                  >
-                    <Icons.EditOutlined data-test="edit-alt" iconSize="l" />
-                  </span>
+                    icon={
+                      <Icons.EditOutlined iconSize="l" data-test="edit-alt" />
+                    }
+                  />
                 </Tooltip>
               )}
             </Actions>
