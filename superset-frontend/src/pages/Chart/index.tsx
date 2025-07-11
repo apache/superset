@@ -163,7 +163,7 @@ export default function ExplorePage() {
               clientError.error ||
               t('Failed to load chart data.');
 
-            if (err.extra?.datasource_id) {
+            if (err.extra?.datasource) {
               dispatch(
                 hydrateExplore({
                   ...fallbackExploreInitialData,
