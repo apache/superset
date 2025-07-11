@@ -446,6 +446,8 @@ export const TRANSLATIONS = {
   ERROR_TOOLTIP_MESSAGE: t(
     'Not all required fields are complete. Please provide the following:',
   ),
+  NATIVE_FILTER_COLUMN_ERROR_TEXT: t('Native filter column is required'),
+  NATIVE_FILTER_NO_VALUES_ERROR_TEXT: t('Native filter values has no values'),
 };
 
 const NotificationMethodAdd: FunctionComponent<NotificationMethodAddProps> = ({
@@ -1381,6 +1383,9 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   };
 
   const onChangeDashboardFilter = (idx: number, nativeFilterId: string) => {
+
+    if (!nativeFilterId || nativeFilterId === 'undefined' || nativeFilterId === 'null') return;
+
     // find specific filter tied to the selected filter
     const filters = Object.values(tabNativeFilters).flat();
     const filter = filters.filter((f: any) => f.id === nativeFilterId)[0];
@@ -1625,6 +1630,13 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
           )
         }
         mode={mode as 'multiple' | 'single'}
+        onClear={() => {
+          // reset filter values on filter clear
+          filter.columnName = '';
+          filter.filterName = '';
+          filter.filterValues = [];
+        }}
+        allowClear
       />
     );
   };
@@ -1649,6 +1661,27 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     ) {
       errors.push(TRANSLATIONS.CONTENT_ERROR_TEXT);
     }
+
+    // validate native filter
+    nativeFilterData.forEach(filter => {
+      const columnNameCheck = !filter.columnName || filter.columnName === '';
+      const filterValuesCheck = !filter.filterValues || filter.filterValues.length === 0;
+
+      if (columnNameCheck && filterValuesCheck) {
+        // if both columnName and filterValues are not null or empty, skip validation
+        return;
+      }
+
+      // check if native filter columnName is not null or empty
+      if (!columnNameCheck) {
+        errors.push(TRANSLATIONS.NATIVE_FILTER_COLUMN_ERROR_TEXT);
+      }
+      // check if native filter values is not null or empty
+      if (!filterValuesCheck) {
+        errors.push(TRANSLATIONS.NATIVE_FILTER_NO_VALUES_ERROR_TEXT);
+      }
+    });
+
     updateValidationStatus(Sections.Content, errors);
   };
   const validateAlertSection = () => {
@@ -1867,6 +1900,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     currentAlertSafe.dashboard,
     currentAlertSafe.chart,
     contentType,
+    nativeFilterData,
     notificationSettings,
     conditionNotNull,
     emailError,
@@ -2287,11 +2321,11 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                                 <div className="filters-dash-container">
                                   <div className="control-label">
                                     <span>{t('Select Dashboard Filter')}</span>
-                                    {/* <StyledTooltip
+                                    <InfoTooltip
                                       tooltip={t(
                                         'Choose from existing dashboard filters and select a value to refine your report results.',
                                       )}
-                                    /> */}
+                                    />
                                   </div>
                                   <Select
                                     disabled={
@@ -2308,10 +2342,17 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                                         String(value),
                                       )
                                     }
+                                    onClear={() => {
+                                      // reset filter values on filter clear
+                                      nativeFilterData[idx].columnName = '';
+                                      nativeFilterData[idx].filterName = '';
+                                      nativeFilterData[idx].filterValues = [];
+                                    }}
                                     css={css`
                                       flex: 1;
                                     `}
                                     oneLine
+                                    allowClear
                                   />
                                 </div>
                                 <div className="filters-dashvalue-container">
