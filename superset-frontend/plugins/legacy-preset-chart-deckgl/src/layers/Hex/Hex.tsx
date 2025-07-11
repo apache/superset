@@ -84,9 +84,6 @@ export const getLayer: GetLayerType<HexagonLayer> = function ({
       ? (p: number[]) => getColorForBreakpoints(aggFunc, p, colorBreakpoints)
       : aggFunc;
 
-  console.log('colorBreakpoints', colorBreakpoints);
-  console.log('colorRange', colorRange);
-
   return new HexagonLayer({
     id: `hex-layer-${fd.slice_id}-${JSON.stringify(colorBreakpoints)}` as const,
     data,
