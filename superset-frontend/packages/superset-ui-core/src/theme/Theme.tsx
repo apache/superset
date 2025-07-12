@@ -19,7 +19,11 @@
 /* eslint-disable react-prefer-function-component/react-prefer-function-component */
 // eslint-disable-next-line no-restricted-syntax
 import React from 'react';
-import { theme as antdThemeImport, ConfigProvider } from 'antd';
+import {
+  theme as antdThemeImport,
+  ConfigProvider,
+  type ThemeConfig,
+} from 'antd';
 import tinycolor from 'tinycolor2';
 
 // @fontsource/* v5.1+ doesn't play nice with eslint-import plugin v2.31+
@@ -160,7 +164,7 @@ export class Theme {
    * Dark mode should be specified via the algorithm property in the config
    */
   setConfig(config: AnyThemeConfig): void {
-    const antdConfig = normalizeThemeConfig(config);
+    const antdConfig: ThemeConfig = normalizeThemeConfig(config);
 
     // Apply default tokens to token property
     antdConfig.token = {
@@ -169,7 +173,7 @@ export class Theme {
     };
 
     // First phase: Let Ant Design compute the tokens
-    const tokens = Theme.getFilteredAntdTheme(antdConfig);
+    const tokens: SharedAntdTokens = Theme.getFilteredAntdTheme(antdConfig);
 
     // Set the base theme properties
     this.antdConfig = antdConfig;

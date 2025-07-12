@@ -34,17 +34,32 @@ export type AntdTokens = ReturnType<typeof antdThemeImport.getDesignToken>;
 export type AntdThemeConfig = ThemeConfig;
 
 /**
+ * A combination of theme modes that can be used in theme config.
+ * This is used to define which algorithms are allow to be applied together.
+ */
+export type ThemeAlgorithmCombination = (
+  | ThemeMode.DEFAULT
+  | ThemeMode.DARK
+  | ThemeMode.COMPACT
+)[];
+
+/**
+ * All valid algorithm values that can be used in theme config.
+ */
+export type ThemeAlgorithmOption =
+  | ThemeMode.DEFAULT
+  | ThemeMode.DARK
+  | ThemeMode.COMPACT
+  | ThemeAlgorithmCombination;
+
+/**
  * A serializable version of Ant Design's ThemeConfig
  * Compatible with theme editor exports
  */
 export type SerializableThemeConfig = {
   token?: Record<string, any>;
   components?: Record<string, any>;
-  algorithm?:
-    | 'default'
-    | 'dark'
-    | 'compact'
-    | ('default' | 'dark' | 'compact')[];
+  algorithm?: ThemeAlgorithmOption;
   hashed?: boolean;
   inherit?: boolean;
 };
@@ -359,7 +374,7 @@ export type AllowedAntdTokenKeys = Extract<
 >;
 
 export enum ThemeMode {
-  LIGHT = 'light',
+  DEFAULT = 'default',
   DARK = 'dark',
   SYSTEM = 'system',
   COMPACT = 'compact',
@@ -379,7 +394,7 @@ export interface ThemeStorage {
 }
 
 export interface ThemeControllerOptions {
-  themeObject: Theme;
+  themeObject?: Theme;
   storage?: ThemeStorage;
   storageKey?: string;
   modeStorageKey?: string;
@@ -393,6 +408,6 @@ export interface ThemeContextType {
   theme: Theme;
   themeMode: ThemeMode;
   setTheme: (config: AnyThemeConfig) => void;
-  changeThemeMode: (newMode: ThemeMode) => void;
+  setThemeMode: (newMode: ThemeMode) => void;
   resetTheme: () => void;
 }

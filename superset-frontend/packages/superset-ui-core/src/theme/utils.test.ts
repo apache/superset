@@ -28,9 +28,10 @@ import {
   genDeprecatedColorVariations,
 } from './utils';
 import {
-  AnyThemeConfig,
-  SerializableThemeConfig,
-  AntdThemeConfig,
+  type AnyThemeConfig,
+  type SerializableThemeConfig,
+  type AntdThemeConfig,
+  ThemeMode,
 } from './types';
 
 // Mock tinycolor2 for consistent testing
@@ -56,7 +57,7 @@ describe('Theme utilities', () => {
     it('returns true when algorithm is a string', () => {
       const config: AnyThemeConfig = {
         token: { colorPrimary: '#ff0000' },
-        algorithm: 'dark',
+        algorithm: ThemeMode.DARK,
       };
       expect(isSerializableConfig(config)).toBe(true);
     });
@@ -64,7 +65,7 @@ describe('Theme utilities', () => {
     it('returns true when algorithm is an array of strings', () => {
       const config: AnyThemeConfig = {
         token: { colorPrimary: '#ff0000' },
-        algorithm: ['dark', 'compact'],
+        algorithm: [ThemeMode.DARK, ThemeMode.COMPACT],
       };
       expect(isSerializableConfig(config)).toBe(true);
     });
@@ -81,7 +82,7 @@ describe('Theme utilities', () => {
       const config: AnyThemeConfig = {
         token: { colorPrimary: '#ff0000' },
         // @ts-ignore
-        algorithm: [antdThemeImport.darkAlgorithm, 'compact'],
+        algorithm: [antdThemeImport.darkAlgorithm, ThemeMode.COMPACT],
       };
       expect(isSerializableConfig(config)).toBe(false);
     });
@@ -91,7 +92,7 @@ describe('Theme utilities', () => {
     it('converts string algorithm to function reference', () => {
       const config: SerializableThemeConfig = {
         token: { colorPrimary: '#ff0000' },
-        algorithm: 'dark',
+        algorithm: ThemeMode.DARK,
       };
       const result = deserializeThemeConfig(config);
       expect(result.algorithm).toBe(antdThemeImport.darkAlgorithm);
@@ -100,7 +101,7 @@ describe('Theme utilities', () => {
     it('converts array of string algorithms to function references', () => {
       const config: SerializableThemeConfig = {
         token: { colorPrimary: '#ff0000' },
-        algorithm: ['dark', 'compact'],
+        algorithm: [ThemeMode.DARK, ThemeMode.COMPACT],
       };
       const result = deserializeThemeConfig(config);
       expect(Array.isArray(result.algorithm)).toBe(true);
@@ -111,7 +112,7 @@ describe('Theme utilities', () => {
     it('preserves other configuration properties', () => {
       const config: SerializableThemeConfig = {
         token: { colorPrimary: '#ff0000' },
-        algorithm: 'dark',
+        algorithm: ThemeMode.DARK,
         hashed: true,
       };
       const result = deserializeThemeConfig(config);
@@ -130,7 +131,7 @@ describe('Theme utilities', () => {
     it('converts default algorithm string to function reference', () => {
       const config: SerializableThemeConfig = {
         token: { colorPrimary: '#ff0000' },
-        algorithm: 'default',
+        algorithm: ThemeMode.DEFAULT,
       };
       const result = deserializeThemeConfig(config);
       expect(result.algorithm).toBe(antdThemeImport.defaultAlgorithm);
@@ -139,7 +140,7 @@ describe('Theme utilities', () => {
     it('converts compact algorithm string to function reference', () => {
       const config: SerializableThemeConfig = {
         token: { colorPrimary: '#ff0000' },
-        algorithm: 'compact',
+        algorithm: ThemeMode.COMPACT,
       };
       const result = deserializeThemeConfig(config);
       expect(result.algorithm).toBe(antdThemeImport.compactAlgorithm);
@@ -153,7 +154,7 @@ describe('Theme utilities', () => {
         algorithm: antdThemeImport.darkAlgorithm,
       };
       const result = serializeThemeConfig(config);
-      expect(result.algorithm).toBe('dark');
+      expect(result.algorithm).toBe(ThemeMode.DARK);
     });
 
     it('converts array of function algorithms to strings', () => {
@@ -166,8 +167,8 @@ describe('Theme utilities', () => {
       };
       const result = serializeThemeConfig(config);
       expect(Array.isArray(result.algorithm)).toBe(true);
-      expect(result.algorithm).toContain('dark');
-      expect(result.algorithm).toContain('compact');
+      expect(result.algorithm).toContain(ThemeMode.DARK);
+      expect(result.algorithm).toContain(ThemeMode.COMPACT);
     });
 
     it('preserves other configuration properties', () => {
@@ -197,7 +198,7 @@ describe('Theme utilities', () => {
         algorithm: unknownAlgorithm,
       };
       const result = serializeThemeConfig(config);
-      expect(result.algorithm).toBe('default');
+      expect(result.algorithm).toBe(ThemeMode.DEFAULT);
     });
 
     it('converts default algorithm function to string', () => {
@@ -206,7 +207,7 @@ describe('Theme utilities', () => {
         algorithm: antdThemeImport.defaultAlgorithm,
       };
       const result = serializeThemeConfig(config);
-      expect(result.algorithm).toBe('default');
+      expect(result.algorithm).toBe(ThemeMode.DEFAULT);
     });
 
     it('converts compact algorithm function to string', () => {
@@ -215,7 +216,7 @@ describe('Theme utilities', () => {
         algorithm: antdThemeImport.compactAlgorithm,
       };
       const result = serializeThemeConfig(config);
-      expect(result.algorithm).toBe('compact');
+      expect(result.algorithm).toBe(ThemeMode.COMPACT);
     });
 
     it('defaults each unknown algorithm in array to "default"', () => {
@@ -227,7 +228,7 @@ describe('Theme utilities', () => {
       };
       const result = serializeThemeConfig(config);
       expect(Array.isArray(result.algorithm)).toBe(true);
-      expect(result.algorithm).toEqual(['dark', 'default']);
+      expect(result.algorithm).toEqual([ThemeMode.DARK, ThemeMode.DEFAULT]);
     });
 
     it('handles mixed known and unknown algorithms in array', () => {
@@ -247,10 +248,10 @@ describe('Theme utilities', () => {
       const result = serializeThemeConfig(config);
       expect(Array.isArray(result.algorithm)).toBe(true);
       expect(result.algorithm).toEqual([
-        'dark',
-        'default',
-        'compact',
-        'default',
+        ThemeMode.DARK,
+        ThemeMode.DEFAULT,
+        ThemeMode.COMPACT,
+        ThemeMode.DEFAULT,
       ]);
     });
   });
@@ -268,7 +269,7 @@ describe('Theme utilities', () => {
     it('deserializes serializable configs', () => {
       const config: SerializableThemeConfig = {
         token: { colorPrimary: '#ff0000' },
-        algorithm: 'dark',
+        algorithm: ThemeMode.DARK,
       };
       const result = normalizeThemeConfig(config);
       expect(result.algorithm).toBe(antdThemeImport.darkAlgorithm);
