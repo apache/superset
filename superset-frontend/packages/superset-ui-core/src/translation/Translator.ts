@@ -86,20 +86,12 @@ export default class Translator {
   }
 
   translate(input: string, ...args: unknown[]): string {
-    return this.i18n.translate(input).fetch(...args);
-  }
-
-  translateWithNumber(key: string, ...args: unknown[]): string {
-    const [plural, num, ...rest] = args;
-    if (typeof plural === 'number') {
-      return this.i18n
-        .translate(key)
-        .ifPlural(plural, key)
-        .fetch(plural, num, ...args);
+    try {
+      return this.i18n.translate(input).fetch(...args);
+    } catch (err) {
+      logging.warn(`Translation failed for key "${input}" with args:`, args);
+      logging.warn(err);
+      return input;
     }
-    return this.i18n
-      .translate(key)
-      .ifPlural(num as number, plural as string)
-      .fetch(...rest);
   }
 }

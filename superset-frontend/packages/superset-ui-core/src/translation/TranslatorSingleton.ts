@@ -67,16 +67,11 @@ function t(input: string, ...args: unknown[]) {
   return getInstance().translate(input, ...args);
 }
 
-function tn(key: string, ...args: unknown[]) {
-  return getInstance().translateWithNumber(key, ...args);
-}
-
 export {
   configure,
   addTranslation,
   addTranslations,
   addLocaleData,
   t,
-  tn,
   resetTranslation,
 };
