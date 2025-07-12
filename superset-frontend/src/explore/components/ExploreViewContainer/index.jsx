@@ -472,7 +472,7 @@ function ExploreViewContainer(props) {
         const tooltipContents = props.controls.tooltip_contents?.value || [];
         const currentTemplate = props.controls.tooltip_template?.value || '';
 
-        if (tooltipContents.length > 0 && currentTemplate.trim() !== '') {
+        if (tooltipContents.length > 0) {
           const getFieldName = item => {
             if (typeof item === 'string') return item;
             if (item?.item_type === 'column') return item.column_name;
