@@ -39,15 +39,14 @@ class DatasetReferencesAPI(RestApi):
         database_id: int = request.json.get("databaseId")
 
         # Access to the metadata database using core APIs to retrive dataset owners
-        session = models.get_session()
-        database_model = models.get_database_model()
-        database_query = session.query(database_model).filter_by(id=database_id)
-        database = models.get_databases(database_query)[0]
+        databases = models.get_databases(id=database_id)
+        if not databases:
+            return self.response_404()
+
+        database = databases[0]
         dialect = query.get_sqlglot_dialect(database)
 
-        dataset_model = models.get_dataset_model()
-        dataset_query = session.query(dataset_model)
-        datasets = models.get_datasets(dataset_query)
+        datasets = models.get_datasets()
 
         owners_map = {}
 

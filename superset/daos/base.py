@@ -197,3 +197,16 @@ class BaseDAO(Generic[T]):
                 cls.id_column_name, data_model
             ).apply(query, None)
         return query.all()
+
+    @classmethod
+    def filter_by(cls, **filter_by: Any) -> list[T]:
+        """
+        Get all entries that fit the `base_filter`
+        """
+        query = db.session.query(cls.model_cls)
+        if cls.base_filter:
+            data_model = SQLAInterface(cls.model_cls, db.session)
+            query = cls.base_filter(  # pylint: disable=not-callable
+                cls.id_column_name, data_model
+            ).apply(query, None)
+        return query.filter_by(**filter_by).all()

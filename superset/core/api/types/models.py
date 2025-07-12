@@ -48,7 +48,7 @@ class HostModelsApi(CoreModelsApi):
         return Database
 
     @staticmethod
-    def get_datasets(query: BaseQuery) -> list[Any]:
+    def get_datasets(query: BaseQuery | None = None, **kwargs: Any) -> list[Any]:
         """
         Retrieve Dataset (SqlaTable) entities.
 
@@ -57,16 +57,16 @@ class HostModelsApi(CoreModelsApi):
         """
         from superset.daos.dataset import DatasetDAO
 
-        return DatasetDAO.query(query)
+        if query:
+            return DatasetDAO.query(query)
+
+        return DatasetDAO.filter_by(**kwargs)
 
     @staticmethod
-    def get_databases(query: BaseQuery) -> list[Any]:
-        """
-        Retrieve Database entities.
-
-        :param query: A query with the Database model as the primary entity.
-        :returns: Database entities.
-        """
+    def get_databases(query: BaseQuery | None = None, **kwargs: Any) -> list[Any]:
         from superset.daos.database import DatabaseDAO
 
-        return DatabaseDAO.query(query)
+        if query:
+            return DatabaseDAO.query(query)
+
+        return DatabaseDAO.filter_by(**kwargs)

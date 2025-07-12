@@ -45,22 +45,28 @@ class CoreModelsApi(ABC):
 
     @staticmethod
     @abstractmethod
-    def get_datasets(query: BaseQuery) -> list[Any]:
+    def get_datasets(query: BaseQuery | None = None, **hwargs: Any) -> list[Any]:
         """
         Retrieve Dataset (SqlaTable) entities.
 
-        :param query: A query with the Dataset model as the primary entity.
+        :param query: A query with the Dataset model as the primary entity for complex
+            queries.
+        :param kwargs: Optional keyword arguments to filter datasets using SQLAlchemy's
+            `filter_by()`.
         :returns: SqlaTable entities.
         """
         ...
 
     @staticmethod
     @abstractmethod
-    def get_databases(query: BaseQuery) -> list[Any]:
+    def get_databases(query: BaseQuery | None = None, **kwargs: Any) -> list[Any]:
         """
         Retrieve Database entities.
 
-        :param query: A query with the Database model as the primary entity.
+        :param query: A query with the Database model as the primary entity for complex
+            queries.
+        :param kwargs: Optional keyword arguments to filter databases using SQLAlchemy's
+            `filter_by()`.
         :returns: Database entities.
         """
         ...
