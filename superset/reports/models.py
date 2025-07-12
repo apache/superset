@@ -266,6 +266,30 @@ class ReportSchedule(AuditMixinNullable, ExtraJSONMixin, Model):
                     "ownState": {},
                 }
             }
+        elif filter_type == "filter_range":
+            # For range filters, values should be [min, max] or [value] for single value
+            min_val = values[0] if len(values) > 0 else None
+            max_val = values[1] if len(values) > 1 else None
+            
+            filters = []
+            if min_val is not None:
+                filters.append({"col": column_name or "", "op": ">=", "val": min_val})
+            if max_val is not None:
+                filters.append({"col": column_name or "", "op": "<=", "val": max_val})
+            
+            return {
+                native_filter_id or "": {
+                    "id": native_filter_id or "",
+                    "extraFormData": {
+                        "filters": filters
+                    },
+                    "filterState": {
+                        "value": [min_val, max_val],
+                        "label": f"{min_val} ≤ x ≤ {max_val}" if min_val and max_val else f"x ≥ {min_val}" if min_val else f"x ≤ {max_val}" if max_val else "",
+                    },
+                    "ownState": {},
+                }
+            }
 
         return {}
 

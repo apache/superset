@@ -59,6 +59,7 @@ import {
   type CheckboxChangeEvent,
   Typography,
 } from '@superset-ui/core/components';
+
 import TimezoneSelector from '@superset-ui/core/components/TimezoneSelector';
 import TextAreaControl from 'src/explore/components/controls/TextAreaControl';
 import { useCommonConf } from 'src/features/databases/state';
@@ -93,6 +94,7 @@ import NumberInput from './components/NumberInput';
 import { AlertReportCronScheduler } from './components/AlertReportCronScheduler';
 import { NotificationMethod } from './components/NotificationMethod';
 import { buildErrorTooltipMessage } from './buildErrorTooltipMessage';
+import { StatusMessage } from 'src/filters/components/common';
 
 const TIMEOUT_MIN = 1;
 const TEXT_BASED_VISUALIZATION_TYPES = [
@@ -100,6 +102,14 @@ const TEXT_BASED_VISUALIZATION_TYPES = [
   'table',
   VizType.PairedTTest,
 ];
+
+const StyledDivider = styled.span`
+  margin: 0 ${({ theme }) => theme.sizeUnit * 3}px;
+  color: ${({ theme }) => theme.colorSplit};
+  font-weight: ${({ theme }) => theme.fontWeightStrong};
+  font-size: ${({ theme }) => theme.fontSize}px;
+  align-content: center;
+`;
 
 export interface AlertReportModalProps {
   addSuccessToast: (msg: string) => void;
@@ -1601,6 +1611,35 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
           value={filterValues?.[0]} // only showing first value in the array for filter_time
         />
       );
+    } else if (filterType === 'filter_range') {
+      const min = filterValues?.[0]
+      const max = filterValues?.[1]
+      return (
+        <div>
+          <div className="inline-container">
+            <InputNumber
+              value={min}
+              onChange={value => {
+                setNativeFilterData(
+                  nativeFilterData.map((f: any) => f.nativeFilterId === filter.nativeFilterId ? { ...f, filterValues: [value] } : f),
+                );
+              }}
+            />
+            <StyledDivider>-</StyledDivider>
+            <InputNumber
+              value={max}
+              onChange={value => {
+                setNativeFilterData(
+                  nativeFilterData.map((f: any) => f.nativeFilterId === filter.nativeFilterId ? { ...f, filterValues: [filterValues?.[0], value] } : f),
+                );
+              }}
+            />
+          </div>
+          <StatusMessage status="help">
+            {t('Enter minimum and maximum values for the range filter')}
+          </StatusMessage>
+        </div>
+      )
     }
 
     if (
@@ -1673,11 +1712,11 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
       }
 
       // check if native filter columnName is not null or empty
-      if (!columnNameCheck) {
+      if (columnNameCheck) {
         errors.push(TRANSLATIONS.NATIVE_FILTER_COLUMN_ERROR_TEXT);
       }
       // check if native filter values is not null or empty
-      if (!filterValuesCheck) {
+      else if (filterValuesCheck) {
         errors.push(TRANSLATIONS.NATIVE_FILTER_NO_VALUES_ERROR_TEXT);
       }
     });

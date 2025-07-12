@@ -331,10 +331,6 @@ class DashboardDAO(BaseDAO[Dashboard]):
 
         tab_filters = defaultdict(list)
         for filter in native_filter_configuration:
-            # todo(hughhh): remove this once we support filter_range
-            if filter.get("filterType") == "filter_range":
-                continue
-
             if tabs_in_scope := filter.get("tabsInScope", []):
                 for tab_key in tabs_in_scope:
                     tab_filters[tab_key].append(filter)
