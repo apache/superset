@@ -1749,6 +1749,39 @@ class DeckScatterViz(BaseDeckGLViz):
     spatial_control_keys = ["spatial"]
     is_timeseries = True
 
+    def _extract_tooltip_columns(self) -> list[str]:
+        """Extract column names from tooltip_contents configuration."""
+        tooltip_columns = []
+        if tooltip_contents := self.form_data.get("tooltip_contents", []):
+            for item in tooltip_contents:
+                if isinstance(item, str):
+                    tooltip_columns.append(item)
+                elif isinstance(item, dict) and item.get("item_type") == "column":
+                    column_name = item.get("column_name")
+                    if column_name:
+                        tooltip_columns.append(column_name)
+        return tooltip_columns
+
+    def _add_tooltip_columns_to_query(
+        self, query_obj: QueryObjectDict, tooltip_columns: list[str]
+    ) -> None:
+        """Add tooltip columns to the appropriate query field."""
+        if not tooltip_columns:
+            return
+
+        if query_obj.get("metrics"):
+            # Add to groupby when metrics exist
+            existing_groupby = set(query_obj.get("groupby", []))
+            for col in tooltip_columns:
+                if col not in existing_groupby:
+                    query_obj.setdefault("groupby", []).append(col)
+        else:
+            # Add to columns when no metrics
+            existing_columns = set(query_obj.get("columns", []))
+            for col in tooltip_columns:
+                if col not in existing_columns:
+                    query_obj.setdefault("columns", []).append(col)
+
     @deprecated(deprecated_in="3.0")
     def query_obj(self) -> QueryObjectDict:
         # pylint: disable=attribute-defined-outside-init
@@ -1758,30 +1791,9 @@ class DeckScatterViz(BaseDeckGLViz):
             "value": 500,
         }
 
+        tooltip_columns = self._extract_tooltip_columns()
         query_obj = super().query_obj()
-
-        tooltip_contents = self.form_data.get("tooltip_contents", [])
-        if tooltip_contents and query_obj.get("metrics"):
-            tooltip_columns = []
-            for item in tooltip_contents:
-                if isinstance(item, str):
-                    tooltip_columns.append(item)
-                elif isinstance(item, dict) and item.get("item_type") == "column":
-                    if item.get("column_name"):
-                        tooltip_columns.append(item["column_name"])
-
-            existing_metrics = query_obj.get("metrics", [])
-            for col in tooltip_columns:
-                escaped_col = f'"{col}"'
-
-                tooltip_metric = {
-                    "expressionType": "SQL",
-                    "sqlExpression": f"MAX({escaped_col})",
-                    "label": f"tooltip_{col}",
-                }
-                existing_metrics.append(tooltip_metric)
-
-            query_obj["metrics"] = existing_metrics
+        self._add_tooltip_columns_to_query(query_obj, tooltip_columns)
 
         return query_obj
 
@@ -1813,15 +1825,16 @@ class DeckScatterViz(BaseDeckGLViz):
         if tooltip_contents := self.form_data.get("tooltip_contents", []):
             for item in tooltip_contents:
                 if isinstance(item, str):
-                    tooltip_key = f"tooltip_{item}"
-                    if tooltip_key in data:
-                        properties[tooltip_key] = data[tooltip_key]
+                    if item in data:
+                        properties[item] = data[item]
                 elif isinstance(item, dict) and item.get("item_type") == "column":
                     column_name = item.get("column_name")
-                    if column_name:
-                        tooltip_key = f"tooltip_{column_name}"
-                        if tooltip_key in data:
-                            properties[tooltip_key] = data[tooltip_key]
+                    if column_name and column_name in data:
+                        properties[column_name] = data[column_name]
+                elif isinstance(item, dict) and item.get("item_type") == "metric":
+                    metric_name = item.get("metric_name") or item.get("label")
+                    if metric_name and metric_name in data:
+                        properties[metric_name] = data[metric_name]
 
         return properties
 

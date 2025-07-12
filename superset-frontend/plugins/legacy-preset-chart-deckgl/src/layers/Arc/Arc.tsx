@@ -50,7 +50,7 @@ function setTooltipContent(formData: QueryFormData) {
   const defaultTooltipGenerator = (o: JsonObject) => (
     <div className="deckgl-tooltip">
       {CommonTooltipRows.arcPositions(o)}
-      {CommonTooltipRows.category(o, formData)}
+      {CommonTooltipRows.category(o)}
     </div>
   );
 

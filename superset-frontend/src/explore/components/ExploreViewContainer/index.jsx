@@ -764,11 +764,11 @@ function mapStateToProps(state) {
     saveModal,
   } = state;
   const { controls, slice, datasource, metadata, hiddenFormData } = explore;
-  const hasQueryMode = !!controls.query_mode?.value;
+  const hasQueryMode = !!controls?.query_mode?.value;
   const fieldsToOmit = hasQueryMode
     ? retainQueryModeRequirements(hiddenFormData)
     : Object.keys(hiddenFormData ?? {});
-  const form_data = omit(getFormDataFromControls(controls), fieldsToOmit);
+  const form_data = omit(getFormDataFromControls(controls || {}), fieldsToOmit);
   const slice_id = form_data.slice_id ?? slice?.slice_id ?? 0; // 0 - unsaved chart
   form_data.extra_form_data = mergeExtraFormData(
     { ...form_data.extra_form_data },
@@ -787,6 +787,7 @@ function mapStateToProps(state) {
   }
 
   if (
+    controls &&
     form_data.viz_type === 'big_number_total' &&
     slice?.form_data?.subheader &&
     (!controls.subtitle?.value || controls.subtitle.value === '')

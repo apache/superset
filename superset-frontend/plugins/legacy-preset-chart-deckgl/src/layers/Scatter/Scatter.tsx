@@ -31,18 +31,6 @@ import { unitToRadius } from '../../utils/geo';
 import { TooltipProps } from '../../components/Tooltip';
 import { createTooltipContent } from '../../utilities/tooltipUtils';
 
-type TooltipContentItem =
-  | string
-  | {
-      item_type?: 'column' | 'metric';
-      column?: string;
-      alias?: string;
-      column_name?: string;
-      metric_name?: string;
-      label?: string;
-      verbose_name?: string;
-    };
-
 interface ScatterDataItem {
   color: number[];
   radius: number;
@@ -58,104 +46,7 @@ function setTooltipContent(
   formData: QueryFormData,
   verboseMap?: Record<string, string>,
 ) {
-  return (o: JsonObject) => {
-    // Check if tooltip contents are configured
-    if (formData.tooltip_contents && formData.tooltip_contents.length > 0) {
-      const tooltipItems: JSX.Element[] = [];
-
-      // Add selected fields from tooltip_contents
-      formData.tooltip_contents.forEach(
-        (item: TooltipContentItem, index: number) => {
-          let label = '';
-          let value = '';
-
-          if (typeof item === 'string') {
-            // Handle simple string format (column name)
-            label = item;
-            // Look for the aggregated tooltip metric first, then fallback to direct column
-            value =
-              o.object?.[`tooltip_${item}`] ||
-              o.object?.extraProps?.[item] ||
-              o.object?.[item] ||
-              '';
-
-            // Format datetime values for better readability
-            if (
-              item.toLowerCase().includes('date') ||
-              item.toLowerCase().includes('time')
-            ) {
-              if (typeof value === 'number' && value > 1000000000) {
-                // Convert Unix timestamp to readable date
-                value = new Date(value).toLocaleString();
-              }
-            }
-          } else if (item.item_type === 'column' && item.column_name) {
-            // Handle object format for columns
-            label = item.verbose_name || item.column_name || item.label || '';
-            value =
-              o.object?.[`tooltip_${item.column_name}`] ||
-              o.object?.extraProps?.[item.column_name] ||
-              o.object?.[item.column_name] ||
-              '';
-
-            // Format datetime values
-            if (
-              item.column_name.toLowerCase().includes('date') ||
-              item.column_name.toLowerCase().includes('time')
-            ) {
-              if (typeof value === 'number' && value > 1000000000) {
-                value = new Date(value).toLocaleString();
-              }
-            }
-          } else if (
-            item.item_type === 'metric' &&
-            (item.metric_name || item.label)
-          ) {
-            // Handle object format for metrics
-            const metricKey = item.metric_name || item.label || '';
-            label = item.verbose_name || item.metric_name || item.label || '';
-            value = o.object?.[metricKey] || o.object?.metric || '';
-          }
-
-          if (label && value !== '' && value !== null && value !== undefined) {
-            tooltipItems.push(
-              <TooltipRow
-                key={`tooltip-${index}`}
-                label={`${label}: `}
-                value={`${value}`}
-              />,
-            );
-          }
-        },
-      );
-
-      // Add default location if not already included
-      const hasLocation = formData.tooltip_contents.some(
-        (item: TooltipContentItem) => {
-          if (typeof item === 'string') {
-            return item === 'longitude' || item === 'latitude';
-          }
-          return (
-            item.column_name === 'longitude' || item.column_name === 'latitude'
-          );
-        },
-      );
-
-      if (!hasLocation) {
-        tooltipItems.unshift(
-          <TooltipRow
-            key="location"
-            // eslint-disable-next-line prefer-template
-            label={t('Longitude and Latitude') + ': '}
-            value={`${o.object?.position?.[0]}, ${o.object?.position?.[1]}`}
-          />,
-        );
-      }
-
-      return <div className="deckgl-tooltip">{tooltipItems}</div>;
-    }
-
-    // Default tooltip
+  const defaultTooltipGenerator = (o: JsonObject) => {
     const label =
       verboseMap?.[formData.point_radius_fixed.value] ||
       getMetricLabel(formData.point_radius_fixed?.value);
@@ -180,8 +71,7 @@ function setTooltipContent(
     );
   };
 
-  // Use the enhanced tooltip content generator with Handlebars support
-  return createTooltipContent(formData, defaultTooltipGenerator, verboseMap);
+  return createTooltipContent(formData, defaultTooltipGenerator);
 }
 
 export function getLayer(

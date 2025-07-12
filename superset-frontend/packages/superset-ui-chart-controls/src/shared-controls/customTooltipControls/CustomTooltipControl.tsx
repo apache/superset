@@ -79,8 +79,7 @@ const CustomTooltipControl = ({
     () => ({
       enabled: false,
       fields: [],
-      template:
-        '<div class="custom-tooltip">\n  <h3>{{title}}</h3>\n  {{#if value}}\n    <p><strong>Value:</strong> {{value}}</p>\n  {{/if}}\n</div>',
+      template: '',
       ...value,
     }),
     [value],
@@ -99,9 +98,26 @@ const CustomTooltipControl = ({
 
   const handleFieldsChange = useCallback(
     (fields: TooltipField[]) => {
+      let updatedTemplate = config.template;
+
+      // Check if new fields were added and add their variables to the template
+      const newFields = fields.filter(
+        field => !config.fields.some(existing => existing.name === field.name),
+      );
+
+      // Add variables for new fields to the template
+      if (newFields.length > 0) {
+        const newVariables = newFields
+          .map(field => `{{ ${field.name} }}`)
+          .join(' ');
+        updatedTemplate =
+          config.template + (config.template ? ' ' : '') + newVariables;
+      }
+
       const newConfig = {
         ...config,
         fields,
+        template: updatedTemplate,
       };
       onChange?.(newConfig);
     },

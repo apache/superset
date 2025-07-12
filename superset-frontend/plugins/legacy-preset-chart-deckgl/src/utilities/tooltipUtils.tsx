@@ -30,7 +30,7 @@ export function createTooltipContent(
   defaultTooltipGenerator: (o: JsonObject) => JSX.Element,
 ) {
   return (o: JsonObject) => {
-    // Check if custom tooltip template is provided
+    // Priority 1: Custom Handlebars Template
     if (
       formData.tooltip_template?.trim() &&
       !formData.tooltip_template.includes(
@@ -58,7 +58,7 @@ export function createTooltipContent(
       );
     }
 
-    // Check if custom tooltip contents are configured (legacy system)
+    // Priority 2: Field-based Tooltips
     if (formData.tooltip_contents && formData.tooltip_contents.length > 0) {
       const tooltipItems: JSX.Element[] = [];
 
@@ -69,23 +69,16 @@ export function createTooltipContent(
 
         if (item.item_type === 'column') {
           label = item.verbose_name || item.column_name || item.label;
-          // Support both our backend format (tooltip_${column}) and standard format
-          value =
-            o.object?.[`tooltip_${item.column_name}`] ||
-            o.object?.[item.column_name] ||
-            '';
+          value = o.object?.[item.column_name] || '';
         } else if (item.item_type === 'metric') {
           label = item.verbose_name || item.metric_name || item.label;
-          // Support both our backend format (tooltip_${metric}) and standard format
           value =
-            o.object?.[`tooltip_${item.metric_name || item.label}`] ||
             o.object?.[item.metric_name || item.label] ||
             o.object?.metric ||
             '';
         } else if (typeof item === 'string') {
-          // Handle simple string format
           label = item;
-          value = o.object?.[`tooltip_${item}`] || o.object?.[item] || '';
+          value = o.object?.[item] || '';
         }
 
         if (label && value !== '') {
@@ -110,7 +103,7 @@ export function createTooltipContent(
       return <div className="deckgl-tooltip">{tooltipItems}</div>;
     }
 
-    // Use default tooltip if no custom contents are configured
+    // Priority 3: Default Tooltip
     return defaultTooltipGenerator(o);
   };
 }
@@ -212,33 +205,25 @@ export function createHandlebarsTooltipData(
       : '',
   };
 
-  // Process tooltip_contents to add properly formatted tooltip_* variables
   if (formData.tooltip_contents && formData.tooltip_contents.length > 0) {
     formData.tooltip_contents.forEach((item: any) => {
-      let variableName = '';
+      let fieldName = '';
       let rawValue = '';
 
       if (typeof item === 'string') {
-        variableName = `tooltip_${item}`;
-        rawValue = o.object?.[item] || o.object?.[`tooltip_${item}`] || '';
+        fieldName = item;
+        rawValue = o.object?.[item] || '';
       } else if (item?.item_type === 'column') {
-        variableName = `tooltip_${item.column_name}`;
-        rawValue =
-          o.object?.[item.column_name] ||
-          o.object?.[`tooltip_${item.column_name}`] ||
-          '';
+        fieldName = item.column_name;
+        rawValue = o.object?.[item.column_name] || '';
       } else if (item?.item_type === 'metric') {
         const metricName = item.metric_name || item.label;
-        variableName = `tooltip_${metricName}`;
-        rawValue =
-          o.object?.[metricName] ||
-          o.object?.[`tooltip_${metricName}`] ||
-          o.object?.metric ||
-          '';
+        fieldName = metricName;
+        rawValue = o.object?.[metricName] || o.object?.metric || '';
       }
 
-      if (variableName && rawValue !== '') {
-        data[variableName] = rawValue;
+      if (fieldName && rawValue !== '') {
+        data[fieldName] = rawValue;
       }
     });
   }
