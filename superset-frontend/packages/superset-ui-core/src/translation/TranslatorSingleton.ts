@@ -73,6 +73,5 @@ export {
   addTranslations,
   addLocaleData,
   t,
-  tn,
   resetTranslation,
 };
