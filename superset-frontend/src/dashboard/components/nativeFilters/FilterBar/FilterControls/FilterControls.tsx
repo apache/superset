@@ -64,6 +64,7 @@ import CrossFilter from '../CrossFilters/CrossFilter';
 import { useFilterOutlined } from '../useFilterOutlined';
 import { useChartsVerboseMaps } from '../utils';
 import GroupByFilterCard from '../../ChartCustomization/GroupByFilterCard';
+import HorizontalGroupByControl from '../../ChartCustomization/HorizontalGroupByControl';
 import { selectChartCustomizationItems } from '../../ChartCustomization/selectors';
 
 type FilterControlsProps = {
@@ -395,8 +396,57 @@ const FilterControls: FC<FilterControlsProps> = ({
         </div>
       ),
     }));
-    return [...crossFilters, ...nativeFiltersInScope];
-  }, [filtersInScope, renderer, rendererCrossFilter, selectedCrossFilters]);
+    const dividerItems = [];
+    if (
+      (crossFilters.length > 0 || nativeFiltersInScope.length > 0) &&
+      chartCustomizationItems.length > 0
+    ) {
+      dividerItems.push({
+        id: 'chart-customization-divider',
+        element: (
+          <div
+            css={css`
+              width: 1px;
+              height: 32px;
+              background: ${theme.colorBorder};
+              margin: 0 ${theme.sizeUnit * 2}px;
+              flex-shrink: 0;
+            `}
+          />
+        ),
+      });
+    }
+
+    const chartCustomizations = chartCustomizationItems
+      .filter(item => !item.removed)
+      .map(item => ({
+        id: `chart-customization-${item.id}`,
+        element: (
+          <div
+            className="chart-customization-item-wrapper"
+            css={css`
+              flex-shrink: 0;
+            `}
+          >
+            <HorizontalGroupByControl customizationItem={item} />
+          </div>
+        ),
+      }));
+
+    return [
+      ...crossFilters,
+      ...nativeFiltersInScope,
+      ...dividerItems,
+      ...chartCustomizations,
+    ];
+  }, [
+    filtersInScope,
+    renderer,
+    rendererCrossFilter,
+    selectedCrossFilters,
+    chartCustomizationItems,
+    theme,
+  ]);
 
   const renderHorizontalContent = useCallback(
     () => (
@@ -407,22 +457,6 @@ const FilterControls: FC<FilterControlsProps> = ({
           flex: 1;
         `}
       >
-        {chartCustomizationItems.length > 0 && (
-          <div css={sectionContainerStyle}>
-            <div css={sectionHeaderStyle}>
-              <h4 css={sectionTitleStyle}>{t('Chart Customization')}</h4>
-            </div>
-            <div css={sectionContentStyle}>
-              <div css={chartCustomizationContentStyle}>
-                {chartCustomizationItems
-                  .filter(item => !item.removed)
-                  .map(item => (
-                    <GroupByFilterCard key={item.id} customizationItem={item} />
-                  ))}
-              </div>
-            </div>
-          </div>
-        )}
         <DropdownContainer
           items={items}
           dropdownTriggerIcon={
@@ -491,11 +525,6 @@ const FilterControls: FC<FilterControlsProps> = ({
       rendererCrossFilter,
       hasRequiredFirst,
       overflowedIds,
-      chartCustomizationItems,
-      sectionContainerStyle,
-      sectionHeaderStyle,
-      sectionTitleStyle,
-      chartCustomizationContentStyle,
     ],
   );
 
