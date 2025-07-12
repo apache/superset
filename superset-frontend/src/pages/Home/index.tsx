@@ -77,6 +77,7 @@ interface LoadingProps {
 const DEFAULT_TAB_ARR = ['dashboards', 'charts'];
 
 const WelcomeContainer = styled.div`
+  background: ${({ theme }) => theme.colorBgLayout};
   .ant-row.menu {
     margin-top: -15px;
 

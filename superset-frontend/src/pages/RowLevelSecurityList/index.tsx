@@ -250,10 +250,10 @@ function RowLevelSecurityList(props: RLSProps) {
     image: 'filter-results.svg',
     buttonAction: () => handleRuleEdit(null),
     buttonText: canEdit ? (
-      <>
+      <span className="ant-btn-icon">
         <Icons.PlusOutlined iconSize="m" data-test="add-rule-empty" />
         {t('Rule')}
-      </>
+      </span>
     ) : null,
   };
 
@@ -317,10 +317,10 @@ function RowLevelSecurityList(props: RLSProps) {
   if (canWrite) {
     subMenuButtons.push({
       name: (
-        <>
+        <span className="ant-btn-icon">
           <Icons.PlusOutlined iconSize="m" data-test="add-rule" />
           {t('Rule')}
-        </>
+        </span>
       ),
       buttonStyle: 'primary',
       onClick: () => handleRuleEdit(null),
