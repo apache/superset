@@ -467,6 +467,40 @@ function ExploreViewContainer(props) {
           ),
       );
 
+      // Handle tooltip template auto-update when tooltip_contents changes
+      if (changedControlKeys.includes('tooltip_contents')) {
+        const tooltipContents = props.controls.tooltip_contents?.value || [];
+        const currentTemplate = props.controls.tooltip_template?.value || '';
+
+        if (tooltipContents.length > 0 && currentTemplate.trim() !== '') {
+          const getFieldName = item => {
+            if (typeof item === 'string') return item;
+            if (item?.item_type === 'column') return item.column_name;
+            if (item?.item_type === 'metric') {
+              return item.metric_name || item.label;
+            }
+            return null;
+          };
+
+          const fieldNames = tooltipContents.map(getFieldName).filter(Boolean);
+          const missingVariables = fieldNames.filter(
+            fieldName => !currentTemplate.includes(`{{ ${fieldName} }}`),
+          );
+
+          if (missingVariables.length > 0) {
+            const newVariables = missingVariables.map(
+              fieldName => `{{ ${fieldName} }}`,
+            );
+            const updatedTemplate =
+              currentTemplate +
+              (currentTemplate ? ' ' : '') +
+              newVariables.join(' ');
+
+            props.actions.setControlValue('tooltip_template', updatedTemplate);
+          }
+        }
+      }
+
       // this should also be handled by the actions that are actually changing the controls
       const displayControlsChanged = changedControlKeys.filter(
         key => props.controls[key].renderTrigger,

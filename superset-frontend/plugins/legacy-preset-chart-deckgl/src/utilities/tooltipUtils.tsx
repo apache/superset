@@ -20,6 +20,7 @@
 import { t, JsonObject, QueryFormData } from '@superset-ui/core';
 import { HandlebarsRenderer } from './HandlebarsRenderer';
 import TooltipRow from '../TooltipRow';
+import CustomTooltipWrapper from '../components/CustomTooltipWrapper';
 
 /**
  * Enhanced tooltip content generator that supports both custom tooltip templates (Handlebars)
@@ -49,12 +50,14 @@ export function createTooltipContent(
       };
 
       return (
-        <div className="deckgl-tooltip">
-          <HandlebarsRenderer
-            templateSource={formData.tooltip_template}
-            data={tooltipData}
-          />
-        </div>
+        <CustomTooltipWrapper>
+          <div className="deckgl-tooltip">
+            <HandlebarsRenderer
+              templateSource={formData.tooltip_template}
+              data={tooltipData}
+            />
+          </div>
+        </CustomTooltipWrapper>
       );
     }
 

@@ -28,6 +28,7 @@ import {
   useEffect,
   useImperativeHandle,
   useState,
+  isValidElement,
 } from 'react';
 import { isEqual } from 'lodash';
 import { StaticMap } from 'react-map-gl';
@@ -35,6 +36,7 @@ import DeckGL from '@deck.gl/react';
 import type { Layer } from '@deck.gl/core';
 import { JsonObject, JsonValue, styled, usePrevious } from '@superset-ui/core';
 import Tooltip, { TooltipProps } from './components/Tooltip';
+import CustomTooltipWrapper from './components/CustomTooltipWrapper';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { Viewport } from './utils/fitViewport';
 
@@ -102,6 +104,19 @@ export const DeckGLContainer = memo(
       return props.layers as Layer[];
     }, [props.layers]);
 
+    const isCustomTooltip = (content: ReactNode): boolean =>
+      isValidElement(content) && content.type === CustomTooltipWrapper;
+
+    const renderTooltip = (tooltipState: TooltipProps['tooltip']) => {
+      if (!tooltipState) return null;
+
+      if (isCustomTooltip(tooltipState.content)) {
+        return <Tooltip tooltip={tooltipState} variant="custom" />;
+      }
+
+      return <Tooltip tooltip={tooltipState} />;
+    };
+
     const { children = null, height, width } = props;
 
     return (
@@ -123,7 +138,7 @@ export const DeckGLContainer = memo(
           </DeckGL>
           {children}
         </div>
-        <Tooltip tooltip={tooltip} />
+        {renderTooltip(tooltip)}
       </>
     );
   }),
