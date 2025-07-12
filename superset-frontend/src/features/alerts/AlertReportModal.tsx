@@ -83,6 +83,7 @@ import {
   ExtraNativeFilter,
   NativeFilterObject,
 } from 'src/features/alerts/types';
+import { StatusMessage } from 'src/filters/components/common';
 import { useSelector } from 'react-redux';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import { getChartDataRequest } from 'src/components/Chart/chartAction';
@@ -94,7 +95,6 @@ import NumberInput from './components/NumberInput';
 import { AlertReportCronScheduler } from './components/AlertReportCronScheduler';
 import { NotificationMethod } from './components/NotificationMethod';
 import { buildErrorTooltipMessage } from './buildErrorTooltipMessage';
-import { StatusMessage } from 'src/filters/components/common';
 
 const TIMEOUT_MIN = 1;
 const TEXT_BASED_VISUALIZATION_TYPES = [
@@ -671,7 +671,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     columnName: string,
     datasetId: number | string,
     vizType = 'filter_select',
-    adhocFilters = []
+    adhocFilters = [],
   ) => {
     if (vizType === 'filter_time') {
       return;
@@ -1393,8 +1393,12 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   };
 
   const onChangeDashboardFilter = (idx: number, nativeFilterId: string) => {
-
-    if (!nativeFilterId || nativeFilterId === 'undefined' || nativeFilterId === 'null') return;
+    if (
+      !nativeFilterId ||
+      nativeFilterId === 'undefined' ||
+      nativeFilterId === 'null'
+    )
+      return;
 
     // find specific filter tied to the selected filter
     const filters = Object.values(tabNativeFilters).flat();
@@ -1458,7 +1462,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
         columnName,
         datasetId,
         filterType,
-        adhocFilters
+        adhocFilters,
       ).then(optionFilterValues => {
         setNativeFilterData(
           nativeFilterData.map((filter, index) =>
@@ -1611,9 +1615,10 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
           value={filterValues?.[0]} // only showing first value in the array for filter_time
         />
       );
-    } else if (filterType === 'filter_range') {
-      const min = filterValues?.[0]
-      const max = filterValues?.[1]
+    }
+    if (filterType === 'filter_range') {
+      const min = filterValues?.[0];
+      const max = filterValues?.[1];
       return (
         <div>
           <div className="inline-container">
@@ -1621,7 +1626,11 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
               value={min}
               onChange={value => {
                 setNativeFilterData(
-                  nativeFilterData.map((f: any) => f.nativeFilterId === filter.nativeFilterId ? { ...f, filterValues: [value] } : f),
+                  nativeFilterData.map((f: any) =>
+                    f.nativeFilterId === filter.nativeFilterId
+                      ? { ...f, filterValues: [value, filterValues?.[1]] }
+                      : f,
+                  ),
                 );
               }}
             />
@@ -1630,7 +1639,11 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
               value={max}
               onChange={value => {
                 setNativeFilterData(
-                  nativeFilterData.map((f: any) => f.nativeFilterId === filter.nativeFilterId ? { ...f, filterValues: [filterValues?.[0], value] } : f),
+                  nativeFilterData.map((f: any) =>
+                    f.nativeFilterId === filter.nativeFilterId
+                      ? { ...f, filterValues: [filterValues?.[0], value] }
+                      : f,
+                  ),
                 );
               }}
             />
@@ -1639,7 +1652,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
             {t('Enter minimum and maximum values for the range filter')}
           </StatusMessage>
         </div>
-      )
+      );
     }
 
     if (
@@ -1671,9 +1684,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
         mode={mode as 'multiple' | 'single'}
         onClear={() => {
           // reset filter values on filter clear
-          filter.columnName = '';
-          filter.filterName = '';
-          filter.filterValues = [];
+          onChangeDashboardFilterValue(idx, []);
         }}
         allowClear
       />
@@ -1704,19 +1715,20 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     // validate native filter
     nativeFilterData.forEach(filter => {
       const columnNameCheck = !filter.columnName || filter.columnName === '';
-      const filterValuesCheck = !filter.filterValues || filter.filterValues.length === 0;
+      const filterValuesCheck =
+        !filter.filterValues || filter.filterValues.length === 0;
 
       if (columnNameCheck && filterValuesCheck) {
-        // if both columnName and filterValues are not null or empty, skip validation
+        // if both columnName and filterValues are null or empty, skip validation
         return;
       }
 
-      // check if native filter columnName is not null or empty
+      // check if native filter columnName is null or empty
       if (columnNameCheck) {
         errors.push(TRANSLATIONS.NATIVE_FILTER_COLUMN_ERROR_TEXT);
       }
-      // check if native filter values is not null or empty
-      else if (filterValuesCheck) {
+      // check if native filter values is null or empty
+      if (filterValuesCheck) {
         errors.push(TRANSLATIONS.NATIVE_FILTER_NO_VALUES_ERROR_TEXT);
       }
     });
