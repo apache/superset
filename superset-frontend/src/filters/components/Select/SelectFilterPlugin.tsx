@@ -151,6 +151,8 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
   const [col] = groupby;
   const [initialColtypeMap] = useState(coltypeMap);
   const [search, setSearch] = useState('');
+  const isChangedByUser = useRef(false);
+  const prevDataRef = useRef(data);
   const [dataMask, dispatchDataMask] = useImmerReducer(reducer, {
     extraFormData: {},
     filterState,
@@ -271,6 +273,8 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
       } else {
         updateDataMask(values);
       }
+
+      isChangedByUser.current = true;
     },
     [updateDataMask, formData.nativeFilterId, clearAllTrigger],
   );
@@ -366,6 +370,47 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
     groupby,
     col,
     inverseSelection,
+  ]);
+
+   useEffect(() => {
+    const prev = prevDataRef.current;
+    const curr = data;
+
+    const prevFirst = prev?.[0]?.[col];
+    const currFirst = curr?.[0]?.[col];
+
+    // If data actually changed (e.g., due to parent filter), reset flag
+    if (prevFirst !== currFirst) {
+      isChangedByUser.current = false;
+      prevDataRef.current = data;
+    }
+  }, [data, col]);
+
+  useEffect(() => {
+    if (isChangedByUser.current) return;
+
+    const firstItem: SelectValue = data[0]
+      ? (groupby.map(col => data[0][col]) as string[])
+      : null;
+
+    if (
+      defaultToFirstItem &&
+      Object.keys(formData?.extraFormData || {}).length &&
+      filterState.value !== undefined &&
+      firstItem !== null &&
+      filterState.value !== firstItem
+    ) {
+      if (firstItem?.[0] !== undefined) {
+        updateDataMask(firstItem);
+      }
+    }
+  }, [
+    defaultToFirstItem,
+    updateDataMask,
+    formData,
+    data,
+    JSON.stringify(filterState.value),
+    isChangedByUser.current,
   ]);
 
   useEffect(() => {

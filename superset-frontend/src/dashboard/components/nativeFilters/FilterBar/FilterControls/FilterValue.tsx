@@ -58,6 +58,7 @@ import { FilterControlProps } from './types';
 import { getFormData } from '../../utils';
 import { useFilterDependencies } from './state';
 import { useFilterOutlined } from '../useFilterOutlined';
+import { useFilters } from '../state';
 
 const HEIGHT = 32;
 
@@ -107,6 +108,7 @@ const FilterValue: FC<FilterControlProps> = ({
     state => state.dashboardInfo.id,
   );
 
+  const allFilters = useFilters();
   const [error, setError] = useState<ClientErrorObject>();
   const [formData, setFormData] = useState<Partial<QueryFormData>>({
     inView: false,
@@ -155,6 +157,37 @@ const FilterValue: FC<FilterControlProps> = ({
       dashboardId,
     });
     const filterOwnState = filter.dataMask?.ownState || {};
+    if (filter?.cascadeParentIds?.length) {
+      // check if it is a child filter
+
+      let selectedParentFilterValueCounts = 0;
+
+      filter?.cascadeParentIds?.forEach(pId => {
+        if (
+          allFilters[pId]?.controlValues?.defaultToFirstItem ||
+          allFilters[pId]?.defaultDataMask?.extraFormData?.filters ||
+          allFilters[pId]?.defaultDataMask?.extraFormData?.time_range
+        ) {
+          selectedParentFilterValueCounts +=
+            allFilters[pId]?.defaultDataMask?.extraFormData?.filters?.length ?? 1;
+        }
+      });
+
+      // check if all parent filters with defaults have a value selected
+
+      let depsCount = dependencies.filters?.length ?? 0;
+
+      if (dependencies?.time_range) {
+        depsCount += 1;
+      }
+
+      if (selectedParentFilterValueCounts !== depsCount) {
+        // child filter should not request backend until it
+        // has all the required information from parent filters
+        return;
+      }
+    }
+
     // TODO: We should try to improve our useEffect hooks to depend more on
     // granular information instead of big objects that require deep comparison.
     const customizer = (
@@ -226,6 +259,7 @@ const FilterValue: FC<FilterControlProps> = ({
     hasDataSource,
     isRefreshing,
     shouldRefresh,
+    allFilters,
   ]);
 
   useEffect(() => {
