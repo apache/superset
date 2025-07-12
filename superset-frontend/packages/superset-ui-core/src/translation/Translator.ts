@@ -94,27 +94,4 @@ export default class Translator {
       return input;
     }
   }
-
-  translateWithNumber(key: string, ...args: unknown[]): string {
-    try {
-      const [plural, num, ...rest] = args;
-      if (typeof plural === 'number') {
-        return this.i18n
-          .translate(key)
-          .ifPlural(plural, key)
-          .fetch(plural, num, ...args);
-      }
-      return this.i18n
-        .translate(key)
-        .ifPlural(num as number, plural as string)
-        .fetch(...rest);
-    } catch (err) {
-      logging.warn(
-        `Plural translation failed for key "${key}" with args:`,
-        args,
-      );
-      logging.warn(err);
-      return key;
-    }
-  }
 }
