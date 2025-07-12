@@ -591,3 +591,199 @@ test('modifies the name of a filter', async () => {
     ),
   );
 });
+
+test('prevents saving cyclic dependencies created indirectly', async () => {
+  // Test case: Reproduce exact scenario from GitHub issue #33908
+  // This test verifies that users cannot create A→B dependency, save it,
+  // then later add B→A dependency and save again (which would create a cycle)
+  
+  const nativeFilterState = [
+    buildNativeFilter('NATIVE_FILTER-1', 'state', []),
+    buildNativeFilter('NATIVE_FILTER-2', 'country', []),
+  ];
+  const state = {
+    ...defaultState(),
+    dashboardInfo: {
+      metadata: { native_filter_configuration: nativeFilterState },
+    },
+    dashboardLayout,
+  };
+  const onSave = jest.fn();
+  defaultRender(state, {
+    ...props,
+    createNewOnOpen: false,
+    onSave,
+  });
+
+  // STEP 1: Set up Filter 1 → depends on Filter 2 (should succeed)
+  const filterTabs = screen.getAllByRole('tab');
+  await userEvent.click(filterTabs[0]); // Select first filter
+
+  // Enable the dependencies option for Filter 1
+  const dependenciesCheckbox = screen.getByRole('checkbox', { name: DEPENDENCIES_REGEX });
+  await userEvent.click(dependenciesCheckbox);
+
+  // Set Filter 1 to depend on Filter 2
+  const dependencySelect = screen.getByRole('combobox', { name: /values dependent on/i });
+  await userEvent.click(dependencySelect);
+  const filter2Option = screen.getByText('country');
+  await userEvent.click(filter2Option);
+
+  // Save this configuration (should work as there's no cycle yet)
+  await userEvent.click(screen.getByRole('button', { name: SAVE_REGEX }));
+  await waitFor(() => expect(onSave).toHaveBeenCalledTimes(1));
+
+  // Verify the save was successful with correct dependency structure
+  expect(onSave).toHaveBeenCalledWith(
+    expect.objectContaining({
+      filterConfig: expect.objectContaining({
+        'NATIVE_FILTER-1': expect.objectContaining({
+          dependsOn: ['NATIVE_FILTER-2'], // Filter 1 now depends on Filter 2
+        }),
+        'NATIVE_FILTER-2': expect.objectContaining({
+          dependsOn: [], // Filter 2 has no dependencies
+        }),
+      }),
+    }),
+  );
+
+  // Reset mock for second save attempt
+  onSave.mockClear();
+
+  // STEP 2: Simulate reopening the modal and trying to create reverse dependency
+  // This reproduces the bug scenario: user reopens modal to edit Filter 2
+  defaultRender(state, {
+    ...props,
+    createNewOnOpen: false,
+    onSave,
+  });
+
+  const filterTabs2 = screen.getAllByRole('tab');
+  await userEvent.click(filterTabs2[1]); // Select second filter (Filter 2)
+
+  // Try to set Filter 2 to depend on Filter 1 (creating A→B→A cycle)
+  const dependenciesCheckbox2 = screen.getByRole('checkbox', { name: DEPENDENCIES_REGEX });
+  await userEvent.click(dependenciesCheckbox2);
+
+  const dependencySelect2 = screen.getByRole('combobox', { name: /values dependent on/i });
+  await userEvent.click(dependencySelect2);
+  const filter1Option = screen.getByText('state');
+  await userEvent.click(filter1Option);
+
+  // STEP 3: Attempt to save the cyclic configuration (should be blocked)
+  await userEvent.click(screen.getByRole('button', { name: SAVE_REGEX }));
+
+  // Verify that save was prevented due to cyclic dependency detection
+  await waitFor(() => {
+    expect(onSave).not.toHaveBeenCalled();
+  }, { timeout: 1000 });
+
+  // Verify that user receives appropriate error feedback
+  await waitFor(() => {
+    expect(screen.getByText(/cyclic dependency detected/i)).toBeInTheDocument();
+  }, { timeout: 1000 });
+
+  // Verify that focus is moved to the problematic filter for user guidance
+  await waitFor(() => {
+    const activeTab = screen.getByRole('tab', { selected: true });
+    expect(activeTab).toHaveTextContent('country'); // Should focus on Filter 2
+  }, { timeout: 1000 });
+});
+
+test('detects immediate cyclic dependency and prevents setup', async () => {
+  // Test case: Verify existing real-time validation still works
+  // This ensures our fix doesn't break the immediate cycle detection
+  
+  const nativeFilterState = [
+    buildNativeFilter('NATIVE_FILTER-1', 'state', ['NATIVE_FILTER-2']), // A depends on B
+    buildNativeFilter('NATIVE_FILTER-2', 'country', []),
+  ];
+  const state = {
+    ...defaultState(),
+    dashboardInfo: {
+      metadata: { native_filter_configuration: nativeFilterState },
+    },
+    dashboardLayout,
+  };
+  const onSave = jest.fn();
+  defaultRender(state, {
+    ...props,
+    createNewOnOpen: false,
+    onSave,
+  });
+
+  // Try to immediately set Filter 2 to depend on Filter 1 (immediate cycle)
+  const filterTabs = screen.getAllByRole('tab');
+  await userEvent.click(filterTabs[1]); // Select Filter 2
+
+  // Enable dependencies for Filter 2
+  const dependenciesCheckbox = screen.getByRole('checkbox', { name: DEPENDENCIES_REGEX });
+  await userEvent.click(dependenciesCheckbox);
+
+  // Attempt to select Filter 1 as dependency (creating immediate cycle)
+  const dependencySelect = screen.getByRole('combobox', { name: /values dependent on/i });
+  await userEvent.click(dependencySelect);
+  const filter1Option = screen.getByText('state');
+  await userEvent.click(filter1Option);
+
+  // Verify immediate cycle detection (real-time validation)
+  await waitFor(() => {
+    expect(screen.getByText(/cyclic dependency detected/i)).toBeInTheDocument();
+  }, { timeout: 1000 });
+
+  // Verify save button is not functional when cycle exists
+  const saveButton = screen.getByRole('button', { name: SAVE_REGEX });
+  await userEvent.click(saveButton);
+  
+  await waitFor(() => {
+    expect(onSave).not.toHaveBeenCalled();
+  }, { timeout: 1000 });
+});
+
+test('handles complex multi-filter cyclic dependencies', async () => {
+  // Test case: Verify detection of indirect cycles through multiple filters
+  // Scenario: A→B→C, then try to add C→A (creating A→B→C→A cycle)
+  
+  const nativeFilterState = [
+    buildNativeFilter('NATIVE_FILTER-1', 'state', ['NATIVE_FILTER-2']), // A→B
+    buildNativeFilter('NATIVE_FILTER-2', 'country', ['NATIVE_FILTER-3']), // B→C  
+    buildNativeFilter('NATIVE_FILTER-3', 'city', []), // C (no dependencies)
+  ];
+  const state = {
+    ...defaultState(),
+    dashboardInfo: {
+      metadata: { native_filter_configuration: nativeFilterState },
+    },
+    dashboardLayout,
+  };
+  const onSave = jest.fn();
+  defaultRender(state, {
+    ...props,
+    createNewOnOpen: false,
+    onSave,
+  });
+
+  // Try to set Filter 3 (C) to depend on Filter 1 (A), creating A→B→C→A
+  const filterTabs = screen.getAllByRole('tab');
+  await userEvent.click(filterTabs[2]); // Select Filter 3 (city)
+
+  const dependenciesCheckbox = screen.getByRole('checkbox', { name: DEPENDENCIES_REGEX });
+  await userEvent.click(dependenciesCheckbox);
+
+  const dependencySelect = screen.getByRole('combobox', { name: /values dependent on/i });
+  await userEvent.click(dependencySelect);
+  const filter1Option = screen.getByText('state');
+  await userEvent.click(filter1Option);
+
+  // Attempt to save the complex cycle
+  await userEvent.click(screen.getByRole('button', { name: SAVE_REGEX }));
+
+  // Verify cycle detection works for complex scenarios
+  await waitFor(() => {
+    expect(onSave).not.toHaveBeenCalled();
+  }, { timeout: 1000 });
+
+  await waitFor(() => {
+    expect(screen.getByText(/cyclic dependency detected/i)).toBeInTheDocument();
+  }, { timeout: 1000 });
+});

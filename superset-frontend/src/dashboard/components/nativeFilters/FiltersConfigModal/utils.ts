@@ -34,6 +34,7 @@ export const REMOVAL_DELAY_SECS = 5;
 
 export const hasCircularDependency = (
   dependencyMap: Map<string, string[]>,
+
   filterId: string,
   trace: string[] = [],
 ): boolean => {
@@ -47,6 +48,46 @@ export const hasCircularDependency = (
     );
   }
   return false;
+};
+
+interface FieldError {
+  name: (string | number)[];
+  errors: string[];
+  warnings: string[];
+}
+
+/**
+ * Helper function to find dependency validation errors in form fields.
+ * This function improves code maintainability by centralizing the logic
+ * for detecting cyclic dependency errors and extracting the problematic filter ID.
+ *
+ * @param fields - Array of form field error objects from Ant Design Form
+ * @returns Object containing error status and filter ID, or null if no dependency errors
+ */
+export const findDependencyError = (fields: FieldError[]) => {
+  const FILTER_ID_INDEX = 1;
+
+  const errorField = fields.find(({ name, errors }) => {
+    const [path, subpath, id] = name;
+    return (
+      path === 'filters' &&
+      subpath === 'dependencies' &&
+      typeof id === 'string' &&
+      errors?.length > 0
+    );
+  });
+
+  if (!errorField) {
+    return null;
+  }
+
+  const filterId = errorField.name[FILTER_ID_INDEX];
+
+  return {
+    hasError: true,
+    filterId: filterId as string,
+    errors: errorField.errors,
+  };
 };
 
 export const validateForm = async (
