@@ -69,7 +69,7 @@ export type Datasource = Dataset & {
   catalog?: string | null;
   schema?: string;
   is_sqllab_view?: boolean;
-  extra?: string;
+  extra?: string | object;
 };
 
 export interface ExplorePageInitialData {
