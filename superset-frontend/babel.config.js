@@ -46,10 +46,10 @@ module.exports = {
   plugins: [
     'lodash',
     '@babel/plugin-syntax-dynamic-import',
-    ['@babel/plugin-proposal-class-properties', { loose: true }],
-    ['@babel/plugin-proposal-optional-chaining', { loose: true }],
-    ['@babel/plugin-proposal-private-methods', { loose: true }],
-    ['@babel/plugin-proposal-nullish-coalescing-operator', { loose: true }],
+    ['@babel/plugin-transform-class-properties', { loose: true }],
+    ['@babel/plugin-transform-optional-chaining', { loose: true }],
+    ['@babel/plugin-transform-private-methods', { loose: true }],
+    ['@babel/plugin-transform-nullish-coalescing-operator', { loose: true }],
     ['@babel/plugin-transform-runtime', { corejs: 3 }],
     // only used in packages/superset-ui-core/src/chart/components/reactify.tsx
     ['babel-plugin-typescript-to-proptypes', { loose: true }],
