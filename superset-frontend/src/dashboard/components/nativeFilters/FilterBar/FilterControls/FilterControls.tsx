@@ -35,6 +35,7 @@ import {
   SupersetTheme,
   t,
   isNativeFilterWithDataMask,
+  useTheme,
 } from '@superset-ui/core';
 import {
   createHtmlPortalNode,
@@ -54,6 +55,7 @@ import {
 import { Icons } from '@superset-ui/core/components/Icons';
 import { useChartIds } from 'src/dashboard/util/charts/useChartIds';
 import { useChartLayoutItems } from 'src/dashboard/util/useChartLayoutItems';
+import { ChartCustomizationItem } from 'src/dashboard/components/nativeFilters/ChartCustomization/types';
 import { FiltersOutOfScopeCollapsible } from '../FiltersOutOfScopeCollapsible';
 import { useFilterControlFactory } from '../useFilterControlFactory';
 import { FiltersDropdownContent } from '../FiltersDropdownContent';
@@ -61,6 +63,9 @@ import crossFiltersSelector from '../CrossFilters/selectors';
 import CrossFilter from '../CrossFilters/CrossFilter';
 import { useFilterOutlined } from '../useFilterOutlined';
 import { useChartsVerboseMaps } from '../utils';
+import GroupByFilterCard from '../../ChartCustomization/GroupByFilterCard';
+import HorizontalGroupByControl from '../../ChartCustomization/HorizontalGroupByControl';
+import { selectChartCustomizationItems } from '../../ChartCustomization/selectors';
 
 type FilterControlsProps = {
   dataMaskSelected: DataMaskStateWithId;
@@ -75,6 +80,7 @@ const FilterControls: FC<FilterControlsProps> = ({
   clearAllTriggers,
   onClearAllComplete,
 }) => {
+  const theme = useTheme();
   const filterBarOrientation = useSelector<RootState, FilterBarOrientation>(
     ({ dashboardInfo }) => dashboardInfo.filterBarOrientation,
   );
@@ -90,6 +96,12 @@ const FilterControls: FC<FilterControlsProps> = ({
   const chartIds = useChartIds();
   const chartLayoutItems = useChartLayoutItems();
   const verboseMaps = useChartsVerboseMaps();
+
+  // Get chart customization items from Redux state
+  const chartCustomizationItems = useSelector<
+    RootState,
+    ChartCustomizationItem[]
+  >(state => selectChartCustomizationItems(state));
 
   const selectedCrossFilters = useMemo(
     () =>
@@ -128,6 +140,89 @@ const FilterControls: FC<FilterControlsProps> = ({
   const dashboardHasTabs = useDashboardHasTabs();
   const showCollapsePanel = dashboardHasTabs && filtersWithValues.length > 0;
 
+  // State for collapsible sections
+  const [sectionsOpen, setSectionsOpen] = useState({
+    filters: true,
+    chartCustomization: true,
+  });
+
+  const toggleSection = useCallback((section: keyof typeof sectionsOpen) => {
+    setSectionsOpen(prev => ({
+      ...prev,
+      [section]: !prev[section],
+    }));
+  }, []);
+
+  // Shared section styling
+  const sectionContainerStyle = useCallback(
+    (theme: SupersetTheme) => css`
+      margin-bottom: ${theme.sizeUnit * 3}px;
+    `,
+    [],
+  );
+
+  const sectionHeaderStyle = useCallback(
+    (theme: SupersetTheme) => css`
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: ${theme.sizeUnit * 2}px 0;
+      cursor: pointer;
+      user-select: none;
+
+      &:hover {
+        background: ${theme.colorBgTextHover};
+        margin: 0 -${theme.sizeUnit * 2}px;
+        padding: ${theme.sizeUnit * 2}px;
+        border-radius: ${theme.sizeUnit}px;
+      }
+    `,
+    [],
+  );
+
+  const sectionTitleStyle = useCallback(
+    (theme: SupersetTheme) => css`
+      margin: 0;
+      font-size: ${theme.fontSizeSM}px;
+      font-weight: 600;
+      color: ${theme.colorText};
+    `,
+    [],
+  );
+
+  const sectionContentStyle = useCallback(
+    (theme: SupersetTheme) => css`
+      padding: ${theme.sizeUnit * 2}px 0;
+    `,
+    [],
+  );
+
+  const dividerStyle = useCallback(
+    (theme: SupersetTheme) => css`
+      height: 1px;
+      background: ${theme.colorSplit};
+      margin: ${theme.sizeUnit * 2}px 0;
+    `,
+    [],
+  );
+
+  const iconStyle = useCallback(
+    (isOpen: boolean, theme: SupersetTheme) => css`
+      transform: ${isOpen ? 'rotate(0deg)' : 'rotate(180deg)'};
+      transition: transform 0.2s ease;
+      color: ${theme.colorTextSecondary};
+    `,
+    [],
+  );
+
+  const chartCustomizationContentStyle = useCallback(
+    (theme: SupersetTheme) => css`
+      display: flex;
+      flex-direction: column;
+      gap: ${theme.sizeUnit * 2}px;
+    `,
+    [],
+  );
   const renderer = useCallback(
     ({ id }: Filter | Divider, index: number | undefined) => {
       const filterIndex = filtersWithValues.findIndex(f => f.id === id);
@@ -147,7 +242,73 @@ const FilterControls: FC<FilterControlsProps> = ({
   const renderVerticalContent = useCallback(
     () => (
       <>
-        {filtersInScope.map(renderer)}
+        {filtersInScope.length > 0 && (
+          <div css={sectionContainerStyle}>
+            <div
+              css={sectionHeaderStyle}
+              onClick={() => toggleSection('filters')}
+              onKeyDown={e => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  toggleSection('filters');
+                }
+              }}
+              role="button"
+              tabIndex={0}
+            >
+              <h4 css={sectionTitleStyle}>{t('Filters')}</h4>
+              <Icons.UpOutlined
+                iconSize="m"
+                css={iconStyle(sectionsOpen.filters, theme)}
+              />
+            </div>
+            {sectionsOpen.filters && (
+              <div css={sectionContentStyle}>
+                {filtersInScope.map(renderer)}
+              </div>
+            )}
+            <div css={dividerStyle} />
+          </div>
+        )}
+
+        {chartCustomizationItems.length > 0 && (
+          <div css={sectionContainerStyle}>
+            <div
+              css={sectionHeaderStyle}
+              onClick={() => toggleSection('chartCustomization')}
+              onKeyDown={e => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  toggleSection('chartCustomization');
+                }
+              }}
+              role="button"
+              tabIndex={0}
+            >
+              <h4 css={sectionTitleStyle}>{t('Chart Customization')}</h4>
+              <Icons.UpOutlined
+                iconSize="m"
+                css={iconStyle(sectionsOpen.chartCustomization, theme)}
+              />
+            </div>
+            {sectionsOpen.chartCustomization && (
+              <div css={sectionContentStyle}>
+                <div css={chartCustomizationContentStyle}>
+                  {chartCustomizationItems
+                    .filter(item => !item.removed)
+                    .map(item => (
+                      <GroupByFilterCard
+                        key={item.id}
+                        customizationItem={item}
+                      />
+                    ))}
+                </div>
+              </div>
+            )}
+            <div css={dividerStyle} />
+          </div>
+        )}
+
         {showCollapsePanel && (
           <FiltersOutOfScopeCollapsible
             filtersOutOfScope={filtersOutOfScope}
@@ -163,6 +324,16 @@ const FilterControls: FC<FilterControlsProps> = ({
       showCollapsePanel,
       filtersOutOfScope,
       hasRequiredFirst,
+      chartCustomizationItems,
+      sectionsOpen,
+      toggleSection,
+      sectionContainerStyle,
+      sectionHeaderStyle,
+      sectionTitleStyle,
+      sectionContentStyle,
+      dividerStyle,
+      iconStyle,
+      chartCustomizationContentStyle,
     ],
   );
 
@@ -225,8 +396,57 @@ const FilterControls: FC<FilterControlsProps> = ({
         </div>
       ),
     }));
-    return [...crossFilters, ...nativeFiltersInScope];
-  }, [filtersInScope, renderer, rendererCrossFilter, selectedCrossFilters]);
+    const dividerItems = [];
+    if (
+      (crossFilters.length > 0 || nativeFiltersInScope.length > 0) &&
+      chartCustomizationItems.length > 0
+    ) {
+      dividerItems.push({
+        id: 'chart-customization-divider',
+        element: (
+          <div
+            css={css`
+              width: 1px;
+              height: 32px;
+              background: ${theme.colorBorder};
+              margin: 0 ${theme.sizeUnit * 2}px;
+              flex-shrink: 0;
+            `}
+          />
+        ),
+      });
+    }
+
+    const chartCustomizations = chartCustomizationItems
+      .filter(item => !item.removed)
+      .map(item => ({
+        id: `chart-customization-${item.id}`,
+        element: (
+          <div
+            className="chart-customization-item-wrapper"
+            css={css`
+              flex-shrink: 0;
+            `}
+          >
+            <HorizontalGroupByControl customizationItem={item} />
+          </div>
+        ),
+      }));
+
+    return [
+      ...crossFilters,
+      ...nativeFiltersInScope,
+      ...dividerItems,
+      ...chartCustomizations,
+    ];
+  }, [
+    filtersInScope,
+    renderer,
+    rendererCrossFilter,
+    selectedCrossFilters,
+    chartCustomizationItems,
+    theme,
+  ]);
 
   const renderHorizontalContent = useCallback(
     () => (
