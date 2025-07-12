@@ -173,7 +173,7 @@ test('Should have modal header', async () => {
 
   await waitFor(() => {
     expect(screen.getByText('Edit Chart Properties')).toBeVisible();
-    expect(screen.getByText('×')).toBeVisible();
+    expect(screen.getByTestId('close-modal-btn')).toBeVisible();
     expect(screen.getByRole('button', { name: 'Close' })).toBeVisible();
   });
 });
