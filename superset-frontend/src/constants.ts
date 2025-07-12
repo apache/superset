@@ -169,6 +169,7 @@ export const DEFAULT_COMMON_BOOTSTRAP_DATA: CommonBootstrapData = {
   },
   d3_format: DEFAULT_D3_FORMAT,
   d3_time_format: DEFAULT_D3_TIME_FORMAT,
+  pdf_compression_level: 'MEDIUM',
 };
 
 export const DEFAULT_BOOTSTRAP_DATA: BootstrapData = {
