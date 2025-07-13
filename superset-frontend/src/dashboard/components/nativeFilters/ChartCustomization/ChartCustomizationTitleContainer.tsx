@@ -25,8 +25,8 @@ interface Props {
   items: ChartCustomizationItem[];
   currentId: string | null;
   onChange: (id: string) => void;
-  removeTimerId?: number;
   onRemove: (id: string, shouldRemove?: boolean) => void;
+  erroredItems?: string[];
 }
 
 const ListContainer = styled.div`
@@ -35,7 +35,7 @@ const ListContainer = styled.div`
   gap: ${({ theme }) => theme.sizeUnit * 2}px;
 `;
 
-const FilterTitle = styled.div<{ selected: boolean }>`
+const FilterTitle = styled.div<{ selected: boolean; errored: boolean }>`
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -52,6 +52,14 @@ const FilterTitle = styled.div<{ selected: boolean }>`
   &:hover {
     background-color: ${({ theme }) => theme.colors.grayscale.light3};
   }
+
+  ${({ theme, errored }) =>
+    errored &&
+    `
+    &.errored div, &.errored .warning {
+      color: ${theme.colors.error.base};
+    }
+  `}
 `;
 
 const LabelWrapper = styled.div`
@@ -88,13 +96,27 @@ const TrashIcon = styled(Icons.DeleteOutlined)`
   }
 `;
 
+const StyledWarning = styled(Icons.ExclamationCircleOutlined)`
+  margin-left: ${({ theme }) => theme.sizeUnit * 2}px;
+  color: ${({ theme }) => theme.colors.error.base};
+`;
+
 const ChartCustomizationTitleContainer: FC<Props> = forwardRef(
-  ({ items, currentId, onChange, onRemove }, ref) => (
+  ({ items, currentId, onChange, onRemove, erroredItems = [] }, ref) => (
     <ListContainer ref={ref as any}>
       {items.map(item => {
         const isRemoved = item.removed;
         const selected = item.id === currentId;
+        const isErrored = erroredItems.includes(item.id);
         const displayName = item.customization.name?.trim() || t('[untitled]');
+        const classNames = [];
+
+        if (isErrored) {
+          classNames.push('errored');
+        }
+        if (selected) {
+          classNames.push('active');
+        }
 
         return (
           <FilterTitle
@@ -102,7 +124,9 @@ const ChartCustomizationTitleContainer: FC<Props> = forwardRef(
             role="tab"
             tabIndex={0}
             selected={selected}
+            errored={isErrored}
             onClick={() => onChange(item.id)}
+            className={classNames.join(' ')}
             onKeyDown={e => {
               if (e.key === 'Enter' || e.key === ' ') {
                 e.preventDefault();
@@ -126,14 +150,19 @@ const ChartCustomizationTitleContainer: FC<Props> = forwardRef(
               )}
             </LabelWrapper>
             {!isRemoved && (
-              <TrashIcon
-                iconSize="m"
-                onClick={(e: MouseEvent<HTMLElement>) => {
-                  e.stopPropagation();
-                  onRemove(item.id, true);
-                }}
-                alt="RemoveGroupBy"
-              />
+              <>
+                {isErrored && (
+                  <StyledWarning className="warning" iconSize="s" />
+                )}
+                <TrashIcon
+                  iconSize="m"
+                  onClick={(e: MouseEvent<HTMLElement>) => {
+                    e.stopPropagation();
+                    onRemove(item.id, true);
+                  }}
+                  alt="RemoveGroupBy"
+                />
+              </>
             )}
           </FilterTitle>
         );
