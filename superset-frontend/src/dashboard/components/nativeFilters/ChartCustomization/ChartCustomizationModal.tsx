@@ -199,13 +199,15 @@ const ChartCustomizationModal = ({
     setItems([...items, item]);
     setCurrentId(item.id);
 
+    const currentFormValues = form.getFieldsValue();
+    let formattedDataset = null;
+
     if (fallbackDatasetId) {
       const datasetInfo = Object.values(loadedDatasets).find(
         dataset => dataset.id === Number(fallbackDatasetId),
       );
 
-      const currentFormValues = form.getFieldsValue();
-      const formattedDataset = datasetInfo
+      formattedDataset = datasetInfo
         ? {
             value: fallbackDatasetId,
             label: `${datasetInfo.table_name}${
@@ -218,25 +220,25 @@ const ChartCustomizationModal = ({
             value: fallbackDatasetId,
             label: `Dataset ${fallbackDatasetId}`,
           };
-
-      form.setFieldsValue({
-        filters: {
-          ...currentFormValues.filters,
-          [item.id]: {
-            name: '',
-            description: '',
-            dataset: formattedDataset,
-            column: null,
-            sortFilter: false,
-            sortAscending: true,
-            sortMetric: null,
-            hasDefaultValue: false,
-            isRequired: false,
-            selectFirst: false,
-          },
-        },
-      });
     }
+
+    form.setFieldsValue({
+      filters: {
+        ...currentFormValues.filters,
+        [item.id]: {
+          name: '',
+          description: '',
+          dataset: formattedDataset,
+          column: null,
+          sortFilter: false,
+          sortAscending: true,
+          sortMetric: null,
+          hasDefaultValue: false,
+          isRequired: false,
+          selectFirst: false,
+        },
+      },
+    });
   }, [items, chartId, loadedDatasets, charts, form]);
 
   const handleRemoveItem = useCallback(
@@ -445,6 +447,7 @@ const ChartCustomizationModal = ({
         onChange={setCurrentId}
         onAdd={addItem}
         onRemove={handleRemoveItem}
+        erroredItems={erroredItems}
       />
     </div>
   );
