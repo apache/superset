@@ -392,6 +392,15 @@ const ChartCustomizationForm: FC<Props> = ({ form, item, onUpdate }) => {
       ensureFilterSlot();
       const currentFilters = form.getFieldValue('filters') || {};
 
+      const currentFormValues = form.getFieldValue('filters')?.[item.id] || {};
+      const selectFirstEnabled =
+        currentFormValues.selectFirst ?? customization.selectFirst ?? false;
+
+      let autoSelectedColumn = null;
+      if (selectFirstEnabled && columns.length > 0) {
+        autoSelectedColumn = columns[0].value;
+      }
+
       form.setFieldsValue({
         filters: {
           ...currentFilters,
@@ -400,6 +409,7 @@ const ChartCustomizationForm: FC<Props> = ({ form, item, onUpdate }) => {
             defaultValueQueriesData: columns,
             filterType: 'filter_select',
             hasDefaultValue: true,
+            ...(autoSelectedColumn && { column: autoSelectedColumn }),
           },
         },
       });
@@ -411,6 +421,7 @@ const ChartCustomizationForm: FC<Props> = ({ form, item, onUpdate }) => {
           defaultValueQueriesData: columns,
           hasDefaultValue:
             formValues.hasDefaultValue ?? customization.hasDefaultValue,
+          ...(autoSelectedColumn && { column: autoSelectedColumn }),
         },
       });
 
@@ -552,7 +563,9 @@ const ChartCustomizationForm: FC<Props> = ({ form, item, onUpdate }) => {
       setHasDefaultValue(
         formValues.hasDefaultValue ?? customization.hasDefaultValue ?? false,
       );
-      setIsRequired(formValues.isRequired ?? customization.isRequired ?? false);
+      if (formValues.isRequired !== undefined) {
+        setIsRequired(formValues.isRequired);
+      }
     }
 
     setSelectFirst(selectFirst);
@@ -562,7 +575,6 @@ const ChartCustomizationForm: FC<Props> = ({ form, item, onUpdate }) => {
     setFormFieldValues,
     customization.selectFirst,
     customization.hasDefaultValue,
-    customization.isRequired,
   ]);
 
   const defaultValueValidator = useCallback(async () => {
@@ -978,19 +990,38 @@ const ChartCustomizationForm: FC<Props> = ({ form, item, onUpdate }) => {
                 if (checked) {
                   setHasDefaultValue(false);
                   setIsRequired(false);
+
+                  const formValues =
+                    form.getFieldValue('filters')?.[item.id] || {};
+                  const datasetColumns =
+                    formValues.defaultValueQueriesData || [];
+
+                  if (datasetColumns.length > 0) {
+                    const firstColumn = datasetColumns[0];
+                    setFormFieldValues({
+                      selectFirst: checked,
+                      hasDefaultValue: false,
+                      isRequired: false,
+                      defaultDataMask: null,
+                      defaultValue: undefined,
+                      defaultValueQueriesData: null,
+                      column: firstColumn.value,
+                    });
+                  } else {
+                    setFormFieldValues({
+                      selectFirst: checked,
+                      hasDefaultValue: false,
+                      isRequired: false,
+                      defaultDataMask: null,
+                      defaultValue: undefined,
+                      defaultValueQueriesData: null,
+                    });
+                  }
+                } else {
+                  setFormFieldValues({
+                    selectFirst: checked,
+                  });
                 }
-                setFormFieldValues({
-                  selectFirst: checked,
-                  ...(checked
-                    ? {
-                        hasDefaultValue: false,
-                        isRequired: false,
-                        defaultDataMask: null,
-                        defaultValue: undefined,
-                        defaultValueQueriesData: null,
-                      }
-                    : {}),
-                });
                 formChanged();
               }}
             >

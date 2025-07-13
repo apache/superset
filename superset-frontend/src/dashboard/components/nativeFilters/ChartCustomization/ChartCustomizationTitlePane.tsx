@@ -31,6 +31,7 @@ interface Props {
   onAdd: (item: ChartCustomizationItem) => void;
   onRemove: (id: string, shouldRemove?: boolean) => void;
   setCurrentId: (id: string) => void;
+  erroredItems?: string[];
 }
 
 const PaneContainer = styled.div`
@@ -49,6 +50,7 @@ const ChartCustomizationTitlePane: FC<Props> = ({
   onAdd,
   onRemove,
   setCurrentId,
+  erroredItems = [],
 }) => {
   const theme = useTheme();
   const listRef = useRef<HTMLDivElement>(null);
@@ -81,6 +83,7 @@ const ChartCustomizationTitlePane: FC<Props> = ({
           currentId={currentId}
           onChange={onChange}
           onRemove={onRemove}
+          erroredItems={erroredItems}
         />
       </div>
       <div
