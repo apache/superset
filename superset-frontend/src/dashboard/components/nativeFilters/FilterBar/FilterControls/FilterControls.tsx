@@ -271,6 +271,14 @@ const FilterControls: FC<FilterControlsProps> = ({
           </div>
         )}
 
+        {showCollapsePanel && (
+          <FiltersOutOfScopeCollapsible
+            filtersOutOfScope={filtersOutOfScope}
+            forceRender={hasRequiredFirst}
+            renderer={renderer}
+          />
+        )}
+
         {chartCustomizationItems.length > 0 && (
           <div css={sectionContainerStyle}>
             <div
@@ -307,14 +315,6 @@ const FilterControls: FC<FilterControlsProps> = ({
             )}
             <div css={dividerStyle} />
           </div>
-        )}
-
-        {showCollapsePanel && (
-          <FiltersOutOfScopeCollapsible
-            filtersOutOfScope={filtersOutOfScope}
-            forceRender={hasRequiredFirst}
-            renderer={renderer}
-          />
         )}
       </>
     ),
