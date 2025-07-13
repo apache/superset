@@ -19,7 +19,7 @@
 import { initFeatureFlags } from '@superset-ui/core';
 import getBootstrapData from './getBootstrapData';
 
-function getDomainsConfig() {
+function getDomainsConfig(): string[] {
   const appContainer = document.getElementById('app');
   if (!appContainer) {
     return [];
@@ -49,6 +49,6 @@ function getDomainsConfig() {
   return Array.from(availableDomains);
 }
 
-export const availableDomains = getDomainsConfig();
+export const availableDomains: string[] = getDomainsConfig();
 
-export const allowCrossDomain = availableDomains.length > 1;
+export const allowCrossDomain: boolean = availableDomains.length > 1;

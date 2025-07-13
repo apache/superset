@@ -16,7 +16,21 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-export const getDatasourceAsSaveableDataset = source => ({
+import { Dataset } from '@superset-ui/chart-controls';
+
+interface SaveableDataset {
+  columns: any[];
+  name: string;
+  dbId?: number;
+  sql: string;
+  catalog?: string | null;
+  schema?: string;
+  templateParams?: string;
+}
+
+export const getDatasourceAsSaveableDataset = (
+  source: Partial<Dataset>,
+): SaveableDataset => ({
   columns: source.columns,
   name: source?.datasource_name || source?.name || 'Untitled',
   dbId: source?.database?.id || source?.dbId,

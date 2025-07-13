@@ -18,7 +18,16 @@
  */
 import { nanoid } from 'nanoid';
 
-export function addToObject(state, arrKey, obj) {
+interface StateWithId {
+  id?: string;
+  [key: string]: any;
+}
+
+export function addToObject<T extends Record<string, any>>(
+  state: T,
+  arrKey: keyof T,
+  obj: StateWithId,
+): T {
   const newObject = { ...state[arrKey] };
   const copiedObject = { ...obj };
 
@@ -29,13 +38,23 @@ export function addToObject(state, arrKey, obj) {
   return { ...state, [arrKey]: newObject };
 }
 
-export function alterInObject(state, arrKey, obj, alterations) {
+export function alterInObject<T extends Record<string, any>>(
+  state: T,
+  arrKey: keyof T,
+  obj: StateWithId,
+  alterations: Record<string, any>,
+): T {
   const newObject = { ...state[arrKey] };
   newObject[obj.id] = { ...newObject[obj.id], ...alterations };
   return { ...state, [arrKey]: newObject };
 }
 
-export function alterInArr(state, arrKey, obj, alterations) {
+export function alterInArr<T extends Record<string, any>>(
+  state: T,
+  arrKey: keyof T,
+  obj: StateWithId,
+  alterations: Record<string, any>,
+): T {
   // Finds an item in an array in the state and replaces it with a
   // new object with an altered property
   const idKey = 'id';
@@ -50,7 +69,12 @@ export function alterInArr(state, arrKey, obj, alterations) {
   return { ...state, [arrKey]: newArr };
 }
 
-export function removeFromArr(state, arrKey, obj, idKey = 'id') {
+export function removeFromArr<T extends Record<string, any>>(
+  state: T,
+  arrKey: keyof T,
+  obj: StateWithId,
+  idKey: string = 'id',
+): T {
   const newArr = [];
   state[arrKey].forEach(arrItem => {
     if (!(obj[idKey] === arrItem[idKey])) {
@@ -60,7 +84,11 @@ export function removeFromArr(state, arrKey, obj, idKey = 'id') {
   return { ...state, [arrKey]: newArr };
 }
 
-export function addToArr(state, arrKey, obj) {
+export function addToArr<T extends Record<string, any>>(
+  state: T,
+  arrKey: keyof T,
+  obj: StateWithId,
+): T {
   const newObj = { ...obj };
   if (!newObj.id) {
     newObj.id = nanoid();
