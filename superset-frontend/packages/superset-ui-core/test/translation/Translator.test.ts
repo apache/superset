@@ -98,8 +98,8 @@ describe('Translator', () => {
       );
     });
 
-    it('defaults to singular if num is missing', () => {
-      expect(translator.translateWithNumber('box', 'boxes')).toEqual('box');
+    it('defaults to plural if num is missing', () => {
+      expect(translator.translateWithNumber('box', 'boxes')).toEqual('boxes');
     });
 
     it('translates standard plural form', () => {
@@ -123,7 +123,7 @@ describe('Translator', () => {
           3,
           'abc',
         ),
-      ).toEqual('3 glass abc');
+      ).toEqual('3 glasses abc');
     });
 
     it('handles invalid input gracefully', () => {

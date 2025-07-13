@@ -90,7 +90,6 @@ export default class Translator {
       return this.i18n.translate(input).fetch(...args);
     } catch (err) {
       logging.warn(`Translation failed for key "${input}" with args:`, args);
-      logging.warn(err);
       return input;
     }
   }
@@ -113,7 +112,6 @@ export default class Translator {
         `Plural translation failed for key "${key}" with args:`,
         args,
       );
-      logging.warn(err);
     }
     return key;
   }
