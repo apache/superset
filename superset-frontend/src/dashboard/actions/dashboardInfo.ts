@@ -36,7 +36,7 @@ import {
   ChartCustomizationItem,
   FilterOption,
 } from 'src/dashboard/components/nativeFilters/ChartCustomization/types';
-import { removeDataMask } from 'src/dataMask/actions';
+import { removeDataMask, updateDataMask } from 'src/dataMask/actions';
 import { onSave } from './dashboardState';
 
 export interface ChartCustomizationSavePayload {
@@ -350,6 +350,29 @@ export function saveChartCustomization(
           dispatch(removeDataMask(customizationFilterId));
         });
 
+        setTimeout(() => {
+          simpleItems.forEach(item => {
+            if (item.customization?.column) {
+              const customizationFilterId = `chart_customization_${item.id}`;
+
+              dispatch(removeDataMask(customizationFilterId));
+
+              const dataMask = {
+                extraFormData: {},
+                filterState: {
+                  value:
+                    item.customization?.defaultDataMask?.filterState?.value ||
+                    [],
+                },
+                ownState: {
+                  column: item.customization.column,
+                },
+              };
+              dispatch(updateDataMask(customizationFilterId, dataMask));
+            }
+          });
+        }, 10);
+
         const state = getState();
         const affectedChartIds = getAffectedChartIdsFromCustomization(
           simpleItems,
@@ -399,10 +422,32 @@ export interface InitializeChartCustomization {
 
 export function initializeChartCustomization(
   chartCustomizationItems: ChartCustomizationItem[],
-): InitializeChartCustomization {
-  return {
-    type: INITIALIZE_CHART_CUSTOMIZATION,
-    chartCustomizationItems,
+): ThunkAction<void, RootState, null, AnyAction> {
+  return (dispatch: ThunkDispatch<RootState, null, AnyAction>) => {
+    dispatch({
+      type: INITIALIZE_CHART_CUSTOMIZATION,
+      chartCustomizationItems,
+    });
+
+    chartCustomizationItems.forEach(item => {
+      if (item.customization?.column) {
+        const customizationFilterId = `chart_customization_${item.id}`;
+
+        dispatch(removeDataMask(customizationFilterId));
+
+        const dataMask = {
+          extraFormData: {},
+          filterState: {
+            value:
+              item.customization?.defaultDataMask?.filterState?.value || [],
+          },
+          ownState: {
+            column: item.customization.column,
+          },
+        };
+        dispatch(updateDataMask(customizationFilterId, dataMask));
+      }
+    });
   };
 }
 
