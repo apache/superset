@@ -126,6 +126,109 @@ const ChartCustomizationForm: FC<Props> = ({ form, item, onUpdate }) => {
     hasDefaultValue: false,
   });
 
+  const { chartId } = item;
+  const chart = chartId ? charts[chartId] : null;
+  const chartFormData = chart?.latestQueryFormData;
+
+  const checkColumnConflict = useCallback(
+    (columnName: string) => {
+      if (!chartFormData) return false;
+
+      const {
+        viz_type: chartType,
+        groupby = [],
+        x_axis: xAxisColumn,
+      } = chartFormData;
+
+      if (groupby.includes(columnName) || xAxisColumn === columnName) {
+        return true;
+      }
+
+      if (
+        chartType?.startsWith('echarts_timeseries') ||
+        chartType?.startsWith('echarts_area')
+      ) {
+        if (xAxisColumn === columnName) {
+          return true;
+        }
+      } else if (chartType === 'heatmap_v2') {
+        if (xAxisColumn === columnName) {
+          return true;
+        }
+        const groupbyColumn = Array.isArray(chartFormData.groupby)
+          ? chartFormData.groupby[0]
+          : chartFormData.groupby;
+        if (groupbyColumn === columnName) {
+          return true;
+        }
+      } else if (chartType === 'pivot_table_v2') {
+        const groupbyColumns = chartFormData.groupbyColumns || [];
+        const groupbyRows = chartFormData.groupbyRows || [];
+        if ([...groupbyColumns, ...groupbyRows].includes(columnName)) {
+          return true;
+        }
+      }
+
+      return false;
+    },
+    [chartFormData],
+  );
+
+  const getConflictMessage = useCallback(
+    (columnName: string) => {
+      if (!chartFormData) return '';
+
+      const chartType = chartFormData.viz_type;
+      const existingGroupBy = chartFormData.groupby || [];
+      const xAxisColumn = chartFormData.x_axis;
+
+      if (existingGroupBy.includes(columnName)) {
+        return t("This column is already used in the chart's group by");
+      }
+      if (xAxisColumn === columnName) {
+        if (
+          chartType?.startsWith('echarts_timeseries') ||
+          chartType?.startsWith('echarts_area')
+        ) {
+          return t(
+            'This column is already used as the time axis in this timeseries chart',
+          );
+        }
+        if (chartType === 'heatmap_v2') {
+          return t(
+            'This column is already used as the X-axis in this heatmap chart',
+          );
+        }
+        return t('This column is already used as the X-axis in this chart');
+      }
+
+      if (chartType === 'heatmap_v2') {
+        const groupbyColumn = Array.isArray(chartFormData.groupby)
+          ? chartFormData.groupby[0]
+          : chartFormData.groupby;
+        if (groupbyColumn === columnName) {
+          return t(
+            'This column is already used as the Y-axis in this heatmap chart',
+          );
+        }
+      }
+
+      if (chartType === 'pivot_table_v2') {
+        const groupbyColumns = chartFormData.groupbyColumns || [];
+        const groupbyRows = chartFormData.groupbyRows || [];
+        if (groupbyColumns.includes(columnName)) {
+          return t('This column is already used in the pivot table columns');
+        }
+        if (groupbyRows.includes(columnName)) {
+          return t('This column is already used in the pivot table rows');
+        }
+      }
+
+      return t('This column conflicts with existing chart columns');
+    },
+    [chartFormData],
+  );
+
   const datasetValue = useMemo(() => {
     const fallbackDatasetId = mostUsedDataset(loadedDatasets, charts);
 
@@ -896,6 +999,11 @@ const ChartCustomizationForm: FC<Props> = ({ form, item, onUpdate }) => {
                                 value={customization.column || null}
                                 onChange={(value: string) => {
                                   if (value) {
+                                    // Check for conflicts before setting the value
+                                    if (checkColumnConflict(value)) {
+                                      // Don't set the value if there's a conflict
+                                      return;
+                                    }
                                     setFormFieldValues({
                                       column: value,
                                     });
@@ -905,10 +1013,19 @@ const ChartCustomizationForm: FC<Props> = ({ form, item, onUpdate }) => {
                                     formChanged();
                                   }
                                 }}
-                                options={
+                                options={(
                                   form.getFieldValue('filters')?.[item.id]
                                     ?.defaultValueQueriesData || []
-                                }
+                                ).map((option: any) => ({
+                                  ...option,
+                                  disabled: checkColumnConflict(option.value),
+                                  label: checkColumnConflict(option.value)
+                                    ? `${option.label} (${getConflictMessage(option.value)})`
+                                    : option.label,
+                                }))}
+                                notFoundContent={t(
+                                  'No compatible columns found',
+                                )}
                               />
                             </StyledFormItem>
                           </div>
