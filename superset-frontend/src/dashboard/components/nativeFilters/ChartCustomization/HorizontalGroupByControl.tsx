@@ -25,7 +25,6 @@ import { RootState } from 'src/dashboard/types';
 import { setPendingChartCustomization } from 'src/dashboard/actions/dashboardInfo';
 import { ChartCustomizationItem } from './types';
 
-// Styled to match HorizontalFilterControl exactly
 const HorizontalGroupByContainer = styled(Form)`
   && .ant-form-item-label > label {
     margin-bottom: 0;
