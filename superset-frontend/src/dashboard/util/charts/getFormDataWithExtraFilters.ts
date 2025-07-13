@@ -159,6 +159,40 @@ function processGroupByCustomizations(
   const allFilters: any[] = [];
   let orderByConfig: string[] | undefined;
 
+  const existingGroupBy = chart.form_data?.groupby || [];
+  const xAxisColumn = chart.form_data?.x_axis;
+  const conflictingColumns = new Set([
+    ...existingGroupBy,
+    ...(xAxisColumn ? [xAxisColumn] : []),
+  ]);
+
+  if (
+    chartType?.startsWith('echarts_timeseries') ||
+    chartType?.startsWith('echarts_area')
+  ) {
+    if (xAxisColumn) {
+      conflictingColumns.add(xAxisColumn);
+    }
+  } else if (chartType === 'heatmap_v2') {
+    if (xAxisColumn) {
+      conflictingColumns.add(xAxisColumn);
+    }
+    if (chart.form_data?.groupby) {
+      const groupbyColumn = Array.isArray(chart.form_data.groupby)
+        ? chart.form_data.groupby[0]
+        : chart.form_data.groupby;
+      if (groupbyColumn) {
+        conflictingColumns.add(groupbyColumn);
+      }
+    }
+  } else if (chartType === 'pivot_table_v2') {
+    const groupbyColumns = chart.form_data?.groupbyColumns || [];
+    const groupbyRows = chart.form_data?.groupbyRows || [];
+    [...groupbyColumns, ...groupbyRows].forEach(col => {
+      if (col) conflictingColumns.add(col);
+    });
+  }
+
   matchingCustomizations.forEach(item => {
     const { customization } = item;
     const groupById = `chart_customization_${item.id}`;
@@ -192,8 +226,10 @@ function processGroupByCustomizations(
         return;
       }
 
-      const existingGroupBy = chart.form_data?.groupby || [];
-      if (existingGroupBy.includes(columnName)) {
+      if (conflictingColumns.has(columnName)) {
+        console.warn(
+          `Column "${columnName}" conflicts with existing chart columns. Skipping customization.`,
+        );
         return;
       }
 
