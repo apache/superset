@@ -97,20 +97,17 @@ export default class Translator {
 
   translateWithNumber(key: string, ...args: unknown[]): string {
     try {
-      if (typeof args[0] === 'number') {
-        const [plural, ...rest] = args;
+      const [plural, num, ...rest] = args;
+      if (typeof plural === 'number') {
         return this.i18n
           .translate(key)
           .ifPlural(plural, key)
-          .fetch(plural, ...rest);
+          .fetch(plural, num, ...rest);
       }
-      if (typeof args[1] === 'number') {
-        const [_, plural, ...rest] = args;
-        return this.i18n
-          .translate(key)
-          .ifPlural(plural, key)
-          .fetch(...rest);
-      }
+      return this.i18n
+        .translate(key)
+        .ifPlural(num as number, plural as string)
+        .fetch(...rest);
     } catch (err) {
       logging.warn(
         `Plural translation failed for key "${key}" with args:`,
