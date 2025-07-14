@@ -22,6 +22,7 @@ import {
   screen,
   waitFor,
   userEvent,
+  cleanup,
 } from 'spec/helpers/testing-library';
 import mockDatasource from 'spec/fixtures/mockDatasource';
 import { isFeatureEnabled } from '@superset-ui/core';
@@ -243,5 +244,37 @@ describe('DatasourceEditor Source Tab', () => {
 
     expect(physicalRadioBtn).toBeDisabled();
     expect(virtualRadioBtn).toBeDisabled();
+  });
+
+  it('calls onChange with empty SQL when switching to physical dataset', async () => {
+    // Clean previous render
+    cleanup();
+
+    props.onChange.mockClear();
+
+    await asyncRender({
+      ...props,
+      datasource: {
+        ...props.datasource,
+        table_name: 'Vehicle Sales +',
+        datasourceType: 'virtual',
+        sql: 'SELECT * FROM users',
+      },
+    });
+
+    // Enable edit mode
+    const getLockBtn = screen.getByRole('img', { name: /lock/i });
+    await userEvent.click(getLockBtn);
+
+    // Switch to physical dataset
+    const physicalRadioBtn = screen.getByRole('radio', {
+      name: /physical \(table or view\)/i,
+    });
+    await userEvent.click(physicalRadioBtn);
+
+    // Assert that the latest onChange call has empty SQL
+    expect(props.onChange).toHaveBeenCalled();
+    const updatedDatasource = props.onChange.mock.calls[0];
+    expect(updatedDatasource[0].sql).toBe('');
   });
 });
