@@ -18,15 +18,15 @@
 Get available dataset filters FastMCP tool
 """
 import logging
-from superset.mcp_service.pydantic_schemas.dataset_schemas import DatasetAvailableFiltersResponse
+from superset.mcp_service.pydantic_schemas.dataset_schemas import DatasetAvailableFilters
 
 logger = logging.getLogger(__name__)
 
-def get_dataset_available_filters() -> DatasetAvailableFiltersResponse:
+def get_dataset_available_filters() -> DatasetAvailableFilters:
     """
     Get information about available dataset filters and their operators
     Returns:
-        DatasetAvailableFiltersResponse
+        DatasetAvailableFilters
     """
     try:
         filters = {
@@ -93,7 +93,7 @@ def get_dataset_available_filters() -> DatasetAvailableFiltersResponse:
             "changed_on", "created_by", "created_on", "is_virtual", "database_id", "schema_perm",
             "url", "tags", "owners"
         ]
-        response = DatasetAvailableFiltersResponse(
+        response = DatasetAvailableFilters(
             filters=filters,
             operators=operators,
             columns=columns

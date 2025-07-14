@@ -17,8 +17,8 @@ This document provides a reference for the input and output parameters of all MC
 - `select_columns`: `Optional[List[str]]` — Columns to select (overrides columns/keys)
 - `search`: `Optional[str]` — Free-text search string
 
-**Returns:** `DashboardListResponse`
-- `dashboards`: `List[DashboardListItem]`
+**Returns:** `DashboardList`
+- `dashboards`: `List[DashboardInfo]`
 - `count`: `int`
 - `total_count`: `int`
 - `page`: `int`
@@ -32,26 +32,14 @@ This document provides a reference for the input and output parameters of all MC
 - `pagination`: `PaginationInfo`
 - `timestamp`: `datetime`
 
-### list_dashboards_simple
-
-**Inputs:**
-- `filters`: `Optional[DashboardSimpleFilters]` — Simple filter object
-- `order_column`: `Optional[str]` — Column to order results by
-- `order_direction`: `Literal['asc', 'desc']` — Order direction
-- `page`: `int` — Page number (1-based)
-- `page_size`: `int` — Number of items per page
-- `search`: `Optional[str]` — Free-text search string
-
-**Returns:** `DashboardListResponse` (see above)
-
 ### get_dashboard_info
 
 **Inputs:**
 - `dashboard_id`: `int` — Dashboard ID
 
-**Returns:** `DashboardInfoResponse` or `DashboardErrorResponse`
+**Returns:** `DashboardInfo` or `DashboardError`
 
-**DashboardInfoResponse:**
+**DashboardInfo:**
 - `id`: `int`
 - `dashboard_title`: `str`
 - `slug`: `Optional[str]`
@@ -79,7 +67,7 @@ This document provides a reference for the input and output parameters of all MC
 - `roles`: `List[RoleInfo]`
 - `charts`: `List[ChartInfo]`
 
-**DashboardErrorResponse:**
+**DashboardError:**
 - `error`: `str`
 - `error_type`: `str`
 - `timestamp`: `Optional[Union[str, datetime]]`
@@ -89,7 +77,7 @@ This document provides a reference for the input and output parameters of all MC
 **Inputs:**
 - (none)
 
-**Returns:** `DashboardAvailableFiltersResponse`
+**Returns:** `DashboardAvailableFilters`
 - `filters`: `Dict[str, Any]`
 - `operators`: `List[str]`
 - `columns`: `List[str]`
@@ -109,8 +97,8 @@ This document provides a reference for the input and output parameters of all MC
 - `select_columns`: `Optional[List[str]]` — Columns to select (overrides columns/keys)
 - `search`: `Optional[str]` — Free-text search string
 
-**Returns:** `DatasetListResponse`
-- `datasets`: `List[DatasetListItem]`
+**Returns:** `DatasetList`
+- `datasets`: `List[DatasetInfo]`
 - `count`: `int`
 - `total_count`: `int`
 - `page`: `int`
@@ -134,14 +122,14 @@ This document provides a reference for the input and output parameters of all MC
 - `page_size`: `int` — Number of items per page
 - `search`: `Optional[str]` — Free-text search string
 
-**Returns:** `DatasetListResponse` (see above)
+**Returns:** `DatasetList` (see above)
 
 ### get_dataset_info
 
 **Inputs:**
-- `dataset_id`: `int` — Dataset ID
+- `dataset_id`: `int` — DatasetInfo ID
 
-**Returns:** `DatasetInfoResponse` or `DatasetErrorResponse`
+**Returns:** `DatasetInfoResponse` or `DatasetError`
 
 **DatasetInfoResponse:**
 - `id`: `int`
@@ -169,7 +157,7 @@ This document provides a reference for the input and output parameters of all MC
 - `template_params`: `Optional[Dict[str, Any]]`
 - `extra`: `Optional[Dict[str, Any]]`
 
-**DatasetErrorResponse:**
+**DatasetError:**
 - `error`: `str`
 - `error_type`: `str`
 - `timestamp`: `Optional[Union[str, datetime]]`
@@ -179,7 +167,7 @@ This document provides a reference for the input and output parameters of all MC
 **Inputs:**
 - (none)
 
-**Returns:** `DatasetAvailableFiltersResponse`
+**Returns:** `DatasetAvailableFilters`
 - `filters`: `Dict[str, Any]`
 - `operators`: `List[str]`
 - `columns`: `List[str]`
@@ -199,8 +187,8 @@ This document provides a reference for the input and output parameters of all MC
 - `select_columns`: `Optional[List[str]]` — Columns to select (overrides columns/keys)
 - `search`: `Optional[str]` — Free-text search string
 
-**Returns:** `ChartListResponse`
-- `charts`: `List[ChartListItem]`
+**Returns:** `ChartList`
+- `charts`: `List[ChartInfo]`
 - `count`: `int`
 - `total_count`: `int`
 - `page`: `int`
@@ -214,29 +202,17 @@ This document provides a reference for the input and output parameters of all MC
 - `pagination`: `PaginationInfo`
 - `timestamp`: `datetime`
 
-### list_charts_simple
-
-**Inputs:**
-- `filters`: `Optional[ChartSimpleFilters]` — Simple filter object
-- `order_column`: `Optional[str]` — Column to order results by
-- `order_direction`: `Literal['asc', 'desc']` — Order direction
-- `page`: `int` — Page number (1-based)
-- `page_size`: `int` — Number of items per page
-- `search`: `Optional[str]` — Free-text search string
-
-**Returns:** `ChartListResponse` (see above)
-
 ### get_chart_info
 
 **Inputs:**
 - `chart_id`: `int` — Chart ID
 
-**Returns:** `ChartInfoResponse` or `ChartErrorResponse`
+**Returns:** `ChartInfoResponse` or `ChartError`
 
 **ChartInfoResponse:**
-- `chart`: `ChartListItem`
+- `chart`: `ChartInfo`
 
-**ChartErrorResponse:**
+**ChartError:**
 - `error`: `str`
 - `error_type`: `str`
 - `timestamp`: `Optional[Union[str, datetime]]`
@@ -257,7 +233,7 @@ This document provides a reference for the input and output parameters of all MC
 - `request`: `CreateSimpleChartRequest` — Chart creation request
 
 **Returns:** `CreateSimpleChartResponse`
-- `chart`: `Optional[ChartListItem]`
+- `chart`: `Optional[ChartInfo]`
 - `embed_url`: `Optional[str]`
 - `thumbnail_url`: `Optional[str]`
 - `embed_html`: `Optional[str]`
@@ -270,7 +246,7 @@ This document provides a reference for the input and output parameters of all MC
 **Inputs:**
 - (none)
 
-**Returns:** `SupersetInstanceInfoResponse`
+**Returns:** `InstanceInfo`
 - `instance_summary`: `InstanceSummary`
 - `recent_activity`: `RecentActivity`
 - `dashboard_breakdown`: `DashboardBreakdown`
@@ -282,34 +258,12 @@ This document provides a reference for the input and output parameters of all MC
 
 ## Complex Type Definitions
 
-### DashboardSimpleFilters
-- `dashboard_title`: `Optional[str]`
-- `published`: `Optional[bool]`
-- `changed_by`: `Optional[str]`
-- `created_by`: `Optional[str]`
-- `owner`: `Optional[str]`
-- `certified`: `Optional[bool]`
-- `favorite`: `Optional[bool]`
-- `chart_count`: `Optional[int]`
-- `chart_count_min`: `Optional[int]`
-- `chart_count_max`: `Optional[int]`
-- `tags`: `Optional[str]`
-
 ### ChartFilter
 - `col`: `Literal[ ... ]` (see allowed columns in code)
 - `opr`: `Literal[ ... ]` (see allowed operators in code)
 - `value`: `Any`
 
-### ChartSimpleFilters
-- `slice_name`: `Optional[str]`
-- `viz_type`: `Optional[str]`
-- `datasource_name`: `Optional[str]`
-- `changed_by`: `Optional[str]`
-- `created_by`: `Optional[str]`
-- `owner`: `Optional[str]`
-- `tags`: `Optional[str]`
-
-### ChartListItem
+### ChartInfo
 - `id`: `int`
 - `slice_name`: `str`
 - `viz_type`: `Optional[str]`
@@ -373,7 +327,7 @@ This document provides a reference for the input and output parameters of all MC
 - `created_on`: `Optional[Union[str, datetime]]`
 - `changed_on`: `Optional[Union[str, datetime]]`
 
-### DashboardListItem
+### DashboardInfo
 - `id`: `int`
 - `dashboard_title`: `str`
 - `slug`: `Optional[str]`
@@ -389,7 +343,7 @@ This document provides a reference for the input and output parameters of all MC
 - `tags`: `List[TagInfo]`
 - `owners`: `List[UserInfo]`
 
-### DatasetListItem
+### DatasetInfo
 - `id`: `int`
 - `table_name`: `str`
 - `db_schema`: `Optional[str]`
@@ -408,16 +362,6 @@ This document provides a reference for the input and output parameters of all MC
 - `database_id`: `Optional[int]`
 - `schema_perm`: `Optional[str]`
 - `url`: `Optional[str]`
-
-### DatasetSimpleFilters
-- `table_name`: `Optional[str]`
-- `db_schema`: `Optional[str]`
-- `database_name`: `Optional[str]`
-- `changed_by`: `Optional[str]`
-- `created_by`: `Optional[str]`
-- `owner`: `Optional[str]`
-- `is_virtual`: `Optional[bool]`
-- `tags`: `Optional[str]`
 
 ### DatasetFilter
 - `col`: `Literal[ ... ]` (see allowed columns in code)
@@ -438,7 +382,7 @@ This document provides a reference for the input and output parameters of all MC
 - `return_embed`: `Optional[bool]`
 
 ### CreateSimpleChartResponse
-- `chart`: `Optional[ChartListItem]`
+- `chart`: `Optional[ChartInfo]`
 - `embed_url`: `Optional[str]`
 - `thumbnail_url`: `Optional[str]`
 - `embed_html`: `Optional[str]`

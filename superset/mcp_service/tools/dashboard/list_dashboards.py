@@ -21,15 +21,21 @@ List dashboards FastMCP tool (Advanced)
 This module contains the FastMCP tool for listing dashboards using
 advanced filtering with complex filter objects and JSON payload.
 """
+import json
 import logging
 from datetime import datetime, timezone
-from typing import Annotated, Any, Literal, Optional
+from typing import Annotated, Literal, Optional
 
-from pydantic import BaseModel, conlist, constr, Field, PositiveInt
+from pydantic import conlist, constr, Field, PositiveInt
+
 from superset.daos.dashboard import DashboardDAO
 from superset.mcp_service.dao_wrapper import MCPDAOWrapper
-from superset.mcp_service.pydantic_schemas.dashboard_schemas import (
-    DashboardListItem, DashboardListResponse, PaginationInfo, TagInfo, UserInfo, DashboardFilter)
+from superset.mcp_service.pydantic_schemas import (
+    DashboardFilter, DashboardInfo, DashboardList)
+from superset.mcp_service.pydantic_schemas.chart_schemas import (
+    serialize_chart_object, )
+from superset.mcp_service.pydantic_schemas.system_schemas import (
+    PaginationInfo, TagInfo, UserInfo)
 
 logger = logging.getLogger(__name__)
 
@@ -71,11 +77,15 @@ def list_dashboards(
         Optional[str],
         Field(description="Text search string to match against dataset fields")
     ] = None,
-) -> DashboardListResponse:
+) -> DashboardList:
     """
     ADVANCED FILTERING: List dashboards using complex filter objects and JSON payload
-    Returns a DashboardListResponse Pydantic model (not a dict), matching list_dashboards_simple.
+    Returns a DashboardList Pydantic model (not a dict), matching
+    list_dashboards_simple.
     """
+    # If filters is a string (e.g., from a test), parse it as JSON
+    if isinstance(filters, str):
+        filters = json.loads(filters)
     dao_wrapper = MCPDAOWrapper(DashboardDAO, "dashboard")
     search_columns = (
         "created_by",
@@ -90,7 +100,7 @@ def list_dashboards(
         "uuid",
     )
     dashboards, total_count = dao_wrapper.list(
-        filters=filters,
+        column_operators=filters,
         order_column=order_column or "changed_on",
         order_direction=order_direction or "desc",
         page=max(page - 1, 0),
@@ -101,7 +111,8 @@ def list_dashboards(
     columns_to_load = []
     if select_columns:
         if isinstance(select_columns, str):
-            select_columns = [col.strip() for col in select_columns.split(",") if col.strip()]
+            select_columns = [col.strip() for col in select_columns.split(",") if
+                              col.strip()]
         columns_to_load = select_columns
     elif columns:
         columns_to_load = columns
@@ -114,7 +125,7 @@ def list_dashboards(
         ]
     dashboard_items = []
     for dashboard in dashboards:
-        dashboard_item = DashboardListItem(
+        dashboard_item = DashboardInfo(
             id=dashboard.id,
             dashboard_title=dashboard.dashboard_title or "Untitled",
             slug=dashboard.slug or "",
@@ -124,14 +135,21 @@ def list_dashboards(
                 str(dashboard.changed_by) if dashboard.changed_by else None),
             changed_by_name=getattr(dashboard, "changed_by_name", None) or (
                 str(dashboard.changed_by) if dashboard.changed_by else None),
-            changed_on=dashboard.changed_on if getattr(dashboard, "changed_on", None) else None,
+            changed_on=dashboard.changed_on if getattr(
+                dashboard, "changed_on", None) else None,
             changed_on_humanized=getattr(dashboard, "changed_on_humanized", None),
             created_by=getattr(dashboard, "created_by_name", None) or (
                 str(dashboard.created_by) if dashboard.created_by else None),
-            created_on=dashboard.created_on if getattr(dashboard, "created_on", None) else None,
+            created_on=dashboard.created_on if getattr(
+                dashboard, "created_on", None) else None,
             created_on_humanized=getattr(dashboard, "created_on_humanized", None),
-            tags=[TagInfo.model_validate(tag, from_attributes=True) for tag in dashboard.tags] if dashboard.tags else [],
-            owners=[UserInfo.model_validate(owner, from_attributes=True) for owner in dashboard.owners] if dashboard.owners else []
+            tags=[TagInfo.model_validate(tag, from_attributes=True) for tag in
+                  dashboard.tags] if dashboard.tags else [],
+            owners=[UserInfo.model_validate(owner, from_attributes=True) for owner in
+                    dashboard.owners] if dashboard.owners else [],
+            charts=[serialize_chart_object(chart) for chart in
+                    getattr(dashboard, 'slices', [])] if getattr(
+                dashboard, 'slices', None) else [],
         )
         dashboard_items.append(dashboard_item)
     total_pages = (total_count + page_size - 1) // page_size if page_size > 0 else 0
@@ -143,7 +161,7 @@ def list_dashboards(
         has_next=page < total_pages - 1,
         has_previous=page > 0
     )
-    response = DashboardListResponse(
+    response = DashboardList(
         dashboards=dashboard_items,
         count=len(dashboard_items),
         total_count=total_count,
@@ -154,7 +172,7 @@ def list_dashboards(
         has_next=page < total_pages - 1,
         columns_requested=columns or [],
         columns_loaded=columns or [],
-        filters_applied=filters or [],
+        filters_applied=filters if isinstance(filters, list) else [],
         pagination=pagination_info,
         timestamp=datetime.now(timezone.utc)
     )

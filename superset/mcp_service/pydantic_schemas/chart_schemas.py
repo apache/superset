@@ -19,12 +19,15 @@
 Pydantic schemas for chart-related responses
 """
 from datetime import datetime
-from typing import Any, Dict, List, Optional, Union, Literal
-from pydantic import BaseModel, Field, ConfigDict
-from .dashboard_schemas import UserInfo, TagInfo, PaginationInfo
+from typing import Any, Dict, List, Literal, Optional, Union
 
-class ChartListItem(BaseModel):
-    """Chart item for list responses"""
+from pydantic import BaseModel, ConfigDict, Field
+from superset.daos.base import ColumnOperator
+from superset.mcp_service.pydantic_schemas.system_schemas import PaginationInfo, TagInfo, UserInfo
+
+
+class ChartInfo(BaseModel):
+    """Full chart model with all possible attributes."""
     id: int = Field(..., description="Chart ID")
     slice_name: str = Field(..., description="Chart name")
     viz_type: Optional[str] = Field(None, description="Visualization type")
@@ -46,26 +49,13 @@ class ChartListItem(BaseModel):
     owners: List[UserInfo] = Field(default_factory=list, description="Chart owners")
     model_config = ConfigDict(from_attributes=True, ser_json_timedelta="iso8601")
 
-class ChartSimpleFilters(BaseModel):
-    slice_name: Optional[str] = Field(None, description="Filter by chart name (partial match)")
-    viz_type: Optional[str] = Field(None, description="Filter by visualization type")
-    datasource_name: Optional[str] = Field(None, description="Filter by datasource name")
-    changed_by: Optional[str] = Field(None, description="Filter by last modifier (username)")
-    created_by: Optional[str] = Field(None, description="Filter by creator (username)")
-    owner: Optional[str] = Field(None, description="Filter by owner (username)")
-    tags: Optional[str] = Field(None, description="Filter by tags (comma-separated)")
-
 class ChartAvailableFiltersResponse(BaseModel):
     filters: Dict[str, Any] = Field(..., description="Available filters and their metadata")
     operators: List[str] = Field(..., description="Supported filter operators")
     columns: List[str] = Field(..., description="Available columns for filtering")
 
-class ChartInfoResponse(BaseModel):
-    chart: ChartListItem = Field(..., description="Detailed chart info")
-    model_config = ConfigDict(from_attributes=True, ser_json_timedelta="iso8601")
-
-class ChartListResponse(BaseModel):
-    charts: List[ChartInfoResponse]
+class ChartList(BaseModel):
+    charts: List[ChartInfo]
     count: int
     total_count: int
     page: int
@@ -80,16 +70,16 @@ class ChartListResponse(BaseModel):
     timestamp: Optional[datetime] = None
     model_config = ConfigDict(ser_json_timedelta="iso8601")
 
-class ChartErrorResponse(BaseModel):
+class ChartError(BaseModel):
     error: str = Field(..., description="Error message")
     error_type: str = Field(..., description="Type of error")
     timestamp: Optional[Union[str, datetime]] = Field(None, description="Error timestamp")
     model_config = ConfigDict(ser_json_timedelta="iso8601")
 
-def serialize_chart_object(chart) -> Optional[ChartListItem]:
+def serialize_chart_object(chart) -> Optional[ChartInfo]:
     if not chart:
         return None
-    return ChartListItem(
+    return ChartInfo(
         id=getattr(chart, 'id', None),
         slice_name=getattr(chart, 'slice_name', None),
         viz_type=getattr(chart, 'viz_type', None),
@@ -109,7 +99,7 @@ def serialize_chart_object(chart) -> Optional[ChartListItem]:
         created_on_humanized=getattr(chart, 'created_on_humanized', None),
         tags=[TagInfo.model_validate(tag, from_attributes=True) for tag in getattr(chart, 'tags', [])] if getattr(chart, 'tags', None) else [],
         owners=[UserInfo.model_validate(owner, from_attributes=True) for owner in getattr(chart, 'owners', [])] if getattr(chart, 'owners', None) else [],
-    ) 
+    )
 
 class CreateSimpleChartRequest(BaseModel):
     """
@@ -131,7 +121,7 @@ class CreateSimpleChartResponse(BaseModel):
     """
     Response schema for create_chart_simple tool.
     """
-    chart: Optional[ChartListItem] = Field(None, description="The created chart info, if successful")
+    chart: Optional[ChartInfo] = Field(None, description="The created chart info, if successful")
     embed_url: Optional[str] = Field(None, description="URL to view or embed the chart, if requested.")
     thumbnail_url: Optional[str] = Field(None, description="URL to a thumbnail image of the chart, if requested.")
     embed_html: Optional[str] = Field(None, description="HTML snippet (e.g., iframe) to embed the chart, if requested.")
