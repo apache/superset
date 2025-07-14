@@ -50,8 +50,8 @@ describe('utils/common', () => {
   });
   describe('prepareCopyToClipboardTabularData', () => {
     it('converts empty array', () => {
-      const data = [];
-      const columns = [];
+      const data: any[] = [];
+      const columns: any[] = [];
       expect(prepareCopyToClipboardTabularData(data, columns)).toEqual('');
     });
     it('converts non empty array', () => {
@@ -77,7 +77,7 @@ describe('utils/common', () => {
   });
   describe('applyFormattingToTabularData', () => {
     it('does not mutate empty array', () => {
-      const data = [];
+      const data: any[] = [];
       expect(applyFormattingToTabularData(data, [])).toEqual(data);
     });
     it('does not mutate array without temporal column', () => {

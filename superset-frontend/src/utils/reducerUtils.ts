@@ -45,7 +45,7 @@ export function alterInObject<T extends Record<string, any>>(
   alterations: Record<string, any>,
 ): T {
   const newObject = { ...state[arrKey] };
-  newObject[obj.id] = { ...newObject[obj.id], ...alterations };
+  newObject[obj.id!] = { ...newObject[obj.id!], ...alterations };
   return { ...state, [arrKey]: newObject };
 }
 
@@ -58,8 +58,8 @@ export function alterInArr<T extends Record<string, any>>(
   // Finds an item in an array in the state and replaces it with a
   // new object with an altered property
   const idKey = 'id';
-  const newArr = [];
-  state[arrKey].forEach(arrItem => {
+  const newArr: any[] = [];
+  state[arrKey].forEach((arrItem: any) => {
     if (obj[idKey] === arrItem[idKey]) {
       newArr.push({ ...arrItem, ...alterations });
     } else {
@@ -75,8 +75,8 @@ export function removeFromArr<T extends Record<string, any>>(
   obj: StateWithId,
   idKey: string = 'id',
 ): T {
-  const newArr = [];
-  state[arrKey].forEach(arrItem => {
+  const newArr: any[] = [];
+  state[arrKey].forEach((arrItem: any) => {
     if (!(obj[idKey] === arrItem[idKey])) {
       newArr.push(arrItem);
     }
@@ -93,7 +93,7 @@ export function addToArr<T extends Record<string, any>>(
   if (!newObj.id) {
     newObj.id = nanoid();
   }
-  const newState = {};
-  newState[arrKey] = [...state[arrKey], newObj];
+  const newState: Record<string, any> = {};
+  newState[arrKey as string] = [...state[arrKey], newObj];
   return { ...state, ...newState };
 }

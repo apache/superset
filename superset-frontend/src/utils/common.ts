@@ -91,7 +91,7 @@ export function prepareCopyToClipboardTabularData(
     ? `${columns.map(getColumnName).join('\t')}\n`
     : '';
   for (let i = 0; i < data.length; i += 1) {
-    const row = {};
+    const row: Record<number, any> = {};
     for (let j = 0; j < columns.length; j += 1) {
       // JavaScript does not maintain the order of a mixed set of keys (i.e integers and strings)
       // the below function orders the keys based on the column names.
@@ -122,12 +122,15 @@ export function applyFormattingToTabularData(
   return data.map(row => ({
     ...row,
     /* eslint-disable no-underscore-dangle */
-    ...timeFormattedColumns.reduce((acc, colName) => {
-      if (row[colName] !== null && row[colName] !== undefined) {
-        acc[colName] = DATETIME_FORMATTER(row[colName]);
-      }
-      return acc;
-    }, {}),
+    ...timeFormattedColumns.reduce(
+      (acc, colName) => {
+        if (row[colName] !== null && row[colName] !== undefined) {
+          acc[colName] = DATETIME_FORMATTER(row[colName]);
+        }
+        return acc;
+      },
+      {} as Record<string, any>,
+    ),
   }));
 }
 
@@ -150,5 +153,5 @@ export const detectOS = (): string => {
 export const isSafari = (): boolean => {
   const { userAgent } = navigator;
 
-  return userAgent && /^((?!chrome|android).)*safari/i.test(userAgent);
+  return Boolean(userAgent && /^((?!chrome|android).)*safari/i.test(userAgent));
 };

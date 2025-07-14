@@ -42,9 +42,11 @@ function getDomainsConfig(): string[] {
   initFeatureFlags(bootstrapData.common.feature_flags);
 
   if (bootstrapData?.common?.conf?.SUPERSET_WEBSERVER_DOMAINS) {
-    bootstrapData.common.conf.SUPERSET_WEBSERVER_DOMAINS.forEach(hostName => {
-      availableDomains.add(hostName);
-    });
+    bootstrapData.common.conf.SUPERSET_WEBSERVER_DOMAINS.forEach(
+      (hostName: string) => {
+        availableDomains.add(hostName);
+      },
+    );
   }
   return Array.from(availableDomains);
 }

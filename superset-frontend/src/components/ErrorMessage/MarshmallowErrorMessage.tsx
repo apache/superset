@@ -92,7 +92,7 @@ export function MarshmallowErrorMessage({
             children: (
               <JSONTree
                 data={extra.messages}
-                shouldExpandNodeInitially={() => true}
+                shouldExpandNode={() => true}
                 hideRoot
                 theme={jsonTreeTheme}
               />

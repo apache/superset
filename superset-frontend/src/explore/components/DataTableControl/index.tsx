@@ -67,7 +67,7 @@ export const CopyToClipboardButton = ({
 }) => (
   <CopyToClipboard
     text={
-      data && columns ? prepareCopyToClipboardTabularData(data, columns) : ''
+      data && columns ? prepareCopyToClipboardTabularData([data], columns) : ''
     }
     wrapped={false}
     copyNode={

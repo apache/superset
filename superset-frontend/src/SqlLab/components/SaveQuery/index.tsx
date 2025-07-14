@@ -35,7 +35,6 @@ import {
   SaveDatasetModal,
   ISaveableDatasource,
 } from 'src/SqlLab/components/SaveDatasetModal';
-import { getDatasourceAsSaveableDataset } from 'src/utils/datasourceUtils';
 import useQueryEditor from 'src/SqlLab/hooks/useQueryEditor';
 import { QueryEditor } from 'src/SqlLab/types';
 import useLogAction from 'src/logger/useLogAction';
@@ -215,7 +214,15 @@ const SaveQuery = ({
         onHide={() => setShowSaveDatasetModal(false)}
         buttonTextOnSave={t('Save & Explore')}
         buttonTextOnOverwrite={t('Overwrite & Explore')}
-        datasource={getDatasourceAsSaveableDataset(query)}
+        datasource={{
+          columns,
+          name: query.name || query.description || t('Undefined'),
+          dbId: query.dbId || 0,
+          sql: query.sql || '',
+          catalog: query.catalog,
+          schema: query.schema,
+          templateParams: query.templateParams,
+        }}
       />
       <Modal
         className="save-query-modal"

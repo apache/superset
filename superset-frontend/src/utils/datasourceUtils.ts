@@ -17,25 +17,21 @@
  * under the License.
  */
 import { Dataset } from '@superset-ui/chart-controls';
-
-interface SaveableDataset {
-  columns: any[];
-  name: string;
-  dbId?: number;
-  sql: string;
-  catalog?: string | null;
-  schema?: string;
-  templateParams?: string;
-}
+import { ISaveableDatasource } from '../SqlLab/components/SaveDatasetModal';
 
 export const getDatasourceAsSaveableDataset = (
-  source: Partial<Dataset>,
-): SaveableDataset => ({
-  columns: source.columns,
+  source: Partial<Dataset> | any,
+): ISaveableDatasource => ({
+  columns: (source.columns || []).map((col: any) => ({
+    column_name: col.column_name || col.name || '',
+    name: col.name || col.column_name || '',
+    type: col.type || null,
+    is_dttm: col.is_dttm || null,
+  })),
   name: source?.datasource_name || source?.name || 'Untitled',
-  dbId: source?.database?.id || source?.dbId,
-  sql: source?.sql || '',
+  dbId: source?.database?.id || (source as any)?.dbId || 0,
+  sql: (source as any)?.sql || '',
   catalog: source?.catalog,
   schema: source?.schema,
-  templateParams: source?.templateParams,
+  templateParams: (source as any)?.templateParams,
 });

@@ -38,8 +38,13 @@ const memoizedControls = memoizeOne(
             if (typeof control === 'string') {
               // For now, we have to look in controls.jsx to get the config for some controls.
               // Once everything is migrated out, delete this if statement.
-              controlsMap[control] = controls[control];
-            } else if (control.name && control.config) {
+              controlsMap[control] = (controls as any)[control];
+            } else if (
+              control &&
+              typeof control === 'object' &&
+              'name' in control &&
+              'config' in control
+            ) {
               // condition needed because there are elements, e.g. <hr /> in some control configs (I'm looking at you, FilterBox!)
               controlsMap[control.name] = control.config;
             }
@@ -52,7 +57,10 @@ const memoizedControls = memoizeOne(
 
 const getControlsForVizType = (vizType: string): ControlStateMapping => {
   const controlPanel = getChartControlPanelRegistry().get(vizType);
-  return memoizedControls(vizType, controlPanel);
+  return memoizedControls(
+    vizType,
+    (controlPanel as ControlPanelConfig) || { controlPanelSections: [] },
+  );
 };
 
 export default getControlsForVizType;
