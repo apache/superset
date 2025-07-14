@@ -134,8 +134,10 @@ export class ThemeController {
 
     // Initialize system theme detection
     this.systemMode = ThemeController.getSystemPreferredMode();
-    this.mediaQuery = window.matchMedia(MEDIA_QUERY_DARK_SCHEME);
-    this.mediaQuery.addEventListener('change', this.handleSystemThemeChange);
+
+    // Only initialize media query listener if OS preference is allowed
+    if (this.shouldInitializeMediaQueryListener())
+      this.initializeMediaQueryListener();
 
     // Initialize theme and mode
     this.currentMode = this.determineInitialMode();
@@ -314,6 +316,26 @@ export class ThemeController {
   // Private Helper Methods
 
   /**
+   * Determines whether the MediaQueryList listener for system theme changes should be initialized.
+   * This checks if OS preference detection is enabled in the theme settings.
+   * @returns {boolean} True if the media query listener should be initialized, false otherwise
+   */
+  private shouldInitializeMediaQueryListener(): boolean {
+    const { allowOSPreference = DEFAULT_THEME_SETTINGS.allowOSPreference } =
+      this.themeSettings || {};
+
+    return allowOSPreference === true;
+  }
+
+  /**
+   * Initializes media query listeners if OS preference is allowed
+   */
+  private initializeMediaQueryListener(): void {
+    this.mediaQuery = window.matchMedia(MEDIA_QUERY_DARK_SCHEME);
+    this.mediaQuery.addEventListener('change', this.handleSystemThemeChange);
+  }
+
+  /**
    * Loads and validates bootstrap theme data.
    */
   private loadBootstrapData(): BootstrapThemeData {
@@ -377,13 +399,15 @@ export class ThemeController {
     // Extract the mode from the valid algorithm
     let mode: ThemeMode;
 
-    if (Array.isArray(algorithm))
-      mode =
-        (algorithm.find(
+    if (Array.isArray(algorithm)) {
+      const foundAlgorithm =
+        algorithm.find(
           (m: ThemeAlgorithm) =>
             m === ThemeAlgorithm.DARK || m === ThemeAlgorithm.DEFAULT,
-        ) as unknown as ThemeMode) || ThemeMode.DEFAULT;
-    else mode = algorithm as unknown as ThemeMode;
+        ) ?? ThemeAlgorithm.DEFAULT;
+
+      mode = this.algorithmToMode(foundAlgorithm);
+    } else mode = this.algorithmToMode(algorithm);
 
     return {
       mode,
@@ -392,6 +416,24 @@ export class ThemeController {
         algorithm,
       } as AnyThemeConfig,
     };
+  }
+
+  /**
+   * Converts a ThemeAlgorithm to its corresponding ThemeMode.
+   * @param algorithm - The theme algorithm to convert
+   * @returns The corresponding theme mode
+   */
+  private algorithmToMode(algorithm: ThemeAlgorithm): ThemeMode {
+    switch (algorithm) {
+      case ThemeAlgorithm.DARK:
+        return ThemeMode.DARK;
+      case ThemeAlgorithm.DEFAULT:
+        return ThemeMode.DEFAULT;
+      case ThemeAlgorithm.COMPACT:
+        return ThemeMode.DEFAULT;
+      default:
+        return ThemeMode.DEFAULT;
+    }
   }
 
   /**
@@ -492,7 +534,11 @@ export class ThemeController {
    */
   private loadSavedMode(): ThemeMode | null {
     try {
-      return this.storage.getItem(this.modeStorageKey) as ThemeMode;
+      const stored: string | null = this.storage.getItem(this.modeStorageKey);
+      if (stored && Object.values(ThemeMode).includes(stored as ThemeMode))
+        return stored as ThemeMode;
+
+      return null;
     } catch (error) {
       console.warn('Failed to load saved theme mode:', error);
       return null;
@@ -578,7 +624,7 @@ export class ThemeController {
    * @returns A valid ThemeAlgorithm or ThemeAlgorithm[]
    */
   private getValidAlgorithm(
-    algorithm: ThemeAlgorithm | ThemeMode | ThemeAlgorithm[],
+    algorithm: ThemeAlgorithm | ThemeAlgorithm[] | ThemeMode,
   ): ThemeAlgorithm | ThemeAlgorithm[] {
     if (Array.isArray(algorithm) && this.isValidAlgorithmCombination(algorithm))
       return algorithm as ThemeAlgorithm[];
@@ -588,7 +634,9 @@ export class ThemeController {
       case ThemeAlgorithm.COMPACT:
         return algorithm;
       case ThemeMode.SYSTEM:
-        return this.systemMode as unknown as ThemeAlgorithm;
+        return this.systemMode === ThemeMode.DARK
+          ? ThemeAlgorithm.DARK
+          : ThemeAlgorithm.DEFAULT;
       default:
         return ThemeAlgorithm.DEFAULT;
     }
