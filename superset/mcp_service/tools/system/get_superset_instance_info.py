@@ -9,15 +9,15 @@ from datetime import datetime, timedelta, timezone
 from superset.mcp_service.dao_wrapper import MCPDAOWrapper
 from superset.mcp_service.pydantic_schemas.system_schemas import (
     DashboardBreakdown, DatabaseBreakdown, InstanceSummary, PopularContent,
-    RecentActivity, SupersetInstanceInfoResponse, )
+    RecentActivity, InstanceInfo, )
 
 logger = logging.getLogger(__name__)
 
-def get_superset_instance_info() -> SupersetInstanceInfoResponse:
+def get_superset_instance_info() -> InstanceInfo:
     """
     Get high-level information about the Superset instance (direct DB query, not via REST API)
     Returns:
-        SupersetInstanceInfoResponse
+        InstanceInfo
     """
     try:
         from superset.extensions import db
@@ -42,7 +42,7 @@ def get_superset_instance_info() -> SupersetInstanceInfoResponse:
         from superset.daos.css import CssTemplateDAO
         from superset.daos.query import QueryDAO, SavedQueryDAO
         from superset.daos.datasource import DatasourceDAO
-        from superset.daos.base import BaseDAO
+        from superset.daos.base import BaseDAO, ColumnOperator, ColumnOperatorEnum
 
         # Instantiate MCPDAOWrappers
         dashboard_wrapper = MCPDAOWrapper(DashboardDAO, "dashboard")
@@ -66,24 +66,24 @@ def get_superset_instance_info() -> SupersetInstanceInfoResponse:
         thirty_days_ago = now - timedelta(days=30)
         seven_days_ago = now - timedelta(days=7)
 
-        dashboards_created_last_30_days = dashboard_wrapper.count(filters={"created_on": thirty_days_ago})
-        charts_created_last_30_days = chart_wrapper.count(filters={"created_on": thirty_days_ago})
-        datasets_created_last_30_days = dataset_wrapper.count(filters={"created_on": thirty_days_ago})
+        dashboards_created_last_30_days = dashboard_wrapper.count(column_operators=[ColumnOperator(col="created_on", opr=ColumnOperatorEnum.gte, value=thirty_days_ago)])
+        charts_created_last_30_days = chart_wrapper.count(column_operators=[ColumnOperator(col="created_on", opr=ColumnOperatorEnum.gte, value=thirty_days_ago)])
+        datasets_created_last_30_days = dataset_wrapper.count(column_operators=[ColumnOperator(col="created_on", opr=ColumnOperatorEnum.gte, value=thirty_days_ago)])
 
-        dashboards_modified_last_7_days = dashboard_wrapper.count(filters={"changed_on": seven_days_ago})
-        charts_modified_last_7_days = chart_wrapper.count(filters={"changed_on": seven_days_ago})
-        datasets_modified_last_7_days = dataset_wrapper.count(filters={"changed_on": seven_days_ago})
+        dashboards_modified_last_7_days = dashboard_wrapper.count(column_operators=[ColumnOperator(col="changed_on", opr=ColumnOperatorEnum.gte, value=seven_days_ago)])
+        charts_modified_last_7_days = chart_wrapper.count(column_operators=[ColumnOperator(col="changed_on", opr=ColumnOperatorEnum.gte, value=seven_days_ago)])
+        datasets_modified_last_7_days = dataset_wrapper.count(column_operators=[ColumnOperator(col="changed_on", opr=ColumnOperatorEnum.gte, value=seven_days_ago)])
 
         # Dashboard breakdown
-        published_count = dashboard_wrapper.count(filters={"published": True})
+        published_count = dashboard_wrapper.count(column_operators=[ColumnOperator(col="published", opr=ColumnOperatorEnum.eq, value=True)])
         unpublished_dashboards = total_dashboards - published_count
-        certified_count = dashboard_wrapper.count(filters={"certified_by": "not_null"})  # Custom logic may be needed
+        certified_count = dashboard_wrapper.count(column_operators=[ColumnOperator(col="certified_by", opr=ColumnOperatorEnum.is_not_null, value=None)])  # Custom logic may be needed
         dashboards_with_charts = db.session.query(Dashboard).join(Dashboard.slices).distinct().count()  # No direct DAO method
         dashboards_without_charts = total_dashboards - dashboards_with_charts
         avg_charts_per_dashboard = (total_charts / total_dashboards) if total_dashboards > 0 else 0
 
         # Compose response using keyword arguments and nested models
-        response = SupersetInstanceInfoResponse(
+        response = InstanceInfo(
             instance_summary=InstanceSummary(
                 total_dashboards=total_dashboards,
                 total_charts=total_charts,

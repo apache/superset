@@ -46,7 +46,7 @@ Available tools include:
 - get_dashboard_info: Get detailed information about a dashboard by its integer ID
 - get_superset_instance_info: Get high-level statistics and metadata about the Superset instance (no arguments)
 - get_dashboard_available_filters: List all available dashboard filter fields and operators
-- list_datasets: Dataset listing with advanced filters (use 'filters' for advanced queries, 1-based pagination)
+- list_datasets: DatasetInfo listing with advanced filters (use 'filters' for advanced queries, 1-based pagination)
 - get_dataset_info: Get detailed information about a dataset by its integer ID
 - get_dataset_available_filters: List all available dataset filter fields and operators
 - list_charts: Chart listing with advanced filters (use 'filters' for advanced queries, 1-based pagination)

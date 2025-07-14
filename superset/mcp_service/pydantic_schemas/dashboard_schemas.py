@@ -23,7 +23,7 @@ in a consistent and type-safe manner.
 
 Example usage:
     # For detailed dashboard info
-    dashboard_info = DashboardInfoResponse(
+    dashboard_info = DashboardInfo(
         id=1,
         dashboard_title="Sales Dashboard",
         published=True,
@@ -32,9 +32,9 @@ Example usage:
     )
     
     # For dashboard list responses
-    dashboard_list = DashboardListResponse(
+    dashboard_list = DashboardList(
         dashboards=[
-            DashboardListItem(
+            DashboardInfo(
                 id=1,
                 dashboard_title="Sales Dashboard",
                 published=True,
@@ -64,147 +64,15 @@ Example usage:
 """
 
 from datetime import datetime
-from typing import Any, Dict, List, Optional, Union, Mapping, Literal
-from pydantic import BaseModel, Field, ConfigDict
+from typing import Any, Dict, List, Literal, Optional, Union
+
+from pydantic import BaseModel, ConfigDict, Field
+from superset.daos.base import ColumnOperator
+from superset.mcp_service.pydantic_schemas.chart_schemas import ChartInfo
+from superset.mcp_service.pydantic_schemas.system_schemas import PaginationInfo, RoleInfo, TagInfo, UserInfo
 
 
-class UserInfo(BaseModel):
-    """User information for dashboard owners and creators"""
-    id: Optional[int] = None
-    username: Optional[str] = None
-    first_name: Optional[str] = None
-    last_name: Optional[str] = None
-    email: Optional[str] = None
-    active: Optional[bool] = None
-
-
-class TagInfo(BaseModel):
-    """Tag information for dashboard tags"""
-    id: Optional[int] = None
-    name: Optional[str] = None
-    type: Optional[str] = None
-    description: Optional[str] = None
-
-
-class RoleInfo(BaseModel):
-    """Role information for dashboard roles"""
-    id: Optional[int] = None
-    name: Optional[str] = None
-    permissions: Optional[List[str]] = None
-
-
-class ChartInfo(BaseModel):
-    """Chart information for dashboard charts"""
-    id: Optional[int] = None
-    slice_name: Optional[str] = None
-    viz_type: Optional[str] = None
-    datasource_name: Optional[str] = None
-    datasource_type: Optional[str] = None
-    url: Optional[str] = None
-    description: Optional[str] = None
-    cache_timeout: Optional[int] = None
-    form_data: Optional[Dict[str, Any]] = None
-    query_context: Optional[Any] = None
-    created_by: Optional[UserInfo] = None
-    changed_by: Optional[UserInfo] = None
-    created_on: Optional[Union[str, datetime]] = None
-    changed_on: Optional[Union[str, datetime]] = None
-    model_config = ConfigDict(from_attributes=True, ser_json_timedelta="iso8601")
-
-
-class DashboardListItem(BaseModel):
-    """Dashboard item for list responses - simplified version of DashboardInfoResponse"""
-    id: int = Field(..., description="Dashboard ID")
-    dashboard_title: str = Field(..., description="Dashboard title")
-    slug: Optional[str] = Field(None, description="Dashboard slug")
-    url: Optional[str] = Field(None, description="Dashboard URL")
-    published: Optional[bool] = Field(None, description="Whether the dashboard is published")
-    changed_by: Optional[str] = Field(None, description="Last modifier (username)")
-    changed_by_name: Optional[str] = Field(None, description="Last modifier (display name)")
-    changed_on: Optional[Union[str, datetime]] = Field(None, description="Last modification timestamp")
-    changed_on_humanized: Optional[str] = Field(None, description="Humanized modification time")
-    created_by: Optional[str] = Field(None, description="Dashboard creator (username)")
-    created_on: Optional[Union[str, datetime]] = Field(None, description="Creation timestamp")
-    created_on_humanized: Optional[str] = Field(None, description="Humanized creation time")
-    tags: List[TagInfo] = Field(default_factory=list, description="Dashboard tags")
-    owners: List[UserInfo] = Field(default_factory=list, description="Dashboard owners")
-    
-    model_config = ConfigDict(from_attributes=True, ser_json_timedelta="iso8601")
-
-
-class PaginationInfo(BaseModel):
-    """Pagination information for list responses"""
-    page: int = Field(..., description="Current page number")
-    page_size: int = Field(..., description="Number of items per page")
-    total_count: int = Field(..., description="Total number of items")
-    total_pages: int = Field(..., description="Total number of pages")
-    has_next: bool = Field(..., description="Whether there is a next page")
-    has_previous: bool = Field(..., description="Whether there is a previous page")
-    
-    model_config = ConfigDict(ser_json_timedelta="iso8601")
-
-
-class DashboardInfoResponse(BaseModel):
-    """Detailed dashboard information response - maps exactly to Dashboard model"""
-    
-    # Core Dashboard model fields
-    id: int = Field(..., description="Dashboard ID")
-    dashboard_title: str = Field(..., description="Dashboard title")
-    slug: Optional[str] = Field(None, description="Dashboard slug")
-    description: Optional[str] = Field(None, description="Dashboard description")
-    css: Optional[str] = Field(None, description="Custom CSS for the dashboard")
-    certified_by: Optional[str] = Field(None, description="Who certified the dashboard")
-    certification_details: Optional[str] = Field(None, description="Certification details")
-    json_metadata: Optional[str] = Field(None, description="Dashboard metadata (JSON string)")
-    position_json: Optional[str] = Field(None, description="Chart positions (JSON string)")
-    published: Optional[bool] = Field(None, description="Whether the dashboard is published")
-    is_managed_externally: Optional[bool] = Field(None, description="Whether managed externally")
-    external_url: Optional[str] = Field(None, description="External URL")
-    
-    # AuditMixinNullable fields
-    created_on: Optional[Union[str, datetime]] = Field(None, description="Creation timestamp")
-    changed_on: Optional[Union[str, datetime]] = Field(None, description="Last modification timestamp")
-    created_by: Optional[str] = Field(None, description="Dashboard creator (username)")
-    changed_by: Optional[str] = Field(None, description="Last modifier (username)")
-    
-    # ImportExportMixin fields
-    uuid: Optional[str] = Field(None, description="Dashboard UUID (converted to string)")
-    
-    # Computed properties
-    url: Optional[str] = Field(None, description="Dashboard URL")
-    thumbnail_url: Optional[str] = Field(None, description="Thumbnail URL")
-    created_on_humanized: Optional[str] = Field(None, description="Humanized creation time")
-    changed_on_humanized: Optional[str] = Field(None, description="Humanized modification time")
-    chart_count: int = Field(0, description="Number of charts in the dashboard")
-    
-    # Related entities
-    owners: List[UserInfo] = Field(default_factory=list, description="Dashboard owners")
-    tags: List[TagInfo] = Field(default_factory=list, description="Dashboard tags")
-    roles: List[RoleInfo] = Field(default_factory=list, description="Dashboard roles")
-    charts: List[ChartInfo] = Field(default_factory=list, description="Dashboard charts")
-    
-    model_config = ConfigDict(from_attributes=True, ser_json_timedelta="iso8601")
-
-
-class DashboardListResponse(BaseModel):
-    dashboards: List[DashboardInfoResponse]
-    count: int
-    total_count: int
-    page: int
-    page_size: int
-    total_pages: int
-    has_previous: bool
-    has_next: bool
-    columns_requested: Optional[List[str]] = None
-    columns_loaded: Optional[List[str]] = None
-    filters_applied: List[dict] = Field(
-        default_factory=list, description="List of advanced filter dicts applied to the query.")
-    pagination: Optional[PaginationInfo] = None
-    timestamp: Optional[datetime] = None
-
-    model_config = ConfigDict(ser_json_timedelta="iso8601")
-
-class DashboardErrorResponse(BaseModel):
+class DashboardError(BaseModel):
     """Error response for dashboard operations"""
     error: str = Field(..., description="Error message")
     error_type: str = Field(..., description="Type of error")
@@ -254,7 +122,7 @@ def serialize_role_object(role) -> Optional[RoleInfo]:
 
 
 def serialize_chart_object(chart) -> Optional[ChartInfo]:
-    """Serialize a chart object to ChartInfo"""
+    """Serialize a chart object to Chart"""
     if not chart:
         return None
     
@@ -276,13 +144,13 @@ def serialize_chart_object(chart) -> Optional[ChartInfo]:
     )
 
 
-class DashboardAvailableFiltersResponse(BaseModel):
+class DashboardAvailableFilters(BaseModel):
     filters: Dict[str, Any] = Field(..., description="Available filters and their metadata")
     operators: List[str] = Field(..., description="Supported filter operators")
     columns: List[str] = Field(..., description="Available columns for filtering")
 
 
-class DashboardFilter(BaseModel):
+class DashboardFilter(ColumnOperator):
     """
     Filter object for dashboard listing.
     col: The column to filter on. Must be one of the allowed filter fields.
@@ -303,21 +171,50 @@ class DashboardFilter(BaseModel):
     opr: Literal[
         "eq", "ne", "in", "nin", "sw", "ew", "gte", "lte", "gt", "lt"
     ] = Field(..., description="Operator to use. See get_dashboard_available_filters for allowed values.")
-    value: Any = Field(..., description="Value to filter by (type depends on col and opr)")
+    value: Any = Field(..., description="Value to filter by (type depends on col and opr)") 
 
 
-class DashboardSimpleFilters(BaseModel):
-    dashboard_title: Optional[str] = Field(None, description="Filter by dashboard title (partial match)")
-    published: Optional[bool] = Field(None, description="Filter by published status")
-    changed_by: Optional[str] = Field(None, description="Filter by last modifier (username)")
-    created_by: Optional[str] = Field(None, description="Filter by creator (username)")
-    owner: Optional[str] = Field(None, description="Filter by owner (username)")
-    certified: Optional[bool] = Field(None, description="Filter by certified status")
-    favorite: Optional[bool] = Field(None, description="Filter by favorite status")
-    chart_count: Optional[int] = Field(None, description="Filter by number of charts")
-    chart_count_min: Optional[int] = Field(None, description="Filter by minimum number of charts")
-    chart_count_max: Optional[int] = Field(None, description="Filter by maximum number of charts")
-    tags: Optional[str] = Field(None, description="Filter by tags (comma-separated)")
+class DashboardInfo(BaseModel):
+    id: int = Field(..., description="Dashboard ID")
+    dashboard_title: str = Field(..., description="Dashboard title")
+    slug: Optional[str] = Field(None, description="Dashboard slug")
+    description: Optional[str] = Field(None, description="Dashboard description")
+    css: Optional[str] = Field(None, description="Custom CSS for the dashboard")
+    certified_by: Optional[str] = Field(None, description="Who certified the dashboard")
+    certification_details: Optional[str] = Field(None, description="Certification details")
+    json_metadata: Optional[str] = Field(None, description="Dashboard metadata (JSON string)")
+    position_json: Optional[str] = Field(None, description="Chart positions (JSON string)")
+    published: Optional[bool] = Field(None, description="Whether the dashboard is published")
+    is_managed_externally: Optional[bool] = Field(None, description="Whether managed externally")
+    external_url: Optional[str] = Field(None, description="External URL")
+    created_on: Optional[Union[str, datetime]] = Field(None, description="Creation timestamp")
+    changed_on: Optional[Union[str, datetime]] = Field(None, description="Last modification timestamp")
+    created_by: Optional[str] = Field(None, description="Dashboard creator (username)")
+    changed_by: Optional[str] = Field(None, description="Last modifier (username)")
+    uuid: Optional[str] = Field(None, description="Dashboard UUID (converted to string)")
+    url: Optional[str] = Field(None, description="Dashboard URL")
+    thumbnail_url: Optional[str] = Field(None, description="Thumbnail URL")
+    created_on_humanized: Optional[str] = Field(None, description="Humanized creation time")
+    changed_on_humanized: Optional[str] = Field(None, description="Humanized modification time")
+    chart_count: int = Field(0, description="Number of charts in the dashboard")
+    owners: List[UserInfo] = Field(default_factory=list, description="Dashboard owners")
+    tags: List[TagInfo] = Field(default_factory=list, description="Dashboard tags")
+    roles: List[RoleInfo] = Field(default_factory=list, description="Dashboard roles")
+    charts: List[ChartInfo] = Field(default_factory=list, description="Dashboard charts")
+    model_config = ConfigDict(from_attributes=True, ser_json_timedelta="iso8601")
 
-
-# ... rest of the file remains unchanged ... 
+class DashboardList(BaseModel):
+    dashboards: List[DashboardInfo]
+    count: int
+    total_count: int
+    page: int
+    page_size: int
+    total_pages: int
+    has_previous: bool
+    has_next: bool
+    columns_requested: Optional[List[str]] = None
+    columns_loaded: Optional[List[str]] = None
+    filters_applied: List[dict] = Field(default_factory=list, description="List of advanced filter dicts applied to the query.")
+    pagination: Optional[PaginationInfo] = None
+    timestamp: Optional[datetime] = None
+    model_config = ConfigDict(ser_json_timedelta="iso8601") 

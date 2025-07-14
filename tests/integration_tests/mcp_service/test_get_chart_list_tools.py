@@ -1,7 +1,6 @@
-import logging
-import sys
-import traceback
 import json
+import logging
+import traceback
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
@@ -39,16 +38,9 @@ async def test_tool(client, tool_name, payload, label, issues):
 
 async def main():
     from fastmcp import Client
-    logger.info("Starting integration test for list_charts and list_charts_simple tools")
+    logger.info("Starting integration test for list_charts and list_charts tools")
     issues = []
     async with Client("http://localhost:5008/mcp") as client:
-        # Test list_charts_simple with default params
-        await test_tool(client, "list_charts_simple", {}, "(default)", issues)
-        # Test list_charts_simple with a filter
-        await test_tool(client, "list_charts_simple", {"filters": {"viz_type": "bar"}}, "(viz_type=bar)", issues)
-        # Test list_charts_simple with pagination
-        await test_tool(client, "list_charts_simple", {"page": 1, "page_size": 2}, "(page=1, page_size=2)", issues)
-
         # Test list_charts (advanced) with default params
         await test_tool(client, "list_charts", {}, "(default)", issues)
         # Test list_charts with a filter (slice_name sw 'ab')
@@ -69,7 +61,7 @@ async def main():
         for tool_name, label, msg in issues:
             logger.warning(f"  {tool_name} {label}: {msg}")
     else:
-        logger.info("All list_charts and list_charts_simple calls returned successfully with no errors or warnings.")
+        logger.info("All list_charts and list_charts calls returned successfully with no errors or warnings.")
 
 if __name__ == "__main__":
     import asyncio

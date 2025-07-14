@@ -19,49 +19,19 @@
 Pydantic schemas for dataset-related responses
 """
 from datetime import datetime
-from typing import Any, Dict, List, Optional, Union, Literal
-from pydantic import BaseModel, Field, ConfigDict
-from .dashboard_schemas import UserInfo, TagInfo, PaginationInfo
+from typing import Any, Dict, List, Literal, Optional, Union
 
-class DatasetListItem(BaseModel):
-    """Dataset item for list responses"""
-    id: int = Field(..., description="Dataset ID")
-    table_name: str = Field(..., description="Table name")
-    db_schema: Optional[str] = Field(None, alias="schema", description="Schema name")
-    database_name: Optional[str] = Field(None, description="Database name")
-    description: Optional[str] = Field(None, description="Dataset description")
-    changed_by: Optional[str] = Field(None, description="Last modifier (username)")
-    changed_by_name: Optional[str] = Field(None, description="Last modifier (display name)")
-    changed_on: Optional[Union[str, datetime]] = Field(None, description="Last modification timestamp")
-    changed_on_humanized: Optional[str] = Field(None, description="Humanized modification time")
-    created_by: Optional[str] = Field(None, description="Dataset creator (username)")
-    created_on: Optional[Union[str, datetime]] = Field(None, description="Creation timestamp")
-    created_on_humanized: Optional[str] = Field(None, description="Humanized creation time")
-    tags: List[TagInfo] = Field(default_factory=list, description="Dataset tags")
-    owners: List[UserInfo] = Field(default_factory=list, description="Dataset owners")
-    is_virtual: Optional[bool] = Field(None, description="Whether the dataset is virtual (uses SQL)")
-    database_id: Optional[int] = Field(None, description="Database ID")
-    schema_perm: Optional[str] = Field(None, description="Schema permission string")
-    url: Optional[str] = Field(None, description="Dataset URL")
-    model_config = ConfigDict(from_attributes=True, ser_json_timedelta="iso8601")
+from pydantic import BaseModel, ConfigDict, Field
+from superset.daos.base import ColumnOperator
+from superset.mcp_service.pydantic_schemas.system_schemas import PaginationInfo, TagInfo, UserInfo
 
 
-class DatasetSimpleFilters(BaseModel):
-    table_name: Optional[str] = Field(None, description="Filter by table name (partial match)")
-    db_schema: Optional[str] = Field(None, alias="schema", description="Filter by schema name")
-    database_name: Optional[str] = Field(None, description="Filter by database name")
-    changed_by: Optional[str] = Field(None, description="Filter by last modifier (username)")
-    created_by: Optional[str] = Field(None, description="Filter by creator (username)")
-    owner: Optional[str] = Field(None, description="Filter by owner (username)")
-    is_virtual: Optional[bool] = Field(None, description="Filter by whether the dataset is virtual (uses SQL)")
-    tags: Optional[str] = Field(None, description="Filter by tags (comma-separated)")
-
-class DatasetAvailableFiltersResponse(BaseModel):
+class DatasetAvailableFilters(BaseModel):
     filters: Dict[str, Any] = Field(..., description="Available filters and their metadata")
     operators: List[str] = Field(..., description="Supported filter operators")
     columns: List[str] = Field(..., description="Available columns for filtering")
 
-class DatasetFilter(BaseModel):
+class DatasetFilter(ColumnOperator):
     """
     Filter object for dataset listing.
     col: The column to filter on. Must be one of the allowed filter fields.
@@ -83,32 +53,7 @@ class DatasetFilter(BaseModel):
     ] = Field(..., description="Operator to use. See get_dataset_available_filters for allowed values.")
     value: Any = Field(..., description="Value to filter by (type depends on col and opr)")
 
-def serialize_dataset_object(dataset) -> Optional[DatasetListItem]:
-    if not dataset:
-        return None
-    return DatasetListItem(
-        id=getattr(dataset, 'id', None),
-        table_name=getattr(dataset, 'table_name', None),
-        db_schema=getattr(dataset, 'schema', None),
-        database_name=getattr(dataset.database, 'database_name', None) if getattr(dataset, 'database', None) else None,
-        description=getattr(dataset, 'description', None),
-        changed_by=getattr(dataset, 'changed_by_name', None) or (str(dataset.changed_by) if getattr(dataset, 'changed_by', None) else None),
-        changed_by_name=getattr(dataset, 'changed_by_name', None) or (str(dataset.changed_by) if getattr(dataset, 'changed_by', None) else None),
-        changed_on=getattr(dataset, 'changed_on', None),
-        changed_on_humanized=getattr(dataset, 'changed_on_humanized', None),
-        created_by=getattr(dataset, 'created_by_name', None) or (str(dataset.created_by) if getattr(dataset, 'created_by', None) else None),
-        created_on=getattr(dataset, 'created_on', None),
-        created_on_humanized=getattr(dataset, 'created_on_humanized', None),
-        tags=[TagInfo.model_validate(tag, from_attributes=True) for tag in getattr(dataset, 'tags', [])] if getattr(dataset, 'tags', None) else [],
-        owners=[UserInfo.model_validate(owner, from_attributes=True) for owner in getattr(dataset, 'owners', [])] if getattr(dataset, 'owners', None) else [],
-        is_virtual=getattr(dataset, 'is_virtual', None),
-        database_id=getattr(dataset, 'database_id', None),
-        schema_perm=getattr(dataset, 'schema_perm', None),
-        url=getattr(dataset, 'url', None),
-    )
-
-class DatasetInfoResponse(BaseModel):
-    """Detailed dataset information response - maps exactly to Dataset model"""
+class DatasetInfo(BaseModel):
     id: int = Field(..., description="Dataset ID")
     table_name: str = Field(..., description="Table name")
     db_schema: Optional[str] = Field(None, alias="schema", description="Schema name")
@@ -121,7 +66,7 @@ class DatasetInfoResponse(BaseModel):
     created_on: Optional[Union[str, datetime]] = Field(None, description="Creation timestamp")
     created_on_humanized: Optional[str] = Field(None, description="Humanized creation time")
     tags: List[TagInfo] = Field(default_factory=list, description="Dataset tags")
-    owners: List[UserInfo] = Field(default_factory=list, description="Dataset owners")
+    owners: List[UserInfo] = Field(default_factory=list, description="DatasetInfo owners")
     is_virtual: Optional[bool] = Field(None, description="Whether the dataset is virtual (uses SQL)")
     database_id: Optional[int] = Field(None, description="Database ID")
     schema_perm: Optional[str] = Field(None, description="Schema permission string")
@@ -135,9 +80,8 @@ class DatasetInfoResponse(BaseModel):
     extra: Optional[Dict[str, Any]] = Field(None, description="Extra metadata")
     model_config = ConfigDict(from_attributes=True, ser_json_timedelta="iso8601")
 
-class DatasetListResponse(BaseModel):
-    """Response for dataset list operations"""
-    datasets: List[DatasetInfoResponse]
+class DatasetList(BaseModel):
+    datasets: List[DatasetInfo]
     count: int
     total_count: int
     page: int
@@ -152,8 +96,38 @@ class DatasetListResponse(BaseModel):
     timestamp: Optional[datetime] = None
     model_config = ConfigDict(ser_json_timedelta="iso8601")
 
-class DatasetErrorResponse(BaseModel):
+class DatasetError(BaseModel):
     error: str = Field(..., description="Error message")
     error_type: str = Field(..., description="Type of error")
     timestamp: Optional[Union[str, datetime]] = Field(None, description="Error timestamp")
     model_config = ConfigDict(ser_json_timedelta="iso8601") 
+
+def serialize_dataset_object(dataset) -> Optional[DatasetInfo]:
+    if not dataset:
+        return None
+    return DatasetInfo(
+        id=getattr(dataset, 'id', None),
+        table_name=getattr(dataset, 'table_name', None),
+        db_schema=getattr(dataset, 'schema', None),
+        database_name=getattr(dataset.database, 'database_name', None) if getattr(dataset, 'database', None) else None,
+        description=getattr(dataset, 'description', None),
+        changed_by=getattr(dataset, 'changed_by_name', None) or (str(dataset.changed_by) if getattr(dataset, 'changed_by', None) else None),
+        changed_on=getattr(dataset, 'changed_on', None),
+        changed_on_humanized=getattr(dataset, 'changed_on_humanized', None),
+        created_by=getattr(dataset, 'created_by_name', None) or (str(dataset.created_by) if getattr(dataset, 'created_by', None) else None),
+        created_on=getattr(dataset, 'created_on', None),
+        created_on_humanized=getattr(dataset, 'created_on_humanized', None),
+        tags=[TagInfo.model_validate(tag, from_attributes=True) for tag in getattr(dataset, 'tags', [])] if getattr(dataset, 'tags', None) else [],
+        owners=[UserInfo.model_validate(owner, from_attributes=True) for owner in getattr(dataset, 'owners', [])] if getattr(dataset, 'owners', None) else [],
+        is_virtual=getattr(dataset, 'is_virtual', None),
+        database_id=getattr(dataset, 'database_id', None),
+        schema_perm=getattr(dataset, 'schema_perm', None),
+        url=getattr(dataset, 'url', None),
+        sql=getattr(dataset, 'sql', None),
+        main_dttm_col=getattr(dataset, 'main_dttm_col', None),
+        offset=getattr(dataset, 'offset', None),
+        cache_timeout=getattr(dataset, 'cache_timeout', None),
+        params=getattr(dataset, 'params', None),
+        template_params=getattr(dataset, 'template_params', None),
+        extra=getattr(dataset, 'extra', None),
+    ) 
