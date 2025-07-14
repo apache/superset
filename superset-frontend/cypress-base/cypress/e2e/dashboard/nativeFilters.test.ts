@@ -22,6 +22,7 @@ import {
   dataTestChartName,
 } from 'cypress/support/directories';
 
+import { waitForChartLoad } from 'cypress/utils';
 import {
   addParentFilterWithValue,
   applyNativeFilterValueWithIndex,
@@ -45,7 +46,6 @@ import {
   SAMPLE_CHART,
   visitDashboard,
 } from './shared_dashboard_functions';
-import { waitForChartLoad } from 'cypress/utils';
 
 function selectFilter(index: number) {
   cy.get("[data-test='filter-title-container'] [draggable='true']")
@@ -170,43 +170,50 @@ describe('Native filters', () => {
       enterNativeFilterEditModal();
 
       selectFilter(0);
-      cy.get(nativeFilters.filterConfigurationSections.displayedSection).within(() => {
-        cy.contains('Select first filter value by default')
-          .should('be.visible')
-          .click();
-      });
-      cy.get(nativeFilters.filterConfigurationSections.displayedSection).within(() => {
-        cy.contains('Can select multiple values ')
-          .should('be.visible')
-          .click();
-      });
+      cy.get(nativeFilters.filterConfigurationSections.displayedSection).within(
+        () => {
+          cy.contains('Select first filter value by default')
+            .should('be.visible')
+            .click();
+        },
+      );
+      cy.get(nativeFilters.filterConfigurationSections.displayedSection).within(
+        () => {
+          cy.contains('Can select multiple values ')
+            .should('be.visible')
+            .click();
+        },
+      );
 
       selectFilter(1);
-      cy.get(nativeFilters.filterConfigurationSections.displayedSection).within(() => {
-        cy.contains('Values are dependent on other filters')
-          .should('be.visible')
-          .click();
-      });
-      cy.get(nativeFilters.filterConfigurationSections.displayedSection).within(() => {
-        cy.contains('Can select multiple values ')
-          .should('be.visible')
-          .click();
-      });
+      cy.get(nativeFilters.filterConfigurationSections.displayedSection).within(
+        () => {
+          cy.contains('Values are dependent on other filters')
+            .should('be.visible')
+            .click();
+        },
+      );
+      cy.get(nativeFilters.filterConfigurationSections.displayedSection).within(
+        () => {
+          cy.contains('Can select multiple values ')
+            .should('be.visible')
+            .click();
+        },
+      );
       addParentFilterWithValue(0, testItems.topTenChart.filterColumnRegion);
-      cy.get(nativeFilters.filterConfigurationSections.displayedSection).within(() => {
-        cy.contains('Select first filter value by default')
-          .should('be.visible')
-          .click();
-      });
+      cy.get(nativeFilters.filterConfigurationSections.displayedSection).within(
+        () => {
+          cy.contains('Select first filter value by default')
+            .should('be.visible')
+            .click();
+        },
+      );
 
       // cannot use saveNativeFilterSettings because there is a bug which
       // sometimes does not allow charts to load when enabling the 'Select first filter value by default'
       // to be saved when using dependent filters so,
       // you reload the window.
-      cy.get('.ant-modal-footer')
-          .contains('Save')
-          .should('be.visible')
-          .click();
+      cy.get('.ant-modal-footer').contains('Save').should('be.visible').click();
 
       cy.get('.ant-modal-content').should('not.exist');
       cy.reload();
