@@ -19,7 +19,7 @@
 import { Tooltip } from 'antd';
 import { Dropdown, Icons } from '@superset-ui/core/components';
 import { t } from '@superset-ui/core';
-import { ThemeMode } from '../../theme/types';
+import { ThemeAlgorithm, ThemeMode } from '../../theme/types';
 
 export interface ThemeSelectProps {
   setThemeMode: (newMode: ThemeMode) => void;
@@ -36,11 +36,11 @@ const ThemeSelect: React.FC<ThemeSelectProps> = ({
     setThemeMode(mode);
   };
 
-  const themeIconMap: Record<ThemeMode, React.ReactNode> = {
-    [ThemeMode.DEFAULT]: <Icons.SunOutlined />,
-    [ThemeMode.DARK]: <Icons.MoonOutlined />,
+  const themeIconMap: Record<ThemeAlgorithm | ThemeMode, React.ReactNode> = {
+    [ThemeAlgorithm.DEFAULT]: <Icons.SunOutlined />,
+    [ThemeAlgorithm.DARK]: <Icons.MoonOutlined />,
     [ThemeMode.SYSTEM]: <Icons.FormatPainterOutlined />,
-    [ThemeMode.COMPACT]: <Icons.CompressOutlined />,
+    [ThemeAlgorithm.COMPACT]: <Icons.CompressOutlined />,
   };
 
   return (

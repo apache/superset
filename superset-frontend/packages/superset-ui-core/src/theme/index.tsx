@@ -26,7 +26,7 @@ import {
   type ThemeStorage,
   type ThemeControllerOptions,
   type ThemeContextType,
-  ThemeMode,
+  ThemeAlgorithm,
 } from './types';
 
 export {
@@ -59,7 +59,9 @@ export function useTheme() {
 const styled: CreateStyled = emotionStyled;
 
 // launching in in dark mode for now while iterating
-const themeObject: Theme = Theme.fromConfig({ algorithm: ThemeMode.DEFAULT });
+const themeObject: Theme = Theme.fromConfig({
+  algorithm: ThemeAlgorithm.DEFAULT,
+});
 
 const { theme } = themeObject;
 const supersetTheme = theme;

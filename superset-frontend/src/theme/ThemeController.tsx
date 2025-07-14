@@ -23,10 +23,7 @@ import {
   ThemeControllerOptions,
   themeObject as supersetThemeObject,
 } from '@superset-ui/core';
-import {
-  type ThemeAlgorithmCombination,
-  ThemeMode,
-} from '@superset-ui/core/theme/types';
+import { ThemeAlgorithm, ThemeMode } from '@superset-ui/core/theme/types';
 import type {
   BootstrapThemeData,
   BootstrapThemeDataConfig,
@@ -44,10 +41,11 @@ const STORAGE_KEYS = {
   THEME_MODE: 'superset-theme-mode',
 } as const;
 
-const VALID_ALGORITHM_COMBINATIONS: ReadonlyArray<ReadonlySet<ThemeMode>> = [
-  new Set([ThemeMode.DARK, ThemeMode.COMPACT]),
-  new Set([ThemeMode.DEFAULT, ThemeMode.COMPACT]),
-] as const;
+const VALID_ALGORITHM_COMBINATIONS: ReadonlyArray<ReadonlySet<ThemeAlgorithm>> =
+  [
+    new Set([ThemeAlgorithm.DARK, ThemeAlgorithm.COMPACT]),
+    new Set([ThemeAlgorithm.DEFAULT, ThemeAlgorithm.COMPACT]),
+  ] as const;
 
 const MEDIA_QUERY_DARK_SCHEME = '(prefers-color-scheme: dark)';
 
@@ -243,11 +241,11 @@ export class ThemeController {
    */
   private handleSystemThemeChange = (): void => {
     try {
-      const newSystemMode: ThemeMode.DARK | ThemeMode.DEFAULT =
+      const newSystemMode: ThemeMode.DEFAULT | ThemeMode.DARK =
         ThemeController.getSystemPreferredMode();
 
       // Update systemMode regardless of current mode
-      const oldSystemMode: ThemeMode.DARK | ThemeMode.DEFAULT = this.systemMode;
+      const oldSystemMode: ThemeMode.DEFAULT | ThemeMode.DARK = this.systemMode;
       this.systemMode = newSystemMode;
 
       // Only update theme if currently in SYSTEM mode and the preference changed
@@ -354,10 +352,12 @@ export class ThemeController {
    * Determines if mode updates are allowed.
    */
   private isModeUpdatable(): boolean {
-    if (!this.themeSettings || Object.keys(this.themeSettings).length === 0)
-      return DEFAULT_THEME_SETTINGS.allowSwitching;
+    const {
+      enforced = DEFAULT_THEME_SETTINGS.enforced,
+      allowSwitching = DEFAULT_THEME_SETTINGS.allowSwitching,
+    } = this.themeSettings || {};
 
-    return !this.themeSettings.enforced && !!this.themeSettings.allowSwitching;
+    return !enforced && allowSwitching;
   }
 
   /**
@@ -369,22 +369,21 @@ export class ThemeController {
     mode: ThemeMode;
     normalizedTheme: AnyThemeConfig;
   } {
-    const algorithm: ThemeMode | ThemeAlgorithmCombination =
-      this.getValidAlgorithm(
-        (theme?.algorithm || ThemeMode.DEFAULT) as
-          | ThemeMode
-          | ThemeAlgorithmCombination,
-      );
+    const algorithm: ThemeAlgorithm | ThemeAlgorithm[] = this.getValidAlgorithm(
+      (theme?.algorithm as ThemeAlgorithm | ThemeAlgorithm[]) ||
+        ThemeAlgorithm.DEFAULT,
+    );
 
     // Extract the mode from the valid algorithm
     let mode: ThemeMode;
 
     if (Array.isArray(algorithm))
       mode =
-        algorithm.find(
-          (m: ThemeMode) => m === ThemeMode.DARK || m === ThemeMode.DEFAULT,
-        ) || ThemeMode.DEFAULT;
-    else mode = algorithm as ThemeMode;
+        (algorithm.find(
+          (m: ThemeAlgorithm) =>
+            m === ThemeAlgorithm.DARK || m === ThemeAlgorithm.DEFAULT,
+        ) as unknown as ThemeMode) || ThemeMode.DEFAULT;
+    else mode = algorithm as unknown as ThemeMode;
 
     return {
       mode,
@@ -416,12 +415,12 @@ export class ThemeController {
       if (resolvedMode === ThemeMode.DARK)
         return {
           ...this.defaultTheme,
-          algorithm: ThemeMode.DARK,
+          algorithm: ThemeAlgorithm.DARK,
         };
 
       return {
         ...this.defaultTheme,
-        algorithm: ThemeMode.DEFAULT,
+        algorithm: ThemeAlgorithm.DEFAULT,
       };
     }
 
@@ -460,12 +459,21 @@ export class ThemeController {
     const {
       enforced = DEFAULT_THEME_SETTINGS.enforced,
       allowOSPreference = DEFAULT_THEME_SETTINGS.allowOSPreference,
+      allowSwitching = DEFAULT_THEME_SETTINGS.allowSwitching,
     } = this.themeSettings;
 
     // Enforced mode always takes precedence
     if (enforced) {
       this.storage.removeItem(this.modeStorageKey);
       return ThemeMode.DEFAULT;
+    }
+
+    // When OS preference is allowed but switching is not
+    // This means the user MUST follow OS preference and cannot override it
+    if (allowOSPreference && !allowSwitching) {
+      // Clear any saved preference since switching is not allowed
+      this.storage.removeItem(this.modeStorageKey);
+      return ThemeMode.SYSTEM;
     }
 
     // Try to restore saved mode
@@ -528,11 +536,23 @@ export class ThemeController {
    * @throws {Error} If the new mode is SYSTEM and OS preference is not allowed
    */
   private validateModeUpdatePermission(newMode: ThemeMode): void {
-    const { allowOSPreference = true } = this.themeSettings;
+    const {
+      allowOSPreference = DEFAULT_THEME_SETTINGS.allowOSPreference,
+      allowSwitching = DEFAULT_THEME_SETTINGS.allowSwitching,
+    } = this.themeSettings;
 
+    // If OS preference is allowed but switching is not,
+    // don't allow any mode changes
+    if (allowOSPreference && !allowSwitching)
+      throw new Error(
+        'Theme mode changes are not allowed when OS preference is enforced',
+      );
+
+    // Check if user can set a new theme mode
     if (!this.canSetMode())
       throw new Error('User does not have permission to update the theme mode');
 
+    // Check if user has permissions to set OS preference as a theme mode
     if (newMode === ThemeMode.SYSTEM && !allowOSPreference)
       throw new Error('System theme mode is not allowed');
   }
@@ -543,9 +563,7 @@ export class ThemeController {
    * @param algorithm - The theme algorithm to validate
    * @returns {boolean} True if the algorithms combination is valid, false otherwise
    */
-  private isValidAlgorithmCombination(
-    algorithm: ThemeAlgorithmCombination,
-  ): boolean {
+  private isValidAlgorithmCombination(algorithm: ThemeAlgorithm[]): boolean {
     const inputSet = new Set(algorithm);
     return VALID_ALGORITHM_COMBINATIONS.some(
       validCombination =>
@@ -557,22 +575,22 @@ export class ThemeController {
   /**
    * Checks if the algorithm is a valid combination or a simple one.
    * @param algorithm - The theme mode or combination to convert
-   * @returns A valid ThemeMode or ThemeAlgorithmCombination
+   * @returns A valid ThemeAlgorithm or ThemeAlgorithm[]
    */
   private getValidAlgorithm(
-    algorithm: ThemeMode | ThemeAlgorithmCombination,
-  ): ThemeMode | ThemeAlgorithmCombination {
+    algorithm: ThemeAlgorithm | ThemeMode | ThemeAlgorithm[],
+  ): ThemeAlgorithm | ThemeAlgorithm[] {
     if (Array.isArray(algorithm) && this.isValidAlgorithmCombination(algorithm))
-      return algorithm as ThemeAlgorithmCombination;
+      return algorithm as ThemeAlgorithm[];
 
     switch (algorithm) {
-      case ThemeMode.DARK:
-      case ThemeMode.COMPACT:
+      case ThemeAlgorithm.DARK:
+      case ThemeAlgorithm.COMPACT:
         return algorithm;
       case ThemeMode.SYSTEM:
-        return this.systemMode;
+        return this.systemMode as unknown as ThemeAlgorithm;
       default:
-        return ThemeMode.DEFAULT;
+        return ThemeAlgorithm.DEFAULT;
     }
   }
 

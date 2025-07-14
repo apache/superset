@@ -26,8 +26,7 @@ import {
   type DeprecatedThemeColors,
   type SystemColors,
   type SupersetTheme,
-  type ThemeAlgorithmCombination,
-  ThemeMode,
+  ThemeAlgorithm,
 } from './types';
 
 /**
@@ -61,7 +60,9 @@ export function deserializeThemeConfig(
 
   let resolvedAlgorithm;
   if (Array.isArray(algorithm))
-    resolvedAlgorithm = algorithm.map((alg: ThemeMode) => algorithmMap[alg]);
+    resolvedAlgorithm = algorithm.map(
+      (alg: ThemeAlgorithm) => algorithmMap[alg],
+    );
   else if (algorithm) resolvedAlgorithm = algorithmMap[algorithm];
 
   return {
@@ -82,19 +83,21 @@ export function serializeThemeConfig(
 
   if (Array.isArray(algorithm)) {
     serializedAlgorithm = algorithm.map(alg => {
-      if (alg === antdThemeImport.defaultAlgorithm) return ThemeMode.DEFAULT;
-      if (alg === antdThemeImport.darkAlgorithm) return ThemeMode.DARK;
-      if (alg === antdThemeImport.compactAlgorithm) return ThemeMode.COMPACT;
-      return ThemeMode.DEFAULT; // Fallback
-    }) as ThemeAlgorithmCombination;
+      if (alg === antdThemeImport.defaultAlgorithm)
+        return ThemeAlgorithm.DEFAULT;
+      if (alg === antdThemeImport.darkAlgorithm) return ThemeAlgorithm.DARK;
+      if (alg === antdThemeImport.compactAlgorithm)
+        return ThemeAlgorithm.COMPACT;
+      return ThemeAlgorithm.DEFAULT; // Fallback
+    }) as ThemeAlgorithm[];
   } else if (algorithm) {
     if (algorithm === antdThemeImport.defaultAlgorithm)
-      serializedAlgorithm = ThemeMode.DEFAULT;
+      serializedAlgorithm = ThemeAlgorithm.DEFAULT;
     else if (algorithm === antdThemeImport.darkAlgorithm)
-      serializedAlgorithm = ThemeMode.DARK;
+      serializedAlgorithm = ThemeAlgorithm.DARK;
     else if (algorithm === antdThemeImport.compactAlgorithm)
-      serializedAlgorithm = ThemeMode.COMPACT;
-    else serializedAlgorithm = ThemeMode.DEFAULT; // Fallback
+      serializedAlgorithm = ThemeAlgorithm.COMPACT;
+    else serializedAlgorithm = ThemeAlgorithm.DEFAULT; // Fallback
   }
 
   return {

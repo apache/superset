@@ -17,14 +17,11 @@
  * under the License.
  */
 import { Theme } from '@superset-ui/core';
-import {
+import type {
   BootstrapThemeDataConfig,
   CommonBootstrapData,
 } from 'src/types/bootstrapTypes';
-import {
-  ThemeAlgorithmCombination,
-  ThemeMode,
-} from '@superset-ui/core/theme/types';
+import { ThemeAlgorithm, ThemeMode } from '@superset-ui/core/theme/types';
 import getBootstrapData from 'src/utils/getBootstrapData';
 import { LocalStorageAdapter, ThemeController } from '../ThemeController';
 
@@ -555,12 +552,32 @@ describe('ThemeController', () => {
       );
     });
 
-    it('should throw error when mode updates are not allowed', () => {
+    it('should throw error when mode updates are not allowed but OS preference is', () => {
       mockGetBootstrapData.mockReturnValue(
         createMockBootstrapData({
           default: DEFAULT_THEME,
           dark: DARK_THEME,
           settings: { allowSwitching: false },
+        }),
+      );
+
+      controller = new ThemeController({
+        themeObject: mockThemeObject,
+      });
+
+      expect(() => {
+        controller.setThemeMode(ThemeMode.DARK);
+      }).toThrow(
+        'Theme mode changes are not allowed when OS preference is enforced',
+      );
+    });
+
+    it('should throw error when mode updates and OS preference are not allowed', () => {
+      mockGetBootstrapData.mockReturnValue(
+        createMockBootstrapData({
+          default: DEFAULT_THEME,
+          dark: DARK_THEME,
+          settings: { allowOSPreference: false, allowSwitching: false },
         }),
       );
 
@@ -846,7 +863,7 @@ describe('ThemeController', () => {
         createMockBootstrapData({
           default: {
             ...DEFAULT_THEME,
-            algorithm: [ThemeMode.DARK, ThemeMode.COMPACT],
+            algorithm: [ThemeAlgorithm.DARK, ThemeAlgorithm.COMPACT],
           },
           dark: DARK_THEME,
           settings: THEME_SETTINGS,
@@ -862,9 +879,9 @@ describe('ThemeController', () => {
       const themeWithAlgorithm = {
         ...DEFAULT_THEME,
         algorithm: [
-          ThemeMode.DARK,
-          ThemeMode.COMPACT,
-        ] as ThemeAlgorithmCombination,
+          ThemeAlgorithm.DARK,
+          ThemeAlgorithm.COMPACT,
+        ] as ThemeAlgorithm[],
       };
 
       // Clear the call from controller initialization
@@ -879,7 +896,7 @@ describe('ThemeController', () => {
             colorBgBase: '#ededed',
             colorPrimary: '#c96f0f',
           }),
-          algorithm: [ThemeMode.DARK, ThemeMode.COMPACT],
+          algorithm: [ThemeAlgorithm.DARK, ThemeAlgorithm.COMPACT],
         }),
       );
     });
@@ -887,10 +904,7 @@ describe('ThemeController', () => {
     it('should handle invalid algorithm combinations', () => {
       const themeWithInvalidAlgorithm = {
         ...DEFAULT_THEME,
-        algorithm: [
-          'invalid',
-          'combination',
-        ] as any as ThemeAlgorithmCombination,
+        algorithm: ['invalid', 'combination'] as any as ThemeAlgorithm[],
       };
 
       // Clear the call from controller initialization

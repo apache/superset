@@ -34,23 +34,39 @@ export type AntdTokens = ReturnType<typeof antdThemeImport.getDesignToken>;
 export type AntdThemeConfig = ThemeConfig;
 
 /**
- * A combination of theme modes that can be used in theme config.
- * This is used to define which algorithms are allow to be applied together.
+ * Theme algorithms supported by Antd.
+ * They can be used individually or in combination.
+ * - DEFAULT: Default light theme
+ * - DARK: Dark theme
+ * - COMPACT: Compact theme (smaller spacing)
  */
-export type ThemeAlgorithmCombination = (
-  | ThemeMode.DEFAULT
-  | ThemeMode.DARK
-  | ThemeMode.COMPACT
-)[];
+export enum ThemeAlgorithm {
+  DEFAULT = 'default',
+  DARK = 'dark',
+  COMPACT = 'compact',
+}
+
+/**
+ * Represents the current theme mode of the app.
+ * It can be one of the following:
+ * - DEFAULT: Light theme
+ * - DARK: Dark theme
+ * - SYSTEM: System theme (auto-detects based on system settings)
+ */
+export enum ThemeMode {
+  DEFAULT = 'default',
+  DARK = 'dark',
+  SYSTEM = 'system',
+}
 
 /**
  * All valid algorithm values that can be used in theme config.
  */
 export type ThemeAlgorithmOption =
-  | ThemeMode.DEFAULT
-  | ThemeMode.DARK
-  | ThemeMode.COMPACT
-  | ThemeAlgorithmCombination;
+  | ThemeAlgorithm.DEFAULT
+  | ThemeAlgorithm.DARK
+  | ThemeAlgorithm.COMPACT
+  | ThemeAlgorithm[];
 
 /**
  * A serializable version of Ant Design's ThemeConfig
@@ -372,13 +388,6 @@ export type AllowedAntdTokenKeys = Extract<
   (typeof allowedAntdTokens)[number],
   keyof AntdTokens
 >;
-
-export enum ThemeMode {
-  DEFAULT = 'default',
-  DARK = 'dark',
-  SYSTEM = 'system',
-  COMPACT = 'compact',
-}
 
 export type SharedAntdTokens = Pick<AntdTokens, AllowedAntdTokenKeys>;
 

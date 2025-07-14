@@ -63,7 +63,6 @@ from superset.extensions import cache_manager
 from superset.reports.models import ReportRecipientType
 from superset.superset_typing import FlaskResponse
 from superset.themes.utils import is_valid_theme, is_valid_theme_settings
-from superset.translations.utils import get_language_pack
 from superset.utils import core as utils, json
 from superset.utils.filters import get_dataset_access_filters
 from superset.views.error_handling import json_error_response

@@ -17,7 +17,7 @@
  * under the License.
  */
 /* eslint-disable theme-colors/no-literal-colors */
-import { type SerializableThemeConfig, ThemeMode } from './types';
+import { type SerializableThemeConfig, ThemeAlgorithm } from './types';
 
 const exampleThemes: Record<string, SerializableThemeConfig> = {
   superset: {
@@ -27,11 +27,11 @@ const exampleThemes: Record<string, SerializableThemeConfig> = {
   },
   supersetDark: {
     token: {},
-    algorithm: ThemeMode.DARK,
+    algorithm: ThemeAlgorithm.DARK,
   },
   supersetCompact: {
     token: {},
-    algorithm: ThemeMode.COMPACT,
+    algorithm: ThemeAlgorithm.COMPACT,
   },
   funky: {
     token: {
@@ -43,7 +43,7 @@ const exampleThemes: Record<string, SerializableThemeConfig> = {
       borderRadius: 12,
       fontFamily: 'Comic Sans MS, cursive',
     },
-    algorithm: ThemeMode.DEFAULT,
+    algorithm: ThemeAlgorithm.DEFAULT,
   },
   funkyDark: {
     token: {
@@ -55,7 +55,7 @@ const exampleThemes: Record<string, SerializableThemeConfig> = {
       borderRadius: 12,
       fontFamily: 'Comic Sans MS, cursive',
     },
-    algorithm: ThemeMode.DARK,
+    algorithm: ThemeAlgorithm.DARK,
   },
 };
 export default exampleThemes;
