@@ -415,6 +415,7 @@ const Header = () => {
       owners: dashboardInfo.owners,
       roles: dashboardInfo.roles,
       slug,
+      tags: dashboardInfo.tags,
       metadata: {
         ...dashboardInfo?.metadata,
         color_namespace: currentColorNamespace,
@@ -525,6 +526,7 @@ const Header = () => {
         certification_details: updates.certificationDetails,
         owners: updates.owners,
         roles: updates.roles,
+        tags: updates.tags,
       });
       boundActionCreators.setUnsavedChanges(true);
       boundActionCreators.dashboardTitleChanged(updates.title);
