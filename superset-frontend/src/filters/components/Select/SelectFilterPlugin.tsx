@@ -378,7 +378,8 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
 
     const hasDataChanged =
       prev?.length !== curr?.length ||
-      JSON.stringify(prev?.map(row => row[col])) !== JSON.stringify(curr?.map(row => row[col]));
+      JSON.stringify(prev?.map(row => row[col])) !==
+        JSON.stringify(curr?.map(row => row[col]));
 
     // If data actually changed (e.g., due to parent filter), reset flag
     if (hasDataChanged) {
@@ -392,7 +393,8 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
       isChangedByUser.current &&
       filterState.value &&
       data.some(row => row[col] === filterState.value[0])
-    ) return;
+    )
+      return;
 
     const firstItem: SelectValue = data[0]
       ? (groupby.map(col => data[0][col]) as string[])

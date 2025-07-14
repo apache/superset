@@ -169,7 +169,8 @@ const FilterValue: FC<FilterControlProps> = ({
           allFilters[pId]?.defaultDataMask?.extraFormData?.time_range
         ) {
           selectedParentFilterValueCounts +=
-            allFilters[pId]?.defaultDataMask?.extraFormData?.filters?.length ?? 1;
+            allFilters[pId]?.defaultDataMask?.extraFormData?.filters?.length ??
+            1;
         }
       });
 
