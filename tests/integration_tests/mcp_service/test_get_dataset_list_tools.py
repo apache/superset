@@ -39,15 +39,15 @@ async def test_tool(client, tool_name, payload, label, issues):
 
 async def main():
     from fastmcp import Client
-    logger.info("Starting integration test for list_datasets and list_datasets_simple tools")
+    logger.info("Starting integration test for list_datasets and list_datasets tools")
     issues = []
     async with Client("http://localhost:5008/mcp") as client:
-        # Test list_datasets_simple with default params
-        await test_tool(client, "list_datasets_simple", {}, "(default)", issues)
-        # Test list_datasets_simple with a filter
-        await test_tool(client, "list_datasets_simple", {"filters": {"schema": "public"}}, "(schema=public)", issues)
-        # Test list_datasets_simple with pagination
-        await test_tool(client, "list_datasets_simple", {"page": 1, "page_size": 2}, "(page=1, page_size=2)", issues)
+        # Test list_datasets with default params
+        await test_tool(client, "list_datasets", {}, "(default)", issues)
+        # Test list_datasets with a filter
+        await test_tool(client, "list_datasets", {"filters": {"schema": "public"}}, "(schema=public)", issues)
+        # Test list_datasets with pagination
+        await test_tool(client, "list_datasets", {"page": 1, "page_size": 2}, "(page=1, page_size=2)", issues)
 
         # Test list_datasets (advanced) with default params
         await test_tool(client, "list_datasets", {}, "(default)", issues)
@@ -66,7 +66,7 @@ async def main():
         for tool_name, label, msg in issues:
             logger.warning(f"  {tool_name} {label}: {msg}")
     else:
-        logger.info("All list_datasets and list_datasets_simple calls returned successfully with no errors or warnings.")
+        logger.info("All list_datasets and list_datasets calls returned successfully with no errors or warnings.")
 
 if __name__ == "__main__":
     import asyncio

@@ -19,7 +19,7 @@
 MCP tool: get_chart_info
 """
 from typing import Any, Dict, Optional, Annotated
-from superset.mcp_service.pydantic_schemas import ChartInfoResponse, ChartErrorResponse
+from superset.mcp_service.pydantic_schemas import ChartInfo, ChartError
 from superset.mcp_service.dao_wrapper import MCPDAOWrapper
 from superset.mcp_service.pydantic_schemas.chart_schemas import serialize_chart_object
 from datetime import datetime
@@ -31,24 +31,17 @@ def get_chart_info(
         int,
         Field(description="ID of the chart to retrieve information for")
     ]
-) -> ChartInfoResponse | ChartErrorResponse:
+) -> ChartInfo | ChartError:
     """
     Get detailed information about a chart by ID (MCP tool).
-    Parameters
-    ----------
-    chart_id : int
-        ID of the chart to retrieve information for.
-    Returns
-    -------
-    ChartInfoResponse or ChartErrorResponse
-        Detailed chart information or error response.
+    Returns a ChartInfo model or ChartError on error.
     """
     try:
         chart_wrapper = MCPDAOWrapper(ChartDAO, "chart")
         chart, error_type, error_message = chart_wrapper.info(chart_id)
         if not chart:
-            return ChartErrorResponse(error=error_message or "Chart not found", error_type=error_type or "not_found", timestamp=datetime.utcnow())
+            return ChartError(error=error_message or "Chart not found", error_type=error_type or "not_found", timestamp=datetime.utcnow())
         chart_info = serialize_chart_object(chart)
-        return ChartInfoResponse(chart=chart_info)
+        return chart_info
     except Exception as ex:
-        return ChartErrorResponse(error=str(ex), error_type="get_chart_info_error", timestamp=datetime.utcnow()) 
+        return ChartError(error=str(ex), error_type="get_chart_info_error", timestamp=datetime.utcnow()) 

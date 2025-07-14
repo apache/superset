@@ -5,15 +5,15 @@ Get available filters FastMCP tool
 """
 import logging
 from typing import Any
-from superset.mcp_service.pydantic_schemas.dashboard_schemas import DashboardAvailableFiltersResponse
+from superset.mcp_service.pydantic_schemas.dashboard_schemas import DashboardAvailableFilters
 
 logger = logging.getLogger(__name__)
 
-def get_dashboard_available_filters() -> DashboardAvailableFiltersResponse:
+def get_dashboard_available_filters() -> DashboardAvailableFilters:
     """
     Get information about available dashboard filters and their operators
     Returns:
-        DashboardAvailableFiltersResponse
+        DashboardAvailableFilters
     """
     try:
         filters = {
@@ -88,7 +88,7 @@ def get_dashboard_available_filters() -> DashboardAvailableFiltersResponse:
             "certification_details", "chart_count", "owners", "tags", "is_managed_externally",
             "external_url", "uuid", "version"
         ]
-        response = DashboardAvailableFiltersResponse(
+        response = DashboardAvailableFilters(
             filters=filters,
             operators=operators,
             columns=columns

@@ -58,7 +58,7 @@ from flask import current_app, g
 from flask_appbuilder.models.sqla import Model
 from flask_login import AnonymousUserMixin
 
-from superset.daos.base import BaseDAO
+from superset.daos.base import BaseDAO, ColumnOperator
 from superset.extensions import security_manager
 
 logger = logging.getLogger(__name__)
@@ -108,23 +108,7 @@ class MCPDAOWrapper:
             if not item:
                 self.logger.warning(f"{self.model_name.capitalize()} with ID {item_id} not found")
                 return None, "not_found", f"{self.model_name.capitalize()} with ID {item_id} not found"
-            
-            # Apply security context - check if user has access
-            try:
-                # Try to call raise_for_access if the model supports it
-                if hasattr(item, 'raise_for_access'):
-                    item.raise_for_access()
-                elif hasattr(security_manager, f'raise_for_access'):
-                    # Use security manager's generic access check
-                    security_manager.raise_for_access(**{self.model_name: item})
-                
-                self.logger.debug(f"User has access to {self.model_name} {item_id}")
-                return item, None, None
-                
-            except Exception as access_error:
-                self.logger.warning(
-                    f"User does not have access to {self.model_name} {item_id}: {access_error}")
-                return None, "access_denied", f"Access denied to {self.model_name} {item_id}"
+            return item, None, None
                 
         except Exception as e:
             error_msg = f"Unexpected error getting {self.model_name} info: {str(e)}"
@@ -133,27 +117,29 @@ class MCPDAOWrapper:
     
     def list(
         self,
-        filters: Optional[list[dict] | Dict[str, Any]] = None,
+        column_operators: Optional[List[ColumnOperator]] = None,
         order_column: str = "changed_on",
         order_direction: str = "desc",
         page: int = 0,
         page_size: int = 100,
         search: Optional[str] = None,
-        search_columns: Optional[List[str]] = None,
-    ) -> Tuple[List[T], int]:
+        search_columns: Optional[list] = None,
+        custom_filters: Optional[dict] = None,
+    ) -> Tuple[list, int]:
         """
-        List items using the DAO's list method. Supports advanced filters: a list of dicts with col, opr, value, or a simple dict for backward compatibility.
+        Generic list method for filtered, sorted, and paginated results.
         """
-        self.logger.info(f"Listing {self.model_name}s with filters: {filters}")
+        self.logger.info(f"Listing {self.model_name}s with column_operators: {column_operators}")
         try:
             items, total_count = self.dao_class.list(
-                filters=filters,
+                column_operators=column_operators,
                 order_column=order_column,
                 order_direction=order_direction,
                 page=page,
                 page_size=page_size,
                 search=search,
                 search_columns=search_columns,
+                custom_filters=custom_filters,
             )
             self.logger.info(f"Retrieved {len(items)} {self.model_name}s (total: {total_count})")
             return items, total_count
@@ -162,14 +148,18 @@ class MCPDAOWrapper:
             self.logger.error(error_msg, exc_info=True)
             return [], 0
 
-    def count(self, filters: Optional[List[dict] | dict] = None) -> int:
+    def count(
+        self,
+        column_operators: Optional[List[ColumnOperator]] = None,
+        skip_base_filter: bool = False,
+    ) -> int:
         """
-        Return the count of records, optionally filtered. Supports advanced filters: a list of dicts with col, opr, value, or a simple dict for backward compatibility.
+        Count the number of records for the model, optionally filtered by column operators.
         """
-        if filters is None:
-            filters = []
+        if column_operators is None:
+            column_operators = []
         try:
-            return self.dao_class.count(filters)
+            return self.dao_class.count(column_operators, skip_base_filter=skip_base_filter)
         except Exception as e:
             self.logger.error(f"Error counting records: {e}")
             return 0

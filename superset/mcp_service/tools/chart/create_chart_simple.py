@@ -20,7 +20,7 @@ MCP tool: create_chart_simple
 from typing import Annotated
 from pydantic import Field
 from superset.mcp_service.pydantic_schemas.chart_schemas import (
-    CreateSimpleChartRequest, CreateSimpleChartResponse, ChartListItem
+    CreateSimpleChartRequest, CreateSimpleChartResponse
 )
 from superset.commands.chart.create import CreateChartCommand
 from superset.mcp_service.pydantic_schemas.chart_schemas import serialize_chart_object
