@@ -318,7 +318,7 @@ export function saveDashboardRequest(data, id, saveType) {
       slug: slug || null,
       tags: !isFeatureEnabled(FeatureFlag.TaggingSystem)
         ? undefined
-        : ensureIsArray(tags).map(r => (hasId(r) ? r.id : r)),
+        : ensureIsArray(tags || []).map(r => (hasId(r) ? r.id : r)),
       metadata: {
         ...data.metadata,
         color_namespace: getColorNamespace(data.metadata?.color_namespace),
@@ -449,7 +449,7 @@ export function saveDashboardRequest(data, id, saveType) {
               slug: cleanedData.slug,
               owners: cleanedData.owners,
               roles: cleanedData.roles,
-              tags: cleanedData.tags,
+              tags: cleanedData.tags || [],
               json_metadata: safeStringify({
                 ...(cleanedData?.metadata || {}),
                 default_filters: safeStringify(serializedFilters),
