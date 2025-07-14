@@ -45,6 +45,7 @@ import { ListViewError, useListViewState } from './utils';
 const ListViewStyles = styled.div`
   ${({ theme }) => `
     text-align: center;
+    background-color: ${theme.colorBgLayout};
 
     .superset-list-view {
       text-align: left;

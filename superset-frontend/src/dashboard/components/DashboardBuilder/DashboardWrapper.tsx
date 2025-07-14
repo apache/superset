@@ -28,6 +28,7 @@ import { debounce } from 'lodash';
 
 const StyledDiv = styled.div`
   ${({ theme }) => css`
+    background-color: ${theme.colorBgLayout};
     position: relative;
     display: grid;
     grid-template-columns: auto 1fr;

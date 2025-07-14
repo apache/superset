@@ -233,6 +233,7 @@ const UploadDataModal: FunctionComponent<UploadDataModalProps> = ({
     useState<boolean>(false);
   const [previewUploadedFile, setPreviewUploadedFile] = useState<boolean>(true);
   const [fileLoading, setFileLoading] = useState<boolean>(false);
+  const [activeKey, setActiveKey] = useState<string | string[]>('general');
 
   const createTypeToEndpointMap = (databaseId: number) =>
     `/api/v1/database/${databaseId}/upload/`;
@@ -538,6 +539,13 @@ const UploadDataModal: FunctionComponent<UploadDataModalProps> = ({
     }
   }, [delimiter]);
 
+  // Reset active panel to 'general' when modal is shown
+  useEffect(() => {
+    if (show) {
+      setActiveKey('general');
+    }
+  }, [show]);
+
   const validateUpload = (_: any, value: string) => {
     if (fileList.length === 0) {
       return Promise.reject(t('Uploading a file is required'));
@@ -599,6 +607,8 @@ const UploadDataModal: FunctionComponent<UploadDataModalProps> = ({
         <Collapse
           expandIconPosition="end"
           accordion
+          activeKey={activeKey}
+          onChange={key => setActiveKey(key)}
           defaultActiveKey="general"
           modalMode
           items={[

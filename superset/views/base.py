@@ -62,7 +62,6 @@ from superset.db_engine_specs.gsheets import GSheetsEngineSpec
 from superset.extensions import cache_manager
 from superset.reports.models import ReportRecipientType
 from superset.superset_typing import FlaskResponse
-from superset.translations.utils import get_language_pack
 from superset.utils import core as utils, json
 from superset.utils.filters import get_dataset_access_filters
 from superset.views.error_handling import json_error_response
@@ -364,7 +363,6 @@ def cached_common_bootstrap_data(  # pylint: disable=unused-argument
         "static_assets_prefix": conf["STATIC_ASSETS_PREFIX"],
         "conf": frontend_config,
         "locale": language,
-        "language_pack": get_language_pack(language),
         "d3_format": conf.get("D3_FORMAT"),
         "d3_time_format": conf.get("D3_TIME_FORMAT"),
         "currencies": conf.get("CURRENCIES"),
