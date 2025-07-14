@@ -717,7 +717,9 @@ class DatasourceEditor extends PureComponent {
   }
 
   onDatasourceTypeChange(datasourceType) {
-    this.setState({ datasourceType });
+    // Call onChange after setting datasourceType to ensure
+    // SQL is cleared when switching to a physical dataset
+    this.setState({ datasourceType }, this.onChange);
   }
 
   setColumns(obj) {
