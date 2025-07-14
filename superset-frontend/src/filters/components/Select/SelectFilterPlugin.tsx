@@ -372,22 +372,27 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
     inverseSelection,
   ]);
 
-   useEffect(() => {
+  useEffect(() => {
     const prev = prevDataRef.current;
     const curr = data;
 
-    const prevFirst = prev?.[0]?.[col];
-    const currFirst = curr?.[0]?.[col];
+    const hasDataChanged =
+      prev?.length !== curr?.length ||
+      JSON.stringify(prev?.map(row => row[col])) !== JSON.stringify(curr?.map(row => row[col]));
 
     // If data actually changed (e.g., due to parent filter), reset flag
-    if (prevFirst !== currFirst) {
+    if (hasDataChanged) {
       isChangedByUser.current = false;
       prevDataRef.current = data;
     }
   }, [data, col]);
 
   useEffect(() => {
-    if (isChangedByUser.current) return;
+    if (
+      isChangedByUser.current &&
+      filterState.value &&
+      data.some(row => row[col] === filterState.value[0])
+    ) return;
 
     const firstItem: SelectValue = data[0]
       ? (groupby.map(col => data[0][col]) as string[])

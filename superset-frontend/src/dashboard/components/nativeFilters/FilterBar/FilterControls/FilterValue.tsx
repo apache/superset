@@ -158,7 +158,7 @@ const FilterValue: FC<FilterControlProps> = ({
     });
     const filterOwnState = filter.dataMask?.ownState || {};
     if (filter?.cascadeParentIds?.length) {
-      // check if it is a child filter
+      // Prevent unnecessary backend requests by validating parent filter selections first
 
       let selectedParentFilterValueCounts = 0;
 
