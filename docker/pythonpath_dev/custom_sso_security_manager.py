@@ -47,7 +47,9 @@ guest_role_pvms = [
     ("can_read", "Tag"),
     ("can_explore_json", "Superset"),
     ("can_time_range", "Api"),
-    ("can_recent_activity", "Log"),        
+    ("can_recent_activity", "Log"), 
+    ("can_csv", "Superset"),
+    ("can_view_chart_as_table", "Dashboard"),          
 ]
 
 client_admin_pvms = [
