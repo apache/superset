@@ -579,6 +579,10 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # Allow metrics and columns to be grouped into (potentially nested) folders in the
     # chart builder
     "DATASET_FOLDERS": False,
+    # Enable Table V2 Viz plugin
+    "AG_GRID_TABLE_ENABLED": False,
+    # Enable Table v2 time comparison feature
+    "TABLE_V2_TIME_COMPARISON_ENABLED": False,
 }
 
 # ------------------------------
@@ -770,7 +774,7 @@ SCREENSHOT_WAIT_FOR_ERROR_MODAL_INVISIBLE = 5
 # Event that Playwright waits for when loading a new page
 # Possible values: "load", "commit", "domcontentloaded", "networkidle"
 # Docs: https://playwright.dev/python/docs/api/class-page#page-goto-option-wait-until
-SCREENSHOT_PLAYWRIGHT_WAIT_EVENT = "load"
+SCREENSHOT_PLAYWRIGHT_WAIT_EVENT = "domcontentloaded"
 # Default timeout for Playwright browser context for all operations
 SCREENSHOT_PLAYWRIGHT_DEFAULT_TIMEOUT = int(
     timedelta(seconds=60).total_seconds() * 1000

@@ -422,7 +422,7 @@ class DatasourceControl extends PureComponent {
             <WarningIconWithTooltip warningMarkdown={extra.warning_markdown} />
           )}
           <Dropdown
-            dropdownRender={() =>
+            popupRender={() =>
               datasource.type === DatasourceType.Query
                 ? queryDatasourceMenu
                 : defaultDatasourceMenu
@@ -431,8 +431,8 @@ class DatasourceControl extends PureComponent {
             data-test="datasource-menu"
           >
             <Icons.MoreOutlined
-              IconSize="xl"
-              iconColor={theme.colors.primary.base}
+              iconSize="xl"
+              iconColor={theme.colorPrimary}
               className="datasource-modal-trigger"
               data-test="datasource-menu-trigger"
             />
