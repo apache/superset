@@ -376,10 +376,13 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
     const prev = prevDataRef.current;
     const curr = data;
 
+    const stringifySafe = (val: unknown) =>
+      typeof val === 'bigint' ? val.toString() : val;
+
     const hasDataChanged =
       prev?.length !== curr?.length ||
-      JSON.stringify(prev?.map(row => row[col])) !==
-        JSON.stringify(curr?.map(row => row[col]));
+      JSON.stringify(prev?.map(row => stringifySafe(row[col]))) !==
+        JSON.stringify(curr?.map(row => stringifySafe(row[col])));
 
     // If data actually changed (e.g., due to parent filter), reset flag
     if (hasDataChanged) {
