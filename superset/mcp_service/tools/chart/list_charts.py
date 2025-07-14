@@ -19,7 +19,7 @@
 MCP tool: list_charts (advanced filtering)
 """
 from typing import Any, Dict, List, Optional, Literal, Annotated, Union
-from superset.mcp_service.pydantic_schemas import ChartListResponse, ChartListItem
+from superset.mcp_service.pydantic_schemas import ChartList, ChartInfo
 from superset.mcp_service.dao_wrapper import MCPDAOWrapper
 from superset.mcp_service.pydantic_schemas.chart_schemas import serialize_chart_object
 from datetime import datetime, timezone
@@ -27,6 +27,7 @@ from pydantic import BaseModel, conlist, constr, PositiveInt, Field
 from superset.mcp_service.pydantic_schemas.dashboard_schemas import PaginationInfo
 from superset.daos.chart import ChartDAO
 from superset.mcp_service.pydantic_schemas.chart_schemas import ChartFilter
+import json
 
 
 def list_charts(
@@ -66,14 +67,17 @@ def list_charts(
         Optional[str],
         Field(description="Text search string to match against chart fields")
     ] = None,
-) -> ChartListResponse:
+) -> ChartList:
     """
     List charts with advanced filtering (MCP tool).
-    Returns a ChartListResponse Pydantic model (not a dict), matching list_dashboards and list_datasets.
+    Returns a ChartList Pydantic model (not a dict), matching list_dashboards and list_datasets.
     """
+    # If filters is a string (e.g., from a test), parse it as JSON
+    if isinstance(filters, str):
+        filters = json.loads(filters)
     chart_wrapper = MCPDAOWrapper(ChartDAO, "chart")
     charts, total_count = chart_wrapper.list(
-        filters=filters,
+        column_operators=filters,
         order_column=order_column or "changed_on",
         order_direction=order_direction or "desc",
         page=max(page - 1, 0),
@@ -81,6 +85,7 @@ def list_charts(
         search=search,
         search_columns=["slice_name", "viz_type", "datasource_name"] if search else None,
     )
+    # ChartList expects a list of ChartInfo
     chart_items = [serialize_chart_object(chart) for chart in charts]
     total_pages = (total_count + page_size - 1) // page_size if page_size > 0 else 0
     pagination_info = PaginationInfo(
@@ -91,7 +96,7 @@ def list_charts(
         has_next=page < total_pages,
         has_previous=page > 1
     )
-    response = ChartListResponse(
+    response = ChartList(
         charts=chart_items,
         count=len(chart_items),
         total_count=total_count,
@@ -102,7 +107,7 @@ def list_charts(
         has_next=page < total_pages - 1,
         columns_requested=columns or [],
         columns_loaded=columns or [],
-        filters_applied=filters or [],
+        filters_applied=filters if isinstance(filters, list) else [],
         pagination=pagination_info,
         timestamp=datetime.now(timezone.utc),
     )

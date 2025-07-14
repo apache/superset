@@ -22,8 +22,8 @@ This module contains Pydantic models for serializing Superset instance metadata 
 """
 
 from datetime import datetime
-from typing import Dict, List
-from pydantic import BaseModel, Field
+from typing import Dict, List, Optional
+from pydantic import BaseModel, Field, ConfigDict
 
 class InstanceSummary(BaseModel):
     total_dashboards: int = Field(..., description="Total number of dashboards")
@@ -57,10 +57,38 @@ class PopularContent(BaseModel):
     top_tags: List[str] = Field(..., description="Most popular tags")
     top_creators: List[str] = Field(..., description="Most active creators")
 
-class SupersetInstanceInfoResponse(BaseModel):
+class InstanceInfo(BaseModel):
     instance_summary: InstanceSummary = Field(..., description="Instance summary information")
     recent_activity: RecentActivity = Field(..., description="Recent activity information")
     dashboard_breakdown: DashboardBreakdown = Field(..., description="Dashboard breakdown information")
     database_breakdown: DatabaseBreakdown = Field(..., description="Database breakdown by type")
     popular_content: PopularContent = Field(..., description="Popular content information")
-    timestamp: datetime = Field(..., description="Response timestamp") 
+    timestamp: datetime = Field(..., description="Response timestamp")
+
+class UserInfo(BaseModel):
+    id: Optional[int] = None
+    username: Optional[str] = None
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
+    email: Optional[str] = None
+    active: Optional[bool] = None
+
+class TagInfo(BaseModel):
+    id: Optional[int] = None
+    name: Optional[str] = None
+    type: Optional[str] = None
+    description: Optional[str] = None
+
+class RoleInfo(BaseModel):
+    id: Optional[int] = None
+    name: Optional[str] = None
+    permissions: Optional[List[str]] = None
+
+class PaginationInfo(BaseModel):
+    page: int = Field(..., description="Current page number")
+    page_size: int = Field(..., description="Number of items per page")
+    total_count: int = Field(..., description="Total number of items")
+    total_pages: int = Field(..., description="Total number of pages")
+    has_next: bool = Field(..., description="Whether there is a next page")
+    has_previous: bool = Field(..., description="Whether there is a previous page")
+    model_config = ConfigDict(ser_json_timedelta="iso8601") 

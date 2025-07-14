@@ -24,14 +24,16 @@ advanced filtering with complex filter objects and JSON payload.
 import logging
 from datetime import datetime, timezone
 from typing import Annotated, Any, Literal, Optional
+import json
 
 from pydantic import BaseModel, conlist, constr, Field, PositiveInt
 from superset.daos.dataset import DatasetDAO
 from superset.mcp_service.dao_wrapper import MCPDAOWrapper
 from superset.mcp_service.pydantic_schemas import (
-    DatasetListResponse,
+    DatasetList,
     PaginationInfo,
     serialize_dataset_object,
+    DatasetInfo,
 )
 from superset.mcp_service.pydantic_schemas.dataset_schemas import DatasetFilter
 
@@ -74,21 +76,14 @@ def list_datasets(
         Optional[str],
         Field(description="Text search string to match against dataset fields")
     ] = None,
-) -> DatasetListResponse:
+) -> DatasetList:
     """
     ADVANCED FILTERING: List datasets using complex filter objects and JSON payload
-    Returns a DatasetListResponse Pydantic model (not a dict), matching list_datasets_simple.
+    Returns a DatasetList Pydantic model (not a dict), matching list_datasets_simple.
     """
-    simple_filters = {}
-    if filters:
-        for filter_obj in filters:
-            if isinstance(filter_obj, DatasetFilter):
-                col = filter_obj.col
-                value = filter_obj.value
-                if filter_obj.opr == 'eq':
-                    simple_filters[col] = value
-                elif filter_obj.opr == 'sw':
-                    simple_filters[col] = f"{value}%"
+    # If filters is a string (e.g., from a test), parse it as JSON
+    if isinstance(filters, str):
+        filters = json.loads(filters)
     dao_wrapper = MCPDAOWrapper(DatasetDAO, "dataset")
     search_columns = [
         "id",
@@ -103,7 +98,7 @@ def list_datasets(
         "uuid",
     ]
     datasets, total_count = dao_wrapper.list(
-        filters=simple_filters,
+        column_operators=filters,
         order_column=order_column or "changed_on",
         order_direction=order_direction or "desc",
         page=max(page - 1, 0),
@@ -125,7 +120,12 @@ def list_datasets(
             "id", "table_name", "db_schema", "database_name", "description",
             "changed_by_name", "changed_on", "created_by_name", "created_on"
         ]
-    dataset_items = [serialize_dataset_object(dataset) for dataset in datasets]
+    # Robustly handle both 'schema' and 'db_schema' for DatasetInfo
+    dataset_items = []
+    for dataset in datasets:
+        item = serialize_dataset_object(dataset)
+        if item is not None:
+            dataset_items.append(item)
     total_pages = (total_count + page_size - 1) // page_size if page_size > 0 else 0
     pagination_info = PaginationInfo(
         page=page,
@@ -135,7 +135,7 @@ def list_datasets(
         has_next=page < total_pages - 1,
         has_previous=page > 0
     )
-    response = DatasetListResponse(
+    response = DatasetList(
         datasets=dataset_items,
         count=len(dataset_items),
         total_count=total_count,
@@ -146,7 +146,7 @@ def list_datasets(
         has_next=page < total_pages - 1,
         columns_requested=columns_to_load,
         columns_loaded=list(set([col for item in dataset_items for col in item.model_dump().keys()])),
-        filters_applied=simple_filters,
+        filters_applied=filters if isinstance(filters, list) else [],
         pagination=pagination_info,
         timestamp=datetime.now(timezone.utc)
     )
