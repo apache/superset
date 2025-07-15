@@ -63,6 +63,59 @@ class TestDatasetTools:
         dataset.params = {}
         dataset.template_params = {}
         dataset.extra = {}
+        dataset.to_model = lambda: DatasetInfo(
+            id=dataset.id,
+            table_name=dataset.table_name,
+            schema=dataset.schema,
+            description=dataset.description,
+            changed_by_name=dataset.changed_by_name,
+            changed_on=dataset.changed_on,
+            changed_on_humanized=dataset.changed_on_humanized,
+            created_by_name=dataset.created_by_name,
+            created_on=dataset.created_on,
+            created_on_humanized=dataset.created_on_humanized,
+            tags=dataset.tags,
+            owners=dataset.owners,
+            is_virtual=dataset.is_virtual,
+            database_id=dataset.database_id,
+            schema_perm=dataset.schema_perm,
+            url=dataset.url,
+            database_name=dataset.database.database_name,
+            sql=dataset.sql,
+            main_dttm_col=dataset.main_dttm_col,
+            offset=dataset.offset,
+            cache_timeout=dataset.cache_timeout,
+            params=dataset.params,
+            template_params=dataset.template_params,
+            extra=dataset.extra,
+        )
+        # Patch _mapping to a real dict for item_serializer compatibility
+        dataset._mapping = {
+            'id': dataset.id,
+            'table_name': dataset.table_name,
+            'db_schema': dataset.schema,
+            'database_name': dataset.database.database_name,
+            'description': dataset.description,
+            'changed_by_name': dataset.changed_by_name,
+            'changed_on': dataset.changed_on,
+            'changed_on_humanized': dataset.changed_on_humanized,
+            'created_by_name': dataset.created_by_name,
+            'created_on': dataset.created_on,
+            'created_on_humanized': dataset.created_on_humanized,
+            'tags': dataset.tags,
+            'owners': dataset.owners,
+            'is_virtual': dataset.is_virtual,
+            'database_id': dataset.database_id,
+            'schema_perm': dataset.schema_perm,
+            'url': dataset.url,
+            'sql': dataset.sql,
+            'main_dttm_col': dataset.main_dttm_col,
+            'offset': dataset.offset,
+            'cache_timeout': dataset.cache_timeout,
+            'params': dataset.params,
+            'template_params': dataset.template_params,
+            'extra': dataset.extra,
+        }
         mock_list.return_value = ([dataset], 1)
 
         result = list_datasets()
@@ -99,6 +152,59 @@ class TestDatasetTools:
         dataset.params = {}
         dataset.template_params = {}
         dataset.extra = {}
+        dataset.to_model = lambda: DatasetInfo(
+            id=dataset.id,
+            table_name=dataset.table_name,
+            schema=dataset.schema,
+            description=dataset.description,
+            changed_by_name=dataset.changed_by_name,
+            changed_on=dataset.changed_on,
+            changed_on_humanized=dataset.changed_on_humanized,
+            created_by_name=dataset.created_by_name,
+            created_on=dataset.created_on,
+            created_on_humanized=dataset.created_on_humanized,
+            tags=dataset.tags,
+            owners=dataset.owners,
+            is_virtual=dataset.is_virtual,
+            database_id=dataset.database_id,
+            schema_perm=dataset.schema_perm,
+            url=dataset.url,
+            database_name=dataset.database.database_name,
+            sql=dataset.sql,
+            main_dttm_col=dataset.main_dttm_col,
+            offset=dataset.offset,
+            cache_timeout=dataset.cache_timeout,
+            params=dataset.params,
+            template_params=dataset.template_params,
+            extra=dataset.extra,
+        )
+        # Patch _mapping to a real dict for item_serializer compatibility
+        dataset._mapping = {
+            'id': dataset.id,
+            'table_name': dataset.table_name,
+            'db_schema': dataset.schema,
+            'database_name': dataset.database.database_name,
+            'description': dataset.description,
+            'changed_by_name': dataset.changed_by_name,
+            'changed_on': dataset.changed_on,
+            'changed_on_humanized': dataset.changed_on_humanized,
+            'created_by_name': dataset.created_by_name,
+            'created_on': dataset.created_on,
+            'created_on_humanized': dataset.created_on_humanized,
+            'tags': dataset.tags,
+            'owners': dataset.owners,
+            'is_virtual': dataset.is_virtual,
+            'database_id': dataset.database_id,
+            'schema_perm': dataset.schema_perm,
+            'url': dataset.url,
+            'sql': dataset.sql,
+            'main_dttm_col': dataset.main_dttm_col,
+            'offset': dataset.offset,
+            'cache_timeout': dataset.cache_timeout,
+            'params': dataset.params,
+            'template_params': dataset.template_params,
+            'extra': dataset.extra,
+        }
         mock_list.return_value = ([dataset], 1)
         filters = [
             {"col": "table_name", "opr": "sw", "value": "Sales"},
@@ -143,6 +249,59 @@ class TestDatasetTools:
         dataset.params = {}
         dataset.template_params = {}
         dataset.extra = {}
+        dataset.to_model = lambda: DatasetInfo(
+            id=dataset.id,
+            table_name=dataset.table_name,
+            schema=dataset.schema,
+            description=dataset.description,
+            changed_by_name=dataset.changed_by_name,
+            changed_on=dataset.changed_on,
+            changed_on_humanized=dataset.changed_on_humanized,
+            created_by_name=dataset.created_by_name,
+            created_on=dataset.created_on,
+            created_on_humanized=dataset.created_on_humanized,
+            tags=dataset.tags,
+            owners=dataset.owners,
+            is_virtual=dataset.is_virtual,
+            database_id=dataset.database_id,
+            schema_perm=dataset.schema_perm,
+            url=dataset.url,
+            database_name=dataset.database.database_name,
+            sql=dataset.sql,
+            main_dttm_col=dataset.main_dttm_col,
+            offset=dataset.offset,
+            cache_timeout=dataset.cache_timeout,
+            params=dataset.params,
+            template_params=dataset.template_params,
+            extra=dataset.extra,
+        )
+        # Patch _mapping to a real dict for item_serializer compatibility
+        dataset._mapping = {
+            'id': dataset.id,
+            'table_name': dataset.table_name,
+            'db_schema': dataset.schema,
+            'database_name': dataset.database.database_name,
+            'description': dataset.description,
+            'changed_by_name': dataset.changed_by_name,
+            'changed_on': dataset.changed_on,
+            'changed_on_humanized': dataset.changed_on_humanized,
+            'created_by_name': dataset.created_by_name,
+            'created_on': dataset.created_on,
+            'created_on_humanized': dataset.created_on_humanized,
+            'tags': dataset.tags,
+            'owners': dataset.owners,
+            'is_virtual': dataset.is_virtual,
+            'database_id': dataset.database_id,
+            'schema_perm': dataset.schema_perm,
+            'url': dataset.url,
+            'sql': dataset.sql,
+            'main_dttm_col': dataset.main_dttm_col,
+            'offset': dataset.offset,
+            'cache_timeout': dataset.cache_timeout,
+            'params': dataset.params,
+            'template_params': dataset.template_params,
+            'extra': dataset.extra,
+        }
         mock_list.return_value = ([dataset], 1)
         filters = '[{"col": "table_name", "opr": "sw", "value": "Sales"}]'
         result = list_datasets(filters=filters)
@@ -161,7 +320,7 @@ class TestDatasetTools:
         dataset = Mock()
         dataset.id = 1
         dataset.table_name = "search_table"
-        dataset.db_schema = "public"
+        dataset.schema = "public"
         dataset.database_name = "test_db"
         dataset.database = None
         dataset.description = "A test dataset"
@@ -186,6 +345,59 @@ class TestDatasetTools:
         dataset.params = {}
         dataset.template_params = {}
         dataset.extra = {}
+        dataset.to_model = lambda: DatasetInfo(
+            id=dataset.id,
+            table_name=dataset.table_name,
+            schema=dataset.schema,
+            description=dataset.description,
+            changed_by_name=dataset.changed_by_name,
+            changed_on=dataset.changed_on,
+            changed_on_humanized=dataset.changed_on_humanized,
+            created_by_name=dataset.created_by_name,
+            created_on=dataset.created_on,
+            created_on_humanized=dataset.created_on_humanized,
+            tags=dataset.tags,
+            owners=dataset.owners,
+            is_virtual=dataset.is_virtual,
+            database_id=dataset.database_id,
+            schema_perm=dataset.schema_perm,
+            url=dataset.url,
+            database_name=dataset.database_name,
+            sql=dataset.sql,
+            main_dttm_col=dataset.main_dttm_col,
+            offset=dataset.offset,
+            cache_timeout=dataset.cache_timeout,
+            params=dataset.params,
+            template_params=dataset.template_params,
+            extra=dataset.extra,
+        )
+        # Patch _mapping to a real dict for item_serializer compatibility
+        dataset._mapping = {
+            'id': dataset.id,
+            'table_name': dataset.table_name,
+            'db_schema': dataset.schema,
+            'database_name': dataset.database_name,
+            'description': dataset.description,
+            'changed_by_name': dataset.changed_by_name,
+            'changed_on': dataset.changed_on,
+            'changed_on_humanized': dataset.changed_on_humanized,
+            'created_by_name': dataset.created_by_name,
+            'created_on': dataset.created_on,
+            'created_on_humanized': dataset.created_on_humanized,
+            'tags': dataset.tags,
+            'owners': dataset.owners,
+            'is_virtual': dataset.is_virtual,
+            'database_id': dataset.database_id,
+            'schema_perm': dataset.schema_perm,
+            'url': dataset.url,
+            'sql': dataset.sql,
+            'main_dttm_col': dataset.main_dttm_col,
+            'offset': dataset.offset,
+            'cache_timeout': dataset.cache_timeout,
+            'params': dataset.params,
+            'template_params': dataset.template_params,
+            'extra': dataset.extra,
+        }
         mock_list.return_value = ([dataset], 1)
         result = list_datasets(search="search_table")
         assert result.count == 1
@@ -200,7 +412,7 @@ class TestDatasetTools:
         dataset = Mock()
         dataset.id = 2
         dataset.table_name = "simple_search"
-        dataset.db_schema = "analytics"
+        dataset.schema = "analytics"
         dataset.database_name = "analytics_db"
         dataset.database = None
         dataset.description = "Another test dataset"
@@ -225,6 +437,59 @@ class TestDatasetTools:
         dataset.params = {}
         dataset.template_params = {}
         dataset.extra = {}
+        dataset.to_model = lambda: DatasetInfo(
+            id=dataset.id,
+            table_name=dataset.table_name,
+            schema=dataset.schema,
+            description=dataset.description,
+            changed_by_name=dataset.changed_by_name,
+            changed_on=dataset.changed_on,
+            changed_on_humanized=dataset.changed_on_humanized,
+            created_by_name=dataset.created_by_name,
+            created_on=dataset.created_on,
+            created_on_humanized=dataset.created_on_humanized,
+            tags=dataset.tags,
+            owners=dataset.owners,
+            is_virtual=dataset.is_virtual,
+            database_id=dataset.database_id,
+            schema_perm=dataset.schema_perm,
+            url=dataset.url,
+            database_name=dataset.database_name,
+            sql=dataset.sql,
+            main_dttm_col=dataset.main_dttm_col,
+            offset=dataset.offset,
+            cache_timeout=dataset.cache_timeout,
+            params=dataset.params,
+            template_params=dataset.template_params,
+            extra=dataset.extra,
+        )
+        # Patch _mapping to a real dict for item_serializer compatibility
+        dataset._mapping = {
+            'id': dataset.id,
+            'table_name': dataset.table_name,
+            'db_schema': dataset.schema,
+            'database_name': dataset.database_name,
+            'description': dataset.description,
+            'changed_by_name': dataset.changed_by_name,
+            'changed_on': dataset.changed_on,
+            'changed_on_humanized': dataset.changed_on_humanized,
+            'created_by_name': dataset.created_by_name,
+            'created_on': dataset.created_on,
+            'created_on_humanized': dataset.created_on_humanized,
+            'tags': dataset.tags,
+            'owners': dataset.owners,
+            'is_virtual': dataset.is_virtual,
+            'database_id': dataset.database_id,
+            'schema_perm': dataset.schema_perm,
+            'url': dataset.url,
+            'sql': dataset.sql,
+            'main_dttm_col': dataset.main_dttm_col,
+            'offset': dataset.offset,
+            'cache_timeout': dataset.cache_timeout,
+            'params': dataset.params,
+            'template_params': dataset.template_params,
+            'extra': dataset.extra,
+        }
         mock_list.return_value = ([dataset], 1)
         result = list_datasets(search="simple_search")
         assert result.count == 1
@@ -262,6 +527,59 @@ class TestDatasetTools:
         dataset.params = {}
         dataset.template_params = {}
         dataset.extra = {}
+        dataset.to_model = lambda: DatasetInfo(
+            id=dataset.id,
+            table_name=dataset.table_name,
+            schema=dataset.schema,
+            description=dataset.description,
+            changed_by_name=dataset.changed_by_name,
+            changed_on=dataset.changed_on,
+            changed_on_humanized=dataset.changed_on_humanized,
+            created_by_name=dataset.created_by_name,
+            created_on=dataset.created_on,
+            created_on_humanized=dataset.created_on_humanized,
+            tags=dataset.tags,
+            owners=dataset.owners,
+            is_virtual=dataset.is_virtual,
+            database_id=dataset.database_id,
+            schema_perm=dataset.schema_perm,
+            url=dataset.url,
+            database_name=dataset.database.database_name,
+            sql=dataset.sql,
+            main_dttm_col=dataset.main_dttm_col,
+            offset=dataset.offset,
+            cache_timeout=dataset.cache_timeout,
+            params=dataset.params,
+            template_params=dataset.template_params,
+            extra=dataset.extra,
+        )
+        # Patch _mapping to a real dict for item_serializer compatibility
+        dataset._mapping = {
+            'id': dataset.id,
+            'table_name': dataset.table_name,
+            'db_schema': dataset.schema,
+            'database_name': dataset.database.database_name,
+            'description': dataset.description,
+            'changed_by_name': dataset.changed_by_name,
+            'changed_on': dataset.changed_on,
+            'changed_on_humanized': dataset.changed_on_humanized,
+            'created_by_name': dataset.created_by_name,
+            'created_on': dataset.created_on,
+            'created_on_humanized': dataset.created_on_humanized,
+            'tags': dataset.tags,
+            'owners': dataset.owners,
+            'is_virtual': dataset.is_virtual,
+            'database_id': dataset.database_id,
+            'schema_perm': dataset.schema_perm,
+            'url': dataset.url,
+            'sql': dataset.sql,
+            'main_dttm_col': dataset.main_dttm_col,
+            'offset': dataset.offset,
+            'cache_timeout': dataset.cache_timeout,
+            'params': dataset.params,
+            'template_params': dataset.template_params,
+            'extra': dataset.extra,
+        }
         mock_list.return_value = ([dataset], 1)
         filters = [{"col": "table_name", "opr": "eq", "value": "Test DatasetInfo"}, {"col": "schema", "opr": "eq", "value": "main"}]
         result = list_datasets(filters=filters)
@@ -298,11 +616,64 @@ class TestDatasetTools:
         dataset.params = {}
         dataset.template_params = {}
         dataset.extra = {}
+        dataset.to_model = lambda: DatasetInfo(
+            id=dataset.id,
+            table_name=dataset.table_name,
+            schema=dataset.schema,
+            description=dataset.description,
+            changed_by_name=dataset.changed_by_name,
+            changed_on=dataset.changed_on,
+            changed_on_humanized=dataset.changed_on_humanized,
+            created_by_name=dataset.created_by_name,
+            created_on=dataset.created_on,
+            created_on_humanized=dataset.created_on_humanized,
+            tags=dataset.tags,
+            owners=dataset.owners,
+            is_virtual=dataset.is_virtual,
+            database_id=dataset.database_id,
+            schema_perm=dataset.schema_perm,
+            url=dataset.url,
+            database_name=dataset.database.database_name,
+            sql=dataset.sql,
+            main_dttm_col=dataset.main_dttm_col,
+            offset=dataset.offset,
+            cache_timeout=dataset.cache_timeout,
+            params=dataset.params,
+            template_params=dataset.template_params,
+            extra=dataset.extra,
+        )
+        # Patch _mapping to a real dict for item_serializer compatibility
+        dataset._mapping = {
+            'id': dataset.id,
+            'table_name': dataset.table_name,
+            'db_schema': dataset.schema,
+            'database_name': dataset.database.database_name,
+            'description': dataset.description,
+            'changed_by_name': dataset.changed_by_name,
+            'changed_on': dataset.changed_on,
+            'changed_on_humanized': dataset.changed_on_humanized,
+            'created_by_name': dataset.created_by_name,
+            'created_on': dataset.created_on,
+            'created_on_humanized': dataset.created_on_humanized,
+            'tags': dataset.tags,
+            'owners': dataset.owners,
+            'is_virtual': dataset.is_virtual,
+            'database_id': dataset.database_id,
+            'schema_perm': dataset.schema_perm,
+            'url': dataset.url,
+            'sql': dataset.sql,
+            'main_dttm_col': dataset.main_dttm_col,
+            'offset': dataset.offset,
+            'cache_timeout': dataset.cache_timeout,
+            'params': dataset.params,
+            'template_params': dataset.template_params,
+            'extra': dataset.extra,
+        }
         mock_list.return_value = ([dataset], 1)
         filters = [{"col": "table_name", "opr": "sw", "value": "Sales"}, {"col": "schema", "opr": "eq", "value": "main"}]
         result = list_datasets(filters=filters)
-        assert isinstance(result, DatasetList)
         assert result.count == 1
+        assert result.datasets[0].table_name == "Sales Dataset"
 
     @patch('superset.daos.dataset.DatasetDAO.list')
     def test_list_datasets_simple_api_error(self, mock_list):
@@ -340,6 +711,32 @@ class TestDatasetTools:
         dataset.params = {}
         dataset.template_params = {}
         dataset.extra = {}
+        dataset.to_model = lambda: DatasetInfo(
+            id=dataset.id,
+            table_name=dataset.table_name,
+            schema=dataset.schema,
+            description=dataset.description,
+            changed_by_name=dataset.changed_by_name,
+            changed_on=dataset.changed_on,
+            changed_on_humanized=dataset.changed_on_humanized,
+            created_by_name=dataset.created_by_name,
+            created_on=dataset.created_on,
+            created_on_humanized=dataset.created_on_humanized,
+            tags=dataset.tags,
+            owners=dataset.owners,
+            is_virtual=dataset.is_virtual,
+            database_id=dataset.database_id,
+            schema_perm=dataset.schema_perm,
+            url=dataset.url,
+            database_name=dataset.database.database_name,
+            sql=dataset.sql,
+            main_dttm_col=dataset.main_dttm_col,
+            offset=dataset.offset,
+            cache_timeout=dataset.cache_timeout,
+            params=dataset.params,
+            template_params=dataset.template_params,
+            extra=dataset.extra,
+        )
         mock_info.return_value = dataset  # Only the dataset object
         result = get_dataset_info(1)
         assert result.table_name == "Test DatasetInfo"
