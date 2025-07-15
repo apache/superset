@@ -18,9 +18,9 @@
  */
 /* eslint-disable import/no-extraneous-dependencies */
 import { useState } from 'react';
-import { Dropdown, Menu } from 'antd';
+import { Dropdown } from 'antd';
 import { TableOutlined, DownOutlined, CheckOutlined } from '@ant-design/icons';
-import { t } from '@superset-ui/core';
+import { t, useTheme } from '@superset-ui/core';
 import { InfoText, ColumnLabel, CheckIconWrapper } from '../../styles';
 
 interface ComparisonColumn {
@@ -40,6 +40,7 @@ const TimeComparisonVisibility: React.FC<TimeComparisonVisibilityProps> = ({
   onSelectionChange,
 }) => {
   const [showComparisonDropdown, setShowComparisonDropdown] = useState(false);
+  const theme = useTheme();
 
   const allKey = comparisonColumns[0].key;
 
@@ -69,34 +70,42 @@ const TimeComparisonVisibility: React.FC<TimeComparisonVisibilityProps> = ({
   return (
     <Dropdown
       placement="bottomRight"
-      visible={showComparisonDropdown}
-      onVisibleChange={(flag: boolean) => {
+      open={showComparisonDropdown}
+      onOpenChange={(flag: boolean) => {
         setShowComparisonDropdown(flag);
       }}
-      overlay={
-        <Menu
-          multiple
-          onClick={handleOnClick}
-          onBlur={handleOnBlur}
-          selectedKeys={selectedComparisonColumns}
-        >
-          <InfoText>
-            {t(
-              'Select columns that will be displayed in the table. You can multiselect columns.',
-            )}
-          </InfoText>
-          {comparisonColumns.map((column: ComparisonColumn) => (
-            <Menu.Item key={column.key}>
-              <ColumnLabel>{column.label}</ColumnLabel>
-              <CheckIconWrapper>
-                {selectedComparisonColumns.includes(column.key) && (
-                  <CheckOutlined />
+      menu={{
+        multiple: true,
+        onClick: handleOnClick,
+        onBlur: handleOnBlur,
+        selectedKeys: selectedComparisonColumns,
+        items: [
+          {
+            key: 'group1',
+            label: (
+              <InfoText>
+                {t(
+                  'Select columns that will be displayed in the table. You can multiselect columns.',
                 )}
-              </CheckIconWrapper>
-            </Menu.Item>
-          ))}
-        </Menu>
-      }
+              </InfoText>
+            ),
+            type: 'group',
+            children: comparisonColumns.map((column: ComparisonColumn) => ({
+              key: column.key,
+              label: (
+                <>
+                  <ColumnLabel>{column.label}</ColumnLabel>
+                  <CheckIconWrapper>
+                    {selectedComparisonColumns.includes(column.key) && (
+                      <CheckOutlined />
+                    )}
+                  </CheckIconWrapper>
+                </>
+              ),
+            })),
+          },
+        ],
+      }}
       trigger={['click']}
     >
       <span>
