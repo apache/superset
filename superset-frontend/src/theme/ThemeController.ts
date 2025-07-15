@@ -23,7 +23,11 @@ import {
   ThemeControllerOptions,
   themeObject as supersetThemeObject,
 } from '@superset-ui/core';
-import { ThemeAlgorithm, ThemeMode } from '@superset-ui/core/theme/types';
+import { SupersetTheme, ThemeMode } from '@superset-ui/core/theme/types';
+import {
+  getAntdConfig,
+  normalizeThemeConfig,
+} from '@superset-ui/core/theme/utils';
 import type {
   BootstrapThemeData,
   BootstrapThemeDataConfig,
@@ -40,12 +44,6 @@ const DEFAULT_THEME_SETTINGS = {
 const STORAGE_KEYS = {
   THEME_MODE: 'superset-theme-mode',
 } as const;
-
-const VALID_ALGORITHM_COMBINATIONS: ReadonlyArray<ReadonlySet<ThemeAlgorithm>> =
-  [
-    new Set([ThemeAlgorithm.DARK, ThemeAlgorithm.COMPACT]),
-    new Set([ThemeAlgorithm.DEFAULT, ThemeAlgorithm.COMPACT]),
-  ] as const;
 
 const MEDIA_QUERY_DARK_SCHEME = '(prefers-color-scheme: dark)';
 
@@ -200,8 +198,8 @@ export class ThemeController {
   public setTheme(theme: AnyThemeConfig): void {
     this.validateThemeUpdatePermission();
 
-    const { mode, normalizedTheme } = this.normalizeTheme(theme);
-    this.currentMode = mode;
+    const normalizedTheme = this.normalizeTheme(theme);
+    this.currentMode = this.determineInitialMode();
 
     this.updateTheme(normalizedTheme);
   }
@@ -277,7 +275,7 @@ export class ThemeController {
         theme || this.getThemeForMode(this.currentMode) || this.defaultTheme;
 
       // Normalize the theme
-      const { normalizedTheme } = this.normalizeTheme(config);
+      const normalizedTheme = this.normalizeTheme(config);
 
       this.applyTheme(normalizedTheme);
       this.persistMode();
@@ -387,53 +385,9 @@ export class ThemeController {
    * @param theme - The theme configuration to normalize
    * @returns An object with normalized mode and algorithm.
    */
-  private normalizeTheme(theme: AnyThemeConfig): {
-    mode: ThemeMode;
-    normalizedTheme: AnyThemeConfig;
-  } {
-    const algorithm: ThemeAlgorithm | ThemeAlgorithm[] = this.getValidAlgorithm(
-      (theme?.algorithm as ThemeAlgorithm | ThemeAlgorithm[]) ||
-        ThemeAlgorithm.DEFAULT,
-    );
-
-    // Extract the mode from the valid algorithm
-    let mode: ThemeMode;
-
-    if (Array.isArray(algorithm)) {
-      const foundAlgorithm =
-        algorithm.find(
-          (m: ThemeAlgorithm) =>
-            m === ThemeAlgorithm.DARK || m === ThemeAlgorithm.DEFAULT,
-        ) ?? ThemeAlgorithm.DEFAULT;
-
-      mode = this.algorithmToMode(foundAlgorithm);
-    } else mode = this.algorithmToMode(algorithm);
-
-    return {
-      mode,
-      normalizedTheme: {
-        ...theme,
-        algorithm,
-      } as AnyThemeConfig,
-    };
-  }
-
-  /**
-   * Converts a ThemeAlgorithm to its corresponding ThemeMode.
-   * @param algorithm - The theme algorithm to convert
-   * @returns The corresponding theme mode
-   */
-  private algorithmToMode(algorithm: ThemeAlgorithm): ThemeMode {
-    switch (algorithm) {
-      case ThemeAlgorithm.DARK:
-        return ThemeMode.DARK;
-      case ThemeAlgorithm.DEFAULT:
-        return ThemeMode.DEFAULT;
-      case ThemeAlgorithm.COMPACT:
-        return ThemeMode.DEFAULT;
-      default:
-        return ThemeMode.DEFAULT;
-    }
+  private normalizeTheme(theme: AnyThemeConfig): AnyThemeConfig {
+    const normalizedTheme = normalizeThemeConfig(theme);
+    return normalizedTheme;
   }
 
   /**
@@ -452,25 +406,18 @@ export class ThemeController {
       resolvedMode = ThemeController.getSystemPreferredMode();
     }
 
-    // When we don't have bootstrap themes, we need to create variants using algorithm
     if (!this.hasBootstrapThemes) {
-      if (resolvedMode === ThemeMode.DARK)
-        return {
-          ...this.defaultTheme,
-          algorithm: ThemeAlgorithm.DARK,
-        };
-
-      return {
-        ...this.defaultTheme,
-        algorithm: ThemeAlgorithm.DEFAULT,
-      };
+      const baseTheme = this.defaultTheme.token as Partial<SupersetTheme>;
+      return getAntdConfig(baseTheme, resolvedMode === ThemeMode.DARK);
     }
 
-    // When we have bootstrap themes, use them
-    if (resolvedMode === ThemeMode.DARK)
-      return this.darkTheme || this.defaultTheme;
+    // Handle bootstrap themes using existing normalization
+    const selectedTheme: AnyThemeConfig =
+      resolvedMode === ThemeMode.DARK
+        ? this.darkTheme || this.defaultTheme
+        : this.defaultTheme;
 
-    return this.defaultTheme;
+    return normalizeThemeConfig(selectedTheme);
   }
 
   /**
@@ -486,7 +433,7 @@ export class ThemeController {
     let theme: AnyThemeConfig | null = this.getThemeForMode(this.currentMode);
     theme = theme || (defaultThemeObject.theme as AnyThemeConfig);
 
-    const { normalizedTheme } = this.normalizeTheme(theme);
+    const normalizedTheme = this.normalizeTheme(theme);
 
     return {
       theme: normalizedTheme,
@@ -604,45 +551,6 @@ export class ThemeController {
   }
 
   /**
-   * Validates theme algorithm combinations.
-   * This checks if the provided algorithm is a valid combination of ThemeMode values.
-   * @param algorithm - The theme algorithm to validate
-   * @returns {boolean} True if the algorithms combination is valid, false otherwise
-   */
-  private isValidAlgorithmCombination(algorithm: ThemeAlgorithm[]): boolean {
-    const inputSet = new Set(algorithm);
-    return VALID_ALGORITHM_COMBINATIONS.some(
-      validCombination =>
-        inputSet.size === validCombination.size &&
-        [...inputSet].every(item => validCombination.has(item)),
-    );
-  }
-
-  /**
-   * Checks if the algorithm is a valid combination or a simple one.
-   * @param algorithm - The theme mode or combination to convert
-   * @returns A valid ThemeAlgorithm or ThemeAlgorithm[]
-   */
-  private getValidAlgorithm(
-    algorithm: ThemeAlgorithm | ThemeAlgorithm[] | ThemeMode,
-  ): ThemeAlgorithm | ThemeAlgorithm[] {
-    if (Array.isArray(algorithm) && this.isValidAlgorithmCombination(algorithm))
-      return algorithm as ThemeAlgorithm[];
-
-    switch (algorithm) {
-      case ThemeAlgorithm.DARK:
-      case ThemeAlgorithm.COMPACT:
-        return algorithm;
-      case ThemeMode.SYSTEM:
-        return this.systemMode === ThemeMode.DARK
-          ? ThemeAlgorithm.DARK
-          : ThemeAlgorithm.DEFAULT;
-      default:
-        return ThemeAlgorithm.DEFAULT;
-    }
-  }
-
-  /**
    * Applies the current theme configuration.
    * This method sets the theme on the themeObject and applies it to Theme.
    * It also handles any errors that may occur during the application of the theme.
@@ -650,7 +558,8 @@ export class ThemeController {
    */
   private applyTheme(theme: AnyThemeConfig): void {
     try {
-      this.themeObject.setConfig(theme);
+      const normalizedConfig = normalizeThemeConfig(theme);
+      this.themeObject.setConfig(normalizedConfig);
     } catch (error) {
       console.error('Failed to apply theme:', error);
       this.fallbackToDefaultMode();

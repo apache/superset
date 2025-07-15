@@ -59,11 +59,23 @@ export function deserializeThemeConfig(
   };
 
   let resolvedAlgorithm;
-  if (Array.isArray(algorithm))
-    resolvedAlgorithm = algorithm.map(
-      (alg: ThemeAlgorithm) => algorithmMap[alg],
-    );
-  else if (algorithm) resolvedAlgorithm = algorithmMap[algorithm];
+  if (Array.isArray(algorithm)) {
+    const validAlgorithms = algorithm
+      .map((alg: ThemeAlgorithm) => algorithmMap[alg])
+      .filter(Boolean);
+
+    // If we have valid algorithms, use them; otherwise fallback to default
+    if (validAlgorithms.length > 0) {
+      resolvedAlgorithm =
+        validAlgorithms.length === 1 ? validAlgorithms[0] : validAlgorithms;
+    } else {
+      resolvedAlgorithm = antdThemeImport.defaultAlgorithm;
+    }
+  } else if (algorithm && algorithmMap[algorithm]) {
+    resolvedAlgorithm = algorithmMap[algorithm];
+  } else {
+    resolvedAlgorithm = antdThemeImport.defaultAlgorithm;
+  }
 
   return {
     ...rest,

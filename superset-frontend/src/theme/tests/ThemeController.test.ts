@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { theme as antdThemeImport } from 'antd';
 import { Theme } from '@superset-ui/core';
 import type {
   BootstrapThemeDataConfig,
@@ -270,7 +271,7 @@ describe('ThemeController', () => {
     expect(mockThemeFromConfig).toHaveBeenCalledWith(
       expect.objectContaining({
         ...fallbackTheme,
-        algorithm: ThemeMode.DEFAULT,
+        algorithm: antdThemeImport.defaultAlgorithm,
       }),
     );
   });
@@ -350,7 +351,10 @@ describe('ThemeController', () => {
 
     expect(mockSetConfig).toHaveBeenCalledTimes(1);
     expect(mockSetConfig).toHaveBeenCalledWith(
-      expect.objectContaining(DARK_THEME),
+      expect.objectContaining({
+        ...DARK_THEME,
+        algorithm: antdThemeImport.darkAlgorithm,
+      }),
     );
   });
 
@@ -383,7 +387,7 @@ describe('ThemeController', () => {
           colorBgBase: '#ffffff',
           colorPrimary: '#1890ff',
         }),
-        algorithm: ThemeMode.DEFAULT,
+        algorithm: antdThemeImport.defaultAlgorithm,
       }),
     );
   });
@@ -416,7 +420,7 @@ describe('ThemeController', () => {
           colorBgBase: '#ffffff',
           colorPrimary: '#1890ff',
         }),
-        algorithm: ThemeMode.DEFAULT,
+        algorithm: antdThemeImport.defaultAlgorithm,
       }),
     );
   });
@@ -452,7 +456,7 @@ describe('ThemeController', () => {
         token: expect.objectContaining({
           colorPrimary: '#fallback',
         }),
-        algorithm: ThemeMode.DEFAULT,
+        algorithm: antdThemeImport.defaultAlgorithm,
       }),
     );
   });
@@ -488,7 +492,7 @@ describe('ThemeController', () => {
     expect(mockSetConfig).toHaveBeenCalledWith(
       expect.objectContaining({
         ...fallbackTheme,
-        algorithm: ThemeMode.DARK,
+        algorithm: antdThemeImport.darkAlgorithm,
       }),
     );
   });
@@ -804,7 +808,7 @@ describe('ThemeController', () => {
       expect(mockSetConfig).toHaveBeenCalledTimes(1);
       expect(mockSetConfig).toHaveBeenCalledWith(
         expect.objectContaining({
-          algorithm: ThemeMode.DARK,
+          algorithm: antdThemeImport.darkAlgorithm,
           token: expect.objectContaining({
             colorBgBase: '#141118',
             colorTextBase: '#fdc7c7',
@@ -833,7 +837,7 @@ describe('ThemeController', () => {
       const lastCall =
         mockSetConfig.mock.calls[mockSetConfig.mock.calls.length - 1][0];
 
-      expect(lastCall.algorithm).toBe(ThemeMode.DEFAULT);
+      expect(lastCall.algorithm).toBe(antdThemeImport.defaultAlgorithm);
     });
 
     it('should handle color tokens correctly in theme switching', () => {
@@ -896,7 +900,10 @@ describe('ThemeController', () => {
             colorBgBase: '#ededed',
             colorPrimary: '#c96f0f',
           }),
-          algorithm: [ThemeAlgorithm.DARK, ThemeAlgorithm.COMPACT],
+          algorithm: [
+            antdThemeImport.darkAlgorithm,
+            antdThemeImport.compactAlgorithm,
+          ],
         }),
       );
     });
@@ -915,7 +922,7 @@ describe('ThemeController', () => {
       expect(mockSetConfig).toHaveBeenCalledTimes(1);
       expect(mockSetConfig).toHaveBeenCalledWith(
         expect.objectContaining({
-          algorithm: ThemeMode.DEFAULT,
+          algorithm: antdThemeImport.defaultAlgorithm,
         }),
       );
     });

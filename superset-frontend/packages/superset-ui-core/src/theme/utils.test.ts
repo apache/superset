@@ -51,6 +51,7 @@ describe('Theme utilities', () => {
       const config: AnyThemeConfig = {
         token: { colorPrimary: '#ff0000' },
       };
+
       expect(isSerializableConfig(config)).toBe(true);
     });
 
@@ -59,17 +60,16 @@ describe('Theme utilities', () => {
         token: { colorPrimary: '#ff0000' },
         algorithm: ThemeAlgorithm.DARK,
       };
+
       expect(isSerializableConfig(config)).toBe(true);
     });
 
     it('returns true when algorithm is an array of strings', () => {
       const config: AnyThemeConfig = {
         token: { colorPrimary: '#ff0000' },
-        algorithm: [
-          ThemeAlgorithm.DARK,
-          ThemeAlgorithm.COMPACT,
-        ] as ThemeAlgorithm[],
+        algorithm: [ThemeAlgorithm.DARK, ThemeAlgorithm.COMPACT],
       };
+
       expect(isSerializableConfig(config)).toBe(true);
     });
 
@@ -78,15 +78,19 @@ describe('Theme utilities', () => {
         token: { colorPrimary: '#ff0000' },
         algorithm: antdThemeImport.darkAlgorithm,
       };
+
       expect(isSerializableConfig(config)).toBe(false);
     });
 
     it('returns false when algorithm is an array containing a function', () => {
       const config: AnyThemeConfig = {
         token: { colorPrimary: '#ff0000' },
-        // @ts-ignore
-        algorithm: [antdThemeImport.darkAlgorithm, ThemeAlgorithm.COMPACT],
+        algorithm: [
+          antdThemeImport.darkAlgorithm,
+          antdThemeImport.compactAlgorithm,
+        ],
       };
+
       expect(isSerializableConfig(config)).toBe(false);
     });
   });
@@ -97,7 +101,9 @@ describe('Theme utilities', () => {
         token: { colorPrimary: '#ff0000' },
         algorithm: ThemeAlgorithm.DARK,
       };
+
       const result = deserializeThemeConfig(config);
+
       expect(result.algorithm).toBe(antdThemeImport.darkAlgorithm);
     });
 
@@ -106,7 +112,9 @@ describe('Theme utilities', () => {
         token: { colorPrimary: '#ff0000' },
         algorithm: [ThemeAlgorithm.DARK, ThemeAlgorithm.COMPACT],
       };
+
       const result = deserializeThemeConfig(config);
+
       expect(Array.isArray(result.algorithm)).toBe(true);
       expect(result.algorithm).toContain(antdThemeImport.darkAlgorithm);
       expect(result.algorithm).toContain(antdThemeImport.compactAlgorithm);
@@ -118,7 +126,9 @@ describe('Theme utilities', () => {
         algorithm: ThemeAlgorithm.DARK,
         hashed: true,
       };
+
       const result = deserializeThemeConfig(config);
+
       expect(result.token).toEqual({ colorPrimary: '#ff0000' });
       expect(result.hashed).toBe(true);
     });
@@ -127,8 +137,10 @@ describe('Theme utilities', () => {
       const config: SerializableThemeConfig = {
         token: { colorPrimary: '#ff0000' },
       };
+
       const result = deserializeThemeConfig(config);
-      expect(result.algorithm).toBeUndefined();
+
+      expect(result.algorithm).toBe(antdThemeImport.defaultAlgorithm);
     });
 
     it('converts default algorithm string to function reference', () => {
@@ -136,7 +148,9 @@ describe('Theme utilities', () => {
         token: { colorPrimary: '#ff0000' },
         algorithm: ThemeAlgorithm.DEFAULT,
       };
+
       const result = deserializeThemeConfig(config);
+
       expect(result.algorithm).toBe(antdThemeImport.defaultAlgorithm);
     });
 
@@ -145,7 +159,9 @@ describe('Theme utilities', () => {
         token: { colorPrimary: '#ff0000' },
         algorithm: ThemeAlgorithm.COMPACT,
       };
+
       const result = deserializeThemeConfig(config);
+
       expect(result.algorithm).toBe(antdThemeImport.compactAlgorithm);
     });
   });
@@ -156,7 +172,9 @@ describe('Theme utilities', () => {
         token: { colorPrimary: '#ff0000' },
         algorithm: antdThemeImport.darkAlgorithm,
       };
+
       const result = serializeThemeConfig(config);
+
       expect(result.algorithm).toBe(ThemeAlgorithm.DARK);
     });
 
@@ -168,7 +186,9 @@ describe('Theme utilities', () => {
           antdThemeImport.compactAlgorithm,
         ],
       };
+
       const result = serializeThemeConfig(config);
+
       expect(Array.isArray(result.algorithm)).toBe(true);
       expect(result.algorithm).toContain(ThemeAlgorithm.DARK);
       expect(result.algorithm).toContain(ThemeAlgorithm.COMPACT);
@@ -180,7 +200,9 @@ describe('Theme utilities', () => {
         algorithm: antdThemeImport.darkAlgorithm,
         hashed: true,
       };
+
       const result = serializeThemeConfig(config);
+
       expect(result.token).toEqual({ colorPrimary: '#ff0000' });
       expect(result.hashed).toBe(true);
     });
@@ -189,7 +211,9 @@ describe('Theme utilities', () => {
       const config: AntdThemeConfig = {
         token: { colorPrimary: '#ff0000' },
       };
+
       const result = serializeThemeConfig(config);
+
       expect(result.algorithm).toBeUndefined();
     });
 
@@ -200,7 +224,9 @@ describe('Theme utilities', () => {
         // @ts-ignore
         algorithm: unknownAlgorithm,
       };
+
       const result = serializeThemeConfig(config);
+
       expect(result.algorithm).toBe(ThemeAlgorithm.DEFAULT);
     });
 
@@ -209,7 +235,9 @@ describe('Theme utilities', () => {
         token: { colorPrimary: '#ff0000' },
         algorithm: antdThemeImport.defaultAlgorithm,
       };
+
       const result = serializeThemeConfig(config);
+
       expect(result.algorithm).toBe(ThemeAlgorithm.DEFAULT);
     });
 
@@ -218,7 +246,9 @@ describe('Theme utilities', () => {
         token: { colorPrimary: '#ff0000' },
         algorithm: antdThemeImport.compactAlgorithm,
       };
+
       const result = serializeThemeConfig(config);
+
       expect(result.algorithm).toBe(ThemeAlgorithm.COMPACT);
     });
 
@@ -229,7 +259,9 @@ describe('Theme utilities', () => {
         // @ts-ignore
         algorithm: [antdThemeImport.darkAlgorithm, unknownAlgorithm],
       };
+
       const result = serializeThemeConfig(config);
+
       expect(Array.isArray(result.algorithm)).toBe(true);
       expect(result.algorithm).toEqual([
         ThemeAlgorithm.DARK,
@@ -251,7 +283,9 @@ describe('Theme utilities', () => {
           unknownAlgorithm2,
         ],
       };
+
       const result = serializeThemeConfig(config);
+
       expect(Array.isArray(result.algorithm)).toBe(true);
       expect(result.algorithm).toEqual([
         ThemeAlgorithm.DARK,
@@ -268,7 +302,9 @@ describe('Theme utilities', () => {
         token: { colorPrimary: '#ff0000' },
         algorithm: antdThemeImport.darkAlgorithm,
       };
+
       const result = normalizeThemeConfig(config);
+
       expect(result).toBe(config);
     });
 
@@ -277,7 +313,9 @@ describe('Theme utilities', () => {
         token: { colorPrimary: '#ff0000' },
         algorithm: ThemeAlgorithm.DARK,
       };
+
       const result = normalizeThemeConfig(config);
+
       expect(result.algorithm).toBe(antdThemeImport.darkAlgorithm);
     });
   });
@@ -285,14 +323,18 @@ describe('Theme utilities', () => {
   describe('getAntdConfig', () => {
     it('returns config with default algorithm for light mode', () => {
       const seed = { colorPrimary: '#ff0000' };
+
       const result = getAntdConfig(seed, false);
+
       expect(result.token).toBe(seed);
       expect(result.algorithm).toBe(antdThemeImport.defaultAlgorithm);
     });
 
     it('returns config with dark algorithm for dark mode', () => {
       const seed = { colorPrimary: '#ff0000' };
+
       const result = getAntdConfig(seed, true);
+
       expect(result.token).toBe(seed);
       expect(result.algorithm).toBe(antdThemeImport.darkAlgorithm);
     });
@@ -308,7 +350,9 @@ describe('Theme utilities', () => {
         colorInfo: '#info',
         otherToken: 'ignore-me',
       };
+
       const result = getSystemColors(tokens);
+
       expect(result).toEqual({
         colorPrimary: '#primary',
         colorError: '#error',
@@ -322,6 +366,7 @@ describe('Theme utilities', () => {
   describe('genDeprecatedColorVariations', () => {
     it('generates color variations for light mode', () => {
       const result = genDeprecatedColorVariations('#base-color', false);
+
       expect(result.base).toBe('#base-color');
       expect(result.light1).toBe('#mixed-color');
       expect(result.dark1).toBe('#mixed-color');
@@ -329,6 +374,7 @@ describe('Theme utilities', () => {
 
     it('generates color variations for dark mode', () => {
       const result = genDeprecatedColorVariations('#base-color', true);
+
       expect(result.base).toBe('#base-color');
       expect(result.light1).toBe('#mixed-color');
       expect(result.dark1).toBe('#mixed-color');
@@ -344,7 +390,9 @@ describe('Theme utilities', () => {
         colorSuccess: '#success',
         colorInfo: '#info',
       };
+
       const result = getDeprecatedColors(systemColors, false);
+
       expect(result.primary.base).toBe('#primary');
       expect(result.error.base).toBe('#error');
       expect(result.warning.base).toBe('#warning');
