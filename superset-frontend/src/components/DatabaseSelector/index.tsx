@@ -196,7 +196,7 @@ export function DatabaseSelector({
               />
             ),
             value: row.id,
-            id: row.id,
+            id: `${row.backend}-${row.database_name}-${row.id}`,
             database_name: row.database_name,
             backend: row.backend,
             allow_multi_catalog: row.allow_multi_catalog,
@@ -319,11 +319,14 @@ export function DatabaseSelector({
     value: { label: string; value: number },
     database: DatabaseValue,
   ) {
-    setCurrentDb(database);
+    // the database id is actually stored in the value property; the ID is used
+    // for the DOM, so it can't be an integer
+    const databaseWithId = { ...database, id: database.value };
+    setCurrentDb(databaseWithId);
     setCurrentCatalog(undefined);
     setCurrentSchema(undefined);
     if (onDbChange) {
-      onDbChange(database);
+      onDbChange(databaseWithId);
     }
     if (onCatalogChange) {
       onCatalogChange(undefined);
