@@ -57,6 +57,7 @@ from superset.key_value.types import JsonKeyValueCodec
 from superset.stats_logger import DummyStatsLogger
 from superset.superset_typing import CacheConfig
 from superset.tasks.types import ExecutorType
+from superset.themes.types import Theme, ThemeSettings
 from superset.utils import core as utils
 from superset.utils.core import NO_TIME_RANGE, parse_boolean_string, QuerySource
 from superset.utils.encrypt import SQLAlchemyUtilsAdapter
@@ -422,29 +423,6 @@ class D3Format(TypedDict, total=False):
 D3_FORMAT: D3Format = {}
 
 
-# Override the default mapbox tiles
-# Default values are equivalent to
-# DECKGL_BASE_MAP = [
-#   ['https://tile.openstreetmap.org/{z}/{x}/{y}.png', 'Streets (OSM)'],
-#   ['https://tile.osm.ch/osm-swiss-style/{z}/{x}/{y}.png', 'Topography (OSM)'],
-#   ['mapbox://styles/mapbox/streets-v9', 'Streets'],
-#   ['mapbox://styles/mapbox/dark-v9', 'Dark'],
-#   ['mapbox://styles/mapbox/light-v9', 'Light'],
-#   ['mapbox://styles/mapbox/satellite-streets-v9', 'Satellite Streets'],
-#   ['mapbox://styles/mapbox/satellite-v9', 'Satellite'],
-#   ['mapbox://styles/mapbox/outdoors-v9', 'Outdoors'],
-# ]
-# for adding your own map tiles, you can use the following format:
-# - tile:// + your_personal_url or openstreetmap_url
-#   example:
-#   DECKGL_BASE_MAP = [
-#       ['tile://https://c.tile.openstreetmap.org/{z}/{x}/{y}.png', 'OpenStreetMap']
-#    ]
-# Enable CORS and set map url in origins option.
-# Add also map url in connect-src of TALISMAN_CONFIG variable
-DECKGL_BASE_MAP: list[list[str, str]] = None
-
-
 # Override the default d3 locale for time format
 # Default values are equivalent to
 # D3_TIME_FORMAT = {
@@ -554,6 +532,8 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     "DRILL_TO_DETAIL": True,  # deprecated
     "DRILL_BY": True,
     "DATAPANEL_CLOSED_BY_DEFAULT": False,
+    # When you open the dashboard, the filter panel will be closed
+    "FILTERBAR_CLOSED_BY_DEFAULT": False,
     # The feature is off by default, and currently only supported in Presto and Postgres,  # noqa: E501
     # and Bigquery.
     # It also needs to be enabled on a per-database basis, by adding the key/value pair
@@ -700,18 +680,58 @@ COMMON_BOOTSTRAP_OVERRIDES_FUNC: Callable[  # noqa: E731
 # This is merely a default
 EXTRA_CATEGORICAL_COLOR_SCHEMES: list[dict[str, Any]] = []
 
-# THEME is used for setting a custom theme to Superset, it follows the ant design
-# theme structure
-# You can use the AntDesign theme editor to generate a theme structure
-# https://ant.design/theme-editor
+# ---------------------------------------------------
+# Theme Configuration for Superset
+# ---------------------------------------------------
+# Superset supports custom theming through Ant Design's theme structure.
+# This allows users to customize colors, fonts, and other UI elements.
+#
+# Theme Generation:
+# - Use the Ant Design theme editor: https://ant.design/theme-editor
+# - Export or coypt the generated theme JSON and assign to the variables below
+#
 # To expose a JSON theme editor modal that can be triggered from the navbar
 # set the `ENABLE_THEME_EDITOR` feature flag to True.
 #
-# To set up the dark theme:
-# THEME = {"algorithm": "dark"}
+# Theme Structure:
+# Each theme should follow Ant Design's theme format
+# Example:
+# THEME_DEFAULT = {
+#       "token": {
+#            "colorPrimary": "#2893B3",
+#            "colorSuccess": "#5ac189",
+#            "colorWarning": "#fcc700",
+#            "colorError": "#e04355",
+#            "fontFamily": "'Inter', Helvetica, Arial",
+#            ... # other tokens
+#       },
+#       ... # other theme properties
+# }
 
-THEME: dict[str, Any] = {}
 
+# Default theme configuration
+# Leave empty to use Superset's default theme
+THEME_DEFAULT: Theme = {}
+
+# Dark theme configuration
+# Applied when user selects dark mode
+THEME_DARK: Theme = {}
+
+# Theme behavior and user preference settings
+# Controls how themes are applied and what options users have
+# - enforced: Forces the default theme always, overriding all other settings
+# - allowSwitching: Allows users to manually switch between default and dark themes.
+#   To expose a theme switcher in the UI, set `THEME_ENABLE_DARK_THEME_SWITCH` feature flag to True.  # noqa: E501
+# - allowOSPreference: Allows the app to automatically use the system's preferred theme mode  # noqa: E501
+#
+# Example:
+# THEME_SETTINGS = {
+#     "enforced": False,         # If True, forces the default theme and ignores user preferences  # noqa: E501
+#     "allowSwitching": True,    # Allows user to switch between themes (default and dark)  # noqa: E501
+#     "allowOSPreference": True, # Allows the app to Auto-detect and set system theme preference  # noqa: E501
+# }
+THEME_SETTINGS: ThemeSettings = {}
+# ---------------------------------------------------
 # EXTRA_SEQUENTIAL_COLOR_SCHEMES is used for adding custom sequential color schemes
 # EXTRA_SEQUENTIAL_COLOR_SCHEMES =  [
 #     {
@@ -797,7 +817,7 @@ SCREENSHOT_WAIT_FOR_ERROR_MODAL_INVISIBLE = 5
 # Event that Playwright waits for when loading a new page
 # Possible values: "load", "commit", "domcontentloaded", "networkidle"
 # Docs: https://playwright.dev/python/docs/api/class-page#page-goto-option-wait-until
-SCREENSHOT_PLAYWRIGHT_WAIT_EVENT = "load"
+SCREENSHOT_PLAYWRIGHT_WAIT_EVENT = "domcontentloaded"
 # Default timeout for Playwright browser context for all operations
 SCREENSHOT_PLAYWRIGHT_DEFAULT_TIMEOUT = int(
     timedelta(seconds=60).total_seconds() * 1000
@@ -857,13 +877,8 @@ STORE_CACHE_KEYS_IN_METADATA_DB = False
 # CORS Options
 # NOTE: enabling this requires installing the cors-related python dependencies
 # `pip install .[cors]` or `pip install apache_superset[cors]`, depending
-ENABLE_CORS = True
-CORS_OPTIONS: dict[Any, Any] = {
-    "origins": [
-        "https://tile.openstreetmap.org",
-        "https://tile.osm.ch",
-    ]
-}
+ENABLE_CORS = False
+CORS_OPTIONS: dict[Any, Any] = {}
 
 # Sanitizes the HTML content used in markdowns to allow its rendering in a safe manner.
 # Disabling this option is not recommended for security reasons. If you wish to allow
@@ -1692,8 +1707,6 @@ TALISMAN_CONFIG = {
             "'self'",
             "https://api.mapbox.com",
             "https://events.mapbox.com",
-            "https://tile.openstreetmap.org",
-            "https://tile.osm.ch",
         ],
         "object-src": "'none'",
         "style-src": [
@@ -1726,8 +1739,6 @@ TALISMAN_DEV_CONFIG = {
             "'self'",
             "https://api.mapbox.com",
             "https://events.mapbox.com",
-            "https://tile.openstreetmap.org",
-            "https://tile.osm.ch",
         ],
         "object-src": "'none'",
         "style-src": [
