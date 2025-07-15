@@ -25,6 +25,7 @@ from datetime import datetime, timezone
 from superset.daos.chart import ChartDAO
 from pydantic import Field
 import logging
+from superset.mcp_service.utils import ModelGetInfoTool
 
 logger = logging.getLogger(__name__)
 
@@ -38,24 +39,11 @@ def get_chart_info(
     Get detailed information about a specific chart.
     Returns a ChartInfo model or ChartError on error.
     """
-    try:
-        chart = ChartDAO.find_by_id(chart_id)
-        if chart is None:
-            error_data = ChartError(
-                error=f"Chart with ID {chart_id} not found",
-                error_type="not_found",
-                timestamp=datetime.now(timezone.utc)
-            )
-            logger.warning(f"ChartInfo {chart_id} error: not_found - not found")
-            return error_data
-        response = serialize_chart_object(chart)
-        logger.info(f"ChartInfo response created successfully for chart {chart.id}")
-        return response
-    except Exception as context_error:
-        error_msg = f"Error within Flask app context: {str(context_error)}"
-        logger.error(error_msg, exc_info=True)
-        raise
-    except Exception as e:
-        error_msg = f"Unexpected error in get_chart_info: {str(e)}"
-        logger.error(error_msg, exc_info=True)
-        raise 
+    tool = ModelGetInfoTool(
+        dao_class=ChartDAO,
+        output_schema=ChartInfo,
+        error_schema=ChartError,
+        serializer=serialize_chart_object,
+        logger=logger,
+    )
+    return tool.run(chart_id) 

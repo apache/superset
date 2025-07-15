@@ -2,21 +2,21 @@
 
 **⚠️ The Superset MCP service is under active development and not yet complete. Functionality, APIs, and tool coverage are evolving rapidly. See [SIP-171](https://github.com/apache/superset/issues/33870) for the roadmap and proposal.**
 
-The Superset MCP service exposes high-level tools for dashboards, charts, and datasets via the FastMCP protocol. All read/list/count operations use Superset DAOs, wrapped by `MCPDAOWrapper` to enforce security and user context. Mutations (create/update/delete) will use Superset command objects in future versions.
+The Superset MCP service exposes high-level tools for dashboards, charts, and datasets via the FastMCP protocol. All read/list/count operations use Superset DAOs, orchestrated by the `ModelListTool` abstraction and protected by the `mcp_auth_hook` for security and user context. Mutations (create/update/delete) will use Superset command objects in future versions.
 
 ## Flow Overview
 
 ```mermaid
-graph TD
+flowchart TD
     subgraph FastMCP Service
-        A[LLM/Agent or Client]
-        B[FastMCP Tool Call]
-        C[MCPDAOWrapper]
-        D1[DashboardDAO]
-        D2[ChartDAO]
-        D3[DatasetDAO]
-        E[Superset DB]
-        F[Superset Command - planned for mutations]
+        A["LLM/Agent or Client"]
+        B["FastMCP Tool Call"]
+        C["Tool Entrypoint (with mcp_auth_hook)"]
+        D1["DashboardDAO"]
+        D2["ChartDAO"]
+        D3["DatasetDAO"]
+        E["Superset DB"]
+        F["Superset Command (planned for mutations)"]
     end
 
     A --> B
@@ -44,42 +44,51 @@ All tools are organized by domain for clarity and maintainability:
 - `superset/mcp_service/tools/chart/`
 - `superset/mcp_service/tools/system/`
 
-Each tool is a standalone Python module. Shared utilities live in `tools/base.py`.
+Each tool is a standalone Python module. Shared utilities live in `tools/base.py` and `utils.py`.
 
 ## Pydantic Model/Data Flow
 
 ```mermaid
-graph TD
+flowchart TD
     subgraph Tool Layer
-        T[FastMCP Tool]
-        PI[Pydantic Input Model]
-        PO[Pydantic Output Model]
+        T["FastMCP Tool"]
+        PI["Pydantic Input Model"]
+        PO["Pydantic Output Model"]
     end
     subgraph Service Layer
-        W[MCPDAOWrapper]
-        DAO[DAO -DashboardDAO, ChartDAO, DatasetDAO]
+        DAO["DAO (DashboardDAO, ChartDAO, DatasetDAO)"]
     end
     subgraph Data Layer
-        DB[Superset DB]
-        SA[SQLAlchemy Models]
+        DB["Superset DB"]
+        SA["SQLAlchemy Models"]
     end
 
     T -- input schema --> PI
-    PI -- validated params --> W
-    W -- calls --> DAO
+    PI -- validated params --> DAO
     DAO -- queries --> DB
     DB -- returns --> SA
-    SA -- returned by --> W
-    W -- SQLAlchemy models --> T
+    SA -- returned by --> DAO
+    DAO -- SQLAlchemy models --> T
     T -- builds --> PO
     PO -- response schema --> T
 ```
 
 - **Pydantic Input Model**: Defines and validates tool input parameters.
-- **MCPDAOWrapper**: Calls the DAO and returns SQLAlchemy models.
+- **ModelListTool**: Orchestrates DAO calls and output serialization.
+- **mcp_auth_hook**: Handles user context, RBAC, and logging at the tool entrypoint.
 - **FastMCP Tool**: Converts SQLAlchemy models to the Pydantic output model for the response.
 - **Pydantic Output Model**: Defines the structured response returned by each tool.
 - All tool contracts are strongly typed, ensuring robust agent and client integration for dashboards, charts, and datasets.
+
+## ModelListTool Abstraction
+
+The `ModelListTool` class provides a generic, configurable way to implement list tools for any domain (dashboards, charts, datasets). It handles:
+- Input validation and parameter normalization
+- DAO invocation and pagination
+- Output serialization (with only requested columns)
+- Consistent response structure for all list tools
+
+This abstraction reduces code duplication and ensures all list tools behave consistently.
 
 ## How to Add a New Tool
 
@@ -91,7 +100,8 @@ graph TD
    - Place shared schemas in `pydantic_schemas/`.
 3. **Implement the Tool**
    - Use `log_tool_call` from `tools/base.py` for logging.
-   - Use `MCPDAOWrapper` for DAO access and security.
+   - Use `ModelListTool` for list tools, or direct DAO/command usage for others.
+   - Protect the entrypoint with `mcp_auth_hook` for user context and RBAC.
    - Follow the style and conventions of existing tools.
 4. **Register the Tool**
    - Add your tool to `tools/__init__.py` in the `MCP_TOOLS` dict and `__all__` list.
@@ -110,15 +120,12 @@ All authentication, impersonation, RBAC, and access logging for MCP tools is now
 - Provides hooks for endpoint-level permissioning and RBAC (role-based access control).
 - Provides a hook for access and action logging (for observability/audit).
 
-By default, all access is allowed (admin mode), but you can override the hooks in `dao_wrapper.py` for enterprise integration. The `MCPDAOWrapper` no longer manages user context directly; all context is set up by the decorator at the tool entrypoint.
-
-See `superset/mcp_service/dao_wrapper.py` for details and extension points.
+By default, all access is allowed (admin mode), but you can override the hooks in `utils.py` for enterprise integration. The `ModelListTool` and `mcp_auth_hook` are the main extension points for custom logic.
 
 ## Tool/DAO Mapping
 - **list_dashboards, get_dashboard_info**: DashboardDAO
-- **list_dashboards_simple**: DashboardDAO
-- **list_datasets, list_datasets_simple**: DatasetDAO
-- **list_charts, get_chart_info, list_charts_simple**: ChartDAO
+- **list_datasets, get_dataset_info**: DatasetDAO
+- **list_charts, get_chart_info**: ChartDAO
 - **get_superset_instance_info**: System metadata
 - **Mutations (planned)**: Use Superset command objects for all create/update/delete actions
 
