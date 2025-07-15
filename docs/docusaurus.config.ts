@@ -378,28 +378,30 @@ const config: Config = {
             },
           ],
         },
-        {
-          label: 'Component Playground',
-          to: '/components',
-          items: [
-            {
-              label: 'Introduction',
-              to: '/components',
-            },
-            {
-              label: 'UI Components',
-              to: '/components/ui-components/button',
-            },
-            {
-              label: 'Chart Components',
-              to: '/components/chart-components/bar-chart',
-            },
-            {
-              label: 'Layout Components',
-              to: '/components/layout-components/grid',
-            },
-          ],
-        },
+        // Temporarily disabled Component Playground section
+        // Uncomment to re-enable
+        // {
+        //   label: 'Component Playground',
+        //   to: '/components',
+        //   items: [
+        //     {
+        //       label: 'Introduction',
+        //       to: '/components',
+        //     },
+        //     {
+        //       label: 'UI Components',
+        //       to: '/components/ui-components/button',
+        //     },
+        //     {
+        //       label: 'Chart Components',
+        //       to: '/components/chart-components/bar-chart',
+        //     },
+        //     {
+        //       label: 'Layout Components',
+        //       to: '/components/layout-components/grid',
+        //     },
+        //   ],
+        // },
         {
           label: 'Developer Portal',
           to: '/developer_portal',
