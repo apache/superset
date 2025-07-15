@@ -26,8 +26,6 @@ from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from typing import Any, Callable, cast, Optional, Union
 
-import dateutil.parser
-import numpy as np
 import pandas as pd
 import sqlalchemy as sa
 from flask_appbuilder import Model
@@ -1168,12 +1166,6 @@ class SqlaTable(
         return self.database.db_engine_spec
 
     @property
-    def changed_by_name(self) -> str:
-        if not self.changed_by:
-            return ""
-        return str(self.changed_by)
-
-    @property
     def connection(self) -> str:
         return str(self.database)
 
@@ -1528,43 +1520,6 @@ class SqlaTable(
                 _("Metric '%(metric)s' does not exist", metric=series_limit_metric)
             )
         return ob
-
-    def _normalize_prequery_result_type(
-        self,
-        row: pd.Series,
-        dimension: str,
-        columns_by_name: dict[str, TableColumn],
-    ) -> str | int | float | bool | Text:
-        """
-        Convert a prequery result type to its equivalent Python type.
-
-        Some databases like Druid will return timestamps as strings, but do not perform
-        automatic casting when comparing these strings to a timestamp. For cases like
-        this we convert the value via the appropriate SQL transform.
-
-        :param row: A prequery record
-        :param dimension: The dimension name
-        :param columns_by_name: The mapping of columns by name
-        :return: equivalent primitive python type
-        """
-
-        value = row[dimension]
-
-        if isinstance(value, np.generic):
-            value = value.item()
-
-        column_ = columns_by_name.get(dimension)
-        db_extra: dict[str, Any] = self.database.get_extra()
-
-        if column_ and column_.type and column_.is_temporal and isinstance(value, str):
-            sql = self.db_engine_spec.convert_dttm(
-                column_.type, dateutil.parser.parse(value), db_extra=db_extra
-            )
-
-            if sql:
-                value = self.text(sql)
-
-        return value
 
     def _get_top_groups(
         self,
