@@ -20,6 +20,7 @@ Pydantic schemas for dataset-related responses
 """
 from datetime import datetime
 from typing import Any, Dict, List, Literal, Optional, Union
+import json
 
 from pydantic import BaseModel, ConfigDict, Field
 from superset.daos.base import ColumnOperator
@@ -49,7 +50,7 @@ class DatasetFilter(ColumnOperator):
         "tags"
     ] = Field(..., description="Column to filter on. See get_dataset_available_filters for allowed values.")
     opr: Literal[
-        "eq", "ne", "in", "nin", "sw", "ew"
+        "eq", "ne", "sw", "in", "not_in", "like", "ilike", "gt", "lt", "gte", "lte", "is_null", "is_not_null"
     ] = Field(..., description="Operator to use. See get_dataset_available_filters for allowed values.")
     value: Any = Field(..., description="Value to filter by (type depends on col and opr)")
 
@@ -100,11 +101,17 @@ class DatasetError(BaseModel):
     error: str = Field(..., description="Error message")
     error_type: str = Field(..., description="Type of error")
     timestamp: Optional[Union[str, datetime]] = Field(None, description="Error timestamp")
-    model_config = ConfigDict(ser_json_timedelta="iso8601") 
+    model_config = ConfigDict(ser_json_timedelta="iso8601")
 
 def serialize_dataset_object(dataset) -> Optional[DatasetInfo]:
     if not dataset:
         return None
+    params = getattr(dataset, "params", None)
+    if isinstance(params, str):
+        try:
+            params = json.loads(params)
+        except Exception:
+            params = None
     return DatasetInfo(
         id=getattr(dataset, 'id', None),
         table_name=getattr(dataset, 'table_name', None),
@@ -127,7 +134,7 @@ def serialize_dataset_object(dataset) -> Optional[DatasetInfo]:
         main_dttm_col=getattr(dataset, 'main_dttm_col', None),
         offset=getattr(dataset, 'offset', None),
         cache_timeout=getattr(dataset, 'cache_timeout', None),
-        params=getattr(dataset, 'params', None),
+        params=params,
         template_params=getattr(dataset, 'template_params', None),
         extra=getattr(dataset, 'extra', None),
     ) 

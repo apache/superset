@@ -363,6 +363,7 @@ class BaseDAO(Generic[T]):
         page_size = max(page_size, 1)
         query = query.offset(page * page_size).limit(page_size)
         items = query.all()
+        # If columns are specified, SQLAlchemy returns Row objects (not tuples or model instances)
         return items, total_count
 
     @classmethod

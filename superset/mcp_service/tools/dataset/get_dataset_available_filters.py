@@ -29,6 +29,9 @@ def get_dataset_available_filters() -> DatasetAvailableFilters:
         DatasetAvailableFilters
     """
     try:
+        operators = [
+            "eq", "ne", "sw", "in", "not_in", "like", "ilike", "gt", "lt", "gte", "lte", "is_null", "is_not_null"
+        ]
         filters = {
             "table_name": {
                 "name": "table_name",
@@ -87,7 +90,12 @@ def get_dataset_available_filters() -> DatasetAvailableFilters:
                 "values": None
             }
         }
-        operators = ["eq", "ne", "in", "nin", "sw", "ew"]
+        filters = {
+            k: {
+                **v,
+                "operators": operators
+            } for k, v in filters.items()
+        }
         columns = [
             "id", "table_name", "schema", "database_name", "description", "changed_by",
             "changed_on", "created_by", "created_on", "is_virtual", "database_id", "schema_perm",

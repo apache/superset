@@ -125,6 +125,7 @@ class MCPDAOWrapper:
         search: Optional[str] = None,
         search_columns: Optional[list] = None,
         custom_filters: Optional[dict] = None,
+        columns: Optional[list] = None,
     ) -> Tuple[list, int]:
         """
         Generic list method for filtered, sorted, and paginated results.
@@ -140,6 +141,7 @@ class MCPDAOWrapper:
                 search=search,
                 search_columns=search_columns,
                 custom_filters=custom_filters,
+                columns=columns,
             )
             self.logger.info(f"Retrieved {len(items)} {self.model_name}s (total: {total_count})")
             return items, total_count
