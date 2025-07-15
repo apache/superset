@@ -169,7 +169,7 @@ class DashboardFilter(ColumnOperator):
         "tags"
     ] = Field(..., description="Column to filter on. See get_dashboard_available_filters for allowed values.")
     opr: Literal[
-        "eq", "ne", "in", "nin", "sw", "ew", "gte", "lte", "gt", "lt"
+        "eq", "ne", "sw", "in", "not_in", "like", "ilike", "gt", "lt", "gte", "lte", "is_null", "is_not_null"
     ] = Field(..., description="Operator to use. See get_dashboard_available_filters for allowed values.")
     value: Any = Field(..., description="Value to filter by (type depends on col and opr)") 
 

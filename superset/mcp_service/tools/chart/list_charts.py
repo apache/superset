@@ -32,7 +32,7 @@ import json
 
 def list_charts(
     filters: Annotated[
-        Optional[conlist(ChartFilter, min_length=1)],
+        Optional[conlist(ChartFilter, min_length=0)],
         Field(description="List of filter objects (column, operator, value)")
     ] = None,
     columns: Annotated[

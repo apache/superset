@@ -16,6 +16,9 @@ def get_dashboard_available_filters() -> DashboardAvailableFilters:
         DashboardAvailableFilters
     """
     try:
+        operators = [
+            "eq", "ne", "sw", "in", "not_in", "like", "ilike", "gt", "lt", "gte", "lte", "is_null", "is_not_null"
+        ]
         filters = {
             "dashboard_title": {
                 "name": "dashboard_title",
@@ -81,7 +84,12 @@ def get_dashboard_available_filters() -> DashboardAvailableFilters:
                 "values": None
             }
         }
-        operators = ["eq", "ne", "in", "nin", "sw", "ew", "gte", "lte", "gt", "lt"]
+        filters = {
+            k: {
+                **v,
+                "operators": operators
+            } for k, v in filters.items()
+        }
         columns = [
             "id", "dashboard_title", "slug", "url", "changed_by", "changed_on",
             "created_by", "created_on", "published", "certified_by",
