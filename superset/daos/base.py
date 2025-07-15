@@ -21,8 +21,10 @@ from typing import Any, Dict, Generic, get_args, List, Optional, Tuple, TypeVar
 from flask_appbuilder.models.filters import BaseFilter
 from flask_appbuilder.models.sqla import Model
 from flask_appbuilder.models.sqla.interface import SQLAInterface
-from sqlalchemy import asc, desc, or_
+from sqlalchemy import asc, desc, or_, cast, Text
 from sqlalchemy.exc import StatementError
+from sqlalchemy.orm import joinedload, RelationshipProperty, ColumnProperty
+from sqlalchemy.inspection import inspect
 
 from superset.extensions import db
 
@@ -234,7 +236,7 @@ class BaseDAO(Generic[T]):
     @classmethod
     def apply_column_operators(cls, query, column_operators: Optional[List[ColumnOperator]] = None):
         """
-        Apply column operators (list of ColumnOperator) to the query.
+        Apply column operators (list of ColumnOperator) to the query using ColumnOperatorEnum logic.
         """
         if not column_operators:
             return query
@@ -248,7 +250,8 @@ class BaseDAO(Generic[T]):
                 continue
             column = getattr(cls.model_cls, col)
             try:
-                query = query.filter(opr.apply(column, value))
+                # Always use ColumnOperatorEnum's apply method
+                query = query.filter(ColumnOperatorEnum(opr).apply(column, value))
             except Exception:
                 continue  # Optionally log or raise
         return query
@@ -275,7 +278,7 @@ class BaseDAO(Generic[T]):
             for column_name in search_columns:
                 if hasattr(cls.model_cls, column_name):
                     column = getattr(cls.model_cls, column_name)
-                    search_filters.append(column.ilike(f"%{search}%"))
+                    search_filters.append(cast(column, Text).ilike(f"%{search}%"))
             if search_filters:
                 query = query.filter(or_(*search_filters))
         if custom_filters:
@@ -296,18 +299,59 @@ class BaseDAO(Generic[T]):
         search: Optional[str] = None,
         search_columns: Optional[List[str]] = None,
         custom_filters: Optional[Dict[str, BaseFilter]] = None,
-    ) -> Tuple[List[T], int]:
+        columns: Optional[List[str]] = None,
+    ) -> Tuple[List[Any], int]:
         """
         Generic list method for filtered, sorted, and paginated results.
+        If columns is specified, returns a list of tuples (one per row),
+        otherwise returns model instances.
         """
         data_model = SQLAInterface(cls.model_cls, db.session)
-        query = cls._build_query(
-            column_operators=column_operators,
-            search=search,
-            search_columns=search_columns,
-            custom_filters=custom_filters,
-            data_model=data_model,
-        )
+        # Separate columns and relationships
+        mapper = inspect(cls.model_cls)
+        column_names = set(c.key for c in mapper.columns)
+        relationship_names = set(r.key for r in mapper.relationships)
+
+        column_attrs = []
+        relationship_loads = []
+        if columns is None:
+            columns = []
+        for name in columns:
+            attr = getattr(cls.model_cls, name, None)
+            if attr is None:
+                continue
+            prop = getattr(attr, 'property', None)
+            if isinstance(prop, ColumnProperty):
+                column_attrs.append(attr)
+            elif isinstance(prop, RelationshipProperty):
+                relationship_loads.append(joinedload(attr))
+            # Ignore properties and other non-queryable attributes
+
+        if relationship_loads:
+            # If any relationships are requested, query the full model and joinedload relationships
+            query = data_model.session.query(cls.model_cls)
+            for loader in relationship_loads:
+                query = query.options(loader)
+        elif column_attrs:
+            # Only columns requested
+            query = data_model.session.query(*column_attrs)
+        else:
+            # Fallback: query the full model
+            query = data_model.session.query(cls.model_cls)
+        query = cls._apply_base_filter(query, data_model=data_model)
+        if search and search_columns:
+            search_filters = []
+            for column_name in search_columns:
+                if hasattr(cls.model_cls, column_name):
+                    column = getattr(cls.model_cls, column_name)
+                    search_filters.append(cast(column, Text).ilike(f"%{search}%"))
+            if search_filters:
+                query = query.filter(or_(*search_filters))
+        if custom_filters:
+            for filter_class in custom_filters.values():
+                query = filter_class.apply(query, None)
+        if column_operators:
+            query = cls.apply_column_operators(query, column_operators)
         total_count = query.count()
         if hasattr(cls.model_cls, order_column):
             column = getattr(cls.model_cls, order_column)
@@ -315,7 +359,7 @@ class BaseDAO(Generic[T]):
                 query = query.order_by(desc(column))
             else:
                 query = query.order_by(asc(column))
-        page = max(page, 0)
+        page = page
         page_size = max(page_size, 1)
         query = query.offset(page * page_size).limit(page_size)
         items = query.all()
