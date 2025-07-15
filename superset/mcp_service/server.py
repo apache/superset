@@ -79,6 +79,9 @@ If you are unsure which tool to use, start with list_dashboards or get_superset_
         get_chart_available_filters,
         create_chart_simple,
     )
+    from superset.mcp_service.tools.chart import (
+        create_chart,
+    )
 
     mcp.add_tool(mcp.tool()(mcp_auth_hook(list_dashboards)))
     mcp.add_tool(mcp.tool()(mcp_auth_hook(get_dashboard_info)))
@@ -91,6 +94,7 @@ If you are unsure which tool to use, start with list_dashboards or get_superset_
     mcp.add_tool(mcp.tool()(mcp_auth_hook(get_chart_info)))
     mcp.add_tool(mcp.tool()(mcp_auth_hook(get_chart_available_filters)))
     mcp.add_tool(mcp.tool()(mcp_auth_hook(create_chart_simple)))
+    mcp.add_tool(mcp.tool()(mcp_auth_hook(create_chart)))
 
     mcp.add_middleware(LoggingMiddleware())
     mcp.add_middleware(PrivateToolMiddleware())

@@ -42,7 +42,7 @@ logger = logging.getLogger(__name__)
 
 def list_dashboards(
     filters: Annotated[
-        Optional[conlist(DashboardFilter, min_length=1)],
+        Optional[conlist(DashboardFilter, min_length=0)],
         Field(description="List of filter objects (column, operator, value)")
     ] = None,
     columns: Annotated[
@@ -88,10 +88,7 @@ def list_dashboards(
         filters = json.loads(filters)
     dao_wrapper = MCPDAOWrapper(DashboardDAO, "dashboard")
     search_columns = (
-        "created_by",
-        "changed_by",
         "dashboard_title",
-        "id",
         "owners",
         "published",
         "roles",
