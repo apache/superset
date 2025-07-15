@@ -919,10 +919,13 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         if isinstance(value, np.generic):
             value = value.item()
 
-        column_ = columns_by_name[dimension]
+        column_ = columns_by_name.get(dimension)
         db_extra: dict[str, Any] = self.database.get_extra()
 
-        if isinstance(column_, dict):
+        if column_ is None:
+            # Column not found, return value as-is
+            pass
+        elif isinstance(column_, dict):
             if (
                 column_.get("type")
                 and column_.get("is_temporal")
@@ -941,7 +944,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 )
 
                 if sql:
-                    value = self.text(sql)
+                    value = self.db_engine_spec.get_text_clause(sql)
         return value
 
     def make_orderby_compatible(
