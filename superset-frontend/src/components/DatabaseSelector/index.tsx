@@ -196,7 +196,6 @@ export function DatabaseSelector({
               />
             ),
             value: row.id,
-            id: row.id,
             database_name: row.database_name,
             backend: row.backend,
             allow_multi_catalog: row.allow_multi_catalog,
