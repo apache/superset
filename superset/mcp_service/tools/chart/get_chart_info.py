@@ -20,11 +20,13 @@ MCP tool: get_chart_info
 """
 from typing import Any, Dict, Optional, Annotated
 from superset.mcp_service.pydantic_schemas import ChartInfo, ChartError
-from superset.mcp_service.dao_wrapper import MCPDAOWrapper
 from superset.mcp_service.pydantic_schemas.chart_schemas import serialize_chart_object
-from datetime import datetime
+from datetime import datetime, timezone
 from superset.daos.chart import ChartDAO
 from pydantic import Field
+import logging
+
+logger = logging.getLogger(__name__)
 
 def get_chart_info(
     chart_id: Annotated[
@@ -33,15 +35,27 @@ def get_chart_info(
     ]
 ) -> ChartInfo | ChartError:
     """
-    Get detailed information about a chart by ID (MCP tool).
+    Get detailed information about a specific chart.
     Returns a ChartInfo model or ChartError on error.
     """
     try:
-        chart_wrapper = MCPDAOWrapper(ChartDAO, "chart")
-        chart, error_type, error_message = chart_wrapper.info(chart_id)
-        if not chart:
-            return ChartError(error=error_message or "Chart not found", error_type=error_type or "not_found", timestamp=datetime.utcnow())
-        chart_info = serialize_chart_object(chart)
-        return chart_info
-    except Exception as ex:
-        return ChartError(error=str(ex), error_type="get_chart_info_error", timestamp=datetime.utcnow()) 
+        chart = ChartDAO.find_by_id(chart_id)
+        if chart is None:
+            error_data = ChartError(
+                error=f"Chart with ID {chart_id} not found",
+                error_type="not_found",
+                timestamp=datetime.now(timezone.utc)
+            )
+            logger.warning(f"ChartInfo {chart_id} error: not_found - not found")
+            return error_data
+        response = serialize_chart_object(chart)
+        logger.info(f"ChartInfo response created successfully for chart {chart.id}")
+        return response
+    except Exception as context_error:
+        error_msg = f"Error within Flask app context: {str(context_error)}"
+        logger.error(error_msg, exc_info=True)
+        raise
+    except Exception as e:
+        error_msg = f"Unexpected error in get_chart_info: {str(e)}"
+        logger.error(error_msg, exc_info=True)
+        raise 

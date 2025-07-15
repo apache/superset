@@ -29,7 +29,6 @@ from typing import Annotated, Literal, Optional
 from pydantic import conlist, constr, Field, PositiveInt
 
 from superset.daos.dashboard import DashboardDAO
-from superset.mcp_service.dao_wrapper import MCPDAOWrapper
 from superset.mcp_service.pydantic_schemas import (
     DashboardFilter, DashboardInfo, DashboardList)
 from superset.mcp_service.pydantic_schemas.chart_schemas import (
@@ -38,6 +37,15 @@ from superset.mcp_service.pydantic_schemas.system_schemas import (
     PaginationInfo, TagInfo, UserInfo)
 
 logger = logging.getLogger(__name__)
+
+DEFAULT_DASHBOARD_COLUMNS = [
+    "id",
+    "dashboard_title",
+    "slug",
+    "published",
+    "changed_on",
+    "created_on",
+]
 
 
 def list_dashboards(
@@ -86,8 +94,8 @@ def list_dashboards(
     # If filters is a string (e.g., from a test), parse it as JSON
     if isinstance(filters, str):
         filters = json.loads(filters)
-    dao_wrapper = MCPDAOWrapper(DashboardDAO, "dashboard")
-    search_columns = (
+    # Define search_columns for dashboard search
+    search_columns = [
         "dashboard_title",
         "owners",
         "published",
@@ -95,15 +103,18 @@ def list_dashboards(
         "slug",
         "tags",
         "uuid",
-    )
-    dashboards, total_count = dao_wrapper.list(
+    ]
+    columns_to_load = select_columns if select_columns else DEFAULT_DASHBOARD_COLUMNS
+    dashboards, total_count = DashboardDAO.list(
         column_operators=filters,
         order_column=order_column or "changed_on",
         order_direction=order_direction or "desc",
-        page=max(page - 1, 0),
+        page=page,
         page_size=page_size,
         search=search,
-        search_columns=search_columns
+        search_columns=search_columns,
+        custom_filters=None,
+        columns=columns_to_load,
     )
     columns_to_load = []
     if select_columns:

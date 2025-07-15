@@ -26,6 +26,11 @@ from superset.mcp_service.pydantic_schemas.dataset_schemas import DatasetAvailab
 from superset.mcp_service.tools.dashboard import get_dashboard_available_filters, list_dashboards
 from superset.mcp_service.tools.dataset import get_dataset_available_filters, list_datasets
 from fastmcp.exceptions import ToolError
+from superset.daos.dashboard import DashboardDAO
+from superset.daos.chart import ChartDAO
+from superset.daos.dataset import DatasetDAO
+from flask import Flask, g
+from flask_login import AnonymousUserMixin
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
@@ -33,7 +38,7 @@ logger = logging.getLogger(__name__)
 class TestErrorHandling:
     """Test error handling and parameter validation in MCP tools"""
 
-    @patch('superset.mcp_service.dao_wrapper.MCPDAOWrapper.list')
+    @patch('superset.daos.dashboard.DashboardDAO.list')
     def test_list_dashboards_exception_handling(self, mock_list):
         mock_list.side_effect = Exception("Unexpected error")
         with pytest.raises(Exception) as excinfo:
@@ -47,18 +52,15 @@ class TestErrorHandling:
         assert hasattr(result, "operators")
         assert hasattr(result, "columns")
 
-    def test_list_datasets_exception_handling(self):
-        result = list_datasets()
-        assert isinstance(result, (dict, DatasetList))
-        if isinstance(result, dict):
-            assert "count" in result
-            assert "datasets" in result
-        else:
-            assert hasattr(result, "count")
-            assert hasattr(result, "datasets")
+    @patch('superset.daos.dataset.DatasetDAO.list')
+    def test_list_datasets_exception_handling(self, mock_list):
+        mock_list.side_effect = Exception("API request failed")
+        with pytest.raises(Exception) as excinfo:
+            list_datasets()
+        assert "API request failed" in str(excinfo.value)
 
     def test_list_dashboards_parameter_types(self):
-        with patch('superset.mcp_service.dao_wrapper.MCPDAOWrapper.list') as mock_list:
+        with patch('superset.daos.dashboard.DashboardDAO.list') as mock_list:
             mock_list.return_value = ([], 0)
             list_dashboards(filters='[{"col": "test", "opr": "eq", "value": "value"}]')
             list_dashboards(filters=[{"col": "test", "opr": "eq", "value": "value"}])
@@ -67,7 +69,7 @@ class TestErrorHandling:
             assert mock_list.call_count == 4
 
     def test_list_datasets_parameter_types(self):
-        with patch('superset.mcp_service.dao_wrapper.MCPDAOWrapper.list') as mock_list:
+        with patch('superset.daos.dataset.DatasetDAO.list') as mock_list:
             mock_list.return_value = ([], 0)
             list_datasets(filters='[{"col": "test", "opr": "eq", "value": "value"}]')
             list_datasets(filters=[{"col": "test", "opr": "eq", "value": "value"}])

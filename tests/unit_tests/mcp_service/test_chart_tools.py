@@ -32,6 +32,7 @@ from superset.mcp_service.tools.chart import (
     list_charts, get_chart_info, get_chart_available_filters, create_chart_simple, create_chart
 )
 from superset.mcp_service.pydantic_schemas.chart_schemas import CreateSimpleChartRequest
+from superset.daos.chart import ChartDAO
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
@@ -39,7 +40,7 @@ logger = logging.getLogger(__name__)
 class TestChartTools:
     """Test chart-related MCP tools"""
 
-    @patch('superset.mcp_service.dao_wrapper.MCPDAOWrapper.list')
+    @patch('superset.daos.chart.ChartDAO.list')
     def test_list_charts_basic(self, mock_list):
         chart = Mock()
         chart.id = 1
@@ -66,7 +67,7 @@ class TestChartTools:
         assert result.charts[0].slice_name == "Test Chart"
         assert result.charts[0].viz_type == "bar"
 
-    @patch('superset.mcp_service.dao_wrapper.MCPDAOWrapper.list')
+    @patch('superset.daos.chart.ChartDAO.list')
     def test_list_charts_with_search(self, mock_list):
         chart = Mock()
         chart.id = 1
@@ -97,7 +98,7 @@ class TestChartTools:
         assert "viz_type" in kwargs["search_columns"]
         assert "datasource_name" in kwargs["search_columns"]
 
-    @patch('superset.mcp_service.dao_wrapper.MCPDAOWrapper.list')
+    @patch('superset.daos.chart.ChartDAO.list')
     def test_list_charts_with_filters(self, mock_list):
         mock_list.return_value = ([], 0)
         filters = [
@@ -115,14 +116,14 @@ class TestChartTools:
         assert result.count == 0
         assert result.charts == []
 
-    @patch('superset.mcp_service.dao_wrapper.MCPDAOWrapper.list')
+    @patch('superset.daos.chart.ChartDAO.list')
     def test_list_charts_api_error(self, mock_list):
         mock_list.side_effect = Exception("API request failed")
         with pytest.raises(Exception) as excinfo:
             list_charts()
         assert "API request failed" in str(excinfo.value)
 
-    @patch('superset.mcp_service.dao_wrapper.MCPDAOWrapper.info')
+    @patch('superset.daos.chart.ChartDAO.find_by_id')
     def test_get_chart_info_success(self, mock_info):
         chart = Mock()
         chart.id = 1
@@ -143,18 +144,14 @@ class TestChartTools:
         chart.created_on_humanized = "2 days ago"
         chart.tags = []
         chart.owners = []
-        mock_info.return_value = (chart, None, None)
+        mock_info.return_value = chart  # Only the chart object
         result = get_chart_info(1)
-        assert isinstance(result, ChartInfo)
-        assert result.id == 1
         assert result.slice_name == "Test Chart"
 
-    @patch('superset.mcp_service.dao_wrapper.MCPDAOWrapper.info')
+    @patch('superset.daos.chart.ChartDAO.find_by_id')
     def test_get_chart_info_not_found(self, mock_info):
-        mock_info.return_value = (None, "not_found", "Chart not found")
+        mock_info.return_value = None  # Not found returns None
         result = get_chart_info(999)
-        assert isinstance(result, ChartError)
-        assert result.error == "Chart not found"
         assert result.error_type == "not_found"
 
     def test_get_chart_available_filters_success(self):

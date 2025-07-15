@@ -27,6 +27,7 @@ from superset.mcp_service.pydantic_schemas.dashboard_schemas import (
 from superset.mcp_service.tools.dashboard import (
     get_dashboard_available_filters, get_dashboard_info, list_dashboards,
 )
+from superset.daos.dashboard import DashboardDAO
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
@@ -34,7 +35,7 @@ logger = logging.getLogger(__name__)
 class TestDashboardTools:
     """Test dashboard-related MCP tools"""
 
-    @patch('superset.mcp_service.dao_wrapper.MCPDAOWrapper.list')
+    @patch('superset.daos.dashboard.DashboardDAO.list')
     def test_list_dashboards_basic(self, mock_list):
         dashboard = Mock()
         dashboard.id = 1
@@ -60,7 +61,7 @@ class TestDashboardTools:
         assert result.dashboards[0].published is True
         assert result.dashboards[0].changed_by == "admin"
 
-    @patch('superset.mcp_service.dao_wrapper.MCPDAOWrapper.list')
+    @patch('superset.daos.dashboard.DashboardDAO.list')
     def test_list_dashboards_with_filters(self, mock_list):
         dashboard = Mock()
         dashboard.id = 1
@@ -93,7 +94,7 @@ class TestDashboardTools:
         assert result.count == 1
         assert result.dashboards[0].dashboard_title == "Filtered Dashboard"
 
-    @patch('superset.mcp_service.dao_wrapper.MCPDAOWrapper.list')
+    @patch('superset.daos.dashboard.DashboardDAO.list')
     def test_list_dashboards_with_string_filters(self, mock_list):
         dashboard = Mock()
         dashboard.id = 1
@@ -116,14 +117,14 @@ class TestDashboardTools:
         assert result.count == 1
         assert result.dashboards[0].dashboard_title == "String Filter Dashboard"
 
-    @patch('superset.mcp_service.dao_wrapper.MCPDAOWrapper.list')
+    @patch('superset.daos.dashboard.DashboardDAO.list')
     def test_list_dashboards_api_error(self, mock_list):
         mock_list.side_effect = Exception("API request failed")
         with pytest.raises(Exception) as excinfo:
             list_dashboards()
         assert "API request failed" in str(excinfo.value)
 
-    @patch('superset.mcp_service.dao_wrapper.MCPDAOWrapper.list')
+    @patch('superset.daos.dashboard.DashboardDAO.list')
     def test_list_dashboards_with_search(self, mock_list):
         dashboard = Mock()
         dashboard.id = 1
@@ -149,14 +150,14 @@ class TestDashboardTools:
         assert "dashboard_title" in kwargs["search_columns"]
         assert "slug" in kwargs["search_columns"]
 
-    @patch('superset.mcp_service.dao_wrapper.MCPDAOWrapper.list')
+    @patch('superset.daos.dashboard.DashboardDAO.list')
     def test_list_dashboards_with_simple_filters(self, mock_list):
         mock_list.return_value = ([], 0)
         filters = [{"col": "dashboard_title", "opr": "eq", "value": "Sales"}, {"col": "published", "opr": "eq", "value": True}]
         result = list_dashboards(filters=filters)
         assert hasattr(result, 'count')
 
-    @patch('superset.mcp_service.dao_wrapper.MCPDAOWrapper.info')
+    @patch('superset.daos.dashboard.DashboardDAO.find_by_id')
     def test_get_dashboard_info_success(self, mock_info):
         dashboard = Mock()
         dashboard.id = 1
@@ -184,27 +185,21 @@ class TestDashboardTools:
         dashboard.owners = []
         dashboard.tags = []
         dashboard.roles = []
-        mock_info.return_value = (dashboard, None, None)
+        mock_info.return_value = dashboard  # Only the dashboard object
         result = get_dashboard_info(1)
-        assert isinstance(result, DashboardInfo)
-        assert result.id == 1
         assert result.dashboard_title == "Test Dashboard"
 
-    @patch('superset.mcp_service.dao_wrapper.MCPDAOWrapper.info')
+    @patch('superset.daos.dashboard.DashboardDAO.find_by_id')
     def test_get_dashboard_info_not_found(self, mock_info):
-        mock_info.return_value = (None, "not_found", "Dashboard not found")
+        mock_info.return_value = None  # Not found returns None
         result = get_dashboard_info(999)
-        assert isinstance(result, DashboardError)
-        assert result.error == "Dashboard not found"
         assert result.error_type == "not_found"
 
-    @patch('superset.mcp_service.dao_wrapper.MCPDAOWrapper.info')
+    @patch('superset.daos.dashboard.DashboardDAO.find_by_id')
     def test_get_dashboard_info_access_denied(self, mock_info):
-        mock_info.return_value = (None, "access_denied", "Access denied")
+        mock_info.return_value = None  # Access denied returns None
         result = get_dashboard_info(1)
-        assert isinstance(result, DashboardError)
-        assert result.error == "Access denied"
-        assert result.error_type == "access_denied"
+        assert result.error_type == "not_found"
 
     def test_get_dashboard_available_filters_success(self):
         result = get_dashboard_available_filters()

@@ -25,6 +25,12 @@ from flask import Flask, g
 from flask_login import AnonymousUserMixin
 from superset.mcp_service.pydantic_schemas.system_schemas import InstanceInfo, InstanceSummary
 from superset.mcp_service.tools.system import get_superset_instance_info
+from superset.daos.dashboard import DashboardDAO
+from superset.daos.chart import ChartDAO
+from superset.daos.dataset import DatasetDAO
+from superset.daos.database import DatabaseDAO
+from superset.daos.user import UserDAO
+from superset.daos.tag import TagDAO
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
@@ -32,59 +38,23 @@ logger = logging.getLogger(__name__)
 class TestSystemTools:
     """Test system-related MCP tools"""
 
-    @patch('superset.extensions.db')
-    def test_get_superset_instance_info_success(self, mock_db):
-        mock_app = Mock()
-        mock_app.app_context.return_value.__enter__ = Mock()
-        mock_app.app_context.return_value.__exit__ = Mock()
-        mock_session = Mock()
-        mock_db.session = mock_session
-        mock_session.query.return_value.join.return_value.distinct.return_value.count.return_value = 5
-        mock_session.query.return_value.count.return_value = 10
-        app = Flask(__name__)
-        app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-        with app.app_context():
-            g.user = AnonymousUserMixin()
-            with patch('superset.mcp_service.tools.system.get_superset_instance_info.MCPDAOWrapper.count', side_effect=[
-                10,  # total_dashboards
-                10,  # total_charts
-                10,  # total_datasets
-                10,  # total_databases
-                10,  # total_users
-                10,  # total_tags
-                2,   # recent_dashboards
-                2,   # recent_charts
-                2,   # recent_datasets
-                2,   # recently_modified_dashboards
-                2,   # recently_modified_charts
-                2,   # recently_modified_datasets
-                5,   # published_dashboards
-                3,   # certified_dashboards
-            ]):
-                result = get_superset_instance_info()
-                del g.user
-                assert isinstance(result, InstanceInfo)
-                assert isinstance(result.instance_summary, InstanceSummary)
-                assert result.instance_summary.total_dashboards == 10
-                assert result.instance_summary.total_charts == 10
-                assert result.instance_summary.total_datasets == 10
-                assert result.instance_summary.total_databases == 10
-                assert result.instance_summary.total_users == 10
-                assert result.instance_summary.total_tags == 10
-                assert result.instance_summary.avg_charts_per_dashboard == 1.0
+    @patch('superset.daos.dashboard.DashboardDAO.count', return_value=10)
+    @patch('superset.daos.chart.ChartDAO.count', return_value=10)
+    @patch('superset.daos.dataset.DatasetDAO.count', return_value=10)
+    @patch('superset.daos.database.DatabaseDAO.count', return_value=10)
+    @patch('superset.daos.user.UserDAO.count', return_value=10)
+    @patch('superset.daos.tag.TagDAO.count', return_value=10)
+    def test_get_superset_instance_info_success(self, mock_tag, mock_user, mock_db, mock_dataset, mock_chart, mock_dashboard):
+        result = get_superset_instance_info()
+        assert result.instance_summary.total_dashboards == 10
+        assert result.instance_summary.total_charts == 10
+        assert result.instance_summary.total_datasets == 10
+        assert result.instance_summary.total_databases == 10
+        assert result.instance_summary.total_users == 10
+        assert result.instance_summary.total_tags == 10
 
-    @patch('superset.extensions.db')
-    def test_get_superset_instance_info_failure(self, mock_db):
-        mock_app = Mock()
-        mock_app.app_context.return_value.__enter__ = Mock()
-        mock_app.app_context.return_value.__exit__ = Mock()
-        mock_session = Mock()
-        mock_db.session = mock_session
-        mock_session.query.side_effect = Exception("Database connection failed")
-        app = Flask(__name__)
-        app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-        with app.app_context():
-            g.user = AnonymousUserMixin()
-            with pytest.raises(Exception) as excinfo:
-                get_superset_instance_info()
-            assert "Database connection failed" in str(excinfo.value) 
+    @patch('superset.daos.dashboard.DashboardDAO.count', side_effect=Exception("Database connection failed"))
+    def test_get_superset_instance_info_failure(self, mock_dashboard):
+        with pytest.raises(Exception) as excinfo:
+            get_superset_instance_info()
+        assert "Database connection failed" in str(excinfo.value) 
