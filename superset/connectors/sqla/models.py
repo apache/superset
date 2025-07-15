@@ -1898,6 +1898,10 @@ class SqlaTable(
         """Returns a query as a string using ExploreMixin implementation"""
         return ExploreMixin.get_query_str(self, query_obj)
 
+    def text(self, clause: str) -> TextClause:
+        """Returns a text clause using ExploreMixin implementation"""
+        return ExploreMixin.text(self, clause)
+
 
 sa.event.listen(SqlaTable, "before_update", SqlaTable.before_update)
 sa.event.listen(SqlaTable, "after_insert", SqlaTable.after_insert)
