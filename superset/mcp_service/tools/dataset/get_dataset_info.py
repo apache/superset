@@ -26,7 +26,6 @@ from datetime import datetime, timezone
 from typing import Any, Annotated
 from pydantic import Field
 from superset.daos.dataset import DatasetDAO
-from superset.mcp_service.dao_wrapper import MCPDAOWrapper
 from superset.mcp_service.pydantic_schemas import DatasetInfo, DatasetError, serialize_dataset_object
 
 logger = logging.getLogger(__name__)
@@ -42,15 +41,14 @@ def get_dataset_info(
     Returns a DatasetInfo model or DatasetError on error.
     """
     try:
-        dao_wrapper = MCPDAOWrapper(DatasetDAO, "dataset")
-        dataset, error_type, error_message = dao_wrapper.info(dataset_id)
+        dataset = DatasetDAO.find_by_id(dataset_id)
         if dataset is None:
             error_data = DatasetError(
-                error=error_message,
-                error_type=error_type,
+                error=f"Dataset with ID {dataset_id} not found",
+                error_type="not_found",
                 timestamp=datetime.now(timezone.utc)
             )
-            logger.warning(f"DatasetInfo {dataset_id} error: {error_type} - {error_message}")
+            logger.warning(f"DatasetInfo {dataset_id} error: not_found - not found")
             return error_data
         response = serialize_dataset_object(dataset)
         logger.info(f"DatasetInfo response created successfully for dataset {dataset.id}")

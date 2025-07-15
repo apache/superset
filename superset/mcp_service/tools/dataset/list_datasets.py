@@ -28,7 +28,6 @@ import json
 
 from pydantic import BaseModel, conlist, constr, Field, PositiveInt
 from superset.daos.dataset import DatasetDAO
-from superset.mcp_service.dao_wrapper import MCPDAOWrapper
 from superset.mcp_service.pydantic_schemas import (
     DatasetList,
     PaginationInfo,
@@ -78,29 +77,28 @@ def list_datasets(
     ADVANCED FILTERING: List datasets using complex filter objects and JSON payload
     Returns a DatasetList Pydantic model (not a dict), matching list_datasets_simple.
     """
-    dao_wrapper = MCPDAOWrapper(DatasetDAO, "dataset")
-    search_columns = [
-        "catalog",
-        "schema",
-        "sql",
-        "table_name",
-        "uuid",
-    ]
+    # Ensure select_columns is a list
     if select_columns:
         if isinstance(select_columns, str):
             select_columns = [col.strip() for col in select_columns.split(",") if col.strip()]
         columns_to_load = select_columns
     else:
         columns_to_load = DEFAULT_DATASET_COLUMNS
-
-    datasets, total_count = dao_wrapper.list(
+    # Replace dao_wrapper usage with DatasetDAO
+    datasets, total_count = DatasetDAO.list(
         column_operators=filters,
         order_column=order_column or "changed_on",
         order_direction=order_direction or "desc",
-        page=max(page - 1, 0),
+        page=page,
         page_size=page_size,
         search=search,
-        search_columns=search_columns,
+        search_columns=[
+            "catalog",
+            "schema",
+            "sql",
+            "table_name",
+            "uuid",
+        ],
         custom_filters=None,
         columns=columns_to_load,
     )
@@ -127,7 +125,7 @@ def list_datasets(
         total_pages=total_pages,
         has_previous=page > 0,
         has_next=page < total_pages - 1,
-        columns_requested=columns_to_load,
+        columns_requested=select_columns if select_columns else DEFAULT_DATASET_COLUMNS,
         columns_loaded=list(set([col for item in dataset_items for col in item.model_dump().keys()])),
         filters_applied=filters if isinstance(filters, list) else [],
         pagination=pagination_info,

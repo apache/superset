@@ -6,7 +6,6 @@ Get Superset instance high-level information FastMCP tool
 import logging
 from datetime import datetime, timedelta, timezone
 
-from superset.mcp_service.dao_wrapper import MCPDAOWrapper
 from superset.mcp_service.pydantic_schemas.system_schemas import (
     DashboardBreakdown, DatabaseBreakdown, InstanceSummary, PopularContent,
     RecentActivity, InstanceInfo, )
@@ -44,21 +43,13 @@ def get_superset_instance_info() -> InstanceInfo:
         from superset.daos.datasource import DatasourceDAO
         from superset.daos.base import BaseDAO, ColumnOperator, ColumnOperatorEnum
 
-        # Instantiate MCPDAOWrappers
-        dashboard_wrapper = MCPDAOWrapper(DashboardDAO, "dashboard")
-        chart_wrapper = MCPDAOWrapper(ChartDAO, "chart")
-        dataset_wrapper = MCPDAOWrapper(DatasetDAO, "dataset")
-        database_wrapper = MCPDAOWrapper(DatabaseDAO, "database")
-        user_wrapper = MCPDAOWrapper(UserDAO, "user")
-        tag_wrapper = MCPDAOWrapper(TagDAO, "tag")
-
-        # Get basic counts using MCPDAOWrapper
-        total_dashboards = dashboard_wrapper.count()
-        total_charts = chart_wrapper.count()
-        total_datasets = dataset_wrapper.count()
-        total_databases = database_wrapper.count()
-        total_users = user_wrapper.count()
-        total_tags = tag_wrapper.count()
+        # Get basic counts using DAOs directly
+        total_dashboards = DashboardDAO.count()
+        total_charts = ChartDAO.count()
+        total_datasets = DatasetDAO.count()
+        total_databases = DatabaseDAO.count()
+        total_users = UserDAO.count()
+        total_tags = TagDAO.count()
         total_roles = db.session.query(Role).count()  # No DAO for Role
 
         # Recent activity
@@ -66,18 +57,18 @@ def get_superset_instance_info() -> InstanceInfo:
         thirty_days_ago = now - timedelta(days=30)
         seven_days_ago = now - timedelta(days=7)
 
-        dashboards_created_last_30_days = dashboard_wrapper.count(column_operators=[ColumnOperator(col="created_on", opr=ColumnOperatorEnum.gte, value=thirty_days_ago)])
-        charts_created_last_30_days = chart_wrapper.count(column_operators=[ColumnOperator(col="created_on", opr=ColumnOperatorEnum.gte, value=thirty_days_ago)])
-        datasets_created_last_30_days = dataset_wrapper.count(column_operators=[ColumnOperator(col="created_on", opr=ColumnOperatorEnum.gte, value=thirty_days_ago)])
+        dashboards_created_last_30_days = DashboardDAO.count(column_operators=[ColumnOperator(col="created_on", opr=ColumnOperatorEnum.gte, value=thirty_days_ago)])
+        charts_created_last_30_days = ChartDAO.count(column_operators=[ColumnOperator(col="created_on", opr=ColumnOperatorEnum.gte, value=thirty_days_ago)])
+        datasets_created_last_30_days = DatasetDAO.count(column_operators=[ColumnOperator(col="created_on", opr=ColumnOperatorEnum.gte, value=thirty_days_ago)])
 
-        dashboards_modified_last_7_days = dashboard_wrapper.count(column_operators=[ColumnOperator(col="changed_on", opr=ColumnOperatorEnum.gte, value=seven_days_ago)])
-        charts_modified_last_7_days = chart_wrapper.count(column_operators=[ColumnOperator(col="changed_on", opr=ColumnOperatorEnum.gte, value=seven_days_ago)])
-        datasets_modified_last_7_days = dataset_wrapper.count(column_operators=[ColumnOperator(col="changed_on", opr=ColumnOperatorEnum.gte, value=seven_days_ago)])
+        dashboards_modified_last_7_days = DashboardDAO.count(column_operators=[ColumnOperator(col="changed_on", opr=ColumnOperatorEnum.gte, value=seven_days_ago)])
+        charts_modified_last_7_days = ChartDAO.count(column_operators=[ColumnOperator(col="changed_on", opr=ColumnOperatorEnum.gte, value=seven_days_ago)])
+        datasets_modified_last_7_days = DatasetDAO.count(column_operators=[ColumnOperator(col="changed_on", opr=ColumnOperatorEnum.gte, value=seven_days_ago)])
 
         # Dashboard breakdown
-        published_count = dashboard_wrapper.count(column_operators=[ColumnOperator(col="published", opr=ColumnOperatorEnum.eq, value=True)])
+        published_count = DashboardDAO.count(column_operators=[ColumnOperator(col="published", opr=ColumnOperatorEnum.eq, value=True)])
         unpublished_dashboards = total_dashboards - published_count
-        certified_count = dashboard_wrapper.count(column_operators=[ColumnOperator(col="certified_by", opr=ColumnOperatorEnum.is_not_null, value=None)])  # Custom logic may be needed
+        certified_count = DashboardDAO.count(column_operators=[ColumnOperator(col="certified_by", opr=ColumnOperatorEnum.is_not_null, value=None)])  # Custom logic may be needed
         dashboards_with_charts = db.session.query(Dashboard).join(Dashboard.slices).distinct().count()  # No direct DAO method
         dashboards_without_charts = total_dashboards - dashboards_with_charts
         avg_charts_per_dashboard = (total_charts / total_dashboards) if total_dashboards > 0 else 0

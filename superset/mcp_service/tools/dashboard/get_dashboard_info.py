@@ -28,7 +28,6 @@ from typing import Annotated
 from pydantic import Field
 
 from superset.daos.dashboard import DashboardDAO
-from superset.mcp_service.dao_wrapper import MCPDAOWrapper
 from superset.mcp_service.pydantic_schemas import DashboardError, DashboardInfo
 from superset.mcp_service.pydantic_schemas.chart_schemas import serialize_chart_object
 from superset.mcp_service.pydantic_schemas.system_schemas import RoleInfo, TagInfo, \
@@ -48,16 +47,14 @@ def get_dashboard_info(
     Returns a DashboardInfo model or DashboardError on error.
     """
     try:
-        dao_wrapper = MCPDAOWrapper(DashboardDAO, "dashboard")
-        dashboard, error_type, error_message = dao_wrapper.info(dashboard_id)
+        dashboard = DashboardDAO.find_by_id(dashboard_id)
         if dashboard is None:
             error_data = DashboardError(
-                error=error_message,
-                error_type=error_type,
+                error=f"Dashboard with ID {dashboard_id} not found",
+                error_type="not_found",
                 timestamp=datetime.now(timezone.utc)
             )
-            logger.warning(
-                f"Dashboard {dashboard_id} error: {error_type} - {error_message}")
+            logger.warning(f"DashboardInfo {dashboard_id} error: not_found - not found")
             return error_data
         response = DashboardInfo(
             id=dashboard.id,
@@ -87,9 +84,12 @@ def get_dashboard_info(
             roles=[RoleInfo.model_validate(role, from_attributes=True) for role in dashboard.roles] if dashboard.roles else [],
             charts=[serialize_chart_object(chart) for chart in dashboard.slices] if dashboard.slices else []
         )
-        logger.info(
-            f"Dashboard response created successfully for dashboard {dashboard.id}")
+        logger.info(f"DashboardInfo response created successfully for dashboard {dashboard.id}")
         return response
+    except Exception as context_error:
+        error_msg = f"Error within Flask app context: {str(context_error)}"
+        logger.error(error_msg, exc_info=True)
+        raise
     except Exception as e:
         error_msg = f"Unexpected error in get_dashboard_info: {str(e)}"
         logger.error(error_msg, exc_info=True)
