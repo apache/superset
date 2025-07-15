@@ -39,18 +39,23 @@ from superset.mcp_service.pydantic_schemas.dataset_schemas import DatasetFilter
 
 logger = logging.getLogger(__name__)
 
+DEFAULT_DATASET_COLUMNS = [
+    "id", "table_name", "db_schema", "database_name",
+    "changed_by_name", "changed_on", "created_by_name", "created_on"
+]
+
 def list_datasets(
     filters: Annotated[
         Optional[conlist(DatasetFilter, min_length=0)],
         Field(description="List of filter objects (column, operator, value)")
     ] = None,
-    columns: Annotated[
-        Optional[conlist(constr(strip_whitespace=True, min_length=1), min_length=1)],
-        Field(description="List of columns to include in the response")
+    search: Annotated[
+        Optional[str],
+        Field(description="Text search string to match against dataset fields")
     ] = None,
-    keys: Annotated[
+    select_columns: Annotated[
         Optional[conlist(constr(strip_whitespace=True, min_length=1), min_length=1)],
-        Field(description="List of keys to include in the response")
+        Field(description=f"List of columns to select. If not specified, defaults to: {DEFAULT_DATASET_COLUMNS}.")
     ] = None,
     order_column: Annotated[
         Optional[constr(strip_whitespace=True, min_length=0)],
@@ -68,35 +73,26 @@ def list_datasets(
         PositiveInt,
         Field(description="Number of items per page")
     ] = 100,
-    select_columns: Annotated[
-        Optional[conlist(constr(strip_whitespace=True, min_length=1), min_length=1)],
-        Field(description="List of columns to select (overrides 'columns' and 'keys')")
-    ] = None,
-    search: Annotated[
-        Optional[str],
-        Field(description="Text search string to match against dataset fields")
-    ] = None,
 ) -> DatasetList:
     """
     ADVANCED FILTERING: List datasets using complex filter objects and JSON payload
     Returns a DatasetList Pydantic model (not a dict), matching list_datasets_simple.
     """
-    # If filters is a string (e.g., from a test), parse it as JSON
-    if isinstance(filters, str):
-        filters = json.loads(filters)
     dao_wrapper = MCPDAOWrapper(DatasetDAO, "dataset")
     search_columns = [
-        "id",
-        "database",
-        "owners",
         "catalog",
         "schema",
         "sql",
         "table_name",
-        "created_by",
-        "changed_by",
         "uuid",
     ]
+    if select_columns:
+        if isinstance(select_columns, str):
+            select_columns = [col.strip() for col in select_columns.split(",") if col.strip()]
+        columns_to_load = select_columns
+    else:
+        columns_to_load = DEFAULT_DATASET_COLUMNS
+
     datasets, total_count = dao_wrapper.list(
         column_operators=filters,
         order_column=order_column or "changed_on",
@@ -104,23 +100,10 @@ def list_datasets(
         page=max(page - 1, 0),
         page_size=page_size,
         search=search,
-        search_columns=search_columns
+        search_columns=search_columns,
+        custom_filters=None,
+        columns=columns_to_load,
     )
-    columns_to_load = []
-    if select_columns:
-        if isinstance(select_columns, str):
-            select_columns = [col.strip() for col in select_columns.split(",") if col.strip()]
-        columns_to_load = select_columns
-    elif columns:
-        columns_to_load = columns
-    elif keys:
-        columns_to_load = keys
-    else:
-        columns_to_load = [
-            "id", "table_name", "db_schema", "database_name", "description",
-            "changed_by_name", "changed_on", "created_by_name", "created_on"
-        ]
-    # Robustly handle both 'schema' and 'db_schema' for DatasetInfo
     dataset_items = []
     for dataset in datasets:
         item = serialize_dataset_object(dataset)
