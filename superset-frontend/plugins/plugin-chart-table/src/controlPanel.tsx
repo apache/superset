@@ -590,14 +590,30 @@ const config: ControlPanelConfig = {
                     )
                     .forEach((colname, index) => {
                       if (
-                        explore.form_data.metrics?.some(
-                          metric => getMetricLabel(metric) === colname,
-                        ) ||
+                        colname &&
+                        !colname.startsWith('%') &&
+                        colnames.includes(`%${colname}`) &&
                         explore.form_data.percent_metrics?.some(
+                          (metric: QueryFormMetric) =>
+                            getMetricLabel(metric) === colname,
+                        ) &&
+                        !explore.form_data.metrics?.some(
                           (metric: QueryFormMetric) =>
                             getMetricLabel(metric) === colname,
                         )
                       ) {
+                        return;
+                      }
+                      const isMetric = explore.form_data.metrics?.some(
+                        metric => getMetricLabel(metric) === colname,
+                      );
+                      const isPercentMetric =
+                        explore.form_data.percent_metrics?.some(
+                          (metric: QueryFormMetric) =>
+                            `%${getMetricLabel(metric)}` === colname,
+                        );
+
+                      if (isMetric || isPercentMetric) {
                         const comparisonColumns =
                           generateComparisonColumns(colname);
                         comparisonColumns.forEach((name, idx) => {
