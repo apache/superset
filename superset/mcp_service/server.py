@@ -32,7 +32,7 @@ def init_fastmcp_server() -> 'FastMCP':
     """
     from fastmcp import FastMCP
     from superset.mcp_service.middleware import LoggingMiddleware, PrivateToolMiddleware
-    from superset.mcp_service.dao_wrapper import mcp_auth_hook
+    from superset.mcp_service.utils import mcp_auth_hook
     logger = logging.getLogger(__name__)
     logger.setLevel(logging.DEBUG)
 

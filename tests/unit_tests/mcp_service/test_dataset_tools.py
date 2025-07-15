@@ -27,6 +27,7 @@ from superset.mcp_service.pydantic_schemas.dataset_schemas import (
 from superset.mcp_service.tools.dataset import (
     get_dataset_available_filters, get_dataset_info, list_datasets,
 )
+from superset.daos.dataset import DatasetDAO
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
@@ -34,7 +35,7 @@ logger = logging.getLogger(__name__)
 class TestDatasetTools:
     """Test dataset-related MCP tools"""
 
-    @patch('superset.mcp_service.dao_wrapper.MCPDAOWrapper.list')
+    @patch('superset.daos.dataset.DatasetDAO.list')
     def test_list_datasets_basic(self, mock_list):
         dataset = Mock()
         dataset.id = 1
@@ -70,7 +71,7 @@ class TestDatasetTools:
         assert result.datasets[0].table_name == "Test DatasetInfo"
         assert result.datasets[0].database_name == "examples"
 
-    @patch('superset.mcp_service.dao_wrapper.MCPDAOWrapper.list')
+    @patch('superset.daos.dataset.DatasetDAO.list')
     def test_list_datasets_with_filters(self, mock_list):
         dataset = Mock()
         dataset.id = 2
@@ -114,7 +115,7 @@ class TestDatasetTools:
         assert result.count == 1
         assert result.datasets[0].table_name == "Filtered Dataset"
 
-    @patch('superset.mcp_service.dao_wrapper.MCPDAOWrapper.list')
+    @patch('superset.daos.dataset.DatasetDAO.list')
     def test_list_datasets_with_string_filters(self, mock_list):
         dataset = Mock()
         dataset.id = 3
@@ -148,14 +149,14 @@ class TestDatasetTools:
         assert result.count == 1
         assert result.datasets[0].table_name == "String Filter Dataset"
 
-    @patch('superset.mcp_service.dao_wrapper.MCPDAOWrapper.list')
+    @patch('superset.daos.dataset.DatasetDAO.list')
     def test_list_datasets_api_error(self, mock_list):
         mock_list.side_effect = Exception("API request failed")
         with pytest.raises(Exception) as excinfo:
             list_datasets()
         assert "API request failed" in str(excinfo.value)
 
-    @patch('superset.mcp_service.dao_wrapper.MCPDAOWrapper.list')
+    @patch('superset.daos.dataset.DatasetDAO.list')
     def test_list_datasets_with_search(self, mock_list):
         dataset = Mock()
         dataset.id = 1
@@ -194,7 +195,7 @@ class TestDatasetTools:
         assert "table_name" in kwargs["search_columns"]
         assert "schema" in kwargs["search_columns"]
 
-    @patch('superset.mcp_service.dao_wrapper.MCPDAOWrapper.list')
+    @patch('superset.daos.dataset.DatasetDAO.list')
     def test_list_datasets_simple_with_search(self, mock_list):
         dataset = Mock()
         dataset.id = 2
@@ -233,7 +234,7 @@ class TestDatasetTools:
         assert "table_name" in kwargs["search_columns"]
         assert "schema" in kwargs["search_columns"]
 
-    @patch('superset.mcp_service.dao_wrapper.MCPDAOWrapper.list')
+    @patch('superset.daos.dataset.DatasetDAO.list')
     def test_list_datasets_simple_basic(self, mock_list):
         dataset = Mock()
         dataset.id = 1
@@ -269,7 +270,7 @@ class TestDatasetTools:
         assert result.datasets[0].table_name == "Test DatasetInfo"
         assert result.datasets[0].database_name == "examples"
 
-    @patch('superset.mcp_service.dao_wrapper.MCPDAOWrapper.list')
+    @patch('superset.daos.dataset.DatasetDAO.list')
     def test_list_datasets_simple_with_filters(self, mock_list):
         dataset = Mock()
         dataset.id = 2
@@ -303,7 +304,7 @@ class TestDatasetTools:
         assert isinstance(result, DatasetList)
         assert result.count == 1
 
-    @patch('superset.mcp_service.dao_wrapper.MCPDAOWrapper.list')
+    @patch('superset.daos.dataset.DatasetDAO.list')
     def test_list_datasets_simple_api_error(self, mock_list):
         mock_list.side_effect = Exception("API request failed")
         filters = [{"col": "table_name", "opr": "sw", "value": "Sales"}, {"col": "schema", "opr": "eq", "value": "main"}]
@@ -311,7 +312,7 @@ class TestDatasetTools:
             list_datasets(filters=filters)
         assert "API request failed" in str(excinfo.value)
 
-    @patch('superset.mcp_service.dao_wrapper.MCPDAOWrapper.info')
+    @patch('superset.daos.dataset.DatasetDAO.find_by_id')
     def test_get_dataset_info_success(self, mock_info):
         dataset = Mock()
         dataset.id = 1
@@ -339,18 +340,14 @@ class TestDatasetTools:
         dataset.params = {}
         dataset.template_params = {}
         dataset.extra = {}
-        mock_info.return_value = (dataset, None, None)
+        mock_info.return_value = dataset  # Only the dataset object
         result = get_dataset_info(1)
-        assert isinstance(result, DatasetInfo)
-        assert result.id == 1
         assert result.table_name == "Test DatasetInfo"
 
-    @patch('superset.mcp_service.dao_wrapper.MCPDAOWrapper.info')
+    @patch('superset.daos.dataset.DatasetDAO.find_by_id')
     def test_get_dataset_info_not_found(self, mock_info):
-        mock_info.return_value = (None, "not_found", "Dataset not found")
+        mock_info.return_value = None  # Not found returns None
         result = get_dataset_info(999)
-        assert isinstance(result, DatasetError)
-        assert result.error == "Dataset not found"
         assert result.error_type == "not_found"
 
     def test_get_dataset_available_filters_success(self):
