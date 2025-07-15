@@ -286,3 +286,42 @@ def test_base_dao_column_operator_is_not_null(user_with_data: Session) -> None:
     results, _ = UserDAO.list(column_operators=[ColumnOperator(col="last_login", opr=ColumnOperatorEnum.is_not_null)])
     assert any(u.username == "notnulluser" for u in results)
     assert all(u.last_login is not None for u in results) 
+
+def test_base_dao_list_with_select_columns(user_with_data: Session) -> None:
+    from superset.daos.user import UserDAO
+    # Add a user to ensure at least one exists
+    from flask_appbuilder.security.sqla.models import User
+    user_with_data.add(User(id=900, username="coluser", first_name="Col", last_name="User", email="coluser@example.com", active=True))
+    user_with_data.commit()
+    # Request only username and email columns
+    results, total = UserDAO.list(columns=["username", "email"])
+    assert total >= 1
+    # Should return Row objects with correct values
+    found = False
+    for row in results:
+        # SQLAlchemy Row supports both index and key access
+        if row[0] == "coluser" and row[1] == "coluser@example.com":
+            found = True
+    assert found
+    # Request only id column
+    results, total = UserDAO.list(columns=["id"])
+    found = False
+    for row in results:
+        if row[0] == 900:
+            found = True
+    assert found
+
+def test_base_dao_list_with_default_columns(user_with_data: Session) -> None:
+    from superset.daos.user import UserDAO
+    from flask_appbuilder.security.sqla.models import User
+    user_with_data.add(User(id=901, username="defaultuser", first_name="Default", last_name="User", email="defaultuser@example.com", active=True))
+    user_with_data.commit()
+    results, total = UserDAO.list()
+    assert total >= 1
+    # Should return model instances
+    found = False
+    for user in results:
+        if hasattr(user, "id") and hasattr(user, "username") and hasattr(user, "email"):
+            if user.id == 901 and user.username == "defaultuser" and user.email == "defaultuser@example.com":
+                found = True
+    assert found
