@@ -39,7 +39,6 @@ from uuid import uuid4
 
 import pandas as pd
 import requests
-import sqlparse
 from apispec import APISpec
 from apispec.ext.marshmallow import MarshmallowPlugin
 from deprecation import deprecated
@@ -55,16 +54,22 @@ from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.url import URL
 from sqlalchemy.ext.compiler import compiles
 from sqlalchemy.sql import literal_column, quoted_name, text
-from sqlalchemy.sql.expression import ColumnClause, Select, TextAsFrom, TextClause
+from sqlalchemy.sql.expression import ColumnClause, Select, TextClause
 from sqlalchemy.types import TypeEngine
-from sqlparse.tokens import CTE
 
-from superset import db, sql_parse
+from superset import db
 from superset.constants import QUERY_CANCEL_KEY, TimeGrain as TimeGrainConstants
 from superset.databases.utils import get_table_metadata, make_url_safe
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
-from superset.exceptions import DisallowedSQLFunction, OAuth2Error, OAuth2RedirectError
-from superset.sql.parse import BaseSQLStatement, SQLScript, Table
+from superset.exceptions import OAuth2Error, OAuth2RedirectError
+from superset.sql.parse import (
+    BaseSQLStatement,
+    LimitMethod,
+    RLSMethod,
+    SQLScript,
+    SQLStatement,
+    Table,
+)
 from superset.superset_typing import (
     OAuth2ClientConfig,
     OAuth2State,
@@ -163,14 +168,6 @@ def compile_timegrain_expression(
     element: TimestampExpression, compiler: Compiled, **kwargs: Any
 ) -> str:
     return element.name.replace("{col}", compiler.process(element.col, **kwargs))
-
-
-class LimitMethod:  # pylint: disable=too-few-public-methods
-    """Enum the ways that limits can be applied"""
-
-    FETCH_MANY = "fetch_many"
-    WRAP_SQL = "wrap_sql"
-    FORCE_LIMIT = "force_limit"
 
 
 class MetricType(TypedDict, total=False):
@@ -376,16 +373,6 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     allows_cte_in_subquery = True
     # Define alias for CTE
     cte_alias = "__cte"
-    # Whether allow LIMIT clause in the SQL
-    # If True, then the database engine is allowed for LIMIT clause
-    # If False, then the database engine is allowed for TOP clause
-    allow_limit_clause = True
-    # This set will give keywords for select statements
-    # to consider for the engines with TOP SQL parsing
-    select_keywords: set[str] = {"SELECT"}
-    # This set will give the keywords for data limit statements
-    # to consider for the engines with TOP SQL parsing
-    top_keywords: set[str] = {"TOP"}
     # A set of disallowed connection query parameters by driver name
     disallow_uri_query_params: dict[str, set[str]] = {}
     # A Dict of query parameters that will always be used on every connection
@@ -448,6 +435,21 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     # is determined only after the specific query is executed and it will update
     # the `cancel_query` value in the `extra` field of the `query` object
     has_query_id_before_execute = True
+
+    @classmethod
+    def get_rls_method(cls) -> RLSMethod:
+        """
+        Returns the RLS method to be used for this engine.
+
+        There are two ways to insert RLS: either replacing the table with a subquery
+        that has the RLS, or appending the RLS to the ``WHERE`` clause. The former is
+        safer, but not supported in all databases.
+        """
+        return (
+            RLSMethod.AS_SUBQUERY
+            if cls.allows_subqueries and cls.allows_alias_in_select
+            else RLSMethod.AS_PREDICATE
+        )
 
     @classmethod
     def is_oauth2_enabled(cls) -> bool:
@@ -1119,100 +1121,6 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         return {}
 
     @classmethod
-    def apply_limit_to_sql(
-        cls, sql: str, limit: int, database: Database, force: bool = False
-    ) -> str:
-        """
-        Alters the SQL statement to apply a LIMIT clause
-
-        :param sql: SQL query
-        :param limit: Maximum number of rows to be returned by the query
-        :param database: Database instance
-        :return: SQL query with limit clause
-        """
-        if cls.limit_method == LimitMethod.WRAP_SQL:
-            sql = sql.strip("\t\n ;")
-            qry = (
-                select("*")
-                .select_from(TextAsFrom(text(sql), ["*"]).alias("inner_qry"))
-                .limit(limit)
-            )
-            return database.compile_sqla_query(qry)
-
-        if cls.limit_method == LimitMethod.FORCE_LIMIT:
-            parsed_query = sql_parse.ParsedQuery(sql, engine=cls.engine)
-            sql = parsed_query.set_or_update_query_limit(limit, force=force)
-
-        return sql
-
-    @classmethod
-    def apply_top_to_sql(cls, sql: str, limit: int) -> str:  # noqa: C901
-        """
-        Alters the SQL statement to apply a TOP clause
-        :param limit: Maximum number of rows to be returned by the query
-        :param sql: SQL query
-        :return: SQL query with top clause
-        """
-
-        cte = None
-        sql_remainder = None
-        sql = sql.strip(" \t\n;")
-        query_limit: int | None = sql_parse.extract_top_from_query(
-            sql, cls.top_keywords
-        )
-        if not limit:
-            final_limit = query_limit
-        elif int(query_limit or 0) < limit and query_limit is not None:
-            final_limit = query_limit
-        else:
-            final_limit = limit
-        if not cls.allows_cte_in_subquery:
-            cte, sql_remainder = sql_parse.get_cte_remainder_query(sql)
-        if cte:
-            str_statement = str(sql_remainder)
-            cte = cte + "\n"
-        else:
-            cte = ""
-            str_statement = str(sql)
-        str_statement = str_statement.replace("\n", " ").replace("\r", "")
-
-        tokens = str_statement.rstrip().split(" ")
-        tokens = [token for token in tokens if token]
-        if cls.top_not_in_sql(str_statement):
-            selects = [
-                i
-                for i, word in enumerate(tokens)
-                if word.upper() in cls.select_keywords
-            ]
-            first_select = selects[0]
-            if tokens[first_select + 1].upper() == "DISTINCT":
-                first_select += 1
-
-            tokens.insert(first_select + 1, "TOP")
-            tokens.insert(first_select + 2, str(final_limit))
-
-        next_is_limit_token = False
-        new_tokens = []
-
-        for token in tokens:
-            if token in cls.top_keywords:
-                next_is_limit_token = True
-            elif next_is_limit_token:
-                if token.isdigit():
-                    token = str(final_limit)
-                    next_is_limit_token = False
-            new_tokens.append(token)
-        sql = " ".join(new_tokens)
-        return cte + sql
-
-    @classmethod
-    def top_not_in_sql(cls, sql: str) -> bool:
-        for top_word in cls.top_keywords:
-            if top_word.upper() in sql.upper():
-                return False
-        return True
-
-    @classmethod
     def get_limit_from_sql(cls, sql: str) -> int | None:
         """
         Extract limit from SQL query
@@ -1224,18 +1132,6 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         return script.statements[-1].get_limit_value()
 
     @classmethod
-    def set_or_update_query_limit(cls, sql: str, limit: int) -> str:
-        """
-        Create a query based on original query but with new limit clause
-
-        :param sql: SQL query
-        :param limit: New limit to insert/replace into query
-        :return: Query with new limit
-        """
-        parsed_query = sql_parse.ParsedQuery(sql, engine=cls.engine)
-        return parsed_query.set_or_update_query_limit(limit)
-
-    @classmethod
     def get_cte_query(cls, sql: str) -> str | None:
         """
         Convert the input CTE based SQL to the SQL for virtual table conversion
@@ -1245,18 +1141,9 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
 
         """
         if not cls.allows_cte_in_subquery:
-            stmt = sqlparse.parse(sql)[0]
-
-            # The first meaningful token for CTE will be with WITH
-            idx, token = stmt.token_next(-1, skip_ws=True, skip_cm=True)
-            if not (token and token.ttype == CTE):
-                return None
-            idx, token = stmt.token_next(idx)
-            idx = stmt.token_index(token) + 1
-
-            # extract rest of the SQLs after CTE
-            remainder = "".join(str(token) for token in stmt.tokens[idx:]).strip()
-            return f"WITH {token.value},\n{cls.cte_alias} AS (\n{remainder}\n)"
+            statement = SQLStatement(sql, engine=cls.engine)
+            if statement.has_cte():
+                return statement.as_cte(cls.cte_alias).format()
 
         return None
 
@@ -1659,7 +1546,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         cols: list[ResultSetColumnType] | None = None,
     ) -> str:
         """
-        Generate a "SELECT * from [schema.]table_name" query with appropriate limit.
+        Generate a "SELECT * from [catalog.][schema.]table_name" query with limit.
 
         WARNING: expects only unquoted table and schema names.
 
@@ -1673,6 +1560,9 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         :param cols: Columns to include in query
         :return: SQL query
         """
+        if not cls.supports_cross_catalog_queries:
+            table = Table(table.table, table.schema, None)
+
         # pylint: disable=redefined-outer-name
         fields: str | list[Any] = "*"
         cols = cols or []
@@ -1685,8 +1575,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         full_table_name = cls.quote_table(table, engine.dialect)
         qry = select(fields).select_from(text(full_table_name))
 
-        if limit and cls.allow_limit_clause:
-            qry = qry.limit(limit)
+        qry = qry.limit(limit)
         if latest_partition:
             partition_query = cls.where_latest_partition(
                 database,
@@ -1878,14 +1767,6 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         :param kwargs: kwargs to be passed to cursor.execute()
         :return:
         """
-        if not cls.allows_sql_comments:
-            query = sql_parse.strip_comments_from_sql(query, engine=cls.engine)
-        disallowed_functions = current_app.config["DISALLOWED_SQL_FUNCTIONS"].get(
-            cls.engine, set()
-        )
-        if sql_parse.check_sql_functions_exist(query, disallowed_functions, cls.engine):
-            raise DisallowedSQLFunction(disallowed_functions)
-
         if cls.arraysize:
             cursor.arraysize = cls.arraysize
         try:
@@ -2191,10 +2072,6 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         """
 
         return False
-
-    @classmethod
-    def parse_sql(cls, sql: str) -> list[str]:
-        return [str(s).strip(" ;") for s in sqlparse.parse(sql)]
 
     @classmethod
     def get_impersonation_key(cls, user: User | None) -> Any:

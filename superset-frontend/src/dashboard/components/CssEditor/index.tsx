@@ -17,13 +17,15 @@
  * under the License.
  */
 import { Key, ReactNode, PureComponent } from 'react';
-import { Dropdown } from 'src/components/Dropdown';
+import {
+  Dropdown,
+  CssEditor as AceCssEditor,
+  Button,
+  ModalTrigger,
+} from '@superset-ui/core/components';
 import rison from 'rison';
-import { Menu } from 'src/components/Menu';
-import Button from 'src/components/Button';
+import { Menu } from '@superset-ui/core/components/Menu';
 import { t, styled, SupersetClient } from '@superset-ui/core';
-import ModalTrigger from 'src/components/ModalTrigger';
-import { CssEditor as AceCssEditor } from 'src/components/AsyncAceEditor';
 
 export interface CssEditorProps {
   initialCss: string;
@@ -45,14 +47,14 @@ const StyledWrapper = styled.div`
       display: flex;
       flex-direction: row;
       justify-content: space-between;
-      margin-bottom: ${theme.gridUnit * 2}px;
+      margin-bottom: ${theme.sizeUnit * 2}px;
 
       h5 {
-        margin-top: ${theme.gridUnit}px;
+        margin-top: ${theme.sizeUnit}px;
       }
     }
     .css-editor {
-      border: 1px solid ${theme.colors.grayscale.light1};
+      border: 1px solid ${theme.colorBorder};
     }
   `}
 `;
@@ -101,21 +103,27 @@ class CssEditor extends PureComponent<CssEditorProps, CssEditorState> {
   }
 
   changeCssTemplate(info: { key: Key }) {
-    const keyAsString = String(info.key);
-    this.changeCss(keyAsString);
+    const selectedTemplate = this.state.templates?.find(
+      template => template.label === info.key,
+    );
+    if (selectedTemplate) {
+      this.changeCss(selectedTemplate.css);
+    }
   }
 
   renderTemplateSelector() {
     if (this.state.templates) {
       const menu = (
-        <Menu onClick={this.changeCssTemplate}>
-          {this.state.templates.map(template => (
-            <Menu.Item key={template.css}>{template.label}</Menu.Item>
-          ))}
-        </Menu>
+        <Menu
+          onClick={this.changeCssTemplate}
+          items={this.state.templates.map(template => ({
+            key: template.label,
+            label: template.label,
+          }))}
+        />
       );
       return (
-        <Dropdown dropdownRender={() => menu} placement="bottomRight">
+        <Dropdown popupRender={() => menu} placement="bottomRight">
           <Button>{t('Load a CSS template')}</Button>
         </Dropdown>
       );

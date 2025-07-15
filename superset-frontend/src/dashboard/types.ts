@@ -39,6 +39,10 @@ import { ChartState } from '../explore/types';
 
 export type { Dashboard } from 'src/types/Dashboard';
 
+export interface ExtendedNativeFilterScope extends NativeFilterScope {
+  selectedLayers?: string[];
+}
+
 export type ChartReducerInitialState = typeof chart;
 
 // chart query built from initialState
@@ -210,6 +214,9 @@ type ActiveFilter = {
   targets: number[] | [Partial<NativeFilterTarget>];
   scope: number[];
   values: ExtraFormData;
+  layerScope?: {
+    [chartId: number]: number[];
+  };
 };
 
 export type ActiveFilters = {

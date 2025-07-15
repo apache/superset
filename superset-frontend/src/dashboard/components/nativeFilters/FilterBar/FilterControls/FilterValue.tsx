@@ -44,8 +44,8 @@ import {
 import { useDispatch, useSelector } from 'react-redux';
 import { isEqual, isEqualWith } from 'lodash';
 import { getChartDataRequest } from 'src/components/Chart/chartAction';
-import Loading from 'src/components/Loading';
-import ErrorMessageWithStackTrace from 'src/components/ErrorMessage/ErrorMessageWithStackTrace';
+import { ErrorAlert, ErrorMessageWithStackTrace } from 'src/components';
+import { Loading, Constants } from '@superset-ui/core/components';
 import { waitForAsyncData } from 'src/middleware/asyncEvent';
 import { FilterBarOrientation, RootState } from 'src/dashboard/types';
 import {
@@ -53,8 +53,6 @@ import {
   setDirectPathToChild,
 } from 'src/dashboard/actions/dashboardState';
 import { RESPONSIVE_WIDTH } from 'src/filters/components/common';
-import { FAST_DEBOUNCE } from 'src/constants';
-import ErrorAlert from 'src/components/ErrorMessage/ErrorAlert';
 import { dispatchHoverAction, dispatchFocusAction } from './utils';
 import { FilterControlProps } from './types';
 import { getFormData } from '../../utils';
@@ -97,6 +95,8 @@ const FilterValue: FC<FilterControlProps> = ({
   orientation = FilterBarOrientation.Vertical,
   overflow = false,
   validateStatus,
+  clearAllTrigger,
+  onClearAllComplete,
 }) => {
   const { id, targets, filterType, adhoc_filters, time_range } = filter;
   const metadata = getChartMetadataRegistry().get(filterType);
@@ -234,7 +234,7 @@ const FilterValue: FC<FilterControlProps> = ({
         () => {
           inputRef?.current?.focus();
         },
-        overflow ? FAST_DEBOUNCE : 0,
+        overflow ? Constants.FAST_DEBOUNCE : 0,
       );
     }
   }, [inputRef, outlinedFilterId, lastUpdated, filter.id, overflow]);
@@ -275,6 +275,8 @@ const FilterValue: FC<FilterControlProps> = ({
       setFocusedFilter,
       unsetFocusedFilter,
       setFilterActive,
+      clearAllTrigger,
+      onClearAllComplete,
     }),
     [
       setDataMask,
@@ -283,13 +285,15 @@ const FilterValue: FC<FilterControlProps> = ({
       unsetHoveredFilter,
       setFocusedFilter,
       unsetFocusedFilter,
+      clearAllTrigger,
+      onClearAllComplete,
     ],
   );
 
   const filterState = useMemo(
     () => ({
-      validateStatus,
       ...filter.dataMask?.filterState,
+      validateStatus,
     }),
     [filter.dataMask?.filterState, validateStatus],
   );

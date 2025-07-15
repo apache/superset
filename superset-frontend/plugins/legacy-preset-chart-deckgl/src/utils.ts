@@ -25,7 +25,9 @@ import {
   QueryFormData,
   SequentialScheme,
 } from '@superset-ui/core';
+import { Color } from '@deck.gl/core';
 import { hexToRGB } from './utils/colors';
+import { ColorBreakpointType } from './types';
 
 const DEFAULT_NUM_BUCKETS = 10;
 
@@ -93,7 +95,7 @@ export function getBreakPointColorScaler(
   }: BucketsWithColorScale,
   features: JsonObject[],
   accessor: (value: JsonObject) => number | undefined,
-) {
+): (data?: JsonObject) => Color {
   const breakPoints =
     formDataBreakPoints || formDataNumBuckets
       ? getBreakPoints(
@@ -113,7 +115,7 @@ export function getBreakPointColorScaler(
     : getSequentialSchemeRegistry().get(linearColorScheme);
 
   if (!colorScheme) {
-    return null;
+    return () => [0, 0, 0, 0];
   }
   let scaler: ScaleLinear<string, string> | ScaleThreshold<number, string>;
   let maskPoint: (v: number | undefined) => boolean;
@@ -149,7 +151,7 @@ export function getBreakPointColorScaler(
     maskPoint = () => false;
   }
 
-  return (d: JsonObject): [number, number, number, number] => {
+  return (d: JsonObject): Color => {
     const v = accessor(d);
     if (!v) {
       return [0, 0, 0, 0];
@@ -174,7 +176,7 @@ export function getBuckets(
   const colorScaler = getBreakPointColorScaler(fd, features, accessor);
   const buckets: Record<
     string,
-    { color: [number, number, number, number] | undefined; enabled: boolean }
+    { color: Color | undefined; enabled: boolean }
   > = {};
   breakPoints.slice(1).forEach((_, i) => {
     const range = `${breakPoints[i]} - ${breakPoints[i + 1]}`;
@@ -184,6 +186,29 @@ export function getBuckets(
     const metricLabel = fd.metric ? fd.metric.label || fd.metric : null;
     buckets[range] = {
       color: colorScaler?.({ [metricLabel || fd.metric]: mid }),
+      enabled: true,
+    };
+  });
+
+  return buckets;
+}
+
+export function getColorBreakpointsBuckets(
+  colorBreakpoints: ColorBreakpointType[],
+) {
+  const breakpoints = colorBreakpoints || [];
+
+  const buckets: Record<string, { color: Color; enabled: boolean }> = {};
+
+  if (!breakpoints || !breakpoints.length) {
+    return buckets;
+  }
+
+  breakpoints.forEach((breakpoint: ColorBreakpointType) => {
+    const range = `${breakpoint.minValue} - ${breakpoint.maxValue}`;
+
+    buckets[range] = {
+      color: [breakpoint.color.r, breakpoint.color.g, breakpoint.color.b],
       enabled: true,
     };
   });

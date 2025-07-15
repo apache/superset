@@ -75,8 +75,7 @@ from superset.extensions import (
 )
 from superset.models.helpers import AuditMixinNullable, ImportExportMixin, UUIDMixin
 from superset.result_set import SupersetResultSet
-from superset.sql.parse import SQLScript
-from superset.sql_parse import Table
+from superset.sql.parse import SQLScript, Table
 from superset.superset_typing import (
     DbapiDescription,
     OAuth2ClientConfig,
@@ -659,7 +658,7 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
         schema: str | None = None,
         mutator: Callable[[pd.DataFrame], None] | None = None,
     ) -> pd.DataFrame:
-        sqls = self.db_engine_spec.parse_sql(sql)
+        script = SQLScript(sql, self.db_engine_spec.engine)
         with self.get_sqla_engine(catalog=catalog, schema=schema) as engine:
             engine_url = engine.url
 
@@ -676,8 +675,11 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
         with self.get_raw_connection(catalog=catalog, schema=schema) as conn:
             cursor = conn.cursor()
             df = None
-            for i, sql_ in enumerate(sqls):
-                sql_ = self.mutate_sql_based_on_config(sql_, is_split=True)
+            for i, statement in enumerate(script.statements):
+                sql_ = self.mutate_sql_based_on_config(
+                    statement.format(),
+                    is_split=True,
+                )
                 _log_query(sql_)
                 with event_logger.log_context(
                     action="execute_sql",
@@ -686,7 +688,7 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
                 ):
                     self.db_engine_spec.execute(cursor, sql_, self)
 
-                rows = self.fetch_rows(cursor, i == len(sqls) - 1)
+                rows = self.fetch_rows(cursor, i == len(script.statements) - 1)
                 if rows is not None:
                     df = self.load_into_dataframe(cursor.description, rows)
 
@@ -761,11 +763,19 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
             )
 
     def apply_limit_to_sql(
-        self, sql: str, limit: int = 1000, force: bool = False
+        self,
+        sql: str,
+        limit: int = 1000,
+        force: bool = False,
     ) -> str:
-        if self.db_engine_spec.allow_limit_clause:
-            return self.db_engine_spec.apply_limit_to_sql(sql, limit, self, force=force)
-        return self.db_engine_spec.apply_top_to_sql(sql, limit)
+        script = SQLScript(sql, self.db_engine_spec.engine)
+        statement = script.statements[-1]
+        current_limit = statement.get_limit_value() or float("inf")
+
+        if limit < current_limit or force:
+            statement.set_limit_value(limit, self.db_engine_spec.limit_method)
+
+        return script.format()
 
     def safe_sqlalchemy_uri(self) -> str:
         return self.sqlalchemy_uri

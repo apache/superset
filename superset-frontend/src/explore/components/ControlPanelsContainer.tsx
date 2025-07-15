@@ -56,17 +56,19 @@ import { useSelector } from 'react-redux';
 import { rgba } from 'emotion-rgba';
 import { kebabCase, isEqual } from 'lodash';
 
-import Collapse from 'src/components/Collapse';
-import Tabs from 'src/components/Tabs';
-import { PluginContext } from 'src/components/DynamicPlugins';
-import Loading from 'src/components/Loading';
-import Modal from 'src/components/Modal';
+import {
+  Collapse,
+  Modal,
+  Loading,
+  Tooltip,
+} from '@superset-ui/core/components';
+import Tabs from '@superset-ui/core/components/Tabs';
+import { PluginContext } from 'src/components';
 
 import { getSectionsToRender } from 'src/explore/controlUtils';
 import { ExploreActions } from 'src/explore/actions/exploreActions';
 import { ChartState, ExplorePageState } from 'src/explore/types';
-import { Tooltip } from 'src/components/Tooltip';
-import { Icons } from 'src/components/Icons';
+import { Icons } from '@superset-ui/core/components/Icons';
 import ControlRow from './ControlRow';
 import Control from './Control';
 import { ExploreAlert } from './ExploreAlert';
@@ -76,6 +78,11 @@ import { Clauses } from './controls/FilterControl/types';
 import StashFormDataContainer from './StashFormDataContainer';
 
 const { confirm } = Modal;
+
+const TABS_KEYS = {
+  DATA: 'DATA',
+  CUSTOMIZE: 'CUSTOMIZE',
+};
 
 export type ControlPanelsContainerProps = {
   exploreState: ExplorePageState['explore'];
@@ -115,11 +122,11 @@ const actionButtonsContainerStyles = (theme: SupersetTheme) => css`
   bottom: 0;
   flex-direction: column;
   align-items: center;
-  padding: ${theme.gridUnit * 4}px;
+  padding: ${theme.sizeUnit * 4}px;
   z-index: 999;
   background: linear-gradient(
-    ${rgba(theme.colors.grayscale.light5, 0)},
-    ${theme.colors.grayscale.light5} ${theme.opacity.mediumLight}
+    ${rgba(theme.colorBgBase, 0)},
+    ${theme.colorBgBase} 35%
   );
 
   & > button {
@@ -139,9 +146,6 @@ const Styles = styled.div`
     height: 100%;
     overflow: visible;
   }
-  .nav-tabs {
-    flex: 0 0 1;
-  }
   .tab-content {
     overflow: auto;
     flex: 1 1 100%;
@@ -150,46 +154,12 @@ const Styles = styled.div`
     max-width: 100%;
   }
   .type-label {
-    margin-right: ${({ theme }) => theme.gridUnit * 3}px;
-    width: ${({ theme }) => theme.gridUnit * 7}px;
+    margin-right: ${({ theme }) => theme.sizeUnit * 3}px;
+    width: ${({ theme }) => theme.sizeUnit * 7}px;
     display: inline-block;
     text-align: center;
-    font-weight: ${({ theme }) => theme.typography.weights.bold};
+    font-weight: ${({ theme }) => theme.fontWeightStrong};
   }
-`;
-
-const ControlPanelsTabs = styled(Tabs)`
-  ${({ theme, fullWidth }) => css`
-    height: 100%;
-    overflow: visible;
-    .ant-tabs-nav {
-      margin-bottom: 0;
-    }
-    .ant-tabs-nav-list {
-      width: ${fullWidth ? '100%' : '50%'};
-    }
-    .ant-tabs-tabpane {
-      height: 100%;
-    }
-    .ant-tabs-content-holder {
-      padding-top: ${theme.gridUnit * 4}px;
-    }
-
-    .ant-collapse-ghost > .ant-collapse-item {
-      &:not(:last-child) {
-        border-bottom: 1px solid ${theme.colors.grayscale.light3};
-      }
-
-      & > .ant-collapse-header {
-        font-size: ${theme.typography.sizes.s}px;
-      }
-
-      & > .ant-collapse-content > .ant-collapse-content-box {
-        padding-bottom: 0;
-        font-size: ${theme.typography.sizes.s}px;
-      }
-    }
-  `}
 `;
 
 const isTimeSection = (section: ControlPanelSectionConfig): boolean =>
@@ -269,7 +239,7 @@ function useResetOnChangeRef(initialValue: () => any, resetOnChangeValue: any) {
 }
 
 export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
-  const { colors } = useTheme();
+  const theme = useTheme();
   const pluginContext = useContext(PluginContext);
 
   const prevState = usePrevious(props.exploreState);
@@ -586,17 +556,12 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
       sectionHasHadNoErrors.current[sectionId] = true;
     }
 
-    const errorColor = sectionHasHadNoErrors.current[sectionId]
-      ? colors.error.base
-      : colors.warning.base;
-
     const PanelHeader = () => (
       <span data-test="collapsible-control-panel-header">
         <span
           css={(theme: SupersetTheme) => css`
-            font-size: ${theme.typography.sizes.m}px;
+            font-size: ${theme.fontSize}px;
             line-height: 1.3;
-            font-weight: ${theme.typography.weights.medium};
           `}
         >
           {label}
@@ -611,18 +576,13 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
             id={`${kebabCase('validation-errors')}-tooltip`}
             title={t('This section contains validation errors')}
           >
-            <Icons.InfoCircleOutlined
-              css={css`
-                ${iconStyles};
-                color: ${errorColor};
-              `}
-            />
+            <Icons.CloseCircleOutlined iconColor={theme.colorErrorText} />
           </Tooltip>
         )}
       </span>
     );
 
-    return (
+    const PanelChildren = (
       <>
         <StashFormDataContainer
           key={`sectionId-${sectionId}`}
@@ -639,34 +599,7 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
             .filter(Boolean)}
         />
         {isVisible && (
-          <Collapse.Panel
-            css={theme => css`
-              margin-bottom: 0;
-              box-shadow: none;
-
-              &:last-child {
-                padding-bottom: ${theme.gridUnit * 16}px;
-                border-bottom: 0;
-              }
-
-              .panel-body {
-                margin-left: ${theme.gridUnit * 4}px;
-                padding-bottom: 0;
-              }
-
-              span.label {
-                display: inline-block;
-              }
-              ${!section.label &&
-              `
-          .ant-collapse-header {
-            display: none;
-          }
-        `}
-            `}
-            header={<PanelHeader />}
-            key={sectionId}
-          >
+          <>
             {section.controlSetRows.map((controlSets, i) => {
               const renderedControls = controlSets
                 .map(controlItem => {
@@ -698,10 +631,18 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
                 />
               );
             })}
-          </Collapse.Panel>
+          </>
         )}
       </>
     );
+
+    return {
+      key: String(section.label),
+      label: <PanelHeader />,
+      children: PanelChildren,
+      className: section.label ? '' : 'hidden-collapse-header',
+      style: { visibility: isVisible ? 'visible' : 'hidden' },
+    };
   };
 
   const hasControlsTransferred =
@@ -745,17 +686,13 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
       dataTabHasHadNoErrors.current = true;
     }
 
-    const errorColor = dataTabHasHadNoErrors.current
-      ? colors.error.base
-      : colors.warning.base;
-
     return (
       <>
         <span>{t('Data')}</span>
         {props.errorMessage && (
           <span
             css={(theme: SupersetTheme) => css`
-              margin-left: ${theme.gridUnit * 2}px;
+              margin-left: ${theme.sizeUnit * 2}px;
             `}
           >
             {' '}
@@ -764,11 +701,9 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
               placement="right"
               title={props.errorMessage}
             >
-              <Icons.ExclamationCircleOutlined
-                css={css`
-                  ${iconStyles};
-                  color: ${errorColor};
-                `}
+              <Icons.CloseCircleOutlined
+                iconColor={theme.colorErrorText}
+                iconSize="s"
               />
             </Tooltip>
           </span>
@@ -776,8 +711,8 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
       </>
     );
   }, [
-    colors.error.base,
-    colors.warning.base,
+    theme.colorErrorText,
+    theme.colorWarningText,
     dataTabHasHadNoErrors,
     props.errorMessage,
   ]);
@@ -791,34 +726,48 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
 
   return (
     <Styles ref={containerRef}>
-      <ControlPanelsTabs
+      <Tabs
         id="controlSections"
         data-test="control-tabs"
-        fullWidth={showCustomizeTab}
         allowOverflow={false}
-      >
-        <Tabs.TabPane key="query" tab={dataTabTitle}>
-          <Collapse
-            defaultActiveKey={expandedQuerySections}
-            expandIconPosition="right"
-            ghost
-          >
-            {showDatasourceAlert && <DatasourceAlert />}
-            {querySections.map(renderControlPanelSection)}
-          </Collapse>
-        </Tabs.TabPane>
-        {showCustomizeTab && (
-          <Tabs.TabPane key="display" tab={t('Customize')}>
-            <Collapse
-              defaultActiveKey={expandedCustomizeSections}
-              expandIconPosition="right"
-              ghost
-            >
-              {customizeSections.map(renderControlPanelSection)}
-            </Collapse>
-          </Tabs.TabPane>
-        )}
-      </ControlPanelsTabs>
+        items={[
+          {
+            key: TABS_KEYS.DATA,
+            label: dataTabTitle,
+            children: (
+              <>
+                {showDatasourceAlert && <DatasourceAlert />}
+                <Collapse
+                  defaultActiveKey={expandedQuerySections}
+                  expandIconPosition="end"
+                  ghost
+                  bordered
+                  items={[...querySections.map(renderControlPanelSection)]}
+                />
+              </>
+            ),
+          },
+          ...(showCustomizeTab
+            ? [
+                {
+                  key: TABS_KEYS.CUSTOMIZE,
+                  label: t('Customize'),
+                  children: (
+                    <Collapse
+                      defaultActiveKey={expandedCustomizeSections}
+                      expandIconPosition="end"
+                      ghost
+                      bordered
+                      items={[
+                        ...customizeSections.map(renderControlPanelSection),
+                      ]}
+                    />
+                  ),
+                },
+              ]
+            : []),
+        ]}
+      />
       <div css={actionButtonsContainerStyles}>
         <RunQueryButton
           onQuery={props.onQuery}

@@ -19,7 +19,7 @@
 import { useCallback, useMemo, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { isDefined, NativeFilterScope, t } from '@superset-ui/core';
-import Modal from 'src/components/Modal';
+import { Modal } from '@superset-ui/core/components';
 import {
   ChartConfiguration,
   RootState,
@@ -312,7 +312,7 @@ export const ScopingModal = ({
       onHandledPrimaryAction={saveScoping}
       primaryButtonName={t('Save')}
       responsive
-      destroyOnClose
+      destroyOnHidden
       bodyStyle={{
         padding: 0,
         height: 700,

@@ -33,7 +33,7 @@ from superset.commands.dataset.exceptions import (
 from superset.daos.dataset import DatasetDAO
 from superset.exceptions import SupersetSecurityException
 from superset.extensions import security_manager
-from superset.sql_parse import Table
+from superset.sql.parse import Table
 from superset.utils.decorators import on_error, transaction
 
 logger = logging.getLogger(__name__)

@@ -18,41 +18,16 @@
  */
 
 import { useMemo } from 'react';
-import Collapse from 'src/components/Collapse';
-import { styled, t, useTheme, css } from '@superset-ui/core';
+import { Collapse, Divider } from '@superset-ui/core/components';
+import { t } from '@superset-ui/core';
 import { FilterBarOrientation } from 'src/dashboard/types';
 import CrossFilter from './CrossFilter';
 import { CrossFilterIndicator } from '../../selectors';
-
-const StyledCollapse = styled(Collapse)`
-  ${({ theme }) => `
-    .ant-collapse-header {
-      margin-bottom: ${theme.gridUnit * 4}px;
-    }
-    .ant-collapse-item > .ant-collapse-header {
-      padding-bottom: 0;
-    }
-    .ant-collapse-item > .ant-collapse-header > .ant-collapse-arrow {
-      font-size: ${theme.typography.sizes.xs}px;
-      padding-top: ${theme.gridUnit * 3}px;
-    }
-    .ant-collapse-item > .ant-collapse-content > .ant-collapse-content-box {
-      padding-top: 0;
-    }
-  `}
-`;
-
-const StyledCrossFiltersTitle = styled.span`
-  ${({ theme }) => `
-    font-size: ${theme.typography.sizes.s}px;
-  `}
-`;
 
 const CrossFiltersVerticalCollapse = (props: {
   crossFilters: CrossFilterIndicator[];
 }) => {
   const { crossFilters } = props;
-  const theme = useTheme();
   const crossFiltersIndicators = useMemo(
     () =>
       crossFilters.map(filter => (
@@ -70,32 +45,23 @@ const CrossFiltersVerticalCollapse = (props: {
   }
 
   return (
-    <StyledCollapse
+    <Collapse
       ghost
       defaultActiveKey="crossFilters"
-      expandIconPosition="right"
-    >
-      <Collapse.Panel
-        key="crossFilters"
-        header={
-          <StyledCrossFiltersTitle>
-            {t('Cross-filters')}
-          </StyledCrossFiltersTitle>
-        }
-      >
-        {crossFiltersIndicators}
-        <span
-          data-test="cross-filters-divider"
-          css={css`
-            width: 100%;
-            height: 1px;
-            display: block;
-            background: ${theme.colors.grayscale.light3};
-            margin: ${theme.gridUnit * 8}px auto 0 auto;
-          `}
-        />
-      </Collapse.Panel>
-    </StyledCollapse>
+      expandIconPosition="end"
+      items={[
+        {
+          key: 'crossFilters',
+          label: t('Cross-filters'),
+          children: (
+            <>
+              {crossFiltersIndicators}
+              <Divider data-test="cross-filters-divider" />
+            </>
+          ),
+        },
+      ]}
+    />
   );
 };
 
