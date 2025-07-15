@@ -16,17 +16,17 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import emotionStyled from '@emotion/styled';
+import emotionStyled, { CreateStyled } from '@emotion/styled';
 import { useTheme as useThemeBasic } from '@emotion/react';
-// import { theme as antdThemeImport } from 'antd';
 import { Theme } from './Theme';
-import type {
-  SupersetTheme,
-  SerializableThemeConfig,
-  AnyThemeConfig,
-  ThemeStorage,
-  ThemeControllerOptions,
-  ThemeContextType,
+import {
+  type SupersetTheme,
+  type SerializableThemeConfig,
+  type AnyThemeConfig,
+  type ThemeStorage,
+  type ThemeControllerOptions,
+  type ThemeContextType,
+  ThemeAlgorithm,
 } from './types';
 
 export {
@@ -56,10 +56,12 @@ export function useTheme() {
   return theme;
 }
 
-const styled = emotionStyled;
+const styled: CreateStyled = emotionStyled;
 
 // launching in in dark mode for now while iterating
-const themeObject = Theme.fromConfig({ algorithm: 'default' });
+const themeObject: Theme = Theme.fromConfig({
+  algorithm: ThemeAlgorithm.DEFAULT,
+});
 
 const { theme } = themeObject;
 const supersetTheme = theme;

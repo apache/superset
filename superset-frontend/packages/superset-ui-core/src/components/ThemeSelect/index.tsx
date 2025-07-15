@@ -19,28 +19,28 @@
 import { Tooltip } from 'antd';
 import { Dropdown, Icons } from '@superset-ui/core/components';
 import { t } from '@superset-ui/core';
-import { ThemeMode } from '../../theme/types';
+import { ThemeAlgorithm, ThemeMode } from '../../theme/types';
 
 export interface ThemeSelectProps {
-  changeThemeMode: (newMode: ThemeMode) => void;
+  setThemeMode: (newMode: ThemeMode) => void;
   tooltipTitle?: string;
   themeMode: ThemeMode;
 }
 
 const ThemeSelect: React.FC<ThemeSelectProps> = ({
-  changeThemeMode,
+  setThemeMode,
   tooltipTitle = 'Select theme',
   themeMode,
 }) => {
   const handleSelect = (mode: ThemeMode) => {
-    changeThemeMode(mode);
+    setThemeMode(mode);
   };
 
-  const themeIconMap: Record<ThemeMode, React.ReactNode> = {
-    [ThemeMode.LIGHT]: <Icons.SunOutlined />,
-    [ThemeMode.DARK]: <Icons.MoonOutlined />,
+  const themeIconMap: Record<ThemeAlgorithm | ThemeMode, React.ReactNode> = {
+    [ThemeAlgorithm.DEFAULT]: <Icons.SunOutlined />,
+    [ThemeAlgorithm.DARK]: <Icons.MoonOutlined />,
     [ThemeMode.SYSTEM]: <Icons.FormatPainterOutlined />,
-    [ThemeMode.COMPACT]: <Icons.CompressOutlined />,
+    [ThemeAlgorithm.COMPACT]: <Icons.CompressOutlined />,
   };
 
   return (
@@ -49,9 +49,9 @@ const ThemeSelect: React.FC<ThemeSelectProps> = ({
         menu={{
           items: [
             {
-              key: ThemeMode.LIGHT,
+              key: ThemeMode.DEFAULT,
               label: t('Light'),
-              onClick: () => handleSelect(ThemeMode.LIGHT),
+              onClick: () => handleSelect(ThemeMode.DEFAULT),
               icon: <Icons.SunOutlined />,
             },
             {
