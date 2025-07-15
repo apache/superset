@@ -19,13 +19,14 @@
 import { theme as antdThemeImport } from 'antd';
 import tinycolor from 'tinycolor2';
 import {
-  AntdThemeConfig,
-  AnyThemeConfig,
-  SerializableThemeConfig,
-  DeprecatedColorVariations,
-  DeprecatedThemeColors,
-  SystemColors,
-  SupersetTheme,
+  type AntdThemeConfig,
+  type AnyThemeConfig,
+  type SerializableThemeConfig,
+  type DeprecatedColorVariations,
+  type DeprecatedThemeColors,
+  type SystemColors,
+  type SupersetTheme,
+  ThemeAlgorithm,
 } from './types';
 
 /**
@@ -38,9 +39,8 @@ export function isSerializableConfig(
 
   if (algorithm === undefined) return true;
 
-  if (Array.isArray(algorithm)) {
+  if (Array.isArray(algorithm))
     return (algorithm as unknown[]).every(alg => typeof alg === 'string');
-  }
 
   return typeof algorithm === 'string';
 }
@@ -60,9 +60,21 @@ export function deserializeThemeConfig(
 
   let resolvedAlgorithm;
   if (Array.isArray(algorithm)) {
-    resolvedAlgorithm = algorithm.map(alg => algorithmMap[alg]);
-  } else if (algorithm) {
+    const validAlgorithms = algorithm
+      .map((alg: ThemeAlgorithm) => algorithmMap[alg])
+      .filter(Boolean);
+
+    // If we have valid algorithms, use them; otherwise fallback to default
+    if (validAlgorithms.length > 0) {
+      resolvedAlgorithm =
+        validAlgorithms.length === 1 ? validAlgorithms[0] : validAlgorithms;
+    } else {
+      resolvedAlgorithm = antdThemeImport.defaultAlgorithm;
+    }
+  } else if (algorithm && algorithmMap[algorithm]) {
     resolvedAlgorithm = algorithmMap[algorithm];
+  } else {
+    resolvedAlgorithm = antdThemeImport.defaultAlgorithm;
   }
 
   return {
@@ -83,19 +95,21 @@ export function serializeThemeConfig(
 
   if (Array.isArray(algorithm)) {
     serializedAlgorithm = algorithm.map(alg => {
-      if (alg === antdThemeImport.defaultAlgorithm) return 'default';
-      if (alg === antdThemeImport.darkAlgorithm) return 'dark';
-      if (alg === antdThemeImport.compactAlgorithm) return 'compact';
-      return 'default'; // Fallback
-    }) as ('default' | 'dark' | 'compact')[];
+      if (alg === antdThemeImport.defaultAlgorithm)
+        return ThemeAlgorithm.DEFAULT;
+      if (alg === antdThemeImport.darkAlgorithm) return ThemeAlgorithm.DARK;
+      if (alg === antdThemeImport.compactAlgorithm)
+        return ThemeAlgorithm.COMPACT;
+      return ThemeAlgorithm.DEFAULT; // Fallback
+    }) as ThemeAlgorithm[];
   } else if (algorithm) {
     if (algorithm === antdThemeImport.defaultAlgorithm)
-      serializedAlgorithm = 'default';
+      serializedAlgorithm = ThemeAlgorithm.DEFAULT;
     else if (algorithm === antdThemeImport.darkAlgorithm)
-      serializedAlgorithm = 'dark';
+      serializedAlgorithm = ThemeAlgorithm.DARK;
     else if (algorithm === antdThemeImport.compactAlgorithm)
-      serializedAlgorithm = 'compact';
-    else serializedAlgorithm = 'default'; // Fallback
+      serializedAlgorithm = ThemeAlgorithm.COMPACT;
+    else serializedAlgorithm = ThemeAlgorithm.DEFAULT; // Fallback
   }
 
   return {
@@ -109,9 +123,8 @@ export function serializeThemeConfig(
  * This automatically detects and converts serializable configs
  */
 export function normalizeThemeConfig(config: AnyThemeConfig): AntdThemeConfig {
-  if (isSerializableConfig(config)) {
-    return deserializeThemeConfig(config);
-  }
+  if (isSerializableConfig(config)) return deserializeThemeConfig(config);
+
   return config as AntdThemeConfig;
 }
 
@@ -164,7 +177,7 @@ export function getDeprecatedColors(
   systemColors: SystemColors,
   isDark: boolean,
 ): DeprecatedThemeColors {
-  const sc = systemColors;
+  const sc: SystemColors = systemColors;
   return {
     primary: genDeprecatedColorVariations(sc.colorPrimary, isDark),
     error: genDeprecatedColorVariations(sc.colorError, isDark),
