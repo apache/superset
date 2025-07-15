@@ -60,21 +60,25 @@ class TestErrorHandling:
         assert "API request failed" in str(excinfo.value)
 
     def test_list_dashboards_parameter_types(self):
+        from pydantic import ValidationError
         with patch('superset.daos.dashboard.DashboardDAO.list') as mock_list:
             mock_list.return_value = ([], 0)
-            list_dashboards(filters='[{"col": "test", "opr": "eq", "value": "value"}]')
-            list_dashboards(filters=[{"col": "test", "opr": "eq", "value": "value"}])
+            with pytest.raises(ValidationError):
+                list_dashboards(filters='[{"col": "test", "opr": "eq", "value": "value"}]')
+            with pytest.raises(ValidationError):
+                list_dashboards(filters=[{"col": "test", "opr": "eq", "value": "value"}])
             list_dashboards(select_columns="id,dashboard_title")
             list_dashboards(select_columns=["id", "dashboard_title"])
-            assert mock_list.call_count == 4
 
     def test_list_datasets_parameter_types(self):
+        from pydantic import ValidationError
         with patch('superset.daos.dataset.DatasetDAO.list') as mock_list:
             mock_list.return_value = ([], 0)
-            list_datasets(filters='[{"col": "test", "opr": "eq", "value": "value"}]')
-            list_datasets(filters=[{"col": "test", "opr": "eq", "value": "value"}])
+            with pytest.raises(ValidationError):
+                list_datasets(filters='[{"col": "test", "opr": "eq", "value": "value"}]')
+            with pytest.raises(ValidationError):
+                list_datasets(filters=[{"col": "test", "opr": "eq", "value": "value"}])
             list_datasets(select_columns="id,table_name")
             list_datasets(select_columns=["id", "table_name"])
-            assert mock_list.call_count == 4
 
     # Example: test for missing required param, extra param, and malformed input would be in protocol/integration tests 

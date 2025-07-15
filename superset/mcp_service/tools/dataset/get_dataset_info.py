@@ -27,6 +27,8 @@ from typing import Any, Annotated
 from pydantic import Field
 from superset.daos.dataset import DatasetDAO
 from superset.mcp_service.pydantic_schemas import DatasetInfo, DatasetError, serialize_dataset_object
+from superset.mcp_service.utils import ModelGetInfoTool
+from superset.mcp_service.pydantic_schemas.dataset_schemas import serialize_dataset_object
 
 logger = logging.getLogger(__name__)
 
@@ -40,24 +42,11 @@ def get_dataset_info(
     Get detailed information about a specific dataset.
     Returns a DatasetInfo model or DatasetError on error.
     """
-    try:
-        dataset = DatasetDAO.find_by_id(dataset_id)
-        if dataset is None:
-            error_data = DatasetError(
-                error=f"Dataset with ID {dataset_id} not found",
-                error_type="not_found",
-                timestamp=datetime.now(timezone.utc)
-            )
-            logger.warning(f"DatasetInfo {dataset_id} error: not_found - not found")
-            return error_data
-        response = serialize_dataset_object(dataset)
-        logger.info(f"DatasetInfo response created successfully for dataset {dataset.id}")
-        return response
-    except Exception as context_error:
-        error_msg = f"Error within Flask app context: {str(context_error)}"
-        logger.error(error_msg, exc_info=True)
-        raise
-    except Exception as e:
-        error_msg = f"Unexpected error in get_dataset_info: {str(e)}"
-        logger.error(error_msg, exc_info=True)
-        raise 
+    tool = ModelGetInfoTool(
+        dao_class=DatasetDAO,
+        output_schema=DatasetInfo,
+        error_schema=DatasetError,
+        serializer=serialize_dataset_object,
+        logger=logger,
+    )
+    return tool.run(dataset_id) 
