@@ -36,8 +36,13 @@ export default function DocVersionBadge() {
   const pluginId = activePlugin?.pluginId;
   const [versionedPath, setVersionedPath] = React.useState('');
 
-  // Only show version selector for docs, components, and tutorials
-  const isVersioned = ['default', 'components', 'tutorials'].includes(pluginId);
+  // Only show version selector for docs, components, tutorials, and developer_portal
+  const isVersioned = [
+    'default',
+    'components',
+    'tutorials',
+    'developer_portal',
+  ].includes(pluginId);
 
   const { preferredVersion } = useDocsPreferredVersion(pluginId);
   const versions = useVersions(pluginId);
