@@ -24,7 +24,7 @@ import pytest
 from flask import Flask, g
 from flask_login import AnonymousUserMixin
 from superset.mcp_service.pydantic_schemas.system_schemas import InstanceInfo, InstanceSummary
-from superset.mcp_service.tools.system import get_superset_instance_info
+from superset.mcp_service.system.tool.get_superset_instance_info import get_superset_instance_info
 from superset.daos.dashboard import DashboardDAO
 from superset.daos.chart import ChartDAO
 from superset.daos.dataset import DatasetDAO

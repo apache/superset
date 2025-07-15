@@ -24,9 +24,9 @@ import pytest
 from superset.mcp_service.pydantic_schemas.dashboard_schemas import (
     DashboardAvailableFilters, DashboardError, DashboardInfo, DashboardList,
 )
-from superset.mcp_service.tools.dashboard import (
-    get_dashboard_available_filters, get_dashboard_info, list_dashboards,
-)
+from superset.mcp_service.dashboard.tool.list_dashboards import list_dashboards
+from superset.mcp_service.dashboard.tool.get_dashboard_info import get_dashboard_info
+from superset.mcp_service.dashboard.tool.get_dashboard_available_filters import get_dashboard_available_filters
 from superset.daos.dashboard import DashboardDAO
 
 logging.basicConfig(level=logging.DEBUG)

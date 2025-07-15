@@ -66,22 +66,18 @@ If you are unsure which tool to use, start with list_dashboards or get_superset_
     )
 
     # Import and register all FastMCP tools
-    from superset.mcp_service.tools import (
-        list_dashboards,
-        get_dashboard_info,
-        get_superset_instance_info,
-        get_dashboard_available_filters,
-        get_dataset_available_filters,
-        list_datasets,
-        get_dataset_info,
-        list_charts,
-        get_chart_info,
-        get_chart_available_filters,
-        create_chart_simple,
-    )
-    from superset.mcp_service.tools.chart import (
-        create_chart,
-    )
+    from superset.mcp_service.dashboard.tool.list_dashboards import list_dashboards
+    from superset.mcp_service.dashboard.tool.get_dashboard_info import get_dashboard_info
+    from superset.mcp_service.dashboard.tool.get_dashboard_available_filters import get_dashboard_available_filters
+    from superset.mcp_service.dataset.tool.list_datasets import list_datasets
+    from superset.mcp_service.dataset.tool.get_dataset_info import get_dataset_info
+    from superset.mcp_service.dataset.tool.get_dataset_available_filters import get_dataset_available_filters
+    from superset.mcp_service.chart.tool.list_charts import list_charts
+    from superset.mcp_service.chart.tool.get_chart_info import get_chart_info
+    from superset.mcp_service.chart.tool.get_chart_available_filters import get_chart_available_filters
+    from superset.mcp_service.chart.tool.create_chart_simple import create_chart_simple
+    from superset.mcp_service.chart.tool.create_chart import create_chart
+    from superset.mcp_service.system.tool.get_superset_instance_info import get_superset_instance_info
 
     mcp.add_tool(mcp.tool()(mcp_auth_hook(list_dashboards)))
     mcp.add_tool(mcp.tool()(mcp_auth_hook(get_dashboard_info)))
