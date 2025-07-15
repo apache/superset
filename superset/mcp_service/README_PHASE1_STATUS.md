@@ -20,7 +20,7 @@ What's Done:
 - Unified FastMCP Server:  
   The service now runs as a single, modular FastMCP server (ASGI, uvicorn-ready), replacing the dual Flask/FastAPI setup.
 - DAO-Based, Strongly-Typed Tools:  
-  All core read/list/count operations use DAOs, wrapped by a generic MCPDAOWrapper for secure, context-aware access.  
+  All core read/list/count operations use DAOs, orchestrated by the ModelListTool abstraction for secure, context-aware access.  
   Tools are modular, domain-organized, and use Pydantic schemas for all input/output.
 - Documentation & Architecture:  
   Architecture and extension guides are up-to-date, with diagrams and clear instructions for adding new tools or extending the service.
@@ -61,16 +61,16 @@ Core MCP Actions Implemented (3):
 ## Architecture Diagram
 
 ```mermaid
-graph TD
+flowchart TD
     subgraph FastMCP Service
-        A[LLM/Agent or Client]
-        B[FastMCP Tool Call]
-        C[MCPDAOWrapper]
-        D1[DashboardDAO]
-        D2[ChartDAO]
-        D3[DatasetDAO]
-        E[Superset DB]
-        F[Superset Command - planned for mutations]
+        A["LLM/Agent or Client"]
+        B["FastMCP Tool Call"]
+        C["Tool Entrypoint (with mcp_auth_hook)"]
+        D1["DashboardDAO"]
+        D2["ChartDAO"]
+        D3["DatasetDAO"]
+        E["Superset DB"]
+        F["Superset Command (planned for mutations)"]
     end
 
     A --> B
@@ -87,6 +87,21 @@ graph TD
     F --> D2
     F --> D3
     F --> E
+```
+
+## Roadmap/Phases
+
+```mermaid
+flowchart TD
+    subgraph Status
+        S1["Phase 1: List/Count Tools"]
+        S2["Phase 2: Mutations"]
+        S3["Phase 3: Navigation"]
+        S4["Phase 4: RBAC/Enterprise"]
+    end
+    S1 --> S2
+    S2 --> S3
+    S3 --> S4
 ```
 
 ## Summary

@@ -22,19 +22,13 @@ This module contains the FastMCP tool for listing datasets using
 advanced filtering with complex filter objects and JSON payload.
 """
 import logging
-from datetime import datetime, timezone
-from typing import Annotated, Any, Literal, Optional
-import json
+from typing import Annotated, Literal, Optional
 
-from pydantic import BaseModel, conlist, constr, Field, PositiveInt
+from pydantic import conlist, constr, Field, PositiveInt
 from superset.daos.dataset import DatasetDAO
-from superset.mcp_service.pydantic_schemas import (
-    DatasetList,
-    PaginationInfo,
-    serialize_dataset_object,
-    DatasetInfo,
-)
+from superset.mcp_service.pydantic_schemas import (DatasetInfo, DatasetList)
 from superset.mcp_service.pydantic_schemas.dataset_schemas import DatasetFilter
+from superset.mcp_service.utils import ModelListTool
 
 logger = logging.getLogger(__name__)
 
@@ -42,6 +36,7 @@ DEFAULT_DATASET_COLUMNS = [
     "id", "table_name", "db_schema", "database_name",
     "changed_by_name", "changed_on", "created_by_name", "created_on"
 ]
+
 
 def list_datasets(
     filters: Annotated[
@@ -74,62 +69,32 @@ def list_datasets(
     ] = 100,
 ) -> DatasetList:
     """
-    ADVANCED FILTERING: List datasets using complex filter objects and JSON payload
-    Returns a DatasetList Pydantic model (not a dict), matching list_datasets_simple.
+    List datasets with advanced filtering, search, and column selection.
     """
-    # Ensure select_columns is a list
-    if select_columns:
-        if isinstance(select_columns, str):
-            select_columns = [col.strip() for col in select_columns.split(",") if col.strip()]
-        columns_to_load = select_columns
-    else:
-        columns_to_load = DEFAULT_DATASET_COLUMNS
-    # Replace dao_wrapper usage with DatasetDAO
-    datasets, total_count = DatasetDAO.list(
-        column_operators=filters,
-        order_column=order_column or "changed_on",
-        order_direction=order_direction or "desc",
-        page=page,
-        page_size=page_size,
-        search=search,
+    tool = ModelListTool(
+        dao_class=DatasetDAO,
+        output_schema=DatasetInfo,
+        item_serializer=lambda obj, cols: DatasetInfo(**dict(obj._mapping)) if not cols else DatasetInfo(**{k: v for k, v in dict(obj._mapping).items() if k in cols}),
+        filter_type=DatasetFilter,
+        default_columns=DEFAULT_DATASET_COLUMNS,
         search_columns=[
             "catalog",
             "schema",
             "sql",
             "table_name",
             "uuid",
+            "tags"
         ],
-        custom_filters=None,
-        columns=columns_to_load,
+        list_field_name="datasets",
+        output_list_schema=DatasetList,
+        logger=logger,
     )
-    dataset_items = []
-    for dataset in datasets:
-        item = serialize_dataset_object(dataset)
-        if item is not None:
-            dataset_items.append(item)
-    total_pages = (total_count + page_size - 1) // page_size if page_size > 0 else 0
-    pagination_info = PaginationInfo(
-        page=page,
+    return tool.run(
+        filters=filters,
+        search=search,
+        select_columns=select_columns,
+        order_column=order_column,
+        order_direction=order_direction,
+        page=max(page - 1, 0),
         page_size=page_size,
-        total_count=total_count,
-        total_pages=total_pages,
-        has_next=page < total_pages - 1,
-        has_previous=page > 0
     )
-    response = DatasetList(
-        datasets=dataset_items,
-        count=len(dataset_items),
-        total_count=total_count,
-        page=page,
-        page_size=page_size,
-        total_pages=total_pages,
-        has_previous=page > 0,
-        has_next=page < total_pages - 1,
-        columns_requested=select_columns if select_columns else DEFAULT_DATASET_COLUMNS,
-        columns_loaded=list(set([col for item in dataset_items for col in item.model_dump().keys()])),
-        filters_applied=filters if isinstance(filters, list) else [],
-        pagination=pagination_info,
-        timestamp=datetime.now(timezone.utc)
-    )
-    logger.info(f"Successfully retrieved {len(dataset_items)} datasets")
-    return response

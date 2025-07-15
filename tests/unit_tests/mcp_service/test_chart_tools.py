@@ -61,6 +61,47 @@ class TestChartTools:
         chart.created_on_humanized = "2 days ago"
         chart.tags = []
         chart.owners = []
+        chart.to_model = lambda: ChartInfo(
+            id=chart.id,
+            slice_name=chart.slice_name,
+            viz_type=chart.viz_type,
+            datasource_name=chart.datasource_name,
+            datasource_type=chart.datasource_type,
+            url=chart.url,
+            description=chart.description,
+            cache_timeout=chart.cache_timeout,
+            form_data=chart.form_data,
+            query_context=chart.query_context,
+            changed_by_name=chart.changed_by_name,
+            changed_on=chart.changed_on,
+            changed_on_humanized=chart.changed_on_humanized,
+            created_by_name=chart.created_by_name,
+            created_on=chart.created_on,
+            created_on_humanized=chart.created_on_humanized,
+            tags=chart.tags,
+            owners=chart.owners,
+        )
+        # Patch _mapping to a real dict for item_serializer compatibility
+        chart._mapping = {
+            'id': chart.id,
+            'slice_name': chart.slice_name,
+            'viz_type': chart.viz_type,
+            'datasource_name': chart.datasource_name,
+            'datasource_type': chart.datasource_type,
+            'url': chart.url,
+            'description': chart.description,
+            'cache_timeout': chart.cache_timeout,
+            'form_data': chart.form_data,
+            'query_context': chart.query_context,
+            'changed_by_name': chart.changed_by_name,
+            'changed_on': chart.changed_on,
+            'changed_on_humanized': chart.changed_on_humanized,
+            'created_by_name': chart.created_by_name,
+            'created_on': chart.created_on,
+            'created_on_humanized': chart.created_on_humanized,
+            'tags': chart.tags,
+            'owners': chart.owners,
+        }
         mock_list.return_value = ([chart], 1)
         result = list_charts()
         assert result.count == 1
@@ -88,6 +129,47 @@ class TestChartTools:
         chart.created_on_humanized = "2 days ago"
         chart.tags = []
         chart.owners = []
+        chart.to_model = lambda: ChartInfo(
+            id=chart.id,
+            slice_name=chart.slice_name,
+            viz_type=chart.viz_type,
+            datasource_name=chart.datasource_name,
+            datasource_type=chart.datasource_type,
+            url=chart.url,
+            description=chart.description,
+            cache_timeout=chart.cache_timeout,
+            form_data=chart.form_data,
+            query_context=chart.query_context,
+            changed_by_name=chart.changed_by_name,
+            changed_on=chart.changed_on,
+            changed_on_humanized=chart.changed_on_humanized,
+            created_by_name=chart.created_by_name,
+            created_on=chart.created_on,
+            created_on_humanized=chart.created_on_humanized,
+            tags=chart.tags,
+            owners=chart.owners,
+        )
+        # Patch _mapping to a real dict for item_serializer compatibility
+        chart._mapping = {
+            'id': chart.id,
+            'slice_name': chart.slice_name,
+            'viz_type': chart.viz_type,
+            'datasource_name': chart.datasource_name,
+            'datasource_type': chart.datasource_type,
+            'url': chart.url,
+            'description': chart.description,
+            'cache_timeout': chart.cache_timeout,
+            'form_data': chart.form_data,
+            'query_context': chart.query_context,
+            'changed_by_name': chart.changed_by_name,
+            'changed_on': chart.changed_on,
+            'changed_on_humanized': chart.changed_on_humanized,
+            'created_by_name': chart.created_by_name,
+            'created_on': chart.created_on,
+            'created_on_humanized': chart.created_on_humanized,
+            'tags': chart.tags,
+            'owners': chart.owners,
+        }
         mock_list.return_value = ([chart], 1)
         result = list_charts(search="search_chart")
         assert result.count == 1
@@ -144,6 +226,26 @@ class TestChartTools:
         chart.created_on_humanized = "2 days ago"
         chart.tags = []
         chart.owners = []
+        chart.to_model = lambda: ChartInfo(
+            id=chart.id,
+            slice_name=chart.slice_name,
+            viz_type=chart.viz_type,
+            datasource_name=chart.datasource_name,
+            datasource_type=chart.datasource_type,
+            url=chart.url,
+            description=chart.description,
+            cache_timeout=chart.cache_timeout,
+            form_data=chart.form_data,
+            query_context=chart.query_context,
+            changed_by_name=chart.changed_by_name,
+            changed_on=chart.changed_on,
+            changed_on_humanized=chart.changed_on_humanized,
+            created_by_name=chart.created_by_name,
+            created_on=chart.created_on,
+            created_on_humanized=chart.created_on_humanized,
+            tags=chart.tags,
+            owners=chart.owners,
+        )
         mock_info.return_value = chart  # Only the chart object
         result = get_chart_info(1)
         assert result.slice_name == "Test Chart"
@@ -189,6 +291,26 @@ class TestChartTools:
         chart.created_on_humanized = "2 days ago"
         chart.tags = []
         chart.owners = []
+        chart.to_model = lambda: ChartInfo(
+            id=chart.id,
+            slice_name=chart.slice_name,
+            viz_type=chart.viz_type,
+            datasource_name=chart.datasource_name,
+            datasource_type=chart.datasource_type,
+            url=chart.url,
+            description=chart.description,
+            cache_timeout=chart.cache_timeout,
+            form_data=chart.form_data,
+            query_context=chart.query_context,
+            changed_by_name=chart.changed_by_name,
+            changed_on=chart.changed_on,
+            changed_on_humanized=chart.changed_on_humanized,
+            created_by_name=chart.created_by_name,
+            created_on=chart.created_on,
+            created_on_humanized=chart.created_on_humanized,
+            tags=chart.tags,
+            owners=chart.owners,
+        )
         mock_run.return_value = chart
         req = CreateSimpleChartRequest(
             slice_name="Created Chart",
@@ -228,6 +350,26 @@ class TestChartTools:
         chart.created_on_humanized = "2 days ago"
         chart.tags = []
         chart.owners = []
+        chart.to_model = lambda: ChartInfo(
+            id=chart.id,
+            slice_name=chart.slice_name,
+            viz_type=chart.viz_type,
+            datasource_name=chart.datasource_name,
+            datasource_type=chart.datasource_type,
+            url=chart.url,
+            description=chart.description,
+            cache_timeout=chart.cache_timeout,
+            form_data=chart.form_data,
+            query_context=chart.query_context,
+            changed_by_name=chart.changed_by_name,
+            changed_on=chart.changed_on,
+            changed_on_humanized=chart.changed_on_humanized,
+            created_by_name=chart.created_by_name,
+            created_on=chart.created_on,
+            created_on_humanized=chart.created_on_humanized,
+            tags=chart.tags,
+            owners=chart.owners,
+        )
         return chart
 
     @patch('superset.commands.chart.create.CreateChartCommand.run')
@@ -340,6 +482,26 @@ class TestChartTools:
         chart.created_on_humanized = "2 days ago"
         chart.tags = []
         chart.owners = []
+        chart.to_model = lambda: ChartInfo(
+            id=chart.id,
+            slice_name=chart.slice_name,
+            viz_type=chart.viz_type,
+            datasource_name=chart.datasource_name,
+            datasource_type=chart.datasource_type,
+            url=chart.url,
+            description=chart.description,
+            cache_timeout=chart.cache_timeout,
+            form_data=chart.form_data,
+            query_context=chart.query_context,
+            changed_by_name=chart.changed_by_name,
+            changed_on=chart.changed_on,
+            changed_on_humanized=chart.changed_on_humanized,
+            created_by_name=chart.created_by_name,
+            created_on=chart.created_on,
+            created_on_humanized=chart.created_on_humanized,
+            tags=chart.tags,
+            owners=chart.owners,
+        )
         mock_run.return_value = chart
         req = TableChartCreateRequest(
             slice_name="Table Chart",

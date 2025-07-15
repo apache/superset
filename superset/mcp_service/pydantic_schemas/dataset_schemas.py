@@ -92,7 +92,7 @@ class DatasetList(BaseModel):
     has_next: bool
     columns_requested: Optional[List[str]] = None
     columns_loaded: Optional[List[str]] = None
-    filters_applied: List[dict] = Field(default_factory=list, description="List of advanced filter dicts applied to the query.")
+    filters_applied: List[DatasetFilter] = Field(default_factory=list, description="List of advanced filter dicts applied to the query.")
     pagination: Optional[PaginationInfo] = None
     timestamp: Optional[datetime] = None
     model_config = ConfigDict(ser_json_timedelta="iso8601")

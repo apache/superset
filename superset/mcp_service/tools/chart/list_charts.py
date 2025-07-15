@@ -18,15 +18,28 @@
 """
 MCP tool: list_charts (advanced filtering)
 """
-from typing import Any, Dict, List, Optional, Literal, Annotated, Union
-from superset.mcp_service.pydantic_schemas import ChartList, ChartInfo
-from superset.mcp_service.pydantic_schemas.chart_schemas import serialize_chart_object
-from datetime import datetime, timezone
-from pydantic import BaseModel, conlist, constr, PositiveInt, Field
-from superset.mcp_service.pydantic_schemas.dashboard_schemas import PaginationInfo
+import logging
+from typing import Annotated, Literal, Optional
+
+from pydantic import conlist, constr, Field, PositiveInt
 from superset.daos.chart import ChartDAO
+from superset.mcp_service.pydantic_schemas import ChartInfo, ChartList
 from superset.mcp_service.pydantic_schemas.chart_schemas import ChartFilter
-import json
+from superset.mcp_service.utils import ModelListTool
+
+logger = logging.getLogger(__name__)
+
+DEFAULT_CHART_COLUMNS = [
+    "id",
+    "slice_name",
+    "viz_type",
+    "datasource_name",
+    "description",
+    "changed_by_name",
+    "created_by_name",
+    "changed_on",
+    "created_on",
+]
 
 
 def list_charts(
@@ -34,13 +47,13 @@ def list_charts(
         Optional[conlist(ChartFilter, min_length=0)],
         Field(description="List of filter objects (column, operator, value)")
     ] = None,
-    columns: Annotated[
-        Optional[conlist(constr(strip_whitespace=True, min_length=1), min_length=1)],
-        Field(description="List of columns to include in the response")
+    search: Annotated[
+        Optional[str],
+        Field(description="Text search string to match against chart fields")
     ] = None,
-    keys: Annotated[
+    select_columns: Annotated[
         Optional[conlist(constr(strip_whitespace=True, min_length=1), min_length=1)],
-        Field(description="List of keys to include in the response")
+        Field(description="List of columns to select (overrides 'columns' and 'keys')")
     ] = None,
     order_column: Annotated[
         Optional[constr(strip_whitespace=True, min_length=1)],
@@ -58,56 +71,33 @@ def list_charts(
         PositiveInt,
         Field(description="Number of items per page")
     ] = 100,
-    select_columns: Annotated[
-        Optional[conlist(constr(strip_whitespace=True, min_length=1), min_length=1)],
-        Field(description="List of columns to select (overrides 'columns' and 'keys')")
-    ] = None,
-    search: Annotated[
-        Optional[str],
-        Field(description="Text search string to match against chart fields")
-    ] = None,
 ) -> ChartList:
     """
-    List charts with advanced filtering (MCP tool).
-    Returns a ChartList Pydantic model (not a dict), matching list_dashboards and list_datasets.
+    List charts with advanced filtering, search, and column selection.
     """
-    # If filters is a string (e.g., from a test), parse it as JSON
-    if isinstance(filters, str):
-        filters = json.loads(filters)
-    # Replace chart_wrapper usage with ChartDAO
-    charts, total_count = ChartDAO.list(
-        column_operators=filters,
-        order_column=order_column or "changed_on",
-        order_direction=order_direction or "desc",
-        page=page,
-        page_size=page_size,
+    tool = ModelListTool(
+        dao_class=ChartDAO,
+        output_schema=ChartInfo,
+        item_serializer=lambda obj, cols: ChartInfo(**dict(obj._mapping)) if not cols else ChartInfo(**{k: v for k, v in dict(obj._mapping).items() if k in cols}),
+        filter_type=ChartFilter,
+        default_columns=DEFAULT_CHART_COLUMNS,
+        search_columns=[
+            "slice_name",
+            "viz_type",
+            "datasource_name",
+            "description",
+            "tags",
+        ],
+        list_field_name="charts",
+        output_list_schema=ChartList,
+        logger=logger,
+    )
+    return tool.run(
+        filters=filters,
         search=search,
-        search_columns=["slice_name", "viz_type", "datasource_name"] if search else None,
-    )
-    # ChartList expects a list of ChartInfo
-    chart_items = [serialize_chart_object(chart) for chart in charts]
-    total_pages = (total_count + page_size - 1) // page_size if page_size > 0 else 0
-    pagination_info = PaginationInfo(
-        page=page,
+        select_columns=select_columns,
+        order_column=order_column,
+        order_direction=order_direction,
+        page=max(page - 1,0),
         page_size=page_size,
-        total_count=total_count,
-        total_pages=total_pages,
-        has_next=page < total_pages,
-        has_previous=page > 1
-    )
-    response = ChartList(
-        charts=chart_items,
-        count=len(chart_items),
-        total_count=total_count,
-        page=page,
-        page_size=page_size,
-        total_pages=total_pages,
-        has_previous=page > 1,
-        has_next=page < total_pages - 1,
-        columns_requested=columns or [],
-        columns_loaded=columns or [],
-        filters_applied=filters if isinstance(filters, list) else [],
-        pagination=pagination_info,
-        timestamp=datetime.now(timezone.utc),
-    )
-    return response 
+    ) 
