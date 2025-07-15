@@ -81,7 +81,7 @@ const TimeComparisonVisibility: React.FC<TimeComparisonVisibilityProps> = ({
         selectedKeys: selectedComparisonColumns,
         items: [
           {
-            key: 'group1',
+            key: 'all',
             label: (
               <InfoText>
                 {t(
