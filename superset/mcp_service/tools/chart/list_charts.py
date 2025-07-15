@@ -20,7 +20,6 @@ MCP tool: list_charts (advanced filtering)
 """
 from typing import Any, Dict, List, Optional, Literal, Annotated, Union
 from superset.mcp_service.pydantic_schemas import ChartList, ChartInfo
-from superset.mcp_service.dao_wrapper import MCPDAOWrapper
 from superset.mcp_service.pydantic_schemas.chart_schemas import serialize_chart_object
 from datetime import datetime, timezone
 from pydantic import BaseModel, conlist, constr, PositiveInt, Field
@@ -75,12 +74,12 @@ def list_charts(
     # If filters is a string (e.g., from a test), parse it as JSON
     if isinstance(filters, str):
         filters = json.loads(filters)
-    chart_wrapper = MCPDAOWrapper(ChartDAO, "chart")
-    charts, total_count = chart_wrapper.list(
+    # Replace chart_wrapper usage with ChartDAO
+    charts, total_count = ChartDAO.list(
         column_operators=filters,
         order_column=order_column or "changed_on",
         order_direction=order_direction or "desc",
-        page=max(page - 1, 0),
+        page=page,
         page_size=page_size,
         search=search,
         search_columns=["slice_name", "viz_type", "datasource_name"] if search else None,
