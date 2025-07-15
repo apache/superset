@@ -24,9 +24,9 @@ import pytest
 from superset.mcp_service.pydantic_schemas.dataset_schemas import (
     DatasetAvailableFilters, DatasetList, DatasetError, DatasetInfo
 )
-from superset.mcp_service.tools.dataset import (
-    get_dataset_available_filters, get_dataset_info, list_datasets,
-)
+from superset.mcp_service.dataset.tool.list_datasets import list_datasets
+from superset.mcp_service.dataset.tool.get_dataset_info import get_dataset_info
+from superset.mcp_service.dataset.tool.get_dataset_available_filters import get_dataset_available_filters
 from superset.daos.dataset import DatasetDAO
 
 logging.basicConfig(level=logging.DEBUG)

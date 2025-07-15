@@ -28,9 +28,12 @@ from superset.mcp_service.pydantic_schemas.chart_schemas import (
     EchartsAreaChartCreateRequest,
     TableChartCreateRequest,
 )
-from superset.mcp_service.tools.chart import (
-    list_charts, get_chart_info, get_chart_available_filters, create_chart_simple, create_chart
-)
+# Updated imports for new tool structure
+from superset.mcp_service.chart.tool.list_charts import list_charts
+from superset.mcp_service.chart.tool.get_chart_info import get_chart_info
+from superset.mcp_service.chart.tool.get_chart_available_filters import get_chart_available_filters
+from superset.mcp_service.chart.tool.create_chart_simple import create_chart_simple
+from superset.mcp_service.chart.tool.create_chart import create_chart
 from superset.mcp_service.pydantic_schemas.chart_schemas import CreateSimpleChartRequest
 from superset.daos.chart import ChartDAO
 
@@ -373,7 +376,8 @@ class TestChartTools:
         return chart
 
     @patch('superset.commands.chart.create.CreateChartCommand.run')
-    @patch('superset.mcp_service.tools.chart.create_chart.CreateChartCommand')
+    # Updated patch path for new tool structure
+    @patch('superset.mcp_service.chart.tool.create_chart.CreateChartCommand')
     def test_create_chart_echarts_line_full_fields(self, mock_cmd_cls, mock_run):
         mock_cmd = Mock()
         mock_cmd.run.return_value = self._mock_chart(id=123, viz_type="echarts_timeseries_line")
@@ -536,7 +540,8 @@ class TestChartTools:
         assert "Chart creation failed" in result.error 
 
     @patch('superset.commands.chart.create.CreateChartCommand.run')
-    @patch('superset.mcp_service.tools.chart.create_chart.CreateChartCommand')
+    # Updated patch path for new tool structure
+    @patch('superset.mcp_service.chart.tool.create_chart.CreateChartCommand')
     def test_create_chart_echarts_line_full_fields(self, mock_cmd_cls, mock_run):
         mock_cmd = Mock()
         mock_cmd.run.return_value = self._mock_chart(id=123, viz_type="echarts_timeseries_line")
