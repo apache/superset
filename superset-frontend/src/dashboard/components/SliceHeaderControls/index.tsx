@@ -259,7 +259,7 @@ const SliceHeaderControls = (
       case MenuKeys.ExportPivotXlsx: {
         props.exportPivotExcel?.('.pvtTable', props.slice.slice_name);
         break;
-      }      
+      }
       case MenuKeys.CrossFilterScoping: {
         openScopingModal();
         break;
