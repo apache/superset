@@ -41,6 +41,7 @@ import { ExploreResponsePayload, SaveActionType } from 'src/explore/types';
 import { fallbackExploreInitialData } from 'src/explore/fixtures';
 import { getItem, LocalStorageKeys } from 'src/utils/localStorageHelpers';
 import { getFormDataWithDashboardContext } from 'src/explore/controlUtils/getFormDataWithDashboardContext';
+import type Chart from 'src/types/Chart';
 
 const isValidResult = (rv: JsonObject): boolean =>
   rv?.result?.form_data && rv?.result?.dataset;
@@ -156,32 +157,62 @@ export default function ExplorePage() {
             }),
           );
         })
-        .catch(err => {
-          getClientErrorObject(err).then(clientError => {
-            const errorMesage =
-              clientError.message ||
-              clientError.error ||
-              t('Failed to load chart data.');
+        .catch(err => Promise.all([getClientErrorObject(err), err]))
+        .then(resolved => {
+          const [clientError, err] = resolved || [];
+          if (!err) {
+            return Promise.resolve();
+          }
+          const errorMesage =
+            clientError?.message ||
+            clientError?.error ||
+            t('Failed to load chart data.');
+          dispatch(addDangerToast(errorMesage));
 
-            if (err.extra?.datasource) {
-              dispatch(
-                hydrateExplore({
-                  ...fallbackExploreInitialData,
-                  dataset: {
-                    ...fallbackExploreInitialData.dataset,
-                    id: err.extra?.datasource,
-                    name: err.extra?.datasource_name,
-                    extra: {
-                      error: err,
-                    },
-                  },
-                }),
-              );
-            } else {
-              dispatch(hydrateExplore(fallbackExploreInitialData));
-            }
-            dispatch(addDangerToast(errorMesage));
-          });
+          if (err.extra?.datasource) {
+            const exploreData = {
+              ...fallbackExploreInitialData,
+              dataset: {
+                ...fallbackExploreInitialData.dataset,
+                id: err.extra?.datasource,
+                name: err.extra?.datasource_name,
+                extra: {
+                  error: err,
+                },
+              },
+            };
+            const chartId = exploreUrlParams.get('slice_id');
+            return (
+              chartId
+                ? makeApi<void, { result: Chart }>({
+                    method: 'GET',
+                    endpoint: `api/v1/chart/${chartId}`,
+                  })()
+                : Promise.reject()
+            )
+              .then(
+                ({ result: { id, url, owners, form_data: _, ...data } }) => {
+                  const slice = {
+                    ...data,
+                    datasource: err.extra?.datasource_name,
+                    slice_id: id,
+                    slice_url: url,
+                    owners: owners?.map(({ id }) => id),
+                  };
+                  dispatch(
+                    hydrateExplore({
+                      ...exploreData,
+                      slice,
+                    }),
+                  );
+                },
+              )
+              .catch(() => {
+                dispatch(hydrateExplore(exploreData));
+              });
+          }
+          dispatch(hydrateExplore(fallbackExploreInitialData));
+          return Promise.resolve();
         })
         .finally(() => {
           setIsLoaded(true);
