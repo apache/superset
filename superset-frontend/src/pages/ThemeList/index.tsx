@@ -26,7 +26,12 @@ import { createErrorHandler, createFetchRelated } from 'src/views/CRUD/utils';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import { useThemeContext } from 'src/theme/ThemeProvider';
 import SubMenu, { SubMenuProps } from 'src/features/home/SubMenu';
-import { DeleteModal, ConfirmStatusChange } from '@superset-ui/core/components';
+import {
+  DeleteModal,
+  ConfirmStatusChange,
+  Loading,
+} from '@superset-ui/core/components';
+import handleResourceExport from 'src/utils/export';
 import {
   ModifiedInfo,
   ListView,
@@ -74,10 +79,12 @@ function ThemesList({
   const { setTemporaryTheme } = useThemeContext();
   const [themeModalOpen, setThemeModalOpen] = useState<boolean>(false);
   const [currentTheme, setCurrentTheme] = useState<ThemeObject | null>(null);
+  const [preparingExport, setPreparingExport] = useState<boolean>(false);
 
   const canCreate = hasPerm('can_write');
   const canEdit = hasPerm('can_write');
   const canDelete = hasPerm('can_write');
+  const canExport = hasPerm('can_export');
   const canApply = hasPerm('can_write'); // Only users with write permission can apply themes
 
   const [themeCurrentlyDeleting, setThemeCurrentlyDeleting] =
@@ -137,6 +144,16 @@ function ThemesList({
     }
   }
 
+  const handleBulkThemeExport = (themesToExport: ThemeObject[]) => {
+    const ids = themesToExport
+      .map(({ id }) => id)
+      .filter((id): id is number => id !== undefined);
+    handleResourceExport('theme', ids, () => {
+      setPreparingExport(false);
+    });
+    setPreparingExport(true);
+  };
+
   const initialSort = [{ id: 'theme_name', desc: true }];
   const columns = useMemo(
     () => [
@@ -165,6 +182,7 @@ function ThemesList({
           const handleEdit = () => handleThemeEdit(original);
           const handleDelete = () => setThemeCurrentlyDeleting(original);
           const handleApply = () => handleThemeApply(original);
+          const handleExport = () => handleBulkThemeExport([original]);
 
           const actions = [
             canApply
@@ -185,6 +203,15 @@ function ThemesList({
                   onClick: handleEdit,
                 }
               : null,
+            canExport
+              ? {
+                  label: 'export-action',
+                  tooltip: t('Export theme'),
+                  placement: 'bottom',
+                  icon: 'UploadOutlined',
+                  onClick: handleExport,
+                }
+              : null,
             canDelete
               ? {
                   label: 'delete-action',
@@ -203,7 +230,7 @@ function ThemesList({
         Header: t('Actions'),
         id: 'actions',
         disableSortBy: true,
-        hidden: !canEdit && !canDelete && !canApply,
+        hidden: !canEdit && !canDelete && !canApply && !canExport,
         size: 'xl',
       },
       {
@@ -212,7 +239,7 @@ function ThemesList({
         id: QueryObjectColumns.ChangedBy,
       },
     ],
-    [canDelete, canCreate, canApply],
+    [canDelete, canCreate, canApply, canExport],
   );
 
   const menuData: SubMenuProps = {
@@ -233,7 +260,7 @@ function ThemesList({
     });
   }
 
-  if (canDelete) {
+  if (canDelete || canExport) {
     subMenuButtons.push({
       name: t('Bulk select'),
       onClick: toggleBulkSelect,
@@ -305,16 +332,23 @@ function ThemesList({
         onConfirm={handleBulkThemeDelete}
       >
         {confirmDelete => {
-          const bulkActions: ListViewProps['bulkActions'] = canDelete
-            ? [
-                {
-                  key: 'delete',
-                  name: t('Delete'),
-                  onSelect: confirmDelete,
-                  type: 'danger',
-                },
-              ]
-            : [];
+          const bulkActions: ListViewProps['bulkActions'] = [];
+          if (canDelete) {
+            bulkActions.push({
+              key: 'delete',
+              name: t('Delete'),
+              onSelect: confirmDelete,
+              type: 'danger',
+            });
+          }
+          if (canExport) {
+            bulkActions.push({
+              key: 'export',
+              name: t('Export'),
+              type: 'primary',
+              onSelect: handleBulkThemeExport,
+            });
+          }
 
           return (
             <ListView<ThemeObject>
@@ -337,6 +371,7 @@ function ThemesList({
           );
         }}
       </ConfirmStatusChange>
+      {preparingExport && <Loading />}
     </>
   );
 }
