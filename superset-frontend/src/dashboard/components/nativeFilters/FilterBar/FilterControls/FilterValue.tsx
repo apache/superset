@@ -108,7 +108,6 @@ const FilterValue: FC<FilterControlProps> = ({
     state => state.dashboardInfo.id,
   );
 
-  const allFilters = useFilters();
   const [error, setError] = useState<ClientErrorObject>();
   const [formData, setFormData] = useState<Partial<QueryFormData>>({
     inView: false,
@@ -157,6 +156,7 @@ const FilterValue: FC<FilterControlProps> = ({
       dashboardId,
     });
     const filterOwnState = filter.dataMask?.ownState || {};
+    // if (Object.keys(dataMaskSelected))
     if (filter?.cascadeParentIds?.length) {
       // Prevent unnecessary backend requests by validating parent filter selections first
 
@@ -164,12 +164,11 @@ const FilterValue: FC<FilterControlProps> = ({
 
       filter?.cascadeParentIds?.forEach(pId => {
         if (
-          allFilters[pId]?.controlValues?.defaultToFirstItem ||
-          allFilters[pId]?.defaultDataMask?.extraFormData?.filters ||
-          allFilters[pId]?.defaultDataMask?.extraFormData?.time_range
+          dataMaskSelected?.[pId]?.extraFormData?.filters ||
+          dataMaskSelected?.[pId]?.extraFormData?.time_range
         ) {
           selectedParentFilterValueCounts +=
-            allFilters[pId]?.defaultDataMask?.extraFormData?.filters?.length ??
+            dataMaskSelected?.[pId]?.extraFormData?.filters?.length ??
             1;
         }
       });
@@ -260,7 +259,7 @@ const FilterValue: FC<FilterControlProps> = ({
     hasDataSource,
     isRefreshing,
     shouldRefresh,
-    allFilters,
+    dataMaskSelected
   ]);
 
   useEffect(() => {
