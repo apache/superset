@@ -23,7 +23,6 @@ import { useSelector } from 'react-redux';
 import { Link } from 'react-router-dom';
 import { useQueryParams, BooleanParam } from 'use-query-params';
 import { get, isEmpty } from 'lodash';
-import ThemeEditor from '@superset-ui/core/components/ThemeEditor';
 
 import {
   t,
@@ -184,12 +183,7 @@ const RightMenu = ({
     useState<boolean>(false);
   const isAdmin = isUserAdmin(user);
   const showUploads = allowUploads || isAdmin;
-  const {
-    theme: themeEditorTheme,
-    setTheme,
-    setThemeMode,
-    themeMode,
-  } = useThemeContext();
+  const { setThemeMode, themeMode } = useThemeContext();
   const dropdownItems: MenuObjectProps[] = [
     {
       label: t('Data'),

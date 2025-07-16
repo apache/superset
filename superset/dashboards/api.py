@@ -217,6 +217,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         "tags.id",
         "tags.name",
         "tags.type",
+        "theme_id",
         "uuid",
     ]
 
@@ -239,6 +240,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         "roles",
         "position_json",
         "css",
+        "theme_id",
         "json_metadata",
         "published",
     ]
