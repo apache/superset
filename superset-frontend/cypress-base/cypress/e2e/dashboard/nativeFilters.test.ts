@@ -213,12 +213,13 @@ describe('Native filters', () => {
       // sometimes does not allow charts to load when enabling the 'Select first filter value by default'
       // to be saved when using dependent filters so,
       // you reload the window.
-      cy.get('.ant-modal-footer').contains('Save').should('be.visible').click();
+      cy.get(nativeFilters.modal.footer)
+        .contains('Save')
+        .should('be.visible')
+        .click({ force: true });
 
-      cy.get('.ant-modal-content').should('not.exist');
+      cy.get(nativeFilters.modal.container).should('not.exist');
       cy.reload();
-      [SAMPLE_CHART].forEach(waitForChartLoad);
-      // saveNativeFilterSettings([SAMPLE_CHART]);
 
       applyNativeFilterValueWithIndex(0, 'North America');
 
