@@ -49,6 +49,22 @@ class DashboardDAO(BaseDAO[Dashboard]):
     base_filter = DashboardAccessFilter
 
     @classmethod
+    def get_filterable_columns_and_operators(cls) -> dict:
+        filterable = super().get_filterable_columns_and_operators()
+        # Add custom fields for dashboards
+        filterable.update({
+            "tags": ["eq", "in_", "like"],
+            "owner": ["eq", "in_"],
+            "created_by": ["eq", "in_"],
+            "changed_by": ["eq", "in_"],
+            "published": ["eq"],
+            "certified": ["eq"],
+            "favorite": ["eq"],
+            "chart_count": ["eq", "gte", "lte"],
+        })
+        return filterable
+
+    @classmethod
     def get_by_id_or_slug(cls, id_or_slug: int | str) -> Dashboard:
         if is_uuid(id_or_slug):
             # just get dashboard if it's uuid

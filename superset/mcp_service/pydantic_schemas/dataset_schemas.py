@@ -28,9 +28,7 @@ from superset.mcp_service.pydantic_schemas.system_schemas import PaginationInfo,
 
 
 class DatasetAvailableFilters(BaseModel):
-    filters: Dict[str, Any] = Field(..., description="Available filters and their metadata")
-    operators: List[str] = Field(..., description="Supported filter operators")
-    columns: List[str] = Field(..., description="Available columns for filtering")
+    column_operators: Dict[str, List[str]] = Field(..., description="Available filter operators for each column: mapping from column name to list of supported operators")
 
 class DatasetFilter(ColumnOperator):
     """

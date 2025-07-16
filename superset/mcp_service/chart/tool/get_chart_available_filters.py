@@ -18,9 +18,13 @@
 """
 MCP tool: get_chart_available_filters
 """
+import logging
 from superset.mcp_service.auth import mcp_auth_hook
 from superset.mcp_service.pydantic_schemas import ChartAvailableFiltersResponse
 from superset.mcp_service.mcp_app import mcp
+from superset.mcp_service.model_tools import ModelGetAvailableFiltersTool
+
+logger = logging.getLogger(__name__)
 
 @mcp.tool
 @mcp_auth_hook
@@ -28,17 +32,10 @@ def get_chart_available_filters() -> ChartAvailableFiltersResponse:
     """
     Return available chart filter fields, types, and supported operators (MCP tool).
     """
-    filters = {
-        "slice_name": {"type": "string", "description": "Chart name"},
-        "viz_type": {"type": "string", "description": "Visualization type"},
-        "datasource_name": {"type": "string", "description": "Datasource name"},
-        "changed_by": {"type": "string", "description": "Last modifier (username)"},
-        "created_by": {"type": "string", "description": "Chart creator (username)"},
-        "owner": {"type": "string", "description": "Chart owner (username)"},
-        "tags": {"type": "string", "description": "Chart tags (comma-separated)"},
-    }
-    operators = ["eq", "ne", "sw", "in", "not_in", "like", "ilike", "gt", "lt", "gte", "lte", "is_null", "is_not_null"]
-    columns = [
-        "id", "slice_name", "viz_type", "datasource_name", "datasource_type", "url", "description", "cache_timeout", "changed_by", "created_by", "owner", "tags"
-    ]
-    return ChartAvailableFiltersResponse(filters=filters, operators=operators, columns=columns) 
+    from superset.daos.chart import ChartDAO
+    tool = ModelGetAvailableFiltersTool(
+        dao_class=ChartDAO,
+        output_schema=ChartAvailableFiltersResponse,
+        logger=logger,
+    )
+    return tool.run() 

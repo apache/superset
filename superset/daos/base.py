@@ -30,6 +30,7 @@ from superset.extensions import db
 
 from enum import Enum
 from pydantic import BaseModel, Field
+import logging
 
 T = TypeVar("T", bound=Model)
 
@@ -237,6 +238,7 @@ class BaseDAO(Generic[T]):
     def apply_column_operators(cls, query, column_operators: Optional[List[ColumnOperator]] = None):
         """
         Apply column operators (list of ColumnOperator) to the query using ColumnOperatorEnum logic.
+        Raises ValueError if a filter references a non-existent column.
         """
         if not column_operators:
             return query
@@ -247,14 +249,68 @@ class BaseDAO(Generic[T]):
             opr = c.opr
             value = c.value
             if not col or not hasattr(cls.model_cls, col):
-                continue
+                logging.error(f"Invalid filter: column '{col}' does not exist on {cls.model_cls.__name__}")
+                raise ValueError(f"Invalid filter: column '{col}' does not exist on {cls.model_cls.__name__}")
             column = getattr(cls.model_cls, col)
             try:
                 # Always use ColumnOperatorEnum's apply method
                 query = query.filter(ColumnOperatorEnum(opr).apply(column, value))
-            except Exception:
-                continue  # Optionally log or raise
+            except Exception as e:
+                logging.error(f"Error applying filter on column '{col}': {e}")
+                raise
         return query
+
+    @classmethod
+    def get_filterable_columns_and_operators(cls) -> dict:
+        """
+        Returns a dict mapping filterable columns (including hybrid/computed fields if present)
+        to their supported operators. Used by MCP tools to dynamically expose filter options.
+        Custom fields supported by the DAO but not present on the model should be documented here.
+        """
+        from sqlalchemy.ext.hybrid import hybrid_property
+        mapper = inspect(cls.model_cls)
+        columns = {c.key: c for c in mapper.columns}
+        # Add hybrid properties
+        hybrids = {
+            name: attr for name, attr in vars(cls.model_cls).items()
+            if isinstance(attr, hybrid_property)
+        }
+        # You may add custom fields here, e.g.:
+        # custom_fields = {"tags": ["eq", "in_", "like"], ...}
+        custom_fields = {}
+        # Map SQLAlchemy types to supported operators
+        type_operator_map = {
+            "string": [
+                "eq", "ne", "sw", "ew", "in_", "nin", "like", "ilike", "is_null", "is_not_null"
+            ],
+            "boolean": ["eq", "ne", "is_null", "is_not_null"],
+            "number": [
+                "eq", "ne", "gt", "gte", "lt", "lte", "in_", "nin", "is_null", "is_not_null"
+            ],
+            "datetime": [
+                "eq", "ne", "gt", "gte", "lt", "lte", "in_", "nin", "is_null", "is_not_null"
+            ],
+        }
+        import sqlalchemy as sa
+        filterable = {}
+        for name, col in columns.items():
+            if isinstance(col.type, (sa.String, sa.Text)):
+                filterable[name] = type_operator_map["string"]
+            elif isinstance(col.type, (sa.Boolean,)):
+                filterable[name] = type_operator_map["boolean"]
+            elif isinstance(col.type, (sa.Integer, sa.Float, sa.Numeric)):
+                filterable[name] = type_operator_map["number"]
+            elif isinstance(col.type, (sa.DateTime, sa.Date, sa.Time)):
+                filterable[name] = type_operator_map["datetime"]
+            else:
+                # Fallback to eq/ne/null
+                filterable[name] = ["eq", "ne", "is_null", "is_not_null"]
+        # Add hybrid properties as string fields by default
+        for name in hybrids:
+            filterable[name] = type_operator_map["string"]
+        # Add custom fields
+        filterable.update(custom_fields)
+        return filterable
 
     @classmethod
     def _build_query(
