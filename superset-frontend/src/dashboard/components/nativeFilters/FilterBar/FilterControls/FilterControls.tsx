@@ -183,9 +183,10 @@ const FilterControls: FC<FilterControlsProps> = ({
   const sectionTitleStyle = useCallback(
     (theme: SupersetTheme) => css`
       margin: 0;
-      font-size: ${theme.fontSizeSM}px;
-      font-weight: 600;
+      font-size: ${theme.fontSize}px;
+      font-weight: ${theme.fontWeightStrong};
       color: ${theme.colorText};
+      line-height: 1.3;
     `,
     [],
   );
@@ -267,11 +268,11 @@ const FilterControls: FC<FilterControlsProps> = ({
                 {filtersInScope.map(renderer)}
               </div>
             )}
-            <div css={dividerStyle} />
+            {sectionsOpen.filters && <div css={dividerStyle} />}
           </div>
         )}
 
-        {showCollapsePanel && (
+        {showCollapsePanel && sectionsOpen.filters && (
           <FiltersOutOfScopeCollapsible
             filtersOutOfScope={filtersOutOfScope}
             forceRender={hasRequiredFirst}
@@ -313,7 +314,7 @@ const FilterControls: FC<FilterControlsProps> = ({
                 </div>
               </div>
             )}
-            <div css={dividerStyle} />
+            {sectionsOpen.chartCustomization && <div css={dividerStyle} />}
           </div>
         )}
       </>
