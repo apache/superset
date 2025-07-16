@@ -132,7 +132,7 @@ const CrossFiltersVerticalCollapse = (props: {
         <Icons.UpOutlined iconSize="m" css={iconStyle(isOpen, theme)} />
       </div>
       {isOpen && <div css={sectionContentStyle}>{crossFiltersIndicators}</div>}
-      {isOpen && <div css={dividerStyle} />}
+      {isOpen && <div css={dividerStyle} data-test="cross-filters-divider" />}
     </div>
   );
 };
