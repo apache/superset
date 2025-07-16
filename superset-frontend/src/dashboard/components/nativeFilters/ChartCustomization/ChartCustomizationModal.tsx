@@ -26,6 +26,7 @@ import type {
   ChartsState,
   RootState,
 } from 'src/dashboard/types';
+import { DatasetSelectLabel } from 'src/features/datasets/DatasetSelectLabel';
 import { mostUsedDataset } from '../FiltersConfigModal/FiltersConfigForm/utils';
 import ChartCustomizationTitlePane from './ChartCustomizationTitlePane';
 import ChartCustomizationForm from './ChartCustomizationForm';
@@ -333,9 +334,17 @@ const ChartCustomizationModal = ({
                 : datasetInfo
                   ? {
                       value: datasetId,
-                      label: `${datasetInfo.table_name}${
-                        datasetInfo.schema ? ` (${datasetInfo.schema})` : ''
-                      }`,
+                      label: DatasetSelectLabel({
+                        id: Number(datasetId),
+                        table_name: datasetInfo.table_name || '',
+                        schema: datasetInfo.schema || '',
+                        database: {
+                          database_name:
+                            (datasetInfo.database?.database_name as string) ||
+                            (datasetInfo.database?.name as string) ||
+                            '',
+                        },
+                      }),
                       table_name: datasetInfo.table_name,
                       schema: datasetInfo.schema,
                     }
@@ -376,9 +385,17 @@ const ChartCustomizationModal = ({
               dataset: datasetInfo
                 ? {
                     value: fallbackDatasetId,
-                    label: `${datasetInfo.table_name}${
-                      datasetInfo.schema ? ` (${datasetInfo.schema})` : ''
-                    }`,
+                    label: DatasetSelectLabel({
+                      id: Number(fallbackDatasetId),
+                      table_name: datasetInfo.table_name || '',
+                      schema: datasetInfo.schema || '',
+                      database: {
+                        database_name:
+                          (datasetInfo.database?.database_name as string) ||
+                          (datasetInfo.database?.name as string) ||
+                          '',
+                      },
+                    }),
                     table_name: datasetInfo.table_name,
                     schema: datasetInfo.schema,
                   }
