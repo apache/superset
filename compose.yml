@@ -82,6 +82,20 @@ services:
       - db_home:/var/lib/postgresql/data
       - ./docker/docker-entrypoint-initdb.d:/docker-entrypoint-initdb.d
 
+  minio:
+    image: minio/minio
+    container_name: superset_minio
+    command: server /data --console-address ":9001"
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio_data:/data
+    environment:
+      MINIO_ACCESS_KEY: minioadmin
+      MINIO_SECRET_KEY: minioadmin
+    restart: unless-stopped
+
   superset:
     env_file:
       - path: docker/.env # default
@@ -265,4 +279,6 @@ volumes:
   db_home:
     external: false
   redis:
+    external: false
+  minio_data:
     external: false

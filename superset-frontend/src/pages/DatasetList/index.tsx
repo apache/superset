@@ -70,6 +70,7 @@ import {
   CONFIRM_OVERWRITE_MESSAGE,
 } from 'src/features/datasets/constants';
 import DuplicateDatasetModal from 'src/features/datasets/DuplicateDatasetModal';
+import { ReportTemplateModal } from 'src/features/reportTemplates';
 import { useSelector } from 'react-redux';
 import { QueryObjectColumns } from 'src/views/CRUD/types';
 import { WIDER_DROPDOWN_WIDTH } from 'src/components/ListView/utils';
@@ -191,6 +192,9 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
     setSSHTunnelPrivateKeyPasswordFields,
   ] = useState<string[]>([]);
 
+  const [showReportTemplateModal, setShowReportTemplateModal] =
+    useState<boolean>(false);
+
   const PREVENT_UNSAFE_DEFAULT_URLS_ON_DATASET = useSelector<any, boolean>(
     state =>
       state.common?.conf?.PREVENT_UNSAFE_DEFAULT_URLS_ON_DATASET || false,
@@ -209,6 +213,9 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
     refreshData();
     addSuccessToast(t('Dataset imported'));
   };
+
+  const openReportTemplateModal = () => setShowReportTemplateModal(true);
+  const closeReportTemplateModal = () => setShowReportTemplateModal(false);
 
   const canEdit = hasPerm('can_write');
   const canDelete = hasPerm('can_write');
@@ -673,6 +680,17 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
       buttonStyle: 'link',
       onClick: openDatasetImportModal,
     });
+
+    buttonArr.push({
+      name: (
+        <>
+          <Icons.FileTextOutlined iconSize="m" />
+          {t('Generate report')}
+        </>
+      ),
+      onClick: openReportTemplateModal,
+      buttonStyle: 'secondary',
+    });
   }
 
   menuData.buttons = buttonArr;
@@ -961,6 +979,11 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
           );
         }}
       </ConfirmStatusChange>
+
+      <ReportTemplateModal
+        show={showReportTemplateModal}
+        onHide={closeReportTemplateModal}
+      />
 
       <ImportModelsModal
         resourceName="dataset"

@@ -148,6 +148,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         from superset.queries.api import QueryRestApi
         from superset.queries.saved_queries.api import SavedQueryRestApi
         from superset.reports.api import ReportScheduleRestApi
+        from superset.report_templates.api import ReportTemplateRestApi
         from superset.reports.logs.api import ReportExecutionLogRestApi
         from superset.row_level_security.api import RLSRestApi
         from superset.security.api import RoleRestAPI, SecurityRestApi
@@ -220,6 +221,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.add_api(ImportExportRestApi)
         appbuilder.add_api(QueryRestApi)
         appbuilder.add_api(ReportScheduleRestApi)
+        appbuilder.add_api(ReportTemplateRestApi)
         appbuilder.add_api(ReportExecutionLogRestApi)
         appbuilder.add_api(RLSRestApi)
         appbuilder.add_api(SavedQueryRestApi)
@@ -324,6 +326,16 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             "CSS Templates",
             label=__("CSS Templates"),
             icon="fa-css3",
+            category="Manage",
+            category_label=__("Manage"),
+            category_icon="",
+        )
+
+        appbuilder.add_link(
+            "Report Templates",
+            label=__("Report Templates"),
+            href=f"{app_root}/report_template/list/",
+            icon="fa-file-text",
             category="Manage",
             category_label=__("Manage"),
             category_icon="",
