@@ -90,7 +90,10 @@ const DndFilterSelect = (props: DndFilterSelectProps) => {
     let extra = {};
     if (datasource?.extra) {
       try {
-        extra = JSON.parse(datasource.extra);
+        extra =
+          typeof datasource.extra === 'string'
+            ? JSON.parse(datasource.extra)
+            : datasource.extra;
       } catch {} // eslint-disable-line no-empty
     }
     return extra;
