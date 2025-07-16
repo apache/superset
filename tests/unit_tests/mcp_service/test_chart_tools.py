@@ -19,23 +19,19 @@
 Unit tests for MCP chart tools (list_charts, get_chart_info, get_chart_available_filters, create_chart_simple)
 """
 import logging
-from unittest.mock import Mock, patch, call
+from unittest.mock import Mock, patch
+
 import pytest
-from superset.mcp_service.pydantic_schemas.chart_schemas import (
-    ChartInfo, ChartError, ChartAvailableFiltersResponse,
-    EchartsTimeseriesLineChartCreateRequest,
-    EchartsTimeseriesBarChartCreateRequest,
-    EchartsAreaChartCreateRequest,
-    TableChartCreateRequest,
-)
+from superset.mcp_service.chart.tool.create_chart import create_chart
+from superset.mcp_service.chart.tool.create_chart_simple import create_chart_simple
+from superset.mcp_service.chart.tool.get_chart_available_filters import get_chart_available_filters
+from superset.mcp_service.chart.tool.get_chart_info import get_chart_info
 # Updated imports for new tool structure
 from superset.mcp_service.chart.tool.list_charts import list_charts
-from superset.mcp_service.chart.tool.get_chart_info import get_chart_info
-from superset.mcp_service.chart.tool.get_chart_available_filters import get_chart_available_filters
-from superset.mcp_service.chart.tool.create_chart_simple import create_chart_simple
-from superset.mcp_service.chart.tool.create_chart import create_chart
-from superset.mcp_service.pydantic_schemas.chart_schemas import CreateSimpleChartRequest
-from superset.daos.chart import ChartDAO
+from superset.mcp_service.pydantic_schemas.chart_schemas import (
+    ChartAvailableFiltersResponse, ChartInfo,
+    CreateSimpleChartRequest, EchartsAreaChartCreateRequest, EchartsTimeseriesBarChartCreateRequest,
+    EchartsTimeseriesLineChartCreateRequest, TableChartCreateRequest, )
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)

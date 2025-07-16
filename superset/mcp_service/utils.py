@@ -93,6 +93,10 @@ def mcp_auth_hook(tool_func):
 
 
 class ModelListTool:
+    """
+    Generic tool for listing model objects with filtering, search, pagination, and column selection.
+
+    """
     def __init__(
         self,
         dao_class,
@@ -122,9 +126,8 @@ class ModelListTool:
         select_columns=None,
         order_column=None,
         order_direction="asc",
-        page=1,
-        page_size=100,
-        **kwargs
+        page=0,
+        page_size=100
     ):
         import json
         from datetime import datetime, timezone
@@ -194,6 +197,10 @@ class ModelListTool:
 
 
 class ModelGetInfoTool:
+    """
+    Generic tool for retrieving a single model object by ID, with error handling and serialization.
+
+    """
     def __init__(
         self,
         dao_class,
