@@ -65,7 +65,7 @@ If you are unsure which tool to use, start with list_dashboards or get_superset_
 """
     )
 
-    # Import and register all FastMCP tools
+    # Import all FastMCP tools
     from superset.mcp_service.dashboard.tool.list_dashboards import list_dashboards
     from superset.mcp_service.dashboard.tool.get_dashboard_info import get_dashboard_info
     from superset.mcp_service.dashboard.tool.get_dashboard_available_filters import get_dashboard_available_filters
@@ -79,18 +79,34 @@ If you are unsure which tool to use, start with list_dashboards or get_superset_
     from superset.mcp_service.chart.tool.create_chart import create_chart
     from superset.mcp_service.system.tool.get_superset_instance_info import get_superset_instance_info
 
-    mcp.add_tool(mcp.tool()(mcp_auth_hook(list_dashboards)))
-    mcp.add_tool(mcp.tool()(mcp_auth_hook(get_dashboard_info)))
-    mcp.add_tool(mcp.tool()(mcp_auth_hook(get_superset_instance_info)))
-    mcp.add_tool(mcp.tool()(mcp_auth_hook(get_dashboard_available_filters)))
-    mcp.add_tool(mcp.tool()(mcp_auth_hook(get_dataset_available_filters)))
-    mcp.add_tool(mcp.tool()(mcp_auth_hook(list_datasets)))
-    mcp.add_tool(mcp.tool()(mcp_auth_hook(get_dataset_info)))
-    mcp.add_tool(mcp.tool()(mcp_auth_hook(list_charts)))
-    mcp.add_tool(mcp.tool()(mcp_auth_hook(get_chart_info)))
-    mcp.add_tool(mcp.tool()(mcp_auth_hook(get_chart_available_filters)))
-    mcp.add_tool(mcp.tool()(mcp_auth_hook(create_chart_simple)))
-    mcp.add_tool(mcp.tool()(mcp_auth_hook(create_chart)))
+    # ----------------------------------------------------------------------
+    # Tool Registration
+    #
+    # We register all MCP tools here using mcp.tool(mcp_auth_hook(...)).
+    # This ensures:
+    #   - Each tool is wrapped with the authentication/authorization hook (mcp_auth_hook)
+    #   - Registration is explicit and centralized after the mcp instance is created
+    #   - We avoid circular import issues that can arise if using @mcp.tool decorators
+    #     directly in the tool modules (since mcp is instantiated here)
+    #   - It's easy to see and control which tools are exposed and how they're wrapped
+    #
+    # If you want to use @mcp.tool as a decorator, you must ensure the mcp instance
+    # is available at import time in each tool module, which is less flexible and
+    # can lead to import problems. This pattern is the recommended and most robust
+    # for FastMCP tool registration, especially when using authentication hooks.
+    # ----------------------------------------------------------------------
+    mcp.tool(mcp_auth_hook(list_dashboards))
+    mcp.tool(mcp_auth_hook(get_dashboard_info))
+    mcp.tool(mcp_auth_hook(get_superset_instance_info))
+    mcp.tool(mcp_auth_hook(get_dashboard_available_filters))
+    mcp.tool(mcp_auth_hook(get_dataset_available_filters))
+    mcp.tool(mcp_auth_hook(list_datasets))
+    mcp.tool(mcp_auth_hook(get_dataset_info))
+    mcp.tool(mcp_auth_hook(list_charts))
+    mcp.tool(mcp_auth_hook(get_chart_info))
+    mcp.tool(mcp_auth_hook(get_chart_available_filters))
+    mcp.tool(mcp_auth_hook(create_chart_simple))
+    mcp.tool(mcp_auth_hook(create_chart))
 
     mcp.add_middleware(LoggingMiddleware())
     mcp.add_middleware(PrivateToolMiddleware())
