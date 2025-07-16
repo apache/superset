@@ -353,7 +353,7 @@ test('Sends the correct db when changing the database', async () => {
   await waitFor(() =>
     expect(props.onDbChange).toHaveBeenCalledWith(
       expect.objectContaining({
-        id: `mysql-test-mysql-2`,
+        value: 2,
         database_name: 'test-mysql',
         backend: 'mysql',
       }),

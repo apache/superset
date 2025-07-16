@@ -47,7 +47,7 @@ def load_misc_dashboard() -> None:
         "meta": {
             "chartId": 3969,
             "height": 69,
-            "sliceName": "OSM Long/Lat",
+            "sliceName": "Mapbox Long/Lat",
             "uuid": "164efe31-295b-4408-aaa6-2f4bfb58a212",
             "width": 4
         },
