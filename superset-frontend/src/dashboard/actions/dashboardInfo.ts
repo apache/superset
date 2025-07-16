@@ -350,28 +350,26 @@ export function saveChartCustomization(
           dispatch(removeDataMask(customizationFilterId));
         });
 
-        setTimeout(() => {
-          simpleItems.forEach(item => {
-            if (item.customization?.column) {
-              const customizationFilterId = `chart_customization_${item.id}`;
+        // Apply data masks immediately without delay
+        simpleItems.forEach(item => {
+          if (item.customization?.column) {
+            const customizationFilterId = `chart_customization_${item.id}`;
 
-              dispatch(removeDataMask(customizationFilterId));
+            dispatch(removeDataMask(customizationFilterId));
 
-              const dataMask = {
-                extraFormData: {},
-                filterState: {
-                  value:
-                    item.customization?.defaultDataMask?.filterState?.value ||
-                    [],
-                },
-                ownState: {
-                  column: item.customization.column,
-                },
-              };
-              dispatch(updateDataMask(customizationFilterId, dataMask));
-            }
-          });
-        }, 10);
+            const dataMask = {
+              extraFormData: {},
+              filterState: {
+                value:
+                  item.customization?.defaultDataMask?.filterState?.value || [],
+              },
+              ownState: {
+                column: item.customization.column,
+              },
+            };
+            dispatch(updateDataMask(customizationFilterId, dataMask));
+          }
+        });
 
         const state = getState();
         const affectedChartIds = getAffectedChartIdsFromCustomization(
