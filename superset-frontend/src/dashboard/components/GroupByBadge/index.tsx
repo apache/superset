@@ -41,13 +41,13 @@ const StyledGroupByCount = styled.div`
     height: 100%;
     .anticon {
       vertical-align: middle;
-      color: ${theme.colors.primary.base};
+      color: ${theme.colors.grayscale.base};
       &:hover {
-        color: ${theme.colors.primary.dark1};
+        color: ${theme.colors.grayscale.light1};
       }
     }
     &:focus-visible {
-      outline: 2px solid ${theme.colors.primary.dark2};
+      outline: 2px solid ${theme.colorPrimary};
     }
   `}
 `;
@@ -55,30 +55,49 @@ const StyledGroupByCount = styled.div`
 const StyledBadge = styled(Badge)`
   ${({ theme }) => `
     margin-left: ${theme.sizeUnit * 2}px;
-    &>sup.antd5-badge-count {
+    &>sup.ant-badge-count {
       padding: 0 ${theme.sizeUnit}px;
       min-width: ${theme.sizeUnit * 4}px;
       height: ${theme.sizeUnit * 4}px;
       line-height: 1.5;
-      font-weight: 500;
+      font-weight: ${theme.fontWeightStrong};
       font-size: ${theme.fontSizeSM - 1}px;
       box-shadow: none;
       padding: 0 ${theme.sizeUnit}px;
-      background-color: ${theme.colors.primary.base};
     }
   `}
 `;
 
 const TooltipContent = styled.div`
   ${({ theme }) => `
-    padding: ${theme.sizeUnit * 2}px;
+    min-width: 200px;
     max-width: 300px;
+    overflow-x: hidden;
+    color: ${theme.colors.grayscale.light5};
+    font-size: ${theme.fontSizeSM}px;
+  `}
+`;
+
+const SectionName = styled.span`
+  ${({ theme }) => `
+    font-weight: ${theme.fontWeightStrong};
+    font-size: ${theme.fontSizeSM}px;
   `}
 `;
 
 const GroupByInfo = styled.div`
   ${({ theme }) => `
-    margin-bottom: ${theme.sizeUnit * 2}px;
+    margin-top: ${theme.sizeUnit}px;
+    &:not(:last-child) {
+      padding-bottom: ${theme.sizeUnit * 3}px;
+    }
+  `}
+`;
+
+const GroupByItem = styled.div`
+  ${({ theme }) => `
+    font-size: ${theme.fontSizeSM}px;
+    margin-bottom: ${theme.sizeUnit}px;
 
     &:last-child {
       margin-bottom: 0;
@@ -132,15 +151,22 @@ export const GroupByBadge = ({ chartId }: GroupByBadgeProps) => {
   }
   const tooltipContent = (
     <TooltipContent>
-      <h4>{t('Chart Customization')}</h4>
-      {applicableGroupBys.map(groupBy => (
-        <GroupByInfo key={groupBy.id}>
-          <div>
-            {t('Grouped by: %s', groupBy.customization?.name || t('None'))}
-          </div>
-          {groupBy.description && <div>{groupBy.description}</div>}
+      <div>
+        <SectionName>
+          {t('Chart Customization (%d)', applicableGroupBys.length)}
+        </SectionName>
+        <GroupByInfo>
+          {applicableGroupBys.map(groupBy => (
+            <GroupByItem key={groupBy.id}>
+              <div>
+                {groupBy.customization?.name && groupBy.customization?.column
+                  ? `${groupBy.customization.name}:${groupBy.customization.column}`
+                  : groupBy.customization?.name || t('None')}
+              </div>
+            </GroupByItem>
+          ))}
         </GroupByInfo>
-      ))}
+      </div>
     </TooltipContent>
   );
 
