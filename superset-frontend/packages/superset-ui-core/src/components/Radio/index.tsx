@@ -17,7 +17,7 @@
  * under the License.
  */
 import {
-  Radio as Antd5Radio,
+  Radio as AntRadio,
   type CheckboxOptionType,
   type RadioGroupProps,
 } from 'antd';
@@ -40,19 +40,19 @@ const RadioGroup = ({
   ...props
 }: RadioGroupWrapperProps) => {
   const content = options.map((option: CheckboxOptionType) => (
-    <Antd5Radio key={option.value} value={option.value}>
+    <AntRadio key={option.value} value={option.value}>
       {option.label}
-    </Antd5Radio>
+    </AntRadio>
   ));
   return (
-    <Antd5Radio.Group {...props}>
+    <AntRadio.Group {...props}>
       {spaceConfig ? <Space {...spaceConfig}>{content}</Space> : content}
-    </Antd5Radio.Group>
+    </AntRadio.Group>
   );
 };
-export const Radio = Object.assign(Antd5Radio, {
+export const Radio = Object.assign(AntRadio, {
   GroupWrapper: RadioGroup,
-  Button: Antd5Radio.Button,
+  Button: AntRadio.Button,
 });
 export type {
   RadioChangeEvent,
