@@ -50,6 +50,7 @@ import {
   userHasPermission,
   isUserAdmin,
 } from 'src/dashboard/util/permissionUtils';
+import { ErrorMessageWithStackTrace } from 'src/components/ErrorMessage/ErrorMessageWithStackTrace';
 import ViewQueryModalFooter from 'src/explore/components/controls/ViewQueryModalFooter';
 import ViewQuery from 'src/explore/components/controls/ViewQuery';
 import { SaveDatasetModal } from 'src/SqlLab/components/SaveDatasetModal';
@@ -281,7 +282,17 @@ class DatasourceControl extends PureComponent {
       showSaveDatasetModal,
     } = this.state;
     const { datasource, onChange, theme } = this.props;
-    const isMissingDatasource = !datasource?.id;
+    let extra;
+    if (datasource?.extra) {
+      if (typeof datasource.extra === 'string') {
+        try {
+          extra = JSON.parse(datasource.extra);
+        } catch {} // eslint-disable-line no-empty
+      } else {
+        extra = datasource.extra; // eslint-disable-line prefer-destructuring
+      }
+    }
+    const isMissingDatasource = !datasource?.id || Boolean(extra?.error);
     let isMissingParams = false;
     if (isMissingDatasource) {
       const datasourceId = getUrlParam(URL_PARAMS.datasourceId);
@@ -386,20 +397,10 @@ class DatasourceControl extends PureComponent {
 
     const { health_check_message: healthCheckMessage } = datasource;
 
-    let extra;
-    if (datasource?.extra) {
-      if (typeof datasource.extra === 'string') {
-        try {
-          extra = JSON.parse(datasource.extra);
-        } catch {} // eslint-disable-line no-empty
-      } else {
-        extra = datasource.extra; // eslint-disable-line prefer-destructuring
-      }
-    }
-
-    const titleText = isMissingDatasource
-      ? t('Missing dataset')
-      : getDatasourceTitle(datasource);
+    const titleText =
+      isMissingDatasource && !datasource.name
+        ? t('Missing dataset')
+        : getDatasourceTitle(datasource);
 
     const tooltip = titleText;
 
@@ -452,31 +453,44 @@ class DatasourceControl extends PureComponent {
         )}
         {isMissingDatasource && !isMissingParams && (
           <div className="error-alert">
-            <ErrorAlert
-              type="warning"
-              errorType={t('Missing dataset')}
-              descriptionPre={false}
-              descriptionDetailsCollapsed={false}
-              descriptionDetails={
-                <>
-                  <p>
-                    {t(
-                      'The dataset linked to this chart may have been deleted.',
-                    )}
-                  </p>
-                  <p>
-                    <Button
-                      buttonStyle="warning"
-                      onClick={() =>
-                        this.handleMenuItemClick({ key: CHANGE_DATASET })
-                      }
-                    >
-                      {t('Swap dataset')}
-                    </Button>
-                  </p>
-                </>
-              }
-            />
+            {extra?.error ? (
+              <div className="error-alert">
+                <ErrorMessageWithStackTrace
+                  title={extra.error.statusText || extra.error.message}
+                  subtitle={
+                    extra.error.statusText ? extra.error.message : undefined
+                  }
+                  error={extra.error}
+                  source="explore"
+                />
+              </div>
+            ) : (
+              <ErrorAlert
+                type="warning"
+                errorType={t('Missing dataset')}
+                descriptionPre={false}
+                descriptionDetailsCollapsed={false}
+                descriptionDetails={
+                  <>
+                    <p>
+                      {t(
+                        'The dataset linked to this chart may have been deleted.',
+                      )}
+                    </p>
+                    <p>
+                      <Button
+                        buttonStyle="warning"
+                        onClick={() =>
+                          this.handleMenuItemClick({ key: CHANGE_DATASET })
+                        }
+                      >
+                        {t('Swap dataset')}
+                      </Button>
+                    </p>
+                  </>
+                }
+              />
+            )}
           </div>
         )}
         {showEditDatasourceModal && (
