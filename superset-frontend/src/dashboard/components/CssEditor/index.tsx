@@ -22,6 +22,8 @@ import {
   CssEditor as AceCssEditor,
   Button,
   ModalTrigger,
+  Form,
+  Select,
 } from '@superset-ui/core/components';
 import rison from 'rison';
 import { Menu } from '@superset-ui/core/components/Menu';
@@ -32,6 +34,8 @@ export interface CssEditorProps {
   triggerNode: ReactNode;
   onChange: (css: string) => void;
   addDangerToast: (msg: string) => void;
+  currentThemeId?: number | null;
+  onThemeChange?: (themeId: number | null) => void;
 }
 
 export type CssEditorState = {
@@ -40,18 +44,19 @@ export type CssEditorState = {
     css: string;
     label: string;
   }>;
+  themes?: Array<{
+    id: number;
+    theme_name: string;
+    json_data: string;
+  }>;
+  selectedThemeId?: number | null;
+  pendingCss: string;
+  pendingThemeId?: number | null;
 };
 const StyledWrapper = styled.div`
   ${({ theme }) => `
     .css-editor-header {
-      display: flex;
-      flex-direction: row;
-      justify-content: space-between;
       margin-bottom: ${theme.sizeUnit * 2}px;
-
-      h5 {
-        margin-top: ${theme.sizeUnit}px;
-      }
     }
     .css-editor {
       border: 1px solid ${theme.colorBorder};
@@ -69,13 +74,21 @@ class CssEditor extends PureComponent<CssEditorProps, CssEditorState> {
     super(props);
     this.state = {
       css: props.initialCss,
+      selectedThemeId: props.currentThemeId,
+      pendingCss: props.initialCss,
+      pendingThemeId: props.currentThemeId,
     };
     this.changeCss = this.changeCss.bind(this);
     this.changeCssTemplate = this.changeCssTemplate.bind(this);
+    this.changeTheme = this.changeTheme.bind(this);
+    this.applyChanges = this.applyChanges.bind(this);
+    this.hasChanges = this.hasChanges.bind(this);
   }
 
   componentDidMount() {
     AceCssEditor.preload();
+
+    // Fetch CSS templates
     const query = rison.encode({ columns: ['template_name', 'css'] });
     SupersetClient.get({ endpoint: `/api/v1/css_template/?q=${query}` })
       .then(({ json }) => {
@@ -94,12 +107,25 @@ class CssEditor extends PureComponent<CssEditorProps, CssEditorState> {
           t('An error occurred while fetching available CSS templates'),
         );
       });
+
+    // Fetch themes
+    const themeQuery = rison.encode({
+      columns: ['id', 'theme_name', 'json_data'],
+    });
+    SupersetClient.get({ endpoint: `/api/v1/theme/?q=${themeQuery}` })
+      .then(({ json }) => {
+        const themes = json.result;
+        this.setState({ themes });
+      })
+      .catch(() => {
+        this.props.addDangerToast(
+          t('An error occurred while fetching available themes'),
+        );
+      });
   }
 
   changeCss(css: string) {
-    this.setState({ css }, () => {
-      this.props.onChange(css);
-    });
+    this.setState({ pendingCss: css });
   }
 
   changeCssTemplate(info: { key: Key }) {
@@ -107,8 +133,41 @@ class CssEditor extends PureComponent<CssEditorProps, CssEditorState> {
       template => template.label === info.key,
     );
     if (selectedTemplate) {
-      this.changeCss(selectedTemplate.css);
+      this.setState({ pendingCss: selectedTemplate.css });
     }
+  }
+
+  changeTheme(info: { key: Key }) {
+    const themeId = info.key === 'none' ? null : Number(info.key);
+    this.setState({ pendingThemeId: themeId });
+  }
+
+  applyChanges() {
+    // Apply CSS changes
+    this.setState(
+      prevState => ({ css: prevState.pendingCss }),
+      () => {
+        this.props.onChange(this.state.css);
+      },
+    );
+
+    // Apply theme changes
+    this.setState(prevState => {
+      if (prevState.pendingThemeId !== prevState.selectedThemeId) {
+        if (this.props.onThemeChange) {
+          this.props.onThemeChange(prevState.pendingThemeId ?? null);
+        }
+        return { selectedThemeId: prevState.pendingThemeId };
+      }
+      return null;
+    });
+  }
+
+  hasChanges() {
+    return (
+      this.state.pendingCss !== this.state.css ||
+      this.state.pendingThemeId !== this.state.selectedThemeId
+    );
   }
 
   renderTemplateSelector() {
@@ -124,8 +183,33 @@ class CssEditor extends PureComponent<CssEditorProps, CssEditorState> {
       );
       return (
         <Dropdown popupRender={() => menu} placement="bottomRight">
-          <Button>{t('Load a CSS template')}</Button>
+          <Button>{t('Load template')}</Button>
         </Dropdown>
+      );
+    }
+    return null;
+  }
+
+  renderThemeSelector() {
+    if (this.state.themes) {
+      const options = this.state.themes.map(theme => ({
+        value: theme.id,
+        label: theme.theme_name,
+      }));
+
+      return (
+        <Form.Item label={t('Theme')}>
+          <Select
+            value={this.state.pendingThemeId}
+            onChange={value =>
+              this.changeTheme({ key: value?.toString() || 'none' })
+            }
+            options={options}
+            allowClear
+            placeholder={t('Select a theme')}
+            css={{ width: 200 }}
+          />
+        </Form.Item>
       );
     }
     return null;
@@ -135,12 +219,17 @@ class CssEditor extends PureComponent<CssEditorProps, CssEditorState> {
     return (
       <ModalTrigger
         triggerNode={this.props.triggerNode}
-        modalTitle={t('CSS')}
+        modalTitle={t('Theme & CSS')}
         modalBody={
           <StyledWrapper>
             <div className="css-editor-header">
-              <h5>{t('Live CSS editor')}</h5>
-              {this.renderTemplateSelector()}
+              <Form layout="inline">{this.renderThemeSelector()}</Form>
+              <h5>{t('CSS editor')}</h5>
+              <Form layout="inline">
+                <Form.Item label={t('CSS Template')}>
+                  {this.renderTemplateSelector()}
+                </Form.Item>
+              </Form>
             </div>
             <AceCssEditor
               className="css-editor"
@@ -151,8 +240,17 @@ class CssEditor extends PureComponent<CssEditorProps, CssEditorState> {
               width="100%"
               editorProps={{ $blockScrolling: true }}
               enableLiveAutocompletion
-              value={this.state.css || ''}
+              value={this.state.pendingCss || ''}
             />
+            <div style={{ marginTop: 16, textAlign: 'right' }}>
+              <Button
+                type="primary"
+                onClick={this.applyChanges}
+                disabled={!this.hasChanges()}
+              >
+                {t('Apply')}
+              </Button>
+            </div>
           </StyledWrapper>
         }
       />

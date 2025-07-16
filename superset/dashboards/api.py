@@ -217,7 +217,6 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         "tags.id",
         "tags.name",
         "tags.type",
-        "theme_id",
         "uuid",
     ]
 

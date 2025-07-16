@@ -19,9 +19,10 @@
 import { createContext, lazy, FC, useEffect, useMemo, useRef } from 'react';
 import { Global } from '@emotion/react';
 import { useHistory } from 'react-router-dom';
-import { t, useTheme } from '@superset-ui/core';
+import { t, useTheme, SupersetClient } from '@superset-ui/core';
 import { useDispatch, useSelector } from 'react-redux';
 import { createSelector } from '@reduxjs/toolkit';
+import { useThemeContext } from 'src/theme/ThemeProvider';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
 import { Loading } from '@superset-ui/core/components';
 import {
@@ -110,6 +111,7 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
   const theme = useTheme();
   const dispatch = useDispatch();
   const history = useHistory();
+  const themeContext = useThemeContext();
   const dashboardPageId = useMemo(() => nanoid(), []);
   const hasDashboardInfoInitiated = useSelector<RootState, Boolean>(
     ({ dashboardInfo }) =>
@@ -129,7 +131,12 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
 
   const error = dashboardApiError || chartsApiError;
   const readyToRender = Boolean(dashboard && charts);
-  const { dashboard_title, css, id = 0 } = dashboard || {};
+  const { dashboard_title, id = 0 } = dashboard || {};
+
+  // Get CSS from Redux state (updated by updateCss action) instead of API
+  const css =
+    useSelector((state: RootState) => state.dashboardState.css) ||
+    dashboard?.css;
 
   useEffect(() => {
     // mark tab id as redundant when user closes browser tab - a new id will be
@@ -214,6 +221,34 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
     }
     return () => {};
   }, [css]);
+
+  // Apply dashboard theme when dashboard loads
+  useEffect(() => {
+    const applyDashboardTheme = async () => {
+      if (dashboard?.theme?.id) {
+        try {
+          const response = await SupersetClient.get({
+            endpoint: `/api/v1/theme/${dashboard.theme.id}`,
+          });
+          const themeConfig = JSON.parse(response.json.result.json_data);
+          themeContext.setTemporaryTheme(themeConfig);
+        } catch (error) {
+          console.error('Failed to apply dashboard theme:', error);
+        }
+      }
+    };
+
+    if (dashboard?.theme?.id) {
+      applyDashboardTheme();
+    }
+
+    // Cleanup: clear theme when dashboard unmounts or changes
+    return () => {
+      if (dashboard?.theme?.id) {
+        themeContext.clearLocalOverrides();
+      }
+    };
+  }, [dashboard?.theme?.id, themeContext]);
 
   useEffect(() => {
     if (datasetsApiError) {

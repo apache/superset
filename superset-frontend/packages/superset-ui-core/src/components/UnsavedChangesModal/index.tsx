@@ -42,19 +42,19 @@ export const UnsavedChangesModal: FC<UnsavedChangesModalProps> = ({
   onConfirmNavigation,
   title = 'Unsaved Changes',
   body = "If you don't save, changes will be lost.",
+<<<<<<< HEAD
 }): ReactElement => {
   const theme = useTheme();
 
   return (
     <Modal
-      name={title}
       centered
       responsive
       onHide={onHide}
       show={showModal}
       width="444px"
       title={
-        <Flex>
+        <Flex align="center">
           <Icons.WarningOutlined
             iconColor={theme.colorWarning}
             css={css`
@@ -66,7 +66,6 @@ export const UnsavedChangesModal: FC<UnsavedChangesModalProps> = ({
             css={css`
               && {
                 margin: 0;
-                margin-bottom: 0;
               }
             `}
             level={5}
@@ -76,12 +75,7 @@ export const UnsavedChangesModal: FC<UnsavedChangesModalProps> = ({
         </Flex>
       }
       footer={
-        <Flex
-          justify="flex-end"
-          css={css`
-            width: 100%;
-          `}
-        >
+        <Flex justify="flex-end" gap="small">
           <Button
             htmlType="button"
             buttonSize="small"
