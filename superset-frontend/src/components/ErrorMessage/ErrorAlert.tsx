@@ -70,6 +70,7 @@ export const ErrorAlert: React.FC<ErrorAlertProps> = ({
   const preStyle = {
     whiteSpace: 'pre-wrap',
     fontFamily: theme.fontFamilyCode,
+    margin: `${theme.sizeUnit}px 0`,
   };
   const renderDescription = () => (
     <div>

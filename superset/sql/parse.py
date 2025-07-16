@@ -29,10 +29,19 @@ from typing import Any, Generic, TYPE_CHECKING, TypeVar
 import sqlglot
 from jinja2 import nodes, Template
 from sqlglot import exp
-from sqlglot.dialects.dialect import Dialect, Dialects
+from sqlglot.dialects.dialect import (
+    Dialect,
+    Dialects,
+)
 from sqlglot.errors import ParseError
-from sqlglot.optimizer.pushdown_predicates import pushdown_predicates
-from sqlglot.optimizer.scope import Scope, ScopeType, traverse_scope
+from sqlglot.optimizer.pushdown_predicates import (
+    pushdown_predicates,
+)
+from sqlglot.optimizer.scope import (
+    Scope,
+    ScopeType,
+    traverse_scope,
+)
 
 from superset.exceptions import QueryClauseValidationException, SupersetParseError
 from superset.sql.dialects import Dremio, Firebolt
@@ -91,7 +100,6 @@ SQLGLOT_DIALECTS = {
     "pydoris": Dialects.DORIS,
     "redshift": Dialects.REDSHIFT,
     "risingwave": Dialects.RISINGWAVE,
-    # "rockset": ???
     "shillelagh": Dialects.SQLITE,
     "singlestore": Dialects.MYSQL,
     "snowflake": Dialects.SNOWFLAKE,

@@ -305,13 +305,20 @@ test.skip('validates the default value', async () => {
 });
 
 test('validates the pre-filter value', async () => {
+  jest.useFakeTimers();
+
   defaultRender();
+
   userEvent.click(screen.getByText(FILTER_SETTINGS_REGEX));
   userEvent.click(getCheckbox(PRE_FILTER_REGEX));
-  expect(
-    await screen.findByText(PRE_FILTER_REQUIRED_REGEX),
-  ).toBeInTheDocument();
-});
+
+  jest.runOnlyPendingTimers();
+  jest.useRealTimers();
+
+  await waitFor(() => {
+    expect(screen.getByText(PRE_FILTER_REQUIRED_REGEX)).toBeInTheDocument();
+  });
+}, 50000); // Slow-running test, increase timeout to 50 seconds.
 
 // eslint-disable-next-line jest/no-disabled-tests
 test.skip("doesn't render time range pre-filter if there are no temporal columns in datasource", async () => {

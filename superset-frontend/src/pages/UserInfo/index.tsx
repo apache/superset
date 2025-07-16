@@ -66,7 +66,6 @@ const StyledLayout = styled.div`
       padding-left: ${theme.sizeUnit * 4}px;
       position: relative;
       height: ${theme.sizeUnit * 15}px;
-      background-color: ${theme.colors.grayscale.light5};
     }
   `}
 `;
@@ -117,7 +116,7 @@ export function UserInfo({ user }: { user: UserWithPermissionsAndRoles }) {
       name: (
         <>
           <Icons.LockOutlined
-            iconColor={theme.colors.primary.base}
+            iconColor={theme.colorPrimary}
             iconSize="m"
             css={css`
               margin: auto ${theme.sizeUnit * 2}px auto 0;
@@ -137,7 +136,7 @@ export function UserInfo({ user }: { user: UserWithPermissionsAndRoles }) {
       name: (
         <>
           <Icons.FormOutlined
-            iconColor={theme.colors.primary.light5}
+            iconColor={theme.colorIcon}
             iconSize="m"
             css={css`
               margin: auto ${theme.sizeUnit * 2}px auto 0;

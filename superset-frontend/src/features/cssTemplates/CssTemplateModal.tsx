@@ -65,7 +65,7 @@ const TemplateContainer = styled.div(
 
     .required {
       margin-left: ${theme.sizeUnit / 2}px;
-      color: ${theme.colors.error.base};
+      color: ${theme.colorErrorText};
     }
 
     input[type='text'] {
@@ -105,8 +105,8 @@ const CssTemplateModal: FunctionComponent<CssTemplateModalProps> = ({
 
   // Functions
   const hide = () => {
-    setIsHidden(true);
     onHide();
+    setCurrentCssTemplate(null);
   };
 
   const onSave = () => {
@@ -202,7 +202,7 @@ const CssTemplateModal: FunctionComponent<CssTemplateModalProps> = ({
         css: '',
       });
     }
-  }, [cssTemplate]);
+  }, [cssTemplate, show]);
 
   useEffect(() => {
     if (resource) {
