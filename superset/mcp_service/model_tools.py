@@ -170,3 +170,25 @@ class ModelGetInfoTool:
             error_msg = f"Error in ModelGetInfoTool: {str(context_error)}"
             self.logger.error(error_msg, exc_info=True)
             raise 
+
+class ModelGetAvailableFiltersTool:
+    """
+    Generic tool for retrieving available filterable columns and operators for a model.
+    Used for get_dataset_available_filters, get_chart_available_filters, get_dashboard_available_filters, etc.
+    """
+    def __init__(self, dao_class, output_schema, logger=None):
+        self.dao_class = dao_class
+        self.output_schema = output_schema
+        self.logger = logger or logging.getLogger(__name__)
+
+    def run(self):
+        try:
+            filterable = self.dao_class.get_filterable_columns_and_operators()
+            # Ensure column_operators is a plain dict, not a custom type
+            column_operators = dict(filterable)
+            response = self.output_schema(column_operators=column_operators)
+            self.logger.info(f"Successfully retrieved available filters for {self.dao_class.__name__}")
+            return response
+        except Exception as e:
+            self.logger.error(f"Error in ModelGetAvailableFiltersTool: {e}", exc_info=True)
+            raise 

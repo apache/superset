@@ -7,8 +7,8 @@ import logging
 
 from superset.mcp_service.auth import mcp_auth_hook
 from superset.mcp_service.mcp_app import mcp
-from superset.mcp_service.pydantic_schemas.dashboard_schemas import \
-    DashboardAvailableFilters
+from superset.mcp_service.pydantic_schemas.dashboard_schemas import DashboardAvailableFilters
+from superset.mcp_service.model_tools import ModelGetAvailableFiltersTool
 
 logger = logging.getLogger(__name__)
 
@@ -20,95 +20,10 @@ def get_dashboard_available_filters() -> DashboardAvailableFilters:
     Returns:
         DashboardAvailableFilters
     """
-    try:
-        operators = [
-            "eq", "ne", "sw", "in", "not_in", "like", "ilike", "gt", "lt", "gte", "lte", "is_null", "is_not_null"
-        ]
-        filters = {
-            "dashboard_title": {
-                "name": "dashboard_title",
-                "description": "Filter by dashboard title (partial match)",
-                "type": "string",
-                "operators": ["sw", "in", "eq"],
-                "values": None
-            },
-            "published": {
-                "name": "published",
-                "description": "Filter by published status",
-                "type": "boolean",
-                "operators": ["eq"],
-                "values": [True, False]
-            },
-            "changed_by": {
-                "name": "changed_by",
-                "description": "Filter by last modifier",
-                "type": "string",
-                "operators": ["in", "eq"],
-                "values": None
-            },
-            "created_by": {
-                "name": "created_by",
-                "description": "Filter by creator",
-                "type": "string",
-                "operators": ["in", "eq"],
-                "values": None
-            },
-            "owner": {
-                "name": "owner",
-                "description": "Filter by owner",
-                "type": "string",
-                "operators": ["in", "eq"],
-                "values": None
-            },
-            "certified": {
-                "name": "certified",
-                "description": "Filter by certification status",
-                "type": "boolean",
-                "operators": ["eq"],
-                "values": [True, False]
-            },
-            "favorite": {
-                "name": "favorite",
-                "description": "Filter by favorite status",
-                "type": "boolean",
-                "operators": ["eq"],
-                "values": [True, False]
-            },
-            "chart_count": {
-                "name": "chart_count",
-                "description": "Filter by chart count",
-                "type": "integer",
-                "operators": ["eq", "gte", "lte"],
-                "values": None
-            },
-            "tags": {
-                "name": "tags",
-                "description": "Filter by tags",
-                "type": "string",
-                "operators": ["in"],
-                "values": None
-            }
-        }
-        filters = {
-            k: {
-                **v,
-                "operators": operators
-            } for k, v in filters.items()
-        }
-        columns = [
-            "id", "dashboard_title", "slug", "url", "changed_by", "changed_on",
-            "created_by", "created_on", "published", "certified_by",
-            "certification_details", "chart_count", "owners", "tags", "is_managed_externally",
-            "external_url", "uuid", "version"
-        ]
-        response = DashboardAvailableFilters(
-            filters=filters,
-            operators=operators,
-            columns=columns
-        )
-        logger.info("Successfully retrieved available dashboard filters and operators")
-        return response
-    except Exception as e:
-        error_msg = f"Unexpected error in get_dashboard_available_filters: {str(e)}"
-        logger.error(error_msg, exc_info=True)
-        raise
+    from superset.daos.dashboard import DashboardDAO
+    tool = ModelGetAvailableFiltersTool(
+        dao_class=DashboardDAO,
+        output_schema=DashboardAvailableFilters,
+        logger=logger,
+    )
+    return tool.run()

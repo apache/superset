@@ -145,9 +145,7 @@ def serialize_chart_object(chart) -> Optional[ChartInfo]:
 
 
 class DashboardAvailableFilters(BaseModel):
-    filters: Dict[str, Any] = Field(..., description="Available filters and their metadata")
-    operators: List[str] = Field(..., description="Supported filter operators")
-    columns: List[str] = Field(..., description="Available columns for filtering")
+    column_operators: Dict[str, Any] = Field(..., description="Available filter operators and metadata for each column")
 
 
 class DashboardFilter(ColumnOperator):

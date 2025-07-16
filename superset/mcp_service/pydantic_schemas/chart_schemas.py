@@ -51,9 +51,7 @@ class ChartInfo(BaseModel):
     model_config = ConfigDict(from_attributes=True, ser_json_timedelta="iso8601")
 
 class ChartAvailableFiltersResponse(BaseModel):
-    filters: Dict[str, Any] = Field(..., description="Available filters and their metadata")
-    operators: List[str] = Field(..., description="Supported filter operators")
-    columns: List[str] = Field(..., description="Available columns for filtering")
+    column_operators: Dict[str, Any] = Field(..., description="Available filter operators and metadata for each column")
 
 class ChartError(BaseModel):
     error: str = Field(..., description="Error message")

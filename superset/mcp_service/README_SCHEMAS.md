@@ -39,6 +39,11 @@ This document provides a reference for the input and output parameters of all MC
 
 (See type definitions below)
 
+### get_dashboard_available_filters
+
+**Returns:** `DashboardAvailableFilters`
+- `column_operators`: `Dict[str, Any]` — Available filter operators and metadata for each column
+
 ## Datasets
 
 ### list_datasets
@@ -75,6 +80,11 @@ This document provides a reference for the input and output parameters of all MC
 **Returns:** `DatasetInfoResponse` or `DatasetErrorResponse`
 
 (See type definitions below)
+
+### get_dataset_available_filters
+
+**Returns:** `DatasetAvailableFilters`
+- `column_operators`: `Dict[str, List[str]]` — Available filter operators for each column
 
 ## Charts
 
@@ -113,6 +123,11 @@ This document provides a reference for the input and output parameters of all MC
 
 (See type definitions below)
 
+### get_chart_available_filters
+
+**Returns:** `ChartAvailableFiltersResponse`
+- `column_operators`: `Dict[str, Any]` — Available filter operators and metadata for each column
+
 ## Model Relationships
 
 ```mermaid
@@ -139,25 +154,4 @@ flowchart TD
 All list tools use the `ModelListTool` abstraction, which enforces:
 - Consistent parameter order and types
 - Strongly-typed Pydantic input/output models
-- Only requested columns are returned in the response
-- Unified pagination, filtering, and search logic
-
-## Filtering & Search Flow
-
-```mermaid
-flowchart TD
-    subgraph Filtering
-        F1["Advanced Filters (object-based)"]
-        F2["Simple Filters (field-based)"]
-        S["Search String"]
-        L["ModelListTool"]
-    end
-    F1 --> L
-    F2 --> L
-    S --> L
-    L -->|filters, search| E["DAO Query"]
-```
-
-## Type Definitions
-
-(Keep the rest of the type definitions as in the original file, but ensure all fields and types are up to date with the current codebase.) 
+- LLM/OpenAPI-friendly field names 
