@@ -54,7 +54,7 @@ const Wrapper = styled.div`
   justify-content: space-between;
   width: 100%;
 
-  .antd5-input-number {
+  .ant-input-number {
     min-width: 80px;
     position: relative;
   }

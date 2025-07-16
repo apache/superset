@@ -45,7 +45,7 @@ interface HandleSelectProps {
 }
 
 const menuItemStyles = (theme: any) => css`
-  &.antd5-menu-item {
+  &.ant-menu-item {
     height: auto;
     line-height: 1.4;
 

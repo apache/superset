@@ -132,7 +132,7 @@ function GroupListModal({
             value: role.id,
             label: role.name,
           }))}
-          getPopupContainer={trigger => trigger.closest('.antd5-modal-content')}
+          getPopupContainer={trigger => trigger.closest('.ant-modal-content')}
         />
       </FormItem>
       <FormItem name="users" label={t('Users')}>

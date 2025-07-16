@@ -62,7 +62,7 @@ const StyledCard = styled(Card)`
     margin-top: ${theme.marginXL}px;
     color: ${theme.colorBgContainer};
     background: ${theme.colorBgBase};
-    .antd5-form-item-label label {
+    .ant-form-item-label label {
       color: ${theme.colorPrimary};
     }
   `}

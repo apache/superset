@@ -196,10 +196,10 @@ function ActionLogList() {
         }: any) => (
           <Typography.Text
             css={css`
-              .antd5-typography-copy {
+              .ant-typography-copy {
                 visibility: hidden;
               }
-              &:hover .antd5-typography-copy {
+              &:hover .ant-typography-copy {
                 visibility: visible;
               }
             `}
@@ -224,10 +224,10 @@ function ActionLogList() {
         }: any) => (
           <Typography.Text
             css={css`
-              .antd5-typography-copy {
+              .ant-typography-copy {
                 visibility: hidden;
               }
-              &:hover .antd5-typography-copy {
+              &:hover .ant-typography-copy {
                 visibility: visible;
               }
             `}
