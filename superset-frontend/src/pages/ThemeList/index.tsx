@@ -78,6 +78,7 @@ function ThemesList({
   const canCreate = hasPerm('can_write');
   const canEdit = hasPerm('can_write');
   const canDelete = hasPerm('can_write');
+  const canApply = hasPerm('can_write'); // Only users with write permission can apply themes
 
   const [themeCurrentlyDeleting, setThemeCurrentlyDeleting] =
     useState<ThemeObject | null>(null);
@@ -166,13 +167,15 @@ function ThemesList({
           const handleApply = () => handleThemeApply(original);
 
           const actions = [
-            {
-              label: 'apply-action',
-              tooltip: t('Apply theme'),
-              placement: 'bottom',
-              icon: 'FormatPainterOutlined',
-              onClick: handleApply,
-            },
+            canApply
+              ? {
+                  label: 'apply-action',
+                  tooltip: t('Apply theme'),
+                  placement: 'bottom',
+                  icon: 'FormatPainterOutlined',
+                  onClick: handleApply,
+                }
+              : null,
             canEdit
               ? {
                   label: 'edit-action',
@@ -200,7 +203,7 @@ function ThemesList({
         Header: t('Actions'),
         id: 'actions',
         disableSortBy: true,
-        hidden: !canEdit && !canDelete,
+        hidden: !canEdit && !canDelete && !canApply,
         size: 'xl',
       },
       {
@@ -209,7 +212,7 @@ function ThemesList({
         id: QueryObjectColumns.ChangedBy,
       },
     ],
-    [canDelete, canCreate],
+    [canDelete, canCreate, canApply],
   );
 
   const menuData: SubMenuProps = {

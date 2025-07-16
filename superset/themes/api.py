@@ -77,6 +77,7 @@ class ThemeRestApi(BaseSupersetModelRestApi):
         "changed_by.first_name",
         "changed_by.id",
         "changed_by.last_name",
+        "changed_by_name",
         "created_on",
         "created_by.first_name",
         "created_by.id",
@@ -85,6 +86,8 @@ class ThemeRestApi(BaseSupersetModelRestApi):
         "id",
         "theme_name",
     ]
+
+    list_select_columns = list_columns + ["changed_on", "created_on", "changed_by_fk"]
     add_columns = ["json_data", "theme_name"]
     edit_columns = add_columns
     order_columns = ["theme_name"]

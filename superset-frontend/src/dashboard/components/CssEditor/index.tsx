@@ -183,7 +183,7 @@ class CssEditor extends PureComponent<CssEditorProps, CssEditorState> {
       );
       return (
         <Dropdown popupRender={() => menu} placement="bottomRight">
-          <Button>{t('Load template')}</Button>
+          <Button>{t('Load CSS template')}</Button>
         </Dropdown>
       );
     }
@@ -226,9 +226,7 @@ class CssEditor extends PureComponent<CssEditorProps, CssEditorState> {
               <Form layout="inline">{this.renderThemeSelector()}</Form>
               <h5>{t('CSS editor')}</h5>
               <Form layout="inline">
-                <Form.Item label={t('CSS Template')}>
-                  {this.renderTemplateSelector()}
-                </Form.Item>
+                <Form.Item>{this.renderTemplateSelector()}</Form.Item>
               </Form>
             </div>
             <AceCssEditor
