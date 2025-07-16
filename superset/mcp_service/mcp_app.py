@@ -21,14 +21,14 @@ This file provides the global FastMCP instance (mcp) and a function to initializ
 All tool modules should import mcp from here and use @mcp.tool and @mcp_auth_hook decorators.
 """
 import logging
+
 from fastmcp import FastMCP
 from superset.mcp_service.middleware import LoggingMiddleware, PrivateToolMiddleware
 
 mcp = FastMCP(
     "Superset MCP Server",
     instructions="""
-You are connected to the Apache Superset MCP (Model Context Protocol) service. This service provides programmatic 
-access to Superset dashboards, charts, datasets, and instance metadata via a set of high-level tools.
+You are connected to the Apache Superset MCP (Model Context Protocol) service. This service provides programmatic access to Superset dashboards, charts, datasets, and instance metadata via a set of high-level tools.
 
 Available tools include:
 - list_dashboards: Dashboard listing with advanced filters (use 'filters' for advanced queries, 1-based pagination)
@@ -45,14 +45,12 @@ Available tools include:
 
 General usage tips:
 - For listing tools, 'page' is 1-based (first page is 1)
-- Use 'filters' to narrow down results (see get_dashboard_available_filters, get_dataset_available_filters, 
-get_chart_available_filters for supported fields and operators)
+- Use 'filters' to narrow down results (see get_dashboard_available_filters, get_dataset_available_filters, get_chart_available_filters for supported fields and operators)
 - Use get_dashboard_info, get_dataset_info, get_chart_info with a valid ID from the listing tools
 - For instance-wide stats, call get_superset_instance_info with no arguments
 - All tools return structured, Pydantic-typed responses
 
-If you are unsure which tool to use, start with list_dashboards or get_superset_instance_info for a summary of the 
-Superset instance.
+If you are unsure which tool to use, start with list_dashboards or get_superset_instance_info for a summary of the Superset instance.
 """
 )
 
@@ -61,7 +59,6 @@ from superset.mcp_service.dashboard.tool import *
 from superset.mcp_service.dataset.tool import *
 from superset.mcp_service.chart.tool import *
 from superset.mcp_service.system.tool import *
-
 
 def init_fastmcp_server():
     """

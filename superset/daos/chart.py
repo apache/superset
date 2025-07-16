@@ -36,6 +36,20 @@ logger = logging.getLogger(__name__)
 class ChartDAO(BaseDAO[Slice]):
     base_filter = ChartFilter
 
+    @classmethod
+    def get_filterable_columns_and_operators(cls) -> dict:
+        filterable = super().get_filterable_columns_and_operators()
+        # Add custom fields for charts
+        filterable.update({
+            "tags": ["eq", "in_", "like"],
+            "owner": ["eq", "in_"],
+            "created_by": ["eq", "in_"],
+            "changed_by": ["eq", "in_"],
+            "viz_type": ["eq", "in_", "like"],
+            "datasource_name": ["eq", "in_", "like"],
+        })
+        return filterable
+
     @staticmethod
     def favorited_ids(charts: list[Slice]) -> list[FavStar]:
         ids = [chart.id for chart in charts]
