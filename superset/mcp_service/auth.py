@@ -15,12 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 
-
 import logging
-
-from flask import current_app, g
-from flask_login import AnonymousUserMixin
-from superset.extensions import security_manager
 
 logger = logging.getLogger(__name__)
 
@@ -67,6 +62,11 @@ def mcp_auth_hook(tool_func):
     All logic is overridable for enterprise integration.
     """
     import functools
+
+    from flask import current_app, g
+    from flask_login import AnonymousUserMixin
+    from superset.extensions import security_manager
+
     @functools.wraps(tool_func)
     def wrapper(*args, **kwargs):
         # --- Setup user context (was _setup_user_context) ---

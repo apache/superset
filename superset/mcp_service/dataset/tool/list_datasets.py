@@ -25,7 +25,8 @@ import logging
 from typing import Annotated, Literal, Optional
 
 from pydantic import conlist, constr, Field, PositiveInt
-from superset.daos.dataset import DatasetDAO
+from superset.mcp_service.auth import mcp_auth_hook
+from superset.mcp_service.mcp_app import mcp
 from superset.mcp_service.model_tools import ModelListTool
 from superset.mcp_service.pydantic_schemas import (DatasetInfo, DatasetList)
 from superset.mcp_service.pydantic_schemas.dataset_schemas import DatasetFilter
@@ -38,6 +39,8 @@ DEFAULT_DATASET_COLUMNS = [
 ]
 
 
+@mcp.tool
+@mcp_auth_hook
 def list_datasets(
     filters: Annotated[
         Optional[conlist(DatasetFilter, min_length=0)],
@@ -71,6 +74,9 @@ def list_datasets(
     """
     List datasets with advanced filtering, search, and column selection.
     """
+
+    from superset.daos.dataset import DatasetDAO
+
     tool = ModelListTool(
         dao_class=DatasetDAO,
         output_schema=DatasetInfo,

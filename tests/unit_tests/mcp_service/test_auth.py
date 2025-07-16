@@ -1,9 +1,7 @@
 from datetime import datetime
 from types import SimpleNamespace
 
-import pytest
 from pydantic import BaseModel
-from superset.mcp_service.auth import mcp_auth_hook
 
 
 # Dummy Pydantic output schema

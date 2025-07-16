@@ -25,94 +25,7 @@ This file provides:
 import logging
 import os
 
-def init_fastmcp_server() -> 'FastMCP':
-    """
-    Initialize and configure the FastMCP server with all tools and middleware.
-    Returns a configured FastMCP instance (not running).
-    """
-    from fastmcp import FastMCP
-    from superset.mcp_service.middleware import LoggingMiddleware, PrivateToolMiddleware
-    from superset.mcp_service.auth import mcp_auth_hook
-    logger = logging.getLogger(__name__)
-    logger.setLevel(logging.DEBUG)
-
-    mcp = FastMCP(
-        "Superset MCP Server",
-        instructions="""
-You are connected to the Apache Superset MCP (Model Context Protocol) service. This service provides programmatic access to Superset dashboards, charts, datasets, and instance metadata via a set of high-level tools.
-
-Available tools include:
-- list_dashboards: Dashboard listing with advanced filters (use 'filters' for advanced queries, 1-based pagination)
-- get_dashboard_info: Get detailed information about a dashboard by its integer ID
-- get_superset_instance_info: Get high-level statistics and metadata about the Superset instance (no arguments)
-- get_dashboard_available_filters: List all available dashboard filter fields and operators
-- list_datasets: DatasetInfo listing with advanced filters (use 'filters' for advanced queries, 1-based pagination)
-- get_dataset_info: Get detailed information about a dataset by its integer ID
-- get_dataset_available_filters: List all available dataset filter fields and operators
-- list_charts: Chart listing with advanced filters (use 'filters' for advanced queries, 1-based pagination)
-- get_chart_info: Get detailed information about a chart by its integer ID
-- get_chart_available_filters: List all available chart filter fields and operators
-- create_chart_simple: Create a new chart with a simple schema
-
-General usage tips:
-- For listing tools, 'page' is 1-based (first page is 1)
-- Use 'filters' to narrow down results (see get_dashboard_available_filters, get_dataset_available_filters, get_chart_available_filters for supported fields and operators)
-- Use get_dashboard_info, get_dataset_info, get_chart_info with a valid ID from the listing tools
-- For instance-wide stats, call get_superset_instance_info with no arguments
-- All tools return structured, Pydantic-typed responses
-
-If you are unsure which tool to use, start with list_dashboards or get_superset_instance_info for a summary of the Superset instance.
-"""
-    )
-
-    # Import all FastMCP tools
-    from superset.mcp_service.dashboard.tool.list_dashboards import list_dashboards
-    from superset.mcp_service.dashboard.tool.get_dashboard_info import get_dashboard_info
-    from superset.mcp_service.dashboard.tool.get_dashboard_available_filters import get_dashboard_available_filters
-    from superset.mcp_service.dataset.tool.list_datasets import list_datasets
-    from superset.mcp_service.dataset.tool.get_dataset_info import get_dataset_info
-    from superset.mcp_service.dataset.tool.get_dataset_available_filters import get_dataset_available_filters
-    from superset.mcp_service.chart.tool.list_charts import list_charts
-    from superset.mcp_service.chart.tool.get_chart_info import get_chart_info
-    from superset.mcp_service.chart.tool.get_chart_available_filters import get_chart_available_filters
-    from superset.mcp_service.chart.tool.create_chart_simple import create_chart_simple
-    from superset.mcp_service.chart.tool.create_chart import create_chart
-    from superset.mcp_service.system.tool.get_superset_instance_info import get_superset_instance_info
-
-    # ----------------------------------------------------------------------
-    # Tool Registration
-    #
-    # We register all MCP tools here using mcp.tool(mcp_auth_hook(...)).
-    # This ensures:
-    #   - Each tool is wrapped with the authentication/authorization hook (mcp_auth_hook)
-    #   - Registration is explicit and centralized after the mcp instance is created
-    #   - We avoid circular import issues that can arise if using @mcp.tool decorators
-    #     directly in the tool modules (since mcp is instantiated here)
-    #   - It's easy to see and control which tools are exposed and how they're wrapped
-    #
-    # If you want to use @mcp.tool as a decorator, you must ensure the mcp instance
-    # is available at import time in each tool module, which is less flexible and
-    # can lead to import problems. This pattern is the recommended and most robust
-    # for FastMCP tool registration, especially when using authentication hooks.
-    # ----------------------------------------------------------------------
-    mcp.tool(mcp_auth_hook(list_dashboards))
-    mcp.tool(mcp_auth_hook(get_dashboard_info))
-    mcp.tool(mcp_auth_hook(get_superset_instance_info))
-    mcp.tool(mcp_auth_hook(get_dashboard_available_filters))
-    mcp.tool(mcp_auth_hook(get_dataset_available_filters))
-    mcp.tool(mcp_auth_hook(list_datasets))
-    mcp.tool(mcp_auth_hook(get_dataset_info))
-    mcp.tool(mcp_auth_hook(list_charts))
-    mcp.tool(mcp_auth_hook(get_chart_info))
-    mcp.tool(mcp_auth_hook(get_chart_available_filters))
-    mcp.tool(mcp_auth_hook(create_chart_simple))
-    mcp.tool(mcp_auth_hook(create_chart))
-
-    mcp.add_middleware(LoggingMiddleware())
-    mcp.add_middleware(PrivateToolMiddleware())
-
-    logger.info("MCP Server initialized with modular tools structure")
-    return mcp
+from superset.mcp_service.mcp_app import mcp, init_fastmcp_server
 
 def configure_logging(debug: bool = False) -> None:
     """Configure logging for the MCP service."""
@@ -133,7 +46,7 @@ def run_server(host: str = "0.0.0.0", port: int = 5008, debug: bool = False) -> 
     configure_logging(debug)
     print(f"Creating MCP app...")
     # init_flask_app()
-    mcp = init_fastmcp_server()
+    init_fastmcp_server()  # This will register middleware, etc.
 
     env_key = f"FASTMCP_RUNNING_{port}"
     if not os.environ.get(env_key):
