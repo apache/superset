@@ -58,7 +58,6 @@ import { FilterControlProps } from './types';
 import { getFormData } from '../../utils';
 import { useFilterDependencies } from './state';
 import { useFilterOutlined } from '../useFilterOutlined';
-import { useFilters } from '../state';
 
 const HEIGHT = 32;
 
@@ -168,8 +167,7 @@ const FilterValue: FC<FilterControlProps> = ({
           dataMaskSelected?.[pId]?.extraFormData?.time_range
         ) {
           selectedParentFilterValueCounts +=
-            dataMaskSelected?.[pId]?.extraFormData?.filters?.length ??
-            1;
+            dataMaskSelected?.[pId]?.extraFormData?.filters?.length ?? 1;
         }
       });
 
@@ -259,7 +257,7 @@ const FilterValue: FC<FilterControlProps> = ({
     hasDataSource,
     isRefreshing,
     shouldRefresh,
-    dataMaskSelected
+    dataMaskSelected,
   ]);
 
   useEffect(() => {
