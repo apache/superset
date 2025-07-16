@@ -48,7 +48,7 @@ const sequentialSchemeRegistry = getSequentialSchemeRegistry();
 
 export const DEFAULT_DECKGL_COLOR = { r: 158, g: 158, b: 158, a: 1 };
 
-let deckglTiles;
+let deckglTiles: any;
 
 export const DEFAULT_DECKGL_TILES = [
   ['https://tile.openstreetmap.org/{z}/{x}/{y}.png', 'Streets (OSM)'],
