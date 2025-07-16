@@ -1,4 +1,3 @@
-#!/bin/bash
 # Licensed to the Apache Software Foundation (ASF) under one
 # or more contributor license agreements.  See the NOTICE file
 # distributed with this work for additional information
@@ -15,23 +14,3 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-
-
-# This script generates .json files from .po translation files
-# these json files are used by the frontend to load translations
-
-set -e
-
-export NODE_NO_WARNINGS=1
-
-for file in $( find ../superset/translations/** -name '*.po' );
-do
-  extension=${file##*.}
-  filename="${file%.*}"
-  if [ $extension == "po" ]
-  then
-    echo "po2json --domain superset --format jed1.x $file $filename.json"
-    po2json --domain superset --format jed1.x --fuzzy $file $filename.json
-    prettier --write $filename.json
-  fi
-done
