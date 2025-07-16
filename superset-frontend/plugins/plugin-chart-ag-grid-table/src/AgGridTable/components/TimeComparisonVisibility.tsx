@@ -20,7 +20,7 @@
 import { useState } from 'react';
 import { Dropdown } from 'antd';
 import { TableOutlined, DownOutlined, CheckOutlined } from '@ant-design/icons';
-import { t, useTheme } from '@superset-ui/core';
+import { t } from '@superset-ui/core';
 import { InfoText, ColumnLabel, CheckIconWrapper } from '../../styles';
 
 interface ComparisonColumn {
@@ -40,7 +40,6 @@ const TimeComparisonVisibility: React.FC<TimeComparisonVisibilityProps> = ({
   onSelectionChange,
 }) => {
   const [showComparisonDropdown, setShowComparisonDropdown] = useState(false);
-  const theme = useTheme();
 
   const allKey = comparisonColumns[0].key;
 
