@@ -17,20 +17,21 @@
 """
 MCP tool: create_chart (polymorphic, viz_type-discriminated)
 """
-from typing import Annotated
-from pydantic import Field
-from superset.mcp_service.pydantic_schemas.chart_schemas import (
-    ChartCreateRequest,
-    CreateSimpleChartResponse,  # Reuse response for now
-    serialize_chart_object,
-    EchartsTimeseriesLineChartCreateRequest,
-    EchartsTimeseriesBarChartCreateRequest,
-    EchartsAreaChartCreateRequest,
-    TableChartCreateRequest,
-)
-from superset.commands.chart.create import CreateChartCommand
 import json
+from typing import Annotated
 
+from pydantic import Field
+from superset.mcp_service.auth import mcp_auth_hook
+from superset.mcp_service.mcp_app import mcp
+from superset.mcp_service.pydantic_schemas.chart_schemas import (
+    ChartCreateRequest, CreateSimpleChartResponse, EchartsAreaChartCreateRequest,
+    EchartsTimeseriesBarChartCreateRequest, EchartsTimeseriesLineChartCreateRequest,
+    serialize_chart_object,
+    TableChartCreateRequest, )  # Reuse response for now
+
+
+@mcp.tool
+@mcp_auth_hook
 def create_chart(
     request: Annotated[
         ChartCreateRequest,
@@ -41,6 +42,8 @@ def create_chart(
     Create a new chart (visualization) in Superset with a type-safe, viz_type-specific schema.
     Accepts ECharts timeseries line, bar, area, and table charts.
     """
+    from superset.commands.chart.create import CreateChartCommand
+
     try:
         # Determine chart type and build form_data accordingly
         if isinstance(request, (EchartsTimeseriesLineChartCreateRequest, EchartsTimeseriesBarChartCreateRequest, EchartsAreaChartCreateRequest)):

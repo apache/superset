@@ -22,16 +22,16 @@ This module contains the FastMCP tool for getting detailed information
 about a specific dashboard.
 """
 import logging
-from datetime import datetime, timezone
 from typing import Annotated
 
 from pydantic import Field
-
-from superset.daos.dashboard import DashboardDAO
+from superset.mcp_service.auth import mcp_auth_hook
+from superset.mcp_service.mcp_app import mcp
 from superset.mcp_service.model_tools import ModelGetInfoTool
-from superset.mcp_service.pydantic_schemas import DashboardInfo, DashboardError
-from superset.mcp_service.pydantic_schemas.system_schemas import RoleInfo, TagInfo, UserInfo
+from superset.mcp_service.pydantic_schemas import DashboardError, DashboardInfo
 from superset.mcp_service.pydantic_schemas.chart_schemas import serialize_chart_object
+from superset.mcp_service.pydantic_schemas.system_schemas import RoleInfo, TagInfo, \
+    UserInfo
 
 logger = logging.getLogger(__name__)
 
@@ -65,6 +65,8 @@ def dashboard_serializer(dashboard):
         charts=[serialize_chart_object(chart) for chart in dashboard.slices] if dashboard.slices else []
     )
 
+@mcp.tool
+@mcp_auth_hook
 def get_dashboard_info(
     dashboard_id: Annotated[
         int,
@@ -75,6 +77,9 @@ def get_dashboard_info(
     Get detailed information about a specific dashboard.
     Returns a DashboardInfo model or DashboardError on error.
     """
+
+    from superset.daos.dashboard import DashboardDAO
+
     tool = ModelGetInfoTool(
         dao_class=DashboardDAO,
         output_schema=DashboardInfo,
