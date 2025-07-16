@@ -81,6 +81,7 @@ const mockTheme: ThemeObject = {
   ),
   changed_on_delta_humanized: '1 day ago',
   changed_by: {
+    id: 1,
     first_name: 'Admin',
     last_name: 'User',
   },
@@ -99,28 +100,29 @@ fetchMock.put('glob:*/api/v1/theme/1', {
   result: mockTheme,
 });
 
-const mockUser = {
-  userId: 1,
-  firstName: 'Admin',
-  lastName: 'User',
-  roles: { Admin: [['can_write', 'Dashboard']] },
-  permissions: {},
-  isActive: true,
-  isAnonymous: false,
-  username: 'admin',
-  email: 'admin@example.com',
-  user_id: 1,
-  first_name: 'Admin',
-  last_name: 'User',
-};
+// These are defined but not used in the simplified tests
+// const mockUser = {
+//   userId: 1,
+//   firstName: 'Admin',
+//   lastName: 'User',
+//   roles: { Admin: [['can_write', 'Dashboard']] },
+//   permissions: {},
+//   isActive: true,
+//   isAnonymous: false,
+//   username: 'admin',
+//   email: 'admin@example.com',
+//   user_id: 1,
+//   first_name: 'Admin',
+//   last_name: 'User',
+// };
 
-const defaultProps = {
-  addDangerToast: jest.fn(),
-  addSuccessToast: jest.fn(),
-  onThemeAdd: jest.fn(),
-  onHide: jest.fn(),
-  show: true,
-};
+// const defaultProps = {
+//   addDangerToast: jest.fn(),
+//   addSuccessToast: jest.fn(),
+//   onThemeAdd: jest.fn(),
+//   onHide: jest.fn(),
+//   show: true,
+// };
 
 describe('ThemeModal', () => {
   beforeEach(() => {
@@ -161,13 +163,13 @@ describe('ThemeModal', () => {
       }
     };
 
-    expect(isValidJson(mockTheme.json_data)).toBe(true);
+    expect(isValidJson(mockTheme.json_data || '')).toBe(true);
     expect(isValidJson('invalid json')).toBe(false);
     expect(isValidJson('{"valid": "json"}')).toBe(true);
   });
 
   test('should handle theme data parsing', () => {
-    const parsedTheme = JSON.parse(mockTheme.json_data);
+    const parsedTheme = JSON.parse(mockTheme.json_data || '{}');
     expect(parsedTheme).toMatchObject({
       colors: {
         primary: '#1890ff',
@@ -254,7 +256,7 @@ describe('ThemeModal', () => {
       }
     };
 
-    expect(validateJsonData(mockTheme.json_data)).toBe(true);
+    expect(validateJsonData(mockTheme.json_data || '')).toBe(true);
     expect(validateJsonData('')).toBe(false);
     expect(validateJsonData('invalid')).toBe(false);
     expect(validateJsonData('{}')).toBe(true);
