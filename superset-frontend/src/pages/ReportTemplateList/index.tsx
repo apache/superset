@@ -189,6 +189,9 @@ function ReportTemplateList({ addDangerToast, addSuccessToast }: TemplateListPro
         fetchData={fetchData}
         loading={loading}
         pageSize={25}
+        refreshData={() => fetchData({ pageIndex: 0, pageSize: 25 })}
+        addSuccessToast={addSuccessToast}
+        addDangerToast={addDangerToast}
       />
     </>
   );
