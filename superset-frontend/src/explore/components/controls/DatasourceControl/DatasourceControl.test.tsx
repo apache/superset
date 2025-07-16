@@ -474,3 +474,30 @@ test('should show missing dataset state', () => {
     ),
   ).toBeVisible();
 });
+
+test('should show forbidden dataset state', () => {
+  // @ts-ignore
+  delete window.location;
+  // @ts-ignore
+  window.location = { search: '?slice_id=152' };
+  const error = {
+    error_type: 'TABLE_SECURITY_ACCESS_ERROR',
+    statusText: 'FORBIDDEN',
+    message: 'You do not have access to the following tables: blocked_table',
+    extra: {
+      datasource: 152,
+      datasource_name: 'forbidden dataset',
+    },
+  };
+  const props = createProps({
+    datasource: {
+      ...fallbackExploreInitialData.dataset,
+      extra: {
+        error,
+      },
+    },
+  });
+  render(<DatasourceControl {...props} />, { useRedux: true, useRouter: true });
+  expect(screen.getByText(error.message)).toBeInTheDocument();
+  expect(screen.getByText(error.statusText)).toBeVisible();
+});
