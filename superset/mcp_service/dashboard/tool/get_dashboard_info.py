@@ -27,8 +27,8 @@ from typing import Annotated
 
 from pydantic import Field
 
-from superset.mcp_service.utils import ModelGetInfoTool
 from superset.daos.dashboard import DashboardDAO
+from superset.mcp_service.model_tools import ModelGetInfoTool
 from superset.mcp_service.pydantic_schemas import DashboardInfo, DashboardError
 from superset.mcp_service.pydantic_schemas.system_schemas import RoleInfo, TagInfo, UserInfo
 from superset.mcp_service.pydantic_schemas.chart_schemas import serialize_chart_object
