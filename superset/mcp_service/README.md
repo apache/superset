@@ -1,6 +1,6 @@
 # Superset MCP Service
 
-The Superset Model Context Protocol (MCP) service provides a universal, schema-driven interface for programmatic access to Superset dashboards, charts, datasets, and instance metadata. It is designed for LLM agents and automation tools to interact with Superset securely and efficiently, following the [SIP-171 MCP proposal](https://github.com/apache/superset/issues/33870).
+The Superset Model Context Protocol (MCP) service provides a modular, schema-driven interface for programmatic access to Superset dashboards, charts, datasets, and instance metadata. It is designed for LLM agents and automation tools to interact with Superset securely and efficiently, following the [SIP-171 MCP proposal](https://github.com/apache/superset/issues/33870).
 
 **⚠️ This functionality is under active development and not yet complete. Expect breaking changes and evolving APIs.**
 
@@ -36,19 +36,16 @@ All tools are modular, strongly typed, and use Pydantic v2 schemas. Every field 
 
 **Dashboards**
 - `list_dashboards` (advanced filtering, search)
-- `list_dashboards_simple` (simple filtering, search)
 - `get_dashboard_info`
 - `get_dashboard_available_filters`
 
 **Datasets**
 - `list_datasets` (advanced filtering, search)
-- `list_datasets_simple` (simple filtering, search)
 - `get_dataset_info`
 - `get_dataset_available_filters`
 
 **Charts**
 - `list_charts` (advanced filtering, search)
-- `list_charts_simple` (simple filtering, search)
 - `get_chart_info`
 - `get_chart_available_filters`
 - `create_chart_simple`
@@ -69,12 +66,14 @@ Example:
 list_dashboards(search="churn", filters=[{"col": "published", "opr": "eq", "value": True}])
 ```
 
-## Modular Structure
+## Modular Structure & Best Practices
 
-- Tools are organized by domain: `tools/dashboard/`, `tools/dataset/`, `tools/chart/`, `tools/system/`.
+- Tools are organized by domain: `dashboard/`, `dataset/`, `chart/`, `system/`.
 - All input/output is validated with Pydantic v2.
 - Shared schemas live in `pydantic_schemas/`.
 - All tool calls are logged and RBAC/auth hooks are pluggable.
+- **All tool functions must be decorated with `@mcp.tool` and `@mcp_auth_hook`.**
+- **All Superset DAOs, command classes, and most Superset modules must be imported inside the function body, not at the top of the file.** This ensures proper app context and avoids initialization errors.
 
 ## What's Implemented
 
@@ -83,7 +82,7 @@ list_dashboards(search="churn", filters=[{"col": "published", "opr": "eq", "valu
 - System info and available filters.
 - Full unit and integration test coverage for all tools, including search and error handling.
 - Protocol-level tests for agent compatibility.
-- **Note:** The API and toolset are still evolving and not all planned features are implemented yet.
+- **Note:** The API and toolset are still evolving and not all planned features are implemented yet. Mutations and navigation tools are planned for future releases.
 
 ## Further Reading
 

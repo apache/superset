@@ -1,6 +1,6 @@
 # Superset MCP Service: Tool Schemas Reference
 
-This document provides a reference for the input and output parameters of all MCP tools in the Superset MCP service. Each section lists the tool name, its input parameters (with type), and its output schema.
+This document provides a reference for the input and output schemas of all MCP tools in the Superset MCP service. All schemas are Pydantic v2 models with field descriptions for LLM/OpenAPI compatibility. All tool input and output is strongly typed and validated.
 
 ## Dashboards
 
@@ -15,7 +15,7 @@ This document provides a reference for the input and output parameters of all MC
 - `page`: `int` — Page number (1-based)
 - `page_size`: `int` — Number of items per page
 
-**Returns:** `DashboardListResponse`
+**Returns:** `DashboardList`
 - `dashboards`: `List[DashboardListItem]`
 - `count`: `int`
 - `total_count`: `int`
@@ -26,7 +26,7 @@ This document provides a reference for the input and output parameters of all MC
 - `has_next`: `bool`
 - `columns_requested`: `List[str]`
 - `columns_loaded`: `List[str]`
-- `filters_applied`: `Dict[str, Any]`
+- `filters_applied`: `List[Any]`
 - `pagination`: `PaginationInfo`
 - `timestamp`: `datetime`
 
@@ -35,9 +35,7 @@ This document provides a reference for the input and output parameters of all MC
 **Inputs:**
 - `dashboard_id`: `int` — Dashboard ID
 
-**Returns:** `DashboardInfoResponse` or `DashboardErrorResponse`
-
-(See type definitions below)
+**Returns:** `DashboardInfo` or `DashboardError`
 
 ### get_dashboard_available_filters
 
@@ -57,7 +55,7 @@ This document provides a reference for the input and output parameters of all MC
 - `page`: `int` — Page number (1-based)
 - `page_size`: `int` — Number of items per page
 
-**Returns:** `DatasetListResponse`
+**Returns:** `DatasetList`
 - `datasets`: `List[DatasetListItem]`
 - `count`: `int`
 - `total_count`: `int`
@@ -68,7 +66,7 @@ This document provides a reference for the input and output parameters of all MC
 - `has_next`: `bool`
 - `columns_requested`: `List[str]`
 - `columns_loaded`: `List[str]`
-- `filters_applied`: `Dict[str, Any]`
+- `filters_applied`: `List[Any]`
 - `pagination`: `PaginationInfo`
 - `timestamp`: `datetime`
 
@@ -77,14 +75,12 @@ This document provides a reference for the input and output parameters of all MC
 **Inputs:**
 - `dataset_id`: `int` — Dataset ID
 
-**Returns:** `DatasetInfoResponse` or `DatasetErrorResponse`
-
-(See type definitions below)
+**Returns:** `DatasetInfo` or `DatasetError`
 
 ### get_dataset_available_filters
 
 **Returns:** `DatasetAvailableFilters`
-- `column_operators`: `Dict[str, List[str]]` — Available filter operators for each column
+- `column_operators`: `Dict[str, Any]` — Available filter operators and metadata for each column
 
 ## Charts
 
@@ -99,7 +95,7 @@ This document provides a reference for the input and output parameters of all MC
 - `page`: `int` — Page number (1-based)
 - `page_size`: `int` — Number of items per page
 
-**Returns:** `ChartListResponse`
+**Returns:** `ChartList`
 - `charts`: `List[ChartListItem]`
 - `count`: `int`
 - `total_count`: `int`
@@ -110,7 +106,7 @@ This document provides a reference for the input and output parameters of all MC
 - `has_next`: `bool`
 - `columns_requested`: `List[str]`
 - `columns_loaded`: `List[str]`
-- `filters_applied`: `Dict[str, Any]`
+- `filters_applied`: `List[Any]`
 - `pagination`: `PaginationInfo`
 - `timestamp`: `datetime`
 
@@ -119,9 +115,7 @@ This document provides a reference for the input and output parameters of all MC
 **Inputs:**
 - `chart_id`: `int` — Chart ID
 
-**Returns:** `ChartInfoResponse` or `ChartErrorResponse`
-
-(See type definitions below)
+**Returns:** `ChartInfo` or `ChartError`
 
 ### get_chart_available_filters
 
