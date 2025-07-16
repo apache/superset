@@ -1,0 +1,317 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+
+import { useMemo, useState } from 'react';
+import { t, SupersetClient } from '@superset-ui/core';
+
+import rison from 'rison';
+import { useListViewResource } from 'src/views/CRUD/hooks';
+import { createErrorHandler, createFetchRelated } from 'src/views/CRUD/utils';
+import withToasts from 'src/components/MessageToasts/withToasts';
+import SubMenu, { SubMenuProps } from 'src/features/home/SubMenu';
+import { DeleteModal, ConfirmStatusChange } from '@superset-ui/core/components';
+import {
+  ModifiedInfo,
+  ListView,
+  ListViewActionsBar,
+  ListViewFilterOperator as FilterOperator,
+  type ListViewProps,
+  type ListViewActionProps,
+  type ListViewFilters,
+} from 'src/components';
+
+import ThemeModal from 'src/features/themes/ThemeModal';
+import { ThemeObject } from 'src/features/themes/types';
+import { QueryObjectColumns } from 'src/views/CRUD/types';
+import { Icons } from '@superset-ui/core/components/Icons';
+
+const PAGE_SIZE = 25;
+
+interface ThemesListProps {
+  addDangerToast: (msg: string) => void;
+  addSuccessToast: (msg: string) => void;
+  user: {
+    userId: string | number;
+    firstName: string;
+    lastName: string;
+  };
+}
+
+function ThemesList({
+  addDangerToast,
+  addSuccessToast,
+  user,
+}: ThemesListProps) {
+  const {
+    state: {
+      loading,
+      resourceCount: themesCount,
+      resourceCollection: themes,
+      bulkSelectEnabled,
+    },
+    hasPerm,
+    fetchData,
+    refreshData,
+    toggleBulkSelect,
+  } = useListViewResource<ThemeObject>('theme', t('Themes'), addDangerToast);
+  const [themeModalOpen, setThemeModalOpen] = useState<boolean>(false);
+  const [currentTheme, setCurrentTheme] = useState<ThemeObject | null>(null);
+
+  const canCreate = hasPerm('can_write');
+  const canEdit = hasPerm('can_write');
+  const canDelete = hasPerm('can_write');
+
+  const [themeCurrentlyDeleting, setThemeCurrentlyDeleting] =
+    useState<ThemeObject | null>(null);
+
+  const handleThemeDelete = ({ id, theme_name }: ThemeObject) => {
+    SupersetClient.delete({
+      endpoint: `/api/v1/theme/${id}`,
+    }).then(
+      () => {
+        refreshData();
+        setThemeCurrentlyDeleting(null);
+        addSuccessToast(t('Deleted: %s', theme_name));
+      },
+      createErrorHandler(errMsg =>
+        addDangerToast(
+          t('There was an issue deleting %s: %s', theme_name, errMsg),
+        ),
+      ),
+    );
+  };
+
+  const handleBulkThemeDelete = (themesToDelete: ThemeObject[]) => {
+    SupersetClient.delete({
+      endpoint: `/api/v1/theme/?q=${rison.encode(
+        themesToDelete.map(({ id }) => id),
+      )}`,
+    }).then(
+      ({ json = {} }) => {
+        refreshData();
+        addSuccessToast(json.message);
+      },
+      createErrorHandler(errMsg =>
+        addDangerToast(
+          t('There was an issue deleting the selected themes: %s', errMsg),
+        ),
+      ),
+    );
+  };
+
+  function handleThemeEdit(themeObj: ThemeObject) {
+    setCurrentTheme(themeObj);
+    setThemeModalOpen(true);
+  }
+
+  const initialSort = [{ id: 'theme_name', desc: true }];
+  const columns = useMemo(
+    () => [
+      {
+        accessor: 'theme_name',
+        Header: t('Name'),
+        id: 'theme_name',
+      },
+      {
+        Cell: ({
+          row: {
+            original: {
+              changed_on_delta_humanized: changedOn,
+              changed_by: changedBy,
+            },
+          },
+        }: any) => <ModifiedInfo date={changedOn} user={changedBy} />,
+        Header: t('Last modified'),
+        accessor: 'changed_on_delta_humanized',
+        size: 'xl',
+        disableSortBy: true,
+        id: 'changed_on_delta_humanized',
+      },
+      {
+        Cell: ({ row: { original } }: any) => {
+          const handleEdit = () => handleThemeEdit(original);
+          const handleDelete = () => setThemeCurrentlyDeleting(original);
+
+          const actions = [
+            canEdit
+              ? {
+                  label: 'edit-action',
+                  tooltip: t('Edit theme'),
+                  placement: 'bottom',
+                  icon: 'EditOutlined',
+                  onClick: handleEdit,
+                }
+              : null,
+            canDelete
+              ? {
+                  label: 'delete-action',
+                  tooltip: t('Delete theme'),
+                  placement: 'bottom',
+                  icon: 'DeleteOutlined',
+                  onClick: handleDelete,
+                }
+              : null,
+          ].filter(item => !!item);
+
+          return (
+            <ListViewActionsBar actions={actions as ListViewActionProps[]} />
+          );
+        },
+        Header: t('Actions'),
+        id: 'actions',
+        disableSortBy: true,
+        hidden: !canEdit && !canDelete,
+        size: 'xl',
+      },
+      {
+        accessor: QueryObjectColumns.ChangedBy,
+        hidden: true,
+        id: QueryObjectColumns.ChangedBy,
+      },
+    ],
+    [canDelete, canCreate],
+  );
+
+  const menuData: SubMenuProps = {
+    name: t('Themes'),
+  };
+
+  const subMenuButtons: SubMenuProps['buttons'] = [];
+
+  if (canCreate) {
+    subMenuButtons.push({
+      name: <>{t('Theme')}</>,
+      buttonStyle: 'primary',
+      icon: <Icons.PlusOutlined iconSize="m" />,
+      onClick: () => {
+        setCurrentTheme(null);
+        setThemeModalOpen(true);
+      },
+    });
+  }
+
+  if (canDelete) {
+    subMenuButtons.push({
+      name: t('Bulk select'),
+      onClick: toggleBulkSelect,
+      buttonStyle: 'secondary',
+    });
+  }
+
+  menuData.buttons = subMenuButtons;
+
+  const filters: ListViewFilters = useMemo(
+    () => [
+      {
+        Header: t('Name'),
+        key: 'search',
+        id: 'theme_name',
+        input: 'search',
+        operator: FilterOperator.Contains,
+      },
+      {
+        Header: t('Modified by'),
+        key: 'changed_by',
+        id: 'changed_by',
+        input: 'select',
+        operator: FilterOperator.RelationOneMany,
+        unfilteredLabel: t('All'),
+        fetchSelects: createFetchRelated(
+          'theme',
+          'changed_by',
+          createErrorHandler(errMsg =>
+            t(
+              'An error occurred while fetching theme datasource values: %s',
+              errMsg,
+            ),
+          ),
+          user,
+        ),
+        paginate: true,
+      },
+    ],
+    [],
+  );
+
+  return (
+    <>
+      <SubMenu {...menuData} />
+      <ThemeModal
+        addDangerToast={addDangerToast}
+        theme={currentTheme}
+        onThemeAdd={() => refreshData()}
+        onHide={() => setThemeModalOpen(false)}
+        show={themeModalOpen}
+      />
+      {themeCurrentlyDeleting && (
+        <DeleteModal
+          description={t('This action will permanently delete the theme.')}
+          onConfirm={() => {
+            if (themeCurrentlyDeleting) {
+              handleThemeDelete(themeCurrentlyDeleting);
+            }
+          }}
+          onHide={() => setThemeCurrentlyDeleting(null)}
+          open
+          title={t('Delete Theme?')}
+        />
+      )}
+      <ConfirmStatusChange
+        title={t('Please confirm')}
+        description={t('Are you sure you want to delete the selected themes?')}
+        onConfirm={handleBulkThemeDelete}
+      >
+        {confirmDelete => {
+          const bulkActions: ListViewProps['bulkActions'] = canDelete
+            ? [
+                {
+                  key: 'delete',
+                  name: t('Delete'),
+                  onSelect: confirmDelete,
+                  type: 'danger',
+                },
+              ]
+            : [];
+
+          return (
+            <ListView<ThemeObject>
+              className="themes-list-view"
+              columns={columns}
+              count={themesCount}
+              data={themes}
+              fetchData={fetchData}
+              filters={filters}
+              initialSort={initialSort}
+              loading={loading}
+              pageSize={PAGE_SIZE}
+              bulkActions={bulkActions}
+              bulkSelectEnabled={bulkSelectEnabled}
+              disableBulkSelect={toggleBulkSelect}
+              addDangerToast={addDangerToast}
+              addSuccessToast={addSuccessToast}
+              refreshData={refreshData}
+            />
+          );
+        }}
+      </ConfirmStatusChange>
+    </>
+  );
+}
+
+export default withToasts(ThemesList);

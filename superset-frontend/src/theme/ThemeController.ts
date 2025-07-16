@@ -43,6 +43,8 @@ const DEFAULT_THEME_SETTINGS = {
 
 const STORAGE_KEYS = {
   THEME_MODE: 'superset-theme-mode',
+  CRUD_THEME_ID: 'superset-crud-theme-id',
+  DEV_THEME_OVERRIDE: 'superset-dev-theme-override',
 } as const;
 
 const MEDIA_QUERY_DARK_SCHEME = '(prefers-color-scheme: dark)';
@@ -97,6 +99,10 @@ export class ThemeController {
 
   private mediaQuery: MediaQueryList;
 
+  private crudThemeId: string | null = null;
+
+  private devThemeOverride: AnyThemeConfig | null = null;
+
   constructor(options: ThemeControllerOptions = {}) {
     const {
       storage = new LocalStorageAdapter(),
@@ -137,6 +143,10 @@ export class ThemeController {
     // Only initialize media query listener if OS preference is allowed
     if (this.shouldInitializeMediaQueryListener())
       this.initializeMediaQueryListener();
+
+    // Load CRUD theme and dev override from storage
+    this.loadCrudThemeId();
+    this.loadDevThemeOverride();
 
     // Initialize theme and mode
     this.currentMode = this.determineInitialMode();
@@ -238,6 +248,76 @@ export class ThemeController {
       this.getThemeForMode(ThemeMode.DEFAULT) || this.defaultTheme;
 
     this.updateTheme(defaultTheme);
+  }
+
+  /**
+   * Sets a CRUD theme by UUID. This will fetch the theme from the API and apply it.
+   * @param themeUuid - The UUID of the CRUD theme to apply
+   */
+  public async setCrudTheme(themeUuid: string | null): Promise<void> {
+    this.crudThemeId = themeUuid;
+
+    if (themeUuid) {
+      this.storage.setItem(STORAGE_KEYS.CRUD_THEME_ID, themeUuid);
+      try {
+        const themeConfig = await this.fetchCrudTheme(themeUuid);
+        if (themeConfig) {
+          this.updateTheme(themeConfig);
+        }
+      } catch (error) {
+        console.error('Failed to load CRUD theme:', error);
+        this.fallbackToDefaultMode();
+      }
+    } else {
+      this.storage.removeItem(STORAGE_KEYS.CRUD_THEME_ID);
+      this.resetTheme();
+    }
+  }
+
+  /**
+   * Sets a temporary theme override for development purposes.
+   * This does not persist the theme but allows live preview.
+   * @param theme - The theme configuration to apply temporarily
+   */
+  public setTemporaryTheme(theme: AnyThemeConfig): void {
+    this.validateThemeUpdatePermission();
+
+    this.devThemeOverride = theme;
+    this.storage.setItem(
+      STORAGE_KEYS.DEV_THEME_OVERRIDE,
+      JSON.stringify(theme),
+    );
+
+    const normalizedTheme = this.normalizeTheme(theme);
+    this.updateTheme(normalizedTheme);
+  }
+
+  /**
+   * Clears all local overrides and CRUD theme selections.
+   * This allows developers to see what regular users see.
+   */
+  public clearLocalOverrides(): void {
+    this.devThemeOverride = null;
+    this.crudThemeId = null;
+
+    this.storage.removeItem(STORAGE_KEYS.DEV_THEME_OVERRIDE);
+    this.storage.removeItem(STORAGE_KEYS.CRUD_THEME_ID);
+
+    this.resetTheme();
+  }
+
+  /**
+   * Gets the current CRUD theme ID if any is selected.
+   */
+  public getCurrentCrudThemeId(): string | null {
+    return this.crudThemeId;
+  }
+
+  /**
+   * Checks if there's a development theme override active.
+   */
+  public hasDevOverride(): boolean {
+    return this.devThemeOverride !== null;
   }
 
   /**
@@ -406,6 +486,20 @@ export class ThemeController {
    * @returns The theme configuration for the specified mode or null if not available
    */
   private getThemeForMode(mode: ThemeMode): AnyThemeConfig | null {
+    // Priority 1: Dev theme override (highest priority for development)
+    if (this.devThemeOverride) {
+      return this.devThemeOverride;
+    }
+
+    // Priority 2: CRUD theme (organizational themes)
+    if (this.crudThemeId) {
+      // For CRUD themes, we'll need to fetch them async, so return null here
+      // and let the async setCrudTheme handle the loading
+      // This is a simplification - in practice, we'd cache the CRUD theme
+      return null;
+    }
+
+    // Priority 3: Default theme system (existing logic)
     const { allowOSPreference = DEFAULT_THEME_SETTINGS.allowOSPreference } =
       this.themeSettings;
 
@@ -591,6 +685,57 @@ export class ThemeController {
     } catch (error) {
       console.warn('Failed to detect system theme preference:', error);
       return ThemeMode.DEFAULT;
+    }
+  }
+
+  /**
+   * Loads the saved CRUD theme ID from storage.
+   */
+  private loadCrudThemeId(): void {
+    try {
+      this.crudThemeId = this.storage.getItem(STORAGE_KEYS.CRUD_THEME_ID);
+    } catch (error) {
+      console.warn('Failed to load CRUD theme ID:', error);
+      this.crudThemeId = null;
+    }
+  }
+
+  /**
+   * Loads the saved development theme override from storage.
+   */
+  private loadDevThemeOverride(): void {
+    try {
+      const stored = this.storage.getItem(STORAGE_KEYS.DEV_THEME_OVERRIDE);
+      if (stored) {
+        this.devThemeOverride = JSON.parse(stored);
+      }
+    } catch (error) {
+      console.warn('Failed to load dev theme override:', error);
+      this.devThemeOverride = null;
+    }
+  }
+
+  /**
+   * Fetches a theme configuration from the CRUD API.
+   * @param themeId - The ID of the theme to fetch
+   * @returns The theme configuration or null if not found
+   */
+  private async fetchCrudTheme(
+    themeUuid: string,
+  ): Promise<AnyThemeConfig | null> {
+    try {
+      const response = await fetch(`/api/v1/theme/${themeUuid}`);
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      const themeConfig = JSON.parse(data.result.json_data);
+
+      return themeConfig;
+    } catch (error) {
+      console.error('Failed to fetch CRUD theme:', error);
+      return null;
     }
   }
 }
