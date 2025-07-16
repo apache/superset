@@ -20,14 +20,14 @@ Unit tests for MCP dataset tools (list_datasets, get_dataset_info, get_dataset_a
 """
 import logging
 from unittest.mock import Mock, patch
+
 import pytest
-from superset.mcp_service.pydantic_schemas.dataset_schemas import (
-    DatasetAvailableFilters, DatasetList, DatasetError, DatasetInfo
-)
-from superset.mcp_service.dataset.tool.list_datasets import list_datasets
+from superset.mcp_service.dataset.tool.get_dataset_available_filters import \
+    get_dataset_available_filters
 from superset.mcp_service.dataset.tool.get_dataset_info import get_dataset_info
-from superset.mcp_service.dataset.tool.get_dataset_available_filters import get_dataset_available_filters
-from superset.daos.dataset import DatasetDAO
+from superset.mcp_service.dataset.tool.list_datasets import list_datasets
+from superset.mcp_service.pydantic_schemas.dataset_schemas import (
+    DatasetAvailableFilters, DatasetInfo, DatasetList)
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
