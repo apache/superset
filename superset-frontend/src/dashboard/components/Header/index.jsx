@@ -415,7 +415,7 @@ const Header = () => {
       owners: dashboardInfo.owners,
       roles: dashboardInfo.roles,
       slug,
-      tags: dashboardInfo.tags,
+      tags: dashboardInfo.tags.filter(item => item.type === 1 || !item.type),
       metadata: {
         ...dashboardInfo?.metadata,
         color_namespace: currentColorNamespace,
