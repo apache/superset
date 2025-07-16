@@ -24,6 +24,7 @@ import rison from 'rison';
 import { useListViewResource } from 'src/views/CRUD/hooks';
 import { createErrorHandler, createFetchRelated } from 'src/views/CRUD/utils';
 import withToasts from 'src/components/MessageToasts/withToasts';
+import { useThemeContext } from 'src/theme/ThemeProvider';
 import SubMenu, { SubMenuProps } from 'src/features/home/SubMenu';
 import { DeleteModal, ConfirmStatusChange } from '@superset-ui/core/components';
 import {
@@ -70,6 +71,7 @@ function ThemesList({
     refreshData,
     toggleBulkSelect,
   } = useListViewResource<ThemeObject>('theme', t('Themes'), addDangerToast);
+  const { setTemporaryTheme } = useThemeContext();
   const [themeModalOpen, setThemeModalOpen] = useState<boolean>(false);
   const [currentTheme, setCurrentTheme] = useState<ThemeObject | null>(null);
 
@@ -120,6 +122,20 @@ function ThemesList({
     setThemeModalOpen(true);
   }
 
+  function handleThemeApply(themeObj: ThemeObject) {
+    if (themeObj.json_data) {
+      try {
+        const themeConfig = JSON.parse(themeObj.json_data);
+        setTemporaryTheme(themeConfig);
+        addSuccessToast(
+          t('Theme "%s" applied temporarily', themeObj.theme_name),
+        );
+      } catch (error) {
+        addDangerToast(t('Failed to apply theme: Invalid JSON configuration'));
+      }
+    }
+  }
+
   const initialSort = [{ id: 'theme_name', desc: true }];
   const columns = useMemo(
     () => [
@@ -147,8 +163,16 @@ function ThemesList({
         Cell: ({ row: { original } }: any) => {
           const handleEdit = () => handleThemeEdit(original);
           const handleDelete = () => setThemeCurrentlyDeleting(original);
+          const handleApply = () => handleThemeApply(original);
 
           const actions = [
+            {
+              label: 'apply-action',
+              tooltip: t('Apply theme'),
+              placement: 'bottom',
+              icon: 'FormatPainterOutlined',
+              onClick: handleApply,
+            },
             canEdit
               ? {
                   label: 'edit-action',

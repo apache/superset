@@ -28,7 +28,6 @@ from superset.commands.theme.exceptions import (
     ThemeNotFoundError,
 )
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
-from superset.daos.theme import ThemeDAO
 from superset.extensions import event_logger
 from superset.models.core import Theme
 from superset.themes.filters import ThemeAllTextFilter
@@ -70,7 +69,7 @@ class ThemeRestApi(BaseSupersetModelRestApi):
         "created_by.id",
         "created_by.last_name",
         "json_data",
-        "uuid",
+        "id",
         "theme_name",
     ]
     list_columns = [
@@ -83,7 +82,7 @@ class ThemeRestApi(BaseSupersetModelRestApi):
         "created_by.id",
         "created_by.last_name",
         "json_data",
-        "uuid",
+        "id",
         "theme_name",
     ]
     add_columns = ["json_data", "theme_name"]
@@ -161,156 +160,3 @@ class ThemeRestApi(BaseSupersetModelRestApi):
             return self.response_404()
         except ThemeDeleteFailedError as ex:
             return self.response_422(message=str(ex))
-
-    @expose("/<uuid>", methods=("GET",))
-    @protect()
-    @safe
-    @statsd_metrics
-    @event_logger.log_this_with_context(
-        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.get_by_uuid",
-        log_to_statsd=False,
-    )
-    def get(self, uuid: str) -> Response:  # pylint: disable=arguments-differ
-        """Get theme by UUID.
-        ---
-        get:
-          summary: Get theme by UUID
-          parameters:
-          - in: path
-            schema:
-              type: string
-            name: uuid
-            description: The theme UUID
-          responses:
-            200:
-              description: Theme details
-              content:
-                application/json:
-                  schema:
-                    type: object
-                    properties:
-                      result:
-                        $ref: '#/components/schemas/ThemeRestApi.get'
-            401:
-              $ref: '#/components/responses/401'
-            404:
-              $ref: '#/components/responses/404'
-            500:
-              $ref: '#/components/responses/500'
-        """
-        try:
-            theme = ThemeDAO.find_by_uuid(uuid)
-            if not theme:
-                return self.response_404()
-            return self.response(200, **self.show(theme.id))
-        except Exception as ex:
-            logger.exception(ex)
-            return self.response_500()
-
-    @expose("/<uuid>", methods=("PUT",))
-    @protect()
-    @safe
-    @statsd_metrics
-    @event_logger.log_this_with_context(
-        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.put_by_uuid",
-        log_to_statsd=False,
-    )
-    def put(self, uuid: str) -> Response:  # pylint: disable=arguments-differ
-        """Update theme by UUID.
-        ---
-        put:
-          summary: Update theme by UUID
-          parameters:
-          - in: path
-            schema:
-              type: string
-            name: uuid
-            description: The theme UUID
-          requestBody:
-            description: Theme schema
-            required: true
-            content:
-              application/json:
-                schema:
-                  $ref: '#/components/schemas/ThemeRestApi.put'
-          responses:
-            200:
-              description: Theme updated
-              content:
-                application/json:
-                  schema:
-                    type: object
-                    properties:
-                      result:
-                        $ref: '#/components/schemas/ThemeRestApi.put'
-            400:
-              $ref: '#/components/responses/400'
-            401:
-              $ref: '#/components/responses/401'
-            404:
-              $ref: '#/components/responses/404'
-            422:
-              $ref: '#/components/responses/422'
-            500:
-              $ref: '#/components/responses/500'
-        """
-        try:
-            theme = ThemeDAO.find_by_uuid(uuid)
-            if not theme:
-                return self.response_404()
-            return self.edit(theme.id)
-        except Exception as ex:
-            logger.exception(ex)
-            return self.response_500()
-
-    @expose("/<uuid>", methods=("DELETE",))
-    @protect()
-    @safe
-    @statsd_metrics
-    @event_logger.log_this_with_context(
-        action=lambda self,
-        *args,
-        **kwargs: f"{self.__class__.__name__}.delete_by_uuid",
-        log_to_statsd=False,
-    )
-    def delete(self, uuid: str) -> Response:  # pylint: disable=arguments-differ
-        """Delete theme by UUID.
-        ---
-        delete:
-          summary: Delete theme by UUID
-          parameters:
-          - in: path
-            schema:
-              type: string
-            name: uuid
-            description: The theme UUID
-          responses:
-            200:
-              description: Theme deleted
-              content:
-                application/json:
-                  schema:
-                    type: object
-                    properties:
-                      message:
-                        type: string
-            401:
-              $ref: '#/components/responses/401'
-            404:
-              $ref: '#/components/responses/404'
-            422:
-              $ref: '#/components/responses/422'
-            500:
-              $ref: '#/components/responses/500'
-        """
-        try:
-            theme = ThemeDAO.find_by_uuid(uuid)
-            if not theme:
-                return self.response_404()
-            DeleteThemeCommand([theme.id]).run()
-            return self.response(200, message="Theme deleted")
-        except ThemeDeleteFailedError as ex:
-            return self.response_422(message=str(ex))
-        except Exception as ex:
-            logger.exception(ex)
-            return self.response_500()

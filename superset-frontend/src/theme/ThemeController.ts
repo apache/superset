@@ -251,16 +251,16 @@ export class ThemeController {
   }
 
   /**
-   * Sets a CRUD theme by UUID. This will fetch the theme from the API and apply it.
-   * @param themeUuid - The UUID of the CRUD theme to apply
+   * Sets a CRUD theme by ID. This will fetch the theme from the API and apply it.
+   * @param themeId - The ID of the CRUD theme to apply
    */
-  public async setCrudTheme(themeUuid: string | null): Promise<void> {
-    this.crudThemeId = themeUuid;
+  public async setCrudTheme(themeId: string | null): Promise<void> {
+    this.crudThemeId = themeId;
 
-    if (themeUuid) {
-      this.storage.setItem(STORAGE_KEYS.CRUD_THEME_ID, themeUuid);
+    if (themeId) {
+      this.storage.setItem(STORAGE_KEYS.CRUD_THEME_ID, themeId);
       try {
-        const themeConfig = await this.fetchCrudTheme(themeUuid);
+        const themeConfig = await this.fetchCrudTheme(themeId);
         if (themeConfig) {
           this.updateTheme(themeConfig);
         }
@@ -721,10 +721,10 @@ export class ThemeController {
    * @returns The theme configuration or null if not found
    */
   private async fetchCrudTheme(
-    themeUuid: string,
+    themeId: string,
   ): Promise<AnyThemeConfig | null> {
     try {
-      const response = await fetch(`/api/v1/theme/${themeUuid}`);
+      const response = await fetch(`/api/v1/theme/${themeId}`);
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }

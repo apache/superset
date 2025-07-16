@@ -123,15 +123,14 @@ const ThemeModal: FunctionComponent<ThemeModalProps> = ({
   const onSave = () => {
     if (isEditMode) {
       // Edit
-      if (currentTheme?.uuid || currentTheme?.id) {
-        const update_id = currentTheme.uuid || currentTheme.id;
+      if (currentTheme?.id) {
+        const update_id = currentTheme.id;
         delete currentTheme.id;
-        delete currentTheme.uuid;
         delete currentTheme.created_by;
         delete currentTheme.changed_by;
         delete currentTheme.changed_on_delta_humanized;
 
-        updateResource(update_id as number, currentTheme).then(response => {
+        updateResource(update_id, currentTheme).then(response => {
           if (!response) {
             return;
           }
@@ -228,53 +227,20 @@ const ThemeModal: FunctionComponent<ThemeModalProps> = ({
   useEffect(() => {
     if (
       isEditMode &&
-      ((!currentTheme?.uuid && !currentTheme?.id) ||
-        (theme &&
-          theme?.uuid !== currentTheme.uuid &&
-          theme?.id !== currentTheme.id) ||
+      (!currentTheme?.id ||
+        (theme && theme?.id !== currentTheme.id) ||
         (isHidden && show))
     ) {
-      if ((theme?.uuid || theme?.id) && !loading) {
-        const id = theme.uuid || theme.id || 0;
-
-        fetchResource(typeof id === 'string' ? parseInt(id, 10) : id);
+      if (theme?.id && !loading) {
+        fetchResource(theme.id);
       }
     } else if (
       !isEditMode &&
-      (!currentTheme ||
-        currentTheme.id ||
-        currentTheme.uuid ||
-        (isHidden && show))
+      (!currentTheme || currentTheme.id || (isHidden && show))
     ) {
-      const defaultThemeConfig = {
-        colors: {
-          primary: {
-            base: supersetTheme.colorPrimary,
-          },
-          secondary: {
-            base: supersetTheme.colorFillSecondary,
-          },
-          grayscale: {
-            base: supersetTheme.colorText,
-          },
-        },
-        typography: {
-          families: {
-            sansSerif: 'Inter',
-            serif: 'Georgia',
-            monospace: 'Consolas',
-          },
-          weights: {
-            light: 200,
-            normal: 400,
-            bold: 700,
-          },
-        },
-      };
-
       setCurrentTheme({
         theme_name: '',
-        json_data: JSON.stringify(defaultThemeConfig, null, 2),
+        json_data: JSON.stringify({}, null, 2),
       });
     }
   }, [theme, show]);
@@ -307,7 +273,7 @@ const ThemeModal: FunctionComponent<ThemeModalProps> = ({
       show={show}
       width="55%"
       footer={[
-        <Button key="cancel" onClick={hide}>
+        <Button key="cancel" onClick={hide} buttonStyle="secondary">
           {t('Cancel')}
         </Button>,
         ...(canDevelopThemes
@@ -316,7 +282,7 @@ const ThemeModal: FunctionComponent<ThemeModalProps> = ({
                 key="clear-local"
                 onClick={onClearLocalSettings}
                 disabled={!hasDevOverride()}
-                type="default"
+                buttonStyle="secondary"
               >
                 {t('Clear Local Settings')}
               </Button>,
@@ -327,7 +293,7 @@ const ThemeModal: FunctionComponent<ThemeModalProps> = ({
                   !currentTheme?.json_data ||
                   !isValidJson(currentTheme.json_data)
                 }
-                type="default"
+                buttonStyle="primary"
               >
                 {t('Apply')}
               </Button>,
@@ -337,7 +303,7 @@ const ThemeModal: FunctionComponent<ThemeModalProps> = ({
           key="save"
           onClick={onSave}
           disabled={disableSave}
-          type="primary"
+          buttonStyle="primary"
         >
           {isEditMode ? t('Save') : t('Add')}
         </Button>,

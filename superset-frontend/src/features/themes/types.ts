@@ -20,7 +20,6 @@ import Owner from 'src/types/Owner';
  */
 export type ThemeObject = {
   id?: number;
-  uuid?: string;
   changed_on_delta_humanized?: string;
   created_on?: string;
   changed_by?: Owner;

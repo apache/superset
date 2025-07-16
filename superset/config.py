@@ -605,10 +605,6 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # purposes.
     "THEME_ENABLE_DARK_THEME_SWITCH": False,
     # Adds a theme editor as a modal dialog in the navbar. Allows people to type in JSON
-    # and see the changes applied to the current theme.
-    # This is intended to use for theme creation, visual review and theming-debugging
-    # purposes.
-    "THEME_ALLOW_THEME_EDITOR_BETA": True,
     # Allow users to optionally specify date formats in email subjects, which will
     # be parsed if enabled
     "DATE_FORMAT_IN_EMAIL_SUBJECT": False,
