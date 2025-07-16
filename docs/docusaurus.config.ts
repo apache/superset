@@ -331,6 +331,13 @@ const config: Config = {
       apiKey: 'd0d22810f2e9b614ffac3a73b26891fe',
       indexName: 'superset-apache',
     },
+    mermaid: {
+      theme: { light: 'neutral', dark: 'dark' },
+      options: {
+        // Any Mermaid config options go here...
+        maxTextSize: 100000,
+      },
+    },
     navbar: {
       logo: {
         alt: 'Superset Logo',
