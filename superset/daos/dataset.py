@@ -37,6 +37,12 @@ logger = logging.getLogger(__name__)
 
 
 class DatasetDAO(BaseDAO[SqlaTable]):
+    """
+    DAO for datasets. Supports filtering on model fields, hybrid properties, and custom fields:
+    - tags: list of tags (eq, in_, like)
+    - is_virtual: boolean (eq, ne)
+    - owner: user id (eq, in_)
+    """
     base_filter = DatasourceFilter
 
     @staticmethod
@@ -350,6 +356,17 @@ class DatasetDAO(BaseDAO[SqlaTable]):
             .filter_by(database_id=database_id, table_name=table_name)
             .one_or_none()
         )
+
+    @classmethod
+    def get_filterable_columns_and_operators(cls) -> dict:
+        filterable = super().get_filterable_columns_and_operators()
+        # Add custom fields
+        filterable.update({
+            "tags": ["eq", "in_", "like"],
+            "is_virtual": ["eq", "ne"],
+            "owner": ["eq", "in_"],
+        })
+        return filterable
 
 
 class DatasetColumnDAO(BaseDAO[TableColumn]):
