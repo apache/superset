@@ -435,10 +435,10 @@ const FilterControls: FC<FilterControlsProps> = ({
       }));
 
     return [
+      ...chartCustomizations,
+      ...dividerItems,
       ...crossFilters,
       ...nativeFiltersInScope,
-      ...dividerItems,
-      ...chartCustomizations,
     ];
   }, [
     filtersInScope,
