@@ -19,63 +19,79 @@
 Unit tests for MCP tool error handling and parameter validation
 """
 import logging
+import sys
 from unittest.mock import patch
 
 import pytest
-from superset.mcp_service.dashboard.tool.get_dashboard_available_filters import \
-    get_dashboard_available_filters
-from superset.mcp_service.dashboard.tool.list_dashboards import list_dashboards
-from superset.mcp_service.dataset.tool.list_datasets import list_datasets
-from superset.mcp_service.pydantic_schemas.dashboard_schemas import \
-    DashboardAvailableFilters
+
+sys.path.append('.')
+from superset.mcp_service.mcp_app import mcp
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
+
+@pytest.fixture
+def mcp_server():
+    return mcp
 
 class TestErrorHandling:
     """Test error handling and parameter validation in MCP tools"""
 
     @patch('superset.daos.dashboard.DashboardDAO.list')
-    def test_list_dashboards_exception_handling(self, mock_list):
+    @pytest.mark.asyncio
+    async def test_list_dashboards_exception_handling(self, mock_list, mcp_server):
+        import fastmcp
         mock_list.side_effect = Exception("Unexpected error")
-        with pytest.raises(Exception) as excinfo:
-            list_dashboards()
+        async with fastmcp.Client(mcp_server) as client:
+            with pytest.raises(Exception) as excinfo:
+                await client.call_tool("list_dashboards", {})
         assert "Unexpected error" in str(excinfo.value)
 
-    def test_get_dashboard_available_filters_exception_handling(self):
-        result = get_dashboard_available_filters()
-        assert isinstance(result, DashboardAvailableFilters)
-        assert hasattr(result, "filters")
-        assert hasattr(result, "operators")
-        assert hasattr(result, "columns")
+    @pytest.mark.asyncio
+    async def test_get_dashboard_available_filters_exception_handling(self, mcp_server):
+        import fastmcp
+        async with fastmcp.Client(mcp_server) as client:
+            result = await client.call_tool("get_dashboard_available_filters")
+            assert hasattr(result.data, "filters")
+            assert hasattr(result.data, "operators")
+            assert hasattr(result.data, "columns")
 
     @patch('superset.daos.dataset.DatasetDAO.list')
-    def test_list_datasets_exception_handling(self, mock_list):
+    @pytest.mark.asyncio
+    async def test_list_datasets_exception_handling(self, mock_list, mcp_server):
+        import fastmcp
         mock_list.side_effect = Exception("API request failed")
-        with pytest.raises(Exception) as excinfo:
-            list_datasets()
+        async with fastmcp.Client(mcp_server) as client:
+            with pytest.raises(Exception) as excinfo:
+                await client.call_tool("list_datasets", {})
         assert "API request failed" in str(excinfo.value)
 
-    def test_list_dashboards_parameter_types(self):
-        from pydantic import ValidationError
+    @pytest.mark.asyncio
+    async def test_list_dashboards_parameter_types(self, mcp_server):
+        import fastmcp
         with patch('superset.daos.dashboard.DashboardDAO.list') as mock_list:
             mock_list.return_value = ([], 0)
-            with pytest.raises(ValidationError):
-                list_dashboards(filters='[{"col": "test", "opr": "eq", "value": "value"}]')
-            with pytest.raises(ValidationError):
-                list_dashboards(filters=[{"col": "test", "opr": "eq", "value": "value"}])
-            list_dashboards(select_columns="id,dashboard_title")
-            list_dashboards(select_columns=["id", "dashboard_title"])
+            async with fastmcp.Client(mcp_server) as client:
+                with pytest.raises(fastmcp.exceptions.ToolError):
+                    await client.call_tool("list_dashboards", {"filters": '[{"col": "test", "opr": "eq", "value": "value"}]'})
+                with pytest.raises(fastmcp.exceptions.ToolError):
+                    await client.call_tool("list_dashboards", {"filters": [{"col": "test", "opr": "eq", "value": "value"}]})
+                with pytest.raises(fastmcp.exceptions.ToolError):
+                    await client.call_tool("list_dashboards", {"select_columns": "id,dashboard_title"})
+                await client.call_tool("list_dashboards", {"select_columns": ["id", "dashboard_title"]})
 
-    def test_list_datasets_parameter_types(self):
-        from pydantic import ValidationError
+    @pytest.mark.asyncio
+    async def test_list_datasets_parameter_types(self, mcp_server):
+        import fastmcp
         with patch('superset.daos.dataset.DatasetDAO.list') as mock_list:
             mock_list.return_value = ([], 0)
-            with pytest.raises(ValidationError):
-                list_datasets(filters='[{"col": "test", "opr": "eq", "value": "value"}]')
-            with pytest.raises(ValidationError):
-                list_datasets(filters=[{"col": "test", "opr": "eq", "value": "value"}])
-            list_datasets(select_columns="id,table_name")
-            list_datasets(select_columns=["id", "table_name"])
+            async with fastmcp.Client(mcp_server) as client:
+                with pytest.raises(fastmcp.exceptions.ToolError):
+                    await client.call_tool("list_datasets", {"filters": '[{"col": "test", "opr": "eq", "value": "value"}]'})
+                with pytest.raises(fastmcp.exceptions.ToolError):
+                    await client.call_tool("list_datasets", {"filters": [{"col": "test", "opr": "eq", "value": "value"}]})
+                with pytest.raises(fastmcp.exceptions.ToolError):
+                    await client.call_tool("list_datasets", {"select_columns": "id,table_name"})
+                await client.call_tool("list_datasets", {"select_columns": ["id", "table_name"]})
 
     # Example: test for missing required param, extra param, and malformed input would be in protocol/integration tests 

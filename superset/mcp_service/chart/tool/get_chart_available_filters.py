@@ -18,8 +18,12 @@
 """
 MCP tool: get_chart_available_filters
 """
+from superset.mcp_service.auth import mcp_auth_hook
 from superset.mcp_service.pydantic_schemas import ChartAvailableFiltersResponse
+from superset.mcp_service.mcp_app import mcp
 
+@mcp.tool
+@mcp_auth_hook
 def get_chart_available_filters() -> ChartAvailableFiltersResponse:
     """
     Return available chart filter fields, types, and supported operators (MCP tool).

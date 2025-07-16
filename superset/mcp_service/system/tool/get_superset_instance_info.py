@@ -6,12 +6,16 @@ Get Superset instance high-level information FastMCP tool
 import logging
 from datetime import datetime, timedelta, timezone
 
+from superset.mcp_service.auth import mcp_auth_hook
 from superset.mcp_service.pydantic_schemas.system_schemas import (
     DashboardBreakdown, DatabaseBreakdown, InstanceSummary, PopularContent,
     RecentActivity, InstanceInfo, )
+from superset.mcp_service.mcp_app import mcp
 
 logger = logging.getLogger(__name__)
 
+@mcp.tool
+@mcp_auth_hook
 def get_superset_instance_info() -> InstanceInfo:
     """
     Get high-level information about the Superset instance (direct DB query, not via REST API)

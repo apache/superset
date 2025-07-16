@@ -22,16 +22,20 @@ This module contains the FastMCP tool for getting detailed information
 about a specific dataset.
 """
 import logging
-from datetime import datetime, timezone
-from typing import Any, Annotated
+from typing import Annotated
+
 from pydantic import Field
-from superset.daos.dataset import DatasetDAO
+from superset.mcp_service.auth import mcp_auth_hook
+from superset.mcp_service.mcp_app import mcp
 from superset.mcp_service.model_tools import ModelGetInfoTool
-from superset.mcp_service.pydantic_schemas import DatasetInfo, DatasetError, serialize_dataset_object
-from superset.mcp_service.pydantic_schemas.dataset_schemas import serialize_dataset_object
+from superset.mcp_service.pydantic_schemas import DatasetError, DatasetInfo
+from superset.mcp_service.pydantic_schemas.dataset_schemas import \
+    serialize_dataset_object
 
 logger = logging.getLogger(__name__)
 
+@mcp.tool
+@mcp_auth_hook
 def get_dataset_info(
     dataset_id: Annotated[
         int,
@@ -42,6 +46,9 @@ def get_dataset_info(
     Get detailed information about a specific dataset.
     Returns a DatasetInfo model or DatasetError on error.
     """
+
+    from superset.daos.dataset import DatasetDAO
+
     tool = ModelGetInfoTool(
         dao_class=DatasetDAO,
         output_schema=DatasetInfo,

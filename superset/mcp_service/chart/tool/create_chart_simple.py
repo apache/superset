@@ -19,13 +19,16 @@ MCP tool: create_chart_simple
 """
 from typing import Annotated
 from pydantic import Field
+from superset.mcp_service.auth import mcp_auth_hook
 from superset.mcp_service.pydantic_schemas.chart_schemas import (
     CreateSimpleChartRequest, CreateSimpleChartResponse
 )
-from superset.commands.chart.create import CreateChartCommand
 from superset.mcp_service.pydantic_schemas.chart_schemas import serialize_chart_object
 import json
+from superset.mcp_service.mcp_app import mcp
 
+@mcp.tool
+@mcp_auth_hook
 def create_chart_simple(
     request: Annotated[
         CreateSimpleChartRequest,
@@ -79,6 +82,8 @@ def create_chart_simple(
       - Set return_embed=True if you want to immediately embed the chart in a chat or web UI.
       - For more advanced chart types or customizations, use a specialized chart creation tool or agent if available.
     """
+    from superset.commands.chart.create import CreateChartCommand
+
     try:
         # Build minimal form_data and params for the chart
         form_data = {

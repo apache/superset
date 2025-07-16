@@ -22,10 +22,11 @@ import logging
 from typing import Annotated, Literal, Optional
 
 from pydantic import conlist, constr, Field, PositiveInt
-from superset.daos.chart import ChartDAO
+from superset.mcp_service.auth import mcp_auth_hook
 from superset.mcp_service.model_tools import ModelListTool
 from superset.mcp_service.pydantic_schemas import ChartInfo, ChartList
 from superset.mcp_service.pydantic_schemas.chart_schemas import ChartFilter
+from superset.mcp_service.mcp_app import mcp
 
 logger = logging.getLogger(__name__)
 
@@ -42,6 +43,8 @@ DEFAULT_CHART_COLUMNS = [
 ]
 
 
+@mcp.tool
+@mcp_auth_hook
 def list_charts(
     filters: Annotated[
         Optional[conlist(ChartFilter, min_length=0)],
@@ -75,6 +78,9 @@ def list_charts(
     """
     List charts with advanced filtering, search, and column selection.
     """
+
+    from superset.daos.chart import ChartDAO
+
     tool = ModelListTool(
         dao_class=ChartDAO,
         output_schema=ChartInfo,

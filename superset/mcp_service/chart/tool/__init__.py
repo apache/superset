@@ -9,4 +9,5 @@ __all__ = [
     "get_chart_info",
     "get_chart_available_filters",
     "create_chart_simple",
+    "create_chart"
 ]
