@@ -140,7 +140,11 @@ export const GroupByBadge = ({ chartId }: GroupByBadgeProps) => {
       if (!targetDataset) return false;
 
       const targetDatasetId = String(targetDataset);
-      return chartDataset === targetDatasetId;
+      const matchesDataset = chartDataset === targetDatasetId;
+
+      const hasColumn = item.customization?.column;
+
+      return matchesDataset && hasColumn;
     });
   }, [chartCustomizationItems, chartDataset]);
 
