@@ -32,6 +32,10 @@ import {
   Radio,
   type SelectValue,
 } from '@superset-ui/core/components';
+import {
+  DatasetSelectLabel,
+  type Dataset,
+} from 'src/features/datasets/DatasetSelectLabel';
 import { CollapsibleControl } from '../FiltersConfigModal/FiltersConfigForm/CollapsibleControl';
 import DatasetSelect from '../FiltersConfigModal/FiltersConfigForm/DatasetSelect';
 import { mostUsedDataset } from '../FiltersConfigModal/FiltersConfigForm/utils';
@@ -295,17 +299,15 @@ const ChartCustomizationForm: FC<Props> = ({ form, item, onUpdate }) => {
         };
       }
       if ('table_name' in customization.datasetInfo) {
-        const info = customization.datasetInfo as any;
-        const label =
-          info.table_name +
-          (info.schema ? ` (${info.schema})` : '') +
-          (info.database?.database_name
-            ? ` [${info.database.database_name}]`
-            : '');
-
+        const info = customization.datasetInfo as Dataset;
         return {
           value: datasetId,
-          label,
+          label: DatasetSelectLabel({
+            id: datasetId,
+            table_name: info.table_name,
+            schema: info.schema,
+            database: info.database,
+          }),
         };
       }
     }
