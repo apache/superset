@@ -589,6 +589,8 @@ const config: ControlPanelConfig = {
                         last(colname.split('__')) !== timeComparisonValue,
                     )
                     .forEach((colname, index) => {
+                      // Skip unprefixed percent metric columns if a prefixed version exists
+                      // But don't skip if it's also a regular metric
                       if (
                         colname &&
                         !colname.startsWith('%') &&
@@ -602,8 +604,10 @@ const config: ControlPanelConfig = {
                             getMetricLabel(metric) === colname,
                         )
                       ) {
-                        return;
+                        return; // skip this column
                       }
+
+                      // Check if column is a regular metric or percentage metric
                       const isMetric = explore.form_data.metrics?.some(
                         metric => getMetricLabel(metric) === colname,
                       );
@@ -613,6 +617,7 @@ const config: ControlPanelConfig = {
                             `%${getMetricLabel(metric)}` === colname,
                         );
 
+                      // Generate comparison columns for metrics (time comparison feature)
                       if (isMetric || isPercentMetric) {
                         const comparisonColumns =
                           generateComparisonColumns(colname);
