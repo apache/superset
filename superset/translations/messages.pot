@@ -25,7 +25,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2025-04-29 12:34+0330\n"
+"POT-Creation-Date: 2025-07-10 18:44+0300\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -130,6 +130,9 @@ msgstr ""
 msgid " to add metrics"
 msgstr ""
 
+msgid " to check for details."
+msgstr ""
+
 msgid " to edit or add columns and metrics."
 msgstr ""
 
@@ -137,6 +140,9 @@ msgid " to mark a column as a time column"
 msgstr ""
 
 msgid " to open SQL Lab. From there you can save the query as a dataset."
+msgstr ""
+
+msgid " to see details."
 msgstr ""
 
 msgid " to visualize your data."
@@ -283,6 +289,10 @@ msgstr[1] ""
 
 #, python-format
 msgid "%s saved metric(s)"
+msgstr ""
+
+#, python-format
+msgid "%s tab selected"
 msgstr ""
 
 #, python-format
@@ -575,6 +585,9 @@ msgstr ""
 msgid "A Big Number"
 msgstr ""
 
+msgid "A comma separated list of columns that should be parsed as dates"
+msgstr ""
+
 msgid "A comma-separated list of schemas that files are allowed to upload to."
 msgstr ""
 
@@ -713,7 +726,7 @@ msgstr ""
 msgid "Action"
 msgstr ""
 
-msgid "Action Log"
+msgid "Action Logs"
 msgstr ""
 
 msgid "Actions"
@@ -762,6 +775,9 @@ msgid "Add Divider"
 msgstr ""
 
 msgid "Add Filter"
+msgstr ""
+
+msgid "Add Group"
 msgstr ""
 
 msgid "Add Layer"
@@ -876,6 +892,9 @@ msgid "Add new formatter"
 msgstr ""
 
 msgid "Add or edit filters"
+msgstr ""
+
+msgid "Add report template"
 msgstr ""
 
 msgid "Add required control values to preview chart"
@@ -995,6 +1014,11 @@ msgstr ""
 msgid "After"
 msgstr ""
 
+msgid ""
+"After making the changes, copy the query and paste in the virtual dataset"
+" SQL snippet settings."
+msgstr ""
+
 msgid "Aggregate"
 msgstr ""
 
@@ -1026,6 +1050,12 @@ msgid "Aggregation Method"
 msgstr ""
 
 msgid "Aggregation function"
+msgstr ""
+
+msgid ""
+"Aggregation method used to compute the Big Number from the Trendline.For "
+"non-additive metrics like ratios, averages, distinct counts, etc use "
+"NONE."
 msgstr ""
 
 msgid "Alert"
@@ -1115,10 +1145,16 @@ msgstr ""
 msgid "All charts/global scoping"
 msgstr ""
 
+msgid "All fields are required"
+msgstr ""
+
 msgid "All filters"
 msgstr ""
 
 msgid "All panels"
+msgstr ""
+
+msgid "All records"
 msgstr ""
 
 msgid "Allow CREATE TABLE AS"
@@ -1216,9 +1252,6 @@ msgid ""
 msgstr ""
 
 msgid "An error has occurred"
-msgstr ""
-
-msgid "An error has occurred while syncing virtual dataset columns"
 msgstr ""
 
 msgid "An error occurred"
@@ -1339,6 +1372,9 @@ msgstr ""
 
 #, python-format
 msgid "An error occurred while fetching user values: %s"
+msgstr ""
+
+msgid "An error occurred while formatting SQL"
 msgstr ""
 
 #, python-format
@@ -1599,6 +1635,9 @@ msgstr ""
 msgid "Are you sure you want to delete the selected datasets?"
 msgstr ""
 
+msgid "Are you sure you want to delete the selected groups?"
+msgstr ""
+
 msgid "Are you sure you want to delete the selected layers?"
 msgstr ""
 
@@ -1814,9 +1853,6 @@ msgstr ""
 msgid "Big Number"
 msgstr ""
 
-msgid "Big Number Font Size"
-msgstr ""
-
 msgid "Big Number with Time Period Comparison"
 msgstr ""
 
@@ -1824,6 +1860,10 @@ msgid "Big Number with Trendline"
 msgstr ""
 
 msgid "Bins"
+msgstr ""
+
+#, python-format
+msgid "Block %(block_num)s out of %(block_count)s"
 msgstr ""
 
 msgid "Border color"
@@ -1958,7 +1998,7 @@ msgstr ""
 msgid "CC recipients"
 msgstr ""
 
-msgid "CREATE DATASET"
+msgid "COPY QUERY"
 msgstr ""
 
 msgid "CREATE TABLE AS"
@@ -2400,6 +2440,9 @@ msgstr ""
 msgid "Choose a target"
 msgstr ""
 
+msgid "Choose a template"
+msgstr ""
+
 msgid "Choose already exists"
 msgstr ""
 
@@ -2410,6 +2453,9 @@ msgid "Choose columns to be parsed as dates"
 msgstr ""
 
 msgid "Choose columns to read"
+msgstr ""
+
+msgid "Choose how many X-Axis labels to show"
 msgstr ""
 
 msgid "Choose index column"
@@ -2447,6 +2493,9 @@ msgstr ""
 msgid ""
 "Choose whether a country should be shaded by the metric, or assigned a "
 "color based on a categorical color palette"
+msgstr ""
+
+msgid "Choose..."
 msgstr ""
 
 msgid "Chord Diagram"
@@ -2581,9 +2630,6 @@ msgid "Collapse row"
 msgstr ""
 
 msgid "Collapse tab content"
-msgstr ""
-
-msgid "Collapse table preview"
 msgstr ""
 
 msgid "Color"
@@ -2835,6 +2881,9 @@ msgstr ""
 msgid "Confirm overwrite"
 msgstr ""
 
+msgid "Confirm password"
+msgstr ""
+
 msgid "Confirm save"
 msgstr ""
 
@@ -3080,9 +3129,6 @@ msgstr ""
 msgid "Creator"
 msgstr ""
 
-msgid "Credentials uploaded"
-msgstr ""
-
 msgid "Crimson"
 msgstr ""
 
@@ -3248,6 +3294,9 @@ msgstr ""
 msgid "Dashboard"
 msgstr ""
 
+msgid "Dashboard Id"
+msgstr ""
+
 #, python-format
 msgid "Dashboard [%s] just got created and chart [%s] was added to it"
 msgstr ""
@@ -3411,9 +3460,6 @@ msgstr ""
 msgid "Database name"
 msgstr ""
 
-msgid "Database not allowed to change"
-msgstr ""
-
 msgid "Database not found."
 msgstr ""
 
@@ -3449,6 +3495,9 @@ msgstr ""
 
 #, python-format
 msgid "Dataset %(table)s already exists"
+msgstr ""
+
+msgid "Dataset ID"
 msgstr ""
 
 msgid "Dataset Name"
@@ -3724,6 +3773,9 @@ msgstr ""
 msgid "Delete Dataset?"
 msgstr ""
 
+msgid "Delete Group?"
+msgstr ""
+
 msgid "Delete Layer?"
 msgstr ""
 
@@ -3755,6 +3807,9 @@ msgid "Delete database"
 msgstr ""
 
 msgid "Delete email report"
+msgstr ""
+
+msgid "Delete group"
 msgstr ""
 
 msgid "Delete query"
@@ -3831,6 +3886,14 @@ msgstr[1] ""
 
 #, python-format
 msgid "Deleted %s"
+msgstr ""
+
+#, python-format
+msgid "Deleted group: %s"
+msgstr ""
+
+#, python-format
+msgid "Deleted groups: %s"
 msgstr ""
 
 #, python-format
@@ -4131,6 +4194,9 @@ msgstr ""
 msgid "Drop columns/metrics here or click"
 msgstr ""
 
+msgid "Dttm"
+msgstr ""
+
 msgid "Duplicate"
 msgstr ""
 
@@ -4182,6 +4248,9 @@ msgid ""
 "database. If left unset, the cache never expires. "
 msgstr ""
 
+msgid "Duration Ms"
+msgstr ""
+
 msgid "Duration in ms (1.40008 => 1ms 400µs 80ns)"
 msgstr ""
 
@@ -4204,9 +4273,6 @@ msgid "ECharts"
 msgstr ""
 
 msgid "EMAIL_REPORTS_CTA"
-msgstr ""
-
-msgid "END (EXCLUSIVE)"
 msgstr ""
 
 msgid "ERROR"
@@ -4245,6 +4311,9 @@ msgstr ""
 msgid "Edit Dataset "
 msgstr ""
 
+msgid "Edit Group"
+msgstr ""
+
 msgid "Edit Log"
 msgstr ""
 
@@ -4258,9 +4327,6 @@ msgid "Edit Role"
 msgstr ""
 
 msgid "Edit Rule"
-msgstr ""
-
-msgid "Edit Tag"
 msgstr ""
 
 msgid "Edit User"
@@ -4296,6 +4362,9 @@ msgstr ""
 msgid "Edit formatter"
 msgstr ""
 
+msgid "Edit group"
+msgstr ""
+
 msgid "Edit properties"
 msgstr ""
 
@@ -4303,6 +4372,9 @@ msgid "Edit query"
 msgstr ""
 
 msgid "Edit role"
+msgstr ""
+
+msgid "Edit tag"
 msgstr ""
 
 msgid "Edit template"
@@ -4441,6 +4513,9 @@ msgstr ""
 msgid "End (Longitude, Latitude): "
 msgstr ""
 
+msgid "End (exclusive)"
+msgstr ""
+
 msgid "End Longitude & Latitude"
 msgstr ""
 
@@ -4492,6 +4567,15 @@ msgstr ""
 msgid "Enter report name"
 msgstr ""
 
+msgid "Enter the group's description"
+msgstr ""
+
+msgid "Enter the group's label"
+msgstr ""
+
+msgid "Enter the group's name"
+msgstr ""
+
 #, python-format
 msgid "Enter the required %(dbModelName)s credentials"
 msgstr ""
@@ -4509,6 +4593,9 @@ msgid "Enter the user's last name"
 msgstr ""
 
 msgid "Enter the user's username"
+msgstr ""
+
+msgid "Enter your login and password below:"
 msgstr ""
 
 msgid "Entity"
@@ -4530,11 +4617,10 @@ msgstr ""
 msgid "Error deleting %s"
 msgstr ""
 
-msgid "Error faving chart"
+msgid "Error executing query. "
 msgstr ""
 
-#, python-format
-msgid "Error in jinja expression in HAVING clause: %(msg)s"
+msgid "Error faving chart"
 msgstr ""
 
 #, python-format
@@ -4550,6 +4636,10 @@ msgid "Error in jinja expression in fetch values predicate: %(msg)s"
 msgstr ""
 
 msgid "Error loading chart datasources. Filters may not work correctly."
+msgstr ""
+
+#, python-format
+msgid "Error loading templates: %s"
 msgstr ""
 
 msgid "Error message"
@@ -4573,15 +4663,6 @@ msgstr ""
 msgid "Error unfaving chart"
 msgstr ""
 
-msgid "Error while adding role!"
-msgstr ""
-
-msgid "Error while adding user!"
-msgstr ""
-
-msgid "Error while duplicating role!"
-msgstr ""
-
 msgid "Error while fetching charts"
 msgstr ""
 
@@ -4589,23 +4670,14 @@ msgstr ""
 msgid "Error while fetching data: %s"
 msgstr ""
 
-msgid "Error while fetching permissions"
+msgid "Error while fetching groups"
 msgstr ""
 
 msgid "Error while fetching roles"
 msgstr ""
 
-msgid "Error while fetching users"
-msgstr ""
-
 #, python-format
 msgid "Error while rendering virtual dataset query: %(msg)s"
-msgstr ""
-
-msgid "Error while updating role!"
-msgstr ""
-
-msgid "Error while updating user!"
 msgstr ""
 
 #, python-format
@@ -4692,9 +4764,6 @@ msgid "Expand data panel"
 msgstr ""
 
 msgid "Expand row"
-msgstr ""
-
-msgid "Expand table preview"
 msgstr ""
 
 msgid "Expand tool bar"
@@ -4826,10 +4895,22 @@ msgid "Failed to create report"
 msgstr ""
 
 #, python-format
+msgid "Failed to delete: %s"
+msgstr ""
+
+#, python-format
+msgid "Failed to download template: %s"
+msgstr ""
+
+#, python-format
 msgid "Failed to execute %(query)s"
 msgstr ""
 
 msgid "Failed to generate chart edit URL"
+msgstr ""
+
+#, python-format
+msgid "Failed to generate report: %s"
 msgstr ""
 
 msgid "Failed to load chart data"
@@ -4860,7 +4941,14 @@ msgid "Failed to update report"
 msgstr ""
 
 #, python-format
+msgid "Failed to upload template: %s"
+msgstr ""
+
+#, python-format
 msgid "Failed to verify select options: %s"
+msgstr ""
+
+msgid "False"
 msgstr ""
 
 msgid "Favorite"
@@ -4915,6 +5003,9 @@ msgid "Fill all required fields to enable \"Default Value\""
 msgstr ""
 
 msgid "Fill method"
+msgstr ""
+
+msgid "Fill out the registration form"
 msgstr ""
 
 msgid "Filled"
@@ -5011,6 +5102,9 @@ msgid "Finish"
 msgstr ""
 
 msgid "First"
+msgstr ""
+
+msgid "First Name"
 msgstr ""
 
 msgid "First name"
@@ -5125,6 +5219,9 @@ msgstr ""
 msgid "Format SQL"
 msgstr ""
 
+msgid "Format SQL query"
+msgstr ""
+
 msgid ""
 "Format data labels. Use variables: {name}, {value}, {percent}. \\n "
 "represents a new line. ECharts compatibility:\n"
@@ -5194,6 +5291,12 @@ msgstr ""
 msgid "General information"
 msgstr ""
 
+msgid "Generate"
+msgstr ""
+
+msgid "Generate report"
+msgstr ""
+
 msgid "Generating link, please wait.."
 msgstr ""
 
@@ -5260,6 +5363,9 @@ msgstr ""
 msgid "Grid Size"
 msgstr ""
 
+msgid "Group"
+msgstr ""
+
 msgid "Group By"
 msgstr ""
 
@@ -5270,6 +5376,9 @@ msgid "Group Key"
 msgstr ""
 
 msgid "Group by"
+msgstr ""
+
+msgid "Groups"
 msgstr ""
 
 msgid "Guest user cannot modify chart payload"
@@ -5408,11 +5517,6 @@ msgid "If a metric is specified, sorting will be done based on the metric value"
 msgstr ""
 
 msgid ""
-"If changes are made to your SQL query, columns in your dataset will be "
-"synced when saving the dataset."
-msgstr ""
-
-msgid ""
 "If enabled, this control sorts the results/values descending, otherwise "
 "it sorts the results ascending."
 msgstr ""
@@ -5446,6 +5550,9 @@ msgid "Import %s"
 msgstr ""
 
 msgid "Import Dashboard(s)"
+msgstr ""
+
+msgid "Import Error"
 msgstr ""
 
 msgid "Import chart failed for an unknown reason"
@@ -5486,7 +5593,13 @@ msgid ""
 "service account or configure an OAuth2 client."
 msgstr ""
 
+msgid "In this view you can preview the first 25 rows. "
+msgstr ""
+
 msgid "Include Series"
+msgstr ""
+
+msgid "Include Template Parameters"
 msgstr ""
 
 msgid "Include a description that will be sent with your report"
@@ -5678,6 +5791,9 @@ msgstr ""
 msgid "Invert current page"
 msgstr ""
 
+msgid "Is Active?"
+msgstr ""
+
 msgid "Is active?"
 msgstr ""
 
@@ -5851,6 +5967,9 @@ msgid "Large"
 msgstr ""
 
 msgid "Last"
+msgstr ""
+
+msgid "Last Name"
 msgstr ""
 
 #, python-format
@@ -6068,6 +6187,9 @@ msgstr ""
 msgid "Link Copied!"
 msgstr ""
 
+msgid "List Groups"
+msgstr ""
+
 msgid "List Roles"
 msgstr ""
 
@@ -6117,6 +6239,9 @@ msgid "Loading..."
 msgstr ""
 
 msgid "Locate the chart"
+msgstr ""
+
+msgid "Log"
 msgstr ""
 
 msgid "Log Scale"
@@ -6271,6 +6396,9 @@ msgid "Markers"
 msgstr ""
 
 msgid "Markup type"
+msgstr ""
+
+msgid "Match system"
 msgstr ""
 
 msgid "Match time shift color with original series"
@@ -6726,6 +6854,9 @@ msgstr ""
 msgid "No Data"
 msgstr ""
 
+msgid "No Logs yet"
+msgstr ""
+
 msgid "No Results"
 msgstr ""
 
@@ -6810,6 +6941,15 @@ msgstr ""
 msgid "No global filters are currently added"
 msgstr ""
 
+msgid "No groups"
+msgstr ""
+
+msgid "No groups yet"
+msgstr ""
+
+msgid "No items"
+msgstr ""
+
 msgid "No matching records found"
 msgstr ""
 
@@ -6832,6 +6972,9 @@ msgid ""
 "No results were returned for this query. If you expected results to be "
 "returned, ensure any filters are configured properly and the datasource "
 "contains data for the selected time range."
+msgstr ""
+
+msgid "No roles"
 msgstr ""
 
 msgid "No roles yet"
@@ -7117,6 +7260,9 @@ msgstr ""
 msgid "Only single queries supported"
 msgstr ""
 
+msgid "Only the default catalog is supported for this connection"
+msgstr ""
+
 msgid "Oops! An error occurred!"
 msgstr ""
 
@@ -7141,7 +7287,13 @@ msgstr ""
 msgid "Open Datasource tab"
 msgstr ""
 
+msgid "Open SQL Lab in a new tab"
+msgstr ""
+
 msgid "Open in SQL Lab"
+msgstr ""
+
+msgid "Open in SQL lab"
 msgstr ""
 
 msgid "Open query in SQL Lab"
@@ -7369,6 +7521,9 @@ msgstr ""
 msgid "Password is required"
 msgstr ""
 
+msgid "Password:"
+msgstr ""
+
 msgid "Passwords do not match!"
 msgstr ""
 
@@ -7403,6 +7558,9 @@ msgid "Percentage change"
 msgstr ""
 
 msgid "Percentage difference between the time periods"
+msgstr ""
+
+msgid "Percentage metric calculation"
 msgstr ""
 
 msgid "Percentage metrics"
@@ -7567,10 +7725,28 @@ msgstr ""
 msgid "Please enter a SQLAlchemy URI to test"
 msgstr ""
 
+msgid "Please enter a valid email"
+msgstr ""
+
 msgid "Please enter a valid email address"
 msgstr ""
 
 msgid "Please enter valid text. Spaces alone are not permitted."
+msgstr ""
+
+msgid "Please enter your email"
+msgstr ""
+
+msgid "Please enter your first name"
+msgstr ""
+
+msgid "Please enter your last name"
+msgstr ""
+
+msgid "Please enter your password"
+msgstr ""
+
+msgid "Please enter your username"
 msgstr ""
 
 msgid "Please provide a valid range"
@@ -7594,6 +7770,9 @@ msgid "Please save your chart first, then try creating a new email report."
 msgstr ""
 
 msgid "Please save your dashboard first, then try creating a new email report."
+msgstr ""
+
+msgid "Please select at least one role or group"
 msgstr ""
 
 msgid "Please select both a Dataset and a Chart type to proceed"
@@ -7792,9 +7971,6 @@ msgstr ""
 msgid "Python datetime string pattern"
 msgstr ""
 
-msgid "QUERY DATA IN SQL LAB"
-msgstr ""
-
 msgid "Quarter"
 msgstr ""
 
@@ -7819,6 +7995,9 @@ msgid "Query B"
 msgstr ""
 
 msgid "Query History"
+msgstr ""
+
+msgid "Query data in SQL Lab"
 msgstr ""
 
 msgid "Query does not exist"
@@ -7849,9 +8028,6 @@ msgid "Query was stopped"
 msgstr ""
 
 msgid "Query was stopped."
-msgstr ""
-
-msgid "RANGE TYPE"
 msgstr ""
 
 msgid "RGB Color"
@@ -7897,6 +8073,9 @@ msgid "Range filter plugin using AntD"
 msgstr ""
 
 msgid "Range labels"
+msgstr ""
+
+msgid "Range type"
 msgstr ""
 
 msgid "Ranges"
@@ -7954,6 +8133,9 @@ msgstr ""
 msgid "Referenced columns not available in DataFrame."
 msgstr ""
 
+msgid "Referrer"
+msgstr ""
+
 msgid "Refetch results"
 msgstr ""
 
@@ -7982,6 +8164,9 @@ msgid "Refreshing charts"
 msgstr ""
 
 msgid "Refreshing columns"
+msgstr ""
+
+msgid "Register"
 msgstr ""
 
 msgid "Regular"
@@ -8098,6 +8283,9 @@ msgstr ""
 msgid "Report Schedule state not found"
 msgstr ""
 
+msgid "Report Templates"
+msgstr ""
+
 msgid "Report a bug"
 msgstr ""
 
@@ -8126,6 +8314,12 @@ msgid "Report sending"
 msgstr ""
 
 msgid "Report sent"
+msgstr ""
+
+msgid "Report template"
+msgstr ""
+
+msgid "Report templates"
 msgstr ""
 
 msgid "Report updated"
@@ -8175,6 +8369,12 @@ msgid "Reset"
 msgstr ""
 
 msgid "Reset columns"
+msgstr ""
+
+msgid "Reset my password"
+msgstr ""
+
+msgid "Reset password"
 msgstr ""
 
 msgid "Reset state"
@@ -8247,28 +8447,10 @@ msgstr ""
 msgid "Role Name"
 msgstr ""
 
-msgid "Role is required"
-msgstr ""
-
 msgid "Role name is required"
 msgstr ""
 
-msgid "Role successfully updated!"
-msgstr ""
-
-msgid "Role was successfully created!"
-msgstr ""
-
-msgid "Role was successfully duplicated!"
-msgstr ""
-
 msgid "Roles"
-msgstr ""
-
-msgid ""
-"Roles is a list which defines access to the dashboard. Granting a role "
-"access to a dashboard will bypass dataset level checks. If no roles are "
-"defined, regular access permissions apply."
 msgstr ""
 
 msgid ""
@@ -8314,6 +8496,12 @@ msgid "Row"
 msgstr ""
 
 msgid "Row Level Security"
+msgstr ""
+
+msgid ""
+"Row Limit: percentages are calculated based on the subset of data "
+"retrieved, respecting the row limit. All Records: Percentages are "
+"calculated based on the total dataset, ignoring the row limit."
 msgstr ""
 
 msgid ""
@@ -8376,7 +8564,7 @@ msgid "Running"
 msgstr ""
 
 #, python-format
-msgid "Running statement %(statement_num)s out of %(statement_count)s"
+msgid "Running block %(block_num)s out of %(block_count)s"
 msgstr ""
 
 msgid "SAT"
@@ -8423,6 +8611,9 @@ msgstr ""
 msgid "SQL query"
 msgstr ""
 
+msgid "SQL was formatted"
+msgstr ""
+
 msgid "SQLAlchemy URI"
 msgstr ""
 
@@ -8457,9 +8648,6 @@ msgid "SSH Tunneling is not enabled"
 msgstr ""
 
 msgid "SSL Mode \"require\" will be used."
-msgstr ""
-
-msgid "START (INCLUSIVE)"
 msgstr ""
 
 #, python-format
@@ -8740,6 +8928,9 @@ msgstr ""
 msgid "Select ..."
 msgstr ""
 
+msgid "Select All"
+msgstr ""
+
 msgid "Select Delivery Method"
 msgstr ""
 
@@ -8819,9 +9010,6 @@ msgstr ""
 msgid "Select all items"
 msgstr ""
 
-msgid "Select an aggregation method to apply to the metric."
-msgstr ""
-
 msgid "Select catalog or type to search catalogs"
 msgstr ""
 
@@ -8841,9 +9029,6 @@ msgid "Select color scheme"
 msgstr ""
 
 msgid "Select column"
-msgstr ""
-
-msgid "Select column names from a dropdown list that should be parsed as dates."
 msgstr ""
 
 msgid ""
@@ -8896,6 +9081,9 @@ msgstr ""
 msgid "Select format"
 msgstr ""
 
+msgid "Select groups"
+msgstr ""
+
 msgid ""
 "Select one or many metrics to display, that will be displayed in the "
 "percentages of total. Percentage metrics will be calculated only from "
@@ -8912,9 +9100,6 @@ msgid "Select operator"
 msgstr ""
 
 msgid "Select or type a custom value..."
-msgstr ""
-
-msgid "Select or type a value"
 msgstr ""
 
 msgid "Select or type currency symbol"
@@ -8959,6 +9144,9 @@ msgstr ""
 msgid "Select table or type to search tables"
 msgstr ""
 
+msgid "Select template"
+msgstr ""
+
 msgid "Select the Annotation Layer you would like to use."
 msgstr ""
 
@@ -8978,6 +9166,9 @@ msgid ""
 msgstr ""
 
 msgid "Select the geojson column"
+msgstr ""
+
+msgid "Select users"
 msgstr ""
 
 #, python-format
@@ -9037,10 +9228,18 @@ msgstr ""
 msgid "Server pagination"
 msgstr ""
 
+#, python-format
+msgid "Server pagination needs to be enabled for values over %s"
+msgstr ""
+
 msgid "Service Account"
 msgstr ""
 
 msgid "Service version"
+msgstr ""
+
+#, python-format
+msgid "Set %s as default datetime column"
 msgstr ""
 
 msgid "Set auto-refresh interval"
@@ -9143,6 +9342,9 @@ msgstr ""
 msgid "Show Markers"
 msgstr ""
 
+msgid "Show Metric Name"
+msgstr ""
+
 msgid "Show Metric Names"
 msgstr ""
 
@@ -9231,6 +9433,9 @@ msgstr ""
 msgid "Show only my charts"
 msgstr ""
 
+msgid "Show original SQL"
+msgstr ""
+
 msgid "Show password."
 msgstr ""
 
@@ -9307,6 +9512,12 @@ msgstr ""
 msgid "Shows or hides markers for the time series"
 msgstr ""
 
+msgid "Sign in"
+msgstr ""
+
+msgid "Sign in with"
+msgstr ""
+
 msgid "Significance Level"
 msgstr ""
 
@@ -9349,6 +9560,9 @@ msgstr ""
 msgid "Skip spaces after delimiter"
 msgstr ""
 
+msgid "Slice Id"
+msgstr ""
+
 msgid "Slug"
 msgstr ""
 
@@ -9370,6 +9584,9 @@ msgid "Solid"
 msgstr ""
 
 msgid "Some roles do not exist"
+msgstr ""
+
+msgid "Something went wrong while saving the user info"
 msgstr ""
 
 msgid ""
@@ -9515,6 +9732,9 @@ msgstr ""
 msgid "Split number"
 msgstr ""
 
+msgid "Split stack by"
+msgstr ""
+
 msgid "Square kilometers"
 msgstr ""
 
@@ -9525,6 +9745,9 @@ msgid "Square miles"
 msgstr ""
 
 msgid "Stack"
+msgstr ""
+
+msgid "Stack in groups, where each group corresponds to a dimension"
 msgstr ""
 
 msgid "Stack series"
@@ -9549,6 +9772,9 @@ msgid "Start"
 msgstr ""
 
 msgid "Start (Longitude, Latitude): "
+msgstr ""
+
+msgid "Start (inclusive)"
 msgstr ""
 
 msgid "Start Longitude & Latitude"
@@ -9578,10 +9804,6 @@ msgid "Started"
 msgstr ""
 
 msgid "State"
-msgstr ""
-
-#, python-format
-msgid "Statement %(statement_num)s out of %(statement_count)s"
 msgstr ""
 
 msgid "Statistical"
@@ -9657,16 +9879,10 @@ msgstr ""
 msgid "Subdomain"
 msgstr ""
 
-msgid "Subheader Font Size"
-msgstr ""
-
 msgid "Submit"
 msgstr ""
 
 msgid "Subtitle"
-msgstr ""
-
-msgid "Subtitle Font Size"
 msgstr ""
 
 msgid "Subtotal"
@@ -9909,6 +10125,9 @@ msgid "Template"
 msgstr ""
 
 msgid "Template parameters"
+msgstr ""
+
+msgid "Template uploaded"
 msgstr ""
 
 msgid ""
@@ -10191,6 +10410,12 @@ msgstr ""
 msgid "The function to use when aggregating points into groups"
 msgstr ""
 
+msgid "The group has been created successfully."
+msgstr ""
+
+msgid "The group has been updated successfully."
+msgstr ""
+
 msgid "The height of the current zoom level to compute all heights from"
 msgstr ""
 
@@ -10340,6 +10565,9 @@ msgstr ""
 msgid "The password provided when connecting to a database is not valid."
 msgstr ""
 
+msgid "The password reset was successfull"
+msgstr ""
+
 msgid ""
 "The passwords for the databases below are needed in order to import them "
 "together with the charts. Please note that the \"Secure Extra\" and "
@@ -10480,6 +10708,15 @@ msgstr ""
 msgid "The rich tooltip shows a list of all series for that point in time"
 msgstr ""
 
+msgid "The role has been created successfully."
+msgstr ""
+
+msgid "The role has been duplicated successfully."
+msgstr ""
+
+msgid "The role has been updated successfully."
+msgstr ""
+
 msgid ""
 "The row limit set for the chart was reached. The chart may show partial "
 "data."
@@ -10589,6 +10826,9 @@ msgstr ""
 msgid "The time unit used for the grouping of blocks"
 msgstr ""
 
+msgid "The two passwords that you entered do not match!"
+msgstr ""
+
 msgid "The type of the layer"
 msgstr ""
 
@@ -10601,7 +10841,13 @@ msgstr ""
 msgid "The upper limit of the threshold range of the Isoband"
 msgstr ""
 
+msgid "The user has been updated successfully."
+msgstr ""
+
 msgid "The user seems to have been deleted"
+msgstr ""
+
+msgid "The user was updated successfully"
 msgstr ""
 
 msgid "The user/password combination is not valid (Incorrect password for user)."
@@ -10672,6 +10918,18 @@ msgid ""
 "or increasing the destination width."
 msgstr ""
 
+msgid "There was an error creating the group. Please, try again."
+msgstr ""
+
+msgid "There was an error creating the role. Please, try again."
+msgstr ""
+
+msgid "There was an error creating the user. Please, try again."
+msgstr ""
+
+msgid "There was an error duplicating the role. Please, try again."
+msgstr ""
+
 msgid "There was an error fetching dataset"
 msgstr ""
 
@@ -10703,11 +10961,26 @@ msgstr ""
 msgid "There was an error loading the tables"
 msgstr ""
 
+msgid "There was an error loading users."
+msgstr ""
+
 msgid "There was an error retrieving dashboard tabs."
 msgstr ""
 
 #, python-format
 msgid "There was an error saving the favorite status: %s"
+msgstr ""
+
+msgid "There was an error updating the group. Please, try again."
+msgstr ""
+
+msgid "There was an error updating the role. Please, try again."
+msgstr ""
+
+msgid "There was an error updating the user. Please, try again."
+msgstr ""
+
+msgid "There was an error while fetching users"
 msgstr ""
 
 msgid "There was an error with your request"
@@ -10811,6 +11084,9 @@ msgstr ""
 
 #, python-format
 msgid "This action will permanently delete %s."
+msgstr ""
+
+msgid "This action will permanently delete the group."
 msgstr ""
 
 msgid "This action will permanently delete the layer."
@@ -10918,9 +11194,8 @@ msgid "This dashboard was saved successfully."
 msgstr ""
 
 msgid ""
-"This database does not allow for DDL/DML, and the query could not be "
-"parsed to confirm it is a read-only query. Please contact your "
-"administrator for more assistance."
+"This database does not allow for DDL/DML, but the query mutates data. "
+"Please contact your administrator for more assistance."
 msgstr ""
 
 msgid "This database is managed externally, and can't be edited in Superset"
@@ -10940,7 +11215,9 @@ msgstr ""
 msgid "This defines the element to be plotted on the chart"
 msgstr ""
 
-msgid "This email is already associated with an account."
+msgid ""
+"This email is already associated with an account. Please choose another "
+"one."
 msgstr ""
 
 msgid ""
@@ -10983,6 +11260,9 @@ msgid "This may be triggered by:"
 msgstr ""
 
 msgid "This metric might be incompatible with current dataset"
+msgstr ""
+
+msgid "This name is already taken. Please choose another one."
 msgstr ""
 
 msgid "This option has been disabled by the administrator."
@@ -11053,6 +11333,9 @@ msgid "Threshold"
 msgstr ""
 
 msgid "Threshold alpha level for determining significance"
+msgstr ""
+
+msgid "Threshold for Other"
 msgstr ""
 
 msgid "Threshold: "
@@ -11327,6 +11610,9 @@ msgstr ""
 msgid "Trigger Alert If..."
 msgstr ""
 
+msgid "True"
+msgstr ""
+
 msgid "Truncate Axis"
 msgstr ""
 
@@ -11460,6 +11746,9 @@ msgid ""
 msgstr ""
 
 msgid "Unable to parse SQL"
+msgstr ""
+
+msgid "Unable to read the file, please refresh and try again."
 msgstr ""
 
 msgid "Unable to retrieve dashboard colors"
@@ -11714,6 +12003,9 @@ msgstr ""
 msgid "User"
 msgstr ""
 
+msgid "User Name"
+msgstr ""
+
 msgid "User doesn't have the proper permissions."
 msgstr ""
 
@@ -11723,16 +12015,13 @@ msgstr ""
 msgid "User query"
 msgstr ""
 
-msgid "User was successfully created!"
-msgstr ""
-
-msgid "User was successfully updated!"
-msgstr ""
-
 msgid "Username"
 msgstr ""
 
 msgid "Username is required"
+msgstr ""
+
+msgid "Username:"
 msgstr ""
 
 msgid "Users"
@@ -11807,6 +12096,9 @@ msgid "Values are dependent on other filters"
 msgstr ""
 
 msgid "Values dependent on"
+msgstr ""
+
+msgid "Values less than this percentage will be grouped into the Other category."
 msgstr ""
 
 msgid ""
@@ -11993,9 +12285,10 @@ msgstr ""
 msgid "Waterfall Chart"
 msgstr ""
 
-msgid ""
-"We are unable to connect to your database. Click \"See more\" for "
-"database-provided information that may help troubleshoot the issue."
+msgid "We are unable to connect to your database."
+msgstr ""
+
+msgid "We are working on your query"
 msgstr ""
 
 #, python-format
@@ -12120,7 +12413,8 @@ msgstr ""
 msgid ""
 "When specifying SQL, the datasource acts as a view. Superset will use "
 "this statement as a subquery while grouping and filtering on the "
-"generated parent queries."
+"generated parent queries.If changes are made to your SQL query, columns "
+"in your dataset will be synced when saving the dataset."
 msgstr ""
 
 msgid ""
@@ -12205,6 +12499,9 @@ msgid "Whether to display the labels."
 msgstr ""
 
 msgid "Whether to display the legend (toggles)"
+msgstr ""
+
+msgid "Whether to display the metric name"
 msgstr ""
 
 msgid "Whether to display the metric name as a title"
@@ -12368,6 +12665,9 @@ msgstr ""
 msgid "X Axis Label"
 msgstr ""
 
+msgid "X Axis Label Interval"
+msgstr ""
+
 msgid "X Axis Title"
 msgstr ""
 
@@ -12476,6 +12776,9 @@ msgstr ""
 
 #, python-format
 msgid "You are adding tags to %s %ss"
+msgstr ""
+
+msgid "You are edting a query from the virtual dataset "
 msgstr ""
 
 msgid ""
@@ -12626,9 +12929,6 @@ msgid ""
 "You have used all %(historyLength)s undo slots and will not be able to "
 "fully undo subsequent actions. You may save your current state to reset "
 "the history."
-msgstr ""
-
-msgid "You may have an error in your SQL statement. {message}"
 msgstr ""
 
 msgid ""
@@ -12790,9 +13090,6 @@ msgid "alert"
 msgstr ""
 
 msgid "alert condition"
-msgstr ""
-
-msgid "alert dark"
 msgstr ""
 
 msgid "alerts"
@@ -13060,9 +13357,6 @@ msgstr ""
 msgid "error"
 msgstr ""
 
-msgid "error dark"
-msgstr ""
-
 msgid "error_message"
 msgstr ""
 
@@ -13085,9 +13379,6 @@ msgid "every month"
 msgstr ""
 
 msgid "expand"
-msgstr ""
-
-msgid "explore"
 msgstr ""
 
 msgid "failed"
@@ -13391,9 +13682,6 @@ msgid "string type icon"
 msgstr ""
 
 msgid "success"
-msgstr ""
-
-msgid "success dark"
 msgstr ""
 
 msgid "sum"

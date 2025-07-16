@@ -17,3 +17,5 @@
 # under the License.
 #
 -e .[development,bigquery,cors,druid,gevent,gsheets,mysql,postgres,presto,prophet,trino,thumbnails]
+boto3>=1.38.46
+relatorio>=0.11.1

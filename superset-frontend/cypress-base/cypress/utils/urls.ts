@@ -28,5 +28,6 @@ export const DATABASE_LIST = '/databaseview/list';
 export const DATASET_LIST_PATH = 'tablemodelview/list';
 export const ALERT_LIST = '/alert/list/';
 export const REPORT_LIST = '/report/list/';
+export const REPORT_TEMPLATE_LIST = '/report_template/list/';
 export const LOGIN = '/login/';
 export const REGISTER = '/register/';

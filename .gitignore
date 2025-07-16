@@ -37,6 +37,7 @@ cover
 .python-version
 .tox
 .vscode
+.venv
 _build
 _images
 _modules

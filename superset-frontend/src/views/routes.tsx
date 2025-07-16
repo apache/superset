@@ -64,6 +64,13 @@ const CssTemplateList = lazy(
     ),
 );
 
+const ReportTemplateList = lazy(
+  () =>
+    import(
+      /* webpackChunkName: "ReportTemplateList" */ 'src/pages/ReportTemplateList'
+    ),
+);
+
 const DashboardList = lazy(
   () =>
     import(/* webpackChunkName: "DashboardList" */ 'src/pages/DashboardList'),
@@ -211,6 +218,10 @@ export const routes: Routes = [
   {
     path: '/csstemplatemodelview/list/',
     Component: CssTemplateList,
+  },
+  {
+    path: '/report_template/list/',
+    Component: ReportTemplateList,
   },
   {
     path: '/annotationlayer/list/',
