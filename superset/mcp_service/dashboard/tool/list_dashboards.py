@@ -26,9 +26,9 @@ from typing import Annotated, Literal, Optional
 
 from pydantic import conlist, constr, Field, PositiveInt
 from superset.daos.dashboard import DashboardDAO
+from superset.mcp_service.model_tools import ModelListTool
 from superset.mcp_service.pydantic_schemas import (
     DashboardFilter, DashboardInfo, DashboardList, )
-from superset.mcp_service.utils import ModelListTool
 
 logger = logging.getLogger(__name__)
 

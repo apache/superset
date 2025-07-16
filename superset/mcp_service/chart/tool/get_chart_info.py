@@ -18,14 +18,14 @@
 """
 MCP tool: get_chart_info
 """
-from typing import Any, Dict, Optional, Annotated
-from superset.mcp_service.pydantic_schemas import ChartInfo, ChartError
-from superset.mcp_service.pydantic_schemas.chart_schemas import serialize_chart_object
-from datetime import datetime, timezone
-from superset.daos.chart import ChartDAO
-from pydantic import Field
 import logging
-from superset.mcp_service.utils import ModelGetInfoTool
+from typing import Annotated
+
+from pydantic import Field
+from superset.daos.chart import ChartDAO
+from superset.mcp_service.model_tools import ModelGetInfoTool
+from superset.mcp_service.pydantic_schemas import ChartError, ChartInfo
+from superset.mcp_service.pydantic_schemas.chart_schemas import serialize_chart_object
 
 logger = logging.getLogger(__name__)
 
