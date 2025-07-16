@@ -184,7 +184,7 @@ const FilterControls: FC<FilterControlsProps> = ({
     (theme: SupersetTheme) => css`
       margin: 0;
       font-size: ${theme.fontSize}px;
-      font-weight: ${theme.fontWeightStrong};
+      font-weight: ${theme.fontWeightNormal};
       color: ${theme.colorText};
       line-height: 1.3;
     `,
