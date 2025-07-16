@@ -26,9 +26,9 @@ from typing import Annotated, Literal, Optional
 
 from pydantic import conlist, constr, Field, PositiveInt
 from superset.daos.dataset import DatasetDAO
+from superset.mcp_service.model_tools import ModelListTool
 from superset.mcp_service.pydantic_schemas import (DatasetInfo, DatasetList)
 from superset.mcp_service.pydantic_schemas.dataset_schemas import DatasetFilter
-from superset.mcp_service.utils import ModelListTool
 
 logger = logging.getLogger(__name__)
 

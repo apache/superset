@@ -26,8 +26,8 @@ from datetime import datetime, timezone
 from typing import Any, Annotated
 from pydantic import Field
 from superset.daos.dataset import DatasetDAO
+from superset.mcp_service.model_tools import ModelGetInfoTool
 from superset.mcp_service.pydantic_schemas import DatasetInfo, DatasetError, serialize_dataset_object
-from superset.mcp_service.utils import ModelGetInfoTool
 from superset.mcp_service.pydantic_schemas.dataset_schemas import serialize_dataset_object
 
 logger = logging.getLogger(__name__)

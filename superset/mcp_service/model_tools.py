@@ -15,87 +15,20 @@
 # specific language governing permissions and limitations
 # under the License.
 
-
 import logging
-
-from flask import current_app, g
-from flask_login import AnonymousUserMixin
-from superset.extensions import security_manager
-
-logger = logging.getLogger(__name__)
-
-
-def get_user_from_request():
-    """
-    Extract user info from the request context (e.g., from Bearer token, headers, etc.).
-    By default, returns admin user. Override for OIDC/OAuth/Okta integration.
-    """
-    from flask import current_app
-    from superset.extensions import security_manager
-    admin_username = current_app.config.get("MCP_ADMIN_USERNAME", "admin")
-    return security_manager.get_user_by_username(admin_username)
-
-
-def impersonate_user(user, run_as=None):
-    """
-    Optionally impersonate another user if allowed. By default, returns the same user.
-    Override to enforce impersonation rules.
-    """
-    return user
-
-
-def has_permission(user, tool_func):
-    """
-    Check if the user has permission to run the tool. By default, always True.
-    Override for RBAC.
-    """
-    return True
-
-
-def log_access(user, tool_name, args, kwargs):
-    """
-    Log access/action for observability/audit. By default, does nothing.
-    Override to log to your system.
-    """
-    pass
-
-
-def mcp_auth_hook(tool_func):
-    """
-    Decorator for MCP tool functions to enforce auth, impersonation, RBAC, and logging.
-    Also sets up Flask user context (g.user) for downstream DAO/model code.
-    All logic is overridable for enterprise integration.
-    """
-    import functools
-    @functools.wraps(tool_func)
-    def wrapper(*args, **kwargs):
-        # --- Setup user context (was _setup_user_context) ---
-        admin_username = current_app.config.get("MCP_ADMIN_USERNAME", "admin")
-        admin_user = security_manager.get_user_by_username(admin_username)
-        if not admin_user:
-            g.user = AnonymousUserMixin()
-        else:
-            g.user = admin_user
-        # --- End user context setup ---
-
-        user = get_user_from_request()
-        run_as = kwargs.get("run_as")
-        if run_as:
-            user = impersonate_user(user, run_as)
-        if not has_permission(user, tool_func):
-            raise PermissionError(
-                f"User {getattr(user, 'username', user)} not authorized for "
-                f"{tool_func.__name__}")
-        log_access(user, tool_func.__name__, args, kwargs)
-        return tool_func(*args, **kwargs)
-
-    return wrapper
-
 
 class ModelListTool:
     """
     Generic tool for listing model objects with filtering, search, pagination, and column selection.
 
+    - Paging is 0-based: page=0 is the first page (to match backend and API conventions).
+    - total_pages is 0 if there are no results; otherwise, it's ceil(total_count / page_size).
+    - has_previous is True if page > 0 or (page == 0 and total_count == 0) (so UI can disable prev button on empty results).
+    - has_next is True if there are more results after the current page.
+    - columns_requested/columns_loaded track what columns were requested/returned for LLM/OpenAPI friendliness.
+    - Returns a strongly-typed Pydantic list schema (output_list_schema) with all metadata.
+    - Handles both object-based and JSON string filters.
+    - Designed for use by LLM agents and API clients.
     """
     def __init__(
         self,
@@ -195,11 +128,14 @@ class ModelListTool:
         self.logger.info(f"Successfully retrieved {len(item_objs)} {self.list_field_name}")
         return response
 
-
 class ModelGetInfoTool:
     """
     Generic tool for retrieving a single model object by ID, with error handling and serialization.
 
+    - Returns output_schema if found, otherwise error_schema with error_type and timestamp.
+    - If the DAO raises an exception, the error is logged and re-raised (for testability and observability).
+    - Used for get_dashboard_info, get_chart_info, get_dataset_info, etc.
+    - Designed for LLM/OpenAPI compatibility and robust error reporting.
     """
     def __init__(
         self,
@@ -233,4 +169,4 @@ class ModelGetInfoTool:
         except Exception as context_error:
             error_msg = f"Error in ModelGetInfoTool: {str(context_error)}"
             self.logger.error(error_msg, exc_info=True)
-            raise
+            raise 

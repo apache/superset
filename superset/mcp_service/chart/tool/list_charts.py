@@ -23,9 +23,9 @@ from typing import Annotated, Literal, Optional
 
 from pydantic import conlist, constr, Field, PositiveInt
 from superset.daos.chart import ChartDAO
+from superset.mcp_service.model_tools import ModelListTool
 from superset.mcp_service.pydantic_schemas import ChartInfo, ChartList
 from superset.mcp_service.pydantic_schemas.chart_schemas import ChartFilter
-from superset.mcp_service.utils import ModelListTool
 
 logger = logging.getLogger(__name__)
 
