@@ -555,6 +555,28 @@ class TestRowLevelSecurityWithRelatedAPI(SupersetTestCase):
         assert len(result) == len(db_tables)
         assert db_table_names == received_tables
 
+    def test_rls_tables_related_api_with_filter(self):
+        self.login(ADMIN_USERNAME)
+        # Test with filter that should match 'birth_names'
+        params = prison.dumps({"filter": "birth", "page": 0, "page_size": 100})
+        rv = self.client.get(f"/api/v1/rowlevelsecurity/related/tables?q={params}")
+        assert rv.status_code == 200
+        data = json.loads(rv.data.decode("utf-8"))
+        result = data["result"]
+        received_tables = {table["text"] for table in result}
+        # Should only return tables with 'birth' in the name
+        assert all("birth" in table_name.lower() for table_name in received_tables)
+        assert len(result) >= 1  # At least birth_names should be returned
+
+        # Test with filter that should match nothing
+        params = prison.dumps({"filter": "nonexistent", "page": 0, "page_size": 100})
+        rv = self.client.get(f"/api/v1/rowlevelsecurity/related/tables?q={params}")
+        assert rv.status_code == 200
+        data = json.loads(rv.data.decode("utf-8"))
+        result = data["result"]
+        assert len(result) == 0
+        assert data["count"] == 0
+
     def test_rls_roles_related_api(self):
         self.login(ADMIN_USERNAME)
         params = prison.dumps({"page": 0, "page_size": 100})
