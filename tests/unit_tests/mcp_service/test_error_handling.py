@@ -20,19 +20,14 @@ Unit tests for MCP tool error handling and parameter validation
 """
 import logging
 from unittest.mock import patch
+
 import pytest
-from superset.mcp_service.pydantic_schemas.dashboard_schemas import DashboardAvailableFilters, DashboardList
-from superset.mcp_service.pydantic_schemas.dataset_schemas import DatasetAvailableFilters, DatasetList
-from superset.mcp_service.dashboard.tool.get_dashboard_available_filters import get_dashboard_available_filters
+from superset.mcp_service.dashboard.tool.get_dashboard_available_filters import \
+    get_dashboard_available_filters
 from superset.mcp_service.dashboard.tool.list_dashboards import list_dashboards
-from superset.mcp_service.dataset.tool.get_dataset_available_filters import get_dataset_available_filters
 from superset.mcp_service.dataset.tool.list_datasets import list_datasets
-from fastmcp.exceptions import ToolError
-from superset.daos.dashboard import DashboardDAO
-from superset.daos.chart import ChartDAO
-from superset.daos.dataset import DatasetDAO
-from flask import Flask, g
-from flask_login import AnonymousUserMixin
+from superset.mcp_service.pydantic_schemas.dashboard_schemas import \
+    DashboardAvailableFilters
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
