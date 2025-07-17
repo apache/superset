@@ -141,9 +141,10 @@ async function callValidationAPI(
     apiCallCache.set(cacheKey, apiPromise);
 
     // Remove from cache after a short delay to allow for immediate duplicates
+    // Increased timeout to handle rapid successive calls from multiple controls
     setTimeout(() => {
       apiCallCache.delete(cacheKey);
-    }, 100);
+    }, 500);
 
     return await apiPromise;
   } catch (error) {
@@ -177,6 +178,15 @@ export function createMetricsVerification(controlName?: string): AsyncVerify {
     const queryFields = collectQueryFields(updatedFormData || {});
 
     // Call validation API
+    console.log('Metrics verification API call:', {
+      controlName,
+      originalFormData: form_data,
+      updatedFormData,
+      value,
+      dimensions: queryFields.dimensions,
+      metrics: queryFields.metrics,
+    });
+    
     const validationResult = await callValidationAPI(
       datasource as Dataset,
       queryFields.dimensions,
@@ -279,6 +289,9 @@ export function createColumnsVerification(controlName?: string): AsyncVerify {
     // Call validation API
     console.log('Columns verification API call:', {
       controlName,
+      originalFormData: form_data,
+      updatedFormData,
+      value,
       dimensions: queryFields.dimensions,
       metrics: queryFields.metrics,
     });
