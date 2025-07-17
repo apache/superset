@@ -100,8 +100,8 @@ function enhanceControlWithSemanticLayer(
       if (withAsyncVerification) {
         const verificationFn =
           verificationType === 'metrics'
-            ? createMetricsVerification()
-            : createColumnsVerification();
+            ? createMetricsVerification(controlName)
+            : createColumnsVerification(controlName);
 
         return withAsyncVerification({
           baseControl: baseControl.type,

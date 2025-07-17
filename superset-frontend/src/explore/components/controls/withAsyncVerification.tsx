@@ -145,6 +145,7 @@ export default function withAsyncVerification({
     const [verifiedProps, setVerifiedProps] = useState({});
     const [isLoading, setIsLoading] = useState<boolean>(initialIsLoading);
     const { addWarningToast } = restProps.actions;
+    const verificationTriggeredByChange = useRef(false);
 
     // memoize `restProps`, so that verification only triggers when material
     // props are actually updated.
@@ -152,19 +153,6 @@ export default function withAsyncVerification({
     if (hasUpdates(otherProps, restProps)) {
       otherProps = otherPropsRef.current = restProps;
     }
-
-    const handleChange = useCallback(
-      (value: JsonValue) => {
-        // the default onChange handler, triggers the `setControlValue` action
-        if (basicOnChange) {
-          basicOnChange(value);
-        }
-        if (onChange) {
-          onChange(value, { ...otherProps, ...verifiedProps });
-        }
-      },
-      [basicOnChange, otherProps, verifiedProps],
-    );
 
     const verifyProps = useEffectEvent(
       (verifyFunc: AsyncVerify, props: typeof otherProps) => {
@@ -202,8 +190,33 @@ export default function withAsyncVerification({
       },
     );
 
+    const handleChange = useCallback(
+      (value: JsonValue) => {
+        // the default onChange handler, triggers the `setControlValue` action
+        if (basicOnChange) {
+          basicOnChange(value);
+        }
+        if (onChange) {
+          onChange(value, { ...otherProps, ...verifiedProps });
+        }
+        
+        // Trigger verification with the new value if verification is enabled
+        if (needAsyncVerification && verify) {
+          verificationTriggeredByChange.current = true;
+          const propsWithNewValue = { ...otherProps, ...verifiedProps, value };
+          verifyProps(verify, propsWithNewValue);
+        }
+      },
+      [basicOnChange, otherProps, verifiedProps, needAsyncVerification, verify, verifyProps],
+    );
+
     useEffect(() => {
       if (needAsyncVerification && verify) {
+        // Skip verification if it was just triggered by onChange
+        if (verificationTriggeredByChange.current) {
+          verificationTriggeredByChange.current = false;
+          return;
+        }
         verifyProps(verify, otherProps);
       }
     }, [needAsyncVerification, verify, otherProps, verifyProps]);

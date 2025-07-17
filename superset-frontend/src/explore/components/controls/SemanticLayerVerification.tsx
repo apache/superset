@@ -132,17 +132,25 @@ async function callValidationAPI(
 /**
  * Create verification function for metrics controls
  */
-export function createMetricsVerification(): AsyncVerify {
+export function createMetricsVerification(controlName?: string): AsyncVerify {
   return async (props: ControlPropsWithExtras) => {
-    const { datasource, form_data, savedMetrics = [], actions } = props;
+    const { datasource, form_data, savedMetrics = [], actions, value } = props;
 
     // Only verify for semantic layer datasources
     if (!supportsSemanticLayerVerification(datasource as Dataset)) {
       return null;
     }
 
-    // Extract current form fields
-    const queryFields = collectQueryFields(form_data || {});
+    // Create updated form data with the current value
+    const updatedFormData = { ...form_data };
+    
+    // Update the appropriate field based on the control name
+    if (value !== undefined && controlName) {
+      updatedFormData[controlName] = value;
+    }
+
+    // Extract current form fields from updated form data
+    const queryFields = collectQueryFields(updatedFormData || {});
 
     // Call validation API
     const validationResult = await callValidationAPI(
@@ -204,17 +212,25 @@ export function createMetricsVerification(): AsyncVerify {
 /**
  * Create verification function for dimensions controls
  */
-export function createColumnsVerification(): AsyncVerify {
+export function createColumnsVerification(controlName?: string): AsyncVerify {
   return async (props: ControlPropsWithExtras) => {
-    const { datasource, form_data, options = [], actions } = props;
+    const { datasource, form_data, options = [], actions, value } = props;
 
     // Only verify for semantic layer datasources
     if (!supportsSemanticLayerVerification(datasource as Dataset)) {
       return null;
     }
 
-    // Extract current form fields
-    const queryFields = collectQueryFields(form_data || {});
+    // Create updated form data with the current value
+    const updatedFormData = { ...form_data };
+    
+    // Update the appropriate field based on the control name
+    if (value !== undefined && controlName) {
+      updatedFormData[controlName] = value;
+    }
+
+    // Extract current form fields from updated form data
+    const queryFields = collectQueryFields(updatedFormData || {});
 
     // Call validation API
     const validationResult = await callValidationAPI(
