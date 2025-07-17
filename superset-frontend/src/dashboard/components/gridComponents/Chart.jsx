@@ -37,6 +37,7 @@ import {
 import { postFormData } from 'src/explore/exploreUtils/formData';
 import { URL_PARAMS } from 'src/constants';
 import { enforceSharedLabelsColorsArray } from 'src/utils/colorScheme';
+import exportPivotExcel from 'src/utils/downloadAsPivotExcel';
 
 import SliceHeader from '../SliceHeader';
 import MissingChart from '../MissingChart';
@@ -58,8 +59,6 @@ import {
 } from '../../util/activeDashboardFilters';
 import getFormDataWithExtraFilters from '../../util/charts/getFormDataWithExtraFilters';
 import { PLACEHOLDER_DATASOURCE } from '../../constants';
-import * as XLSX from 'xlsx';
-import exportPivotExcel from 'src/utils/downloadAsPivotExcel';
 
 const propTypes = {
   id: PropTypes.number.isRequired,
