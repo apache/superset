@@ -145,6 +145,7 @@ const Styles = styled.div`
   #controlSections {
     height: 100%;
     overflow: visible;
+    padding-bottom: ${({ theme }) => theme.sizeUnit * 10}px;
   }
   .tab-content {
     overflow: auto;
