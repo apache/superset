@@ -16,11 +16,11 @@
 # under the License.
 from __future__ import annotations
 
-import json
 from typing import Any, Dict, Optional
 
 from superset.daos.base import BaseDAO
 from superset.models.core import Settings
+from superset.utils import json
 
 
 class SettingsDAO(BaseDAO[Settings]):

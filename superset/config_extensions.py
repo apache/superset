@@ -239,6 +239,32 @@ class SupersetConfig(Config):
         # For now, this is a placeholder
         pass
 
+    def load_from_environment(self, prefix: str = "SUPERSET_") -> bool:
+        """Load configuration from environment variables.
+
+        Uses Flask's built-in from_prefixed_env method to load environment
+        variables with the SUPERSET__ prefix (note the double underscore).
+        This provides automatic JSON parsing and nested dictionary support.
+
+        The double underscore clearly separates the system prefix from the
+        configuration key name.
+
+        Examples:
+            SUPERSET__ROW_LIMIT=100000
+            SUPERSET__SQLLAB_TIMEOUT=60
+            SUPERSET__FEATURE_FLAGS='{"ENABLE_TEMPLATE_PROCESSING": true}'
+            SUPERSET__FEATURE_FLAGS__ENABLE_TEMPLATE_PROCESSING=true
+
+        Args:
+            prefix: The environment variable prefix (default: "SUPERSET_")
+
+        Returns:
+            bool: True if any values were loaded
+        """
+        # Use Flask's built-in method which handles JSON parsing automatically
+        # Note: Flask will add one more underscore, so SUPERSET_ becomes SUPERSET__
+        return self.from_prefixed_env(prefix)
+
     def export_settings(self) -> Dict[str, Any]:
         """Export current settings with metadata."""
         result = {}

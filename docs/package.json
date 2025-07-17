@@ -6,8 +6,9 @@
   "scripts": {
     "docusaurus": "docusaurus",
     "_init": "cat src/intro_header.txt ../README.md > docs/intro.md",
-    "start": "yarn run _init && docusaurus start",
-    "build": "yarn run _init && DEBUG=docusaurus:* docusaurus build",
+    "_update-config": "bash scripts/update_docs.sh",
+    "start": "yarn run _init && yarn run _update-config && docusaurus start",
+    "build": "yarn run _init && yarn run _update-config && DEBUG=docusaurus:* docusaurus build",
     "swizzle": "docusaurus swizzle",
     "deploy": "docusaurus deploy",
     "clear": "docusaurus clear",

@@ -26,7 +26,6 @@ at the end of this file.
 from __future__ import annotations
 
 import importlib.util
-import json
 import logging
 import os
 import re
@@ -58,7 +57,7 @@ from superset.stats_logger import DummyStatsLogger
 from superset.superset_typing import CacheConfig
 from superset.tasks.types import ExecutorType
 from superset.themes.types import Theme, ThemeSettings
-from superset.utils import core as utils
+from superset.utils import core as utils, json
 from superset.utils.core import NO_TIME_RANGE, parse_boolean_string, QuerySource
 from superset.utils.encrypt import SQLAlchemyUtilsAdapter
 from superset.utils.log import DBEventLogger

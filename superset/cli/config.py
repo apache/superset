@@ -46,6 +46,13 @@ def serialize_config_value(value: Any) -> Any:
 
 def get_config_source(key: str) -> str:
     """Determine where a config value comes from."""
+    import os
+
+    # Check if it's from environment variables (with double underscore prefix)
+    env_key = f"SUPERSET__{key}"
+    if env_key in os.environ:
+        return f"environment ({env_key})"
+
     # Check if it's from superset_config.py user override
     try:
         import superset_config
@@ -54,13 +61,6 @@ def get_config_source(key: str) -> str:
             return "superset_config.py"
     except ImportError:
         pass
-
-    # Check if it's from environment variables
-    env_key = f"SUPERSET__{key}"
-    import os
-
-    if env_key in os.environ:
-        return f"environment ({env_key})"
 
     # Otherwise it's from defaults
     return "config_defaults.py"
@@ -118,3 +118,54 @@ def get(key: str) -> None:
     result = {key: {"value": serialized_value, "source": source}}
 
     print(yaml.dump(result, default_flow_style=False))
+
+
+@config.command()
+@with_appcontext
+def env_examples() -> None:
+    """Show example environment variables for configuration."""
+    from superset.config_extensions import SupersetConfig
+
+    examples = [
+        "# Superset configuration via environment variables",
+        "# All environment variables must start with SUPERSET__ prefix "
+        "(note double underscore)",
+        "",
+        "# Basic settings",
+        "export SUPERSET__ROW_LIMIT=100000",
+        "export SUPERSET__SAMPLES_ROW_LIMIT=10000",
+        "export SUPERSET__SQLLAB_TIMEOUT=60",
+        "",
+        "# Feature flags (JSON format)",
+        'export SUPERSET__FEATURE_FLAGS=\'{"ENABLE_TEMPLATE_PROCESSING": true, '
+        '"ENABLE_EXPLORE_DRAG_AND_DROP": true}\'',
+        "",
+        "# Or use triple underscore for nested values",
+        "export SUPERSET__FEATURE_FLAGS__ENABLE_TEMPLATE_PROCESSING=true",
+        "export SUPERSET__FEATURE_FLAGS__ENABLE_EXPLORE_DRAG_AND_DROP=true",
+        "",
+        "# Theme configuration",
+        'export SUPERSET__THEME_DEFAULT=\'{"colors": '
+        '{"primary": {"base": "#1985a1"}}}\'',
+        "",
+        "# Lists and complex types",
+        'export SUPERSET__FAB_ROLES=\'["Admin", "Alpha", "Gamma"]\'',
+        "",
+    ]
+
+    for line in examples:
+        click.echo(line)
+
+    # Show documented settings if using SupersetConfig
+    if isinstance(app.config, SupersetConfig):
+        click.echo("\n# Documented settings with metadata:")
+        for key, schema in app.config.DATABASE_SETTINGS_SCHEMA.items():
+            click.echo(f"\n# {schema.get('title', key)}")
+            click.echo(f"# {schema.get('description', '')}")
+            click.echo(f"# Type: {schema.get('type', 'unknown')}")
+            if "minimum" in schema or "maximum" in schema:
+                click.echo(
+                    f"# Range: {schema.get('minimum', 'N/A')} - "
+                    "{schema.get('maximum', 'N/A')}"
+                )
+            click.echo(f"export SUPERSET__{key}={schema.get('default', '...')}")
