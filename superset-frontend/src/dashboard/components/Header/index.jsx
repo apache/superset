@@ -53,6 +53,7 @@ import {
   DASHBOARD_POSITION_DATA_LIMIT,
   DASHBOARD_HEADER_ID,
 } from 'src/dashboard/util/constants';
+import { TagTypeEnum } from 'src/components/Tag/TagType';
 import setPeriodicRunner, {
   stopPeriodicRender,
 } from 'src/dashboard/util/setPeriodicRunner';
@@ -416,7 +417,7 @@ const Header = () => {
       roles: dashboardInfo.roles,
       slug,
       tags: (dashboardInfo.tags || []).filter(
-        item => item.type === 1 || !item.type,
+        item => item.type === TagTypeEnum.Custom || !item.type,
       ),
       metadata: {
         ...dashboardInfo?.metadata,
@@ -462,6 +463,7 @@ const Header = () => {
     dashboardInfo.metadata,
     dashboardInfo.owners,
     dashboardInfo.roles,
+    dashboardInfo.tags,
     dashboardTitle,
     layout,
     refreshFrequency,
