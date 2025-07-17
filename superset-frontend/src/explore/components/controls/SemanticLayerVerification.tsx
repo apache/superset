@@ -155,7 +155,7 @@ const apiCallCache = new Map<string, Promise<{ dimensions: string[]; metrics: st
 /**
  * Call the validation API
  */
-async function callValidationAPI(
+export async function callValidationAPI(
   datasource: Dataset,
   selectedDimensions: string[],
   selectedMetrics: string[],

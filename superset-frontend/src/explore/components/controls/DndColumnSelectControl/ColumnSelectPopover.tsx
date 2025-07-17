@@ -44,11 +44,16 @@ import {
   Select,
   SQLEditor,
   EmptyState,
+  Tooltip,
 } from '@superset-ui/core/components';
 
 import sqlKeywords from 'src/SqlLab/utils/sqlKeywords';
 import { getColumnKeywords } from 'src/explore/controlUtils/getColumnKeywords';
 import { StyledColumnOption } from 'src/explore/components/optionRenderers';
+import { 
+  collectQueryFields,
+  callValidationAPI 
+} from 'src/explore/components/controls/SemanticLayerVerification';
 import {
   POPOVER_INITIAL_HEIGHT,
   POPOVER_INITIAL_WIDTH,
@@ -119,6 +124,31 @@ const ColumnSelectPopover = ({
   const datasourceType = useSelector<ExplorePageState, string | undefined>(
     state => state.explore.datasource.type,
   );
+  const datasource = useSelector<ExplorePageState, any>(
+    state => state.explore.datasource,
+  );
+  const formData = useSelector<ExplorePageState, any>(
+    state => state.explore.form_data,
+  );
+  
+  // Check if this is a semantic layer dataset
+  const isSemanticLayer = useMemo(() => {
+    if (!datasource || !('database' in datasource) || !datasource.database) {
+      return false;
+    }
+    return Boolean(datasource.database.engine_information?.supports_dynamic_columns);
+  }, [datasource]);
+  
+  // For semantic layers, disable Saved and Custom SQL tabs
+  const effectiveDisabledTabs = useMemo(() => {
+    const tabs = new Set(disabledTabs);
+    if (isSemanticLayer) {
+      tabs.add('saved');
+      tabs.add('sqlExpression');
+    }
+    return tabs;
+  }, [disabledTabs, isSemanticLayer]);
+  
   const [initialLabel] = useState(label);
   const [initialAdhocColumn, initialCalculatedColumn, initialSimpleColumn] =
     getInitialColumnValues(editedColumn);
@@ -133,6 +163,7 @@ const ColumnSelectPopover = ({
     ColumnMeta | undefined
   >(initialSimpleColumn);
   const [selectedTab, setSelectedTab] = useState<string | null>(null);
+  const [validDimensions, setValidDimensions] = useState<string[] | null>(null);
 
   const [resizeButton, width, height] = useResizeButton(
     POPOVER_INITIAL_WIDTH,
@@ -142,8 +173,8 @@ const ColumnSelectPopover = ({
   const sqlEditorRef = useRef(null);
 
   const [calculatedColumns, simpleColumns] = useMemo(
-    () =>
-      columns?.reduce(
+    () => {
+      const [calculated, simple] = columns?.reduce(
         (acc: [ColumnMeta[], ColumnMeta[]], column: ColumnMeta) => {
           if (column.expression) {
             acc[0].push(column);
@@ -153,8 +184,20 @@ const ColumnSelectPopover = ({
           return acc;
         },
         [[], []],
-      ),
-    [columns],
+      ) || [[], []];
+
+      // For semantic layer datasets, filter simple columns to show only valid dimensions
+      if (isSemanticLayer && validDimensions !== null) {
+        const validDimensionNames = new Set(validDimensions);
+        const filteredSimple = simple.filter(column =>
+          validDimensionNames.has(column.column_name)
+        );
+        return [calculated, filteredSimple];
+      }
+
+      return [calculated, simple];
+    },
+    [columns, isSemanticLayer, validDimensions],
   );
 
   const onSqlExpressionChange = useCallback(
@@ -196,16 +239,50 @@ const ColumnSelectPopover = ({
     [setLabel, simpleColumns],
   );
 
-  const defaultActiveTabKey = initialAdhocColumn
-    ? 'sqlExpression'
-    : selectedCalculatedColumn
-      ? 'saved'
-      : 'simple';
+  const defaultActiveTabKey = useMemo(() => {
+    // For semantic layer datasets, always default to Simple tab
+    if (isSemanticLayer) {
+      return TABS_KEYS.SIMPLE;
+    }
+    
+    // Original logic for non-semantic layer datasets
+    return initialAdhocColumn
+      ? TABS_KEYS.SQL_EXPRESSION
+      : selectedCalculatedColumn
+        ? TABS_KEYS.SAVED
+        : TABS_KEYS.SIMPLE;
+  }, [isSemanticLayer, initialAdhocColumn, selectedCalculatedColumn]);
 
   useEffect(() => {
     getCurrentTab(defaultActiveTabKey);
     setSelectedTab(defaultActiveTabKey);
   }, [defaultActiveTabKey, getCurrentTab, setSelectedTab]);
+
+  // Fetch valid dimensions for semantic layer datasets
+  useEffect(() => {
+    if (isSemanticLayer && formData && datasource) {
+      const fetchValidDimensions = async () => {
+        try {
+          const queryFields = collectQueryFields(formData);
+          const validationResult = await callValidationAPI(
+            datasource,
+            queryFields.dimensions,
+            queryFields.metrics,
+          );
+          if (validationResult) {
+            setValidDimensions(validationResult.dimensions);
+          }
+        } catch (error) {
+          console.warn('Failed to fetch valid dimensions:', error);
+          setValidDimensions(null);
+        }
+      };
+      
+      fetchValidDimensions();
+    } else {
+      setValidDimensions(null);
+    }
+  }, [isSemanticLayer, formData, datasource]);
 
   useEffect(() => {
     /* if the adhoc column is not set (because it was never edited) but the
@@ -318,8 +395,16 @@ const ColumnSelectPopover = ({
         items={[
           {
             key: TABS_KEYS.SAVED,
-            label: t('Saved'),
-            disabled: disabledTabs.has('saved'),
+            label: isSemanticLayer && effectiveDisabledTabs.has('saved') ? (
+              <Tooltip
+                title={t('Saved expressions are not supported for semantic layer datasets')}
+              >
+                {t('Saved')}
+              </Tooltip>
+            ) : (
+              t('Saved')
+            ),
+            disabled: effectiveDisabledTabs.has('saved'),
             children: (
               <>
                 {calculatedColumns.length > 0 ? (
@@ -404,7 +489,7 @@ const ColumnSelectPopover = ({
           {
             key: TABS_KEYS.SIMPLE,
             label: t('Simple'),
-            disabled: disabledTabs.has('simple'),
+            disabled: effectiveDisabledTabs.has('simple'),
             children: (
               <>
                 {isTemporal && simpleColumns.length === 0 ? (
@@ -455,8 +540,16 @@ const ColumnSelectPopover = ({
           },
           {
             key: TABS_KEYS.SQL_EXPRESSION,
-            label: t('Custom SQL'),
-            disabled: disabledTabs.has('sqlExpression'),
+            label: isSemanticLayer && effectiveDisabledTabs.has('sqlExpression') ? (
+              <Tooltip
+                title={t('Custom SQL expressions are not supported for semantic layer datasets')}
+              >
+                {t('Custom SQL')}
+              </Tooltip>
+            ) : (
+              t('Custom SQL')
+            ),
+            disabled: effectiveDisabledTabs.has('sqlExpression'),
             children: (
               <>
                 <SQLEditor
