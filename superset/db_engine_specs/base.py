@@ -1251,7 +1251,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
 
     @classmethod
     def handle_comparison_filter(
-        cls, sqla_col: Any, op: str, value: Any
+        cls, sqla_col: Any, op: utils.FilterOperator, value: Any
     ) -> BinaryExpression:
         """
         Handle comparison filter operations (=, !=, >, <, >=, <=).
