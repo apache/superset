@@ -480,13 +480,19 @@ def test_handle_null_filter() -> None:
 
     bool_col = Column("test_col", Boolean)
 
-    # Test IS_NULL
-    result_null = BaseEngineSpec.handle_null_filter(bool_col, "IS NULL")
+    # Test IS_NULL - use actual FilterOperator values
+    from superset.utils.core import FilterOperator
+
+    result_null = BaseEngineSpec.handle_null_filter(
+        bool_col, FilterOperator.IS_NULL.value
+    )
     assert hasattr(result_null, "left")
     assert hasattr(result_null, "right")
 
     # Test IS_NOT_NULL
-    result_not_null = BaseEngineSpec.handle_null_filter(bool_col, "IS NOT NULL")
+    result_not_null = BaseEngineSpec.handle_null_filter(
+        bool_col, FilterOperator.IS_NOT_NULL.value
+    )
     assert hasattr(result_not_null, "left")
     assert hasattr(result_not_null, "right")
 
@@ -505,14 +511,16 @@ def test_handle_comparison_filter() -> None:
 
     int_col = Column("test_col", Integer)
 
-    # Test all comparison operators
+    # Test all comparison operators - use actual FilterOperator values
+    from superset.utils.core import FilterOperator
+
     operators_and_values = [
-        ("EQUALS", 5),
-        ("NOT_EQUALS", 5),
-        ("GREATER_THAN", 5),
-        ("LESS_THAN", 5),
-        ("GREATER_THAN_OR_EQUALS", 5),
-        ("LESS_THAN_OR_EQUALS", 5),
+        (FilterOperator.EQUALS.value, 5),
+        (FilterOperator.NOT_EQUALS.value, 5),
+        (FilterOperator.GREATER_THAN.value, 5),
+        (FilterOperator.LESS_THAN.value, 5),
+        (FilterOperator.GREATER_THAN_OR_EQUALS.value, 5),
+        (FilterOperator.LESS_THAN_OR_EQUALS.value, 5),
     ]
 
     for op, value in operators_and_values:

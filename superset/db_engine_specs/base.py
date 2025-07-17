@@ -54,7 +54,7 @@ from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.url import URL
 from sqlalchemy.ext.compiler import compiles
 from sqlalchemy.sql import literal_column, quoted_name, text
-from sqlalchemy.sql.expression import ColumnClause, Select, TextClause
+from sqlalchemy.sql.expression import BinaryExpression, ColumnClause, Select, TextClause
 from sqlalchemy.types import TypeEngine
 
 from superset import db
@@ -1207,7 +1207,9 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         return None
 
     @classmethod
-    def handle_boolean_filter(cls, sqla_col: Any, op: str, value: bool) -> Any:
+    def handle_boolean_filter(
+        cls, sqla_col: Any, op: str, value: bool
+    ) -> BinaryExpression:
         """
         Handle boolean filter operations with engine-specific logic.
 
@@ -1226,7 +1228,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             return sqla_col.is_(value)
 
     @classmethod
-    def handle_null_filter(cls, sqla_col: Any, op: str) -> Any:
+    def handle_null_filter(cls, sqla_col: Any, op: str) -> BinaryExpression:
         """
         Handle null/not null filter operations.
 
@@ -1244,7 +1246,9 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             raise ValueError(f"Invalid null filter operator: {op}")
 
     @classmethod
-    def handle_comparison_filter(cls, sqla_col: Any, op: str, value: Any) -> Any:
+    def handle_comparison_filter(
+        cls, sqla_col: Any, op: str, value: Any
+    ) -> BinaryExpression:
         """
         Handle comparison filter operations (=, !=, >, <, >=, <=).
 

@@ -363,8 +363,12 @@ def test_handle_boolean_filter() -> None:
     # Create a mock SQLAlchemy column
     bool_col = Column("test_col", Boolean)
 
-    # Test IS_TRUE filter
-    result_true = SnowflakeEngineSpec.handle_boolean_filter(bool_col, "IS TRUE", True)
+    # Test IS_TRUE filter - use actual FilterOperator values
+    from superset.utils.core import FilterOperator
+
+    result_true = SnowflakeEngineSpec.handle_boolean_filter(
+        bool_col, FilterOperator.IS_TRUE.value, True
+    )
     # The result should be a equality comparison, not an IS comparison
     assert (
         str(result_true.compile(compile_kwargs={"literal_binds": True}))
@@ -373,7 +377,7 @@ def test_handle_boolean_filter() -> None:
 
     # Test IS_FALSE filter
     result_false = SnowflakeEngineSpec.handle_boolean_filter(
-        bool_col, "IS FALSE", False
+        bool_col, FilterOperator.IS_FALSE.value, False
     )
     assert (
         str(result_false.compile(compile_kwargs={"literal_binds": True}))
