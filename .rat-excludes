@@ -76,3 +76,6 @@ ydb.svg
 erd.puml
 erd.svg
 intro_header.txt
+
+# for LLMs
+llm-context.md
