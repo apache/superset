@@ -47,6 +47,85 @@ type Control = {
   default?: unknown;
 };
 
+// Semantic layer verification functions - will be set from main app
+let withAsyncVerification: any = null;
+let createMetricsVerification: any = null;
+let createColumnsVerification: any = null;
+let createSemanticLayerOnChange: any = null;
+let SEMANTIC_LAYER_CONTROL_FIELDS: any = null;
+
+// Export function to set semantic layer utilities from main app
+export function setSemanticLayerUtilities(utilities: {
+  withAsyncVerification: any;
+  createMetricsVerification: any;
+  createColumnsVerification: any;
+  createSemanticLayerOnChange: any;
+  SEMANTIC_LAYER_CONTROL_FIELDS: any;
+}) {
+  ({
+    withAsyncVerification,
+    createMetricsVerification,
+    createColumnsVerification,
+    createSemanticLayerOnChange,
+    SEMANTIC_LAYER_CONTROL_FIELDS,
+  } = utilities);
+}
+
+/**
+ * Check if a datasource supports semantic layer verification
+ */
+function needsSemanticLayerVerification(datasource: Dataset): boolean {
+  if (!datasource || !('database' in datasource) || !datasource.database) {
+    return false;
+  }
+
+  const database = datasource.database as any;
+  return Boolean(database.engine_information?.supports_dynamic_columns);
+}
+
+/**
+ * Enhance a control with semantic layer verification if available
+ */
+function enhanceControlWithSemanticLayer(
+  baseControl: any,
+  controlName: string,
+  verificationType: 'metrics' | 'columns',
+) {
+  if (!withAsyncVerification) {
+    return baseControl;
+  }
+
+  const verificationFn =
+    verificationType === 'metrics'
+      ? createMetricsVerification()
+      : createColumnsVerification();
+
+  return {
+    ...baseControl,
+    type: withAsyncVerification({
+      baseControl: baseControl.type,
+      verify: verificationFn,
+      onChange: createSemanticLayerOnChange(
+        controlName,
+        SEMANTIC_LAYER_CONTROL_FIELDS,
+      ),
+      showLoadingState: true,
+    }),
+    mapStateToProps: (state: any, controlState: any) => {
+      // Call the original mapStateToProps if it exists
+      const originalProps = baseControl.mapStateToProps
+        ? baseControl.mapStateToProps(state, controlState)
+        : {};
+
+      return {
+        ...originalProps,
+        needAsyncVerification: needsSemanticLayerVerification(state.datasource),
+        form_data: state.form_data,
+      };
+    },
+  };
+}
+
 /*
  * Note: Previous to the commit that introduced this comment, the shared controls module
  * would check feature flags at module execution time and expose a different control
@@ -70,7 +149,7 @@ function filterOptions(
   );
 }
 
-export const dndGroupByControl: SharedControlConfig<
+const baseDndGroupByControl: SharedControlConfig<
   'DndColumnSelect' | 'SelectControl',
   ColumnMeta
 > = {
@@ -123,11 +202,23 @@ export const dndGroupByControl: SharedControlConfig<
   commaChoosesOption: false,
 };
 
-export const dndColumnsControl: typeof dndGroupByControl = {
-  ...dndGroupByControl,
+export const dndGroupByControl = enhanceControlWithSemanticLayer(
+  baseDndGroupByControl,
+  'groupby',
+  'columns',
+);
+
+const baseDndColumnsControl: typeof baseDndGroupByControl = {
+  ...baseDndGroupByControl,
   label: t('Columns'),
   description: t('Add dataset columns here to group the pivot table columns.'),
 };
+
+export const dndColumnsControl = enhanceControlWithSemanticLayer(
+  baseDndColumnsControl,
+  'columns',
+  'columns',
+);
 
 export const dndSeriesControl: typeof dndGroupByControl = {
   ...dndGroupByControl,
@@ -170,7 +261,7 @@ export const dndAdhocFilterControl: SharedControlConfig<
   ...datePickerInAdhocFilterMixin,
 };
 
-export const dndAdhocMetricsControl: SharedControlConfig<
+const baseDndAdhocMetricsControl: SharedControlConfig<
   'DndMetricSelect' | 'MetricsControl'
 > = {
   type: 'DndMetricSelect',
@@ -190,8 +281,14 @@ export const dndAdhocMetricsControl: SharedControlConfig<
   ),
 };
 
-export const dndAdhocMetricControl: typeof dndAdhocMetricsControl = {
-  ...dndAdhocMetricsControl,
+export const dndAdhocMetricsControl = enhanceControlWithSemanticLayer(
+  baseDndAdhocMetricsControl,
+  'metrics',
+  'metrics',
+);
+
+const baseDndAdhocMetricControl: typeof baseDndAdhocMetricsControl = {
+  ...baseDndAdhocMetricsControl,
   multi: false,
   label: t('Metric'),
   description: t(
@@ -200,6 +297,12 @@ export const dndAdhocMetricControl: typeof dndAdhocMetricsControl = {
       'or write custom SQL to create a metric.',
   ),
 };
+
+export const dndAdhocMetricControl = enhanceControlWithSemanticLayer(
+  baseDndAdhocMetricControl,
+  'metric',
+  'metrics',
+);
 
 export const dndTooltipColumnsControl: typeof dndColumnsControl = {
   ...dndColumnsControl,
@@ -214,12 +317,18 @@ export const dndTooltipMetricsControl: typeof dndAdhocMetricsControl = {
   validators: [],
 };
 
-export const dndAdhocMetricControl2: typeof dndAdhocMetricControl = {
-  ...dndAdhocMetricControl,
+const baseDndAdhocMetricControl2: typeof baseDndAdhocMetricControl = {
+  ...baseDndAdhocMetricControl,
   label: t('Right Axis Metric'),
   clearable: true,
   description: t('Select a metric to display on the right axis'),
 };
+
+export const dndAdhocMetricControl2 = enhanceControlWithSemanticLayer(
+  baseDndAdhocMetricControl2,
+  'metric_2',
+  'metrics',
+);
 
 export const dndSortByControl: SharedControlConfig<
   'DndMetricSelect' | 'MetricsControl'

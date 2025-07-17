@@ -24,6 +24,7 @@ import {
   ClientErrorObject,
 } from '@superset-ui/core';
 import setupErrorMessages from 'src/setup/setupErrorMessages';
+import setupSemanticLayer from 'src/setup/setupSemanticLayer';
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 declare global {
@@ -96,4 +97,7 @@ export default function setupApp() {
 
   // set up app wide custom error messages
   setupErrorMessages();
+
+  // set up semantic layer controls
+  setupSemanticLayer();
 }
