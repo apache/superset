@@ -40,17 +40,18 @@ import {
 import {
   ensureIsArray,
   GenericDataType,
-  getMetricLabel,
   isAdhocColumn,
   isPhysicalColumn,
   legacyValidateInteger,
   QueryFormColumn,
-  QueryFormMetric,
   QueryMode,
   SMART_DATE_ID,
   t,
   validateMaxValue,
   validateServerPagination,
+  shouldSkipMetricColumn,
+  isRegularMetric,
+  isPercentMetric,
 } from '@superset-ui/core';
 
 import { isEmpty, last } from 'lodash';
@@ -592,33 +593,26 @@ const config: ControlPanelConfig = {
                       // Skip unprefixed percent metric columns if a prefixed version exists
                       // But don't skip if it's also a regular metric
                       if (
-                        colname &&
-                        !colname.startsWith('%') &&
-                        colnames.includes(`%${colname}`) &&
-                        explore.form_data.percent_metrics?.some(
-                          (metric: QueryFormMetric) =>
-                            getMetricLabel(metric) === colname,
-                        ) &&
-                        !explore.form_data.metrics?.some(
-                          (metric: QueryFormMetric) =>
-                            getMetricLabel(metric) === colname,
-                        )
+                        shouldSkipMetricColumn({
+                          colname,
+                          colnames,
+                          formData: explore.form_data,
+                        })
                       ) {
-                        return; // skip this column
+                        return;
                       }
 
-                      // Check if column is a regular metric or percentage metric
-                      const isMetric = explore.form_data.metrics?.some(
-                        metric => getMetricLabel(metric) === colname,
+                      const isMetric = isRegularMetric(
+                        colname,
+                        explore.form_data,
                       );
-                      const isPercentMetric =
-                        explore.form_data.percent_metrics?.some(
-                          (metric: QueryFormMetric) =>
-                            `%${getMetricLabel(metric)}` === colname,
-                        );
+                      const isPercentMetricValue = isPercentMetric(
+                        colname,
+                        explore.form_data,
+                      );
 
                       // Generate comparison columns for metrics (time comparison feature)
-                      if (isMetric || isPercentMetric) {
+                      if (isMetric || isPercentMetricValue) {
                         const comparisonColumns =
                           generateComparisonColumns(colname);
                         comparisonColumns.forEach((name, idx) => {
