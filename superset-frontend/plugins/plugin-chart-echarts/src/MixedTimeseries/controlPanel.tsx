@@ -365,10 +365,13 @@ const config: ControlPanelConfig = {
             config: {
               type: 'CheckboxControl',
               label: t('Show query identifiers'),
-              description: t('Adds Query A and Query B identifiers to metrics to help differentiate series'),
+              description: t(
+                'Adds Query A and Query B identifiers to help differentiate series',
+              ),
               default: false,
               renderTrigger: true,
-              visibility: ({ controls }) => Boolean(controls?.rich_tooltip?.value),
+              visibility: ({ controls }) =>
+                Boolean(controls?.rich_tooltip?.value),
             },
           },
         ],
