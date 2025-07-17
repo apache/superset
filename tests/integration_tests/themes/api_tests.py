@@ -86,11 +86,12 @@ class TestThemeApi(SupersetTestCase):
         assert data["count"] == len(themes)
         expected_columns = [
             "changed_by",
+            "changed_by_name",
             "changed_on_delta_humanized",
             "created_by",
             "created_on",
-            "json_data",
             "id",
+            "json_data",
             "theme_name",
         ]
         result_columns = list(data["result"][0].keys())
@@ -181,7 +182,7 @@ class TestThemeApi(SupersetTestCase):
         assert rv.status_code == 200
         assert "can_read" in data["permissions"]
         assert "can_write" in data["permissions"]
-        assert len(data["permissions"]) == 2
+        assert len(data["permissions"]) == 3
 
     @pytest.mark.usefixtures("create_themes")
     def test_get_theme(self):
