@@ -99,6 +99,9 @@ function supportsSemanticLayerVerification(datasource: Dataset): boolean {
   return Boolean(database.engine_information?.supports_dynamic_columns);
 }
 
+// Cache for API calls to prevent duplicates
+const apiCallCache = new Map<string, Promise<{ dimensions: string[]; metrics: string[] } | null>>();
+
 /**
  * Call the validation API
  */
@@ -112,19 +115,40 @@ async function callValidationAPI(
     return null;
   }
 
+  // Create cache key based on the request parameters
+  const cacheKey = JSON.stringify({
+    datasource_id: datasource.id,
+    dimensions: selectedDimensions.sort(),
+    metrics: selectedMetrics.sort(),
+  });
+
+  // Check if we already have a pending request for the same parameters
+  if (apiCallCache.has(cacheKey)) {
+    return apiCallCache.get(cacheKey)!;
+  }
+
   try {
-    const response = await SupersetClient.post({
+    const apiPromise = SupersetClient.post({
       endpoint: `/api/v1/database/${databaseId}/valid_metrics_and_dimensions/`,
       jsonPayload: {
         datasource_id: datasource.id,
         dimensions: selectedDimensions,
         metrics: selectedMetrics,
       },
-    });
+    }).then(response => response.json as { dimensions: string[]; metrics: string[] });
 
-    return response.json as { dimensions: string[]; metrics: string[] };
+    // Cache the promise
+    apiCallCache.set(cacheKey, apiPromise);
+
+    // Remove from cache after a short delay to allow for immediate duplicates
+    setTimeout(() => {
+      apiCallCache.delete(cacheKey);
+    }, 100);
+
+    return await apiPromise;
   } catch (error) {
     console.warn('Failed to fetch valid metrics and dimensions:', error);
+    apiCallCache.delete(cacheKey);
     return null;
   }
 }
@@ -233,6 +257,7 @@ export function createColumnsVerification(controlName?: string): AsyncVerify {
     const queryFields = collectQueryFields(updatedFormData || {});
 
     // Call validation API
+    
     const validationResult = await callValidationAPI(
       datasource as Dataset,
       queryFields.dimensions,

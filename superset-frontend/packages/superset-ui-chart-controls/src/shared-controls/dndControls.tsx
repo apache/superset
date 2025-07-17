@@ -54,6 +54,12 @@ let createColumnsVerification: any = null;
 let createSemanticLayerOnChange: any = null;
 let SEMANTIC_LAYER_CONTROL_FIELDS: any = null;
 
+// Notification system for when utilities are set
+const enhancedControls: Array<{
+  controlName: string;
+  invalidateCache: () => void;
+}> = [];
+
 // Export function to set semantic layer utilities from main app
 export function setSemanticLayerUtilities(utilities: {
   withAsyncVerification: any;
@@ -69,6 +75,11 @@ export function setSemanticLayerUtilities(utilities: {
     createSemanticLayerOnChange,
     SEMANTIC_LAYER_CONTROL_FIELDS,
   } = utilities);
+  
+  // Notify all enhanced controls that utilities are now available
+  enhancedControls.forEach(control => {
+    control.invalidateCache();
+  });
 }
 
 /**
@@ -92,27 +103,52 @@ function enhanceControlWithSemanticLayer(
   controlName: string,
   verificationType: 'metrics' | 'columns',
 ) {
+  // Cache for the enhanced control type
+  let cachedEnhancedType: any = null;
+  let utilitiesWereAvailable = false;
+  
+  // Register with notification system
+  enhancedControls.push({
+    controlName,
+    invalidateCache: () => {
+      cachedEnhancedType = null;
+      utilitiesWereAvailable = false;
+    }
+  });
+  
   // Return a control that will be enhanced at runtime if utilities are available
   return {
     ...baseControl,
     // Override the type to use a function that checks for enhancement at runtime
     get type() {
-      if (withAsyncVerification) {
-        const verificationFn =
-          verificationType === 'metrics'
-            ? createMetricsVerification(controlName)
-            : createColumnsVerification(controlName);
-
-        return withAsyncVerification({
-          baseControl: baseControl.type,
-          verify: verificationFn,
-          onChange: createSemanticLayerOnChange(
-            controlName,
-            SEMANTIC_LAYER_CONTROL_FIELDS,
-          ),
-          showLoadingState: true,
-        });
+      // Check if utilities became available since last call
+      const utilitiesAvailableNow = !!withAsyncVerification;
+      
+      if (utilitiesAvailableNow) {
+        // If utilities just became available or we haven't cached yet, create enhanced control
+        if (!utilitiesWereAvailable || !cachedEnhancedType) {
+          const verificationFn =
+            verificationType === 'metrics'
+              ? createMetricsVerification(controlName)
+              : createColumnsVerification(controlName);
+          
+          cachedEnhancedType = withAsyncVerification({
+            baseControl: baseControl.type,
+            verify: verificationFn,
+            onChange: createSemanticLayerOnChange(
+              controlName,
+              SEMANTIC_LAYER_CONTROL_FIELDS,
+            ),
+            showLoadingState: true,
+          });
+          
+          utilitiesWereAvailable = true;
+        }
+        
+        return cachedEnhancedType;
       }
+      
+      utilitiesWereAvailable = false;
       return baseControl.type;
     },
     mapStateToProps: (state: any, controlState: any) => {
@@ -131,6 +167,7 @@ function enhanceControlWithSemanticLayer(
           ...originalProps,
           needAsyncVerification: needsVerification,
           form_data: state.form_data,
+          datasource: state.datasource, // Pass datasource to verification function
         };
       }
 

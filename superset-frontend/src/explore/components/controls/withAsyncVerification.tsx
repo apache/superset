@@ -146,6 +146,7 @@ export default function withAsyncVerification({
     const [isLoading, setIsLoading] = useState<boolean>(initialIsLoading);
     const { addWarningToast } = restProps.actions;
     const verificationTriggeredByChange = useRef(false);
+    
 
     // memoize `restProps`, so that verification only triggers when material
     // props are actually updated.
