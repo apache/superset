@@ -109,20 +109,18 @@ const HorizontalGroupByControl: FC<HorizontalGroupByControlProps> = ({
 
   const handleChange = useCallback(
     (value: string) => {
-      if (value) {
-        const updatedCustomization = {
-          ...customizationItem.customization,
-          column: value,
-        };
+      const updatedCustomization = {
+        ...customizationItem.customization,
+        column: value || null,
+      };
 
-        dispatch(
-          setPendingChartCustomization({
-            id: customizationItem.id,
-            title: customizationItem.title,
-            customization: updatedCustomization,
-          }),
-        );
-      }
+      dispatch(
+        setPendingChartCustomization({
+          id: customizationItem.id,
+          title: customizationItem.title,
+          customization: updatedCustomization,
+        }),
+      );
     },
     [customizationItem, dispatch],
   );

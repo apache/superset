@@ -463,20 +463,18 @@ const GroupByFilterCard: FC<GroupByFilterCardProps> = ({
             placeholder={t('Search columns...')}
             value={columnName || null}
             onChange={(value: string) => {
-              if (value) {
-                const updatedCustomization = {
-                  ...customizationItem.customization,
-                  column: value,
-                };
+              const updatedCustomization = {
+                ...customizationItem.customization,
+                column: value || null,
+              };
 
-                dispatch(
-                  setPendingChartCustomization({
-                    id: customizationItem.id,
-                    title: customizationItem.title,
-                    customization: updatedCustomization,
-                  }),
-                );
-              }
+              dispatch(
+                setPendingChartCustomization({
+                  id: customizationItem.id,
+                  title: customizationItem.title,
+                  customization: updatedCustomization,
+                }),
+              );
             }}
             options={columnOptions}
             showSearch
