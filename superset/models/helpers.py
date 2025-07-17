@@ -1854,8 +1854,8 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                         cond = ~cond
                     where_clause_and.append(cond)
                 elif op in {
-                    utils.FilterOperator.IS_NULL.value,
-                    utils.FilterOperator.IS_NOT_NULL.value,
+                    utils.FilterOperator.IS_NULL,
+                    utils.FilterOperator.IS_NOT_NULL,
                 }:
                     where_clause_and.append(
                         db_engine_spec.handle_null_filter(sqla_col, op)
