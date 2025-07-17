@@ -23,6 +23,7 @@ from superset.connectors.sqla.models import SqlaTable
 from superset.daos.base import BaseDAO
 from superset.databases.filters import DatabaseFilter
 from superset.databases.ssh_tunnel.models import SSHTunnel
+from superset.db_engine_specs.base import ValidColumnsType
 from superset.extensions import db
 from superset.models.core import Database, DatabaseUserOAuth2Tokens
 from superset.models.dashboard import Dashboard
@@ -165,6 +166,39 @@ class DatabaseDAO(BaseDAO[Database]):
         )
 
         return ssh_tunnel
+
+    @classmethod
+    def get_valid_metrics_and_dimensions(
+        cls,
+        database_id: int,
+        datasource_id: int,
+        dimensions: set[str],
+        metrics: set[str],
+    ) -> ValidColumnsType:
+        """
+        Get valid metrics and dimensions for a datasource using the database engine spec.
+
+        :param database_id: The database ID
+        :param datasource_id: The datasource ID
+        :param dimensions: Set of selected column names
+        :param metrics: Set of selected metric names
+        :return: Dictionary with 'dimensions' and 'metrics' keys containing valid sets
+        :raises ValueError: If database or datasource not found, or invalid type
+        """
+        database = cls.find_by_id(database_id)
+        if not database:
+            raise ValueError(f"Database with id {database_id} not found")
+
+        datasource = db.session.query(SqlaTable).get(datasource_id)
+        if not datasource:
+            raise ValueError(f"Table with id {datasource_id} not found")
+
+        return database.db_engine_spec.get_valid_metrics_and_dimensions(
+            database,
+            datasource,
+            dimensions,
+            metrics,
+        )
 
 
 class SSHTunnelDAO(BaseDAO[SSHTunnel]):

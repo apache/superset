@@ -707,7 +707,9 @@ class TableMetadataResponseSchema(Schema):
         TableMetadataPrimaryKeyResponseSchema,
         metadata={"description": "Primary keys metadata"},
     )
-    selectStar = fields.String(metadata={"description": "SQL select star"})  # noqa: N815
+    selectStar = fields.String(
+        metadata={"description": "SQL select star"}
+    )  # noqa: N815
 
 
 class TableExtraMetadataResponseSchema(Schema):
@@ -1340,4 +1342,32 @@ class QualifiedTableSchema(Schema):
         required=False,
         load_default=None,
         metadata={"description": "The table catalog"},
+    )
+
+
+class ValidMetricsAndDimensionsRequestSchema(Schema):
+    datasource_id = fields.Integer(
+        required=True,
+        metadata={"description": "The datasource ID"},
+    )
+    dimensions = fields.List(
+        fields.String(),
+        required=True,
+        metadata={"description": "List of selected dimension names"},
+    )
+    metrics = fields.List(
+        fields.String(),
+        required=True,
+        metadata={"description": "List of selected metric names"},
+    )
+
+
+class ValidMetricsAndDimensionsResponseSchema(Schema):
+    dimensions = fields.List(
+        fields.String(),
+        metadata={"description": "List of valid dimension names"},
+    )
+    metrics = fields.List(
+        fields.String(),
+        metadata={"description": "List of valid metric names"},
     )

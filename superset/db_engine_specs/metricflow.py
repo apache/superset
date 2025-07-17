@@ -142,15 +142,15 @@ class DbtMetricFlowEngineSpec(ShillelaghEngineSpec):
         ]
 
     @classmethod
-    def get_valid_columns(
+    def get_valid_metrics_and_dimensions(
         cls,
         database: Database,
         datasource: ExploreMixin,
-        columns: set[str],
+        dimensions: set[str],
         metrics: set[str],
     ) -> ValidColumnsType:
         """
-        Get valid columns.
+        Get valid metrics and dimensions.
 
         Given a datasource, and sets of selected metrics and dimensions, return the
         sets of valid metrics and dimensions that can further be selected.
@@ -160,6 +160,6 @@ class DbtMetricFlowEngineSpec(ShillelaghEngineSpec):
             adapter = get_adapter_for_table_name(connection, TABLE_NAME)
 
         return {
-            "metrics": adapter._get_metrics_for_dimensions(columns),
+            "metrics": adapter._get_metrics_for_dimensions(dimensions),
             "dimensions": adapter._get_dimensions_for_metrics(metrics),
         }

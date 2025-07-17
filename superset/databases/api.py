@@ -103,6 +103,7 @@ from superset.databases.schemas import (
     UploadPostSchema,
     ValidateSQLRequest,
     ValidateSQLResponse,
+    ValidMetricsAndDimensionsRequestSchema,
 )
 from superset.databases.utils import get_table_metadata
 from superset.db_engine_specs import get_available_engine_specs
@@ -164,6 +165,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         "available",
         "validate_parameters",
         "validate_sql",
+        "valid_metrics_and_dimensions",
         "delete_ssh_tunnel",
         "schemas_access_for_file_upload",
         "get_connection",
@@ -2098,3 +2100,70 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             database, database.get_default_catalog(), schemas_allowed, True
         )
         return self.response(200, schemas=schemas_allowed_processed)
+
+    @expose("/<int:pk>/valid_metrics_and_dimensions/", methods=("POST",))
+    @protect()
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
+        f".valid_metrics_and_dimensions",
+        log_to_statsd=False,
+    )
+    @requires_json
+    def valid_metrics_and_dimensions(self, pk: int) -> FlaskResponse:
+        """Get valid metrics and dimensions for a datasource.
+        ---
+        post:
+          summary: Get valid metrics and dimensions for a datasource
+          parameters:
+          - in: path
+            schema:
+              type: integer
+            name: pk
+            description: The database ID
+          requestBody:
+            description: Valid metrics and dimensions request
+            required: true
+            content:
+              application/json:
+                schema:
+                  $ref: "#/components/schemas/ValidMetricsAndDimensionsRequestSchema"
+          responses:
+            200:
+              description: Valid metrics and dimensions
+              content:
+                application/json:
+                  schema:
+                    $ref: "#/components/schemas/ValidMetricsAndDimensionsResponseSchema"
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            404:
+              $ref: '#/components/responses/404'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        request_schema = ValidMetricsAndDimensionsRequestSchema()
+        try:
+            item = request_schema.load(request.json)
+        except ValidationError as error:
+            return self.response_400(message=error.messages)
+
+        datasource_id = item["datasource_id"]
+        dimensions = set(item["dimensions"])
+        metrics = set(item["metrics"])
+
+        result = DatabaseDAO.get_valid_metrics_and_dimensions(
+            pk,
+            datasource_id,
+            dimensions,
+            metrics,
+        )
+
+        response_data = {
+            "dimensions": list(result["dimensions"]),
+            "metrics": list(result["metrics"]),
+        }
+
+        return self.response(200, **response_data)

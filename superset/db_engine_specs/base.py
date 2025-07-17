@@ -191,10 +191,10 @@ class MetricType(TypedDict, total=False):
 
 class ValidColumnsType(TypedDict):
     """
-    Type for valid columns returned by `get_valid_columns`.
+    Type for valid columns returned by `get_valid_metrics_and_dimensions`.
     """
 
-    columns: set[str]
+    dimensions: set[str]
     metrics: set[str]
 
 
@@ -1519,11 +1519,11 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         ]
 
     @classmethod
-    def get_valid_columns(
+    def get_valid_metrics_and_dimensions(
         cls,
         database: Database,
         datasource: ExploreMixin,
-        columns: set[str],
+        dimensions: set[str],
         metrics: set[str],
     ) -> ValidColumnsType:
         """
@@ -1539,7 +1539,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         metrics, and simply returns everything, for reference.
         """
         return {
-            "columns": {column.column_name for column in datasource.columns},
+            "dimensions": {column.column_name for column in datasource.columns},
             "metrics": {metric.metric_name for metric in datasource.metrics},
         }
 
