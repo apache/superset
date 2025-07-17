@@ -423,3 +423,113 @@ def test_impersonate_user_no_database(mocker: MockerFixture) -> None:
         "alice",
         "SECRET",
     )
+
+
+def test_handle_boolean_filter_default_behavior() -> None:
+    """
+    Test that BaseEngineSpec uses IS operators for boolean filters by default.
+    """
+    from sqlalchemy import Boolean, Column
+
+    from superset.db_engine_specs.base import BaseEngineSpec
+
+    # Create a mock SQLAlchemy column
+    bool_col = Column("test_col", Boolean)
+
+    # Test IS_TRUE filter - should use IS operator by default
+    result_true = BaseEngineSpec.handle_boolean_filter(bool_col, "IS TRUE", True)
+    assert hasattr(result_true, "left")  # IS comparison has left/right attributes
+    assert hasattr(result_true, "right")
+
+    # Test IS_FALSE filter - should use IS operator by default
+    result_false = BaseEngineSpec.handle_boolean_filter(bool_col, "IS FALSE", False)
+    assert hasattr(result_false, "left")
+    assert hasattr(result_false, "right")
+
+
+def test_handle_boolean_filter_with_equality() -> None:
+    """
+    Test that BaseEngineSpec can use equality operators when configured.
+    """
+    from sqlalchemy import Boolean, Column
+
+    from superset.db_engine_specs.base import BaseEngineSpec
+
+    # Create a test engine spec that uses equality
+    class TestEngineSpec(BaseEngineSpec):
+        use_equality_for_boolean_filters = True
+
+    bool_col = Column("test_col", Boolean)
+
+    # Test with equality enabled
+    result_true = TestEngineSpec.handle_boolean_filter(bool_col, "IS TRUE", True)
+    # Equality comparison should have different structure than IS comparison
+    assert str(type(result_true)).endswith("BinaryExpression'>")
+
+    result_false = TestEngineSpec.handle_boolean_filter(bool_col, "IS FALSE", False)
+    assert str(type(result_false)).endswith("BinaryExpression'>")
+
+
+def test_handle_null_filter() -> None:
+    """
+    Test null/not null filter handling.
+    """
+    from sqlalchemy import Boolean, Column
+
+    from superset.db_engine_specs.base import BaseEngineSpec
+
+    bool_col = Column("test_col", Boolean)
+
+    # Test IS_NULL
+    result_null = BaseEngineSpec.handle_null_filter(bool_col, "IS NULL")
+    assert hasattr(result_null, "left")
+    assert hasattr(result_null, "right")
+
+    # Test IS_NOT_NULL
+    result_not_null = BaseEngineSpec.handle_null_filter(bool_col, "IS NOT NULL")
+    assert hasattr(result_not_null, "left")
+    assert hasattr(result_not_null, "right")
+
+    # Test invalid operator
+    with pytest.raises(ValueError, match="Invalid null filter operator"):
+        BaseEngineSpec.handle_null_filter(bool_col, "INVALID")
+
+
+def test_handle_comparison_filter() -> None:
+    """
+    Test comparison filter handling for all operators.
+    """
+    from sqlalchemy import Column, Integer
+
+    from superset.db_engine_specs.base import BaseEngineSpec
+
+    int_col = Column("test_col", Integer)
+
+    # Test all comparison operators
+    operators_and_values = [
+        ("EQUALS", 5),
+        ("NOT_EQUALS", 5),
+        ("GREATER_THAN", 5),
+        ("LESS_THAN", 5),
+        ("GREATER_THAN_OR_EQUALS", 5),
+        ("LESS_THAN_OR_EQUALS", 5),
+    ]
+
+    for op, value in operators_and_values:
+        result = BaseEngineSpec.handle_comparison_filter(int_col, op, value)
+        # All comparison operators should return binary expressions
+        assert str(type(result)).endswith("BinaryExpression'>")
+
+    # Test invalid operator
+    with pytest.raises(ValueError, match="Invalid comparison filter operator"):
+        BaseEngineSpec.handle_comparison_filter(int_col, "INVALID", 5)
+
+
+def test_use_equality_for_boolean_filters_property() -> None:
+    """
+    Test that BaseEngineSpec has the correct default value for boolean filter property.
+    """
+    from superset.db_engine_specs.base import BaseEngineSpec
+
+    # Default should be False (use IS operators)
+    assert BaseEngineSpec.use_equality_for_boolean_filters is False
