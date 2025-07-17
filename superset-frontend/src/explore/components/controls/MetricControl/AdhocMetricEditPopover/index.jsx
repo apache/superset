@@ -149,6 +149,16 @@ export default class AdhocMetricEditPopover extends PureComponent {
   getDefaultTab() {
     const { adhocMetric, savedMetric, savedMetricsOptions, isNewMetric } =
       this.props;
+    
+    // For semantic layer datasets, always default to Saved tab if available
+    if (this.isSemanticLayer()) {
+      if (Array.isArray(savedMetricsOptions) && savedMetricsOptions.length > 0) {
+        return SAVED_TAB_KEY;
+      }
+      // If no saved metrics available, still return SAVED_TAB_KEY to show empty state
+      return SAVED_TAB_KEY;
+    }
+    
     if (isDefined(adhocMetric.column) || isDefined(adhocMetric.sqlExpression)) {
       return adhocMetric.expressionType;
     }
@@ -160,6 +170,14 @@ export default class AdhocMetricEditPopover extends PureComponent {
       return SAVED_TAB_KEY;
     }
     return adhocMetric.expressionType;
+  }
+
+  isSemanticLayer() {
+    const { datasource } = this.props;
+    if (!datasource || !('database' in datasource) || !datasource.database) {
+      return false;
+    }
+    return Boolean(datasource.database.engine_information?.supports_dynamic_columns);
   }
 
   onSave() {
@@ -428,18 +446,20 @@ export default class AdhocMetricEditPopover extends PureComponent {
             },
             {
               key: EXPRESSION_TYPES.SIMPLE,
-              label: extra.disallow_adhoc_metrics ? (
+              label: extra.disallow_adhoc_metrics || this.isSemanticLayer() ? (
                 <Tooltip
-                  title={t(
-                    'Simple ad-hoc metrics are not enabled for this dataset',
-                  )}
+                  title={
+                    this.isSemanticLayer()
+                      ? t('Simple ad-hoc metrics are not supported for semantic layer datasets')
+                      : t('Simple ad-hoc metrics are not enabled for this dataset')
+                  }
                 >
                   {t('Simple')}
                 </Tooltip>
               ) : (
                 t('Simple')
               ),
-              disabled: extra.disallow_adhoc_metrics,
+              disabled: extra.disallow_adhoc_metrics || this.isSemanticLayer(),
               children: (
                 <>
                   <FormItem label={t('column')}>
@@ -467,18 +487,20 @@ export default class AdhocMetricEditPopover extends PureComponent {
             },
             {
               key: EXPRESSION_TYPES.SQL,
-              label: extra.disallow_adhoc_metrics ? (
+              label: extra.disallow_adhoc_metrics || this.isSemanticLayer() ? (
                 <Tooltip
-                  title={t(
-                    'Custom SQL ad-hoc metrics are not enabled for this dataset',
-                  )}
+                  title={
+                    this.isSemanticLayer()
+                      ? t('Custom SQL ad-hoc metrics are not supported for semantic layer datasets')
+                      : t('Custom SQL ad-hoc metrics are not enabled for this dataset')
+                  }
                 >
                   {t('Custom SQL')}
                 </Tooltip>
               ) : (
                 t('Custom SQL')
               ),
-              disabled: extra.disallow_adhoc_metrics,
+              disabled: extra.disallow_adhoc_metrics || this.isSemanticLayer(),
               children: (
                 <SQLEditor
                   data-test="sql-editor"
