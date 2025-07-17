@@ -28,7 +28,7 @@ import {
   EchartsMixedTimeseriesProps,
 } from '../../src/MixedTimeseries/types';
 
-const formData: EchartsMixedTimeseriesFormData = {
+const baseFormData: EchartsMixedTimeseriesFormData = {
   annotationLayers: [],
   area: false,
   areaB: false,
@@ -81,6 +81,7 @@ const formData: EchartsMixedTimeseriesFormData = {
   forecastPeriods: [],
   forecastInterval: 0,
   forecastSeasonalityDaily: 0,
+  show_query_identifiers: false,
 };
 
 const queriesData = [
@@ -108,57 +109,117 @@ const queriesData = [
   },
 ];
 
-const chartPropsConfig = {
-  formData,
-  width: 800,
-  height: 600,
-  queriesData,
-  theme: supersetTheme,
-};
+describe('MixedTimeseries transformProps', () => {
+  it('should transform chart props for viz with query identifiers disabled', () => {
+    const chartPropsConfig = {
+      formData,
+      width: 800,
+      height: 600,
+      queriesData,
+      theme: supersetTheme,
+    };
+    const chartProps = new ChartProps({ ...chartPropsConfig, formData });
+    const transformed = transformProps(
+      chartProps as EchartsMixedTimeseriesProps,
+    );
 
-it('should transform chart props for viz', () => {
-  const chartProps = new ChartProps(chartPropsConfig);
-  const transformed = transformProps(chartProps as EchartsMixedTimeseriesProps);
-
-  expect(transformed).toEqual(
-    expect.objectContaining({
-      echartOptions: expect.objectContaining({
-        series: expect.arrayContaining([
-          expect.objectContaining({
-            data: [
-              [599616000000, 1],
-              [599916000000, 3],
-            ],
-            id: 'sum__num (Query A), boy',
-            stack: 'obs\na',
-          }),
-          expect.objectContaining({
-            data: [
-              [599616000000, 2],
-              [599916000000, 4],
-            ],
-            id: 'sum__num (Query A), girl',
-            stack: 'obs\na',
-          }),
-          // Query B — Bar series
-          expect.objectContaining({
-            data: [
-              [599616000000, 1],
-              [599916000000, 3],
-            ],
-            id: 'sum__num (Query B), boy',
-            stack: 'obs\nb',
-          }),
-          expect.objectContaining({
-            data: [
-              [599616000000, 2],
-              [599916000000, 4],
-            ],
-            id: 'sum__num (Query B), girl',
-            stack: 'obs\nb',
-          }),
-        ]),
+    expect(transformed).toEqual(
+      expect.objectContaining({
+        echartOptions: expect.objectContaining({
+          series: expect.arrayContaining([
+            expect.objectContaining({
+              data: [
+                [599616000000, 1],
+                [599916000000, 3],
+              ],
+              id: 'sum__num, boy',
+              stack: 'obs\na',
+            }),
+            expect.objectContaining({
+              data: [
+                [599616000000, 2],
+                [599916000000, 4],
+              ],
+              id: 'sum__num, girl',
+              stack: 'obs\na',
+            }),
+            // Query B — Bar series
+            expect.objectContaining({
+              data: [
+                [599616000000, 1],
+                [599916000000, 3],
+              ],
+              id: 'sum__num, boy',
+              stack: 'obs\nb',
+            }),
+            expect.objectContaining({
+              data: [
+                [599616000000, 2],
+                [599916000000, 4],
+              ],
+              id: 'sum__num, girl',
+              stack: 'obs\nb',
+            }),
+          ]),
+        }),
       }),
-    }),
-  );
+    );
+  });
+
+  it('should transform chart props for viz with query identifiers enabled', () => {
+    const formData = { ...baseFormData, show_query_identifiers: true };
+    const chartPropsConfig = {
+      formData,
+      width: 800,
+      height: 600,
+      queriesData,
+      theme: supersetTheme,
+    };
+    const chartProps = new ChartProps({ ...chartPropsConfig, formData });
+    const transformed = transformProps(
+      chartProps as EchartsMixedTimeseriesProps,
+    );
+
+    expect(transformed).toEqual(
+      expect.objectContaining({
+        echartOptions: expect.objectContaining({
+          series: expect.arrayContaining([
+            expect.objectContaining({
+              data: [
+                [599616000000, 1],
+                [599916000000, 3],
+              ],
+              id: 'sum__num (Query A), boy',
+              stack: 'obs\na',
+            }),
+            expect.objectContaining({
+              data: [
+                [599616000000, 2],
+                [599916000000, 4],
+              ],
+              id: 'sum__num (Query A), girl',
+              stack: 'obs\na',
+            }),
+            // Query B — Bar series
+            expect.objectContaining({
+              data: [
+                [599616000000, 1],
+                [599916000000, 3],
+              ],
+              id: 'sum__num (Query B), boy',
+              stack: 'obs\nb',
+            }),
+            expect.objectContaining({
+              data: [
+                [599616000000, 2],
+                [599916000000, 4],
+              ],
+              id: 'sum__num (Query B), girl',
+              stack: 'obs\nb',
+            }),
+          ]),
+        }),
+      }),
+    );
+  });
 });
