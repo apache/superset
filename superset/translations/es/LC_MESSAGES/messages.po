@@ -805,13 +805,11 @@ msgstr "Acciones"
 msgid "Active"
 msgstr "Activo"
 
-#, fuzzy
 msgid "Actual Values"
-msgstr "Valores Nulos"
+msgstr "Valores Actuales"
 
-#, fuzzy
 msgid "Actual range for comparison"
-msgstr "Columna de Tiempo"
+msgstr "Rango actual para comparación"
 
 msgid "Actual time range"
 msgstr "Rango de tiempo actual"
