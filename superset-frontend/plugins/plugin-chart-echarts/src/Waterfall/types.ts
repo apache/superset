@@ -61,8 +61,8 @@ export type EchartsWaterfallFormData = QueryFormData &
     yAxisLabel: string;
     yAxisLabelDistance: string;
     yAxisFormat: string;
-    seriesOrderByColumn: string;
-    seriesOrderDirection: 'ASC' | 'DESC';
+    xAxisSortByColumn: string;
+    xAxisSortByColumnOrder: 'NONE' | 'ASC' | 'DESC';
   };
 
 export const DEFAULT_FORM_DATA: Partial<EchartsWaterfallFormData> = {

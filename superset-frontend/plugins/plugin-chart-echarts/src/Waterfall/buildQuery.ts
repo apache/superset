@@ -23,30 +23,17 @@ import {
 } from '@superset-ui/core';
 
 export default function buildQuery(formData: QueryFormData) {
-  const { x_axis, granularity_sqla, groupby } = formData;
+  const { x_axis, granularity_sqla, groupby, xAxisSortByColumn } = formData;
   const columns = [
     ...ensureIsArray(x_axis || granularity_sqla),
     ...ensureIsArray(groupby),
   ];
 
-  if (columns.indexOf(formData.seriesOrderByColumn) === -1) {
-    columns.push(formData.seriesOrderByColumn);
+  // Add sort column to columns if it's not already included
+  if (xAxisSortByColumn && !columns.includes(xAxisSortByColumn)) {
+    columns.push(xAxisSortByColumn);
   }
 
-  if (formData.seriesOrderByColumn && formData.seriesOrderDirection) {
-    return buildQueryContext(formData, baseQueryObject => [
-      {
-        ...baseQueryObject,
-        columns,
-        orderby: [
-          [
-            formData.seriesOrderByColumn,
-            formData.seriesOrderDirection === 'ASC',
-          ],
-        ],
-      },
-    ]);
-  }
   return buildQueryContext(formData, baseQueryObject => [
     {
       ...baseQueryObject,

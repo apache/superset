@@ -162,7 +162,35 @@ export default function transformProps(
     inContextMenu,
   } = chartProps;
   const refs: Refs = {};
-  const { data = [] } = queriesData[0];
+  let { data = [] } = queriesData[0];
+  
+  const { xAxisSortByColumn, xAxisSortByColumnOrder } = formData;
+  if (xAxisSortByColumn && xAxisSortByColumnOrder && xAxisSortByColumnOrder !== 'NONE') {
+    const sortColumn = xAxisSortByColumn;
+    const isAscending = xAxisSortByColumnOrder === 'ASC';
+    
+    data = [...data].sort((a, b) => {
+      const aValue = a[sortColumn];
+      const bValue = b[sortColumn];
+      
+      // Handle null/undefined values
+      if (aValue == null && bValue == null) return 0;
+      if (aValue == null) return isAscending ? -1 : 1;
+      if (bValue == null) return isAscending ? 1 : -1;
+      
+      // Handle numeric values
+      if (typeof aValue === 'number' && typeof bValue === 'number') {
+        return isAscending ? aValue - bValue : bValue - aValue;
+      }
+      
+      // Handle string/other values
+      const aStr = String(aValue);
+      const bStr = String(bValue);
+      const comparison = aStr.localeCompare(bStr);
+      return isAscending ? comparison : -comparison;
+    });
+  }
+
   const coltypeMapping = getColtypesMapping(queriesData[0]);
   const { setDataMask = () => {}, onContextMenu, onLegendStateChanged } = hooks;
   const {

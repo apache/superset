@@ -34,19 +34,14 @@ const config: ControlPanelConfig = {
       expanded: true,
       controlSetRows: [
         ['x_axis'],
-        ['time_grain_sqla'],
-        ['groupby'],
-        ['metric'],
-        ['adhoc_filters'],
-        ['row_limit'],
         [
           {
-            name: 'seriesOrderByColumn',
+            name: 'xAxisSortByColumn',
             config: {
               type: 'SelectControl',
-              label: t('Order series by column'),
+              label: t('X axis sort by column'),
               description: t(
-                'Column to use for ordering the waterfall series with columns not in the chart',
+                'Column to use for ordering the waterfall based on a column',
               ),
               mapStateToProps: state => ({
                 choices: [
@@ -55,31 +50,39 @@ const config: ControlPanelConfig = {
                     col.column_name,
                   ]),
                 ],
-                default: state.form_data.x_axis,
+                default: '',
               }),
-              clearable: false,
+              renderTrigger: false,
+              clearable: true,
               visibility: ({ controls }) => Boolean(controls?.x_axis?.value),
             },
           },
         ],
         [
           {
-            name: 'seriesOrderDirection',
+            name: 'xAxisSortByColumnOrder',
             config: {
               type: 'SelectControl',
-              label: t('Order direction'),
+              label: t('X axis sort by column order direction'),
               choices: [
+                ['NONE', t('None')],
                 ['ASC', t('Ascending')],
                 ['DESC', t('Descending')],
               ],
-              default: 'ASC',
+              default: 'NONE',
               clearable: false,
               description: t(
                 'Ordering direction for the series, to be used with "Order series by column"',
               ),
+              visibility: ({ controls }) => Boolean(controls?.xAxisSortByColumn?.value),
             },
           },
         ],
+        ['time_grain_sqla'],
+        ['groupby'],
+        ['metric'],
+        ['adhoc_filters'],
+        ['row_limit'],
       ],
     },
     {
