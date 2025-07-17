@@ -33,6 +33,7 @@ const createProps = (viz_type = VizType.Sunburst) =>
     exportFullCSV: jest.fn(),
     exportXLSX: jest.fn(),
     exportFullXLSX: jest.fn(),
+    exportPivotExcel: jest.fn(),
     forceRefresh: jest.fn(),
     handleToggleFullSize: jest.fn(),
     toggleExpandSlice: jest.fn(),
@@ -252,6 +253,20 @@ test('Should not show export full Excel if report is not table', async () => {
   userEvent.hover(screen.getByText('Download'));
   expect(await screen.findByText('Export to Excel')).toBeInTheDocument();
   expect(screen.queryByText('Export to full Excel')).not.toBeInTheDocument();
+});
+
+test('Should export to pivoted Excel if report is pivot table', async () => {
+  const props = createProps(VizType.PivotTable);
+  renderWrapper(props);
+  openMenu();
+  expect(props.exportPivotExcel).toHaveBeenCalledTimes(0);
+  userEvent.hover(screen.getByText('Download'));
+  userEvent.click(await screen.findByText('Export to Pivoted Excel'));
+  expect(props.exportPivotExcel).toHaveBeenCalledTimes(1);
+  expect(props.exportPivotExcel).toHaveBeenCalledWith(
+    '.pvtTable',
+    props.slice.slice_name,
+  );
 });
 
 test('Should "Show chart description"', () => {
