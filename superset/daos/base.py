@@ -16,17 +16,68 @@
 # under the License.
 from __future__ import annotations
 
-from typing import Any, Generic, get_args, TypeVar
+from typing import Any, Dict, Generic, get_args, List, Optional, Tuple, TypeVar
 
 from flask_appbuilder.models.filters import BaseFilter
 from flask_appbuilder.models.sqla import Model
 from flask_appbuilder.models.sqla.interface import SQLAInterface
+from sqlalchemy import asc, desc, or_, cast, Text
 from sqlalchemy.exc import StatementError
+from sqlalchemy.orm import joinedload, RelationshipProperty, ColumnProperty
+from sqlalchemy.inspection import inspect
 
 from superset.extensions import db
 
+from enum import Enum
+from pydantic import BaseModel, Field
+
 T = TypeVar("T", bound=Model)
 
+class ColumnOperatorEnum(str, Enum):
+    eq = "eq"
+    ne = "ne"
+    sw = "sw"
+    ew = "ew"
+    in_ = "in"
+    nin = "nin"
+    gt = "gt"
+    gte = "gte"
+    lt = "lt"
+    lte = "lte"
+    like = "like"
+    ilike = "ilike"
+    is_null = "is_null"
+    is_not_null = "is_not_null"
+
+    @classmethod
+    def operator_map(cls):
+        return {
+            cls.eq: lambda col, val: col == val,
+            cls.ne: lambda col, val: col != val,
+            cls.sw: lambda col, val: col.like(f"{val}%"),
+            cls.ew: lambda col, val: col.like(f"%{val}"),
+            cls.in_: lambda col, val: col.in_(val if isinstance(val, (list, tuple)) else [val]),
+            cls.nin: lambda col, val: ~col.in_(val if isinstance(val, (list, tuple)) else [val]),
+            cls.gt: lambda col, val: col > val,
+            cls.gte: lambda col, val: col >= val,
+            cls.lt: lambda col, val: col < val,
+            cls.lte: lambda col, val: col <= val,
+            cls.like: lambda col, val: col.like(val),
+            cls.ilike: lambda col, val: col.ilike(val),
+            cls.is_null: lambda col, _: col.is_(None),
+            cls.is_not_null: lambda col, _: col.isnot(None),
+        }
+
+    def apply(self, column, value):
+        op_func = self.operator_map().get(self)
+        if not op_func:
+            raise ValueError(f"Unsupported operator: {self}")
+        return op_func(column, value)
+
+class ColumnOperator(BaseModel):
+    col: str = Field(..., description="Column name to filter on")
+    opr: ColumnOperatorEnum = Field(..., description="Operator")
+    value: Any = Field(None, description="Value for the filter")
 
 class BaseDAO(Generic[T]):
     """
@@ -50,6 +101,19 @@ class BaseDAO(Generic[T]):
         )[0]
 
     @classmethod
+    def _apply_base_filter(cls, query, skip_base_filter: bool = False, data_model=None):
+        """
+        Apply the base_filter to the query if it exists and skip_base_filter is False.
+        """
+        if cls.base_filter and not skip_base_filter:
+            if data_model is None:
+                data_model = SQLAInterface(cls.model_cls, db.session)
+            query = cls.base_filter( # pylint: disable=not-callable
+                cls.id_column_name, data_model
+            ).apply(query, None)
+        return query
+
+    @classmethod
     def find_by_id(
         cls,
         model_id: str | int,
@@ -59,11 +123,7 @@ class BaseDAO(Generic[T]):
         Find a model by id, if defined applies `base_filter`
         """
         query = db.session.query(cls.model_cls)
-        if cls.base_filter and not skip_base_filter:
-            data_model = SQLAInterface(cls.model_cls, db.session)
-            query = cls.base_filter(  # pylint: disable=not-callable
-                cls.id_column_name, data_model
-            ).apply(query, None)
+        query = cls._apply_base_filter(query, skip_base_filter)
         id_column = getattr(cls.model_cls, cls.id_column_name)
         try:
             return query.filter(id_column == model_id).one_or_none()
@@ -84,11 +144,7 @@ class BaseDAO(Generic[T]):
         if id_col is None:
             return []
         query = db.session.query(cls.model_cls).filter(id_col.in_(model_ids))
-        if cls.base_filter and not skip_base_filter:
-            data_model = SQLAInterface(cls.model_cls, db.session)
-            query = cls.base_filter(  # pylint: disable=not-callable
-                cls.id_column_name, data_model
-            ).apply(query, None)
+        query = cls._apply_base_filter(query, skip_base_filter)
         return query.all()
 
     @classmethod
@@ -97,11 +153,7 @@ class BaseDAO(Generic[T]):
         Get all that fit the `base_filter`
         """
         query = db.session.query(cls.model_cls)
-        if cls.base_filter:
-            data_model = SQLAInterface(cls.model_cls, db.session)
-            query = cls.base_filter(  # pylint: disable=not-callable
-                cls.id_column_name, data_model
-            ).apply(query, None)
+        query = cls._apply_base_filter(query)
         return query.all()
 
     @classmethod
@@ -110,11 +162,7 @@ class BaseDAO(Generic[T]):
         Get the first that fit the `base_filter`
         """
         query = db.session.query(cls.model_cls)
-        if cls.base_filter:
-            data_model = SQLAInterface(cls.model_cls, db.session)
-            query = cls.base_filter(  # pylint: disable=not-callable
-                cls.id_column_name, data_model
-            ).apply(query, None)
+        query = cls._apply_base_filter(query)
         return query.filter_by(**filter_by).one_or_none()
 
     @classmethod
@@ -184,3 +232,145 @@ class BaseDAO(Generic[T]):
 
         for item in items:
             db.session.delete(item)
+
+    @classmethod
+    def apply_column_operators(cls, query, column_operators: Optional[List[ColumnOperator]] = None):
+        """
+        Apply column operators (list of ColumnOperator) to the query using ColumnOperatorEnum logic.
+        """
+        if not column_operators:
+            return query
+        for c in column_operators:
+            if not isinstance(c, ColumnOperator):
+                continue
+            col = c.col
+            opr = c.opr
+            value = c.value
+            if not col or not hasattr(cls.model_cls, col):
+                continue
+            column = getattr(cls.model_cls, col)
+            try:
+                # Always use ColumnOperatorEnum's apply method
+                query = query.filter(ColumnOperatorEnum(opr).apply(column, value))
+            except Exception:
+                continue  # Optionally log or raise
+        return query
+
+    @classmethod
+    def _build_query(
+        cls,
+        column_operators: Optional[List[ColumnOperator]] = None,
+        search: Optional[str] = None,
+        search_columns: Optional[List[str]] = None,
+        custom_filters: Optional[Dict[str, BaseFilter]] = None,
+        skip_base_filter: bool = False,
+        data_model: SQLAInterface = None,
+    ):
+        """
+        Build a SQLAlchemy query with base filter, column operators, search, and custom filters.
+        """
+        if data_model is None:
+            data_model = SQLAInterface(cls.model_cls, db.session)
+        query = data_model.session.query(cls.model_cls)
+        query = cls._apply_base_filter(query, skip_base_filter=skip_base_filter, data_model=data_model)
+        if search and search_columns:
+            search_filters = []
+            for column_name in search_columns:
+                if hasattr(cls.model_cls, column_name):
+                    column = getattr(cls.model_cls, column_name)
+                    search_filters.append(cast(column, Text).ilike(f"%{search}%"))
+            if search_filters:
+                query = query.filter(or_(*search_filters))
+        if custom_filters:
+            for filter_class in custom_filters.values():
+                query = filter_class.apply(query, None)
+        if column_operators:
+            query = cls.apply_column_operators(query, column_operators)
+        return query
+
+    @classmethod
+    def list(
+        cls,
+        column_operators: Optional[List[ColumnOperator]] = None,
+        order_column: str = "changed_on",
+        order_direction: str = "desc",
+        page: int = 0,
+        page_size: int = 100,
+        search: Optional[str] = None,
+        search_columns: Optional[List[str]] = None,
+        custom_filters: Optional[Dict[str, BaseFilter]] = None,
+        columns: Optional[List[str]] = None,
+    ) -> Tuple[List[Any], int]:
+        """
+        Generic list method for filtered, sorted, and paginated results.
+        If columns is specified, returns a list of tuples (one per row),
+        otherwise returns model instances.
+        """
+        data_model = SQLAInterface(cls.model_cls, db.session)
+        # Separate columns and relationships
+        mapper = inspect(cls.model_cls)
+        column_names = set(c.key for c in mapper.columns)
+        relationship_names = set(r.key for r in mapper.relationships)
+
+        column_attrs = []
+        relationship_loads = []
+        if columns is None:
+            columns = []
+        for name in columns:
+            attr = getattr(cls.model_cls, name, None)
+            if attr is None:
+                continue
+            prop = getattr(attr, 'property', None)
+            if isinstance(prop, ColumnProperty):
+                column_attrs.append(attr)
+            elif isinstance(prop, RelationshipProperty):
+                relationship_loads.append(joinedload(attr))
+            # Ignore properties and other non-queryable attributes
+
+        if relationship_loads:
+            # If any relationships are requested, query the full model and joinedload relationships
+            query = data_model.session.query(cls.model_cls)
+            for loader in relationship_loads:
+                query = query.options(loader)
+        elif column_attrs:
+            # Only columns requested
+            query = data_model.session.query(*column_attrs)
+        else:
+            # Fallback: query the full model
+            query = data_model.session.query(cls.model_cls)
+        query = cls._apply_base_filter(query, data_model=data_model)
+        if search and search_columns:
+            search_filters = []
+            for column_name in search_columns:
+                if hasattr(cls.model_cls, column_name):
+                    column = getattr(cls.model_cls, column_name)
+                    search_filters.append(cast(column, Text).ilike(f"%{search}%"))
+            if search_filters:
+                query = query.filter(or_(*search_filters))
+        if custom_filters:
+            for filter_class in custom_filters.values():
+                query = filter_class.apply(query, None)
+        if column_operators:
+            query = cls.apply_column_operators(query, column_operators)
+        total_count = query.count()
+        if hasattr(cls.model_cls, order_column):
+            column = getattr(cls.model_cls, order_column)
+            if order_direction.lower() == "desc":
+                query = query.order_by(desc(column))
+            else:
+                query = query.order_by(asc(column))
+        page = page
+        page_size = max(page_size, 1)
+        query = query.offset(page * page_size).limit(page_size)
+        items = query.all()
+        return items, total_count
+
+    @classmethod
+    def count(
+        cls, column_operators: Optional[List[ColumnOperator]] = None, skip_base_filter: bool = False
+    ) -> int:
+        """
+        Count the number of records for the model, optionally filtered by column operators.
+        """
+        query = cls._build_query(column_operators=column_operators, skip_base_filter=skip_base_filter)
+        return query.count()
