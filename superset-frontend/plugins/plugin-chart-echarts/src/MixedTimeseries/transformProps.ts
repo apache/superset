@@ -396,18 +396,19 @@ export default function transformProps(
     const seriesName = inverted[entryName] || entryName;
     const colorScaleKey = getOriginalSeries(seriesName, array);
 
-    let displayName = entryName;
-
-    if (show_query_identifiers) {
-      displayName = `${entryName} (Query A)`;
-    }
+    let displayName: string;
 
     if (groupby.length > 0) {
-      if (show_query_identifiers) {
-        displayName = `${MetricDisplayNameA} (Query A), ${entryName}`;
-      } else {
-        displayName = `${MetricDisplayNameA}, ${entryName}`;
-      }
+      // When we have groupby, format as "metric, dimension"
+      const metricPart = show_query_identifiers
+        ? `${MetricDisplayNameA} (Query A)`
+        : MetricDisplayNameA;
+      displayName = `${metricPart}, ${entryName}`;
+    } else {
+      // When no groupby, format as just the entry name with optional query identifier
+      displayName = show_query_identifiers
+        ? `${entryName} (Query A)`
+        : entryName;
     }
 
     const seriesFormatter = getFormatter(
@@ -462,18 +463,19 @@ export default function transformProps(
     const seriesName = `${seriesEntry} (1)`;
     const colorScaleKey = getOriginalSeries(seriesEntry, array);
 
-    let displayName = entryName;
-
-    if (show_query_identifiers) {
-      displayName = `${entryName} (Query B)`;
-    }
+    let displayName: string;
 
     if (groupbyB.length > 0) {
-      if (show_query_identifiers) {
-        displayName = `${MetricDisplayNameB} (Query B), ${entryName}`;
-      } else {
-        displayName = `${MetricDisplayNameB}, ${entryName}`;
-      }
+      // When we have groupby, format as "metric, dimension"
+      const metricPart = show_query_identifiers
+        ? `${MetricDisplayNameB} (Query B)`
+        : MetricDisplayNameB;
+      displayName = `${metricPart}, ${entryName}`;
+    } else {
+      // When no groupby, format as just the entry name with optional query identifier
+      displayName = show_query_identifiers
+        ? `${entryName} (Query B)`
+        : entryName;
     }
 
     const seriesFormatter = getFormatter(
