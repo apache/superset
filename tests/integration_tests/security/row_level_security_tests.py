@@ -555,7 +555,7 @@ class TestRowLevelSecurityWithRelatedAPI(SupersetTestCase):
         assert len(result) == len(db_tables)
         assert db_table_names == received_tables
 
-    def test_rls_tables_related_api_with_filter(self):
+    def test_rls_tables_related_api_with_filter_matching_birth(self):
         self.login(ADMIN_USERNAME)
         # Test with filter that should match 'birth_names'
         params = prison.dumps({"filter": "birth", "page": 0, "page_size": 100})
@@ -568,6 +568,8 @@ class TestRowLevelSecurityWithRelatedAPI(SupersetTestCase):
         assert all("birth" in table_name.lower() for table_name in received_tables)
         assert len(result) >= 1  # At least birth_names should be returned
 
+    def test_rls_tables_related_api_with_filter_no_matches(self):
+        self.login(ADMIN_USERNAME)
         # Test with filter that should match nothing
         params = prison.dumps({"filter": "nonexistent", "page": 0, "page_size": 100})
         rv = self.client.get(f"/api/v1/rowlevelsecurity/related/tables?q={params}")
