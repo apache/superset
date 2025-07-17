@@ -85,43 +85,54 @@ function needsSemanticLayerVerification(datasource: Dataset): boolean {
 
 /**
  * Enhance a control with semantic layer verification if available
+ * This creates a lazy-enhanced control that checks for utilities at runtime
  */
 function enhanceControlWithSemanticLayer(
   baseControl: any,
   controlName: string,
   verificationType: 'metrics' | 'columns',
 ) {
-  if (!withAsyncVerification) {
-    return baseControl;
-  }
-
-  const verificationFn =
-    verificationType === 'metrics'
-      ? createMetricsVerification()
-      : createColumnsVerification();
-
+  // Return a control that will be enhanced at runtime if utilities are available
   return {
     ...baseControl,
-    type: withAsyncVerification({
-      baseControl: baseControl.type,
-      verify: verificationFn,
-      onChange: createSemanticLayerOnChange(
-        controlName,
-        SEMANTIC_LAYER_CONTROL_FIELDS,
-      ),
-      showLoadingState: true,
-    }),
+    // Override the type to use a function that checks for enhancement at runtime
+    get type() {
+      if (withAsyncVerification) {
+        const verificationFn =
+          verificationType === 'metrics'
+            ? createMetricsVerification()
+            : createColumnsVerification();
+
+        return withAsyncVerification({
+          baseControl: baseControl.type,
+          verify: verificationFn,
+          onChange: createSemanticLayerOnChange(
+            controlName,
+            SEMANTIC_LAYER_CONTROL_FIELDS,
+          ),
+          showLoadingState: true,
+        });
+      }
+      return baseControl.type;
+    },
     mapStateToProps: (state: any, controlState: any) => {
       // Call the original mapStateToProps if it exists
       const originalProps = baseControl.mapStateToProps
         ? baseControl.mapStateToProps(state, controlState)
         : {};
 
-      return {
-        ...originalProps,
-        needAsyncVerification: needsSemanticLayerVerification(state.datasource),
-        form_data: state.form_data,
-      };
+      // Only add semantic layer props if utilities are available
+      if (withAsyncVerification) {
+        const needsVerification = needsSemanticLayerVerification(state.datasource);
+
+        return {
+          ...originalProps,
+          needAsyncVerification: needsVerification,
+          form_data: state.form_data,
+        };
+      }
+
+      return originalProps;
     },
   };
 }
