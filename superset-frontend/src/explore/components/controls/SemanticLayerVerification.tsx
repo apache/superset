@@ -47,6 +47,34 @@ export function collectQueryFields(formData: any): {
         : [formData.columns]),
     );
   }
+  if (formData.series_columns) {
+    dimensions.push(
+      ...(Array.isArray(formData.series_columns)
+        ? formData.series_columns
+        : [formData.series_columns]),
+    );
+  }
+  if (formData.series) {
+    dimensions.push(
+      ...(Array.isArray(formData.series)
+        ? formData.series
+        : [formData.series]),
+    );
+  }
+  if (formData.entity) {
+    dimensions.push(
+      ...(Array.isArray(formData.entity)
+        ? formData.entity
+        : [formData.entity]),
+    );
+  }
+  if (formData.x_axis) {
+    dimensions.push(
+      ...(Array.isArray(formData.x_axis)
+        ? formData.x_axis
+        : [formData.x_axis]),
+    );
+  }
 
   // Extract metrics from various field types
   if (formData.metrics) {
@@ -59,12 +87,30 @@ export function collectQueryFields(formData: any): {
   if (formData.metric) {
     metrics.push(formData.metric);
   }
+  if (formData.metric_2) {
+    metrics.push(formData.metric_2);
+  }
   if (formData.percent_metrics) {
     metrics.push(
       ...(Array.isArray(formData.percent_metrics)
         ? formData.percent_metrics
         : [formData.percent_metrics]),
     );
+  }
+  if (formData.timeseries_limit_metric) {
+    metrics.push(formData.timeseries_limit_metric);
+  }
+  if (formData.x) {
+    metrics.push(formData.x);
+  }
+  if (formData.y) {
+    metrics.push(formData.y);
+  }
+  if (formData.size) {
+    metrics.push(formData.size);
+  }
+  if (formData.secondary_metric) {
+    metrics.push(formData.secondary_metric);
   }
 
   // Filter out null/undefined values and convert objects to strings if needed
@@ -456,12 +502,22 @@ export function createSemanticLayerOnChange(
  * Get list of control fields that should trigger re-rendering
  */
 export const SEMANTIC_LAYER_CONTROL_FIELDS = [
+  // Metric controls
   'metrics',
   'metric',
   'metric_2',
   'percent_metrics',
   'timeseries_limit_metric',
+  'x',
+  'y',
+  'size',
+  'secondary_metric',
+  
+  // Dimension controls
   'groupby',
   'columns',
   'series_columns',
+  'series',
+  'entity',
+  'x_axis',
 ];

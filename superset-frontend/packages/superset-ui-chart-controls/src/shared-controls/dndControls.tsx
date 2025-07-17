@@ -270,8 +270,8 @@ export const dndColumnsControl = enhanceControlWithSemanticLayer(
   'columns',
 );
 
-export const dndSeriesControl: typeof dndGroupByControl = {
-  ...dndGroupByControl,
+const baseDndSeriesControl: typeof baseDndGroupByControl = {
+  ...baseDndGroupByControl,
   label: t('Dimension'),
   multi: false,
   default: null,
@@ -281,14 +281,26 @@ export const dndSeriesControl: typeof dndGroupByControl = {
   ),
 };
 
-export const dndEntityControl: typeof dndGroupByControl = {
-  ...dndGroupByControl,
+export const dndSeriesControl = enhanceControlWithSemanticLayer(
+  baseDndSeriesControl,
+  'series',
+  'columns',
+);
+
+const baseDndEntityControl: typeof baseDndGroupByControl = {
+  ...baseDndGroupByControl,
   label: t('Entity'),
   default: null,
   multi: false,
   validators: [validateNonEmpty],
   description: t('This defines the element to be plotted on the chart'),
 };
+
+export const dndEntityControl = enhanceControlWithSemanticLayer(
+  baseDndEntityControl,
+  'entity',
+  'columns',
+);
 
 export const dndAdhocFilterControl: SharedControlConfig<
   'DndFilterSelect' | 'AdhocFilterControl'
@@ -399,15 +411,21 @@ export const dndSortByControl: SharedControlConfig<
   }),
 };
 
-export const dndSizeControl: typeof dndAdhocMetricControl = {
-  ...dndAdhocMetricControl,
+const baseDndSizeControl: typeof baseDndAdhocMetricControl = {
+  ...baseDndAdhocMetricControl,
   label: t('Bubble Size'),
   description: t('Metric used to calculate bubble size'),
   default: null,
 };
 
-export const dndXControl: typeof dndAdhocMetricControl = {
-  ...dndAdhocMetricControl,
+export const dndSizeControl = enhanceControlWithSemanticLayer(
+  baseDndSizeControl,
+  'size',
+  'metrics',
+);
+
+const baseDndXControl: typeof baseDndAdhocMetricControl = {
+  ...baseDndAdhocMetricControl,
   label: t('X Axis'),
   description: t(
     "The dataset column/metric that returns the values on your chart's x-axis.",
@@ -415,8 +433,14 @@ export const dndXControl: typeof dndAdhocMetricControl = {
   default: null,
 };
 
-export const dndYControl: typeof dndAdhocMetricControl = {
-  ...dndAdhocMetricControl,
+export const dndXControl = enhanceControlWithSemanticLayer(
+  baseDndXControl,
+  'x',
+  'metrics',
+);
+
+const baseDndYControl: typeof baseDndAdhocMetricControl = {
+  ...baseDndAdhocMetricControl,
   label: t('Y Axis'),
   description: t(
     "The dataset column/metric that returns the values on your chart's y-axis.",
@@ -424,13 +448,25 @@ export const dndYControl: typeof dndAdhocMetricControl = {
   default: null,
 };
 
-export const dndSecondaryMetricControl: typeof dndAdhocMetricControl = {
-  ...dndAdhocMetricControl,
+export const dndYControl = enhanceControlWithSemanticLayer(
+  baseDndYControl,
+  'y',
+  'metrics',
+);
+
+const baseDndSecondaryMetricControl: typeof baseDndAdhocMetricControl = {
+  ...baseDndAdhocMetricControl,
   label: t('Color Metric'),
   default: null,
   validators: [],
   description: t('A metric to use for color'),
 };
+
+export const dndSecondaryMetricControl = enhanceControlWithSemanticLayer(
+  baseDndSecondaryMetricControl,
+  'secondary_metric',
+  'metrics',
+);
 
 export const dndGranularitySqlaControl: typeof dndSeriesControl = {
   ...dndSeriesControl,
@@ -452,7 +488,13 @@ export const dndGranularitySqlaControl: typeof dndSeriesControl = {
   valueKey: 'column_name',
 };
 
-export const dndXAxisControl: typeof dndGroupByControl = {
-  ...dndGroupByControl,
+const baseDndXAxisControl: typeof baseDndGroupByControl = {
+  ...baseDndGroupByControl,
   ...xAxisMixin,
 };
+
+export const dndXAxisControl = enhanceControlWithSemanticLayer(
+  baseDndXAxisControl,
+  'x_axis',
+  'columns',
+);
