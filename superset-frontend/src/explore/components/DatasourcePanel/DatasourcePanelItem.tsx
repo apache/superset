@@ -244,6 +244,7 @@ const DatasourcePanelItem = ({
                 ? DndItemType.Column
                 : DndItemType.Metric
             }
+            isDisabled={item.item.isDisabled}
           />
         </LabelWrapper>
       )}

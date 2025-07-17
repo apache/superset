@@ -123,7 +123,9 @@ function enhanceControlWithSemanticLayer(
 
       // Only add semantic layer props if utilities are available
       if (withAsyncVerification) {
-        const needsVerification = needsSemanticLayerVerification(state.datasource);
+        const needsVerification = needsSemanticLayerVerification(
+          state.datasource,
+        );
 
         return {
           ...originalProps,

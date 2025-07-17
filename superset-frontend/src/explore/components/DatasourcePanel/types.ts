@@ -62,10 +62,12 @@ export type DatasourceFolder = {
 
 export type MetricItem = Metric & {
   type: 'metric';
+  isDisabled?: boolean;
 };
 
 export type ColumnItem = DatasourcePanelColumn & {
   type: 'column';
+  isDisabled?: boolean;
 };
 
 export type FolderItem = MetricItem | ColumnItem;

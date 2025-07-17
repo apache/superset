@@ -94,7 +94,7 @@ function supportsSemanticLayerVerification(datasource: Dataset): boolean {
   if (!datasource || !('database' in datasource) || !datasource.database) {
     return false;
   }
-  
+
   const database = datasource.database as any;
   return Boolean(database.engine_information?.supports_dynamic_columns);
 }
@@ -161,40 +161,42 @@ export function createMetricsVerification(): AsyncVerify {
       validMetricNames.has(metric.metric_name || metric),
     );
 
-    // Also filter the datasource metrics (for left panel) if this is a Dataset
+    // Mark datasource metrics and columns as disabled if invalid (for left panel)
     const dataset = datasource as Dataset;
-    let filteredDatasourceMetrics = dataset.metrics;
-    let filteredDatasourceColumns = dataset.columns;
-    
+    let updatedDatasourceMetrics = dataset.metrics;
+    let updatedDatasourceColumns = dataset.columns;
+
     if (dataset.metrics) {
-      filteredDatasourceMetrics = dataset.metrics.filter((metric: any) =>
-        validMetricNames.has(metric.metric_name || metric),
-      );
-    }
-    
-    // Also filter columns using the same validation result
-    const validDimensionNames = new Set(validationResult.dimensions);
-    if (dataset.columns) {
-      filteredDatasourceColumns = dataset.columns.filter((column: any) =>
-        validDimensionNames.has(column.column_name || column),
-      );
+      updatedDatasourceMetrics = dataset.metrics.map((metric: any) => ({
+        ...metric,
+        isDisabled: !validMetricNames.has(metric.metric_name || metric),
+      }));
     }
 
-    // Create filtered datasource for left panel
-    const filteredDatasource = {
+    // Also update columns using the same validation result
+    const validDimensionNames = new Set(validationResult.dimensions);
+    if (dataset.columns) {
+      updatedDatasourceColumns = dataset.columns.map((column: any) => ({
+        ...column,
+        isDisabled: !validDimensionNames.has(column.column_name || column),
+      }));
+    }
+
+    // Create updated datasource for left panel
+    const updatedDatasource = {
       ...dataset,
-      metrics: filteredDatasourceMetrics,
-      columns: filteredDatasourceColumns,
+      metrics: updatedDatasourceMetrics,
+      columns: updatedDatasourceColumns,
     };
 
     // Update the Redux store's datasource to affect the left panel
     if (actions && typeof actions.syncDatasourceMetadata === 'function') {
-      actions.syncDatasourceMetadata(filteredDatasource);
+      actions.syncDatasourceMetadata(updatedDatasource);
     }
 
     return {
       savedMetrics: filteredSavedMetrics,
-      datasource: filteredDatasource,
+      datasource: updatedDatasource,
     };
   };
 }
@@ -225,46 +227,49 @@ export function createColumnsVerification(): AsyncVerify {
       return null;
     }
 
-    // Filter dimension options to only include valid ones
+    // Mark dimension options as disabled if invalid
     const validDimensionNames = new Set(validationResult.dimensions);
-    const filteredOptions = options.filter((option: any) =>
-      validDimensionNames.has(option.column_name || option),
-    );
+    const updatedOptions = options.map((option: any) => ({
+      ...option,
+      isDisabled: !validDimensionNames.has(option.column_name || option),
+    }));
 
-    // Also filter the datasource columns (for left panel) if this is a Dataset
+    // Mark datasource columns and metrics as disabled if invalid (for left panel)
     const dataset = datasource as Dataset;
-    let filteredDatasourceColumns = dataset.columns;
-    let filteredDatasourceMetrics = dataset.metrics;
-    
+    let updatedDatasourceColumns = dataset.columns;
+    let updatedDatasourceMetrics = dataset.metrics;
+
     if (dataset.columns) {
-      filteredDatasourceColumns = dataset.columns.filter((column: any) =>
-        validDimensionNames.has(column.column_name || column),
-      );
+      updatedDatasourceColumns = dataset.columns.map((column: any) => ({
+        ...column,
+        isDisabled: !validDimensionNames.has(column.column_name || column),
+      }));
     }
-    
-    // Also filter metrics using the same validation result
+
+    // Also update metrics using the same validation result
     const validMetricNames = new Set(validationResult.metrics);
     if (dataset.metrics) {
-      filteredDatasourceMetrics = dataset.metrics.filter((metric: any) =>
-        validMetricNames.has(metric.metric_name || metric),
-      );
+      updatedDatasourceMetrics = dataset.metrics.map((metric: any) => ({
+        ...metric,
+        isDisabled: !validMetricNames.has(metric.metric_name || metric),
+      }));
     }
 
-    // Create filtered datasource for left panel
-    const filteredDatasource = {
+    // Create updated datasource for left panel
+    const updatedDatasource = {
       ...dataset,
-      columns: filteredDatasourceColumns,
-      metrics: filteredDatasourceMetrics,
+      columns: updatedDatasourceColumns,
+      metrics: updatedDatasourceMetrics,
     };
 
     // Update the Redux store's datasource to affect the left panel
     if (actions && typeof actions.syncDatasourceMetadata === 'function') {
-      actions.syncDatasourceMetadata(filteredDatasource);
+      actions.syncDatasourceMetadata(updatedDatasource);
     }
 
     return {
-      options: filteredOptions,
-      datasource: filteredDatasource,
+      options: updatedOptions,
+      datasource: updatedDatasource,
     };
   };
 }

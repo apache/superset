@@ -29,8 +29,8 @@ import { Icons } from '@superset-ui/core/components/Icons';
 
 import { DatasourcePanelDndItem } from '../types';
 
-const DatasourceItemContainer = styled.div`
-  ${({ theme }) => css`
+const DatasourceItemContainer = styled.div<{ isDisabled?: boolean }>`
+  ${({ theme, isDisabled }) => css`
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -40,12 +40,16 @@ const DatasourceItemContainer = styled.div`
 
     // hack to make the drag preview image corners rounded
     transform: translate(0, 0);
-    color: ${theme.colorText};
+    color: ${isDisabled ? theme.colorTextSecondary : theme.colorText};
     background-color: ${theme.colorBgLayout};
     border-radius: 4px;
+    opacity: ${isDisabled ? 0.5 : 1};
+    cursor: ${isDisabled ? 'not-allowed' : 'grab'};
 
     &:hover {
-      background-color: ${theme.colorPrimaryBgHover};
+      background-color: ${isDisabled
+        ? theme.colorBgLayout
+        : theme.colorPrimaryBgHover};
     }
 
     > div {
@@ -58,6 +62,7 @@ const DatasourceItemContainer = styled.div`
 interface DatasourcePanelDragOptionProps extends DatasourcePanelDndItem {
   labelRef?: RefObject<any>;
   showTooltip?: boolean;
+  isDisabled?: boolean;
 }
 
 type MetricOption = Omit<Metric, 'id'> & {
@@ -67,7 +72,7 @@ type MetricOption = Omit<Metric, 'id'> & {
 export default function DatasourcePanelDragOption(
   props: DatasourcePanelDragOptionProps,
 ) {
-  const { labelRef, showTooltip, type, value } = props;
+  const { labelRef, showTooltip, type, value, isDisabled } = props;
   const [{ isDragging }, drag] = useDrag({
     item: {
       value: props.value,
@@ -76,6 +81,7 @@ export default function DatasourcePanelDragOption(
     collect: monitor => ({
       isDragging: monitor.isDragging(),
     }),
+    canDrag: !isDisabled,
   });
 
   const optionProps = {
@@ -85,13 +91,17 @@ export default function DatasourcePanelDragOption(
   };
 
   return (
-    <DatasourceItemContainer data-test="DatasourcePanelDragOption" ref={drag}>
+    <DatasourceItemContainer
+      data-test="DatasourcePanelDragOption"
+      ref={isDisabled ? undefined : drag}
+      isDisabled={isDisabled}
+    >
       {type === DndItemType.Column ? (
         <StyledColumnOption column={value as ColumnMeta} {...optionProps} />
       ) : (
         <StyledMetricOption metric={value as MetricOption} {...optionProps} />
       )}
-      <Icons.Drag />
+      {isDisabled ? <Icons.LockOutlined /> : <Icons.Drag />}
     </DatasourceItemContainer>
   );
 }
