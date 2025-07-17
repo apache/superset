@@ -19,7 +19,7 @@
 Pydantic schemas for chart-related responses
 """
 from datetime import datetime
-from typing import Any, Dict, List, Literal, Optional, Union
+from typing import Any, Dict, List, Literal, Optional, Union, Annotated
 
 from pydantic import BaseModel, ConfigDict, Field
 from superset.daos.base import ColumnOperator
@@ -150,6 +150,7 @@ class ChartList(BaseModel):
 # --- New schemas for create_chart tool (polymorphic, viz_type-discriminated) ---
 
 class BaseChartCreateRequest(BaseModel):
+    viz_type: str = Field(..., description="Visualization type")
     slice_name: str = Field(..., description="Chart name")
     datasource_id: int = Field(..., description="ID of the datasource (dataset) to use")
     datasource_type: Literal["table"] = Field("table", description="Datasource type (usually 'table')")
@@ -194,9 +195,3 @@ class TableChartCreateRequest(BaseChartCreateRequest):
     row_limit: Optional[int] = Field(None, description="Row limit")
     order_desc: Optional[bool] = Field(None, description="Order descending")
 
-ChartCreateRequest = (
-    EchartsTimeseriesLineChartCreateRequest |
-    EchartsTimeseriesBarChartCreateRequest |
-    EchartsAreaChartCreateRequest |
-    TableChartCreateRequest
-) 
