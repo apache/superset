@@ -392,24 +392,23 @@ export default function transformProps(
   const inverted = invert(verboseMap);
 
   rawSeriesA.forEach(entry => {
-  const entryName = String(entry.name || '');
-  const seriesName = inverted[entryName] || entryName;
-  const colorScaleKey = getOriginalSeries(seriesName, array);
+    const entryName = String(entry.name || '');
+    const seriesName = inverted[entryName] || entryName;
+    const colorScaleKey = getOriginalSeries(seriesName, array);
 
-  // NEW CONDITIONAL LOGIC FOR QUERY A:
-  let displayName = entryName;
+    let displayName = entryName;
 
-  if (show_query_identifiers) {
-    displayName = `${entryName} (Query A)`;
-  }
-
-  if (groupby.length > 0) {
     if (show_query_identifiers) {
-      displayName = `${MetricDisplayNameA} (Query A), ${entryName}`;
-    } else {
-      displayName = `${MetricDisplayNameA}, ${entryName}`;
+      displayName = `${entryName} (Query A)`;
     }
-  }
+
+    if (groupby.length > 0) {
+      if (show_query_identifiers) {
+        displayName = `${MetricDisplayNameA} (Query A), ${entryName}`;
+      } else {
+        displayName = `${MetricDisplayNameA}, ${entryName}`;
+      }
+    }
 
     const seriesFormatter = getFormatter(
       customFormatters,
@@ -458,25 +457,24 @@ export default function transformProps(
   });
 
   rawSeriesB.forEach(entry => {
-  const entryName = String(entry.name || '');
-  const seriesEntry = inverted[entryName] || entryName;
-  const seriesName = `${seriesEntry} (1)`;
-  const colorScaleKey = getOriginalSeries(seriesEntry, array);
+    const entryName = String(entry.name || '');
+    const seriesEntry = inverted[entryName] || entryName;
+    const seriesName = `${seriesEntry} (1)`;
+    const colorScaleKey = getOriginalSeries(seriesEntry, array);
 
-  // NEW CONDITIONAL LOGIC FOR QUERY B:
-  let displayName = entryName;
+    let displayName = entryName;
 
-  if (show_query_identifiers) {
-    displayName = `${entryName} (Query B)`;
-  }
-
-  if (groupbyB.length > 0) {
     if (show_query_identifiers) {
-      displayName = `${MetricDisplayNameB} (Query B), ${entryName}`;
-    } else {
-      displayName = `${MetricDisplayNameB}, ${entryName}`;
+      displayName = `${entryName} (Query B)`;
     }
-  }
+
+    if (groupbyB.length > 0) {
+      if (show_query_identifiers) {
+        displayName = `${MetricDisplayNameB} (Query B), ${entryName}`;
+      } else {
+        displayName = `${MetricDisplayNameB}, ${entryName}`;
+      }
+    }
 
     const seriesFormatter = getFormatter(
       customFormattersSecondary,
