@@ -1259,17 +1259,17 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         """
         from superset.utils import core as utils
 
-        if op == utils.FilterOperator.EQUALS.value:
+        if op == utils.FilterOperator.EQUALS:
             return sqla_col == value
-        elif op == utils.FilterOperator.NOT_EQUALS.value:
+        elif op == utils.FilterOperator.NOT_EQUALS:
             return sqla_col != value
-        elif op == utils.FilterOperator.GREATER_THAN.value:
+        elif op == utils.FilterOperator.GREATER_THAN:
             return sqla_col > value
-        elif op == utils.FilterOperator.LESS_THAN.value:
+        elif op == utils.FilterOperator.LESS_THAN:
             return sqla_col < value
-        elif op == utils.FilterOperator.GREATER_THAN_OR_EQUALS.value:
+        elif op == utils.FilterOperator.GREATER_THAN_OR_EQUALS:
             return sqla_col >= value
-        elif op == utils.FilterOperator.LESS_THAN_OR_EQUALS.value:
+        elif op == utils.FilterOperator.LESS_THAN_OR_EQUALS:
             return sqla_col <= value
         else:
             raise ValueError(f"Invalid comparison filter operator: {op}")
