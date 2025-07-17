@@ -17,20 +17,18 @@
  * under the License.
  */
 import { t, styled, css } from '@superset-ui/core';
-import { Icons, Modal, Typography } from '@superset-ui/core/components';
-import { Button } from '@superset-ui/core/components/Button';
+import {
+  Icons,
+  Modal,
+  Typography,
+  Button,
+  Flex,
+} from '@superset-ui/core/components';
 import type { FC, ReactElement } from 'react';
-
-const StyledModalTitle = styled(Typography.Title)`
-  && {
-    font-weight: 600;
-    margin: 0;
-  }
-`;
 
 const StyledModalBody = styled(Typography.Text)`
   ${({ theme }) => css`
-    padding: 0 ${theme.sizeUnit * 2}px;
+    padding: 0 ${theme.sizeUnit * 3}px;
 
     && {
       margin: 0;
@@ -58,7 +56,7 @@ const StyledSaveBtn = styled(Button)`
 const StyledWarningIcon = styled(Icons.WarningOutlined)`
   ${({ theme }) => css`
     color: ${theme.colorWarning};
-    margin-right: ${theme.sizeUnit * 4}px;
+    margin-right: ${theme.sizeUnit * 2}px;
   `}
 `;
 
@@ -86,29 +84,29 @@ export const UnsavedChangesModal: FC<UnsavedChangesModalProps> = ({
     show={showModal}
     width="444px"
     title={
-      <div
-        css={css`
-          align-items: center;
-          display: flex;
-        `}
-      >
+      <Flex>
         <StyledWarningIcon iconSize="xl" />
-        <StyledModalTitle type="secondary" level={5}>
+        <Typography.Title
+          css={css`
+            margin: 0px;
+          `}
+          level={4}
+        >
           {title}
-        </StyledModalTitle>
-      </div>
+        </Typography.Title>
+      </Flex>
     }
     footer={
-      <div
+      <Flex
+        justify="flex-end"
         css={css`
-          display: flex;
-          justify-content: flex-end;
           width: 100%;
         `}
       >
         <StyledDiscardBtn
           htmlType="button"
           buttonSize="small"
+          buttonStyle="secondary"
           onClick={onConfirmNavigation}
         >
           {t('Discard')}
@@ -121,7 +119,7 @@ export const UnsavedChangesModal: FC<UnsavedChangesModalProps> = ({
         >
           {t('Save')}
         </StyledSaveBtn>
-      </div>
+      </Flex>
     }
   >
     <StyledModalBody type="secondary">{body}</StyledModalBody>
