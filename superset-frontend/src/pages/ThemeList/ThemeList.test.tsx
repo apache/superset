@@ -85,6 +85,8 @@ const renderThemesList = (props = {}) =>
   render(<ThemesList {...defaultProps} {...props} />, {
     useRedux: true,
     useTheme: true,
+    useQueryParams: true,
+    useRouter: true,
     initialState: {
       user: mockUser,
     },
@@ -116,8 +118,15 @@ describe('ThemesList', () => {
     });
 
     // Should show apply, edit, export, and delete actions
-    const actionButtons = screen.getAllByRole('button', { name: /tooltip/i });
-    expect(actionButtons.length).toBeGreaterThan(0);
+    const applyButtons = screen.getAllByTestId('apply-action');
+    const editButtons = screen.getAllByTestId('edit-action');
+    const exportButtons = screen.getAllByTestId('export-action');
+    const deleteButtons = screen.getAllByTestId('delete-action');
+
+    expect(applyButtons.length).toBeGreaterThan(0);
+    expect(editButtons.length).toBeGreaterThan(0);
+    expect(exportButtons.length).toBeGreaterThan(0);
+    expect(deleteButtons.length).toBeGreaterThan(0);
   });
 
   test('opens theme modal when clicking add theme button', async () => {
@@ -150,11 +159,14 @@ describe('ThemesList', () => {
       expect(screen.getByText('Test Theme 1')).toBeInTheDocument();
     });
 
-    const searchInput = screen.getByPlaceholderText('Search');
+    // Look for the search input in the Name filter section
+    const searchInput = screen.getByRole('textbox');
     userEvent.type(searchInput, 'Test Theme 1');
 
     // The filtering is handled by the backend, so we just verify the input works
-    expect(searchInput).toHaveValue('Test Theme 1');
+    await waitFor(() => {
+      expect(searchInput).toHaveValue('Test Theme 1');
+    });
   });
 
   test('shows theme apply success message', async () => {

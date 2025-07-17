@@ -263,7 +263,7 @@ describe('ThemeModal', () => {
   });
 
   test('should handle permission-based feature availability', () => {
-    const permissionUtils = jest.requireActual(
+    const permissionUtils = jest.requireMock(
       'src/dashboard/util/permissionUtils',
     );
 
