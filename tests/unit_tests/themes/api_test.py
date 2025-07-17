@@ -68,6 +68,7 @@ class TestThemeRestApi:
             "changed_by.first_name",
             "changed_by.id",
             "changed_by.last_name",
+            "changed_by_name",
             "created_on",
             "created_by.first_name",
             "created_by.id",
