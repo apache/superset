@@ -1853,14 +1853,21 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     if op == utils.FilterOperator.NOT_IN.value:
                         cond = ~cond
                     where_clause_and.append(cond)
-                elif op == utils.FilterOperator.IS_NULL.value:
-                    where_clause_and.append(sqla_col.is_(None))
-                elif op == utils.FilterOperator.IS_NOT_NULL.value:
-                    where_clause_and.append(sqla_col.isnot(None))
+                elif op in {
+                    utils.FilterOperator.IS_NULL.value,
+                    utils.FilterOperator.IS_NOT_NULL.value,
+                }:
+                    where_clause_and.append(
+                        db_engine_spec.handle_null_filter(sqla_col, op)
+                    )
                 elif op == utils.FilterOperator.IS_TRUE.value:
-                    where_clause_and.append(sqla_col.is_(True))
+                    where_clause_and.append(
+                        db_engine_spec.handle_boolean_filter(sqla_col, op, True)
+                    )
                 elif op == utils.FilterOperator.IS_FALSE.value:
-                    where_clause_and.append(sqla_col.is_(False))
+                    where_clause_and.append(
+                        db_engine_spec.handle_boolean_filter(sqla_col, op, False)
+                    )
                 else:
                     if (
                         op
@@ -1876,18 +1883,17 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                                 "with comparison operators"
                             )
                         )
-                    if op == utils.FilterOperator.EQUALS.value:
-                        where_clause_and.append(sqla_col == eq)
-                    elif op == utils.FilterOperator.NOT_EQUALS.value:
-                        where_clause_and.append(sqla_col != eq)
-                    elif op == utils.FilterOperator.GREATER_THAN.value:
-                        where_clause_and.append(sqla_col > eq)
-                    elif op == utils.FilterOperator.LESS_THAN.value:
-                        where_clause_and.append(sqla_col < eq)
-                    elif op == utils.FilterOperator.GREATER_THAN_OR_EQUALS.value:
-                        where_clause_and.append(sqla_col >= eq)
-                    elif op == utils.FilterOperator.LESS_THAN_OR_EQUALS.value:
-                        where_clause_and.append(sqla_col <= eq)
+                    if op in {
+                        utils.FilterOperator.EQUALS.value,
+                        utils.FilterOperator.NOT_EQUALS.value,
+                        utils.FilterOperator.GREATER_THAN.value,
+                        utils.FilterOperator.LESS_THAN.value,
+                        utils.FilterOperator.GREATER_THAN_OR_EQUALS.value,
+                        utils.FilterOperator.LESS_THAN_OR_EQUALS.value,
+                    }:
+                        where_clause_and.append(
+                            db_engine_spec.handle_comparison_filter(sqla_col, op, eq)
+                        )
                     elif op in {
                         utils.FilterOperator.ILIKE.value,
                         utils.FilterOperator.LIKE.value,
