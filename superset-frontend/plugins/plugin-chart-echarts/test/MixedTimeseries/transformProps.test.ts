@@ -111,6 +111,7 @@ const queriesData = [
 
 describe('MixedTimeseries transformProps', () => {
   it('should transform chart props for viz with query identifiers disabled', () => {
+    const formData = { ...baseFormData, show_query_identifiers: false };
     const chartPropsConfig = {
       formData,
       width: 800,
