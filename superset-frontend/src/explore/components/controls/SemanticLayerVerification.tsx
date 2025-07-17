@@ -28,6 +28,7 @@ export function collectQueryFields(formData: any): {
   dimensions: string[];
   metrics: string[];
 } {
+  console.log('collectQueryFields input:', formData);
   const dimensions: string[] = [];
   const metrics: string[] = [];
 
@@ -81,10 +82,13 @@ export function collectQueryFields(formData: any): {
         : (metric as any)?.metric_name || String(metric),
     );
 
-  return {
+  const result = {
     dimensions: [...new Set(cleanDimensions)], // Remove duplicates
     metrics: [...new Set(cleanMetrics)], // Remove duplicates
   };
+  
+  console.log('collectQueryFields output:', result);
+  return result;
 }
 
 /**
@@ -170,7 +174,8 @@ export function createMetricsVerification(controlName?: string): AsyncVerify {
     const updatedFormData = { ...form_data };
     
     // Update the appropriate field based on the control name
-    if (value !== undefined && controlName) {
+    // Handle both addition and removal of values (including empty arrays)
+    if (controlName) {
       updatedFormData[controlName] = value;
     }
 
@@ -183,6 +188,9 @@ export function createMetricsVerification(controlName?: string): AsyncVerify {
       originalFormData: form_data,
       updatedFormData,
       value,
+      valueType: typeof value,
+      isArray: Array.isArray(value),
+      valueLength: Array.isArray(value) ? value.length : 'N/A',
       dimensions: queryFields.dimensions,
       metrics: queryFields.metrics,
     });
@@ -279,7 +287,8 @@ export function createColumnsVerification(controlName?: string): AsyncVerify {
     const updatedFormData = { ...form_data };
     
     // Update the appropriate field based on the control name
-    if (value !== undefined && controlName) {
+    // Handle both addition and removal of values (including empty arrays)
+    if (controlName) {
       updatedFormData[controlName] = value;
     }
 
@@ -292,6 +301,9 @@ export function createColumnsVerification(controlName?: string): AsyncVerify {
       originalFormData: form_data,
       updatedFormData,
       value,
+      valueType: typeof value,
+      isArray: Array.isArray(value),
+      valueLength: Array.isArray(value) ? value.length : 'N/A',
       dimensions: queryFields.dimensions,
       metrics: queryFields.metrics,
     });
