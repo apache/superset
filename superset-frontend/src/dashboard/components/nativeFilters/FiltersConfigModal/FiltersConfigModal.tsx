@@ -59,6 +59,7 @@ import {
   validateForm,
   NATIVE_FILTER_DIVIDER_PREFIX,
   hasCircularDependency,
+  findDependencyError,
 } from './utils';
 import DividerConfigForm from './DividerConfigForm';
 
@@ -465,6 +466,19 @@ function FiltersConfigModal({
     );
 
     handleErroredFilters();
+
+    // Validate dependencies to prevent saving cyclic dependencies
+    validateDependencies();
+    
+    // Check for cyclic dependency errors and handle user feedback
+    const fieldsWithErrors = form.getFieldsError();
+    const dependencyError = findDependencyError(fieldsWithErrors);
+    
+    if (dependencyError) {
+      // Focus on the problematic filter to guide user attention
+      setCurrentFilterId(dependencyError.filterId);
+      return; // Prevent saving when cyclic dependencies are detected
+    }
 
     if (values) {
       const [updatedFilterConfigMap, modifiedParentFilters] =
