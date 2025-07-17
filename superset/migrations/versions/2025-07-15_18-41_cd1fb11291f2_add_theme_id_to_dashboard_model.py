@@ -31,9 +31,14 @@ down_revision = "3fd555e76e3d"
 
 
 def upgrade():
-    op.add_column("dashboards", sa.Column("theme_id", sa.Integer(), nullable=True))
-    op.create_foreign_key(None, "dashboards", "themes", ["theme_id"], ["id"])
+    with op.batch_alter_table("dashboards") as batch_op:
+        batch_op.add_column(sa.Column("theme_id", sa.Integer(), nullable=True))
+        batch_op.create_foreign_key(
+            "fk_dashboards_theme_id_themes", "themes", ["theme_id"], ["id"]
+        )
 
 
 def downgrade():
-    op.drop_column("dashboards", "theme_id")
+    with op.batch_alter_table("dashboards") as batch_op:
+        batch_op.drop_constraint("fk_dashboards_theme_id_themes", type_="foreignkey")
+        batch_op.drop_column("theme_id")
