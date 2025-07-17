@@ -212,6 +212,7 @@ export default function transformProps(
     sortSeriesAscendingB,
     timeGrainSqla,
     percentageThreshold,
+    show_query_identifiers = false,
     metrics = [],
     metricsB = [],
   }: EchartsMixedTimeseriesFormData = { ...DEFAULT_FORM_DATA, ...formData };
@@ -391,15 +392,24 @@ export default function transformProps(
   const inverted = invert(verboseMap);
 
   rawSeriesA.forEach(entry => {
-    const entryName = String(entry.name || '');
-    const seriesName = inverted[entryName] || entryName;
-    const colorScaleKey = getOriginalSeries(seriesName, array);
+  const entryName = String(entry.name || '');
+  const seriesName = inverted[entryName] || entryName;
+  const colorScaleKey = getOriginalSeries(seriesName, array);
 
-    let displayName = `${entryName} (Query A)`;
+  // NEW CONDITIONAL LOGIC FOR QUERY A:
+  let displayName = entryName;
 
-    if (groupby.length > 0) {
+  if (show_query_identifiers) {
+    displayName = `${entryName} (Query A)`;
+  }
+
+  if (groupby.length > 0) {
+    if (show_query_identifiers) {
       displayName = `${MetricDisplayNameA} (Query A), ${entryName}`;
+    } else {
+      displayName = `${MetricDisplayNameA}, ${entryName}`;
     }
+  }
 
     const seriesFormatter = getFormatter(
       customFormatters,
@@ -448,16 +458,25 @@ export default function transformProps(
   });
 
   rawSeriesB.forEach(entry => {
-    const entryName = String(entry.name || '');
-    const seriesEntry = inverted[entryName] || entryName;
-    const seriesName = `${seriesEntry} (1)`;
-    const colorScaleKey = getOriginalSeries(seriesEntry, array);
+  const entryName = String(entry.name || '');
+  const seriesEntry = inverted[entryName] || entryName;
+  const seriesName = `${seriesEntry} (1)`;
+  const colorScaleKey = getOriginalSeries(seriesEntry, array);
 
-    let displayName = `${entryName} (Query B)`;
+  // NEW CONDITIONAL LOGIC FOR QUERY B:
+  let displayName = entryName;
 
-    if (groupbyB.length > 0) {
+  if (show_query_identifiers) {
+    displayName = `${entryName} (Query B)`;
+  }
+
+  if (groupbyB.length > 0) {
+    if (show_query_identifiers) {
       displayName = `${MetricDisplayNameB} (Query B), ${entryName}`;
+    } else {
+      displayName = `${MetricDisplayNameB}, ${entryName}`;
     }
+  }
 
     const seriesFormatter = getFormatter(
       customFormattersSecondary,
