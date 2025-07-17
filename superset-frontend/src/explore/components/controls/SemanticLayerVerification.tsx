@@ -198,19 +198,39 @@ export function createMetricsVerification(controlName?: string): AsyncVerify {
     let updatedDatasourceMetrics = dataset.metrics;
     let updatedDatasourceColumns = dataset.columns;
 
+    // Filter valid names to only include those that exist in the original datasource
+    const originalDimensionNames = new Set(dataset.columns?.map((col: any) => col.column_name) || []);
+    const originalMetricNames = new Set(dataset.metrics?.map((metric: any) => metric.metric_name) || []);
+    
+    const filteredValidMetricNames = new Set(
+      validationResult.metrics.filter(metric => originalMetricNames.has(metric))
+    );
+    const filteredValidDimensionNames = new Set(
+      validationResult.dimensions.filter(dim => originalDimensionNames.has(dim))
+    );
+
+    console.log('Metrics verification filtering:', {
+      controlName,
+      originalMetricCount: originalMetricNames.size,
+      apiValidMetricCount: validationResult.metrics.length,
+      filteredValidMetricCount: filteredValidMetricNames.size,
+      originalDimensionCount: originalDimensionNames.size,
+      apiValidDimensionCount: validationResult.dimensions.length,
+      filteredValidDimensionCount: filteredValidDimensionNames.size,
+    });
+
     if (dataset.metrics) {
       updatedDatasourceMetrics = dataset.metrics.map((metric: any) => ({
         ...metric,
-        isDisabled: !validMetricNames.has(metric.metric_name || metric),
+        isDisabled: !filteredValidMetricNames.has(metric.metric_name || metric),
       }));
     }
 
     // Also update columns using the same validation result
-    const validDimensionNames = new Set(validationResult.dimensions);
     if (dataset.columns) {
       updatedDatasourceColumns = dataset.columns.map((column: any) => ({
         ...column,
-        isDisabled: !validDimensionNames.has(column.column_name || column),
+        isDisabled: !filteredValidDimensionNames.has(column.column_name || column),
       }));
     }
 
@@ -257,6 +277,11 @@ export function createColumnsVerification(controlName?: string): AsyncVerify {
     const queryFields = collectQueryFields(updatedFormData || {});
 
     // Call validation API
+    console.log('Columns verification API call:', {
+      controlName,
+      dimensions: queryFields.dimensions,
+      metrics: queryFields.metrics,
+    });
     
     const validationResult = await callValidationAPI(
       datasource as Dataset,
@@ -267,6 +292,12 @@ export function createColumnsVerification(controlName?: string): AsyncVerify {
     if (!validationResult) {
       return null;
     }
+
+    console.log('Columns verification API response:', {
+      controlName,
+      validDimensions: validationResult.dimensions,
+      validMetrics: validationResult.metrics,
+    });
 
     // Mark dimension options as disabled if invalid
     const validDimensionNames = new Set(validationResult.dimensions);
@@ -293,6 +324,63 @@ export function createColumnsVerification(controlName?: string): AsyncVerify {
       updatedDatasourceMetrics = dataset.metrics.map((metric: any) => ({
         ...metric,
         isDisabled: !validMetricNames.has(metric.metric_name || metric),
+      }));
+    }
+
+    // Debug: Check which dimensions are valid but not in original datasource
+    const originalDimensionNames = new Set(dataset.columns?.map((col: any) => col.column_name) || []);
+    const originalMetricNames = new Set(dataset.metrics?.map((metric: any) => metric.metric_name) || []);
+    
+    const validDimensionsNotInOriginal = validationResult.dimensions.filter(
+      (dim: string) => !originalDimensionNames.has(dim)
+    );
+    const validMetricsNotInOriginal = validationResult.metrics.filter(
+      (metric: string) => !originalMetricNames.has(metric)
+    );
+
+    console.log('Columns verification datasource update:', {
+      controlName,
+      originalColumns: dataset.columns?.length,
+      updatedColumns: updatedDatasourceColumns?.length,
+      originalMetrics: dataset.metrics?.length,
+      updatedMetrics: updatedDatasourceMetrics?.length,
+      validDimensionCount: validDimensionNames.size,
+      validMetricCount: validMetricNames.size,
+      validDimensionsNotInOriginal,
+      validMetricsNotInOriginal,
+    });
+
+    // Fix: Only mark columns as disabled if they exist in the original datasource
+    // This prevents the UI from trying to process valid dimensions that don't exist
+    const filteredValidDimensionNames = new Set(
+      validationResult.dimensions.filter(dim => originalDimensionNames.has(dim))
+    );
+    const filteredValidMetricNames = new Set(
+      validationResult.metrics.filter(metric => originalMetricNames.has(metric))
+    );
+
+    console.log('Columns verification filtering:', {
+      controlName,
+      originalDimensionCount: originalDimensionNames.size,
+      apiValidDimensionCount: validationResult.dimensions.length,
+      filteredValidDimensionCount: filteredValidDimensionNames.size,
+      originalMetricCount: originalMetricNames.size,
+      apiValidMetricCount: validationResult.metrics.length,
+      filteredValidMetricCount: filteredValidMetricNames.size,
+    });
+
+    // Update the disabled state logic to use filtered valid names
+    if (dataset.columns) {
+      updatedDatasourceColumns = dataset.columns.map((column: any) => ({
+        ...column,
+        isDisabled: !filteredValidDimensionNames.has(column.column_name || column),
+      }));
+    }
+
+    if (dataset.metrics) {
+      updatedDatasourceMetrics = dataset.metrics.map((metric: any) => ({
+        ...metric,
+        isDisabled: !filteredValidMetricNames.has(metric.metric_name || metric),
       }));
     }
 
