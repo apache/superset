@@ -1242,9 +1242,9 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         """
         from superset.utils import core as utils
 
-        if op == utils.FilterOperator.IS_NULL.value:
+        if op == utils.FilterOperator.IS_NULL:
             return sqla_col.is_(None)
-        elif op == utils.FilterOperator.IS_NOT_NULL.value:
+        elif op == utils.FilterOperator.IS_NOT_NULL:
             return sqla_col.isnot(None)
         else:
             raise ValueError(f"Invalid null filter operator: {op}")
