@@ -74,7 +74,8 @@ const config: ControlPanelConfig = {
               description: t(
                 'Ordering direction for the series, to be used with "Order series by column"',
               ),
-              visibility: ({ controls }) => Boolean(controls?.xAxisSortByColumn?.value),
+              visibility: ({ controls }) =>
+                Boolean(controls?.xAxisSortByColumn?.value),
             },
           },
         ],
