@@ -1249,3 +1249,32 @@ class FavStar(UUIDMixin, Model):
     class_name = Column(String(50))
     obj_id = Column(Integer)
     dttm = Column(DateTime, default=datetime.utcnow)
+
+
+class Settings(Model, AuditMixinNullable, UUIDMixin):
+    """
+    Database-backed configuration settings for Superset.
+
+    This model extends the Flask configuration system by storing runtime-configurable
+    settings in the database. These settings can be modified without restarting the
+    application and take precedence over static configuration files.
+
+    The settings system supports:
+    - JSON-serializable values stored in json_data field
+    - Import/export across Superset instances via UUID
+    - Audit trail via AuditMixinNullable
+    - Namespace organization for logical grouping
+    """
+
+    __tablename__ = "settings"
+
+    key = Column(String(255), primary_key=True)
+    json_data = Column(utils.MediumText(), nullable=False)  # JSON-serialized value
+    namespace = Column(
+        String(100), nullable=True
+    )  # e.g., 'features', 'ui', 'performance'
+    schema_version = Column(Integer, nullable=False, default=1)  # For migrations
+    is_sensitive = Column(Boolean, nullable=False, default=False)  # Flag for encryption
+
+    def __repr__(self) -> str:
+        return f"<Settings(key='{self.key}', namespace='{self.namespace}')>"
