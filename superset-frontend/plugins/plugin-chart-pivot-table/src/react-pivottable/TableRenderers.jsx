@@ -65,6 +65,16 @@ function displayHeaderCell(
   );
 }
 
+const isColorDark = hexColor => {
+  if (!hexColor || typeof hexColor !== 'string') return false;
+  const color = hexColor.replace('#', '');
+  const r = parseInt(color.substring(0, 2), 16);
+  const g = parseInt(color.substring(2, 4), 16);
+  const b = parseInt(color.substring(4, 6), 16);
+  const brightness = (r * 299 + g * 587 + b * 114) / 1000;
+
+  return brightness < 160;
+};
 export class TableRenderer extends Component {
   constructor(props) {
     super(props);
@@ -343,8 +353,6 @@ export class TableRenderer extends Component {
   }
 
   renderColHeaderRow(attrName, attrIdx, pivotSettings) {
-    // Render a single row in the column header at the top of the pivot table.
-
     const {
       rowAttrs,
       colAttrs,
@@ -365,6 +373,8 @@ export class TableRenderer extends Component {
       omittedHighlightHeaderGroups = [],
       highlightedHeaderCells,
       dateFormatters,
+      columnColorFormatters,
+      colorHeadersTotals,
     } = this.props.tableOptions;
 
     const spaceCell =
@@ -400,16 +410,15 @@ export class TableRenderer extends Component {
         )}
       </th>
     );
-
     const attrValueCells = [];
     const rowIncrSpan = rowAttrs.length !== 0 ? 1 : 0;
-    // Iterate through columns. Jump over duplicate values.
     let i = 0;
     while (i < visibleColKeys.length) {
       let handleContextMenu;
       const colKey = visibleColKeys[i];
       const colSpan = attrIdx < colKey.length ? colAttrSpans[i][attrIdx] : 1;
       let colLabelClass = 'pvtColLabel';
+
       if (attrIdx < colKey.length) {
         if (!omittedHighlightHeaderGroups.includes(colAttrs[attrIdx])) {
           if (highlightHeaderCellsOnHover) {
@@ -432,12 +441,28 @@ export class TableRenderer extends Component {
         const flatColKey = flatKey(colKey.slice(0, attrIdx + 1));
         const onArrowClick = needToggle ? this.toggleColKey(flatColKey) : null;
 
+        let headerBackgroundColor;
+        let headerTextColor;
+        const columnName = colKey.join(' ');
+
+        if (colorHeadersTotals) {
+          columnColorFormatters.forEach(formatter => {
+            if (formatter.column === columnName) {
+              headerBackgroundColor = formatter.getColorFromValue();
+              headerTextColor = isColorDark(headerBackgroundColor)
+                ? '#FFFFFF'
+                : undefined;
+            }
+          });
+        }
+
         const headerCellFormattedValue =
           dateFormatters &&
           dateFormatters[attrName] &&
           typeof dateFormatters[attrName] === 'function'
             ? dateFormatters[attrName](colKey[attrIdx])
             : colKey[attrIdx];
+
         attrValueCells.push(
           <th
             className={colLabelClass}
@@ -453,6 +478,12 @@ export class TableRenderer extends Component {
               this.props.tableOptions.clickColumnHeaderCallback,
             )}
             onContextMenu={handleContextMenu}
+            style={{
+              backgroundColor: headerBackgroundColor
+                ? headerBackgroundColor
+                : undefined,
+              color: headerTextColor ? headerTextColor : undefined,
+            }}
           >
             {displayHeaderCell(
               needToggle,
@@ -488,7 +519,6 @@ export class TableRenderer extends Component {
           </th>,
         );
       }
-      // The next colSpan columns will have the same value anyway...
       i += colSpan;
     }
 
@@ -610,6 +640,7 @@ export class TableRenderer extends Component {
       omittedHighlightHeaderGroups = [],
       highlightedHeaderCells,
       cellColorFormatters,
+      columnColorFormatters,
       dateFormatters,
     } = this.props.tableOptions;
     const flatRowKey = flatKey(rowKey);
@@ -729,9 +760,20 @@ export class TableRenderer extends Component {
         });
       }
 
-      const style = agg.isSubtotal
-        ? { fontWeight: 'bold' }
-        : { backgroundColor };
+      if (!backgroundColor && columnColorFormatters) {
+        const columnName = colKey.join(' ');
+        columnColorFormatters.forEach(formatter => {
+          if (formatter.column === columnName) {
+            backgroundColor = formatter.getColorFromValue();
+          }
+        });
+      }
+
+      const style = {
+        backgroundColor,
+        color: isColorDark(backgroundColor) ? '#FFFFFF' : undefined,
+        fontWeight: agg.isSubtotal ? 'bold' : 'normal',
+      };
 
       return (
         <td
@@ -776,7 +818,6 @@ export class TableRenderer extends Component {
 
   renderTotalsRow(pivotSettings) {
     // Render the final totals rows that has the totals for all the columns.
-
     const {
       rowAttrs,
       colAttrs,
@@ -786,6 +827,9 @@ export class TableRenderer extends Component {
       colTotalCallbacks,
       grandTotalCallback,
     } = pivotSettings;
+
+    const { columnColorFormatters, colorHeadersTotals } =
+      this.props.tableOptions;
 
     const totalLabelCell = (
       <th
@@ -813,6 +857,21 @@ export class TableRenderer extends Component {
       const flatColKey = flatKey(colKey);
       const agg = pivotData.getAggregator([], colKey);
       const aggValue = agg.value();
+      const columnName = colKey.join(' ');
+
+      let totalBackgroundColor;
+      let totalTextColor;
+
+      if (colorHeadersTotals) {
+        columnColorFormatters.forEach(formatter => {
+          if (formatter.column === columnName) {
+            totalBackgroundColor = formatter.getColorFromValue();
+            totalTextColor = isColorDark(totalBackgroundColor)
+              ? '#FFFFFF'
+              : undefined;
+          }
+        });
+      }
 
       return (
         <td
@@ -821,7 +880,11 @@ export class TableRenderer extends Component {
           key={`total-${flatColKey}`}
           onClick={colTotalCallbacks[flatColKey]}
           onContextMenu={e => this.props.onContextMenu(e, colKey, undefined)}
-          style={{ padding: '5px' }}
+          style={{
+            padding: '5px',
+            backgroundColor: totalBackgroundColor,
+            color: totalTextColor,
+          }}
         >
           {agg.format(aggValue)}
         </td>
