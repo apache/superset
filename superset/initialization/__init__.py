@@ -160,6 +160,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             SecurityRestApi,
             UserRegistrationsRestAPI,
         )
+        from superset.settings.api import SettingsRestApi
         from superset.sqllab.api import SqlLabRestApi
         from superset.sqllab.permalink.api import SqlLabPermalinkRestApi
         from superset.tags.api import TagRestApi
@@ -242,6 +243,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.add_api(ReportExecutionLogRestApi)
         appbuilder.add_api(RLSRestApi)
         appbuilder.add_api(SavedQueryRestApi)
+        appbuilder.add_api(SettingsRestApi)
         appbuilder.add_api(TagRestApi)
         appbuilder.add_api(SqlLabRestApi)
         appbuilder.add_api(SqlLabPermalinkRestApi)
