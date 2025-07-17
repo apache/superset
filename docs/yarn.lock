@@ -12390,7 +12390,7 @@ typescript-eslint@^8.37.0:
     "@typescript-eslint/typescript-estree" "8.37.0"
     "@typescript-eslint/utils" "8.37.0"
 
-typescript@^5.8.3:
+typescript@~5.8.3:
   version "5.8.3"
   resolved "https://registry.yarnpkg.com/typescript/-/typescript-5.8.3.tgz#92f8a3e5e3cf497356f4178c34cd65a7f5e8440e"
   integrity sha512-p1diW6TqL9L07nNxvRMM7hMMw4c5XOo/1ibL4aAIGmSAt9slTE1Xgw5KWuof2uTOvCg9BY7ZRi+GaF+7sfgPeQ==
