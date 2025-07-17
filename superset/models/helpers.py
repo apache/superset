@@ -1884,12 +1884,12 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                             )
                         )
                     if op in {
-                        utils.FilterOperator.EQUALS.value,
-                        utils.FilterOperator.NOT_EQUALS.value,
-                        utils.FilterOperator.GREATER_THAN.value,
-                        utils.FilterOperator.LESS_THAN.value,
-                        utils.FilterOperator.GREATER_THAN_OR_EQUALS.value,
-                        utils.FilterOperator.LESS_THAN_OR_EQUALS.value,
+                        utils.FilterOperator.EQUALS,
+                        utils.FilterOperator.NOT_EQUALS,
+                        utils.FilterOperator.GREATER_THAN,
+                        utils.FilterOperator.LESS_THAN,
+                        utils.FilterOperator.GREATER_THAN_OR_EQUALS,
+                        utils.FilterOperator.LESS_THAN_OR_EQUALS,
                     }:
                         where_clause_and.append(
                             db_engine_spec.handle_comparison_filter(sqla_col, op, eq)
