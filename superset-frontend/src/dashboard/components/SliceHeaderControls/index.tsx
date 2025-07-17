@@ -473,6 +473,15 @@ const SliceHeaderControls = (
             {t('Export to Excel')}
           </Menu.Item>
 
+          {isPivotTable && (
+            <Menu.Item
+              key={MenuKeys.ExportPivotXlsx}
+              icon={<Icons.FileOutlined css={dropdownIconsStyles} />}
+            >
+              {t('Export to Pivoted Excel')}
+            </Menu.Item>
+          )}
+
           {isFeatureEnabled(FeatureFlag.AllowFullCsvExport) &&
             props.supersetCanCSV &&
             isTable && (
@@ -492,12 +501,6 @@ const SliceHeaderControls = (
               </>
             )}
 
-          <Menu.Item
-            key={MenuKeys.ExportPivotXlsx}
-            icon={<Icons.FileOutlined css={dropdownIconsStyles} />}
-          >
-            {t('Export to Pivoted Excel')}
-          </Menu.Item>
           <Menu.Item
             key={MenuKeys.DownloadAsImage}
             icon={<Icons.FileImageOutlined css={dropdownIconsStyles} />}
