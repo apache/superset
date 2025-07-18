@@ -12,6 +12,12 @@ Apache Superset is a data visualization platform with Flask/Python backend and R
 - **NO Enzyme** - Use React Testing Library/Jest (Enzyme fully removed)
 - **Use @superset-ui/core** - Don't import Ant Design directly
 
+### Testing Strategy Migration
+- **Prefer unit tests** over integration tests
+- **Prefer integration tests** over Cypress end-to-end tests
+- **Cypress is last resort** - Actively moving away from Cypress
+- **Use Jest + React Testing Library** for component testing
+
 ### Backend Type Safety
 - **Add type hints** - All new Python code needs proper typing
 - **MyPy compliance** - Run `pre-commit run mypy` to validate
