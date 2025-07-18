@@ -410,6 +410,7 @@ def cached_common_bootstrap_data(  # pylint: disable=unused-argument
         "d3_format": conf.get("D3_FORMAT"),
         "d3_time_format": conf.get("D3_TIME_FORMAT"),
         "currencies": conf.get("CURRENCIES"),
+        "deckgl_tiles": conf.get("DECKGL_BASE_MAP"),
         "feature_flags": get_feature_flags(),
         "extra_sequential_color_schemes": conf["EXTRA_SEQUENTIAL_COLOR_SCHEMES"],
         "extra_categorical_color_schemes": conf["EXTRA_CATEGORICAL_COLOR_SCHEMES"],
