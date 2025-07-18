@@ -101,6 +101,11 @@ def bootstrap_user_data(user: User, include_perms: bool = False) -> dict[str, An
     return payload
 
 
+def get_config_value(conf: Any, key: str) -> Any:
+    value = conf[key]
+    return value() if callable(value) else value
+
+
 def get_permissions(
     user: User,
 ) -> tuple[dict[str, list[tuple[str]]], DefaultDict[str, list[str]]]:
