@@ -39,6 +39,12 @@ import { JsonObject, JsonValue, styled, usePrevious } from '@superset-ui/core';
 import Tooltip, { TooltipProps } from './components/Tooltip';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { Viewport } from './utils/fitViewport';
+import {
+  MAPBOX_LAYER_PREFIX,
+  OSM_LAYER_KEYWORDS,
+  TILE_LAYER_PREFIX,
+  buildTileLayer,
+} from './utils';
 
 const TICK = 250; // milliseconds
 
@@ -102,6 +108,20 @@ export const DeckGLContainer = memo(
     );
 
     const layers = useCallback(() => {
+      if (
+        (props.mapStyle?.startsWith(TILE_LAYER_PREFIX) ||
+          OSM_LAYER_KEYWORDS.some(tilek => props.mapStyle?.includes(tilek))) &&
+        props.layers.some(
+          l => typeof l !== 'function' && l?.id === 'tile-layer',
+        ) === false
+      ) {
+        props.layers.unshift(
+          buildTileLayer(
+            (props.mapStyle ?? '').replace(TILE_LAYER_PREFIX, ''),
+            'tile-layer',
+          ),
+        );
+      }
       // Support for layer factory
       if (props.layers.some(l => typeof l === 'function')) {
         return props.layers.map(l =>
@@ -110,7 +130,7 @@ export const DeckGLContainer = memo(
       }
 
       return props.layers as Layer[];
-    }, [props.layers]);
+    }, [props.layers, props.mapStyle]);
 
     const { children = null, height, width } = props;
 
@@ -134,11 +154,13 @@ export const DeckGLContainer = memo(
               glContextRef.current = context.gl;
             }}
           >
-            <StaticMap
-              preserveDrawingBuffer
-              mapStyle={props.mapStyle || 'light'}
-              mapboxApiAccessToken={props.mapboxApiAccessToken}
-            />
+            {props.mapStyle?.startsWith(MAPBOX_LAYER_PREFIX) && (
+              <StaticMap
+                preserveDrawingBuffer
+                mapStyle={props.mapStyle || 'light'}
+                mapboxApiAccessToken={props.mapboxApiAccessToken}
+              />
+            )}
           </DeckGL>
           {children}
         </div>
