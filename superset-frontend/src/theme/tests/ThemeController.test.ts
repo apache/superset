@@ -230,13 +230,13 @@ describe('ThemeController', () => {
     expect(controller.getTheme()).toBe(mockThemeObject);
   });
 
-  it('should use BootsrapData themes when available', () => {
+  it('should use BootstrapData themes when available', () => {
     controller = new ThemeController({
       themeObject: mockThemeObject,
     });
 
-    expect(mockThemeFromConfig).toHaveBeenCalledTimes(1);
-    expect(mockThemeFromConfig).toHaveBeenCalledWith(
+    expect(mockSetConfig).toHaveBeenCalledTimes(1);
+    expect(mockSetConfig).toHaveBeenCalledWith(
       expect.objectContaining({
         token: expect.objectContaining({
           colorBgBase: '#ededed',
@@ -246,7 +246,7 @@ describe('ThemeController', () => {
     );
   });
 
-  it('should fallback to Superset default theme when BootsrapData themes are empty', () => {
+  it('should fallback to Superset default theme when BootstrapData themes are empty', () => {
     mockGetBootstrapData.mockReturnValue(
       createMockBootstrapData({
         default: {},
@@ -267,8 +267,8 @@ describe('ThemeController', () => {
       defaultTheme: fallbackTheme,
     });
 
-    expect(mockThemeFromConfig).toHaveBeenCalledTimes(1);
-    expect(mockThemeFromConfig).toHaveBeenCalledWith(
+    expect(mockSetConfig).toHaveBeenCalledTimes(1);
+    expect(mockSetConfig).toHaveBeenCalledWith(
       expect.objectContaining({
         ...fallbackTheme,
         algorithm: antdThemeImport.defaultAlgorithm,
