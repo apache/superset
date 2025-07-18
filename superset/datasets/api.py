@@ -113,6 +113,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         "duplicate",
         "get_or_create_dataset",
         "warm_up_cache",
+        "sync_metrics",
     }
     list_columns = [
         "id",
@@ -1177,8 +1178,9 @@ class DatasetRestApi(BaseSupersetModelRestApi):
                 return self.response_400(message=str(ex))
         return self.response(200, **response)
 
-    @expose("/<pk>/sync_metrics", methods=("POST",))
+    @expose("/<pk>/sync_metrics", methods=("PUT",))
     @protect()
+    @safe
     @statsd_metrics
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.sync_metrics",

@@ -220,11 +220,11 @@ class DatabaseDAO(BaseDAO[Database]):
         database = cls.find_by_id(database_id)
         if not database:
             raise ValueError(f"Database with id {database_id} not found")
-        
+
         # Check if database supports dynamic metrics (semantic layer)
-        if not database.db_engine_spec.engine_information.get("supports_dynamic_columns"):
+        if not database.db_engine_spec.supports_dynamic_columns:
             raise ValueError("Database does not support dynamic metrics")
-        
+
         return database.get_metrics(table)
 
 

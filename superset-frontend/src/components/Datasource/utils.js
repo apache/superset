@@ -226,6 +226,6 @@ export async function fetchSyncedColumns(datasource) {
 
 export async function fetchSyncedMetrics(datasource) {
   const endpoint = `/api/v1/dataset/${datasource.id}/sync_metrics`;
-  const { json } = await SupersetClient.post({ endpoint });
+  const { json } = await SupersetClient.put({ endpoint });
   return json.result;
 }
