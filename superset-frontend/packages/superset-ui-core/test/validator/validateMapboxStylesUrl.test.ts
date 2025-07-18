@@ -29,6 +29,11 @@ describe('validateMapboxStylesUrl', () => {
         'mapbox://styles/foobar/clp2dr5r4008a01pcg4ad45m8',
       ),
     ).toEqual(false);
+    expect(
+      validateMapboxStylesUrl(
+        'tile://https://c.tile.openstreetmap.org/{z}/{x}/{y}.png',
+      ),
+    ).toEqual(false);
   });
 
   [
@@ -40,7 +45,7 @@ describe('validateMapboxStylesUrl', () => {
   ].forEach(value => {
     it(`should not validate ${value}`, () => {
       expect(validateMapboxStylesUrl(value)).toEqual(
-        'is expected to be a Mapbox URL',
+        'is expected to be a Mapbox/OSM URL (eg. mapbox://styles/...) or a tile server URL (eg. tile://http...)',
       );
     });
   });

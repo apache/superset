@@ -23,7 +23,7 @@ This file documents any backwards-incompatible changes in Superset and
 assists people when migrating to a new version.
 
 ## Next
-
+- [34204](https://github.com/apache/superset/pull/33603) OpenStreetView has been promoted as the new default for Deck.gl visualization since it can be enabled by default without requiring an API key. If you have Mapbox set up and want to disable OpenStreeView in your environment, please follow the steps documented here [https://superset.apache.org/docs/configuration/map-tiles].
 - [33116](https://github.com/apache/superset/pull/33116) In Echarts Series charts (e.g. Line, Area, Bar, etc.) charts, the `x_axis_sort_series` and `x_axis_sort_series_ascending` form data items have been renamed with `x_axis_sort` and `x_axis_sort_asc`.
   There's a migration added that can potentially affect a significant number of existing charts.
 - [32317](https://github.com/apache/superset/pull/32317) The horizontal filter bar feature is now out of testing/beta development and its feature flag `HORIZONTAL_FILTER_BAR` has been removed.
