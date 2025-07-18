@@ -129,6 +129,32 @@ InputType = TypeVar("InputType")  # pylint: disable=invalid-name
 
 ADHOC_FILTERS_REGEX = re.compile("^adhoc_filters")
 
+TYPE_MAPPING = {
+    r"INT": "integer",
+    r"CHAR|TEXT|VARCHAR": "string",
+    r"DECIMAL|NUMERIC|FLOAT|DOUBLE": "floating",
+    r"BOOL": "boolean",
+    r"DATE|TIME": "datetime64",
+}
+
+MetricMapType = {
+    "SUM": "floating",
+    "AVG": "floating",
+    "COUNT": "floating",
+    "COUNT_DISTINCT": "floating",
+    "MIN": "numeric",
+    "MAX": "numeric",
+    "FIRST": "string",
+    "LAST": "string",
+    "GROUP_CONCAT": "string",
+    "ARRAY_AGG": "string",
+    "STRING_AGG": "string",
+    "MEDIAN": "floating",
+    "PERCENTILE": "floating",
+    "VARIANCE": "floating",
+    "STDDEV": "floating",
+}
+
 
 class AdhocMetricExpressionType(StrEnum):
     SIMPLE = "SIMPLE"
@@ -1494,10 +1520,8 @@ def get_column_name_from_metric(metric: Metric) -> str | None:
     :param metric: Ad-hoc metric
     :return: column name if simple metric, otherwise None
     """
-    logger.info("metricol", metric)
     if is_adhoc_metric(metric):
         metric = cast(AdhocMetric, metric)
-        logger.info("expressionType", metric["expressionType"])
         if metric["expressionType"] == AdhocMetricExpressionType.SIMPLE:
             return cast(dict[str, Any], metric["column"])["column_name"]
     return None
@@ -1515,68 +1539,65 @@ def get_column_names_from_metrics(metrics: list[Metric]) -> list[str]:
 
 
 def map_sql_type_to_inferred_type(sql_type: Optional[str]) -> str:
-    """把数据库类型映射成 pandas dtype 里 infer_dtype 可识别的类型字符串"""
-    if sql_type is None:
-        return "string"  # 默认类型
-    if "INT" in sql_type:
-        return "integer"
-    if "CHAR" in sql_type or "TEXT" in sql_type or "VARCHAR" in sql_type:
-        return "string"
-    if (
-        "DECIMAL" in sql_type
-        or "NUMERIC" in sql_type
-        or "FLOAT" in sql_type
-        or "DOUBLE" in sql_type
-    ):
-        return "floating"
-    if "BOOL" in sql_type:
-        return "boolean"
-    if "DATE" in sql_type or "TIME" in sql_type:
-        return "datetime64"
-    # 默认返回字符串类型
-    return "string"
+    """
+    Map a SQL type to a type string recognized by pandas' `infer_objects` method.
+
+    If the SQL type is not recognized, the function will return "string" as the
+    default type.
+
+    :param sql_type: SQL type to map
+    :return: string type recognized by pandas
+    """
+    if not sql_type:
+        return "string"  # If no SQL type is provided, return "string" as default
+
+    # Use regular expressions to check the SQL type. The first match is returned.
+    for pattern, inferred_type in TYPE_MAPPING.items():
+        if re.search(pattern, sql_type, re.IGNORECASE):
+            return inferred_type
+
+    return "string"  # If no match is found, return "string" as default
 
 
-# 函数：根据列名获取度量类型
 def get_metric_type_from_column(column: Any, datasource: BaseDatasource | Query) -> str:
-    # 度量类型映射
-    metric_type_map = {
-        "SUM": "floating",
-        "AVG": "floating",
-        "COUNT": "floating",
-        "COUNT_DISTINCT": "floating",
-        "MIN": "floating",
-        "MAX": "floating",
-        "FIRST": "",
-        "LAST": "",
-    }
+    """
+    Determine the metric type from a given column in a datasource.
+
+    This function checks if the specified column is a metric in the provided
+    datasource. If it is, it extracts the SQL expression associated with the
+    metric and attempts to identify the aggregation operation used within
+    the expression (e.g., SUM, COUNT, etc.). It then maps the operation to
+    a corresponding GenericDataType.
+
+    :param column: The column name or identifier to check.
+    :param datasource: The datasource containing metrics to search within.
+    :return: The inferred metric type as a string, or an empty string if the
+             column is not a metric or no valid operation is found.
+    """
 
     from superset.connectors.sqla.models import SqlMetric
 
-    # 1. 查找该列名是否是度量列
     metric: SqlMetric = next(
         (metric for metric in datasource.metrics if metric.metric_name == column),
         SqlMetric(metric_name=""),
     )
 
-    if metric is None:
-        # 不是度量列
+    if metric.metric_name == "":
         return ""
 
-    # 2. 提取度量的 SQL 表达式
     expression: str = metric.expression
 
-    # 3. 使用正则表达式从 expression 中提取聚合操作（如 SUM, COUNT 等）
     match = re.match(
         r"(SUM|AVG|COUNT|COUNT_DISTINCT|MIN|MAX|FIRST|LAST)\((.*)\)", expression
     )
 
     if match:
-        operation = match.group(1)  # 聚合操作，如 SUM, COUNT
-        # 获取对应的 GenericDataType
-        return metric_type_map.get(operation, "")
+        operation = match.group(1)
+        if operation not in MetricMapType:
+            logger.warning("Unexpected metric operation type: %s", operation)
+        return MetricMapType.get(operation, "")
 
-    return ""  # 如果没有匹配到有效的操作，返回空字符串
+    return ""
 
 
 def extract_dataframe_dtypes(
@@ -1610,9 +1631,7 @@ def extract_dataframe_dtypes(
         column_object = columns_by_name.get(column)
         series = df[column]
         inferred_type: str = ""
-        # 判断列数据是否全为null
         if series.isna().all():
-            # 通过列名去 columns_types 查找数据库类型，再映射为 pandas 推断类型字符串
             sql_type: Optional[str] = ""
             if datasource and hasattr(datasource, "columns_types"):
                 if column in datasource.columns_types:
@@ -1620,8 +1639,8 @@ def extract_dataframe_dtypes(
                     inferred_type = map_sql_type_to_inferred_type(sql_type)
                 else:
                     inferred_type = get_metric_type_from_column(column, datasource)
-            else:
-                inferred_type = infer_dtype(series)
+        else:
+            inferred_type = infer_dtype(series)
         if isinstance(column_object, dict):
             generic_type = (
                 GenericDataType.TEMPORAL
