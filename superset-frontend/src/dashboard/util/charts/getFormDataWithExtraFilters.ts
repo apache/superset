@@ -197,6 +197,10 @@ function processGroupByCustomizations(
     const { customization } = item;
     const groupById = `chart_customization_${item.id}`;
 
+    if (!chartCustomizationDataMask[groupById]) {
+      return;
+    }
+
     const selectedValues = groupByState[groupById]?.selectedValues || [];
 
     if (customization?.column) {

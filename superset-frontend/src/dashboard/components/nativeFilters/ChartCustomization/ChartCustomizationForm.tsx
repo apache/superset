@@ -1013,6 +1013,11 @@ const ChartCustomizationForm: FC<Props> = ({ form, item, onUpdate }) => {
                                       ['filters', item.id, 'column'],
                                     ]);
                                     formChanged();
+                                  } else {
+                                    setFormFieldValues({
+                                      column: null,
+                                    });
+                                    formChanged();
                                   }
                                 }}
                                 options={(
