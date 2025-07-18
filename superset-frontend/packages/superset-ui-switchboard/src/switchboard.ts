@@ -17,6 +17,8 @@
  * under the License.
  */
 
+import { logging } from '@superset-ui/core';
+
 export type Params = {
   port: MessagePort;
   name?: string;
@@ -262,12 +264,12 @@ export class Switchboard {
 
   private log(...args: unknown[]) {
     if (this.debugMode) {
-      console.debug(`[${this.name}]`, ...args);
+      logging.debug(`[${this.name}]`, ...args);
     }
   }
 
   private logError(...args: unknown[]) {
-    console.error(`[${this.name}]`, ...args);
+    logging.error(`[${this.name}]`, ...args);
   }
 
   private getNewMessageId() {

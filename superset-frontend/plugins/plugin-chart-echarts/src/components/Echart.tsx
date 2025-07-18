@@ -31,7 +31,7 @@ import { merge } from 'lodash';
 
 import { useSelector } from 'react-redux';
 
-import { styled, useTheme } from '@superset-ui/core';
+import { styled, useTheme, logging } from '@superset-ui/core';
 import { use, init, EChartsType, registerLocale } from 'echarts/core';
 import {
   SankeyChart,
@@ -117,7 +117,7 @@ const loadLocale = async (locale: string) => {
   try {
     lang = await import(`echarts/lib/i18n/lang${locale}`);
   } catch (e) {
-    console.error(`Locale ${locale} not supported in ECharts`, e);
+    logging.error(`Locale ${locale} not supported in ECharts`, e);
   }
   return lang?.default;
 };

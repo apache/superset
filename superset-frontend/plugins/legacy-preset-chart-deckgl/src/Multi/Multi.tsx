@@ -29,6 +29,7 @@ import {
   isDefined,
   JsonObject,
   JsonValue,
+  logging,
   QueryFormData,
   QueryObjectFilterClause,
   SupersetClient,
@@ -254,7 +255,7 @@ const DeckMulti = (props: DeckMultiProps) => {
             }));
           })
           .catch(error => {
-            console.error(
+            logging.error(
               `Error loading layer for slice ${subsliceCopy.slice_id}:`,
               error,
             );
