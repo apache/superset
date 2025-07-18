@@ -5,18 +5,12 @@ on:
     types: [created]
   pull_request_review_comment:
     types: [created]
-  issues:
-    types: [opened, assigned]
-  pull_request_review:
-    types: [submitted]
 
 jobs:
   check-permissions:
     if: |
       (github.event_name == 'issue_comment' && contains(github.event.comment.body, '@claude')) ||
-      (github.event_name == 'pull_request_review_comment' && contains(github.event.comment.body, '@claude')) ||
-      (github.event_name == 'pull_request_review' && contains(github.event.review.body, '@claude')) ||
-      (github.event_name == 'issues' && contains(github.event.issue.body, '@claude'))
+      (github.event_name == 'pull_request_review_comment' && contains(github.event.comment.body, '@claude'))
     runs-on: ubuntu-latest
     outputs:
       allowed: ${{ steps.check.outputs.allowed }}
@@ -28,13 +22,7 @@ jobs:
           ALLOWED_USERS="mistercrunch,rusackas"
 
           # Get the commenter's username
-          if [[ "${{ github.event_name }}" == "issue_comment" ]] || [[ "${{ github.event_name }}" == "pull_request_review_comment" ]]; then
-            COMMENTER="${{ github.event.comment.user.login }}"
-          elif [[ "${{ github.event_name }}" == "pull_request_review" ]]; then
-            COMMENTER="${{ github.event.review.user.login }}"
-          elif [[ "${{ github.event_name }}" == "issues" ]]; then
-            COMMENTER="${{ github.event.issue.user.login }}"
-          fi
+          COMMENTER="${{ github.event.comment.user.login }}"
 
           echo "Checking permissions for user: $COMMENTER"
 
@@ -65,24 +53,12 @@ jobs:
 
             If you believe you should have access, please contact a project maintainer.`;
 
-            if (context.eventName === 'issue_comment' || context.eventName === 'issues') {
-              await github.rest.issues.createComment({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                issue_number: context.issue.number,
-                body: message
-              });
-            } else if (context.eventName === 'pull_request_review_comment') {
-              await github.rest.pulls.createReviewComment({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                pull_number: context.issue.number,
-                body: message,
-                commit_id: context.payload.pull_request.head.sha,
-                path: context.payload.comment.path,
-                line: context.payload.comment.line
-              });
-            }
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: message
+            });
 
   claude-code-action:
     needs: check-permissions
