@@ -51,9 +51,9 @@ const ImpactBadge: React.FC<{ impact: string }> = ({ impact }) => {
       style={{
         backgroundColor: colors[impact] || '#d9d9d9',
         color: 'white',
-        padding: '2px 8px',
-        borderRadius: '4px',
-        fontSize: '12px',
+        padding: '1px 6px',
+        borderRadius: '3px',
+        fontSize: '10px',
         fontWeight: 'bold',
       }}
     >
@@ -72,11 +72,11 @@ const RestartBadge: React.FC<{ requiresRestart: boolean }> = ({
       style={{
         backgroundColor: '#ff7875',
         color: 'white',
-        padding: '2px 8px',
-        borderRadius: '4px',
-        fontSize: '12px',
+        padding: '1px 6px',
+        borderRadius: '3px',
+        fontSize: '10px',
         fontWeight: 'bold',
-        marginLeft: '8px',
+        marginLeft: '6px',
       }}
     >
       RESTART
@@ -153,36 +153,44 @@ const ConfigurationTable: React.FC<ConfigurationTableProps> = ({
             <tr style={{ backgroundColor: '#f5f5f5' }}>
               <th
                 style={{
-                  padding: '12px',
+                  padding: '8px',
                   border: '1px solid #ddd',
                   textAlign: 'left',
+                  fontSize: '13px',
+                  fontWeight: 'bold',
                 }}
               >
                 Setting
               </th>
               <th
                 style={{
-                  padding: '12px',
+                  padding: '8px',
                   border: '1px solid #ddd',
                   textAlign: 'left',
+                  fontSize: '13px',
+                  fontWeight: 'bold',
                 }}
               >
                 Description
               </th>
               <th
                 style={{
-                  padding: '12px',
+                  padding: '8px',
                   border: '1px solid #ddd',
                   textAlign: 'left',
+                  fontSize: '13px',
+                  fontWeight: 'bold',
                 }}
               >
                 Type
               </th>
               <th
                 style={{
-                  padding: '12px',
+                  padding: '8px',
                   border: '1px solid #ddd',
                   textAlign: 'left',
+                  fontSize: '13px',
+                  fontWeight: 'bold',
                 }}
               >
                 Default
@@ -190,9 +198,11 @@ const ConfigurationTable: React.FC<ConfigurationTableProps> = ({
               {showEnvironmentVariables && (
                 <th
                   style={{
-                    padding: '12px',
+                    padding: '8px',
                     border: '1px solid #ddd',
                     textAlign: 'left',
+                    fontSize: '13px',
+                    fontWeight: 'bold',
                   }}
                 >
                   Environment Variable
@@ -200,9 +210,11 @@ const ConfigurationTable: React.FC<ConfigurationTableProps> = ({
               )}
               <th
                 style={{
-                  padding: '12px',
+                  padding: '8px',
                   border: '1px solid #ddd',
                   textAlign: 'left',
+                  fontSize: '13px',
+                  fontWeight: 'bold',
                 }}
               >
                 Impact
@@ -214,24 +226,23 @@ const ConfigurationTable: React.FC<ConfigurationTableProps> = ({
               <tr key={setting.key}>
                 <td
                   style={{
-                    padding: '12px',
+                    padding: '8px',
                     border: '1px solid #ddd',
                     verticalAlign: 'top',
+                    fontSize: '13px',
                   }}
                 >
                   <div>
-                    <strong>{setting.title}</strong>
-                    <br />
-                    <code style={{ fontSize: '12px', color: '#666' }}>
+                    <code style={{ fontSize: '13px', fontWeight: 'bold' }}>
                       {setting.key}
                     </code>
                     {setting.documentation_url && (
-                      <div style={{ marginTop: '4px' }}>
+                      <div style={{ marginTop: '2px' }}>
                         <a
                           href={setting.documentation_url}
                           target="_blank"
                           rel="noopener noreferrer"
-                          style={{ fontSize: '12px' }}
+                          style={{ fontSize: '11px' }}
                         >
                           📖 Docs
                         </a>
@@ -241,43 +252,47 @@ const ConfigurationTable: React.FC<ConfigurationTableProps> = ({
                 </td>
                 <td
                   style={{
-                    padding: '12px',
+                    padding: '8px',
                     border: '1px solid #ddd',
                     verticalAlign: 'top',
+                    fontSize: '12px',
                   }}
                 >
                   {setting.description}
                 </td>
                 <td
                   style={{
-                    padding: '12px',
+                    padding: '8px',
                     border: '1px solid #ddd',
                     verticalAlign: 'top',
+                    fontSize: '12px',
                   }}
                 >
-                  <code>{setting.type}</code>
+                  <code style={{ fontSize: '12px' }}>{setting.type}</code>
                 </td>
                 <td
                   style={{
-                    padding: '12px',
+                    padding: '8px',
                     border: '1px solid #ddd',
                     verticalAlign: 'top',
+                    fontSize: '12px',
                   }}
                 >
-                  <code style={{ fontSize: '12px' }}>
+                  <code style={{ fontSize: '11px' }}>
                     {formatDefault(setting.default)}
                   </code>
                 </td>
                 {showEnvironmentVariables && (
                   <td
                     style={{
-                      padding: '12px',
+                      padding: '8px',
                       border: '1px solid #ddd',
                       verticalAlign: 'top',
+                      fontSize: '12px',
                     }}
                   >
                     <div style={{ display: 'flex', alignItems: 'center' }}>
-                      <code style={{ fontSize: '12px', marginRight: '8px' }}>
+                      <code style={{ fontSize: '11px', marginRight: '6px' }}>
                         {setting.env_var}
                       </code>
                       <button
@@ -286,7 +301,7 @@ const ConfigurationTable: React.FC<ConfigurationTableProps> = ({
                           background: 'none',
                           border: 'none',
                           cursor: 'pointer',
-                          fontSize: '12px',
+                          fontSize: '11px',
                           color: '#1890ff',
                         }}
                         title="Copy to clipboard"
@@ -295,7 +310,7 @@ const ConfigurationTable: React.FC<ConfigurationTableProps> = ({
                       </button>
                     </div>
                     {setting.nested_example && (
-                      <div style={{ marginTop: '4px' }}>
+                      <div style={{ marginTop: '2px' }}>
                         <code style={{ fontSize: '10px', color: '#666' }}>
                           {setting.nested_example}
                         </code>
@@ -305,9 +320,10 @@ const ConfigurationTable: React.FC<ConfigurationTableProps> = ({
                 )}
                 <td
                   style={{
-                    padding: '12px',
+                    padding: '8px',
                     border: '1px solid #ddd',
                     verticalAlign: 'top',
+                    fontSize: '12px',
                   }}
                 >
                   <ImpactBadge impact={setting.impact} />
