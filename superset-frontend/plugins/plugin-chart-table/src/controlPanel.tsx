@@ -244,10 +244,12 @@ const config: ControlPanelConfig = {
                 controlState: ControlState,
               ) => {
                 const { controls } = state;
+                // Get the enhanced mapStateToProps from the DND control (includes semantic layer verification)
                 const originalMapStateToProps =
                   sharedControls?.groupby?.mapStateToProps;
                 const newState =
                   originalMapStateToProps?.(state, controlState) ?? {};
+                // Add table-specific validation while preserving semantic layer enhancements
                 newState.externalValidationErrors = validateAggControlValues(
                   controls,
                   [
@@ -300,26 +302,34 @@ const config: ControlPanelConfig = {
               visibility: isAggMode,
               resetOnHide: false,
               mapStateToProps: (
-                { controls, datasource, form_data }: ControlPanelState,
+                state: ControlPanelState,
                 controlState: ControlState,
-              ) => ({
-                columns: datasource?.columns[0]?.hasOwnProperty('filterable')
+              ) => {
+                const { controls, datasource, form_data } = state;
+                // Get the enhanced mapStateToProps from the DND control (includes semantic layer verification)
+                const originalMapStateToProps =
+                  sharedControls?.metrics?.mapStateToProps;
+                const newState =
+                  originalMapStateToProps?.(state, controlState) ?? {};
+                
+                // Add table-specific props while preserving semantic layer enhancements
+                newState.columns = datasource?.columns[0]?.hasOwnProperty('filterable')
                   ? (datasource as Dataset)?.columns?.filter(
                       (c: ColumnMeta) => c.filterable,
                     )
-                  : datasource?.columns,
-                savedMetrics: defineSavedMetrics(datasource),
-                // current active adhoc metrics
-                selectedMetrics:
-                  form_data.metrics ||
-                  (form_data.metric ? [form_data.metric] : []),
-                datasource,
-                externalValidationErrors: validateAggControlValues(controls, [
+                  : datasource?.columns;
+                newState.savedMetrics = defineSavedMetrics(datasource);
+                newState.selectedMetrics = form_data.metrics ||
+                  (form_data.metric ? [form_data.metric] : []);
+                newState.datasource = datasource;
+                newState.externalValidationErrors = validateAggControlValues(controls, [
                   controls.groupby?.value,
                   controls.percent_metrics?.value,
                   controlState.value,
-                ]),
-              }),
+                ]);
+                
+                return newState;
+              },
               rerender: ['groupby', 'percent_metrics'],
             },
           },

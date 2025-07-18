@@ -275,16 +275,16 @@ const ColumnSelectPopover = ({
     console.log('Should trigger API?', isSemanticLayer && formData && datasource && 
         (selectedTab === TABS_KEYS.SIMPLE || selectedTab === null));
     
-    // Temporarily disable column modal API calls to isolate main verification timing issue
-    if (false && isSemanticLayer && formData && datasource && 
+    // Re-enable column modal API calls with fixed timing approach
+    if (isSemanticLayer && formData && datasource && 
         (selectedTab === TABS_KEYS.SIMPLE || selectedTab === null)) {
       
       const fetchValidDimensions = async () => {
         setIsLoadingValidDimensions(true);
         
         try {
-          // Wait for Redux state to settle after drag-and-drop operations
-          await new Promise(resolve => setTimeout(resolve, 500));
+          // Use the same 50ms delay that fixed the main verification timing issue
+          await new Promise(resolve => setTimeout(resolve, 50));
           
           // Get the most current form data from store
           const currentState = store.getState() as ExplorePageState;
@@ -378,7 +378,7 @@ const ColumnSelectPopover = ({
           setIsLoadingValidDimensions(true);
           
           try {
-            await new Promise(resolve => setTimeout(resolve, 200));
+            await new Promise(resolve => setTimeout(resolve, 50));
             
             const currentState = store.getState() as ExplorePageState;
             const currentFormData = currentState.explore.form_data;
@@ -401,7 +401,7 @@ const ColumnSelectPopover = ({
         
         setTimeout(() => {
           fetchValidDimensions();
-        }, 100);
+        }, 50);
       }
     }
   }, [isSemanticLayer, formData, datasource, store, validDimensions]);
