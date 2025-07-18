@@ -142,22 +142,6 @@ const FilterControls: FC<FilterControlsProps> = ({
   const dashboardHasTabs = useDashboardHasTabs();
   const showCollapsePanel = dashboardHasTabs && filtersWithValues.length > 0;
 
-  const availableSectionTypes = useMemo(() => {
-    const types = [];
-
-    if (filtersInScope.length > 0) {
-      types.push('filters');
-    }
-
-    if (chartCustomizationItems.length > 0) {
-      types.push('chartCustomization');
-    }
-
-    return types;
-  }, [filtersInScope.length, chartCustomizationItems.length]);
-
-  const hasOnlyOneSectionType = availableSectionTypes.length === 1;
-
   const [sectionsOpen, setSectionsOpen] = useState({
     filters: true,
     chartCustomization: true,
