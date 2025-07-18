@@ -48,6 +48,8 @@ function UserInfoModal({
   const handleFormSubmit = async (values: FormValues) => {
     try {
       const { confirm_password, ...payload } = values;
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars, no-unused-expressions
+      confirm_password; // Destructured to exclude from payload
       await SupersetClient.put({
         endpoint: `/api/v1/me/`,
         jsonPayload: { ...payload },

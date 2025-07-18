@@ -35,7 +35,7 @@ interface TitleContainerProps {
 const FILTER_TYPE = 'FILTER';
 
 const Container = styled.div<TitleContainerProps>`
-  ${({ isDragging, theme }) => `
+  ${({ isDragging }) => `
     opacity: ${isDragging ? 0.3 : 1};
     cursor: ${isDragging ? 'grabbing' : 'pointer'};
     width: 100%;

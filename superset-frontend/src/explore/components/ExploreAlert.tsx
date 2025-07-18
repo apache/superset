@@ -47,6 +47,7 @@ export const ExploreAlert = forwardRef(
     ref: RefObject<HTMLDivElement>,
   ) => (
     <ErrorAlert
+      ref={ref}
       errorType={title}
       message={bodyText}
       type={type}

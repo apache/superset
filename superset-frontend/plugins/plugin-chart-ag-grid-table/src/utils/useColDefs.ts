@@ -19,7 +19,7 @@
  */
 import { ColDef } from 'ag-grid-community';
 import { useCallback, useMemo } from 'react';
-import { DataRecord, GenericDataType } from '@superset-ui/core';
+import { GenericDataType } from '@superset-ui/core';
 import { ColorFormatters } from '@superset-ui/chart-controls';
 import { extent as d3Extent, max as d3Max } from 'd3-array';
 import {
@@ -49,7 +49,6 @@ type UseColDefsProps = {
   defaultAlignPN: boolean;
   showCellBars: boolean;
   colorPositiveNegative: boolean;
-  totals: DataRecord | undefined;
   columnColorFormatters: ColorFormatters;
   allowRearrangeColumns?: boolean;
   basicColorFormatters?: { [Key: string]: BasicColorFormatterType }[];
@@ -136,7 +135,6 @@ export const useColDefs = ({
   defaultAlignPN,
   showCellBars,
   colorPositiveNegative,
-  totals,
   columnColorFormatters,
   allowRearrangeColumns,
   basicColorFormatters,

@@ -190,23 +190,21 @@ export default function ExplorePage() {
                   })()
                 : Promise.reject()
             )
-              .then(
-                ({ result: { id, url, owners, form_data: _, ...data } }) => {
-                  const slice = {
-                    ...data,
-                    datasource: err.extra?.datasource_name,
-                    slice_id: id,
-                    slice_url: url,
-                    owners: owners?.map(({ id }) => id),
-                  };
-                  dispatch(
-                    hydrateExplore({
-                      ...exploreData,
-                      slice,
-                    }),
-                  );
-                },
-              )
+              .then(({ result: { id, url, owners, ...data } }) => {
+                const slice = {
+                  ...data,
+                  datasource: err.extra?.datasource_name,
+                  slice_id: id,
+                  slice_url: url,
+                  owners: owners?.map(({ id }) => id),
+                };
+                dispatch(
+                  hydrateExplore({
+                    ...exploreData,
+                    slice,
+                  }),
+                );
+              })
               .catch(() => {
                 dispatch(hydrateExplore(exploreData));
               });
