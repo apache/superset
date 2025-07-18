@@ -21,6 +21,7 @@ import {
   getTimeFormatter,
   TimeFormats,
   ensureIsArray,
+  JsonObject,
 } from '@superset-ui/core';
 
 // ATTENTION: If you change any constants, make sure to also change constants.py
@@ -36,7 +37,7 @@ export const SHORT_TIME = 'h:m a';
 
 const DATETIME_FORMATTER = getTimeFormatter(TimeFormats.DATABASE_DATETIME);
 
-export function storeQuery(query) {
+export function storeQuery(query: JsonObject): Promise<string> {
   return SupersetClient.post({
     endpoint: '/kv/store/',
     postPayload: { data: query },
@@ -47,7 +48,7 @@ export function storeQuery(query) {
   });
 }
 
-export function optionLabel(opt) {
+export function optionLabel(opt: any): string {
   if (opt === null) {
     return NULL_STRING;
   }
@@ -66,28 +67,31 @@ export function optionLabel(opt) {
   return opt;
 }
 
-export function optionValue(opt) {
+export function optionValue(opt: any): any {
   if (opt === null) {
     return NULL_STRING;
   }
   return opt;
 }
 
-export function optionFromValue(opt) {
+export function optionFromValue(opt: any): { value: any; label: string } {
   // From a list of options, handles special values & labels
   return { value: optionValue(opt), label: optionLabel(opt) };
 }
 
-function getColumnName(column) {
+function getColumnName(column: any): string {
   return column.name || column;
 }
 
-export function prepareCopyToClipboardTabularData(data, columns) {
+export function prepareCopyToClipboardTabularData(
+  data: JsonObject[],
+  columns: any[],
+): string {
   let result = columns.length
     ? `${columns.map(getColumnName).join('\t')}\n`
     : '';
   for (let i = 0; i < data.length; i += 1) {
-    const row = {};
+    const row: Record<number, any> = {};
     for (let j = 0; j < columns.length; j += 1) {
       // JavaScript does not maintain the order of a mixed set of keys (i.e integers and strings)
       // the below function orders the keys based on the column names.
@@ -103,7 +107,10 @@ export function prepareCopyToClipboardTabularData(data, columns) {
   return result;
 }
 
-export function applyFormattingToTabularData(data, timeFormattedColumns) {
+export function applyFormattingToTabularData(
+  data: JsonObject[],
+  timeFormattedColumns: string[],
+): JsonObject[] {
   if (
     !data ||
     data.length === 0 ||
@@ -115,19 +122,22 @@ export function applyFormattingToTabularData(data, timeFormattedColumns) {
   return data.map(row => ({
     ...row,
     /* eslint-disable no-underscore-dangle */
-    ...timeFormattedColumns.reduce((acc, colName) => {
-      if (row[colName] !== null && row[colName] !== undefined) {
-        acc[colName] = DATETIME_FORMATTER(row[colName]);
-      }
-      return acc;
-    }, {}),
+    ...timeFormattedColumns.reduce(
+      (acc, colName) => {
+        if (row[colName] !== null && row[colName] !== undefined) {
+          acc[colName] = DATETIME_FORMATTER(row[colName]);
+        }
+        return acc;
+      },
+      {} as Record<string, any>,
+    ),
   }));
 }
 
-export const noOp = () => undefined;
+export const noOp = (): undefined => undefined;
 
 // Detects the user's OS through the browser
-export const detectOS = () => {
+export const detectOS = (): string => {
   const { appVersion } = navigator;
 
   // Leveraging this condition because of stackOverflow
@@ -140,8 +150,8 @@ export const detectOS = () => {
   return 'Unknown OS';
 };
 
-export const isSafari = () => {
+export const isSafari = (): boolean => {
   const { userAgent } = navigator;
 
-  return userAgent && /^((?!chrome|android).)*safari/i.test(userAgent);
+  return Boolean(userAgent && /^((?!chrome|android).)*safari/i.test(userAgent));
 };
