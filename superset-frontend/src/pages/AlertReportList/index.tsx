@@ -95,8 +95,7 @@ const RefreshContainer = styled.div`
   ${({ theme }) => css`
     margin-top: ${theme.sizeUnit}px;
     width: 100%;
-    padding: ${theme.sizeUnit * 2}px ${theme.sizeUnit}px ${theme.sizeUnit * 3}px;
-    background-color: ${theme.colorBgLayout};
+    padding: ${theme.sizeUnit * 2}px 0px ${theme.sizeUnit * 3}px;
   `}
 `;
 const StyledHeaderWithIcon = styled.div`
