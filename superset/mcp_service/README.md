@@ -49,6 +49,7 @@ All tools are modular, strongly typed, and use Pydantic v2 schemas. Every field 
 - `get_chart_info`
 - `get_chart_available_filters`
 - `create_chart_simple`
+- `create_chart` (advanced ECharts chart creation, now supports stack, area, smooth, show_value, color_scheme, legend_type, legend_orientation, tooltip_sorting, y_axis_format, y_axis_bounds, x_axis_time_format, rich_tooltip, extra_options)
 
 **System**
 - `get_superset_instance_info`
@@ -78,4 +79,4 @@ list_dashboards(search="churn", filters=[{"col": "published", "opr": "eq", "valu
 ## What's Implemented
 
 - All list/info tools for dashboards, datasets (with columns and metrics), and charts, with full search and filter support.
-- Chart creation (`
+- Chart creation (`create_chart` now supports advanced ECharts options and extra_options for future extensibility).

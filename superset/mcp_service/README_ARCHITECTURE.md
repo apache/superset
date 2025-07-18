@@ -85,6 +85,8 @@ The Superset Model Context Protocol (MCP) service provides a modular, schema-dri
 
 ## Data Flow
 
+- Chart creation tools (including create_chart) now support advanced ECharts options and extra_options, allowing LLMs and agents to specify nearly all frontend chart controls programmatically.
+
 ```mermaid
 flowchart TD
     subgraph FastMCP Service
@@ -120,7 +122,7 @@ flowchart TD
 
 - `list_dashboards`, `get_dashboard_info`, `get_dashboard_available_filters`: DashboardDAO
 - `list_datasets`, `get_dataset_info`, `get_dataset_available_filters`: DatasetDAO (now returns columns and metrics for each dataset)
-- `list_charts`, `get_chart_info`, `get_chart_available_filters`, `create_chart_simple`: ChartDAO
+- `list_charts`, `get_chart_info`, `get_chart_available_filters`, `create_chart_simple`, `create_chart`: ChartDAO (create_chart supports advanced ECharts options and extra_options for extensibility)
 - `get_superset_instance_info`: System metadata
 
 ---
