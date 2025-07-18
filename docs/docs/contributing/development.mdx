@@ -199,13 +199,12 @@ You can also run the pre-commit checks manually in various ways:
 ### Environment Setup
 Ensure Docker Compose is running before starting LLM sessions:
 ```bash
-docker compose up -d
+docker compose up
 ```
 
 Validate your environment:
 ```bash
 curl -f http://localhost:8088/health && echo "✅ Superset ready"
-curl -f http://localhost:8080/health && echo "✅ WebSocket ready"
 ```
 
 ### LLM Session Best Practices
@@ -218,13 +217,16 @@ curl -f http://localhost:8080/health && echo "✅ WebSocket ready"
 ```bash
 # Frontend development
 cd superset-frontend
-npm run dev          # Development server
-npm run test         # Run tests
+npm run dev          # Development server on http://localhost:9000
+npm run test         # Run all tests
+npm run test -- filename.test.tsx  # Run single test file
 npm run lint         # Linting and type checking
 
 # Backend validation
 pre-commit run mypy  # Type checking
-pytest              # Run tests
+pytest              # Run all tests
+pytest tests/unit_tests/specific_test.py  # Run single test file
+pytest tests/unit_tests/  # Run all tests in directory
 ```
 
 For detailed development context, environment setup, and coding guidelines, see [LLMS.md](https://github.com/apache/superset/blob/master/LLMS.md).

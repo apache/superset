@@ -99,13 +99,15 @@ Charts built from enriched datasets containing:
 ### Running Tests
 ```bash
 # Frontend
-npm run test
+npm run test                           # All tests
+npm run test -- filename.test.tsx     # Single file
 
 # Backend  
-pytest
+pytest                                 # All tests
+pytest tests/unit_tests/specific_test.py  # Single file
+pytest tests/unit_tests/               # Directory
 
-# Specific module
-pytest tests/unit_tests/specific_module_test.py
+# If pytest fails with database/setup issues, ask the user to run test environment setup
 ```
 
 ## Environment Validation
@@ -115,16 +117,13 @@ pytest tests/unit_tests/specific_module_test.py
 ```bash
 # Verify Superset is running
 curl -f http://localhost:8088/health || echo "❌ Setup required - see https://superset.apache.org/docs/contributing/development#working-with-llms"
-
-# Verify WebSocket service  
-curl -f http://localhost:8080/health || echo "❌ WebSocket not running"
 ```
 
 **If health checks fail:**
 "It appears you aren't set up properly. Please refer to the [Working with LLMs](https://superset.apache.org/docs/contributing/development#working-with-llms) section in the development docs for setup instructions."
 
 **Key Project Files:**
-- `superset-frontend/package.json` - Frontend build scripts (`npm run dev`, `npm run test`, `npm run lint`)
+- `superset-frontend/package.json` - Frontend build scripts (`npm run dev` on port 9000, `npm run test`, `npm run lint`)
 - `pyproject.toml` - Python tooling (ruff, mypy configs)
 - `requirements/` folder - Python dependencies (base.txt, development.txt)
 
