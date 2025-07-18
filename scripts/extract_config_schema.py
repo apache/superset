@@ -19,6 +19,33 @@ import sys
 from pathlib import Path
 from typing import Any, Dict, List
 
+# Import the complex object handlers
+sys.path.append(str(Path(__file__).parent.parent))
+try:
+    from superset.config_objects import (
+        get_default_for_complex_object,
+        get_fully_qualified_type,
+        get_object_import_info,
+        is_complex_object,
+    )
+except ImportError:
+    # Fallback if import fails
+    def get_default_for_complex_object(key: str) -> tuple[Any, str]:
+        return f"<Complex object: {key}>", "unknown"
+
+    def is_complex_object(key: str) -> bool:
+        return False
+
+    def get_fully_qualified_type(obj: Any) -> str:
+        return type(obj).__name__
+
+    def get_object_import_info(obj: Any) -> dict[str, Any]:
+        return {
+            "module": None,
+            "name": str(type(obj).__name__),
+            "import_statement": None,
+        }
+
 
 def infer_type(value: Any) -> str:
     """Infer the configuration type from the default value."""
@@ -69,7 +96,7 @@ def extract_comments_before_line(lines: List[str], line_num: int) -> List[str]:
     return comments
 
 
-def safe_eval(node: ast.AST) -> Any:
+def safe_eval(node: ast.AST) -> Any:  # noqa: C901
     """Safely evaluate an AST node to get its value."""
     try:
         # Handle basic constant values
@@ -93,6 +120,40 @@ def safe_eval(node: ast.AST) -> Any:
                 return {"True": True, "False": False, "None": None}[node.id]
             else:
                 return f"<{node.id}>"  # Placeholder for variables
+        elif isinstance(node, ast.Call):
+            # Handle function calls - try to identify the function being called
+            if isinstance(node.func, ast.Name):
+                func_name = node.func.id
+                if func_name in ("int", "float", "str", "bool"):
+                    # Handle type constructors
+                    if node.args:
+                        arg_val = safe_eval(node.args[0])
+                        if isinstance(arg_val, (int, float, str, bool)):
+                            try:
+                                return eval(func_name)(arg_val)  # noqa: S307
+                            except Exception:
+                                return f"<{func_name}()>"
+                    return f"<{func_name}()>"
+                elif func_name == "timedelta":
+                    # Handle timedelta calls
+                    return "<timedelta()>"
+                else:
+                    return f"<{func_name}()>"
+            elif isinstance(node.func, ast.Attribute):
+                # Handle method calls like obj.method()
+                method_name = (
+                    ast.unparse(node.func) if hasattr(ast, "unparse") else "method_call"
+                )
+                return f"<{method_name}()>"
+            else:
+                return "<function_call>"
+        elif isinstance(node, ast.Attribute):
+            # Handle attribute access like obj.attr
+            try:
+                attr_str = ast.unparse(node) if hasattr(ast, "unparse") else "attribute"
+                return f"<{attr_str}>"
+            except Exception:
+                return "<attribute>"
         else:
             # For everything else, just return a descriptive placeholder
             return f"<{type(node).__name__}>"
@@ -122,12 +183,20 @@ def extract_config_schema(config_file: Path) -> Dict[str, Any]:
                     # Get the default value
                     default_value = safe_eval(node.value)
 
+                    # Check if this is a complex object
+                    if is_complex_object(var_name):
+                        # Get the proper default value and type for complex objects
+                        default_value, type_name = get_default_for_complex_object(
+                            var_name
+                        )
+                        config_type = type_name
+                    else:
+                        # Infer type from default value
+                        config_type = infer_type(default_value)
+
                     # Get comments before this line
                     comments = extract_comments_before_line(lines, node.lineno)
                     description = " ".join(comments) if comments else ""
-
-                    # Infer type from default value
-                    config_type = infer_type(default_value)
 
                     # Determine category based on variable name patterns
                     category = categorize_config(var_name)
@@ -138,6 +207,10 @@ def extract_config_schema(config_file: Path) -> Dict[str, Any]:
                         "description": description,
                         "category": category,
                     }
+
+                    # Add additional metadata for complex objects
+                    if is_complex_object(var_name):
+                        schema[var_name]["is_complex_object"] = True
 
     return schema
 

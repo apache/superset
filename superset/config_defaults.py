@@ -76,43 +76,35 @@ if TYPE_CHECKING:
 
     DialectExtensions = dict[str, Dialects | type[Dialect]]
 
-# Realtime stats logger, a StatsD implementation exists
+# Statistics logger instance for metrics collection. Default: `DummyStatsLogger()`
 STATS_LOGGER = DummyStatsLogger()
 
-# By default will log events to the metadata database with `DBEventLogger`
-# Note that you can use `StdOutEventLogger` for debugging
-# Note that you can write your own event logger by extending `AbstractEventLogger`
-# https://github.com/apache/superset/blob/master/superset/utils/log.py
+# Event logger instance for audit trails. Default: `DBEventLogger()`
 EVENT_LOGGER = DBEventLogger()
 
+# Enable access to log files through the UI. **Disable in production** for
+# security.
 SUPERSET_LOG_VIEW = True
 
-# This config is used to enable/disable the folowing security menu items:
-# List Users, List Roles, List Groups
+# Enable security view menu in the UI. Shows roles and permissions management.
 SUPERSET_SECURITY_VIEW_MENU = True
 
+# Base directory path for Superset installation. Auto-detected from package
+# location.
 BASE_DIR = str(files("superset"))
 if "SUPERSET_HOME" in os.environ:
     DATA_DIR = os.environ["SUPERSET_HOME"]
 else:
     DATA_DIR = os.path.expanduser("~/.superset")
 
-# ---------------------------------------------------------
-# Superset specific config
-# ---------------------------------------------------------
+# Path to version information JSON file. Contains build metadata.
 VERSION_INFO_FILE = str(files("superset") / "static/version_info.json")
+
+# Path to package.json file for frontend build information.
 PACKAGE_JSON_FILE = str(files("superset") / "static/assets/package.json")
 
-
-# Multiple favicons can be specified here. The "href" property
-# is mandatory, but "sizes," "type," and "rel" are optional.
-# For example:
-# {
-#     "href":path/to/image.png",
-#     "sizes": "16x16",
-#     "type": "image/png"
-#     "rel": "icon"
-# },
+# List of favicon configurations. Each favicon should specify `href` (required)
+# and optionally `sizes`, `type`, and `rel` properties.
 FAVICONS = [{"href": "/static/assets/images/favicon.png"}]
 
 
@@ -132,126 +124,103 @@ def _try_json_readsha(filepath: str, length: int) -> str | None:
         return None
 
 
-#
-# If True, we will skip the call to load the logger config found in alembic.init
-#
+# Skip Alembic log configuration. Set to `True` if you configure logging
+# elsewhere.
 ALEMBIC_SKIP_LOG_CONFIG = False
 
-# Depending on the context in which this config is loaded, the
-# version_info.json file may or may not be available, as it is
-# generated on install via setup.py. In the event that we're
-# actually running Superset, we will have already installed,
-# therefore it WILL exist. When unit tests are running, however,
-# it WILL NOT exist, so we fall back on reading package.json
+# Version string displayed in the UI. Auto-generated from `VERSION_INFO_FILE` or
+# set manually.
 VERSION_STRING = _try_json_readversion(VERSION_INFO_FILE) or _try_json_readversion(
     PACKAGE_JSON_FILE
 )
 
+# Length of git SHA displayed in version info. Default: 8 characters.
 VERSION_SHA_LENGTH = 8
+
+# Git SHA of current build. Auto-generated from `VERSION_INFO_FILE`.
 VERSION_SHA = _try_json_readsha(VERSION_INFO_FILE, VERSION_SHA_LENGTH)
 
-# Build number is shown in the About section if available. This
-# can be replaced at build time to expose build information.
+# Build number displayed in About section. Set during CI/CD build process.
 BUILD_NUMBER = None
 
-# default viz used in chart explorer & SQL Lab explore
+# Default visualization type in chart explorer. Options: `"table"`, `"bar"`,
+# `"line"`, `"pie"`, etc.
 DEFAULT_VIZ_TYPE = "table"
 
-# default row limit when requesting chart data
+# Default maximum number of rows returned by chart queries. Prevents excessive
+# data transfer and memory usage.
 ROW_LIMIT = 50000
-# default row limit when requesting samples from datasource in explore view
+
+# Maximum number of rows for data sampling.
 SAMPLES_ROW_LIMIT = 1000
-# default row limit for native filters
+
+# Default maximum number of rows returned by native filters for performance.
 NATIVE_FILTER_DEFAULT_ROW_LIMIT = 1000
-# max rows retrieved by filter select auto complete
+
+# Maximum number of rows retrieved by filter dropdown auto-complete.
 FILTER_SELECT_ROW_LIMIT = 10000
-# default time filter in explore
-# values may be "Last day", "Last week", "<ISO date> : now", etc.
+
+# Default time filter for charts. Use `NO_TIME_RANGE` constant or specific time
+# ranges.
 DEFAULT_TIME_FILTER = NO_TIME_RANGE
 
-# This is an important setting, and should be lower than your
-# [load balancer / proxy / envoy / kong / ...] timeout settings.
-# You should also make sure to configure your WSGI server
-# (gunicorn, nginx, apache, ...) timeout setting to be <= to this setting
+# Request timeout in seconds for the Superset web server. Increase for
+# slow-running queries.
 SUPERSET_WEBSERVER_TIMEOUT = int(timedelta(minutes=1).total_seconds())
 
-# this 2 settings are used by dashboard period force refresh feature
-# When user choose auto force refresh frequency
-# < SUPERSET_DASHBOARD_PERIODICAL_REFRESH_LIMIT
-# they will see warning message in the Refresh Interval Modal.
-# please check PR #9886
+# Minimum interval (in seconds) between dashboard auto-refreshes. Set to `0` to
+# disable limit.
 SUPERSET_DASHBOARD_PERIODICAL_REFRESH_LIMIT = 0
+
+# Warning message displayed when dashboard refresh is rate-limited.
 SUPERSET_DASHBOARD_PERIODICAL_REFRESH_WARNING_MESSAGE = None
 
+# Maximum size (in bytes) of dashboard layout data. Prevents oversized layouts.
 SUPERSET_DASHBOARD_POSITION_DATA_LIMIT = 65535
-CUSTOM_SECURITY_MANAGER = None
-SQLALCHEMY_TRACK_MODIFICATIONS = False
-# ---------------------------------------------------------
 
-# Your App secret key. **Make sure you override it on superset_config.py**
-# or use `SUPERSET_SECRET_KEY` environment variable.
-# Use a **strong complex alphanumeric string** and use a tool to help you generate
-# a sufficiently random sequence, ex: `openssl rand -base64 42`
+# **[Authentication, authorization, and admin
+# interface](https://flask-appbuilder.readthedocs.io/)**: Custom security
+# manager class. Override Flask-AppBuilder default security. Must inherit from
+# `SupersetSecurityManager`.
+CUSTOM_SECURITY_MANAGER = None
+
+# **[Database ORM and connection
+# management](https://flask-sqlalchemy.palletsprojects.com/)**: Track object
+# modifications. Keep `False` for better performance.
+SQLALCHEMY_TRACK_MODIFICATIONS = False
+
+# Your application secret key. **Must be overridden** in production via
+# `superset_config.py` or `SUPERSET_SECRET_KEY` environment variable. Use a
+# **strong complex alphanumeric string**. Generate with: `openssl rand -base64
+# 42`
 SECRET_KEY = os.environ.get("SUPERSET_SECRET_KEY") or CHANGE_ME_SECRET_KEY
 
-# The SQLAlchemy connection string.
+# **[Database ORM and connection
+# management](https://flask-sqlalchemy.palletsprojects.com/)**: Database
+# connection string. Examples: `postgresql://user:pass@localhost/superset`,
+# `mysql://user:pass@localhost/superset`
 SQLALCHEMY_DATABASE_URI = (
     f"""sqlite:///{os.path.join(DATA_DIR, "superset.db")}?check_same_thread=false"""
 )
 
-# SQLALCHEMY_DATABASE_URI = 'mysql://myapp@localhost/myapp'
-# SQLALCHEMY_DATABASE_URI = 'postgresql://root:password@localhost/myapp'
-
-# This config is exposed through flask-sqlalchemy, and can be used to set your metadata
-# database connection settings. You can use this to set arbitrary connection settings
-# that may be specific to the database engine you are using.
-# Note that you can use this to set the isolation level of your database, as in
-# `SQLALCHEMY_ENGINE_OPTIONS = {"isolation_level": "READ COMMITTED"}`
-# Also note that we **recommend READ COMMITTED** for regular operation.
-# Find out more here [flask-sqlalchemy config](https://flask-sqlalchemy.palletsprojects.com/en/3.1.x/config/)
+# **[Database ORM and connection
+# management](https://flask-sqlalchemy.palletsprojects.com/)**: Dictionary of
+# engine options passed to SQLAlchemy. Use for database-specific settings like
+# isolation level: `{"isolation_level": "READ COMMITTED"}`. We **recommend READ
+# COMMITTED** for production.
 SQLALCHEMY_ENGINE_OPTIONS = {}
 
-# In order to hook up a custom password store for all SQLALCHEMY connections
-# implement a function that takes a single argument of type 'sqla.engine.url',
-# returns a password and set SQLALCHEMY_CUSTOM_PASSWORD_STORE.
-#
-# example:
-# def lookup_password(url):
-#     return 'secret'
-# SQLALCHEMY_CUSTOM_PASSWORD_STORE = lookup_password
+# **[Database ORM and connection
+# management](https://flask-sqlalchemy.palletsprojects.com/)**: Custom password
+# store function for database connections. Implement a function that takes a
+# `sqlalchemy.engine.url` and returns a password. Example: `def
+# lookup_password(url): return "secret"`
 SQLALCHEMY_CUSTOM_PASSWORD_STORE = None
 
-#
-# The EncryptedFieldTypeAdapter is used whenever we're building SqlAlchemy models
-# which include sensitive fields that should be app-encrypted BEFORE sending
-# to the DB.
-#
-# Note: the default impl leverages SqlAlchemyUtils' EncryptedType, which defaults
-#  to AesEngine that uses AES-128 under the covers using the app's SECRET_KEY
-#  as key material. Do note that AesEngine allows for queryability over the
-#  encrypted fields.
-#
-#  To change the default engine you need to define your own adapter:
-#
-# e.g.:
-#
-# class AesGcmEncryptedAdapter(
-#     AbstractEncryptedFieldAdapter
-# ):
-#     def create(
-#         self,
-#         app_config: Optional[Dict[str, Any]],
-#         *args: List[Any],
-#         **kwargs: Optional[Dict[str, Any]],
-#     ) -> TypeDecorator:
-#         if app_config:
-#             return EncryptedType(
-#                 *args, app_config["SECRET_KEY"], engine=AesGcmEngine, **kwargs
-#             )
-#         raise Exception("Missing app_config kwarg")
-#
-#
-#  SQLALCHEMY_ENCRYPTED_FIELD_TYPE_ADAPTER = AesGcmEncryptedAdapter
+# **[Database ORM and connection
+# management](https://flask-sqlalchemy.palletsprojects.com/)**: Custom encrypted
+# field type adapter for sensitive data. Uses app `SECRET_KEY` for encryption by
+# default.
 SQLALCHEMY_ENCRYPTED_FIELD_TYPE_ADAPTER = (  # pylint: disable=invalid-name
     SQLAlchemyUtilsAdapter
 )
@@ -259,13 +228,16 @@ SQLALCHEMY_ENCRYPTED_FIELD_TYPE_ADAPTER = (  # pylint: disable=invalid-name
 # Extends the default SQLGlot dialects with additional dialects
 SQLGLOT_DIALECTS_EXTENSIONS: DialectExtensions | Callable[[], DialectExtensions] = {}
 
-# The limit of queries fetched for query search
+# Maximum number of queries returned in SQL Lab query search.
 QUERY_SEARCH_LIMIT = 1000
 
-# Flask-WTF flag for CSRF
+# **[CSRF protection and form handling](https://flask-wtf.readthedocs.io/)**:
+# Enable CSRF protection for forms. **Recommended to keep `True`** in production
+# for security.
 WTF_CSRF_ENABLED = True
 
-# Add endpoints that need to be exempt from CSRF protection
+# **[CSRF protection and form handling](https://flask-wtf.readthedocs.io/)**:
+# List of endpoints exempt from CSRF protection. Use with caution.
 WTF_CSRF_EXEMPT_LIST = [
     "superset.views.core.log",
     "superset.views.core.explore_json",
@@ -273,74 +245,76 @@ WTF_CSRF_EXEMPT_LIST = [
     "superset.dashboards.api.cache_dashboard_screenshot",
 ]
 
-# Whether to run the web server in debug mode or not
+# Enable Flask debug mode. **Never enable in production**. Use environment
+# variable: `SUPERSET_DEBUG=True`
 DEBUG = parse_boolean_string(os.environ.get("FLASK_DEBUG"))
+
+# Enable Flask auto-reload on code changes. **Only for development**.
 FLASK_USE_RELOAD = True
 
-# Enable profiling of Python calls. Turn this on and append ``?_instrument=1``
-# to the page to see the call stack.
+# Enable Flask profiling. **Only for development**. Adds performance overhead.
 PROFILING = False
 
-# Superset allows server-side python stacktraces to be surfaced to the
-# user when this feature is on. This may have security implications
-# and it's more secure to turn it off in production settings.
+# Show full stack traces in error pages. **Disable in production** for security.
 SHOW_STACKTRACE = False
 
-# Use all X-Forwarded headers when ENABLE_PROXY_FIX is True.
-# When proxying to a different port, set "x_port" to 0 to avoid downstream issues.
+# Enable proxy fix for applications behind reverse proxies. Required for proper
+# URL generation.
 ENABLE_PROXY_FIX = False
+
+# Configuration for proxy fix settings. Specifies which proxy headers to trust.
 PROXY_FIX_CONFIG = {"x_for": 1, "x_proto": 1, "x_host": 1, "x_port": 1, "x_prefix": 1}
 
 # Configuration for scheduling queries from SQL Lab.
 SCHEDULED_QUERIES: dict[str, Any] = {}
 
-# FAB Rate limiting: this is a security feature for preventing DDOS attacks. The
-# feature is on by default to make Superset secure by default, but you should
-# fine tune the limits to your needs. You can read more about the different
-# parameters here: https://flask-limiter.readthedocs.io/en/stable/configuration.html
+# **[Rate limiting and DDOS
+# protection](https://flask-limiter.readthedocs.io/)**: Enable rate limiting to
+# prevent DDOS attacks. Uses `RATELIMIT_STORAGE_URI` for storage backend.
+# **Recommended for production**.
 RATELIMIT_ENABLED = os.environ.get("SUPERSET_ENV") == "production"
-RATELIMIT_APPLICATION = "50 per second"
-AUTH_RATE_LIMITED = True
-AUTH_RATE_LIMIT = "5 per second"
-# A storage location conforming to the scheme in storage-scheme. See the limits
-# library for allowed values: https://limits.readthedocs.io/en/stable/storage.html
-# RATELIMIT_STORAGE_URI = "redis://host:port"
-# A callable that returns the unique identity of the current request.
-# RATELIMIT_REQUEST_IDENTIFIER = flask.Request.endpoint
 
-# ------------------------------
-# GLOBALS FOR APP Builder
-# ------------------------------
-# Uncomment to setup Your App name
+# **[Rate limiting and DDOS
+# protection](https://flask-limiter.readthedocs.io/)**: Global rate limit for
+# the entire application. Format: `"50 per second"`, `"100 per minute"`, etc.
+RATELIMIT_APPLICATION = "50 per second"
+
+# **[Rate limiting and DDOS
+# protection](https://flask-limiter.readthedocs.io/)**: Enable rate limiting for
+# authentication endpoints. Helps prevent brute force attacks.
+AUTH_RATE_LIMITED = True
+
+# **[Rate limiting and DDOS
+# protection](https://flask-limiter.readthedocs.io/)**: Rate limit for
+# authentication attempts. Format: `"5 per second"`, `"10 per minute"`, etc.
+AUTH_RATE_LIMIT = "5 per second"
+
+# Application name displayed in the UI header and browser title. Default:
+# `"Superset"`
 APP_NAME = "Superset"
 
-# Specify the App icon
+# Path to application logo/icon displayed in the UI. Default:
+# `"/static/assets/images/superset-logo-horiz.png"`
 APP_ICON = "/static/assets/images/superset-logo-horiz.png"
 
-# Specify where clicking the logo would take the user'
-# Default value of None will take you to '/superset/welcome'
-# You can also specify a relative URL e.g. '/superset/welcome' or '/dashboards/list'
-# or you can specify a full URL e.g. 'https://foo.bar'
+# URL or path where the logo click should redirect. Leave `None` to disable logo
+# clicking.
 LOGO_TARGET_PATH = None
 
-# Specify tooltip that should appear when hovering over the App Icon/Logo
+# Tooltip text shown when hovering over the logo. Leave empty for no tooltip.
 LOGO_TOOLTIP = ""
 
 # Specify any text that should appear to the right of the logo
 LOGO_RIGHT_TEXT: Callable[[], str] | str = ""
 
-# Enables SWAGGER UI for superset openapi spec
-# ex: http://localhost:8080/swagger/v1
+# **[Authentication, authorization, and admin
+# interface](https://flask-appbuilder.readthedocs.io/)**: Enable Swagger UI for
+# API documentation. Accessible at `/swagger/v1`
 FAB_API_SWAGGER_UI = True
 
-# ----------------------------------------------------
-# AUTHENTICATION CONFIG
-# ----------------------------------------------------
-# The authentication type
-# AUTH_OID : Is for OpenID
-# AUTH_DB : Is for database (username/password)
-# AUTH_LDAP : Is for LDAP
-# AUTH_REMOTE_USER : Is for using REMOTE_USER from web server
+# **[Authentication, authorization, and admin
+# interface](https://flask-appbuilder.readthedocs.io/)**: Authentication type.
+# Options: `AUTH_DB`, `AUTH_OAUTH`, `AUTH_REMOTE_USER`, `AUTH_LDAP`.
 AUTH_TYPE = AUTH_DB
 
 # Uncomment to setup Full admin role name
@@ -371,14 +345,18 @@ AUTH_TYPE = AUTH_DB
 # dashboards. Explicit grant on specific datasets is still required.
 PUBLIC_ROLE_LIKE: str | None = None
 
-# ---------------------------------------------------
-# Babel config for translations
-# ---------------------------------------------------
-# Setup default language
+# **[Internationalization and localization](https://flask-babel.tkte.ch/)**:
+# Default locale for internationalization. Set to language code like `"en"`,
+# `"es"`, `"fr"`, etc.
 BABEL_DEFAULT_LOCALE = "en"
-# Your application default translation path
+
+# **[Internationalization and localization](https://flask-babel.tkte.ch/)**:
+# Directory containing translation files. Default: `"superset/translations"`
 BABEL_DEFAULT_FOLDER = "superset/translations"
-# The allowed translation for your app
+
+# **[Internationalization and localization](https://flask-babel.tkte.ch/)**:
+# Dictionary of supported languages. Keys are language codes, values are display
+# names.
 LANGUAGES = {
     "en": {"flag": "us", "name": "English"},
     "es": {"flag": "es", "name": "Spanish"},
@@ -398,8 +376,10 @@ LANGUAGES = {
     "nl": {"flag": "nl", "name": "Dutch"},
     "uk": {"flag": "uk", "name": "Ukranian"},
 }
-# Turning off i18n by default as translation in most languages are
-# incomplete and not well maintained.
+
+# **[Internationalization and localization](https://flask-babel.tkte.ch/)**:
+# Dictionary of supported languages. Keys are language codes, values are display
+# names.
 LANGUAGES = {}
 
 
@@ -453,6 +433,7 @@ class D3TimeFormat(TypedDict, total=False):
 
 D3_TIME_FORMAT: D3TimeFormat = {}
 
+# List of supported currency codes for financial data formatting.
 CURRENCIES = ["USD", "EUR", "GBP", "INR", "MXN", "JPY", "CNY"]
 
 # ---------------------------------------------------
@@ -587,26 +568,16 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     "TABLE_V2_TIME_COMPARISON_ENABLED": False,
 }
 
-# ------------------------------
-# SSH Tunnel
-# ------------------------------
-# Allow users to set the host used when connecting to the SSH Tunnel
-# as localhost and any other alias (0.0.0.0)
-# ----------------------------------------------------------------------
-#                             |
-# -------------+              |    +----------+
-#     LOCAL    |              |    |  REMOTE  | :22 SSH
-#     CLIENT   | <== SSH ========> |  SERVER  | :8080 web service
-# -------------+              |    +----------+
-#                             |
-#                          FIREWALL (only port 22 is open)
-
-# ----------------------------------------------------------------------
+# SSH tunnel manager class for secure database connections through SSH.
 SSH_TUNNEL_MANAGER_CLASS = "superset.extensions.ssh.SSHManager"
+
+# Local bind address for SSH tunnels. Default: `"127.0.0.1"`
 SSH_TUNNEL_LOCAL_BIND_ADDRESS = "127.0.0.1"
-#: Timeout (seconds) for tunnel connection (open_channel timeout)
+
+# Timeout in seconds for SSH tunnel connections.
 SSH_TUNNEL_TIMEOUT_SEC = 10.0
-#: Timeout (seconds) for transport socket (``socket.settimeout``)
+
+# Packet timeout in seconds for SSH tunnel data transfer.
 SSH_TUNNEL_PACKET_TIMEOUT_SEC = 1.0
 
 
@@ -747,28 +718,11 @@ THEME_SETTINGS: ThemeSettings = {}
 # This is merely a default
 EXTRA_SEQUENTIAL_COLOR_SCHEMES: list[dict[str, Any]] = []
 
-# User used to execute cache warmup tasks
-# By default, the cache is warmed up using the primary owner. To fall back to using
-# a fixed user (admin in this example), use the following configuration:
-#
-# from superset.tasks.types import ExecutorType, FixedExecutor
-#
-# CACHE_WARMUP_EXECUTORS = [ExecutorType.OWNER, FixedExecutor("admin")]
+# List of executor types for cache warmup. Options: `ExecutorType.SELENIUM`,
+# `ExecutorType.OWNER`, etc.
 CACHE_WARMUP_EXECUTORS = [ExecutorType.OWNER]
 
-# ---------------------------------------------------
-# Thumbnail config (behind feature flag)
-# ---------------------------------------------------
-# By default, thumbnails are rendered per user, and will fall back to the Selenium
-# user for anonymous users. Similar to Alerts & Reports, thumbnails
-# can be configured to always be rendered as a fixed user. See
-# `superset.tasks.types.ExecutorType` for a full list of executor options.
-# To always use a fixed user account (admin in this example, use the following
-# configuration:
-#
-# from superset.tasks.types import ExecutorType, FixedExecutor
-#
-# THUMBNAIL_EXECUTORS = [FixedExecutor("admin")]
+# List of executor types for thumbnail generation.
 THUMBNAIL_EXECUTORS = [ExecutorType.CURRENT_USER]
 
 # By default, thumbnail digests are calculated based on various parameters in the
@@ -793,47 +747,52 @@ THUMBNAIL_CACHE_CONFIG: CacheConfig = {
     "CACHE_DEFAULT_TIMEOUT": int(timedelta(days=7).total_seconds()),
     "CACHE_NO_NULL_WARNING": True,
 }
+
+# Cache timeout in seconds for thumbnail generation errors.
 THUMBNAIL_ERROR_CACHE_TTL = int(timedelta(days=1).total_seconds())
 
-# Time before selenium times out after trying to locate an element on the page and wait
-# for that element to load for a screenshot.
+# Wait time in seconds for elements to be located during screenshot capture.
 SCREENSHOT_LOCATE_WAIT = int(timedelta(seconds=10).total_seconds())
-# Time before selenium times out after waiting for all DOM class elements named
-# "loading" are gone.
+
+# Wait time in seconds for page to load during screenshot capture.
 SCREENSHOT_LOAD_WAIT = int(timedelta(minutes=1).total_seconds())
-# Selenium destroy retries
+
+# Number of retries for Selenium screenshot capture.
 SCREENSHOT_SELENIUM_RETRIES = 5
-# Give selenium an headstart, in seconds
+
+# Head start time in seconds for Selenium screenshot capture.
 SCREENSHOT_SELENIUM_HEADSTART = 3
-# Wait for the chart animation, in seconds
+
+# Wait time in seconds for animations to complete during screenshot capture.
 SCREENSHOT_SELENIUM_ANIMATION_WAIT = 5
-# Replace unexpected errors in screenshots with real error messages
+
+# Whether to replace unexpected errors with generic messages in screenshots.
 SCREENSHOT_REPLACE_UNEXPECTED_ERRORS = False
-# Max time to wait for error message modal to show up, in seconds
+
+# Wait time in seconds for error modal to become visible.
 SCREENSHOT_WAIT_FOR_ERROR_MODAL_VISIBLE = 5
-# Max time to wait for error message modal to close, in seconds
+
+# Wait time in seconds for error modal to become invisible.
 SCREENSHOT_WAIT_FOR_ERROR_MODAL_INVISIBLE = 5
-# Event that Playwright waits for when loading a new page
-# Possible values: "load", "commit", "domcontentloaded", "networkidle"
-# Docs: https://playwright.dev/python/docs/api/class-page#page-goto-option-wait-until
+
+# Playwright wait event for page loading. Options: `"domcontentloaded"`,
+# `"load"`, `"networkidle"`.
 SCREENSHOT_PLAYWRIGHT_WAIT_EVENT = "domcontentloaded"
-# Default timeout for Playwright browser context for all operations
+
+# Default timeout in seconds for Playwright operations.
 SCREENSHOT_PLAYWRIGHT_DEFAULT_TIMEOUT = int(
     timedelta(seconds=60).total_seconds() * 1000
 )
 
-# ---------------------------------------------------
-# Image and file configuration
-# ---------------------------------------------------
-# The file upload folder, when using models with files
+# Directory for temporary file uploads. Should be writable by the Superset
+# process.
 UPLOAD_FOLDER = BASE_DIR + "/static/uploads/"
+
+# Chunk size in bytes for file uploads. Affects memory usage during uploads.
 UPLOAD_CHUNK_SIZE = 4096
 
-# ---------------------------------------------------
-# Cache configuration
-# ---------------------------------------------------
-# Default cache timeout, applies to all cache backends unless specifically overridden in
-# each cache config.
+# Default cache timeout in seconds. Applies to all cache backends unless
+# specifically overridden.
 CACHE_DEFAULT_TIMEOUT = int(timedelta(days=1).total_seconds())
 
 # Default cache for Superset objects
@@ -870,19 +829,17 @@ EXPLORE_FORM_DATA_CACHE_CONFIG: CacheConfig = {
     "CODEC": JsonKeyValueCodec(),
 }
 
-# store cache keys by datasource UID (via CacheKey) for custom processing/invalidation
+# Whether to store cache keys in the metadata database. Enables cache key
+# tracking but may impact performance.
 STORE_CACHE_KEYS_IN_METADATA_DB = False
 
-# CORS Options
-# NOTE: enabling this requires installing the cors-related python dependencies
-# `pip install .[cors]` or `pip install apache_superset[cors]`, depending
+# **[Cross-Origin Resource Sharing](https://flask-cors.readthedocs.io/)**:
+# Enable Cross-Origin Resource Sharing. Set to `True` if your frontend is served
+# from a different domain. Requires: `pip install flask-cors`
 ENABLE_CORS = False
 CORS_OPTIONS: dict[Any, Any] = {}
 
-# Sanitizes the HTML content used in markdowns to allow its rendering in a safe manner.
-# Disabling this option is not recommended for security reasons. If you wish to allow
-# valid safe elements that are not included in the default sanitization schema, use the
-# HTML_SANITIZATION_SCHEMA_EXTENSIONS configuration.
+# Enable HTML sanitization for user inputs. **Keep enabled** for security.
 HTML_SANITIZATION = True
 
 # Use this configuration to extend the HTML sanitization schema.
@@ -901,23 +858,22 @@ HTML_SANITIZATION = True
 # Be careful when extending the default schema to avoid XSS attacks.
 HTML_SANITIZATION_SCHEMA_EXTENSIONS: dict[str, Any] = {}
 
-# Chrome allows up to 6 open connections per domain at a time. When there are more
-# than 6 slices in dashboard, a lot of time fetch requests are queued up and wait for
-# next available socket. PR #5039 added domain sharding for Superset,
-# and this feature can be enabled by configuration only (by default Superset
-# doesn't allow cross-domain request). This feature is deprecated, annd will be removed
-# in the next major version of Superset, as enabling HTTP2 will serve the same goals.
+# List of allowed domains for the webserver. Used for security validation.
 SUPERSET_WEBSERVER_DOMAINS = None  # deprecated
 
-# Allowed format types for upload on Database view
+# Set of allowed Excel file extensions for uploads.
 EXCEL_EXTENSIONS = {"xlsx", "xls"}
+
+# Set of allowed CSV file extensions for uploads.
 CSV_EXTENSIONS = {"csv", "tsv", "txt"}
+
+# Set of allowed columnar file extensions (Parquet, etc.) for uploads.
 COLUMNAR_EXTENSIONS = {"parquet", "zip"}
+
+# Combined set of all allowed file extensions for uploads.
 ALLOWED_EXTENSIONS = {*EXCEL_EXTENSIONS, *CSV_EXTENSIONS, *COLUMNAR_EXTENSIONS}
 
-# CSV Options: key/value pairs that will be passed as argument to DataFrame.to_csv
-# method.
-# note: index option should not be overridden
+# Configuration for CSV export functionality including encoding settings.
 CSV_EXPORT = {"encoding": "utf-8"}
 
 # Excel Options: key/value pairs that will be passed as argument to DataFrame.to_excel
@@ -969,9 +925,7 @@ TIME_GRAIN_JOIN_COLUMN_PRODUCERS: dict[str, Callable[[Series, int], str]] = {}
 
 VIZ_TYPE_DENYLIST: list[str] = []
 
-# --------------------------------------------------
-# Modules, datasources and middleware to be registered
-# --------------------------------------------------
+# Default module-to-datasource mapping for backwards compatibility.
 DEFAULT_MODULE_DS_MAP = OrderedDict(
     [
         ("superset.connectors.sqla.models", ["SqlaTable"]),
@@ -979,76 +933,34 @@ DEFAULT_MODULE_DS_MAP = OrderedDict(
 )
 ADDITIONAL_MODULE_DS_MAP: dict[str, list[str]] = {}
 ADDITIONAL_MIDDLEWARE: list[Callable[..., Any]] = []
-
-# 1) https://docs.python-guide.org/writing/logging/
-# 2) https://docs.python.org/2/library/logging.config.html
-
-# Default configurator will consume the LOG_* settings below
 LOGGING_CONFIGURATOR = DefaultLoggingConfigurator()
-
-# Console Log Settings
-
 LOG_FORMAT = "%(asctime)s:%(levelname)s:%(name)s:%(message)s"
 LOG_LEVEL = logging.DEBUG if DEBUG else logging.INFO
-
-# ---------------------------------------------------
-# Enable Time Rotate Log Handler
-# ---------------------------------------------------
-# LOG_LEVEL = DEBUG, INFO, WARNING, ERROR, CRITICAL
-
 ENABLE_TIME_ROTATE = False
 TIME_ROTATE_LOG_LEVEL = logging.DEBUG if DEBUG else logging.INFO
 FILENAME = os.path.join(DATA_DIR, "superset.log")
 ROLLOVER = "midnight"
 INTERVAL = 1
 BACKUP_COUNT = 30
-
-# Custom logger for auditing queries. This can be used to send ran queries to a
-# structured immutable store for auditing purposes. The function is called for
-# every query ran, in both SQL Lab and charts/dashboards.
-# def QUERY_LOGGER(
-#     database,
-#     query,
-#     schema=None,
-#     client=None,
-#     security_manager=None,
-#     log_params=None,
-# ):
-#     pass
 QUERY_LOGGER = None
-
-# Set this API key to enable Mapbox visualizations
 MAPBOX_API_KEY = os.environ.get("MAPBOX_API_KEY", "")
-
-# Maximum number of rows returned for any analytical database query
 SQL_MAX_ROW = 100000
-
-# Maximum number of rows for any query with Server Pagination in Table Viz type
 TABLE_VIZ_MAX_ROW_SERVER = 500000
-
-
-# Maximum number of rows displayed in SQL Lab UI
-# Is set to avoid out of memory/localstorage issues in browsers. Does not affect
-# exported CSVs
 DISPLAY_MAX_ROW = 10000
-
-# Default row limit for SQL Lab queries. Is overridden by setting a new limit in
-# the SQL Lab UI
 DEFAULT_SQLLAB_LIMIT = 1000
 
 # The limit for the Superset Meta DB when the feature flag ENABLE_SUPERSET_META_DB is on
 SUPERSET_META_DB_LIMIT: int | None = 1000
 
-# Adds a warning message on sqllab save query and schedule query modals.
+# Warning message shown when saving queries in SQL Lab.
 SQLLAB_SAVE_WARNING_MESSAGE = None
-SQLLAB_SCHEDULE_WARNING_MESSAGE = None
 
-# Max payload size (MB) for SQL Lab to prevent browser hangs with large results.
+# Warning message shown when scheduling queries in SQL Lab.
+SQLLAB_SCHEDULE_WARNING_MESSAGE = None
 SQLLAB_PAYLOAD_MAX_MB = None
 
 # Force refresh while auto-refresh in dashboard
 DASHBOARD_AUTO_REFRESH_MODE: Literal["fetch", "force"] = "force"
-# Dashboard auto refresh intervals
 DASHBOARD_AUTO_REFRESH_INTERVALS = [
     [0, "Don't refresh"],
     [10, "10 seconds"],
@@ -1062,8 +974,9 @@ DASHBOARD_AUTO_REFRESH_INTERVALS = [
     [86400, "24 hours"],
 ]
 
-# This is used as a workaround for the alerts & reports scheduler task to get the time
-# celery beat triggered it, see https://github.com/celery/celery/issues/6974 for details
+# **[Distributed task queue for async processing](https://docs.celeryq.dev/)**:
+# Expiration time for scheduled tasks. Used for alerts & reports scheduler
+# timing.
 CELERY_BEAT_SCHEDULER_EXPIRES = timedelta(weeks=1)
 
 # Default celery config is to use SQLA as a broker, in a production setting
@@ -1133,29 +1046,24 @@ CELERY_CONFIG: type[CeleryConfig] = CeleryConfig
 DEFAULT_HTTP_HEADERS: dict[str, Any] = {}
 OVERRIDE_HTTP_HEADERS: dict[str, Any] = {}
 HTTP_HEADERS: dict[str, Any] = {}
-
-# The db id here results in selecting this one as a default in SQL Lab
 DEFAULT_DB_ID = None
 
-# Timeout duration for SQL Lab synchronous queries
+# Timeout in seconds for synchronous SQL Lab queries.
 SQLLAB_TIMEOUT = int(timedelta(seconds=30).total_seconds())
 
-# Timeout duration for SQL Lab query validation
+# Timeout in seconds for SQL validation in SQL Lab.
 SQLLAB_VALIDATION_TIMEOUT = int(timedelta(seconds=10).total_seconds())
 
-# SQLLAB_DEFAULT_DBID
+# Default database ID for SQL Lab.
 SQLLAB_DEFAULT_DBID = None
 
-# The MAX duration a query can run for before being killed by celery.
+# **[Distributed task queue for async processing](https://docs.celeryq.dev/)**:
+# Maximum duration (in seconds) a SQL query can run before being killed by
+# Celery worker.
 SQLLAB_ASYNC_TIME_LIMIT_SEC = int(timedelta(hours=6).total_seconds())
 
-# Some databases support running EXPLAIN queries that allow users to estimate
-# query costs before they run. These EXPLAIN queries should have a small
-# timeout.
+# Timeout in seconds for query cost estimation.
 SQLLAB_QUERY_COST_ESTIMATE_TIMEOUT = int(timedelta(seconds=10).total_seconds())
-
-# Timeout duration for SQL Lab fetching query results by the resultsKey.
-# 0 means no timeout.
 SQLLAB_QUERY_RESULT_TIMEOUT = 0
 
 # The cost returned by the databases is a relative value; in order to map the cost to
@@ -1187,7 +1095,7 @@ QUERY_COST_FORMATTERS_BY_ENGINE: dict[
     str, Callable[[list[dict[str, Any]]], list[dict[str, Any]]]
 ] = {}
 
-# Flag that controls if limit should be enforced on the CTA (create table as queries).
+# Disable row limit for CREATE TABLE AS SELECT operations in SQL Lab.
 SQLLAB_CTAS_NO_LIMIT = False
 
 # This allows you to define custom logic around the "CREATE TABLE AS" or CTAS feature
@@ -1217,18 +1125,9 @@ SQLLAB_CTAS_SCHEMA_NAME_FUNC: (
 # in SQL Lab by using the "Run Async" button/feature
 RESULTS_BACKEND: BaseCache | None = None
 
-# Use PyArrow and MessagePack for async query results serialization,
-# rather than JSON. This feature requires additional testing from the
-# community before it is fully adopted, so this config option is provided
-# in order to disable should breaking issues be discovered.
+# Use MessagePack for results backend serialization.
 RESULTS_BACKEND_USE_MSGPACK = True
-
-# The S3 bucket where you want to store your external hive tables created
-# from CSV files. For example, 'companyname-superset'
 CSV_TO_HIVE_UPLOAD_S3_BUCKET = None
-
-# The directory within the bucket specified above that will
-# contain all the external tables
 CSV_TO_HIVE_UPLOAD_DIRECTORY = "EXTERNAL_HIVE_TABLES/"
 
 
@@ -1261,8 +1160,6 @@ def allowed_schemas_for_csv_upload(  # pylint: disable=unused-argument
 
 
 ALLOWED_USER_CSV_SCHEMA_FUNC = allowed_schemas_for_csv_upload
-
-# Values that should be treated as nulls for the csv uploads.
 CSV_DEFAULT_NA_NAMES = list(STR_NA_VALUES)
 
 # A dictionary of items that gets merged into the Jinja context for
@@ -1282,20 +1179,12 @@ JINJA_CONTEXT_ADDONS: dict[str, Callable[..., Any]] = {}
 # language. This allows you to define custom logic to process templates on a per-engine
 # basis. Example value = `{"presto": CustomPrestoTemplateProcessor}`
 CUSTOM_TEMPLATE_PROCESSORS: dict[str, type[BaseTemplateProcessor]] = {}
-
-# Roles that are controlled by the API / Superset and should not be changed
-# by humans.
 ROBOT_PERMISSION_ROLES = ["Public", "Gamma", "Alpha", "Admin", "sql_lab"]
-
 CONFIG_PATH_ENV_VAR = "SUPERSET_CONFIG_PATH"
 
-# If a callable is specified, it will be called at app startup while passing
-# a reference to the Flask app. This can be used to alter the Flask app
-# in whatever way.
-# example: FLASK_APP_MUTATOR = lambda x: x.before_request = f
+# Callable function to mutate Flask app at startup. Receives Flask app instance
+# as parameter.
 FLASK_APP_MUTATOR = None
-
-# smtp server configuration
 SMTP_HOST = "localhost"
 SMTP_STARTTLS = True
 SMTP_SSL = False
@@ -1303,57 +1192,31 @@ SMTP_USER = "superset"
 SMTP_PORT = 25
 SMTP_PASSWORD = "superset"  # noqa: S105
 SMTP_MAIL_FROM = "superset@superset.com"
-# If True creates a default SSL context with ssl.Purpose.CLIENT_AUTH using the
-# default system root CA certificates.
 SMTP_SSL_SERVER_AUTH = False
 ENABLE_CHUNK_ENCODING = False
 
-# Whether to bump the logging level to ERROR on the flask_appbuilder package
-# Set to False if/when debugging FAB related issues like
-# permission management
+# **[Authentication, authorization, and admin
+# interface](https://flask-appbuilder.readthedocs.io/)**: Whether to bump
+# logging level to ERROR on flask_appbuilder package. Set to `False` for
+# debugging AppBuilder issues.
 SILENCE_FAB = True
-
 FAB_ADD_SECURITY_VIEWS = True
 FAB_ADD_SECURITY_API = True
 FAB_ADD_SECURITY_PERMISSION_VIEW = False
 FAB_ADD_SECURITY_VIEW_MENU_VIEW = False
 FAB_ADD_SECURITY_PERMISSION_VIEWS_VIEW = False
-
-# The link to a page containing common errors and their resolutions
-# It will be appended at the bottom of sql_lab errors.
 TROUBLESHOOTING_LINK = ""
-
-# CSRF token timeout, set to None for a token that never expires
 WTF_CSRF_TIME_LIMIT = int(timedelta(weeks=1).total_seconds())
-
-# This link should lead to a page with instructions on how to gain access to a
-# Datasource. It will be placed at the bottom of permissions errors.
 PERMISSION_INSTRUCTIONS_LINK = ""
 
 # Integrate external Blueprints to the app by passing them to your
 # configuration. These blueprints will get integrated in the app
 BLUEPRINTS: list[Blueprint] = []
-
-# Provide a callable that receives a tracking_url and returns another
-# URL. This is used to translate internal Hadoop job tracker URL
-# into a proxied one
-
-
-# Transform SQL query tracking url for Hive and Presto engines. You may also
-# access information about the query itself by adding a second parameter
-# to your transformer function, e.g.:
-#   TRACKING_URL_TRANSFORMER = (
-#       lambda url, query: url if is_fresh(query) else None
-#   )
-# pylint: disable-next=unnecessary-lambda-assignment
 TRACKING_URL_TRANSFORMER = lambda url: url  # noqa: E731
 
 
 # customize the polling time of each engine
 DB_POLL_INTERVAL_SECONDS: dict[str, int] = {}
-
-# Interval between consecutive polls when using Presto Engine
-# See here: https://github.com/dropbox/PyHive/blob/8eb0aeab8ca300f3024655419b93dad926c1a351/pyhive/presto.py#L93  # noqa: E501
 PRESTO_POLL_INTERVAL = int(timedelta(seconds=1).total_seconds())
 
 # Allow list of custom authentications for each DB engine.
@@ -1368,8 +1231,6 @@ PRESTO_POLL_INTERVAL = int(timedelta(seconds=1).total_seconds())
 #     },
 # }
 ALLOWED_EXTRA_AUTHENTICATIONS: dict[str, dict[str, Callable[..., Any]]] = {}
-
-# The id of a template dashboard that should be copied to every new user
 DASHBOARD_TEMPLATE_ID = None
 
 
@@ -1387,21 +1248,8 @@ def engine_context_manager(  # pylint: disable=unused-argument
 
 ENGINE_CONTEXT_MANAGER = engine_context_manager
 
-# A callable that allows altering the database connection URL and params
-# on the fly, at runtime. This allows for things like impersonation or
-# arbitrary logic. For instance you can wire different users to
-# use different connection parameters, or pass their email address as the
-# username. The function receives the connection uri object, connection
-# params, the username, and returns the mutated uri and params objects.
-# Example:
-#   def DB_CONNECTION_MUTATOR(uri, params, username, security_manager, source):
-#       user = security_manager.find_user(username=username)
-#       if user and user.email:
-#           uri.username = user.email
-#       return uri, params
-#
-# Note that the returned uri and params are passed directly to sqlalchemy's
-# as such `create_engine(url, **params)`
+# Function to mutate database connection parameters. Useful for dynamic
+# authentication.
 DB_CONNECTION_MUTATOR = None
 
 
@@ -1457,16 +1305,7 @@ def SQL_QUERY_MUTATOR(  # pylint: disable=invalid-name,unused-argument  # noqa: 
     return sql
 
 
-# A variable that chooses whether to apply the SQL_QUERY_MUTATOR before or after splitting the input query  # noqa: E501
-# It allows for using the SQL_QUERY_MUTATOR function for more than comments
-# Usage: If you want to apply a change to every statement to a given query, set MUTATE_AFTER_SPLIT = True  # noqa: E501
-# An example use case is if data has role based access controls, and you want to apply
-# a SET ROLE statement alongside every user query. Changing this variable maintains
-# functionality for both the SQL_Lab and Charts.
 MUTATE_AFTER_SPLIT = False
-
-
-# Boolean config that determines if alert SQL queries should also be mutated or not.
 MUTATE_ALERT_QUERY = False
 
 
@@ -1492,17 +1331,11 @@ EXCLUDE_USERS_FROM_LISTS: list[str] | None = None
 # e.g., DBS_AVAILABLE_DENYLIST: Dict[str, Set[str]] = {"databricks": {"pyhive", "pyodbc"}}  # noqa: E501
 DBS_AVAILABLE_DENYLIST: dict[str, set[str]] = {}
 
-# This auth provider is used by background (offline) tasks that need to access
-# protected resources. Can be overridden by end users in order to support
-# custom auth mechanisms
+# Machine authentication provider class for programmatic access.
 MACHINE_AUTH_PROVIDER_CLASS = "superset.utils.machine_auth.MachineAuthProvider"
-
-# ---------------------------------------------------
-# Alerts & Reports
-# ---------------------------------------------------
-# Used for Alerts/Reports (Feature flask ALERT_REPORTS) to set the size for the
-# sliding cron window size, should be synced with the celery beat config minus 1 second
 ALERT_REPORTS_CRON_WINDOW_SIZE = 59
+
+# Kill alerts/reports that exceed working timeout.
 ALERT_REPORTS_WORKING_TIME_OUT_KILL = True
 # Which user to attempt to execute Alerts/Reports as. By default,
 # execute as the primary owner of the alert/report (giving priority to the last
@@ -1524,101 +1357,63 @@ ALERT_REPORTS_WORKING_TIME_OUT_KILL = True
 #     FixedExecutor("admin"),
 # ]
 ALERT_REPORTS_EXECUTORS: list[ExecutorType] = [ExecutorType.OWNER]
-# if ALERT_REPORTS_WORKING_TIME_OUT_KILL is True, set a celery hard timeout
-# Equal to working timeout + ALERT_REPORTS_WORKING_TIME_OUT_LAG
+
+# Lag time in seconds before killing long-running alerts/reports.
 ALERT_REPORTS_WORKING_TIME_OUT_LAG = int(timedelta(seconds=10).total_seconds())
-# if ALERT_REPORTS_WORKING_TIME_OUT_KILL is True, set a celery hard timeout
-# Equal to working timeout + ALERT_REPORTS_WORKING_SOFT_TIME_OUT_LAG
+
+# Soft timeout lag in seconds for alerts/reports.
 ALERT_REPORTS_WORKING_SOFT_TIME_OUT_LAG = int(timedelta(seconds=1).total_seconds())
-# Default values that user using when creating alert
 ALERT_REPORTS_DEFAULT_WORKING_TIMEOUT = 3600
 ALERT_REPORTS_DEFAULT_RETENTION = 90
 ALERT_REPORTS_DEFAULT_CRON_VALUE = "0 0 * * *"  # every day
-# If set to true no notification is sent, the worker will just log a message.
-# Useful for debugging
+
+# Dry run mode for alert/report notifications. Useful for testing.
 ALERT_REPORTS_NOTIFICATION_DRY_RUN = False
-# Max tries to run queries to prevent false errors caused by transient errors
-# being returned to users. Set to a value >1 to enable retries.
+
+# Maximum number of tries for alert/report query execution.
 ALERT_REPORTS_QUERY_EXECUTION_MAX_TRIES = 1
-# Custom width for screenshots
 ALERT_REPORTS_MIN_CUSTOM_SCREENSHOT_WIDTH = 600
 ALERT_REPORTS_MAX_CUSTOM_SCREENSHOT_WIDTH = 2400
-# Set a minimum interval threshold between executions (for each Alert/Report)
-# Value should be an integer i.e. int(timedelta(minutes=5).total_seconds())
-# You can also assign a function to the config that returns the expected integer
 ALERT_MINIMUM_INTERVAL = int(timedelta(minutes=0).total_seconds())
 REPORT_MINIMUM_INTERVAL = int(timedelta(minutes=0).total_seconds())
-
-# A custom prefix to use on all Alerts & Reports emails
 EMAIL_REPORTS_SUBJECT_PREFIX = "[Report] "
-
-# The text for call-to-action link in Alerts & Reports emails
 EMAIL_REPORTS_CTA = "Explore in Superset"
 
 # Slack API token for the superset reports, either string or callable
 SLACK_API_TOKEN: Callable[[], str] | str | None = None
 SLACK_PROXY = None
 SLACK_CACHE_TIMEOUT = int(timedelta(days=1).total_seconds())
-
-# The webdriver to use for generating reports. Use one of the following
-# firefox
-#   Requires: geckodriver and firefox installations
-#   Limitations: can be buggy at times
-# chrome:
-#   Requires: headless chrome
-#   Limitations: unable to generate screenshots of elements
 WEBDRIVER_TYPE = "firefox"
 
-# Window size - this will impact the rendering of the data
+# Window configuration for webdriver operations.
 WEBDRIVER_WINDOW = {
     "dashboard": (1600, 2000),
     "slice": (3000, 1200),
     "pixel_density": 1,
 }
-
-# An optional override to the default auth hook used to provide auth to the offline
-# webdriver (when using Selenium) or browser context (when using Playwright - see
-# PLAYWRIGHT_REPORTS_AND_THUMBNAILS feature flag)
 WEBDRIVER_AUTH_FUNC = None
-
-# Any config options to be passed as-is to the webdriver
 WEBDRIVER_CONFIGURATION = {
     "options": {"capabilities": {}, "preferences": {}, "binary_location": ""},
     "service": {"log_output": "/dev/null", "service_args": [], "port": 0, "env": {}},
 }
 
-# Additional args to be passed as arguments to the config object
-# Note: If using Chrome, you'll want to add the "--marionette" arg.
+# Command-line arguments for webdriver (Chrome/Firefox).
 WEBDRIVER_OPTION_ARGS = ["--headless"]
 
-# The base URL to query for accessing the user interface
+# Base URL for webdriver operations. Used for screenshot and export functionality.
 WEBDRIVER_BASEURL = "http://0.0.0.0:8080/"
-# The base URL for the email report hyperlinks.
-WEBDRIVER_BASEURL_USER_FRIENDLY = WEBDRIVER_BASEURL
-# Time selenium will wait for the page to load and render for the email report.
-EMAIL_PAGE_RENDER_WAIT = int(timedelta(seconds=30).total_seconds())
 
-# Send user to a link where they can report bugs
+# User-friendly base URL for webdriver operations.
+WEBDRIVER_BASEURL_USER_FRIENDLY = WEBDRIVER_BASEURL
+EMAIL_PAGE_RENDER_WAIT = int(timedelta(seconds=30).total_seconds())
 BUG_REPORT_URL = None
 BUG_REPORT_TEXT = "Report a bug"
 BUG_REPORT_ICON = None  # Recommended size: 16x16
-
-# Send user to a link where they can read more about Superset
 DOCUMENTATION_URL = None
 DOCUMENTATION_TEXT = "Documentation"
 DOCUMENTATION_ICON = None  # Recommended size: 16x16
-
-# What is the Last N days relative in the time selector to:
-# 'today' means it is midnight (00:00:00) in the local timezone
-# 'now' means it is relative to the query issue time
-# If both start and end time is set to now, this will make the time
-# filter a moving window. By only setting the end time to now,
-# start time will be set to midnight, while end will be relative to
-# the query issue time.
 DEFAULT_RELATIVE_START_TIME = "today"
 DEFAULT_RELATIVE_END_TIME = "today"
-
-# Configure which SQL validator to use for each engine
 SQL_VALIDATORS_BY_ENGINE = {
     "presto": "PrestoDBSQLValidator",
     "postgresql": "PostgreSQLValidator",
@@ -1635,10 +1430,6 @@ PREFERRED_DATABASES: list[str] = [
     "SQLite",
     # etc.
 ]
-# When adding a new database we try to connect to it. Depending on which parameters are
-# incorrect this could take a couple minutes, until the SQLAlchemy driver pinging the
-# database times out. Instead of relying on the driver timeout we can specify a shorter
-# one here.
 TEST_DATABASE_CONNECTION_TIMEOUT = timedelta(seconds=30)
 
 # Details needed for databases that allows user to authenticate using personal OAuth2
@@ -1662,31 +1453,11 @@ DATABASE_OAUTH2_CLIENTS: dict[str, dict[str, Any]] = {
     #     "token_request_uri": "https://oauth2.googleapis.com/token",
     # },
 }
-
-# OAuth2 state is encoded in a JWT using the alogorithm below.
 DATABASE_OAUTH2_JWT_ALGORITHM = "HS256"
-
-# By default the redirect URI points to /api/v1/database/oauth2/ and doesn't have to be
-# specified. If you're running multiple Superset instances you might want to have a
-# proxy handling the redirects, since redirect URIs need to be registered in the OAuth2
-# applications. In that case, the proxy can forward the request to the correct instance
-# by looking at the `default_redirect_uri` attribute in the OAuth2 state object.
-# DATABASE_OAUTH2_REDIRECT_URI = "http://localhost:8088/api/v1/database/oauth2/"
-
-# Timeout when fetching access and refresh tokens.
 DATABASE_OAUTH2_TIMEOUT = timedelta(seconds=30)
-
-# Enable/disable CSP warning
 CONTENT_SECURITY_POLICY_WARNING = True
-
-# Do you want Talisman enabled?
 TALISMAN_ENABLED = utils.cast_to_boolean(os.environ.get("TALISMAN_ENABLED", True))
 TALISMAN_ENABLED = False
-
-# If you want Talisman, how do you want it configured??
-# For more information on setting up Talisman, please refer to
-# https://superset.apache.org/docs/configuration/networking-settings/#changing-flask-talisman-csp
-
 TALISMAN_CONFIG = {
     "content_security_policy": {
         "base-uri": ["'self'"],
@@ -1718,7 +1489,6 @@ TALISMAN_CONFIG = {
     "force_https": False,
     "session_cookie_secure": False,
 }
-# React requires `eval` to work correctly in dev mode
 TALISMAN_DEV_CONFIG = {
     "content_security_policy": {
         "base-uri": ["'self'"],
@@ -1750,95 +1520,59 @@ TALISMAN_DEV_CONFIG = {
     "force_https": False,
     "session_cookie_secure": False,
 }
-
-#
-# Flask session cookie options
-#
-# See https://flask.palletsprojects.com/en/1.1.x/security/#set-cookie-options
-# for details
-#
 SESSION_COOKIE_HTTPONLY = True  # Prevent cookie from being read by frontend JS?
 SESSION_COOKIE_SECURE = False  # Prevent cookie from being transmitted over non-tls?
 SESSION_COOKIE_SAMESITE: Literal["None", "Lax", "Strict"] | None = "Lax"
-# Whether to use server side sessions from flask-session or Flask secure cookies
 SESSION_SERVER_SIDE = False
-# Example config using Redis as the backend for server side sessions
-# from flask_session import RedisSessionInterface
-#
-# SESSION_SERVER_SIDE = True
-# SESSION_TYPE = "redis"
-# SESSION_REDIS = Redis(host="localhost", port=6379, db=0)
-#
-# Other possible config options and backends:
-# # https://flask-session.readthedocs.io/en/latest/config.html
-
-# Cache static resources.
 SEND_FILE_MAX_AGE_DEFAULT = int(timedelta(days=365).total_seconds())
-
-# URI to database storing the example data, points to
-# SQLALCHEMY_DATABASE_URI by default if set to `None`
 SQLALCHEMY_EXAMPLES_URI = (
     "sqlite:///" + os.path.join(DATA_DIR, "examples.db") + "?check_same_thread=false"
 )
-
-# Optional prefix to be added to all static asset paths when rendering the UI.
-# This is useful for hosting assets in an external CDN, for example
 STATIC_ASSETS_PREFIX = ""
-
-# Some sqlalchemy connection strings can open Superset to security risks.
-# Typically these should not be allowed.
 PREVENT_UNSAFE_DB_CONNECTIONS = True
 
-# If true all default urls on datasets will be handled as relative URLs by the frontend
+# Prevent potentially unsafe default URLs on datasets. **Security feature**.
 PREVENT_UNSAFE_DEFAULT_URLS_ON_DATASET = True
-
-# Define a list of allowed URLs for dataset data imports (v1).
-# Simple example to only allow URLs that belong to certain domains:
-# ALLOWED_IMPORT_URL_DOMAINS = [
-#     r"^https://.+\.domain1\.com\/?.*", r"^https://.+\.domain2\.com\/?.*"
-# ]
 DATASET_IMPORT_ALLOWED_DATA_URLS = [r".*"]
 
 # Path used to store SSL certificates that are generated when using custom certs.
 # Defaults to temporary directory.
 # Example: SSL_CERT_PATH = "/certs"
 SSL_CERT_PATH: str | None = None
-
-# SQLA table mutator, every time we fetch the metadata for a certain table
-# (superset.connectors.sqla.models.SqlaTable), we call this hook
-# to allow mutating the object with this callback.
-# This can be used to set any properties of the object based on naming
-# conventions and such. You can find examples in the tests.
-
-# pylint: disable-next=unnecessary-lambda-assignment
 SQLA_TABLE_MUTATOR = lambda table: table  # noqa: E731
-
-
-# Global async query config options.
-# Requires GLOBAL_ASYNC_QUERIES feature flag to be enabled.
 GLOBAL_ASYNC_QUERY_MANAGER_CLASS = (
     "superset.async_events.async_query_manager.AsyncQueryManager"
 )
+
+# Redis stream prefix for global async queries.
 GLOBAL_ASYNC_QUERIES_REDIS_STREAM_PREFIX = "async-events-"
+
+# Redis stream limit for global async queries.
 GLOBAL_ASYNC_QUERIES_REDIS_STREAM_LIMIT = 1000
+
+# Redis stream limit for global async queries firehose.
 GLOBAL_ASYNC_QUERIES_REDIS_STREAM_LIMIT_FIREHOSE = 1000000
 GLOBAL_ASYNC_QUERIES_REGISTER_REQUEST_HANDLERS = True
+
+# JWT cookie name for global async queries.
 GLOBAL_ASYNC_QUERIES_JWT_COOKIE_NAME = "async-token"
+
+# Secure flag for global async queries JWT cookie.
 GLOBAL_ASYNC_QUERIES_JWT_COOKIE_SECURE = False
 GLOBAL_ASYNC_QUERIES_JWT_COOKIE_SAMESITE: None | (Literal["None", "Lax", "Strict"]) = (
     None
 )
+
+# Domain for global async queries JWT cookie.
 GLOBAL_ASYNC_QUERIES_JWT_COOKIE_DOMAIN = None
+
+# JWT secret for global async queries.
 GLOBAL_ASYNC_QUERIES_JWT_SECRET = "test-secret-change-me"  # noqa: S105
 GLOBAL_ASYNC_QUERIES_TRANSPORT: Literal["polling", "ws"] = "polling"
 GLOBAL_ASYNC_QUERIES_POLLING_DELAY = int(
     timedelta(milliseconds=500).total_seconds() * 1000
 )
 GLOBAL_ASYNC_QUERIES_WEBSOCKET_URL = "ws://127.0.0.1:8080/"
-
-# Global async queries cache backend configuration options:
-# - Set 'CACHE_TYPE' to 'RedisCache' for RedisCacheBackend.
-# - Set 'CACHE_TYPE' to 'RedisSentinelCache' for RedisSentinelCacheBackend.
 GLOBAL_ASYNC_QUERIES_CACHE_BACKEND = {
     "CACHE_TYPE": "RedisCache",
     "CACHE_REDIS_HOST": "localhost",
@@ -1857,25 +1591,25 @@ GLOBAL_ASYNC_QUERIES_CACHE_BACKEND = {
     "CACHE_REDIS_SSL_CA_CERTS": None,
 }
 
-# Embedded config options
+# Name of the guest role for anonymous access.
 GUEST_ROLE_NAME = "Public"
+
+# JWT secret for guest token generation.
 GUEST_TOKEN_JWT_SECRET = "test-guest-secret-change-me"  # noqa: S105
+
+# JWT algorithm for guest token generation.
 GUEST_TOKEN_JWT_ALGO = "HS256"  # noqa: S105
+
+# Header name for guest token authentication.
 GUEST_TOKEN_HEADER_NAME = "X-GuestToken"  # noqa: S105
+
+# Expiration time in seconds for guest tokens.
 GUEST_TOKEN_JWT_EXP_SECONDS = 300  # 5 minutes
 # Audience for the Superset guest token used in embedded mode.
 # Can be a string or a callable. Defaults to WEBDRIVER_BASEURL.
 # When generating the guest token, ensure the
 # payload's `aud` matches GUEST_TOKEN_JWT_AUDIENCE.
 GUEST_TOKEN_JWT_AUDIENCE: Callable[[], str] | str | None = None
-
-# A callable that can be supplied to do extra validation of guest token configuration
-# for example certain RLS parameters:
-# lambda x: len(x['rls']) == 1 and "tenant_id=" in x['rls'][0]['clause']
-#
-# Takes the GuestTokenUser dict as an argument
-# Return False from the callable to return a HTTP 400 to the user.
-
 GUEST_TOKEN_VALIDATOR_HOOK = None
 
 # A SQL dataset health check. Note if enabled it is strongly advised that the callable
@@ -1925,14 +1659,8 @@ ADVANCED_DATA_TYPES: dict[str, AdvancedDataType] = {
 WELCOME_PAGE_LAST_TAB: Literal["examples", "all"] | tuple[str, list[dict[str, Any]]] = (
     "all"
 )
-
-# Max allowed size for a zipped file
 ZIPPED_FILE_MAX_SIZE = 100 * 1024 * 1024  # 100MB
-# Max allowed compression ratio for a zipped file
 ZIP_FILE_MAX_COMPRESS_RATIO = 200.0
-
-# Configuration for environment tag shown on the navbar. Setting 'text' to '' will hide the tag.  # noqa: E501
-# 'color' can either be a hex color code, or a dot-indexed theme color (e.g. error.base)
 ENVIRONMENT_TAG_CONFIG = {
     "variable": "SUPERSET_ENV",
     "values": {

@@ -3,10 +3,10 @@
     {
       "key": "STATS_LOGGER",
       "title": "Stats Logger",
-      "description": "Realtime stats logger, a StatsD implementation exists",
+      "description": "Statistics logger instance for metrics collection. Default: `DummyStatsLogger()`",
       "type": "string",
       "category": "logging",
-      "default": "<Call>",
+      "default": "<DummyStatsLogger()>",
       "env_var": "SUPERSET__STATS_LOGGER",
       "nested_example": null,
       "impact": "low",
@@ -15,10 +15,10 @@
     {
       "key": "EVENT_LOGGER",
       "title": "Event Logger",
-      "description": "By default will log events to the metadata database with `DBEventLogger` Note that you can use `StdOutEventLogger` for debugging Note that you can write your own event logger by extending `AbstractEventLogger` https://github.com/apache/superset/blob/master/superset/utils/log.py",
+      "description": "Event logger instance for audit trails. Default: `DBEventLogger()`",
       "type": "string",
       "category": "logging",
-      "default": "<Call>",
+      "default": "<DBEventLogger()>",
       "env_var": "SUPERSET__EVENT_LOGGER",
       "nested_example": null,
       "impact": "low",
@@ -27,7 +27,7 @@
     {
       "key": "SUPERSET_LOG_VIEW",
       "title": "Superset Log View",
-      "description": "",
+      "description": "Enable access to log files through the UI. **Disable in production** for security.",
       "type": "boolean",
       "category": "logging",
       "default": true,
@@ -39,7 +39,7 @@
     {
       "key": "SUPERSET_SECURITY_VIEW_MENU",
       "title": "Superset Security View Menu",
-      "description": "This config is used to enable/disable the folowing security menu items: List Users, List Roles, List Groups",
+      "description": "Enable security view menu in the UI. Shows roles and permissions management.",
       "type": "boolean",
       "category": "security",
       "default": true,
@@ -51,10 +51,10 @@
     {
       "key": "BASE_DIR",
       "title": "Base Dir",
-      "description": "",
+      "description": "Base directory path for Superset installation. Auto-detected from package location.",
       "type": "string",
       "category": "general",
-      "default": "<Call>",
+      "default": "<unknown>",
       "env_var": "SUPERSET__BASE_DIR",
       "nested_example": null,
       "impact": "low",
@@ -63,10 +63,10 @@
     {
       "key": "VERSION_INFO_FILE",
       "title": "Version Info File",
-      "description": "--------------------------------------------------------- Superset specific config ---------------------------------------------------------",
+      "description": "Path to version information JSON file. Contains build metadata.",
       "type": "string",
       "category": "general",
-      "default": "<Call>",
+      "default": "<unknown>",
       "env_var": "SUPERSET__VERSION_INFO_FILE",
       "nested_example": null,
       "impact": "low",
@@ -75,10 +75,10 @@
     {
       "key": "PACKAGE_JSON_FILE",
       "title": "Package Json File",
-      "description": "",
+      "description": "Path to package.json file for frontend build information.",
       "type": "string",
       "category": "general",
-      "default": "<Call>",
+      "default": "<unknown>",
       "env_var": "SUPERSET__PACKAGE_JSON_FILE",
       "nested_example": null,
       "impact": "low",
@@ -87,7 +87,7 @@
     {
       "key": "FAVICONS",
       "title": "Favicons",
-      "description": "\"href\":path/to/image.png\", \"sizes\": \"16x16\", \"type\": \"image/png\" \"rel\": \"icon\" },",
+      "description": "List of favicon configurations. Each favicon should specify `href` (required) and optionally `sizes`, `type`, and `rel` properties.",
       "type": "array",
       "category": "general",
       "default": [
@@ -103,7 +103,7 @@
     {
       "key": "ALEMBIC_SKIP_LOG_CONFIG",
       "title": "Alembic Skip Log Config",
-      "description": "If True, we will skip the call to load the logger config found in alembic.init",
+      "description": "Skip Alembic log configuration. Set to `True` if you configure logging elsewhere.",
       "type": "boolean",
       "category": "logging",
       "default": false,
@@ -115,7 +115,7 @@
     {
       "key": "VERSION_STRING",
       "title": "Version String",
-      "description": "version_info.json file may or may not be available, as it is generated on install via setup.py. In the event that we're actually running Superset, we will have already installed, therefore it WILL exist. When unit tests are running, however, it WILL NOT exist, so we fall back on reading package.json",
+      "description": "Version string displayed in the UI. Auto-generated from `VERSION_INFO_FILE` or set manually.",
       "type": "string",
       "category": "general",
       "default": "<BoolOp>",
@@ -127,7 +127,7 @@
     {
       "key": "VERSION_SHA_LENGTH",
       "title": "Version Sha Length",
-      "description": "",
+      "description": "Length of git SHA displayed in version info. Default: 8 characters.",
       "type": "integer",
       "category": "general",
       "default": 8,
@@ -139,10 +139,10 @@
     {
       "key": "VERSION_SHA",
       "title": "Version Sha",
-      "description": "",
+      "description": "Git SHA of current build. Auto-generated from `VERSION_INFO_FILE`.",
       "type": "string",
       "category": "general",
-      "default": "<Call>",
+      "default": "<_try_json_readsha()>",
       "env_var": "SUPERSET__VERSION_SHA",
       "nested_example": null,
       "impact": "low",
@@ -151,7 +151,7 @@
     {
       "key": "BUILD_NUMBER",
       "title": "Build Number",
-      "description": "Build number is shown in the About section if available. This can be replaced at build time to expose build information.",
+      "description": "Build number displayed in About section. Set during CI/CD build process.",
       "type": "null",
       "category": "ui",
       "default": null,
@@ -163,7 +163,7 @@
     {
       "key": "DEFAULT_VIZ_TYPE",
       "title": "Default Viz Type",
-      "description": "default viz used in chart explorer & SQL Lab explore",
+      "description": "Default visualization type in chart explorer. Options: `\"table\"`, `\"bar\"`, `\"line\"`, `\"pie\"`, etc.",
       "type": "string",
       "category": "general",
       "default": "table",
@@ -175,7 +175,7 @@
     {
       "key": "ROW_LIMIT",
       "title": "Row Limit",
-      "description": "default row limit when requesting chart data",
+      "description": "Default maximum number of rows returned by chart queries. Prevents excessive data transfer and memory usage.",
       "type": "integer",
       "category": "performance",
       "default": 50000,
@@ -187,7 +187,7 @@
     {
       "key": "SAMPLES_ROW_LIMIT",
       "title": "Samples Row Limit",
-      "description": "default row limit when requesting samples from datasource in explore view",
+      "description": "Maximum number of rows for data sampling.",
       "type": "integer",
       "category": "performance",
       "default": 1000,
@@ -199,7 +199,7 @@
     {
       "key": "NATIVE_FILTER_DEFAULT_ROW_LIMIT",
       "title": "Native Filter Default Row Limit",
-      "description": "default row limit for native filters",
+      "description": "Default maximum number of rows returned by native filters for performance.",
       "type": "integer",
       "category": "performance",
       "default": 1000,
@@ -211,7 +211,7 @@
     {
       "key": "FILTER_SELECT_ROW_LIMIT",
       "title": "Filter Select Row Limit",
-      "description": "max rows retrieved by filter select auto complete",
+      "description": "Maximum number of rows retrieved by filter dropdown auto-complete.",
       "type": "integer",
       "category": "performance",
       "default": 10000,
@@ -223,7 +223,7 @@
     {
       "key": "DEFAULT_TIME_FILTER",
       "title": "Default Time Filter",
-      "description": "default time filter in explore values may be \"Last day\", \"Last week\", \"<ISO date> : now\", etc.",
+      "description": "Default time filter for charts. Use `NO_TIME_RANGE` constant or specific time ranges.",
       "type": "string",
       "category": "general",
       "default": "<NO_TIME_RANGE>",
@@ -235,10 +235,10 @@
     {
       "key": "SUPERSET_WEBSERVER_TIMEOUT",
       "title": "Superset Webserver Timeout",
-      "description": "This is an important setting, and should be lower than your [load balancer / proxy / envoy / kong / ...] timeout settings. You should also make sure to configure your WSGI server (gunicorn, nginx, apache, ...) timeout setting to be <= to this setting",
+      "description": "Request timeout in seconds for the Superset web server. Increase for slow-running queries.",
       "type": "string",
       "category": "performance",
-      "default": "<Call>",
+      "default": "<unknown>",
       "env_var": "SUPERSET__SUPERSET_WEBSERVER_TIMEOUT",
       "nested_example": null,
       "impact": "medium",
@@ -247,7 +247,7 @@
     {
       "key": "SUPERSET_DASHBOARD_PERIODICAL_REFRESH_LIMIT",
       "title": "Superset Dashboard Periodical Refresh Limit",
-      "description": "this 2 settings are used by dashboard period force refresh feature When user choose auto force refresh frequency < SUPERSET_DASHBOARD_PERIODICAL_REFRESH_LIMIT they will see warning message in the Refresh Interval Modal. please check PR #9886",
+      "description": "Minimum interval (in seconds) between dashboard auto-refreshes. Set to `0` to disable limit.",
       "type": "integer",
       "category": "performance",
       "default": 0,
@@ -259,7 +259,7 @@
     {
       "key": "SUPERSET_DASHBOARD_PERIODICAL_REFRESH_WARNING_MESSAGE",
       "title": "Superset Dashboard Periodical Refresh Warning Message",
-      "description": "",
+      "description": "Warning message displayed when dashboard refresh is rate-limited.",
       "type": "null",
       "category": "general",
       "default": null,
@@ -271,7 +271,7 @@
     {
       "key": "SUPERSET_DASHBOARD_POSITION_DATA_LIMIT",
       "title": "Superset Dashboard Position Data Limit",
-      "description": "",
+      "description": "Maximum size (in bytes) of dashboard layout data. Prevents oversized layouts.",
       "type": "integer",
       "category": "performance",
       "default": 65535,
@@ -283,7 +283,7 @@
     {
       "key": "CUSTOM_SECURITY_MANAGER",
       "title": "Custom Security Manager",
-      "description": "",
+      "description": "**[Authentication, authorization, and admin interface](https://flask-appbuilder.readthedocs.io/)**: Custom security manager class. Override Flask-AppBuilder default security. Must inherit from `SupersetSecurityManager`.",
       "type": "null",
       "category": "security",
       "default": null,
@@ -295,7 +295,7 @@
     {
       "key": "SQLALCHEMY_TRACK_MODIFICATIONS",
       "title": "Sqlalchemy Track Modifications",
-      "description": "",
+      "description": "**[Database ORM and connection management](https://flask-sqlalchemy.palletsprojects.com/)**: Track object modifications. Keep `False` for better performance.",
       "type": "boolean",
       "category": "database",
       "default": false,
@@ -307,7 +307,7 @@
     {
       "key": "SECRET_KEY",
       "title": "Secret Key",
-      "description": "Your App secret key. **Make sure you override it on superset_config.py** or use `SUPERSET_SECRET_KEY` environment variable. Use a **strong complex alphanumeric string** and use a tool to help you generate a sufficiently random sequence, ex: `openssl rand -base64 42`",
+      "description": "Your application secret key. **Must be overridden** in production via `superset_config.py` or `SUPERSET_SECRET_KEY` environment variable. Use a **strong complex alphanumeric string**. Generate with: `openssl rand -base64 42`",
       "type": "string",
       "category": "general",
       "default": "<BoolOp>",
@@ -319,7 +319,7 @@
     {
       "key": "SQLALCHEMY_DATABASE_URI",
       "title": "Sqlalchemy Database Uri",
-      "description": "The SQLAlchemy connection string.",
+      "description": "**[Database ORM and connection management](https://flask-sqlalchemy.palletsprojects.com/)**: Database connection string. Examples: `postgresql://user:pass@localhost/superset`, `mysql://user:pass@localhost/superset`",
       "type": "string",
       "category": "database",
       "default": "<JoinedStr>",
@@ -331,7 +331,7 @@
     {
       "key": "SQLALCHEMY_ENGINE_OPTIONS",
       "title": "Sqlalchemy Engine Options",
-      "description": "that may be specific to the database engine you are using. Note that you can use this to set the isolation level of your database, as in `SQLALCHEMY_ENGINE_OPTIONS = {\"isolation_level\": \"READ COMMITTED\"}` Also note that we **recommend READ COMMITTED** for regular operation. Find out more here [flask-sqlalchemy config](https://flask-sqlalchemy.palletsprojects.com/en/3.1.x/config/)",
+      "description": "**[Database ORM and connection management](https://flask-sqlalchemy.palletsprojects.com/)**: Dictionary of engine options passed to SQLAlchemy. Use for database-specific settings like isolation level: `{\"isolation_level\": \"READ COMMITTED\"}`. We **recommend READ COMMITTED** for production.",
       "type": "object",
       "category": "database",
       "default": {},
@@ -343,7 +343,7 @@
     {
       "key": "SQLALCHEMY_CUSTOM_PASSWORD_STORE",
       "title": "Sqlalchemy Custom Password Store",
-      "description": "example: def lookup_password(url): return 'secret' SQLALCHEMY_CUSTOM_PASSWORD_STORE = lookup_password",
+      "description": "**[Database ORM and connection management](https://flask-sqlalchemy.palletsprojects.com/)**: Custom password store function for database connections. Implement a function that takes a `sqlalchemy.engine.url` and returns a password. Example: `def lookup_password(url): return \"secret\"`",
       "type": "null",
       "category": "database",
       "default": null,
@@ -355,7 +355,7 @@
     {
       "key": "SQLALCHEMY_ENCRYPTED_FIELD_TYPE_ADAPTER",
       "title": "Sqlalchemy Encrypted Field Type Adapter",
-      "description": ") raise Exception(\"Missing app_config kwarg\") SQLALCHEMY_ENCRYPTED_FIELD_TYPE_ADAPTER = AesGcmEncryptedAdapter",
+      "description": "**[Database ORM and connection management](https://flask-sqlalchemy.palletsprojects.com/)**: Custom encrypted field type adapter for sensitive data. Uses app `SECRET_KEY` for encryption by default.",
       "type": "string",
       "category": "database",
       "default": "<SQLAlchemyUtilsAdapter>",
@@ -367,7 +367,7 @@
     {
       "key": "QUERY_SEARCH_LIMIT",
       "title": "Query Search Limit",
-      "description": "The limit of queries fetched for query search",
+      "description": "Maximum number of queries returned in SQL Lab query search.",
       "type": "integer",
       "category": "performance",
       "default": 1000,
@@ -379,7 +379,7 @@
     {
       "key": "WTF_CSRF_ENABLED",
       "title": "Wtf Csrf Enabled",
-      "description": "Flask-WTF flag for CSRF",
+      "description": "**[CSRF protection and form handling](https://flask-wtf.readthedocs.io/)**: Enable CSRF protection for forms. **Recommended to keep `True`** in production for security.",
       "type": "boolean",
       "category": "features",
       "default": true,
@@ -391,7 +391,7 @@
     {
       "key": "WTF_CSRF_EXEMPT_LIST",
       "title": "Wtf Csrf Exempt List",
-      "description": "Add endpoints that need to be exempt from CSRF protection",
+      "description": "**[CSRF protection and form handling](https://flask-wtf.readthedocs.io/)**: List of endpoints exempt from CSRF protection. Use with caution.",
       "type": "array",
       "category": "general",
       "default": [
@@ -408,10 +408,10 @@
     {
       "key": "DEBUG",
       "title": "Debug",
-      "description": "Whether to run the web server in debug mode or not",
+      "description": "Enable Flask debug mode. **Never enable in production**. Use environment variable: `SUPERSET_DEBUG=True`",
       "type": "string",
       "category": "logging",
-      "default": "<Call>",
+      "default": "<parse_boolean_string()>",
       "env_var": "SUPERSET__DEBUG",
       "nested_example": null,
       "impact": "low",
@@ -420,7 +420,7 @@
     {
       "key": "FLASK_USE_RELOAD",
       "title": "Flask Use Reload",
-      "description": "",
+      "description": "Enable Flask auto-reload on code changes. **Only for development**.",
       "type": "boolean",
       "category": "general",
       "default": true,
@@ -432,7 +432,7 @@
     {
       "key": "PROFILING",
       "title": "Profiling",
-      "description": "Enable profiling of Python calls. Turn this on and append ``?_instrument=1`` to the page to see the call stack.",
+      "description": "Enable Flask profiling. **Only for development**. Adds performance overhead.",
       "type": "boolean",
       "category": "general",
       "default": false,
@@ -444,7 +444,7 @@
     {
       "key": "SHOW_STACKTRACE",
       "title": "Show Stacktrace",
-      "description": "Superset allows server-side python stacktraces to be surfaced to the user when this feature is on. This may have security implications and it's more secure to turn it off in production settings.",
+      "description": "Show full stack traces in error pages. **Disable in production** for security.",
       "type": "boolean",
       "category": "general",
       "default": false,
@@ -456,7 +456,7 @@
     {
       "key": "ENABLE_PROXY_FIX",
       "title": "Enable Proxy Fix",
-      "description": "Use all X-Forwarded headers when ENABLE_PROXY_FIX is True. When proxying to a different port, set \"x_port\" to 0 to avoid downstream issues.",
+      "description": "Enable proxy fix for applications behind reverse proxies. Required for proper URL generation.",
       "type": "boolean",
       "category": "features",
       "default": false,
@@ -468,7 +468,7 @@
     {
       "key": "PROXY_FIX_CONFIG",
       "title": "Proxy Fix Config",
-      "description": "",
+      "description": "Configuration for proxy fix settings. Specifies which proxy headers to trust.",
       "type": "object",
       "category": "general",
       "default": {
@@ -486,7 +486,7 @@
     {
       "key": "RATELIMIT_ENABLED",
       "title": "Ratelimit Enabled",
-      "description": "FAB Rate limiting: this is a security feature for preventing DDOS attacks. The feature is on by default to make Superset secure by default, but you should fine tune the limits to your needs. You can read more about the different parameters here: https://flask-limiter.readthedocs.io/en/stable/configuration.html",
+      "description": "**[Rate limiting and DDOS protection](https://flask-limiter.readthedocs.io/)**: Enable rate limiting to prevent DDOS attacks. Uses `RATELIMIT_STORAGE_URI` for storage backend. **Recommended for production**.",
       "type": "string",
       "category": "performance",
       "default": "<Compare>",
@@ -498,7 +498,7 @@
     {
       "key": "RATELIMIT_APPLICATION",
       "title": "Ratelimit Application",
-      "description": "",
+      "description": "**[Rate limiting and DDOS protection](https://flask-limiter.readthedocs.io/)**: Global rate limit for the entire application. Format: `\"50 per second\"`, `\"100 per minute\"`, etc.",
       "type": "string",
       "category": "performance",
       "default": "50 per second",
@@ -510,7 +510,7 @@
     {
       "key": "AUTH_RATE_LIMITED",
       "title": "Auth Rate Limited",
-      "description": "",
+      "description": "**[Rate limiting and DDOS protection](https://flask-limiter.readthedocs.io/)**: Enable rate limiting for authentication endpoints. Helps prevent brute force attacks.",
       "type": "boolean",
       "category": "performance",
       "default": true,
@@ -522,7 +522,7 @@
     {
       "key": "AUTH_RATE_LIMIT",
       "title": "Auth Rate Limit",
-      "description": "",
+      "description": "**[Rate limiting and DDOS protection](https://flask-limiter.readthedocs.io/)**: Rate limit for authentication attempts. Format: `\"5 per second\"`, `\"10 per minute\"`, etc.",
       "type": "string",
       "category": "performance",
       "default": "5 per second",
@@ -534,7 +534,7 @@
     {
       "key": "APP_NAME",
       "title": "App Name",
-      "description": "------------------------------ GLOBALS FOR APP Builder ------------------------------ Uncomment to setup Your App name",
+      "description": "Application name displayed in the UI header and browser title. Default: `\"Superset\"`",
       "type": "string",
       "category": "general",
       "default": "Superset",
@@ -546,7 +546,7 @@
     {
       "key": "APP_ICON",
       "title": "App Icon",
-      "description": "Specify the App icon",
+      "description": "Path to application logo/icon displayed in the UI. Default: `\"/static/assets/images/superset-logo-horiz.png\"`",
       "type": "string",
       "category": "general",
       "default": "/static/assets/images/superset-logo-horiz.png",
@@ -558,7 +558,7 @@
     {
       "key": "LOGO_TARGET_PATH",
       "title": "Logo Target Path",
-      "description": "Specify where clicking the logo would take the user' Default value of None will take you to '/superset/welcome' You can also specify a relative URL e.g. '/superset/welcome' or '/dashboards/list' or you can specify a full URL e.g. 'https://foo.bar'",
+      "description": "URL or path where the logo click should redirect. Leave `None` to disable logo clicking.",
       "type": "null",
       "category": "logging",
       "default": null,
@@ -570,7 +570,7 @@
     {
       "key": "LOGO_TOOLTIP",
       "title": "Logo Tooltip",
-      "description": "Specify tooltip that should appear when hovering over the App Icon/Logo",
+      "description": "Tooltip text shown when hovering over the logo. Leave empty for no tooltip.",
       "type": "string",
       "category": "logging",
       "default": "",
@@ -582,7 +582,7 @@
     {
       "key": "FAB_API_SWAGGER_UI",
       "title": "Fab Api Swagger Ui",
-      "description": "Enables SWAGGER UI for superset openapi spec ex: http://localhost:8080/swagger/v1",
+      "description": "**[Authentication, authorization, and admin interface](https://flask-appbuilder.readthedocs.io/)**: Enable Swagger UI for API documentation. Accessible at `/swagger/v1`",
       "type": "boolean",
       "category": "ui",
       "default": true,
@@ -594,7 +594,7 @@
     {
       "key": "AUTH_TYPE",
       "title": "Auth Type",
-      "description": "The authentication type AUTH_OID : Is for OpenID AUTH_DB : Is for database (username/password) AUTH_LDAP : Is for LDAP AUTH_REMOTE_USER : Is for using REMOTE_USER from web server",
+      "description": "**[Authentication, authorization, and admin interface](https://flask-appbuilder.readthedocs.io/)**: Authentication type. Options: `AUTH_DB`, `AUTH_OAUTH`, `AUTH_REMOTE_USER`, `AUTH_LDAP`.",
       "type": "string",
       "category": "security",
       "default": "<AUTH_DB>",
@@ -606,7 +606,7 @@
     {
       "key": "BABEL_DEFAULT_LOCALE",
       "title": "Babel Default Locale",
-      "description": "--------------------------------------------------- Babel config for translations --------------------------------------------------- Setup default language",
+      "description": "**[Internationalization and localization](https://flask-babel.tkte.ch/)**: Default locale for internationalization. Set to language code like `\"en\"`, `\"es\"`, `\"fr\"`, etc.",
       "type": "string",
       "category": "general",
       "default": "en",
@@ -618,7 +618,7 @@
     {
       "key": "BABEL_DEFAULT_FOLDER",
       "title": "Babel Default Folder",
-      "description": "Your application default translation path",
+      "description": "**[Internationalization and localization](https://flask-babel.tkte.ch/)**: Directory containing translation files. Default: `\"superset/translations\"`",
       "type": "string",
       "category": "general",
       "default": "superset/translations",
@@ -630,7 +630,7 @@
     {
       "key": "LANGUAGES",
       "title": "Languages",
-      "description": "Turning off i18n by default as translation in most languages are incomplete and not well maintained.",
+      "description": "**[Internationalization and localization](https://flask-babel.tkte.ch/)**: Dictionary of supported languages. Keys are language codes, values are display names.",
       "type": "object",
       "category": "general",
       "default": {},
@@ -642,7 +642,7 @@
     {
       "key": "CURRENCIES",
       "title": "Currencies",
-      "description": "",
+      "description": "List of supported currency codes for financial data formatting.",
       "type": "array",
       "category": "general",
       "default": [
@@ -662,7 +662,7 @@
     {
       "key": "SSH_TUNNEL_MANAGER_CLASS",
       "title": "Ssh Tunnel Manager Class",
-      "description": "-------------+              |    +----------+ | FIREWALL (only port 22 is open) ----------------------------------------------------------------------",
+      "description": "SSH tunnel manager class for secure database connections through SSH.",
       "type": "string",
       "category": "general",
       "default": "superset.extensions.ssh.SSHManager",
@@ -674,7 +674,7 @@
     {
       "key": "SSH_TUNNEL_LOCAL_BIND_ADDRESS",
       "title": "Ssh Tunnel Local Bind Address",
-      "description": "",
+      "description": "Local bind address for SSH tunnels. Default: `\"127.0.0.1\"`",
       "type": "string",
       "category": "general",
       "default": "127.0.0.1",
@@ -686,7 +686,7 @@
     {
       "key": "SSH_TUNNEL_TIMEOUT_SEC",
       "title": "Ssh Tunnel Timeout Sec",
-      "description": ": Timeout (seconds) for tunnel connection (open_channel timeout)",
+      "description": "Timeout in seconds for SSH tunnel connections.",
       "type": "number",
       "category": "performance",
       "default": 10.0,
@@ -698,7 +698,7 @@
     {
       "key": "SSH_TUNNEL_PACKET_TIMEOUT_SEC",
       "title": "Ssh Tunnel Packet Timeout Sec",
-      "description": ": Timeout (seconds) for transport socket (``socket.settimeout``)",
+      "description": "Packet timeout in seconds for SSH tunnel data transfer.",
       "type": "number",
       "category": "performance",
       "default": 1.0,
@@ -710,11 +710,11 @@
     {
       "key": "CACHE_WARMUP_EXECUTORS",
       "title": "Cache Warmup Executors",
-      "description": "a fixed user (admin in this example), use the following configuration: from superset.tasks.types import ExecutorType, FixedExecutor CACHE_WARMUP_EXECUTORS = [ExecutorType.OWNER, FixedExecutor(\"admin\")]",
+      "description": "List of executor types for cache warmup. Options: `ExecutorType.SELENIUM`, `ExecutorType.OWNER`, etc.",
       "type": "array",
       "category": "performance",
       "default": [
-        "<Attribute>"
+        "<ExecutorType.OWNER>"
       ],
       "env_var": "SUPERSET__CACHE_WARMUP_EXECUTORS",
       "nested_example": null,
@@ -724,11 +724,11 @@
     {
       "key": "THUMBNAIL_EXECUTORS",
       "title": "Thumbnail Executors",
-      "description": "configuration: from superset.tasks.types import ExecutorType, FixedExecutor THUMBNAIL_EXECUTORS = [FixedExecutor(\"admin\")]",
+      "description": "List of executor types for thumbnail generation.",
       "type": "array",
       "category": "general",
       "default": [
-        "<Attribute>"
+        "<ExecutorType.CURRENT_USER>"
       ],
       "env_var": "SUPERSET__THUMBNAIL_EXECUTORS",
       "nested_example": null,
@@ -738,10 +738,10 @@
     {
       "key": "THUMBNAIL_ERROR_CACHE_TTL",
       "title": "Thumbnail Error Cache Ttl",
-      "description": "",
+      "description": "Cache timeout in seconds for thumbnail generation errors.",
       "type": "string",
       "category": "performance",
-      "default": "<Call>",
+      "default": "<unknown>",
       "env_var": "SUPERSET__THUMBNAIL_ERROR_CACHE_TTL",
       "nested_example": null,
       "impact": "medium",
@@ -750,10 +750,10 @@
     {
       "key": "SCREENSHOT_LOCATE_WAIT",
       "title": "Screenshot Locate Wait",
-      "description": "Time before selenium times out after trying to locate an element on the page and wait for that element to load for a screenshot.",
+      "description": "Wait time in seconds for elements to be located during screenshot capture.",
       "type": "string",
       "category": "general",
-      "default": "<Call>",
+      "default": "<unknown>",
       "env_var": "SUPERSET__SCREENSHOT_LOCATE_WAIT",
       "nested_example": null,
       "impact": "low",
@@ -762,10 +762,10 @@
     {
       "key": "SCREENSHOT_LOAD_WAIT",
       "title": "Screenshot Load Wait",
-      "description": "Time before selenium times out after waiting for all DOM class elements named \"loading\" are gone.",
+      "description": "Wait time in seconds for page to load during screenshot capture.",
       "type": "string",
       "category": "general",
-      "default": "<Call>",
+      "default": "<unknown>",
       "env_var": "SUPERSET__SCREENSHOT_LOAD_WAIT",
       "nested_example": null,
       "impact": "low",
@@ -774,7 +774,7 @@
     {
       "key": "SCREENSHOT_SELENIUM_RETRIES",
       "title": "Screenshot Selenium Retries",
-      "description": "Selenium destroy retries",
+      "description": "Number of retries for Selenium screenshot capture.",
       "type": "integer",
       "category": "general",
       "default": 5,
@@ -786,7 +786,7 @@
     {
       "key": "SCREENSHOT_SELENIUM_HEADSTART",
       "title": "Screenshot Selenium Headstart",
-      "description": "Give selenium an headstart, in seconds",
+      "description": "Head start time in seconds for Selenium screenshot capture.",
       "type": "integer",
       "category": "general",
       "default": 3,
@@ -798,7 +798,7 @@
     {
       "key": "SCREENSHOT_SELENIUM_ANIMATION_WAIT",
       "title": "Screenshot Selenium Animation Wait",
-      "description": "Wait for the chart animation, in seconds",
+      "description": "Wait time in seconds for animations to complete during screenshot capture.",
       "type": "integer",
       "category": "general",
       "default": 5,
@@ -810,7 +810,7 @@
     {
       "key": "SCREENSHOT_REPLACE_UNEXPECTED_ERRORS",
       "title": "Screenshot Replace Unexpected Errors",
-      "description": "Replace unexpected errors in screenshots with real error messages",
+      "description": "Whether to replace unexpected errors with generic messages in screenshots.",
       "type": "boolean",
       "category": "general",
       "default": false,
@@ -822,7 +822,7 @@
     {
       "key": "SCREENSHOT_WAIT_FOR_ERROR_MODAL_VISIBLE",
       "title": "Screenshot Wait For Error Modal Visible",
-      "description": "Max time to wait for error message modal to show up, in seconds",
+      "description": "Wait time in seconds for error modal to become visible.",
       "type": "integer",
       "category": "general",
       "default": 5,
@@ -834,7 +834,7 @@
     {
       "key": "SCREENSHOT_WAIT_FOR_ERROR_MODAL_INVISIBLE",
       "title": "Screenshot Wait For Error Modal Invisible",
-      "description": "Max time to wait for error message modal to close, in seconds",
+      "description": "Wait time in seconds for error modal to become invisible.",
       "type": "integer",
       "category": "general",
       "default": 5,
@@ -846,7 +846,7 @@
     {
       "key": "SCREENSHOT_PLAYWRIGHT_WAIT_EVENT",
       "title": "Screenshot Playwright Wait Event",
-      "description": "Event that Playwright waits for when loading a new page Possible values: \"load\", \"commit\", \"domcontentloaded\", \"networkidle\" Docs: https://playwright.dev/python/docs/api/class-page#page-goto-option-wait-until",
+      "description": "Playwright wait event for page loading. Options: `\"domcontentloaded\"`, `\"load\"`, `\"networkidle\"`.",
       "type": "string",
       "category": "general",
       "default": "domcontentloaded",
@@ -858,10 +858,10 @@
     {
       "key": "SCREENSHOT_PLAYWRIGHT_DEFAULT_TIMEOUT",
       "title": "Screenshot Playwright Default Timeout",
-      "description": "Default timeout for Playwright browser context for all operations",
+      "description": "Default timeout in seconds for Playwright operations.",
       "type": "string",
       "category": "performance",
-      "default": "<Call>",
+      "default": "<unknown>",
       "env_var": "SUPERSET__SCREENSHOT_PLAYWRIGHT_DEFAULT_TIMEOUT",
       "nested_example": null,
       "impact": "medium",
@@ -870,7 +870,7 @@
     {
       "key": "UPLOAD_FOLDER",
       "title": "Upload Folder",
-      "description": "--------------------------------------------------- Image and file configuration --------------------------------------------------- The file upload folder, when using models with files",
+      "description": "Directory for temporary file uploads. Should be writable by the Superset process.",
       "type": "string",
       "category": "general",
       "default": "<BinOp>",
@@ -882,7 +882,7 @@
     {
       "key": "UPLOAD_CHUNK_SIZE",
       "title": "Upload Chunk Size",
-      "description": "",
+      "description": "Chunk size in bytes for file uploads. Affects memory usage during uploads.",
       "type": "integer",
       "category": "general",
       "default": 4096,
@@ -894,10 +894,10 @@
     {
       "key": "CACHE_DEFAULT_TIMEOUT",
       "title": "Cache Default Timeout",
-      "description": "--------------------------------------------------- Cache configuration --------------------------------------------------- Default cache timeout, applies to all cache backends unless specifically overridden in each cache config.",
+      "description": "Default cache timeout in seconds. Applies to all cache backends unless specifically overridden.",
       "type": "string",
       "category": "performance",
-      "default": "<Call>",
+      "default": "<unknown>",
       "env_var": "SUPERSET__CACHE_DEFAULT_TIMEOUT",
       "nested_example": null,
       "impact": "medium",
@@ -906,7 +906,7 @@
     {
       "key": "STORE_CACHE_KEYS_IN_METADATA_DB",
       "title": "Store Cache Keys In Metadata Db",
-      "description": "store cache keys by datasource UID (via CacheKey) for custom processing/invalidation",
+      "description": "Whether to store cache keys in the metadata database. Enables cache key tracking but may impact performance.",
       "type": "boolean",
       "category": "performance",
       "default": false,
@@ -918,7 +918,7 @@
     {
       "key": "ENABLE_CORS",
       "title": "Enable Cors",
-      "description": "CORS Options NOTE: enabling this requires installing the cors-related python dependencies `pip install .[cors]` or `pip install apache_superset[cors]`, depending",
+      "description": "**[Cross-Origin Resource Sharing](https://flask-cors.readthedocs.io/)**: Enable Cross-Origin Resource Sharing. Set to `True` if your frontend is served from a different domain. Requires: `pip install flask-cors`",
       "type": "boolean",
       "category": "features",
       "default": false,
@@ -930,7 +930,7 @@
     {
       "key": "HTML_SANITIZATION",
       "title": "Html Sanitization",
-      "description": "Sanitizes the HTML content used in markdowns to allow its rendering in a safe manner. Disabling this option is not recommended for security reasons. If you wish to allow valid safe elements that are not included in the default sanitization schema, use the HTML_SANITIZATION_SCHEMA_EXTENSIONS configuration.",
+      "description": "Enable HTML sanitization for user inputs. **Keep enabled** for security.",
       "type": "boolean",
       "category": "general",
       "default": true,
@@ -942,7 +942,7 @@
     {
       "key": "SUPERSET_WEBSERVER_DOMAINS",
       "title": "Superset Webserver Domains",
-      "description": "than 6 slices in dashboard, a lot of time fetch requests are queued up and wait for next available socket. PR #5039 added domain sharding for Superset, and this feature can be enabled by configuration only (by default Superset doesn't allow cross-domain request). This feature is deprecated, annd will be removed in the next major version of Superset, as enabling HTTP2 will serve the same goals.",
+      "description": "List of allowed domains for the webserver. Used for security validation.",
       "type": "null",
       "category": "general",
       "default": null,
@@ -954,7 +954,7 @@
     {
       "key": "EXCEL_EXTENSIONS",
       "title": "Excel Extensions",
-      "description": "Allowed format types for upload on Database view",
+      "description": "Set of allowed Excel file extensions for uploads.",
       "type": "string",
       "category": "general",
       "default": "<Set>",
@@ -966,7 +966,7 @@
     {
       "key": "CSV_EXTENSIONS",
       "title": "Csv Extensions",
-      "description": "",
+      "description": "Set of allowed CSV file extensions for uploads.",
       "type": "string",
       "category": "general",
       "default": "<Set>",
@@ -978,7 +978,7 @@
     {
       "key": "COLUMNAR_EXTENSIONS",
       "title": "Columnar Extensions",
-      "description": "",
+      "description": "Set of allowed columnar file extensions (Parquet, etc.) for uploads.",
       "type": "string",
       "category": "general",
       "default": "<Set>",
@@ -990,7 +990,7 @@
     {
       "key": "ALLOWED_EXTENSIONS",
       "title": "Allowed Extensions",
-      "description": "",
+      "description": "Combined set of all allowed file extensions for uploads.",
       "type": "string",
       "category": "general",
       "default": "<Set>",
@@ -1002,7 +1002,7 @@
     {
       "key": "CSV_EXPORT",
       "title": "Csv Export",
-      "description": "CSV Options: key/value pairs that will be passed as argument to DataFrame.to_csv method. note: index option should not be overridden",
+      "description": "Configuration for CSV export functionality including encoding settings.",
       "type": "object",
       "category": "general",
       "default": {
@@ -1016,10 +1016,10 @@
     {
       "key": "DEFAULT_MODULE_DS_MAP",
       "title": "Default Module Ds Map",
-      "description": "-------------------------------------------------- Modules, datasources and middleware to be registered --------------------------------------------------",
+      "description": "Default module-to-datasource mapping for backwards compatibility.",
       "type": "string",
       "category": "general",
-      "default": "<Call>",
+      "default": "<OrderedDict()>",
       "env_var": "SUPERSET__DEFAULT_MODULE_DS_MAP",
       "nested_example": null,
       "impact": "low",
@@ -1028,10 +1028,10 @@
     {
       "key": "LOGGING_CONFIGURATOR",
       "title": "Logging Configurator",
-      "description": "1) https://docs.python-guide.org/writing/logging/ 2) https://docs.python.org/2/library/logging.config.html Default configurator will consume the LOG_* settings below",
+      "description": "",
       "type": "string",
       "category": "logging",
-      "default": "<Call>",
+      "default": "<DefaultLoggingConfigurator()>",
       "env_var": "SUPERSET__LOGGING_CONFIGURATOR",
       "nested_example": null,
       "impact": "low",
@@ -1040,7 +1040,7 @@
     {
       "key": "LOG_FORMAT",
       "title": "Log Format",
-      "description": "Console Log Settings",
+      "description": "",
       "type": "string",
       "category": "logging",
       "default": "%(asctime)s:%(levelname)s:%(name)s:%(message)s",
@@ -1064,7 +1064,7 @@
     {
       "key": "ENABLE_TIME_ROTATE",
       "title": "Enable Time Rotate",
-      "description": "--------------------------------------------------- Enable Time Rotate Log Handler --------------------------------------------------- LOG_LEVEL = DEBUG, INFO, WARNING, ERROR, CRITICAL",
+      "description": "",
       "type": "boolean",
       "category": "features",
       "default": false,
@@ -1091,7 +1091,7 @@
       "description": "",
       "type": "string",
       "category": "general",
-      "default": "<Call>",
+      "default": "<os.path.join()>",
       "env_var": "SUPERSET__FILENAME",
       "nested_example": null,
       "impact": "low",
@@ -1136,7 +1136,7 @@
     {
       "key": "QUERY_LOGGER",
       "title": "Query Logger",
-      "description": "client=None, security_manager=None, log_params=None, ): pass",
+      "description": "",
       "type": "null",
       "category": "database",
       "default": null,
@@ -1148,10 +1148,10 @@
     {
       "key": "MAPBOX_API_KEY",
       "title": "Mapbox Api Key",
-      "description": "Set this API key to enable Mapbox visualizations",
+      "description": "",
       "type": "string",
       "category": "general",
-      "default": "<Call>",
+      "default": "<os.environ.get()>",
       "env_var": "SUPERSET__MAPBOX_API_KEY",
       "nested_example": null,
       "impact": "high",
@@ -1160,7 +1160,7 @@
     {
       "key": "SQL_MAX_ROW",
       "title": "Sql Max Row",
-      "description": "Maximum number of rows returned for any analytical database query",
+      "description": "",
       "type": "integer",
       "category": "database",
       "default": 100000,
@@ -1172,7 +1172,7 @@
     {
       "key": "TABLE_VIZ_MAX_ROW_SERVER",
       "title": "Table Viz Max Row Server",
-      "description": "Maximum number of rows for any query with Server Pagination in Table Viz type",
+      "description": "",
       "type": "integer",
       "category": "general",
       "default": 500000,
@@ -1184,7 +1184,7 @@
     {
       "key": "DISPLAY_MAX_ROW",
       "title": "Display Max Row",
-      "description": "Maximum number of rows displayed in SQL Lab UI Is set to avoid out of memory/localstorage issues in browsers. Does not affect exported CSVs",
+      "description": "",
       "type": "integer",
       "category": "general",
       "default": 10000,
@@ -1196,7 +1196,7 @@
     {
       "key": "DEFAULT_SQLLAB_LIMIT",
       "title": "Default Sqllab Limit",
-      "description": "Default row limit for SQL Lab queries. Is overridden by setting a new limit in the SQL Lab UI",
+      "description": "",
       "type": "integer",
       "category": "performance",
       "default": 1000,
@@ -1208,7 +1208,7 @@
     {
       "key": "SQLLAB_SAVE_WARNING_MESSAGE",
       "title": "Sqllab Save Warning Message",
-      "description": "Adds a warning message on sqllab save query and schedule query modals.",
+      "description": "Warning message shown when saving queries in SQL Lab.",
       "type": "null",
       "category": "database",
       "default": null,
@@ -1220,7 +1220,7 @@
     {
       "key": "SQLLAB_SCHEDULE_WARNING_MESSAGE",
       "title": "Sqllab Schedule Warning Message",
-      "description": "",
+      "description": "Warning message shown when scheduling queries in SQL Lab.",
       "type": "null",
       "category": "database",
       "default": null,
@@ -1232,7 +1232,7 @@
     {
       "key": "SQLLAB_PAYLOAD_MAX_MB",
       "title": "Sqllab Payload Max Mb",
-      "description": "Max payload size (MB) for SQL Lab to prevent browser hangs with large results.",
+      "description": "",
       "type": "null",
       "category": "database",
       "default": null,
@@ -1244,7 +1244,7 @@
     {
       "key": "DASHBOARD_AUTO_REFRESH_INTERVALS",
       "title": "Dashboard Auto Refresh Intervals",
-      "description": "Dashboard auto refresh intervals",
+      "description": "",
       "type": "array",
       "category": "general",
       "default": [
@@ -1297,10 +1297,10 @@
     {
       "key": "CELERY_BEAT_SCHEDULER_EXPIRES",
       "title": "Celery Beat Scheduler Expires",
-      "description": "This is used as a workaround for the alerts & reports scheduler task to get the time celery beat triggered it, see https://github.com/celery/celery/issues/6974 for details",
+      "description": "**[Distributed task queue for async processing](https://docs.celeryq.dev/)**: Expiration time for scheduled tasks. Used for alerts & reports scheduler timing.",
       "type": "string",
       "category": "async",
-      "default": "<Call>",
+      "default": "<timedelta()>",
       "env_var": "SUPERSET__CELERY_BEAT_SCHEDULER_EXPIRES",
       "nested_example": null,
       "impact": "low",
@@ -1309,7 +1309,7 @@
     {
       "key": "DEFAULT_DB_ID",
       "title": "Default Db Id",
-      "description": "The db id here results in selecting this one as a default in SQL Lab",
+      "description": "",
       "type": "null",
       "category": "database",
       "default": null,
@@ -1321,10 +1321,10 @@
     {
       "key": "SQLLAB_TIMEOUT",
       "title": "Sqllab Timeout",
-      "description": "Timeout duration for SQL Lab synchronous queries",
+      "description": "Timeout in seconds for synchronous SQL Lab queries.",
       "type": "string",
       "category": "performance",
-      "default": "<Call>",
+      "default": "<unknown>",
       "env_var": "SUPERSET__SQLLAB_TIMEOUT",
       "nested_example": null,
       "impact": "medium",
@@ -1333,10 +1333,10 @@
     {
       "key": "SQLLAB_VALIDATION_TIMEOUT",
       "title": "Sqllab Validation Timeout",
-      "description": "Timeout duration for SQL Lab query validation",
+      "description": "Timeout in seconds for SQL validation in SQL Lab.",
       "type": "string",
       "category": "performance",
-      "default": "<Call>",
+      "default": "<unknown>",
       "env_var": "SUPERSET__SQLLAB_VALIDATION_TIMEOUT",
       "nested_example": null,
       "impact": "medium",
@@ -1345,7 +1345,7 @@
     {
       "key": "SQLLAB_DEFAULT_DBID",
       "title": "Sqllab Default Dbid",
-      "description": "SQLLAB_DEFAULT_DBID",
+      "description": "Default database ID for SQL Lab.",
       "type": "null",
       "category": "database",
       "default": null,
@@ -1357,10 +1357,10 @@
     {
       "key": "SQLLAB_ASYNC_TIME_LIMIT_SEC",
       "title": "Sqllab Async Time Limit Sec",
-      "description": "The MAX duration a query can run for before being killed by celery.",
+      "description": "**[Distributed task queue for async processing](https://docs.celeryq.dev/)**: Maximum duration (in seconds) a SQL query can run before being killed by Celery worker.",
       "type": "string",
       "category": "performance",
-      "default": "<Call>",
+      "default": "<unknown>",
       "env_var": "SUPERSET__SQLLAB_ASYNC_TIME_LIMIT_SEC",
       "nested_example": null,
       "impact": "medium",
@@ -1369,10 +1369,10 @@
     {
       "key": "SQLLAB_QUERY_COST_ESTIMATE_TIMEOUT",
       "title": "Sqllab Query Cost Estimate Timeout",
-      "description": "Some databases support running EXPLAIN queries that allow users to estimate query costs before they run. These EXPLAIN queries should have a small timeout.",
+      "description": "Timeout in seconds for query cost estimation.",
       "type": "string",
       "category": "performance",
-      "default": "<Call>",
+      "default": "<unknown>",
       "env_var": "SUPERSET__SQLLAB_QUERY_COST_ESTIMATE_TIMEOUT",
       "nested_example": null,
       "impact": "medium",
@@ -1381,7 +1381,7 @@
     {
       "key": "SQLLAB_QUERY_RESULT_TIMEOUT",
       "title": "Sqllab Query Result Timeout",
-      "description": "Timeout duration for SQL Lab fetching query results by the resultsKey. 0 means no timeout.",
+      "description": "",
       "type": "integer",
       "category": "performance",
       "default": 0,
@@ -1393,7 +1393,7 @@
     {
       "key": "SQLLAB_CTAS_NO_LIMIT",
       "title": "Sqllab Ctas No Limit",
-      "description": "Flag that controls if limit should be enforced on the CTA (create table as queries).",
+      "description": "Disable row limit for CREATE TABLE AS SELECT operations in SQL Lab.",
       "type": "boolean",
       "category": "performance",
       "default": false,
@@ -1405,7 +1405,7 @@
     {
       "key": "RESULTS_BACKEND_USE_MSGPACK",
       "title": "Results Backend Use Msgpack",
-      "description": "Use PyArrow and MessagePack for async query results serialization, rather than JSON. This feature requires additional testing from the community before it is fully adopted, so this config option is provided in order to disable should breaking issues be discovered.",
+      "description": "Use MessagePack for results backend serialization.",
       "type": "boolean",
       "category": "general",
       "default": true,
@@ -1417,7 +1417,7 @@
     {
       "key": "CSV_TO_HIVE_UPLOAD_S3_BUCKET",
       "title": "Csv To Hive Upload S3 Bucket",
-      "description": "The S3 bucket where you want to store your external hive tables created from CSV files. For example, 'companyname-superset'",
+      "description": "",
       "type": "null",
       "category": "general",
       "default": null,
@@ -1429,7 +1429,7 @@
     {
       "key": "CSV_TO_HIVE_UPLOAD_DIRECTORY",
       "title": "Csv To Hive Upload Directory",
-      "description": "The directory within the bucket specified above that will contain all the external tables",
+      "description": "",
       "type": "string",
       "category": "general",
       "default": "EXTERNAL_HIVE_TABLES/",
@@ -1453,10 +1453,10 @@
     {
       "key": "CSV_DEFAULT_NA_NAMES",
       "title": "Csv Default Na Names",
-      "description": "Values that should be treated as nulls for the csv uploads.",
+      "description": "",
       "type": "string",
       "category": "general",
-      "default": "<Call>",
+      "default": "<list()>",
       "env_var": "SUPERSET__CSV_DEFAULT_NA_NAMES",
       "nested_example": null,
       "impact": "low",
@@ -1465,7 +1465,7 @@
     {
       "key": "ROBOT_PERMISSION_ROLES",
       "title": "Robot Permission Roles",
-      "description": "Roles that are controlled by the API / Superset and should not be changed by humans.",
+      "description": "",
       "type": "array",
       "category": "general",
       "default": [
@@ -1495,7 +1495,7 @@
     {
       "key": "FLASK_APP_MUTATOR",
       "title": "Flask App Mutator",
-      "description": "If a callable is specified, it will be called at app startup while passing a reference to the Flask app. This can be used to alter the Flask app in whatever way. example: FLASK_APP_MUTATOR = lambda x: x.before_request = f",
+      "description": "Callable function to mutate Flask app at startup. Receives Flask app instance as parameter.",
       "type": "null",
       "category": "general",
       "default": null,
@@ -1507,7 +1507,7 @@
     {
       "key": "SMTP_HOST",
       "title": "Smtp Host",
-      "description": "smtp server configuration",
+      "description": "",
       "type": "string",
       "category": "email",
       "default": "localhost",
@@ -1591,7 +1591,7 @@
     {
       "key": "SMTP_SSL_SERVER_AUTH",
       "title": "Smtp Ssl Server Auth",
-      "description": "If True creates a default SSL context with ssl.Purpose.CLIENT_AUTH using the default system root CA certificates.",
+      "description": "",
       "type": "boolean",
       "category": "security",
       "default": false,
@@ -1615,7 +1615,7 @@
     {
       "key": "SILENCE_FAB",
       "title": "Silence Fab",
-      "description": "Whether to bump the logging level to ERROR on the flask_appbuilder package Set to False if/when debugging FAB related issues like permission management",
+      "description": "**[Authentication, authorization, and admin interface](https://flask-appbuilder.readthedocs.io/)**: Whether to bump logging level to ERROR on flask_appbuilder package. Set to `False` for debugging AppBuilder issues.",
       "type": "boolean",
       "category": "general",
       "default": true,
@@ -1687,7 +1687,7 @@
     {
       "key": "TROUBLESHOOTING_LINK",
       "title": "Troubleshooting Link",
-      "description": "The link to a page containing common errors and their resolutions It will be appended at the bottom of sql_lab errors.",
+      "description": "",
       "type": "string",
       "category": "general",
       "default": "",
@@ -1699,10 +1699,10 @@
     {
       "key": "WTF_CSRF_TIME_LIMIT",
       "title": "Wtf Csrf Time Limit",
-      "description": "CSRF token timeout, set to None for a token that never expires",
+      "description": "",
       "type": "string",
       "category": "performance",
-      "default": "<Call>",
+      "default": "<unknown>",
       "env_var": "SUPERSET__WTF_CSRF_TIME_LIMIT",
       "nested_example": null,
       "impact": "medium",
@@ -1711,7 +1711,7 @@
     {
       "key": "PERMISSION_INSTRUCTIONS_LINK",
       "title": "Permission Instructions Link",
-      "description": "This link should lead to a page with instructions on how to gain access to a Datasource. It will be placed at the bottom of permissions errors.",
+      "description": "",
       "type": "string",
       "category": "general",
       "default": "",
@@ -1723,7 +1723,7 @@
     {
       "key": "TRACKING_URL_TRANSFORMER",
       "title": "Tracking Url Transformer",
-      "description": "to your transformer function, e.g.: TRACKING_URL_TRANSFORMER = ( lambda url, query: url if is_fresh(query) else None ) pylint: disable-next=unnecessary-lambda-assignment",
+      "description": "",
       "type": "string",
       "category": "general",
       "default": "<Lambda>",
@@ -1735,10 +1735,10 @@
     {
       "key": "PRESTO_POLL_INTERVAL",
       "title": "Presto Poll Interval",
-      "description": "Interval between consecutive polls when using Presto Engine See here: https://github.com/dropbox/PyHive/blob/8eb0aeab8ca300f3024655419b93dad926c1a351/pyhive/presto.py#L93  # noqa: E501",
+      "description": "",
       "type": "string",
       "category": "general",
-      "default": "<Call>",
+      "default": "<unknown>",
       "env_var": "SUPERSET__PRESTO_POLL_INTERVAL",
       "nested_example": null,
       "impact": "low",
@@ -1747,7 +1747,7 @@
     {
       "key": "DASHBOARD_TEMPLATE_ID",
       "title": "Dashboard Template Id",
-      "description": "The id of a template dashboard that should be copied to every new user",
+      "description": "",
       "type": "null",
       "category": "general",
       "default": null,
@@ -1771,7 +1771,7 @@
     {
       "key": "DB_CONNECTION_MUTATOR",
       "title": "Db Connection Mutator",
-      "description": "uri.username = user.email return uri, params Note that the returned uri and params are passed directly to sqlalchemy's as such `create_engine(url, **params)`",
+      "description": "Function to mutate database connection parameters. Useful for dynamic authentication.",
       "type": "null",
       "category": "database",
       "default": null,
@@ -1783,7 +1783,7 @@
     {
       "key": "MUTATE_AFTER_SPLIT",
       "title": "Mutate After Split",
-      "description": "It allows for using the SQL_QUERY_MUTATOR function for more than comments Usage: If you want to apply a change to every statement to a given query, set MUTATE_AFTER_SPLIT = True  # noqa: E501 An example use case is if data has role based access controls, and you want to apply a SET ROLE statement alongside every user query. Changing this variable maintains functionality for both the SQL_Lab and Charts.",
+      "description": "",
       "type": "boolean",
       "category": "general",
       "default": false,
@@ -1795,7 +1795,7 @@
     {
       "key": "MUTATE_ALERT_QUERY",
       "title": "Mutate Alert Query",
-      "description": "Boolean config that determines if alert SQL queries should also be mutated or not.",
+      "description": "",
       "type": "boolean",
       "category": "database",
       "default": false,
@@ -1807,7 +1807,7 @@
     {
       "key": "MACHINE_AUTH_PROVIDER_CLASS",
       "title": "Machine Auth Provider Class",
-      "description": "This auth provider is used by background (offline) tasks that need to access protected resources. Can be overridden by end users in order to support custom auth mechanisms",
+      "description": "Machine authentication provider class for programmatic access.",
       "type": "string",
       "category": "security",
       "default": "superset.utils.machine_auth.MachineAuthProvider",
@@ -1819,7 +1819,7 @@
     {
       "key": "ALERT_REPORTS_CRON_WINDOW_SIZE",
       "title": "Alert Reports Cron Window Size",
-      "description": "--------------------------------------------------- Alerts & Reports --------------------------------------------------- Used for Alerts/Reports (Feature flask ALERT_REPORTS) to set the size for the sliding cron window size, should be synced with the celery beat config minus 1 second",
+      "description": "",
       "type": "integer",
       "category": "general",
       "default": 59,
@@ -1831,7 +1831,7 @@
     {
       "key": "ALERT_REPORTS_WORKING_TIME_OUT_KILL",
       "title": "Alert Reports Working Time Out Kill",
-      "description": "",
+      "description": "Kill alerts/reports that exceed working timeout.",
       "type": "boolean",
       "category": "general",
       "default": true,
@@ -1843,10 +1843,10 @@
     {
       "key": "ALERT_REPORTS_WORKING_TIME_OUT_LAG",
       "title": "Alert Reports Working Time Out Lag",
-      "description": "if ALERT_REPORTS_WORKING_TIME_OUT_KILL is True, set a celery hard timeout Equal to working timeout + ALERT_REPORTS_WORKING_TIME_OUT_LAG",
+      "description": "Lag time in seconds before killing long-running alerts/reports.",
       "type": "string",
       "category": "general",
-      "default": "<Call>",
+      "default": "<unknown>",
       "env_var": "SUPERSET__ALERT_REPORTS_WORKING_TIME_OUT_LAG",
       "nested_example": null,
       "impact": "low",
@@ -1855,10 +1855,10 @@
     {
       "key": "ALERT_REPORTS_WORKING_SOFT_TIME_OUT_LAG",
       "title": "Alert Reports Working Soft Time Out Lag",
-      "description": "if ALERT_REPORTS_WORKING_TIME_OUT_KILL is True, set a celery hard timeout Equal to working timeout + ALERT_REPORTS_WORKING_SOFT_TIME_OUT_LAG",
+      "description": "Soft timeout lag in seconds for alerts/reports.",
       "type": "string",
       "category": "general",
-      "default": "<Call>",
+      "default": "<unknown>",
       "env_var": "SUPERSET__ALERT_REPORTS_WORKING_SOFT_TIME_OUT_LAG",
       "nested_example": null,
       "impact": "low",
@@ -1867,7 +1867,7 @@
     {
       "key": "ALERT_REPORTS_DEFAULT_WORKING_TIMEOUT",
       "title": "Alert Reports Default Working Timeout",
-      "description": "Default values that user using when creating alert",
+      "description": "",
       "type": "integer",
       "category": "performance",
       "default": 3600,
@@ -1903,7 +1903,7 @@
     {
       "key": "ALERT_REPORTS_NOTIFICATION_DRY_RUN",
       "title": "Alert Reports Notification Dry Run",
-      "description": "If set to true no notification is sent, the worker will just log a message. Useful for debugging",
+      "description": "Dry run mode for alert/report notifications. Useful for testing.",
       "type": "boolean",
       "category": "general",
       "default": false,
@@ -1915,7 +1915,7 @@
     {
       "key": "ALERT_REPORTS_QUERY_EXECUTION_MAX_TRIES",
       "title": "Alert Reports Query Execution Max Tries",
-      "description": "Max tries to run queries to prevent false errors caused by transient errors being returned to users. Set to a value >1 to enable retries.",
+      "description": "Maximum number of tries for alert/report query execution.",
       "type": "integer",
       "category": "database",
       "default": 1,
@@ -1927,7 +1927,7 @@
     {
       "key": "ALERT_REPORTS_MIN_CUSTOM_SCREENSHOT_WIDTH",
       "title": "Alert Reports Min Custom Screenshot Width",
-      "description": "Custom width for screenshots",
+      "description": "",
       "type": "integer",
       "category": "general",
       "default": 600,
@@ -1951,10 +1951,10 @@
     {
       "key": "ALERT_MINIMUM_INTERVAL",
       "title": "Alert Minimum Interval",
-      "description": "Set a minimum interval threshold between executions (for each Alert/Report) Value should be an integer i.e. int(timedelta(minutes=5).total_seconds()) You can also assign a function to the config that returns the expected integer",
+      "description": "",
       "type": "string",
       "category": "general",
-      "default": "<Call>",
+      "default": "<unknown>",
       "env_var": "SUPERSET__ALERT_MINIMUM_INTERVAL",
       "nested_example": null,
       "impact": "low",
@@ -1966,7 +1966,7 @@
       "description": "",
       "type": "string",
       "category": "general",
-      "default": "<Call>",
+      "default": "<unknown>",
       "env_var": "SUPERSET__REPORT_MINIMUM_INTERVAL",
       "nested_example": null,
       "impact": "low",
@@ -1975,7 +1975,7 @@
     {
       "key": "EMAIL_REPORTS_SUBJECT_PREFIX",
       "title": "Email Reports Subject Prefix",
-      "description": "A custom prefix to use on all Alerts & Reports emails",
+      "description": "",
       "type": "string",
       "category": "email",
       "default": "[Report] ",
@@ -1987,7 +1987,7 @@
     {
       "key": "EMAIL_REPORTS_CTA",
       "title": "Email Reports Cta",
-      "description": "The text for call-to-action link in Alerts & Reports emails",
+      "description": "",
       "type": "string",
       "category": "email",
       "default": "Explore in Superset",
@@ -2014,7 +2014,7 @@
       "description": "",
       "type": "string",
       "category": "performance",
-      "default": "<Call>",
+      "default": "<unknown>",
       "env_var": "SUPERSET__SLACK_CACHE_TIMEOUT",
       "nested_example": null,
       "impact": "medium",
@@ -2023,7 +2023,7 @@
     {
       "key": "WEBDRIVER_TYPE",
       "title": "Webdriver Type",
-      "description": "Requires: geckodriver and firefox installations Limitations: can be buggy at times chrome: Requires: headless chrome Limitations: unable to generate screenshots of elements",
+      "description": "",
       "type": "string",
       "category": "general",
       "default": "firefox",
@@ -2035,7 +2035,7 @@
     {
       "key": "WEBDRIVER_WINDOW",
       "title": "Webdriver Window",
-      "description": "Window size - this will impact the rendering of the data",
+      "description": "Window configuration for webdriver operations.",
       "type": "object",
       "category": "general",
       "default": {
@@ -2051,7 +2051,7 @@
     {
       "key": "WEBDRIVER_AUTH_FUNC",
       "title": "Webdriver Auth Func",
-      "description": "An optional override to the default auth hook used to provide auth to the offline webdriver (when using Selenium) or browser context (when using Playwright - see PLAYWRIGHT_REPORTS_AND_THUMBNAILS feature flag)",
+      "description": "",
       "type": "null",
       "category": "security",
       "default": null,
@@ -2063,7 +2063,7 @@
     {
       "key": "WEBDRIVER_CONFIGURATION",
       "title": "Webdriver Configuration",
-      "description": "Any config options to be passed as-is to the webdriver",
+      "description": "",
       "type": "object",
       "category": "general",
       "default": {
@@ -2087,7 +2087,7 @@
     {
       "key": "WEBDRIVER_OPTION_ARGS",
       "title": "Webdriver Option Args",
-      "description": "Additional args to be passed as arguments to the config object Note: If using Chrome, you'll want to add the \"--marionette\" arg.",
+      "description": "Command-line arguments for webdriver (Chrome/Firefox).",
       "type": "array",
       "category": "general",
       "default": [
@@ -2101,7 +2101,7 @@
     {
       "key": "WEBDRIVER_BASEURL",
       "title": "Webdriver Baseurl",
-      "description": "The base URL to query for accessing the user interface",
+      "description": "Base URL for webdriver operations. Used for screenshot and export functionality.",
       "type": "string",
       "category": "general",
       "default": "http://0.0.0.0:8080/",
@@ -2113,7 +2113,7 @@
     {
       "key": "WEBDRIVER_BASEURL_USER_FRIENDLY",
       "title": "Webdriver Baseurl User Friendly",
-      "description": "The base URL for the email report hyperlinks.",
+      "description": "User-friendly base URL for webdriver operations.",
       "type": "string",
       "category": "general",
       "default": "<WEBDRIVER_BASEURL>",
@@ -2125,10 +2125,10 @@
     {
       "key": "EMAIL_PAGE_RENDER_WAIT",
       "title": "Email Page Render Wait",
-      "description": "Time selenium will wait for the page to load and render for the email report.",
+      "description": "",
       "type": "string",
       "category": "email",
-      "default": "<Call>",
+      "default": "<unknown>",
       "env_var": "SUPERSET__EMAIL_PAGE_RENDER_WAIT",
       "nested_example": null,
       "impact": "low",
@@ -2137,7 +2137,7 @@
     {
       "key": "BUG_REPORT_URL",
       "title": "Bug Report Url",
-      "description": "Send user to a link where they can report bugs",
+      "description": "",
       "type": "null",
       "category": "general",
       "default": null,
@@ -2173,7 +2173,7 @@
     {
       "key": "DOCUMENTATION_URL",
       "title": "Documentation Url",
-      "description": "Send user to a link where they can read more about Superset",
+      "description": "",
       "type": "null",
       "category": "general",
       "default": null,
@@ -2209,7 +2209,7 @@
     {
       "key": "DEFAULT_RELATIVE_START_TIME",
       "title": "Default Relative Start Time",
-      "description": "'now' means it is relative to the query issue time If both start and end time is set to now, this will make the time filter a moving window. By only setting the end time to now, start time will be set to midnight, while end will be relative to the query issue time.",
+      "description": "",
       "type": "string",
       "category": "general",
       "default": "today",
@@ -2233,7 +2233,7 @@
     {
       "key": "SQL_VALIDATORS_BY_ENGINE",
       "title": "Sql Validators By Engine",
-      "description": "Configure which SQL validator to use for each engine",
+      "description": "",
       "type": "object",
       "category": "database",
       "default": {
@@ -2248,10 +2248,10 @@
     {
       "key": "TEST_DATABASE_CONNECTION_TIMEOUT",
       "title": "Test Database Connection Timeout",
-      "description": "When adding a new database we try to connect to it. Depending on which parameters are incorrect this could take a couple minutes, until the SQLAlchemy driver pinging the database times out. Instead of relying on the driver timeout we can specify a shorter one here.",
+      "description": "",
       "type": "string",
       "category": "performance",
-      "default": "<Call>",
+      "default": "<timedelta()>",
       "env_var": "SUPERSET__TEST_DATABASE_CONNECTION_TIMEOUT",
       "nested_example": null,
       "impact": "high",
@@ -2260,7 +2260,7 @@
     {
       "key": "DATABASE_OAUTH2_JWT_ALGORITHM",
       "title": "Database Oauth2 Jwt Algorithm",
-      "description": "OAuth2 state is encoded in a JWT using the alogorithm below.",
+      "description": "",
       "type": "string",
       "category": "database",
       "default": "HS256",
@@ -2272,10 +2272,10 @@
     {
       "key": "DATABASE_OAUTH2_TIMEOUT",
       "title": "Database Oauth2 Timeout",
-      "description": "applications. In that case, the proxy can forward the request to the correct instance by looking at the `default_redirect_uri` attribute in the OAuth2 state object. DATABASE_OAUTH2_REDIRECT_URI = \"http://localhost:8088/api/v1/database/oauth2/\" Timeout when fetching access and refresh tokens.",
+      "description": "",
       "type": "string",
       "category": "performance",
-      "default": "<Call>",
+      "default": "<timedelta()>",
       "env_var": "SUPERSET__DATABASE_OAUTH2_TIMEOUT",
       "nested_example": null,
       "impact": "high",
@@ -2284,7 +2284,7 @@
     {
       "key": "CONTENT_SECURITY_POLICY_WARNING",
       "title": "Content Security Policy Warning",
-      "description": "Enable/disable CSP warning",
+      "description": "",
       "type": "boolean",
       "category": "security",
       "default": true,
@@ -2308,7 +2308,7 @@
     {
       "key": "TALISMAN_CONFIG",
       "title": "Talisman Config",
-      "description": "If you want Talisman, how do you want it configured?? For more information on setting up Talisman, please refer to https://superset.apache.org/docs/configuration/networking-settings/#changing-flask-talisman-csp",
+      "description": "",
       "type": "object",
       "category": "general",
       "default": {
@@ -2361,7 +2361,7 @@
     {
       "key": "TALISMAN_DEV_CONFIG",
       "title": "Talisman Dev Config",
-      "description": "React requires `eval` to work correctly in dev mode",
+      "description": "",
       "type": "object",
       "category": "general",
       "default": {
@@ -2416,7 +2416,7 @@
     {
       "key": "SESSION_COOKIE_HTTPONLY",
       "title": "Session Cookie Httponly",
-      "description": "Flask session cookie options See https://flask.palletsprojects.com/en/1.1.x/security/#set-cookie-options for details",
+      "description": "",
       "type": "boolean",
       "category": "general",
       "default": true,
@@ -2440,7 +2440,7 @@
     {
       "key": "SESSION_SERVER_SIDE",
       "title": "Session Server Side",
-      "description": "Whether to use server side sessions from flask-session or Flask secure cookies",
+      "description": "",
       "type": "boolean",
       "category": "general",
       "default": false,
@@ -2452,10 +2452,10 @@
     {
       "key": "SEND_FILE_MAX_AGE_DEFAULT",
       "title": "Send File Max Age Default",
-      "description": "Other possible config options and backends: # https://flask-session.readthedocs.io/en/latest/config.html Cache static resources.",
+      "description": "",
       "type": "string",
       "category": "general",
-      "default": "<Call>",
+      "default": "<unknown>",
       "env_var": "SUPERSET__SEND_FILE_MAX_AGE_DEFAULT",
       "nested_example": null,
       "impact": "low",
@@ -2464,7 +2464,7 @@
     {
       "key": "SQLALCHEMY_EXAMPLES_URI",
       "title": "Sqlalchemy Examples Uri",
-      "description": "URI to database storing the example data, points to SQLALCHEMY_DATABASE_URI by default if set to `None`",
+      "description": "",
       "type": "string",
       "category": "database",
       "default": "<BinOp>",
@@ -2476,7 +2476,7 @@
     {
       "key": "STATIC_ASSETS_PREFIX",
       "title": "Static Assets Prefix",
-      "description": "Optional prefix to be added to all static asset paths when rendering the UI. This is useful for hosting assets in an external CDN, for example",
+      "description": "",
       "type": "string",
       "category": "general",
       "default": "",
@@ -2488,7 +2488,7 @@
     {
       "key": "PREVENT_UNSAFE_DB_CONNECTIONS",
       "title": "Prevent Unsafe Db Connections",
-      "description": "Some sqlalchemy connection strings can open Superset to security risks. Typically these should not be allowed.",
+      "description": "",
       "type": "boolean",
       "category": "database",
       "default": true,
@@ -2500,7 +2500,7 @@
     {
       "key": "PREVENT_UNSAFE_DEFAULT_URLS_ON_DATASET",
       "title": "Prevent Unsafe Default Urls On Dataset",
-      "description": "If true all default urls on datasets will be handled as relative URLs by the frontend",
+      "description": "Prevent potentially unsafe default URLs on datasets. **Security feature**.",
       "type": "boolean",
       "category": "general",
       "default": true,
@@ -2512,7 +2512,7 @@
     {
       "key": "DATASET_IMPORT_ALLOWED_DATA_URLS",
       "title": "Dataset Import Allowed Data Urls",
-      "description": "Define a list of allowed URLs for dataset data imports (v1). Simple example to only allow URLs that belong to certain domains: ALLOWED_IMPORT_URL_DOMAINS = [ r\"^https://.+\\.domain1\\.com\\/?.*\", r\"^https://.+\\.domain2\\.com\\/?.*\" ]",
+      "description": "",
       "type": "array",
       "category": "general",
       "default": [
@@ -2526,7 +2526,7 @@
     {
       "key": "SQLA_TABLE_MUTATOR",
       "title": "Sqla Table Mutator",
-      "description": "to allow mutating the object with this callback. This can be used to set any properties of the object based on naming conventions and such. You can find examples in the tests. pylint: disable-next=unnecessary-lambda-assignment",
+      "description": "",
       "type": "string",
       "category": "database",
       "default": "<Lambda>",
@@ -2538,7 +2538,7 @@
     {
       "key": "GLOBAL_ASYNC_QUERY_MANAGER_CLASS",
       "title": "Global Async Query Manager Class",
-      "description": "Global async query config options. Requires GLOBAL_ASYNC_QUERIES feature flag to be enabled.",
+      "description": "",
       "type": "string",
       "category": "database",
       "default": "superset.async_events.async_query_manager.AsyncQueryManager",
@@ -2550,7 +2550,7 @@
     {
       "key": "GLOBAL_ASYNC_QUERIES_REDIS_STREAM_PREFIX",
       "title": "Global Async Queries Redis Stream Prefix",
-      "description": "",
+      "description": "Redis stream prefix for global async queries.",
       "type": "string",
       "category": "async",
       "default": "async-events-",
@@ -2562,7 +2562,7 @@
     {
       "key": "GLOBAL_ASYNC_QUERIES_REDIS_STREAM_LIMIT",
       "title": "Global Async Queries Redis Stream Limit",
-      "description": "",
+      "description": "Redis stream limit for global async queries.",
       "type": "integer",
       "category": "performance",
       "default": 1000,
@@ -2574,7 +2574,7 @@
     {
       "key": "GLOBAL_ASYNC_QUERIES_REDIS_STREAM_LIMIT_FIREHOSE",
       "title": "Global Async Queries Redis Stream Limit Firehose",
-      "description": "",
+      "description": "Redis stream limit for global async queries firehose.",
       "type": "integer",
       "category": "performance",
       "default": 1000000,
@@ -2598,7 +2598,7 @@
     {
       "key": "GLOBAL_ASYNC_QUERIES_JWT_COOKIE_NAME",
       "title": "Global Async Queries Jwt Cookie Name",
-      "description": "",
+      "description": "JWT cookie name for global async queries.",
       "type": "string",
       "category": "async",
       "default": "async-token",
@@ -2610,7 +2610,7 @@
     {
       "key": "GLOBAL_ASYNC_QUERIES_JWT_COOKIE_SECURE",
       "title": "Global Async Queries Jwt Cookie Secure",
-      "description": "",
+      "description": "Secure flag for global async queries JWT cookie.",
       "type": "boolean",
       "category": "async",
       "default": false,
@@ -2622,7 +2622,7 @@
     {
       "key": "GLOBAL_ASYNC_QUERIES_JWT_COOKIE_DOMAIN",
       "title": "Global Async Queries Jwt Cookie Domain",
-      "description": "",
+      "description": "Domain for global async queries JWT cookie.",
       "type": "null",
       "category": "async",
       "default": null,
@@ -2634,7 +2634,7 @@
     {
       "key": "GLOBAL_ASYNC_QUERIES_JWT_SECRET",
       "title": "Global Async Queries Jwt Secret",
-      "description": "",
+      "description": "JWT secret for global async queries.",
       "type": "string",
       "category": "async",
       "default": "test-secret-change-me",
@@ -2649,7 +2649,7 @@
       "description": "",
       "type": "string",
       "category": "async",
-      "default": "<Call>",
+      "default": "<unknown>",
       "env_var": "SUPERSET__GLOBAL_ASYNC_QUERIES_POLLING_DELAY",
       "nested_example": null,
       "impact": "low",
@@ -2670,7 +2670,7 @@
     {
       "key": "GLOBAL_ASYNC_QUERIES_CACHE_BACKEND",
       "title": "Global Async Queries Cache Backend",
-      "description": "Global async queries cache backend configuration options: - Set 'CACHE_TYPE' to 'RedisCache' for RedisCacheBackend. - Set 'CACHE_TYPE' to 'RedisSentinelCache' for RedisSentinelCacheBackend.",
+      "description": "",
       "type": "object",
       "category": "performance",
       "default": {
@@ -2700,7 +2700,7 @@
     {
       "key": "GUEST_ROLE_NAME",
       "title": "Guest Role Name",
-      "description": "Embedded config options",
+      "description": "Name of the guest role for anonymous access.",
       "type": "string",
       "category": "general",
       "default": "Public",
@@ -2712,7 +2712,7 @@
     {
       "key": "GUEST_TOKEN_JWT_SECRET",
       "title": "Guest Token Jwt Secret",
-      "description": "",
+      "description": "JWT secret for guest token generation.",
       "type": "string",
       "category": "general",
       "default": "test-guest-secret-change-me",
@@ -2724,7 +2724,7 @@
     {
       "key": "GUEST_TOKEN_JWT_ALGO",
       "title": "Guest Token Jwt Algo",
-      "description": "",
+      "description": "JWT algorithm for guest token generation.",
       "type": "string",
       "category": "general",
       "default": "HS256",
@@ -2736,7 +2736,7 @@
     {
       "key": "GUEST_TOKEN_HEADER_NAME",
       "title": "Guest Token Header Name",
-      "description": "",
+      "description": "Header name for guest token authentication.",
       "type": "string",
       "category": "general",
       "default": "X-GuestToken",
@@ -2748,7 +2748,7 @@
     {
       "key": "GUEST_TOKEN_JWT_EXP_SECONDS",
       "title": "Guest Token Jwt Exp Seconds",
-      "description": "",
+      "description": "Expiration time in seconds for guest tokens.",
       "type": "integer",
       "category": "general",
       "default": 300,
@@ -2760,7 +2760,7 @@
     {
       "key": "GUEST_TOKEN_VALIDATOR_HOOK",
       "title": "Guest Token Validator Hook",
-      "description": "lambda x: len(x['rls']) == 1 and \"tenant_id=\" in x['rls'][0]['clause'] Takes the GuestTokenUser dict as an argument Return False from the callable to return a HTTP 400 to the user.",
+      "description": "",
       "type": "null",
       "category": "general",
       "default": null,
@@ -2772,7 +2772,7 @@
     {
       "key": "ZIPPED_FILE_MAX_SIZE",
       "title": "Zipped File Max Size",
-      "description": "Max allowed size for a zipped file",
+      "description": "",
       "type": "string",
       "category": "general",
       "default": "<BinOp>",
@@ -2784,7 +2784,7 @@
     {
       "key": "ZIP_FILE_MAX_COMPRESS_RATIO",
       "title": "Zip File Max Compress Ratio",
-      "description": "Max allowed compression ratio for a zipped file",
+      "description": "",
       "type": "number",
       "category": "general",
       "default": 200.0,
@@ -2796,7 +2796,7 @@
     {
       "key": "ENVIRONMENT_TAG_CONFIG",
       "title": "Environment Tag Config",
-      "description": "Configuration for environment tag shown on the navbar. Setting 'text' to '' will hide the tag.  # noqa: E501 'color' can either be a hex color code, or a dot-indexed theme color (e.g. error.base)",
+      "description": "",
       "type": "object",
       "category": "general",
       "default": {
@@ -2827,7 +2827,7 @@
       "description": "",
       "type": "string",
       "category": "general",
-      "default": "<Call>",
+      "default": "<os.path.expanduser()>",
       "env_var": "SUPERSET__DATA_DIR",
       "nested_example": null,
       "impact": "low",
@@ -2839,7 +2839,7 @@
       {
         "key": "ALEMBIC_SKIP_LOG_CONFIG",
         "title": "Alembic Skip Log Config",
-        "description": "If True, we will skip the call to load the logger config found in alembic.init",
+        "description": "Skip Alembic log configuration. Set to `True` if you configure logging elsewhere.",
         "type": "boolean",
         "category": "logging",
         "default": false,
@@ -2851,10 +2851,10 @@
       {
         "key": "DEBUG",
         "title": "Debug",
-        "description": "Whether to run the web server in debug mode or not",
+        "description": "Enable Flask debug mode. **Never enable in production**. Use environment variable: `SUPERSET_DEBUG=True`",
         "type": "string",
         "category": "logging",
-        "default": "<Call>",
+        "default": "<parse_boolean_string()>",
         "env_var": "SUPERSET__DEBUG",
         "nested_example": null,
         "impact": "low",
@@ -2863,10 +2863,10 @@
       {
         "key": "EVENT_LOGGER",
         "title": "Event Logger",
-        "description": "By default will log events to the metadata database with `DBEventLogger` Note that you can use `StdOutEventLogger` for debugging Note that you can write your own event logger by extending `AbstractEventLogger` https://github.com/apache/superset/blob/master/superset/utils/log.py",
+        "description": "Event logger instance for audit trails. Default: `DBEventLogger()`",
         "type": "string",
         "category": "logging",
-        "default": "<Call>",
+        "default": "<DBEventLogger()>",
         "env_var": "SUPERSET__EVENT_LOGGER",
         "nested_example": null,
         "impact": "low",
@@ -2875,10 +2875,10 @@
       {
         "key": "LOGGING_CONFIGURATOR",
         "title": "Logging Configurator",
-        "description": "1) https://docs.python-guide.org/writing/logging/ 2) https://docs.python.org/2/library/logging.config.html Default configurator will consume the LOG_* settings below",
+        "description": "",
         "type": "string",
         "category": "logging",
-        "default": "<Call>",
+        "default": "<DefaultLoggingConfigurator()>",
         "env_var": "SUPERSET__LOGGING_CONFIGURATOR",
         "nested_example": null,
         "impact": "low",
@@ -2887,7 +2887,7 @@
       {
         "key": "LOGO_TARGET_PATH",
         "title": "Logo Target Path",
-        "description": "Specify where clicking the logo would take the user' Default value of None will take you to '/superset/welcome' You can also specify a relative URL e.g. '/superset/welcome' or '/dashboards/list' or you can specify a full URL e.g. 'https://foo.bar'",
+        "description": "URL or path where the logo click should redirect. Leave `None` to disable logo clicking.",
         "type": "null",
         "category": "logging",
         "default": null,
@@ -2899,7 +2899,7 @@
       {
         "key": "LOGO_TOOLTIP",
         "title": "Logo Tooltip",
-        "description": "Specify tooltip that should appear when hovering over the App Icon/Logo",
+        "description": "Tooltip text shown when hovering over the logo. Leave empty for no tooltip.",
         "type": "string",
         "category": "logging",
         "default": "",
@@ -2911,7 +2911,7 @@
       {
         "key": "LOG_FORMAT",
         "title": "Log Format",
-        "description": "Console Log Settings",
+        "description": "",
         "type": "string",
         "category": "logging",
         "default": "%(asctime)s:%(levelname)s:%(name)s:%(message)s",
@@ -2935,10 +2935,10 @@
       {
         "key": "STATS_LOGGER",
         "title": "Stats Logger",
-        "description": "Realtime stats logger, a StatsD implementation exists",
+        "description": "Statistics logger instance for metrics collection. Default: `DummyStatsLogger()`",
         "type": "string",
         "category": "logging",
-        "default": "<Call>",
+        "default": "<DummyStatsLogger()>",
         "env_var": "SUPERSET__STATS_LOGGER",
         "nested_example": null,
         "impact": "low",
@@ -2947,7 +2947,7 @@
       {
         "key": "SUPERSET_LOG_VIEW",
         "title": "Superset Log View",
-        "description": "",
+        "description": "Enable access to log files through the UI. **Disable in production** for security.",
         "type": "boolean",
         "category": "logging",
         "default": true,
@@ -2973,7 +2973,7 @@
       {
         "key": "AUTH_TYPE",
         "title": "Auth Type",
-        "description": "The authentication type AUTH_OID : Is for OpenID AUTH_DB : Is for database (username/password) AUTH_LDAP : Is for LDAP AUTH_REMOTE_USER : Is for using REMOTE_USER from web server",
+        "description": "**[Authentication, authorization, and admin interface](https://flask-appbuilder.readthedocs.io/)**: Authentication type. Options: `AUTH_DB`, `AUTH_OAUTH`, `AUTH_REMOTE_USER`, `AUTH_LDAP`.",
         "type": "string",
         "category": "security",
         "default": "<AUTH_DB>",
@@ -2985,7 +2985,7 @@
       {
         "key": "CONTENT_SECURITY_POLICY_WARNING",
         "title": "Content Security Policy Warning",
-        "description": "Enable/disable CSP warning",
+        "description": "",
         "type": "boolean",
         "category": "security",
         "default": true,
@@ -2997,7 +2997,7 @@
       {
         "key": "CUSTOM_SECURITY_MANAGER",
         "title": "Custom Security Manager",
-        "description": "",
+        "description": "**[Authentication, authorization, and admin interface](https://flask-appbuilder.readthedocs.io/)**: Custom security manager class. Override Flask-AppBuilder default security. Must inherit from `SupersetSecurityManager`.",
         "type": "null",
         "category": "security",
         "default": null,
@@ -3069,7 +3069,7 @@
       {
         "key": "MACHINE_AUTH_PROVIDER_CLASS",
         "title": "Machine Auth Provider Class",
-        "description": "This auth provider is used by background (offline) tasks that need to access protected resources. Can be overridden by end users in order to support custom auth mechanisms",
+        "description": "Machine authentication provider class for programmatic access.",
         "type": "string",
         "category": "security",
         "default": "superset.utils.machine_auth.MachineAuthProvider",
@@ -3081,7 +3081,7 @@
       {
         "key": "SMTP_SSL_SERVER_AUTH",
         "title": "Smtp Ssl Server Auth",
-        "description": "If True creates a default SSL context with ssl.Purpose.CLIENT_AUTH using the default system root CA certificates.",
+        "description": "",
         "type": "boolean",
         "category": "security",
         "default": false,
@@ -3093,7 +3093,7 @@
       {
         "key": "SUPERSET_SECURITY_VIEW_MENU",
         "title": "Superset Security View Menu",
-        "description": "This config is used to enable/disable the folowing security menu items: List Users, List Roles, List Groups",
+        "description": "Enable security view menu in the UI. Shows roles and permissions management.",
         "type": "boolean",
         "category": "security",
         "default": true,
@@ -3105,7 +3105,7 @@
       {
         "key": "WEBDRIVER_AUTH_FUNC",
         "title": "Webdriver Auth Func",
-        "description": "An optional override to the default auth hook used to provide auth to the offline webdriver (when using Selenium) or browser context (when using Playwright - see PLAYWRIGHT_REPORTS_AND_THUMBNAILS feature flag)",
+        "description": "",
         "type": "null",
         "category": "security",
         "default": null,
@@ -3119,10 +3119,10 @@
       {
         "key": "ALERT_MINIMUM_INTERVAL",
         "title": "Alert Minimum Interval",
-        "description": "Set a minimum interval threshold between executions (for each Alert/Report) Value should be an integer i.e. int(timedelta(minutes=5).total_seconds()) You can also assign a function to the config that returns the expected integer",
+        "description": "",
         "type": "string",
         "category": "general",
-        "default": "<Call>",
+        "default": "<unknown>",
         "env_var": "SUPERSET__ALERT_MINIMUM_INTERVAL",
         "nested_example": null,
         "impact": "low",
@@ -3131,7 +3131,7 @@
       {
         "key": "ALERT_REPORTS_CRON_WINDOW_SIZE",
         "title": "Alert Reports Cron Window Size",
-        "description": "--------------------------------------------------- Alerts & Reports --------------------------------------------------- Used for Alerts/Reports (Feature flask ALERT_REPORTS) to set the size for the sliding cron window size, should be synced with the celery beat config minus 1 second",
+        "description": "",
         "type": "integer",
         "category": "general",
         "default": 59,
@@ -3179,7 +3179,7 @@
       {
         "key": "ALERT_REPORTS_MIN_CUSTOM_SCREENSHOT_WIDTH",
         "title": "Alert Reports Min Custom Screenshot Width",
-        "description": "Custom width for screenshots",
+        "description": "",
         "type": "integer",
         "category": "general",
         "default": 600,
@@ -3191,7 +3191,7 @@
       {
         "key": "ALERT_REPORTS_NOTIFICATION_DRY_RUN",
         "title": "Alert Reports Notification Dry Run",
-        "description": "If set to true no notification is sent, the worker will just log a message. Useful for debugging",
+        "description": "Dry run mode for alert/report notifications. Useful for testing.",
         "type": "boolean",
         "category": "general",
         "default": false,
@@ -3203,10 +3203,10 @@
       {
         "key": "ALERT_REPORTS_WORKING_SOFT_TIME_OUT_LAG",
         "title": "Alert Reports Working Soft Time Out Lag",
-        "description": "if ALERT_REPORTS_WORKING_TIME_OUT_KILL is True, set a celery hard timeout Equal to working timeout + ALERT_REPORTS_WORKING_SOFT_TIME_OUT_LAG",
+        "description": "Soft timeout lag in seconds for alerts/reports.",
         "type": "string",
         "category": "general",
-        "default": "<Call>",
+        "default": "<unknown>",
         "env_var": "SUPERSET__ALERT_REPORTS_WORKING_SOFT_TIME_OUT_LAG",
         "nested_example": null,
         "impact": "low",
@@ -3215,7 +3215,7 @@
       {
         "key": "ALERT_REPORTS_WORKING_TIME_OUT_KILL",
         "title": "Alert Reports Working Time Out Kill",
-        "description": "",
+        "description": "Kill alerts/reports that exceed working timeout.",
         "type": "boolean",
         "category": "general",
         "default": true,
@@ -3227,10 +3227,10 @@
       {
         "key": "ALERT_REPORTS_WORKING_TIME_OUT_LAG",
         "title": "Alert Reports Working Time Out Lag",
-        "description": "if ALERT_REPORTS_WORKING_TIME_OUT_KILL is True, set a celery hard timeout Equal to working timeout + ALERT_REPORTS_WORKING_TIME_OUT_LAG",
+        "description": "Lag time in seconds before killing long-running alerts/reports.",
         "type": "string",
         "category": "general",
-        "default": "<Call>",
+        "default": "<unknown>",
         "env_var": "SUPERSET__ALERT_REPORTS_WORKING_TIME_OUT_LAG",
         "nested_example": null,
         "impact": "low",
@@ -3239,7 +3239,7 @@
       {
         "key": "ALLOWED_EXTENSIONS",
         "title": "Allowed Extensions",
-        "description": "",
+        "description": "Combined set of all allowed file extensions for uploads.",
         "type": "string",
         "category": "general",
         "default": "<Set>",
@@ -3263,7 +3263,7 @@
       {
         "key": "APP_ICON",
         "title": "App Icon",
-        "description": "Specify the App icon",
+        "description": "Path to application logo/icon displayed in the UI. Default: `\"/static/assets/images/superset-logo-horiz.png\"`",
         "type": "string",
         "category": "general",
         "default": "/static/assets/images/superset-logo-horiz.png",
@@ -3275,7 +3275,7 @@
       {
         "key": "APP_NAME",
         "title": "App Name",
-        "description": "------------------------------ GLOBALS FOR APP Builder ------------------------------ Uncomment to setup Your App name",
+        "description": "Application name displayed in the UI header and browser title. Default: `\"Superset\"`",
         "type": "string",
         "category": "general",
         "default": "Superset",
@@ -3287,7 +3287,7 @@
       {
         "key": "BABEL_DEFAULT_FOLDER",
         "title": "Babel Default Folder",
-        "description": "Your application default translation path",
+        "description": "**[Internationalization and localization](https://flask-babel.tkte.ch/)**: Directory containing translation files. Default: `\"superset/translations\"`",
         "type": "string",
         "category": "general",
         "default": "superset/translations",
@@ -3299,7 +3299,7 @@
       {
         "key": "BABEL_DEFAULT_LOCALE",
         "title": "Babel Default Locale",
-        "description": "--------------------------------------------------- Babel config for translations --------------------------------------------------- Setup default language",
+        "description": "**[Internationalization and localization](https://flask-babel.tkte.ch/)**: Default locale for internationalization. Set to language code like `\"en\"`, `\"es\"`, `\"fr\"`, etc.",
         "type": "string",
         "category": "general",
         "default": "en",
@@ -3323,10 +3323,10 @@
       {
         "key": "BASE_DIR",
         "title": "Base Dir",
-        "description": "",
+        "description": "Base directory path for Superset installation. Auto-detected from package location.",
         "type": "string",
         "category": "general",
-        "default": "<Call>",
+        "default": "<unknown>",
         "env_var": "SUPERSET__BASE_DIR",
         "nested_example": null,
         "impact": "low",
@@ -3359,7 +3359,7 @@
       {
         "key": "BUG_REPORT_URL",
         "title": "Bug Report Url",
-        "description": "Send user to a link where they can report bugs",
+        "description": "",
         "type": "null",
         "category": "general",
         "default": null,
@@ -3371,7 +3371,7 @@
       {
         "key": "COLUMNAR_EXTENSIONS",
         "title": "Columnar Extensions",
-        "description": "",
+        "description": "Set of allowed columnar file extensions (Parquet, etc.) for uploads.",
         "type": "string",
         "category": "general",
         "default": "<Set>",
@@ -3395,10 +3395,10 @@
       {
         "key": "CSV_DEFAULT_NA_NAMES",
         "title": "Csv Default Na Names",
-        "description": "Values that should be treated as nulls for the csv uploads.",
+        "description": "",
         "type": "string",
         "category": "general",
-        "default": "<Call>",
+        "default": "<list()>",
         "env_var": "SUPERSET__CSV_DEFAULT_NA_NAMES",
         "nested_example": null,
         "impact": "low",
@@ -3407,7 +3407,7 @@
       {
         "key": "CSV_EXPORT",
         "title": "Csv Export",
-        "description": "CSV Options: key/value pairs that will be passed as argument to DataFrame.to_csv method. note: index option should not be overridden",
+        "description": "Configuration for CSV export functionality including encoding settings.",
         "type": "object",
         "category": "general",
         "default": {
@@ -3421,7 +3421,7 @@
       {
         "key": "CSV_EXTENSIONS",
         "title": "Csv Extensions",
-        "description": "",
+        "description": "Set of allowed CSV file extensions for uploads.",
         "type": "string",
         "category": "general",
         "default": "<Set>",
@@ -3433,7 +3433,7 @@
       {
         "key": "CSV_TO_HIVE_UPLOAD_DIRECTORY",
         "title": "Csv To Hive Upload Directory",
-        "description": "The directory within the bucket specified above that will contain all the external tables",
+        "description": "",
         "type": "string",
         "category": "general",
         "default": "EXTERNAL_HIVE_TABLES/",
@@ -3445,7 +3445,7 @@
       {
         "key": "CSV_TO_HIVE_UPLOAD_S3_BUCKET",
         "title": "Csv To Hive Upload S3 Bucket",
-        "description": "The S3 bucket where you want to store your external hive tables created from CSV files. For example, 'companyname-superset'",
+        "description": "",
         "type": "null",
         "category": "general",
         "default": null,
@@ -3457,7 +3457,7 @@
       {
         "key": "CURRENCIES",
         "title": "Currencies",
-        "description": "",
+        "description": "List of supported currency codes for financial data formatting.",
         "type": "array",
         "category": "general",
         "default": [
@@ -3477,7 +3477,7 @@
       {
         "key": "DASHBOARD_AUTO_REFRESH_INTERVALS",
         "title": "Dashboard Auto Refresh Intervals",
-        "description": "Dashboard auto refresh intervals",
+        "description": "",
         "type": "array",
         "category": "general",
         "default": [
@@ -3530,7 +3530,7 @@
       {
         "key": "DASHBOARD_TEMPLATE_ID",
         "title": "Dashboard Template Id",
-        "description": "The id of a template dashboard that should be copied to every new user",
+        "description": "",
         "type": "null",
         "category": "general",
         "default": null,
@@ -3542,7 +3542,7 @@
       {
         "key": "DATASET_IMPORT_ALLOWED_DATA_URLS",
         "title": "Dataset Import Allowed Data Urls",
-        "description": "Define a list of allowed URLs for dataset data imports (v1). Simple example to only allow URLs that belong to certain domains: ALLOWED_IMPORT_URL_DOMAINS = [ r\"^https://.+\\.domain1\\.com\\/?.*\", r\"^https://.+\\.domain2\\.com\\/?.*\" ]",
+        "description": "",
         "type": "array",
         "category": "general",
         "default": [
@@ -3559,7 +3559,7 @@
         "description": "",
         "type": "string",
         "category": "general",
-        "default": "<Call>",
+        "default": "<os.path.expanduser()>",
         "env_var": "SUPERSET__DATA_DIR",
         "nested_example": null,
         "impact": "low",
@@ -3568,10 +3568,10 @@
       {
         "key": "DEFAULT_MODULE_DS_MAP",
         "title": "Default Module Ds Map",
-        "description": "-------------------------------------------------- Modules, datasources and middleware to be registered --------------------------------------------------",
+        "description": "Default module-to-datasource mapping for backwards compatibility.",
         "type": "string",
         "category": "general",
-        "default": "<Call>",
+        "default": "<OrderedDict()>",
         "env_var": "SUPERSET__DEFAULT_MODULE_DS_MAP",
         "nested_example": null,
         "impact": "low",
@@ -3592,7 +3592,7 @@
       {
         "key": "DEFAULT_RELATIVE_START_TIME",
         "title": "Default Relative Start Time",
-        "description": "'now' means it is relative to the query issue time If both start and end time is set to now, this will make the time filter a moving window. By only setting the end time to now, start time will be set to midnight, while end will be relative to the query issue time.",
+        "description": "",
         "type": "string",
         "category": "general",
         "default": "today",
@@ -3604,7 +3604,7 @@
       {
         "key": "DEFAULT_TIME_FILTER",
         "title": "Default Time Filter",
-        "description": "default time filter in explore values may be \"Last day\", \"Last week\", \"<ISO date> : now\", etc.",
+        "description": "Default time filter for charts. Use `NO_TIME_RANGE` constant or specific time ranges.",
         "type": "string",
         "category": "general",
         "default": "<NO_TIME_RANGE>",
@@ -3616,7 +3616,7 @@
       {
         "key": "DEFAULT_VIZ_TYPE",
         "title": "Default Viz Type",
-        "description": "default viz used in chart explorer & SQL Lab explore",
+        "description": "Default visualization type in chart explorer. Options: `\"table\"`, `\"bar\"`, `\"line\"`, `\"pie\"`, etc.",
         "type": "string",
         "category": "general",
         "default": "table",
@@ -3628,7 +3628,7 @@
       {
         "key": "DISPLAY_MAX_ROW",
         "title": "Display Max Row",
-        "description": "Maximum number of rows displayed in SQL Lab UI Is set to avoid out of memory/localstorage issues in browsers. Does not affect exported CSVs",
+        "description": "",
         "type": "integer",
         "category": "general",
         "default": 10000,
@@ -3664,7 +3664,7 @@
       {
         "key": "DOCUMENTATION_URL",
         "title": "Documentation Url",
-        "description": "Send user to a link where they can read more about Superset",
+        "description": "",
         "type": "null",
         "category": "general",
         "default": null,
@@ -3688,7 +3688,7 @@
       {
         "key": "ENVIRONMENT_TAG_CONFIG",
         "title": "Environment Tag Config",
-        "description": "Configuration for environment tag shown on the navbar. Setting 'text' to '' will hide the tag.  # noqa: E501 'color' can either be a hex color code, or a dot-indexed theme color (e.g. error.base)",
+        "description": "",
         "type": "object",
         "category": "general",
         "default": {
@@ -3716,7 +3716,7 @@
       {
         "key": "EXCEL_EXTENSIONS",
         "title": "Excel Extensions",
-        "description": "Allowed format types for upload on Database view",
+        "description": "Set of allowed Excel file extensions for uploads.",
         "type": "string",
         "category": "general",
         "default": "<Set>",
@@ -3728,7 +3728,7 @@
       {
         "key": "FAVICONS",
         "title": "Favicons",
-        "description": "\"href\":path/to/image.png\", \"sizes\": \"16x16\", \"type\": \"image/png\" \"rel\": \"icon\" },",
+        "description": "List of favicon configurations. Each favicon should specify `href` (required) and optionally `sizes`, `type`, and `rel` properties.",
         "type": "array",
         "category": "general",
         "default": [
@@ -3747,7 +3747,7 @@
         "description": "",
         "type": "string",
         "category": "general",
-        "default": "<Call>",
+        "default": "<os.path.join()>",
         "env_var": "SUPERSET__FILENAME",
         "nested_example": null,
         "impact": "low",
@@ -3756,7 +3756,7 @@
       {
         "key": "FLASK_APP_MUTATOR",
         "title": "Flask App Mutator",
-        "description": "If a callable is specified, it will be called at app startup while passing a reference to the Flask app. This can be used to alter the Flask app in whatever way. example: FLASK_APP_MUTATOR = lambda x: x.before_request = f",
+        "description": "Callable function to mutate Flask app at startup. Receives Flask app instance as parameter.",
         "type": "null",
         "category": "general",
         "default": null,
@@ -3768,7 +3768,7 @@
       {
         "key": "FLASK_USE_RELOAD",
         "title": "Flask Use Reload",
-        "description": "",
+        "description": "Enable Flask auto-reload on code changes. **Only for development**.",
         "type": "boolean",
         "category": "general",
         "default": true,
@@ -3780,7 +3780,7 @@
       {
         "key": "GUEST_ROLE_NAME",
         "title": "Guest Role Name",
-        "description": "Embedded config options",
+        "description": "Name of the guest role for anonymous access.",
         "type": "string",
         "category": "general",
         "default": "Public",
@@ -3792,7 +3792,7 @@
       {
         "key": "GUEST_TOKEN_HEADER_NAME",
         "title": "Guest Token Header Name",
-        "description": "",
+        "description": "Header name for guest token authentication.",
         "type": "string",
         "category": "general",
         "default": "X-GuestToken",
@@ -3804,7 +3804,7 @@
       {
         "key": "GUEST_TOKEN_JWT_ALGO",
         "title": "Guest Token Jwt Algo",
-        "description": "",
+        "description": "JWT algorithm for guest token generation.",
         "type": "string",
         "category": "general",
         "default": "HS256",
@@ -3816,7 +3816,7 @@
       {
         "key": "GUEST_TOKEN_JWT_EXP_SECONDS",
         "title": "Guest Token Jwt Exp Seconds",
-        "description": "",
+        "description": "Expiration time in seconds for guest tokens.",
         "type": "integer",
         "category": "general",
         "default": 300,
@@ -3828,7 +3828,7 @@
       {
         "key": "GUEST_TOKEN_JWT_SECRET",
         "title": "Guest Token Jwt Secret",
-        "description": "",
+        "description": "JWT secret for guest token generation.",
         "type": "string",
         "category": "general",
         "default": "test-guest-secret-change-me",
@@ -3840,7 +3840,7 @@
       {
         "key": "GUEST_TOKEN_VALIDATOR_HOOK",
         "title": "Guest Token Validator Hook",
-        "description": "lambda x: len(x['rls']) == 1 and \"tenant_id=\" in x['rls'][0]['clause'] Takes the GuestTokenUser dict as an argument Return False from the callable to return a HTTP 400 to the user.",
+        "description": "",
         "type": "null",
         "category": "general",
         "default": null,
@@ -3852,7 +3852,7 @@
       {
         "key": "HTML_SANITIZATION",
         "title": "Html Sanitization",
-        "description": "Sanitizes the HTML content used in markdowns to allow its rendering in a safe manner. Disabling this option is not recommended for security reasons. If you wish to allow valid safe elements that are not included in the default sanitization schema, use the HTML_SANITIZATION_SCHEMA_EXTENSIONS configuration.",
+        "description": "Enable HTML sanitization for user inputs. **Keep enabled** for security.",
         "type": "boolean",
         "category": "general",
         "default": true,
@@ -3876,7 +3876,7 @@
       {
         "key": "LANGUAGES",
         "title": "Languages",
-        "description": "Turning off i18n by default as translation in most languages are incomplete and not well maintained.",
+        "description": "**[Internationalization and localization](https://flask-babel.tkte.ch/)**: Dictionary of supported languages. Keys are language codes, values are display names.",
         "type": "object",
         "category": "general",
         "default": {},
@@ -3888,10 +3888,10 @@
       {
         "key": "MAPBOX_API_KEY",
         "title": "Mapbox Api Key",
-        "description": "Set this API key to enable Mapbox visualizations",
+        "description": "",
         "type": "string",
         "category": "general",
-        "default": "<Call>",
+        "default": "<os.environ.get()>",
         "env_var": "SUPERSET__MAPBOX_API_KEY",
         "nested_example": null,
         "impact": "high",
@@ -3900,7 +3900,7 @@
       {
         "key": "MUTATE_AFTER_SPLIT",
         "title": "Mutate After Split",
-        "description": "It allows for using the SQL_QUERY_MUTATOR function for more than comments Usage: If you want to apply a change to every statement to a given query, set MUTATE_AFTER_SPLIT = True  # noqa: E501 An example use case is if data has role based access controls, and you want to apply a SET ROLE statement alongside every user query. Changing this variable maintains functionality for both the SQL_Lab and Charts.",
+        "description": "",
         "type": "boolean",
         "category": "general",
         "default": false,
@@ -3912,10 +3912,10 @@
       {
         "key": "PACKAGE_JSON_FILE",
         "title": "Package Json File",
-        "description": "",
+        "description": "Path to package.json file for frontend build information.",
         "type": "string",
         "category": "general",
-        "default": "<Call>",
+        "default": "<unknown>",
         "env_var": "SUPERSET__PACKAGE_JSON_FILE",
         "nested_example": null,
         "impact": "low",
@@ -3924,7 +3924,7 @@
       {
         "key": "PERMISSION_INSTRUCTIONS_LINK",
         "title": "Permission Instructions Link",
-        "description": "This link should lead to a page with instructions on how to gain access to a Datasource. It will be placed at the bottom of permissions errors.",
+        "description": "",
         "type": "string",
         "category": "general",
         "default": "",
@@ -3936,10 +3936,10 @@
       {
         "key": "PRESTO_POLL_INTERVAL",
         "title": "Presto Poll Interval",
-        "description": "Interval between consecutive polls when using Presto Engine See here: https://github.com/dropbox/PyHive/blob/8eb0aeab8ca300f3024655419b93dad926c1a351/pyhive/presto.py#L93  # noqa: E501",
+        "description": "",
         "type": "string",
         "category": "general",
-        "default": "<Call>",
+        "default": "<unknown>",
         "env_var": "SUPERSET__PRESTO_POLL_INTERVAL",
         "nested_example": null,
         "impact": "low",
@@ -3948,7 +3948,7 @@
       {
         "key": "PREVENT_UNSAFE_DEFAULT_URLS_ON_DATASET",
         "title": "Prevent Unsafe Default Urls On Dataset",
-        "description": "If true all default urls on datasets will be handled as relative URLs by the frontend",
+        "description": "Prevent potentially unsafe default URLs on datasets. **Security feature**.",
         "type": "boolean",
         "category": "general",
         "default": true,
@@ -3960,7 +3960,7 @@
       {
         "key": "PROFILING",
         "title": "Profiling",
-        "description": "Enable profiling of Python calls. Turn this on and append ``?_instrument=1`` to the page to see the call stack.",
+        "description": "Enable Flask profiling. **Only for development**. Adds performance overhead.",
         "type": "boolean",
         "category": "general",
         "default": false,
@@ -3972,7 +3972,7 @@
       {
         "key": "PROXY_FIX_CONFIG",
         "title": "Proxy Fix Config",
-        "description": "",
+        "description": "Configuration for proxy fix settings. Specifies which proxy headers to trust.",
         "type": "object",
         "category": "general",
         "default": {
@@ -3993,7 +3993,7 @@
         "description": "",
         "type": "string",
         "category": "general",
-        "default": "<Call>",
+        "default": "<unknown>",
         "env_var": "SUPERSET__REPORT_MINIMUM_INTERVAL",
         "nested_example": null,
         "impact": "low",
@@ -4002,7 +4002,7 @@
       {
         "key": "RESULTS_BACKEND_USE_MSGPACK",
         "title": "Results Backend Use Msgpack",
-        "description": "Use PyArrow and MessagePack for async query results serialization, rather than JSON. This feature requires additional testing from the community before it is fully adopted, so this config option is provided in order to disable should breaking issues be discovered.",
+        "description": "Use MessagePack for results backend serialization.",
         "type": "boolean",
         "category": "general",
         "default": true,
@@ -4014,7 +4014,7 @@
       {
         "key": "ROBOT_PERMISSION_ROLES",
         "title": "Robot Permission Roles",
-        "description": "Roles that are controlled by the API / Superset and should not be changed by humans.",
+        "description": "",
         "type": "array",
         "category": "general",
         "default": [
@@ -4044,10 +4044,10 @@
       {
         "key": "SCREENSHOT_LOAD_WAIT",
         "title": "Screenshot Load Wait",
-        "description": "Time before selenium times out after waiting for all DOM class elements named \"loading\" are gone.",
+        "description": "Wait time in seconds for page to load during screenshot capture.",
         "type": "string",
         "category": "general",
-        "default": "<Call>",
+        "default": "<unknown>",
         "env_var": "SUPERSET__SCREENSHOT_LOAD_WAIT",
         "nested_example": null,
         "impact": "low",
@@ -4056,10 +4056,10 @@
       {
         "key": "SCREENSHOT_LOCATE_WAIT",
         "title": "Screenshot Locate Wait",
-        "description": "Time before selenium times out after trying to locate an element on the page and wait for that element to load for a screenshot.",
+        "description": "Wait time in seconds for elements to be located during screenshot capture.",
         "type": "string",
         "category": "general",
-        "default": "<Call>",
+        "default": "<unknown>",
         "env_var": "SUPERSET__SCREENSHOT_LOCATE_WAIT",
         "nested_example": null,
         "impact": "low",
@@ -4068,7 +4068,7 @@
       {
         "key": "SCREENSHOT_PLAYWRIGHT_WAIT_EVENT",
         "title": "Screenshot Playwright Wait Event",
-        "description": "Event that Playwright waits for when loading a new page Possible values: \"load\", \"commit\", \"domcontentloaded\", \"networkidle\" Docs: https://playwright.dev/python/docs/api/class-page#page-goto-option-wait-until",
+        "description": "Playwright wait event for page loading. Options: `\"domcontentloaded\"`, `\"load\"`, `\"networkidle\"`.",
         "type": "string",
         "category": "general",
         "default": "domcontentloaded",
@@ -4080,7 +4080,7 @@
       {
         "key": "SCREENSHOT_REPLACE_UNEXPECTED_ERRORS",
         "title": "Screenshot Replace Unexpected Errors",
-        "description": "Replace unexpected errors in screenshots with real error messages",
+        "description": "Whether to replace unexpected errors with generic messages in screenshots.",
         "type": "boolean",
         "category": "general",
         "default": false,
@@ -4092,7 +4092,7 @@
       {
         "key": "SCREENSHOT_SELENIUM_ANIMATION_WAIT",
         "title": "Screenshot Selenium Animation Wait",
-        "description": "Wait for the chart animation, in seconds",
+        "description": "Wait time in seconds for animations to complete during screenshot capture.",
         "type": "integer",
         "category": "general",
         "default": 5,
@@ -4104,7 +4104,7 @@
       {
         "key": "SCREENSHOT_SELENIUM_HEADSTART",
         "title": "Screenshot Selenium Headstart",
-        "description": "Give selenium an headstart, in seconds",
+        "description": "Head start time in seconds for Selenium screenshot capture.",
         "type": "integer",
         "category": "general",
         "default": 3,
@@ -4116,7 +4116,7 @@
       {
         "key": "SCREENSHOT_SELENIUM_RETRIES",
         "title": "Screenshot Selenium Retries",
-        "description": "Selenium destroy retries",
+        "description": "Number of retries for Selenium screenshot capture.",
         "type": "integer",
         "category": "general",
         "default": 5,
@@ -4128,7 +4128,7 @@
       {
         "key": "SCREENSHOT_WAIT_FOR_ERROR_MODAL_INVISIBLE",
         "title": "Screenshot Wait For Error Modal Invisible",
-        "description": "Max time to wait for error message modal to close, in seconds",
+        "description": "Wait time in seconds for error modal to become invisible.",
         "type": "integer",
         "category": "general",
         "default": 5,
@@ -4140,7 +4140,7 @@
       {
         "key": "SCREENSHOT_WAIT_FOR_ERROR_MODAL_VISIBLE",
         "title": "Screenshot Wait For Error Modal Visible",
-        "description": "Max time to wait for error message modal to show up, in seconds",
+        "description": "Wait time in seconds for error modal to become visible.",
         "type": "integer",
         "category": "general",
         "default": 5,
@@ -4152,7 +4152,7 @@
       {
         "key": "SECRET_KEY",
         "title": "Secret Key",
-        "description": "Your App secret key. **Make sure you override it on superset_config.py** or use `SUPERSET_SECRET_KEY` environment variable. Use a **strong complex alphanumeric string** and use a tool to help you generate a sufficiently random sequence, ex: `openssl rand -base64 42`",
+        "description": "Your application secret key. **Must be overridden** in production via `superset_config.py` or `SUPERSET_SECRET_KEY` environment variable. Use a **strong complex alphanumeric string**. Generate with: `openssl rand -base64 42`",
         "type": "string",
         "category": "general",
         "default": "<BoolOp>",
@@ -4164,10 +4164,10 @@
       {
         "key": "SEND_FILE_MAX_AGE_DEFAULT",
         "title": "Send File Max Age Default",
-        "description": "Other possible config options and backends: # https://flask-session.readthedocs.io/en/latest/config.html Cache static resources.",
+        "description": "",
         "type": "string",
         "category": "general",
-        "default": "<Call>",
+        "default": "<unknown>",
         "env_var": "SUPERSET__SEND_FILE_MAX_AGE_DEFAULT",
         "nested_example": null,
         "impact": "low",
@@ -4176,7 +4176,7 @@
       {
         "key": "SESSION_COOKIE_HTTPONLY",
         "title": "Session Cookie Httponly",
-        "description": "Flask session cookie options See https://flask.palletsprojects.com/en/1.1.x/security/#set-cookie-options for details",
+        "description": "",
         "type": "boolean",
         "category": "general",
         "default": true,
@@ -4200,7 +4200,7 @@
       {
         "key": "SESSION_SERVER_SIDE",
         "title": "Session Server Side",
-        "description": "Whether to use server side sessions from flask-session or Flask secure cookies",
+        "description": "",
         "type": "boolean",
         "category": "general",
         "default": false,
@@ -4212,7 +4212,7 @@
       {
         "key": "SHOW_STACKTRACE",
         "title": "Show Stacktrace",
-        "description": "Superset allows server-side python stacktraces to be surfaced to the user when this feature is on. This may have security implications and it's more secure to turn it off in production settings.",
+        "description": "Show full stack traces in error pages. **Disable in production** for security.",
         "type": "boolean",
         "category": "general",
         "default": false,
@@ -4224,7 +4224,7 @@
       {
         "key": "SILENCE_FAB",
         "title": "Silence Fab",
-        "description": "Whether to bump the logging level to ERROR on the flask_appbuilder package Set to False if/when debugging FAB related issues like permission management",
+        "description": "**[Authentication, authorization, and admin interface](https://flask-appbuilder.readthedocs.io/)**: Whether to bump logging level to ERROR on flask_appbuilder package. Set to `False` for debugging AppBuilder issues.",
         "type": "boolean",
         "category": "general",
         "default": true,
@@ -4248,7 +4248,7 @@
       {
         "key": "SSH_TUNNEL_LOCAL_BIND_ADDRESS",
         "title": "Ssh Tunnel Local Bind Address",
-        "description": "",
+        "description": "Local bind address for SSH tunnels. Default: `\"127.0.0.1\"`",
         "type": "string",
         "category": "general",
         "default": "127.0.0.1",
@@ -4260,7 +4260,7 @@
       {
         "key": "SSH_TUNNEL_MANAGER_CLASS",
         "title": "Ssh Tunnel Manager Class",
-        "description": "-------------+              |    +----------+ | FIREWALL (only port 22 is open) ----------------------------------------------------------------------",
+        "description": "SSH tunnel manager class for secure database connections through SSH.",
         "type": "string",
         "category": "general",
         "default": "superset.extensions.ssh.SSHManager",
@@ -4272,7 +4272,7 @@
       {
         "key": "STATIC_ASSETS_PREFIX",
         "title": "Static Assets Prefix",
-        "description": "Optional prefix to be added to all static asset paths when rendering the UI. This is useful for hosting assets in an external CDN, for example",
+        "description": "",
         "type": "string",
         "category": "general",
         "default": "",
@@ -4284,7 +4284,7 @@
       {
         "key": "SUPERSET_DASHBOARD_PERIODICAL_REFRESH_WARNING_MESSAGE",
         "title": "Superset Dashboard Periodical Refresh Warning Message",
-        "description": "",
+        "description": "Warning message displayed when dashboard refresh is rate-limited.",
         "type": "null",
         "category": "general",
         "default": null,
@@ -4296,7 +4296,7 @@
       {
         "key": "SUPERSET_WEBSERVER_DOMAINS",
         "title": "Superset Webserver Domains",
-        "description": "than 6 slices in dashboard, a lot of time fetch requests are queued up and wait for next available socket. PR #5039 added domain sharding for Superset, and this feature can be enabled by configuration only (by default Superset doesn't allow cross-domain request). This feature is deprecated, annd will be removed in the next major version of Superset, as enabling HTTP2 will serve the same goals.",
+        "description": "List of allowed domains for the webserver. Used for security validation.",
         "type": "null",
         "category": "general",
         "default": null,
@@ -4308,7 +4308,7 @@
       {
         "key": "TABLE_VIZ_MAX_ROW_SERVER",
         "title": "Table Viz Max Row Server",
-        "description": "Maximum number of rows for any query with Server Pagination in Table Viz type",
+        "description": "",
         "type": "integer",
         "category": "general",
         "default": 500000,
@@ -4320,7 +4320,7 @@
       {
         "key": "TALISMAN_CONFIG",
         "title": "Talisman Config",
-        "description": "If you want Talisman, how do you want it configured?? For more information on setting up Talisman, please refer to https://superset.apache.org/docs/configuration/networking-settings/#changing-flask-talisman-csp",
+        "description": "",
         "type": "object",
         "category": "general",
         "default": {
@@ -4373,7 +4373,7 @@
       {
         "key": "TALISMAN_DEV_CONFIG",
         "title": "Talisman Dev Config",
-        "description": "React requires `eval` to work correctly in dev mode",
+        "description": "",
         "type": "object",
         "category": "general",
         "default": {
@@ -4428,11 +4428,11 @@
       {
         "key": "THUMBNAIL_EXECUTORS",
         "title": "Thumbnail Executors",
-        "description": "configuration: from superset.tasks.types import ExecutorType, FixedExecutor THUMBNAIL_EXECUTORS = [FixedExecutor(\"admin\")]",
+        "description": "List of executor types for thumbnail generation.",
         "type": "array",
         "category": "general",
         "default": [
-          "<Attribute>"
+          "<ExecutorType.CURRENT_USER>"
         ],
         "env_var": "SUPERSET__THUMBNAIL_EXECUTORS",
         "nested_example": null,
@@ -4442,7 +4442,7 @@
       {
         "key": "TRACKING_URL_TRANSFORMER",
         "title": "Tracking Url Transformer",
-        "description": "to your transformer function, e.g.: TRACKING_URL_TRANSFORMER = ( lambda url, query: url if is_fresh(query) else None ) pylint: disable-next=unnecessary-lambda-assignment",
+        "description": "",
         "type": "string",
         "category": "general",
         "default": "<Lambda>",
@@ -4454,7 +4454,7 @@
       {
         "key": "TROUBLESHOOTING_LINK",
         "title": "Troubleshooting Link",
-        "description": "The link to a page containing common errors and their resolutions It will be appended at the bottom of sql_lab errors.",
+        "description": "",
         "type": "string",
         "category": "general",
         "default": "",
@@ -4466,7 +4466,7 @@
       {
         "key": "UPLOAD_CHUNK_SIZE",
         "title": "Upload Chunk Size",
-        "description": "",
+        "description": "Chunk size in bytes for file uploads. Affects memory usage during uploads.",
         "type": "integer",
         "category": "general",
         "default": 4096,
@@ -4478,7 +4478,7 @@
       {
         "key": "UPLOAD_FOLDER",
         "title": "Upload Folder",
-        "description": "--------------------------------------------------- Image and file configuration --------------------------------------------------- The file upload folder, when using models with files",
+        "description": "Directory for temporary file uploads. Should be writable by the Superset process.",
         "type": "string",
         "category": "general",
         "default": "<BinOp>",
@@ -4490,10 +4490,10 @@
       {
         "key": "VERSION_INFO_FILE",
         "title": "Version Info File",
-        "description": "--------------------------------------------------------- Superset specific config ---------------------------------------------------------",
+        "description": "Path to version information JSON file. Contains build metadata.",
         "type": "string",
         "category": "general",
-        "default": "<Call>",
+        "default": "<unknown>",
         "env_var": "SUPERSET__VERSION_INFO_FILE",
         "nested_example": null,
         "impact": "low",
@@ -4502,10 +4502,10 @@
       {
         "key": "VERSION_SHA",
         "title": "Version Sha",
-        "description": "",
+        "description": "Git SHA of current build. Auto-generated from `VERSION_INFO_FILE`.",
         "type": "string",
         "category": "general",
-        "default": "<Call>",
+        "default": "<_try_json_readsha()>",
         "env_var": "SUPERSET__VERSION_SHA",
         "nested_example": null,
         "impact": "low",
@@ -4514,7 +4514,7 @@
       {
         "key": "VERSION_SHA_LENGTH",
         "title": "Version Sha Length",
-        "description": "",
+        "description": "Length of git SHA displayed in version info. Default: 8 characters.",
         "type": "integer",
         "category": "general",
         "default": 8,
@@ -4526,7 +4526,7 @@
       {
         "key": "VERSION_STRING",
         "title": "Version String",
-        "description": "version_info.json file may or may not be available, as it is generated on install via setup.py. In the event that we're actually running Superset, we will have already installed, therefore it WILL exist. When unit tests are running, however, it WILL NOT exist, so we fall back on reading package.json",
+        "description": "Version string displayed in the UI. Auto-generated from `VERSION_INFO_FILE` or set manually.",
         "type": "string",
         "category": "general",
         "default": "<BoolOp>",
@@ -4538,7 +4538,7 @@
       {
         "key": "WEBDRIVER_BASEURL",
         "title": "Webdriver Baseurl",
-        "description": "The base URL to query for accessing the user interface",
+        "description": "Base URL for webdriver operations. Used for screenshot and export functionality.",
         "type": "string",
         "category": "general",
         "default": "http://0.0.0.0:8080/",
@@ -4550,7 +4550,7 @@
       {
         "key": "WEBDRIVER_BASEURL_USER_FRIENDLY",
         "title": "Webdriver Baseurl User Friendly",
-        "description": "The base URL for the email report hyperlinks.",
+        "description": "User-friendly base URL for webdriver operations.",
         "type": "string",
         "category": "general",
         "default": "<WEBDRIVER_BASEURL>",
@@ -4562,7 +4562,7 @@
       {
         "key": "WEBDRIVER_CONFIGURATION",
         "title": "Webdriver Configuration",
-        "description": "Any config options to be passed as-is to the webdriver",
+        "description": "",
         "type": "object",
         "category": "general",
         "default": {
@@ -4586,7 +4586,7 @@
       {
         "key": "WEBDRIVER_OPTION_ARGS",
         "title": "Webdriver Option Args",
-        "description": "Additional args to be passed as arguments to the config object Note: If using Chrome, you'll want to add the \"--marionette\" arg.",
+        "description": "Command-line arguments for webdriver (Chrome/Firefox).",
         "type": "array",
         "category": "general",
         "default": [
@@ -4600,7 +4600,7 @@
       {
         "key": "WEBDRIVER_TYPE",
         "title": "Webdriver Type",
-        "description": "Requires: geckodriver and firefox installations Limitations: can be buggy at times chrome: Requires: headless chrome Limitations: unable to generate screenshots of elements",
+        "description": "",
         "type": "string",
         "category": "general",
         "default": "firefox",
@@ -4612,7 +4612,7 @@
       {
         "key": "WEBDRIVER_WINDOW",
         "title": "Webdriver Window",
-        "description": "Window size - this will impact the rendering of the data",
+        "description": "Window configuration for webdriver operations.",
         "type": "object",
         "category": "general",
         "default": {
@@ -4628,7 +4628,7 @@
       {
         "key": "WTF_CSRF_EXEMPT_LIST",
         "title": "Wtf Csrf Exempt List",
-        "description": "Add endpoints that need to be exempt from CSRF protection",
+        "description": "**[CSRF protection and form handling](https://flask-wtf.readthedocs.io/)**: List of endpoints exempt from CSRF protection. Use with caution.",
         "type": "array",
         "category": "general",
         "default": [
@@ -4645,7 +4645,7 @@
       {
         "key": "ZIPPED_FILE_MAX_SIZE",
         "title": "Zipped File Max Size",
-        "description": "Max allowed size for a zipped file",
+        "description": "",
         "type": "string",
         "category": "general",
         "default": "<BinOp>",
@@ -4657,7 +4657,7 @@
       {
         "key": "ZIP_FILE_MAX_COMPRESS_RATIO",
         "title": "Zip File Max Compress Ratio",
-        "description": "Max allowed compression ratio for a zipped file",
+        "description": "",
         "type": "number",
         "category": "general",
         "default": 200.0,
@@ -4671,7 +4671,7 @@
       {
         "key": "BUILD_NUMBER",
         "title": "Build Number",
-        "description": "Build number is shown in the About section if available. This can be replaced at build time to expose build information.",
+        "description": "Build number displayed in About section. Set during CI/CD build process.",
         "type": "null",
         "category": "ui",
         "default": null,
@@ -4683,7 +4683,7 @@
       {
         "key": "FAB_API_SWAGGER_UI",
         "title": "Fab Api Swagger Ui",
-        "description": "Enables SWAGGER UI for superset openapi spec ex: http://localhost:8080/swagger/v1",
+        "description": "**[Authentication, authorization, and admin interface](https://flask-appbuilder.readthedocs.io/)**: Enable Swagger UI for API documentation. Accessible at `/swagger/v1`",
         "type": "boolean",
         "category": "ui",
         "default": true,
@@ -4697,7 +4697,7 @@
       {
         "key": "ALERT_REPORTS_DEFAULT_WORKING_TIMEOUT",
         "title": "Alert Reports Default Working Timeout",
-        "description": "Default values that user using when creating alert",
+        "description": "",
         "type": "integer",
         "category": "performance",
         "default": 3600,
@@ -4709,7 +4709,7 @@
       {
         "key": "AUTH_RATE_LIMIT",
         "title": "Auth Rate Limit",
-        "description": "",
+        "description": "**[Rate limiting and DDOS protection](https://flask-limiter.readthedocs.io/)**: Rate limit for authentication attempts. Format: `\"5 per second\"`, `\"10 per minute\"`, etc.",
         "type": "string",
         "category": "performance",
         "default": "5 per second",
@@ -4721,7 +4721,7 @@
       {
         "key": "AUTH_RATE_LIMITED",
         "title": "Auth Rate Limited",
-        "description": "",
+        "description": "**[Rate limiting and DDOS protection](https://flask-limiter.readthedocs.io/)**: Enable rate limiting for authentication endpoints. Helps prevent brute force attacks.",
         "type": "boolean",
         "category": "performance",
         "default": true,
@@ -4733,10 +4733,10 @@
       {
         "key": "CACHE_DEFAULT_TIMEOUT",
         "title": "Cache Default Timeout",
-        "description": "--------------------------------------------------- Cache configuration --------------------------------------------------- Default cache timeout, applies to all cache backends unless specifically overridden in each cache config.",
+        "description": "Default cache timeout in seconds. Applies to all cache backends unless specifically overridden.",
         "type": "string",
         "category": "performance",
-        "default": "<Call>",
+        "default": "<unknown>",
         "env_var": "SUPERSET__CACHE_DEFAULT_TIMEOUT",
         "nested_example": null,
         "impact": "medium",
@@ -4745,11 +4745,11 @@
       {
         "key": "CACHE_WARMUP_EXECUTORS",
         "title": "Cache Warmup Executors",
-        "description": "a fixed user (admin in this example), use the following configuration: from superset.tasks.types import ExecutorType, FixedExecutor CACHE_WARMUP_EXECUTORS = [ExecutorType.OWNER, FixedExecutor(\"admin\")]",
+        "description": "List of executor types for cache warmup. Options: `ExecutorType.SELENIUM`, `ExecutorType.OWNER`, etc.",
         "type": "array",
         "category": "performance",
         "default": [
-          "<Attribute>"
+          "<ExecutorType.OWNER>"
         ],
         "env_var": "SUPERSET__CACHE_WARMUP_EXECUTORS",
         "nested_example": null,
@@ -4759,10 +4759,10 @@
       {
         "key": "DATABASE_OAUTH2_TIMEOUT",
         "title": "Database Oauth2 Timeout",
-        "description": "applications. In that case, the proxy can forward the request to the correct instance by looking at the `default_redirect_uri` attribute in the OAuth2 state object. DATABASE_OAUTH2_REDIRECT_URI = \"http://localhost:8088/api/v1/database/oauth2/\" Timeout when fetching access and refresh tokens.",
+        "description": "",
         "type": "string",
         "category": "performance",
-        "default": "<Call>",
+        "default": "<timedelta()>",
         "env_var": "SUPERSET__DATABASE_OAUTH2_TIMEOUT",
         "nested_example": null,
         "impact": "high",
@@ -4771,7 +4771,7 @@
       {
         "key": "DEFAULT_SQLLAB_LIMIT",
         "title": "Default Sqllab Limit",
-        "description": "Default row limit for SQL Lab queries. Is overridden by setting a new limit in the SQL Lab UI",
+        "description": "",
         "type": "integer",
         "category": "performance",
         "default": 1000,
@@ -4783,7 +4783,7 @@
       {
         "key": "FILTER_SELECT_ROW_LIMIT",
         "title": "Filter Select Row Limit",
-        "description": "max rows retrieved by filter select auto complete",
+        "description": "Maximum number of rows retrieved by filter dropdown auto-complete.",
         "type": "integer",
         "category": "performance",
         "default": 10000,
@@ -4795,7 +4795,7 @@
       {
         "key": "GLOBAL_ASYNC_QUERIES_CACHE_BACKEND",
         "title": "Global Async Queries Cache Backend",
-        "description": "Global async queries cache backend configuration options: - Set 'CACHE_TYPE' to 'RedisCache' for RedisCacheBackend. - Set 'CACHE_TYPE' to 'RedisSentinelCache' for RedisSentinelCacheBackend.",
+        "description": "",
         "type": "object",
         "category": "performance",
         "default": {
@@ -4825,7 +4825,7 @@
       {
         "key": "GLOBAL_ASYNC_QUERIES_REDIS_STREAM_LIMIT",
         "title": "Global Async Queries Redis Stream Limit",
-        "description": "",
+        "description": "Redis stream limit for global async queries.",
         "type": "integer",
         "category": "performance",
         "default": 1000,
@@ -4837,7 +4837,7 @@
       {
         "key": "GLOBAL_ASYNC_QUERIES_REDIS_STREAM_LIMIT_FIREHOSE",
         "title": "Global Async Queries Redis Stream Limit Firehose",
-        "description": "",
+        "description": "Redis stream limit for global async queries firehose.",
         "type": "integer",
         "category": "performance",
         "default": 1000000,
@@ -4849,7 +4849,7 @@
       {
         "key": "NATIVE_FILTER_DEFAULT_ROW_LIMIT",
         "title": "Native Filter Default Row Limit",
-        "description": "default row limit for native filters",
+        "description": "Default maximum number of rows returned by native filters for performance.",
         "type": "integer",
         "category": "performance",
         "default": 1000,
@@ -4861,7 +4861,7 @@
       {
         "key": "QUERY_SEARCH_LIMIT",
         "title": "Query Search Limit",
-        "description": "The limit of queries fetched for query search",
+        "description": "Maximum number of queries returned in SQL Lab query search.",
         "type": "integer",
         "category": "performance",
         "default": 1000,
@@ -4873,7 +4873,7 @@
       {
         "key": "RATELIMIT_APPLICATION",
         "title": "Ratelimit Application",
-        "description": "",
+        "description": "**[Rate limiting and DDOS protection](https://flask-limiter.readthedocs.io/)**: Global rate limit for the entire application. Format: `\"50 per second\"`, `\"100 per minute\"`, etc.",
         "type": "string",
         "category": "performance",
         "default": "50 per second",
@@ -4885,7 +4885,7 @@
       {
         "key": "RATELIMIT_ENABLED",
         "title": "Ratelimit Enabled",
-        "description": "FAB Rate limiting: this is a security feature for preventing DDOS attacks. The feature is on by default to make Superset secure by default, but you should fine tune the limits to your needs. You can read more about the different parameters here: https://flask-limiter.readthedocs.io/en/stable/configuration.html",
+        "description": "**[Rate limiting and DDOS protection](https://flask-limiter.readthedocs.io/)**: Enable rate limiting to prevent DDOS attacks. Uses `RATELIMIT_STORAGE_URI` for storage backend. **Recommended for production**.",
         "type": "string",
         "category": "performance",
         "default": "<Compare>",
@@ -4897,7 +4897,7 @@
       {
         "key": "ROW_LIMIT",
         "title": "Row Limit",
-        "description": "default row limit when requesting chart data",
+        "description": "Default maximum number of rows returned by chart queries. Prevents excessive data transfer and memory usage.",
         "type": "integer",
         "category": "performance",
         "default": 50000,
@@ -4909,7 +4909,7 @@
       {
         "key": "SAMPLES_ROW_LIMIT",
         "title": "Samples Row Limit",
-        "description": "default row limit when requesting samples from datasource in explore view",
+        "description": "Maximum number of rows for data sampling.",
         "type": "integer",
         "category": "performance",
         "default": 1000,
@@ -4921,10 +4921,10 @@
       {
         "key": "SCREENSHOT_PLAYWRIGHT_DEFAULT_TIMEOUT",
         "title": "Screenshot Playwright Default Timeout",
-        "description": "Default timeout for Playwright browser context for all operations",
+        "description": "Default timeout in seconds for Playwright operations.",
         "type": "string",
         "category": "performance",
-        "default": "<Call>",
+        "default": "<unknown>",
         "env_var": "SUPERSET__SCREENSHOT_PLAYWRIGHT_DEFAULT_TIMEOUT",
         "nested_example": null,
         "impact": "medium",
@@ -4936,7 +4936,7 @@
         "description": "",
         "type": "string",
         "category": "performance",
-        "default": "<Call>",
+        "default": "<unknown>",
         "env_var": "SUPERSET__SLACK_CACHE_TIMEOUT",
         "nested_example": null,
         "impact": "medium",
@@ -4945,10 +4945,10 @@
       {
         "key": "SQLLAB_ASYNC_TIME_LIMIT_SEC",
         "title": "Sqllab Async Time Limit Sec",
-        "description": "The MAX duration a query can run for before being killed by celery.",
+        "description": "**[Distributed task queue for async processing](https://docs.celeryq.dev/)**: Maximum duration (in seconds) a SQL query can run before being killed by Celery worker.",
         "type": "string",
         "category": "performance",
-        "default": "<Call>",
+        "default": "<unknown>",
         "env_var": "SUPERSET__SQLLAB_ASYNC_TIME_LIMIT_SEC",
         "nested_example": null,
         "impact": "medium",
@@ -4957,7 +4957,7 @@
       {
         "key": "SQLLAB_CTAS_NO_LIMIT",
         "title": "Sqllab Ctas No Limit",
-        "description": "Flag that controls if limit should be enforced on the CTA (create table as queries).",
+        "description": "Disable row limit for CREATE TABLE AS SELECT operations in SQL Lab.",
         "type": "boolean",
         "category": "performance",
         "default": false,
@@ -4969,10 +4969,10 @@
       {
         "key": "SQLLAB_QUERY_COST_ESTIMATE_TIMEOUT",
         "title": "Sqllab Query Cost Estimate Timeout",
-        "description": "Some databases support running EXPLAIN queries that allow users to estimate query costs before they run. These EXPLAIN queries should have a small timeout.",
+        "description": "Timeout in seconds for query cost estimation.",
         "type": "string",
         "category": "performance",
-        "default": "<Call>",
+        "default": "<unknown>",
         "env_var": "SUPERSET__SQLLAB_QUERY_COST_ESTIMATE_TIMEOUT",
         "nested_example": null,
         "impact": "medium",
@@ -4981,7 +4981,7 @@
       {
         "key": "SQLLAB_QUERY_RESULT_TIMEOUT",
         "title": "Sqllab Query Result Timeout",
-        "description": "Timeout duration for SQL Lab fetching query results by the resultsKey. 0 means no timeout.",
+        "description": "",
         "type": "integer",
         "category": "performance",
         "default": 0,
@@ -4993,10 +4993,10 @@
       {
         "key": "SQLLAB_TIMEOUT",
         "title": "Sqllab Timeout",
-        "description": "Timeout duration for SQL Lab synchronous queries",
+        "description": "Timeout in seconds for synchronous SQL Lab queries.",
         "type": "string",
         "category": "performance",
-        "default": "<Call>",
+        "default": "<unknown>",
         "env_var": "SUPERSET__SQLLAB_TIMEOUT",
         "nested_example": null,
         "impact": "medium",
@@ -5005,10 +5005,10 @@
       {
         "key": "SQLLAB_VALIDATION_TIMEOUT",
         "title": "Sqllab Validation Timeout",
-        "description": "Timeout duration for SQL Lab query validation",
+        "description": "Timeout in seconds for SQL validation in SQL Lab.",
         "type": "string",
         "category": "performance",
-        "default": "<Call>",
+        "default": "<unknown>",
         "env_var": "SUPERSET__SQLLAB_VALIDATION_TIMEOUT",
         "nested_example": null,
         "impact": "medium",
@@ -5017,7 +5017,7 @@
       {
         "key": "SSH_TUNNEL_PACKET_TIMEOUT_SEC",
         "title": "Ssh Tunnel Packet Timeout Sec",
-        "description": ": Timeout (seconds) for transport socket (``socket.settimeout``)",
+        "description": "Packet timeout in seconds for SSH tunnel data transfer.",
         "type": "number",
         "category": "performance",
         "default": 1.0,
@@ -5029,7 +5029,7 @@
       {
         "key": "SSH_TUNNEL_TIMEOUT_SEC",
         "title": "Ssh Tunnel Timeout Sec",
-        "description": ": Timeout (seconds) for tunnel connection (open_channel timeout)",
+        "description": "Timeout in seconds for SSH tunnel connections.",
         "type": "number",
         "category": "performance",
         "default": 10.0,
@@ -5041,7 +5041,7 @@
       {
         "key": "STORE_CACHE_KEYS_IN_METADATA_DB",
         "title": "Store Cache Keys In Metadata Db",
-        "description": "store cache keys by datasource UID (via CacheKey) for custom processing/invalidation",
+        "description": "Whether to store cache keys in the metadata database. Enables cache key tracking but may impact performance.",
         "type": "boolean",
         "category": "performance",
         "default": false,
@@ -5053,7 +5053,7 @@
       {
         "key": "SUPERSET_DASHBOARD_PERIODICAL_REFRESH_LIMIT",
         "title": "Superset Dashboard Periodical Refresh Limit",
-        "description": "this 2 settings are used by dashboard period force refresh feature When user choose auto force refresh frequency < SUPERSET_DASHBOARD_PERIODICAL_REFRESH_LIMIT they will see warning message in the Refresh Interval Modal. please check PR #9886",
+        "description": "Minimum interval (in seconds) between dashboard auto-refreshes. Set to `0` to disable limit.",
         "type": "integer",
         "category": "performance",
         "default": 0,
@@ -5065,7 +5065,7 @@
       {
         "key": "SUPERSET_DASHBOARD_POSITION_DATA_LIMIT",
         "title": "Superset Dashboard Position Data Limit",
-        "description": "",
+        "description": "Maximum size (in bytes) of dashboard layout data. Prevents oversized layouts.",
         "type": "integer",
         "category": "performance",
         "default": 65535,
@@ -5077,10 +5077,10 @@
       {
         "key": "SUPERSET_WEBSERVER_TIMEOUT",
         "title": "Superset Webserver Timeout",
-        "description": "This is an important setting, and should be lower than your [load balancer / proxy / envoy / kong / ...] timeout settings. You should also make sure to configure your WSGI server (gunicorn, nginx, apache, ...) timeout setting to be <= to this setting",
+        "description": "Request timeout in seconds for the Superset web server. Increase for slow-running queries.",
         "type": "string",
         "category": "performance",
-        "default": "<Call>",
+        "default": "<unknown>",
         "env_var": "SUPERSET__SUPERSET_WEBSERVER_TIMEOUT",
         "nested_example": null,
         "impact": "medium",
@@ -5089,10 +5089,10 @@
       {
         "key": "TEST_DATABASE_CONNECTION_TIMEOUT",
         "title": "Test Database Connection Timeout",
-        "description": "When adding a new database we try to connect to it. Depending on which parameters are incorrect this could take a couple minutes, until the SQLAlchemy driver pinging the database times out. Instead of relying on the driver timeout we can specify a shorter one here.",
+        "description": "",
         "type": "string",
         "category": "performance",
-        "default": "<Call>",
+        "default": "<timedelta()>",
         "env_var": "SUPERSET__TEST_DATABASE_CONNECTION_TIMEOUT",
         "nested_example": null,
         "impact": "high",
@@ -5101,10 +5101,10 @@
       {
         "key": "THUMBNAIL_ERROR_CACHE_TTL",
         "title": "Thumbnail Error Cache Ttl",
-        "description": "",
+        "description": "Cache timeout in seconds for thumbnail generation errors.",
         "type": "string",
         "category": "performance",
-        "default": "<Call>",
+        "default": "<unknown>",
         "env_var": "SUPERSET__THUMBNAIL_ERROR_CACHE_TTL",
         "nested_example": null,
         "impact": "medium",
@@ -5113,10 +5113,10 @@
       {
         "key": "WTF_CSRF_TIME_LIMIT",
         "title": "Wtf Csrf Time Limit",
-        "description": "CSRF token timeout, set to None for a token that never expires",
+        "description": "",
         "type": "string",
         "category": "performance",
-        "default": "<Call>",
+        "default": "<unknown>",
         "env_var": "SUPERSET__WTF_CSRF_TIME_LIMIT",
         "nested_example": null,
         "impact": "medium",
@@ -5127,7 +5127,7 @@
       {
         "key": "ALERT_REPORTS_QUERY_EXECUTION_MAX_TRIES",
         "title": "Alert Reports Query Execution Max Tries",
-        "description": "Max tries to run queries to prevent false errors caused by transient errors being returned to users. Set to a value >1 to enable retries.",
+        "description": "Maximum number of tries for alert/report query execution.",
         "type": "integer",
         "category": "database",
         "default": 1,
@@ -5139,7 +5139,7 @@
       {
         "key": "DATABASE_OAUTH2_JWT_ALGORITHM",
         "title": "Database Oauth2 Jwt Algorithm",
-        "description": "OAuth2 state is encoded in a JWT using the alogorithm below.",
+        "description": "",
         "type": "string",
         "category": "database",
         "default": "HS256",
@@ -5151,7 +5151,7 @@
       {
         "key": "DB_CONNECTION_MUTATOR",
         "title": "Db Connection Mutator",
-        "description": "uri.username = user.email return uri, params Note that the returned uri and params are passed directly to sqlalchemy's as such `create_engine(url, **params)`",
+        "description": "Function to mutate database connection parameters. Useful for dynamic authentication.",
         "type": "null",
         "category": "database",
         "default": null,
@@ -5163,7 +5163,7 @@
       {
         "key": "DEFAULT_DB_ID",
         "title": "Default Db Id",
-        "description": "The db id here results in selecting this one as a default in SQL Lab",
+        "description": "",
         "type": "null",
         "category": "database",
         "default": null,
@@ -5175,7 +5175,7 @@
       {
         "key": "GLOBAL_ASYNC_QUERY_MANAGER_CLASS",
         "title": "Global Async Query Manager Class",
-        "description": "Global async query config options. Requires GLOBAL_ASYNC_QUERIES feature flag to be enabled.",
+        "description": "",
         "type": "string",
         "category": "database",
         "default": "superset.async_events.async_query_manager.AsyncQueryManager",
@@ -5187,7 +5187,7 @@
       {
         "key": "MUTATE_ALERT_QUERY",
         "title": "Mutate Alert Query",
-        "description": "Boolean config that determines if alert SQL queries should also be mutated or not.",
+        "description": "",
         "type": "boolean",
         "category": "database",
         "default": false,
@@ -5199,7 +5199,7 @@
       {
         "key": "PREVENT_UNSAFE_DB_CONNECTIONS",
         "title": "Prevent Unsafe Db Connections",
-        "description": "Some sqlalchemy connection strings can open Superset to security risks. Typically these should not be allowed.",
+        "description": "",
         "type": "boolean",
         "category": "database",
         "default": true,
@@ -5211,7 +5211,7 @@
       {
         "key": "QUERY_LOGGER",
         "title": "Query Logger",
-        "description": "client=None, security_manager=None, log_params=None, ): pass",
+        "description": "",
         "type": "null",
         "category": "database",
         "default": null,
@@ -5223,7 +5223,7 @@
       {
         "key": "SQLALCHEMY_CUSTOM_PASSWORD_STORE",
         "title": "Sqlalchemy Custom Password Store",
-        "description": "example: def lookup_password(url): return 'secret' SQLALCHEMY_CUSTOM_PASSWORD_STORE = lookup_password",
+        "description": "**[Database ORM and connection management](https://flask-sqlalchemy.palletsprojects.com/)**: Custom password store function for database connections. Implement a function that takes a `sqlalchemy.engine.url` and returns a password. Example: `def lookup_password(url): return \"secret\"`",
         "type": "null",
         "category": "database",
         "default": null,
@@ -5235,7 +5235,7 @@
       {
         "key": "SQLALCHEMY_DATABASE_URI",
         "title": "Sqlalchemy Database Uri",
-        "description": "The SQLAlchemy connection string.",
+        "description": "**[Database ORM and connection management](https://flask-sqlalchemy.palletsprojects.com/)**: Database connection string. Examples: `postgresql://user:pass@localhost/superset`, `mysql://user:pass@localhost/superset`",
         "type": "string",
         "category": "database",
         "default": "<JoinedStr>",
@@ -5247,7 +5247,7 @@
       {
         "key": "SQLALCHEMY_ENCRYPTED_FIELD_TYPE_ADAPTER",
         "title": "Sqlalchemy Encrypted Field Type Adapter",
-        "description": ") raise Exception(\"Missing app_config kwarg\") SQLALCHEMY_ENCRYPTED_FIELD_TYPE_ADAPTER = AesGcmEncryptedAdapter",
+        "description": "**[Database ORM and connection management](https://flask-sqlalchemy.palletsprojects.com/)**: Custom encrypted field type adapter for sensitive data. Uses app `SECRET_KEY` for encryption by default.",
         "type": "string",
         "category": "database",
         "default": "<SQLAlchemyUtilsAdapter>",
@@ -5259,7 +5259,7 @@
       {
         "key": "SQLALCHEMY_ENGINE_OPTIONS",
         "title": "Sqlalchemy Engine Options",
-        "description": "that may be specific to the database engine you are using. Note that you can use this to set the isolation level of your database, as in `SQLALCHEMY_ENGINE_OPTIONS = {\"isolation_level\": \"READ COMMITTED\"}` Also note that we **recommend READ COMMITTED** for regular operation. Find out more here [flask-sqlalchemy config](https://flask-sqlalchemy.palletsprojects.com/en/3.1.x/config/)",
+        "description": "**[Database ORM and connection management](https://flask-sqlalchemy.palletsprojects.com/)**: Dictionary of engine options passed to SQLAlchemy. Use for database-specific settings like isolation level: `{\"isolation_level\": \"READ COMMITTED\"}`. We **recommend READ COMMITTED** for production.",
         "type": "object",
         "category": "database",
         "default": {},
@@ -5271,7 +5271,7 @@
       {
         "key": "SQLALCHEMY_EXAMPLES_URI",
         "title": "Sqlalchemy Examples Uri",
-        "description": "URI to database storing the example data, points to SQLALCHEMY_DATABASE_URI by default if set to `None`",
+        "description": "",
         "type": "string",
         "category": "database",
         "default": "<BinOp>",
@@ -5283,7 +5283,7 @@
       {
         "key": "SQLALCHEMY_TRACK_MODIFICATIONS",
         "title": "Sqlalchemy Track Modifications",
-        "description": "",
+        "description": "**[Database ORM and connection management](https://flask-sqlalchemy.palletsprojects.com/)**: Track object modifications. Keep `False` for better performance.",
         "type": "boolean",
         "category": "database",
         "default": false,
@@ -5295,7 +5295,7 @@
       {
         "key": "SQLA_TABLE_MUTATOR",
         "title": "Sqla Table Mutator",
-        "description": "to allow mutating the object with this callback. This can be used to set any properties of the object based on naming conventions and such. You can find examples in the tests. pylint: disable-next=unnecessary-lambda-assignment",
+        "description": "",
         "type": "string",
         "category": "database",
         "default": "<Lambda>",
@@ -5307,7 +5307,7 @@
       {
         "key": "SQLLAB_DEFAULT_DBID",
         "title": "Sqllab Default Dbid",
-        "description": "SQLLAB_DEFAULT_DBID",
+        "description": "Default database ID for SQL Lab.",
         "type": "null",
         "category": "database",
         "default": null,
@@ -5319,7 +5319,7 @@
       {
         "key": "SQLLAB_PAYLOAD_MAX_MB",
         "title": "Sqllab Payload Max Mb",
-        "description": "Max payload size (MB) for SQL Lab to prevent browser hangs with large results.",
+        "description": "",
         "type": "null",
         "category": "database",
         "default": null,
@@ -5331,7 +5331,7 @@
       {
         "key": "SQLLAB_SAVE_WARNING_MESSAGE",
         "title": "Sqllab Save Warning Message",
-        "description": "Adds a warning message on sqllab save query and schedule query modals.",
+        "description": "Warning message shown when saving queries in SQL Lab.",
         "type": "null",
         "category": "database",
         "default": null,
@@ -5343,7 +5343,7 @@
       {
         "key": "SQLLAB_SCHEDULE_WARNING_MESSAGE",
         "title": "Sqllab Schedule Warning Message",
-        "description": "",
+        "description": "Warning message shown when scheduling queries in SQL Lab.",
         "type": "null",
         "category": "database",
         "default": null,
@@ -5355,7 +5355,7 @@
       {
         "key": "SQL_MAX_ROW",
         "title": "Sql Max Row",
-        "description": "Maximum number of rows returned for any analytical database query",
+        "description": "",
         "type": "integer",
         "category": "database",
         "default": 100000,
@@ -5367,7 +5367,7 @@
       {
         "key": "SQL_VALIDATORS_BY_ENGINE",
         "title": "Sql Validators By Engine",
-        "description": "Configure which SQL validator to use for each engine",
+        "description": "",
         "type": "object",
         "category": "database",
         "default": {
@@ -5396,7 +5396,7 @@
       {
         "key": "ENABLE_CORS",
         "title": "Enable Cors",
-        "description": "CORS Options NOTE: enabling this requires installing the cors-related python dependencies `pip install .[cors]` or `pip install apache_superset[cors]`, depending",
+        "description": "**[Cross-Origin Resource Sharing](https://flask-cors.readthedocs.io/)**: Enable Cross-Origin Resource Sharing. Set to `True` if your frontend is served from a different domain. Requires: `pip install flask-cors`",
         "type": "boolean",
         "category": "features",
         "default": false,
@@ -5408,7 +5408,7 @@
       {
         "key": "ENABLE_PROXY_FIX",
         "title": "Enable Proxy Fix",
-        "description": "Use all X-Forwarded headers when ENABLE_PROXY_FIX is True. When proxying to a different port, set \"x_port\" to 0 to avoid downstream issues.",
+        "description": "Enable proxy fix for applications behind reverse proxies. Required for proper URL generation.",
         "type": "boolean",
         "category": "features",
         "default": false,
@@ -5420,7 +5420,7 @@
       {
         "key": "ENABLE_TIME_ROTATE",
         "title": "Enable Time Rotate",
-        "description": "--------------------------------------------------- Enable Time Rotate Log Handler --------------------------------------------------- LOG_LEVEL = DEBUG, INFO, WARNING, ERROR, CRITICAL",
+        "description": "",
         "type": "boolean",
         "category": "features",
         "default": false,
@@ -5444,7 +5444,7 @@
       {
         "key": "WTF_CSRF_ENABLED",
         "title": "Wtf Csrf Enabled",
-        "description": "Flask-WTF flag for CSRF",
+        "description": "**[CSRF protection and form handling](https://flask-wtf.readthedocs.io/)**: Enable CSRF protection for forms. **Recommended to keep `True`** in production for security.",
         "type": "boolean",
         "category": "features",
         "default": true,
@@ -5458,10 +5458,10 @@
       {
         "key": "CELERY_BEAT_SCHEDULER_EXPIRES",
         "title": "Celery Beat Scheduler Expires",
-        "description": "This is used as a workaround for the alerts & reports scheduler task to get the time celery beat triggered it, see https://github.com/celery/celery/issues/6974 for details",
+        "description": "**[Distributed task queue for async processing](https://docs.celeryq.dev/)**: Expiration time for scheduled tasks. Used for alerts & reports scheduler timing.",
         "type": "string",
         "category": "async",
-        "default": "<Call>",
+        "default": "<timedelta()>",
         "env_var": "SUPERSET__CELERY_BEAT_SCHEDULER_EXPIRES",
         "nested_example": null,
         "impact": "low",
@@ -5470,7 +5470,7 @@
       {
         "key": "GLOBAL_ASYNC_QUERIES_JWT_COOKIE_DOMAIN",
         "title": "Global Async Queries Jwt Cookie Domain",
-        "description": "",
+        "description": "Domain for global async queries JWT cookie.",
         "type": "null",
         "category": "async",
         "default": null,
@@ -5482,7 +5482,7 @@
       {
         "key": "GLOBAL_ASYNC_QUERIES_JWT_COOKIE_NAME",
         "title": "Global Async Queries Jwt Cookie Name",
-        "description": "",
+        "description": "JWT cookie name for global async queries.",
         "type": "string",
         "category": "async",
         "default": "async-token",
@@ -5494,7 +5494,7 @@
       {
         "key": "GLOBAL_ASYNC_QUERIES_JWT_COOKIE_SECURE",
         "title": "Global Async Queries Jwt Cookie Secure",
-        "description": "",
+        "description": "Secure flag for global async queries JWT cookie.",
         "type": "boolean",
         "category": "async",
         "default": false,
@@ -5506,7 +5506,7 @@
       {
         "key": "GLOBAL_ASYNC_QUERIES_JWT_SECRET",
         "title": "Global Async Queries Jwt Secret",
-        "description": "",
+        "description": "JWT secret for global async queries.",
         "type": "string",
         "category": "async",
         "default": "test-secret-change-me",
@@ -5521,7 +5521,7 @@
         "description": "",
         "type": "string",
         "category": "async",
-        "default": "<Call>",
+        "default": "<unknown>",
         "env_var": "SUPERSET__GLOBAL_ASYNC_QUERIES_POLLING_DELAY",
         "nested_example": null,
         "impact": "low",
@@ -5530,7 +5530,7 @@
       {
         "key": "GLOBAL_ASYNC_QUERIES_REDIS_STREAM_PREFIX",
         "title": "Global Async Queries Redis Stream Prefix",
-        "description": "",
+        "description": "Redis stream prefix for global async queries.",
         "type": "string",
         "category": "async",
         "default": "async-events-",
@@ -5568,10 +5568,10 @@
       {
         "key": "EMAIL_PAGE_RENDER_WAIT",
         "title": "Email Page Render Wait",
-        "description": "Time selenium will wait for the page to load and render for the email report.",
+        "description": "",
         "type": "string",
         "category": "email",
-        "default": "<Call>",
+        "default": "<unknown>",
         "env_var": "SUPERSET__EMAIL_PAGE_RENDER_WAIT",
         "nested_example": null,
         "impact": "low",
@@ -5580,7 +5580,7 @@
       {
         "key": "EMAIL_REPORTS_CTA",
         "title": "Email Reports Cta",
-        "description": "The text for call-to-action link in Alerts & Reports emails",
+        "description": "",
         "type": "string",
         "category": "email",
         "default": "Explore in Superset",
@@ -5592,7 +5592,7 @@
       {
         "key": "EMAIL_REPORTS_SUBJECT_PREFIX",
         "title": "Email Reports Subject Prefix",
-        "description": "A custom prefix to use on all Alerts & Reports emails",
+        "description": "",
         "type": "string",
         "category": "email",
         "default": "[Report] ",
@@ -5604,7 +5604,7 @@
       {
         "key": "SMTP_HOST",
         "title": "Smtp Host",
-        "description": "smtp server configuration",
+        "description": "",
         "type": "string",
         "category": "email",
         "default": "localhost",
