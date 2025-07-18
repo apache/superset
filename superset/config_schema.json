@@ -1,6 +1,6 @@
 {
   "metadata": {
-    "generated_from": "/Users/max/code/superset/superset/config_defaults.py",
+    "generated_from": "/Users/max/code/superset/docs/../superset/config_defaults.py",
     "total_configs": 218,
     "description": "Superset configuration schema extracted from config_defaults.py"
   },
