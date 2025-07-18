@@ -25,6 +25,7 @@ import {
   HTTP_STATUS_NOT_MODIFIED,
   HTTP_STATUS_OK,
 } from '../constants';
+import logging from '../../utils/logging';
 
 function tryParsePayload(payload: Payload) {
   try {
@@ -152,8 +153,7 @@ export default async function callApi({
               // while logging error to console for any attribute that fails the cast to String
               valueString = stringify ? JSON.stringify(value) : String(value);
             } catch (e) {
-              // eslint-disable-next-line no-console
-              console.error(
+              logging.error(
                 `Unable to convert attribute '${key}' to a String(). '${key}' was not added to the formData in request.body for call to ${url}`,
                 value,
                 e,

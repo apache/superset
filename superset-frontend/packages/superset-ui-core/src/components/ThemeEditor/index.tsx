@@ -27,6 +27,7 @@ import {
 } from '@superset-ui/core';
 import { useState } from 'react';
 import { Icons } from '@superset-ui/core/components/Icons';
+import logging from '../../utils/logging';
 
 interface ThemeEditorProps {
   tooltipTitle?: string;
@@ -70,7 +71,7 @@ const ThemeEditor: React.FC<ThemeEditorProps> = ({
       setTheme?.(parsedTheme);
       setIsModalOpen(false);
     } catch (error) {
-      console.error('Invalid JSON in theme editor:', error);
+      logging.error('Invalid JSON in theme editor:', error);
       alert('Error parsing JSON. Please check your input.');
     }
   };

@@ -17,10 +17,9 @@
  * under the License.
  */
 
-/* eslint no-console: 0 */
-
 import Translator from './Translator';
 import { TranslatorConfig, Translations, LocaleData } from './types';
+import logging from '../utils/logging';
 
 let singleton: Translator | undefined;
 let isConfigured = false;
@@ -34,7 +33,7 @@ function configure(config?: TranslatorConfig) {
 
 function getInstance() {
   if (!isConfigured) {
-    console.warn('You should call configure(...) before calling other methods');
+    logging.warn('You should call configure(...) before calling other methods');
   }
 
   if (typeof singleton === 'undefined') {
