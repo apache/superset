@@ -175,8 +175,8 @@ function enhanceControlWithSemanticLayer(
         return {
           ...originalProps,
           needAsyncVerification: needsVerification,
-          // Temporarily disable useEffect verification to prevent duplicates
-          skipEffectVerification: true,
+          // Only enable initial verification if there's existing data
+          skipEffectVerification: !hasExistingData,
           form_data: state.form_data,
           datasource: state.datasource, // Pass datasource to verification function
         };

@@ -343,62 +343,36 @@ export function createMetricsVerification(controlName?: string): AsyncVerify {
       stackTrace: new Error().stack?.split('\n').slice(1, 4).join('\n'),
     });
 
-    // Use requestAnimationFrame to ensure React has completed its updates
-    return new Promise(resolve => {
-      requestAnimationFrame(async () => {
-        // Add a small delay to ensure all Redux updates have completed
-        await new Promise(r => setTimeout(r, 50));
-        
-        // Try to get the most current form data from Redux store
-        const { actions } = props;
-        const store = (window as any).__REDUX_STORE__ || (actions as any)?._store; // eslint-disable-line no-underscore-dangle
-        let currentFormData = form_data;
+    // Create form data with the current value for this control
+    const syntheticFormData = { ...form_data };
+    if (controlName) {
+      syntheticFormData[controlName] = value;
+    }
 
-        if (store) {
-          try {
-            const state = store.getState();
-            const exploreState = state.explore || {};
-            currentFormData = exploreState.form_data || form_data;
-          } catch (error) {
-            console.warn('Could not access Redux store:', error);
-          }
-        }
+    // Extract query fields using the complete form data approach
+    const queryFields = collectQueryFields(syntheticFormData);
 
-        // Create form data with the current value for this control
-        const syntheticFormData = { ...currentFormData };
-        if (controlName) {
-          syntheticFormData[controlName] = value;
-        }
+    console.log(`[MetricsVerification] Query fields:`, queryFields);
+    console.log(`[MetricsVerification] Form data:`, form_data);
+    console.log(`[MetricsVerification] Synthetic form data:`, syntheticFormData);
 
-        // Extract query fields using the complete form data approach
-        const queryFields = collectQueryFields(syntheticFormData);
+    const validationResult = await callValidationAPI(
+      datasource as Dataset,
+      queryFields.dimensions,
+      queryFields.metrics,
+      controlName,
+    );
 
-        console.log(`[MetricsVerification] Query fields:`, queryFields);
-        console.log(`[MetricsVerification] Original form data:`, form_data);
-        console.log(`[MetricsVerification] Current form data:`, currentFormData);
-        console.log(`[MetricsVerification] Synthetic form data:`, syntheticFormData);
+    if (!validationResult) {
+      return null;
+    }
 
-        const validationResult = await callValidationAPI(
-          datasource as Dataset,
-          queryFields.dimensions,
-          queryFields.metrics,
-          controlName,
-        );
-
-        if (!validationResult) {
-          resolve(null);
-          return;
-        }
-
-        const result = createVerificationResult(
-          validationResult,
-          savedMetrics,
-          props,
-          controlName,
-        );
-        resolve(result);
-      });
-    }) as Promise<any>;
+    return createVerificationResult(
+      validationResult,
+      savedMetrics,
+      props,
+      controlName,
+    );
   };
 }
 
@@ -422,72 +396,49 @@ export function createColumnsVerification(controlName?: string): AsyncVerify {
       stackTrace: new Error().stack?.split('\n').slice(1, 4).join('\n'),
     });
 
-    // Use requestAnimationFrame to ensure React has completed its updates
-    return new Promise(resolve => {
-      requestAnimationFrame(async () => {
-        // Add a small delay to ensure all Redux updates have completed
-        await new Promise(r => setTimeout(r, 50));
-        
-        // Try to get fresh state from Redux store
-        const store = (window as any).__REDUX_STORE__ || (actions as any)?._store; // eslint-disable-line no-underscore-dangle
-        let currentFormData = form_data;
+    // Create form data with the current value
+    const syntheticFormData = { ...form_data };
+    if (controlName) {
+      syntheticFormData[controlName] = value;
+    }
 
-        if (store) {
-          try {
-            const state = store.getState();
-            const exploreState = state.explore || {};
-            currentFormData = exploreState.form_data || form_data;
-          } catch (error) {
-            console.warn('Could not access Redux store:', error);
-          }
-        }
+    // Extract query fields using the complete form data approach
+    const queryFields = collectQueryFields(syntheticFormData);
 
-        // Create form data with the current value
-        const syntheticFormData = { ...currentFormData };
-        if (controlName) {
-          syntheticFormData[controlName] = value;
-        }
+    console.log(`[ColumnsVerification] Query fields:`, queryFields);
+    console.log(`[ColumnsVerification] Form data:`, form_data);
+    console.log(`[ColumnsVerification] Synthetic form data:`, syntheticFormData);
 
-        // Extract query fields using the complete form data approach
-        const queryFields = collectQueryFields(syntheticFormData);
+    const validationResult = await callValidationAPI(
+      datasource as Dataset,
+      queryFields.dimensions,
+      queryFields.metrics,
+      controlName,
+    );
 
-        console.log(`[ColumnsVerification] Query fields:`, queryFields);
-        console.log(`[ColumnsVerification] Current form data:`, currentFormData);
-        console.log(`[ColumnsVerification] Synthetic form data:`, syntheticFormData);
+    if (!validationResult) {
+      return null;
+    }
 
-        const validationResult = await callValidationAPI(
-          datasource as Dataset,
-          queryFields.dimensions,
-          queryFields.metrics,
-          controlName,
-        );
+    // Mark dimension options as disabled if invalid
+    const validDimensionNames = new Set(validationResult.dimensions);
+    const updatedOptions = options.map((option: any) => ({
+      ...option,
+      isDisabled: !validDimensionNames.has(option.column_name || option),
+    }));
 
-        if (!validationResult) {
-          resolve(null);
-          return;
-        }
+    // Use createVerificationResult helper for consistent processing
+    const verificationResult = createVerificationResult(
+      validationResult,
+      [], // savedMetrics not used for columns verification
+      props,
+      controlName,
+    );
 
-        // Mark dimension options as disabled if invalid
-        const validDimensionNames = new Set(validationResult.dimensions);
-        const updatedOptions = options.map((option: any) => ({
-          ...option,
-          isDisabled: !validDimensionNames.has(option.column_name || option),
-        }));
-
-        // Use createVerificationResult helper for consistent processing
-        const verificationResult = createVerificationResult(
-          validationResult,
-          [], // savedMetrics not used for columns verification
-          props,
-          controlName,
-        );
-
-        resolve({
-          options: updatedOptions,
-          datasource: verificationResult.datasource,
-        });
-      });
-    }) as Promise<any>;
+    return {
+      options: updatedOptions,
+      datasource: verificationResult.datasource,
+    };
   };
 }
 
