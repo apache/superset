@@ -45,7 +45,6 @@ import {
   SQLEditor,
   EmptyState,
   Tooltip,
-  Icons,
 } from '@superset-ui/core/components';
 
 import sqlKeywords from 'src/SqlLab/utils/sqlKeywords';
@@ -168,8 +167,6 @@ const ColumnSelectPopover = ({
   >(initialSimpleColumn);
   const [selectedTab, setSelectedTab] = useState<string | null>(null);
   const [validDimensions, setValidDimensions] = useState<string[] | null>(null);
-  const [isLoadingValidDimensions, setIsLoadingValidDimensions] =
-    useState(false);
   const previousFormDataRef = useRef<string>('');
 
   const [resizeButton, width, height] = useResizeButton(
@@ -275,7 +272,6 @@ const ColumnSelectPopover = ({
       (selectedTab === TABS_KEYS.SIMPLE || selectedTab === null)
     ) {
       const fetchValidDimensions = async () => {
-        setIsLoadingValidDimensions(true);
 
         try {
           // Use the same 50ms delay that fixed the main verification timing issue
@@ -336,7 +332,7 @@ const ColumnSelectPopover = ({
           console.warn('Failed to fetch valid dimensions:', error);
           setValidDimensions(null);
         } finally {
-          setIsLoadingValidDimensions(false);
+          // Cleanup
         }
       };
 
@@ -348,7 +344,7 @@ const ColumnSelectPopover = ({
       return () => clearTimeout(timeoutId);
     }
     setValidDimensions(null);
-    setIsLoadingValidDimensions(false);
+    return undefined;
   }, [isSemanticLayer, selectedTab, datasource, store]);
 
   // Also trigger when form data changes (for subsequent updates)
@@ -361,8 +357,6 @@ const ColumnSelectPopover = ({
         previousFormDataRef.current = currentFormDataString;
 
         const fetchValidDimensions = async () => {
-          setIsLoadingValidDimensions(true);
-
           try {
             await new Promise(resolve => setTimeout(resolve, 50));
 
@@ -381,7 +375,7 @@ const ColumnSelectPopover = ({
           } catch (error) {
             console.warn('Failed to fetch valid dimensions:', error);
           } finally {
-            setIsLoadingValidDimensions(false);
+            // Cleanup
           }
         };
 

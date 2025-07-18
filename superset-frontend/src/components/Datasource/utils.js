@@ -136,6 +136,7 @@ export function updateMetrics(prevMetrics, newMetrics, addSuccessToast) {
   // metrics: Array<{metric_name: string; expression: string; verbose_name?: string; ...}>
   const sourceMetricNames = newMetrics.map(metric => metric.metric_name);
   const currentMetrics = prevMetrics.reduce((agg, metric) => {
+    // eslint-disable-next-line no-param-reassign
     agg[metric.metric_name] = metric;
     return agg;
   }, {});

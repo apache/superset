@@ -154,6 +154,82 @@ const apiCallCache = new Map<
   Promise<{ dimensions: string[]; metrics: string[] } | null>
 >();
 
+// Request debouncing - keyed by datasource + control combination
+const pendingRequests = new Map<string, Promise<any>>();
+const lastRequestTime = new Map<string, number>();
+
+/**
+ * Create verification result from API response
+ */
+function createVerificationResult(
+  validationResult: { dimensions: string[]; metrics: string[] },
+  savedMetrics: any[],
+  props: ControlPropsWithExtras,
+  controlName?: string,
+) {
+  const { datasource, actions } = props;
+
+  // Filter saved metrics to only include valid ones
+  const validMetricNames = new Set(validationResult.metrics);
+  const filteredSavedMetrics = savedMetrics.filter((metric: any) =>
+    validMetricNames.has(metric.metric_name || metric),
+  );
+
+  // Mark datasource metrics and columns as disabled if invalid (for left panel)
+  const dataset = datasource as Dataset;
+  let updatedDatasourceMetrics = dataset.metrics;
+  let updatedDatasourceColumns = dataset.columns;
+
+  // Filter valid names to only include those that exist in the original datasource
+  const originalDimensionNames = new Set(
+    dataset.columns?.map((col: any) => col.column_name) || [],
+  );
+  const originalMetricNames = new Set(
+    dataset.metrics?.map((metric: any) => metric.metric_name) || [],
+  );
+
+  const filteredValidMetricNames = new Set(
+    validationResult.metrics.filter(metric => originalMetricNames.has(metric)),
+  );
+  const filteredValidDimensionNames = new Set(
+    validationResult.dimensions.filter(dim => originalDimensionNames.has(dim)),
+  );
+
+  if (dataset.metrics) {
+    updatedDatasourceMetrics = dataset.metrics.map((metric: any) => ({
+      ...metric,
+      isDisabled: !filteredValidMetricNames.has(metric.metric_name || metric),
+    }));
+  }
+
+  // Also update columns using the same validation result
+  if (dataset.columns) {
+    updatedDatasourceColumns = dataset.columns.map((column: any) => ({
+      ...column,
+      isDisabled: !filteredValidDimensionNames.has(
+        column.column_name || column,
+      ),
+    }));
+  }
+
+  // Create updated datasource for left panel
+  const updatedDatasource = {
+    ...dataset,
+    metrics: updatedDatasourceMetrics,
+    columns: updatedDatasourceColumns,
+  };
+
+  // Update the Redux store's datasource to affect the left panel
+  if (actions && typeof actions.syncDatasourceMetadata === 'function') {
+    actions.syncDatasourceMetadata(updatedDatasource);
+  }
+
+  return {
+    savedMetrics: filteredSavedMetrics,
+    datasource: updatedDatasource,
+  };
+}
+
 /**
  * Call the validation API
  */
@@ -161,6 +237,7 @@ export async function callValidationAPI(
   datasource: Dataset,
   selectedDimensions: string[],
   selectedMetrics: string[],
+  controlName?: string,
 ): Promise<{ dimensions: string[]; metrics: string[] } | null> {
   const databaseId = (datasource.database as any)?.id;
   if (!datasource?.id || !databaseId) {
@@ -174,12 +251,44 @@ export async function callValidationAPI(
     metrics: selectedMetrics.sort(),
   });
 
+  // Create a key for this specific control to prevent duplicate requests
+  const controlKey = `${datasource.id}_${controlName || 'unknown'}`;
+  const now = Date.now();
+  
   // Check if we already have a pending request for the same parameters
   if (apiCallCache.has(cacheKey)) {
+    console.log(`[API] Reusing cached request for control: ${controlName}`);
     return apiCallCache.get(cacheKey)!;
   }
 
+  // Check if we have a pending request for this specific control
+  if (pendingRequests.has(controlKey)) {
+    console.log(`[API] Request already pending for control: ${controlName}, waiting...`);
+    return pendingRequests.get(controlKey)!;
+  }
+
+  // Time-based deduplication: if we just made a request for this control, wait a bit
+  const lastTime = lastRequestTime.get(controlKey) || 0;
+  if (now - lastTime < 100) { // 100ms debounce
+    console.log(`[API] Request too soon for control: ${controlName}, debouncing...`);
+    return new Promise(resolve => {
+      setTimeout(async () => {
+        // Try again after debounce
+        const result = await callValidationAPI(datasource, selectedDimensions, selectedMetrics, controlName);
+        resolve(result);
+      }, 100);
+    });
+  }
+
+  lastRequestTime.set(controlKey, now);
+
   try {
+    console.log(`[API] Making request for control: ${controlName}`, {
+      datasource_id: datasource.id,
+      dimensions: selectedDimensions,
+      metrics: selectedMetrics,
+    });
+
     const apiPromise = SupersetClient.post({
       endpoint: `/api/v1/database/${databaseId}/valid_metrics_and_dimensions/`,
       jsonPayload: {
@@ -191,19 +300,25 @@ export async function callValidationAPI(
       response => response.json as { dimensions: string[]; metrics: string[] },
     );
 
-    // Cache the promise
+    // Cache the promise for the exact same parameters
     apiCallCache.set(cacheKey, apiPromise);
+    
+    // Also track this request for this specific control
+    pendingRequests.set(controlKey, apiPromise);
 
-    // Remove from cache after a short delay to allow for immediate duplicates
-    // Increased timeout to handle rapid successive calls from multiple controls
-    setTimeout(() => {
-      apiCallCache.delete(cacheKey);
-    }, 500);
-
-    return await apiPromise;
-  } catch (error) {
-    console.warn('Failed to fetch valid metrics and dimensions:', error);
+    // Clean up on completion
+    const result = await apiPromise;
     apiCallCache.delete(cacheKey);
+    pendingRequests.delete(controlKey);
+    console.log(`[API] Request completed for control: ${controlName}`, result);
+
+    return result;
+  } catch (error) {
+    // Clean up on error
+    apiCallCache.delete(cacheKey);
+    pendingRequests.delete(controlKey);
+
+    console.warn('Failed to fetch valid metrics and dimensions:', error);
     return null;
   }
 }
@@ -213,20 +328,30 @@ export async function callValidationAPI(
  */
 export function createMetricsVerification(controlName?: string): AsyncVerify {
   return async (props: ControlPropsWithExtras) => {
-    const { datasource, form_data, savedMetrics = [], actions, value } = props;
+    const { datasource, form_data, savedMetrics = [], value } = props;
 
     // Only verify for semantic layer datasources
     if (!supportsSemanticLayerVerification(datasource as Dataset)) {
       return null;
     }
 
-    // Defer the actual verification to allow React/Redux to complete all updates
-    // This should solve the stale state issue by waiting for the event loop to complete
+    console.log(`[MetricsVerification] Triggered for control: ${controlName}`, {
+      datasource: datasource?.id,
+      form_data,
+      value,
+      savedMetrics: savedMetrics.length,
+      stackTrace: new Error().stack?.split('\n').slice(1, 4).join('\n'),
+    });
+
+    // Use requestAnimationFrame to ensure React has completed its updates
     return new Promise(resolve => {
-      setTimeout(async () => {
-        // Try to get fresh state from Redux store
-        const store =
-          (window as any).__REDUX_STORE__ || (actions as any)?._store;
+      requestAnimationFrame(async () => {
+        // Add a small delay to ensure all Redux updates have completed
+        await new Promise(r => setTimeout(r, 50));
+        
+        // Try to get the most current form data from Redux store
+        const { actions } = props;
+        const store = (window as any).__REDUX_STORE__ || (actions as any)?._store; // eslint-disable-line no-underscore-dangle
         let currentFormData = form_data;
 
         if (store) {
@@ -239,7 +364,7 @@ export function createMetricsVerification(controlName?: string): AsyncVerify {
           }
         }
 
-        // Create form data with the current value
+        // Create form data with the current value for this control
         const syntheticFormData = { ...currentFormData };
         if (controlName) {
           syntheticFormData[controlName] = value;
@@ -248,10 +373,16 @@ export function createMetricsVerification(controlName?: string): AsyncVerify {
         // Extract query fields using the complete form data approach
         const queryFields = collectQueryFields(syntheticFormData);
 
+        console.log(`[MetricsVerification] Query fields:`, queryFields);
+        console.log(`[MetricsVerification] Original form data:`, form_data);
+        console.log(`[MetricsVerification] Current form data:`, currentFormData);
+        console.log(`[MetricsVerification] Synthetic form data:`, syntheticFormData);
+
         const validationResult = await callValidationAPI(
           datasource as Dataset,
           queryFields.dimensions,
           queryFields.metrics,
+          controlName,
         );
 
         if (!validationResult) {
@@ -259,72 +390,14 @@ export function createMetricsVerification(controlName?: string): AsyncVerify {
           return;
         }
 
-        // Filter saved metrics to only include valid ones
-        const validMetricNames = new Set(validationResult.metrics);
-        const filteredSavedMetrics = savedMetrics.filter((metric: any) =>
-          validMetricNames.has(metric.metric_name || metric),
+        const result = createVerificationResult(
+          validationResult,
+          savedMetrics,
+          props,
+          controlName,
         );
-
-        // Mark datasource metrics and columns as disabled if invalid (for left panel)
-        const dataset = datasource as Dataset;
-        let updatedDatasourceMetrics = dataset.metrics;
-        let updatedDatasourceColumns = dataset.columns;
-
-        // Filter valid names to only include those that exist in the original datasource
-        const originalDimensionNames = new Set(
-          dataset.columns?.map((col: any) => col.column_name) || [],
-        );
-        const originalMetricNames = new Set(
-          dataset.metrics?.map((metric: any) => metric.metric_name) || [],
-        );
-
-        const filteredValidMetricNames = new Set(
-          validationResult.metrics.filter(metric =>
-            originalMetricNames.has(metric),
-          ),
-        );
-        const filteredValidDimensionNames = new Set(
-          validationResult.dimensions.filter(dim =>
-            originalDimensionNames.has(dim),
-          ),
-        );
-
-        if (dataset.metrics) {
-          updatedDatasourceMetrics = dataset.metrics.map((metric: any) => ({
-            ...metric,
-            isDisabled: !filteredValidMetricNames.has(
-              metric.metric_name || metric,
-            ),
-          }));
-        }
-
-        // Also update columns using the same validation result
-        if (dataset.columns) {
-          updatedDatasourceColumns = dataset.columns.map((column: any) => ({
-            ...column,
-            isDisabled: !filteredValidDimensionNames.has(
-              column.column_name || column,
-            ),
-          }));
-        }
-
-        // Create updated datasource for left panel
-        const updatedDatasource = {
-          ...dataset,
-          metrics: updatedDatasourceMetrics,
-          columns: updatedDatasourceColumns,
-        };
-
-        // Update the Redux store's datasource to affect the left panel
-        if (actions && typeof actions.syncDatasourceMetadata === 'function') {
-          actions.syncDatasourceMetadata(updatedDatasource);
-        }
-
-        resolve({
-          savedMetrics: filteredSavedMetrics,
-          datasource: updatedDatasource,
-        });
-      }, 50); // 50ms delay to let React/Redux complete updates
+        resolve(result);
+      });
     }) as Promise<any>;
   };
 }
@@ -341,13 +414,22 @@ export function createColumnsVerification(controlName?: string): AsyncVerify {
       return null;
     }
 
-    // Defer the actual verification to allow React/Redux to complete all updates
-    // This should solve the stale state issue by waiting for the event loop to complete
+    console.log(`[ColumnsVerification] Triggered for control: ${controlName}`, {
+      datasource: datasource?.id,
+      form_data,
+      value,
+      options: options.length,
+      stackTrace: new Error().stack?.split('\n').slice(1, 4).join('\n'),
+    });
+
+    // Use requestAnimationFrame to ensure React has completed its updates
     return new Promise(resolve => {
-      setTimeout(async () => {
+      requestAnimationFrame(async () => {
+        // Add a small delay to ensure all Redux updates have completed
+        await new Promise(r => setTimeout(r, 50));
+        
         // Try to get fresh state from Redux store
-        const store =
-          (window as any).__REDUX_STORE__ || (actions as any)?._store;
+        const store = (window as any).__REDUX_STORE__ || (actions as any)?._store; // eslint-disable-line no-underscore-dangle
         let currentFormData = form_data;
 
         if (store) {
@@ -369,10 +451,15 @@ export function createColumnsVerification(controlName?: string): AsyncVerify {
         // Extract query fields using the complete form data approach
         const queryFields = collectQueryFields(syntheticFormData);
 
+        console.log(`[ColumnsVerification] Query fields:`, queryFields);
+        console.log(`[ColumnsVerification] Current form data:`, currentFormData);
+        console.log(`[ColumnsVerification] Synthetic form data:`, syntheticFormData);
+
         const validationResult = await callValidationAPI(
           datasource as Dataset,
           queryFields.dimensions,
           queryFields.metrics,
+          controlName,
         );
 
         if (!validationResult) {
@@ -387,66 +474,19 @@ export function createColumnsVerification(controlName?: string): AsyncVerify {
           isDisabled: !validDimensionNames.has(option.column_name || option),
         }));
 
-        // Mark datasource columns and metrics as disabled if invalid (for left panel)
-        const dataset = datasource as Dataset;
-        let updatedDatasourceColumns = dataset.columns;
-        let updatedDatasourceMetrics = dataset.metrics;
-
-        // Filter valid names to only include those that exist in the original datasource
-        const originalDimensionNames = new Set(
-          dataset.columns?.map((col: any) => col.column_name) || [],
+        // Use createVerificationResult helper for consistent processing
+        const verificationResult = createVerificationResult(
+          validationResult,
+          [], // savedMetrics not used for columns verification
+          props,
+          controlName,
         );
-        const originalMetricNames = new Set(
-          dataset.metrics?.map((metric: any) => metric.metric_name) || [],
-        );
-
-        const filteredValidDimensionNames = new Set(
-          validationResult.dimensions.filter(dim =>
-            originalDimensionNames.has(dim),
-          ),
-        );
-        const filteredValidMetricNames = new Set(
-          validationResult.metrics.filter(metric =>
-            originalMetricNames.has(metric),
-          ),
-        );
-
-        // Update the disabled state logic to use filtered valid names
-        if (dataset.columns) {
-          updatedDatasourceColumns = dataset.columns.map((column: any) => ({
-            ...column,
-            isDisabled: !filteredValidDimensionNames.has(
-              column.column_name || column,
-            ),
-          }));
-        }
-
-        if (dataset.metrics) {
-          updatedDatasourceMetrics = dataset.metrics.map((metric: any) => ({
-            ...metric,
-            isDisabled: !filteredValidMetricNames.has(
-              metric.metric_name || metric,
-            ),
-          }));
-        }
-
-        // Create updated datasource for left panel
-        const updatedDatasource = {
-          ...dataset,
-          columns: updatedDatasourceColumns,
-          metrics: updatedDatasourceMetrics,
-        };
-
-        // Update the Redux store's datasource to affect the left panel
-        if (actions && typeof actions.syncDatasourceMetadata === 'function') {
-          actions.syncDatasourceMetadata(updatedDatasource);
-        }
 
         resolve({
           options: updatedOptions,
-          datasource: updatedDatasource,
+          datasource: verificationResult.datasource,
         });
-      }, 50); // 50ms delay to let React/Redux complete updates
+      });
     }) as Promise<any>;
   };
 }

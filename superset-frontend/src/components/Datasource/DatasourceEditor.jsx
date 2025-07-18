@@ -1737,8 +1737,7 @@ class DatasourceEditor extends PureComponent {
               ),
               children: (
                 <div>
-                  {this.state.datasource.database?.engine_information
-                    ?.supports_dynamic_columns && (
+                  {this.state.datasource.database?.backend === 'metricflow' && (
                     <ColumnButtonWrapper>
                       <StyledButtonWrapper>
                         <Button
