@@ -406,10 +406,7 @@ const ConfigurationTable: React.FC<ConfigurationTableProps> = ({
         <div style={{ textAlign: 'center', padding: '20px', color: '#666' }}>
           {searchTerm ? (
             <div>
-              <p>
-                No configuration settings found matching &quot;{searchTerm}
-                &quot;.
-              </p>
+              <p>No configuration settings found matching {searchTerm}.</p>
               <p style={{ fontSize: '14px', marginTop: '10px' }}>
                 Try adjusting your search term or{' '}
                 <button
