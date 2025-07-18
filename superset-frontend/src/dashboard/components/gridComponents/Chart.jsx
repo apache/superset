@@ -213,11 +213,15 @@ const Chart = props => {
 
   const getHeaderHeight = useCallback(() => {
     if (headerRef.current) {
-      const computedStyle = getComputedStyle(
+      const computedMarginBottom = getComputedStyle(
         headerRef.current,
       ).getPropertyValue('margin-bottom');
-      const marginBottom = parseInt(computedStyle, 10) || 0;
-      return headerRef.current.offsetHeight + marginBottom;
+      const marginBottom = parseInt(computedMarginBottom, 10) || 0;
+      const computedHeight = getComputedStyle(
+        headerRef.current,
+      ).getPropertyValue('height');
+      const height = parseInt(computedHeight, 10) || DEFAULT_HEADER_HEIGHT;
+      return height + marginBottom;
     }
     return DEFAULT_HEADER_HEIGHT;
   }, [headerRef]);
