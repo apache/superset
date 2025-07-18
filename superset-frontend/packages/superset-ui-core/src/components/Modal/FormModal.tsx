@@ -22,6 +22,7 @@ import { Button } from '../Button';
 import { Form } from '../Form';
 import { Modal } from './Modal';
 import type { FormModalProps } from './types';
+import logging from '../../utils/logging';
 
 export function FormModal({
   show,
@@ -60,7 +61,7 @@ export function FormModal({
         await formSubmitHandler(values);
         handleSave();
       } catch (err) {
-        console.error(err);
+        logging.error(err);
       } finally {
         setIsSaving(false);
       }

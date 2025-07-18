@@ -143,6 +143,7 @@ module.exports = {
       ],
       plugins: ['@typescript-eslint/eslint-plugin', 'react', 'prettier'],
       rules: {
+        'no-console': 'error',
         '@typescript-eslint/ban-ts-ignore': 0,
         '@typescript-eslint/ban-ts-comment': 0, // disabled temporarily
         '@typescript-eslint/ban-types': 0, // disabled temporarily
@@ -400,6 +401,7 @@ module.exports = {
   ],
   // eslint-disable-next-line no-dupe-keys
   rules: {
+    'no-console': 'error',
     'theme-colors/no-literal-colors': 'error',
     'icons/no-fa-icons-usage': 'error',
     'i18n-strings/no-template-vars': ['error', true],

@@ -21,6 +21,7 @@ import SyntaxHighlighterBase from 'react-syntax-highlighter/dist/cjs/light';
 import github from 'react-syntax-highlighter/dist/cjs/styles/hljs/github';
 import tomorrow from 'react-syntax-highlighter/dist/cjs/styles/hljs/tomorrow-night';
 import { useTheme, isThemeDark } from '@superset-ui/core';
+import logging from '../../utils/logging';
 
 export type SupportedLanguage = 'sql' | 'htmlbars' | 'markdown' | 'json';
 
@@ -59,7 +60,7 @@ const registerLanguage = async (language: SupportedLanguage): Promise<void> => {
     SyntaxHighlighterBase.registerLanguage(language, languageModule.default);
     registeredLanguages.add(language);
   } catch (error) {
-    console.warn(`Failed to load language ${language}:`, error);
+    logging.warn(`Failed to load language ${language}:`, error);
   }
 };
 

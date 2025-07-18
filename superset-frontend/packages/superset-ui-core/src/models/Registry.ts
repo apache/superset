@@ -16,6 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import logging from '../utils/logging';
+
 export enum OverwritePolicy {
   Allow = 'ALLOW',
   Prohibit = 'PROHIBIT',
@@ -120,8 +122,7 @@ export default class Registry<
       (('value' in item && item.value !== value) || 'loader' in item);
     if (willOverwrite) {
       if (this.overwritePolicy === OverwritePolicy.Warn) {
-        // eslint-disable-next-line no-console
-        console.warn(
+        logging.warn(
           `Item with key "${key}" already exists. You are assigning a new value.`,
         );
       } else if (this.overwritePolicy === OverwritePolicy.Prohibit) {
@@ -146,8 +147,7 @@ export default class Registry<
       (('loader' in item && item.loader !== loader) || 'value' in item);
     if (willOverwrite) {
       if (this.overwritePolicy === OverwritePolicy.Warn) {
-        // eslint-disable-next-line no-console
-        console.warn(
+        logging.warn(
           `Item with key "${key}" already exists. You are assigning a new value.`,
         );
       } else if (this.overwritePolicy === OverwritePolicy.Prohibit) {
@@ -278,7 +278,7 @@ export default class Registry<
         listener(keys);
       } catch (e) {
         // eslint-disable-next-line no-console
-        console.error('Exception thrown from a registry listener:', e);
+        logging.error('Exception thrown from a registry listener:', e);
       }
     });
   }

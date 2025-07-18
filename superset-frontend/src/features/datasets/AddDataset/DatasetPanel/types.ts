@@ -17,6 +17,8 @@
  * under the License.
  */
 
+import { logging } from '@superset-ui/core';
+
 /**
  * Interface for table columns dataset
  */
@@ -42,15 +44,13 @@ export const isITableColumn = (item: any): boolean => {
     'The object provided to isITableColumn does match the interface.';
   if (typeof item?.name !== 'string') {
     match = false;
-    // eslint-disable-next-line no-console
-    console.error(
+    logging.error(
       `${BASE_ERROR} The property 'name' is required and must be a string`,
     );
   }
   if (match && typeof item?.type !== 'string') {
     match = false;
-    // eslint-disable-next-line no-console
-    console.error(
+    logging.error(
       `${BASE_ERROR} The property 'type' is required and must be a string`,
     );
   }

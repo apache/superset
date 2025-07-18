@@ -18,7 +18,7 @@
  */
 import { useMemo } from 'react';
 import { useSelector } from 'react-redux';
-import { t } from '@superset-ui/core';
+import { t, logging } from '@superset-ui/core';
 import { Charts, Layout, RootState, Slice } from 'src/dashboard/types';
 import { DASHBOARD_ROOT_ID } from 'src/dashboard/util/constants';
 import {
@@ -46,7 +46,7 @@ export function useFilterScopeTree(
 
   const sliceEntities = useSelector<RootState, Slice>(state => {
     if (!state.sliceEntities) {
-      console.warn('sliceEntities not found in state');
+      logging.warn('sliceEntities not found in state');
       return {};
     }
     return state.sliceEntities.slices || {};

@@ -30,6 +30,7 @@ import {
   ExtraFormDataOverride,
   TimeGranularity,
   ExtraFormDataAppend,
+  logging,
 } from '@superset-ui/core';
 import { LayoutItem } from 'src/dashboard/types';
 import extractUrlParams from 'src/dashboard/util/extractUrlParams';
@@ -242,7 +243,7 @@ export function getFilterScope(
     if (target) {
       targets.push(target);
     } else {
-      console.warn(`Invalid filter scope key format: ${scopeKey}`);
+      logging.warn(`Invalid filter scope key format: ${scopeKey}`);
     }
   });
 

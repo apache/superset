@@ -26,6 +26,7 @@ import {
   isProbablyHTML,
   isJsonString,
 } from '@superset-ui/core';
+import logging from '../utils/logging';
 
 // The response always contains an error attribute, can contain anything from
 // the SupersetClientResponse object, and can contain a spread JSON blob
@@ -256,8 +257,7 @@ export function getClientErrorObject(
     // fall back to Response.statusText or generic error of we cannot read the response
     let error = (response as any).statusText || (response as any).message;
     if (!error) {
-      // eslint-disable-next-line no-console
-      console.error('non-standard error:', response);
+      logging.error('non-standard error:', response);
       error = t('An error occurred');
     }
     resolve({
