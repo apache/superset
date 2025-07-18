@@ -24,7 +24,7 @@ from superset.daos.base import BaseDAO
 from superset.databases.filters import DatabaseFilter
 from superset.databases.ssh_tunnel.models import SSHTunnel
 from superset.db_engine_specs.base import ValidColumnsType
-from superset.extensions import db
+from superset.extensions import cache_manager, db
 from superset.models.core import Database, DatabaseUserOAuth2Tokens
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
@@ -168,6 +168,7 @@ class DatabaseDAO(BaseDAO[Database]):
         return ssh_tunnel
 
     @classmethod
+    @cache_manager.data_cache.memoize(timeout=86400)  # 1 day cache
     def get_valid_metrics_and_dimensions(
         cls,
         database_id: int,
@@ -177,6 +178,7 @@ class DatabaseDAO(BaseDAO[Database]):
     ) -> ValidColumnsType:
         """
         Get valid metrics and dimensions for a datasource using the database engine spec.
+        Results are cached for 1 day to improve performance.
 
         :param database_id: The database ID
         :param datasource_id: The datasource ID
