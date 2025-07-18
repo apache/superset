@@ -188,10 +188,10 @@ CUSTOM_SECURITY_MANAGER = None
 SQLALCHEMY_TRACK_MODIFICATIONS = False
 # ---------------------------------------------------------
 
-# Your App secret key. Make sure you override it on superset_config.py
+# Your App secret key. **Make sure you override it on superset_config.py**
 # or use `SUPERSET_SECRET_KEY` environment variable.
-# Use a strong complex alphanumeric string and use a tool to help you generate
-# a sufficiently random sequence, ex: openssl rand -base64 42"
+# Use a **strong complex alphanumeric string** and use a tool to help you generate
+# a sufficiently random sequence, ex: `openssl rand -base64 42`
 SECRET_KEY = os.environ.get("SUPERSET_SECRET_KEY") or CHANGE_ME_SECRET_KEY
 
 # The SQLAlchemy connection string.
@@ -207,8 +207,8 @@ SQLALCHEMY_DATABASE_URI = (
 # that may be specific to the database engine you are using.
 # Note that you can use this to set the isolation level of your database, as in
 # `SQLALCHEMY_ENGINE_OPTIONS = {"isolation_level": "READ COMMITTED"}`
-# Also note that we recommend READ COMMITTED for regular operation.
-# Find out more here https://flask-sqlalchemy.palletsprojects.com/en/3.1.x/config/
+# Also note that we **recommend READ COMMITTED** for regular operation.
+# Find out more here [flask-sqlalchemy config](https://flask-sqlalchemy.palletsprojects.com/en/3.1.x/config/)
 SQLALCHEMY_ENGINE_OPTIONS = {}
 
 # In order to hook up a custom password store for all SQLALCHEMY connections

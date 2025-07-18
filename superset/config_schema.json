@@ -1,6 +1,6 @@
 {
   "metadata": {
-    "generated_from": "/Users/max/code/superset/docs/../superset/config_defaults.py",
+    "generated_from": "/Users/max/code/superset/superset/config_defaults.py",
     "total_configs": 218,
     "description": "Superset configuration schema extracted from config_defaults.py"
   },
@@ -162,7 +162,7 @@
     "SECRET_KEY": {
       "type": "string",
       "default": "<BoolOp>",
-      "description": "Your App secret key. Make sure you override it on superset_config.py or use `SUPERSET_SECRET_KEY` environment variable. Use a strong complex alphanumeric string and use a tool to help you generate a sufficiently random sequence, ex: openssl rand -base64 42\"",
+      "description": "Your App secret key. **Make sure you override it on superset_config.py** or use `SUPERSET_SECRET_KEY` environment variable. Use a **strong complex alphanumeric string** and use a tool to help you generate a sufficiently random sequence, ex: `openssl rand -base64 42`",
       "category": "general"
     },
     "SQLALCHEMY_DATABASE_URI": {
@@ -174,7 +174,7 @@
     "SQLALCHEMY_ENGINE_OPTIONS": {
       "type": "object",
       "default": {},
-      "description": "that may be specific to the database engine you are using. Note that you can use this to set the isolation level of your database, as in `SQLALCHEMY_ENGINE_OPTIONS = {\"isolation_level\": \"READ COMMITTED\"}` Also note that we recommend READ COMMITTED for regular operation. Find out more here https://flask-sqlalchemy.palletsprojects.com/en/3.1.x/config/",
+      "description": "that may be specific to the database engine you are using. Note that you can use this to set the isolation level of your database, as in `SQLALCHEMY_ENGINE_OPTIONS = {\"isolation_level\": \"READ COMMITTED\"}` Also note that we **recommend READ COMMITTED** for regular operation. Find out more here [flask-sqlalchemy config](https://flask-sqlalchemy.palletsprojects.com/en/3.1.x/config/)",
       "category": "database"
     },
     "SQLALCHEMY_CUSTOM_PASSWORD_STORE": {
@@ -1742,7 +1742,7 @@
       "SECRET_KEY": {
         "type": "string",
         "default": "<BoolOp>",
-        "description": "Your App secret key. Make sure you override it on superset_config.py or use `SUPERSET_SECRET_KEY` environment variable. Use a strong complex alphanumeric string and use a tool to help you generate a sufficiently random sequence, ex: openssl rand -base64 42\"",
+        "description": "Your App secret key. **Make sure you override it on superset_config.py** or use `SUPERSET_SECRET_KEY` environment variable. Use a **strong complex alphanumeric string** and use a tool to help you generate a sufficiently random sequence, ex: `openssl rand -base64 42`",
         "category": "general"
       },
       "WTF_CSRF_EXEMPT_LIST": {
@@ -2804,7 +2804,7 @@
       "SQLALCHEMY_ENGINE_OPTIONS": {
         "type": "object",
         "default": {},
-        "description": "that may be specific to the database engine you are using. Note that you can use this to set the isolation level of your database, as in `SQLALCHEMY_ENGINE_OPTIONS = {\"isolation_level\": \"READ COMMITTED\"}` Also note that we recommend READ COMMITTED for regular operation. Find out more here https://flask-sqlalchemy.palletsprojects.com/en/3.1.x/config/",
+        "description": "that may be specific to the database engine you are using. Note that you can use this to set the isolation level of your database, as in `SQLALCHEMY_ENGINE_OPTIONS = {\"isolation_level\": \"READ COMMITTED\"}` Also note that we **recommend READ COMMITTED** for regular operation. Find out more here [flask-sqlalchemy config](https://flask-sqlalchemy.palletsprojects.com/en/3.1.x/config/)",
         "category": "database"
       },
       "SQLALCHEMY_CUSTOM_PASSWORD_STORE": {
