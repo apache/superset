@@ -91,6 +91,7 @@ const ConfigurationTable: React.FC<ConfigurationTableProps> = ({
   const [selectedCategory, setSelectedCategory] = useState<string>(
     category || 'all',
   );
+  const [searchTerm, setSearchTerm] = useState<string>('');
 
   // Get settings based on selected category
   const getSettings = (): ConfigSetting[] => {
@@ -100,7 +101,17 @@ const ConfigurationTable: React.FC<ConfigurationTableProps> = ({
     return configMetadata.by_category[selectedCategory] || [];
   };
 
-  const settings = getSettings();
+  // Filter settings based on search term
+  const filteredSettings = getSettings().filter(setting => {
+    if (!searchTerm) return true;
+    const searchLower = searchTerm.toLowerCase();
+    return (
+      setting.key.toLowerCase().includes(searchLower) ||
+      setting.description.toLowerCase().includes(searchLower)
+    );
+  });
+
+  const settings = filteredSettings;
 
   const formatDefault = (value: any): string => {
     if (value === null || value === undefined) return 'None';
@@ -116,29 +127,85 @@ const ConfigurationTable: React.FC<ConfigurationTableProps> = ({
 
   return (
     <div style={{ margin: '20px 0' }}>
-      {/* Category selector */}
-      {!category && (
-        <div style={{ marginBottom: '20px' }}>
-          <label style={{ marginRight: '10px', fontWeight: 'bold' }}>
-            Category:
+      {/* Search and Category controls */}
+      <div
+        style={{
+          marginBottom: '20px',
+          display: 'flex',
+          gap: '15px',
+          alignItems: 'center',
+          flexWrap: 'wrap',
+        }}
+      >
+        {/* Search input */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <label style={{ fontWeight: 'bold', fontSize: '14px' }}>
+            Search:
           </label>
-          <select
-            value={selectedCategory}
-            onChange={e => setSelectedCategory(e.target.value)}
-            style={{ padding: '5px', marginRight: '10px' }}
-          >
-            <option value="all">All Categories</option>
-            {configMetadata.categories.map(cat => (
-              <option key={cat} value={cat}>
-                {cat.charAt(0).toUpperCase() + cat.slice(1)}
-              </option>
-            ))}
-          </select>
-          <span style={{ fontSize: '14px', color: '#666' }}>
-            Showing {settings.length} configuration settings
-          </span>
+          <input
+            type="text"
+            placeholder="Filter by name or description..."
+            value={searchTerm}
+            onChange={e => setSearchTerm(e.target.value)}
+            style={{
+              padding: '6px 10px',
+              border: '1px solid #ddd',
+              borderRadius: '4px',
+              fontSize: '14px',
+              minWidth: '250px',
+            }}
+          />
+          {searchTerm && (
+            <button
+              onClick={() => setSearchTerm('')}
+              style={{
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                fontSize: '16px',
+                color: '#666',
+                padding: '2px',
+              }}
+              title="Clear search"
+            >
+              ✕
+            </button>
+          )}
         </div>
-      )}
+
+        {/* Category selector */}
+        {!category && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <label style={{ fontWeight: 'bold', fontSize: '14px' }}>
+              Category:
+            </label>
+            <select
+              value={selectedCategory}
+              onChange={e => setSelectedCategory(e.target.value)}
+              style={{
+                padding: '6px 10px',
+                border: '1px solid #ddd',
+                borderRadius: '4px',
+                fontSize: '14px',
+              }}
+            >
+              <option value="all">All Categories</option>
+              {configMetadata.categories.map(cat => (
+                <option key={cat} value={cat}>
+                  {cat.charAt(0).toUpperCase() + cat.slice(1)}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+
+        {/* Results count */}
+        <span style={{ fontSize: '14px', color: '#666', marginLeft: 'auto' }}>
+          {searchTerm
+            ? `Found ${settings.length} matching settings`
+            : `Showing ${settings.length} configuration settings`}
+        </span>
+      </div>
 
       {/* Table */}
       <div style={{ overflowX: 'auto' }}>
@@ -337,7 +404,33 @@ const ConfigurationTable: React.FC<ConfigurationTableProps> = ({
 
       {settings.length === 0 && (
         <div style={{ textAlign: 'center', padding: '20px', color: '#666' }}>
-          No configuration settings found for the selected category.
+          {searchTerm ? (
+            <div>
+              <p>
+                No configuration settings found matching &quot;{searchTerm}
+                &quot;.
+              </p>
+              <p style={{ fontSize: '14px', marginTop: '10px' }}>
+                Try adjusting your search term or{' '}
+                <button
+                  onClick={() => setSearchTerm('')}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: '#1890ff',
+                    cursor: 'pointer',
+                    textDecoration: 'underline',
+                    fontSize: '14px',
+                  }}
+                >
+                  clear the search
+                </button>
+                .
+              </p>
+            </div>
+          ) : (
+            'No configuration settings found for the selected category.'
+          )}
         </div>
       )}
     </div>
