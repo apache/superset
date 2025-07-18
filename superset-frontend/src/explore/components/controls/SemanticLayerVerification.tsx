@@ -158,6 +158,9 @@ const apiCallCache = new Map<
 const pendingRequests = new Map<string, Promise<any>>();
 const lastRequestTime = new Map<string, number>();
 
+// Track which controls have had their initial verification
+const initialVerificationDone = new Set<string>();
+
 /**
  * Create verification result from API response
  */
@@ -267,16 +270,25 @@ export async function callValidationAPI(
     return pendingRequests.get(controlKey)!;
   }
 
+  // Enhanced deduplication: check if we have an identical request in flight
+  const requestSignature = `${datasource.id}_${selectedDimensions.join(',')}_${selectedMetrics.join(',')}`;
+  
+  // If we have an identical request already cached, return it
+  if (apiCallCache.has(requestSignature)) {
+    console.log(`[API] Identical request found for control: ${controlName}, reusing...`);
+    return apiCallCache.get(requestSignature)!;
+  }
+
   // Time-based deduplication: if we just made a request for this control, wait a bit
   const lastTime = lastRequestTime.get(controlKey) || 0;
-  if (now - lastTime < 100) { // 100ms debounce
+  if (now - lastTime < 50) { // 50ms debounce
     console.log(`[API] Request too soon for control: ${controlName}, debouncing...`);
     return new Promise(resolve => {
       setTimeout(async () => {
         // Try again after debounce
         const result = await callValidationAPI(datasource, selectedDimensions, selectedMetrics, controlName);
         resolve(result);
-      }, 100);
+      }, 50);
     });
   }
 
@@ -303,12 +315,16 @@ export async function callValidationAPI(
     // Cache the promise for the exact same parameters
     apiCallCache.set(cacheKey, apiPromise);
     
+    // Cache by request signature for identical requests
+    apiCallCache.set(requestSignature, apiPromise);
+    
     // Also track this request for this specific control
     pendingRequests.set(controlKey, apiPromise);
 
     // Clean up on completion
     const result = await apiPromise;
     apiCallCache.delete(cacheKey);
+    apiCallCache.delete(requestSignature);
     pendingRequests.delete(controlKey);
     console.log(`[API] Request completed for control: ${controlName}`, result);
 
@@ -316,6 +332,7 @@ export async function callValidationAPI(
   } catch (error) {
     // Clean up on error
     apiCallCache.delete(cacheKey);
+    apiCallCache.delete(requestSignature);
     pendingRequests.delete(controlKey);
 
     console.warn('Failed to fetch valid metrics and dimensions:', error);
@@ -388,12 +405,51 @@ export function createColumnsVerification(controlName?: string): AsyncVerify {
       return null;
     }
 
+    // Handle initial verification for fresh charts
+    const triggerInitialVerification = (props as any).triggerInitialVerification;
+    const datasourceControlKey = `${datasource?.id}_${controlName}`;
+    
+    if (triggerInitialVerification && !initialVerificationDone.has(datasourceControlKey)) {
+      console.log(`[ColumnsVerification] Triggering initial verification for control: ${controlName}`);
+      initialVerificationDone.add(datasourceControlKey);
+      
+      // Trigger initial verification with empty form data
+      const initialResult = await callValidationAPI(
+        datasource as Dataset,
+        [],
+        [],
+        controlName,
+      );
+      
+      if (initialResult) {
+        // Mark all options as enabled/disabled based on initial result
+        const validDimensionNames = new Set(initialResult.dimensions);
+        const updatedOptions = options.map((option: any) => ({
+          ...option,
+          isDisabled: !validDimensionNames.has(option.column_name || option),
+        }));
+
+        // Update left panel disabled states
+        const verificationResult = createVerificationResult(
+          initialResult,
+          [],
+          props,
+          controlName,
+        );
+
+        return {
+          options: updatedOptions,
+          datasource: verificationResult.datasource,
+        };
+      }
+    }
+
     console.log(`[ColumnsVerification] Triggered for control: ${controlName}`, {
       datasource: datasource?.id,
       form_data,
       value,
       options: options.length,
-      stackTrace: new Error().stack?.split('\n').slice(1, 4).join('\n'),
+      stackTrace: new Error().stack?.split('\n').slice(1, 6).join('\n'),
     });
 
     // Create form data with the current value

@@ -175,10 +175,13 @@ function enhanceControlWithSemanticLayer(
         return {
           ...originalProps,
           needAsyncVerification: needsVerification,
-          // Only enable initial verification if there's existing data
+          // Only enable initial verification if there's existing data (like saved charts)
+          // For new charts, rely only on onChange to prevent duplicate requests
           skipEffectVerification: !hasExistingData,
           form_data: state.form_data,
           datasource: state.datasource, // Pass datasource to verification function
+          // Add a flag to indicate this is a fresh chart that needs initial verification
+          triggerInitialVerification: needsVerification && !hasExistingData,
         };
       }
 
