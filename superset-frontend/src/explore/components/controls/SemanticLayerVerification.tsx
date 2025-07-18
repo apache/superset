@@ -223,145 +223,116 @@ export function createMetricsVerification(controlName?: string): AsyncVerify {
       return null;
     }
 
-    // Stop trying to get "current" state - just use the value we have and minimal other state
-    // The issue is that verification happens immediately while Redux is updating
-    // So let's just send the minimal needed data: current control value + some basic context
-    
-    const queryFields = {
-      dimensions: [] as string[],
-      metrics: [] as string[]
-    };
-
-    // Add the current value being set
-    if (controlName && value !== undefined && value !== null) {
-      if (['metrics', 'metric', 'metric_2', 'percent_metrics', 'timeseries_limit_metric', 'x', 'y', 'size', 'secondary_metric'].includes(controlName)) {
-        if (Array.isArray(value)) {
-          queryFields.metrics.push(...value.filter(v => v != null).map(v => typeof v === 'string' ? v : (v as any)?.metric_name || String(v)));
-        } else {
-          const metricName = typeof value === 'string' ? value : (value as any)?.metric_name || String(value);
-          if (metricName) queryFields.metrics.push(metricName);
-        }
-      } else if (['groupby', 'columns', 'all_columns', 'series_columns', 'series', 'entity', 'x_axis'].includes(controlName)) {
-        if (Array.isArray(value)) {
-          queryFields.dimensions.push(...value.filter(v => v != null).map(v => typeof v === 'string' ? v : (v as any)?.column_name || String(v)));
-        } else {
-          const dimensionName = typeof value === 'string' ? value : (value as any)?.column_name || String(value);
-          if (dimensionName) queryFields.dimensions.push(dimensionName);
-        }
-      }
-    }
-
-    // Only add a minimal set of other values - don't try to be complete since that's causing timing issues
-    // Just include basic metric/dimension fields that are commonly used
-    if (form_data) {
-      // Add basic metrics that are commonly present
-      if (form_data.metrics && controlName !== 'metrics') {
-        const metrics = Array.isArray(form_data.metrics) ? form_data.metrics : [form_data.metrics];
-        queryFields.metrics.push(...metrics.filter(v => v != null).map(v => typeof v === 'string' ? v : (v as any)?.metric_name || String(v)));
-      }
-      
-      // Add basic dimensions that are commonly present  
-      if (form_data.groupby && controlName !== 'groupby') {
-        const dimensions = Array.isArray(form_data.groupby) ? form_data.groupby : [form_data.groupby];
-        queryFields.dimensions.push(...dimensions.filter(v => v != null).map(v => typeof v === 'string' ? v : (v as any)?.column_name || String(v)));
-      }
-    }
-
-    // Remove duplicates
-    queryFields.dimensions = [...new Set(queryFields.dimensions)];
-    queryFields.metrics = [...new Set(queryFields.metrics)];
-
-    console.log('=== METRICS VERIFICATION SIMPLIFIED ===');
+    console.log('=== METRICS VERIFICATION DEFERRED START ===');
     console.log('Control name:', controlName);
     console.log('Current value:', value);
-    console.log('Simplified query fields:', queryFields);
+    console.log('Props form_data before delay:', form_data);
 
-    // Call validation API
-    console.log('Metrics verification API call:', {
-      controlName,
-      originalFormData: form_data,
-      updatedFormData,
-      value,
-      valueType: typeof value,
-      isArray: Array.isArray(value),
-      valueLength: Array.isArray(value) ? value.length : 'N/A',
-      dimensions: queryFields.dimensions,
-      metrics: queryFields.metrics,
-    });
-    
-    const validationResult = await callValidationAPI(
-      datasource as Dataset,
-      queryFields.dimensions,
-      queryFields.metrics,
-    );
+    // Defer the actual verification to allow React/Redux to complete all updates
+    // This should solve the stale state issue by waiting for the event loop to complete
+    return new Promise((resolve) => {
+      setTimeout(async () => {
+        console.log('=== METRICS VERIFICATION DEFERRED EXECUTION ===');
+        
+        // Try to get fresh state from Redux store
+        const store = (window as any).__REDUX_STORE__ || (actions as any)?._store;
+        let currentFormData = form_data;
+        
+        if (store) {
+          try {
+            const state = store.getState();
+            const exploreState = state.explore || {};
+            currentFormData = exploreState.form_data || form_data;
+            console.log('Fresh form_data from store after delay:', currentFormData);
+          } catch (error) {
+            console.warn('Could not access Redux store:', error);
+          }
+        }
 
-    if (!validationResult) {
-      return null;
-    }
+        // Create form data with the current value
+        const syntheticFormData = { ...currentFormData };
+        if (controlName) {
+          syntheticFormData[controlName] = value;
+        }
 
-    // Filter saved metrics to only include valid ones
-    const validMetricNames = new Set(validationResult.metrics);
-    const filteredSavedMetrics = savedMetrics.filter((metric: any) =>
-      validMetricNames.has(metric.metric_name || metric),
-    );
+        // Extract query fields using the complete form data approach
+        const queryFields = collectQueryFields(syntheticFormData);
 
-    // Mark datasource metrics and columns as disabled if invalid (for left panel)
-    const dataset = datasource as Dataset;
-    let updatedDatasourceMetrics = dataset.metrics;
-    let updatedDatasourceColumns = dataset.columns;
+        console.log('Deferred metrics verification:', {
+          controlName,
+          currentValue: value,
+          propsFormData: form_data,
+          storeFormData: currentFormData,
+          syntheticFormData,
+          queryFields
+        });
 
-    // Filter valid names to only include those that exist in the original datasource
-    const originalDimensionNames = new Set(dataset.columns?.map((col: any) => col.column_name) || []);
-    const originalMetricNames = new Set(dataset.metrics?.map((metric: any) => metric.metric_name) || []);
-    
-    const filteredValidMetricNames = new Set(
-      validationResult.metrics.filter(metric => originalMetricNames.has(metric))
-    );
-    const filteredValidDimensionNames = new Set(
-      validationResult.dimensions.filter(dim => originalDimensionNames.has(dim))
-    );
+        const validationResult = await callValidationAPI(
+          datasource as Dataset,
+          queryFields.dimensions,
+          queryFields.metrics,
+        );
 
-    console.log('Metrics verification filtering:', {
-      controlName,
-      originalMetricCount: originalMetricNames.size,
-      apiValidMetricCount: validationResult.metrics.length,
-      filteredValidMetricCount: filteredValidMetricNames.size,
-      originalDimensionCount: originalDimensionNames.size,
-      apiValidDimensionCount: validationResult.dimensions.length,
-      filteredValidDimensionCount: filteredValidDimensionNames.size,
-    });
+        if (!validationResult) {
+          resolve(null);
+          return;
+        }
 
-    if (dataset.metrics) {
-      updatedDatasourceMetrics = dataset.metrics.map((metric: any) => ({
-        ...metric,
-        isDisabled: !filteredValidMetricNames.has(metric.metric_name || metric),
-      }));
-    }
+        // Filter saved metrics to only include valid ones
+        const validMetricNames = new Set(validationResult.metrics);
+        const filteredSavedMetrics = savedMetrics.filter((metric: any) =>
+          validMetricNames.has(metric.metric_name || metric),
+        );
 
-    // Also update columns using the same validation result
-    if (dataset.columns) {
-      updatedDatasourceColumns = dataset.columns.map((column: any) => ({
-        ...column,
-        isDisabled: !filteredValidDimensionNames.has(column.column_name || column),
-      }));
-    }
+        // Mark datasource metrics and columns as disabled if invalid (for left panel)
+        const dataset = datasource as Dataset;
+        let updatedDatasourceMetrics = dataset.metrics;
+        let updatedDatasourceColumns = dataset.columns;
 
-    // Create updated datasource for left panel
-    const updatedDatasource = {
-      ...dataset,
-      metrics: updatedDatasourceMetrics,
-      columns: updatedDatasourceColumns,
-    };
+        // Filter valid names to only include those that exist in the original datasource
+        const originalDimensionNames = new Set(dataset.columns?.map((col: any) => col.column_name) || []);
+        const originalMetricNames = new Set(dataset.metrics?.map((metric: any) => metric.metric_name) || []);
+        
+        const filteredValidMetricNames = new Set(
+          validationResult.metrics.filter(metric => originalMetricNames.has(metric))
+        );
+        const filteredValidDimensionNames = new Set(
+          validationResult.dimensions.filter(dim => originalDimensionNames.has(dim))
+        );
 
-    // Update the Redux store's datasource to affect the left panel
-    if (actions && typeof actions.syncDatasourceMetadata === 'function') {
-      actions.syncDatasourceMetadata(updatedDatasource);
-    }
+        if (dataset.metrics) {
+          updatedDatasourceMetrics = dataset.metrics.map((metric: any) => ({
+            ...metric,
+            isDisabled: !filteredValidMetricNames.has(metric.metric_name || metric),
+          }));
+        }
 
-    return {
-      savedMetrics: filteredSavedMetrics,
-      datasource: updatedDatasource,
-    };
+        // Also update columns using the same validation result
+        if (dataset.columns) {
+          updatedDatasourceColumns = dataset.columns.map((column: any) => ({
+            ...column,
+            isDisabled: !filteredValidDimensionNames.has(column.column_name || column),
+          }));
+        }
+
+        // Create updated datasource for left panel
+        const updatedDatasource = {
+          ...dataset,
+          metrics: updatedDatasourceMetrics,
+          columns: updatedDatasourceColumns,
+        };
+
+        // Update the Redux store's datasource to affect the left panel
+        if (actions && typeof actions.syncDatasourceMetadata === 'function') {
+          actions.syncDatasourceMetadata(updatedDatasource);
+        }
+
+        resolve({
+          savedMetrics: filteredSavedMetrics,
+          datasource: updatedDatasource,
+        });
+      }, 50); // 50ms delay to let React/Redux complete updates
+    }) as Promise<any>;
   };
 }
 
@@ -377,186 +348,117 @@ export function createColumnsVerification(controlName?: string): AsyncVerify {
       return null;
     }
 
-    // Stop trying to get "current" state - just use the value we have and minimal other state
-    // The issue is that verification happens immediately while Redux is updating
-    // So let's just send the minimal needed data: current control value + some basic context
-    
-    const queryFields = {
-      dimensions: [] as string[],
-      metrics: [] as string[]
-    };
-
-    // Add the current value being set
-    if (controlName && value !== undefined && value !== null) {
-      if (['metrics', 'metric', 'metric_2', 'percent_metrics', 'timeseries_limit_metric', 'x', 'y', 'size', 'secondary_metric'].includes(controlName)) {
-        if (Array.isArray(value)) {
-          queryFields.metrics.push(...value.filter(v => v != null).map(v => typeof v === 'string' ? v : (v as any)?.metric_name || String(v)));
-        } else {
-          const metricName = typeof value === 'string' ? value : (value as any)?.metric_name || String(value);
-          if (metricName) queryFields.metrics.push(metricName);
-        }
-      } else if (['groupby', 'columns', 'all_columns', 'series_columns', 'series', 'entity', 'x_axis'].includes(controlName)) {
-        if (Array.isArray(value)) {
-          queryFields.dimensions.push(...value.filter(v => v != null).map(v => typeof v === 'string' ? v : (v as any)?.column_name || String(v)));
-        } else {
-          const dimensionName = typeof value === 'string' ? value : (value as any)?.column_name || String(value);
-          if (dimensionName) queryFields.dimensions.push(dimensionName);
-        }
-      }
-    }
-
-    // Only add a minimal set of other values - don't try to be complete since that's causing timing issues
-    // Just include basic metric/dimension fields that are commonly used
-    if (form_data) {
-      // Add basic metrics that are commonly present
-      if (form_data.metrics && controlName !== 'metrics') {
-        const metrics = Array.isArray(form_data.metrics) ? form_data.metrics : [form_data.metrics];
-        queryFields.metrics.push(...metrics.filter(v => v != null).map(v => typeof v === 'string' ? v : (v as any)?.metric_name || String(v)));
-      }
-      
-      // Add basic dimensions that are commonly present  
-      if (form_data.groupby && controlName !== 'groupby') {
-        const dimensions = Array.isArray(form_data.groupby) ? form_data.groupby : [form_data.groupby];
-        queryFields.dimensions.push(...dimensions.filter(v => v != null).map(v => typeof v === 'string' ? v : (v as any)?.column_name || String(v)));
-      }
-    }
-
-    // Remove duplicates
-    queryFields.dimensions = [...new Set(queryFields.dimensions)];
-    queryFields.metrics = [...new Set(queryFields.metrics)];
-
-    console.log('=== COLUMNS VERIFICATION SIMPLIFIED ===');
+    console.log('=== COLUMNS VERIFICATION DEFERRED START ===');
     console.log('Control name:', controlName);
     console.log('Current value:', value);
-    console.log('Current value type:', typeof value, Array.isArray(value));
-    console.log('Current value length:', Array.isArray(value) ? value.length : 'N/A');
-    console.log('Simplified query fields:', queryFields);
-    console.log('Stack trace:', new Error().stack);
+    console.log('Props form_data before delay:', form_data);
 
-    // Call validation API
-    console.log('Columns verification API call:', {
-      controlName,
-      dimensions: queryFields.dimensions,
-      metrics: queryFields.metrics,
-    });
-    
-    const validationResult = await callValidationAPI(
-      datasource as Dataset,
-      queryFields.dimensions,
-      queryFields.metrics,
-    );
+    // Defer the actual verification to allow React/Redux to complete all updates
+    // This should solve the stale state issue by waiting for the event loop to complete
+    return new Promise((resolve) => {
+      setTimeout(async () => {
+        console.log('=== COLUMNS VERIFICATION DEFERRED EXECUTION ===');
+        
+        // Try to get fresh state from Redux store
+        const store = (window as any).__REDUX_STORE__ || (actions as any)?._store;
+        let currentFormData = form_data;
+        
+        if (store) {
+          try {
+            const state = store.getState();
+            const exploreState = state.explore || {};
+            currentFormData = exploreState.form_data || form_data;
+            console.log('Fresh form_data from store after delay:', currentFormData);
+          } catch (error) {
+            console.warn('Could not access Redux store:', error);
+          }
+        }
 
-    if (!validationResult) {
-      return null;
-    }
+        // Create form data with the current value
+        const syntheticFormData = { ...currentFormData };
+        if (controlName) {
+          syntheticFormData[controlName] = value;
+        }
 
-    console.log('Columns verification API response:', {
-      controlName,
-      validDimensions: validationResult.dimensions,
-      validMetrics: validationResult.metrics,
-    });
+        // Extract query fields using the complete form data approach
+        const queryFields = collectQueryFields(syntheticFormData);
 
-    // Mark dimension options as disabled if invalid
-    const validDimensionNames = new Set(validationResult.dimensions);
-    const updatedOptions = options.map((option: any) => ({
-      ...option,
-      isDisabled: !validDimensionNames.has(option.column_name || option),
-    }));
+        console.log('Deferred columns verification:', {
+          controlName,
+          currentValue: value,
+          propsFormData: form_data,
+          storeFormData: currentFormData,
+          syntheticFormData,
+          queryFields
+        });
 
-    // Mark datasource columns and metrics as disabled if invalid (for left panel)
-    const dataset = datasource as Dataset;
-    let updatedDatasourceColumns = dataset.columns;
-    let updatedDatasourceMetrics = dataset.metrics;
+        const validationResult = await callValidationAPI(
+          datasource as Dataset,
+          queryFields.dimensions,
+          queryFields.metrics,
+        );
 
-    if (dataset.columns) {
-      updatedDatasourceColumns = dataset.columns.map((column: any) => ({
-        ...column,
-        isDisabled: !validDimensionNames.has(column.column_name || column),
-      }));
-    }
+        if (!validationResult) {
+          resolve(null);
+          return;
+        }
 
-    // Also update metrics using the same validation result
-    const validMetricNames = new Set(validationResult.metrics);
-    if (dataset.metrics) {
-      updatedDatasourceMetrics = dataset.metrics.map((metric: any) => ({
-        ...metric,
-        isDisabled: !validMetricNames.has(metric.metric_name || metric),
-      }));
-    }
+        // Mark dimension options as disabled if invalid
+        const validDimensionNames = new Set(validationResult.dimensions);
+        const updatedOptions = options.map((option: any) => ({
+          ...option,
+          isDisabled: !validDimensionNames.has(option.column_name || option),
+        }));
 
-    // Debug: Check which dimensions are valid but not in original datasource
-    const originalDimensionNames = new Set(dataset.columns?.map((col: any) => col.column_name) || []);
-    const originalMetricNames = new Set(dataset.metrics?.map((metric: any) => metric.metric_name) || []);
-    
-    const validDimensionsNotInOriginal = validationResult.dimensions.filter(
-      (dim: string) => !originalDimensionNames.has(dim)
-    );
-    const validMetricsNotInOriginal = validationResult.metrics.filter(
-      (metric: string) => !originalMetricNames.has(metric)
-    );
+        // Mark datasource columns and metrics as disabled if invalid (for left panel)
+        const dataset = datasource as Dataset;
+        let updatedDatasourceColumns = dataset.columns;
+        let updatedDatasourceMetrics = dataset.metrics;
 
-    console.log('Columns verification datasource update:', {
-      controlName,
-      originalColumns: dataset.columns?.length,
-      updatedColumns: updatedDatasourceColumns?.length,
-      originalMetrics: dataset.metrics?.length,
-      updatedMetrics: updatedDatasourceMetrics?.length,
-      validDimensionCount: validDimensionNames.size,
-      validMetricCount: validMetricNames.size,
-      validDimensionsNotInOriginal,
-      validMetricsNotInOriginal,
-    });
+        // Filter valid names to only include those that exist in the original datasource
+        const originalDimensionNames = new Set(dataset.columns?.map((col: any) => col.column_name) || []);
+        const originalMetricNames = new Set(dataset.metrics?.map((metric: any) => metric.metric_name) || []);
+        
+        const filteredValidDimensionNames = new Set(
+          validationResult.dimensions.filter(dim => originalDimensionNames.has(dim))
+        );
+        const filteredValidMetricNames = new Set(
+          validationResult.metrics.filter(metric => originalMetricNames.has(metric))
+        );
 
-    // Fix: Only mark columns as disabled if they exist in the original datasource
-    // This prevents the UI from trying to process valid dimensions that don't exist
-    const filteredValidDimensionNames = new Set(
-      validationResult.dimensions.filter(dim => originalDimensionNames.has(dim))
-    );
-    const filteredValidMetricNames = new Set(
-      validationResult.metrics.filter(metric => originalMetricNames.has(metric))
-    );
+        // Update the disabled state logic to use filtered valid names
+        if (dataset.columns) {
+          updatedDatasourceColumns = dataset.columns.map((column: any) => ({
+            ...column,
+            isDisabled: !filteredValidDimensionNames.has(column.column_name || column),
+          }));
+        }
 
-    console.log('Columns verification filtering:', {
-      controlName,
-      originalDimensionCount: originalDimensionNames.size,
-      apiValidDimensionCount: validationResult.dimensions.length,
-      filteredValidDimensionCount: filteredValidDimensionNames.size,
-      originalMetricCount: originalMetricNames.size,
-      apiValidMetricCount: validationResult.metrics.length,
-      filteredValidMetricCount: filteredValidMetricNames.size,
-    });
+        if (dataset.metrics) {
+          updatedDatasourceMetrics = dataset.metrics.map((metric: any) => ({
+            ...metric,
+            isDisabled: !filteredValidMetricNames.has(metric.metric_name || metric),
+          }));
+        }
 
-    // Update the disabled state logic to use filtered valid names
-    if (dataset.columns) {
-      updatedDatasourceColumns = dataset.columns.map((column: any) => ({
-        ...column,
-        isDisabled: !filteredValidDimensionNames.has(column.column_name || column),
-      }));
-    }
+        // Create updated datasource for left panel
+        const updatedDatasource = {
+          ...dataset,
+          columns: updatedDatasourceColumns,
+          metrics: updatedDatasourceMetrics,
+        };
 
-    if (dataset.metrics) {
-      updatedDatasourceMetrics = dataset.metrics.map((metric: any) => ({
-        ...metric,
-        isDisabled: !filteredValidMetricNames.has(metric.metric_name || metric),
-      }));
-    }
+        // Update the Redux store's datasource to affect the left panel
+        if (actions && typeof actions.syncDatasourceMetadata === 'function') {
+          actions.syncDatasourceMetadata(updatedDatasource);
+        }
 
-    // Create updated datasource for left panel
-    const updatedDatasource = {
-      ...dataset,
-      columns: updatedDatasourceColumns,
-      metrics: updatedDatasourceMetrics,
-    };
-
-    // Update the Redux store's datasource to affect the left panel
-    if (actions && typeof actions.syncDatasourceMetadata === 'function') {
-      actions.syncDatasourceMetadata(updatedDatasource);
-    }
-
-    return {
-      options: updatedOptions,
-      datasource: updatedDatasource,
-    };
+        resolve({
+          options: updatedOptions,
+          datasource: updatedDatasource,
+        });
+      }, 50); // 50ms delay to let React/Redux complete updates
+    }) as Promise<any>;
   };
 }
 
