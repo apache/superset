@@ -4,6 +4,9 @@ Export configuration metadata to JSON for documentation generation.
 
 This script extracts configuration metadata from SupersetConfig and generates
 JSON files that can be imported into the documentation site.
+
+This script is called by docs/scripts/generate_docs.sh as part of the
+unified documentation generation process.
 """
 
 import sys

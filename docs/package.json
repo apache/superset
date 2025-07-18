@@ -6,7 +6,7 @@
   "scripts": {
     "docusaurus": "docusaurus",
     "_init": "cat src/intro_header.txt ../README.md > docs/intro.md",
-    "_update-config": "bash scripts/update_docs.sh",
+    "_update-config": "bash scripts/generate_docs.sh",
     "start": "yarn run _init && yarn run _update-config && docusaurus start",
     "build": "yarn run _init && yarn run _update-config && DEBUG=docusaurus:* docusaurus build",
     "swizzle": "docusaurus swizzle",
