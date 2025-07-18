@@ -194,6 +194,41 @@ You can also run the pre-commit checks manually in various ways:
   Replace `<hook_id>` with the ID of the specific hook you want to run. You can find the list
   of available hooks in the `.pre-commit-config.yaml` file.
 
+## Working with LLMs
+
+### Environment Setup
+Ensure Docker Compose is running before starting LLM sessions:
+```bash
+docker compose up -d
+```
+
+Validate your environment:
+```bash
+curl -f http://localhost:8088/health && echo "✅ Superset ready"
+curl -f http://localhost:8080/health && echo "✅ WebSocket ready"
+```
+
+### LLM Session Best Practices
+- Always validate environment setup first using the health checks above
+- Use focused validation commands: `pre-commit run` (not `--all-files`)
+- Reference [LLMS.md](https://github.com/apache/superset/blob/master/LLMS.md) for comprehensive development guidelines and context
+- Follow the TypeScript migration guidelines and code standards in LLMS.md
+
+### Key Development Commands
+```bash
+# Frontend development
+cd superset-frontend
+npm run dev          # Development server
+npm run test         # Run tests
+npm run lint         # Linting and type checking
+
+# Backend validation
+pre-commit run mypy  # Type checking
+pytest              # Run tests
+```
+
+For detailed development context, environment setup, and coding guidelines, see [LLMS.md](https://github.com/apache/superset/blob/master/LLMS.md).
+
 ## Alternatives to `docker compose`
 
 :::caution
