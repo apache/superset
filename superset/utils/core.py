@@ -1593,10 +1593,9 @@ def get_metric_type_from_column(column: Any, datasource: BaseDatasource | Query)
 
     if match:
         operation = match.group(1)
-        if operation not in MetricMapType:
-            logger.warning("Unexpected metric operation type: %s", operation)
         return MetricMapType.get(operation, "")
 
+    logger.warning("Unexpected metric expression type: %s", expression)
     return ""
 
 
