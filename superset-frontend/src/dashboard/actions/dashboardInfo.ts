@@ -350,11 +350,10 @@ export function saveChartCustomization(
           dispatch(removeDataMask(customizationFilterId));
         });
 
-        // Apply data masks immediately without delay
         simpleItems.forEach(item => {
-          if (item.customization?.column) {
-            const customizationFilterId = `chart_customization_${item.id}`;
+          const customizationFilterId = `chart_customization_${item.id}`;
 
+          if (item.customization?.column) {
             dispatch(removeDataMask(customizationFilterId));
 
             const dataMask = {
@@ -368,6 +367,8 @@ export function saveChartCustomization(
               },
             };
             dispatch(updateDataMask(customizationFilterId, dataMask));
+          } else {
+            dispatch(removeDataMask(customizationFilterId));
           }
         });
 
@@ -428,9 +429,9 @@ export function initializeChartCustomization(
     });
 
     chartCustomizationItems.forEach(item => {
-      if (item.customization?.column) {
-        const customizationFilterId = `chart_customization_${item.id}`;
+      const customizationFilterId = `chart_customization_${item.id}`;
 
+      if (item.customization?.column) {
         dispatch(removeDataMask(customizationFilterId));
 
         const dataMask = {
@@ -444,6 +445,8 @@ export function initializeChartCustomization(
           },
         };
         dispatch(updateDataMask(customizationFilterId, dataMask));
+      } else {
+        dispatch(removeDataMask(customizationFilterId));
       }
     });
   };
