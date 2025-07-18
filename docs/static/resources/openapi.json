@@ -258,7 +258,8 @@
               "",
               "opacityLow",
               "opacityMedium",
-              "opacityHigh"
+              "opacityHigh",
+              null
             ],
             "nullable": true,
             "type": "string"
@@ -1030,7 +1031,8 @@
               "1969-12-28T00:00:00Z/P1W",
               "1969-12-29T00:00:00Z/P1W",
               "P1W/1970-01-03T00:00:00Z",
-              "P1W/1970-01-04T00:00:00Z"
+              "P1W/1970-01-04T00:00:00Z",
+              null
             ],
             "example": "P1D",
             "nullable": true,
@@ -1512,7 +1514,8 @@
               "samples",
               "timegrains",
               "post_processed",
-              "drill_detail"
+              "drill_detail",
+              null
             ],
             "nullable": true
           },
@@ -2232,7 +2235,8 @@
               "dataset",
               "query",
               "saved_query",
-              "view"
+              "view",
+              null
             ],
             "nullable": true,
             "type": "string"
@@ -3057,7 +3061,8 @@
               "dataset",
               "query",
               "saved_query",
-              "view"
+              "view",
+              null
             ],
             "nullable": true,
             "type": "string"
@@ -3286,6 +3291,27 @@
           "template_name": {
             "maxLength": 250,
             "nullable": true,
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "CurrentUserPutSchema": {
+        "properties": {
+          "first_name": {
+            "description": "The current user's first name",
+            "maxLength": 64,
+            "minLength": 1,
+            "type": "string"
+          },
+          "last_name": {
+            "description": "The current user's last name",
+            "maxLength": 64,
+            "minLength": 1,
+            "type": "string"
+          },
+          "password": {
+            "description": "The current user's password for authentication",
             "type": "string"
           }
         },
@@ -5145,6 +5171,21 @@
         ],
         "type": "object"
       },
+      "DatasetMetricCurrencyPut": {
+        "properties": {
+          "symbol": {
+            "maxLength": 128,
+            "minLength": 1,
+            "type": "string"
+          },
+          "symbolPosition": {
+            "maxLength": 128,
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
       "DatasetMetricRestApi.get": {
         "properties": {
           "id": {
@@ -5180,10 +5221,12 @@
       "DatasetMetricsPut": {
         "properties": {
           "currency": {
-            "maxLength": 128,
-            "minLength": 1,
-            "nullable": true,
-            "type": "string"
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/DatasetMetricCurrencyPut"
+              }
+            ],
+            "nullable": true
           },
           "d3format": {
             "maxLength": 128,
@@ -5862,6 +5905,10 @@
             "maxLength": 250,
             "minLength": 1,
             "type": "string"
+          },
+          "template_params": {
+            "nullable": true,
+            "type": "string"
           }
         },
         "required": [
@@ -6434,6 +6481,290 @@
         ],
         "type": "object"
       },
+      "GroupApi.get": {
+        "properties": {
+          "description": {
+            "maxLength": 512,
+            "nullable": true,
+            "type": "string"
+          },
+          "id": {
+            "type": "integer"
+          },
+          "label": {
+            "maxLength": 150,
+            "nullable": true,
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 100,
+            "type": "string"
+          },
+          "roles": {
+            "$ref": "#/components/schemas/GroupApi.get.Role"
+          },
+          "users": {
+            "$ref": "#/components/schemas/GroupApi.get.User"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "type": "object"
+      },
+      "GroupApi.get.Role": {
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "name": {
+            "maxLength": 64,
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "type": "object"
+      },
+      "GroupApi.get.User": {
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "username": {
+            "maxLength": 64,
+            "type": "string"
+          }
+        },
+        "required": [
+          "username"
+        ],
+        "type": "object"
+      },
+      "GroupApi.get_list": {
+        "properties": {
+          "description": {
+            "maxLength": 512,
+            "nullable": true,
+            "type": "string"
+          },
+          "id": {
+            "type": "integer"
+          },
+          "label": {
+            "maxLength": 150,
+            "nullable": true,
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 100,
+            "type": "string"
+          },
+          "roles": {
+            "$ref": "#/components/schemas/GroupApi.get_list.Role"
+          },
+          "users": {
+            "$ref": "#/components/schemas/GroupApi.get_list.User"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "type": "object"
+      },
+      "GroupApi.get_list.Role": {
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "name": {
+            "maxLength": 64,
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "type": "object"
+      },
+      "GroupApi.get_list.User": {
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "username": {
+            "maxLength": 64,
+            "type": "string"
+          }
+        },
+        "required": [
+          "username"
+        ],
+        "type": "object"
+      },
+      "GroupApi.post": {
+        "properties": {
+          "description": {
+            "description": "Group description",
+            "maxLength": 512,
+            "minLength": 0,
+            "nullable": true,
+            "type": "string"
+          },
+          "label": {
+            "description": "Group label",
+            "maxLength": 150,
+            "minLength": 0,
+            "nullable": true,
+            "type": "string"
+          },
+          "name": {
+            "description": "Group name",
+            "maxLength": 100,
+            "minLength": 1,
+            "type": "string"
+          },
+          "roles": {
+            "description": "Group roles",
+            "items": {
+              "type": "integer"
+            },
+            "type": "array"
+          },
+          "users": {
+            "description": "Group users",
+            "items": {
+              "type": "integer"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "type": "object"
+      },
+      "GroupApi.put": {
+        "properties": {
+          "description": {
+            "description": "Group description",
+            "maxLength": 512,
+            "minLength": 0,
+            "nullable": true,
+            "type": "string"
+          },
+          "label": {
+            "description": "Group label",
+            "maxLength": 150,
+            "minLength": 0,
+            "nullable": true,
+            "type": "string"
+          },
+          "name": {
+            "description": "Group name",
+            "maxLength": 100,
+            "minLength": 1,
+            "type": "string"
+          },
+          "roles": {
+            "description": "Group roles",
+            "items": {
+              "type": "integer"
+            },
+            "type": "array"
+          },
+          "users": {
+            "description": "Group users",
+            "items": {
+              "type": "integer"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "GroupPostSchema": {
+        "properties": {
+          "description": {
+            "description": "Group description",
+            "maxLength": 512,
+            "minLength": 0,
+            "nullable": true,
+            "type": "string"
+          },
+          "label": {
+            "description": "Group label",
+            "maxLength": 150,
+            "minLength": 0,
+            "nullable": true,
+            "type": "string"
+          },
+          "name": {
+            "description": "Group name",
+            "maxLength": 100,
+            "minLength": 1,
+            "type": "string"
+          },
+          "roles": {
+            "description": "Group roles",
+            "items": {
+              "type": "integer"
+            },
+            "type": "array"
+          },
+          "users": {
+            "description": "Group users",
+            "items": {
+              "type": "integer"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "type": "object"
+      },
+      "GroupPutSchema": {
+        "properties": {
+          "description": {
+            "description": "Group description",
+            "maxLength": 512,
+            "minLength": 0,
+            "nullable": true,
+            "type": "string"
+          },
+          "label": {
+            "description": "Group label",
+            "maxLength": 150,
+            "minLength": 0,
+            "nullable": true,
+            "type": "string"
+          },
+          "name": {
+            "description": "Group name",
+            "maxLength": 100,
+            "minLength": 1,
+            "type": "string"
+          },
+          "roles": {
+            "description": "Group roles",
+            "items": {
+              "type": "integer"
+            },
+            "type": "array"
+          },
+          "users": {
+            "description": "Group users",
+            "items": {
+              "type": "integer"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
       "GuestTokenCreate": {
         "properties": {
           "resources": {
@@ -6621,21 +6952,68 @@
           "user": {
             "$ref": "#/components/schemas/LogRestApi.get.User"
           },
-          "user_id": {
-            "nullable": true,
-            "type": "integer"
-          }
+          "user_id": {}
         },
         "type": "object"
       },
       "LogRestApi.get.User": {
         "properties": {
+          "active": {
+            "nullable": true,
+            "type": "boolean"
+          },
+          "changed_on": {
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "created_on": {
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "email": {
+            "maxLength": 320,
+            "type": "string"
+          },
+          "fail_login_count": {
+            "nullable": true,
+            "type": "integer"
+          },
+          "first_name": {
+            "maxLength": 64,
+            "type": "string"
+          },
+          "id": {
+            "type": "integer"
+          },
+          "last_login": {
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "last_name": {
+            "maxLength": 64,
+            "type": "string"
+          },
+          "login_count": {
+            "nullable": true,
+            "type": "integer"
+          },
+          "password": {
+            "maxLength": 256,
+            "nullable": true,
+            "type": "string"
+          },
           "username": {
             "maxLength": 64,
             "type": "string"
           }
         },
         "required": [
+          "email",
+          "first_name",
+          "last_name",
           "username"
         ],
         "type": "object"
@@ -6676,21 +7054,68 @@
           "user": {
             "$ref": "#/components/schemas/LogRestApi.get_list.User"
           },
-          "user_id": {
-            "nullable": true,
-            "type": "integer"
-          }
+          "user_id": {}
         },
         "type": "object"
       },
       "LogRestApi.get_list.User": {
         "properties": {
+          "active": {
+            "nullable": true,
+            "type": "boolean"
+          },
+          "changed_on": {
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "created_on": {
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "email": {
+            "maxLength": 320,
+            "type": "string"
+          },
+          "fail_login_count": {
+            "nullable": true,
+            "type": "integer"
+          },
+          "first_name": {
+            "maxLength": 64,
+            "type": "string"
+          },
+          "id": {
+            "type": "integer"
+          },
+          "last_login": {
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "last_name": {
+            "maxLength": 64,
+            "type": "string"
+          },
+          "login_count": {
+            "nullable": true,
+            "type": "integer"
+          },
+          "password": {
+            "maxLength": 256,
+            "nullable": true,
+            "type": "string"
+          },
           "username": {
             "maxLength": 64,
             "type": "string"
           }
         },
         "required": [
+          "email",
+          "first_name",
+          "last_name",
           "username"
         ],
         "type": "object"
@@ -6857,27 +7282,15 @@
       },
       "PermissionViewMenuApi.post": {
         "properties": {
-          "permission_id": {
-            "nullable": true,
-            "type": "integer"
-          },
-          "view_menu_id": {
-            "nullable": true,
-            "type": "integer"
-          }
+          "permission_id": {},
+          "view_menu_id": {}
         },
         "type": "object"
       },
       "PermissionViewMenuApi.put": {
         "properties": {
-          "permission_id": {
-            "nullable": true,
-            "type": "integer"
-          },
-          "view_menu_id": {
-            "nullable": true,
-            "type": "integer"
-          }
+          "permission_id": {},
+          "view_menu_id": {}
         },
         "type": "object"
       },
@@ -7871,10 +8284,7 @@
           "changed_on_delta_humanized": {
             "readOnly": true
           },
-          "chart_id": {
-            "nullable": true,
-            "type": "integer"
-          },
+          "chart_id": {},
           "created_by": {
             "$ref": "#/components/schemas/ReportScheduleRestApi.get_list.User1"
           },
@@ -7895,10 +8305,7 @@
           "crontab_humanized": {
             "readOnly": true
           },
-          "dashboard_id": {
-            "nullable": true,
-            "type": "integer"
-          },
+          "dashboard_id": {},
           "description": {
             "nullable": true,
             "type": "string"
@@ -8230,6 +8637,7 @@
               "America/Coral_Harbour",
               "America/Cordoba",
               "America/Costa_Rica",
+              "America/Coyhaique",
               "America/Creston",
               "America/Cuiaba",
               "America/Curacao",
@@ -8782,7 +9190,8 @@
             "enum": [
               "charts",
               "dashboards",
-              "alerts_reports"
+              "alerts_reports",
+              null
             ],
             "nullable": true
           },
@@ -8971,6 +9380,7 @@
               "America/Coral_Harbour",
               "America/Cordoba",
               "America/Costa_Rica",
+              "America/Coyhaique",
               "America/Creston",
               "America/Cuiaba",
               "America/Curacao",
@@ -9486,7 +9896,8 @@
             "description": "Determines when to trigger alert based off value from alert query. Alerts will be triggered with these validator types:\n- Not Null - When the return value is Not NULL, Empty, or 0\n- Operator - When `sql_return_value comparison_operator threshold` is True e.g. `50 <= 75`<br>Supports the comparison operators <, <=, >, >=, ==, and !=",
             "enum": [
               "not null",
-              "operator"
+              "operator",
+              null
             ],
             "nullable": true,
             "type": "string"
@@ -9529,6 +9940,21 @@
         },
         "required": [
           "clause"
+        ],
+        "type": "object"
+      },
+      "RoleGroupPutSchema": {
+        "properties": {
+          "group_ids": {
+            "description": "List of group ids",
+            "items": {
+              "type": "integer"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "group_ids"
         ],
         "type": "object"
       },
@@ -9806,10 +10232,7 @@
           "database": {
             "$ref": "#/components/schemas/SavedQueryRestApi.get_list.Database"
           },
-          "db_id": {
-            "nullable": true,
-            "type": "integer"
-          },
+          "db_id": {},
           "description": {
             "nullable": true,
             "type": "string"
@@ -9933,10 +10356,7 @@
             "nullable": true,
             "type": "string"
           },
-          "db_id": {
-            "nullable": true,
-            "type": "integer"
-          },
+          "db_id": {},
           "description": {
             "nullable": true,
             "type": "string"
@@ -9973,10 +10393,7 @@
             "nullable": true,
             "type": "string"
           },
-          "db_id": {
-            "nullable": true,
-            "type": "integer"
-          },
+          "db_id": {},
           "description": {
             "nullable": true,
             "type": "string"
@@ -10025,6 +10442,54 @@
             "type": "string"
           }
         },
+        "type": "object"
+      },
+      "SettingsRestApi.get": {
+        "properties": {
+          "key": {
+            "maxLength": 255,
+            "type": "string"
+          }
+        },
+        "required": [
+          "key"
+        ],
+        "type": "object"
+      },
+      "SettingsRestApi.get_list": {
+        "properties": {
+          "key": {
+            "maxLength": 255,
+            "type": "string"
+          }
+        },
+        "required": [
+          "key"
+        ],
+        "type": "object"
+      },
+      "SettingsRestApi.post": {
+        "properties": {
+          "key": {
+            "maxLength": 255,
+            "type": "string"
+          }
+        },
+        "required": [
+          "key"
+        ],
+        "type": "object"
+      },
+      "SettingsRestApi.put": {
+        "properties": {
+          "key": {
+            "maxLength": 255,
+            "type": "string"
+          }
+        },
+        "required": [
+          "key"
+        ],
         "type": "object"
       },
       "Slice": {
@@ -10240,6 +10705,9 @@
             "maxLength": 64,
             "type": "string"
           },
+          "groups": {
+            "$ref": "#/components/schemas/SupersetUserApi.get.Group"
+          },
           "id": {
             "type": "integer"
           },
@@ -10269,6 +10737,31 @@
           "first_name",
           "last_name",
           "username"
+        ],
+        "type": "object"
+      },
+      "SupersetUserApi.get.Group": {
+        "properties": {
+          "description": {
+            "maxLength": 512,
+            "nullable": true,
+            "type": "string"
+          },
+          "id": {
+            "type": "integer"
+          },
+          "label": {
+            "maxLength": 150,
+            "nullable": true,
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 100,
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
         ],
         "type": "object"
       },
@@ -10337,6 +10830,9 @@
             "maxLength": 64,
             "type": "string"
           },
+          "groups": {
+            "$ref": "#/components/schemas/SupersetUserApi.get_list.Group"
+          },
           "id": {
             "type": "integer"
           },
@@ -10366,6 +10862,31 @@
           "first_name",
           "last_name",
           "username"
+        ],
+        "type": "object"
+      },
+      "SupersetUserApi.get_list.Group": {
+        "properties": {
+          "description": {
+            "maxLength": 512,
+            "nullable": true,
+            "type": "string"
+          },
+          "id": {
+            "type": "integer"
+          },
+          "label": {
+            "maxLength": 150,
+            "nullable": true,
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 100,
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
         ],
         "type": "object"
       },
@@ -10414,6 +10935,13 @@
             "description": "The user's first name",
             "type": "string"
           },
+          "groups": {
+            "description": "The user's roles",
+            "items": {
+              "type": "integer"
+            },
+            "type": "array"
+          },
           "last_name": {
             "description": "The user's last name",
             "type": "string"
@@ -10427,7 +10955,6 @@
             "items": {
               "type": "integer"
             },
-            "minItems": 1,
             "type": "array"
           },
           "username": {
@@ -10442,7 +10969,6 @@
           "first_name",
           "last_name",
           "password",
-          "roles",
           "username"
         ],
         "type": "object"
@@ -10461,6 +10987,13 @@
             "description": "The user's first name",
             "type": "string"
           },
+          "groups": {
+            "description": "The user's roles",
+            "items": {
+              "type": "integer"
+            },
+            "type": "array"
+          },
           "last_name": {
             "description": "The user's last name",
             "type": "string"
@@ -10474,7 +11007,6 @@
             "items": {
               "type": "integer"
             },
-            "minItems": 1,
             "type": "array"
           },
           "username": {
@@ -11364,6 +11896,70 @@
         },
         "type": "object"
       },
+      "UserRegistrationsRestAPI.get": {
+        "properties": {
+          "id": {
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "UserRegistrationsRestAPI.get_list": {
+        "properties": {
+          "email": {
+            "maxLength": 64,
+            "type": "string"
+          },
+          "first_name": {
+            "maxLength": 64,
+            "type": "string"
+          },
+          "id": {
+            "type": "integer"
+          },
+          "last_name": {
+            "maxLength": 64,
+            "type": "string"
+          },
+          "registration_date": {
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "registration_hash": {
+            "maxLength": 256,
+            "nullable": true,
+            "type": "string"
+          },
+          "username": {
+            "maxLength": 64,
+            "type": "string"
+          }
+        },
+        "required": [
+          "email",
+          "first_name",
+          "last_name",
+          "username"
+        ],
+        "type": "object"
+      },
+      "UserRegistrationsRestAPI.post": {
+        "properties": {
+          "id": {
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "UserRegistrationsRestAPI.put": {
+        "properties": {
+          "id": {
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
       "UserResponseSchema": {
         "properties": {
           "email": {
@@ -11383,6 +11979,9 @@
           },
           "last_name": {
             "type": "string"
+          },
+          "login_count": {
+            "type": "integer"
           },
           "username": {
             "type": "string"
@@ -21370,6 +21969,46 @@
         "tags": [
           "Current User"
         ]
+      },
+      "put": {
+        "description": "Updates the current user's first name, last name, or password.",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CurrentUserPutSchema"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "result": {
+                      "$ref": "#/components/schemas/UserResponseSchema"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "User updated successfully"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          }
+        },
+        "summary": "Update the current user",
+        "tags": [
+          "Current User"
+        ]
       }
     },
     "/api/v1/me/roles/": {
@@ -24115,6 +24754,462 @@
         ]
       }
     },
+    "/api/v1/security/groups/": {
+      "get": {
+        "description": "Get a list of models",
+        "parameters": [
+          {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/get_list_schema"
+                }
+              }
+            },
+            "in": "query",
+            "name": "q"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "count": {
+                      "description": "The total record count on the backend",
+                      "type": "number"
+                    },
+                    "description_columns": {
+                      "properties": {
+                        "column_name": {
+                          "description": "The description for the column name. Will be translated by babel",
+                          "example": "A Nice description for the column",
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    },
+                    "ids": {
+                      "description": "A list of item ids, useful when you don't know the column id",
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    },
+                    "label_columns": {
+                      "properties": {
+                        "column_name": {
+                          "description": "The label for the column name. Will be translated by babel",
+                          "example": "A Nice label for the column",
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    },
+                    "list_columns": {
+                      "description": "A list of columns",
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    },
+                    "list_title": {
+                      "description": "A title to render. Will be translated by babel",
+                      "example": "List Items",
+                      "type": "string"
+                    },
+                    "order_columns": {
+                      "description": "A list of allowed columns to sort",
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    },
+                    "result": {
+                      "description": "The result from the get list query",
+                      "items": {
+                        "$ref": "#/components/schemas/GroupApi.get_list"
+                      },
+                      "type": "array"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Items from Model"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          }
+        ],
+        "tags": [
+          "Security Groups"
+        ]
+      },
+      "post": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GroupPostSchema"
+              }
+            }
+          },
+          "description": "Model schema",
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "result": {
+                      "$ref": "#/components/schemas/GroupPostSchema"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Group created"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          }
+        ],
+        "tags": [
+          "Security Groups"
+        ]
+      }
+    },
+    "/api/v1/security/groups/_info": {
+      "get": {
+        "description": "Get metadata information about this API resource",
+        "parameters": [
+          {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/get_info_schema"
+                }
+              }
+            },
+            "in": "query",
+            "name": "q"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "add_columns": {
+                      "type": "object"
+                    },
+                    "edit_columns": {
+                      "type": "object"
+                    },
+                    "filters": {
+                      "properties": {
+                        "column_name": {
+                          "items": {
+                            "properties": {
+                              "name": {
+                                "description": "The filter name. Will be translated by babel",
+                                "type": "string"
+                              },
+                              "operator": {
+                                "description": "The filter operation key to use on list filters",
+                                "type": "string"
+                              }
+                            },
+                            "type": "object"
+                          },
+                          "type": "array"
+                        }
+                      },
+                      "type": "object"
+                    },
+                    "permissions": {
+                      "description": "The user permissions for this API resource",
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Item from Model"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          }
+        ],
+        "tags": [
+          "Security Groups"
+        ]
+      }
+    },
+    "/api/v1/security/groups/{pk}": {
+      "delete": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "pk",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Item deleted"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          }
+        ],
+        "tags": [
+          "Security Groups"
+        ]
+      },
+      "get": {
+        "description": "Get an item model",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "pk",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/get_item_schema"
+                }
+              }
+            },
+            "in": "query",
+            "name": "q"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "description_columns": {
+                      "properties": {
+                        "column_name": {
+                          "description": "The description for the column name. Will be translated by babel",
+                          "example": "A Nice description for the column",
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    },
+                    "id": {
+                      "description": "The item id",
+                      "type": "string"
+                    },
+                    "label_columns": {
+                      "properties": {
+                        "column_name": {
+                          "description": "The label for the column name. Will be translated by babel",
+                          "example": "A Nice label for the column",
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    },
+                    "result": {
+                      "$ref": "#/components/schemas/GroupApi.get"
+                    },
+                    "show_columns": {
+                      "description": "A list of columns",
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    },
+                    "show_title": {
+                      "description": "A title to render. Will be translated by babel",
+                      "example": "Show Item Details",
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Item from Model"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          }
+        ],
+        "tags": [
+          "Security Groups"
+        ]
+      },
+      "put": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "pk",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GroupPutSchema"
+              }
+            }
+          },
+          "description": "Model schema",
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "result": {
+                      "$ref": "#/components/schemas/GroupPutSchema"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Group updated"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          }
+        ],
+        "tags": [
+          "Security Groups"
+        ]
+      }
+    },
     "/api/v1/security/guest_token/": {
       "post": {
         "requestBody": {
@@ -26059,6 +27154,71 @@
         ]
       }
     },
+    "/api/v1/security/roles/{role_id}/groups": {
+      "put": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "role_id",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RoleGroupPutSchema"
+              }
+            }
+          },
+          "description": "Update role groups schema",
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "result": {
+                      "$ref": "#/components/schemas/RoleGroupPutSchema"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Role groups updated"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          }
+        ],
+        "tags": [
+          "Security Roles"
+        ]
+      }
+    },
     "/api/v1/security/roles/{role_id}/permissions": {
       "post": {
         "parameters": [
@@ -26240,6 +27400,581 @@
         ],
         "tags": [
           "Security Roles"
+        ]
+      }
+    },
+    "/api/v1/security/user_registrations/": {
+      "get": {
+        "description": "Get a list of models",
+        "parameters": [
+          {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/get_list_schema"
+                }
+              }
+            },
+            "in": "query",
+            "name": "q"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "count": {
+                      "description": "The total record count on the backend",
+                      "type": "number"
+                    },
+                    "description_columns": {
+                      "properties": {
+                        "column_name": {
+                          "description": "The description for the column name. Will be translated by babel",
+                          "example": "A Nice description for the column",
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    },
+                    "ids": {
+                      "description": "A list of item ids, useful when you don't know the column id",
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    },
+                    "label_columns": {
+                      "properties": {
+                        "column_name": {
+                          "description": "The label for the column name. Will be translated by babel",
+                          "example": "A Nice label for the column",
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    },
+                    "list_columns": {
+                      "description": "A list of columns",
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    },
+                    "list_title": {
+                      "description": "A title to render. Will be translated by babel",
+                      "example": "List Items",
+                      "type": "string"
+                    },
+                    "order_columns": {
+                      "description": "A list of allowed columns to sort",
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    },
+                    "result": {
+                      "description": "The result from the get list query",
+                      "items": {
+                        "$ref": "#/components/schemas/UserRegistrationsRestAPI.get_list"
+                      },
+                      "type": "array"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Items from Model"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          }
+        ],
+        "tags": [
+          "UserRegistrationsRestAPI"
+        ]
+      },
+      "post": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UserRegistrationsRestAPI.post"
+              }
+            }
+          },
+          "description": "Model schema",
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "result": {
+                      "$ref": "#/components/schemas/UserRegistrationsRestAPI.post"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Item inserted"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          }
+        ],
+        "tags": [
+          "UserRegistrationsRestAPI"
+        ]
+      }
+    },
+    "/api/v1/security/user_registrations/_info": {
+      "get": {
+        "description": "Get metadata information about this API resource",
+        "parameters": [
+          {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/get_info_schema"
+                }
+              }
+            },
+            "in": "query",
+            "name": "q"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "add_columns": {
+                      "type": "object"
+                    },
+                    "edit_columns": {
+                      "type": "object"
+                    },
+                    "filters": {
+                      "properties": {
+                        "column_name": {
+                          "items": {
+                            "properties": {
+                              "name": {
+                                "description": "The filter name. Will be translated by babel",
+                                "type": "string"
+                              },
+                              "operator": {
+                                "description": "The filter operation key to use on list filters",
+                                "type": "string"
+                              }
+                            },
+                            "type": "object"
+                          },
+                          "type": "array"
+                        }
+                      },
+                      "type": "object"
+                    },
+                    "permissions": {
+                      "description": "The user permissions for this API resource",
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Item from Model"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          }
+        ],
+        "tags": [
+          "UserRegistrationsRestAPI"
+        ]
+      }
+    },
+    "/api/v1/security/user_registrations/distinct/{column_name}": {
+      "get": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "column_name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/get_related_schema"
+                }
+              }
+            },
+            "in": "query",
+            "name": "q"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DistincResponseSchema"
+                }
+              }
+            },
+            "description": "Distinct field data"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          }
+        ],
+        "summary": "Get distinct values from field data",
+        "tags": [
+          "UserRegistrationsRestAPI"
+        ]
+      }
+    },
+    "/api/v1/security/user_registrations/related/{column_name}": {
+      "get": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "column_name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/get_related_schema"
+                }
+              }
+            },
+            "in": "query",
+            "name": "q"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RelatedResponseSchema"
+                }
+              }
+            },
+            "description": "Related column data"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          }
+        ],
+        "summary": "Get related fields data",
+        "tags": [
+          "UserRegistrationsRestAPI"
+        ]
+      }
+    },
+    "/api/v1/security/user_registrations/{pk}": {
+      "delete": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "pk",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Item deleted"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          }
+        ],
+        "tags": [
+          "UserRegistrationsRestAPI"
+        ]
+      },
+      "get": {
+        "description": "Get an item model",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "pk",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/get_item_schema"
+                }
+              }
+            },
+            "in": "query",
+            "name": "q"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "description_columns": {
+                      "properties": {
+                        "column_name": {
+                          "description": "The description for the column name. Will be translated by babel",
+                          "example": "A Nice description for the column",
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    },
+                    "id": {
+                      "description": "The item id",
+                      "type": "string"
+                    },
+                    "label_columns": {
+                      "properties": {
+                        "column_name": {
+                          "description": "The label for the column name. Will be translated by babel",
+                          "example": "A Nice label for the column",
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    },
+                    "result": {
+                      "$ref": "#/components/schemas/UserRegistrationsRestAPI.get"
+                    },
+                    "show_columns": {
+                      "description": "A list of columns",
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    },
+                    "show_title": {
+                      "description": "A title to render. Will be translated by babel",
+                      "example": "Show Item Details",
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Item from Model"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          }
+        ],
+        "tags": [
+          "UserRegistrationsRestAPI"
+        ]
+      },
+      "put": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "pk",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UserRegistrationsRestAPI.put"
+              }
+            }
+          },
+          "description": "Model schema",
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "result": {
+                      "$ref": "#/components/schemas/UserRegistrationsRestAPI.put"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Item changed"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          }
+        ],
+        "tags": [
+          "UserRegistrationsRestAPI"
         ]
       }
     },
@@ -26699,6 +28434,121 @@
         ],
         "tags": [
           "Security Users"
+        ]
+      }
+    },
+    "/api/v1/settings/": {
+      "get": {
+        "tags": [
+          "SettingsRestApi"
+        ]
+      },
+      "post": {
+        "tags": [
+          "SettingsRestApi"
+        ]
+      }
+    },
+    "/api/v1/settings/_info": {
+      "get": {
+        "description": "Get metadata information about this API resource",
+        "parameters": [
+          {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/get_info_schema"
+                }
+              }
+            },
+            "in": "query",
+            "name": "q"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "add_columns": {
+                      "type": "object"
+                    },
+                    "edit_columns": {
+                      "type": "object"
+                    },
+                    "filters": {
+                      "properties": {
+                        "column_name": {
+                          "items": {
+                            "properties": {
+                              "name": {
+                                "description": "The filter name. Will be translated by babel",
+                                "type": "string"
+                              },
+                              "operator": {
+                                "description": "The filter operation key to use on list filters",
+                                "type": "string"
+                              }
+                            },
+                            "type": "object"
+                          },
+                          "type": "array"
+                        }
+                      },
+                      "type": "object"
+                    },
+                    "permissions": {
+                      "description": "The user permissions for this API resource",
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Item from Model"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          }
+        ],
+        "tags": [
+          "SettingsRestApi"
+        ]
+      }
+    },
+    "/api/v1/settings/{pk}": {
+      "delete": {
+        "tags": [
+          "SettingsRestApi"
+        ]
+      },
+      "get": {
+        "tags": [
+          "SettingsRestApi"
+        ]
+      },
+      "put": {
+        "tags": [
+          "SettingsRestApi"
         ]
       }
     },

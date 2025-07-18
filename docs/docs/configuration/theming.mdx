@@ -23,14 +23,52 @@ You can also extend with Superset-specific tokens (documented in the default the
 
 ## 2 — Apply it instance-wide
 
+You can configure themes through multiple methods:
+
+### Method 1: Configuration File
+
 ```python
 # superset_config.py
-THEME = {
+THEME_DEFAULT = {
     # Paste your JSON theme definition here
+}
+
+# Optional: Configure dark theme
+THEME_DARK = {
+    # Dark theme configuration
+}
+
+# Optional: Theme behavior settings
+THEME_SETTINGS = {
+    "enforced": False,        # Don't force the theme
+    "allowSwitching": True,   # Allow users to switch themes
+    "defaultTheme": "light",  # Default theme selection
+    "rememberUserPreference": True  # Remember user's theme choice
 }
 ```
 
-Restart Superset to apply changes
+### Method 2: Environment Variables
+
+```bash
+# Set default theme via environment variable
+export SUPERSET__THEME_DEFAULT='{"token":{"colorPrimary":"#1890ff"}}'
+
+# Set dark theme
+export SUPERSET__THEME_DARK='{"token":{"colorPrimary":"#177ddc"}}'
+
+# Configure theme behavior
+export SUPERSET__THEME_SETTINGS='{"allowSwitching":true,"defaultTheme":"light"}'
+
+# Or use nested environment variables
+export SUPERSET__THEME_DEFAULT__token__colorPrimary="#1890ff"
+export SUPERSET__THEME_SETTINGS__allowSwitching=true
+```
+
+### Method 3: Database Configuration (Coming Soon)
+
+Future versions will support runtime theme configuration through the admin interface.
+
+**Note:** File-based and environment variable changes require a restart to take effect.
 
 ## 3 — Tweak live in the app (beta)
 
@@ -46,8 +84,41 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
 - Intended for testing/design and rapid in-context iteration
 - End-user theme switching & preferences coming later
 
-## 4 — Potential Next Steps
+## 4 — Theme Configuration Reference
+
+Here are all theme-related configuration settings:
+
+import ConfigurationTable from '@site/src/components/ConfigurationTable';
+
+<ConfigurationTable category="ui" showEnvironmentVariables={true} />
+
+## Environment Variables for Theming
+
+Ready-to-use environment variable examples for theming:
+
+import EnvironmentVariablesExample from '@site/src/components/EnvironmentVariablesExample';
+
+<EnvironmentVariablesExample category="ui" />
+
+## Verify Theme Configuration
+
+You can inspect your current theme configuration using the CLI:
+
+```bash
+# View current theme settings
+superset config get THEME_DEFAULT
+superset config get THEME_DARK
+superset config get THEME_SETTINGS
+
+# Show all theme-related configuration
+superset config show --filter "THEME"
+```
+
+This will show you the current values and their sources (environment variables, config file, or defaults).
+
+## 5 — Potential Next Steps
 
 - CRUD UI for managing multiple themes
 - Per-dashboard & per-workspace theme assignment
 - User-selectable theme preferences
+- Database-backed theme configuration for runtime changes

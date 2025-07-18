@@ -498,8 +498,10 @@ class SingleStoreSpec(BasicParametersMixin, BaseEngineSpec):
             "conn_attrs",
             {
                 "_connector_name": "SingleStore Superset Database Engine",
-                "_connector_version": current_app.config.get("VERSION_STRING", "dev"),
-                "_product_version": current_app.config.get("VERSION_STRING", "dev"),
+                "_connector_version": current_app.config.get("VERSION_STRING")
+                or "0.0.0-dev",
+                "_product_version": current_app.config.get("VERSION_STRING")
+                or "0.0.0-dev",
             },
         )
         return uri, connect_args

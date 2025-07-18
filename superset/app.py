@@ -33,6 +33,7 @@ else:
 from flask import Flask
 from werkzeug.exceptions import NotFound
 
+from superset.config_extensions import SupersetConfig
 from superset.initialization import SupersetAppInitializer
 
 logger = logging.getLogger(__name__)
@@ -45,11 +46,32 @@ def create_app(
     app = SupersetApp(__name__)
 
     try:
-        # Allow user to override our config completely
+        # Configuration loading using Flask's native methods in precedence order:
+
+        # 1. Load default configuration from config_defaults
+        app.config.from_object("superset.config_defaults")
+
+        # 2. Load base config module (if different from defaults)
         config_module = superset_config_module or os.environ.get(
             "SUPERSET_CONFIG", "superset.config"
         )
-        app.config.from_object(config_module)
+        if config_module != "superset.config_defaults":
+            app.config.from_object(config_module)
+
+        # 3. Load from SUPERSET_CONFIG_PATH if specified (Flask's from_pyfile)
+        config_path = os.environ.get("SUPERSET_CONFIG_PATH")
+        if config_path:
+            app.config.from_pyfile(config_path, silent=True)
+
+        # 4. Load superset_config module if available (Flask's from_object)
+        try:
+            app.config.from_object("superset_config")
+        except ImportError:
+            pass
+
+        # 5. Load environment variables with SUPERSET__ prefix
+        # Note: Flask adds one underscore, so "SUPERSET_" becomes "SUPERSET__"
+        app.config.from_prefixed_env("SUPERSET_")
 
         # Allow application to sit on a non-root path
         # *Please be advised that this feature is in BETA.*
@@ -77,7 +99,7 @@ def create_app(
 
 
 class SupersetApp(Flask):
-    pass
+    config_class = SupersetConfig
 
 
 class AppRootMiddleware:

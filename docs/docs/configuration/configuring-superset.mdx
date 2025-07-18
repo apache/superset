@@ -7,13 +7,30 @@ version: 1
 
 # Configuring Superset
 
-## superset_config.py
+## Configuration Overview
+
+Superset provides a flexible, multi-layered configuration system that supports:
+
+1. **File-based configuration** - Traditional Python configuration files
+2. **Environment variables** - For containerized deployments and CI/CD
+3. **Database-backed settings** - Runtime configuration changes (coming soon)
+4. **Structured metadata** - Rich documentation and validation schemas
+
+### Configuration Priority
+
+Configuration values are loaded in the following order (later values override earlier ones):
+
+1. **Default configuration** - Built-in defaults from `superset/config_defaults.py`
+2. **Environment variables** - Values prefixed with `SUPERSET__`
+3. **User configuration file** - Your custom `superset_config.py` file
+
+### superset_config.py
 
 Superset exposes hundreds of configurable parameters through its
-[config.py module](https://github.com/apache/superset/blob/master/superset/config.py). The
+[config_defaults.py module](https://github.com/apache/superset/blob/master/superset/config_defaults.py). The
 variables and objects exposed act as a public interface of the bulk of what you may want
 to configure, alter and interface with. In this python module, you'll find all these
-parameters, sensible defaults, as well as rich documentation in the form of comments
+parameters, sensible defaults, as well as structured metadata documentation.
 
 To configure your application, you need to create your own configuration module, which
 will allow you to override few or many of these parameters. Instead of altering the core module,
@@ -77,12 +94,12 @@ MAPBOX_API_KEY = ''
 
 :::tip
 Note that it is typical to copy and paste [only] the portions of the
-core [superset/config.py](https://github.com/apache/superset/blob/master/superset/config.py) that
+core [superset/config_defaults.py](https://github.com/apache/superset/blob/master/superset/config_defaults.py) that
 you want to alter, along with the related comments into your own `superset_config.py` file.
 :::
 
 All the parameters and default values defined
-in [superset/config.py](https://github.com/apache/superset/blob/master/superset/config.py)
+in [superset/config_defaults.py](https://github.com/apache/superset/blob/master/superset/config_defaults.py)
 can be altered in your local `superset_config.py`. Administrators will want to read through the file
 to understand what can be configured locally as well as the default values in place.
 
@@ -96,6 +113,102 @@ configuration settings. Please consult the
 for more information on how to configure it.
 
 At the very least, you'll want to change `SECRET_KEY` and `SQLALCHEMY_DATABASE_URI`. Continue reading for more about each of these.
+
+## Environment Variables Configuration
+
+For containerized deployments and CI/CD pipelines, Superset supports configuration through environment variables. This is particularly useful for:
+
+- **Docker deployments** - Configure containers without rebuilding images
+- **Kubernetes environments** - Use ConfigMaps and Secrets
+- **CI/CD pipelines** - Set configuration dynamically based on environment
+- **Development workflows** - Override settings locally without changing files
+
+### Environment Variable Format
+
+All Superset environment variables must use the `SUPERSET__` prefix (note the double underscore):
+
+```bash
+# Basic settings
+export SUPERSET__ROW_LIMIT=100000
+export SUPERSET__SQLLAB_TIMEOUT=60
+
+# Database configuration
+export SUPERSET__SQLALCHEMY_DATABASE_URI="postgresql://user:pass@localhost/superset"
+
+# Secret key
+export SUPERSET__SECRET_KEY="your-secret-key-here"
+```
+
+### JSON and Complex Values
+
+Environment variables automatically parse JSON values for complex configuration:
+
+```bash
+# Feature flags as JSON
+export SUPERSET__FEATURE_FLAGS='{"ENABLE_TEMPLATE_PROCESSING": true, "ENABLE_EXPLORE_DRAG_AND_DROP": true}'
+
+# Database configuration
+export SUPERSET__DATABASE_CONFIG='{"timeout": 60, "pool_size": 10}'
+```
+
+### Nested Configuration
+
+For nested configuration objects, use triple underscores (`___`) to separate levels:
+
+```bash
+# This sets FEATURE_FLAGS["ENABLE_TEMPLATE_PROCESSING"] = true
+export SUPERSET__FEATURE_FLAGS__ENABLE_TEMPLATE_PROCESSING=true
+
+# This sets THEME_DEFAULT["token"]["colorPrimary"] = "#ff0000"
+export SUPERSET__THEME_DEFAULT__token__colorPrimary="#ff0000"
+```
+
+### Environment Variable Examples
+
+You can view examples of environment variable configuration:
+
+```bash
+# Show all available environment variable examples
+superset config env-examples
+
+# Show current configuration and sources
+superset config show --verbose
+
+# Get a specific configuration value
+superset config get ROW_LIMIT
+```
+
+### Docker Environment Variables
+
+When using Docker, you can set environment variables in your `docker-compose.yml`:
+
+```yaml
+services:
+  superset:
+    image: apache/superset:latest
+    environment:
+      - SUPERSET__ROW_LIMIT=100000
+      - SUPERSET__SQLLAB_TIMEOUT=60
+      - SUPERSET__FEATURE_FLAGS__ENABLE_TEMPLATE_PROCESSING=true
+    # ... other configuration
+```
+
+Or use an environment file:
+
+```bash
+# .env file
+SUPERSET__ROW_LIMIT=100000
+SUPERSET__SQLLAB_TIMEOUT=60
+SUPERSET__SECRET_KEY=your-secret-key-here
+```
+
+```yaml
+services:
+  superset:
+    image: apache/superset:latest
+    env_file:
+      - .env
+```
 
 ## Specifying a SECRET_KEY
 
@@ -546,3 +659,93 @@ FEATURE_FLAGS = {
 ```
 
 A current list of feature flags can be found in [RESOURCES/FEATURE_FLAGS.md](https://github.com/apache/superset/blob/master/RESOURCES/FEATURE_FLAGS.md).
+
+## Configuration Introspection
+
+Superset provides CLI commands to inspect and understand your current configuration:
+
+### View Current Configuration
+
+```bash
+# Show all configuration as YAML
+superset config show
+
+# Filter configuration by pattern
+superset config show --filter "ROW_LIMIT"
+
+# Show configuration with sources (where each value comes from)
+superset config show --verbose
+```
+
+### Get Specific Configuration Values
+
+```bash
+# Get a specific configuration value with source information
+superset config get ROW_LIMIT
+
+# Output shows both the value and where it came from:
+# ROW_LIMIT:
+#   source: environment (SUPERSET__ROW_LIMIT)
+#   value: 100000
+```
+
+### Environment Variable Examples
+
+```bash
+# Show examples of environment variables for all documented settings
+superset config env-examples
+
+# This shows:
+# - Basic environment variable syntax
+# - JSON formatting examples
+# - Nested configuration examples
+# - All documented settings with their metadata
+```
+
+### Configuration Sources
+
+The CLI will show you where each configuration value comes from:
+
+- **`environment (SUPERSET__KEY)`** - Value set via environment variable
+- **`superset_config.py`** - Value set in your custom configuration file
+- **`config_defaults.py`** - Default value from Superset's built-in configuration
+
+This helps you understand the configuration precedence and troubleshoot configuration issues.
+
+## Configuration Reference
+
+The following table shows all documented configuration settings with their metadata:
+
+import ConfigurationTable from '@site/src/components/ConfigurationTable';
+
+<ConfigurationTable showEnvironmentVariables={true} />
+
+## Environment Variables Examples
+
+Here are ready-to-use environment variable examples:
+
+import EnvironmentVariablesExample from '@site/src/components/EnvironmentVariablesExample';
+
+<EnvironmentVariablesExample />
+
+## Configuration Metadata and Documentation
+
+Superset's configuration system includes rich metadata for many settings, providing:
+
+- **Type information** - Whether a setting expects an integer, string, boolean, or object
+- **Validation rules** - Minimum/maximum values, allowed options
+- **Documentation** - Detailed descriptions of what each setting does
+- **Impact levels** - How significant changes to this setting are
+- **Restart requirements** - Whether changing this setting requires a restart
+
+This metadata is used for:
+- **CLI documentation** - The `superset config env-examples` command shows this information
+- **Future admin UI** - Settings management interface (coming soon)
+- **Validation** - Ensuring configuration values are valid
+- **API documentation** - Automatic generation of configuration schemas
+
+You can also access this information via CLI:
+
+```bash
+superset config env-examples
+```

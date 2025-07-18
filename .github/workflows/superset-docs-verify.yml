@@ -64,6 +64,11 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version-file: './docs/.nvmrc'
+      - name: Setup Python Backend
+        uses: ./.github/actions/setup-backend
+        with:
+          python-version: 'current'
+          requirements-type: 'base'
       - name: yarn install
         run: |
           yarn install --check-cache

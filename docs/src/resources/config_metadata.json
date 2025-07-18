@@ -1,0 +1,225 @@
+{
+  "all_settings": [
+    {
+      "key": "ROW_LIMIT",
+      "title": "Row Limit",
+      "description": "Maximum number of rows returned from queries",
+      "type": "integer (1 - 1000000)",
+      "category": "performance",
+      "impact": "medium",
+      "requires_restart": false,
+      "default": 50000,
+      "env_var": "SUPERSET__ROW_LIMIT",
+      "nested_example": null,
+      "documentation_url": "https://superset.apache.org/docs/configuration/databases"
+    },
+    {
+      "key": "SAMPLES_ROW_LIMIT",
+      "title": "Samples Row Limit",
+      "description": "Default row limit when requesting samples from datasource",
+      "type": "integer (1 - 10000)",
+      "category": "performance",
+      "impact": "low",
+      "requires_restart": false,
+      "default": 1000,
+      "env_var": "SUPERSET__SAMPLES_ROW_LIMIT",
+      "nested_example": null,
+      "documentation_url": null
+    },
+    {
+      "key": "NATIVE_FILTER_DEFAULT_ROW_LIMIT",
+      "title": "Native Filter Default Row Limit",
+      "description": "Default row limit for native filters",
+      "type": "integer (1 - 10000)",
+      "category": "performance",
+      "impact": "low",
+      "requires_restart": false,
+      "default": 1000,
+      "env_var": "SUPERSET__NATIVE_FILTER_DEFAULT_ROW_LIMIT",
+      "nested_example": null,
+      "documentation_url": null
+    },
+    {
+      "key": "SQLLAB_TIMEOUT",
+      "title": "SQL Lab Timeout",
+      "description": "Timeout duration for SQL Lab synchronous queries (seconds)",
+      "type": "integer (1 - 3600)",
+      "category": "performance",
+      "impact": "high",
+      "requires_restart": false,
+      "default": 30,
+      "env_var": "SUPERSET__SQLLAB_TIMEOUT",
+      "nested_example": null,
+      "documentation_url": null
+    },
+    {
+      "key": "FEATURE_FLAGS",
+      "title": "Feature Flags",
+      "description": "Feature flags to enable/disable functionality",
+      "type": "object",
+      "category": "features",
+      "impact": "high",
+      "requires_restart": true,
+      "default": {},
+      "env_var": "SUPERSET__FEATURE_FLAGS",
+      "nested_example": null,
+      "documentation_url": null
+    },
+    {
+      "key": "THEME_DEFAULT",
+      "title": "Default Theme",
+      "description": "Default theme configuration (Ant Design format)",
+      "type": "object",
+      "category": "ui",
+      "impact": "medium",
+      "requires_restart": false,
+      "default": {},
+      "env_var": "SUPERSET__THEME_DEFAULT",
+      "nested_example": null,
+      "documentation_url": null
+    },
+    {
+      "key": "THEME_DARK",
+      "title": "Dark Theme",
+      "description": "Dark theme configuration (Ant Design format)",
+      "type": "object",
+      "category": "ui",
+      "impact": "medium",
+      "requires_restart": false,
+      "default": {},
+      "env_var": "SUPERSET__THEME_DARK",
+      "nested_example": null,
+      "documentation_url": null
+    },
+    {
+      "key": "THEME_SETTINGS",
+      "title": "Theme Settings",
+      "description": "Theme behavior and user preference settings",
+      "type": "object",
+      "category": "ui",
+      "impact": "medium",
+      "requires_restart": false,
+      "default": {},
+      "env_var": "SUPERSET__THEME_SETTINGS",
+      "nested_example": null,
+      "documentation_url": null
+    }
+  ],
+  "by_category": {
+    "performance": [
+      {
+        "key": "NATIVE_FILTER_DEFAULT_ROW_LIMIT",
+        "title": "Native Filter Default Row Limit",
+        "description": "Default row limit for native filters",
+        "type": "integer (1 - 10000)",
+        "category": "performance",
+        "impact": "low",
+        "requires_restart": false,
+        "default": 1000,
+        "env_var": "SUPERSET__NATIVE_FILTER_DEFAULT_ROW_LIMIT",
+        "nested_example": null,
+        "documentation_url": null
+      },
+      {
+        "key": "ROW_LIMIT",
+        "title": "Row Limit",
+        "description": "Maximum number of rows returned from queries",
+        "type": "integer (1 - 1000000)",
+        "category": "performance",
+        "impact": "medium",
+        "requires_restart": false,
+        "default": 50000,
+        "env_var": "SUPERSET__ROW_LIMIT",
+        "nested_example": null,
+        "documentation_url": "https://superset.apache.org/docs/configuration/databases"
+      },
+      {
+        "key": "SAMPLES_ROW_LIMIT",
+        "title": "Samples Row Limit",
+        "description": "Default row limit when requesting samples from datasource",
+        "type": "integer (1 - 10000)",
+        "category": "performance",
+        "impact": "low",
+        "requires_restart": false,
+        "default": 1000,
+        "env_var": "SUPERSET__SAMPLES_ROW_LIMIT",
+        "nested_example": null,
+        "documentation_url": null
+      },
+      {
+        "key": "SQLLAB_TIMEOUT",
+        "title": "SQL Lab Timeout",
+        "description": "Timeout duration for SQL Lab synchronous queries (seconds)",
+        "type": "integer (1 - 3600)",
+        "category": "performance",
+        "impact": "high",
+        "requires_restart": false,
+        "default": 30,
+        "env_var": "SUPERSET__SQLLAB_TIMEOUT",
+        "nested_example": null,
+        "documentation_url": null
+      }
+    ],
+    "features": [
+      {
+        "key": "FEATURE_FLAGS",
+        "title": "Feature Flags",
+        "description": "Feature flags to enable/disable functionality",
+        "type": "object",
+        "category": "features",
+        "impact": "high",
+        "requires_restart": true,
+        "default": {},
+        "env_var": "SUPERSET__FEATURE_FLAGS",
+        "nested_example": null,
+        "documentation_url": null
+      }
+    ],
+    "ui": [
+      {
+        "key": "THEME_DARK",
+        "title": "Dark Theme",
+        "description": "Dark theme configuration (Ant Design format)",
+        "type": "object",
+        "category": "ui",
+        "impact": "medium",
+        "requires_restart": false,
+        "default": {},
+        "env_var": "SUPERSET__THEME_DARK",
+        "nested_example": null,
+        "documentation_url": null
+      },
+      {
+        "key": "THEME_DEFAULT",
+        "title": "Default Theme",
+        "description": "Default theme configuration (Ant Design format)",
+        "type": "object",
+        "category": "ui",
+        "impact": "medium",
+        "requires_restart": false,
+        "default": {},
+        "env_var": "SUPERSET__THEME_DEFAULT",
+        "nested_example": null,
+        "documentation_url": null
+      },
+      {
+        "key": "THEME_SETTINGS",
+        "title": "Theme Settings",
+        "description": "Theme behavior and user preference settings",
+        "type": "object",
+        "category": "ui",
+        "impact": "medium",
+        "requires_restart": false,
+        "default": {},
+        "env_var": "SUPERSET__THEME_SETTINGS",
+        "nested_example": null,
+        "documentation_url": null
+      }
+    ]
+  },
+  "categories": [
+    "performance",
+    "features",
+    "ui"
+  ]
+}
