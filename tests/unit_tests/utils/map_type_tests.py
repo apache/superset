@@ -35,14 +35,14 @@ def test_column_with_valid_operation():
     metric = SqlMetric(metric_name="my_column", expression="SUM(my_column)")
     datasource = MagicMock(metrics=[metric])
     column = "my_column"
-    assert (get_metric_type_from_column(column, datasource)) == "SUM"
+    assert (get_metric_type_from_column(column, datasource)) == "floating"
 
 
 def test_column_with_invalid_operation():
     metric = SqlMetric(metric_name="my_column", expression="INVALID(my_column)")
     datasource = MagicMock(metrics=[metric])
     column = "my_column"
-    with patch("logging.warning") as mock_warning:
+    with patch("superset.utils.core.logger.warning") as mock_warning:
         assert (get_metric_type_from_column(column, datasource)) == ""
         mock_warning.assert_called_once()
 
@@ -75,8 +75,7 @@ def test_empty_string_input():
 
 
 def test_recognized_sql_type():
-    # Assuming TYPE_MAPPING contains a pattern for "integer"
-    assert (map_sql_type_to_inferred_type("integer")) == "int64"
+    assert (map_sql_type_to_inferred_type("INT")) == "integer"
 
 
 def test_unrecognized_sql_type():
