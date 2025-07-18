@@ -277,7 +277,6 @@ function GroupsList({ user }: GroupsListProps) {
         name: (
           <>
             <Icons.PlusOutlined
-              iconColor={theme.colorText}
               iconSize="m"
               css={css`
                 margin: auto ${theme.sizeUnit * 2}px auto 0;
@@ -364,7 +363,6 @@ function GroupsList({ user }: GroupsListProps) {
       buttonText: (
         <>
           <Icons.PlusOutlined
-            iconColor={theme.colorText}
             iconSize="m"
             css={css`
               margin: auto ${theme.sizeUnit * 2}px auto 0;

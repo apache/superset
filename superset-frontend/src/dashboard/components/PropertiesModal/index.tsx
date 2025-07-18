@@ -64,6 +64,7 @@ import {
   setDashboardMetadata,
 } from 'src/dashboard/actions/dashboardState';
 import { areObjectsEqual } from 'src/reduxUtils';
+import { ModalTitleWithIcon } from 'src/components/ModalTitleWithIcon';
 
 const StyledJsonEditor = styled(JsonEditor)`
   border-radius: ${({ theme }) => theme.borderRadius}px;
@@ -609,7 +610,7 @@ const PropertiesModal = ({
     <Modal
       show={show}
       onHide={handleOnCancel}
-      title={t('Dashboard properties')}
+      title={<ModalTitleWithIcon title="Dashboard properties" />}
       footer={
         <>
           <Button

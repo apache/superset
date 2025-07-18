@@ -50,6 +50,7 @@ import { Switch, SwitchProps } from '@superset-ui/core/components/Switch';
 import { Icons } from '@superset-ui/core/components/Icons';
 import rison from 'rison';
 import withToasts from 'src/components/MessageToasts/withToasts';
+import { ModalTitleWithIcon } from 'src/components/ModalTitleWithIcon';
 import {
   antDModalNoPaddingStyles,
   antDModalStyles,
@@ -576,7 +577,7 @@ const UploadDataModal: FunctionComponent<UploadDataModalProps> = ({
 
   const UploadTitle: FC = () => {
     const title = uploadTitles[type] || t('Upload');
-    return <h4>{title}</h4>;
+    return <ModalTitleWithIcon title={title} />;
   };
 
   return (

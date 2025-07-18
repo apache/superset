@@ -18,7 +18,7 @@
  */
 
 import { useCallback, useState, FormEvent } from 'react';
-
+import { ModalTitleWithIcon } from 'src/components/ModalTitleWithIcon';
 import { Radio, RadioChangeEvent } from '@superset-ui/core/components/Radio';
 import {
   AsyncSelect,
@@ -27,6 +27,8 @@ import {
   Modal,
   Input,
   type SelectValue,
+  Icons,
+  Flex,
 } from '@superset-ui/core/components';
 import {
   styled,
@@ -372,17 +374,16 @@ export const SaveDatasetModal = ({
   return (
     <Modal
       show={visible}
-      title={t('Save or Overwrite Dataset')}
+      title={
+        <ModalTitleWithIcon
+          title={t('Save or Overwrite Dataset')}
+          icon={<Icons.SaveOutlined />}
+          dataTestId="save-or-overwrite-dataset-title"
+        />
+      }
       onHide={onHide}
       footer={
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'flex-end',
-            gap: '8px',
-          }}
-        >
+        <Flex align="center" justify="flex-end" gap="8px">
           {isFeatureEnabled(FeatureFlag.EnableTemplateProcessing) && (
             <div style={{ display: 'flex', alignItems: 'center' }}>
               <Checkbox
@@ -422,7 +423,7 @@ export const SaveDatasetModal = ({
               </Button>
             </>
           )}
-        </div>
+        </Flex>
       }
     >
       <Styles>

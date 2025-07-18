@@ -30,6 +30,7 @@ import {
 import { t, styled, SupersetClient } from '@superset-ui/core';
 import { Tag } from 'src/views/CRUD/types';
 import { fetchObjectsByTagIds } from 'src/features/tags/tags';
+import { ModalTitleWithIcon } from 'src/components/ModalTitleWithIcon';
 
 const StyledModalBody = styled.div`
   .ant-select-dropdown {
@@ -83,7 +84,6 @@ const TagModal: FC<TagModalProps> = ({
   const [description, setDescription] = useState<string>('');
 
   const isEditMode = !!editTag;
-  const modalTitle = isEditMode ? 'Edit Tag' : 'Create Tag';
 
   const clearResources = () => {
     setDashboardsToTag([]);
@@ -264,7 +264,15 @@ const TagModal: FC<TagModalProps> = ({
 
   return (
     <Modal
-      title={modalTitle}
+      title={
+        <ModalTitleWithIcon
+          editModeConfig={{
+            isEditMode,
+            titleAdd: 'Create Tag',
+            titleEdit: 'Edit Tag',
+          }}
+        />
+      }
       onHide={() => {
         if (clearOnHide) clearTagForm();
         onHide();

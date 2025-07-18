@@ -18,6 +18,7 @@
  */
 import { t } from '@superset-ui/core';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
+import { ModalTitleWithIcon } from 'src/components/ModalTitleWithIcon';
 import { Actions } from 'src/constants';
 import { GroupObject } from 'src/pages/GroupsList';
 import {
@@ -101,7 +102,15 @@ function GroupListModal({
     <FormModal
       show={show}
       onHide={onHide}
-      title={isEditMode ? t('Edit Group') : t('Add Group')}
+      title={
+        <ModalTitleWithIcon
+          editModeConfig={{
+            isEditMode,
+            titleAdd: 'Add Group',
+            titleEdit: 'Edit Group',
+          }}
+        />
+      }
       onSave={onSave}
       formSubmitHandler={handleFormSubmit}
       requiredFields={requiredFields}

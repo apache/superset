@@ -17,6 +17,7 @@
  * under the License.
  */
 import { t } from '@superset-ui/core';
+import { ModalTitleWithIcon } from 'src/components/ModalTitleWithIcon';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
 import {
   Checkbox,
@@ -120,7 +121,15 @@ function UserListModal({
     <FormModal
       show={show}
       onHide={onHide}
-      title={isEditMode ? t('Edit User') : t('Add User')}
+      title={
+        <ModalTitleWithIcon
+          editModeConfig={{
+            isEditMode,
+            titleAdd: 'Add User',
+            titleEdit: 'Edit User',
+          }}
+        />
+      }
       onSave={onSave}
       formSubmitHandler={handleFormSubmit}
       requiredFields={requiredFields}

@@ -40,13 +40,12 @@ import {
   getClientErrorObject,
   ensureIsArray,
   useTheme,
-  css,
 } from '@superset-ui/core';
-import { Icons } from '@superset-ui/core/components/Icons';
 import Chart, { Slice } from 'src/types/Chart';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import { type TagType } from 'src/components';
 import { loadTags } from 'src/components/Tag/utils';
+import { ModalTitleWithIcon } from 'src/components/ModalTitleWithIcon';
 
 export type PropertiesModalProps = {
   slice: Slice;
@@ -69,7 +68,6 @@ function PropertiesModal({
   show,
   addSuccessToast,
 }: PropertiesModalProps) {
-  const theme = useTheme();
   const [submitting, setSubmitting] = useState(false);
   const [form] = Form.useForm();
   // values of form inputs
@@ -246,15 +244,14 @@ function PropertiesModal({
       show={show}
       onHide={onHide}
       title={
-        <span>
-          <Icons.EditOutlined
-            css={css`
-              margin: auto ${theme.sizeUnit * 2}px auto 0;
-            `}
-            data-test="edit-alt"
-          />
-          {t('Edit Chart Properties')}
-        </span>
+        <ModalTitleWithIcon
+          editModeConfig={{
+            isEditMode: true,
+            titleAdd: '',
+            titleEdit: 'Edit Chart Properties',
+          }}
+          dataTestId="edit-alt"
+        />
       }
       footer={
         <>

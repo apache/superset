@@ -17,7 +17,7 @@
  * under the License.
  */
 import { useState, useEffect, FC } from 'react';
-
+import { ModalTitleWithIcon } from 'src/components/ModalTitleWithIcon';
 import { t, styled, SupersetClient } from '@superset-ui/core';
 import {
   FormLabel,
@@ -94,7 +94,7 @@ const BulkTagModal: FC<BulkTagModalProps> = ({
 
   return (
     <Modal
-      title={t('Bulk tag')}
+      title={<ModalTitleWithIcon title="Bulk tag" />}
       show={show}
       onHide={() => {
         setTags([]);
