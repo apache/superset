@@ -143,6 +143,32 @@ This document provides a reference for the input and output schemas of all MCP t
 **Returns:** `ChartAvailableFiltersResponse`
 - `column_operators`: `Dict[str, Any]` — Available filter operators and metadata for each column
 
+### create_chart
+
+**Inputs:**
+- `slice_name`: `str` — Chart name
+- `viz_type`: `str` — Visualization type (e.g., echarts_timeseries_line, echarts_timeseries_bar, echarts_area, table)
+- `datasource_id`: `int` — Dataset ID
+- `datasource_type`: `str` — Datasource type (usually 'table')
+- `x_axis`: `str` — Column name or SQL for x-axis (ECharts timeseries)
+- `metrics`: `List[str]` — List of metric names to display
+- `groupby`: `Optional[List[str]]` — Columns to group by (series)
+- `filters`: `Optional[List[Dict[str, Any]]]` — List of filter objects
+- `row_limit`: `Optional[int]` — Row limit
+- `stack`: `Optional[bool]` — Stack series (ECharts option)
+- `area`: `Optional[bool]` — Show area under line/bar (ECharts option)
+- `smooth`: `Optional[bool]` — Smooth lines (ECharts option)
+- `show_value`: `Optional[bool]` — Show values on chart (ECharts option)
+- `color_scheme`: `Optional[str]` — Color scheme (ECharts option)
+- `legend_type`: `Optional[str]` — Legend type (ECharts option)
+- `legend_orientation`: `Optional[str]` — Legend orientation (ECharts option)
+- `tooltip_sorting`: `Optional[str]` — Tooltip sorting (ECharts option)
+- `y_axis_format`: `Optional[str]` — Y axis format (ECharts option)
+- `y_axis_bounds`: `Optional[List[float]]` — Y axis bounds (ECharts option)
+- `x_axis_time_format`: `Optional[str]` — X axis time format (ECharts option)
+- `rich_tooltip`: `Optional[bool]` — Enable rich tooltip (ECharts option)
+- `extra_options`: `Optional[Dict[str, Any]]` — Additional ECharts options not yet modeled (future-proof)
+
 ## Model Relationships
 
 ```mermaid

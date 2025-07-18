@@ -163,6 +163,7 @@ class BaseChartCreateRequest(BaseModel):
 class EchartsTimeseriesBaseChartCreateRequest(BaseChartCreateRequest):
     """
     Base schema for ECharts timeseries charts (line, bar, area).
+    Now includes additional ECharts options for full frontend compatibility.
     """
     x_axis: str = Field(..., description="Column name or custom SQL for x-axis")
     x_axis_sort: Optional[str] = Field(None, description="Column or metric to sort x-axis by")
@@ -175,6 +176,20 @@ class EchartsTimeseriesBaseChartCreateRequest(BaseChartCreateRequest):
     row_limit: Optional[int] = Field(None, description="Row limit")
     truncate_metric: Optional[bool] = Field(None, description="Truncate metric (boolean)")
     show_empty_columns: Optional[bool] = Field(None, description="Show empty columns (boolean)")
+    # --- New ECharts frontend options ---
+    stack: Optional[bool] = Field(None, description="Stack series (ECharts option)")
+    area: Optional[bool] = Field(None, description="Show area under line/bar (ECharts option)")
+    smooth: Optional[bool] = Field(None, description="Smooth lines (ECharts option)")
+    show_value: Optional[bool] = Field(None, description="Show values on chart (ECharts option)")
+    color_scheme: Optional[str] = Field(None, description="Color scheme (ECharts option)")
+    legend_type: Optional[str] = Field(None, description="Legend type (ECharts option)")
+    legend_orientation: Optional[str] = Field(None, description="Legend orientation (ECharts option)")
+    tooltip_sorting: Optional[str] = Field(None, description="Tooltip sorting (ECharts option)")
+    y_axis_format: Optional[str] = Field(None, description="Y axis format (ECharts option)")
+    y_axis_bounds: Optional[List[float]] = Field(None, description="Y axis bounds (ECharts option)")
+    x_axis_time_format: Optional[str] = Field(None, description="X axis time format (ECharts option)")
+    rich_tooltip: Optional[bool] = Field(None, description="Enable rich tooltip (ECharts option)")
+    extra_options: Optional[Dict[str, Any]] = Field(None, description="Additional ECharts options not yet modeled (future-proof)")
 
 class EchartsTimeseriesLineChartCreateRequest(EchartsTimeseriesBaseChartCreateRequest):
     viz_type: Literal["echarts_timeseries_line"] = Field("echarts_timeseries_line", description="Visualization type")

@@ -58,12 +58,16 @@ def create_chart(
         if isinstance(request, (
         EchartsTimeseriesLineChartCreateRequest, EchartsTimeseriesBarChartCreateRequest,
         EchartsAreaChartCreateRequest)):
+            # Remove x_axis from groupby if present
+            x_axis_col = request.x_axis
+            groupby_cols = request.groupby or []
+            groupby_cols = [col for col in groupby_cols if col != x_axis_col]
             form_data = {
                 "viz_type": request.viz_type,
                 "x_axis": request.x_axis,
                 "x_axis_sort": request.x_axis_sort,
                 "metrics": request.metrics,
-                "groupby": request.groupby or [],
+                "groupby": groupby_cols,
                 "contributionMode": request.contribution_mode,
                 "filters": request.filters or [],
                 "series_limit": request.series_limit,
@@ -71,8 +75,25 @@ def create_chart(
                 "row_limit": request.row_limit,
                 "truncate_metric": request.truncate_metric,
                 "show_empty_columns": request.show_empty_columns,
+                "stack": request.stack,
+                "area": request.area,
+                "smooth": request.smooth,
+                "show_value": request.show_value,
+                "color_scheme": request.color_scheme,
+                "legend_type": request.legend_type,
+                "legend_orientation": request.legend_orientation,
+                "tooltip_sorting": request.tooltip_sorting,
+                "y_axis_format": request.y_axis_format,
+                "y_axis_bounds": request.y_axis_bounds,
+                "x_axis_time_format": request.x_axis_time_format,
+                "rich_tooltip": request.rich_tooltip,
                 "datasource": f"{request.datasource_id}__{request.datasource_type}",
             }
+            # Remove None values
+            form_data = {k: v for k, v in form_data.items() if v is not None}
+            # Merge in extra_options if provided
+            if getattr(request, "extra_options", None):
+                form_data.update(request.extra_options)
         elif isinstance(request, TableChartCreateRequest):
             form_data = {
                 "viz_type": request.viz_type,
