@@ -69,9 +69,10 @@ def extract_comments_before_line(lines: List[str], line_num: int) -> List[str]:
     return comments
 
 
-def safe_eval(node: ast.AST) -> Any:  # noqa: C901
+def safe_eval(node: ast.AST) -> Any:
     """Safely evaluate an AST node to get its value."""
     try:
+        # Handle basic constant values
         if isinstance(node, ast.Constant):
             return node.value
         elif isinstance(node, ast.Num):  # Python < 3.8
@@ -88,41 +89,12 @@ def safe_eval(node: ast.AST) -> Any:  # noqa: C901
             }
         elif isinstance(node, ast.Name):
             # Handle common constants
-            if node.id == "True":
-                return True
-            elif node.id == "False":
-                return False
-            elif node.id == "None":
-                return None
+            if node.id in ("True", "False", "None"):
+                return {"True": True, "False": False, "None": None}[node.id]
             else:
                 return f"<{node.id}>"  # Placeholder for variables
-        elif isinstance(node, ast.Call):
-            # Handle specific function calls we know about
-            if isinstance(node.func, ast.Name):
-                if node.func.id == "int" and len(node.args) == 1:
-                    # Handle int() calls
-                    inner = safe_eval(node.args[0])
-                    if isinstance(inner, str) and inner.startswith("<"):
-                        return 30  # Common default for timeouts
-                    return inner
-                elif node.func.id == "timedelta":
-                    # Handle timedelta calls - just return a reasonable default
-                    return 30
-                else:
-                    return f"<{node.func.id}()>"
-            else:
-                return "<function_call>"
-        elif isinstance(node, ast.Attribute):
-            # Handle attribute access like obj.attr
-            try:
-                return f"<{ast.unparse(node)}>"
-            except Exception:
-                return "<attribute>"
-        elif isinstance(node, ast.BoolOp):
-            # Handle boolean operations like 'or'
-            return None  # Common pattern: value or None
         else:
-            # For complex expressions, return a placeholder
+            # For everything else, just return a descriptive placeholder
             return f"<{type(node).__name__}>"
     except Exception:
         return "<unknown>"

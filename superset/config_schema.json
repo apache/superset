@@ -7,13 +7,13 @@
   "configs": {
     "STATS_LOGGER": {
       "type": "string",
-      "default": "<DummyStatsLogger()>",
+      "default": "<Call>",
       "description": "Realtime stats logger, a StatsD implementation exists",
       "category": "logging"
     },
     "EVENT_LOGGER": {
       "type": "string",
-      "default": "<DBEventLogger()>",
+      "default": "<Call>",
       "description": "By default will log events to the metadata database with `DBEventLogger` Note that you can use `StdOutEventLogger` for debugging Note that you can write your own event logger by extending `AbstractEventLogger` https://github.com/apache/superset/blob/master/superset/utils/log.py",
       "category": "logging"
     },
@@ -31,19 +31,19 @@
     },
     "BASE_DIR": {
       "type": "string",
-      "default": "<str()>",
+      "default": "<Call>",
       "description": "",
       "category": "general"
     },
     "VERSION_INFO_FILE": {
       "type": "string",
-      "default": "<str()>",
+      "default": "<Call>",
       "description": "--------------------------------------------------------- Superset specific config ---------------------------------------------------------",
       "category": "general"
     },
     "PACKAGE_JSON_FILE": {
       "type": "string",
-      "default": "<str()>",
+      "default": "<Call>",
       "description": "",
       "category": "general"
     },
@@ -64,8 +64,8 @@
       "category": "logging"
     },
     "VERSION_STRING": {
-      "type": "null",
-      "default": null,
+      "type": "string",
+      "default": "<BoolOp>",
       "description": "version_info.json file may or may not be available, as it is generated on install via setup.py. In the event that we're actually running Superset, we will have already installed, therefore it WILL exist. When unit tests are running, however, it WILL NOT exist, so we fall back on reading package.json",
       "category": "general"
     },
@@ -77,7 +77,7 @@
     },
     "VERSION_SHA": {
       "type": "string",
-      "default": "<_try_json_readsha()>",
+      "default": "<Call>",
       "description": "",
       "category": "general"
     },
@@ -124,8 +124,8 @@
       "category": "general"
     },
     "SUPERSET_WEBSERVER_TIMEOUT": {
-      "type": "integer",
-      "default": 30,
+      "type": "string",
+      "default": "<Call>",
       "description": "This is an important setting, and should be lower than your [load balancer / proxy / envoy / kong / ...] timeout settings. You should also make sure to configure your WSGI server (gunicorn, nginx, apache, ...) timeout setting to be <= to this setting",
       "category": "performance"
     },
@@ -160,8 +160,8 @@
       "category": "database"
     },
     "SECRET_KEY": {
-      "type": "null",
-      "default": null,
+      "type": "string",
+      "default": "<BoolOp>",
       "description": "Your App secret key. Make sure you override it on superset_config.py or use `SUPERSET_SECRET_KEY` environment variable. Use a strong complex alphanumeric string and use a tool to help you generate a sufficiently random sequence, ex: openssl rand -base64 42\"",
       "category": "general"
     },
@@ -214,7 +214,7 @@
     },
     "DEBUG": {
       "type": "string",
-      "default": "<parse_boolean_string()>",
+      "default": "<Call>",
       "description": "Whether to run the web server in debug mode or not",
       "category": "logging"
     },
@@ -373,7 +373,7 @@
     "CACHE_WARMUP_EXECUTORS": {
       "type": "array",
       "default": [
-        "<ExecutorType.OWNER>"
+        "<Attribute>"
       ],
       "description": "a fixed user (admin in this example), use the following configuration: from superset.tasks.types import ExecutorType, FixedExecutor CACHE_WARMUP_EXECUTORS = [ExecutorType.OWNER, FixedExecutor(\"admin\")]",
       "category": "performance"
@@ -381,26 +381,26 @@
     "THUMBNAIL_EXECUTORS": {
       "type": "array",
       "default": [
-        "<ExecutorType.CURRENT_USER>"
+        "<Attribute>"
       ],
       "description": "configuration: from superset.tasks.types import ExecutorType, FixedExecutor THUMBNAIL_EXECUTORS = [FixedExecutor(\"admin\")]",
       "category": "general"
     },
     "THUMBNAIL_ERROR_CACHE_TTL": {
-      "type": "integer",
-      "default": 30,
+      "type": "string",
+      "default": "<Call>",
       "description": "",
       "category": "performance"
     },
     "SCREENSHOT_LOCATE_WAIT": {
-      "type": "integer",
-      "default": 30,
+      "type": "string",
+      "default": "<Call>",
       "description": "Time before selenium times out after trying to locate an element on the page and wait for that element to load for a screenshot.",
       "category": "general"
     },
     "SCREENSHOT_LOAD_WAIT": {
-      "type": "integer",
-      "default": 30,
+      "type": "string",
+      "default": "<Call>",
       "description": "Time before selenium times out after waiting for all DOM class elements named \"loading\" are gone.",
       "category": "general"
     },
@@ -447,8 +447,8 @@
       "category": "general"
     },
     "SCREENSHOT_PLAYWRIGHT_DEFAULT_TIMEOUT": {
-      "type": "integer",
-      "default": 30,
+      "type": "string",
+      "default": "<Call>",
       "description": "Default timeout for Playwright browser context for all operations",
       "category": "performance"
     },
@@ -465,8 +465,8 @@
       "category": "general"
     },
     "CACHE_DEFAULT_TIMEOUT": {
-      "type": "integer",
-      "default": 30,
+      "type": "string",
+      "default": "<Call>",
       "description": "--------------------------------------------------- Cache configuration --------------------------------------------------- Default cache timeout, applies to all cache backends unless specifically overridden in each cache config.",
       "category": "performance"
     },
@@ -528,13 +528,13 @@
     },
     "DEFAULT_MODULE_DS_MAP": {
       "type": "string",
-      "default": "<OrderedDict()>",
+      "default": "<Call>",
       "description": "-------------------------------------------------- Modules, datasources and middleware to be registered --------------------------------------------------",
       "category": "general"
     },
     "LOGGING_CONFIGURATOR": {
       "type": "string",
-      "default": "<DefaultLoggingConfigurator()>",
+      "default": "<Call>",
       "description": "1) https://docs.python-guide.org/writing/logging/ 2) https://docs.python.org/2/library/logging.config.html Default configurator will consume the LOG_* settings below",
       "category": "logging"
     },
@@ -564,7 +564,7 @@
     },
     "FILENAME": {
       "type": "string",
-      "default": "<function_call>",
+      "default": "<Call>",
       "description": "",
       "category": "general"
     },
@@ -594,7 +594,7 @@
     },
     "MAPBOX_API_KEY": {
       "type": "string",
-      "default": "<function_call>",
+      "default": "<Call>",
       "description": "Set this API key to enable Mapbox visualizations",
       "category": "general"
     },
@@ -688,8 +688,8 @@
       "category": "general"
     },
     "CELERY_BEAT_SCHEDULER_EXPIRES": {
-      "type": "integer",
-      "default": 30,
+      "type": "string",
+      "default": "<Call>",
       "description": "This is used as a workaround for the alerts & reports scheduler task to get the time celery beat triggered it, see https://github.com/celery/celery/issues/6974 for details",
       "category": "async"
     },
@@ -700,14 +700,14 @@
       "category": "database"
     },
     "SQLLAB_TIMEOUT": {
-      "type": "integer",
-      "default": 30,
+      "type": "string",
+      "default": "<Call>",
       "description": "Timeout duration for SQL Lab synchronous queries",
       "category": "performance"
     },
     "SQLLAB_VALIDATION_TIMEOUT": {
-      "type": "integer",
-      "default": 30,
+      "type": "string",
+      "default": "<Call>",
       "description": "Timeout duration for SQL Lab query validation",
       "category": "performance"
     },
@@ -718,14 +718,14 @@
       "category": "database"
     },
     "SQLLAB_ASYNC_TIME_LIMIT_SEC": {
-      "type": "integer",
-      "default": 30,
+      "type": "string",
+      "default": "<Call>",
       "description": "The MAX duration a query can run for before being killed by celery.",
       "category": "performance"
     },
     "SQLLAB_QUERY_COST_ESTIMATE_TIMEOUT": {
-      "type": "integer",
-      "default": 30,
+      "type": "string",
+      "default": "<Call>",
       "description": "Some databases support running EXPLAIN queries that allow users to estimate query costs before they run. These EXPLAIN queries should have a small timeout.",
       "category": "performance"
     },
@@ -767,7 +767,7 @@
     },
     "CSV_DEFAULT_NA_NAMES": {
       "type": "string",
-      "default": "<list()>",
+      "default": "<Call>",
       "description": "Values that should be treated as nulls for the csv uploads.",
       "category": "general"
     },
@@ -892,8 +892,8 @@
       "category": "general"
     },
     "WTF_CSRF_TIME_LIMIT": {
-      "type": "integer",
-      "default": 30,
+      "type": "string",
+      "default": "<Call>",
       "description": "CSRF token timeout, set to None for a token that never expires",
       "category": "performance"
     },
@@ -910,8 +910,8 @@
       "category": "general"
     },
     "PRESTO_POLL_INTERVAL": {
-      "type": "integer",
-      "default": 30,
+      "type": "string",
+      "default": "<Call>",
       "description": "Interval between consecutive polls when using Presto Engine See here: https://github.com/dropbox/PyHive/blob/8eb0aeab8ca300f3024655419b93dad926c1a351/pyhive/presto.py#L93  # noqa: E501",
       "category": "general"
     },
@@ -964,14 +964,14 @@
       "category": "general"
     },
     "ALERT_REPORTS_WORKING_TIME_OUT_LAG": {
-      "type": "integer",
-      "default": 30,
+      "type": "string",
+      "default": "<Call>",
       "description": "if ALERT_REPORTS_WORKING_TIME_OUT_KILL is True, set a celery hard timeout Equal to working timeout + ALERT_REPORTS_WORKING_TIME_OUT_LAG",
       "category": "general"
     },
     "ALERT_REPORTS_WORKING_SOFT_TIME_OUT_LAG": {
-      "type": "integer",
-      "default": 30,
+      "type": "string",
+      "default": "<Call>",
       "description": "if ALERT_REPORTS_WORKING_TIME_OUT_KILL is True, set a celery hard timeout Equal to working timeout + ALERT_REPORTS_WORKING_SOFT_TIME_OUT_LAG",
       "category": "general"
     },
@@ -1018,14 +1018,14 @@
       "category": "general"
     },
     "ALERT_MINIMUM_INTERVAL": {
-      "type": "integer",
-      "default": 30,
+      "type": "string",
+      "default": "<Call>",
       "description": "Set a minimum interval threshold between executions (for each Alert/Report) Value should be an integer i.e. int(timedelta(minutes=5).total_seconds()) You can also assign a function to the config that returns the expected integer",
       "category": "general"
     },
     "REPORT_MINIMUM_INTERVAL": {
-      "type": "integer",
-      "default": 30,
+      "type": "string",
+      "default": "<Call>",
       "description": "",
       "category": "general"
     },
@@ -1048,8 +1048,8 @@
       "category": "general"
     },
     "SLACK_CACHE_TIMEOUT": {
-      "type": "integer",
-      "default": 30,
+      "type": "string",
+      "default": "<Call>",
       "description": "",
       "category": "performance"
     },
@@ -1114,8 +1114,8 @@
       "category": "general"
     },
     "EMAIL_PAGE_RENDER_WAIT": {
-      "type": "integer",
-      "default": 30,
+      "type": "string",
+      "default": "<Call>",
       "description": "Time selenium will wait for the page to load and render for the email report.",
       "category": "email"
     },
@@ -1177,8 +1177,8 @@
       "category": "database"
     },
     "TEST_DATABASE_CONNECTION_TIMEOUT": {
-      "type": "integer",
-      "default": 30,
+      "type": "string",
+      "default": "<Call>",
       "description": "When adding a new database we try to connect to it. Depending on which parameters are incorrect this could take a couple minutes, until the SQLAlchemy driver pinging the database times out. Instead of relying on the driver timeout we can specify a shorter one here.",
       "category": "performance"
     },
@@ -1189,8 +1189,8 @@
       "category": "database"
     },
     "DATABASE_OAUTH2_TIMEOUT": {
-      "type": "integer",
-      "default": 30,
+      "type": "string",
+      "default": "<Call>",
       "description": "applications. In that case, the proxy can forward the request to the correct instance by looking at the `default_redirect_uri` attribute in the OAuth2 state object. DATABASE_OAUTH2_REDIRECT_URI = \"http://localhost:8088/api/v1/database/oauth2/\" Timeout when fetching access and refresh tokens.",
       "category": "performance"
     },
@@ -1321,8 +1321,8 @@
       "category": "general"
     },
     "SEND_FILE_MAX_AGE_DEFAULT": {
-      "type": "integer",
-      "default": 30,
+      "type": "string",
+      "default": "<Call>",
       "description": "Other possible config options and backends: # https://flask-session.readthedocs.io/en/latest/config.html Cache static resources.",
       "category": "general"
     },
@@ -1419,8 +1419,8 @@
       "category": "async"
     },
     "GLOBAL_ASYNC_QUERIES_POLLING_DELAY": {
-      "type": "integer",
-      "default": 30,
+      "type": "string",
+      "default": "<Call>",
       "description": "",
       "category": "async"
     },
@@ -1526,7 +1526,7 @@
     },
     "DATA_DIR": {
       "type": "string",
-      "default": "<function_call>",
+      "default": "<Call>",
       "description": "",
       "category": "general"
     }
@@ -1535,13 +1535,13 @@
     "logging": {
       "STATS_LOGGER": {
         "type": "string",
-        "default": "<DummyStatsLogger()>",
+        "default": "<Call>",
         "description": "Realtime stats logger, a StatsD implementation exists",
         "category": "logging"
       },
       "EVENT_LOGGER": {
         "type": "string",
-        "default": "<DBEventLogger()>",
+        "default": "<Call>",
         "description": "By default will log events to the metadata database with `DBEventLogger` Note that you can use `StdOutEventLogger` for debugging Note that you can write your own event logger by extending `AbstractEventLogger` https://github.com/apache/superset/blob/master/superset/utils/log.py",
         "category": "logging"
       },
@@ -1559,7 +1559,7 @@
       },
       "DEBUG": {
         "type": "string",
-        "default": "<parse_boolean_string()>",
+        "default": "<Call>",
         "description": "Whether to run the web server in debug mode or not",
         "category": "logging"
       },
@@ -1577,7 +1577,7 @@
       },
       "LOGGING_CONFIGURATOR": {
         "type": "string",
-        "default": "<DefaultLoggingConfigurator()>",
+        "default": "<Call>",
         "description": "1) https://docs.python-guide.org/writing/logging/ 2) https://docs.python.org/2/library/logging.config.html Default configurator will consume the LOG_* settings below",
         "category": "logging"
       },
@@ -1677,19 +1677,19 @@
     "general": {
       "BASE_DIR": {
         "type": "string",
-        "default": "<str()>",
+        "default": "<Call>",
         "description": "",
         "category": "general"
       },
       "VERSION_INFO_FILE": {
         "type": "string",
-        "default": "<str()>",
+        "default": "<Call>",
         "description": "--------------------------------------------------------- Superset specific config ---------------------------------------------------------",
         "category": "general"
       },
       "PACKAGE_JSON_FILE": {
         "type": "string",
-        "default": "<str()>",
+        "default": "<Call>",
         "description": "",
         "category": "general"
       },
@@ -1704,8 +1704,8 @@
         "category": "general"
       },
       "VERSION_STRING": {
-        "type": "null",
-        "default": null,
+        "type": "string",
+        "default": "<BoolOp>",
         "description": "version_info.json file may or may not be available, as it is generated on install via setup.py. In the event that we're actually running Superset, we will have already installed, therefore it WILL exist. When unit tests are running, however, it WILL NOT exist, so we fall back on reading package.json",
         "category": "general"
       },
@@ -1717,7 +1717,7 @@
       },
       "VERSION_SHA": {
         "type": "string",
-        "default": "<_try_json_readsha()>",
+        "default": "<Call>",
         "description": "",
         "category": "general"
       },
@@ -1740,8 +1740,8 @@
         "category": "general"
       },
       "SECRET_KEY": {
-        "type": "null",
-        "default": null,
+        "type": "string",
+        "default": "<BoolOp>",
         "description": "Your App secret key. Make sure you override it on superset_config.py or use `SUPERSET_SECRET_KEY` environment variable. Use a strong complex alphanumeric string and use a tool to help you generate a sufficiently random sequence, ex: openssl rand -base64 42\"",
         "category": "general"
       },
@@ -1845,20 +1845,20 @@
       "THUMBNAIL_EXECUTORS": {
         "type": "array",
         "default": [
-          "<ExecutorType.CURRENT_USER>"
+          "<Attribute>"
         ],
         "description": "configuration: from superset.tasks.types import ExecutorType, FixedExecutor THUMBNAIL_EXECUTORS = [FixedExecutor(\"admin\")]",
         "category": "general"
       },
       "SCREENSHOT_LOCATE_WAIT": {
-        "type": "integer",
-        "default": 30,
+        "type": "string",
+        "default": "<Call>",
         "description": "Time before selenium times out after trying to locate an element on the page and wait for that element to load for a screenshot.",
         "category": "general"
       },
       "SCREENSHOT_LOAD_WAIT": {
-        "type": "integer",
-        "default": 30,
+        "type": "string",
+        "default": "<Call>",
         "description": "Time before selenium times out after waiting for all DOM class elements named \"loading\" are gone.",
         "category": "general"
       },
@@ -1962,13 +1962,13 @@
       },
       "DEFAULT_MODULE_DS_MAP": {
         "type": "string",
-        "default": "<OrderedDict()>",
+        "default": "<Call>",
         "description": "-------------------------------------------------- Modules, datasources and middleware to be registered --------------------------------------------------",
         "category": "general"
       },
       "FILENAME": {
         "type": "string",
-        "default": "<function_call>",
+        "default": "<Call>",
         "description": "",
         "category": "general"
       },
@@ -1992,7 +1992,7 @@
       },
       "MAPBOX_API_KEY": {
         "type": "string",
-        "default": "<function_call>",
+        "default": "<Call>",
         "description": "Set this API key to enable Mapbox visualizations",
         "category": "general"
       },
@@ -2081,7 +2081,7 @@
       },
       "CSV_DEFAULT_NA_NAMES": {
         "type": "string",
-        "default": "<list()>",
+        "default": "<Call>",
         "description": "Values that should be treated as nulls for the csv uploads.",
         "category": "general"
       },
@@ -2134,8 +2134,8 @@
         "category": "general"
       },
       "PRESTO_POLL_INTERVAL": {
-        "type": "integer",
-        "default": 30,
+        "type": "string",
+        "default": "<Call>",
         "description": "Interval between consecutive polls when using Presto Engine See here: https://github.com/dropbox/PyHive/blob/8eb0aeab8ca300f3024655419b93dad926c1a351/pyhive/presto.py#L93  # noqa: E501",
         "category": "general"
       },
@@ -2170,14 +2170,14 @@
         "category": "general"
       },
       "ALERT_REPORTS_WORKING_TIME_OUT_LAG": {
-        "type": "integer",
-        "default": 30,
+        "type": "string",
+        "default": "<Call>",
         "description": "if ALERT_REPORTS_WORKING_TIME_OUT_KILL is True, set a celery hard timeout Equal to working timeout + ALERT_REPORTS_WORKING_TIME_OUT_LAG",
         "category": "general"
       },
       "ALERT_REPORTS_WORKING_SOFT_TIME_OUT_LAG": {
-        "type": "integer",
-        "default": 30,
+        "type": "string",
+        "default": "<Call>",
         "description": "if ALERT_REPORTS_WORKING_TIME_OUT_KILL is True, set a celery hard timeout Equal to working timeout + ALERT_REPORTS_WORKING_SOFT_TIME_OUT_LAG",
         "category": "general"
       },
@@ -2212,14 +2212,14 @@
         "category": "general"
       },
       "ALERT_MINIMUM_INTERVAL": {
-        "type": "integer",
-        "default": 30,
+        "type": "string",
+        "default": "<Call>",
         "description": "Set a minimum interval threshold between executions (for each Alert/Report) Value should be an integer i.e. int(timedelta(minutes=5).total_seconds()) You can also assign a function to the config that returns the expected integer",
         "category": "general"
       },
       "REPORT_MINIMUM_INTERVAL": {
-        "type": "integer",
-        "default": 30,
+        "type": "string",
+        "default": "<Call>",
         "description": "",
         "category": "general"
       },
@@ -2446,8 +2446,8 @@
         "category": "general"
       },
       "SEND_FILE_MAX_AGE_DEFAULT": {
-        "type": "integer",
-        "default": 30,
+        "type": "string",
+        "default": "<Call>",
         "description": "Other possible config options and backends: # https://flask-session.readthedocs.io/en/latest/config.html Cache static resources.",
         "category": "general"
       },
@@ -2543,7 +2543,7 @@
       },
       "DATA_DIR": {
         "type": "string",
-        "default": "<function_call>",
+        "default": "<Call>",
         "description": "",
         "category": "general"
       }
@@ -2588,8 +2588,8 @@
         "category": "performance"
       },
       "SUPERSET_WEBSERVER_TIMEOUT": {
-        "type": "integer",
-        "default": 30,
+        "type": "string",
+        "default": "<Call>",
         "description": "This is an important setting, and should be lower than your [load balancer / proxy / envoy / kong / ...] timeout settings. You should also make sure to configure your WSGI server (gunicorn, nginx, apache, ...) timeout setting to be <= to this setting",
         "category": "performance"
       },
@@ -2650,26 +2650,26 @@
       "CACHE_WARMUP_EXECUTORS": {
         "type": "array",
         "default": [
-          "<ExecutorType.OWNER>"
+          "<Attribute>"
         ],
         "description": "a fixed user (admin in this example), use the following configuration: from superset.tasks.types import ExecutorType, FixedExecutor CACHE_WARMUP_EXECUTORS = [ExecutorType.OWNER, FixedExecutor(\"admin\")]",
         "category": "performance"
       },
       "THUMBNAIL_ERROR_CACHE_TTL": {
-        "type": "integer",
-        "default": 30,
+        "type": "string",
+        "default": "<Call>",
         "description": "",
         "category": "performance"
       },
       "SCREENSHOT_PLAYWRIGHT_DEFAULT_TIMEOUT": {
-        "type": "integer",
-        "default": 30,
+        "type": "string",
+        "default": "<Call>",
         "description": "Default timeout for Playwright browser context for all operations",
         "category": "performance"
       },
       "CACHE_DEFAULT_TIMEOUT": {
-        "type": "integer",
-        "default": 30,
+        "type": "string",
+        "default": "<Call>",
         "description": "--------------------------------------------------- Cache configuration --------------------------------------------------- Default cache timeout, applies to all cache backends unless specifically overridden in each cache config.",
         "category": "performance"
       },
@@ -2686,26 +2686,26 @@
         "category": "performance"
       },
       "SQLLAB_TIMEOUT": {
-        "type": "integer",
-        "default": 30,
+        "type": "string",
+        "default": "<Call>",
         "description": "Timeout duration for SQL Lab synchronous queries",
         "category": "performance"
       },
       "SQLLAB_VALIDATION_TIMEOUT": {
-        "type": "integer",
-        "default": 30,
+        "type": "string",
+        "default": "<Call>",
         "description": "Timeout duration for SQL Lab query validation",
         "category": "performance"
       },
       "SQLLAB_ASYNC_TIME_LIMIT_SEC": {
-        "type": "integer",
-        "default": 30,
+        "type": "string",
+        "default": "<Call>",
         "description": "The MAX duration a query can run for before being killed by celery.",
         "category": "performance"
       },
       "SQLLAB_QUERY_COST_ESTIMATE_TIMEOUT": {
-        "type": "integer",
-        "default": 30,
+        "type": "string",
+        "default": "<Call>",
         "description": "Some databases support running EXPLAIN queries that allow users to estimate query costs before they run. These EXPLAIN queries should have a small timeout.",
         "category": "performance"
       },
@@ -2722,8 +2722,8 @@
         "category": "performance"
       },
       "WTF_CSRF_TIME_LIMIT": {
-        "type": "integer",
-        "default": 30,
+        "type": "string",
+        "default": "<Call>",
         "description": "CSRF token timeout, set to None for a token that never expires",
         "category": "performance"
       },
@@ -2734,20 +2734,20 @@
         "category": "performance"
       },
       "SLACK_CACHE_TIMEOUT": {
-        "type": "integer",
-        "default": 30,
+        "type": "string",
+        "default": "<Call>",
         "description": "",
         "category": "performance"
       },
       "TEST_DATABASE_CONNECTION_TIMEOUT": {
-        "type": "integer",
-        "default": 30,
+        "type": "string",
+        "default": "<Call>",
         "description": "When adding a new database we try to connect to it. Depending on which parameters are incorrect this could take a couple minutes, until the SQLAlchemy driver pinging the database times out. Instead of relying on the driver timeout we can specify a shorter one here.",
         "category": "performance"
       },
       "DATABASE_OAUTH2_TIMEOUT": {
-        "type": "integer",
-        "default": 30,
+        "type": "string",
+        "default": "<Call>",
         "description": "applications. In that case, the proxy can forward the request to the correct instance by looking at the `default_redirect_uri` attribute in the OAuth2 state object. DATABASE_OAUTH2_REDIRECT_URI = \"http://localhost:8088/api/v1/database/oauth2/\" Timeout when fetching access and refresh tokens.",
         "category": "performance"
       },
@@ -2959,8 +2959,8 @@
     },
     "async": {
       "CELERY_BEAT_SCHEDULER_EXPIRES": {
-        "type": "integer",
-        "default": 30,
+        "type": "string",
+        "default": "<Call>",
         "description": "This is used as a workaround for the alerts & reports scheduler task to get the time celery beat triggered it, see https://github.com/celery/celery/issues/6974 for details",
         "category": "async"
       },
@@ -3001,8 +3001,8 @@
         "category": "async"
       },
       "GLOBAL_ASYNC_QUERIES_POLLING_DELAY": {
-        "type": "integer",
-        "default": 30,
+        "type": "string",
+        "default": "<Call>",
         "description": "",
         "category": "async"
       },
@@ -3069,8 +3069,8 @@
         "category": "email"
       },
       "EMAIL_PAGE_RENDER_WAIT": {
-        "type": "integer",
-        "default": 30,
+        "type": "string",
+        "default": "<Call>",
         "description": "Time selenium will wait for the page to load and render for the email report.",
         "category": "email"
       }
