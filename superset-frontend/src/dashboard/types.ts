@@ -289,4 +289,5 @@ export enum MenuKeys {
   ToggleFullscreen = 'toggle_fullscreen',
   ManageEmbedded = 'manage_embedded',
   ManageEmailReports = 'manage_email_reports',
+  ExportPivotXlsx = 'export_pivot_xlsx',
 }
