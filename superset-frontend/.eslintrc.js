@@ -349,7 +349,8 @@ module.exports = {
               {
                 name: '@superset-ui/core',
                 importNames: ['logging'],
-                message: 'Do not use logging in test files. Use console statements instead for testing.',
+                message:
+                  'Do not use logging in test files. Use console statements instead for testing.',
               },
             ],
           },
