@@ -52,6 +52,10 @@ superset/
 - **SQLAlchemy models** with proper typing
 - **pytest** for testing
 
+### Apache License Headers
+- **New files require ASF license headers** - When creating new code files, include the standard Apache Software Foundation license header
+- **LLM instruction files are excluded** - Files like LLMS.md, CLAUDE.md, etc. are in `.rat-excludes` to avoid header token overhead
+
 ## Documentation Requirements
 
 - **docs/**: Update for any user-facing changes
