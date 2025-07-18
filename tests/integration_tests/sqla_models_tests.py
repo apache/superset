@@ -749,12 +749,12 @@ def test_should_generate_closed_and_open_time_filter_range(login_as_admin):
 def test_none_operand_in_filter(login_as_admin, physical_dataset):
     expected_results = [
         {
-            "operator": FilterOperator.EQUALS.value,
+            "operator": FilterOperator.EQUALS,
             "count": 10,
             "sql_should_contain": "COL4 IS NULL",
         },
         {
-            "operator": FilterOperator.NOT_EQUALS.value,
+            "operator": FilterOperator.NOT_EQUALS,
             "count": 0,
             "sql_should_contain": "COL4 IS NOT NULL",
         },
@@ -1122,12 +1122,12 @@ def test__temporal_range_operator_in_adhoc_filter(physical_dataset):
                 {
                     "col": "col5",
                     "val": "2000-01-05 : 2000-01-06",
-                    "op": FilterOperator.TEMPORAL_RANGE.value,
+                    "op": FilterOperator.TEMPORAL_RANGE,
                 },
                 {
                     "col": "col6",
                     "val": "2002-05-11 : 2002-05-12",
-                    "op": FilterOperator.TEMPORAL_RANGE.value,
+                    "op": FilterOperator.TEMPORAL_RANGE,
                 },
             ],
             "is_timeseries": False,

@@ -83,6 +83,9 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
     force_column_alias_quotes = True
     max_column_name_length = 256
 
+    # Snowflake doesn't support IS true/false syntax, use = true/false instead
+    use_equality_for_boolean_filters = True
+
     parameters_schema = SnowflakeParametersSchema()
     default_driver = "snowflake"
     sqlalchemy_uri_placeholder = "snowflake://"

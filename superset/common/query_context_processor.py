@@ -541,9 +541,7 @@ class QueryContextProcessor:
                 # Lets find the first temporal filter in the filters array and change
                 # its val to be the result of get_since_until with the offset
                 for flt in query_object_clone.filter:
-                    if flt.get(
-                        "op"
-                    ) == FilterOperator.TEMPORAL_RANGE.value and isinstance(
+                    if flt.get("op") == FilterOperator.TEMPORAL_RANGE and isinstance(
                         flt.get("val"), str
                     ):
                         time_range = cast(str, flt.get("val"))

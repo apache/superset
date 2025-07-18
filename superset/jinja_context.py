@@ -409,8 +409,8 @@ class ExtraCache:
                     # IS_NULL and IS_NOT_NULL operators do not have a value
                     or op
                     in (
-                        FilterOperator.IS_NULL.value,
-                        FilterOperator.IS_NOT_NULL.value,
+                        FilterOperator.IS_NULL,
+                        FilterOperator.IS_NOT_NULL,
                     )
                 )
             ):
@@ -421,8 +421,8 @@ class ExtraCache:
                     self.applied_filters.append(column)
 
                 if op in (
-                    FilterOperator.IN.value,
-                    FilterOperator.NOT_IN.value,
+                    FilterOperator.IN,
+                    FilterOperator.NOT_IN,
                 ) and not isinstance(val, list):
                     val = [val]
 

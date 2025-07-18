@@ -66,7 +66,7 @@ def get_since_until_from_query_object(
 
     time_range = None
     for flt in query_object.filter:
-        if flt.get("op") == FilterOperator.TEMPORAL_RANGE.value and isinstance(
+        if flt.get("op") == FilterOperator.TEMPORAL_RANGE and isinstance(
             flt.get("val"), str
         ):
             time_range = cast(str, flt.get("val"))
