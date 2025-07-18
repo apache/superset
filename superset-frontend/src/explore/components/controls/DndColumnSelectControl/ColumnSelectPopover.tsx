@@ -26,7 +26,7 @@ import {
   useRef,
   useState,
 } from 'react';
-import { useSelector } from 'react-redux';
+import { useSelector, useStore } from 'react-redux';
 import {
   AdhocColumn,
   isAdhocColumn,
@@ -131,6 +131,7 @@ const ColumnSelectPopover = ({
   const formData = useSelector<ExplorePageState, any>(
     state => state.explore.form_data,
   );
+  const store = useStore();
   
   // Check if this is a semantic layer dataset
   const isSemanticLayer = useMemo(() => {
@@ -166,6 +167,7 @@ const ColumnSelectPopover = ({
   const [selectedTab, setSelectedTab] = useState<string | null>(null);
   const [validDimensions, setValidDimensions] = useState<string[] | null>(null);
   const [isLoadingValidDimensions, setIsLoadingValidDimensions] = useState(false);
+  const previousFormDataRef = useRef<string>('');
 
   const [resizeButton, width, height] = useResizeButton(
     POPOVER_INITIAL_WIDTH,
@@ -262,13 +264,77 @@ const ColumnSelectPopover = ({
   }, [defaultActiveTabKey, getCurrentTab, setSelectedTab]);
 
   // Fetch valid dimensions for semantic layer datasets
+  // Only trigger when actually needed (tab is Simple or modal opens after delay)
   useEffect(() => {
-    if (isSemanticLayer && formData && datasource) {
-      setIsLoadingValidDimensions(true);
+    console.log('=== COLUMN MODAL EFFECT TRIGGER ===');
+    console.log('isSemanticLayer:', isSemanticLayer);
+    console.log('formData exists:', !!formData);
+    console.log('datasource exists:', !!datasource);
+    console.log('selectedTab:', selectedTab);
+    console.log('TABS_KEYS.SIMPLE:', TABS_KEYS.SIMPLE);
+    console.log('Should trigger API?', isSemanticLayer && formData && datasource && 
+        (selectedTab === TABS_KEYS.SIMPLE || selectedTab === null));
+    
+    // Temporarily disable column modal API calls to isolate main verification timing issue
+    if (false && isSemanticLayer && formData && datasource && 
+        (selectedTab === TABS_KEYS.SIMPLE || selectedTab === null)) {
       
       const fetchValidDimensions = async () => {
+        setIsLoadingValidDimensions(true);
+        
         try {
-          const queryFields = collectQueryFields(formData);
+          // Wait for Redux state to settle after drag-and-drop operations
+          await new Promise(resolve => setTimeout(resolve, 500));
+          
+          // Get the most current form data from store
+          const currentState = store.getState() as ExplorePageState;
+          let currentFormData = currentState.explore.form_data;
+          
+          // If we're in a table and don't have metrics/dimensions, try to get from controls state
+          if ((!currentFormData.metrics && !currentFormData.groupby && !currentFormData.all_columns) ||
+              (Array.isArray(currentFormData.metrics) && currentFormData.metrics.length === 0 &&
+               Array.isArray(currentFormData.groupby) && currentFormData.groupby.length === 0)) {
+            
+            // Try to get from the controls state instead
+            const controlsState = (currentState as any).explore?.controls;
+            if (controlsState) {
+              const enhancedFormData = { ...currentFormData };
+              
+              // Get metrics from controls
+              if (controlsState.metrics?.value) {
+                enhancedFormData.metrics = controlsState.metrics.value;
+              }
+              if (controlsState.percent_metrics?.value) {
+                enhancedFormData.percent_metrics = controlsState.percent_metrics.value;
+              }
+              
+              // Get dimensions from controls
+              if (controlsState.groupby?.value) {
+                enhancedFormData.groupby = controlsState.groupby.value;
+              }
+              if (controlsState.all_columns?.value) {
+                enhancedFormData.all_columns = controlsState.all_columns.value;
+              }
+              
+              console.log('=== ENHANCED FORM DATA FROM CONTROLS ===');
+              console.log('Controls state metrics:', controlsState.metrics?.value);
+              console.log('Controls state groupby:', controlsState.groupby?.value);
+              console.log('Controls state all_columns:', controlsState.all_columns?.value);
+              console.log('Enhanced form data:', enhancedFormData);
+              
+              currentFormData = enhancedFormData;
+            }
+          }
+          
+          console.log('=== COLUMN MODAL DEBUG ===');
+          console.log('Column modal Redux state keys:', Object.keys(currentFormData));
+          console.log('Column modal form data:', currentFormData);
+          console.log('Column modal has metrics?', 'metrics' in currentFormData, currentFormData.metrics);
+          console.log('Column modal has groupby?', 'groupby' in currentFormData, currentFormData.groupby);
+          console.log('Column modal collected query fields:', collectQueryFields(currentFormData));
+          console.log('=== END COLUMN MODAL DEBUG ===');
+          
+          const queryFields = collectQueryFields(currentFormData);
           const validationResult = await callValidationAPI(
             datasource,
             queryFields.dimensions,
@@ -287,15 +353,58 @@ const ColumnSelectPopover = ({
         }
       };
       
-      // Make it non-blocking by using setTimeout
-      setTimeout(() => {
+      // Trigger API call after a delay to ensure state is current
+      const timeoutId = setTimeout(() => {
         fetchValidDimensions();
-      }, 0);
+      }, 100);
+      
+      return () => clearTimeout(timeoutId);
     } else {
       setValidDimensions(null);
       setIsLoadingValidDimensions(false);
     }
-  }, [isSemanticLayer, formData, datasource]);
+  }, [isSemanticLayer, selectedTab, datasource, store]);
+  
+  // Also trigger when form data changes (for subsequent updates)
+  useEffect(() => {
+    if (isSemanticLayer && validDimensions !== null && formData && datasource) {
+      const currentFormDataString = JSON.stringify(formData);
+      
+      // Only make API call if form data actually changed and we already have loaded once
+      if (currentFormDataString !== previousFormDataRef.current) {
+        previousFormDataRef.current = currentFormDataString;
+        
+        const fetchValidDimensions = async () => {
+          setIsLoadingValidDimensions(true);
+          
+          try {
+            await new Promise(resolve => setTimeout(resolve, 200));
+            
+            const currentState = store.getState() as ExplorePageState;
+            const currentFormData = currentState.explore.form_data;
+            
+            const queryFields = collectQueryFields(currentFormData);
+            const validationResult = await callValidationAPI(
+              datasource,
+              queryFields.dimensions,
+              queryFields.metrics,
+            );
+            if (validationResult) {
+              setValidDimensions(validationResult.dimensions);
+            }
+          } catch (error) {
+            console.warn('Failed to fetch valid dimensions:', error);
+          } finally {
+            setIsLoadingValidDimensions(false);
+          }
+        };
+        
+        setTimeout(() => {
+          fetchValidDimensions();
+        }, 100);
+      }
+    }
+  }, [isSemanticLayer, formData, datasource, store, validDimensions]);
 
   useEffect(() => {
     /* if the adhoc column is not set (because it was never edited) but the

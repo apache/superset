@@ -47,6 +47,13 @@ export function collectQueryFields(formData: any): {
         : [formData.columns]),
     );
   }
+  if (formData.all_columns) {
+    dimensions.push(
+      ...(Array.isArray(formData.all_columns)
+        ? formData.all_columns
+        : [formData.all_columns]),
+    );
+  }
   if (formData.series_columns) {
     dimensions.push(
       ...(Array.isArray(formData.series_columns)
@@ -216,17 +223,58 @@ export function createMetricsVerification(controlName?: string): AsyncVerify {
       return null;
     }
 
-    // Create updated form data with the current value
-    const updatedFormData = { ...form_data };
+    // Stop trying to get "current" state - just use the value we have and minimal other state
+    // The issue is that verification happens immediately while Redux is updating
+    // So let's just send the minimal needed data: current control value + some basic context
     
-    // Update the appropriate field based on the control name
-    // Handle both addition and removal of values (including empty arrays)
-    if (controlName) {
-      updatedFormData[controlName] = value;
+    const queryFields = {
+      dimensions: [] as string[],
+      metrics: [] as string[]
+    };
+
+    // Add the current value being set
+    if (controlName && value !== undefined && value !== null) {
+      if (['metrics', 'metric', 'metric_2', 'percent_metrics', 'timeseries_limit_metric', 'x', 'y', 'size', 'secondary_metric'].includes(controlName)) {
+        if (Array.isArray(value)) {
+          queryFields.metrics.push(...value.filter(v => v != null).map(v => typeof v === 'string' ? v : (v as any)?.metric_name || String(v)));
+        } else {
+          const metricName = typeof value === 'string' ? value : (value as any)?.metric_name || String(value);
+          if (metricName) queryFields.metrics.push(metricName);
+        }
+      } else if (['groupby', 'columns', 'all_columns', 'series_columns', 'series', 'entity', 'x_axis'].includes(controlName)) {
+        if (Array.isArray(value)) {
+          queryFields.dimensions.push(...value.filter(v => v != null).map(v => typeof v === 'string' ? v : (v as any)?.column_name || String(v)));
+        } else {
+          const dimensionName = typeof value === 'string' ? value : (value as any)?.column_name || String(value);
+          if (dimensionName) queryFields.dimensions.push(dimensionName);
+        }
+      }
     }
 
-    // Extract current form fields from updated form data
-    const queryFields = collectQueryFields(updatedFormData || {});
+    // Only add a minimal set of other values - don't try to be complete since that's causing timing issues
+    // Just include basic metric/dimension fields that are commonly used
+    if (form_data) {
+      // Add basic metrics that are commonly present
+      if (form_data.metrics && controlName !== 'metrics') {
+        const metrics = Array.isArray(form_data.metrics) ? form_data.metrics : [form_data.metrics];
+        queryFields.metrics.push(...metrics.filter(v => v != null).map(v => typeof v === 'string' ? v : (v as any)?.metric_name || String(v)));
+      }
+      
+      // Add basic dimensions that are commonly present  
+      if (form_data.groupby && controlName !== 'groupby') {
+        const dimensions = Array.isArray(form_data.groupby) ? form_data.groupby : [form_data.groupby];
+        queryFields.dimensions.push(...dimensions.filter(v => v != null).map(v => typeof v === 'string' ? v : (v as any)?.column_name || String(v)));
+      }
+    }
+
+    // Remove duplicates
+    queryFields.dimensions = [...new Set(queryFields.dimensions)];
+    queryFields.metrics = [...new Set(queryFields.metrics)];
+
+    console.log('=== METRICS VERIFICATION SIMPLIFIED ===');
+    console.log('Control name:', controlName);
+    console.log('Current value:', value);
+    console.log('Simplified query fields:', queryFields);
 
     // Call validation API
     console.log('Metrics verification API call:', {
@@ -329,27 +377,65 @@ export function createColumnsVerification(controlName?: string): AsyncVerify {
       return null;
     }
 
-    // Create updated form data with the current value
-    const updatedFormData = { ...form_data };
+    // Stop trying to get "current" state - just use the value we have and minimal other state
+    // The issue is that verification happens immediately while Redux is updating
+    // So let's just send the minimal needed data: current control value + some basic context
     
-    // Update the appropriate field based on the control name
-    // Handle both addition and removal of values (including empty arrays)
-    if (controlName) {
-      updatedFormData[controlName] = value;
+    const queryFields = {
+      dimensions: [] as string[],
+      metrics: [] as string[]
+    };
+
+    // Add the current value being set
+    if (controlName && value !== undefined && value !== null) {
+      if (['metrics', 'metric', 'metric_2', 'percent_metrics', 'timeseries_limit_metric', 'x', 'y', 'size', 'secondary_metric'].includes(controlName)) {
+        if (Array.isArray(value)) {
+          queryFields.metrics.push(...value.filter(v => v != null).map(v => typeof v === 'string' ? v : (v as any)?.metric_name || String(v)));
+        } else {
+          const metricName = typeof value === 'string' ? value : (value as any)?.metric_name || String(value);
+          if (metricName) queryFields.metrics.push(metricName);
+        }
+      } else if (['groupby', 'columns', 'all_columns', 'series_columns', 'series', 'entity', 'x_axis'].includes(controlName)) {
+        if (Array.isArray(value)) {
+          queryFields.dimensions.push(...value.filter(v => v != null).map(v => typeof v === 'string' ? v : (v as any)?.column_name || String(v)));
+        } else {
+          const dimensionName = typeof value === 'string' ? value : (value as any)?.column_name || String(value);
+          if (dimensionName) queryFields.dimensions.push(dimensionName);
+        }
+      }
     }
 
-    // Extract current form fields from updated form data
-    const queryFields = collectQueryFields(updatedFormData || {});
+    // Only add a minimal set of other values - don't try to be complete since that's causing timing issues
+    // Just include basic metric/dimension fields that are commonly used
+    if (form_data) {
+      // Add basic metrics that are commonly present
+      if (form_data.metrics && controlName !== 'metrics') {
+        const metrics = Array.isArray(form_data.metrics) ? form_data.metrics : [form_data.metrics];
+        queryFields.metrics.push(...metrics.filter(v => v != null).map(v => typeof v === 'string' ? v : (v as any)?.metric_name || String(v)));
+      }
+      
+      // Add basic dimensions that are commonly present  
+      if (form_data.groupby && controlName !== 'groupby') {
+        const dimensions = Array.isArray(form_data.groupby) ? form_data.groupby : [form_data.groupby];
+        queryFields.dimensions.push(...dimensions.filter(v => v != null).map(v => typeof v === 'string' ? v : (v as any)?.column_name || String(v)));
+      }
+    }
+
+    // Remove duplicates
+    queryFields.dimensions = [...new Set(queryFields.dimensions)];
+    queryFields.metrics = [...new Set(queryFields.metrics)];
+
+    console.log('=== COLUMNS VERIFICATION SIMPLIFIED ===');
+    console.log('Control name:', controlName);
+    console.log('Current value:', value);
+    console.log('Current value type:', typeof value, Array.isArray(value));
+    console.log('Current value length:', Array.isArray(value) ? value.length : 'N/A');
+    console.log('Simplified query fields:', queryFields);
+    console.log('Stack trace:', new Error().stack);
 
     // Call validation API
     console.log('Columns verification API call:', {
       controlName,
-      originalFormData: form_data,
-      updatedFormData,
-      value,
-      valueType: typeof value,
-      isArray: Array.isArray(value),
-      valueLength: Array.isArray(value) ? value.length : 'N/A',
       dimensions: queryFields.dimensions,
       metrics: queryFields.metrics,
     });
@@ -516,6 +602,7 @@ export const SEMANTIC_LAYER_CONTROL_FIELDS = [
   // Dimension controls
   'groupby',
   'columns',
+  'all_columns',
   'series_columns',
   'series',
   'entity',

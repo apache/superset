@@ -166,6 +166,7 @@ function enhanceControlWithSemanticLayer(
         return {
           ...originalProps,
           needAsyncVerification: needsVerification,
+          skipEffectVerification: true, // Custom flag to skip useEffect verification
           form_data: state.form_data,
           datasource: state.datasource, // Pass datasource to verification function
         };

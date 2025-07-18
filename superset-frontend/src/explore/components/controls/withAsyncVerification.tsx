@@ -55,6 +55,10 @@ export type FullControlProps = ControlPropsWithExtras & {
    */
   needAsyncVerification?: boolean;
   /**
+   * Whether to skip useEffect verification and only use onChange verification.
+   */
+  skipEffectVerification?: boolean;
+  /**
    * Whether to show loading state when verification is still loading.
    */
   showLoadingState?: boolean;
@@ -136,6 +140,7 @@ export default function withAsyncVerification({
       hovered,
       onChange: basicOnChange,
       needAsyncVerification = false,
+      skipEffectVerification = false,
       isLoading: initialIsLoading = false,
       showLoadingState = defaultShowLoadingState,
       verify = defaultVerify,
@@ -212,7 +217,7 @@ export default function withAsyncVerification({
     );
 
     useEffect(() => {
-      if (needAsyncVerification && verify) {
+      if (needAsyncVerification && verify && !skipEffectVerification) {
         // Skip verification if it was just triggered by onChange
         if (verificationTriggeredByChange.current) {
           verificationTriggeredByChange.current = false;
@@ -220,7 +225,7 @@ export default function withAsyncVerification({
         }
         verifyProps(verify, otherProps);
       }
-    }, [needAsyncVerification, verify, otherProps, verifyProps]);
+    }, [needAsyncVerification, verify, otherProps, verifyProps, skipEffectVerification]);
 
     return (
       <ControlComponent
