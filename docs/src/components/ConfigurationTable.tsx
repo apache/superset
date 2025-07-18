@@ -18,6 +18,7 @@
  */
 
 import React, { useState } from 'react';
+import ReactMarkdown from 'react-markdown';
 import configMetadata from '../resources/config_metadata.json';
 
 interface ConfigSetting {
@@ -325,7 +326,45 @@ const ConfigurationTable: React.FC<ConfigurationTableProps> = ({
                     fontSize: '12px',
                   }}
                 >
-                  {setting.description}
+                  <ReactMarkdown
+                    components={{
+                      // Customize rendering for table context
+                      p: ({ children }) => <span>{children}</span>,
+                      a: ({ href, children }) => (
+                        <a
+                          href={href}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          style={{ color: '#1890ff', textDecoration: 'none' }}
+                        >
+                          {children}
+                        </a>
+                      ),
+                      strong: ({ children }) => (
+                        <strong style={{ fontWeight: 'bold' }}>
+                          {children}
+                        </strong>
+                      ),
+                      em: ({ children }) => (
+                        <em style={{ fontStyle: 'italic' }}>{children}</em>
+                      ),
+                      code: ({ children }) => (
+                        <code
+                          style={{
+                            backgroundColor: '#f5f5f5',
+                            padding: '1px 3px',
+                            borderRadius: '2px',
+                            fontSize: '11px',
+                            fontFamily: 'monospace',
+                          }}
+                        >
+                          {children}
+                        </code>
+                      ),
+                    }}
+                  >
+                    {setting.description || 'No description available'}
+                  </ReactMarkdown>
                 </td>
                 <td
                   style={{

@@ -1,0 +1,86 @@
+---
+title: Configuration Reference
+hide_title: true
+sidebar_position: 1
+version: 1
+---
+
+import ConfigurationTable from '@site/src/components/ConfigurationTable';
+
+# Configuration Reference
+
+This page provides a comprehensive reference for all Superset configuration options. These settings can be configured in your `superset_config.py` file or through environment variables.
+
+## How to Use This Reference
+
+- **Search**: Use the search box to find specific configuration settings
+- **Filter by Category**: Use the dropdown to filter by configuration category
+- **Environment Variables**: All configurations can be set via environment variables with the `SUPERSET__` prefix
+- **Impact Level**: Each setting shows its impact level (low, medium, high)
+- **Restart Required**: Settings marked with "RESTART" require a server restart to take effect
+
+## Configuration Settings
+
+<ConfigurationTable showEnvironmentVariables={true} />
+
+## Setting Configuration Values
+
+### In superset_config.py
+
+```python
+# Example configuration in superset_config.py
+SECRET_KEY = 'your-secret-key-here'
+SQLALCHEMY_DATABASE_URI = 'postgresql://user:pass@localhost/superset'
+CACHE_DEFAULT_TIMEOUT = 300
+```
+
+### Via Environment Variables
+
+```bash
+# All configuration keys can be set via environment variables
+export SUPERSET__SECRET_KEY="your-secret-key-here"
+export SUPERSET__SQLALCHEMY_DATABASE_URI="postgresql://user:pass@localhost/superset"
+export SUPERSET__CACHE_DEFAULT_TIMEOUT=300
+```
+
+### Configuration Precedence
+
+Configuration values are loaded in the following order (later values override earlier ones):
+
+1. **Default values** from `superset/config_defaults.py`
+2. **Base configuration** from `superset/config.py`
+3. **Custom configuration file** (if specified via `SUPERSET_CONFIG_PATH`)
+4. **superset_config module** (if available in PYTHONPATH)
+5. **Environment variables** with `SUPERSET__` prefix
+
+## Configuration Categories
+
+The configuration settings are organized into the following categories:
+
+- **Security**: Authentication, authorization, and security-related settings
+- **Database**: Database connection and SQL-related configurations
+- **Performance**: Caching, timeouts, and performance optimization settings
+- **Features**: Feature flags and optional functionality toggles
+- **UI**: User interface and theming configurations
+- **Logging**: Logging and monitoring configurations
+- **Email**: Email and notification settings
+- **Async**: Asynchronous processing and Celery settings
+- **General**: Miscellaneous configuration options
+
+## Important Security Notes
+
+- Always set a strong `SECRET_KEY` in production
+- Use environment variables for sensitive configuration values
+- Never commit sensitive configuration values to version control
+- Regularly rotate secrets and passwords
+- Review security-related configurations before deploying
+
+## Need Help?
+
+For detailed information about specific configuration topics, see:
+
+- [Configuring Superset](./configuring-superset.mdx) - General configuration guide
+- [Security](../security/security.mdx) - Security configuration
+- [Database Configuration](./databases.mdx) - Database-specific settings
+- [Cache Configuration](./cache.mdx) - Caching setup
+- [Async Queries](./async-queries-celery.mdx) - Celery configuration
