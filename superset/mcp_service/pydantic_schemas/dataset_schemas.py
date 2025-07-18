@@ -52,6 +52,22 @@ class DatasetFilter(ColumnOperator):
     ] = Field(..., description="Operator to use. See get_dataset_available_filters for allowed values.")
     value: Any = Field(..., description="Value to filter by (type depends on col and opr)")
 
+class TableColumnInfo(BaseModel):
+    column_name: str = Field(..., description="Column name")
+    verbose_name: Optional[str] = Field(None, description="Verbose name")
+    type: Optional[str] = Field(None, description="Column type")
+    is_dttm: Optional[bool] = Field(None, description="Is datetime column")
+    groupby: Optional[bool] = Field(None, description="Is groupable")
+    filterable: Optional[bool] = Field(None, description="Is filterable")
+    description: Optional[str] = Field(None, description="Column description")
+
+class SqlMetricInfo(BaseModel):
+    metric_name: str = Field(..., description="Metric name")
+    verbose_name: Optional[str] = Field(None, description="Verbose name")
+    expression: Optional[str] = Field(None, description="SQL expression")
+    description: Optional[str] = Field(None, description="Metric description")
+    d3format: Optional[str] = Field(None, description="D3 format string")
+
 class DatasetInfo(BaseModel):
     id: int = Field(..., description="Dataset ID")
     table_name: str = Field(..., description="Table name")
@@ -77,6 +93,8 @@ class DatasetInfo(BaseModel):
     params: Optional[Dict[str, Any]] = Field(None, description="Extra params")
     template_params: Optional[Dict[str, Any]] = Field(None, description="Template params")
     extra: Optional[Dict[str, Any]] = Field(None, description="Extra metadata")
+    columns: List[TableColumnInfo] = Field(default_factory=list, description="Columns in the dataset")
+    metrics: List[SqlMetricInfo] = Field(default_factory=list, description="Metrics in the dataset")
     model_config = ConfigDict(from_attributes=True, ser_json_timedelta="iso8601")
 
 class DatasetList(BaseModel):
@@ -110,6 +128,26 @@ def serialize_dataset_object(dataset) -> Optional[DatasetInfo]:
             params = json.loads(params)
         except Exception:
             params = None
+    columns = [
+        TableColumnInfo(
+            column_name=getattr(col, "column_name", None),
+            verbose_name=getattr(col, "verbose_name", None),
+            type=getattr(col, "type", None),
+            is_dttm=getattr(col, "is_dttm", None),
+            groupby=getattr(col, "groupby", None),
+            filterable=getattr(col, "filterable", None),
+            description=getattr(col, "description", None),
+        ) for col in getattr(dataset, "columns", [])
+    ]
+    metrics = [
+        SqlMetricInfo(
+            metric_name=getattr(metric, "metric_name", None),
+            verbose_name=getattr(metric, "verbose_name", None),
+            expression=getattr(metric, "expression", None),
+            description=getattr(metric, "description", None),
+            d3format=getattr(metric, "d3format", None),
+        ) for metric in getattr(dataset, "metrics", [])
+    ]
     return DatasetInfo(
         id=getattr(dataset, 'id', None),
         table_name=getattr(dataset, 'table_name', None),
@@ -135,4 +173,6 @@ def serialize_dataset_object(dataset) -> Optional[DatasetInfo]:
         params=params,
         template_params=getattr(dataset, 'template_params', None),
         extra=getattr(dataset, 'extra', None),
+        columns=columns,
+        metrics=metrics,
     ) 
