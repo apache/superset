@@ -186,7 +186,7 @@ jobs:
             DATABASE_HOST=localhost
           fi &&
           cd backups &&
-          pg_dump -U \$DATABASE_USER -h \$DATABASE_HOST -d \$DATABASE_DB > backup_database.dump
+          pg_dump -U \$DATABASE_USER -h \$DATABASE_HOST -d \$DATABASE_DB --exclude-table-data='*logs'   --file=backup_database.dump
         "
 
     # Step to generate a database dump file on the origin VM
@@ -199,7 +199,7 @@ jobs:
           if [ \"\$DATABASE_HOST\" = \"db\" ]; then
             DATABASE_HOST=localhost
           fi &&
-          pg_dump -U \$DATABASE_USER -h \$DATABASE_HOST -d \$DATABASE_DB > remote_database.dump
+          pg_dump -U \$DATABASE_USER -h \$DATABASE_HOST -d \$DATABASE_DB --exclude-table-data='*logs' --file=remote_database.dump
         "
 
     # Step to download the dump file from the origin VM
