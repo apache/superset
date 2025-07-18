@@ -29,13 +29,14 @@ from superset.mcp_service.auth import mcp_auth_hook
 from superset.mcp_service.mcp_app import mcp
 from superset.mcp_service.model_tools import ModelListTool
 from superset.mcp_service.pydantic_schemas import (DatasetInfo, DatasetList)
-from superset.mcp_service.pydantic_schemas.dataset_schemas import DatasetFilter
+from superset.mcp_service.pydantic_schemas.dataset_schemas import DatasetFilter, serialize_dataset_object
 
 logger = logging.getLogger(__name__)
 
 DEFAULT_DATASET_COLUMNS = [
     "id", "table_name", "db_schema", "database_name",
-    "changed_by_name", "changed_on", "created_by_name", "created_on"
+    "changed_by_name", "changed_on", "created_by_name", "created_on",
+    "metrics", "columns"
 ]
 
 
@@ -80,7 +81,7 @@ def list_datasets(
     tool = ModelListTool(
         dao_class=DatasetDAO,
         output_schema=DatasetInfo,
-        item_serializer=lambda obj, cols: DatasetInfo(**dict(obj._mapping)) if not cols else DatasetInfo(**{k: v for k, v in dict(obj._mapping).items() if k in cols}),
+        item_serializer=lambda obj, cols: serialize_dataset_object(obj),
         filter_type=DatasetFilter,
         default_columns=DEFAULT_DATASET_COLUMNS,
         search_columns=[

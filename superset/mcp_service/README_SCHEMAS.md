@@ -56,7 +56,7 @@ This document provides a reference for the input and output schemas of all MCP t
 - `page_size`: `int` — Number of items per page
 
 **Returns:** `DatasetList`
-- `datasets`: `List[DatasetListItem]`
+- `datasets`: `List[DatasetListItem]` (each includes columns and metrics)
 - `count`: `int`
 - `total_count`: `int`
 - `page`: `int`
@@ -75,7 +75,28 @@ This document provides a reference for the input and output schemas of all MCP t
 **Inputs:**
 - `dataset_id`: `int` — Dataset ID
 
-**Returns:** `DatasetInfo` or `DatasetError`
+**Returns:** `DatasetInfo` or `DatasetError` (now includes columns and metrics)
+
+#### DatasetInfo fields (new):
+- `columns`: `List[TableColumnInfo]` — List of columns with name, type, verbose name, etc.
+- `metrics`: `List[SqlMetricInfo]` — List of metrics with name, expression, verbose name, etc.
+
+#### TableColumnInfo
+- `column_name`: `str` — Column name
+- `verbose_name`: `Optional[str]` — Verbose name
+- `type`: `Optional[str]` — Column type
+- `is_dttm`: `Optional[bool]` — Is datetime column
+- `groupby`: `Optional[bool]` — Is groupable
+- `filterable`: `Optional[bool]` — Is filterable
+- `description`: `Optional[str]` — Column description
+
+#### SqlMetricInfo
+- `metric_name`: `str` — Metric name
+- `verbose_name`: `Optional[str]` — Verbose name
+- `expression`: `Optional[str]` — SQL expression
+- `description`: `Optional[str]` — Metric description
+
+> **Note:** All dataset list/info responses now include full column and metric metadata for each dataset.
 
 ### get_dataset_available_filters
 

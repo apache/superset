@@ -34,7 +34,7 @@ The Superset Model Context Protocol (MCP) service provides a modular, schema-dri
 
 ## Tool Abstractions
 
-- **ModelListTool**: Generic class for list/search/filter tools (dashboards, charts, datasets). Handles pagination, column selection, and serialization.
+- **ModelListTool**: Generic class for list/search/filter tools (dashboards, charts, datasets). Handles pagination, column selection, and serialization. Now serializes columns and metrics for datasets.
 - **ModelGetInfoTool**: Generic class for retrieving a single object by ID, with error handling.
 - **ModelGetAvailableFiltersTool**: Generic class for returning available filterable columns/operators for a DAO.
 
@@ -93,7 +93,7 @@ flowchart TD
         C["Tool Entrypoint (@mcp.tool, @mcp_auth_hook)"]
         D1["DashboardDAO"]
         D2["ChartDAO"]
-        D3["DatasetDAO"]
+        D3["DatasetDAO (returns columns & metrics)"]
         E["Superset DB"]
         F["Superset Command (for mutations, planned)"]
     end
@@ -119,7 +119,7 @@ flowchart TD
 ## Tool/DAO Mapping
 
 - `list_dashboards`, `get_dashboard_info`, `get_dashboard_available_filters`: DashboardDAO
-- `list_datasets`, `get_dataset_info`, `get_dataset_available_filters`: DatasetDAO
+- `list_datasets`, `get_dataset_info`, `get_dataset_available_filters`: DatasetDAO (now returns columns and metrics for each dataset)
 - `list_charts`, `get_chart_info`, `get_chart_available_filters`, `create_chart_simple`: ChartDAO
 - `get_superset_instance_info`: System metadata
 
@@ -129,6 +129,13 @@ flowchart TD
 
 - All list tools support advanced (object-based) and simple (field=value) filters, as well as free-text search.
 - Use the available filters tool for each domain to discover supported fields and operators.
+
+---
+
+## Test Coverage
+
+- All dataset tools now have unit tests verifying columns and metrics are included in responses.
+- Improved test mocks and LLM/OpenAPI compatibility for all dataset-related tools.
 
 ---
 
