@@ -225,23 +225,7 @@ export async function fetchSyncedColumns(datasource) {
 }
 
 export async function fetchSyncedMetrics(datasource) {
-  const params = {
-    datasource_type: datasource.type || datasource.datasource_type,
-    database_name:
-      datasource.database?.database_name || datasource.database?.name,
-    catalog_name: datasource.catalog,
-    schema_name: datasource.schema,
-    table_name: datasource.table_name,
-  };
-  Object.entries(params).forEach(([key, value]) => {
-    // rison can't encode the undefined value
-    if (value === undefined) {
-      params[key] = null;
-    }
-  });
-  const endpoint = `/api/v1/dataset/external_metrics_by_name/?q=${rison.encode_uri(
-    params,
-  )}`;
-  const { json } = await SupersetClient.get({ endpoint });
+  const endpoint = `/api/v1/dataset/${datasource.id}/sync_metrics`;
+  const { json } = await SupersetClient.post({ endpoint });
   return json.result;
 }

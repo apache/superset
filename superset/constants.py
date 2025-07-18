@@ -175,7 +175,7 @@ MODEL_API_RW_METHOD_PERMISSION_MAP = {
     "put_colors": "write",
     "sync_permissions": "write",
     "valid_metrics_and_dimensions": "read",
-    "external_metrics_by_name": "write",
+    "sync_metrics": "write",
 }
 
 EXTRA_FORM_DATA_APPEND_KEYS = {

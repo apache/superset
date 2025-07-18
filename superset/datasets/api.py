@@ -77,7 +77,6 @@ from superset.datasets.schemas import (
 )
 from superset.exceptions import SupersetTemplateException
 from superset.jinja_context import BaseTemplateProcessor, get_template_processor
-from superset.models.core import Database
 from superset.sql.parse import Table
 from superset.utils import json
 from superset.utils.core import parse_boolean_string
@@ -88,11 +87,6 @@ from superset.views.base_api import (
     requires_form_data,
     requires_json,
     statsd_metrics,
-)
-from superset.views.datasource.schemas import (
-    ExternalMetadataParams,
-    ExternalMetadataSchema,
-    get_external_metadata_schema,
 )
 from superset.views.error_handling import handle_api_exception
 from superset.views.filters import BaseFilterRelatedUsers, FilterRelatedOwners
@@ -1183,37 +1177,24 @@ class DatasetRestApi(BaseSupersetModelRestApi):
                 return self.response_400(message=str(ex))
         return self.response(200, **response)
 
-    @expose("/external_metrics_by_name/")
+    @expose("/<pk>/sync_metrics", methods=("POST",))
     @protect()
     @statsd_metrics
     @event_logger.log_this_with_context(
-        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.external_metrics_by_name",
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.sync_metrics",
         log_to_statsd=False,
     )
-    @rison(get_external_metadata_schema)
-    def external_metrics_by_name(self, **kwargs: Any) -> Response:
-        """Gets table metrics from the source system for semantic layer datasets.
+    def sync_metrics(self, pk: int) -> Response:
+        """Sync table metrics from the source system for semantic layer datasets.
         ---
-        get:
-          summary: Get table metrics from the source system for semantic layer datasets
+        post:
+          summary: Sync table metrics from the source system for semantic layer datasets
           parameters:
-          - in: query
-            name: q
-            content:
-              application/json:
-                schema:
-                  type: object
-                  properties:
-                    datasource_type:
-                      type: string
-                    database_name:
-                      type: string
-                    catalog_name:
-                      type: string
-                    schema_name:
-                      type: string
-                    table_name:
-                      type: string
+          - in: path
+            name: pk
+            schema:
+              type: integer
+            description: The dataset ID
           responses:
             200:
               description: Metrics from the source system
@@ -1241,31 +1222,19 @@ class DatasetRestApi(BaseSupersetModelRestApi):
             500:
               $ref: '#/components/responses/500'
         """
+        # Get the dataset
         try:
-            params: ExternalMetadataParams = ExternalMetadataSchema().load(
-                kwargs.get("rison")
-            )
-        except ValidationError as err:
-            return self.response_400(message=str(err))
-
-        # Get the database
-        try:
-            database = (
-                self.datamodel.session.query(Database)
-                .filter_by(database_name=params["database_name"])
-                .one()
-            )
-        except NoResultFound:
+            dataset = DatasetDAO.find_by_id(pk)
+            if not dataset:
+                return self.response_404()
+        except DatasetNotFoundError:
             return self.response_404()
-        
+
         try:
+            # Create table object from dataset
+            table = Table(dataset.table_name, dataset.schema, catalog=dataset.catalog)
             # Get metrics from the source system using DatabaseDAO
-            table = Table(
-                params["table_name"], 
-                params["schema_name"], 
-                catalog=params.get("catalog_name")
-            )
-            metrics = DatabaseDAO.get_metrics(database.id, table)
+            metrics = DatabaseDAO.get_metrics(dataset.database_id, table)
             return self.response(200, result=metrics)
         except (NoResultFound, NoSuchTableError):
             return self.response_404()
