@@ -483,22 +483,20 @@ def test_handle_null_filter() -> None:
     # Test IS_NULL - use actual FilterOperator values
     from superset.utils.core import FilterOperator
 
-    result_null = BaseEngineSpec.handle_null_filter(
-        bool_col, FilterOperator.IS_NULL.value
-    )
+    result_null = BaseEngineSpec.handle_null_filter(bool_col, FilterOperator.IS_NULL)
     assert hasattr(result_null, "left")
     assert hasattr(result_null, "right")
 
     # Test IS_NOT_NULL
     result_not_null = BaseEngineSpec.handle_null_filter(
-        bool_col, FilterOperator.IS_NOT_NULL.value
+        bool_col, FilterOperator.IS_NOT_NULL
     )
     assert hasattr(result_not_null, "left")
     assert hasattr(result_not_null, "right")
 
     # Test invalid operator
     with pytest.raises(ValueError, match="Invalid null filter operator"):
-        BaseEngineSpec.handle_null_filter(bool_col, "INVALID")
+        BaseEngineSpec.handle_null_filter(bool_col, "INVALID")  # type: ignore[arg-type]
 
 
 def test_handle_comparison_filter() -> None:
@@ -515,12 +513,12 @@ def test_handle_comparison_filter() -> None:
     from superset.utils.core import FilterOperator
 
     operators_and_values = [
-        (FilterOperator.EQUALS.value, 5),
-        (FilterOperator.NOT_EQUALS.value, 5),
-        (FilterOperator.GREATER_THAN.value, 5),
-        (FilterOperator.LESS_THAN.value, 5),
-        (FilterOperator.GREATER_THAN_OR_EQUALS.value, 5),
-        (FilterOperator.LESS_THAN_OR_EQUALS.value, 5),
+        (FilterOperator.EQUALS, 5),
+        (FilterOperator.NOT_EQUALS, 5),
+        (FilterOperator.GREATER_THAN, 5),
+        (FilterOperator.LESS_THAN, 5),
+        (FilterOperator.GREATER_THAN_OR_EQUALS, 5),
+        (FilterOperator.LESS_THAN_OR_EQUALS, 5),
     ]
 
     for op, value in operators_and_values:
@@ -530,7 +528,7 @@ def test_handle_comparison_filter() -> None:
 
     # Test invalid operator
     with pytest.raises(ValueError, match="Invalid comparison filter operator"):
-        BaseEngineSpec.handle_comparison_filter(int_col, "INVALID", 5)
+        BaseEngineSpec.handle_comparison_filter(int_col, "INVALID", 5)  # type: ignore[arg-type]
 
 
 def test_use_equality_for_boolean_filters_property() -> None:

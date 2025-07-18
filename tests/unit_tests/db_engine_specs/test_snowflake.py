@@ -367,7 +367,7 @@ def test_handle_boolean_filter() -> None:
     from superset.utils.core import FilterOperator
 
     result_true = SnowflakeEngineSpec.handle_boolean_filter(
-        bool_col, FilterOperator.IS_TRUE.value, True
+        bool_col, FilterOperator.IS_TRUE, True
     )
     # The result should be a equality comparison, not an IS comparison
     assert (
@@ -377,7 +377,7 @@ def test_handle_boolean_filter() -> None:
 
     # Test IS_FALSE filter
     result_false = SnowflakeEngineSpec.handle_boolean_filter(
-        bool_col, FilterOperator.IS_FALSE.value, False
+        bool_col, FilterOperator.IS_FALSE, False
     )
     assert (
         str(result_false.compile(compile_kwargs={"literal_binds": True}))

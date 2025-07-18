@@ -1756,7 +1756,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             flt_col = flt["col"]
             val = flt.get("val")
             flt_grain = flt.get("grain")
-            op = flt["op"].upper()
+            op = utils.FilterOperator(flt["op"].upper())
             col_obj: Optional["TableColumn"] = None
             sqla_col: Optional[Column] = None
             if flt_col == utils.DTTM_ALIAS and is_timeseries and dttm_col:
@@ -1790,8 +1790,8 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 col_type = col_obj.type if col_obj else None
                 col_spec = db_engine_spec.get_column_spec(native_type=col_type)
                 is_list_target = op in (
-                    utils.FilterOperator.IN.value,
-                    utils.FilterOperator.NOT_IN.value,
+                    utils.FilterOperator.IN,
+                    utils.FilterOperator.NOT_IN,
                 )
 
                 col_advanced_data_type = col_obj.advanced_data_type if col_obj else ""
@@ -1850,7 +1850,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                             cond = is_null_cond
                     else:
                         cond = sqla_col.in_(eq)
-                    if op == utils.FilterOperator.NOT_IN.value:
+                    if op == utils.FilterOperator.NOT_IN:
                         cond = ~cond
                     where_clause_and.append(cond)
                 elif op in {
@@ -1860,11 +1860,11 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     where_clause_and.append(
                         db_engine_spec.handle_null_filter(sqla_col, op)
                     )
-                elif op == utils.FilterOperator.IS_TRUE.value:
+                elif op == utils.FilterOperator.IS_TRUE:
                     where_clause_and.append(
                         db_engine_spec.handle_boolean_filter(sqla_col, op, True)
                     )
-                elif op == utils.FilterOperator.IS_FALSE.value:
+                elif op == utils.FilterOperator.IS_FALSE:
                     where_clause_and.append(
                         db_engine_spec.handle_boolean_filter(sqla_col, op, False)
                     )
@@ -1872,8 +1872,8 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     if (
                         op
                         not in {
-                            utils.FilterOperator.EQUALS.value,
-                            utils.FilterOperator.NOT_EQUALS.value,
+                            utils.FilterOperator.EQUALS,
+                            utils.FilterOperator.NOT_EQUALS,
                         }
                         and eq is None
                     ):
@@ -1895,23 +1895,23 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                             db_engine_spec.handle_comparison_filter(sqla_col, op, eq)
                         )
                     elif op in {
-                        utils.FilterOperator.ILIKE.value,
-                        utils.FilterOperator.LIKE.value,
+                        utils.FilterOperator.ILIKE,
+                        utils.FilterOperator.LIKE,
                     }:
                         if target_generic_type != GenericDataType.STRING:
                             sqla_col = sa.cast(sqla_col, sa.String)
 
-                        if op == utils.FilterOperator.LIKE.value:
+                        if op == utils.FilterOperator.LIKE:
                             where_clause_and.append(sqla_col.like(eq))
                         else:
                             where_clause_and.append(sqla_col.ilike(eq))
-                    elif op in {utils.FilterOperator.NOT_LIKE.value}:
+                    elif op in {utils.FilterOperator.NOT_LIKE}:
                         if target_generic_type != GenericDataType.STRING:
                             sqla_col = sa.cast(sqla_col, sa.String)
 
                         where_clause_and.append(sqla_col.not_like(eq))
                     elif (
-                        op == utils.FilterOperator.TEMPORAL_RANGE.value
+                        op == utils.FilterOperator.TEMPORAL_RANGE
                         and isinstance(eq, str)
                         and col_obj is not None
                     ):

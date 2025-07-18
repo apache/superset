@@ -1231,7 +1231,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     def handle_null_filter(
         cls,
         sqla_col: Any,
-        op: utils.FilterOperator.IS_NULL | utils.FilterOperator.IS_NOT_NULL,
+        op: utils.FilterOperator,
     ) -> BinaryExpression:
         """
         Handle null/not null filter operations.
