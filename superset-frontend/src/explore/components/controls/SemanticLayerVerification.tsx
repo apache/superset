@@ -264,7 +264,8 @@ export function createMetricsVerification(controlName?: string): AsyncVerify {
           propsFormData: form_data,
           storeFormData: currentFormData,
           syntheticFormData,
-          queryFields
+          queryFields,
+          vizType: syntheticFormData.viz_type,
         });
 
         const validationResult = await callValidationAPI(
@@ -389,7 +390,8 @@ export function createColumnsVerification(controlName?: string): AsyncVerify {
           propsFormData: form_data,
           storeFormData: currentFormData,
           syntheticFormData,
-          queryFields
+          queryFields,
+          vizType: syntheticFormData.viz_type,
         });
 
         const validationResult = await callValidationAPI(

@@ -178,7 +178,10 @@ const ColumnSelectPopover = ({
 
   const [calculatedColumns, simpleColumns] = useMemo(
     () => {
-      const [calculated, simple] = columns?.reduce(
+      // Use columns from Redux datasource state (which includes disabled states) instead of props
+      const columnsToUse = datasource?.columns || columns || [];
+      
+      const [calculated, simple] = columnsToUse.reduce(
         (acc: [ColumnMeta[], ColumnMeta[]], column: ColumnMeta) => {
           if (column.expression) {
             acc[0].push(column);
@@ -191,18 +194,15 @@ const ColumnSelectPopover = ({
       ) || [[], []];
 
       // For semantic layer datasets, filter simple columns to show only valid dimensions
-      // Show all columns while loading, then filter when API response is available
-      if (isSemanticLayer && !isLoadingValidDimensions && validDimensions !== null) {
-        const validDimensionNames = new Set(validDimensions);
-        const filteredSimple = simple.filter(column =>
-          validDimensionNames.has(column.column_name)
-        );
+      // Use the isDisabled state set by the main verification system instead of separate API calls
+      if (isSemanticLayer) {
+        const filteredSimple = simple.filter(column => !column.isDisabled);
         return [calculated, filteredSimple];
       }
 
       return [calculated, simple];
     },
-    [columns, isSemanticLayer, validDimensions, isLoadingValidDimensions],
+    [datasource?.columns, columns, isSemanticLayer],
   );
 
   const onSqlExpressionChange = useCallback(
@@ -275,8 +275,8 @@ const ColumnSelectPopover = ({
     console.log('Should trigger API?', isSemanticLayer && formData && datasource && 
         (selectedTab === TABS_KEYS.SIMPLE || selectedTab === null));
     
-    // Re-enable column modal API calls with fixed timing approach
-    if (isSemanticLayer && formData && datasource && 
+    // Disable column modal API calls - semantic layer verification handles disabled states automatically
+    if (false && isSemanticLayer && formData && datasource && 
         (selectedTab === TABS_KEYS.SIMPLE || selectedTab === null)) {
       
       const fetchValidDimensions = async () => {
@@ -646,12 +646,7 @@ const ColumnSelectPopover = ({
                       onChange={onSimpleColumnChange}
                       allowClear
                       autoFocus={!selectedSimpleColumn}
-                      loading={isSemanticLayer && isLoadingValidDimensions}
-                      placeholder={
-                        isSemanticLayer && isLoadingValidDimensions
-                          ? t('Loading valid dimensions...')
-                          : t('%s column(s)', simpleColumns.length)
-                      }
+                      placeholder={t('%s column(s)', simpleColumns.length)}
                       options={simpleColumns.map(simpleColumn => ({
                         value: simpleColumn.column_name,
                         label: (
