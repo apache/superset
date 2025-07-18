@@ -27,8 +27,6 @@ const DEFAULT_TIMEZONE = {
   value: 'Africa/Abidjan', // timezones are deduped by the first alphabetical value
 };
 
-const MIN_SELECT_WIDTH = '400px';
-
 const offsetsToName = {
   '-300-240': ['Eastern Standard Time', 'Eastern Daylight Time'],
   '-360-300': ['Central Standard Time', 'Central Daylight Time'],
@@ -48,13 +46,11 @@ const offsetsToName = {
 export type TimezoneSelectorProps = {
   onTimezoneChange: (value: string) => void;
   timezone?: string | null;
-  minWidth?: string;
 };
 
 export default function TimezoneSelector({
   onTimezoneChange,
   timezone,
-  minWidth = MIN_SELECT_WIDTH, // smallest size for current values
   ...rest
 }: TimezoneSelectorProps) {
   const { TIMEZONE_OPTIONS, TIMEZONE_OPTIONS_SORT_COMPARATOR, validTimezone } =

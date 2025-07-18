@@ -147,7 +147,7 @@ function GroupsList({ user }: GroupsListProps) {
           .then(() => {
             deletedGroupsNames.push(group.name);
           })
-          .catch(err => {
+          .catch(() => {
             addDangerToast(t('Error deleting %s', group.name));
           }),
       ),

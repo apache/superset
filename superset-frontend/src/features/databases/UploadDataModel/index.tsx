@@ -329,7 +329,9 @@ const UploadDataModal: FunctionComponent<UploadDataModalProps> = ({
 
   const loadDatabaseOptions = useMemo(
     () =>
-      (input = '', page: number, pageSize: number) => {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      (input: string, page: number, pageSize: number) => {
+        // TODO: Implement search functionality using input parameter
         const query = rison.encode_uri({
           filters: [
             {
@@ -357,21 +359,20 @@ const UploadDataModal: FunctionComponent<UploadDataModalProps> = ({
   );
 
   const loadSchemaOptions = useMemo(
-    () =>
-      (input = '', page: number, pageSize: number) => {
-        if (!currentDatabaseId) {
-          return Promise.resolve({ data: [], totalCount: 0 });
-        }
-        return SupersetClient.get({
-          endpoint: `/api/v1/database/${currentDatabaseId}/schemas/?q=(upload_allowed:!t)`,
-        }).then(response => {
-          const list = response.json.result.map((item: string) => ({
-            value: item,
-            label: item,
-          }));
-          return { data: list, totalCount: response.json.count };
-        });
-      },
+    () => () => {
+      if (!currentDatabaseId) {
+        return Promise.resolve({ data: [], totalCount: 0 });
+      }
+      return SupersetClient.get({
+        endpoint: `/api/v1/database/${currentDatabaseId}/schemas/?q=(upload_allowed:!t)`,
+      }).then(response => {
+        const list = response.json.result.map((item: string) => ({
+          value: item,
+          label: item,
+        }));
+        return { data: list, totalCount: response.json.count };
+      });
+    },
     [currentDatabaseId],
   );
 
@@ -546,7 +547,7 @@ const UploadDataModal: FunctionComponent<UploadDataModalProps> = ({
     }
   }, [show]);
 
-  const validateUpload = (_: any, value: string) => {
+  const validateUpload = () => {
     if (fileList.length === 0) {
       return Promise.reject(t('Uploading a file is required'));
     }
@@ -561,7 +562,7 @@ const UploadDataModal: FunctionComponent<UploadDataModalProps> = ({
     return Promise.resolve();
   };
 
-  const validateDatabase = (_: any, value: string) => {
+  const validateDatabase = () => {
     if (!currentDatabaseId) {
       return Promise.reject(t('Selecting a database is required'));
     }

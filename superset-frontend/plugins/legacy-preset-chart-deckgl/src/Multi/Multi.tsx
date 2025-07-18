@@ -265,11 +265,7 @@ const DeckMulti = (props: DeckMultiProps) => {
   );
 
   const loadLayers = useCallback(
-    (
-      formData: QueryFormData,
-      payload: JsonObject,
-      viewport?: Viewport,
-    ): void => {
+    (formData: QueryFormData, payload: JsonObject): void => {
       setViewport(getAdjustedViewport());
       setSubSlicesLayers({});
 
