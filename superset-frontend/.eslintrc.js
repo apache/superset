@@ -341,6 +341,19 @@ module.exports = {
         'plugin:testing-library/react',
       ],
       rules: {
+        'no-console': 'off', // Allow console usage in test files
+        'no-restricted-imports': [
+          'error',
+          {
+            paths: [
+              {
+                name: '@superset-ui/core',
+                importNames: ['logging'],
+                message: 'Do not use logging in test files. Use console statements instead for testing.',
+              },
+            ],
+          },
+        ],
         'import/no-extraneous-dependencies': [
           'error',
           {
@@ -396,6 +409,12 @@ module.exports = {
         'i18n-strings/no-template-vars': 0,
         'no-restricted-imports': 0,
         'react/no-void-elements': 0,
+      },
+    },
+    {
+      files: ['scripts/**/*'],
+      rules: {
+        'no-console': 'off', // Allow console usage in scripts directory
       },
     },
   ],
