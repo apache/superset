@@ -45,6 +45,7 @@ import {
   SQLEditor,
   EmptyState,
   Tooltip,
+  Icons,
 } from '@superset-ui/core/components';
 
 import sqlKeywords from 'src/SqlLab/utils/sqlKeywords';
@@ -164,6 +165,7 @@ const ColumnSelectPopover = ({
   >(initialSimpleColumn);
   const [selectedTab, setSelectedTab] = useState<string | null>(null);
   const [validDimensions, setValidDimensions] = useState<string[] | null>(null);
+  const [isLoadingValidDimensions, setIsLoadingValidDimensions] = useState(false);
 
   const [resizeButton, width, height] = useResizeButton(
     POPOVER_INITIAL_WIDTH,
@@ -187,7 +189,8 @@ const ColumnSelectPopover = ({
       ) || [[], []];
 
       // For semantic layer datasets, filter simple columns to show only valid dimensions
-      if (isSemanticLayer && validDimensions !== null) {
+      // Show all columns while loading, then filter when API response is available
+      if (isSemanticLayer && !isLoadingValidDimensions && validDimensions !== null) {
         const validDimensionNames = new Set(validDimensions);
         const filteredSimple = simple.filter(column =>
           validDimensionNames.has(column.column_name)
@@ -197,7 +200,7 @@ const ColumnSelectPopover = ({
 
       return [calculated, simple];
     },
-    [columns, isSemanticLayer, validDimensions],
+    [columns, isSemanticLayer, validDimensions, isLoadingValidDimensions],
   );
 
   const onSqlExpressionChange = useCallback(
@@ -261,6 +264,8 @@ const ColumnSelectPopover = ({
   // Fetch valid dimensions for semantic layer datasets
   useEffect(() => {
     if (isSemanticLayer && formData && datasource) {
+      setIsLoadingValidDimensions(true);
+      
       const fetchValidDimensions = async () => {
         try {
           const queryFields = collectQueryFields(formData);
@@ -271,16 +276,24 @@ const ColumnSelectPopover = ({
           );
           if (validationResult) {
             setValidDimensions(validationResult.dimensions);
+          } else {
+            setValidDimensions(null);
           }
         } catch (error) {
           console.warn('Failed to fetch valid dimensions:', error);
           setValidDimensions(null);
+        } finally {
+          setIsLoadingValidDimensions(false);
         }
       };
       
-      fetchValidDimensions();
+      // Make it non-blocking by using setTimeout
+      setTimeout(() => {
+        fetchValidDimensions();
+      }, 0);
     } else {
       setValidDimensions(null);
+      setIsLoadingValidDimensions(false);
     }
   }, [isSemanticLayer, formData, datasource]);
 
@@ -524,7 +537,12 @@ const ColumnSelectPopover = ({
                       onChange={onSimpleColumnChange}
                       allowClear
                       autoFocus={!selectedSimpleColumn}
-                      placeholder={t('%s column(s)', simpleColumns.length)}
+                      loading={isSemanticLayer && isLoadingValidDimensions}
+                      placeholder={
+                        isSemanticLayer && isLoadingValidDimensions
+                          ? t('Loading valid dimensions...')
+                          : t('%s column(s)', simpleColumns.length)
+                      }
                       options={simpleColumns.map(simpleColumn => ({
                         value: simpleColumn.column_name,
                         label: (
