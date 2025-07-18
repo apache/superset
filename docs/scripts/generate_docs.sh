@@ -30,9 +30,9 @@ cd "$(dirname "$0")/.."
 # Track any failures
 FAILED_TASKS=()
 
-# 1. Export configuration metadata
-echo "📊 Exporting configuration metadata..."
-if python scripts/export_config_metadata.py; then
+# 1. Extract configuration schema and export metadata
+echo "📊 Extracting configuration schema and exporting metadata..."
+if python ../scripts/extract_config_schema.py && python scripts/export_config_metadata.py; then
     echo "✅ Configuration metadata exported successfully"
 else
     echo "⚠️  Warning: Failed to export configuration metadata"
@@ -47,7 +47,6 @@ import sys
 sys.path.insert(0, '..')
 from superset.app import create_app
 from superset.cli.update import update_api_docs
-from flask.cli import with_appcontext
 import os
 
 # Set required environment variables
