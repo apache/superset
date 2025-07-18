@@ -56,7 +56,7 @@ module.exports = {
   ],
   coverageReporters: ['lcov', 'json-summary', 'html', 'text'],
   transformIgnorePatterns: [
-    'node_modules/(?!d3-(interpolate|color|time)|remark-gfm|(?!deck.gl)|markdown-table|micromark-*.|decode-named-character-reference|character-entities|mdast-util-*.|unist-util-*.|ccount|escape-string-regexp|nanoid|@rjsf/*.|sinon|echarts|zrender|fetch-mock|pretty-ms|parse-ms|ol|@babel/runtime|@emotion|cheerio|cheerio/lib|parse5|dom-serializer|entities|htmlparser2|rehype-sanitize|hast-util-sanitize|unified|unist-.*|hast-.*|rehype-.*|remark-.*|mdast-.*|micromark-.*|parse-entities|property-information|space-separated-tokens|comma-separated-tokens|bail|devlop|zwitch|longest-streak|geostyler|geostyler-.*|react-error-boundary|react-json-tree|react-base16-styling|lodash-es)',
+    'node_modules/(?!d3-(interpolate|color|time|scale)|remark-gfm|(?!@ngrx|(?!deck.gl)|ng-dynamic)|markdown-table|micromark-*.|decode-named-character-reference|character-entities|mdast-util-*.|unist-util-*.|ccount|escape-string-regexp|nanoid|@rjsf/*.|sinon|echarts|zrender|fetch-mock|pretty-ms|parse-ms|ol|@babel/runtime|@emotion|cheerio|cheerio/lib|parse5|dom-serializer|entities|htmlparser2|rehype-sanitize|hast-util-sanitize|unified|unist-.*|hast-.*|rehype-.*|remark-.*|mdast-.*|micromark-.*|parse-entities|property-information|space-separated-tokens|comma-separated-tokens|bail|devlop|zwitch|longest-streak|geostyler|geostyler-.*|react-error-boundary|react-json-tree|react-base16-styling|lodash-es)',
   ],
   preset: 'ts-jest',
   transform: {
