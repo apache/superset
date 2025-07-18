@@ -1,278 +1,131 @@
 # LLM Context Guide for Apache Superset
 
-This document provides essential context for LLMs working with the Apache Superset codebase. Apache Superset is a modern, enterprise-ready business intelligence web application for data exploration and visualization.
+Apache Superset is a data visualization platform with Flask/Python backend and React/TypeScript frontend.
 
-## Repository Overview
+## ⚠️ CRITICAL: Ongoing Refactors (What NOT to Do)
 
-**Apache Superset** is a data visualization and exploration platform that can replace or augment proprietary BI tools. It features a Flask/Python backend with a React/TypeScript frontend, supporting 40+ visualization types and connecting to any SQL-speaking database.
+**These migrations are actively happening - avoid deprecated patterns:**
 
-### Core Architecture
-- **Backend**: Python 3.11 (recommended) with Flask, SQLAlchemy, Celery (async tasks)
-- **Frontend**: React with TypeScript, built via Webpack
-- **Database**: PostgreSQL (prod) or SQLite (dev) for metadata storage
-- **Cache**: Redis for query caching and Celery message queue
-- **Deployment**: Cloud-native, containerized architecture
+### Frontend Modernization
+- **NO `any` types** - Use proper TypeScript types
+- **NO JavaScript files** - Convert to TypeScript (.ts/.tsx)
+- **NO Enzyme** - Use React Testing Library/Jest (Enzyme fully removed)
+- **Use @superset-ui/core** - Don't import Ant Design directly
+
+### Backend Type Safety
+- **Add type hints** - All new Python code needs proper typing
+- **MyPy compliance** - Run `pre-commit run mypy` to validate
+- **SQLAlchemy typing** - Use proper model annotations
 
 ## Key Directories
 
 ```
 superset/
-├── superset/                    # Main Python backend application
-│   ├── views/                   # Flask views and API endpoints
-│   ├── models/                  # SQLAlchemy models
-│   ├── connectors/              # Database connectors
-│   └── security/                # Authentication and authorization
-├── superset-frontend/           # React TypeScript frontend
-│   ├── src/
-│   │   ├── components/          # Reusable React components
-│   │   ├── explore/             # Chart creation interface
-│   │   ├── dashboard/           # Dashboard interface
-│   │   └── SqlLab/              # SQL IDE components
-│   └── packages/
-│       └── superset-ui-core/    # Foundational UI library & components
-├── tests/                       # Python and integration tests
-├── docker/                      # Docker configuration files
-├── docs/                        # Documentation source (CRITICAL for changes)
-├── UPDATING.md                  # Breaking changes and migration notes
-└── requirements/                # Python dependencies by environment
+├── superset/                    # Python backend (Flask, SQLAlchemy)
+│   ├── views/api/              # REST API endpoints
+│   ├── models/                 # Database models
+│   └── connectors/             # Database connections
+├── superset-frontend/src/       # React TypeScript frontend
+│   ├── components/             # Reusable components
+│   ├── explore/                # Chart builder
+│   ├── dashboard/              # Dashboard interface
+│   └── SqlLab/                 # SQL editor
+├── superset-frontend/packages/
+│   └── superset-ui-core/       # UI component library (USE THIS)
+├── tests/                      # Python/integration tests
+├── docs/                       # Documentation (UPDATE FOR CHANGES)
+└── UPDATING.md                 # Breaking changes log
 ```
 
-### Don't Modify
-- `superset-frontend/src/assets/` - Built frontend assets
-- `superset/static/assets/` - Compiled static files
-- Migration files (unless creating new ones)
-
-## Development Setup
-
-### Recommended Approach
-- **Python**: 3.11 (official recommended version)
-- **Docker Compose**: `docker compose up --build` (fastest way to get running)
-- **Package Manager**: Use `uv` instead of pip for faster Python dependency management
-- **Node**: Required for frontend, builds can take 10+ minutes initially
-
-### Environment Setup
-```bash
-# Python with uv
-uv venv
-source .venv/bin/activate
-uv pip install -r requirements/development.txt
-
-# With Docker (recommended)
-docker compose up --build
-```
-
-## Documentation
-
-### docs/ Directory
-The `docs/` directory is **critical** for any changes:
-- **Source of truth**: All documentation lives here
-- **Website generation**: Powers the official Superset website
-- **Update requirement**: Any API/feature changes MUST include doc updates
-- **Structure**: Organized by user type (installation, configuration, development)
-- **Format**: Markdown files processed into the official site
-
-### UPDATING.md
-**Always check `UPDATING.md` before making changes**:
-- Contains breaking changes between versions
-- Migration instructions for upgrades
-- API deprecation notices
-- Required configuration changes
-- **Must update**: Add entries for any breaking changes you introduce
-
-## Code Standards & Patterns
-
-### Python Backend
-- **Python 3.11**: Official recommended version
-- **Formatting**: Black, flake8 linting
-- **Types**: Type hints required for all new code
-- **Testing**: pytest for unit tests in `tests/unit_tests/`
-- **Models**: SQLAlchemy models in `superset/models/`
-- **APIs**: REST endpoints follow existing patterns in `superset/views/api/`
+## Code Standards
 
 ### TypeScript Frontend
-- **No `any` types**: Use proper TypeScript typing
-- **Components**: Functional components with hooks
-- **UI Library**: Ant Design (antd) via `@superset-ui/core/components`
-- **Testing**: Jest (no Enzyme - it's been removed from the repo)
-- **State**: Redux for global state, React hooks for local
+- **NO `any` types** - Use proper TypeScript
+- **Functional components** with hooks
+- **@superset-ui/core** for UI components (not direct antd)
+- **Jest** for testing (NO Enzyme)
+- **Redux** for global state, hooks for local
 
-### Superset UI Core
-The `packages/superset-ui-core` package is foundational to the frontend:
-- Contains shared components, utilities, and types
-- Provides the component library wrapping Ant Design
-- All new UI components should extend or use patterns from this library
-- Critical for maintaining consistency across the application
+### Python Backend  
+- **Type hints required** for all new code
+- **MyPy compliant** - run `pre-commit run mypy`
+- **SQLAlchemy models** with proper typing
+- **pytest** for testing
 
-## Ongoing Refactors
+## Documentation Requirements
 
-**Major ongoing migrations you should be aware of:**
-
-### Frontend Modernization
-- **JavaScript → TypeScript**: Converting remaining JS files to TS
-- **Removing `any` types**: Replacing all `any` with proper TypeScript types
-- **Enzyme removal**: All tests now use React Testing Library/Jest (Enzyme is fully removed)
-- **Component standardization**: Migrating to Ant Design components via `@superset-ui/core`
-
-### Backend Type Safety
-- **MyPy everywhere**: Adding type annotations and MyPy checking across the entire Python codebase
-- **Type hint migration**: Retrofitting existing functions with proper type hints
-- **SQLAlchemy typing**: Improving model type safety
-
-### Architecture Evolution
-- **Dataset-centric approach**: Moving toward enriched datasets as the core abstraction
-- **Plugin architecture**: Standardizing visualization plugins and extension points
-- **API consistency**: Refactoring APIs for better REST compliance
-
-## CI/CD & Testing
-
-### GitHub Actions (GHA)
-**Superset is committed to GitHub Actions for all CI/automation**:
-- **Pre-commit hooks**: Mandatory formatting, linting, type checking
-- **Test matrix**: Python/Node versions, multiple databases
-- **Build verification**: Frontend builds, Docker images
-- **Security scanning**: Dependency vulnerabilities, code quality
-- **Release automation**: Automated publishing and deployment
-- **Documentation**: Auto-deploy docs changes to website
-
-### Testing Strategy
-- **Unit tests**: Jest (frontend), pytest (backend)
-- **Integration tests**: Full stack testing via utility scripts
-- **No Enzyme**: Use React Testing Library for component testing
-- **Coverage**: Aim for high test coverage on new code
-
-## Extending Superset
-
-### Superset Improvement Proposals (SIPs)
-Superset follows a formal SIP process for major changes:
-- **SIP process**: Technical proposals for significant features/changes
-- **Community review**: Open discussion and consensus building
-- **Implementation tracking**: Status of approved SIPs
-- **Extension patterns**: Guidelines for adding new functionality
-
-### Plugin Development
-- **Visualization plugins**: TypeScript/JavaScript in `superset-frontend/plugins/`
-- **Database connectors**: Python in `superset/connectors/`
-- **Custom authentication**: Extend Flask-AppBuilder patterns
-- **Configuration**: Override via `superset_config.py`
+- **docs/**: Update for any user-facing changes
+- **UPDATING.md**: Add breaking changes here
+- **Docstrings**: Required for new functions/classes
 
 ## Architecture Patterns
 
 ### Dataset-Centric Approach
 Charts built from enriched datasets containing:
-- Dimension columns with labels/descriptions
+- Dimension columns with labels/descriptions  
 - Predefined metrics as SQL expressions
 - Self-service analytics within defined contexts
 
-### Security Model
+### Security & Features
 - **RBAC**: Role-based access via Flask-AppBuilder
 - **Feature flags**: Control feature rollouts
 - **Row-level security**: SQL-based data access control
 
-## Performance & Scaling
+## Test Utilities
 
-### Caching Strategy
-- **Query results**: Redis backend for query caching
-- **Metadata**: Separate cache for configuration
-- **Async queries**: Celery for long-running operations
+### Python Test Helpers
+- **`SupersetTestCase`** - Base class in `tests/integration_tests/base_tests.py`
+- **`@with_config`** - Config mocking decorator
+- **`@with_feature_flags`** - Feature flag testing
+- **`login_as()`, `login_as_admin()`** - Authentication helpers
+- **`create_dashboard()`, `create_slice()`** - Data setup utilities
 
-### Database Integration
-Supports 40+ databases via SQLAlchemy:
-- Cloud: Snowflake, BigQuery, Redshift
-- Traditional: PostgreSQL, MySQL, Oracle
-- Modern: Trino, Presto, ClickHouse
+### TypeScript Test Helpers
+- **`superset-frontend/spec/helpers/testing-library.tsx`** - Custom render() with providers
+- **`createWrapper()`** - Redux/Router/Theme wrapper
+- **`selectOption()`** - Select component helper
+- **React Testing Library** - NO Enzyme (removed)
 
-## Contributing Guidelines
+### Running Tests
+```bash
+# Frontend
+npm run test
 
-### Development Flow
-- **Fork & PR**: All contributions via personal forks
-- **Pre-commit**: Install hooks with `pre-commit install`
-- **PR titles**: Use conventional commits (`feat:`, `fix:`, `docs:`)
-- **Testing**: Include tests for new functionality
-- **Documentation**: Update `docs/` for any user-facing changes
-- **Breaking changes**: Document in `UPDATING.md`
+# Backend  
+pytest
 
-### Code Review Focus
-- **Type safety**: Proper TypeScript/Python typing
-- **Performance**: Database queries, frontend bundle size
-- **Accessibility**: UI components should be accessible
-- **Documentation**: Update relevant docs with changes
+# Specific module
+pytest tests/unit_tests/specific_module_test.py
+```
 
-## Common Patterns
+## Pre-commit Validation
 
-### Frontend
-- Use `@superset-ui/core/components` for UI components
-- Leverage existing hooks and context patterns
-- Follow dataset-centric visualization approach
-- Implement proper error boundaries
+**Use pre-commit hooks for quality validation:**
 
-### Backend
-- Extend existing FAB ModelView patterns
-- Use SQLAlchemy relationships properly
-- Implement proper error handling and logging
-- Follow REST API conventions
+```bash
+# Install hooks
+pre-commit install
 
-## Platform-Specific LLM Instructions
+# Run all hooks
+pre-commit run
+
+# Run specific validation
+pre-commit run mypy        # Python type checking
+pre-commit run prettier    # Code formatting
+pre-commit run eslint      # Frontend linting
+```
+
+## Platform-Specific Instructions
 
 - **[CLAUDE.md](CLAUDE.md)** - For Claude/Anthropic tools
-- **[.github/copilot-instructions.md](.github/copilot-instructions.md)** - For GitHub Copilot
+- **[.github/copilot-instructions.md](.github/copilot-instructions.md)** - For GitHub Copilot  
 - **[GEMINI.md](GEMINI.md)** - For Google Gemini tools
 - **[GPT.md](GPT.md)** - For OpenAI/ChatGPT tools
 - **[CURSOR.md](CURSOR.md)** - For Cursor editor
 
-## Environment Validation Commands
+---
 
-When unsure about environment state, run these diagnostic commands:
-
-**Check Docker services:**
-```bash
-docker-compose ps
-# Expected: superset_app, superset_db, superset_redis all "Up"
-```
-
-**Check Node setup:**
-```bash
-npm list --depth=0
-# Expected: No missing dependencies
-```
-
-**Check Python environment:**
-```bash
-python --version && which python
-# Expected: Python 3.11+ in project venv
-```
-
-## LLM Diagnostic Response Patterns
-
-When environment issues are detected, respond with helpful guidance:
-
-❌ **"I notice you haven't run `npm i` yet. Please run this first:"**
-```bash
-npm i
-```
-
-❌ **"Docker services aren't running. Start them with:"**
-```bash
-docker-compose up -d
-```
-
-✅ **"Environment looks good! Proceeding with the task..."**
-
-## Running Unit Tests
-
-**Frontend tests:**
-```bash
-npm run test
-```
-
-**Backend tests:**
-```bash
-pytest
-```
-
-**Test specific modules:**
-```bash
-pytest tests/unit_tests/specific_module_test.py
-```
+**LLM Note**: This codebase is actively modernizing toward full TypeScript and type safety. Always run `pre-commit run` to validate changes. Follow the ongoing refactors section to avoid deprecated patterns.
 
 ### Python Test Utilities and Patterns
 
