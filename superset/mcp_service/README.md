@@ -40,8 +40,8 @@ All tools are modular, strongly typed, and use Pydantic v2 schemas. Every field 
 - `get_dashboard_available_filters`
 
 **Datasets**
-- `list_datasets` (advanced filtering, search)
-- `get_dataset_info`
+- `list_datasets` (advanced filtering, search, now returns columns and metrics)
+- `get_dataset_info` (now returns columns and metrics)
 - `get_dataset_available_filters`
 
 **Charts**
@@ -77,16 +77,5 @@ list_dashboards(search="churn", filters=[{"col": "published", "opr": "eq", "valu
 
 ## What's Implemented
 
-- All list/info tools for dashboards, datasets, and charts, with full search and filter support.
-- Chart creation (`create_chart_simple`).
-- System info and available filters.
-- Full unit and integration test coverage for all tools, including search and error handling.
-- Protocol-level tests for agent compatibility.
-- **Note:** The API and toolset are still evolving and not all planned features are implemented yet. Mutations and navigation tools are planned for future releases.
-
-## Further Reading
-
-- [Architecture & Roadmap](./README_ARCHITECTURE.md)
-- [SIP-171: MCP Service Proposal](https://github.com/apache/superset/issues/33870)
-- [Integration Tests](../../tests/integration_tests/mcp_service/README_mcp_tests.md)
-- [Superset Docs](https://superset.apache.org/docs/)
+- All list/info tools for dashboards, datasets (with columns and metrics), and charts, with full search and filter support.
+- Chart creation (`
