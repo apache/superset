@@ -189,6 +189,7 @@ class Datasource(BaseSupersetView):
             raise DatasetNotFoundError() from ex
         return self.json_response(external_metadata)
 
+
     @expose("/samples", methods=("POST",))
     @has_access_api
     @api

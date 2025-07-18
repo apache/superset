@@ -34,6 +34,7 @@ from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_babel import ngettext
 from jinja2.exceptions import TemplateSyntaxError
 from marshmallow import ValidationError
+from sqlalchemy.exc import NoResultFound, NoSuchTableError
 
 from superset import event_logger, is_feature_enabled
 from superset.commands.dataset.create import CreateDatasetCommand
@@ -58,6 +59,7 @@ from superset.commands.importers.exceptions import NoValidFilesFoundError
 from superset.commands.importers.v1.utils import get_contents_from_bundle
 from superset.connectors.sqla.models import SqlaTable
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
+from superset.daos.database import DatabaseDAO
 from superset.daos.dataset import DatasetDAO
 from superset.databases.filters import DatabaseFilter
 from superset.datasets.filters import DatasetCertifiedFilter, DatasetIsNullOrEmptyFilter
@@ -75,6 +77,8 @@ from superset.datasets.schemas import (
 )
 from superset.exceptions import SupersetTemplateException
 from superset.jinja_context import BaseTemplateProcessor, get_template_processor
+from superset.models.core import Database
+from superset.sql.parse import Table
 from superset.utils import json
 from superset.utils.core import parse_boolean_string
 from superset.views.base import DatasourceFilter
@@ -84,6 +88,11 @@ from superset.views.base_api import (
     requires_form_data,
     requires_json,
     statsd_metrics,
+)
+from superset.views.datasource.schemas import (
+    ExternalMetadataParams,
+    ExternalMetadataSchema,
+    get_external_metadata_schema,
 )
 from superset.views.error_handling import handle_api_exception
 from superset.views.filters import BaseFilterRelatedUsers, FilterRelatedOwners
@@ -1173,6 +1182,95 @@ class DatasetRestApi(BaseSupersetModelRestApi):
             except SupersetTemplateException as ex:
                 return self.response_400(message=str(ex))
         return self.response(200, **response)
+
+    @expose("/external_metrics_by_name/")
+    @protect()
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.external_metrics_by_name",
+        log_to_statsd=False,
+    )
+    @rison(get_external_metadata_schema)
+    def external_metrics_by_name(self, **kwargs: Any) -> Response:
+        """Gets table metrics from the source system for semantic layer datasets.
+        ---
+        get:
+          summary: Get table metrics from the source system for semantic layer datasets
+          parameters:
+          - in: query
+            name: q
+            content:
+              application/json:
+                schema:
+                  type: object
+                  properties:
+                    datasource_type:
+                      type: string
+                    database_name:
+                      type: string
+                    catalog_name:
+                      type: string
+                    schema_name:
+                      type: string
+                    table_name:
+                      type: string
+          responses:
+            200:
+              description: Metrics from the source system
+              content:
+                application/json:
+                  schema:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        metric_name:
+                          type: string
+                        expression:
+                          type: string
+                        description:
+                          type: string
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
+            404:
+              $ref: '#/components/responses/404'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        try:
+            params: ExternalMetadataParams = ExternalMetadataSchema().load(
+                kwargs.get("rison")
+            )
+        except ValidationError as err:
+            return self.response_400(message=str(err))
+
+        # Get the database
+        try:
+            database = (
+                self.datamodel.session.query(Database)
+                .filter_by(database_name=params["database_name"])
+                .one()
+            )
+        except NoResultFound:
+            return self.response_404()
+        
+        try:
+            # Get metrics from the source system using DatabaseDAO
+            table = Table(
+                params["table_name"], 
+                params["schema_name"], 
+                catalog=params.get("catalog_name")
+            )
+            metrics = DatabaseDAO.get_metrics(database.id, table)
+            return self.response(200, result=metrics)
+        except (NoResultFound, NoSuchTableError):
+            return self.response_404()
+        except ValueError as ex:
+            return self.response_400(message=str(ex))
 
     @staticmethod
     def render_dataset_fields(

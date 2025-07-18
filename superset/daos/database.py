@@ -29,6 +29,7 @@ from superset.models.core import Database, DatabaseUserOAuth2Tokens
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.models.sql_lab import TabState
+from superset.sql.parse import Table
 from superset.utils.core import DatasourceType
 from superset.utils.ssh_tunnel import unmask_password_info
 
@@ -201,6 +202,30 @@ class DatabaseDAO(BaseDAO[Database]):
             dimensions,
             metrics,
         )
+
+    @classmethod
+    def get_metrics(
+        cls,
+        database_id: int,
+        table: Table,
+    ) -> list[dict[str, Any]]:
+        """
+        Get table metrics from the source system for semantic layer datasets.
+
+        :param database_id: The database ID
+        :param table: The table object with name, schema, and catalog
+        :return: List of metrics from the source system
+        :raises ValueError: If database not found or doesn't support dynamic metrics
+        """
+        database = cls.find_by_id(database_id)
+        if not database:
+            raise ValueError(f"Database with id {database_id} not found")
+        
+        # Check if database supports dynamic metrics (semantic layer)
+        if not database.db_engine_spec.engine_information.get("supports_dynamic_columns"):
+            raise ValueError("Database does not support dynamic metrics")
+        
+        return database.get_metrics(table)
 
 
 class SSHTunnelDAO(BaseDAO[SSHTunnel]):

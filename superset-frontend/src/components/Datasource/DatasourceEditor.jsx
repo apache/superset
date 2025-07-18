@@ -73,7 +73,7 @@ import { DatabaseSelector } from '../DatabaseSelector';
 import CollectionTable from './CollectionTable';
 import Fieldset from './Fieldset';
 import Field from './Field';
-import { fetchSyncedColumns, updateColumns } from './utils';
+import { fetchSyncedColumns, fetchSyncedMetrics, updateColumns, updateMetrics } from './utils';
 
 const extensionsRegistry = getExtensionsRegistry();
 
@@ -654,6 +654,7 @@ class DatasourceEditor extends PureComponent {
         col => !!col.expression,
       ),
       metadataLoading: false,
+      metricsLoading: false,
       activeTabKey: TABS_KEYS.SOURCE,
       datasourceType: props.datasource.sql
         ? DATASOURCE_TYPES.virtual.key
@@ -667,6 +668,7 @@ class DatasourceEditor extends PureComponent {
     this.tableChangeAndSyncMetadata =
       this.tableChangeAndSyncMetadata.bind(this);
     this.syncMetadata = this.syncMetadata.bind(this);
+    this.syncMetrics = this.syncMetrics.bind(this);
     this.setColumns = this.setColumns.bind(this);
     this.validateAndChange = this.validateAndChange.bind(this);
     this.handleTabSelect = this.handleTabSelect.bind(this);
@@ -841,6 +843,32 @@ class DatasourceEditor extends PureComponent {
         clientError || statusText || t('An error has occurred'),
       );
       this.setState({ metadataLoading: false });
+    }
+  }
+
+  async syncMetrics() {
+    const { datasource } = this.state;
+    this.setState({ metricsLoading: true });
+    try {
+      const newMetrics = await fetchSyncedMetrics(datasource);
+      const metricChanges = updateMetrics(
+        datasource.metrics,
+        newMetrics,
+        this.props.addSuccessToast,
+      );
+      this.onDatasourceChange({
+        ...datasource,
+        metrics: metricChanges.finalMetrics,
+      });
+      this.props.addSuccessToast(t('Metrics have been synced'));
+      this.setState({ metricsLoading: false });
+    } catch (error) {
+      const { error: clientError, statusText } =
+        await getClientErrorObject(error);
+      this.props.addDangerToast(
+        clientError || statusText || t('An error has occurred'),
+      );
+      this.setState({ metricsLoading: false });
     }
   }
 
@@ -1702,7 +1730,29 @@ class DatasourceEditor extends PureComponent {
                   title={t('Metrics')}
                 />
               ),
-              children: this.renderMetricCollection(),
+              children: (
+                <div>
+                  {this.state.datasource.database?.backend === 'metricflow' && (
+                    <ColumnButtonWrapper>
+                      <StyledButtonWrapper>
+                        <Button
+                          buttonSize="small"
+                          buttonStyle="tertiary"
+                          onClick={this.syncMetrics}
+                          className="sync-metrics-from-source"
+                          disabled={this.state.isEditMode}
+                          loading={this.state.metricsLoading}
+                        >
+                          <Icons.DatabaseOutlined iconSize="m" />
+                          {t('Sync metrics from source')}
+                        </Button>
+                      </StyledButtonWrapper>
+                    </ColumnButtonWrapper>
+                  )}
+                  {this.renderMetricCollection()}
+                  {this.state.metricsLoading && <Loading />}
+                </div>
+              ),
             },
             {
               key: TABS_KEYS.COLUMNS,

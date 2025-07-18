@@ -132,6 +132,74 @@ export function updateColumns(prevCols, newCols, addSuccessToast) {
   return columnChanges;
 }
 
+export function updateMetrics(prevMetrics, newMetrics, addSuccessToast) {
+  // metrics: Array<{metric_name: string; expression: string; verbose_name?: string; ...}>
+  const sourceMetricNames = newMetrics.map(metric => metric.metric_name);
+  const currentMetrics = prevMetrics.reduce((agg, metric) => {
+    agg[metric.metric_name] = metric;
+    return agg;
+  }, {});
+
+  const newOrUpdatedMetrics = newMetrics.filter(metric => {
+    const currentMetric = currentMetrics[metric.metric_name];
+    if (!currentMetric) {
+      // New metric
+      return true;
+    }
+    // Check if metric has been updated
+    return (
+      metric.expression !== currentMetric.expression ||
+      metric.verbose_name !== currentMetric.verbose_name ||
+      metric.description !== currentMetric.description
+    );
+  });
+
+  const deletedMetrics = prevMetrics.filter(
+    metric => !sourceMetricNames.includes(metric.metric_name)
+  );
+
+  const finalMetrics = [
+    ...prevMetrics.filter(metric => sourceMetricNames.includes(metric.metric_name)),
+    ...newOrUpdatedMetrics.filter(metric => !currentMetrics[metric.metric_name]),
+  ];
+
+  // Update existing metrics with new data
+  finalMetrics.forEach(metric => {
+    const sourceMetric = newMetrics.find(m => m.metric_name === metric.metric_name);
+    if (sourceMetric) {
+      Object.assign(metric, sourceMetric);
+    }
+  });
+
+  if (newOrUpdatedMetrics.length > 0) {
+    addSuccessToast(
+      tn(
+        'Metric %s was added',
+        'Metrics %s were added',
+        newOrUpdatedMetrics.length,
+        newOrUpdatedMetrics.map(metric => metric.metric_name).join(', ')
+      )
+    );
+  }
+
+  if (deletedMetrics.length > 0) {
+    addSuccessToast(
+      tn(
+        'Metric %s was deleted',
+        'Metrics %s were deleted',
+        deletedMetrics.length,
+        deletedMetrics.map(metric => metric.metric_name).join(', ')
+      )
+    );
+  }
+
+  return {
+    finalMetrics,
+    newOrUpdatedMetrics,
+    deletedMetrics,
+  };
+}
+
 export async function fetchSyncedColumns(datasource) {
   const params = {
     datasource_type: datasource.type || datasource.datasource_type,
@@ -154,4 +222,26 @@ export async function fetchSyncedColumns(datasource) {
   )}`;
   const { json } = await SupersetClient.get({ endpoint });
   return json;
+}
+
+export async function fetchSyncedMetrics(datasource) {
+  const params = {
+    datasource_type: datasource.type || datasource.datasource_type,
+    database_name:
+      datasource.database?.database_name || datasource.database?.name,
+    catalog_name: datasource.catalog,
+    schema_name: datasource.schema,
+    table_name: datasource.table_name,
+  };
+  Object.entries(params).forEach(([key, value]) => {
+    // rison can't encode the undefined value
+    if (value === undefined) {
+      params[key] = null;
+    }
+  });
+  const endpoint = `/api/v1/dataset/external_metrics_by_name/?q=${rison.encode_uri(
+    params,
+  )}`;
+  const { json } = await SupersetClient.get({ endpoint });
+  return json.result;
 }
