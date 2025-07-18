@@ -28,7 +28,6 @@ export function collectQueryFields(formData: any): {
   dimensions: string[];
   metrics: string[];
 } {
-  console.log('collectQueryFields input:', formData);
   const dimensions: string[] = [];
   const metrics: string[] = [];
 
@@ -134,7 +133,6 @@ export function collectQueryFields(formData: any): {
     metrics: [...new Set(cleanMetrics)], // Remove duplicates
   };
 
-  console.log('collectQueryFields output:', result);
   return result;
 }
 
@@ -222,17 +220,10 @@ export function createMetricsVerification(controlName?: string): AsyncVerify {
       return null;
     }
 
-    console.log('=== METRICS VERIFICATION DEFERRED START ===');
-    console.log('Control name:', controlName);
-    console.log('Current value:', value);
-    console.log('Props form_data before delay:', form_data);
-
     // Defer the actual verification to allow React/Redux to complete all updates
     // This should solve the stale state issue by waiting for the event loop to complete
     return new Promise(resolve => {
       setTimeout(async () => {
-        console.log('=== METRICS VERIFICATION DEFERRED EXECUTION ===');
-
         // Try to get fresh state from Redux store
         const store =
           (window as any).__REDUX_STORE__ || (actions as any)?._store;
@@ -243,10 +234,6 @@ export function createMetricsVerification(controlName?: string): AsyncVerify {
             const state = store.getState();
             const exploreState = state.explore || {};
             currentFormData = exploreState.form_data || form_data;
-            console.log(
-              'Fresh form_data from store after delay:',
-              currentFormData,
-            );
           } catch (error) {
             console.warn('Could not access Redux store:', error);
           }
@@ -260,16 +247,6 @@ export function createMetricsVerification(controlName?: string): AsyncVerify {
 
         // Extract query fields using the complete form data approach
         const queryFields = collectQueryFields(syntheticFormData);
-
-        console.log('Deferred metrics verification:', {
-          controlName,
-          currentValue: value,
-          propsFormData: form_data,
-          storeFormData: currentFormData,
-          syntheticFormData,
-          queryFields,
-          vizType: syntheticFormData.viz_type,
-        });
 
         const validationResult = await callValidationAPI(
           datasource as Dataset,
@@ -364,17 +341,10 @@ export function createColumnsVerification(controlName?: string): AsyncVerify {
       return null;
     }
 
-    console.log('=== COLUMNS VERIFICATION DEFERRED START ===');
-    console.log('Control name:', controlName);
-    console.log('Current value:', value);
-    console.log('Props form_data before delay:', form_data);
-
     // Defer the actual verification to allow React/Redux to complete all updates
     // This should solve the stale state issue by waiting for the event loop to complete
     return new Promise(resolve => {
       setTimeout(async () => {
-        console.log('=== COLUMNS VERIFICATION DEFERRED EXECUTION ===');
-
         // Try to get fresh state from Redux store
         const store =
           (window as any).__REDUX_STORE__ || (actions as any)?._store;
@@ -385,10 +355,6 @@ export function createColumnsVerification(controlName?: string): AsyncVerify {
             const state = store.getState();
             const exploreState = state.explore || {};
             currentFormData = exploreState.form_data || form_data;
-            console.log(
-              'Fresh form_data from store after delay:',
-              currentFormData,
-            );
           } catch (error) {
             console.warn('Could not access Redux store:', error);
           }
@@ -402,16 +368,6 @@ export function createColumnsVerification(controlName?: string): AsyncVerify {
 
         // Extract query fields using the complete form data approach
         const queryFields = collectQueryFields(syntheticFormData);
-
-        console.log('Deferred columns verification:', {
-          controlName,
-          currentValue: value,
-          propsFormData: form_data,
-          storeFormData: currentFormData,
-          syntheticFormData,
-          queryFields,
-          vizType: syntheticFormData.viz_type,
-        });
 
         const validationResult = await callValidationAPI(
           datasource as Dataset,

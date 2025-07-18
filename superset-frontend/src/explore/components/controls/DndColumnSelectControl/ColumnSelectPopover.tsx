@@ -266,20 +266,6 @@ const ColumnSelectPopover = ({
   // Fetch valid dimensions for semantic layer datasets
   // Only trigger when actually needed (tab is Simple or modal opens after delay)
   useEffect(() => {
-    console.log('=== COLUMN MODAL EFFECT TRIGGER ===');
-    console.log('isSemanticLayer:', isSemanticLayer);
-    console.log('formData exists:', !!formData);
-    console.log('datasource exists:', !!datasource);
-    console.log('selectedTab:', selectedTab);
-    console.log('TABS_KEYS.SIMPLE:', TABS_KEYS.SIMPLE);
-    console.log(
-      'Should trigger API?',
-      isSemanticLayer &&
-        formData &&
-        datasource &&
-        (selectedTab === TABS_KEYS.SIMPLE || selectedTab === null),
-    );
-
     // Disable column modal API calls - semantic layer verification handles disabled states automatically
     if (
       false &&
@@ -331,46 +317,9 @@ const ColumnSelectPopover = ({
                 enhancedFormData.all_columns = controlsState.all_columns.value;
               }
 
-              console.log('=== ENHANCED FORM DATA FROM CONTROLS ===');
-              console.log(
-                'Controls state metrics:',
-                controlsState.metrics?.value,
-              );
-              console.log(
-                'Controls state groupby:',
-                controlsState.groupby?.value,
-              );
-              console.log(
-                'Controls state all_columns:',
-                controlsState.all_columns?.value,
-              );
-              console.log('Enhanced form data:', enhancedFormData);
-
               currentFormData = enhancedFormData;
             }
           }
-
-          console.log('=== COLUMN MODAL DEBUG ===');
-          console.log(
-            'Column modal Redux state keys:',
-            Object.keys(currentFormData),
-          );
-          console.log('Column modal form data:', currentFormData);
-          console.log(
-            'Column modal has metrics?',
-            'metrics' in currentFormData,
-            currentFormData.metrics,
-          );
-          console.log(
-            'Column modal has groupby?',
-            'groupby' in currentFormData,
-            currentFormData.groupby,
-          );
-          console.log(
-            'Column modal collected query fields:',
-            collectQueryFields(currentFormData),
-          );
-          console.log('=== END COLUMN MODAL DEBUG ===');
 
           const queryFields = collectQueryFields(currentFormData);
           const validationResult = await callValidationAPI(

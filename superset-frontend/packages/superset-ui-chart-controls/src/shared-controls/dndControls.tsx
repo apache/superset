@@ -163,10 +163,20 @@ function enhanceControlWithSemanticLayer(
           state.datasource,
         );
 
+        // Check if there's existing data that needs verification
+        const hasExistingData =
+          controlState?.value &&
+          ((Array.isArray(controlState.value) &&
+            controlState.value.length > 0) ||
+            (!Array.isArray(controlState.value) &&
+              controlState.value !== null &&
+              controlState.value !== undefined));
+
         return {
           ...originalProps,
           needAsyncVerification: needsVerification,
-          skipEffectVerification: true, // Custom flag to skip useEffect verification
+          // Only skip effect verification if there's no existing data
+          skipEffectVerification: !hasExistingData,
           form_data: state.form_data,
           datasource: state.datasource, // Pass datasource to verification function
         };
