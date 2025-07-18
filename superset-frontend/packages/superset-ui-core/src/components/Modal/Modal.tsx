@@ -121,7 +121,8 @@ export const StyledModal = styled(BaseModal)<StyledModalProps>`
 
     .ant-modal-body {
       flex: 0 1 auto;
-      padding: ${theme.sizeUnit * 4}px;
+      padding: ${theme.sizeUnit * 4}px ${theme.sizeUnit * 6}px;
+
       overflow: auto;
       ${!resizable && height && `height: ${height};`}
     }

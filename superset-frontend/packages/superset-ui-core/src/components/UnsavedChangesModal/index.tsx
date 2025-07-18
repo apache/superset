@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t, styled, css } from '@superset-ui/core';
+import { t, css, useTheme } from '@superset-ui/core';
 import {
   Icons,
   Modal,
@@ -25,40 +25,6 @@ import {
   Flex,
 } from '@superset-ui/core/components';
 import type { FC, ReactElement } from 'react';
-
-const StyledModalBody = styled(Typography.Text)`
-  ${({ theme }) => css`
-    padding: 0 ${theme.sizeUnit * 3}px;
-
-    && {
-      margin: 0;
-    }
-  `}
-`;
-
-const StyledDiscardBtn = styled(Button)`
-  ${({ theme }) => css`
-    min-width: ${theme.sizeUnit * 22}px;
-    height: ${theme.sizeUnit * 8}px;
-  `}
-`;
-
-const StyledSaveBtn = styled(Button)`
-  ${({ theme }) => css`
-    min-width: ${theme.sizeUnit * 17}px;
-    height: ${theme.sizeUnit * 8}px;
-    span > :first-of-type {
-      margin-right: 0;
-    }
-  `}
-`;
-
-const StyledWarningIcon = styled(Icons.WarningOutlined)`
-  ${({ theme }) => css`
-    color: ${theme.colorWarning};
-    margin-right: ${theme.sizeUnit * 2}px;
-  `}
-`;
 
 export type UnsavedChangesModalProps = {
   showModal: boolean;
@@ -76,52 +42,65 @@ export const UnsavedChangesModal: FC<UnsavedChangesModalProps> = ({
   onConfirmNavigation,
   title = 'Unsaved Changes',
   body = "If you don't save, changes will be lost.",
-}: UnsavedChangesModalProps): ReactElement => (
-  <Modal
-    centered
-    responsive
-    onHide={onHide}
-    show={showModal}
-    width="444px"
-    title={
-      <Flex>
-        <StyledWarningIcon iconSize="xl" />
-        <Typography.Title
+}): ReactElement => {
+  const theme = useTheme();
+
+  return (
+    <Modal
+      centered
+      responsive
+      onHide={onHide}
+      show={showModal}
+      width="444px"
+      title={
+        <Flex>
+          <Icons.WarningOutlined
+            iconColor={theme.colorWarning}
+            css={css`
+              margin-right: ${theme.sizeUnit * 2}px;
+            `}
+            iconSize="l"
+          />
+          <Typography.Title
+            css={css`
+              && {
+                margin: 0;
+                margin-bottom: 0;
+              }
+            `}
+            level={5}
+          >
+            {title}
+          </Typography.Title>
+        </Flex>
+      }
+      footer={
+        <Flex
+          justify="flex-end"
           css={css`
-            margin: 0px;
+            width: 100%;
           `}
-          level={4}
         >
-          {title}
-        </Typography.Title>
-      </Flex>
-    }
-    footer={
-      <Flex
-        justify="flex-end"
-        css={css`
-          width: 100%;
-        `}
-      >
-        <StyledDiscardBtn
-          htmlType="button"
-          buttonSize="small"
-          buttonStyle="secondary"
-          onClick={onConfirmNavigation}
-        >
-          {t('Discard')}
-        </StyledDiscardBtn>
-        <StyledSaveBtn
-          htmlType="button"
-          buttonSize="small"
-          buttonStyle="primary"
-          onClick={handleSave}
-        >
-          {t('Save')}
-        </StyledSaveBtn>
-      </Flex>
-    }
-  >
-    <StyledModalBody type="secondary">{body}</StyledModalBody>
-  </Modal>
-);
+          <Button
+            htmlType="button"
+            buttonSize="small"
+            buttonStyle="secondary"
+            onClick={onConfirmNavigation}
+          >
+            {t('Discard')}
+          </Button>
+          <Button
+            htmlType="button"
+            buttonSize="small"
+            buttonStyle="primary"
+            onClick={handleSave}
+          >
+            {t('Save')}
+          </Button>
+        </Flex>
+      }
+    >
+      <Typography.Text>{body}</Typography.Text>
+    </Modal>
+  );
+};
