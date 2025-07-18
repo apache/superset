@@ -75,7 +75,7 @@ export function setSemanticLayerUtilities(utilities: {
     createSemanticLayerOnChange,
     SEMANTIC_LAYER_CONTROL_FIELDS,
   } = utilities);
-  
+
   // Notify all enhanced controls that utilities are now available
   enhancedControls.forEach(control => {
     control.invalidateCache();
@@ -106,16 +106,16 @@ function enhanceControlWithSemanticLayer(
   // Cache for the enhanced control type
   let cachedEnhancedType: any = null;
   let utilitiesWereAvailable = false;
-  
+
   // Register with notification system
   enhancedControls.push({
     controlName,
     invalidateCache: () => {
       cachedEnhancedType = null;
       utilitiesWereAvailable = false;
-    }
+    },
   });
-  
+
   // Return a control that will be enhanced at runtime if utilities are available
   return {
     ...baseControl,
@@ -123,7 +123,7 @@ function enhanceControlWithSemanticLayer(
     get type() {
       // Check if utilities became available since last call
       const utilitiesAvailableNow = !!withAsyncVerification;
-      
+
       if (utilitiesAvailableNow) {
         // If utilities just became available or we haven't cached yet, create enhanced control
         if (!utilitiesWereAvailable || !cachedEnhancedType) {
@@ -131,7 +131,7 @@ function enhanceControlWithSemanticLayer(
             verificationType === 'metrics'
               ? createMetricsVerification(controlName)
               : createColumnsVerification(controlName);
-          
+
           cachedEnhancedType = withAsyncVerification({
             baseControl: baseControl.type,
             verify: verificationFn,
@@ -141,13 +141,13 @@ function enhanceControlWithSemanticLayer(
             ),
             showLoadingState: true,
           });
-          
+
           utilitiesWereAvailable = true;
         }
-        
+
         return cachedEnhancedType;
       }
-      
+
       utilitiesWereAvailable = false;
       return baseControl.type;
     },

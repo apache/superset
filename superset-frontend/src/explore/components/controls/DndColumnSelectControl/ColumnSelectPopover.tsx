@@ -51,9 +51,9 @@ import {
 import sqlKeywords from 'src/SqlLab/utils/sqlKeywords';
 import { getColumnKeywords } from 'src/explore/controlUtils/getColumnKeywords';
 import { StyledColumnOption } from 'src/explore/components/optionRenderers';
-import { 
+import {
   collectQueryFields,
-  callValidationAPI 
+  callValidationAPI,
 } from 'src/explore/components/controls/SemanticLayerVerification';
 import {
   POPOVER_INITIAL_HEIGHT,
@@ -132,15 +132,17 @@ const ColumnSelectPopover = ({
     state => state.explore.form_data,
   );
   const store = useStore();
-  
+
   // Check if this is a semantic layer dataset
   const isSemanticLayer = useMemo(() => {
     if (!datasource || !('database' in datasource) || !datasource.database) {
       return false;
     }
-    return Boolean(datasource.database.engine_information?.supports_dynamic_columns);
+    return Boolean(
+      datasource.database.engine_information?.supports_dynamic_columns,
+    );
   }, [datasource]);
-  
+
   // For semantic layers, disable Saved and Custom SQL tabs
   const effectiveDisabledTabs = useMemo(() => {
     const tabs = new Set(disabledTabs);
@@ -150,7 +152,7 @@ const ColumnSelectPopover = ({
     }
     return tabs;
   }, [disabledTabs, isSemanticLayer]);
-  
+
   const [initialLabel] = useState(label);
   const [initialAdhocColumn, initialCalculatedColumn, initialSimpleColumn] =
     getInitialColumnValues(editedColumn);
@@ -166,7 +168,8 @@ const ColumnSelectPopover = ({
   >(initialSimpleColumn);
   const [selectedTab, setSelectedTab] = useState<string | null>(null);
   const [validDimensions, setValidDimensions] = useState<string[] | null>(null);
-  const [isLoadingValidDimensions, setIsLoadingValidDimensions] = useState(false);
+  const [isLoadingValidDimensions, setIsLoadingValidDimensions] =
+    useState(false);
   const previousFormDataRef = useRef<string>('');
 
   const [resizeButton, width, height] = useResizeButton(
@@ -176,34 +179,31 @@ const ColumnSelectPopover = ({
 
   const sqlEditorRef = useRef(null);
 
-  const [calculatedColumns, simpleColumns] = useMemo(
-    () => {
-      // Use columns from Redux datasource state (which includes disabled states) instead of props
-      const columnsToUse = datasource?.columns || columns || [];
-      
-      const [calculated, simple] = columnsToUse.reduce(
-        (acc: [ColumnMeta[], ColumnMeta[]], column: ColumnMeta) => {
-          if (column.expression) {
-            acc[0].push(column);
-          } else {
-            acc[1].push(column);
-          }
-          return acc;
-        },
-        [[], []],
-      ) || [[], []];
+  const [calculatedColumns, simpleColumns] = useMemo(() => {
+    // Use columns from Redux datasource state (which includes disabled states) instead of props
+    const columnsToUse = datasource?.columns || columns || [];
 
-      // For semantic layer datasets, filter simple columns to show only valid dimensions
-      // Use the isDisabled state set by the main verification system instead of separate API calls
-      if (isSemanticLayer) {
-        const filteredSimple = simple.filter(column => !column.isDisabled);
-        return [calculated, filteredSimple];
-      }
+    const [calculated, simple] = columnsToUse.reduce(
+      (acc: [ColumnMeta[], ColumnMeta[]], column: ColumnMeta) => {
+        if (column.expression) {
+          acc[0].push(column);
+        } else {
+          acc[1].push(column);
+        }
+        return acc;
+      },
+      [[], []],
+    ) || [[], []];
 
-      return [calculated, simple];
-    },
-    [datasource?.columns, columns, isSemanticLayer],
-  );
+    // For semantic layer datasets, filter simple columns to show only valid dimensions
+    // Use the isDisabled state set by the main verification system instead of separate API calls
+    if (isSemanticLayer) {
+      const filteredSimple = simple.filter(column => !column.isDisabled);
+      return [calculated, filteredSimple];
+    }
+
+    return [calculated, simple];
+  }, [datasource?.columns, columns, isSemanticLayer]);
 
   const onSqlExpressionChange = useCallback(
     sqlExpression => {
@@ -249,7 +249,7 @@ const ColumnSelectPopover = ({
     if (isSemanticLayer) {
       return TABS_KEYS.SIMPLE;
     }
-    
+
     // Original logic for non-semantic layer datasets
     return initialAdhocColumn
       ? TABS_KEYS.SQL_EXPRESSION
@@ -272,42 +272,57 @@ const ColumnSelectPopover = ({
     console.log('datasource exists:', !!datasource);
     console.log('selectedTab:', selectedTab);
     console.log('TABS_KEYS.SIMPLE:', TABS_KEYS.SIMPLE);
-    console.log('Should trigger API?', isSemanticLayer && formData && datasource && 
-        (selectedTab === TABS_KEYS.SIMPLE || selectedTab === null));
-    
+    console.log(
+      'Should trigger API?',
+      isSemanticLayer &&
+        formData &&
+        datasource &&
+        (selectedTab === TABS_KEYS.SIMPLE || selectedTab === null),
+    );
+
     // Disable column modal API calls - semantic layer verification handles disabled states automatically
-    if (false && isSemanticLayer && formData && datasource && 
-        (selectedTab === TABS_KEYS.SIMPLE || selectedTab === null)) {
-      
+    if (
+      false &&
+      isSemanticLayer &&
+      formData &&
+      datasource &&
+      (selectedTab === TABS_KEYS.SIMPLE || selectedTab === null)
+    ) {
       const fetchValidDimensions = async () => {
         setIsLoadingValidDimensions(true);
-        
+
         try {
           // Use the same 50ms delay that fixed the main verification timing issue
           await new Promise(resolve => setTimeout(resolve, 50));
-          
+
           // Get the most current form data from store
           const currentState = store.getState() as ExplorePageState;
           let currentFormData = currentState.explore.form_data;
-          
+
           // If we're in a table and don't have metrics/dimensions, try to get from controls state
-          if ((!currentFormData.metrics && !currentFormData.groupby && !currentFormData.all_columns) ||
-              (Array.isArray(currentFormData.metrics) && currentFormData.metrics.length === 0 &&
-               Array.isArray(currentFormData.groupby) && currentFormData.groupby.length === 0)) {
-            
+          if (
+            (!currentFormData.metrics &&
+              !currentFormData.groupby &&
+              !currentFormData.all_columns) ||
+            (Array.isArray(currentFormData.metrics) &&
+              currentFormData.metrics.length === 0 &&
+              Array.isArray(currentFormData.groupby) &&
+              currentFormData.groupby.length === 0)
+          ) {
             // Try to get from the controls state instead
             const controlsState = (currentState as any).explore?.controls;
             if (controlsState) {
               const enhancedFormData = { ...currentFormData };
-              
+
               // Get metrics from controls
               if (controlsState.metrics?.value) {
                 enhancedFormData.metrics = controlsState.metrics.value;
               }
               if (controlsState.percent_metrics?.value) {
-                enhancedFormData.percent_metrics = controlsState.percent_metrics.value;
+                enhancedFormData.percent_metrics =
+                  controlsState.percent_metrics.value;
               }
-              
+
               // Get dimensions from controls
               if (controlsState.groupby?.value) {
                 enhancedFormData.groupby = controlsState.groupby.value;
@@ -315,25 +330,48 @@ const ColumnSelectPopover = ({
               if (controlsState.all_columns?.value) {
                 enhancedFormData.all_columns = controlsState.all_columns.value;
               }
-              
+
               console.log('=== ENHANCED FORM DATA FROM CONTROLS ===');
-              console.log('Controls state metrics:', controlsState.metrics?.value);
-              console.log('Controls state groupby:', controlsState.groupby?.value);
-              console.log('Controls state all_columns:', controlsState.all_columns?.value);
+              console.log(
+                'Controls state metrics:',
+                controlsState.metrics?.value,
+              );
+              console.log(
+                'Controls state groupby:',
+                controlsState.groupby?.value,
+              );
+              console.log(
+                'Controls state all_columns:',
+                controlsState.all_columns?.value,
+              );
               console.log('Enhanced form data:', enhancedFormData);
-              
+
               currentFormData = enhancedFormData;
             }
           }
-          
+
           console.log('=== COLUMN MODAL DEBUG ===');
-          console.log('Column modal Redux state keys:', Object.keys(currentFormData));
+          console.log(
+            'Column modal Redux state keys:',
+            Object.keys(currentFormData),
+          );
           console.log('Column modal form data:', currentFormData);
-          console.log('Column modal has metrics?', 'metrics' in currentFormData, currentFormData.metrics);
-          console.log('Column modal has groupby?', 'groupby' in currentFormData, currentFormData.groupby);
-          console.log('Column modal collected query fields:', collectQueryFields(currentFormData));
+          console.log(
+            'Column modal has metrics?',
+            'metrics' in currentFormData,
+            currentFormData.metrics,
+          );
+          console.log(
+            'Column modal has groupby?',
+            'groupby' in currentFormData,
+            currentFormData.groupby,
+          );
+          console.log(
+            'Column modal collected query fields:',
+            collectQueryFields(currentFormData),
+          );
           console.log('=== END COLUMN MODAL DEBUG ===');
-          
+
           const queryFields = collectQueryFields(currentFormData);
           const validationResult = await callValidationAPI(
             datasource,
@@ -352,37 +390,36 @@ const ColumnSelectPopover = ({
           setIsLoadingValidDimensions(false);
         }
       };
-      
+
       // Trigger API call after a delay to ensure state is current
       const timeoutId = setTimeout(() => {
         fetchValidDimensions();
       }, 100);
-      
+
       return () => clearTimeout(timeoutId);
-    } else {
-      setValidDimensions(null);
-      setIsLoadingValidDimensions(false);
     }
+    setValidDimensions(null);
+    setIsLoadingValidDimensions(false);
   }, [isSemanticLayer, selectedTab, datasource, store]);
-  
+
   // Also trigger when form data changes (for subsequent updates)
   useEffect(() => {
     if (isSemanticLayer && validDimensions !== null && formData && datasource) {
       const currentFormDataString = JSON.stringify(formData);
-      
+
       // Only make API call if form data actually changed and we already have loaded once
       if (currentFormDataString !== previousFormDataRef.current) {
         previousFormDataRef.current = currentFormDataString;
-        
+
         const fetchValidDimensions = async () => {
           setIsLoadingValidDimensions(true);
-          
+
           try {
             await new Promise(resolve => setTimeout(resolve, 50));
-            
+
             const currentState = store.getState() as ExplorePageState;
             const currentFormData = currentState.explore.form_data;
-            
+
             const queryFields = collectQueryFields(currentFormData);
             const validationResult = await callValidationAPI(
               datasource,
@@ -398,7 +435,7 @@ const ColumnSelectPopover = ({
             setIsLoadingValidDimensions(false);
           }
         };
-        
+
         setTimeout(() => {
           fetchValidDimensions();
         }, 50);
@@ -517,15 +554,18 @@ const ColumnSelectPopover = ({
         items={[
           {
             key: TABS_KEYS.SAVED,
-            label: isSemanticLayer && effectiveDisabledTabs.has('saved') ? (
-              <Tooltip
-                title={t('Saved expressions are not supported for semantic layer datasets')}
-              >
-                {t('Saved')}
-              </Tooltip>
-            ) : (
-              t('Saved')
-            ),
+            label:
+              isSemanticLayer && effectiveDisabledTabs.has('saved') ? (
+                <Tooltip
+                  title={t(
+                    'Saved expressions are not supported for semantic layer datasets',
+                  )}
+                >
+                  {t('Saved')}
+                </Tooltip>
+              ) : (
+                t('Saved')
+              ),
             disabled: effectiveDisabledTabs.has('saved'),
             children: (
               <>
@@ -662,15 +702,18 @@ const ColumnSelectPopover = ({
           },
           {
             key: TABS_KEYS.SQL_EXPRESSION,
-            label: isSemanticLayer && effectiveDisabledTabs.has('sqlExpression') ? (
-              <Tooltip
-                title={t('Custom SQL expressions are not supported for semantic layer datasets')}
-              >
-                {t('Custom SQL')}
-              </Tooltip>
-            ) : (
-              t('Custom SQL')
-            ),
+            label:
+              isSemanticLayer && effectiveDisabledTabs.has('sqlExpression') ? (
+                <Tooltip
+                  title={t(
+                    'Custom SQL expressions are not supported for semantic layer datasets',
+                  )}
+                >
+                  {t('Custom SQL')}
+                </Tooltip>
+              ) : (
+                t('Custom SQL')
+              ),
             disabled: effectiveDisabledTabs.has('sqlExpression'),
             children: (
               <>

@@ -63,23 +63,17 @@ export function collectQueryFields(formData: any): {
   }
   if (formData.series) {
     dimensions.push(
-      ...(Array.isArray(formData.series)
-        ? formData.series
-        : [formData.series]),
+      ...(Array.isArray(formData.series) ? formData.series : [formData.series]),
     );
   }
   if (formData.entity) {
     dimensions.push(
-      ...(Array.isArray(formData.entity)
-        ? formData.entity
-        : [formData.entity]),
+      ...(Array.isArray(formData.entity) ? formData.entity : [formData.entity]),
     );
   }
   if (formData.x_axis) {
     dimensions.push(
-      ...(Array.isArray(formData.x_axis)
-        ? formData.x_axis
-        : [formData.x_axis]),
+      ...(Array.isArray(formData.x_axis) ? formData.x_axis : [formData.x_axis]),
     );
   }
 
@@ -139,7 +133,7 @@ export function collectQueryFields(formData: any): {
     dimensions: [...new Set(cleanDimensions)], // Remove duplicates
     metrics: [...new Set(cleanMetrics)], // Remove duplicates
   };
-  
+
   console.log('collectQueryFields output:', result);
   return result;
 }
@@ -157,7 +151,10 @@ function supportsSemanticLayerVerification(datasource: Dataset): boolean {
 }
 
 // Cache for API calls to prevent duplicates
-const apiCallCache = new Map<string, Promise<{ dimensions: string[]; metrics: string[] } | null>>();
+const apiCallCache = new Map<
+  string,
+  Promise<{ dimensions: string[]; metrics: string[] } | null>
+>();
 
 /**
  * Call the validation API
@@ -192,7 +189,9 @@ export async function callValidationAPI(
         dimensions: selectedDimensions,
         metrics: selectedMetrics,
       },
-    }).then(response => response.json as { dimensions: string[]; metrics: string[] });
+    }).then(
+      response => response.json as { dimensions: string[]; metrics: string[] },
+    );
 
     // Cache the promise
     apiCallCache.set(cacheKey, apiPromise);
@@ -230,20 +229,24 @@ export function createMetricsVerification(controlName?: string): AsyncVerify {
 
     // Defer the actual verification to allow React/Redux to complete all updates
     // This should solve the stale state issue by waiting for the event loop to complete
-    return new Promise((resolve) => {
+    return new Promise(resolve => {
       setTimeout(async () => {
         console.log('=== METRICS VERIFICATION DEFERRED EXECUTION ===');
-        
+
         // Try to get fresh state from Redux store
-        const store = (window as any).__REDUX_STORE__ || (actions as any)?._store;
+        const store =
+          (window as any).__REDUX_STORE__ || (actions as any)?._store;
         let currentFormData = form_data;
-        
+
         if (store) {
           try {
             const state = store.getState();
             const exploreState = state.explore || {};
             currentFormData = exploreState.form_data || form_data;
-            console.log('Fresh form_data from store after delay:', currentFormData);
+            console.log(
+              'Fresh form_data from store after delay:',
+              currentFormData,
+            );
           } catch (error) {
             console.warn('Could not access Redux store:', error);
           }
@@ -291,20 +294,30 @@ export function createMetricsVerification(controlName?: string): AsyncVerify {
         let updatedDatasourceColumns = dataset.columns;
 
         // Filter valid names to only include those that exist in the original datasource
-        const originalDimensionNames = new Set(dataset.columns?.map((col: any) => col.column_name) || []);
-        const originalMetricNames = new Set(dataset.metrics?.map((metric: any) => metric.metric_name) || []);
-        
+        const originalDimensionNames = new Set(
+          dataset.columns?.map((col: any) => col.column_name) || [],
+        );
+        const originalMetricNames = new Set(
+          dataset.metrics?.map((metric: any) => metric.metric_name) || [],
+        );
+
         const filteredValidMetricNames = new Set(
-          validationResult.metrics.filter(metric => originalMetricNames.has(metric))
+          validationResult.metrics.filter(metric =>
+            originalMetricNames.has(metric),
+          ),
         );
         const filteredValidDimensionNames = new Set(
-          validationResult.dimensions.filter(dim => originalDimensionNames.has(dim))
+          validationResult.dimensions.filter(dim =>
+            originalDimensionNames.has(dim),
+          ),
         );
 
         if (dataset.metrics) {
           updatedDatasourceMetrics = dataset.metrics.map((metric: any) => ({
             ...metric,
-            isDisabled: !filteredValidMetricNames.has(metric.metric_name || metric),
+            isDisabled: !filteredValidMetricNames.has(
+              metric.metric_name || metric,
+            ),
           }));
         }
 
@@ -312,7 +325,9 @@ export function createMetricsVerification(controlName?: string): AsyncVerify {
         if (dataset.columns) {
           updatedDatasourceColumns = dataset.columns.map((column: any) => ({
             ...column,
-            isDisabled: !filteredValidDimensionNames.has(column.column_name || column),
+            isDisabled: !filteredValidDimensionNames.has(
+              column.column_name || column,
+            ),
           }));
         }
 
@@ -356,20 +371,24 @@ export function createColumnsVerification(controlName?: string): AsyncVerify {
 
     // Defer the actual verification to allow React/Redux to complete all updates
     // This should solve the stale state issue by waiting for the event loop to complete
-    return new Promise((resolve) => {
+    return new Promise(resolve => {
       setTimeout(async () => {
         console.log('=== COLUMNS VERIFICATION DEFERRED EXECUTION ===');
-        
+
         // Try to get fresh state from Redux store
-        const store = (window as any).__REDUX_STORE__ || (actions as any)?._store;
+        const store =
+          (window as any).__REDUX_STORE__ || (actions as any)?._store;
         let currentFormData = form_data;
-        
+
         if (store) {
           try {
             const state = store.getState();
             const exploreState = state.explore || {};
             currentFormData = exploreState.form_data || form_data;
-            console.log('Fresh form_data from store after delay:', currentFormData);
+            console.log(
+              'Fresh form_data from store after delay:',
+              currentFormData,
+            );
           } catch (error) {
             console.warn('Could not access Redux store:', error);
           }
@@ -418,28 +437,40 @@ export function createColumnsVerification(controlName?: string): AsyncVerify {
         let updatedDatasourceMetrics = dataset.metrics;
 
         // Filter valid names to only include those that exist in the original datasource
-        const originalDimensionNames = new Set(dataset.columns?.map((col: any) => col.column_name) || []);
-        const originalMetricNames = new Set(dataset.metrics?.map((metric: any) => metric.metric_name) || []);
-        
+        const originalDimensionNames = new Set(
+          dataset.columns?.map((col: any) => col.column_name) || [],
+        );
+        const originalMetricNames = new Set(
+          dataset.metrics?.map((metric: any) => metric.metric_name) || [],
+        );
+
         const filteredValidDimensionNames = new Set(
-          validationResult.dimensions.filter(dim => originalDimensionNames.has(dim))
+          validationResult.dimensions.filter(dim =>
+            originalDimensionNames.has(dim),
+          ),
         );
         const filteredValidMetricNames = new Set(
-          validationResult.metrics.filter(metric => originalMetricNames.has(metric))
+          validationResult.metrics.filter(metric =>
+            originalMetricNames.has(metric),
+          ),
         );
 
         // Update the disabled state logic to use filtered valid names
         if (dataset.columns) {
           updatedDatasourceColumns = dataset.columns.map((column: any) => ({
             ...column,
-            isDisabled: !filteredValidDimensionNames.has(column.column_name || column),
+            isDisabled: !filteredValidDimensionNames.has(
+              column.column_name || column,
+            ),
           }));
         }
 
         if (dataset.metrics) {
           updatedDatasourceMetrics = dataset.metrics.map((metric: any) => ({
             ...metric,
-            isDisabled: !filteredValidMetricNames.has(metric.metric_name || metric),
+            isDisabled: !filteredValidMetricNames.has(
+              metric.metric_name || metric,
+            ),
           }));
         }
 
@@ -502,7 +533,7 @@ export const SEMANTIC_LAYER_CONTROL_FIELDS = [
   'y',
   'size',
   'secondary_metric',
-  
+
   // Dimension controls
   'groupby',
   'columns',

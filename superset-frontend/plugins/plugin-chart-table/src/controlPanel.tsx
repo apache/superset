@@ -311,23 +311,29 @@ const config: ControlPanelConfig = {
                   sharedControls?.metrics?.mapStateToProps;
                 const newState =
                   originalMapStateToProps?.(state, controlState) ?? {};
-                
+
                 // Add table-specific props while preserving semantic layer enhancements
-                newState.columns = datasource?.columns[0]?.hasOwnProperty('filterable')
+                newState.columns = datasource?.columns[0]?.hasOwnProperty(
+                  'filterable',
+                )
                   ? (datasource as Dataset)?.columns?.filter(
                       (c: ColumnMeta) => c.filterable,
                     )
                   : datasource?.columns;
                 newState.savedMetrics = defineSavedMetrics(datasource);
-                newState.selectedMetrics = form_data.metrics ||
+                newState.selectedMetrics =
+                  form_data.metrics ||
                   (form_data.metric ? [form_data.metric] : []);
                 newState.datasource = datasource;
-                newState.externalValidationErrors = validateAggControlValues(controls, [
-                  controls.groupby?.value,
-                  controls.percent_metrics?.value,
-                  controlState.value,
-                ]);
-                
+                newState.externalValidationErrors = validateAggControlValues(
+                  controls,
+                  [
+                    controls.groupby?.value,
+                    controls.percent_metrics?.value,
+                    controlState.value,
+                  ],
+                );
+
                 return newState;
               },
               rerender: ['groupby', 'percent_metrics'],

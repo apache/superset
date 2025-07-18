@@ -151,7 +151,6 @@ export default function withAsyncVerification({
     const [isLoading, setIsLoading] = useState<boolean>(initialIsLoading);
     const { addWarningToast } = restProps.actions;
     const verificationTriggeredByChange = useRef(false);
-    
 
     // memoize `restProps`, so that verification only triggers when material
     // props are actually updated.
@@ -205,7 +204,7 @@ export default function withAsyncVerification({
         if (onChange) {
           onChange(value, { ...otherProps, ...verifiedProps });
         }
-        
+
         // Trigger verification with the new value if verification is enabled
         if (needAsyncVerification && verify) {
           verificationTriggeredByChange.current = true;
@@ -213,7 +212,14 @@ export default function withAsyncVerification({
           verifyProps(verify, propsWithNewValue);
         }
       },
-      [basicOnChange, otherProps, verifiedProps, needAsyncVerification, verify, verifyProps],
+      [
+        basicOnChange,
+        otherProps,
+        verifiedProps,
+        needAsyncVerification,
+        verify,
+        verifyProps,
+      ],
     );
 
     useEffect(() => {
@@ -225,7 +231,13 @@ export default function withAsyncVerification({
         }
         verifyProps(verify, otherProps);
       }
-    }, [needAsyncVerification, verify, otherProps, verifyProps, skipEffectVerification]);
+    }, [
+      needAsyncVerification,
+      verify,
+      otherProps,
+      verifyProps,
+      skipEffectVerification,
+    ]);
 
     return (
       <ControlComponent

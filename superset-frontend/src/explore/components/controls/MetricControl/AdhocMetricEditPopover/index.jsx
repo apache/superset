@@ -19,6 +19,7 @@
 /* eslint-disable camelcase */
 import { PureComponent } from 'react';
 import PropTypes from 'prop-types';
+import { connect } from 'react-redux';
 import {
   isDefined,
   t,
@@ -68,6 +69,8 @@ const propTypes = {
   datasource: PropTypes.object,
   isNewMetric: PropTypes.bool,
   isLabelModified: PropTypes.bool,
+  // Props from Redux
+  reduxDatasource: PropTypes.object,
 };
 
 const defaultProps = {
@@ -90,7 +93,7 @@ const StyledSelect = styled(Select)`
 
 export const SAVED_TAB_KEY = 'SAVED';
 
-export default class AdhocMetricEditPopover extends PureComponent {
+class AdhocMetricEditPopover extends PureComponent {
   // "Saved" is a default tab unless there are no saved metrics for dataset
   defaultActiveTabKey = this.getDefaultTab();
 
@@ -149,16 +152,19 @@ export default class AdhocMetricEditPopover extends PureComponent {
   getDefaultTab() {
     const { adhocMetric, savedMetric, savedMetricsOptions, isNewMetric } =
       this.props;
-    
+
     // For semantic layer datasets, always default to Saved tab if available
     if (this.isSemanticLayer()) {
-      if (Array.isArray(savedMetricsOptions) && savedMetricsOptions.length > 0) {
+      if (
+        Array.isArray(savedMetricsOptions) &&
+        savedMetricsOptions.length > 0
+      ) {
         return SAVED_TAB_KEY;
       }
       // If no saved metrics available, still return SAVED_TAB_KEY to show empty state
       return SAVED_TAB_KEY;
     }
-    
+
     if (isDefined(adhocMetric.column) || isDefined(adhocMetric.sqlExpression)) {
       return adhocMetric.expressionType;
     }
@@ -177,7 +183,9 @@ export default class AdhocMetricEditPopover extends PureComponent {
     if (!datasource || !('database' in datasource) || !datasource.database) {
       return false;
     }
-    return Boolean(datasource.database.engine_information?.supports_dynamic_columns);
+    return Boolean(
+      datasource.database.engine_information?.supports_dynamic_columns,
+    );
   }
 
   onSave() {
@@ -324,10 +332,28 @@ export default class AdhocMetricEditPopover extends PureComponent {
       datasource,
       isNewMetric,
       isLabelModified,
+      reduxDatasource,
       ...popoverProps
     } = this.props;
     const { adhocMetric, savedMetric } = this.state;
     const keywords = sqlKeywords.concat(getColumnKeywords(columns));
+
+    // For semantic layer datasets, filter saved metrics to show only valid ones
+    // Use the isDisabled state set by the main verification system instead of all metrics
+    let filteredSavedMetricsOptions = savedMetricsOptions;
+    if (this.isSemanticLayer() && reduxDatasource?.metrics) {
+      // Create a set of metric names that are NOT disabled in Redux state
+      const validMetricNames = new Set(
+        reduxDatasource.metrics
+          .filter(metric => !metric.isDisabled)
+          .map(metric => metric.metric_name),
+      );
+
+      // Filter savedMetricsOptions to only include valid metrics
+      filteredSavedMetricsOptions = ensureIsArray(savedMetricsOptions).filter(
+        metric => validMetricNames.has(metric.metric_name),
+      );
+    }
 
     const columnValue =
       (adhocMetric.column && adhocMetric.column.column_name) ||
@@ -354,7 +380,10 @@ export default class AdhocMetricEditPopover extends PureComponent {
 
     const savedSelectProps = {
       ariaLabel: t('Select saved metrics'),
-      placeholder: t('%s saved metric(s)', savedMetricsOptions?.length ?? 0),
+      placeholder: t(
+        '%s saved metric(s)',
+        filteredSavedMetricsOptions?.length ?? 0,
+      ),
       value: savedMetric?.metric_name,
       onChange: this.onSavedMetricChange,
       allowClear: true,
@@ -399,10 +428,10 @@ export default class AdhocMetricEditPopover extends PureComponent {
               key: SAVED_TAB_KEY,
               label: t('Saved'),
               children:
-                ensureIsArray(savedMetricsOptions).length > 0 ? (
+                ensureIsArray(filteredSavedMetricsOptions).length > 0 ? (
                   <FormItem label={t('Saved metric')}>
                     <StyledSelect
-                      options={ensureIsArray(savedMetricsOptions).map(
+                      options={ensureIsArray(filteredSavedMetricsOptions).map(
                         savedMetric => ({
                           value: savedMetric.metric_name,
                           label: this.renderMetricOption(savedMetric),
@@ -446,19 +475,24 @@ export default class AdhocMetricEditPopover extends PureComponent {
             },
             {
               key: EXPRESSION_TYPES.SIMPLE,
-              label: extra.disallow_adhoc_metrics || this.isSemanticLayer() ? (
-                <Tooltip
-                  title={
-                    this.isSemanticLayer()
-                      ? t('Simple ad-hoc metrics are not supported for semantic layer datasets')
-                      : t('Simple ad-hoc metrics are not enabled for this dataset')
-                  }
-                >
-                  {t('Simple')}
-                </Tooltip>
-              ) : (
-                t('Simple')
-              ),
+              label:
+                extra.disallow_adhoc_metrics || this.isSemanticLayer() ? (
+                  <Tooltip
+                    title={
+                      this.isSemanticLayer()
+                        ? t(
+                            'Simple ad-hoc metrics are not supported for semantic layer datasets',
+                          )
+                        : t(
+                            'Simple ad-hoc metrics are not enabled for this dataset',
+                          )
+                    }
+                  >
+                    {t('Simple')}
+                  </Tooltip>
+                ) : (
+                  t('Simple')
+                ),
               disabled: extra.disallow_adhoc_metrics || this.isSemanticLayer(),
               children: (
                 <>
@@ -487,19 +521,24 @@ export default class AdhocMetricEditPopover extends PureComponent {
             },
             {
               key: EXPRESSION_TYPES.SQL,
-              label: extra.disallow_adhoc_metrics || this.isSemanticLayer() ? (
-                <Tooltip
-                  title={
-                    this.isSemanticLayer()
-                      ? t('Custom SQL ad-hoc metrics are not supported for semantic layer datasets')
-                      : t('Custom SQL ad-hoc metrics are not enabled for this dataset')
-                  }
-                >
-                  {t('Custom SQL')}
-                </Tooltip>
-              ) : (
-                t('Custom SQL')
-              ),
+              label:
+                extra.disallow_adhoc_metrics || this.isSemanticLayer() ? (
+                  <Tooltip
+                    title={
+                      this.isSemanticLayer()
+                        ? t(
+                            'Custom SQL ad-hoc metrics are not supported for semantic layer datasets',
+                          )
+                        : t(
+                            'Custom SQL ad-hoc metrics are not enabled for this dataset',
+                          )
+                    }
+                  >
+                    {t('Custom SQL')}
+                  </Tooltip>
+                ) : (
+                  t('Custom SQL')
+                ),
               disabled: extra.disallow_adhoc_metrics || this.isSemanticLayer(),
               children: (
                 <SQLEditor
@@ -558,3 +597,10 @@ export default class AdhocMetricEditPopover extends PureComponent {
 }
 AdhocMetricEditPopover.propTypes = propTypes;
 AdhocMetricEditPopover.defaultProps = defaultProps;
+
+// Map Redux state to props to get access to datasource with disabled states
+const mapStateToProps = state => ({
+  reduxDatasource: state.explore?.datasource,
+});
+
+export default connect(mapStateToProps)(AdhocMetricEditPopover);
