@@ -219,6 +219,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         "columns.type_generic",
         "database.backend",
         "database.allow_multi_catalog",
+        "database.engine_information",
         "columns.advanced_data_type",
         "is_managed_externally",
         "uid",

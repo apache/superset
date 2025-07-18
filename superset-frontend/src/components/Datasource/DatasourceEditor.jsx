@@ -73,7 +73,12 @@ import { DatabaseSelector } from '../DatabaseSelector';
 import CollectionTable from './CollectionTable';
 import Fieldset from './Fieldset';
 import Field from './Field';
-import { fetchSyncedColumns, fetchSyncedMetrics, updateColumns, updateMetrics } from './utils';
+import {
+  fetchSyncedColumns,
+  fetchSyncedMetrics,
+  updateColumns,
+  updateMetrics,
+} from './utils';
 
 const extensionsRegistry = getExtensionsRegistry();
 
@@ -1732,7 +1737,8 @@ class DatasourceEditor extends PureComponent {
               ),
               children: (
                 <div>
-                  {this.state.datasource.database?.backend === 'metricflow' && (
+                  {this.state.datasource.database?.engine_information
+                    ?.supports_dynamic_columns && (
                     <ColumnButtonWrapper>
                       <StyledButtonWrapper>
                         <Button

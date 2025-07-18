@@ -155,17 +155,23 @@ export function updateMetrics(prevMetrics, newMetrics, addSuccessToast) {
   });
 
   const deletedMetrics = prevMetrics.filter(
-    metric => !sourceMetricNames.includes(metric.metric_name)
+    metric => !sourceMetricNames.includes(metric.metric_name),
   );
 
   const finalMetrics = [
-    ...prevMetrics.filter(metric => sourceMetricNames.includes(metric.metric_name)),
-    ...newOrUpdatedMetrics.filter(metric => !currentMetrics[metric.metric_name]),
+    ...prevMetrics.filter(metric =>
+      sourceMetricNames.includes(metric.metric_name),
+    ),
+    ...newOrUpdatedMetrics.filter(
+      metric => !currentMetrics[metric.metric_name],
+    ),
   ];
 
   // Update existing metrics with new data
   finalMetrics.forEach(metric => {
-    const sourceMetric = newMetrics.find(m => m.metric_name === metric.metric_name);
+    const sourceMetric = newMetrics.find(
+      m => m.metric_name === metric.metric_name,
+    );
     if (sourceMetric) {
       Object.assign(metric, sourceMetric);
     }
@@ -177,8 +183,8 @@ export function updateMetrics(prevMetrics, newMetrics, addSuccessToast) {
         'Metric %s was added',
         'Metrics %s were added',
         newOrUpdatedMetrics.length,
-        newOrUpdatedMetrics.map(metric => metric.metric_name).join(', ')
-      )
+        newOrUpdatedMetrics.map(metric => metric.metric_name).join(', '),
+      ),
     );
   }
 
@@ -188,8 +194,8 @@ export function updateMetrics(prevMetrics, newMetrics, addSuccessToast) {
         'Metric %s was deleted',
         'Metrics %s were deleted',
         deletedMetrics.length,
-        deletedMetrics.map(metric => metric.metric_name).join(', ')
-      )
+        deletedMetrics.map(metric => metric.metric_name).join(', '),
+      ),
     );
   }
 
