@@ -72,6 +72,7 @@ type FilterControlsProps = {
   onFilterSelectionChange: (filter: Filter, dataMask: DataMask) => void;
   clearAllTriggers?: Record<string, boolean>;
   onClearAllComplete?: (filterId: string) => void;
+  hideHeader?: boolean;
 };
 
 const FilterControls: FC<FilterControlsProps> = ({
@@ -79,6 +80,7 @@ const FilterControls: FC<FilterControlsProps> = ({
   onFilterSelectionChange,
   clearAllTriggers,
   onClearAllComplete,
+  hideHeader = false,
 }) => {
   const theme = useTheme();
   const filterBarOrientation = useSelector<RootState, FilterBarOrientation>(
@@ -140,7 +142,22 @@ const FilterControls: FC<FilterControlsProps> = ({
   const dashboardHasTabs = useDashboardHasTabs();
   const showCollapsePanel = dashboardHasTabs && filtersWithValues.length > 0;
 
-  // State for collapsible sections
+  const availableSectionTypes = useMemo(() => {
+    const types = [];
+
+    if (filtersInScope.length > 0) {
+      types.push('filters');
+    }
+
+    if (chartCustomizationItems.length > 0) {
+      types.push('chartCustomization');
+    }
+
+    return types;
+  }, [filtersInScope.length, chartCustomizationItems.length]);
+
+  const hasOnlyOneSectionType = availableSectionTypes.length === 1;
+
   const [sectionsOpen, setSectionsOpen] = useState({
     filters: true,
     chartCustomization: true,
@@ -153,7 +170,6 @@ const FilterControls: FC<FilterControlsProps> = ({
     }));
   }, []);
 
-  // Shared section styling
   const sectionContainerStyle = useCallback(
     (theme: SupersetTheme) => css`
       margin-bottom: ${theme.sizeUnit * 3}px;
@@ -245,62 +261,66 @@ const FilterControls: FC<FilterControlsProps> = ({
       <>
         {filtersInScope.length > 0 && (
           <div css={sectionContainerStyle}>
-            <div
-              css={sectionHeaderStyle}
-              onClick={() => toggleSection('filters')}
-              onKeyDown={e => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                  e.preventDefault();
-                  toggleSection('filters');
-                }
-              }}
-              role="button"
-              tabIndex={0}
-            >
-              <h4 css={sectionTitleStyle}>{t('Filters')}</h4>
-              <Icons.UpOutlined
-                iconSize="m"
-                css={iconStyle(sectionsOpen.filters, theme)}
-              />
-            </div>
-            {sectionsOpen.filters && (
+            {!hideHeader && (
+              <div
+                css={sectionHeaderStyle}
+                onClick={() => toggleSection('filters')}
+                onKeyDown={e => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    toggleSection('filters');
+                  }
+                }}
+                role="button"
+                tabIndex={0}
+              >
+                <h4 css={sectionTitleStyle}>{t('Filters')}</h4>
+                <Icons.UpOutlined
+                  iconSize="m"
+                  css={iconStyle(sectionsOpen.filters, theme)}
+                />
+              </div>
+            )}
+            {(hideHeader || sectionsOpen.filters) && (
               <div css={sectionContentStyle}>
                 {filtersInScope.map(renderer)}
               </div>
             )}
-            {sectionsOpen.filters && <div css={dividerStyle} />}
+            {(hideHeader || sectionsOpen.filters) && <div css={dividerStyle} />}
           </div>
         )}
 
-        {showCollapsePanel && sectionsOpen.filters && (
+        {showCollapsePanel && (hideHeader || sectionsOpen.filters) && (
           <FiltersOutOfScopeCollapsible
             filtersOutOfScope={filtersOutOfScope}
-            forceRender={hasRequiredFirst}
             renderer={renderer}
+            forceRender={hasRequiredFirst}
           />
         )}
 
         {chartCustomizationItems.length > 0 && (
           <div css={sectionContainerStyle}>
-            <div
-              css={sectionHeaderStyle}
-              onClick={() => toggleSection('chartCustomization')}
-              onKeyDown={e => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                  e.preventDefault();
-                  toggleSection('chartCustomization');
-                }
-              }}
-              role="button"
-              tabIndex={0}
-            >
-              <h4 css={sectionTitleStyle}>{t('Chart Customization')}</h4>
-              <Icons.UpOutlined
-                iconSize="m"
-                css={iconStyle(sectionsOpen.chartCustomization, theme)}
-              />
-            </div>
-            {sectionsOpen.chartCustomization && (
+            {!hideHeader && (
+              <div
+                css={sectionHeaderStyle}
+                onClick={() => toggleSection('chartCustomization')}
+                onKeyDown={e => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    toggleSection('chartCustomization');
+                  }
+                }}
+                role="button"
+                tabIndex={0}
+              >
+                <h4 css={sectionTitleStyle}>{t('Chart Customization')}</h4>
+                <Icons.UpOutlined
+                  iconSize="m"
+                  css={iconStyle(sectionsOpen.chartCustomization, theme)}
+                />
+              </div>
+            )}
+            {(hideHeader || sectionsOpen.chartCustomization) && (
               <div css={sectionContentStyle}>
                 <div css={chartCustomizationContentStyle}>
                   {chartCustomizationItems
@@ -314,7 +334,9 @@ const FilterControls: FC<FilterControlsProps> = ({
                 </div>
               </div>
             )}
-            {sectionsOpen.chartCustomization && <div css={dividerStyle} />}
+            {(hideHeader || sectionsOpen.chartCustomization) && (
+              <div css={dividerStyle} />
+            )}
           </div>
         )}
       </>
@@ -335,6 +357,7 @@ const FilterControls: FC<FilterControlsProps> = ({
       dividerStyle,
       iconStyle,
       chartCustomizationContentStyle,
+      hideHeader,
     ],
   );
 

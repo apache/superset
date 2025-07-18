@@ -26,8 +26,9 @@ import { CrossFilterIndicator } from '../../selectors';
 
 const CrossFiltersVerticalCollapse = (props: {
   crossFilters: CrossFilterIndicator[];
+  hideHeader?: boolean;
 }) => {
-  const { crossFilters } = props;
+  const { crossFilters, hideHeader = false } = props;
   const theme = useTheme();
   const [isOpen, setIsOpen] = useState(true);
 
@@ -116,21 +117,23 @@ const CrossFiltersVerticalCollapse = (props: {
 
   return (
     <div css={sectionContainerStyle}>
-      <div
-        css={sectionHeaderStyle}
-        onClick={toggleSection}
-        onKeyDown={e => {
-          if (e.key === 'Enter' || e.key === ' ') {
-            e.preventDefault();
-            toggleSection();
-          }
-        }}
-        role="button"
-        tabIndex={0}
-      >
-        <h4 css={sectionTitleStyle}>{t('Cross-filters')}</h4>
-        <Icons.UpOutlined iconSize="m" css={iconStyle(isOpen, theme)} />
-      </div>
+      {!hideHeader && (
+        <div
+          css={sectionHeaderStyle}
+          onClick={toggleSection}
+          onKeyDown={e => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              toggleSection();
+            }
+          }}
+          role="button"
+          tabIndex={0}
+        >
+          <h4 css={sectionTitleStyle}>{t('Cross-filters')}</h4>
+          <Icons.UpOutlined iconSize="m" css={iconStyle(isOpen, theme)} />
+        </div>
+      )}
       {isOpen && <div css={sectionContentStyle}>{crossFiltersIndicators}</div>}
       {isOpen && <div css={dividerStyle} data-test="cross-filters-divider" />}
     </div>
