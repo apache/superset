@@ -31,17 +31,20 @@ import {
 } from 'react';
 import { useSelector } from 'react-redux';
 import cx from 'classnames';
-import { styled, t, useTheme } from '@superset-ui/core';
+import { styled, t, useTheme, DataMaskStateWithId } from '@superset-ui/core';
 import { RootState } from 'src/dashboard/types';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { EmptyState, Loading } from '@superset-ui/core/components';
+import { useChartLayoutItems } from 'src/dashboard/util/useChartLayoutItems';
+import { useChartIds } from 'src/dashboard/util/charts/useChartIds';
 import { selectChartCustomizationItems } from '../ChartCustomization/selectors';
-import { getFilterBarTestId } from './utils';
+import { getFilterBarTestId, useChartsVerboseMaps } from './utils';
 import { VerticalBarProps } from './types';
 import Header from './Header';
 import FilterControls from './FilterControls/FilterControls';
 import { ChartCustomizationItem } from '../ChartCustomization/types';
 import CrossFiltersVertical from './CrossFilters/Vertical';
+import crossFiltersSelector from './CrossFilters/selectors';
 
 const BarWrapper = styled.div<{ width: number }>`
   width: ${({ theme }) => theme.sizeUnit * 8}px;
@@ -168,6 +171,44 @@ const VerticalFilterBar: FC<VerticalBarProps> = ({
     ChartCustomizationItem[]
   >(state => selectChartCustomizationItems(state));
 
+  const dataMask = useSelector<RootState, DataMaskStateWithId>(
+    state => state.dataMask,
+  );
+  const chartIds = useChartIds();
+  const chartLayoutItems = useChartLayoutItems();
+  const verboseMaps = useChartsVerboseMaps();
+  const selectedCrossFilters = crossFiltersSelector({
+    dataMask,
+    chartIds,
+    chartLayoutItems,
+    verboseMaps,
+  });
+
+  // Determine available section types
+  const availableSectionTypes = useMemo(() => {
+    const types = [];
+
+    if (filterValues.length > 0) {
+      types.push('filters');
+    }
+
+    if (chartCustomizationItems.length > 0) {
+      types.push('chartCustomization');
+    }
+
+    if (selectedCrossFilters.length > 0) {
+      types.push('crossFilters');
+    }
+
+    return types;
+  }, [
+    filterValues.length,
+    chartCustomizationItems.length,
+    selectedCrossFilters.length,
+  ]);
+
+  const hasOnlyOneSectionType = availableSectionTypes.length === 1;
+
   const filterControls = useMemo(() => {
     const hasFiltersOrCustomizations =
       filterValues.length > 0 || chartCustomizationItems.length > 0;
@@ -177,6 +218,7 @@ const VerticalFilterBar: FC<VerticalBarProps> = ({
         <FilterControls
           dataMaskSelected={dataMaskSelected}
           onFilterSelectionChange={onSelectionChange}
+          hideHeader={hasOnlyOneSectionType}
         />
       </FilterControlsWrapper>
     ) : (
@@ -200,6 +242,7 @@ const VerticalFilterBar: FC<VerticalBarProps> = ({
     filterValues.length,
     onSelectionChange,
     chartCustomizationItems.length,
+    hasOnlyOneSectionType,
   ]);
 
   return (
@@ -241,7 +284,7 @@ const VerticalFilterBar: FC<VerticalBarProps> = ({
           ) : (
             <div css={tabPaneStyle} onScroll={onScroll}>
               <>
-                <CrossFiltersVertical />
+                <CrossFiltersVertical hideHeader={hasOnlyOneSectionType} />
                 {filterControls}
               </>
             </div>
