@@ -54,7 +54,6 @@ export enum FeatureFlag {
   SshTunneling = 'SSH_TUNNELING',
   TaggingSystem = 'TAGGING_SYSTEM',
   ThemeEnableDarkThemeSwitch = 'THEME_ENABLE_DARK_THEME_SWITCH',
-  ThemeAllowThemeEditorBeta = 'THEME_ALLOW_THEME_EDITOR_BETA',
   Thumbnails = 'THUMBNAILS',
   UseAnalogousColors = 'USE_ANALOGOUS_COLORS',
   ForceSqlLabRunAsync = 'SQLLAB_FORCE_RUN_ASYNC',

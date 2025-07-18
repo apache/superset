@@ -17,9 +17,10 @@
  * under the License.
  */
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { useSelector } from 'react-redux';
+import { useSelector, useDispatch } from 'react-redux';
 import { Menu } from '@superset-ui/core/components/Menu';
-import { t } from '@superset-ui/core';
+import { t, SupersetClient } from '@superset-ui/core';
+import { useThemeContext } from 'src/theme/ThemeProvider';
 import { isEmpty } from 'lodash';
 import { URL_PARAMS } from 'src/constants';
 import ShareMenuItems from 'src/dashboard/components/menu/ShareMenuItems';
@@ -36,6 +37,7 @@ import { getActiveFilters } from 'src/dashboard/util/activeDashboardFilters';
 import { getUrlParam } from 'src/utils/urlUtils';
 import { MenuKeys, RootState } from 'src/dashboard/types';
 import { HeaderDropdownProps } from 'src/dashboard/components/Header/types';
+import { updateDashboardTheme } from 'src/dashboard/actions/dashboardInfo';
 
 export const useHeaderActionsMenu = ({
   customCss,
@@ -71,6 +73,8 @@ export const useHeaderActionsMenu = ({
   logEvent,
   setCurrentReportDeleting,
 }: HeaderDropdownProps) => {
+  const dispatch = useDispatch();
+  const themeContext = useThemeContext();
   const [css, setCss] = useState(customCss || '');
   const [showReportSubMenu, setShowReportSubMenu] = useState<boolean | null>(
     null,
@@ -79,12 +83,37 @@ export const useHeaderActionsMenu = ({
   const directPathToChild = useSelector(
     (state: RootState) => state.dashboardState.directPathToChild,
   );
+
   useEffect(() => {
     if (customCss !== css) {
       setCss(customCss || '');
       injectCustomCss(customCss);
     }
   }, [css, customCss]);
+
+  const handleThemeChange = useCallback(
+    async (themeId: number | null) => {
+      // Save the theme to the dashboard
+      dispatch(updateDashboardTheme(themeId));
+
+      // Apply the theme dynamically
+      if (themeId) {
+        try {
+          const response = await SupersetClient.get({
+            endpoint: `/api/v1/theme/${themeId}`,
+          });
+          const themeConfig = JSON.parse(response.json.result.json_data);
+          themeContext.setTemporaryTheme(themeConfig);
+        } catch (error) {
+          console.error('Failed to fetch and apply theme:', error);
+        }
+      } else {
+        // Clear the theme
+        themeContext.clearLocalOverrides();
+      }
+    },
+    [dispatch, themeContext],
+  );
 
   const handleMenuClick = useCallback(
     ({ key }: { key: string }) => {
@@ -194,10 +223,12 @@ export const useHeaderActionsMenu = ({
         {editMode && (
           <Menu.Item key={MenuKeys.EditCss}>
             <CssEditor
-              triggerNode={<div>{t('Edit CSS')}</div>}
+              triggerNode={<div>{t('Theme & CSS')}</div>}
               initialCss={css}
               onChange={changeCss}
               addDangerToast={addDangerToast}
+              currentThemeId={dashboardInfo.theme?.id || null}
+              onThemeChange={handleThemeChange}
             />
           </Menu.Item>
         )}

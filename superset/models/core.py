@@ -121,6 +121,17 @@ class CssTemplate(AuditMixinNullable, UUIDMixin, Model):
     css = Column(utils.MediumText(), default="")
 
 
+class Theme(AuditMixinNullable, ImportExportMixin, Model):
+    """Themes for dashboards"""
+
+    __tablename__ = "themes"
+    id = Column(Integer, primary_key=True)
+    theme_name = Column(String(250))
+    json_data = Column(utils.MediumText(), default="")
+
+    export_fields = ["theme_name", "json_data"]
+
+
 class ConfigurationMethod(StrEnum):
     SQLALCHEMY_FORM = "sqlalchemy_form"
     DYNAMIC_FORM = "dynamic_form"

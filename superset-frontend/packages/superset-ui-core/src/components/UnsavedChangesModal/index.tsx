@@ -109,6 +109,7 @@ export const UnsavedChangesModal: FC<UnsavedChangesModalProps> = ({
         <StyledDiscardBtn
           htmlType="button"
           buttonSize="small"
+          buttonStyle="secondary"
           onClick={onConfirmNavigation}
         >
           {t('Discard')}

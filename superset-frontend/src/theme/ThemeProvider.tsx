@@ -71,6 +71,31 @@ export function SupersetThemeProvider({
     [themeController],
   );
 
+  const setCrudTheme = useCallback(
+    (themeId: string | null) => themeController.setCrudTheme(themeId),
+    [themeController],
+  );
+
+  const setTemporaryTheme = useCallback(
+    (config: AnyThemeConfig) => themeController.setTemporaryTheme(config),
+    [themeController],
+  );
+
+  const clearLocalOverrides = useCallback(
+    () => themeController.clearLocalOverrides(),
+    [themeController],
+  );
+
+  const getCurrentCrudThemeId = useCallback(
+    () => themeController.getCurrentCrudThemeId(),
+    [themeController],
+  );
+
+  const hasDevOverride = useCallback(
+    () => themeController.hasDevOverride(),
+    [themeController],
+  );
+
   const contextValue = useMemo(
     () => ({
       theme: currentTheme,
@@ -78,8 +103,24 @@ export function SupersetThemeProvider({
       setTheme,
       setThemeMode,
       resetTheme,
+      setCrudTheme,
+      setTemporaryTheme,
+      clearLocalOverrides,
+      getCurrentCrudThemeId,
+      hasDevOverride,
     }),
-    [currentTheme, currentThemeMode, setTheme, setThemeMode, resetTheme],
+    [
+      currentTheme,
+      currentThemeMode,
+      setTheme,
+      setThemeMode,
+      resetTheme,
+      setCrudTheme,
+      setTemporaryTheme,
+      clearLocalOverrides,
+      getCurrentCrudThemeId,
+      hasDevOverride,
+    ],
   );
 
   return (

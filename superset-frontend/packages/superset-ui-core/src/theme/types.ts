@@ -419,4 +419,9 @@ export interface ThemeContextType {
   setTheme: (config: AnyThemeConfig) => void;
   setThemeMode: (newMode: ThemeMode) => void;
   resetTheme: () => void;
+  setCrudTheme: (themeId: string | null) => Promise<void>;
+  setTemporaryTheme: (config: AnyThemeConfig) => void;
+  clearLocalOverrides: () => void;
+  getCurrentCrudThemeId: () => string | null;
+  hasDevOverride: () => boolean;
 }

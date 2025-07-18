@@ -1,3 +1,5 @@
+import Owner from 'src/types/Owner';
+
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -16,28 +18,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import Owner from './Owner';
-import Role from './Role';
-
-export interface Dashboard {
-  id: number;
-  slug?: string | null;
-  url: string;
-  dashboard_title: string;
-  thumbnail_url: string | null;
-  published: boolean;
-  css?: string | null;
-  json_metadata?: string | null;
-  position_json?: string | null;
-  changed_by_name: string;
-  changed_by: Owner;
-  changed_on: string;
-  charts: string[]; // just chart names, unfortunately...
-  owners: Owner[];
-  roles: Role[];
-  theme?: {
-    id: number;
-    theme_name: string;
-    json_data: string;
-  } | null;
-}
+export type ThemeObject = {
+  id?: number;
+  changed_on_delta_humanized?: string;
+  created_on?: string;
+  changed_by?: Owner;
+  created_by?: Owner;
+  json_data?: string;
+  theme_name: string;
+};
