@@ -70,9 +70,41 @@ export default function downloadAsImage(
       return true;
     };
 
+    // Check if element is scrollable
+    const isScrollable = hasScrollableDescendant(elementToPrint as HTMLElement);
+    let targetElement = elementToPrint as HTMLElement;
+    let cloned: HTMLElement | null = null;
+    const extraPadding = theme?.sizeUnit ? theme.sizeUnit * 2 : 16;
+    if (isScrollable) {
+      cloned = elementToPrint.cloneNode(true) as HTMLElement;
+      cloned.style.overflow = 'visible';
+      cloned.style.maxHeight = 'none';
+      cloned.style.height = 'auto';
+      cloned.style.width = `${elementToPrint.scrollWidth}px`;
+
+      cloned.querySelectorAll<HTMLElement>('*').forEach(el => {
+        // eslint-disable-next-line no-param-reassign
+        el.style.overflow = 'visible';
+        // eslint-disable-next-line no-param-reassign
+        el.style.maxHeight = 'none';
+        // eslint-disable-next-line no-param-reassign
+        el.style.height = 'auto';
+      });
+
+      // Render off-screen
+      cloned.style.position = 'absolute';
+      cloned.style.top = '-9999px';
+      cloned.style.left = '-9999px';
+      document.body.appendChild(cloned);
+
+      targetElement = cloned;
+    }
+
     return domToImage
-      .toJpeg(elementToPrint, {
+      .toJpeg(targetElement, {
         bgcolor: theme?.colors.grayscale.light4,
+        height: targetElement.scrollHeight + extraPadding,
+        width: targetElement.scrollWidth,
         filter,
       })
       .then((dataUrl: string) => {
@@ -83,6 +115,38 @@ export default function downloadAsImage(
       })
       .catch((e: Error) => {
         console.error('Creating image failed', e);
+      })
+      .finally(() => {
+        if (cloned) {
+          document.body.removeChild(cloned);
+        }
       });
   };
+}
+
+/**
+ * Check if an element or any of its child elements is scrollable
+ *
+ * @param el - The HTMLElement to check for scrollable descendants.
+ * @returns `true` if any descendant has scrollable overflow; otherwise `false`.
+ */
+function hasScrollableDescendant(el: HTMLElement): boolean {
+  const treeWalker = document.createTreeWalker(el, NodeFilter.SHOW_ELEMENT);
+  let node = treeWalker.nextNode();
+
+  while (node) {
+    const element = node as HTMLElement;
+
+    // Skip if element is .header-controls or inside .header-controls
+    if (element.closest('.header-controls')) {
+      node = treeWalker.nextNode();
+      continue;
+    }
+
+    if (element.scrollHeight > element.clientHeight) {
+      return true;
+    }
+    node = treeWalker.nextNode();
+  }
+  return false;
 }
