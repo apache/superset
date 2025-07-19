@@ -128,3 +128,6 @@ docker/*local*
 test-report.html
 superset/static/stats/statistics.html
 .aider*
+
+# LLM-related
+CLAUDE.local.md
