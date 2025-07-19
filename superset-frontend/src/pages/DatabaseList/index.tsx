@@ -16,12 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import {
-  getExtensionsRegistry,
-  styled,
-  SupersetClient,
-  t,
-} from '@superset-ui/core';
+import { getExtensionsRegistry, SupersetClient, t } from '@superset-ui/core';
 import { useState, useMemo, useEffect } from 'react';
 import rison from 'rison';
 import { useSelector } from 'react-redux';
@@ -61,6 +56,7 @@ import UploadDataModal from 'src/features/databases/UploadDataModel';
 import { DatabaseObject } from 'src/features/databases/types';
 import { QueryObjectColumns } from 'src/views/CRUD/types';
 import { WIDER_DROPDOWN_WIDTH } from 'src/components/ListView/utils';
+import IconButton from 'src/dashboard/components/IconButton';
 
 const extensionsRegistry = getExtensionsRegistry();
 const DatabaseDeleteRelatedExtension = extensionsRegistry.get(
@@ -87,14 +83,6 @@ interface DatabaseListProps {
     lastName: string;
   };
 }
-
-const Actions = styled.div`
-  .action-button {
-    display: inline-block;
-    height: 100%;
-    color: ${({ theme }) => theme.colorIcon};
-  }
-`;
 
 function BooleanDisplay({ value }: { value: Boolean }) {
   return value ? (
@@ -486,23 +474,19 @@ function DatabaseList({
             return null;
           }
           return (
-            <Actions className="actions">
+            <div className="actions">
               {canDelete && (
-                <span
-                  role="button"
-                  tabIndex={0}
-                  className="action-button"
-                  data-test="database-delete"
-                  onClick={handleDelete}
+                <Tooltip
+                  id="delete-action-tooltip"
+                  title={t('Delete database')}
+                  placement="bottom"
                 >
-                  <Tooltip
-                    id="delete-action-tooltip"
-                    title={t('Delete database')}
-                    placement="bottom"
-                  >
-                    <Icons.DeleteOutlined iconSize="l" />
-                  </Tooltip>
-                </span>
+                  <IconButton
+                    data-test="database-delete"
+                    onClick={handleDelete}
+                    icon={<Icons.DeleteOutlined iconSize="l" />}
+                  />
+                </Tooltip>
               )}
               {canExport && (
                 <Tooltip
@@ -510,14 +494,11 @@ function DatabaseList({
                   title={t('Export')}
                   placement="bottom"
                 >
-                  <span
-                    role="button"
-                    tabIndex={0}
-                    className="action-button"
+                  <IconButton
+                    data-test="database-export"
                     onClick={handleExport}
-                  >
-                    <Icons.UploadOutlined iconSize="l" />
-                  </span>
+                    icon={<Icons.UploadOutlined iconSize="l" />}
+                  />
                 </Tooltip>
               )}
               {canEdit && (
@@ -526,15 +507,13 @@ function DatabaseList({
                   title={t('Edit')}
                   placement="bottom"
                 >
-                  <span
-                    role="button"
+                  <IconButton
                     data-test="database-edit"
-                    tabIndex={0}
-                    className="action-button"
                     onClick={handleEdit}
-                  >
-                    <Icons.EditOutlined data-test="edit-alt" iconSize="l" />
-                  </span>
+                    icon={
+                      <Icons.EditOutlined data-test="edit-alt" iconSize="l" />
+                    }
+                  />
                 </Tooltip>
               )}
               {canEdit && (
@@ -543,18 +522,14 @@ function DatabaseList({
                   title={t('Sync Permissions')}
                   placement="bottom"
                 >
-                  <span
-                    role="button"
+                  <IconButton
                     data-test="database-sync-perm"
-                    tabIndex={0}
-                    className="action-button"
                     onClick={handleSync}
-                  >
-                    <Icons.SyncOutlined iconSize="l" />
-                  </span>
+                    icon={<Icons.SyncOutlined iconSize="l" />}
+                  />
                 </Tooltip>
               )}
-            </Actions>
+            </div>
           );
         },
         Header: t('Actions'),

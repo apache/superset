@@ -49,6 +49,7 @@ const mockCharts = [...new Array(3)].map((_, i) => ({
   viz_type: VizType.Bar,
   datasource_name: `ds${i}`,
   thumbnail_url: '/thumbnail',
+  owners: [{ id: 1, first_name: 'admin', last_name: 'admin_user' }],
 }));
 
 const mockUser = {

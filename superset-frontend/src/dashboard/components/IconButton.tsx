@@ -18,20 +18,35 @@
  */
 import { MouseEventHandler } from 'react';
 import { styled } from '@superset-ui/core';
+import { Theme } from '@emotion/react';
 
 interface IconButtonProps {
   icon: JSX.Element;
   label?: string;
   onClick: MouseEventHandler<HTMLDivElement>;
+  disabled?: boolean;
 }
 
-const StyledDiv = styled.div`
+const StyledDiv = styled.div<{ disabled?: boolean }>`
   display: flex;
   align-items: center;
   cursor: pointer;
   color: ${({ theme }) => theme.colors.grayscale.base};
+  padding: ${({ theme }) => theme.paddingXXS}px;
+  border-radius: ${({ theme }) => theme.borderRadiusXS}px;
+
+  ${({ disabled, theme }) => (disabled ? disabledCss : activeCss({ theme }))}
+`;
+
+const disabledCss = `
+  cursor: not-allowed;
+  opacity: 0.5;
+`;
+
+const activeCss = ({ theme }: { theme: Theme }) => `
   &:hover {
-    color: ${({ theme }) => theme.colorPrimary};
+    color: ${theme.colorPrimary};
+    background: ${theme.colorBgTextHover};
   }
 `;
 
@@ -39,13 +54,16 @@ const StyledSpan = styled.span`
   margin-left: ${({ theme }) => theme.sizeUnit * 2}px;
 `;
 
-const IconButton = ({ icon, label, onClick }: IconButtonProps) => (
+const IconButton = ({ icon, label, onClick, disabled }: IconButtonProps) => (
   <StyledDiv
     tabIndex={0}
     role="button"
+    disabled={disabled}
     onClick={e => {
       e.preventDefault();
-      onClick(e);
+      if (!disabled) {
+        onClick(e);
+      }
     }}
   >
     {icon}
