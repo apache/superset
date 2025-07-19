@@ -130,14 +130,14 @@ InputType = TypeVar("InputType")  # pylint: disable=invalid-name
 ADHOC_FILTERS_REGEX = re.compile("^adhoc_filters")
 
 TYPE_MAPPING = {
-    r"INT": "integer",
-    r"CHAR|TEXT|VARCHAR": "string",
-    r"DECIMAL|NUMERIC|FLOAT|DOUBLE": "floating",
-    r"BOOL": "boolean",
-    r"DATE|TIME": "datetime64",
+    re.compile(r"INT", re.IGNORECASE): "integer",
+    re.compile(r"CHAR|TEXT|VARCHAR", re.IGNORECASE): "string",
+    re.compile(r"DECIMAL|NUMERIC|FLOAT|DOUBLE", re.IGNORECASE): "floating",
+    re.compile(r"BOOL", re.IGNORECASE): "boolean",
+    re.compile(r"DATE|TIME", re.IGNORECASE): "datetime64",
 }
 
-MetricMapType = {
+Metric_Map_Type = {
     "SUM": "floating",
     "AVG": "floating",
     "COUNT": "floating",
@@ -1553,7 +1553,7 @@ def map_sql_type_to_inferred_type(sql_type: Optional[str]) -> str:
 
     # Use regular expressions to check the SQL type. The first match is returned.
     for pattern, inferred_type in TYPE_MAPPING.items():
-        if re.search(pattern, sql_type, re.IGNORECASE):
+        if pattern.search(sql_type):
             return inferred_type
 
     return "string"  # If no match is found, return "string" as default
@@ -1593,7 +1593,7 @@ def get_metric_type_from_column(column: Any, datasource: BaseDatasource | Query)
 
     if match:
         operation = match.group(1)
-        return MetricMapType.get(operation, "")
+        return Metric_Map_Type.get(operation, "")
 
     logger.warning("Unexpected metric expression type: %s", expression)
     return ""
