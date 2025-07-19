@@ -43,6 +43,7 @@ export type EchartsFunnelFormData = QueryFormData &
     sort: 'descending' | 'ascending' | 'none' | undefined;
     orient: 'vertical' | 'horizontal' | undefined;
     percentCalculationType: PercentCalcType;
+    showLegendToggle: boolean;
   };
 
 export enum EchartsFunnelLabelTypeType {
