@@ -773,12 +773,8 @@ function ChartList(props: ChartListProps) {
   }
   if (canCreate) {
     subMenuButtons.push({
-      name: (
-        <>
-          <Icons.PlusOutlined iconSize="m" />
-          <span>{t('Chart')}</span>
-        </>
-      ),
+      icon: <Icons.PlusOutlined iconSize="m" />,
+      name: <span>{t('Chart')}</span>,
       buttonStyle: 'primary',
       onClick: () => {
         history.push('/chart/add');
