@@ -95,10 +95,11 @@ describe('Dashboards list', () => {
         .should('have.length', 6);
       cy.getBySel('bulk-select-copy').contains('5 Selected');
       cy.getBySel('bulk-select-action')
-        .should('have.length', 2)
+        .should('have.length', 3)
         .then($btns => {
           expect($btns).to.contain('Delete');
           expect($btns).to.contain('Export');
+          expect($btns).to.contain('Certify');
         });
       cy.getBySel('bulk-select-deselect-all').click();
       cy.get('input[type="checkbox"]:checked').should('have.length', 0);
@@ -123,10 +124,11 @@ describe('Dashboards list', () => {
       cy.getBySel('styled-card').click({ multiple: true });
       cy.getBySel('bulk-select-copy').contains('5 Selected');
       cy.getBySel('bulk-select-action')
-        .should('have.length', 2)
+        .should('have.length', 3)
         .then($btns => {
           expect($btns).to.contain('Delete');
           expect($btns).to.contain('Export');
+          expect($btns).to.contain('Certify');
         });
       cy.getBySel('bulk-select-deselect-all').click();
       cy.getBySel('bulk-select-copy').contains('0 Selected');
