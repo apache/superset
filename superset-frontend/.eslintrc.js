@@ -388,7 +388,6 @@ module.exports = {
               'Default React import is not required due to automatic JSX runtime in React 16.4',
           },
         ],
-        'no-restricted-imports': 0,
       },
     },
     {
