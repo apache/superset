@@ -273,12 +273,8 @@ function GroupsList({ user }: GroupsListProps) {
   if (isAdmin) {
     subMenuButtons.push(
       {
-        name: (
-          <span className="ant-btn-icon">
-            <Icons.PlusOutlined iconSize="m" />
-            {t('Group')}
-          </span>
-        ),
+        name: t('Group'),
+        icon: <Icons.PlusOutlined iconSize="m" />,
         buttonStyle: 'primary',
         onClick: () => {
           openModal(ModalType.ADD);
@@ -353,12 +349,8 @@ function GroupsList({ user }: GroupsListProps) {
       buttonAction: () => {
         openModal(ModalType.ADD);
       },
-      buttonText: (
-        <span className="ant-btn-icon">
-          <Icons.PlusOutlined iconSize="m" />
-          {t('Group')}
-        </span>
-      ),
+      buttonIcon: <Icons.PlusOutlined iconSize="m" />,
+      buttonText: t('Group'),
     }),
   };
 

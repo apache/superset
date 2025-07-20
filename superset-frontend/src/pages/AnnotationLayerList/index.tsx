@@ -283,12 +283,8 @@ function AnnotationLayersList({
     title: t('No annotation layers yet'),
     image: 'filter-results.svg',
     buttonAction: () => handleAnnotationLayerEdit(null),
-    buttonText: (
-      <span className="ant-btn-icon">
-        <Icons.PlusOutlined iconSize="m" />
-        {t('Annotation layer')}
-      </span>
-    ),
+    buttonText: t('Annotation layer'),
+    buttonIcon: <Icons.PlusOutlined iconSize="m" />,
   };
 
   const onLayerAdd = (id?: number) => {

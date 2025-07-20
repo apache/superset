@@ -89,12 +89,8 @@ export function Button(props: ButtonProps) {
   const element = children as ReactElement;
 
   let renderedChildren = [];
-  if (
-    element &&
-    (element.type === Fragment ||
-      element.type === 'span' ||
-      element?.props?.css !== undefined)
-  ) {
+
+  if (element && element.type === Fragment) {
     renderedChildren = Children.toArray(element.props.children);
   } else {
     renderedChildren = Children.toArray(children);
@@ -132,13 +128,10 @@ export function Button(props: ButtonProps) {
         minWidth: cta ? theme.sizeUnit * 36 : undefined,
         minHeight: cta ? theme.sizeUnit * 8 : undefined,
         marginLeft: 0,
-        '& > .ant-btn-icon': {
-          display: 'inline-flex',
-        },
         '& + .superset-button': {
           marginLeft: theme.sizeUnit * 2,
         },
-        '& svg': {
+        '& > span > :first-of-type': {
           marginRight: firstChildMargin,
         },
       }}

@@ -249,12 +249,8 @@ function RowLevelSecurityList(props: RLSProps) {
     title: t('No Rules yet'),
     image: 'filter-results.svg',
     buttonAction: () => handleRuleEdit(null),
-    buttonText: canEdit ? (
-      <span className="ant-btn-icon">
-        <Icons.PlusOutlined iconSize="m" data-test="add-rule-empty" />
-        {t('Rule')}
-      </span>
-    ) : null,
+    buttonIcon: canEdit ? <Icons.PlusOutlined iconSize="m" /> : undefined,
+    buttonText: canEdit ? t('Rule') : null,
   };
 
   const filters: ListViewFilters = useMemo(
@@ -316,12 +312,8 @@ function RowLevelSecurityList(props: RLSProps) {
 
   if (canWrite) {
     subMenuButtons.push({
-      name: (
-        <span className="ant-btn-icon">
-          <Icons.PlusOutlined iconSize="m" data-test="add-rule" />
-          {t('Rule')}
-        </span>
-      ),
+      name: t('Rule'),
+      icon: <Icons.PlusOutlined iconSize="m" data-test="add-rule" />,
       buttonStyle: 'primary',
       onClick: () => handleRuleEdit(null),
     });
