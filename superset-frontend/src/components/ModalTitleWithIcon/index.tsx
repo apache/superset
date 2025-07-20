@@ -1,6 +1,7 @@
 import { isValidElement, cloneElement } from 'react';
 import { css, useTheme, t } from '@superset-ui/core';
 import { Typography, Icons } from '@superset-ui/core/components';
+import type { IconType } from '@superset-ui/core/components/Icons/types';
 
 type EditModeTitleConfig = {
   /** Indicates whether the component is in edit mode */
@@ -29,7 +30,7 @@ type ModalTitleWithIconProps = {
    * - `EditOutlined` if `isEditMode === true`
    * - `PlusOutlined` if `isEditMode === false`
    */
-  icon?: React.ReactNode;
+  icon?: IconType;
 
   /**
    * Test ID used for end-to-end or unit testing (e.g. Cypress, Testing Library).
@@ -66,7 +67,7 @@ export const ModalTitleWithIcon = ({
     : title;
 
   const renderedIcon = isValidElement(icon) ? (
-    cloneElement(icon, { iconSize: 'l', css: iconStyles })
+    cloneElement(icon as React.ReactElement, { iconSize: 'l', css: iconStyles })
   ) : editModeConfig ? (
     editModeConfig.isEditMode ? (
       <Icons.EditOutlined iconSize="l" css={iconStyles} />

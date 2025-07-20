@@ -21,7 +21,6 @@ import {
   styled,
   SupersetTheme,
   getExtensionsRegistry,
-  useTheme,
 } from '@superset-ui/core';
 
 import {

@@ -39,7 +39,6 @@ import {
   FeatureFlag,
   getClientErrorObject,
   ensureIsArray,
-  useTheme,
 } from '@superset-ui/core';
 import Chart, { Slice } from 'src/types/Chart';
 import withToasts from 'src/components/MessageToasts/withToasts';
