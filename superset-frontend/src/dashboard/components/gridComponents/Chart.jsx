@@ -37,6 +37,7 @@ import {
 import { postFormData } from 'src/explore/exploreUtils/formData';
 import { URL_PARAMS } from 'src/constants';
 import { enforceSharedLabelsColorsArray } from 'src/utils/colorScheme';
+import exportPivotExcel from 'src/utils/downloadAsPivotExcel';
 
 import SliceHeader from '../SliceHeader';
 import MissingChart from '../MissingChart';
@@ -471,6 +472,7 @@ const Chart = props => {
         formData={formData}
         width={width}
         height={getHeaderHeight()}
+        exportPivotExcel={exportPivotExcel}
       />
 
       {/*

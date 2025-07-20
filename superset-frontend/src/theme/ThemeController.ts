@@ -101,13 +101,14 @@ export class ThemeController {
     const {
       storage = new LocalStorageAdapter(),
       modeStorageKey = STORAGE_KEYS.THEME_MODE,
-      themeObject: fallbackThemeObject = supersetThemeObject,
+      themeObject = supersetThemeObject,
       defaultTheme = (supersetThemeObject.theme as AnyThemeConfig) ?? {},
       onChange = null,
     } = options;
 
     this.storage = storage;
     this.modeStorageKey = modeStorageKey;
+    this.themeObject = themeObject;
 
     // Initialize bootstrap data and themes
     const {
@@ -139,16 +140,14 @@ export class ThemeController {
 
     // Initialize theme and mode
     this.currentMode = this.determineInitialMode();
-    const { theme, themeObject } =
-      this.createInitialThemeObject(fallbackThemeObject);
-
-    this.themeObject = themeObject;
+    const initialTheme =
+      this.getThemeForMode(this.currentMode) || this.defaultTheme;
 
     // Setup change callback
     if (onChange) this.onChangeCallbacks.add(onChange);
 
     // Apply initial theme and persist mode
-    this.applyTheme(theme);
+    this.applyTheme(initialTheme);
     this.persistMode();
   }
 
@@ -158,7 +157,12 @@ export class ThemeController {
    * Cleans up listeners and references. Should be called when the controller is no longer needed.
    */
   public destroy(): void {
-    this.mediaQuery.removeEventListener('change', this.handleSystemThemeChange);
+    if (this.mediaQuery)
+      this.mediaQuery.removeEventListener(
+        'change',
+        this.handleSystemThemeChange,
+      );
+
     this.onChangeCallbacks.clear();
   }
 
@@ -329,8 +333,12 @@ export class ThemeController {
    * Initializes media query listeners if OS preference is allowed
    */
   private initializeMediaQueryListener(): void {
-    this.mediaQuery = window.matchMedia(MEDIA_QUERY_DARK_SCHEME);
-    this.mediaQuery.addEventListener('change', this.handleSystemThemeChange);
+    try {
+      this.mediaQuery = window.matchMedia(MEDIA_QUERY_DARK_SCHEME);
+      this.mediaQuery.addEventListener('change', this.handleSystemThemeChange);
+    } catch (error) {
+      console.warn('Failed to initialize media query listener:', error);
+    }
   }
 
   /**
@@ -347,9 +355,9 @@ export class ThemeController {
       settings: themeSettings,
     } = theme;
 
-    const hasValidDefault: boolean = this.hasKeys(defaultTheme);
-    const hasValidDark: boolean = this.hasKeys(darkTheme);
-    const hasValidSettings: boolean = this.hasKeys(themeSettings);
+    const hasValidDefault: boolean = this.isNonEmptyObject(defaultTheme);
+    const hasValidDark: boolean = this.isNonEmptyObject(darkTheme);
+    const hasValidSettings: boolean = this.isNonEmptyObject(themeSettings);
 
     return {
       bootstrapDefaultTheme: hasValidDefault ? defaultTheme : null,
@@ -360,9 +368,11 @@ export class ThemeController {
   }
 
   /**
-   * Checks if an object has keys (not empty).
+   * Checks if an object is non-empty (has at least one property).
    */
-  private hasKeys(obj: Record<string, any> | undefined | null): boolean {
+  private isNonEmptyObject(
+    obj: Record<string, any> | undefined | null,
+  ): boolean {
     return Boolean(
       obj && typeof obj === 'object' && Object.keys(obj).length > 0,
     );
@@ -417,28 +427,7 @@ export class ThemeController {
         ? this.darkTheme || this.defaultTheme
         : this.defaultTheme;
 
-    return normalizeThemeConfig(selectedTheme);
-  }
-
-  /**
-   * Creates the initial theme object.
-   * This sets the theme based on the current mode and ensures it has the correct algorithm.
-   * @param defaultThemeObject - The fallback theme object to use if no theme is set
-   * @returns An object containing the theme and the themeObject
-   */
-  private createInitialThemeObject(defaultThemeObject: Theme): {
-    theme: AnyThemeConfig;
-    themeObject: Theme;
-  } {
-    let theme: AnyThemeConfig | null = this.getThemeForMode(this.currentMode);
-    theme = theme || (defaultThemeObject.theme as AnyThemeConfig);
-
-    const normalizedTheme = this.normalizeTheme(theme);
-
-    return {
-      theme: normalizedTheme,
-      themeObject: Theme.fromConfig(normalizedTheme),
-    };
+    return selectedTheme;
   }
 
   /**

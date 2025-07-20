@@ -43,6 +43,7 @@ import {
   LOG_ACTIONS_CHART_DOWNLOAD_AS_CSV_PIVOTED,
   LOG_ACTIONS_CHART_DOWNLOAD_AS_XLS,
 } from 'src/logger/LogUtils';
+import exportPivotExcel from 'src/utils/downloadAsPivotExcel';
 import ViewQueryModal from '../controls/ViewQueryModal';
 import EmbedCodeContent from '../EmbedCodeContent';
 import DashboardsSubMenu from './DashboardsSubMenu';
@@ -67,6 +68,7 @@ const MENU_KEYS = {
   DELETE_REPORT: 'delete_report',
   VIEW_QUERY: 'view_query',
   RUN_IN_SQL_LAB: 'run_in_sql_lab',
+  EXPORT_TO_PIVOT_XLSX: 'export_to_pivot_xlsx',
 };
 
 const VIZ_TYPES_PIVOTABLE = [VizType.PivotTable];
@@ -248,6 +250,16 @@ export const useExploreAdditionalActionsMenu = (
             }),
           );
           break;
+        case MENU_KEYS.EXPORT_TO_PIVOT_XLSX:
+          exportPivotExcel('.pvtTable', slice?.slice_name ?? t('pivoted_xlsx'));
+          setIsDropdownVisible(false);
+          dispatch(
+            logEvent(LOG_ACTIONS_CHART_DOWNLOAD_AS_XLS, {
+              chartId: slice?.slice_id,
+              chartName: slice?.slice_name,
+            }),
+          );
+          break;
         case MENU_KEYS.DOWNLOAD_AS_IMAGE:
           downloadAsImage(
             '.panel-body .chart-container',
@@ -364,6 +376,13 @@ export const useExploreAdditionalActionsMenu = (
             disabled={!canDownloadCSV}
           >
             {t('Export to Excel')}
+          </Menu.Item>
+          <Menu.Item
+            key={MENU_KEYS.EXPORT_TO_PIVOT_XLSX}
+            icon={<Icons.FileOutlined />}
+            disabled={!canDownloadCSV}
+          >
+            {t('Export to Pivoted Excel')}
           </Menu.Item>
         </Menu.SubMenu>
         <Menu.SubMenu title={t('Share')} key={MENU_KEYS.SHARE_SUBMENU}>
