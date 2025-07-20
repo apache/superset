@@ -33,6 +33,88 @@ const generateFileStem = (description: string, date = new Date()) =>
   `${kebabCase(description)}-${date.toISOString().replace(/[: ]/g, '-')}`;
 
 /**
+ * Enhanced clone function that preserves all visual elements including cell bars
+ */
+const createEnhancedClone = (originalElement: Element): HTMLElement => {
+  const clone = originalElement.cloneNode(true) as HTMLElement;
+
+  // Create container for the clone
+  const tempContainer = document.createElement('div');
+  tempContainer.style.position = 'absolute';
+  tempContainer.style.left = '-20000px';
+  tempContainer.style.top = '-20000px';
+  tempContainer.style.visibility = 'hidden';
+  tempContainer.style.pointerEvents = 'none';
+  tempContainer.style.zIndex = '-1000';
+
+  // Copy computed styles recursively
+  const copyComputedStyles = (source: Element, target: Element) => {
+    const sourceComputed = window.getComputedStyle(source);
+    const targetElement = target as HTMLElement;
+
+    // Copy essential styles
+    for (let i = 0; i < sourceComputed.length; i += 1) {
+      const property = sourceComputed[i];
+      const value = sourceComputed.getPropertyValue(property);
+      targetElement.style.setProperty(property, value);
+    }
+  };
+
+  tempContainer.appendChild(clone);
+  document.body.appendChild(tempContainer);
+
+  // Copy styles from original to clone recursively
+  const copyStylesRecursively = (originalNode: Element, cloneNode: Element) => {
+    copyComputedStyles(originalNode, cloneNode);
+
+    const originalChildren = originalNode.children;
+    const cloneChildren = cloneNode.children;
+
+    for (
+      let i = 0;
+      i < originalChildren.length && i < cloneChildren.length;
+      i += 1
+    ) {
+      copyStylesRecursively(originalChildren[i], cloneChildren[i]);
+    }
+  };
+
+  copyStylesRecursively(originalElement, clone);
+
+  clone.style.height = 'auto';
+
+  // Handle scrollable containers
+  const scrollableElements = clone.querySelectorAll(
+    '[style*="overflow"], .scrollable, .table-responsive, .ant-table-body, .table-container, .ant-table-container, .table-wrapper, .ant-table-tbody, tbody, .table-body',
+  );
+
+  scrollableElements.forEach(el => {
+    const element = el as HTMLElement;
+    element.style.overflow = 'visible';
+    element.style.height = 'auto';
+    element.style.maxHeight = 'none';
+  });
+
+  // Center tables and ensure proper display
+  const tables = clone.querySelectorAll('table, .ant-table, .table-container');
+  tables.forEach(table => {
+    const tableElement = table as HTMLElement;
+    tableElement.style.margin = '0 auto';
+    tableElement.style.display = 'table';
+  });
+
+  // Ensure all rows are visible
+  const allRows = clone.querySelectorAll('tr, .ant-table-row, .table-row');
+  allRows.forEach(row => {
+    const rowElement = row as HTMLElement;
+    rowElement.style.display = 'table-row';
+    rowElement.style.visibility = 'visible';
+  });
+
+  return clone;
+};
+
+/**
  * Create an event handler for turning an element into an image
  *
  * @param selector css selector of the parent element which should be turned into image
@@ -58,6 +140,9 @@ export default function downloadAsImage(
       );
     }
 
+    // Create enhanced clone with full content and preserved cell bars
+    const clonedElement = createEnhancedClone(elementToPrint);
+
     // Mapbox controls are loaded from different origin, causing CORS error
     // See https://developer.mozilla.org/en-US/docs/Web/API/HTMLCanvasElement/toDataURL#exceptions
     const filter = (node: Element) => {
@@ -70,83 +155,36 @@ export default function downloadAsImage(
       return true;
     };
 
-    // Check if element is scrollable
-    const isScrollable = hasScrollableDescendant(elementToPrint as HTMLElement);
-    let targetElement = elementToPrint as HTMLElement;
-    let cloned: HTMLElement | null = null;
-    const extraPadding = theme?.sizeUnit ? theme.sizeUnit * 2 : 16;
-    if (isScrollable) {
-      cloned = elementToPrint.cloneNode(true) as HTMLElement;
-      cloned.style.overflow = 'visible';
-      cloned.style.maxHeight = 'none';
-      cloned.style.height = 'auto';
-      cloned.style.width = `${elementToPrint.scrollWidth}px`;
-
-      cloned.querySelectorAll<HTMLElement>('*').forEach(el => {
-        // eslint-disable-next-line no-param-reassign
-        el.style.overflow = 'visible';
-        // eslint-disable-next-line no-param-reassign
-        el.style.maxHeight = 'none';
-        // eslint-disable-next-line no-param-reassign
-        el.style.height = 'auto';
-      });
-
-      // Render off-screen
-      cloned.style.position = 'absolute';
-      cloned.style.top = '-9999px';
-      cloned.style.left = '-9999px';
-      document.body.appendChild(cloned);
-
-      targetElement = cloned;
-    }
-
     return domToImage
-      .toJpeg(targetElement, {
+      .toJpeg(clonedElement, {
         bgcolor: theme?.colors.grayscale.light4,
-        height: targetElement.scrollHeight + extraPadding,
-        width: targetElement.scrollWidth,
         filter,
+        quality: 0.95,
+        height: clonedElement.scrollHeight,
+        width: clonedElement.scrollWidth,
       })
       .then((dataUrl: string) => {
+        // Clean up the cloned element
+        const tempContainer = clonedElement.parentElement;
+        if (tempContainer && tempContainer.parentElement) {
+          tempContainer.parentElement.removeChild(tempContainer);
+        }
+
         const link = document.createElement('a');
         link.download = `${generateFileStem(description)}.jpg`;
         link.href = dataUrl;
         link.click();
       })
       .catch((e: Error) => {
-        console.error('Creating image failed', e);
-      })
-      .finally(() => {
-        if (cloned) {
-          document.body.removeChild(cloned);
+        // Clean up the cloned element in case of error
+        const tempContainer = clonedElement.parentElement;
+        if (tempContainer && tempContainer.parentElement) {
+          tempContainer.parentElement.removeChild(tempContainer);
         }
+        console.error('Creating image failed', e);
+        addWarningToast(
+          t('Image download failed, please refresh and try again.'),
+        );
       });
   };
-}
-
-/**
- * Check if an element or any of its child elements is scrollable
- *
- * @param el - The HTMLElement to check for scrollable descendants.
- * @returns `true` if any descendant has scrollable overflow; otherwise `false`.
- */
-function hasScrollableDescendant(el: HTMLElement): boolean {
-  const treeWalker = document.createTreeWalker(el, NodeFilter.SHOW_ELEMENT);
-  let node = treeWalker.nextNode();
-
-  while (node) {
-    const element = node as HTMLElement;
-
-    // Skip if element is .header-controls or inside .header-controls
-    if (element.closest('.header-controls')) {
-      node = treeWalker.nextNode();
-      continue;
-    }
-
-    if (element.scrollHeight > element.clientHeight) {
-      return true;
-    }
-    node = treeWalker.nextNode();
-  }
-  return false;
 }
