@@ -36,8 +36,8 @@ def mcp_server():
     return mcp
 
 
-@pytest.mark.asyncio
 @patch("superset.daos.dataset.DatasetDAO.list")
+@pytest.mark.asyncio
 async def test_list_datasets_basic(mock_list, mcp_server):
     dataset = MagicMock()
     dataset.id = 1
@@ -135,8 +135,8 @@ async def test_list_datasets_basic(mock_list, mcp_server):
         assert data["datasets"][0]["metrics"][0]["metric_name"] == "count"
 
 
-@pytest.mark.asyncio
 @patch("superset.daos.dataset.DatasetDAO.list")
+@pytest.mark.asyncio
 async def test_list_datasets_with_filters(mock_list, mcp_server):
     dataset = MagicMock()
     dataset.id = 2
@@ -237,8 +237,8 @@ async def test_list_datasets_with_filters(mock_list, mcp_server):
         assert len(data["datasets"][0]["metrics"]) == 1
 
 
-@pytest.mark.asyncio
 @patch("superset.daos.dataset.DatasetDAO.list")
+@pytest.mark.asyncio
 async def test_list_datasets_with_string_filters(mock_list, mcp_server):
     dataset = MagicMock()
     dataset.id = 3
@@ -302,8 +302,8 @@ async def test_list_datasets_with_string_filters(mock_list, mcp_server):
         assert "Input validation error" in str(excinfo.value)
 
 
-@pytest.mark.asyncio
 @patch("superset.daos.dataset.DatasetDAO.list")
+@pytest.mark.asyncio
 async def test_list_datasets_api_error(mock_list, mcp_server):
     mock_list.side_effect = ToolError("API request failed")
     async with Client(mcp_server) as client:
@@ -312,8 +312,8 @@ async def test_list_datasets_api_error(mock_list, mcp_server):
         assert "API request failed" in str(excinfo.value)
 
 
-@pytest.mark.asyncio
 @patch("superset.daos.dataset.DatasetDAO.list")
+@pytest.mark.asyncio
 async def test_list_datasets_with_search(mock_list, mcp_server):
     dataset = MagicMock()
     dataset.id = 1
@@ -402,8 +402,8 @@ async def test_list_datasets_with_search(mock_list, mcp_server):
         assert len(data["datasets"][0]["metrics"]) == 1
 
 
-@pytest.mark.asyncio
 @patch("superset.daos.dataset.DatasetDAO.list")
+@pytest.mark.asyncio
 async def test_list_datasets_simple_with_search(mock_list, mcp_server):
     dataset = MagicMock()
     dataset.id = 2
@@ -492,8 +492,8 @@ async def test_list_datasets_simple_with_search(mock_list, mcp_server):
         assert len(data["datasets"][0]["metrics"]) == 1
 
 
-@pytest.mark.asyncio
 @patch("superset.daos.dataset.DatasetDAO.list")
+@pytest.mark.asyncio
 async def test_list_datasets_simple_basic(mock_list, mcp_server):
     dataset = MagicMock()
     dataset.id = 1
@@ -584,8 +584,8 @@ async def test_list_datasets_simple_basic(mock_list, mcp_server):
         assert len(data["datasets"][0]["metrics"]) == 1
 
 
-@pytest.mark.asyncio
 @patch("superset.daos.dataset.DatasetDAO.list")
+@pytest.mark.asyncio
 async def test_list_datasets_simple_with_filters(mock_list, mcp_server):
     dataset = MagicMock()
     dataset.id = 2
@@ -676,8 +676,8 @@ async def test_list_datasets_simple_with_filters(mock_list, mcp_server):
         assert len(data["datasets"][0]["metrics"]) == 1
 
 
-@pytest.mark.asyncio
 @patch("superset.daos.dataset.DatasetDAO.list")
+@pytest.mark.asyncio
 async def test_list_datasets_simple_api_error(mock_list, mcp_server):
     mock_list.side_effect = Exception("API request failed")
     filters = [
@@ -690,8 +690,8 @@ async def test_list_datasets_simple_api_error(mock_list, mcp_server):
         assert "API request failed" in str(excinfo.value)
 
 
-@pytest.mark.asyncio
 @patch("superset.daos.dataset.DatasetDAO.find_by_id")
+@pytest.mark.asyncio
 async def test_get_dataset_info_success(mock_info, mcp_server):
     dataset = MagicMock()
     dataset.id = 1
@@ -753,8 +753,8 @@ async def test_get_dataset_info_success(mock_info, mcp_server):
         assert data["metrics"][0]["metric_name"] == "count"
 
 
-@pytest.mark.asyncio
 @patch("superset.daos.dataset.DatasetDAO.find_by_id")
+@pytest.mark.asyncio
 async def test_get_dataset_info_not_found(mock_info, mcp_server):
     mock_info.return_value = None  # Not found returns None
     async with Client(mcp_server) as client:
@@ -805,8 +805,8 @@ async def test_invalid_filter_column_raises(mcp_server):
         assert "Input validation error" in str(excinfo.value)
 
 
-@pytest.mark.asyncio
 @patch("superset.daos.dataset.DatasetDAO.find_by_id")
+@pytest.mark.asyncio
 async def test_get_dataset_info_includes_columns_and_metrics(mock_info, mcp_server):
     dataset = MagicMock()
     dataset.id = 10
@@ -886,8 +886,8 @@ async def test_get_dataset_info_includes_columns_and_metrics(mock_info, mcp_serv
         assert data["metrics"][1]["metric_name"] == "count_orders"
 
 
-@pytest.mark.asyncio
 @patch("superset.daos.dataset.DatasetDAO.list")
+@pytest.mark.asyncio
 async def test_list_datasets_includes_columns_and_metrics(mock_list, mcp_server):
     dataset = MagicMock()
     dataset.id = 11

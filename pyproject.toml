@@ -203,6 +203,7 @@ development = [
     "pyinstrument>=4.0.2,<5",
     "pylint",
     "pytest<8.0.0", # hairy issue with pytest >=8 where current_app proxies are not set in time
+    "pytest-asyncio", # need this due to not using latest pytest
     "pytest-cov",
     "pytest-mock",
     "python-ldap>=3.4.4",

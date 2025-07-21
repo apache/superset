@@ -126,6 +126,3 @@ class TestErrorHandling:
                 await client.call_tool(
                     "list_datasets", {"select_columns": ["id", "table_name"]}
                 )
-
-    # Example: test for missing required param, extra param, and malformed input
-    # would be in protocol/integration tests

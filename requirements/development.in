@@ -16,4 +16,4 @@
 # specific language governing permissions and limitations
 # under the License.
 #
--e .[development,bigquery,druid,fastmcp,gevent,gsheets,mysql,postgres,presto,prophet,pytest-asyncio,trino,thumbnails]
+-e .[development,bigquery,druid,fastmcp,gevent,gsheets,mysql,postgres,presto,prophet,trino,thumbnails]
