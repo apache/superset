@@ -17,9 +17,9 @@
  * under the License.
  */
 
+import { logging } from '@superset-ui/core';
 import Translator from './Translator';
 import { TranslatorConfig, Translations, LocaleData } from './types';
-import logging from '../utils/logging';
 
 let singleton: Translator | undefined;
 let isConfigured = false;

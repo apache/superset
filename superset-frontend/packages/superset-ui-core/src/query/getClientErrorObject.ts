@@ -20,13 +20,13 @@ import {
   COMMON_ERR_MESSAGES,
   JsonObject,
   SupersetClientResponse,
+  logging,
   t,
   SupersetError,
   ErrorTypeEnum,
   isProbablyHTML,
   isJsonString,
 } from '@superset-ui/core';
-import logging from '../utils/logging';
 
 // The response always contains an error attribute, can contain anything from
 // the SupersetClientResponse object, and can contain a spread JSON blob

@@ -17,12 +17,11 @@
  * under the License.
  */
 import { useState, useCallback } from 'react';
-import { t } from '@superset-ui/core';
+import { logging, t } from '@superset-ui/core';
 import { Button } from '../Button';
 import { Form } from '../Form';
 import { Modal } from './Modal';
 import type { FormModalProps } from './types';
-import logging from '../../utils/logging';
 
 export function FormModal({
   show,

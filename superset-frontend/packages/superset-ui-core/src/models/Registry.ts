@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import logging from '../utils/logging';
+import { logging } from '@superset-ui/core';
 
 export enum OverwritePolicy {
   Allow = 'ALLOW',

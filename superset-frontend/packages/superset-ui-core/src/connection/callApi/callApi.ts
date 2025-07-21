@@ -17,6 +17,7 @@
  * under the License.
  */
 
+import { logging } from '@superset-ui/core'
 import fetchRetry from 'fetch-retry';
 import { CallApi, Payload, JsonValue, JsonObject } from '../types';
 import {
@@ -25,7 +26,6 @@ import {
   HTTP_STATUS_NOT_MODIFIED,
   HTTP_STATUS_OK,
 } from '../constants';
-import logging from '../../utils/logging';
 
 function tryParsePayload(payload: Payload) {
   try {
