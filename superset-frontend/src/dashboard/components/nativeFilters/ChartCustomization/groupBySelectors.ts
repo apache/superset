@@ -58,7 +58,7 @@ export const selectGroupByFormData = createSelector(
       return !item.chartId || item.chartId === chartId;
     });
 
-    const groupByColumns = new Set<string>();
+    const groupByColumns: string[] = [];
     const allFilters: any[] = [];
 
     matchingCustomizations.forEach(item => {
@@ -66,40 +66,54 @@ export const selectGroupByFormData = createSelector(
       const groupByValues = groupByState[groupById]?.selectedValues || [];
 
       if (item.customization?.column) {
-        let columnName: string;
+        let columnNames: string[] = [];
+
         if (typeof item.customization.column === 'string') {
-          columnName = item.customization.column;
+          columnNames = [item.customization.column];
+        } else if (Array.isArray(item.customization.column)) {
+          columnNames = item.customization.column.filter(
+            col => typeof col === 'string' && col.trim() !== '',
+          );
         } else if (
           typeof item.customization.column === 'object' &&
           item.customization.column !== null
         ) {
           const columnObj = item.customization.column as any;
-          columnName =
+          const columnName =
             columnObj.column_name || columnObj.name || String(columnObj);
+          if (columnName && columnName.trim() !== '') {
+            columnNames = [columnName];
+          }
         } else {
           console.warn('Invalid column format:', item.customization.column);
           return;
         }
 
-        if (!columnName || columnName.trim() === '') {
-          console.warn('Empty column name in customization:', item.id);
+        if (columnNames.length === 0) {
+          console.warn('Empty column names in customization:', item.id);
           return;
         }
 
-        groupByColumns.add(columnName);
+        columnNames.forEach(columnName => {
+          if (!groupByColumns.includes(columnName)) {
+            groupByColumns.push(columnName);
+          }
+        });
 
-        if (groupByValues.length > 0) {
-          allFilters.push({
-            col: columnName,
-            op: 'IN',
-            val: groupByValues,
-          });
-        }
+        columnNames.forEach(columnName => {
+          if (groupByValues.length > 0) {
+            allFilters.push({
+              col: columnName,
+              op: 'IN',
+              val: groupByValues,
+            });
+          }
+        });
       }
     });
 
-    if (groupByColumns.size > 0) {
-      groupByFormData.groupby = Array.from(groupByColumns);
+    if (groupByColumns.length > 0) {
+      groupByFormData.groupby = groupByColumns;
     }
 
     if (allFilters.length > 0) {
@@ -141,7 +155,7 @@ export const selectGroupByExtraFormData = createSelector(
       return datasetMatches && chartMatches;
     });
 
-    const groupByColumns = new Set<string>();
+    const groupByColumns: string[] = [];
     const allFilters: any[] = [];
     let orderByConfig: string[] | undefined;
 
@@ -151,35 +165,49 @@ export const selectGroupByExtraFormData = createSelector(
       const groupByValues = groupByState[groupById]?.selectedValues || [];
 
       if (customization?.column) {
-        let columnName: string;
+        let columnNames: string[] = [];
+
         if (typeof customization.column === 'string') {
-          columnName = customization.column;
+          columnNames = [customization.column];
+        } else if (Array.isArray(customization.column)) {
+          columnNames = customization.column.filter(
+            col => typeof col === 'string' && col.trim() !== '',
+          );
         } else if (
           typeof customization.column === 'object' &&
           customization.column !== null
         ) {
           const columnObj = customization.column as any;
-          columnName =
+          const columnName =
             columnObj.column_name || columnObj.name || String(columnObj);
+          if (columnName && columnName.trim() !== '') {
+            columnNames = [columnName];
+          }
         } else {
           console.warn('Invalid column format:', customization.column);
           return;
         }
 
-        if (!columnName || columnName.trim() === '') {
-          console.warn('Empty column name in customization:', item.id);
+        if (columnNames.length === 0) {
+          console.warn('Empty column names in customization:', item.id);
           return;
         }
 
-        groupByColumns.add(columnName);
+        columnNames.forEach(columnName => {
+          if (!groupByColumns.includes(columnName)) {
+            groupByColumns.push(columnName);
+          }
+        });
 
-        if (groupByValues.length > 0) {
-          allFilters.push({
-            col: columnName,
-            op: 'IN',
-            val: groupByValues,
-          });
-        }
+        columnNames.forEach(columnName => {
+          if (groupByValues.length > 0) {
+            allFilters.push({
+              col: columnName,
+              op: 'IN',
+              val: groupByValues,
+            });
+          }
+        });
 
         if (customization.sortFilter && customization.sortMetric) {
           orderByConfig = [
@@ -192,8 +220,8 @@ export const selectGroupByExtraFormData = createSelector(
       }
     });
 
-    if (groupByColumns.size > 0) {
-      extraFormData.groupby = Array.from(groupByColumns);
+    if (groupByColumns.length > 0) {
+      extraFormData.groupby = groupByColumns;
     }
 
     if (allFilters.length > 0) {
