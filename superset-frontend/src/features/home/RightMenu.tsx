@@ -119,7 +119,7 @@ const StyledSubMenu = styled(SubMenu)`
     }
     &.ant-menu-submenu-active {
       .ant-menu-title-content {
-        color: ${theme.colors.primary.base};
+        color: ${theme.colorPrimary};
       }
     }
   `}
@@ -187,7 +187,7 @@ const RightMenu = ({
   const {
     theme: themeEditorTheme,
     setTheme,
-    changeThemeMode,
+    setThemeMode,
     themeMode,
   } = useThemeContext();
   const dropdownItems: MenuObjectProps[] = [
@@ -501,10 +501,7 @@ const RightMenu = ({
         )}
         {isFeatureEnabled(FeatureFlag.ThemeEnableDarkThemeSwitch) && (
           <span>
-            <ThemeSelect
-              changeThemeMode={changeThemeMode}
-              themeMode={themeMode}
-            />
+            <ThemeSelect setThemeMode={setThemeMode} themeMode={themeMode} />
           </span>
         )}
 

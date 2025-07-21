@@ -239,15 +239,23 @@ class ImportV1ColumnSchema(Schema):
     python_date_format = fields.String(allow_none=True)
 
 
+class ImportMetricCurrencySchema(Schema):
+    symbol = fields.String(validate=Length(1, 128))
+    symbolPosition = fields.String(validate=Length(1, 128))  # noqa: N815
+
+
 class ImportV1MetricSchema(Schema):
     # pylint: disable=unused-argument
     @pre_load
-    def fix_extra(self, data: dict[str, Any], **kwargs: Any) -> dict[str, Any]:
+    def fix_fields(self, data: dict[str, Any], **kwargs: Any) -> dict[str, Any]:
         """
-        Fix for extra initially being exported as a string.
+        Fix for extra and currency initially being exported as a string.
         """
         if isinstance(data.get("extra"), str):
             data["extra"] = json.loads(data["extra"])
+
+        if isinstance(data.get("currency"), str):
+            data["currency"] = json.loads(data["currency"])
 
         return data
 
@@ -257,7 +265,7 @@ class ImportV1MetricSchema(Schema):
     expression = fields.String(required=True)
     description = fields.String(allow_none=True)
     d3format = fields.String(allow_none=True)
-    currency = fields.String(allow_none=True, required=False)
+    currency = fields.Nested(ImportMetricCurrencySchema, allow_none=True)
     extra = fields.Dict(allow_none=True)
     warning_text = fields.String(allow_none=True)
 
