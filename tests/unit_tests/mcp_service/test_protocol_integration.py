@@ -52,7 +52,6 @@ class TestFastMCPInMemoryProtocol:
                 "get_chart_info",
                 "get_chart_available_filters",
                 "get_dataset_info",
-                "create_chart_simple",
             ]
             for name in expected:
                 assert name in tool_names

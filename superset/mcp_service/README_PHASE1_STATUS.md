@@ -25,7 +25,7 @@ The Model Context Protocol (MCP) is a new protocol for exposing high-level, stru
   - `list_dashboards`, `list_datasets` (now returns columns and metrics), `list_charts`
   - `get_dashboard_info`, `get_dataset_info` (now returns columns and metrics), `get_chart_info`
   - `get_dashboard_available_filters`, `get_dataset_available_filters`, `get_chart_available_filters`
-  - `create_chart_simple` (PoC for mutation)
+  - `create_chart` (advanced ECharts chart creation)
   - `create_chart` (advanced ECharts chart creation, supports stack, area, smooth, show_value, color_scheme, legend_type, legend_orientation, tooltip_sorting, y_axis_format, y_axis_bounds, x_axis_time_format, rich_tooltip, extra_options)
   - `get_superset_instance_info`
 - **Tests**: Unit and integration tests for all core tools, with improved coverage and best practices. Dataset and chart tools now have tests verifying advanced ECharts options and extra_options are included in responses.

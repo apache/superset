@@ -48,7 +48,7 @@ All tools are modular, strongly typed, and use Pydantic v2 schemas. Every field 
 - `list_charts` (advanced filtering, search)
 - `get_chart_info`
 - `get_chart_available_filters`
-- `create_chart_simple`
+
 - `create_chart` (advanced ECharts chart creation, now supports stack, area, smooth, show_value, color_scheme, legend_type, legend_orientation, tooltip_sorting, y_axis_format, y_axis_bounds, x_axis_time_format, rich_tooltip, extra_options)
 
 **System**
