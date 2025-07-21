@@ -25,7 +25,7 @@ from pydantic import Field
 from superset.mcp_service.auth import mcp_auth_hook
 from superset.mcp_service.mcp_app import mcp
 from superset.mcp_service.pydantic_schemas.chart_schemas import (
-    CreateSimpleChartResponse,
+    CreateChartResponse,
     EchartsAreaChartCreateRequest,
     EchartsTimeseriesBarChartCreateRequest,
     EchartsTimeseriesLineChartCreateRequest,
@@ -50,7 +50,7 @@ def create_chart(
             description="Request object for creating a chart (polymorphic by viz_type)",
         ),
     ],
-) -> CreateSimpleChartResponse:
+) -> CreateChartResponse:
     """
     Create a new chart (visualization) in Superset with a type-safe,
     viz_type-specific schema.
@@ -118,7 +118,7 @@ def create_chart(
                 "datasource": f"{request.datasource_id}__{request.datasource_type}",
             }
         else:
-            return CreateSimpleChartResponse(error="Unsupported chart type or viz_type")
+            return CreateChartResponse(error="Unsupported chart type or viz_type")
 
         params = json.dumps(form_data)
         chart_data = {
@@ -145,11 +145,11 @@ def create_chart(
                 f'<iframe src="/explore/?slice_id={chart.id}" width="600" '
                 f'height="400" frameborder="0" allowfullscreen></iframe>'
             )
-        return CreateSimpleChartResponse(
+        return CreateChartResponse(
             chart=chart_item,
             embed_url=embed_url,
             thumbnail_url=thumbnail_url,
             embed_html=embed_html,
         )
     except Exception as ex:
-        return CreateSimpleChartResponse(error=str(ex))
+        return CreateChartResponse(error=str(ex))

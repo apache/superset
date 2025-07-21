@@ -121,7 +121,7 @@ def serialize_chart_object(chart: Any) -> Optional[ChartInfo]:
     )
 
 
-class CreateSimpleChartResponse(BaseModel):
+class CreateChartResponse(BaseModel):
     """
     Response schema for create_chart tool.
     """

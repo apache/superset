@@ -48,8 +48,8 @@ def mcp_server():
     return mcp
 
 
-@pytest.mark.asyncio
 @patch("superset.daos.chart.ChartDAO.list")
+@pytest.mark.asyncio
 async def test_list_charts_basic(mock_list, mcp_server):
     chart = Mock()
     chart.id = 1
@@ -99,8 +99,8 @@ async def test_list_charts_basic(mock_list, mcp_server):
         assert charts[0].viz_type == "bar"
 
 
-@pytest.mark.asyncio
 @patch("superset.daos.chart.ChartDAO.list")
+@pytest.mark.asyncio
 async def test_list_charts_with_search(mock_list, mcp_server):
     chart = Mock()
     chart.id = 1
@@ -156,8 +156,8 @@ async def test_list_charts_with_search(mock_list, mcp_server):
         assert "datasource_name" in kwargs["search_columns"]
 
 
-@pytest.mark.asyncio
 @patch("superset.daos.chart.ChartDAO.list")
+@pytest.mark.asyncio
 async def test_list_charts_with_filters(mock_list, mcp_server):
     mock_list.return_value = ([], 0)
     filters = [
@@ -180,8 +180,8 @@ async def test_list_charts_with_filters(mock_list, mcp_server):
         assert result.data.charts == []
 
 
-@pytest.mark.asyncio
 @patch("superset.daos.chart.ChartDAO.list")
+@pytest.mark.asyncio
 async def test_list_charts_api_error(mock_list, mcp_server):
     mock_list.side_effect = fastmcp.exceptions.ToolError("API request failed")
     async with Client(mcp_server) as client:
@@ -190,8 +190,8 @@ async def test_list_charts_api_error(mock_list, mcp_server):
         assert "API request failed" in str(excinfo.value)
 
 
-@pytest.mark.asyncio
 @patch("superset.daos.chart.ChartDAO.find_by_id")
+@pytest.mark.asyncio
 async def test_get_chart_info_success(mock_info, mcp_server):
     chart = Mock()
     chart.id = 1
@@ -238,8 +238,8 @@ async def test_get_chart_info_success(mock_info, mcp_server):
         assert result.data["slice_name"] == "Test Chart"
 
 
-@pytest.mark.asyncio
 @patch("superset.daos.chart.ChartDAO.find_by_id")
+@pytest.mark.asyncio
 async def test_get_chart_info_not_found(mock_info, mcp_server):
     mock_info.return_value = None  # Not found returns None
     async with Client(mcp_server) as client:
@@ -312,8 +312,8 @@ def _mock_chart(id=1, viz_type="echarts_timeseries_line", form_data=None):
     return chart
 
 
-@pytest.mark.asyncio
 @patch("superset.commands.chart.create.CreateChartCommand.run")
+@pytest.mark.asyncio
 async def test_create_chart_echarts_line_full_fields(mock_run, mcp_server):
     mock_cmd = Mock()
     mock_cmd.run.return_value = _mock_chart(id=123, viz_type="echarts_timeseries_line")
@@ -341,8 +341,8 @@ async def test_create_chart_echarts_line_full_fields(mock_run, mcp_server):
         mock_run.assert_called_once()
 
 
-@pytest.mark.asyncio
 @patch("superset.commands.chart.create.CreateChartCommand.run")
+@pytest.mark.asyncio
 async def test_create_chart_echarts_timeseries_line_success(mock_run, mcp_server):
     mock_run.return_value = _mock_chart(id=101, viz_type="echarts_timeseries_line")
     req = EchartsTimeseriesLineChartCreateRequest(
@@ -361,8 +361,8 @@ async def test_create_chart_echarts_timeseries_line_success(mock_run, mcp_server
         mock_run.assert_called_once()
 
 
-@pytest.mark.asyncio
 @patch("superset.commands.chart.create.CreateChartCommand.run")
+@pytest.mark.asyncio
 async def test_create_chart_echarts_timeseries_bar_success(mock_run, mcp_server):
     mock_run.return_value = _mock_chart(id=102, viz_type="echarts_timeseries_bar")
     req = EchartsTimeseriesBarChartCreateRequest(
@@ -381,8 +381,8 @@ async def test_create_chart_echarts_timeseries_bar_success(mock_run, mcp_server)
         mock_run.assert_called_once()
 
 
-@pytest.mark.asyncio
 @patch("superset.commands.chart.create.CreateChartCommand.run")
+@pytest.mark.asyncio
 async def test_create_chart_echarts_area_success(mock_run, mcp_server):
     mock_run.return_value = _mock_chart(id=103, viz_type="echarts_area")
     req = EchartsAreaChartCreateRequest(
@@ -401,8 +401,8 @@ async def test_create_chart_echarts_area_success(mock_run, mcp_server):
         mock_run.assert_called_once()
 
 
-@pytest.mark.asyncio
 @patch("superset.commands.chart.create.CreateChartCommand.run")
+@pytest.mark.asyncio
 async def test_create_chart_table_success(mock_run, mcp_server):
     chart = Mock()
     chart.id = 104
@@ -463,8 +463,8 @@ async def test_create_chart_table_success(mock_run, mcp_server):
         assert result.data.chart.viz_type == "table"
 
 
-@pytest.mark.asyncio
 @patch("superset.commands.chart.create.CreateChartCommand.run")
+@pytest.mark.asyncio
 async def test_create_chart_error(mock_run, mcp_server):
     mock_run.side_effect = fastmcp.exceptions.ToolError("Chart creation failed")
     req = EchartsTimeseriesLineChartCreateRequest(
@@ -481,8 +481,8 @@ async def test_create_chart_error(mock_run, mcp_server):
         assert "Chart creation failed" in result.data.error
 
 
-@pytest.mark.asyncio
 @patch("superset.commands.chart.create.CreateChartCommand.run")
+@pytest.mark.asyncio
 async def test_create_chart_echarts_line_with_all_options(mock_run, mcp_server):
     # Arrange
     mock_chart = Mock()
@@ -536,8 +536,8 @@ async def test_create_chart_echarts_line_with_all_options(mock_run, mcp_server):
         mock_run.assert_called_once()
 
 
-@pytest.mark.asyncio
 @patch("superset.commands.chart.create.CreateChartCommand.run")
+@pytest.mark.asyncio
 async def test_create_chart_echarts_line_duplicate_column_removal(mock_run, mcp_server):
     # The backend should remove 'date' from groupby, so only 'region' remains
     expected_form_data = {"groupby": ["region"]}
