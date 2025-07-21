@@ -28,6 +28,7 @@ import {
 } from '@superset-ui/core';
 import { useState } from 'react';
 import { Icons } from '@superset-ui/core/components/Icons';
+
 interface ThemeEditorProps {
   tooltipTitle?: string;
   modalTitle?: string;

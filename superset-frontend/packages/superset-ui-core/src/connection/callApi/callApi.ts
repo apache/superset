@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { logging } from '@superset-ui/core'
+import { logging } from '@superset-ui/core';
 import fetchRetry from 'fetch-retry';
 import { CallApi, Payload, JsonValue, JsonObject } from '../types';
 import {
