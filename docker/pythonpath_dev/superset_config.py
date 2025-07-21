@@ -111,7 +111,23 @@ class CeleryConfig:
 
 CELERY_CONFIG = CeleryConfig
 
-FEATURE_FLAGS = {"ALERT_REPORTS": True}
+FEATURE_FLAGS = {
+    "ALERT_REPORTS": True,
+    "DATAPANEL_CLOSED_BY_DEFAULT": True,
+    "DASHBOARD_VIRTUALIZATION": True,
+    "DASHBOARD_RBAC": True,
+    "ENABLE_TEMPLATE_PROCESSING": True,
+    "ESCAPE_MARKDOWN_HTML": True,
+    "LISTVIEWS_DEFAULT_CARD_VIEW": True,
+    "THUMBNAILS": True,
+    "DRILL_BY": True,
+    "DRILL_TO_DETAIL": True,
+    "HORIZONTAL_FILTER_BAR": True,
+    "ESTIMATE_QUERY_COST": True,
+    "TAGGING_SYSTEM": True,
+    "HTML_SANITIZATION": False,
+}
+
 ALERT_REPORTS_NOTIFICATION_DRY_RUN = True
 WEBDRIVER_BASEURL = f"http://superset_app{os.environ.get('SUPERSET_APP_ROOT', '/')}/"  # When using docker compose baseurl should be http://superset_nginx{ENV{BASEPATH}}/  # noqa: E501
 # The base URL for the email report hyperlinks.
