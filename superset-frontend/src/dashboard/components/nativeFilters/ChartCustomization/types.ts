@@ -36,6 +36,7 @@ export interface GroupByCustomization {
   defaultDataMask?: any;
   defaultValueQueriesData?: any;
   aggregation?: string;
+  canSelectMultiple?: boolean;
 }
 
 export interface FilterOption {
