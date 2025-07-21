@@ -152,6 +152,7 @@ export default function TimezoneSelector({
       value={validTimezone}
       options={TIMEZONE_OPTIONS}
       sortComparator={TIMEZONE_OPTIONS_SORT_COMPARATOR}
+      style={{ minWidth }}
       {...rest}
     />
   );
