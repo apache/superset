@@ -67,11 +67,9 @@ setup(
             "postgres.psycopg2 = sqlalchemy.dialects.postgresql:dialect",
             "postgres = sqlalchemy.dialects.postgresql:dialect",
             "superset = superset.extensions.metadb:SupersetAPSWDialect",
-            "metricflow = superset.extensions.metricflow:MetricFlowDialect",
         ],
         "shillelagh.adapter": [
             "superset = superset.extensions.metadb:SupersetShillelaghAdapter",
-            "supersetmetricflowapi = superset.extensions.metricflow:SupersetMetricFlowAPI",
         ],
     },
     download_url="https://www.apache.org/dist/superset/" + version_string,

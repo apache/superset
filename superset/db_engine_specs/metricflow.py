@@ -20,22 +20,71 @@ An interface to dbt's semantic layer, Metric Flow.
 
 from __future__ import annotations
 
+from datetime import timedelta
 from typing import Any, TYPE_CHECKING, TypedDict
 
 from shillelagh.backends.apsw.dialects.base import get_adapter_for_table_name
+from shillelagh.backends.apsw.dialects.metricflow import TABLE_NAME
+from sqlalchemy import event
+from sqlalchemy.engine import Engine
+from sqlalchemy.pool import _ConnectionRecord
+from sqlalchemy.pool.base import _ConnectionFairy
 
+from superset.connectors.sqla.models import SqlaTable
 from superset.constants import TimeGrain
 from superset.db_engine_specs.base import ValidColumnsType
 from superset.db_engine_specs.shillelagh import ShillelaghEngineSpec
-from superset.extensions.metricflow import TABLE_NAME
-from superset.models.helpers import ExploreMixin
-from superset.superset_typing import ResultSetColumnType
+from superset.extensions import cache_manager
+from superset.utils.cache import memoized_func
 
 if TYPE_CHECKING:
+    from shillelagh.fields import Field
     from sqlalchemy.engine.reflection import Inspector
 
     from superset.models.core import Database
     from superset.sql_parse import Table
+    from superset.superset_typing import ResultSetColumnType
+
+
+@event.listens_for(Engine, "connect")
+def receive_connect(
+    dbapi_connection: _ConnectionFairy,
+    connection_record: _ConnectionRecord,
+) -> None:
+    """
+    Called when a new DB connection is created.
+
+    This hook adds a cache to the `_build_column_from_dimension` method of the Metric
+    Flow adapter, since it's called frequently and can be expensive.
+    """
+    engine = connection_record.info.get("engine")
+    if (
+        not engine
+        or not engine.name == "metricflow"
+        or getattr(engine.dialect, "_patched", False)
+    ):
+        return
+
+    original_method = engine.dialect._build_column_from_dimension
+
+    @memoized_func(
+        key="metricflow:dimension:{name}",
+        cache=cache_manager.data_cache,
+    )
+    def cached_build_column_from_dimension(
+        self,
+        name: str,
+        *args: Any,
+        **kwargs: Any,
+    ) -> Field:
+        return original_method(
+            self,
+            name,
+            cache_timeout=int(timedelta(days=1).total_seconds()),
+        )
+
+    engine.dialect._build_column_from_dimension = cached_build_column_from_dimension
+    engine.dialect._patched = True
 
 
 SELECT_STAR_MESSAGE = (
@@ -98,26 +147,17 @@ class DbtMetricFlowEngineSpec(ShillelaghEngineSpec):
         table: Table,
         options: dict[str, Any] | None = None,
     ) -> list[ResultSetColumnType]:
-        """
-        Get columns.
+        columns: list[ResultSetColumnType] = []
 
-        This method enriches the method from the SQLAlchemy dialect to include the
-        dimension descriptions.
-        """
-        connection = inspector.engine.connect()
-        adapter = get_adapter_for_table_name(connection, table.table)
+        for column in inspector.get_columns(table.name, table.schema):
+            # ignore metrics
+            if "computed" in column:
+                continue
 
-        return [
-            {
-                "name": column["name"],
-                "column_name": column["name"],
-                "type": column["type"],
-                "nullable": column["nullable"],
-                "default": column["default"],
-                "comment": adapter.dimensions.get(column["name"], ""),
-            }
-            for column in inspector.get_columns(table.table, table.schema)
-        ]
+            column["column_name"] = column["name"]
+            columns.append(column)
+
+        return columns
 
     @classmethod
     def get_metrics(
@@ -129,23 +169,21 @@ class DbtMetricFlowEngineSpec(ShillelaghEngineSpec):
         """
         Get all metrics.
         """
-        connection = inspector.engine.connect()
-        adapter = get_adapter_for_table_name(connection, table.table)
-
         return [
             {
-                "metric_name": metric,
-                "expression": metric,
-                "description": description,
+                "metric_name": column["name"],
+                "expression": column["computed"]["sqltext"],
+                "description": column["comment"],
             }
-            for metric, description in adapter.metrics.items()
+            for column in inspector.get_columns(table.name, table.schema)
+            if "computed" in column
         ]
 
     @classmethod
     def get_valid_metrics_and_dimensions(
         cls,
         database: Database,
-        datasource: ExploreMixin,
+        table: SqlaTable,
         dimensions: set[str],
         metrics: set[str],
     ) -> ValidColumnsType:

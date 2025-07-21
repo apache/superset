@@ -85,10 +85,9 @@ from superset.utils.network import is_hostname_valid, is_port_open
 from superset.utils.oauth2 import encode_oauth2_state
 
 if TYPE_CHECKING:
-    from superset.connectors.sqla.models import TableColumn
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
     from superset.databases.schemas import TableMetadataResponse
     from superset.models.core import Database
-    from superset.models.helpers import ExploreMixin
     from superset.models.sql_lab import Query
 
 
@@ -1522,7 +1521,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     def get_valid_metrics_and_dimensions(
         cls,
         database: Database,
-        datasource: ExploreMixin,
+        table: SqlaTable,
         dimensions: set[str],
         metrics: set[str],
     ) -> ValidColumnsType:
@@ -1539,8 +1538,8 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         metrics, and simply returns everything, for reference.
         """
         return {
-            "dimensions": {column.column_name for column in datasource.columns},
-            "metrics": {metric.metric_name for metric in datasource.metrics},
+            "dimensions": {column.column_name for column in table.columns},
+            "metrics": {metric.metric_name for metric in table.metrics},
         }
 
     @classmethod
