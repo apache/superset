@@ -114,7 +114,7 @@ export interface Dashboard {
 }
 
 const Actions = styled.div`
-  color: ${({ theme }) => theme.colors.grayscale.base};
+  color: ${({ theme }) => theme.colorText};
 `;
 
 const DASHBOARD_COLUMNS_TO_FETCH = [

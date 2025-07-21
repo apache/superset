@@ -94,7 +94,7 @@ const RefreshContainer = styled.div`
   width: 100%;
   padding: 0 ${({ theme }) => theme.sizeUnit * 4}px
     ${({ theme }) => theme.sizeUnit * 3}px;
-  background-color: ${({ theme }) => theme.colors.grayscale.light5};
+  background-color: ${({ theme }) => theme.colorBgBase};
 `;
 
 const StyledHeaderWithIcon = styled.div`

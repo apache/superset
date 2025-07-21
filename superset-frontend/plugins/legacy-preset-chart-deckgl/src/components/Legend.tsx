@@ -27,8 +27,8 @@ const StyledLegend = styled.div`
   ${({ theme }) => `
     font-size: ${theme.fontSizeSM}px;
     position: absolute;
-    background: ${theme.colors.grayscale.light5};
-    box-shadow: 0 0 ${theme.sizeUnit}px ${theme.colors.grayscale.light2};
+    background: ${theme.colorBgBase};
+    box-shadow: 0 0 ${theme.sizeUnit}px ${theme.colorBorderSecondary};
     margin: ${theme.sizeUnit * 6}px;
     padding: ${theme.sizeUnit * 3}px ${theme.sizeUnit * 5}px;
     outline: none;
@@ -42,7 +42,7 @@ const StyledLegend = styled.div`
 
       & li a {
         display: flex;
-        color: ${theme.colors.grayscale.base};
+        color: ${theme.colorText};
         text-decoration: none;
         padding: ${theme.sizeUnit}px 0;
 

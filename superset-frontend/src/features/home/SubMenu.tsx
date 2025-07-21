@@ -114,15 +114,15 @@ const StyledHeader = styled.div<{ backgroundColor?: string }>`
 `;
 
 const styledDisabled = (theme: SupersetTheme) => css`
-  color: ${theme.colors.grayscale.light1};
+  color: ${theme.colorBorder};
   cursor: not-allowed;
 
   &:hover {
-    color: ${theme.colors.grayscale.light1};
+    color: ${theme.colorBorder};
   }
 
   .ant-menu-item-selected {
-    background-color: ${theme.colors.grayscale.light1};
+    background-color: ${theme.colorBorder};
   }
 `;
 

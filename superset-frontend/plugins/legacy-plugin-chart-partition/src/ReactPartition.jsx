@@ -40,8 +40,8 @@ export default styled(Partition)`
     }
 
     .superset-legacy-chart-partition rect {
-      stroke: ${theme.colors.grayscale.light2};
-      fill: ${theme.colors.grayscale.light1};
+      stroke: ${theme.colorBorderSecondary};
+      fill: ${theme.colorBorder};
       fill-opacity: 80%;
       transition: fill-opacity 180ms linear;
       cursor: pointer;
@@ -57,7 +57,7 @@ export default styled(Partition)`
     }
 
     .superset-legacy-chart-partition g:hover text {
-      fill: ${theme.colors.grayscale.dark2};
+      fill: ${theme.colorTextBase};
     }
 
     .superset-legacy-chart-partition .partition-tooltip {
@@ -67,14 +67,14 @@ export default styled(Partition)`
       opacity: 0;
       padding: ${theme.sizeUnit}px;
       pointer-events: none;
-      background-color: ${theme.colors.grayscale.dark2};
+      background-color: ${theme.colorTextBase};
       border-radius: ${theme.borderRadius}px;
     }
 
     .partition-tooltip td {
       padding-left: ${theme.sizeUnit}px;
       font-size: ${theme.fontSizeSM}px;
-      color: ${theme.colors.grayscale.light5};
+      color: ${theme.colorBgBase};
     }
   `}
 `;

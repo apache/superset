@@ -23,7 +23,7 @@ import { Icons } from '@superset-ui/core/components/Icons';
 import { NotificationMethodOption } from '../types';
 
 const notificationStyledIcon = (theme: SupersetTheme) => css`
-  color: ${theme.colors.grayscale.light1};
+  color: ${theme.colorBorder};
   margin-right: ${theme.sizeUnit * 2}px;
 `;
 

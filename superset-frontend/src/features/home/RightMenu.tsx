@@ -67,13 +67,13 @@ const extensionsRegistry = getExtensionsRegistry();
 const versionInfoStyles = (theme: SupersetTheme) => css`
   padding: ${theme.sizeUnit * 1.5}px ${theme.sizeUnit * 4}px
     ${theme.sizeUnit * 4}px ${theme.sizeUnit * 7}px;
-  color: ${theme.colors.grayscale.base};
+  color: ${theme.colorText};
   font-size: ${theme.fontSizeXS}px;
   white-space: nowrap;
 `;
 
 const styledDisabled = (theme: SupersetTheme) => css`
-  color: ${theme.colors.grayscale.light1};
+  color: ${theme.colorBorder};
 `;
 
 const StyledDiv = styled.div<{ align: string }>`
@@ -98,7 +98,7 @@ const StyledAnchor = styled.a`
 `;
 
 const tagStyles = (theme: SupersetTheme) => css`
-  color: ${theme.colors.grayscale.light5};
+  color: ${theme.colorBgBase};
 `;
 
 const styledChildMenu = (theme: SupersetTheme) => css`

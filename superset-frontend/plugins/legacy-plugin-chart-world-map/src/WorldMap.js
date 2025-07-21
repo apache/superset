@@ -203,14 +203,14 @@ function WorldMap(element, props) {
     height,
     data: processedData,
     fills: {
-      defaultFill: theme.colors.grayscale.light2,
+      defaultFill: theme.colorBorderSecondary,
     },
     geographyConfig: {
       popupOnHover: !inContextMenu,
       highlightOnHover: !inContextMenu,
       borderWidth: 1,
       borderColor: theme.colorSplit,
-      highlightBorderColor: theme.colors.grayscale.light5,
+      highlightBorderColor: theme.colorBgBase,
       highlightFillColor: color,
       highlightBorderWidth: 1,
       popupTemplate: (geo, d) =>
@@ -232,7 +232,7 @@ function WorldMap(element, props) {
       animate: true,
       highlightOnHover: !inContextMenu,
       highlightFillColor: color,
-      highlightBorderColor: theme.colors.grayscale.dark2,
+      highlightBorderColor: theme.colorTextBase,
       highlightBorderWidth: 2,
       highlightBorderOpacity: 1,
       highlightFillOpacity: 0.85,

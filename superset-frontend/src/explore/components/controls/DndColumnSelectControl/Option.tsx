@@ -61,7 +61,7 @@ export default function Option({
         >
           <Icons.CloseOutlined
             iconSize="m"
-            iconColor={theme.colors.grayscale.light1}
+            iconColor={theme.colorBorder}
             css={css`
               vertical-align: sub;
             `}
@@ -89,7 +89,7 @@ export default function Option({
             css={css`
               margin: ${theme.sizeUnit}px;
             `}
-            iconColor={theme.colors.grayscale.light1}
+            iconColor={theme.colorBorder}
           />
         </CaretContainer>
       )}

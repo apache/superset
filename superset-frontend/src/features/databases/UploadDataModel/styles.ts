@@ -46,7 +46,7 @@ export const antDModalNoPaddingStyles = css`
 
 export const formStyles = (theme: SupersetTheme) => css`
   .switch-label {
-    color: ${theme.colors.grayscale.base};
+    color: ${theme.colorText};
     margin-left: ${theme.sizeUnit * 4}px;
   }
 `;

@@ -75,8 +75,8 @@ const PopoverMenuStyles = styled.div`
     top: -42px;
     height: ${theme.sizeUnit * 10}px;
     padding: 0 ${theme.sizeUnit * 4}px;
-    background: ${theme.colors.grayscale.light5};
-    box-shadow: 0 1px 2px 1px ${addAlpha(theme.colors.grayscale.dark2, 0.35)};
+    background: ${theme.colorBgBase};
+    box-shadow: 0 1px 2px 1px ${addAlpha(theme.colorTextBase, 0.35)};
     font-size: ${theme.fontSize}px;
     cursor: default;
     z-index: 3000;
@@ -93,7 +93,7 @@ const PopoverMenuStyles = styled.div`
       content: '';
       width: 1px;
       height: 100%;
-      background: ${theme.colors.grayscale.light2};
+      background: ${theme.colorBorderSecondary};
       margin: 0 ${theme.sizeUnit * 4}px;
     }
   `}

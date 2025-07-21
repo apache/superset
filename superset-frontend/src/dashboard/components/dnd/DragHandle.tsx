@@ -35,7 +35,7 @@ const DragHandleContainer = styled.div<{ position: 'left' | 'top' }>`
       transform: rotate(90deg);
     `}
     & path {
-      fill: ${theme.colors.grayscale.base};
+      fill: ${theme.colorText};
     }
   `}
 `;

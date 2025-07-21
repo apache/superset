@@ -508,11 +508,7 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
       <Tooltip title={message} placement="top">
         <Icons.InfoCircleOutlined
           iconSize="m"
-          iconColor={
-            status === 'error'
-              ? theme.colors.error.base
-              : theme.colors.grayscale.base
-          }
+          iconColor={status === 'error' ? theme.colorError : theme.colorText}
           className="tooltip-icon"
         />
       </Tooltip>

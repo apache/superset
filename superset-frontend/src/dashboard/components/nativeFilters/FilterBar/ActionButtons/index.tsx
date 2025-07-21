@@ -46,7 +46,7 @@ const containerStyle = (theme: SupersetTheme) => css`
   display: flex;
 
   && > .filter-clear-all-button {
-    color: ${theme.colors.grayscale.base};
+    color: ${theme.colorText};
     margin-left: 0;
     &:hover {
       color: ${theme.colorPrimaryText};
@@ -54,7 +54,7 @@ const containerStyle = (theme: SupersetTheme) => css`
 
     &[disabled],
     &[disabled]:hover {
-      color: ${theme.colors.grayscale.light1};
+      color: ${theme.colorBorder};
     }
   }
 `;
@@ -74,8 +74,8 @@ const verticalStyle = (theme: SupersetTheme, width: number) => css`
   padding-top: ${theme.sizeUnit * 6}px;
 
   background: linear-gradient(
-    ${rgba(theme.colors.grayscale.light5, 0)},
-    ${theme.colors.grayscale.light5} 60%
+    ${rgba(theme.colorBgBase, 0)},
+    ${theme.colorBgBase} 60%
   );
 
   & > button {
@@ -97,8 +97,8 @@ const horizontalStyle = (theme: SupersetTheme) => css`
   & > .filter-apply-button {
     &[disabled],
     &[disabled]:hover {
-      color: ${theme.colors.grayscale.light1};
-      background: ${theme.colors.grayscale.light3};
+      color: ${theme.colorBorder};
+      background: ${theme.colorFill};
     }
   }
 `;

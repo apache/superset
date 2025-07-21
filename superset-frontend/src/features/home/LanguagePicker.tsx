@@ -62,7 +62,7 @@ export default function LanguagePicker(props: LanguagePickerProps) {
     <SubMenu
       css={css`
         [data-icon='caret-down'] {
-          color: ${theme.colors.grayscale.base};
+          color: ${theme.colorText};
           font-size: ${theme.fontSizeXS}px;
           margin-left: ${theme.sizeUnit}px;
         }

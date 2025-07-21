@@ -39,7 +39,7 @@ export default styled(ParallelCoordinates)`
         overflow: auto;
         div.row {
           &:hover {
-            background-color: ${theme.colors.grayscale.light2};
+            background-color: ${theme.colorBorderSecondary};
           }
         }
       }
@@ -62,14 +62,14 @@ export default styled(ParallelCoordinates)`
       fill: transparent;
     }
     .parcoords rect.background:hover {
-      fill: ${addAlpha(theme.colors.grayscale.base, 0.2)};
+      fill: ${addAlpha(theme.colorText, 0.2)};
     }
     .parcoords .resize rect {
-      fill: ${addAlpha(theme.colors.grayscale.dark2, 0.1)};
+      fill: ${addAlpha(theme.colorTextBase, 0.1)};
     }
     .parcoords rect.extent {
-      fill: ${addAlpha(theme.colors.grayscale.light5, 0.25)};
-      stroke: ${addAlpha(theme.colors.grayscale.dark2, 0.6)};
+      fill: ${addAlpha(theme.colorBgBase, 0.25)};
+      stroke: ${addAlpha(theme.colorTextBase, 0.6)};
     }
     .parcoords .axis line,
     .parcoords .axis path {
@@ -93,7 +93,7 @@ export default styled(ParallelCoordinates)`
       -moz-user-select: none;
       -ms-user-select: none;
       user-select: none;
-      background-color: ${theme.colors.grayscale.light5};
+      background-color: ${theme.colorBgBase};
     }
 
     /* data table styles */
@@ -106,7 +106,7 @@ export default styled(ParallelCoordinates)`
       margin: 0px;
     }
     .parcoords .row:nth-of-type(odd) {
-      background: ${addAlpha(theme.colors.grayscale.dark2, 0.05)};
+      background: ${addAlpha(theme.colorTextBase, 0.05)};
     }
     .parcoords .header {
       font-weight: ${theme.fontWeightStrong};

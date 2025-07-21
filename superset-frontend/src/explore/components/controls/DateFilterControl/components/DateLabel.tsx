@@ -47,10 +47,10 @@ const LabelContainer = styled.div<{
 
     padding: 0 ${theme.sizeUnit * 3}px;
 
-    background-color: ${theme.colors.grayscale.light5};
+    background-color: ${theme.colorBgBase};
 
     border: 1px solid
-      ${isActive ? ACTIVE_BORDER_COLOR : theme.colors.grayscale.light2};
+      ${isActive ? ACTIVE_BORDER_COLOR : theme.colorBorderSecondary};
     border-radius: ${theme.borderRadius}px;
 
     cursor: pointer;
@@ -62,7 +62,7 @@ const LabelContainer = styled.div<{
     }
 
     .date-label-content {
-      color: ${isPlaceholder ? theme.colors.grayscale.light1 : theme.colorText};
+      color: ${isPlaceholder ? theme.colorBorder : theme.colorText};
       overflow: hidden;
       text-overflow: ellipsis;
       min-width: 0;

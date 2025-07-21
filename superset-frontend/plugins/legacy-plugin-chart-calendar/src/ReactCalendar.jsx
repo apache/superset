@@ -32,8 +32,8 @@ const Calendar = ({ className, ...otherProps }) => {
           .d3-tip {
             line-height: 1;
             padding: ${theme.sizeUnit * 3}px;
-            background: ${theme.colors.grayscale.dark2};
-            color: ${theme.colors.grayscale.light5};
+            background: ${theme.colorTextBase};
+            color: ${theme.colorBgBase};
             border-radius: 4px;
             pointer-events: none;
             z-index: 1000;
@@ -46,7 +46,7 @@ const Calendar = ({ className, ...otherProps }) => {
             font-size: ${theme.fontSizeXS};
             width: 100%;
             line-height: 1;
-            color: ${theme.colors.grayscale.dark2};
+            color: ${theme.colorTextBase};
             position: absolute;
             pointer-events: none;
           }
@@ -112,8 +112,8 @@ export default styled(Calendar)`
     .superset-legacy-chart-calendar .d3-tip {
       line-height: 1;
       padding: ${theme.sizeUnit * 3}px;
-      background: ${theme.colors.grayscale.dark2};
-      color: ${theme.colors.grayscale.light5};
+      background: ${theme.colorTextBase};
+      color: ${theme.colorBgBase};
       border-radius: ${theme.borderRadius}px;
       pointer-events: none;
       z-index: 1000;
@@ -124,7 +124,7 @@ export default styled(Calendar)`
     }
 
     .cal-heatmap-container .graph-label {
-      fill: ${theme.colors.grayscale.base};
+      fill: ${theme.colorText};
       font-size: ${theme.fontSizeXS}px;
     }
 
@@ -134,11 +134,11 @@ export default styled(Calendar)`
     }
 
     .cal-heatmap-container .graph-rect {
-      fill: ${theme.colors.grayscale.light2};
+      fill: ${theme.colorBorderSecondary};
     }
 
     .cal-heatmap-container .graph-subdomain-group rect:hover {
-      stroke: ${theme.colors.grayscale.dark2};
+      stroke: ${theme.colorTextBase};
       stroke-width: 1px;
     }
 
@@ -152,88 +152,88 @@ export default styled(Calendar)`
     }
 
     .cal-heatmap-container .qi {
-      background-color: ${theme.colors.grayscale.base};
-      fill: ${theme.colors.grayscale.base};
-    }
-
-    .cal-heatmap-container .q1 {
-      background-color: ${theme.colors.warning.light2};
-      fill: ${theme.colors.warning.light2};
-    }
-
-    .cal-heatmap-container .q2 {
-      background-color: ${theme.colors.warning.light1};
-      fill: ${theme.colors.warning.light1};
-    }
-
-    .cal-heatmap-container .q3 {
-      background-color: ${theme.colors.success.light1};
-      fill: ${theme.colors.success.light1};
-    }
-
-    .cal-heatmap-container .q4 {
-      background-color: ${theme.colorSuccess};
-      fill: ${theme.colorSuccess};
-    }
-
-    .cal-heatmap-container .q5 {
-      background-color: ${theme.colors.success.dark1};
-      fill: ${theme.colors.success.dark1};
-    }
-
-    .cal-heatmap-container rect.highlight {
-      stroke: ${theme.colorText};
-      stroke-width: 1;
-    }
-
-    .cal-heatmap-container text.highlight {
+      background-color: ${theme.colorText};
       fill: ${theme.colorText};
     }
 
-    .cal-heatmap-container rect.highlight-now {
-      stroke: ${theme.colorError};
-    }
-
-    .cal-heatmap-container text.highlight-now {
+    .cal-heatmap-container .q1 {
+      background-color: ${theme.colorError};
       fill: ${theme.colorError};
-      font-weight: ${theme.fontWeightStrong};
     }
 
-    .cal-heatmap-container .domain-background {
-      fill: none;
-      shape-rendering: crispedges;
+    .cal-heatmap-container .q2 {
+      background-color: ${theme.colorError};
+      fill: ${theme.colorError};
     }
 
-    .ch-tooltip {
-      padding: ${theme.sizeUnit * 2}px;
-      background: ${theme.colorText};
-      color: ${theme.colors.grayscale.light1};
-      font-size: ${theme.fontSizeSM}px;
-      line-height: 1.4;
-      width: 140px;
-      position: absolute;
-      z-index: 99999;
-      text-align: center;
-      border-radius: ${theme.borderRadius}px;
-      box-shadow: 2px 2px 2px ${theme.colors.grayscale.dark2};
-      display: none;
-      box-sizing: border-box;
+    .cal-heatmap-container .q3 {
+      background-color: ${theme.colorSuccessHover};
+      fill: ${theme.colorSuccessHover};
     }
 
-    .ch-tooltip::after {
-      position: absolute;
-      width: 0;
-      height: 0;
-      border-color: transparent;
-      border-style: solid;
-      content: '';
-      padding: 0;
-      display: block;
-      bottom: -${theme.sizeUnit}px;
-      left: 50%;
-      margin-left: -${theme.sizeUnit}px;
-      border-width: ${theme.sizeUnit}px ${theme.sizeUnit}px 0;
-      border-top-color: ${theme.colorSplit};
-    }
-  `}
+    .cal - heatmap - container.q4 {
+  background - color: ${theme.colorSuccess};
+  fill: ${theme.colorSuccess};
+}
+
+    .cal - heatmap - container.q5 {
+  background - color: ${theme.colorSuccessActive};
+  fill: ${theme.colorSuccessActive};
+}
+
+    .cal - heatmap - container rect.highlight {
+  stroke: ${theme.colorText};
+  stroke - width: 1;
+}
+
+    .cal - heatmap - container text.highlight {
+  fill: ${theme.colorText};
+}
+
+    .cal - heatmap - container rect.highlight - now {
+  stroke: ${theme.colorError};
+}
+
+    .cal - heatmap - container text.highlight - now {
+  fill: ${theme.colorError};
+  font - weight: ${theme.fontWeightStrong};
+}
+
+    .cal - heatmap - container.domain - background {
+  fill: none;
+  shape - rendering: crispedges;
+}
+
+    .ch - tooltip {
+  padding: ${theme.sizeUnit * 2} px;
+  background: ${theme.colorText};
+  color: ${theme.colorBorder};
+  font - size: ${theme.fontSizeSM} px;
+  line - height: 1.4;
+  width: 140px;
+  position: absolute;
+  z - index: 99999;
+  text - align: center;
+  border - radius: ${theme.borderRadius} px;
+  box - shadow: 2px 2px 2px ${theme.colorTextBase};
+  display: none;
+  box - sizing: border - box;
+}
+
+    .ch - tooltip::after {
+  position: absolute;
+  width: 0;
+  height: 0;
+  border - color: transparent;
+  border - style: solid;
+  content: '';
+  padding: 0;
+  display: block;
+  bottom: -${theme.sizeUnit} px;
+  left: 50 %;
+  margin - left: -${theme.sizeUnit} px;
+  border - width: ${theme.sizeUnit}px ${theme.sizeUnit}px 0;
+  border - top - color: ${theme.colorSplit};
+}
+`}
 `;

@@ -38,7 +38,7 @@ extendedDayjs.updateLocale('en', {
 });
 
 const TextStyles = styled.span`
-  color: ${({ theme }) => theme.colors.grayscale.base};
+  color: ${({ theme }) => theme.colorText};
 `;
 
 const RefreshIcon = styled(Icons.SyncOutlined)`

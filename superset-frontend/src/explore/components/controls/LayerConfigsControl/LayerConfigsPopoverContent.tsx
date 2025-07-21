@@ -59,7 +59,7 @@ export const StyledCloseButton = styled(Button)`
     margin-right: 4px;
     line-height: 1.5715;
     border-radius: ${theme.borderRadius}px;
-    background-color: ${theme.colors.primary.light4};
+    background-color: ${theme.colorBgContainer};
     color: ${theme.colorPrimaryText};
     font-size: ${theme.fontSizeSM}px;
     font-weight: ${theme.fontWeightStrong};
@@ -71,11 +71,7 @@ export const StyledCloseButton = styled(Button)`
     border-style: none;
     border-color: transparent;
     &:hover {
-      background-color: ${mix(
-        0.1,
-        theme.colorPrimary,
-        theme.colors.primary.light4,
-      )};
+      background-color: ${mix(0.1, theme.colorPrimary, theme.colorBgContainer)};
       color: ${theme.colorPrimaryText};
     }
   `}
@@ -113,7 +109,7 @@ export const StyledSaveButton = styled(Button)`
     line-height: 1.5715;
     border-radius: ${theme.borderRadius}px;
     background-color: ${theme.colorPrimary};
-    color: ${theme.colors.grayscale.light5};
+    color: ${theme.colorBgBase};
     font-size: ${theme.fontSizeSM}px;
     font-weight: ${theme.fontWeightStrong};
     text-transform: uppercase;

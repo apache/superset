@@ -183,7 +183,7 @@ const FilterTypeInfo = styled.div<{ expanded: boolean }>`
   ${({ theme, expanded }) => `
     width: ${expanded ? '49%' : `${FORM_ITEM_WIDTH}px`};
     font-size: ${theme.fontSizeSM}px;
-    color: ${theme.colors.grayscale.light1};
+    color: ${theme.colorBorder};
     margin:
       ${theme.sizeUnit * 2}px
       0px

@@ -57,7 +57,7 @@ const SelectWithLabel = styled(Select)<{ labelText: string }>`
     content: ${({ labelText }) => labelText || '\\A0'};
     display: inline-block;
     white-space: nowrap;
-    color: ${({ theme }) => theme.colors.grayscale.light1};
+    color: ${({ theme }) => theme.colorBorder};
     width: max-content;
   }
 `;

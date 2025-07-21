@@ -73,7 +73,7 @@ export const NameRow = ({
         >
           <Icons.EditOutlined
             iconSize="l"
-            iconColor={theme.colors.grayscale.light1}
+            iconColor={theme.colorBorder}
             css={() => css`
               cursor: pointer;
             `}

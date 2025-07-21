@@ -29,7 +29,7 @@ const StyledDiv = styled.div`
   display: flex;
   align-items: center;
   cursor: pointer;
-  color: ${({ theme }) => theme.colors.grayscale.base};
+  color: ${({ theme }) => theme.colorText};
   &:hover {
     color: ${({ theme }) => theme.colorPrimary};
   }

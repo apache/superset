@@ -169,7 +169,7 @@ export default function PopKPI(props: PopKPIProps) {
 
   const getArrowIndicatorColor = () => {
     if (!comparisonColorEnabled || percentDifferenceNumber === 0) {
-      return theme.colors.grayscale.base;
+      return theme.colorText;
     }
 
     if (percentDifferenceNumber > 0) {
@@ -190,7 +190,7 @@ export default function PopKPI(props: PopKPIProps) {
   `;
 
   const defaultBackgroundColor = theme.colorBgContainer;
-  const defaultTextColor = theme.colors.grayscale.base;
+  const defaultTextColor = theme.colorText;
   const { backgroundColor, textColor } = useMemo(() => {
     let bgColor = defaultBackgroundColor;
     let txtColor = defaultTextColor;

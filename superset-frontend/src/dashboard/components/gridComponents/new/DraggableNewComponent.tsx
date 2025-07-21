@@ -40,10 +40,10 @@ const NewComponent = styled.div`
     flex-wrap: nowrap;
     align-items: center;
     padding: ${theme.sizeUnit * 4}px;
-    background: ${theme.colors.grayscale.light5};
+    background: ${theme.colorBgBase};
     cursor: move;
     &:not(.static):hover {
-      background: ${theme.colors.grayscale.light4};
+      background: ${theme.colorBgContainer};
     }
   `}
 `;

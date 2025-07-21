@@ -425,7 +425,7 @@ export function transformIntervalAnnotation(
     const intervalLabel: SeriesLabelOption = showLabel
       ? {
           show: true,
-          color: theme.colors.grayscale.dark2,
+          color: theme.colorTextBase,
           position: 'insideTop',
           verticalAlign: 'top',
           fontWeight: 'bold',
@@ -433,19 +433,19 @@ export function transformIntervalAnnotation(
           emphasis: {
             position: 'insideTop',
             verticalAlign: 'top',
-            backgroundColor: theme.colors.grayscale.light5,
+            backgroundColor: theme.colorBgBase,
           },
         }
       : {
           show: false,
-          color: theme.colors.grayscale.dark2,
+          color: theme.colorTextBase,
           // @ts-ignore
           emphasis: {
             fontWeight: 'bold',
             show: true,
             position: 'insideTop',
             verticalAlign: 'top',
-            backgroundColor: theme.colors.grayscale.light5,
+            backgroundColor: theme.colorBgBase,
           },
         };
     series.push({
@@ -506,25 +506,25 @@ export function transformEventAnnotation(
     const eventLabel: SeriesLineLabelOption = showLabel
       ? {
           show: true,
-          color: theme.colors.grayscale.dark2,
+          color: theme.colorTextBase,
           position: 'insideEndTop',
           fontWeight: 'bold',
           formatter: (params: CallbackDataParams) => params.name,
           // @ts-ignore
           emphasis: {
-            backgroundColor: theme.colors.grayscale.light5,
+            backgroundColor: theme.colorBgBase,
           },
         }
       : {
           show: false,
-          color: theme.colors.grayscale.dark2,
+          color: theme.colorTextBase,
           position: 'insideEndTop',
           // @ts-ignore
           emphasis: {
             formatter: (params: CallbackDataParams) => params.name,
             fontWeight: 'bold',
             show: true,
-            backgroundColor: theme.colors.grayscale.light5,
+            backgroundColor: theme.colorBgBase,
           },
         };
 

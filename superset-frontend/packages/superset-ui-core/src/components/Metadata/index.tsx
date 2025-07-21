@@ -30,7 +30,7 @@ const MetadataWrapper = styled.div`
 
 const MetadataText = styled.span`
   font-size: ${({ theme }) => theme.fontSizeXS}px;
-  color: ${({ theme }) => theme.colors.grayscale.light1};
+  color: ${({ theme }) => theme.colorBorder};
   font-weight: ${({ theme }) => theme.fontWeightStrong};
 `;
 

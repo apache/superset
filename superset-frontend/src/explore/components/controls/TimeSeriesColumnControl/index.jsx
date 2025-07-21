@@ -92,7 +92,7 @@ const StyledCol = styled(Col)`
 
 const StyledTooltip = styled(InfoTooltip)`
   margin-left: ${({ theme }) => theme.sizeUnit}px;
-  color: ${({ theme }) => theme.colors.grayscale.light1};
+  color: ${({ theme }) => theme.colorBorder};
 `;
 
 const ButtonBar = styled.div`

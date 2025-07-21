@@ -140,7 +140,7 @@ const DashboardContentWrapper = styled.div`
       /* drop shadow for top-level tabs only */
       & .dashboard-component-tabs {
         box-shadow: 0 ${theme.sizeUnit}px ${theme.sizeUnit}px 0
-          ${addAlpha(theme.colors.grayscale.dark2, 0.1)};
+          ${addAlpha(theme.colorTextBase, 0.1)};
         padding-left: ${theme.sizeUnit *
         2}px; /* note this is added to tab-level padding, to match header */
       }

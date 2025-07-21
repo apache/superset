@@ -39,7 +39,7 @@ const StyledHeader = styled.div`
     display: inline-block;
     line-height: ${theme.sizeUnit * 9}px;
     width: 100%;
-    background-color: ${theme.colors.grayscale.light5};
+    background-color: ${theme.colorBgBase};
     margin-bottom: ${theme.sizeUnit * 6}px;
   `}
 `;
@@ -48,7 +48,7 @@ const DescriptionsContainer = styled.div`
   ${({ theme }) => css`
     margin: 0px ${theme.sizeUnit * 3}px ${theme.sizeUnit * 6}px
       ${theme.sizeUnit * 3}px;
-    background-color: ${theme.colors.grayscale.light5};
+    background-color: ${theme.colorBgBase};
   `}
 `;
 

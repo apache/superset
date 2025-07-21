@@ -220,7 +220,7 @@ export default function transformProps(
         name: otherName,
         value: otherSum,
         itemStyle: {
-          color: theme.colors.grayscale.dark1,
+          color: theme.colorTextSecondary,
           opacity:
             filterState.selectedValues &&
             !filterState.selectedValues.includes(otherName)
@@ -368,7 +368,7 @@ export default function transformProps(
   const defaultLabel = {
     formatter,
     show: showLabels,
-    color: theme.colors.grayscale.dark2,
+    color: theme.colorTextBase,
   };
 
   const chartPadding = getChartPadding(
@@ -403,7 +403,7 @@ export default function transformProps(
         label: {
           show: true,
           fontWeight: 'bold',
-          backgroundColor: theme.colors.grayscale.light5,
+          backgroundColor: theme.colorBgBase,
         },
       },
       data: transformedData,

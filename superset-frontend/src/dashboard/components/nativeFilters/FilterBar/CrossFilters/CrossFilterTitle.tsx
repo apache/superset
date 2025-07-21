@@ -33,7 +33,7 @@ const StyledCrossFilterTitle = styled.div`
   ${({ theme }) => `
     display: flex;
     font-size: ${theme.fontSizeSM}px;
-    color: ${theme.colors.grayscale.base};
+    color: ${theme.colorText};
     vertical-align: middle;
     align-items: center;
   `}
@@ -42,13 +42,13 @@ const StyledCrossFilterTitle = styled.div`
 const StyledIconSearch = styled(Icons.SearchOutlined)`
   ${({ theme }) => `
     & > span.anticon.anticon-search {
-      color: ${theme.colors.grayscale.light1};
+      color: ${theme.colorBorder};
       margin-left: ${theme.sizeUnit}px;
       transition: 0.3s;
       vertical-align: middle;
       line-height: 0;
       &:hover {
-        color: ${theme.colors.grayscale.base};
+        color: ${theme.colorText};
       }
     }
   `}

@@ -70,7 +70,7 @@ const HeaderAction = styled.div`
     box-shadow: 0 0 2px var(--ag-chip-border-color);
     border-radius: 50%;
     &:hover {
-      box-shadow: 0 0 4px ${({ theme }) => theme.colors.grayscale.light1};
+      box-shadow: 0 0 4px ${({ theme }) => theme.colorBorder};
     }
   }
 `;
