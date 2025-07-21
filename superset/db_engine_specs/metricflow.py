@@ -42,7 +42,7 @@ if TYPE_CHECKING:
     from sqlalchemy.engine.reflection import Inspector
 
     from superset.models.core import Database
-    from superset.sql_parse import Table
+    from superset.sql.parse import Table
     from superset.superset_typing import ResultSetColumnType
 
 
@@ -149,7 +149,7 @@ class DbtMetricFlowEngineSpec(ShillelaghEngineSpec):
     ) -> list[ResultSetColumnType]:
         columns: list[ResultSetColumnType] = []
 
-        for column in inspector.get_columns(table.name, table.schema):
+        for column in inspector.get_columns(table.table, table.schema):
             # ignore metrics
             if "computed" in column:
                 continue
@@ -175,7 +175,7 @@ class DbtMetricFlowEngineSpec(ShillelaghEngineSpec):
                 "expression": column["computed"]["sqltext"],
                 "description": column["comment"],
             }
-            for column in inspector.get_columns(table.name, table.schema)
+            for column in inspector.get_columns(table.table, table.schema)
             if "computed" in column
         ]
 
