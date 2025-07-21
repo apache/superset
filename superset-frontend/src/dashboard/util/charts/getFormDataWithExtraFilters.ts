@@ -155,7 +155,7 @@ function processGroupByCustomizations(
     filters?: any[];
   } = {};
 
-  const groupByColumns = new Set<string>();
+  const groupByColumns: string[] = [];
   const allFilters: any[] = [];
   let orderByConfig: string[] | undefined;
 
@@ -204,48 +204,67 @@ function processGroupByCustomizations(
     const selectedValues = groupByState[groupById]?.selectedValues || [];
 
     if (customization?.column) {
-      let columnName: string;
+      let columnNames: string[] = [];
 
       const dataMaskEntry = chartCustomizationDataMask[groupById];
       const pendingColumn = dataMaskEntry?.ownState?.column;
 
       if (pendingColumn) {
-        columnName = pendingColumn;
+        if (typeof pendingColumn === 'string') {
+          columnNames = [pendingColumn];
+        } else if (Array.isArray(pendingColumn)) {
+          columnNames = pendingColumn.filter(
+            col => typeof col === 'string' && col.trim() !== '',
+          );
+        }
       } else if (typeof customization.column === 'string') {
-        columnName = customization.column;
+        columnNames = [customization.column];
+      } else if (Array.isArray(customization.column)) {
+        columnNames = customization.column.filter(
+          col => typeof col === 'string' && col.trim() !== '',
+        );
       } else if (
         typeof customization.column === 'object' &&
         customization.column !== null
       ) {
         const columnObj = customization.column as any;
-        columnName =
+        const columnName =
           columnObj.column_name || columnObj.name || String(columnObj);
+        if (columnName && columnName.trim() !== '') {
+          columnNames = [columnName];
+        }
       } else {
         console.warn('Invalid column format:', customization.column);
         return;
       }
 
-      if (!columnName || columnName.trim() === '') {
-        console.warn('Empty column name in customization:', item.id);
+      if (columnNames.length === 0) {
+        console.warn('Empty column names in customization:', item.id);
         return;
       }
 
-      if (conflictingColumns.has(columnName)) {
-        console.warn(
-          `Column "${columnName}" conflicts with existing chart columns. Skipping customization.`,
-        );
-        return;
-      }
+      columnNames.forEach(columnName => {
+        if (conflictingColumns.has(columnName)) {
+          console.warn(
+            `Column "${columnName}" conflicts with existing chart columns. Skipping customization.`,
+          );
+          return;
+        }
 
-      groupByColumns.add(columnName);
+        if (!groupByColumns.includes(columnName)) {
+          groupByColumns.push(columnName);
+        }
+      });
 
-      if (selectedValues.length > 0) {
-        allFilters.push({
-          col: columnName,
-          op: 'IN',
-          val: selectedValues,
-        });
-      }
+      columnNames.forEach(columnName => {
+        if (selectedValues.length > 0) {
+          allFilters.push({
+            col: columnName,
+            op: 'IN',
+            val: selectedValues,
+          });
+        }
+      });
 
       if (customization.sortFilter && customization.sortMetric) {
         orderByConfig = [
@@ -258,8 +277,8 @@ function processGroupByCustomizations(
     }
   });
 
-  if (groupByColumns.size > 0) {
-    groupByFormData.groupby = Array.from(groupByColumns);
+  if (groupByColumns.length > 0) {
+    groupByFormData.groupby = groupByColumns;
   }
 
   if (allFilters.length > 0) {

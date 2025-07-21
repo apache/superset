@@ -53,7 +53,7 @@ export interface ChartCustomizationSavePayload {
       value: number;
       table_name: string;
     };
-    column: string | null;
+    column: string | string[] | null;
     description?: string;
     sortFilter?: boolean;
     sortAscending?: boolean;
@@ -64,6 +64,8 @@ export interface ChartCustomizationSavePayload {
     selectFirst?: boolean;
     defaultDataMask?: any;
     defaultValueQueriesData?: any;
+    aggregation?: string;
+    canSelectMultiple?: boolean;
   };
 }
 
@@ -492,10 +494,18 @@ export function setChartCustomizationData(
 export function loadChartCustomizationData(
   itemId: string,
   datasetId: string,
-  columnName: string,
+  columnName: string | string[],
 ): ThunkAction<Promise<void>, RootState, null, AnyAction> {
   return async (dispatch: ThunkDispatch<RootState, null, AnyAction>) => {
     if (!datasetId || !columnName) {
+      return;
+    }
+
+    const actualColumnName = Array.isArray(columnName)
+      ? columnName[0]
+      : columnName;
+
+    if (!actualColumnName) {
       return;
     }
 
@@ -504,7 +514,7 @@ export function loadChartCustomizationData(
     try {
       const formData = getFormData({
         datasetId: Number(datasetId),
-        groupby: columnName,
+        groupby: actualColumnName,
         dashboardId: 0,
         filterType: 'filter_select',
       });
@@ -519,7 +529,7 @@ export function loadChartCustomizationData(
         const formattedData: FilterOption[] = [];
 
         data.forEach((row: any) => {
-          const value = row[columnName];
+          const value = row[actualColumnName];
           if (
             value !== null &&
             value !== undefined &&

@@ -685,19 +685,6 @@ const ChartCustomizationForm: FC<Props> = ({ form, item, onUpdate }) => {
     customization.hasDefaultValue,
   ]);
 
-  const defaultValueValidator = useCallback(async () => {
-    const current = form.getFieldValue(['filters', item.id]) || {};
-    if (!current.hasDefaultValue && !current.isRequired) {
-      return Promise.resolve();
-    }
-
-    const { column } = current;
-    if (!column) {
-      return Promise.reject(new Error(t('Please select a column')));
-    }
-    return Promise.resolve();
-  }, [form, item.id]);
-
   const isRequiredValidator = useCallback(
     async (_, isRequired) => {
       if (!isRequired) {
@@ -970,7 +957,29 @@ const ChartCustomizationForm: FC<Props> = ({ form, item, onUpdate }) => {
                 required={hasDefaultValue}
                 rules={[
                   {
-                    validator: defaultValueValidator,
+                    validator: async () => {
+                      const current =
+                        form.getFieldValue(['filters', item.id]) || {};
+                      if (!current.hasDefaultValue && !current.isRequired) {
+                        return Promise.resolve();
+                      }
+
+                      const { column } = current;
+                      const hasValidColumn =
+                        column &&
+                        (typeof column === 'string'
+                          ? column.trim() !== ''
+                          : Array.isArray(column)
+                            ? column.length > 0
+                            : false);
+
+                      if (!hasValidColumn) {
+                        return Promise.reject(
+                          new Error(t('Please select a column')),
+                        );
+                      }
+                      return Promise.resolve();
+                    },
                   },
                 ]}
               >
@@ -991,12 +1000,6 @@ const ChartCustomizationForm: FC<Props> = ({ form, item, onUpdate }) => {
                               name={['filters', item.id, 'column']}
                               label={t('Select Column')}
                               initialValue={customization.column || null}
-                              rules={[
-                                {
-                                  required: hasDefaultValue,
-                                  message: t('Please select a column'),
-                                },
-                              ]}
                             >
                               <Select
                                 allowClear
@@ -1014,12 +1017,17 @@ const ChartCustomizationForm: FC<Props> = ({ form, item, onUpdate }) => {
                                     });
                                     form.validateFields([
                                       ['filters', item.id, 'column'],
+                                      ['filters', item.id, 'defaultDataMask'],
                                     ]);
                                     formChanged();
                                   } else {
                                     setFormFieldValues({
                                       column: null,
                                     });
+                                    form.validateFields([
+                                      ['filters', item.id, 'column'],
+                                      ['filters', item.id, 'defaultDataMask'],
+                                    ]);
                                     formChanged();
                                   }
                                 }}
