@@ -46,6 +46,7 @@ import { Icons } from '@superset-ui/core/components/Icons';
 import Chart, { Slice } from 'src/types/Chart';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import { type TagType } from 'src/components';
+import { TagTypeEnum } from 'src/components/Tag/TagType';
 import { loadTags } from 'src/components/Tag/utils';
 
 export type PropertiesModalProps = {
@@ -125,7 +126,7 @@ function PropertiesModal({
         );
         if (isFeatureEnabled(FeatureFlag.TaggingSystem)) {
           const customTags = chart.tags?.filter(
-            (tag: TagType) => tag.type === 1,
+            (tag: TagType) => tag.type === TagTypeEnum.Custom,
           );
           setTags(customTags);
         }

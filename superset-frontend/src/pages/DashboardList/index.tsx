@@ -67,6 +67,7 @@ import {
   Dashboard as CRUDDashboard,
   QueryObjectColumns,
 } from 'src/views/CRUD/types';
+import { TagTypeEnum } from 'src/components/Tag/TagType';
 import { loadTags } from 'src/components/Tag/utils';
 import DashboardCard from 'src/features/dashboards/DashboardCard';
 import { DashboardStatus } from 'src/features/dashboards/types';
@@ -376,7 +377,8 @@ function DashboardList(props: DashboardListProps) {
           <TagsList
             tags={tags.filter(
               (tag: TagType) =>
-                tag.type === 'TagTypes.custom' || tag.type === 1,
+                tag.type === 'TagTypes.custom' ||
+                tag.type === TagTypeEnum.Custom,
             )}
             maxTags={3}
           />
