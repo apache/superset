@@ -62,7 +62,6 @@ const containerStyle = (theme: SupersetTheme) => css`
 const verticalStyle = (theme: SupersetTheme, width: number) => css`
   flex-direction: column;
   align-items: center;
-  pointer-events: none;
   position: fixed;
   z-index: 100;
 
@@ -75,12 +74,8 @@ const verticalStyle = (theme: SupersetTheme, width: number) => css`
 
   background: linear-gradient(
     ${rgba(theme.colors.grayscale.light5, 0)},
-    ${theme.colors.grayscale.light5} 60%
+    ${theme.colors.grayscale.light5} 20%
   );
-
-  & > button {
-    pointer-events: auto;
-  }
 
   & > .filter-apply-button {
     margin-bottom: ${theme.sizeUnit * 3}px;
