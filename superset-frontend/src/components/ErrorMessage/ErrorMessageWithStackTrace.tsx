@@ -54,7 +54,7 @@ export function ErrorMessageWithStackTrace({
   // Check if a custom error message component was registered for this message
   if (error) {
     const ErrorMessageComponent = getErrorMessageComponentRegistry().get(
-      error.error_type ?? error.errorType,
+      error.errorType ?? error.error_type,
     );
     if (ErrorMessageComponent) {
       return (
