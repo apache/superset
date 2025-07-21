@@ -333,7 +333,7 @@ const CustomModal = ({
       }
       footer={!hideFooter ? modalFooter : null}
       hideFooter={hideFooter}
-      wrapProps={{ 'data-test': `${name || title}-modal`, ...wrapProps }}
+      wrapProps={{ 'data-test': `${name || 'antd'}-modal`, ...wrapProps }}
       modalRender={modal =>
         resizable || draggable ? (
           <Draggable

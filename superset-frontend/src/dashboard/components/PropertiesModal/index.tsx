@@ -610,7 +610,12 @@ const PropertiesModal = ({
     <Modal
       show={show}
       onHide={handleOnCancel}
-      title={<ModalTitleWithIcon title="Dashboard properties" />}
+      title={
+        <ModalTitleWithIcon
+          icon={<Icons.EditOutlined />}
+          title="Dashboard properties"
+        />
+      }
       footer={
         <>
           <Button

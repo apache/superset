@@ -47,7 +47,7 @@ export const ModalTitleWithIcon = ({
   editModeConfig,
   title,
   icon,
-  dataTestId = 'css-template-modal-title',
+  dataTestId,
   level = 5,
 }: ModalTitleWithIconProps) => {
   const theme = useTheme();

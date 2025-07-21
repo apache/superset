@@ -102,6 +102,7 @@ function GroupListModal({
     <FormModal
       show={show}
       onHide={onHide}
+      name={isEditMode ? 'Edit Group' : 'Add Group'}
       title={
         <ModalTitleWithIcon
           editModeConfig={{
