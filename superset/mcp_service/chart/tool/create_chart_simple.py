@@ -17,28 +17,36 @@
 """
 MCP tool: create_chart_simple
 """
+
 from typing import Annotated
+
 from pydantic import Field
+
 from superset.mcp_service.auth import mcp_auth_hook
-from superset.mcp_service.pydantic_schemas.chart_schemas import (
-    CreateSimpleChartRequest, CreateSimpleChartResponse
-)
-from superset.mcp_service.pydantic_schemas.chart_schemas import serialize_chart_object
-import json
 from superset.mcp_service.mcp_app import mcp
+from superset.mcp_service.pydantic_schemas.chart_schemas import (
+    CreateSimpleChartRequest,
+    CreateSimpleChartResponse,
+    serialize_chart_object,
+)
+from superset.utils import json
+
 
 @mcp.tool
 @mcp_auth_hook
 def create_chart_simple(
     request: Annotated[
         CreateSimpleChartRequest,
-        Field(description="Request object for creating a simple chart")
-    ]
+        Field(description="Request object for creating a simple chart"),
+    ],
 ) -> CreateSimpleChartResponse:
     """
     Create a new chart (visualization) in Superset with a simple, fixed schema.
 
-    This tool allows you to programmatically create a chart by specifying the core chart configuration fields, without needing to construct a full UI form payload. It is designed for LLMs and automation agents to easily create basic charts for a given dataset.
+    This tool allows you to programmatically create a chart by specifying the core
+    chart configuration fields, without needing to construct a full UI form payload.
+    It is designed for LLMs and automation agents to easily create basic charts for a
+    given dataset.
 
     **Required fields:**
       - slice_name: Name of the chart (string)
@@ -52,9 +60,12 @@ def create_chart_simple(
       - description: Chart description (string)
       - owners: List of owner user IDs (list of integers)
       - dashboards: List of dashboard IDs to add this chart to (list of integers)
-      - return_embed: If true, return embeddable chart assets (embed_url, thumbnail_url, embed_html) in the response.
+      - return_embed: If true, return embeddable chart assets (embed_url,
+      thumbnail_url, embed_html) in the response.
 
-    The tool will build a minimal Superset chart configuration and create the chart. The created chart will be available in the Superset UI and can be added to dashboards.
+    The tool will build a minimal Superset chart configuration and create the chart.
+    The created chart will be available in the Superset UI and can be added to
+    dashboards.
 
     **Example usage:**
     ```python
@@ -73,14 +84,19 @@ def create_chart_simple(
     ```
 
     **Returns:**
-      - On success: The created chart info (ID, name, type, etc.), and if requested, embeddable chart assets (embed_url, thumbnail_url, embed_html)
+      - On success: The created chart info (ID, name, type, etc.), and if requested,
+      embeddable chart assets (embed_url, thumbnail_url, embed_html)
       - On error: An error message describing what went wrong
 
     **LLM Guidance:**
-      - Use this tool when you want to create a new chart for a dataset, given the chart type, metrics, and dimensions.
-      - You must know the dataset ID and the names of the metrics and columns you want to use.
-      - Set return_embed=True if you want to immediately embed the chart in a chat or web UI.
-      - For more advanced chart types or customizations, use a specialized chart creation tool or agent if available.
+      - Use this tool when you want to create a new chart for a dataset, given the
+      chart type, metrics, and dimensions.
+      - You must know the dataset ID and the names of the metrics and columns you
+      want to use.
+      - Set return_embed=True if you want to immediately embed the chart in a chat or
+      web UI.
+      - For more advanced chart types or customizations, use a specialized chart
+      creation tool or agent if available.
     """
     from superset.commands.chart.create import CreateChartCommand
 
@@ -112,11 +128,12 @@ def create_chart_simple(
         thumbnail_url = None
         embed_html = None
         if getattr(request, "return_embed", False) and hasattr(chart, "id"):
-            base_url = "/explore/?slice_id="
-            # If you have a public URL, replace with your Superset base URL
             embed_url = f"/explore/?slice_id={chart.id}"
             thumbnail_url = f"/api/v1/chart/{chart.id}/thumbnail/"
-            embed_html = f'<iframe src="/explore/?slice_id={chart.id}" width="600" height="400" frameborder="0" allowfullscreen></iframe>'
+            embed_html = (
+                f'<iframe src="/explore/?slice_id={chart.id}" width="600" '
+                f'height="400" frameborder="0" allowfullscreen></iframe>'
+            )
         return CreateSimpleChartResponse(
             chart=chart_item,
             embed_url=embed_url,
@@ -124,4 +141,4 @@ def create_chart_simple(
             embed_html=embed_html,
         )
     except Exception as ex:
-        return CreateSimpleChartResponse(error=str(ex)) 
+        return CreateSimpleChartResponse(error=str(ex))

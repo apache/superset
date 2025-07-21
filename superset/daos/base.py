@@ -16,23 +16,23 @@
 # under the License.
 from __future__ import annotations
 
+import logging
+from enum import Enum
 from typing import Any, Dict, Generic, get_args, List, Optional, Tuple, TypeVar
 
 from flask_appbuilder.models.filters import BaseFilter
 from flask_appbuilder.models.sqla import Model
 from flask_appbuilder.models.sqla.interface import SQLAInterface
-from sqlalchemy import asc, desc, or_, cast, Text
+from pydantic import BaseModel, Field
+from sqlalchemy import asc, cast, desc, or_, Text
 from sqlalchemy.exc import StatementError
-from sqlalchemy.orm import joinedload, RelationshipProperty, ColumnProperty
 from sqlalchemy.inspection import inspect
+from sqlalchemy.orm import ColumnProperty, joinedload, RelationshipProperty
 
 from superset.extensions import db
 
-from enum import Enum
-from pydantic import BaseModel, Field
-import logging
-
 T = TypeVar("T", bound=Model)
+
 
 class ColumnOperatorEnum(str, Enum):
     eq = "eq"
@@ -51,14 +51,18 @@ class ColumnOperatorEnum(str, Enum):
     is_not_null = "is_not_null"
 
     @classmethod
-    def operator_map(cls):
+    def operator_map(cls) -> Dict[ColumnOperatorEnum, Any]:
         return {
             cls.eq: lambda col, val: col == val,
             cls.ne: lambda col, val: col != val,
             cls.sw: lambda col, val: col.like(f"{val}%"),
             cls.ew: lambda col, val: col.like(f"%{val}"),
-            cls.in_: lambda col, val: col.in_(val if isinstance(val, (list, tuple)) else [val]),
-            cls.nin: lambda col, val: ~col.in_(val if isinstance(val, (list, tuple)) else [val]),
+            cls.in_: lambda col, val: col.in_(
+                val if isinstance(val, (list, tuple)) else [val]
+            ),
+            cls.nin: lambda col, val: ~col.in_(
+                val if isinstance(val, (list, tuple)) else [val]
+            ),
             cls.gt: lambda col, val: col > val,
             cls.gte: lambda col, val: col >= val,
             cls.lt: lambda col, val: col < val,
@@ -69,16 +73,18 @@ class ColumnOperatorEnum(str, Enum):
             cls.is_not_null: lambda col, _: col.isnot(None),
         }
 
-    def apply(self, column, value):
+    def apply(self, column: Any, value: Any) -> Any:
         op_func = self.operator_map().get(self)
         if not op_func:
             raise ValueError(f"Unsupported operator: {self}")
         return op_func(column, value)
 
+
 class ColumnOperator(BaseModel):
     col: str = Field(..., description="Column name to filter on")
     opr: ColumnOperatorEnum = Field(..., description="Operator")
     value: Any = Field(None, description="Value for the filter")
+
 
 class BaseDAO(Generic[T]):
     """
@@ -102,14 +108,16 @@ class BaseDAO(Generic[T]):
         )[0]
 
     @classmethod
-    def _apply_base_filter(cls, query, skip_base_filter: bool = False, data_model=None):
+    def _apply_base_filter(
+        cls, query: Any, skip_base_filter: bool = False, data_model: Any = None
+    ) -> Any:
         """
         Apply the base_filter to the query if it exists and skip_base_filter is False.
         """
         if cls.base_filter and not skip_base_filter:
             if data_model is None:
                 data_model = SQLAInterface(cls.model_cls, db.session)
-            query = cls.base_filter( # pylint: disable=not-callable
+            query = cls.base_filter(  # pylint: disable=not-callable
                 cls.id_column_name, data_model
             ).apply(query, None)
         return query
@@ -235,10 +243,13 @@ class BaseDAO(Generic[T]):
             db.session.delete(item)
 
     @classmethod
-    def apply_column_operators(cls, query, column_operators: Optional[List[ColumnOperator]] = None):
+    def apply_column_operators(
+        cls, query: Any, column_operators: Optional[List[ColumnOperator]] = None
+    ) -> Any:
         """
-        Apply column operators (list of ColumnOperator) to the query using ColumnOperatorEnum logic.
-        Raises ValueError if a filter references a non-existent column.
+        Apply column operators (list of ColumnOperator) to the query using
+        ColumnOperatorEnum logic. Raises ValueError if a filter references a
+        non-existent column.
         """
         if not column_operators:
             return query
@@ -249,49 +260,86 @@ class BaseDAO(Generic[T]):
             opr = c.opr
             value = c.value
             if not col or not hasattr(cls.model_cls, col):
-                logging.error(f"Invalid filter: column '{col}' does not exist on {cls.model_cls.__name__}")
-                raise ValueError(f"Invalid filter: column '{col}' does not exist on {cls.model_cls.__name__}")
+                model_name = cls.model_cls.__name__ if cls.model_cls else "Unknown"
+                logging.error(
+                    f"Invalid filter: column '{col}' does not exist on {model_name}"
+                )
+                raise ValueError(
+                    f"Invalid filter: column '{col}' does not exist on {model_name}"
+                )
             column = getattr(cls.model_cls, col)
             try:
                 # Always use ColumnOperatorEnum's apply method
-                query = query.filter(ColumnOperatorEnum(opr).apply(column, value))
+                operator_enum = ColumnOperatorEnum(opr)
+                query = query.filter(operator_enum.apply(column, value))
             except Exception as e:
                 logging.error(f"Error applying filter on column '{col}': {e}")
                 raise
         return query
 
     @classmethod
-    def get_filterable_columns_and_operators(cls) -> dict:
+    def get_filterable_columns_and_operators(cls) -> Dict[str, List[str]]:
         """
-        Returns a dict mapping filterable columns (including hybrid/computed fields if present)
-        to their supported operators. Used by MCP tools to dynamically expose filter options.
-        Custom fields supported by the DAO but not present on the model should be documented here.
+        Returns a dict mapping filterable columns (including hybrid/computed fields if
+        present) to their supported operators. Used by MCP tools to dynamically expose
+        filter options. Custom fields supported by the DAO but not present on the model
+        should be documented here.
         """
         from sqlalchemy.ext.hybrid import hybrid_property
+
         mapper = inspect(cls.model_cls)
         columns = {c.key: c for c in mapper.columns}
         # Add hybrid properties
         hybrids = {
-            name: attr for name, attr in vars(cls.model_cls).items()
+            name: attr
+            for name, attr in vars(cls.model_cls).items()
             if isinstance(attr, hybrid_property)
         }
         # You may add custom fields here, e.g.:
         # custom_fields = {"tags": ["eq", "in_", "like"], ...}
-        custom_fields = {}
+        custom_fields: Dict[str, List[str]] = {}
         # Map SQLAlchemy types to supported operators
         type_operator_map = {
             "string": [
-                "eq", "ne", "sw", "ew", "in_", "nin", "like", "ilike", "is_null", "is_not_null"
+                "eq",
+                "ne",
+                "sw",
+                "ew",
+                "in_",
+                "nin",
+                "like",
+                "ilike",
+                "is_null",
+                "is_not_null",
             ],
             "boolean": ["eq", "ne", "is_null", "is_not_null"],
             "number": [
-                "eq", "ne", "gt", "gte", "lt", "lte", "in_", "nin", "is_null", "is_not_null"
+                "eq",
+                "ne",
+                "gt",
+                "gte",
+                "lt",
+                "lte",
+                "in_",
+                "nin",
+                "is_null",
+                "is_not_null",
             ],
             "datetime": [
-                "eq", "ne", "gt", "gte", "lt", "lte", "in_", "nin", "is_null", "is_not_null"
+                "eq",
+                "ne",
+                "gt",
+                "gte",
+                "lt",
+                "lte",
+                "in_",
+                "nin",
+                "is_null",
+                "is_not_null",
             ],
         }
         import sqlalchemy as sa
+
         filterable = {}
         for name, col in columns.items():
             if isinstance(col.type, (sa.String, sa.Text)):
@@ -320,15 +368,18 @@ class BaseDAO(Generic[T]):
         search_columns: Optional[List[str]] = None,
         custom_filters: Optional[Dict[str, BaseFilter]] = None,
         skip_base_filter: bool = False,
-        data_model: SQLAInterface = None,
-    ):
+        data_model: Optional[SQLAInterface] = None,
+    ) -> Any:
         """
-        Build a SQLAlchemy query with base filter, column operators, search, and custom filters.
+        Build a SQLAlchemy query with base filter, column operators, search, and
+        custom filters.
         """
         if data_model is None:
             data_model = SQLAInterface(cls.model_cls, db.session)
         query = data_model.session.query(cls.model_cls)
-        query = cls._apply_base_filter(query, skip_base_filter=skip_base_filter, data_model=data_model)
+        query = cls._apply_base_filter(
+            query, skip_base_filter=skip_base_filter, data_model=data_model
+        )
         if search and search_columns:
             search_filters = []
             for column_name in search_columns:
@@ -345,7 +396,7 @@ class BaseDAO(Generic[T]):
         return query
 
     @classmethod
-    def list(
+    def list(  # noqa: C901
         cls,
         column_operators: Optional[List[ColumnOperator]] = None,
         order_column: str = "changed_on",
@@ -363,10 +414,6 @@ class BaseDAO(Generic[T]):
         otherwise returns model instances.
         """
         data_model = SQLAInterface(cls.model_cls, db.session)
-        # Separate columns and relationships
-        mapper = inspect(cls.model_cls)
-        column_names = set(c.key for c in mapper.columns)
-        relationship_names = set(r.key for r in mapper.relationships)
 
         column_attrs = []
         relationship_loads = []
@@ -376,7 +423,7 @@ class BaseDAO(Generic[T]):
             attr = getattr(cls.model_cls, name, None)
             if attr is None:
                 continue
-            prop = getattr(attr, 'property', None)
+            prop = getattr(attr, "property", None)
             if isinstance(prop, ColumnProperty):
                 column_attrs.append(attr)
             elif isinstance(prop, RelationshipProperty):
@@ -384,7 +431,8 @@ class BaseDAO(Generic[T]):
             # Ignore properties and other non-queryable attributes
 
         if relationship_loads:
-            # If any relationships are requested, query the full model and joinedload relationships
+            # If any relationships are requested, query the full model and joinedload
+            # relationships
             query = data_model.session.query(cls.model_cls)
             for loader in relationship_loads:
                 query = query.options(loader)
@@ -419,15 +467,21 @@ class BaseDAO(Generic[T]):
         page_size = max(page_size, 1)
         query = query.offset(page * page_size).limit(page_size)
         items = query.all()
-        # If columns are specified, SQLAlchemy returns Row objects (not tuples or model instances)
+        # If columns are specified, SQLAlchemy returns Row objects (not tuples or
+        # model instances)
         return items, total_count
 
     @classmethod
     def count(
-        cls, column_operators: Optional[List[ColumnOperator]] = None, skip_base_filter: bool = False
+        cls,
+        column_operators: Optional[List[ColumnOperator]] = None,
+        skip_base_filter: bool = False,
     ) -> int:
         """
-        Count the number of records for the model, optionally filtered by column operators.
+        Count the number of records for the model, optionally filtered by column
+        operators.
         """
-        query = cls._build_query(column_operators=column_operators, skip_base_filter=skip_base_filter)
+        query = cls._build_query(
+            column_operators=column_operators, skip_base_filter=skip_base_filter
+        )
         return query.count()

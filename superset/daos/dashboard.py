@@ -18,7 +18,7 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime
-from typing import Any
+from typing import Any, Dict, List
 
 from flask import g
 from flask_appbuilder.models.sqla.interface import SQLAInterface
@@ -49,19 +49,21 @@ class DashboardDAO(BaseDAO[Dashboard]):
     base_filter = DashboardAccessFilter
 
     @classmethod
-    def get_filterable_columns_and_operators(cls) -> dict:
+    def get_filterable_columns_and_operators(cls) -> Dict[str, List[str]]:
         filterable = super().get_filterable_columns_and_operators()
         # Add custom fields for dashboards
-        filterable.update({
-            "tags": ["eq", "in_", "like"],
-            "owner": ["eq", "in_"],
-            "created_by": ["eq", "in_"],
-            "changed_by": ["eq", "in_"],
-            "published": ["eq"],
-            "certified": ["eq"],
-            "favorite": ["eq"],
-            "chart_count": ["eq", "gte", "lte"],
-        })
+        filterable.update(
+            {
+                "tags": ["eq", "in_", "like"],
+                "owner": ["eq", "in_"],
+                "created_by": ["eq", "in_"],
+                "changed_by": ["eq", "in_"],
+                "published": ["eq"],
+                "certified": ["eq"],
+                "favorite": ["eq"],
+                "chart_count": ["eq", "gte", "lte"],
+            }
+        )
         return filterable
 
     @classmethod

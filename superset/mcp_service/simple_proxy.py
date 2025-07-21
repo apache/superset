@@ -3,23 +3,25 @@
 Simple MCP proxy server that connects to FastMCP server on localhost:5009
 """
 
+import logging
 import signal
 import sys
 import time
-import logging
-from typing import Optional
+from typing import Any, Optional
+
+from fastmcp import FastMCP
 
 # Configure logging
 logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 )
 logger = logging.getLogger(__name__)
 
 # Global proxy instance for cleanup
-proxy: Optional['FastMCP'] = None
+proxy: Optional[FastMCP] = None
 
-def signal_handler(signum, frame):
+
+def signal_handler(signum: int, frame: Any) -> None:
     """Handle shutdown signals gracefully"""
     logger.info(f"Received signal {signum}, shutting down gracefully...")
     if proxy:
@@ -30,30 +32,30 @@ def signal_handler(signum, frame):
             logger.warning(f"Error during proxy cleanup: {e}")
     sys.exit(0)
 
-def main():
+
+def main() -> None:
     """Main function to run the proxy"""
     global proxy
-    
+
     try:
         from fastmcp import FastMCP
-        
+
         # Set up signal handlers for graceful shutdown
         signal.signal(signal.SIGINT, signal_handler)
         signal.signal(signal.SIGTERM, signal_handler)
-        
+
         logger.info("Starting MCP proxy server...")
-        
+
         # Create a proxy to the remote FastMCP server
         proxy = FastMCP.as_proxy(
-            "http://localhost:5008/mcp/",
-            name="Superset MCP Proxy"
+            "http://localhost:5008/mcp/", name="Superset MCP Proxy"
         )
-        
+
         logger.info("Proxy created successfully, starting...")
-        
+
         # Run the proxy (this will block until interrupted)
         proxy.run()
-        
+
     except KeyboardInterrupt:
         logger.info("Received keyboard interrupt, shutting down...")
         sys.exit(0)
@@ -66,6 +68,7 @@ def main():
         sys.exit(1)
     finally:
         logger.info("Proxy server stopped")
+
 
 if __name__ == "__main__":
     main()

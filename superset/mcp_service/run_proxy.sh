@@ -16,4 +16,4 @@ else
 fi
 
 # Run the proxy script
-"$PYTHON_PATH" "$SCRIPT_DIR/simple_proxy.py" 
+"$PYTHON_PATH" "$SCRIPT_DIR/simple_proxy.py"
