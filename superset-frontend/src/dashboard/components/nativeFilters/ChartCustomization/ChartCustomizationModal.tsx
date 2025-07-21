@@ -211,9 +211,17 @@ const ChartCustomizationModal = ({
       formattedDataset = datasetInfo
         ? {
             value: fallbackDatasetId,
-            label: `${datasetInfo.table_name}${
-              datasetInfo.schema ? ` (${datasetInfo.schema})` : ''
-            }`,
+            label: DatasetSelectLabel({
+              id: Number(fallbackDatasetId),
+              table_name: datasetInfo.table_name || '',
+              schema: datasetInfo.schema || '',
+              database: {
+                database_name:
+                  (datasetInfo.database?.database_name as string) ||
+                  (datasetInfo.database?.name as string) ||
+                  '',
+              },
+            }),
             table_name: datasetInfo.table_name,
             schema: datasetInfo.schema,
           }
