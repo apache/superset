@@ -17,17 +17,22 @@
 """
 MCP tool: create_chart (polymorphic, viz_type-discriminated)
 """
-import json
+
 from typing import Annotated, Union
 
 from pydantic import Field
+
 from superset.mcp_service.auth import mcp_auth_hook
 from superset.mcp_service.mcp_app import mcp
 from superset.mcp_service.pydantic_schemas.chart_schemas import (
-    CreateSimpleChartResponse, EchartsAreaChartCreateRequest,
-    EchartsTimeseriesBarChartCreateRequest, EchartsTimeseriesLineChartCreateRequest,
+    CreateSimpleChartResponse,
+    EchartsAreaChartCreateRequest,
+    EchartsTimeseriesBarChartCreateRequest,
+    EchartsTimeseriesLineChartCreateRequest,
     serialize_chart_object,
-    TableChartCreateRequest, )  # Reuse response for now
+    TableChartCreateRequest,  # Reuse response for now
+)
+from superset.utils import json
 
 
 @mcp.tool
@@ -44,7 +49,7 @@ def create_chart(
             discriminator="viz_type",
             description="Request object for creating a chart (polymorphic by viz_type)",
         ),
-    ]
+    ],
 ) -> CreateSimpleChartResponse:
     """
     Create a new chart (visualization) in Superset with a type-safe,
@@ -55,9 +60,14 @@ def create_chart(
 
     try:
         # Determine chart type and build form_data accordingly
-        if isinstance(request, (
-        EchartsTimeseriesLineChartCreateRequest, EchartsTimeseriesBarChartCreateRequest,
-        EchartsAreaChartCreateRequest)):
+        if isinstance(
+            request,
+            (
+                EchartsTimeseriesLineChartCreateRequest,
+                EchartsTimeseriesBarChartCreateRequest,
+                EchartsAreaChartCreateRequest,
+            ),
+        ):
             # Remove x_axis from groupby if present
             x_axis_col = request.x_axis
             groupby_cols = request.groupby or []
@@ -92,8 +102,9 @@ def create_chart(
             # Remove None values
             form_data = {k: v for k, v in form_data.items() if v is not None}
             # Merge in extra_options if provided
-            if getattr(request, "extra_options", None):
-                form_data.update(request.extra_options)
+            extra_options = getattr(request, "extra_options", None)
+            if extra_options is not None:
+                form_data.update(extra_options)
         elif isinstance(request, TableChartCreateRequest):
             form_data = {
                 "viz_type": request.viz_type,
@@ -130,8 +141,10 @@ def create_chart(
         if getattr(request, "return_embed", False) and hasattr(chart, "id"):
             embed_url = f"/explore/?slice_id={chart.id}"
             thumbnail_url = f"/api/v1/chart/{chart.id}/thumbnail/"
-            embed_html = (f'<iframe src="/explore/?slice_id={chart.id}" width="600" '
-                          f'height="400" frameborder="0" allowfullscreen></iframe>')
+            embed_html = (
+                f'<iframe src="/explore/?slice_id={chart.id}" width="600" '
+                f'height="400" frameborder="0" allowfullscreen></iframe>'
+            )
         return CreateSimpleChartResponse(
             chart=chart_item,
             embed_url=embed_url,

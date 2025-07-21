@@ -18,8 +18,7 @@ import sys
 
 # Configure logging
 logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(levelname)s - %(message)s'
+    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
 )
 logger = logging.getLogger(__name__)
 
@@ -28,6 +27,7 @@ def test_mcp_service_connection():
     """Test connection to MCP service"""
     try:
         from fastmcp import Client
+
         logger.info("FastMCP imported successfully")
     except ImportError as e:
         logger.error(f"Failed to import FastMCP: {e}")
@@ -46,7 +46,7 @@ def test_mcp_service_connection():
         return None
 
 
-async def test_mcp_tools(client):
+async def test_mcp_tools(client):  # noqa: C901
     """Test all available MCP tools"""
     logger.info("Testing MCP tools...")
 
@@ -67,10 +67,17 @@ async def test_mcp_tools(client):
             logger.info("Testing get_dashboard_info tool...")
             try:
                 # First, get a list of dashboards to find a valid dashboard ID
-                dashboards_result = await client.call_tool("list_dashboards", {"page_size": 1})
-                logger.info(f"list_dashboards output (repr): {repr(dashboards_result.data)}")
+                dashboards_result = await client.call_tool(
+                    "list_dashboards", {"page_size": 1}
+                )
+                logger.info(
+                    f"list_dashboards output (repr): {repr(dashboards_result.data)}"
+                )
                 if hasattr(dashboards_result.data, "model_dump"):
-                    logger.info(f"list_dashboards output (dict): {dashboards_result.data.model_dump()}")
+                    logger.info(
+                        f"list_dashboards output (dict): "
+                        f"{dashboards_result.data.model_dump()}"
+                    )
                 dashboards_data = dashboards_result.data
                 if hasattr(dashboards_data, "model_dump"):
                     dashboards_dict = dashboards_data.model_dump()
@@ -93,29 +100,53 @@ async def test_mcp_tools(client):
                     if not dashboard_id:
                         logger.error("❌ Dashboard missing 'id' field")
                         return False
-                    logger.info(f"Testing get_dashboard_info with dashboard ID: {dashboard_id}")
-                    result = await client.call_tool("get_dashboard_info", {"dashboard_id": dashboard_id})
-                    logger.info(f"get_dashboard_info output (repr): {repr(result.data)}")
+                    logger.info(
+                        f"Testing get_dashboard_info with dashboard ID: {dashboard_id}"
+                    )
+                    result = await client.call_tool(
+                        "get_dashboard_info", {"dashboard_id": dashboard_id}
+                    )
+                    logger.info(
+                        f"get_dashboard_info output (repr): {repr(result.data)}"
+                    )
                     if hasattr(result.data, "model_dump"):
-                        logger.info(f"get_dashboard_info output (dict): {result.data.model_dump()}")
+                        logger.info(
+                            f"get_dashboard_info output (dict): "
+                            f"{result.data.model_dump()}"
+                        )
                     logger.info("✅ get_dashboard_info tool call successful")
                 else:
-                    logger.warning("No dashboards found to test get_dashboard_info with a real ID. Skipping this test.")
+                    logger.warning(
+                        "No dashboards found to test get_dashboard_info with a real "
+                        "ID. Skipping this test."
+                    )
             except Exception as e:
                 logger.error(f"❌ get_dashboard_info failed: {e}")
                 return False
-            
+
             # Test get_dashboard_info with invalid parameters
             logger.info("Testing get_dashboard_info with invalid parameters...")
             try:
-                result = await client.call_tool("get_dashboard_info", {"invalid_param": "value"})
-                logger.info(f"get_dashboard_info output (repr, invalid param): {repr(result.data)}")
+                result = await client.call_tool(
+                    "get_dashboard_info", {"invalid_param": "value"}
+                )
+                logger.info(
+                    f"get_dashboard_info output (repr, invalid param): "
+                    f"{repr(result.data)}"
+                )
                 if hasattr(result.data, "model_dump"):
-                    logger.info(f"get_dashboard_info output (dict, invalid param): {result.data.model_dump()}")
-                logger.warning("⚠️ get_dashboard_info should have failed with invalid parameters")
+                    logger.info(
+                        f"get_dashboard_info output (dict, invalid param): "
+                        f"{result.data.model_dump()}"
+                    )
+                logger.warning(
+                    "⚠️ get_dashboard_info should have failed with invalid parameters"
+                )
             except Exception as e:
-                logger.info(f"✅ get_dashboard_info correctly rejected invalid parameters: {e}")
-            
+                logger.info(
+                    f"✅ get_dashboard_info correctly rejected invalid parameters: {e}"
+                )
+
             # Test list_dashboards tool
             logger.info("Testing list_dashboards tool...")
             try:
@@ -130,25 +161,43 @@ async def test_mcp_tools(client):
                     data_dict = result.data
                     logger.info(f"list_dashboards output (dict): {data_dict}")
                 else:
-                    logger.warning(f"list_dashboards returned a non-dict, non-Pydantic type: {type(result.data)}. Skipping validation.")
-                    logger.info("✅ list_dashboards tool call successful (skipped validation)")
+                    logger.warning(
+                        f"list_dashboards returned a non-dict, non-Pydantic type: "
+                        f"{type(result.data)}. Skipping validation."
+                    )
+                    logger.info(
+                        "✅ list_dashboards tool call successful (skipped validation)"
+                    )
                     return True
                 logger.info("✅ list_dashboards tool call successful")
                 # Validate response structure
                 if data_dict is not None:
                     expected_fields = ["dashboards", "count", "total_count"]
-                    missing_fields = [field for field in expected_fields if field not in data_dict]
+                    missing_fields = [
+                        field for field in expected_fields if field not in data_dict
+                    ]
                     if missing_fields:
-                        logger.error(f"❌ list_dashboards missing expected fields: {missing_fields}")
+                        logger.error(
+                            f"❌ list_dashboards missing expected fields: "
+                            f"{missing_fields}"
+                        )
                         return False
                     if not isinstance(data_dict["dashboards"], list):
-                        logger.error(f"❌ 'dashboards' should be list, got {type(data_dict['dashboards'])}")
+                        logger.error(
+                            f"❌ 'dashboards' should be list, got "
+                            f"{type(data_dict['dashboards'])}"
+                        )
                         return False
                     if not isinstance(data_dict["count"], int):
-                        logger.error(f"❌ 'count' should be int, got {type(data_dict['count'])}")
+                        logger.error(
+                            f"❌ 'count' should be int, got {type(data_dict['count'])}"
+                        )
                         return False
                     if not isinstance(data_dict["total_count"], int):
-                        logger.error(f"❌ 'total_count' should be int, got {type(data_dict['total_count'])}")
+                        logger.error(
+                            f"❌ 'total_count' should be int, got "
+                            f"{type(data_dict['total_count'])}"
+                        )
                         return False
                     logger.info(f"Found {len(data_dict['dashboards'])} dashboards")
                     if len(data_dict["dashboards"]) > 0:
@@ -156,18 +205,28 @@ async def test_mcp_tools(client):
                         # if hasattr(dashboard, "model_dump"):
                         #     dashboard = dashboard.model_dump()
                         if not isinstance(dashboard, dict):
-                            logger.error(f"❌ Dashboard should be dict, got {type(dashboard)}")
+                            logger.error(
+                                f"❌ Dashboard should be dict, got {type(dashboard)}"
+                            )
                             return False
                         required_fields = ["id", "dashboard_title"]
-                        missing_fields = [field for field in required_fields if field not in dashboard]
+                        missing_fields = [
+                            field for field in required_fields if field not in dashboard
+                        ]
                         if missing_fields:
-                            logger.error(f"❌ Dashboard missing required fields: {missing_fields}")
+                            logger.error(
+                                f"❌ Dashboard missing required fields: "
+                                f"{missing_fields}"
+                            )
                             return False
-                        logger.info(f"✅ First dashboard validated: {dashboard.get('dashboard_title', 'N/A')}")
+                        logger.info(
+                            f"✅ First dashboard validated: "
+                            f"{dashboard.get('dashboard_title', 'N/A')}"
+                        )
             except Exception as e:
                 logger.error(f"❌ list_dashboards failed: {e}")
                 return False
-            
+
             # Test list_dashboards tool
             logger.info("Testing list_dashboards tool...")
             try:
@@ -181,83 +240,143 @@ async def test_mcp_tools(client):
                     data_dict = result.data
                     logger.info(f"list_dashboards output (dict): {data_dict}")
                 else:
-                    logger.warning(f"list_dashboards returned a non-dict, non-Pydantic type: {type(result.data)}. Skipping validation.")
-                    logger.info("✅ list_dashboards tool call successful (skipped validation)")
+                    logger.warning(
+                        f"list_dashboards returned a non-dict, non-Pydantic type: "
+                        f"{type(result.data)}. Skipping validation."
+                    )
+                    logger.info(
+                        "✅ list_dashboards tool call successful (skipped validation)"
+                    )
                     return True
                 logger.info("✅ list_dashboards tool call successful")
                 if data_dict is not None:
                     expected_fields = ["dashboards", "count", "total_count"]
-                    missing_fields = [field for field in expected_fields if field not in data_dict]
+                    missing_fields = [
+                        field for field in expected_fields if field not in data_dict
+                    ]
                     if missing_fields:
-                        logger.error(f"❌ list_dashboards missing expected fields: {missing_fields}")
+                        logger.error(
+                            f"❌ list_dashboards missing expected fields: "
+                            f"{missing_fields}"
+                        )
                         return False
                     if not isinstance(data_dict["dashboards"], list):
-                        logger.error(f"❌ 'dashboards' should be list, got {type(data_dict['dashboards'])}")
+                        logger.error(
+                            f"❌ 'dashboards' should be list, got "
+                            f"{type(data_dict['dashboards'])}"
+                        )
                         return False
                     if not isinstance(data_dict["count"], int):
-                        logger.error(f"❌ 'count' should be int, got {type(data_dict['count'])}")
+                        logger.error(
+                            f"❌ 'count' should be int, got {type(data_dict['count'])}"
+                        )
                         return False
                     if not isinstance(data_dict["total_count"], int):
-                        logger.error(f"❌ 'total_count' should be int, got {type(data_dict['total_count'])}")
+                        logger.error(
+                            f"❌ 'total_count' should be int, got "
+                            f"{type(data_dict['total_count'])}"
+                        )
                         return False
-                    logger.info(f"✅ list_dashboards response validated: {data_dict['count']} dashboards")
+                    logger.info(
+                        f"✅ list_dashboards response validated: {data_dict['count']} "
+                        f"dashboards"
+                    )
             except Exception as e:
                 logger.error(f"❌ list_dashboards failed: {e}")
                 return False
-            
+
             # Test get_dashboard_available_filters tool
             logger.info("Testing get_dashboard_available_filters tool...")
             try:
                 result = await client.call_tool("get_dashboard_available_filters", {})
-                logger.info(f"get_dashboard_available_filters output (repr): {repr(result.data)}")
+                logger.info(
+                    f"get_dashboard_available_filters output (repr): "
+                    f"{repr(result.data)}"
+                )
                 if hasattr(result.data, "model_dump"):
-                    logger.info(f"get_dashboard_available_filters output (dict): {result.data.model_dump()}")
+                    logger.info(
+                        f"get_dashboard_available_filters output (dict): "
+                        f"{result.data.model_dump()}"
+                    )
                 logger.info("✅ get_dashboard_available_filters tool call successful")
-                
+
                 # Validate response structure
                 if not isinstance(result.data, dict):
                     pass
                 # Check for expected fields
                 expected_fields = ["filters", "operators", "columns"]
-                missing_fields = [field for field in expected_fields if field not in result.data]
+                missing_fields = [
+                    field for field in expected_fields if field not in result.data
+                ]
                 if missing_fields:
-                    logger.error(f"❌ get_dashboard_available_filters missing expected fields: {missing_fields}")
+                    logger.error(
+                        f"❌ get_dashboard_available_filters missing expected fields: "
+                        f"{missing_fields}"
+                    )
                     return False
-                
+
                 # Validate field types
                 if not isinstance(result.data["filters"], dict):
-                    logger.error(f"❌ 'filters' should be dict, got {type(result.data['filters'])}")
+                    logger.error(
+                        f"❌ 'filters' should be dict, got "
+                        f"{type(result.data['filters'])}"
+                    )
                     return False
-                
+
                 if not isinstance(result.data["operators"], list):
-                    logger.error(f"❌ 'operators' should be list, got {type(result.data['operators'])}")
+                    logger.error(
+                        f"❌ 'operators' should be list, got "
+                        f"{type(result.data['operators'])}"
+                    )
                     return False
-                
+
                 if not isinstance(result.data["columns"], list):
-                    logger.error(f"❌ 'columns' should be list, got {type(result.data['columns'])}")
+                    logger.error(
+                        f"❌ 'columns' should be list, got "
+                        f"{type(result.data['columns'])}"
+                    )
                     return False
-                
-                logger.info(f"✅ get_dashboard_available_filters response validated: {len(result.data['filters'])} filters, {len(result.data['operators'])} operators")
-                
+
+                logger.info(
+                    f"✅ get_dashboard_available_filters response validated: "
+                    f"{len(result.data['filters'])} filters, "
+                    f"{len(result.data['operators'])} operators"
+                )
+
             except Exception as e:
                 logger.error(f"❌ get_dashboard_available_filters failed: {e}")
                 return False
-            
+
             # Test get_superset_instance_info tool
             logger.info("Testing get_superset_instance_info tool...")
             try:
                 result = await client.call_tool("get_superset_instance_info", {})
-                logger.info(f"get_superset_instance_info output (repr): {repr(result.data)}")
+                logger.info(
+                    f"get_superset_instance_info output (repr): {repr(result.data)}"
+                )
                 if hasattr(result.data, "model_dump"):
-                    logger.info(f"get_superset_instance_info output (dict): {result.data.model_dump()}")
+                    logger.info(
+                        f"get_superset_instance_info output (dict): "
+                        f"{result.data.model_dump()}"
+                    )
                 logger.info("✅ get_superset_instance_info tool call successful")
-                
+
                 # Validate structure
-                missing_fields = [f for f in ["instance_summary", "recent_activity"] if f not in result.data]
+                missing_fields = [
+                    f
+                    for f in ["instance_summary", "recent_activity"]
+                    if f not in result.data
+                ]
                 if missing_fields:
-                    logger.error(f"❌ get_superset_instance_info missing expected fields: {missing_fields}")
+                    logger.error(
+                        f"❌ get_superset_instance_info missing expected fields: "
+                        f"{missing_fields}"
+                    )
                 else:
-                    logger.info(f"✅ get_superset_instance_info response validated: {result.data['instance_summary']}")
+                    logger.info(
+                        f"✅ get_superset_instance_info response validated: "
+                        f"{result.data['instance_summary']}"
+                    )
             except Exception as e:
                 logger.error(f"❌ get_superset_instance_info failed: {e}")
                 return False
@@ -275,24 +394,43 @@ async def test_mcp_tools(client):
                     data_dict = result.data
                     logger.info(f"list_datasets_simple output (dict): {data_dict}")
                 else:
-                    logger.warning(f"list_datasets_simple returned a non-dict, non-Pydantic type: {type(result.data)}. Skipping validation.")
-                    logger.info("✅ list_datasets_simple tool call successful (skipped validation)")
+                    logger.warning(
+                        f"list_datasets_simple returned a non-dict, non-Pydantic "
+                        f"type: {type(result.data)}. Skipping validation."
+                    )
+                    logger.info(
+                        "✅ list_datasets_simple tool call successful (skipped "
+                        "validation)"
+                    )
                     return True
                 logger.info("✅ list_datasets_simple tool call successful")
                 if data_dict is not None:
                     expected_fields = ["datasets", "count", "total_count"]
-                    missing_fields = [field for field in expected_fields if field not in data_dict]
+                    missing_fields = [
+                        field for field in expected_fields if field not in data_dict
+                    ]
                     if missing_fields:
-                        logger.error(f"❌ list_datasets_simple missing expected fields: {missing_fields}")
+                        logger.error(
+                            f"❌ list_datasets_simple missing expected fields: "
+                            f"{missing_fields}"
+                        )
                         return False
                     if not isinstance(data_dict["datasets"], list):
-                        logger.error(f"❌ 'datasets' should be list, got {type(data_dict['datasets'])}")
+                        logger.error(
+                            f"❌ 'datasets' should be list, got "
+                            f"{type(data_dict['datasets'])}"
+                        )
                         return False
                     if not isinstance(data_dict["count"], int):
-                        logger.error(f"❌ 'count' should be int, got {type(data_dict['count'])}")
+                        logger.error(
+                            f"❌ 'count' should be int, got {type(data_dict['count'])}"
+                        )
                         return False
                     if not isinstance(data_dict["total_count"], int):
-                        logger.error(f"❌ 'total_count' should be int, got {type(data_dict['total_count'])}")
+                        logger.error(
+                            f"❌ 'total_count' should be int, got "
+                            f"{type(data_dict['total_count'])}"
+                        )
                         return False
                     logger.info(f"Found {len(data_dict['datasets'])} datasets")
                     if len(data_dict["datasets"]) > 0:
@@ -300,14 +438,24 @@ async def test_mcp_tools(client):
                         if hasattr(dataset, "model_dump"):
                             dataset = dataset.model_dump()
                         if not isinstance(dataset, dict):
-                            logger.error(f"❌ DatasetInfo should be dict, got {type(dataset)}")
+                            logger.error(
+                                f"❌ DatasetInfo should be dict, got {type(dataset)}"
+                            )
                             return False
                         required_fields = ["id", "table_name"]
-                        missing_fields = [field for field in required_fields if field not in dataset]
+                        missing_fields = [
+                            field for field in required_fields if field not in dataset
+                        ]
                         if missing_fields:
-                            logger.error(f"❌ DatasetInfo missing required fields: {missing_fields}")
+                            logger.error(
+                                f"❌ DatasetInfo missing required fields: "
+                                f"{missing_fields}"
+                            )
                             return False
-                        logger.info(f"✅ First dataset validated: {dataset.get('table_name', 'N/A')}")
+                        logger.info(
+                            f"✅ First dataset validated: "
+                            f"{dataset.get('table_name', 'N/A')}"
+                        )
             except Exception as e:
                 logger.error(f"❌ list_datasets_simple failed: {e}")
                 return False
@@ -325,32 +473,53 @@ async def test_mcp_tools(client):
                     data_dict = result.data
                     logger.info(f"list_datasets output (dict): {data_dict}")
                 else:
-                    logger.warning(f"list_datasets returned a non-dict, non-Pydantic type: {type(result.data)}. Skipping validation.")
-                    logger.info("✅ list_datasets tool call successful (skipped validation)")
+                    logger.warning(
+                        f"list_datasets returned a non-dict, non-Pydantic type: "
+                        f"{type(result.data)}. Skipping validation."
+                    )
+                    logger.info(
+                        "✅ list_datasets tool call successful (skipped validation)"
+                    )
                     return True
                 logger.info("✅ list_datasets tool call successful")
                 if data_dict is not None:
                     expected_fields = ["datasets", "count", "total_count"]
-                    missing_fields = [field for field in expected_fields if field not in data_dict]
+                    missing_fields = [
+                        field for field in expected_fields if field not in data_dict
+                    ]
                     if missing_fields:
-                        logger.error(f"❌ list_datasets missing expected fields: {missing_fields}")
+                        logger.error(
+                            f"❌ list_datasets missing expected fields:"
+                            f" {missing_fields}"
+                        )
                         return False
                     if not isinstance(data_dict["datasets"], list):
-                        logger.error(f"❌ 'datasets' should be list, got {type(data_dict['datasets'])}")
+                        logger.error(
+                            f"❌ 'datasets' should be list, got "
+                            f"{type(data_dict['datasets'])}"
+                        )
                         return False
                     if not isinstance(data_dict["count"], int):
-                        logger.error(f"❌ 'count' should be int, got {type(data_dict['count'])}")
+                        logger.error(
+                            f"❌ 'count' should be int, got {type(data_dict['count'])}"
+                        )
                         return False
                     if not isinstance(data_dict["total_count"], int):
-                        logger.error(f"❌ 'total_count' should be int, got {type(data_dict['total_count'])}")
+                        logger.error(
+                            f"❌ 'total_count' should be int, got "
+                            f"{type(data_dict['total_count'])}"
+                        )
                         return False
-                    logger.info(f"✅ list_datasets response validated: {data_dict['count']} datasets")
+                    logger.info(
+                        f"✅ list_datasets response validated: {data_dict['count']} "
+                        f"datasets"
+                    )
             except Exception as e:
                 logger.error(f"❌ list_datasets failed: {e}")
                 return False
-        
+
         return True
-        
+
     except Exception as e:
         logger.error(f"❌ Failed to test MCP tools: {e}")
         return False
@@ -360,16 +529,16 @@ async def main():
     """Main test function"""
     logger.info("Starting MCP Service Integration Tests")
     logger.info("=" * 60)
-    
+
     # Test connection
     client = test_mcp_service_connection()
     if not client:
         logger.error("❌ Failed to connect to MCP service")
         sys.exit(1)
-    
+
     # Test tools
     success = await test_mcp_tools(client)
-    
+
     if success:
         logger.info("✅ All MCP service tests completed successfully!")
         sys.exit(0)
@@ -380,4 +549,5 @@ async def main():
 
 if __name__ == "__main__":
     import asyncio
-    asyncio.run(main()) 
+
+    asyncio.run(main())

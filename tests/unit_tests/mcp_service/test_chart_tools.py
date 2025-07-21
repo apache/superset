@@ -16,30 +16,41 @@
 # under the License.
 
 """
-Unit tests for MCP chart tools (list_charts, get_chart_info, get_chart_available_filters, create_chart_simple)
+Unit tests for MCP chart tools (list_charts, get_chart_info,
+get_chart_available_filters, create_chart_simple)
 """
+
+import json
 import logging
 from unittest.mock import Mock, patch
 
+import fastmcp.exceptions
 import pytest
 from fastmcp import Client
+
 from superset.mcp_service.mcp_app import mcp
+
 # Updated imports for new tool structure
 from superset.mcp_service.pydantic_schemas.chart_schemas import (
     ChartInfo,
-    CreateSimpleChartRequest, EchartsAreaChartCreateRequest, EchartsTimeseriesBarChartCreateRequest,
-    EchartsTimeseriesLineChartCreateRequest, TableChartCreateRequest, )
-import json
+    CreateSimpleChartRequest,
+    EchartsAreaChartCreateRequest,
+    EchartsTimeseriesBarChartCreateRequest,
+    EchartsTimeseriesLineChartCreateRequest,
+    TableChartCreateRequest,
+)
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
+
 
 @pytest.fixture
 def mcp_server():
     return mcp
 
+
 @pytest.mark.asyncio
-@patch('superset.daos.chart.ChartDAO.list')
+@patch("superset.daos.chart.ChartDAO.list")
 async def test_list_charts_basic(mock_list, mcp_server):
     chart = Mock()
     chart.id = 1
@@ -61,24 +72,24 @@ async def test_list_charts_basic(mock_list, mcp_server):
     chart.tags = []
     chart.owners = []
     chart._mapping = {
-        'id': chart.id,
-        'slice_name': chart.slice_name,
-        'viz_type': chart.viz_type,
-        'datasource_name': chart.datasource_name,
-        'datasource_type': chart.datasource_type,
-        'url': chart.url,
-        'description': chart.description,
-        'cache_timeout': chart.cache_timeout,
-        'form_data': chart.form_data,
-        'query_context': chart.query_context,
-        'changed_by_name': chart.changed_by_name,
-        'changed_on': chart.changed_on,
-        'changed_on_humanized': chart.changed_on_humanized,
-        'created_by_name': chart.created_by_name,
-        'created_on': chart.created_on,
-        'created_on_humanized': chart.created_on_humanized,
-        'tags': chart.tags,
-        'owners': chart.owners,
+        "id": chart.id,
+        "slice_name": chart.slice_name,
+        "viz_type": chart.viz_type,
+        "datasource_name": chart.datasource_name,
+        "datasource_type": chart.datasource_type,
+        "url": chart.url,
+        "description": chart.description,
+        "cache_timeout": chart.cache_timeout,
+        "form_data": chart.form_data,
+        "query_context": chart.query_context,
+        "changed_by_name": chart.changed_by_name,
+        "changed_on": chart.changed_on,
+        "changed_on_humanized": chart.changed_on_humanized,
+        "created_by_name": chart.created_by_name,
+        "created_on": chart.created_on,
+        "created_on_humanized": chart.created_on_humanized,
+        "tags": chart.tags,
+        "owners": chart.owners,
     }
     mock_list.return_value = ([chart], 1)
     async with Client(mcp_server) as client:
@@ -88,8 +99,9 @@ async def test_list_charts_basic(mock_list, mcp_server):
         assert charts[0].slice_name == "Test Chart"
         assert charts[0].viz_type == "bar"
 
+
 @pytest.mark.asyncio
-@patch('superset.daos.chart.ChartDAO.list')
+@patch("superset.daos.chart.ChartDAO.list")
 async def test_list_charts_with_search(mock_list, mcp_server):
     chart = Mock()
     chart.id = 1
@@ -111,28 +123,30 @@ async def test_list_charts_with_search(mock_list, mcp_server):
     chart.tags = []
     chart.owners = []
     chart._mapping = {
-        'id': chart.id,
-        'slice_name': chart.slice_name,
-        'viz_type': chart.viz_type,
-        'datasource_name': chart.datasource_name,
-        'datasource_type': chart.datasource_type,
-        'url': chart.url,
-        'description': chart.description,
-        'cache_timeout': chart.cache_timeout,
-        'form_data': chart.form_data,
-        'query_context': chart.query_context,
-        'changed_by_name': chart.changed_by_name,
-        'changed_on': chart.changed_on,
-        'changed_on_humanized': chart.changed_on_humanized,
-        'created_by_name': chart.created_by_name,
-        'created_on': chart.created_on,
-        'created_on_humanized': chart.created_on_humanized,
-        'tags': chart.tags,
-        'owners': chart.owners,
+        "id": chart.id,
+        "slice_name": chart.slice_name,
+        "viz_type": chart.viz_type,
+        "datasource_name": chart.datasource_name,
+        "datasource_type": chart.datasource_type,
+        "url": chart.url,
+        "description": chart.description,
+        "cache_timeout": chart.cache_timeout,
+        "form_data": chart.form_data,
+        "query_context": chart.query_context,
+        "changed_by_name": chart.changed_by_name,
+        "changed_on": chart.changed_on,
+        "changed_on_humanized": chart.changed_on_humanized,
+        "created_by_name": chart.created_by_name,
+        "created_on": chart.created_on,
+        "created_on_humanized": chart.created_on_humanized,
+        "tags": chart.tags,
+        "owners": chart.owners,
     }
     mock_list.return_value = ([chart], 1)
     async with Client(mcp_server) as client:
-        result = await client.call_tool("list_charts", {"search": "search_chart", "page": 1, "page_size": 10})
+        result = await client.call_tool(
+            "list_charts", {"search": "search_chart", "page": 1, "page_size": 10}
+        )
         charts = result.data.charts
         assert len(charts) == 1
         assert charts[0].slice_name == "search_chart"
@@ -142,37 +156,43 @@ async def test_list_charts_with_search(mock_list, mcp_server):
         assert "viz_type" in kwargs["search_columns"]
         assert "datasource_name" in kwargs["search_columns"]
 
+
 @pytest.mark.asyncio
-@patch('superset.daos.chart.ChartDAO.list')
+@patch("superset.daos.chart.ChartDAO.list")
 async def test_list_charts_with_filters(mock_list, mcp_server):
     mock_list.return_value = ([], 0)
     filters = [
         {"col": "slice_name", "opr": "sw", "value": "Sales"},
-        {"col": "viz_type", "opr": "eq", "value": "bar"}
+        {"col": "viz_type", "opr": "eq", "value": "bar"},
     ]
     async with Client(mcp_server) as client:
-        result = await client.call_tool("list_charts", {
-            "filters": filters,
-            "select_columns": ["id", "slice_name"],
-            "order_column": "changed_on",
-            "order_direction": "desc",
-            "page": 1,
-            "page_size": 50
-        })
+        result = await client.call_tool(
+            "list_charts",
+            {
+                "filters": filters,
+                "select_columns": ["id", "slice_name"],
+                "order_column": "changed_on",
+                "order_direction": "desc",
+                "page": 1,
+                "page_size": 50,
+            },
+        )
         assert result.data.count == 0
         assert result.data.charts == []
 
+
 @pytest.mark.asyncio
-@patch('superset.daos.chart.ChartDAO.list')
+@patch("superset.daos.chart.ChartDAO.list")
 async def test_list_charts_api_error(mock_list, mcp_server):
-    mock_list.side_effect = Exception("API request failed")
+    mock_list.side_effect = fastmcp.exceptions.ToolError("API request failed")
     async with Client(mcp_server) as client:
-        with pytest.raises(Exception) as excinfo:
+        with pytest.raises(fastmcp.exceptions.ToolError) as excinfo:
             await client.call_tool("list_charts", {"page": 1, "page_size": 10})
         assert "API request failed" in str(excinfo.value)
 
+
 @pytest.mark.asyncio
-@patch('superset.daos.chart.ChartDAO.find_by_id')
+@patch("superset.daos.chart.ChartDAO.find_by_id")
 async def test_get_chart_info_success(mock_info, mcp_server):
     chart = Mock()
     chart.id = 1
@@ -218,21 +238,27 @@ async def test_get_chart_info_success(mock_info, mcp_server):
         result = await client.call_tool("get_chart_info", {"chart_id": 1})
         assert result.data["slice_name"] == "Test Chart"
 
+
 @pytest.mark.asyncio
-@patch('superset.daos.chart.ChartDAO.find_by_id')
+@patch("superset.daos.chart.ChartDAO.find_by_id")
 async def test_get_chart_info_not_found(mock_info, mcp_server):
     mock_info.return_value = None  # Not found returns None
     async with Client(mcp_server) as client:
         result = await client.call_tool("get_chart_info", {"chart_id": 999})
         assert result.data["error_type"] == "not_found"
 
-@pytest.mark.xfail(reason="MCP protocol bug: dict fields named column_operators are deserialized as custom types (Column_Operators). TODO: revisit after protocol fix.")
+
+@pytest.mark.xfail(
+    reason="MCP protocol bug: dict fields named column_operators are deserialized as "
+    "custom types (Column_Operators). TODO: revisit after protocol fix."
+)
 @pytest.mark.asyncio
 async def test_get_chart_available_filters_success(mcp_server):
     async with Client(mcp_server) as client:
         result = await client.call_tool("get_chart_available_filters", {})
         assert hasattr(result.data, "column_operators")
         assert isinstance(result.data.column_operators, dict)
+
 
 @pytest.mark.asyncio
 async def test_get_chart_available_filters_exception_handling(mcp_server):
@@ -241,8 +267,9 @@ async def test_get_chart_available_filters_exception_handling(mcp_server):
         result = await client.call_tool("get_chart_available_filters", {})
         assert hasattr(result.data, "column_operators")
 
+
 @pytest.mark.asyncio
-@patch('superset.commands.chart.create.CreateChartCommand.run')
+@patch("superset.commands.chart.create.CreateChartCommand.run")
 async def test_create_chart_simple_success(mock_run, mcp_server):
     chart = Mock()
     chart.id = 42
@@ -292,7 +319,7 @@ async def test_create_chart_simple_success(mock_run, mcp_server):
         dimensions=["region"],
         filters=[{"col": "year", "opr": "eq", "value": 2024}],
         description="A chart created by test",
-        return_embed=True
+        return_embed=True,
     )
     async with Client(mcp_server) as client:
         result = await client.call_tool("create_chart_simple", {"request": req.dict()})
@@ -302,8 +329,10 @@ async def test_create_chart_simple_success(mock_run, mcp_server):
         assert result.data.thumbnail_url is not None
         assert result.data.embed_html is not None
 
+
 def _mock_chart(id=1, viz_type="echarts_timeseries_line", form_data=None):
     from unittest.mock import Mock
+
     chart = Mock()
     chart.id = id
     chart.slice_name = "Test Chart"
@@ -345,8 +374,9 @@ def _mock_chart(id=1, viz_type="echarts_timeseries_line", form_data=None):
     )
     return chart
 
+
 @pytest.mark.asyncio
-@patch('superset.commands.chart.create.CreateChartCommand.run')
+@patch("superset.commands.chart.create.CreateChartCommand.run")
 async def test_create_chart_echarts_line_full_fields(mock_run, mcp_server):
     mock_cmd = Mock()
     mock_cmd.run.return_value = _mock_chart(id=123, viz_type="echarts_timeseries_line")
@@ -373,8 +403,9 @@ async def test_create_chart_echarts_line_full_fields(mock_run, mcp_server):
         assert resp.data.error is None
         mock_run.assert_called_once()
 
+
 @pytest.mark.asyncio
-@patch('superset.commands.chart.create.CreateChartCommand.run')
+@patch("superset.commands.chart.create.CreateChartCommand.run")
 async def test_create_chart_echarts_timeseries_line_success(mock_run, mcp_server):
     mock_run.return_value = _mock_chart(id=101, viz_type="echarts_timeseries_line")
     req = EchartsTimeseriesLineChartCreateRequest(
@@ -392,8 +423,9 @@ async def test_create_chart_echarts_timeseries_line_success(mock_run, mcp_server
         assert resp.data.error is None
         mock_run.assert_called_once()
 
+
 @pytest.mark.asyncio
-@patch('superset.commands.chart.create.CreateChartCommand.run')
+@patch("superset.commands.chart.create.CreateChartCommand.run")
 async def test_create_chart_echarts_timeseries_bar_success(mock_run, mcp_server):
     mock_run.return_value = _mock_chart(id=102, viz_type="echarts_timeseries_bar")
     req = EchartsTimeseriesBarChartCreateRequest(
@@ -411,8 +443,9 @@ async def test_create_chart_echarts_timeseries_bar_success(mock_run, mcp_server)
         assert resp.data.error is None
         mock_run.assert_called_once()
 
+
 @pytest.mark.asyncio
-@patch('superset.commands.chart.create.CreateChartCommand.run')
+@patch("superset.commands.chart.create.CreateChartCommand.run")
 async def test_create_chart_echarts_area_success(mock_run, mcp_server):
     mock_run.return_value = _mock_chart(id=103, viz_type="echarts_area")
     req = EchartsAreaChartCreateRequest(
@@ -430,8 +463,9 @@ async def test_create_chart_echarts_area_success(mock_run, mcp_server):
         assert resp.data.error is None
         mock_run.assert_called_once()
 
+
 @pytest.mark.asyncio
-@patch('superset.commands.chart.create.CreateChartCommand.run')
+@patch("superset.commands.chart.create.CreateChartCommand.run")
 async def test_create_chart_table_success(mock_run, mcp_server):
     chart = Mock()
     chart.id = 104
@@ -491,10 +525,11 @@ async def test_create_chart_table_success(mock_run, mcp_server):
         assert result.data.chart.slice_name == "Table Chart"
         assert result.data.chart.viz_type == "table"
 
+
 @pytest.mark.asyncio
-@patch('superset.commands.chart.create.CreateChartCommand.run')
+@patch("superset.commands.chart.create.CreateChartCommand.run")
 async def test_create_chart_error(mock_run, mcp_server):
-    mock_run.side_effect = Exception("Chart creation failed")
+    mock_run.side_effect = fastmcp.exceptions.ToolError("Chart creation failed")
     req = EchartsTimeseriesLineChartCreateRequest(
         slice_name="Fail Chart",
         x_axis="ds",
@@ -508,8 +543,9 @@ async def test_create_chart_error(mock_run, mcp_server):
         assert result.data.error is not None
         assert "Chart creation failed" in result.data.error
 
+
 @pytest.mark.asyncio
-@patch('superset.commands.chart.create.CreateChartCommand.run')
+@patch("superset.commands.chart.create.CreateChartCommand.run")
 async def test_create_chart_echarts_line_with_all_options(mock_run, mcp_server):
     # Arrange
     mock_chart = Mock()
@@ -562,12 +598,15 @@ async def test_create_chart_echarts_line_with_all_options(mock_run, mcp_server):
         assert resp.data.error is None
         mock_run.assert_called_once()
 
+
 @pytest.mark.asyncio
-@patch('superset.commands.chart.create.CreateChartCommand.run')
+@patch("superset.commands.chart.create.CreateChartCommand.run")
 async def test_create_chart_echarts_line_duplicate_column_removal(mock_run, mcp_server):
     # The backend should remove 'date' from groupby, so only 'region' remains
     expected_form_data = {"groupby": ["region"]}
-    mock_chart = _mock_chart(id=105, viz_type="echarts_timeseries_line", form_data=expected_form_data)
+    mock_chart = _mock_chart(
+        id=105, viz_type="echarts_timeseries_line", form_data=expected_form_data
+    )
     mock_run.return_value = mock_chart
     req = EchartsTimeseriesLineChartCreateRequest(
         slice_name="Line Chart No Duplicate",
@@ -587,6 +626,7 @@ async def test_create_chart_echarts_line_duplicate_column_removal(mock_run, mcp_
         form_data = chart.get("form_data")
         if isinstance(form_data, str):
             import json as _json
+
             form_data = _json.loads(form_data)
         groupby = form_data.get("groupby", [])
         assert "date" not in groupby

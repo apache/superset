@@ -16,22 +16,25 @@
 # under the License.
 
 import logging
+from typing import Any, Optional
 
 logger = logging.getLogger(__name__)
 
 
-def get_user_from_request():
+def get_user_from_request() -> Any:
     """
     Extract user info from the request context (e.g., from Bearer token, headers, etc.).
     By default, returns admin user. Override for OIDC/OAuth/Okta integration.
     """
     from flask import current_app
+
     from superset.extensions import security_manager
+
     admin_username = current_app.config.get("MCP_ADMIN_USERNAME", "admin")
     return security_manager.get_user_by_username(admin_username)
 
 
-def impersonate_user(user, run_as=None):
+def impersonate_user(user: Any, run_as: Optional[str] = None) -> Any:
     """
     Optionally impersonate another user if allowed. By default, returns the same user.
     Override to enforce impersonation rules.
@@ -39,7 +42,7 @@ def impersonate_user(user, run_as=None):
     return user
 
 
-def has_permission(user, tool_func):
+def has_permission(user: Any, tool_func: Any) -> bool:
     """
     Check if the user has permission to run the tool. By default, always True.
     Override for RBAC.
@@ -47,7 +50,7 @@ def has_permission(user, tool_func):
     return True
 
 
-def log_access(user, tool_name, args, kwargs):
+def log_access(user: Any, tool_name: str, args: Any, kwargs: Any) -> None:
     """
     Log access/action for observability/audit. By default, does nothing.
     Override to log to your system.
@@ -55,7 +58,7 @@ def log_access(user, tool_name, args, kwargs):
     pass
 
 
-def mcp_auth_hook(tool_func):
+def mcp_auth_hook(tool_func: Any) -> Any:
     """
     Decorator for MCP tool functions to enforce auth, impersonation, RBAC, and logging.
     Also sets up Flask user context (g.user) for downstream DAO/model code.
@@ -65,10 +68,11 @@ def mcp_auth_hook(tool_func):
 
     from flask import current_app, g
     from flask_login import AnonymousUserMixin
+
     from superset.extensions import security_manager
 
     @functools.wraps(tool_func)
-    def wrapper(*args, **kwargs):
+    def wrapper(*args: Any, **kwargs: Any) -> Any:
         # --- Setup user context (was _setup_user_context) ---
         admin_username = current_app.config.get("MCP_ADMIN_USERNAME", "admin")
         admin_user = security_manager.get_user_by_username(admin_username)
@@ -79,13 +83,13 @@ def mcp_auth_hook(tool_func):
         # --- End user context setup ---
 
         user = get_user_from_request()
-        run_as = kwargs.get("run_as")
-        if run_as:
+        if run_as := kwargs.get("run_as"):
             user = impersonate_user(user, run_as)
         if not has_permission(user, tool_func):
             raise PermissionError(
                 f"User {getattr(user, 'username', user)} not authorized for "
-                f"{tool_func.__name__}")
+                f"{tool_func.__name__}"
+            )
         log_access(user, tool_func.__name__, args, kwargs)
         return tool_func(*args, **kwargs)
 

@@ -18,7 +18,7 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime
-from typing import TYPE_CHECKING
+from typing import Dict, List, TYPE_CHECKING
 
 from superset.charts.filters import ChartFilter
 from superset.daos.base import BaseDAO
@@ -37,17 +37,19 @@ class ChartDAO(BaseDAO[Slice]):
     base_filter = ChartFilter
 
     @classmethod
-    def get_filterable_columns_and_operators(cls) -> dict:
+    def get_filterable_columns_and_operators(cls) -> Dict[str, List[str]]:
         filterable = super().get_filterable_columns_and_operators()
         # Add custom fields for charts
-        filterable.update({
-            "tags": ["eq", "in_", "like"],
-            "owner": ["eq", "in_"],
-            "created_by": ["eq", "in_"],
-            "changed_by": ["eq", "in_"],
-            "viz_type": ["eq", "in_", "like"],
-            "datasource_name": ["eq", "in_", "like"],
-        })
+        filterable.update(
+            {
+                "tags": ["eq", "in_", "like"],
+                "owner": ["eq", "in_"],
+                "created_by": ["eq", "in_"],
+                "changed_by": ["eq", "in_"],
+                "viz_type": ["eq", "in_", "like"],
+                "datasource_name": ["eq", "in_", "like"],
+            }
+        )
         return filterable
 
     @staticmethod

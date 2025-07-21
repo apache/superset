@@ -195,4 +195,4 @@ flowchart TD
 All list tools use the `ModelListTool` abstraction, which enforces:
 - Consistent parameter order and types
 - Strongly-typed Pydantic input/output models
-- LLM/OpenAPI-friendly field names 
+- LLM/OpenAPI-friendly field names
