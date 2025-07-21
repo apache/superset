@@ -62,12 +62,18 @@ from superset.db_engine_specs.gsheets import GSheetsEngineSpec
 from superset.extensions import cache_manager
 from superset.reports.models import ReportRecipientType
 from superset.superset_typing import FlaskResponse
-from superset.translations.utils import get_language_pack
+from superset.themes.utils import is_valid_theme, is_valid_theme_settings
 from superset.utils import core as utils, json
 from superset.utils.filters import get_dataset_access_filters
 from superset.views.error_handling import json_error_response
 
-from .utils import bootstrap_user_data
+from .utils import bootstrap_user_data, get_config_value
+
+DEFAULT_THEME_SETTINGS = {
+    "enforced": False,
+    "allowSwitching": True,
+    "allowOSPreference": True,
+}
 
 FRONTEND_CONF_KEYS = (
     "SUPERSET_WEBSERVER_TIMEOUT",
@@ -292,6 +298,43 @@ def menu_data(user: User) -> dict[str, Any]:
     }
 
 
+def get_theme_bootstrap_data() -> dict[str, Any]:
+    """
+    Returns the theme data to be sent to the client.
+    """
+    # Get theme configs
+    default_theme = get_config_value(conf, "THEME_DEFAULT")
+    dark_theme = get_config_value(conf, "THEME_DARK")
+    theme_settings = get_config_value(conf, "THEME_SETTINGS")
+
+    # Validate and warn if invalid
+    if not is_valid_theme(default_theme):
+        logger.warning(
+            "Invalid THEME_DEFAULT configuration: %s, using empty theme", default_theme
+        )
+        default_theme = {}
+
+    if not is_valid_theme(dark_theme):
+        logger.warning(
+            "Invalid THEME_DARK configuration: %s, using empty theme", dark_theme
+        )
+        dark_theme = {}
+
+    if not is_valid_theme_settings(theme_settings):
+        logger.warning(
+            "Invalid THEME_SETTINGS configuration: %s, using defaults", theme_settings
+        )
+        theme_settings = DEFAULT_THEME_SETTINGS
+
+    return {
+        "theme": {
+            "default": default_theme,
+            "dark": dark_theme,
+            "settings": theme_settings,
+        }
+    }
+
+
 @cache_manager.cache.memoize(timeout=60)
 def cached_common_bootstrap_data(  # pylint: disable=unused-argument
     user_id: int | None, locale: Locale | None
@@ -364,18 +407,20 @@ def cached_common_bootstrap_data(  # pylint: disable=unused-argument
         "static_assets_prefix": conf["STATIC_ASSETS_PREFIX"],
         "conf": frontend_config,
         "locale": language,
-        "language_pack": get_language_pack(language),
         "d3_format": conf.get("D3_FORMAT"),
         "d3_time_format": conf.get("D3_TIME_FORMAT"),
         "currencies": conf.get("CURRENCIES"),
+        "deckgl_tiles": conf.get("DECKGL_BASE_MAP"),
         "feature_flags": get_feature_flags(),
         "extra_sequential_color_schemes": conf["EXTRA_SEQUENTIAL_COLOR_SCHEMES"],
         "extra_categorical_color_schemes": conf["EXTRA_CATEGORICAL_COLOR_SCHEMES"],
-        "theme": conf["THEME"],
         "menu_data": menu_data(g.user),
         "pdf_compression_level": conf["PDF_COMPRESSION_LEVEL"],
     }
+
     bootstrap_data.update(conf["COMMON_BOOTSTRAP_OVERRIDES_FUNC"](bootstrap_data))
+    bootstrap_data.update(get_theme_bootstrap_data())
+
     return bootstrap_data
 
 
