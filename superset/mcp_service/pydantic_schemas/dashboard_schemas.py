@@ -30,7 +30,7 @@ Example usage:
         owners=[UserInfo(id=1, username="admin")],
         charts=[ChartInfo(id=1, slice_name="Sales Chart")]
     )
-    
+
     # For dashboard list responses
     dashboard_list = DashboardList(
         dashboards=[
@@ -67,85 +67,98 @@ from datetime import datetime
 from typing import Any, Dict, List, Literal, Optional, Union
 
 from pydantic import BaseModel, ConfigDict, Field
-from superset.daos.base import ColumnOperator
+
+from superset.daos.base import ColumnOperator, ColumnOperatorEnum
 from superset.mcp_service.pydantic_schemas.chart_schemas import ChartInfo
-from superset.mcp_service.pydantic_schemas.system_schemas import PaginationInfo, RoleInfo, TagInfo, UserInfo
+from superset.mcp_service.pydantic_schemas.system_schemas import (
+    PaginationInfo,
+    RoleInfo,
+    TagInfo,
+    UserInfo,
+)
 
 
 class DashboardError(BaseModel):
     """Error response for dashboard operations"""
+
     error: str = Field(..., description="Error message")
     error_type: str = Field(..., description="Type of error")
-    timestamp: Optional[Union[str, datetime]] = Field(None, description="Error timestamp")
-    
+    timestamp: Optional[Union[str, datetime]] = Field(
+        None, description="Error timestamp"
+    )
+
     model_config = ConfigDict(ser_json_timedelta="iso8601")
 
 
-def serialize_user_object(user) -> Optional[UserInfo]:
+def serialize_user_object(user: Any) -> Optional[UserInfo]:
     """Serialize a user object to UserInfo"""
     if not user:
         return None
-    
+
     return UserInfo(
-        id=getattr(user, 'id', None),
-        username=getattr(user, 'username', None),
-        first_name=getattr(user, 'first_name', None),
-        last_name=getattr(user, 'last_name', None),
-        email=getattr(user, 'email', None),
-        active=getattr(user, 'active', None)
+        id=getattr(user, "id", None),
+        username=getattr(user, "username", None),
+        first_name=getattr(user, "first_name", None),
+        last_name=getattr(user, "last_name", None),
+        email=getattr(user, "email", None),
+        active=getattr(user, "active", None),
     )
 
 
-def serialize_tag_object(tag) -> Optional[TagInfo]:
+def serialize_tag_object(tag: Any) -> Optional[TagInfo]:
     """Serialize a tag object to TagInfo"""
     if not tag:
         return None
-    
+
     return TagInfo(
-        id=getattr(tag, 'id', None),
-        name=getattr(tag, 'name', None),
-        type=getattr(tag, 'type', None),
-        description=getattr(tag, 'description', None)
+        id=getattr(tag, "id", None),
+        name=getattr(tag, "name", None),
+        type=getattr(tag, "type", None),
+        description=getattr(tag, "description", None),
     )
 
 
-def serialize_role_object(role) -> Optional[RoleInfo]:
+def serialize_role_object(role: Any) -> Optional[RoleInfo]:
     """Serialize a role object to RoleInfo"""
     if not role:
         return None
-    
+
     return RoleInfo(
-        id=getattr(role, 'id', None),
-        name=getattr(role, 'name', None),
-        permissions=[perm.name for perm in getattr(role, 'permissions', [])] if hasattr(role, 'permissions') else None
+        id=getattr(role, "id", None),
+        name=getattr(role, "name", None),
+        permissions=[perm.name for perm in getattr(role, "permissions", [])]
+        if hasattr(role, "permissions")
+        else None,
     )
 
 
-def serialize_chart_object(chart) -> Optional[ChartInfo]:
+def serialize_chart_object(chart: Any) -> Optional[ChartInfo]:
     """Serialize a chart object to Chart"""
     if not chart:
         return None
-    
+
     return ChartInfo(
-        id=getattr(chart, 'id', None),
-        slice_name=getattr(chart, 'slice_name', None),
-        viz_type=getattr(chart, 'viz_type', None),
-        datasource_name=getattr(chart, 'datasource_name', None),
-        datasource_type=getattr(chart, 'datasource_type', None),
-        url=getattr(chart, 'url', None),
-        description=getattr(chart, 'description', None),
-        cache_timeout=getattr(chart, 'cache_timeout', None),
-        form_data=getattr(chart, 'form_data', None),
-        query_context=getattr(chart, 'query_context', None),
-        created_by=serialize_user_object(getattr(chart, 'created_by', None)),
-        changed_by=serialize_user_object(getattr(chart, 'changed_by', None)),
-        created_on=getattr(chart, 'created_on', None),
-        changed_on=getattr(chart, 'changed_on', None)
+        id=getattr(chart, "id", None),
+        slice_name=getattr(chart, "slice_name", None),
+        viz_type=getattr(chart, "viz_type", None),
+        datasource_name=getattr(chart, "datasource_name", None),
+        datasource_type=getattr(chart, "datasource_type", None),
+        url=getattr(chart, "url", None),
+        description=getattr(chart, "description", None),
+        cache_timeout=getattr(chart, "cache_timeout", None),
+        form_data=getattr(chart, "form_data", None),
+        query_context=getattr(chart, "query_context", None),
+        created_by=serialize_user_object(getattr(chart, "created_by", None)),
+        changed_by=serialize_user_object(getattr(chart, "changed_by", None)),
+        created_on=getattr(chart, "created_on", None),
+        changed_on=getattr(chart, "changed_on", None),
     )
 
 
 class DashboardAvailableFilters(BaseModel):
-    column_operators: Dict[str, Any] = Field(..., description="Available filter operators and metadata for each column")
+    column_operators: Dict[str, Any] = Field(
+        ..., description="Available filter operators and metadata for each column"
+    )
 
 
 class DashboardFilter(ColumnOperator):
@@ -155,6 +168,7 @@ class DashboardFilter(ColumnOperator):
     opr: The operator to use. Must be one of the supported operators.
     value: The value to filter by (type depends on col and opr).
     """
+
     col: Literal[
         "dashboard_title",
         "published",
@@ -164,12 +178,20 @@ class DashboardFilter(ColumnOperator):
         "certified",
         "favorite",
         "chart_count",
-        "tags"
-    ] = Field(..., description="Column to filter on. See get_dashboard_available_filters for allowed values.")
-    opr: Literal[
-        "eq", "ne", "sw", "in", "not_in", "like", "ilike", "gt", "lt", "gte", "lte", "is_null", "is_not_null"
-    ] = Field(..., description="Operator to use. See get_dashboard_available_filters for allowed values.")
-    value: Any = Field(..., description="Value to filter by (type depends on col and opr)") 
+        "tags",
+    ] = Field(
+        ...,
+        description="Column to filter on. See get_dashboard_available_filters for "
+        "allowed values.",
+    )
+    opr: ColumnOperatorEnum = Field(
+        ...,
+        description="Operator to use. See get_dashboard_available_filters for "
+        "allowed values.",
+    )
+    value: Any = Field(
+        ..., description="Value to filter by (type depends on col and opr)"
+    )
 
 
 class DashboardInfo(BaseModel):
@@ -179,27 +201,50 @@ class DashboardInfo(BaseModel):
     description: Optional[str] = Field(None, description="Dashboard description")
     css: Optional[str] = Field(None, description="Custom CSS for the dashboard")
     certified_by: Optional[str] = Field(None, description="Who certified the dashboard")
-    certification_details: Optional[str] = Field(None, description="Certification details")
-    json_metadata: Optional[str] = Field(None, description="Dashboard metadata (JSON string)")
-    position_json: Optional[str] = Field(None, description="Chart positions (JSON string)")
-    published: Optional[bool] = Field(None, description="Whether the dashboard is published")
-    is_managed_externally: Optional[bool] = Field(None, description="Whether managed externally")
+    certification_details: Optional[str] = Field(
+        None, description="Certification details"
+    )
+    json_metadata: Optional[str] = Field(
+        None, description="Dashboard metadata (JSON string)"
+    )
+    position_json: Optional[str] = Field(
+        None, description="Chart positions (JSON string)"
+    )
+    published: Optional[bool] = Field(
+        None, description="Whether the dashboard is published"
+    )
+    is_managed_externally: Optional[bool] = Field(
+        None, description="Whether managed externally"
+    )
     external_url: Optional[str] = Field(None, description="External URL")
-    created_on: Optional[Union[str, datetime]] = Field(None, description="Creation timestamp")
-    changed_on: Optional[Union[str, datetime]] = Field(None, description="Last modification timestamp")
+    created_on: Optional[Union[str, datetime]] = Field(
+        None, description="Creation timestamp"
+    )
+    changed_on: Optional[Union[str, datetime]] = Field(
+        None, description="Last modification timestamp"
+    )
     created_by: Optional[str] = Field(None, description="Dashboard creator (username)")
     changed_by: Optional[str] = Field(None, description="Last modifier (username)")
-    uuid: Optional[str] = Field(None, description="Dashboard UUID (converted to string)")
+    uuid: Optional[str] = Field(
+        None, description="Dashboard UUID (converted to string)"
+    )
     url: Optional[str] = Field(None, description="Dashboard URL")
     thumbnail_url: Optional[str] = Field(None, description="Thumbnail URL")
-    created_on_humanized: Optional[str] = Field(None, description="Humanized creation time")
-    changed_on_humanized: Optional[str] = Field(None, description="Humanized modification time")
+    created_on_humanized: Optional[str] = Field(
+        None, description="Humanized creation time"
+    )
+    changed_on_humanized: Optional[str] = Field(
+        None, description="Humanized modification time"
+    )
     chart_count: int = Field(0, description="Number of charts in the dashboard")
     owners: List[UserInfo] = Field(default_factory=list, description="Dashboard owners")
     tags: List[TagInfo] = Field(default_factory=list, description="Dashboard tags")
     roles: List[RoleInfo] = Field(default_factory=list, description="Dashboard roles")
-    charts: List[ChartInfo] = Field(default_factory=list, description="Dashboard charts")
+    charts: List[ChartInfo] = Field(
+        default_factory=list, description="Dashboard charts"
+    )
     model_config = ConfigDict(from_attributes=True, ser_json_timedelta="iso8601")
+
 
 class DashboardList(BaseModel):
     dashboards: List[DashboardInfo]
@@ -212,7 +257,10 @@ class DashboardList(BaseModel):
     has_next: bool
     columns_requested: Optional[List[str]] = None
     columns_loaded: Optional[List[str]] = None
-    filters_applied: List[DashboardFilter] = Field(default_factory=list, description="List of advanced filter dicts applied to the query.")
+    filters_applied: List[DashboardFilter] = Field(
+        default_factory=list,
+        description="List of advanced filter dicts applied to the query.",
+    )
     pagination: Optional[PaginationInfo] = None
     timestamp: Optional[datetime] = None
-    model_config = ConfigDict(ser_json_timedelta="iso8601") 
+    model_config = ConfigDict(ser_json_timedelta="iso8601")

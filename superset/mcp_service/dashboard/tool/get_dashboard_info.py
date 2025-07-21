@@ -21,21 +21,27 @@ Get dashboard info FastMCP tool
 This module contains the FastMCP tool for getting detailed information
 about a specific dashboard.
 """
+
 import logging
-from typing import Annotated
+from typing import Annotated, Any
 
 from pydantic import Field
+
 from superset.mcp_service.auth import mcp_auth_hook
 from superset.mcp_service.mcp_app import mcp
 from superset.mcp_service.model_tools import ModelGetInfoTool
 from superset.mcp_service.pydantic_schemas import DashboardError, DashboardInfo
 from superset.mcp_service.pydantic_schemas.chart_schemas import serialize_chart_object
-from superset.mcp_service.pydantic_schemas.system_schemas import RoleInfo, TagInfo, \
-    UserInfo
+from superset.mcp_service.pydantic_schemas.system_schemas import (
+    RoleInfo,
+    TagInfo,
+    UserInfo,
+)
 
 logger = logging.getLogger(__name__)
 
-def dashboard_serializer(dashboard):
+
+def dashboard_serializer(dashboard: Any) -> DashboardInfo:
     return DashboardInfo(
         id=dashboard.id,
         dashboard_title=dashboard.dashboard_title or "Untitled",
@@ -51,27 +57,47 @@ def dashboard_serializer(dashboard):
         external_url=dashboard.external_url,
         created_on=dashboard.created_on,
         changed_on=dashboard.changed_on,
-        created_by=getattr(dashboard.created_by, 'username', None) if dashboard.created_by else None,
-        changed_by=getattr(dashboard.changed_by, 'username', None) if dashboard.changed_by else None,
+        created_by=getattr(dashboard.created_by, "username", None)
+        if dashboard.created_by
+        else None,
+        changed_by=getattr(dashboard.changed_by, "username", None)
+        if dashboard.changed_by
+        else None,
         uuid=str(dashboard.uuid) if dashboard.uuid else None,
         url=dashboard.url,
         thumbnail_url=dashboard.thumbnail_url,
         created_on_humanized=dashboard.created_on_humanized,
         changed_on_humanized=dashboard.changed_on_humanized,
         chart_count=len(dashboard.slices) if dashboard.slices else 0,
-        owners=[UserInfo.model_validate(owner, from_attributes=True) for owner in dashboard.owners] if dashboard.owners else [],
-        tags=[TagInfo.model_validate(tag, from_attributes=True) for tag in dashboard.tags] if dashboard.tags else [],
-        roles=[RoleInfo.model_validate(role, from_attributes=True) for role in dashboard.roles] if dashboard.roles else [],
-        charts=[serialize_chart_object(chart) for chart in dashboard.slices] if dashboard.slices else []
+        owners=[
+            UserInfo.model_validate(owner, from_attributes=True)
+            for owner in dashboard.owners
+        ]
+        if dashboard.owners
+        else [],
+        tags=[
+            TagInfo.model_validate(tag, from_attributes=True) for tag in dashboard.tags
+        ]
+        if dashboard.tags
+        else [],
+        roles=[
+            RoleInfo.model_validate(role, from_attributes=True)
+            for role in dashboard.roles
+        ]
+        if dashboard.roles
+        else [],
+        charts=[serialize_chart_object(chart) for chart in dashboard.slices]
+        if dashboard.slices
+        else [],
     )
+
 
 @mcp.tool
 @mcp_auth_hook
 def get_dashboard_info(
     dashboard_id: Annotated[
-        int,
-        Field(description="ID of the dashboard to retrieve information for")
-    ]
+        int, Field(description="ID of the dashboard to retrieve information for")
+    ],
 ) -> DashboardInfo | DashboardError:
     """
     Get detailed information about a specific dashboard.

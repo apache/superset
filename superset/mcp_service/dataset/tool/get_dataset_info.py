@@ -21,26 +21,29 @@ Get dataset info FastMCP tool
 This module contains the FastMCP tool for getting detailed information
 about a specific dataset.
 """
+
 import logging
 from typing import Annotated
 
 from pydantic import Field
+
 from superset.mcp_service.auth import mcp_auth_hook
 from superset.mcp_service.mcp_app import mcp
 from superset.mcp_service.model_tools import ModelGetInfoTool
 from superset.mcp_service.pydantic_schemas import DatasetError, DatasetInfo
-from superset.mcp_service.pydantic_schemas.dataset_schemas import \
-    serialize_dataset_object
+from superset.mcp_service.pydantic_schemas.dataset_schemas import (
+    serialize_dataset_object,
+)
 
 logger = logging.getLogger(__name__)
+
 
 @mcp.tool
 @mcp_auth_hook
 def get_dataset_info(
     dataset_id: Annotated[
-        int,
-        Field(description="ID of the dataset to retrieve information for")
-    ]
+        int, Field(description="ID of the dataset to retrieve information for")
+    ],
 ) -> DatasetInfo | DatasetError:
     """
     Get detailed information about a specific dataset.
@@ -56,4 +59,4 @@ def get_dataset_info(
         serializer=serialize_dataset_object,
         logger=logger,
     )
-    return tool.run(dataset_id) 
+    return tool.run(dataset_id)

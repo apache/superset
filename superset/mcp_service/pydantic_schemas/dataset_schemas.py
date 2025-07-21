@@ -18,17 +18,28 @@
 """
 Pydantic schemas for dataset-related responses
 """
+
 from datetime import datetime
 from typing import Any, Dict, List, Literal, Optional, Union
-import json
 
 from pydantic import BaseModel, ConfigDict, Field
-from superset.daos.base import ColumnOperator
-from superset.mcp_service.pydantic_schemas.system_schemas import PaginationInfo, TagInfo, UserInfo
+
+from superset.daos.base import ColumnOperator, ColumnOperatorEnum
+from superset.mcp_service.pydantic_schemas.system_schemas import (
+    PaginationInfo,
+    TagInfo,
+    UserInfo,
+)
+from superset.utils import json
 
 
 class DatasetAvailableFilters(BaseModel):
-    column_operators: Dict[str, List[str]] = Field(..., description="Available filter operators for each column: mapping from column name to list of supported operators")
+    column_operators: Dict[str, List[str]] = Field(
+        ...,
+        description="Available filter operators for each column: mapping from column "
+        "name to list of supported operators",
+    )
+
 
 class DatasetFilter(ColumnOperator):
     """
@@ -37,6 +48,7 @@ class DatasetFilter(ColumnOperator):
     opr: The operator to use. Must be one of the supported operators.
     value: The value to filter by (type depends on col and opr).
     """
+
     col: Literal[
         "table_name",
         "schema",
@@ -45,12 +57,21 @@ class DatasetFilter(ColumnOperator):
         "created_by",
         "owner",
         "is_virtual",
-        "tags"
-    ] = Field(..., description="Column to filter on. See get_dataset_available_filters for allowed values.")
-    opr: Literal[
-        "eq", "ne", "sw", "in", "not_in", "like", "ilike", "gt", "lt", "gte", "lte", "is_null", "is_not_null"
-    ] = Field(..., description="Operator to use. See get_dataset_available_filters for allowed values.")
-    value: Any = Field(..., description="Value to filter by (type depends on col and opr)")
+        "tags",
+    ] = Field(
+        ...,
+        description="Column to filter on. See get_dataset_available_filters for "
+        "allowed values.",
+    )
+    opr: ColumnOperatorEnum = Field(
+        ...,
+        description="Operator to use. See get_dataset_available_filters for "
+        "allowed values.",
+    )
+    value: Any = Field(
+        ..., description="Value to filter by (type depends on col and opr)"
+    )
+
 
 class TableColumnInfo(BaseModel):
     column_name: str = Field(..., description="Column name")
@@ -61,12 +82,14 @@ class TableColumnInfo(BaseModel):
     filterable: Optional[bool] = Field(None, description="Is filterable")
     description: Optional[str] = Field(None, description="Column description")
 
+
 class SqlMetricInfo(BaseModel):
     metric_name: str = Field(..., description="Metric name")
     verbose_name: Optional[str] = Field(None, description="Verbose name")
     expression: Optional[str] = Field(None, description="SQL expression")
     description: Optional[str] = Field(None, description="Metric description")
     d3format: Optional[str] = Field(None, description="D3 format string")
+
 
 class DatasetInfo(BaseModel):
     id: int = Field(..., description="Dataset ID")
@@ -75,14 +98,26 @@ class DatasetInfo(BaseModel):
     database_name: Optional[str] = Field(None, description="Database name")
     description: Optional[str] = Field(None, description="Dataset description")
     changed_by: Optional[str] = Field(None, description="Last modifier (username)")
-    changed_on: Optional[Union[str, datetime]] = Field(None, description="Last modification timestamp")
-    changed_on_humanized: Optional[str] = Field(None, description="Humanized modification time")
+    changed_on: Optional[Union[str, datetime]] = Field(
+        None, description="Last modification timestamp"
+    )
+    changed_on_humanized: Optional[str] = Field(
+        None, description="Humanized modification time"
+    )
     created_by: Optional[str] = Field(None, description="Dataset creator (username)")
-    created_on: Optional[Union[str, datetime]] = Field(None, description="Creation timestamp")
-    created_on_humanized: Optional[str] = Field(None, description="Humanized creation time")
+    created_on: Optional[Union[str, datetime]] = Field(
+        None, description="Creation timestamp"
+    )
+    created_on_humanized: Optional[str] = Field(
+        None, description="Humanized creation time"
+    )
     tags: List[TagInfo] = Field(default_factory=list, description="Dataset tags")
-    owners: List[UserInfo] = Field(default_factory=list, description="DatasetInfo owners")
-    is_virtual: Optional[bool] = Field(None, description="Whether the dataset is virtual (uses SQL)")
+    owners: List[UserInfo] = Field(
+        default_factory=list, description="DatasetInfo owners"
+    )
+    is_virtual: Optional[bool] = Field(
+        None, description="Whether the dataset is virtual (uses SQL)"
+    )
     database_id: Optional[int] = Field(None, description="Database ID")
     schema_perm: Optional[str] = Field(None, description="Schema permission string")
     url: Optional[str] = Field(None, description="Dataset URL")
@@ -91,11 +126,18 @@ class DatasetInfo(BaseModel):
     offset: Optional[int] = Field(None, description="Offset")
     cache_timeout: Optional[int] = Field(None, description="Cache timeout")
     params: Optional[Dict[str, Any]] = Field(None, description="Extra params")
-    template_params: Optional[Dict[str, Any]] = Field(None, description="Template params")
+    template_params: Optional[Dict[str, Any]] = Field(
+        None, description="Template params"
+    )
     extra: Optional[Dict[str, Any]] = Field(None, description="Extra metadata")
-    columns: List[TableColumnInfo] = Field(default_factory=list, description="Columns in the dataset")
-    metrics: List[SqlMetricInfo] = Field(default_factory=list, description="Metrics in the dataset")
+    columns: List[TableColumnInfo] = Field(
+        default_factory=list, description="Columns in the dataset"
+    )
+    metrics: List[SqlMetricInfo] = Field(
+        default_factory=list, description="Metrics in the dataset"
+    )
     model_config = ConfigDict(from_attributes=True, ser_json_timedelta="iso8601")
+
 
 class DatasetList(BaseModel):
     datasets: List[DatasetInfo]
@@ -108,18 +150,25 @@ class DatasetList(BaseModel):
     has_next: bool
     columns_requested: Optional[List[str]] = None
     columns_loaded: Optional[List[str]] = None
-    filters_applied: List[DatasetFilter] = Field(default_factory=list, description="List of advanced filter dicts applied to the query.")
+    filters_applied: List[DatasetFilter] = Field(
+        default_factory=list,
+        description="List of advanced filter dicts applied to the query.",
+    )
     pagination: Optional[PaginationInfo] = None
     timestamp: Optional[datetime] = None
     model_config = ConfigDict(ser_json_timedelta="iso8601")
 
+
 class DatasetError(BaseModel):
     error: str = Field(..., description="Error message")
     error_type: str = Field(..., description="Type of error")
-    timestamp: Optional[Union[str, datetime]] = Field(None, description="Error timestamp")
+    timestamp: Optional[Union[str, datetime]] = Field(
+        None, description="Error timestamp"
+    )
     model_config = ConfigDict(ser_json_timedelta="iso8601")
 
-def serialize_dataset_object(dataset) -> Optional[DatasetInfo]:
+
+def serialize_dataset_object(dataset: Any) -> Optional[DatasetInfo]:
     if not dataset:
         return None
     params = getattr(dataset, "params", None)
@@ -137,7 +186,8 @@ def serialize_dataset_object(dataset) -> Optional[DatasetInfo]:
             groupby=getattr(col, "groupby", None),
             filterable=getattr(col, "filterable", None),
             description=getattr(col, "description", None),
-        ) for col in getattr(dataset, "columns", [])
+        )
+        for col in getattr(dataset, "columns", [])
     ]
     metrics = [
         SqlMetricInfo(
@@ -146,33 +196,48 @@ def serialize_dataset_object(dataset) -> Optional[DatasetInfo]:
             expression=getattr(metric, "expression", None),
             description=getattr(metric, "description", None),
             d3format=getattr(metric, "d3format", None),
-        ) for metric in getattr(dataset, "metrics", [])
+        )
+        for metric in getattr(dataset, "metrics", [])
     ]
     return DatasetInfo(
-        id=getattr(dataset, 'id', None),
-        table_name=getattr(dataset, 'table_name', None),
-        db_schema=getattr(dataset, 'schema', None),
-        database_name=getattr(dataset.database, 'database_name', None) if getattr(dataset, 'database', None) else None,
-        description=getattr(dataset, 'description', None),
-        changed_by=getattr(dataset, 'changed_by_name', None) or (str(dataset.changed_by) if getattr(dataset, 'changed_by', None) else None),
-        changed_on=getattr(dataset, 'changed_on', None),
-        changed_on_humanized=getattr(dataset, 'changed_on_humanized', None),
-        created_by=getattr(dataset, 'created_by_name', None) or (str(dataset.created_by) if getattr(dataset, 'created_by', None) else None),
-        created_on=getattr(dataset, 'created_on', None),
-        created_on_humanized=getattr(dataset, 'created_on_humanized', None),
-        tags=[TagInfo.model_validate(tag, from_attributes=True) for tag in getattr(dataset, 'tags', [])] if getattr(dataset, 'tags', None) else [],
-        owners=[UserInfo.model_validate(owner, from_attributes=True) for owner in getattr(dataset, 'owners', [])] if getattr(dataset, 'owners', None) else [],
-        is_virtual=getattr(dataset, 'is_virtual', None),
-        database_id=getattr(dataset, 'database_id', None),
-        schema_perm=getattr(dataset, 'schema_perm', None),
-        url=getattr(dataset, 'url', None),
-        sql=getattr(dataset, 'sql', None),
-        main_dttm_col=getattr(dataset, 'main_dttm_col', None),
-        offset=getattr(dataset, 'offset', None),
-        cache_timeout=getattr(dataset, 'cache_timeout', None),
+        id=getattr(dataset, "id", None),
+        table_name=getattr(dataset, "table_name", None),
+        db_schema=getattr(dataset, "schema", None),
+        database_name=getattr(dataset.database, "database_name", None)
+        if getattr(dataset, "database", None)
+        else None,
+        description=getattr(dataset, "description", None),
+        changed_by=getattr(dataset, "changed_by_name", None)
+        or (str(dataset.changed_by) if getattr(dataset, "changed_by", None) else None),
+        changed_on=getattr(dataset, "changed_on", None),
+        changed_on_humanized=getattr(dataset, "changed_on_humanized", None),
+        created_by=getattr(dataset, "created_by_name", None)
+        or (str(dataset.created_by) if getattr(dataset, "created_by", None) else None),
+        created_on=getattr(dataset, "created_on", None),
+        created_on_humanized=getattr(dataset, "created_on_humanized", None),
+        tags=[
+            TagInfo.model_validate(tag, from_attributes=True)
+            for tag in getattr(dataset, "tags", [])
+        ]
+        if getattr(dataset, "tags", None)
+        else [],
+        owners=[
+            UserInfo.model_validate(owner, from_attributes=True)
+            for owner in getattr(dataset, "owners", [])
+        ]
+        if getattr(dataset, "owners", None)
+        else [],
+        is_virtual=getattr(dataset, "is_virtual", None),
+        database_id=getattr(dataset, "database_id", None),
+        schema_perm=getattr(dataset, "schema_perm", None),
+        url=getattr(dataset, "url", None),
+        sql=getattr(dataset, "sql", None),
+        main_dttm_col=getattr(dataset, "main_dttm_col", None),
+        offset=getattr(dataset, "offset", None),
+        cache_timeout=getattr(dataset, "cache_timeout", None),
         params=params,
-        template_params=getattr(dataset, 'template_params', None),
-        extra=getattr(dataset, 'extra', None),
+        template_params=getattr(dataset, "template_params", None),
+        extra=getattr(dataset, "extra", None),
         columns=columns,
         metrics=metrics,
-    ) 
+    )

@@ -17,15 +17,18 @@
 """
 Get available dataset filters FastMCP tool
 """
-import logging
 
+import logging
 
 from superset.mcp_service.auth import mcp_auth_hook
 from superset.mcp_service.mcp_app import mcp
-from superset.mcp_service.pydantic_schemas.dataset_schemas import DatasetAvailableFilters
 from superset.mcp_service.model_tools import ModelGetAvailableFiltersTool
+from superset.mcp_service.pydantic_schemas.dataset_schemas import (
+    DatasetAvailableFilters,
+)
 
 logger = logging.getLogger(__name__)
+
 
 @mcp.tool
 @mcp_auth_hook
@@ -36,6 +39,7 @@ def get_dataset_available_filters() -> DatasetAvailableFilters:
     Returns a DatasetAvailableFilters object with column_operators.
     """
     from superset.daos.dataset import DatasetDAO
+
     tool = ModelGetAvailableFiltersTool(
         dao_class=DatasetDAO,
         output_schema=DatasetAvailableFilters,

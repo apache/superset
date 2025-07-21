@@ -61,4 +61,4 @@ The Model Context Protocol (MCP) is a new protocol for exposing high-level, stru
 | Demo script/notebook                     | 🟡 Not in OSS, easy to run/tests|
 
 ## Reference
-- [SIP-171: MCP Service Proposal](https://github.com/apache/superset/issues/33870) 
+- [SIP-171: MCP Service Proposal](https://github.com/apache/superset/issues/33870)

@@ -16,4 +16,4 @@ This directory contains integration tests for the Superset Model Context Protoco
 - Tests validate both Pydantic and dict responses
 - See the main MCP README and architecture docs for tool and flow details
 
-For more on the MCP service, see `superset/mcp_service/README.md` and `superset/mcp_service/README_ARCHITECTURE.md`. 
+For more on the MCP service, see `superset/mcp_service/README.md` and `superset/mcp_service/README_ARCHITECTURE.md`.

@@ -16,36 +16,38 @@
 # under the License.
 
 """
-Merged MCP server for Apache Superset (replaces both server.py and fastmcp_server.py)
-
-This file provides:
-- FastMCP server setup, tool registration, and middleware (init_fastmcp_server)
-- Unified entrypoint for running the MCP service (HTTP)
+MCP server for Apache Superset
 """
+
 import logging
 import os
 
-from superset.mcp_service.mcp_app import mcp, init_fastmcp_server
+from superset.mcp_service.mcp_app import init_fastmcp_server, mcp
+
 
 def configure_logging(debug: bool = False) -> None:
     """Configure logging for the MCP service."""
     if debug or os.environ.get("SQLALCHEMY_DEBUG"):
         logging.basicConfig(
             level=logging.INFO,
-            format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+            format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
         )
-        for logger_name in ['sqlalchemy.engine', 'sqlalchemy.pool', 'sqlalchemy.dialects']:
+        for logger_name in [
+            "sqlalchemy.engine",
+            "sqlalchemy.pool",
+            "sqlalchemy.dialects",
+        ]:
             logging.getLogger(logger_name).setLevel(logging.INFO)
         print("🔍 SQL Debug logging enabled")
 
-def run_server(host: str = "0.0.0.0", port: int = 5008, debug: bool = False) -> None:
+
+def run_server(host: str = "127.0.0.1", port: int = 5008, debug: bool = False) -> None:
     """
-    Run the MCP service server with REST API and FastMCP endpoints.
+    Run the MCP service server with FastMCP endpoints.
     Only supports HTTP (streamable-http) transport.
     """
     configure_logging(debug)
-    print(f"Creating MCP app...")
-    # init_flask_app()
+    print("Creating MCP app...")
     init_fastmcp_server()  # This will register middleware, etc.
 
     env_key = f"FASTMCP_RUNNING_{port}"
@@ -60,6 +62,6 @@ def run_server(host: str = "0.0.0.0", port: int = 5008, debug: bool = False) -> 
     else:
         print(f"FastMCP already running on {host}:{port}")
 
+
 if __name__ == "__main__":
     run_server()
-

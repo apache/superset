@@ -1,10 +1,12 @@
-import logging
-import sys
-import traceback
 import json
+import logging
+import traceback
 
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logging.basicConfig(
+    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
+)
 logger = logging.getLogger(__name__)
+
 
 async def test_tool(client, tool_name, payload, label, issues):
     logger.info(f"\n---\nCalling {tool_name} {label} with payload: {payload}")
@@ -19,16 +21,33 @@ async def test_tool(client, tool_name, payload, label, issues):
             logger.info(f"{tool_name} {label} output (dict): {as_dict}")
             pretty = json.dumps(as_dict, indent=2, default=str)
             logger.info(f"{tool_name} {label} output (pretty):\n{pretty}")
-            if as_dict.get('error') or as_dict.get('error_type'):
-                issues.append((tool_name, label, f"Error: {as_dict.get('error')} | Type: {as_dict.get('error_type')}"))
+            if as_dict.get("error") or as_dict.get("error_type"):
+                issues.append(
+                    (
+                        tool_name,
+                        label,
+                        f"Error: {as_dict.get('error')} | Type: "
+                        f"{as_dict.get('error_type')}",
+                    )
+                )
         elif isinstance(result.data, dict):
             logger.info(f"{tool_name} {label} output (dict): {result.data}")
             pretty = json.dumps(result.data, indent=2, default=str)
             logger.info(f"{tool_name} {label} output (pretty):\n{pretty}")
-            if result.data.get('error') or result.data.get('error_type'):
-                issues.append((tool_name, label, f"Error: {result.data.get('error')} | Type: {result.data.get('error_type')}"))
+            if result.data.get("error") or result.data.get("error_type"):
+                issues.append(
+                    (
+                        tool_name,
+                        label,
+                        f"Error: {result.data.get('error')} | Type: "
+                        f"{result.data.get('error_type')}",
+                    )
+                )
         else:
-            msg = f"Output is not a dict or Pydantic model. Type: {type(result.data)}. Value: {result.data}"
+            msg = (
+                f"Output is not a dict or Pydantic model. Type: "
+                f"{type(result.data)}. Value: {result.data}"
+            )
             logger.warning(msg)
             issues.append((tool_name, label, msg))
     except Exception as e:
@@ -37,27 +56,46 @@ async def test_tool(client, tool_name, payload, label, issues):
         logger.error(traceback.format_exc())
         issues.append((tool_name, label, msg))
 
+
 async def main():
     from fastmcp import Client
+
     logger.info("Starting integration test for list_dashboards tool")
     issues = []
     async with Client("http://localhost:5008/mcp") as client:
         # Test list_dashboards (advanced) with default params
         await test_tool(client, "list_dashboards", {}, "(default)", issues)
         # Test list_dashboards with a filter (dashboard_title sw 'USA')
-        await test_tool(client, "list_dashboards", {"filters": [{"col": "dashboard_title", "opr": "sw", "value": "USA"}]}, "(dashboard_title sw 'USA')", issues)
+        await test_tool(
+            client,
+            "list_dashboards",
+            {"filters": [{"col": "dashboard_title", "opr": "sw", "value": "USA"}]},
+            "(dashboard_title sw 'USA')",
+            issues,
+        )
         # Test list_dashboards with pagination
-        await test_tool(client, "list_dashboards", {"page": 1, "page_size": 2}, "(page=1, page_size=2)", issues)
+        await test_tool(
+            client,
+            "list_dashboards",
+            {"page": 1, "page_size": 2},
+            "(page=1, page_size=2)",
+            issues,
+        )
 
     # Summary
     logger.info("\n=== SUMMARY ===")
     if issues:
-        logger.warning(f"Found issues with the following tool calls:")
+        logger.warning("Found issues with the following tool calls:")
         for tool_name, label, msg in issues:
             logger.warning(f"  {tool_name} {label}: {msg}")
     else:
-        logger.info("All list_dashboards calls returned successfully with no errors or warnings.")
+        logger.info(
+            "All list_dashboards calls returned successfully with no errors or "
+            "warnings."
+        )
+
 
 if __name__ == "__main__":
     import asyncio
-    asyncio.run(main()) 
+
+    asyncio.run(main())
