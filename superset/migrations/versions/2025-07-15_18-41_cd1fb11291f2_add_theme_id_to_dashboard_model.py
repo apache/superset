@@ -23,7 +23,12 @@ Create Date: 2025-07-15 18:41:43.496256
 """
 
 import sqlalchemy as sa
-from alembic import op
+
+from superset.migrations.shared.utils import (
+    add_columns,
+    create_fks_for_table,
+    drop_columns,
+)
 
 # revision identifiers, used by Alembic.
 revision = "cd1fb11291f2"
@@ -31,14 +36,24 @@ down_revision = "3fd555e76e3d"
 
 
 def upgrade():
-    with op.batch_alter_table("dashboards") as batch_op:
-        batch_op.add_column(sa.Column("theme_id", sa.Integer(), nullable=True))
-        batch_op.create_foreign_key(
-            "fk_dashboards_theme_id_themes", "themes", ["theme_id"], ["id"]
-        )
+    add_columns(
+        "dashboards",
+        sa.Column("theme_id", sa.Integer(), nullable=True),
+    )
+
+    create_fks_for_table(
+        "fk_dashboards_theme_id_themes",
+        "dashboards",
+        "themes",
+        ["theme_id"],
+        ["id"],
+    )
 
 
 def downgrade():
-    with op.batch_alter_table("dashboards") as batch_op:
-        batch_op.drop_constraint("fk_dashboards_theme_id_themes", type_="foreignkey")
-        batch_op.drop_column("theme_id")
+    # Drop foreign key constraint first
+    from superset.migrations.shared.utils import drop_fks_for_table
+
+    drop_fks_for_table("dashboards", ["fk_dashboards_theme_id_themes"])
+
+    drop_columns("dashboards", "theme_id")
