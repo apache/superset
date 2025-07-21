@@ -123,6 +123,9 @@ const ChartCustomizationForm: FC<Props> = ({ form, item, onUpdate }) => {
   const [selectFirst, setSelectFirst] = useState(
     customization.selectFirst ?? false,
   );
+  const [canSelectMultiple, setCanSelectMultiple] = useState(
+    customization.canSelectMultiple ?? true,
+  );
 
   const fetchedRef = useRef({
     dataset: null,
@@ -1146,6 +1149,26 @@ const ChartCustomizationForm: FC<Props> = ({ form, item, onUpdate }) => {
                     selectFirst: checked,
                   });
                 }
+                formChanged();
+              }}
+            >
+              <div />
+            </CollapsibleControl>
+          </StyledFormItem>
+
+          <StyledFormItem name={['filters', item.id, 'canSelectMultiple']}>
+            <CollapsibleControl
+              checked={canSelectMultiple}
+              initialValue={customization.canSelectMultiple ?? true}
+              title={t('Can select multiple values')}
+              tooltip={t(
+                'Allow users to select multiple values for this filter',
+              )}
+              onChange={checked => {
+                setCanSelectMultiple(checked);
+                setFormFieldValues({
+                  canSelectMultiple: checked,
+                });
                 formChanged();
               }}
             >
