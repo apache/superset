@@ -122,7 +122,7 @@ flowchart TD
 
 - `list_dashboards`, `get_dashboard_info`, `get_dashboard_available_filters`: DashboardDAO
 - `list_datasets`, `get_dataset_info`, `get_dataset_available_filters`: DatasetDAO (now returns columns and metrics for each dataset)
-- `list_charts`, `get_chart_info`, `get_chart_available_filters`, `create_chart_simple`, `create_chart`: ChartDAO (create_chart supports advanced ECharts options and extra_options for extensibility)
+- `list_charts`, `get_chart_info`, `get_chart_available_filters`, `create_chart`: ChartDAO (create_chart supports advanced ECharts options and extra_options for extensibility)
 - `get_superset_instance_info`: System metadata
 
 ---
@@ -144,7 +144,7 @@ flowchart TD
 ## Roadmap
 
 - All list/info tools for dashboards, datasets, and charts are implemented.
-- Chart creation (`create_chart_simple`) is available.
+- Chart creation (`create_chart`) is available.
 - System info and available filters are implemented.
 - Mutations (create/update/delete) and navigation tools are planned.
 - Full unit and integration test coverage.
