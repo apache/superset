@@ -77,7 +77,7 @@ export const StyledModal = styled(BaseModal)<StyledModalProps>`
     .ant-modal-header {
       flex: 0 0 auto;
       border-radius: ${theme.borderRadius}px ${theme.borderRadius}px 0 0;
-      padding: ${theme.sizeUnit * 4}px ${theme.sizeUnit * 6}px;
+      padding: ${theme.sizeUnit * 4}px ${theme.sizeUnit * 4}px;
 
       .ant-modal-title {
         font-weight: ${theme.fontWeightStrong};
@@ -121,7 +121,8 @@ export const StyledModal = styled(BaseModal)<StyledModalProps>`
 
     .ant-modal-body {
       flex: 0 1 auto;
-      padding: ${theme.sizeUnit * 4}px;
+      padding-left: ${theme.sizeUnit * 4}px;
+      padding-bottom: ${theme.sizeUnit * 2}px;
       overflow: auto;
       ${!resizable && height && `height: ${height};`}
     }
