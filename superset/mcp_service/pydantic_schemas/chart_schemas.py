@@ -121,41 +121,9 @@ def serialize_chart_object(chart: Any) -> Optional[ChartInfo]:
     )
 
 
-class CreateSimpleChartRequest(BaseModel):
-    """
-    Request schema for creating a simple chart via MCP.
-    """
-
-    slice_name: str = Field(..., description="Chart name")
-    viz_type: str = Field(
-        ..., description="Visualization type (e.g., bar, line, table, pie)"
-    )
-    datasource_id: int = Field(..., description="ID of the datasource (dataset) to use")
-    datasource_type: Literal["table"] = Field(
-        "table", description="Datasource type (usually 'table')"
-    )
-    metrics: List[str] = Field(..., description="List of metric names to display")
-    dimensions: List[str] = Field(
-        ..., description="List of dimension (column) names to group by"
-    )
-    filters: Optional[List[Dict[str, Any]]] = Field(
-        None, description="List of filter objects (column, operator, value)"
-    )
-    description: Optional[str] = Field(None, description="Chart description")
-    owners: Optional[List[int]] = Field(None, description="List of owner user IDs")
-    dashboards: Optional[List[int]] = Field(
-        None, description="List of dashboard IDs to add this chart to"
-    )
-    return_embed: Optional[bool] = Field(
-        False,
-        description="If true, return embeddable chart assets (embed_url, "
-        "thumbnail_url, embed_html) in the response.",
-    )
-
-
 class CreateSimpleChartResponse(BaseModel):
     """
-    Response schema for create_chart_simple tool.
+    Response schema for create_chart tool.
     """
 
     chart: Optional[ChartInfo] = Field(

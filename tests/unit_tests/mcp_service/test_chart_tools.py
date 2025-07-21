@@ -17,7 +17,7 @@
 
 """
 Unit tests for MCP chart tools (list_charts, get_chart_info,
-get_chart_available_filters, create_chart_simple)
+get_chart_available_filters)
 """
 
 import json
@@ -33,7 +33,6 @@ from superset.mcp_service.mcp_app import mcp
 # Updated imports for new tool structure
 from superset.mcp_service.pydantic_schemas.chart_schemas import (
     ChartInfo,
-    CreateSimpleChartRequest,
     EchartsAreaChartCreateRequest,
     EchartsTimeseriesBarChartCreateRequest,
     EchartsTimeseriesLineChartCreateRequest,
@@ -266,68 +265,6 @@ async def test_get_chart_available_filters_exception_handling(mcp_server):
     async with Client(mcp_server) as client:
         result = await client.call_tool("get_chart_available_filters", {})
         assert hasattr(result.data, "column_operators")
-
-
-@pytest.mark.asyncio
-@patch("superset.commands.chart.create.CreateChartCommand.run")
-async def test_create_chart_simple_success(mock_run, mcp_server):
-    chart = Mock()
-    chart.id = 42
-    chart.slice_name = "Created Chart"
-    chart.viz_type = "bar"
-    chart.datasource_name = "test_ds"
-    chart.datasource_type = "table"
-    chart.url = "/chart/42"
-    chart.description = "desc"
-    chart.cache_timeout = 60
-    chart.form_data = {}
-    chart.query_context = {}
-    chart.changed_by_name = "admin"
-    chart.changed_on = None
-    chart.changed_on_humanized = "1 day ago"
-    chart.created_by_name = "admin"
-    chart.created_on = None
-    chart.created_on_humanized = "2 days ago"
-    chart.tags = []
-    chart.owners = []
-    chart.to_model = lambda: ChartInfo(
-        id=chart.id,
-        slice_name=chart.slice_name,
-        viz_type=chart.viz_type,
-        datasource_name=chart.datasource_name,
-        datasource_type=chart.datasource_type,
-        url=chart.url,
-        description=chart.description,
-        cache_timeout=chart.cache_timeout,
-        form_data=chart.form_data,
-        query_context=chart.query_context,
-        changed_by_name=chart.changed_by_name,
-        changed_on=chart.changed_on,
-        changed_on_humanized=chart.changed_on_humanized,
-        created_by_name=chart.created_by_name,
-        created_on=chart.created_on,
-        created_on_humanized=chart.created_on_humanized,
-        tags=chart.tags,
-        owners=chart.owners,
-    )
-    mock_run.return_value = chart
-    req = CreateSimpleChartRequest(
-        slice_name="Created Chart",
-        viz_type="bar",
-        datasource_id=1,
-        metrics=["sum__sales"],
-        dimensions=["region"],
-        filters=[{"col": "year", "opr": "eq", "value": 2024}],
-        description="A chart created by test",
-        return_embed=True,
-    )
-    async with Client(mcp_server) as client:
-        result = await client.call_tool("create_chart_simple", {"request": req.dict()})
-        assert result.data.chart is not None
-        assert result.data.chart.slice_name == "Created Chart"
-        assert result.data.embed_url is not None
-        assert result.data.thumbnail_url is not None
-        assert result.data.embed_html is not None
 
 
 def _mock_chart(id=1, viz_type="echarts_timeseries_line", form_data=None):
