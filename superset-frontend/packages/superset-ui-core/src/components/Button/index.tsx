@@ -70,15 +70,12 @@ export function Button(props: ButtonProps) {
   if (!buttonStyle || buttonStyle === 'primary') {
     variant = 'solid';
     antdType = 'primary';
-    color = 'primary';
   } else if (buttonStyle === 'secondary') {
-    variant = 'filled';
-    color = 'primary';
+    variant = 'outlined';
   } else if (buttonStyle === 'tertiary') {
     variant = 'outlined';
     color = 'default';
   } else if (buttonStyle === 'dashed') {
-    color = 'primary';
     variant = 'dashed';
     antdType = 'dashed';
   } else if (buttonStyle === 'danger') {
