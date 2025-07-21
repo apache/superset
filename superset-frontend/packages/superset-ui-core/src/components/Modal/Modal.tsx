@@ -208,7 +208,7 @@ const CustomModal = ({
   onHide,
   onHandledPrimaryAction,
   primaryButtonName = t('OK'),
-  primaryButtonType = 'primary',
+  primaryButtonStyle = 'primary',
   show,
   name,
   title,
@@ -261,7 +261,7 @@ const CustomModal = ({
         </Button>,
         <Button
           key="submit"
-          buttonStyle={primaryButtonType}
+          buttonStyle={primaryButtonStyle}
           disabled={disablePrimaryButton}
           tooltip={primaryTooltipMessage}
           loading={primaryButtonLoading}

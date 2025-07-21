@@ -81,7 +81,7 @@ export function DeleteModal({
       onHide={hide}
       onHandledPrimaryAction={confirm}
       primaryButtonName={t('Delete')}
-      primaryButtonType="danger"
+      primaryButtonStyle="danger"
       show={open}
       title={title}
       centered
