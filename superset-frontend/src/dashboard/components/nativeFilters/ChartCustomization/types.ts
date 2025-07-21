@@ -24,7 +24,7 @@ export interface GroupByCustomization {
     value: number;
     table_name: string;
   };
-  column: string | null;
+  column: string | string[] | null;
   description?: string;
   sortFilter?: boolean;
   sortAscending?: boolean;

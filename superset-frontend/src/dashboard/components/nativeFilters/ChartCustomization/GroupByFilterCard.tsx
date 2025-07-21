@@ -18,28 +18,28 @@
  */
 import { FC, useCallback, useEffect, useMemo, useState } from 'react';
 import {
-  Typography,
-  Select,
-  Icons,
-  Loading,
-  Popover,
-  Tooltip,
-} from '@superset-ui/core/components';
-import {
   styled,
   t,
   css,
-  useTruncation,
   DataMaskStateWithId,
   useTheme,
+  useTruncation,
 } from '@superset-ui/core';
-import { useDispatch, useSelector } from 'react-redux';
 import {
-  loadChartCustomizationData,
+  Typography,
+  Select,
+  Popover,
+  Loading,
+  Icons,
+  Tooltip,
+} from '@superset-ui/core/components';
+import { useDispatch, useSelector } from 'react-redux';
+import { RootState } from 'src/dashboard/types';
+import {
   setPendingChartCustomization,
+  loadChartCustomizationData,
 } from 'src/dashboard/actions/dashboardInfo';
 import { TooltipWithTruncation } from 'src/dashboard/components/nativeFilters/FilterCard/TooltipWithTruncation';
-import { RootState } from '../../../types';
 import { mergeExtraFormData } from '../utils';
 import { ChartCustomizationItem } from './types';
 
@@ -251,7 +251,7 @@ const GroupByFilterCard: FC<GroupByFilterCardProps> = ({
 }) => {
   const theme = useTheme();
   const { customization } = customizationItem;
-  const { name, dataset, column } = customization || {};
+  const { dataset } = customization || {};
   const [filterTitleRef, , titleElementsTruncated] = useTruncation();
 
   const [loading, setLoading] = useState(false);
@@ -266,10 +266,6 @@ const GroupByFilterCard: FC<GroupByFilterCardProps> = ({
     state =>
       state.dashboardInfo.chartCustomizationLoading?.[customizationItem.id] ||
       false,
-  );
-
-  const pendingChartCustomizations = useSelector<RootState, any>(
-    state => state.dashboardInfo.pendingChartCustomizations,
   );
 
   const datasetId = useMemo(() => {
@@ -291,37 +287,26 @@ const GroupByFilterCard: FC<GroupByFilterCardProps> = ({
     return null;
   }, [dataset]);
 
-  const columnName = useMemo(() => {
-    if (!column) return null;
-
-    const pendingCustomization =
-      pendingChartCustomizations?.[customizationItem.id];
-    const pendingColumn = pendingCustomization?.customization?.column;
-    if (pendingColumn) {
-      return pendingColumn;
-    }
-
-    if (typeof column === 'string') {
-      return column;
-    }
-
-    if (typeof column === 'object' && column !== null) {
-      if ('column_name' in column) {
-        return (column as any).column_name;
-      }
-      if ('name' in column) {
-        return (column as any).name;
-      }
-    }
-
-    return null;
-  }, [column, pendingChartCustomizations, customizationItem.id]);
+  const columnName = customizationItem.customization?.column;
+  const canSelectMultiple =
+    customizationItem.customization?.canSelectMultiple ?? true;
 
   const columnDisplayName = useMemo(() => {
-    if (name) return name;
-    if (columnName) return columnName;
+    if (customizationItem.customization?.name) {
+      return customizationItem.customization.name;
+    }
+    if (customizationItem.title) {
+      return customizationItem.title;
+    }
+    if (columnName) {
+      return columnName;
+    }
     return t('Group By');
-  }, [columnName, name]);
+  }, [
+    customizationItem.customization?.name,
+    customizationItem.title,
+    columnName,
+  ]);
 
   const useChartCustomizationDependencies = () => {
     const dataMask = useSelector<RootState, DataMaskStateWithId>(
@@ -462,10 +447,20 @@ const GroupByFilterCard: FC<GroupByFilterCardProps> = ({
             allowClear
             placeholder={t('Search columns...')}
             value={columnName || null}
-            onChange={(value: string) => {
+            onChange={(value: string | string[]) => {
+              const columnValue = canSelectMultiple
+                ? Array.isArray(value)
+                  ? value.length > 0
+                    ? value
+                    : null
+                  : value || null
+                : typeof value === 'string'
+                  ? value
+                  : null;
+
               const updatedCustomization = {
                 ...customizationItem.customization,
-                column: value || null,
+                column: columnValue,
               };
 
               dispatch(
@@ -478,6 +473,7 @@ const GroupByFilterCard: FC<GroupByFilterCardProps> = ({
             }}
             options={columnOptions}
             showSearch
+            mode={canSelectMultiple ? 'multiple' : undefined}
             filterOption={(input, option) =>
               ((option?.label as string) ?? '')
                 .toLowerCase()

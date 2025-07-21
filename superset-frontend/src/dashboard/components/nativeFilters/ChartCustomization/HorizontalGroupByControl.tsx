@@ -94,6 +94,8 @@ const HorizontalGroupByControl: FC<HorizontalGroupByControlProps> = ({
   }, [datasetInfo]);
 
   const columnName = customizationItem.customization?.column;
+  const canSelectMultiple =
+    customizationItem.customization?.canSelectMultiple ?? true;
 
   const label = useMemo(() => {
     const name = customizationItem.customization?.name;
@@ -108,10 +110,20 @@ const HorizontalGroupByControl: FC<HorizontalGroupByControlProps> = ({
   ]);
 
   const handleChange = useCallback(
-    (value: string) => {
+    (value: string | string[]) => {
+      const columnValue = canSelectMultiple
+        ? Array.isArray(value)
+          ? value.length > 0
+            ? value
+            : null
+          : value || null
+        : typeof value === 'string'
+          ? value
+          : null;
+
       const updatedCustomization = {
         ...customizationItem.customization,
-        column: value || null,
+        column: columnValue,
       };
 
       dispatch(
@@ -122,7 +134,7 @@ const HorizontalGroupByControl: FC<HorizontalGroupByControlProps> = ({
         }),
       );
     },
-    [customizationItem, dispatch],
+    [customizationItem, dispatch, canSelectMultiple],
   );
 
   return (
@@ -131,10 +143,15 @@ const HorizontalGroupByControl: FC<HorizontalGroupByControlProps> = ({
         <Select
           allowClear
           placeholder={t('Select column...')}
-          value={columnName || null}
+          value={
+            canSelectMultiple && Array.isArray(columnName)
+              ? columnName
+              : columnName || null
+          }
           onChange={handleChange}
           options={columnOptions}
           showSearch
+          mode={canSelectMultiple ? 'multiple' : undefined}
           filterOption={(
             input: string,
             option: { label: string; value: string } | undefined,
