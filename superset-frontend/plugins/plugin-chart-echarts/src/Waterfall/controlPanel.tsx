@@ -24,6 +24,7 @@ import {
   DEFAULT_TIME_FORMAT,
   formatSelectOptions,
   sharedControls,
+  getStandardizedControls,
 } from '@superset-ui/chart-controls';
 import { showValueControl } from '../controls';
 
@@ -160,6 +161,11 @@ const config: ControlPanelConfig = {
       multi: false,
     },
   },
+  formDataOverrides: formData => ({
+    ...formData,
+    metric: getStandardizedControls().shiftMetric(), // 标准化 metric 字段
+    groupby: getStandardizedControls().popAllColumns(), // 标准化 groupby 字段
+  }),
 };
 
 export default config;
