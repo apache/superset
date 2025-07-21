@@ -131,6 +131,7 @@ const ChartCustomizationForm: FC<Props> = ({ form, item, onUpdate }) => {
     dataset: null,
     column: null,
     hasDefaultValue: false,
+    defaultValueDataFetched: false,
   });
 
   const { chartId } = item;
@@ -640,18 +641,21 @@ const ChartCustomizationForm: FC<Props> = ({ form, item, onUpdate }) => {
     if (
       hasDataset &&
       hasColumn &&
+      hasDefaultValue &&
       (fetchedRef.current.dataset !== formValues.dataset ||
-        fetchedRef.current.column !== formValues.column)
+        fetchedRef.current.column !== formValues.column ||
+        !fetchedRef.current.defaultValueDataFetched)
     ) {
       fetchedRef.current = {
         dataset: formValues.dataset,
         column: formValues.column,
         hasDefaultValue,
+        defaultValueDataFetched: true,
       };
 
       fetchDefaultValueData();
     }
-  }, [form, item.id, fetchDefaultValueData, fetchDatasetInfo]);
+  }, [form, item.id, fetchDatasetInfo]);
 
   useEffect(() => {
     const formValues = form.getFieldValue('filters')?.[item.id] || {};
@@ -946,6 +950,11 @@ const ChartCustomizationForm: FC<Props> = ({ form, item, onUpdate }) => {
 
                 if (checked) {
                   fetchDefaultValueData();
+                  setTimeout(() => {
+                    form.validateFields([
+                      ['filters', item.id, 'defaultDataMask'],
+                    ]);
+                  }, 0);
                 }
                 formChanged();
               }}
@@ -1007,9 +1016,7 @@ const ChartCustomizationForm: FC<Props> = ({ form, item, onUpdate }) => {
                                 value={customization.column || null}
                                 onChange={(value: string) => {
                                   if (value) {
-                                    // Check for conflicts before setting the value
                                     if (checkColumnConflict(value)) {
-                                      // Don't set the value if there's a conflict
                                       return;
                                     }
                                     setFormFieldValues({
