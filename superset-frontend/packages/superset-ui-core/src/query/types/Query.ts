@@ -256,14 +256,14 @@ export type ErrorSource = 'dashboard' | 'explore' | 'sqllab' | 'crud';
 export type SupersetError<ExtraType = Record<string, any> | null> =
   | {
       error_type: ErrorType;
-      errorType: undefined;
+      errorType?: undefined;
       extra: ExtraType;
       level: ErrorLevel;
       message: string;
     }
   | {
       errorType: ErrorType;
-      error_type: undefined;
+      error_type?: undefined;
       extra: ExtraType;
       level: ErrorLevel;
       message: string;
