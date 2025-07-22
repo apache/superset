@@ -71,6 +71,7 @@ import PropertiesModal from 'src/explore/components/PropertiesModal';
 import Chart from 'src/types/Chart';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { nativeFilterGate } from 'src/dashboard/components/nativeFilters/utils';
+import { TagTypeEnum } from 'src/components/Tag/TagType';
 import { loadTags } from 'src/components/Tag/utils';
 import ChartCard from 'src/features/charts/ChartCard';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
@@ -417,7 +418,8 @@ function ChartList(props: ChartListProps) {
           <TagsList
             tags={tags.filter((tag: TagType) =>
               tag.type
-                ? tag.type === 1 || tag.type === 'TagTypes.custom'
+                ? tag.type === TagTypeEnum.Custom ||
+                  tag.type === 'TagTypes.custom'
                 : true,
             )}
             maxTags={3}
