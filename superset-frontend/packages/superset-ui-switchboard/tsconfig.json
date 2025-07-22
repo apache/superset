@@ -11,8 +11,7 @@
   "include": [
     "src/**/*",
     "types/**/*",
-    "../../types/**/*",
-    "../superset-ui-core/src/**/*"
+    "../../types/**/*"
   ],
   "references": [
     { "path": "../superset-ui-core" },
