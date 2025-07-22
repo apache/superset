@@ -21,7 +21,6 @@ import { Children, ReactElement, Fragment } from 'react';
 import cx from 'classnames';
 import { Button as AntdButton } from 'antd';
 import { useTheme } from '@superset-ui/core';
-import tinycolor from 'tinycolor2';
 import { Tooltip } from '../Tooltip';
 import type {
   ButtonColorType,
@@ -134,9 +133,9 @@ export function Button(props: ButtonProps) {
           marginRight: firstChildMargin,
         },
         ':not(:hover)': effectiveButtonStyle === 'secondary' && {
-          // Increase contrast for secondary buttons
-          backgroundColor: `${tinycolor(theme.colorPrimaryBg).darken(2).toHexString()} !important`,
-          color: `${tinycolor(theme.colorPrimaryText).lighten(10).toHexString()} !important`,
+          // NOTE: This is the best we can do contrast wise for the secondary button using antd tokens
+          // and abusing the semantics. Should be revisited when possible. https://github.com/apache/superset/pull/34253#issuecomment-3104834692
+          color: `${theme.colorPrimaryTextHover} !important`,
         },
       }}
       icon={icon}
