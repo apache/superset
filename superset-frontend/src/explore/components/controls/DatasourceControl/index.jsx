@@ -82,6 +82,7 @@ const Styles = styled.div`
   }
   .error-alert {
     margin: ${({ theme }) => 2 * theme.gridUnit}px;
+    min-height: 150px;
   }
   .ant-dropdown-trigger {
     margin-left: ${({ theme }) => 2 * theme.gridUnit}px;
@@ -441,16 +442,14 @@ class DatasourceControl extends PureComponent {
         {isMissingDatasource && !isMissingParams && (
           <div className="error-alert">
             {extra?.error ? (
-              <div className="error-alert">
-                <ErrorMessageWithStackTrace
-                  title={extra.error.statusText || extra.error.message}
-                  subtitle={
-                    extra.error.statusText ? extra.error.message : undefined
-                  }
-                  error={extra.error}
-                  source="explore"
-                />
-              </div>
+              <ErrorMessageWithStackTrace
+                title={extra.error.statusText || extra.error.message}
+                subtitle={
+                  extra.error.statusText ? extra.error.message : undefined
+                }
+                error={extra.error}
+                source="explore"
+              />
             ) : (
               <ErrorAlert
                 level="warning"
