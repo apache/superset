@@ -21,9 +21,6 @@ import { FunctionComponent, useState, useEffect, ChangeEvent } from 'react';
 import { css, styled, t, useTheme } from '@superset-ui/core';
 import { useSingleViewResource } from 'src/views/CRUD/hooks';
 import { useThemeContext } from 'src/theme/ThemeProvider';
-import { isUserAdmin } from 'src/dashboard/util/permissionUtils';
-import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
-import getBootstrapData from 'src/utils/getBootstrapData';
 
 import { Icons } from '@superset-ui/core/components/Icons';
 import withToasts from 'src/components/MessageToasts/withToasts';
@@ -46,6 +43,7 @@ interface ThemeModalProps {
   onThemeAdd?: (theme?: ThemeObject) => void;
   onHide: () => void;
   show: boolean;
+  canDevelop?: boolean;
 }
 
 type ThemeStringKeys = keyof Pick<
@@ -77,6 +75,7 @@ const ThemeModal: FunctionComponent<ThemeModalProps> = ({
   onHide,
   show,
   theme = null,
+  canDevelop = false,
 }) => {
   const supersetTheme = useTheme();
   const { setTemporaryTheme, clearLocalOverrides, hasDevOverride } =
@@ -87,10 +86,7 @@ const ThemeModal: FunctionComponent<ThemeModalProps> = ({
   const isEditMode = theme !== null;
   const isSystemTheme = currentTheme?.is_system === true;
   const isReadOnly = isSystemTheme;
-  const user = getBootstrapData()?.user;
-  const canDevelopThemes = user
-    ? isUserAdmin(user as UserWithPermissionsAndRoles)
-    : false;
+  const canDevelopThemes = canDevelop;
 
   // theme fetch logic
   const {

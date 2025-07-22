@@ -342,6 +342,7 @@ function ThemesList({
         onThemeAdd={() => refreshData()}
         onHide={() => setThemeModalOpen(false)}
         show={themeModalOpen}
+        canDevelop={canEdit}
       />
       {themeCurrentlyDeleting && (
         <DeleteModal

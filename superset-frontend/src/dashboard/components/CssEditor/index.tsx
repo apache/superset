@@ -205,7 +205,10 @@ class CssEditor extends PureComponent<CssEditorProps, CssEditorState> {
       }));
 
       return (
-        <Form.Item label={t('Theme')}>
+        <Form.Item
+          label={t('Theme')}
+          help={t('Clear the selection to revert to the system default theme')}
+        >
           <Select
             value={this.state.pendingThemeId}
             onChange={value =>
@@ -214,7 +217,7 @@ class CssEditor extends PureComponent<CssEditorProps, CssEditorState> {
             options={options}
             allowClear
             placeholder={t('Select a theme')}
-            css={{ width: 200 }}
+            style={{ width: 200 }}
           />
         </Form.Item>
       );
