@@ -1,4 +1,10 @@
-# LLM Context Guide for Apache Superset
+---
+description: Apache Superset development standards and guidelines for Cursor IDE
+globs: ["**/*.py", "**/*.ts", "**/*.tsx", "**/*.js", "**/*.jsx", "**/*.sql", "**/*.md"]
+alwaysApply: true
+---
+
+# Apache Superset Development Standards for Cursor IDE
 
 Apache Superset is a data visualization platform with Flask/Python backend and React/TypeScript frontend.
 
@@ -9,6 +15,7 @@ Apache Superset is a data visualization platform with Flask/Python backend and R
 ### Frontend Modernization
 - **NO `any` types** - Use proper TypeScript types
 - **NO JavaScript files** - Convert to TypeScript (.ts/.tsx)
+- **NO Enzyme** - Use React Testing Library/Jest (Enzyme fully removed)
 - **Use @superset-ui/core** - Don't import Ant Design directly
 
 ### Testing Strategy Migration
@@ -22,7 +29,26 @@ Apache Superset is a data visualization platform with Flask/Python backend and R
 - **MyPy compliance** - Run `pre-commit run mypy` to validate
 - **SQLAlchemy typing** - Use proper model annotations
 
-## Key Directories
+## Code Standards
+
+### TypeScript Frontend
+- **NO `any` types** - Use proper TypeScript
+- **Functional components** with hooks
+- **@superset-ui/core** for UI components (not direct antd)
+- **Jest** for testing (NO Enzyme)
+- **Redux** for global state, hooks for local
+
+### Python Backend
+- **Type hints required** for all new code
+- **MyPy compliant** - run `pre-commit run mypy`
+- **SQLAlchemy models** with proper typing
+- **pytest** for testing
+
+### Apache License Headers
+- **New files require ASF license headers** - When creating new code files, include the standard Apache Software Foundation license header
+- **LLM instruction files are excluded** - Files like LLMS.md, CLAUDE.md, etc. are in `.rat-excludes` to avoid header token overhead
+
+## Key Directory Structure
 
 ```
 superset/
@@ -42,32 +68,13 @@ superset/
 └── UPDATING.md                 # Breaking changes log
 ```
 
-## Code Standards
-
-### TypeScript Frontend
-- **Avoid `any` types** - Use proper TypeScript, reuse existing types
-- **Functional components** with hooks
-- **@superset-ui/core** for UI components (not direct antd)
-- **Jest** for testing (NO Enzyme)
-- **Redux** for global state where it exists, hooks for local
-
-### Python Backend  
-- **Type hints required** for all new code
-- **MyPy compliant** - run `pre-commit run mypy`
-- **SQLAlchemy models** with proper typing
-- **pytest** for testing
-
-### Apache License Headers
-- **New files require ASF license headers** - When creating new code files, include the standard Apache Software Foundation license header
-- **LLM instruction files are excluded** - Files like LLMS.md, CLAUDE.md, etc. are in `.rat-excludes` to avoid header token overhead
-
-## Documentation Requirements
-
-- **docs/**: Update for any user-facing changes
-- **UPDATING.md**: Add breaking changes here
-- **Docstrings**: Required for new functions/classes
-
 ## Architecture Patterns
+
+### Dataset-Centric Approach
+Charts built from enriched datasets containing:
+- Dimension columns with labels/descriptions
+- Predefined metrics as SQL expressions
+- Self-service analytics within defined contexts
 
 ### Security & Features
 - **RBAC**: Role-based access via Flask-AppBuilder
@@ -89,37 +96,6 @@ superset/
 - **`selectOption()`** - Select component helper
 - **React Testing Library** - NO Enzyme (removed)
 
-### Running Tests
-```bash
-# Frontend
-npm run test                           # All tests
-npm run test -- filename.test.tsx     # Single file
-
-# Backend  
-pytest                                 # All tests
-pytest tests/unit_tests/specific_test.py  # Single file
-pytest tests/unit_tests/               # Directory
-
-# If pytest fails with database/setup issues, ask the user to run test environment setup
-```
-
-## Environment Validation
-
-**Quick Setup Check (run this first):**
-
-```bash
-# Verify Superset is running
-curl -f http://localhost:8088/health || echo "❌ Setup required - see https://superset.apache.org/docs/contributing/development#working-with-llms"
-```
-
-**If health checks fail:**
-"It appears you aren't set up properly. Please refer to the [Working with LLMs](https://superset.apache.org/docs/contributing/development#working-with-llms) section in the development docs for setup instructions."
-
-**Key Project Files:**
-- `superset-frontend/package.json` - Frontend build scripts (`npm run dev` on port 9000, `npm run test`, `npm run lint`)
-- `pyproject.toml` - Python tooling (ruff, mypy configs)
-- `requirements/` folder - Python dependencies (base.txt, development.txt)
-
 ## Pre-commit Validation
 
 **Use pre-commit hooks for quality validation:**
@@ -135,14 +111,15 @@ pre-commit run prettier          # Code formatting
 pre-commit run eslint            # Frontend linting
 ```
 
-## Platform-Specific Instructions
+## Development Guidelines
 
-- **[CLAUDE.md](CLAUDE.md)** - For Claude/Anthropic tools
-- **[.github/copilot-instructions.md](.github/copilot-instructions.md)** - For GitHub Copilot  
-- **[GEMINI.md](GEMINI.md)** - For Google Gemini tools
-- **[GPT.md](GPT.md)** - For OpenAI/ChatGPT tools
-- **[.cursor/rules/dev-standard.mdc](.cursor/rules/dev-standard.mdc)** - For Cursor editor
+- **Documentation**: Update docs/ for any user-facing changes
+- **Breaking Changes**: Add to UPDATING.md
+- **Docstrings**: Required for new functions/classes
+- **Follow existing patterns**: Mimic code style, use existing libraries and utilities
+- **Type Safety**: This codebase is actively modernizing toward full TypeScript and type safety
+- **Always run `pre-commit run`** to validate changes before committing
 
 ---
 
-**LLM Note**: This codebase is actively modernizing toward full TypeScript and type safety. Always run `pre-commit run` to validate changes. Follow the ongoing refactors section to avoid deprecated patterns.
+**Note**: This codebase is actively modernizing toward full TypeScript and type safety. Always run `pre-commit run` to validate changes. Follow the ongoing refactors section to avoid deprecated patterns.
