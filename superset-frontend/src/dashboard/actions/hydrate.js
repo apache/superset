@@ -49,6 +49,7 @@ import newComponentFactory from 'src/dashboard/util/newComponentFactory';
 import { URL_PARAMS } from 'src/constants';
 import { getUrlParam } from 'src/utils/urlUtils';
 import { ResourceStatus } from 'src/hooks/apiResources/apiResources';
+import { initializeChartCustomization } from 'src/dashboard/actions/dashboardInfo';
 import extractUrlParams from '../util/extractUrlParams';
 import updateComponentParentsList from '../util/updateComponentParentsList';
 import { FilterBarOrientation } from '../types';
@@ -243,6 +244,11 @@ export const hydrateDashboard =
     const crossFiltersEnabled = isCrossFiltersEnabled(
       metadata.cross_filters_enabled,
     );
+
+    const chartCustomizationItems = metadata?.chart_customization_config || [];
+    if (chartCustomizationItems.length > 0) {
+      dispatch(initializeChartCustomization(chartCustomizationItems));
+    }
 
     return dispatch({
       type: HYDRATE_DASHBOARD,
