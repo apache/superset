@@ -189,7 +189,7 @@ export interface BootstrapThemeData {
   bootstrapDefaultTheme: AnyThemeConfig | null;
   bootstrapDarkTheme: AnyThemeConfig | null;
   bootstrapThemeSettings: SerializableThemeSettings | null;
-  hasBootstrapThemes: boolean;
+  hasCustomThemes: boolean;
 }
 
 export function isUser(user: any): user is User {
