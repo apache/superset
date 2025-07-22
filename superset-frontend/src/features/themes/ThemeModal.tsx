@@ -345,19 +345,16 @@ const ThemeModal: FunctionComponent<ThemeModalProps> = ({
         </Typography.Title>
       }
     >
-      <StyledThemeTitle>
-        <Typography.Title level={4}>
-          {t('Basic information')}
-          {isSystemTheme && (
-            <Typography.Text
-              type="secondary"
-              style={{ marginLeft: '8px', fontSize: '14px' }}
-            >
-              ({t('System Theme - Read Only')})
-            </Typography.Text>
-          )}
-        </Typography.Title>
-      </StyledThemeTitle>
+      {isSystemTheme && (
+        <StyledThemeTitle>
+          <Typography.Text
+            type="secondary"
+            style={{ fontSize: '14px', fontStyle: 'italic' }}
+          >
+            {t('System Theme - Read Only')}
+          </Typography.Text>
+        </StyledThemeTitle>
+      )}
       <ThemeContainer>
         <div className="control-label">
           {t('Name')}
