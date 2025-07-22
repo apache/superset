@@ -1,6 +1,6 @@
 # Superset MCP Service
 
-The Superset Model Context Protocol (MCP) service provides a modular, schema-driven interface for programmatic access to Superset dashboards, charts, datasets, and instance metadata. It is designed for LLM agents and automation tools to interact with Superset securely and efficiently, following the [SIP-171 MCP proposal](https://github.com/apache/superset/issues/33870).
+The Superset Model Context Protocol (MCP) service provides a modular, schema-driven interface for programmatic access to Superset dashboards, charts, datasets, and instance metadata. It is designed for LLM agents and automation tools, and is built on the FastMCP protocol.
 
 **⚠️ This functionality is under active development and not yet complete. Expect breaking changes and evolving APIs.**
 
@@ -63,7 +63,10 @@ All `list_*` tools support:
 
 Example:
 ```python
-list_dashboards(search="churn", filters=[{"col": "published", "opr": "eq", "value": True}])
+list_dashboards(
+    search="churn",
+    filters=[{"col": "published", "opr": "eq", "value": True}]
+)
 ```
 
 ## Chart Creation
@@ -77,6 +80,11 @@ The `create_chart` tool supports comprehensive chart creation with:
 - **Area charts** — Time series area charts
 - **Scatter charts** — Time series scatter charts
 
+### Chart Saving vs Explore Links
+The tool supports two modes via the `save_chart` parameter:
+- **`save_chart=True` (default)** — Creates and saves a permanent chart in Superset
+- **`save_chart=False`** — Generates an explore link for temporary chart configuration without saving
+
 ### Intelligent Metric Handling
 The tool automatically handles two metric formats:
 1. **Simple metrics** (like `["count"]`) — Passed as simple strings
@@ -84,7 +92,7 @@ The tool automatically handles two metric formats:
 
 ### Example Usage
 ```python
-# Create a line chart with SQL aggregators
+# Create and save a line chart with SQL aggregators
 config = XYChartConfig(
     chart_type="xy",
     x=ColumnRef(name="date"),
@@ -93,6 +101,37 @@ config = XYChartConfig(
         ColumnRef(name="orders", aggregate="COUNT", label="Order Count")
     ],
     kind="line"
+)
+request = CreateChartRequest(dataset_id="1", config=config, save_chart=True)
+
+# Generate an explore link without saving
+request = CreateChartRequest(dataset_id="1", config=config, save_chart=False)
+```
+
+### Practical Example
+```python
+# Create a chart and save it permanently
+saved_chart_request = CreateChartRequest(
+    dataset_id="1",
+    config=XYChartConfig(
+        chart_type="xy",
+        x=ColumnRef(name="date"),
+        y=[ColumnRef(name="sales", aggregate="SUM")],
+        kind="line"
+    ),
+    save_chart=True
+)
+
+# Generate an explore link for temporary exploration
+explore_request = CreateChartRequest(
+    dataset_id="1",
+    config=XYChartConfig(
+        chart_type="xy",
+        x=ColumnRef(name="date"),
+        y=[ColumnRef(name="sales", aggregate="SUM")],
+        kind="line"
+    ),
+    save_chart=False
 )
 ```
 
