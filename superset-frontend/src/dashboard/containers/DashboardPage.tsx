@@ -19,10 +19,9 @@
 import { createContext, lazy, FC, useEffect, useMemo, useRef } from 'react';
 import { Global } from '@emotion/react';
 import { useHistory } from 'react-router-dom';
-import { t, useTheme, SupersetClient } from '@superset-ui/core';
+import { t, useTheme } from '@superset-ui/core';
 import { useDispatch, useSelector } from 'react-redux';
 import { createSelector } from '@reduxjs/toolkit';
-import { useThemeContext } from 'src/theme/ThemeProvider';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
 import { Loading } from '@superset-ui/core/components';
 import {
@@ -47,6 +46,7 @@ import {
   getPermalinkValue,
 } from 'src/dashboard/components/nativeFilters/FilterBar/keyValue';
 import DashboardContainer from 'src/dashboard/containers/Dashboard';
+import CrudThemeProvider from 'src/components/CrudThemeProvider';
 
 import { nanoid } from 'nanoid';
 import { RootState } from '../types';
@@ -111,7 +111,6 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
   const theme = useTheme();
   const dispatch = useDispatch();
   const history = useHistory();
-  const themeContext = useThemeContext();
   const dashboardPageId = useMemo(() => nanoid(), []);
   const hasDashboardInfoInitiated = useSelector<RootState, Boolean>(
     ({ dashboardInfo }) =>
@@ -222,34 +221,6 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
     return () => {};
   }, [css]);
 
-  // Apply dashboard theme when dashboard loads
-  useEffect(() => {
-    const applyDashboardTheme = async () => {
-      if (dashboard?.theme?.id) {
-        try {
-          const response = await SupersetClient.get({
-            endpoint: `/api/v1/theme/${dashboard.theme.id}`,
-          });
-          const themeConfig = JSON.parse(response.json.result.json_data);
-          themeContext.setTemporaryTheme(themeConfig);
-        } catch (error) {
-          console.error('Failed to apply dashboard theme:', error);
-        }
-      }
-    };
-
-    if (dashboard?.theme?.id) {
-      applyDashboardTheme();
-    }
-
-    // Cleanup: clear theme when dashboard unmounts or changes
-    return () => {
-      if (dashboard?.theme?.id) {
-        themeContext.clearLocalOverrides();
-      }
-    };
-  }, [dashboard?.theme?.id, themeContext]);
-
   useEffect(() => {
     if (datasetsApiError) {
       addDangerToast(
@@ -286,12 +257,14 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
         <>
           <SyncDashboardState dashboardPageId={dashboardPageId} />
           <DashboardPageIdContext.Provider value={dashboardPageId}>
-            <DashboardContainer
-              activeFilters={activeFilters}
-              ownDataCharts={relevantDataMask}
-            >
-              {DashboardBuilderComponent}
-            </DashboardContainer>
+            <CrudThemeProvider themeId={dashboard?.theme?.id}>
+              <DashboardContainer
+                activeFilters={activeFilters}
+                ownDataCharts={relevantDataMask}
+              >
+                {DashboardBuilderComponent}
+              </DashboardContainer>
+            </CrudThemeProvider>
           </DashboardPageIdContext.Provider>
         </>
       ) : (

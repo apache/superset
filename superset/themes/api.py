@@ -59,7 +59,9 @@ logger = logging.getLogger(__name__)
 class ThemeRestApi(BaseSupersetModelRestApi):
     datamodel = SQLAInterface(Theme)
 
-    include_route_methods = RouteMethod.REST_MODEL_VIEW_CRUD_SET | {
+    include_route_methods = (
+        RouteMethod.REST_MODEL_VIEW_CRUD_SET - {RouteMethod.DELETE}
+    ) | {
         RouteMethod.EXPORT,
         RouteMethod.IMPORT,
         RouteMethod.RELATED,
@@ -126,6 +128,63 @@ class ThemeRestApi(BaseSupersetModelRestApi):
     base_related_field_filters = {
         "changed_by": [["id", BaseFilterRelatedUsers, lambda: []]],
     }
+
+    @expose("/<int:pk>", methods=("DELETE",))
+    @protect()
+    @safe
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.delete",
+        log_to_statsd=False,
+    )
+    def delete(self, pk: int) -> Response:
+        """Delete a theme.
+        ---
+        delete:
+          summary: Delete a theme
+          parameters:
+          - in: path
+            schema:
+              type: integer
+            name: pk
+          responses:
+            200:
+              description: Theme deleted
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      message:
+                        type: string
+            401:
+              $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
+            404:
+              $ref: '#/components/responses/404'
+            422:
+              $ref: '#/components/responses/422'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        try:
+            DeleteThemeCommand([pk]).run()
+            return self.response(
+                200,
+                message=ngettext(
+                    "Deleted %(num)d theme",
+                    "Deleted %(num)d themes",
+                    num=1,
+                ),
+            )
+        except ThemeNotFoundError:
+            return self.response_404()
+        except SystemThemeProtectedError:
+            return self.response_403()
+        except ThemeDeleteFailedError as ex:
+            logger.exception(f"Theme delete failed for ID: {pk}")
+            return self.response_422(message=str(ex))
 
     @expose("/", methods=("DELETE",))
     @protect()

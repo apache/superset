@@ -346,7 +346,17 @@ function ThemesList({
       />
       {themeCurrentlyDeleting && (
         <DeleteModal
-          description={t('This action will permanently delete the theme.')}
+          description={
+            <>
+              {t('This action will permanently delete the theme.')}
+              <br />
+              <strong>
+                {t(
+                  'Any dashboards using this theme will be automatically dissociated from it.',
+                )}
+              </strong>
+            </>
+          }
           onConfirm={() => {
             if (themeCurrentlyDeleting) {
               handleThemeDelete(themeCurrentlyDeleting);
@@ -359,7 +369,17 @@ function ThemesList({
       )}
       <ConfirmStatusChange
         title={t('Please confirm')}
-        description={t('Are you sure you want to delete the selected themes?')}
+        description={
+          <>
+            {t('Are you sure you want to delete the selected themes?')}
+            <br />
+            <strong>
+              {t(
+                'Any dashboards using these themes will be automatically dissociated from them.',
+              )}
+            </strong>
+          </>
+        }
         onConfirm={handleBulkThemeDelete}
       >
         {confirmDelete => {
