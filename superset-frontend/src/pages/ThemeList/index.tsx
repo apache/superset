@@ -24,6 +24,7 @@ import {
   DeleteModal,
   ConfirmStatusChange,
   Loading,
+  Alert,
 } from '@superset-ui/core/components';
 
 import rison from 'rison';
@@ -348,13 +349,18 @@ function ThemesList({
         <DeleteModal
           description={
             <>
-              {t('This action will permanently delete the theme.')}
-              <br />
-              <strong>
-                {t(
+              <div style={{ marginBottom: 16 }}>
+                {t('This action will permanently delete the theme.')}
+              </div>
+              <Alert
+                type="warning"
+                showIcon
+                closable={false}
+                message={t(
                   'Any dashboards using this theme will be automatically dissociated from it.',
                 )}
-              </strong>
+                style={{ marginBottom: 0 }}
+              />
             </>
           }
           onConfirm={() => {
@@ -371,13 +377,18 @@ function ThemesList({
         title={t('Please confirm')}
         description={
           <>
-            {t('Are you sure you want to delete the selected themes?')}
-            <br />
-            <strong>
-              {t(
+            <div style={{ marginBottom: 16 }}>
+              {t('Are you sure you want to delete the selected themes?')}
+            </div>
+            <Alert
+              type="warning"
+              showIcon
+              closable={false}
+              message={t(
                 'Any dashboards using these themes will be automatically dissociated from them.',
               )}
-            </strong>
+              style={{ marginBottom: 0 }}
+            />
           </>
         }
         onConfirm={handleBulkThemeDelete}
