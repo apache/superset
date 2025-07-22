@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-/* eslint-disable no-undef */
 import { useEffect } from 'react';
 import useDocusaurusContext from '@docusaurus/useDocusaurusContext';
 
@@ -50,7 +49,9 @@ export default function Root({ children }) {
 
       // Handle route changes for SPA
       const handleRouteChange = () => {
-        devMode && console.log('Route changed to:', window.location.pathname);
+        if (devMode) {
+          console.log('Route changed to:', window.location.pathname);
+        }
 
         // Short timeout to ensure the page has fully rendered
         setTimeout(() => {
@@ -58,11 +59,9 @@ export default function Root({ children }) {
           const currentTitle = document.title;
           const currentPath = window.location.pathname;
 
-          devMode &&
-            console.log('Tracking page view:', currentPath, currentTitle);
-
           // For testing: impersonate real domain - ONLY FOR DEVELOPMENT
           if (devMode) {
+            console.log('Tracking page view:', currentPath, currentTitle);
             window._paq.push(['setDomains', ['superset.apache.org']]);
             window._paq.push([
               'setCustomUrl',
@@ -85,17 +84,22 @@ export default function Root({ children }) {
         'routeDidUpdate',
       ];
 
-      devMode && console.log('Setting up Docusaurus route listeners');
+      if (devMode) {
+        console.log('Setting up Docusaurus route listeners');
+      }
       possibleEvents.forEach(eventName => {
         document.addEventListener(eventName, () => {
-          devMode &&
+          if (devMode) {
             console.log(`Docusaurus route update detected via ${eventName}`);
+          }
           handleRouteChange();
         });
       });
 
       // Also set up manual history tracking as fallback
-      devMode && console.log('Setting up manual history tracking as fallback');
+      if (devMode) {
+        console.log('Setting up manual history tracking as fallback');
+      }
       const originalPushState = window.history.pushState;
       window.history.pushState = function () {
         originalPushState.apply(this, arguments);
