@@ -292,7 +292,7 @@ describe('UploadDataModal - File Settings Elements', () => {
 
 describe('UploadDataModal - Columns Elements', () => {
   const openColumns = async () => {
-    const panelHeader = screen.getByText(/columns/i);
+    const panelHeader = screen.getByText(/columns/i, { selector: 'strong' });
     await userEvent.click(panelHeader);
   };
 
@@ -606,11 +606,11 @@ describe('UploadDataModal Collapse Tabs', () => {
       useRedux: true,
     });
     const generalInfoTab = screen.getByRole('tab', {
-      name: /expanded General information Upload a file to a database./i,
+      name: /expanded General information/i,
     });
     expect(generalInfoTab).toHaveAttribute('aria-expanded', 'true');
     const fileSettingsTab = screen.getByRole('tab', {
-      name: /collapsed File settings Adjust how spaces, blank lines, null values are handled and other file wide settings./i,
+      name: /collapsed File settings/i,
     });
     userEvent.click(fileSettingsTab);
     expect(fileSettingsTab).toHaveAttribute('aria-expanded', 'true');
@@ -624,11 +624,11 @@ describe('UploadDataModal Collapse Tabs', () => {
       useRedux: true,
     });
     const generalInfoTab = screen.getByRole('tab', {
-      name: /expanded General information Upload a file to a database./i,
+      name: /expanded General information/i,
     });
     expect(generalInfoTab).toHaveAttribute('aria-expanded', 'true');
     const fileSettingsTab = screen.getByRole('tab', {
-      name: /collapsed File settings Adjust how spaces, blank lines, null values are handled and other file wide settings./i,
+      name: /collapsed File settings/i,
     });
     userEvent.click(fileSettingsTab);
     expect(fileSettingsTab).toHaveAttribute('aria-expanded', 'true');
@@ -642,11 +642,11 @@ describe('UploadDataModal Collapse Tabs', () => {
       useRedux: true,
     });
     const generalInfoTab = screen.getByRole('tab', {
-      name: /expanded General information Upload a file to a database./i,
+      name: /expanded General information/i,
     });
     expect(generalInfoTab).toHaveAttribute('aria-expanded', 'true');
     const fileSettingsTab = screen.getByRole('tab', {
-      name: /collapsed File settings Adjust how spaces, blank lines, null values are handled and other file wide settings./i,
+      name: /collapsed File settings/i,
     });
     userEvent.click(fileSettingsTab);
     expect(fileSettingsTab).toHaveAttribute('aria-expanded', 'true');
