@@ -228,7 +228,7 @@ export const routes: Routes = [
     Component: CssTemplateList,
   },
   {
-    path: '/thememodelview/list/',
+    path: '/theme/list/',
     Component: ThemeList,
   },
   {

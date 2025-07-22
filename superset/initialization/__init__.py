@@ -351,6 +351,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.add_view(
             ThemeModelView,
             "Themes",
+            href="/theme/list/",
             label=_("Themes"),
             icon="fa-palette",
             category="Manage",
