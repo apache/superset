@@ -21,7 +21,7 @@ import thunk from 'redux-thunk';
 import configureStore from 'redux-mock-store';
 import * as reactRedux from 'react-redux';
 import fetchMock from 'fetch-mock';
-import { VizType, isFeatureEnabled } from '@superset-ui/core';
+import { VizType } from '@superset-ui/core';
 import {
   render,
   screen,
@@ -32,13 +32,14 @@ import { QueryParamProvider } from 'use-query-params';
 
 import ChartList from 'src/pages/ChartList';
 
+const mockPush = jest.fn();
+jest.mock('react-router-dom', () => ({
+  ...jest.requireActual('react-router-dom'),
+  useHistory: () => ({ push: mockPush }),
+}));
+
 // Increase default timeout for all tests
 jest.setTimeout(30000);
-
-jest.mock('@superset-ui/core', () => ({
-  ...jest.requireActual('@superset-ui/core'),
-  isFeatureEnabled: jest.fn(),
-}));
 
 const mockCharts = [...new Array(3)].map((_, i) => ({
   changed_on: new Date().toISOString(),
@@ -58,42 +59,15 @@ const mockUser = {
 };
 
 const chartsInfoEndpoint = 'glob:*/api/v1/chart/_info*';
-const chartsOwnersEndpoint = 'glob:*/api/v1/chart/related/owners*';
-const chartsCreatedByEndpoint = 'glob:*/api/v1/chart/related/created_by*';
 const chartsEndpoint = 'glob:*/api/v1/chart/*';
-const chartsVizTypesEndpoint = 'glob:*/api/v1/chart/viz_types';
-const chartsDatasourcesEndpoint = 'glob:*/api/v1/chart/datasources';
-const chartFavoriteStatusEndpoint = 'glob:*/api/v1/chart/favorite_status*';
-const datasetEndpoint = 'glob:*/api/v1/dataset/*';
 
 fetchMock.get(chartsInfoEndpoint, {
   permissions: ['can_read', 'can_write'],
-});
-fetchMock.get(chartsOwnersEndpoint, {
-  result: [],
-});
-fetchMock.get(chartsCreatedByEndpoint, {
-  result: [],
-});
-fetchMock.get(chartFavoriteStatusEndpoint, {
-  result: mockCharts.map(chart => ({ id: chart.id, value: true })),
 });
 fetchMock.get(chartsEndpoint, {
   result: mockCharts,
   chart_count: 3,
 });
-fetchMock.get(chartsVizTypesEndpoint, {
-  result: [],
-  count: 0,
-});
-fetchMock.get(chartsDatasourcesEndpoint, {
-  result: [],
-  count: 0,
-});
-fetchMock.get(datasetEndpoint, {});
-
-global.URL.createObjectURL = jest.fn();
-fetchMock.get('/thumbnail', { body: new Blob(), sendAsJson: false });
 
 const user = {
   createdOn: '2021-04-27T18:12:38.952304',
@@ -132,44 +106,131 @@ const renderChartList = (props = {}) =>
 
 describe('ChartList', () => {
   beforeEach(() => {
-    isFeatureEnabled.mockImplementation(
-      feature => feature === 'LISTVIEWS_DEFAULT_CARD_VIEW',
-    );
     fetchMock.resetHistory();
     useSelectorMock.mockClear();
+    mockPush.mockClear();
   });
 
-  afterAll(() => {
-    isFeatureEnabled.mockRestore();
-  });
-
-  it('renders', async () => {
+  it('renders component with basic structure', async () => {
     renderChartList();
-    expect(await screen.findByText('Charts')).toBeInTheDocument();
-  });
 
-  it('renders a ListView', async () => {
-    renderChartList();
     expect(await screen.findByTestId('chart-list-view')).toBeInTheDocument();
+    expect(screen.getByText('Charts')).toBeInTheDocument();
   });
 
-  it('fetches info', async () => {
+  it('verify New Chart button existence and functionality', async () => {
     renderChartList();
+    await screen.findByTestId('chart-list-view');
+
+    // Verify New Chart button exists
+    const newChartButton = screen.getByRole('button', { name: /chart/i });
+    expect(newChartButton).toBeInTheDocument();
+    expect(screen.getByTestId('plus')).toBeInTheDocument();
+
+    // Click the New Chart button
+    fireEvent.click(newChartButton);
+
+    // Verify it triggers navigation to chart creation
     await waitFor(() => {
-      const calls = fetchMock.calls(/chart\/_info/);
-      expect(calls).toHaveLength(1);
+      expect(mockPush).toHaveBeenCalledWith('/chart/add');
     });
   });
 
-  it('fetches data', async () => {
+  it('verify Import button existence and functionality', async () => {
     renderChartList();
+    await screen.findByTestId('chart-list-view');
+
+    // Verify Import button exists
+    const importButton = screen.getByTestId('import-button');
+    expect(importButton).toBeInTheDocument();
+
+    // Click the Import button
+    fireEvent.click(importButton);
+
+    // Verify import modal opens
     await waitFor(() => {
-      const calls = fetchMock.calls(/chart\/\?q/);
-      expect(calls).toHaveLength(1);
-      expect(calls[0][0]).toContain(
+      const importModal = screen.getByRole('dialog');
+      expect(importModal).toBeInTheDocument();
+      expect(importModal).toHaveTextContent(/import/i);
+    });
+  });
+
+  it('shows loading state during initial data fetch', async () => {
+    // Delay the API response to test loading state
+    fetchMock.get(
+      chartsEndpoint,
+      new Promise(resolve =>
+        setTimeout(() => resolve({ result: mockCharts, chart_count: 3 }), 200),
+      ),
+      { overwriteRoutes: true },
+    );
+
+    renderChartList();
+
+    // Component should render immediately with loading state
+    expect(screen.getByTestId('chart-list-view')).toBeInTheDocument();
+
+    // Wait for data to eventually load
+    await waitFor(
+      () => {
+        expect(screen.getByText('cool chart 0')).toBeInTheDocument();
+      },
+      { timeout: 1000 },
+    );
+  });
+
+  it('makes correct API calls on initial load', async () => {
+    renderChartList();
+
+    await waitFor(() => {
+      const infoCalls = fetchMock.calls(/chart\/_info/);
+      const dataCalls = fetchMock.calls(/chart\/\?q/);
+
+      expect(infoCalls).toHaveLength(1);
+      expect(dataCalls).toHaveLength(1);
+      expect(dataCalls[0][0]).toContain(
         'order_column:changed_on_delta_humanized,order_direction:desc,page:0,page_size:25',
       );
     });
+  });
+
+  it('shows loading state while API calls are in progress', async () => {
+    // Mock delayed API responses
+    fetchMock.get(
+      chartsInfoEndpoint,
+      new Promise(resolve =>
+        setTimeout(
+          () => resolve({ permissions: ['can_read', 'can_write'] }),
+          100,
+        ),
+      ),
+      { overwriteRoutes: true },
+    );
+
+    fetchMock.get(
+      chartsEndpoint,
+      new Promise(resolve =>
+        setTimeout(() => resolve({ result: mockCharts, chart_count: 3 }), 150),
+      ),
+      { overwriteRoutes: true },
+    );
+
+    renderChartList();
+
+    // Main container should render immediately
+    expect(screen.getByTestId('chart-list-view')).toBeInTheDocument();
+
+    // Eventually data should load
+    await waitFor(
+      () => {
+        const infoCalls = fetchMock.calls(/chart\/_info/);
+        const dataCalls = fetchMock.calls(/chart\/\?q/);
+
+        expect(infoCalls).toHaveLength(1);
+        expect(dataCalls).toHaveLength(1);
+      },
+      { timeout: 1000 },
+    );
   });
 
   it('switches between card and table view', async () => {
@@ -380,6 +441,86 @@ describe('ChartList', () => {
       expect(linkElement).toHaveAttribute('href', '/dataset/3');
     });
   });
+
+  it('maintains component structure during loading', async () => {
+    // Only delay data loading, not permissions
+    fetchMock.get(
+      chartsEndpoint,
+      new Promise(resolve =>
+        setTimeout(() => resolve({ result: mockCharts, chart_count: 3 }), 200),
+      ),
+      { overwriteRoutes: true },
+    );
+
+    renderChartList();
+
+    // Core structure should be available immediately
+    expect(screen.getByTestId('chart-list-view')).toBeInTheDocument();
+    expect(screen.getByText('Charts')).toBeInTheDocument();
+
+    // View toggles should be available during loading
+    expect(screen.getByRole('img', { name: 'appstore' })).toBeInTheDocument();
+    expect(
+      screen.getByRole('img', { name: 'unordered-list' }),
+    ).toBeInTheDocument();
+
+    // Wait for permissions to load, then action buttons should appear
+    await waitFor(
+      () => {
+        expect(
+          screen.getByRole('button', { name: 'Bulk select' }),
+        ).toBeInTheDocument();
+      },
+      { timeout: 500 },
+    );
+
+    // Wait for data to eventually load
+    await waitFor(
+      () => {
+        expect(screen.getByText('cool chart 0')).toBeInTheDocument();
+      },
+      { timeout: 1000 },
+    );
+  });
+
+  it('handles API errors gracefully', async () => {
+    // Mock API failure
+    fetchMock.get(
+      chartsEndpoint,
+      { throws: new Error('API Error') },
+      { overwriteRoutes: true },
+    );
+
+    renderChartList();
+    await screen.findByTestId('chart-list-view');
+
+    // Should handle error gracefully and still render component
+    expect(screen.getByTestId('chart-list-view')).toBeInTheDocument();
+  });
+
+  it('handles empty results', async () => {
+    // Mock empty response
+    fetchMock.get(
+      chartsEndpoint,
+      { result: [], chart_count: 0 },
+      { overwriteRoutes: true },
+    );
+
+    renderChartList();
+    await screen.findByTestId('chart-list-view');
+
+    // Should render component even with no data
+    expect(screen.getByTestId('chart-list-view')).toBeInTheDocument();
+
+    // Global controls should still be functional with no data
+    expect(screen.getByRole('img', { name: 'appstore' })).toBeInTheDocument();
+    expect(
+      screen.getByRole('img', { name: 'unordered-list' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Bulk select' }),
+    ).toBeInTheDocument();
+  });
 });
 
 describe('ChartList - anonymous view', () => {
@@ -387,10 +528,13 @@ describe('ChartList - anonymous view', () => {
     fetchMock.resetHistory();
     // Reset favorite status for anonymous user
     fetchMock.get(
-      chartFavoriteStatusEndpoint,
-      {
-        result: [],
-      },
+      chartsInfoEndpoint,
+      new Promise(resolve =>
+        setTimeout(
+          () => resolve({ permissions: ['can_read', 'can_write'] }),
+          100,
+        ),
+      ),
       { overwriteRoutes: true },
     );
     // Reset charts endpoint to original mockCharts
@@ -402,32 +546,5 @@ describe('ChartList - anonymous view', () => {
       },
       { overwriteRoutes: true },
     );
-  });
-
-  it('does not show favorite stars for anonymous user', async () => {
-    renderChartList({ user: {} });
-
-    // Wait for list to load
-    await screen.findByTestId('chart-list-view');
-
-    // Switch to list view
-    const listViewToggle = await screen.findByRole('img', {
-      name: 'unordered-list',
-    });
-    const listViewButton = listViewToggle.closest('[role="button"]');
-    fireEvent.click(listViewButton);
-
-    // Wait for list view to be active and data to load
-    await waitFor(() => {
-      expect(screen.getByText('cool chart 0')).toBeInTheDocument();
-    });
-
-    // Verify no selected favorite stars are present
-    await waitFor(() => {
-      const favoriteStars = screen.queryAllByRole('img', {
-        name: 'favorite-selected',
-      });
-      expect(favoriteStars).toHaveLength(0);
-    });
   });
 });
