@@ -30,5 +30,8 @@
   "homepage": "https://github.com/apache/superset#readme",
   "publishConfig": {
     "access": "public"
+  },
+  "dependencies": {
+    "@superset-ui/core": "^0.20.4"
   }
 }

@@ -90,7 +90,7 @@ export const groupByLocationGenericX = (
         const labelMap: string[] = queryData.label_map?.[k];
 
         if (!labelMap) {
-          logging.log(
+          logging.debug(
             'Cannot extract location from queryData. label_map not defined',
           );
           return;
@@ -100,7 +100,7 @@ export const groupByLocationGenericX = (
 
         if (geojsonCols.length > 1) {
           // TODO what should we do, if there is more than one geom column?
-          logging.log(
+          logging.debug(
             'More than one geometry column detected. Using first found.',
           );
         }
