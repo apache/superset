@@ -38,16 +38,28 @@ async def create_chart(request: CreateChartRequest) -> Dict[str, Any]:
     Create a new chart in Superset.
 
     Args:
-        request: Chart creation request with dataset_id and config
+        request: Chart creation request with dataset_id, config, and save_chart flag
 
     Returns:
-        Dictionary containing chart info or error message
+        Dictionary containing chart info or explore link, and error message if any
     """
     try:
-        from superset.commands.chart.create import CreateChartCommand
-
         # Map the simplified config to Superset's form_data format
         form_data = _map_config_to_form_data(request.config)
+
+        if not request.save_chart:
+            # Generate explore link without saving the chart
+            explore_url = _generate_explore_link(
+                dataset_id=request.dataset_id, form_data=form_data
+            )
+            return {
+                "chart": None,
+                "explore_url": explore_url,
+                "error": None,
+            }
+
+        # Save the chart
+        from superset.commands.chart.create import CreateChartCommand
 
         # Generate a chart name
         chart_name = _generate_chart_name(request.config)
@@ -72,14 +84,48 @@ async def create_chart(request: CreateChartRequest) -> Dict[str, Any]:
                 "viz_type": chart.viz_type,
                 "url": f"/chart/{chart.id}",
             },
+            "explore_url": None,
             "error": None,
         }
 
     except Exception as e:
         return {
             "chart": None,
+            "explore_url": None,
             "error": f"Chart creation failed: {str(e)}",
         }
+
+
+def _generate_explore_link(dataset_id: str, form_data: Dict[str, Any]) -> str:
+    """Generate an explore link for the given dataset and form data."""
+    from superset.commands.explore.form_data.create import CreateFormDataCommand
+    from superset.commands.explore.form_data.parameters import CommandParameters
+    from superset.utils.core import DatasourceType
+
+    # Create form data key for caching
+    parameters = CommandParameters(
+        datasource_id=int(dataset_id),
+        datasource_type=DatasourceType.TABLE,
+        form_data=json.dumps(form_data),
+    )
+
+    try:
+        command = CreateFormDataCommand(parameters)
+        form_data_key = command.run()
+
+        # Generate explore URL with form_data_key
+        explore_url = (
+            f"/explore/?form_data_key={form_data_key}&datasource_id="
+            f"{dataset_id}&datasource_type=table"
+        )
+        return explore_url
+    except Exception:
+        # Fallback to simple URL if form data caching fails
+        form_data_str = json.dumps(form_data)
+        return (
+            f"/explore/?datasource_id={dataset_id}&datasource_type=table"
+            f"&form_data={form_data_str}"
+        )
 
 
 def _map_config_to_form_data(

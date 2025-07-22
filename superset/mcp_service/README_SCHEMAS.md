@@ -1,6 +1,6 @@
 # Superset MCP Service: Tool Schemas Reference
 
-This document provides a reference for the input and output schemas of all MCP tools in the Superset MCP service. All schemas are Pydantic v2 models with field descriptions for LLM/OpenAPI compatibility. All tool input and output is strongly typed and validated.
+This document provides a reference for the input and output schemas of all MCP tools in the Superset MCP service. All schemas are Pydantic v2 models with field descriptions for LLM/OpenAPI compatibility.
 
 ## Dashboards
 
@@ -148,6 +148,15 @@ This document provides a reference for the input and output schemas of all MCP t
 **Inputs:**
 - `dataset_id`: `str` — ID of the dataset to use
 - `config`: `ChartConfig` — Chart configuration (supports table and XY charts)
+- `save_chart`: `bool` — Whether to save the chart (True) or just return an explore link (False)
+
+**Returns:** `CreateChartResponse`
+- `chart`: `Optional[ChartInfo]` — The created chart info, if save_chart=True
+- `explore_url`: `Optional[str]` — URL to explore the chart configuration without saving, if save_chart=False
+- `embed_url`: `Optional[str]` — URL to view or embed the chart, if requested
+- `thumbnail_url`: `Optional[str]` — URL to a thumbnail image of the chart, if requested
+- `embed_html`: `Optional[str]` — HTML snippet (e.g., iframe) to embed the chart, if requested
+- `error`: `Optional[str]` — Error message, if creation failed
 
 #### ChartConfig (Union of TableChartConfig and XYChartConfig)
 
