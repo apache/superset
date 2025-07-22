@@ -255,7 +255,6 @@ export type ErrorSource = 'dashboard' | 'explore' | 'sqllab' | 'crud';
 
 export type SupersetError<ExtraType = Record<string, any> | null> = {
   error_type: ErrorType;
-  errorType?: ErrorType;
   extra: ExtraType;
   level: ErrorLevel;
   message: string;
