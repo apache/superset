@@ -325,7 +325,7 @@ function TagList(props: TagListProps) {
   // render new 'New Tag' btn
   subMenuButtons.push({
     icon: <Icons.PlusOutlined iconSize="m" />,
-    name: <span>{t('Tag')}</span>,
+    name: t('Tag'),
     buttonStyle: 'primary',
     'data-test': 'bulk-select',
     onClick: () => setShowTagModal(true),

@@ -432,7 +432,7 @@ function AlertList({
   if (canCreate) {
     subMenuButtons.push({
       icon: <Icons.PlusOutlined iconSize="m" />,
-      name: <span>{title}</span>,
+      name: t(title),
       buttonStyle: 'primary',
       onClick: () => {
         handleAlertEdit(null);

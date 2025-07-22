@@ -366,7 +366,7 @@ function UsersList({ user }: UsersListProps) {
     subMenuButtons.push(
       {
         icon: <Icons.PlusOutlined iconSize="m" />,
-        name: <span>{t('User')}</span>,
+        name: t('User'),
         buttonStyle: 'primary',
         onClick: () => {
           openModal(ModalType.ADD);

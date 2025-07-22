@@ -275,7 +275,7 @@ function RolesList({ addDangerToast, addSuccessToast, user }: RolesListProps) {
     subMenuButtons.push(
       {
         icon: <Icons.PlusOutlined iconSize="m" />,
-        name: <span>{t('Role')}</span>,
+        name: t('Role'),
         buttonStyle: 'primary',
         onClick: () => {
           openModal(ModalType.ADD);

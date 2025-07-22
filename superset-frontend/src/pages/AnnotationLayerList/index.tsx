@@ -229,7 +229,7 @@ function AnnotationLayersList({
   if (canCreate) {
     subMenuButtons.push({
       icon: <Icons.PlusOutlined iconSize="m" />,
-      name: <span>{t('Annotation layer')}</span>,
+      name: t('Annotation layer'),
       buttonStyle: 'primary',
       onClick: () => {
         handleAnnotationLayerEdit(null);

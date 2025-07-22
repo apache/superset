@@ -320,7 +320,7 @@ function DatabaseList({
       {
         'data-test': 'btn-create-database',
         icon: <Icons.PlusOutlined iconSize="m" />,
-        name: <span>{t('Database')}</span>,
+        name: t('Database'),
         buttonStyle: 'primary',
         onClick: () => {
           // Ensure modal will be opened in add mode

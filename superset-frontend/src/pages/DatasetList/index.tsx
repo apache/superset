@@ -645,7 +645,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
   if (canCreate) {
     buttonArr.push({
       icon: <Icons.PlusOutlined iconSize="m" />,
-      name: <span>{t('Dataset')}</span>,
+      name: t('Dataset'),
       onClick: () => {
         history.push('/dataset/add/');
       },
