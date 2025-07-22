@@ -48,8 +48,7 @@ All tools are modular, strongly typed, and use Pydantic v2 schemas. Every field 
 - `list_charts` (advanced filtering, search)
 - `get_chart_info`
 - `get_chart_available_filters`
-
-- `create_chart` (advanced ECharts chart creation, now supports stack, area, smooth, show_value, color_scheme, legend_type, legend_orientation, tooltip_sorting, y_axis_format, y_axis_bounds, x_axis_time_format, rich_tooltip, extra_options)
+- `create_chart` (basic chart creation with line, bar, area, scatter, table support)
 
 **System**
 - `get_superset_instance_info`
@@ -67,6 +66,36 @@ Example:
 list_dashboards(search="churn", filters=[{"col": "published", "opr": "eq", "value": True}])
 ```
 
+## Chart Creation
+
+The `create_chart` tool supports comprehensive chart creation with:
+
+### Supported Chart Types
+- **Table charts** — Simple column display with filters and sorting
+- **Line charts** — Time series line charts
+- **Bar charts** — Time series bar charts  
+- **Area charts** — Time series area charts
+- **Scatter charts** — Time series scatter charts
+
+### Intelligent Metric Handling
+The tool automatically handles two metric formats:
+1. **Simple metrics** (like `["count"]`) — Passed as simple strings
+2. **Complex metrics** (like column names) — Converted to full Superset metric objects with SQL aggregators (SUM, COUNT, AVG, MIN, MAX)
+
+### Example Usage
+```python
+# Create a line chart with SQL aggregators
+config = XYChartConfig(
+    chart_type="xy",
+    x=ColumnRef(name="date"),
+    y=[
+        ColumnRef(name="sales", aggregate="SUM", label="Total Sales"),
+        ColumnRef(name="orders", aggregate="COUNT", label="Order Count")
+    ],
+    kind="line"
+)
+```
+
 ## Modular Structure & Best Practices
 
 - Tools are organized by domain: `dashboard/`, `dataset/`, `chart/`, `system/`.
@@ -79,4 +108,4 @@ list_dashboards(search="churn", filters=[{"col": "published", "opr": "eq", "valu
 ## What's Implemented
 
 - All list/info tools for dashboards, datasets (with columns and metrics), and charts, with full search and filter support.
-- Chart creation (`create_chart` now supports advanced ECharts options and extra_options for future extensibility).
+- Chart creation (`create_chart`) with comprehensive support for line, bar, area, scatter, and table charts with intelligent metric handling.

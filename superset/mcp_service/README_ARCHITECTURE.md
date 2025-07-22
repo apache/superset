@@ -85,7 +85,8 @@ The Superset Model Context Protocol (MCP) service provides a modular, schema-dri
 
 ## Data Flow
 
-- Chart creation tools (including create_chart) now support advanced ECharts options and extra_options, allowing LLMs and agents to specify nearly all frontend chart controls programmatically.
+- Chart creation tools now support chart types including line, bar, area, scatter, and table charts with  SQL aggregator support.
+- The `create_chart` tool intelligently handles both simple metrics (like `["count"]`) and complex SQL aggregations (like `SUM`, `COUNT`, `AVG`, `MIN`, `MAX`).
 
 ```mermaid
 flowchart TD
@@ -122,7 +123,7 @@ flowchart TD
 
 - `list_dashboards`, `get_dashboard_info`, `get_dashboard_available_filters`: DashboardDAO
 - `list_datasets`, `get_dataset_info`, `get_dataset_available_filters`: DatasetDAO (now returns columns and metrics for each dataset)
-- `list_charts`, `get_chart_info`, `get_chart_available_filters`, `create_chart`: ChartDAO (create_chart supports advanced ECharts options and extra_options for extensibility)
+- `list_charts`, `get_chart_info`, `get_chart_available_filters`, `create_chart`: ChartDAO (create_chart supports line, bar, area, scatter, table charts)
 - `get_superset_instance_info`: System metadata
 
 ---
@@ -137,6 +138,7 @@ flowchart TD
 ## Test Coverage
 
 - All dataset tools now have unit tests verifying columns and metrics are included in responses.
+- Chart creation tools have comprehensive tests covering all supported chart types and SQL aggregators.
 - Improved test mocks and LLM/OpenAPI compatibility for all dataset-related tools.
 
 ---
@@ -144,7 +146,7 @@ flowchart TD
 ## Roadmap
 
 - All list/info tools for dashboards, datasets, and charts are implemented.
-- Chart creation (`create_chart`) is available.
+- Chart creation (`create_chart`) is available with support for line, bar, area, scatter, and table charts.
 - System info and available filters are implemented.
 - Mutations (create/update/delete) and navigation tools are planned.
 - Full unit and integration test coverage.
