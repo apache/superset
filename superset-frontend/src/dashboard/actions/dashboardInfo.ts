@@ -601,6 +601,21 @@ export function clearAllPendingChartCustomizations(): ClearAllPendingChartCustom
   };
 }
 
+export const CLEAR_ALL_CHART_CUSTOMIZATIONS = 'CLEAR_ALL_CHART_CUSTOMIZATIONS';
+export interface ClearAllChartCustomizations {
+  type: typeof CLEAR_ALL_CHART_CUSTOMIZATIONS;
+}
+
+export function clearAllChartCustomizations(): ClearAllChartCustomizations {
+  return {
+    type: CLEAR_ALL_CHART_CUSTOMIZATIONS,
+  };
+}
+
+export function clearAllChartCustomizationsFromMetadata() {
+  return clearAllChartCustomizations();
+}
+
 export type AnyDashboardInfoAction =
   | ReturnType<typeof dashboardInfoChanged>
   | ReturnType<typeof nativeFiltersConfigChanged>
@@ -612,4 +627,5 @@ export type AnyDashboardInfoAction =
   | SetChartCustomizationData
   | SetPendingChartCustomization
   | ClearPendingChartCustomization
-  | ClearAllPendingChartCustomizations;
+  | ClearAllPendingChartCustomizations
+  | ClearAllChartCustomizations;
