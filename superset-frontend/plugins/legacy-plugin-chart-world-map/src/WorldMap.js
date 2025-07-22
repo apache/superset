@@ -24,7 +24,7 @@ import {
   getSequentialSchemeRegistry,
   CategoricalColorNamespace,
 } from '@superset-ui/core';
-import Datamap from 'datamaps/dist/datamaps.world.min';
+import Datamap from 'datamaps/dist/datamaps.all.min';
 import { ColorBy } from './utils';
 
 const propTypes = {
