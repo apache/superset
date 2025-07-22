@@ -101,6 +101,8 @@ const ThemeModal: FunctionComponent<ThemeModalProps> = ({
   const [currentTheme, setCurrentTheme] = useState<ThemeObject | null>(null);
   const [isHidden, setIsHidden] = useState<boolean>(true);
   const isEditMode = theme !== null;
+  const isSystemTheme = currentTheme?.is_system === true;
+  const isReadOnly = isSystemTheme;
   const user = getBootstrapData()?.user;
   const canDevelopThemes = user
     ? isUserAdmin(user as UserWithPermissionsAndRoles)
@@ -212,6 +214,11 @@ const ThemeModal: FunctionComponent<ThemeModalProps> = ({
   };
 
   const validate = () => {
+    if (isReadOnly) {
+      setDisableSave(true);
+      return;
+    }
+
     if (
       currentTheme?.theme_name.length &&
       currentTheme?.json_data?.length &&
@@ -257,6 +264,7 @@ const ThemeModal: FunctionComponent<ThemeModalProps> = ({
   }, [
     currentTheme ? currentTheme.theme_name : '',
     currentTheme ? currentTheme.json_data : '',
+    isReadOnly,
   ]);
 
   // Show/hide
@@ -266,15 +274,15 @@ const ThemeModal: FunctionComponent<ThemeModalProps> = ({
 
   return (
     <Modal
-      disablePrimaryButton={disableSave}
-      onHandledPrimaryAction={onSave}
+      disablePrimaryButton={isReadOnly || disableSave}
+      onHandledPrimaryAction={isReadOnly ? undefined : onSave}
       onHide={hide}
       primaryButtonName={isEditMode ? t('Save') : t('Add')}
       show={show}
       width="55%"
       footer={[
         <Button key="cancel" onClick={hide} buttonStyle="secondary">
-          {t('Cancel')}
+          {isReadOnly ? t('Close') : t('Cancel')}
         </Button>,
         ...(canDevelopThemes
           ? [
@@ -299,14 +307,18 @@ const ThemeModal: FunctionComponent<ThemeModalProps> = ({
               </Button>,
             ]
           : []),
-        <Button
-          key="save"
-          onClick={onSave}
-          disabled={disableSave}
-          buttonStyle="primary"
-        >
-          {isEditMode ? t('Save') : t('Add')}
-        </Button>,
+        ...(!isReadOnly
+          ? [
+              <Button
+                key="save"
+                onClick={onSave}
+                disabled={disableSave}
+                buttonStyle="primary"
+              >
+                {isEditMode ? t('Save') : t('Add')}
+              </Button>,
+            ]
+          : []),
       ]}
       title={
         <Typography.Title level={4} data-test="theme-modal-title">
@@ -325,29 +337,71 @@ const ThemeModal: FunctionComponent<ThemeModalProps> = ({
               `}
             />
           )}
-          {isEditMode ? t('Edit theme properties') : t('Add theme')}
+          {isEditMode
+            ? isReadOnly
+              ? t('View theme properties')
+              : t('Edit theme properties')
+            : t('Add theme')}
         </Typography.Title>
       }
     >
       <StyledThemeTitle>
-        <Typography.Title level={4}>{t('Basic information')}</Typography.Title>
+        <Typography.Title level={4}>
+          {t('Basic information')}
+          {isSystemTheme && (
+            <Typography.Text
+              type="secondary"
+              style={{ marginLeft: '8px', fontSize: '14px' }}
+            >
+              ({t('System Theme - Read Only')})
+            </Typography.Text>
+          )}
+        </Typography.Title>
       </StyledThemeTitle>
       <ThemeContainer>
         <div className="control-label">
           {t('Name')}
-          <span className="required">*</span>
+          {!isReadOnly && <span className="required">*</span>}
         </div>
         <Input
           name="theme_name"
           onChange={onThemeNameChange}
           type="text"
           value={currentTheme?.theme_name}
+          readOnly={isReadOnly}
         />
       </ThemeContainer>
+      {isEditMode && currentTheme?.uuid && (
+        <ThemeContainer>
+          <div className="control-label">
+            {t('Theme UUID')}
+            <Typography.Text type="secondary" style={{ marginLeft: '8px' }}>
+              {t('Copy this to reference in configuration')}
+            </Typography.Text>
+          </div>
+          <Typography.Text
+            code
+            copyable
+            style={{
+              display: 'block',
+              padding: '8px 12px',
+              backgroundColor: supersetTheme.colorBgElevated,
+              border: `1px solid ${supersetTheme.colorBorder}`,
+              borderRadius: supersetTheme.borderRadius,
+              fontFamily: 'monospace',
+              fontSize: '13px',
+              wordBreak: 'break-all',
+            }}
+            data-test="theme-uuid-field"
+          >
+            {currentTheme.uuid}
+          </Typography.Text>
+        </ThemeContainer>
+      )}
       <ThemeContainer>
         <div className="control-label">
           {t('JSON Configuration')}
-          <span className="required">*</span>
+          {!isReadOnly && <span className="required">*</span>}
         </div>
         <StyledJsonEditor>
           <JsonEditor
@@ -359,6 +413,7 @@ const ThemeModal: FunctionComponent<ThemeModalProps> = ({
             width="100%"
             height="300px"
             wrapEnabled
+            readOnly={isReadOnly}
           />
         </StyledJsonEditor>
       </ThemeContainer>

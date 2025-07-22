@@ -724,7 +724,7 @@ EXTRA_CATEGORICAL_COLOR_SCHEMES: list[dict[str, Any]] = []
 #
 # Theme Structure:
 # Each theme should follow Ant Design's theme format
-# Example:
+# Example (Direct theme definition):
 # THEME_DEFAULT = {
 #       "token": {
 #            "colorPrimary": "#2893B3",
@@ -736,15 +736,27 @@ EXTRA_CATEGORICAL_COLOR_SCHEMES: list[dict[str, Any]] = []
 #       },
 #       ... # other theme properties
 # }
+#
+# Alternative (UUID reference to CRUD theme):
+# You can reference a theme created via the theme management UI by its UUID.
+# The UUID is displayed in the theme editor modal for easy copying.
+# THEME_DEFAULT = {
+#       "uuid": "550e8400-e29b-41d4-a716-446655440000",
+#       "token": {  # Fallback theme if UUID not found
+#            "colorPrimary": "#2893B3",
+#            "colorSuccess": "#5ac189",
+#            ... # other tokens
+#       }
+# }
 
 
 # Default theme configuration
 # Leave empty to use Superset's default theme
-THEME_DEFAULT: Theme = {}
+THEME_DEFAULT: Theme = {"algorithm": "default"}
 
 # Dark theme configuration
 # Applied when user selects dark mode
-THEME_DARK: Theme = {}
+THEME_DARK: Theme = {"algorithm": "dark"}
 
 # Theme behavior and user preference settings
 # Controls how themes are applied and what options users have

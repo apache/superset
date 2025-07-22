@@ -24,13 +24,16 @@ from flask import request, Response, send_file
 from flask_appbuilder.api import expose, protect, rison, safe
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_babel import ngettext
+from marshmallow import ValidationError
 
 from superset.commands.theme.delete import DeleteThemeCommand
 from superset.commands.theme.exceptions import (
+    SystemThemeProtectedError,
     ThemeDeleteFailedError,
     ThemeNotFoundError,
 )
 from superset.commands.theme.export import ExportThemesCommand
+from superset.commands.theme.update import UpdateThemeCommand
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.extensions import event_logger
 from superset.models.core import Theme
@@ -75,7 +78,9 @@ class ThemeRestApi(BaseSupersetModelRestApi):
         "created_by.last_name",
         "json_data",
         "id",
+        "is_system",
         "theme_name",
+        "uuid",
     ]
     list_columns = [
         "changed_on_delta_humanized",
@@ -89,7 +94,9 @@ class ThemeRestApi(BaseSupersetModelRestApi):
         "created_by.last_name",
         "json_data",
         "id",
+        "is_system",
         "theme_name",
+        "uuid",
     ]
 
     list_select_columns = list_columns + ["changed_on", "created_on", "changed_by_fk"]
@@ -167,7 +174,73 @@ class ThemeRestApi(BaseSupersetModelRestApi):
             )
         except ThemeNotFoundError:
             return self.response_404()
+        except SystemThemeProtectedError as ex:
+            return self.response_403(message=str(ex))
         except ThemeDeleteFailedError as ex:
+            return self.response_422(message=str(ex))
+
+    @expose("/<int:pk>", methods=("PUT",))
+    @protect()
+    @safe
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.put",
+        log_to_statsd=False,
+    )
+    def put(self, pk: int) -> Response:
+        """Update a theme.
+        ---
+        put:
+          summary: Update a theme
+          parameters:
+          - in: path
+            schema:
+              type: integer
+            name: pk
+          requestBody:
+            description: Theme schema
+            required: true
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/ThemeRestApi.put'
+          responses:
+            200:
+              description: Theme updated
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      id:
+                        type: number
+                      result:
+                        $ref: '#/components/schemas/ThemeRestApi.put'
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
+            404:
+              $ref: '#/components/responses/404'
+            422:
+              $ref: '#/components/responses/422'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        try:
+            item = self.edit_model_schema.load(request.json)
+        except ValidationError as error:
+            return self.response_400(message=error.messages)
+        try:
+            changed_model = UpdateThemeCommand(pk, item).run()
+            return self.response(200, id=changed_model.id, result=item)
+        except ThemeNotFoundError:
+            return self.response_404()
+        except SystemThemeProtectedError as ex:
+            return self.response_403(message=str(ex))
+        except Exception as ex:
             return self.response_422(message=str(ex))
 
     @expose("/export/", methods=("GET",))

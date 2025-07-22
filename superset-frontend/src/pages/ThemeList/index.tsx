@@ -19,6 +19,12 @@
 
 import { useMemo, useState } from 'react';
 import { t, SupersetClient } from '@superset-ui/core';
+import {
+  Tag,
+  DeleteModal,
+  ConfirmStatusChange,
+  Loading,
+} from '@superset-ui/core/components';
 
 import rison from 'rison';
 import { useListViewResource } from 'src/views/CRUD/hooks';
@@ -26,11 +32,6 @@ import { createErrorHandler, createFetchRelated } from 'src/views/CRUD/utils';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import { useThemeContext } from 'src/theme/ThemeProvider';
 import SubMenu, { SubMenuProps } from 'src/features/home/SubMenu';
-import {
-  DeleteModal,
-  ConfirmStatusChange,
-  Loading,
-} from '@superset-ui/core/components';
 import handleResourceExport from 'src/utils/export';
 import {
   ModifiedInfo,
@@ -108,9 +109,26 @@ function ThemesList({
   };
 
   const handleBulkThemeDelete = (themesToDelete: ThemeObject[]) => {
+    // Filter out system themes from deletion
+    const deletableThemes = themesToDelete.filter(theme => !theme.is_system);
+
+    if (deletableThemes.length === 0) {
+      addDangerToast(t('Cannot delete system themes'));
+      return;
+    }
+
+    if (deletableThemes.length !== themesToDelete.length) {
+      addDangerToast(
+        t(
+          'Skipped %d system themes that cannot be deleted',
+          themesToDelete.length - deletableThemes.length,
+        ),
+      );
+    }
+
     SupersetClient.delete({
       endpoint: `/api/v1/theme/?q=${rison.encode(
-        themesToDelete.map(({ id }) => id),
+        deletableThemes.map(({ id }) => id),
       )}`,
     }).then(
       ({ json = {} }) => {
@@ -158,8 +176,18 @@ function ThemesList({
   const columns = useMemo(
     () => [
       {
-        accessor: 'theme_name',
+        Cell: ({ row: { original } }: any) => (
+          <>
+            {original.theme_name}
+            {original.is_system && (
+              <Tag color="blue" style={{ marginLeft: 8 }}>
+                {t('System')}
+              </Tag>
+            )}
+          </>
+        ),
         Header: t('Name'),
+        accessor: 'theme_name',
         id: 'theme_name',
       },
       {
@@ -197,9 +225,11 @@ function ThemesList({
             canEdit
               ? {
                   label: 'edit-action',
-                  tooltip: t('Edit theme'),
+                  tooltip: original.is_system
+                    ? t('View theme')
+                    : t('Edit theme'),
                   placement: 'bottom',
-                  icon: 'EditOutlined',
+                  icon: original.is_system ? 'EyeOutlined' : 'EditOutlined',
                   onClick: handleEdit,
                 }
               : null,
@@ -212,7 +242,7 @@ function ThemesList({
                   onClick: handleExport,
                 }
               : null,
-            canDelete
+            canDelete && !original.is_system
               ? {
                   label: 'delete-action',
                   tooltip: t('Delete theme'),

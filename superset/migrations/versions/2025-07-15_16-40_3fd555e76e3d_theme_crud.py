@@ -50,6 +50,7 @@ def upgrade():
             sa.Text().with_variant(mysql.MEDIUMTEXT(), "mysql"),
             nullable=True,
         ),
+        sa.Column("is_system", sa.Boolean(), default=False, nullable=False),
         sa.Column("created_by_fk", sa.Integer(), nullable=True),
         sa.Column("changed_by_fk", sa.Integer(), nullable=True),
         sa.PrimaryKeyConstraint("id"),

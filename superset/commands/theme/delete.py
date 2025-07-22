@@ -20,6 +20,7 @@ from typing import Optional
 
 from superset.commands.base import BaseCommand
 from superset.commands.theme.exceptions import (
+    SystemThemeProtectedError,
     ThemeDeleteFailedError,
     ThemeNotFoundError,
 )
@@ -46,3 +47,8 @@ class DeleteThemeCommand(BaseCommand):
         self._models = ThemeDAO.find_by_ids(self._model_ids)
         if not self._models or len(self._models) != len(self._model_ids):
             raise ThemeNotFoundError()
+
+        # Check if any of the themes are system themes
+        for theme in self._models:
+            if theme.is_system:
+                raise SystemThemeProtectedError()

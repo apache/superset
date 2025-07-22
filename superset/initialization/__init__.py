@@ -488,6 +488,14 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         if feature_flag_manager.is_feature_enabled("TAGGING_SYSTEM"):
             register_sqla_event_listeners()
 
+        # Seed system themes from configuration
+        try:
+            from superset.commands.theme.seed import SeedSystemThemesCommand
+
+            SeedSystemThemesCommand().run()
+        except Exception:
+            logger.exception("Failed to seed system themes")
+
         self.init_views()
 
     def check_secret_key(self) -> None:

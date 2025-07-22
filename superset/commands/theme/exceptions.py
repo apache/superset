@@ -25,3 +25,7 @@ class ThemeDeleteFailedError(DeleteFailedError):
 
 class ThemeNotFoundError(CommandException):
     message = _("Theme not found.")
+
+
+class SystemThemeProtectedError(CommandException):
+    message = _("Cannot modify system themes.")

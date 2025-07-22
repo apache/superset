@@ -128,6 +128,7 @@ class Theme(AuditMixinNullable, ImportExportMixin, Model):
     id = Column(Integer, primary_key=True)
     theme_name = Column(String(250))
     json_data = Column(utils.MediumText(), default="")
+    is_system = Column(Boolean, default=False, nullable=False)
 
     export_fields = ["theme_name", "json_data"]
 
