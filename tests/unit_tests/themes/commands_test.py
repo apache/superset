@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 
-from unittest.mock import Mock, patch
+from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 
@@ -99,6 +99,7 @@ class TestSeedSystemThemesCommand:
     def test_run_no_themes_configured(self, mock_current_app):
         """Test run when no themes are configured"""
         # Arrange
+        mock_current_app.config = MagicMock()
         mock_current_app.config.get.side_effect = lambda key: None
         command = SeedSystemThemesCommand()
 
@@ -119,6 +120,7 @@ class TestSeedSystemThemesCommand:
         def get_config(key):
             return {"THEME_DEFAULT": default_theme, "THEME_DARK": None}.get(key)
 
+        mock_current_app.config = MagicMock()
         mock_current_app.config.get = Mock(side_effect=get_config)
 
         mock_session = Mock()
@@ -132,7 +134,7 @@ class TestSeedSystemThemesCommand:
 
         # Assert
         mock_session.add.assert_called_once()
-        mock_session.commit.assert_called()
+        # Note: commit is handled by @transaction() decorator, not directly called
 
     @patch("superset.commands.theme.seed.current_app")
     @patch("superset.commands.theme.seed.db")
@@ -144,6 +146,7 @@ class TestSeedSystemThemesCommand:
         def get_config(key):
             return {"THEME_DEFAULT": default_theme, "THEME_DARK": None}.get(key)
 
+        mock_current_app.config = MagicMock()
         mock_current_app.config.get = Mock(side_effect=get_config)
 
         # Mock existing theme
@@ -163,7 +166,7 @@ class TestSeedSystemThemesCommand:
 
         # Assert
         assert '"algorithm": "default"' in mock_existing_theme.json_data
-        mock_session.commit.assert_called()
+        # Note: commit is handled by @transaction() decorator, not directly called
         mock_session.add.assert_not_called()  # Should not add new theme
 
     @patch("superset.commands.theme.seed.current_app")
@@ -177,6 +180,7 @@ class TestSeedSystemThemesCommand:
         def get_config(key):
             return {"THEME_DEFAULT": default_theme, "THEME_DARK": None}.get(key)
 
+        mock_current_app.config = MagicMock()
         mock_current_app.config.get = Mock(side_effect=get_config)
 
         mock_session = Mock()
@@ -185,12 +189,9 @@ class TestSeedSystemThemesCommand:
 
         command = SeedSystemThemesCommand()
 
-        # Act
-        command.run()  # Should not raise exception
-
-        # Assert
-        mock_logger.error.assert_called()
-        mock_session.rollback.assert_called()
+        # Act & Assert
+        with pytest.raises(Exception, match="Database error"):
+            command.run()  # Should raise exception due to @transaction() decorator
 
     @patch("superset.commands.theme.seed.current_app")
     @patch("superset.commands.theme.seed.db")
@@ -203,6 +204,7 @@ class TestSeedSystemThemesCommand:
         def get_config(key):
             return {"THEME_DEFAULT": default_theme, "THEME_DARK": dark_theme}.get(key)
 
+        mock_current_app.config = MagicMock()
         mock_current_app.config.get = Mock(side_effect=get_config)
 
         mock_session = Mock()
@@ -216,7 +218,7 @@ class TestSeedSystemThemesCommand:
 
         # Assert
         assert mock_session.add.call_count == 2  # Both themes should be added
-        mock_session.commit.assert_called()
+        # Note: commit is handled by @transaction() decorator, not directly called
 
     def test_validate(self):
         """Test validate method (should be no-op)"""
