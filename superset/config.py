@@ -375,7 +375,7 @@ BABEL_DEFAULT_LOCALE = "ru"
 # Your application default translation path
 BABEL_DEFAULT_FOLDER = "superset/translations"
 # The allowed translation for your app
-LANGUAGES = {
+LANGUAGES1 = {
     "en": {"flag": "us", "name": "English"},
     "es": {"flag": "es", "name": "Spanish"},
     "it": {"flag": "it", "name": "Italian"},
