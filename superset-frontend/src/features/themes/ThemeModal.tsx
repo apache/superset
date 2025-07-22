@@ -30,6 +30,7 @@ import {
   JsonEditor,
   Button,
   Form,
+  Tooltip,
 } from '@superset-ui/core/components';
 import { Typography } from '@superset-ui/core/components/Typography';
 
@@ -274,17 +275,25 @@ const ThemeModal: FunctionComponent<ThemeModalProps> = ({
               >
                 {t('Clear Local Settings')}
               </Button>,
-              <Button
-                key="apply"
-                onClick={onApply}
-                disabled={
-                  !currentTheme?.json_data ||
-                  !isValidJson(currentTheme.json_data)
-                }
-                buttonStyle="primary"
+              <Tooltip
+                key="apply-tooltip"
+                title={t(
+                  'Apply theme temporarily for testing (local preview only)',
+                )}
+                placement="top"
               >
-                {t('Apply')}
-              </Button>,
+                <Button
+                  key="apply"
+                  onClick={onApply}
+                  disabled={
+                    !currentTheme?.json_data ||
+                    !isValidJson(currentTheme.json_data)
+                  }
+                  buttonStyle="primary"
+                >
+                  {t('Apply')}
+                </Button>
+              </Tooltip>,
             ]
           : []),
         ...(!isReadOnly

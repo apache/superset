@@ -217,7 +217,9 @@ function ThemesList({
             canApply
               ? {
                   label: 'apply-action',
-                  tooltip: t('Apply theme'),
+                  tooltip: t(
+                    'Apply theme temporarily for testing (local preview only)',
+                  ),
                   placement: 'bottom',
                   icon: 'FormatPainterOutlined',
                   onClick: handleApply,
