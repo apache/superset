@@ -62,6 +62,7 @@ from superset.constants import QUERY_CANCEL_KEY, TimeGrain as TimeGrainConstants
 from superset.databases.utils import get_table_metadata, make_url_safe
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import OAuth2Error, OAuth2RedirectError
+from superset.extensions.semantic_layer import SemanticLayer
 from superset.sql.parse import (
     BaseSQLStatement,
     LimitMethod,
@@ -85,7 +86,7 @@ from superset.utils.network import is_hostname_valid, is_port_open
 from superset.utils.oauth2 import encode_oauth2_state
 
 if TYPE_CHECKING:
-    from superset.connectors.sqla.models import TableColumn
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
     from superset.databases.schemas import TableMetadataResponse
     from superset.models.core import Database
     from superset.models.sql_lab import Query
@@ -143,7 +144,9 @@ builtin_time_grains: dict[str | None, str] = {
 }
 
 
-class TimestampExpression(ColumnClause):  # pylint: disable=abstract-method, too-many-ancestors
+class TimestampExpression(
+    ColumnClause
+):  # pylint: disable=abstract-method, too-many-ancestors
     def __init__(self, expr: str, col: ColumnClause, **kwargs: Any) -> None:
         """Sqlalchemy class that can be used to render native column elements respecting
         engine-specific quoting rules as part of a string-based expression.
@@ -213,6 +216,9 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     sqlalchemy_uri_placeholder = (
         "engine+driver://user:password@host:port/dbname[?key=value&key=value...]"
     )
+
+    # databases can optionally specify a semantic layer
+    semantic_layer: SemanticLayer | None = None
 
     disable_ssh_tunneling = False
 
@@ -388,9 +394,9 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     max_column_name_length: int | None = None
     try_remove_schema_from_table_name = True  # pylint: disable=invalid-name
     run_multiple_statements_as_one = False
-    custom_errors: dict[
-        Pattern[str], tuple[str, SupersetErrorType, dict[str, Any]]
-    ] = {}
+    custom_errors: dict[Pattern[str], tuple[str, SupersetErrorType, dict[str, Any]]] = (
+        {}
+    )
 
     # List of JSON path to fields in `encrypted_extra` that should be masked when the
     # database is edited. By default everything is masked.
@@ -1461,6 +1467,15 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
 
         if schema and cls.try_remove_schema_from_table_name:
             tables = {re.sub(f"^{schema}\\.", "", table) for table in tables}
+
+        if cls.semantic_layer:
+            tables.update(
+                semantic_view.name
+                for semantic_view in cls.semantic_layer(
+                    inspector.engine
+                ).get_semantic_views()
+            )
+
         return tables
 
     @classmethod
@@ -1543,7 +1558,9 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         """
         Get all columns from a given schema and table.
 
-        The inspector will be bound to a catalog, if one was specified.
+        The inspector will be bound to a catalog, if one was specified. If the database
+        supports semantic layers the method will check if the table is a semantic view,
+        and return columns (metrics and dimensions) from it instead.
 
         :param inspector: SqlAlchemy Inspector instance
         :param table: Table instance
@@ -1551,6 +1568,22 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
                         some databases
         :return: All columns in table
         """
+        if cls.semantic_layer:
+            semantic_layer = cls.semantic_layer(inspector.engine)
+            semantic_views = {
+                semantic_view.name: semantic_view
+                for semantic_view in semantic_layer.get_semantic_views()
+            }
+            if semantic_view := semantic_views.get(table.table):
+                return [
+                    {
+                        "name": dimension.name,
+                        "column_name": dimension.name,
+                        "type": XXX,
+                    }
+                    for dimension in semantic_layer.get_dimensions(semantic_view)
+                ]
+
         return convert_inspector_columns(
             cast(
                 list[SQLAColumnType],
@@ -1568,6 +1601,22 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         """
         Get all metrics from a given schema and table.
         """
+        if cls.semantic_layer:
+            semantic_layer = cls.semantic_layer(inspector.engine)
+            semantic_views = {
+                semantic_view.name: semantic_view
+                for semantic_view in semantic_layer.get_semantic_views()
+            }
+            if semantic_view := semantic_views.get(table.table):
+                return [
+                    {
+                        "metric_name": metric.name,
+                        "verbose_name": metric.name,
+                        "expression": metric.sql,
+                    }
+                    for metric in semantic_layer.get_metrics(semantic_view)
+                ]
+
         return [
             {
                 "metric_name": "count",
@@ -1576,6 +1625,62 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
                 "expression": "COUNT(*)",
             }
         ]
+
+    @classmethod
+    def get_valid_metrics_and_dimensions(
+        cls,
+        database: Database,
+        table: SqlaTable,
+        dimensions: set[str],
+        metrics: set[str],
+    ) -> ValidColumnsType:
+        """
+        Get valid metrics and dimensions.
+
+        Given a datasource, and sets of selected metrics and dimensions, return the
+        sets of valid metrics and dimensions that can further be selected.
+        """
+        if cls.semantic_layer:
+            with database.get_sqla_engine() as engine:
+                semantic_layer = cls.semantic_layer(engine)
+                semantic_views = {
+                    semantic_view.name: semantic_view
+                    for semantic_view in semantic_layer.get_semantic_views()
+                }
+                if semantic_view := semantic_views.get(table.table):
+                    selected_metrics = {
+                        metric
+                        for metric in semantic_layer.get_metrics(semantic_view)
+                        if metric.name in metrics
+                    }
+                    selected_dimensions = {
+                        dimension
+                        for dimension in semantic_layer.get_dimensions(semantic_view)
+                        if dimension.name in dimensions
+                    }
+                    return {
+                        "metrics": {
+                            metric.name
+                            for metric in semantic_layer.get_valid_metrics(
+                                semantic_view,
+                                selected_metrics,
+                                selected_dimensions,
+                            )
+                        },
+                        "dimensions": {
+                            dimension.name
+                            for dimension in semantic_layer.get_valid_dimensions(
+                                semantic_view,
+                                selected_metrics,
+                                selected_dimensions,
+                            )
+                        },
+                    }
+
+        return {
+            "dimensions": {column.column_name for column in table.columns},
+            "metrics": {metric.metric_name for metric in table.metrics},
+        }
 
     @classmethod
     def where_latest_partition(  # pylint: disable=unused-argument
