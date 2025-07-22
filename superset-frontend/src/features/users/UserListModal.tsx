@@ -121,6 +121,7 @@ function UserListModal({
     <FormModal
       show={show}
       onHide={onHide}
+      name={isEditMode ? 'Edit User' : 'Add User'}
       title={
         <ModalTitleWithIcon
           editModeConfig={{
