@@ -1,8 +1,7 @@
 {
   "compilerOptions": {
     "declarationDir": "lib",
-    "outDir": "lib",
-    "rootDir": "src"
+    "outDir": "lib"
   },
   "exclude": [
     "lib",
