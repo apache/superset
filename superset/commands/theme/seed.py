@@ -44,7 +44,7 @@ class SeedSystemThemesCommand(BaseCommand):
         for theme_name, theme_config in themes_to_seed:
             self._upsert_system_theme(theme_name, theme_config)
 
-    @transaction
+    @transaction()
     def _upsert_system_theme(
         self, theme_name: str, theme_config: dict[str, Any]
     ) -> None:
