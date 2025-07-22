@@ -52,14 +52,6 @@ repos:
       - id: trailing-whitespace
         exclude: ^.*\.(snap)
         args: ["--markdown-linebreak-ext=md"]
-  - repo: https://github.com/pre-commit/mirrors-prettier
-    rev: v4.0.0-alpha.8 # Use the sha or tag you want to point at
-    hooks:
-      - id: prettier
-        additional_dependencies:
-          - prettier@3.6.2
-        args: ["--ignore-path=./superset-frontend/.prettierignore", "--exclude", "site-packages"]
-        files: "superset-frontend"
   - repo: local
     hooks:
     - id: eslint-frontend
