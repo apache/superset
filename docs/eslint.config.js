@@ -17,21 +17,27 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import typescriptEslintParser from '@typescript-eslint/parser';
-import typescriptEslintPlugin from '@typescript-eslint/eslint-plugin';
-import eslintConfigPrettier from 'eslint-config-prettier';
-import prettierEslintPlugin from 'eslint-plugin-prettier';
-import js from '@eslint/js';
-import ts from 'typescript-eslint';
-import react from 'eslint-plugin-react';
-import globals from 'globals';
-import { defineConfig, globalIgnores } from 'eslint/config';
+const typescriptEslintParser = require('@typescript-eslint/parser');
+const typescriptEslintPlugin = require('@typescript-eslint/eslint-plugin');
+const eslintConfigPrettier = require('eslint-config-prettier');
+const prettierEslintPlugin = require('eslint-plugin-prettier');
+const js = require('@eslint/js');
+const ts = require('typescript-eslint');
+const react = require('eslint-plugin-react');
+const globals = require('globals');
+const { defineConfig, globalIgnores } = require('eslint/config');
 
-export default defineConfig([
+module.exports = defineConfig([
   globalIgnores(['build/**/*', '.docusaurus/**/*', 'node_modules/**/*']),
   js.configs.recommended,
   ...ts.configs.recommended,
   eslintConfigPrettier,
+  {
+    files: ['eslint.config.js'],
+    rules: {
+      '@typescript-eslint/no-require-imports': 'off',
+    }
+  },
   {
     languageOptions: {
       parser: typescriptEslintParser,
