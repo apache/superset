@@ -1,5 +1,12 @@
 #!/bin/bash
 
+## use in claude like this
+#    "Superset MCP Proxy": {
+#      "command": "~/github/superset/superset/mcp_service/run_proxy.sh",
+#      "args": [],
+#      "env": {}
+#    },
+
 # Get the directory where this script is located
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
