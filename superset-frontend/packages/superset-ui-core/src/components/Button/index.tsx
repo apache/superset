@@ -133,11 +133,11 @@ export function Button(props: ButtonProps) {
         '& > span > :first-of-type': {
           marginRight: firstChildMargin,
         },
-        ...(effectiveButtonStyle === 'secondary' && {
+        ':not(:hover)': effectiveButtonStyle === 'secondary' && {
           // Increase contrast for secondary buttons
           backgroundColor: `${tinycolor(theme.colorPrimaryBg).darken(2).toHexString()} !important`,
           color: `${tinycolor(theme.colorPrimaryText).lighten(10).toHexString()} !important`,
-        }),
+        },
       }}
       icon={icon}
       {...restProps}
