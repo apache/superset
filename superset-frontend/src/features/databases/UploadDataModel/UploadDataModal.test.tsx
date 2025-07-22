@@ -102,9 +102,9 @@ const getCommonElements = () => ({
   cancelButton: screen.getByRole('button', { name: 'Cancel' }),
   uploadButton: screen.getByRole('button', { name: 'Upload' }),
   selectButton: screen.getByRole('button', { name: 'Select' }),
-  panel1: screen.getByRole('heading', { name: /General information/i }),
-  panel2: screen.getByRole('heading', { name: /file settings/i }),
-  panel3: screen.getByRole('heading', { name: /columns/i }),
+  panel1: screen.getByText(/General information/i, { selector: 'strong' }),
+  panel2: screen.getByText(/file settings/i, { selector: 'strong' }),
+  panel3: screen.getByText(/columns/i, { selector: 'strong' }),
   selectDatabase: screen.getByRole('combobox', { name: /select a database/i }),
   inputTableName: screen.getByRole('textbox', { name: /table name/i }),
   inputSchema: screen.getByRole('combobox', { name: /schema/i }),
@@ -130,7 +130,7 @@ describe('UploadDataModal - General Information Elements', () => {
 
     const common = getCommonElements();
     const title = screen.getByRole('heading', { name: /csv upload/i });
-    const panel4 = screen.getByRole('heading', { name: /rows/i });
+    const panel4 = screen.getByText(/rows/i);
     const selectDelimiter = screen.getByRole('combobox', {
       name: /choose a delimiter/i,
     });
@@ -156,7 +156,7 @@ describe('UploadDataModal - General Information Elements', () => {
 
     const common = getCommonElements();
     const title = screen.getByRole('heading', { name: /excel upload/i });
-    const panel4 = screen.getByRole('heading', { name: /rows/i });
+    const panel4 = screen.getByText(/rows/i);
     const selectSheetName = screen.getByRole('combobox', {
       name: /choose sheet name/i,
     });
@@ -177,9 +177,7 @@ describe('UploadDataModal - General Information Elements', () => {
     ]);
 
     // Check elements that should NOT be visible
-    expect(
-      screen.queryByRole('heading', { name: /csv upload/i }),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByText(/csv upload/i)).not.toBeInTheDocument();
     expect(
       screen.queryByRole('combobox', { name: /choose a delimiter/i }),
     ).not.toBeInTheDocument();
@@ -206,8 +204,8 @@ describe('UploadDataModal - General Information Elements', () => {
 
     // Check elements that should NOT be visible
     expectElementsNotVisible([
-      screen.queryByRole('heading', { name: /csv upload/i }),
-      screen.queryByRole('heading', { name: /rows/i }),
+      screen.queryByText(/csv upload/i),
+      screen.queryByText(/rows/i),
       screen.queryByRole('combobox', { name: /choose a delimiter/i }),
       screen.queryByRole('combobox', { name: /choose sheet name/i }),
     ]);
@@ -216,7 +214,7 @@ describe('UploadDataModal - General Information Elements', () => {
 
 describe('UploadDataModal - File Settings Elements', () => {
   const openFileSettings = async () => {
-    const panelHeader = screen.getByRole('heading', { name: /file settings/i });
+    const panelHeader = screen.getByText(/file settings/i);
     await userEvent.click(panelHeader);
   };
 
@@ -294,7 +292,7 @@ describe('UploadDataModal - File Settings Elements', () => {
 
 describe('UploadDataModal - Columns Elements', () => {
   const openColumns = async () => {
-    const panelHeader = screen.getByRole('heading', { name: /columns/i });
+    const panelHeader = screen.getByText(/columns/i);
     await userEvent.click(panelHeader);
   };
 
@@ -365,7 +363,7 @@ describe('UploadDataModal - Rows Elements', () => {
   test('CSV/Excel rows render correctly', async () => {
     render(<UploadDataModal {...csvProps} />, { useRedux: true });
 
-    const panelHeader = screen.getByRole('heading', { name: /rows/i });
+    const panelHeader = screen.getByText(/rows/i);
     await userEvent.click(panelHeader);
 
     const elements = [
@@ -380,7 +378,7 @@ describe('UploadDataModal - Rows Elements', () => {
   test('Columnar does not render rows', () => {
     render(<UploadDataModal {...columnarProps} />, { useRedux: true });
 
-    const panelHeader = screen.queryByRole('heading', { name: /rows/i });
+    const panelHeader = screen.queryByText(/rows/i);
     expect(panelHeader).not.toBeInTheDocument();
   });
 });
