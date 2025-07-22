@@ -289,7 +289,7 @@ const ThemeModal: FunctionComponent<ThemeModalProps> = ({
                     !currentTheme?.json_data ||
                     !isValidJson(currentTheme.json_data)
                   }
-                  buttonStyle="primary"
+                  buttonStyle="secondary"
                 >
                   {t('Apply')}
                 </Button>
