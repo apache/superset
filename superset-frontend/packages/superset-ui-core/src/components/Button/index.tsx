@@ -120,7 +120,7 @@ export function Button(props: ButtonProps) {
         display: 'inline-flex',
         alignItems: 'center',
         justifyContent: 'center',
-        lineHeight: 0,
+        lineHeight: 1,
         fontSize: fontSizeSM,
         fontWeight: fontWeightStrong,
         height,
