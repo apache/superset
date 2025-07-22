@@ -40,7 +40,7 @@ type ModalTitleWithIconProps = {
   /**
    * Static title used when `editModeConfig` is not provided.
    */
-  title?: string;
+  title?: string | React.ReactNode;
 
   /**
    * Optional icon displayed before the title.
@@ -97,7 +97,7 @@ export const ModalTitleWithIcon = ({
   return (
     <Typography.Title level={level} css={titleStyles} data-test={dataTestId}>
       {renderedIcon}
-      {t(renderedTitle || '')}
+      {typeof renderedTitle === 'string' ? t(renderedTitle) : renderedTitle}
     </Typography.Title>
   );
 };

@@ -56,6 +56,7 @@ function RoleListAddModal({
     <FormModal
       show={show}
       onHide={onHide}
+      name="Add Role"
       title={
         <ModalTitleWithIcon title="Add Role" icon={<Icons.PlusOutlined />} />
       }
