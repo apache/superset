@@ -146,28 +146,59 @@ This document provides a reference for the input and output schemas of all MCP t
 ### create_chart
 
 **Inputs:**
-- `slice_name`: `str` — Chart name
-- `viz_type`: `str` — Visualization type (e.g., echarts_timeseries_line, echarts_timeseries_bar, echarts_area, table)
-- `datasource_id`: `int` — Dataset ID
-- `datasource_type`: `str` — Datasource type (usually 'table')
-- `x_axis`: `str` — Column name or SQL for x-axis (ECharts timeseries)
-- `metrics`: `List[str]` — List of metric names to display
-- `groupby`: `Optional[List[str]]` — Columns to group by (series)
-- `filters`: `Optional[List[Dict[str, Any]]]` — List of filter objects
-- `row_limit`: `Optional[int]` — Row limit
-- `stack`: `Optional[bool]` — Stack series (ECharts option)
-- `area`: `Optional[bool]` — Show area under line/bar (ECharts option)
-- `smooth`: `Optional[bool]` — Smooth lines (ECharts option)
-- `show_value`: `Optional[bool]` — Show values on chart (ECharts option)
-- `color_scheme`: `Optional[str]` — Color scheme (ECharts option)
-- `legend_type`: `Optional[str]` — Legend type (ECharts option)
-- `legend_orientation`: `Optional[str]` — Legend orientation (ECharts option)
-- `tooltip_sorting`: `Optional[str]` — Tooltip sorting (ECharts option)
-- `y_axis_format`: `Optional[str]` — Y axis format (ECharts option)
-- `y_axis_bounds`: `Optional[List[float]]` — Y axis bounds (ECharts option)
-- `x_axis_time_format`: `Optional[str]` — X axis time format (ECharts option)
-- `rich_tooltip`: `Optional[bool]` — Enable rich tooltip (ECharts option)
-- `extra_options`: `Optional[Dict[str, Any]]` — Additional ECharts options not yet modeled (future-proof)
+- `dataset_id`: `str` — ID of the dataset to use
+- `config`: `ChartConfig` — Chart configuration (supports table and XY charts)
+
+#### ChartConfig (Union of TableChartConfig and XYChartConfig)
+
+#### TableChartConfig
+- `chart_type`: `Literal["table"]` — Chart type
+- `columns`: `List[ColumnRef]` — Columns to display
+- `filters`: `Optional[List[FilterConfig]]` — Filters to apply
+- `sort_by`: `Optional[List[str]]` — Columns to sort by
+
+#### XYChartConfig
+- `chart_type`: `Literal["xy"]` — Chart type
+- `x`: `ColumnRef` — X-axis column
+- `y`: `List[ColumnRef]` — Y-axis columns
+- `kind`: `Literal["line", "bar", "area", "scatter"]` — Chart visualization type
+- `group_by`: `Optional[ColumnRef]` — Column to group by
+- `x_axis`: `Optional[AxisConfig]` — X-axis configuration
+- `y_axis`: `Optional[AxisConfig]` — Y-axis configuration
+- `legend`: `Optional[LegendConfig]` — Legend configuration
+- `filters`: `Optional[List[FilterConfig]]` — Filters to apply
+
+#### ColumnRef
+- `name`: `str` — Column name
+- `label`: `Optional[str]` — Display label for the column
+- `dtype`: `Optional[str]` — Data type hint
+- `aggregate`: `Optional[str]` — SQL aggregation function (SUM, COUNT, AVG, MIN, MAX, etc.)
+
+#### AxisConfig
+- `title`: `Optional[str]` — Axis title
+- `scale`: `Optional[Literal["linear", "log"]]` — Axis scale type
+- `format`: `Optional[str]` — Format string (e.g. '$,.2f')
+
+#### LegendConfig
+- `show`: `bool` — Whether to show legend
+- `position`: `Optional[Literal["top", "bottom", "left", "right"]]` — Legend position
+
+#### FilterConfig
+- `column`: `str` — Column to filter on
+- `op`: `Literal["=", ">", "<", ">=", "<=", "!="]` — Filter operator
+- `value`: `Union[str, int, float, bool]` — Filter value
+
+#### Supported Chart Types
+- **Table charts** (`table`) — Simple column display with filters and sorting
+- **Line charts** (`echarts_timeseries_line`) — Time series line charts
+- **Bar charts** (`echarts_timeseries_bar`) — Time series bar charts
+- **Area charts** (`echarts_area`) — Time series area charts
+- **Scatter charts** (`echarts_timeseries_scatter`) — Time series scatter charts
+
+#### Metric Handling
+The tool intelligently handles two metric formats:
+1. **Simple metrics** (like `["count"]`) — Passed as simple strings
+2. **Complex metrics** (like column names) — Converted to full Superset metric objects with SQL aggregators
 
 ## Model Relationships
 

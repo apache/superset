@@ -98,8 +98,7 @@ def serialize_chart_object(chart: Any) -> Optional[ChartInfo]:
         query_context=getattr(chart, "query_context", None),
         changed_by=getattr(chart, "changed_by_name", None)
         or (str(chart.changed_by) if getattr(chart, "changed_by", None) else None),
-        changed_by_name=getattr(chart, "changed_by_name", None)
-        or (str(chart.changed_by) if getattr(chart, "changed_by", None) else None),
+        changed_by_name=getattr(chart, "changed_by_name", None),
         changed_on=getattr(chart, "changed_on", None),
         changed_on_humanized=getattr(chart, "changed_on_humanized", None),
         created_by=getattr(chart, "created_by_name", None)
@@ -193,124 +192,69 @@ class ChartList(BaseModel):
     model_config = ConfigDict(ser_json_timedelta="iso8601")
 
 
-# --- New schemas for create_chart tool (polymorphic, viz_type-discriminated) ---
+# --- Simplified schemas for create_chart tool ---
 
 
-class BaseChartCreateRequest(BaseModel):
-    viz_type: str = Field(..., description="Visualization type")
-    slice_name: str = Field(..., description="Chart name")
-    datasource_id: int = Field(..., description="ID of the datasource (dataset) to use")
-    datasource_type: Literal["table"] = Field(
-        "table", description="Datasource type (usually 'table')"
-    )
-    description: Optional[str] = Field(None, description="Chart description")
-    owners: Optional[List[int]] = Field(None, description="List of owner user IDs")
-    dashboards: Optional[List[int]] = Field(
-        None, description="List of dashboard IDs to add this chart to"
-    )
-    return_embed: Optional[bool] = Field(
-        False, description="If true, return embeddable chart assets"
+# Common pieces
+class ColumnRef(BaseModel):
+    name: str = Field(..., description="Column name")
+    label: Optional[str] = Field(None, description="Display label for the column")
+    dtype: Optional[str] = Field(None, description="Data type hint")
+    aggregate: Optional[str] = Field(
+        None, description="SQL aggregation function (SUM, COUNT, AVG, MIN, MAX, etc.)"
     )
 
 
-# --- DRY base for ECharts timeseries charts ---
-class EchartsTimeseriesBaseChartCreateRequest(BaseChartCreateRequest):
-    """
-    Base schema for ECharts timeseries charts (line, bar, area).
-    Now includes additional ECharts options for full frontend compatibility.
-    """
+class AxisConfig(BaseModel):
+    title: Optional[str] = Field(None, description="Axis title")
+    scale: Optional[Literal["linear", "log"]] = Field(
+        "linear", description="Axis scale type"
+    )
+    format: Optional[str] = Field(None, description="Format string (e.g. '$,.2f')")
 
-    x_axis: str = Field(..., description="Column name or custom SQL for x-axis")
-    x_axis_sort: Optional[str] = Field(
-        None, description="Column or metric to sort x-axis by"
-    )
-    metrics: List[str] = Field(..., description="List of metric names to display")
-    groupby: Optional[List[str]] = Field(
-        None, description="List of columns to group by (series)"
-    )
-    contribution_mode: Optional[Literal["row", "series"]] = Field(
-        None, description="Contribution mode (row or series)"
-    )
-    filters: Optional[List[Dict[str, Any]]] = Field(
-        None, description="List of filter objects (column or metric)"
-    )
-    series_limit: Optional[int] = Field(None, description="Series limit")
-    orderby: Optional[List[Any]] = Field(
-        None, description="Sort query by columns or metrics"
-    )
-    row_limit: Optional[int] = Field(None, description="Row limit")
-    truncate_metric: Optional[bool] = Field(
-        None, description="Truncate metric (boolean)"
-    )
-    show_empty_columns: Optional[bool] = Field(
-        None, description="Show empty columns (boolean)"
-    )
-    # --- New ECharts frontend options ---
-    stack: Optional[bool] = Field(None, description="Stack series (ECharts option)")
-    area: Optional[bool] = Field(
-        None, description="Show area under line/bar (ECharts option)"
-    )
-    smooth: Optional[bool] = Field(None, description="Smooth lines (ECharts option)")
-    show_value: Optional[bool] = Field(
-        None, description="Show values on chart (ECharts option)"
-    )
-    color_scheme: Optional[str] = Field(
-        None, description="Color scheme (ECharts option)"
-    )
-    legend_type: Optional[str] = Field(None, description="Legend type (ECharts option)")
-    legend_orientation: Optional[str] = Field(
-        None, description="Legend orientation (ECharts option)"
-    )
-    tooltip_sorting: Optional[str] = Field(
-        None, description="Tooltip sorting (ECharts option)"
-    )
-    y_axis_format: Optional[str] = Field(
-        None, description="Y axis format (ECharts option)"
-    )
-    y_axis_bounds: Optional[List[float]] = Field(
-        None, description="Y axis bounds (ECharts option)"
-    )
-    x_axis_time_format: Optional[str] = Field(
-        None, description="X axis time format (ECharts option)"
-    )
-    rich_tooltip: Optional[bool] = Field(
-        None, description="Enable rich tooltip (ECharts option)"
-    )
-    extra_options: Optional[Dict[str, Any]] = Field(
-        None, description="Additional ECharts options not yet modeled (future-proof)"
+
+class LegendConfig(BaseModel):
+    show: bool = Field(True, description="Whether to show legend")
+    position: Optional[Literal["top", "bottom", "left", "right"]] = Field(
+        "right", description="Legend position"
     )
 
 
-class EchartsTimeseriesLineChartCreateRequest(EchartsTimeseriesBaseChartCreateRequest):
-    viz_type: Literal["echarts_timeseries_line"] = Field(
-        "echarts_timeseries_line", description="Visualization type"
+class FilterConfig(BaseModel):
+    column: str = Field(..., description="Column to filter on")
+    op: Literal["=", ">", "<", ">=", "<=", "!="] = Field(
+        ..., description="Filter operator"
     )
+    value: Union[str, int, float, bool] = Field(..., description="Filter value")
 
 
-class EchartsTimeseriesBarChartCreateRequest(EchartsTimeseriesBaseChartCreateRequest):
-    viz_type: Literal["echarts_timeseries_bar"] = Field(
-        "echarts_timeseries_bar", description="Visualization type"
-    )
+# Actual chart types
+class TableChartConfig(BaseModel):
+    chart_type: Literal["table"] = Field("table", description="Chart type")
+    columns: List[ColumnRef] = Field(..., description="Columns to display")
+    filters: Optional[List[FilterConfig]] = Field(None, description="Filters to apply")
+    sort_by: Optional[List[str]] = Field(None, description="Columns to sort by")
 
 
-class EchartsAreaChartCreateRequest(EchartsTimeseriesBaseChartCreateRequest):
-    viz_type: Literal["echarts_area"] = Field(
-        "echarts_area", description="Visualization type"
+class XYChartConfig(BaseModel):
+    chart_type: Literal["xy"] = Field("xy", description="Chart type")
+    x: ColumnRef = Field(..., description="X-axis column")
+    y: List[ColumnRef] = Field(..., description="Y-axis columns")
+    kind: Literal["line", "bar", "area", "scatter"] = Field(
+        "line", description="Chart visualization type"
     )
+    group_by: Optional[ColumnRef] = Field(None, description="Column to group by")
+    x_axis: Optional[AxisConfig] = Field(None, description="X-axis configuration")
+    y_axis: Optional[AxisConfig] = Field(None, description="Y-axis configuration")
+    legend: Optional[LegendConfig] = Field(None, description="Legend configuration")
+    filters: Optional[List[FilterConfig]] = Field(None, description="Filters to apply")
 
 
-class TableChartCreateRequest(BaseChartCreateRequest):
-    viz_type: Literal["table"] = Field("table", description="Visualization type")
-    all_columns: List[str] = Field(..., description="List of columns to display")
-    metrics: Optional[List[str]] = Field(
-        None, description="List of metric names to display"
-    )
-    groupby: Optional[List[str]] = Field(
-        None, description="List of columns to group by"
-    )
-    adhoc_filters: Optional[List[Dict[str, Any]]] = Field(
-        None, description="List of adhoc filter objects"
-    )
-    order_by_cols: Optional[List[Any]] = Field(None, description="Order by columns")
-    row_limit: Optional[int] = Field(None, description="Row limit")
-    order_desc: Optional[bool] = Field(None, description="Order descending")
+# Discriminated union entry point
+ChartConfig = Union[TableChartConfig, XYChartConfig]
+
+
+# The tool input model
+class CreateChartRequest(BaseModel):
+    dataset_id: str = Field(..., description="ID of the dataset to use")
+    config: ChartConfig = Field(..., description="Chart configuration")
