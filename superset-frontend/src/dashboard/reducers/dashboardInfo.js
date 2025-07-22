@@ -29,6 +29,7 @@ import {
   SET_PENDING_CHART_CUSTOMIZATION,
   CLEAR_PENDING_CHART_CUSTOMIZATION,
   CLEAR_ALL_PENDING_CHART_CUSTOMIZATIONS,
+  CLEAR_ALL_CHART_CUSTOMIZATIONS,
 } from '../actions/dashboardInfo';
 import { HYDRATE_DASHBOARD } from '../actions/hydrate';
 
@@ -154,6 +155,22 @@ export default function dashboardStateReducer(state = {}, action) {
       return {
         ...state,
         pendingChartCustomizations: {},
+      };
+    case CLEAR_ALL_CHART_CUSTOMIZATIONS:
+      return {
+        ...state,
+        metadata: {
+          ...state.metadata,
+          chart_customization_config:
+            state.metadata?.chart_customization_config?.map(customization => ({
+              ...customization,
+              customization: {
+                ...customization.customization,
+                column: null,
+              },
+            })) || [],
+        },
+        last_modified_time: Math.round(new Date().getTime() / 1000),
       };
     default:
       return state;
