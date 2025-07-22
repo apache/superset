@@ -78,6 +78,55 @@ client_admin_pvms = [
 ]
 
 
+datakimia_public_role_pvms = [
+    ("can_read", "AdvancedDataType"),
+    ("can_query", "Api"),
+    ("can_query_form_data", "Api"),
+    ("can_time_range", "Api"),
+    ("can_list", "AsyncEventsRestApi"),
+    ("can_read", "AvailableDomains"),
+    ("can_export", "Chart"),
+    ("can_read", "Chart"),
+    ("can_cache_dashboard_screenshot", "Dashboard"),
+    ("can_drill", "Dashboard"),
+    ("can_export", "Dashboard"),
+    ("can_get_embedded", "Dashboard"),
+    ("can_read", "Dashboard"),
+    ("can_view_chart_as_table", "Dashboard"),
+    ("can_read", "DashboardFilterStateRestApi"),
+    ("can_read", "DashboardPermalinkRestApi"),
+    ("can_read", "Database"),
+    ("can_read", "Dataset"),
+    ("can_external_metadata", "Datasource"),
+    ("can_external_metadata_by_name", "Datasource"),
+    ("can_get", "Datasource"),
+    ("can_list", "DynamicPlugin"),
+    ("can_show", "DynamicPlugin"),
+    ("can_read", "EmbeddedDashboard"),
+    ("can_read", "Explore"),
+    ("can_read", "ExploreFormDataRestApi"),
+    ("can_read", "ExplorePermalinkRestApi"),
+    ("can_get_value", "KV"),
+    ("can_recent_activity", "Log"),
+    ("can_get", "MenuApi"),
+    ("can_get", "OpenApi"),
+    ("can_read", "RowLevelSecurity"),
+    ("can_read", "SecurityRestApi"),
+    ("can_csv", "Superset"),
+    ("can_dashboard", "Superset"),
+    ("can_dashboard_permalink", "Superset"),
+    ("can_explore_json", "Superset"),
+    ("can_fetch_datasource_metadata", "Superset"),
+    ("can_log", "Superset"),
+    ("can_share_chart", "Superset"),
+    ("can_share_dashboard", "Superset"),
+    ("can_slice", "Superset"),
+    ("can_show", "SwaggerView"),
+    ("can_read", "Tag"),
+    ("can_list", "Tags"),
+    ("can_userinfo", "UserOAuthModelView"),
+]
+
 class CustomSsoSecurityManager(SupersetSecurityManager):
     authoauthview = CustomOAuthView
     def __init__(self, appbuilder):
@@ -92,3 +141,8 @@ class CustomSsoSecurityManager(SupersetSecurityManager):
         for (action, model) in client_admin_pvms:
             pvm = self.find_permission_view_menu(action, model)
             self.add_permission_role(client_admin_role, pvm)
+
+        datakimia_public_role = self.add_role("Datakimia_Public")
+        for (action, model) in datakimia_public_role_pvms:
+            pvm = self.find_permission_view_menu(action, model)
+            self.add_permission_role(datakimia_public_role, pvm)            
