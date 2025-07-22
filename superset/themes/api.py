@@ -42,6 +42,8 @@ from superset.themes.schemas import (
     get_delete_ids_schema,
     get_export_ids_schema,
     openapi_spec_methods_override,
+    ThemePostSchema,
+    ThemePutSchema,
 )
 from superset.views.base_api import (
     BaseSupersetModelRestApi,
@@ -103,6 +105,9 @@ class ThemeRestApi(BaseSupersetModelRestApi):
     add_columns = ["json_data", "theme_name"]
     edit_columns = add_columns
     order_columns = ["theme_name"]
+
+    add_model_schema = ThemePostSchema()
+    edit_model_schema = ThemePutSchema()
 
     search_filters = {"theme_name": [ThemeAllTextFilter]}
     allowed_rel_fields = {"created_by", "changed_by"}

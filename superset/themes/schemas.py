@@ -14,6 +14,18 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from marshmallow import fields, Schema
+
+
+class ThemePostSchema(Schema):
+    theme_name = fields.String(required=True, allow_none=False)
+    json_data = fields.String(required=True, allow_none=False)
+
+
+class ThemePutSchema(Schema):
+    theme_name = fields.String(required=True, allow_none=False)
+    json_data = fields.String(required=True, allow_none=False)
+
 
 openapi_spec_methods_override = {
     "get": {"get": {"summary": "Get a theme"}},
