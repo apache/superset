@@ -70,7 +70,6 @@ export function Button(props: ButtonProps) {
   if (!buttonStyle || buttonStyle === 'primary') {
     variant = 'solid';
     antdType = 'primary';
-    color = 'primary';
   } else if (buttonStyle === 'secondary') {
     variant = 'filled';
     color = 'primary';
@@ -78,7 +77,6 @@ export function Button(props: ButtonProps) {
     variant = 'outlined';
     color = 'default';
   } else if (buttonStyle === 'dashed') {
-    color = 'primary';
     variant = 'dashed';
     antdType = 'dashed';
   } else if (buttonStyle === 'danger') {
@@ -133,6 +131,11 @@ export function Button(props: ButtonProps) {
         },
         '& > span > :first-of-type': {
           marginRight: firstChildMargin,
+        },
+        ':not(:hover)': effectiveButtonStyle === 'secondary' && {
+          // NOTE: This is the best we can do contrast wise for the secondary button using antd tokens
+          // and abusing the semantics. Should be revisited when possible. https://github.com/apache/superset/pull/34253#issuecomment-3104834692
+          color: `${theme.colorPrimaryTextHover} !important`,
         },
       }}
       icon={icon}

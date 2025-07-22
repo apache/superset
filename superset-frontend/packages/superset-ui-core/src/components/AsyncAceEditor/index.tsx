@@ -202,7 +202,7 @@ export function AsyncAceEditor(
 
                 /* Basic editor styles with dark mode support */
                 .ace_editor.ace-github,
-                .ace_editor.ace-textmate {
+                .ace_editor.ace-tm {
                   background-color: ${token.colorBgContainer} !important;
                   color: ${token.colorText} !important;
                 }

@@ -28,6 +28,7 @@ import {
 
 import { Icons } from '@superset-ui/core/components/Icons';
 import { Tooltip } from '@superset-ui/core/components/Tooltip';
+import { Typography } from '@superset-ui/core/components';
 import DatasourcePanelDragOption from './DatasourcePanelDragOption';
 import { DndItemType } from '../DndItemType';
 import { DndItemValue, FlattenedItem, Folder } from './types';
@@ -94,7 +95,7 @@ const SectionHeaderTextContainer = styled.div`
   width: 100%;
 `;
 
-const SectionHeader = styled.span`
+const SectionHeader = styled(Typography.Text)`
   ${({ theme }) => css`
     font-size: ${theme.fontSize}px;
     font-weight: ${theme.fontWeightStrong};

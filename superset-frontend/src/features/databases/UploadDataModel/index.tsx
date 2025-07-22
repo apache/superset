@@ -26,6 +26,7 @@ import {
 } from 'react';
 
 import {
+  css,
   getClientErrorObject,
   SupersetClient,
   SupersetTheme,
@@ -45,6 +46,7 @@ import {
   Upload,
   type UploadChangeParam,
   type UploadFile,
+  Typography,
 } from '@superset-ui/core/components';
 import { Switch, SwitchProps } from '@superset-ui/core/components/Switch';
 import { Icons } from '@superset-ui/core/components/Icons';
@@ -576,7 +578,17 @@ const UploadDataModal: FunctionComponent<UploadDataModalProps> = ({
 
   const UploadTitle: FC = () => {
     const title = uploadTitles[type] || t('Upload');
-    return <h4>{title}</h4>;
+    return (
+      <Typography.Title
+        level={5}
+        css={css`
+          margin-top: 0;
+          margin-bottom: 0;
+        `}
+      >
+        {title}
+      </Typography.Title>
+    );
   };
 
   return (
@@ -592,7 +604,7 @@ const UploadDataModal: FunctionComponent<UploadDataModalProps> = ({
       onHandledPrimaryAction={form.submit}
       onHide={onClose}
       width="500px"
-      primaryButtonName="Upload"
+      primaryButtonName={t('Upload')}
       centered
       show={show}
       title={<UploadTitle />}
@@ -615,10 +627,9 @@ const UploadDataModal: FunctionComponent<UploadDataModalProps> = ({
             {
               key: 'general',
               label: (
-                <div>
-                  <h4>{t('General information')}</h4>
-                  <p className="helper">{t('Upload a file to a database.')}</p>
-                </div>
+                <Typography.Text strong>
+                  {t('General information')}
+                </Typography.Text>
               ),
               children: (
                 <>
@@ -772,14 +783,7 @@ const UploadDataModal: FunctionComponent<UploadDataModalProps> = ({
             {
               key: 'file-settings',
               label: (
-                <div>
-                  <h4>{t('File settings')}</h4>
-                  <p className="helper">
-                    {t(
-                      'Adjust how spaces, blank lines, null values are handled and other file wide settings.',
-                    )}
-                  </p>
-                </div>
+                <Typography.Text strong>{t('File settings')}</Typography.Text>
               ),
               children: (
                 <>
@@ -901,16 +905,7 @@ const UploadDataModal: FunctionComponent<UploadDataModalProps> = ({
             },
             {
               key: 'columns',
-              label: (
-                <div>
-                  <h4>{t('Columns')}</h4>
-                  <p className="helper">
-                    {t(
-                      'Adjust column settings such as specifying the columns to read, how duplicates are handled, column data types, and more.',
-                    )}
-                  </p>
-                </div>
-              ),
+              label: <Typography.Text strong>{t('Columns')}</Typography.Text>,
               children: (
                 <>
                   <Row>
@@ -1010,14 +1005,7 @@ const UploadDataModal: FunctionComponent<UploadDataModalProps> = ({
                   {
                     key: 'rows',
                     label: (
-                      <div>
-                        <h4>{t('Rows')}</h4>
-                        <p className="helper">
-                          {t(
-                            'Set header rows and the number of rows to read or skip.',
-                          )}
-                        </p>
-                      </div>
+                      <Typography.Text strong>{t('Rows')}</Typography.Text>
                     ),
                     children: (
                       <Row>

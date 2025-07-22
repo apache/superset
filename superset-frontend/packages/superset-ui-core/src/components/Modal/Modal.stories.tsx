@@ -33,7 +33,7 @@ export const InteractiveModal = (props: ModalProps) => (
 InteractiveModal.args = {
   disablePrimaryButton: false,
   primaryButtonName: 'Danger',
-  primaryButtonType: 'danger',
+  primaryButtonStyle: 'danger',
   show: true,
   title: "I'm a modal!",
   resizable: false,
