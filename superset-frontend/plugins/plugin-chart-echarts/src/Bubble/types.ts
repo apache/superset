@@ -45,6 +45,7 @@ export type EchartsBubbleFormData = QueryFormData &
     tooltipFormat: string;
     x: string;
     y: string;
+    showLegendToggle: boolean;
   };
 
 export interface EchartsBubbleChartProps
