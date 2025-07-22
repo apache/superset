@@ -180,8 +180,8 @@ class ThemeRestApi(BaseSupersetModelRestApi):
             )
         except ThemeNotFoundError:
             return self.response_404()
-        except SystemThemeProtectedError as ex:
-            return self.response_403(message=str(ex))
+        except SystemThemeProtectedError:
+            return self.response_403()
         except ThemeDeleteFailedError as ex:
             logger.exception(f"Theme delete failed for IDs: {item_ids}")
             return self.response_422(message=str(ex))
@@ -260,8 +260,8 @@ class ThemeRestApi(BaseSupersetModelRestApi):
             return self.response(200, id=changed_model.id, result=item)
         except ThemeNotFoundError:
             return self.response_404()
-        except SystemThemeProtectedError as ex:
-            return self.response_403(message=str(ex))
+        except SystemThemeProtectedError:
+            return self.response_403()
         except Exception as ex:
             logger.exception(f"Unexpected error in PUT /theme/{pk}")
             return self.response_422(message=str(ex))
@@ -325,7 +325,7 @@ class ThemeRestApi(BaseSupersetModelRestApi):
             logger.exception("Unexpected error in POST /theme")
             return self.response_422(message=str(ex))
 
-    @transaction
+    @transaction()
     def _create_theme(self, item: dict[str, Any]) -> Theme:
         """Create a new theme with proper transaction handling."""
         new_theme = Theme(

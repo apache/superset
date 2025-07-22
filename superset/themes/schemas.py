@@ -14,17 +14,27 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from marshmallow import fields, Schema
+from marshmallow import fields, Schema, validates, ValidationError
 
 
 class ThemePostSchema(Schema):
     theme_name = fields.String(required=True, allow_none=False)
     json_data = fields.String(required=True, allow_none=False)
 
+    @validates("theme_name")
+    def validate_theme_name(self, value: str) -> None:
+        if not value or not value.strip():
+            raise ValidationError("Theme name cannot be empty.")
+
 
 class ThemePutSchema(Schema):
     theme_name = fields.String(required=True, allow_none=False)
     json_data = fields.String(required=True, allow_none=False)
+
+    @validates("theme_name")
+    def validate_theme_name(self, value: str) -> None:
+        if not value or not value.strip():
+            raise ValidationError("Theme name cannot be empty.")
 
 
 openapi_spec_methods_override = {

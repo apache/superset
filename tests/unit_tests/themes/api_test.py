@@ -57,7 +57,9 @@ class TestThemeRestApi:
             "created_by.last_name",
             "json_data",
             "id",
+            "is_system",
             "theme_name",
+            "uuid",
         ]
         assert ThemeRestApi.show_columns == expected_columns
 
@@ -75,7 +77,9 @@ class TestThemeRestApi:
             "created_by.last_name",
             "json_data",
             "id",
+            "is_system",
             "theme_name",
+            "uuid",
         ]
         assert ThemeRestApi.list_columns == expected_columns
 
@@ -93,3 +97,23 @@ class TestThemeRestApi:
         # The bulk_delete method should be available
         assert hasattr(ThemeRestApi, "bulk_delete")
         assert callable(ThemeRestApi.bulk_delete)
+
+    def test_custom_schemas_configured(self):
+        """Test that custom schemas are properly configured"""
+        from superset.themes.schemas import ThemePostSchema, ThemePutSchema
+
+        api = ThemeRestApi()
+        assert isinstance(api.add_model_schema, ThemePostSchema)
+        assert isinstance(api.edit_model_schema, ThemePutSchema)
+
+    def test_show_columns_include_new_fields(self):
+        """Test that show columns include new is_system and uuid fields"""
+        expected_new_fields = ["is_system", "uuid"]
+        for field in expected_new_fields:
+            assert field in ThemeRestApi.show_columns
+
+    def test_list_columns_include_new_fields(self):
+        """Test that list columns include new is_system and uuid fields"""
+        expected_new_fields = ["is_system", "uuid"]
+        for field in expected_new_fields:
+            assert field in ThemeRestApi.list_columns

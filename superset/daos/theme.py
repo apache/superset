@@ -14,12 +14,15 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import logging
 from typing import Any, Optional
 
 from superset.daos.base import BaseDAO
 from superset.extensions import db
 from superset.models.core import Theme
 from superset.utils import json
+
+logger = logging.getLogger(__name__)
 
 
 class ThemeDAO(BaseDAO[Theme]):
@@ -32,11 +35,14 @@ class ThemeDAO(BaseDAO[Theme]):
     def resolve_theme_with_uuid(cls, theme_config: dict[str, Any]) -> dict[str, Any]:
         """Resolve theme configuration that may contain a UUID reference."""
         if "uuid" in theme_config:
-            crud_theme = cls.find_by_uuid(theme_config["uuid"])
-            if crud_theme and crud_theme.json_data:
-                try:
-                    resolved_config = json.loads(crud_theme.json_data)
-                    return resolved_config
-                except (ValueError, TypeError):
-                    pass
+            try:
+                crud_theme = cls.find_by_uuid(theme_config["uuid"])
+                if crud_theme and crud_theme.json_data:
+                    try:
+                        resolved_config = json.loads(crud_theme.json_data)
+                        return resolved_config
+                    except (ValueError, TypeError):
+                        pass
+            except Exception as e:
+                logger.exception(e)
         return theme_config

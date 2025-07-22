@@ -1,0 +1,227 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+
+from unittest.mock import Mock, patch
+
+import pytest
+
+from superset.commands.theme.exceptions import (
+    SystemThemeProtectedError,
+    ThemeNotFoundError,
+)
+from superset.commands.theme.seed import SeedSystemThemesCommand
+from superset.commands.theme.update import UpdateThemeCommand
+from superset.models.core import Theme
+
+
+class TestUpdateThemeCommand:
+    """Unit tests for UpdateThemeCommand"""
+
+    @patch("superset.commands.theme.update.ThemeDAO")
+    def test_validate_theme_not_found(self, mock_theme_dao):
+        """Test validation fails when theme doesn't exist"""
+        # Arrange
+        mock_theme_dao.find_by_id.return_value = None
+        command = UpdateThemeCommand(123, {"theme_name": "test"})
+
+        # Act & Assert
+        with pytest.raises(ThemeNotFoundError):
+            command.validate()
+
+    @patch("superset.commands.theme.update.ThemeDAO")
+    def test_validate_system_theme_protection(self, mock_theme_dao):
+        """Test validation fails when trying to update system theme"""
+        # Arrange
+        mock_theme = Mock(spec=Theme)
+        mock_theme.is_system = True
+        mock_theme_dao.find_by_id.return_value = mock_theme
+        command = UpdateThemeCommand(123, {"theme_name": "test"})
+
+        # Act & Assert
+        with pytest.raises(SystemThemeProtectedError):
+            command.validate()
+
+    @patch("superset.commands.theme.update.ThemeDAO")
+    def test_validate_regular_theme_success(self, mock_theme_dao):
+        """Test validation succeeds for regular (non-system) themes"""
+        # Arrange
+        mock_theme = Mock(spec=Theme)
+        mock_theme.is_system = False
+        mock_theme_dao.find_by_id.return_value = mock_theme
+        command = UpdateThemeCommand(123, {"theme_name": "test"})
+
+        # Act
+        command.validate()  # Should not raise any exception
+
+        # Assert
+        assert command._model == mock_theme
+
+    @patch("superset.commands.theme.update.ThemeDAO")
+    def test_run_success(self, mock_theme_dao):
+        """Test successful theme update"""
+        # Arrange
+        mock_theme = Mock(spec=Theme)
+        mock_theme.is_system = False
+        mock_updated_theme = Mock(spec=Theme)
+        mock_theme_dao.find_by_id.return_value = mock_theme
+        mock_theme_dao.update.return_value = mock_updated_theme
+
+        command = UpdateThemeCommand(123, {"theme_name": "updated_name"})
+
+        # Act
+        result = command.run()
+
+        # Assert
+        assert result == mock_updated_theme
+        mock_theme_dao.update.assert_called_once_with(
+            mock_theme, {"theme_name": "updated_name"}
+        )
+
+
+class TestSeedSystemThemesCommand:
+    """Unit tests for SeedSystemThemesCommand"""
+
+    @patch("superset.commands.theme.seed.current_app")
+    def test_run_no_themes_configured(self, mock_current_app):
+        """Test run when no themes are configured"""
+        # Arrange
+        mock_current_app.config.get.side_effect = lambda key: None
+        command = SeedSystemThemesCommand()
+
+        # Act
+        command.run()  # Should complete without error
+
+        # Assert
+        mock_current_app.config.get.assert_any_call("THEME_DEFAULT")
+        mock_current_app.config.get.assert_any_call("THEME_DARK")
+
+    @patch("superset.commands.theme.seed.current_app")
+    @patch("superset.commands.theme.seed.db")
+    def test_run_with_theme_default_only(self, mock_db, mock_current_app):
+        """Test run when only THEME_DEFAULT is configured"""
+        # Arrange
+        default_theme = {"algorithm": "default", "token": {}}
+
+        def get_config(key):
+            return {"THEME_DEFAULT": default_theme, "THEME_DARK": None}.get(key)
+
+        mock_current_app.config.get = Mock(side_effect=get_config)
+
+        mock_session = Mock()
+        mock_db.session = mock_session
+        mock_session.query.return_value.filter.return_value.first.return_value = None
+
+        command = SeedSystemThemesCommand()
+
+        # Act
+        command.run()
+
+        # Assert
+        mock_session.add.assert_called_once()
+        mock_session.commit.assert_called()
+
+    @patch("superset.commands.theme.seed.current_app")
+    @patch("superset.commands.theme.seed.db")
+    def test_run_update_existing_theme(self, mock_db, mock_current_app):
+        """Test run when theme already exists and needs updating"""
+        # Arrange
+        default_theme = {"algorithm": "default", "token": {}}
+
+        def get_config(key):
+            return {"THEME_DEFAULT": default_theme, "THEME_DARK": None}.get(key)
+
+        mock_current_app.config.get = Mock(side_effect=get_config)
+
+        # Mock existing theme
+        mock_existing_theme = Mock(spec=Theme)
+        mock_existing_theme.json_data = '{"old": "data"}'
+
+        mock_session = Mock()
+        mock_db.session = mock_session
+        mock_session.query.return_value.filter.return_value.first.return_value = (
+            mock_existing_theme
+        )
+
+        command = SeedSystemThemesCommand()
+
+        # Act
+        command.run()
+
+        # Assert
+        assert '"algorithm": "default"' in mock_existing_theme.json_data
+        mock_session.commit.assert_called()
+        mock_session.add.assert_not_called()  # Should not add new theme
+
+    @patch("superset.commands.theme.seed.current_app")
+    @patch("superset.commands.theme.seed.db")
+    @patch("superset.commands.theme.seed.logger")
+    def test_run_handles_database_error(self, mock_logger, mock_db, mock_current_app):
+        """Test run handles database errors gracefully"""
+        # Arrange
+        default_theme = {"algorithm": "default", "token": {}}
+
+        def get_config(key):
+            return {"THEME_DEFAULT": default_theme, "THEME_DARK": None}.get(key)
+
+        mock_current_app.config.get = Mock(side_effect=get_config)
+
+        mock_session = Mock()
+        mock_db.session = mock_session
+        mock_session.query.side_effect = Exception("Database error")
+
+        command = SeedSystemThemesCommand()
+
+        # Act
+        command.run()  # Should not raise exception
+
+        # Assert
+        mock_logger.error.assert_called()
+        mock_session.rollback.assert_called()
+
+    @patch("superset.commands.theme.seed.current_app")
+    @patch("superset.commands.theme.seed.db")
+    def test_run_with_both_themes(self, mock_db, mock_current_app):
+        """Test run when both THEME_DEFAULT and THEME_DARK are configured"""
+        # Arrange
+        default_theme = {"algorithm": "default", "token": {}}
+        dark_theme = {"algorithm": "dark", "token": {}}
+
+        def get_config(key):
+            return {"THEME_DEFAULT": default_theme, "THEME_DARK": dark_theme}.get(key)
+
+        mock_current_app.config.get = Mock(side_effect=get_config)
+
+        mock_session = Mock()
+        mock_db.session = mock_session
+        mock_session.query.return_value.filter.return_value.first.return_value = None
+
+        command = SeedSystemThemesCommand()
+
+        # Act
+        command.run()
+
+        # Assert
+        assert mock_session.add.call_count == 2  # Both themes should be added
+        mock_session.commit.assert_called()
+
+    def test_validate(self):
+        """Test validate method (should be no-op)"""
+        # Arrange
+        command = SeedSystemThemesCommand()
+
+        # Act & Assert
+        command.validate()  # Should complete without error
