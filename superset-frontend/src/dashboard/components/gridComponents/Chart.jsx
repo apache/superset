@@ -37,6 +37,7 @@ import {
 import { postFormData } from 'src/explore/exploreUtils/formData';
 import { URL_PARAMS } from 'src/constants';
 import { enforceSharedLabelsColorsArray } from 'src/utils/colorScheme';
+import exportPivotExcel from 'src/utils/downloadAsPivotExcel';
 
 import SliceHeader from '../SliceHeader';
 import MissingChart from '../MissingChart';
@@ -213,11 +214,15 @@ const Chart = props => {
 
   const getHeaderHeight = useCallback(() => {
     if (headerRef.current) {
-      const computedStyle = getComputedStyle(
+      const computedMarginBottom = getComputedStyle(
         headerRef.current,
       ).getPropertyValue('margin-bottom');
-      const marginBottom = parseInt(computedStyle, 10) || 0;
-      return headerRef.current.offsetHeight + marginBottom;
+      const marginBottom = parseInt(computedMarginBottom, 10) || 0;
+      const computedHeight = getComputedStyle(
+        headerRef.current,
+      ).getPropertyValue('height');
+      const height = parseInt(computedHeight, 10) || DEFAULT_HEADER_HEIGHT;
+      return height + marginBottom;
     }
     return DEFAULT_HEADER_HEIGHT;
   }, [headerRef]);
@@ -471,6 +476,7 @@ const Chart = props => {
         formData={formData}
         width={width}
         height={getHeaderHeight()}
+        exportPivotExcel={exportPivotExcel}
       />
 
       {/*
