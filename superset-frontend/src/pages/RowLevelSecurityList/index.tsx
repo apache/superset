@@ -249,7 +249,9 @@ function RowLevelSecurityList(props: RLSProps) {
     title: t('No Rules yet'),
     image: 'filter-results.svg',
     buttonAction: () => handleRuleEdit(null),
-    buttonIcon: canEdit ? <Icons.PlusOutlined iconSize="m" /> : undefined,
+    buttonIcon: canEdit ? (
+      <Icons.PlusOutlined iconSize="m" data-test="add-rule-empty" />
+    ) : undefined,
     buttonText: canEdit ? t('Rule') : null,
   };
 

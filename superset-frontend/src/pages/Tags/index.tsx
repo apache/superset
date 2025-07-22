@@ -135,12 +135,8 @@ function TagList(props: TagListProps) {
     description:
       'Create a new tag and assign it to existing entities like charts or dashboards',
     buttonAction: () => setShowTagModal(true),
-    buttonText: (
-      <>
-        <Icons.PlusOutlined iconSize="m" data-test="add-rule-empty" />
-        Create a new Tag
-      </>
-    ),
+    buttonIcon: <Icons.PlusOutlined iconSize="m" data-test="add-rule-empty" />,
+    buttonText: t('Create a new Tag'),
   };
 
   const columns = useMemo(
