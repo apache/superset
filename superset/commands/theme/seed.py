@@ -20,9 +20,11 @@ from typing import Any
 from flask import current_app
 
 from superset.commands.base import BaseCommand
+from superset.daos.theme import ThemeDAO
 from superset.extensions import db
 from superset.models.core import Theme
 from superset.utils import json
+from superset.utils.decorators import transaction
 
 logger = logging.getLogger(__name__)
 
@@ -42,35 +44,64 @@ class SeedSystemThemesCommand(BaseCommand):
         for theme_name, theme_config in themes_to_seed:
             self._upsert_system_theme(theme_name, theme_config)
 
+    @transaction
     def _upsert_system_theme(
         self, theme_name: str, theme_config: dict[str, Any]
     ) -> None:
         """Upsert a system theme."""
-        try:
-            existing_theme = (
-                db.session.query(Theme)
-                .filter(Theme.theme_name == theme_name, Theme.is_system)
-                .first()
-            )
-
-            json_data = json.dumps(theme_config)
-
-            if existing_theme:
-                existing_theme.json_data = json_data
-                logger.info(f"Updated system theme: {theme_name}")
+        # Handle UUID-only references by copying the referenced theme's definition
+        if "uuid" in theme_config and len(theme_config) == 1:
+            # UUID-only reference: fetch and copy the theme definition
+            original_uuid = theme_config["uuid"]
+            referenced_theme = ThemeDAO.find_by_uuid(original_uuid)
+            if referenced_theme and referenced_theme.json_data:
+                try:
+                    theme_config = json.loads(referenced_theme.json_data)
+                    # Add a note about the theme being copied from UUID reference
+                    theme_config["NOTE"] = (
+                        f"Copied at startup from theme UUID {original_uuid} "
+                        f"based on config reference"
+                    )
+                    logger.info(
+                        "Copied theme definition from UUID %s for system theme %s",
+                        original_uuid,
+                        theme_name,
+                    )
+                except (ValueError, TypeError) as ex:
+                    logger.error(
+                        "Failed to parse theme JSON for UUID %s: %s",
+                        original_uuid,
+                        ex,
+                    )
+                    return
             else:
-                new_theme = Theme(
-                    theme_name=theme_name,
-                    json_data=json_data,
-                    is_system=True,
+                logger.error(
+                    "Referenced theme with UUID %s not found for system theme %s",
+                    original_uuid,
+                    theme_name,
                 )
-                db.session.add(new_theme)
-                logger.info(f"Created system theme: {theme_name}")
+                return
+        # else: Either no UUID or UUID + definition provided, use theme_config as-is
 
-            db.session.commit()
-        except Exception as ex:
-            logger.error(f"Failed to seed system theme {theme_name}: {ex}")
-            db.session.rollback()
+        existing_theme = (
+            db.session.query(Theme)
+            .filter(Theme.theme_name == theme_name, Theme.is_system)
+            .first()
+        )
+
+        json_data = json.dumps(theme_config)
+
+        if existing_theme:
+            existing_theme.json_data = json_data
+            logger.info(f"Updated system theme: {theme_name}")
+        else:
+            new_theme = Theme(
+                theme_name=theme_name,
+                json_data=json_data,
+                is_system=True,
+            )
+            db.session.add(new_theme)
+            logger.info(f"Created system theme: {theme_name}")
 
     def validate(self) -> None:
         """Validate that the command can be executed."""

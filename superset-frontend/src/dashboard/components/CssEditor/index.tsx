@@ -108,9 +108,16 @@ class CssEditor extends PureComponent<CssEditorProps, CssEditorState> {
         );
       });
 
-    // Fetch themes
+    // Fetch themes (excluding system themes)
     const themeQuery = rison.encode({
-      columns: ['id', 'theme_name', 'json_data'],
+      columns: ['id', 'theme_name', 'json_data', 'is_system'],
+      filters: [
+        {
+          col: 'is_system',
+          opr: 'eq',
+          value: false,
+        },
+      ],
     });
     SupersetClient.get({ endpoint: `/api/v1/theme/?q=${themeQuery}` })
       .then(({ json }) => {
