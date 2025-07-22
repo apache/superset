@@ -17,10 +17,9 @@
 
 """
 Unit tests for MCP chart tools (list_charts, get_chart_info,
-get_chart_available_filters)
+get_chart_available_filters, create_chart)
 """
 
-import json
 import logging
 from unittest.mock import Mock, patch
 
@@ -30,13 +29,16 @@ from fastmcp import Client
 
 from superset.mcp_service.mcp_app import mcp
 
-# Updated imports for new tool structure
+# Updated imports for new simplified schemas
 from superset.mcp_service.pydantic_schemas.chart_schemas import (
+    AxisConfig,
     ChartInfo,
-    EchartsAreaChartCreateRequest,
-    EchartsTimeseriesBarChartCreateRequest,
-    EchartsTimeseriesLineChartCreateRequest,
-    TableChartCreateRequest,
+    ColumnRef,
+    CreateChartRequest,
+    FilterConfig,
+    LegendConfig,
+    TableChartConfig,
+    XYChartConfig,
 )
 
 logging.basicConfig(level=logging.DEBUG)
@@ -267,7 +269,7 @@ async def test_get_chart_available_filters_exception_handling(mcp_server):
         assert hasattr(result.data, "column_operators")
 
 
-def _mock_chart(id=1, viz_type="echarts_timeseries_line", form_data=None):
+def _mock_chart(id=1, viz_type="table", form_data=None):
     from unittest.mock import Mock
 
     chart = Mock()
@@ -314,257 +316,294 @@ def _mock_chart(id=1, viz_type="echarts_timeseries_line", form_data=None):
 
 @patch("superset.commands.chart.create.CreateChartCommand.run")
 @pytest.mark.asyncio
-async def test_create_chart_echarts_line_full_fields(mock_run, mcp_server):
-    mock_cmd = Mock()
-    mock_cmd.run.return_value = _mock_chart(id=123, viz_type="echarts_timeseries_line")
-    mock_run.return_value = mock_cmd.run.return_value
-    req = EchartsTimeseriesLineChartCreateRequest(
-        slice_name="Line Chart",
-        datasource_id=1,
-        x_axis="ds",
-        x_axis_sort="ds",
-        metrics=["sum__value"],
-        groupby=["region"],
-        contribution_mode="row",
-        filters=[{"col": "region", "opr": "eq", "value": "West"}],
-        series_limit=10,
-        orderby=[["sum__value", False]],
-        row_limit=100,
-        truncate_metric=True,
-        show_empty_columns=False,
-    )
-    async with Client(mcp_server) as client:
-        resp = await client.call_tool("create_chart", {"request": req.model_dump()})
-        assert resp.data.chart is not None
-        assert resp.data.chart.viz_type == "echarts_timeseries_line"
-        assert resp.data.error is None
-        mock_run.assert_called_once()
-
-
-@patch("superset.commands.chart.create.CreateChartCommand.run")
-@pytest.mark.asyncio
-async def test_create_chart_echarts_timeseries_line_success(mock_run, mcp_server):
-    mock_run.return_value = _mock_chart(id=101, viz_type="echarts_timeseries_line")
-    req = EchartsTimeseriesLineChartCreateRequest(
-        slice_name="Line Chart",
-        x_axis="ds",
-        datasource_id=1,
-        metrics=["sum__sales"],
-        groupby=["region"],
-        filters=[{"col": "year", "opr": "eq", "value": 2024}],
-    )
-    async with Client(mcp_server) as client:
-        resp = await client.call_tool("create_chart", {"request": req.dict()})
-        assert resp.data.chart is not None
-        assert resp.data.chart.viz_type == "echarts_timeseries_line"
-        assert resp.data.error is None
-        mock_run.assert_called_once()
-
-
-@patch("superset.commands.chart.create.CreateChartCommand.run")
-@pytest.mark.asyncio
-async def test_create_chart_echarts_timeseries_bar_success(mock_run, mcp_server):
-    mock_run.return_value = _mock_chart(id=102, viz_type="echarts_timeseries_bar")
-    req = EchartsTimeseriesBarChartCreateRequest(
-        slice_name="Bar Chart",
-        x_axis="ds",
-        datasource_id=1,
-        metrics=["sum__sales"],
-        groupby=["region"],
-        filters=[{"col": "year", "opr": "eq", "value": 2024}],
-    )
-    async with Client(mcp_server) as client:
-        resp = await client.call_tool("create_chart", {"request": req.dict()})
-        assert resp.data.chart is not None
-        assert resp.data.chart.viz_type == "echarts_timeseries_bar"
-        assert resp.data.error is None
-        mock_run.assert_called_once()
-
-
-@patch("superset.commands.chart.create.CreateChartCommand.run")
-@pytest.mark.asyncio
-async def test_create_chart_echarts_area_success(mock_run, mcp_server):
-    mock_run.return_value = _mock_chart(id=103, viz_type="echarts_area")
-    req = EchartsAreaChartCreateRequest(
-        slice_name="Area Chart",
-        x_axis="ds",
-        datasource_id=1,
-        metrics=["sum__sales"],
-        groupby=["region"],
-        filters=[{"col": "year", "opr": "eq", "value": 2024}],
-    )
-    async with Client(mcp_server) as client:
-        resp = await client.call_tool("create_chart", {"request": req.dict()})
-        assert resp.data.chart is not None
-        assert resp.data.chart.viz_type == "echarts_area"
-        assert resp.data.error is None
-        mock_run.assert_called_once()
-
-
-@patch("superset.commands.chart.create.CreateChartCommand.run")
-@pytest.mark.asyncio
 async def test_create_chart_table_success(mock_run, mcp_server):
-    chart = Mock()
-    chart.id = 104
-    chart.slice_name = "Table Chart"
-    chart.viz_type = "table"
-    chart.datasource_name = "test_ds"
-    chart.datasource_type = "table"
-    chart.url = "/chart/104"
-    chart.description = "desc"
-    chart.cache_timeout = 60
-    chart.form_data = {}
-    chart.query_context = {}
-    chart.changed_by_name = "admin"
-    chart.changed_on = None
-    chart.changed_on_humanized = "1 day ago"
-    chart.created_by_name = "admin"
-    chart.created_on = None
-    chart.created_on_humanized = "2 days ago"
-    chart.tags = []
-    chart.owners = []
-    chart.to_model = lambda: ChartInfo(
-        id=chart.id,
-        slice_name=chart.slice_name,
-        viz_type=chart.viz_type,
-        datasource_name=chart.datasource_name,
-        datasource_type=chart.datasource_type,
-        url=chart.url,
-        description=chart.description,
-        cache_timeout=chart.cache_timeout,
-        form_data=chart.form_data,
-        query_context=chart.query_context,
-        changed_by_name=chart.changed_by_name,
-        changed_on=chart.changed_on,
-        changed_on_humanized=chart.changed_on_humanized,
-        created_by_name=chart.created_by_name,
-        created_on=chart.created_on,
-        created_on_humanized=chart.created_on_humanized,
-        tags=chart.tags,
-        owners=chart.owners,
+    mock_run.return_value = _mock_chart(id=101, viz_type="table")
+
+    # Create a simple table chart request
+    config = TableChartConfig(
+        chart_type="table",
+        columns=[
+            ColumnRef(name="region", label="Region"),
+            ColumnRef(name="sales", label="Sales"),
+        ],
+        filters=[FilterConfig(column="year", op="=", value=2024)],
+        sort_by=["sales"],
     )
-    mock_run.return_value = chart
-    req = TableChartCreateRequest(
-        slice_name="Table Chart",
-        viz_type="table",
-        datasource_id=1,
-        all_columns=["region", "sales"],
-        metrics=["sum__sales"],
-        groupby=["region"],
-        adhoc_filters=[{"col": "year", "opr": "eq", "value": 2024}],
-        order_by_cols=[],
-        row_limit=100,
-        order_desc=True,
-    )
+
+    request = CreateChartRequest(dataset_id="1", config=config)
+
     async with Client(mcp_server) as client:
-        result = await client.call_tool("create_chart", {"request": req.dict()})
-        assert result.data.chart is not None
-        assert result.data.chart.slice_name == "Table Chart"
-        assert result.data.chart.viz_type == "table"
+        resp = await client.call_tool("create_chart", {"request": request.model_dump()})
+        assert resp.data["chart"] is not None
+        assert resp.data["chart"]["viz_type"] == "table"
+        assert resp.data["error"] is None
+        mock_run.assert_called_once()
+
+
+@patch("superset.commands.chart.create.CreateChartCommand.run")
+@pytest.mark.asyncio
+async def test_create_chart_xy_line_success(mock_run, mcp_server):
+    mock_run.return_value = _mock_chart(id=102, viz_type="echarts_timeseries_line")
+
+    # Create a simple line chart request
+    config = XYChartConfig(
+        chart_type="xy",
+        x=ColumnRef(name="date", label="Date"),
+        y=[ColumnRef(name="sales", label="Sales")],
+        kind="line",
+        group_by=ColumnRef(name="region", label="Region"),
+        x_axis=AxisConfig(title="Date", scale="linear"),
+        y_axis=AxisConfig(title="Sales", format="$,.2f"),
+        legend=LegendConfig(show=True, position="right"),
+        filters=[FilterConfig(column="year", op="=", value=2024)],
+    )
+
+    request = CreateChartRequest(dataset_id="1", config=config)
+
+    async with Client(mcp_server) as client:
+        resp = await client.call_tool("create_chart", {"request": request.model_dump()})
+        assert resp.data["chart"] is not None
+        assert resp.data["chart"]["viz_type"] == "echarts_timeseries_line"
+        assert resp.data["error"] is None
+        mock_run.assert_called_once()
+
+
+@patch("superset.commands.chart.create.CreateChartCommand.run")
+@pytest.mark.asyncio
+async def test_create_chart_xy_bar_success(mock_run, mcp_server):
+    mock_run.return_value = _mock_chart(id=103, viz_type="echarts_timeseries_bar")
+
+    # Create a simple bar chart request
+    config = XYChartConfig(
+        chart_type="xy",
+        x=ColumnRef(name="region", label="Region"),
+        y=[ColumnRef(name="sales", label="Sales")],
+        kind="bar",
+        x_axis=AxisConfig(title="Region"),
+        y_axis=AxisConfig(title="Sales", format="$,.2f"),
+    )
+
+    request = CreateChartRequest(dataset_id="1", config=config)
+
+    async with Client(mcp_server) as client:
+        resp = await client.call_tool("create_chart", {"request": request.model_dump()})
+        assert resp.data["chart"] is not None
+        assert resp.data["chart"]["viz_type"] == "echarts_timeseries_bar"
+        assert resp.data["error"] is None
+        mock_run.assert_called_once()
+
+
+@patch("superset.commands.chart.create.CreateChartCommand.run")
+@pytest.mark.asyncio
+async def test_create_chart_xy_area_success(mock_run, mcp_server):
+    mock_run.return_value = _mock_chart(id=104, viz_type="echarts_area")
+
+    # Create a simple area chart request
+    config = XYChartConfig(
+        chart_type="xy",
+        x=ColumnRef(name="date", label="Date"),
+        y=[ColumnRef(name="sales", label="Sales")],
+        kind="area",
+        group_by=ColumnRef(name="region", label="Region"),
+        x_axis=AxisConfig(title="Date", scale="linear"),
+        y_axis=AxisConfig(title="Sales", format="$,.2f"),
+        legend=LegendConfig(show=True, position="right"),
+        filters=[FilterConfig(column="year", op="=", value=2024)],
+    )
+
+    request = CreateChartRequest(dataset_id="1", config=config)
+
+    async with Client(mcp_server) as client:
+        resp = await client.call_tool("create_chart", {"request": request.model_dump()})
+        assert resp.data["chart"] is not None
+        assert resp.data["chart"]["viz_type"] == "echarts_area"
+        assert resp.data["error"] is None
+        mock_run.assert_called_once()
 
 
 @patch("superset.commands.chart.create.CreateChartCommand.run")
 @pytest.mark.asyncio
 async def test_create_chart_error(mock_run, mcp_server):
-    mock_run.side_effect = fastmcp.exceptions.ToolError("Chart creation failed")
-    req = EchartsTimeseriesLineChartCreateRequest(
-        slice_name="Fail Chart",
-        x_axis="ds",
-        datasource_id=1,
-        metrics=["sum__sales"],
-        groupby=["region"],
-        filters=[{"col": "year", "opr": "eq", "value": 2024}],
+    mock_run.side_effect = Exception("Chart creation failed")
+
+    config = TableChartConfig(
+        chart_type="table", columns=[ColumnRef(name="region", label="Region")]
     )
+
+    request = CreateChartRequest(dataset_id="1", config=config)
+
     async with Client(mcp_server) as client:
-        result = await client.call_tool("create_chart", {"request": req.dict()})
-        assert result.data.error is not None
-        assert "Chart creation failed" in result.data.error
+        result = await client.call_tool(
+            "create_chart", {"request": request.model_dump()}
+        )
+        assert result.data["error"] is not None
+        assert "Chart creation failed" in result.data["error"]
 
 
 @patch("superset.commands.chart.create.CreateChartCommand.run")
 @pytest.mark.asyncio
-async def test_create_chart_echarts_line_with_all_options(mock_run, mcp_server):
-    # Arrange
-    mock_chart = Mock()
-    mock_chart.id = 101
-    mock_chart.slice_name = "ECharts Line All Options"
-    mock_chart.viz_type = "echarts_timeseries_line"
-    mock_chart.datasource_name = "test_ds"
-    mock_chart.datasource_type = "table"
-    mock_chart.url = "/chart/101"
-    mock_chart.description = "desc"
-    mock_chart.cache_timeout = 60
-    mock_chart.form_data = {}
-    mock_chart.query_context = {}
-    mock_chart.changed_by_name = "admin"
-    mock_chart.changed_on = None
-    mock_chart.changed_on_humanized = "1 day ago"
-    mock_chart.created_by_name = "admin"
-    mock_chart.created_on = None
-    mock_chart.created_on_humanized = "2 days ago"
-    mock_chart.tags = []
-    mock_chart.owners = []
-    mock_run.return_value = mock_chart
+async def test_create_chart_table_minimal(mock_run, mcp_server):
+    mock_run.return_value = _mock_chart(id=105, viz_type="table")
 
-    req = EchartsTimeseriesLineChartCreateRequest(
-        slice_name="ECharts Line All Options",
-        viz_type="echarts_timeseries_line",
-        datasource_id=1,
-        datasource_type="table",
-        x_axis="ds",
-        metrics=["sum__value"],
-        groupby=["region"],
-        stack=True,
-        area=True,
-        smooth=True,
-        show_value=True,
-        color_scheme="supersetColors",
-        legend_type="scroll",
-        legend_orientation="horizontal",
-        tooltip_sorting="value_desc",
-        y_axis_format=",.2f",
-        y_axis_bounds=[0, 100],
-        x_axis_time_format="%Y-%m-%d",
-        rich_tooltip=True,
-        extra_options={"custom_option": 123, "another_option": "abc"},
+    # Minimal table chart with just required fields
+    config = TableChartConfig(
+        chart_type="table", columns=[ColumnRef(name="region", label="Region")]
     )
+
+    request = CreateChartRequest(dataset_id="1", config=config)
+
     async with Client(mcp_server) as client:
-        resp = await client.call_tool("create_chart", {"request": req.model_dump()})
-        assert resp.data.chart is not None
-        assert resp.data.chart.viz_type == "echarts_timeseries_line"
-        assert resp.data.error is None
+        resp = await client.call_tool("create_chart", {"request": request.model_dump()})
+        assert resp.data["chart"] is not None
+        assert resp.data["chart"]["viz_type"] == "table"
+        assert resp.data["error"] is None
         mock_run.assert_called_once()
 
 
 @patch("superset.commands.chart.create.CreateChartCommand.run")
 @pytest.mark.asyncio
-async def test_create_chart_echarts_line_duplicate_column_removal(mock_run, mcp_server):
-    # The backend should remove 'date' from groupby, so only 'region' remains
-    expected_form_data = {"groupby": ["region"]}
-    mock_chart = _mock_chart(
-        id=105, viz_type="echarts_timeseries_line", form_data=expected_form_data
-    )
-    mock_run.return_value = mock_chart
-    req = EchartsTimeseriesLineChartCreateRequest(
-        slice_name="Line Chart No Duplicate",
-        datasource_id=1,
-        datasource_type="table",
-        x_axis="date",
-        metrics=["sum__value"],
-        groupby=["date", "region"],  # Duplicate x_axis in groupby
-    )
-    async with Client(mcp_server) as client:
-        result = await client.call_tool("create_chart", {"request": req.model_dump()})
-        assert result.content is not None
-        data = json.loads(result.content[0].text)
-        assert "error" not in data or not data["error"]
-        # The groupby in the chart's form_data should not include 'date'
-        chart = data["chart"]
-        form_data = chart.get("form_data")
-        if isinstance(form_data, str):
-            import json as _json
+async def test_create_chart_xy_minimal(mock_run, mcp_server):
+    mock_run.return_value = _mock_chart(id=106, viz_type="echarts_timeseries_line")
 
-            form_data = _json.loads(form_data)
-        groupby = form_data.get("groupby", [])
-        assert "date" not in groupby
-        assert "region" in groupby
+    # Create a minimal line chart request
+    config = XYChartConfig(
+        chart_type="xy",
+        x=ColumnRef(name="date"),
+        y=[ColumnRef(name="count")],  # Simple metric
+        kind="line",
+    )
+
+    request = CreateChartRequest(dataset_id="1", config=config)
+
+    async with Client(mcp_server) as client:
+        resp = await client.call_tool("create_chart", {"request": request.model_dump()})
+        assert resp.data["chart"] is not None
+        assert resp.data["chart"]["viz_type"] == "echarts_timeseries_line"
+        assert resp.data["error"] is None
+        mock_run.assert_called_once()
+
+
+@patch("superset.commands.chart.create.CreateChartCommand.run")
+@pytest.mark.asyncio
+async def test_create_chart_with_simple_metrics(mock_run, mcp_server):
+    mock_run.return_value = _mock_chart(id=107, viz_type="echarts_timeseries_bar")
+
+    # Test with simple metrics like "count", "sum", etc.
+    config = XYChartConfig(
+        chart_type="xy",
+        x=ColumnRef(name="region"),
+        y=[
+            ColumnRef(name="count"),  # Should be passed as simple string
+            ColumnRef(name="sales"),  # Should be passed as complex object
+        ],
+        kind="bar",
+    )
+
+    request = CreateChartRequest(dataset_id="1", config=config)
+
+    async with Client(mcp_server) as client:
+        resp = await client.call_tool("create_chart", {"request": request.model_dump()})
+        assert resp.data["chart"] is not None
+        assert resp.data["chart"]["viz_type"] == "echarts_timeseries_bar"
+        assert resp.data["error"] is None
+        mock_run.assert_called_once()
+
+
+@patch("superset.commands.chart.create.CreateChartCommand.run")
+@pytest.mark.asyncio
+async def test_create_chart_with_sql_aggregators(mock_run, mcp_server):
+    mock_run.return_value = _mock_chart(id=108, viz_type="echarts_timeseries_line")
+
+    # Test with SQL aggregators
+    config = XYChartConfig(
+        chart_type="xy",
+        x=ColumnRef(name="date"),
+        y=[
+            ColumnRef(name="sales", aggregate="SUM", label="Total Sales"),
+            ColumnRef(name="orders", aggregate="COUNT", label="Order Count"),
+            ColumnRef(name="revenue", aggregate="AVG", label="Average Revenue"),
+        ],
+        kind="line",
+    )
+
+    request = CreateChartRequest(dataset_id="1", config=config)
+
+    async with Client(mcp_server) as client:
+        resp = await client.call_tool("create_chart", {"request": request.model_dump()})
+        assert resp.data["chart"] is not None
+        assert resp.data["chart"]["viz_type"] == "echarts_timeseries_line"
+        assert resp.data["error"] is None
+        mock_run.assert_called_once()
+
+
+@patch("superset.commands.chart.create.CreateChartCommand.run")
+@pytest.mark.asyncio
+async def test_create_chart_comprehensive_metrics(mock_run, mcp_server):
+    mock_run.return_value = _mock_chart(id=109, viz_type="echarts_timeseries_bar")
+
+    # Test comprehensive metric scenarios
+    config = XYChartConfig(
+        chart_type="xy",
+        x=ColumnRef(name="region"),
+        y=[
+            ColumnRef(name="count"),  # Simple string metric
+            ColumnRef(
+                name="sales", aggregate="SUM", label="Total Sales"
+            ),  # SQL aggregator
+            ColumnRef(
+                name="revenue", aggregate="AVG", label="Average Revenue"
+            ),  # SQL aggregator
+            ColumnRef(
+                name="orders", aggregate="COUNT", label="Order Count"
+            ),  # SQL aggregator
+            ColumnRef(
+                name="profit", aggregate="MAX", label="Max Profit"
+            ),  # SQL aggregator
+        ],
+        kind="bar",
+        group_by=ColumnRef(name="category"),
+        x_axis=AxisConfig(title="Region", format="string"),
+        y_axis=AxisConfig(title="Values", format="$,.2f"),
+        legend=LegendConfig(show=True, position="top"),
+        filters=[
+            FilterConfig(column="year", op="=", value=2024),
+            FilterConfig(column="status", op="!=", value="cancelled"),
+        ],
+    )
+
+    request = CreateChartRequest(dataset_id="1", config=config)
+
+    async with Client(mcp_server) as client:
+        resp = await client.call_tool("create_chart", {"request": request.model_dump()})
+        assert resp.data["chart"] is not None
+        assert resp.data["chart"]["viz_type"] == "echarts_timeseries_bar"
+        assert resp.data["error"] is None
+        mock_run.assert_called_once()
+
+
+@patch("superset.commands.chart.create.CreateChartCommand.run")
+@pytest.mark.asyncio
+async def test_create_chart_xy_scatter_success(mock_run, mcp_server):
+    mock_run.return_value = _mock_chart(id=110, viz_type="echarts_timeseries_scatter")
+
+    # Create a scatter chart request
+    config = XYChartConfig(
+        chart_type="xy",
+        x=ColumnRef(name="order_date"),
+        y=[ColumnRef(name="count")],  # Simple metric for scatter
+        kind="scatter",
+        group_by=ColumnRef(name="deal_size"),
+        x_axis=AxisConfig(title="Order Date", format="smart_date"),
+        y_axis=AxisConfig(title="Count", format="SMART_NUMBER"),
+        legend=LegendConfig(show=True, position="top"),
+        filters=[FilterConfig(column="year", op="=", value=2024)],
+    )
+
+    request = CreateChartRequest(dataset_id="1", config=config)
+
+    async with Client(mcp_server) as client:
+        resp = await client.call_tool("create_chart", {"request": request.model_dump()})
+        assert resp.data["chart"] is not None
+        assert resp.data["chart"]["viz_type"] == "echarts_timeseries_scatter"
+        assert resp.data["error"] is None
+        mock_run.assert_called_once()
