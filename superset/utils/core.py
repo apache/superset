@@ -137,7 +137,7 @@ TYPE_MAPPING = {
     re.compile(r"DATE|TIME", re.IGNORECASE): "datetime64",
 }
 
-Metric_Map_Type = {
+METRIC_MAP_TYPE = {
     "SUM": "floating",
     "AVG": "floating",
     "COUNT": "floating",
@@ -1593,7 +1593,7 @@ def get_metric_type_from_column(column: Any, datasource: BaseDatasource | Query)
 
     if match:
         operation = match.group(1)
-        return Metric_Map_Type.get(operation, "")
+        return METRIC_MAP_TYPE.get(operation, "")
 
     logger.warning("Unexpected metric expression type: %s", expression)
     return ""
