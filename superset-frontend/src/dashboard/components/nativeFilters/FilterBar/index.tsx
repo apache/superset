@@ -45,6 +45,7 @@ import {
   saveChartCustomization,
   clearAllPendingChartCustomizations,
   ChartCustomizationSavePayload,
+  clearAllChartCustomizationsFromMetadata,
 } from 'src/dashboard/actions/dashboardInfo';
 import { ChartCustomizationItem } from 'src/dashboard/components/nativeFilters/ChartCustomization/types';
 
@@ -155,6 +156,9 @@ const FilterBar: FC<FiltersBarProps> = ({
   const dataMaskApplied: DataMaskStateWithId = useNativeFiltersDataMask();
   const [dataMaskSelected, setDataMaskSelected] =
     useImmer<DataMaskStateWithId>(dataMaskApplied);
+  const chartCustomizationItems = useSelector<RootState, any[]>(
+    state => state.dashboardInfo.metadata?.chart_customization_config || [],
+  );
   const dispatch = useDispatch();
   const [updateKey, setUpdateKey] = useState(0);
   const tabId = useTabId();
@@ -184,6 +188,8 @@ const FilterBar: FC<FiltersBarProps> = ({
   const [initializedFilters, setInitializedFilters] = useState<Set<string>>(
     new Set(),
   );
+  const [hasClearedChartCustomizations, setHasClearedChartCustomizations] =
+    useState(false);
 
   const dataMaskSelectedRef = useRef(dataMaskSelected);
   dataMaskSelectedRef.current = dataMaskSelected;
@@ -328,6 +334,8 @@ const FilterBar: FC<FiltersBarProps> = ({
 
       dispatch(clearAllPendingChartCustomizations());
     }
+
+    setHasClearedChartCustomizations(false);
   }, [dataMaskSelected, dispatch, pendingChartCustomizations]);
 
   const handleClearAll = useCallback(() => {
@@ -344,9 +352,46 @@ const FilterBar: FC<FiltersBarProps> = ({
         newClearAllTriggers[id] = true;
       }
     });
-    setClearAllTriggers(newClearAllTriggers);
 
+    Object.entries(dataMaskSelected).forEach(([key, mask]) => {
+      if (key.startsWith('chart_customization_')) {
+        console.log('  - Clearing chart customization:', key);
+        console.log('  - Current mask:', mask);
+        setDataMaskSelected(draft => {
+          if (draft[key]) {
+            if (draft[key].filterState?.value !== undefined) {
+              draft[key].filterState!.value = undefined;
+            }
+            draft[key].extraFormData = {};
+            if (draft[key].ownState) {
+              draft[key].ownState.column = undefined;
+            }
+          }
+        });
+        newClearAllTriggers[key] = true;
+      }
+      if (/^\d+$/.test(key) && mask?.ownState?.column) {
+        console.log('  - Clearing numeric chart customization:', key);
+        console.log('  - Current mask:', mask);
+        setDataMaskSelected(draft => {
+          if (draft[key]) {
+            if (draft[key].filterState?.value !== undefined) {
+              draft[key].filterState!.value = undefined;
+            }
+            draft[key].extraFormData = {};
+            if (draft[key].ownState) {
+              draft[key].ownState.column = undefined;
+            }
+          }
+        });
+        newClearAllTriggers[key] = true;
+      }
+    });
+
+    setClearAllTriggers(newClearAllTriggers);
     dispatch(clearAllPendingChartCustomizations());
+    dispatch(clearAllChartCustomizationsFromMetadata());
+    setHasClearedChartCustomizations(true);
   }, [
     dataMaskSelected,
     filtersInScope,
@@ -374,7 +419,9 @@ const FilterBar: FC<FiltersBarProps> = ({
       dataMaskSelected,
       dataMaskApplied,
       filtersInScope.filter(isNativeFilter),
-    ) && !hasPendingChartCustomizations;
+    ) &&
+    !hasPendingChartCustomizations &&
+    !hasClearedChartCustomizations;
   const isInitialized = useInitialization();
 
   const actions = useMemo(
@@ -387,6 +434,7 @@ const FilterBar: FC<FiltersBarProps> = ({
         dataMaskSelected={dataMaskSelected}
         dataMaskApplied={dataMaskApplied}
         isApplyDisabled={isApplyDisabled}
+        chartCustomizationItems={chartCustomizationItems}
       />
     ),
     [
@@ -395,8 +443,9 @@ const FilterBar: FC<FiltersBarProps> = ({
       handleApply,
       handleClearAll,
       dataMaskSelected,
-      dataMaskAppliedText,
+      dataMaskApplied,
       isApplyDisabled,
+      chartCustomizationItems,
     ],
   );
 
