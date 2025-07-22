@@ -36,6 +36,9 @@ import {
   QueryModeLabel,
   sections,
   sharedControls,
+  shouldSkipMetricColumn,
+  isRegularMetric,
+  isPercentMetric,
 } from '@superset-ui/chart-controls';
 import {
   ensureIsArray,
@@ -49,9 +52,6 @@ import {
   t,
   validateMaxValue,
   validateServerPagination,
-  shouldSkipMetricColumn,
-  isRegularMetric,
-  isPercentMetric,
 } from '@superset-ui/core';
 
 import { isEmpty, last } from 'lodash';
