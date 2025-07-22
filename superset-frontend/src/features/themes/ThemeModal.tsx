@@ -52,12 +52,6 @@ type ThemeStringKeys = keyof Pick<
   OnlyKeyWithType<ThemeObject, String>
 >;
 
-const StyledThemeTitle = styled.div(
-  ({ theme }) => css`
-    margin: ${theme.sizeUnit * 2}px auto ${theme.sizeUnit * 4}px auto;
-  `,
-);
-
 const StyledJsonEditor = styled.div`
   ${({ theme }) => css`
     border-radius: ${theme.borderRadius}px;

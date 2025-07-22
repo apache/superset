@@ -217,7 +217,7 @@ class CssEditor extends PureComponent<CssEditorProps, CssEditorState> {
             options={options}
             allowClear
             placeholder={t('Select a theme')}
-            style={{ width: 200 }}
+            css={{ width: 200 }}
           />
         </Form.Item>
       );

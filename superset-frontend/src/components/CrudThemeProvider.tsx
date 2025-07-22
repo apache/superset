@@ -34,6 +34,7 @@ export default function CrudThemeProvider({
   themeId,
 }: CrudThemeProviderProps) {
   const themeController = useMemo(() => new ThemeController(), []);
+  const theme = themeController.getTheme();
 
   useEffect(() => {
     if (themeId) {
@@ -49,9 +50,5 @@ export default function CrudThemeProvider({
   }
 
   // Render children within the CRUD theme context
-  return (
-    <themeController.SupersetThemeProvider>
-      {children}
-    </themeController.SupersetThemeProvider>
-  );
+  return <theme.SupersetThemeProvider>{children}</theme.SupersetThemeProvider>;
 }
