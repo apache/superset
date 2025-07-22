@@ -54,7 +54,8 @@ export function ErrorMessageWithStackTrace({
   // Check if a custom error message component was registered for this message
   if (error) {
     const ErrorMessageComponent = getErrorMessageComponentRegistry().get(
-      error.error_type,
+      // @ts-ignore: plan to modify this part so that all errors in Superset 6.0 are standardized as Superset API error types
+      error.errorType ?? error.error_type,
     );
     if (ErrorMessageComponent) {
       return (
