@@ -168,7 +168,7 @@ export default styled(NVD3)`
     fill-opacity: 0.6;
     margin: ${({ theme }) => theme.sizeUnit * 2}px;
     padding: ${({ theme }) => theme.sizeUnit * 2}px;
-    color: ${({ theme }) => theme.colorBgBase};
+    color: ${({ theme }) => theme.colorBgContainer};
     &:after {
       content: '\\25BC';
       font-size: ${({ theme }) => theme.fontSize};

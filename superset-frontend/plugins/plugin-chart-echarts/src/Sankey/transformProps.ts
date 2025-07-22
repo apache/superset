@@ -74,7 +74,7 @@ export default function transformProps(
     },
     label: {
       color: theme.colorText,
-      textShadow: theme.colorBgBase,
+      textShadow: theme.colorBgContainer,
     },
   }));
 

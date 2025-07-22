@@ -40,7 +40,7 @@ const LeftPanelStyle = styled.div`
   ${({ theme }) => `
     padding: ${theme.sizeUnit * 4}px;
     height: 100%;
-    background-color: ${theme.colorBgBase};
+    background-color: ${theme.colorBgContainer};
     position: relative;
     .emptystate {
       height: auto;
@@ -82,7 +82,7 @@ const LeftPanelStyle = styled.div`
         padding: ${theme.sizeUnit * 1.75}px;
         border-radius: ${theme.borderRadius}px;
         background-color: ${theme.colorPrimaryText};
-        color: ${theme.colorBgBase};
+        color: ${theme.colorBgContainer};
       }
 
       .options, .options-highlighted {

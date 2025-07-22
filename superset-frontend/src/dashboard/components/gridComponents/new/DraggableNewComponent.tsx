@@ -40,7 +40,7 @@ const NewComponent = styled.div`
     flex-wrap: nowrap;
     align-items: center;
     padding: ${theme.sizeUnit * 4}px;
-    background: ${theme.colorBgBase};
+    background: ${theme.colorBgContainer};
     cursor: move;
     &:not(.static):hover {
       background: ${theme.colorBgContainer};

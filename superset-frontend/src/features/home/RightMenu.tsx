@@ -98,7 +98,7 @@ const StyledAnchor = styled.a`
 `;
 
 const tagStyles = (theme: SupersetTheme) => css`
-  color: ${theme.colorBgBase};
+  color: ${theme.colorBgContainer};
 `;
 
 const styledChildMenu = (theme: SupersetTheme) => css`

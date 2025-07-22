@@ -72,7 +72,7 @@ const AllEntitiesContainer = styled.div`
 const AllEntitiesNav = styled.div`
   ${({ theme }) => `
   height: ${theme.sizeUnit * 12.5}px;
-  background-color: ${theme.colorBgBase};
+  background-color: ${theme.colorBgContainer};
   margin-bottom: ${theme.sizeUnit * 4}px;
   .navbar-brand {
     margin-left: ${theme.sizeUnit * 2}px;

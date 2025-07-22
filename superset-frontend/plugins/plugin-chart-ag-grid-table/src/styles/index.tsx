@@ -174,7 +174,7 @@ export const PaginationContainer = styled.div`
     font-size: ${theme.fontSize}px;
     color: ${theme.colorTextBase};
     transform: translateY(-${theme.sizeUnit}px);
-    background: ${theme.colorBgBase};
+    background: ${theme.colorBgContainer};
   `}
 `;
 
@@ -279,9 +279,9 @@ export const StyledChartContainer = styled.div<{
   ${({ theme, height }) => css`
     height: ${height}px;
 
-    --ag-background-color: ${theme.colorBgBase};
+    --ag-background-color: ${theme.colorBgContainer};
     --ag-foreground-color: ${theme.colorText};
-    --ag-header-background-color: ${theme.colorBgBase};
+    --ag-header-background-color: ${theme.colorBgContainer};
     --ag-header-foreground-color: ${theme.colorText};
 
     .dt-is-filter {

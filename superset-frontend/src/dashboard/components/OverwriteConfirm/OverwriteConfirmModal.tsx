@@ -58,7 +58,7 @@ const StackableHeader = styled(Button)<{ top: number }>`
   ${({ theme, top }) => `
      position: sticky;
      top: ${top}px;
-     background-color: ${theme.colorBgBase};
+     background-color: ${theme.colorBgContainer};
      margin: 0px;
      padding: 8px 4px;
      z-index: 1;

@@ -30,7 +30,7 @@ const Rose = ({ className, ...otherProps }) => (
           line-height: 1;
           padding: ${theme.sizeUnit * 3}px;
           background: ${theme.colorTextBase};
-          color: ${theme.colorBgBase};
+          color: ${theme.colorBgContainer};
           border-radius: 4px;
           pointer-events: none;
           z-index: 1000;
@@ -46,7 +46,7 @@ export default styled(Rose)`
   ${({ theme }) => `
     .superset-legacy-chart-rose path {
         transition: fill-opacity 180ms linear;
-        stroke: ${theme.colorBgBase};
+        stroke: ${theme.colorBgContainer};
         stroke-width: 1px;
         stroke-opacity: 1;
         fill-opacity: 0.75;

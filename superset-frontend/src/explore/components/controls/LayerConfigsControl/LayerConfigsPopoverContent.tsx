@@ -109,7 +109,7 @@ export const StyledSaveButton = styled(Button)`
     line-height: 1.5715;
     border-radius: ${theme.borderRadius}px;
     background-color: ${theme.colorPrimary};
-    color: ${theme.colorBgBase};
+    color: ${theme.colorBgContainer};
     font-size: ${theme.fontSizeSM}px;
     font-weight: ${theme.fontWeightStrong};
     text-transform: uppercase;

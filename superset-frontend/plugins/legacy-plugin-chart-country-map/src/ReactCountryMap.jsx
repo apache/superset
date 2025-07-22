@@ -30,7 +30,7 @@ const CountryMap = ({ className, ...otherProps }) => (
 export default styled(CountryMap)`
   ${({ theme }) => `
     .superset-legacy-chart-country-map svg {
-      background-color: ${theme.colorBgBase};
+      background-color: ${theme.colorBgContainer};
     }
 
     .superset-legacy-chart-country-map {
@@ -38,12 +38,12 @@ export default styled(CountryMap)`
     }
 
     .superset-legacy-chart-country-map .background {
-      fill: ${theme.colorBgBase};
+      fill: ${theme.colorBgContainer};
       pointer-events: all;
     }
 
     .superset-legacy-chart-country-map .map-layer {
-      fill: ${theme.colorBgBase};
+      fill: ${theme.colorBgContainer};
       stroke: ${theme.colorBorder};
     }
 

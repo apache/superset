@@ -249,7 +249,7 @@ export default function transformProps(
                 },
                 {
                   offset: 1,
-                  color: theme.colorBgBase,
+                  color: theme.colorBgContainer,
                 },
               ]),
             },

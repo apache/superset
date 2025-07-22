@@ -433,7 +433,7 @@ export function transformIntervalAnnotation(
           emphasis: {
             position: 'insideTop',
             verticalAlign: 'top',
-            backgroundColor: theme.colorBgBase,
+            backgroundColor: theme.colorBgContainer,
           },
         }
       : {
@@ -445,7 +445,7 @@ export function transformIntervalAnnotation(
             show: true,
             position: 'insideTop',
             verticalAlign: 'top',
-            backgroundColor: theme.colorBgBase,
+            backgroundColor: theme.colorBgContainer,
           },
         };
     series.push({
@@ -512,7 +512,7 @@ export function transformEventAnnotation(
           formatter: (params: CallbackDataParams) => params.name,
           // @ts-ignore
           emphasis: {
-            backgroundColor: theme.colorBgBase,
+            backgroundColor: theme.colorBgContainer,
           },
         }
       : {
@@ -524,7 +524,7 @@ export function transformEventAnnotation(
             formatter: (params: CallbackDataParams) => params.name,
             fontWeight: 'bold',
             show: true,
-            backgroundColor: theme.colorBgBase,
+            backgroundColor: theme.colorBgContainer,
           },
         };
 

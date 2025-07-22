@@ -403,7 +403,7 @@ export default function transformProps(
         label: {
           show: true,
           fontWeight: 'bold',
-          backgroundColor: theme.colorBgBase,
+          backgroundColor: theme.colorBgContainer,
         },
       },
       data: transformedData,

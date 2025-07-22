@@ -47,7 +47,7 @@ const BackgroundStyleOption = styled.div`
       padding-left: 0;
       background: transparent;
       &:before {
-        background: ${theme.colorBgBase};
+        background: ${theme.colorBgContainer};
         border: 1px solid ${theme.colorBorder};
       }
     }

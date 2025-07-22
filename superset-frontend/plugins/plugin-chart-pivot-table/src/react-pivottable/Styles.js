@@ -33,7 +33,7 @@ export const Styles = styled.div`
     }
 
     table thead {
-      background-color: ${theme.colorBgBase};
+      background-color: ${theme.colorBgContainer};
       position: ${isDashboardEditMode ? 'inherit' : 'sticky'};
       top: 0;
     }
@@ -104,7 +104,7 @@ export const Styles = styled.div`
     table.pvtTable tbody tr td {
       color: ${theme.colorPrimaryText};
       padding: ${theme.sizeUnit}px;
-      background-color: ${theme.colorBgBase};
+      background-color: ${theme.colorBgContainer};
       border-top: 1px solid ${theme.colorBorderSecondary};
       border-left: 1px solid ${theme.colorBorderSecondary};
       vertical-align: top;

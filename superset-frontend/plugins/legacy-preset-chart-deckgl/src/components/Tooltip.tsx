@@ -39,7 +39,7 @@ const StyledDiv = styled.div<{ top: number; left: number }>`
     padding: ${theme.sizeUnit * 2}px;
     margin: ${theme.sizeUnit * 2}px;
     background: ${theme.colorTextBase};
-    color: ${theme.colorBgBase};
+    color: ${theme.colorBgContainer};
     maxWidth: 300px;
     fontSize: ${theme.fontSizeSM}px;
     zIndex: 9;

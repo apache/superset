@@ -77,7 +77,7 @@ const themeDecorator = (Story, context) => {
             minHeight: '100vh',
             width: '100%',
             padding: 24,
-            backgroundColor: themeObject.theme.colorBgBase,
+            backgroundColor: themeObject.theme.colorBgContainer,
           }}
         >
           <Story {...context} />

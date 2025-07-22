@@ -63,7 +63,7 @@ const StyledToastPresenter = styled.div<VisualProps>(
     }
 
     .toast > button {
-      color: ${theme.colorBgBase};
+      color: ${theme.colorBgContainer};
       opacity: 1;
     }
 

@@ -68,7 +68,7 @@ export default styled(ParallelCoordinates)`
       fill: ${addAlpha(theme.colorTextBase, 0.1)};
     }
     .parcoords rect.extent {
-      fill: ${addAlpha(theme.colorBgBase, 0.25)};
+      fill: ${addAlpha(theme.colorBgContainer, 0.25)};
       stroke: ${addAlpha(theme.colorTextBase, 0.6)};
     }
     .parcoords .axis line,
@@ -93,7 +93,7 @@ export default styled(ParallelCoordinates)`
       -moz-user-select: none;
       -ms-user-select: none;
       user-select: none;
-      background-color: ${theme.colorBgBase};
+      background-color: ${theme.colorBgContainer};
     }
 
     /* data table styles */

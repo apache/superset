@@ -63,14 +63,14 @@ const Bar = styled.div<{ width: number }>`
     flex-direction: column;
     flex-grow: 1;
     width: ${width}px;
-    background: ${theme.colorBgBase};
+    background: ${theme.colorBgContainer};
     border-right: 1px solid ${theme.colorSplit};
     border-bottom: 1px solid ${theme.colorSplit};
     min-height: 100%;
     display: none;
     &.open {
       display: flex;
-      background-color: ${theme.colorBgBase};
+      background-color: ${theme.colorBgContainer};
     }
   `}
 `;

@@ -22,7 +22,7 @@ export const StyledLayoutWrapper = styled.div`
   flex-grow: 1;
   display: flex;
   flex-direction: column;
-  background-color: ${({ theme }) => theme.colorBgBase};
+  background-color: ${({ theme }) => theme.colorBgContainer};
 `;
 
 export const LeftColumn = styled.div<{ width?: number }>`
@@ -112,7 +112,7 @@ export const StyledLayoutFooter = styled.div`
   padding: ${theme.sizeUnit * 4}px;
   display: flex;
   justify-content: flex-end;
-  background-color: ${theme.colorBgBase};
+  background-color: ${theme.colorBgContainer};
   z-index: ${theme.zIndexPopupBase}
   `}
 `;

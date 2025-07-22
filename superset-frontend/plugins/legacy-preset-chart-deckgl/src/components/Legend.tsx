@@ -27,7 +27,7 @@ const StyledLegend = styled.div`
   ${({ theme }) => `
     font-size: ${theme.fontSizeSM}px;
     position: absolute;
-    background: ${theme.colorBgBase};
+    background: ${theme.colorBgContainer};
     box-shadow: 0 0 ${theme.sizeUnit}px ${theme.colorBorderSecondary};
     margin: ${theme.sizeUnit * 6}px;
     padding: ${theme.sizeUnit * 3}px ${theme.sizeUnit * 5}px;

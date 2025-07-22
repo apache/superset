@@ -74,7 +74,7 @@ export default styled(Partition)`
     .partition-tooltip td {
       padding-left: ${theme.sizeUnit}px;
       font-size: ${theme.fontSizeSM}px;
-      color: ${theme.colorBgBase};
+      color: ${theme.colorBgContainer};
     }
   `}
 `;

@@ -35,7 +35,7 @@ const HorizontalBar = styled.div`
     padding: ${theme.sizeUnit * 3}px ${theme.sizeUnit * 2}px ${
       theme.sizeUnit * 3
     }px ${theme.sizeUnit * 4}px;
-    background: ${theme.colorBgBase};
+    background: ${theme.colorBgContainer};
     box-shadow: inset 0px -2px 2px -1px ${theme.colorBorderSecondary};
   `}
 `;

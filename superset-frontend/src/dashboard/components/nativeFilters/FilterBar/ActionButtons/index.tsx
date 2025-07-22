@@ -74,8 +74,8 @@ const verticalStyle = (theme: SupersetTheme, width: number) => css`
   padding-top: ${theme.sizeUnit * 6}px;
 
   background: linear-gradient(
-    ${rgba(theme.colorBgBase, 0)},
-    ${theme.colorBgBase} 60%
+    ${rgba(theme.colorBgContainer, 0)},
+    ${theme.colorBgContainer} 60%
   );
 
   & > button {

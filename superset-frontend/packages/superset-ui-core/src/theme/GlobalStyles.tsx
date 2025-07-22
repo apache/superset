@@ -32,7 +32,7 @@ export const GlobalStyles = () => {
         }
 
         body {
-          background-color: ${theme.colorBgBase};
+          background-color: ${theme.colorBgContainer};
           color: ${theme.colorText};
           -webkit-font-smoothing: antialiased;
           margin: 0;

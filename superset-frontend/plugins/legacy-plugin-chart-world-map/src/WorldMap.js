@@ -210,7 +210,7 @@ function WorldMap(element, props) {
       highlightOnHover: !inContextMenu,
       borderWidth: 1,
       borderColor: theme.colorSplit,
-      highlightBorderColor: theme.colorBgBase,
+      highlightBorderColor: theme.colorBgContainer,
       highlightFillColor: color,
       highlightBorderWidth: 1,
       popupTemplate: (geo, d) =>

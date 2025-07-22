@@ -55,7 +55,7 @@ const getLinkProps = (dashboard: ChartLinkedDashboard) => ({
 });
 
 const tooltipItemCSS = (theme: SupersetTheme) => css`
-  color: ${theme.colorBgBase};
+  color: ${theme.colorBgContainer};
   text-decoration: underline;
   &:hover {
     color: inherit;

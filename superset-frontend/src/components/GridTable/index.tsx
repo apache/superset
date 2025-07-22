@@ -150,7 +150,7 @@ export function GridTable<RecordType extends object>({
             --ag-font-family: ${theme.fontFamily};
             --ag-font-size: ${theme.fontSize}px;
             --ag-row-height: ${rowHeight}px;
-            --ag-background-color: ${theme.colorBgBase};
+            --ag-background-color: ${theme.colorBgContainer};
             --ag-foreground-color: ${theme.colorText};
             --ag-header-background-color: ${theme.colorBgElevated};
             --ag-header-foreground-color: ${theme.colorTextHeading};

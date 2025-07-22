@@ -47,7 +47,7 @@ const LabelContainer = styled.div<{
 
     padding: 0 ${theme.sizeUnit * 3}px;
 
-    background-color: ${theme.colorBgBase};
+    background-color: ${theme.colorBgContainer};
 
     border: 1px solid
       ${isActive ? ACTIVE_BORDER_COLOR : theme.colorBorderSecondary};

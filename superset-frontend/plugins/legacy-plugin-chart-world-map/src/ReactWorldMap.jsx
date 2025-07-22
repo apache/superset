@@ -39,7 +39,7 @@ export default styled(WorldMapComponent)`
   .superset-legacy-chart-world-map {
     position: relative;
     svg {
-      background-color: ${({ theme }) => theme.colorBgBase};
+      background-color: ${({ theme }) => theme.colorBgContainer};
     }
   }
   .hoverinfo {

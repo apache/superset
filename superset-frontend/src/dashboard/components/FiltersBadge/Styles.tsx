@@ -21,7 +21,7 @@ import { css, styled } from '@superset-ui/core';
 export const Pill = styled.div`
   ${({ theme }) => css`
     display: flex;
-    color: ${theme.colorBgBase};
+    color: ${theme.colorBgContainer};
     background: ${theme.colorText};
     border-radius: 1em;
     vertical-align: text-top;
@@ -36,7 +36,7 @@ export const Pill = styled.div`
 
     svg {
       position: relative;
-      color: ${theme.colorBgBase};
+      color: ${theme.colorBgContainer};
       width: 1em;
       height: 1em;
       display: inline-block;
@@ -115,7 +115,7 @@ export const FiltersDetailsContainer = styled.div`
     max-width: 300px;
     overflow-x: hidden;
 
-    color: ${theme.colorBgBase};
+    color: ${theme.colorBgContainer};
   `}
 `;
 

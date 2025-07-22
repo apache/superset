@@ -33,7 +33,7 @@ const Calendar = ({ className, ...otherProps }) => {
             line-height: 1;
             padding: ${theme.sizeUnit * 3}px;
             background: ${theme.colorTextBase};
-            color: ${theme.colorBgBase};
+            color: ${theme.colorBgContainer};
             border-radius: 4px;
             pointer-events: none;
             z-index: 1000;
@@ -113,7 +113,7 @@ export default styled(Calendar)`
       line-height: 1;
       padding: ${theme.sizeUnit * 3}px;
       background: ${theme.colorTextBase};
-      color: ${theme.colorBgBase};
+      color: ${theme.colorBgContainer};
       border-radius: ${theme.borderRadius}px;
       pointer-events: none;
       z-index: 1000;

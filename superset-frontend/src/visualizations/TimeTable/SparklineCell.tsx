@@ -94,7 +94,7 @@ const SparklineCell = ({
 }: Props) => {
   const theme = useTheme();
   const xyTheme = buildChartTheme({
-    backgroundColor: `${theme.colorBgBase}`,
+    backgroundColor: `${theme.colorBgContainer}`,
     colors: [`${theme.colorText}`],
     gridColor: `${theme.colorBorder}`,
     gridColorDark: `${theme.colorText}`,

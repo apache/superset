@@ -75,7 +75,7 @@ const PopoverMenuStyles = styled.div`
     top: -42px;
     height: ${theme.sizeUnit * 10}px;
     padding: 0 ${theme.sizeUnit * 4}px;
-    background: ${theme.colorBgBase};
+    background: ${theme.colorBgContainer};
     box-shadow: 0 1px 2px 1px ${addAlpha(theme.colorTextBase, 0.35)};
     font-size: ${theme.fontSize}px;
     cursor: default;

@@ -294,7 +294,7 @@ const HighlightLabel = styled.div`
     border: 1px solid ${theme.colorPrimaryText};
     box-sizing: border-box;
     border-radius: ${theme.borderRadius}px;
-    background: ${theme.colorBgBase};
+    background: ${theme.colorBgContainer};
     line-height: ${theme.sizeUnit * 2.5}px;
     color: ${theme.colorPrimaryText};
     font-size: ${theme.fontSizeSM}px;

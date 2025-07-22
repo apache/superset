@@ -30,7 +30,7 @@ export type CrossLinksTooltipProps = {
 
 const StyledLinkedTooltip = styled.div`
   .link {
-    color: ${({ theme }) => theme.colorBgBase};
+    color: ${({ theme }) => theme.colorBgContainer};
     display: block;
     text-decoration: underline;
   }
