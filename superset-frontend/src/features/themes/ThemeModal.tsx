@@ -27,7 +27,13 @@ import getBootstrapData from 'src/utils/getBootstrapData';
 
 import { Icons } from '@superset-ui/core/components/Icons';
 import withToasts from 'src/components/MessageToasts/withToasts';
-import { Input, Modal, JsonEditor, Button } from '@superset-ui/core/components';
+import {
+  Input,
+  Modal,
+  JsonEditor,
+  Button,
+  Form,
+} from '@superset-ui/core/components';
 import { Typography } from '@superset-ui/core/components/Typography';
 
 import { OnlyKeyWithType } from 'src/utils/types';
@@ -63,28 +69,6 @@ const StyledJsonEditor = styled.div`
     }
   `}
 `;
-
-const ThemeContainer = styled.div(
-  ({ theme }) => css`
-    margin-bottom: ${theme.sizeUnit * 10}px;
-
-    .control-label {
-      margin-bottom: ${theme.sizeUnit * 2}px;
-    }
-
-    .required {
-      margin-left: ${theme.sizeUnit / 2}px;
-      color: ${theme.colorErrorText};
-    }
-
-    input[type='text'] {
-      padding: ${theme.sizeUnit * 1.5}px ${theme.sizeUnit * 2}px;
-      border: 1px solid ${theme.colorBorder};
-      border-radius: ${theme.borderRadius}px;
-      width: 50%;
-    }
-  `,
-);
 
 const ThemeModal: FunctionComponent<ThemeModalProps> = ({
   addDangerToast,
@@ -345,75 +329,63 @@ const ThemeModal: FunctionComponent<ThemeModalProps> = ({
         </Typography.Title>
       }
     >
-      {isSystemTheme && (
-        <StyledThemeTitle>
+      <Form layout="vertical">
+        {isSystemTheme && (
           <Typography.Text
             type="secondary"
-            style={{ fontSize: '14px', fontStyle: 'italic' }}
+            style={{
+              fontSize: '14px',
+              fontStyle: 'italic',
+              marginBottom: '16px',
+              display: 'block',
+            }}
           >
             {t('System Theme - Read Only')}
           </Typography.Text>
-        </StyledThemeTitle>
-      )}
-      <ThemeContainer>
-        <div className="control-label">
-          {t('Name')}
-          {!isReadOnly && <span className="required">*</span>}
-        </div>
-        <Input
-          name="theme_name"
-          onChange={onThemeNameChange}
-          type="text"
-          value={currentTheme?.theme_name}
-          readOnly={isReadOnly}
-        />
-      </ThemeContainer>
-      {isEditMode && currentTheme?.uuid && (
-        <ThemeContainer>
-          <div className="control-label">
-            {t('Theme UUID')}
-            <Typography.Text type="secondary" style={{ marginLeft: '8px' }}>
-              {t('Copy this to reference in configuration')}
-            </Typography.Text>
-          </div>
-          <Typography.Text
-            code
-            copyable
-            style={{
-              display: 'block',
-              padding: '8px 12px',
-              backgroundColor: supersetTheme.colorBgElevated,
-              border: `1px solid ${supersetTheme.colorBorder}`,
-              borderRadius: supersetTheme.borderRadius,
-              fontFamily: 'monospace',
-              fontSize: '13px',
-              wordBreak: 'break-all',
-            }}
-            data-test="theme-uuid-field"
-          >
-            {currentTheme.uuid}
-          </Typography.Text>
-        </ThemeContainer>
-      )}
-      <ThemeContainer>
-        <div className="control-label">
-          {t('JSON Configuration')}
-          {!isReadOnly && <span className="required">*</span>}
-        </div>
-        <StyledJsonEditor>
-          <JsonEditor
-            showLoadingForImport
-            name="json_data"
-            value={currentTheme?.json_data || ''}
-            onChange={onJsonDataChange}
-            tabSize={2}
-            width="100%"
-            height="300px"
-            wrapEnabled
+        )}
+
+        <Form.Item
+          label={t('Name')}
+          required={!isReadOnly}
+          style={{ marginBottom: '24px' }}
+        >
+          <Input
+            name="theme_name"
+            onChange={onThemeNameChange}
+            value={currentTheme?.theme_name}
             readOnly={isReadOnly}
+            placeholder={t('Enter theme name')}
           />
-        </StyledJsonEditor>
-      </ThemeContainer>
+        </Form.Item>
+
+        {isEditMode && currentTheme?.uuid && (
+          <Form.Item label={t('Theme UUID')} style={{ marginBottom: '24px' }}>
+            <Typography.Text code copyable data-test="theme-uuid-field">
+              {currentTheme.uuid}
+            </Typography.Text>
+          </Form.Item>
+        )}
+
+        <Form.Item
+          label={t('JSON Configuration')}
+          required={!isReadOnly}
+          style={{ marginBottom: '24px' }}
+        >
+          <StyledJsonEditor>
+            <JsonEditor
+              showLoadingForImport
+              name="json_data"
+              value={currentTheme?.json_data || ''}
+              onChange={onJsonDataChange}
+              tabSize={2}
+              width="100%"
+              height="300px"
+              wrapEnabled
+              readOnly={isReadOnly}
+            />
+          </StyledJsonEditor>
+        </Form.Item>
+      </Form>
     </Modal>
   );
 };
