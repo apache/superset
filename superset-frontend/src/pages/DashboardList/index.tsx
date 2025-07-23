@@ -696,12 +696,8 @@ function DashboardList(props: DashboardListProps) {
   }
   if (canCreate) {
     subMenuButtons.push({
-      name: (
-        <>
-          <Icons.PlusOutlined iconSize="m" />
-          {t('Dashboard')}
-        </>
-      ),
+      icon: <Icons.PlusOutlined iconSize="m" />,
+      name: t('Dashboard'),
       buttonStyle: 'primary',
       onClick: () => {
         navigateTo('/dashboard/new', { assign: true });

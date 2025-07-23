@@ -17,7 +17,6 @@
  * under the License.
  */
 import { Children, ReactElement, Fragment } from 'react';
-
 import cx from 'classnames';
 import { Button as AntdButton } from 'antd';
 import { useTheme } from '@superset-ui/core';
@@ -88,6 +87,7 @@ export function Button(props: ButtonProps) {
   const element = children as ReactElement;
 
   let renderedChildren = [];
+
   if (element && element.type === Fragment) {
     renderedChildren = Children.toArray(element.props.children);
   } else {
@@ -118,7 +118,7 @@ export function Button(props: ButtonProps) {
         display: 'inline-flex',
         alignItems: 'center',
         justifyContent: 'center',
-        lineHeight: 1.5715,
+        lineHeight: 1,
         fontSize: fontSizeSM,
         fontWeight: fontWeightStrong,
         height,

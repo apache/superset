@@ -228,12 +228,8 @@ function AnnotationLayersList({
 
   if (canCreate) {
     subMenuButtons.push({
-      name: (
-        <>
-          <Icons.PlusOutlined iconSize="m" />
-          {t('Annotation layer')}
-        </>
-      ),
+      icon: <Icons.PlusOutlined iconSize="m" />,
+      name: t('Annotation layer'),
       buttonStyle: 'primary',
       onClick: () => {
         handleAnnotationLayerEdit(null);
@@ -287,12 +283,8 @@ function AnnotationLayersList({
     title: t('No annotation layers yet'),
     image: 'filter-results.svg',
     buttonAction: () => handleAnnotationLayerEdit(null),
-    buttonText: (
-      <>
-        <Icons.PlusOutlined iconSize="m" />
-        {t('Annotation layer')}
-      </>
-    ),
+    buttonText: t('Annotation layer'),
+    buttonIcon: <Icons.PlusOutlined iconSize="m" />,
   };
 
   const onLayerAdd = (id?: number) => {
