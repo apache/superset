@@ -24,6 +24,10 @@ from fastmcp.client.client import CallToolResult
 from fastmcp.exceptions import ToolError
 from pydantic_core._pydantic_core import ValidationError
 
+from superset.mcp_service.pydantic_schemas.dashboard_schemas import (
+    ListDashboardsRequest,
+)
+
 
 class TestFastMCPInMemoryProtocol:
     """
@@ -64,8 +68,9 @@ class TestFastMCPInMemoryProtocol:
         from fastmcp import Client
 
         async with Client(mcp) as client:
+            request = ListDashboardsRequest(page=1, page_size=2)
             result = await client.call_tool(
-                "list_dashboards", {"page": 1, "page_size": 2}
+                "list_dashboards", {"request": request.model_dump()}
             )
             assert isinstance(result, CallToolResult)
             assert hasattr(result, "data")
@@ -81,7 +86,10 @@ class TestFastMCPInMemoryProtocol:
         from fastmcp import Client
 
         async with Client(mcp) as client:
-            result = await client.call_tool("list_dashboards", {"page_size": 2})
+            request = ListDashboardsRequest(page_size=2)
+            result = await client.call_tool(
+                "list_dashboards", {"request": request.model_dump()}
+            )
             assert isinstance(result, CallToolResult)
             assert hasattr(result, "data")
             assert hasattr(result, "structured_content")

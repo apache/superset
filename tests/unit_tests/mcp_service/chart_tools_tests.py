@@ -37,6 +37,7 @@ from superset.mcp_service.pydantic_schemas.chart_schemas import (
     CreateChartRequest,
     FilterConfig,
     LegendConfig,
+    ListChartsRequest,
     TableChartConfig,
     XYChartConfig,
 )
@@ -94,7 +95,10 @@ async def test_list_charts_basic(mock_list, mcp_server):
     }
     mock_list.return_value = ([chart], 1)
     async with Client(mcp_server) as client:
-        result = await client.call_tool("list_charts", {"page": 1, "page_size": 10})
+        request = ListChartsRequest(page=1, page_size=10)
+        result = await client.call_tool(
+            "list_charts", {"request": request.model_dump()}
+        )
         charts = result.data.charts
         assert len(charts) == 1
         assert charts[0].slice_name == "Test Chart"
@@ -145,8 +149,9 @@ async def test_list_charts_with_search(mock_list, mcp_server):
     }
     mock_list.return_value = ([chart], 1)
     async with Client(mcp_server) as client:
+        request = ListChartsRequest(search="search_chart", page=1, page_size=10)
         result = await client.call_tool(
-            "list_charts", {"search": "search_chart", "page": 1, "page_size": 10}
+            "list_charts", {"request": request.model_dump()}
         )
         charts = result.data.charts
         assert len(charts) == 1
@@ -167,16 +172,17 @@ async def test_list_charts_with_filters(mock_list, mcp_server):
         {"col": "viz_type", "opr": "eq", "value": "bar"},
     ]
     async with Client(mcp_server) as client:
+        request = ListChartsRequest(
+            filters=filters,
+            select_columns=["id", "slice_name"],
+            order_column="changed_on",
+            order_direction="desc",
+            page=1,
+            page_size=50,
+        )
         result = await client.call_tool(
             "list_charts",
-            {
-                "filters": filters,
-                "select_columns": ["id", "slice_name"],
-                "order_column": "changed_on",
-                "order_direction": "desc",
-                "page": 1,
-                "page_size": 50,
-            },
+            {"request": request.model_dump()},
         )
         assert result.data.count == 0
         assert result.data.charts == []
@@ -187,8 +193,9 @@ async def test_list_charts_with_filters(mock_list, mcp_server):
 async def test_list_charts_api_error(mock_list, mcp_server):
     mock_list.side_effect = fastmcp.exceptions.ToolError("API request failed")
     async with Client(mcp_server) as client:
-        with pytest.raises(fastmcp.exceptions.ToolError) as excinfo:
-            await client.call_tool("list_charts", {"page": 1, "page_size": 10})
+        with pytest.raises(fastmcp.exceptions.ToolError) as excinfo:  # noqa: PT012
+            request = ListChartsRequest(page=1, page_size=10)
+            await client.call_tool("list_charts", {"request": request.model_dump()})
         assert "API request failed" in str(excinfo.value)
 
 
