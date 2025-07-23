@@ -166,6 +166,17 @@ SAMPLES_ROW_LIMIT = 1000
 NATIVE_FILTER_DEFAULT_ROW_LIMIT = 1000
 # max rows retrieved by filter select auto complete
 FILTER_SELECT_ROW_LIMIT = 10000
+
+# Native filter retry configuration
+# When dashboard native filters fail to load their values (e.g., due to transient
+# database issues), these settings control the retry behavior with exponential backoff.
+# This helps prevent "Cannot load filter" errors caused by temporary database overload.
+NATIVE_FILTER_RETRY_MAX_ATTEMPTS = 3  # Maximum number of retry attempts
+NATIVE_FILTER_RETRY_INITIAL_DELAY = 1000  # Initial retry delay in milliseconds
+NATIVE_FILTER_RETRY_MAX_DELAY = 10000  # Maximum retry delay in milliseconds
+NATIVE_FILTER_RETRY_BACKOFF_MULTIPLIER = 2  # Multiplier for exponential backoff
+# Random stagger offset prevents multiple filters from hitting the DB simultaneously
+NATIVE_FILTER_RETRY_STAGGER_MAX_OFFSET = 2000  # Maximum random stagger in milliseconds
 # default time filter in explore
 # values may be "Last day", "Last week", "<ISO date> : now", etc.
 DEFAULT_TIME_FILTER = NO_TIME_RANGE
