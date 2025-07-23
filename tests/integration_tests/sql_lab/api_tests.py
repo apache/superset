@@ -451,11 +451,13 @@ class TestSqlLabApi(SupersetTestCase):
         db.session.commit()
 
         # Include multilingual data
-        get_df_mock.return_value = pd.DataFrame({
-            "foo": [1, 2],
-            "مرحبا": ["أ", "ب"],
-            "姓名": ["张", "李"],
-        })
+        get_df_mock.return_value = pd.DataFrame(
+            {
+                "foo": [1, 2],
+                "مرحبا": ["أ", "ب"],
+                "姓名": ["张", "李"],
+            }
+        )
 
         resp = self.get_resp("/api/v1/sqllab/export/test/")
 
