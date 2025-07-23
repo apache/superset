@@ -30,6 +30,29 @@ class CustomOAuthView(AuthOAuthView):
             return super(CustomOAuthView,self).login(provider)
 
 
+default_role_pvms = [
+    ("can_read", "SavedQuery"),
+    ("can_read", "CSSTemplate"),
+    ("can_read", "ReportSchedule"),
+    ("can_read", "Chart"),
+    ("can_read", "Annotation"),
+    ("can_read", "Dataset"),
+    ("can_read", "Log"),
+    ("can_read", "Dashboard"),
+    ("can_read", "Database"),
+    ("can_read", "Query"),
+    ("can_warm_up_cache", "Chart"),
+    ("can_read", "DashboardFilterStateRestApi"),
+    ("can_get_embedded", "Dashboard"),
+    ("can_read", "Tag"),
+    ("can_explore_json", "Superset"),
+    ("can_time_range", "Api"),
+    ("can_recent_activity", "Log"), 
+    ("can_csv", "Superset"),
+    ("can_view_chart_as_table", "Dashboard"),
+    ("can_explore", "Superset"),
+]
+
 guest_role_pvms = [
     ("can_read", "SavedQuery"),
     ("can_read", "CSSTemplate"),
@@ -145,4 +168,9 @@ class CustomSsoSecurityManager(SupersetSecurityManager):
         datakimia_public_role = self.add_role("Datakimia_Public")
         for (action, model) in datakimia_public_role_pvms:
             pvm = self.find_permission_view_menu(action, model)
-            self.add_permission_role(datakimia_public_role, pvm)            
+            self.add_permission_role(datakimia_public_role, pvm)    
+
+        default_role = self.add_role("Default")
+        for (action, model) in default_role_pvms:
+            pvm = self.find_permission_view_menu(action, model)
+            self.add_permission_role(default_role, pvm)
