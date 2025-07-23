@@ -44,6 +44,7 @@ import {
 } from '@emotion/react';
 import createCache from '@emotion/cache';
 import { noop } from 'lodash';
+import { isThemeDark } from './utils/themeUtils';
 import { GlobalStyles } from './GlobalStyles';
 
 import {
@@ -183,7 +184,7 @@ export class Theme {
     // Second phase: Now that theme is initialized, we can determine if it's dark
     // and generate the legacy colors correctly
     const systemColors = getSystemColors(tokens);
-    const isDark = this.isThemeDark(); // Now we can safely call this
+    const isDark = isThemeDark(tokens); // Use utility function with tokens
     this.theme.colors = getDeprecatedColors(systemColors, isDark);
 
     // Update the providers with the fully formed theme
@@ -203,18 +204,6 @@ export class Theme {
 
   private getToken(token: string): any {
     return (this.theme as Record<string, any>)[token];
-  }
-
-  public getFontSize(size?: FontSizeKey): string {
-    const fontSizeKey = Theme.sizeMap[size || 'm'];
-    return this.getToken(fontSizeKey) || this.getToken('fontSize');
-  }
-
-  /**
-   * Check if the current theme is dark based on background color
-   */
-  isThemeDark(): boolean {
-    return tinycolor(this.theme.colorBgContainer).isDark();
   }
 
   toggleDarkMode(isDark: boolean): void {
@@ -248,45 +237,6 @@ export class Theme {
 
   json(): string {
     return JSON.stringify(serializeThemeConfig(this.antdConfig), null, 2);
-  }
-
-  getColorVariants(color: string): ColorVariants {
-    const firstLetterCapped = color.charAt(0).toUpperCase() + color.slice(1);
-    if (color === 'default' || color === 'grayscale') {
-      const isDark = this.isThemeDark();
-
-      const flipBrightness = (baseColor: string): string => {
-        if (!isDark) return baseColor;
-        const { r, g, b } = tinycolor(baseColor).toRgb();
-        const invertedColor = tinycolor({ r: 255 - r, g: 255 - g, b: 255 - b });
-        return invertedColor.toHexString();
-      };
-
-      return {
-        active: flipBrightness('#222'),
-        textActive: flipBrightness('#444'),
-        text: flipBrightness('#555'),
-        textHover: flipBrightness('#666'),
-        hover: flipBrightness('#888'),
-        borderHover: flipBrightness('#AAA'),
-        border: flipBrightness('#CCC'),
-        bgHover: flipBrightness('#DDD'),
-        bg: flipBrightness('#F4F4F4'),
-      };
-    }
-
-    const theme = this.getToken.bind(this);
-    return {
-      active: theme(`color${firstLetterCapped}Active`),
-      textActive: theme(`color${firstLetterCapped}TextActive`),
-      text: theme(`color${firstLetterCapped}Text`),
-      textHover: theme(`color${firstLetterCapped}TextHover`),
-      hover: theme(`color${firstLetterCapped}Hover`),
-      borderHover: theme(`color${firstLetterCapped}BorderHover`),
-      border: theme(`color${firstLetterCapped}Border`),
-      bgHover: theme(`color${firstLetterCapped}BgHover`),
-      bg: theme(`color${firstLetterCapped}Bg`),
-    };
   }
 
   private updateProviders(
