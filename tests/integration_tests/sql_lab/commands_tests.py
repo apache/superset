@@ -174,10 +174,10 @@ class TestSqlResultExportCommand(SupersetTestCase):
     def test_run_no_results_backend_select_sql(self, get_df_mock: Mock) -> None:
         command = export.SqlResultExportCommand("test")
 
-        get_df_mock.return_value = pd.DataFrame({"foo": [1, 2, 3]})
+        get_df_mock.return_value = pd.DataFrame({b"\xef\xbb\xbffoo": [1, 2, 3]})
         result = command.run()
 
-        assert result["data"] == b"foo\n1\n2\n3\n"
+        assert result["data"] == b"\xef\xbb\xbffoo\n1\n2\n3\n"
         assert result["count"] == 3
         assert result["query"].client_id == "test"
 
@@ -192,10 +192,10 @@ class TestSqlResultExportCommand(SupersetTestCase):
 
         command = export.SqlResultExportCommand("test")
 
-        get_df_mock.return_value = pd.DataFrame({"foo": [1, 2, 3]})
+        get_df_mock.return_value = pd.DataFrame({b"\xef\xbb\xbffoo": [1, 2, 3]})
         result = command.run()
 
-        assert result["data"] == b"foo\n1\n2\n"
+        assert result["data"] == b"\xef\xbb\xbffoo\n1\n2\n"
         assert result["count"] == 2
         assert result["query"].client_id == "test"
 
@@ -213,11 +213,11 @@ class TestSqlResultExportCommand(SupersetTestCase):
 
         command = export.SqlResultExportCommand("test")
 
-        get_df_mock.return_value = pd.DataFrame({"foo": [1, 2, 3]})
+        get_df_mock.return_value = pd.DataFrame({b"\xef\xbb\xbffoo": [1, 2, 3]})
 
         result = command.run()
 
-        assert result["data"] == b"foo\n1\n"
+        assert result["data"] == b"\xef\xbb\xbffoo\n1\n"
         assert result["count"] == 1
         assert result["query"].client_id == "test"
 
@@ -227,9 +227,9 @@ class TestSqlResultExportCommand(SupersetTestCase):
     def test_run_with_results_backend(self) -> None:
         command = export.SqlResultExportCommand("test")
 
-        data = [{"foo": i} for i in range(5)]
+        data = [{b"\xef\xbb\xbffoo": i} for i in range(5)]
         payload = {
-            "columns": [{"name": "foo"}],
+            "columns": [{"name": b"\xef\xbb\xbffoo"}],
             "data": data,
         }
         serialized_payload = sql_lab._serialize_payload(payload, False)
@@ -240,7 +240,7 @@ class TestSqlResultExportCommand(SupersetTestCase):
 
         result = command.run()
 
-        assert result["data"] == b"foo\n0\n1\n2\n3\n4\n"
+        assert result["data"] == b"\xef\xbb\xbffoo\n0\n1\n2\n3\n4\n"
         assert result["count"] == 5
         assert result["query"].client_id == "test"
 
