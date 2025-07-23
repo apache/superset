@@ -71,10 +71,7 @@ export function SupersetThemeProvider({
     [themeController],
   );
 
-  const setCrudTheme = useCallback(
-    (themeId: string | null) => themeController.setCrudTheme(themeId),
-    [themeController],
-  );
+  // setCrudTheme removed - dashboards should NOT modify the global controller
 
   const setTemporaryTheme = useCallback(
     (config: AnyThemeConfig) => themeController.setTemporaryTheme(config),
@@ -96,6 +93,11 @@ export function SupersetThemeProvider({
     [themeController],
   );
 
+  const createDashboardThemeProvider = useCallback(
+    (themeId: string) => themeController.createDashboardThemeProvider(themeId),
+    [themeController],
+  );
+
   const contextValue = useMemo(
     () => ({
       theme: currentTheme,
@@ -103,11 +105,11 @@ export function SupersetThemeProvider({
       setTheme,
       setThemeMode,
       resetTheme,
-      setCrudTheme,
       setTemporaryTheme,
       clearLocalOverrides,
       getCurrentCrudThemeId,
       hasDevOverride,
+      createDashboardThemeProvider,
     }),
     [
       currentTheme,
@@ -115,11 +117,11 @@ export function SupersetThemeProvider({
       setTheme,
       setThemeMode,
       resetTheme,
-      setCrudTheme,
       setTemporaryTheme,
       clearLocalOverrides,
       getCurrentCrudThemeId,
       hasDevOverride,
+      createDashboardThemeProvider,
     ],
   );
 

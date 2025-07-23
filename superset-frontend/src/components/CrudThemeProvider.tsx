@@ -16,8 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ReactNode, useMemo, useEffect } from 'react';
-import { ThemeController } from 'src/theme/ThemeController';
+import { ReactNode, useEffect, useState } from 'react';
+import { useThemeContext } from 'src/theme/ThemeProvider';
+import { Theme } from '@superset-ui/core';
 
 interface CrudThemeProviderProps {
   children: ReactNode;
@@ -25,30 +26,58 @@ interface CrudThemeProviderProps {
 }
 
 /**
- * CrudThemeProvider creates a scoped theme context using ThemeController.
- * This ensures that CRUD themes are properly integrated with the existing
- * theme system while providing isolated theme contexts where needed.
+ * CrudThemeProvider asks the ThemeController for a dashboard theme provider.
+ * Flow: Dashboard loads → asks controller → controller fetches theme →
+ * returns provider → dashboard uses it.
+ *
+ * CRITICAL: This does NOT modify the global controller - it creates an isolated dashboard theme.
  */
 export default function CrudThemeProvider({
   children,
   themeId,
 }: CrudThemeProviderProps) {
-  const themeController = useMemo(() => new ThemeController(), []);
-  const theme = themeController.getTheme();
+  const globalThemeContext = useThemeContext();
+  const [dashboardTheme, setDashboardTheme] = useState<Theme | null>(null);
 
   useEffect(() => {
     if (themeId) {
-      themeController.setCrudTheme(String(themeId));
-    } else {
-      themeController.setCrudTheme(null);
-    }
-  }, [themeId, themeController]);
+      // Ask the controller to create a SEPARATE dashboard theme provider
+      // This should NOT affect the global controller or navbar
+      const loadDashboardTheme = async () => {
+        try {
+          console.log('CrudThemeProvider: Loading dashboard theme', themeId);
+          const dashboardThemeProvider =
+            await globalThemeContext.createDashboardThemeProvider(
+              String(themeId),
+            );
+          console.log(
+            'CrudThemeProvider: Dashboard theme loaded',
+            dashboardThemeProvider,
+          );
+          setDashboardTheme(dashboardThemeProvider);
+        } catch (error) {
+          console.error('Failed to load dashboard theme:', error);
+          setDashboardTheme(null);
+        }
+      };
 
-  // If no theme is specified, render children without theme wrapper
-  if (!themeId) {
+      loadDashboardTheme();
+    } else {
+      console.log('CrudThemeProvider: No theme ID, using global theme');
+      setDashboardTheme(null);
+    }
+  }, [themeId, globalThemeContext]);
+
+  // If no dashboard theme, just render children (they use global theme)
+  if (!themeId || !dashboardTheme) {
     return <>{children}</>;
   }
 
-  // Render children within the CRUD theme context
-  return <theme.SupersetThemeProvider>{children}</theme.SupersetThemeProvider>;
+  console.log('CrudThemeProvider: Rendering with dashboard theme provider');
+  // Render children with the dashboard theme provider from controller
+  return (
+    <dashboardTheme.SupersetThemeProvider>
+      {children}
+    </dashboardTheme.SupersetThemeProvider>
+  );
 }
