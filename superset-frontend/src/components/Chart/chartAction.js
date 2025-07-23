@@ -44,8 +44,6 @@ import { waitForAsyncData } from 'src/middleware/asyncEvent';
 import { ensureAppRoot } from 'src/utils/pathUtils';
 import { safeStringify } from 'src/utils/safeStringify';
 import { extendedDayjs } from '@superset-ui/core/utils/dates';
-import { retryWithStaggeredDelay } from 'src/utils/retryWithExponentialBackoff';
-import getBootstrapData from 'src/utils/getBootstrapData';
 
 export const CHART_UPDATE_STARTED = 'CHART_UPDATE_STARTED';
 export function chartUpdateStarted(queryController, latestQueryFormData, key) {
@@ -213,7 +211,6 @@ export async function getChartDataRequest({
   method = 'POST',
   requestParams = {},
   ownState = {},
-  retry = true,
 }) {
   let querySettings = {
     ...requestParams,
@@ -226,66 +223,28 @@ export async function getChartDataRequest({
       credentials: 'include',
     };
   }
-
   const [useLegacyApi, parseMethod] = getQuerySettings(formData);
-
-  // Create a function that performs the actual request
-  const performRequest = () => {
-    if (useLegacyApi) {
-      return legacyChartDataRequest(
-        formData,
-        resultFormat,
-        resultType,
-        force,
-        method,
-        querySettings,
-        parseMethod,
-      );
-    }
-    return v1ChartDataRequest(
+  if (useLegacyApi) {
+    return legacyChartDataRequest(
       formData,
       resultFormat,
       resultType,
       force,
+      method,
       querySettings,
-      setDataMask,
-      ownState,
       parseMethod,
     );
-  };
-
-  // If retry is enabled, wrap the request with retry logic
-  if (retry) {
-    const bootstrapData = getBootstrapData();
-    const retryConfig = bootstrapData.common.conf;
-
-    return retryWithStaggeredDelay(performRequest, {
-      maxRetries: retryConfig.NATIVE_FILTER_RETRY_MAX_ATTEMPTS || 3,
-      initialDelay: retryConfig.NATIVE_FILTER_RETRY_INITIAL_DELAY || 1000,
-      maxDelay: retryConfig.NATIVE_FILTER_RETRY_MAX_DELAY || 10000,
-      backoffMultiplier:
-        retryConfig.NATIVE_FILTER_RETRY_BACKOFF_MULTIPLIER || 2,
-      // Add random stagger to prevent multiple requests from hitting the DB simultaneously
-      staggerOffset:
-        Math.random() *
-        (retryConfig.NATIVE_FILTER_RETRY_STAGGER_MAX_OFFSET || 2000),
-      shouldRetry: error => {
-        if (!error?.response) return true; // Network error
-        const status = error.response?.status;
-        return status === 502;
-      },
-      onRetry: (attempt, delay, error) => {
-        // eslint-disable-next-line no-console
-        console.warn(
-          `Chart data request retry attempt ${attempt} after ${delay}ms delay`,
-          error,
-        );
-      },
-    });
   }
-
-  // Otherwise, just perform the request normally
-  return performRequest();
+  return v1ChartDataRequest(
+    formData,
+    resultFormat,
+    resultType,
+    force,
+    querySettings,
+    setDataMask,
+    ownState,
+    parseMethod,
+  );
 }
 
 export function runAnnotationQuery({

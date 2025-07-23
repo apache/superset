@@ -31,12 +31,21 @@ function getDefaultConfiguration(): ClientConfig {
     bootstrapData.common.conf.JWT_ACCESS_CSRF_COOKIE_NAME;
   const cookieCSRFToken = parseCookie()[jwtAccessCsrfCookieName] || '';
 
+  // Configure retry behavior from backend settings
+  const retryConfig = bootstrapData.common.conf;
+  const fetchRetryOptions = {
+    retries: retryConfig.SUPERSET_CLIENT_RETRY_ATTEMPTS || 3,
+    retryDelay: retryConfig.SUPERSET_CLIENT_RETRY_DELAY || 1000,
+    retryOn: retryConfig.SUPERSET_CLIENT_RETRY_STATUS_CODES || [502, 503, 504],
+  };
+
   return {
     protocol: ['http:', 'https:'].includes(window?.location?.protocol)
       ? (window?.location?.protocol as 'http:' | 'https:')
       : undefined,
     host: window.location?.host || '',
     csrfToken: csrfToken || cookieCSRFToken,
+    fetchRetryOptions,
   };
 }
 
