@@ -286,16 +286,12 @@ const ChartCustomizationModal = ({
 
       setRemovedItems(current => ({ ...current, [id]: null }));
 
-      setItemChanges(prev => {
-        const newDeleted = prev.deleted.filter(deletedId => deletedId !== id);
-        console.log('New itemChanges.deleted after restore:', newDeleted);
-        return {
-          ...prev,
-          deleted: newDeleted,
-        };
-      });
+      setItemChanges(prev => ({
+        ...prev,
+        deleted: prev.deleted.filter(deletedId => deletedId !== id),
+      }));
     },
-    [removedItems, itemChanges.deleted],
+    [removedItems],
   );
 
   const handleRemoveItem = useCallback(
@@ -316,18 +312,14 @@ const ChartCustomizationModal = ({
         [id]: { isPending: true, timerId },
       }));
 
-      setItemChanges(prev => {
-        const newDeleted = [...prev.deleted, id];
-        console.log('New itemChanges.deleted:', newDeleted);
-        return {
-          ...prev,
-          deleted: newDeleted,
-        };
-      });
+      setItemChanges(prev => ({
+        ...prev,
+        deleted: [...prev.deleted, id],
+      }));
 
       setSaveAlertVisible(false);
     },
-    [removedItems, itemChanges.deleted],
+    [removedItems],
   );
 
   useEffect(() => {
