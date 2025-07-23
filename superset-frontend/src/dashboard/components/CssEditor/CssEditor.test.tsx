@@ -36,6 +36,11 @@ jest.mock('@superset-ui/core/components/AsyncAceEditor', () => ({
   ),
 }));
 
+jest.mock('@superset-ui/core', () => ({
+  ...jest.requireActual('@superset-ui/core'),
+  isFeatureEnabled: () => true,
+}));
+
 const templates = [
   { template_name: 'Template A', css: 'background-color: red;' },
   { template_name: 'Template B', css: 'background-color: blue;' },
@@ -87,7 +92,11 @@ test('renders with initial CSS', async () => {
 test('renders with templates', async () => {
   await waitFor(() => render(<CssEditor {...defaultProps} />));
   userEvent.click(screen.getByRole('button', { name: 'Click' }));
-  userEvent.hover(screen.getByText('Load CSS template'));
+
+  // Wait for the Load CSS template button to appear after async fetch
+  const templateButton = await screen.findByText('Load CSS template');
+  userEvent.hover(templateButton);
+
   await waitFor(() => {
     templates.forEach(template =>
       expect(screen.getByText(template.template_name)).toBeInTheDocument(),
@@ -112,7 +121,7 @@ test('triggers onChange when using the editor', async () => {
   expect(onChange).not.toHaveBeenCalled();
   userEvent.type(screen.getByText(initialCss), additionalCss);
   expect(onChange).not.toHaveBeenCalled();
-  userEvent.click(screen.getByText('Apply'));
+  userEvent.click(screen.getByText('Apply & Save'));
   expect(onChange).toHaveBeenLastCalledWith(initialCss.concat(additionalCss));
 });
 
@@ -122,10 +131,14 @@ test('triggers onChange when selecting a template', async () => {
     render(<CssEditor {...defaultProps} onChange={onChange} />),
   );
   userEvent.click(screen.getByRole('button', { name: 'Click' }));
-  userEvent.click(screen.getByText('Load CSS template'));
+
+  // Wait for the Load CSS template button to appear after async fetch
+  const templateButton = await screen.findByText('Load CSS template');
+  userEvent.click(templateButton);
+
   expect(onChange).not.toHaveBeenCalled();
   userEvent.click(await screen.findByText('Template A'));
   expect(onChange).not.toHaveBeenCalled();
-  userEvent.click(screen.getByText('Apply'));
+  userEvent.click(screen.getByText('Apply & Save'));
   expect(onChange).toHaveBeenCalledTimes(1);
 });
