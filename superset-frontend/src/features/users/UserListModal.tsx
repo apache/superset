@@ -124,11 +124,8 @@ function UserListModal({
       name={isEditMode ? 'Edit User' : 'Add User'}
       title={
         <ModalTitleWithIcon
-          editModeConfig={{
-            isEditMode,
-            titleAdd: 'Add User',
-            titleEdit: 'Edit User',
-          }}
+          isEditMode={isEditMode}
+          title={isEditMode ? t('Edit User') : t('Add User')}
         />
       }
       onSave={onSave}

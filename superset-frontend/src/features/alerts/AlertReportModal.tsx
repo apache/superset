@@ -1457,12 +1457,9 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
       openerRef={openerRef}
       title={
         <ModalTitleWithIcon
-          editModeConfig={{
-            isEditMode,
-            titleAdd: getTitleText(),
-            titleEdit: getTitleText(),
-          }}
-          dataTestId="alert-report-modal-title"
+          isEditMode={isEditMode}
+          title={getTitleText()}
+          data-test="alert-report-modal-title"
         />
       }
     >

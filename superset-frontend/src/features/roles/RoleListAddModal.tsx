@@ -58,7 +58,10 @@ function RoleListAddModal({
       onHide={onHide}
       name="Add Role"
       title={
-        <ModalTitleWithIcon title="Add Role" icon={<Icons.PlusOutlined />} />
+        <ModalTitleWithIcon
+          title={t('Add Role')}
+          icon={<Icons.PlusOutlined />}
+        />
       }
       onSave={onSave}
       formSubmitHandler={handleFormSubmit}

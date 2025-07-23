@@ -1837,7 +1837,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         show={show}
         title={
           <ModalTitleWithIcon
-            title="Connect a database"
+            title={t('Connect a database')}
             icon={<Icons.InsertRowAboveOutlined />}
           />
         }
@@ -1881,11 +1881,8 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       show={show}
       title={
         <ModalTitleWithIcon
-          editModeConfig={{
-            isEditMode,
-            titleAdd: 'Connect a database',
-            titleEdit: 'Edit database',
-          }}
+          isEditMode={isEditMode}
+          title={isEditMode ? t('Edit database') : t('Connect a database')}
           icon={
             isEditMode ? (
               <Icons.EditOutlined iconSize="l" />
@@ -2078,7 +2075,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       show={show}
       title={
         <ModalTitleWithIcon
-          title="Connect a database"
+          title={t('Connect a database')}
           icon={<Icons.InsertRowAboveOutlined />}
         />
       }

@@ -59,7 +59,7 @@ const DuplicateDatasetModal: FunctionComponent<DuplicateDatasetModalProps> = ({
       onHide={onHide}
       title={
         <ModalTitleWithIcon
-          title="Duplicate dataset"
+          title={t('Duplicate dataset')}
           icon={<Icons.CopyOutlined />}
         />
       }

@@ -378,7 +378,7 @@ export const SaveDatasetModal = ({
         <ModalTitleWithIcon
           title={t('Save or Overwrite Dataset')}
           icon={<Icons.SaveOutlined />}
-          dataTestId="save-or-overwrite-dataset-title"
+          data-test="save-or-overwrite-dataset-title"
         />
       }
       onHide={onHide}

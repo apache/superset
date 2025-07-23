@@ -235,12 +235,13 @@ const AnnotationLayerModal: FunctionComponent<AnnotationLayerModalProps> = ({
       width="55%"
       title={
         <ModalTitleWithIcon
-          editModeConfig={{
-            isEditMode,
-            titleAdd: 'Add annotation layer',
-            titleEdit: 'Edit annotation layer properties',
-          }}
-          dataTestId="annotation-layer-modal-title"
+          isEditMode={isEditMode}
+          title={
+            isEditMode
+              ? t('Edit annotation layer properties')
+              : t('Add annotation layer')
+          }
+          data-test="annotation-layer-modal-title"
         />
       }
     >

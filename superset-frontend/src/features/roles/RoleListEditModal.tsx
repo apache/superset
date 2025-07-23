@@ -184,7 +184,10 @@ function RoleListEditModal({
       onHide={onHide}
       name="Edit Role"
       title={
-        <ModalTitleWithIcon title="Edit Role" icon={<Icons.EditOutlined />} />
+        <ModalTitleWithIcon
+          title={t('Edit Role')}
+          icon={<Icons.EditOutlined />}
+        />
       }
       onSave={onSave}
       formSubmitHandler={handleFormSubmit}

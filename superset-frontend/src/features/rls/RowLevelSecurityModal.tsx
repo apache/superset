@@ -335,12 +335,9 @@ function RowLevelSecurityModal(props: RowLevelSecurityModalProps) {
       maxWidth="1450px"
       title={
         <ModalTitleWithIcon
-          editModeConfig={{
-            isEditMode,
-            titleAdd: 'Add Rule',
-            titleEdit: 'Edit Rule',
-          }}
-          dataTestId="rls-modal-title"
+          isEditMode={isEditMode}
+          title={isEditMode ? t('Edit Rule') : t('Add Rule')}
+          data-test="rls-modal-title"
         />
       }
     >

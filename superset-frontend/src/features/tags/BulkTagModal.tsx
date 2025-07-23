@@ -94,7 +94,7 @@ const BulkTagModal: FC<BulkTagModalProps> = ({
 
   return (
     <Modal
-      title={<ModalTitleWithIcon title="Bulk tag" />}
+      title={<ModalTitleWithIcon title={t('Bulk tag')} />}
       show={show}
       onHide={() => {
         setTags([]);

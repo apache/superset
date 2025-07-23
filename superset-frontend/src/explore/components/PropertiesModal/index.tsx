@@ -245,12 +245,9 @@ function PropertiesModal({
       onHide={onHide}
       title={
         <ModalTitleWithIcon
-          editModeConfig={{
-            isEditMode: true,
-            titleAdd: '',
-            titleEdit: 'Edit Chart Properties',
-          }}
-          dataTestId="edit-alt"
+          isEditMode
+          title={t('Edit chart properties')}
+          data-test="edit-alt"
         />
       }
       footer={

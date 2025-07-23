@@ -229,12 +229,13 @@ const CssTemplateModal: FunctionComponent<CssTemplateModalProps> = ({
       width="55%"
       title={
         <ModalTitleWithIcon
-          editModeConfig={{
-            isEditMode,
-            titleAdd: 'Add CSS template',
-            titleEdit: 'Edit CSS template properties',
-          }}
-          dataTestId="css-template-modal-title"
+          isEditMode={isEditMode}
+          title={
+            isEditMode
+              ? t('Edit CSS template properties')
+              : t('Add CSS template')
+          }
+          data-test="css-template-modal-title"
         />
       }
     >

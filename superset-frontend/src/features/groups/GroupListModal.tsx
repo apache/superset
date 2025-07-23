@@ -105,11 +105,8 @@ function GroupListModal({
       name={isEditMode ? 'Edit Group' : 'Add Group'}
       title={
         <ModalTitleWithIcon
-          editModeConfig={{
-            isEditMode,
-            titleAdd: 'Add Group',
-            titleEdit: 'Edit Group',
-          }}
+          isEditMode={isEditMode}
+          title={isEditMode ? t('Edit Group') : t('Add Group')}
         />
       }
       onSave={onSave}

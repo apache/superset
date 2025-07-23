@@ -266,11 +266,8 @@ const TagModal: FC<TagModalProps> = ({
     <Modal
       title={
         <ModalTitleWithIcon
-          editModeConfig={{
-            isEditMode,
-            titleAdd: 'Create Tag',
-            titleEdit: 'Edit Tag',
-          }}
+          isEditMode={isEditMode}
+          title={isEditMode ? t('Edit Tag') : t('Create Tag')}
         />
       }
       onHide={() => {

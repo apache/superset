@@ -229,7 +229,7 @@ const SaveQuery = ({
           <ModalTitleWithIcon
             title={t('Save query')}
             icon={<Icons.SaveOutlined />}
-            dataTestId="save-query-modal-title"
+            data-test="save-query-modal-title"
           />
         }
         footer={
