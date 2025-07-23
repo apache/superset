@@ -21,6 +21,7 @@ import { useState, useMemo, useEffect, useCallback } from 'react';
 import { useHistory } from 'react-router-dom';
 import {
   t,
+  css,
   SupersetClient,
   makeApi,
   styled,
@@ -91,12 +92,12 @@ const deleteAlerts = makeApi<number[], { message: string }>({
 });
 
 const RefreshContainer = styled.div`
-  width: 100%;
-  padding: 0 ${({ theme }) => theme.sizeUnit * 4}px
-    ${({ theme }) => theme.sizeUnit * 3}px;
-  background-color: ${({ theme }) => theme.colors.grayscale.light5};
+  ${({ theme }) => css`
+    margin-top: ${theme.sizeUnit}px;
+    width: 100%;
+    padding: ${theme.sizeUnit * 2}px 0px ${theme.sizeUnit * 3}px;
+  `}
 `;
-
 const StyledHeaderWithIcon = styled.div`
   display: flex;
   flex-direction: row;
@@ -430,12 +431,8 @@ function AlertList({
 
   if (canCreate) {
     subMenuButtons.push({
-      name: (
-        <>
-          <Icons.PlusOutlined iconSize="m" />
-          {title}
-        </>
-      ),
+      icon: <Icons.PlusOutlined iconSize="m" />,
+      name: t(title),
       buttonStyle: 'primary',
       onClick: () => {
         handleAlertEdit(null);
