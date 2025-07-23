@@ -26,7 +26,7 @@ from marshmallow import ValidationError
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 
 
-class SupersetException(Exception):
+class SupersetException(Exception):  # noqa: N818
     status = 500
     message = ""
 
@@ -323,7 +323,7 @@ class SupersetParseError(SupersetErrorException):
             if line:
                 parts.append(_(" at line %(line)d", line=line))
                 if column:
-                    parts.append(_(":%(column)d", column=column))
+                    parts.append(f":{column}")
             message = "".join(parts)
 
         error = SupersetError(
@@ -333,6 +333,9 @@ class SupersetParseError(SupersetErrorException):
             extra={"sql": sql, "engine": engine, "line": line, "column": column},
         )
         super().__init__(error)
+
+    def __str__(self) -> str:
+        return self.error.message
 
 
 class OAuth2RedirectError(SupersetErrorException):
@@ -381,7 +384,7 @@ class OAuth2Error(SupersetErrorException):
         )
 
 
-class DisallowedSQLFunction(SupersetErrorException):
+class SupersetDisallowedSQLFunctionException(SupersetErrorException):
     """
     Disallowed function found on SQL statement
     """
@@ -396,13 +399,13 @@ class DisallowedSQLFunction(SupersetErrorException):
         )
 
 
-class CreateKeyValueDistributedLockFailedException(Exception):
+class CreateKeyValueDistributedLockFailedException(Exception):  # noqa: N818
     """
     Exception to signalize failure to acquire lock.
     """
 
 
-class DeleteKeyValueDistributedLockFailedException(Exception):
+class DeleteKeyValueDistributedLockFailedException(Exception):  # noqa: N818
     """
     Exception to signalize failure to delete lock.
     """
@@ -432,3 +435,54 @@ class TableNotFoundException(SupersetErrorException):
                 level=ErrorLevel.ERROR,
             )
         )
+
+
+class SupersetDMLNotAllowedException(SupersetErrorException):
+    def __init__(self) -> None:
+        error = SupersetError(
+            message=_(
+                "This database does not allow for DDL/DML, but the query mutates "
+                "data. Please contact your administrator for more assistance."
+            ),
+            error_type=SupersetErrorType.DML_NOT_ALLOWED_ERROR,
+            level=ErrorLevel.ERROR,
+        )
+        super().__init__(error)
+
+
+class SupersetInvalidCTASException(SupersetErrorException):
+    def __init__(self) -> None:
+        error = SupersetError(
+            message=_(
+                "CTAS (create table as select) can only be run with a query where "
+                "the last statement is a SELECT. Please make sure your query has "
+                "a SELECT as its last statement. Then, try running your query again."
+            ),
+            error_type=SupersetErrorType.INVALID_CTAS_QUERY_ERROR,
+            level=ErrorLevel.ERROR,
+        )
+        super().__init__(error)
+
+
+class SupersetInvalidCVASException(SupersetErrorException):
+    def __init__(self) -> None:
+        error = SupersetError(
+            message=_(
+                "CVAS (create view as select) can only be run with a query with "
+                "a single SELECT statement. Please make sure your query has only "
+                "a SELECT statement. Then, try running your query again."
+            ),
+            error_type=SupersetErrorType.INVALID_CVAS_QUERY_ERROR,
+            level=ErrorLevel.ERROR,
+        )
+        super().__init__(error)
+
+
+class SupersetResultsBackendNotConfigureException(SupersetErrorException):
+    def __init__(self) -> None:
+        error = SupersetError(
+            message=_("Results backend is not configured."),
+            error_type=SupersetErrorType.RESULTS_BACKEND_NOT_CONFIGURED_ERROR,
+            level=ErrorLevel.ERROR,
+        )
+        super().__init__(error)

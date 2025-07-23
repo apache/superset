@@ -45,11 +45,13 @@ import {
   isDefined,
   NO_TIME_RANGE,
   validateMaxValue,
+  getColumnLabel,
 } from '@superset-ui/core';
 
 import {
   formatSelectOptions,
   displayTimeRelatedControls,
+  getColorControlsProps,
   D3_FORMAT_OPTIONS,
   D3_FORMAT_DOCS,
   D3_TIME_FORMAT_OPTIONS,
@@ -81,6 +83,8 @@ import {
   dndSeriesControl,
   dndAdhocMetricControl2,
   dndXAxisControl,
+  dndTooltipColumnsControl,
+  dndTooltipMetricsControl,
 } from './dndControls';
 
 const categoricalSchemeRegistry = getCategoricalSchemeRegistry();
@@ -142,9 +146,7 @@ const linear_color_scheme: SharedControlConfig<'ColorSchemeControl'> = {
   renderTrigger: true,
   schemes: () => sequentialSchemeRegistry.getMap(),
   isLinear: true,
-  mapStateToProps: state => ({
-    dashboardId: state?.form_data?.dashboardId,
-  }),
+  mapStateToProps: state => getColorControlsProps(state),
 };
 
 const granularity: SharedControlConfig<'SelectControl'> = {
@@ -333,9 +335,7 @@ const color_scheme: SharedControlConfig<'ColorSchemeControl'> = {
   choices: () => categoricalSchemeRegistry.keys().map(s => [s, s]),
   description: t('The color scheme for rendering chart'),
   schemes: () => categoricalSchemeRegistry.getMap(),
-  mapStateToProps: state => ({
-    dashboardId: state?.form_data?.dashboardId,
-  }),
+  mapStateToProps: state => getColorControlsProps(state),
 };
 
 const time_shift_color: SharedControlConfig<'CheckboxControl'> = {
@@ -376,12 +376,40 @@ const temporal_columns_lookup: SharedControlConfig<'HiddenControl'> = {
     ),
 };
 
+const zoomable: SharedControlConfig<'CheckboxControl'> = {
+  type: 'CheckboxControl',
+  label: t('Data Zoom'),
+  default: false,
+  renderTrigger: true,
+  description: t('Enable data zooming controls'),
+};
+
 const sort_by_metric: SharedControlConfig<'CheckboxControl'> = {
   type: 'CheckboxControl',
   label: t('Sort by metric'),
   description: t(
     'Whether to sort results by the selected metric in descending order.',
   ),
+};
+
+const order_by_cols: SharedControlConfig<'SelectControl'> = {
+  type: 'SelectControl',
+  label: t('Ordering'),
+  description: t('Order results by selected columns'),
+  multi: true,
+  default: [],
+  shouldMapStateToProps: () => true,
+  mapStateToProps: ({ datasource }) => ({
+    choices: (datasource?.columns || [])
+      .map(col =>
+        [true, false].map(asc => [
+          JSON.stringify([col.column_name, asc]),
+          `${getColumnLabel(col.column_name)} [${asc ? 'asc' : 'desc'}]`,
+        ]),
+      )
+      .flat(),
+  }),
+  resetOnHide: false,
 };
 
 export default {
@@ -395,6 +423,8 @@ export default {
   secondary_metric: dndSecondaryMetricControl,
   groupby: dndGroupByControl,
   columns: dndColumnsControl,
+  tooltip_columns: dndTooltipColumnsControl,
+  tooltip_metrics: dndTooltipMetricsControl,
   granularity,
   granularity_sqla: dndGranularitySqlaControl,
   time_grain_sqla,
@@ -420,8 +450,10 @@ export default {
   legacy_order_by: dndSortByControl,
   truncate_metric,
   x_axis: dndXAxisControl,
+  zoomable,
   show_empty_columns,
   temporal_columns_lookup,
   currency_format,
   sort_by_metric,
+  order_by_cols,
 };

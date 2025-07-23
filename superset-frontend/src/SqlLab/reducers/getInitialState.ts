@@ -122,12 +122,12 @@ export default function getInitialState({
       .forEach(tableSchema => {
         const { dataPreviewQueryId, ...persistData } = tableSchema.description;
         const table = {
-          dbId: tableSchema.database_id,
+          dbId: tableSchema.database_id ?? 0,
           queryEditorId: tableSchema.tab_state_id.toString(),
           catalog: tableSchema.catalog,
           schema: tableSchema.schema,
           name: tableSchema.table,
-          expanded: tableSchema.expanded,
+          expanded: Boolean(tableSchema.expanded),
           id: tableSchema.id,
           dataPreviewQueryId,
           persistData,
@@ -147,7 +147,8 @@ export default function getInitialState({
     }),
   };
 
-  const destroyedQueryEditors = {};
+  const destroyedQueryEditors: SqlLabRootState['sqlLab']['destroyedQueryEditors'] =
+    {};
 
   /**
    * If the `SQLLAB_BACKEND_PERSISTENCE` feature flag is off, or if the user

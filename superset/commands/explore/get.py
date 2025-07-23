@@ -59,7 +59,7 @@ class GetExploreCommand(BaseCommand, ABC):
         self._slice_id = params.slice_id
 
     # pylint: disable=too-many-locals,too-many-branches,too-many-statements
-    def run(self) -> Optional[dict[str, Any]]:
+    def run(self) -> Optional[dict[str, Any]]:  # noqa: C901
         initial_form_data = {}
         if self._permalink_key is not None:
             command = GetExplorePermalinkCommand(self._permalink_key)
@@ -120,7 +120,7 @@ class GetExploreCommand(BaseCommand, ABC):
 
         if datasource:
             datasource_name = datasource.name
-            security_manager.can_access_datasource(datasource)
+            security_manager.raise_for_access(datasource=datasource)
 
         viz_type = form_data.get("viz_type")
         if not viz_type and datasource and datasource.default_endpoint:

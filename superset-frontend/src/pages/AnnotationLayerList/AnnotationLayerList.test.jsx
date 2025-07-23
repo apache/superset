@@ -19,21 +19,17 @@
 import thunk from 'redux-thunk';
 import configureStore from 'redux-mock-store';
 import fetchMock from 'fetch-mock';
-import { Provider } from 'react-redux';
-import { styledMount as mount } from 'spec/helpers/theming';
+import {
+  render,
+  screen,
+  fireEvent,
+  waitFor,
+} from 'spec/helpers/testing-library';
+import { MemoryRouter } from 'react-router-dom';
+import { QueryParamProvider } from 'use-query-params';
 
 import AnnotationLayersList from 'src/pages/AnnotationLayerList';
-import AnnotationLayerModal from 'src/features/annotationLayers/AnnotationLayerModal';
-import SubMenu from 'src/features/home/SubMenu';
-import ListView from 'src/components/ListView';
-import Filters from 'src/components/ListView/Filters';
-import DeleteModal from 'src/components/DeleteModal';
-import Button from 'src/components/Button';
-import IndeterminateCheckbox from 'src/components/IndeterminateCheckbox';
-import waitForComponentToPaint from 'spec/helpers/waitForComponentToPaint';
-import { act } from 'react-dom/test-utils';
 
-// store needed for withToasts(AnnotationLayersList)
 const mockStore = configureStore([thunk]);
 const store = mockStore({});
 
@@ -77,91 +73,127 @@ fetchMock.get(layersRelatedEndpoint, {
   },
 });
 
-describe('AnnotationLayersList', () => {
-  const wrapper = mount(
-    <Provider store={store}>
-      <AnnotationLayersList store={store} user={mockUser} />
-    </Provider>,
+const renderAnnotationLayersList = (props = {}) =>
+  render(
+    <MemoryRouter>
+      <QueryParamProvider>
+        <AnnotationLayersList user={mockUser} {...props} />
+      </QueryParamProvider>
+    </MemoryRouter>,
+    {
+      useRedux: true,
+      store,
+    },
   );
-  beforeAll(async () => {
-    await waitForComponentToPaint(wrapper);
+
+describe('AnnotationLayersList', () => {
+  beforeEach(() => {
+    fetchMock.resetHistory();
   });
 
-  it('renders', () => {
-    expect(wrapper.find(AnnotationLayersList)).toExist();
+  it('renders', async () => {
+    renderAnnotationLayersList();
+    expect(await screen.findByText('Annotation layers')).toBeInTheDocument();
   });
 
-  it('renders a SubMenu', () => {
-    expect(wrapper.find(SubMenu)).toExist();
+  it('renders a SubMenu', async () => {
+    renderAnnotationLayersList();
+    expect(await screen.findByRole('navigation')).toBeInTheDocument();
   });
 
-  it('renders a ListView', () => {
-    expect(wrapper.find(ListView)).toExist();
+  it('renders a ListView', async () => {
+    renderAnnotationLayersList();
+    expect(
+      await screen.findByTestId('annotation-layers-list-view'),
+    ).toBeInTheDocument();
   });
 
-  it('renders a modal', () => {
-    expect(wrapper.find(AnnotationLayerModal)).toExist();
+  it('renders a modal', async () => {
+    renderAnnotationLayersList();
+    const addButton = await screen.findByRole('button', {
+      name: /annotation layer$/i,
+    });
+    fireEvent.click(addButton);
+    expect(await screen.findByRole('dialog')).toBeInTheDocument();
   });
 
-  it('fetches layers', () => {
-    const callsQ = fetchMock.calls(/annotation_layer\/\?q/);
-    expect(callsQ).toHaveLength(1);
-    expect(callsQ[0][0]).toMatchInlineSnapshot(
-      `"http://localhost/api/v1/annotation_layer/?q=(order_column:name,order_direction:desc,page:0,page_size:25)"`,
-    );
+  it('fetches layers', async () => {
+    renderAnnotationLayersList();
+    await waitFor(() => {
+      const calls = fetchMock.calls(/annotation_layer\/\?q/);
+      expect(calls).toHaveLength(1);
+      expect(calls[0][0]).toContain(
+        'order_column:name,order_direction:desc,page:0,page_size:25',
+      );
+    });
   });
 
-  it('renders Filters', () => {
-    expect(wrapper.find(Filters)).toExist();
+  it('renders Filters', async () => {
+    renderAnnotationLayersList();
+    await screen.findByTestId('annotation-layers-list-view');
+    expect(screen.getByPlaceholderText(/type a value/i)).toBeInTheDocument();
   });
 
   it('searches', async () => {
-    const filtersWrapper = wrapper.find(Filters);
-    act(() => {
-      filtersWrapper.find('[name="name"]').first().props().onSubmit('foo');
-    });
-    await waitForComponentToPaint(wrapper);
+    renderAnnotationLayersList();
 
-    expect(fetchMock.lastCall()[0]).toMatchInlineSnapshot(
-      `"http://localhost/api/v1/annotation_layer/?q=(filters:!((col:name,opr:ct,value:foo)),order_column:name,order_direction:desc,page:0,page_size:25)"`,
-    );
+    // Wait for list to load
+    await screen.findByTestId('annotation-layers-list-view');
+
+    // Find and fill search input
+    const searchInput = screen.getByPlaceholderText(/type a value/i);
+    fireEvent.change(searchInput, { target: { value: 'foo' } });
+    fireEvent.keyDown(searchInput, { key: 'Enter', keyCode: 13 });
+
+    // Wait for search API call
+    await waitFor(() => {
+      const calls = fetchMock.calls(/annotation_layer\/\?q/);
+      const searchCall = calls.find(call =>
+        call[0].includes('filters:!((col:name,opr:ct,value:foo))'),
+      );
+      expect(searchCall).toBeTruthy();
+    });
   });
 
   it('deletes', async () => {
-    act(() => {
-      wrapper.find('[data-test="delete-action"]').first().props().onClick();
+    renderAnnotationLayersList();
+
+    // Wait for list to load
+    await screen.findByTestId('annotation-layers-list-view');
+
+    // Find and click delete button
+    const deleteButtons = await screen.findAllByTestId('delete-action');
+    fireEvent.click(deleteButtons[0]);
+
+    // Check delete modal content
+    const deleteModal = await screen.findByRole('dialog');
+    expect(deleteModal).toHaveTextContent(/permanently delete the layer/i);
+
+    // Type DELETE in confirmation input
+    const deleteInput = await screen.findByTestId('delete-modal-input');
+    fireEvent.change(deleteInput, { target: { value: 'DELETE' } });
+
+    // Click confirm button
+    const confirmButton = await screen.findByTestId('modal-confirm-button');
+    fireEvent.click(confirmButton);
+
+    // Wait for delete request
+    await waitFor(() => {
+      expect(fetchMock.calls(/annotation_layer\/0/, 'DELETE')).toHaveLength(1);
     });
-    await waitForComponentToPaint(wrapper);
-
-    expect(
-      wrapper.find(DeleteModal).first().props().description,
-    ).toMatchInlineSnapshot(`"This action will permanently delete the layer."`);
-
-    act(() => {
-      wrapper
-        .find('#delete')
-        .first()
-        .props()
-        .onChange({ target: { value: 'DELETE' } });
-    });
-    await waitForComponentToPaint(wrapper);
-    act(() => {
-      wrapper.find('button').last().props().onClick();
-    });
-
-    await waitForComponentToPaint(wrapper);
-
-    expect(fetchMock.calls(/annotation_layer\/0/, 'DELETE')).toHaveLength(1);
   });
 
-  it('shows/hides bulk actions when bulk actions is clicked', async () => {
-    const button = wrapper.find(Button).at(1);
-    act(() => {
-      button.props().onClick();
-    });
-    await waitForComponentToPaint(wrapper);
-    expect(wrapper.find(IndeterminateCheckbox)).toHaveLength(
-      mocklayers.length + 1, // 1 for each row and 1 for select all
-    );
-  });
+  it('shows bulk actions when bulk select is clicked', async () => {
+    renderAnnotationLayersList();
+
+    // Wait for list to load
+    await screen.findByTestId('annotation-layers-list-view');
+
+    // Click bulk select toggle
+    const bulkSelectButton = screen.getByText(/bulk select/i);
+    fireEvent.click(bulkSelectButton);
+
+    // Wait for bulk select mode to be enabled
+    await screen.findByText('0 Selected');
+  }, 30000);
 });

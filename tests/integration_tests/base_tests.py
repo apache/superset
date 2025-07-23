@@ -14,42 +14,51 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-# isort:skip_file
 """Unit tests for Superset"""
 
-from datetime import datetime
-import imp
 from contextlib import contextmanager
-from typing import Any, Union, Optional
-from unittest.mock import Mock, patch, MagicMock
+from datetime import datetime
+from importlib.util import find_spec
+from io import BytesIO
+from typing import Any, Optional, Union
+from unittest.mock import MagicMock, Mock, patch
+from zipfile import ZipFile
 
 import pandas as pd
 import prison
-from flask import Response, g
+import yaml
+from flask import g, Response
 from flask_appbuilder.security.sqla import models as ab_models
 from flask_testing import TestCase
+from sqlalchemy.dialects.mysql import dialect
 from sqlalchemy.engine.interfaces import Dialect
 from sqlalchemy.ext.declarative import DeclarativeMeta
 from sqlalchemy.orm import Session  # noqa: F401
 from sqlalchemy.sql import func
-from sqlalchemy.dialects.mysql import dialect
 
-from tests.integration_tests.constants import ADMIN_USERNAME
-from tests.integration_tests.test_app import app, login
-from superset.sql_parse import CtasMethod
 from superset import db, security_manager
 from superset.connectors.sqla.models import BaseDatasource, SqlaTable
 from superset.models import core as models
-from superset.models.slice import Slice
 from superset.models.core import Database
 from superset.models.dashboard import Dashboard
-from superset.utils.core import get_example_default_schema, shortid
+from superset.models.slice import Slice
+from superset.sql.parse import CTASMethod
 from superset.utils import json
+from superset.utils.core import get_example_default_schema, shortid
 from superset.utils.database import get_example_database
 from superset.views.base_api import BaseSupersetModelRestApi
+from tests.integration_tests.constants import ADMIN_USERNAME
+from tests.integration_tests.fixtures.importexport import (
+    chart_config,
+    dashboard_config,
+    database_config,
+    dataset_config,
+    metadata_files,
+)
+from tests.integration_tests.test_app import app, login
 
 FAKE_DB_NAME = "fake_db_100"
-DEFAULT_PASSWORD = "general"
+DEFAULT_PASSWORD = "general"  # noqa: S105
 test_client = app.test_client()
 
 
@@ -256,11 +265,11 @@ class SupersetTestCase(TestCase):
         return db.session.query(SqlaTable).filter_by(id=table_id).one()
 
     @staticmethod
-    def is_module_installed(module_name):
+    def is_module_installed(module_name: str) -> bool:
         try:
-            imp.find_module(module_name)
-            return True
-        except ImportError:
+            spec = find_spec(module_name)
+            return spec is not None
+        except (ModuleNotFoundError, ValueError, TypeError, ImportError):
             return False
 
     def get_or_create(self, cls, criteria, **kwargs):
@@ -387,7 +396,7 @@ class SupersetTestCase(TestCase):
         select_as_cta=False,
         tmp_table_name=None,
         schema=None,
-        ctas_method=CtasMethod.TABLE,
+        ctas_method=CTASMethod.TABLE,
         template_params="{}",
     ):
         if username:
@@ -400,7 +409,7 @@ class SupersetTestCase(TestCase):
             "client_id": client_id,
             "queryLimit": query_limit,
             "sql_editor_id": sql_editor_id,
-            "ctas_method": ctas_method,
+            "ctas_method": ctas_method.name,
             "templateParams": template_params,
         }
         if tmp_table_name:
@@ -555,7 +564,7 @@ class SupersetTestCase(TestCase):
         dashboard_title: str,
         slug: Optional[str],
         owners: list[int],
-        roles: list[int] = [],
+        roles: list[int] = [],  # noqa: B006
         created_by=None,
         slices: Optional[list[Slice]] = None,
         position_json: str = "",
@@ -565,8 +574,8 @@ class SupersetTestCase(TestCase):
         certified_by: Optional[str] = None,
         certification_details: Optional[str] = None,
     ) -> Dashboard:
-        obj_owners = list()
-        obj_roles = list()
+        obj_owners = list()  # noqa: C408
+        obj_roles = list()  # noqa: C408
         slices = slices or []
         for owner in owners:
             user = db.session.query(security_manager.user_model).get(owner)
@@ -595,7 +604,7 @@ class SupersetTestCase(TestCase):
     def get_list(
         self,
         asset_type: str,
-        filter: dict[str, Any] = {},
+        filter: dict[str, Any] = {},  # noqa: B006
         username: str = ADMIN_USERNAME,
     ) -> Response:
         """
@@ -605,6 +614,48 @@ class SupersetTestCase(TestCase):
         uri = f"api/v1/{asset_type}/?q={prison.dumps(filter)}"
         response = self.get_assert_metric(uri, "get_list")
         return response
+
+    @staticmethod
+    def create_import_v1_zip_file(asset_type: str, **kwargs) -> BytesIO:
+        asset_configs = {
+            "databases": (kwargs.get("databases"), database_config, True),
+            "datasets": (
+                kwargs.get("datasets"),
+                dataset_config,
+                asset_type != "database",
+            ),
+            "charts": (
+                kwargs.get("charts"),
+                chart_config,
+                asset_type in {"chart", "dashboard"},
+            ),
+            "dashboards": (
+                kwargs.get("dashboards"),
+                dashboard_config,
+                asset_type == "dashboard",
+            ),
+        }
+        buf = BytesIO()
+        with ZipFile(buf, "w") as bundle:
+            with bundle.open("export/metadata.yaml", "w") as fp:
+                fp.write(yaml.safe_dump(metadata_files[asset_type]).encode())
+
+            for folder, (
+                assets,
+                default_config,
+                should_have_default,
+            ) in asset_configs.items():
+                if assets:
+                    for i, asset in enumerate(assets):
+                        with bundle.open(
+                            f"export/{folder}/{asset_type}_{i + 1}.yaml", "w"
+                        ) as fp:
+                            fp.write(yaml.safe_dump(asset).encode())
+                elif should_have_default:
+                    with bundle.open(f"export/{folder}/{asset_type}.yaml", "w") as fp:
+                        fp.write(yaml.safe_dump(default_config).encode())
+        buf.seek(0)
+        return buf
 
 
 @contextmanager

@@ -17,13 +17,15 @@
 import logging
 import textwrap
 from dataclasses import dataclass
+from datetime import datetime
 from email.utils import make_msgid, parseaddr
 from typing import Any, Optional
 
 import nh3
 from flask_babel import gettext as __
+from pytz import timezone
 
-from superset import app
+from superset import app, is_feature_enabled
 from superset.exceptions import SupersetErrorsException
 from superset.reports.models import ReportRecipientType
 from superset.reports.notifications.base import BaseNotification
@@ -79,18 +81,32 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
     """
 
     type = ReportRecipientType.EMAIL
+    now = datetime.now(timezone("UTC"))
+
+    @property
+    def _name(self) -> str:
+        """Include date format in the name if feature flag is enabled"""
+        return (
+            self._parse_name(self._content.name)
+            if is_feature_enabled("DATE_FORMAT_IN_EMAIL_SUBJECT")
+            else self._content.name
+        )
 
     @staticmethod
     def _get_smtp_domain() -> str:
         return parseaddr(app.config["SMTP_MAIL_FROM"])[1].split("@")[1]
 
-    @staticmethod
-    def _error_template(text: str) -> str:
+    def _error_template(self, text: str) -> str:
+        call_to_action = self._get_call_to_action()
         return __(
             """
-            Error: %(text)s
-            """,
+            <p>Your report/alert was unable to be generated because of the following error: %(text)s</p>
+            <p>Please check your dashboard/chart for errors.</p>
+            <p><b><a href="%(url)s">%(call_to_action)s</a></b></p>
+            """,  # noqa: E501
             text=text,
+            url=self._content.url,
+            call_to_action=call_to_action,
         )
 
     def _get_content(self) -> EmailContent:
@@ -130,7 +146,6 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
         else:
             html_table = ""
 
-        call_to_action = __(app.config["EMAIL_REPORTS_CTA"])
         img_tags = []
         for msgid in images.keys():
             img_tags.append(
@@ -140,6 +155,7 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
                 """
             )
         img_tag = "".join(img_tags)
+        call_to_action = self._get_call_to_action()
         body = textwrap.dedent(
             f"""
             <html>
@@ -169,11 +185,11 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
         )
         csv_data = None
         if self._content.csv:
-            csv_data = {__("%(name)s.csv", name=self._content.name): self._content.csv}
+            csv_data = {__("%(name)s.csv", name=self._name): self._content.csv}
 
         pdf_data = None
         if self._content.pdf:
-            pdf_data = {__("%(name)s.pdf", name=self._content.name): self._content.pdf}
+            pdf_data = {__("%(name)s.pdf", name=self._name): self._content.pdf}
 
         return EmailContent(
             body=body,
@@ -187,8 +203,18 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
         return __(
             "%(prefix)s %(title)s",
             prefix=app.config["EMAIL_REPORTS_SUBJECT_PREFIX"],
-            title=self._content.name,
+            title=self._name,
         )
+
+    def _parse_name(self, name: str) -> str:
+        """If user add a date format to the subject, parse it to the real date
+        This feature is hidden behind a feature flag `DATE_FORMAT_IN_EMAIL_SUBJECT`
+        by default it is disabled
+        """
+        return self.now.strftime(name)
+
+    def _get_call_to_action(self) -> str:
+        return __(app.config["EMAIL_REPORTS_CTA"])
 
     def _get_to(self) -> str:
         return json.loads(self._recipient.recipient_config_json)["target"]

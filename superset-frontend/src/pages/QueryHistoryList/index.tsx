@@ -16,16 +16,16 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useMemo, useState, useCallback, ReactElement } from 'react';
+import { useMemo, useState, useCallback, ReactElement, useEffect } from 'react';
 import { Link, useHistory } from 'react-router-dom';
 import {
+  css,
   QueryState,
   styled,
   SupersetClient,
   t,
   useTheme,
 } from '@superset-ui/core';
-import moment from 'moment';
 import {
   createFetchRelated,
   createFetchDistinct,
@@ -34,42 +34,53 @@ import {
 } from 'src/views/CRUD/utils';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import { useListViewResource } from 'src/views/CRUD/hooks';
-import Label from 'src/components/Label';
 import SubMenu, { SubMenuProps } from 'src/features/home/SubMenu';
-import Popover from 'src/components/Popover';
+import { Popover, Label, Tooltip } from '@superset-ui/core/components';
 import { commonMenuData } from 'src/features/home/commonMenuData';
-import ListView, {
-  Filters,
-  FilterOperator,
-  ListViewProps,
-} from 'src/components/ListView';
-import { Tooltip } from 'src/components/Tooltip';
-import SyntaxHighlighter from 'react-syntax-highlighter/dist/cjs/light';
-import sql from 'react-syntax-highlighter/dist/cjs/languages/hljs/sql';
-import github from 'react-syntax-highlighter/dist/cjs/styles/hljs/github';
+import {
+  ListView,
+  ListViewFilterOperator as FilterOperator,
+  type ListViewProps,
+  type ListViewFilters,
+} from 'src/components';
+import CodeSyntaxHighlighter, {
+  preloadLanguages,
+} from '@superset-ui/core/components/CodeSyntaxHighlighter';
 import { DATETIME_WITH_TIME_ZONE, TIME_WITH_MS } from 'src/constants';
 import { QueryObject, QueryObjectColumns } from 'src/views/CRUD/types';
 
-import Icons from 'src/components/Icons';
+import { Icons } from '@superset-ui/core/components/Icons';
 import QueryPreviewModal from 'src/features/queries/QueryPreviewModal';
 import { addSuccessToast } from 'src/components/MessageToasts/actions';
 import getOwnerName from 'src/utils/getOwnerName';
+import { extendedDayjs } from '@superset-ui/core/utils/dates';
 
 const PAGE_SIZE = 25;
 const SQL_PREVIEW_MAX_LINES = 4;
 
 const TopAlignedListView = styled(ListView)<ListViewProps<QueryObject>>`
-  table .table-cell {
+  table .ant-table-cell {
     vertical-align: top;
   }
 `;
 
-SyntaxHighlighter.registerLanguage('sql', sql);
-const StyledSyntaxHighlighter = styled(SyntaxHighlighter)`
-  height: ${({ theme }) => theme.gridUnit * 26}px;
+const StyledCodeSyntaxHighlighter = styled(CodeSyntaxHighlighter)`
+  height: ${({ theme }) => theme.sizeUnit * 26}px;
   overflow: hidden !important; /* needed to override inline styles */
   text-overflow: ellipsis;
   white-space: nowrap;
+
+  /* Ensure the syntax highlighter content respects the container constraints */
+  & > div {
+    height: 100%;
+    overflow: hidden;
+  }
+
+  pre {
+    height: 100% !important;
+    overflow: hidden !important;
+    margin: 0 !important;
+  }
 `;
 
 interface QueryListProps {
@@ -80,7 +91,7 @@ interface QueryListProps {
 const StyledTableLabel = styled.div`
   .count {
     margin-left: 5px;
-    color: ${({ theme }) => theme.colors.primary.base};
+    color: ${({ theme }) => theme.colorPrimary};
     text-decoration: underline;
     cursor: pointer;
   }
@@ -92,7 +103,7 @@ const StyledPopoverItem = styled.div`
 
 const TimerLabel = styled(Label)`
   text-align: left;
-  font-family: ${({ theme }) => theme.typography.families.monospace};
+  font-family: ${({ theme }) => theme.fontFamilyCode};
 `;
 
 function QueryList({ addDangerToast }: QueryListProps) {
@@ -111,6 +122,11 @@ function QueryList({ addDangerToast }: QueryListProps) {
 
   const theme = useTheme();
   const history = useHistory();
+
+  // Preload SQL language since this component will definitely display SQL
+  useEffect(() => {
+    preloadLanguages(['sql']);
+  }, []);
 
   const handleQueryPreview = useCallback(
     (id: number) => {
@@ -159,7 +175,13 @@ function QueryList({ addDangerToast }: QueryListProps) {
           };
           if (status === QueryState.Success) {
             statusConfig.name = (
-              <Icons.Check iconColor={theme.colors.success.base} />
+              <Icons.CheckOutlined
+                iconSize="m"
+                iconColor={theme.colorSuccess}
+                css={css`
+                  vertical-align: -webkit-baseline-middle;
+                `}
+              />
             );
             statusConfig.label = t('Success');
           } else if (
@@ -167,10 +189,11 @@ function QueryList({ addDangerToast }: QueryListProps) {
             status === QueryState.Stopped
           ) {
             statusConfig.name = (
-              <Icons.XSmall
+              <Icons.CloseOutlined
+                iconSize="xs"
                 iconColor={
                   status === QueryState.Failed
-                    ? theme.colors.error.base
+                    ? theme.colorError
                     : theme.colors.grayscale.base
                 }
               />
@@ -178,21 +201,19 @@ function QueryList({ addDangerToast }: QueryListProps) {
             statusConfig.label = t('Failed');
           } else if (status === QueryState.Running) {
             statusConfig.name = (
-              <Icons.Running iconColor={theme.colors.primary.base} />
+              <Icons.Running iconColor={theme.colorPrimary} />
             );
             statusConfig.label = t('Running');
           } else if (status === QueryState.TimedOut) {
             statusConfig.name = (
-              <Icons.Offline iconColor={theme.colors.grayscale.light1} />
+              <Icons.CircleSolid iconColor={theme.colors.grayscale.light1} />
             );
             statusConfig.label = t('Offline');
           } else if (
             status === QueryState.Scheduled ||
             status === QueryState.Pending
           ) {
-            statusConfig.name = (
-              <Icons.Queued iconColor={theme.colors.grayscale.base} />
-            );
+            statusConfig.name = <Icons.Queued />;
             statusConfig.label = t('Scheduled');
           }
           return (
@@ -204,6 +225,7 @@ function QueryList({ addDangerToast }: QueryListProps) {
         accessor: QueryObjectColumns.Status,
         size: 'xs',
         disableSortBy: true,
+        id: QueryObjectColumns.Status,
       },
       {
         accessor: QueryObjectColumns.StartTime,
@@ -214,8 +236,8 @@ function QueryList({ addDangerToast }: QueryListProps) {
             original: { start_time },
           },
         }: any) => {
-          const startMoment = moment.utc(start_time).local();
-          const formattedStartTimeData = startMoment
+          const start = extendedDayjs.utc(start_time).local();
+          const formattedStartTimeData = start
             .format(DATETIME_WITH_TIME_ZONE)
             .split(' ');
 
@@ -227,6 +249,7 @@ function QueryList({ addDangerToast }: QueryListProps) {
           );
           return formattedStartTime;
         },
+        id: QueryObjectColumns.StartTime,
       },
       {
         Header: t('Duration'),
@@ -238,7 +261,9 @@ function QueryList({ addDangerToast }: QueryListProps) {
         }: any) => {
           const timerType = status === QueryState.Failed ? 'danger' : status;
           const timerTime = end_time
-            ? moment(moment.utc(end_time - start_time)).format(TIME_WITH_MS)
+            ? extendedDayjs(extendedDayjs.utc(end_time - start_time)).format(
+                TIME_WITH_MS,
+              )
             : '00:00:00.000';
           return (
             <TimerLabel type={timerType} role="timer">
@@ -246,25 +271,30 @@ function QueryList({ addDangerToast }: QueryListProps) {
             </TimerLabel>
           );
         },
+        id: 'duration',
       },
       {
         accessor: QueryObjectColumns.TabName,
         Header: t('Tab name'),
         size: 'xl',
+        id: QueryObjectColumns.TabName,
       },
       {
         accessor: QueryObjectColumns.DatabaseName,
         Header: t('Database'),
         size: 'xl',
+        id: QueryObjectColumns.DatabaseName,
       },
       {
         accessor: QueryObjectColumns.Database,
         hidden: true,
+        id: QueryObjectColumns.Database,
       },
       {
         accessor: QueryObjectColumns.Schema,
         Header: t('Schema'),
         size: 'xl',
+        id: QueryObjectColumns.Schema,
       },
       {
         Cell: ({
@@ -303,6 +333,7 @@ function QueryList({ addDangerToast }: QueryListProps) {
         Header: t('Tables'),
         size: 'xl',
         disableSortBy: true,
+        id: QueryObjectColumns.SqlTables,
       },
       {
         accessor: QueryObjectColumns.UserFirstName,
@@ -313,15 +344,18 @@ function QueryList({ addDangerToast }: QueryListProps) {
             original: { user },
           },
         }: any) => getOwnerName(user),
+        id: QueryObjectColumns.UserFirstName,
       },
       {
         accessor: QueryObjectColumns.User,
         hidden: true,
+        id: QueryObjectColumns.User,
       },
       {
         accessor: QueryObjectColumns.Rows,
         Header: t('Rows'),
         size: 'md',
+        id: QueryObjectColumns.Rows,
       },
       {
         accessor: QueryObjectColumns.Sql,
@@ -332,12 +366,26 @@ function QueryList({ addDangerToast }: QueryListProps) {
             role="button"
             data-test={`open-sql-preview-${id}`}
             onClick={() => setQueryCurrentlyPreviewing(original)}
+            onKeyDown={e => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                setQueryCurrentlyPreviewing(original);
+              }
+            }}
+            style={{ cursor: 'pointer' }}
           >
-            <StyledSyntaxHighlighter language="sql" style={github}>
+            <StyledCodeSyntaxHighlighter
+              language="sql"
+              customStyle={{
+                cursor: 'pointer',
+                userSelect: 'none',
+              }}
+            >
               {shortenSQL(original.sql, SQL_PREVIEW_MAX_LINES)}
-            </StyledSyntaxHighlighter>
+            </StyledCodeSyntaxHighlighter>
           </div>
         ),
+        id: QueryObjectColumns.Sql,
       },
       {
         Header: t('Actions'),
@@ -350,16 +398,16 @@ function QueryList({ addDangerToast }: QueryListProps) {
         }: any) => (
           <Tooltip title={t('Open query in SQL Lab')} placement="bottom">
             <Link to={`/sqllab?queryId=${id}`}>
-              <Icons.Full iconColor={theme.colors.grayscale.base} />
+              <Icons.Full iconSize="l" />
             </Link>
           </Tooltip>
         ),
       },
     ],
-    [],
+    [theme], // Add theme to dependencies since it's used in the columns
   );
 
-  const filters: Filters = useMemo(
+  const filters: ListViewFilters = useMemo(
     () => [
       {
         Header: t('Database'),

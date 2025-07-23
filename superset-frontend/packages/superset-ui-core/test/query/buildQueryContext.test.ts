@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { buildQueryContext } from '@superset-ui/core';
+import { buildQueryContext, VizType } from '@superset-ui/core';
 import * as queryModule from '../../src/query/normalizeTimeColumn';
 
 describe('buildQueryContext', () => {
@@ -24,7 +24,7 @@ describe('buildQueryContext', () => {
     const queryContext = buildQueryContext({
       datasource: '5__table',
       granularity_sqla: 'ds',
-      viz_type: 'table',
+      viz_type: VizType.Table,
     });
     expect(queryContext.datasource.id).toBe(5);
     expect(queryContext.datasource.type).toBe('table');
@@ -37,7 +37,7 @@ describe('buildQueryContext', () => {
       {
         datasource: '5__table',
         granularity_sqla: 'ds',
-        viz_type: 'table',
+        viz_type: VizType.Table,
         source: 'source_column',
         source_category: 'source_category_column',
         target: 'target_column',
@@ -75,7 +75,7 @@ describe('buildQueryContext', () => {
       {
         datasource: '5__table',
         granularity_sqla: 'ds',
-        viz_type: 'table',
+        viz_type: VizType.Table,
         source: 'source_column',
         source_category: 'source_category_column',
         target: 'target_column',
@@ -103,7 +103,7 @@ describe('buildQueryContext', () => {
     const queryContext = buildQueryContext(
       {
         datasource: '5__table',
-        viz_type: 'table',
+        viz_type: VizType.Table,
       },
       () => [
         {
@@ -133,12 +133,12 @@ describe('buildQueryContext', () => {
     buildQueryContext(
       {
         datasource: '5__table',
-        viz_type: 'table',
+        viz_type: VizType.Table,
         x_axis: 'axis',
       },
       () => [{}],
     );
-    expect(spyNormalizeTimeColumn).toBeCalled();
+    expect(spyNormalizeTimeColumn).toHaveBeenCalled();
     spyNormalizeTimeColumn.mockRestore();
   });
 });

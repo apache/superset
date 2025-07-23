@@ -18,23 +18,23 @@
  */
 import { SyntheticEvent } from 'react';
 import { logging, t } from '@superset-ui/core';
-import { Menu } from 'src/components/Menu';
+import { Menu } from '@superset-ui/core/components/Menu';
 import { LOG_ACTIONS_DASHBOARD_DOWNLOAD_AS_IMAGE } from 'src/logger/LogUtils';
 import downloadAsImage from 'src/utils/downloadAsImage';
+import { useToasts } from 'src/components/MessageToasts/withToasts';
 
 export default function DownloadAsImage({
   text,
   logEvent,
   dashboardTitle,
-  addDangerToast,
-  ...rest
+  ...props
 }: {
   text: string;
-  addDangerToast: Function;
   dashboardTitle: string;
   logEvent?: Function;
 }) {
   const SCREENSHOT_NODE_SELECTOR = '.dashboard';
+  const { addDangerToast } = useToasts();
   const onDownloadImage = async (e: SyntheticEvent) => {
     try {
       downloadAsImage(SCREENSHOT_NODE_SELECTOR, dashboardTitle, true)(e);
@@ -46,10 +46,14 @@ export default function DownloadAsImage({
   };
 
   return (
-    <Menu.Item key="download-image" {...rest}>
-      <div onClick={onDownloadImage} role="button" tabIndex={0}>
-        {text}
-      </div>
+    <Menu.Item
+      key="download-image"
+      onClick={e => {
+        onDownloadImage(e.domEvent);
+      }}
+      {...props}
+    >
+      {text}
     </Menu.Item>
   );
 }

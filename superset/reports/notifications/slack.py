@@ -43,7 +43,7 @@ from superset.reports.notifications.exceptions import (
 )
 from superset.reports.notifications.slack_mixin import SlackMixin
 from superset.utils import json
-from superset.utils.core import get_email_address_list
+from superset.utils.core import recipients_string_to_list
 from superset.utils.decorators import statsd_gauge
 from superset.utils.slack import (
     get_slack_client,
@@ -70,7 +70,7 @@ class SlackNotification(SlackMixin, BaseNotification):  # pylint: disable=too-fe
         """
         recipient_str = json.loads(self._recipient.recipient_config_json)["target"]
 
-        return ",".join(get_email_address_list(recipient_str))
+        return ",".join(recipients_string_to_list(recipient_str))
 
     def _get_inline_files(
         self,

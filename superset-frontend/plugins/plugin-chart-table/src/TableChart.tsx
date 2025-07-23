@@ -24,6 +24,7 @@ import {
   useState,
   MouseEvent,
   KeyboardEvent as ReactKeyboardEvent,
+  useEffect,
 } from 'react';
 
 import {
@@ -51,8 +52,16 @@ import {
   t,
   tn,
   useTheme,
+  SupersetTheme,
 } from '@superset-ui/core';
-import { Dropdown, Menu, Tooltip } from '@superset-ui/chart-controls';
+import {
+  Input,
+  Space,
+  RawAntdSelect as Select,
+  Dropdown,
+  Menu,
+  Tooltip,
+} from '@superset-ui/core/components';
 import {
   CheckOutlined,
   InfoCircleOutlined,
@@ -61,10 +70,12 @@ import {
   PlusCircleOutlined,
   TableOutlined,
 } from '@ant-design/icons';
-import { isEmpty, isNumber } from 'lodash';
+import { isEmpty, debounce, isEqual } from 'lodash';
 import {
   ColorSchemeEnum,
   DataColumnMeta,
+  SearchOption,
+  SortByItem,
   TableChartTransformedProps,
 } from './types';
 import DataTable, {
@@ -76,8 +87,8 @@ import DataTable, {
 
 import Styles from './Styles';
 import { formatColumnValue } from './utils/formatValue';
-import { PAGE_SIZE_OPTIONS } from './consts';
-import { updateExternalFormData } from './DataTable/utils/externalAPIs';
+import { PAGE_SIZE_OPTIONS, SERVER_PAGE_SIZE_OPTIONS } from './consts';
+import { updateTableOwnState } from './DataTable/utils/externalAPIs';
 import getScrollBarSize from './DataTable/utils/getScrollBarSize';
 
 type ValueRange = [number, number];
@@ -176,18 +187,26 @@ function SortIcon<D extends object>({ column }: { column: ColumnInstance<D> }) {
   return sortIcon;
 }
 
-function SearchInput({ count, value, onChange }: SearchInputProps) {
+function SearchInput({
+  count,
+  value,
+  onChange,
+  onBlur,
+  inputRef,
+}: SearchInputProps) {
   return (
-    <span className="dt-global-filter">
-      {t('Search')}{' '}
-      <input
+    <Space direction="horizontal" size={4} className="dt-global-filter">
+      {t('Search')}
+      <Input
+        size="small"
         aria-label={t('Search %s records', count)}
-        className="form-control input-sm"
         placeholder={tn('search.num_records', count)}
         value={value}
         onChange={onChange}
+        onBlur={onBlur}
+        ref={inputRef}
       />
-    </span>
+    </Space>
   );
 }
 
@@ -196,35 +215,37 @@ function SelectPageSize({
   current,
   onChange,
 }: SelectPageSizeRendererProps) {
+  const { Option } = Select;
+
   return (
-    <span className="dt-select-page-size form-inline">
-      {t('page_size.show')}{' '}
-      <select
-        className="form-control input-sm"
+    <>
+      <label htmlFor="pageSizeSelect" className="sr-only">
+        {t('Select page size')}
+      </label>
+      {t('Show')}{' '}
+      <Select<number>
+        id="pageSizeSelect"
         value={current}
-        onBlur={() => {}}
-        onChange={e => {
-          onChange(Number((e.target as HTMLSelectElement).value));
-        }}
+        onChange={value => onChange(value)}
+        size="small"
+        css={(theme: SupersetTheme) => css`
+          width: ${theme.sizeUnit * 18}px;
+        `}
+        aria-label={t('Show entries per page')}
       >
         {options.map(option => {
           const [size, text] = Array.isArray(option)
             ? option
             : [option, option];
-          const sizeLabel = size === 0 ? t('all') : size;
           return (
-            <option
-              aria-label={t('Show %s entries', sizeLabel)}
-              key={size}
-              value={size}
-            >
+            <Option key={size} value={Number(size)}>
               {text}
-            </option>
+            </Option>
           );
         })}
-      </select>{' '}
-      {t('page_size.entries')}
-    </span>
+      </Select>{' '}
+      {t('entries per page')}
+    </>
   );
 }
 
@@ -264,6 +285,9 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     isUsingTimeComparison,
     basicColorFormatters,
     basicColorColumnFormatters,
+    hasServerPageLengthChanged,
+    serverPageLength,
+    slice_id,
   } = props;
   const comparisonColumns = [
     { key: 'all', label: t('Display all') },
@@ -291,7 +315,9 @@ export default function TableChart<D extends DataRecord = DataRecord>(
   // only take relevant page size options
   const pageSizeOptions = useMemo(() => {
     const getServerPagination = (n: number) => n <= rowCount;
-    return PAGE_SIZE_OPTIONS.filter(([n]) =>
+    return (
+      serverPagination ? SERVER_PAGE_SIZE_OPTIONS : PAGE_SIZE_OPTIONS
+    ).filter(([n]) =>
       serverPagination ? getServerPagination(n) : n <= 2 * data.length,
     ) as SizeOption[];
   }, [data.length, rowCount, serverPagination]);
@@ -552,9 +578,9 @@ export default function TableChart<D extends DataRecord = DataRecord>(
             <div
               css={css`
                 max-width: 242px;
-                padding: 0 ${theme.gridUnit * 2}px;
-                color: ${theme.colors.grayscale.base};
-                font-size: ${theme.typography.sizes.s}px;
+                padding: 0 ${theme.sizeUnit * 2}px;
+                color: ${theme.colorText};
+                font-size: ${theme.fontSizeSM}px;
               `}
             >
               {t(
@@ -565,7 +591,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
               <Menu.Item key={column.key}>
                 <span
                   css={css`
-                    color: ${theme.colors.grayscale.dark2};
+                    color: ${theme.colorText};
                   `}
                 >
                   {column.label}
@@ -573,7 +599,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
                 <span
                   css={css`
                     float: right;
-                    font-size: ${theme.typography.sizes.s}px;
+                    font-size: ${theme.fontSizeSM}px;
                   `}
                 >
                   {selectedComparisonColumns.includes(column.key) && (
@@ -602,6 +628,8 @@ export default function TableChart<D extends DataRecord = DataRecord>(
       // Calculate the number of placeholder columns needed before the current header
       const startPosition = value[0];
       const colSpan = value.length;
+      // Retrieve the originalLabel from the first column in this group
+      const originalLabel = columnsMeta[value[0]]?.originalLabel || key;
 
       // Add placeholder <th> for columns before this header
       for (let i = currentColumnIndex; i < startPosition; i += 1) {
@@ -617,12 +645,12 @@ export default function TableChart<D extends DataRecord = DataRecord>(
       // Add the current header <th>
       headers.push(
         <th key={`header-${key}`} colSpan={colSpan} style={{ borderBottom: 0 }}>
-          {key}
+          {originalLabel}
           <span
             css={css`
               float: right;
               & svg {
-                color: ${theme.colors.grayscale.base} !important;
+                color: ${theme.colorIcon} !important;
               }
             `}
           >
@@ -653,7 +681,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
       <tr
         css={css`
           th {
-            border-right: 2px solid ${theme.colors.grayscale.light2};
+            border-right: 1px solid ${theme.colorSplit};
           }
           th:first-child {
             border-left: none;
@@ -674,16 +702,41 @@ export default function TableChart<D extends DataRecord = DataRecord>(
   );
 
   const getColumnConfigs = useCallback(
-    (column: DataColumnMeta, i: number): ColumnWithLooseAccessor<D> => {
+    (
+      column: DataColumnMeta,
+      i: number,
+    ): ColumnWithLooseAccessor<D> & {
+      columnKey: string;
+    } => {
       const {
         key,
-        label,
+        label: originalLabel,
         isNumeric,
         dataType,
         isMetric,
         isPercentMetric,
         config = {},
       } = column;
+      const label = config.customColumnName || originalLabel;
+      let displayLabel = label;
+
+      const isComparisonColumn = ['#', '△', '%', t('Main')].includes(
+        column.label,
+      );
+
+      if (isComparisonColumn) {
+        if (column.label === t('Main')) {
+          displayLabel = config.customColumnName || column.originalLabel || '';
+        } else if (config.customColumnName) {
+          displayLabel =
+            config.displayTypeIcon !== false
+              ? `${column.label} ${config.customColumnName}`
+              : config.customColumnName;
+        } else if (config.displayTypeIcon === false) {
+          displayLabel = '';
+        }
+      }
+
       const columnWidth = Number.isNaN(Number(config.columnWidth))
         ? config.columnWidth
         : Number(config.columnWidth);
@@ -711,7 +764,6 @@ export default function TableChart<D extends DataRecord = DataRecord>(
         isUsingTimeComparison &&
         Array.isArray(basicColorFormatters) &&
         basicColorFormatters.length > 0;
-
       const valueRange =
         !hasBasicColorFormatters &&
         !hasColumnColorFormatters &&
@@ -741,6 +793,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
         // must use custom accessor to allow `.` in column names
         // typing is incorrect in current version of `@types/react-table`
         // so we ask TS not to check.
+        columnKey: key,
         accessor: ((datum: D) => datum[key]) as never,
         Cell: ({ value, row }: { value: DataRecordValue; row: Row<D> }) => {
           const [isHtml, text] = formatColumnValue(column, value);
@@ -784,12 +837,15 @@ export default function TableChart<D extends DataRecord = DataRecord>(
                 ? basicColorColumnFormatters[row.index][column.key]?.mainArrow
                 : '';
           }
-
           const StyledCell = styled.td`
+            color: ${theme.colorText};
             text-align: ${sharedStyle.textAlign};
             white-space: ${value instanceof Date ? 'nowrap' : undefined};
             position: relative;
             background: ${backgroundColor || undefined};
+            padding-left: ${column.isChildColumn
+              ? `${theme.sizeUnit * 5}px`
+              : `${theme.sizeUnit}px`};
           `;
 
           const cellBarStyles = css`
@@ -820,9 +876,9 @@ export default function TableChart<D extends DataRecord = DataRecord>(
             color: ${basicColorFormatters &&
             basicColorFormatters[row.index][originKey]?.arrowColor ===
               ColorSchemeEnum.Green
-              ? theme.colors.success.base
-              : theme.colors.error.base};
-            margin-right: ${theme.gridUnit}px;
+              ? theme.colorSuccess
+              : theme.colorError};
+            margin-right: ${theme.sizeUnit}px;
           `;
 
           if (
@@ -832,9 +888,9 @@ export default function TableChart<D extends DataRecord = DataRecord>(
             arrowStyles = css`
               color: ${basicColorColumnFormatters[row.index][column.key]
                 ?.arrowColor === ColorSchemeEnum.Green
-                ? theme.colors.success.base
-                : theme.colors.error.base};
-              margin-right: ${theme.gridUnit}px;
+                ? theme.colorSuccess
+                : theme.colorError};
+              margin-right: ${theme.sizeUnit}px;
             `;
           }
 
@@ -896,7 +952,9 @@ export default function TableChart<D extends DataRecord = DataRecord>(
                   /* The following classes are added to support custom CSS styling */
                   className={cx(
                     'cell-bar',
-                    isNumber(value) && value < 0 ? 'negative' : 'positive',
+                    typeof value === 'number' && value < 0
+                      ? 'negative'
+                      : 'positive',
                   )}
                   css={cellBarStyles}
                   role="presentation"
@@ -921,7 +979,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
         },
         Header: ({ column: col, onClick, style, onDragStart, onDrop }) => (
           <th
-            id={`header-${column.key}`}
+            id={`header-${column.originalLabel}`}
             title={t('Shift + Click to sort by multiple columns')}
             className={[className, col.isSorted ? 'is-sorted' : ''].join(' ')}
             style={{
@@ -963,21 +1021,22 @@ export default function TableChart<D extends DataRecord = DataRecord>(
                 alignItems: 'flex-end',
               }}
             >
-              <span data-column-name={col.id}>{label}</span>
+              <span data-column-name={col.id}>{displayLabel}</span>
               <SortIcon column={col} />
             </div>
           </th>
         ),
+
         Footer: totals ? (
           i === 0 ? (
-            <th>
+            <th key={`footer-summary-${i}`}>
               <div
                 css={css`
                   display: flex;
                   align-items: center;
                   & svg {
-                    margin-left: ${theme.gridUnit}px;
-                    color: ${theme.colors.grayscale.dark1} !important;
+                    margin-left: ${theme.sizeUnit}px;
+                    color: ${theme.colorBorder} !important;
                   }
                 `}
               >
@@ -992,7 +1051,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
               </div>
             </th>
           ) : (
-            <td style={sharedStyle}>
+            <td key={`footer-total-${i}`} style={sharedStyle}>
               <strong>{formatColumnValue(column, totals[key])[1]}</strong>
             </td>
           )
@@ -1017,17 +1076,59 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     ],
   );
 
-  const columns = useMemo(
-    () => filteredColumnsMeta.map(getColumnConfigs),
-    [filteredColumnsMeta, getColumnConfigs],
+  const visibleColumnsMeta = useMemo(
+    () => filteredColumnsMeta.filter(col => col.config?.visible !== false),
+    [filteredColumnsMeta],
   );
+
+  const columns = useMemo(
+    () => visibleColumnsMeta.map(getColumnConfigs),
+    [visibleColumnsMeta, getColumnConfigs],
+  );
+
+  const [searchOptions, setSearchOptions] = useState<SearchOption[]>([]);
+
+  useEffect(() => {
+    const options = (
+      columns as unknown as ColumnWithLooseAccessor &
+        {
+          columnKey: string;
+          sortType?: string;
+        }[]
+    )
+      .filter(col => col?.sortType === 'alphanumeric')
+      .map(column => ({
+        value: column.columnKey,
+        label: column.columnKey,
+      }));
+
+    if (!isEqual(options, searchOptions)) {
+      setSearchOptions(options || []);
+    }
+  }, [columns]);
 
   const handleServerPaginationChange = useCallback(
     (pageNumber: number, pageSize: number) => {
-      updateExternalFormData(setDataMask, pageNumber, pageSize);
+      const modifiedOwnState = {
+        ...serverPaginationData,
+        currentPage: pageNumber,
+        pageSize,
+      };
+      updateTableOwnState(setDataMask, modifiedOwnState);
     },
     [setDataMask],
   );
+
+  useEffect(() => {
+    if (hasServerPageLengthChanged) {
+      const modifiedOwnState = {
+        ...serverPaginationData,
+        currentPage: 0,
+        pageSize: serverPageLength,
+      };
+      updateTableOwnState(setDataMask, modifiedOwnState);
+    }
+  }, []);
 
   const handleSizeChange = useCallback(
     ({ width, height }: { width: number; height: number }) => {
@@ -1064,6 +1165,42 @@ export default function TableChart<D extends DataRecord = DataRecord>(
 
   const { width: widthFromState, height: heightFromState } = tableSize;
 
+  const handleSortByChange = useCallback(
+    (sortBy: SortByItem[]) => {
+      if (!serverPagination) return;
+      const modifiedOwnState = {
+        ...serverPaginationData,
+        sortBy,
+      };
+      updateTableOwnState(setDataMask, modifiedOwnState);
+    },
+    [setDataMask, serverPagination],
+  );
+
+  const handleSearch = (searchText: string) => {
+    const modifiedOwnState = {
+      ...(serverPaginationData || {}),
+      searchColumn:
+        serverPaginationData?.searchColumn || searchOptions[0]?.value,
+      searchText,
+      currentPage: 0, // Reset to first page when searching
+    };
+    updateTableOwnState(setDataMask, modifiedOwnState);
+  };
+
+  const debouncedSearch = debounce(handleSearch, 800);
+
+  const handleChangeSearchCol = (searchCol: string) => {
+    if (!isEqual(searchCol, serverPaginationData?.searchColumn)) {
+      const modifiedOwnState = {
+        ...(serverPaginationData || {}),
+        searchColumn: searchCol,
+        searchText: '',
+      };
+      updateTableOwnState(setDataMask, modifiedOwnState);
+    }
+  };
+
   return (
     <Styles>
       <DataTable<D>
@@ -1079,6 +1216,9 @@ export default function TableChart<D extends DataRecord = DataRecord>(
         serverPagination={serverPagination}
         onServerPaginationChange={handleServerPaginationChange}
         onColumnOrderChange={() => setColumnOrderToggle(!columnOrderToggle)}
+        initialSearchText={serverPaginationData?.searchText || ''}
+        sortByFromParent={serverPaginationData?.sortBy || []}
+        searchInputId={`${slice_id}-search`}
         // 9 page items in > 340px works well even for 100+ pages
         maxPageItemCount={width > 340 ? 9 : 7}
         noResults={getNoResultsMessage}
@@ -1092,6 +1232,11 @@ export default function TableChart<D extends DataRecord = DataRecord>(
         renderTimeComparisonDropdown={
           isUsingTimeComparison ? renderTimeComparisonDropdown : undefined
         }
+        handleSortByChange={handleSortByChange}
+        onSearchColChange={handleChangeSearchCol}
+        manualSearch={serverPagination}
+        onSearchChange={debouncedSearch}
+        searchOptions={searchOptions}
       />
     </Styles>
   );

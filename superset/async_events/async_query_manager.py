@@ -18,10 +18,9 @@ from __future__ import annotations
 
 import logging
 import uuid
-from typing import Any, Literal, Optional, Union
+from typing import Any, Literal, Optional
 
 import jwt
-import redis
 from flask import Flask, Request, request, Response, session
 from flask_caching.backends.base import BaseCache
 
@@ -35,15 +34,19 @@ from superset.utils.core import get_user_id
 logger = logging.getLogger(__name__)
 
 
-class CacheBackendNotInitialized(Exception):
+class CacheBackendNotInitialized(Exception):  # noqa: N818
     pass
 
 
-class AsyncQueryTokenException(Exception):
+class AsyncQueryTokenException(Exception):  # noqa: N818
     pass
 
 
-class AsyncQueryJobException(Exception):
+class UnsupportedCacheBackendError(Exception):  # noqa: N818
+    pass
+
+
+class AsyncQueryJobException(Exception):  # noqa: N818
     pass
 
 
@@ -77,7 +80,7 @@ def increment_id(entry_id: str) -> str:
 
 def get_cache_backend(
     config: dict[str, Any],
-) -> Union[RedisCacheBackend, RedisSentinelCacheBackend, redis.Redis]:  # type: ignore
+) -> RedisCacheBackend | RedisSentinelCacheBackend:
     cache_config = config.get("GLOBAL_ASYNC_QUERIES_CACHE_BACKEND", {})
     cache_type = cache_config.get("CACHE_TYPE")
 
@@ -87,11 +90,8 @@ def get_cache_backend(
     if cache_type == "RedisSentinelCache":
         return RedisSentinelCacheBackend.from_config(cache_config)
 
-    # TODO: Deprecate hardcoded plain Redis code and expand cache backend options.
-    # Maintain backward compatibility with 'GLOBAL_ASYNC_QUERIES_REDIS_CONFIG' until it is deprecated.
-    return redis.Redis(
-        **config["GLOBAL_ASYNC_QUERIES_REDIS_CONFIG"], decode_responses=True
-    )
+    # TODO: Expand cache backend options.
+    raise UnsupportedCacheBackendError("Unsupported cache backend configuration")
 
 
 class AsyncQueryManager:
@@ -265,7 +265,7 @@ class AsyncQueryManager:
         stream_name = f"{self._stream_prefix}{channel}"
         start_id = increment_id(last_id) if last_id else "-"
         results = self._cache.xrange(stream_name, start_id, "+", self.MAX_EVENT_COUNT)
-        # Decode bytes to strings, decode_responses is not supported at RedisCache and RedisSentinelCache
+        # Decode bytes to strings, decode_responses is not supported at RedisCache and RedisSentinelCache  # noqa: E501
         if isinstance(self._cache, (RedisSentinelCacheBackend, RedisCacheBackend)):
             decoded_results = [
                 (

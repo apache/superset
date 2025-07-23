@@ -33,10 +33,10 @@ import EstimateQueryCostButton, {
 const middlewares = [thunk];
 const mockStore = configureStore(middlewares);
 
-jest.mock('src/components/Select/Select', () => () => (
+jest.mock('@superset-ui/core/components/Select/Select', () => () => (
   <div data-test="mock-deprecated-select-select" />
 ));
-jest.mock('src/components/Select/AsyncSelect', () => () => (
+jest.mock('@superset-ui/core/components/Select/AsyncSelect', () => () => (
   <div data-test="mock-deprecated-async-select" />
 ));
 
@@ -57,7 +57,7 @@ describe('EstimateQueryCostButton', () => {
   it('renders EstimateQueryCostButton', async () => {
     const { queryByText } = setup({}, mockStore(initialState));
 
-    expect(queryByText('Estimate cost')).toBeTruthy();
+    expect(queryByText('Estimate cost')).toBeInTheDocument();
   });
 
   it('renders label for selected query', async () => {
@@ -66,7 +66,7 @@ describe('EstimateQueryCostButton', () => {
       mockStore(initialState),
     );
 
-    expect(queryByText('Estimate selected query cost')).toBeTruthy();
+    expect(queryByText('Estimate selected query cost')).toBeInTheDocument();
   });
 
   it('renders label for selected query from unsaved', async () => {
@@ -84,7 +84,7 @@ describe('EstimateQueryCostButton', () => {
       }),
     );
 
-    expect(queryByText('Estimate selected query cost')).toBeTruthy();
+    expect(queryByText('Estimate selected query cost')).toBeInTheDocument();
   });
 
   it('renders estimation error result', async () => {
@@ -103,10 +103,10 @@ describe('EstimateQueryCostButton', () => {
       }),
     );
 
-    expect(queryByText('Estimate cost')).toBeTruthy();
+    expect(queryByText('Estimate cost')).toBeInTheDocument();
     fireEvent.click(getByText('Estimate cost'));
 
-    expect(queryByText('Estimate error')).toBeTruthy();
+    expect(queryByText('Estimate error')).toBeInTheDocument();
   });
 
   it('renders estimation success result', async () => {
@@ -126,9 +126,9 @@ describe('EstimateQueryCostButton', () => {
       }),
     );
 
-    expect(queryByText('Estimate cost')).toBeTruthy();
+    expect(queryByText('Estimate cost')).toBeInTheDocument();
     fireEvent.click(getByText('Estimate cost'));
 
-    expect(queryByText('Total cost')).toBeTruthy();
+    expect(queryByText('Total cost')).toBeInTheDocument();
   });
 });

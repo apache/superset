@@ -35,20 +35,21 @@ export interface CardSortSelectOption {
   value: any;
 }
 
-export interface Filter {
+export interface ListViewFilter {
   Header: ReactNode;
   key: string;
   id: string;
   toolTipDescription?: string;
   urlDisplay?: string;
-  operator?: FilterOperator;
+  operator?: ListViewFilterOperator;
   input?:
     | 'text'
     | 'textarea'
     | 'select'
     | 'checkbox'
     | 'search'
-    | 'datetime_range';
+    | 'datetime_range'
+    | 'numerical_range';
   unfilteredLabel?: string;
   selects?: SelectOption[];
   onFilterOpen?: () => void;
@@ -59,39 +60,47 @@ export interface Filter {
     pageSize: number,
   ) => Promise<{ data: SelectOption[]; totalCount: number }>;
   paginate?: boolean;
+  loading?: boolean;
+  dateFilterValueType?: 'unix' | 'iso';
+  min?: number;
+  max?: number;
+  dropdownStyle?: React.CSSProperties;
 }
 
-export type Filters = Filter[];
+export type ListViewFilters = ListViewFilter[];
 
 export type ViewModeType = 'card' | 'table';
 
-export interface FilterValue {
+export type InnerFilterValue =
+  | string
+  | boolean
+  | number
+  | null
+  | undefined
+  | string[]
+  | number[]
+  | { label: string; value: string | number }
+  | [number | null, number | null];
+
+export interface ListViewFilterValue {
   id: string;
   urlDisplay?: string;
   operator?: string;
-  value:
-    | string
-    | boolean
-    | number
-    | null
-    | undefined
-    | string[]
-    | number[]
-    | { label: string; value: string | number };
+  value: InnerFilterValue;
 }
 
-export interface FetchDataConfig {
+export interface ListViewFetchDataConfig {
   pageIndex: number;
   pageSize: number;
   sortBy: SortColumn[];
-  filters: FilterValue[];
+  filters: ListViewFilterValue[];
 }
 
-export interface InternalFilter extends FilterValue {
+export interface InternalFilter extends ListViewFilterValue {
   Header?: string;
 }
 
-export enum FilterOperator {
+export enum ListViewFilterOperator {
   StartsWith = 'sw',
   EndsWith = 'ew',
   Contains = 'ct',

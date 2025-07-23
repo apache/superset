@@ -27,6 +27,7 @@ import {
   ValueFormatter,
   getValueFormatter,
   tooltipHtml,
+  DataRecord,
 } from '@superset-ui/core';
 import type { CallbackDataParams } from 'echarts/types/src/util/types';
 import type { EChartsCoreOption } from 'echarts/core';
@@ -36,6 +37,7 @@ import {
   EchartsPieChartProps,
   EchartsPieFormData,
   EchartsPieLabelType,
+  PieChartDataItem,
   PieChartTransformedProps,
 } from './types';
 import { DEFAULT_LEGEND_FORM_DATA, OpacityEnum } from '../constants';
@@ -50,6 +52,7 @@ import { defaultGrid } from '../defaults';
 import { convertInteger } from '../utils/convertInteger';
 import { getDefaultTooltip } from '../utils/tooltip';
 import { Refs } from '../types';
+import { getContributionLabel } from './utils';
 
 const percentFormatter = getNumberFormatter(NumberFormats.PERCENT_2_POINT);
 
@@ -133,7 +136,7 @@ export default function transformProps(
     datasource,
   } = chartProps;
   const { columnFormats = {}, currencyFormats = {} } = datasource;
-  const { data = [] } = queriesData[0];
+  const { data: rawData = [] } = queriesData[0];
   const coltypeMapping = getColtypesMapping(queriesData[0]);
 
   const {
@@ -159,6 +162,7 @@ export default function transformProps(
     sliceId,
     showTotal,
     roseType,
+    thresholdForOther,
   }: EchartsPieFormData = {
     ...DEFAULT_LEGEND_FORM_DATA,
     ...DEFAULT_PIE_FORM_DATA,
@@ -166,17 +170,68 @@ export default function transformProps(
   };
   const refs: Refs = {};
   const metricLabel = getMetricLabel(metric);
+  const contributionLabel = getContributionLabel(metricLabel);
   const groupbyLabels = groupby.map(getColumnLabel);
   const minShowLabelAngle = (showLabelsThreshold || 0) * 3.6;
 
-  const keys = data.map(datum =>
-    extractGroupbyLabel({
-      datum,
-      groupby: groupbyLabels,
-      coltypeMapping,
-      timeFormatter: getTimeFormatter(dateFormat),
-    }),
+  const numberFormatter = getValueFormatter(
+    metric,
+    currencyFormats,
+    columnFormats,
+    numberFormat,
+    currencyFormat,
   );
+
+  let data = rawData;
+  const otherRows: DataRecord[] = [];
+  const otherTooltipData: string[][] = [];
+  let otherDatum: PieChartDataItem | null = null;
+  let otherSum = 0;
+  if (thresholdForOther) {
+    let contributionSum = 0;
+    data = data.filter(datum => {
+      const contribution = datum[contributionLabel] as number;
+      if (!contribution || contribution * 100 >= thresholdForOther) {
+        return true;
+      }
+      otherSum += datum[metricLabel] as number;
+      contributionSum += contribution;
+      otherRows.push(datum);
+      otherTooltipData.push([
+        extractGroupbyLabel({
+          datum,
+          groupby: groupbyLabels,
+          coltypeMapping,
+          timeFormatter: getTimeFormatter(dateFormat),
+        }),
+        numberFormatter(datum[metricLabel] as number),
+        percentFormatter(contribution),
+      ]);
+      return false;
+    });
+    const otherName = t('Other');
+    otherTooltipData.push([
+      t('Total'),
+      numberFormatter(otherSum),
+      percentFormatter(contributionSum),
+    ]);
+    if (otherSum) {
+      otherDatum = {
+        name: otherName,
+        value: otherSum,
+        itemStyle: {
+          color: theme.colors.grayscale.dark1,
+          opacity:
+            filterState.selectedValues &&
+            !filterState.selectedValues.includes(otherName)
+              ? OpacityEnum.SemiTransparent
+              : OpacityEnum.NonTransparent,
+        },
+        isOther: true,
+      };
+    }
+  }
+
   const labelMap = data.reduce((acc: Record<string, string[]>, datum) => {
     const label = extractGroupbyLabel({
       datum,
@@ -191,15 +246,7 @@ export default function transformProps(
   }, {});
 
   const { setDataMask = () => {}, onContextMenu } = hooks;
-
   const colorFn = CategoricalColorNamespace.getScale(colorScheme as string);
-  const numberFormatter = getValueFormatter(
-    metric,
-    currencyFormats,
-    columnFormats,
-    numberFormat,
-    currencyFormat,
-  );
 
   let totalValue = 0;
 
@@ -223,13 +270,17 @@ export default function transformProps(
       value,
       name,
       itemStyle: {
-        color: colorFn(name, sliceId, colorScheme),
+        color: colorFn(name, sliceId),
         opacity: isFiltered
           ? OpacityEnum.SemiTransparent
           : OpacityEnum.NonTransparent,
       },
     };
   });
+  if (otherDatum) {
+    transformedData.push(otherDatum);
+    totalValue += otherSum;
+  }
 
   const selectedValues = (filterState.selectedValues || []).reduce(
     (acc: Record<string, number>, selectedValue: string) => {
@@ -373,6 +424,9 @@ export default function transformProps(
           numberFormatter,
           sanitizeName: true,
         });
+        if (params?.data?.isOther) {
+          return tooltipHtml(otherTooltipData, name);
+        }
         return tooltipHtml(
           [[metricLabel, formattedValue, formattedPercent]],
           name,
@@ -381,7 +435,7 @@ export default function transformProps(
     },
     legend: {
       ...getLegendProps(legendType, legendOrientation, showLegend, theme),
-      data: keys,
+      data: transformedData.map(datum => datum.name),
     },
     graphic: showTotal
       ? {

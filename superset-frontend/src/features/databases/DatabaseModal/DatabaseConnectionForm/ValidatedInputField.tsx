@@ -17,8 +17,8 @@
  * under the License.
  */
 import { t } from '@superset-ui/core';
-import ValidatedInput from 'src/components/Form/LabeledErrorBoundInput';
-import { FieldPropTypes } from '../../types';
+import { LabeledErrorBoundInput as ValidatedInput } from '@superset-ui/core/components';
+import { DatabaseParameters, FieldPropTypes } from '../../types';
 
 const FIELD_TEXT_MAP = {
   account: {
@@ -40,6 +40,8 @@ const FIELD_TEXT_MAP = {
   },
 };
 
+type FieldTextMapKey = keyof typeof FIELD_TEXT_MAP;
+
 export const validatedInputField = ({
   required,
   changeMethods,
@@ -52,13 +54,13 @@ export const validatedInputField = ({
     id={field}
     name={field}
     required={required}
-    value={db?.parameters?.[field]}
+    value={db?.parameters?.[field as keyof DatabaseParameters]}
     validationMethods={{ onBlur: getValidation }}
     errorMessage={validationErrors?.[field]}
-    placeholder={FIELD_TEXT_MAP[field].placeholder}
-    helpText={FIELD_TEXT_MAP[field].helpText}
-    label={FIELD_TEXT_MAP[field].label || field}
+    placeholder={FIELD_TEXT_MAP[field as FieldTextMapKey].placeholder}
+    helpText={FIELD_TEXT_MAP[field as 'account']?.helpText}
+    label={FIELD_TEXT_MAP[field as FieldTextMapKey].label || field}
     onChange={changeMethods.onParametersChange}
-    className={FIELD_TEXT_MAP[field].className || field}
+    className={FIELD_TEXT_MAP[field as 'warehouse' | 'role'].className || field}
   />
 );

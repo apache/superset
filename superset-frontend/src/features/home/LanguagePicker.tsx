@@ -16,12 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { MainNav as Menu } from 'src/components/Menu';
-import { styled } from '@superset-ui/core';
-import Icons from 'src/components/Icons';
+import { MainNav as Menu } from '@superset-ui/core/components/Menu';
+import { styled, css, useTheme } from '@superset-ui/core';
+import { Icons } from '@superset-ui/core/components/Icons';
+import { Typography } from '@superset-ui/core/components/Typography';
 
 const { SubMenu } = Menu;
-
 export interface Languages {
   [key: string]: {
     flag: string;
@@ -40,7 +40,7 @@ const StyledLabel = styled.div`
   align-items: center;
 
   & i {
-    margin-right: ${({ theme }) => theme.gridUnit * 2}px;
+    margin-right: ${({ theme }) => theme.sizeUnit * 2}px;
   }
 
   & a {
@@ -57,15 +57,23 @@ const StyledFlag = styled.i`
 
 export default function LanguagePicker(props: LanguagePickerProps) {
   const { locale, languages, ...rest } = props;
+  const theme = useTheme();
   return (
     <SubMenu
+      css={css`
+        [data-icon='caret-down'] {
+          color: ${theme.colors.grayscale.base};
+          font-size: ${theme.fontSizeXS}px;
+          margin-left: ${theme.sizeUnit}px;
+        }
+      `}
       aria-label="Languages"
       title={
         <div className="f16">
           <StyledFlag className={`flag ${languages[locale].flag}`} />
         </div>
       }
-      icon={<Icons.TriangleDown />}
+      icon={<Icons.CaretDownOutlined iconSize="xs" />}
       {...rest}
     >
       {Object.keys(languages).map(langKey => (
@@ -75,7 +83,9 @@ export default function LanguagePicker(props: LanguagePickerProps) {
         >
           <StyledLabel className="f16">
             <i className={`flag ${languages[langKey].flag}`} />
-            <a href={languages[langKey].url}>{languages[langKey].name}</a>
+            <Typography.Link href={languages[langKey].url}>
+              {languages[langKey].name}
+            </Typography.Link>
           </StyledLabel>
         </Menu.Item>
       ))}

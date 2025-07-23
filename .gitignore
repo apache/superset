@@ -21,6 +21,7 @@
 *.swp
 __pycache__
 
+.aider*
 .local
 .cache
 .bento*
@@ -50,7 +51,6 @@ env
 venv*
 env_py3
 envpy3
-env36
 local_config.py
 /superset_config.py
 /superset_text.yml
@@ -66,7 +66,10 @@ superset-websocket/config.json
 *.js.map
 node_modules
 npm-debug.log*
-superset/static/assets
+superset/static/assets/*
+!superset/static/assets/.gitkeep
+superset/static/uploads/*
+!superset/static/uploads/.gitkeep
 superset/static/version_info.json
 superset-frontend/**/esm/*
 superset-frontend/**/lib/*
@@ -89,6 +92,7 @@ scripts/*.zip
 # IntelliJ
 *.iml
 venv
+.venv
 @eaDir/
 
 # PyCharm
@@ -104,6 +108,7 @@ ghostdriver.log
 testCSV.csv
 .terser-plugin-cache/
 apache-superset-*.tar.gz*
+apache_superset-*.tar.gz*
 release.json
 
 # Translation-related files
@@ -122,3 +127,7 @@ docker/*local*
 # Jest test report
 test-report.html
 superset/static/stats/statistics.html
+
+# LLM-related
+CLAUDE.local.md
+.aider*

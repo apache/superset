@@ -19,10 +19,14 @@
 
 import { useState } from 'react';
 import fetchMock from 'fetch-mock';
-import { omit, isUndefined, omitBy } from 'lodash';
-import userEvent from '@testing-library/user-event';
-import { waitFor, within } from '@testing-library/react';
-import { render, screen } from 'spec/helpers/testing-library';
+import { omit, omitBy } from 'lodash';
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+  within,
+} from 'spec/helpers/testing-library';
 import chartQueries, { sliceId } from 'spec/fixtures/mockChartQueries';
 import mockState from 'spec/fixtures/mockState';
 import { DashboardPageIdContext } from 'src/dashboard/containers/DashboardPage';
@@ -166,7 +170,7 @@ test('should generate Explore url', async () => {
     form_data: {
       ...omitBy(
         omit(formData, ['slice_id', 'slice_name', 'dashboards']),
-        isUndefined,
+        i => i === undefined,
       ),
       groupby: ['name'],
       adhoc_filters: [

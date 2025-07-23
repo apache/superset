@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 slice_name: Games per Genre over time
-viz_type: line
+viz_type: echarts_timeseries_line
 params:
   adhoc_filters: []
   annotation_layers: []
@@ -26,64 +26,64 @@ params:
   datasource: 21__table
   granularity_sqla: year
   groupby:
-  - genre
+    - genre
   label_colors:
-    '0': '#1FA8C9'
-    '1': '#454E7C'
-    '2600': '#666666'
-    3DO: '#B2B2B2'
-    3DS: '#D1C6BC'
-    Action: '#1FA8C9'
-    Adventure: '#454E7C'
-    DC: '#A38F79'
-    DS: '#8FD3E4'
-    Europe: '#5AC189'
-    Fighting: '#5AC189'
-    GB: '#FDE380'
-    GBA: '#ACE1C4'
-    GC: '#5AC189'
-    GEN: '#3CCCCB'
-    GG: '#EFA1AA'
-    Japan: '#FF7F44'
-    Microsoft Game Studios: '#D1C6BC'
-    Misc: '#FF7F44'
-    N64: '#1FA8C9'
-    NES: '#9EE5E5'
-    NG: '#A1A6BD'
-    Nintendo: '#D3B3DA'
-    North America: '#666666'
-    Other: '#E04355'
-    PC: '#EFA1AA'
-    PCFX: '#FDE380'
-    PS: '#A1A6BD'
-    PS2: '#FCC700'
-    PS3: '#3CCCCB'
-    PS4: '#B2B2B2'
-    PSP: '#FEC0A1'
-    PSV: '#FCC700'
-    Platform: '#666666'
-    Puzzle: '#E04355'
-    Racing: '#FCC700'
-    Role-Playing: '#A868B7'
-    SAT: '#A868B7'
-    SCD: '#8FD3E4'
-    SNES: '#454E7C'
-    Shooter: '#3CCCCB'
-    Simulation: '#A38F79'
-    Sports: '#8FD3E4'
-    Strategy: '#A1A6BD'
-    TG16: '#FEC0A1'
-    Take-Two Interactive: '#9EE5E5'
-    WS: '#ACE1C4'
-    Wii: '#A38F79'
-    WiiU: '#E04355'
-    X360: '#A868B7'
-    XB: '#D3B3DA'
-    XOne: '#FF7F44'
+    "0": "#1FA8C9"
+    "1": "#454E7C"
+    "2600": "#666666"
+    3DO: "#B2B2B2"
+    3DS: "#D1C6BC"
+    Action: "#1FA8C9"
+    Adventure: "#454E7C"
+    DC: "#A38F79"
+    DS: "#8FD3E4"
+    Europe: "#5AC189"
+    Fighting: "#5AC189"
+    GB: "#FDE380"
+    GBA: "#ACE1C4"
+    GC: "#5AC189"
+    GEN: "#3CCCCB"
+    GG: "#EFA1AA"
+    Japan: "#FF7F44"
+    Microsoft Game Studios: "#D1C6BC"
+    Misc: "#FF7F44"
+    N64: "#1FA8C9"
+    NES: "#9EE5E5"
+    NG: "#A1A6BD"
+    Nintendo: "#D3B3DA"
+    North America: "#666666"
+    Other: "#E04355"
+    PC: "#EFA1AA"
+    PCFX: "#FDE380"
+    PS: "#A1A6BD"
+    PS2: "#FCC700"
+    PS3: "#3CCCCB"
+    PS4: "#B2B2B2"
+    PSP: "#FEC0A1"
+    PSV: "#FCC700"
+    Platform: "#666666"
+    Puzzle: "#E04355"
+    Racing: "#FCC700"
+    Role-Playing: "#A868B7"
+    SAT: "#A868B7"
+    SCD: "#8FD3E4"
+    SNES: "#454E7C"
+    Shooter: "#3CCCCB"
+    Simulation: "#A38F79"
+    Sports: "#8FD3E4"
+    Strategy: "#A1A6BD"
+    TG16: "#FEC0A1"
+    Take-Two Interactive: "#9EE5E5"
+    WS: "#ACE1C4"
+    Wii: "#A38F79"
+    WiiU: "#E04355"
+    X360: "#A868B7"
+    XB: "#D3B3DA"
+    XOne: "#FF7F44"
   left_margin: auto
   line_interpolation: linear
   metrics:
-  - count
+    - count
   order_desc: true
   queryFields:
     groupby: groupby
@@ -98,18 +98,19 @@ params:
   time_grain_sqla: null
   time_range: No filter
   url_params:
-    preselect_filters: '{"1389": {"platform": ["PS", "PS2", "PS3", "PS4"], "genre":
+    preselect_filters:
+      '{"1389": {"platform": ["PS", "PS2", "PS3", "PS4"], "genre":
       null, "__time_range": "No filter"}}'
-  viz_type: line
+  viz_type: echarts_timeseries_line
   x_axis_format: smart_date
   x_axis_label: Year Published
   x_axis_showminmax: true
   x_ticks_layout: auto
   y_axis_bounds:
-  - null
-  - null
+    - null
+    - null
   y_axis_format: SMART_NUMBER
-  y_axis_label: '# of Games Published'
+  y_axis_label: "# of Games Published"
   y_axis_showminmax: true
 cache_timeout: null
 uuid: 0f8976aa-7bb4-40c7-860b-64445a51aaaf

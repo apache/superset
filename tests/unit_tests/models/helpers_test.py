@@ -21,10 +21,11 @@ from __future__ import annotations
 
 from contextlib import contextmanager
 from typing import TYPE_CHECKING
+from unittest.mock import patch
 
 import pytest
 from pytest_mock import MockerFixture
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, text
 from sqlalchemy.orm.session import Session
 from sqlalchemy.pool import StaticPool
 
@@ -32,7 +33,7 @@ if TYPE_CHECKING:
     from superset.models.core import Database
 
 
-@pytest.fixture()
+@pytest.fixture
 def database(mocker: MockerFixture, session: Session) -> Database:
     from superset.connectors.sqla.models import SqlaTable
     from superset.models.core import Database
@@ -83,6 +84,58 @@ def test_values_for_column(database: Database) -> None:
         columns=[TableColumn(column_name="a")],
     )
     assert table.values_for_column("a") == [1, None]
+
+
+def test_values_for_column_with_rls(database: Database) -> None:
+    """
+    Test the `values_for_column` method with RLS enabled.
+    """
+    from sqlalchemy.sql.elements import TextClause
+
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="t",
+        columns=[
+            TableColumn(column_name="a"),
+        ],
+    )
+    with patch.object(
+        table,
+        "get_sqla_row_level_filters",
+        return_value=[
+            TextClause("a = 1"),
+        ],
+    ):
+        assert table.values_for_column("a") == [1]
+
+
+def test_values_for_column_with_rls_no_values(database: Database) -> None:
+    """
+    Test the `values_for_column` method with RLS enabled and no values.
+    """
+    from sqlalchemy.sql.elements import TextClause
+
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="t",
+        columns=[
+            TableColumn(column_name="a"),
+        ],
+    )
+    with patch.object(
+        table,
+        "get_sqla_row_level_filters",
+        return_value=[
+            TextClause("a = 2"),
+        ],
+    ):
+        assert table.values_for_column("a") == []
 
 
 def test_values_for_column_calculated(
@@ -148,10 +201,12 @@ def test_values_for_column_double_percents(
     )
     # make sure final query has single percents
     with database.get_sqla_engine() as engine:
-        pd.read_sql_query.assert_called_with(
-            sql=(
-                "SELECT DISTINCT CASE WHEN b LIKE 'A%' THEN 'yes' ELSE 'nope' END "
-                "AS column_values \nFROM t\n LIMIT 10000 OFFSET 0"
-            ),
-            con=engine,
+        expected_sql = text(
+            "SELECT DISTINCT CASE WHEN b LIKE 'A%' THEN 'yes' ELSE 'nope' END "
+            "AS column_values \nFROM t\n LIMIT 10000 OFFSET 0"
         )
+        called_sql = pd.read_sql_query.call_args.kwargs["sql"]
+        called_conn = pd.read_sql_query.call_args.kwargs["con"]
+
+        assert called_sql.compare(expected_sql) is True
+        assert called_conn.engine == engine

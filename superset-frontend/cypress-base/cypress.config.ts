@@ -26,8 +26,9 @@ export default eyesPlugin(
   defineConfig({
     chromeWebSecurity: false,
     defaultCommandTimeout: 8000,
-    numTestsKeptInMemory: 0,
-    experimentalFetchPolyfill: true,
+    numTestsKeptInMemory: 3,
+    // Disabled after realizing this MESSES UP rison encoding in intricate ways
+    experimentalFetchPolyfill: false,
     experimentalMemoryManagement: true,
     requestTimeout: 10000,
     video: false,
@@ -57,11 +58,20 @@ export default eyesPlugin(
             });
 
             launchOptions.args.push(
-              ...['--disable-dev-shm-usage', '--disable-gpu'],
+              '--disable-dev-shm-usage',
+              '--disable-gpu',
+              '--no-sandbox',
+              '--disable-software-rasterizer',
+              '--memory-pressure-off',
+              '--js-flags=--max-old-space-size=4096',
+              '--disable-background-timer-throttling',
+              '--disable-backgrounding-occluded-windows',
+              '--disable-renderer-backgrounding',
             );
           }
           return launchOptions;
         });
+
         // eslint-disable-next-line global-require
         require('@cypress/code-coverage/task')(on, config);
         on('task', verifyDownloadTasks);
@@ -70,6 +80,7 @@ export default eyesPlugin(
       },
       baseUrl: 'http://localhost:8088',
       excludeSpecPattern: [],
+      experimentalRunAllSpecs: true,
       specPattern: [
         'cypress/e2e/**/*.{js,jsx,ts,tsx}',
         'cypress/applitools/**/*.{js,jsx,ts,tsx}',

@@ -45,6 +45,7 @@ from superset.exceptions import (
 )
 from superset.superset_typing import FlaskResponse
 from superset.utils import core as utils, json
+from superset.utils.log import get_logger_from_status
 
 if typing.TYPE_CHECKING:
     from superset.views.base import BaseSupersetView
@@ -108,8 +109,8 @@ def handle_api_exception(
             logger.warning("SupersetErrorException", exc_info=True)
             return json_error_response([ex.error], status=ex.status)
         except SupersetException as ex:
-            if ex.status >= 500:
-                logger.exception(ex)
+            logger_func, _ = get_logger_from_status(ex.status)
+            logger_func(ex.message, exc_info=True)
             return json_error_response(
                 utils.error_msg_from_exception(ex), status=ex.status
             )
@@ -128,7 +129,7 @@ def handle_api_exception(
     return functools.update_wrapper(wraps, f)
 
 
-def set_app_error_handlers(app: Flask) -> None:
+def set_app_error_handlers(app: Flask) -> None:  # noqa: C901
     """
     Set up error handlers for the Flask app
     Refer to SIP-40 and SIP-41 for more details on the error handling strategy

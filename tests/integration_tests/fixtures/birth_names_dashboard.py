@@ -43,7 +43,7 @@ def load_birth_names_data(
     data_loader.remove_table(birth_names_table.table_name)
 
 
-@pytest.fixture()
+@pytest.fixture
 def load_birth_names_dashboard_with_slices(load_birth_names_data):
     with app.app_context():
         dash_id_to_delete, slices_ids_to_delete = _create_dashboards()

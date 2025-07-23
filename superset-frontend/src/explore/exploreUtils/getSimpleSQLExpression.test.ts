@@ -16,9 +16,17 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { cleanup } from 'spec/helpers/testing-library';
 import { EMPTY_STRING, NULL_STRING } from 'src/utils/common';
 import { getSimpleSQLExpression } from '.';
 import { Operators } from '../constants';
+
+// Add cleanup after each test
+afterEach(async () => {
+  cleanup();
+  // Wait for any pending effects to complete
+  await new Promise(resolve => setTimeout(resolve, 0));
+});
 
 const params = {
   subject: 'subject',

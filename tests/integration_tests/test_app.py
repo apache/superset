@@ -32,11 +32,13 @@ app = create_app(superset_config_module=superset_config_module)
 
 
 def login(
-    client: "FlaskClient[Any]", username: str = "admin", password: str = "general"
+    client: "FlaskClient[Any]",
+    username: str = "admin",
+    password: str = "general",  # noqa: S107
 ):
     resp = client.post(
         "/login/",
-        data=dict(username=username, password=password),
+        data=dict(username=username, password=password),  # noqa: C408
     ).get_data(as_text=True)
     assert "User confirmation needed" not in resp
     return resp

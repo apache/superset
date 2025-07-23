@@ -16,11 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { isXAxisSet } from '@superset-ui/core';
+import { isXAxisSet, VizType } from '@superset-ui/core';
 
 test('isXAxisSet', () => {
-  expect(isXAxisSet({ datasource: '123', viz_type: 'table' })).not.toBeTruthy();
   expect(
-    isXAxisSet({ datasource: '123', viz_type: 'table', x_axis: 'axis' }),
+    isXAxisSet({ datasource: '123', viz_type: VizType.Table }),
+  ).not.toBeTruthy();
+  expect(
+    isXAxisSet({ datasource: '123', viz_type: VizType.Table, x_axis: 'axis' }),
   ).toBeTruthy();
 });

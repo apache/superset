@@ -114,7 +114,6 @@ a > span > svg {
 .navbar {
   font-size: 14px;
   font-weight: 400;
-  background-color: #fff;
   transition: all 0.5s;
 
   .get-started-button {
@@ -190,7 +189,7 @@ a > span > svg {
 .navbar .DocSearch {
   --docsearch-text-color: #187384;
   --docsearch-muted-color: #187384;
-  --docsearch-searchbox-background: #fff;
+  --docsearch-searchbox-background: var(--ifm-navbar-background-color);
   border: 1px solid #187384;
   border-radius: 10px;
 
@@ -256,14 +255,4 @@ a > span > svg {
   .footer__applitools img {
     height: 28px;
   }
-}
-
-/* Edit Button */
-
-.edit-page-link {
-  position: sticky;
-  bottom: 0px;
-  right: 0px;
-  border-radius: 10px;
-  background-color: #ccc;
 }

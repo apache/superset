@@ -17,6 +17,7 @@
  * under the License.
  */
 import { sharedControlComponents } from '@superset-ui/chart-controls';
+import { getExtensionsRegistry } from '@superset-ui/core';
 import AnnotationLayerControl from './AnnotationLayerControl';
 import BoundsControl from './BoundsControl';
 import CheckboxControl from './CheckboxControl';
@@ -50,6 +51,18 @@ import XAxisSortControl from './XAxisSortControl';
 import CurrencyControl from './CurrencyControl';
 import ColumnConfigControl from './ColumnConfigControl';
 import { ComparisonRangeLabel } from './ComparisonRangeLabel';
+import LayerConfigsControl from './LayerConfigsControl/LayerConfigsControl';
+import MapViewControl from './MapViewControl/MapViewControl';
+import ZoomConfigControl from './ZoomConfigControl/ZoomConfigControl';
+import NumberControl from './NumberControl';
+import TimeRangeControl from './TimeRangeControl';
+import ColorBreakpointsControl from './ColorBreakpointsControl';
+
+const extensionsRegistry = getExtensionsRegistry();
+const DateFilterControlExtension = extensionsRegistry.get(
+  'filter.dateFilterControl',
+);
+const DateFilterComponent = DateFilterControlExtension ?? DateFilterControl;
 
 const controlMap = {
   AnnotationLayerControl,
@@ -61,13 +74,16 @@ const controlMap = {
   ColumnConfigControl,
   CurrencyControl,
   DatasourceControl,
-  DateFilterControl,
+  DateFilterControl: DateFilterComponent,
   DndColumnSelectControl,
   DndColumnSelect,
   DndFilterSelect,
   DndMetricSelect,
   FixedOrMetricControl,
+  ColorBreakpointsControl,
   HiddenControl,
+  LayerConfigsControl,
+  MapViewControl,
   SelectAsyncControl,
   SelectControl,
   SliderControl,
@@ -84,6 +100,9 @@ const controlMap = {
   ContourControl,
   ComparisonRangeLabel,
   TimeOffsetControl,
+  ZoomConfigControl,
+  NumberControl,
+  TimeRangeControl,
   ...sharedControlComponents,
 };
 export default controlMap;

@@ -113,7 +113,7 @@ def upgrade():
                 params["granularity"] = table_columns[0].column_name
                 slc.params = json.dumps(params, sort_keys=True)
                 print(
-                    f"Set granularity for slice {slc.id} to {table_columns[0].column_name}"
+                    f"Set granularity for slice {slc.id} to {table_columns[0].column_name}"  # noqa: E501
                 )
                 slices_changed += 1
         except Exception as e:

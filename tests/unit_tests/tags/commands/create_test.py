@@ -64,7 +64,7 @@ def session_with_data(session: Session):
     session.add(saved_query)
     session.add(dashboard_obj)
     session.commit()
-    yield session
+    return session
 
 
 def test_create_command_success(session_with_data: Session, mocker: MockerFixture):

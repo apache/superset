@@ -23,7 +23,7 @@ from typing import Callable, TYPE_CHECKING, TypeVar
 from uuid import UUID
 
 from flask_babel import lazy_gettext as _
-from sqlalchemy.engine.url import URL as SqlaURL
+from sqlalchemy.engine.url import URL as SqlaURL  # noqa: N811
 from sqlalchemy.exc import NoSuchTableError
 from sqlalchemy.ext.declarative import DeclarativeMeta
 from sqlalchemy.orm.exc import ObjectDeletedError
@@ -38,7 +38,7 @@ from superset.exceptions import (
 )
 from superset.models.core import Database
 from superset.result_set import SupersetResultSet
-from superset.sql_parse import ParsedQuery, Table
+from superset.sql.parse import SQLScript, Table
 from superset.superset_typing import ResultSetColumnType
 
 if TYPE_CHECKING:
@@ -105,8 +105,8 @@ def get_virtual_table_metadata(dataset: SqlaTable) -> list[ResultSetColumnType]:
     sql = dataset.get_template_processor().process_template(
         dataset.sql, **dataset.template_params_dict
     )
-    parsed_query = ParsedQuery(sql, engine=db_engine_spec.engine)
-    if not db_engine_spec.is_readonly_query(parsed_query):
+    parsed_script = SQLScript(sql, engine=db_engine_spec.engine)
+    if parsed_script.has_mutation():
         raise SupersetSecurityException(
             SupersetError(
                 error_type=SupersetErrorType.DATASOURCE_SECURITY_ACCESS_ERROR,
@@ -114,8 +114,7 @@ def get_virtual_table_metadata(dataset: SqlaTable) -> list[ResultSetColumnType]:
                 level=ErrorLevel.ERROR,
             )
         )
-    statements = parsed_query.get_statements()
-    if len(statements) > 1:
+    if len(parsed_script.statements) > 1:
         raise SupersetSecurityException(
             SupersetError(
                 error_type=SupersetErrorType.DATASOURCE_SECURITY_ACCESS_ERROR,
@@ -127,7 +126,7 @@ def get_virtual_table_metadata(dataset: SqlaTable) -> list[ResultSetColumnType]:
         dataset.database,
         dataset.catalog,
         dataset.schema,
-        statements[0],
+        sql,
     )
 
 

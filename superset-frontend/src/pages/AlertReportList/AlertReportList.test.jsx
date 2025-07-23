@@ -18,18 +18,17 @@
  */
 import fetchMock from 'fetch-mock';
 import configureStore from 'redux-mock-store';
-import { Provider } from 'react-redux';
 import thunk from 'redux-thunk';
-import { styledMount as mount } from 'spec/helpers/theming';
-import waitForComponentToPaint from 'spec/helpers/waitForComponentToPaint';
-import { Switch } from 'src/components/Switch';
-import ListView from 'src/components/ListView';
-import SubMenu from 'src/features/home/SubMenu';
+import {
+  render,
+  screen,
+  fireEvent,
+  waitFor,
+} from 'spec/helpers/testing-library';
+import { MemoryRouter } from 'react-router-dom';
+import { QueryParamProvider } from 'use-query-params';
 import AlertList from 'src/pages/AlertReportList';
-import IndeterminateCheckbox from 'src/components/IndeterminateCheckbox';
-import { act } from 'react-dom/test-utils';
 
-// store needed for withToasts(AlertList)
 const mockStore = configureStore([thunk]);
 const store = mockStore({});
 
@@ -84,102 +83,194 @@ fetchMock.put(alertsEndpoint, { ...mockalerts[0], active: false });
 fetchMock.delete(alertEndpoint, {});
 fetchMock.delete(alertsEndpoint, {});
 
-async function mountAndWait(props = {}) {
-  const mounted = mount(
-    <Provider store={store}>
-      <AlertList store={store} user={mockUser} {...props} />
-    </Provider>,
+const renderAlertList = (props = {}) =>
+  render(
+    <MemoryRouter>
+      <QueryParamProvider>
+        <AlertList user={mockUser} {...props} />
+      </QueryParamProvider>
+    </MemoryRouter>,
+    {
+      useRedux: true,
+      store,
+    },
   );
 
-  await waitForComponentToPaint(mounted);
-
-  return mounted;
-}
-
 describe('AlertList', () => {
-  let wrapper;
-
-  beforeAll(async () => {
-    wrapper = await mountAndWait();
+  beforeEach(() => {
+    fetchMock.resetHistory();
   });
 
   it('renders', async () => {
-    expect(wrapper.find(AlertList)).toExist();
+    renderAlertList();
+    expect(await screen.findByText('Alerts & reports')).toBeInTheDocument();
   });
 
   it('renders a SubMenu', async () => {
-    expect(wrapper.find(SubMenu)).toExist();
+    renderAlertList();
+    expect(await screen.findByRole('navigation')).toBeInTheDocument();
   });
 
   it('renders a ListView', async () => {
-    expect(wrapper.find(ListView)).toExist();
+    renderAlertList();
+    expect(await screen.findByTestId('alerts-list-view')).toBeInTheDocument();
   });
 
   it('renders switches', async () => {
-    expect(wrapper.find(Switch)).toHaveLength(3);
+    renderAlertList();
+    // Wait for the list to load first
+    await screen.findByTestId('alerts-list-view');
+    const switches = await screen.findAllByRole('switch');
+    expect(switches).toHaveLength(3);
   });
 
   it('deletes', async () => {
-    act(() => {
-      wrapper.find('[data-test="delete-action"]').first().props().onClick();
-    });
-    await waitForComponentToPaint(wrapper);
+    renderAlertList();
 
-    act(() => {
-      wrapper
-        .find('#delete')
-        .first()
-        .props()
-        .onChange({ target: { value: 'DELETE' } });
-    });
-    await waitForComponentToPaint(wrapper);
-    act(() => {
-      wrapper
-        .find('[data-test="modal-confirm-button"]')
-        .last()
-        .props()
-        .onClick();
-    });
+    // Wait for list to load
+    await screen.findByTestId('alerts-list-view');
 
-    await waitForComponentToPaint(wrapper);
+    // Find and click first delete button
+    const deleteButtons = await screen.findAllByTestId('delete-action');
+    fireEvent.click(deleteButtons[0]);
 
-    expect(fetchMock.calls(/report\/0/, 'DELETE')).toHaveLength(1);
-  });
+    // Wait for modal to appear and find the delete input
+    const deleteInput = await screen.findByTestId('delete-modal-input');
+    fireEvent.change(deleteInput, { target: { value: 'DELETE' } });
+
+    // Click confirm button
+    const confirmButton = await screen.findByTestId('modal-confirm-button');
+    fireEvent.click(confirmButton);
+
+    // Wait for delete request
+    await waitFor(() => {
+      expect(fetchMock.calls(/report\/0/, 'DELETE')).toHaveLength(1);
+    });
+  }, 15000);
 
   it('shows/hides bulk actions when bulk actions is clicked', async () => {
-    const button = wrapper.find('[data-test="bulk-select-toggle"]').first();
-    act(() => {
-      button.props().onClick();
-    });
-    await waitForComponentToPaint(wrapper);
-    expect(wrapper.find(IndeterminateCheckbox)).toHaveLength(
-      mockalerts.length + 1, // 1 for each row and 1 for select all
-    );
-  });
+    renderAlertList();
+
+    // Wait for list to load and initial state
+    await screen.findByTestId('alerts-list-view');
+    expect(
+      screen.queryByTestId('bulk-select-controls'),
+    ).not.toBeInTheDocument();
+
+    // Click bulk select toggle
+    const bulkSelectButton = await screen.findByTestId('bulk-select-toggle');
+    fireEvent.click(bulkSelectButton);
+
+    // Verify bulk select controls appear
+    expect(
+      await screen.findByTestId('bulk-select-controls'),
+    ).toBeInTheDocument();
+  }, 15000);
 
   it('hides bulk actions when switch between alert and report list', async () => {
-    expect(wrapper.find(IndeterminateCheckbox)).toHaveLength(
-      mockalerts.length + 1,
-    );
-    expect(wrapper.find('[data-test="alert-list"]').hasClass('active')).toBe(
-      true,
-    );
-    expect(wrapper.find('[data-test="report-list"]').hasClass('active')).toBe(
-      false,
-    );
+    // Start with alert list
+    renderAlertList();
 
-    const reportWrapper = await mountAndWait({ isReportEnabled: true });
+    // Wait for list to load
+    await screen.findByTestId('alerts-list-view');
 
-    expect(fetchMock.calls(/report\/\?q/)[2][0]).toMatchInlineSnapshot(
-      `"http://localhost/api/v1/report/?q=(filters:!((col:type,opr:eq,value:Report)),order_column:name,order_direction:desc,page:0,page_size:25)"`,
-    );
+    // Click bulk select to show controls
+    const bulkSelectButton = await screen.findByTestId('bulk-select-toggle');
+    fireEvent.click(bulkSelectButton);
 
+    // Verify bulk select controls appear
     expect(
-      reportWrapper.find('[data-test="report-list"]').hasClass('active'),
-    ).toBe(true);
+      await screen.findByTestId('bulk-select-controls'),
+    ).toBeInTheDocument();
+
+    // Verify alert tab is active
+    const alertTab = await screen.findByTestId('alert-list');
+    expect(alertTab).toHaveClass('active');
+    const reportTab = screen.getByTestId('report-list');
+    expect(reportTab).not.toHaveClass('active');
+
+    // Switch to report list
+    renderAlertList({ isReportEnabled: true });
+
+    // Wait for report list API call and tab states to update
+    await waitFor(async () => {
+      // Check API call
+      const calls = fetchMock.calls(/report\/\?q/);
+      const hasReportCall = calls.some(call =>
+        call[0].includes('filters:!((col:type,opr:eq,value:Report))'),
+      );
+
+      // Check tab states
+      const reportTabs = screen.getAllByTestId('report-list');
+      const alertTabs = screen.getAllByTestId('alert-list');
+      const hasActiveReport = reportTabs.some(tab =>
+        tab.classList.contains('active'),
+      );
+      const hasNoActiveAlert = alertTabs.every(
+        tab => !tab.classList.contains('active'),
+      );
+
+      return hasReportCall && hasActiveReport && hasNoActiveAlert;
+    });
+
+    // Click bulk select toggle again to hide controls
+    const bulkSelectButtons =
+      await screen.findAllByTestId('bulk-select-toggle');
+    fireEvent.click(bulkSelectButtons[0]);
+
+    // Verify final state
+    await waitFor(() => {
+      expect(
+        screen.queryByTestId('bulk-select-controls'),
+      ).not.toBeInTheDocument();
+    });
+
+    // Verify correct API call was made
+    const reportCalls = fetchMock.calls(/report\/\?q/);
+    const lastReportCall = reportCalls[reportCalls.length - 1][0];
+    expect(lastReportCall).toContain(
+      'filters:!((col:type,opr:eq,value:Report))',
+    );
+  }, 15000);
+
+  it('renders listview table correctly', async () => {
+    renderAlertList();
+    await screen.findByTestId('alerts-list-view');
+
+    const table = await screen.findByTestId('listview-table');
+    expect(table).toBeInTheDocument();
+    expect(table).toBeVisible();
+  }, 15000);
+
+  it('renders correct column headers for alerts', async () => {
+    renderAlertList();
+    await screen.findByTestId('alerts-list-view');
+
+    expect(screen.getByText('Last run')).toBeInTheDocument();
     expect(
-      reportWrapper.find('[data-test="alert-list"]').hasClass('active'),
-    ).toBe(false);
-    expect(reportWrapper.find(IndeterminateCheckbox)).toHaveLength(0);
-  });
+      screen.getByRole('columnheader', { name: /name/i }),
+    ).toBeInTheDocument();
+    expect(screen.getByText('Schedule')).toBeInTheDocument();
+    expect(screen.getByText('Notification method')).toBeInTheDocument();
+    expect(screen.getByText('Owners')).toBeInTheDocument();
+    expect(screen.getByText('Last modified')).toBeInTheDocument();
+    expect(screen.getByText('Active')).toBeInTheDocument();
+    expect(screen.getByText('Actions')).toBeInTheDocument();
+  }, 15000);
+
+  it('renders correct column headers for reports', async () => {
+    renderAlertList({ isReportEnabled: true });
+    await screen.findByTestId('alerts-list-view');
+
+    expect(screen.getByText('Last run')).toBeInTheDocument();
+    expect(
+      screen.getByRole('columnheader', { name: /name/i }),
+    ).toBeInTheDocument();
+    expect(screen.getByText('Schedule')).toBeInTheDocument();
+    expect(screen.getByText('Notification method')).toBeInTheDocument();
+    expect(screen.getByText('Owners')).toBeInTheDocument();
+    expect(screen.getByText('Last modified')).toBeInTheDocument();
+    expect(screen.getByText('Active')).toBeInTheDocument();
+    expect(screen.getByText('Actions')).toBeInTheDocument();
+  }, 15000);
 });

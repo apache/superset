@@ -25,7 +25,7 @@ from superset.utils.core import PostProcessingBoxplotWhiskerType
 from superset.utils.pandas_postprocessing.aggregate import aggregate
 
 
-def boxplot(
+def boxplot(  # noqa: C901
     df: DataFrame,
     groupby: list[str],
     metrics: list[str],

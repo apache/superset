@@ -1,7 +1,7 @@
 ---
 title: Docker Builds
 hide_title: true
-sidebar_position: 6
+sidebar_position: 7
 version: 1
 ---
 
@@ -16,7 +16,7 @@ https://hub.docker.com/r/apache/superset) using GitHub Actions.
 Different sets of images are built and/or published at different times:
 
 - **Published releases** (`release`): published using
-  tags like `3.0.0` and the `latest` tag.
+  tags like `5.0.0` and the `latest` tag.
 - **Pull request iterations** (`pull_request`): for each pull request, while
   we actively build the docker to validate the build, we do
   not publish those images for security reasons, we simply `docker build --load`
@@ -29,10 +29,10 @@ We have a set of build "presets" that each represent a combination of
 parameters for the build, mostly pointing to either different target layer
 for the build, and/or base image.
 
-Here are the build presets that are exposed through the `build_docker.py` script:
+Here are the build presets that are exposed through the `supersetbot docker` utility:
 
 - `lean`: The default Docker image, including both frontend and backend. Tags
-  without a build_preset are lean builds (ie: `latest`, `4.0.0`, `3.0.0`, ...). `lean`
+  without a build_preset are lean builds (ie: `latest`, `5.0.0`, `4.1.2`, ...). `lean`
   builds do not contain database
   drivers, meaning you need to install your own. That applies to analytics databases **AND
   the metadata database**. You'll likely want to layer either `mysqlclient` or `psycopg2-binary`
@@ -44,7 +44,7 @@ Here are the build presets that are exposed through the `build_docker.py` script
 - `py311`, e.g., Py311: Similar to lean but with a different Python version (in this example, 3.11).
 - `ci`: For certain CI workloads.
 - `websocket`: For Superset clusters supporting advanced features.
-- `dockerize`: Used by Helm.
+- `dockerize`: Used by Helm in initContainers to wait for database dependencies to be available.
 
 ## Key tags examples
 
@@ -59,14 +59,63 @@ Here are the build presets that are exposed through the `build_docker.py` script
   this specific SHA, which could be from a `master` merge, or release.
 - `websocket-latest`: The WebSocket image for use in a Superset cluster.
 
-
-
 For insights or modifications to the build matrix and tagging conventions,
-check the [build_docker.py](https://github.com/apache/superset/blob/master/scripts/build_docker.py)
-script and the [docker.yml](https://github.com/apache/superset/blob/master/.github/workflows/docker.yml)
+check the [supersetbot docker](https://github.com/apache-superset/supersetbot)
+subcommand and the [docker.yml](https://github.com/apache/superset/blob/master/.github/workflows/docker.yml)
 GitHub action.
 
+## Building your own production Docker image
+
+Every Superset deployment will require its own set of drivers depending on the data warehouse(s),
+etc. so we recommend that users build their own Docker image by extending the `lean` image.
+
+Here's an example Dockerfile that does this. Follow the in-line comments to customize it for
+your desired Superset version and database drivers. The comments also note that a certain feature flag will
+have to be enabled in your config file.
+
+You would build the image with `docker build -t mysuperset:latest .` or `docker build -t ourcompanysuperset:5.0.0 .`
+
+```Dockerfile
+# change this to apache/superset:5.0.0 or whatever version you want to build from;
+# otherwise the default is the latest commit on GitHub master branch
+FROM apache/superset:master
+
+USER root
+
+# Set environment variable for Playwright
+ENV PLAYWRIGHT_BROWSERS_PATH=/usr/local/share/playwright-browsers
+
+# Install packages using uv into the virtual environment
+# Superset started using uv after the 4.1 branch; if you are building from apache/superset:4.1.x or an older version,
+# replace the first two lines with RUN pip install \
+RUN . /app/.venv/bin/activate && \
+    uv pip install \
+    # install psycopg2 for using PostgreSQL metadata store - could be a MySQL package if using that backend:
+    psycopg2-binary \
+    # add the driver(s) for your data warehouse(s), in this example we're showing for Microsoft SQL Server:
+    pymssql \
+    # package needed for using single-sign on authentication:
+    Authlib \
+    # openpyxl to be able to upload Excel files
+    openpyxl \
+    # Pillow for Alerts & Reports to generate PDFs of dashboards
+    Pillow \
+    # install Playwright for taking screenshots for Alerts & Reports. This assumes the feature flag PLAYWRIGHT_REPORTS_AND_THUMBNAILS is enabled
+    # That feature flag will default to True starting in 6.0.0
+    # Playwright works only with Chrome.
+    # If you are still using Selenium instead of Playwright, you would instead install here the selenium package and a headless browser & webdriver
+    playwright \
+    && playwright install-deps \
+    && PLAYWRIGHT_BROWSERS_PATH=/usr/local/share/playwright-browsers playwright install chromium
+
+# Switch back to the superset user
+USER superset
+
+CMD ["/app/docker/entrypoints/run-server.sh"]
+```
+
 ## Key ARGs in Dockerfile
+
 - `BUILD_TRANSLATIONS`: whether to build the translations into the image. For the
   frontend build this tells webpack to strip out all locales other than `en` from
   the `moment-timezone` library. For the backendthis skips compiling the

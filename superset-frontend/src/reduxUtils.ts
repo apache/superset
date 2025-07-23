@@ -19,14 +19,7 @@
 import { nanoid } from 'nanoid';
 import { compose } from 'redux';
 import persistState, { StorageAdapter } from 'redux-localstorage';
-import {
-  isEqual,
-  omitBy,
-  omit,
-  isUndefined,
-  isNull,
-  isEqualWith,
-} from 'lodash';
+import { isEqual, omitBy, omit, isEqualWith } from 'lodash';
 import { ensureIsArray } from '@superset-ui/core';
 
 export function addToObject(
@@ -110,7 +103,7 @@ export function addToArr(
   if (!newObj.id) {
     newObj.id = nanoid();
   }
-  const newState = {};
+  const newState: Record<string, any[]> = {};
   if (prepend) {
     newState[arrKey] = [newObj, ...state[arrKey]];
   } else {
@@ -132,7 +125,7 @@ export function extendArr(
       el.id = nanoid();
     }
   });
-  const newState = {};
+  const newState: Record<string, any[]> = {};
   if (prepend) {
     newState[arrKey] = [...newArr, ...state[arrKey]];
   } else {
@@ -150,11 +143,13 @@ export function initEnhancer(
   const composeEnhancers =
     process.env.WEBPACK_MODE === 'development' && disableDebugger !== true
       ? /* eslint-disable-next-line no-underscore-dangle, dot-notation */
-        window['__REDUX_DEVTOOLS_EXTENSION_COMPOSE__']
+        window['__REDUX_DEVTOOLS_EXTENSION_COMPOSE__' as keyof typeof window]
         ? /* eslint-disable-next-line no-underscore-dangle, dot-notation */
-          window['__REDUX_DEVTOOLS_EXTENSION_COMPOSE__']({
-            trace: true,
-          })
+          window['__REDUX_DEVTOOLS_EXTENSION_COMPOSE__' as keyof typeof window](
+            {
+              trace: true,
+            },
+          )
         : compose
       : compose;
 
@@ -195,12 +190,12 @@ export function areObjectsEqual(
   let comp1 = obj1;
   let comp2 = obj2;
   if (opts.ignoreUndefined) {
-    comp1 = omitBy(comp1, isUndefined);
-    comp2 = omitBy(comp2, isUndefined);
+    comp1 = omitBy(comp1, i => i === undefined);
+    comp2 = omitBy(comp2, i => i === undefined);
   }
   if (opts.ignoreNull) {
-    comp1 = omitBy(comp1, isNull);
-    comp2 = omitBy(comp2, isNull);
+    comp1 = omitBy(comp1, i => i === null);
+    comp2 = omitBy(comp2, i => i === null);
   }
   if (opts.ignoreFields?.length) {
     const ignoreFields = ensureIsArray(opts.ignoreFields);

@@ -1,7 +1,7 @@
 ---
 title: Docker Compose
 hide_title: true
-sidebar_position: 4
+sidebar_position: 5
 version: 1
 ---
 
@@ -17,7 +17,7 @@ Since `docker compose` is primarily designed to run a set of containers on **a s
 and can't support requirements for **high availability**, we do not support nor recommend
 using our `docker compose` constructs to support production-type use-cases. For single host
 environments, we recommend using [minikube](https://minikube.sigs.k8s.io/docs/start/) along
-our [installing on k8s](https://superset.apache.org/docs/installation/running-on-kubernetes)
+with our [installing on k8s](https://superset.apache.org/docs/installation/running-on-kubernetes)
 documentation.
 :::
 
@@ -36,14 +36,13 @@ Note that there are 3 major ways we support to run `docker compose`:
   at the time you fire this up will be reflected, but changes to the code
   while `up` won't be reflected in the app
 1. **docker-compose-image-tag.yml** where we fetch an image from docker-hub say for the
-  `3.0.0` release for instance, and fire it up so you can try it. Here what's in
+  `5.0.0` release for instance, and fire it up so you can try it. Here what's in
   the local branch has no effects on what's running, we just fetch and run
   pre-built images from docker-hub. For `docker compose` to work along with the
   Postgres image it boots up, you'll want to point to a `-dev`-suffixed TAG, as in
-  `export TAG=4.0.0-dev` or `export TAG=3.0.0-dev`, with `latest-dev` being the default.
-  That's because The `dev` builds happen to package the `psycopg2-binary` required to connect
+  `export TAG=5.0.0-dev` or `export TAG=4.1.2-dev`, with `latest-dev` being the default.
+  The `dev` builds include the `psycopg2-binary` required to connect
   to the Postgres database launched as part of the `docker compose` builds.
-``
 
 More on these two approaches after setting up the requirements for either.
 
@@ -76,7 +75,8 @@ on latest base images using `docker compose build --pull`. In most cases though,
 ### Option #1 - for an interactive development environment
 
 ```bash
-docker compose up
+# The --build argument insures all the layers are up-to-date
+docker compose up --build
 ```
 
 :::tip
@@ -95,6 +95,14 @@ perform those operations. In this case, we recommend you set the env var
 Simply trigger `npm i && npm run dev`, this should be MUCH faster.
 :::
 
+:::tip
+Sometimes, your npm-related state can get out-of-wack, running `npm run prune` from
+the `superset-frontend/` folder will nuke the various' packages `node_module/` folders
+and help you start fresh. In the context of `docker compose` setting
+`export NPM_RUN_PRUNE=true` prior to running `docker compose up` will trigger that
+from within docker. This will slow down the startup, but will fix various npm-related issues.
+:::
+
 ### Option #2 - build a set of immutable images from the local branch
 
 ```bash
@@ -104,13 +112,28 @@ docker compose -f docker-compose-non-dev.yml up
 ### Option #3 - boot up an official release
 
 ```bash
-export TAG=3.1.1
+# Set the version you want to run
+export TAG=5.0.0
+# Fetch the tag you're about to check out (assuming you shallow-cloned the repo)
+git fetch --depth=1 origin tag $TAG
+# Could also fetch all tags too if you've got bandwidth to spare
+# git fetch --tags
+# Checkout the corresponding git ref
+git checkout $TAG
+# Fire up docker compose
 docker compose -f docker-compose-image-tag.yml up
 ```
 
 Here various release tags, github SHA, and latest `master` can be referenced by the TAG env var.
 Refer to the docker-related documentation to learn more about existing tags you can point to
 from Docker Hub.
+
+:::note
+For option #2 and #3, we recommend checking out the release tag from the git repository
+(ie: `git checkout 5.0.0`) for more guaranteed results. This ensures that the `docker-compose.*.yml`
+configurations and that the mounted `docker/` scripts are in sync with the image you are
+looking to fire up.
+:::
 
 ## `docker compose` tips & configuration
 
@@ -120,7 +143,7 @@ its metadata database. In production, this database should be backed up.  The de
 with docker compose will store that data in a PostgreSQL database contained in a Docker
 [volume](https://docs.docker.com/storage/volumes/), which is not backed up.
 
-Again, **DO NOT USE THIS FOR PRODUCTION**
+Again, **THE DOCKER-COMPOSE INSTALLATION IS NOT PRODUCTION-READY OUT OF THE BOX.**
 
 :::
 
@@ -227,3 +250,11 @@ may want to find the exact hostname you want to use, for that you can do `ifconf
 Docker for you. Alternately if you don't even see the `docker0` interface try (if needed with sudo)
 `docker network inspect bridge` and see if there is an entry for `"Gateway"` and note the IP
 address.
+
+## 4. To build or not to build
+
+When running `docker compose up`, docker will build what is required behind the scene, but
+may use the docker cache if assets already exist. Running `docker compose build` prior to
+`docker compose up` or the equivalent shortcut `docker compose up --build` ensures that your
+docker images matche the definition in the repository. This should only apply to the main
+docker-compose.yml file (default) and not to the alternative methods defined above.

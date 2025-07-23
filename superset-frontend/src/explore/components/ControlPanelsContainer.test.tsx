@@ -17,8 +17,7 @@
  * under the License.
  */
 import { useSelector } from 'react-redux';
-import userEvent from '@testing-library/user-event';
-import { render, screen } from 'spec/helpers/testing-library';
+import { render, screen, userEvent } from 'spec/helpers/testing-library';
 import {
   DatasourceType,
   getChartControlPanelRegistry,

@@ -19,7 +19,8 @@
  */
 import { kebabCase, throttle } from 'lodash';
 import d3 from 'd3';
-import moment from 'moment';
+import dayjs from 'dayjs';
+import utc from 'dayjs/plugin/utc';
 import nv from 'nvd3-fork';
 import PropTypes from 'prop-types';
 import {
@@ -31,6 +32,7 @@ import {
   NumberFormats,
   SMART_DATE_VERBOSE_ID,
   t,
+  VizType,
 } from '@superset-ui/core';
 
 import 'nvd3-fork/build/nv.d3.css';
@@ -42,21 +44,16 @@ import ANNOTATION_TYPES, {
 import isTruthy from './utils/isTruthy';
 import {
   cleanColorInput,
-  computeBarChartWidth,
   computeYDomain,
-  computeStackedYDomain,
   drawBarValues,
   generateBubbleTooltipContent,
   generateCompareTooltipContent,
-  generateRichLineTooltipContent,
   generateTimePivotTooltip,
   generateTooltipClassName,
-  generateAreaChartTooltipContent,
   getMaxLabelSize,
   getTimeOrNumberFormatter,
   hideTooltips,
   tipFactory,
-  tryNumify,
   removeTooltip,
   setAxisShowMaxMin,
   stringifyTimeRange,
@@ -81,6 +78,8 @@ const NO_DATA_RENDER_DATA = [
     class: 'body',
   },
 ];
+
+dayjs.extend(utc);
 
 const smartDateVerboseFormatter = getTimeFormatter(SMART_DATE_VERBOSE_ID);
 
@@ -125,7 +124,7 @@ const BREAKPOINTS = {
   small: 340,
 };
 
-const TIMESERIES_VIZ_TYPES = ['line', 'area', 'compare', 'bar', 'time_pivot'];
+const TIMESERIES_VIZ_TYPES = [VizType.Compare, VizType.TimePivot];
 
 const CHART_ID_PREFIX = 'chart-id-';
 
@@ -165,7 +164,6 @@ const propTypes = {
         }),
       ]),
     ),
-    // bullet
     bulletDataType,
   ]),
   width: PropTypes.number,
@@ -180,18 +178,13 @@ const propTypes = {
   onError: PropTypes.func,
   showLegend: PropTypes.bool,
   showMarkers: PropTypes.bool,
-  useRichTooltip: PropTypes.bool,
   vizType: PropTypes.oneOf([
-    'area',
-    'bar',
-    'box_plot',
+    VizType.BoxPlot,
     'bubble',
-    'bullet',
-    'compare',
+    VizType.Bullet,
+    VizType.Compare,
     'column',
-    'dist_bar',
-    'line',
-    'time_pivot',
+    VizType.TimePivot,
     'pie',
   ]),
   xAxisFormat: PropTypes.string,
@@ -205,15 +198,9 @@ const propTypes = {
   yAxisLabel: PropTypes.string,
   yAxisShowMinMax: PropTypes.bool,
   yIsLogScale: PropTypes.bool,
-  // 'dist-bar' only
-  orderBars: PropTypes.bool,
   // 'bar' or 'dist-bar'
   isBarStacked: PropTypes.bool,
   showBarValue: PropTypes.bool,
-  // 'bar', 'dist-bar' or 'column'
-  reduceXTicks: PropTypes.bool,
-  // 'bar', 'dist-bar' or 'area'
-  showControls: PropTypes.bool,
   // 'line' only
   showBrush: PropTypes.oneOf([true, 'yes', false, 'no', 'auto']),
   onBrushEnd: PropTypes.func,
@@ -233,8 +220,6 @@ const propTypes = {
     'key_value_percent',
   ]),
   showLabels: PropTypes.bool,
-  // 'area' only
-  areaStackedStyle: PropTypes.string,
   // 'bubble' only
   entity: PropTypes.string,
   maxBubbleSize: PropTypes.number,
@@ -255,7 +240,6 @@ function nvd3Vis(element, props) {
     height: maxHeight,
     annotationData,
     annotationLayers = [],
-    areaStackedStyle,
     baseColor,
     bottomMargin,
     colorScheme,
@@ -274,19 +258,15 @@ function nvd3Vis(element, props) {
     maxBubbleSize,
     onBrushEnd = NOOP,
     onError = NOOP,
-    orderBars,
     pieLabelType,
     rangeLabels,
     ranges,
-    reduceXTicks = false,
     showBarValue,
     showBrush,
-    showControls,
     showLabels,
     showLegend,
     showMarkers,
     sizeField,
-    useRichTooltip,
     vizType,
     xAxisFormat,
     numberFormat,
@@ -323,7 +303,7 @@ function nvd3Vis(element, props) {
   }
 
   let chart;
-  let width = maxWidth;
+  const width = maxWidth;
   let colorKey = 'key';
 
   container.style.width = `${maxWidth}px`;
@@ -341,16 +321,13 @@ function nvd3Vis(element, props) {
     if (svg.empty()) {
       svg = d3Element.append('svg');
     }
-    const height = vizType === 'bullet' ? Math.min(maxHeight, 50) : maxHeight;
+    const height =
+      vizType === VizType.Bullet ? Math.min(maxHeight, 50) : maxHeight;
     const isTimeSeries = isVizTypes(TIMESERIES_VIZ_TYPES);
 
     // Handling xAxis ticks settings
     const staggerLabels = xTicksLayout === 'staggered';
-    const xLabelRotation =
-      (xTicksLayout === 'auto' && isVizTypes(['column', 'dist_bar'])) ||
-      xTicksLayout === '45°'
-        ? 45
-        : 0;
+    const xLabelRotation = xTicksLayout === '45°' ? 45 : 0;
     if (xLabelRotation === 45 && isTruthy(showBrush)) {
       onError(
         t('You cannot use 45° tick layout along with the time range filter'),
@@ -367,69 +344,13 @@ function nvd3Vis(element, props) {
     const numberFormatter = getNumberFormatter(numberFormat);
 
     switch (vizType) {
-      case 'line':
-        if (canShowBrush) {
-          chart = nv.models.lineWithFocusChart();
-          if (staggerLabels) {
-            // Give a bit more room to focus area if X axis ticks are staggered
-            chart.focus.margin({ bottom: 40 });
-            chart.focusHeight(80);
-          }
-          chart.focus.xScale(d3.time.scale.utc());
-        } else {
-          chart = nv.models.lineChart();
-        }
-        chart.xScale(d3.time.scale.utc());
-        chart.interpolate(lineInterpolation);
-        chart.clipEdge(false);
-        break;
-
-      case 'time_pivot':
+      case VizType.TimePivot:
         chart = nv.models.lineChart();
         chart.xScale(d3.time.scale.utc());
         chart.interpolate(lineInterpolation);
         break;
 
-      case 'bar':
-        chart = nv.models
-          .multiBarChart()
-          .showControls(showControls)
-          .groupSpacing(0.1);
-
-        if (!reduceXTicks) {
-          width = computeBarChartWidth(data, isBarStacked, maxWidth);
-        }
-        chart.width(width);
-        chart.xAxis.showMaxMin(false);
-        chart.stacked(isBarStacked);
-        break;
-
-      case 'dist_bar':
-        chart = nv.models
-          .multiBarChart()
-          .showControls(showControls)
-          .reduceXTicks(reduceXTicks)
-          .groupSpacing(0.1); // Distance between each group of bars.
-
-        chart.xAxis.showMaxMin(false);
-
-        chart.stacked(isBarStacked);
-        if (orderBars) {
-          data.forEach(d => {
-            const newValues = [...d.values]; // need to copy values to avoid redux store changed.
-            // eslint-disable-next-line no-param-reassign
-            d.values = newValues.sort((a, b) =>
-              tryNumify(a.x) < tryNumify(b.x) ? -1 : 1,
-            );
-          });
-        }
-        if (!reduceXTicks) {
-          width = computeBarChartWidth(data, isBarStacked, maxWidth);
-        }
-        chart.width(width);
-        break;
-
-      case 'pie':
+      case VizType.Pie:
         chart = nv.models.pieChart();
         colorKey = 'x';
         chart.valueFormat(numberFormatter);
@@ -478,14 +399,14 @@ function nvd3Vis(element, props) {
         chart = nv.models.multiBarChart().reduceXTicks(false);
         break;
 
-      case 'compare':
+      case VizType.Compare:
         chart = nv.models.cumulativeLineChart();
         chart.xScale(d3.time.scale.utc());
         chart.useInteractiveGuideline(true);
         chart.xAxis.showMaxMin(false);
         break;
 
-      case 'bubble':
+      case VizType.LegacyBubble:
         chart = nv.models.scatterChart();
         chart.showDistX(false);
         chart.showDistY(false);
@@ -508,21 +429,14 @@ function nvd3Vis(element, props) {
         ]);
         break;
 
-      case 'area':
-        chart = nv.models.stackedAreaChart();
-        chart.showControls(showControls);
-        chart.style(areaStackedStyle);
-        chart.xScale(d3.time.scale.utc());
-        break;
-
-      case 'box_plot':
+      case VizType.BoxPlot:
         colorKey = 'label';
         chart = nv.models.boxPlotChart();
         chart.x(d => d.label);
         chart.maxBoxWidth(75); // prevent boxes from being incredibly wide
         break;
 
-      case 'bullet':
+      case VizType.Bullet:
         chart = nv.models.bulletChart();
         data.rangeLabels = rangeLabels;
         data.ranges = ranges;
@@ -572,7 +486,7 @@ function nvd3Vis(element, props) {
     }
 
     if ('showLegend' in chart && typeof showLegend !== 'undefined') {
-      if (width < BREAKPOINTS.small && vizType !== 'pie') {
+      if (width < BREAKPOINTS.small && vizType !== VizType.Pie) {
         chart.showLegend(false);
       } else {
         chart.showLegend(showLegend);
@@ -598,7 +512,7 @@ function nvd3Vis(element, props) {
       chart.x2Axis.tickFormat(xAxisFormatter);
     }
     if (chart.xAxis && chart.xAxis.tickFormat) {
-      const isXAxisString = isVizTypes(['dist_bar', 'box_plot']);
+      const isXAxisString = isVizTypes([VizType.BoxPlot]);
       if (isXAxisString) {
         chart.xAxis.tickFormat(d =>
           d.length > MAX_NO_CHARACTERS_IN_LABEL
@@ -641,7 +555,7 @@ function nvd3Vis(element, props) {
     setAxisShowMaxMin(chart.yAxis, yAxisShowMinMax);
     setAxisShowMaxMin(chart.y2Axis, yAxis2ShowMinMax || yAxisShowMinMax);
 
-    if (vizType === 'time_pivot') {
+    if (vizType === VizType.TimePivot) {
       if (baseColor) {
         const { r, g, b } = baseColor;
         chart.color(d => {
@@ -655,43 +569,14 @@ function nvd3Vis(element, props) {
       chart.interactiveLayer.tooltip.contentGenerator(d =>
         generateTimePivotTooltip(d, xAxisFormatter, yAxisFormatter),
       );
-    } else if (vizType !== 'bullet') {
+    } else if (vizType !== VizType.Bullet) {
       const colorFn = getScale(colorScheme);
       chart.color(
-        d =>
-          d.color ||
-          colorFn(cleanColorInput(d[colorKey]), sliceId, colorScheme),
+        d => d.color || colorFn(cleanColorInput(d[colorKey]), sliceId),
       );
     }
 
-    if (isVizTypes(['line', 'area', 'bar', 'dist_bar']) && useRichTooltip) {
-      chart.useInteractiveGuideline(true);
-      if (vizType === 'line' || vizType === 'bar') {
-        chart.interactiveLayer.tooltip.contentGenerator(d =>
-          generateRichLineTooltipContent(
-            d,
-            smartDateVerboseFormatter,
-            yAxisFormatter,
-          ),
-        );
-      } else if (vizType === 'dist_bar') {
-        chart.interactiveLayer.tooltip.contentGenerator(d =>
-          generateCompareTooltipContent(d, yAxisFormatter),
-        );
-      } else {
-        // area chart
-        chart.interactiveLayer.tooltip.contentGenerator(d =>
-          generateAreaChartTooltipContent(
-            d,
-            smartDateVerboseFormatter,
-            yAxisFormatter,
-            chart,
-          ),
-        );
-      }
-    }
-
-    if (isVizTypes(['compare'])) {
+    if (isVizTypes([VizType.Compare])) {
       chart.interactiveLayer.tooltip.contentGenerator(d =>
         generateCompareTooltipContent(d, yAxisFormatter),
       );
@@ -732,42 +617,13 @@ function nvd3Vis(element, props) {
         const hasCustomMin = isDefined(customMin) && !Number.isNaN(customMin);
         const hasCustomMax = isDefined(customMax) && !Number.isNaN(customMax);
 
-        if (
-          (hasCustomMin || hasCustomMax) &&
-          vizType === 'area' &&
-          chart.style() === 'expand'
-        ) {
-          // Because there are custom bounds, we need to override them back to 0%-100% since this
-          // is an expanded area chart
-          chart.yDomain([0, 1]);
-        } else if (
-          (hasCustomMin || hasCustomMax) &&
-          vizType === 'area' &&
-          chart.style() === 'stream'
-        ) {
-          // Because there are custom bounds, we need to override them back to the domain of the
-          // data since this is a stream area chart
-          chart.yDomain(computeStackedYDomain(data));
-        } else if (hasCustomMin && hasCustomMax) {
+        if (hasCustomMin && hasCustomMax) {
           // Override the y domain if there's both a custom min and max
           chart.yDomain([customMin, customMax]);
           chart.clipEdge(true);
         } else if (hasCustomMin || hasCustomMax) {
           // Only one of the bounds has been set, so we need to manually calculate the other one
-          let [trueMin, trueMax] = [0, 1];
-
-          // These viz types can be stacked
-          // They correspond to the nvd3 stackedAreaChart and multiBarChart
-          if (
-            vizType === 'area' ||
-            (isVizTypes(['bar', 'dist_bar']) && chart.stacked())
-          ) {
-            // This is a stacked area chart or a stacked bar chart
-            [trueMin, trueMax] = computeStackedYDomain(data);
-          } else {
-            [trueMin, trueMax] = computeYDomain(data);
-          }
-
+          const [trueMin, trueMax] = computeYDomain(data);
           const min = hasCustomMin ? customMin : trueMin;
           const max = hasCustomMax ? customMax : trueMax;
           chart.yDomain([min, max]);
@@ -938,26 +794,15 @@ function nvd3Vis(element, props) {
           a => a.annotationType === ANNOTATION_TYPES.FORMULA,
         );
 
-        let xMax;
-        let xMin;
+        const xMax = chart.xAxis.scale().domain()[1].valueOf();
+        const xMin = chart.xAxis.scale().domain()[0].valueOf();
         let xScale;
-        if (vizType === 'bar') {
-          xMin = d3.min(data[0].values, d => d.x);
-          xMax = d3.max(data[0].values, d => d.x);
-          xScale = d3.scale
-            .quantile()
-            .domain([xMin, xMax])
-            .range(chart.xAxis.range());
+        if (chart.xScale) {
+          xScale = chart.xScale();
+        } else if (chart.xAxis.scale) {
+          xScale = chart.xAxis.scale();
         } else {
-          xMin = chart.xAxis.scale().domain()[0].valueOf();
-          xMax = chart.xAxis.scale().domain()[1].valueOf();
-          if (chart.xScale) {
-            xScale = chart.xScale();
-          } else if (chart.xAxis.scale) {
-            xScale = chart.xAxis.scale();
-          } else {
-            xScale = d3.scale.linear();
-          }
+          xScale = d3.scale.linear();
         }
         if (xScale && xScale.clamp) {
           xScale.clamp(true);
@@ -965,36 +810,21 @@ function nvd3Vis(element, props) {
 
         if (formulas.length > 0) {
           const xValues = [];
-          if (vizType === 'bar') {
-            // For bar-charts we want one data point evaluated for every
-            // data point that will be displayed.
-            const distinct = data.reduce((xVals, d) => {
-              d.values.forEach(x => xVals.add(x.x));
-
-              return xVals;
-            }, new Set());
-            xValues.push(...distinct.values());
-            xValues.sort();
-          } else {
-            // For every other time visualization it should be ok, to have a
-            // data points in even intervals.
-            let period = Math.min(
-              ...data.map(d =>
-                Math.min(
-                  ...d.values.slice(1).map((v, i) => v.x - d.values[i].x),
-                ),
-              ),
-            );
-            const dataPoints = (xMax - xMin) / (period || 1);
-            // make sure that there are enough data points and not too many
-            period = dataPoints < 100 ? (xMax - xMin) / 100 : period;
-            period = dataPoints > 500 ? (xMax - xMin) / 500 : period;
-            xValues.push(xMin);
-            for (let x = xMin; x < xMax; x += period) {
-              xValues.push(x);
-            }
-            xValues.push(xMax);
+          let period = Math.min(
+            ...data.map(d =>
+              Math.min(...d.values.slice(1).map((v, i) => v.x - d.values[i].x)),
+            ),
+          );
+          const dataPoints = (xMax - xMin) / (period || 1);
+          // make sure that there are enough data points and not too many
+          period = dataPoints < 100 ? (xMax - xMin) / 100 : period;
+          period = dataPoints > 500 ? (xMax - xMin) / 500 : period;
+          xValues.push(xMin);
+          for (let x = xMin; x < xMax; x += period) {
+            xValues.push(x);
           }
+          xValues.push(xMax);
+
           const formulaData = formulas.map(fo => {
             const { value: expression } = fo;
             return {
@@ -1041,7 +871,7 @@ function nvd3Vis(element, props) {
               });
               const records = (annotationData[e.name].records || [])
                 .map(r => {
-                  const timeValue = new Date(moment.utc(r[e.timeColumn]));
+                  const timeValue = new Date(dayjs.utc(r[e.timeColumn]));
 
                   return {
                     ...r,
@@ -1117,9 +947,9 @@ function nvd3Vis(element, props) {
 
               const records = (annotationData[e.name].records || [])
                 .map(r => {
-                  const timeValue = new Date(moment.utc(r[e.timeColumn]));
+                  const timeValue = new Date(dayjs.utc(r[e.timeColumn]));
                   const intervalEndValue = new Date(
-                    moment.utc(r[e.intervalEndColumn]),
+                    dayjs.utc(r[e.intervalEndColumn]),
                   );
 
                   return {

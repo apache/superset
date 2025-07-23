@@ -17,6 +17,8 @@
 
 # pylint: disable=invalid-name, unused-argument, redefined-outer-name
 
+import json
+
 import pytest
 from flask_appbuilder.security.sqla.models import Role, User
 from pytest_mock import MockerFixture
@@ -30,7 +32,7 @@ from superset.security.manager import (
     query_context_modified,
     SupersetSecurityManager,
 )
-from superset.sql_parse import Table
+from superset.sql.parse import Table
 from superset.superset_typing import AdhocColumn, AdhocMetric
 from superset.utils.core import DatasourceName, override_user
 
@@ -359,7 +361,7 @@ def test_raise_for_access_query_default_schema(
     mocker.patch.object(sm, "can_access_database", return_value=False)
     mocker.patch.object(sm, "get_schema_perm", return_value="[PostgreSQL].[public]")
     mocker.patch.object(sm, "is_guest_user", return_value=False)
-    SqlaTable = mocker.patch("superset.connectors.sqla.models.SqlaTable")
+    SqlaTable = mocker.patch("superset.connectors.sqla.models.SqlaTable")  # noqa: N806
     SqlaTable.query_datasources_by_name.return_value = []
 
     database = mocker.MagicMock()
@@ -415,7 +417,7 @@ def test_raise_for_access_jinja_sql(mocker: MockerFixture, app_context: None) ->
     get_table_access_error_object = mocker.patch.object(
         sm, "get_table_access_error_object"
     )
-    SqlaTable = mocker.patch("superset.connectors.sqla.models.SqlaTable")
+    SqlaTable = mocker.patch("superset.connectors.sqla.models.SqlaTable")  # noqa: N806
     SqlaTable.query_datasources_by_name.return_value = []
 
     database = mocker.MagicMock()
@@ -691,6 +693,340 @@ def test_query_context_modified_mixed_chart(mocker: MockerFixture) -> None:
     assert not query_context_modified(query_context)
 
 
+def test_query_context_modified_sankey_tampered(mocker: MockerFixture) -> None:
+    """
+    Test the `query_context_modified` function for a sankey chart request.
+    """
+    query_context = mocker.MagicMock()
+    query_context.queries = [
+        QueryObject(
+            apply_fetch_values_predicate=False,
+            columns=["bot_id", "channel_id"],
+            extras={"having": "", "where": ""},
+            filter=[
+                {
+                    "col": "bot_profile__updated",
+                    "op": "TEMPORAL_RANGE",
+                    "val": "No filter",
+                }
+            ],
+            from_dttm=None,
+            granularity=None,
+            inner_from_dttm=None,
+            inner_to_dttm=None,
+            is_rowcount=False,
+            is_timeseries=False,
+            metrics=["count"],
+            order_desc=True,
+            orderby=[],
+            row_limit=10000,
+            row_offset=0,
+            series_columns=[],
+            series_limit=0,
+            series_limit_metric=None,
+            time_shift=None,
+            to_dttm=None,
+        ),
+    ]
+    query_context.form_data = {
+        "datasource": "12__table",
+        "viz_type": "sankey_v2",
+        "slice_id": 97,
+        "url_params": {},
+        "source": "bot_id",
+        "target": "channel_id",
+        "metric": "count",
+        "adhoc_filters": [
+            {
+                "clause": "WHERE",
+                "comparator": "No filter",
+                "expressionType": "SIMPLE",
+                "operator": "TEMPORAL_RANGE",
+                "subject": "bot_profile__updated",
+            }
+        ],
+        "row_limit": 10000,
+        "color_scheme": "supersetColors",
+        "dashboards": [11],
+        "extra_form_data": {},
+        "label_colors": {},
+        "shared_label_colors": [],
+        "map_label_colors": {},
+        "extra_filters": [],
+        "dashboardId": 11,
+        "force": False,
+        "result_format": "json",
+        "result_type": "full",
+    }
+    query_context.slice_.id = 97
+    query_context.slice_.params_dict = {
+        "datasource": "12__table",
+        "viz_type": "sankey_v2",
+        "slice_id": 97,
+        "source": "bot_id",
+        "target": "channel_id",
+        "metric": "count",
+        "adhoc_filters": [
+            {
+                "clause": "WHERE",
+                "comparator": "No filter",
+                "expressionType": "SIMPLE",
+                "operator": "TEMPORAL_RANGE",
+                "subject": "bot_profile__updated",
+            }
+        ],
+        "row_limit": 10000,
+        "color_scheme": "supersetColors",
+        "extra_form_data": {},
+        "dashboards": [11],
+    }
+    query_context.slice_.query_context = json.dumps(
+        {
+            "datasource": {"id": 12, "type": "table"},
+            "force": False,
+            "queries": [
+                {
+                    "filters": [
+                        {
+                            "col": "bot_profile__updated",
+                            "op": "TEMPORAL_RANGE",
+                            "val": "No filter",
+                        }
+                    ],
+                    "extras": {"having": "", "where": ""},
+                    "applied_time_extras": {},
+                    "columns": [],
+                    "metrics": ["count"],
+                    "annotation_layers": [],
+                    "row_limit": 10000,
+                    "series_limit": 0,
+                    "order_desc": True,
+                    "url_params": {},
+                    "custom_params": {},
+                    "custom_form_data": {},
+                    "groupby": ["bot_id", "channel_id"],
+                }
+            ],
+            "form_data": {
+                "datasource": "12__table",
+                "viz_type": "sankey_v2",
+                "slice_id": 97,
+                "source": "bot_id",
+                "target": "channel_id",
+                "metric": "count",
+                "adhoc_filters": [
+                    {
+                        "clause": "WHERE",
+                        "comparator": "No filter",
+                        "expressionType": "SIMPLE",
+                        "operator": "TEMPORAL_RANGE",
+                        "subject": "bot_profile__updated",
+                    }
+                ],
+                "row_limit": 10000,
+                "color_scheme": "supersetColors",
+                "extra_form_data": {},
+                "dashboards": [11],
+                "force": False,
+                "result_format": "json",
+                "result_type": "full",
+            },
+            "result_format": "json",
+            "result_type": "full",
+        }
+    )
+    assert not query_context_modified(query_context)
+
+
+def test_query_context_modified_orderby(mocker: MockerFixture) -> None:
+    """
+    Test the `query_context_modified` function when the ORDER BY is modified.
+    """
+    tampered_groupby: AdhocMetric = {
+        "aggregate": "",
+        "column": None,
+        "expressionType": "SQL",
+        "hasCustomLabel": False,
+        "label": "random()",
+        "sqlExpression": "random()",
+    }
+
+    query_context = mocker.MagicMock()
+    query_context.queries = [
+        QueryObject(
+            apply_fetch_values_predicate=False,
+            columns=["gender"],
+            extras={"having": "", "where": ""},
+            filter=[{"col": "ds", "op": "TEMPORAL_RANGE", "val": "No filter"}],
+            from_dttm=None,
+            granularity=None,
+            inner_from_dttm=None,
+            inner_to_dttm=None,
+            is_rowcount=False,
+            is_timeseries=False,
+            metrics=["count"],
+            order_desc=True,
+            orderby=[(tampered_groupby, False)],
+            row_limit=1000,
+            row_offset=0,
+            series_columns=[],
+            series_limit=0,
+            series_limit_metric=tampered_groupby,
+            time_shift=None,
+            to_dttm=None,
+        ),
+    ]
+    query_context.form_data = {
+        "datasource": "2__table",
+        "viz_type": "table",
+        "slice_id": 101,
+        "url_params": {
+            "datasource_id": "2",
+            "datasource_type": "table",
+            "save_action": "saveas",
+            "slice_id": "101",
+        },
+        "query_mode": "aggregate",
+        "groupby": ["gender"],
+        "time_grain_sqla": "P1D",
+        "temporal_columns_lookup": {"ds": True},
+        "metrics": ["count"],
+        "all_columns": [],
+        "percent_metrics": [],
+        "adhoc_filters": [
+            {
+                "clause": "WHERE",
+                "comparator": "No filter",
+                "expressionType": "SIMPLE",
+                "operator": "TEMPORAL_RANGE",
+                "subject": "ds",
+            }
+        ],
+        "timeseries_limit_metric": {
+            "aggregate": None,
+            "column": None,
+            "datasourceWarning": False,
+            "expressionType": "SQL",
+            "hasCustomLabel": False,
+            "label": "random()",
+            "optionName": "metric_3kwbghgzkv9_wz84h9j1p5d",
+            "sqlExpression": "random()",
+        },
+        "order_by_cols": [],
+        "row_limit": 1000,
+        "server_page_length": 10,
+        "order_desc": True,
+        "table_timestamp_format": "smart_date",
+        "allow_render_html": True,
+        "show_cell_bars": True,
+        "color_pn": True,
+        "comparison_color_scheme": "Green",
+        "comparison_type": "values",
+        "extra_form_data": {},
+        "force": False,
+        "result_format": "json",
+        "result_type": "full",
+    }
+    query_context.slice_.id = 101
+    query_context.slice_.params_dict = {
+        "datasource": "2__table",
+        "viz_type": "table",
+        "query_mode": "aggregate",
+        "groupby": ["gender"],
+        "time_grain_sqla": "P1D",
+        "temporal_columns_lookup": {"ds": True},
+        "metrics": ["count"],
+        "all_columns": [],
+        "percent_metrics": [],
+        "adhoc_filters": [
+            {
+                "clause": "WHERE",
+                "subject": "ds",
+                "operator": "TEMPORAL_RANGE",
+                "comparator": "No filter",
+                "expressionType": "SIMPLE",
+            }
+        ],
+        "order_by_cols": [],
+        "row_limit": 1000,
+        "server_page_length": 10,
+        "order_desc": True,
+        "table_timestamp_format": "smart_date",
+        "allow_render_html": True,
+        "show_cell_bars": True,
+        "color_pn": True,
+        "comparison_color_scheme": "Green",
+        "comparison_type": "values",
+        "extra_form_data": {},
+        "dashboards": [],
+    }
+    query_context.slice_.query_context = json.dumps(
+        {
+            "datasource": {"id": 2, "type": "table"},
+            "force": False,
+            "queries": [
+                {
+                    "filters": [
+                        {"col": "ds", "op": "TEMPORAL_RANGE", "val": "No filter"}
+                    ],
+                    "extras": {"having": "", "where": ""},
+                    "applied_time_extras": {},
+                    "columns": ["gender"],
+                    "metrics": ["count"],
+                    "orderby": [],
+                    "annotation_layers": [],
+                    "row_limit": 1000,
+                    "series_limit": 0,
+                    "order_desc": True,
+                    "url_params": {},
+                    "custom_params": {},
+                    "custom_form_data": {},
+                    "post_processing": [],
+                    "time_offsets": [],
+                }
+            ],
+            "form_data": {
+                "datasource": "2__table",
+                "viz_type": "table",
+                "query_mode": "aggregate",
+                "groupby": ["gender"],
+                "time_grain_sqla": "P1D",
+                "temporal_columns_lookup": {"ds": True},
+                "metrics": ["count"],
+                "all_columns": [],
+                "percent_metrics": [],
+                "adhoc_filters": [
+                    {
+                        "clause": "WHERE",
+                        "subject": "ds",
+                        "operator": "TEMPORAL_RANGE",
+                        "comparator": "No filter",
+                        "expressionType": "SIMPLE",
+                    }
+                ],
+                "order_by_cols": [],
+                "row_limit": 1000,
+                "server_page_length": 10,
+                "order_desc": True,
+                "table_timestamp_format": "smart_date",
+                "allow_render_html": True,
+                "show_cell_bars": True,
+                "color_pn": True,
+                "comparison_color_scheme": "Green",
+                "comparison_type": "values",
+                "extra_form_data": {},
+                "dashboards": [],
+                "force": False,
+                "result_format": "json",
+                "result_type": "full",
+            },
+            "result_format": "json",
+            "result_type": "full",
+        }
+    )
+    assert query_context_modified(query_context)
+
+
 def test_get_catalog_perm() -> None:
     """
     Test the `get_catalog_perm` method.
@@ -731,7 +1067,7 @@ def test_raise_for_access_catalog(
         return_value="[PostgreSQL].[db1]",
     )
     mocker.patch.object(sm, "is_guest_user", return_value=False)
-    SqlaTable = mocker.patch("superset.connectors.sqla.models.SqlaTable")
+    SqlaTable = mocker.patch("superset.connectors.sqla.models.SqlaTable")  # noqa: N806
     SqlaTable.query_datasources_by_name.return_value = []
 
     database = mocker.MagicMock()

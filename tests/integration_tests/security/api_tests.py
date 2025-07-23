@@ -26,7 +26,7 @@ from superset.daos.dashboard import EmbeddedDashboardDAO
 from superset.models.dashboard import Dashboard
 from superset.utils.urls import get_url_host
 from superset.utils import json
-from tests.integration_tests.conftest import with_config
+from tests.conftest import with_config
 from tests.integration_tests.base_tests import SupersetTestCase
 from tests.integration_tests.constants import ADMIN_USERNAME, GAMMA_USERNAME
 from tests.integration_tests.fixtures.birth_names_dashboard import (
@@ -43,7 +43,7 @@ class TestSecurityCsrfApi(SupersetTestCase):
         response = self.client.get(uri)
         self.assert200(response)
         data = json.loads(response.data.decode("utf-8"))
-        self.assertEqual(generate_csrf(), data["result"])
+        assert generate_csrf() == data["result"]
 
     def test_get_csrf_token(self):
         """
@@ -120,8 +120,8 @@ class TestSecurityGuestTokenApi(SupersetTestCase):
             audience=get_url_host(),
             algorithms=["HS256"],
         )
-        self.assertEqual(user, decoded_token["user"])
-        self.assertEqual(resource, decoded_token["resources"][0])
+        assert user == decoded_token["user"]
+        assert resource == decoded_token["resources"][0]
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_post_guest_token_bad_resources(self):
@@ -219,6 +219,7 @@ class TestSecurityGuestTokenApiTokenValidator(SupersetTestCase):
 
 class TestSecurityRolesApi(SupersetTestCase):
     uri = "api/v1/security/roles/"  # noqa: F541
+    show_uri = "api/v1/security/roles/search/"
 
     @with_config({"FAB_ADD_SECURITY_API": True})
     def test_get_security_roles_admin(self):
@@ -275,4 +276,20 @@ class TestSecurityRolesApi(SupersetTestCase):
             data=json.dumps({"name": "new_role"}),
             content_type="application/json",
         )
+        self.assert403(response)
+
+    def test_show_roles_admin(self):
+        """
+        Security API: Admin should be able to show roles with permissions and users
+        """
+        self.login(ADMIN_USERNAME)
+        response = self.client.get(self.show_uri)
+        self.assert200(response)
+
+    def test_show_roles_gamma(self):
+        """
+        Security API: Gamma should not be able to show roles
+        """
+        self.login(GAMMA_USERNAME)
+        response = self.client.get(self.show_uri)
         self.assert403(response)

@@ -19,7 +19,7 @@
 
 import { forwardRef } from 'react';
 import { css } from '@superset-ui/core';
-import Icons from 'src/components/Icons';
+import { Icons } from '@superset-ui/core/components/Icons';
 import { getFilterValueForDisplay } from 'src/dashboard/components/nativeFilters/utils';
 import {
   FilterValue,

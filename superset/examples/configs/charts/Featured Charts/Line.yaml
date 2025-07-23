@@ -50,7 +50,7 @@ params:
   y_axis_title_position: Left
   sort_series_type: sum
   color_scheme: supersetColors
-  seriesType: line
+  seriesType: echarts_timeseries_line
   only_total: true
   opacity: 0.2
   markerSize: 6

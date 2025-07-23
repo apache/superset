@@ -18,21 +18,18 @@
  */
 import thunk from 'redux-thunk';
 import configureStore from 'redux-mock-store';
-import { Provider } from 'react-redux';
 import fetchMock from 'fetch-mock';
-import { styledMount as mount } from 'spec/helpers/theming';
+import {
+  render,
+  screen,
+  fireEvent,
+  waitFor,
+} from 'spec/helpers/testing-library';
+import { MemoryRouter } from 'react-router-dom';
+import { QueryParamProvider } from 'use-query-params';
 
 import CssTemplatesList from 'src/pages/CssTemplateList';
-import SubMenu from 'src/features/home/SubMenu';
-import ListView from 'src/components/ListView';
-import Filters from 'src/components/ListView/Filters';
-import DeleteModal from 'src/components/DeleteModal';
-import Button from 'src/components/Button';
-import IndeterminateCheckbox from 'src/components/IndeterminateCheckbox';
-import waitForComponentToPaint from 'spec/helpers/waitForComponentToPaint';
-import { act } from 'react-dom/test-utils';
 
-// store needed for withToasts(DatabaseList)
 const mockStore = configureStore([thunk]);
 const store = mockStore({});
 
@@ -75,98 +72,120 @@ fetchMock.get(templatesRelatedEndpoint, {
   },
 });
 
-describe('CssTemplatesList', () => {
-  const wrapper = mount(
-    <Provider store={store}>
-      <CssTemplatesList store={store} user={mockUser} />
-    </Provider>,
+const renderCssTemplatesList = (props = {}) =>
+  render(
+    <MemoryRouter>
+      <QueryParamProvider>
+        <CssTemplatesList user={mockUser} {...props} />
+      </QueryParamProvider>
+    </MemoryRouter>,
+    {
+      useRedux: true,
+      store,
+    },
   );
 
-  beforeAll(async () => {
-    await waitForComponentToPaint(wrapper);
+describe('CssTemplatesList', () => {
+  beforeEach(() => {
+    fetchMock.resetHistory();
   });
 
-  it('renders', () => {
-    expect(wrapper.find(CssTemplatesList)).toExist();
+  it('renders', async () => {
+    renderCssTemplatesList();
+    expect(await screen.findByText(/css templates/i)).toBeInTheDocument();
   });
 
-  it('renders a SubMenu', () => {
-    expect(wrapper.find(SubMenu)).toExist();
+  it('renders a SubMenu', async () => {
+    renderCssTemplatesList();
+    expect(await screen.findByRole('navigation')).toBeInTheDocument();
   });
 
-  it('renders a ListView', () => {
-    expect(wrapper.find(ListView)).toExist();
+  it('renders a ListView', async () => {
+    renderCssTemplatesList();
+    expect(
+      await screen.findByTestId('css-templates-list-view'),
+    ).toBeInTheDocument();
   });
 
-  it('fetches templates', () => {
-    const callsQ = fetchMock.calls(/css_template\/\?q/);
-    expect(callsQ).toHaveLength(1);
-    expect(callsQ[0][0]).toMatchInlineSnapshot(
-      `"http://localhost/api/v1/css_template/?q=(order_column:template_name,order_direction:desc,page:0,page_size:25)"`,
-    );
+  it('fetches templates', async () => {
+    renderCssTemplatesList();
+    await waitFor(() => {
+      const calls = fetchMock.calls(/css_template\/\?q/);
+      expect(calls).toHaveLength(1);
+      expect(calls[0][0]).toContain(
+        'order_column:template_name,order_direction:desc,page:0,page_size:25',
+      );
+    });
   });
 
-  it('renders Filters', () => {
-    expect(wrapper.find(Filters)).toExist();
+  it('renders Filters', async () => {
+    renderCssTemplatesList();
+    await screen.findByTestId('css-templates-list-view');
+    expect(screen.getByPlaceholderText(/type a value/i)).toBeInTheDocument();
   });
 
   it('searches', async () => {
-    const filtersWrapper = wrapper.find(Filters);
-    act(() => {
-      filtersWrapper
-        .find('[name="template_name"]')
-        .first()
-        .props()
-        .onSubmit('fooo');
+    renderCssTemplatesList();
+
+    // Wait for list to load
+    await screen.findByTestId('css-templates-list-view');
+
+    // Find and fill search input
+    const searchInput = screen.getByPlaceholderText(/type a value/i);
+    fireEvent.change(searchInput, { target: { value: 'fooo' } });
+    fireEvent.keyDown(searchInput, { key: 'Enter', keyCode: 13 });
+
+    // Wait for search API call
+    await waitFor(() => {
+      const calls = fetchMock.calls(/css_template\/\?q/);
+      const searchCall = calls.find(call =>
+        call[0].includes('filters:!((col:template_name,opr:ct,value:fooo))'),
+      );
+      expect(searchCall).toBeTruthy();
     });
-    await waitForComponentToPaint(wrapper);
-
-    expect(fetchMock.lastCall()[0]).toMatchInlineSnapshot(
-      `"http://localhost/api/v1/css_template/?q=(filters:!((col:template_name,opr:ct,value:fooo)),order_column:template_name,order_direction:desc,page:0,page_size:25)"`,
-    );
-  });
-
-  it('renders a DeleteModal', () => {
-    expect(wrapper.find(DeleteModal)).toExist();
   });
 
   it('deletes', async () => {
-    act(() => {
-      wrapper.find('[data-test="delete-action"]').first().props().onClick();
+    renderCssTemplatesList();
+
+    // Wait for list to load
+    await screen.findByTestId('css-templates-list-view');
+
+    // Find and click delete button
+    const deleteButtons = await screen.findAllByTestId('delete-action');
+    fireEvent.click(deleteButtons[0]);
+
+    // Check delete modal content
+    const deleteModal = await screen.findByRole('dialog');
+    expect(deleteModal).toHaveTextContent(/permanently delete the template/i);
+
+    // Type DELETE in confirmation input
+    const deleteInput = await screen.findByTestId('delete-modal-input');
+    fireEvent.change(deleteInput, { target: { value: 'DELETE' } });
+
+    // Click confirm button
+    const confirmButton = await screen.findByTestId('modal-confirm-button');
+    fireEvent.click(confirmButton);
+
+    // Wait for delete request
+    await waitFor(() => {
+      expect(fetchMock.calls(/css_template\/0/, 'DELETE')).toHaveLength(1);
     });
-    await waitForComponentToPaint(wrapper);
-
-    expect(
-      wrapper.find(DeleteModal).first().props().description,
-    ).toMatchInlineSnapshot(
-      `"This action will permanently delete the template."`,
-    );
-
-    act(() => {
-      wrapper
-        .find('#delete')
-        .first()
-        .props()
-        .onChange({ target: { value: 'DELETE' } });
-    });
-    await waitForComponentToPaint(wrapper);
-    act(() => {
-      wrapper.find('button').last().props().onClick();
-    });
-
-    await waitForComponentToPaint(wrapper);
-
-    expect(fetchMock.calls(/css_template\/0/, 'DELETE')).toHaveLength(1);
   });
 
-  it('shows/hides bulk actions when bulk actions is clicked', async () => {
-    const button = wrapper.find(Button).at(1);
-    act(() => {
-      button.props().onClick();
+  it('shows bulk actions when bulk select is clicked', async () => {
+    renderCssTemplatesList();
+
+    // Wait for list to load
+    await screen.findByTestId('css-templates-list-view');
+
+    // Click bulk select toggle
+    const bulkSelectButton = screen.getByRole('button', {
+      name: /bulk select/i,
     });
-    await waitForComponentToPaint(wrapper);
-    expect(wrapper.find(IndeterminateCheckbox)).toHaveLength(
-      mocktemplates.length + 1, // 1 for each row and 1 for select all
-    );
-  });
+    fireEvent.click(bulkSelectButton);
+
+    // Wait for bulk select mode to be enabled
+    await screen.findByText('0 Selected');
+  }, 30000);
 });

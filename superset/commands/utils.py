@@ -17,7 +17,7 @@
 from __future__ import annotations
 
 from collections import Counter
-from typing import Optional, TYPE_CHECKING
+from typing import Any, Optional, TYPE_CHECKING
 
 from flask import g
 from flask_appbuilder.security.sqla.models import Role, User
@@ -34,6 +34,7 @@ from superset.daos.datasource import DatasourceDAO
 from superset.daos.exceptions import DatasourceNotFound
 from superset.daos.tag import TagDAO
 from superset.tags.models import ObjectType, Tag, TagType
+from superset.utils import json
 from superset.utils.core import DatasourceType, get_user_id
 
 if TYPE_CHECKING:
@@ -185,3 +186,43 @@ def update_tags(
         TagDAO.create_custom_tagged_objects(
             object_type, object_id, [tag.name for tag in tags_to_add]
         )
+
+
+def update_chart_config_dataset(
+    config: dict[str, Any], dataset_info: dict[str, Any]
+) -> dict[str, Any]:
+    """
+    Update the chart configuration and query_context with new dataset information
+
+    :param config: The original chart configuration
+    :param dataset_info: Dict with datasource_id, datasource_type, and datasource_name
+    :return: The updated chart configuration
+    """
+    # Update datasource id, type, and name
+    config.update(dataset_info)
+
+    dataset_uid = f"{dataset_info['datasource_id']}__{dataset_info['datasource_type']}"
+    config["params"].update({"datasource": dataset_uid})
+
+    if "query_context" in config and config["query_context"] is not None:
+        try:
+            query_context = json.loads(config["query_context"])
+
+            query_context["datasource"] = {
+                "id": dataset_info["datasource_id"],
+                "type": dataset_info["datasource_type"],
+            }
+
+            if "form_data" in query_context:
+                query_context["form_data"]["datasource"] = dataset_uid
+
+            if "queries" in query_context:
+                for query in query_context["queries"]:
+                    if "datasource" in query:
+                        query["datasource"] = query_context["datasource"]
+
+            config["query_context"] = json.dumps(query_context)
+        except json.JSONDecodeError:
+            config["query_context"] = None
+
+    return config

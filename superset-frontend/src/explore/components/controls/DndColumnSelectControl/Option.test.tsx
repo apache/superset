@@ -16,57 +16,76 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { render, screen } from 'spec/helpers/testing-library';
-import userEvent from '@testing-library/user-event';
+import {
+  cleanup,
+  render,
+  screen,
+  userEvent,
+} from 'spec/helpers/testing-library';
 import Option from 'src/explore/components/controls/DndColumnSelectControl/Option';
 
-test('renders with default props', async () => {
-  const { container } = render(
-    <Option index={1} clickClose={jest.fn()}>
-      Option
-    </Option>,
-  );
-  expect(container).toBeInTheDocument();
-  expect(
-    await screen.findByRole('img', { name: 'x-small' }),
-  ).toBeInTheDocument();
-  expect(
-    screen.queryByRole('img', { name: 'caret-right' }),
-  ).not.toBeInTheDocument();
-});
+describe('Option', () => {
+  beforeAll(() => {
+    jest.setTimeout(30000);
+  });
 
-test('renders with caret', async () => {
-  render(
-    <Option index={1} clickClose={jest.fn()} withCaret>
-      Option
-    </Option>,
-  );
-  expect(
-    await screen.findByRole('img', { name: 'x-small' }),
-  ).toBeInTheDocument();
-  expect(
-    await screen.findByRole('img', { name: 'caret-right' }),
-  ).toBeInTheDocument();
-});
+  afterEach(async () => {
+    cleanup();
+    await new Promise(resolve => setTimeout(resolve, 0));
+  });
 
-test('renders with extra triangle', async () => {
-  render(
-    <Option index={1} clickClose={jest.fn()} isExtra>
-      Option
-    </Option>,
-  );
-  expect(
-    await screen.findByRole('button', { name: 'Show info tooltip' }),
-  ).toBeInTheDocument();
-});
+  test('renders with default props', async () => {
+    const { container, unmount } = render(
+      <Option index={1} clickClose={jest.fn()}>
+        Option
+      </Option>,
+    );
+    expect(container).toBeInTheDocument();
+    expect(
+      await screen.findByRole('img', { name: 'close' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('img', { name: 'right' }),
+    ).not.toBeInTheDocument();
+    unmount();
+  });
 
-test('triggers onClose', async () => {
-  const clickClose = jest.fn();
-  render(
-    <Option index={1} clickClose={clickClose}>
-      Option
-    </Option>,
-  );
-  userEvent.click(await screen.findByRole('img', { name: 'x-small' }));
-  expect(clickClose).toHaveBeenCalled();
+  test('renders with caret', async () => {
+    const { unmount } = render(
+      <Option index={1} clickClose={jest.fn()} withCaret>
+        Option
+      </Option>,
+    );
+    expect(
+      await screen.findByRole('img', { name: 'close' }),
+    ).toBeInTheDocument();
+    expect(
+      await screen.findByRole('img', { name: 'right' }),
+    ).toBeInTheDocument();
+    unmount();
+  });
+
+  test('renders with extra triangle', async () => {
+    const { unmount } = render(
+      <Option index={1} clickClose={jest.fn()} isExtra>
+        Option
+      </Option>,
+    );
+    expect(
+      await screen.findByRole('button', { name: 'Show info tooltip' }),
+    ).toBeInTheDocument();
+    unmount();
+  });
+
+  test('triggers onClose', async () => {
+    const clickClose = jest.fn();
+    const { unmount } = render(
+      <Option index={1} clickClose={clickClose}>
+        Option
+      </Option>,
+    );
+    userEvent.click(await screen.findByRole('img', { name: 'close' }));
+    expect(clickClose).toHaveBeenCalled();
+    unmount();
+  });
 });

@@ -26,8 +26,7 @@ from superset.connectors.sqla.models import SqlaTable
 from superset.daos.dashboard import EmbeddedDashboardDAO
 from superset.exceptions import SupersetSecurityException
 from superset.models.dashboard import Dashboard
-from superset.security.guest_token import GuestTokenResourceType  # noqa: F401
-from superset.sql_parse import Table  # noqa: F401
+from superset.security.guest_token import GuestTokenResourceType
 from superset.utils import json
 from superset.utils.core import get_example_default_schema
 from superset.utils.database import get_example_database
@@ -55,15 +54,15 @@ class TestGuestUserSecurity(SupersetTestCase):
 
     def test_is_guest_user__regular_user(self):
         is_guest = security_manager.is_guest_user(security_manager.find_user("admin"))
-        self.assertFalse(is_guest)
+        assert not is_guest
 
     def test_is_guest_user__anonymous(self):
         is_guest = security_manager.is_guest_user(security_manager.get_anonymous_user())
-        self.assertFalse(is_guest)
+        assert not is_guest
 
     def test_is_guest_user__guest_user(self):
         is_guest = security_manager.is_guest_user(self.authorized_guest())
-        self.assertTrue(is_guest)
+        assert is_guest
 
     @patch.dict(
         "superset.extensions.feature_flag_manager._feature_flags",
@@ -71,34 +70,34 @@ class TestGuestUserSecurity(SupersetTestCase):
     )
     def test_is_guest_user__flag_off(self):
         is_guest = security_manager.is_guest_user(self.authorized_guest())
-        self.assertFalse(is_guest)
+        assert not is_guest
 
     def test_get_guest_user__regular_user(self):
         g.user = security_manager.find_user("admin")
         guest_user = security_manager.get_current_guest_user_if_guest()
-        self.assertIsNone(guest_user)
+        assert guest_user is None
 
     def test_get_guest_user__anonymous_user(self):
         g.user = security_manager.get_anonymous_user()
         guest_user = security_manager.get_current_guest_user_if_guest()
-        self.assertIsNone(guest_user)
+        assert guest_user is None
 
     def test_get_guest_user__guest_user(self):
         g.user = self.authorized_guest()
         guest_user = security_manager.get_current_guest_user_if_guest()
-        self.assertEqual(guest_user, g.user)
+        assert guest_user == g.user
 
     def test_get_guest_user_roles_explicit(self):
         guest = self.authorized_guest()
         roles = security_manager.get_user_roles(guest)
-        self.assertEqual(guest.roles, roles)
+        assert guest.roles == roles
 
     def test_get_guest_user_roles_implicit(self):
         guest = self.authorized_guest()
         g.user = guest
 
         roles = security_manager.get_user_roles()
-        self.assertEqual(guest.roles, roles)
+        assert guest.roles == roles
 
 
 @patch.dict(
@@ -142,17 +141,17 @@ class TestGuestUserDashboardAccess(SupersetTestCase):
     def test_has_guest_access__regular_user(self):
         g.user = security_manager.find_user("admin")
         has_guest_access = security_manager.has_guest_access(self.dash)
-        self.assertFalse(has_guest_access)
+        assert not has_guest_access
 
     def test_has_guest_access__anonymous_user(self):
         g.user = security_manager.get_anonymous_user()
         has_guest_access = security_manager.has_guest_access(self.dash)
-        self.assertFalse(has_guest_access)
+        assert not has_guest_access
 
     def test_has_guest_access__authorized_guest_user(self):
         g.user = self.authorized_guest
         has_guest_access = security_manager.has_guest_access(self.dash)
-        self.assertTrue(has_guest_access)
+        assert has_guest_access
 
     def test_has_guest_access__authorized_guest_user__non_zero_resource_index(self):
         # set up a user who has authorized access, plus another resource
@@ -163,7 +162,7 @@ class TestGuestUserDashboardAccess(SupersetTestCase):
         g.user = guest
 
         has_guest_access = security_manager.has_guest_access(self.dash)
-        self.assertTrue(has_guest_access)
+        assert has_guest_access
 
     def test_has_guest_access__unauthorized_guest_user__different_resource_id(self):
         g.user = security_manager.get_guest_user_from_token(
@@ -173,14 +172,14 @@ class TestGuestUserDashboardAccess(SupersetTestCase):
             }
         )
         has_guest_access = security_manager.has_guest_access(self.dash)
-        self.assertFalse(has_guest_access)
+        assert not has_guest_access
 
     def test_has_guest_access__unauthorized_guest_user__different_resource_type(self):
         g.user = security_manager.get_guest_user_from_token(
             {"user": {}, "resources": [{"type": "dirt", "id": self.embedded.uuid}]}
         )
         has_guest_access = security_manager.has_guest_access(self.dash)
-        self.assertFalse(has_guest_access)
+        assert not has_guest_access
 
     def test_raise_for_dashboard_access_as_guest(self):
         g.user = self.authorized_guest
@@ -190,7 +189,7 @@ class TestGuestUserDashboardAccess(SupersetTestCase):
     def test_raise_for_access_dashboard_as_unauthorized_guest(self):
         g.user = self.unauthorized_guest
 
-        with self.assertRaises(SupersetSecurityException):
+        with self.assertRaises(SupersetSecurityException):  # noqa: PT027
             security_manager.raise_for_access(dashboard=self.dash)
 
     def test_raise_for_access_dashboard_as_guest_no_rbac(self):
@@ -214,7 +213,7 @@ class TestGuestUserDashboardAccess(SupersetTestCase):
         db.session.add(dash)
         db.session.commit()
 
-        with self.assertRaises(SupersetSecurityException):
+        with self.assertRaises(SupersetSecurityException):  # noqa: PT027
             security_manager.raise_for_access(dashboard=dash)
 
         db.session.delete(dash)
@@ -345,7 +344,7 @@ class TestGuestUserDatasourceAccess(SupersetTestCase):
     def test_raise_for_access__no_dashboard_in_form_data(self):
         g.user = self.authorized_guest
         for kwarg in ["viz", "query_context"]:
-            with self.assertRaises(SupersetSecurityException):
+            with self.assertRaises(SupersetSecurityException):  # noqa: PT027
                 security_manager.raise_for_access(
                     **{
                         kwarg: Mock(
@@ -360,7 +359,7 @@ class TestGuestUserDatasourceAccess(SupersetTestCase):
     def test_raise_for_access__no_chart_in_form_data(self):
         g.user = self.authorized_guest
         for kwarg in ["viz", "query_context"]:
-            with self.assertRaises(SupersetSecurityException):
+            with self.assertRaises(SupersetSecurityException):  # noqa: PT027
                 security_manager.raise_for_access(
                     **{
                         kwarg: Mock(
@@ -375,7 +374,7 @@ class TestGuestUserDatasourceAccess(SupersetTestCase):
     def test_raise_for_access__chart_not_on_dashboard(self):
         g.user = self.authorized_guest
         for kwarg in ["viz", "query_context"]:
-            with self.assertRaises(SupersetSecurityException):
+            with self.assertRaises(SupersetSecurityException):  # noqa: PT027
                 security_manager.raise_for_access(
                     **{
                         kwarg: Mock(
@@ -391,7 +390,7 @@ class TestGuestUserDatasourceAccess(SupersetTestCase):
     def test_raise_for_access__chart_doesnt_belong_to_datasource(self):
         g.user = self.authorized_guest
         for kwarg in ["viz", "query_context"]:
-            with self.assertRaises(SupersetSecurityException):
+            with self.assertRaises(SupersetSecurityException):  # noqa: PT027
                 security_manager.raise_for_access(
                     **{
                         kwarg: Mock(
@@ -407,7 +406,7 @@ class TestGuestUserDatasourceAccess(SupersetTestCase):
     def test_raise_for_access__native_filter_no_id_in_form_data(self):
         g.user = self.authorized_guest
         for kwarg in ["viz", "query_context"]:
-            with self.assertRaises(SupersetSecurityException):
+            with self.assertRaises(SupersetSecurityException):  # noqa: PT027
                 security_manager.raise_for_access(
                     **{
                         kwarg: Mock(
@@ -427,7 +426,7 @@ class TestGuestUserDatasourceAccess(SupersetTestCase):
     def test_raise_for_access__native_filter_datasource_not_associated(self):
         g.user = self.authorized_guest
         for kwarg in ["viz", "query_context"]:
-            with self.assertRaises(SupersetSecurityException):
+            with self.assertRaises(SupersetSecurityException):  # noqa: PT027
                 security_manager.raise_for_access(
                     **{
                         kwarg: Mock(
@@ -452,7 +451,7 @@ class TestGuestUserDatasourceAccess(SupersetTestCase):
     def test_raise_for_access__embedded_feature_flag_off(self):
         g.user = self.authorized_guest
         for kwarg in ["viz", "query_context"]:
-            with self.assertRaises(SupersetSecurityException):
+            with self.assertRaises(SupersetSecurityException):  # noqa: PT027
                 security_manager.raise_for_access(
                     **{
                         kwarg: Mock(
@@ -468,7 +467,7 @@ class TestGuestUserDatasourceAccess(SupersetTestCase):
     def test_raise_for_access__unauthorized_guest_user(self):
         g.user = self.unauthorized_guest
         for kwarg in ["viz", "query_context"]:
-            with self.assertRaises(SupersetSecurityException):
+            with self.assertRaises(SupersetSecurityException):  # noqa: PT027
                 security_manager.raise_for_access(
                     **{
                         kwarg: Mock(

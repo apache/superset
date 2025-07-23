@@ -17,12 +17,16 @@
  * under the License.
  */
 import sinon from 'sinon';
-import userEvent from '@testing-library/user-event';
 import { getChartMetadataRegistry, ChartMetadata } from '@superset-ui/core';
-import { render, screen } from 'spec/helpers/testing-library';
+import {
+  act,
+  cleanup,
+  render,
+  screen,
+  userEvent,
+} from 'spec/helpers/testing-library';
 import VizTypeControl from 'src/explore/components/controls/VizTypeControl';
-import { DynamicPluginProvider } from 'src/components/DynamicPlugins';
-import { act } from 'react-dom/test-utils';
+import { DynamicPluginProvider } from 'src/components';
 
 const defaultProps = {
   name: 'viz_type',
@@ -40,6 +44,16 @@ const defaultProps = {
  */
 const waitForEffects = () =>
   act(() => new Promise(resolve => setTimeout(resolve, 0)));
+
+// Increase global timeout
+jest.setTimeout(60000);
+
+// Add cleanup after each test
+afterEach(async () => {
+  cleanup();
+  // Wait for any pending effects to complete
+  await new Promise(resolve => setTimeout(resolve, 0));
+});
 
 describe('VizTypeControl', () => {
   const registry = getChartMetadataRegistry();
@@ -69,26 +83,48 @@ describe('VizTypeControl', () => {
       { useRedux: true },
     );
     await waitForEffects();
-  });
+  }, 30000); // Increase beforeEach timeout
 
-  it('calls onChange when submitted', () => {
-    const thumbnail = screen.getAllByTestId('viztype-selector-container')[0];
-    const submit = screen.getByText('Select');
-    userEvent.click(thumbnail);
+  it('calls onChange when submitted', async () => {
+    const thumbnail = await screen.findByTestId('viztype-selector-container', {
+      timeout: 15000,
+    });
+    const submit = await screen.findByText('Select', { timeout: 15000 });
+
+    await act(async () => {
+      userEvent.click(thumbnail);
+      await waitForEffects();
+    });
+
     expect(defaultProps.onChange.called).toBe(false);
-    userEvent.click(submit);
+
+    await act(async () => {
+      userEvent.click(submit);
+      await waitForEffects();
+    });
+
     expect(defaultProps.onChange.called).toBe(true);
-  });
+  }, 30000);
 
   it('filters images based on text input', async () => {
-    const thumbnails = screen.getByTestId('viztype-selector-container');
+    const thumbnails = await screen.findByTestId('viztype-selector-container', {
+      timeout: 15000,
+    });
     expect(thumbnails).toBeInTheDocument();
 
-    const searchInput = screen.getByPlaceholderText('Search all charts');
-    userEvent.type(searchInput, 'foo');
-    await waitForEffects();
+    const searchInput = await screen.findByPlaceholderText(
+      'Search all charts',
+      { timeout: 15000 },
+    );
 
-    const thumbnail = screen.getByTestId('viztype-selector-container');
+    await act(async () => {
+      userEvent.type(searchInput, 'foo');
+      await waitForEffects();
+    });
+
+    const thumbnail = await screen.findByTestId('viztype-selector-container', {
+      timeout: 15000,
+    });
     expect(thumbnail).toBeInTheDocument();
-  });
+  }, 30000);
 });

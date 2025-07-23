@@ -46,7 +46,7 @@ class Slice(Base):
     query_context = Column(Text)
 
 
-def upgrade():
+def upgrade():  # noqa: C901
     bind = op.get_bind()
     session = db.Session(bind=bind)
 

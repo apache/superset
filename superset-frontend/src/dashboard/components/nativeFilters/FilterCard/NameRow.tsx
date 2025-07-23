@@ -18,7 +18,8 @@
  */
 import { useSelector } from 'react-redux';
 import { css, SupersetTheme, useTheme, useTruncation } from '@superset-ui/core';
-import Icons from 'src/components/Icons';
+import { Icons } from '@superset-ui/core/components/Icons';
+import { useFilterConfigModal } from 'src/dashboard/components/nativeFilters/FilterBar/FilterConfigurationLink/useFilterConfigModal';
 import { RootState } from 'src/dashboard/types';
 import { Row, FilterName, InternalRow } from './Styles';
 import { FilterCardRowProps } from './types';
@@ -39,17 +40,24 @@ export const NameRow = ({
     ({ dashboardInfo }) => dashboardInfo.dash_edit_perm,
   );
 
+  const { FilterConfigModalComponent, openFilterConfigModal } =
+    useFilterConfigModal({
+      dashboardId,
+      initialFilterId: filter.id,
+    });
+
   return (
     <Row
       css={(theme: SupersetTheme) => css`
-        margin-bottom: ${theme.gridUnit * 3}px;
+        margin-bottom: ${theme.sizeUnit * 3}px;
         justify-content: space-between;
       `}
     >
       <InternalRow>
-        <Icons.FilterSmall
+        <Icons.FilterOutlined
+          iconSize="s"
           css={(theme: SupersetTheme) => css`
-            margin-right: ${theme.gridUnit}px;
+            margin-right: ${theme.sizeUnit}px;
           `}
         />
         <TooltipWithTruncation title={elementsTruncated ? filter.name : null}>
@@ -58,13 +66,21 @@ export const NameRow = ({
       </InternalRow>
       {canEdit && (
         <FilterConfigurationLink
-          dashboardId={dashboardId}
-          onClick={hidePopover}
-          initialFilterId={filter.id}
+          onClick={() => {
+            openFilterConfigModal();
+            hidePopover();
+          }}
         >
-          <Icons.Edit iconSize="l" iconColor={theme.colors.grayscale.light1} />
+          <Icons.EditOutlined
+            iconSize="l"
+            iconColor={theme.colors.grayscale.light1}
+            css={() => css`
+              cursor: pointer;
+            `}
+          />
         </FilterConfigurationLink>
       )}
+      {FilterConfigModalComponent}
     </Row>
   );
 };

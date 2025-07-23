@@ -16,14 +16,18 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { render, screen, waitFor } from 'spec/helpers/testing-library';
-import { CssEditor as AceCssEditor } from 'src/components/AsyncAceEditor';
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+} from 'spec/helpers/testing-library';
+import { CssEditor as AceCssEditor } from '@superset-ui/core/components/AsyncAceEditor';
 import { IAceEditorProps } from 'react-ace';
-import userEvent from '@testing-library/user-event';
 import fetchMock from 'fetch-mock';
 import CssEditor from '.';
 
-jest.mock('src/components/AsyncAceEditor', () => ({
+jest.mock('@superset-ui/core/components/AsyncAceEditor', () => ({
   CssEditor: ({ value, onChange }: IAceEditorProps) => (
     <textarea
       defaultValue={value}
@@ -38,7 +42,7 @@ const templates = [
   { template_name: 'Template C', css: 'background-color: yellow;' },
 ];
 
-fetchMock.get('glob:*/csstemplateasyncmodelview/api/read', {
+fetchMock.get('glob:*/api/v1/css_template*', {
   result: templates,
 });
 

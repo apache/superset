@@ -44,9 +44,8 @@ import {
 import { useDispatch, useSelector } from 'react-redux';
 import { isEqual, isEqualWith } from 'lodash';
 import { getChartDataRequest } from 'src/components/Chart/chartAction';
-import Loading from 'src/components/Loading';
-import BasicErrorAlert from 'src/components/ErrorMessage/BasicErrorAlert';
-import ErrorMessageWithStackTrace from 'src/components/ErrorMessage/ErrorMessageWithStackTrace';
+import { ErrorAlert, ErrorMessageWithStackTrace } from 'src/components';
+import { Loading, Constants } from '@superset-ui/core/components';
 import { waitForAsyncData } from 'src/middleware/asyncEvent';
 import { FilterBarOrientation, RootState } from 'src/dashboard/types';
 import {
@@ -54,7 +53,6 @@ import {
   setDirectPathToChild,
 } from 'src/dashboard/actions/dashboardState';
 import { RESPONSIVE_WIDTH } from 'src/filters/components/common';
-import { FAST_DEBOUNCE } from 'src/constants';
 import { dispatchHoverAction, dispatchFocusAction } from './utils';
 import { FilterControlProps } from './types';
 import { getFormData } from '../../utils';
@@ -97,6 +95,8 @@ const FilterValue: FC<FilterControlProps> = ({
   orientation = FilterBarOrientation.Vertical,
   overflow = false,
   validateStatus,
+  clearAllTrigger,
+  onClearAllComplete,
 }) => {
   const { id, targets, filterType, adhoc_filters, time_range } = filter;
   const metadata = getChartMetadataRegistry().get(filterType);
@@ -106,6 +106,7 @@ const FilterValue: FC<FilterControlProps> = ({
   const dashboardId = useSelector<RootState, number>(
     state => state.dashboardInfo.id,
   );
+
   const [error, setError] = useState<ClientErrorObject>();
   const [formData, setFormData] = useState<Partial<QueryFormData>>({
     inView: false,
@@ -182,7 +183,6 @@ const FilterValue: FC<FilterControlProps> = ({
           if (isFeatureEnabled(FeatureFlag.GlobalAsyncQueries)) {
             // deal with getChartDataRequest transforming the response data
             const result = 'result' in json ? json.result[0] : json;
-
             if (response.status === 200) {
               setState([result]);
               handleFilterLoadFinish();
@@ -222,7 +222,7 @@ const FilterValue: FC<FilterControlProps> = ({
     datasetId,
     groupby,
     handleFilterLoadFinish,
-    JSON.stringify(filter),
+    filter,
     hasDataSource,
     isRefreshing,
     shouldRefresh,
@@ -234,7 +234,7 @@ const FilterValue: FC<FilterControlProps> = ({
         () => {
           inputRef?.current?.focus();
         },
-        overflow ? FAST_DEBOUNCE : 0,
+        overflow ? Constants.FAST_DEBOUNCE : 0,
       );
     }
   }, [inputRef, outlinedFilterId, lastUpdated, filter.id, overflow]);
@@ -275,6 +275,8 @@ const FilterValue: FC<FilterControlProps> = ({
       setFocusedFilter,
       unsetFocusedFilter,
       setFilterActive,
+      clearAllTrigger,
+      onClearAllComplete,
     }),
     [
       setDataMask,
@@ -283,6 +285,8 @@ const FilterValue: FC<FilterControlProps> = ({
       unsetHoveredFilter,
       setFocusedFilter,
       unsetFocusedFilter,
+      clearAllTrigger,
+      onClearAllComplete,
     ],
   );
 
@@ -306,11 +310,13 @@ const FilterValue: FC<FilterControlProps> = ({
     return (
       <ErrorMessageWithStackTrace
         error={error.errors?.[0]}
+        compact
         fallback={
-          <BasicErrorAlert
-            title={t('Cannot load filter')}
-            body={error.error}
-            level="error"
+          <ErrorAlert
+            errorType={t('Network error')}
+            message={t('Network error while attempting to fetch resource')}
+            type="error"
+            compact
           />
         }
       />

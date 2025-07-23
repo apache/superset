@@ -15,14 +15,9 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
-import sqlite3
-from contextlib import closing
 from typing import Any, Optional
 
-from flask import current_app as app
 from flask_babel import gettext as _
-from func_timeout import func_timeout, FunctionTimedOut
-from sqlalchemy.engine import Engine
 from sqlalchemy.exc import DBAPIError, NoSuchModuleError
 
 from superset import is_feature_enabled
@@ -36,6 +31,7 @@ from superset.commands.database.ssh_tunnel.exceptions import (
     SSHTunnelDatabasePortError,
     SSHTunnelingNotEnabledError,
 )
+from superset.commands.database.utils import ping
 from superset.daos.database import DatabaseDAO, SSHTunnelDAO
 from superset.databases.ssh_tunnel.models import SSHTunnel
 from superset.databases.utils import make_url_safe
@@ -93,7 +89,9 @@ class TestConnectionDatabaseCommand(BaseCommand):
         self._context = context
         self._uri = uri
 
-    def run(self) -> None:  # pylint: disable=too-many-statements
+    def run(  # noqa: C901
+        self,
+    ) -> None:  # pylint: disable=too-many-statements,too-many-branches
         self.validate()
         ex_str = ""
         ssh_tunnel = self._properties.get("ssh_tunnel")
@@ -136,26 +134,14 @@ class TestConnectionDatabaseCommand(BaseCommand):
                 engine=database.db_engine_spec.__name__,
             )
 
-            def ping(engine: Engine) -> bool:
-                with closing(engine.raw_connection()) as conn:
-                    return engine.dialect.do_ping(conn)
-
             with database.get_sqla_engine(override_ssh_tunnel=ssh_tunnel) as engine:
                 try:
-                    alive = func_timeout(
-                        app.config["TEST_DATABASE_CONNECTION_TIMEOUT"].total_seconds(),
-                        ping,
-                        args=(engine,),
-                    )
-                except (sqlite3.ProgrammingError, RuntimeError):
-                    # SQLite can't run on a separate thread, so ``func_timeout`` fails
-                    # RuntimeError catches the equivalent error from duckdb.
-                    alive = engine.dialect.do_ping(engine)
-                except FunctionTimedOut as ex:
+                    alive = ping(engine)
+                except SupersetTimeoutException as ex:
                     raise SupersetTimeoutException(
                         error_type=SupersetErrorType.CONNECTION_DATABASE_TIMEOUT,
                         message=(
-                            "Please check your connection details and database settings, "
+                            "Please check your connection details and database settings, "  # noqa: E501
                             "and ensure that your database is accepting connections, "
                             "then try connecting again."
                         ),
@@ -204,7 +190,7 @@ class TestConnectionDatabaseCommand(BaseCommand):
             )
             # check for custom errors (wrong username, wrong password, etc)
             errors = database.db_engine_spec.extract_errors(ex, self._context)
-            raise SupersetErrorsException(errors) from ex
+            raise SupersetErrorsException(errors, status=400) from ex
         except OAuth2RedirectError:
             raise
         except SupersetSecurityException as ex:
@@ -225,6 +211,10 @@ class TestConnectionDatabaseCommand(BaseCommand):
             # bubble up the exception to return proper status code
             raise
         except Exception as ex:
+            if database.is_oauth2_enabled() and database.db_engine_spec.needs_oauth2(
+                ex
+            ):
+                database.start_oauth2_dance()
             event_logger.log_with_context(
                 action=get_log_connection_action(
                     "test_connection_error", ssh_tunnel, ex

@@ -17,13 +17,18 @@
  * under the License.
  */
 import { memo, useCallback, useMemo, useRef } from 'react';
-import { GeoJsonLayer } from 'deck.gl/typed';
+import { GeoJsonLayer } from '@deck.gl/layers';
+// ignoring the eslint error below since typescript prefers 'geojson' to '@types/geojson'
+// eslint-disable-next-line import/no-unresolved
+import { Feature, Geometry, GeoJsonProperties } from 'geojson';
 import geojsonExtent from '@mapbox/geojson-extent';
 import {
+  FilterState,
   HandlerFunction,
   JsonObject,
   JsonValue,
   QueryFormData,
+  SetDataMaskHook,
 } from '@superset-ui/core';
 
 import {
@@ -36,6 +41,13 @@ import { commonLayerProps } from '../common';
 import TooltipRow from '../../TooltipRow';
 import fitViewport, { Viewport } from '../../utils/fitViewport';
 import { TooltipProps } from '../../components/Tooltip';
+import { Point } from '../../types';
+import { GetLayerType } from '../../factory';
+
+type ProcessedFeature = Feature<Geometry, GeoJsonProperties> & {
+  properties: JsonObject;
+  extraProps?: JsonObject;
+};
 
 const propertyMap = {
   fillColor: 'fillColor',
@@ -51,7 +63,7 @@ const alterProps = (props: JsonObject, propOverrides: JsonObject) => {
   const newProps: JsonObject = {};
   Object.keys(props).forEach(k => {
     if (k in propertyMap) {
-      newProps[propertyMap[k]] = props[k];
+      newProps[propertyMap[k as keyof typeof propertyMap]] = props[k];
     } else {
       newProps[k] = props[k];
     }
@@ -68,7 +80,7 @@ const alterProps = (props: JsonObject, propOverrides: JsonObject) => {
     ...propOverrides,
   };
 };
-let features: JsonObject[];
+let features: ProcessedFeature[] = [];
 const recurseGeoJson = (
   node: JsonObject,
   propOverrides: JsonObject,
@@ -83,7 +95,7 @@ const recurseGeoJson = (
     const newNode = {
       ...node,
       properties: alterProps(node.properties, propOverrides),
-    } as JsonObject;
+    } as ProcessedFeature;
     if (!newNode.extraProps) {
       newNode.extraProps = extraProps;
     }
@@ -110,12 +122,15 @@ function setTooltipContent(o: JsonObject) {
 const getFillColor = (feature: JsonObject) => feature?.properties?.fillColor;
 const getLineColor = (feature: JsonObject) => feature?.properties?.strokeColor;
 
-export function getLayer(
-  formData: QueryFormData,
-  payload: JsonObject,
-  onAddFilter: HandlerFunction,
-  setTooltip: (tooltip: TooltipProps['tooltip']) => void,
-) {
+export const getLayer: GetLayerType<GeoJsonLayer> = function ({
+  formData,
+  onContextMenu,
+  filterState,
+  setDataMask,
+  payload,
+  setTooltip,
+  emitCrossFilters,
+}) {
   const fd = formData;
   const fc = fd.fill_color_picker;
   const sc = fd.stroke_color_picker;
@@ -132,16 +147,16 @@ export function getLayer(
   features = [];
   recurseGeoJson(payload.data, propOverrides);
 
-  let jsFnMutator;
+  let processedFeatures = features;
   if (fd.js_data_mutator) {
     // Applying user defined data mutator if defined
-    jsFnMutator = sandboxedEval(fd.js_data_mutator);
-    features = jsFnMutator(features);
+    const jsFnMutator = sandboxedEval(fd.js_data_mutator);
+    processedFeatures = jsFnMutator(features) as ProcessedFeature[];
   }
 
   return new GeoJsonLayer({
     id: `geojson-layer-${fd.slice_id}` as const,
-    data: features,
+    data: processedFeatures,
     extruded: fd.extruded,
     filled: fd.filled,
     stroked: fd.stroked,
@@ -150,9 +165,17 @@ export function getLayer(
     getLineWidth: fd.line_width || 1,
     pointRadiusScale: fd.point_radius_scale,
     lineWidthUnits: fd.line_width_unit,
-    ...commonLayerProps(fd, setTooltip, setTooltipContent),
+    ...commonLayerProps({
+      formData: fd,
+      setTooltip,
+      setTooltipContent,
+      setDataMask,
+      filterState,
+      onContextMenu,
+      emitCrossFilters,
+    }),
   });
-}
+};
 
 export type DeckGLGeoJsonProps = {
   formData: QueryFormData;
@@ -162,7 +185,21 @@ export type DeckGLGeoJsonProps = {
   onAddFilter: HandlerFunction;
   height: number;
   width: number;
+  filterState: FilterState;
+  onContextMenu: HandlerFunction;
+  setDataMask: SetDataMaskHook;
 };
+
+export function getPoints(data: Point[]) {
+  return data.reduce((acc: Array<any>, feature: any) => {
+    const bounds = geojsonExtent(feature);
+    if (bounds) {
+      return [...acc, [bounds[0], bounds[1]], [bounds[2], bounds[3]]];
+    }
+
+    return acc;
+  }, []);
+}
 
 const DeckGLGeoJson = (props: DeckGLGeoJsonProps) => {
   const containerRef = useRef<DeckGLContainerHandle>();
@@ -178,24 +215,13 @@ const DeckGLGeoJson = (props: DeckGLGeoJsonProps) => {
 
   const viewport: Viewport = useMemo(() => {
     if (formData.autozoom) {
-      const points =
-        payload?.data?.features?.reduce?.(
-          (acc: [number, number, number, number][], feature: any) => {
-            const bounds = geojsonExtent(feature);
-            if (bounds) {
-              return [...acc, [bounds[0], bounds[1]], [bounds[2], bounds[3]]];
-            }
-
-            return acc;
-          },
-          [],
-        ) || [];
+      const points = getPoints(payload.data.features) || [];
 
       if (points.length) {
         return fitViewport(props.viewport, {
           width,
           height,
-          points,
+          points: getPoints(payload.data.features) || [],
         });
       }
     }
@@ -208,7 +234,15 @@ const DeckGLGeoJson = (props: DeckGLGeoJsonProps) => {
     width,
   ]);
 
-  const layer = getLayer(formData, payload, onAddFilter, setTooltip);
+  const layer = getLayer({
+    onContextMenu: props.onContextMenu,
+    filterState: props.filterState,
+    setDataMask: props.setDataMask,
+    setTooltip,
+    onAddFilter,
+    payload,
+    formData,
+  });
 
   return (
     <DeckGLContainerStyledWrapper

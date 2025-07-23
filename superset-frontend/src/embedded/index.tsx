@@ -16,22 +16,27 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import 'src/public-path';
+
 import { lazy, Suspense } from 'react';
 import ReactDOM from 'react-dom';
 import { BrowserRouter as Router, Route } from 'react-router-dom';
-import { makeApi, t, logging } from '@superset-ui/core';
+import { makeApi, t, logging, themeObject } from '@superset-ui/core';
 import Switchboard from '@superset-ui/switchboard';
-import getBootstrapData from 'src/utils/getBootstrapData';
+import getBootstrapData, { applicationRoot } from 'src/utils/getBootstrapData';
 import setupClient from 'src/setup/setupClient';
 import setupPlugins from 'src/setup/setupPlugins';
+import { useUiConfig } from 'src/components/UiConfigContext';
 import { RootContextProviders } from 'src/views/RootContextProviders';
 import { store, USER_LOADED } from 'src/views/store';
-import ErrorBoundary from 'src/components/ErrorBoundary';
-import Loading from 'src/components/Loading';
+import { Loading } from '@superset-ui/core/components';
+import { ErrorBoundary } from 'src/components';
 import { addDangerToast } from 'src/components/MessageToasts/actions';
 import ToastContainer from 'src/components/MessageToasts/ToastContainer';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
+import { AnyThemeConfig } from 'packages/superset-ui-core/src/theme/types';
 import { embeddedApi } from './api';
+import { getDataMaskChangeTrigger } from './utils';
 
 setupPlugins();
 
@@ -51,11 +56,38 @@ const LazyDashboardPage = lazy(
     ),
 );
 
+const EmbededLazyDashboardPage = () => {
+  const uiConfig = useUiConfig();
+
+  // Emit data mask changes to the parent window
+  if (uiConfig?.emitDataMasks) {
+    log('setting up Switchboard event emitter');
+
+    let previousDataMask = store.getState().dataMask;
+
+    store.subscribe(() => {
+      const currentState = store.getState();
+      const currentDataMask = currentState.dataMask;
+
+      // Only emit if the dataMask has changed
+      if (previousDataMask !== currentDataMask) {
+        Switchboard.emit('observeDataMask', {
+          ...currentDataMask,
+          ...getDataMaskChangeTrigger(currentDataMask, previousDataMask),
+        });
+        previousDataMask = currentDataMask;
+      }
+    });
+  }
+
+  return <LazyDashboardPage idOrSlug={bootstrapData.embedded!.dashboard_id} />;
+};
+
 const EmbeddedRoute = () => (
   <Suspense fallback={<Loading />}>
     <RootContextProviders>
       <ErrorBoundary>
-        <LazyDashboardPage idOrSlug={bootstrapData.embedded!.dashboard_id} />
+        <EmbededLazyDashboardPage />
       </ErrorBoundary>
       <ToastContainer position="top" />
     </RootContextProviders>
@@ -63,7 +95,7 @@ const EmbeddedRoute = () => (
 );
 
 const EmbeddedApp = () => (
-  <Router>
+  <Router basename={applicationRoot()}>
     {/* todo (embedded) remove this line after uuids are deployed */}
     <Route path="/dashboard/:idOrSlug/embedded/" component={EmbeddedRoute} />
     <Route path="/embedded/:uuid/" component={EmbeddedRoute} />
@@ -156,6 +188,7 @@ function start() {
  */
 function setupGuestClient(guestToken: string) {
   setupClient({
+    appRoot: applicationRoot(),
     guestToken,
     guestTokenHeaderName: bootstrapData.config?.GUEST_TOKEN_HEADER_NAME,
     unauthorizedHandler: guestUnauthorizedHandler,
@@ -209,6 +242,22 @@ window.addEventListener('message', function embeddedPageInitializer(event) {
       embeddedApi.getDashboardPermalink,
     );
     Switchboard.defineMethod('getActiveTabs', embeddedApi.getActiveTabs);
+    Switchboard.defineMethod('getDataMask', embeddedApi.getDataMask);
+    Switchboard.defineMethod(
+      'setThemeConfig',
+      (payload: { themeConfig: AnyThemeConfig }) => {
+        const { themeConfig } = payload;
+        log('Received setThemeConfig request:', themeConfig);
+
+        try {
+          themeObject.setConfig(themeConfig);
+          return { success: true, message: 'Theme applied' };
+        } catch (error) {
+          logging.error('Failed to apply theme config:', error);
+          throw new Error(`Failed to apply theme config: ${error.message}`);
+        }
+      },
+    );
     Switchboard.start();
   }
 });

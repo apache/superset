@@ -19,8 +19,7 @@
 
 import { useEffect, useState } from 'react';
 import { useSelector } from 'react-redux';
-import { isEmpty, isEqual } from 'lodash';
-import moment from 'moment';
+import { isEmpty, isEqual, noop } from 'lodash';
 import {
   BinaryAdhocFilter,
   css,
@@ -36,8 +35,9 @@ import ControlHeader, {
 } from 'src/explore/components/ControlHeader';
 import { RootState } from 'src/views/store';
 import { DEFAULT_DATE_PATTERN } from '@superset-ui/chart-controls';
+import { extendedDayjs } from '@superset-ui/core/utils/dates';
 
-const MOMENT_FORMAT = 'YYYY-MM-DD';
+const DAYJS_FORMAT = 'YYYY-MM-DD';
 
 const isTimeRangeEqual = (
   left: BinaryAdhocFilter[],
@@ -61,6 +61,8 @@ const oldChoices = {
 export const ComparisonRangeLabel = ({
   multi = true,
 }: ComparisonRangeLabelProps) => {
+  noop(multi); // This is to avoid unused variable warning, can be removed if not needed
+
   const [labels, setLabels] = useState<string[]>([]);
   const currentTimeRangeFilters = useSelector<RootState, BinaryAdhocFilter[]>(
     state =>
@@ -83,7 +85,8 @@ export const ComparisonRangeLabel = ({
     if (!formData?.time_compare) {
       const previousTimeComparison = formData.time_comparison || '';
       if (oldChoices.hasOwnProperty(previousTimeComparison)) {
-        const previousChoice = oldChoices[previousTimeComparison];
+        const previousChoice =
+          oldChoices[previousTimeComparison as keyof typeof oldChoices];
         return [previousChoice];
       }
     }
@@ -104,8 +107,8 @@ export const ComparisonRangeLabel = ({
       let useStartDate = startDate;
       if (!startDate && !isEmpty(previousCustomFilter)) {
         useStartDate = previousCustomFilter[0]?.comparator.split(' : ')[0];
-        useStartDate = moment(parseDttmToDate(useStartDate)).format(
-          MOMENT_FORMAT,
+        useStartDate = extendedDayjs(parseDttmToDate(useStartDate)).format(
+          DAYJS_FORMAT,
         );
       }
       const promises = currentTimeRangeFilters.map(filter => {
@@ -136,10 +139,12 @@ export const ComparisonRangeLabel = ({
             const dates = res?.value?.match(DEFAULT_DATE_PATTERN);
             const [parsedStartDate, parsedEndDate] = dates ?? [];
             if (parsedStartDate) {
-              const parsedDateMoment = moment(parseDttmToDate(parsedStartDate));
-              const startDateMoment = moment(parseDttmToDate(startDate));
+              const parsedDateDayjs = extendedDayjs(
+                parseDttmToDate(parsedStartDate),
+              );
+              const startDateDayjs = extendedDayjs(parseDttmToDate(startDate));
               if (
-                startDateMoment.isSameOrBefore(parsedDateMoment) ||
+                startDateDayjs.isSameOrBefore(parsedDateDayjs) ||
                 !startDate
               ) {
                 const postProcessedShifts = getTimeOffset({
@@ -179,8 +184,8 @@ export const ComparisonRangeLabel = ({
         <>
           <div
             css={theme => css`
-              font-size: ${theme.typography.sizes.m}px;
-              color: ${theme.colors.grayscale.dark1};
+              font-size: ${theme.fontSize}px;
+              color: ${theme.colorText};
             `}
             key={label}
           >

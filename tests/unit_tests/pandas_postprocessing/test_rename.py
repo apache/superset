@@ -133,7 +133,7 @@ def test_should_raise_exception_duplication_on_multiindex():
     2       1  1  1  1  1  1  1  1
     """
 
-    with pytest.raises(InvalidPostProcessingError):
+    with pytest.raises(InvalidPostProcessingError):  # noqa: PT012
         pp.rename(
             df=df,
             columns={
@@ -151,7 +151,7 @@ def test_should_raise_exception_duplication_on_multiindex():
 
 
 def test_should_raise_exception_invalid_level():
-    with pytest.raises(InvalidPostProcessingError):
+    with pytest.raises(InvalidPostProcessingError):  # noqa: PT012
         pp.rename(
             df=categories_df,
             columns={

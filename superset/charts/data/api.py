@@ -28,8 +28,8 @@ from marshmallow import ValidationError
 from superset import is_feature_enabled, security_manager
 from superset.async_events.async_query_manager import AsyncQueryTokenException
 from superset.charts.api import ChartRestApi
+from superset.charts.client_processing import apply_client_processing
 from superset.charts.data.query_context_cache_loader import QueryContextCacheLoader
-from superset.charts.post_processing import apply_post_process
 from superset.charts.schemas import ChartDataQueryContextSchema
 from superset.commands.chart.data.create_async_job_command import (
     CreateAsyncChartDataJobCommand,
@@ -306,7 +306,7 @@ class ChartDataRestApi(ChartRestApi):
             cached_data = self._load_query_context_form_from_cache(cache_key)
             # Set form_data in Flask Global as it is used as a fallback
             # for async queries with jinja context
-            setattr(g, "form_data", cached_data)
+            g.form_data = cached_data
             query_context = self._create_query_context_from_form(cached_data)
             command = ChartDataCommand(query_context)
             command.validate()
@@ -343,7 +343,7 @@ class ChartDataRestApi(ChartRestApi):
         result = async_command.run(form_data, get_user_id())
         return self.response(202, **result)
 
-    def _send_chart_response(
+    def _send_chart_response(  # noqa: C901
         self,
         result: dict[Any, Any],
         form_data: dict[str, Any] | None = None,
@@ -356,7 +356,7 @@ class ChartDataRestApi(ChartRestApi):
         # This is needed for sending reports based on text charts that do the
         # post-processing of data, eg, the pivot table.
         if result_type == ChartDataResultType.POST_PROCESSED:
-            result = apply_post_process(result, form_data, datasource)
+            result = apply_client_processing(result, form_data, datasource)
 
         if result_format in ChartDataResultFormat.table_like():
             # Verify user has permission to export file
@@ -394,17 +394,23 @@ class ChartDataRestApi(ChartRestApi):
             )
 
         if result_format == ChartDataResultFormat.JSON:
-            response_data = json.dumps(
-                {"result": result["queries"]},
-                default=json.json_int_dttm_ser,
-                ignore_nan=True,
-            )
+            queries = result["queries"]
+            if security_manager.is_guest_user():
+                for query in queries:
+                    query.pop("query", None)
+            with event_logger.log_context(f"{self.__class__.__name__}.json_dumps"):
+                response_data = json.dumps(
+                    {"result": queries},
+                    default=json.json_int_dttm_ser,
+                    ignore_nan=True,
+                )
             resp = make_response(response_data, 200)
             resp.headers["Content-Type"] = "application/json; charset=utf-8"
             return resp
 
         return self.response_400(message=f"Unsupported result_format: {result_format}")
 
+    @event_logger.log_this
     def _get_data_response(
         self,
         command: ChartDataCommand,
@@ -430,11 +436,13 @@ class ChartDataRestApi(ChartRestApi):
     ) -> dict[str, Any]:
         return {
             "dashboard_id": form_data.get("form_data", {}).get("dashboardId"),
-            "dataset_id": form_data.get("datasource", {}).get("id")
-            if isinstance(form_data.get("datasource"), dict)
-            and form_data.get("datasource", {}).get("type")
-            == DatasourceType.TABLE.value
-            else None,
+            "dataset_id": (
+                form_data.get("datasource", {}).get("id")
+                if isinstance(form_data.get("datasource"), dict)
+                and form_data.get("datasource", {}).get("type")
+                == DatasourceType.TABLE.value
+                else None
+            ),
             "slice_id": form_data.get("form_data", {}).get("slice_id"),
         }
 

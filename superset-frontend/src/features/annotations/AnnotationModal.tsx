@@ -18,16 +18,19 @@
  */
 import { FunctionComponent, useState, useEffect, ChangeEvent } from 'react';
 
-import { styled, t } from '@superset-ui/core';
+import { css, styled, t, useTheme } from '@superset-ui/core';
 import { useSingleViewResource } from 'src/views/CRUD/hooks';
-import { RangePicker } from 'src/components/DatePicker';
-import moment from 'moment';
-import Icons from 'src/components/Icons';
-import Modal from 'src/components/Modal';
-import { StyledIcon } from 'src/views/CRUD/utils';
+import { extendedDayjs } from '@superset-ui/core/utils/dates';
+import { Icons } from '@superset-ui/core/components/Icons';
 import withToasts from 'src/components/MessageToasts/withToasts';
-import { JsonEditor } from 'src/components/AsyncAceEditor';
+import {
+  Input,
+  JsonEditor,
+  Modal,
+  RangePicker,
+} from '@superset-ui/core/components';
 
+import { OnlyKeyWithType } from 'src/utils/types';
 import { AnnotationObject } from './types';
 
 interface AnnotationModalProps {
@@ -41,40 +44,25 @@ interface AnnotationModalProps {
 }
 
 const StyledAnnotationTitle = styled.div`
-  margin: ${({ theme }) => theme.gridUnit * 2}px auto
-    ${({ theme }) => theme.gridUnit * 4}px auto;
+  margin: ${({ theme }) => theme.sizeUnit * 2}px auto
+    ${({ theme }) => theme.sizeUnit * 4}px auto;
 `;
 
 const StyledJsonEditor = styled(JsonEditor)`
   border-radius: ${({ theme }) => theme.borderRadius}px;
-  border: 1px solid ${({ theme }) => theme.colors.secondary.light2};
+  border: 1px solid ${({ theme }) => theme.colorPrimaryBorder};
 `;
 
 const AnnotationContainer = styled.div`
-  margin-bottom: ${({ theme }) => theme.gridUnit * 5}px;
+  margin-bottom: ${({ theme }) => theme.sizeUnit * 5}px;
 
   .control-label {
-    margin-bottom: ${({ theme }) => theme.gridUnit * 2}px;
+    margin-bottom: ${({ theme }) => theme.sizeUnit * 2}px;
   }
 
   .required {
-    margin-left: ${({ theme }) => theme.gridUnit / 2}px;
-    color: ${({ theme }) => theme.colors.error.base};
-  }
-
-  textarea {
-    flex: 1 1 auto;
-    height: ${({ theme }) => theme.gridUnit * 17}px;
-    resize: none;
-    width: 100%;
-  }
-
-  textarea,
-  input[type='text'] {
-    padding: ${({ theme }) => theme.gridUnit * 1.5}px
-      ${({ theme }) => theme.gridUnit * 2}px;
-    border: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
-    border-radius: ${({ theme }) => theme.gridUnit}px;
+    margin-left: ${({ theme }) => theme.sizeUnit / 2}px;
+    color: ${({ theme }) => theme.colorError};
   }
 
   input[type='text'] {
@@ -91,6 +79,7 @@ const AnnotationModal: FunctionComponent<AnnotationModalProps> = ({
   onHide,
   show,
 }) => {
+  const theme = useTheme();
   const [disableSave, setDisableSave] = useState<boolean>(true);
   const [currentAnnotation, setCurrentAnnotation] =
     useState<AnnotationObject | null>(null);
@@ -183,7 +172,7 @@ const AnnotationModal: FunctionComponent<AnnotationModalProps> = ({
       start_dttm: currentAnnotation ? currentAnnotation.start_dttm : '',
     };
 
-    data[target.name] = target.value;
+    data[target.name as OnlyKeyWithType<typeof data, string>] = target.value;
     setCurrentAnnotation(data);
   };
 
@@ -198,18 +187,23 @@ const AnnotationModal: FunctionComponent<AnnotationModalProps> = ({
     setCurrentAnnotation(data);
   };
 
-  const onDateChange = (value: any, dateString: Array<string>) => {
+  const onDateChange = (dates: any, dateString: Array<string>) => {
+    if (!dates?.[0] || !dates?.[1]) {
+      const data = {
+        ...currentAnnotation,
+        start_dttm: '',
+        end_dttm: '',
+        short_descr: currentAnnotation?.short_descr ?? '',
+      };
+      setCurrentAnnotation(data);
+      return;
+    }
+
     const data = {
       ...currentAnnotation,
-      end_dttm:
-        currentAnnotation && dateString[1].length
-          ? moment(dateString[1]).format('YYYY-MM-DD HH:mm')
-          : '',
-      short_descr: currentAnnotation ? currentAnnotation.short_descr : '',
-      start_dttm:
-        currentAnnotation && dateString[0].length
-          ? moment(dateString[0]).format('YYYY-MM-DD HH:mm')
-          : '',
+      start_dttm: dates[0].format('YYYY-MM-DD HH:mm'),
+      end_dttm: dates[1].format('YYYY-MM-DD HH:mm'),
+      short_descr: currentAnnotation?.short_descr ?? '',
     };
     setCurrentAnnotation(data);
   };
@@ -273,9 +267,19 @@ const AnnotationModal: FunctionComponent<AnnotationModalProps> = ({
       title={
         <h4 data-test="annotation-modal-title">
           {isEditMode ? (
-            <Icons.EditAlt css={StyledIcon} />
+            <Icons.EditOutlined
+              iconSize="l"
+              css={css`
+                margin: auto ${theme.sizeUnit * 2}px auto 0;
+              `}
+            />
           ) : (
-            <Icons.PlusLarge css={StyledIcon} />
+            <Icons.PlusOutlined
+              iconSize="l"
+              css={css`
+                margin: auto ${theme.sizeUnit * 2}px auto 0;
+              `}
+            />
           )}
           {isEditMode ? t('Edit annotation') : t('Add annotation')}
         </h4>
@@ -289,7 +293,7 @@ const AnnotationModal: FunctionComponent<AnnotationModalProps> = ({
           {t('Name')}
           <span className="required">*</span>
         </div>
-        <input
+        <Input
           name="short_descr"
           onChange={onAnnotationTextChange}
           type="text"
@@ -304,15 +308,15 @@ const AnnotationModal: FunctionComponent<AnnotationModalProps> = ({
         <RangePicker
           placeholder={[t('Start date'), t('End date')]}
           format="YYYY-MM-DD HH:mm"
-          onChange={onDateChange}
+          onCalendarChange={onDateChange}
           showTime={{ format: 'hh:mm a' }}
           use12Hours
           value={
             currentAnnotation?.start_dttm?.length ||
             currentAnnotation?.end_dttm?.length
               ? [
-                  moment(currentAnnotation.start_dttm),
-                  moment(currentAnnotation.end_dttm),
+                  extendedDayjs(currentAnnotation.start_dttm),
+                  extendedDayjs(currentAnnotation.end_dttm),
                 ]
               : null
           }
@@ -323,7 +327,7 @@ const AnnotationModal: FunctionComponent<AnnotationModalProps> = ({
       </StyledAnnotationTitle>
       <AnnotationContainer>
         <div className="control-label">{t('description')}</div>
-        <textarea
+        <Input.TextArea
           name="long_descr"
           value={currentAnnotation ? currentAnnotation.long_descr : ''}
           placeholder={t('Description (this can be seen in the list)')}

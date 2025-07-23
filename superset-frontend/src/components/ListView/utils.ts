@@ -36,9 +36,10 @@ import {
 import rison from 'rison';
 import { isEqual } from 'lodash';
 import {
-  FetchDataConfig,
-  Filter,
-  FilterValue,
+  ListViewFetchDataConfig as FetchDataConfig,
+  ListViewFilter as Filter,
+  ListViewFilterValue as FilterValue,
+  InnerFilterValue,
   InternalFilter,
   SortColumn,
   ViewModeType,
@@ -62,7 +63,9 @@ const RisonParam: QueryParamConfig<string, any> = {
       : rison.decode(dataStr),
 };
 
-export const SELECT_WIDTH = 200;
+export const SELECT_WIDTH = 175;
+export const RANGE_WIDTH = 300;
+export const WIDER_DROPDOWN_WIDTH = '300px';
 
 export class ListViewError extends Error {
   name = 'ListViewError';
@@ -138,7 +141,7 @@ export function convertFiltersRison(
   list: Filter[],
 ): FilterValue[] {
   const filters: FilterValue[] = [];
-  const refs = {};
+  const refs: Record<string, FilterValue> = {};
 
   Object.keys(filterObj).forEach(id => {
     const filter: FilterValue = {
@@ -300,7 +303,7 @@ export function useListViewState({
 
   useEffect(() => {
     // From internalFilters, produce a simplified obj
-    const filterObj = {};
+    const filterObj: Record<string, InnerFilterValue> = {};
 
     internalFilters.forEach(filter => {
       if (

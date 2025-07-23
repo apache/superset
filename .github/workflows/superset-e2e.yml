@@ -28,6 +28,7 @@ concurrency:
 
 jobs:
   cypress-matrix:
+    # Somehow one test flakes on 24.04 for unknown reasons, this is the only GHA left on 22.04
     runs-on: ubuntu-22.04
     permissions:
       contents: read
@@ -41,6 +42,7 @@ jobs:
       matrix:
         parallel_id: [0, 1, 2, 3, 4, 5]
         browser: ["chrome"]
+        app_root: ["", "/app/prefix"]
     env:
       SUPERSET_ENV: development
       SUPERSET_CONFIG: tests.integration_tests.superset_test_config
@@ -48,10 +50,11 @@ jobs:
       PYTHONPATH: ${{ github.workspace }}
       REDIS_PORT: 16379
       GITHUB_TOKEN: ${{ github.token }}
-      USE_DASHBOARD: ${{ github.event.inputs.use_dashboard || (github.ref == 'refs/heads/master' && 'true') || 'false' }}
+      # Only use dashboard when explicitly requested via workflow_dispatch
+      USE_DASHBOARD: ${{ github.event.inputs.use_dashboard == 'true' || 'false' }}
     services:
       postgres:
-        image: postgres:15-alpine
+        image: postgres:16-alpine
         env:
           POSTGRES_USER: superset
           POSTGRES_PASSWORD: superset
@@ -70,6 +73,7 @@ jobs:
         with:
           persist-credentials: false
           submodules: recursive
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
       - name: Checkout using ref (workflow_dispatch)
         if: github.event_name == 'workflow_dispatch' && github.event.inputs.ref != ''
         uses: actions/checkout@v4
@@ -107,7 +111,7 @@ jobs:
         if: steps.check.outputs.python || steps.check.outputs.frontend
         uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version-file: './superset-frontend/.nvmrc'
       - name: Install npm dependencies
         if: steps.check.outputs.python || steps.check.outputs.frontend
         uses: ./.github/actions/cached-dependencies
@@ -133,10 +137,17 @@ jobs:
           CYPRESS_RECORD_KEY: ${{ secrets.CYPRESS_RECORD_KEY }}
           NODE_OPTIONS: "--max-old-space-size=4096"
         with:
-          run: cypress-run-all ${{ env.USE_DASHBOARD }}
+          run: cypress-run-all ${{ env.USE_DASHBOARD }} ${{ matrix.app_root }}
+      - name: Set safe app root
+        if: failure()
+        id: set-safe-app-root
+        run: |
+          APP_ROOT="${{ matrix.app_root }}"
+          SAFE_APP_ROOT=${APP_ROOT//\//_}
+          echo "safe_app_root=$SAFE_APP_ROOT" >> $GITHUB_OUTPUT
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
-        if: github.event_name == 'workflow_dispatch' && (steps.check.outputs.python || steps.check.outputs.frontend)
+        if: failure()
         with:
           path: ${{ github.workspace }}/superset-frontend/cypress-base/cypress/screenshots
-          name: cypress-artifact-${{ github.run_id }}-${{ github.job }}
+          name: cypress-artifact-${{ github.run_id }}-${{ github.job }}-${{ matrix.browser }}-${{ matrix.parallel_id }}--${{ steps.set-safe-app-root.outputs.safe_app_root }}

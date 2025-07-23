@@ -22,9 +22,6 @@
 # unique random secure passwords and SECRET_KEY.
 # -----------------------------------------------------------------------
 x-superset-user: &superset-user root
-x-superset-depends-on: &superset-depends-on
-  - db
-  - redis
 x-superset-volumes: &superset-volumes
   # /app/pythonpath_docker will be appended to the PYTHONPATH in the final container
   - ./docker:/app/docker
@@ -32,17 +29,24 @@ x-superset-volumes: &superset-volumes
   - ./superset-frontend:/app/superset-frontend
   - superset_home:/app/superset_home
   - ./tests:/app/tests
-
 x-common-build: &common-build
   context: .
-  target: dev
+  target: ${SUPERSET_BUILD_TARGET:-dev} # can use `dev` (default) or `lean`
   cache_from:
     - apache/superset-cache:3.10-slim-bookworm
   args:
     DEV_MODE: "true"
+    INCLUDE_CHROMIUM: ${INCLUDE_CHROMIUM:-false}
+    INCLUDE_FIREFOX: ${INCLUDE_FIREFOX:-false}
+    BUILD_TRANSLATIONS: ${BUILD_TRANSLATIONS:-false}
 
 services:
   nginx:
+    env_file:
+      - path: docker/.env # default
+        required: true
+      - path: docker/.env-local # optional override
+        required: false
     image: nginx:latest
     container_name: superset_nginx
     restart: unless-stopped
@@ -52,6 +56,8 @@ services:
       - "host.docker.internal:host-gateway"
     volumes:
       - ./docker/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./docker/nginx/templates:/etc/nginx/templates:ro
+
   redis:
     image: redis:7
     container_name: superset_cache
@@ -67,7 +73,7 @@ services:
         required: true
       - path: docker/.env-local # optional override
         required: false
-    image: postgres:15
+    image: postgres:16
     container_name: superset_db
     restart: unless-stopped
     ports:
@@ -89,13 +95,15 @@ services:
     restart: unless-stopped
     ports:
       - 8088:8088
+      # When in cypress-mode ->
+      - 8081:8081
     extra_hosts:
       - "host.docker.internal:host-gateway"
     user: *superset-user
-    depends_on: *superset-depends-on
+    depends_on:
+      superset-init:
+        condition: service_completed_successfully
     volumes: *superset-volumes
-    environment:
-      CYPRESS_CONFIG: "${CYPRESS_CONFIG:-}"
 
   superset-websocket:
     container_name: superset_websocket
@@ -140,11 +148,13 @@ services:
         required: true
       - path: docker/.env-local # optional override
         required: false
-    depends_on: *superset-depends-on
+    depends_on:
+      db:
+        condition: service_started
+      redis:
+        condition: service_started
     user: *superset-user
     volumes: *superset-volumes
-    environment:
-      CYPRESS_CONFIG: "${CYPRESS_CONFIG:-}"
     healthcheck:
       disable: true
 
@@ -157,11 +167,17 @@ services:
         # and build it on startup while firing docker-frontend.sh in dev mode, where
         # it'll mount and watch local files and rebuild as you update them
         DEV_MODE: "true"
+        BUILD_TRANSLATIONS: ${BUILD_TRANSLATIONS:-false}
     environment:
       # set this to false if you have perf issues running the npm i; npm run dev in-docker
       # if you do so, you have to run this manually on the host, which should perform better!
       BUILD_SUPERSET_FRONTEND_IN_DOCKER: true
+      NPM_RUN_PRUNE: false
       SCARF_ANALYTICS: "${SCARF_ANALYTICS:-}"
+      # configuring the dev-server to use the host.docker.internal to connect to the backend
+      superset: "http://superset:8088"
+    ports:
+      - "127.0.0.1:9000:9000"  # exposing the dynamic webpack dev server
     container_name: superset_node
     command: ["/app/docker/docker-frontend.sh"]
     env_file:
@@ -169,7 +185,6 @@ services:
         required: true
       - path: docker/.env-local # optional override
         required: false
-    depends_on: *superset-depends-on
     volumes: *superset-volumes
 
   superset-worker:
@@ -185,7 +200,9 @@ services:
     environment:
       CELERYD_CONCURRENCY: 2
     restart: unless-stopped
-    depends_on: *superset-depends-on
+    depends_on:
+      superset-init:
+        condition: service_completed_successfully
     user: *superset-user
     volumes: *superset-volumes
     extra_hosts:
@@ -207,7 +224,8 @@ services:
       - path: docker/.env-local # optional override
         required: false
     restart: unless-stopped
-    depends_on: *superset-depends-on
+    depends_on:
+      - superset-worker
     user: *superset-user
     volumes: *superset-volumes
     healthcheck:
@@ -233,7 +251,9 @@ services:
       REDIS_HOST: localhost
       CELERYD_CONCURRENCY: 8
     network_mode: host
-    depends_on: *superset-depends-on
+    depends_on:
+      superset-init:
+        condition: service_completed_successfully
     user: *superset-user
     volumes: *superset-volumes
     healthcheck:

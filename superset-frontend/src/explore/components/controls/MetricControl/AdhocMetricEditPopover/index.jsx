@@ -26,13 +26,17 @@ import {
   ensureIsArray,
   DatasourceType,
 } from '@superset-ui/core';
-import Tabs from 'src/components/Tabs';
-import Button from 'src/components/Button';
-import { Select } from 'src/components';
-import { Tooltip } from 'src/components/Tooltip';
-import { EmptyStateSmall } from 'src/components/EmptyState';
-import { Form, FormItem } from 'src/components/Form';
-import { SQLEditor } from 'src/components/AsyncAceEditor';
+import Tabs from '@superset-ui/core/components/Tabs';
+import {
+  Button,
+  EmptyState,
+  Form,
+  FormItem,
+  Icons,
+  Select,
+  Tooltip,
+  SQLEditor,
+} from '@superset-ui/core/components';
 import sqlKeywords from 'src/SqlLab/utils/sqlKeywords';
 import { noOp } from 'src/utils/common';
 import {
@@ -75,7 +79,7 @@ const defaultProps = {
 const StyledSelect = styled(Select)`
   .metric-option {
     & > svg {
-      min-width: ${({ theme }) => `${theme.gridUnit * 4}px`};
+      min-width: ${({ theme }) => `${theme.sizeUnit * 4}px`};
     }
     & > .option-label {
       overflow: hidden;
@@ -372,56 +376,59 @@ export default class AdhocMetricEditPopover extends PureComponent {
           style={{ height: this.state.height, width: this.state.width }}
           onChange={this.onTabChange}
           allowOverflow
-        >
-          <Tabs.TabPane key={SAVED_TAB_KEY} tab={t('Saved')}>
-            {ensureIsArray(savedMetricsOptions).length > 0 ? (
-              <FormItem label={t('Saved metric')}>
-                <StyledSelect
-                  options={ensureIsArray(savedMetricsOptions).map(
-                    savedMetric => ({
-                      value: savedMetric.metric_name,
-                      label: savedMetric.metric_name,
-                      customLabel: this.renderMetricOption(savedMetric),
-                      key: savedMetric.id,
-                    }),
-                  )}
-                  {...savedSelectProps}
-                />
-              </FormItem>
-            ) : datasource.type === DatasourceType.Table ? (
-              <EmptyStateSmall
-                image="empty.svg"
-                title={t('No saved metrics found')}
-                description={t(
-                  'Add metrics to dataset in "Edit datasource" modal',
-                )}
-              />
-            ) : (
-              <EmptyStateSmall
-                image="empty.svg"
-                title={t('No saved metrics found')}
-                description={
-                  <>
-                    <span
-                      tabIndex={0}
-                      role="button"
-                      onClick={() => {
-                        this.props.handleDatasetModal(true);
-                        this.props.onClose();
-                      }}
-                    >
-                      {t('Create a dataset')}
-                    </span>
-                    {t(' to add metrics')}
-                  </>
-                }
-              />
-            )}
-          </Tabs.TabPane>
-          <Tabs.TabPane
-            key={EXPRESSION_TYPES.SIMPLE}
-            tab={
-              extra.disallow_adhoc_metrics ? (
+          items={[
+            {
+              key: SAVED_TAB_KEY,
+              label: t('Saved'),
+              children:
+                ensureIsArray(savedMetricsOptions).length > 0 ? (
+                  <FormItem label={t('Saved metric')}>
+                    <StyledSelect
+                      options={ensureIsArray(savedMetricsOptions).map(
+                        savedMetric => ({
+                          value: savedMetric.metric_name,
+                          label: this.renderMetricOption(savedMetric),
+                          key: savedMetric.id,
+                        }),
+                      )}
+                      {...savedSelectProps}
+                    />
+                  </FormItem>
+                ) : datasource.type === DatasourceType.Table ? (
+                  <EmptyState
+                    image="empty.svg"
+                    size="small"
+                    title={t('No saved metrics found')}
+                    description={t(
+                      'Add metrics to dataset in "Edit datasource" modal',
+                    )}
+                  />
+                ) : (
+                  <EmptyState
+                    image="empty.svg"
+                    size="small"
+                    title={t('No saved metrics found')}
+                    description={
+                      <>
+                        <span
+                          tabIndex={0}
+                          role="button"
+                          onClick={() => {
+                            this.props.handleDatasetModal(true);
+                            this.props.onClose();
+                          }}
+                        >
+                          {t('Create a dataset')}
+                        </span>
+                        {t(' to add metrics')}
+                      </>
+                    }
+                  />
+                ),
+            },
+            {
+              key: EXPRESSION_TYPES.SIMPLE,
+              label: extra.disallow_adhoc_metrics ? (
                 <Tooltip
                   title={t(
                     'Simple ad-hoc metrics are not enabled for this dataset',
@@ -431,36 +438,36 @@ export default class AdhocMetricEditPopover extends PureComponent {
                 </Tooltip>
               ) : (
                 t('Simple')
-              )
-            }
-            disabled={extra.disallow_adhoc_metrics}
-          >
-            <FormItem label={t('column')}>
-              <Select
-                options={columns.map(column => ({
-                  value: column.column_name,
-                  label: column.verbose_name || column.column_name,
-                  key: column.id,
-                  customLabel: this.renderColumnOption(column),
-                }))}
-                {...columnSelectProps}
-              />
-            </FormItem>
-            <FormItem label={t('aggregate')}>
-              <Select
-                options={AGGREGATES_OPTIONS.map(option => ({
-                  value: option,
-                  label: option,
-                  key: option,
-                }))}
-                {...aggregateSelectProps}
-              />
-            </FormItem>
-          </Tabs.TabPane>
-          <Tabs.TabPane
-            key={EXPRESSION_TYPES.SQL}
-            tab={
-              extra.disallow_adhoc_metrics ? (
+              ),
+              disabled: extra.disallow_adhoc_metrics,
+              children: (
+                <>
+                  <FormItem label={t('column')}>
+                    <Select
+                      options={columns.map(column => ({
+                        value: column.column_name,
+                        key: column.id,
+                        label: this.renderColumnOption(column),
+                      }))}
+                      {...columnSelectProps}
+                    />
+                  </FormItem>
+                  <FormItem label={t('aggregate')}>
+                    <Select
+                      options={AGGREGATES_OPTIONS.map(option => ({
+                        value: option,
+                        label: option,
+                        key: option,
+                      }))}
+                      {...aggregateSelectProps}
+                    />
+                  </FormItem>
+                </>
+              ),
+            },
+            {
+              key: EXPRESSION_TYPES.SQL,
+              label: extra.disallow_adhoc_metrics ? (
                 <Tooltip
                   title={t(
                     'Custom SQL ad-hoc metrics are not enabled for this dataset',
@@ -470,34 +477,35 @@ export default class AdhocMetricEditPopover extends PureComponent {
                 </Tooltip>
               ) : (
                 t('Custom SQL')
-              )
-            }
-            data-test="adhoc-metric-edit-tab#custom"
-            disabled={extra.disallow_adhoc_metrics}
-          >
-            <SQLEditor
-              data-test="sql-editor"
-              showLoadingForImport
-              ref={this.handleAceEditorRef}
-              keywords={keywords}
-              height={`${this.state.height - 80}px`}
-              onChange={this.onSqlExpressionChange}
-              width="100%"
-              showGutter={false}
-              value={
-                adhocMetric.sqlExpression ||
-                adhocMetric.translateToSql({ transformCountDistinct: true })
-              }
-              editorProps={{ $blockScrolling: true }}
-              enableLiveAutocompletion
-              className="filter-sql-editor"
-              wrapEnabled
-            />
-          </Tabs.TabPane>
-        </Tabs>
+              ),
+              disabled: extra.disallow_adhoc_metrics,
+              children: (
+                <SQLEditor
+                  data-test="sql-editor"
+                  showLoadingForImport
+                  ref={this.handleAceEditorRef}
+                  keywords={keywords}
+                  height={`${this.state.height - 80}px`}
+                  onChange={this.onSqlExpressionChange}
+                  width="100%"
+                  showGutter={false}
+                  value={
+                    adhocMetric.sqlExpression ||
+                    adhocMetric.translateToSql({ transformCountDistinct: true })
+                  }
+                  editorProps={{ $blockScrolling: true }}
+                  enableLiveAutocompletion
+                  className="filter-sql-editor"
+                  wrapEnabled
+                />
+              ),
+            },
+          ]}
+        />
         <div>
           <Button
             buttonSize="small"
+            buttonStyle="secondary"
             onClick={this.onResetStateAndClose}
             data-test="AdhocMetricEdit#cancel"
             cta
@@ -514,12 +522,12 @@ export default class AdhocMetricEditPopover extends PureComponent {
           >
             {t('Save')}
           </Button>
-          <i
+          <Icons.ArrowsAltOutlined
             role="button"
             aria-label="Resize"
             tabIndex={0}
             onMouseDown={this.onDragDown}
-            className="fa fa-expand edit-popover-resize text-muted"
+            className="edit-popover-resize"
           />
         </div>
       </Form>

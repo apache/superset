@@ -17,19 +17,18 @@
  * under the License.
  */
 import { useEffect, useState } from 'react';
-import { Popover } from 'antd';
+import { Popover, type PopoverProps } from '@superset-ui/core/components';
 import type ReactAce from 'react-ace';
-import type { PopoverProps } from 'antd/lib/popover';
 import { CalculatorOutlined } from '@ant-design/icons';
 import { css, styled, useTheme, t } from '@superset-ui/core';
 
 const StyledCalculatorIcon = styled(CalculatorOutlined)`
   ${({ theme }) => css`
     color: ${theme.colors.grayscale.base};
-    font-size: ${theme.typography.sizes.s}px;
+    font-size: ${theme.fontSizeSM}px;
     & svg {
-      margin-left: ${theme.gridUnit}px;
-      margin-right: ${theme.gridUnit}px;
+      margin-left: ${theme.sizeUnit}px;
+      margin-right: ${theme.sizeUnit}px;
     }
   `}
 `;
@@ -65,14 +64,14 @@ export const SQLPopover = (props: PopoverProps & { sqlExpression: string }) => {
           readOnly
           wrapEnabled
           style={{
-            border: `1px solid ${theme.colors.grayscale.light2}`,
-            background: theme.colors.secondary.light5,
-            maxWidth: theme.gridUnit * 100,
+            border: `1px solid ${theme.colorBorder}`,
+            background: theme.colorPrimaryBg,
+            maxWidth: theme.sizeUnit * 100,
           }}
         />
       }
       placement="bottomLeft"
-      arrowPointAtCenter
+      arrow={{ pointAtCenter: true }}
       title={t('SQL expression')}
       {...props}
     >

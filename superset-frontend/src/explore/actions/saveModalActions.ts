@@ -119,19 +119,25 @@ export const getSlicePayload = (
   }
 
   if (!hasTemporalRangeFilter(adhocFilters)) {
-    formDataWithNativeFilters.adhoc_filters?.forEach(
-      (filter: SimpleAdhocFilter) => {
-        if (filter.operator === Operators.TemporalRange && filter.isExtra) {
-          if (!adhocFilters.adhoc_filters) {
-            adhocFilters.adhoc_filters = [];
-          }
-          adhocFilters.adhoc_filters.push({
-            ...filter,
-            comparator: 'No filter',
-          });
-        }
-      },
+    const adhocFiltersKeys = Object.keys(formDataWithNativeFilters).filter(
+      key => ADHOC_FILTER_REGEX.test(key),
     );
+    adhocFiltersKeys?.forEach(filtersKey => {
+      formDataWithNativeFilters[filtersKey]?.forEach(
+        (filter: SimpleAdhocFilter) => {
+          if (filter.operator === Operators.TemporalRange && filter.isExtra) {
+            if (!adhocFilters[filtersKey]) {
+              adhocFilters[filtersKey] = [];
+            }
+            adhocFilters[filtersKey].push({
+              ...filter,
+              comparator: 'No filter',
+              isExtra: false,
+            });
+          }
+        },
+      );
+    });
   }
   const formData = {
     ...formDataWithNativeFilters,
@@ -306,7 +312,7 @@ export const getSliceDashboards =
     try {
       const response = await SupersetClient.get({
         endpoint: `/api/v1/chart/${slice.slice_id}?q=${rison.encode({
-          columns: ['dashboards.id'],
+          select_columns: ['dashboards.id'],
         })}`,
       });
 

@@ -18,8 +18,12 @@
  */
 import * as reactRedux from 'react-redux';
 import fetchMock from 'fetch-mock';
-import { render, screen, waitFor } from 'spec/helpers/testing-library';
-import userEvent from '@testing-library/user-event';
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+} from 'spec/helpers/testing-library';
 import RightMenu from './RightMenu';
 import { GlobalMenuDataOptions, RightMenuProps } from './types';
 
@@ -156,7 +160,7 @@ beforeEach(async () => {
   );
 });
 
-afterEach(fetchMock.restore);
+afterEach(() => fetchMock.restore());
 
 const resetUseSelectorMock = () => {
   useSelectorMock.mockReturnValueOnce({
@@ -168,8 +172,7 @@ const resetUseSelectorMock = () => {
     permissions: {},
     roles: {
       Admin: [
-        ['can_csv_upload', 'Database'], // So we can upload CSV
-        ['can_excel_upload', 'Database'], // So we can upload CSV
+        ['can_upload', 'Database'], // So we can upload data (CSV, Excel, Columnar)
         ['can_write', 'Database'], // So we can write DBs
         ['can_write', 'Dataset'], // So we can write Datasets
         ['can_write', 'Chart'], // So we can write Datasets
@@ -197,6 +200,7 @@ test('renders', async () => {
   const { container } = render(<RightMenu {...mockedProps} />, {
     useRedux: true,
     useQueryParams: true,
+    useTheme: true,
   });
   // expect(await screen.findByText(/Settings/i)).toBeInTheDocument();
   await waitFor(() => expect(container).toBeInTheDocument());
@@ -209,6 +213,7 @@ test('If user has permission to upload files AND connect DBs we query existing D
   const { container } = render(<RightMenu {...mockedProps} />, {
     useRedux: true,
     useQueryParams: true,
+    useTheme: true,
   });
   await waitFor(() => expect(container).toBeVisible());
   const callsD = fetchMock.calls(/database\/\?q/);
@@ -237,10 +242,13 @@ test('If only examples DB exist we must show the Connect Database option', async
   resetUseSelectorMock();
   // setAllowUploads called
   resetUseSelectorMock();
+  // setNonExamplesDBConnected called
+  resetUseSelectorMock();
   render(<RightMenu {...mockedProps} />, {
     useRedux: true,
     useQueryParams: true,
     useRouter: true,
+    useTheme: true,
   });
   const dropdown = screen.getByTestId('new-dropdown-icon');
   userEvent.hover(dropdown);
@@ -272,6 +280,7 @@ test('If more than just examples DB exist we must show the Create dataset option
     useRedux: true,
     useQueryParams: true,
     useRouter: true,
+    useTheme: true,
   });
   const dropdown = screen.getByTestId('new-dropdown-icon');
   userEvent.hover(dropdown);
@@ -303,6 +312,7 @@ test('If there is a DB with allow_file_upload set as True the option should be e
     useRedux: true,
     useQueryParams: true,
     useRouter: true,
+    useTheme: true,
   });
   const dropdown = screen.getByTestId('new-dropdown-icon');
   userEvent.hover(dropdown);
@@ -339,6 +349,7 @@ test('If there is NOT a DB with allow_file_upload set as True the option should 
     useRedux: true,
     useQueryParams: true,
     useRouter: true,
+    useTheme: true,
   });
   const dropdown = screen.getByTestId('new-dropdown-icon');
   userEvent.hover(dropdown);
@@ -358,6 +369,7 @@ test('Logs out and clears local storage item redux', async () => {
     useRedux: true,
     useQueryParams: true,
     useRouter: true,
+    useTheme: true,
   });
 
   // Set an item in local storage to test if it gets cleared

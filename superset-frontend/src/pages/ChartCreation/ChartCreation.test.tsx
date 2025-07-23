@@ -17,12 +17,17 @@
  * under the License.
  */
 
-import userEvent from '@testing-library/user-event';
-import { screen, waitFor, render } from 'spec/helpers/testing-library';
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+} from 'spec/helpers/testing-library';
 import fetchMock from 'fetch-mock';
 import { createMemoryHistory } from 'history';
 import { ChartCreation } from 'src/pages/ChartCreation';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
+import { supersetTheme } from '@superset-ui/core';
 
 jest.mock('src/components/DynamicPlugins', () => ({
   usePluginContext: () => ({
@@ -33,7 +38,7 @@ jest.mock('src/components/DynamicPlugins', () => ({
 const mockDatasourceResponse = {
   result: [
     {
-      id: 1,
+      id: 'table_1',
       table_name: 'table',
       datasource_type: 'table',
       database: { database_name: 'test_db' },
@@ -83,16 +88,21 @@ const routeProps = {
   match: {} as any,
 };
 
-const renderOptions = {
-  useRouter: true,
-};
-
 async function renderComponent(user = mockUser) {
-  render(
-    <ChartCreation user={user} addSuccessToast={() => null} {...routeProps} />,
-    renderOptions,
+  const rendered = render(
+    <ChartCreation
+      user={user}
+      addSuccessToast={() => null}
+      theme={supersetTheme}
+      {...routeProps}
+    />,
+    {
+      useRedux: true,
+      useRouter: true,
+    },
   );
   await waitFor(() => new Promise(resolve => setTimeout(resolve, 0)));
+  return rendered;
 }
 
 test('renders a select and a VizTypeGallery', async () => {
@@ -135,8 +145,8 @@ test('renders an enabled button if datasource and viz type are selected', async 
   userEvent.click(await screen.findByText(/test_db/i));
 
   userEvent.click(
-    screen.getByRole('button', {
-      name: /ballot all charts/i,
+    screen.getByRole('tab', {
+      name: /All charts/i,
     }),
   );
   userEvent.click(await screen.findByText('Table'));
@@ -150,8 +160,8 @@ test('double-click viz type does nothing if no datasource is selected', async ()
   await renderComponent();
 
   userEvent.click(
-    screen.getByRole('button', {
-      name: /ballot all charts/i,
+    screen.getByRole('tab', {
+      name: /All charts/i,
     }),
   );
   userEvent.dblClick(await screen.findByText('Table'));
@@ -166,12 +176,13 @@ test('double-click viz type submits with formatted URL if datasource is selected
   await renderComponent();
 
   const datasourceSelect = screen.getByRole('combobox', { name: 'Dataset' });
+
   userEvent.click(datasourceSelect);
   userEvent.click(await screen.findByText(/test_db/i));
 
   userEvent.click(
-    screen.getByRole('button', {
-      name: /ballot all charts/i,
+    screen.getByRole('tab', {
+      name: /All charts/i,
     }),
   );
   userEvent.dblClick(await screen.findByText('Table'));
@@ -179,6 +190,6 @@ test('double-click viz type submits with formatted URL if datasource is selected
   expect(
     screen.getByRole('button', { name: 'Create new chart' }),
   ).toBeEnabled();
-  const formattedUrl = '/explore/?viz_type=table&datasource=1__table';
+  const formattedUrl = '/explore/?viz_type=table&datasource=table_1__table';
   expect(history.push).toHaveBeenCalledWith(formattedUrl);
 });

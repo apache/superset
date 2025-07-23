@@ -96,7 +96,7 @@ class ValidateDatabaseParametersCommand(BaseCommand):
             server_cert=self._properties.get("server_cert", ""),
             extra=self._properties.get("extra", "{}"),
             impersonate_user=self._properties.get("impersonate_user", False),
-            encrypted_extra=serialized_encrypted_extra,
+            encrypted_extra=json.dumps(encrypted_extra),
         )
         database.set_sqlalchemy_uri(sqlalchemy_uri)
         database.db_engine_spec.mutate_db_for_connection_test(database)
@@ -125,7 +125,7 @@ class ValidateDatabaseParametersCommand(BaseCommand):
                     "database": url.database,
                 }
                 errors = database.db_engine_spec.extract_errors(ex, context)
-                raise DatabaseTestConnectionFailedError(errors) from ex
+                raise DatabaseTestConnectionFailedError(errors, status=400) from ex
 
         if not alive:
             raise DatabaseOfflineError(

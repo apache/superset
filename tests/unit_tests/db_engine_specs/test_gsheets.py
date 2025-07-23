@@ -17,7 +17,7 @@
 
 # pylint: disable=import-outside-toplevel, invalid-name, line-too-long
 
-from typing import TYPE_CHECKING
+from typing import Any, TYPE_CHECKING
 from urllib.parse import parse_qs, urlparse
 
 import pandas as pd
@@ -27,7 +27,7 @@ from sqlalchemy.engine.url import make_url
 
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetException
-from superset.sql_parse import Table
+from superset.sql.parse import Table
 from superset.superset_typing import OAuth2ClientConfig
 from superset.utils import json
 from superset.utils.oauth2 import decode_oauth2_state
@@ -42,16 +42,38 @@ class ProgrammingError(Exception):
     """
 
 
-def test_validate_parameters_simple() -> None:
+def test_validate_parameters_simple(mocker: MockerFixture) -> None:
     from superset.db_engine_specs.gsheets import (
         GSheetsEngineSpec,
         GSheetsPropertiesType,
     )
 
+    g = mocker.patch("superset.db_engine_specs.gsheets.g")
+    g.user.email = "admin@example.org"
+
     properties: GSheetsPropertiesType = {
         "parameters": {
             "service_account_info": "",
-            "catalog": {},
+            "catalog": {"test": "https://docs.google.com/spreadsheets/d/1/edit"},
+        },
+        "catalog": {},
+    }
+    assert GSheetsEngineSpec.validate_parameters(properties)
+
+
+def test_validate_parameters_no_catalog(mocker: MockerFixture) -> None:
+    from superset.db_engine_specs.gsheets import (
+        GSheetsEngineSpec,
+        GSheetsPropertiesType,
+    )
+
+    g = mocker.patch("superset.db_engine_specs.gsheets.g")
+    g.user.email = "admin@example.org"
+
+    properties: GSheetsPropertiesType = {
+        "parameters": {
+            "service_account_info": "",
+            "catalog": {"": "https://docs.google.com/spreadsheets/d/1/edit"},
         },
         "catalog": {},
     }
@@ -66,18 +88,21 @@ def test_validate_parameters_simple() -> None:
     ]
 
 
-def test_validate_parameters_simple_with_in_root_catalog() -> None:
+def test_validate_parameters_simple_with_in_root_catalog(mocker: MockerFixture) -> None:
     from superset.db_engine_specs.gsheets import (
         GSheetsEngineSpec,
         GSheetsPropertiesType,
     )
+
+    g = mocker.patch("superset.db_engine_specs.gsheets.g")
+    g.user.email = "admin@example.org"
 
     properties: GSheetsPropertiesType = {
         "parameters": {
             "service_account_info": "",
             "catalog": {},
         },
-        "catalog": {},
+        "catalog": {"": "https://docs.google.com/spreadsheets/d/1/edit"},
     }
     errors = GSheetsEngineSpec.validate_parameters(properties)
     assert errors == [
@@ -137,11 +162,11 @@ def test_validate_parameters_catalog(
                 "issue_codes": [
                     {
                         "code": 1003,
-                        "message": "Issue 1003 - There is a syntax error in the SQL query. Perhaps there was a misspelling or a typo.",
+                        "message": "Issue 1003 - There is a syntax error in the SQL query. Perhaps there was a misspelling or a typo.",  # noqa: E501
                     },
                     {
                         "code": 1005,
-                        "message": "Issue 1005 - The table was deleted or renamed in the database.",
+                        "message": "Issue 1005 - The table was deleted or renamed in the database.",  # noqa: E501
                     },
                 ],
             },
@@ -162,11 +187,11 @@ def test_validate_parameters_catalog(
                 "issue_codes": [
                     {
                         "code": 1003,
-                        "message": "Issue 1003 - There is a syntax error in the SQL query. Perhaps there was a misspelling or a typo.",
+                        "message": "Issue 1003 - There is a syntax error in the SQL query. Perhaps there was a misspelling or a typo.",  # noqa: E501
                     },
                     {
                         "code": 1005,
-                        "message": "Issue 1005 - The table was deleted or renamed in the database.",
+                        "message": "Issue 1005 - The table was deleted or renamed in the database.",  # noqa: E501
                     },
                 ],
             },
@@ -229,11 +254,11 @@ def test_validate_parameters_catalog_and_credentials(
                 "issue_codes": [
                     {
                         "code": 1003,
-                        "message": "Issue 1003 - There is a syntax error in the SQL query. Perhaps there was a misspelling or a typo.",
+                        "message": "Issue 1003 - There is a syntax error in the SQL query. Perhaps there was a misspelling or a typo.",  # noqa: E501
                     },
                     {
                         "code": 1005,
-                        "message": "Issue 1005 - The table was deleted or renamed in the database.",
+                        "message": "Issue 1005 - The table was deleted or renamed in the database.",  # noqa: E501
                     },
                 ],
             },
@@ -471,9 +496,9 @@ def test_upload_existing(mocker: MockerFixture) -> None:
     )
 
 
-def test_get_url_for_impersonation_username(mocker: MockerFixture) -> None:
+def test_impersonate_user_username(mocker: MockerFixture) -> None:
     """
-    Test passing a username to `get_url_for_impersonation`.
+    Test passing a username to `impersonate_user`.
     """
     from superset.db_engine_specs.gsheets import GSheetsEngineSpec
 
@@ -483,27 +508,32 @@ def test_get_url_for_impersonation_username(mocker: MockerFixture) -> None:
         "superset.db_engine_specs.gsheets.security_manager.find_user",
         return_value=user,
     )
+    database = mocker.MagicMock()
 
-    assert GSheetsEngineSpec.get_url_for_impersonation(
-        url=make_url("gsheets://"),
-        impersonate_user=True,
+    assert GSheetsEngineSpec.impersonate_user(
+        database,
         username="alice",
-        access_token=None,
-    ) == make_url("gsheets://?subject=alice%40example.org")
+        user_token=None,
+        url=make_url("gsheets://"),
+        engine_kwargs={},
+    ) == (make_url("gsheets://?subject=alice%40example.org"), {})
 
 
-def test_get_url_for_impersonation_access_token() -> None:
+def test_impersonate_user_access_token(mocker: MockerFixture) -> None:
     """
-    Test passing an access token to `get_url_for_impersonation`.
+    Test passing an access token to `impersonate_user`.
     """
     from superset.db_engine_specs.gsheets import GSheetsEngineSpec
 
-    assert GSheetsEngineSpec.get_url_for_impersonation(
-        url=make_url("gsheets://"),
-        impersonate_user=True,
+    database = mocker.MagicMock()
+
+    assert GSheetsEngineSpec.impersonate_user(
+        database,
         username=None,
-        access_token="access-token",
-    ) == make_url("gsheets://?access_token=access-token")
+        user_token="access-token",  # noqa: S106
+        url=make_url("gsheets://"),
+        engine_kwargs={},
+    ) == (make_url("gsheets://?access_token=access-token"), {})
 
 
 def test_is_oauth2_enabled_no_config(mocker: MockerFixture) -> None:
@@ -559,6 +589,7 @@ def oauth2_config() -> OAuth2ClientConfig:
         "redirect_uri": "http://localhost:8088/api/v1/oauth2/",
         "authorization_request_uri": "https://accounts.google.com/o/oauth2/v2/auth",
         "token_request_uri": "https://oauth2.googleapis.com/token",
+        "request_content_type": "json",
     }
 
 
@@ -666,3 +697,23 @@ def test_get_oauth2_fresh_token(
         },
         timeout=30.0,
     )
+
+
+def test_update_params_from_encrypted_extra(mocker: MockerFixture) -> None:
+    """
+    Test `update_params_from_encrypted_extra`.
+    """
+    from superset.db_engine_specs.gsheets import GSheetsEngineSpec
+
+    database = mocker.MagicMock(
+        encrypted_extra=json.dumps(
+            {
+                "oauth2_client_info": "SECRET",
+                "foo": "bar",
+            }
+        )
+    )
+    params: dict[str, Any] = {}
+
+    GSheetsEngineSpec.update_params_from_encrypted_extra(database, params)
+    assert params == {"foo": "bar"}

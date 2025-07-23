@@ -18,9 +18,7 @@
  */
 import { useToasts } from 'src/components/MessageToasts/withToasts';
 import { useComponentDidMount } from '@superset-ui/core';
-
-type FlashMessageType = 'info' | 'alert' | 'danger' | 'warning' | 'success';
-export type FlashMessage = [FlashMessageType, string];
+import type { FlashMessage } from './types';
 
 interface Props {
   children: JSX.Element;
@@ -35,13 +33,13 @@ const flashObj = {
   success: 'addSuccessToast',
 };
 
-export default function FlashProvider({ children, messages }: Props) {
+export function FlashProvider({ children, messages }: Props) {
   const toasts = useToasts();
   useComponentDidMount(() => {
     messages.forEach(message => {
       const [type, text] = message;
       const flash = flashObj[type];
-      const toast = toasts[flash];
+      const toast = toasts[flash as keyof typeof toasts];
       if (toast) {
         toast(text);
       }
@@ -49,3 +47,5 @@ export default function FlashProvider({ children, messages }: Props) {
   });
   return children;
 }
+
+export type { FlashMessage };

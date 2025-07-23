@@ -29,6 +29,7 @@ import {
   POPOVER_INITIAL_HEIGHT,
   POPOVER_INITIAL_WIDTH,
 } from 'src/explore/constants';
+import { Icons } from '@superset-ui/core/components';
 
 const RESIZE_THROTTLE_MS = 50;
 
@@ -132,12 +133,12 @@ export default function useResizeButton(
   }, [onMouseUp]);
 
   return [
-    <i
+    <Icons.ArrowsAltOutlined
       role="button"
       aria-label="Resize"
       tabIndex={0}
       onMouseDown={onDragDown}
-      className="fa fa-expand edit-popover-resize text-muted"
+      className="edit-popover-resize"
     />,
     width,
     height,

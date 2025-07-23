@@ -25,11 +25,10 @@ import {
   styled,
   t,
   useTheme,
+  VizType,
 } from '@superset-ui/core';
-import Icons from 'src/components/Icons';
-import { Menu } from 'src/components/Menu';
-import ModalTrigger from 'src/components/ModalTrigger';
-import Button from 'src/components/Button';
+import { Icons, ModalTrigger, Button } from '@superset-ui/core/components';
+import { Menu } from '@superset-ui/core/components/Menu';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
 import { exportChart, getChartKey } from 'src/explore/exploreUtils';
 import downloadAsImage from 'src/utils/downloadAsImage';
@@ -44,6 +43,7 @@ import {
   LOG_ACTIONS_CHART_DOWNLOAD_AS_CSV_PIVOTED,
   LOG_ACTIONS_CHART_DOWNLOAD_AS_XLS,
 } from 'src/logger/LogUtils';
+import exportPivotExcel from 'src/utils/downloadAsPivotExcel';
 import ViewQueryModal from '../controls/ViewQueryModal';
 import EmbedCodeContent from '../EmbedCodeContent';
 import DashboardsSubMenu from './DashboardsSubMenu';
@@ -68,9 +68,10 @@ const MENU_KEYS = {
   DELETE_REPORT: 'delete_report',
   VIEW_QUERY: 'view_query',
   RUN_IN_SQL_LAB: 'run_in_sql_lab',
+  EXPORT_TO_PIVOT_XLSX: 'export_to_pivot_xlsx',
 };
 
-const VIZ_TYPES_PIVOTABLE = ['pivot_table_v2'];
+const VIZ_TYPES_PIVOTABLE = [VizType.PivotTable];
 
 export const MenuItemWithCheckboxContainer = styled.div`
   ${({ theme }) => css`
@@ -78,23 +79,23 @@ export const MenuItemWithCheckboxContainer = styled.div`
     align-items: center;
 
     & svg {
-      width: ${theme.gridUnit * 3}px;
-      height: ${theme.gridUnit * 3}px;
+      width: ${theme.sizeUnit * 3}px;
+      height: ${theme.sizeUnit * 3}px;
     }
 
     & span[role='checkbox'] {
       display: inline-flex;
-      margin-right: ${theme.gridUnit}px;
+      margin-right: ${theme.sizeUnit}px;
     }
   `}
 `;
 
 export const MenuTrigger = styled(Button)`
   ${({ theme }) => css`
-    width: ${theme.gridUnit * 8}px;
-    height: ${theme.gridUnit * 8}px;
+    width: ${theme.sizeUnit * 8}px;
+    height: ${theme.sizeUnit * 8}px;
     padding: 0;
-    border: 1px solid ${theme.colors.primary.dark2};
+    border: 1px solid ${theme.colorPrimary};
 
     &.ant-btn > span.anticon {
       line-height: 0;
@@ -102,16 +103,9 @@ export const MenuTrigger = styled(Button)`
     }
 
     &:hover:not(:focus) > span.anticon {
-      color: ${theme.colors.primary.light1};
+      color: ${theme.colorPrimary};
     }
   `}
-`;
-
-const iconReset = css`
-  .ant-dropdown-menu-item > & > .anticon:first-child {
-    margin-right: 0;
-    vertical-align: 0;
-  }
 `;
 
 export const useExploreAdditionalActionsMenu = (
@@ -122,6 +116,8 @@ export const useExploreAdditionalActionsMenu = (
   onOpenPropertiesModal,
   ownState,
   dashboards,
+  showReportModal,
+  setCurrentReportDeleting,
   ...rest
 ) => {
   const theme = useTheme();
@@ -254,6 +250,16 @@ export const useExploreAdditionalActionsMenu = (
             }),
           );
           break;
+        case MENU_KEYS.EXPORT_TO_PIVOT_XLSX:
+          exportPivotExcel('.pvtTable', slice?.slice_name ?? t('pivoted_xlsx'));
+          setIsDropdownVisible(false);
+          dispatch(
+            logEvent(LOG_ACTIONS_CHART_DOWNLOAD_AS_XLS, {
+              chartId: slice?.slice_id,
+              chartName: slice?.slice_name,
+            }),
+          );
+          break;
         case MENU_KEYS.DOWNLOAD_AS_IMAGE:
           downloadAsImage(
             '.panel-body .chart-container',
@@ -329,14 +335,14 @@ export const useExploreAdditionalActionsMenu = (
             <>
               <Menu.Item
                 key={MENU_KEYS.EXPORT_TO_CSV}
-                icon={<Icons.FileOutlined css={iconReset} />}
+                icon={<Icons.FileOutlined />}
                 disabled={!canDownloadCSV}
               >
                 {t('Export to original .CSV')}
               </Menu.Item>
               <Menu.Item
                 key={MENU_KEYS.EXPORT_TO_CSV_PIVOTED}
-                icon={<Icons.FileOutlined css={iconReset} />}
+                icon={<Icons.FileOutlined />}
                 disabled={!canDownloadCSV}
               >
                 {t('Export to pivoted .CSV')}
@@ -345,7 +351,7 @@ export const useExploreAdditionalActionsMenu = (
           ) : (
             <Menu.Item
               key={MENU_KEYS.EXPORT_TO_CSV}
-              icon={<Icons.FileOutlined css={iconReset} />}
+              icon={<Icons.FileOutlined />}
               disabled={!canDownloadCSV}
             >
               {t('Export to .CSV')}
@@ -353,23 +359,30 @@ export const useExploreAdditionalActionsMenu = (
           )}
           <Menu.Item
             key={MENU_KEYS.EXPORT_TO_JSON}
-            icon={<Icons.FileOutlined css={iconReset} />}
+            icon={<Icons.FileOutlined />}
             disabled={!canDownloadCSV}
           >
             {t('Export to .JSON')}
           </Menu.Item>
           <Menu.Item
             key={MENU_KEYS.DOWNLOAD_AS_IMAGE}
-            icon={<Icons.FileImageOutlined css={iconReset} />}
+            icon={<Icons.FileImageOutlined />}
           >
             {t('Download as image')}
           </Menu.Item>
           <Menu.Item
             key={MENU_KEYS.EXPORT_TO_XLSX}
-            icon={<Icons.FileOutlined css={iconReset} />}
+            icon={<Icons.FileOutlined />}
             disabled={!canDownloadCSV}
           >
             {t('Export to Excel')}
+          </Menu.Item>
+          <Menu.Item
+            key={MENU_KEYS.EXPORT_TO_PIVOT_XLSX}
+            icon={<Icons.FileOutlined />}
+            disabled={!canDownloadCSV}
+          >
+            {t('Export to Pivoted Excel')}
           </Menu.Item>
         </Menu.SubMenu>
         <Menu.SubMenu title={t('Share')} key={MENU_KEYS.SHARE_SUBMENU}>
@@ -383,7 +396,7 @@ export const useExploreAdditionalActionsMenu = (
             <Menu.Item key={MENU_KEYS.EMBED_CODE}>
               <ModalTrigger
                 triggerNode={
-                  <span data-test="embed-code-button">{t('Embed code')}</span>
+                  <div data-test="embed-code-button">{t('Embed code')}</div>
                 }
                 modalTitle={t('Embed code')}
                 modalBody={
@@ -392,8 +405,8 @@ export const useExploreAdditionalActionsMenu = (
                     addDangerToast={addDangerToast}
                   />
                 }
-                maxWidth={`${theme.gridUnit * 100}px`}
-                destroyOnClose
+                maxWidth={`${theme.sizeUnit * 100}px`}
+                destroyOnHidden
                 responsive
               />
             </Menu.Item>
@@ -402,33 +415,30 @@ export const useExploreAdditionalActionsMenu = (
         <Menu.Divider />
         {showReportSubMenu ? (
           <>
-            <Menu.SubMenu title={t('Manage email report')}>
-              <HeaderReportDropDown
-                chart={chart}
-                setShowReportSubMenu={setShowReportSubMenu}
-                showReportSubMenu={showReportSubMenu}
-                setIsDropdownVisible={setIsDropdownVisible}
-                isDropdownVisible={isDropdownVisible}
-                useTextMenu
-              />
-            </Menu.SubMenu>
+            <HeaderReportDropDown
+              submenuTitle={t('Manage email report')}
+              chart={chart}
+              setShowReportSubMenu={setShowReportSubMenu}
+              showReportSubMenu={showReportSubMenu}
+              showReportModal={showReportModal}
+              setCurrentReportDeleting={setCurrentReportDeleting}
+              useTextMenu
+            />
             <Menu.Divider />
           </>
         ) : (
-          <Menu>
-            <HeaderReportDropDown
-              chart={chart}
-              setShowReportSubMenu={setShowReportSubMenu}
-              setIsDropdownVisible={setIsDropdownVisible}
-              isDropdownVisible={isDropdownVisible}
-              useTextMenu
-            />
-          </Menu>
+          <HeaderReportDropDown
+            chart={chart}
+            setShowReportSubMenu={setShowReportSubMenu}
+            showReportModal={showReportModal}
+            setCurrentReportDeleting={setCurrentReportDeleting}
+            useTextMenu
+          />
         )}
         <Menu.Item key={MENU_KEYS.VIEW_QUERY}>
           <ModalTrigger
             triggerNode={
-              <span data-test="view-query-menu-item">{t('View query')}</span>
+              <div data-test="view-query-menu-item">{t('View query')}</div>
             }
             modalTitle={t('View query')}
             modalBody={
@@ -456,7 +466,7 @@ export const useExploreAdditionalActionsMenu = (
       latestQueryFormData,
       showReportSubMenu,
       slice,
-      theme.gridUnit,
+      theme.sizeUnit,
     ],
   );
   return [menu, isDropdownVisible, setIsDropdownVisible];

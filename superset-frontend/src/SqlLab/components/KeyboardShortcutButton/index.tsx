@@ -18,7 +18,7 @@
  */
 import { FC } from 'react';
 import { styled, t, css } from '@superset-ui/core';
-import ModalTrigger from 'src/components/ModalTrigger';
+import { ModalTrigger } from '@superset-ui/core/components';
 import { detectOS } from 'src/utils/common';
 
 const userOS = detectOS();
@@ -42,7 +42,7 @@ export enum KeyboardShortcut {
   CtrlRight = 'ctrl+]',
 }
 
-export const KEY_MAP = {
+export const KEY_MAP: Record<KeyboardShortcut, string | undefined> = {
   [KeyboardShortcut.CtrlR]: t('Run query'),
   [KeyboardShortcut.CtrlEnter]: t('Run query'),
   [KeyboardShortcut.AltEnter]: t('Run query'),
@@ -62,34 +62,33 @@ export const KEY_MAP = {
   [KeyboardShortcut.CtrlH]: userOS !== 'MacOS' ? t('Replace') : undefined,
 };
 
-const KeyMapByCommand = Object.entries(KEY_MAP).reduce(
-  (acc, [shortcut, command]) => {
-    if (command) {
-      acc[command] = [...(acc[command] || []), shortcut];
-    }
-    return acc;
-  },
-  {} as Record<string, string[]>,
-);
+const KeyMapByCommand = Object.entries(KEY_MAP).reduce<
+  Record<string, string[]>
+>((acc, [shortcut, command]) => {
+  if (command) {
+    acc[command] = [...(acc[command] || []), shortcut];
+  }
+  return acc;
+}, {});
 
 const ShortcutDescription = styled.span`
-  font-size: ${({ theme }) => theme.typography.sizes.m}px;
-  color: ${({ theme }) => theme.colors.text.help};
-  padding-left: ${({ theme }) => theme.gridUnit * 2}px;
+  font-size: ${({ theme }) => theme.fontSize}px;
+  color: ${({ theme }) => theme.colorTextLabel};
+  padding-left: ${({ theme }) => theme.sizeUnit * 2}px;
 `;
 
 const ShortcutWrapper = styled.div`
   display: flex;
   flex-wrap: wrap;
-  gap: ${({ theme }) => theme.gridUnit}px;
-  padding: ${({ theme }) => theme.gridUnit * 2}px;
+  gap: ${({ theme }) => theme.sizeUnit}px;
+  padding: ${({ theme }) => theme.sizeUnit * 2}px;
 `;
 
 const ShortcutCode = styled.code`
-  font-size: ${({ theme }) => theme.typography.sizes.s}px;
-  color: ${({ theme }) => theme.colors.grayscale.dark1};
+  font-size: ${({ theme }) => theme.fontSizeSM}px;
+  color: ${({ theme }) => theme.colorText};
   border-radius: ${({ theme }) => theme.borderRadius}px;
-  padding: ${({ theme }) => `${theme.gridUnit}px ${theme.gridUnit * 2}px`};
+  padding: ${({ theme }) => `${theme.sizeUnit}px ${theme.sizeUnit * 2}px`};
 `;
 
 const KeyboardShortcutButton: FC<{}> = ({ children }) => (

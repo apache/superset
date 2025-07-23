@@ -96,7 +96,7 @@ def upgrade():
         op.alter_column("url", "created_on", existing_type=sa.DATETIME(), nullable=True)
         op.create_foreign_key(None, "metrics", "ab_user", ["changed_by_fk"], ["id"])
         op.create_foreign_key(None, "metrics", "ab_user", ["created_by_fk"], ["id"])
-    except:  # noqa: E722
+    except:  # noqa: E722, S110
         pass
 
 
@@ -174,5 +174,5 @@ def downgrade():
         op.alter_column(
             "columns", "changed_on", existing_type=sa.DATETIME(), nullable=False
         )
-    except:  # noqa: E722
+    except:  # noqa: E722, S110
         pass

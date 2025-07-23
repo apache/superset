@@ -14,10 +14,16 @@ on:
         required: true
         description: Max number of PRs to open (0 for no limit)
         default: 5
+      extra-flags:
+        required: false
+        default: --only-base
+        description: Additional flags to pass to the bump-python command
+  #schedule:
+  #  - cron: '0 0 * * *'  # Runs daily at midnight UTC
 
 jobs:
   bump-python-package:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     permissions:
       actions: write
       contents: write
@@ -39,8 +45,8 @@ jobs:
         with:
           python-version: "3.10"
 
-      - name: Install pip-compile-multi
-        run: pip install pip-compile-multi
+      - name: Install uv
+        run: pip install uv
 
       - name: supersetbot bump-python -p "${{ github.event.inputs.package }}"
         env:
@@ -59,10 +65,13 @@ jobs:
             GROUP_OPT="-g ${{ github.event.inputs.group }}"
           fi
 
+          EXTRA_FLAGS="${{ github.event.inputs.extra-flags }}"
+
           supersetbot bump-python \
             --verbose \
             --use-current-repo \
             --include-subpackages \
             --limit ${{ github.event.inputs.limit }} \
             $PACKAGE_OPT \
-            $GROUP_OPT
+            $GROUP_OPT \
+            $EXTRA_FLAGS

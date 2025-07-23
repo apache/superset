@@ -1,6 +1,6 @@
 {
   "name": "@superset-ui/plugin-chart-table",
-  "version": "0.18.25",
+  "version": "0.20.3",
   "description": "Superset Chart - Table",
   "keywords": [
     "superset"
@@ -36,19 +36,19 @@
     "xss": "^1.0.15"
   },
   "peerDependencies": {
-    "@ant-design/icons": "^5.0.1",
+    "@ant-design/icons": "^5.2.6",
     "@superset-ui/chart-controls": "*",
     "@superset-ui/core": "*",
     "@testing-library/dom": "^8.20.1",
-    "@testing-library/jest-dom": "^5.11.6",
+    "@testing-library/jest-dom": "*",
     "@testing-library/react": "^12.1.5",
-    "@testing-library/react-hooks": "^5.0.3",
-    "@testing-library/user-event": "^12.7.0",
+    "@testing-library/react-hooks": "*",
+    "@testing-library/user-event": "*",
     "@types/classnames": "*",
     "@types/react": "*",
     "match-sorter": "^6.3.3",
-    "react": "^16.13.1",
-    "react-dom": "^16.13.1"
+    "react": "^17.0.2",
+    "react-dom": "^17.0.2"
   },
   "publishConfig": {
     "access": "public"

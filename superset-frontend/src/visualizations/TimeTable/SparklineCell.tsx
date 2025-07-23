@@ -18,7 +18,6 @@
  * under the License.
  */
 import { ReactNode } from 'react';
-import moment from 'moment';
 import {
   formatNumber,
   formatTime,
@@ -35,6 +34,7 @@ import {
   XYChart,
   buildChartTheme,
 } from '@visx/xychart';
+import { extendedDayjs } from '@superset-ui/core/utils/dates';
 
 interface Props {
   ariaLabel: string;
@@ -208,7 +208,7 @@ const SparklineCell = ({
           snapTooltipToDatumX
           snapTooltipToDatumY
           verticalCrosshairStyle={{
-            stroke: `${theme.colors.grayscale.dark1}`,
+            stroke: `${theme.colorText}`,
             strokeDasharray: '3 3',
             strokeWidth: 1,
           }}
@@ -223,7 +223,7 @@ const SparklineCell = ({
                   {idx !== undefined &&
                     formatTime(
                       dateFormat,
-                      moment.utc(entries[idx].time).toDate(),
+                      extendedDayjs.utc(entries[idx].time).toDate(),
                     )}
                 </div>
               </div>

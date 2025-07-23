@@ -16,16 +16,24 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Menu } from 'src/components/Menu';
-import DownloadScreenshot from './DownloadScreenshot';
+import { FeatureFlag, isFeatureEnabled } from '@superset-ui/core';
+import { Menu } from '@superset-ui/core/components/Menu';
+import { useDownloadScreenshot } from 'src/dashboard/hooks/useDownloadScreenshot';
+import { ComponentProps } from 'react';
 import { DownloadScreenshotFormat } from './types';
+import DownloadAsPdf from './DownloadAsPdf';
+import DownloadAsImage from './DownloadAsImage';
 
-export interface DownloadMenuItemProps {
+export interface DownloadMenuItemProps
+  extends ComponentProps<typeof Menu.SubMenu> {
   pdfMenuItemTitle: string;
   imageMenuItemTitle: string;
   dashboardTitle: string;
   logEvent?: Function;
-  dashboardId: string;
+  dashboardId: number;
+  title: string;
+  disabled?: boolean;
+  submenuKey: string;
 }
 
 const DownloadMenuItems = (props: DownloadMenuItemProps) => {
@@ -34,26 +42,46 @@ const DownloadMenuItems = (props: DownloadMenuItemProps) => {
     imageMenuItemTitle,
     logEvent,
     dashboardId,
+    dashboardTitle,
+    submenuKey,
+    disabled,
+    title,
     ...rest
   } = props;
+  const isWebDriverScreenshotEnabled =
+    isFeatureEnabled(FeatureFlag.EnableDashboardScreenshotEndpoints) &&
+    isFeatureEnabled(FeatureFlag.EnableDashboardDownloadWebDriverScreenshot);
 
-  return (
-    <Menu selectable={false}>
-      <DownloadScreenshot
+  const downloadScreenshot = useDownloadScreenshot(dashboardId, logEvent);
+
+  return isWebDriverScreenshotEnabled ? (
+    <Menu.SubMenu key={submenuKey} title={title} disabled={disabled} {...rest}>
+      <Menu.Item
+        key={DownloadScreenshotFormat.PDF}
+        onClick={() => downloadScreenshot(DownloadScreenshotFormat.PDF)}
+      >
+        {pdfMenuItemTitle}
+      </Menu.Item>
+      <Menu.Item
+        key={DownloadScreenshotFormat.PNG}
+        onClick={() => downloadScreenshot(DownloadScreenshotFormat.PNG)}
+      >
+        {imageMenuItemTitle}
+      </Menu.Item>
+    </Menu.SubMenu>
+  ) : (
+    <Menu.SubMenu key={submenuKey} title={title} disabled={disabled} {...rest}>
+      <DownloadAsPdf
         text={pdfMenuItemTitle}
-        dashboardId={dashboardId}
+        dashboardTitle={dashboardTitle}
         logEvent={logEvent}
-        format={DownloadScreenshotFormat.PDF}
-        {...rest}
       />
-      <DownloadScreenshot
+      <DownloadAsImage
         text={imageMenuItemTitle}
-        dashboardId={dashboardId}
+        dashboardTitle={dashboardTitle}
         logEvent={logEvent}
-        format={DownloadScreenshotFormat.PNG}
-        {...rest}
       />
-    </Menu>
+    </Menu.SubMenu>
   );
 };
 

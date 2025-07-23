@@ -117,8 +117,9 @@ def create_report_notification(
     extra: Optional[dict[str, Any]] = None,
     force_screenshot: bool = False,
     owners: Optional[list[User]] = None,
-    ccTarget: Optional[str] = None,
-    bccTarget: Optional[str] = None,
+    ccTarget: Optional[str] = None,  # noqa: N803
+    bccTarget: Optional[str] = None,  # noqa: N803
+    use_slack_v2: bool = False,
 ) -> ReportSchedule:
     if not owners:
         owners = [
@@ -130,8 +131,11 @@ def create_report_notification(
         ]
 
     if slack_channel:
+        type = (
+            ReportRecipientType.SLACKV2 if use_slack_v2 else ReportRecipientType.SLACK
+        )
         recipient = ReportRecipients(
-            type=ReportRecipientType.SLACK,
+            type=type,
             recipient_config_json=json.dumps(
                 {
                     "target": slack_channel,

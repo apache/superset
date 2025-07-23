@@ -55,7 +55,7 @@ const depthFour = rootDepth + 4;
 const depthFive = rootDepth + 5;
 
 // when moving components around the depth of child is irrelevant, note these are parent depths
-const parentMaxDepthLookup = {
+const parentMaxDepthLookup: Record<string, Record<string, number>> = {
   [DASHBOARD_ROOT_TYPE]: {
     [TABS_TYPE]: rootDepth,
     [DASHBOARD_GRID_TYPE]: rootDepth,

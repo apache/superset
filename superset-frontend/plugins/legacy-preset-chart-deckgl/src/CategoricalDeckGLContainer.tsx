@@ -28,46 +28,54 @@ import { memo, useCallback, useEffect, useRef, useState } from 'react';
 import {
   CategoricalColorNamespace,
   Datasource,
+  FilterState,
   HandlerFunction,
   JsonObject,
   JsonValue,
   QueryFormData,
+  SetDataMaskHook,
 } from '@superset-ui/core';
-import { Layer } from 'deck.gl/typed';
+import type { Layer } from '@deck.gl/core';
 import Legend from './components/Legend';
 import { hexToRGB } from './utils/colors';
 import sandboxedEval from './utils/sandbox';
-// eslint-disable-next-line import/extensions
 import fitViewport, { Viewport } from './utils/fitViewport';
 import {
   DeckGLContainerHandle,
   DeckGLContainerStyledWrapper,
 } from './DeckGLContainer';
-import { Point } from './types';
-import { getLayerType } from './factory';
+import { GetLayerType } from './factory';
+import { ColorBreakpointType, ColorType, Point } from './types';
 import { TooltipProps } from './components/Tooltip';
+import { COLOR_SCHEME_TYPES, ColorSchemeType } from './utilities/utils';
+import { getColorBreakpointsBuckets } from './utils';
+import { DEFAULT_DECKGL_COLOR } from './utilities/Shared_DeckGL';
 
 const { getScale } = CategoricalColorNamespace;
 
 function getCategories(fd: QueryFormData, data: JsonObject[]) {
   const c = fd.color_picker || { r: 0, g: 0, b: 0, a: 1 };
   const fixedColor = [c.r, c.g, c.b, 255 * c.a];
-  const colorFn = getScale(fd.color_scheme);
-  const categories = {};
-  data.forEach(d => {
-    if (d.cat_color != null && !categories.hasOwnProperty(d.cat_color)) {
-      let color;
-      if (fd.dimension) {
-        color = hexToRGB(
-          colorFn(d.cat_color, fd.sliceId, fd.color_scheme),
-          c.a * 255,
-        );
-      } else {
-        color = fixedColor;
+  const appliedScheme = fd.color_scheme;
+  const colorFn = getScale(appliedScheme);
+  let categories: Record<any, { color: any; enabled: boolean }> = {};
+
+  const colorSchemeType = fd.color_scheme_type;
+  if (colorSchemeType === COLOR_SCHEME_TYPES.color_breakpoints) {
+    categories = getColorBreakpointsBuckets(fd.color_breakpoints);
+  } else {
+    data.forEach(d => {
+      if (d.cat_color != null && !categories.hasOwnProperty(d.cat_color)) {
+        let color;
+        if (fd.dimension) {
+          color = hexToRGB(colorFn(d.cat_color, fd.sliceId), c.a * 255);
+        } else {
+          color = fixedColor;
+        }
+        categories[d.cat_color] = { color, enabled: true };
       }
-      categories[d.cat_color] = { color, enabled: true };
-    }
-  });
+    });
+  }
 
   return categories;
 }
@@ -80,10 +88,14 @@ export type CategoricalDeckGLContainerProps = {
   height: number;
   width: number;
   viewport: Viewport;
-  getLayer: getLayerType<unknown>;
+  getLayer: GetLayerType<unknown>;
   payload: JsonObject;
   onAddFilter?: HandlerFunction;
   setControlValue: (control: string, value: JsonValue) => void;
+  filterState: FilterState;
+  setDataMask: SetDataMaskHook;
+  onContextMenu: HandlerFunction;
+  emitCrossFilters: boolean;
 };
 
 const CategoricalDeckGLContainer = (props: CategoricalDeckGLContainerProps) => {
@@ -130,31 +142,91 @@ const CategoricalDeckGLContainer = (props: CategoricalDeckGLContainerProps) => {
     }
   }, []);
 
-  const addColor = useCallback((data: JsonObject[], fd: QueryFormData) => {
-    const c = fd.color_picker || { r: 0, g: 0, b: 0, a: 1 };
-    const colorFn = getScale(fd.color_scheme);
+  const addColor = useCallback(
+    (
+      data: JsonObject[],
+      fd: QueryFormData,
+      selectedColorScheme: ColorSchemeType,
+    ) => {
+      const appliedScheme = fd.color_scheme;
+      const colorFn = getScale(appliedScheme);
+      let color: ColorType;
 
-    return data.map(d => {
-      let color;
-      if (fd.dimension) {
-        color = hexToRGB(
-          colorFn(d.cat_color, fd.sliceId, fd.color_scheme),
-          c.a * 255,
-        );
+      switch (selectedColorScheme) {
+        case COLOR_SCHEME_TYPES.fixed_color: {
+          color = fd.color_picker || { r: 0, g: 0, b: 0, a: 100 };
 
-        return { ...d, color };
+          return data.map(d => ({
+            ...d,
+            color: [color.r, color.g, color.b, color.a * 255],
+          }));
+        }
+        case COLOR_SCHEME_TYPES.categorical_palette: {
+          return data.map(d => ({
+            ...d,
+            color: hexToRGB(colorFn(d.cat_color, fd.slice_id)),
+          }));
+        }
+        case COLOR_SCHEME_TYPES.color_breakpoints: {
+          const defaultBreakpointColor = fd.deafult_breakpoint_color
+            ? [
+                fd.deafult_breakpoint_color.r,
+                fd.deafult_breakpoint_color.g,
+                fd.deafult_breakpoint_color.b,
+                fd.deafult_breakpoint_color.a * 255,
+              ]
+            : [
+                DEFAULT_DECKGL_COLOR.r,
+                DEFAULT_DECKGL_COLOR.g,
+                DEFAULT_DECKGL_COLOR.b,
+                DEFAULT_DECKGL_COLOR.a * 255,
+              ];
+          return data.map(d => {
+            const breakpointForPoint: ColorBreakpointType =
+              fd.color_breakpoints?.find(
+                (breakpoint: ColorBreakpointType) =>
+                  d.metric >= breakpoint.minValue &&
+                  d.metric <= breakpoint.maxValue,
+              );
+
+            return {
+              ...d,
+              color: breakpointForPoint
+                ? [
+                    breakpointForPoint?.color.r,
+                    breakpointForPoint?.color.g,
+                    breakpointForPoint?.color.b,
+                    breakpointForPoint?.color.a * 255,
+                  ]
+                : defaultBreakpointColor,
+            };
+          });
+        }
+        default: {
+          return [];
+        }
       }
-
-      return d;
-    });
-  }, []);
+    },
+    [],
+  );
 
   const getLayers = useCallback(() => {
-    const { getLayer, payload, formData: fd, onAddFilter } = props;
+    const {
+      getLayer,
+      payload,
+      formData: fd,
+      onAddFilter,
+      onContextMenu,
+      filterState,
+      setDataMask,
+      emitCrossFilters,
+    } = props;
     let features = payload.data.features ? [...payload.data.features] : [];
 
+    const selectedColorScheme = fd.color_scheme_type;
+
     // Add colors from categories or fixed color
-    features = addColor(features, fd);
+    features = addColor(features, fd, selectedColorScheme);
 
     // Apply user defined data mutator if defined
     if (fd.js_data_mutator) {
@@ -173,13 +245,17 @@ const CategoricalDeckGLContainer = (props: CategoricalDeckGLContainerProps) => {
     };
 
     return [
-      getLayer(
-        fd,
-        filteredPayload,
+      getLayer({
+        formData: fd,
+        payload: filteredPayload,
         onAddFilter,
         setTooltip,
-        props.datasource,
-      ) as Layer,
+        datasource: props.datasource,
+        onContextMenu,
+        filterState,
+        setDataMask,
+        emitCrossFilters,
+      }) as Layer,
     ];
   }, [addColor, categories, props, setTooltip]);
 

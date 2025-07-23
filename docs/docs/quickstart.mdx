@@ -22,7 +22,7 @@ page.
 ### 1. Get Superset
 
 ```bash
-$ git clone https://github.com/apache/superset
+git clone https://github.com/apache/superset
 ```
 
 ### 2. Start the latest official release of Superset
@@ -30,6 +30,9 @@ $ git clone https://github.com/apache/superset
 ```bash
 # Enter the repository you just cloned
 $ cd superset
+
+# Set the repo to the state associated with the latest official version
+$ git checkout tags/5.0.0
 
 # Fire up Superset using Docker Compose
 $ docker compose -f docker-compose-image-tag.yml up
@@ -58,7 +61,7 @@ password: admin
 Once you're done with Superset, you can stop and delete just like any other container environment:
 
 ```bash
-$ docker compose down
+docker compose down
 ```
 
 :::tip

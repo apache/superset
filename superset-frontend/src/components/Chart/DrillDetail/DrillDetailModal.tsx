@@ -26,8 +26,7 @@ import {
   t,
   useTheme,
 } from '@superset-ui/core';
-import Modal from 'src/components/Modal';
-import Button from 'src/components/Button';
+import { Button, Modal } from '@superset-ui/core/components';
 import { useSelector } from 'react-redux';
 import { DashboardPageIdContext } from 'src/dashboard/containers/DashboardPage';
 import { Slice } from 'src/types/Chart';
@@ -69,7 +68,7 @@ const ModalFooter = ({
         onClick={closeModal}
         data-test="close-drilltodetail-modal"
         css={css`
-          margin-left: ${theme.gridUnit * 2}px;
+          margin-left: ${theme.sizeUnit * 2}px;
         `}
       >
         {t('Close')}
@@ -98,7 +97,7 @@ export default function DrillDetailModal({
   const dashboardPageId = useContext(DashboardPageIdContext);
   const { slice_name: chartName } = useSelector(
     (state: { sliceEntities: { slices: Record<number, Slice> } }) =>
-      state.sliceEntities.slices[chartId],
+      state.sliceEntities?.slices?.[chartId] || {},
   );
   const canExplore = useSelector((state: RootState) =>
     findPermission('can_explore', 'Superset', state.user?.roles),
@@ -130,15 +129,15 @@ export default function DrillDetailModal({
       responsive
       resizable
       resizableConfig={{
-        minHeight: theme.gridUnit * 128,
-        minWidth: theme.gridUnit * 128,
+        minHeight: theme.sizeUnit * 128,
+        minWidth: theme.sizeUnit * 128,
         defaultSize: {
           width: 'auto',
           height: '75vh',
         },
       }}
       draggable
-      destroyOnClose
+      destroyOnHidden
       maskClosable={false}
     >
       <DrillDetailPane formData={formData} initialFilters={initialFilters} />

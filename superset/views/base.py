@@ -23,7 +23,6 @@ import traceback
 from datetime import datetime
 from typing import Any, Callable
 
-import yaml
 from babel import Locale
 from flask import (
     abort,
@@ -33,17 +32,13 @@ from flask import (
     redirect,
     Response,
     session,
+    url_for,
 )
-from flask_appbuilder import BaseView, expose, Model, ModelView
+from flask_appbuilder import BaseView, Model, ModelView
 from flask_appbuilder.actions import action
-from flask_appbuilder.baseviews import expose_api
+from flask_appbuilder.const import AUTH_OAUTH, AUTH_OID
 from flask_appbuilder.forms import DynamicForm
 from flask_appbuilder.models.sqla.filters import BaseFilter
-from flask_appbuilder.security.decorators import (
-    has_access,
-    has_access_api,
-    permission_name,
-)
 from flask_appbuilder.security.sqla.models import User
 from flask_appbuilder.widgets import ListWidget
 from flask_babel import get_locale, gettext as __
@@ -65,15 +60,20 @@ from superset.connectors.sqla import models
 from superset.db_engine_specs import get_available_engine_specs
 from superset.db_engine_specs.gsheets import GSheetsEngineSpec
 from superset.extensions import cache_manager
-from superset.models.helpers import ImportExportMixin
 from superset.reports.models import ReportRecipientType
 from superset.superset_typing import FlaskResponse
-from superset.translations.utils import get_language_pack
+from superset.themes.utils import is_valid_theme, is_valid_theme_settings
 from superset.utils import core as utils, json
 from superset.utils.filters import get_dataset_access_filters
 from superset.views.error_handling import json_error_response
 
-from .utils import bootstrap_user_data
+from .utils import bootstrap_user_data, get_config_value
+
+DEFAULT_THEME_SETTINGS = {
+    "enforced": False,
+    "allowSwitching": True,
+    "allowOSPreference": True,
+}
 
 FRONTEND_CONF_KEYS = (
     "SUPERSET_WEBSERVER_TIMEOUT",
@@ -115,6 +115,8 @@ FRONTEND_CONF_KEYS = (
     "PREVENT_UNSAFE_DEFAULT_URLS_ON_DATASET",
     "JWT_ACCESS_CSRF_COOKIE_NAME",
     "SQLLAB_QUERY_RESULT_TIMEOUT",
+    "SYNC_DB_PERMISSIONS_IN_ASYNC_MODE",
+    "TABLE_VIZ_MAX_ROW_SERVER",
 )
 
 logger = logging.getLogger(__name__)
@@ -263,7 +265,8 @@ def menu_data(user: User) -> dict[str, Any]:
     return {
         "menu": appbuilder.menu.get_data(),
         "brand": {
-            "path": appbuilder.app.config["LOGO_TARGET_PATH"] or "/superset/welcome/",
+            "path": appbuilder.app.config["LOGO_TARGET_PATH"]
+            or url_for("Superset.welcome"),
             "icon": appbuilder.app_icon,
             "alt": appbuilder.app_name,
             "tooltip": appbuilder.app.config["LOGO_TOOLTIP"],
@@ -286,14 +289,49 @@ def menu_data(user: User) -> dict[str, Any]:
             "show_language_picker": len(languages) > 1,
             "user_is_anonymous": user.is_anonymous,
             "user_info_url": (
-                None
-                if is_feature_enabled("MENU_HIDE_USER_INFO")
-                else appbuilder.get_url_for_userinfo
+                None if is_feature_enabled("MENU_HIDE_USER_INFO") else "/user_info/"
             ),
             "user_logout_url": appbuilder.get_url_for_logout,
             "user_login_url": appbuilder.get_url_for_login,
             "locale": session.get("locale", "en"),
         },
+    }
+
+
+def get_theme_bootstrap_data() -> dict[str, Any]:
+    """
+    Returns the theme data to be sent to the client.
+    """
+    # Get theme configs
+    default_theme = get_config_value(conf, "THEME_DEFAULT")
+    dark_theme = get_config_value(conf, "THEME_DARK")
+    theme_settings = get_config_value(conf, "THEME_SETTINGS")
+
+    # Validate and warn if invalid
+    if not is_valid_theme(default_theme):
+        logger.warning(
+            "Invalid THEME_DEFAULT configuration: %s, using empty theme", default_theme
+        )
+        default_theme = {}
+
+    if not is_valid_theme(dark_theme):
+        logger.warning(
+            "Invalid THEME_DARK configuration: %s, using empty theme", dark_theme
+        )
+        dark_theme = {}
+
+    if not is_valid_theme_settings(theme_settings):
+        logger.warning(
+            "Invalid THEME_SETTINGS configuration: %s, using defaults", theme_settings
+        )
+        theme_settings = DEFAULT_THEME_SETTINGS
+
+    return {
+        "theme": {
+            "default": default_theme,
+            "dark": dark_theme,
+            "settings": theme_settings,
+        }
     }
 
 
@@ -326,24 +364,62 @@ def cached_common_bootstrap_data(  # pylint: disable=unused-argument
 
     # verify client has google sheets installed
     available_specs = get_available_engine_specs()
-    frontend_config["HAS_GSHEETS_INSTALLED"] = bool(available_specs[GSheetsEngineSpec])
+    frontend_config["HAS_GSHEETS_INSTALLED"] = (
+        GSheetsEngineSpec in available_specs
+        and bool(available_specs[GSheetsEngineSpec])
+    )
 
     language = locale.language if locale else "en"
+    auth_type = appbuilder.app.config["AUTH_TYPE"]
+    auth_user_registration = appbuilder.app.config["AUTH_USER_REGISTRATION"]
+    frontend_config["AUTH_USER_REGISTRATION"] = auth_user_registration
+    should_show_recaptcha = auth_user_registration and (auth_type != AUTH_OAUTH)
+
+    if auth_user_registration:
+        frontend_config["AUTH_USER_REGISTRATION_ROLE"] = appbuilder.app.config[
+            "AUTH_USER_REGISTRATION_ROLE"
+        ]
+    if should_show_recaptcha:
+        frontend_config["RECAPTCHA_PUBLIC_KEY"] = appbuilder.app.config[
+            "RECAPTCHA_PUBLIC_KEY"
+        ]
+
+    frontend_config["AUTH_TYPE"] = auth_type
+    if auth_type == AUTH_OAUTH:
+        oauth_providers = []
+        for provider in appbuilder.sm.oauth_providers:
+            oauth_providers.append(
+                {
+                    "name": provider["name"],
+                    "icon": provider["icon"],
+                }
+            )
+        frontend_config["AUTH_PROVIDERS"] = oauth_providers
+
+    if auth_type == AUTH_OID:
+        oid_providers = []
+        for provider in appbuilder.sm.openid_providers:
+            oid_providers.append(provider)
+        frontend_config["AUTH_PROVIDERS"] = oid_providers
 
     bootstrap_data = {
+        "application_root": conf["APPLICATION_ROOT"],
+        "static_assets_prefix": conf["STATIC_ASSETS_PREFIX"],
         "conf": frontend_config,
         "locale": language,
-        "language_pack": get_language_pack(language),
         "d3_format": conf.get("D3_FORMAT"),
         "d3_time_format": conf.get("D3_TIME_FORMAT"),
         "currencies": conf.get("CURRENCIES"),
+        "deckgl_tiles": conf.get("DECKGL_BASE_MAP"),
         "feature_flags": get_feature_flags(),
         "extra_sequential_color_schemes": conf["EXTRA_SEQUENTIAL_COLOR_SCHEMES"],
         "extra_categorical_color_schemes": conf["EXTRA_CATEGORICAL_COLOR_SCHEMES"],
-        "theme_overrides": conf["THEME_OVERRIDES"],
         "menu_data": menu_data(g.user),
     }
+
     bootstrap_data.update(conf["COMMON_BOOTSTRAP_OVERRIDES_FUNC"](bootstrap_data))
+    bootstrap_data.update(get_theme_bootstrap_data())
+
     return bootstrap_data
 
 
@@ -369,65 +445,6 @@ class SupersetListWidget(ListWidget):  # pylint: disable=too-few-public-methods
     template = "superset/fab_overrides/list.html"
 
 
-class DeprecateModelViewMixin:
-    @expose("/add", methods=["GET", "POST"])
-    @has_access
-    @deprecated(eol_version="5.0.0")
-    def add(self) -> FlaskResponse:
-        return super().add()  # type: ignore
-
-    @expose("/show/<pk>", methods=["GET"])
-    @has_access
-    @deprecated(eol_version="5.0.0")
-    def show(self, pk: int) -> FlaskResponse:
-        return super().show(pk)  # type: ignore
-
-    @expose("/edit/<pk>", methods=["GET", "POST"])
-    @has_access
-    @deprecated(eol_version="5.0.0")
-    def edit(self, pk: int) -> FlaskResponse:
-        return super().edit(pk)  # type: ignore
-
-    @expose("/delete/<pk>", methods=["GET", "POST"])
-    @has_access
-    @deprecated(eol_version="5.0.0")
-    def delete(self, pk: int) -> FlaskResponse:
-        return super().delete(pk)  # type: ignore
-
-    @expose_api(name="read", url="/api/read", methods=["GET"])
-    @has_access_api
-    @permission_name("list")
-    @deprecated(eol_version="5.0.0")
-    def api_read(self) -> FlaskResponse:
-        return super().api_read()  # type: ignore
-
-    @expose_api(name="get", url="/api/get/<pk>", methods=["GET"])
-    @has_access_api
-    @permission_name("show")
-    def api_get(self, pk: int) -> FlaskResponse:
-        return super().api_get(pk)  # type: ignore
-
-    @expose_api(name="create", url="/api/create", methods=["POST"])
-    @has_access_api
-    @permission_name("add")
-    def api_create(self) -> FlaskResponse:
-        return super().api_create()  # type: ignore
-
-    @expose_api(name="update", url="/api/update/<pk>", methods=["PUT"])
-    @has_access_api
-    @permission_name("write")
-    @deprecated(eol_version="5.0.0")
-    def api_update(self, pk: int) -> FlaskResponse:
-        return super().api_update(pk)  # type: ignore
-
-    @expose_api(name="delete", url="/api/delete/<pk>", methods=["DELETE"])
-    @has_access_api
-    @permission_name("delete")
-    @deprecated(eol_version="5.0.0")
-    def api_delete(self, pk: int) -> FlaskResponse:
-        return super().delete(pk)  # type: ignore
-
-
 class SupersetModelView(ModelView):
     page_size = 100
     list_widget = SupersetListWidget
@@ -443,38 +460,6 @@ class SupersetModelView(ModelView):
             bootstrap_data=json.dumps(
                 payload, default=json.pessimistic_json_iso_dttm_ser
             ),
-        )
-
-
-class ListWidgetWithCheckboxes(ListWidget):  # pylint: disable=too-few-public-methods
-    """An alternative to list view that renders Boolean fields as checkboxes
-
-    Works in conjunction with the `checkbox` view."""
-
-    template = "superset/fab_overrides/list_with_checkboxes.html"
-
-
-class YamlExportMixin:  # pylint: disable=too-few-public-methods
-    """
-    Override this if you want a dict response instead, with a certain key.
-    Used on DatabaseView for cli compatibility
-    """
-
-    yaml_dict_key: str | None = None
-
-    @action("yaml_export", __("Export to YAML"), __("Export to YAML?"), "fa-download")
-    def yaml_export(
-        self, items: ImportExportMixin | list[ImportExportMixin]
-    ) -> FlaskResponse:
-        if not isinstance(items, list):
-            items = [items]
-
-        data = [t.export_to_dict() for t in items]
-
-        return Response(
-            yaml.safe_dump({self.yaml_dict_key: data} if self.yaml_dict_key else data),
-            headers=generate_download_headers("yaml"),
-            mimetype="application/text",
         )
 
 

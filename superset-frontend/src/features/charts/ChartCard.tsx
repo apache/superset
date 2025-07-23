@@ -16,19 +16,22 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { isFeatureEnabled, FeatureFlag, t, useTheme } from '@superset-ui/core';
+import { isFeatureEnabled, FeatureFlag, t, css } from '@superset-ui/core';
 import { Link, useHistory } from 'react-router-dom';
-import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
-import Icons from 'src/components/Icons';
+import {
+  ConfirmStatusChange,
+  Button,
+  Dropdown,
+  FaveStar,
+  Label,
+  ListViewCard,
+  Icons,
+  MenuItem,
+} from '@superset-ui/core/components';
 import Chart from 'src/types/Chart';
-
-import ListViewCard from 'src/components/ListViewCard';
-import Label from 'src/components/Label';
-import { AntdDropdown } from 'src/components';
-import { Menu } from 'src/components/Menu';
-import FaveStar from 'src/components/FaveStar';
-import FacePile from 'src/components/FacePile';
+import { FacePile } from 'src/components';
 import { handleChartDelete, CardStyles } from 'src/views/CRUD/utils';
+import { assetUrl } from 'src/utils/assetUrl';
 
 interface ChartCardProps {
   chart: Chart;
@@ -67,70 +70,95 @@ export default function ChartCard({
   const canEdit = hasPerm('can_write');
   const canDelete = hasPerm('can_write');
   const canExport = hasPerm('can_export');
-  const theme = useTheme();
+  const menuItems: MenuItem[] = [];
 
-  const menu = (
-    <Menu>
-      {canDelete && (
-        <Menu.Item>
-          <ConfirmStatusChange
-            title={t('Please confirm')}
-            description={
-              <>
-                {t('Are you sure you want to delete')} <b>{chart.slice_name}</b>
-                ?
-              </>
-            }
-            onConfirm={() =>
-              handleChartDelete(
-                chart,
-                addSuccessToast,
-                addDangerToast,
-                refreshData,
-                chartFilter,
-                userId,
-              )
-            }
-          >
-            {confirmDelete => (
-              <div
-                data-test="chart-list-delete-option"
-                role="button"
-                tabIndex={0}
-                className="action-button"
-                onClick={confirmDelete}
-              >
-                <Icons.Trash iconSize="l" /> {t('Delete')}
-              </div>
-            )}
-          </ConfirmStatusChange>
-        </Menu.Item>
-      )}
-      {canExport && (
-        <Menu.Item>
-          <div
-            role="button"
-            tabIndex={0}
-            onClick={() => handleBulkChartExport([chart])}
-          >
-            <Icons.Share iconSize="l" /> {t('Export')}
-          </div>
-        </Menu.Item>
-      )}
-      {canEdit && (
-        <Menu.Item>
-          <div
-            data-test="chart-list-edit-option"
-            role="button"
-            tabIndex={0}
-            onClick={() => openChartEditModal(chart)}
-          >
-            <Icons.EditAlt iconSize="l" /> {t('Edit')}
-          </div>
-        </Menu.Item>
-      )}
-    </Menu>
-  );
+  if (canEdit) {
+    menuItems.push({
+      key: 'edit',
+      label: (
+        <div
+          data-test="chart-list-edit-option"
+          role="button"
+          tabIndex={0}
+          onClick={() => openChartEditModal(chart)}
+        >
+          <Icons.EditOutlined
+            iconSize="l"
+            css={css`
+              vertical-align: text-top;
+            `}
+          />{' '}
+          {t('Edit')}
+        </div>
+      ),
+    });
+  }
+
+  if (canExport) {
+    menuItems.push({
+      key: 'export',
+      label: (
+        <div
+          role="button"
+          tabIndex={0}
+          onClick={() => handleBulkChartExport([chart])}
+        >
+          <Icons.UploadOutlined
+            iconSize="l"
+            css={css`
+              vertical-align: text-top;
+            `}
+          />{' '}
+          {t('Export')}
+        </div>
+      ),
+    });
+  }
+
+  if (canDelete) {
+    menuItems.push({
+      key: 'delete',
+      label: (
+        <ConfirmStatusChange
+          title={t('Please confirm')}
+          description={
+            <>
+              {t('Are you sure you want to delete')} <b>{chart.slice_name}</b>?
+            </>
+          }
+          onConfirm={() =>
+            handleChartDelete(
+              chart,
+              addSuccessToast,
+              addDangerToast,
+              refreshData,
+              chartFilter,
+              userId,
+            )
+          }
+        >
+          {confirmDelete => (
+            <div
+              data-test="chart-list-delete-option"
+              role="button"
+              tabIndex={0}
+              className="action-button"
+              onClick={confirmDelete}
+            >
+              <Icons.DeleteOutlined
+                iconSize="l"
+                css={css`
+                  vertical-align: text-top;
+                `}
+              />{' '}
+              {t('Delete')}
+            </div>
+          )}
+        </ConfirmStatusChange>
+      ),
+    });
+  }
+
   return (
     <CardStyles
       onClick={() => {
@@ -151,12 +179,12 @@ export default function ChartCard({
         }
         url={bulkSelectEnabled ? undefined : chart.url}
         imgURL={chart.thumbnail_url || ''}
-        imgFallbackURL="/static/assets/images/chart-card-fallback.svg"
+        imgFallbackURL={assetUrl(
+          '/static/assets/images/chart-card-fallback.svg',
+        )}
         description={t('Modified %s', chart.changed_on_delta_humanized)}
         coverLeft={<FacePile users={chart.owners || []} />}
-        coverRight={
-          <Label type="secondary">{chart.datasource_name_text}</Label>
-        }
+        coverRight={<Label>{chart.datasource_name_text}</Label>}
         linkComponent={Link}
         actions={
           <ListViewCard.Actions
@@ -172,9 +200,11 @@ export default function ChartCard({
                 isStarred={favoriteStatus}
               />
             )}
-            <AntdDropdown overlay={menu}>
-              <Icons.MoreVert iconColor={theme.colors.grayscale.base} />
-            </AntdDropdown>
+            <Dropdown menu={{ items: menuItems }} trigger={['click', 'hover']}>
+              <Button buttonSize="xsmall" type="link" buttonStyle="link">
+                <Icons.MoreOutlined iconSize="xl" />
+              </Button>
+            </Dropdown>
           </ListViewCard.Actions>
         }
       />

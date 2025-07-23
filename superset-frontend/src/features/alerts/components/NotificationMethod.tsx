@@ -34,8 +34,9 @@ import {
   t,
   useTheme,
 } from '@superset-ui/core';
-import { Select } from 'src/components';
-import Icons from 'src/components/Icons';
+import { Icons } from '@superset-ui/core/components/Icons';
+import { Input, Select } from '@superset-ui/core/components';
+import RefreshLabel from '@superset-ui/core/components/RefreshLabel';
 import {
   NotificationMethodOption,
   NotificationSetting,
@@ -45,7 +46,7 @@ import { StyledInputContainer } from '../AlertReportModal';
 
 const StyledNotificationMethod = styled.div`
   ${({ theme }) => `
-    margin-bottom: ${theme.gridUnit * 3}px;
+    margin-bottom: ${theme.sizeUnit * 3}px;
 
     .input-container {
       textarea {
@@ -54,48 +55,50 @@ const StyledNotificationMethod = styled.div`
 
       &.error {
         input {
-          border-color: ${theme.colors.error.base};
+          border-color: ${theme.colorError};
         }
       }
 
       .helper {
-        margin-top: ${theme.gridUnit * 2}px;
-        font-size: ${theme.typography.sizes.s}px;
+        margin-top: ${theme.sizeUnit * 2}px;
+        font-size: ${theme.fontSizeSM}px;
         color: ${theme.colors.grayscale.base};
       }
     }
 
     .inline-container {
-      margin-bottom: ${theme.gridUnit * 2}px;
+      margin-bottom: ${theme.sizeUnit * 2}px;
 
       > div {
         margin: 0px;
       }
 
       .delete-button {
-        margin-left: ${theme.gridUnit * 2}px;
-        padding-top: ${theme.gridUnit}px;
+        margin-left: ${theme.sizeUnit * 2}px;
+        padding-top: ${theme.sizeUnit}px;
+      }
+      .anticon {
+        margin-left: ${theme.sizeUnit}px;
       }
     }
 
     .ghost-button {
-      color: ${theme.colors.primary.dark1};
+      color: ${theme.colorPrimaryText};
       display: inline-flex;
       align-items: center;
-      font-size: ${theme.typography.sizes.s}px;
+      font-size: ${theme.fontSizeSM}px;
       cursor: pointer;
-      margin-top: ${theme.gridUnit}px;
 
       .icon {
-        width: ${theme.gridUnit * 3}px;
-        height: ${theme.gridUnit * 3}px;
-        font-size: ${theme.typography.sizes.s}px;
-        margin-right: ${theme.gridUnit}px;
+        width: ${theme.sizeUnit * 3}px;
+        height: ${theme.sizeUnit * 3}px;
+        font-size: ${theme.fontSizeSM}px;
+        margin-right: ${theme.sizeUnit}px;
       }
     }
 
     .ghost-button + .ghost-button {
-      margin-left: ${theme.gridUnit * 4}px;
+      margin-left: ${theme.sizeUnit * 4}px;
     }
 
     .ghost-button:first-child[style*='none'] + .ghost-button {
@@ -221,6 +224,8 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
   ]);
 
   const [useSlackV1, setUseSlackV1] = useState<boolean>(false);
+  const [isSlackChannelsLoading, setIsSlackChannelsLoading] =
+    useState<boolean>(true);
 
   const onMethodChange = (selected: {
     label: string;
@@ -248,14 +253,68 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
     searchString = '',
     types = [],
     exactMatch = false,
+    force = false,
   }: {
     searchString?: string | undefined;
     types?: string[];
     exactMatch?: boolean | undefined;
+    force?: boolean | undefined;
   } = {}): Promise<JsonResponse> => {
-    const queryString = rison.encode({ searchString, types, exactMatch });
+    const queryString = rison.encode({
+      searchString,
+      types,
+      exactMatch,
+      force,
+    });
     const endpoint = `/api/v1/report/slack_channels/?q=${queryString}`;
     return SupersetClient.get({ endpoint });
+  };
+
+  const updateSlackOptions = async ({
+    force,
+  }: {
+    force?: boolean | undefined;
+  } = {}) => {
+    setIsSlackChannelsLoading(true);
+    fetchSlackChannels({ types: ['public_channel', 'private_channel'], force })
+      .then(({ json }) => {
+        const { result } = json;
+        const options: SlackOptionsType = mapChannelsToOptions(result);
+
+        setSlackOptions(options);
+
+        if (isFeatureEnabled(FeatureFlag.AlertReportSlackV2)) {
+          // for edit mode, map existing ids to names for display if slack v2
+          // or names to ids if slack v1
+          const [publicOptions, privateOptions] = options;
+          if (
+            method &&
+            [
+              NotificationMethodOption.SlackV2,
+              NotificationMethodOption.Slack,
+            ].includes(method)
+          ) {
+            setSlackRecipients(
+              mapSlackValues({
+                method,
+                recipientValue,
+                slackOptions: [
+                  ...publicOptions.options,
+                  ...privateOptions.options,
+                ],
+              }),
+            );
+          }
+        }
+      })
+      .catch(e => {
+        // Fallback to slack v1 if slack v2 is not compatible
+        setUseSlackV1(true);
+      })
+      .finally(() => {
+        setMethodOptionsLoading(false);
+        setIsSlackChannelsLoading(false);
+      });
   };
 
   useEffect(() => {
@@ -265,44 +324,7 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
         option === NotificationMethodOption.SlackV2,
     );
     if (slackEnabled && !slackOptions[0]?.options.length) {
-      fetchSlackChannels({ types: ['public_channel', 'private_channel'] })
-        .then(({ json }) => {
-          const { result } = json;
-          const options: SlackOptionsType = mapChannelsToOptions(result);
-
-          setSlackOptions(options);
-
-          if (isFeatureEnabled(FeatureFlag.AlertReportSlackV2)) {
-            // for edit mode, map existing ids to names for display if slack v2
-            // or names to ids if slack v1
-            const [publicOptions, privateOptions] = options;
-            if (
-              method &&
-              [
-                NotificationMethodOption.SlackV2,
-                NotificationMethodOption.Slack,
-              ].includes(method)
-            ) {
-              setSlackRecipients(
-                mapSlackValues({
-                  method,
-                  recipientValue,
-                  slackOptions: [
-                    ...publicOptions.options,
-                    ...privateOptions.options,
-                  ],
-                }),
-              );
-            }
-          }
-        })
-        .catch(e => {
-          // Fallback to slack v1 if slack v2 is not compatible
-          setUseSlackV1(true);
-        })
-        .finally(() => {
-          setMethodOptionsLoading(false);
-        });
+      updateSlackOptions();
     }
   }, []);
 
@@ -447,7 +469,7 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
                 className="delete-button"
                 onClick={() => onRemove(index)}
               >
-                <Icons.Trash iconColor={theme.colors.grayscale.base} />
+                <Icons.DeleteOutlined iconSize="l" />
               </span>
             ) : null}
           </div>
@@ -463,7 +485,7 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
                     {TRANSLATIONS.EMAIL_SUBJECT_NAME}
                   </div>
                   <div className={`input-container ${error ? 'error' : ''}`}>
-                    <input
+                    <Input
                       type="text"
                       name="email_subject"
                       value={email_subject}
@@ -474,8 +496,8 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
                   {error && (
                     <div
                       style={{
-                        color: theme.colors.error.base,
-                        fontSize: theme.gridUnit * 3,
+                        color: theme.colorError,
+                        fontSize: theme.sizeUnit * 3,
                       }}
                     >
                       {TRANSLATIONS.EMAIL_SUBJECT_ERROR_TEXT}
@@ -503,7 +525,7 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
                 ].includes(method) ? (
                   <>
                     <div className="input-container">
-                      <textarea
+                      <Input.TextArea
                         name="To"
                         data-test="recipients"
                         value={recipientValue}
@@ -518,18 +540,26 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
                   </>
                 ) : (
                   // for SlackV2
-                  <Select
-                    ariaLabel={t('Select channels')}
-                    mode="multiple"
-                    name="recipients"
-                    value={slackRecipients}
-                    options={slackOptions}
-                    onChange={onSlackRecipientsChange}
-                    allowClear
-                    data-test="recipients"
-                    allowSelectAll={false}
-                    labelInValue
-                  />
+                  <div className="input-container">
+                    <Select
+                      ariaLabel={t('Select channels')}
+                      mode="multiple"
+                      name="recipients"
+                      value={slackRecipients}
+                      options={slackOptions}
+                      onChange={onSlackRecipientsChange}
+                      allowClear
+                      data-test="recipients"
+                      loading={isSlackChannelsLoading}
+                      allowSelectAll={false}
+                      labelInValue
+                    />
+                    <RefreshLabel
+                      onClick={() => updateSlackOptions({ force: true })}
+                      tooltipContent={t('Force refresh Slack channels list')}
+                      disabled={isSlackChannelsLoading}
+                    />
+                  </div>
                 )}
               </div>
             </StyledInputContainer>
@@ -543,7 +573,7 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
                     {TRANSLATIONS.EMAIL_CC_NAME}
                   </div>
                   <div className="input-container">
-                    <textarea
+                    <Input.TextArea
                       name="CC"
                       data-test="cc"
                       value={ccValue}
@@ -564,7 +594,7 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
                     {TRANSLATIONS.EMAIL_BCC_NAME}
                   </div>
                   <div className="input-container">
-                    <textarea
+                    <Input.TextArea
                       name="BCC"
                       data-test="bcc"
                       value={bccValue}
@@ -587,7 +617,7 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
                   onClick={() => setCcVisible(true)}
                   style={{ display: ccVisible ? 'none' : 'inline-flex' }}
                 >
-                  <Icons.Email className="icon" />
+                  <Icons.MailOutlined iconSize="xs" className="icon" />
                   {t('Add CC Recipients')}
                 </span>
                 <span
@@ -597,7 +627,7 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
                   onClick={() => setBccVisible(true)}
                   style={{ display: bccVisible ? 'none' : 'inline-flex' }}
                 >
-                  <Icons.Email className="icon" />
+                  <Icons.MailOutlined iconSize="xs" className="icon" />
                   {t('Add BCC Recipients')}
                 </span>
               </div>

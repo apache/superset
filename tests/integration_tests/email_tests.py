@@ -141,7 +141,11 @@ class TestEmailSmtp(SupersetTestCase):
     def test_send_smtp_inline_images(self, mock_send_mime):
         image = read_fixture("sample.png")
         utils.send_email_smtp(
-            "to", "subject", "content", app.config, images=dict(blah=image)
+            "to",
+            "subject",
+            "content",
+            app.config,
+            images=dict(blah=image),  # noqa: C408
         )
         assert mock_send_mime.called
         call_args = mock_send_mime.call_args[0]
@@ -222,7 +226,7 @@ class TestEmailSmtp(SupersetTestCase):
             app.config["SMTP_HOST"], app.config["SMTP_PORT"], context=mock.ANY
         )
         called_context = mock_smtp_ssl.call_args.kwargs["context"]
-        self.assertEqual(called_context.verify_mode, ssl.CERT_REQUIRED)
+        assert called_context.verify_mode == ssl.CERT_REQUIRED
 
     @mock.patch("smtplib.SMTP")
     def test_send_mime_tls_server_auth(self, mock_smtp):
@@ -233,7 +237,7 @@ class TestEmailSmtp(SupersetTestCase):
         utils.send_mime_email("from", "to", MIMEMultipart(), app.config, dryrun=False)
         mock_smtp.return_value.starttls.assert_called_with(context=mock.ANY)
         called_context = mock_smtp.return_value.starttls.call_args.kwargs["context"]
-        self.assertEqual(called_context.verify_mode, ssl.CERT_REQUIRED)
+        assert called_context.verify_mode == ssl.CERT_REQUIRED
 
     @mock.patch("smtplib.SMTP_SSL")
     @mock.patch("smtplib.SMTP")

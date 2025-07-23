@@ -49,6 +49,7 @@ from superset.exceptions import (
 from superset.extensions import cache_manager, security_manager
 from superset.models.helpers import QueryResult
 from superset.models.sql_lab import Query
+from superset.superset_typing import AdhocColumn, AdhocMetric
 from superset.utils import csv, excel
 from superset.utils.cache import generate_cache_key, set_and_log_cache
 from superset.utils.core import (
@@ -63,6 +64,8 @@ from superset.utils.core import (
     get_column_names_from_metrics,
     get_metric_names,
     get_x_axis_label,
+    is_adhoc_column,
+    is_adhoc_metric,
     normalize_dttm_col,
     TIME_COMPARISON,
 )
@@ -180,6 +183,42 @@ class QueryContextProcessor:
             ]
             for col in cache.df.columns.values
         }
+        label_map.update(
+            {
+                column_name: [
+                    (
+                        str(query_obj.columns[idx])
+                        if not is_adhoc_column(query_obj.columns[idx])
+                        else cast(AdhocColumn, query_obj.columns[idx])["sqlExpression"]
+                    ),
+                ]
+                for idx, column_name in enumerate(query_obj.column_names)
+            }
+        )
+        label_map.update(
+            {
+                metric_name: [
+                    (
+                        str(query_obj.metrics[idx])
+                        if not is_adhoc_metric(query_obj.metrics[idx])
+                        else (
+                            str(
+                                cast(AdhocMetric, query_obj.metrics[idx])[
+                                    "sqlExpression"
+                                ]
+                            )
+                            if cast(AdhocMetric, query_obj.metrics[idx])[
+                                "expressionType"
+                            ]
+                            == "SQL"
+                            else metric_name
+                        )
+                    ),
+                ]
+                for idx, metric_name in enumerate(query_obj.metric_names)
+                if query_obj and query_obj.metrics
+            }
+        )
         cache.df.columns = [unescape_separator(col) for col in cache.df.columns.values]
 
         return {
@@ -379,6 +418,19 @@ class QueryContextProcessor:
             # If parsing fails, it's not a valid date in the format YYYY-MM-DD
             return False
 
+    def is_valid_date_range(self, date_range: str) -> bool:
+        try:
+            # Attempt to parse the string as a date range in the format
+            # YYYY-MM-DD:YYYY-MM-DD
+            start_date, end_date = date_range.split(":")
+            datetime.strptime(start_date.strip(), "%Y-%m-%d")
+            datetime.strptime(end_date.strip(), "%Y-%m-%d")
+            return True
+        except ValueError:
+            # If parsing fails, it's not a valid date range in the format
+            # YYYY-MM-DD:YYYY-MM-DD
+            return False
+
     def get_offset_custom_or_inherit(
         self,
         offset: str,
@@ -394,15 +446,15 @@ class QueryContextProcessor:
         :returns: The time offset.
         """
         if offset == "inherit":
-            # return the difference in days between the from and the to dttm formatted as a string with the " days ago" suffix
+            # return the difference in days between the from and the to dttm formatted as a string with the " days ago" suffix  # noqa: E501
             return f"{(outer_to_dttm - outer_from_dttm).days} days ago"
         if self.is_valid_date(offset):
-            # return the offset as the difference in days between the outer from dttm and the offset date (which is a YYYY-MM-DD string) formatted as a string with the " days ago" suffix
+            # return the offset as the difference in days between the outer from dttm and the offset date (which is a YYYY-MM-DD string) formatted as a string with the " days ago" suffix  # noqa: E501
             offset_date = datetime.strptime(offset, "%Y-%m-%d")
             return f"{(outer_from_dttm - offset_date).days} days ago"
         return ""
 
-    def processing_time_offsets(  # pylint: disable=too-many-locals,too-many-statements
+    def processing_time_offsets(  # pylint: disable=too-many-locals,too-many-statements  # noqa: C901
         self,
         df: pd.DataFrame,
         query_object: QueryObject,
@@ -433,27 +485,42 @@ class QueryContextProcessor:
         for offset in query_object.time_offsets:
             try:
                 # pylint: disable=line-too-long
-                # Since the x-axis is also a column name for the time filter, x_axis_label will be set as granularity
+                # Since the x-axis is also a column name for the time filter, x_axis_label will be set as granularity  # noqa: E501
                 # these query object are equivalent:
-                # 1) { granularity: 'dttm_col', time_range: '2020 : 2021', time_offsets: ['1 year ago']}
+                # 1) { granularity: 'dttm_col', time_range: '2020 : 2021', time_offsets: ['1 year ago']}  # noqa: E501
                 # 2) { columns: [
-                #        {label: 'dttm_col', sqlExpression: 'dttm_col', "columnType": "BASE_AXIS" }
+                #        {label: 'dttm_col', sqlExpression: 'dttm_col', "columnType": "BASE_AXIS" }  # noqa: E501
                 #      ],
                 #      time_offsets: ['1 year ago'],
-                #      filters: [{col: 'dttm_col', op: 'TEMPORAL_RANGE', val: '2020 : 2021'}],
+                #      filters: [{col: 'dttm_col', op: 'TEMPORAL_RANGE', val: '2020 : 2021'}],  # noqa: E501
                 #    }
                 original_offset = offset
-                if self.is_valid_date(offset) or offset == "inherit":
-                    offset = self.get_offset_custom_or_inherit(
+                if self.is_valid_date_range(offset):
+                    try:
+                        # Parse the specified range
+                        offset_from_dttm, offset_to_dttm = (
+                            get_since_until_from_time_range(time_range=offset)
+                        )
+                    except ValueError as ex:
+                        raise QueryObjectValidationError(str(ex)) from ex
+
+                    # Use the specified range directly
+                    query_object_clone.from_dttm = offset_from_dttm
+                    query_object_clone.to_dttm = offset_to_dttm
+                else:
+                    if self.is_valid_date(offset) or offset == "inherit":
+                        offset = self.get_offset_custom_or_inherit(
+                            offset,
+                            outer_from_dttm,
+                            outer_to_dttm,
+                        )
+                    query_object_clone.from_dttm = get_past_or_future(
                         offset,
                         outer_from_dttm,
-                        outer_to_dttm,
                     )
-                query_object_clone.from_dttm = get_past_or_future(
-                    offset,
-                    outer_from_dttm,
-                )
-                query_object_clone.to_dttm = get_past_or_future(offset, outer_to_dttm)
+                    query_object_clone.to_dttm = get_past_or_future(
+                        offset, outer_to_dttm
+                    )
 
                 x_axis_label = get_x_axis_label(query_object.columns)
                 query_object_clone.granularity = (
@@ -474,30 +541,33 @@ class QueryContextProcessor:
                 # Lets find the first temporal filter in the filters array and change
                 # its val to be the result of get_since_until with the offset
                 for flt in query_object_clone.filter:
-                    if flt.get(
-                        "op"
-                    ) == FilterOperator.TEMPORAL_RANGE.value and isinstance(
+                    if flt.get("op") == FilterOperator.TEMPORAL_RANGE and isinstance(
                         flt.get("val"), str
                     ):
                         time_range = cast(str, flt.get("val"))
-                        (
-                            new_outer_from_dttm,
-                            new_outer_to_dttm,
-                        ) = get_since_until_from_time_range(
-                            time_range=time_range,
-                            time_shift=offset,
-                        )
-                        flt["val"] = f"{new_outer_from_dttm} : {new_outer_to_dttm}"
+                        if self.is_valid_date_range(offset):
+                            flt["val"] = (
+                                f"{query_object_clone.from_dttm} : {query_object_clone.to_dttm}"  # noqa: E501
+                            )
+                        else:
+                            (
+                                new_outer_from_dttm,
+                                new_outer_to_dttm,
+                            ) = get_since_until_from_time_range(
+                                time_range=time_range,
+                                time_shift=offset,
+                            )
+                            flt["val"] = f"{new_outer_from_dttm} : {new_outer_to_dttm}"
             query_object_clone.filter = [
                 flt
                 for flt in query_object_clone.filter
                 if flt.get("col") != x_axis_label
             ]
 
-            # Inherit or custom start dates might compute the same offset but the response cannot be given
-            # using cached data unless you are using the same date of inherited range, that's why we
-            # set the cache cache using a custom key that includes the original offset and the computed offset
-            # for those two scenarios, the rest of the scenarios will use the original offset as cache key
+            # Inherit or custom start dates might compute the same offset but the response cannot be given  # noqa: E501
+            # using cached data unless you are using the same date of inherited range, that's why we  # noqa: E501
+            # set the cache cache using a custom key that includes the original offset and the computed offset  # noqa: E501
+            # for those two scenarios, the rest of the scenarios will use the original offset as cache key  # noqa: E501
             cached_time_offset_key = (
                 offset if offset == original_offset else f"{offset}_{original_offset}"
             )
@@ -714,6 +784,47 @@ class QueryContextProcessor:
 
         return df.to_dict(orient="records")
 
+    def ensure_totals_available(self) -> None:
+        queries_needing_totals = []
+        totals_queries = []
+
+        for i, query in enumerate(self._query_context.queries):
+            needs_totals = any(
+                pp.get("operation") == "contribution"
+                for pp in getattr(query, "post_processing", []) or []
+            )
+
+            if needs_totals:
+                queries_needing_totals.append(i)
+
+            is_totals_query = (
+                not query.columns and query.metrics and not query.post_processing
+            )
+            if is_totals_query:
+                totals_queries.append(i)
+
+        if not queries_needing_totals or not totals_queries:
+            return
+
+        totals_idx = totals_queries[0]
+        totals_query = self._query_context.queries[totals_idx]
+
+        totals_query.row_limit = None
+
+        result = self._query_context.get_query_result(totals_query)
+        df = result.df
+
+        totals = {
+            col: df[col].sum() for col in df.columns if df[col].dtype.kind in "biufc"
+        }
+
+        for idx in queries_needing_totals:
+            query = self._query_context.queries[idx]
+            if hasattr(query, "post_processing") and query.post_processing:
+                for pp in query.post_processing:
+                    if pp.get("operation") == "contribution":
+                        pp["options"]["contribution_totals"] = totals
+
     def get_payload(
         self,
         cache_query_context: bool | None = False,
@@ -721,7 +832,8 @@ class QueryContextProcessor:
     ) -> dict[str, Any]:
         """Returns the query results with both metadata and data"""
 
-        # Get all the payloads from the QueryObjects
+        self.ensure_totals_available()
+
         query_results = [
             get_query_results(
                 query_obj.result_type or self._query_context.result_type,
@@ -731,6 +843,7 @@ class QueryContextProcessor:
             )
             for query_obj in self._query_context.queries
         ]
+
         return_value = {"queries": query_results}
 
         if cache_query_context:
@@ -824,20 +937,31 @@ class QueryContextProcessor:
         return annotation_data
 
     @staticmethod
-    def get_viz_annotation_data(
+    def get_viz_annotation_data(  # noqa: C901
         annotation_layer: dict[str, Any], force: bool
     ) -> dict[str, Any]:
         # pylint: disable=import-outside-toplevel
         from superset.commands.chart.data.get_data_command import ChartDataCommand
 
         if not (chart := ChartDAO.find_by_id(annotation_layer["value"])):
-            raise QueryObjectValidationError(_("The chart does not exist"))
+            raise QueryObjectValidationError(
+                _(
+                    f"""Chart with ID {annotation_layer["value"]} (referenced by
+                    annotation layer '{annotation_layer["name"]}') was not found.
+                    Please verify that the chart exists and is accessible."""
+                )
+            )
 
         try:
             if chart.viz_type in viz_types:
                 if not chart.datasource:
                     raise QueryObjectValidationError(
-                        _("The chart datasource does not exist"),
+                        _(
+                            f"""The dataset for chart ID {chart.id} (referenced by
+                            annotation layer '{annotation_layer["name"]}') was
+                            not found. Please check that the dataset exists and
+                            is accessible."""
+                        )
                     )
 
                 form_data = chart.form_data.copy()
@@ -854,7 +978,12 @@ class QueryContextProcessor:
 
             if not (query_context := chart.get_query_context()):
                 raise QueryObjectValidationError(
-                    _("The chart query context does not exist"),
+                    _(
+                        f"""The query context for chart ID {chart.id} (referenced
+                        by annotation layer '{annotation_layer["name"]}') was not found.
+                        Please ensure the chart is properly configured and has a valid
+                        query context."""
+                    )
                 )
 
             if overrides := annotation_layer.get("overrides"):

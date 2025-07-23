@@ -25,13 +25,8 @@ import {
   useCallback,
 } from 'react';
 import { styled, SupersetClient, SupersetError, t } from '@superset-ui/core';
-import type { LabeledValue as AntdLabeledValue } from 'antd/lib/select';
 import rison from 'rison';
-import { AsyncSelect, Select } from 'src/components';
-import ErrorMessageWithStackTrace from 'src/components/ErrorMessage/ErrorMessageWithStackTrace';
-import Label from 'src/components/Label';
-import { FormLabel } from 'src/components/Form';
-import RefreshLabel from 'src/components/RefreshLabel';
+import RefreshLabel from '@superset-ui/core/components/RefreshLabel';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
 import {
   useCatalogs,
@@ -39,6 +34,20 @@ import {
   useSchemas,
   SchemaOption,
 } from 'src/hooks/apiResources';
+import {
+  Select,
+  AsyncSelect,
+  Label,
+  FormLabel,
+  LabeledValue as AntdLabeledValue,
+} from '@superset-ui/core/components';
+
+import { ErrorMessageWithStackTrace } from 'src/components';
+import type {
+  DatabaseSelectorProps,
+  DatabaseValue,
+  DatabaseObject,
+} from './types';
 
 const DatabaseSelectorWrapper = styled.div`
   ${({ theme }) => `
@@ -46,8 +55,8 @@ const DatabaseSelectorWrapper = styled.div`
       display: flex;
       align-items: center;
       width: 30px;
-      margin-left: ${theme.gridUnit}px;
-      margin-top: ${theme.gridUnit * 5}px;
+      margin-left: ${theme.sizeUnit}px;
+      margin-top: ${theme.sizeUnit * 5}px;
     }
 
     .section {
@@ -57,12 +66,12 @@ const DatabaseSelectorWrapper = styled.div`
     }
 
     .select {
-      width: calc(100% - 30px - ${theme.gridUnit}px);
+      width: calc(100% - 30px - ${theme.sizeUnit}px);
       flex: 1;
     }
 
     & > div {
-      margin-bottom: ${theme.gridUnit * 4}px;
+      margin-bottom: ${theme.sizeUnit * 4}px;
     }
   `}
 `;
@@ -71,7 +80,7 @@ const LabelStyle = styled.div`
   display: flex;
   flex-direction: row;
   align-items: center;
-  margin-left: ${({ theme }) => theme.gridUnit - 2}px;
+  margin-left: ${({ theme }) => theme.sizeUnit - 2}px;
 
   .backend {
     overflow: visible;
@@ -82,38 +91,6 @@ const LabelStyle = styled.div`
     text-overflow: ellipsis;
   }
 `;
-
-type DatabaseValue = {
-  label: ReactNode;
-  value: number;
-  id: number;
-  database_name: string;
-  backend?: string;
-};
-
-export type DatabaseObject = {
-  id: number;
-  database_name: string;
-  backend?: string;
-  allow_multi_catalog?: boolean;
-};
-
-export interface DatabaseSelectorProps {
-  db?: DatabaseObject | null;
-  emptyState?: ReactNode;
-  formMode?: boolean;
-  getDbList?: (arg0: any) => void;
-  handleError: (msg: string) => void;
-  isDatabaseSelectEnabled?: boolean;
-  onDbChange?: (db: DatabaseObject) => void;
-  onEmptyResults?: (searchText?: string) => void;
-  onCatalogChange?: (catalog?: string) => void;
-  catalog?: string | null;
-  onSchemaChange?: (schema?: string) => void;
-  schema?: string;
-  readOnly?: boolean;
-  sqlLabMode?: boolean;
-}
 
 const SelectLabel = ({
   backend,
@@ -137,7 +114,7 @@ interface AntdLabeledValueWithOrder extends AntdLabeledValue {
   order: number;
 }
 
-export default function DatabaseSelector({
+export function DatabaseSelector({
   db,
   formMode = false,
   emptyState,
@@ -219,7 +196,7 @@ export default function DatabaseSelector({
               />
             ),
             value: row.id,
-            id: row.id,
+            id: `${row.backend}-${row.database_name}-${row.id}`,
             database_name: row.database_name,
             backend: row.backend,
             allow_multi_catalog: row.allow_multi_catalog,
@@ -342,11 +319,14 @@ export default function DatabaseSelector({
     value: { label: string; value: number },
     database: DatabaseValue,
   ) {
-    setCurrentDb(database);
+    // the database id is actually stored in the value property; the ID is used
+    // for the DOM, so it can't be an integer
+    const databaseWithId = { ...database, id: database.value };
+    setCurrentDb(databaseWithId);
     setCurrentCatalog(undefined);
     setCurrentSchema(undefined);
     if (onDbChange) {
-      onDbChange(database);
+      onDbChange(databaseWithId);
     }
     if (onCatalogChange) {
       onCatalogChange(undefined);
@@ -406,6 +386,7 @@ export default function DatabaseSelector({
         options={catalogOptions}
         showSearch
         value={currentCatalog || undefined}
+        allowClear
       />,
       refreshIcon,
     );
@@ -432,6 +413,7 @@ export default function DatabaseSelector({
         options={schemaOptions}
         showSearch
         value={currentSchema}
+        allowClear
       />,
       refreshIcon,
     );
@@ -452,3 +434,5 @@ export default function DatabaseSelector({
     </DatabaseSelectorWrapper>
   );
 }
+
+export type { DatabaseObject };
