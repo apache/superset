@@ -18,7 +18,7 @@
  */
 
 import { useState, useCallback, useMemo, useEffect } from 'react';
-import { styled, t, useTheme } from '@superset-ui/core';
+import { t } from '@superset-ui/core';
 import {
   StyledComponents,
   NoFieldsMessage,
@@ -118,7 +118,6 @@ export function TooltipTemplateEditor({
   name,
   tooltipContents = [],
 }: TooltipTemplateEditorProps) {
-  const theme = useTheme();
   const [showHelp, setShowHelp] = useState(false);
   const [textareaRef, setTextareaRef] = useState<HTMLTextAreaElement | null>(
     null,

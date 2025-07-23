@@ -19,7 +19,6 @@
 import { Color } from '@deck.gl/core';
 import { GridLayer } from '@deck.gl/aggregation-layers';
 import {
-  t,
   CategoricalColorNamespace,
   JsonObject,
   QueryFormData,

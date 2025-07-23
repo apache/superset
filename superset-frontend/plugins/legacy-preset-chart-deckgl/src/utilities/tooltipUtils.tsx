@@ -23,46 +23,6 @@ import TooltipRow from '../TooltipRow';
 import CustomTooltipWrapper from '../components/CustomTooltipWrapper';
 
 /**
- * Enhanced tooltip content generator that supports both custom tooltip templates (Handlebars)
- * and custom tooltip_contents with fallback to default tooltips for deck.gl charts
- */
-export function createTooltipContent(
-  formData: QueryFormData,
-  defaultTooltipGenerator: (o: JsonObject) => JSX.Element,
-) {
-  return (o: JsonObject) => {
-    // Priority 1: Custom Handlebars Template
-    if (
-      formData.tooltip_template?.trim() &&
-      !formData.tooltip_template.includes(
-        'Drop columns/metrics in "Tooltip contents" above',
-      )
-    ) {
-      const tooltipData = createHandlebarsTooltipData(o, formData);
-      return (
-        <CustomTooltipWrapper>
-          <div className="deckgl-tooltip">
-            <HandlebarsRenderer
-              templateSource={formData.tooltip_template}
-              data={tooltipData}
-            />
-          </div>
-        </CustomTooltipWrapper>
-      );
-    }
-
-    // Priority 2: Field-based Tooltips
-    if (formData.tooltip_contents && formData.tooltip_contents.length > 0) {
-      const tooltipItems = buildFieldBasedTooltipItems(o, formData);
-      return <div className="deckgl-tooltip">{tooltipItems}</div>;
-    }
-
-    // Priority 3: Default Tooltip
-    return defaultTooltipGenerator(o);
-  };
-}
-
-/**
  * Common tooltip components that can be reused across charts
  */
 export const CommonTooltipRows = {
@@ -348,4 +308,44 @@ export function createHandlebarsTooltipData(
   }
 
   return data;
+}
+
+/**
+ * Enhanced tooltip content generator that supports both custom tooltip templates (Handlebars)
+ * and custom tooltip_contents with fallback to default tooltips for deck.gl charts
+ */
+export function createTooltipContent(
+  formData: QueryFormData,
+  defaultTooltipGenerator: (o: JsonObject) => JSX.Element,
+) {
+  return (o: JsonObject) => {
+    // Priority 1: Custom Handlebars Template
+    if (
+      formData.tooltip_template?.trim() &&
+      !formData.tooltip_template.includes(
+        'Drop columns/metrics in "Tooltip contents" above',
+      )
+    ) {
+      const tooltipData = createHandlebarsTooltipData(o, formData);
+      return (
+        <CustomTooltipWrapper>
+          <div className="deckgl-tooltip">
+            <HandlebarsRenderer
+              templateSource={formData.tooltip_template}
+              data={tooltipData}
+            />
+          </div>
+        </CustomTooltipWrapper>
+      );
+    }
+
+    // Priority 2: Field-based Tooltips
+    if (formData.tooltip_contents && formData.tooltip_contents.length > 0) {
+      const tooltipItems = buildFieldBasedTooltipItems(o, formData);
+      return <div className="deckgl-tooltip">{tooltipItems}</div>;
+    }
+
+    // Priority 3: Default Tooltip
+    return defaultTooltipGenerator(o);
+  };
 }

@@ -22,11 +22,9 @@ import {
   JsonObject,
   JsonValue,
   QueryFormData,
-  t,
   styled,
 } from '@superset-ui/core';
 import sandboxedEval from '../../utils/sandbox';
-import { commonLayerProps } from '../common';
 import TooltipRow from '../../TooltipRow';
 import fitViewport, { Viewport } from '../../utils/fitViewport';
 import {

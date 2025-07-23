@@ -110,7 +110,6 @@ export function TooltipTemplateControl({
   label,
   description,
   name,
-  height = 200,
 }: TooltipTemplateControlProps) {
   const [isManuallyEdited, setIsManuallyEdited] = useState(false);
   const [lastTooltipContents, setLastTooltipContents] = useState<any[]>([]);

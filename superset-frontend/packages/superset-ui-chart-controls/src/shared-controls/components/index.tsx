@@ -17,10 +17,8 @@
  * under the License.
  */
 import RadioButtonControl from './RadioButtonControl';
-import { CustomTooltipControl } from '../customTooltipControls';
 
 export * from './RadioButtonControl';
-export * from '../customTooltipControls';
 
 /**
  * Shared chart controls. Can be referred via string shortcuts in chart control
@@ -28,5 +26,4 @@ export * from '../customTooltipControls';
  */
 export default {
   RadioButtonControl,
-  CustomTooltipControl,
 };
