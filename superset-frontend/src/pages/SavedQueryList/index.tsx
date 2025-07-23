@@ -606,6 +606,7 @@ function SavedQueryList({
         onConfirm={handleBulkQueryDelete}
       >
         {confirmDelete => {
+          const enableBulkTag = isFeatureEnabled(FeatureFlag.TaggingSystem);
           const bulkActions: ListViewProps['bulkActions'] = [];
           if (canDelete) {
             bulkActions.push({
@@ -640,7 +641,7 @@ function SavedQueryList({
               bulkSelectEnabled={bulkSelectEnabled}
               disableBulkSelect={toggleBulkSelect}
               highlightRowId={savedQueryCurrentlyPreviewing?.id}
-              enableBulkTag
+              enableBulkTag={enableBulkTag}
               bulkTagResourceName="query"
               refreshData={refreshData}
             />
