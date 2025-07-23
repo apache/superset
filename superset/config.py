@@ -598,8 +598,8 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # This is intended to use for theme creation, visual review and theming-debugging
     # purposes.
     "THEME_ALLOW_THEME_EDITOR_BETA": False,
-    # Allow users to optionally specify date formats in email subjects, which will
-    # be parsed if enabled
+    # Allow users to optionally specify date formats in email subjects, which
+    # will be parsed if enabled
     "DATE_FORMAT_IN_EMAIL_SUBJECT": False,
     # Allow metrics and columns to be grouped into (potentially nested) folders in the
     # chart builder
