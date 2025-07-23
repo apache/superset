@@ -141,7 +141,7 @@ const ThemeModal: FunctionComponent<ThemeModalProps> = ({
         const themeConfig = JSON.parse(currentTheme.json_data);
         setTemporaryTheme(themeConfig);
         if (addSuccessToast) {
-          addSuccessToast(t('Theme applied temporarily for preview'));
+          addSuccessToast(t('Local theme set for preview'));
         }
       } catch (error) {
         addDangerToast(t('Failed to apply theme: Invalid JSON'));
@@ -368,9 +368,7 @@ const ThemeModal: FunctionComponent<ThemeModalProps> = ({
           {canDevelopThemes && (
             <div style={{ marginTop: '12px', textAlign: 'right' }}>
               <Tooltip
-                title={t(
-                  'Apply theme temporarily for testing (local preview only)',
-                )}
+                title={t('Set local theme for testing (preview only)')}
                 placement="top"
               >
                 <Button

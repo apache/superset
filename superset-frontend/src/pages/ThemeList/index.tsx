@@ -86,11 +86,12 @@ function ThemesList({
     refreshData,
     toggleBulkSelect,
   } = useListViewResource<ThemeObject>('theme', t('Themes'), addDangerToast);
-  const { setTemporaryTheme } = useThemeContext();
+  const { setTemporaryTheme, getCurrentCrudThemeId } = useThemeContext();
   const [themeModalOpen, setThemeModalOpen] = useState<boolean>(false);
   const [currentTheme, setCurrentTheme] = useState<ThemeObject | null>(null);
   const [preparingExport, setPreparingExport] = useState<boolean>(false);
   const [importingTheme, showImportModal] = useState<boolean>(false);
+  const [appliedThemeId, setAppliedThemeId] = useState<number | null>(null);
 
   const canCreate = hasPerm('can_write');
   const canEdit = hasPerm('can_write');
@@ -164,11 +165,12 @@ function ThemesList({
       try {
         const themeConfig = JSON.parse(themeObj.json_data);
         setTemporaryTheme(themeConfig);
-        addSuccessToast(
-          t('Theme "%s" applied temporarily', themeObj.theme_name),
-        );
+        setAppliedThemeId(themeObj.id || null);
+        addSuccessToast(t('Local theme set to "%s"', themeObj.theme_name));
       } catch (error) {
-        addDangerToast(t('Failed to apply theme: Invalid JSON configuration'));
+        addDangerToast(
+          t('Failed to set local theme: Invalid JSON configuration'),
+        );
       }
     }
   }
@@ -201,16 +203,29 @@ function ThemesList({
   const columns = useMemo(
     () => [
       {
-        Cell: ({ row: { original } }: any) => (
-          <>
-            {original.theme_name}
-            {original.is_system && (
-              <Tag color="blue" style={{ marginLeft: 8 }}>
-                {t('System')}
-              </Tag>
-            )}
-          </>
-        ),
+        Cell: ({ row: { original } }: any) => {
+          const currentCrudThemeId = getCurrentCrudThemeId();
+          const isCurrentTheme =
+            (currentCrudThemeId &&
+              original.id?.toString() === currentCrudThemeId) ||
+            (appliedThemeId && original.id === appliedThemeId);
+
+          return (
+            <>
+              {original.theme_name}
+              {isCurrentTheme && (
+                <Tag color="green" style={{ marginLeft: 8 }}>
+                  {t('Set locally')}
+                </Tag>
+              )}
+              {original.is_system && (
+                <Tag color="blue" style={{ marginLeft: 8 }}>
+                  {t('System')}
+                </Tag>
+              )}
+            </>
+          );
+        },
         Header: t('Name'),
         accessor: 'theme_name',
         id: 'theme_name',
@@ -242,7 +257,7 @@ function ThemesList({
               ? {
                   label: 'apply-action',
                   tooltip: t(
-                    'Apply theme temporarily for testing (local preview only)',
+                    'Set local theme. Will be applied to your session until unset.',
                   ),
                   placement: 'bottom',
                   icon: 'ThunderboltOutlined',
@@ -296,7 +311,7 @@ function ThemesList({
         id: QueryObjectColumns.ChangedBy,
       },
     ],
-    [canDelete, canCreate, canApply, canExport],
+    [canDelete, canCreate, canApply, canExport, appliedThemeId],
   );
 
   const menuData: SubMenuProps = {

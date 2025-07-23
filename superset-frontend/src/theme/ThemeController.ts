@@ -311,6 +311,13 @@ export class ThemeController {
 
     if (this.currentMode === mode) return;
 
+    // Clear any local overrides when explicitly selecting a theme mode
+    // This ensures the selected mode takes effect and provides clear UX
+    this.devThemeOverride = null;
+    this.crudThemeId = null;
+    this.storage.removeItem(STORAGE_KEYS.DEV_THEME_OVERRIDE);
+    this.storage.removeItem(STORAGE_KEYS.CRUD_THEME_ID);
+
     const theme: AnyThemeConfig | null = this.getThemeForMode(mode);
     if (!theme) {
       console.warn(`Theme for mode ${mode} not found, falling back to default`);

@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Tooltip } from 'antd';
 import { Dropdown, Icons } from '@superset-ui/core/components';
 import { t, useTheme } from '@superset-ui/core';
 import { ThemeAlgorithm, ThemeMode } from '../../theme/types';
@@ -56,7 +55,11 @@ const ThemeSelect: React.FC<ThemeSelectProps> = ({
     themeIconMap[themeMode] || <Icons.FormatPainterOutlined />
   );
 
-  const menuItems = [
+  const menuItems: any[] = [
+    {
+      type: 'group',
+      label: t('Theme'),
+    },
     {
       key: ThemeMode.DEFAULT,
       label: t('Light'),
@@ -83,7 +86,7 @@ const ThemeSelect: React.FC<ThemeSelectProps> = ({
       { type: 'divider' } as any,
       {
         key: 'clear-local' as any,
-        label: t('Reset to default'),
+        label: t('Clear local theme'),
         icon: <Icons.ClearOutlined />,
         onClick: onClearLocalSettings,
       } as any,
@@ -91,20 +94,15 @@ const ThemeSelect: React.FC<ThemeSelectProps> = ({
   }
 
   return (
-    <Tooltip
-      title={hasLocalOverride ? t('Local theme active') : tooltipTitle}
-      placement="bottom"
+    <Dropdown
+      menu={{
+        items: menuItems,
+        selectedKeys: [themeMode],
+      }}
+      trigger={['hover']}
     >
-      <Dropdown
-        menu={{
-          items: menuItems,
-          selectedKeys: [themeMode],
-        }}
-        trigger={['click']}
-      >
-        {triggerIcon}
-      </Dropdown>
-    </Tooltip>
+      {triggerIcon}
+    </Dropdown>
   );
 };
 
