@@ -29,7 +29,9 @@ interface Props {
   chartId?: number;
   onChange: (id: string) => void;
   onAdd: (item: ChartCustomizationItem) => void;
-  onRemove: (id: string, shouldRemove?: boolean) => void;
+  onRemove: (id: string) => void;
+  restoreItem: (id: string) => void;
+  removedItems: Record<string, { isPending: boolean; timerId?: number } | null>;
   setCurrentId: (id: string) => void;
   erroredItems?: string[];
 }
@@ -49,6 +51,8 @@ const ChartCustomizationTitlePane: FC<Props> = ({
   onChange,
   onAdd,
   onRemove,
+  restoreItem,
+  removedItems,
   setCurrentId,
   erroredItems = [],
 }) => {
@@ -83,6 +87,8 @@ const ChartCustomizationTitlePane: FC<Props> = ({
           currentId={currentId}
           onChange={onChange}
           onRemove={onRemove}
+          restoreItem={restoreItem}
+          removedItems={removedItems}
           erroredItems={erroredItems}
         />
       </div>
