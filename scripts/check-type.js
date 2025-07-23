@@ -32,6 +32,10 @@ const PACKAGE_ARG_REGEX = /^package=/;
 const EXCLUDE_DECLARATION_DIR_REGEX = /^excludeDeclarationDir=/;
 const DECLARATION_FILE_REGEX = /\.d\.ts$/;
 
+// Configuration for batching and fallback
+const MAX_FILES_FOR_TARGETED_CHECK = 20; // Fallback to full check if more files
+const BATCH_SIZE = 10; // Process files in batches of this size
+
 void (async () => {
   const args = process.argv.slice(2);
   const {
@@ -45,27 +49,94 @@ void (async () => {
   }
 
   const packageRootDir = await getPackage(packageArg);
-  const updatedArgs = removePackageSegment(remainingArgs, packageRootDir);
-  const argsStr = updatedArgs.join(" ");
+  const changedFiles = removePackageSegment(remainingArgs, packageRootDir);
 
-  const excludedDeclarationDirs = getExcludedDeclarationDirs(
-    excludeDeclarationDirArg
+  // Filter to only TypeScript files
+  const tsFiles = changedFiles.filter(file =>
+    /\.(ts|tsx)$/.test(file) && !DECLARATION_FILE_REGEX.test(file)
   );
+
+  console.log(`Type checking ${tsFiles.length} changed TypeScript files...`);
+
+  if (tsFiles.length === 0) {
+    console.log("No TypeScript files to check.");
+    exit(0);
+  }
+
+  // Decide strategy based on number of files
+  if (tsFiles.length > MAX_FILES_FOR_TARGETED_CHECK) {
+    console.log(`Too many files (${tsFiles.length} > ${MAX_FILES_FOR_TARGETED_CHECK}), running full type check...`);
+    await runFullTypeCheck(packageRootDir, excludeDeclarationDirArg);
+  } else {
+    console.log(`Running targeted type check on ${tsFiles.length} files...`);
+    await runTargetedTypeCheck(packageRootDir, tsFiles, excludeDeclarationDirArg);
+  }
+})();
+
+/**
+ * Run full type check on the entire project
+ */
+async function runFullTypeCheck(packageRootDir, excludeDeclarationDirArg) {
+  const packageRootDirAbsolute = join(SUPERSET_ROOT, packageRootDir);
+  const tsConfig = getTsConfig(packageRootDirAbsolute);
+  // Use incremental compilation for better caching
+  const command = `--noEmit --allowJs --incremental --project ${tsConfig}`;
+
+  await executeTypeCheck(packageRootDirAbsolute, command);
+}
+
+/**
+ * Run targeted type check on specific files, with batching
+ */
+async function runTargetedTypeCheck(packageRootDir, tsFiles, excludeDeclarationDirArg) {
+  const excludedDeclarationDirs = getExcludedDeclarationDirs(excludeDeclarationDirArg);
   let declarationFiles = await getFilesRecursively(
-    packageRootDir,
+    join(SUPERSET_ROOT, packageRootDir),
     DECLARATION_FILE_REGEX,
     excludedDeclarationDirs
   );
   declarationFiles = removePackageSegment(declarationFiles, packageRootDir);
-  const declarationFilesStr = declarationFiles.join(" ");
 
   const packageRootDirAbsolute = join(SUPERSET_ROOT, packageRootDir);
   const tsConfig = getTsConfig(packageRootDirAbsolute);
-  const command = `--noEmit --allowJs --composite false --project ${tsConfig} ${argsStr} ${declarationFilesStr}`;
 
+  // Process files in batches to avoid command line length limits
+  const batches = [];
+  for (let i = 0; i < tsFiles.length; i += BATCH_SIZE) {
+    batches.push(tsFiles.slice(i, i + BATCH_SIZE));
+  }
+
+  let hasErrors = false;
+
+  for (const [batchIndex, batch] of batches.entries()) {
+    if (batches.length > 1) {
+      console.log(`\nProcessing batch ${batchIndex + 1}/${batches.length} (${batch.length} files)...`);
+    }
+
+    const argsStr = batch.join(" ");
+    const declarationFilesStr = declarationFiles.join(" ");
+    // For targeted checks, keep composite false since we're passing specific files
+    const command = `--noEmit --allowJs --composite false --project ${tsConfig} ${argsStr} ${declarationFilesStr}`;
+
+    try {
+      await executeTypeCheck(packageRootDirAbsolute, command);
+    } catch (error) {
+      hasErrors = true;
+      // Continue processing other batches to show all errors
+    }
+  }
+
+  if (hasErrors) {
+    exit(1);
+  }
+}
+
+/**
+ * Execute the TypeScript type check command
+ */
+async function executeTypeCheck(packageRootDirAbsolute, command) {
   try {
     chdir(packageRootDirAbsolute);
-    // Please ensure that tscw-config is installed in the package being type-checked.
     const tscw = packageRequire("tscw-config");
     const child = await tscw`${command}`;
 
@@ -77,14 +148,17 @@ void (async () => {
       console.error(child.stderr);
     }
 
-    exit(child.exitCode);
+    if (child.exitCode !== 0) {
+      throw new Error(`Type check failed with exit code ${child.exitCode}`);
+    }
   } catch (e) {
-    console.error("Failed to execute type checking:", e);
-    console.error("Package:", packageRootDir);
+    console.error("Failed to execute type checking:", e.message);
     console.error("Command:", `tscw ${command}`);
-    exit(1);
+    throw e;
   }
-})();
+}
+
+// ... (rest of utility functions remain the same)
 
 /**
  *
@@ -112,7 +186,6 @@ function shouldExcludeDir(fullPath, excludedDirs) {
  *
  * @returns {Promise<string[]>}
  */
-
 async function getFilesRecursively(dir, regex, excludedDirs) {
   try {
     const files = await readdir(dir, { withFileTypes: true });
@@ -186,7 +259,6 @@ function getExcludedDeclarationDirs(excludeDeclarationDirArg) {
  * @param {RegExp[]} regexes
  * @returns {{ matchedArgs: (string | undefined)[], remainingArgs: string[] }}
  */
-
 function extractArgs(args, regexes) {
   /**
    * @type {(string | undefined)[]}
