@@ -172,6 +172,9 @@ FILTER_SELECT_ROW_LIMIT = 10000
 # This helps handle transient server errors (like 502 Bad Gateway) automatically
 SUPERSET_CLIENT_RETRY_ATTEMPTS = 3  # Maximum number of retry attempts
 SUPERSET_CLIENT_RETRY_DELAY = 1000  # Initial retry delay in milliseconds
+SUPERSET_CLIENT_RETRY_BACKOFF_MULTIPLIER = 2  # Exponential backoff multiplier
+SUPERSET_CLIENT_RETRY_MAX_DELAY = 10000  # Maximum retry delay cap in milliseconds
+SUPERSET_CLIENT_RETRY_JITTER_MAX = 1000  # Maximum random jitter in milliseconds
 # HTTP status codes that should trigger retries (502, 503, 504 gateway errors)
 SUPERSET_CLIENT_RETRY_STATUS_CODES = [502, 503, 504]
 # default time filter in explore

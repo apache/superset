@@ -33,9 +33,32 @@ function getDefaultConfiguration(): ClientConfig {
 
   // Configure retry behavior from backend settings
   const retryConfig = bootstrapData.common.conf;
+
+  // Create exponential backoff delay function with jitter
+  const createRetryDelayFunction = () => {
+    const baseDelay = retryConfig.SUPERSET_CLIENT_RETRY_DELAY || 1000;
+    const multiplier =
+      retryConfig.SUPERSET_CLIENT_RETRY_BACKOFF_MULTIPLIER || 2;
+    const maxDelay = retryConfig.SUPERSET_CLIENT_RETRY_MAX_DELAY || 10000;
+    const jitterMax = retryConfig.SUPERSET_CLIENT_RETRY_JITTER_MAX || 1000;
+
+    return (attempt: number) => {
+      // Calculate exponential backoff: baseDelay * (multiplier ^ attempt)
+      const exponentialDelay = baseDelay * multiplier ** attempt;
+
+      // Apply max delay cap
+      const cappedDelay = Math.min(exponentialDelay, maxDelay);
+
+      // Add random jitter to prevent thundering herd
+      const jitter = Math.random() * jitterMax;
+
+      return cappedDelay + jitter;
+    };
+  };
+
   const fetchRetryOptions = {
     retries: retryConfig.SUPERSET_CLIENT_RETRY_ATTEMPTS || 3,
-    retryDelay: retryConfig.SUPERSET_CLIENT_RETRY_DELAY || 1000,
+    retryDelay: createRetryDelayFunction(),
     retryOn: retryConfig.SUPERSET_CLIENT_RETRY_STATUS_CODES || [502, 503, 504],
   };
 
