@@ -349,7 +349,7 @@
     "regenerator-runtime": "^0.14.1"
   },
   "engines": {
-    "node": "^20.16.0",
+    "node": "^20.18.1",
     "npm": "^10.8.1"
   },
   "overrides": {
