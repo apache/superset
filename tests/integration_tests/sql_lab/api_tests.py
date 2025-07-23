@@ -453,7 +453,8 @@ class TestSqlLabApi(SupersetTestCase):
         get_df_mock.return_value = pd.DataFrame({"foo": [1, 2, 3]})
 
         resp = self.get_resp("/api/v1/sqllab/export/test/")
-        data = csv.reader(io.StringIO(resp))
+        reader = csv.reader(io.StringIO(resp))
+        data = [[cell.lstrip('\ufeff') for cell in row] for row in reader]
         expected_data = csv.reader(io.StringIO("foo\n1\n2"))
 
         assert list(expected_data) == list(data)
