@@ -605,6 +605,10 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # purposes.
     "THEME_ENABLE_DARK_THEME_SWITCH": True,
     # Adds a theme editor as a modal dialog in the navbar. Allows people to type in JSON
+    # Enables CSS Templates functionality in Settings menu and dashboard forms.
+    # When disabled, users can still add custom CSS to dashboards but cannot use
+    # pre-built CSS templates.
+    "CSS_TEMPLATES": True,
     # Allow users to optionally specify date formats in email subjects, which will
     # be parsed if enabled
     "DATE_FORMAT_IN_EMAIL_SUBJECT": False,
@@ -717,7 +721,8 @@ EXTRA_CATEGORICAL_COLOR_SCHEMES: list[dict[str, Any]] = []
 #
 # Theme Generation:
 # - Use the Ant Design theme editor: https://ant.design/theme-editor
-# - Export or coypt the generated theme JSON and assign to the variables below
+# - Export or copy the generated theme JSON and assign to the variables below
+# - For detailed instructions: https://superset.apache.org/docs/configuration/theming/
 #
 # To expose a JSON theme editor modal that can be triggered from the navbar
 # set the `ENABLE_THEME_EDITOR` feature flag to True.

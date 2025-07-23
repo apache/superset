@@ -31,6 +31,7 @@ import {
   Button,
   Form,
   Tooltip,
+  Alert,
 } from '@superset-ui/core/components';
 import { Typography } from '@superset-ui/core/components/Typography';
 
@@ -364,6 +365,32 @@ const ThemeModal: FunctionComponent<ThemeModalProps> = ({
             </Typography.Text>
           </Form.Item>
         )}
+
+        <Alert
+          type="info"
+          showIcon
+          message={
+            <span>
+              {t('Design with')}{' '}
+              <a
+                href="https://ant.design/theme-editor"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                {t('Ant Design Theme Editor')}
+              </a>
+              {t(', then copy JSON here.')}{' '}
+              <a
+                href="https://superset.apache.org/docs/configuration/theming/"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                {t('Documentation')}
+              </a>
+            </span>
+          }
+          style={{ marginBottom: '16px' }}
+        />
 
         <Form.Item
           label={t('JSON Configuration')}

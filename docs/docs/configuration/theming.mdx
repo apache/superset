@@ -10,43 +10,92 @@ version: 1
 apache-superset>=6.0
 :::
 
-Superset now rides on **Ant Design v5’s token-based theming**.
+Superset now rides on **Ant Design v5's token-based theming**.
 Every Antd token works, plus a handful of Superset-specific ones for charts and dashboard chrome.
 
-## 1 — Create a theme
+## Managing Themes via CRUD Interface
 
-1. Open the official [Ant Design Theme Editor](https://ant.design/theme-editor)
-2. Design your palette, typography, and component overrides.
-3. Open the `CONFIG` modal and paste the JSON.
+Superset now includes a built-in **Theme Management** interface accessible from the admin menu under **Settings > Themes**.
+
+### Creating a New Theme
+
+1. Navigate to **Settings > Themes** in the Superset interface
+2. Click **+ Theme** to create a new theme
+3. Use the [Ant Design Theme Editor](https://ant.design/theme-editor) to design your theme:
+   - Design your palette, typography, and component overrides
+   - Open the `CONFIG` modal and copy the JSON configuration
+4. Paste the JSON into the theme definition field in Superset
+5. Give your theme a descriptive name and save
 
 You can also extend with Superset-specific tokens (documented in the default theme object) before you import.
 
-## 2 — Apply it instance-wide
+### Applying Themes to Dashboards
+
+Once created, themes can be applied to individual dashboards:
+- Edit any dashboard and select your custom theme from the theme dropdown
+- Each dashboard can have its own theme, allowing for branded or context-specific styling
+
+## Alternative: Instance-wide Configuration
+
+For system-wide theming, you can configure default themes via Python configuration:
+
+### Setting Default Themes
 
 ```python
 # superset_config.py
-THEME = {
-    # Paste your JSON theme definition here
+
+# Default theme (light mode)
+THEME_DEFAULT = {
+    "token": {
+        "colorPrimary": "#2893B3",
+        "colorSuccess": "#5ac189",
+        # ... your theme JSON configuration
+    }
+}
+
+# Dark theme configuration
+THEME_DARK = {
+    "algorithm": "dark",
+    "token": {
+        "colorPrimary": "#2893B3",
+        # ... your dark theme overrides
+    }
+}
+
+# Theme behavior settings
+THEME_SETTINGS = {
+    "enforced": False,          # If True, forces default theme always
+    "allowSwitching": True,     # Allow users to switch between themes
+    "allowOSPreference": True,  # Auto-detect system theme preference
 }
 ```
 
-Restart Superset to apply changes
+### Referencing CRUD Themes
 
-## 3 — Tweak live in the app (beta)
+You can also reference themes created via the CRUD interface by UUID:
 
-Set the feature flag in your `superset_config`
 ```python
-DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
-    {{ ... }}
+# superset_config.py
+THEME_DEFAULT = {
+    "uuid": "550e8400-e29b-41d4-a716-446655440000",  # Copy from theme editor
+    "token": {  # Fallback theme if UUID not found
+        "colorPrimary": "#2893B3",
+        # ... fallback configuration
+    }
 }
 ```
 
-- Enables a JSON editor panel inside Superset as a new icon in the navbar
-- Intended for testing/design and rapid in-context iteration
-- End-user theme switching & preferences coming later
+Restart Superset to apply changes.
 
-## 4 — Potential Next Steps
+## Theme Development Workflow
 
-- CRUD UI for managing multiple themes
-- Per-dashboard & per-workspace theme assignment
-- User-selectable theme preferences
+1. **Design**: Use the [Ant Design Theme Editor](https://ant.design/theme-editor) to iterate on your design
+2. **Test**: Create themes in Superset's CRUD interface for testing
+3. **Apply**: Assign themes to specific dashboards or configure instance-wide
+4. **Iterate**: Modify theme JSON directly in the CRUD interface or re-import from the theme editor
+
+## Advanced Features
+
+- **System Themes**: Superset includes built-in light and dark themes
+- **Per-Dashboard Theming**: Each dashboard can have its own visual identity
+- **JSON Editor**: Edit theme configurations directly within Superset's interface

@@ -347,6 +347,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             category="Manage",
             category_label=_("Manage"),
             category_icon="",
+            menu_cond=lambda: feature_flag_manager.is_feature_enabled("CSS_TEMPLATES"),
         )
         appbuilder.add_view(
             ThemeModelView,

@@ -27,7 +27,13 @@ import {
 } from '@superset-ui/core/components';
 import rison from 'rison';
 import { Menu } from '@superset-ui/core/components/Menu';
-import { t, styled, SupersetClient } from '@superset-ui/core';
+import {
+  t,
+  styled,
+  SupersetClient,
+  isFeatureEnabled,
+  FeatureFlag,
+} from '@superset-ui/core';
 
 export interface CssEditorProps {
   initialCss: string;
@@ -88,25 +94,27 @@ class CssEditor extends PureComponent<CssEditorProps, CssEditorState> {
   componentDidMount() {
     AceCssEditor.preload();
 
-    // Fetch CSS templates
-    const query = rison.encode({ columns: ['template_name', 'css'] });
-    SupersetClient.get({ endpoint: `/api/v1/css_template/?q=${query}` })
-      .then(({ json }) => {
-        const templates = json.result.map(
-          (row: { template_name: string; css: string }) => ({
-            value: row.template_name,
-            css: row.css,
-            label: row.template_name,
-          }),
-        );
+    // Fetch CSS templates only if feature is enabled
+    if (isFeatureEnabled(FeatureFlag.CssTemplates)) {
+      const query = rison.encode({ columns: ['template_name', 'css'] });
+      SupersetClient.get({ endpoint: `/api/v1/css_template/?q=${query}` })
+        .then(({ json }) => {
+          const templates = json.result.map(
+            (row: { template_name: string; css: string }) => ({
+              value: row.template_name,
+              css: row.css,
+              label: row.template_name,
+            }),
+          );
 
-        this.setState({ templates });
-      })
-      .catch(() => {
-        this.props.addDangerToast(
-          t('An error occurred while fetching available CSS templates'),
-        );
-      });
+          this.setState({ templates });
+        })
+        .catch(() => {
+          this.props.addDangerToast(
+            t('An error occurred while fetching available CSS templates'),
+          );
+        });
+    }
 
     // Fetch themes (excluding system themes)
     const themeQuery = rison.encode({
@@ -178,7 +186,7 @@ class CssEditor extends PureComponent<CssEditorProps, CssEditorState> {
   }
 
   renderTemplateSelector() {
-    if (this.state.templates) {
+    if (isFeatureEnabled(FeatureFlag.CssTemplates) && this.state.templates) {
       const menu = (
         <Menu
           onClick={this.changeCssTemplate}

@@ -30,6 +30,7 @@ export enum FeatureFlag {
   AvoidColorsCollision = 'AVOID_COLORS_COLLISION',
   ChartPluginsExperimental = 'CHART_PLUGINS_EXPERIMENTAL',
   ConfirmDashboardDiff = 'CONFIRM_DASHBOARD_DIFF',
+  CssTemplates = 'CSS_TEMPLATES',
   DashboardVirtualization = 'DASHBOARD_VIRTUALIZATION',
   DashboardRbac = 'DASHBOARD_RBAC',
   DatapanelClosedByDefault = 'DATAPANEL_CLOSED_BY_DEFAULT',
