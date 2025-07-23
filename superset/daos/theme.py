@@ -15,12 +15,11 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
-from typing import Any, Optional
+from typing import Optional
 
 from superset.daos.base import BaseDAO
 from superset.extensions import db
 from superset.models.core import Theme
-from superset.utils import json
 
 logger = logging.getLogger(__name__)
 
@@ -30,19 +29,3 @@ class ThemeDAO(BaseDAO[Theme]):
     def find_by_uuid(cls, uuid: str) -> Optional[Theme]:
         """Find theme by UUID."""
         return db.session.query(Theme).filter(Theme.uuid == uuid).first()
-
-    @classmethod
-    def resolve_theme_with_uuid(cls, theme_config: dict[str, Any]) -> dict[str, Any]:
-        """Resolve theme configuration that may contain a UUID reference."""
-        if "uuid" in theme_config:
-            try:
-                crud_theme = cls.find_by_uuid(theme_config["uuid"])
-                if crud_theme and crud_theme.json_data:
-                    try:
-                        resolved_config = json.loads(crud_theme.json_data)
-                        return resolved_config
-                    except (ValueError, TypeError):
-                        pass
-            except Exception as e:
-                logger.exception(e)
-        return theme_config

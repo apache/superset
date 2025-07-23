@@ -70,20 +70,13 @@ THEME_SETTINGS = {
 }
 ```
 
-### Referencing CRUD Themes
+### Copying Themes from CRUD Interface
 
-You can also reference themes created via the CRUD interface by UUID:
+To use a theme created via the CRUD interface as your system default:
 
-```python
-# superset_config.py
-THEME_DEFAULT = {
-    "uuid": "550e8400-e29b-41d4-a716-446655440000",  # Copy from theme editor
-    "token": {  # Fallback theme if UUID not found
-        "colorPrimary": "#2893B3",
-        # ... fallback configuration
-    }
-}
-```
+1. Navigate to **Settings > Themes** and edit your desired theme
+2. Copy the complete JSON configuration from the theme definition field
+3. Paste it directly into your `superset_config.py` as shown above
 
 Restart Superset to apply changes.
 

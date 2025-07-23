@@ -57,7 +57,6 @@ from superset import (
     security_manager,
 )
 from superset.connectors.sqla import models
-from superset.daos.theme import ThemeDAO
 from superset.db_engine_specs import get_available_engine_specs
 from superset.db_engine_specs.gsheets import GSheetsEngineSpec
 from superset.extensions import cache_manager
@@ -317,20 +316,19 @@ def get_theme_bootstrap_data() -> dict[str, Any]:
     dark_theme_config = get_config_value(conf, "THEME_DARK")
     theme_settings = get_config_value(conf, "THEME_SETTINGS")
 
-    # Resolve themes (including UUID references) and validate
-    default_theme = ThemeDAO.resolve_theme_with_uuid(default_theme_config)
+    # Validate theme configurations
+    default_theme = default_theme_config
     if not is_valid_theme(default_theme):
         logger.warning(
-            "Invalid or unresolvable THEME_DEFAULT configuration: %s, "
-            + "using empty theme",
+            "Invalid THEME_DEFAULT configuration: %s, using empty theme",
             default_theme_config,
         )
         default_theme = {}
 
-    dark_theme = ThemeDAO.resolve_theme_with_uuid(dark_theme_config)
+    dark_theme = dark_theme_config
     if not is_valid_theme(dark_theme):
         logger.warning(
-            "Invalid or unresolvable THEME_DARK configuration: %s, using empty theme",
+            "Invalid THEME_DARK configuration: %s, using empty theme",
             dark_theme_config,
         )
         dark_theme = {}

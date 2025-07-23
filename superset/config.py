@@ -728,8 +728,11 @@ EXTRA_CATEGORICAL_COLOR_SCHEMES: list[dict[str, Any]] = []
 # set the `ENABLE_THEME_EDITOR` feature flag to True.
 #
 # Theme Structure:
-# Each theme should follow Ant Design's theme format
-# Example (Direct theme definition):
+# Each theme should follow Ant Design's theme format.
+# To create custom themes, use the Ant Design Theme Editor at https://ant.design/theme-editor
+# and copy the generated JSON configuration.
+#
+# Example theme definition:
 # THEME_DEFAULT = {
 #       "token": {
 #            "colorPrimary": "#2893B3",
@@ -740,18 +743,6 @@ EXTRA_CATEGORICAL_COLOR_SCHEMES: list[dict[str, Any]] = []
 #            ... # other tokens
 #       },
 #       ... # other theme properties
-# }
-#
-# Alternative (UUID reference to CRUD theme):
-# You can reference a theme created via the theme management UI by its UUID.
-# The UUID is displayed in the theme editor modal for easy copying.
-# THEME_DEFAULT = {
-#       "uuid": "550e8400-e29b-41d4-a716-446655440000",
-#       "token": {  # Fallback theme if UUID not found
-#            "colorPrimary": "#2893B3",
-#            "colorSuccess": "#5ac189",
-#            ... # other tokens
-#       }
 # }
 
 

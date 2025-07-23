@@ -15,7 +15,6 @@
 # specific language governing permissions and limitations
 # under the License.
 
-from unittest.mock import patch
 
 import pytest
 
@@ -92,31 +91,3 @@ def test_is_valid_theme(theme, expected):
 )
 def test_is_valid_theme_settings(settings, expected):
     assert is_valid_theme_settings(settings) is expected
-
-
-class TestThemeDAOIntegration:
-    """Integration tests for ThemeDAO with theme utils"""
-
-    @patch("superset.daos.theme.ThemeDAO.find_by_uuid")
-    def test_resolve_theme_with_uuid_integration(self, mock_find_by_uuid):
-        """Test resolve_theme_with_uuid integration with actual theme validation"""
-        from unittest.mock import Mock
-
-        from superset.daos.theme import ThemeDAO
-        from superset.models.core import Theme
-
-        # Arrange
-        mock_theme = Mock(spec=Theme)
-        mock_theme.json_data = (
-            '{"algorithm": "dark", "token": {"colorPrimary": "#000"}}'
-        )
-        mock_find_by_uuid.return_value = mock_theme
-
-        theme_config = {"uuid": "test-uuid", "algorithm": "default"}
-
-        # Act
-        result = ThemeDAO.resolve_theme_with_uuid(theme_config)
-
-        # Assert - Result should be valid theme
-        assert is_valid_theme(result) is True
-        assert result["algorithm"] == "dark"

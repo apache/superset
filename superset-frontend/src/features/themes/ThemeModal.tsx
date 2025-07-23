@@ -359,14 +359,6 @@ const ThemeModal: FunctionComponent<ThemeModalProps> = ({
           />
         </Form.Item>
 
-        {isEditMode && currentTheme?.uuid && (
-          <Form.Item label={t('Theme UUID')} style={{ marginBottom: '24px' }}>
-            <Typography.Text code copyable data-test="theme-uuid-field">
-              {currentTheme.uuid}
-            </Typography.Text>
-          </Form.Item>
-        )}
-
         <Alert
           type="info"
           showIcon
@@ -380,7 +372,7 @@ const ThemeModal: FunctionComponent<ThemeModalProps> = ({
               >
                 {t('Ant Design Theme Editor')}
               </a>
-              {t(', then copy JSON here.')}{' '}
+              {t(', then copy the JSON below.')}{' '}
               <a
                 href="https://superset.apache.org/docs/configuration/theming/"
                 target="_blank"
