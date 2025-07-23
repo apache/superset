@@ -462,12 +462,16 @@ class TestSqlLabApi(SupersetTestCase):
         resp = self.get_resp("/api/v1/sqllab/export/test/")
 
         # Check for UTF-8 BOM
-        assert resp.startswith("\ufeff")
+        assert resp.startswith("\ufeff"), "Missing UTF-8 BOM at beginning of CSV"
 
         # Parse CSV
         reader = csv.reader(io.StringIO(resp))
         data = list(reader)
 
+        # Strip BOM from the first cell of the header
+        if data and data[0]:
+            data[0][0] = data[0][0].lstrip("\ufeff")
+        
         # Expected header and rows
         expected_data = [
             ["foo", "مرحبا", "姓名"],
@@ -475,6 +479,6 @@ class TestSqlLabApi(SupersetTestCase):
             ["2", "ب", "李"],
         ]
 
-        assert list(expected_data) == list(data)
+        assert data == expected_data, f"CSV data mismatch. Got: {data}"
         db.session.delete(query_obj)
         db.session.commit()
