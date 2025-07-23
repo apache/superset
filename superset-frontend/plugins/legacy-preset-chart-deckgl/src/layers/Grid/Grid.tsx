@@ -39,14 +39,6 @@ import {
 function defaultTooltipGenerator(o: JsonObject, formData: QueryFormData) {
   const metricLabel = formData.size?.label || formData.size?.value || 'Height';
 
-  // Debug: Log the tooltip object to see its structure
-  console.log('Grid tooltip object:', o);
-  console.log('Grid tooltip object.object:', o.object);
-  console.log(
-    'Grid tooltip object.object properties:',
-    Object.keys(o.object || {}),
-  );
-
   return (
     <div className="deckgl-tooltip">
       {CommonTooltipRows.centroid(o)}
@@ -73,19 +65,15 @@ export function getLayer(
   let data = payload.data.features;
 
   if (fd.js_data_mutator) {
-    // Applying user defined data mutator if defined
     const jsFnMutator = sandboxedEval(fd.js_data_mutator);
     data = jsFnMutator(data);
   }
 
   const aggFunc = getAggFunc(fd.js_agg_function, p => p.weight);
 
-  const tooltipContent = createTooltipContent(fd, (o: JsonObject) => {
-    console.log('Grid createTooltipContent called with:', o);
-    console.log('Grid formData tooltip_contents:', fd.tooltip_contents);
-    console.log('Grid formData tooltip_template:', fd.tooltip_template);
-    return defaultTooltipGenerator(o, fd);
-  });
+  const tooltipContent = createTooltipContent(fd, (o: JsonObject) =>
+    defaultTooltipGenerator(o, fd),
+  );
 
   return new GridLayer({
     id: `grid-layer-${fd.slice_id}` as const,

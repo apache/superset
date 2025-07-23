@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { styled, t } from '@superset-ui/core';
 import Handlebars from 'handlebars';
 import dayjs from 'dayjs';
@@ -42,15 +42,7 @@ export const HandlebarsRenderer: React.FC<HandlebarsRendererProps> = ({
   const [renderedTemplate, setRenderedTemplate] = useState('');
   const [error, setError] = useState('');
 
-  const appContainer = document.getElementById('app');
-  const { common } = JSON.parse(
-    appContainer?.getAttribute('data-bootstrap') || '{}',
-  );
-  const htmlSanitization = common?.conf?.HTML_SANITIZATION ?? true;
-  const htmlSchemaOverrides =
-    common?.conf?.HTML_SANITIZATION_SCHEMA_EXTENSIONS || {};
-
-  useMemo(() => {
+  useEffect(() => {
     try {
       const template = Handlebars.compile(templateSource);
       const result = template(data);
@@ -178,7 +170,6 @@ Handlebars.registerHelper('formatCoordinate', function (longitude, latitude) {
   return `${lng}, ${lat}`;
 });
 
-
 Handlebars.registerHelper('first', function (array) {
   if (Array.isArray(array) && array.length > 0) {
     return array[0];
@@ -190,14 +181,14 @@ Handlebars.registerHelper('getField', function (array, fieldName) {
   if (!Array.isArray(array) || array.length === 0) {
     return '';
   }
-  
-  // Get unique values from the array
+
   const values = array
     .map(item => item[fieldName])
     .filter(
       (value, index, self) =>
         value !== undefined && value !== null && self.indexOf(value) === index,
-  
+    );
+
   if (values.length === 0) return '';
   if (values.length === 1) return values[0];
   return values.slice(0, 3).join(', ') + (values.length > 3 ? '...' : '');

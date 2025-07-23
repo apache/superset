@@ -40,21 +40,6 @@ const Title = styled.div`
   color: ${({ theme }) => theme.colors.grayscale.dark1};
 `;
 
-const ToggleHelp = styled.button`
-  background: none;
-  border: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
-  border-radius: ${({ theme }) => theme.sizeUnit}px;
-  color: ${({ theme }) => theme.colors.grayscale.base};
-  padding: ${({ theme }) => theme.sizeUnit}px
-    ${({ theme }) => theme.sizeUnit * 2}px;
-  cursor: pointer;
-  font-size: ${({ theme }) => theme.fontSizeSM}px;
-
-  &:hover {
-    background-color: ${({ theme }) => theme.colors.grayscale.light4};
-  }
-`;
-
 const EditorContainer = styled.div`
   border: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
   border-radius: ${({ theme }) => theme.sizeUnit}px;
@@ -91,46 +76,6 @@ const FieldButton = styled.button`
   }
 `;
 
-const HelpSection = styled.div<{ isOpen: boolean }>`
-  max-height: ${({ isOpen }) => (isOpen ? '400px' : '0')};
-  overflow: hidden;
-  transition: max-height 0.3s ease;
-  border-top: ${({ isOpen, theme }) =>
-    isOpen ? `1px solid ${theme.colors.grayscale.light2}` : 'none'};
-  margin-top: ${({ isOpen, theme }) =>
-    isOpen ? `${theme.sizeUnit * 2}px` : '0'};
-`;
-
-const HelpContent = styled.div`
-  padding: ${({ theme }) => theme.sizeUnit * 2}px;
-  background-color: ${({ theme }) => theme.colors.grayscale.light5};
-  border-radius: ${({ theme }) => theme.sizeUnit}px;
-`;
-
-const HelpTitle = styled.h4`
-  margin: 0 0 ${({ theme }) => theme.sizeUnit * 2}px 0;
-  color: ${({ theme }) => theme.colors.grayscale.dark1};
-  font-size: ${({ theme }) => theme.fontSizeSM}px;
-`;
-
-const HelpText = styled.p`
-  margin: 0 0 ${({ theme }) => theme.sizeUnit * 2}px 0;
-  color: ${({ theme }) => theme.colors.grayscale.base};
-  font-size: ${({ theme }) => theme.fontSizeSM}px;
-  line-height: 1.4;
-`;
-
-const CodeExample = styled.pre`
-  background-color: ${({ theme }) => theme.colors.grayscale.light3};
-  padding: ${({ theme }) => theme.sizeUnit * 2}px;
-  border-radius: ${({ theme }) => theme.sizeUnit}px;
-  margin: ${({ theme }) => theme.sizeUnit}px 0;
-  font-family: 'Menlo', 'Monaco', 'Courier New', monospace;
-  font-size: ${({ theme }) => theme.fontSizeSM}px;
-  color: ${({ theme }) => theme.colors.grayscale.dark1};
-  overflow-x: auto;
-`;
-
 const TemplateEditor = AsyncAceEditor([
   'mode/html',
   'mode/javascript',
@@ -152,7 +97,6 @@ const TooltipTemplateEditor = ({
   availableFields,
   onFieldInsert,
 }: TooltipTemplateEditorProps) => {
-  const [showHelp, setShowHelp] = useState(false);
   const [aceEditorRef, setAceEditorRef] = useState<any>(null);
 
   const handleFieldInsert = useCallback(
@@ -192,9 +136,6 @@ const TooltipTemplateEditor = ({
     <Container>
       <Header>
         <Title>Template Editor</Title>
-        <ToggleHelp onClick={() => setShowHelp(!showHelp)}>
-          {showHelp ? 'Hide Help' : 'Show Help'}
-        </ToggleHelp>
       </Header>
 
       {availableFields.length > 0 && (
@@ -237,51 +178,6 @@ const TooltipTemplateEditor = ({
           placeholder="Enter your tooltip template here..."
         />
       </EditorContainer>
-
-      <HelpSection isOpen={showHelp}>
-        <HelpContent>
-          <HelpTitle>Template Syntax Help</HelpTitle>
-
-          <HelpText>
-            Use Handlebars-like syntax to create dynamic tooltips. Available
-            syntax:
-          </HelpText>
-
-          <HelpTitle>Basic Field Display</HelpTitle>
-          <CodeExample>{`{{field_name}}         Display field value
-{{field_name.label}}   Display field label`}</CodeExample>
-
-          <HelpTitle>Conditional Logic</HelpTitle>
-          <CodeExample>{`{{#if field_name}}
-  Show this if field has value
-{{else}}
-  Show this if field is empty
-{{/if}}`}</CodeExample>
-
-          <HelpTitle>Loops (for arrays)</HelpTitle>
-          <CodeExample>{`{{#each array_field}}
-  <li>{{this}}</li>
-{{/each}}`}</CodeExample>
-
-          <HelpTitle>HTML Support</HelpTitle>
-          <CodeExample>{`<div class="tooltip-content">
-  <h4>{{title}}</h4>
-  <p><strong>Value:</strong> {{value}}</p>
-  <p><em>{{description}}</em></p>
-</div>`}</CodeExample>
-
-          <HelpTitle>Example Template</HelpTitle>
-          <CodeExample>{`<div class="custom-tooltip">
-  <h3>{{title}}</h3>
-  {{#if value}}
-    <p><strong>Value:</strong> {{value}}</p>
-  {{/if}}
-  {{#if category}}
-    <p><strong>Category:</strong> {{category}}</p>
-  {{/if}}
-</div>`}</CodeExample>
-        </HelpContent>
-      </HelpSection>
     </Container>
   );
 };

@@ -834,7 +834,7 @@ class TestBaseDeckGLViz(SupersetTestCase):
         test_viz = viz.BaseDeckGLViz(datasource, form_data)
         test_viz.metric = "SUM(sales)"
 
-        with patch("superset.utils.get_metric_name") as mock_get_metric_name:
+        with patch("superset.utils.core.get_metric_name") as mock_get_metric_name:
             mock_get_metric_name.return_value = "sum__sales"
 
             test_viz._setup_metric_label()
@@ -961,6 +961,11 @@ class TestBaseDeckGLViz(SupersetTestCase):
             "tooltip_contents": ["CITY", "POPULATION"],
             "time_grain_sqla": "P1D",
             "point_radius_fixed": {"type": "fix", "value": 500},
+            "spatial": {
+                "type": "latlong",
+                "lonCol": "longitude",
+                "latCol": "latitude",
+            },
         }
         datasource = self.get_datasource_mock()
         test_viz = viz.DeckScatterViz(datasource, form_data)
@@ -983,6 +988,11 @@ class TestBaseDeckGLViz(SupersetTestCase):
         form_data = {
             "tooltip_contents": ["CITY"],
             "point_radius_fixed": {"type": "metric", "value": "count"},
+            "spatial": {
+                "type": "latlong",
+                "lonCol": "longitude",
+                "latCol": "latitude",
+            },
         }
         datasource = self.get_datasource_mock()
         test_viz = viz.DeckScatterViz(datasource, form_data)

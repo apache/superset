@@ -1,5 +1,3 @@
-/* eslint-disable react/sort-prop-types */
-/* eslint-disable react/jsx-handler-names */
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -18,15 +16,18 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-/* eslint no-underscore-dangle: ["error", { "allow": ["", "__timestamp"] }] */
-
 import { memo, useCallback, useEffect, useRef, useState } from 'react';
 import { ScreenGridLayer } from '@deck.gl/aggregation-layers';
-import { JsonObject, JsonValue, QueryFormData, t } from '@superset-ui/core';
+import {
+  JsonObject,
+  JsonValue,
+  QueryFormData,
+  t,
+  styled,
+} from '@superset-ui/core';
 import sandboxedEval from '../../utils/sandbox';
 import { commonLayerProps } from '../common';
 import TooltipRow from '../../TooltipRow';
-// eslint-disable-next-line import/extensions
 import fitViewport, { Viewport } from '../../utils/fitViewport';
 import {
   DeckGLContainerHandle,
@@ -37,6 +38,12 @@ import {
   createTooltipContent,
   CommonTooltipRows,
 } from '../../utilities/tooltipUtils';
+
+const MoreRecordsIndicator = styled.div`
+  margin-top: 4px;
+  font-size: 12px;
+  color: ${({ theme }) => theme.colors.grayscale.base};
+`;
 
 export function getPoints(data: JsonObject[]) {
   return data.map(d => d.position);
@@ -55,7 +62,6 @@ function defaultTooltipGenerator(o: JsonObject, formData: QueryFormData) {
         value={`${o.object?.cellWeight}`}
       />
       <TooltipRow label="Points: " value={`${pointCount} records`} />
-      {/* Show first few individual records if available */}
       {points.length > 0 && points.length <= 3 && (
         <div style={{ marginTop: 8, fontSize: '12px' }}>
           <strong>Records:</strong>
@@ -76,9 +82,9 @@ function defaultTooltipGenerator(o: JsonObject, formData: QueryFormData) {
         </div>
       )}
       {points.length > 3 && (
-        <div style={{ marginTop: 4, fontSize: '12px', color: '#666' }}>
+        <MoreRecordsIndicator>
           ... and {points.length - 3} more records
-        </div>
+        </MoreRecordsIndicator>
       )}
     </div>
   );
@@ -98,19 +104,16 @@ export function getLayer(
   }));
 
   if (fd.js_data_mutator) {
-    // Applying user defined data mutator if defined
     const jsFnMutator = sandboxedEval(fd.js_data_mutator);
     data = jsFnMutator(data);
   }
 
-  // Create a mapping of grid cells to points
   const cellSize = fd.grid_size || 50;
   const cellToPointsMap = new Map();
 
   data.forEach((point: JsonObject) => {
-    const position = point.position;
+    const { position } = point;
     if (position) {
-      // Calculate which grid cell this point belongs to
       const cellX = Math.floor(position[0] / (cellSize * 0.01));
       const cellY = Math.floor(position[1] / (cellSize * 0.01));
       const cellKey = `${cellX},${cellY}`;
@@ -126,23 +129,14 @@ export function getLayer(
     defaultTooltipGenerator(o, fd),
   );
 
-  // Custom onHover function to include individual point data
   const customOnHover = (info: JsonObject) => {
     if (info.picked) {
-      // For Screengrid, we need to find points that belong to this specific cell
-      // Since deck.gl doesn't expose this directly, we'll use a simpler approach
-      // and show a subset of points that are likely to be in this cell
       const cellCenter = info.coordinate;
-
-      // Find which cell this coordinate belongs to
       const cellX = Math.floor(cellCenter[0] / (cellSize * 0.01));
       const cellY = Math.floor(cellCenter[1] / (cellSize * 0.01));
       const cellKey = `${cellX},${cellY}`;
 
-      // Get the points for this specific cell
       const pointsInCell = cellToPointsMap.get(cellKey) || [];
-
-      // Add the points data to the tooltip info
       const enhancedInfo = {
         ...info,
         object: {
@@ -162,8 +156,6 @@ export function getLayer(
     return true;
   };
 
-  // Passing a layer creator function instead of a layer since the
-  // layer needs to be regenerated at each render
   return new ScreenGridLayer({
     id: `screengrid-layer-${fd.slice_id}` as const,
     data,
@@ -171,7 +163,7 @@ export function getLayer(
     minColor: [c.r, c.g, c.b, 0],
     maxColor: [c.r, c.g, c.b, 255 * c.a],
     outline: false,
-    getWeight: (d: any) => d.weight || 0,
+    getWeight: (d: JsonObject) => d.weight || 0,
     onHover: customOnHover,
     pickable: true,
   });

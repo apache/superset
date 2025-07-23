@@ -38,7 +38,6 @@ function setTooltipContent(formData: QueryFormData) {
     const lon = o.coordinate?.[0];
     const lat = o.coordinate?.[1];
 
-    // Check if user has custom tooltip but data isn't available
     const hasCustomTooltip =
       formData.tooltip_template ||
       (formData.tooltip_contents && formData.tooltip_contents.length > 0);
@@ -87,7 +86,6 @@ function setTooltipContent(formData: QueryFormData) {
         }
       }
     }
-    // Create a modified o object with the closest point data
     const modifiedO = {
       ...o,
       object: closestPoint || o.object,
