@@ -26,6 +26,7 @@ from superset.common.query_object_factory import QueryObjectFactory
 from superset.daos.chart import ChartDAO
 from superset.daos.datasource import DatasourceDAO
 from superset.models.slice import Slice
+from superset.superset_typing import Column
 from superset.utils.core import DatasourceDict, DatasourceType, is_adhoc_column
 
 if TYPE_CHECKING:
@@ -121,7 +122,81 @@ class QueryContextFactory:  # pylint: disable=too-few-public-methods
     ) -> QueryObject:
         self._apply_granularity(query_object, form_data, datasource)
         self._apply_filters(query_object)
+        self._add_tooltip_columns(query_object, form_data)
         return query_object
+
+    def _add_tooltip_columns(
+        self,
+        query_object: QueryObject,
+        form_data: dict[str, Any] | None,
+    ) -> None:
+        """Add tooltip columns to the query object."""
+        if not form_data:
+            return
+
+        tooltip_columns = self._extract_tooltip_columns(form_data)
+        if not tooltip_columns:
+            return
+
+        existing_columns = self._get_existing_column_names(query_object.columns)
+        self._append_missing_tooltip_columns(
+            query_object, tooltip_columns, existing_columns
+        )
+
+    def _get_existing_column_names(self, columns: list[Column]) -> set[str]:
+        """Extract column names from existing columns."""
+        column_names: set[str] = set()
+        for col in columns:
+            if isinstance(col, dict):
+                column_name = col.get("column_name")
+                if column_name and isinstance(column_name, str):
+                    column_names.add(column_name)
+            elif isinstance(col, str):
+                column_names.add(col)
+        return column_names
+
+    def _append_missing_tooltip_columns(
+        self,
+        query_object: QueryObject,
+        tooltip_columns: list[str],
+        existing_columns: set[str],
+    ) -> None:
+        """Append missing tooltip columns to query object."""
+        for col in tooltip_columns:
+            if col not in existing_columns:
+                column_def = self._find_column_definition(query_object, col)
+                query_object.columns.append(column_def or col)
+
+    def _find_column_definition(
+        self, query_object: QueryObject, column_name: str
+    ) -> Any | None:
+        """Find column definition from datasource."""
+        if not (
+            query_object.datasource and hasattr(query_object.datasource, "columns")
+        ):
+            return None
+
+        return next(
+            (
+                c
+                for c in query_object.datasource.columns
+                if c.column_name == column_name
+            ),
+            None,
+        )
+
+    def _extract_tooltip_columns(self, form_data: dict[str, Any]) -> list[str]:
+        """Extract column names from tooltip_contents configuration."""
+        tooltip_columns = []
+        if tooltip_contents := form_data.get("tooltip_contents", []):
+            for item in tooltip_contents:
+                if isinstance(item, str):
+                    tooltip_columns.append(item)
+                elif isinstance(item, dict) and item.get("item_type") == "column":
+                    column_name = item.get("column_name")
+                    if column_name:
+                        tooltip_columns.append(column_name)
+        return tooltip_columns
 
     def _apply_granularity(  # noqa: C901
         self,

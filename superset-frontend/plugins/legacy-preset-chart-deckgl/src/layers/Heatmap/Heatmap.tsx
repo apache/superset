@@ -18,23 +18,85 @@
  */
 import { HeatmapLayer } from '@deck.gl/aggregation-layers';
 import { Position, Color } from '@deck.gl/core';
-import { t, getSequentialSchemeRegistry, JsonObject } from '@superset-ui/core';
+import {
+  t,
+  getSequentialSchemeRegistry,
+  JsonObject,
+  QueryFormData,
+} from '@superset-ui/core';
 import { commonLayerProps } from '../common';
 import sandboxedEval from '../../utils/sandbox';
 import { hexToRGB } from '../../utils/colors';
 import { createDeckGLComponent, getLayerType } from '../../factory';
 import TooltipRow from '../../TooltipRow';
+import { createTooltipContent } from '../../utilities/tooltipUtils';
 
-function setTooltipContent(o: JsonObject) {
-  return (
-    <div className="deckgl-tooltip">
-      <TooltipRow
-        label={t('Centroid (Longitude and Latitude): ')}
-        value={`(${o?.coordinate[0]}, ${o?.coordinate[1]})`}
-      />
-    </div>
-  );
+function setTooltipContent(formData: QueryFormData) {
+  const defaultTooltipGenerator = (o: JsonObject) => {
+    const metricLabel =
+      formData.size?.label || formData.size?.value || 'Weight';
+    const lon = o.coordinate?.[0];
+    const lat = o.coordinate?.[1];
+
+    // Check if user has custom tooltip but data isn't available
+    const hasCustomTooltip =
+      formData.tooltip_template ||
+      (formData.tooltip_contents && formData.tooltip_contents.length > 0);
+    const hasObjectData = o.object && Object.keys(o.object).length > 0;
+
+    return (
+      <div className="deckgl-tooltip">
+        <TooltipRow
+          label={`${t('Longitude and Latitude')}: `}
+          value={`${lon?.toFixed(6)}, ${lat?.toFixed(6)}`}
+        />
+        <TooltipRow label="LON: " value={lon?.toFixed(6)} />
+        <TooltipRow label="LAT: " value={lat?.toFixed(6)} />
+        <TooltipRow
+          label={`${metricLabel}: `}
+          value={`${o.object?.weight || o.object?.value || 'Aggregated Cell'}`}
+        />
+        {hasCustomTooltip && !hasObjectData && (
+          <TooltipRow
+            label={`${t('Note')}: `}
+            value={t('Custom fields not available in aggregated heatmap cells')}
+          />
+        )}
+      </div>
+    );
+  };
+
+  return (o: JsonObject) => {
+    // Try to find the closest data point to the hovered coordinate
+    let closestPoint = null;
+    if (o.coordinate && o.layer?.props?.data) {
+      const [hoveredLon, hoveredLat] = o.coordinate;
+      let minDistance = Infinity;
+
+      for (const point of o.layer.props.data) {
+        if (point.position) {
+          const [pointLon, pointLat] = point.position;
+          const distance = Math.sqrt(
+            Math.pow(hoveredLon - pointLon, 2) +
+              Math.pow(hoveredLat - pointLat, 2),
+          );
+          if (distance < minDistance) {
+            minDistance = distance;
+            closestPoint = point;
+          }
+        }
+      }
+    }
+    // Create a modified o object with the closest point data
+    const modifiedO = {
+      ...o,
+      object: closestPoint || o.object,
+    };
+
+    return createTooltipContent(formData, defaultTooltipGenerator)(modifiedO);
+  };
 }
+
 export const getLayer: getLayerType<unknown> = (
   formData,
   payload,
@@ -52,7 +114,6 @@ export const getLayer: getLayerType<unknown> = (
   let data = payload.data.features;
 
   if (jsFnMutator) {
-    // Applying user defined data mutator if defined
     const jsFnMutatorFunction = sandboxedEval(fd.js_data_mutator);
     data = jsFnMutatorFunction(data);
   }
@@ -65,8 +126,10 @@ export const getLayer: getLayerType<unknown> = (
     ?.map(color => hexToRGB(color))
     ?.reverse() as Color[];
 
-  return new HeatmapLayer({
-    id: `heatmap-layer-${fd.slice_id}` as const,
+  const tooltipContent = setTooltipContent(fd);
+
+  const layerConfig = {
+    id: `heatmap-layer-${fd.slice_id || 'temp'}` as const,
     data,
     intensity,
     radiusPixels,
@@ -75,8 +138,12 @@ export const getLayer: getLayerType<unknown> = (
     getPosition: (d: { position: Position; weight: number }) => d.position,
     getWeight: (d: { position: number[]; weight: number }) =>
       d.weight ? d.weight : 1,
-    ...commonLayerProps(fd, setTooltip, setTooltipContent),
-  });
+    opacity: 0.8,
+    threshold: 0.03,
+    ...commonLayerProps(fd, setTooltip, tooltipContent),
+  };
+
+  return new HeatmapLayer(layerConfig);
 };
 
 export function getPoints(data: any[]) {

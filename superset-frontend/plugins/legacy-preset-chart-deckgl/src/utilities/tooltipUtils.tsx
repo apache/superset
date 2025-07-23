@@ -38,17 +38,7 @@ export function createTooltipContent(
         'Drop columns/metrics in "Tooltip contents" above',
       )
     ) {
-      const tooltipData = {
-        ...o.object,
-        coordinate: o.coordinate,
-        index: o.index,
-        picked: o.picked,
-        title: formData.viz_type || 'Chart',
-        position: o.object?.position,
-        sourcePosition: o.object?.sourcePosition,
-        targetPosition: o.object?.targetPosition,
-      };
-
+      const tooltipData = createHandlebarsTooltipData(o, formData);
       return (
         <CustomTooltipWrapper>
           <div className="deckgl-tooltip">
@@ -72,16 +62,39 @@ export function createTooltipContent(
 
         if (item.item_type === 'column') {
           label = item.verbose_name || item.column_name || item.label;
-          value = o.object?.[item.column_name] || '';
+          value =
+            o.object?.[item.column_name] ||
+            o.object?.properties?.[item.column_name] ||
+            o.object?.data?.[item.column_name] ||
+            '';
         } else if (item.item_type === 'metric') {
           label = item.verbose_name || item.metric_name || item.label;
           value =
             o.object?.[item.metric_name || item.label] ||
+            o.object?.properties?.[item.metric_name || item.label] ||
+            o.object?.data?.[item.metric_name || item.label] ||
             o.object?.metric ||
             '';
         } else if (typeof item === 'string') {
           label = item;
-          value = o.object?.[item] || '';
+          value =
+            o.object?.[item] ||
+            o.object?.properties?.[item] ||
+            o.object?.data?.[item] ||
+            '';
+          // Special handling for ScreenGridLayer - check if we have individual points data
+          if (
+            formData.viz_type === 'deck_screengrid' &&
+            !value &&
+            Array.isArray(o.object?.points)
+          ) {
+            const allVals = o.object.points
+              .map((pt: any) => pt[item])
+              .filter((v: any) => v !== undefined && v !== null);
+            if (allVals.length > 0) {
+              value = allVals.join(', ');
+            }
+          }
         }
 
         if (label && value !== '') {
@@ -183,7 +196,6 @@ export function createHandlebarsTooltipData(
   formData: QueryFormData,
 ): Record<string, any> {
   const data: Record<string, any> = {
-    // Base object data
     ...o.object,
 
     // Deck.gl specific properties
@@ -206,7 +218,39 @@ export function createHandlebarsTooltipData(
     positionString: o.object?.position
       ? `${o.object.position[0]}, ${o.object.position[1]}`
       : '',
+    // For ContourLayer, add contour-specific data
+    threshold: o.object?.contour?.threshold,
+    contourThreshold: o.object?.contour?.threshold,
+    // Add nearby points data for aggregation layers
+    nearbyPoints: o.object?.nearbyPoints,
+    totalPoints: o.object?.totalPoints,
   };
+
+  // Targeted fallback for Heatmap and Contour: add LON/LAT if possible
+  if (
+    formData.viz_type === 'deck_heatmap' ||
+    formData.viz_type === 'deck_contour'
+  ) {
+    if (o.object?.position) {
+      data.LON = o.object.position[0];
+      data.LAT = o.object.position[1];
+    }
+    if (o.coordinate) {
+      data.LON = o.coordinate[0];
+      data.LAT = o.coordinate[1];
+    }
+
+    // For Heatmap layers where o.object is undefined,
+    // we can't access individual data points from the hover event
+    // The tooltip will only show coordinate-based information
+    if (!o.object && formData.viz_type === 'deck_heatmap') {
+      // Add a note that detailed data isn't available for aggregated cells
+      // eslint-disable-next-line no-underscore-dangle
+      data._aggregated = true;
+      // eslint-disable-next-line no-underscore-dangle
+      data._note = 'Aggregated cell - individual point data not available';
+    }
+  }
 
   if (formData.tooltip_contents && formData.tooltip_contents.length > 0) {
     formData.tooltip_contents.forEach((item: any) => {
@@ -215,14 +259,141 @@ export function createHandlebarsTooltipData(
 
       if (typeof item === 'string') {
         fieldName = item;
-        rawValue = o.object?.[item] || '';
+        // For aggregation layers, try different possible field locations
+        rawValue =
+          o.object?.[item] ||
+          o.object?.properties?.[item] ||
+          o.object?.data?.[item] ||
+          '';
+
+        // Special handling for ScreenGridLayer which doesn't have points array
+        if (formData.viz_type === 'deck_screengrid' && !rawValue) {
+          // Check if we have individual points data available
+          if (Array.isArray(o.object?.points)) {
+            const allVals = o.object.points
+              .map((pt: any) => pt[item])
+              .filter((v: any) => v !== undefined && v !== null);
+            if (allVals.length > 0) {
+              // Show only the first value instead of all values
+              rawValue = allVals[0];
+              // Also add a pluralized field for convenience (e.g., LONs) with all values
+              data[`${item}s`] = allVals.join(', ');
+              // Add count information
+              data[`${item}_count`] = allVals.length;
+            } else {
+              // Fallback to aggregated information if no individual values found
+              const count = o.object?.count || 0;
+              const value = o.object?.value || 0;
+              rawValue = `Aggregated: ${count} points, total value: ${value}`;
+              data[`${item}_aggregated`] = rawValue;
+            }
+          } else {
+            // Fallback to aggregated information if no points array available
+            const count = o.object?.count || 0;
+            const value = o.object?.value || 0;
+            rawValue = `Aggregated: ${count} points, total value: ${value}`;
+            data[`${item}_aggregated`] = rawValue;
+          }
+        } else if (!rawValue && Array.isArray(o.object?.points)) {
+          const allVals = o.object.points
+            .map((pt: any) => pt[item])
+            .filter((v: any) => v !== undefined && v !== null);
+          if (allVals.length > 0) {
+            // Show only the first value for aggregation layers
+            rawValue = allVals[0];
+            // Also add a pluralized field for convenience (e.g., LONs) with all values
+            data[`${item}s`] = allVals.join(', ');
+            // Add count information
+            data[`${item}_count`] = allVals.length;
+          }
+        }
       } else if (item?.item_type === 'column') {
         fieldName = item.column_name;
-        rawValue = o.object?.[item.column_name] || '';
+        rawValue =
+          o.object?.[item.column_name] ||
+          o.object?.properties?.[item.column_name] ||
+          o.object?.data?.[item.column_name] ||
+          '';
+        // Special handling for ScreenGridLayer which doesn't have points array
+        if (formData.viz_type === 'deck_screengrid' && !rawValue) {
+          // Check if we have individual points data available
+          if (Array.isArray(o.object?.points)) {
+            const allVals = o.object.points
+              .map((pt: any) => pt[item.column_name])
+              .filter((v: any) => v !== undefined && v !== null);
+            if (allVals.length > 0) {
+              // Show only the first value instead of all values
+              rawValue = allVals[0];
+              // Also add a pluralized field for convenience (e.g., LONs) with all values
+              data[`${item.column_name}s`] = allVals.join(', ');
+              // Add count information
+              data[`${item.column_name}_count`] = allVals.length;
+            } else {
+              // Fallback to aggregated information if no individual values found
+              const count = o.object?.count || 0;
+              const value = o.object?.value || 0;
+              rawValue = `Aggregated: ${count} points, total value: ${value}`;
+              data[`${item.column_name}_aggregated`] = rawValue;
+            }
+          } else {
+            // Fallback to aggregated information if no points array available
+            const count = o.object?.count || 0;
+            const value = o.object?.value || 0;
+            rawValue = `Aggregated: ${count} points, total value: ${value}`;
+            data[`${item.column_name}_aggregated`] = rawValue;
+          }
+        } else if (!rawValue && Array.isArray(o.object?.points)) {
+          const allVals = o.object.points
+            .map((pt: any) => pt[item.column_name])
+            .filter((v: any) => v !== undefined && v !== null);
+          if (allVals.length > 0) {
+            rawValue = allVals.join(', ');
+            data[`${item.column_name}s`] = rawValue;
+          }
+        }
       } else if (item?.item_type === 'metric') {
         const metricName = item.metric_name || item.label;
         fieldName = metricName;
-        rawValue = o.object?.[metricName] || o.object?.metric || '';
+        rawValue =
+          o.object?.[metricName] ||
+          o.object?.properties?.[metricName] ||
+          o.object?.data?.[metricName] ||
+          o.object?.metric ||
+          '';
+        // Special handling for ScreenGridLayer which doesn't have points array
+        if (formData.viz_type === 'deck_screengrid' && !rawValue) {
+          // Check if we have individual points data available
+          if (Array.isArray(o.object?.points)) {
+            const allVals = o.object.points
+              .map((pt: any) => pt[metricName])
+              .filter((v: any) => v !== undefined && v !== null);
+            if (allVals.length > 0) {
+              rawValue = allVals.join(', ');
+              // Also add a pluralized field for convenience (e.g., LONs)
+              data[`${metricName}s`] = rawValue;
+            } else {
+              // Fallback to aggregated information if no individual values found
+              const count = o.object?.count || 0;
+              const value = o.object?.value || 0;
+              rawValue = `Aggregated: ${count} points, total value: ${value}`;
+              data[`${metricName}_aggregated`] = rawValue;
+            }
+          } else {
+            // Fallback to aggregated information if no points array available
+            const count = o.object?.count || 0;
+            const value = o.object?.value || 0;
+            rawValue = `Aggregated: ${count} points, total value: ${value}`;
+            data[`${metricName}_aggregated`] = rawValue;
+          }
+        } else if (!rawValue && Array.isArray(o.object?.points)) {
+          const allVals = o.object.points
+            .map((pt: any) => pt[metricName])
+            .filter((v: any) => v !== undefined && v !== null);
+          if (allVals.length > 0) {
+            rawValue = allVals.join(', ');
+            data[`${metricName}s`] = rawValue;
+          }
+        }
       }
 
       if (fieldName && rawValue !== '') {

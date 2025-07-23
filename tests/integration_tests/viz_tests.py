@@ -655,6 +655,204 @@ class TestBaseDeckGLViz(SupersetTestCase):
         result = test_viz_deckgl.get_metrics()
         assert result == []
 
+    def test_extract_tooltip_columns_string_items(self):
+        """Test _extract_tooltip_columns with string items in tooltip_contents"""
+        form_data = {"tooltip_contents": ["column1", "column2", "column3"]}
+        datasource = self.get_datasource_mock()
+        test_viz = viz.BaseDeckGLViz(datasource, form_data)
+
+        result = test_viz._extract_tooltip_columns()
+        assert result == ["column1", "column2", "column3"]
+
+    def test_extract_tooltip_columns_dict_items(self):
+        """Test _extract_tooltip_columns with dict items in tooltip_contents"""
+        form_data = {
+            "tooltip_contents": [
+                {"item_type": "column", "column_name": "LAT"},
+                {"item_type": "column", "column_name": "LON"},
+                {"item_type": "metric", "metric_name": "count"},
+                {"item_type": "column", "column_name": "CITY"},
+            ]
+        }
+        datasource = self.get_datasource_mock()
+        test_viz = viz.BaseDeckGLViz(datasource, form_data)
+
+        result = test_viz._extract_tooltip_columns()
+        assert result == ["LAT", "LON", "CITY"]
+
+    def test_extract_tooltip_columns_mixed_items(self):
+        """Test _extract_tooltip_columns with mixed string and dict items"""
+        form_data = {
+            "tooltip_contents": [
+                "string_column",
+                {"item_type": "column", "column_name": "dict_column"},
+                {
+                    "item_type": "invalid",
+                    "column_name": "invalid_column",
+                },
+                {"item_type": "column"},
+            ]
+        }
+        datasource = self.get_datasource_mock()
+        test_viz = viz.BaseDeckGLViz(datasource, form_data)
+
+        result = test_viz._extract_tooltip_columns()
+        assert result == ["string_column", "dict_column"]
+
+    def test_extract_tooltip_columns_empty(self):
+        """Test _extract_tooltip_columns with empty or missing tooltip_contents"""
+        form_data = {"tooltip_contents": []}
+        datasource = self.get_datasource_mock()
+        test_viz = viz.BaseDeckGLViz(datasource, form_data)
+
+        result = test_viz._extract_tooltip_columns()
+        assert result == []
+
+        form_data = {}
+        test_viz = viz.BaseDeckGLViz(datasource, form_data)
+
+        result = test_viz._extract_tooltip_columns()
+        assert result == []
+
+    def test_add_tooltip_columns_to_query_with_metrics(self):
+        """Test _add_tooltip_columns_to_query when query has metrics"""
+        form_data = {}
+        datasource = self.get_datasource_mock()
+        test_viz = viz.BaseDeckGLViz(datasource, form_data)
+
+        query_obj = {
+            "metrics": ["count", "avg_value"],
+            "groupby": ["existing_column"],
+            "columns": [],
+        }
+        tooltip_columns = ["tooltip_col1", "tooltip_col2", "existing_column"]
+
+        test_viz._add_tooltip_columns_to_query(query_obj, tooltip_columns)
+
+        # Should add to groupby, avoiding duplicates
+        assert "tooltip_col1" in query_obj["groupby"]
+        assert "tooltip_col2" in query_obj["groupby"]
+        assert query_obj["groupby"].count("existing_column") == 1  # No duplicate
+
+    def test_add_tooltip_columns_to_query_without_metrics(self):
+        """Test _add_tooltip_columns_to_query when query has no metrics"""
+        form_data = {}
+        datasource = self.get_datasource_mock()
+        test_viz = viz.BaseDeckGLViz(datasource, form_data)
+
+        query_obj = {"metrics": [], "groupby": [], "columns": ["existing_column"]}
+        tooltip_columns = ["tooltip_col1", "tooltip_col2", "existing_column"]
+
+        test_viz._add_tooltip_columns_to_query(query_obj, tooltip_columns)
+
+        # Should add to columns, avoiding duplicates
+        assert "tooltip_col1" in query_obj["columns"]
+        assert "tooltip_col2" in query_obj["columns"]
+        assert query_obj["columns"].count("existing_column") == 1  # No duplicate
+
+    def test_add_tooltip_columns_to_query_empty_columns(self):
+        """Test _add_tooltip_columns_to_query with empty tooltip columns"""
+        form_data = {}
+        datasource = self.get_datasource_mock()
+        test_viz = viz.BaseDeckGLViz(datasource, form_data)
+
+        query_obj = {"metrics": [], "groupby": [], "columns": []}
+        original_query_obj = query_obj.copy()
+
+        test_viz._add_tooltip_columns_to_query(query_obj, [])
+
+        # Should not modify query_obj
+        assert query_obj == original_query_obj
+
+    def test_integrate_tooltip_columns(self):
+        """Test _integrate_tooltip_columns helper method"""
+        form_data = {"tooltip_contents": ["LON", "LAT"]}
+        datasource = self.get_datasource_mock()
+        test_viz = viz.BaseDeckGLViz(datasource, form_data)
+
+        query_obj = {"metrics": ["count"], "groupby": ["region"]}
+
+        result = test_viz._integrate_tooltip_columns(query_obj)
+
+        assert "LON" in result["groupby"]
+        assert "LAT" in result["groupby"]
+        assert "region" in result["groupby"]
+        assert result is query_obj  # Should return the same object
+
+    def test_add_tooltip_properties(self):
+        """Test _add_tooltip_properties helper method"""
+        form_data = {"tooltip_contents": ["CITY", "POPULATION", "missing_column"]}
+        datasource = self.get_datasource_mock()
+        test_viz = viz.BaseDeckGLViz(datasource, form_data)
+
+        properties = {"position": [1, 2], "weight": 100}
+        data = {"CITY": "New York", "POPULATION": 8000000, "other_column": "value"}
+
+        result = test_viz._add_tooltip_properties(properties, data)
+
+        assert result["CITY"] == "New York"
+        assert result["POPULATION"] == 8000000
+        assert "missing_column" not in result  # Missing column should not be added
+        assert "other_column" not in result  # Non-tooltip column should not be added
+        assert result["position"] == [1, 2]  # Original properties should remain
+        assert result["weight"] == 100
+        assert result is properties  # Should return the same object
+
+    def test_get_base_properties(self):
+        """Test _get_base_properties helper method"""
+        form_data = {}
+        datasource = self.get_datasource_mock()
+        test_viz = viz.BaseDeckGLViz(datasource, form_data)
+        test_viz.metric_label = "test_metric"
+
+        data = {"spatial": [10.5, 20.3], "test_metric": 42, "other_field": "value"}
+
+        result = test_viz._get_base_properties(data)
+
+        assert result["position"] == [10.5, 20.3]
+        assert result["weight"] == 42
+        assert len(result) == 2  # Should only have position and weight
+
+    def test_get_base_properties_no_metric(self):
+        """Test _get_base_properties when no metric is available"""
+        form_data = {}
+        datasource = self.get_datasource_mock()
+        test_viz = viz.BaseDeckGLViz(datasource, form_data)
+        test_viz.metric_label = None
+
+        data = {"spatial": [10.5, 20.3]}
+
+        result = test_viz._get_base_properties(data)
+
+        assert result["position"] == [10.5, 20.3]
+        assert result["weight"] == 1  # Should default to 1
+
+    def test_setup_metric_label(self):
+        """Test _setup_metric_label helper method"""
+        form_data = {}
+        datasource = self.get_datasource_mock()
+        test_viz = viz.BaseDeckGLViz(datasource, form_data)
+        test_viz.metric = "SUM(sales)"
+
+        with patch("superset.utils.get_metric_name") as mock_get_metric_name:
+            mock_get_metric_name.return_value = "sum__sales"
+
+            test_viz._setup_metric_label()
+
+            assert test_viz.metric_label == "sum__sales"
+            mock_get_metric_name.assert_called_once_with("SUM(sales)")
+
+    def test_setup_metric_label_no_metric(self):
+        """Test _setup_metric_label when metric is None"""
+        form_data = {}
+        datasource = self.get_datasource_mock()
+        test_viz = viz.BaseDeckGLViz(datasource, form_data)
+        test_viz.metric = None
+
+        test_viz._setup_metric_label()
+
+        assert test_viz.metric_label is None
+
     def test_scatterviz_get_metrics(self):
         form_data = load_fixture("deck_path_form_data.json")
         datasource = self.get_datasource_mock()
@@ -756,6 +954,173 @@ class TestBaseDeckGLViz(SupersetTestCase):
 
         with self.assertRaises(SpatialException):  # noqa: PT027
             test_viz_deckgl.parse_coordinates("fldkjsalkj,fdlaskjfjadlksj")
+
+    def test_deckscatter_query_obj_integration(self):
+        """Test DeckScatterViz query_obj uses new tooltip integration"""
+        form_data = {
+            "tooltip_contents": ["CITY", "POPULATION"],
+            "time_grain_sqla": "P1D",
+            "point_radius_fixed": {"type": "fix", "value": 500},
+        }
+        datasource = self.get_datasource_mock()
+        test_viz = viz.DeckScatterViz(datasource, form_data)
+
+        with patch.object(test_viz, "_integrate_tooltip_columns") as mock_integrate:
+            mock_integrate.return_value = {"mocked": "result"}
+
+            result = test_viz.query_obj()
+
+            # Should call the new helper method
+            mock_integrate.assert_called_once()
+            assert result == {"mocked": "result"}
+
+            # Should set up instance variables
+            assert test_viz.is_timeseries is True
+            assert test_viz.point_radius_fixed == {"type": "fix", "value": 500}
+
+    def test_deckscatter_query_obj_no_time_grain(self):
+        """Test DeckScatterViz query_obj when time_grain_sqla is not set"""
+        form_data = {
+            "tooltip_contents": ["CITY"],
+            "point_radius_fixed": {"type": "metric", "value": "count"},
+        }
+        datasource = self.get_datasource_mock()
+        test_viz = viz.DeckScatterViz(datasource, form_data)
+
+        with patch.object(test_viz, "_integrate_tooltip_columns") as mock_integrate:
+            mock_integrate.return_value = {"result": "data"}
+
+            test_viz.query_obj()
+
+            # Should set timeseries to False when no time_grain_sqla
+            assert test_viz.is_timeseries is False
+
+    def test_deckscatter_get_properties_uses_helper(self):
+        """Test DeckScatterViz get_properties uses new helper method"""
+        form_data = {"tooltip_contents": ["CITY", "STATE"], "dimension": "region"}
+        datasource = self.get_datasource_mock()
+        test_viz = viz.DeckScatterViz(datasource, form_data)
+        test_viz.metric_label = "count"
+        test_viz.fixed_value = 10
+        test_viz.dim = "region"
+
+        data = {
+            "spatial": [40.7, -74.0],
+            "count": 100,
+            "region": "northeast",
+            "CITY": "New York",
+            "STATE": "NY",
+            "__timestamp": "2023-01-01",
+        }
+
+        with patch.object(test_viz, "_add_tooltip_properties") as mock_add_tooltip:
+            mock_add_tooltip.return_value = {"final": "result"}
+
+            result = test_viz.get_properties(data)
+
+            expected_base_properties = {
+                "metric": 100,
+                "radius": 10,
+                "cat_color": "northeast",
+                "position": [40.7, -74.0],
+                "__timestamp": "2023-01-01",
+            }
+            mock_add_tooltip.assert_called_once_with(expected_base_properties, data)
+            assert result == {"final": "result"}
+
+    def test_deckscatter_get_data_uses_setup_metric_label(self):
+        """Test DeckScatterViz get_data uses new _setup_metric_label helper"""
+        form_data = {
+            "point_radius_fixed": {"type": "metric", "value": "avg_sales"},
+            "dimension": "category",
+        }
+        datasource = self.get_datasource_mock()
+        test_viz = viz.DeckScatterViz(datasource, form_data)
+        test_df = pd.DataFrame({"col1": [1, 2], "col2": [3, 4]})
+
+        with patch.object(test_viz, "_setup_metric_label") as mock_setup:
+            with patch("superset.viz.BaseDeckGLViz.get_data") as mock_super_get_data:
+                mock_super_get_data.return_value = {"test": "data"}
+
+                result = test_viz.get_data(test_df)
+
+                mock_setup.assert_called_once()
+
+                assert test_viz.point_radius_fixed == {
+                    "type": "metric",
+                    "value": "avg_sales",
+                }
+                assert test_viz.fixed_value is None
+                assert test_viz.dim == "category"
+
+                mock_super_get_data.assert_called_once_with(test_df)
+                assert result == {"test": "data"}
+
+    def test_deckscatter_get_data_with_fixed_radius(self):
+        """Test DeckScatterViz get_data with fixed radius type"""
+        form_data = {
+            "point_radius_fixed": {"type": "fix", "value": 25},
+            "dimension": "location",
+        }
+        datasource = self.get_datasource_mock()
+        test_viz = viz.DeckScatterViz(datasource, form_data)
+        test_df = pd.DataFrame({"col1": [1, 2]})
+
+        with patch.object(test_viz, "_setup_metric_label"):
+            with patch("superset.viz.BaseDeckGLViz.get_data") as mock_super_get_data:
+                mock_super_get_data.return_value = {"result": "ok"}
+
+                test_viz.get_data(test_df)
+
+                # Should set fixed_value when type is not 'metric'
+                assert test_viz.fixed_value == 25
+
+    def test_tooltip_integration_end_to_end(self):
+        """Test complete tooltip integration from query_obj to get_properties"""
+        form_data = {
+            "tooltip_contents": ["CITY", "POPULATION"],
+            "size": "count",
+            "time_grain_sqla": None,
+        }
+        datasource = self.get_datasource_mock()
+        test_viz = viz.DeckScatterViz(datasource, form_data)
+
+        with patch("superset.viz.BaseDeckGLViz.query_obj") as mock_super_query:
+            mock_super_query.return_value = {
+                "metrics": ["count"],
+                "groupby": ["region"],
+                "columns": [],
+            }
+
+            query_result = test_viz.query_obj()
+
+            # Should have added tooltip columns to groupby
+            assert "CITY" in query_result["groupby"]
+            assert "POPULATION" in query_result["groupby"]
+            assert "region" in query_result["groupby"]
+
+        test_viz.metric_label = "count"
+        test_viz.fixed_value = None
+        test_viz.dim = "region"
+
+        data = {
+            "spatial": [40.7, -74.0],
+            "count": 5000,
+            "region": "northeast",
+            "CITY": "New York",
+            "POPULATION": 8000000,
+            "__timestamp": "2023-01-01",
+        }
+
+        properties_result = test_viz.get_properties(data)
+
+        # Should include both base properties and tooltip properties
+        assert properties_result["position"] == [40.7, -74.0]
+        assert properties_result["metric"] == 5000
+        assert properties_result["cat_color"] == "northeast"
+        assert properties_result["__timestamp"] == "2023-01-01"
+        assert properties_result["CITY"] == "New York"
+        assert properties_result["POPULATION"] == 8000000
 
     def test_filter_nulls(self):
         test_form_data = {

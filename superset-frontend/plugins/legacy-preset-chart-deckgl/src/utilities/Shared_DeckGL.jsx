@@ -462,7 +462,6 @@ export const tooltipTemplate = {
     height: 200,
     offerEditInModal: false,
     default: '',
-    renderTrigger: true,
     description: t(
       'Handlebars template for custom tooltips with advanced formatting helpers. Available variables will be populated based on your tooltip contents selection above.',
     ),

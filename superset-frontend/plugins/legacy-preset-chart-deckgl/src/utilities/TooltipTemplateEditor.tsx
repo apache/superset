@@ -26,6 +26,7 @@ export interface TooltipTemplateEditorProps {
   onChange: (template: string) => void;
   availableFields: TooltipField[];
   name: string;
+  tooltipContents?: any[];
 }
 
 const StyledTemplateEditor = styled.div`
@@ -176,14 +177,6 @@ interface TooltipField {
   type: string;
 }
 
-interface TooltipTemplateEditorProps {
-  value: string;
-  onChange: (value: string) => void;
-  availableFields: TooltipField[];
-  name: string;
-  tooltipContents?: any[];
-}
-
 // Helper function to extract fields from tooltip contents
 const extractFieldsFromTooltipContents = (
   tooltipContents: any[],
@@ -318,6 +311,7 @@ export function TooltipTemplateEditor({
   );
 
   // Auto-update template when tooltip contents change and template is default
+  // Only run when tooltipContents actually changes, not on every value change
   useEffect(() => {
     if (
       tooltipContents.length > 0 &&
@@ -335,7 +329,7 @@ ${templateRows.join('\n')}
 
       onChange(newTemplate);
     }
-  }, [tooltipContents, fieldsFromTooltipContents, value, onChange]);
+  }, [tooltipContents, fieldsFromTooltipContents, onChange]); // Only depend on tooltipContents changes
 
   return (
     <StyledTemplateEditor>

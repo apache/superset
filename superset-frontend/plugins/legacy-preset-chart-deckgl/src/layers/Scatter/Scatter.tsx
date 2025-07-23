@@ -106,11 +106,7 @@ export function getLayer(
     radiusMinPixels: Number(fd.min_radius) || undefined,
     radiusMaxPixels: Number(fd.max_radius) || undefined,
     stroked: false,
-    ...commonLayerProps(
-      fd,
-      setTooltip,
-      setTooltipContent(fd, datasource?.verboseMap),
-    ),
+    ...commonLayerProps(fd, setTooltip, setTooltipContent(fd)),
   });
 }
 

@@ -29,20 +29,22 @@ import { commonLayerProps, getAggFunc } from '../common';
 import sandboxedEval from '../../utils/sandbox';
 import { hexToRGB } from '../../utils/colors';
 import { createDeckGLComponent } from '../../factory';
+import {
+  createTooltipContent,
+  CommonTooltipRows,
+} from '../../utilities/tooltipUtils';
 import TooltipRow from '../../TooltipRow';
 import { TooltipProps } from '../../components/Tooltip';
 
-function setTooltipContent(o: JsonObject) {
+function defaultTooltipGenerator(o: JsonObject, formData: QueryFormData) {
+  const metricLabel = formData.size?.label || formData.size?.value || 'Height';
+
   return (
     <div className="deckgl-tooltip">
+      {CommonTooltipRows.centroid(o)}
       <TooltipRow
-        label={t('Centroid (Longitude and Latitude): ')}
-        value={`(${o.coordinate[0]}, ${o.coordinate[1]})`}
-      />
-      <TooltipRow
-        // eslint-disable-next-line prefer-template
-        label={t('Height') + ': '}
-        value={`${o.object.elevationValue}`}
+        label={`${metricLabel}: `}
+        value={`${o.object?.elevationValue}`}
       />
     </div>
   );
@@ -69,6 +71,10 @@ export function getLayer(
   }
   const aggFunc = getAggFunc(fd.js_agg_function, p => p?.weight);
 
+  const tooltipContent = createTooltipContent(fd, (o: JsonObject) =>
+    defaultTooltipGenerator(o, fd),
+  );
+
   return new HexagonLayer({
     id: `hex-layer-${fd.slice_id}` as const,
     data,
@@ -80,7 +86,7 @@ export function getLayer(
     getElevationValue: aggFunc,
     // @ts-ignore
     getColorValue: aggFunc,
-    ...commonLayerProps(fd, setTooltip, setTooltipContent),
+    ...commonLayerProps(fd, setTooltip, tooltipContent),
   });
 }
 

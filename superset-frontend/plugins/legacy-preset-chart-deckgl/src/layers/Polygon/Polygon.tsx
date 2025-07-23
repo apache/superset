@@ -45,6 +45,7 @@ import {
   DeckGLContainerStyledWrapper,
 } from '../../DeckGLContainer';
 import { TooltipProps } from '../../components/Tooltip';
+import { createTooltipContent, CommonTooltipRows } from '../../utilities/tooltipUtils';
 
 const DOUBLE_CLICK_THRESHOLD = 250; // milliseconds
 
@@ -60,34 +61,22 @@ function getElevation(
   return colorScaler(d)[3] === 0 ? 0 : d.elevation;
 }
 
-function setTooltipContent(formData: PolygonFormData) {
-  return (o: JsonObject) => {
-    const metricLabel = formData?.metric?.label || formData?.metric;
-
-    return (
-      <div className="deckgl-tooltip">
-        {o.object?.name && (
-          <TooltipRow
-            // eslint-disable-next-line prefer-template
-            label={t('name') + ': '}
-            value={`${o.object.name}`}
-          />
-        )}
-        {o.object?.[formData?.line_column] && (
-          <TooltipRow
-            label={`${formData.line_column}: `}
-            value={`${o.object[formData.line_column]}`}
-          />
-        )}
-        {formData?.metric && (
-          <TooltipRow
-            label={`${metricLabel}: `}
-            value={`${o.object?.[metricLabel]}`}
-          />
-        )}
-      </div>
-    );
-  };
+function defaultTooltipGenerator(o: JsonObject, fd: PolygonFormData, metricLabel: string) {
+  return (
+    <div className="deckgl-tooltip">
+      {o.object?.name && (
+        <TooltipRow label={t('name') + ': '} value={`${o.object.name}`} />
+      )}
+      {o.object?.[fd?.line_column] && (
+        <TooltipRow label={`${fd.line_column}: `} value={`${o.object[fd.line_column]}`} />
+      )}
+      {CommonTooltipRows.centroid(o)}
+      {CommonTooltipRows.category(o)}
+      {fd?.metric && (
+        <TooltipRow label={`${metricLabel}: `} value={`${o.object?.[metricLabel]}`} />
+      )}
+    </div>
+  );
 }
 
 export function getLayer(
@@ -132,12 +121,7 @@ export function getLayer(
     return baseColor;
   };
 
-  const tooltipContentGenerator =
-    fd.line_column &&
-    fd.metric &&
-    ['json', 'geohash', 'zipcode'].includes(fd.line_type)
-      ? setTooltipContent(fd)
-      : () => null;
+  const tooltipContentGenerator = createTooltipContent(fd, (o: JsonObject) => defaultTooltipGenerator(o, fd, metricLabel));
 
   return new PolygonLayer({
     id: `path-layer-${fd.slice_id}` as const,

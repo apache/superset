@@ -66,10 +66,10 @@ export const HandlebarsRenderer: React.FC<HandlebarsRendererProps> = ({
     return <ErrorContainer>{error}</ErrorContainer>;
   }
 
-  if (renderedTemplate) {
+  if (renderedTemplate || renderedTemplate === '') {
     return (
       <div
-        dangerouslySetInnerHTML={{ __html: renderedTemplate }}
+        dangerouslySetInnerHTML={{ __html: renderedTemplate || '' }}
         style={{
           maxWidth: '300px',
           wordWrap: 'break-word',
@@ -176,6 +176,31 @@ Handlebars.registerHelper('formatCoordinate', function (longitude, latitude) {
   const lat = typeof latitude === 'number' ? latitude.toFixed(6) : latitude;
 
   return `${lng}, ${lat}`;
+});
+
+
+Handlebars.registerHelper('first', function (array) {
+  if (Array.isArray(array) && array.length > 0) {
+    return array[0];
+  }
+  return null;
+});
+
+Handlebars.registerHelper('getField', function (array, fieldName) {
+  if (!Array.isArray(array) || array.length === 0) {
+    return '';
+  }
+  
+  // Get unique values from the array
+  const values = array
+    .map(item => item[fieldName])
+    .filter(
+      (value, index, self) =>
+        value !== undefined && value !== null && self.indexOf(value) === index,
+  
+  if (values.length === 0) return '';
+  if (values.length === 1) return values[0];
+  return values.slice(0, 3).join(', ') + (values.length > 3 ? '...' : '');
 });
 
 export default HandlebarsRenderer;

@@ -31,19 +31,28 @@ import { hexToRGB } from '../../utils/colors';
 import { createDeckGLComponent } from '../../factory';
 import TooltipRow from '../../TooltipRow';
 import { TooltipProps } from '../../components/Tooltip';
+import {
+  createTooltipContent,
+  CommonTooltipRows,
+} from '../../utilities/tooltipUtils';
 
-function setTooltipContent(o: JsonObject) {
+function defaultTooltipGenerator(o: JsonObject, formData: QueryFormData) {
+  const metricLabel = formData.size?.label || formData.size?.value || 'Height';
+
+  // Debug: Log the tooltip object to see its structure
+  console.log('Grid tooltip object:', o);
+  console.log('Grid tooltip object.object:', o.object);
+  console.log(
+    'Grid tooltip object.object properties:',
+    Object.keys(o.object || {}),
+  );
+
   return (
     <div className="deckgl-tooltip">
+      {CommonTooltipRows.centroid(o)}
       <TooltipRow
-        // eslint-disable-next-line prefer-template
-        label={t('Longitude and Latitude') + ': '}
-        value={`${o.coordinate[0]}, ${o.coordinate[1]}`}
-      />
-      <TooltipRow
-        // eslint-disable-next-line prefer-template
-        label={t('Height') + ': '}
-        value={`${o.object.elevationValue}`}
+        label={`${metricLabel}: `}
+        value={`${o.object?.elevationValue || o.object?.value || 'N/A'}`}
       />
     </div>
   );
@@ -71,6 +80,13 @@ export function getLayer(
 
   const aggFunc = getAggFunc(fd.js_agg_function, p => p.weight);
 
+  const tooltipContent = createTooltipContent(fd, (o: JsonObject) => {
+    console.log('Grid createTooltipContent called with:', o);
+    console.log('Grid formData tooltip_contents:', fd.tooltip_contents);
+    console.log('Grid formData tooltip_template:', fd.tooltip_template);
+    return defaultTooltipGenerator(o, fd);
+  });
+
   return new GridLayer({
     id: `grid-layer-${fd.slice_id}` as const,
     data,
@@ -82,7 +98,7 @@ export function getLayer(
     getElevationValue: aggFunc,
     // @ts-ignore
     getColorValue: aggFunc,
-    ...commonLayerProps(fd, setTooltip, setTooltipContent),
+    ...commonLayerProps(fd, setTooltip, tooltipContent),
   });
 }
 

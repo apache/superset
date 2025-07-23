@@ -33,24 +33,53 @@ import {
   DeckGLContainerStyledWrapper,
 } from '../../DeckGLContainer';
 import { TooltipProps } from '../../components/Tooltip';
+import {
+  createTooltipContent,
+  CommonTooltipRows,
+} from '../../utilities/tooltipUtils';
 
 export function getPoints(data: JsonObject[]) {
   return data.map(d => d.position);
 }
 
-function setTooltipContent(o: JsonObject) {
+function defaultTooltipGenerator(o: JsonObject, formData: QueryFormData) {
+  const metricLabel = formData.size?.label || formData.size?.value || 'Weight';
+  const points = o.points || [];
+  const pointCount = points.length || 0;
+
   return (
     <div className="deckgl-tooltip">
+      {CommonTooltipRows.centroid(o)}
       <TooltipRow
-        // eslint-disable-next-line prefer-template
-        label={t('Longitude and Latitude') + ': '}
-        value={`${o?.coordinate?.[0]}, ${o?.coordinate?.[1]}`}
-      />
-      <TooltipRow
-        // eslint-disable-next-line prefer-template
-        label={t('Weight') + ': '}
+        label={`${metricLabel}: `}
         value={`${o.object?.cellWeight}`}
       />
+      <TooltipRow label="Points: " value={`${pointCount} records`} />
+      {/* Show first few individual records if available */}
+      {points.length > 0 && points.length <= 3 && (
+        <div style={{ marginTop: 8, fontSize: '12px' }}>
+          <strong>Records:</strong>
+          {points.slice(0, 3).map((point: JsonObject, index: number) => (
+            <div key={index} style={{ marginTop: 4, paddingLeft: '8px' }}>
+              {Object.entries(point).map(([key, value]) =>
+                key !== 'position' &&
+                key !== 'weight' &&
+                key !== '__timestamp' &&
+                key !== 'points' ? (
+                  <span key={key} style={{ marginRight: '8px' }}>
+                    <strong>{key}:</strong> {String(value)}
+                  </span>
+                ) : null,
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+      {points.length > 3 && (
+        <div style={{ marginTop: 4, fontSize: '12px', color: '#666' }}>
+          ... and {points.length - 3} more records
+        </div>
+      )}
     </div>
   );
 }
@@ -74,6 +103,65 @@ export function getLayer(
     data = jsFnMutator(data);
   }
 
+  // Create a mapping of grid cells to points
+  const cellSize = fd.grid_size || 50;
+  const cellToPointsMap = new Map();
+
+  data.forEach((point: JsonObject) => {
+    const position = point.position;
+    if (position) {
+      // Calculate which grid cell this point belongs to
+      const cellX = Math.floor(position[0] / (cellSize * 0.01));
+      const cellY = Math.floor(position[1] / (cellSize * 0.01));
+      const cellKey = `${cellX},${cellY}`;
+
+      if (!cellToPointsMap.has(cellKey)) {
+        cellToPointsMap.set(cellKey, []);
+      }
+      cellToPointsMap.get(cellKey).push(point);
+    }
+  });
+
+  const tooltipContent = createTooltipContent(fd, (o: JsonObject) =>
+    defaultTooltipGenerator(o, fd),
+  );
+
+  // Custom onHover function to include individual point data
+  const customOnHover = (info: JsonObject) => {
+    if (info.picked) {
+      // For Screengrid, we need to find points that belong to this specific cell
+      // Since deck.gl doesn't expose this directly, we'll use a simpler approach
+      // and show a subset of points that are likely to be in this cell
+      const cellCenter = info.coordinate;
+
+      // Find which cell this coordinate belongs to
+      const cellX = Math.floor(cellCenter[0] / (cellSize * 0.01));
+      const cellY = Math.floor(cellCenter[1] / (cellSize * 0.01));
+      const cellKey = `${cellX},${cellY}`;
+
+      // Get the points for this specific cell
+      const pointsInCell = cellToPointsMap.get(cellKey) || [];
+
+      // Add the points data to the tooltip info
+      const enhancedInfo = {
+        ...info,
+        object: {
+          ...info.object,
+          points: pointsInCell,
+        },
+      };
+
+      setTooltip({
+        content: tooltipContent(enhancedInfo),
+        x: info.x,
+        y: info.y,
+      });
+    } else {
+      setTooltip(null);
+    }
+    return true;
+  };
+
   // Passing a layer creator function instead of a layer since the
   // layer needs to be regenerated at each render
   return new ScreenGridLayer({
@@ -84,7 +172,8 @@ export function getLayer(
     maxColor: [c.r, c.g, c.b, 255 * c.a],
     outline: false,
     getWeight: (d: any) => d.weight || 0,
-    ...commonLayerProps(fd, setTooltip, setTooltipContent),
+    onHover: customOnHover,
+    pickable: true,
   });
 }
 
