@@ -1224,6 +1224,8 @@ REPORT_TEMPLATE_S3_BUCKET = os.environ.get("REPORT_TEMPLATE_S3_BUCKET", "reports
 REPORT_TEMPLATE_S3_ACCESS_KEY = os.environ.get("REPORT_TEMPLATE_S3_ACCESS_KEY", "minioadmin")
 REPORT_TEMPLATE_S3_SECRET_KEY = os.environ.get("REPORT_TEMPLATE_S3_SECRET_KEY", "minioadmin")
 REPORT_TEMPLATE_LOCAL_DIR = os.environ.get("REPORT_TEMPLATE_LOCAL_DIR", "/tmp/report_templates")
+REPORT_TEMPLATE_STORAGE_TYPE = os.environ.get("REPORT_TEMPLATE_STORAGE_TYPE", "local")
+
 
 # A dictionary of items that gets merged into the Jinja context for
 # SQL Lab. The existing context gets updated with this dictionary,

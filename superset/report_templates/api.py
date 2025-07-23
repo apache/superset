@@ -70,14 +70,15 @@ class ReportTemplateRestApi(BaseSupersetModelRestApi):
         ]
         return self.response(200, result=result, count=total)
 
-    def _storage_paths(self, cfg: Any, key: str) -> tuple[str, str]:
+    def _storage_paths(self, cfg: Any, key: str) -> tuple[str, str, str]:
         s3_bucket = cfg.get("REPORT_TEMPLATE_S3_BUCKET")
         local_dir = cfg.get("REPORT_TEMPLATE_LOCAL_DIR")
-        return s3_bucket, os.path.join(local_dir, key)
+        def_method = cfg.get("REPORT_TEMPLATE_STORAGE_TYPE")
+        return s3_bucket, os.path.join(local_dir, key), def_method
 
     def _upload(self, file, key: str) -> None:
         cfg = current_app.config
-        bucket, local_path = self._storage_paths(cfg, key)
+        bucket, local_path, def_method = self._storage_paths(cfg, key)
 
         # always save locally
         os.makedirs(os.path.dirname(local_path), exist_ok=True)
@@ -99,7 +100,7 @@ class ReportTemplateRestApi(BaseSupersetModelRestApi):
 
     def _read(self, key: str) -> bytes:
         cfg = current_app.config
-        bucket, local_path = self._storage_paths(cfg, key)
+        bucket, local_path, def_method = self._storage_paths(cfg, key)
 
         # try local first
         try:
@@ -128,7 +129,7 @@ class ReportTemplateRestApi(BaseSupersetModelRestApi):
 
     def _delete(self, key: str) -> None:
         cfg = current_app.config
-        bucket, local_path = self._storage_paths(cfg, key)
+        bucket, local_path, def_method = self._storage_paths(cfg, key)
         try:
             s3 = boto3.client(
                 "s3",

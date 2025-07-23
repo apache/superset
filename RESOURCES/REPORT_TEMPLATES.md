@@ -31,6 +31,8 @@ REPORT_TEMPLATE_S3_BUCKET = 'reports'
 REPORT_TEMPLATE_S3_ACCESS_KEY = 'minioadmin'
 REPORT_TEMPLATE_S3_SECRET_KEY = 'minioadmin'
 REPORT_TEMPLATE_LOCAL_DIR = '/tmp/report_templates'
+REPORT_TEMPLATE_STORAGE_TYPE = 'local'
+
 ```
 
 Переменная `REPORT_TEMPLATE_LOCAL_DIR` обязательна и указывает директорию на диске. При доступном S3 файл сначала сохраняется локально, а затем загружается на S3. Если загрузка на S3 не удалась, шаблон остаётся доступным в локальном хранилище.
