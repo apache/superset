@@ -467,7 +467,7 @@ class TestSqlLabApi(SupersetTestCase):
         data = list(reader)
 
         # Expected header and rows
-        expected = [
+        expected_data = [
             ["foo", "مرحبا", "姓名"],
             ["1", "أ", "张"],
             ["2", "ب", "李"],
