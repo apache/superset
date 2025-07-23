@@ -14,22 +14,3 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from flask_babel import lazy_gettext as _
-
-from superset.commands.exceptions import CommandException, DeleteFailedError
-
-
-class ThemeImportError(CommandException):
-    message = _("Error importing theme.")
-
-
-class ThemeDeleteFailedError(DeleteFailedError):
-    message = _("Themes could not be deleted.")
-
-
-class ThemeNotFoundError(CommandException):
-    message = _("Theme not found.")
-
-
-class SystemThemeProtectedError(CommandException):
-    message = _("Cannot modify system themes.")

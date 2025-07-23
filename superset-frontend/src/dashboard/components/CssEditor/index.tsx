@@ -24,7 +24,6 @@ import {
   ModalTrigger,
   Form,
   Select,
-  Icons,
 } from '@superset-ui/core/components';
 import rison from 'rison';
 import { Menu } from '@superset-ui/core/components/Menu';

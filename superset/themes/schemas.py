@@ -14,7 +14,37 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from typing import Any
+
 from marshmallow import fields, Schema, validates, ValidationError
+
+from superset.themes.utils import is_valid_theme
+from superset.utils import json
+
+
+class ImportV1ThemeSchema(Schema):
+    theme_name = fields.String(required=True)
+    json_data = fields.Raw(required=True)
+    uuid = fields.UUID(required=True)
+    version = fields.String(required=True)
+
+    @validates("json_data")
+    def validate_json_data(self, value: dict[str, Any]) -> None:
+        # Convert dict to JSON string for validation
+        if isinstance(value, dict):
+            json_str = json.dumps(value)
+        else:
+            json_str = str(value)
+
+        # Parse it back to validate it's valid JSON
+        try:
+            theme_config = json.loads(json_str) if isinstance(value, str) else value
+        except (TypeError, json.JSONDecodeError) as ex:
+            raise ValidationError("Invalid JSON configuration") from ex
+
+        # Validate theme structure
+        if not is_valid_theme(theme_config):
+            raise ValidationError("Invalid theme configuration structure")
 
 
 class ThemePostSchema(Schema):

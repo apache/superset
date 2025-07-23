@@ -25,6 +25,7 @@ import {
   ConfirmStatusChange,
   Loading,
   Alert,
+  Tooltip,
 } from '@superset-ui/core/components';
 
 import rison from 'rison';
@@ -39,6 +40,7 @@ import {
   ListView,
   ListViewActionsBar,
   ListViewFilterOperator as FilterOperator,
+  ImportModal as ImportModelsModal,
   type ListViewProps,
   type ListViewActionProps,
   type ListViewFilters,
@@ -50,6 +52,12 @@ import { QueryObjectColumns } from 'src/views/CRUD/types';
 import { Icons } from '@superset-ui/core/components/Icons';
 
 const PAGE_SIZE = 25;
+
+const CONFIRM_OVERWRITE_MESSAGE = t(
+  'You are importing one or more themes that already exist. ' +
+    'Overwriting might cause you to lose some of your work. Are you ' +
+    'sure you want to overwrite?',
+);
 
 interface ThemesListProps {
   addDangerToast: (msg: string) => void;
@@ -82,11 +90,13 @@ function ThemesList({
   const [themeModalOpen, setThemeModalOpen] = useState<boolean>(false);
   const [currentTheme, setCurrentTheme] = useState<ThemeObject | null>(null);
   const [preparingExport, setPreparingExport] = useState<boolean>(false);
+  const [importingTheme, showImportModal] = useState<boolean>(false);
 
   const canCreate = hasPerm('can_write');
   const canEdit = hasPerm('can_write');
   const canDelete = hasPerm('can_write');
   const canExport = hasPerm('can_export');
+  const canImport = hasPerm('can_write');
   const canApply = hasPerm('can_write'); // Only users with write permission can apply themes
 
   const [themeCurrentlyDeleting, setThemeCurrentlyDeleting] =
@@ -171,6 +181,20 @@ function ThemesList({
       setPreparingExport(false);
     });
     setPreparingExport(true);
+  };
+
+  const openThemeImportModal = () => {
+    showImportModal(true);
+  };
+
+  const closeThemeImportModal = () => {
+    showImportModal(false);
+  };
+
+  const handleThemeImport = () => {
+    showImportModal(false);
+    refreshData();
+    addSuccessToast(t('Theme imported'));
   };
 
   const initialSort = [{ id: 'theme_name', desc: true }];
@@ -301,6 +325,22 @@ function ThemesList({
     });
   }
 
+  if (canImport) {
+    subMenuButtons.push({
+      name: (
+        <Tooltip
+          id="import-tooltip"
+          title={t('Import themes')}
+          placement="bottomRight"
+        >
+          <Icons.DownloadOutlined iconSize="l" data-test="import-button" />
+        </Tooltip>
+      ),
+      buttonStyle: 'link',
+      onClick: openThemeImportModal,
+    });
+  }
+
   menuData.buttons = subMenuButtons;
 
   const filters: ListViewFilters = useMemo(
@@ -346,6 +386,17 @@ function ThemesList({
         onHide={() => setThemeModalOpen(false)}
         show={themeModalOpen}
         canDevelop={canEdit}
+      />
+      <ImportModelsModal
+        resourceName="theme"
+        resourceLabel={t('theme')}
+        passwordsNeededMessage=""
+        confirmOverwriteMessage={CONFIRM_OVERWRITE_MESSAGE}
+        addDangerToast={addDangerToast}
+        addSuccessToast={addSuccessToast}
+        onModelImport={handleThemeImport}
+        show={importingTheme}
+        onHide={closeThemeImportModal}
       />
       {themeCurrentlyDeleting && (
         <DeleteModal

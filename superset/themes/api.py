@@ -25,7 +25,9 @@ from flask_appbuilder.api import expose, protect, rison, safe
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_babel import ngettext
 from marshmallow import ValidationError
+from werkzeug.datastructures import FileStorage
 
+from superset.commands.importers.v1.utils import get_contents_from_bundle
 from superset.commands.theme.delete import DeleteThemeCommand
 from superset.commands.theme.exceptions import (
     SystemThemeProtectedError,
@@ -33,6 +35,7 @@ from superset.commands.theme.exceptions import (
     ThemeNotFoundError,
 )
 from superset.commands.theme.export import ExportThemesCommand
+from superset.commands.theme.importers.dispatcher import ImportThemesCommand
 from superset.commands.theme.update import UpdateThemeCommand
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.extensions import event_logger
@@ -59,9 +62,7 @@ logger = logging.getLogger(__name__)
 class ThemeRestApi(BaseSupersetModelRestApi):
     datamodel = SQLAInterface(Theme)
 
-    include_route_methods = (
-        RouteMethod.REST_MODEL_VIEW_CRUD_SET - {RouteMethod.DELETE}
-    ) | {
+    include_route_methods = RouteMethod.REST_MODEL_VIEW_CRUD_SET | {
         RouteMethod.EXPORT,
         RouteMethod.IMPORT,
         RouteMethod.RELATED,
@@ -464,3 +465,70 @@ class ThemeRestApi(BaseSupersetModelRestApi):
         if token := request.args.get("token"):
             response.set_cookie(token, "done", max_age=600)
         return response
+
+    @expose("/import/", methods=("POST",))
+    @protect()
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.import_",
+        log_to_statsd=False,
+    )
+    def import_(self) -> Response:
+        """Import themes from a ZIP file.
+        ---
+        post:
+          summary: Import themes from a ZIP file
+          requestBody:
+            required: true
+            content:
+              multipart/form-data:
+                schema:
+                  type: object
+                  properties:
+                    formData:
+                      type: string
+                      format: binary
+                    overwrite:
+                      type: string
+          responses:
+            200:
+              description: Theme imported
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      message:
+                        type: string
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            422:
+              $ref: '#/components/responses/422'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        upload = request.files.get("formData")
+        if not upload:
+            return self.response_400()
+        if not isinstance(upload, FileStorage):
+            return self.response_400()
+
+        with ZipFile(upload) as bundle:
+            contents = get_contents_from_bundle(bundle)
+
+        if not contents:
+            raise ValidationError("No valid theme files found in the uploaded zip")
+
+        overwrite = request.form.get("overwrite") == "true"
+
+        try:
+            ImportThemesCommand(contents, overwrite=overwrite).run()
+            return self.response(200, message="Theme imported successfully")
+        except ValidationError as err:
+            logger.exception("Import themes validation error")
+            return self.response_400(message=str(err))
+        except Exception as ex:
+            logger.exception("Unexpected error importing themes")
+            return self.response_422(message=str(ex))

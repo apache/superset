@@ -74,8 +74,7 @@ const ThemeModal: FunctionComponent<ThemeModalProps> = ({
   canDevelop = false,
 }) => {
   const supersetTheme = useTheme();
-  const { setTemporaryTheme, clearLocalOverrides, hasDevOverride } =
-    useThemeContext();
+  const { setTemporaryTheme } = useThemeContext();
   const [disableSave, setDisableSave] = useState<boolean>(true);
   const [currentTheme, setCurrentTheme] = useState<ThemeObject | null>(null);
   const [isHidden, setIsHidden] = useState<boolean>(true);
@@ -147,13 +146,6 @@ const ThemeModal: FunctionComponent<ThemeModalProps> = ({
       } catch (error) {
         addDangerToast(t('Failed to apply theme: Invalid JSON'));
       }
-    }
-  };
-
-  const onClearLocalSettings = () => {
-    clearLocalOverrides();
-    if (addSuccessToast) {
-      addSuccessToast(t('Local theme settings cleared'));
     }
   };
 
