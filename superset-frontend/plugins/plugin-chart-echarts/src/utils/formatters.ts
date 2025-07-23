@@ -87,7 +87,7 @@ export function getTooltipTimeFormatter(
     return getTimeFormatter(undefined, timeGrain);
   }
   if (format === SMART_DATE_ID) {
-    return getTimeFormatter(SMART_DATE_DETAILED_ID, timeGrain);
+    return getTimeFormatter(SMART_DATE_VERBOSE_ID, timeGrain);
   }
   if (format) {
     return getTimeFormatter(format, timeGrain);
