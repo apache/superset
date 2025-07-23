@@ -65,13 +65,15 @@ describe('themeUtils', () => {
       expect(getFontSize(lightTheme.theme)).toBe('14');
     });
 
-    it('falls back to fontSize when specific size not available', () => {
-      // Create theme without XS size
+    it('uses antd default when specific size not overridden', () => {
+      // Create theme with minimal config - antd will provide defaults
       const minimalTheme = Theme.fromConfig({
         token: { fontSize: '14' },
       });
 
-      expect(getFontSize(minimalTheme.theme, 'xs')).toBe('14');
+      // Ant Design provides fontSizeXS: '8' by default
+      expect(getFontSize(minimalTheme.theme, 'xs')).toBe('8');
+      expect(getFontSize(minimalTheme.theme, 'm')).toBe('14');
     });
   });
 
