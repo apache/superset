@@ -28,6 +28,7 @@ class ThemeModelView(  # pylint: disable=too-many-ancestors
     SupersetModelView,
     DeleteMixin,
 ):
+    route_base = "/theme"
     datamodel = SQLAInterface(models.Theme)
     include_route_methods = RouteMethod.LIST
 
