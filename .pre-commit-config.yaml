@@ -76,7 +76,7 @@ repos:
       files: ^docs/.*\.(js|jsx|ts|tsx)$
     - id: type-checking-frontend
       name: Type-Checking (Frontend)
-      entry: bash -c './scripts/check-type.js package=superset-frontend excludeDeclarationDir=cypress-base'
+      entry: ./scripts/check-type.js package=superset-frontend excludeDeclarationDir=cypress-base
       language: system
       files: ^superset-frontend\/.*\.(js|jsx|ts|tsx)$
       exclude: ^superset-frontend/cypress-base\/
