@@ -51,7 +51,7 @@ function getDefaultConfiguration(): ClientConfig {
       const cappedDelay = Math.min(exponentialDelay, maxDelay);
 
       // Add random jitter to prevent thundering herd
-      const jitter = Math.random() * jitterMax;
+      const jitter = Math.random() * cappedDelay;
 
       return cappedDelay + jitter;
     };
