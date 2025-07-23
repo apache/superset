@@ -20,7 +20,6 @@
 // eslint-disable-next-line no-restricted-syntax
 import React from 'react';
 import { theme as antdThemeImport, ConfigProvider } from 'antd';
-import tinycolor from 'tinycolor2';
 
 // @fontsource/* v5.1+ doesn't play nice with eslint-import plugin v2.31+
 /* eslint-disable import/extensions */
@@ -54,9 +53,7 @@ import {
   SupersetTheme,
   allowedAntdTokens,
   SharedAntdTokens,
-  ColorVariants,
   DeprecatedThemeColors,
-  FontSizeKey,
 } from './types';
 
 import {
@@ -102,15 +99,6 @@ export class Theme {
   };
 
   private antdConfig: AntdThemeConfig;
-
-  private static readonly sizeMap: Record<FontSizeKey, string> = {
-    xs: 'fontSizeXS',
-    s: 'fontSizeSM',
-    m: 'fontSize',
-    l: 'fontSizeLG',
-    xl: 'fontSizeXL',
-    xxl: 'fontSizeXXL',
-  };
 
   private constructor({ config }: { config?: AnyThemeConfig }) {
     this.SupersetThemeProvider = this.SupersetThemeProvider.bind(this);
@@ -184,7 +172,7 @@ export class Theme {
     // Second phase: Now that theme is initialized, we can determine if it's dark
     // and generate the legacy colors correctly
     const systemColors = getSystemColors(tokens);
-    const isDark = isThemeDark(tokens); // Use utility function with tokens
+    const isDark = isThemeDark(this.theme); // Use utility function with theme
     this.theme.colors = getDeprecatedColors(systemColors, isDark);
 
     // Update the providers with the fully formed theme
@@ -200,10 +188,6 @@ export class Theme {
    */
   toSerializedConfig(): SerializableThemeConfig {
     return serializeThemeConfig(this.antdConfig);
-  }
-
-  private getToken(token: string): any {
-    return (this.theme as Record<string, any>)[token];
   }
 
   toggleDarkMode(isDark: boolean): void {
