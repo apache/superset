@@ -26,7 +26,6 @@ import {
 } from 'react';
 
 import {
-  css,
   getClientErrorObject,
   SupersetClient,
   SupersetTheme,
