@@ -298,6 +298,7 @@ export const SavedQueries = ({
                   iconColor={theme.colorPrimary}
                   iconSize="m"
                 />
+                &nbsp;
                 {t('SQL Query')}
               </Link>
             ),
