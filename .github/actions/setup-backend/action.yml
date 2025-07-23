@@ -28,7 +28,6 @@ runs:
         if [ "${{ inputs.python-version }}" = "current" ]; then
           echo "PYTHON_VERSION=3.11" >> $GITHUB_ENV
         elif [ "${{ inputs.python-version }}" = "next" ]; then
-          # currently disabled in GHA matrixes because of library compatibility issues
           echo "PYTHON_VERSION=3.12" >> $GITHUB_ENV
         elif [ "${{ inputs.python-version }}" = "previous" ]; then
           echo "PYTHON_VERSION=3.10" >> $GITHUB_ENV
@@ -40,7 +39,17 @@ runs:
       with:
         python-version: ${{ env.PYTHON_VERSION }}
         cache: ${{ inputs.cache }}
+    - name: Cache uv packages
+      uses: actions/cache@v4
+      with:
+        path: ~/.cache/uv
+        key: uv-${{ runner.os }}-python${{ env.PYTHON_VERSION }}-${{ hashFiles('requirements/development.txt', 'requirements/base.txt') }}
+        restore-keys: |
+          uv-${{ runner.os }}-python${{ env.PYTHON_VERSION }}-
     - name: Install dependencies
+      env:
+        UV_CACHE_DIR: ~/.cache/uv
+        UV_PREFER_BINARY: "1"
       run: |
         if [ "${{ inputs.install-superset }}" = "true" ]; then
           sudo apt-get update && sudo apt-get -y install libldap2-dev libsasl2-dev
@@ -48,11 +57,11 @@ runs:
           pip install --upgrade pip setuptools wheel uv
 
           if [ "${{ inputs.requirements-type }}" = "dev" ]; then
-            uv pip install --system -r requirements/development.txt
+            uv pip install --system --prefer-binary -r requirements/development.txt
           elif [ "${{ inputs.requirements-type }}" = "base" ]; then
-            uv pip install --system -r requirements/base.txt
+            uv pip install --system --prefer-binary -r requirements/base.txt
           fi
 
-          uv pip install --system -e .
+          uv pip install --system --prefer-binary -e .
         fi
       shell: bash
