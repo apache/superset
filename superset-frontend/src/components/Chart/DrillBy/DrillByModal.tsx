@@ -467,6 +467,7 @@ export default function DrillByModal({
       `}
       show
       onHide={onHideModal ?? (() => null)}
+      name={t('Drill by: %s', chartName)}
       title={t('Drill by: %s', chartName)}
       footer={<ModalFooter formData={drilledFormData} />}
       responsive
