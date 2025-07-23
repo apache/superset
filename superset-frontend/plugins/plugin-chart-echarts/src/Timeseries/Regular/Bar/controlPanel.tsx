@@ -336,13 +336,8 @@ const config: ControlPanelConfig = {
               description: t(
                 'Stack in groups, where each group corresponds to a dimension',
               ),
-              shouldMapStateToProps: (
-                prevState,
-                state,
-                controlState,
-                chartState,
-              ) => true,
-              mapStateToProps: (state, controlState, chartState) => {
+              shouldMapStateToProps: () => true,
+              mapStateToProps: state => {
                 const value: JsonArray = state.controls.groupby
                   .value as JsonArray;
                 const valueAsStringArr: string[][] = value.map(v => {

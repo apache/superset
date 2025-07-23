@@ -22,6 +22,8 @@ import { FormValues } from './types';
 
 export const createUser = async (values: FormValues) => {
   const { confirmPassword, ...payload } = values;
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars, no-unused-expressions
+  confirmPassword; // Destructured to exclude from payload
   if (payload.active == null) {
     payload.active = false;
   }
