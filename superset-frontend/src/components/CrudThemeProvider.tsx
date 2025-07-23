@@ -45,15 +45,10 @@ export default function CrudThemeProvider({
       // This should NOT affect the global controller or navbar
       const loadDashboardTheme = async () => {
         try {
-          console.log('CrudThemeProvider: Loading dashboard theme', themeId);
           const dashboardThemeProvider =
             await globalThemeContext.createDashboardThemeProvider(
               String(themeId),
             );
-          console.log(
-            'CrudThemeProvider: Dashboard theme loaded',
-            dashboardThemeProvider,
-          );
           setDashboardTheme(dashboardThemeProvider);
         } catch (error) {
           console.error('Failed to load dashboard theme:', error);
@@ -63,7 +58,6 @@ export default function CrudThemeProvider({
 
       loadDashboardTheme();
     } else {
-      console.log('CrudThemeProvider: No theme ID, using global theme');
       setDashboardTheme(null);
     }
   }, [themeId, globalThemeContext]);
@@ -73,7 +67,6 @@ export default function CrudThemeProvider({
     return <>{children}</>;
   }
 
-  console.log('CrudThemeProvider: Rendering with dashboard theme provider');
   // Render children with the dashboard theme provider from controller
   return (
     <dashboardTheme.SupersetThemeProvider>

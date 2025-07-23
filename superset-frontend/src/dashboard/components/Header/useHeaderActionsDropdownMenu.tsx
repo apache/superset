@@ -19,8 +19,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { Menu } from '@superset-ui/core/components/Menu';
-import { t, SupersetClient } from '@superset-ui/core';
-import { useThemeContext } from 'src/theme/ThemeProvider';
+import { t } from '@superset-ui/core';
 import { isEmpty } from 'lodash';
 import { URL_PARAMS } from 'src/constants';
 import ShareMenuItems from 'src/dashboard/components/menu/ShareMenuItems';
@@ -74,7 +73,6 @@ export const useHeaderActionsMenu = ({
   setCurrentReportDeleting,
 }: HeaderDropdownProps) => {
   const dispatch = useDispatch();
-  const themeContext = useThemeContext();
   const [css, setCss] = useState(customCss || '');
   const [showReportSubMenu, setShowReportSubMenu] = useState<boolean | null>(
     null,
@@ -94,25 +92,10 @@ export const useHeaderActionsMenu = ({
   const handleThemeChange = useCallback(
     async (themeId: number | null) => {
       // Save the theme to the dashboard
+      // The CrudThemeProvider will handle applying the theme to dashboard content only
       dispatch(updateDashboardTheme(themeId));
-
-      // Apply the theme dynamically
-      if (themeId) {
-        try {
-          const response = await SupersetClient.get({
-            endpoint: `/api/v1/theme/${themeId}`,
-          });
-          const themeConfig = JSON.parse(response.json.result.json_data);
-          themeContext.setTemporaryTheme(themeConfig);
-        } catch (error) {
-          console.error('Failed to fetch and apply theme:', error);
-        }
-      } else {
-        // Clear the theme
-        themeContext.clearLocalOverrides();
-      }
     },
-    [dispatch, themeContext],
+    [dispatch],
   );
 
   const handleMenuClick = useCallback(

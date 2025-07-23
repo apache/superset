@@ -116,6 +116,9 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
     ({ dashboardInfo }) =>
       dashboardInfo && Object.keys(dashboardInfo).length > 0,
   );
+  const dashboardTheme = useSelector(
+    (state: RootState) => state.dashboardInfo.theme,
+  );
   const { addDangerToast } = useToasts();
   const { result: dashboard, error: dashboardApiError } =
     useDashboard(idOrSlug);
@@ -257,7 +260,13 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
         <>
           <SyncDashboardState dashboardPageId={dashboardPageId} />
           <DashboardPageIdContext.Provider value={dashboardPageId}>
-            <CrudThemeProvider themeId={dashboard?.theme?.id}>
+            <CrudThemeProvider
+              themeId={
+                dashboardTheme !== undefined
+                  ? dashboardTheme?.id
+                  : dashboard?.theme?.id
+              }
+            >
               <DashboardContainer
                 activeFilters={activeFilters}
                 ownDataCharts={relevantDataMask}

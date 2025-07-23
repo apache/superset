@@ -135,9 +135,17 @@ export function updateDashboardTheme(themeId: number | null) {
         theme_id: themeId,
       });
 
-      // Update the dashboard info with the new theme from the API response
-      // The API should return the full theme object (id and name)
-      dispatch(setDashboardTheme(response.result.theme || null));
+      // Update the dashboard info with the new theme
+      if (themeId === null) {
+        // Clearing the theme
+        dispatch(setDashboardTheme(null));
+      } else if (response.result.theme) {
+        // API returned the theme object
+        dispatch(setDashboardTheme(response.result.theme));
+      } else {
+        // API didn't return theme object, create it from the themeId
+        dispatch(setDashboardTheme({ id: themeId, name: `Theme ${themeId}` }));
+      }
 
       const lastModifiedTime = response.last_modified_time;
       if (lastModifiedTime) {
