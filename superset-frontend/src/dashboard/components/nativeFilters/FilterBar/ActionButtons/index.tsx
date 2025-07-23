@@ -112,7 +112,7 @@ const ActionButtons = ({
 }: ActionButtonsProps) => {
   const isClearAllEnabled = useMemo(() => {
     const hasSelectedChanges = Object.entries(dataMaskSelected).some(
-      ([key, mask]) => {
+      ([, mask]) => {
         const hasValue = isDefined(mask?.filterState?.value);
         const hasGroupBy = isDefined(mask?.ownState?.column);
         return hasValue || hasGroupBy;
@@ -120,7 +120,7 @@ const ActionButtons = ({
     );
 
     const hasAppliedChanges = Object.entries(dataMaskApplied).some(
-      ([key, mask]) => {
+      ([, mask]) => {
         const hasValue = isDefined(mask?.filterState?.value);
         const hasGroupBy = isDefined(mask?.ownState?.column);
         return hasValue || hasGroupBy;
