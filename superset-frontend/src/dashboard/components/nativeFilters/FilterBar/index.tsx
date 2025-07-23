@@ -355,8 +355,6 @@ const FilterBar: FC<FiltersBarProps> = ({
 
     Object.entries(dataMaskSelected).forEach(([key, mask]) => {
       if (key.startsWith('chart_customization_')) {
-        console.log('  - Clearing chart customization:', key);
-        console.log('  - Current mask:', mask);
         setDataMaskSelected(draft => {
           if (draft[key]) {
             if (draft[key].filterState?.value !== undefined) {
@@ -364,7 +362,7 @@ const FilterBar: FC<FiltersBarProps> = ({
             }
             draft[key].extraFormData = {};
             if (draft[key].ownState) {
-              draft[key].ownState.column = undefined;
+              draft[key].ownState!.column = undefined;
             }
           }
         });
@@ -380,7 +378,7 @@ const FilterBar: FC<FiltersBarProps> = ({
             }
             draft[key].extraFormData = {};
             if (draft[key].ownState) {
-              draft[key].ownState.column = undefined;
+              draft[key].ownState!.column = undefined;
             }
           }
         });
