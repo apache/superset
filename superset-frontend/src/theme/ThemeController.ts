@@ -416,6 +416,15 @@ export class ThemeController {
   }
 
   /**
+   * Checks if OS preference detection is allowed.
+   */
+  public canDetectOSPreference(): boolean {
+    const { allowOSPreference = DEFAULT_THEME_SETTINGS.allowOSPreference } =
+      this.themeSettings || {};
+    return allowOSPreference === true;
+  }
+
+  /**
    * Handles system theme changes with error recovery.
    */
   private handleSystemThemeChange = (): void => {

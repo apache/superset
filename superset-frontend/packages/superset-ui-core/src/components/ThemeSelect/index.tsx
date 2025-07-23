@@ -26,6 +26,7 @@ export interface ThemeSelectProps {
   themeMode: ThemeMode;
   hasLocalOverride?: boolean;
   onClearLocalSettings?: () => void;
+  allowOSPreference?: boolean;
 }
 
 const ThemeSelect: React.FC<ThemeSelectProps> = ({
@@ -34,6 +35,7 @@ const ThemeSelect: React.FC<ThemeSelectProps> = ({
   themeMode,
   hasLocalOverride = false,
   onClearLocalSettings,
+  allowOSPreference = true,
 }) => {
   const theme = useTheme();
 
@@ -72,12 +74,16 @@ const ThemeSelect: React.FC<ThemeSelectProps> = ({
       icon: <Icons.MoonOutlined />,
       onClick: () => handleSelect(ThemeMode.DARK),
     },
-    {
-      key: ThemeMode.SYSTEM,
-      label: t('Match system'),
-      icon: <Icons.FormatPainterOutlined />,
-      onClick: () => handleSelect(ThemeMode.SYSTEM),
-    },
+    ...(allowOSPreference
+      ? [
+          {
+            key: ThemeMode.SYSTEM,
+            label: t('Match system'),
+            icon: <Icons.FormatPainterOutlined />,
+            onClick: () => handleSelect(ThemeMode.SYSTEM),
+          },
+        ]
+      : []),
   ];
 
   // Add clear settings option only when there's a local theme active

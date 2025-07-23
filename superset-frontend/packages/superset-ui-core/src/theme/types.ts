@@ -424,5 +424,8 @@ export interface ThemeContextType {
   clearLocalOverrides: () => void;
   getCurrentCrudThemeId: () => string | null;
   hasDevOverride: () => boolean;
+  canSetMode: () => boolean;
+  canSetTheme: () => boolean;
+  canDetectOSPreference: () => boolean;
   createDashboardThemeProvider: (themeId: string) => Promise<Theme | null>;
 }

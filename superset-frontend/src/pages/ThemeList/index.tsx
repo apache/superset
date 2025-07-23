@@ -214,14 +214,20 @@ function ThemesList({
             <>
               {original.theme_name}
               {isCurrentTheme && (
-                <Tag color="green" style={{ marginLeft: 8 }}>
-                  {t('Set locally')}
-                </Tag>
+                <Tooltip
+                  title={t('This theme is set locally for your session')}
+                >
+                  <Tag color="green" style={{ marginLeft: 8 }}>
+                    {t('Local')}
+                  </Tag>
+                </Tooltip>
               )}
               {original.is_system && (
-                <Tag color="blue" style={{ marginLeft: 8 }}>
-                  {t('System')}
-                </Tag>
+                <Tooltip title={t('Defined through system configuration.')}>
+                  <Tag color="blue" style={{ marginLeft: 8 }}>
+                    {t('System')}
+                  </Tag>
+                </Tooltip>
               )}
             </>
           );

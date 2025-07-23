@@ -600,10 +600,6 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # If on, you'll want to add "https://avatars.slack-edge.com" to the list of allowed
     # domains in your TALISMAN_CONFIG
     "SLACK_ENABLE_AVATARS": False,
-    # Adds a switch to the navbar to easily switch between light and dark themes.
-    # This is intended to use for development, visual review, and theming-debugging
-    # purposes.
-    "THEME_ENABLE_DARK_THEME_SWITCH": True,
     # Adds a theme editor as a modal dialog in the navbar. Allows people to type in JSON
     # Enables CSS Templates functionality in Settings menu and dashboard forms.
     # When disabled, users can still add custom CSS to dashboards but cannot use
@@ -758,7 +754,6 @@ THEME_DARK: Theme = {"algorithm": "dark"}
 # Controls how themes are applied and what options users have
 # - enforced: Forces the default theme always, overriding all other settings
 # - allowSwitching: Allows users to manually switch between default and dark themes.
-#   To expose a theme switcher in the UI, set `THEME_ENABLE_DARK_THEME_SWITCH` feature flag to True.  # noqa: E501
 # - allowOSPreference: Allows the app to automatically use the system's preferred theme mode  # noqa: E501
 #
 # Example:

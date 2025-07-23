@@ -93,6 +93,21 @@ export function SupersetThemeProvider({
     [themeController],
   );
 
+  const canSetMode = useCallback(
+    () => themeController.canSetMode(),
+    [themeController],
+  );
+
+  const canSetTheme = useCallback(
+    () => themeController.canSetTheme(),
+    [themeController],
+  );
+
+  const canDetectOSPreference = useCallback(
+    () => themeController.canDetectOSPreference(),
+    [themeController],
+  );
+
   const createDashboardThemeProvider = useCallback(
     (themeId: string) => themeController.createDashboardThemeProvider(themeId),
     [themeController],
@@ -109,6 +124,9 @@ export function SupersetThemeProvider({
       clearLocalOverrides,
       getCurrentCrudThemeId,
       hasDevOverride,
+      canSetMode,
+      canSetTheme,
+      canDetectOSPreference,
       createDashboardThemeProvider,
     }),
     [
@@ -121,6 +139,9 @@ export function SupersetThemeProvider({
       clearLocalOverrides,
       getCurrentCrudThemeId,
       hasDevOverride,
+      canSetMode,
+      canSetTheme,
+      canDetectOSPreference,
       createDashboardThemeProvider,
     ],
   );

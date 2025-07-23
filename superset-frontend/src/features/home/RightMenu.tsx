@@ -32,8 +32,6 @@ import {
   SupersetClient,
   getExtensionsRegistry,
   useTheme,
-  isFeatureEnabled,
-  FeatureFlag,
 } from '@superset-ui/core';
 import { Menu } from '@superset-ui/core/components/Menu';
 import { Label, Tooltip } from '@superset-ui/core/components';
@@ -183,8 +181,14 @@ const RightMenu = ({
     useState<boolean>(false);
   const isAdmin = isUserAdmin(user);
   const showUploads = allowUploads || isAdmin;
-  const { setThemeMode, themeMode, clearLocalOverrides, hasDevOverride } =
-    useThemeContext();
+  const {
+    setThemeMode,
+    themeMode,
+    clearLocalOverrides,
+    hasDevOverride,
+    canSetMode,
+    canDetectOSPreference,
+  } = useThemeContext();
   const dropdownItems: MenuObjectProps[] = [
     {
       label: t('Data'),
@@ -489,13 +493,14 @@ const RightMenu = ({
             })}
           </StyledSubMenu>
         )}
-        {isFeatureEnabled(FeatureFlag.ThemeEnableDarkThemeSwitch) && (
+        {canSetMode() && (
           <span>
             <ThemeSelect
               setThemeMode={setThemeMode}
               themeMode={themeMode}
               hasLocalOverride={hasDevOverride()}
               onClearLocalSettings={clearLocalOverrides}
+              allowOSPreference={canDetectOSPreference()}
             />
           </span>
         )}
