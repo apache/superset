@@ -194,6 +194,48 @@ You can also run the pre-commit checks manually in various ways:
   Replace `<hook_id>` with the ID of the specific hook you want to run. You can find the list
   of available hooks in the `.pre-commit-config.yaml` file.
 
+## Working with LLMs
+
+### Environment Setup
+Ensure Docker Compose is running before starting LLM sessions:
+```bash
+docker compose up
+```
+
+Validate your environment:
+```bash
+curl -f http://localhost:8088/health && echo "✅ Superset ready"
+```
+
+### LLM Session Best Practices
+- Always validate environment setup first using the health checks above
+- Use focused validation commands: `pre-commit run` (not `--all-files`)
+- **Read [LLMS.md](https://github.com/apache/superset/blob/master/LLMS.md) first** - Contains comprehensive development guidelines, coding standards, and critical refactor information
+- **Check platform-specific files** when available:
+  - `CLAUDE.md` - For Claude/Anthropic tools
+  - `CURSOR.md` - For Cursor editor
+  - `GEMINI.md` - For Google Gemini tools
+  - `GPT.md` - For OpenAI/ChatGPT tools
+- Follow the TypeScript migration guidelines and avoid deprecated patterns listed in LLMS.md
+
+### Key Development Commands
+```bash
+# Frontend development
+cd superset-frontend
+npm run dev          # Development server on http://localhost:9000
+npm run test         # Run all tests
+npm run test -- filename.test.tsx  # Run single test file
+npm run lint         # Linting and type checking
+
+# Backend validation
+pre-commit run mypy  # Type checking
+pytest              # Run all tests
+pytest tests/unit_tests/specific_test.py  # Run single test file
+pytest tests/unit_tests/  # Run all tests in directory
+```
+
+For detailed development context, environment setup, and coding guidelines, see [LLMS.md](https://github.com/apache/superset/blob/master/LLMS.md).
+
 ## Alternatives to `docker compose`
 
 :::caution

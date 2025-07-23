@@ -76,3 +76,11 @@ ydb.svg
 erd.puml
 erd.svg
 intro_header.txt
+
+# for LLMs
+llm-context.md
+LLMS.md
+CLAUDE.md
+CURSOR.md
+GEMINI.md
+GPT.md
