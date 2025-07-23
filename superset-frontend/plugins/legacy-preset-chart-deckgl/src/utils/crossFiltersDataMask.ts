@@ -338,10 +338,9 @@ const getSpatialFilters = ({
   formData: LayerFormData;
   data: PickingInfo;
 }): FilterResult => {
-  const allPoints = data.object?.points?.map(point => point.position) as [
-    number,
-    number,
-  ][];
+  const allPoints = data.object?.points?.map(
+    (point: { position: [number, number]; weight: number }) => point.position,
+  ) as [number, number][];
   const singlePosition = data.object?.position as [number, number];
 
   let position: [number, number] | undefined;
