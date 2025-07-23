@@ -43,7 +43,6 @@ interface SearchHeaderProps extends BaseFilter {
   toolTipDescription: string | undefined;
 }
 
-
 function SearchFilter(
   {
     Header,
