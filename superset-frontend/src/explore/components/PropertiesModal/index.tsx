@@ -246,7 +246,7 @@ function PropertiesModal({
       title={
         <ModalTitleWithIcon
           isEditMode
-          title={t('Edit chart properties')}
+          title={t('Edit Chart Properties')}
           data-test="edit-alt"
         />
       }
