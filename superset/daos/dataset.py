@@ -41,7 +41,6 @@ class DatasetDAO(BaseDAO[SqlaTable]):
     DAO for datasets. Supports filtering on model fields, hybrid properties, and custom
     fields:
     - tags: list of tags (eq, in_, like)
-    - is_virtual: boolean (eq, ne)
     - owner: user id (eq, in_)
     """
 
@@ -366,7 +365,6 @@ class DatasetDAO(BaseDAO[SqlaTable]):
         filterable.update(
             {
                 "tags": ["eq", "in_", "like"],
-                "is_virtual": ["eq", "ne"],
                 "owner": ["eq", "in_"],
             }
         )

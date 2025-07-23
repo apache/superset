@@ -56,26 +56,23 @@ DEFAULT_DATASET_COLUMNS = [
 @mcp_auth_hook
 def list_datasets(
     filters: Annotated[
-        Optional[List[DatasetFilter]],
+        List[DatasetFilter] | None,
+        Field(description="List of filter objects (column, operator, value)"),
+    ] = None,
+    select_columns: Annotated[
+        List[str] | None,
         Field(
-            description="List of filter objects (column, operator, value)", min_length=0
+            description=f"List of columns to select. If not specified, defaults to: "
+            f"{DEFAULT_DATASET_COLUMNS}.",
         ),
     ] = None,
     search: Annotated[
         Optional[str],
         Field(description="Text search string to match against dataset fields"),
     ] = None,
-    select_columns: Annotated[
-        Optional[List[str]],
-        Field(
-            description=f"List of columns to select. If not specified, defaults to: "
-            f"{DEFAULT_DATASET_COLUMNS}.",
-            min_length=1,
-        ),
-    ] = None,
     order_column: Annotated[
         Optional[str],
-        Field(description="Column to order results by", min_length=0),
+        Field(description="Column to order results by"),
     ] = None,
     order_direction: Annotated[
         Optional[Literal["asc", "desc"]],

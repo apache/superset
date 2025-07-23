@@ -56,12 +56,8 @@ class DashboardDAO(BaseDAO[Dashboard]):
             {
                 "tags": ["eq", "in_", "like"],
                 "owner": ["eq", "in_"],
-                "created_by": ["eq", "in_"],
-                "changed_by": ["eq", "in_"],
                 "published": ["eq"],
-                "certified": ["eq"],
                 "favorite": ["eq"],
-                "chart_count": ["eq", "gte", "lte"],
             }
         )
         return filterable

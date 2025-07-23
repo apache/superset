@@ -52,6 +52,8 @@ Available tools include:
   queries, 1-based pagination)
 - get_chart_info: Get detailed information about a chart by its integer ID
 - get_chart_available_filters: List all available chart filter fields and operators
+- generate_explore_link: Generate a pre-configured explore URL with specified
+  dataset, metrics, dimensions, and filters for direct navigation
 
 
 General usage tips:

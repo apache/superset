@@ -128,9 +128,6 @@ class CreateChartResponse(BaseModel):
     chart: Optional[ChartInfo] = Field(
         None, description="The created chart info, if successful"
     )
-    explore_url: Optional[str] = Field(
-        None, description="URL to explore the chart configuration without saving"
-    )
     embed_url: Optional[str] = Field(
         None, description="URL to view or embed the chart, if requested."
     )
@@ -156,8 +153,6 @@ class ChartFilter(ColumnOperator):
         "slice_name",
         "viz_type",
         "datasource_name",
-        "changed_by",
-        "created_by",
         "owner",
         "tags",
     ] = Field(
@@ -257,13 +252,12 @@ class XYChartConfig(BaseModel):
 ChartConfig = Union[TableChartConfig, XYChartConfig]
 
 
-# The tool input model
+# The tool input models
 class CreateChartRequest(BaseModel):
     dataset_id: str = Field(..., description="ID of the dataset to use")
     config: ChartConfig = Field(..., description="Chart configuration")
-    save_chart: bool = Field(
-        True,
-        description=(
-            "Whether to save the chart (True) or just return an explore link (False)"
-        ),
-    )
+
+
+class GenerateExploreLinkRequest(BaseModel):
+    dataset_id: str = Field(..., description="ID of the dataset to explore")
+    config: ChartConfig = Field(..., description="Chart configuration")
