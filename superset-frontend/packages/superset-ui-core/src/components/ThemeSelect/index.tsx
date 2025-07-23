@@ -18,20 +18,26 @@
  */
 import { Tooltip } from 'antd';
 import { Dropdown, Icons } from '@superset-ui/core/components';
-import { t } from '@superset-ui/core';
+import { t, useTheme } from '@superset-ui/core';
 import { ThemeAlgorithm, ThemeMode } from '../../theme/types';
 
 export interface ThemeSelectProps {
   setThemeMode: (newMode: ThemeMode) => void;
   tooltipTitle?: string;
   themeMode: ThemeMode;
+  hasLocalOverride?: boolean;
+  onClearLocalSettings?: () => void;
 }
 
 const ThemeSelect: React.FC<ThemeSelectProps> = ({
   setThemeMode,
   tooltipTitle = 'Select theme',
   themeMode,
+  hasLocalOverride = false,
+  onClearLocalSettings,
 }) => {
+  const theme = useTheme();
+
   const handleSelect = (mode: ThemeMode) => {
     setThemeMode(mode);
   };
@@ -43,34 +49,60 @@ const ThemeSelect: React.FC<ThemeSelectProps> = ({
     [ThemeAlgorithm.COMPACT]: <Icons.CompressOutlined />,
   };
 
+  // Use different icon when local theme is active
+  const triggerIcon = hasLocalOverride ? (
+    <Icons.FormatPainterOutlined style={{ color: theme.colors.error.base }} />
+  ) : (
+    themeIconMap[themeMode] || <Icons.FormatPainterOutlined />
+  );
+
+  const menuItems = [
+    {
+      key: ThemeMode.DEFAULT,
+      label: t('Light'),
+      icon: <Icons.SunOutlined />,
+      onClick: () => handleSelect(ThemeMode.DEFAULT),
+    },
+    {
+      key: ThemeMode.DARK,
+      label: t('Dark'),
+      icon: <Icons.MoonOutlined />,
+      onClick: () => handleSelect(ThemeMode.DARK),
+    },
+    {
+      key: ThemeMode.SYSTEM,
+      label: t('Match system'),
+      icon: <Icons.FormatPainterOutlined />,
+      onClick: () => handleSelect(ThemeMode.SYSTEM),
+    },
+  ];
+
+  // Add clear settings option only when there's a local theme active
+  if (onClearLocalSettings && hasLocalOverride) {
+    menuItems.push(
+      { type: 'divider' } as any,
+      {
+        key: 'clear-local' as any,
+        label: t('Clear local settings'),
+        icon: <Icons.ClearOutlined />,
+        onClick: onClearLocalSettings,
+      } as any,
+    );
+  }
+
   return (
-    <Tooltip title={tooltipTitle} placement="bottom">
+    <Tooltip
+      title={hasLocalOverride ? t('Local theme active') : tooltipTitle}
+      placement="bottom"
+    >
       <Dropdown
         menu={{
-          items: [
-            {
-              key: ThemeMode.DEFAULT,
-              label: t('Light'),
-              onClick: () => handleSelect(ThemeMode.DEFAULT),
-              icon: <Icons.SunOutlined />,
-            },
-            {
-              key: ThemeMode.DARK,
-              label: t('Dark'),
-              onClick: () => handleSelect(ThemeMode.DARK),
-              icon: <Icons.MoonOutlined />,
-            },
-            {
-              key: ThemeMode.SYSTEM,
-              label: t('Match system'),
-              onClick: () => handleSelect(ThemeMode.SYSTEM),
-              icon: <Icons.FormatPainterOutlined />,
-            },
-          ],
+          items: menuItems,
+          selectedKeys: [themeMode],
         }}
         trigger={['click']}
       >
-        {themeIconMap[themeMode] || <Icons.FormatPainterOutlined />}
+        {triggerIcon}
       </Dropdown>
     </Tooltip>
   );

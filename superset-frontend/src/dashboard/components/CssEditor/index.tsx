@@ -24,6 +24,7 @@ import {
   ModalTrigger,
   Form,
   Select,
+  Icons,
 } from '@superset-ui/core/components';
 import rison from 'rison';
 import { Menu } from '@superset-ui/core/components/Menu';
@@ -261,10 +262,11 @@ class CssEditor extends PureComponent<CssEditorProps, CssEditorState> {
             <div style={{ marginTop: 16, textAlign: 'right' }}>
               <Button
                 type="primary"
+                icon={<Icons.ThunderboltOutlined />}
                 onClick={this.applyChanges}
                 disabled={!this.hasChanges()}
               >
-                {t('Apply')}
+                {t('Apply & Save')}
               </Button>
             </div>
           </StyledWrapper>

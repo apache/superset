@@ -183,7 +183,8 @@ const RightMenu = ({
     useState<boolean>(false);
   const isAdmin = isUserAdmin(user);
   const showUploads = allowUploads || isAdmin;
-  const { setThemeMode, themeMode } = useThemeContext();
+  const { setThemeMode, themeMode, clearLocalOverrides, hasDevOverride } =
+    useThemeContext();
   const dropdownItems: MenuObjectProps[] = [
     {
       label: t('Data'),
@@ -490,7 +491,12 @@ const RightMenu = ({
         )}
         {isFeatureEnabled(FeatureFlag.ThemeEnableDarkThemeSwitch) && (
           <span>
-            <ThemeSelect setThemeMode={setThemeMode} themeMode={themeMode} />
+            <ThemeSelect
+              setThemeMode={setThemeMode}
+              themeMode={themeMode}
+              hasLocalOverride={hasDevOverride()}
+              onClearLocalSettings={clearLocalOverrides}
+            />
           </span>
         )}
 
