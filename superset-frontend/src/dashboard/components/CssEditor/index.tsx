@@ -262,7 +262,6 @@ class CssEditor extends PureComponent<CssEditorProps, CssEditorState> {
             <div style={{ marginTop: 16, textAlign: 'right' }}>
               <Button
                 type="primary"
-                icon={<Icons.ThunderboltOutlined />}
                 onClick={this.applyChanges}
                 disabled={!this.hasChanges()}
               >

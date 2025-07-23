@@ -221,7 +221,7 @@ function ThemesList({
                     'Apply theme temporarily for testing (local preview only)',
                   ),
                   placement: 'bottom',
-                  icon: 'FormatPainterOutlined',
+                  icon: 'ThunderboltOutlined',
                   onClick: handleApply,
                 }
               : null,
