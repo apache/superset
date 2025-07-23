@@ -279,6 +279,7 @@ const ThemeModal: FunctionComponent<ThemeModalProps> = ({
               >
                 <Button
                   key="apply"
+                  icon={<Icons.ThunderboltOutlined />}
                   onClick={onApply}
                   disabled={
                     !currentTheme?.json_data ||
