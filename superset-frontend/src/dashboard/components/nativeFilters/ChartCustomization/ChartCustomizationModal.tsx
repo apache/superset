@@ -60,6 +60,27 @@ const ChartCustomizationModal = ({
   const [currentId, setCurrentId] = useState<string | null>(null);
   const [saveAlertVisible, setSaveAlertVisible] = useState(false);
   const [initialLoadComplete, setInitialLoadComplete] = useState(false);
+  const [removedItems, setRemovedItems] = useState<
+    Record<string, { isPending: boolean; timerId?: number } | null>
+  >({});
+
+  const [itemChanges, setItemChanges] = useState<{
+    modified: string[];
+    deleted: string[];
+    reordered: string[];
+  }>({
+    modified: [],
+    deleted: [],
+    reordered: [],
+  });
+
+  const resetItemChanges = () => {
+    setItemChanges({
+      modified: [],
+      deleted: [],
+      reordered: [],
+    });
+  };
 
   const [erroredItems, setErroredItems] = useState<string[]>([]);
 
@@ -140,8 +161,11 @@ const ChartCustomizationModal = ({
     if (values) {
       const updatedItems = items.map(item => {
         const formItemValues = values.filters?.[item.id] || {};
+        const isDeleted = itemChanges.deleted.includes(item.id);
+
         return {
           ...item,
+          removed: isDeleted,
           customization: {
             ...item.customization,
             ...formItemValues,
@@ -157,6 +181,7 @@ const ChartCustomizationModal = ({
 
       onSave(dashboardId, updatedItems);
       resetForm(true);
+      resetItemChanges();
       onCancel();
     } else if (erroredItems.length > 0) {
       setCurrentId(erroredItems[0]);
@@ -164,9 +189,11 @@ const ChartCustomizationModal = ({
   }, [
     validateForm,
     items,
+    itemChanges,
     onSave,
     dashboardId,
     resetForm,
+    resetItemChanges,
     onCancel,
     erroredItems,
   ]);
@@ -250,53 +277,68 @@ const ChartCustomizationModal = ({
     });
   }, [items, chartId, loadedDatasets, charts, form]);
 
-  const handleRemoveItem = useCallback(
-    (id: string, shouldRemove = true) => {
-      const item = items.find(i => i.id === id);
-      if (!item) return;
-
-      if (shouldRemove) {
-        const timerId = window.setTimeout(() => {
-          setItems(prev => prev.filter(i => i.id !== id));
-
-          if (currentId === id) {
-            const nextItem = items.find(i => i.id !== id && !i.removed);
-            setCurrentId(nextItem?.id || null);
-          }
-        }, 3000);
-
-        setItems(prev =>
-          prev.map(i =>
-            i.id === id ? { ...i, removed: true, removeTimerId: timerId } : i,
-          ),
-        );
-      } else {
-        setItems(prev =>
-          prev.map(i => {
-            if (i.id === id) {
-              if (i.removeTimerId) {
-                clearTimeout(i.removeTimerId);
-              }
-              return {
-                ...i,
-                removed: false,
-                removeTimerId: undefined,
-              };
-            }
-            return i;
-          }),
-        );
-
-        if (
-          currentId === null ||
-          items.find(i => i.id === currentId)?.removed
-        ) {
-          setCurrentId(id);
-        }
+  const restoreItem = useCallback(
+    (id: string) => {
+      const removal = removedItems[id];
+      if (removal?.isPending && removal.timerId) {
+        clearTimeout(removal.timerId);
       }
+
+      setRemovedItems(current => ({ ...current, [id]: null }));
+
+      setItemChanges(prev => {
+        const newDeleted = prev.deleted.filter(deletedId => deletedId !== id);
+        console.log('New itemChanges.deleted after restore:', newDeleted);
+        return {
+          ...prev,
+          deleted: newDeleted,
+        };
+      });
     },
-    [items, currentId],
+    [removedItems, itemChanges.deleted],
   );
+
+  const handleRemoveItem = useCallback(
+    (id: string) => {
+      const completeItemRemoval = (itemId: string) => {
+        setRemovedItems(removedItems => ({
+          ...removedItems,
+          [itemId]: { isPending: false },
+        }));
+      };
+
+      const timerId = window.setTimeout(() => {
+        completeItemRemoval(id);
+      }, 3000);
+
+      setRemovedItems(removedItems => ({
+        ...removedItems,
+        [id]: { isPending: true, timerId },
+      }));
+
+      setItemChanges(prev => {
+        const newDeleted = [...prev.deleted, id];
+        console.log('New itemChanges.deleted:', newDeleted);
+        return {
+          ...prev,
+          deleted: newDeleted,
+        };
+      });
+
+      setSaveAlertVisible(false);
+    },
+    [removedItems, itemChanges.deleted],
+  );
+
+  useEffect(() => {
+    const currentItemRemoved = removedItems[currentId || ''];
+    if (currentItemRemoved && !currentItemRemoved.isPending) {
+      const nextItem = items.find(
+        item => !removedItems[item.id] && item.id !== currentId,
+      );
+      setCurrentId(nextItem?.id || null);
+    }
+  }, [currentId, removedItems, items]);
 
   const handleValuesChange = useMemo(
     () =>
@@ -314,6 +356,7 @@ const ChartCustomizationModal = ({
   useEffect(() => {
     if (isOpen && !initialLoadComplete) {
       form.resetFields();
+      resetItemChanges();
 
       if (existingItems && existingItems.length > 0) {
         setItems(existingItems);
@@ -465,13 +508,17 @@ const ChartCustomizationModal = ({
       }}
     >
       <ChartCustomizationTitlePane
-        items={items}
+        items={items.filter(
+          item => !removedItems[item.id] || removedItems[item.id]?.isPending,
+        )}
         currentId={currentId}
         chartId={chartId}
         setCurrentId={setCurrentId}
         onChange={setCurrentId}
         onAdd={addItem}
         onRemove={handleRemoveItem}
+        restoreItem={restoreItem}
+        removedItems={removedItems}
         erroredItems={erroredItems}
       />
     </div>
@@ -485,47 +532,43 @@ const ChartCustomizationModal = ({
         padding: `${theme.sizeUnit * 4}px`,
       }}
     >
-      {items.map(item => (
-        <div
-          key={item.id}
-          css={{
-            display: item.id === currentId ? 'block' : 'none',
-          }}
-        >
-          {item.removed ? (
-            <RemovedFilter
-              onClick={() => {
-                if (item.removeTimerId) {
-                  clearTimeout(item.removeTimerId);
-                }
-                setItems(prev =>
-                  prev.map(i =>
-                    i.id === item.id
-                      ? { ...i, removed: false, removeTimerId: undefined }
-                      : i,
-                  ),
-                );
+      {items
+        .filter(
+          item => !removedItems[item.id] || removedItems[item.id]?.isPending,
+        )
+        .map(item => {
+          const isRemoved = !!removedItems[item.id];
+          return (
+            <div
+              key={item.id}
+              css={{
+                display: item.id === currentId ? 'block' : 'none',
               }}
-            />
-          ) : (
-            <ChartCustomizationForm
-              form={form}
-              item={item}
-              onUpdate={updatedItem => {
-                setItems(prev =>
-                  prev.map(i => (i.id === updatedItem.id ? updatedItem : i)),
-                );
+            >
+              {isRemoved ? (
+                <RemovedFilter onClick={() => restoreItem(item.id)} />
+              ) : (
+                <ChartCustomizationForm
+                  form={form}
+                  item={item}
+                  onUpdate={updatedItem => {
+                    setItems(prev =>
+                      prev.map(i =>
+                        i.id === updatedItem.id ? updatedItem : i,
+                      ),
+                    );
 
-                form.setFieldsValue({
-                  changed: true,
-                });
+                    form.setFieldsValue({
+                      changed: true,
+                    });
 
-                handleErroredItems();
-              }}
-            />
-          )}
-        </div>
-      ))}
+                    handleErroredItems();
+                  }}
+                />
+              )}
+            </div>
+          );
+        })}
     </div>
   );
 
