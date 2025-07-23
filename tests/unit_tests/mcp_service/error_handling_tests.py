@@ -28,6 +28,10 @@ from fastmcp.exceptions import ToolError
 
 sys.path.append(".")
 from superset.mcp_service.mcp_app import mcp
+from superset.mcp_service.pydantic_schemas.dashboard_schemas import (
+    ListDashboardsRequest,
+)
+from superset.mcp_service.pydantic_schemas.dataset_schemas import ListDatasetsRequest
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
@@ -48,9 +52,12 @@ class TestErrorHandling:
 
         mock_list.side_effect = ToolError("Unexpected error")
         async with fastmcp.Client(mcp_server) as client:
-            with pytest.raises(ToolError) as excinfo:
-                await client.call_tool("list_dashboards", {})
-        assert "Unexpected error" in str(excinfo.value)
+            with pytest.raises(ToolError) as excinfo:  # noqa: PT012
+                request = ListDashboardsRequest()
+                await client.call_tool(
+                    "list_dashboards", {"request": request.model_dump()}
+                )
+            assert "Unexpected error" in str(excinfo.value)
 
     @pytest.mark.xfail(
         reason="MCP protocol bug: dict fields named column_operators are deserialized "
@@ -73,9 +80,12 @@ class TestErrorHandling:
 
         mock_list.side_effect = ToolError("API request failed")
         async with fastmcp.Client(mcp_server) as client:
-            with pytest.raises(fastmcp.exceptions.ToolError) as excinfo:
-                await client.call_tool("list_datasets", {})
-        assert "API request failed" in str(excinfo.value)
+            with pytest.raises(fastmcp.exceptions.ToolError) as excinfo:  # noqa: PT012
+                request = ListDatasetsRequest()
+                await client.call_tool(
+                    "list_datasets", {"request": request.model_dump()}
+                )
+            assert "API request failed" in str(excinfo.value)
 
     @pytest.mark.asyncio
     async def test_list_dashboards_parameter_types(self, mcp_server):
@@ -83,23 +93,30 @@ class TestErrorHandling:
 
         with patch("superset.daos.dashboard.DashboardDAO.list") as mock_list:
             mock_list.return_value = ([], 0)
-            async with fastmcp.Client(mcp_server) as client:
-                with pytest.raises(fastmcp.exceptions.ToolError):
-                    await client.call_tool(
-                        "list_dashboards",
-                        {"filters": '[{"col": "test", "opr": "eq", "value": "value"}]'},
+            async with fastmcp.Client(mcp_server) as client:  # noqa: F841
+                # Test that string filters cause validation error at schema level
+                with pytest.raises(ValueError, match="validation error"):
+                    ListDashboardsRequest(  # noqa: F841
+                        filters='[{"col": "test", "opr": "eq", "value": "value"}]'
                     )
-                with pytest.raises(fastmcp.exceptions.ToolError):
-                    await client.call_tool(
-                        "list_dashboards",
-                        {"filters": [{"col": "test", "opr": "eq", "value": "value"}]},
+
+                # Test that invalid filter objects cause validation error at schema
+                # level
+                with pytest.raises(ValueError, match="validation error"):
+                    ListDashboardsRequest(  # noqa: F841
+                        filters=[{"col": "test", "opr": "invalid_op", "value": "value"}]
                     )
-                with pytest.raises(fastmcp.exceptions.ToolError):
-                    await client.call_tool(
-                        "list_dashboards", {"select_columns": "id,dashboard_title"}
-                    )
+
+                # Test that string select_columns cause validation error at schema level
+                with pytest.raises(ValueError, match="validation error"):
+                    ListDashboardsRequest(select_columns="id,dashboard_title")  # noqa: F841
+
+                # Test that valid request works
+                request = ListDashboardsRequest(
+                    select_columns=["id", "dashboard_title"]
+                )
                 await client.call_tool(
-                    "list_dashboards", {"select_columns": ["id", "dashboard_title"]}
+                    "list_dashboards", {"request": request.model_dump()}
                 )
 
     @pytest.mark.asyncio
@@ -109,6 +126,7 @@ class TestErrorHandling:
         with patch("superset.daos.dataset.DatasetDAO.list") as mock_list:
             mock_list.return_value = ([], 0)
             async with fastmcp.Client(mcp_server) as client:
+                # Test that old parameter format fails (validation at schema level now)
                 with pytest.raises(fastmcp.exceptions.ToolError):
                     await client.call_tool(
                         "list_datasets",
@@ -123,6 +141,9 @@ class TestErrorHandling:
                     await client.call_tool(
                         "list_datasets", {"select_columns": "id,table_name"}
                     )
+
+                # Test that new request format works
+                request = ListDatasetsRequest(select_columns=["id", "table_name"])
                 await client.call_tool(
-                    "list_datasets", {"select_columns": ["id", "table_name"]}
+                    "list_datasets", {"request": request.model_dump()}
                 )

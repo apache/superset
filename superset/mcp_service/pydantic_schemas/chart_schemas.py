@@ -20,9 +20,9 @@ Pydantic schemas for chart-related responses
 """
 
 from datetime import datetime
-from typing import Any, Dict, List, Literal, Optional, Union
+from typing import Annotated, Any, Dict, List, Literal, Optional, Union
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator, PositiveInt
 
 from superset.daos.base import ColumnOperator, ColumnOperatorEnum
 from superset.mcp_service.pydantic_schemas.system_schemas import (
@@ -153,8 +153,6 @@ class ChartFilter(ColumnOperator):
         "slice_name",
         "viz_type",
         "datasource_name",
-        "owner",
-        "tags",
     ] = Field(
         ...,
         description="Column to filter on. See get_chart_available_filters for "
@@ -250,6 +248,74 @@ class XYChartConfig(BaseModel):
 
 # Discriminated union entry point
 ChartConfig = Union[TableChartConfig, XYChartConfig]
+
+
+class ListChartsRequest(BaseModel):
+    """Request schema for list_charts with clear, unambiguous types."""
+
+    filters: Annotated[
+        List[ChartFilter],
+        Field(
+            default_factory=list,
+            description="List of filter objects (column, operator, value). Each "
+            "filter is an object with 'col', 'opr', and 'value' "
+            "properties. Cannot be used together with 'search'.",
+        ),
+    ]
+    select_columns: Annotated[
+        List[str],
+        Field(
+            default_factory=lambda: [
+                "id",
+                "slice_name",
+                "viz_type",
+                "datasource_name",
+                "description",
+                "changed_by_name",
+                "created_by_name",
+                "changed_on",
+                "created_on",
+            ],
+            description="List of columns to select. Defaults to common columns if not "
+            "specified.",
+        ),
+    ]
+    search: Annotated[
+        Optional[str],
+        Field(
+            default=None,
+            description="Text search string to match against chart fields. Cannot be "
+            "used together with 'filters'.",
+        ),
+    ]
+    order_column: Annotated[
+        Optional[str], Field(default=None, description="Column to order results by")
+    ]
+    order_direction: Annotated[
+        Literal["asc", "desc"],
+        Field(
+            default="asc", description="Direction to order results ('asc' or 'desc')"
+        ),
+    ]
+    page: Annotated[
+        PositiveInt,
+        Field(default=1, description="Page number for pagination (1-based)"),
+    ]
+    page_size: Annotated[
+        PositiveInt, Field(default=100, description="Number of items per page")
+    ]
+
+    @model_validator(mode="after")
+    def validate_search_and_filters(self) -> "ListChartsRequest":
+        """Prevent using both search and filters simultaneously to avoid query
+        conflicts."""
+        if self.search and self.filters:
+            raise ValueError(
+                "Cannot use both 'search' and 'filters' parameters simultaneously. "
+                "Use either 'search' for text-based searching across multiple fields, "
+                "or 'filters' for precise column-based filtering, but not both."
+            )
+        return self
 
 
 # The tool input models

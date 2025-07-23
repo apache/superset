@@ -20,9 +20,9 @@ Pydantic schemas for dataset-related responses
 """
 
 from datetime import datetime
-from typing import Any, Dict, List, Literal, Optional, Union
+from typing import Annotated, Any, Dict, List, Literal, Optional, Union
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator, PositiveInt
 
 from superset.daos.base import ColumnOperator, ColumnOperatorEnum
 from superset.mcp_service.pydantic_schemas.system_schemas import (
@@ -52,10 +52,7 @@ class DatasetFilter(ColumnOperator):
     col: Literal[
         "table_name",
         "schema",
-        "changed_by",
-        "created_by",
         "owner",
-        "tags",
     ] = Field(
         ...,
         description="Column to filter on. See get_dataset_available_filters for "
@@ -92,7 +89,7 @@ class SqlMetricInfo(BaseModel):
 class DatasetInfo(BaseModel):
     id: Optional[int] = Field(None, description="Dataset ID")
     table_name: Optional[str] = Field(None, description="Table name")
-    db_schema: Optional[str] = Field(None, alias="schema", description="Schema name")
+    schema: Optional[str] = Field(None, description="Schema name")
     database_name: Optional[str] = Field(None, description="Database name")
     description: Optional[str] = Field(None, description="Dataset description")
     changed_by: Optional[str] = Field(None, description="Last modifier (username)")
@@ -157,6 +154,75 @@ class DatasetList(BaseModel):
     model_config = ConfigDict(ser_json_timedelta="iso8601")
 
 
+class ListDatasetsRequest(BaseModel):
+    """Request schema for list_datasets with clear, unambiguous types."""
+
+    filters: Annotated[
+        List[DatasetFilter],
+        Field(
+            default_factory=list,
+            description="List of filter objects (column, operator, value). Each "
+            "filter is an object with 'col', 'opr', and 'value' "
+            "properties. Cannot be used together with 'search'.",
+        ),
+    ]
+    select_columns: Annotated[
+        List[str],
+        Field(
+            default_factory=lambda: [
+                "id",
+                "table_name",
+                "schema",
+                "database_name",
+                "changed_by_name",
+                "changed_on",
+                "created_by_name",
+                "created_on",
+                "metrics",
+                "columns",
+            ],
+            description="List of columns to select. Defaults to common columns if not "
+            "specified.",
+        ),
+    ]
+    search: Annotated[
+        Optional[str],
+        Field(
+            default=None,
+            description="Text search string to match against dataset fields. Cannot "
+            "be used together with 'filters'.",
+        ),
+    ]
+    order_column: Annotated[
+        Optional[str], Field(default=None, description="Column to order results by")
+    ]
+    order_direction: Annotated[
+        Literal["asc", "desc"],
+        Field(
+            default="asc", description="Direction to order results ('asc' or 'desc')"
+        ),
+    ]
+    page: Annotated[
+        PositiveInt,
+        Field(default=1, description="Page number for pagination (1-based)"),
+    ]
+    page_size: Annotated[
+        PositiveInt, Field(default=100, description="Number of items per page")
+    ]
+
+    @model_validator(mode="after")
+    def validate_search_and_filters(self) -> "ListDatasetsRequest":
+        """Prevent using both search and filters simultaneously to avoid query
+        conflicts."""
+        if self.search and self.filters:
+            raise ValueError(
+                "Cannot use both 'search' and 'filters' parameters simultaneously. "
+                "Use either 'search' for text-based searching across multiple fields, "
+                "or 'filters' for precise column-based filtering, but not both."
+            )
+        return self
+
+
 class DatasetError(BaseModel):
     error: str = Field(..., description="Error message")
     error_type: str = Field(..., description="Type of error")
@@ -200,7 +266,7 @@ def serialize_dataset_object(dataset: Any) -> Optional[DatasetInfo]:
     return DatasetInfo(
         id=getattr(dataset, "id", None),
         table_name=getattr(dataset, "table_name", None),
-        db_schema=getattr(dataset, "schema", None),
+        schema=getattr(dataset, "schema", None),
         database_name=getattr(dataset.database, "database_name", None)
         if getattr(dataset, "database", None)
         else None,

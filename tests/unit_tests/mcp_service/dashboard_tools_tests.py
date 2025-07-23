@@ -28,6 +28,9 @@ from fastmcp import Client
 from fastmcp.exceptions import ToolError
 
 from superset.mcp_service.mcp_app import mcp
+from superset.mcp_service.pydantic_schemas.dashboard_schemas import (
+    ListDashboardsRequest,
+)
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
@@ -56,6 +59,18 @@ async def test_list_dashboards_basic(mock_list, mcp_server):
     dashboard.tags = []
     dashboard.owners = []
     dashboard.slices = []
+    dashboard.description = None
+    dashboard.css = None
+    dashboard.certified_by = None
+    dashboard.certification_details = None
+    dashboard.json_metadata = None
+    dashboard.position_json = None
+    dashboard.is_managed_externally = False
+    dashboard.external_url = None
+    dashboard.uuid = None
+    dashboard.thumbnail_url = None
+    dashboard.roles = []
+    dashboard.charts = []
     dashboard._mapping = {
         "id": dashboard.id,
         "dashboard_title": dashboard.dashboard_title,
@@ -74,7 +89,10 @@ async def test_list_dashboards_basic(mock_list, mcp_server):
     }
     mock_list.return_value = ([dashboard], 1)
     async with Client(mcp_server) as client:
-        result = await client.call_tool("list_dashboards", {"page": 1, "page_size": 10})
+        request = ListDashboardsRequest(page=1, page_size=10)
+        result = await client.call_tool(
+            "list_dashboards", {"request": request.model_dump()}
+        )
         dashboards = result.data.dashboards
         assert len(dashboards) == 1
         assert dashboards[0].dashboard_title == "Test Dashboard"
@@ -99,6 +117,18 @@ async def test_list_dashboards_with_filters(mock_list, mcp_server):
     dashboard.tags = []
     dashboard.owners = []
     dashboard.slices = []
+    dashboard.description = None
+    dashboard.css = None
+    dashboard.certified_by = None
+    dashboard.certification_details = None
+    dashboard.json_metadata = None
+    dashboard.position_json = None
+    dashboard.is_managed_externally = False
+    dashboard.external_url = None
+    dashboard.uuid = None
+    dashboard.thumbnail_url = None
+    dashboard.roles = []
+    dashboard.charts = []
     dashboard._mapping = {
         "id": dashboard.id,
         "dashboard_title": dashboard.dashboard_title,
@@ -121,16 +151,16 @@ async def test_list_dashboards_with_filters(mock_list, mcp_server):
             {"col": "dashboard_title", "opr": "sw", "value": "Sales"},
             {"col": "published", "opr": "eq", "value": True},
         ]
+        request = ListDashboardsRequest(
+            filters=filters,
+            select_columns=["id", "dashboard_title"],
+            order_column="changed_on",
+            order_direction="desc",
+            page=1,
+            page_size=50,
+        )
         result = await client.call_tool(
-            "list_dashboards",
-            {
-                "filters": filters,
-                "select_columns": ["id", "dashboard_title"],
-                "order_column": "changed_on",
-                "order_direction": "desc",
-                "page": 1,
-                "page_size": 50,
-            },
+            "list_dashboards", {"request": request.model_dump()}
         )
         assert result.data.count == 1
         assert result.data.dashboards[0].dashboard_title == "Filtered Dashboard"
@@ -139,45 +169,13 @@ async def test_list_dashboards_with_filters(mock_list, mcp_server):
 @patch("superset.daos.dashboard.DashboardDAO.list")
 @pytest.mark.asyncio
 async def test_list_dashboards_with_string_filters(mock_list, mcp_server):
-    dashboard = Mock()
-    dashboard.id = 1
-    dashboard.dashboard_title = "String Filter Dashboard"
-    dashboard.slug = "string-filter-dashboard"
-    dashboard.url = "/dashboard/3"
-    dashboard.published = True
-    dashboard.changed_by_name = "admin"
-    dashboard.changed_on = None
-    dashboard.changed_on_humanized = None
-    dashboard.created_by_name = "admin"
-    dashboard.created_on = None
-    dashboard.created_on_humanized = None
-    dashboard.tags = []
-    dashboard.owners = []
-    dashboard.slices = []
-    dashboard._mapping = {
-        "id": dashboard.id,
-        "dashboard_title": dashboard.dashboard_title,
-        "slug": dashboard.slug,
-        "url": dashboard.url,
-        "published": dashboard.published,
-        "changed_by_name": dashboard.changed_by_name,
-        "changed_on": dashboard.changed_on,
-        "changed_on_humanized": dashboard.changed_on_humanized,
-        "created_by_name": dashboard.created_by_name,
-        "created_on": dashboard.created_on,
-        "created_on_humanized": dashboard.created_on_humanized,
-        "tags": dashboard.tags,
-        "owners": dashboard.owners,
-        "charts": [],
-    }
-    mock_list.return_value = ([dashboard], 1)
-    async with Client(mcp_server) as client:
+    mock_list.return_value = ([], 0)
+    async with Client(mcp_server) as client:  # noqa: F841
         filters = '[{"col": "dashboard_title", "opr": "sw", "value": "Sales"}]'
-        import fastmcp
 
-        with pytest.raises(fastmcp.exceptions.ToolError) as excinfo:
-            await client.call_tool("list_dashboards", {"filters": filters})
-        assert "Input validation error" in str(excinfo.value)
+        # Test that string filters cause validation error at schema level
+        with pytest.raises(ValueError, match="validation error"):
+            ListDashboardsRequest(filters=filters)  # noqa: F841
 
 
 @patch("superset.daos.dashboard.DashboardDAO.list")
@@ -185,8 +183,9 @@ async def test_list_dashboards_with_string_filters(mock_list, mcp_server):
 async def test_list_dashboards_api_error(mock_list, mcp_server):
     mock_list.side_effect = ToolError("API request failed")
     async with Client(mcp_server) as client:
-        with pytest.raises(ToolError) as excinfo:
-            await client.call_tool("list_dashboards", {})
+        with pytest.raises(ToolError) as excinfo:  # noqa: PT012
+            request = ListDashboardsRequest()
+            await client.call_tool("list_dashboards", {"request": request.model_dump()})
         assert "API request failed" in str(excinfo.value)
 
 
@@ -208,6 +207,18 @@ async def test_list_dashboards_with_search(mock_list, mcp_server):
     dashboard.tags = []
     dashboard.owners = []
     dashboard.slices = []
+    dashboard.description = None
+    dashboard.css = None
+    dashboard.certified_by = None
+    dashboard.certification_details = None
+    dashboard.json_metadata = None
+    dashboard.position_json = None
+    dashboard.is_managed_externally = False
+    dashboard.external_url = None
+    dashboard.uuid = None
+    dashboard.thumbnail_url = None
+    dashboard.roles = []
+    dashboard.charts = []
     dashboard._mapping = {
         "id": dashboard.id,
         "dashboard_title": dashboard.dashboard_title,
@@ -226,8 +237,9 @@ async def test_list_dashboards_with_search(mock_list, mcp_server):
     }
     mock_list.return_value = ([dashboard], 1)
     async with Client(mcp_server) as client:
+        request = ListDashboardsRequest(search="search_dashboard")
         result = await client.call_tool(
-            "list_dashboards", {"search": "search_dashboard"}
+            "list_dashboards", {"request": request.model_dump()}
         )
         assert result.data.count == 1
         assert result.data.dashboards[0].dashboard_title == "search_dashboard"
@@ -246,7 +258,10 @@ async def test_list_dashboards_with_simple_filters(mock_list, mcp_server):
             {"col": "dashboard_title", "opr": "eq", "value": "Sales"},
             {"col": "published", "opr": "eq", "value": True},
         ]
-        result = await client.call_tool("list_dashboards", {"filters": filters})
+        request = ListDashboardsRequest(filters=filters)
+        result = await client.call_tool(
+            "list_dashboards", {"request": request.model_dump()}
+        )
         assert hasattr(result.data, "count")
 
 
@@ -279,6 +294,7 @@ async def test_get_dashboard_info_success(mock_info, mcp_server):
     dashboard.owners = []
     dashboard.tags = []
     dashboard.roles = []
+    dashboard.charts = []
     dashboard._mapping = {
         "id": dashboard.id,
         "dashboard_title": dashboard.dashboard_title,

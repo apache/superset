@@ -26,6 +26,7 @@ from fastmcp import Client
 from fastmcp.exceptions import ToolError
 
 from superset.mcp_service.mcp_app import mcp
+from superset.mcp_service.pydantic_schemas.dataset_schemas import ListDatasetsRequest
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
@@ -96,7 +97,7 @@ async def test_list_datasets_basic(mock_list, mcp_server):
     dataset._mapping = {
         "id": dataset.id,
         "table_name": dataset.table_name,
-        "db_schema": dataset.schema,
+        "schema": dataset.schema,
         "database_name": dataset.database.database_name,
         "description": dataset.description,
         "changed_by_name": dataset.changed_by_name,
@@ -121,7 +122,10 @@ async def test_list_datasets_basic(mock_list, mcp_server):
     }
     mock_list.return_value = ([dataset], 1)
     async with Client(mcp_server) as client:
-        result = await client.call_tool("list_datasets", {"page": 1, "page_size": 10})
+        request = ListDatasetsRequest(page=1, page_size=10)
+        result = await client.call_tool(
+            "list_datasets", {"request": request.model_dump()}
+        )
         assert result.content is not None
         data = json.loads(result.content[0].text)
         assert data["datasets"] is not None
@@ -186,7 +190,7 @@ async def test_list_datasets_with_filters(mock_list, mcp_server):
     dataset._mapping = {
         "id": dataset.id,
         "table_name": dataset.table_name,
-        "db_schema": dataset.schema,
+        "schema": dataset.schema,
         "database_name": dataset.database.database_name,
         "description": dataset.description,
         "changed_by_name": dataset.changed_by_name,
@@ -215,16 +219,16 @@ async def test_list_datasets_with_filters(mock_list, mcp_server):
         {"col": "schema", "opr": "eq", "value": "main"},
     ]
     async with Client(mcp_server) as client:
+        request = ListDatasetsRequest(
+            filters=filters,
+            select_columns=["id", "table_name"],
+            order_column="changed_on",
+            order_direction="desc",
+            page=1,
+            page_size=50,
+        )
         result = await client.call_tool(
-            "list_datasets",
-            {
-                "filters": filters,
-                "select_columns": ["id", "table_name"],
-                "order_column": "changed_on",
-                "order_direction": "desc",
-                "page": 1,
-                "page_size": 50,
-            },
+            "list_datasets", {"request": request.model_dump()}
         )
         assert result.content is not None
         data = json.loads(result.content[0].text)
@@ -269,7 +273,7 @@ async def test_list_datasets_with_string_filters(mock_list, mcp_server):
     dataset._mapping = {
         "id": dataset.id,
         "table_name": dataset.table_name,
-        "db_schema": dataset.schema,
+        "schema": dataset.schema,
         "database_name": dataset.database.database_name,
         "description": dataset.description,
         "changed_by_name": dataset.changed_by_name,
@@ -293,13 +297,12 @@ async def test_list_datasets_with_string_filters(mock_list, mcp_server):
         "extra": dataset.extra,
     }
     mock_list.return_value = ([dataset], 1)
-    async with Client(mcp_server) as client:
-        with pytest.raises(ToolError) as excinfo:
-            await client.call_tool(
-                "list_datasets",
-                {"filters": '[{"col": "table_name", "opr": "sw", "value": "Sales"}]'},
+    async with Client(mcp_server) as client:  # noqa: F841
+        with pytest.raises(ValueError, match="Input should be a valid list"):
+            # This should fail validation since filters expects a list, not a string
+            ListDatasetsRequest(  # noqa: F841
+                filters='[{"col": "table_name", "opr": "sw", "value": "Sales"}]'
             )
-        assert "Input validation error" in str(excinfo.value)
 
 
 @patch("superset.daos.dataset.DatasetDAO.list")
@@ -307,8 +310,9 @@ async def test_list_datasets_with_string_filters(mock_list, mcp_server):
 async def test_list_datasets_api_error(mock_list, mcp_server):
     mock_list.side_effect = ToolError("API request failed")
     async with Client(mcp_server) as client:
-        with pytest.raises(ToolError) as excinfo:
-            await client.call_tool("list_datasets", {})
+        with pytest.raises(ToolError) as excinfo:  # noqa: PT012
+            request = ListDatasetsRequest()
+            await client.call_tool("list_datasets", {"request": request.model_dump()})
         assert "API request failed" in str(excinfo.value)
 
 
@@ -365,7 +369,7 @@ async def test_list_datasets_with_search(mock_list, mcp_server):
     dataset._mapping = {
         "id": dataset.id,
         "table_name": dataset.table_name,
-        "db_schema": dataset.schema,
+        "schema": dataset.schema,
         "database_name": dataset.database_name,
         "description": dataset.description,
         "changed_by_name": dataset.changed_by_name,
@@ -390,7 +394,10 @@ async def test_list_datasets_with_search(mock_list, mcp_server):
     }
     mock_list.return_value = ([dataset], 1)
     async with Client(mcp_server) as client:
-        result = await client.call_tool("list_datasets", {"search": "search_table"})
+        request = ListDatasetsRequest(search="search_table")
+        result = await client.call_tool(
+            "list_datasets", {"request": request.model_dump()}
+        )
         assert result.content is not None
         data = json.loads(result.content[0].text)
         assert data["datasets"] is not None
@@ -455,7 +462,7 @@ async def test_list_datasets_simple_with_search(mock_list, mcp_server):
     dataset._mapping = {
         "id": dataset.id,
         "table_name": dataset.table_name,
-        "db_schema": dataset.schema,
+        "schema": dataset.schema,
         "database_name": dataset.database_name,
         "description": dataset.description,
         "changed_by_name": dataset.changed_by_name,
@@ -480,7 +487,10 @@ async def test_list_datasets_simple_with_search(mock_list, mcp_server):
     }
     mock_list.return_value = ([dataset], 1)
     async with Client(mcp_server) as client:
-        result = await client.call_tool("list_datasets", {"search": "simple_search"})
+        request = ListDatasetsRequest(search="simple_search")
+        result = await client.call_tool(
+            "list_datasets", {"request": request.model_dump()}
+        )
         assert result.content is not None
         data = json.loads(result.content[0].text)
         assert data["datasets"] is not None
@@ -543,7 +553,7 @@ async def test_list_datasets_simple_basic(mock_list, mcp_server):
     dataset._mapping = {
         "id": dataset.id,
         "table_name": dataset.table_name,
-        "db_schema": dataset.schema,
+        "schema": dataset.schema,
         "database_name": dataset.database.database_name,
         "description": dataset.description,
         "changed_by_name": dataset.changed_by_name,
@@ -572,7 +582,10 @@ async def test_list_datasets_simple_basic(mock_list, mcp_server):
         {"col": "schema", "opr": "eq", "value": "main"},
     ]
     async with Client(mcp_server) as client:
-        result = await client.call_tool("list_datasets", {"filters": filters})
+        request = ListDatasetsRequest(filters=filters)
+        result = await client.call_tool(
+            "list_datasets", {"request": request.model_dump()}
+        )
         assert result.content is not None
         data = json.loads(result.content[0].text)
         assert data["datasets"] is not None
@@ -635,7 +648,7 @@ async def test_list_datasets_simple_with_filters(mock_list, mcp_server):
     dataset._mapping = {
         "id": dataset.id,
         "table_name": dataset.table_name,
-        "db_schema": dataset.schema,
+        "schema": dataset.schema,
         "database_name": dataset.database.database_name,
         "description": dataset.description,
         "changed_by_name": dataset.changed_by_name,
@@ -664,7 +677,10 @@ async def test_list_datasets_simple_with_filters(mock_list, mcp_server):
         {"col": "schema", "opr": "eq", "value": "main"},
     ]
     async with Client(mcp_server) as client:
-        result = await client.call_tool("list_datasets", {"filters": filters})
+        request = ListDatasetsRequest(filters=filters)
+        result = await client.call_tool(
+            "list_datasets", {"request": request.model_dump()}
+        )
         assert result.content is not None
         data = json.loads(result.content[0].text)
         assert data["datasets"] is not None
@@ -685,8 +701,9 @@ async def test_list_datasets_simple_api_error(mock_list, mcp_server):
         {"col": "schema", "opr": "eq", "value": "main"},
     ]
     async with Client(mcp_server) as client:
-        with pytest.raises(ToolError) as excinfo:
-            await client.call_tool("list_datasets", {"filters": filters})
+        with pytest.raises(ToolError) as excinfo:  # noqa: PT012
+            request = ListDatasetsRequest(filters=filters)
+            await client.call_tool("list_datasets", {"request": request.model_dump()})
         assert "API request failed" in str(excinfo.value)
 
 
@@ -796,13 +813,12 @@ async def test_get_dataset_available_filters_includes_custom_fields(mcp_server):
 
 @pytest.mark.asyncio
 async def test_invalid_filter_column_raises(mcp_server):
-    async with fastmcp.Client(mcp_server) as client:
-        with pytest.raises(ToolError) as excinfo:
-            await client.call_tool(
-                "list_datasets",
-                {"filters": [{"col": "not_a_column", "opr": "eq", "value": "foo"}]},
+    async with fastmcp.Client(mcp_server) as client:  # noqa: F841
+        with pytest.raises(ValueError, match="Input should be"):
+            # This should fail validation at the schema level due to invalid column name
+            ListDatasetsRequest(  # noqa: F841
+                filters=[{"col": "not_a_column", "opr": "eq", "value": "foo"}]
             )
-        assert "Input validation error" in str(excinfo.value)
 
 
 @patch("superset.daos.dataset.DatasetDAO.find_by_id")
@@ -937,7 +953,10 @@ async def test_list_datasets_includes_columns_and_metrics(mock_list, mcp_server)
     ]
     mock_list.return_value = ([dataset], 1)
     async with Client(mcp_server) as client:
-        result = await client.call_tool("list_datasets", {"page": 1, "page_size": 10})
+        request = ListDatasetsRequest(page=1, page_size=10)
+        result = await client.call_tool(
+            "list_datasets", {"request": request.model_dump()}
+        )
         datasets = result.data.datasets
         assert len(datasets) == 1
         ds = datasets[0]

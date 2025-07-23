@@ -16,16 +16,14 @@
 # under the License.
 
 """
-List dashboards FastMCP tool (Advanced)
+List dashboards FastMCP tool (Advanced with clear request schema)
 
 This module contains the FastMCP tool for listing dashboards using
-advanced filtering with complex filter objects and JSON payload.
+advanced filtering with clear, unambiguous request schema.
 """
 
 import logging
-from typing import Annotated, List, Literal, Optional
-
-from pydantic import Field, PositiveInt
+from typing import Any
 
 from superset.mcp_service.auth import mcp_auth_hook
 from superset.mcp_service.mcp_app import mcp
@@ -35,8 +33,51 @@ from superset.mcp_service.pydantic_schemas import (
     DashboardInfo,
     DashboardList,
 )
+from superset.mcp_service.pydantic_schemas.chart_schemas import serialize_chart_object
+from superset.mcp_service.pydantic_schemas.dashboard_schemas import (
+    ListDashboardsRequest,
+)
 
 logger = logging.getLogger(__name__)
+
+
+def serialize_dashboard_object(dashboard: Any) -> DashboardInfo:
+    """Simple dashboard serializer that safely handles object attributes."""
+    return DashboardInfo(
+        id=getattr(dashboard, "id", None),
+        dashboard_title=getattr(dashboard, "dashboard_title", None),
+        slug=getattr(dashboard, "slug", None),
+        url=getattr(dashboard, "url", None),
+        published=getattr(dashboard, "published", None),
+        changed_by_name=getattr(dashboard, "changed_by_name", None),
+        changed_on=getattr(dashboard, "changed_on", None),
+        changed_on_humanized=getattr(dashboard, "changed_on_humanized", None),
+        created_by_name=getattr(dashboard, "created_by_name", None),
+        created_on=getattr(dashboard, "created_on", None),
+        created_on_humanized=getattr(dashboard, "created_on_humanized", None),
+        description=getattr(dashboard, "description", None),
+        css=getattr(dashboard, "css", None),
+        certified_by=getattr(dashboard, "certified_by", None),
+        certification_details=getattr(dashboard, "certification_details", None),
+        json_metadata=getattr(dashboard, "json_metadata", None),
+        position_json=getattr(dashboard, "position_json", None),
+        is_managed_externally=getattr(dashboard, "is_managed_externally", None),
+        external_url=getattr(dashboard, "external_url", None),
+        uuid=str(getattr(dashboard, "uuid", ""))
+        if getattr(dashboard, "uuid", None)
+        else None,
+        thumbnail_url=getattr(dashboard, "thumbnail_url", None),
+        chart_count=len(getattr(dashboard, "slices", [])),
+        owners=getattr(dashboard, "owners", []),
+        tags=getattr(dashboard, "tags", []),
+        roles=getattr(dashboard, "roles", []),
+        charts=[
+            serialize_chart_object(chart) for chart in getattr(dashboard, "slices", [])
+        ]
+        if getattr(dashboard, "slices", None)
+        else [],
+    )
+
 
 DEFAULT_DASHBOARD_COLUMNS = [
     "id",
@@ -50,36 +91,13 @@ DEFAULT_DASHBOARD_COLUMNS = [
 
 @mcp.tool
 @mcp_auth_hook
-def list_dashboards(
-    filters: Annotated[
-        List[DashboardFilter] | None,
-        Field(description="List of filter objects (column, operator, value)"),
-    ] = None,
-    select_columns: Annotated[
-        List[str] | None,
-        Field(description="List of columns to select (overrides 'columns' and 'keys')"),
-    ] = None,
-    search: Annotated[
-        Optional[str],
-        Field(description="Text search string to match against dashboard fields"),
-    ] = None,
-    order_column: Annotated[
-        Optional[str],
-        Field(description="Column to order results by"),
-    ] = None,
-    order_direction: Annotated[
-        Optional[Literal["asc", "desc"]],
-        Field(description="Direction to order results ('asc' or 'desc')"),
-    ] = "asc",
-    page: Annotated[
-        PositiveInt, Field(description="Page number for pagination (1-based)")
-    ] = 1,
-    page_size: Annotated[
-        PositiveInt, Field(description="Number of items per page")
-    ] = 100,
-) -> DashboardList:
+def list_dashboards(request: ListDashboardsRequest) -> DashboardList:
     """
     List dashboards with advanced filtering, search, and column selection.
+
+    Uses a clear request object schema to avoid validation ambiguity with
+    arrays/strings.
+    All parameters are properly typed and have sensible defaults.
     """
 
     from superset.daos.dashboard import DashboardDAO
@@ -87,11 +105,7 @@ def list_dashboards(
     tool = ModelListTool(
         dao_class=DashboardDAO,
         output_schema=DashboardInfo,
-        item_serializer=lambda obj, cols: DashboardInfo(**dict(obj._mapping))
-        if not cols
-        else DashboardInfo(
-            **{k: v for k, v in dict(obj._mapping).items() if k in cols}
-        ),
+        item_serializer=lambda obj, cols: serialize_dashboard_object(obj),
         filter_type=DashboardFilter,
         default_columns=DEFAULT_DASHBOARD_COLUMNS,
         search_columns=[
@@ -108,11 +122,11 @@ def list_dashboards(
         logger=logger,
     )
     return tool.run(
-        filters=filters,
-        search=search,
-        select_columns=select_columns,
-        order_column=order_column,
-        order_direction=order_direction,
-        page=max(page - 1, 0),
-        page_size=page_size,
+        filters=request.filters,
+        search=request.search,
+        select_columns=request.select_columns,
+        order_column=request.order_column,
+        order_direction=request.order_direction,
+        page=max(request.page - 1, 0),
+        page_size=request.page_size,
     )

@@ -64,9 +64,9 @@ Example usage:
 """
 
 from datetime import datetime
-from typing import Any, Dict, List, Literal, Optional, Union
+from typing import Annotated, Any, Dict, List, Literal, Optional, Union
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator, PositiveInt
 
 from superset.daos.base import ColumnOperator, ColumnOperatorEnum
 from superset.mcp_service.pydantic_schemas.chart_schemas import ChartInfo
@@ -172,9 +172,7 @@ class DashboardFilter(ColumnOperator):
     col: Literal[
         "dashboard_title",
         "published",
-        "owner",
         "favorite",
-        "tags",
     ] = Field(
         ...,
         description="Column to filter on. See get_dashboard_available_filters for "
@@ -188,6 +186,71 @@ class DashboardFilter(ColumnOperator):
     value: Any = Field(
         ..., description="Value to filter by (type depends on col and opr)"
     )
+
+
+class ListDashboardsRequest(BaseModel):
+    """Request schema for list_dashboards with clear, unambiguous types."""
+
+    filters: Annotated[
+        List[DashboardFilter],
+        Field(
+            default_factory=list,
+            description="List of filter objects (column, operator, value). Each "
+            "filter is an object with 'col', 'opr', and 'value' properties. "
+            "Cannot be used together with 'search'.",
+        ),
+    ]
+    select_columns: Annotated[
+        List[str],
+        Field(
+            default_factory=lambda: [
+                "id",
+                "dashboard_title",
+                "slug",
+                "published",
+                "changed_on",
+                "created_on",
+            ],
+            description="List of columns to select. Defaults to common columns "
+            "if not specified.",
+        ),
+    ]
+    search: Annotated[
+        Optional[str],
+        Field(
+            default=None,
+            description="Text search string to match against dashboard fields. "
+            "Cannot be used together with 'filters'.",
+        ),
+    ]
+    order_column: Annotated[
+        Optional[str], Field(default=None, description="Column to order results by")
+    ]
+    order_direction: Annotated[
+        Literal["asc", "desc"],
+        Field(
+            default="asc", description="Direction to order results ('asc' or 'desc')"
+        ),
+    ]
+    page: Annotated[
+        PositiveInt,
+        Field(default=1, description="Page number for pagination (1-based)"),
+    ]
+    page_size: Annotated[
+        PositiveInt, Field(default=100, description="Number of items per page")
+    ]
+
+    @model_validator(mode="after")
+    def validate_search_and_filters(self) -> "ListDashboardsRequest":
+        """Prevent using both search and filters simultaneously to avoid query
+        conflicts."""
+        if self.search and self.filters:
+            raise ValueError(
+                "Cannot use both 'search' and 'filters' parameters simultaneously. "
+                "Use either 'search' for text-based searching across multiple fields, "
+                "or 'filters' for precise column-based filtering, but not both."
+            )
+        return self
 
 
 class DashboardInfo(BaseModel):
