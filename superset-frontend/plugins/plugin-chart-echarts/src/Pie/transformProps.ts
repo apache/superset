@@ -368,7 +368,7 @@ export default function transformProps(
   const defaultLabel = {
     formatter,
     show: showLabels,
-    color: theme.colorTextBase,
+    color: theme.colorText,
   };
 
   const chartPadding = getChartPadding(

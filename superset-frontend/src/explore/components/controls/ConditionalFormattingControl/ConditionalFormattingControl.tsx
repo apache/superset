@@ -57,7 +57,7 @@ export const CloseButton = styled.button`
     height: 100%;
     width: ${theme.sizeUnit * 6}px;
     border: none;
-    border-right: solid 1px ${theme.colorTextBase}0C;
+    border-right: solid 1px ${theme.colorText}0C;
     padding: 0;
     outline: none;
     border-bottom-left-radius: 3px;

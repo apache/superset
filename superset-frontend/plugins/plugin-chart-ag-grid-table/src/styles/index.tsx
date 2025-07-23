@@ -246,7 +246,7 @@ export const InfoText = styled.div`
 
 export const ColumnLabel = styled.span`
   ${({ theme }) => `
-    color: ${theme.colorTextBase};
+    color: ${theme.colorText};
   `}
 `;
 

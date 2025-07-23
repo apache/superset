@@ -99,7 +99,7 @@ const StyledTableLabel = styled.div`
 `;
 
 const StyledPopoverItem = styled.div`
-  color: ${({ theme }) => theme.colorTextBase};
+  color: ${({ theme }) => theme.colorText};
 `;
 
 function SavedQueryList({

@@ -335,7 +335,7 @@ export const SavedQueries = ({
                           height: theme.sizeUnit * 40,
                           border: 'none',
                           overflow: 'hidden',
-                          color: theme.colorTextBase,
+                          color: theme.colorText,
                           wordBreak: 'break-all',
                           whiteSpace: 'pre-wrap',
                         }}

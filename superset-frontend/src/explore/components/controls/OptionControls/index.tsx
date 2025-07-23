@@ -85,7 +85,7 @@ export const CaretContainer = styled.div`
 export const CloseContainer = styled.div`
   height: auto;
   width: ${({ theme }) => theme.sizeUnit * 6}px;
-  border-right: solid 1px ${({ theme }) => theme.colorTextBase}0C;
+  border-right: solid 1px ${({ theme }) => theme.colorText}0C;
   cursor: pointer;
 `;
 

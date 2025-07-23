@@ -425,7 +425,7 @@ export function transformIntervalAnnotation(
     const intervalLabel: SeriesLabelOption = showLabel
       ? {
           show: true,
-          color: theme.colorTextBase,
+          color: theme.colorText,
           position: 'insideTop',
           verticalAlign: 'top',
           fontWeight: 'bold',
@@ -438,7 +438,7 @@ export function transformIntervalAnnotation(
         }
       : {
           show: false,
-          color: theme.colorTextBase,
+          color: theme.colorText,
           // @ts-ignore
           emphasis: {
             fontWeight: 'bold',
@@ -506,7 +506,7 @@ export function transformEventAnnotation(
     const eventLabel: SeriesLineLabelOption = showLabel
       ? {
           show: true,
-          color: theme.colorTextBase,
+          color: theme.colorText,
           position: 'insideEndTop',
           fontWeight: 'bold',
           formatter: (params: CallbackDataParams) => params.name,
@@ -517,7 +517,7 @@ export function transformEventAnnotation(
         }
       : {
           show: false,
-          color: theme.colorTextBase,
+          color: theme.colorText,
           position: 'insideEndTop',
           // @ts-ignore
           emphasis: {

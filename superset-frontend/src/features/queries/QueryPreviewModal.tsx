@@ -34,7 +34,7 @@ const QueryTitle = styled.div`
 `;
 
 const QueryLabel = styled.div`
-  color: ${({ theme }) => theme.colorTextBase};
+  color: ${({ theme }) => theme.colorText};
   font-size: ${({ theme }) => theme.fontSize}px;
   padding: 4px 0 24px 0;
 `;
