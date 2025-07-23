@@ -16,7 +16,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { FC, useEffect, useMemo, useState, useRef, useCallback } from 'react';
+import {
+  FC,
+  useEffect,
+  useMemo,
+  useState,
+  useRef,
+  useCallback,
+  ReactNode,
+} from 'react';
 import { useSelector } from 'react-redux';
 import { t, styled, css, useTheme } from '@superset-ui/core';
 import { debounce } from 'lodash';
@@ -788,10 +796,17 @@ const ChartCustomizationForm: FC<Props> = ({ form, item, onUpdate }) => {
           rules={[{ required: true, message: t('Please select a dataset') }]}
         >
           <DatasetSelect
-            onChange={(dataset: { label: string; value: number }) => {
+            onChange={(dataset: {
+              label: string | ReactNode;
+              value: number;
+            }) => {
+              const label =
+                typeof dataset.label === 'string' ? dataset.label : 'Dataset';
+
               const datasetWithInfo = {
                 ...dataset,
-                table_name: dataset.label,
+                label,
+                table_name: label,
               };
 
               const datasetId = dataset.value.toString();

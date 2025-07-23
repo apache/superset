@@ -25,7 +25,9 @@ interface Props {
   items: ChartCustomizationItem[];
   currentId: string | null;
   onChange: (id: string) => void;
-  onRemove: (id: string, shouldRemove?: boolean) => void;
+  onRemove: (id: string) => void;
+  restoreItem: (id: string) => void;
+  removedItems: Record<string, { isPending: boolean; timerId?: number } | null>;
   erroredItems?: string[];
 }
 
@@ -102,10 +104,21 @@ const StyledWarning = styled(Icons.ExclamationCircleOutlined)`
 `;
 
 const ChartCustomizationTitleContainer: FC<Props> = forwardRef(
-  ({ items, currentId, onChange, onRemove, erroredItems = [] }, ref) => (
+  (
+    {
+      items,
+      currentId,
+      onChange,
+      onRemove,
+      restoreItem,
+      removedItems,
+      erroredItems = [],
+    },
+    ref,
+  ) => (
     <ListContainer ref={ref as any}>
       {items.map(item => {
-        const isRemoved = item.removed;
+        const isRemoved = !!removedItems[item.id];
         const selected = item.id === currentId;
         const isErrored = erroredItems.includes(item.id);
         const displayName = item.customization.name?.trim() || t('[untitled]');
@@ -142,7 +155,7 @@ const ChartCustomizationTitleContainer: FC<Props> = forwardRef(
                   tabIndex={0}
                   onClick={(e: MouseEvent<HTMLElement>) => {
                     e.stopPropagation();
-                    onRemove(item.id, false);
+                    restoreItem(item.id);
                   }}
                 >
                   {t('Undo?')}
@@ -158,7 +171,7 @@ const ChartCustomizationTitleContainer: FC<Props> = forwardRef(
                   iconSize="m"
                   onClick={(e: MouseEvent<HTMLElement>) => {
                     e.stopPropagation();
-                    onRemove(item.id, true);
+                    onRemove(item.id);
                   }}
                   alt="RemoveGroupBy"
                 />

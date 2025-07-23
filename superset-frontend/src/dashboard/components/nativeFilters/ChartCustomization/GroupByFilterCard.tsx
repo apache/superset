@@ -166,18 +166,23 @@ const GroupByFilterCardContent: FC<{
   const datasetLabel = useMemo(() => {
     const { datasetInfo, dataset: datasetValue } =
       customizationItem.customization;
+
     if (datasetInfo) {
       if ('table_name' in datasetInfo) {
         return (datasetInfo as { table_name: string }).table_name;
       }
       if ('label' in datasetInfo) {
-        return (datasetInfo as { label: string }).label;
+        const { label } = datasetInfo as { label: string };
+        const tableNameMatch = label.match(/^([^([]+)/);
+        return tableNameMatch ? tableNameMatch[1].trim() : label;
       }
     }
 
     if (datasetValue) {
       if (typeof datasetValue === 'object' && 'label' in datasetValue) {
-        return (datasetValue as { label: string }).label;
+        const { label } = datasetValue as { label: string };
+        const tableNameMatch = label.match(/^([^([]+)/);
+        return tableNameMatch ? tableNameMatch[1].trim() : label;
       }
       if (typeof datasetValue === 'object' && 'table_name' in datasetValue) {
         return (datasetValue as { table_name: string }).table_name;
@@ -225,7 +230,9 @@ const GroupByFilterCardContent: FC<{
 
       <Row>
         <RowLabel>{t('Dataset')}</RowLabel>
-        <RowValue>{datasetLabel}</RowValue>
+        <RowValue>
+          {typeof datasetLabel === 'string' ? datasetLabel : 'Dataset'}
+        </RowValue>
       </Row>
 
       <Row>
