@@ -52,11 +52,9 @@ class DatasetFilter(ColumnOperator):
     col: Literal[
         "table_name",
         "schema",
-        "database_name",
         "changed_by",
         "created_by",
         "owner",
-        "is_virtual",
         "tags",
     ] = Field(
         ...,
@@ -92,8 +90,8 @@ class SqlMetricInfo(BaseModel):
 
 
 class DatasetInfo(BaseModel):
-    id: int = Field(..., description="Dataset ID")
-    table_name: str = Field(..., description="Table name")
+    id: Optional[int] = Field(None, description="Dataset ID")
+    table_name: Optional[str] = Field(None, description="Table name")
     db_schema: Optional[str] = Field(None, alias="schema", description="Schema name")
     database_name: Optional[str] = Field(None, description="Database name")
     description: Optional[str] = Field(None, description="Dataset description")

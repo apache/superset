@@ -67,8 +67,8 @@ class ColumnOperatorEnum(str, Enum):
             cls.gte: lambda col, val: col >= val,
             cls.lt: lambda col, val: col < val,
             cls.lte: lambda col, val: col <= val,
-            cls.like: lambda col, val: col.like(val),
-            cls.ilike: lambda col, val: col.ilike(val),
+            cls.like: lambda col, val: col.like(f"%{val}%"),
+            cls.ilike: lambda col, val: col.ilike(f"%{val}%"),
             cls.is_null: lambda col, _: col.is_(None),
             cls.is_not_null: lambda col, _: col.isnot(None),
         }

@@ -172,12 +172,8 @@ class DashboardFilter(ColumnOperator):
     col: Literal[
         "dashboard_title",
         "published",
-        "changed_by",
-        "created_by",
         "owner",
-        "certified",
         "favorite",
-        "chart_count",
         "tags",
     ] = Field(
         ...,

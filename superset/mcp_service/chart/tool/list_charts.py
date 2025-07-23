@@ -49,25 +49,20 @@ DEFAULT_CHART_COLUMNS = [
 @mcp_auth_hook
 def list_charts(
     filters: Annotated[
-        Optional[List[ChartFilter]],
-        Field(
-            description="List of filter objects (column, operator, value)", min_length=0
-        ),
+        List[ChartFilter] | None,
+        Field(description="List of filter objects (column, operator, value)"),
+    ] = None,
+    select_columns: Annotated[
+        List[str] | None,
+        Field(description="List of columns to select (overrides 'columns' and 'keys')"),
     ] = None,
     search: Annotated[
         Optional[str],
         Field(description="Text search string to match against chart fields"),
     ] = None,
-    select_columns: Annotated[
-        Optional[List[str]],
-        Field(
-            description="List of columns to select (overrides 'columns' and 'keys')",
-            min_length=1,
-        ),
-    ] = None,
     order_column: Annotated[
         Optional[str],
-        Field(description="Column to order results by", min_length=1),
+        Field(description="Column to order results by"),
     ] = None,
     order_direction: Annotated[
         Optional[Literal["asc", "desc"]],

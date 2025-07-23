@@ -52,25 +52,20 @@ DEFAULT_DASHBOARD_COLUMNS = [
 @mcp_auth_hook
 def list_dashboards(
     filters: Annotated[
-        Optional[List[DashboardFilter]],
-        Field(
-            description="List of filter objects (column, operator, value)", min_length=0
-        ),
+        List[DashboardFilter] | None,
+        Field(description="List of filter objects (column, operator, value)"),
+    ] = None,
+    select_columns: Annotated[
+        List[str] | None,
+        Field(description="List of columns to select (overrides 'columns' and 'keys')"),
     ] = None,
     search: Annotated[
         Optional[str],
         Field(description="Text search string to match against dashboard fields"),
     ] = None,
-    select_columns: Annotated[
-        Optional[List[str]],
-        Field(
-            description="List of columns to select (overrides 'columns' and 'keys')",
-            min_length=1,
-        ),
-    ] = None,
     order_column: Annotated[
         Optional[str],
-        Field(description="Column to order results by", min_length=1),
+        Field(description="Column to order results by"),
     ] = None,
     order_direction: Annotated[
         Optional[Literal["asc", "desc"]],

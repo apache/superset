@@ -44,8 +44,6 @@ class ChartDAO(BaseDAO[Slice]):
             {
                 "tags": ["eq", "in_", "like"],
                 "owner": ["eq", "in_"],
-                "created_by": ["eq", "in_"],
-                "changed_by": ["eq", "in_"],
                 "viz_type": ["eq", "in_", "like"],
                 "datasource_name": ["eq", "in_", "like"],
             }

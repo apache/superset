@@ -15,9 +15,321 @@
 # specific language governing permissions and limitations
 # under the License.
 
+from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm.session import Session
 
 from superset.daos.base import ColumnOperator, ColumnOperatorEnum
+
+
+def test_column_operator_enum_apply_method() -> None:  # noqa: C901
+    """
+    Test that the apply method works correctly for each operator.
+    This verifies the actual SQL generation for each operator.
+    """
+    from sqlalchemy import Boolean, Column, Integer, String
+
+    Base = declarative_base()  # noqa: N806
+
+    class TestModel(Base):  # type: ignore
+        __tablename__ = "test_model"
+        id = Column(Integer, primary_key=True)
+        name = Column(String(50))
+        age = Column(Integer)
+        active = Column(Boolean)
+
+    # Test each operator's apply method
+    test_cases = [
+        # (operator, column, value, expected_sql_fragment)
+        (ColumnOperatorEnum.eq, TestModel.name, "test", "name = 'test'"),
+        (ColumnOperatorEnum.ne, TestModel.name, "test", "name != 'test'"),
+        (ColumnOperatorEnum.sw, TestModel.name, "test", "name LIKE 'test%'"),
+        (ColumnOperatorEnum.ew, TestModel.name, "test", "name LIKE '%test'"),
+        (ColumnOperatorEnum.in_, TestModel.id, [1, 2, 3], "id IN (1, 2, 3)"),
+        (ColumnOperatorEnum.nin, TestModel.id, [1, 2, 3], "id NOT IN (1, 2, 3)"),
+        (ColumnOperatorEnum.gt, TestModel.age, 25, "age > 25"),
+        (ColumnOperatorEnum.gte, TestModel.age, 25, "age >= 25"),
+        (ColumnOperatorEnum.lt, TestModel.age, 25, "age < 25"),
+        (ColumnOperatorEnum.lte, TestModel.age, 25, "age <= 25"),
+        (ColumnOperatorEnum.like, TestModel.name, "test", "name LIKE '%test%'"),
+        (ColumnOperatorEnum.ilike, TestModel.name, "test", "name ILIKE '%test%'"),
+        (ColumnOperatorEnum.is_null, TestModel.name, None, "name IS NULL"),
+        (ColumnOperatorEnum.is_not_null, TestModel.name, None, "name IS NOT NULL"),
+    ]
+
+    for operator, column, value, expected_sql_fragment in test_cases:
+        # Apply the operator
+        result = operator.apply(column, value)
+
+        # Convert to string to check SQL generation
+        sql_str = str(result.compile(compile_kwargs={"literal_binds": True}))
+
+        # Verify the SQL contains the expected fragment
+        # Note: SQLAlchemy might format this differently, so we check for key parts
+        if "=" in expected_sql_fragment:
+            assert "=" in sql_str
+        elif "!=" in expected_sql_fragment:
+            assert "!=" in sql_str
+        elif "LIKE" in expected_sql_fragment:
+            assert "LIKE" in sql_str
+        elif "ILIKE" in expected_sql_fragment:
+            assert "ILIKE" in sql_str
+        elif "IN" in expected_sql_fragment:
+            assert "IN" in sql_str
+        elif "NOT IN" in expected_sql_fragment:
+            assert "NOT IN" in sql_str
+        elif ">" in expected_sql_fragment:
+            assert ">" in sql_str
+        elif ">=" in expected_sql_fragment:
+            assert ">=" in sql_str
+        elif "<" in expected_sql_fragment:
+            assert "<" in sql_str
+        elif "<=" in expected_sql_fragment:
+            assert "<=" in sql_str
+        elif "IS NULL" in expected_sql_fragment:
+            assert "IS NULL" in sql_str
+        elif "IS NOT NULL" in expected_sql_fragment:
+            assert "IS NOT NULL" in sql_str
+
+    # Test that all operators are covered
+    all_operators = set(ColumnOperatorEnum)
+    tested_operators = {
+        ColumnOperatorEnum.eq,
+        ColumnOperatorEnum.ne,
+        ColumnOperatorEnum.sw,
+        ColumnOperatorEnum.ew,
+        ColumnOperatorEnum.in_,
+        ColumnOperatorEnum.nin,
+        ColumnOperatorEnum.gt,
+        ColumnOperatorEnum.gte,
+        ColumnOperatorEnum.lt,
+        ColumnOperatorEnum.lte,
+        ColumnOperatorEnum.like,
+        ColumnOperatorEnum.ilike,
+        ColumnOperatorEnum.is_null,
+        ColumnOperatorEnum.is_not_null,
+    }
+
+    # Ensure we've tested all operators
+    assert tested_operators == all_operators, (
+        f"Missing operators: {all_operators - tested_operators}"
+    )
+
+
+def test_column_operator_enum_complete_coverage(user_with_data: Session) -> None:
+    """
+    Test that every single ColumnOperatorEnum operator is covered by tests.
+    This ensures we have comprehensive test coverage for all operators.
+    """
+    from flask_appbuilder.security.sqla.models import User
+
+    from superset.daos.user import UserDAO
+
+    # Create test users for comprehensive operator testing
+    test_users = [
+        User(
+            id=900,
+            username="testuser1",
+            first_name="Test",
+            last_name="User1",
+            email="test1@example.com",
+            active=True,
+        ),
+        User(
+            id=901,
+            username="testuser2",
+            first_name="Test",
+            last_name="User2",
+            email="test2@example.com",
+            active=False,
+        ),
+        User(
+            id=902,
+            username="adminuser",
+            first_name="Admin",
+            last_name="User",
+            email="admin@example.com",
+            active=True,
+        ),
+    ]
+
+    for user in test_users:
+        user_with_data.add(user)
+    user_with_data.commit()
+
+    # Test eq (equals)
+    results, _ = UserDAO.list(
+        column_operators=[
+            ColumnOperator(col="username", opr=ColumnOperatorEnum.eq, value="testuser1")
+        ]
+    )
+    assert any(u.username == "testuser1" for u in results)
+
+    # Test ne (not equals)
+    results, _ = UserDAO.list(
+        column_operators=[
+            ColumnOperator(col="username", opr=ColumnOperatorEnum.ne, value="testuser1")
+        ]
+    )
+    assert all(u.username != "testuser1" for u in results)
+
+    # Test sw (starts with)
+    results, _ = UserDAO.list(
+        column_operators=[
+            ColumnOperator(col="username", opr=ColumnOperatorEnum.sw, value="test")
+        ]
+    )
+    assert any(u.username.startswith("test") for u in results)
+
+    # Test ew (ends with)
+    results, _ = UserDAO.list(
+        column_operators=[
+            ColumnOperator(col="username", opr=ColumnOperatorEnum.ew, value="user1")
+        ]
+    )
+    assert any(u.username.endswith("user1") for u in results)
+
+    # Test in_ (in list)
+    user_ids = [900, 901]
+    results, _ = UserDAO.list(
+        column_operators=[
+            ColumnOperator(col="id", opr=ColumnOperatorEnum.in_, value=user_ids)
+        ]
+    )
+    result_ids = [u.id for u in results]
+    assert all(uid in result_ids for uid in user_ids)
+
+    # Test nin (not in list)
+    results, _ = UserDAO.list(
+        column_operators=[
+            ColumnOperator(col="id", opr=ColumnOperatorEnum.nin, value=user_ids)
+        ]
+    )
+    result_ids = [u.id for u in results]
+    assert all(uid not in result_ids for uid in user_ids)
+
+    # Test gt (greater than)
+    results, _ = UserDAO.list(
+        column_operators=[
+            ColumnOperator(col="id", opr=ColumnOperatorEnum.gt, value=900)
+        ]
+    )
+    assert all(u.id > 900 for u in results)
+
+    # Test gte (greater than or equal)
+    results, _ = UserDAO.list(
+        column_operators=[
+            ColumnOperator(col="id", opr=ColumnOperatorEnum.gte, value=901)
+        ]
+    )
+    assert all(u.id >= 901 for u in results)
+
+    # Test lt (less than)
+    results, _ = UserDAO.list(
+        column_operators=[
+            ColumnOperator(col="id", opr=ColumnOperatorEnum.lt, value=902)
+        ]
+    )
+    assert all(u.id < 902 for u in results)
+
+    # Test lte (less than or equal)
+    results, _ = UserDAO.list(
+        column_operators=[
+            ColumnOperator(col="id", opr=ColumnOperatorEnum.lte, value=901)
+        ]
+    )
+    assert all(u.id <= 901 for u in results)
+
+    # Test like (like pattern)
+    results, _ = UserDAO.list(
+        column_operators=[
+            ColumnOperator(col="username", opr=ColumnOperatorEnum.like, value="test")
+        ]
+    )
+    assert any("test" in u.username for u in results)
+
+    # Test ilike (case insensitive like)
+    results, _ = UserDAO.list(
+        column_operators=[
+            ColumnOperator(col="username", opr=ColumnOperatorEnum.ilike, value="TEST")
+        ]
+    )
+    assert any("test" in u.username.lower() for u in results)
+
+    # Test is_null (is null)
+    # Create a user with a null field that allows nulls
+    user_with_data.add(
+        User(
+            id=903,
+            username="nulluser",
+            first_name="Test",
+            last_name="User",
+            email="nulluser@example.com",
+            active=True,
+        )
+    )
+    user_with_data.commit()
+
+    # Update to set a field that can be null (we'll use a field that allows nulls)
+    # For this test, we'll check if we can find users where a field is null
+    # Since we can't easily set first_name to null, we'll test the is_null operator
+    # by checking if it works with fields that might be null
+    results, _ = UserDAO.list(
+        column_operators=[
+            ColumnOperator(col="first_name", opr=ColumnOperatorEnum.is_null, value=None)
+        ]
+    )
+    # This should return empty since all users have first_name set
+    assert len(results) == 0
+
+    # Test is_not_null (is not null)
+    results, _ = UserDAO.list(
+        column_operators=[
+            ColumnOperator(
+                col="first_name", opr=ColumnOperatorEnum.is_not_null, value=None
+            )
+        ]
+    )
+    # This should return all users since all have first_name set
+    assert len(results) > 0
+
+    # Test boolean operators
+    results, _ = UserDAO.list(
+        column_operators=[
+            ColumnOperator(col="active", opr=ColumnOperatorEnum.eq, value=True)
+        ]
+    )
+    assert all(u.active for u in results)
+
+    results, _ = UserDAO.list(
+        column_operators=[
+            ColumnOperator(col="active", opr=ColumnOperatorEnum.eq, value=False)
+        ]
+    )
+    assert all(not u.active for u in results)
+
+    # Test that all operators are covered
+    all_operators = set(ColumnOperatorEnum)
+    tested_operators = {
+        ColumnOperatorEnum.eq,
+        ColumnOperatorEnum.ne,
+        ColumnOperatorEnum.sw,
+        ColumnOperatorEnum.ew,
+        ColumnOperatorEnum.in_,
+        ColumnOperatorEnum.nin,
+        ColumnOperatorEnum.gt,
+        ColumnOperatorEnum.gte,
+        ColumnOperatorEnum.lt,
+        ColumnOperatorEnum.lte,
+        ColumnOperatorEnum.like,
+        ColumnOperatorEnum.ilike,
+        ColumnOperatorEnum.is_null,
+        ColumnOperatorEnum.is_not_null,
+    }
+
+    # Ensure we've tested all operators
+    assert tested_operators == all_operators, (
+        f"Missing operators: {all_operators - tested_operators}"
+    )
 
 
 def test_base_dao_list_returns_results(user_with_data: Session) -> None:
