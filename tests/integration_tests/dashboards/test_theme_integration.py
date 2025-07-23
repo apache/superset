@@ -16,7 +16,6 @@
 # under the License.
 """Integration tests for dashboard-theme functionality"""
 
-import json
 import uuid
 
 import pytest
@@ -24,6 +23,7 @@ import pytest
 from superset import db
 from superset.models.core import Theme
 from superset.models.dashboard import Dashboard
+from superset.utils import json
 from tests.integration_tests.base_tests import SupersetTestCase
 from tests.integration_tests.constants import ADMIN_USERNAME
 

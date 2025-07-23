@@ -15,10 +15,9 @@
 # specific language governing permissions and limitations
 # under the License.
 
-import json
-
 from superset import db
 from superset.models.core import Theme
+from superset.utils import json
 from tests.integration_tests.base_tests import SupersetTestCase
 
 
