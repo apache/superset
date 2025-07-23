@@ -260,38 +260,6 @@ const ThemeModal: FunctionComponent<ThemeModalProps> = ({
         <Button key="cancel" onClick={hide} buttonStyle="secondary">
           {isReadOnly ? t('Close') : t('Cancel')}
         </Button>,
-        ...(canDevelopThemes
-          ? [
-              <Button
-                key="clear-local"
-                onClick={onClearLocalSettings}
-                disabled={!hasDevOverride()}
-                buttonStyle="secondary"
-              >
-                {t('Clear Local Settings')}
-              </Button>,
-              <Tooltip
-                key="apply-tooltip"
-                title={t(
-                  'Apply theme temporarily for testing (local preview only)',
-                )}
-                placement="top"
-              >
-                <Button
-                  key="apply"
-                  icon={<Icons.ThunderboltOutlined />}
-                  onClick={onApply}
-                  disabled={
-                    !currentTheme?.json_data ||
-                    !isValidJson(currentTheme.json_data)
-                  }
-                  buttonStyle="secondary"
-                >
-                  {t('Apply')}
-                </Button>
-              </Tooltip>,
-            ]
-          : []),
         ...(!isReadOnly
           ? [
               <Button
@@ -362,6 +330,7 @@ const ThemeModal: FunctionComponent<ThemeModalProps> = ({
         <Alert
           type="info"
           showIcon
+          closable={false}
           message={
             <span>
               {t('Design with')}{' '}
@@ -372,14 +341,15 @@ const ThemeModal: FunctionComponent<ThemeModalProps> = ({
               >
                 {t('Ant Design Theme Editor')}
               </a>
-              {t(', then copy the JSON below.')}{' '}
+              {t(', then paste the JSON below. See our')}{' '}
               <a
                 href="https://superset.apache.org/docs/configuration/theming/"
                 target="_blank"
                 rel="noopener noreferrer"
               >
-                {t('Documentation')}
+                {t('documentation')}
               </a>
+              {t(' for details.')}
             </span>
           }
           style={{ marginBottom: '16px' }}
@@ -403,6 +373,28 @@ const ThemeModal: FunctionComponent<ThemeModalProps> = ({
               readOnly={isReadOnly}
             />
           </StyledJsonEditor>
+          {canDevelopThemes && (
+            <div style={{ marginTop: '12px', textAlign: 'right' }}>
+              <Tooltip
+                title={t(
+                  'Apply theme temporarily for testing (local preview only)',
+                )}
+                placement="top"
+              >
+                <Button
+                  icon={<Icons.ThunderboltOutlined />}
+                  onClick={onApply}
+                  disabled={
+                    !currentTheme?.json_data ||
+                    !isValidJson(currentTheme.json_data)
+                  }
+                  buttonStyle="secondary"
+                >
+                  {t('Apply')}
+                </Button>
+              </Tooltip>
+            </div>
+          )}
         </Form.Item>
       </Form>
     </Modal>

@@ -281,6 +281,14 @@ function ThemesList({
 
   const subMenuButtons: SubMenuProps['buttons'] = [];
 
+  if (canDelete || canExport) {
+    subMenuButtons.push({
+      name: t('Bulk select'),
+      onClick: toggleBulkSelect,
+      buttonStyle: 'secondary',
+    });
+  }
+
   if (canCreate) {
     subMenuButtons.push({
       name: <>{t('Theme')}</>,
@@ -290,14 +298,6 @@ function ThemesList({
         setCurrentTheme(null);
         setThemeModalOpen(true);
       },
-    });
-  }
-
-  if (canDelete || canExport) {
-    subMenuButtons.push({
-      name: t('Bulk select'),
-      onClick: toggleBulkSelect,
-      buttonStyle: 'secondary',
     });
   }
 

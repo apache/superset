@@ -83,7 +83,7 @@ const ThemeSelect: React.FC<ThemeSelectProps> = ({
       { type: 'divider' } as any,
       {
         key: 'clear-local' as any,
-        label: t('Clear local settings'),
+        label: t('Reset to default'),
         icon: <Icons.ClearOutlined />,
         onClick: onClearLocalSettings,
       } as any,
