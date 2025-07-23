@@ -4,6 +4,7 @@ from datetime import timedelta
 from functools import total_ordering
 from typing import Protocol, runtime_checkable
 
+from sqlalchemy import types as sqltypes
 from sqlalchemy.engine.base import Engine
 
 
@@ -308,3 +309,32 @@ class SemanticLayer(Protocol):
 
         """
         ...
+
+
+TYPE_MAPPING: dict[Type, type[sqltypes.TypeEngine]] = {
+    # Numeric types
+    INTEGER: sqltypes.Integer,
+    NUMBER: sqltypes.Numeric,
+    DECIMAL: sqltypes.DECIMAL,
+    # String types
+    STRING: sqltypes.String,
+    # Boolean type
+    BOOLEAN: sqltypes.Boolean,
+    # Date/time types
+    DATE: sqltypes.Date,
+    TIME: sqltypes.Time,
+    DATETIME: sqltypes.DateTime,
+    INTERVAL: sqltypes.Interval,
+    # Complex types
+    OBJECT: sqltypes.JSON,
+    BINARY: sqltypes.LargeBinary,
+}
+
+
+def get_sqla_type_from_dimension_type(
+    dimension_type: Type,
+) -> type[sqltypes.TypeEngine]:
+    """
+    Get the SQLAlchemy type corresponding to the given dimension type.
+    """
+    return TYPE_MAPPING.get(dimension_type, sqltypes.String)

@@ -16,11 +16,13 @@
 # under the License.
 from __future__ import annotations
 
+import itertools
 import logging
 import re
+from collections import defaultdict
 from datetime import datetime
 from re import Pattern
-from typing import Any, Optional, TYPE_CHECKING, TypedDict
+from typing import Any, Iterator, Optional, TYPE_CHECKING, TypedDict
 from urllib import parse
 
 from apispec import APISpec
@@ -30,7 +32,7 @@ from cryptography.hazmat.primitives import serialization
 from flask import current_app
 from flask_babel import gettext as __
 from marshmallow import fields, Schema
-from sqlalchemy import types
+from sqlalchemy import text, types
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.url import URL
 
@@ -39,11 +41,36 @@ from superset.databases.utils import make_url_safe
 from superset.db_engine_specs.base import BaseEngineSpec, BasicPropertiesType
 from superset.db_engine_specs.postgres import PostgresBaseEngineSpec
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
+from superset.extensions.semantic_layer import (
+    BINARY,
+    BOOLEAN,
+    Column as SemanticColumn,
+    DATE,
+    DATETIME,
+    DECIMAL,
+    Dimension as SemanticDimension,
+    Filter as SemanticFilter,
+    INTEGER,
+    Metric as SemanticMetric,
+    NoSort,
+    NUMBER,
+    OBJECT,
+    Query as SemanticQuery,
+    SemanticView,
+    Sort as SemanticSort,
+    STRING,
+    Table as SemanticTable,
+    TIME,
+    Type as SemanticType,
+)
 from superset.models.sql_lab import Query
+from superset.sql.parse import Table
 from superset.utils import json
 from superset.utils.core import get_user_agent, QuerySource
 
 if TYPE_CHECKING:
+    from sqlalchemy.engine.base import Engine
+
     from superset.models.core import Database
 
 # Regular expressions to catch custom errors
@@ -77,6 +104,145 @@ class SnowflakeParametersType(TypedDict):
     warehouse: str
 
 
+class SnowflakeSemanticLayer:
+    def __init__(self, engine: Engine) -> None:
+        self.engine = engine
+
+    def execute(
+        self,
+        sql: str,
+        **kwargs: Any,
+    ) -> Iterator[dict[str, Any]]:
+        with self.engine.connect() as connection:
+            for row in connection.execute(text(sql), kwargs).mappings():
+                yield dict(row)
+
+    def get_semantic_views(self) -> set[SemanticView]:
+        sql = """
+SHOW SEMANTIC VIEWS
+    ->> SELECT "name" FROM $1;
+        """
+        return {row["name"] for row in self.execute(sql)}
+
+    def get_type(self, snowflake_type: str | None) -> type[SemanticType]:
+        if snowflake_type is None:
+            return STRING
+
+        type_map = {
+            STRING: {r"VARCHAR\(\d+\)", "STRING", "TEXT", r"CHAR\(\d+\)"},
+            INTEGER: {r"NUMBER\(38,\s0\)", "INT", "INTEGER", "BIGINT"},
+            DECIMAL: {r"NUMBER\(10,\s2\)"},
+            NUMBER: {r"NUMBER\(\d+,\s\d+)", "FLOAT", "DOUBLE"},
+            BOOLEAN: {"BOOLEAN"},
+            DATE: {"DATE"},
+            DATETIME: {"TIMESTAMP_TZ", "TIMESTAMP__NTZ"},
+            TIME: {"TIME"},
+            OBJECT: {"OBJECT"},
+            BINARY: {r"BINARY\(\d+\)", r"VARBINARY\(\d+\)"},
+        }
+        for semantic_type, patterns in type_map.items():
+            if any(
+                re.match(pattern, snowflake_type, re.IGNORECASE) for pattern in patterns
+            ):
+                return semantic_type
+
+        return STRING
+
+    def get_metrics(self, semantic_view: SemanticView) -> set[SemanticMetric]:
+        quoted_semantic_view_name = self.quote_table(
+            Table(semantic_view.name),
+            self.engine.dialect,
+        )
+        sql = f"""
+DESC SEMANTIC VIEW {quoted_semantic_view_name}
+    ->> SELECT "object_name", "property", "property_value"
+        FROM $1
+        WHERE
+            "object_kind" = 'METRIC' AND
+            "property" IN ('EXPRESSION', 'DATA_TYPE', 'TABLE');
+        """  # noqa: S608 (semantic_view.name is quoted)
+        rows = self.execute(sql)
+
+        metrics: set[SemanticMetric] = set()
+        for name, group in itertools.groupby(rows, key=lambda x: x["object_name"]):
+            attributes = defaultdict(set)
+            for row in group:
+                attributes[row["property"]].add(row["property_value"])
+
+            type_ = self.get_type(next(iter(attributes["DATA_TYPE"]), None))
+            sql = next(iter(attributes["EXPRESSION"]), name)
+            tables = frozenset(attributes["TABLE"])
+            join_columns = frozenset()
+
+            metrics.add(SemanticMetric(name, type_, sql, tables, join_columns))
+
+        return metrics
+
+    def get_dimensions(self, semantic_view: SemanticView) -> set[SemanticDimension]:
+        quoted_semantic_view_name = self.quote_table(
+            Table(semantic_view.name),
+            self.engine.dialect,
+        )
+        sql = f"""
+DESC SEMANTIC VIEW {quoted_semantic_view_name}
+    ->> SELECT "object_name", "property", "property_value"
+        FROM $1
+        WHERE
+            "object_kind" = 'DIMENSION' AND
+            "property" IN ('DATA_TYPE', 'TABLE', 'EXPRESSION');
+        """  # noqa: S608 (semantic_view.name is quoted)
+        rows = self.execute(sql)
+
+        dimensions: set[SemanticDimension] = set()
+        for name, group in itertools.groupby(rows, key=lambda x: x["object_name"]):
+            attributes = defaultdict(set)
+            for row in group:
+                attributes[row["property"]].add(row["property_value"])
+
+            table = next(iter(attributes["TABLE"]), None)
+            expression = next(iter(attributes["EXPRESSION"]), None)
+            column = (
+                SemanticColumn(SemanticTable(table), expression)
+                if table and expression
+                else None
+            )
+            type_ = self.get_type(next(iter(attributes["DATA_TYPE"]), None))
+
+            dimensions.add(SemanticDimension(column, name, type_))
+
+        return dimensions
+
+    def get_valid_metrics(
+        self,
+        semantic_view: SemanticView,
+        metrics: set[SemanticMetric],
+        dimensions: set[SemanticDimension],
+    ) -> set[SemanticMetric]:
+        # all metrics and dimensions are valid inside a given semantic view
+        return self.get_metrics(semantic_view)
+
+    def get_valid_dimensions(
+        self,
+        semantic_view: SemanticView,
+        metrics: set[SemanticMetric],
+        dimensions: set[SemanticDimension],
+    ) -> set[SemanticDimension]:
+        # all metrics and dimensions are valid inside a given semantic view
+        return self.get_dimensions(semantic_view)
+
+    def get_query(
+        self,
+        semantic_view: SemanticView,
+        metrics: set[SemanticMetric],
+        dimensions: set[SemanticDimension],
+        filters: set[SemanticFilter],
+        sort: SemanticSort = NoSort,
+        limit: int | None = None,
+        offset: int | None = None,
+    ) -> SemanticQuery:
+        pass
+
+
 class SnowflakeEngineSpec(PostgresBaseEngineSpec):
     engine = "snowflake"
     engine_name = "Snowflake"
@@ -89,6 +255,8 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
     parameters_schema = SnowflakeParametersSchema()
     default_driver = "snowflake"
     sqlalchemy_uri_placeholder = "snowflake://"
+
+    semantic_layer = SnowflakeSemanticLayer
 
     supports_dynamic_schema = True
     supports_catalog = supports_dynamic_catalog = supports_cross_catalog_queries = True

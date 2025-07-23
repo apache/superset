@@ -30,6 +30,7 @@ from typing import (
     cast,
     ContextManager,
     NamedTuple,
+    Type,
     TYPE_CHECKING,
     TypedDict,
     Union,
@@ -62,7 +63,10 @@ from superset.constants import QUERY_CANCEL_KEY, TimeGrain as TimeGrainConstants
 from superset.databases.utils import get_table_metadata, make_url_safe
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import OAuth2Error, OAuth2RedirectError
-from superset.extensions.semantic_layer import SemanticLayer
+from superset.extensions.semantic_layer import (
+    get_sqla_type_from_dimension_type,
+    SemanticLayer,
+)
 from superset.sql.parse import (
     BaseSQLStatement,
     LimitMethod,
@@ -105,6 +109,15 @@ logger = logging.getLogger()
 # generic `Exception` class, which requires a pylint disablee comment. To make it clear
 # that we know this is a necessary evil we create an alias, and catch it instead.
 GenericDBException = Exception
+
+
+class ValidColumnsType(TypedDict):
+    """
+    Type for valid columns returned by `get_valid_metrics_and_dimensions`.
+    """
+
+    dimensions: set[str]
+    metrics: set[str]
 
 
 def convert_inspector_columns(cols: list[SQLAColumnType]) -> list[ResultSetColumnType]:
@@ -218,7 +231,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     )
 
     # databases can optionally specify a semantic layer
-    semantic_layer: SemanticLayer | None = None
+    semantic_layer: Type[SemanticLayer] | None = None
 
     disable_ssh_tunneling = False
 
@@ -1468,12 +1481,12 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         if schema and cls.try_remove_schema_from_table_name:
             tables = {re.sub(f"^{schema}\\.", "", table) for table in tables}
 
+        # add semantic views as tables too
         if cls.semantic_layer:
+            semantic_layer = cls.semantic_layer(inspector.engine)
             tables.update(
                 semantic_view.name
-                for semantic_view in cls.semantic_layer(
-                    inspector.engine
-                ).get_semantic_views()
+                for semantic_view in semantic_layer.get_semantic_views()
             )
 
         return tables
@@ -1579,7 +1592,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
                     {
                         "name": dimension.name,
                         "column_name": dimension.name,
-                        "type": XXX,
+                        "type": get_sqla_type_from_dimension_type(dimension.type),
                     }
                     for dimension in semantic_layer.get_dimensions(semantic_view)
                 ]
@@ -1948,6 +1961,11 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         :param kwargs: kwargs to be passed to cursor.execute()
         :return:
         """
+        if cls.semantic_layer:
+            with database.get_engine() as engine:
+                semantic_layer = cls.semantic_layer(engine)
+                query = semantic_layer.get_query_from_standard_sql(query).sql
+
         if cls.arraysize:
             cursor.arraysize = cls.arraysize
         try:
