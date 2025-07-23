@@ -294,17 +294,28 @@ export function saveChartCustomization(
     const currentChartCustomizationItems =
       currentState.dashboardInfo.metadata?.chart_customization_config || [];
 
-    const removedItems = currentChartCustomizationItems.filter(
-      currentItem =>
-        !chartCustomizationItems.some(
-          newItem => newItem.id === currentItem.id,
-        ) ||
-        chartCustomizationItems.some(
-          newItem => newItem.id === currentItem.id && newItem.removed,
-        ),
+    const existingItemsMap = new Map(
+      currentChartCustomizationItems.map(item => [item.id, item]),
     );
 
-    const simpleItems = chartCustomizationItems.filter(item => !item.removed);
+    const updatedItemsMap = new Map(existingItemsMap);
+
+    chartCustomizationItems.forEach(newItem => {
+      if (newItem.removed) {
+        updatedItemsMap.delete(newItem.id);
+      } else {
+        const chartCustomizationItem: ChartCustomizationItem = {
+          id: newItem.id,
+          title: newItem.title,
+          removed: newItem.removed,
+          chartId: newItem.chartId,
+          customization: newItem.customization,
+        };
+        updatedItemsMap.set(newItem.id, chartCustomizationItem);
+      }
+    });
+
+    const simpleItems = Array.from(updatedItemsMap.values());
 
     const updateDashboard = makeApi<
       Partial<DashboardInfo>,
@@ -346,6 +357,10 @@ export function saveChartCustomization(
 
       if (updatedDashboard.json_metadata) {
         dispatch(setChartCustomization(simpleItems));
+
+        const removedItems = currentChartCustomizationItems.filter(
+          existingItem => !updatedItemsMap.has(existingItem.id),
+        );
 
         removedItems.forEach(removedItem => {
           const customizationFilterId = `chart_customization_${removedItem.id}`;
