@@ -52,8 +52,16 @@ import {
   t,
   tn,
   useTheme,
+  SupersetTheme,
 } from '@superset-ui/core';
-import { Dropdown, Menu, Tooltip } from '@superset-ui/chart-controls';
+import {
+  Input,
+  Space,
+  RawAntdSelect as Select,
+  Dropdown,
+  Menu,
+  Tooltip,
+} from '@superset-ui/core/components';
 import {
   CheckOutlined,
   InfoCircleOutlined,
@@ -62,7 +70,7 @@ import {
   PlusCircleOutlined,
   TableOutlined,
 } from '@ant-design/icons';
-import { debounce, isEmpty, isEqual } from 'lodash';
+import { isEmpty, debounce, isEqual } from 'lodash';
 import {
   ColorSchemeEnum,
   DataColumnMeta,
@@ -79,7 +87,7 @@ import DataTable, {
 
 import Styles from './Styles';
 import { formatColumnValue } from './utils/formatValue';
-import { PAGE_SIZE_OPTIONS } from './consts';
+import { PAGE_SIZE_OPTIONS, SERVER_PAGE_SIZE_OPTIONS } from './consts';
 import { updateTableOwnState } from './DataTable/utils/externalAPIs';
 import getScrollBarSize from './DataTable/utils/getScrollBarSize';
 
@@ -179,49 +187,50 @@ function SortIcon<D extends object>({ column }: { column: ColumnInstance<D> }) {
   return sortIcon;
 }
 
-const SearchInput = ({
+function SearchInput({
   count,
   value,
   onChange,
   onBlur,
   inputRef,
-}: SearchInputProps) => (
-  <span className="dt-global-filter">
-    {t('Search')}{' '}
-    <input
-      ref={inputRef}
-      aria-label={t('Search %s records', count)}
-      className="form-control input-sm"
-      placeholder={tn('search.num_records', count)}
-      value={value}
-      onChange={onChange}
-      onBlur={onBlur}
-    />
-  </span>
-);
+}: SearchInputProps) {
+  return (
+    <Space direction="horizontal" size={4} className="dt-global-filter">
+      {t('Search')}
+      <Input
+        size="small"
+        aria-label={t('Search %s records', count)}
+        placeholder={tn('search.num_records', count)}
+        value={value}
+        onChange={onChange}
+        onBlur={onBlur}
+        ref={inputRef}
+      />
+    </Space>
+  );
+}
 
 function SelectPageSize({
   options,
   current,
   onChange,
 }: SelectPageSizeRendererProps) {
+  const { Option } = Select;
+
   return (
-    <span
-      className="dt-select-page-size form-inline"
-      role="group"
-      aria-label={t('Select page size')}
-    >
+    <>
       <label htmlFor="pageSizeSelect" className="sr-only">
         {t('Select page size')}
       </label>
       {t('Show')}{' '}
-      <select
+      <Select<number>
         id="pageSizeSelect"
-        className="form-control input-sm"
         value={current}
-        onChange={e => {
-          onChange(Number((e.target as HTMLSelectElement).value));
-        }}
+        onChange={value => onChange(value)}
+        size="small"
+        css={(theme: SupersetTheme) => css`
+          width: ${theme.sizeUnit * 18}px;
+        `}
         aria-label={t('Show entries per page')}
       >
         {options.map(option => {
@@ -229,14 +238,14 @@ function SelectPageSize({
             ? option
             : [option, option];
           return (
-            <option key={size} value={size}>
+            <Option key={size} value={Number(size)}>
               {text}
-            </option>
+            </Option>
           );
         })}
-      </select>{' '}
+      </Select>{' '}
       {t('entries per page')}
-    </span>
+    </>
   );
 }
 
@@ -306,7 +315,9 @@ export default function TableChart<D extends DataRecord = DataRecord>(
   // only take relevant page size options
   const pageSizeOptions = useMemo(() => {
     const getServerPagination = (n: number) => n <= rowCount;
-    return PAGE_SIZE_OPTIONS.filter(([n]) =>
+    return (
+      serverPagination ? SERVER_PAGE_SIZE_OPTIONS : PAGE_SIZE_OPTIONS
+    ).filter(([n]) =>
       serverPagination ? getServerPagination(n) : n <= 2 * data.length,
     ) as SizeOption[];
   }, [data.length, rowCount, serverPagination]);
@@ -567,9 +578,9 @@ export default function TableChart<D extends DataRecord = DataRecord>(
             <div
               css={css`
                 max-width: 242px;
-                padding: 0 ${theme.gridUnit * 2}px;
-                color: ${theme.colors.grayscale.base};
-                font-size: ${theme.typography.sizes.s}px;
+                padding: 0 ${theme.sizeUnit * 2}px;
+                color: ${theme.colorText};
+                font-size: ${theme.fontSizeSM}px;
               `}
             >
               {t(
@@ -580,7 +591,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
               <Menu.Item key={column.key}>
                 <span
                   css={css`
-                    color: ${theme.colors.grayscale.dark2};
+                    color: ${theme.colorText};
                   `}
                 >
                   {column.label}
@@ -588,7 +599,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
                 <span
                   css={css`
                     float: right;
-                    font-size: ${theme.typography.sizes.s}px;
+                    font-size: ${theme.fontSizeSM}px;
                   `}
                 >
                   {selectedComparisonColumns.includes(column.key) && (
@@ -639,7 +650,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
             css={css`
               float: right;
               & svg {
-                color: ${theme.colors.grayscale.base} !important;
+                color: ${theme.colorIcon} !important;
               }
             `}
           >
@@ -670,7 +681,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
       <tr
         css={css`
           th {
-            border-right: 2px solid ${theme.colors.grayscale.light2};
+            border-right: 1px solid ${theme.colorSplit};
           }
           th:first-child {
             border-left: none;
@@ -753,7 +764,6 @@ export default function TableChart<D extends DataRecord = DataRecord>(
         isUsingTimeComparison &&
         Array.isArray(basicColorFormatters) &&
         basicColorFormatters.length > 0;
-
       const valueRange =
         !hasBasicColorFormatters &&
         !hasColumnColorFormatters &&
@@ -827,15 +837,15 @@ export default function TableChart<D extends DataRecord = DataRecord>(
                 ? basicColorColumnFormatters[row.index][column.key]?.mainArrow
                 : '';
           }
-
           const StyledCell = styled.td`
+            color: ${theme.colorText};
             text-align: ${sharedStyle.textAlign};
             white-space: ${value instanceof Date ? 'nowrap' : undefined};
             position: relative;
             background: ${backgroundColor || undefined};
             padding-left: ${column.isChildColumn
-              ? `${theme.gridUnit * 5}px`
-              : `${theme.gridUnit}px`};
+              ? `${theme.sizeUnit * 5}px`
+              : `${theme.sizeUnit}px`};
           `;
 
           const cellBarStyles = css`
@@ -866,9 +876,9 @@ export default function TableChart<D extends DataRecord = DataRecord>(
             color: ${basicColorFormatters &&
             basicColorFormatters[row.index][originKey]?.arrowColor ===
               ColorSchemeEnum.Green
-              ? theme.colors.success.base
-              : theme.colors.error.base};
-            margin-right: ${theme.gridUnit}px;
+              ? theme.colorSuccess
+              : theme.colorError};
+            margin-right: ${theme.sizeUnit}px;
           `;
 
           if (
@@ -878,9 +888,9 @@ export default function TableChart<D extends DataRecord = DataRecord>(
             arrowStyles = css`
               color: ${basicColorColumnFormatters[row.index][column.key]
                 ?.arrowColor === ColorSchemeEnum.Green
-                ? theme.colors.success.base
-                : theme.colors.error.base};
-              margin-right: ${theme.gridUnit}px;
+                ? theme.colorSuccess
+                : theme.colorError};
+              margin-right: ${theme.sizeUnit}px;
             `;
           }
 
@@ -969,7 +979,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
         },
         Header: ({ column: col, onClick, style, onDragStart, onDrop }) => (
           <th
-            id={`header-${column.key}`}
+            id={`header-${column.originalLabel}`}
             title={t('Shift + Click to sort by multiple columns')}
             className={[className, col.isSorted ? 'is-sorted' : ''].join(' ')}
             style={{
@@ -1025,8 +1035,8 @@ export default function TableChart<D extends DataRecord = DataRecord>(
                   display: flex;
                   align-items: center;
                   & svg {
-                    margin-left: ${theme.gridUnit}px;
-                    color: ${theme.colors.grayscale.dark1} !important;
+                    margin-left: ${theme.sizeUnit}px;
+                    color: ${theme.colorBorder} !important;
                   }
                 `}
               >

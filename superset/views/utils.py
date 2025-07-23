@@ -90,6 +90,7 @@ def bootstrap_user_data(user: User, include_perms: bool = False) -> dict[str, An
             "isAnonymous": user.is_anonymous,
             "createdOn": user.created_on.isoformat(),
             "email": user.email,
+            "loginCount": user.login_count,
         }
 
     if include_perms:
@@ -98,6 +99,11 @@ def bootstrap_user_data(user: User, include_perms: bool = False) -> dict[str, An
         payload["permissions"] = permissions
 
     return payload
+
+
+def get_config_value(conf: Any, key: str) -> Any:
+    value = conf[key]
+    return value() if callable(value) else value
 
 
 def get_permissions(

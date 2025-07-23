@@ -232,4 +232,45 @@ describe('AlertList', () => {
       'filters:!((col:type,opr:eq,value:Report))',
     );
   }, 15000);
+
+  it('renders listview table correctly', async () => {
+    renderAlertList();
+    await screen.findByTestId('alerts-list-view');
+
+    const table = await screen.findByTestId('listview-table');
+    expect(table).toBeInTheDocument();
+    expect(table).toBeVisible();
+  }, 15000);
+
+  it('renders correct column headers for alerts', async () => {
+    renderAlertList();
+    await screen.findByTestId('alerts-list-view');
+
+    expect(screen.getByText('Last run')).toBeInTheDocument();
+    expect(
+      screen.getByRole('columnheader', { name: /name/i }),
+    ).toBeInTheDocument();
+    expect(screen.getByText('Schedule')).toBeInTheDocument();
+    expect(screen.getByText('Notification method')).toBeInTheDocument();
+    expect(screen.getByText('Owners')).toBeInTheDocument();
+    expect(screen.getByText('Last modified')).toBeInTheDocument();
+    expect(screen.getByText('Active')).toBeInTheDocument();
+    expect(screen.getByText('Actions')).toBeInTheDocument();
+  }, 15000);
+
+  it('renders correct column headers for reports', async () => {
+    renderAlertList({ isReportEnabled: true });
+    await screen.findByTestId('alerts-list-view');
+
+    expect(screen.getByText('Last run')).toBeInTheDocument();
+    expect(
+      screen.getByRole('columnheader', { name: /name/i }),
+    ).toBeInTheDocument();
+    expect(screen.getByText('Schedule')).toBeInTheDocument();
+    expect(screen.getByText('Notification method')).toBeInTheDocument();
+    expect(screen.getByText('Owners')).toBeInTheDocument();
+    expect(screen.getByText('Last modified')).toBeInTheDocument();
+    expect(screen.getByText('Active')).toBeInTheDocument();
+    expect(screen.getByText('Actions')).toBeInTheDocument();
+  }, 15000);
 });

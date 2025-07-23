@@ -74,6 +74,11 @@ class DatasetColumnsPutSchema(Schema):
     uuid = fields.UUID(allow_none=True)
 
 
+class DatasetMetricCurrencyPutSchema(Schema):
+    symbol = fields.String(validate=Length(1, 128))
+    symbolPosition = fields.String(validate=Length(1, 128))  # noqa: N815
+
+
 class DatasetMetricsPutSchema(Schema):
     id = fields.Integer()
     expression = fields.String(required=True)
@@ -82,7 +87,7 @@ class DatasetMetricsPutSchema(Schema):
     metric_name = fields.String(required=True, validate=Length(1, 255))
     metric_type = fields.String(allow_none=True, validate=Length(1, 32))
     d3format = fields.String(allow_none=True, validate=Length(1, 128))
-    currency = fields.String(allow_none=True, required=False, validate=Length(1, 128))
+    currency = fields.Nested(DatasetMetricCurrencyPutSchema, allow_none=True)
     verbose_name = fields.String(allow_none=True, metadata={Length: (1, 1024)})
     warning_text = fields.String(allow_none=True)
     uuid = fields.UUID(allow_none=True)
@@ -129,6 +134,7 @@ class DatasetPostSchema(Schema):
     external_url = fields.String(allow_none=True)
     normalize_columns = fields.Boolean(load_default=False)
     always_filter_main_dttm = fields.Boolean(load_default=False)
+    template_params = fields.String(allow_none=True)
 
 
 class DatasetPutSchema(Schema):
@@ -233,15 +239,23 @@ class ImportV1ColumnSchema(Schema):
     python_date_format = fields.String(allow_none=True)
 
 
+class ImportMetricCurrencySchema(Schema):
+    symbol = fields.String(validate=Length(1, 128))
+    symbolPosition = fields.String(validate=Length(1, 128))  # noqa: N815
+
+
 class ImportV1MetricSchema(Schema):
     # pylint: disable=unused-argument
     @pre_load
-    def fix_extra(self, data: dict[str, Any], **kwargs: Any) -> dict[str, Any]:
+    def fix_fields(self, data: dict[str, Any], **kwargs: Any) -> dict[str, Any]:
         """
-        Fix for extra initially being exported as a string.
+        Fix for extra and currency initially being exported as a string.
         """
         if isinstance(data.get("extra"), str):
             data["extra"] = json.loads(data["extra"])
+
+        if isinstance(data.get("currency"), str):
+            data["currency"] = json.loads(data["currency"])
 
         return data
 
@@ -251,7 +265,7 @@ class ImportV1MetricSchema(Schema):
     expression = fields.String(required=True)
     description = fields.String(allow_none=True)
     d3format = fields.String(allow_none=True)
-    currency = fields.String(allow_none=True, required=False)
+    currency = fields.Nested(ImportMetricCurrencySchema, allow_none=True)
     extra = fields.Dict(allow_none=True)
     warning_text = fields.String(allow_none=True)
 

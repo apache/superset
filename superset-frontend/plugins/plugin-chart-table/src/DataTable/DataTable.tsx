@@ -27,7 +27,7 @@ import {
   DragEvent,
   useEffect,
 } from 'react';
-
+import { styled, typedMemo, usePrevious } from '@superset-ui/core';
 import {
   useTable,
   usePagination,
@@ -41,9 +41,8 @@ import {
   Row,
 } from 'react-table';
 import { matchSorter, rankings } from 'match-sorter';
-import { styled, typedMemo, usePrevious } from '@superset-ui/core';
 import { isEqual } from 'lodash';
-import { Space } from 'antd';
+import { Space } from '@superset-ui/core/components';
 import GlobalFilter, { GlobalFilterProps } from './components/GlobalFilter';
 import SelectPageSize, {
   SelectPageSizeProps,
@@ -111,6 +110,10 @@ const StyledSpace = styled(Space)`
     align-self: center;
     margin-right: 4px;
   }
+`;
+
+const StyledRow = styled.div`
+  display: flex;
 `;
 
 // Be sure to pass our updateMyData and the skipReset option
@@ -447,9 +450,9 @@ export default typedMemo(function DataTable<D extends object>({
     >
       {hasGlobalControl ? (
         <div ref={globalControlRef} className="form-inline dt-controls">
-          <div className="row">
+          <StyledRow className="row">
             <div
-              className={renderTimeComparisonDropdown ? 'col-sm-5' : 'col-sm-6'}
+              className={renderTimeComparisonDropdown ? 'col-sm-4' : 'col-sm-5'}
             >
               {hasPagination ? (
                 <SelectPageSize
@@ -466,7 +469,11 @@ export default typedMemo(function DataTable<D extends object>({
               ) : null}
             </div>
             {searchInput ? (
-              <StyledSpace className="col-sm-6">
+              <StyledSpace
+                className={
+                  renderTimeComparisonDropdown ? 'col-sm-7' : 'col-sm-8'
+                }
+              >
                 {serverPagination && (
                   <div className="search-select-container">
                     <span className="search-by-label">Search by: </span>
@@ -500,7 +507,7 @@ export default typedMemo(function DataTable<D extends object>({
                 {renderTimeComparisonDropdown()}
               </div>
             ) : null}
-          </div>
+          </StyledRow>
         </div>
       ) : null}
       {wrapStickyTable ? wrapStickyTable(renderTable) : renderTable()}

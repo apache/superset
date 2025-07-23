@@ -27,10 +27,8 @@ import {
   useTheme,
   VizType,
 } from '@superset-ui/core';
-import { Icons } from 'src/components/Icons';
-import { Menu } from 'src/components/Menu';
-import ModalTrigger from 'src/components/ModalTrigger';
-import Button from 'src/components/Button';
+import { Icons, ModalTrigger, Button } from '@superset-ui/core/components';
+import { Menu } from '@superset-ui/core/components/Menu';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
 import { exportChart, getChartKey } from 'src/explore/exploreUtils';
 import downloadAsImage from 'src/utils/downloadAsImage';
@@ -45,6 +43,7 @@ import {
   LOG_ACTIONS_CHART_DOWNLOAD_AS_CSV_PIVOTED,
   LOG_ACTIONS_CHART_DOWNLOAD_AS_XLS,
 } from 'src/logger/LogUtils';
+import exportPivotExcel from 'src/utils/downloadAsPivotExcel';
 import ViewQueryModal from '../controls/ViewQueryModal';
 import EmbedCodeContent from '../EmbedCodeContent';
 import DashboardsSubMenu from './DashboardsSubMenu';
@@ -69,6 +68,7 @@ const MENU_KEYS = {
   DELETE_REPORT: 'delete_report',
   VIEW_QUERY: 'view_query',
   RUN_IN_SQL_LAB: 'run_in_sql_lab',
+  EXPORT_TO_PIVOT_XLSX: 'export_to_pivot_xlsx',
 };
 
 const VIZ_TYPES_PIVOTABLE = [VizType.PivotTable];
@@ -79,31 +79,31 @@ export const MenuItemWithCheckboxContainer = styled.div`
     align-items: center;
 
     & svg {
-      width: ${theme.gridUnit * 3}px;
-      height: ${theme.gridUnit * 3}px;
+      width: ${theme.sizeUnit * 3}px;
+      height: ${theme.sizeUnit * 3}px;
     }
 
     & span[role='checkbox'] {
       display: inline-flex;
-      margin-right: ${theme.gridUnit}px;
+      margin-right: ${theme.sizeUnit}px;
     }
   `}
 `;
 
 export const MenuTrigger = styled(Button)`
   ${({ theme }) => css`
-    width: ${theme.gridUnit * 8}px;
-    height: ${theme.gridUnit * 8}px;
+    width: ${theme.sizeUnit * 8}px;
+    height: ${theme.sizeUnit * 8}px;
     padding: 0;
-    border: 1px solid ${theme.colors.primary.dark2};
+    border: 1px solid ${theme.colorPrimary};
 
-    &.antd5-btn > span.anticon {
+    &.ant-btn > span.anticon {
       line-height: 0;
       transition: inherit;
     }
 
     &:hover:not(:focus) > span.anticon {
-      color: ${theme.colors.primary.light1};
+      color: ${theme.colorPrimary};
     }
   `}
 `;
@@ -250,6 +250,16 @@ export const useExploreAdditionalActionsMenu = (
             }),
           );
           break;
+        case MENU_KEYS.EXPORT_TO_PIVOT_XLSX:
+          exportPivotExcel('.pvtTable', slice?.slice_name ?? t('pivoted_xlsx'));
+          setIsDropdownVisible(false);
+          dispatch(
+            logEvent(LOG_ACTIONS_CHART_DOWNLOAD_AS_XLS, {
+              chartId: slice?.slice_id,
+              chartName: slice?.slice_name,
+            }),
+          );
+          break;
         case MENU_KEYS.DOWNLOAD_AS_IMAGE:
           downloadAsImage(
             '.panel-body .chart-container',
@@ -367,6 +377,13 @@ export const useExploreAdditionalActionsMenu = (
           >
             {t('Export to Excel')}
           </Menu.Item>
+          <Menu.Item
+            key={MENU_KEYS.EXPORT_TO_PIVOT_XLSX}
+            icon={<Icons.FileOutlined />}
+            disabled={!canDownloadCSV}
+          >
+            {t('Export to Pivoted Excel')}
+          </Menu.Item>
         </Menu.SubMenu>
         <Menu.SubMenu title={t('Share')} key={MENU_KEYS.SHARE_SUBMENU}>
           <Menu.Item key={MENU_KEYS.COPY_PERMALINK}>
@@ -388,8 +405,8 @@ export const useExploreAdditionalActionsMenu = (
                     addDangerToast={addDangerToast}
                   />
                 }
-                maxWidth={`${theme.gridUnit * 100}px`}
-                destroyOnClose
+                maxWidth={`${theme.sizeUnit * 100}px`}
+                destroyOnHidden
                 responsive
               />
             </Menu.Item>
@@ -449,7 +466,7 @@ export const useExploreAdditionalActionsMenu = (
       latestQueryFormData,
       showReportSubMenu,
       slice,
-      theme.gridUnit,
+      theme.sizeUnit,
     ],
   );
   return [menu, isDropdownVisible, setIsDropdownVisible];

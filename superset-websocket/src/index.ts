@@ -102,7 +102,7 @@ if (startServer && opts.jwtSecret.length < 32) {
 
 if (startServer && opts.jwtSecret.startsWith('CHANGE-ME')) {
   console.warn(
-    'WARNING: it appears you secret in your config.json is insecure',
+    'WARNING: it appears your secret in your config.json is insecure',
   );
   console.warn('DO NOT USE IN PRODUCTION');
 }
@@ -238,10 +238,10 @@ export const subscribeToGlobalStream = async (
   while (true) {
     try {
       const reply = await redis.xread(
-        'BLOCK',
-        opts.redisStreamReadBlockMs,
         'COUNT',
         opts.redisStreamReadCount,
+        'BLOCK',
+        opts.redisStreamReadBlockMs,
         'STREAMS',
         stream,
         lastFirehoseId,

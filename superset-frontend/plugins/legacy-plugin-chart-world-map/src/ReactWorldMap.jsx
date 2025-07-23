@@ -42,4 +42,8 @@ export default styled(WorldMapComponent)`
       background-color: ${({ theme }) => theme.colors.grayscale.light5};
     }
   }
+  .hoverinfo {
+    background-color: ${({ theme }) => theme.colorBgElevated};
+    color: ${({ theme }) => theme.colorTextSecondary};
+  }
 `;

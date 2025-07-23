@@ -18,11 +18,21 @@
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { omit } from 'lodash';
-import { Input } from 'src/components/Input';
-import { FormItem } from 'src/components/Form';
 import jsonStringify from 'json-stringify-pretty-compact';
-import Button from 'src/components/Button';
-import { AntdForm, AsyncSelect, Col, Row } from 'src/components';
+import {
+  AsyncSelect,
+  Button,
+  Col,
+  Form,
+  FormItem,
+  Icons,
+  Input,
+  JsonEditor,
+  Modal,
+  Row,
+  Typography,
+} from '@superset-ui/core/components';
+import { type TagType } from 'src/components';
 import rison from 'rison';
 import {
   ensureIsArray,
@@ -36,15 +46,11 @@ import {
   css,
 } from '@superset-ui/core';
 
-import Modal from 'src/components/Modal';
-import { JsonEditor } from 'src/components/AsyncAceEditor';
-
 import ColorSchemeControlWrapper from 'src/dashboard/components/ColorSchemeControlWrapper';
 import FilterScopeModal from 'src/dashboard/components/filterscope/FilterScopeModal';
 import withToasts from 'src/components/MessageToasts/withToasts';
-import TagType from 'src/types/TagType';
 import { fetchTags, OBJECT_TYPES } from 'src/features/tags/tags';
-import { loadTags } from 'src/components/Tags/utils';
+import { loadTags } from 'src/components/Tag/utils';
 import {
   applyColors,
   getColorNamespace,
@@ -59,13 +65,9 @@ import {
 } from 'src/dashboard/actions/dashboardState';
 import { areObjectsEqual } from 'src/reduxUtils';
 
-const StyledFormItem = styled(FormItem)`
-  margin-bottom: 0;
-`;
-
 const StyledJsonEditor = styled(JsonEditor)`
   border-radius: ${({ theme }) => theme.borderRadius}px;
-  border: 1px solid ${({ theme }) => theme.colors.secondary.light2};
+  border: 1px solid ${({ theme }) => theme.colorPrimaryBorder};
 `;
 
 type PropertiesModalProps = {
@@ -111,7 +113,7 @@ const PropertiesModal = ({
   show = false,
 }: PropertiesModalProps) => {
   const dispatch = useDispatch();
-  const [form] = AntdForm.useForm();
+  const [form] = Form.useForm();
   const [isLoading, setIsLoading] = useState(false);
   const [isAdvancedOpen, setIsAdvancedOpen] = useState(false);
   const [colorScheme, setCurrentColorScheme] = useState(currentColorScheme);
@@ -381,14 +383,17 @@ const PropertiesModal = ({
 
     currentJsonMetadata = jsonStringify(metadata);
 
-    const moreOnSubmitProps: { roles?: Roles } = {};
-    const morePutProps: { roles?: number[]; tags?: (number | undefined)[] } =
-      {};
+    const moreOnSubmitProps: { roles?: Roles; tags?: TagType[] } = {};
+    const morePutProps: {
+      roles?: number[];
+      tags?: (string | number | undefined)[];
+    } = {};
     if (isFeatureEnabled(FeatureFlag.DashboardRbac)) {
       moreOnSubmitProps.roles = roles;
       morePutProps.roles = (roles || []).map(r => r.id);
     }
     if (isFeatureEnabled(FeatureFlag.TaggingSystem)) {
+      moreOnSubmitProps.tags = tags;
       morePutProps.tags = tags.map(tag => tag.id);
     }
     const onSubmitProps = {
@@ -438,8 +443,15 @@ const PropertiesModal = ({
     return (
       <Row gutter={16}>
         <Col xs={24} md={12}>
-          <h3 style={{ marginTop: '1em' }}>{t('Access')}</h3>
-          <StyledFormItem label={t('Owners')}>
+          <Typography.Title level={4} style={{ marginTop: '1em' }}>
+            {t('Access')}
+          </Typography.Title>
+          <FormItem
+            label={t('Owners')}
+            extra={t(
+              'Owners is a list of users who can alter the dashboard. Searchable by name or username.',
+            )}
+          >
             <AsyncSelect
               allowClear
               ariaLabel={t('Owners')}
@@ -451,15 +463,12 @@ const PropertiesModal = ({
               }
               value={handleOwnersSelectValue()}
             />
-          </StyledFormItem>
-          <p className="help-block">
-            {t(
-              'Owners is a list of users who can alter the dashboard. Searchable by name or username.',
-            )}
-          </p>
+          </FormItem>
         </Col>
         <Col xs={24} md={12}>
-          <h3 style={{ marginTop: '1em' }}>{t('Colors')}</h3>
+          <Typography.Title level={4} style={{ marginTop: '1em' }}>
+            {t('Colors')}
+          </Typography.Title>
           <ColorSchemeControlWrapper
             hasCustomLabelsColor={hasCustomLabelsColor}
             onChange={onColorSchemeChange}
@@ -480,12 +489,19 @@ const PropertiesModal = ({
       <>
         <Row>
           <Col xs={24} md={24}>
-            <h3 style={{ marginTop: '1em' }}>{t('Access')}</h3>
+            <Typography.Title level={4} style={{ marginTop: '1em' }}>
+              {t('Access')}
+            </Typography.Title>
           </Col>
         </Row>
         <Row gutter={16}>
           <Col xs={24} md={12}>
-            <StyledFormItem label={t('Owners')}>
+            <FormItem
+              label={t('Owners')}
+              extra={t(
+                'Owners is a list of users who can alter the dashboard. Searchable by name or username.',
+              )}
+            >
               <AsyncSelect
                 allowClear
                 allowNewOptions
@@ -498,15 +514,13 @@ const PropertiesModal = ({
                 }
                 value={handleOwnersSelectValue()}
               />
-            </StyledFormItem>
-            <p className="help-block">
-              {t(
-                'Owners is a list of users who can alter the dashboard. Searchable by name or username.',
-              )}
-            </p>
+            </FormItem>
           </Col>
           <Col xs={24} md={12}>
-            <StyledFormItem label={t('Roles')}>
+            <FormItem
+              label={t('Roles')}
+              extra="Roles is a list which defines access to the dashboard. Granting a role access to a dashboard will bypass dataset level checks. If no roles are defined, regular access permissions apply."
+            >
               <AsyncSelect
                 allowClear
                 ariaLabel={t('Roles')}
@@ -518,12 +532,7 @@ const PropertiesModal = ({
                 }
                 value={handleRolesSelectValue()}
               />
-            </StyledFormItem>
-            <p className="help-block">
-              {t(
-                'Roles is a list which defines access to the dashboard. Granting a role access to a dashboard will bypass dataset level checks. If no roles are defined, regular access permissions apply.',
-              )}
-            </p>
+            </FormItem>
           </Col>
         </Row>
         <Row>
@@ -592,6 +601,10 @@ const PropertiesModal = ({
     setTags(parsedTags);
   };
 
+  const handleClearTags = () => {
+    setTags([]);
+  };
+
   return (
     <Modal
       show={show}
@@ -602,6 +615,7 @@ const PropertiesModal = ({
           <Button
             htmlType="button"
             buttonSize="small"
+            buttonStyle="secondary"
             onClick={handleOnCancel}
             data-test="properties-modal-cancel-button"
             cta
@@ -613,7 +627,6 @@ const PropertiesModal = ({
             onClick={form.submit}
             buttonSize="small"
             buttonStyle="primary"
-            className="m-r-5"
             cta
             disabled={dashboardInfo?.isManagedExternally}
             tooltip={
@@ -630,7 +643,7 @@ const PropertiesModal = ({
       }
       responsive
     >
-      <AntdForm
+      <Form
         form={form}
         onFinish={onFinish}
         data-test="dashboard-edit-properties-form"
@@ -639,12 +652,18 @@ const PropertiesModal = ({
       >
         <Row>
           <Col xs={24} md={24}>
-            <h3>{t('Basic information')}</h3>
+            <Typography.Title level={4}>
+              {t('Basic information')}
+            </Typography.Title>
           </Col>
         </Row>
         <Row gutter={16}>
           <Col xs={24} md={12}>
-            <FormItem label={t('Name')} name="title">
+            <FormItem
+              label={t('Name')}
+              name="title"
+              extra={t('A readable URL for your dashboard')}
+            >
               <Input
                 data-test="dashboard-title-input"
                 type="text"
@@ -653,12 +672,9 @@ const PropertiesModal = ({
             </FormItem>
           </Col>
           <Col xs={24} md={12}>
-            <StyledFormItem label={t('URL slug')} name="slug">
+            <FormItem label={t('URL slug')} name="slug">
               <Input type="text" disabled={isLoading} />
-            </StyledFormItem>
-            <p className="help-block">
-              {t('A readable URL for your dashboard')}
-            </p>
+            </FormItem>
           </Col>
         </Row>
         {isFeatureEnabled(FeatureFlag.DashboardRbac)
@@ -666,59 +682,64 @@ const PropertiesModal = ({
           : getRowsWithoutRoles()}
         <Row>
           <Col xs={24} md={24}>
-            <h3>{t('Certification')}</h3>
+            <Typography.Title level={4}>{t('Certification')}</Typography.Title>
           </Col>
         </Row>
         <Row gutter={16}>
           <Col xs={24} md={12}>
-            <StyledFormItem label={t('Certified by')} name="certifiedBy">
-              <Input type="text" disabled={isLoading} />
-            </StyledFormItem>
-            <p className="help-block">
-              {t('Person or group that has certified this dashboard.')}
-            </p>
-          </Col>
-          <Col xs={24} md={12}>
-            <StyledFormItem
-              label={t('Certification details')}
-              name="certificationDetails"
+            <FormItem
+              label={t('Certified by')}
+              name="certifiedBy"
+              extra={t('Person or group that has certified this dashboard.')}
             >
               <Input type="text" disabled={isLoading} />
-            </StyledFormItem>
-            <p className="help-block">
-              {t('Any additional detail to show in the certification tooltip.')}
-            </p>
+            </FormItem>
+          </Col>
+          <Col xs={24} md={12}>
+            <FormItem
+              label={t('Certification details')}
+              name="certificationDetails"
+              extra={t(
+                'Any additional detail to show in the certification tooltip.',
+              )}
+            >
+              <Input type="text" disabled={isLoading} />
+            </FormItem>
           </Col>
         </Row>
         {isFeatureEnabled(FeatureFlag.TaggingSystem) ? (
           <Row gutter={16}>
             <Col xs={24} md={12}>
-              <h3 css={{ marginTop: '1em' }}>{t('Tags')}</h3>
+              <Typography.Title level={4} css={{ marginTop: '1em' }}>
+                {t('Tags')}
+              </Typography.Title>
             </Col>
           </Row>
         ) : null}
         {isFeatureEnabled(FeatureFlag.TaggingSystem) ? (
           <Row gutter={16}>
             <Col xs={24} md={12}>
-              <StyledFormItem>
+              <FormItem
+                extra={t(
+                  'A list of tags that have been applied to this chart.',
+                )}
+              >
                 <AsyncSelect
                   ariaLabel="Tags"
                   mode="multiple"
                   value={tagsAsSelectValues}
                   options={loadTags}
                   onChange={handleChangeTags}
+                  onClear={handleClearTags}
                   allowClear
                 />
-              </StyledFormItem>
-              <p className="help-block">
-                {t('A list of tags that have been applied to this chart.')}
-              </p>
+              </FormItem>
             </Col>
           </Row>
         ) : null}
         <Row>
           <Col xs={24} md={24}>
-            <h3 style={{ marginTop: '1em' }}>
+            <Typography.Title level={4} style={{ marginTop: '1em' }}>
               <Button
                 buttonStyle="link"
                 onClick={() => setIsAdvancedOpen(!isAdvancedOpen)}
@@ -726,17 +747,41 @@ const PropertiesModal = ({
                   padding: 0;
                 `}
               >
-                {/* TODO: Remove fa-icon */}
-                <i
-                  className={`fa fa-angle-${isAdvancedOpen ? 'down' : 'right'}`}
-                  style={{ minWidth: '1em' }}
-                />
                 {t('Advanced')}
+                {isAdvancedOpen ? <Icons.UpOutlined /> : <Icons.DownOutlined />}
               </Button>
-            </h3>
+            </Typography.Title>
             {isAdvancedOpen && (
               <>
-                <StyledFormItem label={t('JSON metadata')}>
+                <FormItem
+                  label={t('JSON metadata')}
+                  extra={
+                    <div>
+                      {t(
+                        'This JSON object is generated dynamically when clicking the save ' +
+                          'or overwrite button in the dashboard view. It is exposed here for ' +
+                          'reference and for power users who may want to alter specific parameters.',
+                      )}
+                      {onlyApply && (
+                        <>
+                          {' '}
+                          {t(
+                            'Please DO NOT overwrite the "filter_scopes" key.',
+                          )}{' '}
+                          <FilterScopeModal
+                            triggerNode={
+                              <span className="alert-link">
+                                {t('Use "%(menuName)s" menu instead.', {
+                                  menuName: t('Set filter mapping'),
+                                })}
+                              </span>
+                            }
+                          />
+                        </>
+                      )}
+                    </div>
+                  }
+                >
                   <StyledJsonEditor
                     showLoadingForImport
                     name="json_metadata"
@@ -747,34 +792,12 @@ const PropertiesModal = ({
                     height="200px"
                     wrapEnabled
                   />
-                </StyledFormItem>
-                <p className="help-block">
-                  {t(
-                    'This JSON object is generated dynamically when clicking the save or overwrite button in the dashboard view. It is exposed here for reference and for power users who may want to alter specific parameters.',
-                  )}
-                  {onlyApply && (
-                    <>
-                      {' '}
-                      {t(
-                        'Please DO NOT overwrite the "filter_scopes" key.',
-                      )}{' '}
-                      <FilterScopeModal
-                        triggerNode={
-                          <span className="alert-link">
-                            {t('Use "%(menuName)s" menu instead.', {
-                              menuName: t('Set filter mapping'),
-                            })}
-                          </span>
-                        }
-                      />
-                    </>
-                  )}
-                </p>
+                </FormItem>
               </>
             )}
           </Col>
         </Row>
-      </AntdForm>
+      </Form>
     </Modal>
   );
 };

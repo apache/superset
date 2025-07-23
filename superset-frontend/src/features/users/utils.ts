@@ -16,7 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { SupersetClient } from '@superset-ui/core';
+import { SupersetClient, t } from '@superset-ui/core';
+import { SelectOption } from 'src/components/ListView';
 import { FormValues } from './types';
 
 export const createUser = async (values: FormValues) => {
@@ -40,4 +41,23 @@ export const updateUser = async (user_Id: number, values: FormValues) => {
 export const deleteUser = async (userId: number) =>
   SupersetClient.delete({
     endpoint: `/api/v1/security/users/${userId}`,
+  });
+
+export const atLeastOneRoleOrGroup =
+  (fieldToCheck: 'roles' | 'groups') =>
+  ({
+    getFieldValue,
+  }: {
+    getFieldValue: (field: string) => Array<SelectOption>;
+  }) => ({
+    validator(_: Object, value: Array<SelectOption>) {
+      const current = value || [];
+      const other = getFieldValue(fieldToCheck) || [];
+      if (current.length === 0 && other.length === 0) {
+        return Promise.reject(
+          new Error(t('Please select at least one role or group')),
+        );
+      }
+      return Promise.resolve();
+    },
   });

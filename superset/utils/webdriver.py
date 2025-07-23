@@ -108,8 +108,8 @@ class WebDriverPlaywright(WebDriverProxy):
                 alert_div.get_by_role("button").click()
 
                 # wait for modal to show up
-                page.locator(".antd5-modal-content").wait_for(state="visible")
-                err_msg_div = page.locator(".antd5-modal-content .antd5-modal-body")
+                page.locator(".ant-modal-content").wait_for(state="visible")
+                err_msg_div = page.locator(".ant-modal-content .ant-modal-body")
                 #
                 # # collect error message
                 error_messages.append(err_msg_div.text_content())
@@ -118,10 +118,10 @@ class WebDriverPlaywright(WebDriverProxy):
                 error_as_html = err_msg_div.inner_html().replace("'", "\\'")
                 #
                 # # close modal after collecting error messages
-                page.locator(".antd5-modal-content .antd5-modal-close").click()
+                page.locator(".ant-modal-content .ant-modal-close").click()
                 #
                 # # wait until the modal becomes invisible
-                page.locator(".antd5-modal-content").wait_for(state="detached")
+                page.locator(".ant-modal-content").wait_for(state="detached")
                 try:
                     # Even if some errors can't be updated in the screenshot,
                     # keep all the errors in the server log and do not fail the loop
@@ -347,17 +347,17 @@ class WebDriverSelenium(WebDriverProxy):
                     current_app.config["SCREENSHOT_WAIT_FOR_ERROR_MODAL_VISIBLE"],
                 ).until(
                     EC.visibility_of_any_elements_located(
-                        (By.CLASS_NAME, "antd5-modal-content")
+                        (By.CLASS_NAME, "ant-modal-content")
                     )
                 )[0]
 
-                err_msg_div = modal.find_element(By.CLASS_NAME, "antd5-modal-body")
+                err_msg_div = modal.find_element(By.CLASS_NAME, "ant-modal-body")
 
                 # collect error message
                 error_messages.append(err_msg_div.text)
 
                 # close modal after collecting error messages
-                modal.find_element(By.CLASS_NAME, "antd5-modal-close").click()
+                modal.find_element(By.CLASS_NAME, "ant-modal-close").click()
 
                 # wait until the modal becomes invisible
                 WebDriverWait(
