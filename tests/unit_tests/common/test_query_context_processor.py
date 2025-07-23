@@ -67,7 +67,9 @@ def test_get_data_csv(mock_df_to_escaped_csv, processor, mock_query_context):
     mock_df_to_escaped_csv.return_value = "col1,col2\n1,a\n2,b\n3,c\n"
     result = processor.get_data(df, coltypes)
     assert result == "col1,col2\n1,a\n2,b\n3,c\n"
-    mock_df_to_escaped_csv.assert_called_once_with(df, index=False, encoding="utf-8")
+    mock_df_to_escaped_csv.assert_called_once_with(
+    df, index=False, encoding="utf-8-sig"
+    )
 
 
 @patch("superset.common.query_context_processor.excel.df_to_excel")
@@ -141,7 +143,9 @@ def test_get_data_empty_dataframe_csv(
     mock_df_to_escaped_csv.return_value = "col1,col2\n"
     result = processor.get_data(df, coltypes)
     assert result == "col1,col2\n"
-    mock_df_to_escaped_csv.assert_called_once_with(df, index=False, encoding="utf-8")
+    mock_df_to_escaped_csv.assert_called_once_with(
+    df, index=False, encoding="utf-8-sig"
+    )
 
 
 @patch("superset.common.query_context_processor.excel.df_to_excel")
