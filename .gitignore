@@ -72,6 +72,7 @@ superset/static/assets/*
 superset/static/uploads/*
 !superset/static/uploads/.gitkeep
 superset/static/version_info.json
+/report_templates/
 superset-frontend/**/esm/*
 superset-frontend/**/lib/*
 superset-frontend/**/storybook-static/*
