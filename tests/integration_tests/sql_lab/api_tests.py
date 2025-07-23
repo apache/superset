@@ -450,12 +450,28 @@ class TestSqlLabApi(SupersetTestCase):
         db.session.add(query_obj)
         db.session.commit()
 
-        get_df_mock.return_value = pd.DataFrame({"foo": [1, 2, 3]})
+        # Include multilingual data
+        get_df_mock.return_value = pd.DataFrame({
+            "foo": [1, 2],
+            "مرحبا": ["أ", "ب"],
+            "姓名": ["张", "李"],
+        })
 
         resp = self.get_resp("/api/v1/sqllab/export/test/")
+
+        # Check for UTF-8 BOM
+        assert resp.startswith("\ufeff")
+
+        # Parse CSV
         reader = csv.reader(io.StringIO(resp))
-        data = [[cell.lstrip("\ufeff") for cell in row] for row in reader]
-        expected_data = csv.reader(io.StringIO("foo\n1\n2"))
+        data = list(reader)
+
+        # Expected header and rows
+        expected = [
+            ["foo", "مرحبا", "姓名"],
+            ["1", "أ", "张"],
+            ["2", "ب", "李"],
+        ]
 
         assert list(expected_data) == list(data)
         db.session.delete(query_obj)
