@@ -48,7 +48,7 @@ from sqlalchemy.orm import backref, relationship
 from sqlalchemy.sql.elements import ColumnElement, literal_column
 
 from superset import security_manager
-from superset.exceptions import SupersetSecurityException
+from superset.exceptions import SupersetParseError, SupersetSecurityException
 from superset.jinja_context import BaseTemplateProcessor, get_template_processor
 from superset.models.helpers import (
     AuditMixinNullable,
@@ -85,7 +85,7 @@ class SqlTablesMixin:  # pylint: disable=too-few-public-methods
                     self.database,  # type: ignore
                 )
             )
-        except (SupersetSecurityException, TemplateError):
+        except (SupersetSecurityException, SupersetParseError, TemplateError):
             return []
 
 
