@@ -43,8 +43,9 @@ function getDefaultConfiguration(): ClientConfig {
     const jitterMax = retryConfig.SUPERSET_CLIENT_RETRY_JITTER_MAX || 1000;
 
     return (attempt: number) => {
-      // Calculate exponential backoff: baseDelay * (multiplier ^ attempt)
-      const exponentialDelay = baseDelay * multiplier ** attempt;
+      // Calculate exponential backoff: baseDelay * Math.pow(multiplier, attempt)
+      const safeAttempt = Math.min(attempt, 10); // Limit attempt to prevent overflow
+      const exponentialDelay = baseDelay * Math.pow(multiplier, safeAttempt);
 
       // Apply max delay cap
       const cappedDelay = Math.min(exponentialDelay, maxDelay);
