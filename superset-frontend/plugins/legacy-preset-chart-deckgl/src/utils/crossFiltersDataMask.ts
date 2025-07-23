@@ -78,10 +78,12 @@ export interface ValidatedPickingData {
 
 const getFiltersBySpatialType = ({
   position,
+  positions,
   positionBounds,
   spatialData,
 }: {
-  position: [number, number];
+  position?: [number, number];
+  positions?: [number, number][];
   spatialData: SpatialData;
   positionBounds?: PositionBounds;
 }) => {
@@ -98,7 +100,7 @@ const getFiltersBySpatialType = ({
   let filters: QueryObjectFilterClause[] = [];
   let customColumnLabel;
 
-  if (!position && !positionBounds)
+  if (!position && !positions && !positionBounds)
     throw new Error('Position of picked data is required');
 
   switch (type) {
@@ -106,7 +108,23 @@ const getFiltersBySpatialType = ({
       if (lonCol != null && latCol != null) {
         const cols = [lonCol, latCol];
 
-        if (position) {
+        if (positions && positions.length > 0) {
+          values = positions;
+          customColumnLabel = cols.join(', ');
+
+          filters = [
+            {
+              col: lonCol,
+              op: 'IN',
+              val: positions.map(pos => pos[0]),
+            },
+            {
+              col: latCol,
+              op: 'IN',
+              val: positions.map(pos => pos[1]),
+            },
+          ];
+        } else if (position) {
           values = position;
           customColumnLabel = cols.join(', ');
 
@@ -152,19 +170,35 @@ const getFiltersBySpatialType = ({
 
       if (!col) throw new Error('Column is required');
 
-      const val = (reverseCheckbox ? position.reverse() : position).join(
-        delimiter,
-      );
+      if (positions && positions.length > 0) {
+        const vals = positions.map(pos =>
+          (reverseCheckbox ? [...pos].reverse() : pos).join(delimiter),
+        );
 
-      values = [val];
+        values = vals;
 
-      filters = [
-        {
-          col,
-          op: '==',
-          val,
-        },
-      ];
+        filters = [
+          {
+            col,
+            op: 'IN',
+            val: vals,
+          },
+        ];
+      } else if (position) {
+        const val = (reverseCheckbox ? position.reverse() : position).join(
+          delimiter,
+        );
+
+        values = [val];
+
+        filters = [
+          {
+            col,
+            op: '==',
+            val,
+          },
+        ];
+      }
 
       break;
     }
@@ -173,18 +207,35 @@ const getFiltersBySpatialType = ({
 
       if (!col) throw new Error('Column is required');
 
-      const [lon, lat] = position;
-      const val = ngeohash.encode(lat, lon, GEOHASH_PRECISION);
+      if (positions && positions.length > 0) {
+        const vals = positions.map(pos => {
+          const [lon, lat] = pos;
+          return ngeohash.encode(lat, lon, GEOHASH_PRECISION);
+        });
 
-      values = [val];
+        values = vals;
 
-      filters = [
-        {
-          col,
-          op: '==',
-          val,
-        },
-      ];
+        filters = [
+          {
+            col,
+            op: 'IN',
+            val: vals,
+          },
+        ];
+      } else if (position) {
+        const [lon, lat] = position;
+        const val = ngeohash.encode(lat, lon, GEOHASH_PRECISION);
+
+        values = [val];
+
+        filters = [
+          {
+            col,
+            op: '==',
+            val,
+          },
+        ];
+      }
 
       break;
     }
@@ -287,12 +338,27 @@ const getSpatialFilters = ({
   formData: LayerFormData;
   data: PickingInfo;
 }): FilterResult => {
-  const position = (data.object?.points?.[0]?.position ||
-    data.object?.position) as [number, number];
+  const allPoints = data.object?.points?.map(point => point.position) as [
+    number,
+    number,
+  ][];
+  const singlePosition = data.object?.position as [number, number];
 
+  let position: [number, number] | undefined;
+  let positions: [number, number][] | undefined;
   let positionBounds: PositionBounds | undefined;
 
-  if (!position && data.coordinate && data.viewport) {
+  if (allPoints && allPoints.length > 0) {
+    if (allPoints.length === 1) {
+      position = allPoints[0];
+    } else {
+      positions = allPoints;
+    }
+  } else if (singlePosition) {
+    position = singlePosition;
+  }
+
+  if (!position && !positions && data.coordinate && data.viewport) {
     const pickedPositionBounds = calculatePickedPositionBounds({
       pickedCoordinates: data.coordinate,
       viewport: data.viewport,
@@ -305,6 +371,7 @@ const getSpatialFilters = ({
 
   return getFiltersBySpatialType({
     position,
+    positions,
     positionBounds,
     spatialData: formData.spatial,
   });
