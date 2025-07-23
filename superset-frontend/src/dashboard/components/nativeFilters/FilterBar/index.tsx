@@ -369,8 +369,6 @@ const FilterBar: FC<FiltersBarProps> = ({
         newClearAllTriggers[key] = true;
       }
       if (/^\d+$/.test(key) && mask?.ownState?.column) {
-        console.log('  - Clearing numeric chart customization:', key);
-        console.log('  - Current mask:', mask);
         setDataMaskSelected(draft => {
           if (draft[key]) {
             if (draft[key].filterState?.value !== undefined) {
