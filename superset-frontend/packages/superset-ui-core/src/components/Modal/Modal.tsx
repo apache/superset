@@ -77,7 +77,7 @@ export const StyledModal = styled(BaseModal)<StyledModalProps>`
     .ant-modal-header {
       flex: 0 0 auto;
       border-radius: ${theme.borderRadius}px ${theme.borderRadius}px 0 0;
-      padding: ${theme.sizeUnit * 4}px ${theme.sizeUnit * 6}px;
+      padding: ${theme.sizeUnit * 4}px ${theme.sizeUnit * 4}px;
 
       .ant-modal-title {
         font-weight: ${theme.fontWeightStrong};
@@ -209,7 +209,7 @@ const CustomModal = ({
   onHide,
   onHandledPrimaryAction,
   primaryButtonName = t('OK'),
-  primaryButtonType = 'primary',
+  primaryButtonStyle = 'primary',
   show,
   name,
   title,
@@ -262,7 +262,7 @@ const CustomModal = ({
         </Button>,
         <Button
           key="submit"
-          buttonStyle={primaryButtonType}
+          buttonStyle={primaryButtonStyle}
           disabled={disablePrimaryButton}
           tooltip={primaryTooltipMessage}
           loading={primaryButtonLoading}
