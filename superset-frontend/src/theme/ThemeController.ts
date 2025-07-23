@@ -580,11 +580,7 @@ export class ThemeController {
       return this.devThemeOverride;
     }
 
-    // Priority 2: CRUD theme (organizational themes)
-    // CRUD themes should NEVER affect the mode-based theme selection
-    // Dashboard themes are handled separately via createDashboardThemeProvider
-
-    // Priority 3: System theme based on mode (applies to all contexts)
+    // Priority 2: System theme based on mode (applies to all contexts)
     const { allowOSPreference = DEFAULT_THEME_SETTINGS.allowOSPreference } =
       this.themeSettings;
 
