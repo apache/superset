@@ -44,11 +44,8 @@ from superset.models.sql_lab import Query, SavedQuery
             )
         ),
         SupersetParseError(
-            SupersetError(
-                error_type=SupersetErrorType.GENERIC_DB_ENGINE_ERROR,
-                message="Invalid SQL syntax",
-                level=ErrorLevel.ERROR,
-            )
+            sql="INVALID SQL",
+            message="Invalid SQL syntax",
         ),
         TemplateError,
     ],
@@ -92,11 +89,8 @@ def test_sql_tables_mixin_invalid_sql_returns_empty_list(
     mocker.patch(
         "superset.models.sql_lab.extract_tables_from_jinja_sql",
         side_effect=SupersetParseError(
-            SupersetError(
-                error_type=SupersetErrorType.GENERIC_DB_ENGINE_ERROR,
-                message=f"Failed to parse SQL: {invalid_sql}",
-                level=ErrorLevel.ERROR,
-            )
+            sql=invalid_sql or "INVALID SQL",
+            message=f"Failed to parse SQL: {invalid_sql}",
         ),
     )
 
