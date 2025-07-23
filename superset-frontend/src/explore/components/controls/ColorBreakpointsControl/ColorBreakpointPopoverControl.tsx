@@ -76,7 +76,7 @@ const determineErrorMap = (
     return errorMap;
   }
 
-  if (newMinValue >= newMaxValue) {
+  if (newMinValue > newMaxValue) {
     errorMap.minValue.push(
       t('Min value should be smaller or equal to max value'),
     );
