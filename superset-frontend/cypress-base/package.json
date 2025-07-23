@@ -30,7 +30,7 @@
   },
   "devDependencies": {
     "@types/querystringify": "^2.0.0",
-    "cypress": "^11.2.0",
+    "cypress": "^14.5.2",
     "eslint-plugin-cypress": "^3.5.0",
     "tscw-config": "^1.1.2"
   }
