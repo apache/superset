@@ -43,7 +43,6 @@ interface SearchHeaderProps extends BaseFilter {
   toolTipDescription: string | undefined;
 }
 
-// Using vanilla antd Input to avoid styled component circular dependency issue
 
 function SearchFilter(
   {
