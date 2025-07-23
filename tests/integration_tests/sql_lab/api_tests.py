@@ -471,7 +471,7 @@ class TestSqlLabApi(SupersetTestCase):
         # Strip BOM from the first cell of the header
         if data and data[0]:
             data[0][0] = data[0][0].lstrip("\ufeff")
-        
+
         # Expected header and rows
         expected_data = [
             ["foo", "مرحبا", "姓名"],
