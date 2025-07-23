@@ -158,7 +158,6 @@ async function executeTypeCheck(packageRootDirAbsolute, command) {
   }
 }
 
-// ... (rest of utility functions remain the same)
 
 /**
  *
