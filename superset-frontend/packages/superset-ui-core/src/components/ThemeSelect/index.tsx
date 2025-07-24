@@ -52,7 +52,7 @@ const ThemeSelect: React.FC<ThemeSelectProps> = ({
 
   // Use different icon when local theme is active
   const triggerIcon = hasLocalOverride ? (
-    <Icons.FormatPainterOutlined style={{ color: theme.colors.error.base }} />
+    <Icons.FormatPainterOutlined style={{ color: theme.colorErrorText }} />
   ) : (
     themeIconMap[themeMode] || <Icons.FormatPainterOutlined />
   );

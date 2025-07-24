@@ -42,7 +42,6 @@ export const UnsavedChangesModal: FC<UnsavedChangesModalProps> = ({
   onConfirmNavigation,
   title = 'Unsaved Changes',
   body = "If you don't save, changes will be lost.",
-<<<<<<< HEAD
 }): ReactElement => {
   const theme = useTheme();
 
