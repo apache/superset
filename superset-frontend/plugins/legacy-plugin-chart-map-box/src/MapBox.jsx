@@ -18,7 +18,7 @@
  */
 /* eslint-disable react/jsx-sort-default-props, react/sort-prop-types */
 /* eslint-disable react/forbid-prop-types, react/require-default-props */
-import { Component, useEffect, useMemo } from 'react';
+import { useEffect } from 'react';
 import PropTypes from 'prop-types';
 import MapGL from 'react-map-gl';
 import { WebMercatorViewport } from '@math.gl/web-mercator';
