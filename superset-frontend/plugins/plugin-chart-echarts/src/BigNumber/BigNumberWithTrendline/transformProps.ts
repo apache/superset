@@ -40,77 +40,28 @@ import { getDateFormatter, parseMetricValue, getOriginalLabel } from '../utils';
 import { getDefaultTooltip } from '../../utils/tooltip';
 import { Refs } from '../../types';
 
-// Simple aggregation computation - uses the shared choices from chart-controls
-const AGGREGATION_COMPUTATIONS = {
-  raw: (data: [number | null, number | null][]) =>
-    data.find(([, value]) => value !== null)?.[1] ?? null,
-  LAST_VALUE: (data: [number | null, number | null][]) =>
-    data.find(([, value]) => value !== null)?.[1] ?? null,
-  sum: (data: [number | null, number | null][]) => {
-    const validValues = data
-      .map(([, value]) => value)
-      .filter((v): v is number => v !== null);
-    return validValues.length ? validValues.reduce((a, b) => a + b, 0) : null;
-  },
-  mean: (data: [number | null, number | null][]) => {
-    const validValues = data
-      .map(([, value]) => value)
-      .filter((v): v is number => v !== null);
-    return validValues.length
-      ? validValues.reduce((a, b) => a + b, 0) / validValues.length
-      : null;
-  },
-  min: (data: [number | null, number | null][]) => {
-    const validValues = data
-      .map(([, value]) => value)
-      .filter((v): v is number => v !== null);
-    return validValues.length ? Math.min(...validValues) : null;
-  },
-  max: (data: [number | null, number | null][]) => {
-    const validValues = data
-      .map(([, value]) => value)
-      .filter((v): v is number => v !== null);
-    return validValues.length ? Math.max(...validValues) : null;
-  },
-  median: (data: [number | null, number | null][]) => {
-    const validValues = data
-      .map(([, value]) => value)
-      .filter((v): v is number => v !== null);
-    if (!validValues.length) return null;
-    const sorted = [...validValues].sort((a, b) => a - b);
-    const mid = Math.floor(sorted.length / 2);
-    return sorted.length % 2 === 0
-      ? (sorted[mid - 1] + sorted[mid]) / 2
-      : sorted[mid];
-  },
-} as const;
-
 const formatPercentChange = getNumberFormatter(
   NumberFormats.PERCENT_SIGNED_1_POINT,
 );
 
-// Client-side aggregation function
+// Client-side aggregation function using shared aggregationChoices
 function computeClientSideAggregation(
   data: [number | null, number | null][],
   aggregation: string | undefined | null,
 ): number | null {
   if (!data.length) return null;
 
-  // Find the computation function, handling case variations with null safety
-  const matchedChoice = aggregationChoices.find(
-    ([value]: readonly [string, string]) =>
-      value.toLowerCase() === (aggregation || '').toLowerCase(),
+  // Find the aggregation method, handling case variations
+  const methodKey = Object.keys(aggregationChoices).find(
+    key => key.toLowerCase() === (aggregation || '').toLowerCase(),
   );
 
-  const methodKey = matchedChoice?.[0] || 'LAST_VALUE'; // default fallback
-  const computeFunction =
-    AGGREGATION_COMPUTATIONS[
-      methodKey as keyof typeof AGGREGATION_COMPUTATIONS
-    ];
+  // Use the compute method from aggregationChoices, fallback to LAST_VALUE
+  const selectedMethod = methodKey
+    ? aggregationChoices[methodKey as keyof typeof aggregationChoices]
+    : aggregationChoices.LAST_VALUE;
 
-  return computeFunction
-    ? computeFunction(data)
-    : AGGREGATION_COMPUTATIONS.LAST_VALUE(data);
+  return selectedMethod.compute(data);
 }
 
 export default function transformProps(

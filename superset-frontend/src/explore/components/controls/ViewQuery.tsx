@@ -33,6 +33,7 @@ import {
   Button,
   Skeleton,
   Card,
+  Space,
 } from '@superset-ui/core/components';
 import { CopyToClipboard } from 'src/components';
 import { RootState } from 'src/dashboard/types';
@@ -70,6 +71,12 @@ const StyledThemedSyntaxHighlighter = styled(CodeSyntaxHighlighter)`
 
 const StyledLabel = styled.label`
   font-size: ${({ theme }) => theme.fontSize}px;
+`;
+
+const StyledFooter = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 `;
 
 const DATASET_BACKEND_QUERY = {
@@ -152,20 +159,14 @@ const ViewQuery: FC<ViewQueryProps> = props => {
         {formattedSQL && (
           <StyledThemedSyntaxHighlighter
             language={language}
-            customStyle={{ flex: 1, marginBottom: 12 }}
+            customStyle={{ flex: 1, marginBottom: theme.sizeUnit * 3 }}
           >
             {currentSQL}
           </StyledThemedSyntaxHighlighter>
         )}
 
-        <div
-          style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-          }}
-        >
-          <div style={{ display: 'flex', gap: 8 }}>
+        <StyledFooter>
+          <Space size={theme.sizeUnit * 2}>
             <CopyToClipboard
               text={currentSQL}
               shouldShowText={false}
@@ -184,19 +185,19 @@ const ViewQuery: FC<ViewQueryProps> = props => {
                 {t('View in SQL Lab')}
               </Button>
             )}
-          </div>
+          </Space>
 
-          <div style={{ display: 'flex', alignItems: 'center' }}>
+          <Space size={theme.sizeUnit * 2} align="center">
             <Switch
               id="formatSwitch"
               checked={!showFormatSQL}
               onChange={formatCurrentQuery}
             />
-            <StyledLabel htmlFor="formatSwitch" style={{ marginLeft: 8 }}>
+            <StyledLabel htmlFor="formatSwitch">
               {t('Show original SQL')}
             </StyledLabel>
-          </div>
-        </div>
+          </Space>
+        </StyledFooter>
       </StyledSyntaxContainer>
     </Card>
   );

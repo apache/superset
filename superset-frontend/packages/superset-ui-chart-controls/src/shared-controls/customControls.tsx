@@ -41,16 +41,71 @@ import {
 import { checkColumnType } from '../utils/checkColumnType';
 import { isSortable } from '../utils/isSortable';
 
-// Aggregation choices for plugins and controls
-export const aggregationChoices = [
-  ['raw', 'Force server-side aggregation'],
-  ['LAST_VALUE', 'Last Value'],
-  ['sum', 'Total (Sum)'],
-  ['mean', 'Average (Mean)'],
-  ['min', 'Minimum'],
-  ['max', 'Maximum'],
-  ['median', 'Median'],
-] as const;
+// Aggregation choices with computation methods for plugins and controls
+export const aggregationChoices = {
+  raw: {
+    label: 'Force server-side aggregation',
+    compute: (data: [number | null, number | null][]) =>
+      data.find(([, value]) => value !== null)?.[1] ?? null,
+  },
+  LAST_VALUE: {
+    label: 'Last Value',
+    compute: (data: [number | null, number | null][]) =>
+      data.find(([, value]) => value !== null)?.[1] ?? null,
+  },
+  sum: {
+    label: 'Total (Sum)',
+    compute: (data: [number | null, number | null][]) => {
+      const validValues = data
+        .map(([, value]) => value)
+        .filter((v): v is number => v !== null);
+      return validValues.length ? validValues.reduce((a, b) => a + b, 0) : null;
+    },
+  },
+  mean: {
+    label: 'Average (Mean)',
+    compute: (data: [number | null, number | null][]) => {
+      const validValues = data
+        .map(([, value]) => value)
+        .filter((v): v is number => v !== null);
+      return validValues.length
+        ? validValues.reduce((a, b) => a + b, 0) / validValues.length
+        : null;
+    },
+  },
+  min: {
+    label: 'Minimum',
+    compute: (data: [number | null, number | null][]) => {
+      const validValues = data
+        .map(([, value]) => value)
+        .filter((v): v is number => v !== null);
+      return validValues.length ? Math.min(...validValues) : null;
+    },
+  },
+  max: {
+    label: 'Maximum',
+    compute: (data: [number | null, number | null][]) => {
+      const validValues = data
+        .map(([, value]) => value)
+        .filter((v): v is number => v !== null);
+      return validValues.length ? Math.max(...validValues) : null;
+    },
+  },
+  median: {
+    label: 'Median',
+    compute: (data: [number | null, number | null][]) => {
+      const validValues = data
+        .map(([, value]) => value)
+        .filter((v): v is number => v !== null);
+      if (!validValues.length) return null;
+      const sorted = [...validValues].sort((a, b) => a - b);
+      const mid = Math.floor(sorted.length / 2);
+      return sorted.length % 2 === 0
+        ? (sorted[mid - 1] + sorted[mid]) / 2
+        : sorted[mid];
+    },
+  },
+} as const;
 
 export const contributionModeControl = {
   name: 'contributionMode',
@@ -80,7 +135,10 @@ export const aggregationControl = {
     default: 'LAST_VALUE',
     clearable: false,
     renderTrigger: false,
-    choices: aggregationChoices.map(([value, label]) => [value, t(label)]),
+    choices: Object.entries(aggregationChoices).map(([value, { label }]) => [
+      value,
+      t(label),
+    ]),
     description: t(
       'Aggregation method applied across the values in the timeseries to compute the Big Number. "Force server-side aggregation" uses server-side aggregation over the entire time period and is preferred for non-additive metrics like ratios, averages, distinct counts, etc.',
     ),
