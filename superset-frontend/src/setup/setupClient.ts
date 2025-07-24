@@ -40,7 +40,6 @@ function getDefaultConfiguration(): ClientConfig {
     const multiplier =
       retryConfig.SUPERSET_CLIENT_RETRY_BACKOFF_MULTIPLIER || 2;
     const maxDelay = retryConfig.SUPERSET_CLIENT_RETRY_MAX_DELAY || 10000;
-    const jitterMax = retryConfig.SUPERSET_CLIENT_RETRY_JITTER_MAX || 1000;
 
     return (attempt: number) => {
       // Calculate exponential backoff: baseDelay * Math.pow(multiplier, attempt)
