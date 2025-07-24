@@ -160,7 +160,11 @@ export default class ChartProps<FormData extends RawFormData = RawFormData> {
 
   theme: SupersetTheme;
 
-  constructor(config: ChartPropsConfig & { formData?: FormData } = { theme: supersetTheme }) {
+  constructor(
+    config: ChartPropsConfig & { formData?: FormData } = {
+      theme: supersetTheme,
+    },
+  ) {
     const {
       annotationData = {},
       datasource = {},
@@ -275,16 +279,16 @@ ChartProps.createSelector = function create(): ChartPropsSelector {
         emitCrossFilters,
         theme,
       }),
-      // Below config is to retain usage of 1-sized `lruMemoize` object in Reselect v4
-      // Reselect v5 introduces `weakMapMemoize` which is more performant but potentially memory-leaky
-      // due to infinite cache size.
-      // Source: https://github.com/reduxjs/reselect/releases/tag/v5.0.1
-      {
-        memoize: lruMemoize,
-        argsMemoize: lruMemoize,
-        memoizeOptions: {
-          maxSize: 10
-        }
-      }
+    // Below config is to retain usage of 1-sized `lruMemoize` object in Reselect v4
+    // Reselect v5 introduces `weakMapMemoize` which is more performant but potentially memory-leaky
+    // due to infinite cache size.
+    // Source: https://github.com/reduxjs/reselect/releases/tag/v5.0.1
+    {
+      memoize: lruMemoize,
+      argsMemoize: lruMemoize,
+      memoizeOptions: {
+        maxSize: 10,
+      },
+    },
   );
 };
