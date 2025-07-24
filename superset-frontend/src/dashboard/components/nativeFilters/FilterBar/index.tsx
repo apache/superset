@@ -69,10 +69,6 @@ import { useSelectFiltersInScope } from '../state';
 // render fully due to encapsulated logics
 const HiddenFilterBar = styled.div`
   display: none;
-  height: 0;
-  overflow: hidden;
-  margin: 0;
-  padding: 0;
 `;
 
 const EXCLUDED_URL_PARAMS: string[] = [
@@ -161,11 +157,6 @@ const FilterBar: FC<FiltersBarProps> = ({
     RootState,
     UserWithPermissionsAndRoles
   >(state => state.user);
-
-  // Check if user has 'Public' role - hide filters for public users
-  const isPublicUser =
-    'roles' in user &&
-    Object.keys(user.roles || {}).some(role => role.toLowerCase() === 'public');
 
   const [filtersInScope] = useSelectFiltersInScope(nativeFilterValues);
 
@@ -324,7 +315,7 @@ const FilterBar: FC<FiltersBarProps> = ({
       />
     ) : null;
 
-  return hidden || isPublicUser ? (
+  return hidden ? (
     <HiddenFilterBar>{filterBarComponent}</HiddenFilterBar>
   ) : (
     filterBarComponent
