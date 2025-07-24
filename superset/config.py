@@ -166,6 +166,17 @@ SAMPLES_ROW_LIMIT = 1000
 NATIVE_FILTER_DEFAULT_ROW_LIMIT = 1000
 # max rows retrieved by filter select auto complete
 FILTER_SELECT_ROW_LIMIT = 10000
+
+# SupersetClient HTTP retry configuration
+# Controls retry behavior for all HTTP requests made through SupersetClient
+# This helps handle transient server errors (like 502 Bad Gateway) automatically
+SUPERSET_CLIENT_RETRY_ATTEMPTS = 3  # Maximum number of retry attempts
+SUPERSET_CLIENT_RETRY_DELAY = 1000  # Initial retry delay in milliseconds
+SUPERSET_CLIENT_RETRY_BACKOFF_MULTIPLIER = 2  # Exponential backoff multiplier
+SUPERSET_CLIENT_RETRY_MAX_DELAY = 10000  # Maximum retry delay cap in milliseconds
+SUPERSET_CLIENT_RETRY_JITTER_MAX = 1000  # Maximum random jitter in milliseconds
+# HTTP status codes that should trigger retries (502, 503, 504 gateway errors)
+SUPERSET_CLIENT_RETRY_STATUS_CODES = [502, 503, 504]
 # default time filter in explore
 # values may be "Last day", "Last week", "<ISO date> : now", etc.
 DEFAULT_TIME_FILTER = NO_TIME_RANGE
