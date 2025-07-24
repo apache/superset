@@ -126,6 +126,7 @@ datakimia_public_role_pvms = [
     ("can_list", "Tags"),
     ("can_userinfo", "UserOAuthModelView"),
 ]
+from flask_jwt_extended import verify_jwt_in_request
 
 class CustomSsoSecurityManager(SupersetSecurityManager):
     authoauthview = CustomOAuthView
@@ -145,4 +146,8 @@ class CustomSsoSecurityManager(SupersetSecurityManager):
         datakimia_public_role = self.add_role("Datakimia_Public")
         for (action, model) in datakimia_public_role_pvms:
             pvm = self.find_permission_view_menu(action, model)
-            self.add_permission_role(datakimia_public_role, pvm)            
+            self.add_permission_role(datakimia_public_role, pvm)   
+
+    def is_item_public(self, permission_name, view_name):
+        verify_jwt_in_request(optional=True) # Attempt to parse any existing JWT and fail silently
+        return super().is_item_public(permission_name, view_name)                     
