@@ -920,8 +920,6 @@ typing-extensions==4.14.0
     #   pydantic-core
     #   pyopenssl
     #   referencing
-    #   pyopenssl
-    #   referencing
     #   selenium
     #   shillelagh
     #   starlette
