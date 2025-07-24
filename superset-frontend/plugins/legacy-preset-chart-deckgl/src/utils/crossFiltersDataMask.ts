@@ -338,26 +338,13 @@ const getSpatialFilters = ({
   formData: LayerFormData;
   data: PickingInfo;
 }): FilterResult => {
-  const allPoints = data.object?.points?.map(
+  const positions = data.object?.points?.map(
     (point: { position: [number, number]; weight: number }) => point.position,
   ) as [number, number][];
-  const singlePosition = data.object?.position as [number, number];
 
-  let position: [number, number] | undefined;
-  let positions: [number, number][] | undefined;
   let positionBounds: PositionBounds | undefined;
 
-  if (allPoints && allPoints.length > 0) {
-    if (allPoints.length === 1) {
-      position = allPoints[0];
-    } else {
-      positions = allPoints;
-    }
-  } else if (singlePosition) {
-    position = singlePosition;
-  }
-
-  if (!position && !positions && data.coordinate && data.viewport) {
+  if (!positions && data.coordinate && data.viewport) {
     const pickedPositionBounds = calculatePickedPositionBounds({
       pickedCoordinates: data.coordinate,
       viewport: data.viewport,
@@ -369,7 +356,6 @@ const getSpatialFilters = ({
   if (!formData.spatial) throw new Error('Spatial data is required');
 
   return getFiltersBySpatialType({
-    position,
     positions,
     positionBounds,
     spatialData: formData.spatial,
