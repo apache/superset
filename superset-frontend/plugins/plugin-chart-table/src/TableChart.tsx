@@ -629,7 +629,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
       const startPosition = value[0];
       const colSpan = value.length;
       // Retrieve the originalLabel from the first column in this group
-      const originalLabel = columnsMeta[value[0]]?.originalLabel || key;
+      const originalLabel = filteredColumnsMeta[value[0]]?.originalLabel || key;
 
       // Add placeholder <th> for columns before this header
       for (let i = currentColumnIndex; i < startPosition; i += 1) {
