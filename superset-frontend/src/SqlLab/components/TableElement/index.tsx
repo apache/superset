@@ -368,7 +368,9 @@ const TableElement = ({ table, ...props }: TableElementProps) => {
       <div data-test="table-element" css={{ paddingTop: 6 }}>
         {renderWell()}
         <div>
-          {cols?.map(col => <ColumnElement column={col} key={col.name} />)}
+          {cols?.map(col => (
+            <ColumnElement column={col} key={col.name} />
+          ))}
         </div>
       </div>
     );
