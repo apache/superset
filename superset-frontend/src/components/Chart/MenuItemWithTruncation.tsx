@@ -109,7 +109,7 @@ export const MenuItemWithTruncation = ({
         display: flex;
         line-height: 1.5em;
       `}
-      eventKey={menuKey}
+      key={menuKey}
       onClick={onClick}
       style={style}
     >
