@@ -79,7 +79,7 @@ export const aggregationControl = {
       ['median', t('Median')],
     ],
     description: t(
-      'Aggregation method used to compute the Big Number from the Trendline. For non-additive metrics like ratios, averages, distinct counts, etc use "None".',
+      'Aggregation method applied across the values in the timeseries to compute the Big Number. "None" uses server-side aggregation over the entire time period and is preferred for non-additive metrics like ratios, averages, distinct counts, etc.',
     ),
     provideFormDataToProps: true,
     mapStateToProps: ({ form_data }: ControlPanelState) => ({
