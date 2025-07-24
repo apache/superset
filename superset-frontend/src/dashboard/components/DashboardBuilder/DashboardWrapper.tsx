@@ -87,13 +87,23 @@ const StyledDiv = styled.div`
     /* push Chart actions to upper right */
     .dragdroppable-column .dashboard-component-chart-holder .hover-menu--top,
     .dragdroppable .dashboard-component-header .hover-menu--top {
-      right: ${theme.sizeUnit * 3}px;
+      right: ${theme.sizeUnit * 2}px;
       top: ${theme.sizeUnit * 5}px;
       background: transparent;
       border: none;
       transform: unset;
       left: unset;
     }
+
+    /* resize Chart name input to fit Chart actions */
+    .dragdroppable-column .dashboard-component-chart-holder .editable-title,
+    .dragdroppable .dashboard-component-header .editable-title {
+      input[type='text'],
+      textarea {
+        width: calc(100% - ${theme.sizeUnit * 8}px);
+      }
+    }
+
     div:hover > .hover-menu-container .hover-menu,
     .hover-menu-container .hover-menu:hover {
       opacity: 1;

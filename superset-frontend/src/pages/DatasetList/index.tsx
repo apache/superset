@@ -73,6 +73,7 @@ import DuplicateDatasetModal from 'src/features/datasets/DuplicateDatasetModal';
 import { useSelector } from 'react-redux';
 import { QueryObjectColumns } from 'src/views/CRUD/types';
 import { WIDER_DROPDOWN_WIDTH } from 'src/components/ListView/utils';
+import IconButton from 'src/dashboard/components/IconButton';
 
 const extensionsRegistry = getExtensionsRegistry();
 const DatasetDeleteRelatedExtension = extensionsRegistry.get(
@@ -91,24 +92,6 @@ const FlexRowContainer = styled.div`
 const Actions = styled.div`
   ${({ theme }) => css`
     color: ${theme.colors.grayscale.base};
-
-    .disabled {
-      svg,
-      i {
-        &:hover {
-          path {
-            fill: ${theme.colorText};
-          }
-        }
-      }
-      color: ${theme.colors.grayscale.light1};
-      .ant-menu-item:hover {
-        cursor: default;
-      }
-      &::after {
-        color: ${theme.colors.grayscale.light1};
-      }
-    }
   `}
 `;
 
@@ -413,7 +396,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
       {
         Cell: ({ row: { original } }: any) => {
           // Verify owner or isAdmin
-          const allowEdit =
+          const allowEdit: boolean =
             original.owners.map((o: Owner) => o.id).includes(user.userId) ||
             isUserAdmin(user);
 
@@ -429,17 +412,20 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
               {canDelete && (
                 <Tooltip
                   id="delete-action-tooltip"
-                  title={t('Delete')}
+                  title={
+                    allowEdit
+                      ? t('Delete')
+                      : t(
+                          'You must be a dataset owner in order to delete. Please reach out to a dataset owner to request modifications or edit access.',
+                        )
+                  }
                   placement="bottom"
                 >
-                  <span
-                    role="button"
-                    tabIndex={0}
-                    className="action-button"
+                  <IconButton
+                    disabled={!allowEdit}
                     onClick={handleDelete}
-                  >
-                    <Icons.DeleteOutlined iconSize="l" />
-                  </span>
+                    icon={<Icons.DeleteOutlined iconSize="l" />}
+                  />
                 </Tooltip>
               )}
               {canExport && (
@@ -448,14 +434,10 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
                   title={t('Export')}
                   placement="bottom"
                 >
-                  <span
-                    role="button"
-                    tabIndex={0}
-                    className="action-button"
+                  <IconButton
                     onClick={handleExport}
-                  >
-                    <Icons.UploadOutlined iconSize="l" />
-                  </span>
+                    icon={<Icons.UploadOutlined iconSize="l" />}
+                  />
                 </Tooltip>
               )}
               {canEdit && (
@@ -470,14 +452,11 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
                   }
                   placement="bottom"
                 >
-                  <span
-                    role="button"
-                    tabIndex={0}
-                    className={allowEdit ? 'action-button' : 'disabled'}
-                    onClick={allowEdit ? handleEdit : undefined}
-                  >
-                    <Icons.EditOutlined iconSize="l" />
-                  </span>
+                  <IconButton
+                    disabled={!allowEdit}
+                    onClick={handleEdit}
+                    icon={<Icons.EditOutlined iconSize="l" />}
+                  />
                 </Tooltip>
               )}
               {canDuplicate && original.kind === 'virtual' && (
@@ -486,14 +465,10 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
                   title={t('Duplicate')}
                   placement="bottom"
                 >
-                  <span
-                    role="button"
-                    tabIndex={0}
-                    className="action-button"
+                  <IconButton
                     onClick={handleDuplicate}
-                  >
-                    <Icons.CopyOutlined iconSize="l" />
-                  </span>
+                    icon={<Icons.CopyOutlined iconSize="l" />}
+                  />
                 </Tooltip>
               )}
             </Actions>
