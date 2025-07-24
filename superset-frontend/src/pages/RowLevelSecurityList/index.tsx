@@ -314,16 +314,16 @@ function RowLevelSecurityList(props: RLSProps) {
 
   if (canWrite) {
     subMenuButtons.push({
-      name: t('Rule'),
-      icon: <Icons.PlusOutlined iconSize="m" data-test="add-rule" />,
-      buttonStyle: 'primary',
-      onClick: () => handleRuleEdit(null),
-    });
-    subMenuButtons.push({
       name: t('Bulk select'),
       buttonStyle: 'secondary',
       'data-test': 'bulk-select',
       onClick: toggleBulkSelect,
+    });
+    subMenuButtons.push({
+      name: t('Rule'),
+      icon: <Icons.PlusOutlined iconSize="m" data-test="add-rule" />,
+      buttonStyle: 'primary',
+      onClick: () => handleRuleEdit(null),
     });
   }
 
