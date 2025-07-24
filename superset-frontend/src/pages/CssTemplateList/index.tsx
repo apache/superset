@@ -202,7 +202,7 @@ function CssTemplatesList({
 
   if (canCreate) {
     subMenuButtons.push({
-      name: <>{t('CSS template')}</>,
+      name: t('CSS template'),
       buttonStyle: 'primary',
       icon: <Icons.PlusOutlined iconSize="m" />,
       onClick: () => {

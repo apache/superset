@@ -148,6 +148,7 @@ export {
   Typography,
   type TypographyProps,
   type ParagraphProps,
+  type TitleProps,
 } from './Typography';
 
 export { Image, type ImageProps } from './Image';
