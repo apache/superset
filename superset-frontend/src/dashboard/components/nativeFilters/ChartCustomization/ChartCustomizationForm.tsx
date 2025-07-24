@@ -99,14 +99,22 @@ interface Props {
   form: any;
   item: ChartCustomizationItem;
   onUpdate: (updatedItem: ChartCustomizationItem) => void;
+  removedItems: Record<string, { isPending: boolean; timerId?: number } | null>;
 }
 
-const ChartCustomizationForm: FC<Props> = ({ form, item, onUpdate }) => {
+const ChartCustomizationForm: FC<Props> = ({
+  form,
+  item,
+  onUpdate,
+  removedItems,
+}) => {
   const theme = useTheme();
   const customization = useMemo(
     () => item.customization || {},
     [item.customization],
   );
+
+  const isRemoved = !!removedItems[item.id];
 
   const loadedDatasets = useSelector<RootState, DatasourcesState>(
     ({ datasources }) => datasources,
@@ -773,7 +781,7 @@ const ChartCustomizationForm: FC<Props> = ({ form, item, onUpdate }) => {
           name={['filters', item.id, 'name']}
           label={t('Dynamic group by name')}
           initialValue={customization.name || ''}
-          rules={[{ required: true, message: t('Please enter a name') }]}
+          rules={[{ required: !isRemoved, message: t('Please enter a name') }]}
         >
           <Input
             placeholder={t('Name your dynamic group by')}
@@ -793,7 +801,9 @@ const ChartCustomizationForm: FC<Props> = ({ form, item, onUpdate }) => {
             </>
           }
           initialValue={datasetValue}
-          rules={[{ required: true, message: t('Please select a dataset') }]}
+          rules={[
+            { required: !isRemoved, message: t('Please select a dataset') },
+          ]}
         >
           <DatasetSelect
             onChange={(dataset: {

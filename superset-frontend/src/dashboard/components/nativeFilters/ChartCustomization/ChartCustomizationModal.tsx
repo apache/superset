@@ -122,7 +122,11 @@ const ChartCustomizationModal = ({
 
     formValidationFields.forEach(field => {
       const itemId = field.name[1] as string;
-      if (field.errors.length > 0 && !erroredItemIds.includes(itemId)) {
+      if (
+        field.errors.length > 0 &&
+        !erroredItemIds.includes(itemId) &&
+        !removedItems[itemId]
+      ) {
         erroredItemIds.push(itemId);
       }
     });
@@ -137,7 +141,7 @@ const ChartCustomizationModal = ({
     ) {
       setErroredItems(erroredItemIds);
     }
-  }, [form, erroredItems]);
+  }, [form, erroredItems, removedItems]);
 
   const resetForm = useCallback(
     (isSaving = false) => {
@@ -312,14 +316,26 @@ const ChartCustomizationModal = ({
         [id]: { isPending: true, timerId },
       }));
 
-      setItemChanges(prev => ({
-        ...prev,
-        deleted: [...prev.deleted, id],
-      }));
+      setItemChanges(prev => {
+        const newChanges = {
+          ...prev,
+          deleted: [...prev.deleted, id],
+        };
+        return newChanges;
+      });
 
-      setSaveAlertVisible(false);
+      setTimeout(() => {
+        handleErroredItems();
+      }, 0);
+
+      if (currentId === id) {
+        const remainingItems = items.filter(item => item.id !== id);
+        if (remainingItems.length > 0) {
+          setCurrentId(remainingItems[0].id);
+        }
+      }
     },
-    [removedItems],
+    [items, currentId, handleErroredItems],
   );
 
   useEffect(() => {
@@ -543,6 +559,7 @@ const ChartCustomizationModal = ({
                 <ChartCustomizationForm
                   form={form}
                   item={item}
+                  removedItems={removedItems}
                   onUpdate={updatedItem => {
                     setItems(prev =>
                       prev.map(i =>
