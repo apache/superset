@@ -37,21 +37,12 @@ import {
 } from '@superset-ui/core/components';
 import { CopyToClipboard } from 'src/components';
 import { RootState } from 'src/dashboard/types';
-import { CopyButton } from 'src/explore/components/DataTableControl';
 import { findPermission } from 'src/utils/findPermission';
 import CodeSyntaxHighlighter, {
   SupportedLanguage,
   preloadLanguages,
 } from '@superset-ui/core/components/CodeSyntaxHighlighter';
 import { useHistory } from 'react-router-dom';
-
-const CopyButtonViewQuery = styled(CopyButton)`
-  ${({ theme }) => `
-		&& {
-			margin: 0 0 ${theme.sizeUnit}px;
-		}
-  `}
-`;
 
 export interface ViewQueryProps {
   sql: string;
@@ -67,10 +58,6 @@ const StyledSyntaxContainer = styled.div`
 
 const StyledThemedSyntaxHighlighter = styled(CodeSyntaxHighlighter)`
   flex: 1;
-`;
-
-const StyledLabel = styled.label`
-  font-size: ${({ theme }) => theme.fontSize}px;
 `;
 
 const StyledFooter = styled.div`
@@ -171,31 +158,35 @@ const ViewQuery: FC<ViewQueryProps> = props => {
               text={currentSQL}
               shouldShowText={false}
               copyNode={
-                <CopyButtonViewQuery
+                <Button
                   buttonStyle="secondary"
                   buttonSize="small"
                   icon={<Icons.CopyOutlined />}
                 >
                   {t('Copy')}
-                </CopyButtonViewQuery>
+                </Button>
               }
             />
             {canAccessSQLLab && (
-              <Button buttonStyle="secondary" onClick={navToSQLLab}>
+              <Button
+                buttonStyle="secondary"
+                buttonSize="small"
+                onClick={navToSQLLab}
+              >
                 {t('View in SQL Lab')}
               </Button>
             )}
           </Space>
 
           <Space size={theme.sizeUnit * 2} align="center">
+            <Icons.ConsoleSqlOutlined />
             <Switch
               id="formatSwitch"
-              checked={!showFormatSQL}
+              checked={showFormatSQL}
               onChange={formatCurrentQuery}
+              checkedChildren={t('formatted')}
+              unCheckedChildren={t('original')}
             />
-            <StyledLabel htmlFor="formatSwitch">
-              {t('Show original SQL')}
-            </StyledLabel>
           </Space>
         </StyledFooter>
       </StyledSyntaxContainer>
