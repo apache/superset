@@ -18,7 +18,7 @@
  */
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { css, t, useTheme } from '@superset-ui/core';
+import { t } from '@superset-ui/core';
 import { useListViewResource } from 'src/views/CRUD/hooks';
 import SubMenu, { SubMenuProps } from 'src/features/home/SubMenu';
 import { ActionsBar, ActionProps } from 'src/components/ListView/ActionsBar';
@@ -76,7 +76,6 @@ enum ModalType {
 }
 
 function GroupsList({ user }: GroupsListProps) {
-  const theme = useTheme();
   const { addDangerToast, addSuccessToast } = useToasts();
   const {
     state: {
@@ -274,18 +273,8 @@ function GroupsList({ user }: GroupsListProps) {
   if (isAdmin) {
     subMenuButtons.push(
       {
-        name: (
-          <>
-            <Icons.PlusOutlined
-              iconSize="m"
-              css={css`
-                margin: auto ${theme.sizeUnit * 2}px auto 0;
-                vertical-align: text-top;
-              `}
-            />
-            {t('Group')}
-          </>
-        ),
+        name: t('Group'),
+        icon: <Icons.PlusOutlined iconSize="m" />,
         buttonStyle: 'primary',
         onClick: () => {
           openModal(ModalType.ADD);
@@ -360,18 +349,8 @@ function GroupsList({ user }: GroupsListProps) {
       buttonAction: () => {
         openModal(ModalType.ADD);
       },
-      buttonText: (
-        <>
-          <Icons.PlusOutlined
-            iconSize="m"
-            css={css`
-              margin: auto ${theme.sizeUnit * 2}px auto 0;
-              vertical-align: text-top;
-            `}
-          />
-          {t('Group')}
-        </>
-      ),
+      buttonIcon: <Icons.PlusOutlined iconSize="m" />,
+      buttonText: t('Group'),
     }),
   };
 

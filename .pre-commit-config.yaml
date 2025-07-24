@@ -52,14 +52,6 @@ repos:
       - id: trailing-whitespace
         exclude: ^.*\.(snap)
         args: ["--markdown-linebreak-ext=md"]
-  - repo: https://github.com/pre-commit/mirrors-prettier
-    rev: v4.0.0-alpha.8 # Use the sha or tag you want to point at
-    hooks:
-      - id: prettier
-        additional_dependencies:
-          - prettier@3.5.3
-        args: ["--ignore-path=./superset-frontend/.prettierignore", "--exclude", "site-packages"]
-        files: "superset-frontend"
   - repo: local
     hooks:
     - id: eslint-frontend
@@ -76,7 +68,7 @@ repos:
       files: ^docs/.*\.(js|jsx|ts|tsx)$
     - id: type-checking-frontend
       name: Type-Checking (Frontend)
-      entry: bash -c './scripts/check-type.js package=superset-frontend excludeDeclarationDir=cypress-base'
+      entry: ./scripts/check-type.js package=superset-frontend excludeDeclarationDir=cypress-base
       language: system
       files: ^superset-frontend\/.*\.(js|jsx|ts|tsx)$
       exclude: ^superset-frontend/cypress-base\/

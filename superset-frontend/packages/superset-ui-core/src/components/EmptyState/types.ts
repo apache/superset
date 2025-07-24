@@ -17,6 +17,7 @@
  * under the License.
  */
 import type { ReactNode, SyntheticEvent } from 'react';
+import type { IconType } from '@superset-ui/core/components';
 
 export type EmptyStateSize = 'small' | 'medium' | 'large';
 
@@ -25,6 +26,7 @@ export type EmptyStateProps = {
   description?: ReactNode;
   image?: ReactNode | string;
   buttonText?: ReactNode;
+  buttonIcon?: IconType;
   buttonAction?: (event: SyntheticEvent) => void;
   size?: EmptyStateSize;
   children?: ReactNode;
