@@ -105,7 +105,7 @@ def test_annotation_post_schema_short_descr_null() -> None:
 
 def test_annotation_post_schema_start_dttm_null() -> None:
     with pytest.raises(ValidationError):
-        result = AnnotationPostSchema().load(
+        AnnotationPostSchema().load(  # noqa: F841
             {"short_descr": "foo", "start_dttm": None, "end_dttm": END_STR}
         )
 

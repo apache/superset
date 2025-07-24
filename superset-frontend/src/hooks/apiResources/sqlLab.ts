@@ -27,17 +27,21 @@ export type InitialState = {
     label: string;
     active: boolean;
     database_id: number;
+    catalog?: string | null;
     schema?: string;
     table_schemas: {
       id: number;
       table: string;
       description: {
-        columns?: {
+        name: string;
+        columns: {
           name: string;
           type: string;
+          longType: string;
         }[];
         dataPreviewQueryId?: string;
       } & Record<string, any>;
+      catalog?: string | null;
       schema?: string;
       tab_state_id: number;
       database_id?: number;
@@ -67,7 +71,7 @@ export type InitialState = {
   }[];
 };
 
-const queryValidationApi = api.injectEndpoints({
+const initialStateApi = api.injectEndpoints({
   endpoints: builder => ({
     sqlLabInitialState: builder.query<InitialState, void>({
       providesTags: ['SqlLabInitialState'],
@@ -81,4 +85,4 @@ const queryValidationApi = api.injectEndpoints({
 });
 
 export const { useSqlLabInitialStateQuery: useSqlLabInitialState } =
-  queryValidationApi;
+  initialStateApi;

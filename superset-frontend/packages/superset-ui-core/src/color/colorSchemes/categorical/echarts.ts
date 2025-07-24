@@ -19,6 +19,7 @@
 
 import CategoricalScheme from '../../CategoricalScheme';
 
+// TODO: add the colors to the theme while working on SIP https://github.com/apache/superset/issues/20159
 const schemes = [
   {
     id: 'echarts4Colors',

@@ -16,7 +16,16 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  KeyboardEvent,
+  memo,
+} from 'react';
+
 import { useDispatch, useSelector } from 'react-redux';
 import { uniqWith } from 'lodash';
 import cx from 'classnames';
@@ -25,11 +34,13 @@ import {
   Filters,
   JsonObject,
   styled,
+  t,
   usePrevious,
 } from '@superset-ui/core';
-import Icons from 'src/components/Icons';
+import { Icons } from '@superset-ui/core/components/Icons';
 import { setDirectPathToChild } from 'src/dashboard/actions/dashboardState';
-import Badge from 'src/components/Badge';
+import { useChartLayoutItems } from 'src/dashboard/util/useChartLayoutItems';
+import { Badge } from '@superset-ui/core/components';
 import DetailsPanelPopover from './DetailsPanel';
 import {
   Indicator,
@@ -37,7 +48,7 @@ import {
   selectIndicatorsForChart,
   selectNativeIndicatorsForChart,
 } from '../nativeFilters/selectors';
-import { Chart, DashboardLayout, RootState } from '../../types';
+import { Chart, RootState } from '../../types';
 
 export interface FiltersBadgeProps {
   chartId: number;
@@ -49,9 +60,9 @@ const StyledFilterCount = styled.div`
     justify-items: center;
     align-items: center;
     cursor: pointer;
-    margin-right: ${theme.gridUnit}px;
-    padding-left: ${theme.gridUnit * 2}px;
-    padding-right: ${theme.gridUnit * 2}px;
+    margin-right: ${theme.sizeUnit}px;
+    padding-left: ${theme.sizeUnit * 2}px;
+    padding-right: ${theme.sizeUnit * 2}px;
     background: ${theme.colors.grayscale.light4};
     border-radius: 4px;
     height: 100%;
@@ -64,23 +75,26 @@ const StyledFilterCount = styled.div`
     }
 
     .incompatible-count {
-      font-size: ${theme.typography.sizes.s}px;
+      font-size: ${theme.fontSizeSM}px;
+    }
+    &:focus-visible {
+      outline: 2px solid ${theme.colorPrimary};
     }
   `}
 `;
 
 const StyledBadge = styled(Badge)`
   ${({ theme }) => `
-    vertical-align: middle;
-    margin-left: ${theme.gridUnit * 2}px;
-    &>sup {
-      padding: 0 ${theme.gridUnit}px;
-      min-width: ${theme.gridUnit * 4}px;
-      height: ${theme.gridUnit * 4}px;
+    margin-left: ${theme.sizeUnit * 2}px;
+    &>sup.ant-badge-count {
+      padding: 0 ${theme.sizeUnit}px;
+      min-width: ${theme.sizeUnit * 4}px;
+      height: ${theme.sizeUnit * 4}px;
       line-height: 1.5;
-      font-weight: ${theme.typography.weights.medium};
-      font-size: ${theme.typography.sizes.s - 1}px;
+      font-weight: ${theme.fontWeightStrong};
+      font-size: ${theme.fontSizeSM - 1}px;
       box-shadow: none;
+      padding: 0 ${theme.sizeUnit}px;
     }
   `}
 `;
@@ -113,9 +127,7 @@ export const FiltersBadge = ({ chartId }: FiltersBadgeProps) => {
     state => state.dashboardInfo.metadata?.chart_configuration,
   );
   const chart = useSelector<RootState, Chart>(state => state.charts[chartId]);
-  const present = useSelector<RootState, DashboardLayout>(
-    state => state.dashboardLayout.present,
-  );
+  const chartLayoutItems = useChartLayoutItems();
   const dataMask = useSelector<RootState, DataMaskStateWithId>(
     state => state.dataMask,
   );
@@ -126,6 +138,9 @@ export const FiltersBadge = ({ chartId }: FiltersBadgeProps) => {
   const [dashboardIndicators, setDashboardIndicators] = useState<Indicator[]>(
     indicatorsInitialState,
   );
+  const [popoverVisible, setPopoverVisible] = useState(false);
+  const popoverContentRef = useRef<HTMLDivElement>(null);
+  const popoverTriggerRef = useRef<HTMLDivElement>(null);
 
   const onHighlightFilterSource = useCallback(
     (path: string[]) => {
@@ -134,12 +149,26 @@ export const FiltersBadge = ({ chartId }: FiltersBadgeProps) => {
     [dispatch],
   );
 
+  const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+    if (event.key === 'Enter') {
+      setPopoverVisible(true);
+    }
+  };
+
   const prevChart = usePrevious(chart);
   const prevChartStatus = prevChart?.chartStatus;
   const prevDashboardFilters = usePrevious(dashboardFilters);
   const prevDatasources = usePrevious(datasources);
   const showIndicators =
     chart?.chartStatus && ['rendered', 'success'].includes(chart.chartStatus);
+
+  useEffect(() => {
+    if (popoverVisible) {
+      setTimeout(() => {
+        popoverContentRef?.current?.focus({ preventScroll: true });
+      });
+    }
+  }, [popoverVisible]);
 
   useEffect(() => {
     if (!showIndicators && dashboardIndicators.length > 0) {
@@ -177,9 +206,10 @@ export const FiltersBadge = ({ chartId }: FiltersBadgeProps) => {
   ]);
 
   const prevNativeFilters = usePrevious(nativeFilters);
-  const prevDashboardLayout = usePrevious(present);
+  const prevChartLayoutItems = usePrevious(chartLayoutItems);
   const prevDataMask = usePrevious(dataMask);
   const prevChartConfig = usePrevious(chartConfiguration);
+
   useEffect(() => {
     if (!showIndicators && nativeIndicators.length > 0) {
       setNativeIndicators(indicatorsInitialState);
@@ -190,7 +220,7 @@ export const FiltersBadge = ({ chartId }: FiltersBadgeProps) => {
         chart?.queriesResponse?.[0]?.applied_filters !==
           prevChart?.queriesResponse?.[0]?.applied_filters ||
         nativeFilters !== prevNativeFilters ||
-        present !== prevDashboardLayout ||
+        chartLayoutItems !== prevChartLayoutItems ||
         dataMask !== prevDataMask ||
         prevChartConfig !== chartConfiguration
       ) {
@@ -200,7 +230,7 @@ export const FiltersBadge = ({ chartId }: FiltersBadgeProps) => {
             dataMask,
             chartId,
             chart,
-            present,
+            chartLayoutItems,
             chartConfiguration,
           ),
         );
@@ -213,14 +243,14 @@ export const FiltersBadge = ({ chartId }: FiltersBadgeProps) => {
     dataMask,
     nativeFilters,
     nativeIndicators.length,
-    present,
     prevChart?.queriesResponse,
     prevChartConfig,
     prevChartStatus,
-    prevDashboardLayout,
     prevDataMask,
     prevNativeFilters,
     showIndicators,
+    chartLayoutItems,
+    prevChartLayoutItems,
   ]);
 
   const indicators = useMemo(
@@ -250,6 +280,8 @@ export const FiltersBadge = ({ chartId }: FiltersBadgeProps) => {
       ),
     [indicators],
   );
+  const filterCount =
+    appliedIndicators.length + appliedCrossFilterIndicators.length;
 
   if (!appliedCrossFilterIndicators.length && !appliedIndicators.length) {
     return null;
@@ -260,18 +292,28 @@ export const FiltersBadge = ({ chartId }: FiltersBadgeProps) => {
       appliedCrossFilterIndicators={appliedCrossFilterIndicators}
       appliedIndicators={appliedIndicators}
       onHighlightFilterSource={onHighlightFilterSource}
+      setPopoverVisible={setPopoverVisible}
+      popoverVisible={popoverVisible}
+      popoverContentRef={popoverContentRef}
+      popoverTriggerRef={popoverTriggerRef}
     >
       <StyledFilterCount
+        aria-label={t('Applied filters (%s)', filterCount)}
+        aria-haspopup="true"
+        role="button"
+        ref={popoverTriggerRef}
         className={cx(
           'filter-counts',
           !!appliedCrossFilterIndicators.length && 'has-cross-filters',
         )}
+        tabIndex={0}
+        onKeyDown={handleKeyDown}
       >
-        <Icons.Filter iconSize="m" />
+        <Icons.FilterOutlined iconSize="m" />
         <StyledBadge
           data-test="applied-filter-count"
           className="applied-count"
-          count={appliedIndicators.length + appliedCrossFilterIndicators.length}
+          count={filterCount}
           showZero
         />
       </StyledFilterCount>
@@ -279,4 +321,4 @@ export const FiltersBadge = ({ chartId }: FiltersBadgeProps) => {
   );
 };
 
-export default React.memo(FiltersBadge);
+export default memo(FiltersBadge);

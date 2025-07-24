@@ -16,32 +16,53 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useEffect } from 'react';
+import { FC, useEffect, useState } from 'react';
+
 import { css, styled } from '@superset-ui/core';
+import { Constants } from '@superset-ui/core/components';
 import { RootState } from 'src/dashboard/types';
 import { useSelector } from 'react-redux';
 import { useDragDropManager } from 'react-dnd';
 import classNames from 'classnames';
+import { debounce } from 'lodash';
 
 const StyledDiv = styled.div`
   ${({ theme }) => css`
+    background-color: ${theme.colorBgLayout};
+    position: relative;
     display: grid;
     grid-template-columns: auto 1fr;
     grid-template-rows: auto 1fr;
     flex: 1;
     /* Special cases */
 
-    &.dragdroppable--dragging
-      .dashboard-component-tabs-content
-      > .empty-droptarget.empty-droptarget--full {
-      height: 100%;
+    &.dragdroppable--dragging {
+      &
+        .dashboard-component-tabs-content
+        > .empty-droptarget.empty-droptarget--full {
+        height: 100%;
+      }
+      & .empty-droptarget:before {
+        display: block;
+        border-color: ${theme.colors.primary.light1};
+        background-color: ${theme.colors.primary.light3};
+      }
+      & .grid-row:after {
+        border-style: hidden;
+      }
+      & .droptarget-side:last-child {
+        inset-inline-end: 0;
+      }
+      & .droptarget-edge:last-child {
+        inset-block-end: 0;
+      }
     }
 
     /* A row within a column has inset hover menu */
     .dragdroppable-column .dragdroppable-row .hover-menu--left {
-      left: ${theme.gridUnit * -3}px;
-      background: ${theme.colors.grayscale.light5};
-      border: 1px solid ${theme.colors.grayscale.light2};
+      left: ${theme.sizeUnit * -3}px;
+      background-color: ${theme.colorBgContainer};
+      border: 1px solid ${theme.colorBorder};
     }
 
     .dashboard-component-tabs {
@@ -51,9 +72,9 @@ const StyledDiv = styled.div`
     /* A column within a column or tabs has inset hover menu */
     .dragdroppable-column .dragdroppable-column .hover-menu--top,
     .dashboard-component-tabs .dragdroppable-column .hover-menu--top {
-      top: ${theme.gridUnit * -3}px;
-      background: ${theme.colors.grayscale.light5};
-      border: 1px solid ${theme.colors.grayscale.light2};
+      top: ${theme.sizeUnit * -3}px;
+      background-color: ${theme.colorBgContainer};
+      border: 1px solid ${theme.colorBorder};
     }
 
     /* move Tabs hover menu to top near actual Tabs */
@@ -66,8 +87,8 @@ const StyledDiv = styled.div`
     /* push Chart actions to upper right */
     .dragdroppable-column .dashboard-component-chart-holder .hover-menu--top,
     .dragdroppable .dashboard-component-header .hover-menu--top {
-      right: ${theme.gridUnit * 2}px;
-      top: ${theme.gridUnit * 2}px;
+      right: ${theme.sizeUnit * 3}px;
+      top: ${theme.sizeUnit * 5}px;
       background: transparent;
       border: none;
       transform: unset;
@@ -79,38 +100,51 @@ const StyledDiv = styled.div`
     }
 
     p {
-      margin: 0 0 ${theme.gridUnit * 2}px 0;
+      margin: 0 0 ${theme.sizeUnit * 2}px 0;
     }
 
     i.danger {
-      color: ${theme.colors.error.base};
+      color: ${theme.colorError};
     }
 
     i.warning {
-      color: ${theme.colors.alert.base};
+      color: ${theme.colorWarning};
     }
   `}
 `;
 
 type Props = {};
 
-const DashboardWrapper: React.FC<Props> = ({ children }) => {
+const DashboardWrapper: FC<Props> = ({ children }) => {
   const editMode = useSelector<RootState, boolean>(
     state => state.dashboardState.editMode,
   );
   const dragDropManager = useDragDropManager();
-  const [isDragged, setIsDragged] = React.useState(
+  const [isDragged, setIsDragged] = useState(
     dragDropManager.getMonitor().isDragging(),
   );
 
   useEffect(() => {
     const monitor = dragDropManager.getMonitor();
+    const debouncedSetIsDragged = debounce(
+      setIsDragged,
+      Constants.FAST_DEBOUNCE,
+    );
     const unsub = monitor.subscribeToStateChange(() => {
-      setIsDragged(monitor.isDragging());
+      const isDragging = monitor.isDragging();
+      if (isDragging) {
+        // set a debounced function to prevent HTML5 drag source
+        // from interfering with the drop zone highlighting
+        debouncedSetIsDragged(true);
+      } else {
+        debouncedSetIsDragged.cancel();
+        setIsDragged(false);
+      }
     });
 
     return () => {
       unsub();
+      debouncedSetIsDragged.cancel();
     };
   }, [dragDropManager]);
 

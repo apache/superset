@@ -16,11 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import fetchMock from 'fetch-mock';
-import userEvent from '@testing-library/user-event';
 import {
   render,
+  userEvent,
   waitForElementToBeRemoved,
   waitFor,
 } from 'spec/helpers/testing-library';
@@ -50,6 +49,8 @@ describe('SamplesPane', () => {
         ],
         colnames: ['__timestamp', 'genre'],
         coltypes: [2, 1],
+        rowcount: 2,
+        sql_rowcount: 2,
       },
     },
   );
@@ -85,7 +86,7 @@ describe('SamplesPane', () => {
       useRedux: true,
     });
 
-    expect(await findByText('Error: Bad Request')).toBeVisible();
+    expect(await findByText('Error: Bad request')).toBeVisible();
   });
 
   test('force query, render and search', async () => {

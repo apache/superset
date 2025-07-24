@@ -16,13 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import { Dispatch } from 'react';
 import { t } from '@superset-ui/core';
-import { PageHeaderWithActions } from 'src/components/PageHeaderWithActions';
-import Button from 'src/components/Button';
-import Icons from 'src/components/Icons';
-import { Menu } from 'src/components/Menu';
-import { TooltipPlacement } from 'src/components/Tooltip';
+import { PageHeaderWithActions } from '@superset-ui/core/components/PageHeaderWithActions';
+import { Button } from '@superset-ui/core/components';
+import { TooltipPlacement } from '@superset-ui/core/components/Tooltip/types';
+import { Icons } from '@superset-ui/core/components/Icons';
+import { Menu } from '@superset-ui/core/components/Menu';
 import {
   DatasetActionType,
   DSReducerActionType,
@@ -48,7 +48,7 @@ const renderDisabledSaveButton = () => (
     disabled
     css={disabledSaveBtnStyles}
   >
-    <Icons.Save iconSize="m" />
+    <Icons.SaveOutlined iconSize="m" />
     {t('Save')}
   </Button>
 );
@@ -65,7 +65,7 @@ export default function Header({
   title = DEFAULT_TITLE,
   editing = false,
 }: {
-  setDataset: React.Dispatch<DSReducerActionType>;
+  setDataset: Dispatch<DSReducerActionType>;
   title?: string | null | undefined;
   schema?: string | null | undefined;
   editing?: boolean;
@@ -75,7 +75,7 @@ export default function Header({
     placeholder: DEFAULT_TITLE,
     onSave: (newDatasetName: string) => {
       setDataset({
-        type: DatasetActionType.changeDataset,
+        type: DatasetActionType.ChangeDataset,
         payload: { name: 'dataset_name', value: newDatasetName },
       });
     },

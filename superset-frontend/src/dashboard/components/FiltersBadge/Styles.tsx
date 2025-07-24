@@ -25,9 +25,9 @@ export const Pill = styled.div`
     background: ${theme.colors.grayscale.base};
     border-radius: 1em;
     vertical-align: text-top;
-    padding: ${theme.gridUnit}px ${theme.gridUnit * 2}px;
-    font-size: ${theme.typography.sizes.m}px;
-    font-weight: ${theme.typography.weights.bold};
+    padding: ${theme.sizeUnit}px ${theme.sizeUnit * 2}px;
+    font-size: ${theme.fontSize}px;
+    font-weight: ${theme.fontWeightStrong};
     min-width: 1em;
     min-height: 1em;
     line-height: 1em;
@@ -45,13 +45,13 @@ export const Pill = styled.div`
 
     &:hover {
       cursor: pointer;
-      background: ${theme.colors.grayscale.dark1};
+      background: ${theme.colorText};
     }
 
     &.has-cross-filters {
-      background: ${theme.colors.primary.base};
+      background: ${theme.colorPrimary};
       &:hover {
-        background: ${theme.colors.primary.dark1};
+        background: ${theme.colorPrimaryText};
       }
     }
   `}
@@ -59,15 +59,15 @@ export const Pill = styled.div`
 
 export const SectionName = styled.span`
   ${({ theme }) => css`
-    font-weight: ${theme.typography.weights.bold};
+    font-weight: ${theme.fontWeightStrong};
   `}
 `;
 export const FilterName = styled.span`
   ${({ theme }) => css`
-    padding-right: ${theme.gridUnit}px;
+    padding-right: ${theme.sizeUnit}px;
     font-style: italic;
     & > * {
-      margin-right: ${theme.gridUnit}px;
+      margin-right: ${theme.sizeUnit}px;
     }
   `}
 `;
@@ -88,12 +88,13 @@ export const FilterItem = styled.button`
     }
 
     & i svg {
-      opacity: ${theme.opacity.mediumLight};
-      margin-right: ${theme.gridUnit}px;
-      transition: opacity ease-in-out ${theme.transitionTiming};
+      opacity: 35%;
+      margin-right: ${theme.sizeUnit}px;
+      transition: opacity ease-in-out ${theme.motionDurationMid};
     }
 
-    &:hover i svg {
+    &:hover i svg,
+    &:focus-visible i svg {
       opacity: 1;
     }
   `}
@@ -101,9 +102,9 @@ export const FilterItem = styled.button`
 
 export const FiltersContainer = styled.div`
   ${({ theme }) => css`
-    margin-top: ${theme.gridUnit}px;
+    margin-top: ${theme.sizeUnit}px;
     &:not(:last-child) {
-      padding-bottom: ${theme.gridUnit * 3}px;
+      padding-bottom: ${theme.sizeUnit * 3}px;
     }
   `}
 `;
@@ -129,6 +130,6 @@ export const Separator = styled.div`
     width: 100%;
     height: 1px;
     background-color: ${theme.colors.grayscale.light1};
-    margin: ${theme.gridUnit * 4}px 0;
+    margin: ${theme.sizeUnit * 4}px 0;
   `}
 `;

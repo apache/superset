@@ -29,7 +29,7 @@ import {
   getValueFormatter,
 } from '@superset-ui/core';
 import { BigNumberTotalChartProps, BigNumberVizProps } from '../types';
-import { getDateFormatter, parseMetricValue } from '../utils';
+import { getDateFormatter, getOriginalLabel, parseMetricValue } from '../utils';
 import { Refs } from '../../types';
 
 export default function transformProps(
@@ -45,21 +45,30 @@ export default function transformProps(
     datasource: { currencyFormats = {}, columnFormats = {} },
   } = chartProps;
   const {
+    metricNameFontSize,
     headerFontSize,
     metric = 'value',
-    subheader = '',
-    subheaderFontSize,
+    subtitle,
+    subtitleFontSize,
     forceTimestampFormatting,
     timeFormat,
     yAxisFormat,
     conditionalFormatting,
     currencyFormat,
+    subheader,
+    subheaderFontSize,
   } = formData;
   const refs: Refs = {};
-  const { data = [], coltypes = [] } = queriesData[0];
+  const { data = [], coltypes = [] } = queriesData[0] || {};
   const granularity = extractTimegrain(rawFormData as QueryFormData);
+  const metrics = chartProps.datasource?.metrics || [];
+  const originalLabel = getOriginalLabel(metric, metrics);
   const metricName = getMetricLabel(metric);
-  const formattedSubheader = subheader;
+  const showMetricName = chartProps.rawFormData?.show_metric_name ?? false;
+  const formattedSubtitle = subtitle?.trim() ? subtitle : subheader || '';
+  const formattedSubtitleFontSize = subtitle?.trim()
+    ? (subtitleFontSize ?? 1)
+    : (subheaderFontSize ?? 1);
   const bigNumber =
     data.length === 0 ? null : parseMetricValue(data[0][metricName]);
 
@@ -80,13 +89,13 @@ export default function transformProps(
     metric,
     currencyFormats,
     columnFormats,
-    yAxisFormat,
+    metricEntry?.d3format || yAxisFormat,
     currencyFormat,
   );
 
   const headerFormatter =
-    coltypes[0] === GenericDataType.TEMPORAL ||
-    coltypes[0] === GenericDataType.STRING ||
+    coltypes[0] === GenericDataType.Temporal ||
+    coltypes[0] === GenericDataType.String ||
     forceTimestampFormatting
       ? formatTime
       : numberFormatter;
@@ -98,7 +107,6 @@ export default function transformProps(
   const colorThresholdFormatters =
     getColorFormatters(conditionalFormatting, data, false) ??
     defaultColorFormatters;
-
   return {
     width,
     height,
@@ -106,9 +114,13 @@ export default function transformProps(
     headerFormatter,
     headerFontSize,
     subheaderFontSize,
-    subheader: formattedSubheader,
+    subtitleFontSize: formattedSubtitleFontSize,
+    subtitle: formattedSubtitle,
     onContextMenu,
     refs,
     colorThresholdFormatters,
+    metricName: originalLabel,
+    showMetricName,
+    metricNameFontSize,
   };
 }

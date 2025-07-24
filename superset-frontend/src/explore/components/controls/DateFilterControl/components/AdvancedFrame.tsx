@@ -16,11 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
-import { t } from '@superset-ui/core';
-import { SEPARATOR } from 'src/explore/components/controls/DateFilterControl/utils';
-import { Input } from 'src/components/Input';
-import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
+import { SEPARATOR, t } from '@superset-ui/core';
+import { Input, Icons, InfoTooltip } from '@superset-ui/core/components';
 import { FrameComponentProps } from 'src/explore/components/controls/DateFilterControl/types';
 import DateFunctionTooltip from './DateFunctionTooltip';
 
@@ -57,12 +54,12 @@ export function AdvancedFrame(props: FrameComponentProps) {
       <div className="section-title">
         {t('Configure Advanced Time Range ')}
         <DateFunctionTooltip placement="rightBottom">
-          <i className="fa fa-info-circle text-muted" />
+          <Icons.InfoCircleOutlined />
         </DateFunctionTooltip>
       </div>
       <div className="control-label">
-        {t('START (INCLUSIVE)')}{' '}
-        <InfoTooltipWithTrigger
+        {t('Start (inclusive)')}{' '}
+        <InfoTooltip
           tooltip={t('Start date included in time range')}
           placement="right"
         />
@@ -73,8 +70,8 @@ export function AdvancedFrame(props: FrameComponentProps) {
         onChange={e => onChange('since', e.target.value)}
       />
       <div className="control-label">
-        {t('END (EXCLUSIVE)')}{' '}
-        <InfoTooltipWithTrigger
+        {t('End (exclusive)')}{' '}
+        <InfoTooltip
           tooltip={t('End date excluded from time range')}
           placement="right"
         />

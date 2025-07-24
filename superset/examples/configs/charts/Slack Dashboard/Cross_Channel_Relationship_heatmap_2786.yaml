@@ -1,0 +1,66 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+slice_name: Cross Channel Relationship heatmap_v2
+viz_type: heatmap_v2
+params:
+  adhoc_filters: []
+  x_axis: channel_1
+  groupby: channel_2
+  bottom_margin: auto
+  datasource: 35__table
+  left_margin: auto
+  linear_color_scheme: schemeBlues
+  metric:
+    aggregate: SUM
+    column:
+      column_name: cnt
+      description: null
+      expression: null
+      filterable: true
+      groupby: true
+      id: 1777
+      is_dttm: false
+      optionName: _col_cnt
+      python_date_format: null
+      type: INT
+      verbose_name: null
+    expressionType: SIMPLE
+    hasCustomLabel: false
+    isNew: false
+    label: SUM(cnt)
+    optionName: metric_i1djbl8i2y_2vdl690dkyu
+    sqlExpression: null
+  normalize_across: heatmap_v2
+  row_limit: 1000
+  show_legend: true
+  show_percentage: false
+  show_values: true
+  sort_x_axis: alpha_asc
+  sort_y_axis: alpha_asc
+  time_range: No filter
+  url_params: {}
+  viz_type: heatmap_v2
+  xscale_interval: null
+  value_bounds:
+    - null
+    - null
+  y_axis_format: SMART_NUMBER
+  yscale_interval: null
+cache_timeout: null
+uuid: 6cb43397-5c62-4f32-bde2-95344c412b5a
+version: 1.0.0
+dataset_uuid: 473d6113-b44a-48d8-a6ae-e0ef7e2aebb0

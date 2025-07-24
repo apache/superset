@@ -1,71 +1,169 @@
-name: Frontend
+name: "Frontend Build CI (unit tests, linting & sanity checks)"
 
 on:
   push:
-    branches-ignore:
-      - "dependabot/**/docs/**"
-      - "dependabot/**/cypress-base/**"
+    branches:
+      - "master"
+      - "[0-9].[0-9]*"
   pull_request:
     types: [synchronize, opened, reopened, ready_for_review]
 
+# cancel previous workflow jobs for PRs
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: true
+
+env:
+  TAG: apache/superset:GHA-${{ github.run_id }}
+
 jobs:
   frontend-build:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
+    outputs:
+      should-run: ${{ steps.check.outputs.frontend }}
     steps:
-      - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
-        uses: actions/checkout@v3
+      - name: Checkout Code
+        uses: actions/checkout@v4
         with:
           persist-credentials: false
-          submodules: recursive
-      - name: Check npm lock file version
-        run: ./scripts/ci_check_npm_lock_version.sh ./superset-frontend/package-lock.json
-      - name: Check if frontend changes are present
+          fetch-depth: 0
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+
+      - name: Check for File Changes
         id: check
+        uses: ./.github/actions/change-detector/
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build Docker Image
+        if: steps.check.outputs.frontend
+        shell: bash
         env:
-          GITHUB_REPO: ${{ github.repository }}
-          PR_NUMBER: ${{ github.event.pull_request.number }}
-        continue-on-error: true
-        run: ./scripts/ci_check_no_file_changes.sh frontend
-      - name: Setup Node.js
-        if: steps.check.outcome == 'failure'
-        uses: actions/setup-node@v3
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "git rev-parse --short HEAD"
+          git rev-parse --short HEAD
+          echo "git show -s --format=raw HEAD"
+          git show -s --format=raw HEAD
+          docker buildx build \
+            -t $TAG \
+            --cache-from=type=registry,ref=apache/superset-cache:3.10-slim-bookworm \
+            --target superset-node-ci \
+            .
+
+      - name: Save Docker Image as Artifact
+        if: steps.check.outputs.frontend
+        run: |
+          docker save $TAG | gzip > docker-image.tar.gz
+
+      - name: Upload Docker Image Artifact
+        if: steps.check.outputs.frontend
+        uses: actions/upload-artifact@v4
         with:
-          node-version: "16"
-      - name: Install dependencies
-        if: steps.check.outcome == 'failure'
-        uses: ./.github/actions/cached-dependencies
+          name: docker-image
+          path: docker-image.tar.gz
+
+  sharded-jest-tests:
+    needs: frontend-build
+    if: needs.frontend-build.outputs.should-run == 'true'
+    strategy:
+      matrix:
+        shard: [1, 2, 3, 4, 5, 6, 7, 8]
+      fail-fast: false
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Download Docker Image Artifact
+        uses: actions/download-artifact@v4
         with:
-          run: npm-install
-      - name: lint
-        if: steps.check.outcome == 'failure'
-        working-directory: ./superset-frontend
+          name: docker-image
+
+      - name: Load Docker Image
+        run: docker load < docker-image.tar.gz
+
+      - name: npm run test with coverage
         run: |
-          npm run lint -- --quiet
-          npm run prettier-check
-      - name: Build plugins packages
-        if: steps.check.outcome == 'failure'
-        working-directory: ./superset-frontend
-        run: npm run plugins:build
-      - name: Build plugins Storybook
-        if: steps.check.outcome == 'failure'
-        working-directory: ./superset-frontend
-        run: npm run plugins:build-storybook
-      - name: superset-ui/core coverage
-        if: steps.check.outcome == 'failure'
-        working-directory: ./superset-frontend
+          mkdir -p ${{ github.workspace }}/superset-frontend/coverage
+          docker run \
+          -v ${{ github.workspace }}/superset-frontend/coverage:/app/superset-frontend/coverage \
+          --rm $TAG \
+          bash -c \
+          "npm run test -- --coverage --shard=${{ matrix.shard }}/8 --coverageReporters=json-summary"
+
+      - name: Upload Coverage Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-artifacts-${{ matrix.shard }}
+          path: superset-frontend/coverage
+
+  report-coverage:
+    needs: [sharded-jest-tests]
+    if: needs.frontend-build.outputs.should-run == 'true'
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Download Coverage Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: coverage-artifacts-*
+          path: coverage/
+
+      - name: Show Files
+        run: find coverage/
+
+      - name: Merge Code Coverage
+        run: npx nyc merge coverage/ merged-output/coverage-summary.json
+
+      - name: Upload Code Coverage
+        uses: codecov/codecov-action@v5
+        with:
+          flags: javascript
+          token: ${{ secrets.CODECOV_TOKEN }}
+          verbose: true
+          files: merged-output/coverage-summary.json
+          slug: apache/superset
+
+  lint-frontend:
+    needs: frontend-build
+    if: needs.frontend-build.outputs.should-run == 'true'
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Download Docker Image Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: docker-image
+
+      - name: Load Docker Image
         run: |
-          npm run core:cover
-      - name: unit tests
-        if: steps.check.outcome == 'failure'
-        working-directory: ./superset-frontend
+          docker load < docker-image.tar.gz
+
+      - name: eslint
         run: |
-          npm run test -- --coverage --silent
-      # todo: remove this step when fix generator as a project in root jest.config.js
-      - name: generator-superset unit tests
-        if: steps.check.outcome == 'failure'
-        working-directory: ./superset-frontend/packages/generator-superset
-        run: npx jest
-      - name: Upload code coverage
-        if: steps.check.outcome == 'failure'
-        working-directory: ./superset-frontend
-        run: ../.github/workflows/codecov.sh -c -F javascript
+          docker run --rm $TAG bash -c \
+          "npm i && npm run eslint -- . --quiet"
+
+      - name: tsc
+        run: |
+          docker run --rm $TAG bash -c \
+          "npm run type"
+
+  validate-frontend:
+    needs: frontend-build
+    if: needs.frontend-build.outputs.should-run == 'true'
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Download Docker Image Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: docker-image
+
+      - name: Load Docker Image
+        run: docker load < docker-image.tar.gz
+
+      - name: Build Plugins Packages
+        run: |
+          docker run --rm $TAG bash -c \
+          "npm run plugins:build"
+
+      - name: Build Plugins Storybook
+        run: |
+          docker run --rm $TAG bash -c \
+          "npm run plugins:build-storybook"

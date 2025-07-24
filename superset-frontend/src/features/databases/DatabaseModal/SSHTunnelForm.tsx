@@ -16,36 +16,39 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { EventHandler, ChangeEvent, useState } from 'react';
+import { useState } from 'react';
 import { t, styled } from '@superset-ui/core';
-import { AntdForm, Col, Row } from 'src/components';
-import { Form, FormLabel } from 'src/components/Form';
-import { Radio } from 'src/components/Radio';
-import { Input, TextArea } from 'src/components/Input';
-import { Input as AntdInput, Tooltip } from 'antd';
-import { EyeInvisibleOutlined, EyeOutlined } from '@ant-design/icons';
-import { DatabaseObject } from '../types';
+import {
+  Input,
+  Form,
+  FormLabel,
+  Col,
+  Row,
+  Tooltip,
+} from '@superset-ui/core/components';
+import { Radio } from '@superset-ui/core/components/Radio';
+import { Icons } from '@superset-ui/core/components/Icons';
+import { DatabaseObject, FieldPropTypes } from '../types';
 import { AuthType } from '.';
 
 const StyledDiv = styled.div`
-  padding-top: ${({ theme }) => theme.gridUnit * 2}px;
+  padding-top: ${({ theme }) => theme.sizeUnit * 2}px;
   label {
     color: ${({ theme }) => theme.colors.grayscale.base};
-    text-transform: uppercase;
-    margin-bottom: ${({ theme }) => theme.gridUnit * 2}px;
+    margin-bottom: ${({ theme }) => theme.sizeUnit * 2}px;
   }
 `;
 
 const StyledRow = styled(Row)`
-  padding-bottom: ${({ theme }) => theme.gridUnit * 2}px;
+  padding-bottom: ${({ theme }) => theme.sizeUnit * 2}px;
 `;
 
-const StyledFormItem = styled(AntdForm.Item)`
+const StyledFormItem = styled(Form.Item)`
   margin-bottom: 0 !important;
 `;
 
-const StyledInputPassword = styled(AntdInput.Password)`
-  margin: ${({ theme }) => `${theme.gridUnit}px 0 ${theme.gridUnit * 2}px`};
+const StyledInputPassword = styled(Input.Password)`
+  margin: ${({ theme }) => `${theme.sizeUnit}px 0 ${theme.sizeUnit * 2}px`};
 `;
 
 const SSHTunnelForm = ({
@@ -54,12 +57,10 @@ const SSHTunnelForm = ({
   setSSHTunnelLoginMethod,
 }: {
   db: DatabaseObject | null;
-  onSSHTunnelParametersChange: EventHandler<
-    ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
-  >;
+  onSSHTunnelParametersChange: FieldPropTypes['changeMethods']['onSSHTunnelParametersChange'];
   setSSHTunnelLoginMethod: (method: AuthType) => void;
 }) => {
-  const [usePassword, setUsePassword] = useState<AuthType>(AuthType.password);
+  const [usePassword, setUsePassword] = useState<AuthType>(AuthType.Password);
 
   return (
     <Form>
@@ -86,9 +87,9 @@ const SSHTunnelForm = ({
             </FormLabel>
             <Input
               name="server_port"
-              type="text"
               placeholder={t('22')}
-              value={db?.ssh_tunnel?.server_port || ''}
+              type="number"
+              value={db?.ssh_tunnel?.server_port}
               onChange={onSSHTunnelParametersChange}
               data-test="ssh-tunnel-server_port-input"
             />
@@ -126,13 +127,13 @@ const SSHTunnelForm = ({
                 }}
               >
                 <Radio
-                  value={AuthType.password}
+                  value={AuthType.Password}
                   data-test="ssh-tunnel-use_password-radio"
                 >
                   {t('Password')}
                 </Radio>
                 <Radio
-                  value={AuthType.privateKey}
+                  value={AuthType.PrivateKey}
                   data-test="ssh-tunnel-use_private_key-radio"
                 >
                   {t('Private Key & Password')}
@@ -142,7 +143,7 @@ const SSHTunnelForm = ({
           </StyledDiv>
         </Col>
       </StyledRow>
-      {usePassword === AuthType.password && (
+      {usePassword === AuthType.Password && (
         <StyledRow gutter={16}>
           <Col xs={24}>
             <StyledDiv>
@@ -158,11 +159,11 @@ const SSHTunnelForm = ({
                 iconRender={visible =>
                   visible ? (
                     <Tooltip title="Hide password.">
-                      <EyeInvisibleOutlined />
+                      <Icons.EyeInvisibleOutlined />
                     </Tooltip>
                   ) : (
                     <Tooltip title="Show password.">
-                      <EyeOutlined />
+                      <Icons.EyeOutlined />
                     </Tooltip>
                   )
                 }
@@ -172,7 +173,7 @@ const SSHTunnelForm = ({
           </Col>
         </StyledRow>
       )}
-      {usePassword === AuthType.privateKey && (
+      {usePassword === AuthType.PrivateKey && (
         <>
           <StyledRow gutter={16}>
             <Col xs={24}>
@@ -180,7 +181,7 @@ const SSHTunnelForm = ({
                 <FormLabel htmlFor="private_key" required>
                   {t('Private Key')}
                 </FormLabel>
-                <TextArea
+                <Input.TextArea
                   name="private_key"
                   placeholder={t('Paste Private Key here')}
                   value={db?.ssh_tunnel?.private_key || ''}
@@ -206,11 +207,11 @@ const SSHTunnelForm = ({
                   iconRender={visible =>
                     visible ? (
                       <Tooltip title="Hide password.">
-                        <EyeInvisibleOutlined />
+                        <Icons.EyeInvisibleOutlined />
                       </Tooltip>
                     ) : (
                       <Tooltip title="Show password.">
-                        <EyeOutlined />
+                        <Icons.EyeOutlined />
                       </Tooltip>
                     )
                   }

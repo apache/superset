@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useCallback, useMemo } from 'react';
+import { useCallback, useMemo } from 'react';
 import { MinusSquareOutlined, PlusSquareOutlined } from '@ant-design/icons';
 import {
   AdhocMetric,
@@ -154,6 +154,7 @@ export default function PivotTableChart(props: PivotTableProps) {
     dateFormatters,
     onContextMenu,
     timeGrainSqla,
+    allowRenderHtml,
   } = props;
 
   const theme = useTheme();
@@ -439,8 +440,8 @@ export default function PivotTableChart(props: PivotTableProps) {
       rowSubTotals,
       highlightHeaderCellsOnHover:
         emitCrossFilters ||
-        isFeatureEnabled(FeatureFlag.DRILL_BY) ||
-        isFeatureEnabled(FeatureFlag.DRILL_TO_DETAIL),
+        isFeatureEnabled(FeatureFlag.DrillBy) ||
+        isFeatureEnabled(FeatureFlag.DrillToDetail),
       highlightedHeaderCells: selectedFilters,
       omittedHighlightHeaderGroups: [METRIC_KEY],
       cellColorFormatters: { [METRIC_KEY]: metricColorFormatters },
@@ -537,7 +538,7 @@ export default function PivotTableChart(props: PivotTableProps) {
   );
 
   return (
-    <Styles height={height} width={width} margin={theme.gridUnit * 4}>
+    <Styles height={height} width={width} margin={theme.sizeUnit * 4}>
       <PivotTableWrapper>
         <PivotTable
           data={unpivotedData}
@@ -555,6 +556,7 @@ export default function PivotTableChart(props: PivotTableProps) {
           subtotalOptions={subtotalOptions}
           namesMapping={verboseMap}
           onContextMenu={handleContextMenu}
+          allowRenderHtml={allowRenderHtml}
         />
       </PivotTableWrapper>
     </Styles>

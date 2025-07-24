@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import { t } from '@superset-ui/core';
 
 import { ControlSubSectionHeader } from '../components/ControlSubSectionHeader';
@@ -30,6 +29,7 @@ export const TITLE_POSITION_OPTIONS: [string, string][] = [
   ['Left', t('Left')],
   ['Top', t('Top')],
 ];
+
 export const titleControls: ControlPanelSectionConfig = {
   label: t('Chart Title'),
   tabOverride: 'customize',
@@ -44,7 +44,6 @@ export const titleControls: ControlPanelSectionConfig = {
           label: t('X Axis Title'),
           renderTrigger: true,
           default: '',
-          description: t('Changing this control takes effect instantly'),
         },
       },
     ],
@@ -55,11 +54,10 @@ export const titleControls: ControlPanelSectionConfig = {
           type: 'SelectControl',
           freeForm: true,
           clearable: true,
-          label: t('X AXIS TITLE BOTTOM MARGIN'),
+          label: t('X Axis Title Margin'),
           renderTrigger: true,
           default: TITLE_MARGIN_OPTIONS[0],
           choices: formatSelectOptions(TITLE_MARGIN_OPTIONS),
-          description: t('Changing this control takes effect instantly'),
         },
       },
     ],
@@ -72,7 +70,6 @@ export const titleControls: ControlPanelSectionConfig = {
           label: t('Y Axis Title'),
           renderTrigger: true,
           default: '',
-          description: t('Changing this control takes effect instantly'),
         },
       },
     ],
@@ -85,9 +82,8 @@ export const titleControls: ControlPanelSectionConfig = {
           clearable: true,
           label: t('Y Axis Title Margin'),
           renderTrigger: true,
-          default: TITLE_MARGIN_OPTIONS[0],
+          default: TITLE_MARGIN_OPTIONS[1],
           choices: formatSelectOptions(TITLE_MARGIN_OPTIONS),
-          description: t('Changing this control takes effect instantly'),
         },
       },
     ],
@@ -102,7 +98,6 @@ export const titleControls: ControlPanelSectionConfig = {
           renderTrigger: true,
           default: TITLE_POSITION_OPTIONS[0][0],
           choices: TITLE_POSITION_OPTIONS,
-          description: t('Changing this control takes effect instantly'),
         },
       },
     ],

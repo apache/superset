@@ -17,19 +17,21 @@
  * under the License.
  */
 
-import React, { forwardRef, ReactNode, RefObject } from 'react';
-import { css, styled, useTheme } from '@superset-ui/core';
-import Icons from 'src/components/Icons';
+import { forwardRef, MouseEvent, ReactNode, RefObject } from 'react';
+
+import { css, styled, t } from '@superset-ui/core';
+import { Icons } from '@superset-ui/core/components/Icons';
 
 export type DateLabelProps = {
+  name?: string;
   label: ReactNode;
   isActive?: boolean;
   isPlaceholder?: boolean;
-  onClick?: (event: React.MouseEvent) => void;
+  onClick?: (event: MouseEvent) => void;
 };
 
 // This is the color that antd components (such as Select or Input) use on hover
-// TODO: use theme.colors.primary.base here and in antd components
+// TODO: use theme.colorPrimary here and in antd components
 const ACTIVE_BORDER_COLOR = '#45BED6';
 
 const LabelContainer = styled.div<{
@@ -37,14 +39,13 @@ const LabelContainer = styled.div<{
   isPlaceholder?: boolean;
 }>`
   ${({ theme, isActive, isPlaceholder }) => css`
-    width: 100%;
-    height: ${theme.gridUnit * 8}px;
+    height: ${theme.sizeUnit * 8}px;
 
     display: flex;
     align-items: center;
     flex-wrap: nowrap;
 
-    padding: 0 ${theme.gridUnit * 3}px;
+    padding: 0 ${theme.sizeUnit * 3}px;
 
     background-color: ${theme.colors.grayscale.light5};
 
@@ -61,9 +62,7 @@ const LabelContainer = styled.div<{
     }
 
     .date-label-content {
-      color: ${isPlaceholder
-        ? theme.colors.grayscale.light1
-        : theme.colors.grayscale.dark1};
+      color: ${isPlaceholder ? theme.colors.grayscale.light1 : theme.colorText};
       overflow: hidden;
       text-overflow: ellipsis;
       min-width: 0;
@@ -73,7 +72,7 @@ const LabelContainer = styled.div<{
 
     span[role='img'] {
       margin-left: auto;
-      padding-left: ${theme.gridUnit}px;
+      padding-left: ${theme.sizeUnit}px;
 
       & > span[role='img'] {
         line-height: 0;
@@ -83,18 +82,16 @@ const LabelContainer = styled.div<{
 `;
 
 export const DateLabel = forwardRef(
-  (props: DateLabelProps, ref: RefObject<HTMLSpanElement>) => {
-    const theme = useTheme();
-    return (
-      <LabelContainer {...props} tabIndex={0}>
-        <span className="date-label-content" ref={ref}>
-          {props.label}
-        </span>
-        <Icons.CalendarOutlined
-          iconSize="s"
-          iconColor={theme.colors.grayscale.base}
-        />
-      </LabelContainer>
-    );
-  },
+  (props: DateLabelProps, ref: RefObject<HTMLSpanElement>) => (
+    <LabelContainer {...props} tabIndex={0} role="button">
+      <span
+        id={`date-label-${props.name}`}
+        className="date-label-content"
+        ref={ref}
+      >
+        {typeof props.label === 'string' ? t(props.label) : props.label}
+      </span>
+      <Icons.CalendarOutlined iconSize="s" />
+    </LabelContainer>
+  ),
 );

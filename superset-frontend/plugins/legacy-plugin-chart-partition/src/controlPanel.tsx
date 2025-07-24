@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import { t, validateNonEmpty } from '@superset-ui/core';
 import {
   ColumnMeta,
@@ -26,13 +25,11 @@ import {
   D3_FORMAT_OPTIONS,
   D3_TIME_FORMAT_OPTIONS,
   getStandardizedControls,
-  sections,
 } from '@superset-ui/chart-controls';
 import OptionDescription from './OptionDescription';
 
 const config: ControlPanelConfig = {
   controlPanelSections: [
-    sections.legacyRegularTime,
     {
       label: t('Query'),
       expanded: true,

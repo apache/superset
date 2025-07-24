@@ -16,30 +16,26 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
-import {
-  ensureIsArray,
-  hasGenericChartAxes,
-  isAdhocColumn,
-  isPhysicalColumn,
-  QueryFormMetric,
-  smartDateFormatter,
-  t,
-  validateNonEmpty,
-} from '@superset-ui/core';
 import {
   ControlPanelConfig,
   D3_TIME_FORMAT_OPTIONS,
-  sections,
-  sharedControls,
   Dataset,
   getStandardizedControls,
+  sharedControls,
 } from '@superset-ui/chart-controls';
+import {
+  ensureIsArray,
+  isAdhocColumn,
+  isPhysicalColumn,
+  QueryFormMetric,
+  SMART_DATE_ID,
+  t,
+  validateNonEmpty,
+} from '@superset-ui/core';
 import { MetricsLayoutEnum } from '../types';
 
 const config: ControlPanelConfig = {
   controlPanelSections: [
-    { ...sections.genericTime, expanded: false },
     {
       label: t('Query'),
       expanded: true,
@@ -65,37 +61,35 @@ const config: ControlPanelConfig = {
           },
         ],
         [
-          hasGenericChartAxes
-            ? {
-                name: 'time_grain_sqla',
-                config: {
-                  ...sharedControls.time_grain_sqla,
-                  visibility: ({ controls }) => {
-                    const dttmLookup = Object.fromEntries(
-                      ensureIsArray(controls?.groupbyColumns?.options).map(
-                        option => [option.column_name, option.is_dttm],
-                      ),
-                    );
+          {
+            name: 'time_grain_sqla',
+            config: {
+              ...sharedControls.time_grain_sqla,
+              visibility: ({ controls }) => {
+                const dttmLookup = Object.fromEntries(
+                  ensureIsArray(controls?.groupbyColumns?.options).map(
+                    option => [option.column_name, option.is_dttm],
+                  ),
+                );
 
-                    return [
-                      ...ensureIsArray(controls?.groupbyColumns.value),
-                      ...ensureIsArray(controls?.groupbyRows.value),
-                    ]
-                      .map(selection => {
-                        if (isAdhocColumn(selection)) {
-                          return true;
-                        }
-                        if (isPhysicalColumn(selection)) {
-                          return !!dttmLookup[selection];
-                        }
-                        return false;
-                      })
-                      .some(Boolean);
-                  },
-                },
-              }
-            : null,
-          hasGenericChartAxes ? 'temporal_columns_lookup' : null,
+                return [
+                  ...ensureIsArray(controls?.groupbyColumns.value),
+                  ...ensureIsArray(controls?.groupbyRows.value),
+                ]
+                  .map(selection => {
+                    if (isAdhocColumn(selection)) {
+                      return true;
+                    }
+                    if (isPhysicalColumn(selection)) {
+                      return !!dttmLookup[selection];
+                    }
+                    return false;
+                  })
+                  .some(Boolean);
+              },
+            },
+          },
+          'temporal_columns_lookup',
         ],
         [
           {
@@ -304,7 +298,7 @@ const config: ControlPanelConfig = {
               type: 'SelectControl',
               freeForm: true,
               label: t('Date format'),
-              default: smartDateFormatter.id,
+              default: SMART_DATE_ID,
               renderTrigger: true,
               choices: D3_TIME_FORMAT_OPTIONS,
               description: t('D3 time format for datetime columns'),
@@ -417,11 +411,16 @@ const config: ControlPanelConfig = {
                   'verbose_map',
                 )
                   ? (explore?.datasource as Dataset)?.verbose_map
-                  : explore?.datasource?.columns ?? {};
+                  : (explore?.datasource?.columns ?? {});
                 const chartStatus = chart?.chartStatus;
                 const metricColumn = values.map(value => {
                   if (typeof value === 'string') {
-                    return { value, label: verboseMap[value] ?? value };
+                    return {
+                      value,
+                      label: Array.isArray(verboseMap)
+                        ? value
+                        : verboseMap[value],
+                    };
                   }
                   return { value: value.label, label: value.label };
                 });
@@ -431,6 +430,20 @@ const config: ControlPanelConfig = {
                   verboseMap,
                 };
               },
+            },
+          },
+        ],
+        [
+          {
+            name: 'allow_render_html',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Render columns in HTML format'),
+              renderTrigger: true,
+              default: true,
+              description: t(
+                'Renders table cells as HTML when applicable. For example, HTML <a> tags will be rendered as hyperlinks.',
+              ),
             },
           },
         ],

@@ -15,6 +15,8 @@
 # specific language governing permissions and limitations
 # under the License.
 
+import math
+
 from flask_babel import lazy_gettext as _
 
 from superset.commands.exceptions import (
@@ -93,6 +95,31 @@ class ReportScheduleEitherChartOrDashboardError(ValidationError):
         )
 
 
+class ReportScheduleFrequencyNotAllowed(ValidationError):  # noqa: N818
+    """
+    Marshmallow validation error for report schedule configured to run more
+    frequently than allowed
+    """
+
+    def __init__(
+        self,
+        report_type: str = "Report",
+        minimum_interval: int = 120,
+    ) -> None:
+        interval_in_minutes = math.ceil(minimum_interval / 60)
+
+        super().__init__(
+            _(
+                "%(report_type)s schedule frequency exceeding limit."
+                " Please configure a schedule with a minimum interval of"
+                " %(minimum_interval)d minutes per execution.",
+                report_type=report_type,
+                minimum_interval=interval_in_minutes,
+            ),
+            field_name="crontab",
+        )
+
+
 class ChartNotSavedValidationError(ValidationError):
     """
     Marshmallow validation error for charts that haven't been saved yet
@@ -113,7 +140,7 @@ class DashboardNotSavedValidationError(ValidationError):
     def __init__(self) -> None:
         super().__init__(
             _(
-                "Please save your dashboard first, then try creating a new email report."
+                "Please save your dashboard first, then try creating a new email report."  # noqa: E501
             ),
             field_name="dashboard",
         )
@@ -147,6 +174,10 @@ class PruneReportScheduleLogFailedError(CommandException):
 
 class ReportScheduleScreenshotFailedError(CommandException):
     message = _("Report Schedule execution failed when generating a screenshot.")
+
+
+class ReportSchedulePdfFailedError(CommandException):
+    message = _("Report Schedule execution failed when generating a pdf.")
 
 
 class ReportScheduleCsvFailedError(CommandException):

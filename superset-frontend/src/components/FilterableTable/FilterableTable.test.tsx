@@ -16,12 +16,21 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
-import FilterableTable from 'src/components/FilterableTable';
-import { render, screen, within } from 'spec/helpers/testing-library';
-import userEvent from '@testing-library/user-event';
+import { isValidElement } from 'react';
+import {
+  render,
+  screen,
+  userEvent,
+  within,
+} from 'spec/helpers/testing-library';
+import { setupAGGridModules } from 'src/setup/setupAGGridModules';
+import { FilterableTable } from '.';
 
 describe('FilterableTable', () => {
+  beforeAll(() => {
+    setupAGGridModules();
+  });
+
   const mockedProps = {
     orderedColumnKeys: ['a', 'b', 'c', 'children'],
     data: [
@@ -32,15 +41,13 @@ describe('FilterableTable', () => {
     height: 500,
   };
   it('is valid element', () => {
-    expect(React.isValidElement(<FilterableTable {...mockedProps} />)).toBe(
-      true,
-    );
+    expect(isValidElement(<FilterableTable {...mockedProps} />)).toBe(true);
   });
   it('renders a grid with 3 Table rows', () => {
     const { getByRole, getByText } = render(
       <FilterableTable {...mockedProps} />,
     );
-    expect(getByRole('table')).toBeInTheDocument();
+    expect(getByRole('grid')).toBeInTheDocument();
     mockedProps.data.forEach(({ b: columnBContent }) => {
       expect(getByText(columnBContent)).toBeInTheDocument();
     });
@@ -52,8 +59,8 @@ describe('FilterableTable', () => {
     };
     const { getByText, queryByText } = render(<FilterableTable {...props} />);
     expect(getByText(props.filterText)).toBeInTheDocument();
-    expect(queryByText('b2')).toBeFalsy();
-    expect(queryByText('b3')).toBeFalsy();
+    expect(queryByText('b2')).not.toBeInTheDocument();
+    expect(queryByText('b3')).not.toBeInTheDocument();
   });
   it('filters on a number', () => {
     const props = {
@@ -62,12 +69,16 @@ describe('FilterableTable', () => {
     };
     const { getByText, queryByText } = render(<FilterableTable {...props} />);
     expect(getByText('b2')).toBeInTheDocument();
-    expect(queryByText('b1')).toBeFalsy();
-    expect(queryByText('b3')).toBeFalsy();
+    expect(queryByText('b1')).not.toBeInTheDocument();
+    expect(queryByText('b3')).not.toBeInTheDocument();
   });
 });
 
 describe('FilterableTable sorting - RTL', () => {
+  beforeAll(() => {
+    setupAGGridModules();
+  });
+
   it('sorts strings correctly', () => {
     const stringProps = {
       orderedColumnKeys: ['columnA'],
@@ -80,11 +91,10 @@ describe('FilterableTable sorting - RTL', () => {
     };
     render(<FilterableTable {...stringProps} />);
 
-    const stringColumn = within(screen.getByRole('table'))
+    const stringColumn = within(screen.getByRole('grid'))
       .getByText('columnA')
-      .closest('th');
-    // Antd 4.x Table does not follow the table role structure. Need a hacky selector to point the cell item
-    const gridCells = screen.getByTitle('Bravo').closest('.virtual-grid');
+      .closest('[role=button]');
+    const gridCells = screen.getByText('Bravo').closest('[role=rowgroup]');
 
     // Original order
     expect(gridCells?.textContent).toEqual(
@@ -126,10 +136,10 @@ describe('FilterableTable sorting - RTL', () => {
     };
     render(<FilterableTable {...integerProps} />);
 
-    const integerColumn = within(screen.getByRole('table'))
+    const integerColumn = within(screen.getByRole('grid'))
       .getByText('columnB')
-      .closest('th');
-    const gridCells = screen.getByTitle('21').closest('.virtual-grid');
+      .closest('[role=button]');
+    const gridCells = screen.getByText('21').closest('[role=rowgroup]');
 
     // Original order
     expect(gridCells?.textContent).toEqual(['21', '0', '623'].join(''));
@@ -161,10 +171,10 @@ describe('FilterableTable sorting - RTL', () => {
     };
     render(<FilterableTable {...floatProps} />);
 
-    const floatColumn = within(screen.getByRole('table'))
+    const floatColumn = within(screen.getByRole('grid'))
       .getByText('columnC')
-      .closest('th');
-    const gridCells = screen.getByTitle('45.67').closest('.virtual-grid');
+      .closest('[role=button]');
+    const gridCells = screen.getByText('45.67').closest('[role=rowgroup]');
 
     // Original order
     expect(gridCells?.textContent).toEqual(
@@ -216,10 +226,10 @@ describe('FilterableTable sorting - RTL', () => {
     };
     render(<FilterableTable {...mixedFloatProps} />);
 
-    const mixedFloatColumn = within(screen.getByRole('table'))
+    const mixedFloatColumn = within(screen.getByRole('grid'))
       .getByText('columnD')
-      .closest('th');
-    const gridCells = screen.getByTitle('48710.92').closest('.virtual-grid');
+      .closest('[role=button]');
+    const gridCells = screen.getByText('48710.92').closest('[role=rowgroup]');
 
     // Original order
     expect(gridCells?.textContent).toEqual(
@@ -314,10 +324,10 @@ describe('FilterableTable sorting - RTL', () => {
     };
     render(<FilterableTable {...dsProps} />);
 
-    const dsColumn = within(screen.getByRole('table'))
+    const dsColumn = within(screen.getByRole('grid'))
       .getByText('columnDS')
-      .closest('th');
-    const gridCells = screen.getByTitle('2021-01-01').closest('.virtual-grid');
+      .closest('[role=button]');
+    const gridCells = screen.getByText('2021-01-01').closest('[role=rowgroup]');
 
     // Original order
     expect(gridCells?.textContent).toEqual(

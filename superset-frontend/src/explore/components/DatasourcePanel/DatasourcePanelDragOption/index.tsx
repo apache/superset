@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import { RefObject } from 'react';
 import { useDrag } from 'react-dnd';
 import { css, Metric, styled } from '@superset-ui/core';
 import { ColumnMeta } from '@superset-ui/chart-controls';
@@ -25,7 +25,7 @@ import {
   StyledColumnOption,
   StyledMetricOption,
 } from 'src/explore/components/optionRenderers';
-import Icons from 'src/components/Icons';
+import { Icons } from '@superset-ui/core/components/Icons';
 
 import { DatasourcePanelDndItem } from '../types';
 
@@ -35,23 +35,28 @@ const DatasourceItemContainer = styled.div`
     align-items: center;
     justify-content: space-between;
     width: 100%;
-    height: ${theme.gridUnit * 6}px;
-    padding: 0 ${theme.gridUnit}px;
+    height: ${theme.sizeUnit * 6}px;
+    padding: 0 ${theme.sizeUnit}px;
 
     // hack to make the drag preview image corners rounded
     transform: translate(0, 0);
-    background-color: inherit;
+    color: ${theme.colorText};
+    background-color: ${theme.colorBgLayout};
     border-radius: 4px;
+
+    &:hover {
+      background-color: ${theme.colorPrimaryBgHover};
+    }
 
     > div {
       min-width: 0;
-      margin-right: ${theme.gridUnit * 2}px;
+      margin-right: ${theme.sizeUnit * 2}px;
     }
   `}
 `;
 
 interface DatasourcePanelDragOptionProps extends DatasourcePanelDndItem {
-  labelRef?: React.RefObject<any>;
+  labelRef?: RefObject<any>;
   showTooltip?: boolean;
 }
 

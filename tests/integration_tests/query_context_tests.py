@@ -14,22 +14,24 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import copy
 import re
 import time
 from typing import Any
+from unittest.mock import Mock, patch
 
 import numpy as np
 import pandas as pd
 import pytest
 from pandas import DateOffset
 
-from superset import db
+from superset import app, db
 from superset.charts.schemas import ChartDataQueryContextSchema
 from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
 from superset.common.query_context import QueryContext
 from superset.common.query_context_factory import QueryContextFactory
 from superset.common.query_object import QueryObject
-from superset.connectors.sqla.models import SqlMetric
+from superset.daos.dataset import DatasetDAO
 from superset.daos.datasource import DatasourceDAO
 from superset.extensions import cache_manager
 from superset.superset_typing import AdhocColumn
@@ -41,10 +43,15 @@ from superset.utils.core import (
 )
 from superset.utils.pandas_postprocessing.utils import FLAT_COLUMN_SEPARATOR
 from tests.integration_tests.base_tests import SupersetTestCase
-from tests.integration_tests.conftest import only_postgresql, only_sqlite
+from tests.integration_tests.conftest import (
+    only_postgresql,
+    only_sqlite,
+    with_feature_flags,
+)
+from tests.integration_tests.constants import ADMIN_USERNAME
 from tests.integration_tests.fixtures.birth_names_dashboard import (
-    load_birth_names_dashboard_with_slices,
-    load_birth_names_data,
+    load_birth_names_dashboard_with_slices,  # noqa: F401
+    load_birth_names_data,  # noqa: F401
 )
 from tests.integration_tests.fixtures.query_context import get_query_context
 
@@ -69,15 +76,15 @@ class TestQueryContext(SupersetTestCase):
 
         payload = get_query_context("birth_names", add_postprocessing_operations=True)
         query_context = ChartDataQueryContextSchema().load(payload)
-        self.assertEqual(len(query_context.queries), len(payload["queries"]))
+        assert len(query_context.queries) == len(payload["queries"])
 
         for query_idx, query in enumerate(query_context.queries):
             payload_query = payload["queries"][query_idx]
 
             # check basic properties
-            self.assertEqual(query.extras, payload_query["extras"])
-            self.assertEqual(query.filter, payload_query["filters"])
-            self.assertEqual(query.columns, payload_query["columns"])
+            assert query.extras == payload_query["extras"]
+            assert query.filter == payload_query["filters"]
+            assert query.columns == payload_query["columns"]
 
             # metrics are mutated during creation
             for metric_idx, metric in enumerate(query.metrics):
@@ -87,16 +94,16 @@ class TestQueryContext(SupersetTestCase):
                     if "expressionType" in payload_metric
                     else payload_metric["label"]
                 )
-                self.assertEqual(metric, payload_metric)
+                assert metric == payload_metric
 
-            self.assertEqual(query.orderby, payload_query["orderby"])
-            self.assertEqual(query.time_range, payload_query["time_range"])
+            assert query.orderby == payload_query["orderby"]
+            assert query.time_range == payload_query["time_range"]
 
             # check post processing operation properties
             for post_proc_idx, post_proc in enumerate(query.post_processing):
                 payload_post_proc = payload_query["post_processing"][post_proc_idx]
-                self.assertEqual(post_proc["operation"], payload_post_proc["operation"])
-                self.assertEqual(post_proc["options"], payload_post_proc["options"])
+                assert post_proc["operation"] == payload_post_proc["operation"]
+                assert post_proc["options"] == payload_post_proc["options"]
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_cache(self):
@@ -127,15 +134,14 @@ class TestQueryContext(SupersetTestCase):
         rehydrated_qo = rehydrated_qc.queries[0]
         rehydrated_query_cache_key = rehydrated_qc.query_cache_key(rehydrated_qo)
 
-        self.assertEqual(rehydrated_qc.datasource, query_context.datasource)
-        self.assertEqual(len(rehydrated_qc.queries), 1)
-        self.assertEqual(query_cache_key, rehydrated_query_cache_key)
-        self.assertEqual(rehydrated_qc.result_type, query_context.result_type)
-        self.assertEqual(rehydrated_qc.result_format, query_context.result_format)
-        self.assertFalse(rehydrated_qc.force)
+        assert rehydrated_qc.datasource == query_context.datasource
+        assert len(rehydrated_qc.queries) == 1
+        assert query_cache_key == rehydrated_query_cache_key
+        assert rehydrated_qc.result_type == query_context.result_type
+        assert rehydrated_qc.result_format == query_context.result_format
+        assert not rehydrated_qc.force
 
     def test_query_cache_key_changes_when_datasource_is_updated(self):
-        self.login(username="admin")
         payload = get_query_context("birth_names")
 
         # construct baseline query_cache_key
@@ -151,8 +157,12 @@ class TestQueryContext(SupersetTestCase):
         description_original = datasource.description
         datasource.description = "temporary description"
         db.session.commit()
+        # wait a second since mysql records timestamps in second granularity
+        time.sleep(1)
         datasource.description = description_original
         db.session.commit()
+        # wait another second because why not
+        time.sleep(1)
 
         # create new QueryContext with unchanged attributes, extract new query_cache_key
         query_context = ChartDataQueryContextSchema().load(payload)
@@ -160,20 +170,30 @@ class TestQueryContext(SupersetTestCase):
         cache_key_new = query_context.query_cache_key(query_object)
 
         # the new cache_key should be different due to updated datasource
-        self.assertNotEqual(cache_key_original, cache_key_new)
+        assert cache_key_original != cache_key_new
 
     def test_query_cache_key_changes_when_metric_is_updated(self):
-        self.login(username="admin")
+        """
+        Test that the query cache key changes when a metric is updated.
+        """
+        self.login(ADMIN_USERNAME)
         payload = get_query_context("birth_names")
 
-        # make temporary change and revert it to refresh the changed_on property
-        datasource = DatasourceDAO.get_datasource(
-            datasource_type=DatasourceType(payload["datasource"]["type"]),
-            datasource_id=payload["datasource"]["id"],
-        )
-
-        datasource.metrics.append(SqlMetric(metric_name="foo", expression="select 1;"))
+        dataset = DatasetDAO.find_by_id(payload["datasource"]["id"])
+        dataset_payload = {
+            "metrics": [
+                {
+                    "metric_name": "foo",
+                    "expression": "select 1;",
+                }
+            ]
+        }
+        DatasetDAO.update(dataset, copy.deepcopy(dataset_payload))
         db.session.commit()
+
+        # Add metric ID to the payload for future update
+        updated_dataset = DatasetDAO.find_by_id(dataset.id)
+        dataset_payload["metrics"][0]["id"] = updated_dataset.metrics[0].id
 
         # construct baseline query_cache_key
         query_context = ChartDataQueryContextSchema().load(payload)
@@ -183,7 +203,8 @@ class TestQueryContext(SupersetTestCase):
         # wait a second since mysql records timestamps in second granularity
         time.sleep(1)
 
-        datasource.metrics[0].expression = "select 2;"
+        dataset_payload["metrics"][0]["expression"] = "select 2;"
+        DatasetDAO.update(updated_dataset, copy.deepcopy(dataset_payload))
         db.session.commit()
 
         # create new QueryContext with unchanged attributes, extract new query_cache_key
@@ -191,18 +212,18 @@ class TestQueryContext(SupersetTestCase):
         query_object = query_context.queries[0]
         cache_key_new = query_context.query_cache_key(query_object)
 
-        datasource.metrics = []
+        dataset_payload["metrics"] = []
+        DatasetDAO.update(updated_dataset, dataset_payload)
         db.session.commit()
 
         # the new cache_key should be different due to updated datasource
-        self.assertNotEqual(cache_key_original, cache_key_new)
+        assert cache_key_original != cache_key_new
 
     def test_query_cache_key_does_not_change_for_non_existent_or_null(self):
-        self.login(username="admin")
         payload = get_query_context("birth_names", add_postprocessing_operations=True)
         del payload["queries"][0]["granularity"]
 
-        # construct baseline query_cache_key from query_context with post processing operation
+        # construct baseline query_cache_key from query_context with post processing operation  # noqa: E501
         query_context: QueryContext = ChartDataQueryContextSchema().load(payload)
         query_object: QueryObject = query_context.queries[0]
         cache_key_original = query_context.query_cache_key(query_object)
@@ -214,10 +235,9 @@ class TestQueryContext(SupersetTestCase):
         assert query_context.query_cache_key(query_object) == cache_key_original
 
     def test_query_cache_key_changes_when_post_processing_is_updated(self):
-        self.login(username="admin")
         payload = get_query_context("birth_names", add_postprocessing_operations=True)
 
-        # construct baseline query_cache_key from query_context with post processing operation
+        # construct baseline query_cache_key from query_context with post processing operation  # noqa: E501
         query_context = ChartDataQueryContextSchema().load(payload)
         query_object = query_context.queries[0]
         cache_key_original = query_context.query_cache_key(query_object)
@@ -227,17 +247,16 @@ class TestQueryContext(SupersetTestCase):
         query_context = ChartDataQueryContextSchema().load(payload)
         query_object = query_context.queries[0]
         cache_key = query_context.query_cache_key(query_object)
-        self.assertEqual(cache_key_original, cache_key)
+        assert cache_key_original == cache_key
 
         # ensure query without post processing operation is different
         payload["queries"][0].pop("post_processing")
         query_context = ChartDataQueryContextSchema().load(payload)
         query_object = query_context.queries[0]
         cache_key = query_context.query_cache_key(query_object)
-        self.assertNotEqual(cache_key_original, cache_key)
+        assert cache_key_original != cache_key
 
     def test_query_cache_key_changes_when_time_offsets_is_updated(self):
-        self.login(username="admin")
         payload = get_query_context("birth_names", add_time_offsets=True)
 
         query_context = ChartDataQueryContextSchema().load(payload)
@@ -248,13 +267,12 @@ class TestQueryContext(SupersetTestCase):
         query_context = ChartDataQueryContextSchema().load(payload)
         query_object = query_context.queries[0]
         cache_key = query_context.query_cache_key(query_object)
-        self.assertNotEqual(cache_key_original, cache_key)
+        assert cache_key_original != cache_key
 
     def test_handle_metrics_field(self):
         """
         Should support both predefined and adhoc metrics.
         """
-        self.login(username="admin")
         adhoc_metric = {
             "expressionType": "SIMPLE",
             "column": {"column_name": "num_boys", "type": "BIGINT(20)"},
@@ -266,13 +284,12 @@ class TestQueryContext(SupersetTestCase):
         payload["queries"][0]["metrics"] = ["sum__num", {"label": "abc"}, adhoc_metric]
         query_context = ChartDataQueryContextSchema().load(payload)
         query_object = query_context.queries[0]
-        self.assertEqual(query_object.metrics, ["sum__num", "abc", adhoc_metric])
+        assert query_object.metrics == ["sum__num", "abc", adhoc_metric]
 
     def test_convert_deprecated_fields(self):
         """
         Ensure that deprecated fields are converted correctly
         """
-        self.login(username="admin")
         payload = get_query_context("birth_names")
         columns = payload["queries"][0]["columns"]
         payload["queries"][0]["groupby"] = columns
@@ -282,34 +299,32 @@ class TestQueryContext(SupersetTestCase):
         payload["queries"][0]["granularity_sqla"] = "timecol"
         payload["queries"][0]["having_filters"] = [{"col": "a", "op": "==", "val": "b"}]
         query_context = ChartDataQueryContextSchema().load(payload)
-        self.assertEqual(len(query_context.queries), 1)
+        assert len(query_context.queries) == 1
         query_object = query_context.queries[0]
-        self.assertEqual(query_object.granularity, "timecol")
-        self.assertEqual(query_object.columns, columns)
-        self.assertEqual(query_object.series_limit, 99)
-        self.assertEqual(query_object.series_limit_metric, "sum__num")
+        assert query_object.granularity == "timecol"
+        assert query_object.columns == columns
+        assert query_object.series_limit == 99
+        assert query_object.series_limit_metric == "sum__num"
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_csv_response_format(self):
         """
         Ensure that CSV result format works
         """
-        self.login(username="admin")
         payload = get_query_context("birth_names")
         payload["result_format"] = ChartDataResultFormat.CSV.value
         payload["queries"][0]["row_limit"] = 10
         query_context: QueryContext = ChartDataQueryContextSchema().load(payload)
         responses = query_context.get_payload()
-        self.assertEqual(len(responses), 1)
+        assert len(responses) == 1
         data = responses["queries"][0]["data"]
-        self.assertIn("name,sum__num\n", data)
-        self.assertEqual(len(data.split("\n")), 12)
+        assert "name,sum__num\n" in data
+        assert len(data.split("\n")) == 12
 
     def test_sql_injection_via_groupby(self):
         """
         Ensure that calling invalid columns names in groupby are caught
         """
-        self.login(username="admin")
         payload = get_query_context("birth_names")
         payload["queries"][0]["groupby"] = ["currentDatabase()"]
         query_context = ChartDataQueryContextSchema().load(payload)
@@ -320,7 +335,6 @@ class TestQueryContext(SupersetTestCase):
         """
         Ensure that calling invalid column names in columns are caught
         """
-        self.login(username="admin")
         payload = get_query_context("birth_names")
         payload["queries"][0]["groupby"] = []
         payload["queries"][0]["metrics"] = []
@@ -333,7 +347,6 @@ class TestQueryContext(SupersetTestCase):
         """
         Ensure that calling invalid column names in filters are caught
         """
-        self.login(username="admin")
         payload = get_query_context("birth_names")
         payload["queries"][0]["groupby"] = ["name"]
         payload["queries"][0]["metrics"] = [
@@ -353,31 +366,30 @@ class TestQueryContext(SupersetTestCase):
         """
         Ensure that samples result type works
         """
-        self.login(username="admin")
         payload = get_query_context("birth_names")
         payload["result_type"] = ChartDataResultType.SAMPLES.value
         payload["queries"][0]["row_limit"] = 5
         query_context = ChartDataQueryContextSchema().load(payload)
         responses = query_context.get_payload()
-        self.assertEqual(len(responses), 1)
+        assert len(responses) == 1
         data = responses["queries"][0]["data"]
-        self.assertIsInstance(data, list)
-        self.assertEqual(len(data), 5)
-        self.assertNotIn("sum__num", data[0])
+        assert isinstance(data, list)
+        assert len(data) == 5
+        assert "sum__num" not in data[0]
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_query_response_type(self):
         """
         Ensure that query result type works
         """
-        self.login(username="admin")
         payload = get_query_context("birth_names")
         sql_text = get_sql_text(payload)
+
         assert "SELECT" in sql_text
         assert re.search(r'[`"\[]?num[`"\]]? IS NOT NULL', sql_text)
         assert re.search(
-            r"""NOT \([`"\[]?name[`"\]]? IS NULL[\s\n]* """
-            r"""OR [`"\[]?name[`"\]]? IN \('"abc"'\)\)""",
+            r"""NOT \([\s\n]*[`"\[]?name[`"\]]? IS NULL[\s\n]* """
+            r"""OR [`"\[]?name[`"\]]? IN \('"abc"'\)[\s\n]*\)""",
             sql_text,
         )
 
@@ -386,7 +398,6 @@ class TestQueryContext(SupersetTestCase):
         """
         Should properly handle sort by metrics in various scenarios.
         """
-        self.login(username="admin")
 
         sql_text = get_sql_text(get_query_context("birth_names"))
         if backend() == "hive":
@@ -396,7 +407,7 @@ class TestQueryContext(SupersetTestCase):
             # the alias should be in ORDER BY
             assert "ORDER BY `sum__num` DESC" in sql_text
         else:
-            assert re.search(r'ORDER BY [`"\[]?sum__num[`"\]]? DESC', sql_text)
+            assert re.search(r'ORDER BY[\s\n]* [`"\[]?sum__num[`"\]]? DESC', sql_text)
 
         sql_text = get_sql_text(
             get_query_context("birth_names:only_orderby_has_metric")
@@ -407,7 +418,9 @@ class TestQueryContext(SupersetTestCase):
             assert "ORDER BY `sum__num` DESC" in sql_text
         else:
             assert re.search(
-                r'ORDER BY SUM\([`"\[]?num[`"\]]?\) DESC', sql_text, re.IGNORECASE
+                r'ORDER BY[\s\n]* SUM\([`"\[]?num[`"\]]?\) DESC',
+                sql_text,
+                re.IGNORECASE,
             )
 
         sql_text = get_sql_text(get_query_context("birth_names:orderby_dup_alias"))
@@ -438,7 +451,7 @@ class TestQueryContext(SupersetTestCase):
             assert "sum(`num_girls`) AS `SUM(num_girls)`" not in sql_text
 
             # Should reference all ORDER BY columns by aliases
-            assert "ORDER BY `num_girls` DESC," in sql_text
+            assert "ORDER BY[\\s\n]* `num_girls` DESC," in sql_text
             assert "`AVG(num_boys)` DESC," in sql_text
             assert "`MAX(CASE WHEN...` ASC" in sql_text
         else:
@@ -446,14 +459,14 @@ class TestQueryContext(SupersetTestCase):
                 # since the selected `num_boys` is renamed to `num_boys__`
                 # it must be references as expression
                 assert re.search(
-                    r'ORDER BY SUM\([`"\[]?num_girls[`"\]]?\) DESC',
+                    r'ORDER BY[\s\n]* SUM\([`"\[]?num_girls[`"\]]?\) DESC',
                     sql_text,
                     re.IGNORECASE,
                 )
             else:
                 # Should reference the adhoc metric by alias when possible
                 assert re.search(
-                    r'ORDER BY [`"\[]?num_girls[`"\]]? DESC',
+                    r'ORDER BY[\s\n]* [`"\[]?num_girls[`"\]]? DESC',
                     sql_text,
                     re.IGNORECASE,
                 )
@@ -473,7 +486,6 @@ class TestQueryContext(SupersetTestCase):
         """
         Ensure that fetch values predicate is added to query if needed
         """
-        self.login(username="admin")
 
         payload = get_query_context("birth_names")
         sql_text = get_sql_text(payload)
@@ -488,7 +500,6 @@ class TestQueryContext(SupersetTestCase):
         Ensure that query objects with unknown fields don't raise an Exception and
         have an identical cache key as one without the unknown field
         """
-        self.login(username="admin")
         payload = get_query_context("birth_names")
         query_context = ChartDataQueryContextSchema().load(payload)
         responses = query_context.get_payload()
@@ -497,14 +508,13 @@ class TestQueryContext(SupersetTestCase):
         query_context = ChartDataQueryContextSchema().load(payload)
         responses = query_context.get_payload()
         new_cache_key = responses["queries"][0]["cache_key"]
-        self.assertEqual(orig_cache_key, new_cache_key)
+        assert orig_cache_key == new_cache_key
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_time_offsets_in_query_object(self):
         """
         Ensure that time_offsets can generate the correct query
         """
-        self.login(username="admin")
         payload = get_query_context("birth_names")
         payload["queries"][0]["metrics"] = ["sum__num"]
         payload["queries"][0]["groupby"] = ["name"]
@@ -514,21 +524,18 @@ class TestQueryContext(SupersetTestCase):
         payload["queries"][0]["time_range"] = "1990 : 1991"
         query_context = ChartDataQueryContextSchema().load(payload)
         responses = query_context.get_payload()
-        self.assertEqual(
-            responses["queries"][0]["colnames"],
-            [
-                "__timestamp",
-                "name",
-                "sum__num",
-                "sum__num__1 year ago",
-                "sum__num__1 year later",
-            ],
-        )
+        assert responses["queries"][0]["colnames"] == [
+            "__timestamp",
+            "name",
+            "sum__num",
+            "sum__num__1 year ago",
+            "sum__num__1 year later",
+        ]
 
         sqls = [
             sql for sql in responses["queries"][0]["query"].split(";") if sql.strip()
         ]
-        self.assertEqual(len(sqls), 3)
+        assert len(sqls) == 3
         # 1 year ago
         assert re.search(r"1989-01-01.+1990-01-01", sqls[1], re.S)
         assert re.search(r"1990-01-01.+1991-01-01", sqls[1], re.S)
@@ -542,7 +549,6 @@ class TestQueryContext(SupersetTestCase):
         """
         Ensure that time_offsets can generate the correct query
         """
-        self.login(username="admin")
         payload = get_query_context("birth_names")
         payload["queries"][0]["metrics"] = ["sum__num"]
         # should process empty dateframe correctly
@@ -564,36 +570,37 @@ class TestQueryContext(SupersetTestCase):
         query_context = ChartDataQueryContextSchema().load(payload)
         query_object = query_context.queries[0]
         # query without cache
-        query_context.processing_time_offsets(df, query_object)
+        query_context.processing_time_offsets(df.copy(), query_object)
         # query with cache
-        rv = query_context.processing_time_offsets(df, query_object)
+        rv = query_context.processing_time_offsets(df.copy(), query_object)
         cache_keys = rv["cache_keys"]
         cache_keys__1_year_ago = cache_keys[0]
         cache_keys__1_year_later = cache_keys[1]
-        self.assertIsNotNone(cache_keys__1_year_ago)
-        self.assertIsNotNone(cache_keys__1_year_later)
-        self.assertNotEqual(cache_keys__1_year_ago, cache_keys__1_year_later)
+        assert cache_keys__1_year_ago is not None
+        assert cache_keys__1_year_later is not None
+        assert cache_keys__1_year_ago != cache_keys__1_year_later
 
         # swap offsets
         payload["queries"][0]["time_offsets"] = ["1 year later", "1 year ago"]
         query_context = ChartDataQueryContextSchema().load(payload)
         query_object = query_context.queries[0]
-        rv = query_context.processing_time_offsets(df, query_object)
+        rv = query_context.processing_time_offsets(df.copy(), query_object)
         cache_keys = rv["cache_keys"]
-        self.assertEqual(cache_keys__1_year_ago, cache_keys[1])
-        self.assertEqual(cache_keys__1_year_later, cache_keys[0])
+        assert cache_keys__1_year_ago == cache_keys[1]
+        assert cache_keys__1_year_later == cache_keys[0]
 
         # remove all offsets
         payload["queries"][0]["time_offsets"] = []
         query_context = ChartDataQueryContextSchema().load(payload)
         query_object = query_context.queries[0]
         rv = query_context.processing_time_offsets(
-            df,
+            df.copy(),
             query_object,
         )
-        self.assertIs(rv["df"], df)
-        self.assertEqual(rv["queries"], [])
-        self.assertEqual(rv["cache_keys"], [])
+
+        assert rv["df"].shape == df.shape
+        assert rv["queries"] == []
+        assert rv["cache_keys"] == []
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_time_offsets_sql(self):
@@ -689,6 +696,70 @@ class TestQueryContext(SupersetTestCase):
                     == df_3_years_later.loc[index]["sum__num"]
                 )
 
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    @patch("superset.common.query_context.QueryContext.get_query_result")
+    def test_time_offsets_in_query_object_no_limit(self, query_result_mock):
+        """
+        Ensure that time_offsets can generate the correct queries and
+        it doesnt use the row_limit nor row_offset from the original
+        query object
+        """
+        payload = get_query_context("birth_names")
+        payload["queries"][0]["columns"] = [
+            {
+                "timeGrain": "P1D",
+                "columnType": "BASE_AXIS",
+                "sqlExpression": "ds",
+                "label": "ds",
+                "expressionType": "SQL",
+            }
+        ]
+        payload["queries"][0]["metrics"] = ["sum__num"]
+        payload["queries"][0]["groupby"] = ["name"]
+        payload["queries"][0]["is_timeseries"] = True
+        payload["queries"][0]["row_limit"] = 100
+        payload["queries"][0]["row_offset"] = 10
+        payload["queries"][0]["time_range"] = "1990 : 1991"
+
+        initial_data = {
+            "__timestamp": ["1990-01-01", "1990-01-01"],
+            "name": ["zban", "ahwb"],
+            "sum__num": [43571, 27225],
+        }
+        initial_df = pd.DataFrame(initial_data)
+
+        mock_query_result = Mock()
+        mock_query_result.df = initial_df
+        side_effects = [mock_query_result]
+        query_result_mock.side_effect = side_effects
+        # Proceed with the test as before
+        query_context = ChartDataQueryContextSchema().load(payload)
+        query_object = query_context.queries[0]
+        # First call to get_query_result, should return initial_df
+        query_result = query_context.get_query_result(query_object)
+        df = query_result.df
+        # Setup the payload for time offsets
+        payload["queries"][0]["time_offsets"] = ["1 year ago", "1 year later"]
+        query_context = ChartDataQueryContextSchema().load(payload)
+        query_object = query_context.queries[0]
+        time_offsets_obj = query_context.processing_time_offsets(df, query_object)
+        sqls = time_offsets_obj["queries"]
+        row_limit_value = app.config["ROW_LIMIT"]
+        row_limit_pattern_with_config_value = r"LIMIT " + re.escape(
+            str(row_limit_value)
+        )
+        assert len(sqls) == 2
+        # 1 year ago
+        assert re.search(r"1989-01-01.+1990-01-01", sqls[0], re.S)
+        assert not re.search(r"LIMIT 100", sqls[0], re.S)
+        assert not re.search(r"OFFSET 10", sqls[0], re.S)
+        assert re.search(row_limit_pattern_with_config_value, sqls[0], re.S)
+        # 1 year later
+        assert re.search(r"1991-01-01.+1992-01-01", sqls[1], re.S)
+        assert not re.search(r"LIMIT 100", sqls[1], re.S)
+        assert not re.search(r"OFFSET 10", sqls[1], re.S)
+        assert re.search(row_limit_pattern_with_config_value, sqls[1], re.S)
+
 
 def test_get_label_map(app_context, virtual_dataset_comma_in_column_value):
     qc = QueryContextFactory().create(
@@ -730,6 +801,8 @@ def test_get_label_map(app_context, virtual_dataset_comma_in_column_value):
         "count, col2, row1": ["count", "col2, row1"],
         "count, col2, row2": ["count", "col2, row2"],
         "count, col2, row3": ["count", "col2, row3"],
+        "col2": ["col2"],
+        "count": ["count"],
     }
 
 
@@ -806,6 +879,7 @@ def test_non_time_column_with_time_grain(app_context, physical_dataset):
     assert df["COL2 ALIAS"][0] == "a"
 
 
+@with_feature_flags(ALLOW_ADHOC_SUBQUERY=True)
 def test_special_chars_in_column_name(app_context, physical_dataset):
     qc = QueryContextFactory().create(
         datasource={
@@ -817,12 +891,6 @@ def test_special_chars_in_column_name(app_context, physical_dataset):
                 "columns": [
                     "col1",
                     "time column with spaces",
-                    {
-                        "label": "I_AM_A_TRUNC_COLUMN",
-                        "sqlExpression": "time column with spaces",
-                        "columnType": "BASE_AXIS",
-                        "timeGrain": "P1Y",
-                    },
                 ],
                 "metrics": ["count"],
                 "orderby": [["col1", True]],
@@ -838,10 +906,8 @@ def test_special_chars_in_column_name(app_context, physical_dataset):
     if query_object.datasource.database.backend == "sqlite":
         # sqlite returns string as timestamp column
         assert df["time column with spaces"][0] == "2002-01-03 00:00:00"
-        assert df["I_AM_A_TRUNC_COLUMN"][0] == "2002-01-01 00:00:00"
     else:
         assert df["time column with spaces"][0].strftime("%Y-%m-%d") == "2002-01-03"
-        assert df["I_AM_A_TRUNC_COLUMN"][0].strftime("%Y-%m-%d") == "2002-01-01"
 
 
 @only_postgresql
@@ -1075,21 +1141,35 @@ def test_time_offset_with_temporal_range_filter(app_context, physical_dataset):
 
     sqls = query_payload["query"].split(";")
     """
-    SELECT DATE_TRUNC('quarter', col6) AS col6,
-           SUM(col1) AS "SUM(col1)"
-    FROM physical_dataset
-    WHERE col6 >= TO_TIMESTAMP('2002-01-01 00:00:00.000000', 'YYYY-MM-DD HH24:MI:SS.US')
-      AND col6 < TO_TIMESTAMP('2003-01-01 00:00:00.000000', 'YYYY-MM-DD HH24:MI:SS.US')
-    GROUP BY DATE_TRUNC('quarter', col6)
-    LIMIT 10000;
+    SELECT
+  DATETIME(col6, 'start of month', PRINTF('-%d month', (
+    STRFTIME('%m', col6) - 1
+  ) % 3)) AS col6,
+  SUM(col1) AS "SUM(col1)"
+FROM physical_dataset
+WHERE
+  col6 >= '2002-01-01 00:00:00' AND col6 < '2003-01-01 00:00:00'
+GROUP BY
+  DATETIME(col6, 'start of month', PRINTF('-%d month', (
+    STRFTIME('%m', col6) - 1
+  ) % 3))
+LIMIT 10000
+OFFSET 0
 
-    SELECT DATE_TRUNC('quarter', col6) AS col6,
-           SUM(col1) AS "SUM(col1)"
-    FROM physical_dataset
-    WHERE col6 >= TO_TIMESTAMP('2001-10-01 00:00:00.000000', 'YYYY-MM-DD HH24:MI:SS.US')
-      AND col6 < TO_TIMESTAMP('2002-10-01 00:00:00.000000', 'YYYY-MM-DD HH24:MI:SS.US')
-    GROUP BY DATE_TRUNC('quarter', col6)
-    LIMIT 10000;
+SELECT
+  DATETIME(col6, 'start of month', PRINTF('-%d month', (
+    STRFTIME('%m', col6) - 1
+  ) % 3)) AS col6,
+  SUM(col1) AS "SUM(col1)"
+FROM physical_dataset
+WHERE
+  col6 >= '2001-10-01 00:00:00' AND col6 < '2002-10-01 00:00:00'
+GROUP BY
+  DATETIME(col6, 'start of month', PRINTF('-%d month', (
+    STRFTIME('%m', col6) - 1
+  ) % 3))
+LIMIT 10000
+OFFSET 0
     """
     assert (
         re.search(r"WHERE col6 >= .*2002-01-01", sqls[0])
@@ -1099,3 +1179,37 @@ def test_time_offset_with_temporal_range_filter(app_context, physical_dataset):
         re.search(r"WHERE col6 >= .*2001-10-01", sqls[1])
         and re.search(r"AND col6 < .*2002-10-01", sqls[1])
     ) is not None
+
+
+def test_virtual_dataset_with_comments(app_context, virtual_dataset_with_comments):
+    if backend() == "mysql":
+        return
+
+    qc = QueryContextFactory().create(
+        datasource={
+            "type": virtual_dataset_with_comments.type,
+            "id": virtual_dataset_with_comments.id,
+        },
+        queries=[
+            {
+                "columns": ["col1", "col2"],
+                "metrics": ["count"],
+                "post_processing": [
+                    {
+                        "operation": "pivot",
+                        "options": {
+                            "aggregates": {"count": {"operator": "mean"}},
+                            "columns": ["col2"],
+                            "index": ["col1"],
+                        },
+                    },
+                    {"operation": "flatten"},
+                ],
+            }
+        ],
+        result_type=ChartDataResultType.FULL,
+        force=True,
+    )
+    query_object = qc.queries[0]
+    df = qc.get_df_payload(query_object)["df"]
+    assert len(df) == 3

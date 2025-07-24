@@ -21,7 +21,6 @@ from sqlalchemy.engine.url import make_url
 
 from superset.exceptions import SupersetSecurityException
 from superset.security.analytics_db_safety import check_sqlalchemy_uri
-from tests.integration_tests.test_app import app
 
 
 @pytest.mark.parametrize(
@@ -31,37 +30,37 @@ from tests.integration_tests.test_app import app
         (
             "sqlite:///home/superset/bad.db",
             True,
-            "SQLiteDialect_pysqlite cannot be used as a data source for security reasons.",
+            "SQLiteDialect_pysqlite cannot be used as a data source for security reasons.",  # noqa: E501
         ),
         (
             "sqlite+pysqlite:///home/superset/bad.db",
             True,
-            "SQLiteDialect_pysqlite cannot be used as a data source for security reasons.",
+            "SQLiteDialect_pysqlite cannot be used as a data source for security reasons.",  # noqa: E501
         ),
         (
             "sqlite+aiosqlite:///home/superset/bad.db",
             True,
-            "SQLiteDialect_pysqlite cannot be used as a data source for security reasons.",
+            "SQLiteDialect_pysqlite cannot be used as a data source for security reasons.",  # noqa: E501
         ),
         (
             "sqlite+pysqlcipher:///home/superset/bad.db",
             True,
-            "SQLiteDialect_pysqlite cannot be used as a data source for security reasons.",
+            "SQLiteDialect_pysqlite cannot be used as a data source for security reasons.",  # noqa: E501
         ),
         (
             "sqlite+:///home/superset/bad.db",
             True,
-            "SQLiteDialect_pysqlite cannot be used as a data source for security reasons.",
+            "SQLiteDialect_pysqlite cannot be used as a data source for security reasons.",  # noqa: E501
         ),
         (
             "sqlite+new+driver:///home/superset/bad.db",
             True,
-            "SQLiteDialect_pysqlite cannot be used as a data source for security reasons.",
+            "SQLiteDialect_pysqlite cannot be used as a data source for security reasons.",  # noqa: E501
         ),
         (
             "sqlite+new+:///home/superset/bad.db",
             True,
-            "SQLiteDialect_pysqlite cannot be used as a data source for security reasons.",
+            "SQLiteDialect_pysqlite cannot be used as a data source for security reasons.",  # noqa: E501
         ),
         (
             "shillelagh:///home/superset/bad.db",
@@ -84,10 +83,9 @@ from tests.integration_tests.test_app import app
 def test_check_sqlalchemy_uri(
     sqlalchemy_uri: str, error: bool, error_message: Optional[str]
 ):
-    with app.app_context():
-        if error:
-            with pytest.raises(SupersetSecurityException) as excinfo:
-                check_sqlalchemy_uri(make_url(sqlalchemy_uri))
-                assert str(excinfo.value) == error_message
-        else:
+    if error:
+        with pytest.raises(SupersetSecurityException) as excinfo:  # noqa: PT012
             check_sqlalchemy_uri(make_url(sqlalchemy_uri))
+            assert str(excinfo.value) == error_message
+    else:
+        check_sqlalchemy_uri(make_url(sqlalchemy_uri))

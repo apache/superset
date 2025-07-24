@@ -16,8 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { FC } from 'react';
-import Button, { OnClickHandler } from 'src/components/Button';
+import { FC } from 'react';
+import { Button, type OnClickHandler } from '@superset-ui/core/components';
 import { t } from '@superset-ui/core';
 import { CancelConfirmationAlert } from './CancelConfirmationAlert';
 

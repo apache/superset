@@ -16,18 +16,18 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useMemo } from 'react';
+import { useMemo } from 'react';
 import PropTypes from 'prop-types';
 import Mustache from 'mustache';
 import { scaleLinear } from 'd3-scale';
-import TableView from 'src/components/TableView';
-import { styled, t } from '@superset-ui/core';
 import {
-  InfoTooltipWithTrigger,
-  MetricOption,
-} from '@superset-ui/chart-controls';
+  InfoTooltip,
+  TableView,
+  Typography,
+} from '@superset-ui/core/components';
+import { styled, t } from '@superset-ui/core';
+import { MetricOption } from '@superset-ui/chart-controls';
 import sortNumericValues from 'src/utils/sortNumericValues';
-
 import FormattedNumber from './FormattedNumber';
 import SparklineCell from './SparklineCell';
 
@@ -128,7 +128,7 @@ const TimeTable = ({
           <>
             {columnConfig.label}{' '}
             {columnConfig.tooltip && (
-              <InfoTooltipWithTrigger
+              <InfoTooltip
                 tooltip={columnConfig.tooltip}
                 label={`tt-col-${i}`}
                 placement="top"
@@ -181,11 +181,13 @@ const TimeTable = ({
       let v;
       let errorMsg;
       if (column.colType === 'time') {
-        // Time lag ratio
+        // If time lag is negative, we compare from the beginning of the data
         const timeLag = column.timeLag || 0;
         const totalLag = Object.keys(reversedEntries).length;
-        if (timeLag >= totalLag) {
+        if (Math.abs(timeLag) >= totalLag) {
           errorMsg = `The time lag set at ${timeLag} is too large for the length of data at ${reversedEntries.length}. No data available.`;
+        } else if (timeLag < 0) {
+          v = reversedEntries[totalLag + timeLag][valueField];
         } else {
           v = reversedEntries[timeLag][valueField];
         }
@@ -256,9 +258,13 @@ const TimeTable = ({
         const column = row;
         if (fullUrl) {
           return (
-            <a href={fullUrl} rel="noopener noreferrer" target="_blank">
+            <Typography.Link
+              href={fullUrl}
+              rel="noopener noreferrer"
+              target="_blank"
+            >
               {column.label}
-            </a>
+            </Typography.Link>
           );
         }
         return column.label;

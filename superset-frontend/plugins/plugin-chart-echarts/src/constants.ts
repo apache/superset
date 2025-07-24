@@ -53,8 +53,8 @@ export const LABEL_POSITION: [LabelPositionEnum, string][] = [
   [LabelPositionEnum.Right, 'Right'],
   [LabelPositionEnum.Bottom, 'Bottom'],
   [LabelPositionEnum.Inside, 'Inside'],
-  [LabelPositionEnum.InsideBottomLeft, 'Inside left'],
-  [LabelPositionEnum.InsideBottomRight, 'Inside right'],
+  [LabelPositionEnum.InsideLeft, 'Inside left'],
+  [LabelPositionEnum.InsideRight, 'Inside right'],
   [LabelPositionEnum.InsideTop, 'Inside top'],
   [LabelPositionEnum.InsideBottom, 'Inside bottom'],
   [LabelPositionEnum.InsideTopLeft, 'Inside top left'],
@@ -66,6 +66,7 @@ export const LABEL_POSITION: [LabelPositionEnum, string][] = [
 export enum OpacityEnum {
   Transparent = 0,
   SemiTransparent = 0.3,
+  DerivedSeries = 0.7,
   NonTransparent = 1,
 }
 
@@ -120,3 +121,5 @@ export const TOOLTIP_POINTER_MARGIN = 10;
 // If no satisfactory position can be found, how far away
 // from the edge of the window should the tooltip be kept
 export const TOOLTIP_OVERFLOW_MARGIN = 5;
+
+export const DEFAULT_LOCALE = 'en';

@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import configureStore from 'redux-mock-store';
 import thunk from 'redux-thunk';
 import { Store } from 'redux';
@@ -30,13 +29,10 @@ import RunQueryActionButton, {
 const middlewares = [thunk];
 const mockStore = configureStore(middlewares);
 
-jest.mock('src/components/DeprecatedSelect', () => () => (
-  <div data-test="mock-deprecated-select" />
-));
-jest.mock('src/components/Select/Select', () => () => (
+jest.mock('@superset-ui/core/components/Select/Select', () => () => (
   <div data-test="mock-deprecated-select-select" />
 ));
-jest.mock('src/components/Select/AsyncSelect', () => () => (
+jest.mock('@superset-ui/core/components/Select/AsyncSelect', () => () => (
   <div data-test="mock-deprecated-async-select" />
 ));
 

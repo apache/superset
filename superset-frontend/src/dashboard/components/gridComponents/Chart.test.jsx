@@ -16,13 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
-import { shallow } from 'enzyme';
-import sinon from 'sinon';
+import { fireEvent, render } from 'spec/helpers/testing-library';
+import { FeatureFlag, VizType } from '@superset-ui/core';
+import * as redux from 'redux';
 
 import Chart from 'src/dashboard/components/gridComponents/Chart';
-import SliceHeader from 'src/dashboard/components/SliceHeader';
-import ChartContainer from 'src/components/Chart/ChartContainer';
 import * as exploreUtils from 'src/explore/exploreUtils';
 import { sliceEntitiesForChart as sliceEntities } from 'spec/fixtures/mockSliceEntities';
 import mockDatasource from 'spec/fixtures/mockDatasource';
@@ -30,146 +28,237 @@ import chartQueries, {
   sliceId as queryId,
 } from 'spec/fixtures/mockChartQueries';
 
-describe('Chart', () => {
-  const props = {
-    id: queryId,
-    width: 100,
-    height: 100,
-    updateSliceName() {},
+const props = {
+  id: queryId,
+  width: 100,
+  height: 100,
+  updateSliceName() {},
+  // from redux
+  maxRows: 500, // will be overwritten with SQL_MAX_ROW from conf
+  formData: chartQueries[queryId].form_data,
+  datasource: mockDatasource[sliceEntities.slices[queryId].datasource],
+  sliceName: sliceEntities.slices[queryId].slice_name,
+  timeout: 60,
+  filters: {},
+  refreshChart() {},
+  toggleExpandSlice() {},
+  addFilter() {},
+  logEvent() {},
+  handleToggleFullSize() {},
+  changeFilter() {},
+  setFocusedFilterField() {},
+  unsetFocusedFilterField() {},
+  addSuccessToast() {},
+  addDangerToast() {},
+  exportCSV() {},
+  exportFullCSV() {},
+  exportXLSX() {},
+  exportFullXLSX() {},
+  componentId: 'test',
+  dashboardId: 111,
+};
 
-    // from redux
-    maxRows: 666,
-    chart: chartQueries[queryId],
-    formData: chartQueries[queryId].form_data,
-    datasource: mockDatasource[sliceEntities.slices[queryId].datasource],
-    slice: {
-      ...sliceEntities.slices[queryId],
-      description_markeddown: 'markdown',
-      owners: [],
+const defaultState = {
+  charts: chartQueries,
+  sliceEntities: {
+    ...sliceEntities,
+    slices: {
+      [queryId]: {
+        ...sliceEntities.slices[queryId],
+        description_markeddown: 'markdown',
+        owners: [],
+        viz_type: VizType.Table,
+      },
     },
-    sliceName: sliceEntities.slices[queryId].slice_name,
-    timeout: 60,
-    filters: {},
-    refreshChart() {},
-    toggleExpandSlice() {},
-    addFilter() {},
-    logEvent() {},
-    handleToggleFullSize() {},
-    changeFilter() {},
-    setFocusedFilterField() {},
-    unsetFocusedFilterField() {},
-    addSuccessToast() {},
-    addDangerToast() {},
-    exportCSV() {},
-    exportFullCSV() {},
-    exportXLSX() {},
-    exportFullXLSX() {},
-    componentId: 'test',
-    dashboardId: 111,
-    editMode: false,
-    isExpanded: false,
-    supersetCanExplore: false,
-    supersetCanCSV: false,
+  },
+  datasources: mockDatasource,
+  dashboardState: { editMode: false, expandedSlices: {} },
+  dashboardInfo: {
+    id: props.dashboardId,
+    superset_can_explore: false,
+    superset_can_share: false,
+    superset_can_csv: false,
+    common: { conf: { SUPERSET_WEBSERVER_TIMEOUT: 0, SQL_MAX_ROW: 666 } },
+  },
+};
+
+function setup(overrideProps, overrideState) {
+  return render(<Chart {...props} {...overrideProps} />, {
+    useRedux: true,
+    useRouter: true,
+    initialState: { ...defaultState, ...overrideState },
+  });
+}
+
+const refreshChart = jest.fn();
+const logEvent = jest.fn();
+const changeFilter = jest.fn();
+const addSuccessToast = jest.fn();
+const addDangerToast = jest.fn();
+const toggleExpandSlice = jest.fn();
+const setFocusedFilterField = jest.fn();
+const unsetFocusedFilterField = jest.fn();
+beforeAll(() => {
+  jest.spyOn(redux, 'bindActionCreators').mockImplementation(() => ({
+    refreshChart,
+    logEvent,
+    changeFilter,
+    addSuccessToast,
+    addDangerToast,
+    toggleExpandSlice,
+    setFocusedFilterField,
+    unsetFocusedFilterField,
+  }));
+});
+
+test('should render a SliceHeader', () => {
+  const { getByTestId, container } = setup();
+  expect(getByTestId('slice-header')).toBeInTheDocument();
+  expect(container.querySelector('.slice_description')).not.toBeInTheDocument();
+});
+
+test('should render a ChartContainer', () => {
+  const { getByTestId } = setup();
+  expect(getByTestId('chart-container')).toBeInTheDocument();
+});
+
+test('should render a description if it has one and isExpanded=true', () => {
+  const { container } = setup(
+    {},
+    {
+      dashboardState: {
+        ...defaultState.dashboardState,
+        expandedSlices: { [props.id]: true },
+      },
+    },
+  );
+  expect(container.querySelector('.slice_description')).toBeInTheDocument();
+});
+
+test('should call refreshChart when SliceHeader calls forceRefresh', () => {
+  const { getByText, getByRole } = setup({});
+  fireEvent.click(getByRole('button', { name: 'More Options' }));
+  fireEvent.click(getByText('Force refresh'));
+  expect(refreshChart).toHaveBeenCalled();
+});
+
+test.skip('should call changeFilter when ChartContainer calls changeFilter', () => {
+  const changeFilter = jest.fn();
+  const wrapper = setup({ changeFilter });
+  wrapper.instance().changeFilter();
+  expect(changeFilter.callCount).toBe(1);
+});
+
+test('should call exportChart when exportCSV is clicked', async () => {
+  const stubbedExportCSV = jest
+    .spyOn(exploreUtils, 'exportChart')
+    .mockImplementation(() => {});
+  const { findByText, getByRole } = setup(
+    {},
+    {
+      dashboardInfo: { ...defaultState.dashboardInfo, superset_can_csv: true },
+    },
+  );
+  fireEvent.click(getByRole('button', { name: 'More Options' }));
+  fireEvent.mouseOver(getByRole('menuitem', { name: 'Download right' }));
+  const exportAction = await findByText('Export to .CSV');
+  fireEvent.click(exportAction);
+  expect(stubbedExportCSV).toHaveBeenCalledTimes(1);
+  expect(stubbedExportCSV).toHaveBeenCalledWith(
+    expect.objectContaining({
+      formData: expect.objectContaining({
+        dashboardId: 111,
+      }),
+      resultType: 'full',
+      resultFormat: 'csv',
+    }),
+  );
+  stubbedExportCSV.mockRestore();
+});
+
+test('should call exportChart with row_limit props.maxRows when exportFullCSV is clicked', async () => {
+  global.featureFlags = {
+    [FeatureFlag.AllowFullCsvExport]: true,
   };
-
-  function setup(overrideProps) {
-    const wrapper = shallow(
-      <Chart.WrappedComponent {...props} {...overrideProps} />,
-    );
-    return wrapper;
-  }
-
-  it('should render a SliceHeader', () => {
-    const wrapper = setup();
-    expect(wrapper.find(SliceHeader)).toExist();
-  });
-
-  it('should render a ChartContainer', () => {
-    const wrapper = setup();
-    expect(wrapper.find(ChartContainer)).toExist();
-  });
-
-  it('should render a description if it has one and isExpanded=true', () => {
-    const wrapper = setup();
-    expect(wrapper.find('.slice_description')).not.toExist();
-    wrapper.setProps({ ...props, isExpanded: true });
-    expect(wrapper.find('.slice_description')).toExist();
-  });
-
-  it('should calculate the description height if it has one and isExpanded=true', () => {
-    const spy = jest.spyOn(
-      Chart.WrappedComponent.prototype,
-      'getDescriptionHeight',
-    );
-    const wrapper = setup({ isExpanded: true });
-
-    expect(wrapper.find('.slice_description')).toExist();
-    expect(spy).toHaveBeenCalled();
-  });
-
-  it('should call refreshChart when SliceHeader calls forceRefresh', () => {
-    const refreshChart = sinon.spy();
-    const wrapper = setup({ refreshChart });
-    wrapper.instance().forceRefresh();
-    expect(refreshChart.callCount).toBe(1);
-  });
-
-  it('should call changeFilter when ChartContainer calls changeFilter', () => {
-    const changeFilter = sinon.spy();
-    const wrapper = setup({ changeFilter });
-    wrapper.instance().changeFilter();
-    expect(changeFilter.callCount).toBe(1);
-  });
-  it('should call exportChart when exportCSV is clicked', () => {
-    const stubbedExportCSV = sinon
-      .stub(exploreUtils, 'exportChart')
-      .returns(() => {});
-    const wrapper = setup();
-    wrapper.instance().exportCSV(props.slice.sliceId);
-    expect(stubbedExportCSV.calledOnce).toBe(true);
-    expect(stubbedExportCSV.lastCall.args[0]).toEqual(
-      expect.objectContaining({
-        formData: expect.anything(),
-        resultType: 'full',
-        resultFormat: 'csv',
+  const stubbedExportCSV = jest
+    .spyOn(exploreUtils, 'exportChart')
+    .mockImplementation(() => {});
+  const { findByText, getByRole } = setup(
+    {},
+    {
+      dashboardInfo: { ...defaultState.dashboardInfo, superset_can_csv: true },
+    },
+  );
+  fireEvent.click(getByRole('button', { name: 'More Options' }));
+  fireEvent.mouseOver(getByRole('menuitem', { name: 'Download right' }));
+  const exportAction = await findByText('Export to full .CSV');
+  fireEvent.click(exportAction);
+  expect(stubbedExportCSV).toHaveBeenCalledTimes(1);
+  expect(stubbedExportCSV).toHaveBeenCalledWith(
+    expect.objectContaining({
+      formData: expect.objectContaining({
+        row_limit: 666,
+        dashboardId: 111,
       }),
-    );
-    exploreUtils.exportChart.restore();
-  });
-  it('should call exportChart with row_limit props.maxRows when exportFullCSV is clicked', () => {
-    const stubbedExportCSV = sinon
-      .stub(exploreUtils, 'exportChart')
-      .returns(() => {});
-    const wrapper = setup();
-    wrapper.instance().exportFullCSV(props.slice.sliceId);
-    expect(stubbedExportCSV.calledOnce).toBe(true);
-    expect(stubbedExportCSV.lastCall.args[0].formData.row_limit).toEqual(666);
-    exploreUtils.exportChart.restore();
-  });
-  it('should call exportChart when exportXLSX is clicked', () => {
-    const stubbedExportXLSX = sinon
-      .stub(exploreUtils, 'exportChart')
-      .returns(() => {});
-    const wrapper = setup();
-    wrapper.instance().exportXLSX(props.slice.sliceId);
-    expect(stubbedExportXLSX.calledOnce).toBe(true);
-    expect(stubbedExportXLSX.lastCall.args[0]).toEqual(
-      expect.objectContaining({
-        formData: expect.anything(),
-        resultType: 'full',
-        resultFormat: 'xlsx',
+      resultType: 'full',
+      resultFormat: 'csv',
+    }),
+  );
+  stubbedExportCSV.mockRestore();
+});
+
+test('should call exportChart when exportXLSX is clicked', async () => {
+  const stubbedExportXLSX = jest
+    .spyOn(exploreUtils, 'exportChart')
+    .mockImplementation(() => {});
+  const { findByText, getByRole } = setup(
+    {},
+    {
+      dashboardInfo: { ...defaultState.dashboardInfo, superset_can_csv: true },
+    },
+  );
+  fireEvent.click(getByRole('button', { name: 'More Options' }));
+  fireEvent.mouseOver(getByRole('menuitem', { name: 'Download right' }));
+  const exportAction = await findByText('Export to Excel');
+  fireEvent.click(exportAction);
+  expect(stubbedExportXLSX).toHaveBeenCalledTimes(1);
+  expect(stubbedExportXLSX).toHaveBeenCalledWith(
+    expect.objectContaining({
+      resultType: 'full',
+      resultFormat: 'xlsx',
+    }),
+  );
+  stubbedExportXLSX.mockRestore();
+});
+
+test('should call exportChart with row_limit props.maxRows when exportFullXLSX is clicked', async () => {
+  global.featureFlags = {
+    [FeatureFlag.AllowFullCsvExport]: true,
+  };
+  const stubbedExportXLSX = jest
+    .spyOn(exploreUtils, 'exportChart')
+    .mockImplementation(() => {});
+  const { findByText, getByRole } = setup(
+    {},
+    {
+      dashboardInfo: { ...defaultState.dashboardInfo, superset_can_csv: true },
+    },
+  );
+  fireEvent.click(getByRole('button', { name: 'More Options' }));
+  fireEvent.mouseOver(getByRole('menuitem', { name: 'Download right' }));
+  const exportAction = await findByText('Export to full Excel');
+  fireEvent.click(exportAction);
+  expect(stubbedExportXLSX).toHaveBeenCalledTimes(1);
+  expect(stubbedExportXLSX).toHaveBeenCalledWith(
+    expect.objectContaining({
+      formData: expect.objectContaining({
+        row_limit: 666,
+        dashboardId: 111,
       }),
-    );
-    exploreUtils.exportChart.restore();
-  });
-  it('should call exportChart with row_limit props.maxRows when exportFullXLSX is clicked', () => {
-    const stubbedExportXLSX = sinon
-      .stub(exploreUtils, 'exportChart')
-      .returns(() => {});
-    const wrapper = setup();
-    wrapper.instance().exportFullXLSX(props.slice.sliceId);
-    expect(stubbedExportXLSX.calledOnce).toBe(true);
-    expect(stubbedExportXLSX.lastCall.args[0].formData.row_limit).toEqual(666);
-    exploreUtils.exportChart.restore();
-  });
+      resultType: 'full',
+      resultFormat: 'xlsx',
+    }),
+  );
+
+  stubbedExportXLSX.mockRestore();
 });

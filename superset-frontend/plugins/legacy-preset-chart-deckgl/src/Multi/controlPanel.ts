@@ -17,12 +17,10 @@
  * under the License.
  */
 import { t, validateNonEmpty } from '@superset-ui/core';
-import { sections } from '@superset-ui/chart-controls';
 import { viewport, mapboxStyle } from '../utilities/Shared_DeckGL';
 
 export default {
   controlPanelSections: [
-    sections.legacyRegularTime,
     {
       label: t('Map'),
       expanded: true,
@@ -42,7 +40,7 @@ export default {
                 'Pick a set of deck.gl charts to layer on top of one another',
               ),
               dataEndpoint:
-                '/sliceasync/api/read?_flt_0_viz_type=deck_&_flt_7_viz_type=deck_multi',
+                'api/v1/chart/?q=(filters:!((col:viz_type,opr:sw,value:deck)))',
               placeholder: t('Select charts'),
               onAsyncErrorMessage: t('Error while fetching charts'),
               mutator: (data: {

@@ -16,15 +16,16 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useCallback, useState } from 'react';
-import { t, styled } from '@superset-ui/core';
-import { Input } from 'src/components/Input';
-import { Tooltip } from 'src/components/Tooltip';
+import { useCallback, useState } from 'react';
+import { t, styled, useTheme } from '@superset-ui/core';
+import { Input, Tooltip } from '@superset-ui/core/components';
+import { Icons } from '@superset-ui/core/components/Icons';
 
 const StyledInput = styled(Input)`
   border-radius: ${({ theme }) => theme.borderRadius};
   height: 26px;
-  padding-left: ${({ theme }) => theme.gridUnit * 2.5}px;
+  padding-left: ${({ theme }) => theme.sizeUnit * 2.5}px;
+  border-color: ${({ theme }) => theme.colorSplit};
 `;
 
 export const DndColumnSelectPopoverTitle = ({
@@ -33,6 +34,7 @@ export const DndColumnSelectPopoverTitle = ({
   isEditDisabled,
   hasCustomLabel,
 }) => {
+  const theme = useTheme();
   const [isHovered, setIsHovered] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
 
@@ -91,9 +93,9 @@ export const DndColumnSelectPopoverTitle = ({
       >
         {title || defaultLabel}
         &nbsp;
-        <i
-          className="fa fa-pencil"
-          style={{ color: isHovered ? 'black' : 'grey' }}
+        <Icons.EditOutlined
+          iconColor={isHovered ? theme.colorPrimary : theme.colorText}
+          iconSize="m"
         />
       </span>
     </Tooltip>

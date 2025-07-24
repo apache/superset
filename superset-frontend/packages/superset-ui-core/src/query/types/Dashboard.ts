@@ -40,8 +40,8 @@ export interface NativeFilterTarget {
 }
 
 export enum NativeFilterType {
-  NATIVE_FILTER = 'NATIVE_FILTER',
-  DIVIDER = 'DIVIDER',
+  NativeFilter = 'NATIVE_FILTER',
+  Divider = 'DIVIDER',
 }
 
 export enum DataMaskType {
@@ -76,9 +76,27 @@ export type Filter = {
   requiredFirst?: boolean;
   tabsInScope?: string[];
   chartsInScope?: number[];
-  type: typeof NativeFilterType.NATIVE_FILTER;
+  type: typeof NativeFilterType.NativeFilter;
   description: string;
 };
+
+export type AppliedFilter = {
+  values: {
+    filters: Record<string, any>[];
+  } | null;
+};
+
+export type AppliedCrossFilterType = {
+  filterType: undefined;
+  targets: number[];
+  scope: number[];
+} & AppliedFilter;
+
+export type AppliedNativeFilterType = {
+  filterType: 'filter_select';
+  scope: number[];
+  targets: Partial<NativeFilterTarget>[];
+} & AppliedFilter;
 
 export type FilterWithDataMask = Filter & { dataMask: DataMaskWithId };
 
@@ -86,13 +104,31 @@ export type Divider = Partial<Omit<Filter, 'id' | 'type'>> & {
   id: string;
   title: string;
   description: string;
-  type: typeof NativeFilterType.DIVIDER;
+  type: typeof NativeFilterType.Divider;
 };
+
+export function isAppliedCrossFilterType(
+  filterElement: AppliedCrossFilterType | AppliedNativeFilterType | Filter,
+): filterElement is AppliedCrossFilterType {
+  return (
+    filterElement.filterType === undefined &&
+    filterElement.hasOwnProperty('values')
+  );
+}
+
+export function isAppliedNativeFilterType(
+  filterElement: AppliedCrossFilterType | AppliedNativeFilterType | Filter,
+): filterElement is AppliedNativeFilterType {
+  return (
+    filterElement.filterType === 'filter_select' &&
+    filterElement.hasOwnProperty('values')
+  );
+}
 
 export function isNativeFilter(
   filterElement: Filter | Divider,
 ): filterElement is Filter {
-  return filterElement.type === NativeFilterType.NATIVE_FILTER;
+  return filterElement.type === NativeFilterType.NativeFilter;
 }
 
 export function isNativeFilterWithDataMask(
@@ -107,7 +143,7 @@ export function isNativeFilterWithDataMask(
 export function isFilterDivider(
   filterElement: Filter | Divider,
 ): filterElement is Divider {
-  return filterElement.type === NativeFilterType.DIVIDER;
+  return filterElement.type === NativeFilterType.Divider;
 }
 
 export type FilterConfiguration = Array<Filter | Divider>;

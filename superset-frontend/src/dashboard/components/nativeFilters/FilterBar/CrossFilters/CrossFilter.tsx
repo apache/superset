@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import React, { useCallback } from 'react';
+import { useCallback } from 'react';
 import { css, useTheme } from '@superset-ui/core';
 import { CrossFilterIndicator } from 'src/dashboard/components/nativeFilters/selectors';
 import { useDispatch } from 'react-redux';
@@ -63,10 +63,10 @@ const CrossFilter = (props: {
     <div
       key={`${filter.name}${filter.emitterId}`}
       css={css`
-        ${orientation === FilterBarOrientation.VERTICAL
+        ${orientation === FilterBarOrientation.Vertical
           ? `
             display: block;
-            margin-bottom: ${theme.gridUnit * 4}px;
+            margin-bottom: ${theme.sizeUnit * 4}px;
           `
           : `
             display: flex;
@@ -75,7 +75,7 @@ const CrossFilter = (props: {
     >
       <CrossFilterTitle
         title={filter.name}
-        orientation={orientation || FilterBarOrientation.HORIZONTAL}
+        orientation={orientation || FilterBarOrientation.Horizontal}
         onHighlightFilterSource={() => handleHighlightFilterSource(filter.path)}
       />
       {(filter.column || filter.value) && (
@@ -89,19 +89,19 @@ const CrossFilter = (props: {
         <span
           data-test="cross-filters-divider"
           css={css`
-            ${orientation === FilterBarOrientation.HORIZONTAL
+            ${orientation === FilterBarOrientation.Horizontal
               ? `
                 width: 1px;
                 height: 22px;
-                margin-left: ${theme.gridUnit * 4}px;
-                margin-right: ${theme.gridUnit}px;
+                margin-left: ${theme.sizeUnit * 4}px;
+                margin-right: ${theme.sizeUnit}px;
               `
               : `
                 width: 100%;
                 height: 1px;
                 display: block;
-                margin-bottom: ${theme.gridUnit * 4}px;
-                margin-top: ${theme.gridUnit * 4}px;
+                margin-bottom: ${theme.sizeUnit * 4}px;
+                margin-top: ${theme.sizeUnit * 4}px;
             `}
             background: ${theme.colors.grayscale.light2};
           `}

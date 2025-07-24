@@ -16,10 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
-import { ensureIsArray, hasGenericChartAxes, t } from '@superset-ui/core';
+import { ensureIsArray, t } from '@superset-ui/core';
 import { cloneDeep } from 'lodash';
 import {
+  ControlPanelsContainerProps,
   ControlPanelConfig,
   ControlPanelSectionConfig,
   ControlSetRow,
@@ -28,6 +28,8 @@ import {
   getStandardizedControls,
   sections,
   sharedControls,
+  DEFAULT_SORT_SERIES_DATA,
+  SORT_SERIES_CHOICES,
 } from '@superset-ui/chart-controls';
 
 import { DEFAULT_FORM_DATA } from './types';
@@ -39,6 +41,7 @@ import {
   truncateXAxis,
   xAxisBounds,
   xAxisLabelRotation,
+  xAxisLabelInterval,
 } from '../controls';
 
 const {
@@ -55,7 +58,6 @@ const {
   stack,
   truncateYAxis,
   yAxisBounds,
-  zoomable,
   yAxisIndex,
 } = DEFAULT_FORM_DATA;
 
@@ -199,6 +201,23 @@ function createCustomizeSection(
     ],
     [
       {
+        name: `only_total${controlSuffix}`,
+        config: {
+          type: 'CheckboxControl',
+          label: t('Only Total'),
+          default: true,
+          renderTrigger: true,
+          description: t(
+            'Only show the total value on the stacked chart, and not show on the selected category',
+          ),
+          visibility: ({ controls }: ControlPanelsContainerProps) =>
+            Boolean(controls?.show_value?.value) &&
+            Boolean(controls?.stack?.value),
+        },
+      },
+    ],
+    [
+      {
         name: `opacity${controlSuffix}`,
         config: {
           type: 'SliderControl',
@@ -259,6 +278,35 @@ function createCustomizeSection(
         },
       },
     ],
+    [<ControlSubSectionHeader>{t('Series Order')}</ControlSubSectionHeader>],
+    [
+      {
+        name: `sort_series_type${controlSuffix}`,
+        config: {
+          type: 'SelectControl',
+          freeForm: false,
+          label: t('Sort Series By'),
+          choices: SORT_SERIES_CHOICES,
+          default: DEFAULT_SORT_SERIES_DATA.sort_series_type,
+          renderTrigger: true,
+          description: t(
+            'Based on what should series be ordered on the chart and legend',
+          ),
+        },
+      },
+    ],
+    [
+      {
+        name: `sort_series_ascending${controlSuffix}`,
+        config: {
+          type: 'CheckboxControl',
+          label: t('Sort Series Ascending'),
+          default: DEFAULT_SORT_SERIES_DATA.sort_series_ascending,
+          renderTrigger: true,
+          description: t('Sort series in ascending order'),
+        },
+      },
+    ],
   ];
 }
 
@@ -284,14 +332,11 @@ function createAdvancedAnalyticsSection(
 
 const config: ControlPanelConfig = {
   controlPanelSections: [
-    sections.genericTime,
-    hasGenericChartAxes
-      ? {
-          label: t('Shared query fields'),
-          expanded: true,
-          controlSetRows: [['x_axis'], ['time_grain_sqla']],
-        }
-      : null,
+    {
+      label: t('Shared query fields'),
+      expanded: true,
+      controlSetRows: [['x_axis'], ['time_grain_sqla']],
+    },
     createQuerySection(t('Query A'), ''),
     createAdvancedAnalyticsSection(t('Advanced analytics Query A'), ''),
     createQuerySection(t('Query B'), '_b'),
@@ -303,25 +348,16 @@ const config: ControlPanelConfig = {
       expanded: true,
       controlSetRows: [
         ['color_scheme'],
+        ['time_shift_color'],
         ...createCustomizeSection(t('Query A'), ''),
         ...createCustomizeSection(t('Query B'), 'B'),
-        [
-          {
-            name: 'zoomable',
-            config: {
-              type: 'CheckboxControl',
-              label: t('Data Zoom'),
-              default: zoomable,
-              renderTrigger: true,
-              description: t('Enable data zooming controls'),
-            },
-          },
-        ],
+        ['zoomable'],
         [minorTicks],
         ...legendSection,
         [<ControlSubSectionHeader>{t('X Axis')}</ControlSubSectionHeader>],
         ['x_axis_time_format'],
         [xAxisLabelRotation],
+        [xAxisLabelInterval],
         ...richTooltipSection,
         // eslint-disable-next-line react/jsx-key
         [<ControlSubSectionHeader>{t('Y Axis')}</ControlSubSectionHeader>],

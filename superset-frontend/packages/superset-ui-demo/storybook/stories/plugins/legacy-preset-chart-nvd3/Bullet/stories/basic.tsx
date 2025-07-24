@@ -17,14 +17,13 @@
  * under the License.
  */
 
-import React from 'react';
-import { SuperChart } from '@superset-ui/core';
+import { SuperChart, VizType } from '@superset-ui/core';
 import dummyDatasource from '../../../../../shared/dummyDatasource';
 import data from '../data';
 
 export const basic = () => (
   <SuperChart
-    chartType="bullet"
+    chartType={VizType.Bullet}
     width={400}
     height={400}
     datasource={dummyDatasource}
@@ -36,7 +35,7 @@ export const basic = () => (
       markers: '',
       rangeLabels: '',
       ranges: '',
-      vizType: 'bullet',
+      vizType: VizType.Bullet,
     }}
   />
 );

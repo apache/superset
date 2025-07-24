@@ -17,7 +17,7 @@
  * under the License.
  */
 /* eslint camelcase: 0 */
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { memo, useCallback, useEffect, useMemo, useState } from 'react';
 import PropTypes from 'prop-types';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
@@ -31,24 +31,26 @@ import {
   useComponentDidMount,
   usePrevious,
 } from '@superset-ui/core';
-import { debounce, pick } from 'lodash';
+import { debounce, isEqual, isObjectLike, omit, pick } from 'lodash';
 import { Resizable } from 're-resizable';
-import { usePluginContext } from 'src/components/DynamicPlugins';
+import { Tooltip } from '@superset-ui/core/components';
+import { usePluginContext } from 'src/components';
 import { Global } from '@emotion/react';
-import { Tooltip } from 'src/components/Tooltip';
-import Icons from 'src/components/Icons';
+import { Icons } from '@superset-ui/core/components/Icons';
 import {
   getItem,
   setItem,
   LocalStorageKeys,
 } from 'src/utils/localStorageHelpers';
 import { RESERVED_CHART_URL_PARAMS, URL_PARAMS } from 'src/constants';
+import { QUERY_MODE_REQUISITES } from 'src/explore/constants';
 import { areObjectsEqual } from 'src/reduxUtils';
 import * as logActions from 'src/logger/actions';
 import {
   LOG_ACTIONS_MOUNT_EXPLORER,
   LOG_ACTIONS_CHANGE_EXPLORE_CONTROLS,
 } from 'src/logger/LogUtils';
+import { ensureAppRoot } from 'src/utils/pathUtils';
 import { getUrlParam } from 'src/utils/urlUtils';
 import cx from 'classnames';
 import * as chartActions from 'src/components/Chart/chartAction';
@@ -68,12 +70,16 @@ import ConnectedControlPanelsContainer from '../ControlPanelsContainer';
 import SaveModal from '../SaveModal';
 import DataSourcePanel from '../DatasourcePanel';
 import ConnectedExploreChartHeader from '../ExploreChartHeader';
+import ExploreContainer from '../ExploreContainer';
 
 const propTypes = {
   ...ExploreChartPanel.propTypes,
   actions: PropTypes.object.isRequired,
   datasource_type: PropTypes.string.isRequired,
   dashboardId: PropTypes.number,
+  colorScheme: PropTypes.string,
+  ownColorScheme: PropTypes.string,
+  dashboardColorScheme: PropTypes.string,
   isDatasourceMetaLoading: PropTypes.bool.isRequired,
   chart: chartPropShape.isRequired,
   slice: PropTypes.object,
@@ -90,41 +96,33 @@ const propTypes = {
   isSaveModalVisible: PropTypes.bool,
 };
 
-const ExploreContainer = styled.div`
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-  min-height: 0;
-`;
-
 const ExplorePanelContainer = styled.div`
   ${({ theme }) => css`
-    background: ${theme.colors.grayscale.light5};
     text-align: left;
     position: relative;
     width: 100%;
     max-height: 100%;
+    background-color: ${theme.colorBgContainer};
     min-height: 0;
     display: flex;
     flex: 1;
     flex-wrap: nowrap;
-    border-top: 1px solid ${theme.colors.grayscale.light2};
+    border-top: 1px solid ${theme.colorSplit};
     .explore-column {
       display: flex;
       flex-direction: column;
-      padding: ${theme.gridUnit * 2}px 0;
+      padding: ${theme.sizeUnit * 2}px 0;
       max-height: 100%;
     }
     .data-source-selection {
-      background-color: ${theme.colors.grayscale.light5};
-      padding: ${theme.gridUnit * 2}px 0;
-      border-right: 1px solid ${theme.colors.grayscale.light2};
+      padding: ${theme.sizeUnit * 2}px 0;
+      border-right: 1px solid ${theme.colorSplit};
     }
     .main-explore-content {
       flex: 1;
-      min-width: ${theme.gridUnit * 128}px;
-      border-left: 1px solid ${theme.colors.grayscale.light2};
-      padding: 0 ${theme.gridUnit * 4}px;
+      min-width: ${theme.sizeUnit * 128}px;
+      border-left: 1px solid ${theme.colorSplit};
+      padding: 0 ${theme.sizeUnit * 4}px;
       .panel {
         margin-bottom: 0;
       }
@@ -137,10 +135,10 @@ const ExplorePanelContainer = styled.div`
       position: relative;
       display: flex;
       flex-direction: row;
-      padding: 0 ${theme.gridUnit * 2}px 0 ${theme.gridUnit * 4}px;
+      padding: 0 ${theme.sizeUnit * 2}px 0 ${theme.sizeUnit * 4}px;
       justify-content: space-between;
       .horizontal-text {
-        font-size: ${theme.typography.sizes.m}px;
+        font-size: ${theme.fontSize}px;
       }
     }
     .no-show {
@@ -152,12 +150,11 @@ const ExplorePanelContainer = styled.div`
     }
     .sidebar {
       height: 100%;
-      background-color: ${theme.colors.grayscale.light4};
-      padding: ${theme.gridUnit * 2}px;
-      width: ${theme.gridUnit * 8}px;
+      padding: ${theme.sizeUnit * 2}px;
+      width: ${theme.sizeUnit * 8}px;
     }
     .collapse-icon > svg {
-      color: ${theme.colors.primary.base};
+      color: ${theme.colorPrimary};
     }
   `};
 `;
@@ -217,7 +214,7 @@ const updateHistory = debounce(
         stateModifier = 'pushState';
       }
       // avoid race condition in case user changes route before explore updates the url
-      if (window.location.pathname.startsWith('/explore')) {
+      if (window.location.pathname.startsWith(ensureAppRoot('/explore'))) {
         const url = mountExploreUrl(
           standalone ? URL_PARAMS.standalone.name : null,
           {
@@ -235,6 +232,20 @@ const updateHistory = debounce(
   1000,
 );
 
+const defaultSidebarsWidth = {
+  controls_width: 320,
+  datasource_width: 300,
+};
+
+function getSidebarWidths(key) {
+  return getItem(key, defaultSidebarsWidth[key]);
+}
+
+function setSidebarWidths(key, dimension) {
+  const newDimension = Number(getSidebarWidths(key)) + dimension.width;
+  setItem(key, newDimension);
+}
+
 function ExploreViewContainer(props) {
   const dynamicPluginContext = usePluginContext();
   const dynamicPlugin = dynamicPluginContext.dynamicPlugins[props.vizType];
@@ -249,15 +260,21 @@ function ExploreViewContainer(props) {
   );
 
   const [isCollapsed, setIsCollapsed] = useState(false);
-  const [shouldForceUpdate, setShouldForceUpdate] = useState(-1);
+  const [width, setWidth] = useState(
+    getSidebarWidths(LocalStorageKeys.DatasourceWidth),
+  );
   const tabId = useTabId();
 
   const theme = useTheme();
 
-  const defaultSidebarsWidth = {
-    controls_width: 320,
-    datasource_width: 300,
-  };
+  useEffect(() => {
+    if (props.sliceName) {
+      document.title = props.sliceName;
+    }
+    return () => {
+      document.title = 'Superset';
+    };
+  }, [props.sliceName]);
 
   const addHistory = useCallback(
     async ({ isReplace = false, title } = {}) => {
@@ -350,7 +367,14 @@ function ExploreViewContainer(props) {
   }
 
   useComponentDidMount(() => {
-    props.actions.logEvent(LOG_ACTIONS_MOUNT_EXPLORER);
+    props.actions.logEvent(
+      LOG_ACTIONS_MOUNT_EXPLORER,
+      props.slice?.slice_id
+        ? {
+            slice_id: props.slice.slice_id,
+          }
+        : undefined,
+    );
   });
 
   useChangeEffect(tabId, (previous, current) => {
@@ -455,15 +479,21 @@ function ExploreViewContainer(props) {
 
   const chartIsStale = useMemo(() => {
     if (lastQueriedControls) {
-      const changedControlKeys = Object.keys(props.controls).filter(
-        key =>
-          typeof lastQueriedControls[key] !== 'undefined' &&
-          !areObjectsEqual(
-            props.controls[key].value,
-            lastQueriedControls[key].value,
-            { ignoreFields: ['datasourceWarning'] },
-          ),
-      );
+      const { controls } = props;
+      const changedControlKeys = Object.keys(controls).filter(key => {
+        const lastControl = lastQueriedControls[key];
+        if (typeof lastControl === 'undefined') {
+          return false;
+        }
+        const { value: value1 } = controls[key];
+        const { value: value2 } = lastControl;
+        if (isObjectLike(value1) && isObjectLike(value2)) {
+          return !areObjectsEqual(value1, value2, {
+            ignoreFields: ['datasourceWarning'],
+          });
+        }
+        return !isEqual(value1, value2);
+      });
 
       return changedControlKeys.some(
         key =>
@@ -540,15 +570,6 @@ function ExploreViewContainer(props) {
     );
   }
 
-  function getSidebarWidths(key) {
-    return getItem(key, defaultSidebarsWidth[key]);
-  }
-
-  function setSidebarWidths(key, dimension) {
-    const newDimension = Number(getSidebarWidths(key)) + dimension.width;
-    setItem(key, newDimension);
-  }
-
   if (props.standalone) {
     return renderChartContainer();
   }
@@ -560,6 +581,7 @@ function ExploreViewContainer(props) {
         canOverwrite={props.can_overwrite}
         canDownload={props.can_download}
         dashboardId={props.dashboardId}
+        colorScheme={props.dashboardColorScheme}
         isStarred={props.isStarred}
         slice={props.slice}
         sliceName={props.sliceName}
@@ -571,6 +593,7 @@ function ExploreViewContainer(props) {
         reports={props.reports}
         saveDisabled={errorMessage || props.chart.chartStatus === 'loading'}
         metadata={props.metadata}
+        isSaveModalVisible={props.isSaveModalVisible}
       />
       <ExplorePanelContainer id="explore-container">
         <Global
@@ -599,14 +622,14 @@ function ExploreViewContainer(props) {
         />
         <Resizable
           onResizeStop={(evt, direction, ref, d) => {
-            setShouldForceUpdate(d?.width);
-            setSidebarWidths(LocalStorageKeys.datasource_width, d);
+            setWidth(ref.getBoundingClientRect().width);
+            setSidebarWidths(LocalStorageKeys.DatasourceWidth, d);
           }}
           defaultSize={{
-            width: getSidebarWidths(LocalStorageKeys.datasource_width),
+            width: getSidebarWidths(LocalStorageKeys.DatasourceWidth),
             height: '100%',
           }}
-          minWidth={defaultSidebarsWidth[LocalStorageKeys.datasource_width]}
+          minWidth={defaultSidebarsWidth[LocalStorageKeys.DatasourceWidth]}
           maxWidth="33%"
           enable={{ right: true }}
           className={
@@ -621,10 +644,13 @@ function ExploreViewContainer(props) {
               className="action-button"
               onClick={toggleCollapse}
             >
-              <Icons.Expand
+              <Icons.VerticalAlignTopOutlined
+                iconSize="xl"
+                css={css`
+                  transform: rotate(-90deg);
+                `}
                 className="collapse-icon"
-                iconColor={theme.colors.primary.base}
-                iconSize="l"
+                iconColor={theme.colorPrimary}
               />
             </span>
           </div>
@@ -633,7 +659,7 @@ function ExploreViewContainer(props) {
             datasource={props.datasource}
             controls={props.controls}
             actions={props.actions}
-            shouldForceUpdate={shouldForceUpdate}
+            width={width}
             user={props.user}
           />
         </Resizable>
@@ -647,10 +673,13 @@ function ExploreViewContainer(props) {
           >
             <span role="button" tabIndex={0} className="action-button">
               <Tooltip title={t('Open Datasource tab')}>
-                <Icons.Collapse
+                <Icons.VerticalAlignTopOutlined
+                  iconSize="xl"
+                  css={css`
+                    transform: rotate(90deg);
+                  `}
                   className="collapse-icon"
-                  iconColor={theme.colors.primary.base}
-                  iconSize="l"
+                  iconColor={theme.colorPrimary}
                 />
               </Tooltip>
             </span>
@@ -658,13 +687,13 @@ function ExploreViewContainer(props) {
         ) : null}
         <Resizable
           onResizeStop={(evt, direction, ref, d) =>
-            setSidebarWidths(LocalStorageKeys.controls_width, d)
+            setSidebarWidths(LocalStorageKeys.ControlsWidth, d)
           }
           defaultSize={{
-            width: getSidebarWidths(LocalStorageKeys.controls_width),
+            width: getSidebarWidths(LocalStorageKeys.ControlsWidth),
             height: '100%',
           }}
-          minWidth={defaultSidebarsWidth[LocalStorageKeys.controls_width]}
+          minWidth={defaultSidebarsWidth[LocalStorageKeys.ControlsWidth]}
           maxWidth="33%"
           enable={{ right: true }}
           className="col-sm-3 explore-column controls-column"
@@ -708,6 +737,22 @@ function ExploreViewContainer(props) {
 
 ExploreViewContainer.propTypes = propTypes;
 
+const retainQueryModeRequirements = hiddenFormData =>
+  Object.keys(hiddenFormData ?? {}).filter(
+    key => !QUERY_MODE_REQUISITES.has(key),
+  );
+
+function patchBigNumberTotalFormData(form_data, slice) {
+  if (
+    form_data.viz_type === 'big_number_total' &&
+    !form_data.subtitle &&
+    slice?.form_data?.subheader
+  ) {
+    return { ...form_data, subtitle: slice.form_data.subheader };
+  }
+  return form_data;
+}
+
 function mapStateToProps(state) {
   const {
     explore,
@@ -719,8 +764,34 @@ function mapStateToProps(state) {
     user,
     saveModal,
   } = state;
-  const { controls, slice, datasource, metadata } = explore;
-  const form_data = getFormDataFromControls(controls);
+  const { controls, slice, datasource, metadata, hiddenFormData } = explore;
+  const hasQueryMode = !!controls.query_mode?.value;
+  const fieldsToOmit = hasQueryMode
+    ? retainQueryModeRequirements(hiddenFormData)
+    : Object.keys(hiddenFormData ?? {});
+
+  const controlsBasedFormData = omit(
+    getFormDataFromControls(controls),
+    fieldsToOmit,
+  );
+  const isDeckGLChart = explore.form_data?.viz_type === 'deck_multi';
+
+  const getDeckGLFormData = () => {
+    const formData = { ...controlsBasedFormData };
+
+    if (explore.form_data?.layer_filter_scope) {
+      formData.layer_filter_scope = explore.form_data.layer_filter_scope;
+    }
+
+    if (explore.form_data?.filter_data_mapping) {
+      formData.filter_data_mapping = explore.form_data.filter_data_mapping;
+    }
+
+    return formData;
+  };
+
+  const form_data = isDeckGLChart ? getDeckGLFormData() : controlsBasedFormData;
+
   const slice_id = form_data.slice_id ?? slice?.slice_id ?? 0; // 0 - unsaved chart
   form_data.extra_form_data = mergeExtraFormData(
     { ...form_data.extra_form_data },
@@ -729,11 +800,33 @@ function mapStateToProps(state) {
     },
   );
   const chart = charts[slice_id];
+  const colorScheme = explore.form_data?.color_scheme;
+  const ownColorScheme = explore.form_data?.own_color_scheme;
+  const dashboardColorScheme = explore.form_data?.dashboard_color_scheme;
 
   let dashboardId = Number(explore.form_data?.dashboardId);
   if (Number.isNaN(dashboardId)) {
     dashboardId = undefined;
   }
+
+  if (
+    form_data.viz_type === 'big_number_total' &&
+    slice?.form_data?.subheader &&
+    (!controls.subtitle?.value || controls.subtitle.value === '')
+  ) {
+    controls.subtitle = {
+      ...controls.subtitle,
+      value: slice.form_data.subheader,
+    };
+    if (slice?.form_data?.subheader_font_size) {
+      controls.subtitle_font_size = {
+        ...controls.subtitle_font_size,
+        value: slice.form_data.subheader_font_size,
+      };
+    }
+  }
+
+  const patchedFormData = patchBigNumberTotalFormData(form_data, slice);
 
   return {
     isDatasourceMetaLoading: explore.isDatasourceMetaLoading,
@@ -741,6 +834,9 @@ function mapStateToProps(state) {
     datasource_type: datasource.type,
     datasourceId: datasource.datasource_id,
     dashboardId,
+    colorScheme,
+    ownColorScheme,
+    dashboardColorScheme,
     controls: explore.controls,
     can_add: !!explore.can_add,
     can_download: !!explore.can_download,
@@ -753,7 +849,7 @@ function mapStateToProps(state) {
     slice,
     sliceName: explore.sliceName ?? slice?.slice_name ?? null,
     triggerRender: explore.triggerRender,
-    form_data,
+    form_data: patchedFormData,
     table_name: datasource.table_name,
     vizType: form_data.viz_type,
     standalone: !!explore.standalone,
@@ -787,4 +883,4 @@ function mapDispatchToProps(dispatch) {
 export default connect(
   mapStateToProps,
   mapDispatchToProps,
-)(withToasts(React.memo(ExploreViewContainer)));
+)(withToasts(memo(ExploreViewContainer)));

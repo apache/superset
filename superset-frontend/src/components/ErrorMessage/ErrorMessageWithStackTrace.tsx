@@ -16,11 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
-import { t } from '@superset-ui/core';
-import getErrorMessageComponentRegistry from './getErrorMessageComponentRegistry';
-import { SupersetError, ErrorSource } from './types';
-import ErrorAlert from './ErrorAlert';
+import { ReactNode } from 'react';
+import { ErrorSource, t, SupersetError } from '@superset-ui/core';
+import { Typography } from '@superset-ui/core/components';
+import { getErrorMessageComponentRegistry } from './getErrorMessageComponentRegistry';
+import { ErrorAlert } from './ErrorAlert';
 
 const DEFAULT_TITLE = t('Unexpected error');
 
@@ -28,34 +28,39 @@ type Props = {
   title?: string;
   error?: SupersetError;
   link?: string;
-  subtitle?: React.ReactNode;
+  subtitle?: ReactNode;
   copyText?: string;
   stackTrace?: string;
   source?: ErrorSource;
   description?: string;
+  descriptionDetails?: ReactNode;
   errorMitigationFunction?: () => void;
-  fallback?: React.ReactNode;
+  fallback?: ReactNode;
+  compact?: boolean;
 };
 
-export default function ErrorMessageWithStackTrace({
+export function ErrorMessageWithStackTrace({
   title = DEFAULT_TITLE,
   error,
   subtitle,
-  copyText,
   link,
   stackTrace,
   source,
   description,
+  descriptionDetails,
   fallback,
+  compact,
 }: Props) {
   // Check if a custom error message component was registered for this message
   if (error) {
     const ErrorMessageComponent = getErrorMessageComponentRegistry().get(
-      error.error_type,
+      // @ts-ignore: plan to modify this part so that all errors in Superset 6.0 are standardized as Superset API error types
+      error.errorType ?? error.error_type,
     );
     if (ErrorMessageComponent) {
       return (
         <ErrorMessageComponent
+          compact={compact}
           error={error}
           source={source}
           subtitle={subtitle}
@@ -67,28 +72,32 @@ export default function ErrorMessageWithStackTrace({
   if (fallback) {
     return <>{fallback}</>;
   }
+  const computedDescriptionDetails =
+    descriptionDetails ||
+    (link || stackTrace ? (
+      <>
+        {link && (
+          <Typography.Link
+            href={link}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            {t('Request Access')}
+          </Typography.Link>
+        )}
+        <br />
+        {stackTrace && <pre>{stackTrace}</pre>}
+      </>
+    ) : undefined);
 
   return (
     <ErrorAlert
-      level="warning"
-      title={title}
-      subtitle={subtitle}
-      copyText={copyText}
+      type="error"
+      errorType={title}
+      message={subtitle}
       description={description}
-      source={source}
-      body={
-        link || stackTrace ? (
-          <>
-            {link && (
-              <a href={link} target="_blank" rel="noopener noreferrer">
-                (Request Access)
-              </a>
-            )}
-            <br />
-            {stackTrace && <pre>{stackTrace}</pre>}
-          </>
-        ) : undefined
-      }
+      descriptionDetails={computedDescriptionDetails}
+      compact={compact}
     />
   );
 }

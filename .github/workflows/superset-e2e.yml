@@ -2,28 +2,47 @@ name: E2E
 
 on:
   push:
-    branches-ignore:
-      - "dependabot/**/docs/**"
-    paths-ignore:
-      - "docs/**"
+    branches:
+      - "master"
+      - "[0-9].[0-9]*"
   pull_request:
     types: [synchronize, opened, reopened, ready_for_review]
+  workflow_dispatch:
+    inputs:
+      use_dashboard:
+        description: 'Use Cypress Dashboard (true/false) [paid service - trigger manually when needed]. You MUST provide a branch and/or PR number below for this to work.'
+        required: false
+        default: 'false'
+      ref:
+        description: 'The branch or tag to checkout'
+        required: false
+        default: ''
+      pr_id:
+        description: 'The pull request ID to checkout'
+        required: false
+        default: ''
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: true
 
 jobs:
   cypress-matrix:
-    runs-on: ubuntu-20.04
+    # Somehow one test flakes on 24.04 for unknown reasons, this is the only GHA left on 22.04
+    runs-on: ubuntu-22.04
     permissions:
       contents: read
       pull-requests: read
     strategy:
       # when one test fails, DO NOT cancel the other
-      # containers, because this will kill Cypress processes
+      # parallel_id, because this will kill Cypress processes
       # leaving the Dashboard hanging ...
       # https://github.com/cypress-io/github-action/issues/48
       fail-fast: false
       matrix:
-        containers: [1, 2, 3]
+        parallel_id: [0, 1, 2, 3, 4, 5]
         browser: ["chrome"]
+        app_root: ["", "/app/prefix"]
     env:
       SUPERSET_ENV: development
       SUPERSET_CONFIG: tests.integration_tests.superset_test_config
@@ -31,9 +50,11 @@ jobs:
       PYTHONPATH: ${{ github.workspace }}
       REDIS_PORT: 16379
       GITHUB_TOKEN: ${{ github.token }}
+      # Only use dashboard when explicitly requested via workflow_dispatch
+      USE_DASHBOARD: ${{ github.event.inputs.use_dashboard == 'true' || 'false' }}
     services:
       postgres:
-        image: postgres:15-alpine
+        image: postgres:16-alpine
         env:
           POSTGRES_USER: superset
           POSTGRES_PASSWORD: superset
@@ -44,83 +65,89 @@ jobs:
         ports:
           - 16379:6379
     steps:
-      - name: "Checkout (pull) ${{ github.ref }} ( ${{ github.sha }} )"
-        uses: actions/checkout@v3
-        if: github.event_name == 'push'
+      # -------------------------------------------------------
+      # Conditional checkout based on context
+      - name: Checkout for push or pull_request event
+        if: github.event_name == 'push' || github.event_name == 'pull_request'
+        uses: actions/checkout@v4
         with:
           persist-credentials: false
           submodules: recursive
-      - name: "Checkout (pull_request) ${{ github.ref }} ( ${{ github.sha }} )"
-        uses: actions/checkout@v3
-        if: github.event_name == 'pull_request' || github.event_name == 'pull_request_target'
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+      - name: Checkout using ref (workflow_dispatch)
+        if: github.event_name == 'workflow_dispatch' && github.event.inputs.ref != ''
+        uses: actions/checkout@v4
         with:
-          ref: "refs/pull/${{ github.event.number }}/merge"
           persist-credentials: false
+          ref: ${{ github.event.inputs.ref }}
           submodules: recursive
-      - name: Check if python or frontend changes are present
+      - name: Checkout using PR ID (workflow_dispatch)
+        if: github.event_name == 'workflow_dispatch' && github.event.inputs.pr_id != ''
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          ref: refs/pull/${{ github.event.inputs.pr_id }}/merge
+          submodules: recursive
+      # -------------------------------------------------------
+      - name: Check for file changes
         id: check
-        env:
-          GITHUB_REPO: ${{ github.repository }}
-          PR_NUMBER: ${{ github.event.pull_request.number }}
-        continue-on-error: true
-        run: ./scripts/ci_check_no_file_changes.sh python frontend
+        uses: ./.github/actions/change-detector/
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
       - name: Setup Python
-        if: steps.check.outcome == 'failure'
-        uses: actions/setup-python@v4
-        with:
-          python-version: "3.9"
-      - name: OS dependencies
-        if: steps.check.outcome == 'failure'
-        uses: ./.github/actions/cached-dependencies
-        with:
-          run: apt-get-install
-      - name: Install python dependencies
-        if: steps.check.outcome == 'failure'
-        uses: ./.github/actions/cached-dependencies
-        with:
-          run: |
-            pip-upgrade
-            pip install -r requirements/testing.txt
+        uses: ./.github/actions/setup-backend/
+        if: steps.check.outputs.python || steps.check.outputs.frontend
       - name: Setup postgres
-        if: steps.check.outcome == 'failure'
+        if: steps.check.outputs.python || steps.check.outputs.frontend
         uses: ./.github/actions/cached-dependencies
         with:
           run: setup-postgres
       - name: Import test data
-        if: steps.check.outcome == 'failure'
+        if: steps.check.outputs.python || steps.check.outputs.frontend
         uses: ./.github/actions/cached-dependencies
         with:
           run: testdata
       - name: Setup Node.js
-        uses: actions/setup-node@v3
+        if: steps.check.outputs.python || steps.check.outputs.frontend
+        uses: actions/setup-node@v4
         with:
-          node-version: "16"
+          node-version-file: './superset-frontend/.nvmrc'
       - name: Install npm dependencies
-        if: steps.check.outcome == 'failure'
+        if: steps.check.outputs.python || steps.check.outputs.frontend
         uses: ./.github/actions/cached-dependencies
         with:
           run: npm-install
       - name: Build javascript packages
-        if: steps.check.outcome == 'failure'
+        if: steps.check.outputs.python || steps.check.outputs.frontend
         uses: ./.github/actions/cached-dependencies
         with:
           run: build-instrumented-assets
       - name: Install cypress
-        if: steps.check.outcome == 'failure'
+        if: steps.check.outputs.python || steps.check.outputs.frontend
         uses: ./.github/actions/cached-dependencies
         with:
           run: cypress-install
       - name: Run Cypress
-        if: steps.check.outcome == 'failure'
+        if: steps.check.outputs.python || steps.check.outputs.frontend
         uses: ./.github/actions/cached-dependencies
         env:
           CYPRESS_BROWSER: ${{ matrix.browser }}
-          CYPRESS_KEY: YjljODE2MzAtODcwOC00NTA3LWE4NmMtMTU3YmFmMjIzOTRhCg==
+          PARALLEL_ID: ${{ matrix.parallel_id }}
+          PARALLELISM: 6
+          CYPRESS_RECORD_KEY: ${{ secrets.CYPRESS_RECORD_KEY }}
+          NODE_OPTIONS: "--max-old-space-size=4096"
         with:
-          run: cypress-run-all
+          run: cypress-run-all ${{ env.USE_DASHBOARD }} ${{ matrix.app_root }}
+      - name: Set safe app root
+        if: failure()
+        id: set-safe-app-root
+        run: |
+          APP_ROOT="${{ matrix.app_root }}"
+          SAFE_APP_ROOT=${APP_ROOT//\//_}
+          echo "safe_app_root=$SAFE_APP_ROOT" >> $GITHUB_OUTPUT
       - name: Upload Artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         if: failure()
         with:
-          name: screenshots
           path: ${{ github.workspace }}/superset-frontend/cypress-base/cypress/screenshots
+          name: cypress-artifact-${{ github.run_id }}-${{ github.job }}-${{ matrix.browser }}-${{ matrix.parallel_id }}--${{ steps.set-safe-app-root.outputs.safe_app_root }}

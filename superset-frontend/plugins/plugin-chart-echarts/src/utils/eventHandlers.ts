@@ -137,7 +137,8 @@ export const contextMenuEventHandler =
       }
       onContextMenu(pointerEvent.clientX, pointerEvent.clientY, {
         drillToDetail: drillFilters,
-        crossFilter: getCrossFilterDataMask(e.name),
+        crossFilter:
+          groupby.length > 0 ? getCrossFilterDataMask(e.name) : undefined,
         drillBy: { filters: drillFilters, groupbyFieldName: 'groupby' },
       });
     }
@@ -157,11 +158,14 @@ export const allEventHandlers = (
     formData,
   } = transformedProps;
   const eventHandlers: EventHandlers = {
-    click: clickEventHandler(
-      getCrossFilterDataMask(selectedValues, groupby, labelMap),
-      setDataMask,
-      emitCrossFilters,
-    ),
+    click:
+      groupby.length > 0
+        ? clickEventHandler(
+            getCrossFilterDataMask(selectedValues, groupby, labelMap),
+            setDataMask,
+            emitCrossFilters,
+          )
+        : () => {},
     contextmenu: contextMenuEventHandler(
       groupby,
       onContextMenu,

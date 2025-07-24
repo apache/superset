@@ -27,16 +27,17 @@ at all. The classes here will use a common interface to specify all this.
 
 The general idea is to use static classes and an inheritance scheme.
 """
+
 import inspect
 import logging
 import pkgutil
 from collections import defaultdict
 from importlib import import_module
+from importlib.metadata import entry_points
 from pathlib import Path
 from typing import Any, Optional
 
 import sqlalchemy.dialects
-from importlib_metadata import entry_points
 from sqlalchemy.engine.default import DefaultDialect
 from sqlalchemy.exc import NoSuchModuleError
 
@@ -93,7 +94,7 @@ def get_engine_spec(backend: str, driver: Optional[str] = None) -> type[BaseEngi
     supporting that driver exists then a backend-only match is done, in order to allow new
     drivers to work with Superset even if they are not listed in the DB engine spec
     drivers.
-    """
+    """  # noqa: E501
     engine_specs = load_engine_specs()
 
     if driver is not None:
@@ -120,7 +121,7 @@ backend_replacements = {
 
 
 # pylint: disable=too-many-branches
-def get_available_engine_specs() -> dict[type[BaseEngineSpec], set[str]]:
+def get_available_engine_specs() -> dict[type[BaseEngineSpec], set[str]]:  # noqa: C901
     """
     Return available engine specs and installed drivers for them.
     """
@@ -153,7 +154,7 @@ def get_available_engine_specs() -> dict[type[BaseEngineSpec], set[str]]:
         try:
             dialect = ep.load()
         except Exception as ex:  # pylint: disable=broad-except
-            logger.warning("Unable to load SQLAlchemy dialect %s: %s", dialect, ex)
+            logger.warning("Unable to load SQLAlchemy dialect %s: %s", ep.name, ex)
         else:
             backend = dialect.name
             if isinstance(backend, bytes):

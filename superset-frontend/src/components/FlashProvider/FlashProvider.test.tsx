@@ -18,19 +18,18 @@
  */
 
 import { render, screen } from 'spec/helpers/testing-library';
-import React from 'react';
 import { Provider } from 'react-redux';
 import { store } from 'src/views/store';
-import FlashProvider, { FlashMessage } from './index';
+import type { FlashMessage } from './types';
+import { FlashProvider } from '.';
 
 test('Rerendering correctly with default props', () => {
   const messages: FlashMessage[] = [];
   render(
-    <Provider store={store}>
-      <FlashProvider messages={messages}>
-        <div data-test="my-component">My Component</div>
-      </FlashProvider>
-    </Provider>,
+    <FlashProvider messages={messages}>
+      <div data-test="my-component">My Component</div>
+    </FlashProvider>,
+    { store },
   );
   expect(screen.getByTestId('my-component')).toBeInTheDocument();
 });

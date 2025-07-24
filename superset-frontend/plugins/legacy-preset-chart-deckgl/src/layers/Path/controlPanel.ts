@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ControlPanelConfig, sections } from '@superset-ui/chart-controls';
+import { ControlPanelConfig } from '@superset-ui/chart-controls';
 import { t } from '@superset-ui/core';
 import {
   filterNulls,
@@ -35,7 +35,6 @@ import { dndLineColumn } from '../../utilities/sharedDndControls';
 
 const config: ControlPanelConfig = {
   controlPanelSections: [
-    sections.legacyRegularTime,
     {
       label: t('Query'),
       expanded: true,

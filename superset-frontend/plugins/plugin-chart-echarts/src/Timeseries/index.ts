@@ -16,12 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import {
-  AnnotationType,
-  Behavior,
-  hasGenericChartAxes,
-  t,
-} from '@superset-ui/core';
+import { AnnotationType, Behavior, t } from '@superset-ui/core';
 import buildQuery from './buildQuery';
 import controlPanel from './Regular/Line/controlPanel';
 import transformProps from './transformProps';
@@ -44,19 +39,15 @@ export default class EchartsTimeseriesChartPlugin extends EchartsChartPlugin<
       loadChart: () => import('./EchartsTimeseries'),
       metadata: {
         behaviors: [
-          Behavior.INTERACTIVE_CHART,
-          Behavior.DRILL_TO_DETAIL,
-          Behavior.DRILL_BY,
+          Behavior.InteractiveChart,
+          Behavior.DrillToDetail,
+          Behavior.DrillBy,
         ],
         category: t('Evolution'),
         credits: ['https://echarts.apache.org'],
-        description: hasGenericChartAxes
-          ? t(
-              'Swiss army knife for visualizing data. Choose between step, line, scatter, and bar charts. This viz type has many customization options as well.',
-            )
-          : t(
-              'Swiss army knife for visualizing time series data. Choose between step, line, scatter, and bar charts. This viz type has many customization options as well.',
-            ),
+        description: t(
+          'Swiss army knife for visualizing data. Choose between step, line, scatter, and bar charts. This viz type has many customization options as well.',
+        ),
         exampleGallery: [{ url: example }],
         supportedAnnotationTypes: [
           AnnotationType.Event,
@@ -64,10 +55,10 @@ export default class EchartsTimeseriesChartPlugin extends EchartsChartPlugin<
           AnnotationType.Interval,
           AnnotationType.Timeseries,
         ],
-        name: hasGenericChartAxes ? t('Generic Chart') : t('Time-series Chart'),
+        name: t('Generic Chart'),
         tags: [
           t('Advanced-Analytics'),
-          t('Aesthetic'),
+          t('ECharts'),
           t('Line'),
           t('Predictive'),
           t('Time'),

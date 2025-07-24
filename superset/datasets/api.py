@@ -15,18 +15,24 @@
 # specific language governing permissions and limitations
 # under the License.
 # pylint: disable=too-many-lines
-import json
+from __future__ import annotations
+
 import logging
 from datetime import datetime
 from io import BytesIO
-from typing import Any
+from typing import Any, Callable
 from zipfile import is_zipfile, ZipFile
 
-import yaml
 from flask import request, Response, send_file
 from flask_appbuilder.api import expose, protect, rison, safe
+from flask_appbuilder.api.schemas import get_item_schema
+from flask_appbuilder.const import (
+    API_RESULT_RES_KEY,
+    API_SELECT_COLUMNS_RIS_KEY,
+)
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_babel import ngettext
+from jinja2.exceptions import TemplateSyntaxError
 from marshmallow import ValidationError
 
 from superset import event_logger, is_feature_enabled
@@ -67,8 +73,11 @@ from superset.datasets.schemas import (
     GetOrCreateDatasetSchema,
     openapi_spec_methods_override,
 )
+from superset.exceptions import SupersetTemplateException
+from superset.jinja_context import BaseTemplateProcessor, get_template_processor
+from superset.utils import json
 from superset.utils.core import parse_boolean_string
-from superset.views.base import DatasourceFilter, generate_download_headers
+from superset.views.base import DatasourceFilter
 from superset.views.base_api import (
     BaseSupersetModelRestApi,
     RelatedFieldFilter,
@@ -76,6 +85,7 @@ from superset.views.base_api import (
     requires_json,
     statsd_metrics,
 )
+from superset.views.error_handling import handle_api_exception
 from superset.views.filters import BaseFilterRelatedUsers, FilterRelatedOwners
 
 logger = logging.getLogger(__name__)
@@ -120,13 +130,16 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         "owners.id",
         "owners.first_name",
         "owners.last_name",
+        "catalog",
         "schema",
         "sql",
         "table_name",
+        "uuid",
     ]
     list_select_columns = list_columns + ["changed_on", "changed_by_fk"]
     order_columns = [
         "table_name",
+        "catalog",
         "schema",
         "changed_by.first_name",
         "changed_on_delta_humanized",
@@ -140,6 +153,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         "sql",
         "filter_select_enabled",
         "fetch_values_predicate",
+        "catalog",
         "schema",
         "description",
         "main_dttm_col",
@@ -180,8 +194,10 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         "metrics.id",
         "metrics.metric_name",
         "metrics.metric_type",
+        "metrics.uuid",
         "metrics.verbose_name",
         "metrics.warning_text",
+        "folders",
         "datasource_type",
         "url",
         "extra",
@@ -198,13 +214,13 @@ class DatasetRestApi(BaseSupersetModelRestApi):
     show_columns = show_select_columns + [
         "columns.type_generic",
         "database.backend",
+        "database.allow_multi_catalog",
         "columns.advanced_data_type",
         "is_managed_externally",
         "uid",
         "datasource_name",
         "name",
         "column_formats",
-        "currency_formats",
         "granularity_sqla",
         "time_grain_sqla",
         "order_by_choices",
@@ -213,12 +229,13 @@ class DatasetRestApi(BaseSupersetModelRestApi):
     add_model_schema = DatasetPostSchema()
     edit_model_schema = DatasetPutSchema()
     duplicate_model_schema = DatasetDuplicateSchema()
-    add_columns = ["database", "schema", "table_name", "sql", "owners"]
+    add_columns = ["database", "catalog", "schema", "table_name", "sql", "owners"]
     edit_columns = [
         "table_name",
         "sql",
         "filter_select_enabled",
         "fetch_values_predicate",
+        "catalog",
         "schema",
         "description",
         "main_dttm_col",
@@ -238,10 +255,12 @@ class DatasetRestApi(BaseSupersetModelRestApi):
 
     base_related_field_filters = {
         "owners": [["id", BaseFilterRelatedUsers, lambda: []]],
+        "changed_by": [["id", BaseFilterRelatedUsers, lambda: []]],
         "database": [["id", DatabaseFilter, lambda: []]],
     }
     related_field_filters = {
         "owners": RelatedFieldFilter("first_name", FilterRelatedOwners),
+        "changed_by": RelatedFieldFilter("first_name", FilterRelatedOwners),
         "database": "database_name",
     }
     search_filters = {
@@ -252,14 +271,16 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         "id",
         "database",
         "owners",
+        "catalog",
         "schema",
         "sql",
         "table_name",
         "created_by",
         "changed_by",
+        "uuid",
     ]
     allowed_rel_fields = {"database", "owners", "created_by", "changed_by"}
-    allowed_distinct_fields = {"schema"}
+    allowed_distinct_fields = {"catalog", "schema"}
 
     apispec_parameter_schemas = {
         "get_export_ids_schema": get_export_ids_schema,
@@ -489,7 +510,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.export",
         log_to_statsd=False,
     )
-    def export(self, **kwargs: Any) -> Response:  # pylint: disable=too-many-locals
+    def export(self, **kwargs: Any) -> Response:
         """Download multiple datasets as YAML files.
         ---
         get:
@@ -519,56 +540,38 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         """
         requested_ids = kwargs["rison"]
 
-        if is_feature_enabled("VERSIONED_EXPORT"):
-            token = request.args.get("token")
-            timestamp = datetime.now().strftime("%Y%m%dT%H%M%S")
-            root = f"dataset_export_{timestamp}"
-            filename = f"{root}.zip"
+        timestamp = datetime.now().strftime("%Y%m%dT%H%M%S")
+        root = f"dataset_export_{timestamp}"
+        filename = f"{root}.zip"
 
-            buf = BytesIO()
-            with ZipFile(buf, "w") as bundle:
-                try:
-                    for file_name, file_content in ExportDatasetsCommand(
-                        requested_ids
-                    ).run():
-                        with bundle.open(f"{root}/{file_name}", "w") as fp:
-                            fp.write(file_content.encode())
-                except DatasetNotFoundError:
-                    return self.response_404()
-            buf.seek(0)
+        buf = BytesIO()
+        with ZipFile(buf, "w") as bundle:
+            try:
+                for file_name, file_content in ExportDatasetsCommand(
+                    requested_ids
+                ).run():
+                    with bundle.open(f"{root}/{file_name}", "w") as fp:
+                        fp.write(file_content().encode())
+            except DatasetNotFoundError:
+                return self.response_404()
+        buf.seek(0)
 
-            response = send_file(
-                buf,
-                mimetype="application/zip",
-                as_attachment=True,
-                download_name=filename,
-            )
-            if token:
-                response.set_cookie(token, "done", max_age=600)
-            return response
-
-        query = self.datamodel.session.query(SqlaTable).filter(
-            SqlaTable.id.in_(requested_ids)
+        response = send_file(
+            buf,
+            mimetype="application/zip",
+            as_attachment=True,
+            download_name=filename,
         )
-        query = self._base_filters.apply_all(query)
-        items = query.all()
-        ids = [item.id for item in items]
-        if len(ids) != len(requested_ids):
-            return self.response_404()
-
-        data = [t.export_to_dict() for t in items]
-        return Response(
-            yaml.safe_dump(data),
-            headers=generate_download_headers("yaml"),
-            mimetype="application/text",
-        )
+        if token := request.args.get("token"):
+            response.set_cookie(token, "done", max_age=600)
+        return response
 
     @expose("/duplicate", methods=("POST",))
     @protect()
     @safe
     @statsd_metrics
     @event_logger.log_this_with_context(
-        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}" f".duplicate",
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.duplicate",
         log_to_statsd=False,
     )
     @requires_json
@@ -620,9 +623,11 @@ class DatasetRestApi(BaseSupersetModelRestApi):
             return self.response(201, id=new_model.id, result=item)
         except DatasetInvalidError as ex:
             return self.response_422(
-                message=ex.normalized_messages()
-                if isinstance(ex, ValidationError)
-                else str(ex)
+                message=(
+                    ex.normalized_messages()
+                    if isinstance(ex, ValidationError)
+                    else str(ex)
+                )
             )
         except DatasetCreateFailedError as ex:
             logger.error(
@@ -638,7 +643,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
     @safe
     @statsd_metrics
     @event_logger.log_this_with_context(
-        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}" f".refresh",
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.refresh",
         log_to_statsd=False,
     )
     def refresh(self, pk: int) -> Response:
@@ -1016,8 +1021,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
     @safe
     @statsd_metrics
     @event_logger.log_this_with_context(
-        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
-        f".warm_up_cache",
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.warm_up_cache",
         log_to_statsd=False,
     )
     def warm_up_cache(self) -> Response:
@@ -1052,7 +1056,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
               $ref: '#/components/responses/404'
             500:
               $ref: '#/components/responses/500'
-        """
+        """  # noqa: E501
         try:
             body = DatasetCacheWarmUpRequestSchema().load(request.json)
         except ValidationError as error:
@@ -1067,3 +1071,150 @@ class DatasetRestApi(BaseSupersetModelRestApi):
             return self.response(200, result=result)
         except CommandException as ex:
             return self.response(ex.status, message=ex.message)
+
+    @expose("/<int:pk>", methods=("GET",))
+    @protect()
+    @safe
+    @rison(get_item_schema)
+    @statsd_metrics
+    @handle_api_exception
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.get",
+        log_to_statsd=False,
+    )
+    def get(self, pk: int, **kwargs: Any) -> Response:
+        """Get a dataset.
+        ---
+        get:
+          summary: Get a dataset
+          description: Get a dataset by ID
+          parameters:
+          - in: path
+            schema:
+              type: integer
+            description: The dataset ID
+            name: pk
+          - in: query
+            name: q
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/get_item_schema'
+          - in: query
+            name: include_rendered_sql
+            description: >-
+              Should Jinja macros from sql, metrics and columns be rendered
+              and included in the response
+            schema:
+              type: boolean
+          responses:
+            200:
+              description: Dataset object has been returned.
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      id:
+                        description: The item id
+                        type: string
+                      result:
+                        $ref: '#/components/schemas/{{self.__class__.__name__}}.get'
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            422:
+              $ref: '#/components/responses/422'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        item: SqlaTable | None = self.datamodel.get(
+            pk,
+            self._base_filters,
+            self.show_select_columns,
+            self.show_outer_default_load,
+        )
+        if not item:
+            return self.response_404()
+
+        response: dict[str, Any] = {}
+        args = kwargs.get("rison", {})
+        select_cols = args.get(API_SELECT_COLUMNS_RIS_KEY, [])
+        pruned_select_cols = [col for col in select_cols if col in self.show_columns]
+        self.set_response_key_mappings(
+            response,
+            self.get,
+            args,
+            **{API_SELECT_COLUMNS_RIS_KEY: pruned_select_cols},
+        )
+        if pruned_select_cols:
+            show_model_schema = self.model2schemaconverter.convert(pruned_select_cols)
+        else:
+            show_model_schema = self.show_model_schema
+
+        response["id"] = pk
+        response[API_RESULT_RES_KEY] = show_model_schema.dump(item, many=False)
+
+        # remove folders from resposne if `DATASET_FOLDERS` is disabled, so that it's
+        # possible to inspect if the feature is supported or not
+        if (
+            not is_feature_enabled("DATASET_FOLDERS")
+            and "folders" in response[API_RESULT_RES_KEY]
+        ):
+            del response[API_RESULT_RES_KEY]["folders"]
+
+        if parse_boolean_string(request.args.get("include_rendered_sql")):
+            try:
+                processor = get_template_processor(database=item.database)
+                response["result"] = self.render_dataset_fields(
+                    response["result"], processor
+                )
+            except SupersetTemplateException as ex:
+                return self.response_400(message=str(ex))
+        return self.response(200, **response)
+
+    @staticmethod
+    def render_dataset_fields(
+        data: dict[str, Any], processor: BaseTemplateProcessor
+    ) -> dict[str, Any]:
+        """
+        Renders Jinja macros in the ``sql``, ``metrics`` and ``columns`` fields.
+
+        :param data: Dataset info to be rendered
+        :param processor: A ``TemplateProcessor`` instance
+        :return: Rendered dataset data
+        """
+
+        def render_item_list(item_list: list[dict[str, Any]]) -> list[dict[str, Any]]:
+            return [
+                (
+                    {
+                        **item,
+                        "rendered_expression": processor.process_template(
+                            item["expression"]
+                        ),
+                    }
+                    if item.get("expression")
+                    else item
+                )
+                for item in item_list
+            ]
+
+        items: list[tuple[str, str, str, Callable[[Any], Any]]] = [
+            ("query", "sql", "rendered_sql", processor.process_template),
+            ("metric", "metrics", "metrics", render_item_list),
+            ("calculated column", "columns", "columns", render_item_list),
+        ]
+        for item_type, key, new_key, func in items:
+            if not data.get(key):
+                continue
+
+            try:
+                data[new_key] = func(data[key])
+            except TemplateSyntaxError as ex:
+                raise SupersetTemplateException(
+                    f"Unable to render expression from dataset {item_type}.",
+                ) from ex
+
+        return data

@@ -14,6 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import logging
 
 import pandas as pd
 from sqlalchemy import DateTime, inspect, String
@@ -21,14 +22,17 @@ from sqlalchemy import DateTime, inspect, String
 import superset.utils.database as database_utils
 from superset import app, db
 from superset.models.slice import Slice
+from superset.sql.parse import Table
 from superset.utils.core import DatasourceType
 
 from .helpers import (
-    get_example_url,
     get_slice_json,
     get_table_connector_registry,
     merge_slice,
+    read_example_data,
 )
+
+logger = logging.getLogger(__name__)
 
 
 def load_random_time_series_data(
@@ -37,13 +41,12 @@ def load_random_time_series_data(
     """Loading random time series data from a zip file in the repo"""
     tbl_name = "random_time_series"
     database = database_utils.get_example_database()
-    with database.get_sqla_engine_with_context() as engine:
+    with database.get_sqla_engine() as engine:
         schema = inspect(engine).default_schema_name
-        table_exists = database.has_table_by_name(tbl_name)
+        table_exists = database.has_table(Table(tbl_name, schema))
 
         if not only_metadata and (not table_exists or force):
-            url = get_example_url("random_time_series.json.gz")
-            pdf = pd.read_json(url, compression="gzip")
+            pdf = read_example_data("random_time_series.json.gz", compression="gzip")
             if database.backend == "presto":
                 pdf.ds = pd.to_datetime(pdf.ds, unit="s")
                 pdf.ds = pdf.ds.dt.strftime("%Y-%m-%d %H:%M%:%S")
@@ -59,10 +62,10 @@ def load_random_time_series_data(
                 dtype={"ds": DateTime if database.backend != "presto" else String(255)},
                 index=False,
             )
-        print("Done loading table!")
-        print("-" * 80)
+        logger.debug("Done loading table!")
+        logger.debug("-" * 80)
 
-    print(f"Creating table [{tbl_name}] reference")
+    logger.debug(f"Creating table [{tbl_name}] reference")
     table = get_table_connector_registry()
     obj = db.session.query(table).filter_by(table_name=tbl_name).first()
     if not obj:
@@ -71,7 +74,6 @@ def load_random_time_series_data(
     obj.main_dttm_col = "ds"
     obj.database = database
     obj.filter_select_enabled = True
-    db.session.commit()
     obj.fetch_metadata()
     tbl = obj
 
@@ -86,7 +88,7 @@ def load_random_time_series_data(
         "subdomain_granularity": "day",
     }
 
-    print("Creating a slice")
+    logger.debug("Creating a slice")
     slc = Slice(
         slice_name="Calendar Heatmap",
         viz_type="cal_heatmap",

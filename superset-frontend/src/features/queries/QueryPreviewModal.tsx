@@ -16,11 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { styled, t } from '@superset-ui/core';
-import Modal from 'src/components/Modal';
 import cx from 'classnames';
-import Button from 'src/components/Button';
+import { Button, Modal } from '@superset-ui/core/components';
 import withToasts, {
   ToastProps,
 } from 'src/components/MessageToasts/withToasts';
@@ -29,54 +28,45 @@ import useQueryPreviewState from 'src/features/queries/hooks/useQueryPreviewStat
 import { QueryObject } from 'src/views/CRUD/types';
 
 const QueryTitle = styled.div`
-  color: ${({ theme }) => theme.colors.secondary.light2};
-  font-size: ${({ theme }) => theme.typography.sizes.s}px;
+  color: ${({ theme }) => theme.colors.primary.light2};
+  font-size: ${({ theme }) => theme.fontSizeSM}px;
   margin-bottom: 0;
-  text-transform: uppercase;
 `;
 
 const QueryLabel = styled.div`
   color: ${({ theme }) => theme.colors.grayscale.dark2};
-  font-size: ${({ theme }) => theme.typography.sizes.m}px;
+  font-size: ${({ theme }) => theme.fontSize}px;
   padding: 4px 0 24px 0;
 `;
 
 const QueryViewToggle = styled.div`
-  margin: 0 0 ${({ theme }) => theme.gridUnit * 6}px 0;
+  margin: 0 0 ${({ theme }) => theme.sizeUnit * 6}px 0;
 `;
 
 const TabButton = styled.div`
   display: inline;
-  font-size: ${({ theme }) => theme.typography.sizes.s}px;
-  padding: ${({ theme }) => theme.gridUnit * 2}px
-    ${({ theme }) => theme.gridUnit * 4}px;
-  margin-right: ${({ theme }) => theme.gridUnit * 4}px;
-  color: ${({ theme }) => theme.colors.secondary.dark1};
+  font-size: ${({ theme }) => theme.fontSizeSM}px;
+  padding: ${({ theme }) => theme.sizeUnit * 2}px
+    ${({ theme }) => theme.sizeUnit * 4}px;
+  margin-right: ${({ theme }) => theme.sizeUnit * 4}px;
+  color: ${({ theme }) => theme.colorPrimaryText};
 
   &.active,
   &:focus,
   &:hover {
-    background: ${({ theme }) => theme.colors.secondary.light4};
+    background: ${({ theme }) => theme.colors.primary.light4};
     border-bottom: none;
     border-radius: ${({ theme }) => theme.borderRadius}px;
-    margin-bottom: ${({ theme }) => theme.gridUnit * 2}px;
+    margin-bottom: ${({ theme }) => theme.sizeUnit * 2}px;
   }
 
   &:hover:not(.active) {
-    background: ${({ theme }) => theme.colors.secondary.light5};
+    background: ${({ theme }) => theme.colors.primary.light5};
   }
 `;
 const StyledModal = styled(Modal)`
   .ant-modal-body {
-    padding: ${({ theme }) => theme.gridUnit * 6}px;
-  }
-
-  pre {
-    font-size: ${({ theme }) => theme.typography.sizes.xs}px;
-    font-weight: ${({ theme }) => theme.typography.weights.normal};
-    line-height: ${({ theme }) => theme.typography.sizes.l}px;
-    height: 375px;
-    border: none;
+    padding: ${({ theme }) => theme.sizeUnit * 6}px;
   }
 `;
 

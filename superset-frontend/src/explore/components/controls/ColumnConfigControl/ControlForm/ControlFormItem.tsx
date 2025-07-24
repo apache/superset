@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useState, FunctionComponentElement, ChangeEvent } from 'react';
+import { useState, FunctionComponentElement, ChangeEvent } from 'react';
 import { JsonValue, useTheme } from '@superset-ui/core';
 import { ControlFormItemComponents } from './controls';
 import ControlHeader, { ControlHeaderProps } from '../../../ControlHeader';
@@ -51,7 +51,7 @@ export function ControlFormItem({
   controlType,
   ...props
 }: ControlFormItemProps) {
-  const { gridUnit } = useTheme();
+  const { sizeUnit } = useTheme();
   const [hovered, setHovered] = useState(false);
   const [value, setValue] = useState(
     initialValue === undefined ? defaultValue : initialValue,
@@ -84,7 +84,7 @@ export function ControlFormItem({
   return (
     <div
       css={{
-        margin: 2 * gridUnit,
+        margin: 2 * sizeUnit,
         width,
         maxWidth: '100%',
         flex: 1,

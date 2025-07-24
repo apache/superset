@@ -14,28 +14,25 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-# isort:skip_file
 from operator import and_
-from unittest.mock import patch
-import pytest
-from superset.daos.exceptions import DAOCreateFailedError, DAOException
-from superset.models.slice import Slice
-from superset.models.sql_lab import SavedQuery
-from superset.daos.tag import TagDAO
-from superset.tags.exceptions import InvalidTagNameError
-from superset.tags.models import ObjectType, Tag, TaggedObject
-from tests.integration_tests.tags.api_tests import TAGS_FIXTURE_COUNT
 
-import tests.integration_tests.test_app  # pylint: disable=unused-import
-from superset import db, security_manager
-from superset.daos.dashboard import DashboardDAO
+import pytest
+
+from superset import db
+from superset.daos.tag import TagDAO
 from superset.models.dashboard import Dashboard
+from superset.models.slice import Slice
+from superset.tags.models import ObjectType, Tag, TaggedObject
 from tests.integration_tests.base_tests import SupersetTestCase
-from tests.integration_tests.fixtures.world_bank_dashboard import (
-    load_world_bank_dashboard_with_slices,
-    load_world_bank_data,
+from tests.integration_tests.constants import ADMIN_USERNAME
+from tests.integration_tests.fixtures.tags import (
+    with_tagging_system_feature,  # noqa: F401
 )
-from tests.integration_tests.fixtures.tags import with_tagging_system_feature
+from tests.integration_tests.fixtures.world_bank_dashboard import (
+    load_world_bank_dashboard_with_slices,  # noqa: F401
+    load_world_bank_data,  # noqa: F401
+)
+from tests.integration_tests.tags.api_tests import TAGS_FIXTURE_COUNT
 
 
 class TestTagsDAO(SupersetTestCase):
@@ -67,7 +64,7 @@ class TestTagsDAO(SupersetTestCase):
         db.session.commit()
         return tagged_object
 
-    @pytest.fixture()
+    @pytest.fixture
     def create_tags(self):
         with self.create_app().app_context():
             # clear tags table
@@ -86,7 +83,7 @@ class TestTagsDAO(SupersetTestCase):
                 )
             yield tags
 
-    @pytest.fixture()
+    @pytest.fixture
     def create_tagged_objects(self):
         with self.create_app().app_context():
             # clear tags table
@@ -152,6 +149,7 @@ class TestTagsDAO(SupersetTestCase):
     @pytest.mark.usefixtures("create_tags")
     # test get objects from tag
     def test_get_objects_from_tag(self):
+        self.login(ADMIN_USERNAME)
         # create tagged objects
         dashboard = (
             db.session.query(Dashboard)
@@ -164,17 +162,17 @@ class TestTagsDAO(SupersetTestCase):
             object_id=dashboard_id, object_type=ObjectType.dashboard, tag_id=tag.id
         )
         # get objects
-        tagged_objects = TagDAO.get_tagged_objects_for_tags(
+        tagged_objects = TagDAO.get_tagged_objects_by_tag_names(
             ["example_tag_1", "example_tag_2"]
         )
         assert len(tagged_objects) == 1
 
         # test get objects from tag with type
-        tagged_objects = TagDAO.get_tagged_objects_for_tags(
+        tagged_objects = TagDAO.get_tagged_objects_by_tag_names(
             ["example_tag_1", "example_tag_2"], obj_types=["dashboard", "chart"]
         )
         assert len(tagged_objects) == 1
-        tagged_objects = TagDAO.get_tagged_objects_for_tags(
+        tagged_objects = TagDAO.get_tagged_objects_by_tag_names(
             ["example_tag_1", "example_tag_2"], obj_types=["chart"]
         )
         assert len(tagged_objects) == 0
@@ -188,6 +186,7 @@ class TestTagsDAO(SupersetTestCase):
                     TaggedObject.object_type == ObjectType.chart,
                 ),
             )
+            .join(Tag, TaggedObject.tag_id == Tag.id)
             .distinct(Slice.id)
             .count()
         )
@@ -200,17 +199,18 @@ class TestTagsDAO(SupersetTestCase):
                     TaggedObject.object_type == ObjectType.dashboard,
                 ),
             )
+            .join(Tag, TaggedObject.tag_id == Tag.id)
             .distinct(Dashboard.id)
             .count()
             + num_charts
         )
         # gets all tagged objects of type dashboard and chart
-        tagged_objects = TagDAO.get_tagged_objects_for_tags(
+        tagged_objects = TagDAO.get_tagged_objects_by_tag_names(
             obj_types=["dashboard", "chart"]
         )
         assert len(tagged_objects) == num_charts_and_dashboards
         # test objects are retrieved by type
-        tagged_objects = TagDAO.get_tagged_objects_for_tags(obj_types=["chart"])
+        tagged_objects = TagDAO.get_tagged_objects_by_tag_names(obj_types=["chart"])
         assert len(tagged_objects) == num_charts
 
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
@@ -218,6 +218,7 @@ class TestTagsDAO(SupersetTestCase):
     @pytest.mark.usefixtures("create_tags")
     # test get objects from tag
     def test_get_objects_from_tag_with_id(self):
+        self.login(ADMIN_USERNAME)
         # create tagged objects
         dashboard = (
             db.session.query(Dashboard)
@@ -232,16 +233,16 @@ class TestTagsDAO(SupersetTestCase):
             object_id=dashboard_id, object_type=ObjectType.dashboard, tag_id=tag_1.id
         )
         # get objects
-        tagged_objects = TagDAO.get_tagged_objects_by_tag_id(tag_ids)
+        tagged_objects = TagDAO.get_tagged_objects_by_tag_ids(tag_ids)
         assert len(tagged_objects) == 1
 
         # test get objects from tag with type
-        tagged_objects = TagDAO.get_tagged_objects_by_tag_id(
+        tagged_objects = TagDAO.get_tagged_objects_by_tag_ids(
             tag_ids, obj_types=["dashboard", "chart"]
         )
         assert len(tagged_objects) == 1
 
-        tagged_objects = TagDAO.get_tagged_objects_by_tag_id(
+        tagged_objects = TagDAO.get_tagged_objects_by_tag_ids(
             tag_ids, obj_types=["chart"]
         )
         assert len(tagged_objects) == 0

@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { isUrlExternal, parseUrl } from './urlUtils';
+import { isUrlExternal, parseUrl, toQueryString } from './urlUtils';
 
 test('isUrlExternal', () => {
   expect(isUrlExternal('http://google.com')).toBeTruthy();
@@ -51,4 +51,48 @@ test('parseUrl', () => {
 
   expect(parseUrl('/about')).toEqual('/about');
   expect(parseUrl('#anchor')).toEqual('#anchor');
+});
+
+describe('toQueryString', () => {
+  it('should return an empty string if the input is an empty object', () => {
+    expect(toQueryString({})).toBe('');
+  });
+
+  it('should correctly convert a single key-value pair to a query string', () => {
+    expect(toQueryString({ key: 'value' })).toBe('?key=value');
+  });
+
+  it('should correctly convert multiple key-value pairs to a query string', () => {
+    expect(toQueryString({ key1: 'value1', key2: 'value2' })).toBe(
+      '?key1=value1&key2=value2',
+    );
+  });
+
+  it('should encode URI components', () => {
+    expect(
+      toQueryString({ 'a key': 'a value', email: 'test@example.com' }),
+    ).toBe('?a%20key=a%20value&email=test%40example.com');
+  });
+
+  it('should omit keys with undefined values', () => {
+    expect(toQueryString({ key1: 'value1', key2: undefined })).toBe(
+      '?key1=value1',
+    );
+  });
+
+  it('should omit keys with null values', () => {
+    expect(toQueryString({ key1: 'value1', key2: null })).toBe('?key1=value1');
+  });
+
+  it('should handle numbers and boolean values as parameter values', () => {
+    expect(toQueryString({ number: 123, truth: true, lie: false })).toBe(
+      '?number=123&truth=true&lie=false',
+    );
+  });
+
+  it('should handle special characters in keys and values', () => {
+    expect(toQueryString({ 'user@domain': 'me&you' })).toBe(
+      '?user%40domain=me%26you',
+    );
+  });
 });

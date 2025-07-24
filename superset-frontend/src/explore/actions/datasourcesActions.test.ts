@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { DatasourceType } from '@superset-ui/core';
+import { DatasourceType, getClientErrorObject } from '@superset-ui/core';
 import fetchMock from 'fetch-mock';
 import {
   setDatasource,
@@ -24,9 +24,15 @@ import {
   saveDataset,
 } from 'src/explore/actions/datasourcesActions';
 import sinon from 'sinon';
-import * as ClientError from 'src/utils/getClientErrorObject';
 import datasourcesReducer from '../reducers/datasourcesReducer';
 import { updateFormDataByDatasource } from './exploreActions';
+
+jest.mock('@superset-ui/core', () => ({
+  ...jest.requireActual('@superset-ui/core'),
+  getClientErrorObject: jest.fn(),
+}));
+
+const mockedGetClientErrorObject = getClientErrorObject as jest.Mock;
 
 const CURRENT_DATASOURCE = {
   id: 1,
@@ -35,7 +41,6 @@ const CURRENT_DATASOURCE = {
   columns: [],
   metrics: [],
   column_formats: {},
-  currency_formats: {},
   verbose_map: {},
   main_dttm_col: '__timestamp',
   // eg. ['["ds", true]', 'ds [asc]']
@@ -49,7 +54,6 @@ const NEW_DATASOURCE = {
   columns: [],
   metrics: [],
   column_formats: {},
-  currency_formats: {},
   verbose_map: {},
   main_dttm_col: '__timestamp',
   // eg. ['["ds", true]', 'ds [asc]']
@@ -124,9 +128,11 @@ test('saveDataset handles success', async () => {
 test('updateSlice with add to existing dashboard handles failure', async () => {
   fetchMock.reset();
   const sampleError = new Error('sampleError');
+  mockedGetClientErrorObject.mockImplementation(() =>
+    Promise.resolve(sampleError),
+  );
   fetchMock.post(saveDatasetEndpoint, { throws: sampleError });
   const dispatch = sinon.spy();
-  const errorSpy = jest.spyOn(ClientError, 'getClientErrorObject');
 
   let caughtError;
   try {
@@ -137,5 +143,5 @@ test('updateSlice with add to existing dashboard handles failure', async () => {
 
   expect(caughtError).toEqual(sampleError);
   expect(fetchMock.calls(saveDatasetEndpoint)).toHaveLength(4);
-  expect(errorSpy).toHaveBeenCalledWith(sampleError);
+  expect(mockedGetClientErrorObject).toHaveBeenCalledWith(sampleError);
 });

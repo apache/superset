@@ -19,7 +19,7 @@ import contextlib
 import re
 import threading
 from re import Pattern
-from typing import Any, Callable, List, NamedTuple, Optional
+from typing import Any, Callable, NamedTuple, Optional
 
 from flask_babel import gettext as __
 from sqlalchemy.engine.reflection import Inspector
@@ -98,7 +98,7 @@ def _wkt_to_geo_json(geo_as_wkt: str) -> Any:
 
 
 def _point_list_to_wkt(
-    points,  # type: List[pyocient._STPoint]
+    points,  # type: list[pyocient._STPoint]
 ) -> str:
     """
     Converts the list of pyocient._STPoint elements to a WKT LineString.
@@ -204,7 +204,7 @@ try:
         TypeCodes.ST_LINESTRING: _linestring_to_geo_json,
         TypeCodes.ST_POLYGON: _polygon_to_geo_json,
     }
-except ImportError as e:
+except ImportError:
     _sanitized_ocient_type_codes = {}
 
 
@@ -214,7 +214,7 @@ def _find_columns_to_sanitize(cursor: Any) -> list[PlacedSanitizeFunc]:
 
     :param cursor: the result set cursor
     :returns: the list of tuples consisting of the column index and sanitization function
-    """
+    """  # noqa: E501
     return [
         PlacedSanitizeFunc(i, _sanitized_ocient_type_codes[cursor.description[i][1]])
         for i in range(len(cursor.description))
@@ -225,7 +225,6 @@ def _find_columns_to_sanitize(cursor: Any) -> list[PlacedSanitizeFunc]:
 class OcientEngineSpec(BaseEngineSpec):
     engine = "ocient"
     engine_name = "Ocient"
-    # limit_method = LimitMethod.WRAP_SQL
     force_column_alias_quotes = True
     max_column_name_length = 30
 
@@ -315,12 +314,10 @@ class OcientEngineSpec(BaseEngineSpec):
     ) -> list[tuple[Any, ...]]:
         try:
             rows: list[tuple[Any, ...]] = super().fetch_data(cursor, limit)
-        except Exception as exception:
+        except Exception:
             with OcientEngineSpec.query_id_mapping_lock:
-                del OcientEngineSpec.query_id_mapping[
-                    getattr(cursor, "superset_query_id")
-                ]
-            raise exception
+                del OcientEngineSpec.query_id_mapping[cursor.superset_query_id]
+            raise
 
         # TODO: Unsure if we need to verify that we are receiving rows:
         if len(rows) > 0 and type(rows[0]).__name__ == "Row":
@@ -350,7 +347,9 @@ class OcientEngineSpec(BaseEngineSpec):
                 rows = [
                     tuple(
                         sanitize_func(val)
-                        for sanitize_func, val in zip(sanitization_functions, row)
+                        for sanitize_func, val in zip(
+                            sanitization_functions, row, strict=False
+                        )
                     )
                     for row in rows
                 ]
@@ -376,7 +375,7 @@ class OcientEngineSpec(BaseEngineSpec):
             OcientEngineSpec.query_id_mapping[query.id] = cursor.query_id
 
         # Add the query id to the cursor
-        setattr(cursor, "superset_query_id", query.id)
+        cursor.superset_query_id = query.id
         return super().handle_cursor(cursor, query)
 
     @classmethod

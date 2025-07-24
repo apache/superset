@@ -24,10 +24,13 @@ import {
   getNumberFormatter,
   getValueFormatter,
   NumberFormats,
+  tooltipHtml,
   ValueFormatter,
+  VizType,
 } from '@superset-ui/core';
-import { CallbackDataParams } from 'echarts/types/src/util/types';
-import { EChartsCoreOption, FunnelSeriesOption } from 'echarts';
+import type { CallbackDataParams } from 'echarts/types/src/util/types';
+import type { EChartsCoreOption } from 'echarts/core';
+import type { FunnelSeriesOption } from 'echarts/charts';
 import {
   DEFAULT_FORM_DATA as DEFAULT_FUNNEL_FORM_DATA,
   EchartsFunnelChartProps,
@@ -50,19 +53,17 @@ import { Refs } from '../types';
 
 const percentFormatter = getNumberFormatter(NumberFormats.PERCENT_2_POINT);
 
-export function formatFunnelLabel({
+export function parseParams({
   params,
-  labelType,
   numberFormatter,
-  percentCalculationType = PercentCalcType.FIRST_STEP,
+  percentCalculationType = PercentCalcType.FirstStep,
   sanitizeName = false,
 }: {
   params: Pick<CallbackDataParams, 'name' | 'value' | 'percent' | 'data'>;
-  labelType: EchartsFunnelLabelTypeType;
   numberFormatter: ValueFormatter;
   percentCalculationType?: PercentCalcType;
   sanitizeName?: boolean;
-}): string {
+}) {
   const { name: rawName = '', value, percent: totalPercent, data } = params;
   const name = sanitizeName ? sanitizeHtml(rawName) : rawName;
   const formattedValue = numberFormatter(value as number);
@@ -72,33 +73,15 @@ export function formatFunnelLabel({
   };
   let percent;
 
-  if (percentCalculationType === PercentCalcType.TOTAL) {
+  if (percentCalculationType === PercentCalcType.Total) {
     percent = (totalPercent ?? 0) / 100;
-  } else if (percentCalculationType === PercentCalcType.PREV_STEP) {
+  } else if (percentCalculationType === PercentCalcType.PreviousStep) {
     percent = prevStepPercent ?? 0;
   } else {
     percent = firstStepPercent ?? 0;
   }
   const formattedPercent = percentFormatter(percent);
-
-  switch (labelType) {
-    case EchartsFunnelLabelTypeType.Key:
-      return name;
-    case EchartsFunnelLabelTypeType.Value:
-      return formattedValue;
-    case EchartsFunnelLabelTypeType.Percent:
-      return formattedPercent;
-    case EchartsFunnelLabelTypeType.KeyValue:
-      return `${name}: ${formattedValue}`;
-    case EchartsFunnelLabelTypeType.KeyValuePercent:
-      return `${name}: ${formattedValue} (${formattedPercent})`;
-    case EchartsFunnelLabelTypeType.KeyPercent:
-      return `${name}: ${formattedPercent}`;
-    case EchartsFunnelLabelTypeType.ValuePercent:
-      return `${formattedValue} (${formattedPercent})`;
-    default:
-      return name;
-  }
+  return [name, formattedValue, formattedPercent];
 }
 
 export default function transformProps(
@@ -163,7 +146,6 @@ export default function transformProps(
   }, {});
 
   const { setDataMask = () => {}, onContextMenu } = hooks;
-
   const colorFn = CategoricalColorNamespace.getScale(colorScheme as string);
   const numberFormatter = getValueFormatter(
     metric,
@@ -216,23 +198,43 @@ export default function transformProps(
     {},
   );
 
-  const formatter = (params: CallbackDataParams) =>
-    formatFunnelLabel({
+  const formatter = (params: CallbackDataParams) => {
+    const [name, formattedValue, formattedPercent] = parseParams({
       params,
       numberFormatter,
-      labelType,
       percentCalculationType,
     });
+    switch (labelType) {
+      case EchartsFunnelLabelTypeType.Key:
+        return name;
+      case EchartsFunnelLabelTypeType.Value:
+        return formattedValue;
+      case EchartsFunnelLabelTypeType.Percent:
+        return formattedPercent;
+      case EchartsFunnelLabelTypeType.KeyValue:
+        return `${name}: ${formattedValue}`;
+      case EchartsFunnelLabelTypeType.KeyValuePercent:
+        return `${name}: ${formattedValue} (${formattedPercent})`;
+      case EchartsFunnelLabelTypeType.KeyPercent:
+        return `${name}: ${formattedPercent}`;
+      case EchartsFunnelLabelTypeType.ValuePercent:
+        return `${formattedValue} (${formattedPercent})`;
+      default:
+        return name;
+    }
+  };
 
   const defaultLabel = {
     formatter,
     show: showLabels,
-    color: theme.colors.grayscale.dark2,
+    color: theme.colorText,
+    textBorderColor: theme.colorBgBase,
+    textBorderWidth: 1,
   };
 
   const series: FunnelSeriesOption[] = [
     {
-      type: 'funnel',
+      type: VizType.Funnel,
       ...getChartPadding(showLegend, legendOrientation, legendMargin),
       animation: true,
       minSize: '0%',
@@ -245,7 +247,6 @@ export default function transformProps(
       label: {
         ...defaultLabel,
         position: labelLine ? 'outer' : 'inner',
-        textBorderColor: 'transparent',
       },
       emphasis: {
         label: {
@@ -266,13 +267,26 @@ export default function transformProps(
       ...getDefaultTooltip(refs),
       show: !inContextMenu && showTooltipLabels,
       trigger: 'item',
-      formatter: (params: any) =>
-        formatFunnelLabel({
+      formatter: (params: any) => {
+        const [name, formattedValue, formattedPercent] = parseParams({
           params,
           numberFormatter,
-          labelType: tooltipLabelType,
           percentCalculationType,
-        }),
+        });
+        const row = [];
+        const enumName = EchartsFunnelLabelTypeType[tooltipLabelType];
+        const title = enumName.includes('Key') ? name : undefined;
+        if (enumName.includes('Value') || enumName.includes('Percent')) {
+          row.push(metricLabel);
+        }
+        if (enumName.includes('Value')) {
+          row.push(formattedValue);
+        }
+        if (enumName.includes('Percent')) {
+          row.push(formattedPercent);
+        }
+        return tooltipHtml([row], title);
+      },
     },
     legend: {
       ...getLegendProps(legendType, legendOrientation, showLegend, theme),

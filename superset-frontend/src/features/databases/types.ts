@@ -1,3 +1,7 @@
+import { JsonObject } from '@superset-ui/core';
+import { InputProps } from '@superset-ui/core/components';
+import { ChangeEvent, EventHandler, FormEvent } from 'react';
+
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -36,12 +40,36 @@ export type SSHTunnelObject = {
   private_key_password?: string;
 };
 
+export type DatabaseParameters = {
+  access_token?: string;
+  database_name?: string;
+  host?: string;
+  port?: number;
+  database?: string;
+  default_catalog?: string;
+  default_schema?: string;
+  http_path_field?: string;
+  username?: string;
+  password?: string;
+  encryption?: boolean;
+  credentials_info?: string;
+  service_account_info?: string;
+  query?: Record<string, string>;
+  catalog?: Record<string, string | undefined>;
+  properties?: Record<string, any>;
+  warehouse?: string;
+  role?: string;
+  account?: string;
+  ssh?: boolean;
+  project_id?: string;
+};
+
 export type DatabaseObject = {
   // Connection + general
   backend?: string;
   changed_on?: string;
   changed_on_delta_humanized?: string;
-  configuration_method: CONFIGURATION_METHOD;
+  configuration_method: ConfigurationMethod;
   created_by?: null | DatabaseUser;
   database_name: string;
   driver: string;
@@ -53,25 +81,7 @@ export type DatabaseObject = {
   paramProperties?: Record<string, any>;
   sqlalchemy_uri?: string;
   sqlalchemy_uri_placeholder?: string;
-  parameters?: {
-    access_token?: string;
-    database_name?: string;
-    host?: string;
-    port?: number;
-    database?: string;
-    username?: string;
-    password?: string;
-    encryption?: boolean;
-    credentials_info?: string;
-    service_account_info?: string;
-    query?: Record<string, string>;
-    catalog?: Record<string, string | undefined>;
-    properties?: Record<string, any>;
-    warehouse?: string;
-    role?: string;
-    account?: string;
-    ssh?: boolean;
-  };
+  parameters?: DatabaseParameters;
 
   // Performance
   cache_timeout?: string;
@@ -105,10 +115,12 @@ export type DatabaseObject = {
   engine_information?: {
     supports_file_upload?: boolean;
     disable_ssh_tunneling?: boolean;
+    supports_dynamic_catalog?: boolean;
+    supports_oauth2?: boolean;
   };
 
   // SSH Tunnel information
-  ssh_tunnel?: SSHTunnelObject;
+  ssh_tunnel?: SSHTunnelObject | null;
 };
 
 export type DatabaseForm = {
@@ -118,6 +130,18 @@ export type DatabaseForm = {
   parameters: {
     properties: {
       database: {
+        description: string;
+        type: string;
+      };
+      default_catalog: {
+        description: string;
+        type: string;
+      };
+      default_schema: {
+        description: string;
+        type: string;
+      };
+      http_path_field: {
         description: string;
         type: string;
       };
@@ -195,17 +219,23 @@ export type DatabaseForm = {
   };
   preferred: boolean;
   sqlalchemy_uri_placeholder: string;
+  engine_information: {
+    supports_file_upload: boolean;
+    disable_ssh_tunneling: boolean;
+    supports_dynamic_catalog: boolean;
+  };
 };
 
 // the values should align with the database
 // model enum in superset/superset/models/core.py
-export enum CONFIGURATION_METHOD {
-  SQLALCHEMY_URI = 'sqlalchemy_form',
-  DYNAMIC_FORM = 'dynamic_form',
+export enum ConfigurationMethod {
+  SqlalchemyUri = 'sqlalchemy_form',
+  DynamicForm = 'dynamic_form',
 }
 
 export enum Engines {
   GSheet = 'gsheets',
+  BigQuery = 'bigquery',
   Snowflake = 'snowflake',
 }
 
@@ -214,6 +244,8 @@ export interface ExtraJson {
   cancel_query_on_windows_unload?: boolean; // in Performance
   cost_estimate_enabled?: boolean; // in SQL Lab
   disable_data_preview?: boolean; // in SQL Lab
+  disable_drill_to_detail?: boolean;
+  allow_multi_catalog?: boolean;
   engine_params?: {
     catalog?: Record<string, string>;
     connect_args?: {
@@ -230,4 +262,111 @@ export interface ExtraJson {
     expand_rows?: boolean;
   };
   version?: string;
+}
+
+export type CustomTextType = {
+  value?: string | boolean | number | object;
+  type?: string | null;
+  name?: string;
+  checked?: boolean;
+};
+
+type CustomHTMLInputElement = Omit<Partial<CustomTextType>, 'value' | 'type'> &
+  CustomTextType;
+
+type CustomHTMLTextAreaElement = Omit<
+  Partial<CustomTextType>,
+  'value' | 'type'
+> &
+  CustomTextType;
+
+export type CustomParametersChangeType<T = CustomTextType> =
+  | FormEvent<InputProps>
+  | { target: T };
+
+export type CustomEventHandlerType = EventHandler<
+  ChangeEvent<CustomHTMLInputElement | CustomHTMLTextAreaElement>
+>;
+
+export interface FieldPropTypes {
+  required: boolean;
+  hasTooltip?: boolean;
+  tooltipText?: (value: any) => string;
+  placeholder?: string;
+  onParametersChange: (event: CustomParametersChangeType) => void;
+  onParametersUploadFileChange: (value: any) => string;
+  changeMethods: {
+    onParametersChange: (event: CustomParametersChangeType) => void;
+  } & {
+    onChange: (value: any) => string;
+  } & {
+    onQueryChange: (value: any) => string;
+  } & { onParametersUploadFileChange: (value: any) => string } & {
+    onAddTableCatalog: () => void;
+    onRemoveTableCatalog: (idx: number) => void;
+  } & {
+    onExtraInputChange: (value: any) => void;
+    onEncryptedExtraInputChange: (value: any) => void;
+    onSSHTunnelParametersChange: CustomEventHandlerType;
+  };
+  validationErrors: JsonObject | null;
+  getValidation: () => void;
+  clearValidationErrors: () => void;
+  db?: DatabaseObject;
+  dbModel?: DatabaseForm;
+  field: string;
+  default_value?: any;
+  description?: string;
+  isEditMode?: boolean;
+  sslForced?: boolean;
+  defaultDBName?: string;
+  editNewDb?: boolean;
+  isValidating: boolean;
+}
+
+type ChangeMethodsType = FieldPropTypes['changeMethods'];
+
+// changeMethods compatibility with dynamic forms
+type SwitchPropsChangeMethodsType = {
+  onParametersChange: ChangeMethodsType['onParametersChange'];
+};
+
+export type SwitchProps = {
+  dbModel: DatabaseForm;
+  db: DatabaseObject;
+  changeMethods: SwitchPropsChangeMethodsType;
+  clearValidationErrors: () => void;
+};
+
+export interface DatabaseConnectionFormProps {
+  isEditMode?: boolean;
+  sslForced: boolean;
+  editNewDb?: boolean;
+  dbModel: DatabaseForm;
+  db: Partial<DatabaseObject> | null;
+  isValidating: boolean;
+  onParametersChange: (
+    event: FormEvent<InputProps> | { target: HTMLInputElement },
+  ) => void;
+  onChange: (
+    event: FormEvent<InputProps> | { target: HTMLInputElement },
+  ) => void;
+  onQueryChange: (
+    event: FormEvent<InputProps> | { target: HTMLInputElement },
+  ) => void;
+  onParametersUploadFileChange?: (
+    event: FormEvent<InputProps> | { target: HTMLInputElement },
+  ) => void;
+  onExtraInputChange: (
+    event: FormEvent<InputProps> | { target: HTMLInputElement },
+  ) => void;
+  onEncryptedExtraInputChange: (
+    event: FormEvent<InputProps> | { target: HTMLInputElement },
+  ) => void;
+  onAddTableCatalog: () => void;
+  onRemoveTableCatalog: (idx: number) => void;
+  validationErrors: JsonObject | null;
+  getValidation: () => void;
+  clearValidationErrors: () => void;
+  getPlaceholder?: (field: string) => string | undefined;
 }

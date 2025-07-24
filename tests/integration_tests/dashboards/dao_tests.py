@@ -16,19 +16,19 @@
 # under the License.
 # isort:skip_file
 import copy
-import json
 import time
 from unittest.mock import patch
 import pytest
 
-import tests.integration_tests.test_app  # pylint: disable=unused-import
+import tests.integration_tests.test_app  # pylint: disable=unused-import  # noqa: F401
 from superset import db, security_manager
+from superset.utils import json
 from superset.daos.dashboard import DashboardDAO
 from superset.models.dashboard import Dashboard
 from tests.integration_tests.base_tests import SupersetTestCase
 from tests.integration_tests.fixtures.world_bank_dashboard import (
-    load_world_bank_dashboard_with_slices,
-    load_world_bank_data,
+    load_world_bank_dashboard_with_slices,  # noqa: F401
+    load_world_bank_data,  # noqa: F401
 )
 
 
@@ -39,7 +39,6 @@ class TestDashboardDAO(SupersetTestCase):
     def test_get_dashboard_changed_on(self, mock_sm_g, mock_g):
         mock_g.user = mock_sm_g.user = security_manager.find_user("admin")
         with self.client.application.test_request_context():
-            self.login(username="admin")
             dashboard = (
                 db.session.query(Dashboard).filter_by(slug="world_health").first()
             )
@@ -88,12 +87,12 @@ class TestDashboardDAO(SupersetTestCase):
             "duplicate_slices": False,
         }
         dash = DashboardDAO.copy_dashboard(original_dash, dash_data)
-        self.assertNotEqual(dash.id, original_dash.id)
-        self.assertEqual(len(dash.position), len(original_dash.position))
-        self.assertEqual(dash.dashboard_title, "copied dash")
-        self.assertEqual(dash.css, "<css>")
-        self.assertEqual(dash.owners, [security_manager.find_user("admin")])
-        self.assertCountEqual(dash.slices, original_dash.slices)
+        assert dash.id != original_dash.id
+        assert len(dash.position) == len(original_dash.position)
+        assert dash.dashboard_title == "copied dash"
+        assert dash.css == "<css>"
+        assert dash.owners == [security_manager.find_user("admin")]
+        self.assertCountEqual(dash.slices, original_dash.slices)  # noqa: PT009
 
         db.session.delete(dash)
         db.session.commit()
@@ -119,9 +118,7 @@ class TestDashboardDAO(SupersetTestCase):
             "duplicate_slices": False,
         }
         dash = DashboardDAO.copy_dashboard(original_dash, dash_data)
-        self.assertEqual(
-            dash.params_dict["native_filter_configuration"], [{"mock": "filter"}]
-        )
+        assert dash.params_dict["native_filter_configuration"] == [{"mock": "filter"}]
 
         db.session.delete(dash)
         db.session.commit()
@@ -142,15 +139,15 @@ class TestDashboardDAO(SupersetTestCase):
             "duplicate_slices": True,
         }
         dash = DashboardDAO.copy_dashboard(original_dash, dash_data)
-        self.assertNotEqual(dash.id, original_dash.id)
-        self.assertEqual(len(dash.position), len(original_dash.position))
-        self.assertEqual(dash.dashboard_title, "copied dash")
-        self.assertEqual(dash.css, "<css>")
-        self.assertEqual(dash.owners, [security_manager.find_user("admin")])
-        self.assertEqual(len(dash.slices), len(original_dash.slices))
+        assert dash.id != original_dash.id
+        assert len(dash.position) == len(original_dash.position)
+        assert dash.dashboard_title == "copied dash"
+        assert dash.css == "<css>"
+        assert dash.owners == [security_manager.find_user("admin")]
+        assert len(dash.slices) == len(original_dash.slices)
         for original_slc in original_dash.slices:
             for slc in dash.slices:
-                self.assertNotEqual(slc.id, original_slc.id)
+                assert slc.id != original_slc.id
 
         for slc in dash.slices:
             db.session.delete(slc)

@@ -29,7 +29,6 @@ logger = logging.getLogger(__name__)
 
 
 class FilterRelatedOwners(BaseFilter):  # pylint: disable=too-few-public-methods
-
     """
     A filter to allow searching for related owners of a resource.
 
@@ -55,7 +54,6 @@ class FilterRelatedOwners(BaseFilter):  # pylint: disable=too-few-public-methods
 
 
 class BaseFilterRelatedUsers(BaseFilter):  # pylint: disable=too-few-public-methods
-
     """
     Filter to apply on related users. Will exclude users in EXCLUDE_USERS_FROM_LISTS
 
@@ -104,3 +102,22 @@ class BaseFilterRelatedRoles(BaseFilter):  # pylint: disable=too-few-public-meth
             return extra_filters(query)
 
         return query
+
+
+class FilterRelatedTables(BaseFilter):  # pylint: disable=too-few-public-methods
+    """
+    A filter to allow searching for related tables.
+    Use in the api by adding something like:
+    related_field_filters = {
+      "tables": RelatedFieldFilter("table_name", FilterRelatedTables),
+    }
+    """
+
+    name = lazy_gettext("Table")
+    arg_name = "tables"
+
+    def apply(self, query: Query, value: Optional[Any]) -> Query:
+        from superset.connectors.sqla.models import SqlaTable
+
+        like_value = "%" + cast(str, value) + "%"
+        return query.filter(SqlaTable.table_name.ilike(like_value))

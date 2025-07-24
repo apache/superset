@@ -16,17 +16,20 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ControlPanelConfig, sections } from '@superset-ui/chart-controls';
+import { ControlPanelConfig } from '@superset-ui/chart-controls';
 import { t, validateNonEmpty, legacyValidateInteger } from '@superset-ui/core';
 import timeGrainSqlaAnimationOverrides, {
   columnChoices,
   PRIMARY_COLOR,
 } from '../../utilities/controls';
-import { formatSelectOptions } from '../../utilities/utils';
+import {
+  COLOR_SCHEME_TYPES,
+  formatSelectOptions,
+  isColorSchemeTypeVisible,
+} from '../../utilities/utils';
 import {
   filterNulls,
   autozoom,
-  dimension,
   jsColumns,
   jsDataMutator,
   jsTooltip,
@@ -35,11 +38,13 @@ import {
   legendPosition,
   viewport,
   mapboxStyle,
+  deckGLCategoricalColor,
+  deckGLCategoricalColorSchemeSelect,
+  deckGLCategoricalColorSchemeTypeSelect,
 } from '../../utilities/Shared_DeckGL';
 
 const config: ControlPanelConfig = {
   controlPanelSections: [
-    sections.legacyRegularTime,
     {
       label: t('Query'),
       expanded: true,
@@ -82,7 +87,37 @@ const config: ControlPanelConfig = {
       label: t('Arc'),
       controlSetRows: [
         [
-          'color_picker',
+          {
+            name: 'color_scheme_type',
+            config: {
+              ...deckGLCategoricalColorSchemeTypeSelect.config,
+              choices: [
+                [COLOR_SCHEME_TYPES.fixed_color, t('Fixed color')],
+                [
+                  COLOR_SCHEME_TYPES.categorical_palette,
+                  t('Categorical palette'),
+                ],
+              ],
+              default: COLOR_SCHEME_TYPES.fixed_color,
+            },
+          },
+        ],
+        [
+          {
+            name: 'color_picker',
+            config: {
+              label: t('Source Color'),
+              description: t('Color of the source location'),
+              type: 'ColorPickerControl',
+              default: PRIMARY_COLOR,
+              renderTrigger: true,
+              visibility: ({ controls }) =>
+                isColorSchemeTypeVisible(
+                  controls,
+                  COLOR_SCHEME_TYPES.fixed_color,
+                ),
+            },
+          },
           {
             name: 'target_color_picker',
             config: {
@@ -91,22 +126,16 @@ const config: ControlPanelConfig = {
               type: 'ColorPickerControl',
               default: PRIMARY_COLOR,
               renderTrigger: true,
+              visibility: ({ controls }) =>
+                isColorSchemeTypeVisible(
+                  controls,
+                  COLOR_SCHEME_TYPES.fixed_color,
+                ),
             },
           },
         ],
-        [
-          {
-            name: dimension.name,
-            config: {
-              ...dimension.config,
-              label: t('Categorical Color'),
-              description: t(
-                'Pick a dimension from which categorical colors are defined',
-              ),
-            },
-          },
-          'color_scheme',
-        ],
+        [deckGLCategoricalColor],
+        [deckGLCategoricalColorSchemeSelect],
         [
           {
             name: 'stroke_width',
@@ -120,9 +149,9 @@ const config: ControlPanelConfig = {
               choices: formatSelectOptions([1, 2, 3, 4, 5]),
             },
           },
-          legendPosition,
         ],
-        [legendFormat, null],
+        [legendPosition],
+        [legendFormat],
       ],
     },
     {

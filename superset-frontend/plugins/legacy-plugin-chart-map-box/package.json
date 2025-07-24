@@ -1,6 +1,6 @@
 {
   "name": "@superset-ui/legacy-plugin-chart-map-box",
-  "version": "0.19.0",
+  "version": "0.20.3",
   "description": "Superset Legacy Chart - MapBox",
   "keywords": [
     "superset"
@@ -26,16 +26,16 @@
     "lib"
   ],
   "dependencies": {
+    "@math.gl/web-mercator": "^4.1.0",
     "prop-types": "^15.8.1",
     "react-map-gl": "^6.1.19",
-    "supercluster": "^4.1.1",
-    "viewport-mercator-project": "^6.1.1"
+    "supercluster": "^8.0.1"
   },
   "peerDependencies": {
     "@superset-ui/chart-controls": "*",
     "@superset-ui/core": "*",
     "mapbox-gl": "*",
-    "react": "^15 || ^16"
+    "react": "^17.0.2"
   },
   "publishConfig": {
     "access": "public"

@@ -17,12 +17,15 @@
  * under the License.
  */
 
+import { ColorSchemeGroup } from './types';
+
 export interface ColorSchemeConfig {
   colors: string[];
   description?: string;
   id: string;
   label?: string;
   isDefault?: boolean;
+  group?: ColorSchemeGroup;
 }
 
 export default class ColorScheme {
@@ -36,17 +39,21 @@ export default class ColorScheme {
 
   isDefault?: boolean;
 
+  group?: ColorSchemeGroup;
+
   constructor({
     colors,
     description = '',
     id,
     label,
     isDefault,
+    group,
   }: ColorSchemeConfig) {
     this.id = id;
     this.label = label ?? id;
     this.colors = colors;
     this.description = description;
     this.isDefault = isDefault;
+    this.group = group;
   }
 }

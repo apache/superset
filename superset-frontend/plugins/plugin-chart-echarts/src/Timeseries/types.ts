@@ -16,12 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { OptionName } from 'echarts/types/src/util/types';
+import type { OptionName } from 'echarts/types/src/util/types';
 import {
   AnnotationLayer,
   AxisType,
   ContributionType,
-  QueryFormColumn,
   QueryFormData,
   QueryFormMetric,
   TimeFormatter,
@@ -38,8 +37,8 @@ import {
 } from '../types';
 
 export enum OrientationType {
-  vertical = 'vertical',
-  horizontal = 'horizontal',
+  Vertical = 'vertical',
+  Horizontal = 'horizontal',
 }
 
 export enum EchartsTimeseriesSeriesType {
@@ -56,6 +55,7 @@ export type EchartsTimeseriesFormData = QueryFormData & {
   annotationLayers: AnnotationLayer[];
   area: boolean;
   colorScheme?: string;
+  timeShiftColor?: boolean;
   contributionMode?: ContributionType;
   forecastEnabled: boolean;
   forecastPeriods: number;
@@ -74,8 +74,11 @@ export type EchartsTimeseriesFormData = QueryFormData & {
   rowLimit: number;
   seriesType: EchartsTimeseriesSeriesType;
   stack: StackType;
+  stackDimension: string;
   timeCompare?: string[];
   tooltipTimeFormat?: string;
+  showTooltipTotal?: boolean;
+  showTooltipPercentage?: boolean;
   truncateXAxis: boolean;
   truncateYAxis: boolean;
   yAxisFormat?: string;
@@ -87,7 +90,7 @@ export type EchartsTimeseriesFormData = QueryFormData & {
   zoomable: boolean;
   richTooltip: boolean;
   xAxisLabelRotation: number;
-  groupby: QueryFormColumn[];
+  xAxisLabelInterval: number | string;
   showValue: boolean;
   onlyTotal: boolean;
   showExtraControls: boolean;

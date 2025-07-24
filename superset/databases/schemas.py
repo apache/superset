@@ -15,17 +15,28 @@
 # specific language governing permissions and limitations
 # under the License.
 
-# pylint: disable=unused-argument
+# pylint: disable=unused-argument, too-many-lines
+
+from __future__ import annotations
 
 import inspect
-import json
-from typing import Any
+from pathlib import Path
+from typing import Any, TypedDict
 
 from flask import current_app
 from flask_babel import lazy_gettext as _
-from marshmallow import EXCLUDE, fields, pre_load, Schema, validates_schema
-from marshmallow.validate import Length, ValidationError
+from marshmallow import (
+    EXCLUDE,
+    fields,
+    post_load,
+    pre_load,
+    Schema,
+    validates,
+    validates_schema,
+)
+from marshmallow.validate import Length, OneOf, Range, ValidationError
 from sqlalchemy import MetaData
+from werkzeug.datastructures import FileStorage
 
 from superset import db, is_feature_enabled
 from superset.commands.database.exceptions import DatabaseInvalidError
@@ -34,15 +45,31 @@ from superset.commands.database.ssh_tunnel.exceptions import (
     SSHTunnelInvalidCredentials,
     SSHTunnelMissingCredentials,
 )
+from superset.commands.database.uploaders.base import UploadFileType
 from superset.constants import PASSWORD_MASK
+from superset.databases.types import (  # pylint:disable=unused-import
+    EncryptedDict,  # noqa: F401
+    EncryptedField,
+    EncryptedString,  # noqa: F401
+)
 from superset.databases.utils import make_url_safe
 from superset.db_engine_specs import get_engine_spec
 from superset.exceptions import CertificateException, SupersetSecurityException
 from superset.models.core import ConfigurationMethod, Database
 from superset.security.analytics_db_safety import check_sqlalchemy_uri
+from superset.utils import json
 from superset.utils.core import markdown, parse_ssl_cert
 
 database_schemas_query_schema = {
+    "type": "object",
+    "properties": {
+        "force": {"type": "boolean"},
+        "upload_allowed": {"type": "boolean"},
+        "catalog": {"type": "string"},
+    },
+}
+
+database_catalogs_query_schema = {
     "type": "object",
     "properties": {"force": {"type": "boolean"}},
 }
@@ -52,6 +79,7 @@ database_tables_query_schema = {
     "properties": {
         "force": {"type": "boolean"},
         "schema_name": {"type": "string"},
+        "catalog_name": {"type": "string"},
     },
     "required": ["schema_name"],
 }
@@ -79,9 +107,7 @@ allow_file_upload_description = (
 allow_ctas_description = "Allow CREATE TABLE AS option in SQL Lab"
 allow_cvas_description = "Allow CREATE VIEW AS option in SQL Lab"
 allow_dml_description = (
-    "Allow users to run non-SELECT statements "
-    "(UPDATE, DELETE, CREATE, ...) "
-    "in SQL Lab"
+    "Allow users to run non-SELECT statements (UPDATE, DELETE, CREATE, ...) in SQL Lab"
 )
 configuration_method_description = (
     "Configuration_method is used on the frontend to "
@@ -132,7 +158,11 @@ extra_description = markdown(
     "5. The ``allows_virtual_table_explore`` field is a boolean specifying "
     "whether or not the Explore button in SQL Lab results is shown.<br/>"
     "6. The ``disable_data_preview`` field is a boolean specifying whether or not data "
-    "preview queries will be run when fetching table metadata in SQL Lab.",
+    "preview queries will be run when fetching table metadata in SQL Lab."
+    "7. The ``disable_drill_to_detail`` field is a boolean specifying whether or not"
+    "drill to detail is disabled for the database."
+    "8. The ``allow_multi_catalog`` indicates if the database allows changing "
+    "the default catalog when running queries and creating datasets.",
     True,
 )
 get_export_ids_schema = {"type": "array", "items": {"type": "integer"}}
@@ -198,7 +228,7 @@ def server_cert_validator(value: str) -> str:
     return value
 
 
-def encrypted_extra_validator(value: str) -> str:
+def encrypted_extra_validator(value: str | None) -> None:
     """
     Validate that encrypted extra is a valid JSON string
     """
@@ -209,7 +239,6 @@ def encrypted_extra_validator(value: str) -> str:
             raise ValidationError(
                 [_("Field cannot be decoded by JSON. %(msg)s", msg=str(ex))]
             ) from ex
-    return value
 
 
 def extra_validator(value: str) -> str:
@@ -323,7 +352,7 @@ class DatabaseParametersSchemaMixin:  # pylint: disable=too-few-public-methods
             serialized_encrypted_extra = data.get("masked_encrypted_extra") or "{}"
             try:
                 encrypted_extra = json.loads(serialized_encrypted_extra)
-            except json.decoder.JSONDecodeError:
+            except json.JSONDecodeError:
                 encrypted_extra = {}
 
             data["sqlalchemy_uri"] = engine_spec.build_sqlalchemy_uri(
@@ -568,6 +597,49 @@ class DatabaseTestConnectionSchema(DatabaseParametersSchemaMixin, Schema):
     ssh_tunnel = fields.Nested(DatabaseSSHTunnel, allow_none=True)
 
 
+class TableMetadataOptionsResponse(TypedDict):
+    deferrable: bool
+    initially: bool
+    match: bool
+    ondelete: bool
+    onupdate: bool
+
+
+class TableMetadataColumnsResponse(TypedDict, total=False):
+    keys: list[str]
+    longType: str
+    name: str
+    type: str
+    duplicates_constraint: str | None
+    comment: str | None
+
+
+class TableMetadataForeignKeysIndexesResponse(TypedDict):
+    column_names: list[str]
+    name: str
+    options: TableMetadataOptionsResponse
+    referred_columns: list[str]
+    referred_schema: str
+    referred_table: str
+    type: str
+
+
+class TableMetadataPrimaryKeyResponse(TypedDict):
+    column_names: list[str]
+    name: str
+    type: str
+
+
+class TableMetadataResponse(TypedDict):
+    name: str
+    columns: list[TableMetadataColumnsResponse]
+    foreignKeys: list[TableMetadataForeignKeysIndexesResponse]
+    indexes: list[TableMetadataForeignKeysIndexesResponse]
+    primaryKey: TableMetadataPrimaryKeyResponse
+    selectStar: str
+    comment: str | None
+
+
 class TableMetadataOptionsResponseSchema(Schema):
     deferrable = fields.Bool()
     initially = fields.Bool()
@@ -578,7 +650,7 @@ class TableMetadataOptionsResponseSchema(Schema):
 
 class TableMetadataColumnsResponseSchema(Schema):
     keys = fields.List(fields.String(), metadata={"description": ""})
-    longType = fields.String(
+    longType = fields.String(  # noqa: N815
         metadata={"description": "The actual backend long type for the column"}
     )
     name = fields.String(metadata={"description": "The column name"})
@@ -623,7 +695,7 @@ class TableMetadataResponseSchema(Schema):
         fields.Nested(TableMetadataColumnsResponseSchema),
         metadata={"description": "A list of columns and their metadata"},
     )
-    foreignKeys = fields.List(
+    foreignKeys = fields.List(  # noqa: N815
         fields.Nested(TableMetadataForeignKeysIndexesResponseSchema),
         metadata={"description": "A list of foreign keys and their metadata"},
     )
@@ -631,11 +703,11 @@ class TableMetadataResponseSchema(Schema):
         fields.Nested(TableMetadataForeignKeysIndexesResponseSchema),
         metadata={"description": "A list of indexes and their metadata"},
     )
-    primaryKey = fields.Nested(
+    primaryKey = fields.Nested(  # noqa: N815
         TableMetadataPrimaryKeyResponseSchema,
         metadata={"description": "Primary keys metadata"},
     )
-    selectStar = fields.String(metadata={"description": "SQL select star"})
+    selectStar = fields.String(metadata={"description": "SQL select star"})  # noqa: N815
 
 
 class TableExtraMetadataResponseSchema(Schema):
@@ -654,6 +726,12 @@ class SchemasResponseSchema(Schema):
     )
 
 
+class CatalogsResponseSchema(Schema):
+    result = fields.List(
+        fields.String(metadata={"description": "A database catalog name"})
+    )
+
+
 class DatabaseTablesResponse(Schema):
     extra = fields.Dict(
         metadata={"description": "Extra data used to specify column metadata"}
@@ -666,6 +744,7 @@ class ValidateSQLRequest(Schema):
     sql = fields.String(
         required=True, metadata={"description": "SQL statement to validate"}
     )
+    catalog = fields.String(required=False, allow_none=True)
     schema = fields.String(required=False, allow_none=True)
     template_params = fields.Dict(required=False, allow_none=True)
 
@@ -750,7 +829,10 @@ class ImportV1DatabaseExtraSchema(Schema):
     allows_virtual_table_explore = fields.Boolean(required=False)
     cancel_query_on_windows_unload = fields.Boolean(required=False)
     disable_data_preview = fields.Boolean(required=False)
+    disable_drill_to_detail = fields.Boolean(required=False)
+    allow_multi_catalog = fields.Boolean(required=False)
     version = fields.String(required=False, allow_none=True)
+    schema_options = fields.Dict(keys=fields.Str(), values=fields.Raw())
 
 
 class ImportV1DatabaseSchema(Schema):
@@ -772,6 +854,7 @@ class ImportV1DatabaseSchema(Schema):
     database_name = fields.String(required=True)
     sqlalchemy_uri = fields.String(required=True)
     password = fields.String(allow_none=True)
+    encrypted_extra = fields.String(allow_none=True, validate=encrypted_extra_validator)
     cache_timeout = fields.Integer(allow_none=True)
     expose_in_sqllab = fields.Boolean()
     allow_run_async = fields.Boolean()
@@ -779,6 +862,7 @@ class ImportV1DatabaseSchema(Schema):
     allow_cvas = fields.Boolean()
     allow_dml = fields.Boolean(required=False)
     allow_csv_upload = fields.Boolean()
+    impersonate_user = fields.Boolean()
     extra = fields.Nested(ImportV1DatabaseExtraSchema)
     uuid = fields.UUID(required=True)
     version = fields.String(required=True)
@@ -800,7 +884,7 @@ class ImportV1DatabaseSchema(Schema):
             raise ValidationError("Must provide a password for the database")
 
     @validates_schema
-    def validate_ssh_tunnel_credentials(
+    def validate_ssh_tunnel_credentials(  # noqa: C901
         self, data: dict[str, Any], **kwargs: Any
     ) -> None:
         """If ssh_tunnel has a masked credentials, credentials are required"""
@@ -862,20 +946,6 @@ class ImportV1DatabaseSchema(Schema):
         return
 
 
-class EncryptedField:  # pylint: disable=too-few-public-methods
-    """
-    A database field that should be stored in encrypted_extra.
-    """
-
-
-class EncryptedString(EncryptedField, fields.String):
-    pass
-
-
-class EncryptedDict(EncryptedField, fields.Dict):
-    pass
-
-
 def encrypted_field_properties(self, field: Any, **_) -> dict[str, Any]:  # type: ignore
     ret = {}
     if isinstance(field, EncryptedField):
@@ -891,6 +961,23 @@ class DatabaseSchemaAccessForFileUploadResponse(Schema):
             "description": "The list of schemas allowed for the database to upload "
             "information"
         },
+    )
+
+
+class EngineInformationSchema(Schema):
+    supports_file_upload = fields.Boolean(
+        metadata={"description": "Users can upload files to the database"}
+    )
+    disable_ssh_tunneling = fields.Boolean(
+        metadata={"description": "SSH tunnel is not available to the database"}
+    )
+    supports_dynamic_catalog = fields.Boolean(
+        metadata={
+            "description": "The database supports multiple catalogs in a single connection"  # noqa: E501
+        }
+    )
+    supports_oauth2 = fields.Boolean(
+        metadata={"description": "The database supports OAuth2"}
     )
 
 
@@ -927,7 +1014,7 @@ class DatabaseConnectionSchema(Schema):
     driver = fields.String(
         allow_none=True, metadata={"description": "SQLAlchemy driver to use"}
     )
-    engine_information = fields.Dict(keys=fields.String(), values=fields.Raw())
+    engine_information = fields.Nested(EngineInformationSchema)
     expose_in_sqllab = fields.Boolean(
         metadata={"description": expose_in_sqllab_description}
     )
@@ -974,4 +1061,283 @@ class DatabaseConnectionSchema(Schema):
     sqlalchemy_uri = fields.String(
         metadata={"description": sqlalchemy_uri_description},
         validate=[Length(1, 1024), sqlalchemy_uri_validator],
+    )
+
+
+class DelimitedListField(fields.List):
+    """
+    Special marshmallow field for handling delimited lists.
+    formData expects a string, so we need to deserialize it into a list.
+    """
+
+    def _deserialize(
+        self, value: str, attr: Any, data: Any, **kwargs: Any
+    ) -> list[Any]:
+        try:
+            values = value.split(",") if value else []
+            return super()._deserialize(values, attr, data, **kwargs)
+        except AttributeError as exc:
+            raise ValidationError(
+                f"{attr} is not a delimited list it has a non string value {value}."
+            ) from exc
+
+
+class BaseUploadFilePostSchemaMixin(Schema):
+    @validates("file")
+    def validate_file_extension(self, file: FileStorage) -> None:
+        allowed_extensions = current_app.config["ALLOWED_EXTENSIONS"]
+        file_suffix = Path(file.filename).suffix
+        if not file_suffix:
+            raise ValidationError([_("File extension is not allowed.")])
+        # Make case-insensitive comparison
+        if file_suffix[1:].lower() not in [ext.lower() for ext in allowed_extensions]:
+            raise ValidationError([_("File extension is not allowed.")])
+
+
+class UploadPostSchema(BaseUploadFilePostSchemaMixin):
+    type = fields.Enum(
+        UploadFileType,
+        required=True,
+        by_value=True,
+        metadata={"description": "File type to upload"},
+    )
+    already_exists = fields.String(
+        load_default="fail",
+        validate=OneOf(choices=("fail", "replace", "append")),
+        metadata={
+            "description": "What to do if the table already "
+            "exists accepts: fail, replace, append"
+        },
+    )
+    index_label = fields.String(
+        metadata={"description": "Index label for index column."}
+    )
+    columns_read = DelimitedListField(
+        fields.String(),
+        metadata={"description": "A List of the column names that should be read"},
+    )
+    dataframe_index = fields.Boolean(
+        metadata={"description": "Write dataframe index as a column."}
+    )
+    schema = fields.String(
+        metadata={"description": "The schema to upload the data file to."}
+    )
+    table_name = fields.String(
+        required=True,
+        validate=[Length(min=1, max=10000)],
+        allow_none=False,
+        metadata={"description": "The name of the table to be created/appended"},
+    )
+
+    # ------------
+    # CSV Schema
+    # ------------
+    file = fields.Raw(
+        required=True,
+        metadata={
+            "description": "The file to upload",
+            "type": "string",
+            "format": "text/csv",
+        },
+    )
+    delimiter = fields.String(
+        metadata={
+            "description": "[CSV only] The character used to separate values in the CSV"
+            " file (e.g., a comma, semicolon, or tab)."
+        }
+    )
+    column_data_types = fields.String(
+        metadata={
+            "description": "[CSV only] A dictionary with column names and "
+            "their data types if you need to change "
+            "the defaults. Example: {'user_id':'int'}. "
+            "Check Python Pandas library for supported data types"
+        }
+    )
+    day_first = fields.Boolean(
+        metadata={
+            "description": "[CSV only] DD/MM format dates, international and European"
+            " format"
+        }
+    )
+    skip_blank_lines = fields.Boolean(
+        metadata={"description": "[CSV only] Skip blank lines in the CSV file."}
+    )
+    skip_initial_space = fields.Boolean(
+        metadata={"description": "[CSV only] Skip spaces after delimiter."}
+    )
+    column_dates = DelimitedListField(
+        fields.String(),
+        metadata={
+            "description": "[CSV and Excel only] A list of column names that should be "
+            "parsed as dates. Example: date,timestamp"
+        },
+    )
+    decimal_character = fields.String(
+        metadata={
+            "description": "[CSV and Excel only] Character to recognize as decimal"
+            " point. Default is '.'"
+        }
+    )
+    header_row = fields.Integer(
+        metadata={
+            "description": "[CSV and Excel only] Row containing the headers to use as"
+            " column names (0 is first line of data). Leave empty if"
+            " there is no header row."
+        }
+    )
+    index_column = fields.String(
+        metadata={
+            "description": "[CSV and Excel only] Column to use as the row labels of the"
+            " dataframe. Leave empty if no index column"
+        }
+    )
+    null_values = DelimitedListField(
+        fields.String(),
+        metadata={
+            "description": "[CSV and Excel only] A list of strings that should be "
+            "treated as null. Examples: '' for empty strings, 'None',"
+            " 'N/A', Warning: Hive database supports only a single value"
+        },
+    )
+    rows_to_read = fields.Integer(
+        metadata={
+            "description": "[CSV and Excel only] Number of rows to read from the file. "
+            "If None, reads all rows."
+        },
+        allow_none=True,
+        validate=Range(min=1),
+    )
+    skip_rows = fields.Integer(
+        metadata={
+            "description": "[CSV and Excel only] Number of rows to skip at start"
+            " of file."
+        }
+    )
+    sheet_name = fields.String(
+        metadata={
+            "description": "[Excel only]] Strings used for sheet names "
+            "(default is the first sheet)."
+        }
+    )
+
+    @post_load
+    def convert_column_data_types(
+        self, data: dict[str, Any], **kwargs: Any
+    ) -> dict[str, Any]:
+        if "column_data_types" in data and data["column_data_types"]:
+            try:
+                data["column_data_types"] = json.loads(data["column_data_types"])
+            except json.JSONDecodeError as ex:
+                raise ValidationError(
+                    "Invalid JSON format for column_data_types"
+                ) from ex
+        return data
+
+
+class UploadFileMetadataPostSchema(BaseUploadFilePostSchemaMixin):
+    """
+    Schema for Upload file metadata.
+    """
+
+    type = fields.Enum(
+        UploadFileType,
+        required=True,
+        by_value=True,
+        metadata={"description": "File type to upload"},
+    )
+    file = fields.Raw(
+        required=True,
+        metadata={
+            "description": "The file to upload",
+            "type": "string",
+            "format": "binary",
+        },
+    )
+    delimiter = fields.String(
+        metadata={
+            "description": "The character used to separate values in the CSV file"
+            " (e.g., a comma, semicolon, or tab)."
+        }
+    )
+    header_row = fields.Integer(
+        metadata={
+            "description": "Row containing the headers to use as column names"
+            "(0 is first line of data). Leave empty if there is no header row."
+        }
+    )
+
+
+class UploadFileMetadataItemSchema(Schema):
+    sheet_name = fields.String(metadata={"description": "The name of the sheet"})
+    column_names = fields.List(
+        fields.String(),
+        metadata={"description": "A list of columns names in the sheet"},
+    )
+
+
+class UploadFileMetadata(Schema):
+    """
+    Schema for upload file metadata response.
+    """
+
+    items = fields.List(fields.Nested(UploadFileMetadataItemSchema))
+
+
+class OAuth2ProviderResponseSchema(Schema):
+    """
+    Schema for the payload sent on OAuth2 redirect.
+    """
+
+    code = fields.String(
+        required=False,
+        metadata={"description": "The authorization code returned by the provider"},
+    )
+    state = fields.String(
+        required=False,
+        metadata={"description": "The state parameter originally passed by the client"},
+    )
+    scope = fields.String(
+        required=False,
+        metadata={
+            "description": "A space-separated list of scopes granted by the user"
+        },
+    )
+    error = fields.String(
+        required=False,
+        metadata={
+            "description": "In case of an error, this field contains the error code"
+        },
+    )
+    error_description = fields.String(
+        required=False,
+        metadata={"description": "Additional description of the error"},
+    )
+
+    class Meta:  # pylint: disable=too-few-public-methods
+        # Ignore unknown fields that might be sent by the OAuth2 provider
+        unknown = EXCLUDE
+
+
+class QualifiedTableSchema(Schema):
+    """
+    Schema for a qualified table reference.
+
+    Catalog and schema can be ommited, to fallback to default values. Table name must be
+    present.
+    """
+
+    name = fields.String(
+        required=True,
+        metadata={"description": "The table name"},
+    )
+    schema = fields.String(
+        required=False,
+        load_default=None,
+        metadata={"description": "The table schema"},
+    )
+    catalog = fields.String(
+        required=False,
+        load_default=None,
+        metadata={"description": "The table catalog"},
     )

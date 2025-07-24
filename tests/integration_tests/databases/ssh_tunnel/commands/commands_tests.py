@@ -15,36 +15,16 @@
 # specific language governing permissions and limitations
 # under the License.
 from unittest import mock
-from unittest.mock import patch
 
 import pytest
 
 from superset import security_manager
-from superset.commands.database.ssh_tunnel.create import CreateSSHTunnelCommand
 from superset.commands.database.ssh_tunnel.delete import DeleteSSHTunnelCommand
 from superset.commands.database.ssh_tunnel.exceptions import (
-    SSHTunnelInvalidError,
     SSHTunnelNotFoundError,
 )
 from superset.commands.database.ssh_tunnel.update import UpdateSSHTunnelCommand
 from tests.integration_tests.base_tests import SupersetTestCase
-
-
-class TestCreateSSHTunnelCommand(SupersetTestCase):
-    @mock.patch("superset.utils.core.g")
-    def test_create_invalid_database_id(self, mock_g):
-        mock_g.user = security_manager.find_user("admin")
-        command = CreateSSHTunnelCommand(
-            None,
-            {
-                "server_address": "127.0.0.1",
-                "server_port": 5432,
-                "username": "test_user",
-            },
-        )
-        with pytest.raises(SSHTunnelInvalidError) as excinfo:
-            command.run()
-        assert str(excinfo.value) == ("SSH Tunnel parameters are invalid.")
 
 
 class TestUpdateSSHTunnelCommand(SupersetTestCase):

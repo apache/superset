@@ -17,12 +17,20 @@ specific language governing permissions and limitations
 under the License.
 -->
 
+[![Version](https://img.shields.io/npm/v/%40superset-ui%2Fembedded-sdk?style=flat)](https://www.npmjs.com/package/@superset-ui/embedded-sdk)
+[![Libraries.io](https://img.shields.io/librariesio/release/npm/%40superset-ui%2Fembedded-sdk?style=flat)](https://libraries.io/npm/@superset-ui%2Fembedded-sdk)
+
 # Superset Embedded SDK
 
 The Embedded SDK allows you to embed dashboards from Superset into your own app,
 using your app's authentication.
 
 Embedding is done by inserting an iframe, containing a Superset page, into the host application.
+
+## Prerequisites
+
+* Activate the feature flag `EMBEDDED_SUPERSET`
+* Set a strong password in configuration variable `GUEST_TOKEN_JWT_SECRET` (see configuration file config.py). Be aware that its default value must be changed in production.
 
 ## Embedding a Dashboard
 
@@ -40,12 +48,21 @@ embedDashboard({
   supersetDomain: "https://superset.example.com",
   mountPoint: document.getElementById("my-superset-container"), // any html element that can contain an iframe
   fetchGuestToken: () => fetchGuestTokenFromBackend(),
-  dashboardUiConfig: { // dashboard UI config: hideTitle, hideTab, hideChartControls, filters.visible, filters.expanded (optional)
+  dashboardUiConfig: { // dashboard UI config: hideTitle, hideTab, hideChartControls, filters.visible, filters.expanded (optional), urlParams (optional)
       hideTitle: true,
       filters: {
           expanded: true,
+      },
+      urlParams: {
+          foo: 'value1',
+          bar: 'value2',
+          // ...
       }
   },
+    // optional additional iframe sandbox attributes
+  iframeSandboxExtras: ['allow-top-navigation', 'allow-popups-to-escape-sandbox'],
+  // optional config to enforce a particular referrerPolicy
+  referrerPolicy: "same-origin"
 });
 ```
 
@@ -77,8 +94,8 @@ Guest tokens can have Row Level Security rules which filter data for the user ca
 The agent making the `POST` request must be authenticated with the `can_grant_guest_token` permission.
 
 Within your app, using the Guest Token will then allow authentication to your Superset instance via creating an Anonymous user object.  This guest anonymous user will default to the public role as per this setting `GUEST_ROLE_NAME = "Public"`.
-+
-+The user parameters in the example below are optional and are provided as a means of passing user attributes that may be accessed in jinja templates inside your charts.
+
+The user parameters in the example below are optional and are provided as a means of passing user attributes that may be accessed in jinja templates inside your charts.
 
 Example `POST /security/guest_token` payload:
 
@@ -98,3 +115,54 @@ Example `POST /security/guest_token` payload:
   ]
 }
 ```
+
+Alternatively, a guest token can be created directly in your app without interacting with the Superset API.
+To do this, you should update the `GUEST_TOKEN_JWT_SECRET`
+in the Superset [config.py](https://github.com/apache/superset/blob/master/superset/config.py). Also set the
+`GUEST_TOKEN_JWT_AUDIENCE` variable that matches what is set for the `aud` in the JSON payload:
+
+```
+{
+  "user": {
+    "username": "embedded@embedded.fr",
+    "first_name": "embedded",
+    "last_name": "embedded"
+  },
+  "resources": [
+    {
+      "type": "dashboard",
+      "id": "d73e7841-9342-4afd-8e29-b4a416a2498c"
+    }
+  ],
+  "rls_rules": [],
+  "iat": 1730883214,
+  "exp": 1732956814,
+  "aud": "superset",
+  "type": "guest"
+}
+```
+
+In this example, the configuration file includes the following setting:
+
+```python
+GUEST_TOKEN_JWT_AUDIENCE="superset"
+```
+
+
+### Sandbox iframe
+
+The Embedded SDK creates an iframe with [sandbox](https://developer.mozilla.org/es/docs/Web/HTML/Element/iframe#sandbox) mode by default
+which applies certain restrictions to the iframe's content.
+To pass additional sandbox attributes you can use `iframeSandboxExtras`:
+```js
+  // optional additional iframe sandbox attributes
+  iframeSandboxExtras: ['allow-top-navigation', 'allow-popups-to-escape-sandbox']
+```
+
+### Enforcing a ReferrerPolicy on the request triggered by the iframe
+
+By default, the Embedded SDK creates an `iframe` element without a `referrerPolicy` value enforced. This means that a policy defined for `iframe` elements at the host app level would reflect to it.
+
+This can be an issue as during the embedded enablement for a dashboard it's possible to specify which domain(s) are allowed to embed the dashboard, and this validation happens throuth the `Referrer` header. That said, in case the hosting app has a more restrictive policy that would omit this header, this validation would fail.
+
+Use the `referrerPolicy` parameter in the `embedDashboard` method to specify [a particular policy](https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Referrer-Policy) that works for your implementation.

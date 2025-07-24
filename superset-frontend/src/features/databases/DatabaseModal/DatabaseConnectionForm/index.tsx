@@ -16,129 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { FormEvent } from 'react';
-import { SupersetTheme, JsonObject } from '@superset-ui/core';
-import { InputProps } from 'antd/lib/input';
-import { Form } from 'src/components/Form';
-import {
-  accessTokenField,
-  databaseField,
-  displayField,
-  forceSSLField,
-  hostField,
-  httpPath,
-  passwordField,
-  portField,
-  queryField,
-  usernameField,
-  SSHTunnelSwitch,
-} from './CommonParameters';
-import { validatedInputField } from './ValidatedInputField';
-import { EncryptedField } from './EncryptedField';
-import { TableCatalog } from './TableCatalog';
+import { SupersetTheme } from '@superset-ui/core';
+import { Form } from '@superset-ui/core/components';
+import { FormFieldOrder, FORM_FIELD_MAP } from './constants';
 import { formScrollableStyles, validatedFormStyles } from '../styles';
-import { DatabaseForm, DatabaseObject } from '../../types';
-
-export const FormFieldOrder = [
-  'host',
-  'port',
-  'database',
-  'username',
-  'password',
-  'access_token',
-  'http_path',
-  'database_name',
-  'credentials_info',
-  'service_account_info',
-  'catalog',
-  'query',
-  'encryption',
-  'account',
-  'warehouse',
-  'role',
-  'ssh',
-];
-
-export interface FieldPropTypes {
-  required: boolean;
-  hasTooltip?: boolean;
-  tooltipText?: (value: any) => string;
-  placeholder?: string;
-  onParametersChange: (value: any) => string;
-  onParametersUploadFileChange: (value: any) => string;
-  changeMethods: { onParametersChange: (value: any) => string } & {
-    onChange: (value: any) => string;
-  } & {
-    onQueryChange: (value: any) => string;
-  } & { onParametersUploadFileChange: (value: any) => string } & {
-    onAddTableCatalog: () => void;
-    onRemoveTableCatalog: (idx: number) => void;
-  } & {
-    onExtraInputChange: (value: any) => void;
-    onSSHTunnelParametersChange: (value: any) => string;
-  };
-  validationErrors: JsonObject | null;
-  getValidation: () => void;
-  clearValidationErrors: () => void;
-  db?: DatabaseObject;
-  field: string;
-  isEditMode?: boolean;
-  sslForced?: boolean;
-  defaultDBName?: string;
-  editNewDb?: boolean;
-}
-
-const FORM_FIELD_MAP = {
-  host: hostField,
-  http_path: httpPath,
-  port: portField,
-  database: databaseField,
-  username: usernameField,
-  password: passwordField,
-  access_token: accessTokenField,
-  database_name: displayField,
-  query: queryField,
-  encryption: forceSSLField,
-  credentials_info: EncryptedField,
-  service_account_info: EncryptedField,
-  catalog: TableCatalog,
-  warehouse: validatedInputField,
-  role: validatedInputField,
-  account: validatedInputField,
-  ssh: SSHTunnelSwitch,
-};
-
-interface DatabaseConnectionFormProps {
-  isEditMode?: boolean;
-  sslForced: boolean;
-  editNewDb?: boolean;
-  dbModel: DatabaseForm;
-  db: Partial<DatabaseObject> | null;
-  onParametersChange: (
-    event: FormEvent<InputProps> | { target: HTMLInputElement },
-  ) => void;
-  onChange: (
-    event: FormEvent<InputProps> | { target: HTMLInputElement },
-  ) => void;
-  onQueryChange: (
-    event: FormEvent<InputProps> | { target: HTMLInputElement },
-  ) => void;
-  onParametersUploadFileChange?: (
-    event: FormEvent<InputProps> | { target: HTMLInputElement },
-  ) => void;
-  onExtraInputChange: (
-    event: FormEvent<InputProps> | { target: HTMLInputElement },
-  ) => void;
-  onAddTableCatalog: () => void;
-  onRemoveTableCatalog: (idx: number) => void;
-  validationErrors: JsonObject | null;
-  getValidation: () => void;
-  clearValidationErrors: () => void;
-  getPlaceholder?: (field: string) => string | undefined;
-}
+import { DatabaseConnectionFormProps } from '../../types';
 
 const DatabaseConnectionForm = ({
-  dbModel: { parameters },
+  dbModel,
   db,
   editNewDb,
   getPlaceholder,
@@ -147,6 +32,7 @@ const DatabaseConnectionForm = ({
   onAddTableCatalog,
   onChange,
   onExtraInputChange,
+  onEncryptedExtraInputChange,
   onParametersChange,
   onParametersUploadFileChange,
   onQueryChange,
@@ -154,47 +40,65 @@ const DatabaseConnectionForm = ({
   sslForced,
   validationErrors,
   clearValidationErrors,
-}: DatabaseConnectionFormProps) => (
-  <Form>
-    <div
-      // @ts-ignore
-      css={(theme: SupersetTheme) => [
-        formScrollableStyles,
-        validatedFormStyles(theme),
-      ]}
-    >
-      {parameters &&
-        FormFieldOrder.filter(
-          (key: string) =>
-            Object.keys(parameters.properties).includes(key) ||
-            key === 'database_name',
-        ).map(field =>
-          FORM_FIELD_MAP[field]({
-            required: parameters.required?.includes(field),
-            changeMethods: {
-              onParametersChange,
-              onChange,
-              onQueryChange,
-              onParametersUploadFileChange,
-              onAddTableCatalog,
-              onRemoveTableCatalog,
-              onExtraInputChange,
-            },
-            validationErrors,
-            getValidation,
-            clearValidationErrors,
-            db,
-            key: field,
-            field,
-            isEditMode,
-            sslForced,
-            editNewDb,
-            placeholder: getPlaceholder ? getPlaceholder(field) : undefined,
-          }),
-        )}
-    </div>
-  </Form>
-);
+  isValidating,
+}: DatabaseConnectionFormProps) => {
+  const parameters = dbModel?.parameters as {
+    properties: {
+      [key: string]: {
+        default?: any;
+        description?: string;
+      };
+    };
+    required?: string[];
+  };
+
+  return (
+    <Form>
+      <div
+        // @ts-ignore
+        css={(theme: SupersetTheme) => [
+          formScrollableStyles,
+          validatedFormStyles(theme),
+        ]}
+      >
+        {parameters &&
+          FormFieldOrder.filter(
+            (key: string) =>
+              Object.keys(parameters.properties).includes(key) ||
+              key === 'database_name',
+          ).map(field =>
+            // @ts-ignore TODO: fix ComponentClass for SSHTunnelSwitchComponent not having call signature.
+            FORM_FIELD_MAP[field]({
+              required: parameters.required?.includes(field),
+              changeMethods: {
+                onParametersChange,
+                onChange,
+                onQueryChange,
+                onParametersUploadFileChange,
+                onAddTableCatalog,
+                onRemoveTableCatalog,
+                onExtraInputChange,
+                onEncryptedExtraInputChange,
+              },
+              validationErrors,
+              getValidation,
+              clearValidationErrors,
+              db,
+              key: field,
+              field,
+              default_value: parameters.properties[field]?.default,
+              description: parameters.properties[field]?.description,
+              isEditMode,
+              sslForced,
+              editNewDb,
+              isValidating,
+              placeholder: getPlaceholder ? getPlaceholder(field) : undefined,
+            }),
+          )}
+      </div>
+    </Form>
+  );
+};
 export const FormFieldMap = FORM_FIELD_MAP;
 
 export default DatabaseConnectionForm;

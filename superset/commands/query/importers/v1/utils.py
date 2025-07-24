@@ -17,22 +17,19 @@
 
 from typing import Any
 
-from sqlalchemy.orm import Session
-
+from superset import db
 from superset.models.sql_lab import SavedQuery
 
 
-def import_saved_query(
-    session: Session, config: dict[str, Any], overwrite: bool = False
-) -> SavedQuery:
-    existing = session.query(SavedQuery).filter_by(uuid=config["uuid"]).first()
+def import_saved_query(config: dict[str, Any], overwrite: bool = False) -> SavedQuery:
+    existing = db.session.query(SavedQuery).filter_by(uuid=config["uuid"]).first()
     if existing:
         if not overwrite:
             return existing
         config["id"] = existing.id
 
-    saved_query = SavedQuery.import_from_dict(session, config, recursive=False)
+    saved_query = SavedQuery.import_from_dict(config, recursive=False)
     if saved_query.id is None:
-        session.flush()
+        db.session.flush()
 
     return saved_query

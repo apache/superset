@@ -22,13 +22,11 @@ import { SupersetClient, SupersetClientClass } from '@superset-ui/core';
 import { LOGIN_GLOB } from './fixtures/constants';
 
 describe('SupersetClient', () => {
-  beforeAll(() => {
-    fetchMock.get(LOGIN_GLOB, { result: '' });
-  });
+  beforeAll(() => fetchMock.get(LOGIN_GLOB, { result: '' }));
 
-  afterAll(fetchMock.restore);
+  afterAll(() => fetchMock.restore());
 
-  afterEach(SupersetClient.reset);
+  afterEach(() => SupersetClient.reset());
 
   it('exposes reset, configure, init, get, post, postForm, isAuthenticated, and reAuthenticate methods', () => {
     expect(typeof SupersetClient.configure).toBe('function');
@@ -112,7 +110,7 @@ describe('SupersetClient', () => {
     networkCalls.map((url: string) =>
       expect(fetchMock.calls(url)[0][1]?.headers).toStrictEqual({
         Accept: 'application/json',
-        'X-CSRFToken': '',
+        'X-CSRFToken': '1234',
       }),
     );
 

@@ -16,9 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import { GenericDataType } from '@superset-ui/core';
-import Tabs from 'src/components/Tabs';
+import Tabs from '@superset-ui/core/components/Tabs';
 import {
   SHARED_COLUMN_CONFIG_PROPS,
   SharedColumnConfigProp,
@@ -30,6 +29,7 @@ import {
   ColumnConfigInfo,
   ControlFormItemDefaultSpec,
   isTabLayoutItem,
+  TabLayoutItem,
 } from './types';
 import ControlForm, { ControlFormItem, ControlFormRow } from './ControlForm';
 
@@ -54,8 +54,8 @@ export default function ColumnConfigPopover({
           typeof meta === 'string'
             ? {}
             : 'override' in meta
-            ? meta.override
-            : meta.config;
+              ? meta.override
+              : meta.config;
         const props = {
           ...(key in SHARED_COLUMN_CONFIG_PROPS
             ? SHARED_COLUMN_CONFIG_PROPS[key as SharedColumnConfigProp]
@@ -69,27 +69,32 @@ export default function ColumnConfigPopover({
 
   const layout =
     configFormLayout[
-      column.type === undefined ? GenericDataType.STRING : column.type
+      column.type === undefined ? GenericDataType.String : column.type
     ];
 
   if (isTabLayoutItem(layout[0])) {
-    return (
-      <Tabs centered>
-        {layout.map((item, i) =>
-          isTabLayoutItem(item) ? (
-            <Tabs.TabPane tab={item.tab} key={i}>
-              <ControlForm onChange={onChange} value={column.config}>
-                {item.children.map((row, i) => renderRow(row, i))}
-              </ControlForm>
-            </Tabs.TabPane>
-          ) : null,
-        )}
-      </Tabs>
-    );
+    const tabItems = (layout as TabLayoutItem[])
+      .filter(isTabLayoutItem)
+      .map((item: TabLayoutItem, i: number) => ({
+        key: i.toString(),
+        label: item.tab,
+        children: (
+          <ControlForm onChange={onChange} value={column.config}>
+            {item.children.map(
+              (row: ColumnConfigFormItem[], rowIndex: number) =>
+                renderRow(row, rowIndex),
+            )}
+          </ControlForm>
+        ),
+      }));
+
+    return <Tabs items={tabItems} />;
   }
   return (
     <ControlForm onChange={onChange} value={column.config}>
-      {layout.map((row, i) => renderRow(row as ColumnConfigFormItem[], i))}
+      {(layout as ColumnConfigFormItem[][]).map(
+        (row: ColumnConfigFormItem[], i: number) => renderRow(row, i),
+      )}
     </ControlForm>
   );
 }

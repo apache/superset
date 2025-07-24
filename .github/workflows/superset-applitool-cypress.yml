@@ -6,7 +6,7 @@ on:
 
 jobs:
   config:
-    runs-on: "ubuntu-latest"
+    runs-on: ubuntu-24.04
     outputs:
       has-secrets: ${{ steps.check.outputs.has-secrets }}
     steps:
@@ -21,12 +21,11 @@ jobs:
   cypress-applitools:
     needs: config
     if: needs.config.outputs.has-secrets
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
       matrix:
         browser: ["chrome"]
-        node: [16]
     env:
       SUPERSET_ENV: development
       SUPERSET_CONFIG: tests.integration_tests.superset_test_config
@@ -40,7 +39,7 @@ jobs:
       APPLITOOLS_BATCH_NAME: Superset Cypress
     services:
       postgres:
-        image: postgres:15-alpine
+        image: postgres:16-alpine
         env:
           POSTGRES_USER: superset
           POSTGRES_PASSWORD: superset
@@ -52,37 +51,21 @@ jobs:
           - 16379:6379
     steps:
       - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           persist-credentials: false
           submodules: recursive
           ref: master
       - name: Setup Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: "3.9"
-      - name: OS dependencies
-        uses: ./.github/actions/cached-dependencies
-        with:
-          run: apt-get-install
-      - name: Install python dependencies
-        uses: ./.github/actions/cached-dependencies
-        with:
-          run: |
-            pip-upgrade
-            pip install -r requirements/testing.txt
-      - name: Setup postgres
-        uses: ./.github/actions/cached-dependencies
-        with:
-          run: setup-postgres
+        uses: ./.github/actions/setup-backend/
       - name: Import test data
         uses: ./.github/actions/cached-dependencies
         with:
           run: testdata
       - name: Setup Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
-          node-version: ${{ matrix.node }}
+          node-version-file: './superset-frontend/.nvmrc'
       - name: Install npm dependencies
         uses: ./.github/actions/cached-dependencies
         with:
@@ -91,6 +74,11 @@ jobs:
         uses: ./.github/actions/cached-dependencies
         with:
           run: build-instrumented-assets
+      - name: Setup Postgres
+        if: steps.check.outcome == 'failure'
+        uses: ./.github/actions/cached-dependencies
+        with:
+          run: setup-postgres
       - name: Install cypress
         uses: ./.github/actions/cached-dependencies
         with:

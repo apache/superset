@@ -16,79 +16,82 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import { FC } from 'react';
 import { styled, t, css } from '@superset-ui/core';
-import ModalTrigger from 'src/components/ModalTrigger';
+import { ModalTrigger } from '@superset-ui/core/components';
 import { detectOS } from 'src/utils/common';
 
 const userOS = detectOS();
 
 export enum KeyboardShortcut {
-  CTRL_R = 'ctrl+r',
-  CTRL_ENTER = 'ctrl+enter',
-  CTRL_SHIFT_ENTER = 'ctrl+shift+enter',
-  CTRL_P = 'ctrl+p',
-  CTRL_Q = 'ctrl+q',
-  CTRL_E = 'ctrl+e',
-  CTRL_T = 'ctrl+t',
-  CTRL_X = 'ctrl+x',
-  ALT_ENTER = 'alt+enter',
-  CMD_F = 'cmd+f',
-  CMD_OPT_F = 'cmd+opt+f',
-  CTRL_F = 'ctrl+f',
-  CTRL_H = 'ctrl+h',
-  CTRL_SHIFT_F = 'ctrl+shift+f',
+  CtrlR = 'ctrl+r',
+  CtrlEnter = 'ctrl+enter',
+  CtrlShiftEnter = 'ctrl+shift+enter',
+  CtrlP = 'ctrl+p',
+  CtrlQ = 'ctrl+q',
+  CtrlE = 'ctrl+e',
+  CtrlT = 'ctrl+t',
+  CtrlX = 'ctrl+x',
+  AltEnter = 'alt+enter',
+  CmdF = 'cmd+f',
+  CmdOptF = 'cmd+opt+f',
+  CtrlF = 'ctrl+f',
+  CtrlH = 'ctrl+h',
+  CtrlShiftF = 'ctrl+shift+f',
+  CtrlLeft = 'ctrl+[',
+  CtrlRight = 'ctrl+]',
 }
 
-export const KEY_MAP = {
-  [KeyboardShortcut.CTRL_R]: t('Run query'),
-  [KeyboardShortcut.CTRL_ENTER]: t('Run query'),
-  [KeyboardShortcut.ALT_ENTER]: t('Run query'),
-  [KeyboardShortcut.CTRL_SHIFT_ENTER]: t('Run current query'),
-  [KeyboardShortcut.CTRL_X]: userOS === 'MacOS' ? t('Stop query') : undefined,
-  [KeyboardShortcut.CTRL_E]: userOS !== 'MacOS' ? t('Stop query') : undefined,
-  [KeyboardShortcut.CTRL_Q]: userOS === 'Windows' ? t('New tab') : undefined,
-  [KeyboardShortcut.CTRL_T]: userOS !== 'Windows' ? t('New tab') : undefined,
-  [KeyboardShortcut.CTRL_P]: t('Previous Line'),
-  [KeyboardShortcut.CTRL_SHIFT_F]: t('Format SQL'),
+export const KEY_MAP: Record<KeyboardShortcut, string | undefined> = {
+  [KeyboardShortcut.CtrlR]: t('Run query'),
+  [KeyboardShortcut.CtrlEnter]: t('Run query'),
+  [KeyboardShortcut.AltEnter]: t('Run query'),
+  [KeyboardShortcut.CtrlShiftEnter]: t('Run current query'),
+  [KeyboardShortcut.CtrlX]: userOS === 'MacOS' ? t('Stop query') : undefined,
+  [KeyboardShortcut.CtrlE]: userOS !== 'MacOS' ? t('Stop query') : undefined,
+  [KeyboardShortcut.CtrlQ]: userOS === 'Windows' ? t('New tab') : undefined,
+  [KeyboardShortcut.CtrlT]: userOS !== 'Windows' ? t('New tab') : undefined,
+  [KeyboardShortcut.CtrlP]: t('Previous Line'),
+  [KeyboardShortcut.CtrlShiftF]: t('Format SQL'),
+  [KeyboardShortcut.CtrlLeft]: t('Switch to the previous tab'),
+  [KeyboardShortcut.CtrlRight]: t('Switch to the next tab'),
   // default ace editor shortcuts
-  [KeyboardShortcut.CMD_F]: userOS === 'MacOS' ? t('Find') : undefined,
-  [KeyboardShortcut.CTRL_F]: userOS !== 'MacOS' ? t('Find') : undefined,
-  [KeyboardShortcut.CMD_OPT_F]: userOS === 'MacOS' ? t('Replace') : undefined,
-  [KeyboardShortcut.CTRL_H]: userOS !== 'MacOS' ? t('Replace') : undefined,
+  [KeyboardShortcut.CmdF]: userOS === 'MacOS' ? t('Find') : undefined,
+  [KeyboardShortcut.CtrlF]: userOS !== 'MacOS' ? t('Find') : undefined,
+  [KeyboardShortcut.CmdOptF]: userOS === 'MacOS' ? t('Replace') : undefined,
+  [KeyboardShortcut.CtrlH]: userOS !== 'MacOS' ? t('Replace') : undefined,
 };
 
-const KeyMapByCommand = Object.entries(KEY_MAP).reduce(
-  (acc, [shortcut, command]) => {
-    if (command) {
-      acc[command] = [...(acc[command] || []), shortcut];
-    }
-    return acc;
-  },
-  {} as Record<string, string[]>,
-);
+const KeyMapByCommand = Object.entries(KEY_MAP).reduce<
+  Record<string, string[]>
+>((acc, [shortcut, command]) => {
+  if (command) {
+    acc[command] = [...(acc[command] || []), shortcut];
+  }
+  return acc;
+}, {});
 
 const ShortcutDescription = styled.span`
-  font-size: ${({ theme }) => theme.typography.sizes.m}px;
-  color: ${({ theme }) => theme.colors.text.help};
-  padding-left: ${({ theme }) => theme.gridUnit * 2}px;
+  font-size: ${({ theme }) => theme.fontSize}px;
+  color: ${({ theme }) => theme.colorTextLabel};
+  padding-left: ${({ theme }) => theme.sizeUnit * 2}px;
 `;
 
 const ShortcutWrapper = styled.div`
   display: flex;
   flex-wrap: wrap;
-  gap: ${({ theme }) => theme.gridUnit}px;
-  padding: ${({ theme }) => theme.gridUnit * 2}px;
+  gap: ${({ theme }) => theme.sizeUnit}px;
+  padding: ${({ theme }) => theme.sizeUnit * 2}px;
 `;
 
 const ShortcutCode = styled.code`
-  font-size: ${({ theme }) => theme.typography.sizes.s}px;
-  color: ${({ theme }) => theme.colors.grayscale.dark1};
+  font-size: ${({ theme }) => theme.fontSizeSM}px;
+  color: ${({ theme }) => theme.colorText};
   border-radius: ${({ theme }) => theme.borderRadius}px;
-  padding: ${({ theme }) => `${theme.gridUnit}px ${theme.gridUnit * 2}px`};
+  padding: ${({ theme }) => `${theme.sizeUnit}px ${theme.sizeUnit * 2}px`};
 `;
 
-const KeyboardShortcutButton: React.FC<{}> = ({ children }) => (
+const KeyboardShortcutButton: FC<{}> = ({ children }) => (
   <ModalTrigger
     modalTitle={t('Keyboard shortcuts')}
     modalBody={

@@ -1,23 +1,38 @@
-name: Release Charts
+# This workflow automates the release process for Helm charts.
+# The workflow creates a new branch for the release and opens a pull request against the 'gh-pages' branch,
+# allowing the changes to be reviewed and merged manually.
+
+name: "Helm: release charts"
 
 on:
   push:
     branches:
       - "master"
+      - "[0-9].[0-9]*"
     paths:
       - "helm/**"
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: "The branch, tag, or commit SHA to check out"
+        required: false
+        default: "master"
 
 jobs:
   release:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     permissions:
       contents: write
+      pull-requests: write
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
     steps:
-      - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
-        uses: actions/checkout@v3
+      - name: Checkout code
+        uses: actions/checkout@v4
         with:
-          persist-credentials: false
+          ref: ${{ inputs.ref || github.ref_name }}
+          persist-credentials: true
           submodules: recursive
           fetch-depth: 0
 
@@ -27,17 +42,84 @@ jobs:
           git config user.email "$GITHUB_ACTOR@users.noreply.github.com"
 
       - name: Install Helm
-        uses: azure/setup-helm@v1
+        uses: azure/setup-helm@v4
         with:
           version: v3.5.4
 
       - name: Add bitnami repo dependency
         run: helm repo add bitnami https://charts.bitnami.com/bitnami
 
+      - name: Fetch/list all tags
+        run: |
+          # Debugging tags
+          git fetch --tags --force
+          git tag -d superset-helm-chart-0.13.4 || true
+          echo "DEBUG TAGS"
+          git show-ref --tags
+
+      - name: Create unique pages branch name
+        id: vars
+        run: echo "branch_name=helm-publish-${GITHUB_SHA:0:7}" >> $GITHUB_ENV
+
+      - name: Force recreate branch from gh-pages
+        run: |
+          # Ensure a clean working directory
+          git reset --hard
+          git clean -fdx
+          git checkout -b local_gha_temp
+          git submodule update
+
+          # Fetch the latest gh-pages branch
+          git fetch origin gh-pages
+
+          # Check out and reset the target branch based on gh-pages
+          git checkout -B ${{ env.branch_name }} origin/gh-pages
+
+          # Remove submodules from the branch
+          git submodule deinit -f --all
+
+          # Force push to the remote branch
+          git push origin ${{ env.branch_name }} --force
+
+          # Return to the original branch
+          git checkout local_gha_temp
+
+      - name: Fetch/list all tags
+        run: |
+          git submodule update
+          cat .github/actions/chart-releaser-action/action.yml
+
       - name: Run chart-releaser
         uses: ./.github/actions/chart-releaser-action
         with:
+          version: v1.6.0
           charts_dir: helm
+          mark_as_latest: false
+          pages_branch: ${{ env.branch_name }}
         env:
           CR_TOKEN: "${{ github.token }}"
           CR_RELEASE_NAME_TEMPLATE: "superset-helm-chart-{{ .Version }}"
+
+      - name: Open Pull Request
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const branchName = '${{ env.branch_name }}';
+            const [owner, repo] = process.env.GITHUB_REPOSITORY.split('/');
+
+            if (!branchName) {
+              throw new Error("Branch name is not defined.");
+            }
+
+            const pr = await github.rest.pulls.create({
+              owner,
+              repo,
+              title: `Helm chart release for ${branchName}`,
+              head: branchName,
+              base: "gh-pages", // Adjust if the target branch is different
+              body: `This PR releases Helm charts to the gh-pages branch.`,
+            });
+
+            core.info(`Pull request created: ${pr.data.html_url}`);
+        env:
+          BRANCH_NAME: ${{ env.branch_name }}

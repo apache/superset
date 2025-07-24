@@ -38,7 +38,7 @@ class TestExportModelsCommand(SupersetTestCase):
             command = ExportDatabasesCommand([example_db.id])
             contents = dict(command.run())
 
-        metadata = yaml.safe_load(contents["metadata.yaml"])
+        metadata = yaml.safe_load(contents["metadata.yaml"]())
         assert metadata == (
             {
                 "version": "1.0.0",

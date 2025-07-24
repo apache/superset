@@ -37,7 +37,7 @@ import {
   SetDataMaskHook,
 } from '../types/Base';
 import { QueryData, DataRecordFilters } from '..';
-import { SupersetTheme } from '../../style';
+import { SupersetTheme } from '../../theme';
 
 // TODO: more specific typing for these fields of ChartProps
 type AnnotationData = PlainObject;
@@ -67,6 +67,8 @@ type Hooks = {
   setDataMask?: SetDataMaskHook;
   /** handle tooltip */
   setTooltip?: HandlerFunction;
+  /* handle legend scroll changes */
+  onLegendScroll?: HandlerFunction;
 } & PlainObject;
 
 /**
@@ -76,10 +78,6 @@ export interface ChartPropsConfig {
   annotationData?: AnnotationData;
   /** Datasource metadata */
   datasource?: SnakeCaseDatasource;
-  /**
-   * Formerly called "filters", which was misleading because it is actually
-   * initial values of the filter_box and table vis
-   */
   initialValues?: DataRecordFilters;
   /** Main configuration of the chart */
   formData?: RawFormData;
@@ -109,6 +107,8 @@ export interface ChartPropsConfig {
   inputRef?: RefObject<any>;
   /** Theme object */
   theme: SupersetTheme;
+  /* legend index */
+  legendIndex?: number;
 }
 
 const DEFAULT_WIDTH = 800;
@@ -139,6 +139,8 @@ export default class ChartProps<FormData extends RawFormData = RawFormData> {
 
   legendState?: LegendState;
 
+  legendIndex?: number;
+
   queriesData: QueryData[];
 
   width: number;
@@ -168,6 +170,7 @@ export default class ChartProps<FormData extends RawFormData = RawFormData> {
       ownState = {},
       filterState = {},
       legendState,
+      legendIndex,
       initialValues = {},
       queriesData = [],
       behaviors = [],
@@ -194,6 +197,7 @@ export default class ChartProps<FormData extends RawFormData = RawFormData> {
     this.ownState = ownState;
     this.filterState = filterState;
     this.legendState = legendState;
+    this.legendIndex = legendIndex;
     this.behaviors = behaviors;
     this.displaySettings = displaySettings;
     this.appSection = appSection;
@@ -219,6 +223,7 @@ ChartProps.createSelector = function create(): ChartPropsSelector {
     input => input.ownState,
     input => input.filterState,
     input => input.legendState,
+    input => input.legendIndex,
     input => input.behaviors,
     input => input.displaySettings,
     input => input.appSection,
@@ -239,6 +244,7 @@ ChartProps.createSelector = function create(): ChartPropsSelector {
       ownState,
       filterState,
       legendState,
+      legendIndex,
       behaviors,
       displaySettings,
       appSection,
@@ -259,6 +265,7 @@ ChartProps.createSelector = function create(): ChartPropsSelector {
         ownState,
         filterState,
         legendState,
+        legendIndex,
         width,
         behaviors,
         displaySettings,

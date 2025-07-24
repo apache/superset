@@ -17,12 +17,10 @@
  * under the License.
  */
 import rison from 'rison';
+import { createApi, BaseQueryFn } from '@reduxjs/toolkit/query/react';
 import {
   ClientErrorObject,
   getClientErrorObject,
-} from 'src/utils/getClientErrorObject';
-import { createApi, BaseQueryFn } from '@reduxjs/toolkit/query/react';
-import {
   SupersetClient,
   ParseMethod,
   SupersetClientResponse,
@@ -37,7 +35,7 @@ export const supersetClientQuery: BaseQueryFn<
     endpoint: string;
     parseMethod?: ParseMethod;
     transformResponse?: (response: SupersetClientResponse) => JsonValue;
-    urlParams?: Record<string, number | string | undefined | boolean>;
+    urlParams?: Record<string, number | string | undefined | boolean | object>;
   },
   JsonValue,
   ClientErrorObject
@@ -64,19 +62,25 @@ export const supersetClientQuery: BaseQueryFn<
     }))
     .catch(response =>
       getClientErrorObject(response).then(errorObj => ({
-        error: errorObj,
+        error: {
+          error: errorObj?.message || errorObj?.error || response.statusText,
+          errors: errorObj?.errors || [], // used by <ErrorMessageWithStackTrace />
+          status: response.status,
+        },
       })),
     );
 
 export const api = createApi({
   reducerPath: 'queryApi',
   tagTypes: [
+    'Catalogs',
     'Schemas',
     'Tables',
     'DatabaseFunctions',
     'QueryValidations',
     'TableMetadatas',
     'SqlLabInitialState',
+    'EditorQueries',
   ],
   endpoints: () => ({}),
   baseQuery: supersetClientQuery,

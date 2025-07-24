@@ -16,15 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t, DEFAULT_D3_FORMAT } from '@superset-ui/core';
-
+import { DEFAULT_D3_FORMAT, DEFAULT_D3_TIME_FORMAT } from '@superset-ui/core';
 import { BootstrapData, CommonBootstrapData } from './types/bootstrapTypes';
 
 export const DATETIME_WITH_TIME_ZONE = 'YYYY-MM-DD HH:mm:ssZ';
 export const TIME_WITH_MS = 'HH:mm:ss.SSS';
-
-export const BOOL_TRUE_DISPLAY = 'True';
-export const BOOL_FALSE_DISPLAY = 'False';
 
 export const URL_PARAMS = {
   standalone: {
@@ -123,28 +119,15 @@ export const RESERVED_DASHBOARD_URL_PARAMS: string[] = [
   URL_PARAMS.preselectFilters.name,
 ];
 
-/**
- * Faster debounce delay for inputs without expensive operation.
- */
-export const FAST_DEBOUNCE = 250;
-
-/**
- * Slower debounce delay for inputs with expensive API calls.
- */
-export const SLOW_DEBOUNCE = 500;
-
-/**
- * Display null as `N/A`
- */
-export const NULL_DISPLAY = t('N/A');
-
 export const DEFAULT_COMMON_BOOTSTRAP_DATA: CommonBootstrapData = {
+  application_root: '/',
+  static_assets_prefix: '',
   flash_messages: [],
   conf: {},
   locale: 'en',
   feature_flags: {},
   language_pack: {
-    domain: '',
+    domain: 'superset',
     locale_data: {
       superset: {
         '': {
@@ -157,7 +140,11 @@ export const DEFAULT_COMMON_BOOTSTRAP_DATA: CommonBootstrapData = {
   },
   extra_categorical_color_schemes: [],
   extra_sequential_color_schemes: [],
-  theme_overrides: {},
+  theme: {
+    default: {},
+    dark: {},
+    settings: {},
+  },
   menu_data: {
     menu: [],
     brand: {
@@ -175,7 +162,6 @@ export const DEFAULT_COMMON_BOOTSTRAP_DATA: CommonBootstrapData = {
       user_info_url: '',
       user_login_url: '',
       user_logout_url: '',
-      user_profile_url: '',
       locale: '',
     },
     settings: [],
@@ -185,8 +171,22 @@ export const DEFAULT_COMMON_BOOTSTRAP_DATA: CommonBootstrapData = {
     },
   },
   d3_format: DEFAULT_D3_FORMAT,
+  d3_time_format: DEFAULT_D3_TIME_FORMAT,
 };
 
 export const DEFAULT_BOOTSTRAP_DATA: BootstrapData = {
   common: DEFAULT_COMMON_BOOTSTRAP_DATA,
 };
+
+export enum FilterPlugins {
+  Select = 'filter_select',
+  Range = 'filter_range',
+  Time = 'filter_time',
+  TimeColumn = 'filter_timecolumn',
+  TimeGrain = 'filter_timegrain',
+}
+
+export enum Actions {
+  CREATE = 'create',
+  UPDATE = 'update',
+}

@@ -17,30 +17,33 @@
  * under the License.
  */
 /* eslint camelcase: 0 */
-import React from 'react';
+import { ChangeEvent, FormEvent, Component } from 'react';
 import { Dispatch } from 'redux';
 import rison from 'rison';
 import { connect } from 'react-redux';
 import { withRouter, RouteComponentProps } from 'react-router-dom';
-import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
+import {
+  InfoTooltip,
+  Alert,
+  Button,
+  AsyncSelect,
+  Form,
+  FormItem,
+  Modal,
+  Input,
+  Loading,
+  Divider,
+} from '@superset-ui/core/components';
 import {
   css,
   DatasourceType,
-  isFeatureEnabled,
-  FeatureFlag,
   isDefined,
+  logging,
   styled,
   SupersetClient,
   t,
 } from '@superset-ui/core';
-import { Input } from 'src/components/Input';
-import { Form, FormItem } from 'src/components/Form';
-import Alert from 'src/components/Alert';
-import Modal from 'src/components/Modal';
-import { Radio } from 'src/components/Radio';
-import Button from 'src/components/Button';
-import { AsyncSelect } from 'src/components';
-import Loading from 'src/components/Loading';
+import { Radio } from '@superset-ui/core/components/Radio';
 import { canUserEditDashboard } from 'src/dashboard/util/permissionUtils';
 import { setSaveChartModalVisibility } from 'src/explore/actions/saveModalActions';
 import { SaveActionType } from 'src/explore/types';
@@ -70,7 +73,6 @@ type SaveModalState = {
   action: SaveActionType;
   isLoading: boolean;
   saveStatus?: string | null;
-  vizType?: string;
   dashboard?: { label: string; value: string | number };
 };
 
@@ -80,12 +82,12 @@ export const StyledModal = styled(Modal)`
   }
   i {
     position: absolute;
-    top: -${({ theme }) => theme.gridUnit * 5.25}px;
-    left: ${({ theme }) => theme.gridUnit * 26.75}px;
+    top: -${({ theme }) => theme.sizeUnit * 5.25}px;
+    left: ${({ theme }) => theme.sizeUnit * 26.75}px;
   }
 `;
 
-class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
+class SaveModal extends Component<SaveModalProps, SaveModalState> {
   constructor(props: SaveModalProps) {
     super(props);
     this.state = {
@@ -93,7 +95,6 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
       datasetName: props.datasource?.name,
       action: this.canOverwriteSlice() ? 'overwrite' : 'saveas',
       isLoading: false,
-      vizType: props.form_data?.viz_type,
       dashboard: undefined,
     };
     this.onDashboardChange = this.onDashboardChange.bind(this);
@@ -136,19 +137,20 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
           });
         }
       } catch (error) {
-        this.props.actions.addDangerToast(
+        logging.warn(error);
+        this.props.addDangerToast(
           t('An error occurred while loading dashboard information.'),
         );
       }
     }
   }
 
-  handleDatasetNameChange = (e: React.FormEvent<HTMLInputElement>) => {
+  handleDatasetNameChange = (e: FormEvent<HTMLInputElement>) => {
     // @ts-expect-error
     this.setState({ datasetName: e.target.value });
   };
 
-  onSliceNameChange(event: React.ChangeEvent<HTMLInputElement>) {
+  onSliceNameChange(event: ChangeEvent<HTMLInputElement>) {
     this.setState({ newSliceName: event.target.value });
   }
 
@@ -356,7 +358,7 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
             {t('Save as...')}
           </Radio>
         </FormItem>
-        <hr />
+        <Divider />
         <FormItem label={t('Chart name')} required>
           <Input
             name="new_slice_name"
@@ -369,7 +371,7 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
         </FormItem>
         {this.props.datasource?.type === 'query' && (
           <FormItem label={t('Dataset Name')} required>
-            <InfoTooltipWithTrigger
+            <InfoTooltip
               tooltip={t('A reusable dataset will be saved with your chart.')}
               placement="right"
             />
@@ -383,32 +385,27 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
             />
           </FormItem>
         )}
-        {!(
-          isFeatureEnabled(FeatureFlag.DASHBOARD_NATIVE_FILTERS) &&
-          this.state.vizType === 'filter_box'
-        ) && (
-          <FormItem
-            label={t('Add to dashboard')}
-            data-test="save-chart-modal-select-dashboard-form"
-          >
-            <AsyncSelect
-              allowClear
-              allowNewOptions
-              ariaLabel={t('Select a dashboard')}
-              options={this.loadDashboards}
-              onChange={this.onDashboardChange}
-              value={this.state.dashboard}
-              placeholder={
-                <div>
-                  <b>{t('Select')}</b>
-                  {t(' a dashboard OR ')}
-                  <b>{t('create')}</b>
-                  {t(' a new one')}
-                </div>
-              }
-            />
-          </FormItem>
-        )}
+        <FormItem
+          label={t('Add to dashboard')}
+          data-test="save-chart-modal-select-dashboard-form"
+        >
+          <AsyncSelect
+            allowClear
+            allowNewOptions
+            ariaLabel={t('Select a dashboard')}
+            options={this.loadDashboards}
+            onChange={this.onDashboardChange}
+            value={this.state.dashboard}
+            placeholder={
+              <div>
+                <b>{t('Select')}</b>
+                {t(' a dashboard OR ')}
+                <b>{t('create')}</b>
+                {t(' a new one')}
+              </div>
+            }
+          />
+        </FormItem>
         {info && <Alert type="info" message={info} closable={false} />}
         {this.props.alert && (
           <Alert
@@ -455,9 +452,7 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
           !this.state.newSliceName ||
           !this.state.dashboard ||
           (this.props.datasource?.type !== DatasourceType.Table &&
-            !this.state.datasetName) ||
-          (isFeatureEnabled(FeatureFlag.DASHBOARD_NATIVE_FILTERS) &&
-            this.state.vizType === 'filter_box')
+            !this.state.datasetName)
         }
         onClick={() => this.saveOrOverwrite(true)}
       >

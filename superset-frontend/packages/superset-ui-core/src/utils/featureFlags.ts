@@ -22,45 +22,49 @@ import logger from './logging';
 // check into source control. We're hardcoding the supported flags for now.
 export enum FeatureFlag {
   // PLEASE KEEP THE LIST SORTED ALPHABETICALLY
-  ALERTS_ATTACH_REPORTS = 'ALERTS_ATTACH_REPORTS',
-  ALERT_REPORTS = 'ALERT_REPORTS',
-  ALLOW_FULL_CSV_EXPORT = 'ALLOW_FULL_CSV_EXPORT',
-  AVOID_COLORS_COLLISION = 'AVOID_COLORS_COLLISION',
-  CONFIRM_DASHBOARD_DIFF = 'CONFIRM_DASHBOARD_DIFF',
+  AlertsAttachReports = 'ALERTS_ATTACH_REPORTS',
+  AlertReports = 'ALERT_REPORTS',
+  AlertReportTabs = 'ALERT_REPORT_TABS',
+  AlertReportSlackV2 = 'ALERT_REPORT_SLACK_V2',
+  AllowFullCsvExport = 'ALLOW_FULL_CSV_EXPORT',
+  AvoidColorsCollision = 'AVOID_COLORS_COLLISION',
+  ChartPluginsExperimental = 'CHART_PLUGINS_EXPERIMENTAL',
+  ConfirmDashboardDiff = 'CONFIRM_DASHBOARD_DIFF',
+  DashboardVirtualization = 'DASHBOARD_VIRTUALIZATION',
+  DashboardRbac = 'DASHBOARD_RBAC',
+  DatapanelClosedByDefault = 'DATAPANEL_CLOSED_BY_DEFAULT',
   /** @deprecated */
-  DASHBOARD_CROSS_FILTERS = 'DASHBOARD_CROSS_FILTERS',
-  DASHBOARD_FILTERS_EXPERIMENTAL = 'DASHBOARD_FILTERS_EXPERIMENTAL',
-  DASHBOARD_NATIVE_FILTERS = 'DASHBOARD_NATIVE_FILTERS',
-  DASHBOARD_VIRTUALIZATION = 'DASHBOARD_VIRTUALIZATION',
-  DASHBOARD_RBAC = 'DASHBOARD_RBAC',
-  DATAPANEL_CLOSED_BY_DEFAULT = 'DATAPANEL_CLOSED_BY_DEFAULT',
-  DISABLE_LEGACY_DATASOURCE_EDITOR = 'DISABLE_LEGACY_DATASOURCE_EDITOR',
-  DRILL_TO_DETAIL = 'DRILL_TO_DETAIL',
-  DRILL_BY = 'DRILL_BY',
-  DYNAMIC_PLUGINS = 'DYNAMIC_PLUGINS',
-  EMBEDDABLE_CHARTS = 'EMBEDDABLE_CHARTS',
-  EMBEDDED_SUPERSET = 'EMBEDDED_SUPERSET',
-  ENABLE_ADVANCED_DATA_TYPES = 'ENABLE_ADVANCED_DATA_TYPES',
+  DrillToDetail = 'DRILL_TO_DETAIL',
+  DrillBy = 'DRILL_BY',
+  DynamicPlugins = 'DYNAMIC_PLUGINS',
+  EmbeddableCharts = 'EMBEDDABLE_CHARTS',
+  EmbeddedSuperset = 'EMBEDDED_SUPERSET',
+  EnableAdvancedDataTypes = 'ENABLE_ADVANCED_DATA_TYPES',
   /** @deprecated */
-  ENABLE_JAVASCRIPT_CONTROLS = 'ENABLE_JAVASCRIPT_CONTROLS',
-  ENABLE_TEMPLATE_PROCESSING = 'ENABLE_TEMPLATE_PROCESSING',
-  ENABLE_TEMPLATE_REMOVE_FILTERS = 'ENABLE_TEMPLATE_REMOVE_FILTERS',
-  ESCAPE_MARKDOWN_HTML = 'ESCAPE_MARKDOWN_HTML',
-  ESTIMATE_QUERY_COST = 'ESTIMATE_QUERY_COST',
-  GENERIC_CHART_AXES = 'GENERIC_CHART_AXES',
-  GLOBAL_ASYNC_QUERIES = 'GLOBAL_ASYNC_QUERIES',
-  HORIZONTAL_FILTER_BAR = 'HORIZONTAL_FILTER_BAR',
-  LISTVIEWS_DEFAULT_CARD_VIEW = 'LISTVIEWS_DEFAULT_CARD_VIEW',
-  SCHEDULED_QUERIES = 'SCHEDULED_QUERIES',
-  SHARE_QUERIES_VIA_KV_STORE = 'SHARE_QUERIES_VIA_KV_STORE',
-  SQLLAB_BACKEND_PERSISTENCE = 'SQLLAB_BACKEND_PERSISTENCE',
-  SQL_VALIDATORS_BY_ENGINE = 'SQL_VALIDATORS_BY_ENGINE',
-  SSH_TUNNELING = 'SSH_TUNNELING',
-  TAGGING_SYSTEM = 'TAGGING_SYSTEM',
-  THUMBNAILS = 'THUMBNAILS',
-  USE_ANALAGOUS_COLORS = 'USE_ANALAGOUS_COLORS',
-  VERSIONED_EXPORT = 'VERSIONED_EXPORT',
+  EnableJavascriptControls = 'ENABLE_JAVASCRIPT_CONTROLS',
+  EnableTemplateProcessing = 'ENABLE_TEMPLATE_PROCESSING',
+  EscapeMarkdownHtml = 'ESCAPE_MARKDOWN_HTML',
+  EstimateQueryCost = 'ESTIMATE_QUERY_COST',
+  FilterBarClosedByDefault = 'FILTERBAR_CLOSED_BY_DEFAULT',
+  GlobalAsyncQueries = 'GLOBAL_ASYNC_QUERIES',
+  ListviewsDefaultCardView = 'LISTVIEWS_DEFAULT_CARD_VIEW',
+  ScheduledQueries = 'SCHEDULED_QUERIES',
+  SqllabBackendPersistence = 'SQLLAB_BACKEND_PERSISTENCE',
+  SqlValidatorsByEngine = 'SQL_VALIDATORS_BY_ENGINE',
+  SshTunneling = 'SSH_TUNNELING',
+  TaggingSystem = 'TAGGING_SYSTEM',
+  ThemeEnableDarkThemeSwitch = 'THEME_ENABLE_DARK_THEME_SWITCH',
+  ThemeAllowThemeEditorBeta = 'THEME_ALLOW_THEME_EDITOR_BETA',
+  Thumbnails = 'THUMBNAILS',
+  UseAnalogousColors = 'USE_ANALOGOUS_COLORS',
+  ForceSqlLabRunAsync = 'SQLLAB_FORCE_RUN_ASYNC',
+  SlackEnableAvatars = 'SLACK_ENABLE_AVATARS',
+  EnableDashboardScreenshotEndpoints = 'ENABLE_DASHBOARD_SCREENSHOT_ENDPOINTS',
+  EnableDashboardDownloadWebDriverScreenshot = 'ENABLE_DASHBOARD_DOWNLOAD_WEBDRIVER_SCREENSHOT',
+  TableV2TimeComparisonEnabled = 'TABLE_V2_TIME_COMPARISON_ENABLED',
+  AgGridTableEnabled = 'AG_GRID_TABLE_ENABLED',
 }
+
 export type ScheduleQueriesProps = {
   JSONSCHEMA: {
     [key: string]: string;
@@ -73,9 +77,9 @@ export type ScheduleQueriesProps = {
   };
 };
 export type FeatureFlagMap = {
-  [key in Exclude<FeatureFlag, FeatureFlag.SCHEDULED_QUERIES>]?: boolean;
+  [key in Exclude<FeatureFlag, FeatureFlag.ScheduledQueries>]?: boolean;
 } & {
-  SCHEDULED_QUERIES?: ScheduleQueriesProps;
+  ScheduledQueries?: ScheduleQueriesProps;
 };
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -93,7 +97,7 @@ export function initFeatureFlags(featureFlags?: FeatureFlagMap) {
 
 export function isFeatureEnabled(feature: FeatureFlag): boolean {
   try {
-    return !!window.featureFlags[feature];
+    return !!window.featureFlags[feature as keyof FeatureFlagMap];
   } catch (error) {
     logger.error(`Failed to query feature flag ${feature}`);
   }

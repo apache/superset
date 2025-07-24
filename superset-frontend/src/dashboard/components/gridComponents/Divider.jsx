@@ -16,11 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import { PureComponent } from 'react';
 import PropTypes from 'prop-types';
 import { css, styled } from '@superset-ui/core';
 
-import DragDroppable from '../dnd/DragDroppable';
+import { Draggable } from '../dnd/DragDroppable';
 import HoverMenu from '../menu/HoverMenu';
 import DeleteComponentButton from '../DeleteComponentButton';
 import { componentShape } from '../../util/propShapes';
@@ -40,7 +40,7 @@ const propTypes = {
 const DividerLine = styled.div`
   ${({ theme }) => css`
     width: 100%;
-    padding: ${theme.gridUnit * 2}px 0; /* this is padding not margin to enable a larger mouse target */
+    padding: ${theme.sizeUnit * 2}px 0; /* this is padding not margin to enable a larger mouse target */
     background-color: transparent;
 
     &:after {
@@ -56,13 +56,13 @@ const DividerLine = styled.div`
     }
 
     .dashboard-component-tabs & {
-      padding-left: ${theme.gridUnit * 4}px;
-      padding-right: ${theme.gridUnit * 4}px;
+      padding-left: ${theme.sizeUnit * 4}px;
+      padding-right: ${theme.sizeUnit * 4}px;
     }
   `}
 `;
 
-class Divider extends React.PureComponent {
+class Divider extends PureComponent {
   constructor(props) {
     super(props);
     this.handleDeleteComponent = this.handleDeleteComponent.bind(this);
@@ -84,7 +84,7 @@ class Divider extends React.PureComponent {
     } = this.props;
 
     return (
-      <DragDroppable
+      <Draggable
         component={component}
         parentComponent={parentComponent}
         orientation="row"
@@ -93,20 +93,17 @@ class Divider extends React.PureComponent {
         onDrop={handleComponentDrop}
         editMode={editMode}
       >
-        {({ dropIndicatorProps, dragSourceRef }) => (
+        {({ dragSourceRef }) => (
           <div ref={dragSourceRef}>
             {editMode && (
               <HoverMenu position="left">
                 <DeleteComponentButton onDelete={this.handleDeleteComponent} />
               </HoverMenu>
             )}
-
             <DividerLine className="dashboard-component dashboard-component-divider" />
-
-            {dropIndicatorProps && <div {...dropIndicatorProps} />}
           </div>
         )}
-      </DragDroppable>
+      </Draggable>
     );
   }
 }

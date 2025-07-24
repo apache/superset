@@ -16,9 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { LegacyRef } from 'react';
+import { LegacyRef } from 'react';
 import { css, styled } from '@superset-ui/core';
-import Icons from 'src/components/Icons';
+import { Icons } from '@superset-ui/core/components/Icons';
 
 interface DragHandleProps {
   position: 'left' | 'top';
@@ -27,7 +27,7 @@ interface DragHandleProps {
 
 const DragHandleContainer = styled.div<{ position: 'left' | 'top' }>`
   ${({ theme, position }) => css`
-    height: ${theme.gridUnit * 5}px;
+    height: ${theme.sizeUnit * 5}px;
     overflow: hidden;
     cursor: move;
     ${position === 'top' &&

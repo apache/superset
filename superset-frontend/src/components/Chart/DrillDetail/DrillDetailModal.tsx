@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import React, { useCallback, useContext, useMemo } from 'react';
+import { useCallback, useContext, useMemo } from 'react';
 import { useHistory } from 'react-router-dom';
 import {
   BinaryQueryObjectFilterClause,
@@ -26,33 +26,56 @@ import {
   t,
   useTheme,
 } from '@superset-ui/core';
-import Modal from 'src/components/Modal';
-import Button from 'src/components/Button';
+import { Button, Modal } from '@superset-ui/core/components';
 import { useSelector } from 'react-redux';
 import { DashboardPageIdContext } from 'src/dashboard/containers/DashboardPage';
 import { Slice } from 'src/types/Chart';
+import { RootState } from 'src/dashboard/types';
+import { findPermission } from 'src/utils/findPermission';
 import DrillDetailPane from './DrillDetailPane';
 
 interface ModalFooterProps {
-  exploreChart: () => void;
+  canExplore: boolean;
   closeModal?: () => void;
+  exploreChart: () => void;
 }
 
-const ModalFooter = ({ exploreChart, closeModal }: ModalFooterProps) => (
-  <>
-    <Button buttonStyle="secondary" buttonSize="small" onClick={exploreChart}>
-      {t('Edit chart')}
-    </Button>
-    <Button
-      buttonStyle="primary"
-      buttonSize="small"
-      onClick={closeModal}
-      data-test="close-drilltodetail-modal"
-    >
-      {t('Close')}
-    </Button>
-  </>
-);
+const ModalFooter = ({
+  canExplore,
+  closeModal,
+  exploreChart,
+}: ModalFooterProps) => {
+  const theme = useTheme();
+
+  return (
+    <>
+      <Button
+        buttonStyle="secondary"
+        buttonSize="small"
+        onClick={exploreChart}
+        disabled={!canExplore}
+        tooltip={
+          !canExplore
+            ? t('You do not have sufficient permissions to edit the chart')
+            : undefined
+        }
+      >
+        {t('Edit chart')}
+      </Button>
+      <Button
+        buttonStyle="primary"
+        buttonSize="small"
+        onClick={closeModal}
+        data-test="close-drilltodetail-modal"
+        css={css`
+          margin-left: ${theme.sizeUnit * 2}px;
+        `}
+      >
+        {t('Close')}
+      </Button>
+    </>
+  );
+};
 
 interface DrillDetailModalProps {
   chartId: number;
@@ -74,7 +97,10 @@ export default function DrillDetailModal({
   const dashboardPageId = useContext(DashboardPageIdContext);
   const { slice_name: chartName } = useSelector(
     (state: { sliceEntities: { slices: Record<number, Slice> } }) =>
-      state.sliceEntities.slices[chartId],
+      state.sliceEntities?.slices?.[chartId] || {},
+  );
+  const canExplore = useSelector((state: RootState) =>
+    findPermission('can_explore', 'Superset', state.user?.roles),
   );
 
   const exploreUrl = useMemo(
@@ -97,19 +123,21 @@ export default function DrillDetailModal({
         }
       `}
       title={t('Drill to detail: %s', chartName)}
-      footer={<ModalFooter exploreChart={exploreChart} />}
+      footer={
+        <ModalFooter exploreChart={exploreChart} canExplore={canExplore} />
+      }
       responsive
       resizable
       resizableConfig={{
-        minHeight: theme.gridUnit * 128,
-        minWidth: theme.gridUnit * 128,
+        minHeight: theme.sizeUnit * 128,
+        minWidth: theme.sizeUnit * 128,
         defaultSize: {
           width: 'auto',
           height: '75vh',
         },
       }}
       draggable
-      destroyOnClose
+      destroyOnHidden
       maskClosable={false}
     >
       <DrillDetailPane formData={formData} initialFilters={initialFilters} />

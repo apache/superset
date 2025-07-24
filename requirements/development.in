@@ -16,12 +16,4 @@
 # specific language governing permissions and limitations
 # under the License.
 #
--r base.in
--e .[cors,druid,hive,mysql,postgres,thumbnails]
-ipython
-progress>=1.5,<2
-pyinstrument>=4.0.2,<5
-pylint
-python-ldap>=3.4.3
-setuptools>=65.5.1
-sqloxide
+-e .[development,bigquery,druid,gevent,gsheets,mysql,postgres,presto,prophet,trino,thumbnails]

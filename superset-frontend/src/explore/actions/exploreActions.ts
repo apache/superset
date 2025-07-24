@@ -152,6 +152,33 @@ export function setForceQuery(force: boolean) {
   };
 }
 
+export const SET_STASH_FORM_DATA = 'SET_STASH_FORM_DATA';
+export function setStashFormData(
+  isHidden: boolean,
+  fieldNames: ReadonlyArray<string>,
+) {
+  return {
+    type: SET_STASH_FORM_DATA,
+    isHidden,
+    fieldNames,
+  };
+}
+
+export const START_METADATA_LOADING = 'START_METADATA_LOADING';
+export function startMetaDataLoading() {
+  return { type: START_METADATA_LOADING };
+}
+
+export const STOP_METADATA_LOADING = 'STOP_METADATA_LOADING';
+export function stopMetaDataLoading() {
+  return { type: STOP_METADATA_LOADING };
+}
+
+export const SYNC_DATASOURCE_METADATA = 'SYNC_DATASOURCE_METADATA';
+export function syncDatasourceMetadata(datasource: Dataset) {
+  return { type: SYNC_DATASOURCE_METADATA, datasource };
+}
+
 export const exploreActions = {
   ...toastActions,
   fetchDatasourcesStarted,
@@ -161,10 +188,12 @@ export const exploreActions = {
   saveFaveStar,
   setControlValue,
   setExploreControls,
+  setStashFormData,
   updateChartTitle,
   createNewSlice,
   sliceUpdated,
   setForceQuery,
+  syncDatasourceMetadata,
 };
 
 export type ExploreActions = typeof exploreActions;

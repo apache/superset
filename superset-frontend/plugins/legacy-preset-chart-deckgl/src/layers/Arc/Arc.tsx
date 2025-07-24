@@ -16,21 +16,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ArcLayer } from 'deck.gl/typed';
-import React from 'react';
-import {
-  HandlerFunction,
-  JsonObject,
-  QueryFormData,
-  t,
-} from '@superset-ui/core';
+import { ArcLayer } from '@deck.gl/layers';
+import { JsonObject, QueryFormData, t } from '@superset-ui/core';
+import { COLOR_SCHEME_TYPES } from '../../utilities/utils';
 import { commonLayerProps } from '../common';
-import { createCategoricalDeckGLComponent } from '../../factory';
+import { GetLayerType, createCategoricalDeckGLComponent } from '../../factory';
 import TooltipRow from '../../TooltipRow';
-import { TooltipProps } from '../../components/Tooltip';
 import { Point } from '../../types';
 
-function getPoints(data: JsonObject[]) {
+export function getPoints(data: JsonObject[]) {
   const points: Point[] = [];
   data.forEach(d => {
     points.push(d.sourcePosition);
@@ -45,42 +39,66 @@ function setTooltipContent(formData: QueryFormData) {
     <div className="deckgl-tooltip">
       <TooltipRow
         label={t('Start (Longitude, Latitude): ')}
-        value={`${o.object.sourcePosition[0]}, ${o.object.sourcePosition[1]}`}
+        value={`${o.object?.sourcePosition?.[0]}, ${o.object?.sourcePosition?.[1]}`}
       />
       <TooltipRow
         label={t('End (Longitude, Latitude): ')}
-        value={`${o.object.targetPosition[0]}, ${o.object.targetPosition[1]}`}
+        value={`${o.object?.targetPosition?.[0]}, ${o.object?.targetPosition?.[1]}`}
       />
       {formData.dimension && (
         <TooltipRow
-          label={`${formData.dimension}: `}
-          value={`${o.object.cat_color}`}
+          label={`${formData?.dimension}: `}
+          value={`${o.object?.cat_color}`}
         />
       )}
     </div>
   );
 }
 
-export function getLayer(
-  fd: QueryFormData,
-  payload: JsonObject,
-  onAddFilter: HandlerFunction,
-  setTooltip: (tooltip: TooltipProps['tooltip']) => void,
-) {
+export const getLayer: GetLayerType<ArcLayer> = function ({
+  formData,
+  payload,
+  setTooltip,
+  filterState,
+  setDataMask,
+  onContextMenu,
+  emitCrossFilters,
+}) {
+  const fd = formData;
   const data = payload.data.features;
   const sc = fd.color_picker;
   const tc = fd.target_color_picker;
 
+  const colorSchemeType = fd.color_scheme_type;
+
   return new ArcLayer({
     data,
-    getSourceColor: d =>
-      d.sourceColor || d.color || [sc.r, sc.g, sc.b, 255 * sc.a],
-    getTargetColor: d =>
-      d.targetColor || d.color || [tc.r, tc.g, tc.b, 255 * tc.a],
+    getSourceColor: (d: any) => {
+      if (colorSchemeType === COLOR_SCHEME_TYPES.fixed_color) {
+        return [sc.r, sc.g, sc.b, 255 * sc.a];
+      }
+
+      return d.targetColor || d.color;
+    },
+    getTargetColor: (d: any) => {
+      if (colorSchemeType === COLOR_SCHEME_TYPES.fixed_color) {
+        return [tc.r, tc.g, tc.b, 255 * tc.a];
+      }
+
+      return d.targetColor || d.color;
+    },
     id: `path-layer-${fd.slice_id}` as const,
-    strokeWidth: fd.stroke_width ? fd.stroke_width : 3,
-    ...commonLayerProps(fd, setTooltip, setTooltipContent(fd)),
+    getWidth: fd.stroke_width ? fd.stroke_width : 3,
+    ...commonLayerProps({
+      formData: fd,
+      setTooltip,
+      setTooltipContent: setTooltipContent(fd),
+      onContextMenu,
+      setDataMask,
+      filterState,
+      emitCrossFilters,
+    }),
   });
-}
+};
 
 export default createCategoricalDeckGLComponent(getLayer, getPoints);

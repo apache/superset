@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import { t } from '@superset-ui/core';
 import {
   ControlPanelConfig,
@@ -42,6 +41,7 @@ import {
   truncateXAxis,
   xAxisBounds,
   xAxisLabelRotation,
+  xAxisLabelInterval,
 } from '../../../controls';
 
 const {
@@ -55,11 +55,9 @@ const {
   seriesType,
   truncateYAxis,
   yAxisBounds,
-  zoomable,
 } = DEFAULT_FORM_DATA;
 const config: ControlPanelConfig = {
   controlPanelSections: [
-    sections.genericTime,
     sections.echartsTimeSeriesQueryWithXAxisSort,
     sections.advancedAnalyticsControls,
     sections.annotationsAndLayersControls,
@@ -71,6 +69,7 @@ const config: ControlPanelConfig = {
       controlSetRows: [
         ...seriesOrderSection,
         ['color_scheme'],
+        ['time_shift_color'],
         [
           {
             name: 'seriesType',
@@ -158,18 +157,7 @@ const config: ControlPanelConfig = {
             },
           },
         ],
-        [
-          {
-            name: 'zoomable',
-            config: {
-              type: 'CheckboxControl',
-              label: t('Data Zoom'),
-              default: zoomable,
-              renderTrigger: true,
-              description: t('Enable data zooming controls'),
-            },
-          },
-        ],
+        ['zoomable'],
         [minorTicks],
         ...legendSection,
         [<ControlSubSectionHeader>{t('X Axis')}</ControlSubSectionHeader>],
@@ -184,6 +172,7 @@ const config: ControlPanelConfig = {
           },
         ],
         [xAxisLabelRotation],
+        [xAxisLabelInterval],
         ...richTooltipSection,
         // eslint-disable-next-line react/jsx-key
         [<ControlSubSectionHeader>{t('Y Axis')}</ControlSubSectionHeader>],

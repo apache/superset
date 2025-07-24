@@ -71,13 +71,40 @@ class EmbeddedDashboardRestApi(BaseSupersetModelRestApi):
         """Get the dashboard's embedded configuration.
         ---
         get:
-          summary: Get the dashboard's embedded configuration
+          summary: >-
+            Get the dashboard's embedded configuration this endpoint is also used
+            to embed dashboards.
           parameters:
           - in: path
             schema:
               type: string
             name: uuid
             description: The embedded configuration uuid
+          - in: query
+            schema:
+              type: number
+            name: uiConfig
+            description: The ui config of embedded dashboard (optional).
+          - in: query
+            schema:
+              type: boolean
+            name: show_filters
+            description: Show filters (optional).
+          - in: query
+            schema:
+              type: boolean
+            name: expand_filters
+            description: Expand filters (optional).
+          - in: query
+            schema:
+              type: string
+            name: native_filters_key
+            description: Native filters key to apply filters. (optional).
+          - in: query
+            schema:
+              type: string
+            name: permalink_key
+            description: Permalink key to apply filters. (optional).
           responses:
             200:
               description: Result contains the embedded dashboard configuration
@@ -88,6 +115,9 @@ class EmbeddedDashboardRestApi(BaseSupersetModelRestApi):
                     properties:
                       result:
                         $ref: '#/components/schemas/EmbeddedDashboardResponseSchema'
+                text/html:
+                    schema:
+                        type: string
             401:
               $ref: '#/components/responses/401'
             404:

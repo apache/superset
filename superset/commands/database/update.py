@@ -14,169 +14,203 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+
+from __future__ import annotations
+
 import logging
-from typing import Any, Optional
+from functools import partial
+from typing import Any
 
 from flask_appbuilder.models.sqla import Model
-from marshmallow import ValidationError
 
-from superset import is_feature_enabled
+from superset import db, is_feature_enabled
 from superset.commands.base import BaseCommand
 from superset.commands.database.exceptions import (
-    DatabaseConnectionFailedError,
     DatabaseExistsValidationError,
     DatabaseInvalidError,
     DatabaseNotFoundError,
     DatabaseUpdateFailedError,
+    MissingOAuth2TokenError,
 )
 from superset.commands.database.ssh_tunnel.create import CreateSSHTunnelCommand
+from superset.commands.database.ssh_tunnel.delete import DeleteSSHTunnelCommand
 from superset.commands.database.ssh_tunnel.exceptions import (
-    SSHTunnelCreateFailedError,
     SSHTunnelingNotEnabledError,
-    SSHTunnelInvalidError,
-    SSHTunnelUpdateFailedError,
 )
 from superset.commands.database.ssh_tunnel.update import UpdateSSHTunnelCommand
+from superset.commands.database.sync_permissions import SyncPermissionsCommand
 from superset.daos.database import DatabaseDAO
-from superset.daos.exceptions import DAOCreateFailedError, DAOUpdateFailedError
-from superset.extensions import db, security_manager
+from superset.databases.ssh_tunnel.models import SSHTunnel
+from superset.exceptions import OAuth2RedirectError
 from superset.models.core import Database
-from superset.utils.core import DatasourceType
+from superset.utils import json
+from superset.utils.core import get_username
+from superset.utils.decorators import on_error, transaction
 
 logger = logging.getLogger(__name__)
 
 
 class UpdateDatabaseCommand(BaseCommand):
+    _model: Database | None
+
     def __init__(self, model_id: int, data: dict[str, Any]):
         self._properties = data.copy()
         self._model_id = model_id
-        self._model: Optional[Database] = None
+        self._model: Database | None = None
 
+    @transaction(on_error=partial(on_error, reraise=DatabaseUpdateFailedError))
     def run(self) -> Model:
-        self.validate()
+        self._model = DatabaseDAO.find_by_id(self._model_id)
+
         if not self._model:
             raise DatabaseNotFoundError()
-        old_database_name = self._model.database_name
 
-        # unmask ``encrypted_extra``
-        self._properties[
-            "encrypted_extra"
-        ] = self._model.db_engine_spec.unmask_encrypted_extra(
-            self._model.encrypted_extra,
-            self._properties.pop("masked_encrypted_extra", "{}"),
-        )
+        self.validate()
 
+        if "masked_encrypted_extra" in self._properties:
+            # unmask ``encrypted_extra``
+            self._properties["encrypted_extra"] = (
+                self._model.db_engine_spec.unmask_encrypted_extra(
+                    self._model.encrypted_extra,
+                    self._properties.pop("masked_encrypted_extra"),
+                )
+            )
+
+            # Depending on the changes to the OAuth2 configuration we may need to purge
+            # existing personal tokens.
+            self._handle_oauth2()
+
+        # Some DBs require running a query to get the default catalog.
+        # In these cases, if the current connection is broken then
+        # `get_default_catalog` would raise an exception. We need to
+        # gracefully handle that so that the connection can be fixed.
+        original_database_name = self._model.database_name
+        force_update: bool = False
         try:
-            database = DatabaseDAO.update(self._model, self._properties, commit=False)
-            database.set_sqlalchemy_uri(database.sqlalchemy_uri)
+            original_catalog = self._model.get_default_catalog()
+        except Exception:
+            original_catalog = None
+            force_update = True
 
-            if ssh_tunnel_properties := self._properties.get("ssh_tunnel"):
-                if not is_feature_enabled("SSH_TUNNELING"):
-                    db.session.rollback()
-                    raise SSHTunnelingNotEnabledError()
-                existing_ssh_tunnel_model = DatabaseDAO.get_ssh_tunnel(database.id)
-                if existing_ssh_tunnel_model is None:
-                    # We couldn't found an existing tunnel so we need to create one
-                    try:
-                        CreateSSHTunnelCommand(database.id, ssh_tunnel_properties).run()
-                    except (SSHTunnelInvalidError, SSHTunnelCreateFailedError) as ex:
-                        # So we can show the original message
-                        raise ex
-                    except Exception as ex:
-                        raise DatabaseUpdateFailedError() from ex
-                else:
-                    # We found an existing tunnel so we need to update it
-                    try:
-                        UpdateSSHTunnelCommand(
-                            existing_ssh_tunnel_model.id, ssh_tunnel_properties
-                        ).run()
-                    except (SSHTunnelInvalidError, SSHTunnelUpdateFailedError) as ex:
-                        # So we can show the original message
-                        raise ex
-                    except Exception as ex:
-                        raise DatabaseUpdateFailedError() from ex
+        # build new DB
+        database = DatabaseDAO.update(self._model, self._properties)
+        database.set_sqlalchemy_uri(database.sqlalchemy_uri)
+        ssh_tunnel = self._handle_ssh_tunnel(database)
+        new_catalog = database.get_default_catalog()
 
-            # adding a new database we always want to force refresh schema list
-            # TODO Improve this simplistic implementation for catching DB conn fails
-            try:
-                ssh_tunnel = DatabaseDAO.get_ssh_tunnel(database.id)
-                schemas = database.get_all_schema_names(ssh_tunnel=ssh_tunnel)
-            except Exception as ex:
-                db.session.rollback()
-                raise DatabaseConnectionFailedError() from ex
+        # update assets when the database catalog changes, if the database was not
+        # configured with multi-catalog support; if it was enabled or is enabled in the
+        # update we don't update the assets
+        if (
+            force_update
+            or new_catalog != original_catalog
+            and not self._model.allow_multi_catalog
+            and not database.allow_multi_catalog
+        ):
+            self._update_catalog_attribute(self._model.id, new_catalog)
 
-            # Update database schema permissions
-            new_schemas: list[str] = []
+        # if the database name changed we need to update any existing permissions,
+        # since they're name based
+        try:
+            current_username = get_username()
+            SyncPermissionsCommand(
+                self._model_id,
+                current_username,
+                old_db_connection_name=original_database_name,
+                db_connection=database,
+                ssh_tunnel=ssh_tunnel,
+            ).run()
+        except (OAuth2RedirectError, MissingOAuth2TokenError):
+            pass
 
-            for schema in schemas:
-                old_view_menu_name = security_manager.get_schema_perm(
-                    old_database_name, schema
-                )
-                new_view_menu_name = security_manager.get_schema_perm(
-                    database.database_name, schema
-                )
-                schema_pvm = security_manager.find_permission_view_menu(
-                    "schema_access", old_view_menu_name
-                )
-                # Update the schema permission if the database name changed
-                if schema_pvm and old_database_name != database.database_name:
-                    schema_pvm.view_menu.name = new_view_menu_name
-
-                    self._propagate_schema_permissions(
-                        old_view_menu_name, new_view_menu_name
-                    )
-                else:
-                    new_schemas.append(schema)
-            for schema in new_schemas:
-                security_manager.add_permission_view_menu(
-                    "schema_access", security_manager.get_schema_perm(database, schema)
-                )
-
-            db.session.commit()
-
-        except (DAOUpdateFailedError, DAOCreateFailedError) as ex:
-            raise DatabaseUpdateFailedError() from ex
         return database
 
-    @staticmethod
-    def _propagate_schema_permissions(
-        old_view_menu_name: str, new_view_menu_name: str
-    ) -> None:
-        from superset.connectors.sqla.models import (  # pylint: disable=import-outside-toplevel
-            SqlaTable,
-        )
-        from superset.models.slice import (  # pylint: disable=import-outside-toplevel
-            Slice,
-        )
+    def _handle_oauth2(self) -> None:
+        """
+        Handle changes in OAuth2.
+        """
+        if not self._model:
+            return
 
-        # Update schema_perm on all datasets
-        datasets = (
-            db.session.query(SqlaTable)
-            .filter(SqlaTable.schema_perm == old_view_menu_name)
-            .all()
-        )
-        for dataset in datasets:
-            dataset.schema_perm = new_view_menu_name
-            charts = db.session.query(Slice).filter(
-                Slice.datasource_type == DatasourceType.TABLE,
-                Slice.datasource_id == dataset.id,
-            )
-            # Update schema_perm on all charts
-            for chart in charts:
-                chart.schema_perm = new_view_menu_name
+        if self._properties["encrypted_extra"] is None:
+            self._model.purge_oauth2_tokens()
+            return
+
+        current_config = self._model.get_oauth2_config()
+        if not current_config:
+            return
+
+        encrypted_extra = json.loads(self._properties["encrypted_extra"])
+        new_config = encrypted_extra.get("oauth2_client_info", {})
+
+        # Keys that require purging personal tokens because they probably are no longer
+        # valid. For example, if the scope has changed the existing tokens are still
+        # associated with the old scope. Similarly, if the endpoints changed the tokens
+        # are probably no longer valid.
+        keys = {
+            "id",
+            "scope",
+            "authorization_request_uri",
+            "token_request_uri",
+        }
+        for key in keys:
+            if current_config.get(key) != new_config.get(key):
+                self._model.purge_oauth2_tokens()
+                break
+
+    def _handle_ssh_tunnel(self, database: Database) -> SSHTunnel | None:
+        """
+        Delete, create, or update an SSH tunnel.
+        """
+        if "ssh_tunnel" not in self._properties:
+            return None
+
+        if not is_feature_enabled("SSH_TUNNELING"):
+            raise SSHTunnelingNotEnabledError()
+
+        current_ssh_tunnel = DatabaseDAO.get_ssh_tunnel(database.id)
+        ssh_tunnel_properties = self._properties["ssh_tunnel"]
+
+        if ssh_tunnel_properties is None:
+            if current_ssh_tunnel:
+                DeleteSSHTunnelCommand(current_ssh_tunnel.id).run()
+            return None
+
+        if current_ssh_tunnel is None:
+            return CreateSSHTunnelCommand(database, ssh_tunnel_properties).run()
+
+        return UpdateSSHTunnelCommand(
+            current_ssh_tunnel.id,
+            ssh_tunnel_properties,
+        ).run()
+
+    def _update_catalog_attribute(
+        self,
+        database_id: int,
+        new_catalog: str | None,
+    ) -> None:
+        """
+        Update the catalog of the datasets that are associated with database.
+        """
+        from superset.connectors.sqla.models import SqlaTable
+        from superset.models.sql_lab import Query, SavedQuery, TableSchema, TabState
+
+        for model in [
+            SqlaTable,
+            Query,
+            SavedQuery,
+            TabState,
+            TableSchema,
+        ]:
+            fk = "db_id" if model == SavedQuery else "database_id"
+            predicate = {fk: database_id}
+            update = {"catalog": new_catalog}
+            db.session.query(model).filter_by(**predicate).update(update)
 
     def validate(self) -> None:
-        exceptions: list[ValidationError] = []
-        # Validate/populate model exists
-        self._model = DatabaseDAO.find_by_id(self._model_id)
-        if not self._model:
-            raise DatabaseNotFoundError()
-        database_name: Optional[str] = self._properties.get("database_name")
-        if database_name:
-            # Check database_name uniqueness
+        if database_name := self._properties.get("database_name"):
             if not DatabaseDAO.validate_update_uniqueness(
-                self._model_id, database_name
+                self._model_id,
+                database_name,
             ):
-                exceptions.append(DatabaseExistsValidationError())
-        if exceptions:
-            raise DatabaseInvalidError(exceptions=exceptions)
+                raise DatabaseInvalidError(exceptions=[DatabaseExistsValidationError()])

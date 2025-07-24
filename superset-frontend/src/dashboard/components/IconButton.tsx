@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { MouseEventHandler } from 'react';
+import { MouseEventHandler } from 'react';
 import { styled } from '@superset-ui/core';
 
 interface IconButtonProps {
@@ -28,14 +28,15 @@ interface IconButtonProps {
 const StyledDiv = styled.div`
   display: flex;
   align-items: center;
+  cursor: pointer;
   color: ${({ theme }) => theme.colors.grayscale.base};
   &:hover {
-    color: ${({ theme }) => theme.colors.primary.base};
+    color: ${({ theme }) => theme.colorPrimary};
   }
 `;
 
 const StyledSpan = styled.span`
-  margin-left: ${({ theme }) => theme.gridUnit * 2}px;
+  margin-left: ${({ theme }) => theme.sizeUnit * 2}px;
 `;
 
 const IconButton = ({ icon, label, onClick }: IconButtonProps) => (

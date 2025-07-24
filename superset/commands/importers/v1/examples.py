@@ -14,11 +14,10 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from typing import Any
+from typing import Any, Optional
 
 from marshmallow import Schema
 from sqlalchemy.exc import MultipleResultsFound
-from sqlalchemy.orm import Session
 from sqlalchemy.sql import select
 
 from superset import db
@@ -44,10 +43,10 @@ from superset.datasets.schemas import ImportV1DatasetSchema
 from superset.models.dashboard import dashboard_slices
 from superset.utils.core import get_example_default_schema
 from superset.utils.database import get_example_database
+from superset.utils.decorators import transaction
 
 
 class ImportExamplesCommand(ImportModelsCommand):
-
     """Import examples"""
 
     dao = BaseDAO
@@ -64,20 +63,17 @@ class ImportExamplesCommand(ImportModelsCommand):
         super().__init__(contents, *args, **kwargs)
         self.force_data = kwargs.get("force_data", False)
 
+    @transaction()
     def run(self) -> None:
         self.validate()
 
-        # rollback to prevent partial imports
         try:
             self._import(
-                db.session,
                 self._configs,
                 self.overwrite,
                 self.force_data,
             )
-            db.session.commit()
         except Exception as ex:
-            db.session.rollback()
             raise self.import_error() from ex
 
     @classmethod
@@ -91,10 +87,10 @@ class ImportExamplesCommand(ImportModelsCommand):
         )
 
     @staticmethod
-    def _import(  # pylint: disable=too-many-locals, too-many-branches
-        session: Session,
+    def _import(  # pylint: disable=too-many-locals, too-many-branches  # noqa: C901
         configs: dict[str, Any],
         overwrite: bool = False,
+        contents: Optional[dict[str, Any]] = None,
         force_data: bool = False,
     ) -> None:
         # import databases
@@ -102,7 +98,6 @@ class ImportExamplesCommand(ImportModelsCommand):
         for file_name, config in configs.items():
             if file_name.startswith("databases/"):
                 database = import_database(
-                    session,
                     config,
                     overwrite=overwrite,
                     ignore_permissions=True,
@@ -133,7 +128,6 @@ class ImportExamplesCommand(ImportModelsCommand):
 
                 try:
                     dataset = import_dataset(
-                        session,
                         config,
                         overwrite=overwrite,
                         force_data=force_data,
@@ -164,7 +158,6 @@ class ImportExamplesCommand(ImportModelsCommand):
                 # update datasource id, type, and name
                 config.update(dataset_info[config["dataset_uuid"]])
                 chart = import_chart(
-                    session,
                     config,
                     overwrite=overwrite,
                     ignore_permissions=True,
@@ -172,7 +165,7 @@ class ImportExamplesCommand(ImportModelsCommand):
                 chart_ids[str(chart.uuid)] = chart.id
 
         # store the existing relationship between dashboards and charts
-        existing_relationships = session.execute(
+        existing_relationships = db.session.execute(
             select([dashboard_slices.c.dashboard_id, dashboard_slices.c.slice_id])
         ).fetchall()
 
@@ -186,7 +179,6 @@ class ImportExamplesCommand(ImportModelsCommand):
                     continue
 
                 dashboard = import_dashboard(
-                    session,
                     config,
                     overwrite=overwrite,
                     ignore_permissions=True,
@@ -203,4 +195,4 @@ class ImportExamplesCommand(ImportModelsCommand):
             {"dashboard_id": dashboard_id, "slice_id": chart_id}
             for (dashboard_id, chart_id) in dashboard_chart_ids
         ]
-        session.execute(dashboard_slices.insert(), values)
+        db.session.execute(dashboard_slices.insert(), values)

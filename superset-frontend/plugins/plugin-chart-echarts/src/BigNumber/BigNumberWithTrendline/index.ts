@@ -37,15 +37,15 @@ const metadata = {
   name: t('Big Number with Trendline'),
   tags: [
     t('Advanced-Analytics'),
+    t('ECharts'),
     t('Line'),
     t('Percentages'),
-    t('Popular'),
+    t('Featured'),
     t('Report'),
-    t('Description'),
     t('Trend'),
   ],
   thumbnail,
-  behaviors: [Behavior.DRILL_TO_DETAIL],
+  behaviors: [Behavior.DrillToDetail],
 };
 
 export default class BigNumberWithTrendlineChartPlugin extends EchartsChartPlugin<

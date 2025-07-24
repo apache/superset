@@ -15,12 +15,11 @@
 # specific language governing permissions and limitations
 # under the License.
 
-import json
 from unittest.mock import patch
 
 import pytest
 
-from superset import app, db, security, security_manager
+from superset import app, db, security_manager
 from superset.commands.exceptions import DatasourceTypeInvalidError
 from superset.commands.explore.form_data.create import CreateFormDataCommand
 from superset.commands.explore.form_data.delete import DeleteFormDataCommand
@@ -30,13 +29,14 @@ from superset.commands.explore.form_data.update import UpdateFormDataCommand
 from superset.connectors.sqla.models import SqlaTable
 from superset.models.slice import Slice
 from superset.models.sql_lab import Query
+from superset.utils import json
 from superset.utils.core import DatasourceType, get_example_default_schema
 from superset.utils.database import get_example_database
 from tests.integration_tests.base_tests import SupersetTestCase
 
 
 class TestCreateFormDataCommand(SupersetTestCase):
-    @pytest.fixture()
+    @pytest.fixture
     def create_dataset(self):
         with self.create_app().app_context():
             dataset = SqlaTable(
@@ -45,22 +45,22 @@ class TestCreateFormDataCommand(SupersetTestCase):
                 schema=get_example_default_schema(),
                 sql="select 123 as intcol, 'abc' as strcol",
             )
-            session = db.session
-            session.add(dataset)
-            session.commit()
+            db.session.add(dataset)
+            db.session.commit()
 
             yield dataset
 
             # rollback
-            session.delete(dataset)
-            session.commit()
+            db.session.delete(dataset)
+            db.session.commit()
 
-    @pytest.fixture()
+    @pytest.fixture
     def create_slice(self):
         with self.create_app().app_context():
-            session = db.session
             dataset = (
-                session.query(SqlaTable).filter_by(table_name="dummy_sql_table").first()
+                db.session.query(SqlaTable)
+                .filter_by(table_name="dummy_sql_table")
+                .first()
             )
             slice = Slice(
                 datasource_id=dataset.id,
@@ -69,34 +69,32 @@ class TestCreateFormDataCommand(SupersetTestCase):
                 slice_name="slice_name",
             )
 
-            session.add(slice)
-            session.commit()
+            db.session.add(slice)
+            db.session.commit()
 
             yield slice
 
             # rollback
-            session.delete(slice)
-            session.commit()
+            db.session.delete(slice)
+            db.session.commit()
 
-    @pytest.fixture()
+    @pytest.fixture
     def create_query(self):
         with self.create_app().app_context():
-            session = db.session
-
             query = Query(
                 sql="select 1 as foo;",
                 client_id="sldkfjlk",
                 database=get_example_database(),
             )
 
-            session.add(query)
-            session.commit()
+            db.session.add(query)
+            db.session.commit()
 
             yield query
 
             # rollback
-            session.delete(query)
-            session.commit()
+            db.session.delete(query)
+            db.session.commit()
 
     @patch("superset.security.manager.g")
     @pytest.mark.usefixtures("create_dataset", "create_slice")
@@ -328,7 +326,7 @@ class TestCreateFormDataCommand(SupersetTestCase):
         delete_command = DeleteFormDataCommand(delete_args)
         response = delete_command.run()
 
-        assert response == True
+        assert response is True  # noqa: E712
 
     @patch("superset.security.manager.g")
     @pytest.mark.usefixtures("create_dataset", "create_slice", "create_query")
@@ -345,4 +343,4 @@ class TestCreateFormDataCommand(SupersetTestCase):
         delete_command = DeleteFormDataCommand(delete_args)
         response = delete_command.run()
 
-        assert response == False
+        assert response is False  # noqa: E712

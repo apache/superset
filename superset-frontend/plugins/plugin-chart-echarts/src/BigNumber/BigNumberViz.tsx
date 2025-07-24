@@ -16,15 +16,17 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { MouseEvent } from 'react';
+import { PureComponent, MouseEvent, createRef } from 'react';
 import {
   t,
   getNumberFormatter,
-  smartDateVerboseFormatter,
+  getTimeFormatter,
+  SMART_DATE_VERBOSE_ID,
   computeMaxFontSize,
   BRAND_COLOR,
   styled,
   BinaryQueryObjectFilterClause,
+  themeObject,
 } from '@superset-ui/core';
 import Echart from '../components/Echart';
 import { BigNumberVizProps } from './types';
@@ -34,6 +36,7 @@ const defaultNumberFormatter = getNumberFormatter();
 
 const PROPORTION = {
   // text size: proportion of the chart container sans trendline
+  METRIC_NAME: 0.125,
   KICKER: 0.1,
   HEADER: 0.3,
   SUBHEADER: 0.125,
@@ -41,13 +44,20 @@ const PROPORTION = {
   TRENDLINE: 0.3,
 };
 
-class BigNumberVis extends React.PureComponent<BigNumberVizProps> {
+type BigNumberVisState = {
+  elementsRendered: boolean;
+  recalculateTrigger: boolean;
+};
+
+class BigNumberVis extends PureComponent<BigNumberVizProps, BigNumberVisState> {
   static defaultProps = {
     className: '',
     headerFormatter: defaultNumberFormatter,
-    formatTime: smartDateVerboseFormatter,
+    formatTime: getTimeFormatter(SMART_DATE_VERBOSE_ID),
     headerFontSize: PROPORTION.HEADER,
     kickerFontSize: PROPORTION.KICKER,
+    metricNameFontSize: PROPORTION.METRIC_NAME,
+    showMetricName: true,
     mainColor: BRAND_COLOR,
     showTimestamp: false,
     showTrendLine: false,
@@ -56,6 +66,40 @@ class BigNumberVis extends React.PureComponent<BigNumberVizProps> {
     subheaderFontSize: PROPORTION.SUBHEADER,
     timeRangeFixed: false,
   };
+
+  // Create refs for each component to measure heights
+  metricNameRef = createRef<HTMLDivElement>();
+
+  kickerRef = createRef<HTMLDivElement>();
+
+  headerRef = createRef<HTMLDivElement>();
+
+  subheaderRef = createRef<HTMLDivElement>();
+
+  subtitleRef = createRef<HTMLDivElement>();
+
+  state = {
+    elementsRendered: false,
+    recalculateTrigger: false,
+  };
+
+  componentDidMount() {
+    // Wait for elements to render and then calculate heights
+    setTimeout(() => {
+      this.setState({ elementsRendered: true });
+    }, 0);
+  }
+
+  componentDidUpdate(prevProps: BigNumberVizProps) {
+    if (
+      prevProps.height !== this.props.height ||
+      prevProps.showTrendLine !== this.props.showTrendLine
+    ) {
+      this.setState(prevState => ({
+        recalculateTrigger: !prevState.recalculateTrigger,
+      }));
+    }
+  }
 
   getClassName() {
     const { className, showTrendLine, bigNumberFallback } = this.props;
@@ -91,12 +135,44 @@ class BigNumberVis extends React.PureComponent<BigNumberVizProps> {
     );
   }
 
+  renderMetricName(maxHeight: number) {
+    const { metricName, width, showMetricName } = this.props;
+    if (!showMetricName || !metricName) return null;
+
+    const text = metricName;
+
+    const container = this.createTemporaryContainer();
+    document.body.append(container);
+    const fontSize = computeMaxFontSize({
+      text,
+      maxWidth: width,
+      maxHeight,
+      className: 'metric-name',
+      container,
+    });
+    container.remove();
+
+    return (
+      <div
+        ref={this.metricNameRef}
+        className="metric-name"
+        style={{
+          fontSize,
+          height: 'auto',
+        }}
+      >
+        {text}
+      </div>
+    );
+  }
+
   renderKicker(maxHeight: number) {
     const { timestamp, showTimestamp, formatTime, width } = this.props;
     if (
       !formatTime ||
       !showTimestamp ||
       typeof timestamp === 'string' ||
+      typeof timestamp === 'bigint' ||
       typeof timestamp === 'boolean'
     )
       return null;
@@ -116,10 +192,11 @@ class BigNumberVis extends React.PureComponent<BigNumberVizProps> {
 
     return (
       <div
+        ref={this.kickerRef}
         className="kicker"
         style={{
           fontSize,
-          height: maxHeight,
+          height: 'auto',
         }}
       >
         {text}
@@ -136,6 +213,7 @@ class BigNumberVis extends React.PureComponent<BigNumberVizProps> {
     const hasThresholdColorFormatter =
       Array.isArray(colorThresholdFormatters) &&
       colorThresholdFormatters.length > 0;
+    const { theme } = themeObject;
 
     let numberColor;
     if (hasThresholdColorFormatter) {
@@ -148,14 +226,14 @@ class BigNumberVis extends React.PureComponent<BigNumberVizProps> {
         }
       });
     } else {
-      numberColor = 'black';
+      numberColor = theme.colorText;
     }
 
     const container = this.createTemporaryContainer();
     document.body.append(container);
     const fontSize = computeMaxFontSize({
       text,
-      maxWidth: width - 8, // Decrease 8px for more precise font size
+      maxWidth: width * 0.9, // reduced it's max width
       maxHeight,
       className: 'header-line',
       container,
@@ -171,10 +249,13 @@ class BigNumberVis extends React.PureComponent<BigNumberVizProps> {
 
     return (
       <div
+        ref={this.headerRef}
         className="header-line"
         style={{
+          display: 'flex',
+          alignItems: 'center',
           fontSize,
-          height: maxHeight,
+          height: 'auto',
           color: numberColor,
         }}
         onContextMenu={onContextMenu}
@@ -184,34 +265,30 @@ class BigNumberVis extends React.PureComponent<BigNumberVizProps> {
     );
   }
 
-  renderSubheader(maxHeight: number) {
-    const { bigNumber, subheader, width, bigNumberFallback } = this.props;
+  rendermetricComparisonSummary(maxHeight: number) {
+    const { subheader, width } = this.props;
     let fontSize = 0;
 
-    const NO_DATA_OR_HASNT_LANDED = t(
-      'No data after filtering or data is NULL for the latest time record',
-    );
-    const NO_DATA = t(
-      'Try applying different filters or ensuring your datasource has data',
-    );
-    let text = subheader;
-    if (bigNumber === null) {
-      text = bigNumberFallback ? NO_DATA : NO_DATA_OR_HASNT_LANDED;
-    }
+    const text = subheader;
+
     if (text) {
       const container = this.createTemporaryContainer();
       document.body.append(container);
-      fontSize = computeMaxFontSize({
-        text,
-        maxWidth: width,
-        maxHeight,
-        className: 'subheader-line',
-        container,
-      });
-      container.remove();
+      try {
+        fontSize = computeMaxFontSize({
+          text,
+          maxWidth: width * 0.9,
+          maxHeight,
+          className: 'subheader-line',
+          container,
+        });
+      } finally {
+        container.remove();
+      }
 
       return (
         <div
+          ref={this.subheaderRef}
           className="subheader-line"
           style={{
             fontSize,
@@ -220,6 +297,53 @@ class BigNumberVis extends React.PureComponent<BigNumberVizProps> {
         >
           {text}
         </div>
+      );
+    }
+    return null;
+  }
+
+  renderSubtitle(maxHeight: number) {
+    const { subtitle, width, bigNumber, bigNumberFallback } = this.props;
+    let fontSize = 0;
+
+    const NO_DATA_OR_HASNT_LANDED = t(
+      'No data after filtering or data is NULL for the latest time record',
+    );
+    const NO_DATA = t(
+      'Try applying different filters or ensuring your datasource has data',
+    );
+
+    let text = subtitle;
+    if (bigNumber === null) {
+      text =
+        subtitle || (bigNumberFallback ? NO_DATA : NO_DATA_OR_HASNT_LANDED);
+    }
+
+    if (text) {
+      const container = this.createTemporaryContainer();
+      document.body.append(container);
+      fontSize = computeMaxFontSize({
+        text,
+        maxWidth: width * 0.9,
+        maxHeight,
+        className: 'subtitle-line',
+        container,
+      });
+      container.remove();
+
+      return (
+        <>
+          <div
+            ref={this.subtitleRef}
+            className="subtitle-line subheader-line"
+            style={{
+              fontSize: `${fontSize}px`,
+              height: maxHeight,
+            }}
+          >
+            {text}
+          </div>
+        </>
       );
     }
     return null;
@@ -271,12 +395,43 @@ class BigNumberVis extends React.PureComponent<BigNumberVizProps> {
     );
   }
 
+  getTotalElementsHeight() {
+    const marginPerElement = 8; // theme.sizeUnit = 4, so margin-bottom = 8px
+
+    const refs = [
+      this.metricNameRef,
+      this.kickerRef,
+      this.headerRef,
+      this.subheaderRef,
+      this.subtitleRef,
+    ];
+
+    // Filter refs to only those with a current element
+    const visibleRefs = refs.filter(ref => ref.current);
+
+    const totalHeight = visibleRefs.reduce((sum, ref, index) => {
+      const height = ref.current?.offsetHeight || 0;
+      const margin = index < visibleRefs.length - 1 ? marginPerElement : 0;
+      return sum + height + margin;
+    }, 0);
+
+    return totalHeight;
+  }
+
+  shouldApplyOverflow(availableHeight: number) {
+    if (!this.state.elementsRendered) return false;
+    const totalHeight = this.getTotalElementsHeight();
+    return totalHeight > availableHeight;
+  }
+
   render() {
     const {
       showTrendLine,
       height,
       kickerFontSize,
       headerFontSize,
+      subtitleFontSize,
+      metricNameFontSize,
       subheaderFontSize,
     } = this.props;
     const className = this.getClassName();
@@ -284,11 +439,31 @@ class BigNumberVis extends React.PureComponent<BigNumberVizProps> {
     if (showTrendLine) {
       const chartHeight = Math.floor(PROPORTION.TRENDLINE * height);
       const allTextHeight = height - chartHeight;
+      const shouldApplyOverflow = this.shouldApplyOverflow(allTextHeight);
 
       return (
         <div className={className}>
-          <div className="text-container" style={{ height: allTextHeight }}>
+          <div
+            className="text-container"
+            style={{
+              height: allTextHeight,
+              ...(shouldApplyOverflow
+                ? {
+                    display: 'block',
+                    boxSizing: 'border-box',
+                    overflowX: 'hidden',
+                    overflowY: 'auto',
+                    width: '100%',
+                  }
+                : {}),
+            }}
+          >
             {this.renderFallbackWarning()}
+            {this.renderMetricName(
+              Math.ceil(
+                (metricNameFontSize || 0) * (1 - PROPORTION.TRENDLINE) * height,
+              ),
+            )}
             {this.renderKicker(
               Math.ceil(
                 (kickerFontSize || 0) * (1 - PROPORTION.TRENDLINE) * height,
@@ -297,23 +472,46 @@ class BigNumberVis extends React.PureComponent<BigNumberVizProps> {
             {this.renderHeader(
               Math.ceil(headerFontSize * (1 - PROPORTION.TRENDLINE) * height),
             )}
-            {this.renderSubheader(
+            {this.rendermetricComparisonSummary(
               Math.ceil(
                 subheaderFontSize * (1 - PROPORTION.TRENDLINE) * height,
               ),
+            )}
+            {this.renderSubtitle(
+              Math.ceil(subtitleFontSize * (1 - PROPORTION.TRENDLINE) * height),
             )}
           </div>
           {this.renderTrendline(chartHeight)}
         </div>
       );
     }
-
+    const shouldApplyOverflow = this.shouldApplyOverflow(height);
     return (
-      <div className={className} style={{ height }}>
-        {this.renderFallbackWarning()}
-        {this.renderKicker((kickerFontSize || 0) * height)}
-        {this.renderHeader(Math.ceil(headerFontSize * height))}
-        {this.renderSubheader(Math.ceil(subheaderFontSize * height))}
+      <div
+        className={className}
+        style={{
+          height,
+          ...(shouldApplyOverflow
+            ? {
+                display: 'block',
+                boxSizing: 'border-box',
+                overflowX: 'hidden',
+                overflowY: 'auto',
+                width: '100%',
+              }
+            : {}),
+        }}
+      >
+        <div className="text-container">
+          {this.renderFallbackWarning()}
+          {this.renderMetricName((metricNameFontSize || 0) * height)}
+          {this.renderKicker((kickerFontSize || 0) * height)}
+          {this.renderHeader(Math.ceil(headerFontSize * height))}
+          {this.rendermetricComparisonSummary(
+            Math.ceil(subheaderFontSize * height),
+          )}
+          {this.renderSubtitle(Math.ceil(subtitleFontSize * height))}
+        </div>
       </div>
     );
   }
@@ -321,7 +519,7 @@ class BigNumberVis extends React.PureComponent<BigNumberVizProps> {
 
 export default styled(BigNumberVis)`
   ${({ theme }) => `
-    font-family: ${theme.typography.families.sansSerif};
+    font-family: ${theme.fontFamily};
     position: relative;
     display: flex;
     flex-direction: column;
@@ -338,22 +536,29 @@ export default styled(BigNumberVis)`
       justify-content: center;
       align-items: flex-start;
       .alert {
-        font-size: ${theme.typography.sizes.s};
+        font-size: ${theme.fontSizeSM};
         margin: -0.5em 0 0.4em;
         line-height: 1;
-        padding: ${theme.gridUnit}px;
-        border-radius: ${theme.gridUnit}px;
+        padding: ${theme.sizeUnit}px;
+        border-radius: ${theme.borderRadius}px;
       }
     }
 
     .kicker {
       line-height: 1em;
-      padding-bottom: 2em;
+      margin-bottom: ${theme.sizeUnit * 2}px;
+    }
+
+    .metric-name {
+      line-height: 1em;
+      margin-bottom: ${theme.sizeUnit * 2}px;
     }
 
     .header-line {
       position: relative;
       line-height: 1em;
+      white-space: nowrap;
+      margin-bottom:${theme.sizeUnit * 2}px;
       span {
         position: absolute;
         bottom: 0;
@@ -362,14 +567,19 @@ export default styled(BigNumberVis)`
 
     .subheader-line {
       line-height: 1em;
-      padding-bottom: 0;
+      margin-bottom: ${theme.sizeUnit * 2}px;
+    }
+
+    .subtitle-line {
+      line-height: 1em;
+      margin-bottom: ${theme.sizeUnit * 2}px;
     }
 
     &.is-fallback-value {
       .kicker,
       .header-line,
       .subheader-line {
-        opacity: ${theme.opacity.mediumHeavy};
+        opacity: 60%;
       }
     }
   `}

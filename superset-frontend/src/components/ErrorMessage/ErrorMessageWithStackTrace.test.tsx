@@ -17,18 +17,17 @@
  * under the License.
  */
 
-import React from 'react';
-import { render, screen } from 'spec/helpers/testing-library';
-import userEvent from '@testing-library/user-event';
-import ErrorMessageWithStackTrace from './ErrorMessageWithStackTrace';
-import BasicErrorAlert from './BasicErrorAlert';
-import { ErrorLevel, ErrorSource, ErrorTypeEnum } from './types';
+import { ErrorLevel, ErrorSource, ErrorTypeEnum } from '@superset-ui/core';
+import { render, screen, userEvent } from 'spec/helpers/testing-library';
+import { ErrorMessageWithStackTrace } from './ErrorMessageWithStackTrace';
+import { BasicErrorAlert } from './BasicErrorAlert';
 
 jest.mock(
-  'src/components/Icons/Icon',
+  '@superset-ui/core/components/Icons/AsyncIcon',
   () =>
-    ({ fileName }: { fileName: string }) =>
-      <span role="img" aria-label={fileName.replace('_', '-')} />,
+    ({ fileName }: { fileName: string }) => (
+      <span role="img" aria-label={fileName.replace('_', '-')} />
+    ),
 );
 
 const mockedProps = {
@@ -55,7 +54,7 @@ test('should render the link', () => {
   const button = screen.getByText('See more');
   userEvent.click(button);
   const link = screen.getByRole('link');
-  expect(link).toHaveTextContent('(Request Access)');
+  expect(link).toHaveTextContent('Request Access');
   expect(link).toHaveAttribute('href', mockedProps.link);
 });
 

@@ -17,10 +17,13 @@
  * under the License.
  */
 
+import ChartProps, { ChartPropsConfig } from './models/ChartProps';
+
 export { default as ChartClient } from './clients/ChartClient';
 export { default as ChartMetadata } from './models/ChartMetadata';
 export { default as ChartPlugin } from './models/ChartPlugin';
-export { default as ChartProps, ChartPropsConfig } from './models/ChartProps';
+export { ChartProps };
+export type { ChartPropsConfig };
 
 export { default as createLoadableRenderer } from './components/createLoadableRenderer';
 export { default as reactify } from './components/reactify';
@@ -38,6 +41,7 @@ export { default as ChartDataProvider } from './components/ChartDataProvider';
 export * from './types/Base';
 export * from './types/TransformFunction';
 export * from './types/QueryResponse';
+export * from './types/VizType';
 
 export { default as __hack_reexport_chart_Base } from './types/Base';
 export { default as __hack_reexport_chart_TransformFunction } from './types/TransformFunction';

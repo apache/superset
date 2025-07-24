@@ -16,22 +16,19 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ScatterplotLayer } from 'deck.gl/typed';
-import React from 'react';
+import { ScatterplotLayer } from '@deck.gl/layers';
 import {
-  Datasource,
   getMetricLabel,
   JsonObject,
   QueryFormData,
   t,
 } from '@superset-ui/core';
 import { commonLayerProps } from '../common';
-import { createCategoricalDeckGLComponent } from '../../factory';
+import { createCategoricalDeckGLComponent, GetLayerType } from '../../factory';
 import TooltipRow from '../../TooltipRow';
 import { unitToRadius } from '../../utils/geo';
-import { TooltipProps } from '../../components/Tooltip';
 
-function getPoints(data: JsonObject[]) {
+export function getPoints(data: JsonObject[]) {
   return data.map(d => d.position);
 }
 
@@ -48,30 +45,33 @@ function setTooltipContent(
         <TooltipRow
           // eslint-disable-next-line prefer-template
           label={t('Longitude and Latitude') + ': '}
-          value={`${o.object.position[0]}, ${o.object.position[1]}`}
+          value={`${o.object?.position?.[0]}, ${o.object?.position?.[1]}`}
         />
-        {o.object.cat_color && (
+        {o.object?.cat_color && (
           <TooltipRow
             // eslint-disable-next-line prefer-template
             label={t('Category') + ': '}
-            value={`${o.object.cat_color}`}
+            value={`${o.object?.cat_color}`}
           />
         )}
-        {o.object.metric && (
-          <TooltipRow label={`${label}: `} value={`${o.object.metric}`} />
+        {o.object?.metric && (
+          <TooltipRow label={`${label}: `} value={`${o.object?.metric}`} />
         )}
       </div>
     );
   };
 }
 
-export function getLayer(
-  formData: QueryFormData,
-  payload: JsonObject,
-  onAddFilter: () => void,
-  setTooltip: (tooltip: TooltipProps['tooltip']) => void,
-  datasource: Datasource,
-) {
+export const getLayer: GetLayerType<ScatterplotLayer> = function ({
+  formData,
+  payload,
+  setTooltip,
+  setDataMask,
+  filterState,
+  onContextMenu,
+  datasource,
+  emitCrossFilters,
+}) {
   const fd = formData;
   const dataWithRadius = payload.data.features.map((d: JsonObject) => {
     let radius = unitToRadius(fd.point_unit, d.radius) || 10;
@@ -91,17 +91,21 @@ export function getLayer(
     id: `scatter-layer-${fd.slice_id}` as const,
     data: dataWithRadius,
     fp64: true,
-    getFillColor: d => d.color,
-    getRadius: d => d.radius,
+    getFillColor: (d: any) => d.color,
+    getRadius: (d: any) => d.radius,
     radiusMinPixels: Number(fd.min_radius) || undefined,
     radiusMaxPixels: Number(fd.max_radius) || undefined,
     stroked: false,
-    ...commonLayerProps(
-      fd,
+    ...commonLayerProps({
+      formData: fd,
       setTooltip,
-      setTooltipContent(fd, datasource?.verboseMap),
-    ),
+      setTooltipContent: setTooltipContent(fd, datasource?.verboseMap),
+      setDataMask,
+      filterState,
+      onContextMenu,
+      emitCrossFilters,
+    }),
   });
-}
+};
 
 export default createCategoricalDeckGLComponent(getLayer, getPoints);

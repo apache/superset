@@ -107,7 +107,7 @@ def _get_full(
         payload["colnames"] = list(df.columns)
         payload["indexnames"] = list(df.index)
         payload["coltypes"] = extract_dataframe_dtypes(df, datasource)
-        payload["data"] = query_context.get_data(df)
+        payload["data"] = query_context.get_data(df, payload["coltypes"])
         payload["result_format"] = query_context.result_format
     del payload["df"]
 
@@ -135,6 +135,8 @@ def _get_full(
             "data": payload.get("data"),
             "colnames": payload.get("colnames"),
             "coltypes": payload.get("coltypes"),
+            "rowcount": payload.get("rowcount"),
+            "sql_rowcount": payload.get("sql_rowcount"),
         }
     return payload
 

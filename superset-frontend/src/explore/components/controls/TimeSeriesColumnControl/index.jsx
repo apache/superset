@@ -16,13 +16,18 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import { Component } from 'react';
 import PropTypes from 'prop-types';
-import { Input } from 'src/components/Input';
-import Button from 'src/components/Button';
-import { Select, Row, Col } from 'src/components';
+import {
+  Button,
+  Col,
+  Divider,
+  InfoTooltip,
+  Input,
+  Row,
+  Select,
+} from '@superset-ui/core/components';
 import { t, styled } from '@superset-ui/core';
-import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
 import BoundsControl from '../BoundsControl';
 import CheckboxControl from '../CheckboxControl';
 import ControlPopover from '../ControlPopover/ControlPopover';
@@ -75,7 +80,7 @@ const colTypeOptions = [
 ];
 
 const StyledRow = styled(Row)`
-  margin-top: ${({ theme }) => theme.gridUnit * 2}px;
+  margin-top: ${({ theme }) => theme.sizeUnit * 2}px;
   display: flex;
   align-items: center;
 `;
@@ -85,18 +90,18 @@ const StyledCol = styled(Col)`
   align-items: center;
 `;
 
-const StyledTooltip = styled(InfoTooltipWithTrigger)`
-  margin-left: ${({ theme }) => theme.gridUnit}px;
+const StyledTooltip = styled(InfoTooltip)`
+  margin-left: ${({ theme }) => theme.sizeUnit}px;
   color: ${({ theme }) => theme.colors.grayscale.light1};
 `;
 
 const ButtonBar = styled.div`
-  margin-top: ${({ theme }) => theme.gridUnit * 5}px;
+  margin-top: ${({ theme }) => theme.sizeUnit * 5}px;
   display: flex;
   justify-content: center;
 `;
 
-export default class TimeSeriesColumnControl extends React.Component {
+export default class TimeSeriesColumnControl extends Component {
   constructor(props) {
     super(props);
 
@@ -222,7 +227,7 @@ export default class TimeSeriesColumnControl extends React.Component {
             options={colTypeOptions}
           />,
         )}
-        <hr />
+        <Divider />
         {this.state.colType === 'spark' &&
           this.formRow(
             t('Width'),
@@ -248,7 +253,9 @@ export default class TimeSeriesColumnControl extends React.Component {
         {['time', 'avg'].indexOf(this.state.colType) >= 0 &&
           this.formRow(
             t('Time lag'),
-            t('Number of periods to compare against'),
+            t(
+              'Number of periods to compare against. You can use negative numbers to compare from the beginning of the time range.',
+            ),
             'time-lag',
             <Input
               value={this.state.timeLag}
@@ -359,10 +366,10 @@ export default class TimeSeriesColumnControl extends React.Component {
           trigger="click"
           content={this.renderPopover()}
           title={t('Column Configuration')}
-          visible={this.state.popoverVisible}
-          onVisibleChange={this.onPopoverVisibleChange}
+          open={this.state.popoverVisible}
+          onOpenChange={this.onPopoverVisibleChange}
         >
-          <InfoTooltipWithTrigger
+          <InfoTooltip
             icon="edit"
             className="text-primary"
             label="edit-ts-column"

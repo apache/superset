@@ -26,14 +26,14 @@ Create Date: 2021-08-09 17:32:56.204184
 revision = "07071313dd52"
 down_revision = "6d20ba9ecb33"
 
-import logging
+import logging  # noqa: E402
 
-import sqlalchemy as sa
-from alembic import op
-from sqlalchemy import func
+import sqlalchemy as sa  # noqa: E402
+from alembic import op  # noqa: E402
+from sqlalchemy import func  # noqa: E402
 
-from superset import db
-from superset.connectors.sqla.models import SqlaTable
+from superset import db  # noqa: E402
+from superset.connectors.sqla.models import SqlaTable  # noqa: E402
 
 
 def upgrade():
@@ -50,7 +50,7 @@ def remove_value_if_too_long():
     bind = op.get_bind()
     session = db.Session(bind=bind)
 
-    # it will be easier for users to notice that their field has been deleted rather than truncated
+    # it will be easier for users to notice that their field has been deleted rather than truncated  # noqa: E501
     # so just remove it if it won't fit back into the 1000 string length column
     try:
         rows = (

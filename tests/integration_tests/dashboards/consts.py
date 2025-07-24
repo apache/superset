@@ -32,9 +32,6 @@ GET_CHARTS_API_URL = "/api/v1/chart/"
 
 GAMMA_ROLE_NAME = "Gamma"
 
-ADMIN_USERNAME = "admin"
-GAMMA_USERNAME = "gamma"
-
 DASHBOARD_SLUG_OF_ACCESSIBLE_TABLE = "births"
 DEFAULT_DASHBOARD_SLUG_TO_TEST = "births"
 WORLD_HEALTH_SLUG = "world_health"

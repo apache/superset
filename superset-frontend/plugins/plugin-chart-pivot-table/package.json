@@ -1,6 +1,6 @@
 {
   "name": "@superset-ui/plugin-chart-pivot-table",
-  "version": "0.18.25",
+  "version": "0.20.3",
   "description": "Superset Chart - Pivot Table",
   "sideEffects": false,
   "main": "lib/index.js",
@@ -26,19 +26,18 @@
   "publishConfig": {
     "access": "public"
   },
-  "dependencies": {},
   "peerDependencies": {
+    "@ant-design/icons": "^5.2.6",
     "@superset-ui/chart-controls": "*",
     "@superset-ui/core": "*",
-    "@ant-design/icons": "^5.0.1",
-    "react": "^16.13.1",
-    "react-dom": "^16.13.1",
+    "lodash": "^4.17.11",
     "prop-types": "*",
-    "lodash": "^4.17.11"
+    "react": "^17.0.2",
+    "react-dom": "^17.0.2"
   },
   "devDependencies": {
-    "@babel/types": "^7.13.12",
-    "@types/jest": "^26.0.0",
-    "jest": "^26.0.1"
+    "@babel/types": "^7.28.0",
+    "@types/jest": "^29.5.12",
+    "jest": "^30.0.4"
   }
 }

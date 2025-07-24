@@ -39,6 +39,7 @@ export const nativeFiltersInfo: NativeFiltersState = {
       id: 'DefaultsID',
       name: 'test',
       filterType: 'filter_select',
+      chartsInScope: [],
       targets: [
         {
           datasetId: 0,
@@ -61,7 +62,7 @@ export const nativeFiltersInfo: NativeFiltersState = {
         allowsMultipleValues: true,
         isRequired: false,
       },
-      type: NativeFilterType.NATIVE_FILTER,
+      type: NativeFilterType.NativeFilter,
       description: 'test description',
     },
   },

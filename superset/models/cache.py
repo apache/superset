@@ -21,7 +21,6 @@ from sqlalchemy import Column, DateTime, Integer, String
 
 
 class CacheKey(Model):  # pylint: disable=too-few-public-methods
-
     """Stores cache key records for the superset visualization."""
 
     __tablename__ = "cache_keys"

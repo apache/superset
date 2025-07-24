@@ -15,7 +15,6 @@
 # specific language governing permissions and limitations
 # under the License.
 import decimal
-import json
 import logging
 import os
 import random
@@ -29,12 +28,14 @@ from uuid import uuid4
 import sqlalchemy.sql.sqltypes
 import sqlalchemy_utils
 from flask_appbuilder import Model
-from sqlalchemy import Column, inspect, MetaData, Table
+from sqlalchemy import Column, inspect, MetaData, Table as DBTable
 from sqlalchemy.dialects import postgresql
 from sqlalchemy.sql import func
 from sqlalchemy.sql.visitors import VisitableType
 
 from superset import db
+from superset.sql.parse import Table
+from superset.utils import json
 
 logger = logging.getLogger(__name__)
 
@@ -63,54 +64,54 @@ MAXIMUM_DATE = date.today()
 days_range = (MAXIMUM_DATE - MINIMUM_DATE).days
 
 
-def get_type_generator(  # pylint: disable=too-many-return-statements,too-many-branches
+def get_type_generator(  # pylint: disable=too-many-return-statements,too-many-branches  # noqa: C901
     sqltype: sqlalchemy.sql.sqltypes,
 ) -> Callable[[], Any]:
     if isinstance(sqltype, sqlalchemy.dialects.mysql.types.TINYINT):
-        return lambda: random.choice([0, 1])
+        return lambda: random.choice([0, 1])  # noqa: S311
 
     if isinstance(
         sqltype, (sqlalchemy.sql.sqltypes.INTEGER, sqlalchemy.sql.sqltypes.Integer)
     ):
-        return lambda: random.randrange(2147483647)
+        return lambda: random.randrange(2147483647)  # noqa: S311
 
     if isinstance(sqltype, sqlalchemy.sql.sqltypes.BIGINT):
-        return lambda: random.randrange(sys.maxsize)
+        return lambda: random.randrange(sys.maxsize)  # noqa: S311
 
     if isinstance(
         sqltype, (sqlalchemy.sql.sqltypes.VARCHAR, sqlalchemy.sql.sqltypes.String)
     ):
-        length = random.randrange(sqltype.length or 255)
+        length = random.randrange(sqltype.length or 255)  # noqa: S311
         length = max(8, length)  # for unique values
         length = min(100, length)  # for FAB perms
-        return lambda: "".join(random.choices(string.ascii_letters, k=length))
+        return lambda: "".join(random.choices(string.ascii_letters, k=length))  # noqa: S311
 
     if isinstance(
         sqltype, (sqlalchemy.sql.sqltypes.TEXT, sqlalchemy.sql.sqltypes.Text)
     ):
-        length = random.randrange(65535)
+        length = random.randrange(65535)  # noqa: S311
         # "practicality beats purity"
         length = max(length, 2048)
-        return lambda: "".join(random.choices(string.ascii_letters, k=length))
+        return lambda: "".join(random.choices(string.ascii_letters, k=length))  # noqa: S311
 
     if isinstance(
         sqltype, (sqlalchemy.sql.sqltypes.BOOLEAN, sqlalchemy.sql.sqltypes.Boolean)
     ):
-        return lambda: random.choice([True, False])
+        return lambda: random.choice([True, False])  # noqa: S311
 
     if isinstance(
         sqltype, (sqlalchemy.sql.sqltypes.FLOAT, sqlalchemy.sql.sqltypes.REAL)
     ):
-        return lambda: random.uniform(-sys.maxsize, sys.maxsize)
+        return lambda: random.uniform(-sys.maxsize, sys.maxsize)  # noqa: S311
 
     if isinstance(sqltype, sqlalchemy.sql.sqltypes.DATE):
-        return lambda: MINIMUM_DATE + timedelta(days=random.randrange(days_range))
+        return lambda: MINIMUM_DATE + timedelta(days=random.randrange(days_range))  # noqa: S311
 
     if isinstance(sqltype, sqlalchemy.sql.sqltypes.TIME):
         return lambda: time(
-            random.randrange(24),
-            random.randrange(60),
-            random.randrange(60),
+            random.randrange(24),  # noqa: S311
+            random.randrange(60),  # noqa: S311
+            random.randrange(60),  # noqa: S311
         )
 
     if isinstance(
@@ -122,7 +123,7 @@ def get_type_generator(  # pylint: disable=too-many-return-statements,too-many-b
         ),
     ):
         return lambda: datetime.fromordinal(MINIMUM_DATE.toordinal()) + timedelta(
-            seconds=random.randrange(days_range * 86400)
+            seconds=random.randrange(days_range * 86400)  # noqa: S311
         )
 
     if isinstance(sqltype, sqlalchemy.sql.sqltypes.Numeric):
@@ -132,7 +133,7 @@ def get_type_generator(  # pylint: disable=too-many-return-statements,too-many-b
 
     if isinstance(sqltype, sqlalchemy.sql.sqltypes.JSON):
         return lambda: {
-            "".join(random.choices(string.ascii_letters, k=8)): random.randrange(65535)
+            "".join(random.choices(string.ascii_letters, k=8)): random.randrange(65535)  # noqa: S311
             for _ in range(10)
         }
 
@@ -143,7 +144,7 @@ def get_type_generator(  # pylint: disable=too-many-return-statements,too-many-b
             sqlalchemy_utils.types.encrypted.encrypted_type.EncryptedType,
         ),
     ):
-        length = random.randrange(sqltype.length or 255)
+        length = random.randrange(sqltype.length or 255)  # noqa: S311
         return lambda: os.urandom(length)
 
     if isinstance(sqltype, sqlalchemy_utils.types.uuid.UUIDType):
@@ -153,7 +154,7 @@ def get_type_generator(  # pylint: disable=too-many-return-statements,too-many-b
         return lambda: str(uuid4())
 
     if isinstance(sqltype, sqlalchemy.sql.sqltypes.BLOB):
-        length = random.randrange(sqltype.length or 255)
+        length = random.randrange(sqltype.length or 255)  # noqa: S311
         return lambda: os.urandom(length)
 
     logger.warning(
@@ -182,9 +183,9 @@ def add_data(
     from superset.utils.database import get_example_database
 
     database = get_example_database()
-    table_exists = database.has_table_by_name(table_name)
+    table_exists = database.has_table(Table(table_name))
 
-    with database.get_sqla_engine_with_context() as engine:
+    with database.get_sqla_engine() as engine:
         if columns is None:
             if not table_exists:
                 raise Exception(  # pylint: disable=broad-exception-raised
@@ -198,7 +199,7 @@ def add_data(
         # create table if needed
         column_objects = get_column_objects(columns)
         metadata = MetaData()
-        table = Table(table_name, metadata, *column_objects)
+        table = DBTable(table_name, metadata, *column_objects)
         metadata.create_all(engine)
 
         if not append:
@@ -220,8 +221,11 @@ def get_column_objects(columns: list[ColumnInfo]) -> list[Column]:
 def generate_data(columns: list[ColumnInfo], num_rows: int) -> list[dict[str, Any]]:
     keys = [column["name"] for column in columns]
     return [
-        dict(zip(keys, row))
-        for row in zip(*[generate_column_data(column, num_rows) for column in columns])
+        dict(zip(keys, row, strict=False))
+        for row in zip(
+            *[generate_column_data(column, num_rows) for column in columns],
+            strict=False,
+        )
     ]
 
 
@@ -280,12 +284,12 @@ def add_sample_rows(model: type[Model], count: int) -> Iterator[Model]:
 def get_valid_foreign_key(column: Column) -> Any:
     foreign_key = list(column.foreign_keys)[0]
     table_name, column_name = foreign_key.target_fullname.split(".", 1)
-    return db.engine.execute(f"SELECT {column_name} FROM {table_name} LIMIT 1").scalar()
+    return db.engine.execute(f"SELECT {column_name} FROM {table_name} LIMIT 1").scalar()  # noqa: S608
 
 
 def generate_value(column: Column) -> Any:
     if hasattr(column.type, "enums"):
-        return random.choice(column.type.enums)
+        return random.choice(column.type.enums)  # noqa: S311
 
     json_as_string = "json" in column.name.lower() and isinstance(
         column.type, sqlalchemy.sql.sqltypes.Text

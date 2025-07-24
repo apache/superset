@@ -17,10 +17,13 @@
  * under the License.
  */
 
-import React from 'react';
-import { Menu } from 'src/components/Menu';
-import { render, screen, waitFor } from 'spec/helpers/testing-library';
-import userEvent from '@testing-library/user-event';
+import { Menu } from '@superset-ui/core/components/Menu';
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+} from 'spec/helpers/testing-library';
 import * as copyTextToClipboard from 'src/utils/copy';
 import fetchMock from 'fetch-mock';
 import ShareMenuItems from '.';
@@ -37,6 +40,8 @@ const createProps = () => ({
   emailSubject: 'Superset dashboard COVID Vaccine Dashboard',
   emailBody: 'Check out this dashboard: ',
   dashboardId: DASHBOARD_ID,
+  title: 'Test Dashboard',
+  submenuKey: 'share',
 });
 
 const { location } = window;
@@ -67,50 +72,50 @@ afterAll((): void => {
 test('Should render menu items', () => {
   const props = createProps();
   render(
-    <Menu onClick={jest.fn()} selectable={false} data-test="main-menu">
+    <Menu
+      onClick={jest.fn()}
+      selectable={false}
+      data-test="main-menu"
+      forceSubMenuRender
+    >
       <ShareMenuItems {...props} />
     </Menu>,
     { useRedux: true },
   );
-  expect(
-    screen.getByRole('menuitem', { name: 'Copy dashboard URL' }),
-  ).toBeInTheDocument();
-  expect(
-    screen.getByRole('menuitem', { name: 'Share dashboard by email' }),
-  ).toBeInTheDocument();
-  expect(
-    screen.getByRole('button', { name: 'Copy dashboard URL' }),
-  ).toBeInTheDocument();
-  expect(
-    screen.getByRole('button', { name: 'Share dashboard by email' }),
-  ).toBeInTheDocument();
+  expect(screen.getByText('Copy dashboard URL')).toBeInTheDocument();
+  expect(screen.getByText('Share dashboard by email')).toBeInTheDocument();
 });
 
 test('Click on "Copy dashboard URL" and succeed', async () => {
   spy.mockResolvedValue(undefined);
   const props = createProps();
   render(
-    <Menu onClick={jest.fn()} selectable={false} data-test="main-menu">
+    <Menu
+      onClick={jest.fn()}
+      selectable={false}
+      data-test="main-menu"
+      forceSubMenuRender
+    >
       <ShareMenuItems {...props} />
     </Menu>,
     { useRedux: true },
   );
 
   await waitFor(() => {
-    expect(spy).toBeCalledTimes(0);
-    expect(props.addSuccessToast).toBeCalledTimes(0);
-    expect(props.addDangerToast).toBeCalledTimes(0);
+    expect(spy).toHaveBeenCalledTimes(0);
+    expect(props.addSuccessToast).toHaveBeenCalledTimes(0);
+    expect(props.addDangerToast).toHaveBeenCalledTimes(0);
   });
 
-  userEvent.click(screen.getByRole('button', { name: 'Copy dashboard URL' }));
+  userEvent.click(screen.getByText('Copy dashboard URL'));
 
   await waitFor(async () => {
-    expect(spy).toBeCalledTimes(1);
+    expect(spy).toHaveBeenCalledTimes(1);
     const value = await spy.mock.calls[0][0]();
     expect(value).toBe('http://localhost/superset/dashboard/p/123/');
-    expect(props.addSuccessToast).toBeCalledTimes(1);
-    expect(props.addSuccessToast).toBeCalledWith('Copied to clipboard!');
-    expect(props.addDangerToast).toBeCalledTimes(0);
+    expect(props.addSuccessToast).toHaveBeenCalledTimes(1);
+    expect(props.addSuccessToast).toHaveBeenCalledWith('Copied to clipboard!');
+    expect(props.addDangerToast).toHaveBeenCalledTimes(0);
   });
 });
 
@@ -118,27 +123,32 @@ test('Click on "Copy dashboard URL" and fail', async () => {
   spy.mockRejectedValue(undefined);
   const props = createProps();
   render(
-    <Menu onClick={jest.fn()} selectable={false} data-test="main-menu">
+    <Menu
+      onClick={jest.fn()}
+      selectable={false}
+      data-test="main-menu"
+      forceSubMenuRender
+    >
       <ShareMenuItems {...props} />
     </Menu>,
     { useRedux: true },
   );
 
   await waitFor(() => {
-    expect(spy).toBeCalledTimes(0);
-    expect(props.addSuccessToast).toBeCalledTimes(0);
-    expect(props.addDangerToast).toBeCalledTimes(0);
+    expect(spy).toHaveBeenCalledTimes(0);
+    expect(props.addSuccessToast).toHaveBeenCalledTimes(0);
+    expect(props.addDangerToast).toHaveBeenCalledTimes(0);
   });
 
-  userEvent.click(screen.getByRole('button', { name: 'Copy dashboard URL' }));
+  userEvent.click(screen.getByText('Copy dashboard URL'));
 
   await waitFor(async () => {
-    expect(spy).toBeCalledTimes(1);
+    expect(spy).toHaveBeenCalledTimes(1);
     const value = await spy.mock.calls[0][0]();
     expect(value).toBe('http://localhost/superset/dashboard/p/123/');
-    expect(props.addSuccessToast).toBeCalledTimes(0);
-    expect(props.addDangerToast).toBeCalledTimes(1);
-    expect(props.addDangerToast).toBeCalledWith(
+    expect(props.addSuccessToast).toHaveBeenCalledTimes(0);
+    expect(props.addDangerToast).toHaveBeenCalledTimes(1);
+    expect(props.addDangerToast).toHaveBeenCalledWith(
       'Sorry, something went wrong. Try again later.',
     );
   });
@@ -147,23 +157,26 @@ test('Click on "Copy dashboard URL" and fail', async () => {
 test('Click on "Share dashboard by email" and succeed', async () => {
   const props = createProps();
   render(
-    <Menu onClick={jest.fn()} selectable={false} data-test="main-menu">
+    <Menu
+      onClick={jest.fn()}
+      selectable={false}
+      data-test="main-menu"
+      forceSubMenuRender
+    >
       <ShareMenuItems {...props} />
     </Menu>,
     { useRedux: true },
   );
 
   await waitFor(() => {
-    expect(props.addDangerToast).toBeCalledTimes(0);
+    expect(props.addDangerToast).toHaveBeenCalledTimes(0);
     expect(window.location.href).toBe('');
   });
 
-  userEvent.click(
-    screen.getByRole('button', { name: 'Share dashboard by email' }),
-  );
+  userEvent.click(screen.getByText('Share dashboard by email'));
 
   await waitFor(() => {
-    expect(props.addDangerToast).toBeCalledTimes(0);
+    expect(props.addDangerToast).toHaveBeenCalledTimes(0);
     expect(window.location.href).toBe(
       'mailto:?Subject=Superset%20dashboard%20COVID%20Vaccine%20Dashboard%20&Body=Check%20out%20this%20dashboard%3A%20http%3A%2F%2Flocalhost%2Fsuperset%2Fdashboard%2Fp%2F123%2F',
     );
@@ -178,25 +191,28 @@ test('Click on "Share dashboard by email" and fail', async () => {
   );
   const props = createProps();
   render(
-    <Menu onClick={jest.fn()} selectable={false} data-test="main-menu">
+    <Menu
+      onClick={jest.fn()}
+      selectable={false}
+      data-test="main-menu"
+      forceSubMenuRender
+    >
       <ShareMenuItems {...props} />
     </Menu>,
     { useRedux: true },
   );
 
   await waitFor(() => {
-    expect(props.addDangerToast).toBeCalledTimes(0);
+    expect(props.addDangerToast).toHaveBeenCalledTimes(0);
     expect(window.location.href).toBe('');
   });
 
-  userEvent.click(
-    screen.getByRole('button', { name: 'Share dashboard by email' }),
-  );
+  userEvent.click(screen.getByText('Share dashboard by email'));
 
   await waitFor(() => {
     expect(window.location.href).toBe('');
-    expect(props.addDangerToast).toBeCalledTimes(1);
-    expect(props.addDangerToast).toBeCalledWith(
+    expect(props.addDangerToast).toHaveBeenCalledTimes(1);
+    expect(props.addDangerToast).toHaveBeenCalledWith(
       'Sorry, something went wrong. Try again later.',
     );
   });

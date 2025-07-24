@@ -16,18 +16,17 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import cx from 'classnames';
 import { styled } from '@superset-ui/core';
-import Icons from 'src/components/Icons';
+import { Icons } from '@superset-ui/core/components/Icons';
 import { CHART_TYPE } from 'src/dashboard/util/componentTypes';
 
 const ChartIcon = styled(Icons.BarChartOutlined)`
   ${({ theme }) => `
     position: relative;
-    top: ${theme.gridUnit - 1}px;
-    color: ${theme.colors.primary.base};
-    margin-right: ${theme.gridUnit * 2}px;
+    top: ${theme.sizeUnit - 1}px;
+    color: ${theme.colorPrimary};
+    margin-right: ${theme.sizeUnit * 2}px;
   `}
 `;
 

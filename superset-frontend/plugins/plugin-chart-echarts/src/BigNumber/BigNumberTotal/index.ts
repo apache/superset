@@ -39,14 +39,14 @@ const metadata = {
   tags: [
     t('Additive'),
     t('Business'),
+    t('ECharts'),
     t('Legacy'),
     t('Percentages'),
-    t('Popular'),
+    t('Featured'),
     t('Report'),
-    t('Description'),
   ],
   thumbnail,
-  behaviors: [Behavior.DRILL_TO_DETAIL],
+  behaviors: [Behavior.DrillToDetail],
 };
 
 export default class BigNumberTotalChartPlugin extends EchartsChartPlugin<

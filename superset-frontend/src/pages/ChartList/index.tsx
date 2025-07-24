@@ -17,7 +17,6 @@
  * under the License.
  */
 import {
-  ensureIsArray,
   isFeatureEnabled,
   FeatureFlag,
   getChartMetadataRegistry,
@@ -26,7 +25,7 @@ import {
   SupersetClient,
   t,
 } from '@superset-ui/core';
-import React, { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import rison from 'rison';
 import { uniqBy } from 'lodash';
 import { useSelector } from 'react-redux';
@@ -41,39 +40,44 @@ import {
   useListViewResource,
 } from 'src/views/CRUD/hooks';
 import handleResourceExport from 'src/utils/export';
-import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
-import { TagsList } from 'src/components/Tags';
+import {
+  ConfirmStatusChange,
+  CertifiedBadge,
+  Tooltip,
+  FaveStar,
+  InfoTooltip,
+  Loading,
+  type LabeledValue,
+} from '@superset-ui/core/components';
+import {
+  FacePile,
+  ImportModal as ImportModelsModal,
+  ModifiedInfo,
+  GenericLink,
+  TagsList,
+  TagType,
+  ListView,
+  ListViewFilterOperator as FilterOperator,
+  DashboardCrossLinks,
+  type ListViewProps,
+  type ListViewFilters,
+  type ListViewFilter,
+} from 'src/components';
 import SubMenu, { SubMenuProps } from 'src/features/home/SubMenu';
-import FaveStar from 'src/components/FaveStar';
 import { Link, useHistory } from 'react-router-dom';
-import ListView, {
-  Filter,
-  FilterOperator,
-  Filters,
-  ListViewProps,
-  SelectOption,
-} from 'src/components/ListView';
-import CrossLinks from 'src/components/ListView/CrossLinks';
-import Loading from 'src/components/Loading';
 import { dangerouslyGetItemDoNotUse } from 'src/utils/localStorageHelpers';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import PropertiesModal from 'src/explore/components/PropertiesModal';
-import ImportModelsModal from 'src/components/ImportModal/index';
-import Chart, { ChartLinkedDashboard } from 'src/types/Chart';
-import Tag from 'src/types/TagType';
-import { Tooltip } from 'src/components/Tooltip';
-import Icons from 'src/components/Icons';
+import Chart from 'src/types/Chart';
+import { Icons } from '@superset-ui/core/components/Icons';
 import { nativeFilterGate } from 'src/dashboard/components/nativeFilters/utils';
-import InfoTooltip from 'src/components/InfoTooltip';
-import CertifiedBadge from 'src/components/CertifiedBadge';
-import { GenericLink } from 'src/components/GenericLink/GenericLink';
-import { loadTags } from 'src/components/Tags/utils';
-import FacePile from 'src/components/FacePile';
+import { TagTypeEnum } from 'src/components/Tag/TagType';
+import { loadTags } from 'src/components/Tag/utils';
 import ChartCard from 'src/features/charts/ChartCard';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import { findPermission } from 'src/utils/findPermission';
-import { ModifiedInfo } from 'src/components/AuditInfo';
 import { QueryObjectColumns } from 'src/views/CRUD/types';
+import { WIDER_DROPDOWN_WIDTH } from 'src/components/ListView/utils';
 
 const FlexRowContainer = styled.div`
   align-items: center;
@@ -87,7 +91,7 @@ const FlexRowContainer = styled.div`
   }
 
   svg {
-    margin-right: ${({ theme }) => theme.gridUnit}px;
+    margin-right: ${({ theme }) => theme.sizeUnit}px;
   }
 `;
 
@@ -138,7 +142,7 @@ const createFetchDatasets = async (
   );
 
   return {
-    data: uniqBy<SelectOption>(datasets, 'value'),
+    data: uniqBy<LabeledValue>(datasets, 'value'),
     totalCount: json?.count,
   };
 };
@@ -154,7 +158,7 @@ interface ChartListProps {
 }
 
 const StyledActions = styled.div`
-  color: ${({ theme }) => theme.colors.grayscale.base};
+  color: ${({ theme }) => theme.colorIcon};
 `;
 
 function ChartList(props: ChartListProps) {
@@ -234,8 +238,7 @@ function ChartList(props: ChartListProps) {
   const canCreate = hasPerm('can_write');
   const canEdit = hasPerm('can_write');
   const canDelete = hasPerm('can_write');
-  const canExport =
-    hasPerm('can_export') && isFeatureEnabled(FeatureFlag.VERSIONED_EXPORT);
+  const canExport = hasPerm('can_export');
   const initialSort = [{ id: 'changed_on_delta_humanized', desc: true }];
   const handleBulkChartExport = (chartsToExport: Chart[]) => {
     const ids = chartsToExport.map(({ id }) => id);
@@ -273,14 +276,14 @@ function ChartList(props: ChartListProps) {
           filters: [
             {
               col: 'dashboard_title',
-              opr: FilterOperator.startsWith,
+              opr: FilterOperator.StartsWith,
               value: filterValue,
             },
           ],
         }
       : {};
     const queryParams = rison.encode({
-      columns: ['dashboard_title', 'id'],
+      select_columns: ['dashboard_title', 'id'],
       keys: ['none'],
       order_column: 'dashboard_title',
       order_direction: 'asc',
@@ -306,7 +309,7 @@ function ChartList(props: ChartListProps) {
       }),
     );
     return {
-      data: uniqBy<SelectOption>(dashboards, 'value'),
+      data: uniqBy<LabeledValue>(dashboards, 'value'),
       totalCount: response?.json?.count,
     };
   };
@@ -361,6 +364,7 @@ function ChartList(props: ChartListProps) {
         ),
         Header: t('Name'),
         accessor: 'slice_name',
+        id: 'slice_name',
       },
       {
         Cell: ({
@@ -371,6 +375,7 @@ function ChartList(props: ChartListProps) {
         Header: t('Type'),
         accessor: 'viz_type',
         size: 'xxl',
+        id: 'viz_type',
       },
       {
         Cell: ({
@@ -380,32 +385,28 @@ function ChartList(props: ChartListProps) {
               datasource_url: dsUrl,
             },
           },
-        }: any) => <GenericLink to={dsUrl}>{dsNameTxt}</GenericLink>,
+        }: any) => (
+          <Tooltip title={dsNameTxt} placement="top">
+            <GenericLink to={dsUrl}>{dsNameTxt?.split('.')[1]}</GenericLink>
+          </Tooltip>
+        ),
         Header: t('Dataset'),
         accessor: 'datasource_id',
         disableSortBy: true,
         size: 'xl',
+        id: 'datasource_id',
       },
       {
         Cell: ({
           row: {
             original: { dashboards },
           },
-        }: any) => (
-          <CrossLinks
-            crossLinks={ensureIsArray(dashboards).map(
-              (d: ChartLinkedDashboard) => ({
-                title: d.dashboard_title,
-                id: d.id,
-              }),
-            )}
-          />
-        ),
-        Header: t('Dashboards added to'),
+        }: any) => <DashboardCrossLinks dashboards={dashboards} />,
+        Header: t('On dashboards'),
         accessor: 'dashboards',
         disableSortBy: true,
         size: 'xxl',
-        hidden: true,
+        id: 'dashboards',
       },
       {
         Cell: ({
@@ -415,9 +416,10 @@ function ChartList(props: ChartListProps) {
         }: any) => (
           // Only show custom type tags
           <TagsList
-            tags={tags.filter((tag: Tag) =>
+            tags={tags.filter((tag: TagType) =>
               tag.type
-                ? tag.type === 1 || tag.type === 'TagTypes.custom'
+                ? tag.type === TagTypeEnum.Custom ||
+                  tag.type === 'TagTypes.custom'
                 : true,
             )}
             maxTags={3}
@@ -426,7 +428,8 @@ function ChartList(props: ChartListProps) {
         Header: t('Tags'),
         accessor: 'tags',
         disableSortBy: true,
-        hidden: !isFeatureEnabled(FeatureFlag.TAGGING_SYSTEM),
+        hidden: !isFeatureEnabled(FeatureFlag.TaggingSystem),
+        id: 'tags',
       },
       {
         Cell: ({
@@ -438,6 +441,7 @@ function ChartList(props: ChartListProps) {
         accessor: 'owners',
         disableSortBy: true,
         size: 'xl',
+        id: 'owners',
       },
       {
         Cell: ({
@@ -451,6 +455,7 @@ function ChartList(props: ChartListProps) {
         Header: t('Last modified'),
         accessor: 'last_saved_at',
         size: 'xl',
+        id: 'last_saved_at',
       },
       {
         Cell: ({ row: { original } }: any) => {
@@ -487,13 +492,12 @@ function ChartList(props: ChartListProps) {
                       placement="bottom"
                     >
                       <span
-                        data-test="trash"
                         role="button"
                         tabIndex={0}
                         className="action-button"
                         onClick={confirmDelete}
                       >
-                        <Icons.Trash />
+                        <Icons.DeleteOutlined iconSize="l" />
                       </span>
                     </Tooltip>
                   )}
@@ -511,7 +515,7 @@ function ChartList(props: ChartListProps) {
                     className="action-button"
                     onClick={handleExport}
                   >
-                    <Icons.Share />
+                    <Icons.UploadOutlined iconSize="l" />
                   </span>
                 </Tooltip>
               )}
@@ -527,7 +531,7 @@ function ChartList(props: ChartListProps) {
                     className="action-button"
                     onClick={openEditModal}
                   >
-                    <Icons.EditAlt data-test="edit-alt" />
+                    <Icons.EditOutlined data-test="edit-alt" iconSize="l" />
                   </span>
                 </Tooltip>
               )}
@@ -540,8 +544,9 @@ function ChartList(props: ChartListProps) {
         hidden: !canEdit && !canDelete,
       },
       {
-        accessor: QueryObjectColumns.changed_by,
+        accessor: QueryObjectColumns.ChangedBy,
         hidden: true,
+        id: QueryObjectColumns.ChangedBy,
       },
     ],
     [
@@ -557,14 +562,14 @@ function ChartList(props: ChartListProps) {
     ],
   );
 
-  const favoritesFilter: Filter = useMemo(
+  const favoritesFilter: ListViewFilter = useMemo(
     () => ({
       Header: t('Favorite'),
       key: 'favorite',
       id: 'id',
       urlDisplay: 'favorite',
       input: 'select',
-      operator: FilterOperator.chartIsFav,
+      operator: FilterOperator.ChartIsFav,
       unfilteredLabel: t('Any'),
       selects: [
         { label: t('Yes'), value: true },
@@ -574,21 +579,21 @@ function ChartList(props: ChartListProps) {
     [],
   );
 
-  const filters: Filters = useMemo(() => {
+  const filters: ListViewFilters = useMemo(() => {
     const filters_list = [
       {
         Header: t('Name'),
         key: 'search',
         id: 'slice_name',
         input: 'search',
-        operator: FilterOperator.chartAllText,
+        operator: FilterOperator.ChartAllText,
       },
       {
         Header: t('Type'),
         key: 'viz_type',
         id: 'viz_type',
         input: 'select',
-        operator: FilterOperator.equals,
+        operator: FilterOperator.Equals,
         unfilteredLabel: t('All'),
         selects: registry
           .keys()
@@ -614,19 +619,20 @@ function ChartList(props: ChartListProps) {
         key: 'dataset',
         id: 'datasource_id',
         input: 'select',
-        operator: FilterOperator.equals,
+        operator: FilterOperator.Equals,
         unfilteredLabel: t('All'),
         fetchSelects: createFetchDatasets,
         paginate: true,
+        dropdownStyle: { minWidth: WIDER_DROPDOWN_WIDTH },
       },
-      ...(isFeatureEnabled(FeatureFlag.TAGGING_SYSTEM) && canReadTag
+      ...(isFeatureEnabled(FeatureFlag.TaggingSystem) && canReadTag
         ? [
             {
               Header: t('Tag'),
               key: 'tags',
               id: 'tags',
               input: 'select',
-              operator: FilterOperator.chartTags,
+              operator: FilterOperator.ChartTagById,
               unfilteredLabel: t('All'),
               fetchSelects: loadTags,
             },
@@ -637,7 +643,7 @@ function ChartList(props: ChartListProps) {
         key: 'owner',
         id: 'owners',
         input: 'select',
-        operator: FilterOperator.relationManyMany,
+        operator: FilterOperator.RelationManyMany,
         unfilteredLabel: t('All'),
         fetchSelects: createFetchRelated(
           'chart',
@@ -653,16 +659,18 @@ function ChartList(props: ChartListProps) {
           props.user,
         ),
         paginate: true,
+        dropdownStyle: { minWidth: WIDER_DROPDOWN_WIDTH },
       },
       {
         Header: t('Dashboard'),
         key: 'dashboards',
         id: 'dashboards',
         input: 'select',
-        operator: FilterOperator.relationManyMany,
+        operator: FilterOperator.RelationManyMany,
         unfilteredLabel: t('All'),
         fetchSelects: fetchDashboards,
         paginate: true,
+        dropdownStyle: { minWidth: WIDER_DROPDOWN_WIDTH },
       },
       ...(userId ? [favoritesFilter] : []),
       {
@@ -671,7 +679,7 @@ function ChartList(props: ChartListProps) {
         id: 'id',
         urlDisplay: 'certified',
         input: 'select',
-        operator: FilterOperator.chartIsCertified,
+        operator: FilterOperator.ChartIsCertified,
         unfilteredLabel: t('Any'),
         selects: [
           { label: t('Yes'), value: true },
@@ -683,7 +691,7 @@ function ChartList(props: ChartListProps) {
         key: 'changed_by',
         id: 'changed_by',
         input: 'select',
-        operator: FilterOperator.relationOneMany,
+        operator: FilterOperator.RelationOneMany,
         unfilteredLabel: t('All'),
         fetchSelects: createFetchRelated(
           'chart',
@@ -697,8 +705,9 @@ function ChartList(props: ChartListProps) {
           props.user,
         ),
         paginate: true,
+        dropdownStyle: { minWidth: WIDER_DROPDOWN_WIDTH },
       },
-    ] as Filters;
+    ] as ListViewFilters;
     return filters_list;
   }, [addDangerToast, favoritesFilter, props.user]);
 
@@ -730,7 +739,7 @@ function ChartList(props: ChartListProps) {
         showThumbnails={
           userSettings
             ? userSettings.thumbnails
-            : isFeatureEnabled(FeatureFlag.THUMBNAILS)
+            : isFeatureEnabled(FeatureFlag.Thumbnails)
         }
         hasPerm={hasPerm}
         openChartEditModal={openChartEditModal}
@@ -766,32 +775,27 @@ function ChartList(props: ChartListProps) {
   }
   if (canCreate) {
     subMenuButtons.push({
-      name: (
-        <>
-          <i className="fa fa-plus" /> {t('Chart')}
-        </>
-      ),
+      icon: <Icons.PlusOutlined iconSize="m" />,
+      name: t('Chart'),
       buttonStyle: 'primary',
       onClick: () => {
         history.push('/chart/add');
       },
     });
 
-    if (isFeatureEnabled(FeatureFlag.VERSIONED_EXPORT)) {
-      subMenuButtons.push({
-        name: (
-          <Tooltip
-            id="import-tooltip"
-            title={t('Import charts')}
-            placement="bottomRight"
-          >
-            <Icons.Import data-test="import-button" />
-          </Tooltip>
-        ),
-        buttonStyle: 'link',
-        onClick: openChartImportModal,
-      });
-    }
+    subMenuButtons.push({
+      name: (
+        <Tooltip
+          id="import-tooltip"
+          title={t('Import charts')}
+          placement="bottomRight"
+        >
+          <Icons.DownloadOutlined iconSize="l" data-test="import-button" />
+        </Tooltip>
+      ),
+      buttonStyle: 'link',
+      onClick: openChartImportModal,
+    });
   }
 
   return (
@@ -811,6 +815,7 @@ function ChartList(props: ChartListProps) {
         onConfirm={handleBulkChartDelete}
       >
         {confirmDelete => {
+          const enableBulkTag = isFeatureEnabled(FeatureFlag.TaggingSystem);
           const bulkActions: ListViewProps['bulkActions'] = [];
           if (canDelete) {
             bulkActions.push({
@@ -845,17 +850,17 @@ function ChartList(props: ChartListProps) {
               loading={loading}
               pageSize={PAGE_SIZE}
               renderCard={renderCard}
-              enableBulkTag
+              enableBulkTag={enableBulkTag}
               bulkTagResourceName="chart"
               addSuccessToast={addSuccessToast}
               addDangerToast={addDangerToast}
               showThumbnails={
                 userSettings
                   ? userSettings.thumbnails
-                  : isFeatureEnabled(FeatureFlag.THUMBNAILS)
+                  : isFeatureEnabled(FeatureFlag.Thumbnails)
               }
               defaultViewMode={
-                isFeatureEnabled(FeatureFlag.LISTVIEWS_DEFAULT_CARD_VIEW)
+                isFeatureEnabled(FeatureFlag.ListviewsDefaultCardView)
                   ? 'card'
                   : 'table'
               }

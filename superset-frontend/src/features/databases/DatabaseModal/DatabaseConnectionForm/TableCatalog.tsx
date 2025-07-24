@@ -16,14 +16,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import { css, SupersetTheme, t } from '@superset-ui/core';
-import ValidatedInput from 'src/components/Form/LabeledErrorBoundInput';
-import FormLabel from 'src/components/Form/FormLabel';
-import Icons from 'src/components/Icons';
-import { FieldPropTypes } from '.';
+import {
+  FormLabel,
+  LabeledErrorBoundInput as ValidatedInput,
+} from '@superset-ui/core/components';
+import { Icons } from '@superset-ui/core/components/Icons';
+import { Typography } from '@superset-ui/core/components/Typography';
 import { StyledFooterButton, StyledCatalogTable } from '../styles';
-import { CatalogObject } from '../../types';
+import { CatalogObject, FieldPropTypes } from '../../types';
 
 export const TableCatalog = ({
   required,
@@ -36,13 +37,13 @@ export const TableCatalog = ({
   const catalogError = validationErrors || {};
   return (
     <StyledCatalogTable>
-      <h4 className="gsheet-title">
+      <Typography.Title level={4} className="gsheet-title">
         {t('Connect Google Sheets as tables to this database')}
-      </h4>
+      </Typography.Title>
       <div>
         {tableCatalog?.map((sheet: CatalogObject, idx: number) => (
           <>
-            <FormLabel className="catalog-label" required>
+            <FormLabel className="catalog-label">
               {t('Google Sheet Name and URL')}
             </FormLabel>
             <div className="catalog-name">
@@ -106,6 +107,13 @@ export const TableCatalog = ({
         >
           + {t('Add sheet')}
         </StyledFooterButton>
+      </div>
+      <div className="helper">
+        <div>
+          {t(
+            'In order to connect to non-public sheets you need to either provide a service account or configure an OAuth2 client.',
+          )}
+        </div>
       </div>
     </StyledCatalogTable>
   );

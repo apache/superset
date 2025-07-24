@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 """a collection of Annotation-related models"""
+
 from typing import Any
 
 from flask_appbuilder import Model
@@ -22,10 +23,10 @@ from sqlalchemy import Column, DateTime, ForeignKey, Index, Integer, String, Tex
 from sqlalchemy.orm import relationship
 
 from superset.models.helpers import AuditMixinNullable
+from superset.utils.core import MediumText
 
 
 class AnnotationLayer(Model, AuditMixinNullable):
-
     """A logical namespace for a set of annotations"""
 
     __tablename__ = "annotation_layer"
@@ -38,7 +39,6 @@ class AnnotationLayer(Model, AuditMixinNullable):
 
 
 class Annotation(Model, AuditMixinNullable):
-
     """Time-related annotation"""
 
     __tablename__ = "annotation"
@@ -49,7 +49,7 @@ class Annotation(Model, AuditMixinNullable):
     short_descr = Column(String(500))
     long_descr = Column(Text)
     layer = relationship(AnnotationLayer, backref="annotation")
-    json_metadata = Column(Text)
+    json_metadata = Column(MediumText())
 
     __table_args__ = (Index("ti_dag_state", layer_id, start_dttm, end_dttm),)
 

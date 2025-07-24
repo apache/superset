@@ -16,15 +16,18 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import { Component } from 'react';
 import PropTypes from 'prop-types';
-import { Row, Col } from 'src/components';
+import {
+  Row,
+  Col,
+  Checkbox,
+  Label,
+  Popover,
+} from '@superset-ui/core/components';
 import { t } from '@superset-ui/core';
 
-import Label from 'src/components/Label';
-import Popover from 'src/components/Popover';
-import PopoverSection from 'src/components/PopoverSection';
-import Checkbox from 'src/components/Checkbox';
+import PopoverSection from '@superset-ui/core/components/PopoverSection';
 import ControlHeader from '../ControlHeader';
 import SelectControl from './SelectControl';
 
@@ -47,7 +50,7 @@ const defaultProps = {
   choices: [],
 };
 
-export default class SpatialControl extends React.Component {
+export default class SpatialControl extends Component {
   constructor(props) {
     super(props);
     const v = props.value || {};

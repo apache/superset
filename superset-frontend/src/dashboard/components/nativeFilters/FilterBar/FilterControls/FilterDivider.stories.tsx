@@ -17,14 +17,13 @@
  * under the License.
  */
 
-import React from 'react';
-import { css } from '@emotion/react';
+import { css } from '@superset-ui/core';
 import { FilterBarOrientation } from 'src/dashboard/types';
 import FilterDivider from './FilterDivider';
 import { FilterDividerProps } from './types';
 
 export default {
-  title: 'FilterDivider',
+  title: 'Components/FilterDivider',
   component: FilterDivider,
 };
 
@@ -65,7 +64,7 @@ export const HorizontalFilterDivider = (props: FilterDividerProps) => (
         background-color: white;
       `}
     >
-      <FilterDivider orientation={FilterBarOrientation.HORIZONTAL} {...props} />
+      <FilterDivider orientation={FilterBarOrientation.Horizontal} {...props} />
     </div>
   </div>
 );
@@ -94,15 +93,11 @@ const args = {
   description: 'Sample description',
 };
 
-const story = { parameters: { knobs: { disable: true } } };
-
 VerticalFilterDivider.args = {
   ...args,
   horizontal: false,
   overflow: false,
 };
-
-VerticalFilterDivider.story = story;
 
 HorizontalFilterDivider.args = {
   ...args,
@@ -110,12 +105,8 @@ HorizontalFilterDivider.args = {
   overflow: false,
 };
 
-HorizontalFilterDivider.story = story;
-
 HorizontalOverflowFilterDivider.args = {
   ...args,
   horizontal: true,
   overflow: true,
 };
-
-HorizontalOverflowFilterDivider.story = story;

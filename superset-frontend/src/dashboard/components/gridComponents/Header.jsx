@@ -16,14 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import { PureComponent } from 'react';
 import PropTypes from 'prop-types';
 import cx from 'classnames';
 import { css, styled } from '@superset-ui/core';
 
-import PopoverDropdown from 'src/components/PopoverDropdown';
-import EditableTitle from 'src/components/EditableTitle';
-import DragDroppable from 'src/dashboard/components/dnd/DragDroppable';
+import PopoverDropdown from '@superset-ui/core/components/PopoverDropdown';
+import { EditableTitle } from '@superset-ui/core/components';
+import { Draggable } from 'src/dashboard/components/dnd/DragDroppable';
 import DragHandle from 'src/dashboard/components/dnd/DragHandle';
 import AnchorLink from 'src/dashboard/components/AnchorLink';
 import HoverMenu from 'src/dashboard/components/menu/HoverMenu';
@@ -47,6 +47,7 @@ const propTypes = {
   parentComponent: componentShape.isRequired,
   index: PropTypes.number.isRequired,
   editMode: PropTypes.bool.isRequired,
+  embeddedMode: PropTypes.bool.isRequired,
 
   // redux
   handleComponentDrop: PropTypes.func.isRequired,
@@ -58,20 +59,20 @@ const defaultProps = {};
 
 const HeaderStyles = styled.div`
   ${({ theme }) => css`
-    font-weight: ${theme.typography.weights.bold};
+    font-weight: ${theme.fontWeightStrong};
     width: 100%;
-    padding: ${theme.gridUnit * 4}px 0;
+    padding: ${theme.sizeUnit * 4}px 0;
 
     &.header-small {
-      font-size: ${theme.typography.sizes.l}px;
+      font-size: ${theme.fontSizeLG}px;
     }
 
     &.header-medium {
-      font-size: ${theme.typography.sizes.xl}px;
+      font-size: ${theme.fontSizeXL}px;
     }
 
     &.header-large {
-      font-size: ${theme.typography.sizes.xxl}px;
+      font-size: ${theme.fontSizeXXL}px;
     }
 
     .dashboard--editing .dashboard-grid & {
@@ -88,7 +89,7 @@ const HeaderStyles = styled.div`
       }
 
       &:hover:after {
-        border: 1px dashed ${theme.colors.primary.base};
+        border: 1px dashed ${theme.colorPrimary};
         z-index: 2;
       }
     }
@@ -102,19 +103,19 @@ const HeaderStyles = styled.div`
    * we'll not worry about double padding on top as it can serve as a visual separator
    */
     .grid-column > :not(:last-child) & {
-      margin-bottom: ${theme.gridUnit * -4}px;
+      margin-bottom: ${theme.sizeUnit * -4}px;
     }
 
     .background--white &,
     &.background--white,
     .dashboard-component-tabs & {
-      padding-left: ${theme.gridUnit * 4}px;
-      padding-right: ${theme.gridUnit * 4}px;
+      padding-left: ${theme.sizeUnit * 4}px;
+      padding-right: ${theme.sizeUnit * 4}px;
     }
   `}
 `;
 
-class Header extends React.PureComponent {
+class Header extends PureComponent {
   constructor(props) {
     super(props);
     this.state = {
@@ -166,6 +167,7 @@ class Header extends React.PureComponent {
       index,
       handleComponentDrop,
       editMode,
+      embeddedMode,
     } = this.props;
 
     const headerStyle = headerStyleOptions.find(
@@ -178,7 +180,7 @@ class Header extends React.PureComponent {
     );
 
     return (
-      <DragDroppable
+      <Draggable
         component={component}
         parentComponent={parentComponent}
         orientation="row"
@@ -188,7 +190,7 @@ class Header extends React.PureComponent {
         disableDragDrop={isFocused}
         editMode={editMode}
       >
-        {({ dropIndicatorProps, dragSourceRef }) => (
+        {({ dragSourceRef }) => (
           <div ref={dragSourceRef}>
             {editMode &&
               depth <= 2 && ( // drag handle looks bad when nested
@@ -234,16 +236,14 @@ class Header extends React.PureComponent {
                   onSaveTitle={this.handleChangeText}
                   showTooltip={false}
                 />
-                {!editMode && (
+                {!editMode && !embeddedMode && (
                   <AnchorLink id={component.id} dashboardId={dashboardId} />
                 )}
               </HeaderStyles>
             </WithPopoverMenu>
-
-            {dropIndicatorProps && <div {...dropIndicatorProps} />}
           </div>
         )}
-      </DragDroppable>
+      </Draggable>
     );
   }
 }

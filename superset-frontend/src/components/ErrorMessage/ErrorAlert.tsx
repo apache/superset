@@ -16,214 +16,123 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useState, ReactNode } from 'react';
-import { styled, useTheme, t } from '@superset-ui/core';
-import { noOp } from 'src/utils/common';
-import Modal from 'src/components/Modal';
-import Button from 'src/components/Button';
-import { isCurrentUserBot } from 'src/utils/isBot';
+import { useState } from 'react';
+import { t, useTheme } from '@superset-ui/core';
+import {
+  Alert,
+  Icons,
+  Modal,
+  Tooltip,
+  Typography,
+} from '@superset-ui/core/components';
+import type { ErrorAlertProps } from './types';
 
-import Icons from 'src/components/Icons';
-import { ErrorLevel, ErrorSource } from './types';
-import CopyToClipboard from '../CopyToClipboard';
-
-const ErrorAlertDiv = styled.div<{ level: ErrorLevel }>`
-  align-items: center;
-  background-color: ${({ level, theme }) => theme.colors[level].light2};
-  border-radius: ${({ theme }) => theme.borderRadius}px;
-  border: 1px solid ${({ level, theme }) => theme.colors[level].base};
-  color: ${({ level, theme }) => theme.colors[level].dark2};
-  padding: ${({ theme }) => 2 * theme.gridUnit}px;
-  width: 100%;
-
-  .top-row {
-    display: flex;
-    justify-content: space-between;
-  }
-
-  .error-body {
-    padding-top: ${({ theme }) => theme.gridUnit}px;
-    padding-left: ${({ theme }) => 8 * theme.gridUnit}px;
-  }
-
-  .icon {
-    margin-right: ${({ theme }) => 2 * theme.gridUnit}px;
-  }
-
-  .link {
-    color: ${({ level, theme }) => theme.colors[level].dark2};
-    text-decoration: underline;
-  }
-`;
-
-const ErrorModal = styled(Modal)<{ level: ErrorLevel }>`
-  color: ${({ level, theme }) => theme.colors[level].dark2};
-  overflow-wrap: break-word;
-
-  .ant-modal-header {
-    background-color: ${({ level, theme }) => theme.colors[level].light2};
-    padding: ${({ theme }) => 4 * theme.gridUnit}px;
-  }
-
-  .icon {
-    margin-right: ${({ theme }) => 2 * theme.gridUnit}px;
-  }
-
-  .header {
-    display: flex;
-    align-items: center;
-    font-size: ${({ theme }) => theme.typography.sizes.l}px;
-  }
-`;
-
-const LeftSideContent = styled.div`
-  align-items: center;
-  display: flex;
-`;
-
-interface ErrorAlertProps {
-  body: ReactNode;
-  copyText?: string;
-  level: ErrorLevel;
-  source?: ErrorSource;
-  subtitle: ReactNode;
-  title: ReactNode;
-  description?: string;
-}
-
-export default function ErrorAlert({
-  body,
-  copyText,
-  level = 'error',
-  source = 'dashboard',
-  subtitle,
-  title,
+export const ErrorAlert: React.FC<ErrorAlertProps> = ({
+  errorType = t('Error'),
+  message,
+  type = 'error',
   description,
-}: ErrorAlertProps) {
+  descriptionDetails,
+  descriptionDetailsCollapsed = true,
+  descriptionPre = true,
+  compact = false,
+  children,
+  closable = true,
+  showIcon = true,
+  className,
+}) => {
+  const [isDescriptionVisible, setIsDescriptionVisible] = useState(
+    !descriptionDetailsCollapsed,
+  );
+  const [showModal, setShowModal] = useState(false);
+
+  const toggleDescription = () => {
+    setIsDescriptionVisible(!isDescriptionVisible);
+  };
+
   const theme = useTheme();
-
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isBodyExpanded, setIsBodyExpanded] = useState(isCurrentUserBot());
-
-  const isExpandable =
-    isCurrentUserBot() || ['explore', 'sqllab'].includes(source);
-  const iconColor = theme.colors[level].base;
-
-  return (
-    <ErrorAlertDiv level={level} role="alert">
-      <div className="top-row">
-        <LeftSideContent>
-          {level === 'error' ? (
-            <Icons.ErrorSolid className="icon" iconColor={iconColor} />
-          ) : (
-            <Icons.WarningSolid className="icon" iconColor={iconColor} />
+  const renderTrigger = () => {
+    const icon =
+      type === 'warning' ? (
+        <Icons.WarningOutlined />
+      ) : (
+        <Icons.ExclamationCircleOutlined />
+      );
+    const color =
+      type === 'warning' ? theme.colorWarningText : theme.colorErrorText;
+    return (
+      <div className={className} style={{ cursor: 'pointer' }}>
+        <span style={{ color }}>{icon} </span>
+        {errorType}
+      </div>
+    );
+  };
+  const preStyle = {
+    whiteSpace: 'pre-wrap',
+    fontFamily: theme.fontFamilyCode,
+    margin: `${theme.sizeUnit}px 0`,
+  };
+  const renderDescription = () => (
+    <div>
+      {message && <div>{message}</div>}
+      {description && (
+        <Typography.Paragraph
+          style={descriptionPre ? preStyle : {}}
+          data-testid="description"
+        >
+          {description}
+        </Typography.Paragraph>
+      )}
+      {descriptionDetails && (
+        <div>
+          {isDescriptionVisible && (
+            <Typography.Paragraph style={descriptionPre ? preStyle : {}}>
+              {descriptionDetails}
+            </Typography.Paragraph>
           )}
-          <strong>{title}</strong>
-        </LeftSideContent>
-        {!isExpandable && !description && (
           <span
             role="button"
             tabIndex={0}
-            className="link"
-            onClick={() => setIsModalOpen(true)}
+            onClick={toggleDescription}
+            style={{ textDecoration: 'underline', cursor: 'pointer' }}
           >
-            {t('See more')}
+            {isDescriptionVisible ? t('See less') : t('See more')}
           </span>
-        )}
-      </div>
-      {description && (
-        <div className="error-body">
-          <p>{description}</p>
-          {!isExpandable && (
-            <span
-              role="button"
-              tabIndex={0}
-              className="link"
-              onClick={() => setIsModalOpen(true)}
-            >
-              {t('See more')}
-            </span>
-          )}
         </div>
       )}
-      {isExpandable ? (
-        <div className="error-body">
-          <p>{subtitle}</p>
-          {body && (
-            <>
-              {!isBodyExpanded && (
-                <span
-                  role="button"
-                  tabIndex={0}
-                  className="link"
-                  onClick={() => setIsBodyExpanded(true)}
-                >
-                  {t('See more')}
-                </span>
-              )}
-              {isBodyExpanded && (
-                <>
-                  <br />
-                  {body}
-                  <span
-                    role="button"
-                    tabIndex={0}
-                    className="link"
-                    onClick={() => setIsBodyExpanded(false)}
-                  >
-                    {t('See less')}
-                  </span>
-                </>
-              )}
-            </>
-          )}
-        </div>
-      ) : (
-        <ErrorModal
-          level={level}
-          show={isModalOpen}
-          onHide={() => setIsModalOpen(false)}
-          destroyOnClose
-          title={
-            <div className="header">
-              {level === 'error' ? (
-                <Icons.ErrorSolid className="icon" iconColor={iconColor} />
-              ) : (
-                <Icons.WarningSolid className="icon" iconColor={iconColor} />
-              )}
-              <div className="title">{title}</div>
-            </div>
-          }
-          footer={
-            <>
-              {copyText && (
-                <CopyToClipboard
-                  text={copyText}
-                  shouldShowText={false}
-                  wrapped={false}
-                  copyNode={<Button onClick={noOp}>{t('Copy message')}</Button>}
-                />
-              )}
-              <Button
-                cta
-                buttonStyle="primary"
-                onClick={() => setIsModalOpen(false)}
-              >
-                {t('Close')}
-              </Button>
-            </>
-          }
-        >
-          <>
-            <p>{subtitle}</p>
-            {/* This break was in the original design of the modal but
-            the spacing looks really off if there is only
-            subtitle or a body */}
-            {subtitle && body && <br />}
-            {body}
-          </>
-        </ErrorModal>
-      )}
-    </ErrorAlertDiv>
+    </div>
   );
-}
+  const renderAlert = (closable: boolean) => (
+    <Alert
+      message={errorType}
+      description={renderDescription()}
+      type={type}
+      showIcon={showIcon}
+      closable={closable}
+      className={className}
+    />
+  );
+
+  if (compact) {
+    return (
+      <>
+        <Tooltip title={`${errorType}: ${message}`}>
+          <span role="button" onClick={() => setShowModal(true)} tabIndex={0}>
+            {renderTrigger()}
+          </span>
+        </Tooltip>
+        <Modal
+          title={errorType}
+          show={showModal}
+          onHide={() => setShowModal(false)}
+          footer={null}
+        >
+          {renderAlert(false)}
+          {children}
+        </Modal>
+      </>
+    );
+  }
+
+  return renderAlert(closable);
+};

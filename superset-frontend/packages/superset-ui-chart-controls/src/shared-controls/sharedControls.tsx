@@ -41,17 +41,17 @@ import {
   SequentialScheme,
   legacyValidateInteger,
   ComparisonType,
-  isAdhocColumn,
-  isPhysicalColumn,
   ensureIsArray,
   isDefined,
-  hasGenericChartAxes,
   NO_TIME_RANGE,
   validateMaxValue,
+  getColumnLabel,
 } from '@superset-ui/core';
 
 import {
   formatSelectOptions,
+  displayTimeRelatedControls,
+  getColorControlsProps,
   D3_FORMAT_OPTIONS,
   D3_FORMAT_DOCS,
   D3_TIME_FORMAT_OPTIONS,
@@ -63,7 +63,6 @@ import { DEFAULT_MAX_ROW, TIME_FILTER_LABELS } from '../constants';
 import {
   SharedControlConfig,
   Dataset,
-  ColumnMeta,
   ControlState,
   ControlPanelState,
 } from '../types';
@@ -84,6 +83,8 @@ import {
   dndSeriesControl,
   dndAdhocMetricControl2,
   dndXAxisControl,
+  dndTooltipColumnsControl,
+  dndTooltipMetricsControl,
 } from './dndControls';
 
 const categoricalSchemeRegistry = getCategoricalSchemeRegistry();
@@ -145,9 +146,7 @@ const linear_color_scheme: SharedControlConfig<'ColorSchemeControl'> = {
   renderTrigger: true,
   schemes: () => sequentialSchemeRegistry.getMap(),
   isLinear: true,
-  mapStateToProps: state => ({
-    dashboardId: state?.form_data?.dashboardId,
-  }),
+  mapStateToProps: state => getColorControlsProps(state),
 };
 
 const granularity: SharedControlConfig<'SelectControl'> = {
@@ -204,23 +203,7 @@ const time_grain_sqla: SharedControlConfig<'SelectControl'> = {
   mapStateToProps: ({ datasource }) => ({
     choices: (datasource as Dataset)?.time_grain_sqla || [],
   }),
-  visibility: ({ controls }) => {
-    if (!hasGenericChartAxes) {
-      return true;
-    }
-
-    const xAxis = controls?.x_axis;
-    const xAxisValue = xAxis?.value;
-    if (isAdhocColumn(xAxisValue)) {
-      return true;
-    }
-    if (isPhysicalColumn(xAxisValue)) {
-      return !!(xAxis?.options ?? []).find(
-        (col: ColumnMeta) => col?.column_name === xAxisValue,
-      )?.is_dttm;
-    }
-    return false;
-  },
+  visibility: displayTimeRelatedControls,
 };
 
 const time_range: SharedControlConfig<'DateFilterControl'> = {
@@ -243,10 +226,10 @@ const row_limit: SharedControlConfig<'SelectControl'> = {
   freeForm: true,
   label: t('Row limit'),
   clearable: false,
+  mapStateToProps: state => ({ maxValue: state?.common?.conf?.SQL_MAX_ROW }),
   validators: [
     legacyValidateInteger,
-    (v, state) =>
-      validateMaxValue(v, state?.common?.conf?.SQL_MAX_ROW || DEFAULT_MAX_ROW),
+    (v, state) => validateMaxValue(v, state?.maxValue || DEFAULT_MAX_ROW),
   ],
   default: 10000,
   choices: formatSelectOptions(ROW_LIMIT_OPTIONS),
@@ -352,9 +335,21 @@ const color_scheme: SharedControlConfig<'ColorSchemeControl'> = {
   choices: () => categoricalSchemeRegistry.keys().map(s => [s, s]),
   description: t('The color scheme for rendering chart'),
   schemes: () => categoricalSchemeRegistry.getMap(),
-  mapStateToProps: state => ({
-    dashboardId: state?.form_data?.dashboardId,
-  }),
+  mapStateToProps: state => getColorControlsProps(state),
+};
+
+const time_shift_color: SharedControlConfig<'CheckboxControl'> = {
+  type: 'CheckboxControl',
+  label: t('Match time shift color with original series'),
+  default: true,
+  renderTrigger: true,
+  description: t(
+    'When unchecked, colors from the selected color scheme will be used for time shifted series',
+  ),
+  visibility: ({ controls }) =>
+    Boolean(
+      controls?.time_compare?.value && !isEmpty(controls?.time_compare?.value),
+    ),
 };
 
 const truncate_metric: SharedControlConfig<'CheckboxControl'> = {
@@ -381,6 +376,42 @@ const temporal_columns_lookup: SharedControlConfig<'HiddenControl'> = {
     ),
 };
 
+const zoomable: SharedControlConfig<'CheckboxControl'> = {
+  type: 'CheckboxControl',
+  label: t('Data Zoom'),
+  default: false,
+  renderTrigger: true,
+  description: t('Enable data zooming controls'),
+};
+
+const sort_by_metric: SharedControlConfig<'CheckboxControl'> = {
+  type: 'CheckboxControl',
+  label: t('Sort by metric'),
+  description: t(
+    'Whether to sort results by the selected metric in descending order.',
+  ),
+};
+
+const order_by_cols: SharedControlConfig<'SelectControl'> = {
+  type: 'SelectControl',
+  label: t('Ordering'),
+  description: t('Order results by selected columns'),
+  multi: true,
+  default: [],
+  shouldMapStateToProps: () => true,
+  mapStateToProps: ({ datasource }) => ({
+    choices: (datasource?.columns || [])
+      .map(col =>
+        [true, false].map(asc => [
+          JSON.stringify([col.column_name, asc]),
+          `${getColumnLabel(col.column_name)} [${asc ? 'asc' : 'desc'}]`,
+        ]),
+      )
+      .flat(),
+  }),
+  resetOnHide: false,
+};
+
 export default {
   metrics: dndAdhocMetricsControl,
   metric: dndAdhocMetricControl,
@@ -392,6 +423,8 @@ export default {
   secondary_metric: dndSecondaryMetricControl,
   groupby: dndGroupByControl,
   columns: dndColumnsControl,
+  tooltip_columns: dndTooltipColumnsControl,
+  tooltip_metrics: dndTooltipMetricsControl,
   granularity,
   granularity_sqla: dndGranularitySqlaControl,
   time_grain_sqla,
@@ -410,13 +443,17 @@ export default {
   x_axis_time_format,
   adhoc_filters: dndAdhocFilterControl,
   color_scheme,
+  time_shift_color,
   series_columns: dndColumnsControl,
   series_limit,
   series_limit_metric: dndSortByControl,
   legacy_order_by: dndSortByControl,
   truncate_metric,
   x_axis: dndXAxisControl,
+  zoomable,
   show_empty_columns,
   temporal_columns_lookup,
   currency_format,
+  sort_by_metric,
+  order_by_cols,
 };

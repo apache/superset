@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t, ChartMetadata, ChartPlugin } from '@superset-ui/core';
+import { t, ChartMetadata, ChartPlugin, Behavior } from '@superset-ui/core';
 import thumbnail from './images/thumbnail.png';
 import example from './images/example.png';
 import transformProps from '../../transformProps';
@@ -32,7 +32,8 @@ const metadata = new ChartMetadata({
   name: t('deck.gl Geojson'),
   thumbnail,
   useLegacyApi: true,
-  tags: [t('deckGL'), t('2D'), t('Aesthetic')],
+  tags: [t('deckGL'), t('2D')],
+  behaviors: [Behavior.InteractiveChart],
 });
 
 export default class GeojsonChartPlugin extends ChartPlugin {

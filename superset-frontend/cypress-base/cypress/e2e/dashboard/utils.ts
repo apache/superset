@@ -18,15 +18,19 @@
  */
 
 import { dashboardView, nativeFilters } from 'cypress/support/directories';
-import { ChartSpec, waitForChartLoad } from 'cypress/utils';
+import {
+  ChartSpec,
+  setSelectSearchInput,
+  waitForChartLoad,
+} from 'cypress/utils';
 
 export const WORLD_HEALTH_CHARTS = [
   { name: '% Rural', viz: 'world_map' },
   { name: 'Most Populated Countries', viz: 'table' },
   { name: "World's Population", viz: 'big_number' },
-  { name: 'Growth Rate', viz: 'line' },
-  { name: 'Rural Breakdown', viz: 'sunburst' },
-  { name: "World's Pop Growth", viz: 'area' },
+  { name: 'Growth Rate', viz: 'echarts_timeseries_line' },
+  { name: 'Rural Breakdown', viz: 'sunburst_v2' },
+  { name: "World's Pop Growth", viz: 'echarts_area' },
   { name: 'Life Expectancy VS Rural %', viz: 'bubble' },
   { name: 'Treemap', viz: 'treemap_v2' },
   { name: 'Box plot', viz: 'box_plot' },
@@ -38,17 +42,17 @@ export const SUPPORTED_TIER1_CHARTS = [
   { name: 'Pie Chart', viz: 'pie' },
   { name: 'Table', viz: 'table' },
   { name: 'Pivot Table', viz: 'pivot_table_v2' },
-  { name: 'Time-Series Line Chart', viz: 'echarts_timeseries_line' },
-  { name: 'Time-Series Area Chart', viz: 'echarts_area' },
-  { name: 'Time-Series Scatter Chart', viz: 'echarts_timeseries_scatter' },
-  { name: 'Time-Series Bar Chart V2', viz: 'echarts_timeseries_bar' },
+  { name: 'Line Chart', viz: 'echarts_timeseries_line' },
+  { name: 'Area Chart', viz: 'echarts_area' },
+  { name: 'Scatter Chart', viz: 'echarts_timeseries_scatter' },
+  { name: 'Bar Chart', viz: 'echarts_timeseries_bar' },
 ] as ChartSpec[];
 
 export const SUPPORTED_TIER2_CHARTS = [
   { name: 'Box Plot Chart', viz: 'box_plot' },
-  { name: 'Time-Series Generic Chart', viz: 'echarts_timeseries' },
-  { name: 'Time-Series Smooth Line Chart', viz: 'echarts_timeseries_smooth' },
-  { name: 'Time-Series Step Line Chart', viz: 'echarts_timeseries_step' },
+  { name: 'Generic Chart', viz: 'echarts_timeseries' },
+  { name: 'Smooth Line Chart', viz: 'echarts_timeseries_smooth' },
+  { name: 'Step Line Chart', viz: 'echarts_timeseries_step' },
   { name: 'Funnel Chart', viz: 'funnel' },
   { name: 'Gauge Chart', viz: 'gauge_chart' },
   { name: 'Radar Chart', viz: 'radar' },
@@ -125,59 +129,63 @@ export const valueNativeFilterOptions = [
 ];
 
 export function interceptGet() {
-  cy.intercept('/api/v1/dashboard/*').as('get');
+  cy.intercept('GET', '**/api/v1/dashboard/*').as('get');
 }
 
 export function interceptFiltering() {
-  cy.intercept('GET', `/api/v1/dashboard/?q=*`).as('filtering');
+  cy.intercept('GET', `**/api/v1/dashboard/?q=*`).as('filtering');
 }
 
 export function interceptBulkDelete() {
-  cy.intercept('DELETE', `/api/v1/dashboard/?q=*`).as('bulkDelete');
+  cy.intercept('DELETE', `**/api/v1/dashboard/?q=*`).as('bulkDelete');
 }
 
 export function interceptDelete() {
-  cy.intercept('DELETE', `/api/v1/dashboard/*`).as('delete');
+  cy.intercept('DELETE', `**/api/v1/dashboard/*`).as('delete');
 }
 
 export function interceptUpdate() {
-  cy.intercept('PUT', `/api/v1/dashboard/*`).as('update');
+  cy.intercept('PUT', `**/api/v1/dashboard/*`).as('update');
+}
+
+export function interceptExploreUpdate() {
+  cy.intercept('PUT', `**/api/v1/chart/*`).as('chartUpdate');
 }
 
 export function interceptPost() {
-  cy.intercept('POST', `/api/v1/dashboard/`).as('post');
+  cy.intercept('POST', `**/api/v1/dashboard/`).as('post');
 }
 
 export function interceptLog() {
-  cy.intercept('/superset/log/?explode=events&dashboard_id=*').as('logs');
+  cy.intercept('**/superset/log/?explode=events&dashboard_id=*').as('logs');
 }
 
 export function interceptFav() {
-  cy.intercept({ url: `/api/v1/dashboard/*/favorites/`, method: 'POST' }).as(
+  cy.intercept({ url: `**/api/v1/dashboard/*/favorites/`, method: 'POST' }).as(
     'select',
   );
 }
 
 export function interceptUnfav() {
-  cy.intercept({ url: `/api/v1/dashboard/*/favorites/`, method: 'POST' }).as(
+  cy.intercept({ url: `**/api/v1/dashboard/*/favorites/`, method: 'POST' }).as(
     'unselect',
   );
 }
 
 export function interceptDataset() {
-  cy.intercept('GET', `/api/v1/dataset/*`).as('getDataset');
+  cy.intercept('GET', `**/api/v1/dataset/*`).as('getDataset');
 }
 
 export function interceptCharts() {
-  cy.intercept('GET', `/api/v1/dashboard/*/charts`).as('getCharts');
+  cy.intercept('GET', `**/api/v1/dashboard/*/charts`).as('getCharts');
 }
 
 export function interceptDatasets() {
-  cy.intercept('GET', `/api/v1/dashboard/*/datasets`).as('getDatasets');
+  cy.intercept('GET', `**/api/v1/dashboard/*/datasets`).as('getDatasets');
 }
 
 export function interceptFilterState() {
-  cy.intercept('POST', `/api/v1/dashboard/*/filter_state*`).as(
+  cy.intercept('POST', `**/api/v1/dashboard/*/filter_state*`).as(
     'postFilterState',
   );
 }
@@ -185,8 +193,10 @@ export function interceptFilterState() {
 export function setFilter(filter: string, option: string) {
   interceptFiltering();
 
-  cy.get(`[aria-label="${filter}"]`).first().click();
-  cy.get(`[aria-label="${filter}"] [title="${option}"]`).click();
+  cy.get(`[aria-label^="${filter}"]`).first().click();
+  cy.get(`.ant-select-item-option[title="${option}"]`).first().click({
+    force: true,
+  });
 
   cy.wait('@filtering');
 }
@@ -204,9 +214,9 @@ export function expandFilterOnLeftPanel() {
 }
 
 /** ************************************************************************
- * Collapes Native Filter from the left panel on dashboard
+ * Collapses Native Filter from the left panel on dashboard
  * @returns {None}
- * @summary helper for collape native filter
+ * @summary helper for collapse native filter
  ************************************************************************* */
 export function collapseFilterOnLeftPanel() {
   cy.get(nativeFilters.filterFromDashboardView.collapse)
@@ -224,6 +234,9 @@ export function collapseFilterOnLeftPanel() {
  ************************************************************************* */
 export function enterNativeFilterEditModal(waitForDataset = true) {
   interceptDataset();
+  cy.get(nativeFilters.filtersPanel.filterGear).click({
+    force: true,
+  });
   cy.get(nativeFilters.filterFromDashboardView.createFilterButton).click({
     force: true,
   });
@@ -239,15 +252,7 @@ export function enterNativeFilterEditModal(waitForDataset = true) {
  * @summary helper for adding new filter
  ************************************************************************* */
 export function clickOnAddFilterInModal() {
-  return cy
-    .get(nativeFilters.addFilterButton.button)
-    .first()
-    .click()
-    .then(() => {
-      cy.get(nativeFilters.addFilterButton.dropdownItem)
-        .contains('Filter')
-        .click({ force: true });
-    });
+  return cy.get(nativeFilters.modal.addNewFilterButton).click({ force: true });
 }
 
 /** ************************************************************************
@@ -265,39 +270,40 @@ export function fillNativeFilterForm(
   dataset?: string,
   filterColumn?: string,
 ) {
-  cy.get(nativeFilters.filtersPanel.filterTypeInput)
-    .find(nativeFilters.filtersPanel.filterTypeItem)
-    .click({ multiple: true, force: true });
-  cy.get(`[label="${type}"]`).click({ multiple: true, force: true });
+  cy.get(nativeFilters.filtersPanel.filterTypeInput).within(() => {
+    cy.get('input').then($input => {
+      setSelectSearchInput($input, type);
+    });
+  });
   cy.get(nativeFilters.modal.container)
     .find(nativeFilters.filtersPanel.filterName)
     .last()
-    .click({ scrollBehavior: false })
-    .clear({ force: true })
+    .click({ scrollBehavior: false });
+  cy.get(nativeFilters.modal.container)
+    .find(nativeFilters.filtersPanel.filterName)
+    .last()
+    .clear({ force: true });
+  cy.get(nativeFilters.modal.container)
+    .find(nativeFilters.filtersPanel.filterName)
+    .last()
     .type(name, { scrollBehavior: false, force: true });
+
   if (dataset) {
-    cy.get(nativeFilters.modal.container)
-      .find(nativeFilters.filtersPanel.datasetName)
-      .last()
-      .click({ force: true, scrollBehavior: false })
-      .type(`${dataset}`, { scrollBehavior: false });
+    cy.get('div[aria-label="Dataset"]').within(() => {
+      cy.get('input').then($input => {
+        setSelectSearchInput($input, dataset, true);
+      });
+    });
     cy.get(nativeFilters.silentLoading).should('not.exist');
-    cy.get(`[label="${dataset}"]`).click({ multiple: true, force: true });
   }
-  cy.get(nativeFilters.silentLoading).should('not.exist');
+
   if (filterColumn) {
-    cy.get(nativeFilters.filtersPanel.filterInfoInput)
-      .last()
-      .click({ force: true });
-    cy.get(nativeFilters.filtersPanel.filterInfoInput)
-      .last()
-      .type(filterColumn);
-    cy.get(nativeFilters.filtersPanel.inputDropdown)
-      .should('be.visible', { timeout: 20000 })
-      .last()
-      .click();
+    cy.get('div[aria-label="Column select"]').within(() => {
+      cy.get('input').then($input => {
+        setSelectSearchInput($input, filterColumn, true);
+      });
+    });
   }
-  cy.get(nativeFilters.silentLoading).should('not.exist');
 }
 
 /** ************************************************************************
@@ -339,9 +345,11 @@ export function addParentFilterWithValue(index: number, value: string) {
   return cy
     .get(nativeFilters.filterConfigurationSections.displayedSection)
     .within(() => {
-      cy.get('input[aria-label="Limit type"]')
+      cy.get('input[aria-label^="Limit type"]')
         .eq(index)
-        .click({ force: true })
+        .click({ force: true });
+      cy.get('input[aria-label^="Limit type"]')
+        .eq(index)
         .type(`${value}{enter}`, { delay: 30, force: true });
     });
 }
@@ -355,9 +363,26 @@ export function saveNativeFilterSettings(charts: ChartSpec[]) {
   cy.get(nativeFilters.modal.footer)
     .contains('Save')
     .should('be.visible')
-    .click();
+    .click({ force: true });
+
+  // Wait for modal to either close or remain open
+  cy.get('body').should($body => {
+    const modalExists = $body.find(nativeFilters.modal.container).length > 0;
+    if (modalExists) {
+      cy.get(nativeFilters.modal.footer)
+        .contains('Save')
+        .should('be.visible')
+        .click({ force: true });
+    }
+  });
+
+  // Ensure modal is closed
   cy.get(nativeFilters.modal.container).should('not.exist');
-  charts.forEach(waitForChartLoad);
+
+  // Wait for all charts to load
+  charts.forEach(chart => {
+    waitForChartLoad(chart);
+  });
 }
 
 /** ************************************************************************
@@ -374,7 +399,7 @@ export function cancelNativeFilterSettings() {
     .should('be.visible')
     .should('have.text', 'There are unsaved changes.');
   cy.get(nativeFilters.modal.footer)
-    .find(nativeFilters.modal.yesCancelButton)
+    .find(nativeFilters.modal.confirmCancelButton)
     .contains('cancel')
     .click({ force: true });
   cy.get(nativeFilters.modal.container).should('not.exist');
@@ -425,7 +450,7 @@ export function undoDeleteNativeFilter() {
 
 /** ************************************************************************
  * Check Native Filter tooltip content
- * @param index: tooltip indext to check
+ * @param index: tooltip index to check
  * @param value: tooltip value to check
  * @return {null}
  * @summary helper for checking native filter tooltip content by index
@@ -435,6 +460,9 @@ export function checkNativeFilterTooltip(index: number, value: string) {
     .eq(index)
     .trigger('mouseover');
   cy.contains(`${value}`);
+  cy.get(nativeFilters.filterConfigurationSections.infoTooltip)
+    .eq(index)
+    .trigger('mouseout');
 }
 
 /** ************************************************************************
@@ -448,7 +476,7 @@ export function applyAdvancedTimeRangeFilterOnDashboard(
   startRange?: string,
   endRange?: string,
 ) {
-  cy.get('.control-label').contains('RANGE TYPE').should('be.visible');
+  cy.get('.control-label').contains('Range type').should('be.visible');
   cy.get('.ant-popover-content .ant-select-selector')
     .should('be.visible')
     .click();
@@ -471,10 +499,10 @@ export function applyAdvancedTimeRangeFilterOnDashboard(
 }
 
 /** ************************************************************************
- * Input default valule in Native filter in filter settings
+ * Input default value in Native filter in filter settings
  * @param defaultValue: default value for native filter
  * @return {null}
- * @summary helper for input default valule in Native filter in filter settings
+ * @summary helper for input default value in Native filter in filter settings
  ************************************************************************* */
 export function inputNativeFilterDefaultValue(
   defaultValue: string,
@@ -482,7 +510,7 @@ export function inputNativeFilterDefaultValue(
 ) {
   if (!multiple) {
     cy.contains('Filter has default value').click();
-    cy.contains('Default value is required').should('be.visible');
+    cy.contains('Please choose a valid value').should('be.visible');
     cy.get(nativeFilters.modal.container).within(() => {
       cy.get(
         nativeFilters.filterConfigurationSections.filterPlaceholder,
@@ -520,13 +548,17 @@ export function addCountryNameFilter() {
   );
 }
 
-export function openTab(tabComponentIndex: number, tabIndex: number) {
-  return cy
-    .getBySel('dashboard-component-tabs')
+export function openTab(
+  tabComponentIndex: number,
+  tabIndex: number,
+  target = 'dashboard-component-tabs',
+) {
+  cy.getBySel(target)
     .eq(tabComponentIndex)
     .find('[role="tab"]')
     .eq(tabIndex)
     .click();
+  cy.wait(500);
 }
 
 export const openTopLevelTab = (tabName: string) => {

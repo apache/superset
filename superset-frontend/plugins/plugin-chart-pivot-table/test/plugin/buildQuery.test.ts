@@ -18,7 +18,6 @@
  */
 
 import { TimeGranularity } from '@superset-ui/core';
-import * as supersetCoreModule from '@superset-ui/core';
 import buildQuery from '../../src/plugin/buildQuery';
 import { PivotTableQueryFormData } from '../../src/types';
 
@@ -60,13 +59,21 @@ const formData: PivotTableQueryFormData = {
 test('should build groupby with series in form data', () => {
   const queryContext = buildQuery(formData);
   const [query] = queryContext.queries;
-  expect(query.columns).toEqual(['col1', 'col2', 'row1', 'row2']);
+  expect(query.columns).toEqual([
+    {
+      columnType: 'BASE_AXIS',
+      expressionType: 'SQL',
+      label: 'col1',
+      sqlExpression: 'col1',
+      timeGrain: 'P1M',
+    },
+    'col2',
+    'row1',
+    'row2',
+  ]);
 });
 
-test('should work with old charts after GENERIC_CHART_AXES is enabled', () => {
-  Object.defineProperty(supersetCoreModule, 'hasGenericChartAxes', {
-    value: true,
-  });
+test('should work with old charts', () => {
   const modifiedFormData = {
     ...formData,
     time_grain_sqla: TimeGranularity.MONTH,
@@ -89,9 +96,6 @@ test('should work with old charts after GENERIC_CHART_AXES is enabled', () => {
 });
 
 test('should prefer extra_form_data.time_grain_sqla over formData.time_grain_sqla', () => {
-  Object.defineProperty(supersetCoreModule, 'hasGenericChartAxes', {
-    value: true,
-  });
   const modifiedFormData = {
     ...formData,
     extra_form_data: { time_grain_sqla: TimeGranularity.QUARTER },
@@ -108,9 +112,6 @@ test('should prefer extra_form_data.time_grain_sqla over formData.time_grain_sql
 });
 
 test('should fallback to formData.time_grain_sqla if extra_form_data.time_grain_sqla is not set', () => {
-  Object.defineProperty(supersetCoreModule, 'hasGenericChartAxes', {
-    value: true,
-  });
   const queryContext = buildQuery(formData);
   const [query] = queryContext.queries;
   expect(query.columns?.[0]).toEqual({
@@ -123,9 +124,6 @@ test('should fallback to formData.time_grain_sqla if extra_form_data.time_grain_
 });
 
 test('should not omit extras.time_grain_sqla from queryContext so dashboards apply them', () => {
-  Object.defineProperty(supersetCoreModule, 'hasGenericChartAxes', {
-    value: true,
-  });
   const modifiedFormData = {
     ...formData,
     extra_form_data: { time_grain_sqla: TimeGranularity.QUARTER },

@@ -17,8 +17,6 @@
 
 from __future__ import annotations
 
-import contextlib
-import json
 import logging
 import re
 from re import Pattern
@@ -32,19 +30,21 @@ from flask_babel import gettext as __
 from marshmallow import fields, Schema
 from marshmallow.exceptions import ValidationError
 from requests import Session
+from shillelagh.adapters.api.gsheets.lib import SCOPES
+from shillelagh.exceptions import UnauthenticatedError
 from sqlalchemy.engine import create_engine
 from sqlalchemy.engine.url import URL
 
 from superset import db, security_manager
-from superset.constants import PASSWORD_MASK
 from superset.databases.schemas import encrypted_field_properties, EncryptedString
 from superset.db_engine_specs.shillelagh import ShillelaghEngineSpec
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetException
+from superset.utils import json
 
 if TYPE_CHECKING:
     from superset.models.core import Database
-    from superset.sql_parse import Table
+    from superset.sql.parse import Table
 
 _logger = logging.getLogger()
 
@@ -66,6 +66,18 @@ class GSheetsParametersSchema(Schema):
             "description": "Contents of GSheets JSON credentials.",
             "field_name": "service_account_info",
         },
+    )
+    oauth2_client_info = EncryptedString(
+        required=False,
+        metadata={
+            "description": "OAuth2 client information",
+            "default": {
+                "scope": " ".join(SCOPES),
+                "authorization_request_uri": "https://accounts.google.com/o/oauth2/v2/auth",
+                "token_request_uri": "https://oauth2.googleapis.com/token",
+            },
+        },
+        allow_none=True,
     )
 
 
@@ -91,6 +103,10 @@ class GSheetsEngineSpec(ShillelaghEngineSpec):
     default_driver = "apsw"
     sqlalchemy_uri_placeholder = "gsheets://"
 
+    # when editing the database, mask this field in `encrypted_extra`
+    # pylint: disable=invalid-name
+    encrypted_extra_sensitive_fields = {"$.service_account_info.private_key"}
+
     custom_errors: dict[Pattern[str], tuple[str, SupersetErrorType, dict[str, Any]]] = {
         SYNTAX_ERROR_REGEX: (
             __(
@@ -104,30 +120,46 @@ class GSheetsEngineSpec(ShillelaghEngineSpec):
 
     supports_file_upload = True
 
+    # OAuth 2.0
+    supports_oauth2 = True
+    oauth2_scope = " ".join(SCOPES)
+    oauth2_authorization_request_uri = (  # pylint: disable=invalid-name
+        "https://accounts.google.com/o/oauth2/v2/auth"
+    )
+    oauth2_token_request_uri = "https://oauth2.googleapis.com/token"  # noqa: S105
+    oauth2_exception = UnauthenticatedError
+
     @classmethod
-    def get_url_for_impersonation(
+    def impersonate_user(
         cls,
-        url: URL,
-        impersonate_user: bool,
+        database: Database,
         username: str | None,
-    ) -> URL:
-        if impersonate_user and username is not None:
+        user_token: str | None,
+        url: URL,
+        engine_kwargs: dict[str, Any],
+    ) -> tuple[URL, dict[str, Any]]:
+        if username is not None:
             user = security_manager.find_user(username=username)
             if user and user.email:
                 url = url.update_query_dict({"subject": user.email})
 
-        return url
+        if user_token:
+            url = url.update_query_dict({"access_token": user_token})
+
+        return url, engine_kwargs
 
     @classmethod
-    def extra_table_metadata(
+    def get_extra_table_metadata(
         cls,
         database: Database,
-        table_name: str,
-        schema_name: str | None,
+        table: Table,
     ) -> dict[str, Any]:
-        with database.get_raw_connection(schema=schema_name) as conn:
+        with database.get_raw_connection(
+            catalog=table.catalog,
+            schema=table.schema,
+        ) as conn:
             cursor = conn.cursor()
-            cursor.execute(f'SELECT GET_METADATA("{table_name}")')
+            cursor.execute(f'SELECT GET_METADATA("{table.table}")')
             results = cursor.fetchone()[0]
         try:
             metadata = json.loads(results)
@@ -137,13 +169,29 @@ class GSheetsEngineSpec(ShillelaghEngineSpec):
         return {"metadata": metadata["extra"]}
 
     @classmethod
+    # pylint: disable=unused-argument
     def build_sqlalchemy_uri(
         cls,
         _: GSheetsParametersType,
-        encrypted_extra: None  # pylint: disable=unused-argument
-        | (dict[str, Any]) = None,
+        encrypted_extra: None | (dict[str, Any]) = None,
     ) -> str:
+        if encrypted_extra and "oauth2_client_info" in encrypted_extra:
+            del encrypted_extra["oauth2_client_info"]
+
         return "gsheets://"
+
+    @staticmethod
+    def update_params_from_encrypted_extra(
+        database: Database,
+        params: dict[str, Any],
+    ) -> None:
+        """
+        Remove `oauth2_client_info` from `encrypted_extra`.
+        """
+        ShillelaghEngineSpec.update_params_from_encrypted_extra(database, params)
+
+        if "oauth2_client_info" in params:
+            del params["oauth2_client_info"]
 
     @classmethod
     def get_parameters_from_uri(
@@ -156,47 +204,6 @@ class GSheetsEngineSpec(ShillelaghEngineSpec):
             return {**encrypted_extra}
 
         raise ValidationError("Invalid service credentials")
-
-    @classmethod
-    def mask_encrypted_extra(cls, encrypted_extra: str | None) -> str | None:
-        if encrypted_extra is None:
-            return encrypted_extra
-
-        try:
-            config = json.loads(encrypted_extra)
-        except (TypeError, json.JSONDecodeError):
-            return encrypted_extra
-
-        with contextlib.suppress(KeyError):
-            config["service_account_info"]["private_key"] = PASSWORD_MASK
-        return json.dumps(config)
-
-    @classmethod
-    def unmask_encrypted_extra(cls, old: str | None, new: str | None) -> str | None:
-        """
-        Reuse ``private_key`` if available and unchanged.
-        """
-        if old is None or new is None:
-            return new
-
-        try:
-            old_config = json.loads(old)
-            new_config = json.loads(new)
-        except (TypeError, json.JSONDecodeError):
-            return new
-
-        if "service_account_info" not in new_config:
-            return new
-
-        if "private_key" not in new_config["service_account_info"]:
-            return new
-
-        if new_config["service_account_info"]["private_key"] == PASSWORD_MASK:
-            new_config["service_account_info"]["private_key"] = old_config[
-                "service_account_info"
-            ]["private_key"]
-
-        return json.dumps(new_config)
 
     @classmethod
     def parameters_json_schema(cls) -> Any:
@@ -229,9 +236,9 @@ class GSheetsEngineSpec(ShillelaghEngineSpec):
         # via parameters for validation
         parameters = properties.get("parameters", {})
         if parameters and parameters.get("catalog"):
-            table_catalog = parameters.get("catalog", {})
+            table_catalog = parameters.get("catalog") or {}
         else:
-            table_catalog = properties.get("catalog", {})
+            table_catalog = properties.get("catalog") or {}
 
         encrypted_credentials = parameters.get("service_account_info") or "{}"
 
@@ -239,18 +246,6 @@ class GSheetsEngineSpec(ShillelaghEngineSpec):
         # at all other times they are a dict
         if isinstance(encrypted_credentials, str):
             encrypted_credentials = json.loads(encrypted_credentials)
-
-        if not table_catalog:
-            # Allowing users to submit empty catalogs
-            errors.append(
-                SupersetError(
-                    message="Sheet name is required",
-                    error_type=SupersetErrorType.CONNECTION_MISSING_PARAMETERS_ERROR,
-                    level=ErrorLevel.WARNING,
-                    extra={"catalog": {"idx": 0, "name": True}},
-                ),
-            )
-            return errors
 
         # We need a subject in case domain wide delegation is set, otherwise the
         # check will fail. This means that the admin will be able to add sheets
@@ -290,7 +285,7 @@ class GSheetsEngineSpec(ShillelaghEngineSpec):
                 return errors
 
             try:
-                results = conn.execute(f'SELECT * FROM "{url}" LIMIT 1')
+                results = conn.execute(f'SELECT * FROM "{url}" LIMIT 1')  # noqa: S608
                 results.fetchall()
             except Exception:  # pylint: disable=broad-except
                 errors.append(
@@ -310,7 +305,7 @@ class GSheetsEngineSpec(ShillelaghEngineSpec):
 
     @staticmethod
     def _do_post(
-        session: Session,
+        session: Session,  # pylint: disable=disallowed-name
         url: str,
         body: dict[str, Any],
         **kwargs: Any,
@@ -378,14 +373,20 @@ class GSheetsEngineSpec(ShillelaghEngineSpec):
                 pass
 
         # get the Google session from the Shillelagh adapter
-        with cls.get_engine(database) as engine:
+        with cls.get_engine(
+            database,
+            catalog=table.catalog,
+            schema=table.schema,
+        ) as engine:
             with engine.connect() as conn:
                 # any GSheets URL will work to get a working session
                 adapter = get_adapter_for_table_name(
                     conn,
                     spreadsheet_url or EXAMPLE_GSHEETS_URL,
                 )
-                session = adapter._get_session()  # pylint: disable=protected-access
+                session = (  # pylint: disable=disallowed-name
+                    adapter._get_session()  # pylint: disable=protected-access
+                )
 
         # clear existing sheet, or create a new one
         if spreadsheet_url:
@@ -429,4 +430,4 @@ class GSheetsEngineSpec(ShillelaghEngineSpec):
         catalog[table.table] = spreadsheet_url
         database.extra = json.dumps(extra)
         db.session.add(database)
-        db.session.commit()
+        db.session.commit()  # pylint: disable=consider-using-transaction

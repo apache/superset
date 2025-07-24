@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import { render, screen } from 'spec/helpers/testing-library';
 import DatasetPanel, {
   REFRESHING,
@@ -37,10 +36,11 @@ import {
 } from './MessageContent';
 
 jest.mock(
-  'src/components/Icons/Icon',
+  '@superset-ui/core/components/Icons/AsyncIcon',
   () =>
-    ({ fileName }: { fileName: string }) =>
-      <span role="img" aria-label={fileName.replace('_', '-')} />,
+    ({ fileName }: { fileName: string }) => (
+      <span role="img" aria-label={fileName.replace('_', '-')} />
+    ),
 );
 
 describe('DatasetPanel', () => {

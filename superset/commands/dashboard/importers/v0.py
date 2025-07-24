@@ -14,7 +14,6 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-import json
 import logging
 import time
 from copy import copy
@@ -29,12 +28,15 @@ from superset.commands.base import BaseCommand
 from superset.commands.dataset.importers.v0 import import_dataset
 from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
 from superset.exceptions import DashboardImportException
+from superset.migrations.shared.native_filters import migrate_dashboard
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
+from superset.utils import json
 from superset.utils.dashboard_filter_scopes_converter import (
     convert_filter_scopes,
     copy_filter_scopes,
 )
+from superset.utils.decorators import transaction
 
 logger = logging.getLogger(__name__)
 
@@ -65,6 +67,7 @@ def import_chart(
     datasource = SqlaTable.get_datasource_by_name(
         datasource_name=params["datasource_name"],
         database_name=params["database_name"],
+        catalog=params.get("catalog"),
         schema=params["schema"],
     )
     slc_to_import.datasource_id = datasource.id  # type: ignore
@@ -78,7 +81,7 @@ def import_chart(
     return slc_to_import.id
 
 
-def import_dashboard(
+def import_dashboard(  # noqa: C901
     # pylint: disable=too-many-locals,too-many-statements
     dashboard_to_import: Dashboard,
     dataset_id_mapping: Optional[dict[int, int]] = None,
@@ -173,6 +176,7 @@ def import_dashboard(
         for slc in db.session.query(Slice).all()
         if "remote_id" in slc.params_dict
     }
+    new_slice_ids = []
     for slc in slices:
         logger.info(
             "Importing slice %s from the dashboard: %s",
@@ -181,6 +185,7 @@ def import_dashboard(
         )
         remote_slc = remote_id_slice_map.get(slc.id)
         new_slc_id = import_chart(slc, remote_slc, import_time=import_time)
+        new_slice_ids.append(new_slc_id)
         old_to_new_slc_id_dict[slc.id] = new_slc_id
         # update json metadata that deals with slice ids
         new_slc_id_str = str(new_slc_id)
@@ -249,22 +254,21 @@ def import_dashboard(
 
     alter_native_filters(dashboard_to_import)
 
-    new_slices = (
+    if existing_dashboard:
+        existing_dashboard.override(dashboard_to_import)
+    else:
+        db.session.add(dashboard_to_import)
+
+    dashboard = existing_dashboard or dashboard_to_import
+    dashboard.slices = (
         db.session.query(Slice)
         .filter(Slice.id.in_(old_to_new_slc_id_dict.values()))
         .all()
     )
-
-    if existing_dashboard:
-        existing_dashboard.override(dashboard_to_import)
-        existing_dashboard.slices = new_slices
-        db.session.flush()
-        return existing_dashboard.id
-
-    dashboard_to_import.slices = new_slices
-    db.session.add(dashboard_to_import)
+    # Migrate any filter-box charts to native dashboard filters.
+    migrate_dashboard(dashboard)
     db.session.flush()
-    return dashboard_to_import.id  # type: ignore
+    return dashboard.id
 
 
 def decode_dashboards(o: dict[str, Any]) -> Any:
@@ -306,10 +310,8 @@ def import_dashboards(
         params = json.loads(table.params)
         dataset_id_mapping[params["remote_id"]] = new_dataset_id
 
-    db.session.commit()
     for dashboard in data["dashboards"]:
         import_dashboard(dashboard, dataset_id_mapping, import_time=import_time)
-    db.session.commit()
 
 
 class ImportDashboardsCommand(BaseCommand):
@@ -327,6 +329,7 @@ class ImportDashboardsCommand(BaseCommand):
         self.contents = contents
         self.database_id = database_id
 
+    @transaction()
     def run(self) -> None:
         self.validate()
 

@@ -28,6 +28,7 @@ from superset.common.query_context_processor import (
 )
 from superset.common.query_object import QueryObject
 from superset.models.slice import Slice
+from superset.utils.core import GenericDataType
 
 if TYPE_CHECKING:
     from superset.connectors.sqla.models import BaseDatasource
@@ -61,7 +62,7 @@ class QueryContext:
 
     # TODO: Type datasource and query_object dictionary with TypedDict when it becomes
     #  a vanilla python type https://github.com/python/mypy/issues/5288
-    def __init__(
+    def __init__(  # pylint: disable=too-many-arguments
         self,
         *,
         datasource: BaseDatasource,
@@ -88,8 +89,9 @@ class QueryContext:
     def get_data(
         self,
         df: pd.DataFrame,
+        coltypes: list[GenericDataType],
     ) -> str | list[dict[str, Any]]:
-        return self._processor.get_data(df)
+        return self._processor.get_data(df, coltypes)
 
     def get_payload(
         self,

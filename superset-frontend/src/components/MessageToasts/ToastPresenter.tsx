@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import { styled } from '@superset-ui/core';
 import { ToastMeta } from 'src/components/MessageToasts/types';
 import Toast from './Toast';
@@ -25,53 +24,55 @@ export interface VisualProps {
   position: 'bottom' | 'top';
 }
 
-const StyledToastPresenter = styled.div<VisualProps>`
-  max-width: 600px;
-  position: fixed;
-  ${({ position }) => (position === 'bottom' ? 'bottom' : 'top')}: 0px;
-  right: 0px;
-  margin-right: 50px;
-  margin-bottom: 50px;
-  z-index: ${({ theme }) => theme.zIndex.max};
-  word-break: break-word;
+const StyledToastPresenter = styled.div<VisualProps>(
+  ({ theme, position }) =>
+    // Single access to theme, using dot notation
+    `
+    max-width: 600px;
+    position: fixed;
+    ${position === 'bottom' ? 'bottom' : 'top'}: 0px;
+    right: 0px;
+    margin-right: 50px;
+    margin-bottom: 50px;
+    z-index: ${theme.zIndexPopupBase + 1};
+    word-break: break-word;
 
-  .toast {
-    background: ${({ theme }) => theme.colors.grayscale.dark1};
-    border-radius: ${({ theme }) => theme.borderRadius};
-    box-shadow: 0 2px 4px 0
-      fade(
-        ${({ theme }) => theme.colors.grayscale.dark2},
-        ${({ theme }) => theme.opacity.mediumLight}
-      );
-    color: ${({ theme }) => theme.colors.grayscale.light5};
-    opacity: 0;
-    position: relative;
-    transform: translateY(-100%);
-    white-space: pre-line;
-    will-change: transform, opacity;
-    transition: transform ${({ theme }) => theme.transitionTiming}s,
-      opacity ${({ theme }) => theme.transitionTiming}s;
-
-    &:after {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 6px;
-      height: 100%;
+    .toast {
+      padding: ${theme.sizeUnit * 4}px;
+      margin: ${theme.sizeUnit * 4}px;
+      background: ${theme.colorBgSpotlight};
+      border-radius: ${theme.borderRadius}px;
+      box-shadow: ${theme.boxShadow};
+      color: ${theme.colorTextLightSolid};
+      opacity: 0;
+      position: relative;
+      transform: translateY(-100%);
+      white-space: pre-line;
+      will-change: transform, opacity;
+      transition:
+        transform ${theme.motionDurationMid},
+        opacity ${theme.motionDurationMid};
+      &:after {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 6px;
+        height: 100%;
+      }
     }
-  }
 
-  .toast > button {
-    color: ${({ theme }) => theme.colors.grayscale.light5};
-    opacity: 1;
-  }
+    .toast > button {
+      color: ${theme.colors.grayscale.light5};
+      opacity: 1;
+    }
 
-  .toast--visible {
-    opacity: 1;
-    transform: translateY(0);
-  }
-`;
+    .toast--visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  `,
+);
 
 type ToastPresenterProps = Partial<VisualProps> & {
   toasts: Array<ToastMeta>;

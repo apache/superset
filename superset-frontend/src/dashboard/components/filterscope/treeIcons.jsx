@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import { t } from '@superset-ui/core';
 import 'react-checkbox-tree/lib/react-checkbox-tree.css';
 
@@ -24,7 +23,7 @@ import {
   CheckboxChecked,
   CheckboxUnchecked,
   CheckboxHalfChecked,
-} from 'src/components/Checkbox/CheckboxIcons';
+} from '@superset-ui/core/components/Checkbox/CheckboxIcons';
 
 const treeIcons = {
   check: <CheckboxChecked />,

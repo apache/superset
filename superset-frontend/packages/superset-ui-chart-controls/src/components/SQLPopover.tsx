@@ -16,27 +16,38 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
-import { Popover } from 'antd';
-import type { PopoverProps } from 'antd/lib/popover';
-import AceEditor from 'react-ace';
+import { useEffect, useState } from 'react';
+import { Popover, type PopoverProps } from '@superset-ui/core/components';
+import type ReactAce from 'react-ace';
 import { CalculatorOutlined } from '@ant-design/icons';
 import { css, styled, useTheme, t } from '@superset-ui/core';
-import 'ace-builds/src-noconflict/mode-sql';
 
 const StyledCalculatorIcon = styled(CalculatorOutlined)`
   ${({ theme }) => css`
     color: ${theme.colors.grayscale.base};
-    font-size: ${theme.typography.sizes.s}px;
+    font-size: ${theme.fontSizeSM}px;
     & svg {
-      margin-left: ${theme.gridUnit}px;
-      margin-right: ${theme.gridUnit}px;
+      margin-left: ${theme.sizeUnit}px;
+      margin-right: ${theme.sizeUnit}px;
     }
   `}
 `;
 
 export const SQLPopover = (props: PopoverProps & { sqlExpression: string }) => {
   const theme = useTheme();
+  const [AceEditor, setAceEditor] = useState<typeof ReactAce | null>(null);
+  useEffect(() => {
+    Promise.all([
+      import('react-ace'),
+      import('ace-builds/src-min-noconflict/mode-sql'),
+    ]).then(([reactAceModule]) => {
+      setAceEditor(() => reactAceModule.default);
+    });
+  }, []);
+
+  if (!AceEditor) {
+    return null;
+  }
   return (
     <Popover
       content={
@@ -53,14 +64,14 @@ export const SQLPopover = (props: PopoverProps & { sqlExpression: string }) => {
           readOnly
           wrapEnabled
           style={{
-            border: `1px solid ${theme.colors.grayscale.light2}`,
-            background: theme.colors.secondary.light5,
-            maxWidth: theme.gridUnit * 100,
+            border: `1px solid ${theme.colorBorder}`,
+            background: theme.colorPrimaryBg,
+            maxWidth: theme.sizeUnit * 100,
           }}
         />
       }
       placement="bottomLeft"
-      arrowPointAtCenter
+      arrow={{ pointAtCenter: true }}
       title={t('SQL expression')}
       {...props}
     >

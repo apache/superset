@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useEffect } from 'react';
+import { useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { css, isFeatureEnabled, FeatureFlag } from '@superset-ui/core';
 import { useSqlLabInitialState } from 'src/hooks/apiResources/sqlLab';
@@ -26,7 +26,7 @@ import { addDangerToast } from 'src/components/MessageToasts/actions';
 import type { SqlLabRootState } from 'src/SqlLab/types';
 import { SqlLabGlobalStyles } from 'src/SqlLab//SqlLabGlobalStyles';
 import App from 'src/SqlLab/components/App';
-import Loading from 'src/components/Loading';
+import { Loading } from '@superset-ui/core/components';
 import EditorAutoSync from 'src/SqlLab/components/EditorAutoSync';
 import useEffectEvent from 'src/hooks/useEffectEvent';
 import { LocationProvider } from './LocationContext';
@@ -73,7 +73,7 @@ export default function SqlLab() {
       >
         <SqlLabGlobalStyles />
         <App />
-        {isFeatureEnabled(FeatureFlag.SQLLAB_BACKEND_PERSISTENCE) && (
+        {isFeatureEnabled(FeatureFlag.SqllabBackendPersistence) && (
           <EditorAutoSync />
         )}
       </div>

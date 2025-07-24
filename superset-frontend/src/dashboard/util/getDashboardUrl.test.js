@@ -55,10 +55,10 @@ describe('getChartIdsFromLayout', () => {
     const urlWithStandalone = getDashboardUrl({
       pathname: 'path',
       filters,
-      standalone: DashboardStandaloneMode.HIDE_NAV,
+      standalone: DashboardStandaloneMode.HideNav,
     });
     expect(urlWithStandalone).toBe(
-      `path?preselect_filters=%7B%2235%22%3A%7B%22key%22%3A%5B%22value%22%5D%7D%7D&standalone=${DashboardStandaloneMode.HIDE_NAV}`,
+      `path?preselect_filters=%7B%2235%22%3A%7B%22key%22%3A%5B%22value%22%5D%7D%7D&standalone=${DashboardStandaloneMode.HideNav}`,
     );
   });
 
@@ -77,10 +77,10 @@ describe('getChartIdsFromLayout', () => {
     const urlWithStandalone = getDashboardUrl({
       pathname: 'path',
       filters: undefined,
-      standalone: DashboardStandaloneMode.HIDE_NAV,
+      standalone: DashboardStandaloneMode.HideNav,
     });
     expect(urlWithStandalone).toBe(
-      `path?standalone=${DashboardStandaloneMode.HIDE_NAV}`,
+      `path?standalone=${DashboardStandaloneMode.HideNav}`,
     );
   });
 
@@ -89,15 +89,15 @@ describe('getChartIdsFromLayout', () => {
     windowSpy.mockImplementation(() => ({
       location: {
         origin: 'https://localhost',
-        search: '?unkown_param=value',
+        search: '?unknown_param=value',
       },
     }));
     const urlWithStandalone = getDashboardUrl({
       pathname: 'path',
-      standalone: DashboardStandaloneMode.HIDE_NAV,
+      standalone: DashboardStandaloneMode.HideNav,
     });
     expect(urlWithStandalone).toBe(
-      `path?unkown_param=value&standalone=${DashboardStandaloneMode.HIDE_NAV}`,
+      `path?unknown_param=value&standalone=${DashboardStandaloneMode.HideNav}`,
     );
     windowSpy.mockRestore();
   });

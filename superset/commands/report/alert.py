@@ -16,11 +16,11 @@
 # under the License.
 from __future__ import annotations
 
-import json
 import logging
 from operator import eq, ge, gt, le, lt, ne
 from timeit import default_timer
 from typing import Any
+from uuid import UUID
 
 import numpy as np
 import pandas as pd
@@ -39,7 +39,9 @@ from superset.commands.report.exceptions import (
 )
 from superset.reports.models import ReportSchedule, ReportScheduleValidatorType
 from superset.tasks.utils import get_executor
+from superset.utils import json
 from superset.utils.core import override_user
+from superset.utils.decorators import logs_context
 from superset.utils.retries import retry_call
 
 logger = logging.getLogger(__name__)
@@ -52,8 +54,9 @@ OPERATOR_FUNCTIONS = {">=": ge, ">": gt, "<=": le, "<": lt, "==": eq, "!=": ne}
 
 
 class AlertCommand(BaseCommand):
-    def __init__(self, report_schedule: ReportSchedule):
+    def __init__(self, report_schedule: ReportSchedule, execution_id: UUID):
         self._report_schedule = report_schedule
+        self._execution_id = execution_id
         self._result: float | None = None
 
     def run(self) -> bool:
@@ -96,7 +99,8 @@ class AlertCommand(BaseCommand):
         if len(rows) > 1:
             raise AlertQueryMultipleRowsError(
                 message=_(
-                    f"Alert query returned more than one row. {len(rows)} rows returned"
+                    "Alert query returned more than one row. %(num_rows)s rows returned",  # noqa: E501
+                    num_rows=len(rows),
                 )
             )
         # check if query returned more than one column
@@ -104,8 +108,9 @@ class AlertCommand(BaseCommand):
             raise AlertQueryMultipleColumnsError(
                 # len is subtracted by 1 to discard pandas index column
                 _(
-                    f"Alert query returned more than one column. "
-                    f"{(len(rows[0]) - 1)} columns returned"
+                    "Alert query returned more than one column. "
+                    "%(num_cols)s columns returned",
+                    num_cols=(len(rows[0]) - 1),
                 )
             )
 
@@ -133,6 +138,13 @@ class AlertCommand(BaseCommand):
             self._report_schedule.validator_type == ReportScheduleValidatorType.OPERATOR
         )
 
+    def _get_alert_metadata_from_object(self) -> dict[str, Any]:
+        return {
+            "report_schedule_id": self._report_schedule.id,
+            "execution_id": self._execution_id,
+        }
+
+    @logs_context(context_func=_get_alert_metadata_from_object)
     def _execute_query(self) -> pd.DataFrame:
         """
         Executes the actual alert SQL query template
@@ -150,8 +162,15 @@ class AlertCommand(BaseCommand):
                 rendered_sql, ALERT_SQL_LIMIT
             )
 
-            _, username = get_executor(
-                executor_types=app.config["ALERT_REPORTS_EXECUTE_AS"],
+            if app.config["MUTATE_ALERT_QUERY"]:
+                limited_rendered_sql = (
+                    self._report_schedule.database.mutate_sql_based_on_config(
+                        limited_rendered_sql
+                    )
+                )
+
+            executor, username = get_executor(  # pylint: disable=unused-variable
+                executors=app.config["ALERT_REPORTS_EXECUTORS"],
                 model=self._report_schedule,
             )
             user = security_manager.find_user(username)
@@ -169,7 +188,12 @@ class AlertCommand(BaseCommand):
             logger.warning("A timeout occurred while executing the alert query: %s", ex)
             raise AlertQueryTimeout() from ex
         except Exception as ex:
-            raise AlertQueryError(message=str(ex)) from ex
+            logger.warning("An error occurred when running alert query")
+            # The exception message here can reveal to much information to malicious
+            # users, so we raise a generic message.
+            raise AlertQueryError(
+                message=_("An error occurred when running alert query")
+            ) from ex
 
     def validate(self) -> None:
         """

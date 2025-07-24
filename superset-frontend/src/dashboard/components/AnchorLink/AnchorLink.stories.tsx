@@ -16,11 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import AnchorLink from '.';
 
 export default {
-  title: 'AnchorLink',
+  title: 'Components/AnchorLink',
   component: AnchorLink,
 };
 
@@ -38,13 +37,5 @@ InteractiveAnchorLink.args = {
 InteractiveAnchorLink.argTypes = {
   type: {
     placement: { type: 'select', options: PLACEMENTS },
-  },
-};
-
-InteractiveAnchorLink.story = {
-  parameters: {
-    knobs: {
-      disable: true,
-    },
   },
 };

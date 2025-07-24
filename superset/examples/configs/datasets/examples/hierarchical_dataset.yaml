@@ -1,0 +1,116 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+table_name: hierarchical_dataset
+main_dttm_col: null
+description: null
+default_endpoint: null
+offset: 0
+cache_timeout: null
+schema: public
+sql: 'SELECT 1 as "id", null as "parent", ''USA'' as "name", 1 as "count"
+
+  UNION SELECT 2, 1, ''CA'', 10
+
+  UNION SELECT 3, 1, ''NY'', 15
+
+  UNION SELECT 4, 1, ''TX'', 20
+
+  UNION SELECT 5, 1, ''FL'', 12
+
+  UNION SELECT 6, 2, ''Los Angeles'', 5
+
+  UNION SELECT 7, 2, ''San Francisco'', 8
+
+  UNION SELECT 8, 3, ''New York City'', 18
+
+  UNION SELECT 9, 3, ''Buffalo'', 3
+
+  UNION SELECT 10, 4, ''Houston'', 14
+
+  UNION SELECT 11, 4, ''Dallas'', 9
+
+  UNION SELECT 12, 5, ''Miami'', 6'
+params: null
+template_params: null
+filter_select_enabled: true
+fetch_values_predicate: null
+extra: null
+normalize_columns: false
+always_filter_main_dttm: false
+uuid: f710a997-c65e-4aa6-aaed-b7d6998565ae
+metrics:
+  - metric_name: count
+    verbose_name: COUNT(*)
+    metric_type: count
+    expression: COUNT(*)
+    description: null
+    d3format: null
+    currency: null
+    extra:
+      warning_markdown: ""
+    warning_text: null
+columns:
+  - column_name: parent
+    verbose_name: null
+    is_dttm: false
+    is_active: true
+    type: INTEGER
+    advanced_data_type: null
+    groupby: true
+    filterable: true
+    expression: null
+    description: null
+    python_date_format: null
+    extra: {}
+  - column_name: count
+    verbose_name: null
+    is_dttm: false
+    is_active: true
+    type: INTEGER
+    advanced_data_type: null
+    groupby: true
+    filterable: true
+    expression: null
+    description: null
+    python_date_format: null
+    extra: {}
+  - column_name: id
+    verbose_name: null
+    is_dttm: false
+    is_active: true
+    type: INTEGER
+    advanced_data_type: null
+    groupby: true
+    filterable: true
+    expression: null
+    description: null
+    python_date_format: null
+    extra: {}
+  - column_name: name
+    verbose_name: null
+    is_dttm: false
+    is_active: true
+    type: STRING
+    advanced_data_type: null
+    groupby: true
+    filterable: true
+    expression: null
+    description: null
+    python_date_format: null
+    extra: {}
+version: 1.0.0
+database_uuid: a2dc77af-e654-49bb-b321-40f6b559a1ee

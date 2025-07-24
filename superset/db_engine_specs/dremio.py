@@ -25,6 +25,7 @@ from sqlalchemy import types
 
 from superset.constants import TimeGrain
 from superset.db_engine_specs.base import BaseEngineSpec
+from superset.utils.hashing import md5_sha_from_str
 
 if TYPE_CHECKING:
     from superset.models.core import Database
@@ -37,6 +38,18 @@ FIXED_ALIAS_IN_SELECT_VERSION = Version("24.1.0")
 class DremioEngineSpec(BaseEngineSpec):
     engine = "dremio"
     engine_name = "Dremio"
+    engine_aliases = {"dremio+flight"}
+    drivers = {
+        "flight": "Arrow Flight driver for Dremio",
+        "pyodbc": "ODBC driver for Dremio",
+    }
+    default_driver = "flight"
+    sqlalchemy_uri_placeholder = (
+        "dremio+flight://data.dremio.cloud:443/?"
+        "Token=<TOKEN>&"
+        "UseEncryption=true&"
+        "disableCertificateVerification=true"
+    )
 
     _time_grain_expressions = {
         None: "{col}",
@@ -81,3 +94,14 @@ class DremioEngineSpec(BaseEngineSpec):
             dttm_formatted = dttm.isoformat(sep=" ", timespec="milliseconds")
             return f"""TO_TIMESTAMP('{dttm_formatted}', 'YYYY-MM-DD HH24:MI:SS.FFF')"""
         return None
+
+    @staticmethod
+    def _mutate_label(label: str) -> str:
+        """
+        Suffix with the first six characters from the md5 of the label to avoid
+        collisions with original column names
+
+        :param label: Expected expression label
+        :return: Conditionally mutated label
+        """
+        return f"{label}_{md5_sha_from_str(label)[:6]}"

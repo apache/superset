@@ -14,7 +14,8 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-import json
+from __future__ import annotations
+
 import logging
 import re
 from datetime import datetime
@@ -33,12 +34,14 @@ from sqlalchemy import types
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.url import URL
 
-from superset.constants import TimeGrain, USER_AGENT
+from superset.constants import TimeGrain
 from superset.databases.utils import make_url_safe
 from superset.db_engine_specs.base import BaseEngineSpec, BasicPropertiesType
 from superset.db_engine_specs.postgres import PostgresBaseEngineSpec
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.models.sql_lab import Query
+from superset.utils import json
+from superset.utils.core import get_user_agent, QuerySource
 
 if TYPE_CHECKING:
     from superset.models.core import Database
@@ -80,12 +83,21 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
     force_column_alias_quotes = True
     max_column_name_length = 256
 
+    # Snowflake doesn't support IS true/false syntax, use = true/false instead
+    use_equality_for_boolean_filters = True
+
     parameters_schema = SnowflakeParametersSchema()
     default_driver = "snowflake"
     sqlalchemy_uri_placeholder = "snowflake://"
 
     supports_dynamic_schema = True
-    supports_catalog = True
+    supports_catalog = supports_dynamic_catalog = supports_cross_catalog_queries = True
+
+    # pylint: disable=invalid-name
+    encrypted_extra_sensitive_fields = {
+        "$.auth_params.privatekey_body",
+        "$.auth_params.privatekey_pass",
+    }
 
     _time_grain_expressions = {
         None: "{col}",
@@ -124,15 +136,18 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
     }
 
     @staticmethod
-    def get_extra_params(database: "Database") -> dict[str, Any]:
+    def get_extra_params(
+        database: Database, source: QuerySource | None = None
+    ) -> dict[str, Any]:
         """
         Add a user agent to be used in the requests.
         """
         extra: dict[str, Any] = BaseEngineSpec.get_extra_params(database)
         engine_params: dict[str, Any] = extra.setdefault("engine_params", {})
         connect_args: dict[str, Any] = engine_params.setdefault("connect_args", {})
+        user_agent = get_user_agent(database, source)
 
-        connect_args.setdefault("application", USER_AGENT)
+        connect_args.setdefault("application", user_agent)
 
         return extra
 
@@ -144,12 +159,19 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
         catalog: Optional[str] = None,
         schema: Optional[str] = None,
     ) -> tuple[URL, dict[str, Any]]:
-        database = uri.database
-        if "/" in database:
-            database = database.split("/")[0]
-        if schema:
-            schema = parse.quote(schema, safe="")
-            uri = uri.set(database=f"{database}/{schema}")
+        if "/" in uri.database:
+            current_catalog, current_schema = uri.database.split("/", 1)
+        else:
+            current_catalog, current_schema = uri.database, None
+
+        adjusted_database = "/".join(
+            [
+                catalog or current_catalog,
+                schema or current_schema or "",
+            ]
+        ).rstrip("/")
+
+        uri = uri.set(database=adjusted_database)
 
         return uri, connect_args
 
@@ -170,22 +192,29 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
         return parse.unquote(database.split("/")[1])
 
     @classmethod
+    def get_default_catalog(cls, database: "Database") -> str:
+        """
+        Return the default catalog.
+        """
+        return database.url_object.database.split("/")[0]
+
+    @classmethod
     def get_catalog_names(
         cls,
         database: "Database",
         inspector: Inspector,
-    ) -> list[str]:
+    ) -> set[str]:
         """
         Return all catalogs.
 
         In Snowflake, a catalog is called a "database".
         """
-        return sorted(
+        return {
             catalog
             for (catalog,) in inspector.bind.execute(
                 "SELECT DATABASE_NAME from information_schema.databases"
             )
-        )
+        }
 
     @classmethod
     def epoch_to_dttm(cls) -> str:
@@ -316,7 +345,7 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
         if missing := sorted(required - present):
             errors.append(
                 SupersetError(
-                    message=f'One or more parameters are missing: {", ".join(missing)}',
+                    message=f"One or more parameters are missing: {', '.join(missing)}",
                     error_type=SupersetErrorType.CONNECTION_MISSING_PARAMETERS_ERROR,
                     level=ErrorLevel.WARNING,
                     extra={"missing": missing},
@@ -354,7 +383,7 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
             encrypted_extra = json.loads(database.encrypted_extra)
         except json.JSONDecodeError as ex:
             logger.error(ex, exc_info=True)
-            raise ex
+            raise
         auth_method = encrypted_extra.get("auth_method", None)
         auth_params = encrypted_extra.get("auth_params", {})
         if not auth_method:
@@ -368,9 +397,11 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
             else:
                 with open(auth_params["privatekey_path"], "rb") as key_temp:
                     key = key_temp.read()
+            privatekey_pass = auth_params.get("privatekey_pass", None)
+            password = privatekey_pass.encode() if privatekey_pass is not None else None
             p_key = serialization.load_pem_private_key(
                 key,
-                password=auth_params["privatekey_pass"].encode(),
+                password=password,
                 backend=default_backend(),
             )
             pkb = p_key.private_bytes(

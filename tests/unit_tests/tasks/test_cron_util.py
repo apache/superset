@@ -60,7 +60,7 @@ def test_cron_schedule_window_los_angeles(
         datetime.fromisoformat(current_dttm), cron, "America/Los_Angeles"
     )
     assert (
-        list(cron.strftime("%A, %d %B %Y, %H:%M:%S") for cron in datetimes) == expected
+        list(cron.strftime("%A, %d %B %Y, %H:%M:%S") for cron in datetimes) == expected  # noqa: C400
     )
 
 
@@ -104,7 +104,7 @@ def test_cron_schedule_window_invalid_timezone(
     )
     # it should default to UTC
     assert (
-        list(cron.strftime("%A, %d %B %Y, %H:%M:%S") for cron in datetimes) == expected
+        list(cron.strftime("%A, %d %B %Y, %H:%M:%S") for cron in datetimes) == expected  # noqa: C400
     )
 
 
@@ -147,7 +147,7 @@ def test_cron_schedule_window_new_york(
         datetime.fromisoformat(current_dttm), cron, "America/New_York"
     )
     assert (
-        list(cron.strftime("%A, %d %B %Y, %H:%M:%S") for cron in datetimes) == expected
+        list(cron.strftime("%A, %d %B %Y, %H:%M:%S") for cron in datetimes) == expected  # noqa: C400
     )
 
 
@@ -190,7 +190,7 @@ def test_cron_schedule_window_chicago(
         datetime.fromisoformat(current_dttm), cron, "America/Chicago"
     )
     assert (
-        list(cron.strftime("%A, %d %B %Y, %H:%M:%S") for cron in datetimes) == expected
+        list(cron.strftime("%A, %d %B %Y, %H:%M:%S") for cron in datetimes) == expected  # noqa: C400
     )
 
 
@@ -233,5 +233,5 @@ def test_cron_schedule_window_chicago_daylight(
         datetime.fromisoformat(current_dttm), cron, "America/Chicago"
     )
     assert (
-        list(cron.strftime("%A, %d %B %Y, %H:%M:%S") for cron in datetimes) == expected
+        list(cron.strftime("%A, %d %B %Y, %H:%M:%S") for cron in datetimes) == expected  # noqa: C400
     )

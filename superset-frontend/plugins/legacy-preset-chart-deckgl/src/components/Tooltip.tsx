@@ -18,7 +18,7 @@
  */
 
 import { styled, safeHtmlSpan } from '@superset-ui/core';
-import React, { ReactNode } from 'react';
+import { ReactNode } from 'react';
 
 export type TooltipProps = {
   tooltip:
@@ -36,12 +36,12 @@ const StyledDiv = styled.div<{ top: number; left: number }>`
     position: absolute;
     top: ${top}px;
     left: ${left}px;
-    padding: ${theme.gridUnit * 2}px;
-    margin: ${theme.gridUnit * 2}px;
+    padding: ${theme.sizeUnit * 2}px;
+    margin: ${theme.sizeUnit * 2}px;
     background: ${theme.colors.grayscale.dark2};
     color: ${theme.colors.grayscale.light5};
     maxWidth: 300px;
-    fontSize: ${theme.typography.sizes.s}px;
+    fontSize: ${theme.fontSizeSM}px;
     zIndex: 9;
     pointerEvents: none;
   `}

@@ -71,19 +71,19 @@ const expectedHasMoreData = {
 };
 
 describe('useTables hook', () => {
-  afterEach(() => {
+  beforeEach(() => {
     fetchMock.reset();
-    act(() => {
-      store.dispatch(api.util.resetApiState());
-    });
+    store.dispatch(api.util.resetApiState());
   });
 
   test('returns api response mapping json options', async () => {
     const expectDbId = 'db1';
     const expectedSchema = 'schema1';
+    const catalogApiRoute = `glob:*/api/v1/database/${expectDbId}/catalogs/*`;
     const schemaApiRoute = `glob:*/api/v1/database/${expectDbId}/schemas/*`;
     const tableApiRoute = `glob:*/api/v1/database/${expectDbId}/tables/?q=*`;
     fetchMock.get(tableApiRoute, fakeApiResult);
+    fetchMock.get(catalogApiRoute, { count: 0, result: [] });
     fetchMock.get(schemaApiRoute, {
       result: fakeSchemaApiResult,
     });
@@ -130,9 +130,11 @@ describe('useTables hook', () => {
   test('skips the deprecated schema option', async () => {
     const expectDbId = 'db1';
     const unexpectedSchema = 'invalid schema';
+    const catalogApiRoute = `glob:*/api/v1/database/${expectDbId}/catalogs/*`;
     const schemaApiRoute = `glob:*/api/v1/database/${expectDbId}/schemas/*`;
     const tableApiRoute = `glob:*/api/v1/database/${expectDbId}/tables/?q=*`;
     fetchMock.get(tableApiRoute, fakeApiResult);
+    fetchMock.get(catalogApiRoute, { count: 0, result: [] });
     fetchMock.get(schemaApiRoute, {
       result: fakeSchemaApiResult,
     });
@@ -166,6 +168,10 @@ describe('useTables hook', () => {
     const expectedSchema = 'schema2';
     const tableApiRoute = `glob:*/api/v1/database/${expectDbId}/tables/?q=*`;
     fetchMock.get(tableApiRoute, fakeHasMoreApiResult);
+    fetchMock.get(`glob:*/api/v1/database/${expectDbId}/catalogs/*`, {
+      count: 0,
+      result: [],
+    });
     fetchMock.get(`glob:*/api/v1/database/${expectDbId}/schemas/*`, {
       result: fakeSchemaApiResult,
     });
@@ -191,6 +197,10 @@ describe('useTables hook', () => {
     const expectedSchema = 'schema1';
     const tableApiRoute = `glob:*/api/v1/database/${expectDbId}/tables/?q=*`;
     fetchMock.get(tableApiRoute, fakeApiResult);
+    fetchMock.get(`glob:*/api/v1/database/${expectDbId}/catalogs/*`, {
+      count: 0,
+      result: [],
+    });
     fetchMock.get(`glob:*/api/v1/database/${expectDbId}/schemas/*`, {
       result: fakeSchemaApiResult,
     });
@@ -207,6 +217,16 @@ describe('useTables hook', () => {
         }),
       },
     );
+    console.log(
+      'Called URLs:',
+      fetchMock.calls().map(call => call[0]),
+    );
+
+    // Add a catch-all mock to see if any unmocked requests are being made
+    fetchMock.mock('*', url => {
+      console.log('Unmocked request to:', url);
+      return 404;
+    });
     await waitFor(() => expect(fetchMock.calls(tableApiRoute).length).toBe(1));
     rerender();
     await waitFor(() => expect(result.current.data).toEqual(expectedData));
@@ -220,6 +240,10 @@ describe('useTables hook', () => {
     fetchMock.get(tableApiRoute, url =>
       url.includes(expectedSchema) ? fakeApiResult : fakeHasMoreApiResult,
     );
+    fetchMock.get(`glob:*/api/v1/database/${expectDbId}/catalogs/*`, {
+      count: 0,
+      result: [],
+    });
     fetchMock.get(`glob:*/api/v1/database/${expectDbId}/schemas/*`, {
       result: fakeSchemaApiResult,
     });

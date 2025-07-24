@@ -17,7 +17,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Any
+from typing import Any, TypedDict
 
 from flask_babel import gettext as __
 
@@ -27,7 +27,6 @@ from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetErrorException, SupersetTimeoutException
 from superset.jinja_context import get_template_processor
 from superset.models.core import Database
-from superset.sqllab.schemas import EstimateQueryCostSchema
 from superset.utils import core as utils
 
 config = app.config
@@ -37,18 +36,28 @@ stats_logger = config["STATS_LOGGER"]
 logger = logging.getLogger(__name__)
 
 
+class EstimateQueryCostType(TypedDict):
+    database_id: int
+    sql: str
+    template_params: dict[str, Any]
+    catalog: str | None
+    schema: str | None
+
+
 class QueryEstimationCommand(BaseCommand):
     _database_id: int
     _sql: str
     _template_params: dict[str, Any]
     _schema: str
     _database: Database
+    _catalog: str | None
 
-    def __init__(self, params: EstimateQueryCostSchema) -> None:
-        self._database_id = params.get("database_id")
+    def __init__(self, params: EstimateQueryCostType) -> None:
+        self._database_id = params["database_id"]
         self._sql = params.get("sql", "")
         self._template_params = params.get("template_params", {})
-        self._schema = params.get("schema", "")
+        self._schema = params.get("schema") or ""
+        self._catalog = params.get("catalog")
 
     def validate(self) -> None:
         self._database = db.session.query(Database).get(self._database_id)
@@ -77,7 +86,11 @@ class QueryEstimationCommand(BaseCommand):
         try:
             with utils.timeout(seconds=timeout, error_message=timeout_msg):
                 cost = self._database.db_engine_spec.estimate_query_cost(
-                    self._database, self._schema, sql, utils.QuerySource.SQL_LAB
+                    self._database,
+                    self._catalog,
+                    self._schema,
+                    sql,
+                    utils.QuerySource.SQL_LAB,
                 )
         except SupersetTimeoutException as ex:
             logger.exception(ex)

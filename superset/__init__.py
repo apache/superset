@@ -14,28 +14,27 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-"""Package's main module!"""
 from flask import current_app, Flask
 from werkzeug.local import LocalProxy
 
-from superset.app import create_app
+from superset.app import create_app  # noqa: F401
 from superset.extensions import (
-    appbuilder,
+    appbuilder,  # noqa: F401
     cache_manager,
-    db,
-    event_logger,
+    db,  # noqa: F401
+    event_logger,  # noqa: F401
     feature_flag_manager,
     manifest_processor,
     results_backend_manager,
-    security_manager,
-    talisman,
+    security_manager,  # noqa: F401
+    talisman,  # noqa: F401
 )
-from superset.security import SupersetSecurityManager
+from superset.security import SupersetSecurityManager  # noqa: F401
 
-#  All of the fields located here should be considered legacy. The correct way
-#  to declare "global" dependencies is to define it in extensions.py,
-#  then initialize it in app.create_app(). These fields will be removed
-#  in subsequent PRs as things are migrated towards the factory pattern
+# All of the fields located here should be considered legacy. The correct way
+# to declare "global" dependencies is to define it in extensions.py,
+# then initialize it in app.create_app(). These fields will be removed
+# in subsequent PRs as things are migrated towards the factory pattern
 app: Flask = current_app
 cache = cache_manager.cache
 conf = LocalProxy(lambda: current_app.config)

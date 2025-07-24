@@ -16,7 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ChartDataResponseResult, GenericDataType } from '@superset-ui/core';
+import {
+  ChartDataResponseResult,
+  GenericDataType,
+  VizType,
+} from '@superset-ui/core';
 import {
   TableChartFormData,
   TableChartProps,
@@ -29,7 +33,7 @@ export const birthNames = birthNamesJson as TableChartProps;
 
 export const basicFormData: TableChartFormData = {
   datasource: '1__table',
-  viz_type: 'table',
+  viz_type: VizType.Table,
   align_pn: false,
   color_pn: false,
   include_search: true,
@@ -45,10 +49,10 @@ export const basicFormData: TableChartFormData = {
 export const basicData: Partial<ChartDataResponseResult> = {
   colnames: ['name', 'sum__num', 'MAX(ds)', 'Abc.com'],
   coltypes: [
-    GenericDataType.STRING,
-    GenericDataType.NUMERIC,
-    GenericDataType.TEMPORAL,
-    GenericDataType.STRING,
+    GenericDataType.String,
+    GenericDataType.Numeric,
+    GenericDataType.Temporal,
+    GenericDataType.String,
   ],
   data: [
     {

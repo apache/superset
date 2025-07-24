@@ -16,41 +16,48 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useMemo, useRef } from 'react';
-import { t, useTruncation } from '@superset-ui/core';
+import { memo, useMemo } from 'react';
+import { t, useTruncation, css } from '@superset-ui/core';
+import { List } from '@superset-ui/core/components/List';
 import { useFilterScope } from './useFilterScope';
-import {
-  Row,
-  RowLabel,
-  RowTruncationCount,
-  RowValue,
-  TooltipList,
-  TooltipSectionLabel,
-} from './Styles';
+import { Row, RowLabel, RowTruncationCount, RowValue } from './Styles';
 import { FilterCardRowProps } from './types';
 import { TooltipWithTruncation } from './TooltipWithTruncation';
 
 const getTooltipSection = (items: string[] | undefined, label: string) =>
   Array.isArray(items) && items.length > 0 ? (
     <>
-      <TooltipSectionLabel>{label}:</TooltipSectionLabel>
-      <TooltipList>
-        {items.map(item => (
-          <li>{item}</li>
-        ))}
-      </TooltipList>
+      <span
+        css={theme => css`
+          font-weight: ${theme.fontWeightStrong};
+        `}
+      >
+        {label}:
+      </span>
+      <List
+        size="small"
+        split={false}
+        dataSource={items}
+        renderItem={item => (
+          <List.Item
+            compact
+            css={theme => css`
+              && .scope-item {
+                color: ${theme.colorWhite};
+              }
+            `}
+          >
+            <span className="scope-item">• {item} </span>
+          </List.Item>
+        )}
+      />
     </>
   ) : null;
-
-export const ScopeRow = React.memo(({ filter }: FilterCardRowProps) => {
+export const ScopeRow = memo(({ filter }: FilterCardRowProps) => {
   const scope = useFilterScope(filter);
-  const scopeRef = useRef<HTMLDivElement>(null);
-  const plusRef = useRef<HTMLDivElement>(null);
 
-  const [elementsTruncated, hasHiddenElements] = useTruncation(
-    scopeRef,
-    plusRef,
-  );
+  const [scopeRef, plusRef, elementsTruncated, hasHiddenElements] =
+    useTruncation();
   const tooltipText = useMemo(() => {
     if (elementsTruncated === 0 || !scope) {
       return null;
@@ -81,7 +88,7 @@ export const ScopeRow = React.memo(({ filter }: FilterCardRowProps) => {
                 ))
             : t('None')}
         </RowValue>
-        {hasHiddenElements > 0 && (
+        {hasHiddenElements && (
           <RowTruncationCount ref={plusRef}>
             +{elementsTruncated}
           </RowTruncationCount>

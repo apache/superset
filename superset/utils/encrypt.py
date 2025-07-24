@@ -22,8 +22,14 @@ from flask import Flask
 from flask_babel import lazy_gettext as _
 from sqlalchemy import text, TypeDecorator
 from sqlalchemy.engine import Connection, Dialect, Row
-from sqlalchemy_utils import EncryptedType
+from sqlalchemy_utils import EncryptedType as SqlaEncryptedType
 
+
+class EncryptedType(SqlaEncryptedType):
+    cache_ok = True
+
+
+ENC_ADAPTER_TAG_ATTR_NAME = "__created_by_enc_field_adapter__"
 logger = logging.getLogger(__name__)
 
 
@@ -70,11 +76,17 @@ class EncryptedFieldFactory:
         self, *args: list[Any], **kwargs: Optional[dict[str, Any]]
     ) -> TypeDecorator:
         if self._concrete_type_adapter:
-            return self._concrete_type_adapter.create(self._config, *args, **kwargs)
+            adapter = self._concrete_type_adapter.create(self._config, *args, **kwargs)
+            setattr(adapter, ENC_ADAPTER_TAG_ATTR_NAME, True)
+            return adapter
 
         raise Exception(  # pylint: disable=broad-exception-raised
             "App not initialized yet. Please call init_app first"
         )
+
+    @staticmethod
+    def created_by_enc_field_factory(field: TypeDecorator) -> bool:
+        return getattr(field, ENC_ADAPTER_TAG_ATTR_NAME, False)
 
 
 class SecretsMigrator:
@@ -126,7 +138,7 @@ class SecretsMigrator:
     def _select_columns_from_table(
         conn: Connection, column_names: list[str], table_name: str
     ) -> Row:
-        return conn.execute(f"SELECT id, {','.join(column_names)} FROM {table_name}")
+        return conn.execute(f"SELECT id, {','.join(column_names)} FROM {table_name}")  # noqa: S608
 
     def _re_encrypt_row(
         self,
@@ -176,7 +188,7 @@ class SecretsMigrator:
         )
         logger.info("Processing table: %s", table_name)
         conn.execute(
-            text(f"UPDATE {table_name} SET {set_cols} WHERE id = :id"),
+            text(f"UPDATE {table_name} SET {set_cols} WHERE id = :id"),  # noqa: S608
             id=row["id"],
             **re_encrypted_columns,
         )

@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t, ChartMetadata, ChartPlugin } from '@superset-ui/core';
+import { t, ChartMetadata, ChartPlugin, Behavior } from '@superset-ui/core';
 import transformProps from '../../transformProps';
 import controlPanel from './controlPanel';
 import thumbnail from './images/thumbnail.png';
@@ -32,7 +32,8 @@ const metadata = new ChartMetadata({
   name: t('deck.gl Contour'),
   thumbnail,
   useLegacyApi: true,
-  tags: [t('deckGL'), t('Spatial'), t('Comparison'), t('Experimental')],
+  tags: [t('deckGL'), t('Spatial'), t('Comparison')],
+  behaviors: [Behavior.InteractiveChart],
 });
 
 export default class ContourChartPlugin extends ChartPlugin {

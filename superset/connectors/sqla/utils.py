@@ -23,13 +23,13 @@ from typing import Callable, TYPE_CHECKING, TypeVar
 from uuid import UUID
 
 from flask_babel import lazy_gettext as _
-from sqlalchemy.engine.url import URL as SqlaURL
+from sqlalchemy.engine.url import URL as SqlaURL  # noqa: N811
 from sqlalchemy.exc import NoSuchTableError
 from sqlalchemy.ext.declarative import DeclarativeMeta
-from sqlalchemy.orm import Session
 from sqlalchemy.orm.exc import ObjectDeletedError
 from sqlalchemy.sql.type_api import TypeEngine
 
+from superset import db
 from superset.constants import LRU_CACHE_MAX_SIZE
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
@@ -38,7 +38,7 @@ from superset.exceptions import (
 )
 from superset.models.core import Database
 from superset.result_set import SupersetResultSet
-from superset.sql_parse import ParsedQuery
+from superset.sql.parse import SQLScript, Table
 from superset.superset_typing import ResultSetColumnType
 
 if TYPE_CHECKING:
@@ -47,24 +47,18 @@ if TYPE_CHECKING:
 
 def get_physical_table_metadata(
     database: Database,
-    table_name: str,
+    table: Table,
     normalize_columns: bool,
-    schema_name: str | None = None,
 ) -> list[ResultSetColumnType]:
     """Use SQLAlchemy inspector to get table metadata"""
     db_engine_spec = database.db_engine_spec
     db_dialect = database.get_dialect()
-    # ensure empty schema
-    _schema_name = schema_name if schema_name else None
+
     # Table does not exist or is not visible to a connection.
+    if not (database.has_table(table) or database.has_view(table)):
+        raise NoSuchTableError(table)
 
-    if not (
-        database.has_table_by_name(table_name=table_name, schema=_schema_name)
-        or database.has_view_by_name(view_name=table_name, schema=_schema_name)
-    ):
-        raise NoSuchTableError
-
-    cols = database.get_columns(table_name, schema=_schema_name)
+    cols = database.get_columns(table)
     for col in cols:
         try:
             if isinstance(col["type"], TypeEngine):
@@ -111,8 +105,8 @@ def get_virtual_table_metadata(dataset: SqlaTable) -> list[ResultSetColumnType]:
     sql = dataset.get_template_processor().process_template(
         dataset.sql, **dataset.template_params_dict
     )
-    parsed_query = ParsedQuery(sql)
-    if not db_engine_spec.is_readonly_query(parsed_query):
+    parsed_script = SQLScript(sql, engine=db_engine_spec.engine)
+    if parsed_script.has_mutation():
         raise SupersetSecurityException(
             SupersetError(
                 error_type=SupersetErrorType.DATASOURCE_SECURITY_ACCESS_ERROR,
@@ -120,8 +114,7 @@ def get_virtual_table_metadata(dataset: SqlaTable) -> list[ResultSetColumnType]:
                 level=ErrorLevel.ERROR,
             )
         )
-    statements = parsed_query.get_statements()
-    if len(statements) > 1:
+    if len(parsed_script.statements) > 1:
         raise SupersetSecurityException(
             SupersetError(
                 error_type=SupersetErrorType.DATASOURCE_SECURITY_ACCESS_ERROR,
@@ -129,11 +122,17 @@ def get_virtual_table_metadata(dataset: SqlaTable) -> list[ResultSetColumnType]:
                 level=ErrorLevel.ERROR,
             )
         )
-    return get_columns_description(dataset.database, dataset.schema, statements[0])
+    return get_columns_description(
+        dataset.database,
+        dataset.catalog,
+        dataset.schema,
+        sql,
+    )
 
 
 def get_columns_description(
     database: Database,
+    catalog: str | None,
     schema: str | None,
     query: str,
 ) -> list[ResultSetColumnType]:
@@ -141,11 +140,12 @@ def get_columns_description(
     #  sql_lab.py:execute_sql_statements
     db_engine_spec = database.db_engine_spec
     try:
-        with database.get_raw_connection(schema=schema) as conn:
+        with database.get_raw_connection(catalog=catalog, schema=schema) as conn:
             cursor = conn.cursor()
             query = database.apply_limit_to_sql(query, limit=1)
-            cursor.execute(query)
-            db_engine_spec.execute(cursor, query)
+            mutated_query = database.mutate_sql_based_on_config(query)
+            cursor.execute(mutated_query)
+            db_engine_spec.execute(cursor, mutated_query, database)
             result = db_engine_spec.fetch_data(cursor, limit=1)
             result_set = SupersetResultSet(result, cursor.description, db_engine_spec)
             return result_set.columns
@@ -168,14 +168,12 @@ logger = logging.getLogger(__name__)
 
 
 def find_cached_objects_in_session(
-    session: Session,
     cls: type[DeclarativeModel],
     ids: Iterable[int] | None = None,
     uuids: Iterable[UUID] | None = None,
 ) -> Iterator[DeclarativeModel]:
     """Find known ORM instances in cached SQLA session states.
 
-    :param session: a SQLA session
     :param cls: a SQLA DeclarativeModel
     :param ids: ids of the desired model instances (optional)
     :param uuids: uuids of the desired instances, will be ignored if `ids` are provides
@@ -184,7 +182,7 @@ def find_cached_objects_in_session(
         return iter([])
     uuids = uuids or []
     try:
-        items = list(session)
+        items = list(db.session)
     except ObjectDeletedError:
         logger.warning("ObjectDeletedError", exc_info=True)
         return iter(())

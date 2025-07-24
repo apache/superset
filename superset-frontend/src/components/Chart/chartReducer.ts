@@ -24,7 +24,7 @@ import { DatasourcesAction } from 'src/dashboard/actions/datasources';
 import { ChartState } from 'src/explore/types';
 import { getFormDataFromControls } from 'src/explore/controlUtils';
 import { HYDRATE_EXPLORE } from 'src/explore/actions/hydrateExplore';
-import { now } from 'src/utils/dates';
+import { now } from '@superset-ui/core/utils/dates';
 import * as actions from './chartAction';
 
 export const chart: ChartState = {
@@ -195,7 +195,7 @@ export default function chartReducer(
   if (action.type === HYDRATE_DASHBOARD || action.type === HYDRATE_EXPLORE) {
     return { ...action.data.charts };
   }
-  if (action.type === DatasourcesAction.SET_DATASOURCES) {
+  if (action.type === DatasourcesAction.SetDatasources) {
     return Object.fromEntries(
       Object.entries(charts).map(([chartId, chart]) => [
         chartId,

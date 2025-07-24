@@ -6,12 +6,12 @@
     "start": "node ./bin/www"
   },
   "dependencies": {
-    "cookie-parser": "~1.4.6",
-    "debug": "~4.3.4",
-    "express": "~4.18.2",
+    "cookie-parser": "~1.4.7",
+    "debug": "~4.4.1",
+    "express": "~5.1.0",
     "http-errors": "~2.0.0",
     "jsonwebtoken": "^9.0.2",
-    "morgan": "~1.10.0",
-    "pug": "~3.0.2"
+    "morgan": "~1.10.1",
+    "pug": "~3.0.3"
   }
 }

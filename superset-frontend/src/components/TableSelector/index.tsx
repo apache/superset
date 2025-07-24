@@ -16,31 +16,33 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, {
+import {
   FunctionComponent,
   useState,
   ReactNode,
   useMemo,
   useEffect,
 } from 'react';
-import { SelectValue } from 'antd/lib/select';
+import type { SelectValue } from '@superset-ui/core/components';
 
-import { styled, t } from '@superset-ui/core';
-import { Select } from 'src/components';
-import { FormLabel } from 'src/components/Form';
-import Icons from 'src/components/Icons';
-import DatabaseSelector, {
-  DatabaseObject,
-} from 'src/components/DatabaseSelector';
-import RefreshLabel from 'src/components/RefreshLabel';
-import CertifiedBadge from 'src/components/CertifiedBadge';
-import WarningIconWithTooltip from 'src/components/WarningIconWithTooltip';
-import { useToasts } from 'src/components/MessageToasts/withToasts';
-import { useTables, Table } from 'src/hooks/apiResources';
 import {
+  styled,
+  t,
   getClientErrorMessage,
   getClientErrorObject,
-} from 'src/utils/getClientErrorObject';
+} from '@superset-ui/core';
+import {
+  FormLabel,
+  CertifiedBadge,
+  Select,
+} from '@superset-ui/core/components';
+import { DatabaseSelector } from 'src/components';
+import { Icons } from '@superset-ui/core/components/Icons';
+import type { DatabaseObject } from 'src/components/DatabaseSelector/types';
+import RefreshLabel from '@superset-ui/core/components/RefreshLabel';
+import WarningIconWithTooltip from '@superset-ui/core/components/WarningIconWithTooltip';
+import { useToasts } from 'src/components/MessageToasts/withToasts';
+import { useTables, Table } from 'src/hooks/apiResources';
 
 const REFRESH_WIDTH = 30;
 
@@ -50,8 +52,8 @@ const TableSelectorWrapper = styled.div`
       display: flex;
       align-items: center;
       width: ${REFRESH_WIDTH}px;
-      margin-left: ${theme.gridUnit}px;
-      margin-top: ${theme.gridUnit * 5}px;
+      margin-left: ${theme.sizeUnit}px;
+      margin-top: ${theme.sizeUnit * 5}px;
     }
 
     .section {
@@ -61,7 +63,7 @@ const TableSelectorWrapper = styled.div`
     }
 
     .divider {
-      border-bottom: 1px solid ${theme.colors.secondary.light5};
+      border-bottom: 1px solid ${theme.colorSplit};
       margin: 15px 0;
     }
 
@@ -71,7 +73,7 @@ const TableSelectorWrapper = styled.div`
 
     .select {
       flex: 1;
-      max-width: calc(100% - ${theme.gridUnit + REFRESH_WIDTH}px)
+      max-width: calc(100% - ${theme.sizeUnit + REFRESH_WIDTH}px)
     }
   `}
 `;
@@ -83,7 +85,7 @@ const TableLabel = styled.span`
 
   svg,
   small {
-    margin-right: ${({ theme }) => theme.gridUnit}px;
+    margin-right: ${({ theme }) => theme.sizeUnit}px;
   }
 `;
 
@@ -96,13 +98,19 @@ interface TableSelectorProps {
   handleError: (msg: string) => void;
   isDatabaseSelectEnabled?: boolean;
   onDbChange?: (db: DatabaseObject) => void;
+  onCatalogChange?: (catalog?: string | null) => void;
   onSchemaChange?: (schema?: string) => void;
   readOnly?: boolean;
+  catalog?: string | null;
   schema?: string;
   onEmptyResults?: (searchText?: string) => void;
   sqlLabMode?: boolean;
   tableValue?: string | string[];
-  onTableSelectChange?: (value?: string | string[], schema?: string) => void;
+  onTableSelectChange?: (
+    value?: string | string[],
+    catalog?: string | null,
+    schema?: string,
+  ) => void;
   tableSelectMode?: 'single' | 'multiple';
   customTableOptionLabelRenderer?: (table: Table) => JSX.Element;
 }
@@ -118,9 +126,9 @@ export const TableOption = ({ table }: { table: Table }) => {
   return (
     <TableLabel title={value}>
       {type === 'view' ? (
-        <Icons.Eye iconSize="m" />
+        <Icons.EyeOutlined iconSize="m" />
       ) : (
-        <Icons.Table iconSize="m" />
+        <Icons.InsertRowAboveOutlined iconSize="m" />
       )}
       {extra?.certification && (
         <CertifiedBadge
@@ -158,9 +166,11 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
   handleError,
   isDatabaseSelectEnabled = true,
   onDbChange,
+  onCatalogChange,
   onSchemaChange,
   readOnly = false,
   onEmptyResults,
+  catalog,
   schema,
   sqlLabMode = true,
   tableSelectMode = 'single',
@@ -169,6 +179,9 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
   customTableOptionLabelRenderer,
 }) => {
   const { addSuccessToast } = useToasts();
+  const [currentCatalog, setCurrentCatalog] = useState<
+    string | null | undefined
+  >(catalog);
   const [currentSchema, setCurrentSchema] = useState<string | undefined>(
     schema,
   );
@@ -176,11 +189,12 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
     SelectValue | undefined
   >(undefined);
   const {
-    data,
+    currentData: data,
     isFetching: loadingTables,
     refetch,
   } = useTables({
     dbId: database?.id,
+    catalog: currentCatalog,
     schema: currentSchema,
     onSuccess: (data, isFetched) => {
       if (isFetched) {
@@ -204,11 +218,12 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
       data
         ? data.options.map(table => ({
             value: table.value,
-            label: <TableOption table={table} />,
+            label: customTableOptionLabelRenderer ? (
+              customTableOptionLabelRenderer(table)
+            ) : (
+              <TableOption table={table} />
+            ),
             text: table.value,
-            ...(customTableOptionLabelRenderer && {
-              customLabel: customTableOptionLabelRenderer(table),
-            }),
           }))
         : [],
     [data, customTableOptionLabelRenderer],
@@ -217,6 +232,7 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
   useEffect(() => {
     // reset selections
     if (database === undefined) {
+      setCurrentCatalog(undefined);
       setCurrentSchema(undefined);
       setTableSelectValue(undefined);
     }
@@ -244,6 +260,7 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
         Array.isArray(selectedOptions)
           ? selectedOptions.map(option => option?.value)
           : selectedOptions?.value,
+        currentCatalog,
         currentSchema,
       );
     } else {
@@ -255,6 +272,22 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
     if (onDbChange) {
       onDbChange(db);
     }
+
+    setCurrentCatalog(undefined);
+    setCurrentSchema(undefined);
+    const value = tableSelectMode === 'single' ? undefined : [];
+    setTableSelectValue(value);
+  };
+
+  const internalCatalogChange = (catalog?: string | null) => {
+    setCurrentCatalog(catalog);
+    if (onCatalogChange) {
+      onCatalogChange(catalog);
+    }
+
+    setCurrentSchema(undefined);
+    const value = tableSelectMode === 'single' ? undefined : [];
+    setTableSelectValue(value);
   };
 
   const internalSchemaChange = (schema?: string) => {
@@ -264,7 +297,7 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
     }
 
     const value = tableSelectMode === 'single' ? undefined : [];
-    internalTableChange(value);
+    setTableSelectValue(value);
   };
 
   const handleFilterOption = useMemo(
@@ -327,6 +360,8 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
         handleError={handleError}
         onDbChange={readOnly ? undefined : internalDbChange}
         onEmptyResults={onEmptyResults}
+        onCatalogChange={readOnly ? undefined : internalCatalogChange}
+        catalog={currentCatalog}
         onSchemaChange={readOnly ? undefined : internalSchemaChange}
         schema={currentSchema}
         sqlLabMode={sqlLabMode}
@@ -339,7 +374,8 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
   );
 };
 
-export const TableSelectorMultiple: FunctionComponent<TableSelectorProps> =
-  props => <TableSelector tableSelectMode="multiple" {...props} />;
+export const TableSelectorMultiple: FunctionComponent<
+  TableSelectorProps
+> = props => <TableSelector tableSelectMode="multiple" {...props} />;
 
 export default TableSelector;

@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import PropTypes from 'prop-types';
 import Split from 'react-split';
 import {
@@ -38,7 +38,7 @@ import {
   setItem,
   LocalStorageKeys,
 } from 'src/utils/localStorageHelpers';
-import Alert from 'src/components/Alert';
+import { Alert } from '@superset-ui/core/components';
 import { SaveDatasetModal } from 'src/SqlLab/components/SaveDatasetModal';
 import { getDatasourceAsSaveableDataset } from 'src/utils/datasourceUtils';
 import { buildV1ChartDataPayload } from 'src/explore/exploreUtils';
@@ -93,31 +93,15 @@ const Styles = styled.div`
   }
 
   .gutter {
-    border-top: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
-    border-bottom: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
-    width: ${({ theme }) => theme.gridUnit * 9}px;
-    margin: ${({ theme }) => theme.gridUnit * GUTTER_SIZE_FACTOR}px auto;
+    border-top: 1px solid ${({ theme }) => theme.colorSplit};
+    border-bottom: 1px solid ${({ theme }) => theme.colorSplit};
+    width: ${({ theme }) => theme.sizeUnit * 9}px;
+    margin: ${({ theme }) => theme.sizeUnit * GUTTER_SIZE_FACTOR}px auto;
   }
 
   .gutter.gutter-vertical {
     display: ${({ showSplite }) => (showSplite ? 'block' : 'none')};
     cursor: row-resize;
-  }
-
-  .ant-collapse {
-    .ant-tabs {
-      height: 100%;
-      .ant-tabs-nav {
-        padding-left: ${({ theme }) => theme.gridUnit * 5}px;
-        margin: 0;
-      }
-      .ant-tabs-content-holder {
-        overflow: hidden;
-        .ant-tabs-content {
-          height: 100%;
-        }
-      }
-    }
   }
 `;
 
@@ -137,10 +121,11 @@ const ExploreChartPanel = ({
   standalone,
   chartIsStale,
   chartAlert,
+  can_download: canDownload,
 }) => {
   const theme = useTheme();
-  const gutterMargin = theme.gridUnit * GUTTER_SIZE_FACTOR;
-  const gutterHeight = theme.gridUnit * GUTTER_SIZE_FACTOR;
+  const gutterMargin = theme.sizeUnit * GUTTER_SIZE_FACTOR;
+  const gutterHeight = theme.sizeUnit * GUTTER_SIZE_FACTOR;
   const {
     ref: chartPanelRef,
     observerRef: resizeObserverRef,
@@ -148,14 +133,14 @@ const ExploreChartPanel = ({
     height: chartPanelHeight,
   } = useResizeDetectorByObserver();
   const [splitSizes, setSplitSizes] = useState(
-    isFeatureEnabled(FeatureFlag.DATAPANEL_CLOSED_BY_DEFAULT)
+    isFeatureEnabled(FeatureFlag.DatapanelClosedByDefault)
       ? INITIAL_SIZES
-      : getItem(LocalStorageKeys.chart_split_sizes, INITIAL_SIZES),
+      : getItem(LocalStorageKeys.ChartSplitSizes, INITIAL_SIZES),
   );
   const [showSplite, setShowSplit] = useState(
-    isFeatureEnabled(FeatureFlag.DATAPANEL_CLOSED_BY_DEFAULT)
+    isFeatureEnabled(FeatureFlag.DatapanelClosedByDefault)
       ? false
-      : getItem(LocalStorageKeys.is_datapanel_open, false),
+      : getItem(LocalStorageKeys.IsDatapanelOpen, false),
   );
 
   const [showDatasetModal, setShowDatasetModal] = useState(false);
@@ -202,7 +187,7 @@ const ExploreChartPanel = ({
   }, [updateQueryContext]);
 
   useEffect(() => {
-    setItem(LocalStorageKeys.chart_split_sizes, splitSizes);
+    setItem(LocalStorageKeys.ChartSplitSizes, splitSizes);
   }, [splitSizes]);
 
   const onDragEnd = useCallback(sizes => {
@@ -306,6 +291,7 @@ const ExploreChartPanel = ({
         css={css`
           display: flex;
           flex-direction: column;
+          padding-top: ${theme.sizeUnit * 2}px;
         `}
         ref={resizeObserverRef}
       >
@@ -314,7 +300,7 @@ const ExploreChartPanel = ({
             message={t('Chart type requires a dataset')}
             type="error"
             css={theme => css`
-              margin: 0 0 ${theme.gridUnit * 4}px 0;
+              margin: 0 0 ${theme.sizeUnit * 4}px 0;
             `}
             description={
               <>
@@ -358,7 +344,7 @@ const ExploreChartPanel = ({
             }
             type="warning"
             css={theme => css`
-              margin: 0 0 ${theme.gridUnit * 4}px 0;
+              margin: 0 0 ${theme.sizeUnit * 4}px 0;
             `}
           />
         )}
@@ -426,35 +412,29 @@ const ExploreChartPanel = ({
   }
 
   return (
-    <Styles
-      className="panel panel-default chart-container"
-      showSplite={showSplite}
-    >
-      {vizType === 'filter_box' ? (
-        panelBody
-      ) : (
-        <Split
-          sizes={splitSizes}
-          minSize={MIN_SIZES}
-          direction="vertical"
-          gutterSize={gutterHeight}
-          onDragEnd={onDragEnd}
-          elementStyle={elementStyle}
-          expandToMin
-        >
-          {panelBody}
-          <DataTablesPane
-            ownState={ownState}
-            queryFormData={queryFormData}
-            datasource={datasource}
-            queryForce={force}
-            onCollapseChange={onCollapseChange}
-            chartStatus={chart.chartStatus}
-            errorMessage={errorMessage}
-            actions={actions}
-          />
-        </Split>
-      )}
+    <Styles className="chart-container" showSplite={showSplite}>
+      <Split
+        sizes={splitSizes}
+        minSize={MIN_SIZES}
+        direction="vertical"
+        gutterSize={gutterHeight}
+        onDragEnd={onDragEnd}
+        elementStyle={elementStyle}
+        expandToMin
+      >
+        {panelBody}
+        <DataTablesPane
+          ownState={ownState}
+          queryFormData={queryFormData}
+          datasource={datasource}
+          queryForce={force}
+          onCollapseChange={onCollapseChange}
+          chartStatus={chart.chartStatus}
+          errorMessage={errorMessage}
+          actions={actions}
+          canDownload={canDownload}
+        />
+      </Split>
       {showDatasetModal && (
         <SaveDatasetModal
           visible={showDatasetModal}

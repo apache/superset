@@ -15,10 +15,12 @@
 # specific language governing permissions and limitations
 # under the License.
 
+from __future__ import annotations
+
 from typing import Any
 
 from marshmallow import Schema
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session  # noqa: F401
 
 from superset.commands.database.exceptions import DatabaseImportError
 from superset.commands.database.importers.v1.utils import import_database
@@ -30,7 +32,6 @@ from superset.datasets.schemas import ImportV1DatasetSchema
 
 
 class ImportDatabasesCommand(ImportModelsCommand):
-
     """Import databases"""
 
     dao = DatabaseDAO
@@ -44,13 +45,15 @@ class ImportDatabasesCommand(ImportModelsCommand):
 
     @staticmethod
     def _import(
-        session: Session, configs: dict[str, Any], overwrite: bool = False
+        configs: dict[str, Any],
+        overwrite: bool = False,
+        contents: dict[str, Any] | None = None,
     ) -> None:
         # first import databases
         database_ids: dict[str, int] = {}
         for file_name, config in configs.items():
             if file_name.startswith("databases/"):
-                database = import_database(session, config, overwrite=overwrite)
+                database = import_database(config, overwrite=overwrite)
                 database_ids[str(database.uuid)] = database.id
 
         # import related datasets
@@ -61,4 +64,4 @@ class ImportDatabasesCommand(ImportModelsCommand):
             ):
                 config["database_id"] = database_ids[config["database_uuid"]]
                 # overwrite=False prevents deleting any non-imported columns/metrics
-                import_dataset(session, config, overwrite=False)
+                import_dataset(config, overwrite=False)

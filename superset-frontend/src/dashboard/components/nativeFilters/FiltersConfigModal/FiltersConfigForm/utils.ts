@@ -17,8 +17,8 @@
  * under the License.
  */
 import { flatMapDeep } from 'lodash';
-import { FormInstance } from 'src/components';
-import React from 'react';
+import type { FormInstance } from '@superset-ui/core/components';
+import { useState, useCallback } from 'react';
 import { CustomControlItem, Dataset } from '@superset-ui/chart-controls';
 import { Column, ensureIsArray, GenericDataType } from '@superset-ui/core';
 import { DatasourcesState, ChartsState } from 'src/dashboard/types';
@@ -27,8 +27,8 @@ import { FILTER_SUPPORTED_TYPES } from './constants';
 const FILTERS_FIELD_NAME = 'filters';
 
 export const useForceUpdate = (isActive = true) => {
-  const [, updateState] = React.useState({});
-  return React.useCallback(() => {
+  const [, updateState] = useState({});
+  return useCallback(() => {
     if (isActive) {
       updateState({});
     }
@@ -73,14 +73,16 @@ export const hasTemporalColumns = (
 ) => {
   const columnTypes = ensureIsArray(dataset?.column_types);
   return (
-    columnTypes.length === 0 || columnTypes.includes(GenericDataType.TEMPORAL)
+    columnTypes.length === 0 || columnTypes.includes(GenericDataType.Temporal)
   );
 };
 
 export const doesColumnMatchFilterType = (filterType: string, column: Column) =>
   !column.type_generic ||
   !(filterType in FILTER_SUPPORTED_TYPES) ||
-  FILTER_SUPPORTED_TYPES[filterType]?.includes(column.type_generic);
+  FILTER_SUPPORTED_TYPES[
+    filterType as keyof typeof FILTER_SUPPORTED_TYPES
+  ]?.includes(column.type_generic);
 
 export const mostUsedDataset = (
   datasets: DatasourcesState,

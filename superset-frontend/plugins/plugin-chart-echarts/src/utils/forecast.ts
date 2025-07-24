@@ -16,10 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { isNumber } from 'lodash';
 import { DataRecord, DTTM_ALIAS, ValueFormatter } from '@superset-ui/core';
-import { OptionName } from 'echarts/types/src/util/types';
-import { TooltipMarker } from 'echarts/types/src/util/format';
+import type { OptionName, SeriesOption } from 'echarts/types/src/util/types';
+import type { TooltipMarker } from 'echarts/types/src/util/format';
 import {
   ForecastSeriesContext,
   ForecastSeriesEnum,
@@ -45,12 +44,15 @@ export const extractForecastSeriesContext = (
 export const extractForecastSeriesContexts = (
   seriesNames: string[],
 ): { [key: string]: ForecastSeriesEnum[] } =>
-  seriesNames.reduce((agg, name) => {
-    const context = extractForecastSeriesContext(name);
-    const currentContexts = agg[context.name] || [];
-    currentContexts.push(context.type);
-    return { ...agg, [context.name]: currentContexts };
-  }, {} as { [key: string]: ForecastSeriesEnum[] });
+  seriesNames.reduce(
+    (agg, name) => {
+      const context = extractForecastSeriesContext(name);
+      const currentContexts = agg[context.name] || [];
+      currentContexts.push(context.type);
+      return { ...agg, [context.name]: currentContexts };
+    },
+    {} as { [key: string]: ForecastSeriesEnum[] },
+  );
 
 export const extractForecastValuesFromTooltipParams = (
   params: any[],
@@ -61,7 +63,7 @@ export const extractForecastValuesFromTooltipParams = (
     const { marker, seriesId, value } = param;
     const context = extractForecastSeriesContext(seriesId);
     const numericValue = isHorizontal ? value[0] : value[1];
-    if (isNumber(numericValue)) {
+    if (typeof numericValue === 'number') {
       if (!(context.name in values))
         values[context.name] = {
           marker: marker || '',
@@ -92,23 +94,26 @@ export const formatForecastTooltipSeries = ({
   seriesName: string;
   marker: TooltipMarker;
   formatter: ValueFormatter;
-}): string => {
-  let row = `${marker}${sanitizeHtml(seriesName)}: `;
-  let isObservation = false;
-  if (isNumber(observation)) {
-    isObservation = true;
-    row += `${formatter(observation)}`;
+}): string[] => {
+  const name = `${marker}${sanitizeHtml(seriesName)}`;
+  let value = typeof observation === 'number' ? formatter(observation) : '';
+  if (forecastTrend || forecastLower || forecastUpper) {
+    // forecast values take the form of "20, y = 30 (10, 40)"
+    // where the first part is the observation, the second part is the forecast trend
+    // and the third part is the lower and upper bounds
+    if (forecastTrend) {
+      if (value) value += ', ';
+      value += `ŷ = ${formatter(forecastTrend)}`;
+    }
+    if (forecastLower && forecastUpper) {
+      if (value) value += ' ';
+      // the lower bound needs to be added to the upper bound
+      value += `(${formatter(forecastLower)}, ${formatter(
+        forecastLower + forecastUpper,
+      )})`;
+    }
   }
-  if (forecastTrend) {
-    if (isObservation) row += ', ';
-    row += `ŷ = ${formatter(forecastTrend)}`;
-  }
-  if (forecastLower && forecastUpper)
-    // the lower bound needs to be added to the upper bound
-    row = `${row.trim()} (${formatter(forecastLower)}, ${formatter(
-      forecastLower + forecastUpper,
-    )})`;
-  return `${row.trim()}`;
+  return [name, value];
 };
 
 export function rebaseForecastDatum(
@@ -142,5 +147,36 @@ export function rebaseForecastDatum(
     });
     // eslint-disable-next-line @typescript-eslint/no-unsafe-return
     return newRow;
+  });
+}
+
+// For Confidence Bands, forecast series on mixed charts require the series sent in the following sortOrder:
+export function reorderForecastSeries(row: SeriesOption[]): SeriesOption[] {
+  const sortOrder = {
+    [ForecastSeriesEnum.ForecastLower]: 1,
+    [ForecastSeriesEnum.ForecastUpper]: 2,
+    [ForecastSeriesEnum.ForecastTrend]: 3,
+    [ForecastSeriesEnum.Observation]: 4,
+  };
+
+  // Check if any item needs reordering
+  if (
+    !row.some(
+      item =>
+        item.id &&
+        sortOrder.hasOwnProperty(extractForecastSeriesContext(item.id).type),
+    )
+  ) {
+    return row;
+  }
+
+  return row.sort((a, b) => {
+    const aOrder =
+      sortOrder[extractForecastSeriesContext(a.id ?? '').type] ??
+      Number.MAX_SAFE_INTEGER;
+    const bOrder =
+      sortOrder[extractForecastSeriesContext(b.id ?? '').type] ??
+      Number.MAX_SAFE_INTEGER;
+    return aOrder - bOrder;
   });
 }

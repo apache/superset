@@ -16,14 +16,17 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, {
+import {
   ChangeEventHandler,
+  FC,
+  ReactElement,
   useCallback,
   useEffect,
   useMemo,
   useRef,
   useState,
 } from 'react';
+
 import Fuse from 'fuse.js';
 import cx from 'classnames';
 import {
@@ -36,13 +39,10 @@ import {
   chartLabelWeight,
   chartLabelExplanations,
 } from '@superset-ui/core';
-import { AntdCollapse } from 'src/components';
-import { Tooltip } from 'src/components/Tooltip';
-import { Input } from 'src/components/Input';
-import Label from 'src/components/Label';
-import { usePluginContext } from 'src/components/DynamicPlugins';
-import Icons from 'src/components/Icons';
+import { Input, Collapse, Tooltip, Label } from '@superset-ui/core/components';
+import { Icons } from '@superset-ui/core/components/Icons';
 import { nativeFilterGate } from 'src/dashboard/components/nativeFilters/utils';
+import { usePluginContext } from 'src/components';
 import scrollIntoView from 'scroll-into-view-if-needed';
 
 interface VizTypeGalleryProps {
@@ -58,65 +58,12 @@ type VizEntry = {
   value: ChartMetadata;
 };
 
-enum SECTIONS {
-  ALL_CHARTS = 'ALL_CHARTS',
-  CATEGORY = 'CATEGORY',
-  TAGS = 'TAGS',
-  RECOMMENDED_TAGS = 'RECOMMENDED_TAGS',
+enum Sections {
+  AllCharts = 'ALL_CHARTS',
+  Featured = 'FEATURED',
+  Category = 'CATEGORY',
+  Tags = 'TAGS',
 }
-
-const DEFAULT_ORDER = [
-  'line',
-  'big_number',
-  'big_number_total',
-  'table',
-  'pivot_table_v2',
-  'echarts_timeseries_line',
-  'echarts_area',
-  'echarts_timeseries_bar',
-  'echarts_timeseries_scatter',
-  'pie',
-  'mixed_timeseries',
-  'filter_box',
-  'dist_bar',
-  'area',
-  'bar',
-  'deck_polygon',
-  'time_table',
-  'histogram',
-  'deck_scatter',
-  'deck_hex',
-  'time_pivot',
-  'deck_arc',
-  'heatmap',
-  'deck_grid',
-  'deck_screengrid',
-  'treemap_v2',
-  'box_plot',
-  'sunburst',
-  'sankey',
-  'word_cloud',
-  'mapbox',
-  'kepler',
-  'cal_heatmap',
-  'rose',
-  'bubble',
-  'bubble_v2',
-  'deck_geojson',
-  'horizon',
-  'deck_multi',
-  'compare',
-  'partition',
-  'event_flow',
-  'deck_path',
-  'graph_chart',
-  'world_map',
-  'paired_ttest',
-  'para',
-  'country_map',
-];
-
-const typesWithDefaultOrder = new Set(DEFAULT_ORDER);
 
 const THUMBNAIL_GRID_UNITS = 24;
 
@@ -126,7 +73,9 @@ const OTHER_CATEGORY = t('Other');
 
 const ALL_CHARTS = t('All charts');
 
-const RECOMMENDED_TAGS = [t('Popular'), t('ECharts'), t('Advanced-Analytics')];
+const FEATURED = t('Featured');
+
+const RECOMMENDED_TAGS = [FEATURED, t('ECharts'), t('Advanced-Analytics')];
 
 export const VIZ_TYPE_CONTROL_TEST_ID = 'viz-type-control';
 
@@ -151,30 +100,31 @@ const VizPickerLayout = styled.div<{ isSelectedVizMetadata: boolean }>`
 
 const SectionTitle = styled.h3`
   margin-top: 0;
-  margin-bottom: ${({ theme }) => theme.gridUnit * 2}px;
-  font-size: ${({ theme }) => theme.typography.sizes.l}px;
-  font-weight: ${({ theme }) => theme.typography.weights.bold};
-  line-height: ${({ theme }) => theme.gridUnit * 6}px;
+  margin-bottom: ${({ theme }) => theme.sizeUnit * 2}px;
+  font-size: ${({ theme }) => theme.fontSizeLG}px;
+  font-weight: ${({ theme }) => theme.fontWeightStrong};
+  line-height: ${({ theme }) => theme.sizeUnit * 6}px;
 `;
 
 const LeftPane = styled.div`
   grid-area: sidebar;
   display: flex;
   flex-direction: column;
-  border-right: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
+  border-right: 1px solid ${({ theme }) => theme.colorBorder};
   overflow: auto;
 
   .ant-collapse .ant-collapse-item {
     .ant-collapse-header {
-      font-size: ${({ theme }) => theme.typography.sizes.s}px;
-      color: ${({ theme }) => theme.colors.grayscale.base};
-      padding-left: ${({ theme }) => theme.gridUnit * 2}px;
-      padding-bottom: ${({ theme }) => theme.gridUnit}px;
+      font-size: ${({ theme }) => theme.fontSizeSM}px;
+      color: ${({ theme }) => theme.colorText};
+      padding-left: ${({ theme }) => theme.sizeUnit * 2}px;
+      padding-bottom: ${({ theme }) => theme.sizeUnit}px;
     }
+
     .ant-collapse-content .ant-collapse-content-box {
       display: flex;
       flex-direction: column;
-      padding: 0 ${({ theme }) => theme.gridUnit * 2}px;
+      padding: 0 ${({ theme }) => theme.sizeUnit * 2}px;
     }
   }
 `;
@@ -187,12 +137,12 @@ const RightPane = styled.div`
 const SearchWrapper = styled.div`
   ${({ theme }) => `
     grid-area: search;
-    margin-top: ${theme.gridUnit * 3}px;
-    margin-bottom: ${theme.gridUnit}px;
-    margin-left: ${theme.gridUnit * 3}px;
-    margin-right: ${theme.gridUnit * 3}px;
+    margin-top: ${theme.sizeUnit * 3}px;
+    margin-bottom: ${theme.sizeUnit}px;
+    margin-left: ${theme.sizeUnit * 3}px;
+    margin-right: ${theme.sizeUnit * 3}px;
     .ant-input-affix-wrapper {
-      padding-left: ${theme.gridUnit * 2}px;
+      padding-left: ${theme.sizeUnit * 2}px;
     }
   `}
 `;
@@ -202,7 +152,7 @@ const InputIconAlignment = styled.div`
   display: flex;
   justify-content: center;
   align-items: center;
-  color: ${({ theme }) => theme.colors.grayscale.base};
+  color: ${({ theme }) => theme.colorIcon};
 `;
 
 const SelectorLabel = styled.button`
@@ -212,24 +162,25 @@ const SelectorLabel = styled.button`
     flex-direction: row;
     align-items: center;
     cursor: pointer;
-    margin: ${theme.gridUnit}px 0;
-    padding: 0 ${theme.gridUnit}px;
+    margin: ${theme.sizeUnit}px 0;
+    padding: 0 ${theme.sizeUnit}px;
     border-radius: ${theme.borderRadius}px;
     line-height: 2em;
     text-overflow: ellipsis;
     white-space: nowrap;
     position: relative;
+    color: ${theme.colorText};
 
     &:focus {
       outline: initial;
     }
 
     &.selected {
-      background-color: ${theme.colors.primary.base};
-      color: ${theme.colors.primary.light5};
+      background-color: ${theme.colorPrimaryBgHover};
+      color: ${theme.colorPrimaryTextActive};
 
       svg {
-        color: ${theme.colors.primary.light5};
+        color: ${theme.colorIcon};
       }
 
       &:hover {
@@ -239,8 +190,8 @@ const SelectorLabel = styled.button`
       }
     }
 
-    & span:first-of-type svg {
-      margin-top: ${theme.gridUnit * 1.5}px;
+    & > span[role="img"] {
+      margin-right: ${theme.sizeUnit * 2}px;
     }
 
     .cancel {
@@ -254,23 +205,23 @@ const IconsPane = styled.div`
   display: grid;
   grid-template-columns: repeat(
     auto-fill,
-    ${({ theme }) => theme.gridUnit * THUMBNAIL_GRID_UNITS}px
+    ${({ theme }) => theme.sizeUnit * THUMBNAIL_GRID_UNITS}px
   );
   grid-auto-rows: max-content;
   justify-content: space-evenly;
-  grid-gap: ${({ theme }) => theme.gridUnit * 2}px;
+  grid-gap: ${({ theme }) => theme.sizeUnit * 2}px;
   justify-items: center;
   // for some reason this padding doesn't seem to apply at the bottom of the container. Why is a mystery.
-  padding: ${({ theme }) => theme.gridUnit * 2}px;
+  padding: ${({ theme }) => theme.sizeUnit * 2}px;
 `;
 
 const DetailsPane = (theme: SupersetTheme) => css`
   grid-area: details;
-  border-top: 1px solid ${theme.colors.grayscale.light2};
+  border-top: 1px solid ${theme.colorBorder};
 `;
 
 const DetailsPopulated = (theme: SupersetTheme) => css`
-  padding: ${theme.gridUnit * 4}px;
+  padding: ${theme.sizeUnit * 4}px;
   display: grid;
   grid-template-columns: 1fr 1fr;
   grid-template-rows: auto auto 1fr;
@@ -284,15 +235,15 @@ const DetailsPopulated = (theme: SupersetTheme) => css`
 // (plus grid layout) enables the description to scroll while the header stays in place.
 const TagsWrapper = styled.div`
   grid-area: viz-tags;
-  width: ${({ theme }) => theme.gridUnit * 120}px;
-  padding-right: ${({ theme }) => theme.gridUnit * 14}px;
-  padding-bottom: ${({ theme }) => theme.gridUnit * 2}px;
+  width: ${({ theme }) => theme.sizeUnit * 120}px;
+  padding-right: ${({ theme }) => theme.sizeUnit * 14}px;
+  padding-bottom: ${({ theme }) => theme.sizeUnit * 2}px;
 `;
 
 const Description = styled.p`
   grid-area: description;
   overflow: auto;
-  padding-right: ${({ theme }) => theme.gridUnit * 14}px;
+  padding-right: ${({ theme }) => theme.sizeUnit * 14}px;
   margin: 0;
 `;
 
@@ -302,55 +253,54 @@ const Examples = styled.div`
   flex-direction: row;
   flex-wrap: nowrap;
   overflow: auto;
-  gap: ${({ theme }) => theme.gridUnit * 4}px;
+  gap: ${({ theme }) => theme.sizeUnit * 4}px;
 
   img {
     height: 100%;
-    border-radius: ${({ theme }) => theme.gridUnit}px;
-    border: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
+    border-radius: ${({ theme }) => theme.borderRadius}px;
+    border: 1px solid ${({ theme }) => theme.colorBorder};
   }
 `;
 
 const thumbnailContainerCss = (theme: SupersetTheme) => css`
   cursor: pointer;
-  width: ${theme.gridUnit * THUMBNAIL_GRID_UNITS}px;
+  width: ${theme.sizeUnit * THUMBNAIL_GRID_UNITS}px;
   position: relative;
 
   img {
-    min-width: ${theme.gridUnit * THUMBNAIL_GRID_UNITS}px;
-    min-height: ${theme.gridUnit * THUMBNAIL_GRID_UNITS}px;
-    border: 1px solid ${theme.colors.grayscale.light2};
-    border-radius: ${theme.gridUnit}px;
-    transition: border-color ${theme.transitionTiming};
+    min-width: ${theme.sizeUnit * THUMBNAIL_GRID_UNITS}px;
+    min-height: ${theme.sizeUnit * THUMBNAIL_GRID_UNITS}px;
+    border: 1px solid ${theme.colorBorder};
+    border-radius: ${theme.borderRadius}px;
+    transition: border-color ${theme.motionDurationMid};
   }
 
   &.selected img {
-    border: 2px solid ${theme.colors.primary.light2};
+    border: 2px solid ${theme.colorPrimaryBorder};
   }
 
   &:hover:not(.selected) img {
-    border: 1px solid ${theme.colors.grayscale.light1};
+    border: 1px solid ${theme.colorBorder};
   }
 
   .viztype-label {
-    margin-top: ${theme.gridUnit * 2}px;
+    margin-top: ${theme.sizeUnit * 2}px;
     text-align: center;
   }
 `;
 
 const HighlightLabel = styled.div`
   ${({ theme }) => `
-    border: 1px solid ${theme.colors.primary.dark1};
+    border: 1px solid ${theme.colorPrimaryText};
     box-sizing: border-box;
-    border-radius: ${theme.gridUnit}px;
+    border-radius: ${theme.borderRadius}px;
     background: ${theme.colors.grayscale.light5};
-    line-height: ${theme.gridUnit * 2.5}px;
-    color: ${theme.colors.primary.dark1};
-    font-size: ${theme.typography.sizes.s}px;
-    font-weight: ${theme.typography.weights.bold};
+    line-height: ${theme.sizeUnit * 2.5}px;
+    color: ${theme.colorPrimaryText};
+    font-size: ${theme.fontSizeSM}px;
+    font-weight: ${theme.fontWeightStrong};
     text-align: center;
-    padding: ${theme.gridUnit * 0.5}px ${theme.gridUnit}px;
-    text-transform: uppercase;
+    padding: ${theme.sizeUnit * 0.5}px ${theme.sizeUnit}px;
     cursor: pointer;
 
     div {
@@ -361,21 +311,14 @@ const HighlightLabel = styled.div`
 
 const ThumbnailLabelWrapper = styled.div`
   position: absolute;
-  right: ${({ theme }) => theme.gridUnit}px;
-  top: ${({ theme }) => theme.gridUnit * 19}px;
+  right: ${({ theme }) => theme.sizeUnit}px;
+  top: ${({ theme }) => theme.sizeUnit * 19}px;
 `;
 
 const TitleLabelWrapper = styled.div`
   display: inline-block !important;
-  margin-left: ${({ theme }) => theme.gridUnit * 2}px;
+  margin-left: ${({ theme }) => theme.sizeUnit * 2}px;
 `;
-
-function vizSortFactor(entry: VizEntry) {
-  if (typesWithDefaultOrder.has(entry.key)) {
-    return DEFAULT_ORDER.indexOf(entry.key);
-  }
-  return DEFAULT_ORDER.length;
-}
 
 interface ThumbnailProps {
   entry: VizEntry;
@@ -384,7 +327,7 @@ interface ThumbnailProps {
   onDoubleClick: () => void;
 }
 
-const Thumbnail: React.FC<ThumbnailProps> = ({
+const Thumbnail: FC<ThumbnailProps> = ({
   entry,
   selectedViz,
   setSelectedViz,
@@ -437,7 +380,7 @@ interface ThumbnailGalleryProps {
 }
 
 /** A list of viz thumbnails, used within the viz picker modal */
-const ThumbnailGallery: React.FC<ThumbnailGalleryProps> = ({
+const ThumbnailGallery: FC<ThumbnailGalleryProps> = ({
   vizEntries,
   ...props
 }) => (
@@ -448,10 +391,10 @@ const ThumbnailGallery: React.FC<ThumbnailGalleryProps> = ({
   </IconsPane>
 );
 
-const Selector: React.FC<{
+const Selector: FC<{
   selector: string;
   sectionId: string;
-  icon: JSX.Element;
+  icon: ReactElement;
   isSelected: boolean;
   onClick: (selector: string, sectionId: string) => void;
   className?: string;
@@ -474,11 +417,15 @@ const Selector: React.FC<{
 
   return (
     <SelectorLabel
+      aria-label={selector}
+      aria-selected={isSelected}
       ref={btnRef}
       key={selector}
       name={selector}
       className={cx(className, isSelected && 'selected')}
       onClick={() => onClick(selector, sectionId)}
+      tabIndex={0}
+      role="tab"
     >
       {icon}
       {selector}
@@ -492,7 +439,7 @@ const doesVizMatchSelector = (viz: ChartMetadata, selector: string) =>
   (viz.tags || []).indexOf(selector) > -1;
 
 export default function VizTypeGallery(props: VizTypeGalleryProps) {
-  const { selectedViz, onChange, onDoubleClick, className } = props;
+  const { selectedViz, onChange, onDoubleClick, className, denyList } = props;
   const { mountedPluginMetadata } = usePluginContext();
   const searchInputRef = useRef<HTMLInputElement>();
   const [searchInputValue, setSearchInputValue] = useState('');
@@ -506,14 +453,14 @@ export default function VizTypeGallery(props: VizTypeGalleryProps) {
   const chartMetadata: VizEntry[] = useMemo(() => {
     const result = Object.entries(mountedPluginMetadata)
       .map(([key, value]) => ({ key, value }))
-      .filter(({ key }) => !props.denyList.includes(key))
+      .filter(({ key }) => !denyList.includes(key))
       .filter(
         ({ value }) =>
           nativeFilterGate(value.behaviors || []) && !value.deprecated,
-      );
-    result.sort((a, b) => vizSortFactor(a) - vizSortFactor(b));
+      )
+      .sort((a, b) => a.value.name.localeCompare(b.value.name));
     return result;
-  }, [mountedPluginMetadata]);
+  }, [mountedPluginMetadata, denyList]);
 
   const chartsByCategory = useMemo(() => {
     const result: Record<string, VizEntry[]> = {};
@@ -565,18 +512,17 @@ export default function VizTypeGallery(props: VizTypeGalleryProps) {
   );
 
   const sortedMetadata = useMemo(
-    () => chartMetadata.sort((a, b) => a.key.localeCompare(b.key)),
+    () =>
+      chartMetadata.sort((a, b) => a.value.name.localeCompare(b.value.name)),
     [chartMetadata],
   );
 
   const [activeSelector, setActiveSelector] = useState<string>(
-    () => selectedVizMetadata?.category || RECOMMENDED_TAGS[0],
+    () => selectedVizMetadata?.category || FEATURED,
   );
 
   const [activeSection, setActiveSection] = useState<string>(() =>
-    selectedVizMetadata?.category
-      ? SECTIONS.CATEGORY
-      : SECTIONS.RECOMMENDED_TAGS,
+    selectedVizMetadata?.category ? Sections.Category : Sections.Featured,
   );
 
   // get a fuse instance for fuzzy search
@@ -668,19 +614,14 @@ export default function VizTypeGallery(props: VizTypeGalleryProps) {
 
   const sectionMap = useMemo(
     () => ({
-      [SECTIONS.RECOMMENDED_TAGS]: {
-        title: t('Recommended tags'),
-        icon: <Icons.Tags />,
-        selectors: RECOMMENDED_TAGS,
-      },
-      [SECTIONS.CATEGORY]: {
+      [Sections.Category]: {
         title: t('Category'),
-        icon: <Icons.Category />,
+        icon: <Icons.Category iconSize="m" />,
         selectors: categories,
       },
-      [SECTIONS.TAGS]: {
+      [Sections.Tags]: {
         title: t('Tags'),
-        icon: <Icons.Tags />,
+        icon: <Icons.NumberOutlined iconSize="m" />,
         selectors: tags,
       },
     }),
@@ -691,23 +632,23 @@ export default function VizTypeGallery(props: VizTypeGalleryProps) {
     if (isActivelySearching) {
       return searchResults;
     }
-    if (
-      activeSelector === ALL_CHARTS &&
-      activeSection === SECTIONS.ALL_CHARTS
-    ) {
+    if (activeSelector === ALL_CHARTS && activeSection === Sections.AllCharts) {
       return sortedMetadata;
     }
     if (
-      activeSection === SECTIONS.CATEGORY &&
+      activeSelector === FEATURED &&
+      activeSection === Sections.Featured &&
+      chartsByTags[FEATURED]
+    ) {
+      return chartsByTags[FEATURED];
+    }
+    if (
+      activeSection === Sections.Category &&
       chartsByCategory[activeSelector]
     ) {
       return chartsByCategory[activeSelector];
     }
-    if (
-      (activeSection === SECTIONS.TAGS ||
-        activeSection === SECTIONS.RECOMMENDED_TAGS) &&
-      chartsByTags[activeSelector]
-    ) {
+    if (activeSection === Sections.Tags && chartsByTags[activeSelector]) {
       return chartsByTags[activeSelector];
     }
     return [];
@@ -718,56 +659,74 @@ export default function VizTypeGallery(props: VizTypeGalleryProps) {
       className={className}
       isSelectedVizMetadata={Boolean(selectedVizMetadata)}
     >
-      <LeftPane>
+      <LeftPane aria-label={t('Choose chart type')} role="tablist">
         <Selector
-          css={({ gridUnit }) =>
+          css={({ sizeUnit }) =>
             // adjust style for not being inside a collapse
             css`
-              margin: ${gridUnit * 2}px;
+              margin: ${sizeUnit * 2}px;
               margin-bottom: 0;
             `
           }
-          sectionId={SECTIONS.ALL_CHARTS}
+          sectionId={Sections.AllCharts}
           selector={ALL_CHARTS}
-          icon={<Icons.Ballot />}
+          icon={<Icons.Ballot iconSize="m" />}
           isSelected={
             !isActivelySearching &&
             ALL_CHARTS === activeSelector &&
-            SECTIONS.ALL_CHARTS === activeSection
+            Sections.AllCharts === activeSection
           }
           onClick={clickSelector}
         />
-        <AntdCollapse
-          expandIconPosition="right"
+        <Selector
+          css={({ sizeUnit }) =>
+            // adjust style for not being inside a collapse
+            css`
+              margin: ${sizeUnit * 2}px;
+              margin-bottom: 0;
+            `
+          }
+          sectionId={Sections.Featured}
+          selector={FEATURED}
+          icon={<Icons.FireOutlined iconSize="m" />}
+          isSelected={
+            !isActivelySearching &&
+            FEATURED === activeSelector &&
+            Sections.Featured === activeSection
+          }
+          onClick={clickSelector}
+        />
+        <Collapse
+          expandIconPosition="end"
           ghost
-          defaultActiveKey={Object.keys(sectionMap)}
-        >
-          {Object.keys(sectionMap).map(sectionId => {
-            const section = sectionMap[sectionId];
+          defaultActiveKey={Sections.Category}
+          items={Object.keys(sectionMap).map(sectionId => {
+            const section = sectionMap[sectionId as keyof typeof sectionMap];
 
-            return (
-              <AntdCollapse.Panel
-                header={<span className="header">{section.title}</span>}
-                key={sectionId}
-              >
-                {section.selectors.map((selector: string) => (
-                  <Selector
-                    key={selector}
-                    selector={selector}
-                    sectionId={sectionId}
-                    icon={section.icon}
-                    isSelected={
-                      !isActivelySearching &&
-                      selector === activeSelector &&
-                      sectionId === activeSection
-                    }
-                    onClick={clickSelector}
-                  />
-                ))}
-              </AntdCollapse.Panel>
-            );
+            return {
+              key: sectionId,
+              label: <span className="header">{section.title}</span>,
+              children: (
+                <>
+                  {section.selectors.map((selector: string) => (
+                    <Selector
+                      key={selector}
+                      selector={selector}
+                      sectionId={sectionId}
+                      icon={section.icon}
+                      isSelected={
+                        !isActivelySearching &&
+                        selector === activeSelector &&
+                        sectionId === activeSection
+                      }
+                      onClick={clickSelector}
+                    />
+                  ))}
+                </>
+              ),
+            };
           })}
-        </AntdCollapse>
+        />
       </LeftPane>
 
       <SearchWrapper>
@@ -781,13 +740,13 @@ export default function VizTypeGallery(props: VizTypeGalleryProps) {
           data-test={`${VIZ_TYPE_CONTROL_TEST_ID}__search-input`}
           prefix={
             <InputIconAlignment>
-              <Icons.Search iconSize="m" />
+              <Icons.SearchOutlined iconSize="m" />
             </InputIconAlignment>
           }
           suffix={
             <InputIconAlignment>
               {searchInputValue && (
-                <Icons.XLarge iconSize="m" onClick={stopSearching} />
+                <Icons.CloseOutlined iconSize="m" onClick={stopSearching} />
               )}
             </InputIconAlignment>
           }
@@ -837,7 +796,14 @@ export default function VizTypeGallery(props: VizTypeGalleryProps) {
             </SectionTitle>
             <TagsWrapper>
               {selectedVizMetadata?.tags.map(tag => (
-                <Label key={tag}>{tag}</Label>
+                <Label
+                  key={tag}
+                  css={({ sizeUnit }) => css`
+                    margin-bottom: ${sizeUnit * 2}px;
+                  `}
+                >
+                  {tag}
+                </Label>
               ))}
             </TagsWrapper>
             <Description>

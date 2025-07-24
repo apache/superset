@@ -18,11 +18,11 @@
  */
 import {
   CUSTOM_OPERATORS,
-  Operators,
+  DISABLE_INPUT_OPERATORS,
   OPERATOR_ENUM_TO_OPERATOR_TYPE,
 } from 'src/explore/constants';
 import { translateToSql } from '../utils/translateToSQL';
-import { CLAUSES, EXPRESSION_TYPES } from '../types';
+import { Clauses, ExpressionTypes } from '../types';
 
 const CUSTOM_OPERATIONS = [...CUSTOM_OPERATORS].map(
   op => OPERATOR_ENUM_TO_OPERATOR_TYPE[op].operation,
@@ -30,29 +30,18 @@ const CUSTOM_OPERATIONS = [...CUSTOM_OPERATORS].map(
 
 export default class AdhocFilter {
   constructor(adhocFilter) {
-    this.expressionType = adhocFilter.expressionType || EXPRESSION_TYPES.SIMPLE;
-    if (this.expressionType === EXPRESSION_TYPES.SIMPLE) {
+    this.expressionType = adhocFilter.expressionType || ExpressionTypes.Simple;
+    if (this.expressionType === ExpressionTypes.Simple) {
       this.subject = adhocFilter.subject;
       this.operator = adhocFilter.operator?.toUpperCase();
       this.operatorId = adhocFilter.operatorId;
       this.comparator = adhocFilter.comparator;
-      if (
-        [Operators.IS_TRUE, Operators.IS_FALSE].indexOf(
-          adhocFilter.operatorId,
-        ) >= 0
-      ) {
-        this.comparator = adhocFilter.operatorId === Operators.IS_TRUE;
+      if (DISABLE_INPUT_OPERATORS.indexOf(adhocFilter.operatorId) >= 0) {
+        this.comparator = undefined;
       }
-      if (
-        [Operators.IS_NULL, Operators.IS_NOT_NULL].indexOf(
-          adhocFilter.operatorId,
-        ) >= 0
-      ) {
-        this.comparator = null;
-      }
-      this.clause = adhocFilter.clause || CLAUSES.WHERE;
+      this.clause = adhocFilter.clause || Clauses.Where;
       this.sqlExpression = null;
-    } else if (this.expressionType === EXPRESSION_TYPES.SQL) {
+    } else if (this.expressionType === ExpressionTypes.Sql) {
       this.sqlExpression =
         typeof adhocFilter.sqlExpression === 'string'
           ? adhocFilter.sqlExpression
@@ -74,6 +63,8 @@ export default class AdhocFilter {
     this.isExtra = !!adhocFilter.isExtra;
     this.isNew = !!adhocFilter.isNew;
     this.datasourceWarning = !!adhocFilter.datasourceWarning;
+    this.deck_slices = adhocFilter?.deck_slices;
+    this.layerFilterScope = adhocFilter?.layerFilterScope;
 
     this.filterOptionName =
       adhocFilter.filterOptionName ||
@@ -93,6 +84,7 @@ export default class AdhocFilter {
 
   equals(adhocFilter) {
     return (
+      adhocFilter.clause === this.clause &&
       adhocFilter.expressionType === this.expressionType &&
       adhocFilter.sqlExpression === this.sqlExpression &&
       adhocFilter.operator === this.operator &&
@@ -103,34 +95,30 @@ export default class AdhocFilter {
   }
 
   isValid() {
-    const nullCheckOperators = [Operators.IS_NOT_NULL, Operators.IS_NULL].map(
-      op => OPERATOR_ENUM_TO_OPERATOR_TYPE[op].operation,
-    );
-    const truthCheckOperators = [Operators.IS_TRUE, Operators.IS_FALSE].map(
-      op => OPERATOR_ENUM_TO_OPERATOR_TYPE[op].operation,
-    );
-    if (this.expressionType === EXPRESSION_TYPES.SIMPLE) {
-      if (nullCheckOperators.indexOf(this.operator) >= 0) {
-        return !!(this.operator && this.subject);
+    if (this.expressionType === ExpressionTypes.Simple) {
+      // operators where the comparator is not used
+      if (
+        DISABLE_INPUT_OPERATORS.map(
+          op => OPERATOR_ENUM_TO_OPERATOR_TYPE[op].operation,
+        ).indexOf(this.operator) >= 0
+      ) {
+        return !!this.subject;
       }
-      if (truthCheckOperators.indexOf(this.operator) >= 0) {
-        return !!(this.subject && this.comparator !== null);
-      }
+
       if (this.operator && this.subject && this.clause) {
         if (Array.isArray(this.comparator)) {
-          if (this.comparator.length > 0) {
-            // A non-empty array of values ('IN' or 'NOT IN' clauses)
-            return true;
-          }
-        } else if (this.comparator !== null) {
-          // A value has been selected or typed
-          return true;
+          // A non-empty array of values ('IN' or 'NOT IN' clauses)
+          return this.comparator.length > 0;
         }
+        // A value has been selected or typed
+        return this.comparator !== null;
       }
-    } else if (this.expressionType === EXPRESSION_TYPES.SQL) {
-      return !!(this.sqlExpression && this.clause);
     }
-    return false;
+
+    return (
+      this.expressionType === ExpressionTypes.Sql &&
+      !!(this.sqlExpression && this.clause)
+    );
   }
 
   getDefaultLabel() {

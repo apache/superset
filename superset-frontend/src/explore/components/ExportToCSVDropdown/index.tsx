@@ -16,15 +16,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { ReactChild, useCallback } from 'react';
-import { t, styled } from '@superset-ui/core';
-import Icons from 'src/components/Icons';
-import { AntdDropdown } from 'src/components';
-import { Menu } from 'src/components/Menu';
+import { ReactChild, useCallback, Key } from 'react';
 
-enum MENU_KEYS {
-  EXPORT_ORIGINAL = 'export_original',
-  EXPORT_PIVOTED = 'export_pivoted',
+import { t, styled } from '@superset-ui/core';
+import { Icons } from '@superset-ui/core/components/Icons';
+import { Dropdown } from '@superset-ui/core/components';
+
+enum MenuKeys {
+  ExportOriginal = 'export_original',
+  ExportPivoted = 'export_pivoted',
 }
 
 interface ExportToCSVButtonProps {
@@ -39,8 +39,8 @@ const MenuItemContent = styled.div`
   justify-content: space-between;
 
   span[role='img'] {
-    font-size: ${({ theme }) => theme.typography.sizes.l}px;
-    margin-left: ${({ theme }) => theme.gridUnit * 4}px;
+    font-size: ${({ theme }) => theme.fontSizeLG}px;
+    margin-left: ${({ theme }) => theme.sizeUnit * 4}px;
   }
 `;
 
@@ -50,12 +50,12 @@ export const ExportToCSVDropdown = ({
   children,
 }: ExportToCSVButtonProps) => {
   const handleMenuClick = useCallback(
-    ({ key }: { key: React.Key }) => {
+    ({ key }: { key: Key }) => {
       switch (key) {
-        case MENU_KEYS.EXPORT_ORIGINAL:
+        case MenuKeys.ExportOriginal:
           exportCSVOriginal();
           break;
-        case MENU_KEYS.EXPORT_PIVOTED:
+        case MenuKeys.ExportPivoted:
           exportCSVPivoted();
           break;
         default:
@@ -66,26 +66,34 @@ export const ExportToCSVDropdown = ({
   );
 
   return (
-    <AntdDropdown
+    <Dropdown
       trigger={['click']}
-      overlay={
-        <Menu onClick={handleMenuClick} selectable={false}>
-          <Menu.Item key={MENU_KEYS.EXPORT_ORIGINAL}>
-            <MenuItemContent>
-              {t('Original')}
-              <Icons.Download />
-            </MenuItemContent>
-          </Menu.Item>
-          <Menu.Item key={MENU_KEYS.EXPORT_PIVOTED}>
-            <MenuItemContent>
-              {t('Pivoted')}
-              <Icons.Download />
-            </MenuItemContent>
-          </Menu.Item>
-        </Menu>
-      }
+      menu={{
+        onClick: handleMenuClick,
+        selectable: false,
+        items: [
+          {
+            key: MenuKeys.ExportOriginal,
+            label: (
+              <MenuItemContent>
+                {t('Original')}
+                <Icons.DownloadOutlined />
+              </MenuItemContent>
+            ),
+          },
+          {
+            key: MenuKeys.ExportPivoted,
+            label: (
+              <MenuItemContent>
+                {t('Pivoted')}
+                <Icons.DownloadOutlined />
+              </MenuItemContent>
+            ),
+          },
+        ],
+      }}
     >
       {children}
-    </AntdDropdown>
+    </Dropdown>
   );
 };

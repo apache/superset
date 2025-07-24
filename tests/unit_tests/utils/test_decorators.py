@@ -16,6 +16,7 @@
 # under the License.
 
 
+import logging
 import uuid
 from contextlib import nullcontext
 from inspect import isclass
@@ -23,6 +24,7 @@ from typing import Any, Optional
 from unittest.mock import call, Mock, patch
 
 import pytest
+from pytest_mock import MockerFixture
 
 from superset import app
 from superset.utils import decorators
@@ -249,3 +251,99 @@ def test_context_decorator(flask_g_mock) -> None:
 
     context_func_not_callable()
     assert flask_g_mock.logs_context == {}
+
+
+class ListHandler(logging.Handler):
+    """
+    Simple logging handler that stores records in a list.
+    """
+
+    def __init__(self, *args: Any, **kwargs: Any):
+        super().__init__(*args, **kwargs)
+        self.log_records: list[logging.LogRecord] = []
+
+    def emit(self, record: logging.LogRecord) -> None:
+        self.log_records.append(record)
+
+    def reset(self) -> None:
+        self.log_records = []
+
+
+def test_suppress_logging() -> None:
+    """
+    Test the `suppress_logging` decorator.
+    """
+    handler = ListHandler()
+    logger = logging.getLogger("test-logger")
+    logger.setLevel(logging.INFO)
+    logger.addHandler(handler)
+
+    def func() -> None:
+        logger.error("error")
+        logger.critical("critical")
+
+    func()
+    assert len(handler.log_records) == 2
+
+    handler.log_records = []
+    decorated = decorators.suppress_logging("test-logger")(func)
+    decorated()
+    assert len(handler.log_records) == 1
+    assert handler.log_records[0].levelname == "CRITICAL"
+
+    handler.log_records = []
+    decorated = decorators.suppress_logging("test-logger", logging.CRITICAL + 1)(func)
+    decorated()
+    assert len(handler.log_records) == 0
+
+
+def test_transacation_commit(mocker: MockerFixture) -> None:
+    """
+    Test the `transaction` decorator when the function completes successfully.
+    """
+    db = mocker.patch("superset.db")
+
+    @decorators.transaction()
+    def func() -> int:
+        return 42
+
+    result = func()
+    assert result == 42
+    db.session.commit.assert_called_once()
+
+
+def test_transacation_rollback(mocker: MockerFixture) -> None:
+    """
+    Test the `transaction` decorator when the function raises an exception.
+    """
+    db = mocker.patch("superset.db")
+
+    @decorators.transaction()
+    def func() -> None:
+        raise ValueError("error")
+
+    with pytest.raises(ValueError, match="error"):
+        func()
+    db.session.commit.assert_not_called()
+    db.session.rollback.assert_called_once()
+
+
+def test_transacation_nested(mocker: MockerFixture) -> None:
+    """
+    Test the `transaction` decorator when the function is nested.
+    """
+    db = mocker.patch("superset.db")
+
+    @decorators.transaction()
+    def func() -> int:
+        return 42
+
+    @decorators.transaction()
+    def nested() -> int:
+        func()  # should not commit
+        raise ValueError("error")
+
+    with pytest.raises(ValueError, match="error"):
+        nested()
+    db.session.commit.assert_not_called()
+    db.session.rollback.assert_called_once()

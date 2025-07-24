@@ -21,6 +21,7 @@ import { interceptGet as interceptDashboardGet } from 'cypress/e2e/dashboard/uti
 import { FORM_DATA_DEFAULTS, NUM_METRIC } from './visualizations/shared.helper';
 import {
   interceptFiltering,
+  interceptV1ChartData,
   saveChartToDashboard,
   visitSampleChartFromList,
 } from './utils';
@@ -29,15 +30,15 @@ import {
 const SAMPLE_DASHBOARDS_INDEXES = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
 
 function openDashboardsAddedTo() {
-  cy.getBySel('actions-trigger').click();
+  cy.getBySel('actions-trigger').should('be.visible').click();
   cy.get('.ant-dropdown-menu-submenu-title')
-    .contains('Dashboards added to')
+    .contains('On dashboards')
     .trigger('mouseover', { force: true });
 }
 
 function closeDashboardsAddedTo() {
   cy.get('.ant-dropdown-menu-submenu-title')
-    .contains('Dashboards added to')
+    .contains('On dashboards')
     .trigger('mouseout', { force: true });
   cy.getBySel('actions-trigger').click();
 }
@@ -79,8 +80,8 @@ function verifyMetabar(text) {
   cy.getBySel('metadata-bar').contains(text);
 }
 
-function saveAndVerifyDashboard(number) {
-  saveChartToDashboard(`${number} - Sample dashboard`);
+function saveAndVerifyDashboard(chartName, number) {
+  saveChartToDashboard(chartName, `${number} - Sample dashboard`);
   verifyMetabar(
     number > 1 ? `Added to ${number} dashboards` : 'Added to 1 dashboard',
   );
@@ -105,17 +106,17 @@ describe('Cross-referenced dashboards', () => {
     openDashboardsAddedTo();
     verifyDashboardsSubmenuItem('None');
 
-    saveAndVerifyDashboard('1');
-    saveAndVerifyDashboard('2');
-    saveAndVerifyDashboard('3');
-    saveAndVerifyDashboard('4');
-    saveAndVerifyDashboard('5');
-    saveAndVerifyDashboard('6');
-    saveAndVerifyDashboard('7');
-    saveAndVerifyDashboard('8');
-    saveAndVerifyDashboard('9');
-    saveAndVerifyDashboard('10');
-    saveAndVerifyDashboard('11');
+    saveAndVerifyDashboard('1 - Sample chart', '1');
+    saveAndVerifyDashboard('1 - Sample chart', '2');
+    saveAndVerifyDashboard('1 - Sample chart', '3');
+    saveAndVerifyDashboard('1 - Sample chart', '4');
+    saveAndVerifyDashboard('1 - Sample chart', '5');
+    saveAndVerifyDashboard('1 - Sample chart', '6');
+    saveAndVerifyDashboard('1 - Sample chart', '7');
+    saveAndVerifyDashboard('1 - Sample chart', '8');
+    saveAndVerifyDashboard('1 - Sample chart', '9');
+    saveAndVerifyDashboard('1 - Sample chart', '10');
+    saveAndVerifyDashboard('1 - Sample chart', '11');
 
     verifyDashboardSearch();
     verifyDashboardLink();
@@ -124,14 +125,14 @@ describe('Cross-referenced dashboards', () => {
 
 describe('No Results', () => {
   beforeEach(() => {
-    cy.intercept('POST', '/superset/explore_json/**').as('getJson');
+    interceptV1ChartData();
   });
 
   it('No results message shows up', () => {
     const formData = {
       ...FORM_DATA_DEFAULTS,
       metrics: [NUM_METRIC],
-      viz_type: 'line',
+      viz_type: 'echarts_timeseries_line',
       adhoc_filters: [
         {
           expressionType: 'SIMPLE',
@@ -145,7 +146,7 @@ describe('No Results', () => {
     };
 
     cy.visitChartByParams(formData);
-    cy.wait('@getJson').its('response.statusCode').should('eq', 200);
+    cy.wait('@v1Data').its('response.statusCode').should('eq', 200);
     cy.get('div.chart-container').contains(
       'No results were returned for this query',
     );

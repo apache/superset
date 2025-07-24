@@ -16,13 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import { render } from 'spec/helpers/testing-library';
 import { renderResultCell } from './utils';
 
 jest.mock('src/components/JsonModal', () => ({
   ...jest.requireActual('src/components/JsonModal'),
-  default: () => <div data-test="mock-json-modal" />,
+  JsonModal: () => <div data-test="mock-json-modal" />,
 }));
 
 const unexpectedGetCellContent = () => 'none';

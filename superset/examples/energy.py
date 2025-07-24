@@ -14,10 +14,9 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-"""Loads datasets, dashboards and slices in a new superset instance"""
+import logging
 import textwrap
 
-import pandas as pd
 from sqlalchemy import Float, inspect, String
 from sqlalchemy.sql import column
 
@@ -25,14 +24,18 @@ import superset.utils.database as database_utils
 from superset import db
 from superset.connectors.sqla.models import SqlMetric
 from superset.models.slice import Slice
+from superset.sql.parse import Table
 from superset.utils.core import DatasourceType
 
 from .helpers import (
-    get_example_url,
+    get_slice_json,
     get_table_connector_registry,
     merge_slice,
     misc_dash_slices,
+    read_example_data,
 )
+
+logger = logging.getLogger(__name__)
 
 
 def load_energy(
@@ -42,13 +45,12 @@ def load_energy(
     tbl_name = "energy_usage"
     database = database_utils.get_example_database()
 
-    with database.get_sqla_engine_with_context() as engine:
+    with database.get_sqla_engine() as engine:
         schema = inspect(engine).default_schema_name
-        table_exists = database.has_table_by_name(tbl_name)
+        table_exists = database.has_table(Table(tbl_name, schema))
 
         if not only_metadata and (not table_exists or force):
-            url = get_example_url("energy.json.gz")
-            pdf = pd.read_json(url, compression="gzip")
+            pdf = read_example_data("energy.json.gz", compression="gzip")
             pdf = pdf.head(100) if sample else pdf
             pdf.to_sql(
                 tbl_name,
@@ -61,7 +63,7 @@ def load_energy(
                 method="multi",
             )
 
-    print("Creating table [wb_health_population] reference")
+    logger.debug("Creating table [wb_health_population] reference")
     table = get_table_connector_registry()
     tbl = db.session.query(table).filter_by(table_name=tbl_name).first()
     if not tbl:
@@ -77,26 +79,23 @@ def load_energy(
             SqlMetric(metric_name="sum__value", expression=f"SUM({col})")
         )
 
-    db.session.commit()
     tbl.fetch_metadata()
 
     slc = Slice(
         slice_name="Energy Sankey",
-        viz_type="sankey",
+        viz_type="sankey_v2",
         datasource_type=DatasourceType.TABLE,
         datasource_id=tbl.id,
         params=textwrap.dedent(
             """\
         {
             "collapsed_fieldsets": "",
-            "groupby": [
-                "source",
-                "target"
-            ],
+            "source": "source",
+            "target": "target",
             "metric": "sum__value",
             "row_limit": "5000",
             "slice_name": "Energy Sankey",
-            "viz_type": "sankey"
+            "viz_type": "sankey_v2"
         }
         """
         ),
@@ -130,25 +129,18 @@ def load_energy(
 
     slc = Slice(
         slice_name="Heatmap",
-        viz_type="heatmap",
+        viz_type="heatmap_v2",
         datasource_type=DatasourceType.TABLE,
         datasource_id=tbl.id,
-        params=textwrap.dedent(
-            """\
-        {
-            "all_columns_x": "source",
-            "all_columns_y": "target",
-            "canvas_image_rendering": "pixelated",
-            "collapsed_fieldsets": "",
-            "linear_color_scheme": "blue_white_yellow",
-            "metric": "sum__value",
-            "normalize_across": "heatmap",
-            "slice_name": "Heatmap",
-            "viz_type": "heatmap",
-            "xscale_interval": "1",
-            "yscale_interval": "1"
-        }
-        """
+        params=get_slice_json(
+            defaults={},
+            viz_type="heatmap_v2",
+            x_axis="source",
+            groupby="target",
+            legend_type="continuous",
+            metric="sum__value",
+            sort_x_axis="value_asc",
+            sort_y_axis="value_asc",
         ),
     )
     misc_dash_slices.add(slc.slice_name)

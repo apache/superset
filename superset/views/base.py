@@ -16,72 +16,64 @@
 # under the License.
 from __future__ import annotations
 
-import dataclasses
 import functools
 import logging
 import os
 import traceback
 from datetime import datetime
-from importlib.resources import files
-from typing import Any, Callable, cast
+from typing import Any, Callable
 
-import simplejson as json
-import yaml
+from babel import Locale
 from flask import (
     abort,
     flash,
     g,
     get_flashed_messages,
     redirect,
-    request,
     Response,
-    send_file,
     session,
+    url_for,
 )
 from flask_appbuilder import BaseView, Model, ModelView
 from flask_appbuilder.actions import action
+from flask_appbuilder.const import AUTH_OAUTH, AUTH_OID
 from flask_appbuilder.forms import DynamicForm
 from flask_appbuilder.models.sqla.filters import BaseFilter
 from flask_appbuilder.security.sqla.models import User
 from flask_appbuilder.widgets import ListWidget
-from flask_babel import get_locale, gettext as __, lazy_gettext as _
+from flask_babel import get_locale, gettext as __
 from flask_jwt_extended.exceptions import NoAuthorizationError
-from flask_wtf.csrf import CSRFError
 from flask_wtf.form import FlaskForm
-from sqlalchemy import exc
 from sqlalchemy.orm import Query
-from werkzeug.exceptions import HTTPException
-from wtforms import Form
 from wtforms.fields.core import Field, UnboundField
 
 from superset import (
     app as superset_app,
     appbuilder,
     conf,
+    db,
     get_feature_flags,
     is_feature_enabled,
     security_manager,
 )
-from superset.commands.exceptions import CommandException, CommandInvalidError
 from superset.connectors.sqla import models
 from superset.db_engine_specs import get_available_engine_specs
 from superset.db_engine_specs.gsheets import GSheetsEngineSpec
-from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
-from superset.exceptions import (
-    SupersetErrorException,
-    SupersetErrorsException,
-    SupersetException,
-    SupersetSecurityException,
-)
 from superset.extensions import cache_manager
-from superset.models.helpers import ImportExportMixin
 from superset.reports.models import ReportRecipientType
 from superset.superset_typing import FlaskResponse
-from superset.translations.utils import get_language_pack
-from superset.utils import core as utils
+from superset.themes.utils import is_valid_theme, is_valid_theme_settings
+from superset.utils import core as utils, json
 from superset.utils.filters import get_dataset_access_filters
+from superset.views.error_handling import json_error_response
 
-from .utils import bootstrap_user_data
+from .utils import bootstrap_user_data, get_config_value
+
+DEFAULT_THEME_SETTINGS = {
+    "enforced": False,
+    "allowSwitching": True,
+    "allowOSPreference": True,
+}
 
 FRONTEND_CONF_KEYS = (
     "SUPERSET_WEBSERVER_TIMEOUT",
@@ -120,8 +112,17 @@ FRONTEND_CONF_KEYS = (
     "ALERT_REPORTS_DEFAULT_RETENTION",
     "ALERT_REPORTS_DEFAULT_WORKING_TIMEOUT",
     "NATIVE_FILTER_DEFAULT_ROW_LIMIT",
+    "SUPERSET_CLIENT_RETRY_ATTEMPTS",
+    "SUPERSET_CLIENT_RETRY_DELAY",
+    "SUPERSET_CLIENT_RETRY_BACKOFF_MULTIPLIER",
+    "SUPERSET_CLIENT_RETRY_MAX_DELAY",
+    "SUPERSET_CLIENT_RETRY_JITTER_MAX",
+    "SUPERSET_CLIENT_RETRY_STATUS_CODES",
     "PREVENT_UNSAFE_DEFAULT_URLS_ON_DATASET",
     "JWT_ACCESS_CSRF_COOKIE_NAME",
+    "SQLLAB_QUERY_RESULT_TIMEOUT",
+    "SYNC_DB_PERMISSIONS_IN_ASYNC_MODE",
+    "TABLE_VIZ_MAX_ROW_SERVER",
 )
 
 logger = logging.getLogger(__name__)
@@ -138,35 +139,6 @@ def get_error_msg() -> str:
             "configuration setting to enable it"
         )
     return error_msg
-
-
-def json_error_response(
-    msg: str | None = None,
-    status: int = 500,
-    payload: dict[str, Any] | None = None,
-) -> FlaskResponse:
-    payload = payload or {"error": f"{msg}"}
-
-    return Response(
-        json.dumps(payload, default=utils.json_iso_dttm_ser, ignore_nan=True),
-        status=status,
-        mimetype="application/json",
-    )
-
-
-def json_errors_response(
-    errors: list[SupersetError],
-    status: int = 500,
-    payload: dict[str, Any] | None = None,
-) -> FlaskResponse:
-    payload = payload or {}
-
-    payload["errors"] = [dataclasses.asdict(error) for error in errors]
-    return Response(
-        json.dumps(payload, default=utils.json_iso_dttm_ser, ignore_nan=True),
-        status=status,
-        mimetype="application/json; charset=utf-8",
-    )
 
 
 def json_success(json_msg: str, status: int = 200) -> FlaskResponse:
@@ -188,7 +160,7 @@ def generate_download_headers(
 
 
 def deprecated(
-    eol_version: str = "4.0.0",
+    eol_version: str = "5.0.0",
     new_target: str | None = None,
 ) -> Callable[[Callable[..., FlaskResponse]], Callable[..., FlaskResponse]]:
     """
@@ -237,55 +209,11 @@ def api(f: Callable[..., FlaskResponse]) -> Callable[..., FlaskResponse]:
     return functools.update_wrapper(wraps, f)
 
 
-def handle_api_exception(
-    f: Callable[..., FlaskResponse]
-) -> Callable[..., FlaskResponse]:
-    """
-    A decorator to catch superset exceptions. Use it after the @api decorator above
-    so superset exception handler is triggered before the handler for generic
-    exceptions.
-    """
-
-    def wraps(self: BaseSupersetView, *args: Any, **kwargs: Any) -> FlaskResponse:
-        try:
-            return f(self, *args, **kwargs)
-        except SupersetSecurityException as ex:
-            logger.warning("SupersetSecurityException", exc_info=True)
-            return json_errors_response(
-                errors=[ex.error], status=ex.status, payload=ex.payload
-            )
-        except SupersetErrorsException as ex:
-            logger.warning(ex, exc_info=True)
-            return json_errors_response(errors=ex.errors, status=ex.status)
-        except SupersetErrorException as ex:
-            logger.warning("SupersetErrorException", exc_info=True)
-            return json_errors_response(errors=[ex.error], status=ex.status)
-        except SupersetException as ex:
-            if ex.status >= 500:
-                logger.exception(ex)
-            return json_error_response(
-                utils.error_msg_from_exception(ex), status=ex.status
-            )
-        except HTTPException as ex:
-            logger.exception(ex)
-            return json_error_response(
-                utils.error_msg_from_exception(ex), status=cast(int, ex.code)
-            )
-        except (exc.IntegrityError, exc.DatabaseError, exc.DataError) as ex:
-            logger.exception(ex)
-            return json_error_response(utils.error_msg_from_exception(ex), status=422)
-        except Exception as ex:  # pylint: disable=broad-except
-            logger.exception(ex)
-            return json_error_response(utils.error_msg_from_exception(ex))
-
-    return functools.update_wrapper(wraps, f)
-
-
 class BaseSupersetView(BaseView):
     @staticmethod
     def json_response(obj: Any, status: int = 200) -> FlaskResponse:
         return Response(
-            json.dumps(obj, default=utils.json_int_dttm_ser, ignore_nan=True),
+            json.dumps(obj, default=json.json_int_dttm_ser, ignore_nan=True),
             status=status,
             mimetype="application/json",
         )
@@ -302,7 +230,7 @@ class BaseSupersetView(BaseView):
             "superset/spa.html",
             entry="spa",
             bootstrap_data=json.dumps(
-                payload, default=utils.pessimistic_json_iso_dttm_ser
+                payload, default=json.pessimistic_json_iso_dttm_ser
             ),
         )
 
@@ -343,7 +271,8 @@ def menu_data(user: User) -> dict[str, Any]:
     return {
         "menu": appbuilder.menu.get_data(),
         "brand": {
-            "path": appbuilder.app.config["LOGO_TARGET_PATH"] or "/superset/welcome/",
+            "path": appbuilder.app.config["LOGO_TARGET_PATH"]
+            or url_for("Superset.welcome"),
             "icon": appbuilder.app_icon,
             "alt": appbuilder.app_name,
             "tooltip": appbuilder.app.config["LOGO_TOOLTIP"],
@@ -365,22 +294,56 @@ def menu_data(user: User) -> dict[str, Any]:
             "languages": languages,
             "show_language_picker": len(languages) > 1,
             "user_is_anonymous": user.is_anonymous,
-            "user_info_url": None
-            if is_feature_enabled("MENU_HIDE_USER_INFO")
-            else appbuilder.get_url_for_userinfo,
+            "user_info_url": (
+                None if is_feature_enabled("MENU_HIDE_USER_INFO") else "/user_info/"
+            ),
             "user_logout_url": appbuilder.get_url_for_logout,
             "user_login_url": appbuilder.get_url_for_login,
-            "user_profile_url": None
-            if user.is_anonymous or is_feature_enabled("MENU_HIDE_USER_INFO")
-            else "/profile/",
             "locale": session.get("locale", "en"),
         },
     }
 
 
+def get_theme_bootstrap_data() -> dict[str, Any]:
+    """
+    Returns the theme data to be sent to the client.
+    """
+    # Get theme configs
+    default_theme = get_config_value(conf, "THEME_DEFAULT")
+    dark_theme = get_config_value(conf, "THEME_DARK")
+    theme_settings = get_config_value(conf, "THEME_SETTINGS")
+
+    # Validate and warn if invalid
+    if not is_valid_theme(default_theme):
+        logger.warning(
+            "Invalid THEME_DEFAULT configuration: %s, using empty theme", default_theme
+        )
+        default_theme = {}
+
+    if not is_valid_theme(dark_theme):
+        logger.warning(
+            "Invalid THEME_DARK configuration: %s, using empty theme", dark_theme
+        )
+        dark_theme = {}
+
+    if not is_valid_theme_settings(theme_settings):
+        logger.warning(
+            "Invalid THEME_SETTINGS configuration: %s, using defaults", theme_settings
+        )
+        theme_settings = DEFAULT_THEME_SETTINGS
+
+    return {
+        "theme": {
+            "default": default_theme,
+            "dark": dark_theme,
+            "settings": theme_settings,
+        }
+    }
+
+
 @cache_manager.cache.memoize(timeout=60)
 def cached_common_bootstrap_data(  # pylint: disable=unused-argument
-    user_id: int | None, locale: str
+    user_id: int | None, locale: Locale | None
 ) -> dict[str, Any]:
     """Common data always sent to the client
 
@@ -398,6 +361,7 @@ def cached_common_bootstrap_data(  # pylint: disable=unused-argument
         frontend_config["ALERT_REPORTS_NOTIFICATION_METHODS"] = [
             ReportRecipientType.EMAIL,
             ReportRecipientType.SLACK,
+            ReportRecipientType.SLACKV2,
         ]
     else:
         frontend_config["ALERT_REPORTS_NOTIFICATION_METHODS"] = [
@@ -406,21 +370,62 @@ def cached_common_bootstrap_data(  # pylint: disable=unused-argument
 
     # verify client has google sheets installed
     available_specs = get_available_engine_specs()
-    frontend_config["HAS_GSHEETS_INSTALLED"] = bool(available_specs[GSheetsEngineSpec])
+    frontend_config["HAS_GSHEETS_INSTALLED"] = (
+        GSheetsEngineSpec in available_specs
+        and bool(available_specs[GSheetsEngineSpec])
+    )
+
+    language = locale.language if locale else "en"
+    auth_type = appbuilder.app.config["AUTH_TYPE"]
+    auth_user_registration = appbuilder.app.config["AUTH_USER_REGISTRATION"]
+    frontend_config["AUTH_USER_REGISTRATION"] = auth_user_registration
+    should_show_recaptcha = auth_user_registration and (auth_type != AUTH_OAUTH)
+
+    if auth_user_registration:
+        frontend_config["AUTH_USER_REGISTRATION_ROLE"] = appbuilder.app.config[
+            "AUTH_USER_REGISTRATION_ROLE"
+        ]
+    if should_show_recaptcha:
+        frontend_config["RECAPTCHA_PUBLIC_KEY"] = appbuilder.app.config[
+            "RECAPTCHA_PUBLIC_KEY"
+        ]
+
+    frontend_config["AUTH_TYPE"] = auth_type
+    if auth_type == AUTH_OAUTH:
+        oauth_providers = []
+        for provider in appbuilder.sm.oauth_providers:
+            oauth_providers.append(
+                {
+                    "name": provider["name"],
+                    "icon": provider["icon"],
+                }
+            )
+        frontend_config["AUTH_PROVIDERS"] = oauth_providers
+
+    if auth_type == AUTH_OID:
+        oid_providers = []
+        for provider in appbuilder.sm.openid_providers:
+            oid_providers.append(provider)
+        frontend_config["AUTH_PROVIDERS"] = oid_providers
 
     bootstrap_data = {
+        "application_root": conf["APPLICATION_ROOT"],
+        "static_assets_prefix": conf["STATIC_ASSETS_PREFIX"],
         "conf": frontend_config,
-        "locale": locale,
-        "language_pack": get_language_pack(locale),
+        "locale": language,
         "d3_format": conf.get("D3_FORMAT"),
+        "d3_time_format": conf.get("D3_TIME_FORMAT"),
         "currencies": conf.get("CURRENCIES"),
+        "deckgl_tiles": conf.get("DECKGL_BASE_MAP"),
         "feature_flags": get_feature_flags(),
         "extra_sequential_color_schemes": conf["EXTRA_SEQUENTIAL_COLOR_SCHEMES"],
         "extra_categorical_color_schemes": conf["EXTRA_CATEGORICAL_COLOR_SCHEMES"],
-        "theme_overrides": conf["THEME_OVERRIDES"],
         "menu_data": menu_data(g.user),
     }
+
     bootstrap_data.update(conf["COMMON_BOOTSTRAP_OVERRIDES_FUNC"](bootstrap_data))
+    bootstrap_data.update(get_theme_bootstrap_data())
+
     return bootstrap_data
 
 
@@ -431,113 +436,12 @@ def common_bootstrap_payload() -> dict[str, Any]:
     }
 
 
-def get_error_level_from_status_code(  # pylint: disable=invalid-name
-    status: int,
-) -> ErrorLevel:
-    if status < 400:
-        return ErrorLevel.INFO
-    if status < 500:
-        return ErrorLevel.WARNING
-    return ErrorLevel.ERROR
-
-
-# SIP-40 compatible error responses; make sure APIs raise
-# SupersetErrorException or SupersetErrorsException
-@superset_app.errorhandler(SupersetErrorException)
-def show_superset_error(ex: SupersetErrorException) -> FlaskResponse:
-    logger.warning("SupersetErrorException", exc_info=True)
-    return json_errors_response(errors=[ex.error], status=ex.status)
-
-
-@superset_app.errorhandler(SupersetErrorsException)
-def show_superset_errors(ex: SupersetErrorsException) -> FlaskResponse:
-    logger.warning("SupersetErrorsException", exc_info=True)
-    return json_errors_response(errors=ex.errors, status=ex.status)
-
-
-# Redirect to login if the CSRF token is expired
-@superset_app.errorhandler(CSRFError)
-def refresh_csrf_token(ex: CSRFError) -> FlaskResponse:
-    logger.warning("Refresh CSRF token error", exc_info=True)
-
-    if request.is_json:
-        return show_http_exception(ex)
-
-    return redirect(appbuilder.get_url_for_login)
-
-
-@superset_app.errorhandler(HTTPException)
-def show_http_exception(ex: HTTPException) -> FlaskResponse:
-    logger.warning("HTTPException", exc_info=True)
-    if (
-        "text/html" in request.accept_mimetypes
-        and not config["DEBUG"]
-        and ex.code in {404, 500}
-    ):
-        path = files("superset") / f"static/assets/{ex.code}.html"
-        return send_file(path, max_age=0), ex.code
-
-    return json_errors_response(
-        errors=[
-            SupersetError(
-                message=utils.error_msg_from_exception(ex),
-                error_type=SupersetErrorType.GENERIC_BACKEND_ERROR,
-                level=ErrorLevel.ERROR,
-            ),
-        ],
-        status=ex.code or 500,
-    )
-
-
-# Temporary handler for CommandException; if an API raises a
-# CommandException it should be fixed to map it to SupersetErrorException
-# or SupersetErrorsException, with a specific status code and error type
-@superset_app.errorhandler(CommandException)
-def show_command_errors(ex: CommandException) -> FlaskResponse:
-    logger.warning("CommandException", exc_info=True)
-    if "text/html" in request.accept_mimetypes and not config["DEBUG"]:
-        path = files("superset") / "static/assets/500.html"
-        return send_file(path, max_age=0), 500
-
-    extra = ex.normalized_messages() if isinstance(ex, CommandInvalidError) else {}
-    return json_errors_response(
-        errors=[
-            SupersetError(
-                message=ex.message,
-                error_type=SupersetErrorType.GENERIC_COMMAND_ERROR,
-                level=get_error_level_from_status_code(ex.status),
-                extra=extra,
-            ),
-        ],
-        status=ex.status,
-    )
-
-
-# Catch-all, to ensure all errors from the backend conform to SIP-40
-@superset_app.errorhandler(Exception)
-def show_unexpected_exception(ex: Exception) -> FlaskResponse:
-    logger.exception(ex)
-    if "text/html" in request.accept_mimetypes and not config["DEBUG"]:
-        path = files("superset") / "static/assets/500.html"
-        return send_file(path, max_age=0), 500
-
-    return json_errors_response(
-        errors=[
-            SupersetError(
-                message=utils.error_msg_from_exception(ex),
-                error_type=SupersetErrorType.GENERIC_BACKEND_ERROR,
-                level=ErrorLevel.ERROR,
-            ),
-        ],
-    )
-
-
 @superset_app.context_processor
 def get_common_bootstrap_data() -> dict[str, Any]:
     def serialize_bootstrap_data() -> str:
         return json.dumps(
             {"common": common_bootstrap_payload()},
-            default=utils.pessimistic_json_iso_dttm_ser,
+            default=json.pessimistic_json_iso_dttm_ser,
         )
 
     return {"bootstrap_data": serialize_bootstrap_data}
@@ -560,50 +464,8 @@ class SupersetModelView(ModelView):
             "superset/spa.html",
             entry="spa",
             bootstrap_data=json.dumps(
-                payload, default=utils.pessimistic_json_iso_dttm_ser
+                payload, default=json.pessimistic_json_iso_dttm_ser
             ),
-        )
-
-
-class ListWidgetWithCheckboxes(ListWidget):  # pylint: disable=too-few-public-methods
-    """An alternative to list view that renders Boolean fields as checkboxes
-
-    Works in conjunction with the `checkbox` view."""
-
-    template = "superset/fab_overrides/list_with_checkboxes.html"
-
-
-def validate_json(form: Form, field: Field) -> None:  # pylint: disable=unused-argument
-    try:
-        json.loads(field.data)
-    except Exception as ex:
-        logger.exception(ex)
-        raise Exception(  # pylint: disable=broad-exception-raised
-            _("json isn't valid")
-        ) from ex
-
-
-class YamlExportMixin:  # pylint: disable=too-few-public-methods
-    """
-    Override this if you want a dict response instead, with a certain key.
-    Used on DatabaseView for cli compatibility
-    """
-
-    yaml_dict_key: str | None = None
-
-    @action("yaml_export", __("Export to YAML"), __("Export to YAML?"), "fa-download")
-    def yaml_export(
-        self, items: ImportExportMixin | list[ImportExportMixin]
-    ) -> FlaskResponse:
-        if not isinstance(items, list):
-            items = [items]
-
-        data = [t.export_to_dict() for t in items]
-
-        return Response(
-            yaml.safe_dump({self.yaml_dict_key: data} if self.yaml_dict_key else data),
-            headers=generate_download_headers("yaml"),
-            mimetype="application/text",
         )
 
 
@@ -642,7 +504,7 @@ class DeleteMixin:  # pylint: disable=too-few-public-methods
                 if view_menu:
                     security_manager.get_session.delete(view_menu)
 
-                security_manager.get_session.commit()
+                db.session.commit()  # pylint: disable=consider-using-transaction
 
             flash(*self.datamodel.message)
             self.update_redirect()

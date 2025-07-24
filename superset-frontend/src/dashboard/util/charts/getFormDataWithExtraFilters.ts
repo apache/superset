@@ -17,70 +17,125 @@
  * under the License.
  */
 import {
+  DataMask,
   DataMaskStateWithId,
   DataRecordFilters,
+  DataRecordValue,
   JsonObject,
   PartialFilters,
 } from '@superset-ui/core';
-import { ChartConfiguration, ChartQueryPayload } from 'src/dashboard/types';
+import {
+  ChartConfiguration,
+  ChartQueryPayload,
+  ActiveFilters,
+} from 'src/dashboard/types';
 import { getExtraFormData } from 'src/dashboard/components/nativeFilters/utils';
 import { areObjectsEqual } from 'src/reduxUtils';
+import { isEqual } from 'lodash';
 import getEffectiveExtraFilters from './getEffectiveExtraFilters';
 import { getAllActiveFilters } from '../activeAllDashboardFilters';
 
-// We cache formData objects so that our connected container components don't always trigger
-// render cascades. we cannot leverage the reselect library because our cache size is >1
-const cachedFiltersByChart = {};
-const cachedFormdataByChart = {};
+interface CachedFormData {
+  extra_form_data?: JsonObject;
+  extra_filters: {
+    col: string;
+    op: string;
+    val: DataRecordValue[];
+  }[];
+  own_color_scheme?: string;
+  color_scheme?: string;
+  color_namespace?: string;
+  chart_id: number;
+  label_colors?: Record<string, string>;
+  shared_label_colors?: string[];
+  map_label_colors?: Record<string, string>;
+  layer_filter_scope?: {
+    [filterId: string]: number[];
+  };
+  filter_data_mapping?: {
+    [filterId: string]: any[];
+  };
+}
+
+export type CachedFormDataWithExtraControls = CachedFormData & {
+  [key: string]: any;
+};
+
+const cachedFiltersByChart: Record<number, DataRecordFilters> = {};
+const cachedFormdataByChart: Record<
+  number,
+  CachedFormData & {
+    dataMask: DataMask;
+    extraControls: Record<string, string | boolean | null>;
+  }
+> = {};
 
 export interface GetFormDataWithExtraFiltersArguments {
   chartConfiguration: ChartConfiguration;
   chart: ChartQueryPayload;
   filters: DataRecordFilters;
   colorScheme?: string;
+  ownColorScheme?: string;
   colorNamespace?: string;
   sliceId: number;
   dataMask: DataMaskStateWithId;
   nativeFilters: PartialFilters;
   extraControls: Record<string, string | boolean | null>;
-  labelColors?: Record<string, string>;
-  sharedLabelColors?: Record<string, string>;
+  labelsColor?: Record<string, string>;
+  labelsColorMap?: Record<string, string>;
+  sharedLabelsColors?: string[];
   allSliceIds: number[];
+  activeFilters?: ActiveFilters;
 }
 
-// this function merge chart's formData with dashboard filters value,
-// and generate a new formData which will be used in the new query.
-// filters param only contains those applicable to this chart.
+const createFilterDataMapping = (
+  dataMask: DataMaskStateWithId,
+  filterIdsAppliedOnChart: string[],
+): { [filterId: string]: any[] } => {
+  const filterDataMapping: { [filterId: string]: any[] } = {};
+
+  filterIdsAppliedOnChart.forEach(filterId => {
+    const filterFormData = getExtraFormData(dataMask, [filterId]);
+    if (filterFormData.filters && filterFormData.filters.length > 0) {
+      filterDataMapping[filterId] = filterFormData.filters;
+    }
+  });
+
+  return filterDataMapping;
+};
+
 export default function getFormDataWithExtraFilters({
   chart,
   filters,
   nativeFilters,
   chartConfiguration,
   colorScheme,
+  ownColorScheme,
   colorNamespace,
   sliceId,
   dataMask,
   extraControls,
-  labelColors,
-  sharedLabelColors,
+  labelsColor,
+  labelsColorMap,
+  sharedLabelsColors,
   allSliceIds,
+  activeFilters: passedActiveFilters,
 }: GetFormDataWithExtraFiltersArguments) {
-  // if dashboard metadata + filters have not changed, use cache if possible
   const cachedFormData = cachedFormdataByChart[sliceId];
   if (
     cachedFiltersByChart[sliceId] === filters &&
-    areObjectsEqual(cachedFormData?.color_scheme, colorScheme, {
-      ignoreUndefined: true,
-    }) &&
+    areObjectsEqual(cachedFormData?.own_color_scheme, ownColorScheme) &&
+    areObjectsEqual(cachedFormData?.color_scheme, colorScheme) &&
     areObjectsEqual(cachedFormData?.color_namespace, colorNamespace, {
       ignoreUndefined: true,
     }) &&
-    areObjectsEqual(cachedFormData?.label_colors, labelColors, {
+    areObjectsEqual(cachedFormData?.label_colors, labelsColor, {
       ignoreUndefined: true,
     }) &&
-    areObjectsEqual(cachedFormData?.shared_label_colors, sharedLabelColors, {
+    areObjectsEqual(cachedFormData?.map_label_colors, labelsColorMap, {
       ignoreUndefined: true,
     }) &&
+    isEqual(cachedFormData?.shared_label_colors, sharedLabelsColors) &&
     !!cachedFormData &&
     areObjectsEqual(cachedFormData?.dataMask, dataMask, {
       ignoreUndefined: true,
@@ -92,30 +147,78 @@ export default function getFormDataWithExtraFilters({
     return cachedFormData;
   }
 
-  let extraData: { extra_form_data?: JsonObject } = {};
-  const activeFilters = getAllActiveFilters({
-    chartConfiguration,
-    dataMask,
-    nativeFilters,
-    allSliceIds,
-  });
+  const activeFilters: ActiveFilters =
+    passedActiveFilters ||
+    getAllActiveFilters({
+      chartConfiguration,
+      nativeFilters,
+      dataMask,
+      allSliceIds,
+    });
+
+  let extraData: JsonObject = {};
   const filterIdsAppliedOnChart = Object.entries(activeFilters)
-    .filter(([, { scope }]) => scope.includes(chart.id))
+    .filter(([, activeFilter]) => activeFilter.scope.includes(chart.id))
     .map(([filterId]) => filterId);
+
   if (filterIdsAppliedOnChart.length) {
+    const aggregatedFormData = getExtraFormData(
+      dataMask,
+      filterIdsAppliedOnChart,
+    );
     extraData = {
-      extra_form_data: getExtraFormData(dataMask, filterIdsAppliedOnChart),
+      extra_form_data: aggregatedFormData,
     };
+
+    const isDeckMultiChart = chart.form_data?.viz_type === 'deck_multi';
+    const hasLayerScopeInActiveFilters =
+      passedActiveFilters &&
+      Object.values(passedActiveFilters).some(filter => filter.layerScope);
+
+    if (isDeckMultiChart || hasLayerScopeInActiveFilters) {
+      const filterDataMapping = createFilterDataMapping(
+        dataMask,
+        filterIdsAppliedOnChart,
+      );
+      extraData.filter_data_mapping = filterDataMapping;
+    }
   }
 
-  const formData = {
+  let layerFilterScope: { [filterId: string]: number[] } | undefined;
+
+  const isDeckMultiChart = chart.form_data?.viz_type === 'deck_multi';
+  const hasLayerScopeInActiveFilters =
+    passedActiveFilters &&
+    Object.values(passedActiveFilters).some(filter => filter.layerScope);
+
+  if (isDeckMultiChart || hasLayerScopeInActiveFilters) {
+    layerFilterScope = {};
+
+    Object.entries(activeFilters).forEach(([filterId, activeFilter]) => {
+      if (activeFilter.layerScope?.[chart.id]) {
+        layerFilterScope![filterId] = activeFilter.layerScope[chart.id];
+      }
+    });
+
+    if (Object.keys(layerFilterScope).length === 0) {
+      layerFilterScope = undefined;
+    }
+  }
+
+  const formData: CachedFormDataWithExtraControls = {
     ...chart.form_data,
-    label_colors: labelColors,
-    shared_label_colors: sharedLabelColors,
+    chart_id: chart.id,
+    label_colors: labelsColor,
+    shared_label_colors: sharedLabelsColors,
+    map_label_colors: labelsColorMap,
     ...(colorScheme && { color_scheme: colorScheme }),
+    ...(ownColorScheme && {
+      own_color_scheme: ownColorScheme,
+    }),
     extra_filters: getEffectiveExtraFilters(filters),
     ...extraData,
     ...extraControls,
+    ...(layerFilterScope && { layer_filter_scope: layerFilterScope }),
   };
 
   cachedFiltersByChart[sliceId] = filters;

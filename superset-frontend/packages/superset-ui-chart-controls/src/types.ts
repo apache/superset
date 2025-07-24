@@ -17,7 +17,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { ReactElement, ReactNode, ReactText } from 'react';
+import { ReactElement, ReactNode, ReactText, ComponentType } from 'react';
+
 import type {
   AdhocColumn,
   Column,
@@ -68,7 +69,7 @@ export interface Dataset {
   columns: ColumnMeta[];
   metrics: Metric[];
   column_formats: Record<string, string>;
-  currency_formats: Record<string, Currency>;
+  currency_formats?: Record<string, Currency>;
   verbose_map: Record<string, string>;
   main_dttm_col: string;
   // eg. ['["ds", true]', 'ds [asc]']
@@ -82,9 +83,20 @@ export interface Dataset {
   owners?: Owner[];
   filter_select?: boolean;
   filter_select_enabled?: boolean;
+  column_names?: string[];
+  catalog?: string;
+  schema?: string;
+  table_name?: string;
+  database?: Record<string, unknown>;
+  normalize_columns?: boolean;
+  always_filter_main_dttm?: boolean;
+  extra?: object | string;
 }
 
 export interface ControlPanelState {
+  slice: {
+    slice_id: number;
+  };
   form_data: QueryFormData;
   datasource: Dataset | QueryResponse | null;
   controls: ControlStateMapping;
@@ -150,6 +162,7 @@ export type InternalControlType =
   | 'DatasourceControl'
   | 'DateFilterControl'
   | 'FixedOrMetricControl'
+  | 'ColorBreakpointsControl'
   | 'HiddenControl'
   | 'SelectAsyncControl'
   | 'SelectControl'
@@ -175,7 +188,7 @@ export type InternalControlType =
   | keyof SharedControlComponents; // expanded in `expandControlConfig`
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export type ControlType = InternalControlType | React.ComponentType<any>;
+export type ControlType = InternalControlType | ComponentType<any>;
 
 export type TabOverride = 'data' | 'customize' | boolean;
 
@@ -257,6 +270,10 @@ export interface BaseControlConfig<
     props: ControlPanelsContainerProps,
     controlData: AnyDict,
   ) => boolean;
+  disableStash?: boolean;
+  hidden?:
+    | boolean
+    | ((props: ControlPanelsContainerProps, controlData: AnyDict) => boolean);
 }
 
 export interface ControlValueValidator<
@@ -280,14 +297,13 @@ export type SelectControlType =
   | 'AdhocFilterControl'
   | 'FilterBoxItemControl';
 
-// via react-select/src/filters
 export interface FilterOption<T extends SelectOption> {
   label: string;
   value: string;
   data: T;
 }
 
-// Ref: superset-frontend/src/components/Select/SupersetStyledSelect.tsx
+// Ref: superset-frontend/@superset-ui/core/components/Select/SupersetStyledSelect.tsx
 export interface SelectControlConfig<
   O extends SelectOption = SelectOption,
   T extends SelectControlType = SelectControlType,
@@ -315,9 +331,7 @@ export type SharedControlConfig<
 /** --------------------------------------------
  * Custom controls
  * --------------------------------------------- */
-export type CustomControlConfig<P = {}> = BaseControlConfig<
-  React.ComponentType<P>
-> &
+export type CustomControlConfig<P = {}> = BaseControlConfig<ComponentType<P>> &
   // two run-time properties from superset-frontend/src/explore/components/Control.jsx
   Omit<P, 'onChange' | 'hovered'>;
 
@@ -331,8 +345,8 @@ export type ControlConfig<
 > = T extends InternalControlType
   ? SharedControlConfig<T, O>
   : T extends object
-  ? CustomControlConfig<T> // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  : CustomControlConfig<any>;
+    ? CustomControlConfig<T> // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    : CustomControlConfig<any>;
 
 /** ===========================================================
  * Chart plugin control panel config
@@ -357,6 +371,13 @@ export type CustomControlItem = {
   config: BaseControlConfig<any, any, any>;
 };
 
+export const isCustomControlItem = (obj: unknown): obj is CustomControlItem =>
+  typeof obj === 'object' &&
+  obj !== null &&
+  typeof ('name' in obj && obj.name) === 'string' &&
+  typeof ('config' in obj && obj.config) === 'object' &&
+  (obj as CustomControlItem).config !== null;
+
 // use ReactElement instead of ReactNode because `string`, `number`, etc. may
 // interfere with other ControlSetItem types
 export type ExpandedControlItem = CustomControlItem | ReactElement | null;
@@ -377,6 +398,10 @@ export interface ControlPanelSectionConfig {
   expanded?: boolean;
   tabOverride?: TabOverride;
   controlSetRows: ControlSetRow[];
+  visibility?: (
+    props: ControlPanelsContainerProps,
+    controlData: AnyDict,
+  ) => boolean;
 }
 
 export interface StandardizedControls {
@@ -421,29 +446,29 @@ export type SectionOverrides = {
 
 // Ref:
 //  - superset-frontend/src/explore/components/ConditionalFormattingControl.tsx
-export enum COMPARATOR {
-  NONE = 'None',
-  GREATER_THAN = '>',
-  LESS_THAN = '<',
-  GREATER_OR_EQUAL = '≥',
-  LESS_OR_EQUAL = '≤',
-  EQUAL = '=',
-  NOT_EQUAL = '≠',
-  BETWEEN = '< x <',
-  BETWEEN_OR_EQUAL = '≤ x ≤',
-  BETWEEN_OR_LEFT_EQUAL = '≤ x <',
-  BETWEEN_OR_RIGHT_EQUAL = '< x ≤',
+export enum Comparator {
+  None = 'None',
+  GreaterThan = '>',
+  LessThan = '<',
+  GreaterOrEqual = '≥',
+  LessOrEqual = '≤',
+  Equal = '=',
+  NotEqual = '≠',
+  Between = '< x <',
+  BetweenOrEqual = '≤ x ≤',
+  BetweenOrLeftEqual = '≤ x <',
+  BetweenOrRightEqual = '< x ≤',
 }
 
-export const MULTIPLE_VALUE_COMPARATORS = [
-  COMPARATOR.BETWEEN,
-  COMPARATOR.BETWEEN_OR_EQUAL,
-  COMPARATOR.BETWEEN_OR_LEFT_EQUAL,
-  COMPARATOR.BETWEEN_OR_RIGHT_EQUAL,
+export const MultipleValueComparators = [
+  Comparator.Between,
+  Comparator.BetweenOrEqual,
+  Comparator.BetweenOrLeftEqual,
+  Comparator.BetweenOrRightEqual,
 ];
 
 export type ConditionalFormattingConfig = {
-  operator?: COMPARATOR;
+  operator?: Comparator;
   targetValue?: number;
   targetValueLeft?: number;
   targetValueRight?: number;
@@ -498,6 +523,13 @@ export enum SortSeriesType {
   Avg = 'avg',
 }
 
+export type LegendPaddingType = {
+  top?: number;
+  bottom?: number;
+  left?: number;
+  right?: number;
+};
+
 export type SortSeriesData = {
   sort_series_type: SortSeriesType;
   sort_series_ascending: boolean;
@@ -518,6 +550,7 @@ export type ControlFormItemSpec<T extends ControlType = ControlType> = {
   debounceDelay?: number;
 } & (T extends 'Select'
   ? {
+      allowNewOptions?: boolean;
       options: any;
       value?: string;
       defaultValue?: string;
@@ -526,36 +559,36 @@ export type ControlFormItemSpec<T extends ControlType = ControlType> = {
       validators?: ControlFormValueValidator<string>[];
     }
   : T extends 'RadioButtonControl'
-  ? {
-      options: [string, ReactNode][];
-      value?: string;
-      defaultValue?: string;
-    }
-  : T extends 'Checkbox'
-  ? {
-      value?: boolean;
-      defaultValue?: boolean;
-    }
-  : T extends 'InputNumber' | 'Slider'
-  ? {
-      min?: number;
-      max?: number;
-      step?: number;
-      value?: number;
-      defaultValue?: number;
-      validators?: ControlFormValueValidator<number>[];
-    }
-  : T extends 'Input'
-  ? {
-      controlType: 'Input';
-      value?: string;
-      defaultValue?: string;
-      validators?: ControlFormValueValidator<string>[];
-    }
-  : T extends 'CurrencyControl'
-  ? {
-      controlType: 'CurrencyControl';
-      value?: Currency;
-      defaultValue?: Currency;
-    }
-  : {});
+    ? {
+        options: [string, ReactNode][];
+        value?: string;
+        defaultValue?: string;
+      }
+    : T extends 'Checkbox'
+      ? {
+          value?: boolean;
+          defaultValue?: boolean;
+        }
+      : T extends 'InputNumber' | 'Slider'
+        ? {
+            min?: number;
+            max?: number;
+            step?: number;
+            value?: number;
+            defaultValue?: number;
+            validators?: ControlFormValueValidator<number>[];
+          }
+        : T extends 'Input'
+          ? {
+              controlType: 'Input';
+              value?: string;
+              defaultValue?: string;
+              validators?: ControlFormValueValidator<string>[];
+            }
+          : T extends 'CurrencyControl'
+            ? {
+                controlType: 'CurrencyControl';
+                value?: Currency;
+                defaultValue?: Currency;
+              }
+            : {});

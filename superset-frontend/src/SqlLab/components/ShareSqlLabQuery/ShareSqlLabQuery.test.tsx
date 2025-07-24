@@ -16,19 +16,20 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import configureStore from 'redux-mock-store';
 import thunk from 'redux-thunk';
 import fetchMock from 'fetch-mock';
-import * as uiCore from '@superset-ui/core';
-import { Provider } from 'react-redux';
-import { supersetTheme, ThemeProvider } from '@superset-ui/core';
-import { render, screen, act } from '@testing-library/react';
-import '@testing-library/jest-dom/extend-expect';
-import userEvent from '@testing-library/user-event';
-import * as utils from 'src/utils/common';
+import { isFeatureEnabled } from '@superset-ui/core';
+import {
+  render,
+  screen,
+  act,
+  userEvent,
+  waitFor,
+} from 'spec/helpers/testing-library';
 import ShareSqlLabQuery from 'src/SqlLab/components/ShareSqlLabQuery';
 import { initialState } from 'src/SqlLab/fixtures';
+import { omit } from 'lodash';
 
 const mockStore = configureStore([thunk]);
 const defaultProps = {
@@ -57,13 +58,13 @@ const mockState = {
   },
 };
 const store = mockStore(mockState);
-let isFeatureEnabledMock: jest.SpyInstance;
 
-const standardProvider: React.FC = ({ children }) => (
-  <ThemeProvider theme={supersetTheme}>
-    <Provider store={store}>{children}</Provider>
-  </ThemeProvider>
-);
+jest.mock('@superset-ui/core', () => ({
+  ...jest.requireActual('@superset-ui/core'),
+  isFeatureEnabled: jest.fn(),
+}));
+
+const mockedIsFeatureEnabled = isFeatureEnabled as jest.Mock;
 
 const unsavedQueryEditor = {
   id: defaultProps.queryEditorId,
@@ -75,112 +76,73 @@ const unsavedQueryEditor = {
   templateParams: '{ "my_value": "foo" }',
 };
 
-const standardProviderWithUnsaved: React.FC = ({ children }) => (
-  <ThemeProvider theme={supersetTheme}>
-    <Provider
-      store={mockStore({
-        ...initialState,
-        sqlLab: {
-          ...initialState.sqlLab,
-          unsavedQueryEditor,
-        },
-      })}
-    >
-      {children}
-    </Provider>
-  </ThemeProvider>
-);
-
 describe('ShareSqlLabQuery', () => {
-  const storeQueryUrl = 'glob:*/kv/store/';
-  const storeQueryMockId = '123';
+  const storeQueryUrl = 'glob:*/api/v1/sqllab/permalink';
+  const storeQueryMockId = 'ci39c3';
 
   beforeEach(async () => {
-    fetchMock.post(storeQueryUrl, () => ({ id: storeQueryMockId }), {
-      overwriteRoutes: true,
-    });
+    fetchMock.post(
+      storeQueryUrl,
+      () => ({ key: storeQueryMockId, url: `/p/${storeQueryMockId}` }),
+      {
+        overwriteRoutes: true,
+      },
+    );
     fetchMock.resetHistory();
     jest.clearAllMocks();
   });
 
-  afterAll(fetchMock.reset);
+  afterAll(() => fetchMock.reset());
 
-  describe('via /kv/store', () => {
+  describe('via permalink api', () => {
     beforeAll(() => {
-      isFeatureEnabledMock = jest
-        .spyOn(uiCore, 'isFeatureEnabled')
-        .mockImplementation(() => true);
+      mockedIsFeatureEnabled.mockImplementation(() => true);
     });
 
     afterAll(() => {
-      isFeatureEnabledMock.mockReset();
+      mockedIsFeatureEnabled.mockReset();
     });
 
     it('calls storeQuery() with the query when getCopyUrl() is called', async () => {
       await act(async () => {
         render(<ShareSqlLabQuery {...defaultProps} />, {
-          wrapper: standardProvider,
+          useRedux: true,
+          store,
         });
       });
       const button = screen.getByRole('button');
-      const { id, remoteId, ...expected } = mockQueryEditor;
-      const storeQuerySpy = jest.spyOn(utils, 'storeQuery');
+      const expected = omit(mockQueryEditor, ['id', 'remoteId']);
       userEvent.click(button);
-      expect(storeQuerySpy.mock.calls).toHaveLength(1);
-      expect(storeQuerySpy).toBeCalledWith(expected);
-      storeQuerySpy.mockRestore();
+      await waitFor(() =>
+        expect(fetchMock.calls(storeQueryUrl)).toHaveLength(1),
+      );
+      expect(
+        JSON.parse(fetchMock.calls(storeQueryUrl)[0][1]?.body as string),
+      ).toEqual(expected);
     });
 
     it('calls storeQuery() with unsaved changes', async () => {
       await act(async () => {
         render(<ShareSqlLabQuery {...defaultProps} />, {
-          wrapper: standardProviderWithUnsaved,
+          useRedux: true,
+          store: mockStore({
+            ...initialState,
+            sqlLab: {
+              ...initialState.sqlLab,
+              unsavedQueryEditor,
+            },
+          }),
         });
       });
       const button = screen.getByRole('button');
-      const { id, ...expected } = unsavedQueryEditor;
-      const storeQuerySpy = jest.spyOn(utils, 'storeQuery');
+      const expected = omit(unsavedQueryEditor, ['id']);
       userEvent.click(button);
-      expect(storeQuerySpy.mock.calls).toHaveLength(1);
-      expect(storeQuerySpy).toBeCalledWith(expected);
-      storeQuerySpy.mockRestore();
-    });
-  });
-
-  describe('via saved query', () => {
-    beforeAll(() => {
-      isFeatureEnabledMock = jest
-        .spyOn(uiCore, 'isFeatureEnabled')
-        .mockImplementation(() => false);
-    });
-
-    afterAll(() => {
-      isFeatureEnabledMock.mockReset();
-    });
-
-    it('does not call storeQuery() with the query when getCopyUrl() is called and feature is not enabled', async () => {
-      await act(async () => {
-        render(<ShareSqlLabQuery {...defaultProps} />, {
-          wrapper: standardProvider,
-        });
-      });
-      const storeQuerySpy = jest.spyOn(utils, 'storeQuery');
-      const button = screen.getByRole('button');
-      userEvent.click(button);
-      expect(storeQuerySpy.mock.calls).toHaveLength(0);
-      storeQuerySpy.mockRestore();
-    });
-
-    it('button is disabled and there is a request to save the query', async () => {
-      const updatedProps = {
-        queryEditorId: disabled.id,
-      };
-
-      render(<ShareSqlLabQuery {...updatedProps} />, {
-        wrapper: standardProvider,
-      });
-      const button = await screen.findByRole('button', { name: /copy link/i });
-      expect(button).toBeDisabled();
+      await waitFor(() =>
+        expect(fetchMock.calls(storeQueryUrl)).toHaveLength(1),
+      );
+      expect(
+        JSON.parse(fetchMock.calls(storeQueryUrl)[0][1]?.body as string),
+      ).toEqual(expected);
     });
   });
 });

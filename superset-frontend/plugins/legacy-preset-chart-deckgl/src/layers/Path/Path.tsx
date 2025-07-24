@@ -17,19 +17,17 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
-import { PathLayer } from 'deck.gl/typed';
-import { JsonObject, QueryFormData } from '@superset-ui/core';
+import { PathLayer } from '@deck.gl/layers';
+import { JsonObject } from '@superset-ui/core';
 import { commonLayerProps } from '../common';
 import sandboxedEval from '../../utils/sandbox';
-import { createDeckGLComponent } from '../../factory';
+import { GetLayerType, createDeckGLComponent } from '../../factory';
 import TooltipRow from '../../TooltipRow';
-import { TooltipProps } from '../../components/Tooltip';
 import { Point } from '../../types';
 
 function setTooltipContent(o: JsonObject) {
   return (
-    o.object.extraProps && (
+    o.object?.extraProps && (
       <div className="deckgl-tooltip">
         {Object.keys(o.object.extraProps).map((prop, index) => (
           <TooltipRow
@@ -43,12 +41,15 @@ function setTooltipContent(o: JsonObject) {
   );
 }
 
-export function getLayer(
-  formData: QueryFormData,
-  payload: JsonObject,
-  onAddFilter: () => void,
-  setTooltip: (tooltip: TooltipProps['tooltip']) => void,
-) {
+export const getLayer: GetLayerType<PathLayer> = function ({
+  formData,
+  payload,
+  onContextMenu,
+  filterState,
+  setDataMask,
+  setTooltip,
+  emitCrossFilters,
+}) {
   const fd = formData;
   const c = fd.color_picker;
   const fixedColor = [c.r, c.g, c.b, 255 * c.a];
@@ -66,18 +67,26 @@ export function getLayer(
 
   return new PathLayer({
     id: `path-layer-${fd.slice_id}` as const,
-    getColor: d => d.color,
-    getPath: d => d.path,
-    getWidth: d => d.width,
+    getColor: (d: any) => d.color,
+    getPath: (d: any) => d.path,
+    getWidth: (d: any) => d.width,
     data,
     rounded: true,
     widthScale: 1,
     widthUnits: fd.line_width_unit,
-    ...commonLayerProps(fd, setTooltip, setTooltipContent),
+    ...commonLayerProps({
+      formData: fd,
+      setTooltip,
+      setTooltipContent,
+      setDataMask,
+      filterState,
+      onContextMenu,
+      emitCrossFilters,
+    }),
   });
-}
+};
 
-function getPoints(data: JsonObject[]) {
+export function getPoints(data: JsonObject[]) {
   let points: Point[] = [];
   data.forEach(d => {
     points = points.concat(d.path);

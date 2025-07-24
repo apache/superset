@@ -16,43 +16,82 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
-import { t, SupersetTheme, SwitchProps } from '@superset-ui/core';
-import { AntdSwitch } from 'src/components';
-import InfoTooltip from 'src/components/InfoTooltip';
+import { useEffect, useState } from 'react';
+import {
+  t,
+  SupersetTheme,
+  isFeatureEnabled,
+  FeatureFlag,
+} from '@superset-ui/core';
+import { Switch } from '@superset-ui/core/components/Switch';
+import { InfoTooltip } from '@superset-ui/core/components';
 import { isEmpty } from 'lodash';
-import { ActionType } from '.';
 import { infoTooltip, toggleStyle } from './styles';
+import { SwitchProps } from '../types';
 
 const SSHTunnelSwitch = ({
-  isEditMode,
-  dbFetched,
-  useSSHTunneling,
-  setUseSSHTunneling,
-  setDB,
-  isSSHTunneling,
-}: SwitchProps) =>
-  isSSHTunneling ? (
+  clearValidationErrors,
+  changeMethods,
+  db,
+  dbModel,
+}: SwitchProps) => {
+  const [isChecked, setChecked] = useState(false);
+  const sshTunnelEnabled = isFeatureEnabled(FeatureFlag.SshTunneling);
+  const disableSSHTunnelingForEngine =
+    dbModel?.engine_information?.disable_ssh_tunneling || false;
+  const isSSHTunnelEnabled = sshTunnelEnabled && !disableSSHTunnelingForEngine;
+
+  const handleOnChange = (changed: boolean) => {
+    setChecked(changed);
+    changeMethods.onParametersChange({
+      target: {
+        type: 'toggle',
+        name: 'ssh',
+        checked: true,
+        value: changed,
+      },
+    });
+    clearValidationErrors();
+  };
+
+  useEffect(() => {
+    if (isSSHTunnelEnabled && db?.parameters?.ssh !== undefined) {
+      setChecked(db.parameters.ssh);
+    }
+  }, [db?.parameters?.ssh, isSSHTunnelEnabled]);
+
+  useEffect(() => {
+    if (
+      isSSHTunnelEnabled &&
+      db?.parameters?.ssh === undefined &&
+      !isEmpty(db?.ssh_tunnel)
+    ) {
+      // reflecting the state of the ssh tunnel on first load
+      changeMethods.onParametersChange({
+        target: {
+          type: 'toggle',
+          name: 'ssh',
+          checked: true,
+          value: true,
+        },
+      });
+    }
+  }, [changeMethods, db?.parameters?.ssh, db?.ssh_tunnel, isSSHTunnelEnabled]);
+
+  return isSSHTunnelEnabled ? (
     <div css={(theme: SupersetTheme) => infoTooltip(theme)}>
-      <AntdSwitch
-        disabled={isEditMode && !isEmpty(dbFetched?.ssh_tunnel)}
-        checked={useSSHTunneling}
-        onChange={changed => {
-          setUseSSHTunneling(changed);
-          if (!changed) {
-            setDB({
-              type: ActionType.removeSSHTunnelConfig,
-            });
-          }
-        }}
+      <Switch
+        checked={isChecked}
+        onChange={handleOnChange}
         data-test="ssh-tunnel-switch"
       />
       <span css={toggleStyle}>{t('SSH Tunnel')}</span>
       <InfoTooltip
         tooltip={t('SSH Tunnel configuration parameters')}
         placement="right"
-        viewBox="0 -5 24 24"
       />
     </div>
   ) : null;
+};
+
 export default SSHTunnelSwitch;

@@ -16,8 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
-import Label from 'src/components/Label';
+import { Label } from '@superset-ui/core/components';
 import { STATE_TYPE_MAP, STATE_TYPE_MAP_LOCALIZED } from 'src/SqlLab/constants';
 import { styled, Query } from '@superset-ui/core';
 
@@ -26,7 +25,7 @@ interface QueryStateLabelProps {
 }
 
 const StyledLabel = styled(Label)`
-  margin-right: ${({ theme }) => theme.gridUnit}px;
+  margin-right: ${({ theme }) => theme.sizeUnit}px;
 `;
 
 export default function QueryStateLabel({ query }: QueryStateLabelProps) {

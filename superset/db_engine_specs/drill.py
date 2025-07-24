@@ -14,8 +14,11 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+
+from __future__ import annotations
+
 from datetime import datetime
-from typing import Any, Optional
+from typing import Any, TYPE_CHECKING
 from urllib import parse
 
 from sqlalchemy import types
@@ -24,6 +27,10 @@ from sqlalchemy.engine.url import URL
 from superset.constants import TimeGrain
 from superset.db_engine_specs.base import BaseEngineSpec
 from superset.db_engine_specs.exceptions import SupersetDBAPIProgrammingError
+from superset.utils.hashing import md5_sha_from_str
+
+if TYPE_CHECKING:
+    from superset.models.core import Database
 
 
 class DrillEngineSpec(BaseEngineSpec):
@@ -60,8 +67,8 @@ class DrillEngineSpec(BaseEngineSpec):
 
     @classmethod
     def convert_dttm(
-        cls, target_type: str, dttm: datetime, db_extra: Optional[dict[str, Any]] = None
-    ) -> Optional[str]:
+        cls, target_type: str, dttm: datetime, db_extra: dict[str, Any] | None = None
+    ) -> str | None:
         sqla_type = cls.get_sqla_column_type(target_type)
 
         if isinstance(sqla_type, types.Date):
@@ -76,8 +83,8 @@ class DrillEngineSpec(BaseEngineSpec):
         cls,
         uri: URL,
         connect_args: dict[str, Any],
-        catalog: Optional[str] = None,
-        schema: Optional[str] = None,
+        catalog: str | None = None,
+        schema: str | None = None,
     ) -> tuple[URL, dict[str, Any]]:
         if schema:
             uri = uri.set(database=parse.quote(schema.replace(".", "/"), safe=""))
@@ -89,31 +96,62 @@ class DrillEngineSpec(BaseEngineSpec):
         cls,
         sqlalchemy_uri: URL,
         connect_args: dict[str, Any],
-    ) -> Optional[str]:
+    ) -> str | None:
         """
         Return the configured schema.
         """
         return parse.unquote(sqlalchemy_uri.database).replace("/", ".")
 
     @classmethod
-    def get_url_for_impersonation(
-        cls, url: URL, impersonate_user: bool, username: Optional[str]
-    ) -> URL:
-        """
-        Return a modified URL with the username set.
+    def impersonate_user(
+        cls,
+        database: Database,
+        username: str | None,
+        user_token: str | None,
+        url: URL,
+        engine_kwargs: dict[str, Any],
+    ) -> tuple[URL, dict[str, Any]]:
+        if username is None:
+            return url, engine_kwargs
 
-        :param url: SQLAlchemy URL object
-        :param impersonate_user: Flag indicating if impersonation is enabled
-        :param username: Effective username
-        """
-        if impersonate_user and username is not None:
-            if url.drivername == "drill+odbc":
-                url = url.update_query_dict({"DelegationUID": username})
-            elif url.drivername in ["drill+sadrill", "drill+jdbc"]:
-                url = url.update_query_dict({"impersonation_target": username})
-            else:
-                raise SupersetDBAPIProgrammingError(
-                    f"impersonation is not supported for {url.drivername}"
-                )
+        if url.drivername == "drill+odbc":
+            url = url.update_query_dict({"DelegationUID": username})
+        elif url.drivername in {"drill+sadrill", "drill+jdbc"}:
+            url = url.update_query_dict({"impersonation_target": username})
+        else:
+            raise SupersetDBAPIProgrammingError(
+                f"impersonation is not supported for {url.drivername}"
+            )
 
-        return url
+        return url, engine_kwargs
+
+    @classmethod
+    def fetch_data(
+        cls,
+        cursor: Any,
+        limit: int | None = None,
+    ) -> list[tuple[Any, ...]]:
+        """
+        Custom `fetch_data` for Drill.
+
+        When no rows are returned, Drill raises a `RuntimeError` with the message
+        "generator raised StopIteration". This method catches the exception and
+        returns an empty list instead.
+        """
+        try:
+            return super().fetch_data(cursor, limit)
+        except RuntimeError as ex:
+            if str(ex) == "generator raised StopIteration":
+                return []
+            raise
+
+    @staticmethod
+    def _mutate_label(label: str) -> str:
+        """
+        Suffix with the first six characters from the md5 of the label to avoid
+        collisions with original column names
+
+        :param label: Expected expression label
+        :return: Conditionally mutated label
+        """
+        return f"{label}_{md5_sha_from_str(label)[:6]}"

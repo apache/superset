@@ -19,11 +19,12 @@ from __future__ import annotations
 import logging
 from typing import Any
 
+from superset.connectors.sqla.models import SqlaTable
 from superset.daos.base import BaseDAO
 from superset.databases.filters import DatabaseFilter
 from superset.databases.ssh_tunnel.models import SSHTunnel
 from superset.extensions import db
-from superset.models.core import Database
+from superset.models.core import Database, DatabaseUserOAuth2Tokens
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.models.sql_lab import TabState
@@ -41,7 +42,6 @@ class DatabaseDAO(BaseDAO[Database]):
         cls,
         item: Database | None = None,
         attributes: dict[str, Any] | None = None,
-        commit: bool = True,
     ) -> Database:
         """
         Unmask ``encrypted_extra`` before updating.
@@ -51,7 +51,7 @@ class DatabaseDAO(BaseDAO[Database]):
         of the credentials.
 
         The masked values should be unmasked before the database is updated.
-        """
+        """  # noqa: E501
 
         if item and attributes and "encrypted_extra" in attributes:
             attributes["encrypted_extra"] = item.db_engine_spec.unmask_encrypted_extra(
@@ -59,7 +59,7 @@ class DatabaseDAO(BaseDAO[Database]):
                 attributes["encrypted_extra"],
             )
 
-        return super().update(item, attributes, commit)
+        return super().update(item, attributes)
 
     @staticmethod
     def validate_uniqueness(database_name: str) -> bool:
@@ -132,6 +132,31 @@ class DatabaseDAO(BaseDAO[Database]):
         }
 
     @classmethod
+    def get_datasets(
+        cls,
+        database_id: int,
+        catalog: str | None,
+        schema: str | None,
+    ) -> list[SqlaTable]:
+        """
+        Return all datasets, optionally filtered by catalog/schema.
+
+        :param database_id: The database ID
+        :param catalog: The catalog name
+        :param schema: The schema name
+        :return: A list of SqlaTable objects
+        """
+        return (
+            db.session.query(SqlaTable)
+            .filter(
+                SqlaTable.database_id == database_id,
+                SqlaTable.catalog == catalog,
+                SqlaTable.schema == schema,
+            )
+            .all()
+        )
+
+    @classmethod
     def get_ssh_tunnel(cls, database_id: int) -> SSHTunnel | None:
         ssh_tunnel = (
             db.session.query(SSHTunnel)
@@ -148,7 +173,6 @@ class SSHTunnelDAO(BaseDAO[SSHTunnel]):
         cls,
         item: SSHTunnel | None = None,
         attributes: dict[str, Any] | None = None,
-        commit: bool = True,
     ) -> SSHTunnel:
         """
         Unmask ``password``, ``private_key`` and ``private_key_password`` before updating.
@@ -157,11 +181,28 @@ class SSHTunnelDAO(BaseDAO[SSHTunnel]):
         the aforementioned fields.
 
         The masked values should be unmasked before the ssh tunnel is updated.
-        """
+        """  # noqa: E501
         # ID cannot be updated so we remove it if present in the payload
 
         if item and attributes:
             attributes.pop("id", None)
             attributes = unmask_password_info(attributes, item)
 
-        return super().update(item, attributes, commit)
+        return super().update(item, attributes)
+
+
+class DatabaseUserOAuth2TokensDAO(BaseDAO[DatabaseUserOAuth2Tokens]):
+    """
+    DAO for OAuth2 tokens.
+    """
+
+    @classmethod
+    def get_database(cls, database_id: int) -> Database | None:
+        """
+        Returns the database.
+
+        Note that this is different from `DatabaseDAO.find_by_id(database_id)` because
+        this DAO doesn't have any filters, so it can be called even for users without
+        database access (which is necessary for OAuth2).
+        """
+        return db.session.query(Database).filter_by(id=database_id).one_or_none()

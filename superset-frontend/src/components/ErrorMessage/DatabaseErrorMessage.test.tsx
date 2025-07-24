@@ -17,17 +17,16 @@
  * under the License.
  */
 
-import React from 'react';
-import { render, screen } from 'spec/helpers/testing-library';
-import userEvent from '@testing-library/user-event';
-import DatabaseErrorMessage from './DatabaseErrorMessage';
-import { ErrorLevel, ErrorSource, ErrorTypeEnum } from './types';
+import { ErrorLevel, ErrorSource, ErrorTypeEnum } from '@superset-ui/core';
+import { render, screen, userEvent } from 'spec/helpers/testing-library';
+import { DatabaseErrorMessage } from './DatabaseErrorMessage';
 
 jest.mock(
-  'src/components/Icons/Icon',
+  '@superset-ui/core/components/Icons/AsyncIcon',
   () =>
-    ({ fileName }: { fileName: string }) =>
-      <span role="img" aria-label={fileName.replace('_', '-')} />,
+    ({ fileName }: { fileName: string }) => (
+      <span role="img" aria-label={fileName.replace('_', '-')} />
+    ),
 );
 
 const mockedProps = {
@@ -55,7 +54,14 @@ const mockedProps = {
 };
 
 test('should render', () => {
-  const { container } = render(<DatabaseErrorMessage {...mockedProps} />);
+  const nullExtraProps = {
+    ...mockedProps,
+    error: {
+      ...mockedProps.error,
+      extra: null,
+    },
+  };
+  const { container } = render(<DatabaseErrorMessage {...nullExtraProps} />);
   expect(container).toBeInTheDocument();
 });
 

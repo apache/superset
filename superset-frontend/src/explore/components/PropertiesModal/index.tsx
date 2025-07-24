@@ -16,12 +16,20 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useMemo, useState, useCallback, useEffect } from 'react';
-import Modal from 'src/components/Modal';
-import { Input, TextArea } from 'src/components/Input';
-import Button from 'src/components/Button';
-import { AsyncSelect, Row, Col, AntdForm } from 'src/components';
-import { SelectValue } from 'antd/lib/select';
+import { ChangeEvent, useMemo, useState, useCallback, useEffect } from 'react';
+
+import {
+  Input,
+  Modal,
+  AsyncSelect,
+  Button,
+  Form,
+  Row,
+  Col,
+  FormItem,
+  Typography,
+  type SelectValue,
+} from '@superset-ui/core/components';
 import rison from 'rison';
 import {
   t,
@@ -29,18 +37,17 @@ import {
   styled,
   isFeatureEnabled,
   FeatureFlag,
+  getClientErrorObject,
+  ensureIsArray,
+  useTheme,
+  css,
 } from '@superset-ui/core';
+import { Icons } from '@superset-ui/core/components/Icons';
 import Chart, { Slice } from 'src/types/Chart';
-import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import withToasts from 'src/components/MessageToasts/withToasts';
-import { loadTags } from 'src/components/Tags/utils';
-import {
-  addTag,
-  deleteTaggedObjects,
-  fetchTags,
-  OBJECT_TYPES,
-} from 'src/features/tags/tags';
-import TagType from 'src/types/TagType';
+import { type TagType } from 'src/components';
+import { TagTypeEnum } from 'src/components/Tag/TagType';
+import { loadTags } from 'src/components/Tag/utils';
 
 export type PropertiesModalProps = {
   slice: Slice;
@@ -52,13 +59,7 @@ export type PropertiesModalProps = {
   addSuccessToast: (msg: string) => void;
 };
 
-const FormItem = AntdForm.Item;
-
-const StyledFormItem = styled(AntdForm.Item)`
-  margin-bottom: 0;
-`;
-
-const StyledHelpBlock = styled.span`
+const StyledFormItem = styled(FormItem)`
   margin-bottom: 0;
 `;
 
@@ -69,8 +70,9 @@ function PropertiesModal({
   show,
   addSuccessToast,
 }: PropertiesModalProps) {
+  const theme = useTheme();
   const [submitting, setSubmitting] = useState(false);
-  const [form] = AntdForm.useForm();
+  const [form] = Form.useForm();
   // values of form inputs
   const [name, setName] = useState(slice.slice_name || '');
   const [selectedOwners, setSelectedOwners] = useState<SelectValue | null>(
@@ -80,10 +82,9 @@ function PropertiesModal({
   const [tags, setTags] = useState<TagType[]>([]);
 
   const tagsAsSelectValues = useMemo(() => {
-    const selectTags = tags.map(tag => ({
-      value: tag.name,
+    const selectTags = tags.map((tag: { id: number; name: string }) => ({
+      value: tag.id,
       label: tag.name,
-      key: tag.name,
     }));
     return selectTags;
   }, [tags.length]);
@@ -100,11 +101,21 @@ function PropertiesModal({
     });
   }
 
-  const fetchChartOwners = useCallback(
-    async function fetchChartOwners() {
+  const fetchChartProperties = useCallback(
+    async function fetchChartProperties() {
+      const queryParams = rison.encode({
+        select_columns: [
+          'owners.id',
+          'owners.first_name',
+          'owners.last_name',
+          'tags.id',
+          'tags.name',
+          'tags.type',
+        ],
+      });
       try {
         const response = await SupersetClient.get({
-          endpoint: `/api/v1/chart/${slice.slice_id}`,
+          endpoint: `/api/v1/chart/${slice.slice_id}?q=${queryParams}`,
         });
         const chart = response.json.result;
         setSelectedOwners(
@@ -113,6 +124,12 @@ function PropertiesModal({
             label: `${owner.first_name} ${owner.last_name}`,
           })),
         );
+        if (isFeatureEnabled(FeatureFlag.TaggingSystem)) {
+          const customTags = chart.tags?.filter(
+            (tag: TagType) => tag.type === TagTypeEnum.Custom,
+          );
+          setTags(customTags);
+        }
       } catch (response) {
         const clientError = await getClientErrorObject(response);
         showError(clientError);
@@ -144,41 +161,6 @@ function PropertiesModal({
     [],
   );
 
-  const updateTags = (oldTags: TagType[], newTags: TagType[]) => {
-    // update the tags for this object
-    // add tags that are in new tags, but not in old tags
-    // eslint-disable-next-line array-callback-return
-    newTags.map((tag: TagType) => {
-      if (!oldTags.some(t => t.name === tag.name)) {
-        addTag(
-          {
-            objectType: OBJECT_TYPES.CHART,
-            objectId: slice.slice_id,
-            includeTypes: false,
-          },
-          tag.name,
-          () => {},
-          () => {},
-        );
-      }
-    });
-    // delete tags that are in old tags, but not in new tags
-    // eslint-disable-next-line array-callback-return
-    oldTags.map((tag: TagType) => {
-      if (!newTags.some(t => t.name === tag.name)) {
-        deleteTaggedObjects(
-          {
-            objectType: OBJECT_TYPES.CHART,
-            objectId: slice.slice_id,
-          },
-          tag,
-          () => {},
-          () => {},
-        );
-      }
-    });
-  };
-
   const onSubmit = async (values: {
     certified_by?: string;
     certification_details?: string;
@@ -208,23 +190,8 @@ function PropertiesModal({
         }[]
       ).map(o => o.value);
     }
-    if (isFeatureEnabled(FeatureFlag.TAGGING_SYSTEM)) {
-      // update tags
-      try {
-        fetchTags(
-          {
-            objectType: OBJECT_TYPES.CHART,
-            objectId: slice.slice_id,
-            includeTypes: false,
-          },
-          (currentTags: TagType[]) => updateTags(currentTags, tags),
-          error => {
-            showError(error);
-          },
-        );
-      } catch (error) {
-        showError(error);
-      }
+    if (isFeatureEnabled(FeatureFlag.TaggingSystem)) {
+      payload.tags = tags.map(tag => tag.id);
     }
 
     try {
@@ -255,39 +222,20 @@ function PropertiesModal({
 
   // get the owners of this slice
   useEffect(() => {
-    fetchChartOwners();
-  }, [fetchChartOwners]);
+    fetchChartProperties();
+  }, [slice.slice_id]);
 
   // update name after it's changed in another modal
   useEffect(() => {
     setName(slice.slice_name || '');
   }, [slice.slice_name]);
 
-  useEffect(() => {
-    if (!isFeatureEnabled(FeatureFlag.TAGGING_SYSTEM)) return;
-    try {
-      fetchTags(
-        {
-          objectType: OBJECT_TYPES.CHART,
-          objectId: slice.slice_id,
-          includeTypes: false,
-        },
-        (tags: TagType[]) => setTags(tags),
-        error => {
-          showError(error);
-        },
-      );
-    } catch (error) {
-      showError(error);
-    }
-  }, [slice.slice_id]);
-
-  const handleChangeTags = (values: { label: string; value: number }[]) => {
-    // triggered whenever a new tag is selected or a tag was deselected
-    // on new tag selected, add the tag
-
-    const uniqueTags = [...new Set(values.map(v => v.label))];
-    setTags([...uniqueTags.map(t => ({ name: t }))]);
+  const handleChangeTags = (tags: { label: string; value: number }[]) => {
+    const parsedTags: TagType[] = ensureIsArray(tags).map(r => ({
+      id: r.value,
+      name: r.label,
+    }));
+    setTags(parsedTags);
   };
 
   const handleClearTags = () => {
@@ -298,7 +246,17 @@ function PropertiesModal({
     <Modal
       show={show}
       onHide={onHide}
-      title={t('Edit Chart Properties')}
+      title={
+        <span>
+          <Icons.EditOutlined
+            css={css`
+              margin: auto ${theme.sizeUnit * 2}px auto 0;
+            `}
+            data-test="edit-alt"
+          />
+          {t('Edit Chart Properties')}
+        </span>
+      }
       footer={
         <>
           <Button
@@ -306,6 +264,7 @@ function PropertiesModal({
             htmlType="button"
             buttonSize="small"
             onClick={onHide}
+            buttonStyle="secondary"
             cta
           >
             {t('Cancel')}
@@ -333,7 +292,7 @@ function PropertiesModal({
       responsive
       wrapProps={{ 'data-test': 'properties-edit-modal' }}
     >
-      <AntdForm
+      <Form
         form={form}
         onFinish={onSubmit}
         layout="vertical"
@@ -350,7 +309,9 @@ function PropertiesModal({
       >
         <Row gutter={16}>
           <Col xs={24} md={12}>
-            <h3>{t('Basic information')}</h3>
+            <Typography.Title level={3}>
+              {t('Basic information')}
+            </Typography.Title>
             <FormItem label={t('Name')} required>
               <Input
                 aria-label={t('Name')}
@@ -358,58 +319,61 @@ function PropertiesModal({
                 data-test="properties-modal-name-input"
                 type="text"
                 value={name}
-                onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
+                onChange={(event: ChangeEvent<HTMLInputElement>) =>
                   setName(event.target.value ?? '')
                 }
               />
             </FormItem>
-            <FormItem>
+            <FormItem
+              extra={t(
+                'The description can be displayed as widget headers in the dashboard view. Supports markdown.',
+              )}
+            >
               <StyledFormItem label={t('Description')} name="description">
-                <TextArea rows={3} style={{ maxWidth: '100%' }} />
+                <Input.TextArea rows={3} style={{ maxWidth: '100%' }} />
               </StyledFormItem>
-              <StyledHelpBlock className="help-block">
-                {t(
-                  'The description can be displayed as widget headers in the dashboard view. Supports markdown.',
-                )}
-              </StyledHelpBlock>
             </FormItem>
-            <h3>{t('Certification')}</h3>
-            <FormItem>
+            <Typography.Title level={3}>{t('Certification')}</Typography.Title>
+            <FormItem
+              extra={t('Person or group that has certified this chart.')}
+            >
               <StyledFormItem label={t('Certified by')} name="certified_by">
                 <Input aria-label={t('Certified by')} />
               </StyledFormItem>
-              <StyledHelpBlock className="help-block">
-                {t('Person or group that has certified this chart.')}
-              </StyledHelpBlock>
             </FormItem>
-            <FormItem>
+            <FormItem
+              extra={t(
+                'Any additional detail to show in the certification tooltip.',
+              )}
+            >
               <StyledFormItem
                 label={t('Certification details')}
                 name="certification_details"
               >
                 <Input aria-label={t('Certification details')} />
               </StyledFormItem>
-              <StyledHelpBlock className="help-block">
-                {t(
-                  'Any additional detail to show in the certification tooltip.',
-                )}
-              </StyledHelpBlock>
             </FormItem>
           </Col>
           <Col xs={24} md={12}>
-            <h3>{t('Configuration')}</h3>
-            <FormItem>
+            <Typography.Title level={3}>{t('Configuration')}</Typography.Title>
+            <FormItem
+              extra={t(
+                "Duration (in seconds) of the caching timeout for this chart. Set to -1 to bypass the cache. Note this defaults to the dataset's timeout if undefined.",
+              )}
+            >
               <StyledFormItem label={t('Cache timeout')} name="cache_timeout">
                 <Input aria-label="Cache timeout" />
               </StyledFormItem>
-              <StyledHelpBlock className="help-block">
-                {t(
-                  "Duration (in seconds) of the caching timeout for this chart. Set to -1 to bypass the cache. Note this defaults to the dataset's timeout if undefined.",
-                )}
-              </StyledHelpBlock>
             </FormItem>
-            <h3 style={{ marginTop: '1em' }}>{t('Access')}</h3>
-            <FormItem label={ownersLabel}>
+            <Typography.Title level={3} style={{ marginTop: '1em' }}>
+              {t('Access')}
+            </Typography.Title>
+            <FormItem
+              label={ownersLabel}
+              extra={t(
+                'A list of users who can alter the chart. Searchable by name or username.',
+              )}
+            >
               <AsyncSelect
                 ariaLabel={ownersLabel}
                 mode="multiple"
@@ -420,17 +384,18 @@ function PropertiesModal({
                 disabled={!selectedOwners}
                 allowClear
               />
-              <StyledHelpBlock className="help-block">
-                {t(
-                  'A list of users who can alter the chart. Searchable by name or username.',
-                )}
-              </StyledHelpBlock>
             </FormItem>
-            {isFeatureEnabled(FeatureFlag.TAGGING_SYSTEM) && (
-              <h3 css={{ marginTop: '1em' }}>{t('Tags')}</h3>
+            {isFeatureEnabled(FeatureFlag.TaggingSystem) && (
+              <Typography.Title level={3} css={{ marginTop: '1em' }}>
+                {t('Tags')}
+              </Typography.Title>
             )}
-            {isFeatureEnabled(FeatureFlag.TAGGING_SYSTEM) && (
-              <FormItem>
+            {isFeatureEnabled(FeatureFlag.TaggingSystem) && (
+              <FormItem
+                extra={t(
+                  'A list of tags that have been applied to this chart.',
+                )}
+              >
                 <AsyncSelect
                   ariaLabel="Tags"
                   mode="multiple"
@@ -440,14 +405,11 @@ function PropertiesModal({
                   onClear={handleClearTags}
                   allowClear
                 />
-                <StyledHelpBlock className="help-block">
-                  {t('A list of tags that have been applied to this chart.')}
-                </StyledHelpBlock>
               </FormItem>
             )}
           </Col>
         </Row>
-      </AntdForm>
+      </Form>
     </Modal>
   );
 }

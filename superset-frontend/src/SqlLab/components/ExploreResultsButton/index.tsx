@@ -16,10 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import { t } from '@superset-ui/core';
-import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
-import Button, { OnClickHandler } from 'src/components/Button';
+import {
+  Button,
+  type OnClickHandler,
+  Icons,
+} from '@superset-ui/core/components';
 
 export interface ExploreResultsButtonProps {
   database?: {
@@ -36,16 +38,14 @@ const ExploreResultsButton = ({
   return (
     <Button
       buttonSize="small"
+      buttonStyle="secondary"
+      icon={<Icons.LineChartOutlined />}
       onClick={onClick}
       disabled={!allowsSubquery}
+      role="button"
       tooltip={t('Explore the result set in the data exploration view')}
       data-test="explore-results-button"
     >
-      <InfoTooltipWithTrigger
-        icon="line-chart"
-        placement="top"
-        label={t('explore')}
-      />{' '}
       {t('Create Chart')}
     </Button>
   );

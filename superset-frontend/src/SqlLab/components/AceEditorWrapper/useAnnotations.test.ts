@@ -18,13 +18,13 @@
  */
 import fetchMock from 'fetch-mock';
 import { act, renderHook } from '@testing-library/react-hooks';
+import { COMMON_ERR_MESSAGES } from '@superset-ui/core';
 import {
   createWrapper,
   defaultStore as store,
 } from 'spec/helpers/testing-library';
 import { api } from 'src/hooks/apiResources/queryApi';
 import { initialState } from 'src/SqlLab/fixtures';
-import COMMON_ERR_MESSAGES from 'src/utils/errorMessages';
 import { useAnnotations } from './useAnnotations';
 
 const fakeApiResult = {
@@ -157,7 +157,7 @@ test('returns server error description', async () => {
   );
 });
 
-test('returns sesion expire description when CSRF token expired', async () => {
+test('returns session expire description when CSRF token expired', async () => {
   const errorMessage = 'CSRF token expired';
   fetchMock.post(
     queryValidationApiRoute,

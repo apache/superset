@@ -33,7 +33,7 @@ import { getActiveFilters } from '../dashboard/util/activeDashboardFilters';
 import serializeActiveFilterValues from '../dashboard/util/serializeActiveFilterValues';
 
 export type UrlParamType = 'string' | 'number' | 'boolean' | 'object' | 'rison';
-export type UrlParam = typeof URL_PARAMS[keyof typeof URL_PARAMS];
+export type UrlParam = (typeof URL_PARAMS)[keyof typeof URL_PARAMS];
 export function getUrlParam(
   param: UrlParam & { type: 'string' },
 ): string | null;
@@ -123,8 +123,13 @@ function getChartUrlParams(excludedUrlParams?: string[]): UrlParamEntries {
   return getUrlParamEntries(urlParams);
 }
 
-function getDashboardUrlParams(): UrlParamEntries {
-  const urlParams = getUrlParams(RESERVED_DASHBOARD_URL_PARAMS);
+export function getDashboardUrlParams(
+  extraExcludedParams: string[] = [],
+): UrlParamEntries {
+  const urlParams = getUrlParams([
+    ...RESERVED_DASHBOARD_URL_PARAMS,
+    ...extraExcludedParams,
+  ]);
   const filterBoxFilters = getActiveFilters();
   if (!isEmpty(filterBoxFilters))
     urlParams.append(
@@ -172,7 +177,7 @@ export function getDashboardPermalink({
    */
   anchor?: string;
 }) {
-  // only encode filter box state if non-empty
+  // only encode filter state if non-empty
   return getPermalink(`/api/v1/dashboard/${dashboardId}/permalink`, {
     urlParams: getDashboardUrlParams(),
     dataMask,
@@ -205,4 +210,17 @@ export function parseUrl(url: string) {
     return `//${url}`;
   }
   return url;
+}
+
+export function toQueryString(params: Record<string, any>): string {
+  const queryParts: string[] = [];
+  Object.keys(params).forEach(key => {
+    const value = params[key];
+    if (value !== null && value !== undefined) {
+      queryParts.push(
+        `${encodeURIComponent(key)}=${encodeURIComponent(value)}`,
+      );
+    }
+  });
+  return queryParts.length > 0 ? `?${queryParts.join('&')}` : '';
 }

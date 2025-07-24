@@ -17,19 +17,19 @@
 
 # pylint: disable=invalid-name, import-outside-toplevel, unused-argument
 
-import json
 from io import BytesIO
 from pathlib import Path
 from typing import Any
 from zipfile import is_zipfile, ZipFile
 
-from pytest_mock import MockFixture
+from pytest_mock import MockerFixture
 
 from superset import security_manager
+from superset.utils import json
 
 
 def test_export_assets(
-    mocker: MockFixture,
+    mocker: MockerFixture,
     client: Any,
     full_api_access: None,
 ) -> None:
@@ -45,9 +45,16 @@ def test_export_assets(
         ),
         ("databases/example.yaml", "<DATABASE CONTENTS>"),
     ]
+    mocked_export_result = [
+        (
+            "metadata.yaml",
+            lambda: "version: 1.0.0\ntype: assets\ntimestamp: '2022-01-01T00:00:00+00:00'\n",  # noqa: E501
+        ),
+        ("databases/example.yaml", lambda: "<DATABASE CONTENTS>"),
+    ]
 
-    ExportAssetsCommand = mocker.patch("superset.importexport.api.ExportAssetsCommand")
-    ExportAssetsCommand().run.return_value = mocked_contents[:]
+    ExportAssetsCommand = mocker.patch("superset.importexport.api.ExportAssetsCommand")  # noqa: N806
+    ExportAssetsCommand().run.return_value = mocked_export_result[:]
 
     response = client.get("/api/v1/assets/export/")
     assert response.status_code == 200
@@ -62,7 +69,7 @@ def test_export_assets(
 
 
 def test_import_assets(
-    mocker: MockFixture,
+    mocker: MockerFixture,
     client: Any,
     full_api_access: None,
 ) -> None:
@@ -76,7 +83,7 @@ def test_import_assets(
         "databases/example.yaml": "<DATABASE CONTENTS>",
     }
 
-    ImportAssetsCommand = mocker.patch("superset.importexport.api.ImportAssetsCommand")
+    ImportAssetsCommand = mocker.patch("superset.importexport.api.ImportAssetsCommand")  # noqa: N806
 
     root = Path("assets_export")
     buf = BytesIO()
@@ -101,6 +108,7 @@ def test_import_assets(
     passwords = {"assets_export/databases/imported_database.yaml": "SECRET"}
     ImportAssetsCommand.assert_called_with(
         mocked_contents,
+        sparse=False,
         passwords=passwords,
         ssh_tunnel_passwords=None,
         ssh_tunnel_private_keys=None,
@@ -109,7 +117,7 @@ def test_import_assets(
 
 
 def test_import_assets_not_zip(
-    mocker: MockFixture,
+    mocker: MockerFixture,
     client: Any,
     full_api_access: None,
 ) -> None:
@@ -147,7 +155,7 @@ def test_import_assets_not_zip(
 
 
 def test_import_assets_no_form_data(
-    mocker: MockFixture,
+    mocker: MockerFixture,
     client: Any,
     full_api_access: None,
 ) -> None:
@@ -181,7 +189,7 @@ def test_import_assets_no_form_data(
 
 
 def test_import_assets_incorrect_form_data(
-    mocker: MockFixture,
+    mocker: MockerFixture,
     client: Any,
     full_api_access: None,
 ) -> None:
@@ -200,7 +208,7 @@ def test_import_assets_incorrect_form_data(
 
 
 def test_import_assets_no_contents(
-    mocker: MockFixture,
+    mocker: MockerFixture,
     client: Any,
     full_api_access: None,
 ) -> None:

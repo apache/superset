@@ -18,6 +18,7 @@
  */
 /* eslint camelcase: 0 */
 import { ensureIsArray } from '@superset-ui/core';
+import { omit, pick } from 'lodash';
 import { DYNAMIC_PLUGIN_CONTROLS_READY } from 'src/components/Chart/chartAction';
 import { getControlsState } from 'src/explore/store';
 import {
@@ -47,6 +48,24 @@ export default function exploreReducer(state = {}, action) {
       return {
         ...state,
         isDatasourceMetaLoading: true,
+      };
+    },
+    [actions.START_METADATA_LOADING]() {
+      return {
+        ...state,
+        isDatasourceMetaLoading: true,
+      };
+    },
+    [actions.STOP_METADATA_LOADING]() {
+      return {
+        ...state,
+        isDatasourceMetaLoading: false,
+      };
+    },
+    [actions.SYNC_DATASOURCE_METADATA]() {
+      return {
+        ...state,
+        datasource: action.datasource,
       };
     },
     [actions.UPDATE_FORM_DATA_BY_DATASOURCE]() {
@@ -195,6 +214,52 @@ export default function exploreReducer(state = {}, action) {
         currentControlsState = transformed.controlsState;
       }
 
+      const dependantControls = Object.entries(state.controls)
+        .filter(
+          ([, item]) =>
+            Array.isArray(item?.validationDependancies) &&
+            item.validationDependancies.includes(controlName),
+        )
+        .map(([key, item]) => ({
+          controlState: item,
+          dependantControlName: key,
+        }));
+
+      let updatedControlStates = {};
+      if (dependantControls.length > 0) {
+        const updatedControls = dependantControls.map(
+          ({ controlState, dependantControlName }) => {
+            // overwrite state form data with current control value as the redux state will not
+            // have latest action value
+            const overWrittenState = {
+              ...state,
+              form_data: {
+                ...state.form_data,
+                [controlName]: action.value,
+              },
+            };
+
+            return {
+              // Re run validation for dependant controls
+              controlState: getControlStateFromControlConfig(
+                controlState,
+                overWrittenState,
+                controlState?.value,
+              ),
+              dependantControlName,
+            };
+          },
+        );
+
+        updatedControlStates = updatedControls.reduce(
+          (acc, { controlState, dependantControlName }) => {
+            acc[dependantControlName] = { ...controlState };
+            return acc;
+          },
+          {},
+        );
+      }
+
       return {
         ...state,
         form_data: new_form_data,
@@ -208,6 +273,7 @@ export default function exploreReducer(state = {}, action) {
             },
           }),
           ...rerenderedControls,
+          ...updatedControlStates,
         },
       };
     },
@@ -244,6 +310,32 @@ export default function exploreReducer(state = {}, action) {
         can_download: action.can_download,
         can_overwrite: action.can_overwrite,
       };
+    },
+    [actions.SET_STASH_FORM_DATA]() {
+      const { form_data, hiddenFormData } = state;
+      const { fieldNames, isHidden } = action;
+      if (isHidden) {
+        return {
+          ...state,
+          hiddenFormData: {
+            ...hiddenFormData,
+            ...pick(form_data, fieldNames),
+          },
+          form_data: omit(form_data, fieldNames),
+        };
+      }
+
+      const restoredField = pick(hiddenFormData, fieldNames);
+      return Object.keys(restoredField).length === 0
+        ? state
+        : {
+            ...state,
+            form_data: {
+              ...form_data,
+              ...restoredField,
+            },
+            hiddenFormData: omit(hiddenFormData, fieldNames),
+          };
     },
     [actions.SLICE_UPDATED]() {
       return {

@@ -23,7 +23,7 @@ from sqlalchemy.engine import create_engine
 
 from superset.constants import TimeGrain
 from tests.unit_tests.db_engine_specs.utils import assert_convert_dttm
-from tests.unit_tests.fixtures.common import dttm
+from tests.unit_tests.fixtures.common import dttm  # noqa: F401
 
 
 @pytest.mark.parametrize(
@@ -38,9 +38,9 @@ from tests.unit_tests.fixtures.common import dttm
 def test_convert_dttm(
     target_type: str,
     expected_result: Optional[str],
-    dttm: datetime,
+    dttm: datetime,  # noqa: F811
 ) -> None:
-    from superset.db_engine_specs.sqlite import SqliteEngineSpec as spec
+    from superset.db_engine_specs.sqlite import SqliteEngineSpec as spec  # noqa: N813
 
     assert_convert_dttm(spec, target_type, expected_result, dttm)
 
@@ -116,7 +116,7 @@ def test_convert_dttm(
         ("2022-12-04T05:06:07.89Z", TimeGrain.QUARTER, "2022-10-01 00:00:00"),
     ],
 )
-def test_time_grain_expressions(dttm: str, grain: str, expected: str) -> None:
+def test_time_grain_expressions(dttm: str, grain: str, expected: str) -> None:  # noqa: F811
     from superset.db_engine_specs.sqlite import SqliteEngineSpec
 
     engine = create_engine("sqlite://")
@@ -126,6 +126,6 @@ def test_time_grain_expressions(dttm: str, grain: str, expected: str) -> None:
 
     # pylint: disable=protected-access
     expression = SqliteEngineSpec._time_grain_expressions[grain].format(col="dttm")
-    sql = f"SELECT {expression} FROM t"
+    sql = f"SELECT {expression} FROM t"  # noqa: S608
     result = connection.execute(sql).scalar()
     assert result == expected

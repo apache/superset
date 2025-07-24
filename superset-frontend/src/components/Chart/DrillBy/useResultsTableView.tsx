@@ -16,17 +16,16 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import { css, styled, isDefined, QueryData, t } from '@superset-ui/core';
 import { SingleQueryResultPane } from 'src/explore/components/DataTablesPane/components/SingleQueryResultPane';
-import Tabs from 'src/components/Tabs';
+import Tabs from '@superset-ui/core/components/Tabs';
 
 const DATA_SIZE = 15;
 
 const PaginationContainer = styled.div`
   ${({ theme }) => css`
     & .pagination-container {
-      bottom: ${-theme.gridUnit * 4}px;
+      bottom: ${-theme.sizeUnit * 4}px;
     }
   `}
 `;
@@ -34,6 +33,7 @@ const PaginationContainer = styled.div`
 export const useResultsTableView = (
   chartDataResult: QueryData[] | undefined,
   datasourceId: string,
+  canDownload: boolean,
 ) => {
   if (!isDefined(chartDataResult)) {
     return <div />;
@@ -44,30 +44,37 @@ export const useResultsTableView = (
         <SingleQueryResultPane
           colnames={chartDataResult[0].colnames}
           coltypes={chartDataResult[0].coltypes}
+          rowcount={chartDataResult[0].sql_rowcount}
           data={chartDataResult[0].data}
           dataSize={DATA_SIZE}
           datasourceId={datasourceId}
           isVisible
+          canDownload={canDownload}
         />
       </PaginationContainer>
     );
   }
   return (
-    <Tabs fullWidth={false} data-test="drill-by-results-tabs">
-      {chartDataResult.map((res, index) => (
-        <Tabs.TabPane tab={t('Results %s', index + 1)} key={index}>
+    <Tabs
+      defaultActiveKey="result-tab-0"
+      items={chartDataResult.map((res, index) => ({
+        key: `result-tab-${index}`,
+        label: t('Results %s', index + 1),
+        children: (
           <PaginationContainer>
             <SingleQueryResultPane
               colnames={res.colnames}
               coltypes={res.coltypes}
               data={res.data}
+              rowcount={res.sql_rowcount}
               dataSize={DATA_SIZE}
               datasourceId={datasourceId}
               isVisible
+              canDownload={canDownload}
             />
           </PaginationContainer>
-        </Tabs.TabPane>
-      ))}
-    </Tabs>
+        ),
+      }))}
+    />
   );
 };

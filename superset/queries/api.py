@@ -71,11 +71,19 @@ class QueryRestApi(BaseSupersetModelRestApi):
     list_columns = [
         "id",
         "changed_on",
+        "client_id",
+        "database.id",
         "database.database_name",
         "executed_sql",
+        "error_message",
+        "limit",
+        "limiting_factor",
+        "progress",
         "rows",
         "schema",
+        "select_as_cta",
         "sql",
+        "sql_editor_id",
         "sql_tables",
         "status",
         "tab_name",
@@ -86,6 +94,7 @@ class QueryRestApi(BaseSupersetModelRestApi):
         "end_time",
         "tmp_table_name",
         "tracking_url",
+        "results_key",
     ]
     show_columns = [
         "id",
@@ -135,15 +144,26 @@ class QueryRestApi(BaseSupersetModelRestApi):
     ]
     base_related_field_filters = {
         "created_by": [["id", BaseFilterRelatedUsers, lambda: []]],
+        "changed_by": [["id", BaseFilterRelatedUsers, lambda: []]],
         "user": [["id", BaseFilterRelatedUsers, lambda: []]],
         "database": [["id", DatabaseFilter, lambda: []]],
     }
     related_field_filters = {
         "created_by": RelatedFieldFilter("first_name", FilterRelatedOwners),
+        "changed_by": RelatedFieldFilter("first_name", FilterRelatedOwners),
         "user": RelatedFieldFilter("first_name", FilterRelatedOwners),
     }
 
-    search_columns = ["changed_on", "database", "sql", "status", "user", "start_time"]
+    search_columns = [
+        "changed_on",
+        "database",
+        "sql",
+        "status",
+        "user",
+        "start_time",
+        "sql_editor_id",
+        "uuid",
+    ]
 
     allowed_rel_fields = {"database", "user"}
     allowed_distinct_fields = {"status"}
@@ -206,16 +226,15 @@ class QueryRestApi(BaseSupersetModelRestApi):
     @safe
     @statsd_metrics
     @event_logger.log_this_with_context(
-        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
-        f".stop_query",
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.stop_query",
         log_to_statsd=False,
     )
     @backoff.on_exception(
         backoff.constant,
         Exception,
         interval=1,
-        on_backoff=lambda details: db.session.rollback(),
-        on_giveup=lambda details: db.session.rollback(),
+        on_backoff=lambda details: db.session.rollback(),  # pylint: disable=consider-using-transaction
+        on_giveup=lambda details: db.session.rollback(),  # pylint: disable=consider-using-transaction
         max_tries=5,
     )
     @requires_json

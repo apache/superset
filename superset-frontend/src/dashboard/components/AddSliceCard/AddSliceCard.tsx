@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import React, {
+import {
   CSSProperties,
   ReactNode,
   useEffect,
@@ -25,15 +25,19 @@ import React, {
   useRef,
   useState,
   PropsWithChildren,
+  RefObject,
+  FC,
 } from 'react';
+
 import { t, isFeatureEnabled, FeatureFlag, css } from '@superset-ui/core';
-import ImageLoader from 'src/components/ListViewCard/ImageLoader';
-import { usePluginContext } from 'src/components/DynamicPlugins';
-import { Tooltip } from 'src/components/Tooltip';
-import { GenericLink } from 'src/components/GenericLink/GenericLink';
+import { Tooltip, ImageLoader } from '@superset-ui/core/components';
+import { GenericLink, usePluginContext } from 'src/components';
+import { assetUrl } from 'src/utils/assetUrl';
 import { Theme } from '@emotion/react';
 
-const FALLBACK_THUMBNAIL_URL = '/static/assets/images/chart-card-fallback.svg';
+const FALLBACK_THUMBNAIL_URL = assetUrl(
+  '/static/assets/images/chart-card-fallback.svg',
+);
 
 const TruncatedTextWithTooltip = ({
   children,
@@ -43,7 +47,7 @@ const TruncatedTextWithTooltip = ({
   tooltipText?: string;
 }>) => {
   // Uses React.useState for testing purposes
-  const [isTruncated, setIsTruncated] = React.useState(false);
+  const [isTruncated, setIsTruncated] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
     setIsTruncated(
@@ -73,25 +77,25 @@ const TruncatedTextWithTooltip = ({
   );
 };
 
-const MetadataItem: React.FC<{
+const MetadataItem: FC<{
   label: ReactNode;
   value: ReactNode;
   tooltipText?: string;
 }> = ({ label, value, tooltipText }) => (
   <div
     css={(theme: Theme) => css`
-      font-size: ${theme.typography.sizes.s}px;
+      font-size: ${theme.fontSizeSM}px;
       display: flex;
       justify-content: space-between;
 
       &:not(:last-child) {
-        margin-bottom: ${theme.gridUnit}px;
+        margin-bottom: ${theme.sizeUnit}px;
       }
     `}
   >
     <span
       css={(theme: Theme) => css`
-        margin-right: ${theme.gridUnit * 4}px;
+        margin-right: ${theme.sizeUnit * 4}px;
         color: ${theme.colors.grayscale.base};
       `}
     >
@@ -109,7 +113,7 @@ const MetadataItem: React.FC<{
   </div>
 );
 
-const SliceAddedBadgePlaceholder: React.FC<{
+const SliceAddedBadgePlaceholder: FC<{
   showThumbnails?: boolean;
   placeholderRef: (element: HTMLDivElement) => void;
 }> = ({ showThumbnails, placeholderRef }) => (
@@ -117,14 +121,13 @@ const SliceAddedBadgePlaceholder: React.FC<{
     ref={placeholderRef}
     css={(theme: Theme) => css`
       /* Display styles */
-      border: 1px solid ${theme.colors.primary.dark1};
-      border-radius: ${theme.gridUnit}px;
-      color: ${theme.colors.primary.dark1};
-      font-size: ${theme.typography.sizes.xs}px;
-      text-transform: uppercase;
+      border: 1px solid ${theme.colorBorder};
+      border-radius: ${theme.borderRadius}px;
+      color: ${theme.colorPrimaryText};
+      font-size: ${theme.fontSizeXS}px;
       letter-spacing: 0.02em;
-      padding: ${theme.gridUnit / 2}px ${theme.gridUnit * 2}px;
-      margin-left: ${theme.gridUnit * 4}px;
+      padding: ${theme.sizeUnit / 2}px ${theme.sizeUnit * 2}px;
+      margin-left: ${theme.sizeUnit * 4}px;
       pointer-events: none;
 
       /* Position styles */
@@ -138,20 +141,19 @@ const SliceAddedBadgePlaceholder: React.FC<{
   </div>
 );
 
-const SliceAddedBadge: React.FC<{ placeholder?: HTMLDivElement }> = ({
+const SliceAddedBadge: FC<{ placeholder?: HTMLDivElement }> = ({
   placeholder,
 }) => (
   <div
     css={(theme: Theme) => css`
       /* Display styles */
-      border: 1px solid ${theme.colors.primary.dark1};
-      border-radius: ${theme.gridUnit}px;
-      color: ${theme.colors.primary.dark1};
-      font-size: ${theme.typography.sizes.xs}px;
-      text-transform: uppercase;
+      border: 1px solid ${theme.colorBorder};
+      border-radius: ${theme.borderRadius}px;
+      color: ${theme.colorPrimaryText};
+      font-size: ${theme.fontSizeXS}px;
       letter-spacing: 0.02em;
-      padding: ${theme.gridUnit / 2}px ${theme.gridUnit * 2}px;
-      margin-left: ${theme.gridUnit * 4}px;
+      padding: ${theme.sizeUnit / 2}px ${theme.sizeUnit * 2}px;
+      margin-left: ${theme.sizeUnit * 4}px;
       pointer-events: none;
 
       /* Position styles */
@@ -165,15 +167,15 @@ const SliceAddedBadge: React.FC<{ placeholder?: HTMLDivElement }> = ({
   </div>
 );
 
-const AddSliceCard: React.FC<{
+const AddSliceCard: FC<{
   datasourceUrl?: string;
   datasourceName?: string;
-  innerRef?: React.RefObject<HTMLDivElement>;
+  innerRef?: RefObject<HTMLDivElement>;
   isSelected?: boolean;
   lastModified?: string;
   sliceName: string;
   style?: CSSProperties;
-  thumbnailUrl?: string;
+  thumbnailUrl?: string | null;
   visType: string;
 }> = ({
   datasourceUrl,
@@ -186,7 +188,7 @@ const AddSliceCard: React.FC<{
   thumbnailUrl,
   visType,
 }) => {
-  const showThumbnails = isFeatureEnabled(FeatureFlag.THUMBNAILS);
+  const showThumbnails = isFeatureEnabled(FeatureFlag.Thumbnails);
   const [sliceAddedBadge, setSliceAddedBadge] = useState<HTMLDivElement>();
   const { mountedPluginMetadata } = usePluginContext();
   const vizName = useMemo(
@@ -199,21 +201,20 @@ const AddSliceCard: React.FC<{
       <div
         data-test="chart-card"
         css={(theme: Theme) => css`
-          border: 1px solid ${theme.colors.grayscale.light2};
-          border-radius: ${theme.gridUnit}px;
-          background: ${theme.colors.grayscale.light5};
-          padding: ${theme.gridUnit * 4}px;
-          margin: 0 ${theme.gridUnit * 3}px ${theme.gridUnit * 3}px
-            ${theme.gridUnit * 3}px;
+          border: 1px solid ${theme.colorBorder};
+          border-radius: ${theme.borderRadius}px;
+          padding: ${theme.sizeUnit * 4}px;
+          margin: 0 ${theme.sizeUnit * 3}px ${theme.sizeUnit * 3}px
+            ${theme.sizeUnit * 3}px;
           position: relative;
           cursor: ${isSelected ? 'not-allowed' : 'move'};
           white-space: nowrap;
           overflow: hidden;
           line-height: 1.3;
-          color: ${theme.colors.grayscale.dark1};
+          color: ${theme.colorText};
 
           &:hover {
-            background: ${theme.colors.grayscale.light4};
+            //background: ${theme.colors.grayscale.light4};
           }
 
           opacity: ${isSelected ? 0.4 : 'unset'};
@@ -256,8 +257,8 @@ const AddSliceCard: React.FC<{
             <div
               data-test="card-title"
               css={(theme: Theme) => css`
-                margin-bottom: ${theme.gridUnit * 2}px;
-                font-weight: ${theme.typography.weights.bold};
+                margin-bottom: ${theme.sizeUnit * 2}px;
+                font-weight: ${theme.fontWeightStrong};
                 display: flex;
                 justify-content: space-between;
                 align-items: center;

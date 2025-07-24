@@ -19,17 +19,16 @@ from unittest.mock import patch
 
 import pytest
 import yaml
-from func_timeout import FunctionTimedOut
 from sqlalchemy.exc import DBAPIError
 
-from superset import db, event_logger, security_manager
+from superset import db, event_logger, security_manager  # noqa: F401
 from superset.commands.database.create import CreateDatabaseCommand
 from superset.commands.database.exceptions import (
     DatabaseInvalidError,
     DatabaseNotFoundError,
     DatabaseSecurityUnsafeError,
     DatabaseTablesUnexpectedError,
-    DatabaseTestConnectionDriverError,
+    DatabaseTestConnectionDriverError,  # noqa: F401
     DatabaseTestConnectionUnexpectedError,
 )
 from superset.commands.database.export import ExportDatabasesCommand
@@ -40,7 +39,7 @@ from superset.commands.database.validate import ValidateDatabaseParametersComman
 from superset.commands.exceptions import CommandInvalidError
 from superset.commands.importers.exceptions import IncorrectVersionError
 from superset.connectors.sqla.models import SqlaTable
-from superset.databases.schemas import DatabaseTestConnectionSchema
+from superset.databases.schemas import DatabaseTestConnectionSchema  # noqa: F401
 from superset.databases.ssh_tunnel.models import SSHTunnel
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
@@ -54,12 +53,12 @@ from superset.utils.core import backend
 from superset.utils.database import get_example_database
 from tests.integration_tests.base_tests import SupersetTestCase
 from tests.integration_tests.fixtures.birth_names_dashboard import (
-    load_birth_names_dashboard_with_slices,
-    load_birth_names_data,
+    load_birth_names_dashboard_with_slices,  # noqa: F401
+    load_birth_names_data,  # noqa: F401
 )
 from tests.integration_tests.fixtures.energy_dashboard import (
-    load_energy_table_data,
-    load_energy_table_with_slice,
+    load_energy_table_data,  # noqa: F401
+    load_energy_table_with_slice,  # noqa: F401
 )
 from tests.integration_tests.fixtures.importexport import (
     database_config,
@@ -158,7 +157,7 @@ class TestExportDatabasesCommand(SupersetTestCase):
             big_int_type = "BIGINT(20)"
         else:
             big_int_type = "BIGINT"
-        metadata = yaml.safe_load(contents["databases/examples.yaml"])
+        metadata = yaml.safe_load(contents["databases/examples.yaml"]())
         assert metadata == (
             {
                 "allow_csv_upload": True,
@@ -176,7 +175,7 @@ class TestExportDatabasesCommand(SupersetTestCase):
             }
         )
 
-        metadata = yaml.safe_load(contents["datasets/examples/birth_names.yaml"])
+        metadata = yaml.safe_load(contents["datasets/examples/birth_names.yaml"]())
         metadata.pop("uuid")
 
         metadata["columns"].sort(key=lambda x: x["column_name"])
@@ -218,9 +217,9 @@ class TestExportDatabasesCommand(SupersetTestCase):
                     "is_active": True,
                     "is_dttm": False,
                     "python_date_format": None,
-                    "type": "STRING"
-                    if example_db.backend == "hive"
-                    else "VARCHAR(255)",
+                    "type": (
+                        "STRING" if example_db.backend == "hive" else "VARCHAR(255)"
+                    ),
                     "advanced_data_type": None,
                     "verbose_name": None,
                 },
@@ -338,7 +337,7 @@ class TestExportDatabasesCommand(SupersetTestCase):
         example_db = get_example_database()
         command = ExportDatabasesCommand([example_db.id])
         contents = command.run()
-        with self.assertRaises(DatabaseNotFoundError):
+        with self.assertRaises(DatabaseNotFoundError):  # noqa: PT027
             next(contents)
 
     @patch("superset.security.manager.g")
@@ -347,7 +346,7 @@ class TestExportDatabasesCommand(SupersetTestCase):
         mock_g.user = security_manager.find_user("admin")
         command = ExportDatabasesCommand([-1])
         contents = command.run()
-        with self.assertRaises(DatabaseNotFoundError):
+        with self.assertRaises(DatabaseNotFoundError):  # noqa: PT027
             next(contents)
 
     @patch("superset.security.manager.g")
@@ -359,7 +358,7 @@ class TestExportDatabasesCommand(SupersetTestCase):
         command = ExportDatabasesCommand([example_db.id])
         contents = dict(command.run())
 
-        metadata = yaml.safe_load(contents["databases/examples.yaml"])
+        metadata = yaml.safe_load(contents["databases/examples.yaml"]())
         assert list(metadata.keys()) == [
             "database_name",
             "sqlalchemy_uri",
@@ -371,6 +370,7 @@ class TestExportDatabasesCommand(SupersetTestCase):
             "allow_dml",
             "allow_csv_upload",
             "extra",
+            "impersonate_user",
             "uuid",
             "version",
         ]
@@ -386,7 +386,6 @@ class TestExportDatabasesCommand(SupersetTestCase):
         mock_g.user = security_manager.find_user("admin")
 
         example_db = get_example_database()
-        db_uuid = example_db.uuid
 
         command = ExportDatabasesCommand([example_db.id], export_related=False)
         contents = dict(command.run())
@@ -398,7 +397,8 @@ class TestExportDatabasesCommand(SupersetTestCase):
 
 class TestImportDatabasesCommand(SupersetTestCase):
     @patch("superset.security.manager.g")
-    def test_import_v1_database(self, mock_g):
+    @patch("superset.commands.database.importers.v1.utils.add_permissions")
+    def test_import_v1_database(self, mock_add_permissions, mock_g):
         """Test that a database can be imported"""
         mock_g.user = security_manager.find_user("admin")
 
@@ -421,13 +421,15 @@ class TestImportDatabasesCommand(SupersetTestCase):
         assert database.database_name == "imported_database"
         assert database.expose_in_sqllab
         assert database.extra == "{}"
-        assert database.sqlalchemy_uri == "someengine://user:pass@host1"
+        assert database.sqlalchemy_uri == "postgresql://user:XXXXXXXXXX@host1"
+        assert database.password == "pass"  # noqa: S105
 
         db.session.delete(database)
         db.session.commit()
 
     @patch("superset.security.manager.g")
-    def test_import_v1_database_broken_csv_fields(self, mock_g):
+    @patch("superset.commands.database.importers.v1.utils.add_permissions")
+    def test_import_v1_database_broken_csv_fields(self, mock_add_permissions, mock_g):
         """
         Test that a database can be imported with broken schema.
 
@@ -460,13 +462,15 @@ class TestImportDatabasesCommand(SupersetTestCase):
         assert database.database_name == "imported_database"
         assert database.expose_in_sqllab
         assert database.extra == '{"schemas_allowed_for_file_upload": ["upload"]}'
-        assert database.sqlalchemy_uri == "someengine://user:pass@host1"
+        assert database.sqlalchemy_uri == "postgresql://user:XXXXXXXXXX@host1"
+        assert database.password == "pass"  # noqa: S105
 
         db.session.delete(database)
         db.session.commit()
 
     @patch("superset.security.manager.g")
-    def test_import_v1_database_multiple(self, mock_g):
+    @patch("superset.commands.database.importers.v1.utils.add_permissions")
+    def test_import_v1_database_multiple(self, mock_add_permissions, mock_g):
         """Test that a database can be imported multiple times"""
         mock_g.user = security_manager.find_user("admin")
 
@@ -510,7 +514,8 @@ class TestImportDatabasesCommand(SupersetTestCase):
         db.session.commit()
 
     @patch("superset.security.manager.g")
-    def test_import_v1_database_with_dataset(self, mock_g):
+    @patch("superset.commands.database.importers.v1.utils.add_permissions")
+    def test_import_v1_database_with_dataset(self, mock_add_permissions, mock_g):
         """Test that a database can be imported with datasets"""
         mock_g.user = security_manager.find_user("admin")
 
@@ -533,7 +538,10 @@ class TestImportDatabasesCommand(SupersetTestCase):
         db.session.commit()
 
     @patch("superset.security.manager.g")
-    def test_import_v1_database_with_dataset_multiple(self, mock_g):
+    @patch("superset.commands.database.importers.v1.utils.add_permissions")
+    def test_import_v1_database_with_dataset_multiple(
+        self, mock_add_permissions, mock_g
+    ):
         """Test that a database can be imported multiple times w/o changing datasets"""
         mock_g.user = security_manager.find_user("admin")
 
@@ -571,7 +579,8 @@ class TestImportDatabasesCommand(SupersetTestCase):
         db.session.delete(dataset.database)
         db.session.commit()
 
-    def test_import_v1_database_validation(self):
+    @patch("superset.commands.database.importers.v1.utils.add_permissions")
+    def test_import_v1_database_validation(self, mock_add_permissions):
         """Test different validations applied when importing a database"""
         # metadata.yaml must be present
         contents = {
@@ -620,12 +629,13 @@ class TestImportDatabasesCommand(SupersetTestCase):
             }
         }
 
-    def test_import_v1_database_masked_password(self):
+    @patch("superset.commands.database.importers.v1.utils.add_permissions")
+    def test_import_v1_database_masked_password(self, mock_add_permissions):
         """Test that database imports with masked passwords are rejected"""
         masked_database_config = database_config.copy()
-        masked_database_config[
-            "sqlalchemy_uri"
-        ] = "postgresql://username:XXXXXXXXXX@host:12345/db"
+        masked_database_config["sqlalchemy_uri"] = (
+            "postgresql://username:XXXXXXXXXX@host:12345/db"
+        )
         contents = {
             "metadata.yaml": yaml.safe_dump(database_metadata_config),
             "databases/imported_database.yaml": yaml.safe_dump(masked_database_config),
@@ -641,8 +651,11 @@ class TestImportDatabasesCommand(SupersetTestCase):
         }
 
     @patch("superset.databases.schemas.is_feature_enabled")
+    @patch("superset.commands.database.importers.v1.utils.add_permissions")
     def test_import_v1_database_masked_ssh_tunnel_password(
-        self, mock_schema_is_feature_enabled
+        self,
+        mock_add_permissions,
+        mock_schema_is_feature_enabled,
     ):
         """Test that database imports with masked ssh_tunnel passwords are rejected"""
         mock_schema_is_feature_enabled.return_value = True
@@ -662,10 +675,13 @@ class TestImportDatabasesCommand(SupersetTestCase):
         }
 
     @patch("superset.databases.schemas.is_feature_enabled")
+    @patch("superset.commands.database.importers.v1.utils.add_permissions")
     def test_import_v1_database_masked_ssh_tunnel_private_key_and_password(
-        self, mock_schema_is_feature_enabled
+        self,
+        mock_add_permissions,
+        mock_schema_is_feature_enabled,
     ):
-        """Test that database imports with masked ssh_tunnel private_key and private_key_password are rejected"""
+        """Test that database imports with masked ssh_tunnel private_key and private_key_password are rejected"""  # noqa: E501
         mock_schema_is_feature_enabled.return_value = True
         masked_database_config = database_with_ssh_tunnel_config_private_key.copy()
         contents = {
@@ -687,8 +703,10 @@ class TestImportDatabasesCommand(SupersetTestCase):
 
     @patch("superset.databases.schemas.is_feature_enabled")
     @patch("superset.security.manager.g")
+    @patch("superset.commands.database.importers.v1.utils.add_permissions")
     def test_import_v1_database_with_ssh_tunnel_password(
         self,
+        mock_add_permissions,
         mock_g,
         mock_schema_is_feature_enabled,
     ):
@@ -696,7 +714,7 @@ class TestImportDatabasesCommand(SupersetTestCase):
         mock_g.user = security_manager.find_user("admin")
         mock_schema_is_feature_enabled.return_value = True
         masked_database_config = database_with_ssh_tunnel_config_password.copy()
-        masked_database_config["ssh_tunnel"]["password"] = "TEST"
+        masked_database_config["ssh_tunnel"]["password"] = "TEST"  # noqa: S105
         contents = {
             "metadata.yaml": yaml.safe_dump(database_metadata_config),
             "databases/imported_database.yaml": yaml.safe_dump(masked_database_config),
@@ -716,32 +734,35 @@ class TestImportDatabasesCommand(SupersetTestCase):
         assert database.database_name == "imported_database"
         assert database.expose_in_sqllab
         assert database.extra == "{}"
-        assert database.sqlalchemy_uri == "someengine://user:pass@host1"
+        assert database.sqlalchemy_uri == "postgresql://user:XXXXXXXXXX@host1"
+        assert database.password == "pass"  # noqa: S105
 
         model_ssh_tunnel = (
             db.session.query(SSHTunnel)
             .filter(SSHTunnel.database_id == database.id)
             .one()
         )
-        self.assertEqual(model_ssh_tunnel.password, "TEST")
+        assert model_ssh_tunnel.password == "TEST"  # noqa: S105
 
         db.session.delete(database)
         db.session.commit()
 
     @patch("superset.databases.schemas.is_feature_enabled")
     @patch("superset.security.manager.g")
+    @patch("superset.commands.database.importers.v1.utils.add_permissions")
     def test_import_v1_database_with_ssh_tunnel_private_key_and_password(
         self,
+        mock_add_permissions,
         mock_g,
         mock_schema_is_feature_enabled,
     ):
-        """Test that a database with ssh_tunnel private_key and private_key_password can be imported"""
+        """Test that a database with ssh_tunnel private_key and private_key_password can be imported"""  # noqa: E501
         mock_g.user = security_manager.find_user("admin")
 
         mock_schema_is_feature_enabled.return_value = True
         masked_database_config = database_with_ssh_tunnel_config_private_key.copy()
         masked_database_config["ssh_tunnel"]["private_key"] = "TestPrivateKey"
-        masked_database_config["ssh_tunnel"]["private_key_password"] = "TEST"
+        masked_database_config["ssh_tunnel"]["private_key_password"] = "TEST"  # noqa: S105
         contents = {
             "metadata.yaml": yaml.safe_dump(database_metadata_config),
             "databases/imported_database.yaml": yaml.safe_dump(masked_database_config),
@@ -761,22 +782,26 @@ class TestImportDatabasesCommand(SupersetTestCase):
         assert database.database_name == "imported_database"
         assert database.expose_in_sqllab
         assert database.extra == "{}"
-        assert database.sqlalchemy_uri == "someengine://user:pass@host1"
+        assert database.sqlalchemy_uri == "postgresql://user:XXXXXXXXXX@host1"
+        assert database.password == "pass"  # noqa: S105
 
         model_ssh_tunnel = (
             db.session.query(SSHTunnel)
             .filter(SSHTunnel.database_id == database.id)
             .one()
         )
-        self.assertEqual(model_ssh_tunnel.private_key, "TestPrivateKey")
-        self.assertEqual(model_ssh_tunnel.private_key_password, "TEST")
+        assert model_ssh_tunnel.private_key == "TestPrivateKey"
+        assert model_ssh_tunnel.private_key_password == "TEST"  # noqa: S105
 
         db.session.delete(database)
         db.session.commit()
 
     @patch("superset.databases.schemas.is_feature_enabled")
+    @patch("superset.commands.database.importers.v1.utils.add_permissions")
     def test_import_v1_database_masked_ssh_tunnel_no_credentials(
-        self, mock_schema_is_feature_enabled
+        self,
+        mock_add_permissions,
+        mock_schema_is_feature_enabled,
     ):
         """Test that databases with ssh_tunnels that have no credentials are rejected"""
         mock_schema_is_feature_enabled.return_value = True
@@ -791,10 +816,13 @@ class TestImportDatabasesCommand(SupersetTestCase):
         assert str(excinfo.value) == "Must provide credentials for the SSH Tunnel"
 
     @patch("superset.databases.schemas.is_feature_enabled")
+    @patch("superset.commands.database.importers.v1.utils.add_permissions")
     def test_import_v1_database_masked_ssh_tunnel_multiple_credentials(
-        self, mock_schema_is_feature_enabled
+        self,
+        mock_add_permissions,
+        mock_schema_is_feature_enabled,
     ):
-        """Test that databases with ssh_tunnels that have multiple credentials are rejected"""
+        """Test that databases with ssh_tunnels that have multiple credentials are rejected"""  # noqa: E501
         mock_schema_is_feature_enabled.return_value = True
         masked_database_config = database_with_ssh_tunnel_config_mix_credentials.copy()
         contents = {
@@ -809,10 +837,13 @@ class TestImportDatabasesCommand(SupersetTestCase):
         )
 
     @patch("superset.databases.schemas.is_feature_enabled")
+    @patch("superset.commands.database.importers.v1.utils.add_permissions")
     def test_import_v1_database_masked_ssh_tunnel_only_priv_key_psswd(
-        self, mock_schema_is_feature_enabled
+        self,
+        mock_add_permissions,
+        mock_schema_is_feature_enabled,
     ):
-        """Test that databases with ssh_tunnels that have multiple credentials are rejected"""
+        """Test that databases with ssh_tunnels that have multiple credentials are rejected"""  # noqa: E501
         mock_schema_is_feature_enabled.return_value = True
         masked_database_config = (
             database_with_ssh_tunnel_config_private_pass_only.copy()
@@ -835,7 +866,8 @@ class TestImportDatabasesCommand(SupersetTestCase):
         }
 
     @patch("superset.commands.database.importers.v1.import_dataset")
-    def test_import_v1_rollback(self, mock_import_dataset):
+    @patch("superset.commands.database.importers.v1.utils.add_permissions")
+    def test_import_v1_rollback(self, mock_add_permissions, mock_import_dataset):
         """Test than on an exception everything is rolled back"""
         num_databases = db.session.query(Database).count()
 
@@ -849,7 +881,7 @@ class TestImportDatabasesCommand(SupersetTestCase):
             "metadata.yaml": yaml.safe_dump(database_metadata_config),
         }
         command = ImportDatabasesCommand(contents)
-        with pytest.raises(Exception) as excinfo:
+        with pytest.raises(Exception) as excinfo:  # noqa: PT011
             command.run()
         assert str(excinfo.value) == "Import database failed for an unknown reason"
 
@@ -859,7 +891,7 @@ class TestImportDatabasesCommand(SupersetTestCase):
 
 
 class TestTestConnectionDatabaseCommand(SupersetTestCase):
-    @patch("superset.daos.database.Database._get_sqla_engine")
+    @patch("superset.models.core.Database._get_sqla_engine")
     @patch("superset.commands.database.test_connection.event_logger.log_with_context")
     @patch("superset.utils.core.g")
     def test_connection_db_exception(
@@ -873,14 +905,14 @@ class TestTestConnectionDatabaseCommand(SupersetTestCase):
         json_payload = {"sqlalchemy_uri": db_uri}
         command_without_db_name = TestConnectionDatabaseCommand(json_payload)
 
-        with pytest.raises(DatabaseTestConnectionUnexpectedError) as excinfo:
+        with pytest.raises(DatabaseTestConnectionUnexpectedError) as excinfo:  # noqa: PT012
             command_without_db_name.run()
             assert str(excinfo.value) == (
                 "Unexpected error occurred, please check your logs for details"
             )
         mock_event_logger.assert_called()
 
-    @patch("superset.daos.database.Database._get_sqla_engine")
+    @patch("superset.models.core.Database._get_sqla_engine")
     @patch("superset.commands.database.test_connection.event_logger.log_with_context")
     @patch("superset.utils.core.g")
     def test_connection_do_ping_exception(
@@ -903,7 +935,7 @@ class TestTestConnectionDatabaseCommand(SupersetTestCase):
             == SupersetErrorType.GENERIC_DB_ENGINE_ERROR
         )
 
-    @patch("superset.commands.database.test_connection.func_timeout")
+    @patch("superset.commands.database.utils.timeout")
     @patch("superset.commands.database.test_connection.event_logger.log_with_context")
     @patch("superset.utils.core.g")
     def test_connection_do_ping_timeout(
@@ -912,7 +944,11 @@ class TestTestConnectionDatabaseCommand(SupersetTestCase):
         """Test to make sure do_ping exceptions gets captured"""
         database = get_example_database()
         mock_g.user = security_manager.find_user("admin")
-        mock_func_timeout.side_effect = FunctionTimedOut("Time out")
+        mock_func_timeout.side_effect = SupersetTimeoutException(
+            error_type=SupersetErrorType.BACKEND_TIMEOUT_ERROR,
+            message="ERROR",
+            level=ErrorLevel.ERROR,
+        )
         db_uri = database.sqlalchemy_uri_decrypted
         json_payload = {"sqlalchemy_uri": db_uri}
         command_without_db_name = TestConnectionDatabaseCommand(json_payload)
@@ -925,7 +961,7 @@ class TestTestConnectionDatabaseCommand(SupersetTestCase):
             == SupersetErrorType.CONNECTION_DATABASE_TIMEOUT
         )
 
-    @patch("superset.daos.database.Database._get_sqla_engine")
+    @patch("superset.models.core.Database._get_sqla_engine")
     @patch("superset.commands.database.test_connection.event_logger.log_with_context")
     @patch("superset.utils.core.g")
     def test_connection_superset_security_connection(
@@ -942,13 +978,13 @@ class TestTestConnectionDatabaseCommand(SupersetTestCase):
         json_payload = {"sqlalchemy_uri": db_uri}
         command_without_db_name = TestConnectionDatabaseCommand(json_payload)
 
-        with pytest.raises(DatabaseSecurityUnsafeError) as excinfo:
+        with pytest.raises(DatabaseSecurityUnsafeError) as excinfo:  # noqa: PT012
             command_without_db_name.run()
             assert str(excinfo.value) == ("Stopped an unsafe database connection")
 
         mock_event_logger.assert_called()
 
-    @patch("superset.daos.database.Database._get_sqla_engine")
+    @patch("superset.models.core.Database._get_sqla_engine")
     @patch("superset.commands.database.test_connection.event_logger.log_with_context")
     @patch("superset.utils.core.g")
     def test_connection_db_api_exc(
@@ -964,7 +1000,7 @@ class TestTestConnectionDatabaseCommand(SupersetTestCase):
         json_payload = {"sqlalchemy_uri": db_uri}
         command_without_db_name = TestConnectionDatabaseCommand(json_payload)
 
-        with pytest.raises(SupersetErrorsException) as excinfo:
+        with pytest.raises(SupersetErrorsException) as excinfo:  # noqa: PT012
             command_without_db_name.run()
             assert str(excinfo.value) == (
                 "Connection failed, please check your connection settings"
@@ -976,7 +1012,12 @@ class TestTestConnectionDatabaseCommand(SupersetTestCase):
 @patch("superset.db_engine_specs.base.is_hostname_valid")
 @patch("superset.db_engine_specs.base.is_port_open")
 @patch("superset.commands.database.validate.DatabaseDAO")
-def test_validate(DatabaseDAO, is_port_open, is_hostname_valid, app_context):
+def test_validate(
+    mock_database_dao,  # noqa: N803
+    is_port_open,
+    is_hostname_valid,
+    app_context,
+) -> None:
     """
     Test parameter validation.
     """
@@ -1031,7 +1072,7 @@ def test_validate_partial(is_port_open, is_hostname_valid, app_context):
                 "issue_codes": [
                     {
                         "code": 1018,
-                        "message": "Issue 1018 - One or more parameters needed to configure a database are missing.",
+                        "message": "Issue 1018 - One or more parameters needed to configure a database are missing.",  # noqa: E501
                     }
                 ],
             },
@@ -1070,7 +1111,7 @@ def test_validate_partial_invalid_hostname(is_hostname_valid, app_context):
                 "issue_codes": [
                     {
                         "code": 1018,
-                        "message": "Issue 1018 - One or more parameters needed to configure a database are missing.",
+                        "message": "Issue 1018 - One or more parameters needed to configure a database are missing.",  # noqa: E501
                     }
                 ],
             },
@@ -1084,7 +1125,7 @@ def test_validate_partial_invalid_hostname(is_hostname_valid, app_context):
                 "issue_codes": [
                     {
                         "code": 1007,
-                        "message": "Issue 1007 - The hostname provided can't be resolved.",
+                        "message": "Issue 1007 - The hostname provided can't be resolved.",  # noqa: E501
                     }
                 ],
             },
@@ -1096,9 +1137,9 @@ class TestTablesDatabaseCommand(SupersetTestCase):
     @patch("superset.daos.database.DatabaseDAO.find_by_id")
     def test_database_tables_list_with_unknown_database(self, mock_find_by_id):
         mock_find_by_id.return_value = None
-        command = TablesDatabaseCommand(1, "test", False)
+        command = TablesDatabaseCommand(1, None, "test", False)
 
-        with pytest.raises(DatabaseNotFoundError) as excinfo:
+        with pytest.raises(DatabaseNotFoundError) as excinfo:  # noqa: PT012
             command.run()
             assert str(excinfo.value) == ("Database not found.")
 
@@ -1116,8 +1157,8 @@ class TestTablesDatabaseCommand(SupersetTestCase):
         mock_can_access_database.side_effect = SupersetException("Test Error")
         mock_g.user = security_manager.find_user("admin")
 
-        command = TablesDatabaseCommand(database.id, "main", False)
-        with pytest.raises(SupersetException) as excinfo:
+        command = TablesDatabaseCommand(database.id, None, "main", False)
+        with pytest.raises(SupersetException) as excinfo:  # noqa: PT012
             command.run()
             assert str(excinfo.value) == "Test Error"
 
@@ -1132,8 +1173,8 @@ class TestTablesDatabaseCommand(SupersetTestCase):
         mock_can_access_database.side_effect = Exception("Test Error")
         mock_g.user = security_manager.find_user("admin")
 
-        command = TablesDatabaseCommand(database.id, "main", False)
-        with pytest.raises(DatabaseTablesUnexpectedError) as excinfo:
+        command = TablesDatabaseCommand(database.id, None, "main", False)
+        with pytest.raises(DatabaseTablesUnexpectedError) as excinfo:  # noqa: PT012
             command.run()
             assert (
                 str(excinfo.value)
@@ -1155,9 +1196,50 @@ class TestTablesDatabaseCommand(SupersetTestCase):
         if database.backend == "postgresql" or database.backend == "mysql":
             return
 
-        command = TablesDatabaseCommand(database.id, schema_name, False)
+        command = TablesDatabaseCommand(database.id, None, schema_name, False)
         result = command.run()
 
         assert result["count"] > 0
         assert len(result["result"]) > 0
         assert len(result["result"]) == result["count"]
+
+    @patch("superset.daos.database.DatabaseDAO.find_by_id")
+    @patch("superset.security.manager.SupersetSecurityManager.can_access_database")
+    @patch("superset.utils.core.g")
+    def test_database_tables_list_tables_default_catalog(
+        self, mock_g, mock_can_access_database, mock_find_by_id
+    ):
+        database = get_example_database()
+        mock_find_by_id.return_value = database
+        mock_can_access_database.return_value = True
+        mock_g.user = security_manager.find_user("admin")
+
+        with (
+            patch.object(
+                database, "get_default_catalog", return_value="default_catalog"
+            ),
+            patch.object(
+                database, "get_all_table_names_in_schema", return_value=[]
+            ) as mock_get_all_table_names,
+            patch.object(
+                database, "get_all_view_names_in_schema", return_value=[]
+            ) as mock_get_all_view_names,
+        ):
+            command = TablesDatabaseCommand(database.id, None, "schema_name", False)
+            command.run()
+
+            # Assert that the default catalog is used instead of None
+            mock_get_all_table_names.assert_called_once_with(
+                catalog="default_catalog",
+                schema="schema_name",
+                force=False,
+                cache=database.table_cache_enabled,
+                cache_timeout=database.table_cache_timeout,
+            )
+            mock_get_all_view_names.assert_called_once_with(
+                catalog="default_catalog",
+                schema="schema_name",
+                force=False,
+                cache=database.table_cache_enabled,
+                cache_timeout=database.table_cache_timeout,
+            )

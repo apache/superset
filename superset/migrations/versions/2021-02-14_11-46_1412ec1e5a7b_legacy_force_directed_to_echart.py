@@ -21,14 +21,13 @@ Revises: c501b7c653a3
 Create Date: 2021-02-14 11:46:02.379832
 
 """
-import json
 
-import sqlalchemy as sa
 from alembic import op
-from sqlalchemy import Column, Integer, or_, String, Text
+from sqlalchemy import Column, Integer, String, Text
 from sqlalchemy.ext.declarative import declarative_base
 
 from superset import db
+from superset.utils import json
 
 # revision identifiers, used by Alembic.
 revision = "1412ec1e5a7b"

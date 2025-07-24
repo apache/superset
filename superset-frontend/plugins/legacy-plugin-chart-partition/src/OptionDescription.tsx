@@ -17,13 +17,10 @@
  * under the License.
  */
 
-import React from 'react';
 import PropTypes from 'prop-types';
 
-import {
-  ColumnMeta,
-  InfoTooltipWithTrigger,
-} from '@superset-ui/chart-controls';
+import { ColumnMeta } from '@superset-ui/chart-controls';
+import { InfoTooltip } from '@superset-ui/core/components';
 
 const propTypes = {
   option: PropTypes.object.isRequired,
@@ -31,14 +28,16 @@ const propTypes = {
 
 // This component provides a general tooltip for options
 // in a SelectControl
+// TODO use theme.sizeUnit once theme can be imported in plugins
 export default function OptionDescription({ option }: { option: ColumnMeta }) {
   return (
     <span>
-      <span className="m-r-5 option-label">{option.label}</span>
+      <span className="option-label" style={{ marginRight: 4 }}>
+        {option.label}
+      </span>
       {option.description && (
-        <InfoTooltipWithTrigger
-          className="m-r-5 text-muted"
-          icon="question-circle-o"
+        <InfoTooltip
+          type="question"
           tooltip={option.description}
           label={`descr-${option.label}`}
         />

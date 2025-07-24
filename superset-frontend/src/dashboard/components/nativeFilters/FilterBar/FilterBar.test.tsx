@@ -17,13 +17,10 @@
  * under the License.
  */
 
-import React from 'react';
-import { render, screen } from 'spec/helpers/testing-library';
-import userEvent from '@testing-library/user-event';
+import { act, render, screen, userEvent } from 'spec/helpers/testing-library';
 import { stateWithoutNativeFilters } from 'spec/fixtures/mockStore';
-import * as mockCore from '@superset-ui/core';
 import { testWithId } from 'src/utils/testUtils';
-import { FeatureFlag, Preset } from '@superset-ui/core';
+import { Preset, makeApi } from '@superset-ui/core';
 import { TimeFilterPlugin, SelectFilterPlugin } from 'src/filters/components';
 import fetchMock from 'fetch-mock';
 import { FilterBarOrientation } from 'src/dashboard/types';
@@ -32,8 +29,13 @@ import FilterBar from '.';
 import { FILTERS_CONFIG_MODAL_TEST_ID } from '../FiltersConfigModal/FiltersConfigModal';
 
 jest.useFakeTimers();
-// @ts-ignore
-mockCore.makeApi = jest.fn();
+
+jest.mock('@superset-ui/core', () => ({
+  ...jest.requireActual('@superset-ui/core'),
+  makeApi: jest.fn(),
+}));
+
+const mockedMakeApi = makeApi as jest.Mock;
 
 class MainPreset extends Preset {
   constructor() {
@@ -73,15 +75,11 @@ const getModalTestId = testWithId<string>(FILTERS_CONFIG_MODAL_TEST_ID, true);
 
 const FILTER_NAME = 'Time filter 1';
 
-// @ts-ignore
-global.featureFlags = {
-  [FeatureFlag.DASHBOARD_NATIVE_FILTERS]: true,
-};
-
 const addFilterFlow = async () => {
-  // open filter config modal
+  // open filter config modals
   userEvent.click(screen.getByTestId(getTestId('collapsable')));
-  userEvent.click(screen.getByTestId(getTestId('create-filter')));
+  userEvent.click(screen.getByLabelText('setting'));
+  userEvent.click(screen.getByText('Add or edit filters'));
   // select filter
   userEvent.click(screen.getByText('Value'));
   userEvent.click(screen.getByText('Time range'));
@@ -158,14 +156,13 @@ describe('FilterBar', () => {
       { overwriteRoutes: true },
     );
 
-    // @ts-ignore
-    mockCore.makeApi = jest.fn(() => mockApi);
+    mockedMakeApi.mockReturnValue(mockApi);
   });
 
   const renderWrapper = (props = closedBarProps, state?: object) =>
     render(
       <FilterBar
-        orientation={FilterBarOrientation.VERTICAL}
+        orientation={FilterBarOrientation.Vertical}
         verticalConfig={{
           width: 280,
           height: 400,
@@ -203,7 +200,9 @@ describe('FilterBar', () => {
 
   it('should render the collapse icon', () => {
     renderWrapper();
-    expect(screen.getByRole('img', { name: 'collapse' })).toBeInTheDocument();
+    expect(
+      screen.getByRole('img', { name: 'vertical-align' }),
+    ).toBeInTheDocument();
   });
 
   it('should render the filter icon', () => {
@@ -213,7 +212,9 @@ describe('FilterBar', () => {
 
   it('should toggle', () => {
     renderWrapper();
-    const collapse = screen.getByRole('img', { name: 'collapse' });
+    const collapse = screen.getByRole('img', {
+      name: 'vertical-align',
+    });
     expect(toggleFiltersBar).not.toHaveBeenCalled();
     userEvent.click(collapse);
     expect(toggleFiltersBar).toHaveBeenCalled();
@@ -280,6 +281,10 @@ describe('FilterBar', () => {
 
     renderWrapper(openedBarProps, stateWithDivider);
 
+    await act(async () => {
+      jest.advanceTimersByTime(1000); // 1s
+    });
+
     const title = await screen.findByText('Select time range');
     const description = await screen.findByText('Select year/month etc..');
 
@@ -291,15 +296,57 @@ describe('FilterBar', () => {
   });
 
   it('create filter and apply it flow', async () => {
-    // @ts-ignore
-    global.featureFlags = {
-      [FeatureFlag.DASHBOARD_NATIVE_FILTERS]: true,
-    };
     renderWrapper(openedBarProps, stateWithoutNativeFilters);
     expect(screen.getByTestId(getTestId('apply-button'))).toBeDisabled();
 
     await addFilterFlow();
 
     expect(screen.getByTestId(getTestId('apply-button'))).toBeDisabled();
+  });
+
+  it('should render without errors with proper state setup', () => {
+    const stateWithFilter = {
+      ...stateWithoutNativeFilters,
+      dashboardInfo: {
+        id: 1,
+      },
+      dataMask: {
+        'test-filter': {
+          id: 'test-filter',
+          filterState: { value: undefined },
+          extraFormData: {},
+        },
+      },
+      nativeFilters: {
+        filters: {
+          'test-filter': {
+            id: 'test-filter',
+            name: 'Test Filter',
+            filterType: 'filter_select',
+            targets: [{ datasetId: 1, column: { name: 'test_column' } }],
+            defaultDataMask: {
+              filterState: { value: undefined },
+              extraFormData: {},
+            },
+            controlValues: {
+              enableEmptyFilter: true,
+            },
+            cascadeParentIds: [],
+            scope: {
+              rootPath: ['ROOT_ID'],
+              excluded: [],
+            },
+            type: 'NATIVE_FILTER',
+            description: '',
+            chartsInScope: [],
+            tabsInScope: [],
+          },
+        },
+        filtersState: {},
+      },
+    };
+
+    const { container } = renderWrapper(openedBarProps, stateWithFilter);
+    expect(container).toBeInTheDocument();
   });
 });

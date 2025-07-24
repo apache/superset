@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import PropTypes from 'prop-types';
 import CheckboxTree from 'react-checkbox-tree';
 import { filterScopeSelectorTreeNodePropShape } from 'src/dashboard/util/propShapes';

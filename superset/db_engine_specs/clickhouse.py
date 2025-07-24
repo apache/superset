@@ -20,6 +20,7 @@ import logging
 import re
 from datetime import datetime
 from typing import Any, cast, TYPE_CHECKING
+from urllib import parse
 
 from flask import current_app
 from flask_babel import gettext as __
@@ -219,6 +220,10 @@ class ClickHouseParametersSchema(Schema):
         values=fields.Raw(),
         metadata={"description": __("Additional parameters")},
     )
+    ssh = fields.Boolean(
+        required=False,
+        metadata={"description": __("Use an ssh tunnel connection to the database")},
+    )
 
 
 try:
@@ -263,6 +268,8 @@ class ClickHouseConnectEngineSpec(BasicParametersMixin, ClickHouseEngineSpec):
     parameters_schema = ClickHouseParametersSchema()
     encryption_parameters = {"secure": "true"}
 
+    supports_dynamic_schema = True
+
     @classmethod
     def get_dbapi_exception_mapping(cls) -> dict[type[Exception], type[Exception]]:
         return {}
@@ -278,14 +285,14 @@ class ClickHouseConnectEngineSpec(BasicParametersMixin, ClickHouseEngineSpec):
 
     @classmethod
     def get_function_names(cls, database: Database) -> list[str]:
-        # pylint: disable=import-outside-toplevel,import-error
+        # pylint: disable=import-outside-toplevel, import-error
         from clickhouse_connect.driver.exceptions import ClickHouseError
 
         if cls._function_names:
             return cls._function_names
         try:
             names = database.get_df(
-                "SELECT name FROM system.functions UNION ALL "
+                "SELECT name FROM system.functions UNION ALL "  # noqa: S608
                 + "SELECT name FROM system.table_functions LIMIT 10000"
             )["name"].tolist()
             cls._function_names = names
@@ -312,17 +319,27 @@ class ClickHouseConnectEngineSpec(BasicParametersMixin, ClickHouseEngineSpec):
             url_params["query"] = query
         if not url_params.get("database"):
             url_params["database"] = "__default__"
-        url_params.pop("encryption", None)
-        return str(URL.create(f"{cls.engine}+{cls.default_driver}", **url_params))
+
+        return str(
+            URL.create(
+                f"{cls.engine}+{cls.default_driver}",
+                username=url_params.get("username"),
+                password=url_params.get("password"),
+                host=url_params.get("host"),
+                port=url_params.get("port"),
+                database=url_params.get("database"),
+                query=url_params.get("query"),
+            )
+        )
 
     @classmethod
     def get_parameters_from_uri(
         cls, uri: str, encrypted_extra: dict[str, Any] | None = None
     ) -> BasicParametersType:
         url = make_url_safe(uri)
-        query = url.query
+        query = dict(url.query)
         if "secure" in query:
-            encryption = url.query.get("secure") == "true"
+            encryption = query.get("secure") == "true"
             query.pop("secure")
         else:
             encryption = False
@@ -332,7 +349,7 @@ class ClickHouseConnectEngineSpec(BasicParametersMixin, ClickHouseEngineSpec):
             host=url.host,
             port=url.port,
             database="" if url.database == "__default__" else cast(str, url.database),
-            query=dict(query),
+            query=query,
             encryption=encryption,
         )
 
@@ -340,7 +357,7 @@ class ClickHouseConnectEngineSpec(BasicParametersMixin, ClickHouseEngineSpec):
     def validate_parameters(
         cls, properties: BasicPropertiesType
     ) -> list[SupersetError]:
-        # pylint: disable=import-outside-toplevel,import-error
+        # pylint: disable=import-outside-toplevel, import-error
         from clickhouse_connect.driver import default_port
 
         parameters = properties.get("parameters", {})
@@ -400,3 +417,15 @@ class ClickHouseConnectEngineSpec(BasicParametersMixin, ClickHouseEngineSpec):
         :return: Conditionally mutated label
         """
         return f"{label}_{md5_sha_from_str(label)[:6]}"
+
+    @classmethod
+    def adjust_engine_params(
+        cls,
+        uri: URL,
+        connect_args: dict[str, Any],
+        catalog: str | None = None,
+        schema: str | None = None,
+    ) -> tuple[URL, dict[str, Any]]:
+        if schema:
+            uri = uri.set(database=parse.quote(schema, safe=""))
+        return uri, connect_args

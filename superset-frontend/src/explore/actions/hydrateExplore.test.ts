@@ -17,6 +17,7 @@
  * under the License.
  */
 
+import { VizType } from '@superset-ui/core';
 import { hydrateExplore, HYDRATE_EXPLORE } from './hydrateExplore';
 import { exploreInitialData } from '../fixtures';
 
@@ -49,14 +50,14 @@ test('creates hydrate action from initial data', () => {
               datasource: '8__table',
               slice_id: 371,
               url_params: undefined,
-              viz_type: 'table',
+              viz_type: VizType.Table,
             },
             sliceFormData: {
               cache_timeout: undefined,
               datasource: '8__table',
               slice_id: 371,
               url_params: undefined,
-              viz_type: 'table',
+              viz_type: VizType.Table,
             },
             queryController: null,
             queriesResponse: null,
@@ -122,14 +123,14 @@ test('creates hydrate action with existing state', () => {
               datasource: '8__table',
               slice_id: 371,
               url_params: undefined,
-              viz_type: 'table',
+              viz_type: VizType.Table,
             },
             sliceFormData: {
               cache_timeout: undefined,
               datasource: '8__table',
               slice_id: 371,
               url_params: undefined,
-              viz_type: 'table',
+              viz_type: VizType.Table,
             },
             queryController: null,
             queriesResponse: null,
@@ -206,6 +207,54 @@ test('uses configured default time range if not set', () => {
         explore: expect.objectContaining({
           form_data: expect.objectContaining({
             time_range: 'Last day',
+          }),
+        }),
+      }),
+    }),
+  );
+});
+
+test('extracts currency formats from metrics in dataset', () => {
+  const dispatch = jest.fn();
+  const getState = jest.fn(() => ({
+    user: {},
+    charts: {},
+    datasources: {},
+    common: {},
+    explore: {},
+  }));
+
+  const datasetWithMetrics = {
+    ...exploreInitialData.dataset,
+    metrics: [
+      {
+        metric_name: 'count',
+        currency: { symbol: 'GBP', symbolPosition: 'prefix' },
+      },
+      {
+        metric_name: 'revenue',
+        currency: { symbol: 'USD', symbolPosition: 'suffix' },
+      },
+      { metric_name: 'no_currency' },
+    ],
+  };
+
+  // @ts-ignore
+  hydrateExplore({ ...exploreInitialData, dataset: datasetWithMetrics })(
+    dispatch,
+    // @ts-ignore
+    getState,
+  );
+
+  expect(dispatch).toHaveBeenCalledWith(
+    expect.objectContaining({
+      data: expect.objectContaining({
+        datasources: expect.objectContaining({
+          '8__table': expect.objectContaining({
+            currency_formats: {
+              count: { symbol: 'GBP', symbolPosition: 'prefix' },
+              revenue: { symbol: 'USD', symbolPosition: 'suffix' },
+            },
           }),
         }),
       }),

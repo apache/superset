@@ -16,16 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import {
-  AnnotationType,
-  Behavior,
-  hasGenericChartAxes,
-  t,
-} from '@superset-ui/core';
-import {
-  EchartsTimeseriesChartProps,
-  EchartsTimeseriesFormData,
-} from '@superset-ui/plugin-chart-echarts';
+import { AnnotationType, Behavior, t } from '@superset-ui/core';
+import { EchartsTimeseriesChartProps, EchartsTimeseriesFormData } from '../..';
 import buildQuery from '../buildQuery';
 import controlPanel from './controlPanel';
 import transformProps from '../transformProps';
@@ -45,19 +37,15 @@ export default class EchartsTimeseriesStepChartPlugin extends EchartsChartPlugin
       loadChart: () => import('../EchartsTimeseries'),
       metadata: {
         behaviors: [
-          Behavior.INTERACTIVE_CHART,
-          Behavior.DRILL_TO_DETAIL,
-          Behavior.DRILL_BY,
+          Behavior.InteractiveChart,
+          Behavior.DrillToDetail,
+          Behavior.DrillBy,
         ],
         category: t('Evolution'),
         credits: ['https://echarts.apache.org'],
-        description: hasGenericChartAxes
-          ? t(
-              'Stepped-line graph (also called step chart) is a variation of line chart but with the line forming a series of steps between data points. A step chart can be useful when you want to show the changes that occur at irregular intervals.',
-            )
-          : t(
-              'Time-series Stepped-line graph (also called step chart) is a variation of line chart but with the line forming a series of steps between data points. A step chart can be useful when you want to show the changes that occur at irregular intervals.',
-            ),
+        description: t(
+          'Stepped-line graph (also called step chart) is a variation of line chart but with the line forming a series of steps between data points. A step chart can be useful when you want to show the changes that occur at irregular intervals.',
+        ),
         exampleGallery: [{ url: example1 }, { url: example2 }],
         supportedAnnotationTypes: [
           AnnotationType.Event,
@@ -65,14 +53,11 @@ export default class EchartsTimeseriesStepChartPlugin extends EchartsChartPlugin
           AnnotationType.Interval,
           AnnotationType.Timeseries,
         ],
-        name: hasGenericChartAxes
-          ? t('Stepped Line')
-          : t('Time-series Stepped Line'),
+        name: t('Stepped Line'),
         tags: [
           t('ECharts'),
           t('Predictive'),
           t('Advanced-Analytics'),
-          t('Aesthetic'),
           t('Time'),
           t('Transformable'),
           t('Stacked'),

@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import React, { ReactNode, useMemo } from 'react';
+import { ReactNode, useMemo } from 'react';
 import { css, styled, t, useTheme } from '@superset-ui/core';
 import {
   ChartConfiguration,
@@ -27,24 +27,23 @@ import {
 } from 'src/dashboard/types';
 import { useSelector } from 'react-redux';
 import { CHART_TYPE } from 'src/dashboard/util/componentTypes';
-import Icons from 'src/components/Icons';
-import Button from 'src/components/Button';
+import { Icons } from '@superset-ui/core/components/Icons';
+import { Button } from '@superset-ui/core/components';
 import { FilterTitle } from 'src/dashboard/components/nativeFilters/FiltersConfigModal/FilterTitleContainer';
 import { NEW_CHART_SCOPING_ID } from './constants';
 
 const AddButtonContainer = styled.div`
   ${({ theme }) => css`
-    margin-top: ${theme.gridUnit * 2}px;
-
+    margin-top: ${theme.sizeUnit * 2}px;
     & button > [role='img']:first-of-type {
-      margin-right: ${theme.gridUnit}px;
       line-height: 0;
     }
-
     span[role='img'] {
       padding-bottom: 1px;
     }
-
+    button > span > :first-of-type {
+      margin-right: 0;
+    }
     .ant-btn > .anticon + span {
       margin-left: 0;
     }
@@ -71,14 +70,15 @@ const ScopingTitle = ({
       onClick={() => onClick(id)}
     >
       {label}
-      <Icons.Trash
+      <Icons.DeleteOutlined
         iconColor={theme.colors.grayscale.light3}
-        onClick={event => {
+        iconSize="xl"
+        onClick={(event: React.MouseEvent<HTMLElement>) => {
           event.stopPropagation();
           onRemove(id);
         }}
         css={css`
-          margin-left: auto;
+          margin: auto auto auto ${theme.sizeUnit}px;
         `}
       />
     </FilterTitle>
@@ -136,10 +136,11 @@ export const ChartsScopingListPanel = ({
           buttonSize="xsmall"
           onClick={addNewCustomScope}
         >
-          <Icons.PlusSmall /> {t('Add custom scoping')}
+          <Icons.PlusOutlined iconSize="s" /> {t('Add custom scoping')}
         </Button>
       </AddButtonContainer>
       <FilterTitle
+        role="button"
         onClick={() => setCurrentChartId(undefined)}
         className={activeChartId === undefined ? 'active' : ''}
       >
@@ -150,7 +151,7 @@ export const ChartsScopingListPanel = ({
           width: 100%;
           height: 1px;
           background-color: ${theme.colors.grayscale.light3};
-          margin: ${theme.gridUnit * 3}px 0;
+          margin: ${theme.sizeUnit * 3}px 0;
         `}
       />
       {customScopedCharts.map(chartInfo => (

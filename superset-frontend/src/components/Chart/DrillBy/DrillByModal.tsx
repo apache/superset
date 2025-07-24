@@ -17,14 +17,9 @@
  * under the License.
  */
 
-import React, {
-  useCallback,
-  useContext,
-  useEffect,
-  useMemo,
-  useState,
-} from 'react';
+import { useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import {
+  BinaryQueryObjectFilterClause,
   BaseFormData,
   Column,
   QueryData,
@@ -34,19 +29,24 @@ import {
   t,
   useTheme,
   ContextMenuFilters,
+  AdhocFilter,
 } from '@superset-ui/core';
 import { useDispatch, useSelector } from 'react-redux';
 import { Link } from 'react-router-dom';
-import Modal from 'src/components/Modal';
-import Loading from 'src/components/Loading';
-import Button from 'src/components/Button';
+import {
+  Button,
+  Alert,
+  Modal,
+  Loading,
+  Breadcrumb,
+  Flex,
+} from '@superset-ui/core/components';
 import { RootState } from 'src/dashboard/types';
 import { DashboardPageIdContext } from 'src/dashboard/containers/DashboardPage';
 import { postFormData } from 'src/explore/exploreUtils/formData';
 import { simpleFilterToAdhoc } from 'src/utils/simpleFilterToAdhoc';
 import { useDatasetMetadataBar } from 'src/features/datasets/metadataBar/useDatasetMetadataBar';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
-import Alert from 'src/components/Alert';
 import { logEvent } from 'src/logger/actions';
 import {
   LOG_ACTIONS_DRILL_BY_BREADCRUMB_CLICKED,
@@ -54,16 +54,14 @@ import {
   LOG_ACTIONS_DRILL_BY_MODAL_OPENED,
   LOG_ACTIONS_FURTHER_DRILL_BY,
 } from 'src/logger/LogUtils';
+import { findPermission } from 'src/utils/findPermission';
+import { getQuerySettings } from 'src/explore/exploreUtils';
 import { Dataset, DrillByType } from '../types';
 import DrillByChart from './DrillByChart';
 import { ContextMenuItem } from '../ChartContextMenu/ChartContextMenu';
 import { useContextMenu } from '../ChartContextMenu/useContextMenu';
-import { getChartDataRequest } from '../chartAction';
+import { getChartDataRequest, handleChartDataResponse } from '../chartAction';
 import { useDisplayModeToggle } from './useDisplayModeToggle';
-import {
-  DrillByBreadcrumb,
-  useDrillByBreadcrumbs,
-} from './useDrillByBreadcrumbs';
 import { useResultsTableView } from './useResultsTableView';
 
 const DEFAULT_ADHOC_FILTER_FIELD_NAME = 'adhoc_filters';
@@ -71,10 +69,15 @@ interface ModalFooterProps {
   closeModal?: () => void;
   formData: BaseFormData;
 }
+interface DrillByBreadcrumb {
+  groupby: Column | Column[];
+  filters?: BinaryQueryObjectFilterClause[];
+}
 
 const ModalFooter = ({ formData, closeModal }: ModalFooterProps) => {
   const dispatch = useDispatch();
   const { addDangerToast } = useToasts();
+  const theme = useTheme();
   const [url, setUrl] = useState('');
   const dashboardPageId = useContext(DashboardPageIdContext);
   const onEditChartClick = useCallback(() => {
@@ -84,6 +87,9 @@ const ModalFooter = ({ formData, closeModal }: ModalFooterProps) => {
       }),
     );
   }, [dispatch, formData.slice_id]);
+  const canExplore = useSelector((state: RootState) =>
+    findPermission('can_explore', 'Superset', state.user?.roles),
+  );
 
   const [datasource_id, datasource_type] = formData.datasource.split('__');
   useEffect(() => {
@@ -103,13 +109,20 @@ const ModalFooter = ({ formData, closeModal }: ModalFooterProps) => {
     datasource_type,
     formData,
   ]);
+  const isEditDisabled = !url || !canExplore;
+
   return (
     <>
       <Button
         buttonStyle="secondary"
         buttonSize="small"
         onClick={onEditChartClick}
-        disabled={!url}
+        disabled={isEditDisabled}
+        tooltip={
+          isEditDisabled
+            ? t('You do not have sufficient permissions to edit the chart')
+            : undefined
+        }
       >
         <Link
           css={css`
@@ -128,6 +141,9 @@ const ModalFooter = ({ formData, closeModal }: ModalFooterProps) => {
         buttonSize="small"
         onClick={closeModal}
         data-test="close-drill-by-modal"
+        css={css`
+          margin-left: ${theme.sizeUnit * 2}px;
+        `}
       >
         {t('Close')}
       </Button>
@@ -141,6 +157,7 @@ export interface DrillByModalProps {
   drillByConfig: Required<ContextMenuFilters>['drillBy'];
   formData: BaseFormData & { [key: string]: any };
   onHideModal: () => void;
+  canDownload: boolean;
 }
 
 type DrillByConfigs = (ContextMenuFilters['drillBy'] & { column?: Column })[];
@@ -151,6 +168,7 @@ export default function DrillByModal({
   drillByConfig,
   formData,
   onHideModal,
+  canDownload,
 }: DrillByModalProps) {
   const dispatch = useDispatch();
   const theme = useTheme();
@@ -190,6 +208,7 @@ export default function DrillByModal({
   const resultsTable = useResultsTableView(
     chartDataResult,
     formData.datasource,
+    canDownload,
   );
 
   const [currentFormData, setCurrentFormData] = useState(formData);
@@ -211,14 +230,14 @@ export default function DrillByModal({
 
   const getFormDataChangesFromConfigs = useCallback(
     (configs: DrillByConfigs) =>
-      configs.reduce(
+      configs.reduce<Record<string, any>>(
         (acc, config) => {
           if (config?.groupbyFieldName && config.column) {
             acc.formData[config.groupbyFieldName] = getNewGroupby(
               config.column,
               config.groupbyFieldName,
             );
-            acc.overridenGroupbyFields.add(config.groupbyFieldName);
+            acc.overriddenGroupbyFields.add(config.groupbyFieldName);
           }
           const adhocFilterFieldName =
             config?.adhocFilterFieldName || DEFAULT_ADHOC_FILTER_FIELD_NAME;
@@ -228,14 +247,14 @@ export default function DrillByModal({
               simpleFilterToAdhoc(filter),
             ),
           ];
-          acc.overridenAdhocFilterFields.add(adhocFilterFieldName);
+          acc.overriddenAdhocFilterFields.add(adhocFilterFieldName);
 
           return acc;
         },
         {
-          formData: {},
-          overridenGroupbyFields: new Set<string>(),
-          overridenAdhocFilterFields: new Set<string>(),
+          formData: {} as Record<string, string | string[] | Set<string>>,
+          overriddenGroupbyFields: new Set<string>(),
+          overriddenAdhocFilterFields: new Set<string>(),
         },
       ),
     [getNewGroupby],
@@ -243,7 +262,7 @@ export default function DrillByModal({
 
   const getFiltersFromConfigsByFieldName = useCallback(
     () =>
-      drillByConfigs.reduce((acc, config) => {
+      drillByConfigs.reduce<Record<string, AdhocFilter[]>>((acc, config) => {
         const adhocFilterFieldName =
           config.adhocFilterFieldName || DEFAULT_ADHOC_FILTER_FIELD_NAME;
         acc[adhocFilterFieldName] = [
@@ -275,14 +294,14 @@ export default function DrillByModal({
         if (index === 0) {
           return formData;
         }
-        const { formData: overrideFormData, overridenAdhocFilterFields } =
+        const { formData: overrideFormData, overriddenAdhocFilterFields } =
           getFormDataChangesFromConfigs(drillByConfigs.slice(0, index));
 
         const newFormData = {
           ...formData,
           ...overrideFormData,
         };
-        overridenAdhocFilterFields.forEach(adhocFilterField => ({
+        overriddenAdhocFilterFields.forEach((adhocFilterField: string) => ({
           ...newFormData,
           [adhocFilterField]: [
             ...formData[adhocFilterField],
@@ -294,8 +313,35 @@ export default function DrillByModal({
     },
     [dispatch, drillByConfigs, formData, getFormDataChangesFromConfigs],
   );
+  const breadcrumbItems = breadcrumbsData
+    .map((breadcrumb, index) => {
+      const isClickable = index < breadcrumbsData.length - 1;
+      const hasGroupBy = ensureIsArray(breadcrumb.groupby).length > 0;
+      const hasFilters = ensureIsArray(breadcrumb.filters).length > 0;
 
-  const breadcrumbs = useDrillByBreadcrumbs(breadcrumbsData, onBreadcrumbClick);
+      if (!hasGroupBy && !hasFilters) {
+        return undefined;
+      }
+
+      const groupbyText = ensureIsArray(breadcrumb.groupby)
+        .map(column => column.verbose_name || column.column_name)
+        .join(', ');
+
+      const filtersText = hasFilters
+        ? `(${ensureIsArray(breadcrumb.filters)
+            .map(filter => filter.formattedVal ?? String(filter.val))
+            .join(', ')})`
+        : '';
+
+      const title = `${groupbyText} ${filtersText}`.trim();
+      return {
+        title,
+        onClick: isClickable
+          ? () => onBreadcrumbClick(breadcrumb, index)
+          : undefined,
+      };
+    })
+    .filter((item): item is NonNullable<typeof item> => item !== undefined);
 
   const drilledFormData = useMemo(() => {
     let updatedFormData = { ...currentFormData };
@@ -390,13 +436,17 @@ export default function DrillByModal({
 
   useEffect(() => {
     if (drilledFormData) {
+      const [useLegacyApi] = getQuerySettings(drilledFormData);
       setIsChartDataLoading(true);
       setChartDataResult(undefined);
       getChartDataRequest({
         formData: drilledFormData,
       })
-        .then(({ json }) => {
-          setChartDataResult(json.result);
+        .then(({ response, json }) =>
+          handleChartDataResponse(response, json, useLegacyApi),
+        )
+        .then(queriesResponse => {
+          setChartDataResult(queriesResponse);
         })
         .catch(() => {
           addDangerToast(t('Failed to load chart data.'));
@@ -422,26 +472,52 @@ export default function DrillByModal({
       responsive
       resizable
       resizableConfig={{
-        minHeight: theme.gridUnit * 128,
-        minWidth: theme.gridUnit * 128,
+        minHeight: theme.sizeUnit * 128,
+        minWidth: theme.sizeUnit * 128,
         defaultSize: {
           width: 'auto',
           height: '80vh',
         },
       }}
       draggable
-      destroyOnClose
+      destroyOnHidden
       maskClosable={false}
     >
-      <div
+      <Flex
+        vertical
+        gap={theme.sizeUnit}
         css={css`
-          display: flex;
-          flex-direction: column;
           height: 100%;
         `}
       >
         {metadataBar}
-        {breadcrumbs}
+        <Breadcrumb
+          css={css`
+            margin-bottom: ${theme.sizeUnit * 2}px;
+          `}
+          items={breadcrumbItems}
+          itemRender={(route, _, routes, paths) => {
+            const isLastElement = routes.indexOf(route) === routes.length - 1;
+            return isLastElement ? (
+              <span data-test="drill-by-breadcrumb-item">
+                {route.title}
+                {paths}
+              </span>
+            ) : (
+              <span
+                data-test="drill-by-breadcrumb-item"
+                role="button"
+                tabIndex={0}
+                onClick={route.onClick}
+                css={css`
+                  cursor: pointer;
+                `}
+              >
+                {route.title}
+              </span>
+            );
+          }}
+        />
         {displayModeToggle}
         {isChartDataLoading && <Loading />}
         {!isChartDataLoading && !chartDataResult && (
@@ -463,7 +539,7 @@ export default function DrillByModal({
           chartDataResult &&
           resultsTable}
         {contextMenu}
-      </div>
+      </Flex>
     </Modal>
   );
 }

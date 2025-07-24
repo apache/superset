@@ -40,7 +40,7 @@ class InsertChartMixin:
         certified_by: Optional[str] = None,
         certification_details: Optional[str] = None,
     ) -> Slice:
-        obj_owners = list()
+        obj_owners = list()  # noqa: C408
         for owner in owners:
             user = db.session.query(security_manager.user_model).get(owner)
             obj_owners.append(user)

@@ -19,6 +19,7 @@ from datetime import date, datetime, timedelta
 from typing import Optional
 from unittest.mock import Mock, patch
 
+import freezegun
 import pytest
 from dateutil.relativedelta import relativedelta
 
@@ -35,9 +36,10 @@ from superset.utils.date_parser import (
     parse_human_timedelta,
     parse_past_timedelta,
 )
+from tests.unit_tests.conftest import with_feature_flags
 
 
-def mock_parse_human_datetime(s: str) -> Optional[datetime]:
+def mock_parse_human_datetime(s: str) -> Optional[datetime]:  # noqa: C901
     if s == "now":
         return datetime(2016, 11, 7, 9, 30, 10)
     elif s == "2018":
@@ -64,6 +66,8 @@ def mock_parse_human_datetime(s: str) -> Optional[datetime]:
         return datetime(2000, 1, 1)
     elif s == "2018-01-01T00:00:00":
         return datetime(2018, 1, 1)
+    elif s == "2018-01-10T00:00:00":
+        return datetime(2018, 1, 10)
     elif s == "2018-12-31T23:59:59":
         return datetime(2018, 12, 31, 23, 59, 59)
     elif s == "2022-01-01T00:00:00":
@@ -87,6 +91,46 @@ def test_get_since_until() -> None:
 
     result = get_since_until("yesterday : tomorrow")
     expected = datetime(2016, 11, 6), datetime(2016, 11, 8)
+    assert result == expected
+
+    result = get_since_until(" : now")
+    expected = None, datetime(2016, 11, 7, 9, 30, 10)
+    assert result == expected
+
+    result = get_since_until(" : last 2 minutes")
+    expected = None, datetime(2016, 11, 7, 9, 28, 10)
+    assert result == expected
+
+    result = get_since_until(" : prior 2 minutes")
+    expected = None, datetime(2016, 11, 7, 9, 28, 10)
+    assert result == expected
+
+    result = get_since_until(" : next 2 minutes")
+    expected = None, datetime(2016, 11, 7, 9, 32, 10)
+    assert result == expected
+
+    result = get_since_until("start of this month : ")
+    expected = datetime(2016, 11, 1), None
+    assert result == expected
+
+    result = get_since_until("start of next month : ")
+    expected = datetime(2016, 12, 1), None
+    assert result == expected
+
+    result = get_since_until("end of this month : ")
+    expected = datetime(2016, 11, 30), None
+    assert result == expected
+
+    result = get_since_until("end of next month : ")
+    expected = datetime(2016, 12, 31), None
+    assert result == expected
+
+    result = get_since_until("beginning of next year : ")
+    expected = datetime(2017, 1, 1), None
+    assert result == expected
+
+    result = get_since_until("beginning of last year : ")
+    expected = datetime(2015, 1, 1), None
     assert result == expected
 
     result = get_since_until("2018-01-01T00:00:00 : 2018-12-31T23:59:59")
@@ -157,8 +201,147 @@ def test_get_since_until() -> None:
     expected = datetime(2015, 1, 1, 0, 0, 0), datetime(2016, 1, 1, 0, 0, 0)
     assert result == expected
 
-    with pytest.raises(ValueError):
+    result = get_since_until("Current day")
+    expected = datetime(2016, 11, 7, 0, 0, 0), datetime(2016, 11, 8, 0, 0, 0)
+    assert result == expected
+
+    result = get_since_until("Current week")
+    expected = datetime(2016, 11, 7, 0, 0, 0), datetime(2016, 11, 14, 0, 0, 0)
+    assert result == expected
+
+    result = get_since_until("Current month")
+    expected = datetime(2016, 11, 1, 0, 0, 0), datetime(2016, 12, 1, 0, 0, 0)
+    assert result == expected
+
+    result = get_since_until("Current quarter")
+    expected = datetime(2016, 10, 1, 0, 0, 0), datetime(2017, 1, 1, 0, 0, 0)
+    assert result == expected
+
+    result = get_since_until("Current year")
+    expected = expected = datetime(2016, 1, 1, 0, 0, 0), datetime(2017, 1, 1, 0, 0, 0)
+    assert result == expected
+
+    # Tests for our new instant_time_comparison logic and Feature Flag off
+    result = get_since_until(
+        time_range="2000-01-01T00:00:00 : 2018-01-01T00:00:00",
+        instant_time_comparison_range="y",
+    )
+    expected = datetime(2000, 1, 1), datetime(2018, 1, 1)
+    assert result == expected
+
+    result = get_since_until(
+        time_range="2000-01-01T00:00:00 : 2018-01-01T00:00:00",
+        instant_time_comparison_range="m",
+    )
+    expected = datetime(2000, 1, 1), datetime(2018, 1, 1)
+    assert result == expected
+
+    result = get_since_until(
+        time_range="2000-01-01T00:00:00 : 2018-01-01T00:00:00",
+        instant_time_comparison_range="w",
+    )
+    expected = datetime(2000, 1, 1), datetime(2018, 1, 1)
+    assert result == expected
+
+    result = get_since_until(
+        time_range="2000-01-01T00:00:00 : 2018-01-01T00:00:00",
+        instant_time_comparison_range="r",
+    )
+    expected = datetime(2000, 1, 1), datetime(2018, 1, 1)
+    assert result == expected
+
+    result = get_since_until(
+        time_range="2000-01-01T00:00:00 : 2018-01-01T00:00:00",
+        time_shift="1 year ago",
+    )
+    expected = datetime(1999, 1, 1), datetime(2017, 1, 1)
+    assert result == expected
+
+    result = get_since_until(
+        time_range="2000-01-01T00:00:00 : 2018-01-01T00:00:00",
+        time_shift="1 month ago",
+    )
+    expected = datetime(1999, 12, 1), datetime(2017, 12, 1)
+    assert result == expected
+
+    result = get_since_until(
+        time_range="2000-01-01T00:00:00 : 2018-01-01T00:00:00",
+        time_shift="1 week ago",
+    )
+    expected = datetime(1999, 12, 25), datetime(2017, 12, 25)
+    assert result == expected
+
+    with pytest.raises(ValueError):  # noqa: PT011
         get_since_until(time_range="tomorrow : yesterday")
+
+
+@with_feature_flags(CHART_PLUGINS_EXPERIMENTAL=True)
+@patch("superset.utils.date_parser.parse_human_datetime", mock_parse_human_datetime)
+def test_get_since_until_instant_time_comparison_enabled() -> None:
+    result: tuple[Optional[datetime], Optional[datetime]]
+    expected: tuple[Optional[datetime], Optional[datetime]]
+
+    result = get_since_until(
+        time_range="2000-01-01T00:00:00 : 2018-01-01T00:00:00",
+        instant_time_comparison_range="y",
+    )
+    expected = datetime(1999, 1, 1), datetime(2017, 1, 1)
+    assert result == expected
+
+    result = get_since_until(
+        time_range="2000-01-01T00:00:00 : 2018-01-01T00:00:00",
+        instant_time_comparison_range="m",
+    )
+    expected = datetime(1999, 12, 1), datetime(2017, 12, 1)
+    assert result == expected
+
+    result = get_since_until(
+        time_range="2000-01-01T00:00:00 : 2018-01-01T00:00:00",
+        instant_time_comparison_range="w",
+    )
+    expected = datetime(1999, 12, 25), datetime(2017, 12, 25)
+    assert result == expected
+
+    result = get_since_until(
+        time_range="2000-01-01T00:00:00 : 2018-01-01T00:00:00",
+        instant_time_comparison_range="r",
+    )
+    expected = datetime(1981, 12, 31), datetime(2000, 1, 1)
+    assert result == expected
+
+    result = get_since_until(
+        time_range="2000-01-01T00:00:00 : 2018-01-01T00:00:00",
+        instant_time_comparison_range="unknown",
+    )
+    expected = datetime(2000, 1, 1), datetime(2018, 1, 1)
+    assert result == expected
+
+
+def test_previous_calendar_quarter():
+    with freezegun.freeze_time("2023-01-15"):
+        result = get_since_until("previous calendar quarter")
+        expected = (datetime(2022, 10, 1), datetime(2023, 1, 1))
+        assert result == expected
+
+    with freezegun.freeze_time("2023, 4, 15"):
+        result = get_since_until("previous calendar quarter")
+        expected = (datetime(2023, 1, 1), datetime(2023, 4, 1))
+        assert result == expected
+
+    with freezegun.freeze_time("2023, 8, 15"):
+        result = get_since_until("previous calendar quarter")
+        expected = (datetime(2023, 4, 1), datetime(2023, 7, 1))
+        assert result == expected
+
+    with freezegun.freeze_time("2023, 10, 15"):
+        result = get_since_until("previous calendar quarter")
+        expected = (datetime(2023, 7, 1), datetime(2023, 10, 1))
+        assert result == expected
+
+    with freezegun.freeze_time("2024, 1, 1"):
+        result = get_since_until("previous calendar quarter")
+        expected = (datetime(2023, 10, 1), datetime(2024, 1, 1))
+        assert result == expected
 
 
 @patch("superset.utils.date_parser.parse_human_datetime", mock_parse_human_datetime)
@@ -292,6 +475,36 @@ def test_datetime_eval() -> None:
         "lastday(dateadd(datetime('2018-01-01T00:00:00'), 1, month), month)"
     )
     expected = datetime(2018, 2, 28, 0, 0, 0)
+    assert result == expected
+
+    result = datetime_eval(
+        "datediff(datetime('2018-01-01T00:00:00'), datetime('2018-01-10T00:00:00'))"  # pylint: disable=line-too-long,useless-suppression
+    )
+    assert result == 9
+
+    result = datetime_eval(
+        "datediff(datetime('2018-01-10T00:00:00'), datetime('2018-01-01T00:00:00'))"  # pylint: disable=line-too-long,useless-suppression
+    )
+    assert result == -9
+
+    result = datetime_eval(
+        "datediff(datetime('2018-01-01T00:00:00'), datetime('2018-01-10T00:00:00'), day)"  # pylint: disable=line-too-long,useless-suppression  # noqa: E501
+    )
+    assert result == 9
+
+    result = datetime_eval(
+        "datediff(datetime('2018-01-01T00:00:00'), datetime('2018-01-10T00:00:00'), year)"  # pylint: disable=line-too-long,useless-suppression  # noqa: E501
+    )
+    assert result == 0
+
+    result = datetime_eval(
+        "dateadd("
+        "datetime('2018-01-01T00:00:00'), "
+        "datediff(datetime('2018-01-10T00:00:00'), datetime('2018-01-01T00:00:00')), "  # pylint: disable=line-too-long,useless-suppression
+        "day,"
+        "),"
+    )
+    expected = datetime(2017, 12, 23, 0, 0, 0)
     assert result == expected
 
 

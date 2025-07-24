@@ -16,12 +16,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import { isValidElement } from 'react';
 import type { QueryState } from '@superset-ui/core';
 import { render } from 'spec/helpers/testing-library';
 import QueryStateLabel from '.';
 
-jest.mock('src/components/Label', () => () => <div data-test="mock-label" />);
+jest.mock('@superset-ui/core/components/Label', () => ({
+  __esModule: true,
+  Label: () => <div data-test="mock-label" />,
+}));
 
 const mockedProps = {
   query: {
@@ -29,7 +32,7 @@ const mockedProps = {
   },
 };
 test('is valid', () => {
-  expect(React.isValidElement(<QueryStateLabel {...mockedProps} />)).toBe(true);
+  expect(isValidElement(<QueryStateLabel {...mockedProps} />)).toBe(true);
 });
 test('has an Overlay and a Popover', () => {
   const { getByTestId } = render(<QueryStateLabel {...mockedProps} />);

@@ -1,6 +1,6 @@
 {
   "name": "@superset-ui/plugin-chart-table",
-  "version": "0.18.25",
+  "version": "0.20.3",
   "description": "Superset Chart - Table",
   "keywords": [
     "superset"
@@ -26,29 +26,29 @@
   "dependencies": {
     "@react-icons/all-files": "^4.1.0",
     "@types/d3-array": "^2.9.0",
-    "@types/enzyme": "^3.10.5",
-    "@types/react-table": "^7.0.29",
-    "classnames": "^2.3.2",
+    "@types/react-table": "^7.7.20",
+    "classnames": "^2.5.1",
     "d3-array": "^2.4.0",
     "lodash": "^4.17.21",
-    "match-sorter": "^6.3.0",
-    "memoize-one": "^5.1.1",
-    "react-table": "^7.6.3",
-    "regenerator-runtime": "^0.13.7",
-    "xss": "^1.0.14"
+    "memoize-one": "^5.2.1",
+    "react-table": "^7.8.0",
+    "regenerator-runtime": "^0.14.1",
+    "xss": "^1.0.15"
   },
   "peerDependencies": {
+    "@ant-design/icons": "^5.2.6",
     "@superset-ui/chart-controls": "*",
     "@superset-ui/core": "*",
-    "@testing-library/dom": "^7.29.4",
-    "@testing-library/jest-dom": "^5.11.6",
-    "@testing-library/react": "^11.2.0",
-    "@testing-library/react-hooks": "^5.0.3",
-    "@testing-library/user-event": "^12.7.0",
+    "@testing-library/dom": "^8.20.1",
+    "@testing-library/jest-dom": "*",
+    "@testing-library/react": "^12.1.5",
+    "@testing-library/react-hooks": "*",
+    "@testing-library/user-event": "*",
     "@types/classnames": "*",
     "@types/react": "*",
-    "react": "^16.13.1",
-    "react-dom": "^16.13.1"
+    "match-sorter": "^6.3.3",
+    "react": "^17.0.2",
+    "react-dom": "^17.0.2"
   },
   "publishConfig": {
     "access": "public"

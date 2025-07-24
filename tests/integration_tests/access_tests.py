@@ -16,34 +16,33 @@
 # under the License.
 # isort:skip_file
 """Unit tests for Superset"""
+
 import unittest
 from typing import Optional
 
 import pytest
 from flask.ctx import AppContext
-from pytest_mock import MockFixture
-from sqlalchemy import inspect
+from pytest_mock import MockerFixture
+from sqlalchemy import inspect  # noqa: F401
 
 from tests.integration_tests.fixtures.birth_names_dashboard import (
-    load_birth_names_dashboard_with_slices,
-    load_birth_names_data,
+    load_birth_names_dashboard_with_slices,  # noqa: F401
+    load_birth_names_data,  # noqa: F401
 )
 from tests.integration_tests.fixtures.world_bank_dashboard import (
-    load_world_bank_dashboard_with_slices,
-    load_world_bank_data,
+    load_world_bank_dashboard_with_slices,  # noqa: F401
+    load_world_bank_data,  # noqa: F401
 )
 from tests.integration_tests.fixtures.energy_dashboard import (
-    load_energy_table_with_slice,
-    load_energy_table_data,
+    load_energy_table_with_slice,  # noqa: F401
+    load_energy_table_data,  # noqa: F401
 )
-from tests.integration_tests.test_app import app  # isort:skip
-from superset import db, security_manager
-from superset.connectors.sqla.models import SqlaTable
-from superset.models import core as models
+from superset import security_manager
+from superset.connectors.sqla.models import SqlaTable  # noqa: F401
+from superset.models import core as models  # noqa: F401
 from superset.utils.core import get_user_id, get_username, override_user
-from superset.utils.database import get_example_database
+from superset.utils.database import get_example_database  # noqa: F401
 
-from .base_tests import SupersetTestCase
 
 ROLE_TABLES_PERM_DATA = {
     "role_name": "override_me",
@@ -81,39 +80,6 @@ DB_ACCESS_ROLE = "db_access_role"
 SCHEMA_ACCESS_ROLE = "schema_access_role"
 
 
-class TestRequestAccess(SupersetTestCase):
-    @classmethod
-    def setUpClass(cls):
-        with app.app_context():
-            security_manager.add_role("override_me")
-            security_manager.add_role(TEST_ROLE_1)
-            security_manager.add_role(TEST_ROLE_2)
-            security_manager.add_role(DB_ACCESS_ROLE)
-            security_manager.add_role(SCHEMA_ACCESS_ROLE)
-            db.session.commit()
-
-    @classmethod
-    def tearDownClass(cls):
-        with app.app_context():
-            override_me = security_manager.find_role("override_me")
-            db.session.delete(override_me)
-            db.session.delete(security_manager.find_role(TEST_ROLE_1))
-            db.session.delete(security_manager.find_role(TEST_ROLE_2))
-            db.session.delete(security_manager.find_role(DB_ACCESS_ROLE))
-            db.session.delete(security_manager.find_role(SCHEMA_ACCESS_ROLE))
-            db.session.commit()
-
-    def setUp(self):
-        self.login("admin")
-
-    def tearDown(self):
-        self.logout()
-        override_me = security_manager.find_role("override_me")
-        override_me.permissions = []
-        db.session.commit()
-        db.session.close()
-
-
 @pytest.mark.parametrize(
     "username,user_id",
     [
@@ -124,7 +90,7 @@ class TestRequestAccess(SupersetTestCase):
 )
 def test_get_user_id(
     app_context: AppContext,
-    mocker: MockFixture,
+    mocker: MockerFixture,
     username: Optional[str],
     user_id: Optional[int],
 ) -> None:
@@ -143,7 +109,7 @@ def test_get_user_id(
 )
 def test_get_username(
     app_context: AppContext,
-    mocker: MockFixture,
+    mocker: MockerFixture,
     username: Optional[str],
 ) -> None:
     mock_g = mocker.patch("superset.utils.core.g", spec={})
@@ -155,7 +121,7 @@ def test_get_username(
 @pytest.mark.parametrize("force", [False, True])
 def test_override_user(
     app_context: AppContext,
-    mocker: MockFixture,
+    mocker: MockerFixture,
     username: str,
     force: bool,
 ) -> None:

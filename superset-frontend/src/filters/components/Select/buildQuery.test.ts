@@ -30,6 +30,7 @@ describe('Select buildQuery', () => {
     filters: undefined,
     enableEmptyFilter: false,
     inverseSelection: false,
+    creatable: false,
     multiSelect: false,
     defaultToFirstItem: false,
     searchAllOptions: false,
@@ -101,7 +102,7 @@ describe('Select buildQuery', () => {
     const queryContext = buildQuery(formData, {
       ownState: {
         search: 'abc',
-        coltypeMap: { my_col: GenericDataType.STRING },
+        coltypeMap: { my_col: GenericDataType.String },
       },
     });
     expect(queryContext.queries.length).toEqual(1);
@@ -115,7 +116,7 @@ describe('Select buildQuery', () => {
     const queryContext = buildQuery(formData, {
       ownState: {
         search: '123',
-        coltypeMap: { my_col: GenericDataType.NUMERIC },
+        coltypeMap: { my_col: GenericDataType.Numeric },
       },
     });
     expect(queryContext.queries.length).toEqual(1);

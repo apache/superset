@@ -16,22 +16,22 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useDispatch } from 'react-redux';
 import { useLocation } from 'react-router-dom';
 import {
-  getSharedLabelColor,
+  getLabelsColorMap,
   isDefined,
   JsonObject,
   makeApi,
-  SharedLabelColorSource,
+  LabelsColorMapSource,
   t,
+  getClientErrorObject,
 } from '@superset-ui/core';
-import Loading from 'src/components/Loading';
+import { Loading } from '@superset-ui/core/components';
 import { addDangerToast } from 'src/components/MessageToasts/actions';
 import { getUrlParam } from 'src/utils/urlUtils';
 import { URL_PARAMS } from 'src/constants';
-import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import getFormDataWithExtraFilters from 'src/dashboard/util/charts/getFormDataWithExtraFilters';
 import { getAppliedFilterValues } from 'src/dashboard/util/activeDashboardFilters';
 import { getParsedExploreURLParams } from 'src/explore/exploreUtils/getParsedExploreURLParams';
@@ -41,43 +41,47 @@ import { ExploreResponsePayload, SaveActionType } from 'src/explore/types';
 import { fallbackExploreInitialData } from 'src/explore/fixtures';
 import { getItem, LocalStorageKeys } from 'src/utils/localStorageHelpers';
 import { getFormDataWithDashboardContext } from 'src/explore/controlUtils/getFormDataWithDashboardContext';
+import type Chart from 'src/types/Chart';
 
 const isValidResult = (rv: JsonObject): boolean =>
-  rv?.result?.form_data && isDefined(rv?.result?.dataset?.id);
+  rv?.result?.form_data && rv?.result?.dataset;
+
+const hasDatasetId = (rv: JsonObject): boolean =>
+  isDefined(rv?.result?.dataset?.id);
 
 const fetchExploreData = async (exploreUrlParams: URLSearchParams) => {
-  try {
-    const rv = await makeApi<{}, ExploreResponsePayload>({
-      method: 'GET',
-      endpoint: 'api/v1/explore/',
-    })(exploreUrlParams);
-    if (isValidResult(rv)) {
+  const rv = await makeApi<{}, ExploreResponsePayload>({
+    method: 'GET',
+    endpoint: 'api/v1/explore/',
+  })(exploreUrlParams);
+  if (isValidResult(rv)) {
+    if (hasDatasetId(rv)) {
       return rv;
     }
-    let message = t('Failed to load chart data');
-    const responseError = rv?.result?.message;
-    if (responseError) {
-      message = `${message}:\n${responseError}`;
+    // Since there's no dataset id but the API responded with a valid payload,
+    // we assume the dataset was deleted, so we preserve some values from previous
+    // state so if the user decide to swap the datasource, the chart config remains
+    fallbackExploreInitialData.form_data = {
+      ...rv.result.form_data,
+      ...fallbackExploreInitialData.form_data,
+    };
+    if (rv.result?.slice) {
+      fallbackExploreInitialData.slice = rv.result.slice;
     }
-    throw new Error(message);
-  } catch (err) {
-    // todo: encapsulate the error handler
-    const clientError = await getClientErrorObject(err);
-    throw new Error(
-      clientError.message ||
-        clientError.error ||
-        t('Failed to load chart data.'),
-    );
   }
+  let message = t('Failed to load chart data');
+  const responseError = rv?.result?.message;
+  if (responseError) {
+    message = `${message}:\n${responseError}`;
+  }
+  throw new Error(message);
 };
 
 const getDashboardPageContext = (pageId?: string | null) => {
   if (!pageId) {
     return null;
   }
-  return (
-    getItem(LocalStorageKeys.dashboard__explore_context, {})[pageId] || null
-  );
+  return getItem(LocalStorageKeys.DashboardExploreContext, {})[pageId] || null;
 };
 
 const getDashboardContextFormData = () => {
@@ -86,29 +90,36 @@ const getDashboardContextFormData = () => {
   if (dashboardContext) {
     const sliceId = getUrlParam(URL_PARAMS.sliceId) || 0;
     const {
-      labelColors,
-      sharedLabelColors,
       colorScheme,
+      labelsColor,
+      labelsColorMap,
+      sharedLabelsColors,
       chartConfiguration,
       nativeFilters,
       filterBoxFilters,
       dataMask,
       dashboardId,
+      activeFilters,
     } = dashboardContext;
+
     const dashboardContextWithFilters = getFormDataWithExtraFilters({
       chart: { id: sliceId },
       filters: getAppliedFilterValues(sliceId, filterBoxFilters),
       nativeFilters,
       chartConfiguration,
-      colorScheme,
       dataMask,
-      labelColors,
-      sharedLabelColors,
+      colorScheme,
+      labelsColor,
+      labelsColorMap,
+      sharedLabelsColors,
       sliceId,
       allSliceIds: [sliceId],
       extraControls: {},
+      ...(activeFilters && { activeFilters }),
     });
-    Object.assign(dashboardContextWithFilters, { dashboardId });
+    Object.assign(dashboardContextWithFilters, {
+      dashboardId,
+    });
     return dashboardContextWithFilters;
   }
   return null;
@@ -126,16 +137,18 @@ export default function ExplorePage() {
       URL_PARAMS.saveAction,
     ) as SaveActionType | null;
     const dashboardContextFormData = getDashboardContextFormData();
+
     if (!isExploreInitialized.current || !!saveAction) {
       fetchExploreData(exploreUrlParams)
         .then(({ result }) => {
-          const formData =
-            !isExploreInitialized.current && dashboardContextFormData
-              ? getFormDataWithDashboardContext(
-                  result.form_data,
-                  dashboardContextFormData,
-                )
-              : result.form_data;
+          const formData = dashboardContextFormData
+            ? getFormDataWithDashboardContext(
+                result.form_data,
+                dashboardContextFormData,
+                saveAction,
+              )
+            : result.form_data;
+
           dispatch(
             hydrateExplore({
               ...result,
@@ -144,16 +157,69 @@ export default function ExplorePage() {
             }),
           );
         })
-        .catch(err => {
+        .catch(err => Promise.all([getClientErrorObject(err), err]))
+        .then(resolved => {
+          const [clientError, err] = resolved || [];
+          if (!err) {
+            return Promise.resolve();
+          }
+          const errorMesage =
+            clientError?.message ||
+            clientError?.error ||
+            t('Failed to load chart data.');
+          dispatch(addDangerToast(errorMesage));
+
+          if (err.extra?.datasource) {
+            const exploreData = {
+              ...fallbackExploreInitialData,
+              dataset: {
+                ...fallbackExploreInitialData.dataset,
+                id: err.extra?.datasource,
+                name: err.extra?.datasource_name,
+                extra: {
+                  error: err,
+                },
+              },
+            };
+            const chartId = exploreUrlParams.get('slice_id');
+            return (
+              chartId
+                ? makeApi<void, { result: Chart }>({
+                    method: 'GET',
+                    endpoint: `api/v1/chart/${chartId}`,
+                  })()
+                : Promise.reject()
+            )
+              .then(
+                ({ result: { id, url, owners, form_data: _, ...data } }) => {
+                  const slice = {
+                    ...data,
+                    datasource: err.extra?.datasource_name,
+                    slice_id: id,
+                    slice_url: url,
+                    owners: owners?.map(({ id }) => id),
+                  };
+                  dispatch(
+                    hydrateExplore({
+                      ...exploreData,
+                      slice,
+                    }),
+                  );
+                },
+              )
+              .catch(() => {
+                dispatch(hydrateExplore(exploreData));
+              });
+          }
           dispatch(hydrateExplore(fallbackExploreInitialData));
-          dispatch(addDangerToast(err.message));
+          return Promise.resolve();
         })
         .finally(() => {
           setIsLoaded(true);
           isExploreInitialized.current = true;
         });
     }
-    getSharedLabelColor().source = SharedLabelColorSource.explore;
+    getLabelsColorMap().source = LabelsColorMapSource.Explore;
   }, [dispatch, location]);
 
   if (!isLoaded) {

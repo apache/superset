@@ -16,113 +16,28 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Behavior, FeatureFlag } from '@superset-ui/core';
-import * as uiCore from '@superset-ui/core';
+import { Behavior } from '@superset-ui/core';
 import { DashboardLayout } from 'src/dashboard/types';
+import { CHART_TYPE } from 'src/dashboard/util/componentTypes';
 import { nativeFilterGate, findTabsWithChartsInScope } from './utils';
 
-let isFeatureEnabledMock: jest.MockInstance<boolean, [feature: FeatureFlag]>;
-
 describe('nativeFilterGate', () => {
-  describe('with all feature flags disabled', () => {
-    beforeAll(() => {
-      isFeatureEnabledMock = jest
-        .spyOn(uiCore, 'isFeatureEnabled')
-        .mockImplementation(() => false);
-    });
-
-    afterAll(() => {
-      // @ts-ignore
-      isFeatureEnabledMock.restore();
-    });
-
-    it('should return true for regular chart', () => {
-      expect(nativeFilterGate([])).toEqual(true);
-    });
-
-    it('should return true for cross filter chart', () => {
-      expect(nativeFilterGate([Behavior.INTERACTIVE_CHART])).toEqual(true);
-    });
-
-    it('should return false for native filter chart with cross filter support', () => {
-      expect(
-        nativeFilterGate([Behavior.NATIVE_FILTER, Behavior.INTERACTIVE_CHART]),
-      ).toEqual(false);
-    });
-
-    it('should return false for native filter behavior', () => {
-      expect(nativeFilterGate([Behavior.NATIVE_FILTER])).toEqual(false);
-    });
+  it('should return true for regular chart', () => {
+    expect(nativeFilterGate([])).toEqual(true);
   });
 
-  describe('with only native filters feature flag enabled', () => {
-    beforeAll(() => {
-      isFeatureEnabledMock = jest
-        .spyOn(uiCore, 'isFeatureEnabled')
-        .mockImplementation(
-          (featureFlag: FeatureFlag) =>
-            featureFlag === FeatureFlag.DASHBOARD_NATIVE_FILTERS,
-        );
-    });
-
-    afterAll(() => {
-      // @ts-ignore
-      isFeatureEnabledMock.restore();
-    });
-
-    it('should return true for regular chart', () => {
-      expect(nativeFilterGate([])).toEqual(true);
-    });
-
-    it('should return true for cross filter chart', () => {
-      expect(nativeFilterGate([Behavior.INTERACTIVE_CHART])).toEqual(true);
-    });
-
-    it('should return false for native filter chart with cross filter support', () => {
-      expect(
-        nativeFilterGate([Behavior.NATIVE_FILTER, Behavior.INTERACTIVE_CHART]),
-      ).toEqual(false);
-    });
-
-    it('should return false for native filter behavior', () => {
-      expect(nativeFilterGate([Behavior.NATIVE_FILTER])).toEqual(false);
-    });
+  it('should return true for cross filter chart', () => {
+    expect(nativeFilterGate([Behavior.InteractiveChart])).toEqual(true);
   });
 
-  describe('with native filters and experimental feature flag enabled', () => {
-    beforeAll(() => {
-      isFeatureEnabledMock = jest
-        .spyOn(uiCore, 'isFeatureEnabled')
-        .mockImplementation((featureFlag: FeatureFlag) =>
-          [
-            FeatureFlag.DASHBOARD_CROSS_FILTERS,
-            FeatureFlag.DASHBOARD_FILTERS_EXPERIMENTAL,
-          ].includes(featureFlag),
-        );
-    });
+  it('should return true for native filter chart with cross filter support', () => {
+    expect(
+      nativeFilterGate([Behavior.NativeFilter, Behavior.InteractiveChart]),
+    ).toEqual(true);
+  });
 
-    afterAll(() => {
-      // @ts-ignore
-      isFeatureEnabledMock.restore();
-    });
-
-    it('should return true for regular chart', () => {
-      expect(nativeFilterGate([])).toEqual(true);
-    });
-
-    it('should return true for cross filter chart', () => {
-      expect(nativeFilterGate([Behavior.INTERACTIVE_CHART])).toEqual(true);
-    });
-
-    it('should return true for native filter chart with cross filter support', () => {
-      expect(
-        nativeFilterGate([Behavior.NATIVE_FILTER, Behavior.INTERACTIVE_CHART]),
-      ).toEqual(true);
-    });
-
-    it('should return false for native filter behavior', () => {
-      expect(nativeFilterGate([Behavior.NATIVE_FILTER])).toEqual(false);
-    });
+  it('should return false for native filter behavior', () => {
+    expect(nativeFilterGate([Behavior.NativeFilter])).toEqual(false);
   });
 });
 
@@ -158,7 +73,10 @@ test('findTabsWithChartsInScope should handle a recursive layout structure', () 
     },
   } as any as DashboardLayout;
 
-  expect(Array.from(findTabsWithChartsInScope(dashboardLayout, []))).toEqual(
+  const chartLayoutItems = Object.values(dashboardLayout).filter(
+    item => item.type === CHART_TYPE,
+  );
+  expect(Array.from(findTabsWithChartsInScope(chartLayoutItems, []))).toEqual(
     [],
   );
 });

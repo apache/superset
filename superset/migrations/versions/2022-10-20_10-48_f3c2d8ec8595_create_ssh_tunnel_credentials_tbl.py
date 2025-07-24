@@ -22,10 +22,6 @@ Create Date: 2022-10-20 10:48:08.722861
 
 """
 
-# revision identifiers, used by Alembic.
-revision = "f3c2d8ec8595"
-down_revision = "4ce1d9b25135"
-
 from uuid import uuid4
 
 import sqlalchemy as sa
@@ -34,12 +30,17 @@ from sqlalchemy_utils import UUIDType
 
 from superset import app
 from superset.extensions import encrypted_field_factory
+from superset.migrations.shared.utils import create_table
+
+# revision identifiers, used by Alembic.
+revision = "f3c2d8ec8595"
+down_revision = "4ce1d9b25135"
 
 app_config = app.config
 
 
 def upgrade():
-    op.create_table(
+    create_table(
         "ssh_tunnels",
         # AuditMixinNullable
         sa.Column("created_on", sa.DateTime(), nullable=True),
