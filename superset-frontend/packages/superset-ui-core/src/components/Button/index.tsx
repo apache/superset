@@ -65,16 +65,18 @@ export function Button(props: ButtonProps) {
   let antdType: ButtonType = 'default';
   let variant: ButtonVariantType = 'solid';
   let color: ButtonColorType = 'primary';
+  let ghost: boolean = false;
 
   if (!buttonStyle || buttonStyle === 'primary') {
     variant = 'solid';
     antdType = 'primary';
   } else if (buttonStyle === 'secondary') {
-    variant = 'filled';
+    variant = 'outlined';
     color = 'primary';
   } else if (buttonStyle === 'tertiary') {
     variant = 'outlined';
     color = 'default';
+    ghost = true;
   } else if (buttonStyle === 'dashed') {
     variant = 'dashed';
     antdType = 'dashed';
@@ -100,6 +102,7 @@ export function Button(props: ButtonProps) {
 
   const button = (
     <AntdButton
+      ghost={ghost}
       href={disabled ? undefined : href}
       disabled={disabled}
       type={antdType}
