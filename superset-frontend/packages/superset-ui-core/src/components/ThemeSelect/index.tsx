@@ -18,8 +18,7 @@
  */
 import { Tooltip } from 'antd';
 import { Dropdown, Icons } from '@superset-ui/core/components';
-import { t } from '@superset-ui/core';
-import { ThemeAlgorithm, ThemeMode } from '../../theme/types';
+import { t, ThemeAlgorithm, ThemeMode } from '@superset-ui/core';
 
 export interface ThemeSelectProps {
   setThemeMode: (newMode: ThemeMode) => void;

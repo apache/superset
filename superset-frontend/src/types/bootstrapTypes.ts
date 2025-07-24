@@ -16,14 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import {
-  ColorSchemeConfig,
-  FeatureFlagMap,
-  JsonObject,
-  LanguagePack,
-  Locale,
-  SequentialSchemeConfig,
-} from '@superset-ui/core';
 import { FormatLocaleDefinition } from 'd3-format';
 import { TimeLocaleDefinition } from 'd3-time-format';
 import { isPlainObject } from 'lodash';
@@ -31,8 +23,14 @@ import { Languages } from 'src/features/home/LanguagePicker';
 import type { FlashMessage } from 'src/components';
 import type {
   AnyThemeConfig,
+  ColorSchemeConfig,
+  FeatureFlagMap,
+  JsonObject,
+  LanguagePack,
+  Locale,
+  SequentialSchemeConfig,
   SerializableThemeConfig,
-} from '@superset-ui/core/theme/types';
+} from '@superset-ui/core';
 
 export type User = {
   createdOn?: string;
