@@ -39,11 +39,17 @@ import {
 } from '@superset-ui/core';
 import rison from 'rison';
 import { useSingleViewResource } from 'src/views/CRUD/hooks';
+import withToasts from 'src/components/MessageToasts/withToasts';
+import Owner from 'src/types/Owner';
+// import { Form as AntdForm } from 'src/components/Form';
+import { propertyComparator } from '@superset-ui/core/components/Select/utils';
 import {
   AsyncSelect,
+  Button,
   Checkbox,
   Collapse,
   CollapseLabelInModal,
+  Form as AntdForm,
   InfoTooltip,
   Input,
   InputNumber,
@@ -53,10 +59,8 @@ import {
   TreeSelect,
   type CheckboxChangeEvent,
 } from '@superset-ui/core/components';
+
 import TimezoneSelector from '@superset-ui/core/components/TimezoneSelector';
-import { propertyComparator } from '@superset-ui/core/components/Select/utils';
-import withToasts from 'src/components/MessageToasts/withToasts';
-import Owner from 'src/types/Owner';
 import TextAreaControl from 'src/explore/components/controls/TextAreaControl';
 import { useCommonConf } from 'src/features/databases/state';
 import {
@@ -76,9 +80,15 @@ import {
   TabNode,
   SelectValue,
   ContentType,
+  ExtraNativeFilter,
+  NativeFilterObject,
 } from 'src/features/alerts/types';
+import { StatusMessage } from 'src/filters/components/common';
 import { useSelector } from 'react-redux';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
+import { getChartDataRequest } from 'src/components/Chart/chartAction';
+import DateFilterControl from 'src/explore/components/controls/DateFilterControl';
+import { _isColumnsSortingCoupledToGroup } from 'ag-grid-community';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { useOpenerRef } from 'src/hooks/useOpenerRef';
 import { ModalTitleWithIcon } from 'src/components/ModalTitleWithIcon';
@@ -93,6 +103,14 @@ const TEXT_BASED_VISUALIZATION_TYPES = [
   'table',
   VizType.PairedTTest,
 ];
+
+const StyledDivider = styled.span`
+  margin: 0 ${({ theme }) => theme.sizeUnit * 3}px;
+  color: ${({ theme }) => theme.colorSplit};
+  font-weight: ${({ theme }) => theme.fontWeightStrong};
+  font-size: ${({ theme }) => theme.fontSize}px;
+  align-content: center;
+`;
 
 export interface AlertReportModalProps {
   addSuccessToast: (msg: string) => void;
@@ -327,6 +345,57 @@ export const StyledInputContainer = styled.div`
     .input-label {
       margin-left: 10px;
     }
+
+    .filters {
+      margin: ${theme.sizeUnit * 3}px 0;
+
+      .filters-container {
+        display: flex;
+        margin: ${theme.sizeUnit * 2}px 0;
+      }
+
+      .filters-dash-container {
+        display: flex;
+        flex-direction: column;
+        max-width: 174px;
+        flex: 1;
+        margin-right: ${theme.sizeUnit * 4}px;
+
+        .control-label {
+          flex: 1;
+        }
+      }
+
+      .filters-dash-select {
+        flex: 1;
+      }
+
+      .filters-dashvalue-container {
+        display: flex;
+        flex-direction: column;
+        flex: 1;
+      }
+
+      .filters-delete {
+        display: flex;
+        margin-top: ${theme.sizeUnit * 6}px;
+      }
+
+      .filters-trashcan {
+        width: ${theme.sizeUnit * 10}px;
+        display: 'flex';
+        color: ${theme.colors.grayscale.light1};
+      }
+      .filters-add-container {
+        flex: '.25';
+        padding: '${theme.sizeUnit * 3} 0';
+
+        .filters-add-btn {
+          padding: ${theme.sizeUnit * 2}px;
+          color: ${theme.colorTextTertiary};
+        }
+      }
+    }
   `}
 `;
 
@@ -387,6 +456,8 @@ export const TRANSLATIONS = {
   ERROR_TOOLTIP_MESSAGE: t(
     'Not all required fields are complete. Please provide the following:',
   ),
+  NATIVE_FILTER_COLUMN_ERROR_TEXT: t('Native filter column is required'),
+  NATIVE_FILTER_NO_VALUES_ERROR_TEXT: t('Native filter values has no values'),
 };
 
 const NotificationMethodAdd: FunctionComponent<NotificationMethodAddProps> = ({
@@ -454,6 +525,25 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   const [dashboardOptions, setDashboardOptions] = useState<MetaObject[]>([]);
   const [chartOptions, setChartOptions] = useState<MetaObject[]>([]);
   const [tabOptions, setTabOptions] = useState<TabNode[]>([]);
+  const [nativeFilterOptions, setNativeFilterOptions] = useState<
+    {
+      value: string;
+      label: string;
+    }[]
+  >([]);
+  const [tabNativeFilters, setTabNativeFilters] = useState<object>({});
+  const [nativeFilterData, setNativeFilterData] = useState<ExtraNativeFilter[]>(
+    [
+      {
+        nativeFilterId: null,
+        filterName: '',
+        filterType: '',
+        columnLabel: '',
+        columnName: '',
+        filterValues: [],
+      },
+    ],
+  );
 
   // Validation
   const [validationStatus, setValidationStatus] = useState<ValidationObject>({
@@ -506,6 +596,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   const formatOptionEnabled =
     isFeatureEnabled(FeatureFlag.AlertsAttachReports) || isReport;
   const tabsEnabled = isFeatureEnabled(FeatureFlag.AlertReportTabs);
+  const filtersEnabled = isFeatureEnabled(FeatureFlag.AlertReportsFilter);
 
   const [notificationAddState, setNotificationAddState] =
     useState<NotificationAddStatus>('active');
@@ -576,6 +667,116 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     grace_period: undefined,
   };
 
+  const fetchDashboardFilterValues = async (
+    dashboardId: number | string | undefined,
+    columnName: string,
+    datasetId: number | string,
+    vizType = 'filter_select',
+    adhocFilters = [],
+  ) => {
+    if (vizType === 'filter_time') {
+      return;
+    }
+
+    const filterValues = {
+      formData: {
+        datasource: `${datasetId}__table`,
+        groupby: [columnName],
+        metrics: ['count'],
+        row_limit: 1000,
+        showSearch: true,
+        viz_type: vizType,
+        type: 'NATIVE_FILTER',
+        dashboardId,
+        adhoc_filters: adhocFilters,
+      },
+      force: false,
+      ownState: {},
+    };
+
+    const data = await getChartDataRequest(filterValues).then(response => {
+      const rawData = response.json.result[0].data;
+      let filteredData = rawData;
+
+      if (vizType === 'filter_timecolumn') {
+        // filter for time columns types
+        filteredData = rawData.filter((item: any) => item.dtype === 2);
+      }
+
+      return filteredData.map((item: any) => {
+        if (vizType === 'filter_timegrain') {
+          return {
+            value: item.duration,
+            label: item.name,
+          };
+        }
+
+        if (vizType === 'filter_timecolumn') {
+          return {
+            value: item.column_name,
+            label: item.verbose_name || item.column_name,
+          };
+        }
+
+        return {
+          value: item[columnName],
+          label: item[columnName],
+        };
+      });
+    });
+
+    // eslint-disable-next-line consistent-return
+    return data;
+  };
+
+  const addNativeFilterOptions = (nativeFilters: NativeFilterObject[]) => {
+    nativeFilterData.map(nativeFilter => {
+      if (!nativeFilter.nativeFilterId) return;
+      const filter = nativeFilters.filter(
+        (f: any) => f.id === nativeFilter.nativeFilterId,
+      )[0];
+
+      const { datasetId } = filter.targets[0];
+      const filterName = filter.name;
+      const columnName = filter.targets[0].column?.name || filterName;
+      const dashboardId = currentAlert?.dashboard?.value;
+      const { filterType } = filter;
+
+      if (filterType === 'filter_time') {
+        return;
+      }
+
+      // eslint-disable-next-line consistent-return
+      return fetchDashboardFilterValues(
+        dashboardId,
+        columnName,
+        datasetId,
+        filterType,
+      ).then(optionFilterValues => {
+        setNativeFilterData(prev =>
+          prev.map(filter =>
+            filter.nativeFilterId === nativeFilter.nativeFilterId
+              ? {
+                  ...filter,
+                  filterType,
+                  filterName,
+                  optionFilterValues,
+                }
+              : filter,
+          ),
+        );
+      });
+    });
+  };
+
+  const filterNativeFilterOptions = () =>
+    nativeFilterOptions.filter(
+      option =>
+        !nativeFilterData.some(
+          filter => filter.nativeFilterId === option.value,
+        ),
+    );
+
   const updateNotificationSetting = (
     index: number,
     setting: NotificationSetting,
@@ -602,7 +803,6 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
       setNotificationSettings(settings);
     }
   };
-
   const removeNotificationSetting = (index: number) => {
     const settings = notificationSettings.slice();
 
@@ -665,6 +865,27 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
 
     const shouldEnableForceScreenshot =
       contentType === ContentType.Chart && !isReport;
+
+    if (currentAlert?.extra?.dashboard) {
+      currentAlert.extra.dashboard.nativeFilters = nativeFilterData.map(
+        ({
+          columnName,
+          columnLabel,
+          nativeFilterId,
+          filterValues,
+          filterType,
+          filterName,
+        }) => ({
+          filterName,
+          filterType,
+          columnName,
+          columnLabel,
+          nativeFilterId,
+          filterValues,
+        }),
+      );
+    }
+
     const data: any = {
       ...currentAlert,
       type: isReport ? 'Report' : 'Alert',
@@ -825,7 +1046,11 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
         endpoint: `/api/v1/dashboard/${dashboard.value}/tabs`,
       })
         .then(response => {
-          const { tab_tree: tabTree, all_tabs: allTabs } = response.json.result;
+          const {
+            tab_tree: tabTree,
+            all_tabs: allTabs,
+            native_filters: nativeFilters,
+          } = response.json.result;
           const allTabsWithOrder = tabTree.map(
             (tab: { value: string }) => tab.value,
           );
@@ -840,11 +1065,25 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
           }
 
           setTabOptions(tabTree);
+          setTabNativeFilters(nativeFilters);
 
+          if (isEditMode && nativeFilters.all) {
+            // update options for all filters
+            addNativeFilterOptions(nativeFilters.all);
+          }
           const anchor = currentAlert?.extra?.dashboard?.anchor;
           if (anchor) {
             try {
               const parsedAnchor = JSON.parse(anchor);
+              if (!Array.isArray(parsedAnchor)) {
+                // only show filters scoped to anchor
+                setNativeFilterOptions(
+                  nativeFilters[anchor].map((filter: any) => ({
+                    value: filter.id,
+                    label: filter.name,
+                  })),
+                );
+              }
               if (Array.isArray(parsedAnchor)) {
                 // Check if all elements in parsedAnchor list are in allTabs
                 const isValidSubset = parsedAnchor.every(tab => tab in allTabs);
@@ -859,9 +1098,16 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                 updateAnchorState(undefined);
               }
             }
+          } else if (nativeFilters.all) {
+            setNativeFilterOptions(
+              nativeFilters.all.map((filter: any) => ({
+                value: filter.id,
+                label: filter.name,
+              })),
+            );
           }
         })
-        .catch(() => {
+        .catch(e => {
           addDangerToast(t('There was an error retrieving dashboard tabs.'));
         });
     }
@@ -1015,6 +1261,24 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     }
   };
 
+  const handleAddFilterField = () => {
+    setNativeFilterData([
+      ...nativeFilterData,
+      {
+        nativeFilterId: null,
+        columnLabel: '',
+        columnName: '',
+        filterValues: [],
+      },
+    ]);
+  };
+
+  const handleRemoveFilterField = (filterIdx: number) => {
+    const filters = nativeFilterData || [];
+    filters.splice(filterIdx, 1);
+    setNativeFilterData(filters);
+  };
+
   const onCustomWidthChange = (value: number | string | null | undefined) => {
     const numValue =
       value === null ||
@@ -1059,7 +1323,20 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     updateAlertState('chart', null);
     if (tabsEnabled) {
       setTabOptions([]);
+      setNativeFilterOptions([]);
       updateAnchorState('');
+    }
+    if (filtersEnabled) {
+      setNativeFilterData([
+        {
+          filterName: '',
+          filterType: '',
+          nativeFilterId: null,
+          columnLabel: '',
+          columnName: '',
+          filterValues: [],
+        },
+      ]);
     }
   };
 
@@ -1116,6 +1393,164 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     setForceScreenshot(e.target.checked);
   };
 
+  const onChangeDashboardFilter = (idx: number, nativeFilterId: string) => {
+    if (
+      !nativeFilterId ||
+      nativeFilterId === 'undefined' ||
+      nativeFilterId === 'null'
+    )
+      return;
+
+    // find specific filter tied to the selected filter
+    const filters = Object.values(tabNativeFilters).flat();
+    const filter = filters.filter((f: any) => f.id === nativeFilterId)[0];
+
+    const { filterType, adhoc_filters: adhocFilters } = filter;
+    const filterAlreadyExist = nativeFilterData.some(
+      filter => filter.nativeFilterId === nativeFilterId,
+    );
+
+    if (filterAlreadyExist) {
+      addDangerToast(t('This filter already exist on the report'));
+      return;
+    }
+
+    const filterName = filter.name;
+
+    let columnName: string;
+    if (
+      filterType === 'filter_time' ||
+      filterType === 'filter_timecolumn' ||
+      filterType === 'filter_timegrain'
+    ) {
+      columnName = filter.name;
+    } else {
+      columnName = filter.targets[0].column.name;
+    }
+
+    const datasetId = filter.targets[0].datasetId || null;
+
+    const columnLabel = nativeFilterOptions.filter(
+      filter => filter.value === nativeFilterId,
+    )[0].label;
+    const dashboardId = currentAlert?.dashboard?.value;
+
+    // Get values tied to the selected filter
+    const filterValues = {
+      formData: {
+        datasource: `${datasetId}__table`,
+        groupby: [columnName],
+        metrics: ['count'],
+        row_limit: 1000,
+        showSearch: true,
+        viz_type: 'filter_select',
+        type: 'NATIVE_FILTER',
+        dashboardId,
+        adhoc_filters: adhocFilters,
+      },
+      force: false,
+      ownState: {},
+    };
+
+    // todo(hugh): put this into another function
+    if (
+      filterType === 'filter_time' ||
+      filterType === 'filter_timecolumn' ||
+      filterType === 'filter_timegrain'
+    ) {
+      fetchDashboardFilterValues(
+        dashboardId,
+        columnName,
+        datasetId,
+        filterType,
+        adhocFilters,
+      ).then(optionFilterValues => {
+        setNativeFilterData(
+          nativeFilterData.map((filter, index) =>
+            index === idx
+              ? {
+                  ...filter,
+                  filterName,
+                  filterType,
+                  nativeFilterId,
+                  columnLabel,
+                  columnName,
+                  optionFilterValues,
+                  filterValues: [], // reset filter values on filter change
+                }
+              : filter,
+          ),
+        );
+      });
+
+      setNativeFilterData(
+        nativeFilterData.map((filter, index) =>
+          index === idx
+            ? {
+                ...filter,
+                filterName,
+                filterType,
+                nativeFilterId,
+                columnLabel,
+                columnName,
+                optionFilterValues: [],
+                filterValues: [], // reset filter values on filter change
+              }
+            : filter,
+        ),
+      );
+      return;
+    }
+
+    getChartDataRequest(filterValues).then(response => {
+      const newFilterValues = response.json.result[0].data.map((item: any) => ({
+        value: item[columnName],
+        label: item[columnName],
+      }));
+
+      setNativeFilterData(
+        nativeFilterData.map((filter, index) =>
+          index === idx
+            ? {
+                ...filter,
+                filterName,
+                filterType,
+                nativeFilterId,
+                columnLabel,
+                columnName,
+                optionFilterValues: newFilterValues,
+                filterValues: [], // reset filter values on filter change
+              }
+            : filter,
+        ),
+      );
+    });
+  };
+
+  const onChangeDashboardFilterValue = (
+    idx: number,
+    filterValues:
+      | SelectValue
+      | SelectValue[]
+      | string
+      | string[]
+      | number
+      | number[],
+  ) => {
+    let values: any;
+    if (typeof filterValues === 'string') {
+      values = [filterValues];
+    } else {
+      values = filterValues;
+    }
+
+    setNativeFilterData(
+      nativeFilterData.map((filter, index) =>
+        index === idx ? { ...filter, filterValues: values } : filter,
+      ),
+    );
+  };
+
   // Make sure notification settings has the required info
   const checkNotificationSettings = () => {
     if (!notificationSettings.length) {
@@ -1158,6 +1593,105 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     });
   };
 
+  const renderFilterValueSelect = (filter: ExtraNativeFilter, idx: number) => {
+    if (!filter) return null;
+    const { filterType, filterValues } = filter;
+    let mode = 'multiple';
+    if (filterType === 'filter_time') {
+      return (
+        <DateFilterControl
+          name="time_range"
+          onChange={timeRange => {
+            setNativeFilterData(
+              nativeFilterData.map((f: any) =>
+                filter.nativeFilterId === f.nativeFilterId
+                  ? {
+                      ...f,
+                      filterValues: [timeRange],
+                    }
+                  : f,
+              ),
+            );
+          }}
+          value={filterValues?.[0]} // only showing first value in the array for filter_time
+        />
+      );
+    }
+    if (filterType === 'filter_range') {
+      const min = filterValues?.[0];
+      const max = filterValues?.[1];
+      return (
+        <div>
+          <div className="inline-container">
+            <InputNumber
+              value={min}
+              onChange={value => {
+                setNativeFilterData(
+                  nativeFilterData.map((f: any) =>
+                    f.nativeFilterId === filter.nativeFilterId
+                      ? { ...f, filterValues: [value, filterValues?.[1]] }
+                      : f,
+                  ),
+                );
+              }}
+            />
+            <StyledDivider>-</StyledDivider>
+            <InputNumber
+              value={max}
+              onChange={value => {
+                setNativeFilterData(
+                  nativeFilterData.map((f: any) =>
+                    f.nativeFilterId === filter.nativeFilterId
+                      ? { ...f, filterValues: [filterValues?.[0], value] }
+                      : f,
+                  ),
+                );
+              }}
+            />
+          </div>
+          <StatusMessage status="help">
+            {t('Enter minimum and maximum values for the range filter')}
+          </StatusMessage>
+        </div>
+      );
+    }
+
+    if (
+      filterType === 'filter_timegrain' ||
+      filterType === 'filter_timecolumn'
+    ) {
+      mode = 'single';
+    }
+
+    return (
+      <Select
+        ariaLabel={t('Select Value')}
+        placeholder={t('Select Value')}
+        disabled={!filter?.optionFilterValues}
+        value={filter?.filterValues}
+        options={filter?.optionFilterValues || []}
+        onChange={value =>
+          onChangeDashboardFilterValue(
+            idx,
+            value as
+              | string
+              | string[]
+              | number
+              | number[]
+              | SelectValue
+              | SelectValue[],
+          )
+        }
+        mode={mode as 'multiple' | 'single'}
+        onClear={() => {
+          // reset filter values on filter clear
+          onChangeDashboardFilterValue(idx, []);
+        }}
+        allowClear
+      />
+    );
+  };
+
   const validateGeneralSection = () => {
     const errors = [];
     if (!currentAlert?.name?.length) {
@@ -1178,6 +1712,28 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     ) {
       errors.push(TRANSLATIONS.CONTENT_ERROR_TEXT);
     }
+
+    // validate native filter
+    nativeFilterData.forEach(filter => {
+      const columnNameCheck = !filter.columnName || filter.columnName === '';
+      const filterValuesCheck =
+        !filter.filterValues || filter.filterValues.length === 0;
+
+      if (columnNameCheck && filterValuesCheck) {
+        // if both columnName and filterValues are null or empty, skip validation
+        return;
+      }
+
+      // check if native filter columnName is null or empty
+      if (columnNameCheck) {
+        errors.push(TRANSLATIONS.NATIVE_FILTER_COLUMN_ERROR_TEXT);
+      }
+      // check if native filter values is null or empty
+      if (filterValuesCheck) {
+        errors.push(TRANSLATIONS.NATIVE_FILTER_NO_VALUES_ERROR_TEXT);
+      }
+    });
+
     updateValidationStatus(Sections.Content, errors);
   };
   const validateAlertSection = () => {
@@ -1299,6 +1855,12 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
 
   useEffect(() => {
     if (resource) {
+      // Add native filter settings
+      if (resource.extra?.dashboard?.nativeFilters) {
+        const filters = resource.extra.dashboard.nativeFilters;
+        setNativeFilterData(filters);
+      }
+
       // Add notification settings
       const settings = (resource.recipients || []).map(setting => {
         const config =
@@ -1390,6 +1952,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     currentAlertSafe.dashboard,
     currentAlertSafe.chart,
     contentType,
+    nativeFilterData,
     notificationSettings,
     conditionNotNull,
     emailError,
@@ -1789,6 +2352,111 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                     </>
                   )}
                 </StyledInputContainer>
+                {filtersEnabled && contentType === ContentType.Dashboard && (
+                  <StyledInputContainer>
+                    <div>
+                      <div className="control-label">{t('Select tab')}</div>
+                      <StyledTreeSelect
+                        disabled={tabOptions?.length === 0}
+                        treeData={tabOptions}
+                        value={currentAlert?.extra?.dashboard?.anchor}
+                        onSelect={updateAnchorState}
+                        placeholder={t('Select a tab')}
+                      />
+                    </div>
+                    <AntdForm
+                      className="filters"
+                      name="form"
+                      autoComplete="off"
+                    >
+                      <AntdForm.List
+                        name="filters"
+                        initialValue={nativeFilterData} // only show one filter field on create
+                      >
+                        {(fields, { add, remove }) => (
+                          <div>
+                            {fields.map(({ key, name: idx }) => (
+                              <div className="filters-container" key={key}>
+                                <div className="filters-dash-container">
+                                  <div className="control-label">
+                                    <span>{t('Select Dashboard Filter')}</span>
+                                    <InfoTooltip
+                                      tooltip={t(
+                                        'Choose from existing dashboard filters and select a value to refine your report results.',
+                                      )}
+                                    />
+                                  </div>
+                                  <Select
+                                    disabled={
+                                      nativeFilterOptions?.length < 1 &&
+                                      !nativeFilterData[idx]?.filterName
+                                    }
+                                    ariaLabel={t('Select Filter')}
+                                    placeholder={t('Select Filter')}
+                                    value={nativeFilterData[idx]?.filterName}
+                                    options={filterNativeFilterOptions()}
+                                    onChange={value =>
+                                      onChangeDashboardFilter(
+                                        idx,
+                                        String(value),
+                                      )
+                                    }
+                                    onClear={() => {
+                                      // reset filter values on filter clear
+                                      nativeFilterData[idx].columnName = '';
+                                      nativeFilterData[idx].filterName = '';
+                                      nativeFilterData[idx].filterValues = [];
+                                    }}
+                                    css={css`
+                                      flex: 1;
+                                    `}
+                                    oneLine
+                                    allowClear
+                                  />
+                                </div>
+                                <div className="filters-dashvalue-container">
+                                  <div className="control-label">
+                                    {t('Value')}
+                                  </div>
+                                  {renderFilterValueSelect(
+                                    nativeFilterData[idx],
+                                    idx,
+                                  )}
+                                </div>
+                                {(idx !== 0 || isEditMode) && (
+                                  <div className="filters-delete">
+                                    <Icons.DeleteOutlined
+                                      iconSize="xl"
+                                      className="filters-trashcan"
+                                      onClick={() => {
+                                        handleRemoveFilterField(idx);
+                                        remove(idx);
+                                      }}
+                                    />
+                                  </div>
+                                )}
+                              </div>
+                            ))}
+                            <div className="filters-add-container">
+                              {filterNativeFilterOptions().length > 0 && (
+                                <Button
+                                  className="filters-add-btn"
+                                  type="link"
+                                  onClick={() => {
+                                    handleAddFilterField();
+                                    add();
+                                  }}
+                                >
+                                  + {t('Apply another dashboard filter')}
+                                </Button>
+                              )}
+                            </div>
+                          </div>
+                        )}
+                      </AntdForm.List>
+                    </AntdForm>
+                  </StyledInputContainer>
+                )}
                 {tabsEnabled && contentType === ContentType.Dashboard && (
                   <StyledInputContainer>
                     <>
