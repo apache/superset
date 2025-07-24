@@ -226,6 +226,14 @@ function AnnotationLayersList({
 
   const subMenuButtons: SubMenuProps['buttons'] = [];
 
+  if (canDelete) {
+    subMenuButtons.push({
+      name: t('Bulk select'),
+      onClick: toggleBulkSelect,
+      buttonStyle: 'secondary',
+    });
+  }
+
   if (canCreate) {
     subMenuButtons.push({
       icon: <Icons.PlusOutlined iconSize="m" />,
@@ -234,14 +242,6 @@ function AnnotationLayersList({
       onClick: () => {
         handleAnnotationLayerEdit(null);
       },
-    });
-  }
-
-  if (canDelete) {
-    subMenuButtons.push({
-      name: t('Bulk select'),
-      onClick: toggleBulkSelect,
-      buttonStyle: 'secondary',
     });
   }
 
