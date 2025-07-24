@@ -252,8 +252,9 @@ export type DBReducerActionType =
     };
 
 const StyledBtns = styled.div`
-  margin-bottom: ${({ theme }) => theme.sizeUnit * 3}px;
-  margin-left: ${({ theme }) => theme.sizeUnit * 3}px;
+  display: flex;
+  justify-content: center;
+  padding: ${({ theme }) => theme.sizeUnit * 5}px;
 `;
 
 export function dbReducer(
@@ -702,6 +703,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
 
   // Test Connection logic
   const testConnection = () => {
+    handleClearValidationErrors();
     if (!db?.sqlalchemy_uri) {
       addDangerToast(t('Please enter a SQLAlchemy URI to test'));
       return;
@@ -728,10 +730,12 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       (errorMsg: string) => {
         setTestInProgress(false);
         addDangerToast(errorMsg);
+        setHasValidated(false);
       },
       (errorMsg: string) => {
         setTestInProgress(false);
         addSuccessToast(errorMsg);
+        setHasValidated(true);
       },
     );
   };
@@ -761,6 +765,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   const handleClearValidationErrors = useCallback(() => {
     setValidationErrors(null);
     setHasValidated(false);
+    clearError();
   }, [setValidationErrors, setHasValidated]);
 
   const handleParametersChange = useCallback(
@@ -820,7 +825,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   const onSave = async () => {
     let dbConfigExtraExtensionOnSaveError;
     setLoading(true);
-
+    setHasValidated(false);
     dbConfigExtraExtension
       ?.onSave(extraExtensionComponentState, db)
       .then(({ error }: { error: any }) => {
@@ -1166,6 +1171,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   };
 
   const handleBackButtonOnConnect = () => {
+    handleClearValidationErrors();
     if (editNewDb) setHasConnectedDb(false);
     if (importingModal) setImportingModal(false);
     if (importErrored) {
@@ -1925,14 +1931,15 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                         target,
                       }: {
                         target: HTMLInputElement;
-                      }) =>
+                      }) => {
+                        setHasValidated(false);
                         onChange(ActionType.InputChange, {
                           type: target.type,
                           name: target.name,
                           checked: target.checked,
                           value: target.value,
-                        })
-                      }
+                        });
+                      }}
                       conf={conf}
                       testConnection={testConnection}
                       testInProgress={testInProgress}
@@ -2156,7 +2163,8 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                       <Button
                         data-test="sqla-connect-btn"
                         buttonStyle="link"
-                        onClick={() =>
+                        onClick={() => {
+                          handleClearValidationErrors();
                           setDB({
                             type: ActionType.ConfigMethodChange,
                             payload: {
@@ -2165,8 +2173,8 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                                 ConfigurationMethod.SqlalchemyUri,
                               database_name: db.database_name,
                             },
-                          })
-                        }
+                          });
+                        }}
                         css={buttonLinkStyles}
                       >
                         {t(

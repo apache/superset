@@ -88,7 +88,7 @@ const VerticalDotsTrigger = () => {
           cursor: pointer;
         }
       `}
-      iconSize="xxl"
+      iconSize="xl"
       iconColor={theme.colorTextLabel}
       className="dot"
     />
@@ -128,6 +128,7 @@ export interface SliceHeaderControlsProps {
   exportXLSX?: (sliceId: number) => void;
   exportFullXLSX?: (sliceId: number) => void;
   handleToggleFullSize: () => void;
+  exportPivotExcel?: (tableSelector: string, sliceName: string) => void;
 
   addDangerToast: (message: string) => void;
   addSuccessToast: (message: string) => void;
@@ -253,6 +254,10 @@ const SliceHeaderControls = (
         props.logEvent?.(LOG_ACTIONS_CHART_DOWNLOAD_AS_IMAGE, {
           chartId: props.slice.slice_id,
         });
+        break;
+      }
+      case MenuKeys.ExportPivotXlsx: {
+        props.exportPivotExcel?.('.pvtTable', props.slice.slice_name);
         break;
       }
       case MenuKeys.CrossFilterScoping: {
@@ -468,6 +473,15 @@ const SliceHeaderControls = (
             {t('Export to Excel')}
           </Menu.Item>
 
+          {isPivotTable && (
+            <Menu.Item
+              key={MenuKeys.ExportPivotXlsx}
+              icon={<Icons.FileOutlined css={dropdownIconsStyles} />}
+            >
+              {t('Export to Pivoted Excel')}
+            </Menu.Item>
+          )}
+
           {isFeatureEnabled(FeatureFlag.AllowFullCsvExport) &&
             props.supersetCanCSV &&
             isTable && (
@@ -508,7 +522,7 @@ const SliceHeaderControls = (
         />
       )}
       <NoAnimationDropdown
-        dropdownRender={() => menu}
+        popupRender={() => menu}
         overlayStyle={dropdownOverlayStyle}
         trigger={['click']}
         placement="bottomRight"
@@ -522,6 +536,7 @@ const SliceHeaderControls = (
           aria-haspopup="true"
           css={theme => css`
             padding: ${theme.sizeUnit * 2}px;
+            padding-right: 0px;
           `}
         >
           <VerticalDotsTrigger />

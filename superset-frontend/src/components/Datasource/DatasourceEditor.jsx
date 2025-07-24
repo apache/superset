@@ -717,7 +717,9 @@ class DatasourceEditor extends PureComponent {
   }
 
   onDatasourceTypeChange(datasourceType) {
-    this.setState({ datasourceType });
+    // Call onChange after setting datasourceType to ensure
+    // SQL is cleared when switching to a physical dataset
+    this.setState({ datasourceType }, this.onChange);
   }
 
   setColumns(obj) {
@@ -1100,7 +1102,7 @@ class DatasourceEditor extends PureComponent {
             display: block;
             margin: ${theme.sizeUnit * 4}px auto;
             width: fit-content;
-            color: ${theme.colors.grayscale.base};
+            color: ${theme.colorText};
           `}
         >
           {t('We are working on your query')}
@@ -1116,9 +1118,7 @@ class DatasourceEditor extends PureComponent {
         target="_blank"
         rel="noopener noreferrer"
         css={theme => css`
-          color: ${isError
-            ? theme.colors.error.base
-            : theme.colors.grayscale.base};
+          color: ${isError ? theme.colorErrorText : theme.colorText};
           font-size: ${theme.fontSizeSM}px;
           text-decoration: underline;
         `}
@@ -1359,7 +1359,7 @@ class DatasourceEditor extends PureComponent {
                           <Icons.CaretRightFilled
                             iconSize="s"
                             css={theme => ({
-                              color: theme.colors.grayscale.light5,
+                              color: theme.colorIcon,
                             })}
                           />
                         </Button>
@@ -1375,7 +1375,7 @@ class DatasourceEditor extends PureComponent {
                       >
                         <span
                           css={theme => css`
-                            color: ${theme.colors.grayscale.base};
+                            color: ${theme.colorText};
                             font-size: ${theme.fontSizeSM}px;
                           `}
                         >
@@ -1386,7 +1386,7 @@ class DatasourceEditor extends PureComponent {
                         {this.renderOpenInSqlLabLink()}
                         <span
                           css={theme => css`
-                            color: ${theme.colors.grayscale.base};
+                            color: ${theme.colorText};
                             font-size: ${theme.fontSizeSM}px;
                           `}
                         >

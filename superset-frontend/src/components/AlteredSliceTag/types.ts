@@ -17,8 +17,11 @@
  * under the License.
  */
 import type { QueryFormData } from '@superset-ui/core';
+import { DiffType } from 'src/types/DiffType';
 
 export interface AlteredSliceTagProps {
+  className?: string;
+  diffs: Record<string, DiffType>;
   origFormData: QueryFormData;
   currentFormData: QueryFormData;
 }
@@ -29,29 +32,6 @@ export interface ControlMap {
     type?: string;
   };
 }
-
-export type FilterItemType = {
-  comparator?: string | string[];
-  subject: string;
-  operator: string;
-  label?: string;
-};
-
-export type DiffItemType<
-  T = FilterItemType | number | string | Record<string | number, any>,
-> =
-  | T[]
-  | boolean
-  | number
-  | string
-  | Record<string | number, any>
-  | null
-  | undefined;
-
-export type DiffType = {
-  before: DiffItemType;
-  after: DiffItemType;
-};
 
 export type RowType = {
   before: string | number;
