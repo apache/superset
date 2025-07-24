@@ -190,6 +190,24 @@ function SavedQueryList({
 
   const subMenuButtons: Array<ButtonProps> = [];
 
+  if (canCreate) {
+    subMenuButtons.push({
+      name: (
+        <Tooltip
+          id="import-tooltip"
+          title={t('Import queries')}
+          placement="bottomRight"
+          data-test="import-tooltip-test"
+        >
+          <Icons.DownloadOutlined data-test="import-icon" iconSize="l" />
+        </Tooltip>
+      ),
+      buttonStyle: 'link',
+      onClick: openSavedQueryImportModal,
+      'data-test': 'import-button',
+    });
+  }
+
   if (canDelete) {
     subMenuButtons.push({
       name: t('Bulk select'),
@@ -210,23 +228,6 @@ function SavedQueryList({
       history.push('/sqllab?new=true');
     },
   });
-  if (canCreate) {
-    subMenuButtons.push({
-      name: (
-        <Tooltip
-          id="import-tooltip"
-          title={t('Import queries')}
-          placement="bottomRight"
-          data-test="import-tooltip-test"
-        >
-          <Icons.DownloadOutlined data-test="import-icon" iconSize="l" />
-        </Tooltip>
-      ),
-      buttonStyle: 'link',
-      onClick: openSavedQueryImportModal,
-      'data-test': 'import-button',
-    });
-  }
 
   menuData.buttons = subMenuButtons;
 
