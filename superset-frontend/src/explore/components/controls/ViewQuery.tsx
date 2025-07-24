@@ -24,11 +24,14 @@ import {
   useEffect,
   useState,
 } from 'react';
+import { useSelector } from 'react-redux';
 import rison from 'rison';
 import { styled, SupersetClient, t } from '@superset-ui/core';
 import { Icons, Switch, Button, Skeleton } from '@superset-ui/core/components';
 import { CopyToClipboard } from 'src/components';
+import { RootState } from 'src/dashboard/types';
 import { CopyButton } from 'src/explore/components/DataTableControl';
+import { findPermission } from 'src/utils/findPermission';
 import CodeSyntaxHighlighter, {
   SupportedLanguage,
   preloadLanguages,
@@ -89,6 +92,9 @@ const ViewQuery: FC<ViewQueryProps> = props => {
   const [showFormatSQL, setShowFormatSQL] = useState(true);
   const history = useHistory();
   const currentSQL = (showFormatSQL ? formattedSQL : sql) ?? sql;
+  const canAccessSQLLab = useSelector((state: RootState) =>
+    findPermission('menu_access', 'SQL Lab', state.user?.roles),
+  );
 
   // Preload the language when component mounts to ensure smooth experience
   useEffect(() => {
@@ -162,7 +168,9 @@ const ViewQuery: FC<ViewQueryProps> = props => {
               </CopyButtonViewQuery>
             }
           />
-          <Button onClick={navToSQLLab}>{t('View in SQL Lab')}</Button>
+          {canAccessSQLLab && (
+            <Button onClick={navToSQLLab}>{t('View in SQL Lab')}</Button>
+          )}
         </StyledHeaderActionContainer>
         <StyledHeaderActionContainer>
           <Switch
