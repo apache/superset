@@ -177,7 +177,7 @@ class TestSqlResultExportCommand(SupersetTestCase):
         get_df_mock.return_value = pd.DataFrame({"foo": [1, 2, 3]})
         result = command.run()
 
-        assert result["data"] == "foo\n1\n2\n3\n"
+        assert result["data"] == b"\xef\xbb\xbffoo\n1\n2\n3\n"
         assert result["count"] == 3
         assert result["query"].client_id == "test"
 
@@ -195,7 +195,7 @@ class TestSqlResultExportCommand(SupersetTestCase):
         get_df_mock.return_value = pd.DataFrame({"foo": [1, 2, 3]})
         result = command.run()
 
-        assert result["data"] == "foo\n1\n2\n"
+        assert result["data"] == b"\xef\xbb\xbffoo\n1\n2\n"
         assert result["count"] == 2
         assert result["query"].client_id == "test"
 
@@ -217,7 +217,7 @@ class TestSqlResultExportCommand(SupersetTestCase):
 
         result = command.run()
 
-        assert result["data"] == "foo\n1\n"
+        assert result["data"] == b"\xef\xbb\xbffoo\n1\n"
         assert result["count"] == 1
         assert result["query"].client_id == "test"
 
@@ -240,7 +240,7 @@ class TestSqlResultExportCommand(SupersetTestCase):
 
         result = command.run()
 
-        assert result["data"] == "foo\n0\n1\n2\n3\n4\n"
+        assert result["data"] == b"\xef\xbb\xbffoo\n0\n1\n2\n3\n4\n"
         assert result["count"] == 5
         assert result["query"].client_id == "test"
 
