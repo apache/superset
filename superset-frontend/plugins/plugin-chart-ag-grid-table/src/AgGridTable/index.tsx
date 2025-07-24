@@ -40,7 +40,7 @@ import {
 } from 'ag-grid-community';
 import { AgGridReact } from 'ag-grid-react';
 import { type FunctionComponent } from 'react';
-import { JsonObject, DataRecordValue, DataRecord } from '@superset-ui/core';
+import { JsonObject, DataRecordValue, DataRecord, t } from '@superset-ui/core';
 import { SearchOutlined } from '@ant-design/icons';
 import { debounce, isEqual } from 'lodash';
 import Pagination from './components/Pagination';
@@ -326,6 +326,23 @@ const AgGridDataTable: FunctionComponent<AgGridTableProps> = memo(
           paginationPageSizeSelector={PAGE_SIZE_OPTIONS}
           suppressDragLeaveHidesColumns
           pinnedBottomRowData={showTotals ? [cleanedTotals] : undefined}
+          localeText={{
+            // Pagination controls
+            next: t('Next'),
+            previous: t('Previous'),
+            page: t('Page'),
+            more: t('More'),
+            to: t('to'),
+            of: t('of'),
+            first: t('First'),
+            last: t('Last'),
+            // Column menu and filters
+            columns: t('Columns'),
+            filters: t('Filters'),
+            sortAscending: t('Sort Ascending'),
+            sortDescending: t('Sort Descending'),
+            sortUnSort: t('Clear Sort'),
+          }}
           context={{
             onColumnHeaderClicked: handleColumnHeaderClick,
             initialSortState: getInitialSortState(
