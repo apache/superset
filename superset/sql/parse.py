@@ -644,7 +644,7 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
         # depending on the dialect (Oracle, MS SQL) the `ALTER` is parsed as a
         # command, not an expression - check at root level
         if isinstance(self._parsed, exp.Command) and self._parsed.name == "ALTER":
-            return True  #  pragma: no cover
+            return True  # pragma: no cover
 
         # Postgres runs DMLs prefixed by `EXPLAIN ANALYZE`, see
         # https://www.postgresql.org/docs/current/sql-explain.html
