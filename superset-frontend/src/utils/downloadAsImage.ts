@@ -23,6 +23,8 @@ import { kebabCase } from 'lodash';
 import { SupersetTheme, t } from '@superset-ui/core';
 import { addWarningToast } from 'src/components/MessageToasts/actions';
 
+const IMAGE_DOWNLOAD_QUALITY = 0.95;
+
 /**
  * generate a consistent file stem from a description and date
  *
@@ -266,7 +268,7 @@ export default function downloadAsImageOptimized(
       const dataUrl = await domToImage.toJpeg(clone, {
         bgcolor: theme?.colors.grayscale.light4,
         filter,
-        quality: 0.95,
+        quality: IMAGE_DOWNLOAD_QUALITY,
         height: clone.scrollHeight,
         width: clone.scrollWidth,
         cacheBust: true,
