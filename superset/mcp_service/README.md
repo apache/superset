@@ -35,17 +35,17 @@ python tests/integration_tests/mcp_service/run_mcp_tests.py
 All tools are modular, strongly typed, and use Pydantic v2 schemas. Every field is documented for LLM/OpenAPI compatibility.
 
 **Dashboards**
-- `list_dashboards` (advanced filtering, search, includes UUID and slug in default columns)
+- `list_dashboards` (advanced filtering, search, UUID and slug included in default response columns)
 - `get_dashboard_info` (supports ID, UUID, and slug lookup)
 - `get_dashboard_available_filters`
 
 **Datasets**
-- `list_datasets` (advanced filtering, search, includes UUID in default columns, returns columns and metrics)
+- `list_datasets` (advanced filtering, search, UUID included in default response columns, returns columns and metrics)
 - `get_dataset_info` (supports ID and UUID lookup, returns columns and metrics)
 - `get_dataset_available_filters`
 
 **Charts**
-- `list_charts` (advanced filtering, search, includes UUID in default columns)
+- `list_charts` (advanced filtering, search, UUID included in default response columns)
 - `get_chart_info` (supports ID and UUID lookup)
 - `get_chart_available_filters`
 - `create_chart` (comprehensive chart creation with line, bar, area, scatter, table support)
@@ -110,10 +110,8 @@ The `create_chart` tool supports comprehensive chart creation with:
 - **Area charts** — Time series area charts
 - **Scatter charts** — Time series scatter charts
 
-### Chart Saving vs Explore Links
-The tool supports two modes via the `save_chart` parameter:
-- **`save_chart=True` (default)** — Creates and saves a permanent chart in Superset
-- **`save_chart=False`** — Generates an explore link for temporary chart configuration without saving
+### Chart Creation
+The tool creates and saves permanent charts in Superset with automatically generated explore URLs.
 
 ### Intelligent Metric Handling
 The tool automatically handles two metric formats:
@@ -122,7 +120,7 @@ The tool automatically handles two metric formats:
 
 ### Example Usage
 ```python
-# Create and save a line chart with SQL aggregators
+# Create a line chart with SQL aggregators
 config = XYChartConfig(
     chart_type="xy",
     x=ColumnRef(name="date"),
@@ -132,37 +130,17 @@ config = XYChartConfig(
     ],
     kind="line"
 )
-request = CreateChartRequest(dataset_id="1", config=config, save_chart=True)
+request = CreateChartRequest(dataset_id="1", config=config)
 
-# Generate an explore link without saving
-request = CreateChartRequest(dataset_id="1", config=config, save_chart=False)
-```
-
-### Practical Example
-```python
-# Create a chart and save it permanently
-saved_chart_request = CreateChartRequest(
-    dataset_id="1",
-    config=XYChartConfig(
-        chart_type="xy",
-        x=ColumnRef(name="date"),
-        y=[ColumnRef(name="sales", aggregate="SUM")],
-        kind="line"
-    ),
-    save_chart=True
+# Create a table chart
+table_config = TableChartConfig(
+    chart_type="table",
+    columns=[
+        ColumnRef(name="region", label="Region"),
+        ColumnRef(name="sales", label="Sales")
+    ]
 )
-
-# Generate an explore link for temporary exploration
-explore_request = CreateChartRequest(
-    dataset_id="1",
-    config=XYChartConfig(
-        chart_type="xy",
-        x=ColumnRef(name="date"),
-        y=[ColumnRef(name="sales", aggregate="SUM")],
-        kind="line"
-    ),
-    save_chart=False
-)
+table_request = CreateChartRequest(dataset_id="1", config=table_config)
 ```
 
 ## Modular Structure & Best Practices
@@ -186,7 +164,8 @@ explore_request = CreateChartRequest(
 ### Recent Major Improvements
 - **Request Schema Pattern**: All tools use structured request objects instead of individual parameters
 - **Multi-identifier Support**: Get tools support ID, UUID, and slug lookups
-- **Enhanced Default Columns**: List tools include UUID/slug in default responses
+- **Enhanced Default Columns**: List tools include UUID/slug in default response columns for better discoverability
+- **Accurate Metadata**: `columns_requested` and `columns_loaded` fields accurately track request schema pattern
 - **Search Enhancement**: UUID/slug fields included in search columns
 - **Validation Logic**: Prevents conflicting search+filters usage
 - **Comprehensive Testing**: Full test coverage for all identifier types and validation scenarios

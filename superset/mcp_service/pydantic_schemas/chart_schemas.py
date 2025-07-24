@@ -62,6 +62,7 @@ class ChartInfo(BaseModel):
     created_on_humanized: Optional[str] = Field(
         None, description="Humanized creation time"
     )
+    uuid: Optional[str] = Field(None, description="Chart UUID")
     tags: List[TagInfo] = Field(default_factory=list, description="Chart tags")
     owners: List[UserInfo] = Field(default_factory=list, description="Chart owners")
     model_config = ConfigDict(from_attributes=True, ser_json_timedelta="iso8601")
@@ -114,6 +115,7 @@ def serialize_chart_object(chart: Any) -> Optional[ChartInfo]:
         or (str(chart.created_by) if getattr(chart, "created_by", None) else None),
         created_on=getattr(chart, "created_on", None),
         created_on_humanized=getattr(chart, "created_on_humanized", None),
+        uuid=str(getattr(chart, "uuid", "")) if getattr(chart, "uuid", None) else None,
         tags=[
             TagInfo.model_validate(tag, from_attributes=True)
             for tag in getattr(chart, "tags", [])

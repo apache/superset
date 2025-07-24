@@ -114,6 +114,7 @@ class DatasetInfo(BaseModel):
         None, description="Whether the dataset is virtual (uses SQL)"
     )
     database_id: Optional[int] = Field(None, description="Database ID")
+    uuid: Optional[str] = Field(None, description="Dataset UUID")
     schema_perm: Optional[str] = Field(None, description="Schema permission string")
     url: Optional[str] = Field(None, description="Dataset URL")
     sql: Optional[str] = Field(None, description="SQL for virtual datasets")
@@ -303,6 +304,9 @@ def serialize_dataset_object(dataset: Any) -> Optional[DatasetInfo]:
         else [],
         is_virtual=getattr(dataset, "is_virtual", None),
         database_id=getattr(dataset, "database_id", None),
+        uuid=str(getattr(dataset, "uuid", ""))
+        if getattr(dataset, "uuid", None)
+        else None,
         schema_perm=getattr(dataset, "schema_perm", None),
         url=getattr(dataset, "url", None),
         sql=getattr(dataset, "sql", None),

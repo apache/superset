@@ -67,7 +67,7 @@ async def test_list_dashboards_basic(mock_list, mcp_server):
     dashboard.position_json = None
     dashboard.is_managed_externally = False
     dashboard.external_url = None
-    dashboard.uuid = None
+    dashboard.uuid = "test-dashboard-uuid-1"
     dashboard.thumbnail_url = None
     dashboard.roles = []
     dashboard.charts = []
@@ -96,7 +96,15 @@ async def test_list_dashboards_basic(mock_list, mcp_server):
         dashboards = result.data.dashboards
         assert len(dashboards) == 1
         assert dashboards[0].dashboard_title == "Test Dashboard"
+        assert dashboards[0].uuid == "test-dashboard-uuid-1"
+        assert dashboards[0].slug == "test-dashboard"
         assert dashboards[0].published is True
+
+        # Verify UUID and slug are in default columns
+        assert "uuid" in result.data.columns_requested
+        assert "slug" in result.data.columns_requested
+        assert "uuid" in result.data.columns_loaded
+        assert "slug" in result.data.columns_loaded
 
 
 @patch("superset.daos.dashboard.DashboardDAO.list")
@@ -438,3 +446,74 @@ async def test_get_dashboard_info_by_slug(mock_find_object, mcp_server):
             "get_dashboard_info", {"request": {"identifier": "test-dashboard-slug"}}
         )
         assert result.data["dashboard_title"] == "Test Dashboard Slug"
+
+
+@patch("superset.daos.dashboard.DashboardDAO.list")
+@pytest.mark.asyncio
+async def test_list_dashboards_custom_uuid_slug_columns(mock_list, mcp_server):
+    """Test that custom column selection includes UUID and slug when explicitly
+    requested."""
+    dashboard = Mock()
+    dashboard.id = 1
+    dashboard.dashboard_title = "Custom Columns Dashboard"
+    dashboard.slug = "custom-dashboard"
+    dashboard.uuid = "test-custom-uuid-123"
+    dashboard.url = "/dashboard/1"
+    dashboard.published = True
+    dashboard.changed_by_name = "admin"
+    dashboard.changed_on = None
+    dashboard.changed_on_humanized = None
+    dashboard.created_by_name = "admin"
+    dashboard.created_on = None
+    dashboard.created_on_humanized = None
+    dashboard.tags = []
+    dashboard.owners = []
+    dashboard.slices = []
+    dashboard.description = None
+    dashboard.css = None
+    dashboard.certified_by = None
+    dashboard.certification_details = None
+    dashboard.json_metadata = None
+    dashboard.position_json = None
+    dashboard.is_managed_externally = False
+    dashboard.external_url = None
+    dashboard.thumbnail_url = None
+    dashboard.roles = []
+    dashboard.charts = []
+    dashboard._mapping = {
+        "id": dashboard.id,
+        "dashboard_title": dashboard.dashboard_title,
+        "slug": dashboard.slug,
+        "uuid": dashboard.uuid,
+        "url": dashboard.url,
+        "published": dashboard.published,
+        "changed_by_name": dashboard.changed_by_name,
+        "changed_on": dashboard.changed_on,
+        "changed_on_humanized": dashboard.changed_on_humanized,
+        "created_by_name": dashboard.created_by_name,
+        "created_on": dashboard.created_on,
+        "created_on_humanized": dashboard.created_on_humanized,
+        "tags": dashboard.tags,
+        "owners": dashboard.owners,
+        "charts": [],
+    }
+    mock_list.return_value = ([dashboard], 1)
+    async with Client(mcp_server) as client:
+        request = ListDashboardsRequest(
+            select_columns=["id", "dashboard_title", "uuid", "slug"],
+            page=1,
+            page_size=10,
+        )
+        result = await client.call_tool(
+            "list_dashboards", {"request": request.model_dump()}
+        )
+        dashboards = result.data.dashboards
+        assert len(dashboards) == 1
+        assert dashboards[0].uuid == "test-custom-uuid-123"
+        assert dashboards[0].slug == "custom-dashboard"
+
+        # Verify custom columns include UUID and slug
+        assert "uuid" in result.data.columns_requested
+        assert "slug" in result.data.columns_requested
+        assert "uuid" in result.data.columns_loaded
+        assert "slug" in result.data.columns_loaded
