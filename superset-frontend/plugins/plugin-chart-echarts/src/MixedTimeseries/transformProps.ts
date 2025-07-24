@@ -648,36 +648,40 @@ export default function transformProps(
           .filter(key => keys.includes(key))
           .forEach(key => {
             const value = forecastValues[key];
-            // if there are no dimensions, key is a verbose name of a metric,
-            // otherwise it is a comma separated string where the first part is metric name
+
+            const isQueryB = key.includes('(Query B)');
+
+            // Set formatterKey based on which query this belongs to
             let formatterKey;
-            if (primarySeries.has(key)) {
-              formatterKey =
-                groupby.length === 0 ? inverted[key] : labelMap[key]?.[0];
-            } else {
+            if (isQueryB) {
               formatterKey =
                 groupbyB.length === 0 ? inverted[key] : labelMapB[key]?.[0];
+            } else {
+              formatterKey =
+                groupby.length === 0 ? inverted[key] : labelMap[key]?.[0];
             }
-            const tooltipFormatter = getFormatter(
-              customFormatters,
-              formatter,
-              metrics,
-              formatterKey,
-              !!contributionMode,
-            );
-            const tooltipFormatterSecondary = getFormatter(
-              customFormattersSecondary,
-              formatterSecondary,
-              metricsB,
-              formatterKey,
-              !!contributionMode,
-            );
+
+            // Use the correct formatter based on query type
+            const selectedFormatter = isQueryB
+              ? getFormatter(
+                  customFormattersSecondary,
+                  formatterSecondary,
+                  metricsB,
+                  formatterKey,
+                  !!contributionMode,
+                )
+              : getFormatter(
+                  customFormatters,
+                  formatter,
+                  metrics,
+                  formatterKey,
+                  !!contributionMode,
+                );
+
             const row = formatForecastTooltipSeries({
               ...value,
               seriesName: key,
-              formatter: primarySeries.has(key)
-                ? tooltipFormatter
-                : tooltipFormatterSecondary,
+              formatter: selectedFormatter,
             });
             rows.push(row);
             if (key === focusedSeries) {
