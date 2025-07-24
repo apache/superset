@@ -21,6 +21,7 @@ import { Button, JsonEditor } from '@superset-ui/core/components';
 import {
   themeObject,
   exampleThemes,
+  logging,
   SerializableThemeConfig,
   Theme,
   AnyThemeConfig,
@@ -70,7 +71,7 @@ const ThemeEditor: React.FC<ThemeEditorProps> = ({
       setTheme?.(parsedTheme);
       setIsModalOpen(false);
     } catch (error) {
-      console.error('Invalid JSON in theme editor:', error);
+      logging.error('Invalid JSON in theme editor:', error);
       alert('Error parsing JSON. Please check your input.');
     }
   };

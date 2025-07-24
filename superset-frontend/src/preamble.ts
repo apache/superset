@@ -25,6 +25,7 @@ import {
   initFeatureFlags,
   SupersetClient,
   LanguagePack,
+  logging,
 } from '@superset-ui/core';
 import setupClient from './setup/setupClient';
 import setupColors from './setup/setupColors';
@@ -58,7 +59,7 @@ setupClient({ appRoot: applicationRoot() });
       configure({ languagePack: json as LanguagePack });
       dayjs.locale(lang);
     } catch (err) {
-      console.warn(
+      logging.warn(
         'Failed to fetch language pack, falling back to default.',
         err,
       );

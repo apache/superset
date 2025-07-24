@@ -20,7 +20,7 @@ import { SyntheticEvent } from 'react';
 import domToImage from 'dom-to-image-more';
 import { kebabCase } from 'lodash';
 // eslint-disable-next-line no-restricted-imports
-import { SupersetTheme, t } from '@superset-ui/core';
+import { SupersetTheme, t, logging } from '@superset-ui/core';
 import { addWarningToast } from 'src/components/MessageToasts/actions';
 
 /**
@@ -82,7 +82,7 @@ export default function downloadAsImage(
         link.click();
       })
       .catch((e: Error) => {
-        console.error('Creating image failed', e);
+        logging.error('Creating image failed', e);
       });
   };
 }
