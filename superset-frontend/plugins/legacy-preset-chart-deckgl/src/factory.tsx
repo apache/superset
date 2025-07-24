@@ -87,6 +87,7 @@ interface GetPointsType {
 export function createDeckGLComponent(
   getLayer: GetLayerType<unknown>,
   getPoints: GetPointsType,
+  getHighlightLayer?: GetLayerType<unknown>,
 ) {
   // Higher order component
   return memo((props: DeckGLComponentProps) => {
@@ -118,7 +119,7 @@ export function createDeckGLComponent(
       }
     }, []);
 
-    const computeLayer = useCallback(
+    const computeLayers = useCallback(
       (props: DeckGLComponentProps) => {
         const {
           formData,
@@ -130,7 +131,7 @@ export function createDeckGLComponent(
           emitCrossFilters,
         } = props;
 
-        return getLayer({
+        const layerProps = {
           formData,
           payload,
           onAddFilter,
@@ -139,7 +140,17 @@ export function createDeckGLComponent(
           onContextMenu,
           filterState,
           emitCrossFilters,
-        }) as Layer;
+        };
+
+        const layer = getLayer(layerProps) as Layer;
+
+        if (emitCrossFilters && filterState?.value && getHighlightLayer) {
+          const highlightLayer = getHighlightLayer(layerProps) as Layer;
+
+          return [layer, highlightLayer];
+        }
+
+        return [layer];
       },
       [setTooltip],
     );
@@ -152,7 +163,7 @@ export function createDeckGLComponent(
       setCategories(categories);
     }, [props]);
 
-    const [layer, setLayer] = useState(computeLayer(props));
+    const [layers, setLayers] = useState(computeLayers(props));
 
     useEffect(() => {
       // Only recompute the layer if anything BUT the viewport has changed
@@ -167,9 +178,9 @@ export function createDeckGLComponent(
         viewport: null,
       };
       if (!isEqual(prevFdNoVP, currFdNoVP) || prevPayload !== props.payload) {
-        setLayer(computeLayer(props));
+        setLayers(computeLayers(props));
       }
-    }, [computeLayer, prevFormData, prevFilterState, prevPayload, props]);
+    }, [computeLayers, prevFormData, prevFilterState, prevPayload, props]);
 
     const { formData, payload, setControlValue, height, width } = props;
 
@@ -179,7 +190,7 @@ export function createDeckGLComponent(
           ref={containerRef}
           mapboxApiAccessToken={payload.data.mapboxApiKey}
           viewport={viewport}
-          layers={[layer]}
+          layers={layers}
           mapStyle={formData.mapbox_style}
           setControlValue={setControlValue}
           width={width}
