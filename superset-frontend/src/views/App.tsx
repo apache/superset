@@ -72,15 +72,15 @@ const LocationPathnameLogger = () => {
   return <></>;
 };
 
-function hasOnlyGuestRole(data: BootstrapData) {
+function hasOnlyDefaultRole(data: BootstrapData) {
   // Check if the user exists and has permissions and roles
   if (data.user && isUserWithPermissionsAndRoles(data.user)) {
     // Extract the roles of the user
     const userRoles = data.user.roles;
     // Get an array of role names
     const roleNames = Object.keys(userRoles);
-    // Return true if there is exactly one role and it is named "Guest"
-    return roleNames.length === 1 && roleNames[0] === 'Guest';
+    // Return true if there is exactly one role and it is named "Default"
+    return roleNames.length === 1 && roleNames[0] === 'Default';
   }
   // Return false if the user does not exist or does not have the required structure
   return false;
@@ -99,8 +99,8 @@ const App = () => {
       try {
         // Check if the window was opened by another window
         if (window.opener) {
-          // Verify if the user has only the "Guest" role
-          if (hasOnlyGuestRole(bootstrapData)) {
+          // Verify if the user has only the "Default" role
+          if (hasOnlyDefaultRole(bootstrapData)) {
             // Send a message to the opener window
             window.opener.postMessage(
               {
