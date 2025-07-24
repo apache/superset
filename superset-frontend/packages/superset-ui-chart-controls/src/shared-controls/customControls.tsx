@@ -70,7 +70,7 @@ export const aggregationControl = {
     clearable: false,
     renderTrigger: false,
     choices: [
-      ['raw', t('None')],
+      ['raw', t('Force server-side aggregation')],
       ['LAST_VALUE', t('Last Value')],
       ['sum', t('Total (Sum)')],
       ['mean', t('Average (Mean)')],
@@ -79,7 +79,7 @@ export const aggregationControl = {
       ['median', t('Median')],
     ],
     description: t(
-      'Aggregation method applied across the values in the timeseries to compute the Big Number. "None" uses server-side aggregation over the entire time period and is preferred for non-additive metrics like ratios, averages, distinct counts, etc.',
+      'Aggregation method applied across the values in the timeseries to compute the Big Number. "Force server-side aggregation" uses server-side aggregation over the entire time period and is preferred for non-additive metrics like ratios, averages, distinct counts, etc.',
     ),
     provideFormDataToProps: true,
     mapStateToProps: ({ form_data }: ControlPanelState) => ({
