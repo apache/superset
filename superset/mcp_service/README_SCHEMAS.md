@@ -183,14 +183,9 @@ get_dashboard_info(request=GetDashboardInfoRequest(identifier="slug-string"))  #
 **Input:** `CreateChartRequest`
 - `dataset_id`: `str` — ID of the dataset to use
 - `config`: `ChartConfig` — Chart configuration (supports table and XY charts)
-- `save_chart`: `bool` — Whether to save the chart (True) or just return an explore link (False)
 
-**Returns:** `CreateChartResponse`
-- `chart`: `Optional[ChartInfo]` — The created chart info, if save_chart=True
-- `explore_url`: `Optional[str]` — URL to explore the chart configuration without saving, if save_chart=False
-- `embed_url`: `Optional[str]` — URL to view or embed the chart, if requested
-- `thumbnail_url`: `Optional[str]` — URL to a thumbnail image of the chart, if requested
-- `embed_html`: `Optional[str]` — HTML snippet (e.g., iframe) to embed the chart, if requested
+**Returns:** `Dict[str, Any]`
+- `chart`: `Optional[Dict]` — The created chart info with id, slice_name, viz_type, and url
 - `error`: `Optional[str]` — Error message, if creation failed
 
 #### ChartConfig (Union of TableChartConfig and XYChartConfig)
