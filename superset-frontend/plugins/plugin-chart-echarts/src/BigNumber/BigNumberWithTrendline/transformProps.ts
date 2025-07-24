@@ -29,6 +29,7 @@ import {
   tooltipHtml,
 } from '@superset-ui/core';
 import { EChartsCoreOption, graphic } from 'echarts/core';
+import { getAggregationChoices } from '@superset-ui/chart-controls';
 import {
   BigNumberVizProps,
   BigNumberDatum,
@@ -39,71 +40,50 @@ import { getDateFormatter, parseMetricValue, getOriginalLabel } from '../utils';
 import { getDefaultTooltip } from '../../utils/tooltip';
 import { Refs } from '../../types';
 
-// Aggregation method configuration object - single source of truth
-const AGGREGATION_METHODS = {
-  raw: {
-    value: 'raw',
-    label: 'None',
-    compute: (data: [number | null, number | null][]) =>
-      data.find(([, value]) => value !== null)?.[1] ?? null,
+// Simple aggregation computation - uses the shared choices from chart-controls
+const AGGREGATION_COMPUTATIONS = {
+  raw: (data: [number | null, number | null][]) =>
+    data.find(([, value]) => value !== null)?.[1] ?? null,
+  LAST_VALUE: (data: [number | null, number | null][]) =>
+    data.find(([, value]) => value !== null)?.[1] ?? null,
+  sum: (data: [number | null, number | null][]) => {
+    const validValues = data
+      .map(([, value]) => value)
+      .filter((v): v is number => v !== null);
+    return validValues.length ? validValues.reduce((a, b) => a + b, 0) : null;
   },
-  LAST_VALUE: {
-    value: 'LAST_VALUE', 
-    label: 'Last Value',
-    compute: (data: [number | null, number | null][]) =>
-      data.find(([, value]) => value !== null)?.[1] ?? null,
+  mean: (data: [number | null, number | null][]) => {
+    const validValues = data
+      .map(([, value]) => value)
+      .filter((v): v is number => v !== null);
+    return validValues.length
+      ? validValues.reduce((a, b) => a + b, 0) / validValues.length
+      : null;
   },
-  sum: {
-    value: 'sum',
-    label: 'Total (Sum)',
-    compute: (data: [number | null, number | null][]) => {
-      const validValues = data.map(([, value]) => value).filter((v): v is number => v !== null);
-      return validValues.length ? validValues.reduce((a, b) => a + b, 0) : null;
-    },
+  min: (data: [number | null, number | null][]) => {
+    const validValues = data
+      .map(([, value]) => value)
+      .filter((v): v is number => v !== null);
+    return validValues.length ? Math.min(...validValues) : null;
   },
-  mean: {
-    value: 'mean',
-    label: 'Average (Mean)',
-    compute: (data: [number | null, number | null][]) => {
-      const validValues = data.map(([, value]) => value).filter((v): v is number => v !== null);
-      return validValues.length ? validValues.reduce((a, b) => a + b, 0) / validValues.length : null;
-    },
+  max: (data: [number | null, number | null][]) => {
+    const validValues = data
+      .map(([, value]) => value)
+      .filter((v): v is number => v !== null);
+    return validValues.length ? Math.max(...validValues) : null;
   },
-  min: {
-    value: 'min',
-    label: 'Minimum',
-    compute: (data: [number | null, number | null][]) => {
-      const validValues = data.map(([, value]) => value).filter((v): v is number => v !== null);
-      return validValues.length ? Math.min(...validValues) : null;
-    },
-  },
-  max: {
-    value: 'max',
-    label: 'Maximum',
-    compute: (data: [number | null, number | null][]) => {
-      const validValues = data.map(([, value]) => value).filter((v): v is number => v !== null);
-      return validValues.length ? Math.max(...validValues) : null;
-    },
-  },
-  median: {
-    value: 'median',
-    label: 'Median',
-    compute: (data: [number | null, number | null][]) => {
-      const validValues = data.map(([, value]) => value).filter((v): v is number => v !== null);
-      if (!validValues.length) return null;
-      const sorted = [...validValues].sort((a, b) => a - b);
-      const mid = Math.floor(sorted.length / 2);
-      return sorted.length % 2 === 0 ? (sorted[mid - 1] + sorted[mid]) / 2 : sorted[mid];
-    },
+  median: (data: [number | null, number | null][]) => {
+    const validValues = data
+      .map(([, value]) => value)
+      .filter((v): v is number => v !== null);
+    if (!validValues.length) return null;
+    const sorted = [...validValues].sort((a, b) => a - b);
+    const mid = Math.floor(sorted.length / 2);
+    return sorted.length % 2 === 0
+      ? (sorted[mid - 1] + sorted[mid]) / 2
+      : sorted[mid];
   },
 } as const;
-
-// Type for aggregation method keys
-export type AggregationMethodKey = keyof typeof AGGREGATION_METHODS;
-
-// Export for use in controls
-export const getAggregationChoices = () =>
-  Object.values(AGGREGATION_METHODS).map(method => [method.value, method.label] as const);
 
 const formatPercentChange = getNumberFormatter(
   NumberFormats.PERCENT_SIGNED_1_POINT,
@@ -116,12 +96,22 @@ function computeClientSideAggregation(
 ): number | null {
   if (!data.length) return null;
 
-  // Handle case variations (SUM -> sum, etc.) with null safety
-  const method = Object.values(AGGREGATION_METHODS).find(
-    m => m.value.toLowerCase() === (aggregation || '').toLowerCase()
-  ) || AGGREGATION_METHODS.LAST_VALUE; // default fallback
+  // Find the computation function, handling case variations with null safety
+  const choices = getAggregationChoices();
+  const matchedChoice = choices.find(
+    ([value]: readonly [string, string]) =>
+      value.toLowerCase() === (aggregation || '').toLowerCase(),
+  );
 
-  return method.compute(data);
+  const methodKey = matchedChoice?.[0] || 'LAST_VALUE'; // default fallback
+  const computeFunction =
+    AGGREGATION_COMPUTATIONS[
+      methodKey as keyof typeof AGGREGATION_COMPUTATIONS
+    ];
+
+  return computeFunction
+    ? computeFunction(data)
+    : AGGREGATION_COMPUTATIONS.LAST_VALUE(data);
 }
 
 export default function transformProps(
