@@ -18,6 +18,8 @@
 import logging
 from typing import Any, List, Optional
 
+from flask_appbuilder.security.sqla.models import User
+
 logger = logging.getLogger(__name__)
 
 
@@ -41,13 +43,14 @@ class MCPUser:
         return f"MCPUser(username='{self.username}')"
 
 
-def get_user_from_request() -> MCPUser:
+def get_user_from_request() -> User:
     """
     Extract user identity from JWT token for MCP service operations.
-    Returns a simple user object with identity info for logging/audit.
-    No complex Flask-AppBuilder integration - just identity extraction.
+    Returns the actual Superset user from the database for proper permission handling.
     """
     from flask import current_app
+
+    from superset import security_manager
 
     try:
         # Try to get JWT token from FastMCP auth context
@@ -59,28 +62,45 @@ def get_user_from_request() -> MCPUser:
         username = access_token.client_id
 
         logger.debug(f"Authenticated user from JWT: {username}")
-        return MCPUser(username)
 
     except Exception as e:
-        # No valid JWT token - fall back to admin user (backward compatibility)
-        logger.debug(f"No JWT token available ({e}), using admin fallback")
+        # No valid JWT token - fall back to dev/admin user (backward compatibility)
+        logger.debug(f"No JWT token available ({e}), using dev user fallback")
 
-        admin_username = current_app.config.get("MCP_ADMIN_USERNAME", "admin")
-        return MCPUser(admin_username)
+        # Use MCP_DEV_USERNAME for development, fallback to MCP_ADMIN_USERNAME,
+        # then "admin"
+        username = current_app.config.get("MCP_DEV_USERNAME") or current_app.config.get(
+            "MCP_ADMIN_USERNAME", "admin"
+        )
+
+    # Get the real Superset user from the database
+    real_user = security_manager.find_user(username)
+    if not real_user:
+        raise ValueError(f"User '{username}' not found in Superset database")
+
+    logger.debug(f"Using Superset user: {real_user.username} (ID: {real_user.id})")
+    return real_user
 
 
-def impersonate_user(user: MCPUser, run_as: Optional[str] = None) -> MCPUser:
+def impersonate_user(user: User, run_as: Optional[str] = None) -> User:
     """
     Optionally impersonate another user if allowed.
-    For MCP service, this is simplified to just creating a new MCPUser.
+    Returns the actual Superset user from the database.
     """
     if run_as:
+        from superset import security_manager
+
         logger.info(f"User {user.username} impersonating {run_as}")
-        return MCPUser(run_as)
+        impersonated_user = security_manager.find_user(run_as)
+        if not impersonated_user:
+            raise ValueError(
+                f"Impersonation target user '{run_as}' not found in Superset database"
+            )
+        return impersonated_user
     return user
 
 
-def has_permission(user: MCPUser, tool_func: Any) -> bool:
+def has_permission(user: User, tool_func: Any) -> bool:
     """
     Check permissions using JWT scopes + basic user validation.
     Much simpler than Flask-AppBuilder integration.
@@ -127,7 +147,7 @@ def has_permission(user: MCPUser, tool_func: Any) -> bool:
     return True
 
 
-def log_access(user: MCPUser, tool_name: str, args: Any, kwargs: Any) -> None:
+def log_access(user: User, tool_name: str, args: Any, kwargs: Any) -> None:
     """
     Enhanced audit logging with JWT context information.
     Logs user access with both MCP user info and JWT claims.
