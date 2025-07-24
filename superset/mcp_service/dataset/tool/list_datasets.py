@@ -40,6 +40,7 @@ DEFAULT_DATASET_COLUMNS = [
     "id",
     "table_name",
     "schema",
+    "uuid",
     "database_name",
     "changed_by_name",
     "changed_on",
