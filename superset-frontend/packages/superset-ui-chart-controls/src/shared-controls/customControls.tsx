@@ -45,60 +45,41 @@ import { isSortable } from '../utils/isSortable';
 export const aggregationChoices = {
   raw: {
     label: 'Force server-side aggregation',
-    compute: (data: [number | null, number | null][]) =>
-      data.find(([, value]) => value !== null)?.[1] ?? null,
+    compute: (data: number[]) => {
+      if (!data.length) return null;
+      return data[0];
+    },
   },
   LAST_VALUE: {
     label: 'Last Value',
-    compute: (data: [number | null, number | null][]) =>
-      data.find(([, value]) => value !== null)?.[1] ?? null,
+    compute: (data: number[]) => {
+      if (!data.length) return null;
+      return data[0];
+    },
   },
   sum: {
     label: 'Total (Sum)',
-    compute: (data: [number | null, number | null][]) => {
-      const validValues = data
-        .map(([, value]) => value)
-        .filter((v): v is number => v !== null);
-      return validValues.length ? validValues.reduce((a, b) => a + b, 0) : null;
-    },
+    compute: (data: number[]) =>
+      data.length ? data.reduce((a, b) => a + b, 0) : null,
   },
   mean: {
     label: 'Average (Mean)',
-    compute: (data: [number | null, number | null][]) => {
-      const validValues = data
-        .map(([, value]) => value)
-        .filter((v): v is number => v !== null);
-      return validValues.length
-        ? validValues.reduce((a, b) => a + b, 0) / validValues.length
-        : null;
-    },
+    compute: (data: number[]) =>
+      data.length ? data.reduce((a, b) => a + b, 0) / data.length : null,
   },
   min: {
     label: 'Minimum',
-    compute: (data: [number | null, number | null][]) => {
-      const validValues = data
-        .map(([, value]) => value)
-        .filter((v): v is number => v !== null);
-      return validValues.length ? Math.min(...validValues) : null;
-    },
+    compute: (data: number[]) => (data.length ? Math.min(...data) : null),
   },
   max: {
     label: 'Maximum',
-    compute: (data: [number | null, number | null][]) => {
-      const validValues = data
-        .map(([, value]) => value)
-        .filter((v): v is number => v !== null);
-      return validValues.length ? Math.max(...validValues) : null;
-    },
+    compute: (data: number[]) => (data.length ? Math.max(...data) : null),
   },
   median: {
     label: 'Median',
-    compute: (data: [number | null, number | null][]) => {
-      const validValues = data
-        .map(([, value]) => value)
-        .filter((v): v is number => v !== null);
-      if (!validValues.length) return null;
-      const sorted = [...validValues].sort((a, b) => a - b);
+    compute: (data: number[]) => {
+      if (!data.length) return null;
+      const sorted = [...data].sort((a, b) => a - b);
       const mid = Math.floor(sorted.length / 2);
       return sorted.length % 2 === 0
         ? (sorted[mid - 1] + sorted[mid]) / 2

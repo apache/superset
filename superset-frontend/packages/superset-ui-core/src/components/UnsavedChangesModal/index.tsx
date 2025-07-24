@@ -17,12 +17,7 @@
  * under the License.
  */
 import { t } from '@superset-ui/core';
-import {
-  Icons,
-  Modal,
-  Typography,
-  Button,
-} from '@superset-ui/core/components';
+import { Icons, Modal, Typography, Button } from '@superset-ui/core/components';
 import type { FC, ReactElement } from 'react';
 
 export type UnsavedChangesModalProps = {

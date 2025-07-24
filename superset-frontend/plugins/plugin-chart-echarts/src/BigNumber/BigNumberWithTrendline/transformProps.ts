@@ -61,7 +61,12 @@ function computeClientSideAggregation(
     ? aggregationChoices[methodKey as keyof typeof aggregationChoices]
     : aggregationChoices.LAST_VALUE;
 
-  return selectedMethod.compute(data);
+  // Extract values from tuple array and filter out nulls
+  const values = data
+    .map(([, value]) => value)
+    .filter((v): v is number => v !== null);
+
+  return selectedMethod.compute(values);
 }
 
 export default function transformProps(
