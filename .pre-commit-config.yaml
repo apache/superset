@@ -113,7 +113,8 @@ repos:
         - |
           TARGET_BRANCH=${GITHUB_BASE_REF:-master}
           git fetch origin "$TARGET_BRANCH"
-          files=$(git diff --name-only --diff-filter=ACM origin/"$TARGET_BRANCH"..HEAD | grep '^superset/.*\.py$' || true)
+          BASE=$(git merge-base origin/"$TARGET_BRANCH" HEAD)
+          files=$(git diff --name-only --diff-filter=ACM "$BASE"..HEAD | grep '^superset/.*\.py$' || true)
           if [ -n "$files" ]; then
             pylint --rcfile=.pylintrc --load-plugins=superset.extensions.pylint $files
           else
