@@ -82,6 +82,15 @@ class ChartError(BaseModel):
     model_config = ConfigDict(ser_json_timedelta="iso8601")
 
 
+class GetChartInfoRequest(BaseModel):
+    """Request schema for get_chart_info with support for ID or UUID."""
+
+    identifier: Annotated[
+        Union[int, str],
+        Field(description="Chart identifier - can be numeric ID or UUID string"),
+    ]
+
+
 def serialize_chart_object(chart: Any) -> Optional[ChartInfo]:
     if not chart:
         return None
@@ -275,6 +284,7 @@ class ListChartsRequest(BaseModel):
                 "created_by_name",
                 "changed_on",
                 "created_on",
+                "uuid",
             ],
             description="List of columns to select. Defaults to common columns if not "
             "specified.",

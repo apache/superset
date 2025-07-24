@@ -210,6 +210,7 @@ class ListDashboardsRequest(BaseModel):
                 "published",
                 "changed_on",
                 "created_on",
+                "uuid",
             ],
             description="List of columns to select. Defaults to common columns "
             "if not specified.",
@@ -251,6 +252,17 @@ class ListDashboardsRequest(BaseModel):
                 "or 'filters' for precise column-based filtering, but not both."
             )
         return self
+
+
+class GetDashboardInfoRequest(BaseModel):
+    """Request schema for get_dashboard_info with support for ID, UUID, or slug."""
+
+    identifier: Annotated[
+        Union[int, str],
+        Field(
+            description="Dashboard identifier - can be numeric ID, UUID string, or slug"
+        ),
+    ]
 
 
 class DashboardInfo(BaseModel):

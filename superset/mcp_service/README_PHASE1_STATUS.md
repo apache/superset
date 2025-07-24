@@ -22,10 +22,11 @@ The Model Context Protocol (MCP) is a new protocol for exposing high-level, stru
 - **Auth/RBAC/logging hooks**: Stubbed in `auth.py` and `middleware.py`, admin mode by default, ready for extension
 - **Extension points**: Documented and ready for Preset/enterprise
 - **Core actions implemented**:
-  - `list_dashboards`, `list_datasets` (now returns columns and metrics), `list_charts`
-  - `get_dashboard_info`, `get_dataset_info` (now returns columns and metrics), `get_chart_info`
+  - `list_dashboards`, `list_datasets`, `list_charts` (all with enhanced search/filter, UUID/slug support)
+  - `get_dashboard_info`, `get_dataset_info`, `get_chart_info` (multi-identifier support: ID/UUID/slug)
   - `get_dashboard_available_filters`, `get_dataset_available_filters`, `get_chart_available_filters`
   - `create_chart` (comprehensive chart creation with line, bar, area, scatter, table support and SQL aggregators)
+  - `generate_explore_link` (temporary chart exploration without saving)
   - `get_superset_instance_info`
 - **Tests**: Unit and integration tests for all core tools, with improved coverage and best practices. Chart creation tools now have comprehensive tests covering all supported chart types and SQL aggregators.
 - **Docs**: Architecture, schemas, and dev guides up to date

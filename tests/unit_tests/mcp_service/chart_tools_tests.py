@@ -243,7 +243,9 @@ async def test_get_chart_info_success(mock_info, mcp_server):
     )
     mock_info.return_value = chart  # Only the chart object
     async with Client(mcp_server) as client:
-        result = await client.call_tool("get_chart_info", {"chart_id": 1})
+        result = await client.call_tool(
+            "get_chart_info", {"request": {"identifier": 1}}
+        )
         assert result.data["slice_name"] == "Test Chart"
 
 
@@ -252,7 +254,9 @@ async def test_get_chart_info_success(mock_info, mcp_server):
 async def test_get_chart_info_not_found(mock_info, mcp_server):
     mock_info.return_value = None  # Not found returns None
     async with Client(mcp_server) as client:
-        result = await client.call_tool("get_chart_info", {"chart_id": 999})
+        result = await client.call_tool(
+            "get_chart_info", {"request": {"identifier": 999}}
+        )
         assert result.data["error_type"] == "not_found"
 
 
@@ -614,3 +618,36 @@ async def test_create_chart_xy_scatter_success(mock_run, mcp_server):
         assert resp.data["chart"]["viz_type"] == "echarts_timeseries_scatter"
         assert resp.data["error"] is None
         mock_run.assert_called_once()
+
+
+@patch("superset.mcp_service.model_tools.ModelGetInfoTool._find_object")
+@pytest.mark.asyncio
+async def test_get_chart_info_by_uuid(mock_find_object, mcp_server):
+    """Test getting chart info using UUID identifier."""
+    chart = Mock()
+    chart.id = 1
+    chart.slice_name = "Test Chart UUID"
+    chart.viz_type = "bar"
+    chart.datasource_name = "test_ds"
+    chart.datasource_type = "table"
+    chart.url = "/chart/1"
+    chart.description = "desc"
+    chart.cache_timeout = 60
+    chart.form_data = {}
+    chart.query_context = {}
+    chart.changed_by_name = "admin"
+    chart.changed_on = None
+    chart.changed_on_humanized = "1 day ago"
+    chart.created_by_name = "admin"
+    chart.created_on = None
+    chart.created_on_humanized = "2 days ago"
+    chart.tags = []
+    chart.owners = []
+
+    mock_find_object.return_value = chart
+    async with Client(mcp_server) as client:
+        uuid_str = "b2c3d4e5-f6g7-8901-bcde-fg2345678901"
+        result = await client.call_tool(
+            "get_chart_info", {"request": {"identifier": uuid_str}}
+        )
+        assert result.data["slice_name"] == "Test Chart UUID"

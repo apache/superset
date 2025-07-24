@@ -16,7 +16,7 @@
 # under the License.
 
 import logging
-from typing import Any, Literal, Optional
+from typing import Any, Literal, Optional, Union
 
 
 class ModelListTool:
@@ -78,15 +78,17 @@ class ModelListTool:
             from superset.utils import json
 
             filters = json.loads(filters)
-        # Ensure select_columns is a list
+        # Ensure select_columns is a list and track what was requested
         if select_columns:
             if isinstance(select_columns, str):
                 select_columns = [
                     col.strip() for col in select_columns.split(",") if col.strip()
                 ]
             columns_to_load = select_columns
+            columns_requested = select_columns
         else:
             columns_to_load = self.default_columns
+            columns_requested = self.default_columns
         # Query the DAO
         items, total_count = self.dao_class.list(
             column_operators=filters,
@@ -134,10 +136,8 @@ class ModelListTool:
             "total_pages": total_pages,
             "has_previous": page > 0,
             "has_next": page < total_pages - 1,
-            "columns_requested": (
-                select_columns if select_columns else self.default_columns
-            ),
-            "columns_loaded": list({col for obj in item_objs for col in get_keys(obj)}),
+            "columns_requested": columns_requested,
+            "columns_loaded": columns_to_load,
             "filters_applied": filters if isinstance(filters, list) else [],
             "pagination": pagination_info,
             "timestamp": datetime.now(timezone.utc),
@@ -151,15 +151,12 @@ class ModelListTool:
 
 class ModelGetInfoTool:
     """
-    Generic tool for retrieving a single model object by ID, with error handling and
-    serialization.
+    Enhanced tool for retrieving a single model object by ID, UUID, or slug.
 
-    - Returns output_schema if found, otherwise error_schema with error_type and
-      timestamp.
-    - If the DAO raises an exception, the error is logged and re-raised (for
-      testability and observability).
-    - Used for get_dashboard_info, get_chart_info, get_dataset_info, etc.
-    - Designed for LLM/OpenAPI compatibility and robust error reporting.
+    For datasets and charts: supports ID and UUID
+    For dashboards: supports ID, UUID, and slug
+
+    Uses the appropriate DAO method to find the object based on identifier type.
     """
 
     def __init__(
@@ -168,33 +165,92 @@ class ModelGetInfoTool:
         output_schema: Any,
         error_schema: Any,
         serializer: Any,
+        supports_slug: bool = False,
         logger: Optional[Any] = None,
     ) -> None:
         self.dao_class = dao_class
         self.output_schema = output_schema
         self.error_schema = error_schema
         self.serializer = serializer
+        self.supports_slug = supports_slug
         self.logger = logger or logging.getLogger(__name__)
 
-    def run(self, id: int) -> Any:
+    def _is_uuid(self, value: str) -> bool:
+        """Check if a string is a valid UUID."""
+        import uuid
+
+        try:
+            uuid.UUID(value)
+            return True
+        except ValueError:
+            return False
+
+    def _find_object(self, identifier: Union[int, str]) -> Any:
+        """Find object by identifier using appropriate method."""
+        from superset.extensions import db
+
+        # If it's an integer or string that can be converted to int, use find_by_id
+        if isinstance(identifier, int):
+            return self.dao_class.find_by_id(identifier)
+
+        try:
+            # Try to convert string to int
+            id_val = int(identifier)
+            return self.dao_class.find_by_id(id_val)
+        except ValueError:
+            pass
+
+        # Check if it's a UUID
+        if self._is_uuid(identifier):
+            # For UUID lookup, we need to query directly
+            import uuid
+
+            model_class = self.dao_class.model_cls
+            uuid_obj = uuid.UUID(identifier)
+            return (
+                db.session.query(model_class)
+                .filter(model_class.uuid == uuid_obj)
+                .one_or_none()
+            )
+
+        # For dashboards, also check slug
+        if self.supports_slug:
+            # Use the id_or_slug_filter function for dashboards
+            from superset.models.dashboard import id_or_slug_filter
+
+            model_class = self.dao_class.model_cls
+            return (
+                db.session.query(model_class)
+                .filter(id_or_slug_filter(identifier))
+                .one_or_none()
+            )
+
+        # If we get here, it's an invalid identifier
+        return None
+
+    def run(self, identifier: Union[int, str]) -> Any:
         from datetime import datetime, timezone
 
         try:
-            obj = self.dao_class.find_by_id(id)
+            obj = self._find_object(identifier)
             if obj is None:
                 error_data = self.error_schema(
-                    error=f"{self.output_schema.__name__} with ID {id} not found",
+                    error=(
+                        f"{self.output_schema.__name__} with identifier "
+                        f"'{identifier}' not found"
+                    ),
                     error_type="not_found",
                     timestamp=datetime.now(timezone.utc),
                 )
                 self.logger.warning(
-                    f"{self.output_schema.__name__} {id} error: not_found - not found"
+                    f"{self.output_schema.__name__} {identifier} error: "
+                    "not_found - not found"
                 )
                 return error_data
             response = self.serializer(obj)
             self.logger.info(
                 f"{self.output_schema.__name__} response created successfully for "
-                f"id {id}"
+                f"identifier {identifier}"
             )
             return response
         except Exception as context_error:

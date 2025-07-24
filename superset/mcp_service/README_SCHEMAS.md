@@ -2,18 +2,40 @@
 
 This document provides a reference for the input and output schemas of all MCP tools in the Superset MCP service. All schemas are Pydantic v2 models with field descriptions for LLM/OpenAPI compatibility.
 
+## FastMCP Complex Inputs Pattern
+
+All MCP tools now use **structured request objects** instead of individual parameters to eliminate LLM validation issues:
+
+```python
+# All list tools use request objects
+list_dashboards(request=ListDashboardsRequest(...))
+list_datasets(request=ListDatasetsRequest(...))
+list_charts(request=ListChartsRequest(...))
+
+# All get_info tools use request objects with multi-identifier support
+get_dashboard_info(request=GetDashboardInfoRequest(identifier="123"))  # ID
+get_dashboard_info(request=GetDashboardInfoRequest(identifier="uuid-string"))  # UUID
+get_dashboard_info(request=GetDashboardInfoRequest(identifier="slug-string"))  # Slug
+```
+
+### Key Benefits
+- **No parameter ambiguity**: Filters are always arrays, never strings
+- **Clear validation**: Cannot use both search and filters simultaneously
+- **Multi-identifier support**: ID, UUID, and slug (where applicable) in single interface
+- **LLM-friendly**: Unambiguous types prevent common LLM validation errors
+
 ## Dashboards
 
 ### list_dashboards
 
-**Inputs:**
-- `filters`: `Optional[List[DashboardFilter]]` — List of filter objects
-- `search`: `Optional[str]` — Free-text search string
-- `select_columns`: `Optional[List[str]]` — Columns to select (overrides columns/keys)
+**Input:** `ListDashboardsRequest`
+- `filters`: `List[DashboardFilter]` — List of filter objects (cannot be used with search)
+- `search`: `Optional[str]` — Free-text search string (cannot be used with filters)
+- `select_columns`: `List[str]` — Columns to select (defaults include id, dashboard_title, slug, uuid)
 - `order_column`: `Optional[str]` — Column to order results by
 - `order_direction`: `Optional[Literal['asc', 'desc']]` — Order direction
-- `page`: `int` — Page number (1-based)
-- `page_size`: `int` — Number of items per page
+- `page`: `int` — Page number (0-based)
+- `page_size`: `int` — Number of items per page (default 100)
 
 **Returns:** `DashboardList`
 - `dashboards`: `List[DashboardListItem]`
@@ -32,10 +54,15 @@ This document provides a reference for the input and output schemas of all MCP t
 
 ### get_dashboard_info
 
-**Inputs:**
-- `dashboard_id`: `int` — Dashboard ID
+**Input:** `GetDashboardInfoRequest`
+- `identifier`: `Union[int, str]` — Dashboard identifier (supports ID, UUID, or slug)
 
 **Returns:** `DashboardInfo` or `DashboardError`
+
+**Multi-Identifier Support:**
+- **ID**: Numeric dashboard ID (e.g., `123`)
+- **UUID**: Dashboard UUID string (e.g., `"a1b2c3d4-e5f6-7890-abcd-ef1234567890"`)
+- **Slug**: Dashboard slug string (e.g., `"sales-dashboard"`)
 
 ### get_dashboard_available_filters
 
@@ -46,14 +73,14 @@ This document provides a reference for the input and output schemas of all MCP t
 
 ### list_datasets
 
-**Inputs:**
-- `filters`: `Optional[List[DatasetFilter]]` — List of filter objects
-- `search`: `Optional[str]` — Free-text search string
-- `select_columns`: `Optional[List[str]]` — Columns to select (overrides columns/keys)
+**Input:** `ListDatasetsRequest`
+- `filters`: `List[DatasetFilter]` — List of filter objects (cannot be used with search)
+- `search`: `Optional[str]` — Free-text search string (cannot be used with filters)
+- `select_columns`: `List[str]` — Columns to select (defaults include id, table_name, uuid)
 - `order_column`: `Optional[str]` — Column to order results by
 - `order_direction`: `Optional[Literal['asc', 'desc']]` — Order direction
-- `page`: `int` — Page number (1-based)
-- `page_size`: `int` — Number of items per page
+- `page`: `int` — Page number (0-based)
+- `page_size`: `int` — Number of items per page (default 100)
 
 **Returns:** `DatasetList`
 - `datasets`: `List[DatasetListItem]` (each includes columns and metrics)
@@ -72,10 +99,14 @@ This document provides a reference for the input and output schemas of all MCP t
 
 ### get_dataset_info
 
-**Inputs:**
-- `dataset_id`: `int` — Dataset ID
+**Input:** `GetDatasetInfoRequest`
+- `identifier`: `Union[int, str]` — Dataset identifier (supports ID or UUID)
 
 **Returns:** `DatasetInfo` or `DatasetError` (now includes columns and metrics)
+
+**Multi-Identifier Support:**
+- **ID**: Numeric dataset ID (e.g., `123`)
+- **UUID**: Dataset UUID string (e.g., `"a1b2c3d4-e5f6-7890-abcd-ef1234567890"`)
 
 #### DatasetInfo fields (new):
 - `columns`: `List[TableColumnInfo]` — List of columns with name, type, verbose name, etc.
@@ -107,14 +138,14 @@ This document provides a reference for the input and output schemas of all MCP t
 
 ### list_charts
 
-**Inputs:**
-- `filters`: `Optional[List[ChartFilter]]` — List of filter objects
-- `search`: `Optional[str]` — Free-text search string
-- `select_columns`: `Optional[List[str]]` — Columns to select (overrides columns/keys)
+**Input:** `ListChartsRequest`
+- `filters`: `List[ChartFilter]` — List of filter objects (cannot be used with search)
+- `search`: `Optional[str]` — Free-text search string (cannot be used with filters)
+- `select_columns`: `List[str]` — Columns to select (defaults include id, slice_name, uuid)
 - `order_column`: `Optional[str]` — Column to order results by
 - `order_direction`: `Optional[Literal['asc', 'desc']]` — Order direction
-- `page`: `int` — Page number (1-based)
-- `page_size`: `int` — Number of items per page
+- `page`: `int` — Page number (0-based)
+- `page_size`: `int` — Number of items per page (default 100)
 
 **Returns:** `ChartList`
 - `charts`: `List[ChartListItem]`
@@ -133,10 +164,14 @@ This document provides a reference for the input and output schemas of all MCP t
 
 ### get_chart_info
 
-**Inputs:**
-- `chart_id`: `int` — Chart ID
+**Input:** `GetChartInfoRequest`
+- `identifier`: `Union[int, str]` — Chart identifier (supports ID or UUID)
 
 **Returns:** `ChartInfo` or `ChartError`
+
+**Multi-Identifier Support:**
+- **ID**: Numeric chart ID (e.g., `123`)
+- **UUID**: Chart UUID string (e.g., `"a1b2c3d4-e5f6-7890-abcd-ef1234567890"`)
 
 ### get_chart_available_filters
 
@@ -145,7 +180,7 @@ This document provides a reference for the input and output schemas of all MCP t
 
 ### create_chart
 
-**Inputs:**
+**Input:** `CreateChartRequest`
 - `dataset_id`: `str` — ID of the dataset to use
 - `config`: `ChartConfig` — Chart configuration (supports table and XY charts)
 - `save_chart`: `bool` — Whether to save the chart (True) or just return an explore link (False)
@@ -230,9 +265,25 @@ flowchart TD
     C -- tags --> E
 ```
 
-## ModelListTool and Schema Consistency
+## Request Schema Pattern Benefits
+
+All tools using the FastMCP Complex Inputs Pattern provide:
+
+### For List Tools (`list_*`)
+- **Clear array types**: `filters` is always `List[Filter]`, never a string
+- **Mutual exclusion**: Cannot use both `search` and `filters` simultaneously
+- **Default columns**: Include UUID/slug in default responses for better searchability
+- **Validation messages**: Clear error messages guide LLM usage
+
+### For Get Info Tools (`get_*_info`)
+- **Multi-identifier support**: Single interface for ID, UUID, and slug lookup
+- **Intelligent detection**: Automatically determines identifier type
+- **Enhanced flexibility**: Works with LLM-generated identifiers of any supported type
+
+### ModelListTool and Schema Consistency
 
 All list tools use the `ModelListTool` abstraction, which enforces:
-- Consistent parameter order and types
+- Consistent parameter order and types via request schemas
 - Strongly-typed Pydantic input/output models
 - LLM/OpenAPI-friendly field names
+- Validation logic preventing parameter conflicts

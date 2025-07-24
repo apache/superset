@@ -313,7 +313,9 @@ async def test_get_dashboard_info_success(mock_info, mcp_server):
     }
     mock_info.return_value = dashboard  # Only the dashboard object
     async with Client(mcp_server) as client:
-        result = await client.call_tool("get_dashboard_info", {"dashboard_id": 1})
+        result = await client.call_tool(
+            "get_dashboard_info", {"request": {"identifier": 1}}
+        )
         assert result.data["dashboard_title"] == "Test Dashboard"
 
 
@@ -322,7 +324,9 @@ async def test_get_dashboard_info_success(mock_info, mcp_server):
 async def test_get_dashboard_info_not_found(mock_info, mcp_server):
     mock_info.return_value = None  # Not found returns None
     async with Client(mcp_server) as client:
-        result = await client.call_tool("get_dashboard_info", {"dashboard_id": 999})
+        result = await client.call_tool(
+            "get_dashboard_info", {"request": {"identifier": 999}}
+        )
         assert result.data["error_type"] == "not_found"
 
 
@@ -331,7 +335,9 @@ async def test_get_dashboard_info_not_found(mock_info, mcp_server):
 async def test_get_dashboard_info_access_denied(mock_info, mcp_server):
     mock_info.return_value = None  # Access denied returns None
     async with Client(mcp_server) as client:
-        result = await client.call_tool("get_dashboard_info", {"dashboard_id": 1})
+        result = await client.call_tool(
+            "get_dashboard_info", {"request": {"identifier": 1}}
+        )
         assert result.data["error_type"] == "not_found"
 
 
@@ -353,3 +359,82 @@ async def test_get_dashboard_available_filters_exception_handling(mcp_server):
     async with Client(mcp_server) as client:
         result = await client.call_tool("get_dashboard_available_filters", {})
         assert hasattr(result.data, "column_operators")
+
+
+@patch("superset.mcp_service.model_tools.ModelGetInfoTool._find_object")
+@pytest.mark.asyncio
+async def test_get_dashboard_info_by_uuid(mock_find_object, mcp_server):
+    """Test getting dashboard info using UUID identifier."""
+    dashboard = Mock()
+    dashboard.id = 1
+    dashboard.dashboard_title = "Test Dashboard UUID"
+    dashboard.slug = "test-dashboard-uuid"
+    dashboard.description = "Test description"
+    dashboard.css = ""
+    dashboard.certified_by = None
+    dashboard.certification_details = None
+    dashboard.json_metadata = "{}"
+    dashboard.position_json = "{}"
+    dashboard.published = True
+    dashboard.is_managed_externally = False
+    dashboard.external_url = None
+    dashboard.created_on = None
+    dashboard.changed_on = None
+    dashboard.created_by = None
+    dashboard.changed_by = None
+    dashboard.uuid = "c3d4e5f6-g7h8-9012-cdef-gh3456789012"
+    dashboard.url = "/dashboard/1"
+    dashboard.thumbnail_url = None
+    dashboard.created_on_humanized = "2 days ago"
+    dashboard.changed_on_humanized = "1 day ago"
+    dashboard.slices = []
+    dashboard.owners = []
+    dashboard.tags = []
+    dashboard.roles = []
+
+    mock_find_object.return_value = dashboard
+    async with Client(mcp_server) as client:
+        uuid_str = "c3d4e5f6-g7h8-9012-cdef-gh3456789012"
+        result = await client.call_tool(
+            "get_dashboard_info", {"request": {"identifier": uuid_str}}
+        )
+        assert result.data["dashboard_title"] == "Test Dashboard UUID"
+
+
+@patch("superset.mcp_service.model_tools.ModelGetInfoTool._find_object")
+@pytest.mark.asyncio
+async def test_get_dashboard_info_by_slug(mock_find_object, mcp_server):
+    """Test getting dashboard info using slug identifier."""
+    dashboard = Mock()
+    dashboard.id = 2
+    dashboard.dashboard_title = "Test Dashboard Slug"
+    dashboard.slug = "test-dashboard-slug"
+    dashboard.description = "Test description"
+    dashboard.css = ""
+    dashboard.certified_by = None
+    dashboard.certification_details = None
+    dashboard.json_metadata = "{}"
+    dashboard.position_json = "{}"
+    dashboard.published = True
+    dashboard.is_managed_externally = False
+    dashboard.external_url = None
+    dashboard.created_on = None
+    dashboard.changed_on = None
+    dashboard.created_by = None
+    dashboard.changed_by = None
+    dashboard.uuid = "d4e5f6g7-h8i9-0123-defg-hi4567890123"
+    dashboard.url = "/dashboard/2"
+    dashboard.thumbnail_url = None
+    dashboard.created_on_humanized = "2 days ago"
+    dashboard.changed_on_humanized = "1 day ago"
+    dashboard.slices = []
+    dashboard.owners = []
+    dashboard.tags = []
+    dashboard.roles = []
+
+    mock_find_object.return_value = dashboard
+    async with Client(mcp_server) as client:
+        result = await client.call_tool(
+            "get_dashboard_info", {"request": {"identifier": "test-dashboard-slug"}}
+        )
+        assert result.data["dashboard_title"] == "Test Dashboard Slug"

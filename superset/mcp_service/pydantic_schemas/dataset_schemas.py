@@ -180,6 +180,7 @@ class ListDatasetsRequest(BaseModel):
                 "created_on",
                 "metrics",
                 "columns",
+                "uuid",
             ],
             description="List of columns to select. Defaults to common columns if not "
             "specified.",
@@ -230,6 +231,15 @@ class DatasetError(BaseModel):
         None, description="Error timestamp"
     )
     model_config = ConfigDict(ser_json_timedelta="iso8601")
+
+
+class GetDatasetInfoRequest(BaseModel):
+    """Request schema for get_dataset_info with support for ID or UUID."""
+
+    identifier: Annotated[
+        Union[int, str],
+        Field(description="Dataset identifier - can be numeric ID or UUID string"),
+    ]
 
 
 def serialize_dataset_object(dataset: Any) -> Optional[DatasetInfo]:

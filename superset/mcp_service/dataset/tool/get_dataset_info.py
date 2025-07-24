@@ -23,15 +23,13 @@ about a specific dataset.
 """
 
 import logging
-from typing import Annotated
-
-from pydantic import Field
 
 from superset.mcp_service.auth import mcp_auth_hook
 from superset.mcp_service.mcp_app import mcp
 from superset.mcp_service.model_tools import ModelGetInfoTool
 from superset.mcp_service.pydantic_schemas import DatasetError, DatasetInfo
 from superset.mcp_service.pydantic_schemas.dataset_schemas import (
+    GetDatasetInfoRequest,
     serialize_dataset_object,
 )
 
@@ -40,13 +38,14 @@ logger = logging.getLogger(__name__)
 
 @mcp.tool
 @mcp_auth_hook
-def get_dataset_info(
-    dataset_id: Annotated[
-        int, Field(description="ID of the dataset to retrieve information for")
-    ],
-) -> DatasetInfo | DatasetError:
+def get_dataset_info(request: GetDatasetInfoRequest) -> DatasetInfo | DatasetError:
     """
     Get detailed information about a specific dataset.
+
+    Supports lookup by:
+    - Numeric ID (e.g., 123)
+    - UUID string (e.g., "a1b2c3d4-e5f6-7890-abcd-ef1234567890")
+
     Returns a DatasetInfo model or DatasetError on error.
     """
 
@@ -57,6 +56,7 @@ def get_dataset_info(
         output_schema=DatasetInfo,
         error_schema=DatasetError,
         serializer=serialize_dataset_object,
+        supports_slug=False,  # Datasets don't have slugs
         logger=logger,
     )
-    return tool.run(dataset_id)
+    return tool.run(request.identifier)
