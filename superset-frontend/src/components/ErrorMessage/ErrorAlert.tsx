@@ -122,6 +122,7 @@ export const ErrorAlert: React.FC<ErrorAlertProps> = ({
           </span>
         </Tooltip>
         <Modal
+          name={errorType}
           title={errorType}
           show={showModal}
           onHide={() => setShowModal(false)}

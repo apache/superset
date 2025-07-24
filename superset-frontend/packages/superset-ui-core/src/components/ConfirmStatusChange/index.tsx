@@ -68,6 +68,7 @@ export function ConfirmStatusChange({
         onConfirm={confirm}
         onHide={hide}
         open={open}
+        name="please confirm"
         title={title}
       />
     </>

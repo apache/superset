@@ -26,7 +26,6 @@ import {
 } from 'react';
 
 import {
-  css,
   getClientErrorObject,
   SupersetClient,
   SupersetTheme,
@@ -52,6 +51,7 @@ import { Switch, SwitchProps } from '@superset-ui/core/components/Switch';
 import { Icons } from '@superset-ui/core/components/Icons';
 import rison from 'rison';
 import withToasts from 'src/components/MessageToasts/withToasts';
+import { ModalTitleWithIcon } from 'src/components/ModalTitleWithIcon';
 import {
   antDModalNoPaddingStyles,
   antDModalStyles,
@@ -578,17 +578,7 @@ const UploadDataModal: FunctionComponent<UploadDataModalProps> = ({
 
   const UploadTitle: FC = () => {
     const title = uploadTitles[type] || t('Upload');
-    return (
-      <Typography.Title
-        level={5}
-        css={css`
-          margin-top: 0;
-          margin-bottom: 0;
-        `}
-      >
-        {title}
-      </Typography.Title>
-    );
+    return <ModalTitleWithIcon title={title} />;
   };
 
   return (

@@ -35,6 +35,7 @@ import {
   SupersetTheme,
   t,
   VizType,
+  useTheme,
 } from '@superset-ui/core';
 import rison from 'rison';
 import { useSingleViewResource } from 'src/views/CRUD/hooks';
@@ -51,7 +52,6 @@ import {
   Switch,
   TreeSelect,
   type CheckboxChangeEvent,
-  Typography,
 } from '@superset-ui/core/components';
 import TimezoneSelector from '@superset-ui/core/components/TimezoneSelector';
 import { propertyComparator } from '@superset-ui/core/components/Select/utils';
@@ -81,6 +81,7 @@ import { useSelector } from 'react-redux';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { useOpenerRef } from 'src/hooks/useOpenerRef';
+import { ModalTitleWithIcon } from 'src/components/ModalTitleWithIcon';
 import NumberInput from './components/NumberInput';
 import { AlertReportCronScheduler } from './components/AlertReportCronScheduler';
 import { NotificationMethod } from './components/NotificationMethod';
@@ -250,7 +251,6 @@ export const StyledInputContainer = styled.div`
     flex: 1;
     margin-top: 0px;
     margin-bottom: ${theme.sizeUnit * 4}px;
-
     input::-webkit-outer-spin-button,
     input::-webkit-inner-spin-button {
       -webkit-appearance: none;
@@ -422,6 +422,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   isReport = false,
   addSuccessToast,
 }) => {
+  const theme = useTheme();
   const openerRef = useOpenerRef(show);
   const currentUser = useSelector<any, UserWithPermissionsAndRoles>(
     state => state.user,
@@ -1455,9 +1456,11 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
       centered
       openerRef={openerRef}
       title={
-        <Typography.Title level={4} data-test="alert-report-modal-title">
-          {getTitleText()}
-        </Typography.Title>
+        <ModalTitleWithIcon
+          isEditMode={isEditMode}
+          title={getTitleText()}
+          data-test="alert-report-modal-title"
+        />
       }
     >
       <Collapse
@@ -1614,7 +1617,12 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                           key={currentAlert?.id}
                         />
                       </StyledInputContainer>
-                      <div className="inline-container wrap">
+                      <div
+                        className="inline-container wrap"
+                        css={css`
+                          gap: ${theme.sizeUnit}px;
+                        `}
+                      >
                         <StyledInputContainer css={noMarginBottom}>
                           <div className="control-label" css={inputSpacer}>
                             {t('Trigger Alert If...')}
