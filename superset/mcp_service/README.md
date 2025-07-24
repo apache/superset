@@ -167,7 +167,7 @@ The MCP service includes **optional JWT Bearer authentication** for production d
 
 ### Quick Start
 
-**Development (Default)**: No setup required - runs with admin privileges for testing and development.
+**Development (Default)**: No setup required - runs with admin privileges for testing and development. Optionally set `MCP_DEV_USERNAME` to use a specific Superset user account.
 
 **Production**: Set environment variables to enable JWT authentication with your identity provider.
 
@@ -197,6 +197,9 @@ MCP_JWT_ALGORITHM=RS256
 
 # Optional: Required scopes (comma-separated)
 MCP_REQUIRED_SCOPES=dashboard:read,chart:read,dataset:read
+
+# Development only: Override fallback user (when auth disabled)
+MCP_DEV_USERNAME=your-superset-username
 ```
 
 ### How Security Works
