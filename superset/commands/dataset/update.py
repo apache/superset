@@ -79,7 +79,7 @@ class UpdateDatasetCommand(UpdateMixin, BaseCommand):
         assert self._model
         return DatasetDAO.update(self._model, attributes=self._properties)
 
-    def validate(self) -> None:
+    def validate(self) -> None:  # noqa: C901
         exceptions: list[ValidationError] = []
         owner_ids: Optional[list[int]] = self._properties.get("owners")
 
