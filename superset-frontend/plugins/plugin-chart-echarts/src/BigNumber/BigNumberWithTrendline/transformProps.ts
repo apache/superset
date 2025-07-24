@@ -207,14 +207,12 @@ export default function transformProps(
       // sort in time descending order
       .sort((a, b) => (a[0] !== null && b[0] !== null ? b[0] - a[0] : 0));
   }
-  // Use client-side aggregation for all cases, falling back to server aggregation if available
+  // Use server-side aggregation if available, otherwise fall back to client-side
   if (sortedData.length > 0) {
-    // Always compute using client-side aggregation first
-    bigNumber = computeClientSideAggregation(sortedData, aggregation);
     timestamp = sortedData[0][0];
 
-    // Fallback to server aggregation only if client-side fails and server data exists
-    if (bigNumber === null && hasAggregatedData && aggregatedData) {
+    // Prefer server aggregation when available
+    if (hasAggregatedData && aggregatedData) {
       if (
         aggregatedData[metricName] !== null &&
         aggregatedData[metricName] !== undefined
@@ -230,6 +228,11 @@ export default function transformProps(
         bigNumber =
           metricKeys.length > 0 ? aggregatedData[metricKeys[0]] : null;
       }
+    }
+
+    // Fall back to client-side aggregation if server aggregation is not available
+    if (bigNumber === null || !hasAggregatedData) {
+      bigNumber = computeClientSideAggregation(sortedData, aggregation);
     }
 
     // Handle null bigNumber case
