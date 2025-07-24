@@ -14,47 +14,11 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-import os
 from pathlib import Path
 
 from astroid import nodes
 from pylint.checkers import BaseChecker
 from pylint.lint import PyLinter
-
-
-class JSONLibraryImportChecker(BaseChecker):
-    name = "disallowed-json-import"
-    priority = -1
-    msgs = {
-        "C9001": (
-            "Disallowed json import used, use superset.utils.json instead",
-            "disallowed-json-import",
-            "Used when a disallowed import is used in a specific file.",
-        ),
-    }
-    exclude_files = [
-        "setup.py",
-        "superset/utils/json.py",
-        "superset/config.py",
-        "superset/cli/update.py",
-        "superset/key_value/types.py",
-        "superset/translations/utils.py",
-        "superset/extensions/__init__.py",
-    ]
-    path_strip_prefix = os.getcwd() + os.sep
-
-    def visit_import(self, node: nodes.Import) -> None:
-        file = (node.root().file).replace(self.path_strip_prefix, "", 1)
-        if file not in self.exclude_files:
-            for module_name, _ in node.names:
-                if module_name in ["json", "simplejson"]:
-                    self.add_message("disallowed-json-import", node=node)
-
-    def visit_importfrom(self, node: nodes.ImportFrom) -> None:
-        file = (node.root().file).replace(self.path_strip_prefix, "", 1)
-        if file not in self.exclude_files:
-            if node.modname in ["json", "simplejson"]:
-                self.add_message("disallowed-json-import", node=node)
 
 
 class TransactionChecker(BaseChecker):
@@ -113,6 +77,5 @@ class SQLParsingLibraryImportChecker(BaseChecker):
 
 
 def register(linter: PyLinter) -> None:
-    linter.register_checker(JSONLibraryImportChecker(linter))
     linter.register_checker(SQLParsingLibraryImportChecker(linter))
     linter.register_checker(TransactionChecker(linter))

@@ -16,7 +16,7 @@
 # under the License.
 
 import copy
-import json
+import json  # noqa: TID251
 from typing import Any
 
 from pytest_mock import MockerFixture

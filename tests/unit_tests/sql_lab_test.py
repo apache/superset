@@ -16,7 +16,7 @@
 # under the License.
 # pylint: disable=import-outside-toplevel, invalid-name, unused-argument, too-many-locals
 
-import json
+import json  # noqa: TID251
 from unittest import mock
 from uuid import UUID
 
