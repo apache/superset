@@ -294,12 +294,11 @@ export const SavedQueries = ({
                   }
                 `}
               >
-                <Icons.PlusOutlined
-                  iconColor={theme.colorPrimary}
-                  iconSize="m"
-                />
-                &nbsp;
-                {t('SQL Query')}
+                <Button
+                  icon={<Icons.PlusOutlined iconSize="m" />}
+                >
+                  {t('SQL Query')}
+                </Button>
               </Link>
             ),
             buttonStyle: 'secondary',
