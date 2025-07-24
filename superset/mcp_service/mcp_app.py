@@ -23,13 +23,64 @@ middleware. All tool modules should import mcp from here and use @mcp.tool and
 """
 
 import logging
+import os
+from typing import Optional
 
 from fastmcp import FastMCP
+from fastmcp.server.auth.providers.bearer import BearerAuthProvider
 
 from superset.mcp_service.middleware import LoggingMiddleware, PrivateToolMiddleware
 
+
+def _create_auth_provider() -> Optional[BearerAuthProvider]:
+    """Create a BearerAuthProvider if authentication is configured via env vars."""
+    # Check if authentication is enabled
+    if os.getenv("MCP_AUTH_ENABLED", "").lower() not in ("true", "1", "yes"):
+        return None
+
+    # Get configuration from environment
+    public_key = os.getenv("MCP_JWT_PUBLIC_KEY")
+    jwks_uri = os.getenv("MCP_JWKS_URI")
+    issuer = os.getenv("MCP_JWT_ISSUER")
+    audience = os.getenv("MCP_JWT_AUDIENCE")
+    algorithm = os.getenv("MCP_JWT_ALGORITHM", "RS256")
+
+    # Required scopes (comma-separated)
+    required_scopes_str = os.getenv("MCP_REQUIRED_SCOPES", "")
+    required_scopes = (
+        [s.strip() for s in required_scopes_str.split(",") if s.strip()]
+        if required_scopes_str
+        else None
+    )
+
+    if not (public_key or jwks_uri):
+        logger = logging.getLogger(__name__)
+        logger.warning(
+            "MCP_AUTH_ENABLED is true but neither MCP_JWT_PUBLIC_KEY "
+            "nor MCP_JWKS_URI is set. Authentication disabled."
+        )
+        return None
+
+    try:
+        return BearerAuthProvider(
+            public_key=public_key,
+            jwks_uri=jwks_uri,
+            issuer=issuer,
+            algorithm=algorithm,
+            audience=audience,
+            required_scopes=required_scopes,
+        )
+    except Exception as e:
+        logger = logging.getLogger(__name__)
+        logger.error(
+            f"Failed to create BearerAuthProvider: {e}. Authentication disabled."
+        )
+        return None
+
+
 mcp = FastMCP(
     "Superset MCP Server",
+    auth=_create_auth_provider(),
     instructions="""
 You are connected to the Apache Superset MCP (Model Context Protocol) service.
 This service provides programmatic access to Superset dashboards, charts, datasets,
