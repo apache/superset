@@ -16,80 +16,169 @@
 # under the License.
 
 import logging
-from typing import Any, Optional
+from typing import Any, List, Optional
 
 logger = logging.getLogger(__name__)
 
 
-def get_user_from_request() -> Any:
+class MCPUser:
+    """Simple user object for MCP service operations with JWT identity."""
+
+    def __init__(self, username: str, email: Optional[str] = None):
+        self.username = username
+        self.email = email or f"{username}@example.com"
+        self.is_active = True
+        self.is_authenticated = True
+        self.is_anonymous = False  # Flask-Login compatibility
+        self.id = username
+        self.roles: List[Any] = []  # Flask-AppBuilder compatibility
+        self.groups: List[Any] = []  # Flask-AppBuilder compatibility
+
+    def __str__(self) -> str:
+        return self.username
+
+    def __repr__(self) -> str:
+        return f"MCPUser(username='{self.username}')"
+
+
+def get_user_from_request() -> MCPUser:
     """
-    Extract user info from the request context (e.g., from Bearer token, headers, etc.).
-    By default, returns admin user. Override for OIDC/OAuth/Okta integration.
+    Extract user identity from JWT token for MCP service operations.
+    Returns a simple user object with identity info for logging/audit.
+    No complex Flask-AppBuilder integration - just identity extraction.
     """
     from flask import current_app
 
-    from superset.extensions import security_manager
+    try:
+        # Try to get JWT token from FastMCP auth context
+        from fastmcp.server.dependencies import get_access_token
 
-    admin_username = current_app.config.get("MCP_ADMIN_USERNAME", "admin")
-    return security_manager.get_user_by_username(admin_username)
+        access_token = get_access_token()
+
+        # Extract user identifier from JWT claims (usually 'sub')
+        username = access_token.client_id
+
+        logger.debug(f"Authenticated user from JWT: {username}")
+        return MCPUser(username)
+
+    except Exception as e:
+        # No valid JWT token - fall back to admin user (backward compatibility)
+        logger.debug(f"No JWT token available ({e}), using admin fallback")
+
+        admin_username = current_app.config.get("MCP_ADMIN_USERNAME", "admin")
+        return MCPUser(admin_username)
 
 
-def impersonate_user(user: Any, run_as: Optional[str] = None) -> Any:
+def impersonate_user(user: MCPUser, run_as: Optional[str] = None) -> MCPUser:
     """
-    Optionally impersonate another user if allowed. By default, returns the same user.
-    Override to enforce impersonation rules.
+    Optionally impersonate another user if allowed.
+    For MCP service, this is simplified to just creating a new MCPUser.
     """
+    if run_as:
+        logger.info(f"User {user.username} impersonating {run_as}")
+        return MCPUser(run_as)
     return user
 
 
-def has_permission(user: Any, tool_func: Any) -> bool:
+def has_permission(user: MCPUser, tool_func: Any) -> bool:
     """
-    Check if the user has permission to run the tool. By default, always True.
-    Override for RBAC.
+    Check permissions using JWT scopes + basic user validation.
+    Much simpler than Flask-AppBuilder integration.
     """
+    # Basic user validation
+    if not user or not user.is_active:
+        return False
+
+    # Check JWT scopes if available
+    try:
+        from fastmcp.server.dependencies import get_access_token
+
+        access_token = get_access_token()
+
+        if access_token:  # Only enforce JWT scopes if JWT is present
+            user_scopes = access_token.scopes or []
+
+            # Map tool functions to required scopes
+            required_scopes = {
+                "list_dashboards": ["dashboard:read"],
+                "get_dashboard_info": ["dashboard:read"],
+                "list_charts": ["chart:read"],
+                "get_chart_info": ["chart:read"],
+                "create_chart": ["chart:write"],
+                "list_datasets": ["dataset:read"],
+                "get_dataset_info": ["dataset:read"],
+                "get_superset_instance_info": ["instance:read"],
+            }
+
+            tool_name = tool_func.__name__
+            if required := required_scopes.get(tool_name):
+                # Check if user has any of the required scopes
+                if not any(scope in user_scopes for scope in required):
+                    logger.warning(
+                        f"User {user.username} missing required scopes "
+                        f"{required} for {tool_name}"
+                    )
+                    return False
+
+    except Exception as e:
+        # No JWT context - allow access (fallback mode)
+        logger.debug(f"No JWT context available: {e}")
+
     return True
 
 
-def log_access(user: Any, tool_name: str, args: Any, kwargs: Any) -> None:
+def log_access(user: MCPUser, tool_name: str, args: Any, kwargs: Any) -> None:
     """
-    Log access/action for observability/audit. By default, does nothing.
-    Override to log to your system.
+    Enhanced audit logging with JWT context information.
+    Logs user access with both MCP user info and JWT claims.
     """
-    pass
+    try:
+        from fastmcp.server.dependencies import get_access_token
+
+        # Get JWT context if available
+        access_token = get_access_token()
+        jwt_user = access_token.client_id if access_token else None
+        jwt_scopes = access_token.scopes if access_token else []
+
+        logger.info(
+            f"MCP Tool Access: user={user.username}, "
+            f"jwt_user={jwt_user}, tool={tool_name}, scopes={jwt_scopes}"
+        )
+
+    except Exception:
+        # Fallback to basic logging
+        logger.info(f"MCP Tool Access: user={user.username}, tool={tool_name}")
 
 
 def mcp_auth_hook(tool_func: Any) -> Any:
     """
     Decorator for MCP tool functions to enforce auth, impersonation, RBAC, and logging.
-    Also sets up Flask user context (g.user) for downstream DAO/model code.
-    All logic is overridable for enterprise integration.
+    Simplified to work with MCPUser instead of complex Flask-AppBuilder integration.
     """
     import functools
 
-    from flask import current_app, g
-    from flask_login import AnonymousUserMixin
-
-    from superset.extensions import security_manager
+    from flask import g
 
     @functools.wraps(tool_func)
     def wrapper(*args: Any, **kwargs: Any) -> Any:
-        # --- Setup user context (was _setup_user_context) ---
-        admin_username = current_app.config.get("MCP_ADMIN_USERNAME", "admin")
-        admin_user = security_manager.get_user_by_username(admin_username)
-        if not admin_user:
-            g.user = AnonymousUserMixin()
-        else:
-            g.user = admin_user
-        # --- End user context setup ---
-
+        # Get user identity from JWT (simple approach)
         user = get_user_from_request()
+
+        # Set Flask context with user identity for downstream systems
+        # Use a simple object that won't interfere with Flask-AppBuilder
+        g.user = user
+
+        # Apply impersonation if requested
         if run_as := kwargs.get("run_as"):
             user = impersonate_user(user, run_as)
+
+        # Check JWT scopes (simple validation)
         if not has_permission(user, tool_func):
             raise PermissionError(
-                f"User {getattr(user, 'username', user)} not authorized for "
-                f"{tool_func.__name__}"
+                f"User '{user.username}' lacks permission for {tool_func.__name__}"
             )
+
+        # Enhanced audit logging with JWT context
         log_access(user, tool_func.__name__, args, kwargs)
         return tool_func(*args, **kwargs)
 

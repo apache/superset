@@ -161,7 +161,98 @@ table_request = CreateChartRequest(dataset_id="1", config=table_config)
 - **Explore link generation** (`generate_explore_link`) for temporary chart configurations
 - **FastMCP Complex Inputs Pattern** eliminating LLM parameter validation issues
 
+## Security & Authentication
+
+The MCP service includes **optional JWT Bearer authentication** for production deployments. By default, authentication is **disabled** for development convenience.
+
+### Quick Start
+
+**Development (Default)**: No setup required - runs with admin privileges for testing and development.
+
+**Production**: Set environment variables to enable JWT authentication with your identity provider.
+
+### Authentication Setup
+
+Enable authentication by setting these environment variables:
+
+```bash
+# Required: Enable authentication
+MCP_AUTH_ENABLED=true
+
+# Required: JWT validation (choose one approach)
+# Option A: Static public key (simple)
+MCP_JWT_PUBLIC_KEY="-----BEGIN PUBLIC KEY-----
+MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA...
+-----END PUBLIC KEY-----"
+
+# Option B: JWKS endpoint (enterprise, supports key rotation)
+MCP_JWKS_URI=https://auth.yourcompany.com/.well-known/jwks.json
+
+# Required: JWT issuer and audience
+MCP_JWT_ISSUER=https://auth.yourcompany.com/
+MCP_JWT_AUDIENCE=superset-mcp-api
+
+# Optional: Algorithm (defaults to RS256)
+MCP_JWT_ALGORITHM=RS256
+
+# Optional: Required scopes (comma-separated)
+MCP_REQUIRED_SCOPES=dashboard:read,chart:read,dataset:read
+```
+
+### How Security Works
+
+**Token Validation**: JWT tokens are validated using RS256 asymmetric encryption against your public key or JWKS endpoint.
+
+**User Identity**: The JWT `sub` (subject) claim becomes the acting user - all operations run on behalf of this user for proper audit trails.
+
+**Permission Control**: Fine-grained scopes control access to different operations:
+
+| Operation | Required Scope |
+|-----------|----------------|
+| List/view dashboards | `dashboard:read` |
+| List/view charts | `chart:read` |
+| Create charts | `chart:write` |
+| List/view datasets | `dataset:read` |
+| System information | `instance:read` |
+
+**Graceful Fallback**: When authentication is disabled or tokens are missing, the service falls back to admin user for backward compatibility.
+
+**Audit Logging**: All tool calls are logged with both the JWT user identity and the operation performed.
+
+### For Testing & Development
+
+Generate test credentials using FastMCP's built-in utilities:
+
+```python
+from fastmcp.server.auth.providers.bearer import RSAKeyPair
+
+# Generate test keypair
+keypair = RSAKeyPair.generate()
+print("Public key:", keypair.public_key)
+
+# Create test token
+token = keypair.create_token(
+    subject="john.doe",
+    issuer="https://test.example.com",
+    audience="superset-mcp-api",
+    scopes=["dashboard:read", "chart:read", "dataset:read"]
+)
+print("Test token:", token)
+```
+
+### Integration with Identity Providers
+
+This authentication works with any JWT-compatible identity provider:
+- **Auth0**: Use your tenant's JWKS URL
+- **Okta**: Configure with your Okta domain JWKS endpoint  
+- **AWS Cognito**: Use your user pool's JWKS URL
+- **Azure AD**: Configure with Microsoft identity platform
+- **Custom JWT**: Use your own public key for validation
+
+The MCP service extracts user identity from standard JWT claims and doesn't require complex integration - just valid JWT tokens with appropriate scopes.
+
 ### Recent Major Improvements
+- **JWT Authentication**: Optional Bearer token authentication with scope-based authorization
 - **Request Schema Pattern**: All tools use structured request objects instead of individual parameters
 - **Multi-identifier Support**: Get tools support ID, UUID, and slug lookups
 - **Enhanced Default Columns**: List tools include UUID/slug in default response columns for better discoverability
