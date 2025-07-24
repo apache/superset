@@ -18,7 +18,7 @@
  */
 /* eslint-disable react/jsx-sort-default-props, react/sort-prop-types */
 /* eslint-disable react/forbid-prop-types, react/require-default-props */
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import PropTypes from 'prop-types';
 import MapGL from 'react-map-gl';
 import { WebMercatorViewport } from '@math.gl/web-mercator';
@@ -83,9 +83,9 @@ const MapBox = props => {
     onViewportChange,
   } = props;
 
-  const [viewport, setViewport] = React.useState();
+  const [viewport, setViewport] = useState();
   // ++
-  const [clusters, setClusters] = React.useState();
+  const [clusters, setClusters] = useState();
 
   useEffect(() => {
     // Get a viewport that fits the given bounds, which all marks to be clustered.
