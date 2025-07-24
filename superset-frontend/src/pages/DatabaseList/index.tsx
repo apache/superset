@@ -319,12 +319,8 @@ function DatabaseList({
     menuData.buttons = [
       {
         'data-test': 'btn-create-database',
-        name: (
-          <>
-            <Icons.PlusOutlined iconSize="m" />
-            {t('Database')}
-          </>
-        ),
+        icon: <Icons.PlusOutlined iconSize="m" />,
+        name: t('Database'),
         buttonStyle: 'primary',
         onClick: () => {
           // Ensure modal will be opened in add mode

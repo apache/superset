@@ -696,12 +696,8 @@ function DashboardList(props: DashboardListProps) {
   }
   if (canCreate) {
     subMenuButtons.push({
-      name: (
-        <>
-          <Icons.PlusOutlined iconSize="m" />
-          {t('Dashboard')}
-        </>
-      ),
+      icon: <Icons.PlusOutlined iconSize="m" />,
+      name: t('Dashboard'),
       buttonStyle: 'primary',
       onClick: () => {
         navigateTo('/dashboard/new', { assign: true });
@@ -733,6 +729,7 @@ function DashboardList(props: DashboardListProps) {
         onConfirm={handleBulkDashboardDelete}
       >
         {confirmDelete => {
+          const enableBulkTag = isFeatureEnabled(FeatureFlag.TaggingSystem);
           const bulkActions: ListViewProps['bulkActions'] = [];
           if (canDelete) {
             bulkActions.push({
@@ -812,7 +809,7 @@ function DashboardList(props: DashboardListProps) {
                     ? 'card'
                     : 'table'
                 }
-                enableBulkTag
+                enableBulkTag={enableBulkTag}
                 bulkTagResourceName="dashboard"
               />
             </>
