@@ -242,7 +242,6 @@ const config = {
     },
   },
   optimization: {
-    sideEffects: true,
     splitChunks: {
       chunks: 'all',
       // increase minSize for devMode to 1000kb because of sourcemap
