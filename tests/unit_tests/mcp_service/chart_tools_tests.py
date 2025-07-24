@@ -71,6 +71,7 @@ async def test_list_charts_basic(mock_list, mcp_server):
     chart.created_by_name = "admin"
     chart.created_on = None
     chart.created_on_humanized = "2 days ago"
+    chart.uuid = "test-chart-uuid-1"
     chart.tags = []
     chart.owners = []
     chart._mapping = {
@@ -102,7 +103,12 @@ async def test_list_charts_basic(mock_list, mcp_server):
         charts = result.data.charts
         assert len(charts) == 1
         assert charts[0].slice_name == "Test Chart"
+        assert charts[0].uuid == "test-chart-uuid-1"
         assert charts[0].viz_type == "bar"
+
+        # Verify UUID is in default columns (charts don't have slugs)
+        assert "uuid" in result.data.columns_requested
+        assert "uuid" in result.data.columns_loaded
 
 
 @patch("superset.daos.chart.ChartDAO.list")
@@ -651,3 +657,65 @@ async def test_get_chart_info_by_uuid(mock_find_object, mcp_server):
             "get_chart_info", {"request": {"identifier": uuid_str}}
         )
         assert result.data["slice_name"] == "Test Chart UUID"
+
+
+@patch("superset.daos.chart.ChartDAO.list")
+@pytest.mark.asyncio
+async def test_list_charts_custom_uuid_columns(mock_list, mcp_server):
+    """Test that custom column selection includes UUID when explicitly requested."""
+    chart = Mock()
+    chart.id = 1
+    chart.slice_name = "Custom Columns Chart"
+    chart.viz_type = "bar"
+    chart.datasource_name = "test_ds"
+    chart.datasource_type = "table"
+    chart.url = "/chart/1"
+    chart.description = "desc"
+    chart.cache_timeout = 60
+    chart.form_data = {}
+    chart.query_context = {}
+    chart.changed_by_name = "admin"
+    chart.changed_on = None
+    chart.changed_on_humanized = "1 day ago"
+    chart.created_by_name = "admin"
+    chart.created_on = None
+    chart.created_on_humanized = "2 days ago"
+    chart.uuid = "test-custom-chart-uuid"
+    chart.tags = []
+    chart.owners = []
+    chart._mapping = {
+        "id": chart.id,
+        "slice_name": chart.slice_name,
+        "viz_type": chart.viz_type,
+        "datasource_name": chart.datasource_name,
+        "datasource_type": chart.datasource_type,
+        "url": chart.url,
+        "description": chart.description,
+        "cache_timeout": chart.cache_timeout,
+        "form_data": chart.form_data,
+        "query_context": chart.query_context,
+        "changed_by_name": chart.changed_by_name,
+        "changed_on": chart.changed_on,
+        "changed_on_humanized": chart.changed_on_humanized,
+        "created_by_name": chart.created_by_name,
+        "created_on": chart.created_on,
+        "created_on_humanized": chart.created_on_humanized,
+        "uuid": chart.uuid,
+        "tags": chart.tags,
+        "owners": chart.owners,
+    }
+    mock_list.return_value = ([chart], 1)
+    async with Client(mcp_server) as client:
+        request = ListChartsRequest(
+            select_columns=["id", "slice_name", "uuid"], page=1, page_size=10
+        )
+        result = await client.call_tool(
+            "list_charts", {"request": request.model_dump()}
+        )
+        charts = result.data.charts
+        assert len(charts) == 1
+        assert charts[0].uuid == "test-custom-chart-uuid"
+
+        # Verify custom columns include UUID
+        assert "uuid" in result.data.columns_requested
+        assert "uuid" in result.data.columns_loaded

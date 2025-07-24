@@ -32,6 +32,47 @@ logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
 
+def create_mock_dataset(
+    dataset_id=1,
+    table_name="Test DatasetInfo",
+    schema="main",
+    database_name="examples",
+    columns=None,
+    metrics=None,
+):
+    """Factory function to create mock dataset objects with sensible defaults."""
+    dataset = MagicMock()
+    dataset.id = dataset_id
+    dataset.table_name = table_name
+    dataset.schema = schema
+    dataset.description = "desc"
+    dataset.changed_by_name = "admin"
+    dataset.changed_on = None
+    dataset.changed_on_humanized = None
+    dataset.created_by_name = "admin"
+    dataset.created_on = None
+    dataset.created_on_humanized = None
+    dataset.tags = []
+    dataset.owners = []
+    dataset.is_virtual = False
+    dataset.database_id = 1
+    dataset.schema_perm = f"[{database_name}].[{schema}]"
+    dataset.url = f"/tablemodelview/edit/{dataset_id}"
+    dataset.database = MagicMock()
+    dataset.database.database_name = database_name
+    dataset.sql = None
+    dataset.main_dttm_col = None
+    dataset.offset = 0
+    dataset.cache_timeout = 0
+    dataset.params = {}
+    dataset.template_params = {}
+    dataset.extra = {}
+    dataset.uuid = f"test-dataset-uuid-{dataset_id}"
+    dataset.columns = columns or []
+    dataset.metrics = metrics or []
+    return dataset
+
+
 @pytest.fixture
 def mcp_server():
     return mcp
@@ -40,6 +81,13 @@ def mcp_server():
 @patch("superset.daos.dataset.DatasetDAO.list")
 @pytest.mark.asyncio
 async def test_list_datasets_basic(mock_list, mcp_server):
+    """Test basic dataset listing functionality.
+
+    Note: Dataset tests use json.loads(result.content[0].text) pattern
+    for response parsing, which differs from dashboard/chart tests that
+    use result.data directly. This is intentional based on how the
+    dataset tool responses are structured.
+    """
     dataset = MagicMock()
     dataset.id = 1
     dataset.table_name = "Test DatasetInfo"
@@ -66,6 +114,7 @@ async def test_list_datasets_basic(mock_list, mcp_server):
     dataset.params = {}
     dataset.template_params = {}
     dataset.extra = {}
+    dataset.uuid = "test-dataset-uuid-1"
     # Add proper mock columns and metrics
     col1 = MagicMock()
     col1.column_name = "id"
@@ -132,11 +181,95 @@ async def test_list_datasets_basic(mock_list, mcp_server):
         assert len(data["datasets"]) == 1
         assert data["datasets"][0]["id"] == 1
         assert data["datasets"][0]["table_name"] == "Test DatasetInfo"
+        assert data["datasets"][0]["uuid"] == "test-dataset-uuid-1"
         # Check that columns and metrics are included
         assert len(data["datasets"][0]["columns"]) == 2
         assert len(data["datasets"][0]["metrics"]) == 1
         assert data["datasets"][0]["columns"][0]["column_name"] == "id"
         assert data["datasets"][0]["metrics"][0]["metric_name"] == "count"
+
+        # Verify UUID is in default columns (datasets don't have slugs)
+        assert "uuid" in data["columns_requested"]
+        assert "uuid" in data["columns_loaded"]
+
+
+@patch("superset.daos.dataset.DatasetDAO.list")
+@pytest.mark.asyncio
+async def test_list_datasets_custom_uuid_columns(mock_list, mcp_server):
+    """Test that custom column selection includes UUID when explicitly requested."""
+    dataset = MagicMock()
+    dataset.id = 1
+    dataset.table_name = "custom_dataset"
+    dataset.schema = "public"
+    dataset.description = "desc"
+    dataset.changed_by_name = "admin"
+    dataset.changed_on = None
+    dataset.changed_on_humanized = None
+    dataset.created_by_name = "admin"
+    dataset.created_on = None
+    dataset.created_on_humanized = None
+    dataset.tags = []
+    dataset.owners = []
+    dataset.is_virtual = False
+    dataset.database_id = 1
+    dataset.schema_perm = "[examples].[public]"
+    dataset.url = "/tablemodelview/edit/1"
+    dataset.database = MagicMock()
+    dataset.database.database_name = "test_db"
+    dataset.sql = None
+    dataset.main_dttm_col = None
+    dataset.offset = 0
+    dataset.cache_timeout = 0
+    dataset.params = {}
+    dataset.template_params = {}
+    dataset.extra = {}
+    dataset.uuid = "test-custom-dataset-uuid"
+    dataset.columns = []
+    dataset.metrics = []
+    dataset._mapping = {
+        "id": dataset.id,
+        "table_name": dataset.table_name,
+        "schema": dataset.schema,
+        "database_name": dataset.database.database_name,
+        "uuid": dataset.uuid,
+        "description": dataset.description,
+        "changed_by_name": dataset.changed_by_name,
+        "changed_on": dataset.changed_on,
+        "changed_on_humanized": dataset.changed_on_humanized,
+        "created_by_name": dataset.created_by_name,
+        "created_on": dataset.created_on,
+        "created_on_humanized": dataset.created_on_humanized,
+        "tags": dataset.tags,
+        "owners": dataset.owners,
+        "is_virtual": dataset.is_virtual,
+        "database_id": dataset.database_id,
+        "schema_perm": dataset.schema_perm,
+        "url": dataset.url,
+        "sql": dataset.sql,
+        "main_dttm_col": dataset.main_dttm_col,
+        "offset": dataset.offset,
+        "cache_timeout": dataset.cache_timeout,
+        "params": dataset.params,
+        "template_params": dataset.template_params,
+        "extra": dataset.extra,
+        "columns": dataset.columns,
+        "metrics": dataset.metrics,
+    }
+    mock_list.return_value = ([dataset], 1)
+    async with Client(mcp_server) as client:
+        request = ListDatasetsRequest(
+            select_columns=["id", "table_name", "uuid"], page=1, page_size=10
+        )
+        result = await client.call_tool(
+            "list_datasets", {"request": request.model_dump()}
+        )
+        data = json.loads(result.content[0].text)
+        assert data["count"] == 1
+        assert data["datasets"][0]["uuid"] == "test-custom-dataset-uuid"
+
+        # Verify custom columns include UUID
+        assert "uuid" in data["columns_requested"]
+        assert "uuid" in data["columns_loaded"]
 
 
 @patch("superset.daos.dataset.DatasetDAO.list")
