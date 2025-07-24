@@ -243,6 +243,7 @@ function PropertiesModal({
     <Modal
       show={show}
       onHide={onHide}
+      name={t('Edit Chart Properties')}
       title={
         <ModalTitleWithIcon
           isEditMode

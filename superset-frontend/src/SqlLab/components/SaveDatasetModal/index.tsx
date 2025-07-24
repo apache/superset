@@ -374,6 +374,7 @@ export const SaveDatasetModal = ({
   return (
     <Modal
       show={visible}
+      name={t('Save or Overwrite Dataset')}
       title={
         <ModalTitleWithIcon
           title={t('Save or Overwrite Dataset')}

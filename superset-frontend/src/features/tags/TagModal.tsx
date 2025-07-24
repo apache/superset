@@ -264,6 +264,7 @@ const TagModal: FC<TagModalProps> = ({
 
   return (
     <Modal
+      name={isEditMode ? t('Edit Tag') : t('Create Tag')}
       title={
         <ModalTitleWithIcon
           isEditMode={isEditMode}

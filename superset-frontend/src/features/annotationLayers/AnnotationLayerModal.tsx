@@ -233,6 +233,11 @@ const AnnotationLayerModal: FunctionComponent<AnnotationLayerModalProps> = ({
       primaryButtonName={isEditMode ? t('Save') : t('Add')}
       show={show}
       width="55%"
+      name={
+        isEditMode
+          ? t('Edit annotation layer properties')
+          : t('Add annotation layer')
+      }
       title={
         <ModalTitleWithIcon
           isEditMode={isEditMode}

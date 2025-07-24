@@ -225,6 +225,7 @@ const SaveQuery = ({
         primaryButtonName={isSaved ? t('Save') : t('Save as')}
         width="620px"
         show={showSave}
+        name={t('Save query')}
         title={
           <ModalTitleWithIcon
             title={t('Save query')}

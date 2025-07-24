@@ -57,6 +57,7 @@ const DuplicateDatasetModal: FunctionComponent<DuplicateDatasetModalProps> = ({
     <Modal
       show={show}
       onHide={onHide}
+      name={t('Duplicate dataset')}
       title={
         <ModalTitleWithIcon
           title={t('Duplicate dataset')}

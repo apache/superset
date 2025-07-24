@@ -47,6 +47,7 @@ export const UnsavedChangesModal: FC<UnsavedChangesModalProps> = ({
 
   return (
     <Modal
+      name={title}
       centered
       responsive
       onHide={onHide}
