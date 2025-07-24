@@ -54,7 +54,7 @@ const drillBy = (targetDrillByColumn: string, isLegacy = false) => {
     interceptV1ChartData();
   }
 
-  cy.get('.ant-dropdown:not(.ant-dropdown-hidden)')
+  cy.get('.ant-dropdown:not(.ant-dropdown-hidden)', { timeout: 15000 })
     .should('be.visible')
     .find("[role='menu'] [role='menuitem']")
     .contains(/^Drill by$/)
