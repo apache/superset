@@ -41,17 +41,16 @@ import {
 import { checkColumnType } from '../utils/checkColumnType';
 import { isSortable } from '../utils/isSortable';
 
-// Simple helper function for plugins to generate aggregation choices
-export const getAggregationChoices = () =>
-  [
-    ['raw', 'Force server-side aggregation'],
-    ['LAST_VALUE', 'Last Value'],
-    ['sum', 'Total (Sum)'],
-    ['mean', 'Average (Mean)'],
-    ['min', 'Minimum'],
-    ['max', 'Maximum'],
-    ['median', 'Median'],
-  ] as const;
+// Aggregation choices for plugins and controls
+export const aggregationChoices = [
+  ['raw', 'Force server-side aggregation'],
+  ['LAST_VALUE', 'Last Value'],
+  ['sum', 'Total (Sum)'],
+  ['mean', 'Average (Mean)'],
+  ['min', 'Minimum'],
+  ['max', 'Maximum'],
+  ['median', 'Median'],
+] as const;
 
 export const contributionModeControl = {
   name: 'contributionMode',
@@ -81,7 +80,7 @@ export const aggregationControl = {
     default: 'LAST_VALUE',
     clearable: false,
     renderTrigger: false,
-    choices: getAggregationChoices().map(([value, label]) => [value, t(label)]),
+    choices: aggregationChoices.map(([value, label]) => [value, t(label)]),
     description: t(
       'Aggregation method applied across the values in the timeseries to compute the Big Number. "Force server-side aggregation" uses server-side aggregation over the entire time period and is preferred for non-additive metrics like ratios, averages, distinct counts, etc.',
     ),

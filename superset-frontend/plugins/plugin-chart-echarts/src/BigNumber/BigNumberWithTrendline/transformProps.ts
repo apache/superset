@@ -29,7 +29,7 @@ import {
   tooltipHtml,
 } from '@superset-ui/core';
 import { EChartsCoreOption, graphic } from 'echarts/core';
-import { getAggregationChoices } from '@superset-ui/chart-controls';
+import { aggregationChoices } from '@superset-ui/chart-controls';
 import {
   BigNumberVizProps,
   BigNumberDatum,
@@ -97,8 +97,7 @@ function computeClientSideAggregation(
   if (!data.length) return null;
 
   // Find the computation function, handling case variations with null safety
-  const choices = getAggregationChoices();
-  const matchedChoice = choices.find(
+  const matchedChoice = aggregationChoices.find(
     ([value]: readonly [string, string]) =>
       value.toLowerCase() === (aggregation || '').toLowerCase(),
   );
