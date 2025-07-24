@@ -39,9 +39,90 @@ import { getDateFormatter, parseMetricValue, getOriginalLabel } from '../utils';
 import { getDefaultTooltip } from '../../utils/tooltip';
 import { Refs } from '../../types';
 
+// Aggregation method configuration object - single source of truth
+const AGGREGATION_METHODS = {
+  raw: {
+    value: 'raw',
+    label: 'None',
+    compute: (data: [number | null, number | null][]) =>
+      data.find(([, value]) => value !== null)?.[1] ?? null,
+  },
+  LAST_VALUE: {
+    value: 'LAST_VALUE', 
+    label: 'Last Value',
+    compute: (data: [number | null, number | null][]) =>
+      data.find(([, value]) => value !== null)?.[1] ?? null,
+  },
+  sum: {
+    value: 'sum',
+    label: 'Total (Sum)',
+    compute: (data: [number | null, number | null][]) => {
+      const validValues = data.map(([, value]) => value).filter((v): v is number => v !== null);
+      return validValues.length ? validValues.reduce((a, b) => a + b, 0) : null;
+    },
+  },
+  mean: {
+    value: 'mean',
+    label: 'Average (Mean)',
+    compute: (data: [number | null, number | null][]) => {
+      const validValues = data.map(([, value]) => value).filter((v): v is number => v !== null);
+      return validValues.length ? validValues.reduce((a, b) => a + b, 0) / validValues.length : null;
+    },
+  },
+  min: {
+    value: 'min',
+    label: 'Minimum',
+    compute: (data: [number | null, number | null][]) => {
+      const validValues = data.map(([, value]) => value).filter((v): v is number => v !== null);
+      return validValues.length ? Math.min(...validValues) : null;
+    },
+  },
+  max: {
+    value: 'max',
+    label: 'Maximum',
+    compute: (data: [number | null, number | null][]) => {
+      const validValues = data.map(([, value]) => value).filter((v): v is number => v !== null);
+      return validValues.length ? Math.max(...validValues) : null;
+    },
+  },
+  median: {
+    value: 'median',
+    label: 'Median',
+    compute: (data: [number | null, number | null][]) => {
+      const validValues = data.map(([, value]) => value).filter((v): v is number => v !== null);
+      if (!validValues.length) return null;
+      const sorted = [...validValues].sort((a, b) => a - b);
+      const mid = Math.floor(sorted.length / 2);
+      return sorted.length % 2 === 0 ? (sorted[mid - 1] + sorted[mid]) / 2 : sorted[mid];
+    },
+  },
+} as const;
+
+// Type for aggregation method keys
+export type AggregationMethodKey = keyof typeof AGGREGATION_METHODS;
+
+// Export for use in controls
+export const getAggregationChoices = () =>
+  Object.values(AGGREGATION_METHODS).map(method => [method.value, method.label] as const);
+
 const formatPercentChange = getNumberFormatter(
   NumberFormats.PERCENT_SIGNED_1_POINT,
 );
+
+// Client-side aggregation function
+function computeClientSideAggregation(
+  data: [number | null, number | null][],
+  aggregation: string | undefined | null,
+): number | null {
+  if (!data.length) return null;
+
+  // Handle case variations (SUM -> sum, etc.) with null safety
+  const method = Object.values(AGGREGATION_METHODS).find(
+    m => m.value.toLowerCase() === (aggregation || '').toLowerCase()
+  ) || AGGREGATION_METHODS.LAST_VALUE; // default fallback
+
+  return method.compute(data);
+}
 
 export default function transformProps(
   chartProps: BigNumberWithTrendlineChartProps,
@@ -126,27 +207,32 @@ export default function transformProps(
       // sort in time descending order
       .sort((a, b) => (a[0] !== null && b[0] !== null ? b[0] - a[0] : 0));
   }
-  if (hasAggregatedData && aggregatedData) {
-    if (
-      aggregatedData[metricName] !== null &&
-      aggregatedData[metricName] !== undefined
-    ) {
-      bigNumber = aggregatedData[metricName];
-    } else {
-      const metricKeys = Object.keys(aggregatedData).filter(
-        key =>
-          key !== xAxisLabel &&
-          aggregatedData[key] !== null &&
-          typeof aggregatedData[key] === 'number',
-      );
-      bigNumber = metricKeys.length > 0 ? aggregatedData[metricKeys[0]] : null;
-    }
-
-    timestamp = sortedData.length > 0 ? sortedData[0][0] : null;
-  } else if (sortedData.length > 0) {
-    bigNumber = sortedData[0][1];
+  // Use client-side aggregation for all cases, falling back to server aggregation if available
+  if (sortedData.length > 0) {
+    // Always compute using client-side aggregation first
+    bigNumber = computeClientSideAggregation(sortedData, aggregation);
     timestamp = sortedData[0][0];
 
+    // Fallback to server aggregation only if client-side fails and server data exists
+    if (bigNumber === null && hasAggregatedData && aggregatedData) {
+      if (
+        aggregatedData[metricName] !== null &&
+        aggregatedData[metricName] !== undefined
+      ) {
+        bigNumber = aggregatedData[metricName];
+      } else {
+        const metricKeys = Object.keys(aggregatedData).filter(
+          key =>
+            key !== xAxisLabel &&
+            aggregatedData[key] !== null &&
+            typeof aggregatedData[key] === 'number',
+        );
+        bigNumber =
+          metricKeys.length > 0 ? aggregatedData[metricKeys[0]] : null;
+      }
+    }
+
+    // Handle null bigNumber case
     if (bigNumber === null) {
       bigNumberFallback = sortedData.find(d => d[1] !== null);
       bigNumber = bigNumberFallback ? bigNumberFallback[1] : null;

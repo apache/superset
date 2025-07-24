@@ -26,8 +26,14 @@ import {
 } from 'react';
 import { useSelector } from 'react-redux';
 import rison from 'rison';
-import { styled, SupersetClient, t } from '@superset-ui/core';
-import { Icons, Switch, Button, Skeleton } from '@superset-ui/core/components';
+import { styled, SupersetClient, t, useTheme } from '@superset-ui/core';
+import {
+  Icons,
+  Switch,
+  Button,
+  Skeleton,
+  Card,
+} from '@superset-ui/core/components';
 import { CopyToClipboard } from 'src/components';
 import { RootState } from 'src/dashboard/types';
 import { CopyButton } from 'src/explore/components/DataTableControl';
@@ -58,20 +64,6 @@ const StyledSyntaxContainer = styled.div`
   flex-direction: column;
 `;
 
-const StyledHeaderMenuContainer = styled.div`
-  display: flex;
-  flex-direction: row;
-  justify-content: space-between;
-  margin-top: ${({ theme }) => -theme.sizeUnit * 4}px;
-  align-items: flex-end;
-`;
-
-const StyledHeaderActionContainer = styled.div`
-  display: flex;
-  flex-direction: row;
-  column-gap: ${({ theme }) => theme.sizeUnit * 2}px;
-`;
-
 const StyledThemedSyntaxHighlighter = styled(CodeSyntaxHighlighter)`
   flex: 1;
 `;
@@ -87,6 +79,7 @@ const DATASET_BACKEND_QUERY = {
 
 const ViewQuery: FC<ViewQueryProps> = props => {
   const { sql, language = 'sql', datasource } = props;
+  const theme = useTheme();
   const datasetId = datasource.split('__')[0];
   const [formattedSQL, setFormattedSQL] = useState<string>();
   const [showFormatSQL, setShowFormatSQL] = useState(true);
@@ -153,46 +146,59 @@ const ViewQuery: FC<ViewQueryProps> = props => {
   }, [sql]);
 
   return (
-    <StyledSyntaxContainer key={sql}>
-      <StyledHeaderMenuContainer>
-        <StyledHeaderActionContainer>
-          <CopyToClipboard
-            text={currentSQL}
-            shouldShowText={false}
-            copyNode={
-              <CopyButtonViewQuery
-                buttonSize="small"
-                icon={<Icons.CopyOutlined />}
-              >
-                {t('Copy')}
-              </CopyButtonViewQuery>
-            }
-          />
-          {canAccessSQLLab && (
-            <Button onClick={navToSQLLab}>{t('View in SQL Lab')}</Button>
-          )}
-        </StyledHeaderActionContainer>
-        <StyledHeaderActionContainer>
-          <Switch
-            id="formatSwitch"
-            checked={!showFormatSQL}
-            onChange={formatCurrentQuery}
-          />
-          <StyledLabel htmlFor="formatSwitch">
-            {t('Show original SQL')}
-          </StyledLabel>
-        </StyledHeaderActionContainer>
-      </StyledHeaderMenuContainer>
-      {!formattedSQL && <Skeleton active />}
-      {formattedSQL && (
-        <StyledThemedSyntaxHighlighter
-          language={language}
-          customStyle={{ flex: 1 }}
+    <Card bodyStyle={{ padding: theme.sizeUnit * 4 }}>
+      <StyledSyntaxContainer key={sql}>
+        {!formattedSQL && <Skeleton active />}
+        {formattedSQL && (
+          <StyledThemedSyntaxHighlighter
+            language={language}
+            customStyle={{ flex: 1, marginBottom: 12 }}
+          >
+            {currentSQL}
+          </StyledThemedSyntaxHighlighter>
+        )}
+
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+          }}
         >
-          {currentSQL}
-        </StyledThemedSyntaxHighlighter>
-      )}
-    </StyledSyntaxContainer>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <CopyToClipboard
+              text={currentSQL}
+              shouldShowText={false}
+              copyNode={
+                <CopyButtonViewQuery
+                  buttonStyle="secondary"
+                  buttonSize="small"
+                  icon={<Icons.CopyOutlined />}
+                >
+                  {t('Copy')}
+                </CopyButtonViewQuery>
+              }
+            />
+            {canAccessSQLLab && (
+              <Button buttonStyle="secondary" onClick={navToSQLLab}>
+                {t('View in SQL Lab')}
+              </Button>
+            )}
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center' }}>
+            <Switch
+              id="formatSwitch"
+              checked={!showFormatSQL}
+              onChange={formatCurrentQuery}
+            />
+            <StyledLabel htmlFor="formatSwitch" style={{ marginLeft: 8 }}>
+              {t('Show original SQL')}
+            </StyledLabel>
+          </div>
+        </div>
+      </StyledSyntaxContainer>
+    </Card>
   );
 };
 
