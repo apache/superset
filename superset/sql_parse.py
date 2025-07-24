@@ -943,11 +943,11 @@ def extract_tables_from_jinja_sql(sql: str, database: Database) -> set[Table]:
     )
 
     processor = get_template_processor(database)
-    template = processor.env.parse(sql)
+    ast = processor.env.parse(sql)
 
     tables = set()
 
-    for node in template.find_all(nodes.Call):
+    for node in ast.find_all(nodes.Call):
         if isinstance(node.node, nodes.Getattr) and node.node.attr in (
             "latest_partition",
             "latest_sub_partition",
@@ -972,7 +972,9 @@ def extract_tables_from_jinja_sql(sql: str, database: Database) -> set[Table]:
             node.data = "NULL"
 
     # re-render template back into a string
-    rendered_sql = Template(template).render(processor.get_context())
+    code = processor.env.compile(ast)
+    template = Template.from_code(processor.env, code, globals=processor.env.globals)
+    rendered_sql = template.render(processor.get_context())
 
     return (
         tables
