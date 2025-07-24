@@ -1458,18 +1458,97 @@ DB_SQLA_URI_VALIDATOR: Callable[[URL], None] | None = None
 # unsafe SQL functions in SQL Lab and Charts. The keys of the dictionary are the engine
 # names, and the values are sets of disallowed functions.
 DISALLOWED_SQL_FUNCTIONS: dict[str, set[str]] = {
+    # PostgreSQL functions that could reveal sensitive information
     "postgresql": {
-        "database_to_xml",
+        # System information functions
+        "current_database",
+        "current_schema",
+        "current_user",
+        "session_user",
+        "current_setting",
+        "version",
+        # Network/server information functions
         "inet_client_addr",
+        "inet_client_port",
         "inet_server_addr",
+        "inet_server_port",
+        # File system functions
+        "pg_read_file",
+        "pg_ls_dir",
+        "pg_read_binary_file",
+        # XML functions that can execute SQL
+        "database_to_xml",
+        "database_to_xmlschema",
         "query_to_xml",
-        "query_to_xml_and_xmlschema",
+        "query_to_xmlschema",
         "table_to_xml",
         "table_to_xml_and_xmlschema",
-        "version",
+        "query_to_xml_and_xmlschema",
+        "table_to_xmlschema",
+        # Other potentially dangerous functions
+        "pg_sleep",
+        "pg_terminate_backend",
     },
-    "clickhouse": {"url", "version", "currentDatabase", "hostName"},
-    "mysql": {"version"},
+    # MySQL functions and variables that could reveal sensitive information
+    "mysql": {
+        # Functions
+        "database",
+        "schema",
+        "current_user",
+        "session_user",
+        "system_user",
+        "user",
+        "version",
+        "connection_id",
+        "load_file",
+        "sleep",
+        "benchmark",
+        "kill",
+    },
+    # SQLite functions that could reveal sensitive information
+    "sqlite": {
+        "sqlite_version",
+        "sqlite_source_id",
+        "sqlite_offset",
+        "sqlite_compileoption_used",
+        "sqlite_compileoption_get",
+        "load_extension",
+    },
+    # Microsoft SQL Server functions
+    "mssql": {
+        "db_name",
+        "suser_sname",
+        "user_name",
+        "host_name",
+        "host_id",
+        "suser_id",
+        "system_user",
+        "current_user",
+        "original_login",
+        "xp_cmdshell",
+        "xp_regread",
+        "xp_fileexist",
+        "xp_dirtree",
+        "serverproperty",
+        "is_srvrolemember",
+        "has_dbaccess",
+        "fn_virtualfilestats",
+        "fn_servershareddrives",
+    },
+    # Clickhouse functions
+    "clickhouse": {
+        "currentUser",
+        "currentDatabase",
+        "hostName",
+        "currentRoles",
+        "version",
+        "buildID",
+        "url",
+        "filesystemPath",
+        "getOSInformation",
+        "getMacro",
+        "getSetting",
+    },
 }
 
 
