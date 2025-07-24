@@ -17,10 +17,6 @@
  * under the License.
  */
 import { formatSelectOptions } from '@superset-ui/chart-controls';
-import { addLocaleData } from '@superset-ui/core';
-import i18n from './i18n';
-
-addLocaleData(i18n);
 
 export const SERVER_PAGE_SIZE_OPTIONS = formatSelectOptions<number>([
   10, 20, 50, 100, 200,

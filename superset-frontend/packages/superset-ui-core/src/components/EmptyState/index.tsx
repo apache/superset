@@ -128,7 +128,7 @@ const ImageContainer = ({
       <Empty
         description={false}
         image={mappedImage}
-        imageStyle={getImageHeight(size)}
+        styles={{ image: getImageHeight(size) }}
       />
     </div>
   );
