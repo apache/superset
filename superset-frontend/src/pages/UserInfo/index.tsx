@@ -136,7 +136,6 @@ export function UserInfo({ user }: { user: UserWithPermissionsAndRoles }) {
       name: (
         <>
           <Icons.FormOutlined
-            iconColor={theme.colorIcon}
             iconSize="m"
             css={css`
               margin: auto ${theme.sizeUnit * 2}px auto 0;

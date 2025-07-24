@@ -37,6 +37,7 @@ export function DeleteModal({
   onHide,
   open,
   title,
+  name,
 }: DeleteModalProps) {
   const [disableChange, setDisableChange] = useState(true);
   const [confirmation, setConfirmation] = useState<string>('');
@@ -78,6 +79,7 @@ export function DeleteModal({
       primaryButtonName={t('Delete')}
       primaryButtonStyle="danger"
       show={open}
+      name={name}
       title={title}
       centered
     >
