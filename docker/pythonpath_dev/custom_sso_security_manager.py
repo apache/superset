@@ -195,6 +195,7 @@ class CustomSsoSecurityManager(SupersetSecurityManager):
             pvm = self.find_permission_view_menu(action, model)
             self.add_permission_role(datakimia_public_role, pvm)   
 
+    # This is a workaround for solving this issue: https://github.com/apache/superset/issues/24837
     def is_item_public(self, permission_name, view_name):
         verify_jwt_in_request(optional=True) # Attempt to parse any existing JWT and fail silently
         return super().is_item_public(permission_name, view_name) 
