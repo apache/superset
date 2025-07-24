@@ -199,12 +199,8 @@ function SavedQueryList({
   }
 
   subMenuButtons.push({
-    name: (
-      <>
-        <Icons.PlusOutlined iconSize="m" />
-        {t('Query')}
-      </>
-    ),
+    icon: <Icons.PlusOutlined iconSize="m" />,
+    name: t('Query'),
     buttonStyle: 'primary',
     onClick: () => {
       history.push('/sqllab?new=true');
