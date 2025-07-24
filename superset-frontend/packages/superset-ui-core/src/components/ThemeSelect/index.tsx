@@ -16,10 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Dropdown, Icons } from '@superset-ui/core/components';
-import type { MenuItem } from '@superset-ui/core/components/Menu';
-import { t, useTheme } from '@superset-ui/core';
-import { ThemeAlgorithm, ThemeMode } from '../../theme/types';
+import { type MenuItem, Dropdown, Icons } from '@superset-ui/core/components';
+import { t, ThemeAlgorithm, ThemeMode, useTheme } from '@superset-ui/core';
 
 export interface ThemeSelectProps {
   setThemeMode: (newMode: ThemeMode) => void;

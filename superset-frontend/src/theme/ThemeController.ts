@@ -17,13 +17,15 @@
  * under the License.
  */
 import {
+  type AnyThemeConfig,
+  type SupersetTheme,
+  type SupersetThemeConfig,
+  type ThemeControllerOptions,
+  type ThemeStorage,
   Theme,
-  AnyThemeConfig,
-  ThemeStorage,
-  ThemeControllerOptions,
+  ThemeMode,
   themeObject as supersetThemeObject,
 } from '@superset-ui/core';
-import { SupersetTheme, ThemeMode } from '@superset-ui/core/theme/types';
 import {
   getAntdConfig,
   normalizeThemeConfig,
@@ -48,16 +50,6 @@ const STORAGE_KEYS = {
 } as const;
 
 const MEDIA_QUERY_DARK_SCHEME = '(prefers-color-scheme: dark)';
-
-export interface SupersetThemeConfig {
-  theme_default: AnyThemeConfig;
-  theme_dark?: AnyThemeConfig;
-  theme_settings?: {
-    enforced?: boolean;
-    allowSwitching?: boolean;
-    allowOSPreference?: boolean;
-  };
-}
 
 export class LocalStorageAdapter implements ThemeStorage {
   getItem(key: string): string | null {

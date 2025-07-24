@@ -17,22 +17,19 @@
  * under the License.
  */
 import { theme as antdThemeImport } from 'antd';
-import { Theme } from '@superset-ui/core';
+import {
+  type AnyThemeConfig,
+  type SupersetThemeConfig,
+  Theme,
+  ThemeAlgorithm,
+  ThemeMode,
+} from '@superset-ui/core';
 import type {
   BootstrapThemeDataConfig,
   CommonBootstrapData,
 } from 'src/types/bootstrapTypes';
-import {
-  AnyThemeConfig,
-  ThemeAlgorithm,
-  ThemeMode,
-} from '@superset-ui/core/theme/types';
 import getBootstrapData from 'src/utils/getBootstrapData';
-import {
-  LocalStorageAdapter,
-  SupersetThemeConfig,
-  ThemeController,
-} from '../ThemeController';
+import { LocalStorageAdapter, ThemeController } from '../ThemeController';
 
 jest.mock('../../utils/getBootstrapData');
 const mockGetBootstrapData = getBootstrapData as jest.MockedFunction<
@@ -51,7 +48,7 @@ const mockThemeFromConfig = jest.fn();
 const mockSetConfig = jest.fn();
 
 // Mock data constants
-const DEFAULT_THEME = {
+const DEFAULT_THEME: AnyThemeConfig = {
   token: {
     colorBgBase: '#ededed',
     colorTextBase: '#120f0f',
@@ -61,9 +58,9 @@ const DEFAULT_THEME = {
     colorSuccess: '#3c7c1b',
     colorWarning: '#dc9811',
   },
-} as AnyThemeConfig;
+};
 
-const DARK_THEME = {
+const DARK_THEME: AnyThemeConfig = {
   token: {
     colorBgBase: '#141118',
     colorTextBase: '#fdc7c7',
@@ -74,7 +71,7 @@ const DARK_THEME = {
     colorWarning: '#dc9811',
   },
   algorithm: ThemeAlgorithm.DARK,
-} as AnyThemeConfig;
+};
 
 const THEME_SETTINGS = {
   enforced: false,
