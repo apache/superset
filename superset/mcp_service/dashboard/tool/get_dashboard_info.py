@@ -23,15 +23,16 @@ about a specific dashboard.
 """
 
 import logging
-from typing import Annotated, Any
-
-from pydantic import Field
+from typing import Any
 
 from superset.mcp_service.auth import mcp_auth_hook
 from superset.mcp_service.mcp_app import mcp
 from superset.mcp_service.model_tools import ModelGetInfoTool
 from superset.mcp_service.pydantic_schemas import DashboardError, DashboardInfo
 from superset.mcp_service.pydantic_schemas.chart_schemas import serialize_chart_object
+from superset.mcp_service.pydantic_schemas.dashboard_schemas import (
+    GetDashboardInfoRequest,
+)
 from superset.mcp_service.pydantic_schemas.system_schemas import (
     RoleInfo,
     TagInfo,
@@ -95,12 +96,16 @@ def dashboard_serializer(dashboard: Any) -> DashboardInfo:
 @mcp.tool
 @mcp_auth_hook
 def get_dashboard_info(
-    dashboard_id: Annotated[
-        int, Field(description="ID of the dashboard to retrieve information for")
-    ],
+    request: GetDashboardInfoRequest,
 ) -> DashboardInfo | DashboardError:
     """
     Get detailed information about a specific dashboard.
+
+    Supports lookup by:
+    - Numeric ID (e.g., 123)
+    - UUID string (e.g., "a1b2c3d4-e5f6-7890-abcd-ef1234567890")
+    - Slug string (e.g., "my-dashboard")
+
     Returns a DashboardInfo model or DashboardError on error.
     """
 
@@ -111,6 +116,7 @@ def get_dashboard_info(
         output_schema=DashboardInfo,
         error_schema=DashboardError,
         serializer=dashboard_serializer,
+        supports_slug=True,  # Dashboards support slugs
         logger=logger,
     )
-    return tool.run(dashboard_id)
+    return tool.run(request.identifier)

@@ -32,10 +32,37 @@ The Superset Model Context Protocol (MCP) service provides a modular, schema-dri
 
 ---
 
+## Enhanced Parameter Handling
+
+All MCP tools now use the **FastMCP Complex Inputs Pattern** to eliminate LLM parameter validation issues:
+
+### Request Schema Pattern
+Instead of individual parameters, tools use structured request objects with clear, unambiguous types:
+```python
+# New approach (current)
+get_dataset_info(request={"identifier": 123})  # ID
+get_dataset_info(request={"identifier": "a1b2c3d4-e5f6-7890-abcd-ef1234567890"})  # UUID
+
+# Old approach (replaced)
+get_dataset_info(dataset_id=123)
+```
+
+### Multi-Identifier Support
+All `get_*_info` tools now support multiple identifier types:
+- **Datasets/Charts**: ID (numeric) or UUID (string)
+- **Dashboards**: ID (numeric), UUID (string), or slug (string)
+
+### Validation Logic
+All `list_*` tools include validation to prevent conflicting parameters:
+- Cannot use both `search` and `filters` simultaneously
+- Clear error messages guide LLMs to use either text search OR structured filters
+
+---
+
 ## Tool Abstractions
 
-- **ModelListTool**: Generic class for list/search/filter tools (dashboards, charts, datasets). Handles pagination, column selection, and serialization. Now serializes columns and metrics for datasets.
-- **ModelGetInfoTool**: Generic class for retrieving a single object by ID, with error handling.
+- **ModelListTool**: Generic class for list/search/filter tools (dashboards, charts, datasets). Handles pagination, column selection, and serialization. Now serializes columns and metrics for datasets. Uses FastMCP Complex Inputs Pattern with request schemas.
+- **ModelGetInfoTool**: Enhanced class for retrieving a single object by multiple identifier types (ID, UUID, slug). Supports intelligent identifier detection and lookup.
 - **ModelGetAvailableFiltersTool**: Generic class for returning available filterable columns/operators for a DAO.
 
 ---
@@ -121,16 +148,20 @@ flowchart TD
 
 ## Tool/DAO Mapping
 
-- `list_dashboards`, `get_dashboard_info`, `get_dashboard_available_filters`: DashboardDAO
-- `list_datasets`, `get_dataset_info`, `get_dataset_available_filters`: DatasetDAO (now returns columns and metrics for each dataset)
-- `list_charts`, `get_chart_info`, `get_chart_available_filters`, `create_chart`: ChartDAO (create_chart supports line, bar, area, scatter, table charts)
+- `list_dashboards`, `get_dashboard_info`, `get_dashboard_available_filters`: DashboardDAO (supports ID/UUID/slug lookup, includes UUID/slug in search)
+- `list_datasets`, `get_dataset_info`, `get_dataset_available_filters`: DatasetDAO (supports ID/UUID lookup, returns columns and metrics, includes UUID in search)
+- `list_charts`, `get_chart_info`, `get_chart_available_filters`, `create_chart`: ChartDAO (supports ID/UUID lookup, create_chart supports line, bar, area, scatter, table charts, includes UUID in search)
 - `get_superset_instance_info`: System metadata
+- `generate_explore_link`: Chart exploration without saving
 
 ---
 
 ## Filtering & Search
 
 - All list tools support advanced (object-based) and simple (field=value) filters, as well as free-text search.
+- **Enhanced Search**: UUID and slug fields are included in search columns for better discoverability
+- **Validation**: Tools prevent using both `search` and `filters` simultaneously to avoid query conflicts
+- **Request Schemas**: All filtering uses structured request objects with clear validation rules
 - Use the available filters tool for each domain to discover supported fields and operators.
 
 ---
@@ -139,6 +170,9 @@ flowchart TD
 
 - All dataset tools now have unit tests verifying columns and metrics are included in responses.
 - Chart creation tools have comprehensive tests covering all supported chart types and SQL aggregators.
+- **Multi-identifier Testing**: All get_*_info tools have tests for ID, UUID, and slug (where applicable) lookup
+- **Request Schema Testing**: All list tools tested with new request schema pattern
+- **Validation Testing**: Tests verify that search+filters conflicts are properly prevented
 - Improved test mocks and LLM/OpenAPI compatibility for all dataset-related tools.
 
 ---

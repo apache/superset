@@ -83,6 +83,7 @@ DEFAULT_DASHBOARD_COLUMNS = [
     "id",
     "dashboard_title",
     "slug",
+    "uuid",
     "published",
     "changed_on",
     "created_on",

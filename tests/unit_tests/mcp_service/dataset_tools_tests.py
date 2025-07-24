@@ -757,7 +757,9 @@ async def test_get_dataset_info_success(mock_info, mcp_server):
     dataset.metrics = [metric1]
     mock_info.return_value = dataset
     async with Client(mcp_server) as client:
-        result = await client.call_tool("get_dataset_info", {"dataset_id": 1})
+        result = await client.call_tool(
+            "get_dataset_info", {"request": {"identifier": 1}}
+        )
         assert result.content is not None
         data = json.loads(result.content[0].text)
         assert data["id"] == 1
@@ -775,7 +777,9 @@ async def test_get_dataset_info_success(mock_info, mcp_server):
 async def test_get_dataset_info_not_found(mock_info, mcp_server):
     mock_info.return_value = None  # Not found returns None
     async with Client(mcp_server) as client:
-        result = await client.call_tool("get_dataset_info", {"dataset_id": 999})
+        result = await client.call_tool(
+            "get_dataset_info", {"request": {"identifier": 999}}
+        )
         assert result.data["error_type"] == "not_found"
 
 
@@ -888,7 +892,9 @@ async def test_get_dataset_info_includes_columns_and_metrics(mock_info, mcp_serv
     ]
     mock_info.return_value = dataset
     async with Client(mcp_server) as client:
-        result = await client.call_tool("get_dataset_info", {"dataset_id": 10})
+        result = await client.call_tool(
+            "get_dataset_info", {"request": {"identifier": 10}}
+        )
         assert result.content is not None
         data = json.loads(result.content[0].text)
         assert data["table_name"] == "Dataset With Columns"
@@ -968,3 +974,48 @@ async def test_list_datasets_includes_columns_and_metrics(mock_list, mcp_server)
         assert len(ds.metrics) == 1
         assert ds.columns[0].column_name == "colA"
         assert ds.metrics[0].metric_name == "avg_value"
+
+
+@patch("superset.mcp_service.model_tools.ModelGetInfoTool._find_object")
+@pytest.mark.asyncio
+async def test_get_dataset_info_by_uuid(mock_find_object, mcp_server):
+    """Test getting dataset info using UUID identifier."""
+    dataset = MagicMock()
+    dataset.id = 1
+    dataset.table_name = "Test Dataset UUID"
+    dataset.schema = "main"
+    dataset.description = "desc"
+    dataset.changed_by_name = "admin"
+    dataset.changed_on = None
+    dataset.changed_on_humanized = None
+    dataset.created_by_name = "admin"
+    dataset.created_on = None
+    dataset.created_on_humanized = None
+    dataset.tags = []
+    dataset.owners = []
+    dataset.is_virtual = False
+    dataset.database_id = 1
+    dataset.schema_perm = "[examples].[main]"
+    dataset.url = "/tablemodelview/edit/1"
+    dataset.database = MagicMock()
+    dataset.database.database_name = "examples"
+    dataset.sql = None
+    dataset.main_dttm_col = None
+    dataset.offset = 0
+    dataset.cache_timeout = 0
+    dataset.params = {}
+    dataset.template_params = {}
+    dataset.extra = {}
+    dataset.columns = []
+    dataset.metrics = []
+
+    mock_find_object.return_value = dataset
+    async with Client(mcp_server) as client:
+        uuid_str = "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+        result = await client.call_tool(
+            "get_dataset_info", {"request": {"identifier": uuid_str}}
+        )
+        assert result.content is not None
+        data = json.loads(result.content[0].text)
+        assert data["id"] == 1
+        assert data["table_name"] == "Test Dataset UUID"

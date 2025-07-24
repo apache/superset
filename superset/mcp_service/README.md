@@ -35,38 +35,68 @@ python tests/integration_tests/mcp_service/run_mcp_tests.py
 All tools are modular, strongly typed, and use Pydantic v2 schemas. Every field is documented for LLM/OpenAPI compatibility.
 
 **Dashboards**
-- `list_dashboards` (advanced filtering, search)
-- `get_dashboard_info`
+- `list_dashboards` (advanced filtering, search, includes UUID and slug in default columns)
+- `get_dashboard_info` (supports ID, UUID, and slug lookup)
 - `get_dashboard_available_filters`
 
 **Datasets**
-- `list_datasets` (advanced filtering, search, now returns columns and metrics)
-- `get_dataset_info` (now returns columns and metrics)
+- `list_datasets` (advanced filtering, search, includes UUID in default columns, returns columns and metrics)
+- `get_dataset_info` (supports ID and UUID lookup, returns columns and metrics)
 - `get_dataset_available_filters`
 
 **Charts**
-- `list_charts` (advanced filtering, search)
-- `get_chart_info`
+- `list_charts` (advanced filtering, search, includes UUID in default columns)
+- `get_chart_info` (supports ID and UUID lookup)
 - `get_chart_available_filters`
-- `create_chart` (basic chart creation with line, bar, area, scatter, table support)
+- `create_chart` (comprehensive chart creation with line, bar, area, scatter, table support)
+- `generate_explore_link` (generate explore links for chart configurations)
 
 **System**
 - `get_superset_instance_info`
 
 See the architecture doc for full tool signatures and usage.
 
-## Filtering & Search
+## Enhanced Parameter Handling
 
+All MCP tools now use the **FastMCP Complex Inputs Pattern** to eliminate LLM parameter validation issues:
+
+### Request Schema Pattern
+Instead of individual parameters, tools use structured request objects:
+```python
+# New approach (current)
+get_dataset_info(request={"identifier": 123})  # ID
+get_dataset_info(request={"identifier": "a1b2c3d4-e5f6-7890-abcd-ef1234567890"})  # UUID
+
+# Old approach (replaced)
+get_dataset_info(dataset_id=123)
+```
+
+### Multi-Identifier Support
+All `get_*_info` tools now support multiple identifier types:
+- **Datasets/Charts**: ID (numeric) or UUID (string)
+- **Dashboards**: ID (numeric), UUID (string), or slug (string)
+
+### Filtering & Search
 All `list_*` tools support:
-- **Filters**: Complex (list of filter objects) or simple (field=value).
-- **Search**: Free-text search across key fields (e.g., dashboard title, chart name, dataset table name).
+- **Filters**: Structured filter objects with validation to prevent conflicts
+- **Search**: Free-text search across key fields (including UUID and slug)
+- **Validation**: Cannot use both `search` and `filters` simultaneously
 
 Example:
 ```python
-list_dashboards(
-    search="churn",
-    filters=[{"col": "published", "opr": "eq", "value": True}]
-)
+# Using request schema with filters
+list_dashboards(request={
+    "search": "sales",
+    "page": 1,
+    "page_size": 20
+})
+
+# Or with filters (but not both)
+list_dashboards(request={
+    "filters": [{"col": "published", "opr": "eq", "value": True}],
+    "page": 1,
+    "page_size": 20
+})
 ```
 
 ## Chart Creation
@@ -146,5 +176,17 @@ explore_request = CreateChartRequest(
 
 ## What's Implemented
 
-- All list/info tools for dashboards, datasets (with columns and metrics), and charts, with full search and filter support.
-- Chart creation (`create_chart`) with comprehensive support for line, bar, area, scatter, and table charts with intelligent metric handling.
+### Core Tools (✅ Complete)
+- **All list/info tools** for dashboards, datasets (with columns and metrics), and charts, with full search and filter support
+- **Enhanced get_*_info tools** supporting multiple identifier types (ID/UUID/slug)
+- **Chart creation** (`create_chart`) with comprehensive support for line, bar, area, scatter, and table charts
+- **Explore link generation** (`generate_explore_link`) for temporary chart configurations
+- **FastMCP Complex Inputs Pattern** eliminating LLM parameter validation issues
+
+### Recent Major Improvements
+- **Request Schema Pattern**: All tools use structured request objects instead of individual parameters
+- **Multi-identifier Support**: Get tools support ID, UUID, and slug lookups
+- **Enhanced Default Columns**: List tools include UUID/slug in default responses
+- **Search Enhancement**: UUID/slug fields included in search columns
+- **Validation Logic**: Prevents conflicting search+filters usage
+- **Comprehensive Testing**: Full test coverage for all identifier types and validation scenarios
