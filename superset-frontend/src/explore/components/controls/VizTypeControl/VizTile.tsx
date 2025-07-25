@@ -124,7 +124,7 @@ export const VizTile = ({
       >
         <span
           css={css`
-            padding: 0px ${theme.sizeUnit * 1.5}px;
+            padding: 0px ${theme.sizeUnit * 1.25}px;
           `}
         >
           {vizMeta.icon}
