@@ -75,15 +75,31 @@ export function getColorVariants(
   }
 
   return {
-    active: (theme as any)[`color${firstLetterCapped}Active`],
-    textActive: (theme as any)[`color${firstLetterCapped}TextActive`],
-    text: (theme as any)[`color${firstLetterCapped}Text`],
-    textHover: (theme as any)[`color${firstLetterCapped}TextHover`],
-    hover: (theme as any)[`color${firstLetterCapped}Hover`],
-    borderHover: (theme as any)[`color${firstLetterCapped}BorderHover`],
-    border: (theme as any)[`color${firstLetterCapped}Border`],
-    bgHover: (theme as any)[`color${firstLetterCapped}BgHover`],
-    bg: (theme as any)[`color${firstLetterCapped}Bg`],
+    active: theme[
+      `color${firstLetterCapped}Active` as keyof SupersetTheme
+    ] as string,
+    textActive: theme[
+      `color${firstLetterCapped}TextActive` as keyof SupersetTheme
+    ] as string,
+    text: theme[
+      `color${firstLetterCapped}Text` as keyof SupersetTheme
+    ] as string,
+    textHover: theme[
+      `color${firstLetterCapped}TextHover` as keyof SupersetTheme
+    ] as string,
+    hover: theme[
+      `color${firstLetterCapped}Hover` as keyof SupersetTheme
+    ] as string,
+    borderHover: theme[
+      `color${firstLetterCapped}BorderHover` as keyof SupersetTheme
+    ] as string,
+    border: theme[
+      `color${firstLetterCapped}Border` as keyof SupersetTheme
+    ] as string,
+    bgHover: theme[
+      `color${firstLetterCapped}BgHover` as keyof SupersetTheme
+    ] as string,
+    bg: theme[`color${firstLetterCapped}Bg` as keyof SupersetTheme] as string,
   };
 }
 

@@ -47,13 +47,14 @@ export const UnsavedChangesModal: FC<UnsavedChangesModalProps> = ({
 
   return (
     <Modal
+      name={title}
       centered
       responsive
       onHide={onHide}
       show={showModal}
       width="444px"
       title={
-        <Flex align="center">
+        <Flex>
           <Icons.WarningOutlined
             iconColor={theme.colorWarning}
             css={css`
@@ -65,6 +66,7 @@ export const UnsavedChangesModal: FC<UnsavedChangesModalProps> = ({
             css={css`
               && {
                 margin: 0;
+                margin-bottom: 0;
               }
             `}
             level={5}
@@ -74,7 +76,12 @@ export const UnsavedChangesModal: FC<UnsavedChangesModalProps> = ({
         </Flex>
       }
       footer={
-        <Flex justify="flex-end" gap="small">
+        <Flex
+          justify="flex-end"
+          css={css`
+            width: 100%;
+          `}
+        >
           <Button
             htmlType="button"
             buttonSize="small"
