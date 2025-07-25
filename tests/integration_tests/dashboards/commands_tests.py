@@ -761,7 +761,7 @@ class TestCopyDashboardCommand(SupersetTestCase):
 
             assert copied_dashboard.dashboard_title == "Copied Dashboard"
             assert copied_dashboard.slug != example_dashboard.slug
-            assert copied_dashboard.slices == example_dashboard.slices
+            assert set(copied_dashboard.slices) == set(example_dashboard.slices)
 
             db.session.delete(copied_dashboard)
             db.session.commit()
