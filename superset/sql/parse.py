@@ -626,26 +626,25 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
 
         :return: True if the statement mutates data.
         """
-        for node in self._parsed.walk():
-            if isinstance(
-                node,
-                (
-                    exp.Insert,
-                    exp.Update,
-                    exp.Delete,
-                    exp.Merge,
-                    exp.Create,
-                    exp.Drop,
-                    exp.TruncateTable,
-                    exp.Alter,
-                ),
-            ):
+        mutating_nodes = (
+            exp.Insert,
+            exp.Update,
+            exp.Delete,
+            exp.Merge,
+            exp.Create,
+            exp.Drop,
+            exp.TruncateTable,
+            exp.Alter,
+        )
+
+        for node_type in mutating_nodes:
+            if self._parsed.find(node_type):
                 return True
 
-            # depending on the dialect (Oracle, MS SQL) the `ALTER` is parsed as a
-            # command, not an expression
-            if isinstance(node, exp.Command) and node.name == "ALTER":
-                return True
+        # depending on the dialect (Oracle, MS SQL) the `ALTER` is parsed as a
+        # command, not an expression - check at root level
+        if isinstance(self._parsed, exp.Command) and self._parsed.name == "ALTER":
+            return True  # pragma: no cover
 
         # Postgres runs DMLs prefixed by `EXPLAIN ANALYZE`, see
         # https://www.postgresql.org/docs/current/sql-explain.html
@@ -792,8 +791,13 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
         :param method: The method to use for creating the table.
         :return: A new SQLStatement with the create table statement.
         """
+        table_expr = exp.Table(
+            this=exp.Identifier(this=table.table),
+            db=exp.Identifier(this=table.schema) if table.schema else None,
+            catalog=exp.Identifier(this=table.catalog) if table.catalog else None,
+        )
         create_table = exp.Create(
-            this=sqlglot.parse_one(str(table), into=exp.Table),
+            this=table_expr,
             kind=method.name,
             expression=self._parsed.copy(),
         )

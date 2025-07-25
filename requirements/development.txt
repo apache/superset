@@ -802,7 +802,7 @@ sqlalchemy-utils==0.38.3
     #   -c requirements/base.txt
     #   apache-superset
     #   flask-appbuilder
-sqlglot==26.28.1
+sqlglot==27.3.0
     # via
     #   -c requirements/base.txt
     #   apache-superset

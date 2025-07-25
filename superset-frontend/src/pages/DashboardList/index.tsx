@@ -686,28 +686,8 @@ function DashboardList(props: DashboardListProps) {
   );
 
   const subMenuButtons: SubMenuProps['buttons'] = [];
-  if (canDelete || canExport) {
-    subMenuButtons.push({
-      name: t('Bulk select'),
-      buttonStyle: 'secondary',
-      'data-test': 'bulk-select',
-      onClick: toggleBulkSelect,
-    });
-  }
-  if (canCreate) {
-    subMenuButtons.push({
-      name: (
-        <>
-          <Icons.PlusOutlined iconSize="m" />
-          {t('Dashboard')}
-        </>
-      ),
-      buttonStyle: 'primary',
-      onClick: () => {
-        navigateTo('/dashboard/new', { assign: true });
-      },
-    });
 
+  if (canCreate) {
     subMenuButtons.push({
       name: (
         <Tooltip
@@ -722,6 +702,26 @@ function DashboardList(props: DashboardListProps) {
       onClick: openDashboardImportModal,
     });
   }
+
+  if (canDelete || canExport) {
+    subMenuButtons.push({
+      name: t('Bulk select'),
+      buttonStyle: 'secondary',
+      'data-test': 'bulk-select',
+      onClick: toggleBulkSelect,
+    });
+  }
+
+  if (canCreate) {
+    subMenuButtons.push({
+      icon: <Icons.PlusOutlined iconSize="m" />,
+      name: t('Dashboard'),
+      buttonStyle: 'primary',
+      onClick: () => {
+        navigateTo('/dashboard/new', { assign: true });
+      },
+    });
+  }
   return (
     <>
       <SubMenu name={t('Dashboards')} buttons={subMenuButtons} />
@@ -733,6 +733,7 @@ function DashboardList(props: DashboardListProps) {
         onConfirm={handleBulkDashboardDelete}
       >
         {confirmDelete => {
+          const enableBulkTag = isFeatureEnabled(FeatureFlag.TaggingSystem);
           const bulkActions: ListViewProps['bulkActions'] = [];
           if (canDelete) {
             bulkActions.push({
@@ -812,7 +813,7 @@ function DashboardList(props: DashboardListProps) {
                     ? 'card'
                     : 'table'
                 }
-                enableBulkTag
+                enableBulkTag={enableBulkTag}
                 bulkTagResourceName="dashboard"
               />
             </>
