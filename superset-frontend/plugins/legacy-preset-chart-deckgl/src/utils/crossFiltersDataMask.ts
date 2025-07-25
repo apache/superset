@@ -331,12 +331,23 @@ const getStartEndSpatialFilters = ({
   };
 };
 
+const isPointInBounds = (
+  point: [number, number],
+  bounds: PositionBounds,
+): boolean =>
+  point[0] >= bounds.from[0] &&
+  point[0] <= bounds.to[0] &&
+  point[1] >= bounds.from[1] &&
+  point[1] <= bounds.to[1];
+
 const getSpatialFilters = ({
   formData,
   data,
+  filterState,
 }: {
   formData: LayerFormData;
   data: PickingInfo;
+  filterState?: FilterState;
 }): FilterResult => {
   const positions = data.object?.points?.map(
     (point: { position: [number, number]; weight: number }) => point.position,
@@ -351,6 +362,32 @@ const getSpatialFilters = ({
     });
 
     positionBounds = pickedPositionBounds;
+
+    if (filterState?.value && data.coordinate) {
+      const currentFilterValues = filterState.value;
+      if (
+        Array.isArray(currentFilterValues) &&
+        currentFilterValues.length === 2
+      ) {
+        const currentBounds: PositionBounds = {
+          from: currentFilterValues[0] as [number, number],
+          to: currentFilterValues[1] as [number, number],
+        };
+
+        const pickedPoint: [number, number] = [
+          data.coordinate[0],
+          data.coordinate[1],
+        ];
+
+        if (isPointInBounds(pickedPoint, currentBounds)) {
+          return {
+            filters: [],
+            values: currentFilterValues,
+            customColumnLabel: filterState.customColumnLabel,
+          };
+        }
+      }
+    }
   }
 
   if (!formData.spatial) throw new Error('Spatial data is required');
@@ -437,7 +474,7 @@ export const getCrossFilterDataMask = ({
     const result = getStartEndSpatialFilters({ formData, data });
     ({ values, filters, customColumnLabel } = result);
   } else if (formData.spatial?.type) {
-    const result = getSpatialFilters({ formData, data });
+    const result = getSpatialFilters({ formData, data, filterState });
     ({ values, filters, customColumnLabel } = result);
   } else if (formData.line_column) {
     const result = getLineColumnFilters({ formData, data });

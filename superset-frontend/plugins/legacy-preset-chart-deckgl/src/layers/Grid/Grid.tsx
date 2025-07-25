@@ -120,11 +120,7 @@ export function getPoints(data: JsonObject[]) {
 export const getHighlightLayer: GetLayerType<GridLayer> = function ({
   formData,
   payload,
-  setTooltip,
-  setDataMask,
-  onContextMenu,
   filterState,
-  emitCrossFilters,
 }) {
   const fd = formData;
   let data = payload.data.features;
@@ -160,15 +156,6 @@ export const getHighlightLayer: GetLayerType<GridLayer> = function ({
     getElevationValue: aggFunc,
     getColorWeight: colorAggFunc,
     opacity: 1,
-    ...commonLayerProps({
-      formData: fd,
-      setDataMask,
-      setTooltip,
-      setTooltipContent,
-      filterState,
-      onContextMenu,
-      emitCrossFilters,
-    }),
   });
 };
 

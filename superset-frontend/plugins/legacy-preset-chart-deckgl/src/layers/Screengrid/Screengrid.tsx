@@ -113,7 +113,57 @@ export const getLayer: GetLayerType<ScreenGridLayer> = function ({
     }),
     getWeight: aggFunc,
     colorScaleType: colorSchemeType === 'default' ? 'linear' : 'quantize',
+    opacity: filterState?.value ? 0.3 : 1,
   });
 };
 
-export default createDeckGLComponent(getLayer, getPoints);
+const getHighlightLayer: GetLayerType<ScreenGridLayer> = function ({
+  formData,
+  setDataMask,
+  filterState,
+  onContextMenu,
+  payload,
+  setTooltip,
+  emitCrossFilters,
+}) {
+  const data = payload.data.features;
+  const dataInside = data.filter((d: JsonObject) => {
+    const [lng, lat] = d.position;
+    const fromLatLon = filterState?.value[0];
+    const toLatLon = filterState?.value[1];
+    return (
+      lng >= fromLatLon[0] &&
+      lng <= toLatLon[0] &&
+      lat >= fromLatLon[1] &&
+      lat <= toLatLon[1]
+    );
+  });
+
+  const aggFunc = (d: JsonObject) => d.weight || 0;
+
+  return new ScreenGridLayer({
+    id: `screengrid-highlight-layer-${formData.slice_id}` as const,
+    data: dataInside,
+    cellSizePixels: formData.grid_size,
+    colorDomain: [0, 1],
+    colorRange: [
+      [0, 0, 0, 0],
+      [255, 0, 0, 255],
+    ],
+    outline: false,
+    ...commonLayerProps({
+      formData,
+      setDataMask,
+      setTooltip,
+      setTooltipContent,
+      filterState,
+      onContextMenu,
+      emitCrossFilters,
+    }),
+    getWeight: aggFunc,
+    colorScaleType: 'quantize',
+    opacity: 1,
+  });
+};
+
+export default createDeckGLComponent(getLayer, getPoints, getHighlightLayer);

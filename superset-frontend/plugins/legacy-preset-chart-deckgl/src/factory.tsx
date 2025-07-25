@@ -211,6 +211,7 @@ export function createDeckGLComponent(
 export function createCategoricalDeckGLComponent(
   getLayer: GetLayerType<Layer>,
   getPoints: GetPointsType,
+  getHighlightLayer?: GetLayerType<Layer>,
 ) {
   return function Component(props: DeckGLComponentProps) {
     const {
@@ -235,6 +236,7 @@ export function createCategoricalDeckGLComponent(
         setControlValue={setControlValue}
         viewport={viewport}
         getLayer={getLayer}
+        getHighlightLayer={getHighlightLayer}
         payload={payload}
         getPoints={getPoints}
         width={width}
