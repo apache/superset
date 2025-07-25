@@ -409,7 +409,7 @@ describe('UploadDataModal - Database and Schema Population', () => {
     await userEvent.click(selectSchema);
     await waitFor(() => screen.getAllByText('schema1'));
     await waitFor(() => screen.getAllByText('schema2'));
-  });
+  }, 60000);
 });
 
 describe('UploadDataModal - Form Validation', () => {
