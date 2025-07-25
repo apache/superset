@@ -108,6 +108,7 @@ export const getLayer: GetLayerType<HexagonLayer> = function ({
       onContextMenu,
       emitCrossFilters,
     }),
+    opacity: filterState?.value ? 0.3 : 1,
   });
 };
 
