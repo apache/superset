@@ -188,7 +188,22 @@ export const getLayer: GetLayerType<PolygonLayer> = function ({
       number,
       number,
     ]) || [0, 0, 0, 0];
-    if (!ensureIsArray(selected).includes(d[fd.line_column])) {
+    const polygonPoints = getPointsFromPolygon(d);
+
+    const isPolygonFilterSelected =
+      JSON.stringify(polygonPoints).replaceAll(' ', '') ===
+      filterState?.value?.[0];
+
+    if (filterState?.value && !isPolygonFilterSelected) {
+      baseColor[3] /= 2;
+    }
+
+    const selectedPolygons = ensureIsArray(selected);
+
+    if (
+      selectedPolygons.length > 0 &&
+      !ensureIsArray(selected).includes(d[fd.line_column])
+    ) {
       baseColor[3] /= 2;
     }
 
