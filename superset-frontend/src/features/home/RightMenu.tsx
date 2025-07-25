@@ -189,6 +189,7 @@ const RightMenu = ({
     setTheme,
     setThemeMode,
     themeMode,
+    canSetThemeMode,
   } = useThemeContext();
   const dropdownItems: MenuObjectProps[] = [
     {
@@ -499,7 +500,7 @@ const RightMenu = ({
             <ThemeEditor theme={themeEditorTheme} setTheme={setTheme} />
           </span>
         )}
-        {isFeatureEnabled(FeatureFlag.ThemeEnableDarkThemeSwitch) && (
+        {canSetThemeMode() && (
           <span>
             <ThemeSelect setThemeMode={setThemeMode} themeMode={themeMode} />
           </span>

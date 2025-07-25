@@ -419,4 +419,5 @@ export interface ThemeContextType {
   setTheme: (config: AnyThemeConfig) => void;
   setThemeMode: (newMode: ThemeMode) => void;
   resetTheme: () => void;
+  canSetThemeMode: () => boolean;
 }

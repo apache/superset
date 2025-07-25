@@ -293,7 +293,7 @@ describe('ThemeController', () => {
 
     expect(controller.getCurrentMode()).toBe(ThemeMode.DEFAULT);
     expect(controller.canSetTheme()).toBe(false);
-    expect(controller.canSetMode()).toBe(false);
+    expect(controller.canSetThemeMode()).toBe(false);
   });
 
   it('should handle system theme preference', () => {
@@ -313,6 +313,13 @@ describe('ThemeController', () => {
   });
 
   it('should handle only default theme', () => {
+    const fallbackTheme = {
+      token: {
+        colorBgBase: '#ffffff',
+        colorPrimary: '#1890ff',
+      },
+    };
+
     mockGetBootstrapData.mockReturnValue(
       createMockBootstrapData({
         default: DEFAULT_THEME,
@@ -323,6 +330,7 @@ describe('ThemeController', () => {
 
     controller = new ThemeController({
       themeObject: mockThemeObject,
+      defaultTheme: fallbackTheme,
     });
 
     // Clear the call from initialization
@@ -332,11 +340,21 @@ describe('ThemeController', () => {
 
     expect(mockSetConfig).toHaveBeenCalledTimes(1);
     expect(mockSetConfig).toHaveBeenCalledWith(
-      expect.objectContaining(DEFAULT_THEME),
+      expect.objectContaining({
+        ...fallbackTheme,
+        algorithm: antdThemeImport.darkAlgorithm,
+      }),
     );
   });
 
   it('should handle only dark theme', () => {
+    const fallbackTheme = {
+      token: {
+        colorBgBase: '#ffffff',
+        colorPrimary: '#1890ff',
+      },
+    };
+
     mockGetBootstrapData.mockReturnValue(
       createMockBootstrapData({
         default: {},
@@ -347,7 +365,21 @@ describe('ThemeController', () => {
 
     controller = new ThemeController({
       themeObject: mockThemeObject,
+      defaultTheme: fallbackTheme,
     });
+
+    expect(mockSetConfig).toHaveBeenCalledTimes(1);
+    expect(mockSetConfig).toHaveBeenCalledWith(
+      expect.objectContaining({
+        ...fallbackTheme,
+        algorithm: antdThemeImport.defaultAlgorithm,
+      }),
+    );
+
+    // Clear the call from initialization
+    jest.clearAllMocks();
+
+    controller.setThemeMode(ThemeMode.DARK);
 
     expect(mockSetConfig).toHaveBeenCalledTimes(1);
     expect(mockSetConfig).toHaveBeenCalledWith(
@@ -355,6 +387,49 @@ describe('ThemeController', () => {
         ...DARK_THEME,
         algorithm: antdThemeImport.darkAlgorithm,
       }),
+    );
+  });
+
+  it('should fallback to superset built-in theme when switching between modes with partial themes', () => {
+    const fallbackTheme = {
+      token: {
+        colorBgBase: '#ffffff',
+        colorPrimary: '#1890ff',
+      },
+    };
+
+    mockGetBootstrapData.mockReturnValue(
+      createMockBootstrapData({
+        default: DEFAULT_THEME,
+        dark: {},
+        settings: {},
+      }),
+    );
+
+    controller = new ThemeController({
+      themeObject: mockThemeObject,
+      defaultTheme: fallbackTheme,
+    });
+
+    // Clear initialization calls
+    jest.clearAllMocks();
+
+    controller.setThemeMode(ThemeMode.DEFAULT);
+    expect(mockSetConfig).toHaveBeenCalledWith(
+      expect.objectContaining(DEFAULT_THEME),
+    );
+
+    controller.setThemeMode(ThemeMode.DARK);
+    expect(mockSetConfig).toHaveBeenCalledWith(
+      expect.objectContaining({
+        ...fallbackTheme,
+        algorithm: antdThemeImport.darkAlgorithm,
+      }),
+    );
+
+    controller.setThemeMode(ThemeMode.DEFAULT);
+    expect(mockSetConfig).toHaveBeenCalledWith(
+      expect.objectContaining(DEFAULT_THEME),
     );
   });
 
@@ -561,7 +636,7 @@ describe('ThemeController', () => {
         createMockBootstrapData({
           default: DEFAULT_THEME,
           dark: DARK_THEME,
-          settings: { allowSwitching: false },
+          settings: { allowOSPreference: true, allowSwitching: false },
         }),
       );
 
@@ -581,7 +656,11 @@ describe('ThemeController', () => {
         createMockBootstrapData({
           default: DEFAULT_THEME,
           dark: DARK_THEME,
-          settings: { allowOSPreference: false, allowSwitching: false },
+          settings: {
+            allowOSPreference: false,
+            allowSwitching: false,
+            enforced: false,
+          },
         }),
       );
 
