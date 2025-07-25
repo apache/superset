@@ -35,6 +35,11 @@ import { useTheme, css } from '@superset-ui/core';
 import { Global } from '@emotion/react';
 
 export { getTooltipHTML } from './Tooltip';
+export { useJsonValidation } from './useJsonValidation';
+export type {
+  JsonValidationAnnotation,
+  UseJsonValidationOptions,
+} from './useJsonValidation';
 
 export interface AceCompleterKeywordData {
   name: string;

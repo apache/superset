@@ -33,6 +33,7 @@ import {
   Tooltip,
   Alert,
 } from '@superset-ui/core/components';
+import { useJsonValidation } from '@superset-ui/core/components/AsyncAceEditor';
 import { Typography } from '@superset-ui/core/components/Typography';
 
 import { OnlyKeyWithType } from 'src/utils/types';
@@ -103,7 +104,14 @@ const ThemeModal: FunctionComponent<ThemeModalProps> = ({
   const isEditMode = theme !== null;
   const isSystemTheme = currentTheme?.is_system === true;
   const isReadOnly = isSystemTheme;
+
   const canDevelopThemes = canDevelop;
+
+  // JSON validation annotations using reusable hook
+  const jsonAnnotations = useJsonValidation(currentTheme?.json_data, {
+    enabled: !isReadOnly,
+    errorPrefix: 'Invalid JSON syntax',
+  });
 
   // theme fetch logic
   const {
@@ -369,6 +377,9 @@ const ThemeModal: FunctionComponent<ThemeModalProps> = ({
                 height="300px"
                 wrapEnabled
                 readOnly={isReadOnly}
+                showGutter
+                showPrintMargin={false}
+                annotations={jsonAnnotations}
               />
             </StyledJsonEditor>
             {canDevelopThemes && (
