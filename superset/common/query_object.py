@@ -131,6 +131,7 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
         series_columns: list[Column] | None = None,
         series_limit: int = 0,
         series_limit_metric: Metric | None = None,
+        group_others_when_limit_reached: bool = False,
         time_range: str | None = None,
         time_shift: str | None = None,
         **kwargs: Any,
@@ -154,6 +155,7 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
         self._init_series_columns(series_columns, metrics, is_timeseries)
         self.series_limit = series_limit
         self.series_limit_metric = series_limit_metric
+        self.group_others_when_limit_reached = group_others_when_limit_reached
         self.time_range = time_range
         self.time_shift = time_shift
         self.from_dttm = kwargs.get("from_dttm")
