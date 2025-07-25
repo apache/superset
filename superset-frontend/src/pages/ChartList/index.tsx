@@ -387,7 +387,10 @@ function ChartList(props: ChartListProps) {
           },
         }: any) => (
           <Tooltip title={dsNameTxt} placement="top">
-            <GenericLink to={dsUrl}>{dsNameTxt?.split('.')[1]}</GenericLink>
+            {/* dsNameTxt can be undefined, schema.name or just name */}
+            <GenericLink to={dsUrl}>
+              {dsNameTxt ? dsNameTxt.split('.')[1] || dsNameTxt : ''}
+            </GenericLink>
           </Tooltip>
         ),
         Header: t('Dataset'),
