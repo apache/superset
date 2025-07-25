@@ -351,6 +351,16 @@ class DatasetDAO(BaseDAO[SqlaTable]):
             .one_or_none()
         )
 
+    @staticmethod
+    def get_table_by_schema_and_name(
+        database_id: int, schema: str, table_name: str
+    ) -> SqlaTable | None:
+        return (
+            db.session.query(SqlaTable)
+            .filter_by(database_id=database_id, schema=schema, table_name=table_name)
+            .one_or_none()
+        )
+
 
 class DatasetColumnDAO(BaseDAO[TableColumn]):
     pass
