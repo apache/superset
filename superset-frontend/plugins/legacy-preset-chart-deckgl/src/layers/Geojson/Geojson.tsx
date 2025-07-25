@@ -31,7 +31,6 @@ import {
   SetDataMaskHook,
 } from '@superset-ui/core';
 
-import { Prev } from '@superset-ui/core/src/components/Pagination/Prev';
 import {
   DeckGLContainerHandle,
   DeckGLContainerStyledWrapper,

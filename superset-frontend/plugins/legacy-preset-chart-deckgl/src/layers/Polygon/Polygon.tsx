@@ -57,6 +57,7 @@ import { TooltipProps } from '../../components/Tooltip';
 import { GetLayerType } from '../../factory';
 import { COLOR_SCHEME_TYPES } from '../../utilities/utils';
 import { DEFAULT_DECKGL_COLOR } from '../../utilities/Shared_DeckGL';
+import { Point } from '../../types';
 
 const DOUBLE_CLICK_THRESHOLD = 250; // milliseconds
 
@@ -181,7 +182,9 @@ export const getLayer: GetLayerType<PolygonLayer> = function ({
   }
 
   // when polygons are selected, reduce the opacity of non-selected polygons
-  const colorScaler = (d: JsonObject): [number, number, number, number] => {
+  const colorScaler = (d: {
+    polygon: Point[];
+  }): [number, number, number, number] => {
     const baseColor = (baseColorScaler(d) as [
       number,
       number,
@@ -202,7 +205,7 @@ export const getLayer: GetLayerType<PolygonLayer> = function ({
 
     if (
       selectedPolygons.length > 0 &&
-      !ensureIsArray(selected).includes(d[fd.line_column])
+      !ensureIsArray(selected).includes(polygonPoints)
     ) {
       baseColor[3] /= 2;
     }

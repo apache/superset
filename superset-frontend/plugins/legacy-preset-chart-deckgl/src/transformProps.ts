@@ -39,8 +39,6 @@ export default function transformProps(chartProps: ChartProps) {
     setDataMask = NOOP,
   } = hooks;
 
-  console.log('dsfdsf', emitCrossFilters);
-
   return {
     datasource,
     emitCrossFilters,
