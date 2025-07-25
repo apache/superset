@@ -16,6 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+/**
+ * Export DnD (Drag and Drop) control components:
+ * - DndSelectLabel: Base label component for DnD controls
+ * - DndColumnSelect: Column selection control
+ * - DndFilterSelect: Filter selection control
+ * - DndMetricSelect: Metric selection control
+ * - DndColumnMetricSelect: Combined column and metric selection control
+ */
 export { default } from './DndSelectLabel';
 export * from './DndColumnSelect';
 export * from './DndFilterSelect';

@@ -113,6 +113,7 @@ const ExplorePanelContainer = styled.div`
       flex-direction: column;
       padding: ${theme.sizeUnit * 2}px 0;
       max-height: 100%;
+      overflow: visible;
     }
     .data-source-selection {
       padding: ${theme.sizeUnit * 2}px 0;
@@ -130,6 +131,7 @@ const ExplorePanelContainer = styled.div`
     .controls-column {
       align-self: flex-start;
       padding: 0;
+      overflow: visible;
     }
     .title-container {
       position: relative;
@@ -246,6 +248,28 @@ function setSidebarWidths(key, dimension) {
   setItem(key, newDimension);
 }
 
+// Chart types that use aggregation and can have multiple values in tooltips
+const AGGREGATED_CHART_TYPES = [
+  // Deck.gl aggregated charts
+  'deck_screengrid',
+  'deck_heatmap',
+  'deck_contour',
+  'deck_hex',
+  'deck_grid',
+  // Other aggregated chart types can be added here
+  'heatmap',
+  'treemap',
+  'sunburst',
+  'pie',
+  'donut',
+  'histogram',
+  'table',
+];
+
+function isAggregatedChartType(vizType) {
+  return AGGREGATED_CHART_TYPES.includes(vizType);
+}
+
 function ExploreViewContainer(props) {
   const dynamicPluginContext = usePluginContext();
   const dynamicPlugin = dynamicPluginContext.dynamicPlugins[props.vizType];
@@ -327,6 +351,15 @@ function ExploreViewContainer(props) {
     addHistory();
     setLastQueriedControls(props.controls);
   }, [props.controls, addHistory, props.actions, props.chart.id]);
+
+  // Simple debounced auto-query for non-renderTrigger controls
+  const debouncedAutoQuery = useMemo(
+    () =>
+      debounce(() => {
+        onQuery();
+      }, 1000), // 1 second delay
+    [onQuery],
+  );
 
   const handleKeydown = useCallback(
     event => {
@@ -482,15 +515,30 @@ function ExploreViewContainer(props) {
             return null;
           };
 
+          // Check if this is an aggregated chart type that needs limit formatting
+          const vizType = props.form_data?.viz_type || '';
+          const isAggregatedChart = isAggregatedChartType(vizType);
+
           const fieldNames = tooltipContents.map(getFieldName).filter(Boolean);
           const missingVariables = fieldNames.filter(
-            fieldName => !currentTemplate.includes(`{{ ${fieldName} }}`),
+            fieldName =>
+              !currentTemplate.includes(`{{ ${fieldName} }}`) &&
+              !currentTemplate.includes(`{{ limit ${fieldName}`),
           );
 
           if (missingVariables.length > 0) {
-            const newVariables = missingVariables.map(
-              fieldName => `{{ ${fieldName} }}`,
-            );
+            const newVariables = missingVariables.map(fieldName => {
+              const item = tooltipContents[fieldNames.indexOf(fieldName)];
+              const isColumn =
+                item?.item_type === 'column' || typeof item === 'string';
+
+              if (isAggregatedChart && isColumn) {
+                // For aggregated charts with columns, use limit filter with singular form
+                return `{{ limit ${fieldName} 10 }}`;
+              }
+              // For metrics or non-aggregated charts, use simple variable format
+              return `{{ ${fieldName} }}`;
+            });
             const updatedTemplate =
               currentTemplate +
               (currentTemplate ? ' ' : '') +
@@ -508,8 +556,25 @@ function ExploreViewContainer(props) {
       if (displayControlsChanged.length > 0) {
         reRenderChart(displayControlsChanged);
       }
+
+      // Auto-update for non-renderTrigger controls
+      const queryControlsChanged = changedControlKeys.filter(
+        key =>
+          !props.controls[key].renderTrigger &&
+          !props.controls[key].dontRefreshOnChange,
+      );
+      if (queryControlsChanged.length > 0) {
+        // Check if there are no validation errors before auto-updating
+        const hasErrors = Object.values(props.controls).some(
+          control =>
+            control.validationErrors && control.validationErrors.length > 0,
+        );
+        if (!hasErrors) {
+          debouncedAutoQuery();
+        }
+      }
     }
-  }, [props.controls, props.ownState]);
+  }, [props.controls, props.ownState, debouncedAutoQuery]);
 
   const chartIsStale = useMemo(() => {
     if (lastQueriedControls) {

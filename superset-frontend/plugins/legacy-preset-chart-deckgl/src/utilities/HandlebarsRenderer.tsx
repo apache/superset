@@ -194,4 +194,26 @@ Handlebars.registerHelper('getField', function (array, fieldName) {
   return values.slice(0, 3).join(', ') + (values.length > 3 ? '...' : '');
 });
 
+Handlebars.registerHelper('limit', function (value, limit) {
+  if (!value) return '';
+
+  // Handle arrays
+  if (Array.isArray(value)) {
+    const limitedArray = value.slice(0, limit);
+    return limitedArray.join(', ') + (value.length > limit ? '...' : '');
+  }
+
+  // Handle strings (comma-separated values)
+  if (typeof value === 'string') {
+    const items = value.split(',').map(item => item.trim());
+    if (items.length <= limit) return value;
+
+    const limitedItems = items.slice(0, limit);
+    return `${limitedItems.join(', ')}...`;
+  }
+
+  // For other types, return as-is
+  return value;
+});
+
 export default HandlebarsRenderer;

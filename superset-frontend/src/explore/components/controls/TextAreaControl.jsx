@@ -18,6 +18,7 @@
  */
 import { Component } from 'react';
 import PropTypes from 'prop-types';
+import { debounce } from 'lodash';
 import {
   Input,
   Tooltip,
@@ -26,6 +27,9 @@ import {
   ModalTrigger,
 } from '@superset-ui/core/components';
 import { t, withTheme } from '@superset-ui/core';
+
+// Import Ace Editor modes
+import 'ace-builds/src-min-noconflict/mode-handlebars';
 
 import ControlHeader from 'src/explore/components/ControlHeader';
 
@@ -44,6 +48,7 @@ const propTypes = {
     'sql',
     'markdown',
     'javascript',
+    'handlebars',
   ]),
   aboveEditorSection: PropTypes.node,
   readOnly: PropTypes.bool,
@@ -59,6 +64,7 @@ const propTypes = {
   textAreaStyles: PropTypes.object,
   tooltipOptions: PropTypes.object,
   hotkeys: PropTypes.array,
+  debounceDelay: PropTypes.number,
 };
 
 const defaultProps = {
@@ -73,16 +79,28 @@ const defaultProps = {
   textAreaStyles: {},
   tooltipOptions: {},
   hotkeys: [],
+  debounceDelay: null,
 };
 
 class TextAreaControl extends Component {
+  constructor(props) {
+    super(props);
+    if (props.debounceDelay) {
+      this.debouncedOnChange = debounce(props.onChange, props.debounceDelay);
+    }
+  }
+
   onControlChange(event) {
     const { value } = event.target;
     this.props.onChange(value);
   }
 
   onAreaEditorChange(value) {
-    this.props.onChange(value);
+    if (this.debouncedOnChange) {
+      this.debouncedOnChange(value);
+    } else {
+      this.props.onChange(value);
+    }
   }
 
   renderEditor(inModal = false) {

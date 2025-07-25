@@ -21,6 +21,11 @@ import { t, JsonObject, QueryFormData } from '@superset-ui/core';
 import { HandlebarsRenderer } from './HandlebarsRenderer';
 import TooltipRow from '../TooltipRow';
 import CustomTooltipWrapper from '../components/CustomTooltipWrapper';
+import {
+  isAggregatedDeckGLChart,
+  fieldHasMultipleValues,
+  createDefaultTemplateWithLimits,
+} from './multiValueUtils';
 
 /**
  * Common tooltip components that can be reused across charts
@@ -180,8 +185,8 @@ function createScreenGridData(
   const result: Record<string, any> = {};
 
   if (extractResult.allValues.length > 0) {
-    result[fieldName] = extractResult.value;
-    result[`${fieldName}s`] = extractResult.allValues.join(', ');
+    result[fieldName] = extractResult.allValues; // Use array for limit helper
+    result[`${fieldName}s`] = extractResult.allValues.join(', '); // Keep for backward compatibility
     result[`${fieldName}_count`] = extractResult.allValues.length;
   } else {
     const count = o.object?.count || 0;
@@ -224,8 +229,8 @@ function processTooltipContentItem(
 
   if (extractResult.allValues.length > 0) {
     return {
-      [fieldName]: value,
-      [`${fieldName}s`]: extractResult.allValues.join(', '),
+      [fieldName]: extractResult.allValues, // Use array for limit helper
+      [`${fieldName}s`]: extractResult.allValues.join(', '), // Keep for backward compatibility
       [`${fieldName}_count`]: extractResult.allValues.length,
     };
   }
@@ -308,6 +313,16 @@ export function createHandlebarsTooltipData(
   }
 
   return data;
+}
+
+/**
+ * Generates enhanced default template for tooltip contents with multi-value field limits
+ */
+export function generateEnhancedDefaultTemplate(
+  tooltipContents: any[],
+  formData: QueryFormData,
+): string {
+  return createDefaultTemplateWithLimits(tooltipContents, formData);
 }
 
 /**

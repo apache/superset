@@ -18,12 +18,15 @@
  */
 
 import { useState, useCallback, useMemo, useEffect } from 'react';
-import { t } from '@superset-ui/core';
-import {
-  StyledComponents,
-  NoFieldsMessage,
-  HelpToggleButton,
-} from './TooltipTemplateEditorStyles';
+import { t, styled } from '@superset-ui/core';
+import { StyledComponents } from './TooltipTemplateEditorStyles';
+
+interface TooltipField {
+  id: string;
+  name: string;
+  label: string;
+  type: string;
+}
 
 export interface TooltipTemplateEditorProps {
   value: string;
@@ -33,12 +36,33 @@ export interface TooltipTemplateEditorProps {
   tooltipContents?: any[];
 }
 
-interface TooltipField {
-  id: string;
-  name: string;
-  label: string;
-  type: string;
-}
+const NoFieldsMessage = styled.p`
+  margin-top: ${({ theme }) => theme.sizeUnit * 2}px;
+  font-style: italic;
+  color: ${({ theme }) => theme.colorTextSecondary};
+  text-align: center;
+  padding: ${({ theme }) => theme.sizeUnit * 5}px;
+`;
+
+const HelpToggleButton = styled.button`
+  padding: ${({ theme }) => theme.sizeUnit}px
+    ${({ theme }) => theme.sizeUnit * 2}px;
+  font-size: ${({ theme }) => theme.fontSizeXS}px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  text-decoration: underline;
+  color: ${({ theme }) => theme.colorPrimary};
+
+  &:hover {
+    color: ${({ theme }) => theme.colorPrimaryBorder};
+  }
+
+  &:focus {
+    outline: 2px solid ${({ theme }) => theme.colorPrimary};
+    outline-offset: 2px;
+  }
+`;
 
 function extractFieldFromItem(item: any, index: number): TooltipField | null {
   let fieldName = '';

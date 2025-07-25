@@ -147,9 +147,35 @@ const Styles = styled.div`
     overflow: visible;
   }
   .tab-content {
-    overflow: auto;
+    overflow: visible;
     flex: 1 1 100%;
   }
+
+  // Ensure Ant Design tabs allow content to expand
+  .ant-tabs-content {
+    overflow: visible !important;
+    height: auto !important;
+  }
+
+  .ant-tabs-content-holder {
+    overflow: visible !important;
+    height: auto !important;
+  }
+
+  .ant-tabs-tabpane {
+    overflow: visible !important;
+    height: auto !important;
+  }
+
+  // Ensure collapse components can expand
+  .ant-collapse-content {
+    overflow: visible !important;
+  }
+
+  .ant-collapse-content-box {
+    overflow: visible !important;
+  }
+
   .Select__menu {
     max-width: 100%;
   }

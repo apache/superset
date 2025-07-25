@@ -185,10 +185,21 @@ const ColumnSelectPopover = ({
   // Filter metrics that are already selected in the chart
   const availableMetrics = useMemo(() => {
     if (!metrics?.length) return [];
-    return metrics.filter(metric =>
-      selectedMetrics.includes(metric.metric_name),
-    );
+    const selectedMetricsSet = new Set(selectedMetrics);
+    return metrics.filter(metric => selectedMetricsSet.has(metric.metric_name));
   }, [metrics, selectedMetrics]);
+
+  const columnMap = useMemo(
+    () => Object.fromEntries(simpleColumns.map(col => [col.column_name, col])),
+    [simpleColumns],
+  );
+  const metricMap = useMemo(
+    () =>
+      Object.fromEntries(
+        availableMetrics.map(metric => [metric.metric_name, metric]),
+      ),
+    [availableMetrics],
+  );
 
   const onSqlExpressionChange = useCallback(
     sqlExpression => {
@@ -250,27 +261,18 @@ const ColumnSelectPopover = ({
 
   const onSimpleItemChange = useCallback(
     selectedValue => {
-      const selectedColumn = simpleColumns.find(
-        col => col.column_name === selectedValue,
-      );
+      const selectedColumn = columnMap[selectedValue];
       if (selectedColumn) {
         onSimpleColumnChange(selectedValue);
         return;
       }
 
-      const selectedMetric = availableMetrics.find(
-        metric => metric.metric_name === selectedValue,
-      );
+      const selectedMetric = metricMap[selectedValue];
       if (selectedMetric) {
         onSimpleMetricChange(selectedValue);
       }
     },
-    [
-      simpleColumns,
-      availableMetrics,
-      onSimpleColumnChange,
-      onSimpleMetricChange,
-    ],
+    [columnMap, metricMap, onSimpleColumnChange, onSimpleMetricChange],
   );
 
   const defaultActiveTabKey = initialAdhocColumn

@@ -38,6 +38,46 @@ import MetricDefinitionValue from 'src/explore/components/controls/MetricControl
 import ColumnSelectPopoverTrigger from './ColumnSelectPopoverTrigger';
 import { DndControlProps } from './types';
 
+// Multi-value utilities for deck.gl tooltips
+const AGGREGATED_DECK_GL_CHART_TYPES = [
+  'deck_screengrid',
+  'deck_heatmap',
+  'deck_contour',
+  'deck_hex',
+  'deck_grid',
+];
+
+const MULTI_VALUE_WARNING_MESSAGE =
+  'This metric or column contains many values, they may not be able to be all displayed in the tooltip';
+
+function isAggregatedDeckGLChart(vizType: string): boolean {
+  return AGGREGATED_DECK_GL_CHART_TYPES.includes(vizType);
+}
+
+function fieldHasMultipleValues(item: any, formData: any): boolean {
+  // Only aggregated deck.gl charts can have multiple values
+  if (!formData?.viz_type || !isAggregatedDeckGLChart(formData.viz_type)) {
+    return false;
+  }
+
+  // Skip metrics for now - they are typically aggregated already
+  if (item?.item_type === 'metric') {
+    return false;
+  }
+
+  // Columns in aggregated charts can have multiple values
+  if (item?.item_type === 'column') {
+    return true;
+  }
+
+  // String columns can have multiple values
+  if (typeof item === 'string') {
+    return true;
+  }
+
+  return false;
+}
+
 const DND_ACCEPTED_TYPES = [DndItemType.Column, DndItemType.Metric];
 
 type ColumnMetricValue =
@@ -53,6 +93,7 @@ export type DndColumnMetricSelectProps = DndControlProps<ColumnMetricValue> & {
   selectedMetrics?: QueryFormMetric[];
   isTemporal?: boolean;
   disabledTabs?: Set<string>;
+  formData?: any;
 };
 
 const isDictionaryForAdhocMetric = (
@@ -79,6 +120,7 @@ function DndColumnMetricSelect(props: DndColumnMetricSelectProps) {
     label,
     isTemporal,
     disabledTabs,
+    formData,
   } = props;
 
   const [newColumnPopoverVisible, setNewColumnPopoverVisible] = useState(false);
@@ -239,6 +281,17 @@ function DndColumnMetricSelect(props: DndColumnMetricSelectProps) {
           const datasourceWarningMessage = undefined; // Columns from current datasource
           const withCaret = true;
 
+          // Check if this field has multiple values in deck.gl tooltips
+          const columnItem = {
+            item_type: 'column',
+            column_name: item,
+          };
+          const hasMultipleValues =
+            formData && fieldHasMultipleValues(columnItem, formData);
+          const multiValueWarningMessage = hasMultipleValues
+            ? MULTI_VALUE_WARNING_MESSAGE
+            : undefined;
+
           return (
             <ColumnSelectPopoverTrigger
               key={`column-${idx}`}
@@ -266,6 +319,7 @@ function DndColumnMetricSelect(props: DndColumnMetricSelectProps) {
                 column={column}
                 datasourceWarningMessage={datasourceWarningMessage}
                 withCaret={withCaret}
+                multiValueWarningMessage={multiValueWarningMessage}
               />
             </ColumnSelectPopoverTrigger>
           );

@@ -1868,6 +1868,39 @@ class DeckScreengrid(BaseDeckGLViz):
     spatial_control_keys = ["spatial"]
     is_timeseries = True
 
+    def _extract_tooltip_columns(self) -> list[str]:
+        """Extract column names from tooltip_contents configuration."""
+        tooltip_columns = []
+        if tooltip_contents := self.form_data.get("tooltip_contents", []):
+            for item in tooltip_contents:
+                if isinstance(item, str):
+                    tooltip_columns.append(item)
+                elif isinstance(item, dict) and item.get("item_type") == "column":
+                    column_name = item.get("column_name")
+                    if column_name:
+                        tooltip_columns.append(column_name)
+        return tooltip_columns
+
+    def _add_tooltip_columns_to_query(
+        self, query_obj: QueryObjectDict, tooltip_columns: list[str]
+    ) -> None:
+        """Add tooltip columns to the appropriate query field."""
+        if not tooltip_columns:
+            return
+
+        if query_obj.get("metrics"):
+            # Add to groupby when metrics exist
+            existing_groupby = set(query_obj.get("groupby", []))
+            for col in tooltip_columns:
+                if col not in existing_groupby:
+                    query_obj.setdefault("groupby", []).append(col)
+        else:
+            # Add to columns when no metrics
+            existing_columns = set(query_obj.get("columns", []))
+            for col in tooltip_columns:
+                if col not in existing_columns:
+                    query_obj.setdefault("columns", []).append(col)
+
     @deprecated(deprecated_in="3.0")
     def query_obj(self) -> QueryObjectDict:
         self.is_timeseries = bool(self.form_data.get("time_grain_sqla"))
@@ -1966,6 +1999,34 @@ class DeckPathViz(BaseDeckGLViz):
         "geohash": geohash_to_json,
     }
 
+    def _extract_tooltip_columns(self) -> list[str]:
+        tooltip_columns = []
+        if tooltip_contents := self.form_data.get("tooltip_contents", []):
+            for item in tooltip_contents:
+                if isinstance(item, str):
+                    tooltip_columns.append(item)
+                elif isinstance(item, dict) and item.get("item_type") == "column":
+                    column_name = item.get("column_name")
+                    if column_name:
+                        tooltip_columns.append(column_name)
+        return tooltip_columns
+
+    def _add_tooltip_columns_to_query(
+        self, query_obj: QueryObjectDict, tooltip_columns: list[str]
+    ) -> None:
+        if not tooltip_columns:
+            return
+        if query_obj.get("metrics"):
+            existing_groupby = set(query_obj.get("groupby", []))
+            for col in tooltip_columns:
+                if col not in existing_groupby:
+                    query_obj.setdefault("groupby", []).append(col)
+        else:
+            existing_columns = set(query_obj.get("columns", []))
+            for col in tooltip_columns:
+                if col not in existing_columns:
+                    query_obj.setdefault("columns", []).append(col)
+
     @deprecated(deprecated_in="3.0")
     def query_obj(self) -> QueryObjectDict:
         # pylint: disable=attribute-defined-outside-init
@@ -2010,6 +2071,34 @@ class DeckPolygon(DeckPathViz):
     viz_type = "deck_polygon"
     deck_viz_key = "polygon"
     verbose_name = _("Deck.gl - Polygon")
+
+    def _extract_tooltip_columns(self) -> list[str]:
+        tooltip_columns = []
+        if tooltip_contents := self.form_data.get("tooltip_contents", []):
+            for item in tooltip_contents:
+                if isinstance(item, str):
+                    tooltip_columns.append(item)
+                elif isinstance(item, dict) and item.get("item_type") == "column":
+                    column_name = item.get("column_name")
+                    if column_name:
+                        tooltip_columns.append(column_name)
+        return tooltip_columns
+
+    def _add_tooltip_columns_to_query(
+        self, query_obj: QueryObjectDict, tooltip_columns: list[str]
+    ) -> None:
+        if not tooltip_columns:
+            return
+        if query_obj.get("metrics"):
+            existing_groupby = set(query_obj.get("groupby", []))
+            for col in tooltip_columns:
+                if col not in existing_groupby:
+                    query_obj.setdefault("groupby", []).append(col)
+        else:
+            existing_columns = set(query_obj.get("columns", []))
+            for col in tooltip_columns:
+                if col not in existing_columns:
+                    query_obj.setdefault("columns", []).append(col)
 
     @deprecated(deprecated_in="3.0")
     def query_obj(self) -> QueryObjectDict:
@@ -2179,6 +2268,34 @@ class DeckArc(BaseDeckGLViz):
     verbose_name = _("Deck.gl - Arc")
     spatial_control_keys = ["start_spatial", "end_spatial"]
     is_timeseries = True
+
+    def _extract_tooltip_columns(self) -> list[str]:
+        tooltip_columns = []
+        if tooltip_contents := self.form_data.get("tooltip_contents", []):
+            for item in tooltip_contents:
+                if isinstance(item, str):
+                    tooltip_columns.append(item)
+                elif isinstance(item, dict) and item.get("item_type") == "column":
+                    column_name = item.get("column_name")
+                    if column_name:
+                        tooltip_columns.append(column_name)
+        return tooltip_columns
+
+    def _add_tooltip_columns_to_query(
+        self, query_obj: QueryObjectDict, tooltip_columns: list[str]
+    ) -> None:
+        if not tooltip_columns:
+            return
+        if query_obj.get("metrics"):
+            existing_groupby = set(query_obj.get("groupby", []))
+            for col in tooltip_columns:
+                if col not in existing_groupby:
+                    query_obj.setdefault("groupby", []).append(col)
+        else:
+            existing_columns = set(query_obj.get("columns", []))
+            for col in tooltip_columns:
+                if col not in existing_columns:
+                    query_obj.setdefault("columns", []).append(col)
 
     @deprecated(deprecated_in="3.0")
     def query_obj(self) -> QueryObjectDict:

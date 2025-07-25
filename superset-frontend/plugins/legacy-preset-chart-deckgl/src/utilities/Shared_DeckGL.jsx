@@ -401,6 +401,29 @@ export const geojsonColumn = {
   },
 };
 
+const extractMetricsFromFormData = formData => {
+  const metrics = [];
+  // Extract from controls
+  Object.values(formData).forEach(value => {
+    if (value?.type === 'metric' && value?.value) {
+      metrics.push(value.value);
+    }
+  });
+  // Extract from metrics field
+  if (formData.metrics) {
+    metrics.push(
+      ...(Array.isArray(formData.metrics)
+        ? formData.metrics
+        : [formData.metrics]),
+    );
+  }
+  // Extract from point radius
+  if (formData.point_radius_fixed?.value) {
+    metrics.push(formData.point_radius_fixed.value);
+  }
+  return [...new Set(metrics)];
+};
+
 export const tooltipContents = {
   name: 'tooltip_contents',
   config: {
@@ -418,36 +441,17 @@ export const tooltipContents = {
     mapStateToProps: state => {
       const { datasource, form_data: formData } = state;
 
-      const selectedMetrics = [];
+      const selectedMetrics = formData
+        ? extractMetricsFromFormData(formData)
+        : [];
 
-      if (formData) {
-        // Scan form_data for FixedOrMetricControl patterns
-        Object.values(formData).forEach(value => {
-          if (value?.type === 'metric' && value?.value) {
-            selectedMetrics.push(value.value);
-          }
-        });
-
-        // Also check standard metrics field
-        if (formData.metrics) {
-          selectedMetrics.push(
-            ...(Array.isArray(formData.metrics)
-              ? formData.metrics
-              : [formData.metrics]),
-          );
-        }
-
-        // Add point_radius_fixed metric if it exists
-        if (formData.point_radius_fixed?.value) {
-          selectedMetrics.push(formData.point_radius_fixed.value);
-        }
-      }
       return {
         columns: datasource?.columns || [],
         savedMetrics: datasource?.metrics || [],
         datasource,
-        selectedMetrics: [...new Set(selectedMetrics)], // Remove duplicates
+        selectedMetrics,
         disabledTabs: new Set(['saved', 'sqlExpression']),
+        formData, // Pass form data to enable multi-value warning detection
       };
     },
   },
@@ -458,12 +462,18 @@ export const tooltipTemplate = {
   config: {
     type: 'TextAreaControl',
     label: t('Customize tooltips template'),
-    language: 'html',
-    height: 200,
+    language: 'handlebars',
+    height: 100,
+    minLines: 6,
+    textAreaStyles: {
+      minHeight: '100px',
+      height: '100px',
+    },
+    debounceDelay: 500,
     offerEditInModal: false,
     default: '',
     description: t(
-      'Handlebars template for custom tooltips with advanced formatting helpers. Available variables will be populated based on your tooltip contents selection above.',
+      'Handlebars template for custom tooltips with advanced formatting helpers. Available variables will be populated based on your tooltip contents selection above. For aggregated charts, use {{limit fields 10}} to show only the first 10 values (note: use the plural form "fields" for multi-value data).',
     ),
     placeholder: t(
       'Template will be auto-generated based on tooltip contents above...',
