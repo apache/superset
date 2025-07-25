@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 
+
 import pytest
 
 from superset.themes.types import ThemeMode, ThemeSettingsKey
