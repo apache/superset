@@ -21,6 +21,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { URL_PARAMS } from 'src/constants';
 import { getUrlParam } from 'src/utils/urlUtils';
 import { RootState } from 'src/dashboard/types';
+import { isFeatureEnabled, FeatureFlag } from '@superset-ui/core';
 import {
   useFilters,
   useNativeFiltersDataMask,
@@ -30,7 +31,7 @@ import {
 export const useNativeFilters = () => {
   const [isInitialized, setIsInitialized] = useState(false);
   const showNativeFilters = useSelector<RootState, boolean>(
-    state => getUrlParam(URL_PARAMS.showFilters) ?? true,
+    () => getUrlParam(URL_PARAMS.showFilters) ?? true,
   );
   const canEdit = useSelector<RootState, boolean>(
     ({ dashboardInfo }) => dashboardInfo.dash_edit_perm,
@@ -71,6 +72,8 @@ export const useNativeFilters = () => {
 
   useEffect(() => {
     if (
+      (isFeatureEnabled(FeatureFlag.FilterBarClosedByDefault) &&
+        expandFilters === null) ||
       expandFilters === false ||
       (filterValues.length === 0 && nativeFiltersEnabled)
     ) {

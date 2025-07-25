@@ -27,7 +27,7 @@ class OracleEngineSpec(BaseEngineSpec):
     engine = "oracle"
     engine_name = "Oracle"
     force_column_alias_quotes = True
-    max_column_name_length = 30
+    max_column_name_length = 128
 
     _time_grain_expressions = {
         None: "{col}",

@@ -54,7 +54,7 @@ from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.url import URL
 from sqlalchemy.ext.compiler import compiles
 from sqlalchemy.sql import literal_column, quoted_name, text
-from sqlalchemy.sql.expression import ColumnClause, Select, TextClause
+from sqlalchemy.sql.expression import BinaryExpression, ColumnClause, Select, TextClause
 from sqlalchemy.types import TypeEngine
 
 from superset import db
@@ -377,6 +377,10 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     disallow_uri_query_params: dict[str, set[str]] = {}
     # A Dict of query parameters that will always be used on every connection
     # by driver name
+
+    # Whether to use equality operators (= true/false) instead of IS operators
+    # for boolean filters. Some databases like Snowflake don't support IS true/false
+    use_equality_for_boolean_filters = False
     enforce_uri_query_params: dict[str, dict[str, Any]] = {}
 
     force_column_alias_quotes = False
@@ -1201,6 +1205,78 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         :return: The SQL expression
         """
         return None
+
+    @classmethod
+    def handle_boolean_filter(
+        cls, sqla_col: Any, op: str, value: bool
+    ) -> BinaryExpression:
+        """
+        Handle boolean filter operations with engine-specific logic.
+
+        By default, uses SQLAlchemy's IS operator (column IS true/false).
+        Engines that don't support IS for boolean values can override
+        use_equality_for_boolean_filters to use equality operators instead.
+
+        :param sqla_col: SQLAlchemy column element
+        :param op: Filter operator (IS_TRUE or IS_FALSE)
+        :param value: Boolean value (True or False)
+        :return: SQLAlchemy expression for the boolean filter
+        """
+        if cls.use_equality_for_boolean_filters:
+            return sqla_col == value
+        else:
+            return sqla_col.is_(value)
+
+    @classmethod
+    def handle_null_filter(
+        cls,
+        sqla_col: Any,
+        op: utils.FilterOperator,
+    ) -> BinaryExpression:
+        """
+        Handle null/not null filter operations.
+
+        :param sqla_col: SQLAlchemy column element
+        :param op: Filter operator (IS_NULL or IS_NOT_NULL)
+        :return: SQLAlchemy expression for the null filter
+        """
+        from superset.utils import core as utils
+
+        if op == utils.FilterOperator.IS_NULL:
+            return sqla_col.is_(None)
+        elif op == utils.FilterOperator.IS_NOT_NULL:
+            return sqla_col.isnot(None)
+        else:
+            raise ValueError(f"Invalid null filter operator: {op}")
+
+    @classmethod
+    def handle_comparison_filter(
+        cls, sqla_col: Any, op: utils.FilterOperator, value: Any
+    ) -> BinaryExpression:
+        """
+        Handle comparison filter operations (=, !=, >, <, >=, <=).
+
+        :param sqla_col: SQLAlchemy column element
+        :param op: Filter operator
+        :param value: Filter value
+        :return: SQLAlchemy expression for the comparison filter
+        """
+        from superset.utils import core as utils
+
+        if op == utils.FilterOperator.EQUALS:
+            return sqla_col == value
+        elif op == utils.FilterOperator.NOT_EQUALS:
+            return sqla_col != value
+        elif op == utils.FilterOperator.GREATER_THAN:
+            return sqla_col > value
+        elif op == utils.FilterOperator.LESS_THAN:
+            return sqla_col < value
+        elif op == utils.FilterOperator.GREATER_THAN_OR_EQUALS:
+            return sqla_col >= value
+        elif op == utils.FilterOperator.LESS_THAN_OR_EQUALS:
+            return sqla_col <= value
+        else:
+            raise ValueError(f"Invalid comparison filter operator: {op}")
 
     @classmethod
     def handle_cursor(cls, cursor: Any, query: Query) -> None:

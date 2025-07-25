@@ -64,6 +64,7 @@ import {
   setDashboardMetadata,
 } from 'src/dashboard/actions/dashboardState';
 import { areObjectsEqual } from 'src/reduxUtils';
+import { ModalTitleWithIcon } from 'src/components/ModalTitleWithIcon';
 
 const StyledJsonEditor = styled(JsonEditor)`
   border-radius: ${({ theme }) => theme.borderRadius}px;
@@ -383,7 +384,7 @@ const PropertiesModal = ({
 
     currentJsonMetadata = jsonStringify(metadata);
 
-    const moreOnSubmitProps: { roles?: Roles } = {};
+    const moreOnSubmitProps: { roles?: Roles; tags?: TagType[] } = {};
     const morePutProps: {
       roles?: number[];
       tags?: (string | number | undefined)[];
@@ -393,6 +394,7 @@ const PropertiesModal = ({
       morePutProps.roles = (roles || []).map(r => r.id);
     }
     if (isFeatureEnabled(FeatureFlag.TaggingSystem)) {
+      moreOnSubmitProps.tags = tags;
       morePutProps.tags = tags.map(tag => tag.id);
     }
     const onSubmitProps = {
@@ -600,11 +602,17 @@ const PropertiesModal = ({
     setTags(parsedTags);
   };
 
+  const handleClearTags = () => {
+    setTags([]);
+  };
+
   return (
     <Modal
       show={show}
       onHide={handleOnCancel}
-      title={t('Dashboard properties')}
+      title={
+        <ModalTitleWithIcon isEditMode title={t('Dashboard properties')} />
+      }
       footer={
         <>
           <Button
@@ -725,6 +733,7 @@ const PropertiesModal = ({
                   value={tagsAsSelectValues}
                   options={loadTags}
                   onChange={handleChangeTags}
+                  onClear={handleClearTags}
                   allowClear
                 />
               </FormItem>

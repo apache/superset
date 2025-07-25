@@ -25,6 +25,7 @@ import {
   type UploadFile,
 } from '@superset-ui/core/components/Upload';
 import { Button, Input, Modal } from '@superset-ui/core/components';
+import { ModalTitleWithIcon } from 'src/components/ModalTitleWithIcon';
 import { ImportErrorAlert } from './ImportErrorAlert';
 import type { ImportModelsModalProps } from './types';
 
@@ -362,10 +363,10 @@ export const ImportModal: FunctionComponent<ImportModelsModalProps> = ({
       onHandledPrimaryAction={onUpload}
       onHide={hide}
       primaryButtonName={needsOverwriteConfirm ? t('Overwrite') : t('Import')}
-      primaryButtonType={needsOverwriteConfirm ? 'danger' : 'primary'}
+      primaryButtonStyle={needsOverwriteConfirm ? 'danger' : 'primary'}
       width="750px"
       show={show}
-      title={<h4>{t('Import %s', resourceLabel)}</h4>}
+      title={<ModalTitleWithIcon title={t('Import %s', resourceLabel)} />}
     >
       <StyledContainer>
         <Upload

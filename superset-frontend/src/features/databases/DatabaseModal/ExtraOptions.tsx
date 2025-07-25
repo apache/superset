@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ChangeEvent, EventHandler } from 'react';
+import { ChangeEvent, EventHandler, useState, useEffect } from 'react';
 import cx from 'classnames';
 import {
   t,
@@ -88,12 +88,21 @@ const ExtraOptions = ({
   const isAllowRunAsyncDisabled = isFeatureEnabled(
     FeatureFlag.ForceSqlLabRunAsync,
   );
+  const [activeKey, setActiveKey] = useState<string[] | undefined>();
+
+  useEffect(() => {
+    if (!expandableModalIsOpen && activeKey !== undefined) {
+      setActiveKey(undefined);
+    }
+  }, [expandableModalIsOpen, activeKey]);
 
   return (
     <Collapse
-      expandIconPosition="right"
+      expandIconPosition="end"
       accordion
       modalMode
+      activeKey={activeKey}
+      onChange={key => setActiveKey(key)}
       items={[
         {
           key: 'sql-lab',

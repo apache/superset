@@ -65,11 +65,15 @@ import { useChartsVerboseMaps } from '../utils';
 type FilterControlsProps = {
   dataMaskSelected: DataMaskStateWithId;
   onFilterSelectionChange: (filter: Filter, dataMask: DataMask) => void;
+  clearAllTriggers?: Record<string, boolean>;
+  onClearAllComplete?: (filterId: string) => void;
 };
 
 const FilterControls: FC<FilterControlsProps> = ({
   dataMaskSelected,
   onFilterSelectionChange,
+  clearAllTriggers,
+  onClearAllComplete,
 }) => {
   const filterBarOrientation = useSelector<RootState, FilterBarOrientation>(
     ({ dashboardInfo }) => dashboardInfo.filterBarOrientation,
@@ -100,6 +104,8 @@ const FilterControls: FC<FilterControlsProps> = ({
   const { filterControlFactory, filtersWithValues } = useFilterControlFactory(
     dataMaskSelected,
     onFilterSelectionChange,
+    clearAllTriggers,
+    onClearAllComplete,
   );
   const portalNodes = useMemo(() => {
     const nodes = new Array(filtersWithValues.length);

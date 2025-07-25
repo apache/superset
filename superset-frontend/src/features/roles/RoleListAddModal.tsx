@@ -17,8 +17,9 @@
  * under the License.
  */
 import { t } from '@superset-ui/core';
+import { ModalTitleWithIcon } from 'src/components/ModalTitleWithIcon';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
-import { FormModal } from '@superset-ui/core/components';
+import { FormModal, Icons } from '@superset-ui/core/components';
 import { createRole, updateRolePermissions } from './utils';
 import { PermissionsField, RoleNameField } from './RoleFormItems';
 import { BaseModalProps, FormattedPermission, RoleForm } from './types';
@@ -34,7 +35,6 @@ function RoleListAddModal({
   permissions,
 }: RoleListAddModalProps) {
   const { addDangerToast, addSuccessToast } = useToasts();
-
   const handleFormSubmit = async (values: RoleForm) => {
     try {
       const { json: roleResponse } = await createRole(values.roleName);
@@ -56,7 +56,13 @@ function RoleListAddModal({
     <FormModal
       show={show}
       onHide={onHide}
-      title={t('Add Role')}
+      name="Add Role"
+      title={
+        <ModalTitleWithIcon
+          title={t('Add Role')}
+          icon={<Icons.PlusOutlined />}
+        />
+      }
       onSave={onSave}
       formSubmitHandler={handleFormSubmit}
       requiredFields={['roleName']}

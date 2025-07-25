@@ -128,7 +128,7 @@ const ImageContainer = ({
       <Empty
         description={false}
         image={mappedImage}
-        imageStyle={getImageHeight(size)}
+        styles={{ image: getImageHeight(size) }}
       />
     </div>
   );
@@ -144,6 +144,7 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
   description = t('There is currently no information to display.'),
   image = 'empty.svg',
   buttonText,
+  buttonIcon,
   buttonAction,
   size = 'medium',
   children,
@@ -165,6 +166,7 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
       )}
       {buttonText && buttonAction && (
         <Button
+          icon={buttonIcon}
           buttonStyle="primary"
           onClick={buttonAction}
           onMouseDown={handleMouseDown}

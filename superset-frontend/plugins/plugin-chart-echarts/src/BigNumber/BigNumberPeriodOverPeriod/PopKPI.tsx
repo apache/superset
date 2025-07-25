@@ -202,10 +202,8 @@ export default function PopKPI(props: PopKPIProps) {
           comparisonColorScheme === ColorSchemeEnum.Red);
 
       // Set background and text colors based on the conditions
-      bgColor = useSuccess
-        ? theme.colors.success.light2
-        : theme.colors.error.light2;
-      txtColor = useSuccess ? theme.colorSuccess : theme.colorError;
+      bgColor = useSuccess ? theme.colorSuccessBg : theme.colorErrorBg;
+      txtColor = useSuccess ? theme.colorSuccessText : theme.colorErrorText;
     }
 
     return {

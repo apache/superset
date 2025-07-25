@@ -55,7 +55,6 @@ from tests.integration_tests.fixtures.importexport import (
     dashboard_export,
     dashboard_metadata_config,
     dataset_config,
-    dataset_metadata_config,
 )
 from tests.integration_tests.fixtures.tags import (
     create_custom_tags,  # noqa: F401
@@ -2313,7 +2312,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         self.login(ADMIN_USERNAME)
         uri = "api/v1/dashboard/import/"
 
-        buf = self.create_dashboard_import()
+        buf = self.create_import_v1_zip_file("dashboard")
         form_data = {
             "formData": (buf, "dashboard_export.zip"),
         }
@@ -2418,7 +2417,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         self.login(ADMIN_USERNAME)
         uri = "api/v1/dashboard/import/"
 
-        buf = self.create_dashboard_import()
+        buf = self.create_import_v1_zip_file("dashboard")
         form_data = {
             "formData": (buf, "dashboard_export.zip"),
         }
@@ -2429,7 +2428,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         assert response == {"message": "OK"}
 
         # import again without overwrite flag
-        buf = self.create_dashboard_import()
+        buf = self.create_import_v1_zip_file("dashboard")
         form_data = {
             "formData": (buf, "dashboard_export.zip"),
         }
@@ -2444,7 +2443,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
                     "error_type": "GENERIC_COMMAND_ERROR",
                     "level": "warning",
                     "extra": {
-                        "dashboards/imported_dashboard.yaml": "Dashboard already exists and `overwrite=true` was not passed",  # noqa: E501
+                        "dashboards/dashboard.yaml": "Dashboard already exists and `overwrite=true` was not passed",  # noqa: E501
                         "issue_codes": [
                             {
                                 "code": 1010,
@@ -2460,7 +2459,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         }
 
         # import with overwrite flag
-        buf = self.create_dashboard_import()
+        buf = self.create_import_v1_zip_file("dashboard")
         form_data = {
             "formData": (buf, "dashboard_export.zip"),
             "overwrite": "true",
@@ -2492,26 +2491,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         self.login(ADMIN_USERNAME)
         uri = "api/v1/dashboard/import/"
 
-        buf = BytesIO()
-        with ZipFile(buf, "w") as bundle:
-            with bundle.open("dashboard_export/metadata.yaml", "w") as fp:
-                fp.write(yaml.safe_dump(dataset_metadata_config).encode())
-            with bundle.open(
-                "dashboard_export/databases/imported_database.yaml", "w"
-            ) as fp:
-                fp.write(yaml.safe_dump(database_config).encode())
-            with bundle.open(
-                "dashboard_export/datasets/imported_dataset.yaml", "w"
-            ) as fp:
-                fp.write(yaml.safe_dump(dataset_config).encode())
-            with bundle.open("dashboard_export/charts/imported_chart.yaml", "w") as fp:
-                fp.write(yaml.safe_dump(chart_config).encode())
-            with bundle.open(
-                "dashboard_export/dashboards/imported_dashboard.yaml", "w"
-            ) as fp:
-                fp.write(yaml.safe_dump(dashboard_config).encode())
-        buf.seek(0)
-
+        buf = self.create_import_v1_zip_file("chart", dashboards=[dashboard_config])
         form_data = {
             "formData": (buf, "dashboard_export.zip"),
         }

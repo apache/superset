@@ -317,7 +317,7 @@ const TablePreview: FC<Props> = ({ dbId, catalog, schema, tableName }) => {
         <Icons.InsertRowAboveOutlined iconSize="l" />
         {tableName}
         <Dropdown
-          dropdownRender={() => (
+          popupRender={() => (
             <Menu
               onClick={({ key }) => {
                 if (key === 'refresh-table') {

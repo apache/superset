@@ -95,18 +95,12 @@ export default function URLShortLinkButton({
           <CopyToClipboard
             text={shortUrl}
             copyNode={
-              <Icons.CopyOutlined
-                iconSize="m"
-                iconColor={theme.colors.primary.dark1}
-              />
+              <Icons.CopyOutlined iconSize="m" iconColor={theme.colorPrimary} />
             }
           />
           &nbsp;&nbsp;
           <Typography.Link href={emailLink} aria-label="Email link">
-            <Icons.MailOutlined
-              iconSize="m"
-              iconColor={theme.colors.primary.dark1}
-            />
+            <Icons.MailOutlined iconSize="m" iconColor={theme.colorPrimary} />
           </Typography.Link>
         </div>
       }

@@ -20,6 +20,7 @@ import type { CSSProperties, ReactNode } from 'react';
 import type { ModalFuncProps } from 'antd';
 import type { ResizableProps } from 're-resizable';
 import type { DraggableProps } from 'react-draggable';
+import { ButtonStyle } from '../Button/types';
 
 export interface ModalProps {
   className?: string;
@@ -30,11 +31,11 @@ export interface ModalProps {
   onHide: () => void;
   onHandledPrimaryAction?: () => void;
   primaryButtonName?: string;
-  primaryButtonType?: 'primary' | 'danger';
+  primaryButtonStyle?: ButtonStyle;
   show: boolean;
   name?: string;
   title: ReactNode;
-  width?: string;
+  width?: string | number;
   maxWidth?: string;
   responsive?: boolean;
   hideFooter?: boolean;
@@ -47,7 +48,7 @@ export interface ModalProps {
   resizableConfig?: ResizableProps;
   draggable?: boolean;
   draggableConfig?: DraggableProps;
-  destroyOnClose?: boolean;
+  destroyOnHidden?: boolean;
   maskClosable?: boolean;
   zIndex?: number;
   bodyStyle?: CSSProperties;

@@ -23,7 +23,10 @@ This file documents any backwards-incompatible changes in Superset and
 assists people when migrating to a new version.
 
 ## Next
-
+- [33084](https://github.com/apache/superset/pull/33084) The DISALLOWED_SQL_FUNCTIONS configuration now includes additional potentially sensitive database functions across PostgreSQL, MySQL, SQLite, MS SQL Server, and ClickHouse. Existing queries using these functions may now be blocked. Review your SQL Lab queries and dashboards if you encounter "disallowed function" errors after upgrading
+- [34235](https://github.com/apache/superset/pull/34235) CSV exports now use `utf-8-sig` encoding by default to include a UTF-8 BOM, improving compatibility with Excel.
+- [34258](https://github.com/apache/superset/pull/34258) changing the default in Dockerfile to INCLUDE_CHROMIUM="false" (from "true") in the past. This ensures the `lean` layer is lean by default, and people can opt-in to the `chromium` layer by setting the build arg `INCLUDE_CHROMIUM=true`. This is a breaking change for anyone using the `lean` layer, as it will no longer include Chromium by default.
+- [34204](https://github.com/apache/superset/pull/33603) OpenStreetView has been promoted as the new default for Deck.gl visualization since it can be enabled by default without requiring an API key. If you have Mapbox set up and want to disable OpenStreeView in your environment, please follow the steps documented here [https://superset.apache.org/docs/configuration/map-tiles].
 - [33116](https://github.com/apache/superset/pull/33116) In Echarts Series charts (e.g. Line, Area, Bar, etc.) charts, the `x_axis_sort_series` and `x_axis_sort_series_ascending` form data items have been renamed with `x_axis_sort` and `x_axis_sort_asc`.
   There's a migration added that can potentially affect a significant number of existing charts.
 - [32317](https://github.com/apache/superset/pull/32317) The horizontal filter bar feature is now out of testing/beta development and its feature flag `HORIZONTAL_FILTER_BAR` has been removed.
@@ -43,7 +46,7 @@ assists people when migrating to a new version.
 - [31198](https://github.com/apache/superset/pull/31198) Disallows by default the use of the following ClickHouse functions: "version", "currentDatabase", "hostName".
 - [29798](https://github.com/apache/superset/pull/29798) Since 3.1.0, the intial schedule for an alert or report was mistakenly offset by the specified timezone's relation to UTC. The initial schedule should now begin at the correct time.
 - [30021](https://github.com/apache/superset/pull/30021) The `dev` layer in our Dockerfile no long includes firefox binaries, only Chromium to reduce bloat/docker-build-time.
-- [30099](https://github.com/apache/superset/pull/30099) Translations are no longer included in the default docker image builds. If your environment requires translations, you'll want to set the docker build arg `BUILD_TRANSACTION=true`.
+- [30099](https://github.com/apache/superset/pull/30099) Translations are no longer included in the default docker image builds. If your environment requires translations, you'll want to set the docker build arg `BUILD_TRANSLATIONS=true`.
 - [31262](https://github.com/apache/superset/pull/31262) NOTE: deprecated `pylint` in favor of `ruff` as our only python linter. Only affect development workflows positively (not the release itself). It should cover most important rules, be much faster, but some things linting rules that were enforced before may not be enforce in the exact same way as before.
 - [31173](https://github.com/apache/superset/pull/31173) Modified `fetch_csrf_token` to align with HTTP standards, particularly regarding how cookies are handled. If you encounter any issues related to CSRF functionality, please report them as a new issue and reference this PR for context.
 - [31413](https://github.com/apache/superset/pull/31413) Enable the DATE_FORMAT_IN_EMAIL_SUBJECT feature flag to allow users to specify a date format for the email subject, which will then be replaced with the actual date.

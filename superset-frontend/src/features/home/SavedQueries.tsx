@@ -16,12 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useCallback, useState } from 'react';
+import { useCallback, useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { styled, SupersetClient, t, useTheme, css } from '@superset-ui/core';
-import SyntaxHighlighter from 'react-syntax-highlighter/dist/cjs/light';
-import sql from 'react-syntax-highlighter/dist/cjs/languages/hljs/sql';
-import github from 'react-syntax-highlighter/dist/cjs/styles/hljs/github';
+import CodeSyntaxHighlighter, {
+  preloadLanguages,
+} from '@superset-ui/core/components/CodeSyntaxHighlighter';
 import { LoadingCards } from 'src/pages/Home';
 import { TableTab } from 'src/views/CRUD/types';
 import withToasts from 'src/components/MessageToasts/withToasts';
@@ -48,8 +48,6 @@ import { navigateTo } from 'src/utils/navigationUtils';
 import SubMenu from './SubMenu';
 import EmptyState from './EmptyState';
 import { WelcomeTable } from './types';
-
-SyntaxHighlighter.registerLanguage('sql', sql);
 
 interface Query {
   id?: number;
@@ -81,7 +79,7 @@ export const CardStyles = styled.div`
     text-decoration: none;
   }
   .ant-card-cover {
-    border-bottom: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
+    border-bottom: 1px solid ${({ theme }) => theme.colorBorder};
     & > div {
       height: 171px;
     }
@@ -90,7 +88,7 @@ export const CardStyles = styled.div`
     background-size: contain;
     background-repeat: no-repeat;
     background-position: center;
-    background-color: ${({ theme }) => theme.colors.primary.light3};
+    background-color: ${({ theme }) => theme.colorPrimaryBg};
     display: inline-block;
     width: 100%;
     height: 179px;
@@ -110,13 +108,20 @@ const QueryData = styled.div`
 `;
 
 const QueryContainer = styled.div`
-  pre {
+  /* Custom styles for the syntax highlighter in cards */
+  & > div {
     height: ${({ theme }) => theme.sizeUnit * 40}px;
     border: none !important;
-    background-color: ${({ theme }) =>
-      theme.colors.grayscale.light5} !important;
-    overflow: hidden;
-    padding: ${({ theme }) => theme.sizeUnit * 4}px !important;
+    overflow: hidden !important;
+
+    pre {
+      height: 100%;
+      margin: 0;
+      border: none;
+      overflow: hidden;
+      word-break: break-all;
+      white-space: pre-wrap;
+    }
   }
 `;
 
@@ -150,6 +155,13 @@ export const SavedQueries = ({
   const canDelete = hasPerm('can_delete');
 
   const theme = useTheme();
+
+  // Preload SQL language since we'll likely show SQL snippets
+  useEffect(() => {
+    if (showThumbnails && featureFlag) {
+      preloadLanguages(['sql']);
+    }
+  }, [showThumbnails, featureFlag]);
 
   const handleQueryDelete = ({ id, label }: Query) => {
     SupersetClient.delete({
@@ -272,6 +284,7 @@ export const SavedQueries = ({
         ]}
         buttons={[
           {
+            icon: <Icons.PlusOutlined iconSize="m" />,
             name: (
               <Link
                 to="/sqllab?new=true"
@@ -282,10 +295,6 @@ export const SavedQueries = ({
                   }
                 `}
               >
-                <Icons.PlusOutlined
-                  iconColor={theme.colorPrimary}
-                  iconSize="m"
-                />
                 {t('SQL Query')}
               </Link>
             ),
@@ -315,24 +324,21 @@ export const SavedQueries = ({
                 cover={
                   q?.sql?.length && showThumbnails && featureFlag ? (
                     <QueryContainer>
-                      <SyntaxHighlighter
+                      <CodeSyntaxHighlighter
                         language="sql"
-                        lineProps={{
-                          style: {
-                            color: theme.colors.grayscale.dark2,
-                            wordBreak: 'break-all',
-                            whiteSpace: 'pre-wrap',
-                          },
-                        }}
-                        style={github}
-                        wrapLines
-                        lineNumberStyle={{
-                          display: 'none',
-                        }}
                         showLineNumbers={false}
+                        wrapLines
+                        customStyle={{
+                          height: theme.sizeUnit * 40,
+                          border: 'none',
+                          overflow: 'hidden',
+                          color: theme.colors.grayscale.dark2,
+                          wordBreak: 'break-all',
+                          whiteSpace: 'pre-wrap',
+                        }}
                       >
                         {shortenSQL(q.sql, 25)}
-                      </SyntaxHighlighter>
+                      </CodeSyntaxHighlighter>
                     </QueryContainer>
                   ) : showThumbnails && !q?.sql?.length ? (
                     false

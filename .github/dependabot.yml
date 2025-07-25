@@ -12,6 +12,10 @@ updates:
       # not until React >= 18.0.0
       - dependency-name: "storybook"
       - dependency-name: "@storybook*"
+      # JSDOM v30 doesn't play well with Jest v30
+      # Source: https://jestjs.io/blog#known-issues
+      # GH thread: https://github.com/jsdom/jsdom/issues/3492
+      - dependency-name: "jest-environment-jsdom"
     directory: "/superset-frontend/"
     schedule:
       interval: "monthly"

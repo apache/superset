@@ -17,9 +17,9 @@
  * under the License.
  */
 
-import { css, styled, SupersetClient, useTheme, t } from '@superset-ui/core';
+import { css, styled, SupersetClient, t } from '@superset-ui/core';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Icons } from '@superset-ui/core/components/Icons';
+import { ModalTitleWithIcon } from 'src/components/ModalTitleWithIcon';
 import {
   Modal,
   Select,
@@ -28,7 +28,6 @@ import {
   LabeledErrorBoundInput,
   Input,
 } from '@superset-ui/core/components';
-import { Typography } from '@superset-ui/core/components/Typography';
 import rison from 'rison';
 import { useSingleViewResource } from 'src/views/CRUD/hooks';
 import { FILTER_OPTIONS } from './constants';
@@ -125,7 +124,6 @@ const DEFAULT_RULE = {
 };
 
 function RowLevelSecurityModal(props: RowLevelSecurityModalProps) {
-  const theme = useTheme();
   const { rule, addDangerToast, addSuccessToast, onHide, show } = props;
 
   const [currentRule, setCurrentRule] = useState<RLSObject>({
@@ -336,23 +334,11 @@ function RowLevelSecurityModal(props: RowLevelSecurityModalProps) {
       width="30%"
       maxWidth="1450px"
       title={
-        <Typography.Title level={4} data-test="rls-modal-title">
-          {isEditMode ? (
-            <Icons.EditOutlined
-              css={css`
-                margin: auto ${theme.sizeUnit * 2}px auto 0;
-              `}
-            />
-          ) : (
-            <Icons.PlusOutlined
-              iconSize="l"
-              css={css`
-                margin: auto ${theme.sizeUnit * 2}px auto 0;
-              `}
-            />
-          )}
-          {isEditMode ? t('Edit Rule') : t('Add Rule')}
-        </Typography.Title>
+        <ModalTitleWithIcon
+          isEditMode={isEditMode}
+          title={isEditMode ? t('Edit Rule') : t('Add Rule')}
+          data-test="rls-modal-title"
+        />
       }
     >
       <StyledSectionContainer>

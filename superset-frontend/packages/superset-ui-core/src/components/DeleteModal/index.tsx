@@ -31,17 +31,13 @@ const StyledDiv = styled.div`
   }
 `;
 
-const DescriptionContainer = styled.div`
-  line-height: ${({ theme }) => theme.sizeUnit * 4}px;
-  padding-top: 16px;
-`;
-
 export function DeleteModal({
   description,
   onConfirm,
   onHide,
   open,
   title,
+  name,
 }: DeleteModalProps) {
   const [disableChange, setDisableChange] = useState(true);
   const [confirmation, setConfirmation] = useState<string>('');
@@ -81,12 +77,13 @@ export function DeleteModal({
       onHide={hide}
       onHandledPrimaryAction={confirm}
       primaryButtonName={t('Delete')}
-      primaryButtonType="danger"
+      primaryButtonStyle="danger"
       show={open}
+      name={name}
       title={title}
       centered
     >
-      <DescriptionContainer>{description}</DescriptionContainer>
+      {description}
       <StyledDiv>
         <FormLabel htmlFor="delete">
           {t('Type "%s" to confirm', t('DELETE'))}

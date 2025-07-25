@@ -66,7 +66,8 @@ const CrossFilterTag = (props: {
     useCSSTextTruncation<HTMLSpanElement>();
   const [valueRef, valueIsTruncated] = useCSSTextTruncation<HTMLSpanElement>();
 
-  const columnLabel = getColumnLabel(filter.column ?? '');
+  const columnLabel =
+    filter.customColumnLabel || getColumnLabel(filter.column ?? '');
 
   return (
     <StyledTag

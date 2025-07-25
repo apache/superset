@@ -39,15 +39,13 @@ import {
   FeatureFlag,
   getClientErrorObject,
   ensureIsArray,
-  useTheme,
-  css,
 } from '@superset-ui/core';
-import { Icons } from '@superset-ui/core/components/Icons';
 import Chart, { Slice } from 'src/types/Chart';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import { type TagType } from 'src/components';
+import { TagTypeEnum } from 'src/components/Tag/TagType';
 import { loadTags } from 'src/components/Tag/utils';
-import { fetchTags, OBJECT_TYPES } from 'src/features/tags/tags';
+import { ModalTitleWithIcon } from 'src/components/ModalTitleWithIcon';
 
 export type PropertiesModalProps = {
   slice: Slice;
@@ -70,7 +68,6 @@ function PropertiesModal({
   show,
   addSuccessToast,
 }: PropertiesModalProps) {
-  const theme = useTheme();
   const [submitting, setSubmitting] = useState(false);
   const [form] = Form.useForm();
   // values of form inputs
@@ -101,11 +98,21 @@ function PropertiesModal({
     });
   }
 
-  const fetchChartOwners = useCallback(
-    async function fetchChartOwners() {
+  const fetchChartProperties = useCallback(
+    async function fetchChartProperties() {
+      const queryParams = rison.encode({
+        select_columns: [
+          'owners.id',
+          'owners.first_name',
+          'owners.last_name',
+          'tags.id',
+          'tags.name',
+          'tags.type',
+        ],
+      });
       try {
         const response = await SupersetClient.get({
-          endpoint: `/api/v1/chart/${slice.slice_id}`,
+          endpoint: `/api/v1/chart/${slice.slice_id}?q=${queryParams}`,
         });
         const chart = response.json.result;
         setSelectedOwners(
@@ -114,6 +121,12 @@ function PropertiesModal({
             label: `${owner.first_name} ${owner.last_name}`,
           })),
         );
+        if (isFeatureEnabled(FeatureFlag.TaggingSystem)) {
+          const customTags = chart.tags?.filter(
+            (tag: TagType) => tag.type === TagTypeEnum.Custom,
+          );
+          setTags(customTags);
+        }
       } catch (response) {
         const clientError = await getClientErrorObject(response);
         showError(clientError);
@@ -206,32 +219,13 @@ function PropertiesModal({
 
   // get the owners of this slice
   useEffect(() => {
-    fetchChartOwners();
-  }, [fetchChartOwners]);
+    fetchChartProperties();
+  }, [slice.slice_id]);
 
   // update name after it's changed in another modal
   useEffect(() => {
     setName(slice.slice_name || '');
   }, [slice.slice_name]);
-
-  useEffect(() => {
-    if (!isFeatureEnabled(FeatureFlag.TaggingSystem)) return;
-    try {
-      fetchTags(
-        {
-          objectType: OBJECT_TYPES.CHART,
-          objectId: slice.slice_id,
-          includeTypes: false,
-        },
-        (tags: TagType[]) => setTags(tags),
-        error => {
-          showError(error);
-        },
-      );
-    } catch (error) {
-      showError(error);
-    }
-  }, [slice.slice_id]);
 
   const handleChangeTags = (tags: { label: string; value: number }[]) => {
     const parsedTags: TagType[] = ensureIsArray(tags).map(r => ({
@@ -249,16 +243,13 @@ function PropertiesModal({
     <Modal
       show={show}
       onHide={onHide}
+      name={t('Edit Chart Properties')}
       title={
-        <span>
-          <Icons.EditOutlined
-            css={css`
-              margin: auto ${theme.sizeUnit * 2}px auto 0;
-            `}
-            data-test="edit-alt"
-          />
-          {t('Edit Chart Properties')}
-        </span>
+        <ModalTitleWithIcon
+          isEditMode
+          title={t('Edit Chart Properties')}
+          data-test="edit-alt"
+        />
       }
       footer={
         <>

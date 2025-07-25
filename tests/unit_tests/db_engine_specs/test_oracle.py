@@ -31,7 +31,7 @@ from tests.unit_tests.fixtures.common import dttm  # noqa: F401
 @pytest.mark.parametrize(
     "column_name,expected_result",
     [
-        ("This_Is_32_Character_Column_Name", "3b26974078683be078219674eeb8f5"),
+        ("a" * 129, "b325dc1c6f5e7a2b7cf465b9feab7948"),
         ("snake_label", "snake_label"),
         ("camelLabel", "camelLabel"),
     ],

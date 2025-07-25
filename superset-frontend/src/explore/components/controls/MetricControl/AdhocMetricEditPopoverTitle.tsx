@@ -123,7 +123,7 @@ const AdhocMetricEditPopoverTitle: FC<AdhocMetricEditPopoverTitleProps> = ({
         &nbsp;
         <Icons.EditOutlined
           iconColor={
-            isHovered ? theme.colors.primary.base : theme.colors.grayscale.base
+            isHovered ? theme.colorPrimary : theme.colors.grayscale.base
           }
           iconSize="m"
         />

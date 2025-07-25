@@ -48,7 +48,7 @@ const CrossFiltersVerticalCollapse = (props: {
     <Collapse
       ghost
       defaultActiveKey="crossFilters"
-      expandIconPosition="right"
+      expandIconPosition="end"
       items={[
         {
           key: 'crossFilters',

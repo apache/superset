@@ -27,6 +27,7 @@ export default function DownloadAsPdf({
   text,
   logEvent,
   dashboardTitle,
+  ...props
 }: {
   text: string;
   dashboardTitle: string;
@@ -50,6 +51,7 @@ export default function DownloadAsPdf({
       onClick={e => {
         onDownloadPdf(e.domEvent);
       }}
+      {...props}
     >
       {text}
     </Menu.Item>

@@ -38,7 +38,7 @@ const SaveDatasetActionButton = ({
   ) : (
     <DropdownButton
       onClick={() => setShowSave(true)}
-      dropdownRender={() => overlayMenu}
+      popupRender={() => overlayMenu}
       icon={
         <Icons.DownOutlined iconSize="xs" iconColor={theme.colorPrimaryText} />
       }

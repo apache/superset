@@ -200,23 +200,23 @@ function CssTemplatesList({
 
   const subMenuButtons: SubMenuProps['buttons'] = [];
 
+  if (canDelete) {
+    subMenuButtons.push({
+      name: t('Bulk select'),
+      onClick: toggleBulkSelect,
+      buttonStyle: 'secondary',
+    });
+  }
+
   if (canCreate) {
     subMenuButtons.push({
-      name: <>{t('CSS template')}</>,
+      name: t('CSS template'),
       buttonStyle: 'primary',
       icon: <Icons.PlusOutlined iconSize="m" />,
       onClick: () => {
         setCurrentCssTemplate(null);
         setCssTemplateModalOpen(true);
       },
-    });
-  }
-
-  if (canDelete) {
-    subMenuButtons.push({
-      name: t('Bulk select'),
-      onClick: toggleBulkSelect,
-      buttonStyle: 'secondary',
     });
   }
 

@@ -171,6 +171,12 @@ const FilterBar: FC<FiltersBarProps> = ({
   >(state => state.user);
 
   const [filtersInScope] = useSelectFiltersInScope(nativeFilterValues);
+  const [clearAllTriggers, setClearAllTriggers] = useState<
+    Record<string, boolean>
+  >({});
+  const [initializedFilters, setInitializedFilters] = useState<Set<string>>(
+    new Set(),
+  );
 
   const dataMaskSelectedRef = useRef(dataMaskSelected);
   dataMaskSelectedRef.current = dataMaskSelected;
@@ -180,23 +186,49 @@ const FilterBar: FC<FiltersBarProps> = ({
       dataMask: Partial<DataMask>,
     ) => {
       setDataMaskSelected(draft => {
+        const isFirstTimeInitialization =
+          !initializedFilters.has(filter.id) &&
+          dataMaskSelectedRef.current[filter.id]?.filterState?.value ===
+            undefined;
+
         // force instant updating on initialization for filters with `requiredFirst` is true or instant filters
         if (
           // filterState.value === undefined - means that value not initialized
           dataMask.filterState?.value !== undefined &&
-          dataMaskSelectedRef.current[filter.id]?.filterState?.value ===
-            undefined &&
+          isFirstTimeInitialization &&
           filter.requiredFirst
         ) {
           dispatch(updateDataMask(filter.id, dataMask));
         }
-        draft[filter.id] = {
+
+        // Mark filter as initialized after getting its first value
+        if (
+          dataMask.filterState?.value !== undefined &&
+          !initializedFilters.has(filter.id)
+        ) {
+          setInitializedFilters(prev => new Set(prev).add(filter.id));
+        }
+
+        const baseDataMask = {
           ...(getInitialDataMask(filter.id) as DataMaskWithId),
           ...dataMask,
         };
+
+        // Recalculate validation status
+        const hasRequiredValue =
+          filter.controlValues?.enableEmptyFilter &&
+          baseDataMask.filterState?.value == null;
+
+        draft[filter.id] = {
+          ...baseDataMask,
+          filterState: {
+            ...baseDataMask.filterState,
+            validateStatus: hasRequiredValue ? 'error' : undefined,
+          },
+        };
       });
     },
-    [dispatch, setDataMaskSelected],
+    [dispatch, setDataMaskSelected, initializedFilters, setInitializedFilters],
   );
 
   useEffect(() => {
@@ -246,16 +278,17 @@ const FilterBar: FC<FiltersBarProps> = ({
 
   const handleApply = useCallback(() => {
     dispatch(logEvent(LOG_ACTIONS_CHANGE_DASHBOARD_FILTER, {}));
-    const filterIds = Object.keys(dataMaskSelected);
     setUpdateKey(1);
-    filterIds.forEach(filterId => {
-      if (dataMaskSelected[filterId]) {
-        dispatch(updateDataMask(filterId, dataMaskSelected[filterId]));
+
+    Object.entries(dataMaskSelected).forEach(([filterId, dataMask]) => {
+      if (dataMask) {
+        dispatch(updateDataMask(filterId, dataMask));
       }
     });
   }, [dataMaskSelected, dispatch]);
 
   const handleClearAll = useCallback(() => {
+    const newClearAllTriggers = { ...clearAllTriggers };
     filtersInScope.filter(isNativeFilter).forEach(filter => {
       const { id } = filter;
       if (dataMaskSelected[id]) {
@@ -265,9 +298,19 @@ const FilterBar: FC<FiltersBarProps> = ({
           }
           draft[id].extraFormData = {};
         });
+        newClearAllTriggers[id] = true;
       }
     });
-  }, [dataMaskSelected, dispatch, filtersInScope, setDataMaskSelected]);
+    setClearAllTriggers(newClearAllTriggers);
+  }, [dataMaskSelected, filtersInScope, setDataMaskSelected, clearAllTriggers]);
+
+  const handleClearAllComplete = useCallback((filterId: string) => {
+    setClearAllTriggers(prev => {
+      const newTriggers = { ...prev };
+      delete newTriggers[filterId];
+      return newTriggers;
+    });
+  }, []);
 
   useFilterUpdates(dataMaskSelected, setDataMaskSelected);
   const isApplyDisabled = checkIsApplyDisabled(
@@ -310,6 +353,8 @@ const FilterBar: FC<FiltersBarProps> = ({
         filterValues={filterValues}
         isInitialized={isInitialized}
         onSelectionChange={handleFilterSelectionChange}
+        clearAllTriggers={clearAllTriggers}
+        onClearAllComplete={handleClearAllComplete}
       />
     ) : verticalConfig ? (
       <Vertical
@@ -324,6 +369,8 @@ const FilterBar: FC<FiltersBarProps> = ({
         onSelectionChange={handleFilterSelectionChange}
         toggleFiltersBar={verticalConfig.toggleFiltersBar}
         width={verticalConfig.width}
+        clearAllTriggers={clearAllTriggers}
+        onClearAllComplete={handleClearAllComplete}
       />
     ) : null;
 

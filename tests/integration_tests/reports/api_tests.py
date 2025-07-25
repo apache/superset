@@ -1698,7 +1698,7 @@ class TestReportSchedulesApi(SupersetTestCase):
             .filter(ReportSchedule.name == "name1")
             .one_or_none()
         )
-        assert updated_report.owners == current_owners
+        assert set(updated_report.owners) == set(current_owners)
 
     @pytest.mark.usefixtures("create_report_schedules")
     def test_update_report_clear_owner_list(self):

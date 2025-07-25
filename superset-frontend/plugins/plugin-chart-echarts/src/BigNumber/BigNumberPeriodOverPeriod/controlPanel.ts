@@ -23,6 +23,7 @@ import {
   sharedControls,
   sections,
 } from '@superset-ui/chart-controls';
+import { noop } from 'lodash';
 import {
   headerFontSize,
   subheaderFontSize,
@@ -143,6 +144,7 @@ const config: ControlPanelConfig = {
                 return true;
               },
               mapStateToProps(explore, _, chart) {
+                noop(explore, _, chart);
                 return {
                   columnsPropsObject: {
                     colnames: ['Previous value', 'Delta', 'Percent change'],

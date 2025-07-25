@@ -35,7 +35,7 @@
     "lodash": "^4.17.21",
     "dayjs": "^1.11.13",
     "nvd3-fork": "^2.0.5",
-    "dompurify": "^3.2.4",
+    "dompurify": "^3.2.6",
     "prop-types": "^15.8.1",
     "urijs": "^1.19.11"
   },

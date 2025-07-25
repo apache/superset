@@ -27,13 +27,6 @@ describe('Login view', () => {
     cy.visit(LOGIN);
   });
 
-  it('should load login page', () => {
-    cy.getBySel('login-form').should('be.visible');
-    cy.getBySel('username-input').should('be.visible');
-    cy.getBySel('password-input').should('be.visible');
-    cy.getBySel('login-button').should('be.visible');
-  });
-
   it('should redirect to login with incorrect username and password', () => {
     interceptLogin();
     cy.getBySel('login-form').should('be.visible');

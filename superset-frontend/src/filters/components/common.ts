@@ -17,6 +17,7 @@
  * under the License.
  */
 import { styled } from '@superset-ui/core';
+import { FormItem } from '@superset-ui/core/components';
 import { PluginFilterStylesProps } from './types';
 
 export const RESPONSIVE_WIDTH = 0;
@@ -26,8 +27,20 @@ export const FilterPluginStyle = styled.div<PluginFilterStylesProps>`
   width: ${({ width }) => (width === RESPONSIVE_WIDTH ? '100%' : `${width}px`)};
 `;
 
+export const StyledFormItem = styled(FormItem)`
+  &.ant-row.ant-form-item {
+    margin: 0;
+  }
+`;
+
 export const StatusMessage = styled.div<{
-  status?: 'error' | 'warning' | 'info';
+  status?: 'error' | 'warning' | 'info' | 'help';
+  centerText?: boolean;
 }>`
-  color: ${({ theme, status = 'error' }) => theme.colors[status]?.base};
+  color: ${({ theme, status = 'error' }) =>
+    status === 'help'
+      ? theme.colors.grayscale.light1
+      : theme.colors[status]?.base};
+  text-align: ${({ centerText }) => (centerText ? 'center' : 'left')};
+  width: 100%;
 `;

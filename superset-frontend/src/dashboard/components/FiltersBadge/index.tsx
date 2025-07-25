@@ -78,7 +78,7 @@ const StyledFilterCount = styled.div`
       font-size: ${theme.fontSizeSM}px;
     }
     &:focus-visible {
-      outline: 2px solid ${theme.colors.primary.dark2};
+      outline: 2px solid ${theme.colorPrimary};
     }
   `}
 `;

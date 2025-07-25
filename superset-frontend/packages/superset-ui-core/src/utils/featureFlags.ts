@@ -45,6 +45,7 @@ export enum FeatureFlag {
   EnableTemplateProcessing = 'ENABLE_TEMPLATE_PROCESSING',
   EscapeMarkdownHtml = 'ESCAPE_MARKDOWN_HTML',
   EstimateQueryCost = 'ESTIMATE_QUERY_COST',
+  FilterBarClosedByDefault = 'FILTERBAR_CLOSED_BY_DEFAULT',
   GlobalAsyncQueries = 'GLOBAL_ASYNC_QUERIES',
   ListviewsDefaultCardView = 'LISTVIEWS_DEFAULT_CARD_VIEW',
   ScheduledQueries = 'SCHEDULED_QUERIES',
@@ -60,6 +61,8 @@ export enum FeatureFlag {
   SlackEnableAvatars = 'SLACK_ENABLE_AVATARS',
   EnableDashboardScreenshotEndpoints = 'ENABLE_DASHBOARD_SCREENSHOT_ENDPOINTS',
   EnableDashboardDownloadWebDriverScreenshot = 'ENABLE_DASHBOARD_DOWNLOAD_WEBDRIVER_SCREENSHOT',
+  TableV2TimeComparisonEnabled = 'TABLE_V2_TIME_COMPARISON_ENABLED',
+  AgGridTableEnabled = 'AG_GRID_TABLE_ENABLED',
 }
 
 export type ScheduleQueriesProps = {

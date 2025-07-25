@@ -18,8 +18,7 @@
  */
 import { ReactNode } from 'react';
 import { t, css } from '@superset-ui/core';
-import { InfoCircleOutlined } from '@ant-design/icons';
-import { InfoTooltip, Tooltip } from '@superset-ui/core/components';
+import { InfoTooltip, Tooltip, Icons } from '@superset-ui/core/components';
 
 type ValidationError = string;
 
@@ -93,7 +92,7 @@ export function ControlHeader({
     <div className="ControlHeader" data-test={`${name}-header`}>
       <div className="pull-left">
         <label className="control-label" htmlFor={name}>
-          {leftNode && <span>{leftNode}</span>}
+          {leftNode && <>{leftNode}</>}
           <span
             role={onClick ? 'button' : undefined}
             {...(onClick ? { onClick, tabIndex: 0 } : {})}
@@ -104,9 +103,9 @@ export function ControlHeader({
           {warning && (
             <span>
               <Tooltip id="error-tooltip" placement="top" title={warning}>
-                <InfoCircleOutlined
+                <Icons.InfoCircleOutlined
+                  iconSize="m"
                   css={theme => css`
-                    font-size: ${theme.sizeUnit * 3}px;
                     color: ${theme.colorError};
                   `}
                 />
@@ -116,9 +115,9 @@ export function ControlHeader({
           {danger && (
             <span>
               <Tooltip id="error-tooltip" placement="top" title={danger}>
-                <InfoCircleOutlined
+                <Icons.InfoCircleOutlined
+                  iconSize="m"
                   css={theme => css`
-                    font-size: ${theme.sizeUnit * 3}px;
                     color: ${theme.colorError};
                   `}
                 />{' '}
@@ -132,9 +131,9 @@ export function ControlHeader({
                 placement="top"
                 title={validationErrors.join(' ')}
               >
-                <InfoCircleOutlined
+                <Icons.InfoCircleOutlined
+                  iconSize="m"
                   css={theme => css`
-                    font-size: ${theme.sizeUnit * 3}px;
                     color: ${theme.colorError};
                   `}
                 />{' '}
