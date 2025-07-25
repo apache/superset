@@ -115,4 +115,46 @@ export function getPoints(data: JsonObject[]) {
   return data.map(d => d.position);
 }
 
-export default createDeckGLComponent(getLayer, getPoints);
+export const getHighlightLayer: GetLayerType<HexagonLayer> = function ({
+  formData,
+  payload,
+  filterState,
+}) {
+  const fd = formData;
+  let data = payload.data.features;
+
+  if (fd.js_data_mutator) {
+    // Applying user defined data mutator if defined
+    const jsFnMutator = sandboxedEval(fd.js_data_mutator);
+    data = jsFnMutator(data);
+  }
+
+  const aggFunc = getAggFunc(fd.js_agg_function, p => p.weight);
+
+  const selectedPointsSet = new Set(
+    filterState?.value?.map((sp: [number, number]) => `${sp[0]},${sp[1]}`),
+  );
+
+  const colorAggFunc = (p: JsonObject) =>
+    selectedPointsSet.has(`${p.position[0]},${p.position[1]}`) ? 1 : 0;
+
+  return new HexagonLayer({
+    id: `hex-highlight-layer-${fd.slice_id}-${JSON.stringify(filterState?.value)}`,
+    data,
+    radius: fd.grid_size,
+    extruded: fd.extruded,
+    colorDomain: [0, 1],
+    colorRange: [
+      [0, 0, 0, 0],
+      [255, 0, 0, 255],
+    ],
+    colorAggregation: 'MAX',
+    outline: false,
+    // @ts-ignore
+    getElevationValue: aggFunc,
+    getColorWeight: colorAggFunc,
+    opacity: 1,
+  });
+};
+
+export default createDeckGLComponent(getLayer, getPoints, getHighlightLayer);

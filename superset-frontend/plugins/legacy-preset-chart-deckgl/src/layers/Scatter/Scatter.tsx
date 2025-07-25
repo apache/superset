@@ -105,7 +105,51 @@ export const getLayer: GetLayerType<ScatterplotLayer> = function ({
       onContextMenu,
       emitCrossFilters,
     }),
+    opacity: filterState?.value ? 0.3 : 1,
   });
 };
 
-export default createCategoricalDeckGLComponent(getLayer, getPoints);
+export const getHighlightLayer: GetLayerType<ScatterplotLayer> = function ({
+  formData,
+  payload,
+  filterState,
+}) {
+  const fd = formData;
+  const dataWithRadius = payload.data.features.map((d: JsonObject) => {
+    let radius = unitToRadius(fd.point_unit, d.radius) || 10;
+    if (fd.multiplier) {
+      radius *= fd.multiplier;
+    }
+
+    return { ...d, radius };
+  });
+
+  const dataInside = dataWithRadius.filter((d: JsonObject) => {
+    const [lng, lat] = d.position;
+    const fromLatLon = filterState?.value[0];
+    const toLatLon = filterState?.value[1];
+    return (
+      lng >= fromLatLon[0] &&
+      lng <= toLatLon[0] &&
+      lat >= fromLatLon[1] &&
+      lat <= toLatLon[1]
+    );
+  });
+
+  return new ScatterplotLayer({
+    id: `scatter-highlight-layer-${fd.slice_id}` as const,
+    data: dataInside,
+    fp64: true,
+    getFillColor: () => [255, 0, 0, 255],
+    getRadius: (d: any) => d.radius,
+    radiusMinPixels: Number(fd.min_radius) || undefined,
+    radiusMaxPixels: Number(fd.max_radius) || undefined,
+    stroked: false,
+  });
+};
+
+export default createCategoricalDeckGLComponent(
+  getLayer,
+  getPoints,
+  getHighlightLayer,
+);

@@ -98,4 +98,52 @@ export function getPoints(data: any[]) {
   return data.map(d => d.position);
 }
 
-export default createDeckGLComponent(getLayer, getPoints);
+export const getHighlightLayer: GetLayerType<HeatmapLayer> = ({
+  formData,
+  filterState,
+  payload,
+}) => {
+  const fd = formData;
+  const {
+    intensity = 1,
+    radius_pixels: radiusPixels = 30,
+    aggregation = 'SUM',
+    js_data_mutator: jsFnMutator,
+  } = fd;
+  let data = payload.data.features;
+
+  if (jsFnMutator) {
+    // Applying user defined data mutator if defined
+    const jsFnMutatorFunction = sandboxedEval(fd.js_data_mutator);
+    data = jsFnMutatorFunction(data);
+  }
+
+  const dataInside = data.filter((d: JsonObject) => {
+    const [lng, lat] = d.position;
+    const fromLatLon = filterState?.value[0];
+    const toLatLon = filterState?.value[1];
+    return (
+      lng >= fromLatLon[0] &&
+      lng <= toLatLon[0] &&
+      lat >= fromLatLon[1] &&
+      lat <= toLatLon[1]
+    );
+  });
+
+  return new HeatmapLayer({
+    id: `heatmap-layer-${fd.slice_id}` as const,
+    data: dataInside,
+    intensity,
+    radiusPixels,
+    colorRange: [
+      [255, 0, 0, 55],
+      [255, 0, 0, 255],
+    ],
+    aggregation: aggregation.toUpperCase(),
+    getPosition: (d: { position: Position; weight: number }) => d.position,
+    getWeight: (d: { position: number[]; weight: number }) =>
+      d.weight ? d.weight : 1,
+  });
+};
+
+export default createDeckGLComponent(getLayer, getPoints, getHighlightLayer);

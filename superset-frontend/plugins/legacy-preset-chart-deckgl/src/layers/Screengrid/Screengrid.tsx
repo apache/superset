@@ -119,14 +119,17 @@ export const getLayer: GetLayerType<ScreenGridLayer> = function ({
 
 const getHighlightLayer: GetLayerType<ScreenGridLayer> = function ({
   formData,
-  setDataMask,
   filterState,
-  onContextMenu,
   payload,
-  setTooltip,
-  emitCrossFilters,
 }) {
-  const data = payload.data.features;
+  const fd = formData;
+  let data = payload.data.features;
+
+  if (fd.js_data_mutator) {
+    // Applying user defined data mutator if defined
+    const jsFnMutator = sandboxedEval(fd.js_data_mutator);
+    data = jsFnMutator(data);
+  }
   const dataInside = data.filter((d: JsonObject) => {
     const [lng, lat] = d.position;
     const fromLatLon = filterState?.value[0];
@@ -151,18 +154,8 @@ const getHighlightLayer: GetLayerType<ScreenGridLayer> = function ({
       [255, 0, 0, 255],
     ],
     outline: false,
-    ...commonLayerProps({
-      formData,
-      setDataMask,
-      setTooltip,
-      setTooltipContent,
-      filterState,
-      onContextMenu,
-      emitCrossFilters,
-    }),
     getWeight: aggFunc,
     colorScaleType: 'quantize',
-    opacity: 1,
   });
 };
 
