@@ -155,7 +155,7 @@ export default styled.div`
     .dt-pagination .pagination > li {
       list-style: none;
       display: inline;
-      margin: 0px 5px 0px 5px
+      margin: 0 5px;
     }
 
     .dt-pagination .pagination > li > a,
