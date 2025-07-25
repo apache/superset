@@ -2102,8 +2102,10 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
 
                 # Use LEFT JOIN when grouping others, INNER JOIN otherwise
                 if group_others_when_limit_reached:
+                    # Create the alias once and reuse it
+                    subq_alias = subq.alias(SERIES_LIMIT_SUBQ_ALIAS)
                     tbl = tbl.join(
-                        subq.alias(SERIES_LIMIT_SUBQ_ALIAS),
+                        subq_alias,
                         and_(*on_clause),
                         isouter=True,
                     )
@@ -2114,9 +2116,8 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                         subq_col_name = db_engine_spec.make_label_compatible(
                             col_name + "__"
                         )
-                        subq_col = sa.column(
-                            f"{SERIES_LIMIT_SUBQ_ALIAS}.{subq_col_name}"
-                        )
+                        # Reference the column from the already-created aliased subquery
+                        subq_col = subq_alias.c[subq_col_name]
                         return subq_col.is_not(None)
 
                     select_exprs, groupby_all_columns = (
@@ -2127,6 +2128,11 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                             _create_join_condition,
                         )
                     )
+
+                    # Reconstruct query with modified expressions
+                    qry = sa.select(select_exprs)
+                    if groupby_all_columns:
+                        qry = qry.group_by(*groupby_all_columns.values())
                 else:
                     tbl = tbl.join(
                         subq.alias(SERIES_LIMIT_SUBQ_ALIAS), and_(*on_clause)
@@ -2185,6 +2191,11 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                             _create_top_groups_condition,
                         )
                     )
+
+                    # Reconstruct query with modified expressions
+                    qry = sa.select(select_exprs)
+                    if groupby_all_columns:
+                        qry = qry.group_by(*groupby_all_columns.values())
                 else:
                     # Original behavior: filter to only top groups
                     qry = qry.where(top_groups)
