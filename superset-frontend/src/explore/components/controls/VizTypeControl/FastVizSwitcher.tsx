@@ -19,7 +19,7 @@
 import { memo, useMemo } from 'react';
 import { useSelector } from 'react-redux';
 import { css, SupersetTheme } from '@superset-ui/core';
-import { Icons } from '@superset-ui/core/components/Icons';
+import { Flex, Icons } from '@superset-ui/core/components';
 import { getChartKey } from 'src/explore/exploreUtils';
 import { ExplorePageState } from 'src/explore/types';
 import { FastVizSwitcherProps } from './types';
@@ -79,14 +79,7 @@ export const FastVizSwitcher = memo(
     }, [currentSelection, currentViz]);
 
     return (
-      <div
-        css={(theme: SupersetTheme) => css`
-          display: flex;
-          justify-content: space-between;
-          column-gap: ${theme.sizeUnit}px;
-        `}
-        data-test="fast-viz-switcher"
-      >
+      <Flex justify="space-between" gap={4} data-test="fast-viz-switcher">
         {vizTiles.map(vizMeta => (
           <VizTile
             vizMeta={vizMeta}
@@ -96,7 +89,7 @@ export const FastVizSwitcher = memo(
             key={vizMeta.name}
           />
         ))}
-      </div>
+      </Flex>
     );
   },
 );
