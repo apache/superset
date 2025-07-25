@@ -18,7 +18,7 @@
  */
 
 import { useMemo, useState } from 'react';
-import { t, SupersetClient } from '@superset-ui/core';
+import { t, SupersetClient, styled } from '@superset-ui/core';
 import {
   Tag,
   DeleteModal,
@@ -26,6 +26,7 @@ import {
   Loading,
   Alert,
   Tooltip,
+  Space,
 } from '@superset-ui/core/components';
 
 import rison from 'rison';
@@ -52,6 +53,15 @@ import { QueryObjectColumns } from 'src/views/CRUD/types';
 import { Icons } from '@superset-ui/core/components/Icons';
 
 const PAGE_SIZE = 25;
+
+const FlexRowContainer = styled.div`
+  align-items: center;
+  display: flex;
+
+  .ant-tag {
+    margin-left: ${({ theme }) => theme.sizeUnit * 2}px;
+  }
+`;
 
 const CONFIRM_OVERWRITE_MESSAGE = t(
   'You are importing one or more themes that already exist. ' +
@@ -211,25 +221,21 @@ function ThemesList({
             (appliedThemeId && original.id === appliedThemeId);
 
           return (
-            <>
+            <FlexRowContainer>
               {original.theme_name}
               {isCurrentTheme && (
                 <Tooltip
                   title={t('This theme is set locally for your session')}
                 >
-                  <Tag color="green" style={{ marginLeft: 8 }}>
-                    {t('Local')}
-                  </Tag>
+                  <Tag color="green">{t('Local')}</Tag>
                 </Tooltip>
               )}
               {original.is_system && (
                 <Tooltip title={t('Defined through system configuration.')}>
-                  <Tag color="blue" style={{ marginLeft: 8 }}>
-                    {t('System')}
-                  </Tag>
+                  <Tag color="blue">{t('System')}</Tag>
                 </Tooltip>
               )}
-            </>
+            </FlexRowContainer>
           );
         },
         Header: t('Name'),
@@ -422,10 +428,8 @@ function ThemesList({
       {themeCurrentlyDeleting && (
         <DeleteModal
           description={
-            <>
-              <div style={{ marginBottom: 16 }}>
-                {t('This action will permanently delete the theme.')}
-              </div>
+            <Space direction="vertical" size="middle" style={{ width: '100%' }}>
+              <div>{t('This action will permanently delete the theme.')}</div>
               <Alert
                 type="warning"
                 showIcon
@@ -433,9 +437,8 @@ function ThemesList({
                 message={t(
                   'Any dashboards using this theme will be automatically dissociated from it.',
                 )}
-                style={{ marginBottom: 0 }}
               />
-            </>
+            </Space>
           }
           onConfirm={() => {
             if (themeCurrentlyDeleting) {
@@ -450,8 +453,8 @@ function ThemesList({
       <ConfirmStatusChange
         title={t('Please confirm')}
         description={
-          <>
-            <div style={{ marginBottom: 16 }}>
+          <Space direction="vertical" size="middle" style={{ width: '100%' }}>
+            <div>
               {t('Are you sure you want to delete the selected themes?')}
             </div>
             <Alert
@@ -461,9 +464,8 @@ function ThemesList({
               message={t(
                 'Any dashboards using these themes will be automatically dissociated from them.',
               )}
-              style={{ marginBottom: 0 }}
             />
-          </>
+          </Space>
         }
         onConfirm={handleBulkThemeDelete}
       >
