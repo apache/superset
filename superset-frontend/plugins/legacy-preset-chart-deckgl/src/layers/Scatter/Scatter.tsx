@@ -23,6 +23,7 @@ import {
   QueryFormData,
   t,
 } from '@superset-ui/core';
+import { isPointInBonds } from '../../utilities/utils';
 import { commonLayerProps } from '../common';
 import { createCategoricalDeckGLComponent, GetLayerType } from '../../factory';
 import TooltipRow from '../../TooltipRow';
@@ -124,17 +125,9 @@ export const getHighlightLayer: GetLayerType<ScatterplotLayer> = function ({
     return { ...d, radius };
   });
 
-  const dataInside = dataWithRadius.filter((d: JsonObject) => {
-    const [lng, lat] = d.position;
-    const fromLatLon = filterState?.value[0];
-    const toLatLon = filterState?.value[1];
-    return (
-      lng >= fromLatLon[0] &&
-      lng <= toLatLon[0] &&
-      lat >= fromLatLon[1] &&
-      lat <= toLatLon[1]
-    );
-  });
+  const dataInside = dataWithRadius.filter((d: JsonObject) =>
+    isPointInBonds(d.position, filterState?.value),
+  );
 
   return new ScatterplotLayer({
     id: `scatter-highlight-layer-${fd.slice_id}` as const,

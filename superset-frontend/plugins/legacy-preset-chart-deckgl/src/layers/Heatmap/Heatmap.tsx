@@ -19,6 +19,7 @@
 import { HeatmapLayer } from '@deck.gl/aggregation-layers';
 import { Position } from '@deck.gl/core';
 import { t, getSequentialSchemeRegistry, JsonObject } from '@superset-ui/core';
+import { isPointInBonds } from '../../utilities/utils';
 import { commonLayerProps, getColorRange } from '../common';
 import sandboxedEval from '../../utils/sandbox';
 import { GetLayerType, createDeckGLComponent } from '../../factory';
@@ -118,17 +119,9 @@ export const getHighlightLayer: GetLayerType<HeatmapLayer> = ({
     data = jsFnMutatorFunction(data);
   }
 
-  const dataInside = data.filter((d: JsonObject) => {
-    const [lng, lat] = d.position;
-    const fromLatLon = filterState?.value[0];
-    const toLatLon = filterState?.value[1];
-    return (
-      lng >= fromLatLon[0] &&
-      lng <= toLatLon[0] &&
-      lat >= fromLatLon[1] &&
-      lat <= toLatLon[1]
-    );
-  });
+  const dataInside = data.filter((d: JsonObject) =>
+    isPointInBonds(d.position, filterState?.value),
+  );
 
   return new HeatmapLayer({
     id: `heatmap-layer-${fd.slice_id}` as const,

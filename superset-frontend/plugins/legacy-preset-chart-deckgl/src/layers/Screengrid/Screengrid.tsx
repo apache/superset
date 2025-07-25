@@ -22,7 +22,11 @@
 import { ScreenGridLayer } from '@deck.gl/aggregation-layers';
 import { CategoricalColorNamespace, JsonObject, t } from '@superset-ui/core';
 import { Color } from '@deck.gl/core';
-import { COLOR_SCHEME_TYPES, ColorSchemeType } from '../../utilities/utils';
+import {
+  COLOR_SCHEME_TYPES,
+  ColorSchemeType,
+  isPointInBonds,
+} from '../../utilities/utils';
 import sandboxedEval from '../../utils/sandbox';
 import { commonLayerProps, getColorRange } from '../common';
 import TooltipRow from '../../TooltipRow';
@@ -130,17 +134,9 @@ const getHighlightLayer: GetLayerType<ScreenGridLayer> = function ({
     const jsFnMutator = sandboxedEval(fd.js_data_mutator);
     data = jsFnMutator(data);
   }
-  const dataInside = data.filter((d: JsonObject) => {
-    const [lng, lat] = d.position;
-    const fromLatLon = filterState?.value[0];
-    const toLatLon = filterState?.value[1];
-    return (
-      lng >= fromLatLon[0] &&
-      lng <= toLatLon[0] &&
-      lat >= fromLatLon[1] &&
-      lat <= toLatLon[1]
-    );
-  });
+  const dataInside = data.filter((d: JsonObject) =>
+    isPointInBonds(d.position, filterState?.value),
+  );
 
   const aggFunc = (d: JsonObject) => d.weight || 0;
 
