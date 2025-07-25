@@ -148,11 +148,13 @@ flowchart TD
 
 ## Tool/DAO Mapping
 
-- `list_dashboards`, `get_dashboard_info`, `get_dashboard_available_filters`: DashboardDAO (supports ID/UUID/slug lookup, includes UUID/slug in search)
-- `list_datasets`, `get_dataset_info`, `get_dataset_available_filters`: DatasetDAO (supports ID/UUID lookup, returns columns and metrics, includes UUID in search)
-- `list_charts`, `get_chart_info`, `get_chart_available_filters`, `create_chart`: ChartDAO (supports ID/UUID lookup, create_chart supports line, bar, area, scatter, table charts, includes UUID in search)
-- `get_superset_instance_info`: System metadata
-- `generate_explore_link`: Chart exploration without saving
+| Tools | DAO | Features |
+|-------|-----|----------|
+| `list_dashboards`, `get_dashboard_info`, `get_dashboard_available_filters` | DashboardDAO | ID/UUID/slug lookup, UUID/slug search |
+| `list_datasets`, `get_dataset_info`, `get_dataset_available_filters` | DatasetDAO | ID/UUID lookup, columns & metrics, UUID search |
+| `list_charts`, `get_chart_info`, `get_chart_available_filters`, `create_chart` | ChartDAO | ID/UUID lookup, chart creation, UUID search |
+| `get_superset_instance_info` | System | Instance metadata |
+| `generate_explore_link` | Chart | Temporary chart exploration |
 
 ---
 

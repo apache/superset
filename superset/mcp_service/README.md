@@ -163,64 +163,64 @@ table_request = CreateChartRequest(dataset_id="1", config=table_config)
 
 ## Security & Authentication
 
-The MCP service includes **optional JWT Bearer authentication** for production deployments. By default, authentication is **disabled** for development convenience.
+The MCP service supports **configurable JWT Bearer authentication** following Superset's factory pattern. Authentication is **disabled by default** for development convenience.
 
-### Quick Start
+### Configuration Options
 
-**Development (Default)**: No setup required - runs with admin privileges for testing and development. Optionally set `MCP_DEV_USERNAME` to use a specific Superset user account.
+**Option 1: Simple Configuration** (Add to `superset_config.py`):
+```python
+# Enable authentication
+MCP_AUTH_ENABLED = True
 
-**Production**: Set environment variables to enable JWT authentication with your identity provider.
-
-### Authentication Setup
-
-Enable authentication by setting these environment variables:
-
-```bash
-# Required: Enable authentication
-MCP_AUTH_ENABLED=true
-
-# Required: JWT validation (choose one approach)
-# Option A: Static public key (simple)
-MCP_JWT_PUBLIC_KEY="-----BEGIN PUBLIC KEY-----
-MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA...
------END PUBLIC KEY-----"
-
-# Option B: JWKS endpoint (enterprise, supports key rotation)
-MCP_JWKS_URI=https://auth.yourcompany.com/.well-known/jwks.json
-
-# Required: JWT issuer and audience
-MCP_JWT_ISSUER=https://auth.yourcompany.com/
-MCP_JWT_AUDIENCE=superset-mcp-api
-
-# Optional: Algorithm (defaults to RS256)
-MCP_JWT_ALGORITHM=RS256
-
-# Optional: Required scopes (comma-separated)
-MCP_REQUIRED_SCOPES=dashboard:read,chart:read,dataset:read
-
-# Development only: Override fallback user (when auth disabled)
-MCP_DEV_USERNAME=your-superset-username
+# JWT settings
+MCP_JWKS_URI = "https://auth.company.com/.well-known/jwks.json"
+MCP_JWT_ISSUER = "https://auth.company.com/"
+MCP_JWT_AUDIENCE = "superset-mcp-api"
+MCP_REQUIRED_SCOPES = ["dashboard:read", "chart:read"]
 ```
 
-### How Security Works
+**Option 2: Custom Factory** (Advanced):
+```python
+def create_custom_mcp_auth(app):
+    """Custom auth logic for your environment."""
+    from fastmcp.server.auth.providers.bearer import BearerAuthProvider
 
-**Token Validation**: JWT tokens are validated using RS256 asymmetric encryption against your public key or JWKS endpoint.
+    return BearerAuthProvider(
+        jwks_uri=app.config["MCP_JWKS_URI"],
+        issuer=app.config["MCP_JWT_ISSUER"],
+        audience=app.config["MCP_JWT_AUDIENCE"],
+    )
 
-**User Identity**: The JWT `sub` (subject) claim becomes the acting user - all operations run on behalf of this user for proper audit trails.
+MCP_AUTH_FACTORY = create_custom_mcp_auth
+```
 
-**Permission Control**: Fine-grained scopes control access to different operations:
+**Option 3: Environment Variables** (Legacy):
+```bash
+MCP_AUTH_ENABLED=true
+MCP_JWKS_URI=https://auth.company.com/.well-known/jwks.json
+MCP_JWT_ISSUER=https://auth.company.com/
+MCP_JWT_AUDIENCE=superset-mcp-api
+MCP_REQUIRED_SCOPES=dashboard:read,chart:read
+```
 
-| Operation | Required Scope |
-|-----------|----------------|
-| List/view dashboards | `dashboard:read` |
-| List/view charts | `chart:read` |
-| Create charts | `chart:write` |
-| List/view datasets | `dataset:read` |
-| System information | `instance:read` |
+### Security Features
 
-**Graceful Fallback**: When authentication is disabled or tokens are missing, the service falls back to admin user for backward compatibility.
+**JWT Authentication**: RS256 tokens validated against JWKS or public key
 
-**Audit Logging**: All tool calls are logged with both the JWT user identity and the operation performed.
+**User Context**: JWT claims mapped to Superset users for proper permissions
+
+**Scope-Based Authorization**:
+| Tool | Required Scope |
+|------|----------------|
+| `list_dashboards`, `get_dashboard_info` | `dashboard:read` |
+| `list_charts`, `get_chart_info` | `chart:read` |
+| `create_chart` | `chart:write` |
+| `list_datasets`, `get_dataset_info` | `dataset:read` |
+| `get_superset_instance_info` | `instance:read` |
+
+**Audit Logging**: All operations logged with JWT user context
+
+**Flexible User Resolution**: Configurable JWT claim extraction
 
 ### For Testing & Development
 

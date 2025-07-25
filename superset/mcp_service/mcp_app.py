@@ -23,7 +23,6 @@ middleware. All tool modules should import mcp from here and use @mcp.tool and
 """
 
 import logging
-import os
 from typing import Optional
 
 from fastmcp import FastMCP
@@ -33,54 +32,36 @@ from superset.mcp_service.middleware import LoggingMiddleware, PrivateToolMiddle
 
 
 def _create_auth_provider() -> Optional[BearerAuthProvider]:
-    """Create a BearerAuthProvider if authentication is configured via env vars."""
-    # Check if authentication is enabled
-    if os.getenv("MCP_AUTH_ENABLED", "").lower() not in ("true", "1", "yes"):
-        return None
-
-    # Get configuration from environment
-    public_key = os.getenv("MCP_JWT_PUBLIC_KEY")
-    jwks_uri = os.getenv("MCP_JWKS_URI")
-    issuer = os.getenv("MCP_JWT_ISSUER")
-    audience = os.getenv("MCP_JWT_AUDIENCE")
-    algorithm = os.getenv("MCP_JWT_ALGORITHM", "RS256")
-
-    # Required scopes (comma-separated)
-    required_scopes_str = os.getenv("MCP_REQUIRED_SCOPES", "")
-    required_scopes = (
-        [s.strip() for s in required_scopes_str.split(",") if s.strip()]
-        if required_scopes_str
-        else None
-    )
-
-    if not (public_key or jwks_uri):
-        logger = logging.getLogger(__name__)
-        logger.warning(
-            "MCP_AUTH_ENABLED is true but neither MCP_JWT_PUBLIC_KEY "
-            "nor MCP_JWKS_URI is set. Authentication disabled."
-        )
-        return None
-
+    """
+    Create a BearerAuthProvider using the configured factory function.
+    Uses app.config["MCP_AUTH_FACTORY"](app) pattern as suggested by @dpgaspar.
+    """
     try:
-        return BearerAuthProvider(
-            public_key=public_key,
-            jwks_uri=jwks_uri,
-            issuer=issuer,
-            algorithm=algorithm,
-            audience=audience,
-            required_scopes=required_scopes,
-        )
+        from superset import app as superset_app
+        from superset.mcp_service.config import DEFAULT_CONFIG
+
+        # Apply defaults to app.config if not already set
+        for key, value in DEFAULT_CONFIG.items():
+            if key not in superset_app.config:
+                superset_app.config[key] = value
+
+        # Call the factory using app.config pattern
+        auth_factory = superset_app.config.get("MCP_AUTH_FACTORY")
+        if auth_factory and callable(auth_factory):
+            return auth_factory(superset_app)
+
+        return None
     except Exception as e:
         logger = logging.getLogger(__name__)
-        logger.error(
-            f"Failed to create BearerAuthProvider: {e}. Authentication disabled."
-        )
+        logger.error(f"Failed to create auth provider: {e}")
         return None
 
 
+# Create MCP instance without auth initially - auth will be configured in
+# init_fastmcp_server()
 mcp = FastMCP(
     "Superset MCP Server",
-    auth=_create_auth_provider(),
+    auth=None,  # Will be set later via factory
     instructions="""
 You are connected to the Apache Superset MCP (Model Context Protocol) service.
 This service provides programmatic access to Superset dashboards, charts, datasets,
@@ -130,14 +111,39 @@ import superset.mcp_service.dataset.tool  # noqa: F401, E402
 import superset.mcp_service.system.tool  # noqa: F401, E402
 
 
-def init_fastmcp_server() -> FastMCP:
+def init_fastmcp_server(enable_auth_configuration: bool = True) -> FastMCP:
     """
     Initialize and configure the FastMCP server with all middleware.
     This should be called before running the server to ensure middleware is registered.
+
+    Args:
+        enable_auth_configuration: If True, configure auth using the factory pattern
     """
     logger = logging.getLogger(__name__)
     logger.setLevel(logging.DEBUG)
+
+    # Configure authentication using factory pattern
+    if enable_auth_configuration:
+        try:
+            auth_provider = _create_auth_provider()
+            if auth_provider:
+                logger.info("Configuring MCP authentication using factory pattern")
+                # Set the auth provider on the mcp instance
+                mcp.auth = auth_provider
+                logger.info(
+                    f"Authentication configured: {type(auth_provider).__name__}"
+                )
+            else:
+                logger.info(
+                    "No authentication configured - MCP service will run without auth"
+                )
+        except Exception as e:
+            logger.error(f"Auth configuration failed: {e}")
+            logger.info("MCP service will run without authentication")
+
+    # Add middleware
     mcp.add_middleware(LoggingMiddleware())
     mcp.add_middleware(PrivateToolMiddleware())
-    logger.info("MCP Server initialized with modular tools structure (middleware only)")
+
+    logger.info("MCP Server initialized with modular tools structure")
     return mcp
