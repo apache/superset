@@ -24,6 +24,8 @@ import {
   ModalTrigger,
   Form,
   Select,
+  Typography,
+  Flex,
 } from '@superset-ui/core/components';
 import rison from 'rison';
 import { Menu } from '@superset-ui/core/components/Menu';
@@ -61,11 +63,8 @@ export type CssEditorState = {
 };
 const StyledWrapper = styled.div`
   ${({ theme }) => `
-    .css-editor-header {
-      margin-bottom: ${theme.sizeUnit * 2}px;
-    }
-    .css-editor {
-      border: 1px solid ${theme.colorBorder};
+    .ace_editor {
+      border-radius: ${theme.borderRadius}px;
     }
   `}
 `;
@@ -197,8 +196,10 @@ class CssEditor extends PureComponent<CssEditorProps, CssEditorState> {
         />
       );
       return (
-        <Dropdown popupRender={() => menu} placement="bottomRight">
-          <Button buttonStyle="secondary">{t('Load CSS template')}</Button>
+        <Dropdown popupRender={() => menu} placement="bottomLeft">
+          <Button buttonStyle="secondary" buttonSize="small">
+            {t('Load CSS template')}
+          </Button>
         </Dropdown>
       );
     }
@@ -225,7 +226,7 @@ class CssEditor extends PureComponent<CssEditorProps, CssEditorState> {
             options={options}
             allowClear
             placeholder={t('Select a theme')}
-            css={{ width: 200 }}
+            css={{ width: '100%', maxWidth: 300 }}
           />
         </Form.Item>
       );
@@ -240,33 +241,46 @@ class CssEditor extends PureComponent<CssEditorProps, CssEditorState> {
         modalTitle={t('Theme & CSS')}
         modalBody={
           <StyledWrapper>
-            <div className="css-editor-header">
-              <Form layout="inline">{this.renderThemeSelector()}</Form>
-              <h5>{t('CSS editor')}</h5>
-              <Form layout="inline">
-                <Form.Item>{this.renderTemplateSelector()}</Form.Item>
-              </Form>
-            </div>
-            <AceCssEditor
-              className="css-editor"
-              minLines={12}
-              maxLines={30}
-              onChange={this.changeCss}
-              height="200px"
-              width="100%"
-              editorProps={{ $blockScrolling: true }}
-              enableLiveAutocompletion
-              value={this.state.pendingCss || ''}
-            />
-            <div style={{ marginTop: 16, textAlign: 'right' }}>
-              <Button
-                type="primary"
-                onClick={this.applyChanges}
-                disabled={!this.hasChanges()}
-              >
-                {t('Apply & Save')}
-              </Button>
-            </div>
+            <Flex vertical gap="large">
+              {/* Theme selector section */}
+              {this.state.themes && (
+                <Form layout="vertical">{this.renderThemeSelector()}</Form>
+              )}
+
+              {/* CSS editor section */}
+              <Flex vertical gap="middle">
+                <Flex justify="space-between" align="center">
+                  <Typography.Title level={5} style={{ margin: 0 }}>
+                    {t('CSS editor')}
+                  </Typography.Title>
+                  {this.renderTemplateSelector()}
+                </Flex>
+
+                <AceCssEditor
+                  minLines={12}
+                  maxLines={30}
+                  onChange={this.changeCss}
+                  height="300px"
+                  width="100%"
+                  editorProps={{ $blockScrolling: true }}
+                  enableLiveAutocompletion
+                  value={this.state.pendingCss || ''}
+                  showGutter
+                  showPrintMargin={false}
+                />
+              </Flex>
+
+              {/* Action buttons */}
+              <Flex justify="flex-end">
+                <Button
+                  type="primary"
+                  onClick={this.applyChanges}
+                  disabled={!this.hasChanges()}
+                >
+                  {t('Apply & Save')}
+                </Button>
+              </Flex>
+            </Flex>
           </StyledWrapper>
         }
       />

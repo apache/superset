@@ -21,6 +21,7 @@ import {
   screen,
   userEvent,
   waitFor,
+  within,
 } from 'spec/helpers/testing-library';
 import fetchMock from 'fetch-mock';
 import ThemesList from './index';
@@ -35,6 +36,7 @@ const mockThemes = [
       first_name: 'John',
       last_name: 'Doe',
     },
+    is_system: false,
   },
   {
     id: 2,
@@ -45,6 +47,18 @@ const mockThemes = [
       first_name: 'Jane',
       last_name: 'Smith',
     },
+    is_system: false,
+  },
+  {
+    id: 3,
+    theme_name: 'System Theme',
+    json_data: '{"colors": {"primary": "#000000"}}',
+    changed_on_delta_humanized: '1 year ago',
+    changed_by: {
+      first_name: 'System',
+      last_name: 'Admin',
+    },
+    is_system: true,
   },
 ];
 
@@ -61,7 +75,7 @@ fetchMock.get('glob:*/api/v1/theme/_info*', {
 
 fetchMock.get('glob:*/api/v1/theme/*', {
   result: mockThemes,
-  count: 2,
+  count: 3,
 });
 
 fetchMock.delete('glob:*/api/v1/theme/*', {
@@ -136,10 +150,13 @@ describe('ThemesList', () => {
       expect(screen.getByText('Test Theme 1')).toBeInTheDocument();
     });
 
-    const addButton = screen.getByText('Theme');
+    // Find the "+ Theme" button
+    const addButton = screen.getByRole('button', { name: /\+ theme/i });
     userEvent.click(addButton);
 
+    // Verify the theme modal opens with "Add theme" title
     await waitFor(() => {
+      expect(screen.getByTestId('theme-modal-title')).toBeInTheDocument();
       expect(screen.getByText('Add theme')).toBeInTheDocument();
     });
   });
@@ -171,15 +188,35 @@ describe('ThemesList', () => {
 
   test('shows theme apply success message', async () => {
     const mockAddSuccessToast = jest.fn();
+    const mockSetTemporaryTheme = jest.fn();
+
+    // Mock the useThemeContext hook
+    jest.mock('src/theme/ThemeProvider', () => ({
+      useThemeContext: () => ({
+        setTemporaryTheme: mockSetTemporaryTheme,
+        getCurrentCrudThemeId: jest.fn(),
+      }),
+    }));
+
     renderThemesList({ addSuccessToast: mockAddSuccessToast });
 
     await waitFor(() => {
       expect(screen.getByText('Test Theme 1')).toBeInTheDocument();
     });
 
-    // Mock the theme apply functionality
-    // This would typically involve clicking the apply button and verifying the toast
-    // The exact implementation depends on how the actions are rendered
+    // Find the actions column for the first theme
+    const actionsButton = screen.getAllByRole('button', {
+      name: /actions/i,
+    })[0];
+    userEvent.click(actionsButton);
+
+    // Click apply from the dropdown menu
+    const applyOption = await screen.findByText('Apply');
+    userEvent.click(applyOption);
+
+    await waitFor(() => {
+      expect(mockAddSuccessToast).toHaveBeenCalledWith('Theme applied locally');
+    });
   });
 
   test('shows delete confirmation modal', async () => {
@@ -189,20 +226,67 @@ describe('ThemesList', () => {
       expect(screen.getByText('Test Theme 1')).toBeInTheDocument();
     });
 
-    // Find and click delete button (implementation depends on how actions are rendered)
-    // Should show confirmation modal
-    // This test would be more specific once we know the exact structure
+    // Find the actions button for the first theme
+    const actionsButton = screen.getAllByRole('button', {
+      name: /actions/i,
+    })[0];
+    userEvent.click(actionsButton);
+
+    // Click delete from the dropdown menu
+    const deleteOption = await screen.findByText('Delete');
+    userEvent.click(deleteOption);
+
+    // Verify the delete confirmation modal appears
+    await waitFor(() => {
+      expect(screen.getByText('Delete Theme?')).toBeInTheDocument();
+      expect(
+        screen.getByText(/are you sure you want to delete/i),
+      ).toBeInTheDocument();
+    });
+
+    // Find and click the delete button in the modal
+    const confirmDeleteButton = screen.getByRole('button', { name: /delete/i });
+    userEvent.click(confirmDeleteButton);
+
+    // Verify the API call was made
+    await waitFor(() => {
+      expect(
+        fetchMock.called('glob:*/api/v1/theme/*', { method: 'DELETE' }),
+      ).toBe(true);
+    });
   });
 
   test('handles theme export', async () => {
+    // Mock the export functionality
+    const mockHandleResourceExport = jest.fn();
+    jest.mock('src/utils/export', () => mockHandleResourceExport);
+
+    // Add export endpoint mock
+    fetchMock.get('glob:*/api/v1/theme/export/*', {
+      body: JSON.stringify(mockThemes),
+      headers: { 'Content-Type': 'application/json' },
+    });
+
     renderThemesList();
 
     await waitFor(() => {
       expect(screen.getByText('Test Theme 1')).toBeInTheDocument();
     });
 
-    // Test export functionality
-    // This would involve clicking export and verifying the API call
+    // Find the actions button for the first theme
+    const actionsButton = screen.getAllByRole('button', {
+      name: /actions/i,
+    })[0];
+    userEvent.click(actionsButton);
+
+    // Click export from the dropdown menu
+    const exportOption = await screen.findByText('Export');
+    userEvent.click(exportOption);
+
+    // Verify export was initiated
+    await waitFor(() => {
+      expect(fetchMock.called('glob:*/api/v1/theme/export/*')).toBe(true);
+    });
   });
 
   test('handles bulk operations', async () => {
@@ -212,12 +296,28 @@ describe('ThemesList', () => {
       expect(screen.getByText('Test Theme 1')).toBeInTheDocument();
     });
 
-    // Click bulk select
+    // Click bulk select button
     const bulkSelectButton = screen.getByText('Bulk select');
     userEvent.click(bulkSelectButton);
 
-    // Verify bulk selection interface appears
-    // This depends on the exact implementation
+    // Verify checkboxes appear for each theme
+    await waitFor(() => {
+      const checkboxes = screen.getAllByRole('checkbox');
+      expect(checkboxes.length).toBeGreaterThanOrEqual(2); // At least 2 themes
+    });
+
+    // Select the first theme
+    const firstThemeCheckbox = screen.getAllByRole('checkbox')[0];
+    userEvent.click(firstThemeCheckbox);
+
+    // Verify bulk action bar appears
+    await waitFor(() => {
+      expect(screen.getByText(/1 selected/i)).toBeInTheDocument();
+    });
+
+    // Test bulk delete
+    const bulkDeleteButton = screen.getByRole('button', { name: /delete/i });
+    expect(bulkDeleteButton).toBeInTheDocument();
   });
 
   test('respects permissions for actions', async () => {
@@ -236,8 +336,38 @@ describe('ThemesList', () => {
       expect(screen.getByText('Test Theme 1')).toBeInTheDocument();
     });
 
-    // Should not show add button or bulk select
-    expect(screen.queryByText('Theme')).not.toBeInTheDocument();
+    // Should not show add button or bulk select with read-only permissions
+    expect(
+      screen.queryByRole('button', { name: /\+ theme/i }),
+    ).not.toBeInTheDocument();
     expect(screen.queryByText('Bulk select')).not.toBeInTheDocument();
+  });
+
+  test('prevents editing and deleting system themes', async () => {
+    renderThemesList();
+
+    await waitFor(() => {
+      expect(screen.getByText('System Theme')).toBeInTheDocument();
+    });
+
+    // Find the system theme row
+    const systemThemeRow = screen.getByText('System Theme').closest('tr');
+
+    // Check if it has the system tag
+    within(systemThemeRow!).getByText('System');
+
+    // Find the actions button for the system theme
+    const actionsButtons = screen.getAllByRole('button', { name: /actions/i });
+    const systemThemeActionButton = actionsButtons[2]; // Third theme is system theme
+    userEvent.click(systemThemeActionButton);
+
+    // Verify that edit and delete options are not available for system themes
+    await waitFor(() => {
+      expect(screen.queryByText('Edit')).not.toBeInTheDocument();
+      expect(screen.queryByText('Delete')).not.toBeInTheDocument();
+      // Apply and Export should still be available
+      expect(screen.getByText('Apply')).toBeInTheDocument();
+      expect(screen.getByText('Export')).toBeInTheDocument();
+    });
   });
 });
