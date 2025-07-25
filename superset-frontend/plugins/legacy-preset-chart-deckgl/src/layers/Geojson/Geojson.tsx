@@ -31,6 +31,7 @@ import {
   SetDataMaskHook,
 } from '@superset-ui/core';
 
+import { Prev } from '@superset-ui/core/src/components/Pagination/Prev';
 import {
   DeckGLContainerHandle,
   DeckGLContainerStyledWrapper,
@@ -119,7 +120,21 @@ function setTooltipContent(o: JsonObject) {
   );
 }
 
-const getFillColor = (feature: JsonObject) => feature?.properties?.fillColor;
+const getFillColor = (feature: JsonObject, filterStateValue: unknown[]) => {
+  if (filterStateValue) {
+    if (
+      JSON.stringify(feature.geometry.coordinates) ===
+      JSON.stringify(filterStateValue?.[0])
+    ) {
+      return [255, 0, 0, 255];
+    }
+
+    const fillColor = feature?.properties?.fillColor;
+    fillColor[3] = 125;
+    return fillColor;
+  }
+  return feature?.properties?.fillColor;
+};
 const getLineColor = (feature: JsonObject) => feature?.properties?.strokeColor;
 
 export const getLayer: GetLayerType<GeoJsonLayer> = function ({
@@ -160,7 +175,8 @@ export const getLayer: GetLayerType<GeoJsonLayer> = function ({
     extruded: fd.extruded,
     filled: fd.filled,
     stroked: fd.stroked,
-    getFillColor,
+    getFillColor: (feature: JsonObject) =>
+      getFillColor(feature, filterState?.value),
     getLineColor,
     getLineWidth: fd.line_width || 1,
     pointRadiusScale: fd.point_radius_scale,
@@ -188,6 +204,7 @@ export type DeckGLGeoJsonProps = {
   filterState: FilterState;
   onContextMenu: HandlerFunction;
   setDataMask: SetDataMaskHook;
+  emitCrossFilters?: boolean;
 };
 
 export function getPoints(data: Point[]) {
@@ -242,6 +259,7 @@ const DeckGLGeoJson = (props: DeckGLGeoJsonProps) => {
     onAddFilter,
     payload,
     formData,
+    emitCrossFilters: props.emitCrossFilters,
   });
 
   return (

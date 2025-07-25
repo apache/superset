@@ -442,7 +442,7 @@ const getGeojsonFilters = ({
   const val = `%${JSON.stringify(geometry)}%`;
 
   return {
-    values: [val],
+    values: [geometry],
     filters: [
       {
         col: {
