@@ -24,3 +24,14 @@ export default function getOwnerName(owner?: Owner): string {
   }
   return owner.full_name || `${owner.first_name} ${owner.last_name}`;
 }
+
+export function getOwnerDisplayName(owner?: Owner): string {
+  if (!owner) {
+    return '';
+  }
+
+  if (owner.username) {
+    return `${getOwnerName(owner)} (${owner.username})`;
+  }
+  return getOwnerName(owner);
+}

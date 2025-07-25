@@ -47,6 +47,7 @@ interface CssTemplatesListProps {
     userId: string | number;
     firstName: string;
     lastName: string;
+    username: string;
   };
 }
 

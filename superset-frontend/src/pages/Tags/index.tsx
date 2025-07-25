@@ -52,6 +52,7 @@ interface TagListProps {
     userId: string | number;
     firstName: string;
     lastName: string;
+    username: string;
   };
 }
 
