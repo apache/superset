@@ -440,11 +440,7 @@ export default function transformProps(
         .map(datum => datum.name)
         .sort((a: string, b: string) => {
           if (!legendSort) return 0;
-          if (legendSort === 'asc') {
-            return a.localeCompare(b);
-          } else {
-            return b.localeCompare(a);
-          }
+          return legendSort === 'asc' ? a.localeCompare(b) : b.localeCompare(a);
         }),
     },
     graphic: showTotal
