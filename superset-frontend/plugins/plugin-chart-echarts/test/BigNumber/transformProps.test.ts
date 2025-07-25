@@ -128,9 +128,10 @@ describe('BigNumberWithTrendline', () => {
       expect(lastDatum?.[0]).toStrictEqual(100);
       expect(lastDatum?.[1]).toBeNull();
 
-      // should note this is a fallback
+      // should get the last non-null value
       expect(transformed.bigNumber).toStrictEqual(1.2345);
-      expect(transformed.bigNumberFallback).not.toBeNull();
+      // bigNumberFallback is only set when bigNumber is null after aggregation
+      expect(transformed.bigNumberFallback).toBeNull();
 
       // should successfully formatTime by granularity
       // @ts-ignore
