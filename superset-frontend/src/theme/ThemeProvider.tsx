@@ -71,6 +71,11 @@ export function SupersetThemeProvider({
     [themeController],
   );
 
+  const canSetThemeMode = useCallback(
+    () => themeController.canSetThemeMode(),
+    [themeController],
+  );
+
   const contextValue = useMemo(
     () => ({
       theme: currentTheme,
@@ -78,8 +83,16 @@ export function SupersetThemeProvider({
       setTheme,
       setThemeMode,
       resetTheme,
+      canSetThemeMode,
     }),
-    [currentTheme, currentThemeMode, setTheme, setThemeMode, resetTheme],
+    [
+      currentTheme,
+      currentThemeMode,
+      setTheme,
+      setThemeMode,
+      resetTheme,
+      canSetThemeMode,
+    ],
   );
 
   return (

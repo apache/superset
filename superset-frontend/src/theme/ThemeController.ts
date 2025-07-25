@@ -23,7 +23,7 @@ import {
   ThemeControllerOptions,
   themeObject as supersetThemeObject,
 } from '@superset-ui/core';
-import { SupersetTheme, ThemeMode } from '@superset-ui/core/theme/types';
+import { ThemeMode } from '@superset-ui/core/theme/types';
 import {
   getAntdConfig,
   normalizeThemeConfig,
@@ -85,70 +85,43 @@ export class ThemeController {
 
   private darkTheme: AnyThemeConfig | null;
 
+  private fallbackTheme: AnyThemeConfig;
+
   private themeSettings: SerializableThemeSettings;
 
   private systemMode: ThemeMode.DARK | ThemeMode.DEFAULT;
 
   private currentMode: ThemeMode;
 
-  private readonly hasBootstrapThemes: boolean;
+  private hasBootstrapThemes: boolean;
 
   private onChangeCallbacks: Set<(theme: Theme) => void> = new Set();
 
   private mediaQuery: MediaQueryList;
 
   constructor(options: ThemeControllerOptions = {}) {
-    const {
-      storage = new LocalStorageAdapter(),
-      modeStorageKey = STORAGE_KEYS.THEME_MODE,
-      themeObject = supersetThemeObject,
-      defaultTheme = (supersetThemeObject.theme as AnyThemeConfig) ?? {},
-      onChange = null,
-    } = options;
+    try {
+      // Initialize core dependencies
+      this.initializeCore(options);
 
-    this.storage = storage;
-    this.modeStorageKey = modeStorageKey;
-    this.themeObject = themeObject;
+      // Setup cleanup handlers
+      this.setupCleanupHandlers();
 
-    // Initialize bootstrap data and themes
-    const {
-      bootstrapDefaultTheme,
-      bootstrapDarkTheme,
-      bootstrapThemeSettings,
-      hasBootstrapThemes,
-    }: BootstrapThemeData = this.loadBootstrapData();
+      // Load and configure themes
+      this.initializeThemes(options.defaultTheme || {});
 
-    this.hasBootstrapThemes = hasBootstrapThemes;
-    this.themeSettings = bootstrapThemeSettings || {};
+      // Setup system theme detection
+      this.initializeSystemThemeDetection();
 
-    // Set themes based on bootstrap data availability
-    if (this.hasBootstrapThemes) {
-      this.darkTheme = bootstrapDarkTheme || bootstrapDefaultTheme || null;
-      this.defaultTheme =
-        bootstrapDefaultTheme || bootstrapDarkTheme || defaultTheme;
-    } else {
-      this.darkTheme = null;
-      this.defaultTheme = defaultTheme;
+      // Setup change callbacks
+      this.setupChangeCallbacks(options.onChange || null);
+
+      // Apply initial theme state
+      this.applyInitialTheme();
+    } catch (error) {
+      console.error('Failed to initialize ThemeController:', error);
+      this.fallbackToSafeState(options);
     }
-
-    // Initialize system theme detection
-    this.systemMode = ThemeController.getSystemPreferredMode();
-
-    // Only initialize media query listener if OS preference is allowed
-    if (this.shouldInitializeMediaQueryListener())
-      this.initializeMediaQueryListener();
-
-    // Initialize theme and mode
-    this.currentMode = this.determineInitialMode();
-    const initialTheme =
-      this.getThemeForMode(this.currentMode) || this.defaultTheme;
-
-    // Setup change callback
-    if (onChange) this.onChangeCallbacks.add(onChange);
-
-    // Apply initial theme and persist mode
-    this.applyTheme(initialTheme);
-    this.persistMode();
   }
 
   // Public Methods
@@ -176,7 +149,7 @@ export class ThemeController {
   /**
    * Check if the user can update the theme mode.
    */
-  public canSetMode(): boolean {
+  public canSetThemeMode(): boolean {
     return this.isModeUpdatable();
   }
 
@@ -202,7 +175,7 @@ export class ThemeController {
   public setTheme(theme: AnyThemeConfig): void {
     this.validateThemeUpdatePermission();
 
-    const normalizedTheme = this.normalizeTheme(theme);
+    const normalizedTheme = normalizeThemeConfig(theme);
     this.currentMode = this.determineInitialMode();
 
     this.updateTheme(normalizedTheme);
@@ -218,27 +191,150 @@ export class ThemeController {
 
     if (this.currentMode === mode) return;
 
-    const theme: AnyThemeConfig | null = this.getThemeForMode(mode);
-    if (!theme) {
-      console.warn(`Theme for mode ${mode} not found, falling back to default`);
-      this.fallbackToDefaultMode();
-      return;
-    }
+    try {
+      const theme: AnyThemeConfig | null = this.getThemeForMode(mode);
+      if (!theme) {
+        console.warn(
+          `Theme for mode ${mode} not found, falling back to default`,
+        );
+        this.fallbackToDefaultMode();
+        return;
+      }
 
-    this.currentMode = mode;
-    this.updateTheme(theme);
+      this.currentMode = mode;
+      this.updateTheme(theme);
+    } catch (error) {
+      console.error('Failed to set theme mode:', error);
+      this.fallbackToDefaultMode();
+    }
   }
 
   /**
    * Resets the theme to the default theme.
    */
   public resetTheme(): void {
-    this.currentMode = ThemeMode.DEFAULT;
-    const defaultTheme: AnyThemeConfig =
-      this.getThemeForMode(ThemeMode.DEFAULT) || this.defaultTheme;
-
-    this.updateTheme(defaultTheme);
+    this.fallbackToDefaultMode();
   }
+
+  /**
+   * Registers a callback to be called when the theme changes.
+   * @param callback - The callback to be called on theme change
+   * @returns A function to unsubscribe from the theme change events
+   */
+  public onChange(callback: (theme: Theme) => void): () => void {
+    this.onChangeCallbacks.add(callback);
+    return () => this.onChangeCallbacks.delete(callback);
+  }
+
+  // Private Initialization Methods
+
+  /**
+   * Initializes core properties from options
+   * @param options - Configuration options for the theme controller
+   */
+  private initializeCore(options: ThemeControllerOptions): void {
+    const {
+      storage = new LocalStorageAdapter(),
+      modeStorageKey = STORAGE_KEYS.THEME_MODE,
+      themeObject = supersetThemeObject,
+    } = options;
+
+    this.storage = storage;
+    this.modeStorageKey = modeStorageKey;
+    this.themeObject = themeObject;
+  }
+
+  /**
+   * Sets up cleanup handlers for memory leak prevention
+   */
+  private setupCleanupHandlers(): void {
+    if (typeof window !== 'undefined')
+      window.addEventListener('beforeunload', () => this.destroy());
+  }
+
+  /**
+   * Loads bootstrap data and initializes theme configurations
+   * @param fallbackTheme - Default theme configuration to use when bootstrap themes are not available
+   */
+  private initializeThemes(fallbackTheme: AnyThemeConfig): void {
+    this.fallbackTheme = fallbackTheme;
+
+    const {
+      bootstrapDefaultTheme,
+      bootstrapDarkTheme,
+      bootstrapThemeSettings,
+      hasBootstrapThemes,
+    }: BootstrapThemeData = this.loadBootstrapData();
+
+    this.hasBootstrapThemes = hasBootstrapThemes;
+    this.themeSettings = bootstrapThemeSettings || {};
+
+    // Configure themes based on bootstrap data availability
+    if (this.hasBootstrapThemes) {
+      this.darkTheme = bootstrapDarkTheme || null;
+      this.defaultTheme = bootstrapDefaultTheme || fallbackTheme;
+    } else {
+      this.darkTheme = null;
+      this.defaultTheme = fallbackTheme;
+    }
+  }
+
+  /**
+   * Initializes system theme detection and media query listeners
+   */
+  private initializeSystemThemeDetection(): void {
+    this.systemMode = ThemeController.getSystemPreferredMode();
+
+    if (this.shouldInitializeMediaQueryListener())
+      this.initializeMediaQueryListener();
+  }
+
+  /**
+   * Sets up change callback handlers
+   * @param onChange - Optional callback function to be called when theme changes
+   */
+  private setupChangeCallbacks(
+    onChange: ((theme: Theme) => void) | null,
+  ): void {
+    if (onChange) this.onChangeCallbacks.add(onChange);
+  }
+
+  /**
+   * Applies the initial theme state
+   */
+  private applyInitialTheme(): void {
+    this.currentMode = this.determineInitialMode();
+    const initialTheme =
+      this.getThemeForMode(this.currentMode) || this.defaultTheme;
+
+    this.applyTheme(initialTheme);
+    this.persistMode();
+  }
+
+  /**
+   * Fallback to a safe state if initialization fails
+   * @param options - Configuration options to use for creating a minimal safe theme state
+   */
+  private fallbackToSafeState(options: ThemeControllerOptions): void {
+    try {
+      this.storage = options.storage || new LocalStorageAdapter();
+      this.modeStorageKey = options.modeStorageKey || STORAGE_KEYS.THEME_MODE;
+      this.themeObject = options.themeObject || supersetThemeObject;
+      this.fallbackTheme = options.defaultTheme || {};
+      this.defaultTheme = this.fallbackTheme;
+      this.darkTheme = null;
+      this.hasBootstrapThemes = false;
+      this.themeSettings = {};
+      this.systemMode = ThemeMode.DEFAULT;
+      this.currentMode = ThemeMode.DEFAULT;
+
+      this.applyTheme(this.defaultTheme);
+    } catch (error) {
+      console.error('Failed to initialize safe state:', error);
+    }
+  }
+
+  // Private Methods
 
   /**
    * Handles system theme changes with error recovery.
@@ -276,10 +372,9 @@ export class ThemeController {
     try {
       // If no config provided, use current mode to get theme
       const config: AnyThemeConfig =
-        theme || this.getThemeForMode(this.currentMode) || this.defaultTheme;
+        theme || this.getThemeForMode(this.currentMode)!;
 
-      // Normalize the theme
-      const normalizedTheme = this.normalizeTheme(config);
+      const normalizedTheme = normalizeThemeConfig(config);
 
       this.applyTheme(normalizedTheme);
       this.persistMode();
@@ -295,27 +390,11 @@ export class ThemeController {
    */
   private fallbackToDefaultMode(): void {
     this.currentMode = ThemeMode.DEFAULT;
-
-    // Get the default theme which will have the correct algorithm
-    const defaultTheme: AnyThemeConfig =
-      this.getThemeForMode(ThemeMode.DEFAULT) || this.defaultTheme;
-
-    this.applyTheme(defaultTheme);
-    this.persistMode();
-    this.notifyListeners();
+    const defaultTheme: AnyThemeConfig = this.getThemeForMode(
+      ThemeMode.DEFAULT,
+    )!;
+    this.updateTheme(defaultTheme);
   }
-
-  /**
-   * Registers a callback to be called when the theme changes.
-   * @param callback - The callback to be called on theme change
-   * @returns A function to unsubscribe from the theme change events
-   */
-  public onChange(callback: (theme: Theme) => void): () => void {
-    this.onChangeCallbacks.add(callback);
-    return () => this.onChangeCallbacks.delete(callback);
-  }
-
-  // Private Helper Methods
 
   /**
    * Determines whether the MediaQueryList listener for system theme changes should be initialized.
@@ -323,10 +402,7 @@ export class ThemeController {
    * @returns {boolean} True if the media query listener should be initialized, false otherwise
    */
   private shouldInitializeMediaQueryListener(): boolean {
-    const { allowOSPreference = DEFAULT_THEME_SETTINGS.allowOSPreference } =
-      this.themeSettings || {};
-
-    return allowOSPreference === true;
+    return this.getThemeSettings('allowOSPreference');
   }
 
   /**
@@ -355,8 +431,8 @@ export class ThemeController {
       settings: themeSettings,
     } = theme;
 
-    const hasValidDefault: boolean = this.isNonEmptyObject(defaultTheme);
-    const hasValidDark: boolean = this.isNonEmptyObject(darkTheme);
+    const hasValidDefault: boolean = !this.isEmptyTheme(defaultTheme);
+    const hasValidDark: boolean = !this.isEmptyTheme(darkTheme);
     const hasValidSettings: boolean = this.isNonEmptyObject(themeSettings);
 
     return {
@@ -379,25 +455,51 @@ export class ThemeController {
   }
 
   /**
-   * Determines if mode updates are allowed.
+   * Checks if a theme configuration is empty or only contains empty token object.
    */
-  private isModeUpdatable(): boolean {
-    const {
-      enforced = DEFAULT_THEME_SETTINGS.enforced,
-      allowSwitching = DEFAULT_THEME_SETTINGS.allowSwitching,
-    } = this.themeSettings || {};
+  private isEmptyTheme(theme: AnyThemeConfig | null): boolean {
+    if (!theme) return true;
 
-    return !enforced && allowSwitching;
+    const keys = Object.keys(theme);
+    if (keys.length === 0) return true;
+
+    // If only has token property, check if token is empty
+    if (keys.length === 1 && keys[0] === 'token') {
+      const { token } = theme;
+      return !token || Object.keys(token).length === 0;
+    }
+
+    return false;
   }
 
   /**
-   * Normalizes the theme configuration to ensure it has a valid algorithm.
-   * @param theme - The theme configuration to normalize
-   * @returns An object with normalized mode and algorithm.
+   * Gets theme setting value with default fallback.
    */
-  private normalizeTheme(theme: AnyThemeConfig): AnyThemeConfig {
-    const normalizedTheme = normalizeThemeConfig(theme);
-    return normalizedTheme;
+  private getThemeSettings<K extends keyof SerializableThemeSettings>(
+    key: K,
+  ): NonNullable<SerializableThemeSettings[K]> {
+    return (this.themeSettings?.[key] ??
+      DEFAULT_THEME_SETTINGS[key]) as NonNullable<SerializableThemeSettings[K]>;
+  }
+
+  /**
+   * Determines if mode updates are allowed.
+   */
+  private isModeUpdatable(): boolean {
+    return (
+      !this.getThemeSettings('enforced') &&
+      this.getThemeSettings('allowSwitching')
+    );
+  }
+
+  /**
+   * Creates a fallback theme configuration using superset's built-in theme.
+   * @param isDark - Whether to apply dark mode algorithm
+   * @returns A theme configuration with proper algorithm applied
+   */
+  private createFallbackTheme(isDark: boolean): AnyThemeConfig {
+    const baseTheme = this.fallbackTheme.token || {};
+    return getAntdConfig(baseTheme, isDark);
   }
 
   /**
@@ -406,26 +508,24 @@ export class ThemeController {
    * @returns The theme configuration for the specified mode or null if not available
    */
   private getThemeForMode(mode: ThemeMode): AnyThemeConfig | null {
-    const { allowOSPreference = DEFAULT_THEME_SETTINGS.allowOSPreference } =
-      this.themeSettings;
-
     let resolvedMode: ThemeMode = mode;
 
     if (mode === ThemeMode.SYSTEM) {
-      if (!allowOSPreference) return null;
+      if (!this.getThemeSettings('allowOSPreference')) return null;
       resolvedMode = ThemeController.getSystemPreferredMode();
     }
 
-    if (!this.hasBootstrapThemes) {
-      const baseTheme = this.defaultTheme.token as Partial<SupersetTheme>;
-      return getAntdConfig(baseTheme, resolvedMode === ThemeMode.DARK);
-    }
+    // Handle case where no bootstrap themes are available
+    if (!this.hasBootstrapThemes)
+      return this.createFallbackTheme(resolvedMode === ThemeMode.DARK);
 
-    // Handle bootstrap themes using existing normalization
-    const selectedTheme: AnyThemeConfig =
-      resolvedMode === ThemeMode.DARK
-        ? this.darkTheme || this.defaultTheme
-        : this.defaultTheme;
+    // Handle bootstrap themes with per-mode fallback to superset defaults
+    const selectedTheme =
+      resolvedMode === ThemeMode.DARK ? this.darkTheme : this.defaultTheme;
+
+    // If the selected theme is missing or empty, fallback to superset built-in theme
+    if (!selectedTheme || this.isEmptyTheme(selectedTheme))
+      return this.createFallbackTheme(resolvedMode === ThemeMode.DARK);
 
     return selectedTheme;
   }
@@ -434,11 +534,9 @@ export class ThemeController {
    * Determines the initial theme mode with error recovery.
    */
   private determineInitialMode(): ThemeMode {
-    const {
-      enforced = DEFAULT_THEME_SETTINGS.enforced,
-      allowOSPreference = DEFAULT_THEME_SETTINGS.allowOSPreference,
-      allowSwitching = DEFAULT_THEME_SETTINGS.allowSwitching,
-    } = this.themeSettings;
+    const enforced = this.getThemeSettings('enforced');
+    const allowOSPreference = this.getThemeSettings('allowOSPreference');
+    const allowSwitching = this.getThemeSettings('allowSwitching');
 
     // Enforced mode always takes precedence
     if (enforced) {
@@ -497,7 +595,7 @@ export class ThemeController {
       case ThemeMode.DEFAULT:
         return !!this.defaultTheme;
       case ThemeMode.SYSTEM:
-        return this.themeSettings?.allowOSPreference !== false;
+        return this.getThemeSettings('allowOSPreference');
       default:
         return true;
     }
@@ -518,10 +616,8 @@ export class ThemeController {
    * @throws {Error} If the new mode is SYSTEM and OS preference is not allowed
    */
   private validateModeUpdatePermission(newMode: ThemeMode): void {
-    const {
-      allowOSPreference = DEFAULT_THEME_SETTINGS.allowOSPreference,
-      allowSwitching = DEFAULT_THEME_SETTINGS.allowSwitching,
-    } = this.themeSettings;
+    const allowOSPreference = this.getThemeSettings('allowOSPreference');
+    const allowSwitching = this.getThemeSettings('allowSwitching');
 
     // If OS preference is allowed but switching is not,
     // don't allow any mode changes
@@ -531,7 +627,7 @@ export class ThemeController {
       );
 
     // Check if user can set a new theme mode
-    if (!this.canSetMode())
+    if (!this.canSetThemeMode())
       throw new Error('User does not have permission to update the theme mode');
 
     // Check if user has permissions to set OS preference as a theme mode
