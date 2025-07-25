@@ -629,7 +629,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
       const startPosition = value[0];
       const colSpan = value.length;
       // Retrieve the originalLabel from the first column in this group
-      const firstColumnInGroup = filteredColumnsMeta[value[0]];
+      const firstColumnInGroup = filteredColumnsMeta[startPosition];
       const originalLabel = firstColumnInGroup
         ? columnsMeta.find(col => col.key === firstColumnInGroup.key)
             ?.originalLabel || key
