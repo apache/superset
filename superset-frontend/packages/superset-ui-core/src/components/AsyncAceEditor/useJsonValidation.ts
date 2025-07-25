@@ -58,11 +58,22 @@ export function useJsonValidation(
     } catch (error: any) {
       const errorMessage = error.message || 'syntax error';
 
+      // Try to extract line/column from error message
+      // Look for pattern: (line X column Y) - often at the end of error messages
+      let row = 0;
+      let column = 0;
+
+      const match = errorMessage.match(/\(line (\d+) column (\d+)\)/);
+      if (match) {
+        row = parseInt(match[1], 10) - 1; // Convert to 0-based
+        column = parseInt(match[2], 10) - 1;
+      }
+
       return [
         {
           type: 'error' as const,
-          row: 0, // JSON parse errors don't provide reliable line numbers
-          column: 0,
+          row,
+          column,
           text: `${errorPrefix}: ${errorMessage}`,
         },
       ];

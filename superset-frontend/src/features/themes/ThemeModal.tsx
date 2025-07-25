@@ -56,9 +56,6 @@ type ThemeStringKeys = keyof Pick<
 
 const StyledJsonEditor = styled.div`
   ${({ theme }) => css`
-    border-radius: ${theme.borderRadius}px;
-    border: 1px solid ${theme.colorBorder};
-
     .ace_editor {
       border-radius: ${theme.borderRadius}px;
     }

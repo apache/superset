@@ -68,8 +68,7 @@ import { areObjectsEqual } from 'src/reduxUtils';
 import { ModalTitleWithIcon } from 'src/components/ModalTitleWithIcon';
 
 const StyledJsonEditor = styled(JsonEditor)`
-  border-radius: ${({ theme }) => theme.borderRadius}px;
-  border: 1px solid ${({ theme }) => theme.colorPrimaryBorder};
+  /* Border is already applied by AceEditor itself */
 `;
 
 type PropertiesModalProps = {

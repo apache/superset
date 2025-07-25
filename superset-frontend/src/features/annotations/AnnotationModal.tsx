@@ -50,8 +50,7 @@ const StyledAnnotationTitle = styled.div`
 `;
 
 const StyledJsonEditor = styled(JsonEditor)`
-  border-radius: ${({ theme }) => theme.borderRadius}px;
-  border: 1px solid ${({ theme }) => theme.colorPrimaryBorder};
+  /* Border is already applied by AceEditor itself */
 `;
 
 const AnnotationContainer = styled.div`
