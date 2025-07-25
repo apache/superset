@@ -47,7 +47,16 @@ export interface ChartCustomizationSavePayload {
   chartId?: number;
   customization: {
     name: string;
-    dataset: string | null;
+    dataset:
+      | string
+      | number
+      | {
+          value: string | number;
+          label?: string;
+          table_name?: string;
+          schema?: string;
+        }
+      | null;
     datasetInfo?: {
       label: string;
       value: number;

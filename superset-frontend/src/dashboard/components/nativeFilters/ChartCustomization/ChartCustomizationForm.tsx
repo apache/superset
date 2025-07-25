@@ -48,6 +48,7 @@ import { CollapsibleControl } from '../FiltersConfigModal/FiltersConfigForm/Coll
 import DatasetSelect from '../FiltersConfigModal/FiltersConfigForm/DatasetSelect';
 import { mostUsedDataset } from '../FiltersConfigModal/FiltersConfigForm/utils';
 import { ChartCustomizationItem } from './types';
+import { selectChartCustomizationItems } from './selectors';
 
 const { TextArea } = Input;
 
@@ -100,6 +101,7 @@ interface Props {
   item: ChartCustomizationItem;
   onUpdate: (updatedItem: ChartCustomizationItem) => void;
   removedItems: Record<string, { isPending: boolean; timerId?: number } | null>;
+  allItems?: ChartCustomizationItem[];
 }
 
 const ChartCustomizationForm: FC<Props> = ({
@@ -107,6 +109,7 @@ const ChartCustomizationForm: FC<Props> = ({
   item,
   onUpdate,
   removedItems,
+  allItems,
 }) => {
   const theme = useTheme();
   const customization = useMemo(
@@ -120,6 +123,11 @@ const ChartCustomizationForm: FC<Props> = ({
     ({ datasources }) => datasources,
   );
   const charts = useSelector<RootState, ChartsState>(({ charts }) => charts);
+  const globalChartCustomizationItems = useSelector(
+    selectChartCustomizationItems,
+  );
+
+  const chartCustomizationItems = allItems || globalChartCustomizationItems;
 
   const [metrics, setMetrics] = useState<any[]>([]);
   const [isDefaultValueLoading, setIsDefaultValueLoading] = useState(false);
@@ -153,6 +161,58 @@ const ChartCustomizationForm: FC<Props> = ({
   const { chartId } = item;
   const chart = chartId ? charts[chartId] : null;
   const chartFormData = chart?.latestQueryFormData;
+
+  const getDatasetId = useCallback(
+    (
+      dataset:
+        | string
+        | number
+        | { value: string | number }
+        | { id: string | number }
+        | null,
+    ): number | null => {
+      if (!dataset) return null;
+
+      if (typeof dataset === 'number') return dataset;
+      if (typeof dataset === 'string') {
+        const id = Number(dataset);
+        return Number.isNaN(id) ? null : id;
+      }
+      if (
+        typeof dataset === 'object' &&
+        dataset !== null &&
+        'value' in dataset
+      ) {
+        const id = Number(dataset.value);
+        return Number.isNaN(id) ? null : id;
+      }
+      if (typeof dataset === 'object' && dataset !== null && 'id' in dataset) {
+        const id = Number(dataset.id);
+        return Number.isNaN(id) ? null : id;
+      }
+
+      return null;
+    },
+    [],
+  );
+
+  const excludeDatasetIds = useMemo(() => {
+    const usedIds: number[] = [];
+
+    chartCustomizationItems.forEach(customItem => {
+      if (customItem.id === item.id || customItem.removed) {
+        return;
+      }
+
+      const { dataset } = customItem.customization;
+      const datasetId = getDatasetId(dataset);
+      if (datasetId !== null) {
+        usedIds.push(datasetId);
+      }
+    });
+
+    return usedIds;
+  }, [chartCustomizationItems, item.id]);
 
   const checkColumnConflict = useCallback(
     (columnName: string) => {
@@ -284,18 +344,9 @@ const ChartCustomizationForm: FC<Props> = ({
       return undefined;
     }
 
-    let datasetId: number;
+    const datasetId = getDatasetId(customization.dataset);
 
-    if (
-      typeof customization.dataset === 'object' &&
-      'value' in customization.dataset
-    ) {
-      datasetId = Number((customization.dataset as any).value);
-    } else {
-      datasetId = Number(customization.dataset);
-    }
-
-    if (Number.isNaN(datasetId)) return undefined;
+    if (datasetId === null) return undefined;
 
     if (datasetDetails && datasetDetails.id === datasetId) {
       const label =
@@ -400,17 +451,8 @@ const ChartCustomizationForm: FC<Props> = ({
     }
 
     try {
-      let datasetId: number;
-      if (
-        typeof dataset === 'object' &&
-        dataset !== null &&
-        'value' in dataset
-      ) {
-        datasetId = Number((dataset as any).value);
-      } else {
-        datasetId = Number(dataset);
-      }
-      if (Number.isNaN(datasetId)) return;
+      const datasetId = getDatasetId(dataset);
+      if (datasetId === null) return;
 
       const response = await fetch(`/api/v1/dataset/${datasetId}`);
       const data = await response.json();
@@ -468,18 +510,9 @@ const ChartCustomizationForm: FC<Props> = ({
     const dataset = formValues.dataset || customization.dataset;
 
     if (dataset) {
-      let datasetId: number;
-      if (
-        typeof dataset === 'object' &&
-        dataset !== null &&
-        'value' in dataset
-      ) {
-        datasetId = Number((dataset as any).value);
-      } else {
-        datasetId = Number(dataset);
-      }
+      const datasetId = getDatasetId(dataset);
 
-      if (!Number.isNaN(datasetId)) {
+      if (datasetId !== null) {
         fetchDatasetInfo();
       }
     }
@@ -495,8 +528,8 @@ const ChartCustomizationForm: FC<Props> = ({
 
     setIsDefaultValueLoading(true);
     try {
-      const datasetId = Number(dataset.value || dataset);
-      if (Number.isNaN(datasetId)) {
+      const datasetId = getDatasetId(dataset);
+      if (datasetId === null) {
         throw new Error('Invalid dataset ID');
       }
 
@@ -581,12 +614,7 @@ const ChartCustomizationForm: FC<Props> = ({
 
     const fallbackDatasetId = mostUsedDataset(loadedDatasets, charts);
     const defaultDataset = customization.dataset
-      ? String(
-          typeof customization.dataset === 'object' &&
-            customization.dataset !== null
-            ? (customization.dataset as any).value || customization.dataset
-            : customization.dataset,
-        )
+      ? String(getDatasetId(customization.dataset) || customization.dataset)
       : fallbackDatasetId
         ? String(fallbackDatasetId)
         : null;
@@ -806,6 +834,7 @@ const ChartCustomizationForm: FC<Props> = ({
           ]}
         >
           <DatasetSelect
+            excludeDatasetIds={excludeDatasetIds}
             onChange={(dataset: {
               label: string | ReactNode;
               value: number;
