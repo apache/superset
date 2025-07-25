@@ -75,3 +75,6 @@ export type {
   ThemeControllerOptions,
   ThemeContextType,
 };
+
+// Export theme utility functions
+export * from './utils/themeUtils';
