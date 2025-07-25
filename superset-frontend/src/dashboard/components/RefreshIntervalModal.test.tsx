@@ -135,7 +135,7 @@ test('is valid', () => {
 });
 
 test('renders refresh interval modal', async () => {
-  render(setup(editModeOnProps));
+  render(setup(editModeOnProps), { useTheme: true });
 
   expect(screen.queryByText('Refresh Interval')).not.toBeInTheDocument();
   await openRefreshIntervalModal();
@@ -145,7 +145,7 @@ test('renders refresh interval modal', async () => {
 });
 
 test('renders refresh interval options', async () => {
-  render(setup(editModeOnProps));
+  render(setup(editModeOnProps), { useTheme: true });
   await openRefreshIntervalModal();
   await displayOptions();
 
@@ -175,7 +175,7 @@ test('renders refresh interval options', async () => {
 });
 
 test('should change selected value', async () => {
-  render(setup(editModeOnProps));
+  render(setup(editModeOnProps), { useTheme: true });
   await openRefreshIntervalModal();
 
   // Initial selected value should be "Don't refresh"
@@ -192,7 +192,7 @@ test('should change selected value', async () => {
 });
 
 test('should change selected value to custom value', async () => {
-  render(setup(editModeOnProps));
+  render(setup(editModeOnProps), { useTheme: true });
   await openRefreshIntervalModal();
 
   // Initial selected value should be "Don't refresh"
@@ -209,7 +209,7 @@ test('should change selected value to custom value', async () => {
 });
 
 test('should save a newly-selected value', async () => {
-  render(setup(editModeOnProps));
+  render(setup(editModeOnProps), { useTheme: true });
   await openRefreshIntervalModal();
   await displayOptions();
 
@@ -232,7 +232,9 @@ test('should show warning message', async () => {
     refreshWarning: 'Show warning',
   };
 
-  const { getByRole, queryByRole } = render(setup(warningProps));
+  const { getByRole, queryByRole } = render(setup(warningProps), {
+    useTheme: true,
+  });
   await openRefreshIntervalModal();
   await displayOptions();
 

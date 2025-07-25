@@ -294,8 +294,7 @@ export const StyledInputContainer = styled.div`
 
 export const StyledJsonEditor = styled(JsonEditor)`
   flex: 1 1 auto;
-  border: 1px solid ${({ theme }) => theme.colorBorder};
-  border-radius: ${({ theme }) => theme.borderRadius}px;
+  /* Border is already applied by AceEditor itself */
 `;
 
 export const StyledExpandableForm = styled.div`

@@ -20,7 +20,8 @@
 import { styled } from '@superset-ui/core';
 import { Link } from 'react-router-dom';
 import TagType from 'src/types/TagType';
-import { Tag as AntdTag, Tooltip } from '@superset-ui/core/components';
+import { Tag as AntdTag } from '@superset-ui/core/components/Tag';
+import { Tooltip } from '@superset-ui/core/components/Tooltip';
 import type { TagProps } from 'antd/es';
 import type { CheckableTagProps } from 'antd/es/tag';
 import { useMemo } from 'react';

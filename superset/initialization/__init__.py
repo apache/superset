@@ -161,6 +161,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         from superset.sqllab.api import SqlLabRestApi
         from superset.sqllab.permalink.api import SqlLabPermalinkRestApi
         from superset.tags.api import TagRestApi
+        from superset.themes.api import ThemeRestApi
         from superset.views.alerts import AlertView, ReportView
         from superset.views.all_entities import TaggedObjectsModelView
         from superset.views.annotations import AnnotationLayerView
@@ -192,6 +193,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         )
         from superset.views.sqllab import SqllabView
         from superset.views.tags import TagModelView, TagView
+        from superset.views.themes import ThemeModelView
         from superset.views.user_info import UserInfoView
         from superset.views.user_registrations import UserRegistrationsView
         from superset.views.users.api import CurrentUserRestApi, UserRestApi
@@ -211,6 +213,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.add_api(ChartRestApi)
         appbuilder.add_api(ChartDataRestApi)
         appbuilder.add_api(CssTemplateRestApi)
+        appbuilder.add_api(ThemeRestApi)
         appbuilder.add_api(CurrentUserRestApi)
         appbuilder.add_api(UserRestApi)
         appbuilder.add_api(DashboardFilterStateRestApi)
@@ -341,6 +344,17 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             "CSS Templates",
             label=_("CSS Templates"),
             icon="fa-css3",
+            category="Manage",
+            category_label=_("Manage"),
+            category_icon="",
+            menu_cond=lambda: feature_flag_manager.is_feature_enabled("CSS_TEMPLATES"),
+        )
+        appbuilder.add_view(
+            ThemeModelView,
+            "Themes",
+            href="/theme/list/",
+            label=_("Themes"),
+            icon="fa-palette",
             category="Manage",
             category_label=_("Manage"),
             category_icon="",
@@ -475,6 +489,14 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
 
         if feature_flag_manager.is_feature_enabled("TAGGING_SYSTEM"):
             register_sqla_event_listeners()
+
+        # Seed system themes from configuration
+        try:
+            from superset.commands.theme.seed import SeedSystemThemesCommand
+
+            SeedSystemThemesCommand().run()
+        except Exception:
+            logger.exception("Failed to seed system themes")
 
         self.init_views()
 

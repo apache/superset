@@ -71,6 +71,48 @@ export function SupersetThemeProvider({
     [themeController],
   );
 
+  // setCrudTheme removed - dashboards should NOT modify the global controller
+
+  const setTemporaryTheme = useCallback(
+    (config: AnyThemeConfig) => themeController.setTemporaryTheme(config),
+    [themeController],
+  );
+
+  const clearLocalOverrides = useCallback(
+    () => themeController.clearLocalOverrides(),
+    [themeController],
+  );
+
+  const getCurrentCrudThemeId = useCallback(
+    () => themeController.getCurrentCrudThemeId(),
+    [themeController],
+  );
+
+  const hasDevOverride = useCallback(
+    () => themeController.hasDevOverride(),
+    [themeController],
+  );
+
+  const canSetMode = useCallback(
+    () => themeController.canSetMode(),
+    [themeController],
+  );
+
+  const canSetTheme = useCallback(
+    () => themeController.canSetTheme(),
+    [themeController],
+  );
+
+  const canDetectOSPreference = useCallback(
+    () => themeController.canDetectOSPreference(),
+    [themeController],
+  );
+
+  const createDashboardThemeProvider = useCallback(
+    (themeId: string) => themeController.createDashboardThemeProvider(themeId),
+    [themeController],
+  );
+
   const contextValue = useMemo(
     () => ({
       theme: currentTheme,
@@ -78,8 +120,30 @@ export function SupersetThemeProvider({
       setTheme,
       setThemeMode,
       resetTheme,
+      setTemporaryTheme,
+      clearLocalOverrides,
+      getCurrentCrudThemeId,
+      hasDevOverride,
+      canSetMode,
+      canSetTheme,
+      canDetectOSPreference,
+      createDashboardThemeProvider,
     }),
-    [currentTheme, currentThemeMode, setTheme, setThemeMode, resetTheme],
+    [
+      currentTheme,
+      currentThemeMode,
+      setTheme,
+      setThemeMode,
+      resetTheme,
+      setTemporaryTheme,
+      clearLocalOverrides,
+      getCurrentCrudThemeId,
+      hasDevOverride,
+      canSetMode,
+      canSetTheme,
+      canDetectOSPreference,
+      createDashboardThemeProvider,
+    ],
   );
 
   return (

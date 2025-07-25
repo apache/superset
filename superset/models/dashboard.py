@@ -136,6 +136,7 @@ class Dashboard(AuditMixinNullable, ImportExportMixin, Model):
     position_json = Column(utils.MediumText())
     description = Column(Text)
     css = Column(utils.MediumText())
+    theme_id = Column(Integer, ForeignKey("themes.id"), nullable=True)
     certified_by = Column(Text)
     certification_details = Column(Text)
     json_metadata = Column(utils.MediumText())
@@ -157,6 +158,7 @@ class Dashboard(AuditMixinNullable, ImportExportMixin, Model):
         secondaryjoin="TaggedObject.tag_id == Tag.id",
         viewonly=True,  # cascading deletion already handled by superset.tags.models.ObjectUpdater.after_delete  # noqa: E501
     )
+    theme = relationship("Theme", foreign_keys=[theme_id])
     published = Column(Boolean, default=False)
     is_managed_externally = Column(Boolean, nullable=False, default=False)
     external_url = Column(Text, nullable=True)
@@ -172,6 +174,7 @@ class Dashboard(AuditMixinNullable, ImportExportMixin, Model):
         "json_metadata",
         "description",
         "css",
+        "theme_id",
         "slug",
         "certified_by",
         "certification_details",

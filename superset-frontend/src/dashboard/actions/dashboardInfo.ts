@@ -113,6 +113,52 @@ export function setCrossFiltersEnabled(crossFiltersEnabled: boolean) {
   return { type: SET_CROSS_FILTERS_ENABLED, crossFiltersEnabled };
 }
 
+export const SET_DASHBOARD_THEME = 'SET_DASHBOARD_THEME';
+
+export function setDashboardTheme(theme: { id: number; name: string } | null) {
+  return { type: SET_DASHBOARD_THEME, theme };
+}
+
+export function updateDashboardTheme(themeId: number | null) {
+  return async (dispatch: Dispatch, getState: () => RootState) => {
+    const { id } = getState().dashboardInfo;
+    const updateDashboard = makeApi<
+      Partial<DashboardInfo>,
+      { result: Partial<DashboardInfo>; last_modified_time: number }
+    >({
+      method: 'PUT',
+      endpoint: `/api/v1/dashboard/${id}`,
+    });
+
+    try {
+      const response = await updateDashboard({
+        theme_id: themeId,
+      });
+
+      // Update the dashboard info with the new theme
+      if (themeId === null) {
+        // Clearing the theme
+        dispatch(setDashboardTheme(null));
+      } else if (response.result.theme) {
+        // API returned the theme object
+        dispatch(setDashboardTheme(response.result.theme));
+      } else {
+        // API didn't return theme object, create it from the themeId
+        dispatch(setDashboardTheme({ id: themeId, name: `Theme ${themeId}` }));
+      }
+
+      const lastModifiedTime = response.last_modified_time;
+      if (lastModifiedTime) {
+        dispatch(onSave(lastModifiedTime));
+      }
+    } catch (errorObject) {
+      const errorText = await getErrorText(errorObject, 'dashboard');
+      dispatch(addDangerToast(errorText));
+      throw errorObject;
+    }
+  };
+}
+
 export function saveFilterBarOrientation(orientation: FilterBarOrientation) {
   return async (dispatch: Dispatch, getState: () => RootState) => {
     const { id, metadata } = getState().dashboardInfo;

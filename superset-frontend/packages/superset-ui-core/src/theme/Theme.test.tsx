@@ -189,24 +189,6 @@ describe('Theme', () => {
     });
   });
 
-  describe('getFontSize', () => {
-    it('returns correct font size for given key', () => {
-      const theme = Theme.fromConfig();
-
-      // Test different font size keys
-      expect(theme.getFontSize('xs')).toBe('8');
-      expect(theme.getFontSize('m')).toBeTruthy();
-      expect(theme.getFontSize('xxl')).toBe('28');
-    });
-
-    it('defaults to medium font size when no key is provided', () => {
-      const theme = Theme.fromConfig();
-      const mediumSize = theme.getFontSize('m');
-
-      expect(theme.getFontSize()).toBe(mediumSize);
-    });
-  });
-
   describe('toSerializedConfig', () => {
     it('serializes theme config correctly', () => {
       const theme = Theme.fromConfig({

@@ -239,6 +239,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         "roles",
         "position_json",
         "css",
+        "theme_id",
         "json_metadata",
         "published",
     ]

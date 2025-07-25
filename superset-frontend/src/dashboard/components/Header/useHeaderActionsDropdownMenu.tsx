@@ -17,7 +17,7 @@
  * under the License.
  */
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { useSelector } from 'react-redux';
+import { useSelector, useDispatch } from 'react-redux';
 import { Menu } from '@superset-ui/core/components/Menu';
 import { t } from '@superset-ui/core';
 import { isEmpty } from 'lodash';
@@ -36,6 +36,7 @@ import { getActiveFilters } from 'src/dashboard/util/activeDashboardFilters';
 import { getUrlParam } from 'src/utils/urlUtils';
 import { MenuKeys, RootState } from 'src/dashboard/types';
 import { HeaderDropdownProps } from 'src/dashboard/components/Header/types';
+import { updateDashboardTheme } from 'src/dashboard/actions/dashboardInfo';
 
 export const useHeaderActionsMenu = ({
   customCss,
@@ -71,6 +72,7 @@ export const useHeaderActionsMenu = ({
   logEvent,
   setCurrentReportDeleting,
 }: HeaderDropdownProps) => {
+  const dispatch = useDispatch();
   const [css, setCss] = useState(customCss || '');
   const [showReportSubMenu, setShowReportSubMenu] = useState<boolean | null>(
     null,
@@ -79,12 +81,22 @@ export const useHeaderActionsMenu = ({
   const directPathToChild = useSelector(
     (state: RootState) => state.dashboardState.directPathToChild,
   );
+
   useEffect(() => {
     if (customCss !== css) {
       setCss(customCss || '');
       injectCustomCss(customCss);
     }
   }, [css, customCss]);
+
+  const handleThemeChange = useCallback(
+    async (themeId: number | null) => {
+      // Save the theme to the dashboard
+      // The CrudThemeProvider will handle applying the theme to dashboard content only
+      dispatch(updateDashboardTheme(themeId));
+    },
+    [dispatch],
+  );
 
   const handleMenuClick = useCallback(
     ({ key }: { key: string }) => {
@@ -194,10 +206,12 @@ export const useHeaderActionsMenu = ({
         {editMode && (
           <Menu.Item key={MenuKeys.EditCss}>
             <CssEditor
-              triggerNode={<div>{t('Edit CSS')}</div>}
+              triggerNode={<div>{t('Theme & CSS')}</div>}
               initialCss={css}
               onChange={changeCss}
               addDangerToast={addDangerToast}
+              currentThemeId={dashboardInfo.theme?.id || null}
+              onThemeChange={handleThemeChange}
             />
           </Menu.Item>
         )}

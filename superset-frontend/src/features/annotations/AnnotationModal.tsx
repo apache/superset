@@ -28,6 +28,7 @@ import {
   Modal,
   RangePicker,
 } from '@superset-ui/core/components';
+import { useJsonValidation } from '@superset-ui/core/components/AsyncAceEditor';
 
 import { OnlyKeyWithType } from 'src/utils/types';
 import { ModalTitleWithIcon } from 'src/components/ModalTitleWithIcon';
@@ -49,8 +50,7 @@ const StyledAnnotationTitle = styled.div`
 `;
 
 const StyledJsonEditor = styled(JsonEditor)`
-  border-radius: ${({ theme }) => theme.borderRadius}px;
-  border: 1px solid ${({ theme }) => theme.colorPrimaryBorder};
+  /* Border is already applied by AceEditor itself */
 `;
 
 const AnnotationContainer = styled.div`
@@ -83,6 +83,11 @@ const AnnotationModal: FunctionComponent<AnnotationModalProps> = ({
   const [currentAnnotation, setCurrentAnnotation] =
     useState<AnnotationObject | null>(null);
   const isEditMode = annotation !== null;
+
+  // JSON validation for metadata
+  const jsonAnnotations = useJsonValidation(currentAnnotation?.json_metadata, {
+    errorPrefix: 'Invalid JSON metadata',
+  });
 
   // annotation fetch logic
   const {
@@ -332,6 +337,7 @@ const AnnotationModal: FunctionComponent<AnnotationModalProps> = ({
           }
           width="100%"
           height="120px"
+          annotations={jsonAnnotations}
         />
       </AnnotationContainer>
     </Modal>
