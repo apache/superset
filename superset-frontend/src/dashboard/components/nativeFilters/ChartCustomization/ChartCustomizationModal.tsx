@@ -223,7 +223,42 @@ const ChartCustomizationModal = ({
   const charts = useSelector<RootState, ChartsState>(({ charts }) => charts);
 
   const addItem = useCallback(() => {
-    const fallbackDatasetId = mostUsedDataset(loadedDatasets, charts);
+    const usedDatasetIds = new Set<number>();
+    items.forEach(existingItem => {
+      if (existingItem.removed) return;
+
+      const { dataset } = existingItem.customization;
+      if (dataset) {
+        let datasetId: number;
+        if (
+          typeof dataset === 'object' &&
+          dataset !== null &&
+          'value' in dataset
+        ) {
+          datasetId = Number((dataset as { value: string | number }).value);
+        } else {
+          datasetId = Number(dataset);
+        }
+
+        if (!Number.isNaN(datasetId)) {
+          usedDatasetIds.add(datasetId);
+        }
+      }
+    });
+    let fallbackDatasetId: number | undefined = mostUsedDataset(
+      loadedDatasets,
+      charts,
+    );
+
+    if (fallbackDatasetId && usedDatasetIds.has(Number(fallbackDatasetId))) {
+      const availableDatasets = Object.values(loadedDatasets).filter(
+        dataset => !usedDatasetIds.has(dataset.id),
+      );
+
+      fallbackDatasetId =
+        availableDatasets.length > 0 ? availableDatasets[0].id : undefined;
+    }
+
     const item = createDefaultChartCustomizationItem(
       chartId,
       fallbackDatasetId,
@@ -560,6 +595,7 @@ const ChartCustomizationModal = ({
                   form={form}
                   item={item}
                   removedItems={removedItems}
+                  allItems={items}
                   onUpdate={updatedItem => {
                     setItems(prev =>
                       prev.map(i =>

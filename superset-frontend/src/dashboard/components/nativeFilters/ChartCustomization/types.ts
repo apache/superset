@@ -16,9 +16,16 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+interface DatasetReference {
+  value: string | number;
+  label?: string;
+  table_name?: string;
+  schema?: string;
+}
+
 export interface GroupByCustomization {
   name: string;
-  dataset: string | null;
+  dataset: string | number | DatasetReference | null;
   datasetInfo?: {
     label: string;
     value: number;
