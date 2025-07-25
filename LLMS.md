@@ -141,9 +141,11 @@ curl -f http://localhost:8088/health || echo "❌ Setup required - see https://s
 # Install hooks
 pre-commit install
 
-# Quick validation (only changed files - faster)
-pre-commit run                    # Staged files only - PREFERRED for iterations
-pre-commit run --all-files        # Full codebase - slower, use sparingly
+# IMPORTANT: Stage your changes first!
+git add .                        # Pre-commit only checks staged files
+
+# Quick validation (faster than --all-files)
+pre-commit run                   # Staged files only
 pre-commit run mypy              # Python type checking
 pre-commit run prettier          # Code formatting
 pre-commit run eslint            # Frontend linting
