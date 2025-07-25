@@ -17,13 +17,15 @@
  * under the License.
  */
 import {
+  type AnyThemeConfig,
+  type SupersetTheme,
+  type SupersetThemeConfig,
+  type ThemeControllerOptions,
+  type ThemeStorage,
   Theme,
-  AnyThemeConfig,
-  ThemeStorage,
-  ThemeControllerOptions,
+  ThemeMode,
   themeObject as supersetThemeObject,
 } from '@superset-ui/core';
-import { SupersetTheme, ThemeMode } from '@superset-ui/core/theme/types';
 import {
   getAntdConfig,
   normalizeThemeConfig,
@@ -91,21 +93,19 @@ export class ThemeController {
 
   private currentMode: ThemeMode;
 
-  private readonly hasBootstrapThemes: boolean;
+  private hasCustomThemes: boolean;
 
   private onChangeCallbacks: Set<(theme: Theme) => void> = new Set();
 
   private mediaQuery: MediaQueryList;
 
-  constructor(options: ThemeControllerOptions = {}) {
-    const {
-      storage = new LocalStorageAdapter(),
-      modeStorageKey = STORAGE_KEYS.THEME_MODE,
-      themeObject = supersetThemeObject,
-      defaultTheme = (supersetThemeObject.theme as AnyThemeConfig) ?? {},
-      onChange = null,
-    } = options;
-
+  constructor({
+    storage = new LocalStorageAdapter(),
+    modeStorageKey = STORAGE_KEYS.THEME_MODE,
+    themeObject = supersetThemeObject,
+    defaultTheme = (supersetThemeObject.theme as AnyThemeConfig) ?? {},
+    onChange = undefined,
+  }: ThemeControllerOptions = {}) {
     this.storage = storage;
     this.modeStorageKey = modeStorageKey;
     this.themeObject = themeObject;
@@ -115,14 +115,14 @@ export class ThemeController {
       bootstrapDefaultTheme,
       bootstrapDarkTheme,
       bootstrapThemeSettings,
-      hasBootstrapThemes,
+      hasCustomThemes,
     }: BootstrapThemeData = this.loadBootstrapData();
 
-    this.hasBootstrapThemes = hasBootstrapThemes;
+    this.hasCustomThemes = hasCustomThemes;
     this.themeSettings = bootstrapThemeSettings || {};
 
     // Set themes based on bootstrap data availability
-    if (this.hasBootstrapThemes) {
+    if (this.hasCustomThemes) {
       this.darkTheme = bootstrapDarkTheme || bootstrapDefaultTheme || null;
       this.defaultTheme =
         bootstrapDefaultTheme || bootstrapDarkTheme || defaultTheme;
@@ -238,6 +238,42 @@ export class ThemeController {
       this.getThemeForMode(ThemeMode.DEFAULT) || this.defaultTheme;
 
     this.updateTheme(defaultTheme);
+  }
+
+  /**
+   * Sets an entire new theme configuration, replacing all existing theme data and settings.
+   * This method is designed for use cases like embedded dashboards where themes are provided
+   * dynamically from external sources.
+   * @param config - The complete theme configuration object
+   */
+  public setThemeConfig(config: SupersetThemeConfig): void {
+    this.defaultTheme = config.theme_default;
+    this.darkTheme = config.theme_dark || null;
+    this.hasCustomThemes = true;
+
+    this.themeSettings = {
+      enforced: config.theme_settings?.enforced ?? false,
+      allowSwitching: config.theme_settings?.allowSwitching ?? true,
+      allowOSPreference: config.theme_settings?.allowOSPreference ?? true,
+    };
+
+    let newMode: ThemeMode;
+    try {
+      this.validateModeUpdatePermission(this.currentMode);
+      const hasRequiredTheme = this.isValidThemeMode(this.currentMode);
+      newMode = hasRequiredTheme
+        ? this.currentMode
+        : this.determineInitialMode();
+    } catch {
+      newMode = this.determineInitialMode();
+    }
+
+    this.currentMode = newMode;
+
+    const themeToApply =
+      this.getThemeForMode(this.currentMode) || this.defaultTheme;
+
+    this.updateTheme(themeToApply);
   }
 
   /**
@@ -363,7 +399,7 @@ export class ThemeController {
       bootstrapDefaultTheme: hasValidDefault ? defaultTheme : null,
       bootstrapDarkTheme: hasValidDark ? darkTheme : null,
       bootstrapThemeSettings: hasValidSettings ? themeSettings : null,
-      hasBootstrapThemes: hasValidDefault || hasValidDark,
+      hasCustomThemes: hasValidDefault || hasValidDark,
     };
   }
 
@@ -416,7 +452,7 @@ export class ThemeController {
       resolvedMode = ThemeController.getSystemPreferredMode();
     }
 
-    if (!this.hasBootstrapThemes) {
+    if (!this.hasCustomThemes) {
       const baseTheme = this.defaultTheme.token as Partial<SupersetTheme>;
       return getAntdConfig(baseTheme, resolvedMode === ThemeMode.DARK);
     }
