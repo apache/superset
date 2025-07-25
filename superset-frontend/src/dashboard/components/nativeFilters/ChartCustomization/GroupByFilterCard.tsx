@@ -284,10 +284,10 @@ const GroupByFilterCard: FC<GroupByFilterCardProps> = ({
 
     if (typeof dataset === 'object' && dataset !== null) {
       if ('value' in dataset) {
-        return String((dataset as any).value);
+        return String((dataset as { value: string | number }).value);
       }
       if ('id' in dataset) {
-        return String((dataset as any).id);
+        return String((dataset as { id: string | number }).id);
       }
     }
 
@@ -370,7 +370,7 @@ const GroupByFilterCard: FC<GroupByFilterCardProps> = ({
             : typeof dataset === 'object' &&
                 dataset !== null &&
                 'value' in dataset
-              ? (dataset as any).value
+              ? (dataset as { value: string | number }).value
               : null;
 
         if (!datasetId) return;
