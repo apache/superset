@@ -149,6 +149,18 @@ pre-commit run prettier          # Code formatting
 pre-commit run eslint            # Frontend linting
 ```
 
+**Important pre-commit usage notes:**
+- **Stage files first**: Run `git add .` before `pre-commit run` to check only changed files (much faster)
+- **Virtual environment**: Activate your Python virtual environment before running pre-commit
+  ```bash
+  # Common virtual environment locations (yours may differ):
+  source .venv/bin/activate      # if using .venv
+  source venv/bin/activate       # if using venv
+  source ~/venvs/superset/bin/activate  # if using a central location
+  ```
+  If you get a "command not found" error, ask the user which virtual environment to activate
+- **Auto-fixes**: Some hooks auto-fix issues (e.g., trailing whitespace). Re-run after fixes are applied
+
 ## Common File Patterns
 
 ### API Structure

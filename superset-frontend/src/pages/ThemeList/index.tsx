@@ -185,6 +185,12 @@ function ThemesList({
     }
   }
 
+  function handleThemeModalApply() {
+    // Clear any previously applied theme ID when applying from modal
+    // since the modal theme might not have an ID yet (unsaved theme)
+    setAppliedThemeId(null);
+  }
+
   const handleBulkThemeExport = (themesToExport: ThemeObject[]) => {
     const ids = themesToExport
       .map(({ id }) => id)
@@ -410,6 +416,7 @@ function ThemesList({
         addDangerToast={addDangerToast}
         theme={currentTheme}
         onThemeAdd={() => refreshData()}
+        onThemeApply={handleThemeModalApply}
         onHide={() => setThemeModalOpen(false)}
         show={themeModalOpen}
         canDevelop={canEdit}

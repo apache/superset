@@ -44,6 +44,7 @@ interface ThemeModalProps {
   addSuccessToast?: (msg: string) => void;
   theme?: ThemeObject | null;
   onThemeAdd?: (theme?: ThemeObject) => void;
+  onThemeApply?: () => void;
   onHide: () => void;
   show: boolean;
   canDevelop?: boolean;
@@ -88,6 +89,7 @@ const ThemeModal: FunctionComponent<ThemeModalProps> = ({
   addDangerToast,
   addSuccessToast,
   onThemeAdd,
+  onThemeApply,
   onHide,
   show,
   theme = null,
@@ -167,6 +169,9 @@ const ThemeModal: FunctionComponent<ThemeModalProps> = ({
       try {
         const themeConfig = JSON.parse(currentTheme.json_data);
         setTemporaryTheme(themeConfig);
+        if (onThemeApply) {
+          onThemeApply();
+        }
         if (addSuccessToast) {
           addSuccessToast(t('Local theme set for preview'));
         }
