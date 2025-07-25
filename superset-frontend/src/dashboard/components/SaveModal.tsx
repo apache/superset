@@ -184,7 +184,13 @@ function SaveModal({
         </Form>
       }
       modalFooter={
-        <Flex justify="flex-end">
+        <Flex justify="flex-end" gap={theme.sizeUnit}>
+          <Button
+            buttonStyle="secondary"
+            onClick={() => modal?.current?.close?.()}
+          >
+            {t('Cancel')}
+          </Button>
           <Button
             type="primary"
             data-test="modal-save-dashboard-button"
