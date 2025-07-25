@@ -82,6 +82,8 @@ services:
       EXAMPLES_DB: superset_light
       EXAMPLES_USER: superset
       EXAMPLES_PASSWORD: superset
+      # Use light-specific config that disables Redis
+      SUPERSET_CONFIG_PATH: /app/docker/pythonpath_dev/superset_config_docker_light.py
 
   superset-init-light:
     build:
@@ -106,6 +108,8 @@ services:
       EXAMPLES_DB: superset_light
       EXAMPLES_USER: superset
       EXAMPLES_PASSWORD: superset
+      # Use light-specific config that disables Redis
+      SUPERSET_CONFIG_PATH: /app/docker/pythonpath_dev/superset_config_docker_light.py
     healthcheck:
       disable: true
 
