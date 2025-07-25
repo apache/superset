@@ -52,6 +52,8 @@ const StyledHeader = styled.header`
         display: none;
       }
       & .ant-image{
+        display: contents;
+        height: 100%;
         padding: ${theme.sizeUnit}px
           ${theme.sizeUnit * 2}px
           ${theme.sizeUnit}px
@@ -322,6 +324,11 @@ export function Menu({
           >
             {renderBrand()}
           </Tooltip>
+          {brand.text && (
+            <div className="navbar-brand-text">
+              <span>{brand.text}</span>
+            </div>
+          )}
           <MainNav
             mode={showMenu}
             data-test="navbar-top"
