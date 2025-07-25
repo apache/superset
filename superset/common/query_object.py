@@ -358,6 +358,7 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
             "series_columns": self.series_columns,
             "series_limit": self.series_limit,
             "series_limit_metric": self.series_limit_metric,
+            "group_others_when_limit_reached": self.group_others_when_limit_reached,
             "to_dttm": self.to_dttm,
             "time_shift": self.time_shift,
         }
