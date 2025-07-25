@@ -17,6 +17,7 @@
  * under the License.
  */
 import { Dropdown, Icons } from '@superset-ui/core/components';
+import type { MenuItem } from '@superset-ui/core/components/Menu';
 import { t, useTheme } from '@superset-ui/core';
 import { ThemeAlgorithm, ThemeMode } from '../../theme/types';
 
@@ -57,7 +58,7 @@ const ThemeSelect: React.FC<ThemeSelectProps> = ({
     themeIconMap[themeMode] || <Icons.FormatPainterOutlined />
   );
 
-  const menuItems: any[] = [
+  const menuItems: MenuItem[] = [
     {
       type: 'group',
       label: t('Theme'),
@@ -89,13 +90,13 @@ const ThemeSelect: React.FC<ThemeSelectProps> = ({
   // Add clear settings option only when there's a local theme active
   if (onClearLocalSettings && hasLocalOverride) {
     menuItems.push(
-      { type: 'divider' } as any,
+      { type: 'divider' } as MenuItem,
       {
-        key: 'clear-local' as any,
+        key: 'clear-local',
         label: t('Clear local theme'),
         icon: <Icons.ClearOutlined />,
         onClick: onClearLocalSettings,
-      } as any,
+      } as MenuItem,
     );
   }
 

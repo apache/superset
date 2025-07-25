@@ -64,6 +64,28 @@ const StyledJsonEditor = styled.div`
   `}
 `;
 
+const StyledFormWrapper = styled.div`
+  ${({ theme }) => css`
+    --ant-form-item-margin-bottom: ${theme.sizeUnit * 6}px;
+
+    .system-theme-notice {
+      font-size: ${theme.fontSizeSM}px;
+      font-style: italic;
+      margin-bottom: ${theme.sizeUnit * 4}px;
+      display: block;
+    }
+
+    .alert-info {
+      margin-bottom: ${theme.sizeUnit * 4}px;
+    }
+
+    .apply-button-container {
+      margin-top: ${theme.sizeUnit * 2}px;
+      text-align: right;
+    }
+  `}
+`;
+
 const ThemeModal: FunctionComponent<ThemeModalProps> = ({
   addDangerToast,
   addSuccessToast,
@@ -290,103 +312,88 @@ const ThemeModal: FunctionComponent<ThemeModalProps> = ({
         </Typography.Title>
       }
     >
-      <Form layout="vertical">
-        {isSystemTheme && (
-          <Typography.Text
-            type="secondary"
-            style={{
-              fontSize: '14px',
-              fontStyle: 'italic',
-              marginBottom: '16px',
-              display: 'block',
-            }}
-          >
-            {t('System Theme - Read Only')}
-          </Typography.Text>
-        )}
-
-        <Form.Item
-          label={t('Name')}
-          required={!isReadOnly}
-          style={{ marginBottom: '24px' }}
-        >
-          <Input
-            name="theme_name"
-            onChange={onThemeNameChange}
-            value={currentTheme?.theme_name}
-            readOnly={isReadOnly}
-            placeholder={t('Enter theme name')}
-          />
-        </Form.Item>
-
-        <Alert
-          type="info"
-          showIcon
-          closable={false}
-          message={
-            <span>
-              {t('Design with')}{' '}
-              <a
-                href="https://ant.design/theme-editor"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                {t('Ant Design Theme Editor')}
-              </a>
-              {t(', then paste the JSON below. See our')}{' '}
-              <a
-                href="https://superset.apache.org/docs/configuration/theming/"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                {t('documentation')}
-              </a>
-              {t(' for details.')}
-            </span>
-          }
-          style={{ marginBottom: '16px' }}
-        />
-
-        <Form.Item
-          label={t('JSON Configuration')}
-          required={!isReadOnly}
-          style={{ marginBottom: '24px' }}
-        >
-          <StyledJsonEditor>
-            <JsonEditor
-              showLoadingForImport
-              name="json_data"
-              value={currentTheme?.json_data || ''}
-              onChange={onJsonDataChange}
-              tabSize={2}
-              width="100%"
-              height="300px"
-              wrapEnabled
-              readOnly={isReadOnly}
-            />
-          </StyledJsonEditor>
-          {canDevelopThemes && (
-            <div style={{ marginTop: '12px', textAlign: 'right' }}>
-              <Tooltip
-                title={t('Set local theme for testing (preview only)')}
-                placement="top"
-              >
-                <Button
-                  icon={<Icons.ThunderboltOutlined />}
-                  onClick={onApply}
-                  disabled={
-                    !currentTheme?.json_data ||
-                    !isValidJson(currentTheme.json_data)
-                  }
-                  buttonStyle="secondary"
-                >
-                  {t('Apply')}
-                </Button>
-              </Tooltip>
-            </div>
+      <StyledFormWrapper>
+        <Form layout="vertical">
+          {isSystemTheme && (
+            <Typography.Text type="secondary" className="system-theme-notice">
+              {t('System Theme - Read Only')}
+            </Typography.Text>
           )}
-        </Form.Item>
-      </Form>
+
+          <Form.Item label={t('Name')} required={!isReadOnly}>
+            <Input
+              name="theme_name"
+              onChange={onThemeNameChange}
+              value={currentTheme?.theme_name}
+              readOnly={isReadOnly}
+              placeholder={t('Enter theme name')}
+            />
+          </Form.Item>
+
+          <Form.Item label={t('JSON Configuration')} required={!isReadOnly}>
+            <Alert
+              type="info"
+              showIcon
+              closable={false}
+              className="alert-info"
+              message={
+                <span>
+                  {t('Design with')}{' '}
+                  <a
+                    href="https://ant.design/theme-editor"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    {t('Ant Design Theme Editor')}
+                  </a>
+                  {t(', then paste the JSON below. See our')}{' '}
+                  <a
+                    href="https://superset.apache.org/docs/configuration/theming/"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    {t('documentation')}
+                  </a>
+                  {t(' for details.')}
+                </span>
+              }
+            />
+            <StyledJsonEditor>
+              <JsonEditor
+                showLoadingForImport
+                name="json_data"
+                value={currentTheme?.json_data || ''}
+                onChange={onJsonDataChange}
+                tabSize={2}
+                width="100%"
+                height="300px"
+                wrapEnabled
+                readOnly={isReadOnly}
+              />
+            </StyledJsonEditor>
+            {canDevelopThemes && (
+              <div className="apply-button-container">
+                <Tooltip
+                  title={t('Set local theme for testing (preview only)')}
+                  placement="top"
+                >
+                  <Button
+                    icon={<Icons.ThunderboltOutlined />}
+                    onClick={onApply}
+                    disabled={
+                      !currentTheme?.json_data ||
+                      !isValidJson(currentTheme.json_data)
+                    }
+                    buttonStyle="secondary"
+                  >
+                    {t('Apply')}
+                  </Button>
+                </Tooltip>
+              </div>
+            )}
+          </Form.Item>
+        </Form>
+      </StyledFormWrapper>
     </Modal>
   );
 };
