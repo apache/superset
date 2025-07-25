@@ -17,6 +17,7 @@
  * under the License.
  */
 import { ContourLayer } from '@deck.gl/aggregation-layers';
+import { PolygonLayer } from '@deck.gl/layers';
 import { Position } from '@deck.gl/core';
 import { t } from '@superset-ui/core';
 import { commonLayerProps } from '../common';
@@ -112,4 +113,51 @@ export function getPoints(data: any[]) {
   return data.map(d => d.position);
 }
 
-export default createDeckGLComponent(getLayer, getPoints);
+export const getHighlightLayer: GetLayerType<PolygonLayer> = function ({
+  formData,
+  filterState,
+  setDataMask,
+  onContextMenu,
+  setTooltip,
+  emitCrossFilters,
+}) {
+  const fd = formData;
+
+  const fromLonLat = filterState?.value[0];
+  const toLonLat = filterState?.value[1];
+
+  const minLon = fromLonLat[0];
+  const maxLon = toLonLat[0];
+  const minLat = fromLonLat[1];
+  const maxLat = toLonLat[1];
+
+  const boxPolygon = [
+    [minLon, minLat],
+    [maxLon, minLat],
+    [maxLon, maxLat],
+    [minLon, maxLat],
+    [minLon, minLat],
+  ];
+
+  return new PolygonLayer({
+    id: `contour-highlight-layer-${fd.slice_id}`,
+    data: [{ polygon: boxPolygon }],
+    getPolygon: (d: any) => d.polygon,
+    getFillColor: [255, 0, 0, 100],
+    getLineColor: [255, 0, 0, 255],
+    getLineWidth: 4,
+    filled: true,
+    stroked: true,
+    ...commonLayerProps({
+      formData: fd,
+      setTooltip,
+      setTooltipContent,
+      onContextMenu,
+      setDataMask,
+      filterState,
+      emitCrossFilters,
+    }),
+  });
+};
+
+export default createDeckGLComponent(getLayer, getPoints, getHighlightLayer);
