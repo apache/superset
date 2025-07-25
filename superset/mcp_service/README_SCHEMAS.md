@@ -2,9 +2,11 @@
 
 This document provides a reference for the input and output schemas of all MCP tools in the Superset MCP service. All schemas are Pydantic v2 models with field descriptions for LLM/OpenAPI compatibility.
 
+**Status**: Phase 1 nearing completion. All core schemas stable and production-ready.
+
 ## FastMCP Complex Inputs Pattern
 
-All MCP tools now use **structured request objects** instead of individual parameters to eliminate LLM validation issues:
+All MCP tools use **structured request objects** instead of individual parameters to eliminate LLM validation issues:
 
 ```python
 # All list tools use request objects
@@ -16,6 +18,17 @@ list_charts(request=ListChartsRequest(...))
 get_dashboard_info(request=GetDashboardInfoRequest(identifier="123"))  # ID
 get_dashboard_info(request=GetDashboardInfoRequest(identifier="uuid-string"))  # UUID
 get_dashboard_info(request=GetDashboardInfoRequest(identifier="slug-string"))  # Slug
+
+# Chart creation with comprehensive config
+create_chart(request=CreateChartRequest(
+    dataset_id="1",
+    config=XYChartConfig(
+        chart_type="xy",
+        x=ColumnRef(name="date"),
+        y=[ColumnRef(name="sales", aggregate="SUM")],
+        kind="line"
+    )
+))
 ```
 
 ### Key Benefits
@@ -23,6 +36,7 @@ get_dashboard_info(request=GetDashboardInfoRequest(identifier="slug-string"))  #
 - **Clear validation**: Cannot use both search and filters simultaneously
 - **Multi-identifier support**: ID, UUID, and slug (where applicable) in single interface
 - **LLM-friendly**: Unambiguous types prevent common LLM validation errors
+- **Production-ready**: 149 unit tests ensure schema reliability
 
 ## Dashboards
 
@@ -237,7 +251,65 @@ get_dashboard_info(request=GetDashboardInfoRequest(identifier="slug-string"))  #
 #### Metric Handling
 The tool intelligently handles two metric formats:
 1. **Simple metrics** (like `["count"]`) — Passed as simple strings
-2. **Complex metrics** (like column names) — Converted to full Superset metric objects with SQL aggregators
+2. **Complex metrics** (like column names) — Converted to full Superset metric objects with SQL aggregators (SUM, COUNT, AVG, MIN, MAX)
+
+#### Chart Creation Output
+```python
+{
+    "chart": {
+        "id": 123,
+        "slice_name": "Sales Over Time",
+        "viz_type": "echarts_timeseries_line",
+        "url": "/explore/?form_data=...",
+        "explore_url": "http://localhost:8088/explore/?form_data=..."
+    },
+    "error": None
+}
+```
+
+## System Tools
+
+### get_superset_instance_info
+
+**Returns:** `SupersetInstanceInfo`
+- `version`: `str` — Superset version
+- `build_number`: `Optional[str]` — Build identifier
+- `instance_id`: `str` — Unique instance identifier
+- `mcp_service_version`: `str` — MCP service version
+- `authentication_enabled`: `bool` — Whether JWT authentication is enabled
+- `available_tools`: `List[str]` — List of available MCP tools
+- `supported_chart_types`: `List[str]` — Supported chart types for creation
+
+### generate_explore_link
+
+**Input:** `GenerateExploreLinkRequest`
+- `dataset_id`: `str` — Dataset ID to explore
+- `config`: `ChartConfig` — Chart configuration (same as create_chart)
+
+**Returns:** `ExploreLinkResponse`
+- `explore_url`: `str` — Full URL to Superset explore interface with chart configuration
+- `form_data`: `Dict[str, Any]` — Serialized form data for the chart
+
+## Authentication Context
+
+When authentication is enabled, all tools receive additional context:
+
+### JWT Authentication
+- **User Extraction**: JWT claims (subject, client_id, email, username) mapped to Superset users
+- **Scope Validation**: Each tool validates required scopes before execution
+- **Audit Logging**: All operations logged with user context and JWT metadata
+- **Impersonation**: Optional `run_as` parameter for user impersonation (where permitted)
+
+### Error Responses
+When authentication fails or permissions are insufficient:
+```python
+{
+    "error": "Access denied: user lacks permission for tool_name",
+    "error_type": "PermissionError",
+    "required_scopes": ["chart:read"],
+    "user_scopes": ["dashboard:read"]
+}
+```
 
 ## Model Relationships
 
@@ -250,14 +322,22 @@ flowchart TD
         D["UserInfo"]
         E["TagInfo"]
         F["RoleInfo"]
+        G["TableColumnInfo"]
+        H["SqlMetricInfo"]
+        I["ChartConfig"]
+        J["CreateChartRequest"]
     end
     A -- owners --> D
     A -- tags --> E
     A -- roles --> F
     B -- owners --> D
     B -- tags --> E
+    B -- columns --> G
+    B -- metrics --> H
     C -- owners --> D
     C -- tags --> E
+    J -- config --> I
+    I -- columns --> G
 ```
 
 ## Request Schema Pattern Benefits
@@ -272,8 +352,10 @@ All tools using the FastMCP Complex Inputs Pattern provide:
 
 ### For Get Info Tools (`get_*_info`)
 - **Multi-identifier support**: Single interface for ID, UUID, and slug lookup
-- **Intelligent detection**: Automatically determines identifier type
+- **Intelligent detection**: Automatically determines identifier type based on format
 - **Enhanced flexibility**: Works with LLM-generated identifiers of any supported type
+- **Rich metadata**: Full object details including relationships (columns, metrics, owners)
+- **Error handling**: Clear error responses when objects not found or access denied
 
 ### ModelListTool and Schema Consistency
 
@@ -282,3 +364,27 @@ All list tools use the `ModelListTool` abstraction, which enforces:
 - Strongly-typed Pydantic input/output models
 - LLM/OpenAPI-friendly field names
 - Validation logic preventing parameter conflicts
+- Enhanced search including UUID/slug fields
+- Comprehensive metadata in responses (columns_requested, columns_loaded, etc.)
+
+## Schema Validation & Testing
+
+All schemas are thoroughly tested with:
+- **149 unit tests** covering all input/output combinations
+- **Multi-identifier testing** for all get_*_info tools
+- **Request schema validation** preventing parameter conflicts
+- **Authentication integration** testing with JWT contexts
+- **Error response validation** for permission and authentication failures
+- **Chart creation testing** covering all supported chart types and aggregators
+
+## Future Schema Enhancements
+
+### Phase 1 Completion
+- **Backend rendering schemas**: Chart screenshot and image response formats
+- **SQL Lab schemas**: Context-aware query session parameters
+- **Enhanced error responses**: More detailed validation and permission error details
+
+### Future Phases
+- **Dashboard creation schemas**: Multi-chart dashboard configuration
+- **Advanced chart types**: Maps, 3D visualizations, custom components
+- **Vega-Lite/Plotly output**: LLM-friendly chart rendering formats
