@@ -2,7 +2,7 @@
 
 The Superset Model Context Protocol (MCP) service provides a modular, schema-driven interface for programmatic access to Superset dashboards, charts, datasets, and instance metadata. It is designed for LLM agents and automation tools, and is built on the FastMCP protocol.
 
-**⚠️ This functionality is under active development and not yet complete. Expect breaking changes and evolving APIs.**
+**⚠️ Phase 1 nearing completion (85% done). Core functionality stable, authentication production-ready. Stretch goals in progress.**
 
 ## 🚀 Quickstart
 
@@ -152,14 +152,38 @@ table_request = CreateChartRequest(dataset_id="1", config=table_config)
 - **All tool functions must be decorated with `@mcp.tool` and `@mcp_auth_hook`.**
 - **All Superset DAOs, command classes, and most Superset modules must be imported inside the function body, not at the top of the file.** This ensures proper app context and avoids initialization errors.
 
-## What's Implemented
+## Phase 1 Status
 
-### Core Tools (✅ Complete)
-- **All list/info tools** for dashboards, datasets (with columns and metrics), and charts, with full search and filter support
-- **Enhanced get_*_info tools** supporting multiple identifier types (ID/UUID/slug)
-- **Chart creation** (`create_chart`) with comprehensive support for line, bar, area, scatter, and table charts
-- **Explore link generation** (`generate_explore_link`) for temporary chart configurations
-- **FastMCP Complex Inputs Pattern** eliminating LLM parameter validation issues
+### ✅ Completed Features
+| Epic | Status | Description |
+|------|--------|--------------|
+| **[Implement Standalone MCP Service CLI](https://app.shortcut.com/preset-ext/story/90298)** | ✅ Complete | ASGI/FastMCP server with CLI (`superset mcp run`) |
+| **[Add Auth/RBAC Hooks](https://app.shortcut.com/preset-ext/story/90301)** | ✅ Complete | JWT Bearer authentication, RBAC hooks, logging, configurable factory pattern |
+| **[Implement list/info tools for dataset, dashboard, chart](https://app.shortcut.com/preset-ext/story/90300)** | 🟡 In QA | All list/info tools for dashboards, datasets, charts with multi-identifier support |
+| **[Define Modular, Typed Schemas](https://app.shortcut.com/preset-ext/story/90299)** | 🟡 In Review | Pydantic v2 schemas, FastMCP Complex Inputs Pattern |
+| **[Write Dev Guide and Docs](https://app.shortcut.com/preset-ext/story/90302)** | 🟡 In Review | Architecture documentation, request/response examples |
+
+### 🔄 Phase 1 In Progress
+| Epic | Status | Description |
+|------|--------|--------------|
+| **[Implement Chart Creation Mutation](https://app.shortcut.com/preset-ext/story/90304)** | 🟡 In Review | `create_chart` tool with comprehensive chart type support |
+| **[Implement Navigation Actions](https://app.shortcut.com/preset-ext/story/90305)** | 🟡 In Review | `generate_explore_link` ✅, `open_sql_lab_with_context` pending |
+| **[backend rendering in the short term for embedded charts in to the chat](https://app.shortcut.com/preset-ext/story/90511)** | 🟨 In Development | Embedded charts for LLM chat integration |
+| **[Support for Bearer authentication](https://app.shortcut.com/preset-ext/story/90509)** | 🟨 In Development | Enhanced JWT authentication features |
+| **[Document Preset Extension Points](https://app.shortcut.com/preset-ext/story/90303)** | 🟡 In Review | RBAC, OIDC integration design for Preset team |
+
+### 🎯 Phase 1 Stretch Goals
+| Epic | Status | Description |
+|------|--------|--------------|
+| **[Create Demo Script / Notebook](https://app.shortcut.com/preset-ext/story/90306)** | 📋 Planned | Interactive demo showing bot capabilities, video demonstrations |
+| **[In-Preset Hosted Demo (OAuth, impersonation)](https://app.shortcut.com/preset-ext/story/90397)** | 📋 Planned | User impersonation with OAuth handshake, cloud deployment |
+| **[LLM / Chat friendly backend rendered charts](https://app.shortcut.com/preset-ext/story/90508)** | 📋 Planned | Chart embedding in LLM chats, screenshot URLs, Vega-Lite/Plotly JSON |
+
+### 🚫 Out of Scope (Not Phase 1)
+| Epic | Status | Description |
+|------|--------|--------------|
+| **[Security Hooks for Tool Poisoning Attacks](https://app.shortcut.com/preset-ext/story/90398)** | 📋 Future | Tool poisoning attack prevention |
+| **[caching and refresh](https://app.shortcut.com/preset-ext/story/90510)** | 📋 Out of Scope | Leverage existing Superset cache layers |
 
 ## Security & Authentication
 
@@ -254,12 +278,39 @@ This authentication works with any JWT-compatible identity provider:
 
 The MCP service extracts user identity from standard JWT claims and doesn't require complex integration - just valid JWT tokens with appropriate scopes.
 
+## Configuration & Deployment
+
+### Host Configuration
+Configure Superset host prefix for proper URL generation:
+```python
+# In superset_config.py
+SUPERSET_HOST_PREFIX = "http://localhost:8088"  # Development
+SUPERSET_HOST_PREFIX = "https://superset.company.com"  # Production
+```
+
+### Agent Integration Options
+1. **Claude Agent SDK**: Create cloud agent connecting to local/deployed MCP service
+2. **LangChain Toolkit**: Use `langchain-mcp` for chatbot integration
+3. **Direct MCP Connection**: Connect any MCP-compatible client to service
+
+## Future Milestones
+
+### 🔒 Enterprise Security (Future Phase)
+- **Advanced Security Hooks**: Tool poisoning attack prevention and rate limiting
+- **Comprehensive Audit Logging**: Enhanced logging and monitoring for enterprise environments
+- **RBAC Extensions**: Advanced permission models and user role management
+- **Multi-tenant Support**: Isolated environments for enterprise deployments
+
+### 📊 Advanced Analytics (Future Phase)
+- **Smart Cache Management**: Intelligent caching strategies with force refresh capabilities
+- **Dashboard Creation**: Automated dashboard generation with multiple related charts
+- **Advanced Chart Types**: Support for complex visualizations (maps, 3D, custom viz)
+- **Business Intelligence**: Natural language to SQL query generation
+- **End-to-End Testing**: Synthetic environments with example database integration
+
 ### Recent Major Improvements
-- **JWT Authentication**: Optional Bearer token authentication with scope-based authorization
-- **Request Schema Pattern**: All tools use structured request objects instead of individual parameters
-- **Multi-identifier Support**: Get tools support ID, UUID, and slug lookups
-- **Enhanced Default Columns**: List tools include UUID/slug in default response columns for better discoverability
-- **Accurate Metadata**: `columns_requested` and `columns_loaded` fields accurately track request schema pattern
-- **Search Enhancement**: UUID/slug fields included in search columns
-- **Validation Logic**: Prevents conflicting search+filters usage
-- **Comprehensive Testing**: Full test coverage for all identifier types and validation scenarios
+- **Configurable Auth Factory**: Production-ready JWT authentication following Superset patterns
+- **Professional Code Quality**: Comprehensive refactoring with 149 passing unit tests
+- **Request Schema Pattern**: Structured request objects eliminating LLM parameter validation issues
+- **Multi-identifier Support**: ID, UUID, and slug lookups across all tools
+- **Enhanced Testing**: Full test coverage with proper mocking and integration patterns
