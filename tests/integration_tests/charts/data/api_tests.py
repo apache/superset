@@ -972,6 +972,80 @@ class TestPostChartDataApi(BaseTestChartDataApi):
         assert "name" in result["query"]
         assert list(result["data"][0].keys()) == ["name", "num divide by 10"]
 
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    def test_drill_by_allowed_column_regular_user(self):
+        """
+        Chart data API: Test that regular user can drill by column with
+        isDimension set to True
+        """
+        self.query_context_payload["queries"][0]["columns"] = ["name"]
+        rv = self.post_assert_metric(CHART_DATA_URI, self.query_context_payload, "data")
+        assert rv.status_code == 200
+
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    def test_drill_by_disallowed_column_regular_user(self):
+        """
+        Chart data API: Test that regular user can't drill by column with
+        isDimension set to False
+        """
+        self.query_context_payload["queries"][0]["columns"] = ["num_girls"]
+        rv = self.post_assert_metric(CHART_DATA_URI, self.query_context_payload, "data")
+        assert rv.status_code == 403
+
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    @mock.patch("superset.security.manager.SupersetSecurityManager.has_guest_access")
+    @mock.patch("superset.security.manager.SupersetSecurityManager.is_guest_user")
+    @with_feature_flags(D2D_IN_EMBEDDED=False)
+    def test_embedded_user_drill_by_disabled_ff(
+        self, mock_is_guest_user, mock_has_guest_access
+    ):
+        """
+        Chart data API: Test that embedded user cannot drill when
+        DRILLING_IN_EMBEDDED FF is disabled
+        """
+        g.user.rls = []
+        mock_has_guest_access.return_value = True
+        mock_is_guest_user.return_value = True
+        self.query_context_payload["queries"][0]["columns"] = ["name"]
+        rv = self.post_assert_metric(CHART_DATA_URI, self.query_context_payload, "data")
+        assert rv.status_code == 403
+
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    @mock.patch("superset.security.manager.SupersetSecurityManager.has_guest_access")
+    @mock.patch("superset.security.manager.SupersetSecurityManager.is_guest_user")
+    @with_feature_flags(D2D_IN_EMBEDDED=True)
+    def test_embedded_user_drill_by_enabled_ff_allowed_column(
+        self, mock_is_guest_user, mock_has_guest_access
+    ):
+        """
+        Chart data API: Test that embedded user can drill by column with
+        isDimension set to True when DRILLING_IN_EMBEDDED FF is enabled
+        """
+        g.user.rls = []
+        mock_has_guest_access.return_value = True
+        mock_is_guest_user.return_value = True
+        self.query_context_payload["queries"][0]["columns"] = ["name"]
+        rv = self.post_assert_metric(CHART_DATA_URI, self.query_context_payload, "data")
+        assert rv.status_code == 200
+
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    @mock.patch("superset.security.manager.SupersetSecurityManager.has_guest_access")
+    @mock.patch("superset.security.manager.SupersetSecurityManager.is_guest_user")
+    @with_feature_flags(D2D_IN_EMBEDDED=True)
+    def test_embedded_user_drill_by_enabled_ff_disallowed_column(
+        self, mock_is_guest_user, mock_has_guest_access
+    ):
+        """
+        Chart data API: Test that embedded user can't drill by column with
+        isDimension set to False and DRILLING_IN_EMBEDDED FF is enabled
+        """
+        g.user.rls = []
+        mock_has_guest_access.return_value = True
+        mock_is_guest_user.return_value = True
+        self.query_context_payload["queries"][0]["columns"] = ["num_girls"]
+        rv = self.post_assert_metric(CHART_DATA_URI, self.query_context_payload, "data")
+        assert rv.status_code == 403
+
 
 @pytest.mark.chart_data_flow
 class TestGetChartDataApi(BaseTestChartDataApi):

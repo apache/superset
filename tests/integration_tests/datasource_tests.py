@@ -516,6 +516,44 @@ class TestDatasource(SupersetTestCase):
         resp = self.get_json_resp("/datasource/get/druid/500000/", raise_on_error=False)
         assert resp.get("error") == "'druid' is not a valid DatasourceType"
 
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    @mock.patch("superset.security.manager.SupersetSecurityManager.is_guest_user")
+    @with_feature_flags(DRILLING_IN_EMBEDDED=False)
+    def test_samples_endpoint_embedded_user_ff_disabled(self, mock_is_guest_user):
+        """
+        Embedded user cannot access the /samples view when the DRILLING_IN_EMBEDDED
+        FF is disabled.
+        """
+        # log as admin to bypass endpoint perm check
+        self.login(ADMIN_USERNAME)
+        mock_is_guest_user.return_value = True
+        tbl = self.get_table(name="birth_names")
+        uri = f"/datasource/samples?datasource_id={tbl.id}&datasource_type=table"
+        resp = self.client.post(uri, json={})
+        assert resp.status_code == 403
+
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    @mock.patch(
+        "superset.security.manager.SupersetSecurityManager.get_guest_rls_filters"
+    )
+    @mock.patch("superset.security.manager.SupersetSecurityManager.is_guest_user")
+    @with_feature_flags(DRILLING_IN_EMBEDDED=True)
+    def test_samples_endpoint_embedded_user_ff_enabled(
+        self, mock_is_guest_user, mock_rls
+    ):
+        """
+        Embedded user can access the /samples view when the DRILLING_IN_EMBEDDED
+        FF is enabled.
+        """
+        # log as admin to bypass endpoint perm check
+        self.login(ADMIN_USERNAME)
+        mock_is_guest_user.return_value = True
+        mock_rls.return_value = []
+        tbl = self.get_table(name="birth_names")
+        uri = f"/datasource/samples?datasource_id={tbl.id}&datasource_type=table"
+        resp = self.client.post(uri, json={})
+        assert resp.status_code == 200
+
 
 def test_get_samples(test_client, login_as_admin, virtual_dataset):
     """
