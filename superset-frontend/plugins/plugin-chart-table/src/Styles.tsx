@@ -152,11 +152,19 @@ export default styled.div`
       padding-top: 0.5em;
     }
 
+    .dt-pagination .pagination > li {
+      list-style: none;
+      display: inline;
+      margin: 0px 5px 0px 5px
+    }
+
     .dt-pagination .pagination > li > a,
     .dt-pagination .pagination > li > span {
       background-color: ${theme.colorBgBase};
       color: ${theme.colorText};
       border-color: ${theme.colorBorderSecondary};
+      padding: 5px 10px;
+      border-radius: 4px;
     }
 
     .dt-pagination .pagination > li.active > a,
