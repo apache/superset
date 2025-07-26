@@ -18,6 +18,7 @@
  */
 import { ArcLayer } from '@deck.gl/layers';
 import { JsonObject, QueryFormData, t } from '@superset-ui/core';
+import { Color } from '@deck.gl/core';
 import { COLOR_SCHEME_TYPES } from '../../utilities/utils';
 import { commonLayerProps } from '../common';
 import { GetLayerType, createCategoricalDeckGLComponent } from '../../factory';
@@ -73,7 +74,7 @@ export const getLayer: GetLayerType<ArcLayer> = function ({
 
   return new ArcLayer({
     data,
-    getSourceColor: (d: any) => {
+    getSourceColor: (d: JsonObject) => {
       if (colorSchemeType === COLOR_SCHEME_TYPES.fixed_color) {
         return [sc.r, sc.g, sc.b, 255 * sc.a];
       }
@@ -98,7 +99,50 @@ export const getLayer: GetLayerType<ArcLayer> = function ({
       filterState,
       emitCrossFilters,
     }),
+    opacity: filterState?.value ? 0.1 : 1,
   });
 };
 
-export default createCategoricalDeckGLComponent(getLayer, getPoints);
+export const getHighlightLayer: GetLayerType<ArcLayer> = function ({
+  formData,
+  payload,
+  filterState,
+}) {
+  const fd = formData;
+  const data = payload.data.features;
+
+  const getColor = (d: {
+    sourcePosition: [number, number];
+    targetPosition: [number, number];
+  }) => {
+    const sourcePosition = filterState?.value[0];
+    const targetPosition = filterState?.value[1];
+
+    if (
+      sourcePosition &&
+      targetPosition &&
+      d.sourcePosition[0] === sourcePosition[0] &&
+      d.sourcePosition[1] === sourcePosition[1] &&
+      d.targetPosition[0] === targetPosition[0] &&
+      d.targetPosition[1] === targetPosition[1]
+    ) {
+      return [255, 0, 0, 255] as Color;
+    }
+
+    return [0, 0, 0, 0] as Color;
+  };
+
+  return new ArcLayer({
+    data,
+    getSourceColor: getColor,
+    getTargetColor: getColor,
+    id: `path-hihglight-layer-${fd.slice_id}` as const,
+    getWidth: fd.stroke_width ? fd.stroke_width : 3,
+  });
+};
+
+export default createCategoricalDeckGLComponent(
+  getLayer,
+  getPoints,
+  getHighlightLayer,
+);

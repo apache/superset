@@ -19,6 +19,7 @@
 import { HeatmapLayer } from '@deck.gl/aggregation-layers';
 import { Position } from '@deck.gl/core';
 import { t, getSequentialSchemeRegistry, JsonObject } from '@superset-ui/core';
+import { isPointInBonds } from '../../utilities/utils';
 import { commonLayerProps, getColorRange } from '../common';
 import sandboxedEval from '../../utils/sandbox';
 import { GetLayerType, createDeckGLComponent } from '../../factory';
@@ -98,4 +99,44 @@ export function getPoints(data: any[]) {
   return data.map(d => d.position);
 }
 
-export default createDeckGLComponent(getLayer, getPoints);
+export const getHighlightLayer: GetLayerType<HeatmapLayer> = ({
+  formData,
+  filterState,
+  payload,
+}) => {
+  const fd = formData;
+  const {
+    intensity = 1,
+    radius_pixels: radiusPixels = 30,
+    aggregation = 'SUM',
+    js_data_mutator: jsFnMutator,
+  } = fd;
+  let data = payload.data.features;
+
+  if (jsFnMutator) {
+    // Applying user defined data mutator if defined
+    const jsFnMutatorFunction = sandboxedEval(fd.js_data_mutator);
+    data = jsFnMutatorFunction(data);
+  }
+
+  const dataInside = data.filter((d: JsonObject) =>
+    isPointInBonds(d.position, filterState?.value),
+  );
+
+  return new HeatmapLayer({
+    id: `heatmap-layer-${fd.slice_id}` as const,
+    data: dataInside,
+    intensity,
+    radiusPixels,
+    colorRange: [
+      [255, 0, 0, 55],
+      [255, 0, 0, 255],
+    ],
+    aggregation: aggregation.toUpperCase(),
+    getPosition: (d: { position: Position; weight: number }) => d.position,
+    getWeight: (d: { position: number[]; weight: number }) =>
+      d.weight ? d.weight : 1,
+  });
+};
+
+export default createDeckGLComponent(getLayer, getPoints, getHighlightLayer);

@@ -116,6 +116,8 @@ export function commonLayerProps({
           drillBy: {},
         });
       }
+
+      return true;
     };
   }
 
