@@ -1,0 +1,166 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# ... existing license ...
+"""
+Get Superset instance high-level information FastMCP tool
+"""
+
+import logging
+from datetime import datetime, timedelta, timezone
+
+from superset.mcp_service.auth import mcp_auth_hook
+from superset.mcp_service.mcp_app import mcp
+from superset.mcp_service.pydantic_schemas.system_schemas import (
+    DashboardBreakdown,
+    DatabaseBreakdown,
+    InstanceInfo,
+    InstanceSummary,
+    PopularContent,
+    RecentActivity,
+)
+
+logger = logging.getLogger(__name__)
+
+
+@mcp.tool
+@mcp_auth_hook
+def get_superset_instance_info() -> InstanceInfo:
+    """
+    Get high-level information about the Superset instance.
+
+    Returns:
+        InstanceInfo
+    """
+    try:
+        from flask_appbuilder.security.sqla.models import Role
+
+        from superset.daos.base import ColumnOperator, ColumnOperatorEnum
+        from superset.daos.chart import ChartDAO
+        from superset.daos.dashboard import DashboardDAO
+        from superset.daos.database import DatabaseDAO
+        from superset.daos.dataset import DatasetDAO
+        from superset.daos.tag import TagDAO
+        from superset.daos.user import UserDAO
+        from superset.extensions import db
+        from superset.models.dashboard import Dashboard
+
+        # Get basic counts using DAOs directly
+        total_dashboards = DashboardDAO.count()
+        total_charts = ChartDAO.count()
+        total_datasets = DatasetDAO.count()
+        total_databases = DatabaseDAO.count()
+        total_users = UserDAO.count()
+        total_tags = TagDAO.count()
+        total_roles = db.session.query(Role).count()  # No DAO for Role
+
+        # Recent activity
+        now = datetime.now(timezone.utc)
+        thirty_days_ago = now - timedelta(days=30)
+        seven_days_ago = now - timedelta(days=7)
+
+        dashboards_created_last_30_days = DashboardDAO.count(
+            column_operators=[
+                ColumnOperator(
+                    col="created_on", opr=ColumnOperatorEnum.gte, value=thirty_days_ago
+                )
+            ]
+        )
+        charts_created_last_30_days = ChartDAO.count(
+            column_operators=[
+                ColumnOperator(
+                    col="created_on", opr=ColumnOperatorEnum.gte, value=thirty_days_ago
+                )
+            ]
+        )
+        datasets_created_last_30_days = DatasetDAO.count(
+            column_operators=[
+                ColumnOperator(
+                    col="created_on", opr=ColumnOperatorEnum.gte, value=thirty_days_ago
+                )
+            ]
+        )
+
+        dashboards_modified_last_7_days = DashboardDAO.count(
+            column_operators=[
+                ColumnOperator(
+                    col="changed_on", opr=ColumnOperatorEnum.gte, value=seven_days_ago
+                )
+            ]
+        )
+        charts_modified_last_7_days = ChartDAO.count(
+            column_operators=[
+                ColumnOperator(
+                    col="changed_on", opr=ColumnOperatorEnum.gte, value=seven_days_ago
+                )
+            ]
+        )
+        datasets_modified_last_7_days = DatasetDAO.count(
+            column_operators=[
+                ColumnOperator(
+                    col="changed_on", opr=ColumnOperatorEnum.gte, value=seven_days_ago
+                )
+            ]
+        )
+
+        # Dashboard breakdown
+        published_count = DashboardDAO.count(
+            column_operators=[
+                ColumnOperator(col="published", opr=ColumnOperatorEnum.eq, value=True)
+            ]
+        )
+        unpublished_dashboards = total_dashboards - published_count
+        certified_count = DashboardDAO.count(
+            column_operators=[
+                ColumnOperator(
+                    col="certified_by", opr=ColumnOperatorEnum.is_not_null, value=None
+                )
+            ]
+        )  # Custom logic may be needed
+        dashboards_with_charts = (
+            db.session.query(Dashboard).join(Dashboard.slices).distinct().count()
+        )  # No direct DAO method
+        dashboards_without_charts = total_dashboards - dashboards_with_charts
+        avg_charts_per_dashboard = (
+            (total_charts / total_dashboards) if total_dashboards > 0 else 0
+        )
+
+        # Compose response using keyword arguments and nested models
+        response = InstanceInfo(
+            instance_summary=InstanceSummary(
+                total_dashboards=total_dashboards,
+                total_charts=total_charts,
+                total_datasets=total_datasets,
+                total_databases=total_databases,
+                total_users=total_users,
+                total_roles=total_roles,
+                total_tags=total_tags,
+                avg_charts_per_dashboard=round(avg_charts_per_dashboard, 2),
+            ),
+            recent_activity=RecentActivity(
+                dashboards_created_last_30_days=dashboards_created_last_30_days,
+                charts_created_last_30_days=charts_created_last_30_days,
+                datasets_created_last_30_days=datasets_created_last_30_days,
+                dashboards_modified_last_7_days=dashboards_modified_last_7_days,
+                charts_modified_last_7_days=charts_modified_last_7_days,
+                datasets_modified_last_7_days=datasets_modified_last_7_days,
+            ),
+            dashboard_breakdown=DashboardBreakdown(
+                published=published_count,
+                unpublished=unpublished_dashboards,
+                certified=certified_count,
+                with_charts=dashboards_with_charts,
+                without_charts=dashboards_without_charts,
+            ),
+            database_breakdown=DatabaseBreakdown(by_type={"sqlite": total_databases}),
+            popular_content=PopularContent(
+                top_tags=[],
+                top_creators=[],
+            ),
+            timestamp=now,
+        )
+        logger.info("Successfully retrieved instance information (direct DB query)")
+        return response
+
+    except Exception as e:
+        error_msg = f"Unexpected error in instance info: {str(e)}"
+        logger.error(error_msg, exc_info=True)
+        raise

@@ -1,4 +1,3 @@
-#
 # Licensed to the Apache Software Foundation (ASF) under one
 # or more contributor license agreements.  See the NOTICE file
 # distributed with this work for additional information
@@ -15,5 +14,20 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-#
--e .[development,bigquery,druid,fastmcp,gevent,gsheets,mysql,postgres,presto,prophet,trino,thumbnails]
+
+"""
+MCP-specific form data command that extends the base CreateFormDataCommand
+"""
+
+from superset.commands.explore.form_data.create import CreateFormDataCommand
+from superset.utils.core import get_user_id
+
+
+class MCPCreateFormDataCommand(CreateFormDataCommand):
+    """
+    MCP-specific CreateFormDataCommand that uses user_id instead of session._id
+    """
+
+    def _get_session_id(self) -> str:
+        """Override to use user_id instead of Flask session for MCP context."""
+        return str(get_user_id())

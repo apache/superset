@@ -1,4 +1,3 @@
-#
 # Licensed to the Apache Software Foundation (ASF) under one
 # or more contributor license agreements.  See the NOTICE file
 # distributed with this work for additional information
@@ -15,5 +14,30 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-#
--e .[development,bigquery,druid,fastmcp,gevent,gsheets,mysql,postgres,presto,prophet,trino,thumbnails]
+
+"""
+MCP Service Configuration Template
+
+Copy this to `mcp_config.py` and customize:
+    cp mcp_config_template.py mcp_config.py
+"""
+
+# Enable authentication
+MCP_AUTH_ENABLED = True
+
+# JWT configuration
+MCP_JWKS_URI = "https://your-auth-provider.com/.well-known/jwks.json"
+MCP_JWT_ISSUER = "https://your-auth-provider.com/"
+MCP_JWT_AUDIENCE = "superset-mcp-server"
+MCP_JWT_ALGORITHM = "RS256"
+MCP_REQUIRED_SCOPES = ["superset:read", "superset:query"]
+
+# Alternative: Use RSA public key instead of JWKS
+# MCP_JWT_PUBLIC_KEY = """-----BEGIN PUBLIC KEY-----
+# Your RSA public key here
+# -----END PUBLIC KEY-----"""
+
+# Optional: Custom auth factory for advanced use cases
+# def MCP_AUTH_FACTORY(app):
+#     # Custom logic here
+#     return BearerAuthProvider(...)

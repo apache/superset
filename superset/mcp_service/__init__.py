@@ -1,4 +1,3 @@
-#
 # Licensed to the Apache Software Foundation (ASF) under one
 # or more contributor license agreements.  See the NOTICE file
 # distributed with this work for additional information
@@ -15,5 +14,19 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-#
--e .[development,bigquery,druid,fastmcp,gevent,gsheets,mysql,postgres,presto,prophet,trino,thumbnails]
+
+# superset/mcp_service/__init__.py
+
+"""
+Model Context Protocol (MCP) service for Apache Superset.
+
+This service provides a structured interface for AI agents to interact with Superset's
+core functionality through well-defined, high-level actions.
+
+The service runs as a standalone server.
+
+To start the service, run:
+    superset mcp run
+"""
+
+__version__ = "0.1.0"

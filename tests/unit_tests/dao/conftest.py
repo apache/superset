@@ -1,4 +1,3 @@
-#
 # Licensed to the Apache Software Foundation (ASF) under one
 # or more contributor license agreements.  See the NOTICE file
 # distributed with this work for additional information
@@ -15,5 +14,23 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-#
--e .[development,bigquery,druid,fastmcp,gevent,gsheets,mysql,postgres,presto,prophet,trino,thumbnails]
+
+import pytest
+from flask_appbuilder.security.sqla.models import User
+
+
+@pytest.fixture
+def user_with_data(session):
+    User.metadata.create_all(session.get_bind())
+    user = User(
+        id=101,
+        username="testuser",
+        first_name="Test",
+        last_name="User",
+        email="testuser@example.com",
+        active=True,
+    )
+    session.add(user)
+    session.commit()
+    yield session
+    session.rollback()

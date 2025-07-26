@@ -1,4 +1,3 @@
-#
 # Licensed to the Apache Software Foundation (ASF) under one
 # or more contributor license agreements.  See the NOTICE file
 # distributed with this work for additional information
@@ -15,5 +14,32 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-#
--e .[development,bigquery,druid,fastmcp,gevent,gsheets,mysql,postgres,presto,prophet,trino,thumbnails]
+
+"""
+MCP tool: get_chart_available_filters
+"""
+
+import logging
+
+from superset.mcp_service.auth import mcp_auth_hook
+from superset.mcp_service.mcp_app import mcp
+from superset.mcp_service.model_tools import ModelGetAvailableFiltersTool
+from superset.mcp_service.pydantic_schemas import ChartAvailableFiltersResponse
+
+logger = logging.getLogger(__name__)
+
+
+@mcp.tool
+@mcp_auth_hook
+def get_chart_available_filters() -> ChartAvailableFiltersResponse:
+    """
+    Return available chart filter fields, types, and supported operators (MCP tool).
+    """
+    from superset.daos.chart import ChartDAO
+
+    tool = ModelGetAvailableFiltersTool(
+        dao_class=ChartDAO,
+        output_schema=ChartAvailableFiltersResponse,
+        logger=logger,
+    )
+    return tool.run()
