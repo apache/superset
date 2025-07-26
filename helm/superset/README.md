@@ -203,7 +203,7 @@ On helm this can be set on `extraSecretEnv.SUPERSET_SECRET_KEY` or `configOverri
 | supersetNode.connections.db_name | string | `"superset"` |  |
 | supersetNode.connections.db_pass | string | `"superset"` |  |
 | supersetNode.connections.db_port | string | `"5432"` |  |
-| supersetNode.connections.db_type | string | `"postgresql"` | Supported types: "postgresql", "mysql" |
+| supersetNode.connections.db_type | string | `"postgresql"` | Database type for Superset metadata (Supported types: "postgresql", "mysql") |
 | supersetNode.connections.db_user | string | `"superset"` |  |
 | supersetNode.connections.redis_cache_db | string | `"1"` |  |
 | supersetNode.connections.redis_celery_db | string | `"0"` |  |
