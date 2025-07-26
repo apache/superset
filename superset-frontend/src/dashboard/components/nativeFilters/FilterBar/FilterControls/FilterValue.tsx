@@ -155,6 +155,37 @@ const FilterValue: FC<FilterControlProps> = ({
       dashboardId,
     });
     const filterOwnState = filter.dataMask?.ownState || {};
+    // if (Object.keys(dataMaskSelected))
+    if (filter?.cascadeParentIds?.length) {
+      // Prevent unnecessary backend requests by validating parent filter selections first
+
+      let selectedParentFilterValueCounts = 0;
+
+      filter?.cascadeParentIds?.forEach(pId => {
+        if (
+          dataMaskSelected?.[pId]?.extraFormData?.filters ||
+          dataMaskSelected?.[pId]?.extraFormData?.time_range
+        ) {
+          selectedParentFilterValueCounts +=
+            dataMaskSelected?.[pId]?.extraFormData?.filters?.length ?? 1;
+        }
+      });
+
+      // check if all parent filters with defaults have a value selected
+
+      let depsCount = dependencies.filters?.length ?? 0;
+
+      if (dependencies?.time_range) {
+        depsCount += 1;
+      }
+
+      if (selectedParentFilterValueCounts !== depsCount) {
+        // child filter should not request backend until it
+        // has all the required information from parent filters
+        return;
+      }
+    }
+
     // TODO: We should try to improve our useEffect hooks to depend more on
     // granular information instead of big objects that require deep comparison.
     const customizer = (
@@ -226,6 +257,7 @@ const FilterValue: FC<FilterControlProps> = ({
     hasDataSource,
     isRefreshing,
     shouldRefresh,
+    dataMaskSelected,
   ]);
 
   useEffect(() => {
