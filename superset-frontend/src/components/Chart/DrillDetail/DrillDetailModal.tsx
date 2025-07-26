@@ -32,6 +32,7 @@ import { DashboardPageIdContext } from 'src/dashboard/containers/DashboardPage';
 import { Slice } from 'src/types/Chart';
 import { RootState } from 'src/dashboard/types';
 import { findPermission } from 'src/utils/findPermission';
+import { Dataset } from '../types';
 import DrillDetailPane from './DrillDetailPane';
 
 interface ModalFooterProps {
@@ -83,6 +84,7 @@ interface DrillDetailModalProps {
   initialFilters: BinaryQueryObjectFilterClause[];
   showModal: boolean;
   onHideModal: () => void;
+  dataset?: Dataset;
 }
 
 export default function DrillDetailModal({
@@ -91,6 +93,7 @@ export default function DrillDetailModal({
   initialFilters,
   showModal,
   onHideModal,
+  dataset,
 }: DrillDetailModalProps) {
   const theme = useTheme();
   const history = useHistory();
@@ -141,7 +144,11 @@ export default function DrillDetailModal({
       destroyOnHidden
       maskClosable={false}
     >
-      <DrillDetailPane formData={formData} initialFilters={initialFilters} />
+      <DrillDetailPane
+        formData={formData}
+        initialFilters={initialFilters}
+        dataset={dataset}
+      />
     </Modal>
   );
 }

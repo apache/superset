@@ -25,7 +25,7 @@ from flask_babel import _
 from marshmallow import ValidationError
 from sqlalchemy.exc import NoResultFound, NoSuchTableError
 
-from superset import db, event_logger, security_manager
+from superset import db, event_logger, feature_flag_manager, security_manager
 from superset.commands.dataset.exceptions import (
     DatasetForbiddenError,
     DatasetNotFoundError,
@@ -194,6 +194,13 @@ class Datasource(BaseSupersetView):
     @api
     @handle_api_exception
     def samples(self) -> FlaskResponse:
+        if (
+            security_manager.is_guest_user()
+            and not feature_flag_manager.is_feature_enabled("DRILLING_IN_EMBEDDED")
+        ):
+            return json_error_response(
+                _("Drill by is not available for embedded users"), status=403
+            )
         try:
             params = SamplesRequestSchema().load(request.args)
             payload = SamplesPayloadSchema().load(request.json)

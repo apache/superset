@@ -47,8 +47,8 @@ import Table, {
   TableSize,
 } from '@superset-ui/core/components/Table';
 import HeaderWithRadioGroup from '@superset-ui/core/components/Table/header-renderers/HeaderWithRadioGroup';
-import { ResourceStatus } from 'src/hooks/apiResources/apiResources';
 import { useDatasetMetadataBar } from 'src/features/datasets/metadataBar/useDatasetMetadataBar';
+import { Dataset } from '../types';
 import TableControls from './DrillDetailTableControls';
 import { getDrillPayload } from './utils';
 import { ResultsPage } from './types';
@@ -79,9 +79,11 @@ enum TimeFormatting {
 export default function DrillDetailPane({
   formData,
   initialFilters,
+  dataset,
 }: {
   formData: QueryFormData;
   initialFilters: BinaryQueryObjectFilterClause[];
+  dataset?: Dataset;
 }) {
   const theme = useTheme();
   const [pageIndex, setPageIndex] = useState(0);
@@ -107,9 +109,10 @@ export default function DrillDetailPane({
     [formData.datasource],
   );
 
-  const { metadataBar, status: metadataBarStatus } = useDatasetMetadataBar({
-    datasetId: datasourceId,
+  const { metadataBar: metadataBarComponent } = useDatasetMetadataBar({
+    dataset,
   });
+
   // Get page of results
   const resultsPage = useMemo(() => {
     const nextResultsPage = resultsPages.get(pageIndex);
@@ -268,9 +271,7 @@ export default function DrillDetailPane({
     resultsPages,
   ]);
 
-  const bootstrapping =
-    (!responseError && !resultsPages.size) ||
-    metadataBarStatus === ResourceStatus.Loading;
+  const bootstrapping = !responseError && !resultsPages.size;
 
   const allowHTML = formData.allow_render_html ?? true;
 
@@ -318,7 +319,7 @@ export default function DrillDetailPane({
 
   return (
     <>
-      {!bootstrapping && metadataBar}
+      {!bootstrapping && metadataBarComponent}
       {!bootstrapping && (
         <TableControls
           filters={filters}
