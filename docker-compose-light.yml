@@ -18,6 +18,9 @@
 # -----------------------------------------------------------------------
 # Lightweight docker-compose for running multiple Superset instances
 # This includes only essential services: database, Redis, and Superset app
+#
+# For verbose logging during development:
+# - Set SUPERSET_LOG_LEVEL=debug in docker/.env-local for detailed Superset logs
 # -----------------------------------------------------------------------
 x-superset-user: &superset-user root
 x-superset-volumes: &superset-volumes
