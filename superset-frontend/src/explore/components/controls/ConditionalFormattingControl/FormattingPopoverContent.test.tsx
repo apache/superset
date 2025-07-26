@@ -24,14 +24,19 @@ import {
 } from 'spec/helpers/testing-library';
 import { Comparator } from '@superset-ui/chart-controls';
 import { ColorSchemeEnum } from '@superset-ui/plugin-chart-table';
-import { FormattingPopoverContent } from './FormattingPopoverContent';
 import { GenericDataType } from '@superset-ui/core';
+import { FormattingPopoverContent } from './FormattingPopoverContent';
 
 const mockOnChange = jest.fn();
 
 const columns = [
   { label: 'Column 1', value: 'column1', dataType: GenericDataType.Numeric },
   { label: 'Column 2', value: 'column2', dataType: GenericDataType.Numeric },
+];
+
+const columnsStringType = [
+  { label: 'Column 1', value: 'column1', dataType: GenericDataType.String },
+  { label: 'Column 2', value: 'column2', dataType: GenericDataType.String },
 ];
 
 const extraColorChoices = [
@@ -119,4 +124,20 @@ test('renders None for operator when Green for increase is selected', async () =
 
   // Assert that the operator is set to 'None'
   expect(screen.getByText(/none/i)).toBeInTheDocument();
+});
+
+test('displays the correct input fields based on the selected string type operator', async () => {
+  render(
+    <FormattingPopoverContent
+      onChange={mockOnChange}
+      columns={columnsStringType}
+      extraColorChoices={extraColorChoices}
+    />,
+  );
+
+  fireEvent.change(screen.getAllByLabelText('Operator')[0], {
+    target: { value: Comparator.BeginsWith },
+  });
+  fireEvent.click(await screen.findByTitle('begins with'));
+  expect(await screen.findByLabelText('Target value')).toBeInTheDocument();
 });
