@@ -288,6 +288,9 @@ supersetNode:
     redis_ssl:
       enabled: false
       ssl_cert_reqs: CERT_NONE
+    # -- Database type for Superset metadata
+    # -- Supported types: "postgresql", "mysql"
+    db_type: "postgresql"
     # You need to change below configuration incase bringing own PostgresSQL instance and also set postgresql.enabled:false
     db_host: "{{ .Release.Name }}-postgresql"
     db_port: "5432"

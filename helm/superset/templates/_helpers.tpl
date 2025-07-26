@@ -96,7 +96,13 @@ CACHE_CONFIG = {
 }
 DATA_CACHE_CONFIG = CACHE_CONFIG
 
-SQLALCHEMY_DATABASE_URI = f"postgresql+psycopg2://{env('DB_USER')}:{env('DB_PASS')}@{env('DB_HOST')}:{env('DB_PORT')}/{env('DB_NAME')}"
+{{- if eq .Values.supersetNode.connections.db_type "postgresql" }}
+SQLALCHEMY_DATABASE_URI = f"postgresql+psycopg2://{os.getenv('DB_USER')}:{os.getenv('DB_PASS')}@{os.getenv('DB_HOST')}:{os.getenv('DB_PORT')}/{os.getenv('DB_NAME')}"
+{{- else if eq .Values.supersetNode.connections.db_type "mysql" }}
+SQLALCHEMY_DATABASE_URI = f"mysql+mysqldb://{os.getenv('DB_USER')}:{os.getenv('DB_PASS')}@{os.getenv('DB_HOST')}:{os.getenv('DB_PORT')}/{os.getenv('DB_NAME')}"
+{{- else }}
+{{- fail (printf "Unsupported database type: %s. Please use 'postgresql' or 'mysql'." .Values.supersetNode.connections.db_type) }}
+{{- end }}
 SQLALCHEMY_TRACK_MODIFICATIONS = True
 
 class CeleryConfig:
