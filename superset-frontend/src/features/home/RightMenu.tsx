@@ -23,7 +23,6 @@ import { useSelector } from 'react-redux';
 import { Link } from 'react-router-dom';
 import { useQueryParams, BooleanParam } from 'use-query-params';
 import { get, isEmpty } from 'lodash';
-import ThemeEditor from '@superset-ui/core/components/ThemeEditor';
 
 import {
   t,
@@ -33,8 +32,6 @@ import {
   SupersetClient,
   getExtensionsRegistry,
   useTheme,
-  isFeatureEnabled,
-  FeatureFlag,
 } from '@superset-ui/core';
 import { Menu } from '@superset-ui/core/components/Menu';
 import { Label, Tooltip } from '@superset-ui/core/components';
@@ -119,7 +116,7 @@ const StyledSubMenu = styled(SubMenu)`
     }
     &.ant-menu-submenu-active {
       .ant-menu-title-content {
-        color: ${theme.colors.primary.base};
+        color: ${theme.colorPrimary};
       }
     }
   `}
@@ -185,10 +182,12 @@ const RightMenu = ({
   const isAdmin = isUserAdmin(user);
   const showUploads = allowUploads || isAdmin;
   const {
-    theme: themeEditorTheme,
-    setTheme,
-    changeThemeMode,
+    setThemeMode,
     themeMode,
+    clearLocalOverrides,
+    hasDevOverride,
+    canSetMode,
+    canDetectOSPreference,
   } = useThemeContext();
   const dropdownItems: MenuObjectProps[] = [
     {
@@ -494,16 +493,14 @@ const RightMenu = ({
             })}
           </StyledSubMenu>
         )}
-        {isFeatureEnabled(FeatureFlag.ThemeAllowThemeEditorBeta) && (
-          <span>
-            <ThemeEditor theme={themeEditorTheme} setTheme={setTheme} />
-          </span>
-        )}
-        {isFeatureEnabled(FeatureFlag.ThemeEnableDarkThemeSwitch) && (
+        {canSetMode() && (
           <span>
             <ThemeSelect
-              changeThemeMode={changeThemeMode}
+              setThemeMode={setThemeMode}
               themeMode={themeMode}
+              hasLocalOverride={hasDevOverride()}
+              onClearLocalSettings={clearLocalOverrides}
+              allowOSPreference={canDetectOSPreference()}
             />
           </span>
         )}

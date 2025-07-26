@@ -16,63 +16,100 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Tooltip } from 'antd';
 import { Dropdown, Icons } from '@superset-ui/core/components';
-import { t } from '@superset-ui/core';
-import { ThemeMode } from '../../theme/types';
+import type { MenuItem } from '@superset-ui/core/components/Menu';
+import { t, useTheme } from '@superset-ui/core';
+import { ThemeAlgorithm, ThemeMode } from '../../theme/types';
 
 export interface ThemeSelectProps {
-  changeThemeMode: (newMode: ThemeMode) => void;
+  setThemeMode: (newMode: ThemeMode) => void;
   tooltipTitle?: string;
   themeMode: ThemeMode;
+  hasLocalOverride?: boolean;
+  onClearLocalSettings?: () => void;
+  allowOSPreference?: boolean;
 }
 
 const ThemeSelect: React.FC<ThemeSelectProps> = ({
-  changeThemeMode,
+  setThemeMode,
   tooltipTitle = 'Select theme',
   themeMode,
+  hasLocalOverride = false,
+  onClearLocalSettings,
+  allowOSPreference = true,
 }) => {
+  const theme = useTheme();
+
   const handleSelect = (mode: ThemeMode) => {
-    changeThemeMode(mode);
+    setThemeMode(mode);
   };
 
-  const themeIconMap: Record<ThemeMode, React.ReactNode> = {
-    [ThemeMode.LIGHT]: <Icons.SunOutlined />,
-    [ThemeMode.DARK]: <Icons.MoonOutlined />,
+  const themeIconMap: Record<ThemeAlgorithm | ThemeMode, React.ReactNode> = {
+    [ThemeAlgorithm.DEFAULT]: <Icons.SunOutlined />,
+    [ThemeAlgorithm.DARK]: <Icons.MoonOutlined />,
     [ThemeMode.SYSTEM]: <Icons.FormatPainterOutlined />,
-    [ThemeMode.COMPACT]: <Icons.CompressOutlined />,
+    [ThemeAlgorithm.COMPACT]: <Icons.CompressOutlined />,
   };
+
+  // Use different icon when local theme is active
+  const triggerIcon = hasLocalOverride ? (
+    <Icons.FormatPainterOutlined style={{ color: theme.colorErrorText }} />
+  ) : (
+    themeIconMap[themeMode] || <Icons.FormatPainterOutlined />
+  );
+
+  const menuItems: MenuItem[] = [
+    {
+      type: 'group',
+      label: t('Theme'),
+    },
+    {
+      key: ThemeMode.DEFAULT,
+      label: t('Light'),
+      icon: <Icons.SunOutlined />,
+      onClick: () => handleSelect(ThemeMode.DEFAULT),
+    },
+    {
+      key: ThemeMode.DARK,
+      label: t('Dark'),
+      icon: <Icons.MoonOutlined />,
+      onClick: () => handleSelect(ThemeMode.DARK),
+    },
+    ...(allowOSPreference
+      ? [
+          {
+            key: ThemeMode.SYSTEM,
+            label: t('Match system'),
+            icon: <Icons.FormatPainterOutlined />,
+            onClick: () => handleSelect(ThemeMode.SYSTEM),
+          },
+        ]
+      : []),
+  ];
+
+  // Add clear settings option only when there's a local theme active
+  if (onClearLocalSettings && hasLocalOverride) {
+    menuItems.push(
+      { type: 'divider' } as MenuItem,
+      {
+        key: 'clear-local',
+        label: t('Clear local theme'),
+        icon: <Icons.ClearOutlined />,
+        onClick: onClearLocalSettings,
+      } as MenuItem,
+    );
+  }
 
   return (
-    <Tooltip title={tooltipTitle} placement="bottom">
-      <Dropdown
-        menu={{
-          items: [
-            {
-              key: ThemeMode.LIGHT,
-              label: t('Light'),
-              onClick: () => handleSelect(ThemeMode.LIGHT),
-              icon: <Icons.SunOutlined />,
-            },
-            {
-              key: ThemeMode.DARK,
-              label: t('Dark'),
-              onClick: () => handleSelect(ThemeMode.DARK),
-              icon: <Icons.MoonOutlined />,
-            },
-            {
-              key: ThemeMode.SYSTEM,
-              label: t('Match system'),
-              onClick: () => handleSelect(ThemeMode.SYSTEM),
-              icon: <Icons.FormatPainterOutlined />,
-            },
-          ],
-        }}
-        trigger={['click']}
-      >
-        {themeIconMap[themeMode] || <Icons.FormatPainterOutlined />}
-      </Dropdown>
-    </Tooltip>
+    <Dropdown
+      menu={{
+        items: menuItems,
+        selectedKeys: [themeMode],
+      }}
+      trigger={['hover']}
+    >
+      {triggerIcon}
+    </Dropdown>
   );
 };
 

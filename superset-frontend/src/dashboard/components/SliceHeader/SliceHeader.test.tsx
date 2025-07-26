@@ -20,6 +20,8 @@ import { Router } from 'react-router-dom';
 import { createMemoryHistory } from 'history';
 import { getExtensionsRegistry, VizType } from '@superset-ui/core';
 import { render, screen, userEvent } from 'spec/helpers/testing-library';
+import { isEmbedded } from 'src/dashboard/util/isEmbedded';
+import { useUiConfig } from 'src/components/UiConfigContext';
 import SliceHeader from '.';
 
 jest.mock('src/dashboard/components/SliceHeaderControls', () => ({
@@ -98,6 +100,21 @@ jest.mock('src/dashboard/components/FiltersBadge', () => ({
   default: (props: any) => (
     <div data-test="FiltersBadge" data-chart-id={props.chartId} />
   ),
+}));
+
+jest.mock('src/dashboard/util/isEmbedded', () => ({
+  isEmbedded: jest.fn().mockReturnValue(false),
+}));
+
+jest.mock('src/components/UiConfigContext', () => ({
+  useUiConfig: jest.fn().mockReturnValue({
+    hideTitle: false,
+    hideTab: false,
+    hideNav: false,
+    hideChartControls: false,
+    emitDataMasks: false,
+    showRowLimitWarning: false,
+  }),
 }));
 
 const MOCKED_CHART_ID = 312;
@@ -583,4 +600,85 @@ test('Should render RowCountLabel when row limit is hit, and hide it otherwise',
   );
 
   expect(screen.queryByTestId('warning')).not.toBeInTheDocument();
+});
+
+test('Should hide RowCountLabel in embedded by default', () => {
+  const mockIsEmbedded = isEmbedded as jest.MockedFunction<typeof isEmbedded>;
+  mockIsEmbedded.mockReturnValue(true);
+
+  const props = createProps({
+    formData: {
+      ...createProps().formData,
+      row_limit: 10,
+    },
+  });
+  const rowCountState = {
+    ...initialState,
+    charts: {
+      [props.slice.slice_id]: {
+        queriesResponse: [
+          {
+            sql_rowcount: 10,
+          },
+        ],
+      },
+    },
+  };
+
+  render(<SliceHeader {...props} />, {
+    useRedux: true,
+    useRouter: true,
+    initialState: rowCountState,
+  });
+
+  expect(screen.queryByTestId('warning')).not.toBeInTheDocument();
+
+  mockIsEmbedded.mockRestore();
+});
+
+test('Should show RowCountLabel in embedded when uiConfig.showRowLimitWarning is true', () => {
+  const mockIsEmbedded = isEmbedded as jest.MockedFunction<typeof isEmbedded>;
+  const mockUseUiConfig = useUiConfig as jest.MockedFunction<
+    typeof useUiConfig
+  >;
+
+  mockIsEmbedded.mockReturnValue(true);
+  mockUseUiConfig.mockReturnValue({
+    hideTitle: false,
+    hideTab: false,
+    hideNav: false,
+    hideChartControls: false,
+    emitDataMasks: false,
+    showRowLimitWarning: true,
+  });
+
+  const props = createProps({
+    formData: {
+      ...createProps().formData,
+      row_limit: 10,
+    },
+  });
+  const rowCountState = {
+    ...initialState,
+    charts: {
+      [props.slice.slice_id]: {
+        queriesResponse: [
+          {
+            sql_rowcount: 10,
+          },
+        ],
+      },
+    },
+  };
+
+  render(<SliceHeader {...props} />, {
+    useRedux: true,
+    useRouter: true,
+    initialState: rowCountState,
+  });
+
+  expect(screen.getByTestId('warning')).toBeInTheDocument();
+
+  mockIsEmbedded.mockRestore();
+  mockUseUiConfig.mockRestore();
 });

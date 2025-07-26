@@ -34,17 +34,48 @@ export type AntdTokens = ReturnType<typeof antdThemeImport.getDesignToken>;
 export type AntdThemeConfig = ThemeConfig;
 
 /**
+ * Theme algorithms supported by Antd.
+ * They can be used individually or in combination.
+ * - DEFAULT: Default light theme
+ * - DARK: Dark theme
+ * - COMPACT: Compact theme (smaller spacing)
+ */
+export enum ThemeAlgorithm {
+  DEFAULT = 'default',
+  DARK = 'dark',
+  COMPACT = 'compact',
+}
+
+/**
+ * Represents the current theme mode of the app.
+ * It can be one of the following:
+ * - DEFAULT: Light theme
+ * - DARK: Dark theme
+ * - SYSTEM: System theme (auto-detects based on system settings)
+ */
+export enum ThemeMode {
+  DEFAULT = 'default',
+  DARK = 'dark',
+  SYSTEM = 'system',
+}
+
+/**
+ * All valid algorithm values that can be used in theme config.
+ */
+export type ThemeAlgorithmOption =
+  | ThemeAlgorithm.DEFAULT
+  | ThemeAlgorithm.DARK
+  | ThemeAlgorithm.COMPACT
+  | ThemeAlgorithm[];
+
+/**
  * A serializable version of Ant Design's ThemeConfig
  * Compatible with theme editor exports
  */
 export type SerializableThemeConfig = {
   token?: Record<string, any>;
   components?: Record<string, any>;
-  algorithm?:
-    | 'default'
-    | 'dark'
-    | 'compact'
-    | ('default' | 'dark' | 'compact')[];
+  algorithm?: ThemeAlgorithmOption;
   hashed?: boolean;
   inherit?: boolean;
 };
@@ -358,13 +389,6 @@ export type AllowedAntdTokenKeys = Extract<
   keyof AntdTokens
 >;
 
-export enum ThemeMode {
-  LIGHT = 'light',
-  DARK = 'dark',
-  SYSTEM = 'system',
-  COMPACT = 'compact',
-}
-
 export type SharedAntdTokens = Pick<AntdTokens, AllowedAntdTokenKeys>;
 
 /** The final shape for our custom theme object, combining old theme + shared antd + superset specifics. */
@@ -379,7 +403,7 @@ export interface ThemeStorage {
 }
 
 export interface ThemeControllerOptions {
-  themeObject: Theme;
+  themeObject?: Theme;
   storage?: ThemeStorage;
   storageKey?: string;
   modeStorageKey?: string;
@@ -387,12 +411,21 @@ export interface ThemeControllerOptions {
   onChange?: (theme: Theme) => void;
   canUpdateTheme?: () => boolean;
   canUpdateMode?: () => boolean;
+  isGlobalContext?: boolean;
 }
 
 export interface ThemeContextType {
   theme: Theme;
   themeMode: ThemeMode;
   setTheme: (config: AnyThemeConfig) => void;
-  changeThemeMode: (newMode: ThemeMode) => void;
+  setThemeMode: (newMode: ThemeMode) => void;
   resetTheme: () => void;
+  setTemporaryTheme: (config: AnyThemeConfig) => void;
+  clearLocalOverrides: () => void;
+  getCurrentCrudThemeId: () => string | null;
+  hasDevOverride: () => boolean;
+  canSetMode: () => boolean;
+  canSetTheme: () => boolean;
+  canDetectOSPreference: () => boolean;
+  createDashboardThemeProvider: (themeId: string) => Promise<Theme | null>;
 }

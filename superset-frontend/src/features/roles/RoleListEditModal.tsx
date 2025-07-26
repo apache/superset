@@ -25,6 +25,7 @@ import {
   FormModal,
   TableView,
   FormInstance,
+  Icons,
 } from '@superset-ui/core/components';
 import {
   BaseModalProps,
@@ -35,6 +36,7 @@ import { useToasts } from 'src/components/MessageToasts/withToasts';
 import { GroupObject } from 'src/pages/GroupsList';
 import { fetchPaginatedData } from 'src/utils/fetchOptions';
 import { type UserObject } from 'src/pages/UsersList/types';
+import { ModalTitleWithIcon } from 'src/components/ModalTitleWithIcon';
 import {
   GroupsField,
   PermissionsField,
@@ -180,7 +182,13 @@ function RoleListEditModal({
     <FormModal
       show={show}
       onHide={onHide}
-      title={t('Edit Role')}
+      name="Edit Role"
+      title={
+        <ModalTitleWithIcon
+          title={t('Edit Role')}
+          icon={<Icons.EditOutlined />}
+        />
+      }
       onSave={onSave}
       formSubmitHandler={handleFormSubmit}
       initialValues={initialValues}

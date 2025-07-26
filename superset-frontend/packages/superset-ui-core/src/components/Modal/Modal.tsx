@@ -18,7 +18,7 @@
  */
 import { isValidElement, cloneElement, useMemo, useRef, useState } from 'react';
 import { isNil } from 'lodash';
-import { css, styled, t } from '@superset-ui/core';
+import { css, styled, t, useTheme } from '@superset-ui/core';
 import { Modal as AntdModal, ModalProps as AntdModalProps } from 'antd';
 import { Resizable } from 're-resizable';
 import Draggable, {
@@ -26,6 +26,7 @@ import Draggable, {
   DraggableData,
   DraggableEvent,
 } from 'react-draggable';
+import { Icons } from '../Icons';
 import { Button } from '../Button';
 import type { ModalProps, StyledModalProps } from './types';
 
@@ -45,8 +46,16 @@ export const BaseModal = (props: AntdModalProps) => (
 );
 
 export const StyledModal = styled(BaseModal)<StyledModalProps>`
-  ${({ theme, responsive, maxWidth }) =>
-    responsive &&
+  ${({
+    theme,
+    responsive,
+    maxWidth,
+    resizable,
+    height,
+    draggable,
+    hideFooter,
+  }) => css`
+    ${responsive &&
     css`
       max-width: ${maxWidth ?? '900px'};
       padding-left: ${theme.sizeUnit * 3}px;
@@ -55,120 +64,121 @@ export const StyledModal = styled(BaseModal)<StyledModalProps>`
       top: 0;
     `}
 
-  .ant-modal-content {
-    background-color: ${({ theme }) => theme.colorBgContainer};
-    display: flex;
-    flex-direction: column;
-    max-height: ${({ theme }) => `calc(100vh - ${theme.sizeUnit * 8}px)`};
-    margin-bottom: ${({ theme }) => theme.sizeUnit * 4}px;
-    margin-top: ${({ theme }) => theme.sizeUnit * 4}px;
-    padding: 0;
-  }
-
-  .ant-modal-header {
-    flex: 0 0 auto;
-    border-radius: ${({ theme }) => theme.borderRadius}px
-      ${({ theme }) => theme.borderRadius}px 0 0;
-    padding: ${({ theme }) => theme.sizeUnit * 4}px
-      ${({ theme }) => theme.sizeUnit * 6}px;
-
-    .ant-modal-title {
-      font-weight: ${({ theme }) => theme.fontWeightStrong};
-    }
-
-    .ant-modal-title h4 {
+    .ant-modal-content {
+      background-color: ${theme.colorBgContainer};
       display: flex;
-      margin: 0;
-      align-items: center;
-    }
-  }
-
-  .ant-modal-close {
-    width: ${({ theme }) => theme.sizeUnit * 14}px;
-    height: ${({ theme }) => theme.sizeUnit * 14}px;
-    top: 0;
-    right: 0;
-  }
-
-  .ant-modal-close:hover {
-    background: transparent;
-  }
-
-  .ant-modal-close-x {
-    display: flex;
-    align-items: center;
-
-    .close {
-      flex: 1 1 auto;
-      margin-bottom: ${({ theme }) => theme.sizeUnit}px;
-      color: ${({ theme }) => theme.colorPrimaryText};
-      font-size: 32px;
-      font-weight: ${({ theme }) => theme.fontWeightLight};
-    }
-  }
-
-  .ant-modal-body {
-    flex: 0 1 auto;
-    padding: ${({ theme }) => theme.sizeUnit * 4}px;
-    overflow: auto;
-    ${({ resizable, height }) => !resizable && height && `height: ${height};`}
-  }
-  .ant-modal-footer {
-    flex: 0 0 1;
-    border-top: ${({ theme }) => theme.sizeUnit / 4}px solid
-      ${({ theme }) => theme.colorSplit};
-    padding: ${({ theme }) => theme.sizeUnit * 4}px;
-    margin-top: 0;
-
-    .btn {
-      font-size: 12px;
-    }
-
-    .btn + .btn {
-      margin-left: ${({ theme }) => theme.sizeUnit * 2}px;
-    }
-  }
-
-  &.no-content-padding .ant-modal-body {
-    padding: 0;
-  }
-
-  ${({ draggable, theme }) =>
-    draggable &&
-    `
-    .ant-modal-header {
+      flex-direction: column;
+      max-height: calc(100vh - ${theme.sizeUnit * 8}px);
+      margin-bottom: ${theme.sizeUnit * 4}px;
+      margin-top: ${theme.sizeUnit * 4}px;
       padding: 0;
-      .draggable-trigger {
+    }
+
+    .ant-modal-header {
+      flex: 0 0 auto;
+      border-radius: ${theme.borderRadius}px ${theme.borderRadius}px 0 0;
+      padding: ${theme.sizeUnit * 4}px ${theme.sizeUnit * 4}px;
+
+      .ant-modal-title {
+        font-weight: ${theme.fontWeightStrong};
+      }
+
+      .ant-modal-title h4 {
+        display: flex;
+        margin: 0;
+        align-items: center;
+      }
+    }
+
+    .ant-modal-close {
+      width: ${theme.sizeUnit * 14}px;
+      height: ${theme.sizeUnit * 14}px;
+      padding: ${theme.sizeUnit * 6}px ${theme.sizeUnit * 4}px
+        ${theme.sizeUnit * 4}px;
+      top: 0;
+      right: 0;
+      display: flex;
+      justify-content: center;
+    }
+
+    .ant-modal-close:hover {
+      background: transparent;
+    }
+
+    .ant-modal-close-x {
+      display: flex;
+      align-items: center;
+      [data-test='close-modal-btn'] {
+        justify-content: center;
+      }
+      .close {
+        flex: 1 1 auto;
+        margin-bottom: ${theme.sizeUnit}px;
+        color: ${theme.colorPrimaryText};
+        font-weight: ${theme.fontWeightLight};
+      }
+    }
+
+    .ant-modal-body {
+      flex: 0 1 auto;
+      padding: ${theme.sizeUnit * 4}px ${theme.sizeUnit * 6}px;
+
+      overflow: auto;
+      ${!resizable && height && `height: ${height};`}
+    }
+
+    .ant-modal-footer {
+      flex: 0 0 1;
+      border-top: ${theme.sizeUnit / 4}px solid ${theme.colorSplit};
+      padding: ${theme.sizeUnit * 4}px;
+      margin-top: 0;
+
+      .btn {
+        font-size: 12px;
+      }
+
+      .btn + .btn {
+        margin-left: ${theme.sizeUnit * 2}px;
+      }
+    }
+
+    &.no-content-padding .ant-modal-body {
+      padding: 0;
+    }
+
+    ${draggable &&
+    css`
+      .ant-modal-header {
+        padding: 0;
+
+        .draggable-trigger {
           cursor: move;
           padding: ${theme.sizeUnit * 4}px;
           width: 100%;
         }
-    }
-  `};
-
-  ${({ resizable, hideFooter }) =>
-    resizable &&
-    `
-    .resizable {
-      pointer-events: all;
-
-      .resizable-wrapper {
-        height: 100%;
       }
+    `}
 
-      .ant-modal-content {
-        height: 100%;
+    ${resizable &&
+    css`
+      .resizable {
+        pointer-events: all;
 
-        .ant-modal-body {
-          /* 100% - header height - footer height */
-          height: ${
-            hideFooter
-              ? `calc(100% - ${MODAL_HEADER_HEIGHT}px);`
-              : `calc(100% - ${MODAL_HEADER_HEIGHT}px - ${MODAL_FOOTER_HEIGHT}px);`
+        .resizable-wrapper {
+          height: 100%;
+        }
+
+        .ant-modal-content {
+          height: 100%;
+
+          .ant-modal-body {
+            height: ${hideFooter
+              ? `calc(100% - ${MODAL_HEADER_HEIGHT}px)`
+              : `calc(100% - ${MODAL_HEADER_HEIGHT}px - ${MODAL_FOOTER_HEIGHT}px)`};
           }
         }
       }
-    }
+    `}
   `}
 `;
 
@@ -199,7 +209,7 @@ const CustomModal = ({
   onHide,
   onHandledPrimaryAction,
   primaryButtonName = t('OK'),
-  primaryButtonType = 'primary',
+  primaryButtonStyle = 'primary',
   show,
   name,
   title,
@@ -214,13 +224,14 @@ const CustomModal = ({
   resizable = false,
   resizableConfig = defaultResizableConfig(hideFooter),
   draggableConfig,
-  destroyOnClose,
+  destroyOnHidden,
   openerRef,
   ...rest
 }: ModalProps) => {
   const draggableRef = useRef<HTMLDivElement>(null);
   const [bounds, setBounds] = useState<DraggableBounds>();
   const [dragDisabled, setDragDisabled] = useState<boolean>(true);
+  const theme = useTheme();
 
   const handleOnHide = () => {
     openerRef?.current?.focus();
@@ -251,7 +262,7 @@ const CustomModal = ({
         </Button>,
         <Button
           key="submit"
-          buttonStyle={primaryButtonType}
+          buttonStyle={primaryButtonStyle}
           disabled={disablePrimaryButton}
           tooltip={primaryTooltipMessage}
           loading={primaryButtonLoading}
@@ -312,13 +323,17 @@ const CustomModal = ({
       open={show}
       title={<ModalTitle />}
       closeIcon={
-        <span data-test="close-modal-btn" className="close" aria-hidden="true">
-          ×
-        </span>
+        <Icons.CloseOutlined
+          iconColor={theme.colorText}
+          iconSize="l"
+          data-test="close-modal-btn"
+          className="close"
+          aria-hidden="true"
+        />
       }
       footer={!hideFooter ? modalFooter : null}
       hideFooter={hideFooter}
-      wrapProps={{ 'data-test': `${name || title}-modal`, ...wrapProps }}
+      wrapProps={{ 'data-test': `${name || 'antd'}-modal`, ...wrapProps }}
       modalRender={modal =>
         resizable || draggable ? (
           <Draggable
@@ -344,7 +359,7 @@ const CustomModal = ({
       mask={shouldShowMask}
       draggable={draggable}
       resizable={resizable}
-      destroyOnClose={destroyOnClose}
+      destroyOnHidden={destroyOnHidden}
       {...rest}
     >
       {children}

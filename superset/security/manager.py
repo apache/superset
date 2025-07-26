@@ -670,6 +670,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             extra={
                 "link": self.get_datasource_access_link(datasource),
                 "datasource": datasource.id,
+                "datasource_name": datasource.name,
             },
         )
 
