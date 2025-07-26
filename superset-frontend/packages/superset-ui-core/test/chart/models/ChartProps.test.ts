@@ -119,7 +119,7 @@ describe('ChartProps', () => {
       });
       expect(props1).not.toBe(props2);
     });
-    it('selector returns a new chartProps if some input fields change', () => {
+    it('selector returns a new chartProps if some input fields change and returns memoized chart props', () => {
       const props1 = selector({
         width: 800,
         height: 600,
@@ -145,7 +145,7 @@ describe('ChartProps', () => {
         theme: supersetTheme,
       });
       expect(props1).not.toBe(props2);
-      expect(props1).not.toBe(props3);
+      expect(props1).toBe(props3);
     });
   });
 });
