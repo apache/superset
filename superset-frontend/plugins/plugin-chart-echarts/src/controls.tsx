@@ -97,6 +97,23 @@ const legendOrientationControl: ControlSetItem = {
   },
 };
 
+export const legendSortControl: ControlSetItem = {
+  name: 'legendSort',
+  config: {
+    type: 'SelectControl',
+    label: t('Sort'),
+    default: null,
+    renderTrigger: true,
+    choices: [
+      ['asc', t('Asc')],
+      ['desc', t('Desc')],
+    ],
+    description: t('Whether to sort legend asc or desc'),
+    visibility: ({ controls }: ControlPanelsContainerProps) =>
+      Boolean(controls?.show_legend?.value),
+  },
+};
+
 export const legendSection: ControlSetRow[] = [
   [<ControlSubSectionHeader>{t('Legend')}</ControlSubSectionHeader>],
   [showLegendControl],
