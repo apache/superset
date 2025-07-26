@@ -167,20 +167,38 @@ const ChartCustomizationModal = ({
         const formItemValues = values.filters?.[item.id] || {};
         const isDeleted = itemChanges.deleted.includes(item.id);
 
-        return {
+        const rawDataset = formItemValues.dataset;
+
+        const datasetId =
+          typeof rawDataset === 'object' && rawDataset?.value
+            ? rawDataset.value
+            : rawDataset;
+
+        const formDatasetInfo = formItemValues.datasetInfo;
+        const datasetInfo =
+          formDatasetInfo &&
+          typeof formDatasetInfo === 'object' &&
+          formDatasetInfo.table_name
+            ? {
+                value: formDatasetInfo.value,
+                label: formDatasetInfo.label,
+                table_name: formDatasetInfo.table_name,
+                schema: formDatasetInfo.schema,
+              }
+            : item.customization.datasetInfo;
+
+        const updatedItem = {
           ...item,
           removed: isDeleted,
           customization: {
             ...item.customization,
             ...formItemValues,
-            dataset: formItemValues.dataset
-              ? typeof formItemValues.dataset === 'object' &&
-                'value' in formItemValues.dataset
-                ? formItemValues.dataset.value
-                : formItemValues.dataset
-              : item.customization.dataset,
+            dataset: datasetId,
+            datasetInfo,
           },
         };
+
+        return updatedItem;
       });
 
       onSave(dashboardId, updatedItems);
@@ -414,6 +432,18 @@ const ChartCustomizationModal = ({
         const formFilters: Record<string, any> = {};
         existingItems.forEach(item => {
           const datasetId = item.customization.dataset;
+          const savedDatasetInfo = item.customization.datasetInfo as
+            | {
+                value: number;
+                label: string;
+                table_name: string;
+                schema?: string;
+                database?: {
+                  database_name?: string;
+                  name?: string;
+                };
+              }
+            | undefined;
           const datasetInfo = datasetId
             ? Object.values(loadedDatasets).find(
                 dataset => dataset.id === Number(datasetId),
@@ -425,27 +455,44 @@ const ChartCustomizationModal = ({
             dataset: datasetId
               ? typeof datasetId === 'object'
                 ? datasetId
-                : datasetInfo
+                : savedDatasetInfo && savedDatasetInfo.table_name
                   ? {
                       value: datasetId,
                       label: DatasetSelectLabel({
                         id: Number(datasetId),
-                        table_name: datasetInfo.table_name || '',
-                        schema: datasetInfo.schema || '',
+                        table_name: savedDatasetInfo.table_name || '',
+                        schema: savedDatasetInfo.schema || '',
                         database: {
                           database_name:
-                            (datasetInfo.database?.database_name as string) ||
-                            (datasetInfo.database?.name as string) ||
+                            savedDatasetInfo.database?.database_name ||
+                            savedDatasetInfo.database?.name ||
                             '',
                         },
                       }),
-                      table_name: datasetInfo.table_name,
-                      schema: datasetInfo.schema,
+                      table_name: savedDatasetInfo.table_name,
+                      schema: savedDatasetInfo.schema,
                     }
-                  : {
-                      value: datasetId,
-                      label: `Dataset ${datasetId}`,
-                    }
+                  : datasetInfo
+                    ? {
+                        value: datasetId,
+                        label: DatasetSelectLabel({
+                          id: Number(datasetId),
+                          table_name: datasetInfo.table_name || '',
+                          schema: datasetInfo.schema || '',
+                          database: {
+                            database_name:
+                              (datasetInfo.database?.database_name as string) ||
+                              (datasetInfo.database?.name as string) ||
+                              '',
+                          },
+                        }),
+                        table_name: datasetInfo.table_name,
+                        schema: datasetInfo.schema,
+                      }
+                    : {
+                        value: datasetId,
+                        label: `Dataset ${datasetId}`,
+                      }
               : null,
           };
         });

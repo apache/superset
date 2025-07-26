@@ -39,11 +39,9 @@ import {
   Loading,
   Radio,
   type SelectValue,
+  FormInstance,
 } from '@superset-ui/core/components';
-import {
-  DatasetSelectLabel,
-  type Dataset,
-} from 'src/features/datasets/DatasetSelectLabel';
+import { DatasetSelectLabel } from 'src/features/datasets/DatasetSelectLabel';
 import { CollapsibleControl } from '../FiltersConfigModal/FiltersConfigForm/CollapsibleControl';
 import DatasetSelect from '../FiltersConfigModal/FiltersConfigForm/DatasetSelect';
 import { mostUsedDataset } from '../FiltersConfigModal/FiltersConfigForm/utils';
@@ -96,8 +94,25 @@ const StyledMarginTop = styled.div`
   margin-top: ${({ theme }) => theme.sizeUnit * 2}px;
 `;
 
+interface Metric {
+  metric_name: string;
+  verbose_name?: string;
+}
+
+interface DatasetDetails {
+  id: number;
+  table_name: string;
+  schema?: string;
+  database?: { database_name: string };
+}
+
+interface ApiError {
+  message?: string;
+  error?: string;
+}
+
 interface Props {
-  form: any;
+  form: FormInstance<any>;
   item: ChartCustomizationItem;
   onUpdate: (updatedItem: ChartCustomizationItem) => void;
   removedItems: Record<string, { isPending: boolean; timerId?: number } | null>;
@@ -129,15 +144,12 @@ const ChartCustomizationForm: FC<Props> = ({
 
   const chartCustomizationItems = allItems || globalChartCustomizationItems;
 
-  const [metrics, setMetrics] = useState<any[]>([]);
+  const [metrics, setMetrics] = useState<Metric[]>([]);
   const [isDefaultValueLoading, setIsDefaultValueLoading] = useState(false);
-  const [error, setError] = useState<any>(null);
-  const [datasetDetails, setDatasetDetails] = useState<{
-    id: number;
-    table_name: string;
-    schema?: string;
-    database?: { database_name: string };
-  } | null>(null);
+  const [error, setError] = useState<ApiError | null>(null);
+  const [datasetDetails, setDatasetDetails] = useState<DatasetDetails | null>(
+    null,
+  );
   const [hasDefaultValue, setHasDefaultValue] = useState(
     customization.hasDefaultValue ?? false,
   );
@@ -314,73 +326,65 @@ const ChartCustomizationForm: FC<Props> = ({
   );
 
   const datasetValue = useMemo(() => {
-    const fallbackDatasetId = mostUsedDataset(loadedDatasets, charts);
-
-    if (!customization.dataset) {
-      if (fallbackDatasetId) {
-        const datasetInfo = Object.values(loadedDatasets).find(
-          dataset => dataset.id === fallbackDatasetId,
-        );
-
-        if (datasetInfo) {
-          const label =
-            datasetInfo.table_name +
-            (datasetInfo.schema ? ` (${datasetInfo.schema})` : '') +
-            (datasetInfo.database?.database_name
-              ? ` [${datasetInfo.database.database_name}]`
-              : '');
-
-          return {
-            value: fallbackDatasetId,
-            label,
-          };
-        }
-
-        return {
-          value: fallbackDatasetId,
-          label: `Dataset ${fallbackDatasetId}`,
-        };
-      }
-      return undefined;
-    }
-
     const datasetId = getDatasetId(customization.dataset);
 
-    if (datasetId === null) return undefined;
+    if (!datasetId) {
+      return null;
+    }
 
-    if (datasetDetails && datasetDetails.id === datasetId) {
-      const label =
-        datasetDetails.table_name +
-        (datasetDetails.schema ? ` (${datasetDetails.schema})` : '') +
-        (datasetDetails.database?.database_name
-          ? ` [${datasetDetails.database.database_name}]`
-          : '');
+    const loadedDataset = Object.values(loadedDatasets).find(
+      dataset => dataset.id === Number(datasetId),
+    );
 
+    if (loadedDataset) {
       return {
         value: datasetId,
-        label,
+        label: DatasetSelectLabel({
+          id: Number(datasetId),
+          table_name: loadedDataset.table_name || '',
+          schema: loadedDataset.schema || '',
+          database: {
+            database_name:
+              (loadedDataset.database?.database_name as string) ||
+              (loadedDataset.database?.name as string) ||
+              '',
+          },
+        }),
+        table_name: loadedDataset.table_name,
+        schema: loadedDataset.schema,
+      };
+    }
+
+    if (datasetDetails && datasetDetails.id === datasetId) {
+      return {
+        value: datasetId,
+        label: DatasetSelectLabel({
+          id: Number(datasetId),
+          table_name: datasetDetails.table_name || '',
+          schema: datasetDetails.schema || '',
+          database: {
+            database_name:
+              (datasetDetails.database?.database_name as string) || '',
+          },
+        }),
+        table_name: datasetDetails.table_name,
+        schema: datasetDetails.schema,
       };
     }
 
     if (customization.datasetInfo) {
-      if ('label' in customization.datasetInfo) {
-        return {
-          value: datasetId,
-          label: (customization.datasetInfo as { label: string }).label,
-        };
-      }
-      if ('table_name' in customization.datasetInfo) {
-        const info = customization.datasetInfo as Dataset;
-        return {
-          value: datasetId,
-          label: DatasetSelectLabel({
-            id: datasetId,
-            table_name: info.table_name,
-            schema: info.schema,
-            database: info.database,
-          }),
-        };
-      }
+      const datasetInfo = customization.datasetInfo as {
+        value: number;
+        label: string;
+        table_name: string;
+        schema?: string;
+      };
+      return {
+        value: datasetId,
+        label: datasetInfo.label,
+        table_name: datasetInfo.table_name,
+        schema: datasetInfo.schema,
+      };
     }
 
     return {
@@ -839,28 +843,77 @@ const ChartCustomizationForm: FC<Props> = ({
               label: string | ReactNode;
               value: number;
             }) => {
-              const label =
-                typeof dataset.label === 'string' ? dataset.label : 'Dataset';
+              const datasetId = dataset.value;
 
-              const datasetWithInfo = {
-                ...dataset,
-                label,
-                table_name: label,
+              const fetchDatasetAndUpdate = async () => {
+                try {
+                  const response = await fetch(`/api/v1/dataset/${datasetId}`);
+                  const data = await response.json();
+
+                  if (data?.result) {
+                    const datasetWithInfo = {
+                      value: datasetId,
+                      label: DatasetSelectLabel({
+                        id: datasetId,
+                        table_name: data.result.table_name || '',
+                        schema: data.result.schema || '',
+                        database: {
+                          database_name:
+                            (data.result.database?.database_name as string) ||
+                            '',
+                        },
+                      }),
+                      table_name: data.result.table_name,
+                      schema: data.result.schema,
+                    };
+
+                    setFormFieldValues({
+                      dataset: datasetWithInfo,
+                      datasetInfo: datasetWithInfo,
+                      column: null,
+                      defaultValueQueriesData: null,
+                      defaultValue: undefined,
+                      defaultDataMask: undefined,
+                    });
+
+                    fetchDatasetInfo();
+                    formChanged();
+                  }
+                } catch (error) {
+                  console.error('Error fetching dataset info:', error);
+
+                  const datasetWithInfo = {
+                    value: datasetId,
+                    label: `Dataset ${datasetId}`,
+                    table_name: `Dataset ${datasetId}`,
+                  };
+
+                  setFormFieldValues({
+                    dataset: datasetWithInfo,
+                    datasetInfo: datasetWithInfo,
+                    column: null,
+                    defaultValueQueriesData: null,
+                    defaultValue: undefined,
+                    defaultDataMask: undefined,
+                  });
+
+                  form.setFields([
+                    {
+                      name: ['filters', item.id, 'dataset'],
+                      value: datasetWithInfo,
+                    },
+                    {
+                      name: ['filters', item.id, 'datasetInfo'],
+                      value: datasetWithInfo,
+                    },
+                  ]);
+
+                  fetchDatasetInfo();
+                  formChanged();
+                }
               };
 
-              const datasetId = dataset.value.toString();
-
-              setFormFieldValues({
-                dataset: datasetId,
-                datasetInfo: datasetWithInfo,
-                column: null,
-                defaultValueQueriesData: null,
-                defaultValue: undefined,
-                defaultDataMask: undefined,
-              });
-
-              fetchDatasetInfo();
-              formChanged();
+              fetchDatasetAndUpdate();
             }}
           />
         </StyledFormItem>
@@ -949,7 +1002,7 @@ const ChartCustomizationForm: FC<Props> = ({
                       form.getFieldValue('filters')?.[item.id]?.sortMetric ??
                       customization.sortMetric
                     }
-                    options={metrics.map((metric: any) => ({
+                    options={metrics.map((metric: Metric) => ({
                       value: metric.metric_name,
                       label: metric.verbose_name ?? metric.metric_name,
                     }))}
