@@ -210,3 +210,153 @@ def test_values_for_column_double_percents(
 
         assert called_sql.compare(expected_sql) is True
         assert called_conn.engine == engine
+
+
+def test_apply_series_others_grouping(database: Database) -> None:
+    """
+    Test the `_apply_series_others_grouping` method.
+
+    This method should replace series columns with CASE expressions that
+    group remaining series into an "Others" category based on a condition.
+    """
+    from unittest.mock import Mock
+
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+
+    # Create a mock table for testing
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="test_table",
+        columns=[
+            TableColumn(column_name="category", type="TEXT"),
+            TableColumn(column_name="metric_col", type="INTEGER"),
+            TableColumn(column_name="other_col", type="TEXT"),
+        ],
+    )
+
+    # Mock SELECT expressions
+    category_expr = Mock()
+    category_expr.name = "category"
+    metric_expr = Mock()
+    metric_expr.name = "metric_col"
+    other_expr = Mock()
+    other_expr.name = "other_col"
+
+    select_exprs = [category_expr, metric_expr, other_expr]
+
+    # Mock GROUP BY columns
+    groupby_all_columns = {
+        "category": category_expr,
+        "other_col": other_expr,
+    }
+
+    # Define series columns (only category should be modified)
+    groupby_series_columns = {"category": category_expr}
+
+    # Create a condition factory that always returns True
+    def always_true_condition(col_name: str, expr) -> bool:
+        return True
+
+    # Mock the make_sqla_column_compatible method
+    def mock_make_compatible(expr, name=None):
+        mock_result = Mock()
+        mock_result.name = name
+        return mock_result
+
+    with patch.object(
+        table, "make_sqla_column_compatible", side_effect=mock_make_compatible
+    ):
+        # Call the method
+        result_select_exprs, result_groupby_columns = (
+            table._apply_series_others_grouping(
+                select_exprs,
+                groupby_all_columns,
+                groupby_series_columns,
+                always_true_condition,
+            )
+        )
+
+        # Verify SELECT expressions
+        assert len(result_select_exprs) == 3
+
+        # Category (series column) should be replaced with CASE expression
+        category_result = result_select_exprs[0]
+        assert category_result.name == "category"  # Should be made compatible
+
+        # Metric (non-series column) should remain unchanged
+        assert result_select_exprs[1] == metric_expr
+
+        # Other (non-series column) should remain unchanged
+        assert result_select_exprs[2] == other_expr
+
+        # Verify GROUP BY columns
+        assert len(result_groupby_columns) == 2
+
+        # Category (series column) should be replaced with CASE expression
+        assert "category" in result_groupby_columns
+        category_groupby_result = result_groupby_columns["category"]
+        assert category_groupby_result.name == "category"  # Should be made compatible
+
+        # Other (non-series column) should remain unchanged
+        assert result_groupby_columns["other_col"] == other_expr
+
+
+def test_apply_series_others_grouping_with_false_condition(database: Database) -> None:
+    """
+    Test the `_apply_series_others_grouping` method with a condition that returns False.
+
+    This should result in CASE expressions that always use "Others".
+    """
+    from unittest.mock import Mock
+
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+
+    # Create a mock table for testing
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="test_table",
+        columns=[TableColumn(column_name="category", type="TEXT")],
+    )
+
+    # Mock SELECT expressions
+    category_expr = Mock()
+    category_expr.name = "category"
+    select_exprs = [category_expr]
+
+    # Mock GROUP BY columns
+    groupby_all_columns = {"category": category_expr}
+    groupby_series_columns = {"category": category_expr}
+
+    # Create a condition factory that always returns False
+    def always_false_condition(col_name: str, expr) -> bool:
+        return False
+
+    # Mock the make_sqla_column_compatible method
+    def mock_make_compatible(expr, name=None):
+        mock_result = Mock()
+        mock_result.name = name
+        return mock_result
+
+    with patch.object(
+        table, "make_sqla_column_compatible", side_effect=mock_make_compatible
+    ):
+        # Call the method
+        result_select_exprs, result_groupby_columns = (
+            table._apply_series_others_grouping(
+                select_exprs,
+                groupby_all_columns,
+                groupby_series_columns,
+                always_false_condition,
+            )
+        )
+
+        # Verify that the expressions were replaced (we can't test SQL generation
+        # in a unit test, but we can verify the structure changed)
+        assert len(result_select_exprs) == 1
+        assert result_select_exprs[0].name == "category"
+
+        assert len(result_groupby_columns) == 1
+        assert "category" in result_groupby_columns
+        assert result_groupby_columns["category"].name == "category"
