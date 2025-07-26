@@ -28,7 +28,7 @@ import { WelcomeTable } from './types';
 const EmptyContainer = styled.div`
   min-height: 200px;
   display: flex;
-  color: ${({ theme }) => theme.colors.grayscale.light2};
+  color: ${({ theme }) => theme.colorBorderSecondary};
   flex-direction: column;
   justify-content: space-around;
 `;

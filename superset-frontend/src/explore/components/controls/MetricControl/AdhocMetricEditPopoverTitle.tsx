@@ -122,9 +122,7 @@ const AdhocMetricEditPopoverTitle: FC<AdhocMetricEditPopoverTitleProps> = ({
         <TitleLabel>{title?.label || defaultLabel}</TitleLabel>
         &nbsp;
         <Icons.EditOutlined
-          iconColor={
-            isHovered ? theme.colorPrimary : theme.colors.grayscale.base
-          }
+          iconColor={isHovered ? theme.colorPrimary : theme.colorText}
           iconSize="m"
         />
       </span>

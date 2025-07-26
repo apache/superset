@@ -189,7 +189,7 @@ export const DataTablesPane = ({
         )}
       </TableControlsWrapper>
     );
-  }, [handleCollapseChange, panelOpen, theme.colors.grayscale.base]);
+  }, [handleCollapseChange, panelOpen, theme.colorText]);
 
   const queryResultsPanes = useResultsPane({
     errorMessage,

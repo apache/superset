@@ -69,7 +69,7 @@ import { Dashboard, Filter, TableTab } from './types';
 })();
 
 export const Actions = styled.div`
-  color: ${({ theme }) => theme.colors.grayscale.base};
+  color: ${({ theme }) => theme.colorText};
 `;
 
 const createFetchResourceMethod =

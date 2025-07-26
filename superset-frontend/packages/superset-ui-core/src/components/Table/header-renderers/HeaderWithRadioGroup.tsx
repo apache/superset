@@ -74,7 +74,7 @@ function HeaderWithRadioGroup(props: HeaderWithRadioGroupProps) {
       >
         <Icons.SettingOutlined
           iconSize="m"
-          iconColor={theme.colors.grayscale.light1}
+          iconColor={theme.colorBorder}
           css={css`
             margin-top: ${theme.sizeUnit * 0.75}px;
             margin-right: ${theme.sizeUnit}px;

@@ -125,8 +125,8 @@ const actionButtonsContainerStyles = (theme: SupersetTheme) => css`
   padding: ${theme.sizeUnit * 4}px;
   z-index: 999;
   background: linear-gradient(
-    ${rgba(theme.colorBgBase, 0)},
-    ${theme.colorBgBase} 35%
+    ${rgba(theme.colorBgContainer, 0)},
+    ${theme.colorBgContainer} 35%
   );
 
   & > button {

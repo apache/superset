@@ -123,7 +123,7 @@ export default function transformProps(
   const { columnFormats = {}, currencyFormats = {} } = datasource;
   const { setDataMask = () => {}, onContextMenu } = hooks;
   const coltypeMapping = getColtypesMapping(queriesData[0]);
-  const BORDER_COLOR = theme.colorBgBase;
+  const BORDER_COLOR = theme.colorBgContainer;
 
   const {
     colorScheme,
@@ -165,7 +165,7 @@ export default function transformProps(
   const treeData = treeBuilder(data, groupbyLabels, metricLabel);
   const labelProps = {
     color: theme.colorText,
-    borderColor: theme.colorBgBase,
+    borderColor: theme.colorBgContainer,
     borderWidth: 1,
   };
   const traverse = (treeNodes: TreeNode[], path: string[]) =>
@@ -207,7 +207,7 @@ export default function transformProps(
             itemStyle: {
               colorAlpha: OpacityEnum.SemiTransparent,
               color: theme.colorText,
-              borderColor: theme.colorBgBase,
+              borderColor: theme.colorBgContainer,
               borderWidth: 2,
             },
             label: {

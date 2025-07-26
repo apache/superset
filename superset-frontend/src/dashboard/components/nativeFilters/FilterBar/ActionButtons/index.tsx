@@ -89,6 +89,13 @@ const horizontalStyle = (theme: SupersetTheme) => css`
     text-transform: capitalize;
     font-weight: ${theme.fontWeightNormal};
   }
+  & > .filter-apply-button {
+    &[disabled],
+    &[disabled]:hover {
+      color: ${theme.colorBorder};
+      background: ${theme.colorFill};
+    }
+  }
 `;
 
 const ButtonsContainer = styled.div<{ isVertical: boolean; width: number }>`

@@ -228,7 +228,7 @@ export default function transformProps(
     formatter,
     show: showLabels,
     color: theme.colorText,
-    textBorderColor: theme.colorBgBase,
+    textBorderColor: theme.colorBgContainer,
     textBorderWidth: 1,
   };
 

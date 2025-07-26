@@ -35,8 +35,8 @@ const HorizontalBar = styled.div`
     padding: ${theme.sizeUnit * 3}px ${theme.sizeUnit * 2}px ${
       theme.sizeUnit * 3
     }px ${theme.sizeUnit * 4}px;
-    background: ${theme.colorBgBase};
-    box-shadow: inset 0px -2px 2px -1px ${theme.colors.grayscale.light2};
+    background: ${theme.colorBgContainer};
+    box-shadow: inset 0px -2px 2px -1px ${theme.colorBorderSecondary};
   `}
 `;
 
@@ -57,7 +57,7 @@ const HorizontalBarContent = styled.div`
 const FilterBarEmptyStateContainer = styled.div`
   ${({ theme }) => `
     font-weight: ${theme.fontWeightStrong};
-    color: ${theme.colors.grayscale.base};
+    color: ${theme.colorText};
     font-size: ${theme.fontSizeSM}px;
     padding-left: ${theme.sizeUnit * 2}px;
   `}

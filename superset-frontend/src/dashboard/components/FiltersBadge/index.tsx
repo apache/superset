@@ -63,14 +63,14 @@ const StyledFilterCount = styled.div`
     margin-right: ${theme.sizeUnit}px;
     padding-left: ${theme.sizeUnit * 2}px;
     padding-right: ${theme.sizeUnit * 2}px;
-    background: ${theme.colors.grayscale.light4};
+    background: ${theme.colorBgContainer};
     border-radius: 4px;
     height: 100%;
     .anticon {
       vertical-align: middle;
-      color: ${theme.colors.grayscale.base};
+      color: ${theme.colorText};
       &:hover {
-        color: ${theme.colors.grayscale.light1};
+        color: ${theme.colorBorder};
       }
     }
 

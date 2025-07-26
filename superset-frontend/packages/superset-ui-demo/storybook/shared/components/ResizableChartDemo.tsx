@@ -24,7 +24,7 @@ import { ResizeCallbackData } from 'react-resizable';
 import ResizablePanel, { Size } from './ResizablePanel';
 
 export const SupersetBody = styled.div`
-  background: ${({ theme }) => theme.colors.grayscale.light4};
+  background: ${({ theme }) => theme.colorBgContainer};
   padding: 16px;
   min-height: 100%;
 

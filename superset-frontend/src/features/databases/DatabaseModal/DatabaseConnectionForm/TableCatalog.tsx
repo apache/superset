@@ -68,7 +68,7 @@ export const TableCatalog = ({
                 <Icons.CloseOutlined
                   css={(theme: SupersetTheme) => css`
                     align-self: center;
-                    background: ${theme.colors.grayscale.light4};
+                    background: ${theme.colorBgContainer};
                     margin: 5px 5px 8px 5px;
 
                     &.anticon > * {
