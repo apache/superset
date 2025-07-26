@@ -458,6 +458,10 @@ export enum Comparator {
   BetweenOrEqual = '≤ x ≤',
   BetweenOrLeftEqual = '≤ x <',
   BetweenOrRightEqual = '< x ≤',
+  BeginsWith = 'begins with',
+  EndsWith = 'ends with',
+  Containg = 'containing',
+  NotContaining = 'not containing',
 }
 
 export const MultipleValueComparators = [
@@ -469,7 +473,7 @@ export const MultipleValueComparators = [
 
 export type ConditionalFormattingConfig = {
   operator?: Comparator;
-  targetValue?: number;
+  targetValue?: number | string;
   targetValueLeft?: number;
   targetValueRight?: number;
   column?: string;

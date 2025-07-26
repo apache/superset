@@ -715,7 +715,6 @@ export default function TableChart<D extends DataRecord = DataRecord>(
       const {
         key,
         label: originalLabel,
-        isNumeric,
         dataType,
         isMetric,
         isPercentMetric,
@@ -760,7 +759,6 @@ export default function TableChart<D extends DataRecord = DataRecord>(
       const { truncateLongCells } = config;
 
       const hasColumnColorFormatters =
-        isNumeric &&
         Array.isArray(columnColorFormatters) &&
         columnColorFormatters.length > 0;
 
