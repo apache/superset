@@ -107,7 +107,6 @@ export const legendSortControl: ControlSetItem = {
     choices: [
       ['asc', t('Asc')],
       ['desc', t('Desc')],
-      [null, t('None')],
     ],
     description: t('Whether to sort legend asc or desc'),
     visibility: ({ controls }: ControlPanelsContainerProps) =>
