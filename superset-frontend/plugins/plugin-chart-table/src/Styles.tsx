@@ -155,7 +155,7 @@ export default styled.div`
     .dt-pagination .pagination > li {
       list-style: none;
       display: inline;
-      margin: 0 5px;
+      margin: 0 ${theme.marginXXS}px;
     }
 
     .dt-pagination .pagination > li > a,
@@ -163,7 +163,7 @@ export default styled.div`
       background-color: ${theme.colorBgBase};
       color: ${theme.colorText};
       border-color: ${theme.colorBorderSecondary};
-      padding: 5px 10px;
+      padding: ${theme.paddingXXS}px ${theme.paddingXS}px;
       border-radius: 4px;
     }
 
