@@ -149,11 +149,10 @@ export default styled.div`
     .dt-pagination {
       text-align: right;
       /* use padding instead of margin so clientHeight can capture it */
-      padding-top: 0.5em;
+      padding: ${theme.paddingXXS}px 0px;
     }
 
     .dt-pagination .pagination > li {
-      list-style: none;
       display: inline;
       margin: 0 ${theme.marginXXS}px;
     }
@@ -164,7 +163,7 @@ export default styled.div`
       color: ${theme.colorText};
       border-color: ${theme.colorBorderSecondary};
       padding: ${theme.paddingXXS}px ${theme.paddingXS}px;
-      border-radius: 4px;
+      border-radius: ${theme.borderRadius}px;
     }
 
     .dt-pagination .pagination > li.active > a,
