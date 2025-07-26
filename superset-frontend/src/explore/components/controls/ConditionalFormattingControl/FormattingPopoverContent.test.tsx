@@ -25,12 +25,13 @@ import {
 import { Comparator } from '@superset-ui/chart-controls';
 import { ColorSchemeEnum } from '@superset-ui/plugin-chart-table';
 import { FormattingPopoverContent } from './FormattingPopoverContent';
+import { GenericDataType } from '@superset-ui/core';
 
 const mockOnChange = jest.fn();
 
 const columns = [
-  { label: 'Column 1', value: 'column1' },
-  { label: 'Column 2', value: 'column2' },
+  { label: 'Column 1', value: 'column1', dataType: GenericDataType.Numeric },
+  { label: 'Column 2', value: 'column2', dataType: GenericDataType.Numeric },
 ];
 
 const extraColorChoices = [
