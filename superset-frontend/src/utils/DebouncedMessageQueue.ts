@@ -18,33 +18,49 @@
  */
 import { debounce } from 'lodash';
 
+interface DebouncedMessageQueueConfig {
+  callback?: (events: any[]) => void;
+  sizeThreshold?: number;
+  delayThreshold?: number;
+}
+
 class DebouncedMessageQueue {
+  private queue: any[];
+
+  private sizeThreshold: number;
+
+  private delayThreshold: number;
+
+  private callback: (events: any[]) => void;
+
+  private trigger: () => void;
+
   constructor({
     callback = () => {},
     sizeThreshold = 1000,
     delayThreshold = 1000,
-  }) {
+  }: DebouncedMessageQueueConfig = {}) {
     this.queue = [];
     this.sizeThreshold = sizeThreshold;
     this.delayThreshold = delayThreshold;
 
-    this.trigger = debounce(this.trigger.bind(this), this.delayThreshold);
+    this.trigger = debounce(this.triggerQueue.bind(this), this.delayThreshold);
     this.callback = callback;
   }
 
-  append(eventData) {
+  append(eventData: any): void {
     this.queue.push(eventData);
     this.trigger();
   }
 
-  trigger() {
+  private triggerQueue(): void {
     if (this.queue.length > 0) {
       const events = this.queue.splice(0, this.sizeThreshold);
       this.callback.call(null, events);
 
       // If there are remaining items, call it again.
       if (this.queue.length > 0) {
-        this.trigger();
+        this.triggerQueue();
       }
     }
   }
