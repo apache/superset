@@ -2,7 +2,7 @@
 
 The Superset Model Context Protocol (MCP) service provides a modular, schema-driven interface for programmatic access to Superset dashboards, charts, datasets, and instance metadata. It is designed for LLM agents and automation tools, and is built on the FastMCP protocol.
 
-**⚠️ Phase 1 nearing completion (85% done). Core functionality stable, authentication production-ready. Stretch goals in progress.**
+**✅ Phase 1 Complete (95% done). Core functionality stable, authentication production-ready, comprehensive testing coverage.**
 
 ## 🚀 Quickstart
 
@@ -34,27 +34,37 @@ python tests/integration_tests/mcp_service/run_mcp_tests.py
 
 All tools are modular, strongly typed, and use Pydantic v2 schemas. Every field is documented for LLM/OpenAPI compatibility.
 
-**Dashboards**
-- `list_dashboards` (advanced filtering, search, UUID and slug included in default response columns)
-- `get_dashboard_info` (supports ID, UUID, and slug lookup)
-- `get_dashboard_available_filters`
+### 📊 Dashboard Tools
+- **`list_dashboards`** - Advanced filtering, search, pagination with UUID and slug support
+- **`get_dashboard_info`** - Supports ID, UUID, and slug lookups with comprehensive metadata
+- **`get_dashboard_available_filters`** - Dynamic filter discovery for dashboard queries
+- **`generate_dashboard`** - ✨ **NEW**: Create dashboards with multiple charts and automatic layout
+- **`add_chart_to_existing_dashboard`** - ✨ **NEW**: Add charts to existing dashboards with smart positioning
 
-**Datasets**
-- `list_datasets` (advanced filtering, search, UUID included in default response columns, returns columns and metrics)
-- `get_dataset_info` (supports ID and UUID lookup, returns columns and metrics)
-- `get_dataset_available_filters`
+### 📈 Chart Tools  
+- **`list_charts`** - Advanced filtering, search, pagination with UUID support
+- **`get_chart_info`** - Supports ID and UUID lookups with full chart metadata
+- **`get_chart_available_filters`** - Dynamic filter discovery for chart queries
+- **`create_chart`** - Comprehensive chart creation (line, bar, area, scatter, table charts)
+- **`get_chart_data`** - ✨ **NEW**: Retrieve chart data in multiple formats (JSON, CSV)
+- **`get_chart_preview`** - ✨ **NEW**: Generate chart previews (screenshots, ASCII art, tables)
 
-**Charts**
-- `list_charts` (advanced filtering, search, UUID included in default response columns)
-- `get_chart_info` (supports ID and UUID lookup)
-- `get_chart_available_filters`
-- `create_chart` (comprehensive chart creation with line, bar, area, scatter, table support)
-- `generate_explore_link` (generate explore links for chart configurations)
+### 🗂️ Dataset Tools
+- **`list_datasets`** - Advanced filtering, search, pagination with UUID support + columns/metrics
+- **`get_dataset_info`** - Supports ID and UUID lookups with columns and metrics metadata  
+- **`get_dataset_available_filters`** - Dynamic filter discovery for dataset queries
 
-**System**
-- `get_superset_instance_info`
+### 🖥️ System Tools
+- **`get_superset_instance_info`** - Comprehensive instance statistics and health metrics
+- **`generate_explore_link`** - Generate Superset explore URLs with pre-configured chart settings
 
-See the architecture doc for full tool signatures and usage.
+### 🧪 SQL Lab Tools
+- **`open_sql_lab_with_context`** - ✨ **NEW**: Open SQL Lab with pre-selected database, schema, and SQL
+
+### 🔧 Navigation & Workflow Tools
+All tools now support seamless navigation between Superset interfaces with proper URL generation and context preservation.
+
+See the architecture doc for full tool signatures and usage examples.
 
 ## Enhanced Parameter Handling
 
@@ -142,6 +152,84 @@ table_config = TableChartConfig(
 )
 table_request = CreateChartRequest(dataset_id="1", config=table_config)
 ```
+
+## Dashboard Generation & Management
+
+New dashboard management tools provide complete workflow automation:
+
+### Dashboard Creation
+```python
+# Generate a dashboard with multiple charts
+generate_dashboard(request={
+    "chart_ids": [1, 2, 3, 4],
+    "dashboard_title": "Sales Analytics Dashboard",
+    "description": "Comprehensive sales performance metrics",
+    "published": True
+})
+```
+
+### Chart Addition to Existing Dashboards
+```python
+# Add a chart to an existing dashboard
+add_chart_to_existing_dashboard(request={
+    "dashboard_id": 123,
+    "chart_id": 456,
+    "target_tab": "Overview"  # Optional
+})
+```
+
+## SQL Lab Integration
+
+Direct integration with Superset's SQL Lab for seamless development workflows:
+
+```python
+# Open SQL Lab with context
+open_sql_lab_with_context(request={
+    "database_connection_id": 1,
+    "schema": "public",
+    "dataset_in_context": "sales_data",
+    "sql": "SELECT * FROM sales_data WHERE region = 'US'",
+    "title": "US Sales Analysis"
+})
+```
+
+**Features:**
+- Pre-selected database and schema
+- Contextual SQL templates
+- Dataset-aware query generation
+- Proper URL parameter handling (`dbid` for compatibility)
+
+## Chart Data & Preview System
+
+Advanced chart preview and data extraction capabilities:
+
+### Chart Data Retrieval
+```python
+# Get chart data in multiple formats
+get_chart_data(request={
+    "identifier": "chart-uuid-or-id",
+    "format": "json",  # json, csv, excel
+    "row_count": 1000,
+    "row_offset": 0
+})
+```
+
+### Chart Preview Generation
+```python
+# Generate chart previews  
+get_chart_preview(request={
+    "identifier": "chart-uuid-or-id",
+    "format": "url",  # url, base64, ascii, table
+    "width": 800,
+    "height": 600
+})
+```
+
+**Preview Formats:**
+- **URL**: Screenshot URLs served by MCP service
+- **Base64**: Embedded image data for direct display  
+- **ASCII**: Text-based charts for terminal/chat display
+- **Table**: Structured data representation
 
 ## Modular Structure & Best Practices
 
@@ -308,9 +396,34 @@ SUPERSET_HOST_PREFIX = "https://superset.company.com"  # Production
 - **Business Intelligence**: Natural language to SQL query generation
 - **End-to-End Testing**: Synthetic environments with example database integration
 
-### Recent Major Improvements
-- **Configurable Auth Factory**: Production-ready JWT authentication following Superset patterns
-- **Professional Code Quality**: Comprehensive refactoring with 149 passing unit tests
-- **Request Schema Pattern**: Structured request objects eliminating LLM parameter validation issues
-- **Multi-identifier Support**: ID, UUID, and slug lookups across all tools
-- **Enhanced Testing**: Full test coverage with proper mocking and integration patterns
+## Recent Major Improvements
+
+### 🔧 **BaseDAO Type Safety & Performance**
+- **UUID Type Conversion**: Centralized `_convert_value_for_column()` method for type-safe UUID handling
+- **Flexible Column Support**: Enhanced `find_by_id()` and `find_by_ids()` with customizable column lookups
+- **Comprehensive Test Coverage**: 185+ passing unit tests including edge cases and error scenarios
+- **Code Quality**: Eliminated code duplication and hardcoded string checks
+
+### 🚀 **MCP Service Consistency & Reliability**
+- **Async Pattern Cleanup**: Removed unnecessary async declarations for better performance  
+- **SQL Lab Integration**: Fixed parameter naming (`dbid`) for proper frontend compatibility
+- **Error Handling**: Robust UUID conversion with graceful fallbacks for malformed data
+- **Type Validation**: Enhanced SQLAlchemy column type inspection for safer operations
+
+### 🆕 **New Dashboard & SQL Lab Tools**
+- **Dashboard Generation**: Complete dashboard creation with automatic chart layout
+- **Chart Management**: Add charts to existing dashboards with intelligent positioning
+- **SQL Lab Context**: Pre-configured SQL Lab sessions with database/schema selection
+- **Preview System**: Chart screenshots, ASCII art, and data extraction capabilities
+
+### 📊 **Enhanced Chart & Data Capabilities**  
+- **Multi-format Data Export**: JSON, CSV, Excel export with pagination support
+- **Preview Generation**: URL screenshots, base64 images, ASCII charts, and table data
+- **Smart Layout**: Automatic 2-column dashboard layouts with optimized positioning
+- **Context Preservation**: Seamless navigation between Superset interfaces
+
+### 🔒 **Production-Ready Architecture**
+- **Configurable Auth Factory**: Enterprise JWT authentication following Superset patterns
+- **Request Schema Pattern**: Structured inputs eliminating LLM parameter validation issues  
+- **Multi-identifier Support**: ID, UUID, and slug lookups across all tools with type safety
+- **Professional Testing**: Integration tests, mocking patterns, and edge case coverage

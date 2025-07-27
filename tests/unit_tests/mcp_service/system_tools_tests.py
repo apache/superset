@@ -73,11 +73,44 @@ class TestSystemTools:
         "superset.daos.dashboard.DashboardDAO.count",
         side_effect=Exception("Database connection failed"),
     )
+    @patch("superset.daos.chart.ChartDAO.count", return_value=5)
+    @patch("superset.daos.dataset.DatasetDAO.count", return_value=3)
+    @patch("superset.daos.database.DatabaseDAO.count", return_value=2)
+    @patch("superset.daos.user.UserDAO.count", return_value=4)
+    @patch("superset.daos.tag.TagDAO.count", return_value=1)
     @pytest.mark.asyncio
-    async def test_get_superset_instance_info_failure(self, mock_dashboard, mcp_server):
+    async def test_get_superset_instance_info_failure(
+        self,
+        mock_tag,
+        mock_user,
+        mock_db,
+        mock_dataset,
+        mock_chart,
+        mock_dashboard,
+        mcp_server,
+    ):
+        """Test that the tool handles DAO failures gracefully."""
         async with fastmcp.Client(mcp_server) as client:
-            with pytest.raises(
-                Exception, match="Database connection failed"
-            ) as excinfo:
-                await client.call_tool("get_superset_instance_info", {})
-            assert "Database connection failed" in str(excinfo.value)
+            result = await client.call_tool("get_superset_instance_info", {})
+
+            # Should return a valid response even with DAO failures
+            assert result.data is not None
+            summary = result.data.instance_summary
+
+            # Failed dashboard count should default to 0
+            assert summary.total_dashboards == 0
+
+            # Other counts should work normally
+            assert summary.total_charts == 5
+            assert summary.total_datasets == 3
+            assert summary.total_databases == 2
+            assert summary.total_users == 4
+            assert summary.total_tags == 1
+
+            # Should have valid breakdown structures with fallback values
+            assert result.data.dashboard_breakdown.published == 0
+            assert result.data.dashboard_breakdown.unpublished == 0
+
+            # Check the structured content which shows the correct serialization
+            assert result.structured_content["database_breakdown"]["by_type"] == {}
+            assert result.data.popular_content.top_tags == []

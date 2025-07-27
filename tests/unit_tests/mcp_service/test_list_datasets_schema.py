@@ -72,7 +72,7 @@ class TestListDatasetsRequestSchema:
         assert "table_name" in request.select_columns
         assert request.search is None
         assert request.order_column is None
-        assert request.order_direction == "asc"
+        assert request.order_direction == "desc"
         assert request.page == 1
         assert request.page_size == 100
 
@@ -173,7 +173,7 @@ class TestListDatasetsRequestSchema:
 class TestListDatasetsToolIntegration:
     """Test the list_datasets tool with the new schema."""
 
-    @patch("superset.mcp_service.model_tools.ModelListTool.run")
+    @patch("superset.mcp_service.generic_tools.ModelListTool.run")
     @pytest.mark.asyncio
     async def test_list_datasets_basic_request(
         self, mock_run, mock_dataset, mcp_server
@@ -202,7 +202,7 @@ class TestListDatasetsToolIntegration:
             assert result.data.count == 0
             mock_run.assert_called_once()
 
-    @patch("superset.mcp_service.model_tools.ModelListTool.run")
+    @patch("superset.mcp_service.generic_tools.ModelListTool.run")
     @pytest.mark.asyncio
     async def test_list_datasets_with_filters(self, mock_run, mock_dataset, mcp_server):
         """Test list_datasets tool with filters."""
@@ -241,7 +241,7 @@ class TestListDatasetsToolIntegration:
             assert call_args.kwargs["page"] == 0  # Tool adjusts page to 0-based
             assert call_args.kwargs["page_size"] == request.page_size
 
-    @patch("superset.mcp_service.model_tools.ModelListTool.run")
+    @patch("superset.mcp_service.generic_tools.ModelListTool.run")
     @pytest.mark.asyncio
     async def test_list_datasets_complex_filters(self, mock_run, mcp_server):
         """Test list_datasets with complex filter combinations."""
@@ -292,7 +292,7 @@ class TestListDatasetsToolIntegration:
             ):
                 await client.call_tool("list_datasets", {"request": invalid_request})
 
-    @patch("superset.mcp_service.model_tools.ModelListTool.run")
+    @patch("superset.mcp_service.generic_tools.ModelListTool.run")
     @pytest.mark.asyncio
     async def test_list_datasets_edge_cases(self, mock_run, mcp_server):
         """Test edge cases for pagination and limits."""

@@ -32,15 +32,17 @@ from superset.utils import json
 
 @mcp.tool
 @mcp_auth_hook
-async def create_chart(request: CreateChartRequest) -> Dict[str, Any]:
+def create_chart(request: CreateChartRequest) -> Dict[str, Any]:
     """
     Create a new chart in Superset.
 
     Args:
-        request: Chart creation request with dataset_id and config
+        request: Chart creation request with dataset_id, config, and optional
+            preview generation
 
     Returns:
-        Dictionary containing chart info and error message if any
+        Dictionary containing chart info, optional preview image (base64),
+        and error message if any
     """
     try:
         # Map the simplified config to Superset's form_data format
@@ -52,12 +54,35 @@ async def create_chart(request: CreateChartRequest) -> Dict[str, Any]:
         # Generate a chart name
         chart_name = generate_chart_name(request.config)
 
+        # Find the dataset to get its numeric ID
+        from superset.daos.dataset import DatasetDAO
+
+        dataset = None
+        if isinstance(request.dataset_id, int) or (
+            isinstance(request.dataset_id, str) and request.dataset_id.isdigit()
+        ):
+            dataset_id = (
+                int(request.dataset_id)
+                if isinstance(request.dataset_id, str)
+                else request.dataset_id
+            )
+            dataset = DatasetDAO.find_by_id(dataset_id)
+        else:
+            # Try UUID lookup using DAO flexible method
+            dataset = DatasetDAO.find_by_id(request.dataset_id, id_column="uuid")
+
+        if not dataset:
+            return {
+                "chart": None,
+                "error": f"No dataset found with identifier: {request.dataset_id}",
+            }
+
         # Create the chart using Superset's command
         command = CreateChartCommand(
             {
                 "slice_name": chart_name,
                 "viz_type": form_data["viz_type"],
-                "datasource_id": int(request.dataset_id),
+                "datasource_id": dataset.id,
                 "datasource_type": "table",
                 "params": json.dumps(form_data),
             }
@@ -65,7 +90,7 @@ async def create_chart(request: CreateChartRequest) -> Dict[str, Any]:
 
         chart = command.run()
 
-        return {
+        result: Dict[str, Any] = {
             "chart": {
                 "id": chart.id,
                 "slice_name": chart.slice_name,
@@ -74,6 +99,43 @@ async def create_chart(request: CreateChartRequest) -> Dict[str, Any]:
             },
             "error": None,
         }
+
+        # Generate preview if requested
+        if request.generate_preview:
+            try:
+                from superset.mcp_service.chart.tool.get_chart_preview import (
+                    _get_chart_preview_internal,
+                    GetChartPreviewRequest,
+                )
+
+                preview_request = GetChartPreviewRequest(identifier=str(chart.id))
+                preview_result = _get_chart_preview_internal(preview_request)
+
+                if hasattr(preview_result, "screenshot_url"):
+                    result["chart"]["preview_screenshot_url"] = (
+                        preview_result.screenshot_url
+                    )
+                    result["chart"]["preview_thumbnail_url"] = (
+                        preview_result.thumbnail_url
+                    )
+                    result["chart"]["preview_width"] = preview_result.width
+                    result["chart"]["preview_height"] = preview_result.height
+                    result["chart"]["preview_description"] = (
+                        preview_result.chart_description
+                    )
+                else:
+                    result["preview_error"] = str(
+                        preview_result.error
+                        if hasattr(preview_result, "error")
+                        else preview_result
+                    )
+
+            except Exception as preview_error:
+                result["preview_error"] = (
+                    f"Failed to generate preview: {str(preview_error)}"
+                )
+
+        return result
 
     except Exception as e:
         return {
