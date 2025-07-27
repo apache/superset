@@ -22,7 +22,7 @@ This module contains shared logic for chart configuration mapping and explore li
 generation that can be used by both create_chart and generate_explore_link tools.
 """
 
-from typing import Any, Dict, Union
+from typing import Any, Dict
 
 from superset.mcp_service.pydantic_schemas.chart_schemas import (
     ColumnRef,
@@ -32,22 +32,48 @@ from superset.mcp_service.pydantic_schemas.chart_schemas import (
 from superset.utils import json
 
 
-def generate_explore_link(dataset_id: str, form_data: Dict[str, Any]) -> str:
+def generate_explore_link(dataset_id: int | str, form_data: Dict[str, Any]) -> str:
     """Generate an explore link for the given dataset and form data."""
     try:
         from superset.commands.explore.form_data.parameters import CommandParameters
+
+        # Find the dataset to get its numeric ID
+        from superset.daos.dataset import DatasetDAO
         from superset.mcp_service.commands.create_form_data import (
             MCPCreateFormDataCommand,
         )
         from superset.utils.core import DatasourceType
 
+        dataset = None
+        numeric_dataset_id = None
+
+        if isinstance(dataset_id, int) or (
+            isinstance(dataset_id, str) and dataset_id.isdigit()
+        ):
+            numeric_dataset_id = (
+                int(dataset_id) if isinstance(dataset_id, str) else dataset_id
+            )
+            dataset = DatasetDAO.find_by_id(numeric_dataset_id)
+        else:
+            # Try UUID lookup using DAO flexible method
+            dataset = DatasetDAO.find_by_id(dataset_id, id_column="uuid")
+            if dataset:
+                numeric_dataset_id = dataset.id
+
+        if not dataset or numeric_dataset_id is None:
+            # Fallback to basic explore URL
+            return f"/explore/?datasource_type=table&datasource_id={dataset_id}"
+
         # Add datasource to form_data
-        form_data_with_datasource = {**form_data, "datasource": f"{dataset_id}__table"}
+        form_data_with_datasource = {
+            **form_data,
+            "datasource": f"{numeric_dataset_id}__table",
+        }
 
         # Try to create form_data in cache using MCP-specific CreateFormDataCommand
         cmd_params = CommandParameters(
             datasource_type=DatasourceType.TABLE,
-            datasource_id=int(dataset_id),
+            datasource_id=numeric_dataset_id,
             chart_id=0,  # 0 for new charts
             tab_id=None,
             form_data=json.dumps(form_data_with_datasource),
@@ -60,12 +86,15 @@ def generate_explore_link(dataset_id: str, form_data: Dict[str, Any]) -> str:
         return f"/explore/?form_data_key={form_data_key}"
 
     except Exception:
-        # Fallback to basic explore URL with just dataset id if cache fails
-        return f"/explore/?datasource_type=table&datasource_id={dataset_id}"
+        # Fallback to basic explore URL with numeric ID if available
+        if numeric_dataset_id is not None:
+            return f"/explore/?datasource_type=table&datasource_id={numeric_dataset_id}"
+        else:
+            return f"/explore/?datasource_type=table&datasource_id={dataset_id}"
 
 
 def map_config_to_form_data(
-    config: Union[TableChartConfig, XYChartConfig],
+    config: TableChartConfig | XYChartConfig,
 ) -> Dict[str, Any]:
     """Map chart config to Superset form_data."""
     if isinstance(config, TableChartConfig):
@@ -202,7 +231,7 @@ def map_filter_operator(op: str) -> str:
     return operator_map.get(op, op)
 
 
-def generate_chart_name(config: Union[TableChartConfig, XYChartConfig]) -> str:
+def generate_chart_name(config: TableChartConfig | XYChartConfig) -> str:
     """Generate a chart name based on the configuration."""
     if isinstance(config, TableChartConfig):
         return f"Table Chart - {', '.join(col.name for col in config.columns)}"

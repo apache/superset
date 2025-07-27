@@ -16,7 +16,6 @@
 # under the License.
 
 
-import json
 import logging
 from unittest.mock import MagicMock, patch
 
@@ -27,6 +26,7 @@ from fastmcp.exceptions import ToolError
 
 from superset.mcp_service.mcp_app import mcp
 from superset.mcp_service.pydantic_schemas.dataset_schemas import ListDatasetsRequest
+from superset.utils import json
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
@@ -1109,7 +1109,7 @@ async def test_list_datasets_includes_columns_and_metrics(mock_list, mcp_server)
         assert ds.metrics[0].metric_name == "avg_value"
 
 
-@patch("superset.mcp_service.model_tools.ModelGetInfoTool._find_object")
+@patch("superset.mcp_service.generic_tools.ModelGetInfoTool._find_object")
 @pytest.mark.asyncio
 async def test_get_dataset_info_by_uuid(mock_find_object, mcp_server):
     """Test getting dataset info using UUID identifier."""

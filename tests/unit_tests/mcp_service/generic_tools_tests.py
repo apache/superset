@@ -5,7 +5,7 @@ from typing import Any, List
 import pytest
 from pydantic import BaseModel
 
-from superset.mcp_service.model_tools import ModelGetInfoTool, ModelListTool
+from superset.mcp_service.generic_tools import ModelGetInfoTool, ModelListTool
 
 
 # Dummy Pydantic output schema

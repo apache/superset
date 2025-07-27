@@ -15,31 +15,8 @@
 # specific language governing permissions and limitations
 # under the License.
 
-"""
-MCP tool: get_chart_available_filters
-"""
+from .open_sql_lab_with_context import open_sql_lab_with_context
 
-import logging
-
-from superset.mcp_service.auth import mcp_auth_hook
-from superset.mcp_service.generic_tools import ModelGetAvailableFiltersTool
-from superset.mcp_service.mcp_app import mcp
-from superset.mcp_service.pydantic_schemas import ChartAvailableFiltersResponse
-
-logger = logging.getLogger(__name__)
-
-
-@mcp.tool
-@mcp_auth_hook
-def get_chart_available_filters() -> ChartAvailableFiltersResponse:
-    """
-    Return available chart filter fields, types, and supported operators (MCP tool).
-    """
-    from superset.daos.chart import ChartDAO
-
-    tool = ModelGetAvailableFiltersTool(
-        dao_class=ChartDAO,
-        output_schema=ChartAvailableFiltersResponse,
-        logger=logger,
-    )
-    return tool.run()
+__all__ = [
+    "open_sql_lab_with_context",
+]

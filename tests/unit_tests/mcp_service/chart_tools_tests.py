@@ -331,10 +331,19 @@ def _mock_chart(id=1, viz_type="table", form_data=None):
     return chart
 
 
+def _mock_dataset(id: int = 1) -> Mock:
+    """Create a mock dataset object."""
+    dataset = Mock()
+    dataset.id = id
+    return dataset
+
+
+@patch("superset.daos.dataset.DatasetDAO.find_by_id")
 @patch("superset.commands.chart.create.CreateChartCommand.run")
 @pytest.mark.asyncio
-async def test_create_chart_table_success(mock_run, mcp_server):
+async def test_create_chart_table_success(mock_run, mock_find_dataset, mcp_server):
     mock_run.return_value = _mock_chart(id=101, viz_type="table")
+    mock_find_dataset.return_value = _mock_dataset(id=1)
 
     # Create a simple table chart request
     config = TableChartConfig(
@@ -357,10 +366,12 @@ async def test_create_chart_table_success(mock_run, mcp_server):
         mock_run.assert_called_once()
 
 
+@patch("superset.daos.dataset.DatasetDAO.find_by_id")
 @patch("superset.commands.chart.create.CreateChartCommand.run")
 @pytest.mark.asyncio
-async def test_create_chart_xy_line_success(mock_run, mcp_server):
+async def test_create_chart_xy_line_success(mock_run, mock_find_dataset, mcp_server):
     mock_run.return_value = _mock_chart(id=102, viz_type="echarts_timeseries_line")
+    mock_find_dataset.return_value = _mock_dataset(id=1)
 
     # Create a simple line chart request
     config = XYChartConfig(
@@ -385,10 +396,12 @@ async def test_create_chart_xy_line_success(mock_run, mcp_server):
         mock_run.assert_called_once()
 
 
+@patch("superset.daos.dataset.DatasetDAO.find_by_id")
 @patch("superset.commands.chart.create.CreateChartCommand.run")
 @pytest.mark.asyncio
-async def test_create_chart_xy_bar_success(mock_run, mcp_server):
+async def test_create_chart_xy_bar_success(mock_run, mock_find_dataset, mcp_server):
     mock_run.return_value = _mock_chart(id=103, viz_type="echarts_timeseries_bar")
+    mock_find_dataset.return_value = _mock_dataset(id=1)
 
     # Create a simple bar chart request
     config = XYChartConfig(
@@ -410,10 +423,12 @@ async def test_create_chart_xy_bar_success(mock_run, mcp_server):
         mock_run.assert_called_once()
 
 
+@patch("superset.daos.dataset.DatasetDAO.find_by_id")
 @patch("superset.commands.chart.create.CreateChartCommand.run")
 @pytest.mark.asyncio
-async def test_create_chart_xy_area_success(mock_run, mcp_server):
+async def test_create_chart_xy_area_success(mock_run, mock_find_dataset, mcp_server):
     mock_run.return_value = _mock_chart(id=104, viz_type="echarts_area")
+    mock_find_dataset.return_value = _mock_dataset(id=1)
 
     # Create a simple area chart request
     config = XYChartConfig(
@@ -438,10 +453,12 @@ async def test_create_chart_xy_area_success(mock_run, mcp_server):
         mock_run.assert_called_once()
 
 
+@patch("superset.daos.dataset.DatasetDAO.find_by_id")
 @patch("superset.commands.chart.create.CreateChartCommand.run")
 @pytest.mark.asyncio
-async def test_create_chart_error(mock_run, mcp_server):
+async def test_create_chart_error(mock_run, mock_find_dataset, mcp_server):
     mock_run.side_effect = Exception("Chart creation failed")
+    mock_find_dataset.return_value = _mock_dataset(id=1)
 
     config = TableChartConfig(
         chart_type="table", columns=[ColumnRef(name="region", label="Region")]
@@ -457,10 +474,12 @@ async def test_create_chart_error(mock_run, mcp_server):
         assert "Chart creation failed" in result.data["error"]
 
 
+@patch("superset.daos.dataset.DatasetDAO.find_by_id")
 @patch("superset.commands.chart.create.CreateChartCommand.run")
 @pytest.mark.asyncio
-async def test_create_chart_table_minimal(mock_run, mcp_server):
+async def test_create_chart_table_minimal(mock_run, mock_find_dataset, mcp_server):
     mock_run.return_value = _mock_chart(id=105, viz_type="table")
+    mock_find_dataset.return_value = _mock_dataset(id=1)
 
     # Minimal table chart with just required fields
     config = TableChartConfig(
@@ -477,10 +496,12 @@ async def test_create_chart_table_minimal(mock_run, mcp_server):
         mock_run.assert_called_once()
 
 
+@patch("superset.daos.dataset.DatasetDAO.find_by_id")
 @patch("superset.commands.chart.create.CreateChartCommand.run")
 @pytest.mark.asyncio
-async def test_create_chart_xy_minimal(mock_run, mcp_server):
+async def test_create_chart_xy_minimal(mock_run, mock_find_dataset, mcp_server):
     mock_run.return_value = _mock_chart(id=106, viz_type="echarts_timeseries_line")
+    mock_find_dataset.return_value = _mock_dataset(id=1)
 
     # Create a minimal line chart request
     config = XYChartConfig(
@@ -500,10 +521,14 @@ async def test_create_chart_xy_minimal(mock_run, mcp_server):
         mock_run.assert_called_once()
 
 
+@patch("superset.daos.dataset.DatasetDAO.find_by_id")
 @patch("superset.commands.chart.create.CreateChartCommand.run")
 @pytest.mark.asyncio
-async def test_create_chart_with_simple_metrics(mock_run, mcp_server):
+async def test_create_chart_with_simple_metrics(
+    mock_run, mock_find_dataset, mcp_server
+):
     mock_run.return_value = _mock_chart(id=107, viz_type="echarts_timeseries_bar")
+    mock_find_dataset.return_value = _mock_dataset(id=1)
 
     # Test with simple metrics like "count", "sum", etc.
     config = XYChartConfig(
@@ -526,10 +551,14 @@ async def test_create_chart_with_simple_metrics(mock_run, mcp_server):
         mock_run.assert_called_once()
 
 
+@patch("superset.daos.dataset.DatasetDAO.find_by_id")
 @patch("superset.commands.chart.create.CreateChartCommand.run")
 @pytest.mark.asyncio
-async def test_create_chart_with_sql_aggregators(mock_run, mcp_server):
+async def test_create_chart_with_sql_aggregators(
+    mock_run, mock_find_dataset, mcp_server
+):
     mock_run.return_value = _mock_chart(id=108, viz_type="echarts_timeseries_line")
+    mock_find_dataset.return_value = _mock_dataset(id=1)
 
     # Test with SQL aggregators
     config = XYChartConfig(
@@ -553,10 +582,14 @@ async def test_create_chart_with_sql_aggregators(mock_run, mcp_server):
         mock_run.assert_called_once()
 
 
+@patch("superset.daos.dataset.DatasetDAO.find_by_id")
 @patch("superset.commands.chart.create.CreateChartCommand.run")
 @pytest.mark.asyncio
-async def test_create_chart_comprehensive_metrics(mock_run, mcp_server):
+async def test_create_chart_comprehensive_metrics(
+    mock_run, mock_find_dataset, mcp_server
+):
     mock_run.return_value = _mock_chart(id=109, viz_type="echarts_timeseries_bar")
+    mock_find_dataset.return_value = _mock_dataset(id=1)
 
     # Test comprehensive metric scenarios
     config = XYChartConfig(
@@ -598,10 +631,12 @@ async def test_create_chart_comprehensive_metrics(mock_run, mcp_server):
         mock_run.assert_called_once()
 
 
+@patch("superset.daos.dataset.DatasetDAO.find_by_id")
 @patch("superset.commands.chart.create.CreateChartCommand.run")
 @pytest.mark.asyncio
-async def test_create_chart_xy_scatter_success(mock_run, mcp_server):
+async def test_create_chart_xy_scatter_success(mock_run, mock_find_dataset, mcp_server):
     mock_run.return_value = _mock_chart(id=110, viz_type="echarts_timeseries_scatter")
+    mock_find_dataset.return_value = _mock_dataset(id=1)
 
     # Create a scatter chart request
     config = XYChartConfig(
@@ -626,7 +661,7 @@ async def test_create_chart_xy_scatter_success(mock_run, mcp_server):
         mock_run.assert_called_once()
 
 
-@patch("superset.mcp_service.model_tools.ModelGetInfoTool._find_object")
+@patch("superset.mcp_service.generic_tools.ModelGetInfoTool._find_object")
 @pytest.mark.asyncio
 async def test_get_chart_info_by_uuid(mock_find_object, mcp_server):
     """Test getting chart info using UUID identifier."""

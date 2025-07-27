@@ -16,9 +16,14 @@
 # under the License.
 
 import logging
-from typing import Any, Optional
+from typing import Any, Callable, Optional, TypeVar
 
+from flask import Flask
 from flask_appbuilder.security.sqla.models import User
+from mcp.server.auth.provider import AccessToken
+
+# Type variable for decorated functions
+F = TypeVar("F", bound=Callable[..., Any])
 
 logger = logging.getLogger(__name__)
 
@@ -38,7 +43,7 @@ def get_user_from_request() -> User:
     return user
 
 
-def _extract_username_from_jwt(app: Any) -> str:
+def _extract_username_from_jwt(app: Flask) -> str:
     """Extract username from JWT token or return configured fallback."""
     try:
         from fastmcp.server.dependencies import get_access_token
@@ -103,7 +108,7 @@ def impersonate_user(user: User, run_as: Optional[str] = None) -> User:
     return impersonated
 
 
-def has_permission(user: User, tool_func: Any) -> bool:
+def has_permission(user: User, tool_func: Callable[..., Any]) -> bool:
     """Validate user permissions using JWT scopes and user status."""
     if not user or not user.is_active:
         return False
@@ -121,7 +126,9 @@ def has_permission(user: User, tool_func: Any) -> bool:
         return True  # Allow access when JWT unavailable
 
 
-def _check_jwt_scopes(user: User, tool_func: Any, access_token: Any) -> bool:
+def _check_jwt_scopes(
+    user: User, tool_func: Callable[..., Any], access_token: AccessToken
+) -> bool:
     """Check if user has required JWT scopes for the tool."""
     user_scopes = access_token.scopes or []
 
@@ -179,7 +186,7 @@ def _get_jwt_context() -> Optional[dict[str, Any]]:
     return None
 
 
-def mcp_auth_hook(tool_func: Any) -> Any:
+def mcp_auth_hook(tool_func: F) -> F:
     """Authentication and authorization decorator for MCP tools."""
     import functools
 
@@ -202,4 +209,4 @@ def mcp_auth_hook(tool_func: Any) -> Any:
         log_access(user, tool_func.__name__, args, kwargs)
         return tool_func(*args, **kwargs)
 
-    return wrapper
+    return wrapper  # type: ignore[return-value]

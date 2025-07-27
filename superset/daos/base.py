@@ -17,8 +17,19 @@
 from __future__ import annotations
 
 import logging
+import uuid as uuid_lib
 from enum import Enum
-from typing import Any, Dict, Generic, get_args, List, Optional, Tuple, TypeVar
+from typing import (
+    Any,
+    Dict,
+    Generic,
+    get_args,
+    List,
+    Optional,
+    Sequence,
+    Tuple,
+    TypeVar,
+)
 
 from flask_appbuilder.models.filters import BaseFilter
 from flask_appbuilder.models.sqla import Model
@@ -123,36 +134,112 @@ class BaseDAO(Generic[T]):
         return query
 
     @classmethod
-    def find_by_id(
+    def _convert_value_for_column(cls, column: Any, value: Any) -> Any:
+        """
+        Convert a value to the appropriate type for a given SQLAlchemy column.
+
+        Args:
+            column: SQLAlchemy column object
+            value: Value to convert
+
+        Returns:
+            Converted value or None if conversion fails
+        """
+        if (
+            hasattr(column.type, "python_type")
+            and column.type.python_type == uuid_lib.UUID
+        ):
+            if isinstance(value, str):
+                try:
+                    return uuid_lib.UUID(value)
+                except (ValueError, AttributeError):
+                    return None
+        return value
+
+    @classmethod
+    def _find_by_column(
         cls,
-        model_id: str | int,
+        column_name: str,
+        value: str | int,
         skip_base_filter: bool = False,
     ) -> T | None:
         """
-        Find a model by id, if defined applies `base_filter`
+        Private method to find a model by any column value.
+
+        Args:
+            column_name: Name of the column to search by
+            value: Value to search for
+            skip_base_filter: Whether to skip base filtering
+
+        Returns:
+            Model instance or None if not found
         """
         query = db.session.query(cls.model_cls)
         query = cls._apply_base_filter(query, skip_base_filter)
-        id_column = getattr(cls.model_cls, cls.id_column_name)
+
+        if not hasattr(cls.model_cls, column_name):
+            return None
+
+        column = getattr(cls.model_cls, column_name)
+        converted_value = cls._convert_value_for_column(column, value)
+        if converted_value is None:
+            return None
+
         try:
-            return query.filter(id_column == model_id).one_or_none()
+            return query.filter(column == converted_value).one_or_none()
         except StatementError:
             # can happen if int is passed instead of a string or similar
             return None
 
     @classmethod
+    def find_by_id(
+        cls,
+        model_id: str | int,
+        skip_base_filter: bool = False,
+        id_column: str | None = None,
+    ) -> T | None:
+        """
+        Find a model by ID using specified or default ID column.
+
+        Args:
+            model_id: ID value to search for
+            skip_base_filter: Whether to skip base filtering
+            id_column: Column name to use (defaults to cls.id_column_name)
+
+        Returns:
+            Model instance or None if not found
+        """
+        column = id_column or cls.id_column_name
+        return cls._find_by_column(column, model_id, skip_base_filter)
+
+    @classmethod
     def find_by_ids(
         cls,
-        model_ids: list[str] | list[int],
+        model_ids: Sequence[str | int],
         skip_base_filter: bool = False,
+        id_column: str | None = None,
     ) -> list[T]:
         """
         Find a List of models by a list of ids, if defined applies `base_filter`
+
+        :param model_ids: List of IDs to find
+        :param skip_base_filter: If true, skip applying the base filter
+        :param id_column: Optional column name to use for ID lookup
+                         (defaults to id_column_name)
         """
-        id_col = getattr(cls.model_cls, cls.id_column_name, None)
+        column = id_column or cls.id_column_name
+        id_col = getattr(cls.model_cls, column, None)
         if id_col is None:
             return []
-        query = db.session.query(cls.model_cls).filter(id_col.in_(model_ids))
+
+        # Convert IDs to appropriate types based on column type
+        converted_ids: list[str | int | uuid_lib.UUID] = []
+        for id_val in model_ids:
+            converted_value = cls._convert_value_for_column(id_col, id_val)
+            if converted_value is not None:
+                converted_ids.append(converted_value)
+
+        query = db.session.query(cls.model_cls).filter(id_col.in_(converted_ids))
         query = cls._apply_base_filter(query, skip_base_filter)
         return query.all()
 

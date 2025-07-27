@@ -25,8 +25,8 @@ advanced filtering with clear, unambiguous request schema.
 import logging
 
 from superset.mcp_service.auth import mcp_auth_hook
+from superset.mcp_service.generic_tools import ModelListTool
 from superset.mcp_service.mcp_app import mcp
-from superset.mcp_service.model_tools import ModelListTool
 from superset.mcp_service.pydantic_schemas import DatasetInfo, DatasetList
 from superset.mcp_service.pydantic_schemas.dataset_schemas import (
     DatasetFilter,
@@ -57,6 +57,9 @@ def list_datasets(request: ListDatasetsRequest) -> DatasetList:
     """
     List datasets with advanced filtering, search, and column selection.
 
+    Datasets are sorted by favorites first (if user has favorites), then by
+    most recently updated.
+
     Uses a clear request object schema to avoid validation ambiguity with
     arrays/strings.
     All parameters are properly typed and have sensible defaults.
@@ -64,6 +67,7 @@ def list_datasets(request: ListDatasetsRequest) -> DatasetList:
 
     from superset.daos.dataset import DatasetDAO
 
+    # Create tool with standard serialization
     tool = ModelListTool(
         dao_class=DatasetDAO,
         output_schema=DatasetInfo,
@@ -75,12 +79,17 @@ def list_datasets(request: ListDatasetsRequest) -> DatasetList:
         output_list_schema=DatasetList,
         logger=logger,
     )
+
+    # Default ordering: by most recently updated
+    order_column = request.order_column or "changed_on"
+    order_direction = request.order_direction or "desc"
+
     return tool.run(
         filters=request.filters,
         search=request.search,
         select_columns=request.select_columns,
-        order_column=request.order_column,
-        order_direction=request.order_direction,
+        order_column=order_column,
+        order_direction=order_direction,
         page=max(request.page - 1, 0),
         page_size=request.page_size,
     )
