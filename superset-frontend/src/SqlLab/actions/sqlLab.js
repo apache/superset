@@ -38,6 +38,7 @@ import {
 import { LOG_ACTIONS_SQLLAB_FETCH_FAILED_QUERY } from 'src/logger/LogUtils';
 import getBootstrapData from 'src/utils/getBootstrapData';
 import { logEvent } from 'src/logger/actions';
+import { api } from 'src/hooks/apiResources/queryApi';
 import { newQueryTabName } from '../utils/newQueryTabName';
 import getInitialState from '../reducers/getInitialState';
 import { rehydratePersistedState } from '../utils/reduxStateToLocalStorageHelper';
@@ -765,7 +766,11 @@ export function removeQuery(query) {
       : Promise.resolve();
 
     return sync
-      .then(() => dispatch({ type: REMOVE_QUERY, query }))
+      .then(() => {
+        dispatch({ type: REMOVE_QUERY, query });
+        // Invalidate RTK Query cache to update the UI
+        dispatch(api.util.invalidateTags(['EditorQueries']));
+      })
       .catch(() =>
         dispatch(
           addDangerToast(
