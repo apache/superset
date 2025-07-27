@@ -19,6 +19,12 @@
 # Lightweight docker-compose for running multiple Superset instances
 # This includes only essential services: database, Redis, and Superset app
 #
+# IMPORTANT: To run multiple instances in parallel:
+# - Use different project names: docker-compose -p project1 -f docker-compose-light.yml up
+# - Use different NODE_PORT values: NODE_PORT=9002 docker-compose -p project2 -f docker-compose-light.yml up
+# - Volumes are isolated by project name (e.g., project1_db_home_light, project2_db_home_light)
+# - Database name is intentionally different (superset_light) to prevent accidental cross-connections
+#
 # For verbose logging during development:
 # - Set SUPERSET_LOG_LEVEL=debug in docker/.env-local for detailed Superset logs
 # -----------------------------------------------------------------------

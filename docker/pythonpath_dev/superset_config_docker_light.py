@@ -17,7 +17,9 @@
 #
 # Configuration for docker-compose-light.yml - disables Redis and uses minimal services
 
+# Import all settings from the main config first
 from flask_caching.backends.filesystemcache import FileSystemCache
+from superset_config import *  # noqa: F403
 
 # Override caching to use simple in-memory cache instead of Redis
 RESULTS_BACKEND = FileSystemCache("/app/superset_home/sqllab")
@@ -31,22 +33,5 @@ DATA_CACHE_CONFIG = CACHE_CONFIG
 THUMBNAIL_CACHE_CONFIG = CACHE_CONFIG
 
 
-# Use SQLite for Celery instead of Redis, with synchronous execution
-class CeleryConfig:
-    broker_url = "sqla+sqlite:///celerydb.sqlite"
-    imports = (
-        "superset.sql_lab",
-        "superset.tasks.scheduler",
-        "superset.tasks.thumbnails",
-        "superset.tasks.cache",
-        "superset.tasks.slack",
-    )
-    result_backend = "db+sqlite:///celery_results.sqlite"
-    worker_prefetch_multiplier = 1
-    task_acks_late = False
-    # Run tasks synchronously to avoid needing background workers
-    task_always_eager = True
-    task_store_eager_result = True
-
-
-CELERY_CONFIG = CeleryConfig
+# Disable Celery entirely for lightweight mode
+CELERY_CONFIG = None  # type: ignore[assignment,misc]
