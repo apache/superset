@@ -536,6 +536,11 @@ if (isDevMode) {
         runtimeErrors: error => !/ResizeObserver/.test(error.message),
       },
       logging: 'error',
+      webSocketURL: {
+        hostname: '0.0.0.0',
+        pathname: '/ws',
+        port: 0,
+      },
     },
     static: {
       directory: path.join(process.cwd(), '../static/assets'),
