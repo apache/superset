@@ -53,6 +53,7 @@ const {
   measure = false,
   nameChunks = false,
 } = parsedArgs;
+
 const isDevMode = mode !== 'production';
 const isDevServer = process.argv[1].includes('webpack-dev-server');
 
@@ -535,6 +536,9 @@ if (isDevMode) {
         runtimeErrors: error => !/ResizeObserver/.test(error.message),
       },
       logging: 'error',
+      webSocketURL: {
+        port: devserverPort,
+      },
     },
     static: {
       directory: path.join(process.cwd(), '../static/assets'),
