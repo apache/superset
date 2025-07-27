@@ -140,7 +140,6 @@ services:
       SCARF_ANALYTICS: "${SCARF_ANALYTICS:-}"
       # configuring the dev-server to use the host.docker.internal to connect to the backend
       superset: "http://superset-light:8088"
-      NODE_PORT: "${NODE_PORT:-9001}"
     ports:
       - "127.0.0.1:${NODE_PORT:-9001}:9000"  # Parameterized port
     command: ["/app/docker/docker-frontend.sh"]

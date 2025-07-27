@@ -49,7 +49,7 @@ const MINI_CSS_EXTRACT_PUBLICPATH = './';
 
 const {
   mode = 'development',
-  devserverPort = process.env.NODE_PORT || 9000,
+  devserverPort = 9000,
   measure = false,
   nameChunks = false,
 } = parsedArgs;
@@ -536,9 +536,6 @@ if (isDevMode) {
         runtimeErrors: error => !/ResizeObserver/.test(error.message),
       },
       logging: 'error',
-      webSocketURL: {
-        port: devserverPort,
-      },
     },
     static: {
       directory: path.join(process.cwd(), '../static/assets'),
