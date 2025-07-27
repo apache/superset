@@ -252,6 +252,24 @@ function SelectPageSize({
 const getNoResultsMessage = (filter: string) =>
   filter ? t('No matching records found') : t('No records found');
 
+const isHtml = (value: any): boolean => {
+  if (typeof value !== 'string') {
+    return false;
+  }
+  return value.includes('<') && value.includes('>');
+};
+
+const stripHtmlAndGetValue = (value: any): string | number | boolean => {
+  // Create a temporary DOM element to parse the HTML
+  const tempDiv = document.createElement('div');
+  tempDiv.innerHTML = value;
+
+  // Get the text content (this removes all HTML tags)
+  const textContent = tempDiv.textContent || tempDiv.innerText || '';
+
+  return textContent.trim();
+};
+
 export default function TableChart<D extends DataRecord = DataRecord>(
   props: TableChartTransformedProps<D> & {
     sticky?: DataTableProps<D>['sticky'];
@@ -477,7 +495,11 @@ export default function TableChart<D extends DataRecord = DataRecord>(
           const drillToDetailFilters: BinaryQueryObjectFilterClause[] = [];
           filteredColumnsMeta.forEach(col => {
             if (!col.isMetric) {
-              const dataRecordValue = value[col.key];
+              let dataRecordValue = value[col.key];
+              if (isHtml(dataRecordValue)) {
+                dataRecordValue = stripHtmlAndGetValue(dataRecordValue);
+              }
+
               drillToDetailFilters.push({
                 col: col.key,
                 op: '==',
@@ -498,7 +520,12 @@ export default function TableChart<D extends DataRecord = DataRecord>(
                     {
                       col: cellPoint.key,
                       op: '==',
-                      val: cellPoint.value as string | number | boolean,
+                      val: isHtml(cellPoint.value)
+                        ? (stripHtmlAndGetValue(cellPoint.value) as
+                            | string
+                            | number
+                            | boolean)
+                        : (cellPoint.value as string | number | boolean),
                     },
                   ],
                   groupbyFieldName: 'groupby',
