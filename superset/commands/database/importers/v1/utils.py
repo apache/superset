@@ -46,10 +46,13 @@ def import_database(
         if not overwrite or not can_write:
             return existing
         config["id"] = existing.id
+        logger.info(f"Updating existing database: {config.get('database_name')}")
     elif not can_write:
         raise ImportFailedError(
             "Database doesn't exist and user doesn't have permission to create databases"  # noqa: E501
         )
+    else:
+        logger.info(f"Creating new database: {config.get('database_name')}")
     # Check if this URI is allowed
     if app.config["PREVENT_UNSAFE_DB_CONNECTIONS"]:
         try:

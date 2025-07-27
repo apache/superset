@@ -105,7 +105,7 @@ def create_dashboard_for_loaded_data():
 
 
 def _create_world_bank_slices(table: SqlaTable) -> list[Slice]:
-    from superset.examples.world_bank import create_slices
+    from tests.fixtures.world_bank_helpers import create_slices
 
     slices = create_slices(table)
     _commit_slices(slices)
@@ -123,7 +123,7 @@ def _commit_slices(slices: list[Slice]):
 
 def _create_world_bank_dashboard(table: SqlaTable) -> Dashboard:
     from superset.examples.helpers import update_slice_ids
-    from superset.examples.world_bank import dashboard_positions
+    from tests.fixtures.world_bank_helpers import dashboard_positions
 
     pos = dashboard_positions
     slices = update_slice_ids(pos)

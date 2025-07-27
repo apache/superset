@@ -74,7 +74,7 @@ def _create_dashboards():
         fetch_values_predicate="123 = 123",
     )
 
-    from superset.examples.birth_names import create_dashboard, create_slices
+    from tests.fixtures.birth_names_helpers import create_dashboard, create_slices
 
     slices, _ = create_slices(table)
     dash = create_dashboard(slices)
@@ -93,7 +93,10 @@ def _create_table(
         database=database,
         fetch_values_predicate=fetch_values_predicate,
     )
-    from superset.examples.birth_names import _add_table_metrics, _set_table_metadata
+    from tests.fixtures.birth_names_helpers import (
+        _add_table_metrics,
+        _set_table_metadata,
+    )
 
     _set_table_metadata(table, database)
     _add_table_metrics(table)

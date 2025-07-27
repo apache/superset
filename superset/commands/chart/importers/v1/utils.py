@@ -16,6 +16,7 @@
 # under the License.
 
 import copy
+import logging
 from inspect import isclass
 from typing import Any
 
@@ -26,6 +27,8 @@ from superset.migrations.shared.migrate_viz.base import MigrateViz
 from superset.models.slice import Slice
 from superset.utils import json
 from superset.utils.core import AnnotationType, get_user
+
+logger = logging.getLogger(__name__)
 
 
 def filter_chart_annotations(chart_config: dict[str, Any]) -> None:
@@ -63,10 +66,13 @@ def import_chart(
         if not overwrite or not can_write:
             return existing
         config["id"] = existing.id
+        logger.info(f"Updating existing chart: {config.get('slice_name')}")
     elif not can_write:
         raise ImportFailedError(
             "Chart doesn't exist and user doesn't have permission to create charts"
         )
+    else:
+        logger.info(f"Creating new chart: {config.get('slice_name')}")
 
     filter_chart_annotations(config)
 

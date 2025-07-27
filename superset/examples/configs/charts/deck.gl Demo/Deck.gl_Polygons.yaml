@@ -1,0 +1,88 @@
+slice_name: Deck.gl Polygons
+description: null
+certified_by: null
+certification_details: null
+viz_type: deck_polygon
+params:
+  datasource: 11__table
+  extruded: true
+  fill_color_picker:
+    a: 1
+    b: 73
+    g: 65
+    r: 3
+  filled: true
+  granularity_sqla: null
+  js_columns: []
+  js_data_mutator: ''
+  js_onclick_href: ''
+  js_tooltip: ''
+  legend_format: .1s
+  legend_position: tr
+  line_column: contour
+  line_type: json
+  line_width: 10
+  line_width_unit: meters
+  linear_color_scheme: oranges
+  mapbox_style: https://tile.openstreetmap.org/{z}/{x}/{y}.png
+  metric:
+    aggregate: SUM
+    column:
+      column_name: population
+      description: null
+      expression: null
+      filterable: true
+      groupby: true
+      id: 1332
+      is_dttm: false
+      optionName: _col_population
+      python_date_format: null
+      type: BIGINT
+      verbose_name: null
+    expressionType: SIMPLE
+    hasCustomLabel: true
+    label: Population
+    optionName: metric_t2v4qbfiz1_w6qgpx4h2p
+    sqlExpression: null
+  multiplier: 0.1
+  point_radius_fixed:
+    type: metric
+    value:
+      aggregate: null
+      column: null
+      expressionType: SQL
+      hasCustomLabel: null
+      label: Density
+      optionName: metric_c5rvwrzoo86_293h6yrv2ic
+      sqlExpression: SUM(population)/SUM(area)
+  reverse_long_lat: false
+  slice_id: 41
+  stroke_color_picker:
+    a: 1
+    b: 135
+    g: 122
+    r: 0
+  stroked: false
+  time_grain_sqla: null
+  time_range: ' : '
+  viewport:
+    altitude: 1.5
+    bearing: 37.89506450385642
+    height: 906
+    latitude: 37.752020331384834
+    longitude: -122.43388541747726
+    maxLatitude: 85.05113
+    maxPitch: 60
+    maxZoom: 20
+    minLatitude: -85.05113
+    minPitch: 0
+    minZoom: 0
+    pitch: 60
+    width: 667
+    zoom: 11.133995608594631
+  viz_type: deck_polygon
+query_context: null
+cache_timeout: null
+uuid: f3236785-149e-4cab-9408-f2cc69afd977
+version: 1.0.0
+dataset_uuid: a480e881-e90d-4dc8-818e-f9338c3ca839

@@ -23,17 +23,16 @@ from sqlalchemy.sql import column
 import superset.utils.database as database_utils
 from superset import db
 from superset.connectors.sqla.models import SqlMetric
-from superset.models.slice import Slice
-from superset.sql.parse import Table
-from superset.utils.core import DatasourceType
-
-from .helpers import (
+from superset.examples.helpers import (
     get_slice_json,
     get_table_connector_registry,
     merge_slice,
     misc_dash_slices,
     read_example_data,
 )
+from superset.models.slice import Slice
+from superset.sql.parse import Table
+from superset.utils.core import DatasourceType
 
 logger = logging.getLogger(__name__)
 

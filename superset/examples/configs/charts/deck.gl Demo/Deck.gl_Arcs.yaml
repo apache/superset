@@ -1,0 +1,48 @@
+slice_name: Deck.gl Arcs
+description: null
+certified_by: null
+certification_details: null
+viz_type: deck_arc
+params:
+  color_picker:
+    a: 1
+    b: 135
+    g: 122
+    r: 0
+  datasource: 10__table
+  end_spatial:
+    latCol: LATITUDE_DEST
+    lonCol: LONGITUDE_DEST
+    type: latlong
+  granularity_sqla: null
+  mapbox_style: https://tile.openstreetmap.org/{z}/{x}/{y}.png
+  row_limit: 5000
+  slice_id: 42
+  start_spatial:
+    latCol: LATITUDE
+    lonCol: LONGITUDE
+    type: latlong
+  stroke_width: 1
+  time_grain_sqla: null
+  time_range: ' : '
+  viewport:
+    altitude: 1.5
+    bearing: 8.546256357301871
+    height: 642
+    latitude: 44.596651438714254
+    longitude: -91.84340711201104
+    maxLatitude: 85.05113
+    maxPitch: 60
+    maxZoom: 20
+    minLatitude: -85.05113
+    minPitch: 0
+    minZoom: 0
+    pitch: 60
+    width: 997
+    zoom: 2.929837070560775
+  viz_type: deck_arc
+query_context: null
+cache_timeout: null
+uuid: 51a68f80-d538-4094-bb9e-346aad49b306
+version: 1.0.0
+dataset_uuid: 92980b06-cbec-4f34-9c2e-7308edc8c2b9

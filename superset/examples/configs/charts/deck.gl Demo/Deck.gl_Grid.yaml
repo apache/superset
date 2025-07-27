@@ -1,0 +1,43 @@
+slice_name: Deck.gl Grid
+description: null
+certified_by: null
+certification_details: null
+viz_type: deck_grid
+params:
+  autozoom: false
+  color_picker:
+    a: 1
+    b: 0
+    g: 255
+    r: 14
+  datasource: 5__table
+  extruded: true
+  granularity_sqla: null
+  grid_size: 120
+  groupby: []
+  mapbox_style: https://tile.openstreetmap.org/{z}/{x}/{y}.png
+  point_radius: Auto
+  point_radius_fixed:
+    type: fix
+    value: 2000
+  point_radius_unit: Pixels
+  row_limit: 5000
+  size: count
+  spatial:
+    latCol: LAT
+    lonCol: LON
+    type: latlong
+  time_grain_sqla: null
+  time_range: No filter
+  viewport:
+    bearing: 155.80099696026355
+    latitude: 37.7942314882596
+    longitude: -122.42066918995666
+    pitch: 53.470800300695146
+    zoom: 12.699690845482069
+  viz_type: deck_grid
+query_context: null
+cache_timeout: null
+uuid: a1b96ab6-3c0b-4cbc-b13a-a70749e84068
+version: 1.0.0
+dataset_uuid: 605eaec7-ebf1-4fea-ac4b-07652fcb46e7

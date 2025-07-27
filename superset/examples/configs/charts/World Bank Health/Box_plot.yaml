@@ -1,0 +1,30 @@
+slice_name: Box plot
+description: null
+certified_by: null
+certification_details: null
+viz_type: box_plot
+params:
+  compare_lag: '10'
+  compare_suffix: o10Y
+  country_fieldtype: cca3
+  entity: country_code
+  granularity_sqla: year
+  groupby:
+  - region
+  limit: '25'
+  markup_type: markdown
+  metrics:
+  - sum__SP_POP_TOTL
+  row_limit: 50000
+  show_bubbles: true
+  since: '1960-01-01'
+  time_range: '2014-01-01 : 2014-01-02'
+  until: now
+  viz_type: box_plot
+  whisker_options: Min/max (no outliers)
+  x_ticks_layout: staggered
+query_context: null
+cache_timeout: null
+uuid: d31ba9c7-798b-4f84-87ef-ab31721680a8
+version: 1.0.0
+dataset_uuid: 3b851597-e0e9-42a1-83e4-55547811742e

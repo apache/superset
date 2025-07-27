@@ -1,0 +1,130 @@
+dashboard_title: deck.gl Demo
+description: null
+css: null
+slug: deck
+certified_by: null
+certification_details: null
+published: true
+uuid: b78795f1-0b33-41a9-a6c7-186f38a526ad
+position:
+  CHART-3afd9d70:
+    meta:
+      chartId: 32
+      sliceName: Deck.gl Scatterplot
+      width: 6
+      height: 50
+      uuid: cc75c4d5-8f79-4ffd-8e75-06162d4a867f
+    type: CHART
+    id: CHART-3afd9d70
+    children: []
+  CHART-2ee7fa5e:
+    meta:
+      chartId: 33
+      sliceName: Deck.gl Screen grid
+      width: 6
+      height: 50
+      uuid: 966c802c-4733-489f-b65b-385083c85d90
+    type: CHART
+    id: CHART-2ee7fa5e
+    children: []
+  CHART-201f7715:
+    meta:
+      chartId: 34
+      sliceName: Deck.gl Hexagons
+      width: 6
+      height: 50
+      uuid: bdfdce5d-c44d-4c63-8a45-0b2a1a29715b
+    type: CHART
+    id: CHART-201f7715
+    children: []
+  CHART-d02f6c40:
+    meta:
+      chartId: 35
+      sliceName: Deck.gl Grid
+      width: 6
+      height: 50
+      uuid: a1b96ab6-3c0b-4cbc-b13a-a70749e84068
+    type: CHART
+    id: CHART-d02f6c40
+    children: []
+  CHART-2673431d:
+    meta:
+      chartId: 36
+      sliceName: Deck.gl Polygons
+      width: 6
+      height: 50
+      uuid: f3236785-149e-4cab-9408-f2cc69afd977
+    type: CHART
+    id: CHART-2673431d
+    children: []
+  CHART-85265a60:
+    meta:
+      chartId: 37
+      sliceName: Deck.gl Arcs
+      width: 6
+      height: 50
+      uuid: 51a68f80-d538-4094-bb9e-346aad49b306
+    type: CHART
+    id: CHART-85265a60
+    children: []
+  CHART-2b87513c:
+    meta:
+      chartId: 38
+      sliceName: Deck.gl Path
+      width: 6
+      height: 50
+      uuid: 6332daf6-e442-469d-b66c-a6a38423d4c7
+    type: CHART
+    id: CHART-2b87513c
+    children: []
+  GRID_ID:
+    type: GRID
+    id: GRID_ID
+    children:
+    - ROW-a7b16cb5
+    - ROW-72c218a5
+    - ROW-957ba55b
+    - ROW-af041bdd
+  HEADER_ID:
+    meta:
+      text: deck.gl Demo
+    type: HEADER
+    id: HEADER_ID
+  ROOT_ID:
+    type: ROOT
+    id: ROOT_ID
+    children:
+    - GRID_ID
+  ROW-72c218a5:
+    meta:
+      background: BACKGROUND_TRANSPARENT
+    type: ROW
+    id: ROW-72c218a5
+    children:
+    - CHART-d02f6c40
+    - CHART-201f7715
+  ROW-957ba55b:
+    meta:
+      background: BACKGROUND_TRANSPARENT
+    type: ROW
+    id: ROW-957ba55b
+    children:
+    - CHART-2673431d
+    - CHART-85265a60
+  ROW-a7b16cb5:
+    meta:
+      background: BACKGROUND_TRANSPARENT
+    type: ROW
+    id: ROW-a7b16cb5
+    children:
+    - CHART-3afd9d70
+    - CHART-2ee7fa5e
+  ROW-af041bdd:
+    meta:
+      background: BACKGROUND_TRANSPARENT
+    type: ROW
+    id: ROW-af041bdd
+    children:
+    - CHART-2b87513c
+  DASHBOARD_VERSION_KEY: v2
+version: 1.0.0

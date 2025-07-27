@@ -1,0 +1,51 @@
+slice_name: Life Expectancy VS Rural %
+description: null
+certified_by: null
+certification_details: null
+viz_type: bubble
+params:
+  adhoc_filters:
+  - clause: WHERE
+    comparator:
+    - TCA
+    - MNP
+    - DMA
+    - MHL
+    - MCO
+    - SXM
+    - CYM
+    - TUV
+    - IMY
+    - KNA
+    - ASM
+    - ADO
+    - AMA
+    - PLW
+    expressionType: SIMPLE
+    filterOptionName: 2745eae5
+    operator: NOT IN
+    subject: country_code
+  compare_lag: '10'
+  compare_suffix: o10Y
+  country_fieldtype: cca3
+  entity: country_name
+  granularity_sqla: year
+  groupby: []
+  limit: 0
+  markup_type: markdown
+  max_bubble_size: '50'
+  row_limit: 50000
+  series: region
+  show_bubbles: true
+  since: '2011-01-01'
+  size: sum__SP_POP_TOTL
+  time_range: '2014-01-01 : 2014-01-02'
+  until: '2011-01-02'
+  viz_type: bubble
+  x: sum__SP_RUR_TOTL_ZS
+  y: sum__SP_DYN_LE00_IN
+query_context: null
+cache_timeout: null
+uuid: fa927236-7b66-4d03-ae6c-463d2d394123
+version: 1.0.0
+dataset_uuid: 3b851597-e0e9-42a1-83e4-55547811742e

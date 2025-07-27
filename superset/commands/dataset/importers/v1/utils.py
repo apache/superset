@@ -124,11 +124,13 @@ def import_dataset(  # noqa: C901
         if not overwrite or not can_write:
             return existing
         config["id"] = existing.id
-
+        logger.info(f"Updating existing dataset: {config.get('table_name')}")
     elif not can_write:
         raise ImportFailedError(
             "Dataset doesn't exist and user doesn't have permission to create datasets"
         )
+    else:
+        logger.info(f"Creating new dataset: {config.get('table_name')}")
 
     # TODO (betodealmeida): move this logic to import_from_dict
     config = config.copy()
@@ -209,7 +211,12 @@ def load_data(data_uri: str, dataset: SqlaTable, database: Database) -> None:
     data = request.urlopen(data_uri)  # pylint: disable=consider-using-with  # noqa: S310
     if data_uri.endswith(".gz"):
         data = gzip.open(data)
-    df = pd.read_csv(data, encoding="utf-8")
+
+    # Determine file format based on URI
+    if ".json" in data_uri:
+        df = pd.read_json(data, encoding="utf-8")
+    else:
+        df = pd.read_csv(data, encoding="utf-8")
     dtype = get_dtype(df, dataset)
 
     # convert temporal columns

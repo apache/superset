@@ -1,0 +1,28 @@
+slice_name: Daily Totals
+description: null
+certified_by: null
+certification_details: null
+viz_type: table
+params:
+  granularity_sqla: ds
+  groupby:
+  - ds
+  limit: '25'
+  markup_type: markdown
+  metrics:
+  - aggregate: SUM
+    column:
+      column_name: num
+      type: BIGINT
+    expressionType: SIMPLE
+    label: Births
+    optionName: metric_11
+  row_limit: 50
+  time_range: '1983 : 2023'
+  timeseries_limit_metric: sum__num
+  viz_type: table
+query_context: null
+cache_timeout: null
+uuid: a3d4f2e1-8c9b-4d2a-9e7f-1b6c8d5e2f4a
+version: 1.0.0
+dataset_uuid: 4ec507ac-bece-4d2b-8dc3-cfb7c3515e76

@@ -166,11 +166,14 @@ def import_dashboard(  # noqa: C901
         elif not overwrite or not can_write:
             return existing
         config["id"] = existing.id
+        logger.info(f"Updating existing dashboard: {config.get('dashboard_title')}")
     elif not can_write:
         raise ImportFailedError(
             "Dashboard doesn't exist and user doesn't "
             "have permission to create dashboards"
         )
+    else:
+        logger.info(f"Creating new dashboard: {config.get('dashboard_title')}")
 
     # TODO (betodealmeida): move this logic to import_from_dict
     config = config.copy()

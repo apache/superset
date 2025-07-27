@@ -1,0 +1,83 @@
+dashboard_title: Misc Charts
+description: null
+css: null
+slug: misc_charts
+certified_by: null
+certification_details: null
+published: false
+uuid: 55a4fe9f-2682-4b0d-84c7-49ded4be11db
+position:
+  CHART-HJOYVMV0E7:
+    children: []
+    id: CHART-HJOYVMV0E7
+    meta:
+      chartId: 30
+      height: 69
+      sliceName: OSM Long/Lat
+      uuid: a4e90860-c8f5-4c50-8c04-06b2e144809c
+      width: 4
+    parents:
+    - ROOT_ID
+    - GRID_ID
+    - ROW-S1MK4M4A4X
+    - COLUMN-ByUFVf40EQ
+    type: CHART
+  CHART-S1WYNz4AVX:
+    children: []
+    id: CHART-S1WYNz4AVX
+    meta:
+      chartId: 10
+      height: 69
+      sliceName: Parallel Coordinates
+      uuid: 041377c4-0ca9-4a40-8abd-befcd137c0dc
+      width: 4
+    parents:
+    - ROOT_ID
+    - GRID_ID
+    - ROW-SytNzNA4X
+    type: CHART
+  CHART-rkgF4G4A4X:
+    children: []
+    id: CHART-rkgF4G4A4X
+    meta:
+      chartId: 31
+      height: 69
+      sliceName: Birth in France by department in 2016
+      uuid: 6bd584f1-0ef5-44fc-8a05-61400f83bb62
+      width: 4
+    parents:
+    - ROOT_ID
+    - GRID_ID
+    - ROW-SytNzNA4X
+    type: CHART
+  DASHBOARD_VERSION_KEY: v2
+  GRID_ID:
+    children:
+    - ROW-SytNzNA4X
+    id: GRID_ID
+    parents:
+    - ROOT_ID
+    type: GRID
+  HEADER_ID:
+    id: HEADER_ID
+    meta:
+      text: Misc Charts
+    type: HEADER
+  ROOT_ID:
+    children:
+    - GRID_ID
+    id: ROOT_ID
+    type: ROOT
+  ROW-SytNzNA4X:
+    children:
+    - CHART-rkgF4G4A4X
+    - CHART-S1WYNz4AVX
+    - CHART-HJOYVMV0E7
+    id: ROW-SytNzNA4X
+    meta:
+      background: BACKGROUND_TRANSPARENT
+    parents:
+    - ROOT_ID
+    - GRID_ID
+    type: ROW
+version: 1.0.0

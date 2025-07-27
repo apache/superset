@@ -1,0 +1,42 @@
+slice_name: Deck.gl Hexagons
+description: null
+certified_by: null
+certification_details: null
+viz_type: deck_hex
+params:
+  color_picker:
+    a: 1
+    b: 0
+    g: 255
+    r: 14
+  datasource: 5__table
+  extruded: true
+  granularity_sqla: null
+  grid_size: 40
+  groupby: []
+  mapbox_style: https://tile.openstreetmap.org/{z}/{x}/{y}.png
+  point_radius: Auto
+  point_radius_fixed:
+    type: fix
+    value: 2000
+  point_radius_unit: Pixels
+  row_limit: 5000
+  size: count
+  spatial:
+    latCol: LAT
+    lonCol: LON
+    type: latlong
+  time_grain_sqla: null
+  time_range: No filter
+  viewport:
+    bearing: -2.3984797349335167
+    latitude: 37.789795085160335
+    longitude: -122.40632230075536
+    pitch: 54.08961642447763
+    zoom: 13.835465702403654
+  viz_type: deck_hex
+query_context: null
+cache_timeout: null
+uuid: bdfdce5d-c44d-4c63-8a45-0b2a1a29715b
+version: 1.0.0
+dataset_uuid: 605eaec7-ebf1-4fea-ac4b-07652fcb46e7

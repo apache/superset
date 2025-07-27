@@ -123,6 +123,9 @@ class ExportDashboardsCommand(ExportModelsCommand):
             include_defaults=True,
             export_uuids=True,
         )
+        # Remove theme_id from export to make dashboards theme-free
+        payload.pop("theme_id", None)
+
         # TODO (betodealmeida): move this logic to export_to_dict once this
         #  becomes the default export endpoint
         for key, new_name in JSON_KEYS.items():

@@ -55,6 +55,7 @@ esm/*
 tsconfig.tsbuildinfo
 .*ipynb
 .*yml
+.*yaml
 .*iml
 .esprintrc
 .prettierignore

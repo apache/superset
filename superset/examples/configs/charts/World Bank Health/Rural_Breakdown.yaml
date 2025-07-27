@@ -1,0 +1,38 @@
+slice_name: Rural Breakdown
+description: null
+certified_by: null
+certification_details: null
+viz_type: sunburst_v2
+params:
+  columns:
+  - region
+  - country_name
+  compare_lag: '10'
+  compare_suffix: o10Y
+  country_fieldtype: cca3
+  entity: country_code
+  granularity_sqla: year
+  groupby: []
+  limit: '25'
+  markup_type: markdown
+  metric: sum__SP_POP_TOTL
+  row_limit: 50000
+  secondary_metric:
+    aggregate: SUM
+    column:
+      column_name: SP_RUR_TOTL
+      optionName: _col_SP_RUR_TOTL
+      type: DOUBLE
+    expressionType: SIMPLE
+    hasCustomLabel: true
+    label: Rural Population
+  show_bubbles: true
+  since: '2011-01-01'
+  time_range: '2014-01-01 : 2014-01-02'
+  until: '2011-01-02'
+  viz_type: sunburst_v2
+query_context: null
+cache_timeout: null
+uuid: 70a2e07b-0f45-4532-96ae-0c6db52d2e7c
+version: 1.0.0
+dataset_uuid: 3b851597-e0e9-42a1-83e4-55547811742e

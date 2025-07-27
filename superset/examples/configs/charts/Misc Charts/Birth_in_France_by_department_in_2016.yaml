@@ -1,0 +1,26 @@
+slice_name: Birth in France by department in 2016
+description: null
+certified_by: null
+certification_details: null
+viz_type: country_map
+params:
+  entity: DEPT_ID
+  granularity_sqla: ''
+  metric:
+    aggregate: AVG
+    column:
+      column_name: '2004'
+      type: INT
+    expressionType: SIMPLE
+    label: Boys
+    optionName: metric_112342
+  row_limit: 500000
+  select_country: france
+  since: ''
+  until: ''
+  viz_type: country_map
+query_context: null
+cache_timeout: null
+uuid: 6bd584f1-0ef5-44fc-8a05-61400f83bb62
+version: 1.0.0
+dataset_uuid: c21dd48d-9a4b-4a08-a926-47c3601c2a8d

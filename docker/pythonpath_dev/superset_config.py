@@ -14,6 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+# mypy: disable-error-code="assignment,misc"
 #
 # This file is included in the final Docker image and SHOULD be overridden when
 # deploying the image to prod. Settings configured here are intended for use in local

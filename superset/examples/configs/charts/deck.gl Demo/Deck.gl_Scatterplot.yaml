@@ -1,0 +1,42 @@
+slice_name: Deck.gl Scatterplot
+description: null
+certified_by: null
+certification_details: null
+viz_type: deck_scatter
+params:
+  color_picker:
+    a: 0.82
+    b: 3
+    g: 0
+    r: 205
+  datasource: 5__table
+  granularity_sqla: null
+  groupby: []
+  mapbox_style: https://tile.openstreetmap.org/{z}/{x}/{y}.png
+  max_radius: 250
+  min_radius: 1
+  multiplier: 10
+  point_radius_fixed:
+    type: metric
+    value: count
+  point_unit: square_m
+  row_limit: 5000
+  size: count
+  spatial:
+    latCol: LAT
+    lonCol: LON
+    type: latlong
+  time_grain_sqla: null
+  time_range: ' : '
+  viewport:
+    bearing: -4.952916738791771
+    latitude: 37.78926922909199
+    longitude: -122.42613341901688
+    pitch: 4.750411100577438
+    zoom: 12.729132798697304
+  viz_type: deck_scatter
+query_context: null
+cache_timeout: null
+uuid: cc75c4d5-8f79-4ffd-8e75-06162d4a867f
+version: 1.0.0
+dataset_uuid: 605eaec7-ebf1-4fea-ac4b-07652fcb46e7

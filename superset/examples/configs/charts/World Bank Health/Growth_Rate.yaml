@@ -1,0 +1,29 @@
+slice_name: Growth Rate
+description: null
+certified_by: null
+certification_details: null
+viz_type: echarts_timeseries_line
+params:
+  compare_lag: '10'
+  compare_suffix: o10Y
+  country_fieldtype: cca3
+  entity: country_code
+  granularity_sqla: year
+  groupby:
+  - country_name
+  limit: '25'
+  markup_type: markdown
+  metrics:
+  - sum__SP_POP_TOTL
+  num_period_compare: '10'
+  row_limit: 50000
+  show_bubbles: true
+  since: '1960-01-01'
+  time_range: '2014-01-01 : 2014-01-02'
+  until: '2014-01-02'
+  viz_type: echarts_timeseries_line
+query_context: null
+cache_timeout: null
+uuid: cfcd7c5e-4759-4b28-bb7c-e2200508e978
+version: 1.0.0
+dataset_uuid: 3b851597-e0e9-42a1-83e4-55547811742e

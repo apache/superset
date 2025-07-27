@@ -49,7 +49,7 @@ from urllib.error import HTTPError
 
 import pandas as pd
 
-from superset import app, db
+from superset import db
 from superset.connectors.sqla.models import SqlaTable
 from superset.models.slice import Slice
 from superset.utils import json
@@ -76,11 +76,6 @@ misc_dash_slices: set[str] = set()
 def get_table_connector_registry() -> Any:
     """Return the SqlaTable registry so we can mock it in unit tests."""
     return SqlaTable
-
-
-def get_examples_folder() -> str:
-    """Return local path to the examples folder (when vendored)."""
-    return os.path.join(app.config["BASE_DIR"], "examples")
 
 
 def update_slice_ids(pos: dict[Any, Any]) -> list[Slice]:

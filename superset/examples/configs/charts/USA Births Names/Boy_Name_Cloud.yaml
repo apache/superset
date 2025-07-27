@@ -1,0 +1,31 @@
+slice_name: Boy Name Cloud
+description: null
+certified_by: null
+certification_details: null
+viz_type: word_cloud
+params:
+  adhoc_filters:
+  - clause: WHERE
+    comparator: boy
+    expressionType: SIMPLE
+    operator: ==
+    subject: gender
+  compare_lag: '10'
+  compare_suffix: o10Y
+  granularity_sqla: ds
+  groupby: []
+  limit: '100'
+  markup_type: markdown
+  metric: sum__num
+  rotation: square
+  row_limit: 50000
+  series: name
+  size_from: '10'
+  size_to: '70'
+  time_range: '100 years ago : now'
+  viz_type: word_cloud
+query_context: null
+cache_timeout: null
+uuid: 6994ec83-0cf2-4a26-97e2-1e30b0002aa0
+version: 1.0.0
+dataset_uuid: 4ec507ac-bece-4d2b-8dc3-cfb7c3515e76

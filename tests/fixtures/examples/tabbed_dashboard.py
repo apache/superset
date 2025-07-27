@@ -18,10 +18,9 @@ import logging
 import textwrap
 
 from superset import db
+from superset.examples.helpers import update_slice_ids
 from superset.models.dashboard import Dashboard
 from superset.utils import json
-
-from .helpers import update_slice_ids
 
 logger = logging.getLogger(__name__)
 

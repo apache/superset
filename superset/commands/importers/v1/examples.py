@@ -195,4 +195,5 @@ class ImportExamplesCommand(ImportModelsCommand):
             {"dashboard_id": dashboard_id, "slice_id": chart_id}
             for (dashboard_id, chart_id) in dashboard_chart_ids
         ]
-        db.session.execute(dashboard_slices.insert(), values)
+        if values:
+            db.session.execute(dashboard_slices.insert(), values)

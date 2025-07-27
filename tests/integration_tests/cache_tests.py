@@ -20,14 +20,15 @@ import pytest
 
 from superset import app, db  # noqa: F401
 from superset.common.db_query_status import QueryStatus
+from superset.connectors.sqla.models import SqlaTable
 from superset.extensions import cache_manager
-from superset.utils import json
 from tests.integration_tests.base_tests import SupersetTestCase
 from tests.integration_tests.constants import ADMIN_USERNAME
 from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,  # noqa: F401
     load_birth_names_data,  # noqa: F401
 )
+from tests.integration_tests.fixtures.query_context import get_query_context
 
 
 class TestCache(SupersetTestCase):
@@ -47,11 +48,10 @@ class TestCache(SupersetTestCase):
         app.config["DATA_CACHE_CONFIG"] = {"CACHE_TYPE": "NullCache"}
         cache_manager.init_app(app)
 
-        slc = self.get_slice("Pivot Table v2")
+        slc = self.get_slice("Genders")
 
-        # Get chart metadata
-        metadata = self.get_json_resp(f"api/v1/chart/{slc.id}")
-        query_context = json.loads(metadata.get("result").get("query_context"))
+        # Get query context using the fixture
+        query_context = get_query_context("birth_names")
         query_context["form_data"] = slc.form_data
 
         # Request chart for the first time
@@ -83,11 +83,16 @@ class TestCache(SupersetTestCase):
         }
         cache_manager.init_app(app)
 
-        slc = self.get_slice("Pivot Table v2")
+        slc = self.get_slice("Genders")
 
-        # Get chart metadata
-        metadata = self.get_json_resp(f"api/v1/chart/{slc.id}")
-        query_context = json.loads(metadata.get("result").get("query_context"))
+        # Clear the datasource cache timeout to test fallback to DATA_CACHE_CONFIG
+        datasource = db.session.query(SqlaTable).filter_by(id=slc.datasource_id).one()
+        original_cache_timeout = datasource.cache_timeout
+        datasource.cache_timeout = None
+        db.session.commit()
+
+        # Get query context using the fixture
+        query_context = get_query_context("birth_names")
         query_context["form_data"] = slc.form_data
 
         # Request chart for the first time
@@ -122,6 +127,10 @@ class TestCache(SupersetTestCase):
 
         # should not exists in `cache`
         assert cache_manager.cache.get(cached_result["cache_key"]) is None
+
+        # reset datasource cache timeout
+        datasource.cache_timeout = original_cache_timeout
+        db.session.commit()
 
         # reset cache config
         app.config["DATA_CACHE_CONFIG"] = data_cache_config
