@@ -19,19 +19,26 @@
 const jwt = require('jsonwebtoken');
 const config = require('../config.test.json');
 
-import { describe, expect, test, beforeEach, afterEach, jest } from '@jest/globals';
+import {
+  describe,
+  expect,
+  test,
+  beforeEach,
+  afterEach,
+  jest,
+} from '@jest/globals';
 import * as http from 'http';
 import * as net from 'net';
 import { WebSocket } from 'ws';
 
 interface MockedRedisXrange {
-  (): Promise<server.StreamResult[]>
+  (): Promise<server.StreamResult[]>;
 }
 
 // NOTE: these mock variables needs to start with "mock" due to
 // calls to `jest.mock` being hoisted to the top of the file.
 // https://jestjs.io/docs/es6-class-mocks#calling-jestmock-with-the-module-factory-parameter
-const mockRedisXrange = jest.fn() as jest.MockedFunction<MockedRedisXrange>
+const mockRedisXrange = jest.fn() as jest.MockedFunction<MockedRedisXrange>;
 
 jest.mock('ws');
 jest.mock('ioredis', () => {
@@ -325,7 +332,9 @@ describe('server', () => {
     let ws: WebSocket;
     let wsEventMock: jest.SpiedFunction<typeof ws.on>;
     let trackClientSpy: jest.SpiedFunction<typeof server.trackClient>;
-    let fetchRangeFromStreamSpy: jest.SpiedFunction<typeof server.fetchRangeFromStream>;
+    let fetchRangeFromStreamSpy: jest.SpiedFunction<
+      typeof server.fetchRangeFromStream
+    >;
     let dateNowSpy: jest.SpiedFunction<typeof Date.now>;
     let socketInstanceExpected: server.SocketInstance;
 
