@@ -19,8 +19,10 @@
 Pydantic schemas for chart-related responses
 """
 
+from __future__ import annotations
+
 from datetime import datetime
-from typing import Annotated, Any, Dict, List, Literal, Optional, Union
+from typing import Annotated, Any, Dict, List, Literal, Optional, Protocol
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator, PositiveInt
 
@@ -30,6 +32,32 @@ from superset.mcp_service.pydantic_schemas.system_schemas import (
     TagInfo,
     UserInfo,
 )
+
+
+class ChartLike(Protocol):
+    """Protocol for chart-like objects with expected attributes."""
+
+    id: int
+    slice_name: Optional[str]
+    viz_type: Optional[str]
+    datasource_name: Optional[str]
+    datasource_type: Optional[str]
+    url: Optional[str]
+    description: Optional[str]
+    cache_timeout: Optional[int]
+    form_data: Optional[Dict[str, Any]]
+    query_context: Optional[Any]
+    changed_by: Optional[Any]  # User object
+    changed_by_name: Optional[str]
+    changed_on: Optional[str | datetime]
+    changed_on_humanized: Optional[str]
+    created_by: Optional[Any]  # User object
+    created_by_name: Optional[str]
+    created_on: Optional[str | datetime]
+    created_on_humanized: Optional[str]
+    uuid: Optional[str]
+    tags: Optional[List[Any]]
+    owners: Optional[List[Any]]
 
 
 class ChartInfo(BaseModel):
@@ -49,16 +77,14 @@ class ChartInfo(BaseModel):
     changed_by_name: Optional[str] = Field(
         None, description="Last modifier (display name)"
     )
-    changed_on: Optional[Union[str, datetime]] = Field(
+    changed_on: Optional[str | datetime] = Field(
         None, description="Last modification timestamp"
     )
     changed_on_humanized: Optional[str] = Field(
         None, description="Humanized modification time"
     )
     created_by: Optional[str] = Field(None, description="Chart creator (username)")
-    created_on: Optional[Union[str, datetime]] = Field(
-        None, description="Creation timestamp"
-    )
+    created_on: Optional[str | datetime] = Field(None, description="Creation timestamp")
     created_on_humanized: Optional[str] = Field(
         None, description="Humanized creation time"
     )
@@ -77,9 +103,7 @@ class ChartAvailableFiltersResponse(BaseModel):
 class ChartError(BaseModel):
     error: str = Field(..., description="Error message")
     error_type: str = Field(..., description="Type of error")
-    timestamp: Optional[Union[str, datetime]] = Field(
-        None, description="Error timestamp"
-    )
+    timestamp: Optional[str | datetime] = Field(None, description="Error timestamp")
     model_config = ConfigDict(ser_json_timedelta="iso8601")
 
 
@@ -87,12 +111,12 @@ class GetChartInfoRequest(BaseModel):
     """Request schema for get_chart_info with support for ID or UUID."""
 
     identifier: Annotated[
-        Union[int, str],
+        int | str,
         Field(description="Chart identifier - can be numeric ID or UUID string"),
     ]
 
 
-def serialize_chart_object(chart: Any) -> Optional[ChartInfo]:
+def serialize_chart_object(chart: ChartLike | None) -> ChartInfo | None:
     if not chart:
         return None
     return ChartInfo(
@@ -174,7 +198,7 @@ class ChartFilter(ColumnOperator):
         description="Operator to use. See get_chart_available_filters for "
         "allowed values.",
     )
-    value: Any = Field(
+    value: str | int | float | bool | List[str | int | float | bool] = Field(
         ..., description="Value to filter by (type depends on col and opr)"
     )
 
@@ -232,7 +256,7 @@ class FilterConfig(BaseModel):
     op: Literal["=", ">", "<", ">=", "<=", "!="] = Field(
         ..., description="Filter operator"
     )
-    value: Union[str, int, float, bool] = Field(..., description="Filter value")
+    value: str | int | float | bool = Field(..., description="Filter value")
 
 
 # Actual chart types
@@ -258,7 +282,7 @@ class XYChartConfig(BaseModel):
 
 
 # Discriminated union entry point
-ChartConfig = Union[TableChartConfig, XYChartConfig]
+ChartConfig = TableChartConfig | XYChartConfig
 
 
 class ListChartsRequest(BaseModel):
@@ -332,10 +356,98 @@ class ListChartsRequest(BaseModel):
 
 # The tool input models
 class CreateChartRequest(BaseModel):
-    dataset_id: str = Field(..., description="ID of the dataset to use")
+    dataset_id: int | str = Field(..., description="Dataset identifier (ID, UUID)")
     config: ChartConfig = Field(..., description="Chart configuration")
+    generate_preview: bool = Field(
+        default=False,
+        description="Whether to generate a preview after creating the chart",
+    )
 
 
 class GenerateExploreLinkRequest(BaseModel):
-    dataset_id: str = Field(..., description="ID of the dataset to explore")
+    dataset_id: int | str = Field(..., description="Dataset identifier (ID, UUID)")
     config: ChartConfig = Field(..., description="Chart configuration")
+
+
+class GetChartDataRequest(BaseModel):
+    """Request for chart data."""
+
+    identifier: int | str = Field(description="Chart identifier (ID, UUID)")
+    limit: Optional[int] = Field(
+        default=100, description="Maximum number of data rows to return"
+    )
+
+
+class ChartData(BaseModel):
+    """Chart data response."""
+
+    chart_id: int
+    chart_name: str
+    chart_type: str
+    columns: List[str] = Field(description="Column names in the data")
+    data: List[Dict[str, Any]] = Field(description="Chart data rows")
+    row_count: int = Field(description="Number of rows returned")
+    total_rows: Optional[int] = Field(description="Total rows available")
+    summary: str = Field(description="Human-readable summary of the chart data")
+
+
+class GetChartPreviewRequest(BaseModel):
+    """Request for chart preview."""
+
+    identifier: int | str = Field(description="Chart identifier (ID, UUID)")
+    format: Literal["url", "ascii", "table", "base64"] = Field(
+        default="url",
+        description=(
+            "Preview format: 'url' for image URL, 'ascii' for text art, "
+            "'table' for data table, 'base64' for embedded image"
+        ),
+    )
+    width: Optional[int] = Field(
+        default=800,
+        description="Preview image width in pixels (for url/base64 formats)",
+    )
+    height: Optional[int] = Field(
+        default=600,
+        description="Preview image height in pixels (for url/base64 formats)",
+    )
+    ascii_width: Optional[int] = Field(
+        default=80, description="ASCII chart width in characters (for ascii format)"
+    )
+    ascii_height: Optional[int] = Field(
+        default=20, description="ASCII chart height in lines (for ascii format)"
+    )
+
+
+class ChartPreview(BaseModel):
+    """Chart preview response."""
+
+    chart_id: int
+    chart_name: str
+    chart_type: str = Field(description="Type of chart visualization")
+    format: str = Field(description="Format of the preview (url, ascii, table, base64)")
+    explore_url: str = Field(description="URL to open chart in Superset for editing")
+
+    # Format-specific content (only one will be populated based on format)
+    preview_url: Optional[str] = Field(
+        default=None, description="Image URL for 'url' format"
+    )
+    ascii_chart: Optional[str] = Field(
+        default=None, description="ASCII art chart for 'ascii' format"
+    )
+    table_data: Optional[str] = Field(
+        default=None, description="Formatted table for 'table' format"
+    )
+    base64_image: Optional[str] = Field(
+        default=None, description="Base64 encoded PNG for 'base64' format"
+    )
+
+    # Metadata
+    width: Optional[int] = Field(
+        default=None, description="Width (pixels for images, characters for ASCII)"
+    )
+    height: Optional[int] = Field(
+        default=None, description="Height (pixels for images, lines for ASCII)"
+    )
+    chart_description: str = Field(
+        description="Human-readable description of the chart"
+    )

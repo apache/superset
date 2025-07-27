@@ -26,8 +26,8 @@ import logging
 from typing import Any
 
 from superset.mcp_service.auth import mcp_auth_hook
+from superset.mcp_service.generic_tools import ModelGetInfoTool
 from superset.mcp_service.mcp_app import mcp
-from superset.mcp_service.model_tools import ModelGetInfoTool
 from superset.mcp_service.pydantic_schemas import DashboardError, DashboardInfo
 from superset.mcp_service.pydantic_schemas.chart_schemas import serialize_chart_object
 from superset.mcp_service.pydantic_schemas.dashboard_schemas import (

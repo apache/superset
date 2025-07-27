@@ -63,8 +63,10 @@ Example usage:
     )
 """
 
+from __future__ import annotations
+
 from datetime import datetime
-from typing import Annotated, Any, Dict, List, Literal, Optional, Union
+from typing import Annotated, Any, Dict, List, Literal, Optional
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator, PositiveInt
 
@@ -83,9 +85,7 @@ class DashboardError(BaseModel):
 
     error: str = Field(..., description="Error message")
     error_type: str = Field(..., description="Type of error")
-    timestamp: Optional[Union[str, datetime]] = Field(
-        None, description="Error timestamp"
-    )
+    timestamp: Optional[str | datetime] = Field(None, description="Error timestamp")
 
     model_config = ConfigDict(ser_json_timedelta="iso8601")
 
@@ -183,7 +183,7 @@ class DashboardFilter(ColumnOperator):
         description="Operator to use. See get_dashboard_available_filters for "
         "allowed values.",
     )
-    value: Any = Field(
+    value: str | int | float | bool | List[str | int | float | bool] = Field(
         ..., description="Value to filter by (type depends on col and opr)"
     )
 
@@ -258,7 +258,7 @@ class GetDashboardInfoRequest(BaseModel):
     """Request schema for get_dashboard_info with support for ID, UUID, or slug."""
 
     identifier: Annotated[
-        Union[int, str],
+        int | str,
         Field(
             description="Dashboard identifier - can be numeric ID, UUID string, or slug"
         ),
@@ -288,10 +288,8 @@ class DashboardInfo(BaseModel):
         None, description="Whether managed externally"
     )
     external_url: Optional[str] = Field(None, description="External URL")
-    created_on: Optional[Union[str, datetime]] = Field(
-        None, description="Creation timestamp"
-    )
-    changed_on: Optional[Union[str, datetime]] = Field(
+    created_on: Optional[str | datetime] = Field(None, description="Creation timestamp")
+    changed_on: Optional[str | datetime] = Field(
         None, description="Last modification timestamp"
     )
     created_by: Optional[str] = Field(None, description="Dashboard creator (username)")

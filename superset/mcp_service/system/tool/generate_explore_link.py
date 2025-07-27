@@ -37,7 +37,7 @@ from superset.mcp_service.pydantic_schemas.chart_schemas import (
 
 @mcp.tool
 @mcp_auth_hook
-async def generate_explore_link(request: GenerateExploreLinkRequest) -> Dict[str, Any]:
+def generate_explore_link(request: GenerateExploreLinkRequest) -> Dict[str, Any]:
     """
     Generate a Superset explore URL with pre-configured chart configuration.
 

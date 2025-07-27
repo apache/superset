@@ -20,7 +20,7 @@ Comprehensive unit tests for MCP generate_explore_link tool
 """
 
 import logging
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 import pytest
 from fastmcp import Client
@@ -45,18 +45,27 @@ def mcp_server():
     return mcp
 
 
+def _mock_dataset(id: int = 1) -> Mock:
+    """Create a mock dataset object."""
+    dataset = Mock()
+    dataset.id = id
+    return dataset
+
+
 class TestGenerateExploreLink:
     """Comprehensive tests for generate_explore_link MCP tool."""
 
+    @patch("superset.daos.dataset.DatasetDAO.find_by_id")
     @patch(
         "superset.mcp_service.commands.create_form_data.MCPCreateFormDataCommand.run"
     )
     @pytest.mark.asyncio
     async def test_generate_table_explore_link_minimal(
-        self, mock_create_form_data, mcp_server
+        self, mock_create_form_data, mock_find_dataset, mcp_server
     ):
         """Test generating explore link for minimal table chart."""
         mock_create_form_data.return_value = "test_form_data_key_123"
+        mock_find_dataset.return_value = _mock_dataset(id=1)
 
         config = TableChartConfig(
             chart_type="table", columns=[ColumnRef(name="region")]
@@ -74,15 +83,17 @@ class TestGenerateExploreLink:
             )
             mock_create_form_data.assert_called_once()
 
+    @patch("superset.daos.dataset.DatasetDAO.find_by_id")
     @patch(
         "superset.mcp_service.commands.create_form_data.MCPCreateFormDataCommand.run"
     )
     @pytest.mark.asyncio
     async def test_generate_table_explore_link_with_features(
-        self, mock_create_form_data, mcp_server
+        self, mock_create_form_data, mock_find_dataset, mcp_server
     ):
         """Test generating explore link for table chart with features."""
         mock_create_form_data.return_value = "comprehensive_key_456"
+        mock_find_dataset.return_value = _mock_dataset(id=5)
 
         config = TableChartConfig(
             chart_type="table",
@@ -108,15 +119,17 @@ class TestGenerateExploreLink:
             assert result.data["url"] == "/explore/?form_data_key=comprehensive_key_456"
             mock_create_form_data.assert_called_once()
 
+    @patch("superset.daos.dataset.DatasetDAO.find_by_id")
     @patch(
         "superset.mcp_service.commands.create_form_data.MCPCreateFormDataCommand.run"
     )
     @pytest.mark.asyncio
     async def test_generate_line_chart_explore_link(
-        self, mock_create_form_data, mcp_server
+        self, mock_create_form_data, mock_find_dataset, mcp_server
     ):
         """Test generating explore link for line chart."""
         mock_create_form_data.return_value = "line_chart_key_789"
+        mock_find_dataset.return_value = _mock_dataset(id=3)
 
         config = XYChartConfig(
             chart_type="xy",
@@ -142,15 +155,17 @@ class TestGenerateExploreLink:
             assert result.data["url"] == "/explore/?form_data_key=line_chart_key_789"
             mock_create_form_data.assert_called_once()
 
+    @patch("superset.daos.dataset.DatasetDAO.find_by_id")
     @patch(
         "superset.mcp_service.commands.create_form_data.MCPCreateFormDataCommand.run"
     )
     @pytest.mark.asyncio
     async def test_generate_bar_chart_explore_link(
-        self, mock_create_form_data, mcp_server
+        self, mock_create_form_data, mock_find_dataset, mcp_server
     ):
         """Test generating explore link for bar chart."""
         mock_create_form_data.return_value = "bar_chart_key_abc"
+        mock_find_dataset.return_value = _mock_dataset(id=7)
 
         config = XYChartConfig(
             chart_type="xy",
@@ -171,15 +186,17 @@ class TestGenerateExploreLink:
             assert result.data["url"] == "/explore/?form_data_key=bar_chart_key_abc"
             mock_create_form_data.assert_called_once()
 
+    @patch("superset.daos.dataset.DatasetDAO.find_by_id")
     @patch(
         "superset.mcp_service.commands.create_form_data.MCPCreateFormDataCommand.run"
     )
     @pytest.mark.asyncio
     async def test_generate_area_chart_explore_link(
-        self, mock_create_form_data, mcp_server
+        self, mock_create_form_data, mock_find_dataset, mcp_server
     ):
         """Test generating explore link for area chart."""
         mock_create_form_data.return_value = "area_chart_key_def"
+        mock_find_dataset.return_value = _mock_dataset(id=2)
 
         config = XYChartConfig(
             chart_type="xy",
@@ -203,15 +220,17 @@ class TestGenerateExploreLink:
             assert result.data["url"] == "/explore/?form_data_key=area_chart_key_def"
             mock_create_form_data.assert_called_once()
 
+    @patch("superset.daos.dataset.DatasetDAO.find_by_id")
     @patch(
         "superset.mcp_service.commands.create_form_data.MCPCreateFormDataCommand.run"
     )
     @pytest.mark.asyncio
     async def test_generate_scatter_chart_explore_link(
-        self, mock_create_form_data, mcp_server
+        self, mock_create_form_data, mock_find_dataset, mcp_server
     ):
         """Test generating explore link for scatter chart."""
         mock_create_form_data.return_value = "scatter_chart_key_ghi"
+        mock_find_dataset.return_value = _mock_dataset(id=4)
 
         config = XYChartConfig(
             chart_type="xy",
@@ -292,15 +311,17 @@ class TestGenerateExploreLink:
                 result.data["url"] == "/explore/?datasource_type=table&datasource_id=5"
             )
 
+    @patch("superset.daos.dataset.DatasetDAO.find_by_id")
     @patch(
         "superset.mcp_service.commands.create_form_data.MCPCreateFormDataCommand.run"
     )
     @pytest.mark.asyncio
     async def test_generate_explore_link_with_many_columns(
-        self, mock_create_form_data, mcp_server
+        self, mock_create_form_data, mock_find_dataset, mcp_server
     ):
         """Test generating explore link with many columns."""
         mock_create_form_data.return_value = "many_columns_key"
+        mock_find_dataset.return_value = _mock_dataset(id=1)
 
         # Create 15 columns
         columns = [
@@ -324,15 +345,17 @@ class TestGenerateExploreLink:
             assert result.data["url"] == "/explore/?form_data_key=many_columns_key"
             mock_create_form_data.assert_called_once()
 
+    @patch("superset.daos.dataset.DatasetDAO.find_by_id")
     @patch(
         "superset.mcp_service.commands.create_form_data.MCPCreateFormDataCommand.run"
     )
     @pytest.mark.asyncio
     async def test_generate_explore_link_with_many_filters(
-        self, mock_create_form_data, mcp_server
+        self, mock_create_form_data, mock_find_dataset, mcp_server
     ):
         """Test generating explore link with many filters."""
         mock_create_form_data.return_value = "many_filters_key"
+        mock_find_dataset.return_value = _mock_dataset(id=1)
 
         # Create 12 filters
         filters = [
@@ -362,15 +385,17 @@ class TestGenerateExploreLink:
             assert result.data["url"] == "/explore/?form_data_key=many_filters_key"
             mock_create_form_data.assert_called_once()
 
+    @patch("superset.daos.dataset.DatasetDAO.find_by_id")
     @patch(
         "superset.mcp_service.commands.create_form_data.MCPCreateFormDataCommand.run"
     )
     @pytest.mark.asyncio
     async def test_explore_link_url_format_consistency(
-        self, mock_create_form_data, mcp_server
+        self, mock_create_form_data, mock_find_dataset, mcp_server
     ):
         """Test that all generated URLs follow consistent format."""
         mock_create_form_data.return_value = "consistency_test_key"
+        mock_find_dataset.return_value = _mock_dataset(id=1)
 
         configs = [
             TableChartConfig(chart_type="table", columns=[ColumnRef(name="col1")]),
@@ -414,15 +439,17 @@ class TestGenerateExploreLink:
                 )
                 assert result.data["error"] is None
 
+    @patch("superset.daos.dataset.DatasetDAO.find_by_id")
     @patch(
         "superset.mcp_service.commands.create_form_data.MCPCreateFormDataCommand.run"
     )
     @pytest.mark.asyncio
     async def test_generate_explore_link_dataset_id_types(
-        self, mock_create_form_data, mcp_server
+        self, mock_create_form_data, mock_find_dataset, mcp_server
     ):
         """Test explore link generation with different dataset_id formats."""
         mock_create_form_data.return_value = "dataset_test_key"
+        mock_find_dataset.return_value = _mock_dataset(id=1)
 
         config = TableChartConfig(
             chart_type="table", columns=[ColumnRef(name="test_col")]
@@ -440,15 +467,17 @@ class TestGenerateExploreLink:
                 assert result.data["error"] is None
                 assert result.data["url"] == "/explore/?form_data_key=dataset_test_key"
 
+    @patch("superset.daos.dataset.DatasetDAO.find_by_id")
     @patch(
         "superset.mcp_service.commands.create_form_data.MCPCreateFormDataCommand.run"
     )
     @pytest.mark.asyncio
     async def test_generate_explore_link_complex_configuration(
-        self, mock_create_form_data, mcp_server
+        self, mock_create_form_data, mock_find_dataset, mcp_server
     ):
         """Test explore link generation with complex chart configuration."""
         mock_create_form_data.return_value = "complex_config_key"
+        mock_find_dataset.return_value = _mock_dataset(id=10)
 
         config = XYChartConfig(
             chart_type="xy",

@@ -369,7 +369,7 @@ async def test_get_dashboard_available_filters_exception_handling(mcp_server):
         assert hasattr(result.data, "column_operators")
 
 
-@patch("superset.mcp_service.model_tools.ModelGetInfoTool._find_object")
+@patch("superset.mcp_service.generic_tools.ModelGetInfoTool._find_object")
 @pytest.mark.asyncio
 async def test_get_dashboard_info_by_uuid(mock_find_object, mcp_server):
     """Test getting dashboard info using UUID identifier."""
@@ -409,7 +409,7 @@ async def test_get_dashboard_info_by_uuid(mock_find_object, mcp_server):
         assert result.data["dashboard_title"] == "Test Dashboard UUID"
 
 
-@patch("superset.mcp_service.model_tools.ModelGetInfoTool._find_object")
+@patch("superset.mcp_service.generic_tools.ModelGetInfoTool._find_object")
 @pytest.mark.asyncio
 async def test_get_dashboard_info_by_slug(mock_find_object, mcp_server):
     """Test getting dashboard info using slug identifier."""

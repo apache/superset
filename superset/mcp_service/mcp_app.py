@@ -23,7 +23,7 @@ middleware. All tool modules should import mcp from here and use @mcp.tool and
 """
 
 import logging
-from typing import Optional
+from typing import Any, Optional
 
 from fastmcp import FastMCP
 from fastmcp.server.auth.providers.bearer import BearerAuthProvider
@@ -83,6 +83,8 @@ Available tools include:
 - list_charts: Chart listing with advanced filters (use 'filters' for advanced
   queries, 1-based pagination)
 - get_chart_info: Get detailed information about a chart by its integer ID
+- get_chart_preview: Get a visual preview of a chart with image URL for display
+- get_chart_data: Get the underlying data for a chart in text-friendly format
 - get_chart_available_filters: List all available chart filter fields and operators
 - generate_explore_link: Generate a pre-configured explore URL with specified
   dataset, metrics, dimensions, and filters for direct navigation
@@ -108,7 +110,103 @@ get_superset_instance_info for a summary of the Superset instance.
 import superset.mcp_service.chart.tool  # noqa: F401, E402
 import superset.mcp_service.dashboard.tool  # noqa: F401, E402
 import superset.mcp_service.dataset.tool  # noqa: F401, E402
+import superset.mcp_service.sql_lab.tool  # noqa: F401, E402
 import superset.mcp_service.system.tool  # noqa: F401, E402
+
+
+# Add custom route for serving screenshot images
+async def serve_chart_screenshot(chart_id: str) -> Any:
+    """
+    Serve chart screenshot images directly as PNG files.
+    This endpoint provides public access to chart screenshots without authentication.
+    """
+    # Import Starlette components which are available in FastMCP
+    try:
+        from starlette.exceptions import HTTPException
+        from starlette.responses import Response
+    except ImportError:
+        # Fallback error
+        raise Exception("Starlette components not available") from None
+
+    logger = logging.getLogger(__name__)
+
+    try:
+        from flask import g
+
+        from superset import app as superset_app
+        from superset.daos.chart import ChartDAO
+        from superset.utils.screenshots import ChartScreenshot
+        from superset.utils.urls import get_url_path
+
+        # Set up Flask app context for database access
+        with superset_app.app_context():
+            # Create a mock user context - you might need to adjust this
+            from flask_appbuilder.security.sqla.models import User
+
+            from superset.extensions import db
+
+            mock_user = db.session.query(User).filter_by(username="amin").first()
+            if mock_user:
+                g.user = mock_user
+
+            # Find the chart
+            chart = None
+            if chart_id.isdigit():
+                chart = ChartDAO.find_by_id(int(chart_id))
+            else:
+                # Try UUID lookup using DAO flexible method
+                chart = ChartDAO.find_by_id(chart_id, id_column="uuid")
+
+            if not chart:
+                raise HTTPException(
+                    status_code=404, detail=f"Chart {chart_id} not found"
+                )
+
+            logger.info(f"Serving screenshot for chart {chart.id}: {chart.slice_name}")
+
+            # Create chart URL for screenshot
+            chart_url = get_url_path("Superset.slice", slice_id=chart.id)
+
+            # Create screenshot object
+            screenshot = ChartScreenshot(chart_url, chart.digest)
+
+            # Generate screenshot (800x600 default)
+            window_size = (800, 600)
+            image_data = screenshot.get_screenshot(user=g.user, window_size=window_size)
+
+            if image_data:
+                # Return the PNG image directly
+                return Response(
+                    content=image_data,
+                    media_type="image/png",
+                    headers={
+                        "Cache-Control": "public, max-age=3600",  # Cache for 1 hour
+                        "Content-Disposition": f"inline; filename=chart_{chart.id}.png",
+                    },
+                )
+            else:
+                raise HTTPException(
+                    status_code=500, detail="Failed to generate screenshot"
+                )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error serving screenshot for chart {chart_id}: {e}")
+        raise HTTPException(status_code=500, detail=str(e)) from e
+
+
+# Register the custom route using decorator syntax
+@mcp.custom_route("/screenshot/chart/{chart_id}.png", methods=["GET"])
+async def serve_chart_screenshot_endpoint(request: Any) -> Any:
+    """
+    Custom HTTP endpoint for serving chart screenshots.
+    """
+    # Extract chart_id from path parameters
+    chart_id = request.path_params["chart_id"]
+
+    # Call our screenshot function
+    return await serve_chart_screenshot(chart_id)
 
 
 def init_fastmcp_server(enable_auth_configuration: bool = True) -> FastMCP:

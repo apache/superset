@@ -1,13 +1,30 @@
 # Licensed to the Apache Software Foundation (ASF) under one
-# ... existing license ...
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+
 """
-Get Superset instance high-level information FastMCP tool
+Get Superset instance high-level information FastMCP tool using configurable
+InstanceInfoTool for flexible, extensible metrics calculation.
 """
 
 import logging
-from datetime import datetime, timedelta, timezone
+from typing import Any, Dict
 
 from superset.mcp_service.auth import mcp_auth_hook
+from superset.mcp_service.generic_tools import InstanceInfoTool
 from superset.mcp_service.mcp_app import mcp
 from superset.mcp_service.pydantic_schemas.system_schemas import (
     DashboardBreakdown,
@@ -21,144 +38,234 @@ from superset.mcp_service.pydantic_schemas.system_schemas import (
 logger = logging.getLogger(__name__)
 
 
+def calculate_dashboard_breakdown(
+    base_counts: Dict[str, int],
+    time_metrics: Dict[str, Dict[str, int]],
+    dao_classes: Dict[str, Any],
+) -> DashboardBreakdown:
+    """Calculate detailed dashboard breakdown metrics."""
+    try:
+        from superset.daos.base import ColumnOperator, ColumnOperatorEnum
+        from superset.extensions import db
+        from superset.models.dashboard import Dashboard
+
+        dashboard_dao = dao_classes["dashboards"]
+
+        # Published vs unpublished
+        published_count = dashboard_dao.count(
+            column_operators=[
+                ColumnOperator(col="published", opr=ColumnOperatorEnum.eq, value=True)
+            ]
+        )
+        unpublished_count = base_counts.get("total_dashboards", 0) - published_count
+
+        # Certified dashboards
+        certified_count = dashboard_dao.count(
+            column_operators=[
+                ColumnOperator(
+                    col="certified_by", opr=ColumnOperatorEnum.is_not_null, value=None
+                )
+            ]
+        )
+
+        # Dashboards with/without charts
+        dashboards_with_charts = (
+            db.session.query(Dashboard).join(Dashboard.slices).distinct().count()
+        )
+        dashboards_without_charts = (
+            base_counts.get("total_dashboards", 0) - dashboards_with_charts
+        )
+
+        return DashboardBreakdown(
+            published=published_count,
+            unpublished=unpublished_count,
+            certified=certified_count,
+            with_charts=dashboards_with_charts,
+            without_charts=dashboards_without_charts,
+        )
+    except Exception:
+        # Return empty breakdown on error
+        return DashboardBreakdown(
+            published=0,
+            unpublished=0,
+            certified=0,
+            with_charts=0,
+            without_charts=0,
+        )
+
+
+def calculate_database_breakdown(
+    base_counts: Dict[str, int],
+    time_metrics: Dict[str, Dict[str, int]],
+    dao_classes: Dict[str, Any],
+) -> DatabaseBreakdown:
+    """Calculate database type breakdown."""
+    try:
+        from superset.extensions import db
+        from superset.models.core import Database
+
+        # Get database types distribution
+        db_types = db.session.query(
+            Database.database_name, Database.sqlalchemy_uri
+        ).all()
+
+        type_counts: Dict[str, int] = {}
+        for _name, uri in db_types:
+            if uri:
+                # Extract database type from SQLAlchemy URI
+                db_type = uri.split("://")[0] if "://" in uri else "unknown"
+                type_counts[db_type] = type_counts.get(db_type, 0) + 1
+            else:
+                type_counts["unknown"] = type_counts.get("unknown", 0) + 1
+
+        return DatabaseBreakdown(by_type=type_counts)
+    except Exception:
+        # Return empty breakdown on error
+        return DatabaseBreakdown(by_type={})
+
+
+def calculate_instance_summary(
+    base_counts: Dict[str, int],
+    time_metrics: Dict[str, Dict[str, int]],
+    dao_classes: Dict[str, Any],
+) -> InstanceSummary:
+    """Calculate instance summary with computed metrics."""
+    try:
+        from flask_appbuilder.security.sqla.models import Role
+
+        from superset.extensions import db
+
+        # Add roles count (no DAO available)
+        total_roles = db.session.query(Role).count()
+
+        # Calculate average charts per dashboard
+        total_dashboards = base_counts.get("total_dashboards", 0)
+        total_charts = base_counts.get("total_charts", 0)
+        avg_charts_per_dashboard = (
+            (total_charts / total_dashboards) if total_dashboards > 0 else 0
+        )
+
+        return InstanceSummary(
+            total_dashboards=total_dashboards,
+            total_charts=total_charts,
+            total_datasets=base_counts.get("total_datasets", 0),
+            total_databases=base_counts.get("total_databases", 0),
+            total_users=base_counts.get("total_users", 0),
+            total_roles=total_roles,
+            total_tags=base_counts.get("total_tags", 0),
+            avg_charts_per_dashboard=round(avg_charts_per_dashboard, 2),
+        )
+    except Exception:
+        # Return empty summary on error
+        return InstanceSummary(
+            total_dashboards=0,
+            total_charts=0,
+            total_datasets=0,
+            total_databases=0,
+            total_users=0,
+            total_roles=0,
+            total_tags=0,
+            avg_charts_per_dashboard=0.0,
+        )
+
+
+def calculate_recent_activity(
+    base_counts: Dict[str, int],
+    time_metrics: Dict[str, Dict[str, int]],
+    dao_classes: Dict[str, Any],
+) -> RecentActivity:
+    """Transform time metrics into RecentActivity format."""
+    monthly = time_metrics.get("monthly", {})
+    recent = time_metrics.get("recent", {})
+
+    return RecentActivity(
+        dashboards_created_last_30_days=monthly.get("dashboards_created", 0),
+        charts_created_last_30_days=monthly.get("charts_created", 0),
+        datasets_created_last_30_days=monthly.get("datasets_created", 0),
+        dashboards_modified_last_7_days=recent.get("dashboards_modified", 0),
+        charts_modified_last_7_days=recent.get("charts_modified", 0),
+        datasets_modified_last_7_days=recent.get("datasets_modified", 0),
+    )
+
+
+def calculate_popular_content(
+    base_counts: Dict[str, int],
+    time_metrics: Dict[str, Dict[str, int]],
+    dao_classes: Dict[str, Any],
+) -> PopularContent:
+    """Calculate popular content metrics (placeholder implementation)."""
+    # TODO: Implement actual popular content calculation
+    # This could include most viewed dashboards, top creators, etc.
+    return PopularContent(
+        top_tags=[],
+        top_creators=[],
+    )
+
+
+# Configure the instance info tool
+_instance_info_tool = InstanceInfoTool(
+    dao_classes={
+        "dashboards": None,  # Will be set at runtime
+        "charts": None,
+        "datasets": None,
+        "databases": None,
+        "users": None,
+        "tags": None,
+    },
+    output_schema=InstanceInfo,
+    metric_calculators={
+        "instance_summary": calculate_instance_summary,
+        "recent_activity": calculate_recent_activity,
+        "dashboard_breakdown": calculate_dashboard_breakdown,
+        "database_breakdown": calculate_database_breakdown,
+        "popular_content": calculate_popular_content,
+    },
+    time_windows={
+        "recent": 7,
+        "monthly": 30,
+        "quarterly": 90,
+    },
+    logger=logger,
+)
+
+
 @mcp.tool
 @mcp_auth_hook
 def get_superset_instance_info() -> InstanceInfo:
     """
-    Get high-level information about the Superset instance.
+    Get comprehensive high-level information about the Superset instance.
+
+    Uses a configurable InstanceInfoTool to gather statistics including:
+    - Basic entity counts (dashboards, charts, datasets, etc.)
+    - Recent activity metrics across multiple time windows
+    - Dashboard status breakdown (published, certified, etc.)
+    - Database type distribution
+    - Popular content analysis
 
     Returns:
-        InstanceInfo
+        InstanceInfo: Comprehensive instance statistics and metadata
     """
     try:
-        from flask_appbuilder.security.sqla.models import Role
-
-        from superset.daos.base import ColumnOperator, ColumnOperatorEnum
+        # Import DAOs at runtime to avoid circular imports
         from superset.daos.chart import ChartDAO
         from superset.daos.dashboard import DashboardDAO
         from superset.daos.database import DatabaseDAO
         from superset.daos.dataset import DatasetDAO
         from superset.daos.tag import TagDAO
         from superset.daos.user import UserDAO
-        from superset.extensions import db
-        from superset.models.dashboard import Dashboard
 
-        # Get basic counts using DAOs directly
-        total_dashboards = DashboardDAO.count()
-        total_charts = ChartDAO.count()
-        total_datasets = DatasetDAO.count()
-        total_databases = DatabaseDAO.count()
-        total_users = UserDAO.count()
-        total_tags = TagDAO.count()
-        total_roles = db.session.query(Role).count()  # No DAO for Role
+        # Configure DAO classes at runtime
+        _instance_info_tool.dao_classes = {
+            "dashboards": DashboardDAO,
+            "charts": ChartDAO,
+            "datasets": DatasetDAO,
+            "databases": DatabaseDAO,
+            "users": UserDAO,
+            "tags": TagDAO,
+        }
 
-        # Recent activity
-        now = datetime.now(timezone.utc)
-        thirty_days_ago = now - timedelta(days=30)
-        seven_days_ago = now - timedelta(days=7)
-
-        dashboards_created_last_30_days = DashboardDAO.count(
-            column_operators=[
-                ColumnOperator(
-                    col="created_on", opr=ColumnOperatorEnum.gte, value=thirty_days_ago
-                )
-            ]
-        )
-        charts_created_last_30_days = ChartDAO.count(
-            column_operators=[
-                ColumnOperator(
-                    col="created_on", opr=ColumnOperatorEnum.gte, value=thirty_days_ago
-                )
-            ]
-        )
-        datasets_created_last_30_days = DatasetDAO.count(
-            column_operators=[
-                ColumnOperator(
-                    col="created_on", opr=ColumnOperatorEnum.gte, value=thirty_days_ago
-                )
-            ]
-        )
-
-        dashboards_modified_last_7_days = DashboardDAO.count(
-            column_operators=[
-                ColumnOperator(
-                    col="changed_on", opr=ColumnOperatorEnum.gte, value=seven_days_ago
-                )
-            ]
-        )
-        charts_modified_last_7_days = ChartDAO.count(
-            column_operators=[
-                ColumnOperator(
-                    col="changed_on", opr=ColumnOperatorEnum.gte, value=seven_days_ago
-                )
-            ]
-        )
-        datasets_modified_last_7_days = DatasetDAO.count(
-            column_operators=[
-                ColumnOperator(
-                    col="changed_on", opr=ColumnOperatorEnum.gte, value=seven_days_ago
-                )
-            ]
-        )
-
-        # Dashboard breakdown
-        published_count = DashboardDAO.count(
-            column_operators=[
-                ColumnOperator(col="published", opr=ColumnOperatorEnum.eq, value=True)
-            ]
-        )
-        unpublished_dashboards = total_dashboards - published_count
-        certified_count = DashboardDAO.count(
-            column_operators=[
-                ColumnOperator(
-                    col="certified_by", opr=ColumnOperatorEnum.is_not_null, value=None
-                )
-            ]
-        )  # Custom logic may be needed
-        dashboards_with_charts = (
-            db.session.query(Dashboard).join(Dashboard.slices).distinct().count()
-        )  # No direct DAO method
-        dashboards_without_charts = total_dashboards - dashboards_with_charts
-        avg_charts_per_dashboard = (
-            (total_charts / total_dashboards) if total_dashboards > 0 else 0
-        )
-
-        # Compose response using keyword arguments and nested models
-        response = InstanceInfo(
-            instance_summary=InstanceSummary(
-                total_dashboards=total_dashboards,
-                total_charts=total_charts,
-                total_datasets=total_datasets,
-                total_databases=total_databases,
-                total_users=total_users,
-                total_roles=total_roles,
-                total_tags=total_tags,
-                avg_charts_per_dashboard=round(avg_charts_per_dashboard, 2),
-            ),
-            recent_activity=RecentActivity(
-                dashboards_created_last_30_days=dashboards_created_last_30_days,
-                charts_created_last_30_days=charts_created_last_30_days,
-                datasets_created_last_30_days=datasets_created_last_30_days,
-                dashboards_modified_last_7_days=dashboards_modified_last_7_days,
-                charts_modified_last_7_days=charts_modified_last_7_days,
-                datasets_modified_last_7_days=datasets_modified_last_7_days,
-            ),
-            dashboard_breakdown=DashboardBreakdown(
-                published=published_count,
-                unpublished=unpublished_dashboards,
-                certified=certified_count,
-                with_charts=dashboards_with_charts,
-                without_charts=dashboards_without_charts,
-            ),
-            database_breakdown=DatabaseBreakdown(by_type={"sqlite": total_databases}),
-            popular_content=PopularContent(
-                top_tags=[],
-                top_creators=[],
-            ),
-            timestamp=now,
-        )
-        logger.info("Successfully retrieved instance information (direct DB query)")
-        return response
+        # Run the configurable tool
+        return _instance_info_tool.run()
 
     except Exception as e:
         error_msg = f"Unexpected error in instance info: {str(e)}"

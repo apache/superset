@@ -19,8 +19,10 @@
 Pydantic schemas for dataset-related responses
 """
 
+from __future__ import annotations
+
 from datetime import datetime
-from typing import Annotated, Any, Dict, List, Literal, Optional, Union
+from typing import Annotated, Any, Dict, List, Literal, Optional
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator, PositiveInt
 
@@ -53,6 +55,7 @@ class DatasetFilter(ColumnOperator):
         "table_name",
         "schema",
         "owner",
+        "favorite",
     ] = Field(
         ...,
         description="Column to filter on. See get_dataset_available_filters for "
@@ -63,7 +66,7 @@ class DatasetFilter(ColumnOperator):
         description="Operator to use. See get_dataset_available_filters for "
         "allowed values.",
     )
-    value: Any = Field(
+    value: str | int | float | bool | List[str | int | float | bool] = Field(
         ..., description="Value to filter by (type depends on col and opr)"
     )
 
@@ -93,16 +96,14 @@ class DatasetInfo(BaseModel):
     database_name: Optional[str] = Field(None, description="Database name")
     description: Optional[str] = Field(None, description="Dataset description")
     changed_by: Optional[str] = Field(None, description="Last modifier (username)")
-    changed_on: Optional[Union[str, datetime]] = Field(
+    changed_on: Optional[str | datetime] = Field(
         None, description="Last modification timestamp"
     )
     changed_on_humanized: Optional[str] = Field(
         None, description="Humanized modification time"
     )
     created_by: Optional[str] = Field(None, description="Dataset creator (username)")
-    created_on: Optional[Union[str, datetime]] = Field(
-        None, description="Creation timestamp"
-    )
+    created_on: Optional[str | datetime] = Field(None, description="Creation timestamp")
     created_on_humanized: Optional[str] = Field(
         None, description="Humanized creation time"
     )
@@ -131,6 +132,9 @@ class DatasetInfo(BaseModel):
     )
     metrics: List[SqlMetricInfo] = Field(
         default_factory=list, description="Metrics in the dataset"
+    )
+    is_favorite: Optional[bool] = Field(
+        None, description="Whether this dataset is favorited by the current user"
     )
     model_config = ConfigDict(from_attributes=True, ser_json_timedelta="iso8601")
 
@@ -201,7 +205,7 @@ class ListDatasetsRequest(BaseModel):
     order_direction: Annotated[
         Literal["asc", "desc"],
         Field(
-            default="asc", description="Direction to order results ('asc' or 'desc')"
+            default="desc", description="Direction to order results ('asc' or 'desc')"
         ),
     ]
     page: Annotated[
@@ -228,9 +232,7 @@ class ListDatasetsRequest(BaseModel):
 class DatasetError(BaseModel):
     error: str = Field(..., description="Error message")
     error_type: str = Field(..., description="Type of error")
-    timestamp: Optional[Union[str, datetime]] = Field(
-        None, description="Error timestamp"
-    )
+    timestamp: Optional[str | datetime] = Field(None, description="Error timestamp")
     model_config = ConfigDict(ser_json_timedelta="iso8601")
 
 
@@ -238,7 +240,7 @@ class GetDatasetInfoRequest(BaseModel):
     """Request schema for get_dataset_info with support for ID or UUID."""
 
     identifier: Annotated[
-        Union[int, str],
+        int | str,
         Field(description="Dataset identifier - can be numeric ID or UUID string"),
     ]
 
@@ -318,4 +320,5 @@ def serialize_dataset_object(dataset: Any) -> Optional[DatasetInfo]:
         extra=getattr(dataset, "extra", None),
         columns=columns,
         metrics=metrics,
+        is_favorite=getattr(dataset, "is_favorite", None),
     )

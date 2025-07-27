@@ -22,8 +22,8 @@ MCP tool: list_charts (advanced filtering with clear request schema)
 import logging
 
 from superset.mcp_service.auth import mcp_auth_hook
+from superset.mcp_service.generic_tools import ModelListTool
 from superset.mcp_service.mcp_app import mcp
-from superset.mcp_service.model_tools import ModelListTool
 from superset.mcp_service.pydantic_schemas import ChartInfo, ChartList
 from superset.mcp_service.pydantic_schemas.chart_schemas import (
     ChartFilter,
@@ -63,7 +63,7 @@ def list_charts(request: ListChartsRequest) -> ChartList:
     tool = ModelListTool(
         dao_class=ChartDAO,
         output_schema=ChartInfo,
-        item_serializer=lambda obj, cols: serialize_chart_object(obj),
+        item_serializer=lambda obj, cols: serialize_chart_object(obj) if obj else None,  # type: ignore[arg-type]
         filter_type=ChartFilter,
         default_columns=DEFAULT_CHART_COLUMNS,
         search_columns=[

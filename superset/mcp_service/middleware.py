@@ -1,5 +1,5 @@
 import logging
-from typing import Any
+from typing import Any, Awaitable, Callable
 
 from fastmcp.exceptions import ToolError
 from fastmcp.server.middleware import Middleware, MiddlewareContext
@@ -18,7 +18,11 @@ class LoggingMiddleware(Middleware):
     (slice_id), and dataset_id if present in tool params.
     """
 
-    async def on_message(self, context: MiddlewareContext, call_next: Any) -> Any:
+    async def on_message(
+        self,
+        context: MiddlewareContext,
+        call_next: Callable[[MiddlewareContext], Awaitable[Any]],
+    ) -> Any:
         # Extract agent_id and user_id
         agent_id = None
         user_id = None
@@ -72,7 +76,11 @@ class PrivateToolMiddleware(Middleware):
     Middleware that blocks access to tools tagged as 'private'.
     """
 
-    async def on_call_tool(self, context: MiddlewareContext, call_next: Any) -> Any:
+    async def on_call_tool(
+        self,
+        context: MiddlewareContext,
+        call_next: Callable[[MiddlewareContext], Awaitable[Any]],
+    ) -> Any:
         tool = await context.fastmcp_context.fastmcp.get_tool(context.message.name)
         if "private" in getattr(tool, "tags", set()):
             raise ToolError(f"Access denied to private tool: {context.message.name}")
