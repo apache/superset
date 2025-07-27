@@ -28,7 +28,6 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.25.1",
-    "@types/cookie": "^1.0.0",
     "@types/eslint__js": "^8.42.3",
     "@types/ioredis": "^4.27.8",
     "@types/jest": "^29.5.14",
