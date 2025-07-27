@@ -24,10 +24,14 @@ import * as http from 'http';
 import * as net from 'net';
 import { WebSocket } from 'ws';
 
+interface MockedRedisXrange {
+  (): Promise<server.StreamResult[]>
+}
+
 // NOTE: these mock variables needs to start with "mock" due to
 // calls to `jest.mock` being hoisted to the top of the file.
 // https://jestjs.io/docs/es6-class-mocks#calling-jestmock-with-the-module-factory-parameter
-const mockRedisXrange = jest.fn<any>();
+const mockRedisXrange = jest.fn() as jest.MockedFunction<MockedRedisXrange>
 
 jest.mock('ws');
 jest.mock('ioredis', () => {
