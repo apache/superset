@@ -49,7 +49,7 @@ const MINI_CSS_EXTRACT_PUBLICPATH = './';
 
 const {
   mode = 'development',
-  devserverPort = 9000,
+  devserverPort = process.env.NODE_PORT || 9000,
   measure = false,
   nameChunks = false,
 } = parsedArgs;
