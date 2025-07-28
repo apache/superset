@@ -92,6 +92,7 @@ guest_role_pvms = [
     ("can_recent_activity", "Log"), 
     ("can_csv", "Superset"),
     ("can_view_chart_as_table", "Dashboard"),          
+    ("can_explore_json", "Superset"),
 ]
 
 client_admin_pvms = [
