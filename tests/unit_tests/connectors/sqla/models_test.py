@@ -605,3 +605,94 @@ def test_fetch_metadata_empty_comment_field_handling(mocker: MockerFixture) -> N
 
     # Valid comment should be set
     assert columns_by_name["col_with_valid_comment"].description == "Valid comment"
+
+
+@pytest.mark.parametrize(
+    "supports_cross_catalog,table_name,catalog,schema,expected_name,expected_schema",
+    [
+        # Database supports cross-catalog queries (like BigQuery)
+        (
+            True,
+            "test_table",
+            "test_project",
+            "test_dataset",
+            "test_project.test_dataset.test_table",
+            None,
+        ),
+        # Database supports cross-catalog queries, catalog only (no schema)
+        (
+            True,
+            "test_table",
+            "test_project",
+            None,
+            "test_project.test_table",
+            None,
+        ),
+        # Database supports cross-catalog queries, schema only (no catalog)
+        (
+            True,
+            "test_table",
+            None,
+            "test_schema",
+            "test_table",
+            "test_schema",
+        ),
+        # Database supports cross-catalog queries, no catalog or schema
+        (
+            True,
+            "test_table",
+            None,
+            None,
+            "test_table",
+            None,
+        ),
+        # Database doesn't support cross-catalog queries, catalog ignored
+        (
+            False,
+            "test_table",
+            "test_catalog",
+            "test_schema",
+            "test_table",
+            "test_schema",
+        ),
+        # Database doesn't support cross-catalog queries, no schema
+        (
+            False,
+            "test_table",
+            "test_catalog",
+            None,
+            "test_table",
+            None,
+        ),
+    ],
+)
+def test_get_sqla_table_with_catalog(
+    mocker: MockerFixture,
+    supports_cross_catalog: bool,
+    table_name: str,
+    catalog: str | None,
+    schema: str | None,
+    expected_name: str,
+    expected_schema: str | None,
+) -> None:
+    """Test that get_sqla_table handles catalog inclusion correctly based on
+    database cross-catalog support
+    """
+    # Mock database with specified cross-catalog support
+    database = mocker.MagicMock()
+    database.db_engine_spec.supports_cross_catalog_queries = supports_cross_catalog
+
+    # Create table with specified parameters
+    table = SqlaTable(
+        table_name=table_name,
+        database=database,
+        schema=schema,
+        catalog=catalog,
+    )
+
+    # Get the SQLAlchemy table representation
+    sqla_table = table.get_sqla_table()
+
+    # Verify expected table name and schema
+    assert sqla_table.name == expected_name
+    assert sqla_table.schema == expected_schema
