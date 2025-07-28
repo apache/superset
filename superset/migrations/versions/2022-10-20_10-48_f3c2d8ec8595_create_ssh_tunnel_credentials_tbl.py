@@ -36,7 +36,7 @@ from superset.migrations.shared.utils import create_table
 revision = "f3c2d8ec8595"
 down_revision = "4ce1d9b25135"
 
-app_config = app.config
+todo_config = app.config
 
 
 def upgrade():

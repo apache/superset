@@ -721,10 +721,10 @@ def test_apply_dynamic_database_filter(
         # Ensure that the filter has not been called because it's not in our config
         assert base_filter_mock.call_count == 0
 
-        original_config = current_app.config.copy()
-        original_config["EXTRA_DYNAMIC_QUERY_FILTERS"] = {"databases": base_filter_mock}
+        original_conf = current_app.config.copy()
+        original_conf["EXTRA_DYNAMIC_QUERY_FILTERS"] = {"databases": base_filter_mock}
 
-        mocker.patch("superset.views.filters.current_app.config", new=original_config)
+        mocker.patch("superset.views.filters.current_app.config", new=original_conf)
         # Get filtered list
         response_databases = DatabaseDAO.find_all()
         assert response_databases
