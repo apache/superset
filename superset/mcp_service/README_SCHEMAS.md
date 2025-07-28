@@ -2,7 +2,7 @@
 
 This document provides a reference for the input and output schemas of all MCP tools in the Superset MCP service. All schemas are Pydantic v2 models with field descriptions for LLM/OpenAPI compatibility.
 
-**Status**: Phase 1 nearing completion. All core schemas stable and production-ready.
+**Status**: Phase 1 Complete (95% done). All core schemas stable and production-ready with comprehensive testing coverage.
 
 ## FastMCP Complex Inputs Pattern
 
@@ -36,7 +36,7 @@ create_chart(request=CreateChartRequest(
 - **Clear validation**: Cannot use both search and filters simultaneously
 - **Multi-identifier support**: ID, UUID, and slug (where applicable) in single interface
 - **LLM-friendly**: Unambiguous types prevent common LLM validation errors
-- **Production-ready**: 149 unit tests ensure schema reliability
+- **Production-ready**: 185+ unit tests ensure schema reliability
 
 ## Dashboards
 
@@ -370,21 +370,26 @@ All list tools use the `ModelListTool` abstraction, which enforces:
 ## Schema Validation & Testing
 
 All schemas are thoroughly tested with:
-- **149 unit tests** covering all input/output combinations
-- **Multi-identifier testing** for all get_*_info tools
+- **185+ unit tests** covering all input/output combinations including BaseDAO enhancements
+- **Multi-identifier testing** for all get_*_info tools (ID, UUID, slug)
 - **Request schema validation** preventing parameter conflicts
 - **Authentication integration** testing with JWT contexts
 - **Error response validation** for permission and authentication failures
 - **Chart creation testing** covering all supported chart types and aggregators
+- **Dashboard generation testing** for complete workflow validation
+- **SQL Lab integration testing** with proper parameter handling
 
 ## Future Schema Enhancements
 
-### Phase 1 Completion
-- **Backend rendering schemas**: Chart screenshot and image response formats
-- **SQL Lab schemas**: Context-aware query session parameters
-- **Enhanced error responses**: More detailed validation and permission error details
+### Phase 1 Recently Completed ✅
+- **Backend rendering schemas**: Chart screenshot and image response formats ✅
+- **SQL Lab schemas**: Context-aware query session parameters ✅  
+- **Dashboard generation schemas**: Complete dashboard creation and chart addition ✅
+- **Chart data/preview schemas**: Multi-format data export and preview generation ✅
+- **Enhanced error responses**: More detailed validation and permission error details ✅
 
 ### Future Phases
-- **Dashboard creation schemas**: Multi-chart dashboard configuration
 - **Advanced chart types**: Maps, 3D visualizations, custom components
-- **Vega-Lite/Plotly output**: LLM-friendly chart rendering formats
+- **Vega-Lite/Plotly output**: LLM-friendly chart rendering formats  
+- **Advanced dashboard layouts**: Custom positioning and grid configurations
+- **Business intelligence schemas**: Natural language to SQL query generation
