@@ -35,6 +35,7 @@ from marshmallow import fields, Schema
 from sqlalchemy import text, types
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.url import URL
+from sqlglot import exp
 
 from superset.constants import TimeGrain
 from superset.databases.utils import make_url_safe
@@ -58,6 +59,7 @@ from superset.extensions.semantic_layer import (
     Query as SemanticQuery,
     SemanticView,
     Sort as SemanticSort,
+    SortDirectionEnum,
     STRING,
     Table as SemanticTable,
     TIME,
@@ -169,12 +171,13 @@ DESC SEMANTIC VIEW {quoted_semantic_view_name}
             for row in group:
                 attributes[row["property"]].add(row["property_value"])
 
-            type_ = self.get_type(next(iter(attributes["DATA_TYPE"]), None))
+            metric_name = attributes["TABLE"] + "." + name
+            type_ = self.get_type(next(iter(attributes["DATA_TYPE"])))
             sql = next(iter(attributes["EXPRESSION"]), name)
             tables = frozenset(attributes["TABLE"])
             join_columns = frozenset()
 
-            metrics.add(SemanticMetric(name, type_, sql, tables, join_columns))
+            metrics.add(SemanticMetric(metric_name, type_, sql, tables, join_columns))
 
         return metrics
 
@@ -199,16 +202,13 @@ DESC SEMANTIC VIEW {quoted_semantic_view_name}
             for row in group:
                 attributes[row["property"]].add(row["property_value"])
 
-            table = next(iter(attributes["TABLE"]), None)
-            expression = next(iter(attributes["EXPRESSION"]), None)
-            column = (
-                SemanticColumn(SemanticTable(table), expression)
-                if table and expression
-                else None
-            )
-            type_ = self.get_type(next(iter(attributes["DATA_TYPE"]), None))
+            table = next(iter(attributes["TABLE"]))
+            dimension_name = table + "." + name
+            expression = next(iter(attributes["EXPRESSION"]))
+            column = SemanticColumn(SemanticTable(table), expression)
+            type_ = self.get_type(next(iter(attributes["DATA_TYPE"])))
 
-            dimensions.add(SemanticDimension(column, name, type_))
+            dimensions.add(SemanticDimension(column, dimension_name, type_))
 
         return dimensions
 
@@ -240,7 +240,59 @@ DESC SEMANTIC VIEW {quoted_semantic_view_name}
         limit: int | None = None,
         offset: int | None = None,
     ) -> SemanticQuery:
-        pass
+        ast = self.build_query(
+            semantic_view,
+            metrics,
+            dimensions,
+            filters,
+            sort,
+            limit,
+            offset,
+        )
+        return SemanticQuery(sql=ast.sql(dialect="snowflake", pretty=True))
+
+    def build_query(
+        self,
+        semantic_view: SemanticView,
+        metrics: set[SemanticMetric],
+        dimensions: set[SemanticDimension],
+        filters: set[SemanticFilter],
+        sort: SemanticSort = NoSort,
+        limit: int | None = None,
+        offset: int | None = None,
+    ) -> exp.Select:
+        semantic_view = exp.SemanticView(
+            this=Table(this=exp.Identifier(this=semantic_view.name, quoted=True)),
+            dimensions=[
+                exp.Column(this=exp.Identifier(this=dimension.name, quoted=True))
+                for dimension in dimensions
+            ],
+            metrics=[],
+            # where=  XXX push predicates
+        )
+        query = exp.Select(
+            expressions=[exp.Star()],
+            **{"from": exp.From(this=exp.Table(semantic_view))},
+        )
+
+        if sort:
+            order = [
+                exp.Ordered(
+                    this=exp.Column(this=exp.Identifier(this=item.field.name)),
+                    desc=item.direction == SortDirectionEnum.DESC,
+                    nulls_first=item.nulls_first,
+                )
+                for item in sort.items
+            ]
+            query.args["order"] = exp.Order(expressions=order)
+
+        if offset:
+            query = query.offset(offset)
+
+        if limit:
+            query = query.limit(limit)
+
+        return query
 
 
 class SnowflakeEngineSpec(PostgresBaseEngineSpec):
