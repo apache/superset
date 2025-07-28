@@ -259,7 +259,7 @@ class TestPostChartDataApi(BaseTestChartDataApi):
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     @mock.patch(
-        "superset.utils.core.current_app.config",
+        "flask.current_app.config",
         {**app.config, "SQL_MAX_ROW": 10},
     )
     def test_with_row_limit_bigger_then_sql_max_row__rowcount_as_sql_max_row(self):
