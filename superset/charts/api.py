@@ -101,7 +101,7 @@ from superset.views.base_api import (
 from superset.views.filters import BaseFilterRelatedUsers, FilterRelatedOwners
 
 logger = logging.getLogger(__name__)
-config = app.config
+todo_config = app.config
 
 
 class ChartRestApi(BaseSupersetModelRestApi):

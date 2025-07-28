@@ -32,7 +32,7 @@ from superset.sqllab.limiting_factor import LimitingFactor
 from superset.utils import core as utils, csv
 from superset.views.utils import _deserialize_results_payload
 
-config = app.config
+todo_config = app.config
 
 logger = logging.getLogger(__name__)
 
@@ -132,8 +132,8 @@ class SqlResultExportCommand(BaseCommand):
             )[:limit]
 
         # Manual encoding using the specified encoding (default to utf-8 if not set)
-        csv_string = csv.df_to_escaped_csv(df, index=False, **config["CSV_EXPORT"])
-        csv_data = csv_string.encode(config["CSV_EXPORT"].get("encoding", "utf-8"))
+        csv_string = csv.df_to_escaped_csv(df, index=False, **todo_config["CSV_EXPORT"])
+        csv_data = csv_string.encode(todo_config["CSV_EXPORT"].get("encoding", "utf-8"))
 
         return {
             "query": self._query,

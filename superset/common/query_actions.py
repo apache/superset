@@ -38,7 +38,7 @@ if TYPE_CHECKING:
     from superset.common.query_context import QueryContext
     from superset.common.query_object import QueryObject
 
-config = app.config
+todo_config = app.config
 
 
 def _get_datasource(

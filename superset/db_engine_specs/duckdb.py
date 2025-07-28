@@ -30,7 +30,7 @@ from sqlalchemy import types
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.url import URL
 
-from superset.config import VERSION_STRING
+from superset.config import VERSION_STRING as TODO_VERSION_STRING
 from superset.constants import TimeGrain
 from superset.databases.utils import make_url_safe
 from superset.db_engine_specs.base import BaseEngineSpec
@@ -252,7 +252,7 @@ class DuckDBEngineSpec(DuckDBParametersMixin, BaseEngineSpec):
         delim = " " if custom_user_agent else ""
         user_agent = get_user_agent(database, source)
         user_agent = user_agent.replace(" ", "-").lower()
-        user_agent = f"{user_agent}/{VERSION_STRING}{delim}{custom_user_agent}"
+        user_agent = f"{user_agent}/{TODO_VERSION_STRING}{delim}{custom_user_agent}"
         config.setdefault("custom_user_agent", user_agent)
 
         return extra

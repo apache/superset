@@ -30,7 +30,7 @@ from superset.utils.core import QuerySource
 
 MAX_ERROR_ROWS = 10
 
-config = app.config
+todo_config = app.config
 logger = logging.getLogger(__name__)
 
 

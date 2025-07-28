@@ -97,7 +97,7 @@ if TYPE_CHECKING:
     from superset.models.core import Database
 
 # Shorter alias for current_app.config
-config = current_app.config
+conf = current_app.config
 
 logger = logging.getLogger(__name__)
 
@@ -1872,7 +1872,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 )
 
                 # Get ADVANCED_DATA_TYPES from config when needed
-                ADVANCED_DATA_TYPES = config.get("ADVANCED_DATA_TYPES", {})  # noqa: N806
+                ADVANCED_DATA_TYPES = conf.get("ADVANCED_DATA_TYPES", {})  # noqa: N806
 
                 if (
                     col_advanced_data_type != ""

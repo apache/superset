@@ -111,7 +111,7 @@ from superset.superset_typing import (
 from superset.utils import core as utils, json
 from superset.utils.backports import StrEnum
 
-config = app.config  # TODO-CONF: module-scoped config usage with extracted values
+todo_config = app.config  # TODO-CONF: module-scoped config usage with extracted values
 metadata = Model.metadata  # pylint: disable=no-member
 logger = logging.getLogger(__name__)
 VIRTUAL_TABLE_ALIAS = "virtual_table"
@@ -1309,7 +1309,7 @@ class SqlaTable(
 
     @property
     def health_check_message(self) -> str | None:
-        check = config["DATASET_HEALTH_CHECK"]
+        check = todo_config["DATASET_HEALTH_CHECK"]
         return check(self) if check else None
 
     @property
@@ -1720,7 +1720,7 @@ class SqlaTable(
         self.add_missing_metrics(metrics)
 
         # Apply config supplied mutations.
-        config["SQLA_TABLE_MUTATOR"](self)
+        todo_config["SQLA_TABLE_MUTATOR"](self)
 
         db.session.merge(self)
         return results

@@ -31,9 +31,9 @@ from superset.utils import core as utils
 from superset.utils.dates import now_as_float
 from superset.views.utils import _deserialize_results_payload
 
-config = app.config
-SQLLAB_QUERY_COST_ESTIMATE_TIMEOUT = config["SQLLAB_QUERY_COST_ESTIMATE_TIMEOUT"]
-stats_logger = config["STATS_LOGGER"]
+todo_config = app.config
+SQLLAB_QUERY_COST_ESTIMATE_TIMEOUT = todo_config["SQLLAB_QUERY_COST_ESTIMATE_TIMEOUT"]
+stats_logger = todo_config["STATS_LOGGER"]
 
 logger = logging.getLogger(__name__)
 

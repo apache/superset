@@ -31,11 +31,11 @@ from superset.utils.core import DatasourceDict, DatasourceType, is_adhoc_column
 if TYPE_CHECKING:
     from superset.connectors.sqla.models import BaseDatasource
 
-config = app.config
+todo_config = app.config
 
 
 def create_query_object_factory() -> QueryObjectFactory:
-    return QueryObjectFactory(config, DatasourceDAO())
+    return QueryObjectFactory(todo_config, DatasourceDAO())
 
 
 class QueryContextFactory:  # pylint: disable=too-few-public-methods

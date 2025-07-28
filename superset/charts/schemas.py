@@ -40,7 +40,7 @@ if TYPE_CHECKING:
     from superset.common.query_context import QueryContext
     from superset.common.query_context_factory import QueryContextFactory
 
-config = app.config
+todo_config = app.config
 
 #
 # RISON/JSON schemas for query parameters
@@ -627,7 +627,10 @@ class ChartDataProphetOptionsSchema(ChartDataPostProcessingOperationOptionsSchem
         validate=validate.OneOf(
             choices=[
                 i
-                for i in {**builtin_time_grains, **config["TIME_GRAIN_ADDONS"]}.keys()
+                for i in {
+                    **builtin_time_grains,
+                    **todo_config["TIME_GRAIN_ADDONS"],
+                }.keys()
                 if i
             ]
         ),
@@ -992,7 +995,10 @@ class ChartDataExtrasSchema(Schema):
         validate=validate.OneOf(
             choices=[
                 i
-                for i in {**builtin_time_grains, **config["TIME_GRAIN_ADDONS"]}.keys()
+                for i in {
+                    **builtin_time_grains,
+                    **todo_config["TIME_GRAIN_ADDONS"],
+                }.keys()
                 if i
             ]
         ),

@@ -33,8 +33,8 @@ from superset.superset_typing import Column
 from superset.utils.cache import set_and_log_cache
 from superset.utils.core import error_msg_from_exception, get_stacktrace
 
-config = app.config
-stats_logger: BaseStatsLogger = config["STATS_LOGGER"]
+todo_config = app.config
+stats_logger: BaseStatsLogger = todo_config["STATS_LOGGER"]
 logger = logging.getLogger(__name__)
 
 _cache: dict[CacheRegion, Cache] = {

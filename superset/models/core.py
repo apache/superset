@@ -91,7 +91,7 @@ from superset.utils.oauth2 import (
 )
 
 # Shorter alias for current_app.config
-config = current_app.config
+conf = current_app.config
 
 metadata = Model.metadata  # pylint: disable=no-member
 logger = logging.getLogger(__name__)
@@ -392,7 +392,7 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
 
     def set_sqlalchemy_uri(self, uri: str) -> None:
         conn = make_url_safe(uri.strip())
-        custom_password_store = config["SQLALCHEMY_CUSTOM_PASSWORD_STORE"]
+        custom_password_store = conf["SQLALCHEMY_CUSTOM_PASSWORD_STORE"]
         if conn.password != PASSWORD_MASK and not custom_password_store:
             # do not over-write the password with the password mask
             self.password = conn.password
@@ -462,7 +462,7 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
                     ssh_context,
                 )
 
-            engine_context_manager = config["ENGINE_CONTEXT_MANAGER"]
+            engine_context_manager = conf["ENGINE_CONTEXT_MANAGER"]
             with engine_context_manager(self, catalog, schema):
                 with check_for_oauth2(self):
                     yield self._get_sqla_engine(
@@ -531,7 +531,7 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
 
         self.update_params_from_encrypted_extra(engine_kwargs)
 
-        if DB_CONNECTION_MUTATOR := config["DB_CONNECTION_MUTATOR"]:  # noqa: N806
+        if DB_CONNECTION_MUTATOR := conf["DB_CONNECTION_MUTATOR"]:  # noqa: N806
             source = source or get_query_source_from_request()
 
             sqlalchemy_url, engine_kwargs = DB_CONNECTION_MUTATOR(
@@ -652,8 +652,8 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
           on the group of queries as a whole. Here the called passes the context
           as to whether the SQL is split or already.
         """  # noqa: E501
-        sql_mutator = config["SQL_QUERY_MUTATOR"]
-        if sql_mutator and (is_split == config["MUTATE_AFTER_SPLIT"]):
+        sql_mutator = conf["SQL_QUERY_MUTATOR"]
+        if sql_mutator and (is_split == conf["MUTATE_AFTER_SPLIT"]):
             return sql_mutator(
                 sql_,
                 security_manager=security_manager,
@@ -672,7 +672,7 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
         with self.get_sqla_engine(catalog=catalog, schema=schema) as engine:
             engine_url = engine.url
 
-        log_query = config["QUERY_LOGGER"]
+        log_query = conf["QUERY_LOGGER"]
 
         def _log_query(sql: str) -> None:
             if log_query:
@@ -1050,9 +1050,7 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
             allowed_databases = literal_eval(allowed_databases)
 
         if hasattr(g, "user"):
-            extra_allowed_databases = config["ALLOWED_USER_CSV_SCHEMA_FUNC"](
-                self, g.user
-            )
+            extra_allowed_databases = conf["ALLOWED_USER_CSV_SCHEMA_FUNC"](self, g.user)
             allowed_databases += extra_allowed_databases
         return set(allowed_databases)
 
@@ -1064,7 +1062,7 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
             # if the URI is invalid, ignore and return a placeholder url
             # (so users see 500 less often)
             return "dialect://invalid_uri"
-        if custom_password_store := config["SQLALCHEMY_CUSTOM_PASSWORD_STORE"]:
+        if custom_password_store := conf["SQLALCHEMY_CUSTOM_PASSWORD_STORE"]:
             conn = conn.set(password=custom_password_store(conn))
         else:
             conn = conn.set(password=self.password)

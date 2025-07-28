@@ -72,13 +72,13 @@ from superset.utils.rls import apply_rls
 if TYPE_CHECKING:
     from superset.models.core import Database
 
-config = app.config  # TODO-CONF: module-scoped config usage with extracted values
-stats_logger = config["STATS_LOGGER"]
-SQLLAB_TIMEOUT = config["SQLLAB_ASYNC_TIME_LIMIT_SEC"]
+todo_config = app.config  # TODO-CONF: module-scoped config usage with extracted values
+stats_logger = todo_config["STATS_LOGGER"]
+SQLLAB_TIMEOUT = todo_config["SQLLAB_ASYNC_TIME_LIMIT_SEC"]
 SQLLAB_HARD_TIMEOUT = SQLLAB_TIMEOUT + 60
-SQL_MAX_ROW = config["SQL_MAX_ROW"]
-SQLLAB_CTAS_NO_LIMIT = config["SQLLAB_CTAS_NO_LIMIT"]
-log_query = config["QUERY_LOGGER"]
+SQL_MAX_ROW = todo_config["SQL_MAX_ROW"]
+SQLLAB_CTAS_NO_LIMIT = todo_config["SQLLAB_CTAS_NO_LIMIT"]
+log_query = todo_config["QUERY_LOGGER"]
 logger = logging.getLogger(__name__)
 BYTES_IN_MB = 1024 * 1024
 
@@ -127,7 +127,7 @@ def handle_query_error(
 
     db.session.commit()
     payload.update({"status": query.status, "error": msg, "errors": errors_payload})
-    if troubleshooting_link := config["TROUBLESHOOTING_LINK"]:
+    if troubleshooting_link := todo_config["TROUBLESHOOTING_LINK"]:
         payload["link"] = troubleshooting_link
     return payload
 
@@ -547,7 +547,7 @@ def execute_sql_statements(  # noqa: C901
                 )
 
                 # Check the size of the serialized payload
-                if sql_lab_payload_max_mb := config.get("SQLLAB_PAYLOAD_MAX_MB"):
+                if sql_lab_payload_max_mb := todo_config.get("SQLLAB_PAYLOAD_MAX_MB"):
                     serialized_payload_size = sys.getsizeof(serialized_payload)
                     max_bytes = sql_lab_payload_max_mb * BYTES_IN_MB
 
@@ -563,7 +563,7 @@ def execute_sql_statements(  # noqa: C901
 
             cache_timeout = database.cache_timeout
             if cache_timeout is None:
-                cache_timeout = config["CACHE_DEFAULT_TIMEOUT"]
+                cache_timeout = todo_config["CACHE_DEFAULT_TIMEOUT"]
 
             compressed = zlib_compress(serialized_payload)
             logger.debug(
@@ -596,7 +596,7 @@ def execute_sql_statements(  # noqa: C901
                 }
             )
         # Check the size of the serialized payload (opt-in logic for return_results)
-        if sql_lab_payload_max_mb := config.get("SQLLAB_PAYLOAD_MAX_MB"):
+        if sql_lab_payload_max_mb := todo_config.get("SQLLAB_PAYLOAD_MAX_MB"):
             serialized_payload = _serialize_payload(
                 payload, cast(bool, results_backend_use_msgpack)
             )

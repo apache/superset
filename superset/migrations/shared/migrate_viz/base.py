@@ -22,7 +22,7 @@ from sqlalchemy import and_, Column, Integer, String, Text
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import Session
 
-from superset import config
+from superset import config as todo_config
 from superset.constants import TimeGrain
 from superset.migrations.shared.utils import paginated_update, try_load_json
 from superset.utils import json
@@ -97,7 +97,7 @@ class MigrateViz:
     def _migrate_temporal_filter(self, rv_data: dict[str, Any]) -> None:
         """Adds a temporal filter."""
         granularity_sqla = rv_data.pop("granularity_sqla", None)
-        time_range = rv_data.pop("time_range", None) or config.get(
+        time_range = rv_data.pop("time_range", None) or todo_config.get(
             "DEFAULT_TIME_FILTER"
         )
 

@@ -32,7 +32,7 @@ from superset.models.helpers import (
     ImportExportMixin,
 )
 
-app_config = current_app.config
+conf = current_app.config
 
 
 class SSHTunnel(AuditMixinNullable, ExtraJSONMixin, ImportExportMixin, Model):

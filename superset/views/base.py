@@ -72,7 +72,7 @@ from superset.views.error_handling import json_error_response
 
 from .utils import bootstrap_user_data, get_config_value
 
-config = current_app.config
+conf = current_app.config
 
 DEFAULT_THEME_SETTINGS = {
     "enforced": False,
@@ -134,7 +134,7 @@ logger = logging.getLogger(__name__)
 
 
 def get_error_msg() -> str:
-    if config.get("SHOW_STACKTRACE"):
+    if conf.get("SHOW_STACKTRACE"):
         error_msg = traceback.format_exc()
     else:
         error_msg = "FATAL ERROR \n"
@@ -313,9 +313,9 @@ def get_theme_bootstrap_data() -> dict[str, Any]:
     Returns the theme data to be sent to the client.
     """
     # Get theme configs
-    default_theme_config = get_config_value(config, "THEME_DEFAULT")
-    dark_theme_config = get_config_value(config, "THEME_DARK")
-    theme_settings = get_config_value(config, "THEME_SETTINGS")
+    default_theme_config = get_config_value(conf, "THEME_DEFAULT")
+    dark_theme_config = get_config_value(conf, "THEME_DARK")
+    theme_settings = get_config_value(conf, "THEME_SETTINGS")
 
     # Validate theme configurations
     default_theme = default_theme_config
@@ -361,11 +361,11 @@ def cached_common_bootstrap_data(  # pylint: disable=unused-argument
 
     # should not expose API TOKEN to frontend
     frontend_config = {
-        k: (list(config.get(k)) if isinstance(config.get(k), set) else config.get(k))
+        k: (list(conf.get(k)) if isinstance(conf.get(k), set) else conf.get(k))
         for k in FRONTEND_CONF_KEYS
     }
 
-    if config.get("SLACK_API_TOKEN"):
+    if conf.get("SLACK_API_TOKEN"):
         frontend_config["ALERT_REPORTS_NOTIFICATION_METHODS"] = [
             ReportRecipientType.EMAIL,
             ReportRecipientType.SLACK,
@@ -417,21 +417,21 @@ def cached_common_bootstrap_data(  # pylint: disable=unused-argument
         frontend_config["AUTH_PROVIDERS"] = oid_providers
 
     bootstrap_data = {
-        "application_root": config["APPLICATION_ROOT"],
-        "static_assets_prefix": config["STATIC_ASSETS_PREFIX"],
+        "application_root": conf["APPLICATION_ROOT"],
+        "static_assets_prefix": conf["STATIC_ASSETS_PREFIX"],
         "conf": frontend_config,
         "locale": language,
-        "d3_format": config.get("D3_FORMAT"),
-        "d3_time_format": config.get("D3_TIME_FORMAT"),
-        "currencies": config.get("CURRENCIES"),
-        "deckgl_tiles": config.get("DECKGL_BASE_MAP"),
+        "d3_format": conf.get("D3_FORMAT"),
+        "d3_time_format": conf.get("D3_TIME_FORMAT"),
+        "currencies": conf.get("CURRENCIES"),
+        "deckgl_tiles": conf.get("DECKGL_BASE_MAP"),
         "feature_flags": get_feature_flags(),
-        "extra_sequential_color_schemes": config["EXTRA_SEQUENTIAL_COLOR_SCHEMES"],
-        "extra_categorical_color_schemes": config["EXTRA_CATEGORICAL_COLOR_SCHEMES"],
+        "extra_sequential_color_schemes": conf["EXTRA_SEQUENTIAL_COLOR_SCHEMES"],
+        "extra_categorical_color_schemes": conf["EXTRA_CATEGORICAL_COLOR_SCHEMES"],
         "menu_data": menu_data(g.user),
     }
 
-    bootstrap_data.update(config["COMMON_BOOTSTRAP_OVERRIDES_FUNC"](bootstrap_data))
+    bootstrap_data.update(conf["COMMON_BOOTSTRAP_OVERRIDES_FUNC"](bootstrap_data))
     bootstrap_data.update(get_theme_bootstrap_data())
 
     return bootstrap_data
@@ -550,7 +550,7 @@ class CsvResponse(Response):
     Override Response to take into account csv encoding from config.py
     """
 
-    charset = config["CSV_EXPORT"].get("encoding", "utf-8")
+    charset = conf["CSV_EXPORT"].get("encoding", "utf-8")
     default_mimetype = "text/csv"
 
 
@@ -590,11 +590,9 @@ def apply_http_headers(response: Response) -> Response:
     """Applies the configuration's http headers to all responses"""
 
     # HTTP_HEADERS is deprecated, this provides backwards compatibility
-    response.headers.extend(
-        {**config["OVERRIDE_HTTP_HEADERS"], **config["HTTP_HEADERS"]}
-    )
+    response.headers.extend({**conf["OVERRIDE_HTTP_HEADERS"], **conf["HTTP_HEADERS"]})
 
-    for k, v in config["DEFAULT_HTTP_HEADERS"].items():
+    for k, v in conf["DEFAULT_HTTP_HEADERS"].items():
         if k not in response.headers:
             response.headers[k] = v
     return response

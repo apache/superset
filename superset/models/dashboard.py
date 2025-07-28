@@ -53,12 +53,12 @@ from superset.thumbnails.digest import get_dashboard_digest
 from superset.utils import core as utils, json
 
 metadata = Model.metadata  # pylint: disable=no-member
-config = app.config
+todo_config = app.config
 logger = logging.getLogger(__name__)
 
 
 def copy_dashboard(_mapper: Mapper, _connection: Connection, target: Dashboard) -> None:
-    dashboard_id = config["DASHBOARD_TEMPLATE_ID"]
+    dashboard_id = todo_config["DASHBOARD_TEMPLATE_ID"]
     if dashboard_id is None:
         return
 

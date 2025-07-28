@@ -29,9 +29,9 @@ from superset.jinja_context import get_template_processor
 from superset.models.core import Database
 from superset.utils import core as utils
 
-config = app.config
-SQLLAB_QUERY_COST_ESTIMATE_TIMEOUT = config["SQLLAB_QUERY_COST_ESTIMATE_TIMEOUT"]
-stats_logger = config["STATS_LOGGER"]
+todo_config = app.config
+SQLLAB_QUERY_COST_ESTIMATE_TIMEOUT = todo_config["SQLLAB_QUERY_COST_ESTIMATE_TIMEOUT"]
+stats_logger = todo_config["STATS_LOGGER"]
 
 logger = logging.getLogger(__name__)
 

@@ -17,14 +17,14 @@
 # under the License.
 import logging
 
-from superset import config
+from superset import config as todo_config
 
 logger = logging.getLogger(__name__)
 
 
-feature_flags = config.DEFAULT_FEATURE_FLAGS.copy()
-feature_flags.update(config.FEATURE_FLAGS)
-feature_flags_func = config.GET_FEATURE_FLAGS_FUNC
+feature_flags = todo_config.DEFAULT_FEATURE_FLAGS.copy()
+feature_flags.update(todo_config.FEATURE_FLAGS)
+feature_flags_func = todo_config.GET_FEATURE_FLAGS_FUNC
 if feature_flags_func:
     try:
         # pylint: disable=not-callable
