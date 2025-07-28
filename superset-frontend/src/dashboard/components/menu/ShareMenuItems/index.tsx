@@ -24,7 +24,8 @@ import { getDashboardPermalink } from 'src/utils/urlUtils';
 import { MenuKeys, RootState } from 'src/dashboard/types';
 import { shallowEqual, useSelector } from 'react-redux';
 
-interface ShareMenuItemProps extends ComponentProps<typeof Menu.SubMenu> {
+export interface ShareMenuItemProps
+  extends ComponentProps<typeof Menu.SubMenu> {
   url?: string;
   copyMenuItemTitle: string;
   emailMenuItemTitle: string;
@@ -40,6 +41,7 @@ interface ShareMenuItemProps extends ComponentProps<typeof Menu.SubMenu> {
   setOpenKeys?: Function;
   title: string;
   disabled?: boolean;
+  [key: string]: any;
 }
 
 export const useShareMenuItems = (props: ShareMenuItemProps): MenuItem => {
@@ -54,7 +56,6 @@ export const useShareMenuItems = (props: ShareMenuItemProps): MenuItem => {
     dashboardComponentId,
     title,
     disabled,
-    children,
     ...rest
   } = props;
   const { dataMask, activeTabs } = useSelector(
@@ -98,6 +99,7 @@ export const useShareMenuItems = (props: ShareMenuItemProps): MenuItem => {
   }
 
   return {
+    ...rest,
     type: 'submenu',
     label: title,
     key: MenuKeys.Share,
@@ -106,14 +108,13 @@ export const useShareMenuItems = (props: ShareMenuItemProps): MenuItem => {
       {
         key: MenuKeys.CopyLink,
         label: copyMenuItemTitle,
-        onClick: () => onCopyLink,
+        onClick: onCopyLink,
       },
       {
         key: MenuKeys.ShareByEmail,
         label: emailMenuItemTitle,
-        onClick: () => onShareByEmail,
+        onClick: onShareByEmail,
       },
     ],
-    ...rest,
   };
 };
