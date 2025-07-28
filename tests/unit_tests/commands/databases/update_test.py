@@ -335,6 +335,54 @@ def test_rename_without_catalog(
     assert schema2_pvm.view_menu.name == f"[{database_without_catalog.name}].[schema2]"
 
 
+def test_rename_without_catalog_with_assets(
+    mocker: MockerFixture,
+    database_without_catalog: MockerFixture,
+) -> None:
+    """
+    Test that permissions are renamed correctly when the DB connection does not support
+    catalogs, and it has assets associated with it.
+    """
+    database_dao = mocker.patch("superset.commands.database.update.DatabaseDAO")
+    original_database = mocker.MagicMock()
+    original_database.database_name = "my_db"
+    database_without_catalog.database_name = "my_other_db"
+    database_without_catalog.get_all_schema_names.return_value = ["schema1"]
+    database_dao.update.return_value = database_without_catalog
+    database_dao.find_by_id.return_value = original_database
+    sync_db_perms_dao = mocker.patch(
+        "superset.commands.database.sync_permissions.DatabaseDAO"
+    )
+    sync_db_perms_dao.find_by_id.return_value = database_without_catalog
+    mocker.patch("superset.commands.database.update.get_username")
+    mocker.patch("superset.security_manager.get_user_by_username")
+
+    dataset = mocker.MagicMock()
+    chart = mocker.MagicMock()
+    sync_db_perms_dao.get_datasets.return_value = [dataset]
+    dataset_dao = mocker.patch("superset.commands.database.sync_permissions.DatasetDAO")
+    dataset_dao.get_related_objects.return_value = {"charts": [chart]}
+
+    find_permission_view_menu = mocker.patch.object(
+        security_manager,
+        "find_permission_view_menu",
+    )
+    schema_pvm = mocker.MagicMock()
+    schema_pvm.view_menu.name = "[my_db].[schema1]"
+    find_permission_view_menu.side_effect = [
+        "[my_db].[schema1]",
+        schema_pvm,
+    ]
+
+    UpdateDatabaseCommand(1, {}).run()
+
+    assert schema_pvm.view_menu.name == f"[{database_without_catalog.name}].[schema1]"
+    assert dataset.schema_perm == f"[{database_without_catalog.name}].[schema1]"
+    assert dataset.catalog_perm is None
+    assert chart.catalog_perm is None
+    assert chart.schema_perm == f"[{database_without_catalog.name}].[schema1]"
+
+
 def test_update_with_oauth2(
     mocker: MockerFixture,
     database_needs_oauth2: MockerFixture,
@@ -532,3 +580,90 @@ def test_update_other_fields_dont_affect_oauth(
 
     add_pvm.assert_not_called()
     database_needs_oauth2.purge_oauth2_tokens.assert_not_called()
+
+
+def test_update_with_catalog_change(mocker: MockerFixture) -> None:
+    """
+    Test that assets are updated when the main catalog changes.
+    """
+    old_database = mocker.MagicMock(allow_multi_catalog=False)
+    old_database.get_default_catalog.return_value = "project-A"
+    old_database.id = 1
+
+    new_database = mocker.MagicMock(allow_multi_catalog=False)
+    new_database.get_default_catalog.return_value = "project-B"
+
+    database_dao = mocker.patch("superset.commands.database.update.DatabaseDAO")
+    database_dao.find_by_id.return_value = old_database
+    database_dao.update.return_value = new_database
+
+    mocker.patch("superset.commands.database.update.SyncPermissionsCommand")
+    mocker.patch.object(
+        UpdateDatabaseCommand,
+        "validate",
+    )
+    update_catalog_attribute = mocker.patch.object(
+        UpdateDatabaseCommand,
+        "_update_catalog_attribute",
+    )
+
+    UpdateDatabaseCommand(1, {}).run()
+
+    update_catalog_attribute.assert_called_once_with(1, "project-B")
+
+
+def test_update_without_catalog_change(mocker: MockerFixture) -> None:
+    """
+    Test that assets are not updated when the main catalog doesn't change.
+    """
+    old_database = mocker.MagicMock(allow_multi_catalog=False)
+    old_database.database_name = "Ye Old DB"
+    old_database.get_default_catalog.return_value = "project-A"
+    old_database.id = 1
+
+    new_database = mocker.MagicMock(allow_multi_catalog=False)
+    new_database.database_name = "Fancy new DB"
+    new_database.get_default_catalog.return_value = "project-A"
+
+    database_dao = mocker.patch("superset.commands.database.update.DatabaseDAO")
+    database_dao.find_by_id.return_value = old_database
+    database_dao.update.return_value = new_database
+
+    mocker.patch("superset.commands.database.update.SyncPermissionsCommand")
+    mocker.patch.object(
+        UpdateDatabaseCommand,
+        "validate",
+    )
+    update_catalog_attribute = mocker.patch.object(
+        UpdateDatabaseCommand,
+        "_update_catalog_attribute",
+    )
+
+    UpdateDatabaseCommand(1, {}).run()
+
+    update_catalog_attribute.assert_not_called()
+
+
+def test_update_broken_connection(mocker: MockerFixture) -> None:
+    """
+    Test that updating a database with a broken connection works
+    even if it has to run a query to get the default catalog.
+    """
+    database = mocker.MagicMock()
+    database.get_default_catalog.side_effect = Exception("Broken connection")
+    database.id = 1
+    new_db = mocker.MagicMock()
+    new_db.get_default_catalog.return_value = "main"
+
+    database_dao = mocker.patch("superset.commands.database.update.DatabaseDAO")
+    database_dao.find_by_id.return_value = database
+    database_dao.update.return_value = new_db
+    mocker.patch("superset.commands.database.update.SyncPermissionsCommand")
+
+    update_catalog_attribute = mocker.patch.object(
+        UpdateDatabaseCommand,
+        "_update_catalog_attribute",
+    )
+    UpdateDatabaseCommand(1, {}).run()
+
+    update_catalog_attribute.assert_called_once_with(1, "main")

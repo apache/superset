@@ -28,7 +28,7 @@ type adhocFilter = {
 
 describe('Visualization > Graph', () => {
   beforeEach(() => {
-    cy.intercept('POST', '/api/v1/chart/data*').as('getJson');
+    cy.intercept('POST', '**/api/v1/chart/data*').as('getJson');
   });
 
   const GRAPH_FORM_DATA = {
@@ -80,7 +80,7 @@ describe('Visualization > Graph', () => {
   it('should allow type to search color schemes', () => {
     verify(GRAPH_FORM_DATA);
 
-    cy.get('#controlSections-tab-display').click();
+    cy.get('#controlSections-tab-CUSTOMIZE').click();
     cy.get('.Control[data-test="color_scheme"]').scrollIntoView();
     cy.get('.Control[data-test="color_scheme"] input[type="search"]').focus();
     cy.focused().type('bnbColors{enter}');

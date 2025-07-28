@@ -17,8 +17,8 @@
  * under the License.
  */
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { useSelector } from 'react-redux';
-import { Menu } from 'src/components/Menu';
+import { useSelector, useDispatch } from 'react-redux';
+import { Menu } from '@superset-ui/core/components/Menu';
 import { t } from '@superset-ui/core';
 import { isEmpty } from 'lodash';
 import { URL_PARAMS } from 'src/constants';
@@ -36,6 +36,7 @@ import { getActiveFilters } from 'src/dashboard/util/activeDashboardFilters';
 import { getUrlParam } from 'src/utils/urlUtils';
 import { MenuKeys, RootState } from 'src/dashboard/types';
 import { HeaderDropdownProps } from 'src/dashboard/components/Header/types';
+import { updateDashboardTheme } from 'src/dashboard/actions/dashboardInfo';
 
 export const useHeaderActionsMenu = ({
   customCss,
@@ -71,6 +72,7 @@ export const useHeaderActionsMenu = ({
   logEvent,
   setCurrentReportDeleting,
 }: HeaderDropdownProps) => {
+  const dispatch = useDispatch();
   const [css, setCss] = useState(customCss || '');
   const [showReportSubMenu, setShowReportSubMenu] = useState<boolean | null>(
     null,
@@ -79,12 +81,22 @@ export const useHeaderActionsMenu = ({
   const directPathToChild = useSelector(
     (state: RootState) => state.dashboardState.directPathToChild,
   );
+
   useEffect(() => {
     if (customCss !== css) {
       setCss(customCss || '');
       injectCustomCss(customCss);
     }
   }, [css, customCss]);
+
+  const handleThemeChange = useCallback(
+    async (themeId: number | null) => {
+      // Save the theme to the dashboard
+      // The CrudThemeProvider will handle applying the theme to dashboard content only
+      dispatch(updateDashboardTheme(themeId));
+    },
+    [dispatch],
+  );
 
   const handleMenuClick = useCallback(
     ({ key }: { key: string }) => {
@@ -97,11 +109,13 @@ export const useHeaderActionsMenu = ({
           showPropertiesModal();
           break;
         case MenuKeys.ToggleFullscreen: {
+          const isCurrentlyStandalone =
+            Number(getUrlParam(URL_PARAMS.standalone)) === 1;
           const url = getDashboardUrl({
             pathname: window.location.pathname,
             filters: getActiveFilters(),
             hash: window.location.hash,
-            standalone: getUrlParam(URL_PARAMS.standalone),
+            standalone: isCurrentlyStandalone ? null : 1,
           });
           window.location.replace(url);
           break;
@@ -162,7 +176,6 @@ export const useHeaderActionsMenu = ({
     const isEmbedded = !dashboardInfo?.userId;
     const refreshIntervalOptions =
       dashboardInfo.common?.conf?.DASHBOARD_AUTO_REFRESH_INTERVALS;
-
     return (
       <Menu
         selectable={false}
@@ -193,10 +206,12 @@ export const useHeaderActionsMenu = ({
         {editMode && (
           <Menu.Item key={MenuKeys.EditCss}>
             <CssEditor
-              triggerNode={<div>{t('Edit CSS')}</div>}
+              triggerNode={<div>{t('Theme & CSS')}</div>}
               initialCss={css}
               onChange={changeCss}
               addDangerToast={addDangerToast}
+              currentThemeId={dashboardInfo.theme?.id || null}
+              onThemeChange={handleThemeChange}
             />
           </Menu.Item>
         )}
@@ -285,9 +300,7 @@ export const useHeaderActionsMenu = ({
         {editMode && !isEmpty(dashboardInfo?.metadata?.filter_scopes) && (
           <Menu.Item key={MenuKeys.SetFilterMapping}>
             <FilterScopeModal
-              triggerNode={
-                <div className="m-r-5">{t('Set filter mapping')}</div>
-              }
+              triggerNode={<div>{t('Set filter mapping')}</div>}
             />
           </Menu.Item>
         )}

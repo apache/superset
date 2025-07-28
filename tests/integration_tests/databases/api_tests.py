@@ -22,11 +22,10 @@ from collections import defaultdict
 from io import BytesIO
 from unittest import mock
 from unittest.mock import patch, MagicMock
-from zipfile import is_zipfile, ZipFile
+from zipfile import is_zipfile
 
 import prison
 import pytest
-import yaml
 
 from unittest.mock import Mock
 
@@ -35,6 +34,7 @@ from sqlalchemy.exc import DBAPIError
 from sqlalchemy.sql import func
 
 from superset import db, security_manager
+from superset.commands.database.exceptions import MissingOAuth2TokenError
 from superset.connectors.sqla.models import SqlaTable
 from superset.databases.ssh_tunnel.models import SSHTunnel
 from superset.databases.utils import make_url_safe  # noqa: F401
@@ -68,8 +68,6 @@ from tests.integration_tests.fixtures.world_bank_dashboard import (
 from tests.integration_tests.fixtures.importexport import (
     database_config,
     dataset_config,
-    database_metadata_config,
-    dataset_metadata_config,
     database_with_ssh_tunnel_config_password,
     database_with_ssh_tunnel_config_private_key,
     database_with_ssh_tunnel_config_mix_credentials,
@@ -168,22 +166,6 @@ class TestDatabaseApi(SupersetTestCase):
             db.session.delete(self._database)
             db.session.commit()
             self._database = None
-
-    def create_database_import(self):
-        buf = BytesIO()
-        with ZipFile(buf, "w") as bundle:
-            with bundle.open("database_export/metadata.yaml", "w") as fp:
-                fp.write(yaml.safe_dump(database_metadata_config).encode())
-            with bundle.open(
-                "database_export/databases/imported_database.yaml", "w"
-            ) as fp:
-                fp.write(yaml.safe_dump(database_config).encode())
-            with bundle.open(
-                "database_export/datasets/imported_dataset.yaml", "w"
-            ) as fp:
-                fp.write(yaml.safe_dump(dataset_config).encode())
-        buf.seek(0)
-        return buf
 
     def test_get_items(self):
         """
@@ -1103,6 +1085,11 @@ class TestDatabaseApi(SupersetTestCase):
         assert rv.status_code == 201
         assert "sqlalchemy_form" in response["result"]["configuration_method"]
 
+        # Cleanup
+        model = db.session.query(Database).get(response.get("id"))
+        db.session.delete(model)
+        db.session.commit()
+
     def test_create_database_server_cert_validate(self):
         """
         Database API: Test create server cert validation
@@ -1331,7 +1318,7 @@ class TestDatabaseApi(SupersetTestCase):
         expected_response_postgres = {
             "errors": [dataclasses.asdict(superset_error_postgres)]
         }
-        assert response.status_code == 500
+        assert response.status_code == 400
         if example_db.backend == "mysql":
             assert response_data == expected_response_mysql
         else:
@@ -1383,6 +1370,32 @@ class TestDatabaseApi(SupersetTestCase):
         }
         assert rv.status_code == 422
         assert response == expected_response
+        # Cleanup
+        model = db.session.query(Database).get(test_database.id)
+        db.session.delete(model)
+        db.session.commit()
+
+    @mock.patch(
+        "superset.commands.database.sync_permissions.SyncPermissionsCommand.run",
+    )
+    def test_update_database_missing_oauth2_token(self, mock_sync_perms):
+        """
+        Database API: Test update DB connection that does not have
+        an OAuth2 token yet does not raise.
+        """
+        example_db = get_example_database()
+        test_database = self.insert_database(
+            "test-oauth-database", example_db.sqlalchemy_uri_decrypted
+        )
+        mock_sync_perms.side_effect = MissingOAuth2TokenError()
+        self.login(ADMIN_USERNAME)
+        database_data = {
+            "database_name": "test-database-updated",
+            "configuration_method": ConfigurationMethod.SQLALCHEMY_FORM,
+        }
+        uri = f"api/v1/database/{test_database.id}"
+        rv = self.client.put(uri, json=database_data)
+        assert rv.status_code == 200
         # Cleanup
         model = db.session.query(Database).get(test_database.id)
         db.session.delete(model)
@@ -2083,6 +2096,93 @@ class TestDatabaseApi(SupersetTestCase):
         )
         assert rv.status_code == 400
 
+    def test_database_schemas_upload_allowed_filter(self):
+        """
+        Database API: Test database schemas when filtering for upload allowed
+        and there is not schema restriction
+        """
+        with self.create_app().app_context():
+            example_db = get_example_database()
+
+            extra = {
+                "metadata_params": {},
+                "engine_params": {},
+                "metadata_cache_timeout": {},
+                "schemas_allowed_for_file_upload": [],
+            }
+            self.login(ADMIN_USERNAME)
+            database = self.insert_database(
+                "database_with_upload",
+                example_db.sqlalchemy_uri_decrypted,
+                extra=json.dumps(extra),
+                allow_file_upload=True,
+            )
+            db.session.commit()
+            yield database
+
+            mock_schemas = ["schema_1", "schema_2", "schema_3"]
+            mock.patch.object(
+                database, "get_all_schema_names", return_value=mock_schemas
+            )
+            arguments = {"upload_allowed": True}
+            uri = f"api/v1/database/{database.id}/schemas/?q={prison.dumps(arguments)}"
+            rv = self.client.get(uri)
+            data = json.loads(rv.data.decode("utf-8"))
+            assert data["result"] == mock_schemas
+            db.session.delete(database)
+            db.session.commit()
+
+    def test_database_schemas_upload_allowed_filter_specific_schemas(self):
+        """
+        Database API: Test database schemas when filtering for upload allowed
+        with an schema restriction set
+        """
+        with self.create_app().app_context():
+            example_db = get_example_database()
+
+            extra = {
+                "metadata_params": {},
+                "engine_params": {},
+                "metadata_cache_timeout": {},
+                "schemas_allowed_for_file_upload": ["schema_2"],
+            }
+            self.login(ADMIN_USERNAME)
+            database = self.insert_database(
+                "database_with_upload",
+                example_db.sqlalchemy_uri_decrypted,
+                extra=json.dumps(extra),
+                allow_file_upload=True,
+            )
+            db.session.commit()
+            yield database
+
+            mock.patch.object(
+                database,
+                "get_all_schema_names",
+                return_value=["schema_1", "schema_2", "schema_3"],
+            )
+            arguments = {"upload_allowed": True}
+            uri = f"api/v1/database/{database.id}/schemas/?q={prison.dumps(arguments)}"
+            rv = self.client.get(uri)
+            data = json.loads(rv.data.decode("utf-8"))
+            assert data["result"] == ["schema_2"]
+            db.session.delete(database)
+            db.session.commit()
+
+    def test_database_schemas_upload_allowed_filter_disabled(self):
+        """
+        Database API: Test database schemas when filtering for upload allowed
+        for a DB connection that has file uploads disabled
+        """
+        database = db.session.query(Database).filter_by(database_name="examples").one()
+        self.login(ADMIN_USERNAME)
+        arguments = {"upload_allowed": True}
+        uri = f"api/v1/database/{database.id}/schemas/?q={prison.dumps(arguments)}"
+        rv = self.client.get(uri)
+        assert rv.status_code == 200
+        data = json.loads(rv.data.decode("utf-8"))
+        assert data["result"] == []
+
     def test_database_tables(self):
         """
         Database API: Test database tables
@@ -2331,7 +2431,7 @@ class TestDatabaseApi(SupersetTestCase):
         url = "api/v1/database/test_connection/"
         rv = self.post_assert_metric(url, data, "test_connection")
 
-        assert rv.status_code == 500
+        assert rv.status_code == 400
         assert rv.headers["Content-Type"] == "application/json; charset=utf-8"
         response = json.loads(rv.data.decode("utf-8"))
         expected_response = {"errors": [dataclasses.asdict(superset_error)]}
@@ -2433,7 +2533,7 @@ class TestDatabaseApi(SupersetTestCase):
         self.login(ADMIN_USERNAME)
         uri = "api/v1/database/import/"
 
-        buf = self.create_database_import()
+        buf = self.create_import_v1_zip_file("database", datasets=[dataset_config])
         form_data = {
             "formData": (buf, "database_export.zip"),
         }
@@ -2466,7 +2566,7 @@ class TestDatabaseApi(SupersetTestCase):
         self.login(ADMIN_USERNAME)
         uri = "api/v1/database/import/"
 
-        buf = self.create_database_import()
+        buf = self.create_import_v1_zip_file("database", datasets=[dataset_config])
         form_data = {
             "formData": (buf, "database_export.zip"),
         }
@@ -2477,7 +2577,7 @@ class TestDatabaseApi(SupersetTestCase):
         assert response == {"message": "OK"}
 
         # import again without overwrite flag
-        buf = self.create_database_import()
+        buf = self.create_import_v1_zip_file("database", datasets=[dataset_config])
         form_data = {
             "formData": (buf, "database_export.zip"),
         }
@@ -2492,7 +2592,7 @@ class TestDatabaseApi(SupersetTestCase):
                     "error_type": "GENERIC_COMMAND_ERROR",
                     "level": "warning",
                     "extra": {
-                        "databases/imported_database.yaml": "Database already exists and `overwrite=true` was not passed",  # noqa: E501
+                        "databases/database.yaml": "Database already exists and `overwrite=true` was not passed",  # noqa: E501
                         "issue_codes": [
                             {
                                 "code": 1010,
@@ -2508,7 +2608,7 @@ class TestDatabaseApi(SupersetTestCase):
         }
 
         # import with overwrite flag
-        buf = self.create_database_import()
+        buf = self.create_import_v1_zip_file("database", datasets=[dataset_config])
         form_data = {
             "formData": (buf, "database_export.zip"),
             "overwrite": "true",
@@ -2537,20 +2637,7 @@ class TestDatabaseApi(SupersetTestCase):
         self.login(ADMIN_USERNAME)
         uri = "api/v1/database/import/"
 
-        buf = BytesIO()
-        with ZipFile(buf, "w") as bundle:
-            with bundle.open("database_export/metadata.yaml", "w") as fp:
-                fp.write(yaml.safe_dump(dataset_metadata_config).encode())
-            with bundle.open(
-                "database_export/databases/imported_database.yaml", "w"
-            ) as fp:
-                fp.write(yaml.safe_dump(database_config).encode())
-            with bundle.open(
-                "database_export/datasets/imported_dataset.yaml", "w"
-            ) as fp:
-                fp.write(yaml.safe_dump(dataset_config).encode())
-        buf.seek(0)
-
+        buf = self.create_import_v1_zip_file("dataset")
         form_data = {
             "formData": (buf, "database_export.zip"),
         }
@@ -2593,20 +2680,11 @@ class TestDatabaseApi(SupersetTestCase):
             "postgresql://username:XXXXXXXXXX@host:12345/db"
         )
 
-        buf = BytesIO()
-        with ZipFile(buf, "w") as bundle:
-            with bundle.open("database_export/metadata.yaml", "w") as fp:
-                fp.write(yaml.safe_dump(database_metadata_config).encode())
-            with bundle.open(
-                "database_export/databases/imported_database.yaml", "w"
-            ) as fp:
-                fp.write(yaml.safe_dump(masked_database_config).encode())
-            with bundle.open(
-                "database_export/datasets/imported_dataset.yaml", "w"
-            ) as fp:
-                fp.write(yaml.safe_dump(dataset_config).encode())
-        buf.seek(0)
-
+        buf = self.create_import_v1_zip_file(
+            "database",
+            databases=[masked_database_config],
+            datasets=[dataset_config],
+        )
         form_data = {
             "formData": (buf, "database_export.zip"),
         }
@@ -2621,7 +2699,7 @@ class TestDatabaseApi(SupersetTestCase):
                     "error_type": "GENERIC_COMMAND_ERROR",
                     "level": "warning",
                     "extra": {
-                        "databases/imported_database.yaml": {
+                        "databases/database_1.yaml": {
                             "_schema": ["Must provide a password for the database"]
                         },
                         "issue_codes": [
@@ -2651,19 +2729,14 @@ class TestDatabaseApi(SupersetTestCase):
             "vertica+vertica_python://hackathon:XXXXXXXXXX@host:5433/dbname?ssl=1"
         )
 
-        buf = BytesIO()
-        with ZipFile(buf, "w") as bundle:
-            with bundle.open("database_export/metadata.yaml", "w") as fp:
-                fp.write(yaml.safe_dump(database_metadata_config).encode())
-            with bundle.open(
-                "database_export/databases/imported_database.yaml", "w"
-            ) as fp:
-                fp.write(yaml.safe_dump(masked_database_config).encode())
-        buf.seek(0)
-
+        buf = self.create_import_v1_zip_file(
+            "database",
+            databases=[masked_database_config],
+            datasets=[dataset_config],
+        )
         form_data = {
             "formData": (buf, "database_export.zip"),
-            "passwords": json.dumps({"databases/imported_database.yaml": "SECRET"}),
+            "passwords": json.dumps({"databases/database_1.yaml": "SECRET"}),
         }
         rv = self.client.post(uri, data=form_data, content_type="multipart/form-data")
         response = json.loads(rv.data.decode("utf-8"))
@@ -2699,21 +2772,11 @@ class TestDatabaseApi(SupersetTestCase):
         mock_schema_is_feature_enabled.return_value = True
 
         masked_database_config = database_with_ssh_tunnel_config_password.copy()
-
-        buf = BytesIO()
-        with ZipFile(buf, "w") as bundle:
-            with bundle.open("database_export/metadata.yaml", "w") as fp:
-                fp.write(yaml.safe_dump(database_metadata_config).encode())
-            with bundle.open(
-                "database_export/databases/imported_database.yaml", "w"
-            ) as fp:
-                fp.write(yaml.safe_dump(masked_database_config).encode())
-            with bundle.open(
-                "database_export/datasets/imported_dataset.yaml", "w"
-            ) as fp:
-                fp.write(yaml.safe_dump(dataset_config).encode())
-        buf.seek(0)
-
+        buf = self.create_import_v1_zip_file(
+            "database",
+            databases=[masked_database_config],
+            datasets=[dataset_config],
+        )
         form_data = {
             "formData": (buf, "database_export.zip"),
         }
@@ -2728,7 +2791,7 @@ class TestDatabaseApi(SupersetTestCase):
                     "error_type": "GENERIC_COMMAND_ERROR",
                     "level": "warning",
                     "extra": {
-                        "databases/imported_database.yaml": {
+                        "databases/database_1.yaml": {
                             "_schema": ["Must provide a password for the ssh tunnel"]
                         },
                         "issue_codes": [
@@ -2761,21 +2824,14 @@ class TestDatabaseApi(SupersetTestCase):
 
         masked_database_config = database_with_ssh_tunnel_config_password.copy()
 
-        buf = BytesIO()
-        with ZipFile(buf, "w") as bundle:
-            with bundle.open("database_export/metadata.yaml", "w") as fp:
-                fp.write(yaml.safe_dump(database_metadata_config).encode())
-            with bundle.open(
-                "database_export/databases/imported_database.yaml", "w"
-            ) as fp:
-                fp.write(yaml.safe_dump(masked_database_config).encode())
-        buf.seek(0)
-
+        buf = self.create_import_v1_zip_file(
+            "database",
+            databases=[masked_database_config],
+            datasets=[dataset_config],
+        )
         form_data = {
             "formData": (buf, "database_export.zip"),
-            "ssh_tunnel_passwords": json.dumps(
-                {"databases/imported_database.yaml": "TEST"}
-            ),
+            "ssh_tunnel_passwords": json.dumps({"databases/database_1.yaml": "TEST"}),
         }
         rv = self.client.post(uri, data=form_data, content_type="multipart/form-data")
         response = json.loads(rv.data.decode("utf-8"))
@@ -2811,21 +2867,11 @@ class TestDatabaseApi(SupersetTestCase):
         mock_schema_is_feature_enabled.return_value = True
 
         masked_database_config = database_with_ssh_tunnel_config_private_key.copy()
-
-        buf = BytesIO()
-        with ZipFile(buf, "w") as bundle:
-            with bundle.open("database_export/metadata.yaml", "w") as fp:
-                fp.write(yaml.safe_dump(database_metadata_config).encode())
-            with bundle.open(
-                "database_export/databases/imported_database.yaml", "w"
-            ) as fp:
-                fp.write(yaml.safe_dump(masked_database_config).encode())
-            with bundle.open(
-                "database_export/datasets/imported_dataset.yaml", "w"
-            ) as fp:
-                fp.write(yaml.safe_dump(dataset_config).encode())
-        buf.seek(0)
-
+        buf = self.create_import_v1_zip_file(
+            "database",
+            databases=[masked_database_config],
+            datasets=[dataset_config],
+        )
         form_data = {
             "formData": (buf, "database_export.zip"),
         }
@@ -2840,7 +2886,7 @@ class TestDatabaseApi(SupersetTestCase):
                     "error_type": "GENERIC_COMMAND_ERROR",
                     "level": "warning",
                     "extra": {
-                        "databases/imported_database.yaml": {
+                        "databases/database_1.yaml": {
                             "_schema": [
                                 "Must provide a private key for the ssh tunnel",
                                 "Must provide a private key password for the ssh tunnel",  # noqa: E501
@@ -2875,24 +2921,17 @@ class TestDatabaseApi(SupersetTestCase):
         mock_schema_is_feature_enabled.return_value = True
 
         masked_database_config = database_with_ssh_tunnel_config_private_key.copy()
-
-        buf = BytesIO()
-        with ZipFile(buf, "w") as bundle:
-            with bundle.open("database_export/metadata.yaml", "w") as fp:
-                fp.write(yaml.safe_dump(database_metadata_config).encode())
-            with bundle.open(
-                "database_export/databases/imported_database.yaml", "w"
-            ) as fp:
-                fp.write(yaml.safe_dump(masked_database_config).encode())
-        buf.seek(0)
-
+        buf = self.create_import_v1_zip_file(
+            "database",
+            databases=[masked_database_config],
+        )
         form_data = {
             "formData": (buf, "database_export.zip"),
             "ssh_tunnel_private_keys": json.dumps(
-                {"databases/imported_database.yaml": "TestPrivateKey"}
+                {"databases/database_1.yaml": "TestPrivateKey"}
             ),
             "ssh_tunnel_private_key_passwords": json.dumps(
-                {"databases/imported_database.yaml": "TEST"}
+                {"databases/database_1.yaml": "TEST"}
             ),
         }
         rv = self.client.post(uri, data=form_data, content_type="multipart/form-data")
@@ -2928,21 +2967,11 @@ class TestDatabaseApi(SupersetTestCase):
         uri = "api/v1/database/import/"
 
         masked_database_config = database_with_ssh_tunnel_config_private_key.copy()
-
-        buf = BytesIO()
-        with ZipFile(buf, "w") as bundle:
-            with bundle.open("database_export/metadata.yaml", "w") as fp:
-                fp.write(yaml.safe_dump(database_metadata_config).encode())
-            with bundle.open(
-                "database_export/databases/imported_database.yaml", "w"
-            ) as fp:
-                fp.write(yaml.safe_dump(masked_database_config).encode())
-            with bundle.open(
-                "database_export/datasets/imported_dataset.yaml", "w"
-            ) as fp:
-                fp.write(yaml.safe_dump(dataset_config).encode())
-        buf.seek(0)
-
+        buf = self.create_import_v1_zip_file(
+            "database",
+            databases=[masked_database_config],
+            datasets=[dataset_config],
+        )
         form_data = {
             "formData": (buf, "database_export.zip"),
         }
@@ -2987,20 +3016,11 @@ class TestDatabaseApi(SupersetTestCase):
 
         masked_database_config = database_with_ssh_tunnel_config_no_credentials.copy()
 
-        buf = BytesIO()
-        with ZipFile(buf, "w") as bundle:
-            with bundle.open("database_export/metadata.yaml", "w") as fp:
-                fp.write(yaml.safe_dump(database_metadata_config).encode())
-            with bundle.open(
-                "database_export/databases/imported_database.yaml", "w"
-            ) as fp:
-                fp.write(yaml.safe_dump(masked_database_config).encode())
-            with bundle.open(
-                "database_export/datasets/imported_dataset.yaml", "w"
-            ) as fp:
-                fp.write(yaml.safe_dump(dataset_config).encode())
-        buf.seek(0)
-
+        buf = self.create_import_v1_zip_file(
+            "database",
+            databases=[masked_database_config],
+            datasets=[dataset_config],
+        )
         form_data = {
             "formData": (buf, "database_export.zip"),
         }
@@ -3045,20 +3065,11 @@ class TestDatabaseApi(SupersetTestCase):
 
         masked_database_config = database_with_ssh_tunnel_config_mix_credentials.copy()
 
-        buf = BytesIO()
-        with ZipFile(buf, "w") as bundle:
-            with bundle.open("database_export/metadata.yaml", "w") as fp:
-                fp.write(yaml.safe_dump(database_metadata_config).encode())
-            with bundle.open(
-                "database_export/databases/imported_database.yaml", "w"
-            ) as fp:
-                fp.write(yaml.safe_dump(masked_database_config).encode())
-            with bundle.open(
-                "database_export/datasets/imported_dataset.yaml", "w"
-            ) as fp:
-                fp.write(yaml.safe_dump(dataset_config).encode())
-        buf.seek(0)
-
+        buf = self.create_import_v1_zip_file(
+            "database",
+            databases=[masked_database_config],
+            datasets=[dataset_config],
+        )
         form_data = {
             "formData": (buf, "database_export.zip"),
         }
@@ -3105,20 +3116,11 @@ class TestDatabaseApi(SupersetTestCase):
             database_with_ssh_tunnel_config_private_pass_only.copy()
         )
 
-        buf = BytesIO()
-        with ZipFile(buf, "w") as bundle:
-            with bundle.open("database_export/metadata.yaml", "w") as fp:
-                fp.write(yaml.safe_dump(database_metadata_config).encode())
-            with bundle.open(
-                "database_export/databases/imported_database.yaml", "w"
-            ) as fp:
-                fp.write(yaml.safe_dump(masked_database_config).encode())
-            with bundle.open(
-                "database_export/datasets/imported_dataset.yaml", "w"
-            ) as fp:
-                fp.write(yaml.safe_dump(dataset_config).encode())
-        buf.seek(0)
-
+        buf = self.create_import_v1_zip_file(
+            "database",
+            databases=[masked_database_config],
+            datasets=[dataset_config],
+        )
         form_data = {
             "formData": (buf, "database_export.zip"),
         }
@@ -3133,7 +3135,7 @@ class TestDatabaseApi(SupersetTestCase):
                     "error_type": "GENERIC_COMMAND_ERROR",
                     "level": "warning",
                     "extra": {
-                        "databases/imported_database.yaml": {
+                        "databases/database_1.yaml": {
                             "_schema": [
                                 "Must provide a private key for the ssh tunnel",
                                 "Must provide a private key password for the ssh tunnel",  # noqa: E501
@@ -3152,6 +3154,47 @@ class TestDatabaseApi(SupersetTestCase):
                 }
             ]
         }
+
+    @mock.patch("superset.commands.database.importers.v1.utils.add_permissions")
+    def test_import_database_row_expansion_enabled(self, mock_add_permissions):
+        """
+        Database API: Test import database with row expansion enabled.
+        """
+        self.login(ADMIN_USERNAME)
+        uri = "api/v1/database/import/"
+
+        db_config = {
+            "database_name": "DB with expand rows enabled",
+            "allow_csv_upload": True,
+            "allow_ctas": True,
+            "allow_cvas": True,
+            "allow_dml": True,
+            "allow_run_async": False,
+            "cache_timeout": None,
+            "expose_in_sqllab": True,
+            "extra": {
+                "schema_options": {"expand_rows": True},
+            },
+            "sqlalchemy_uri": "postgresql://user:pass@host1",
+            "uuid": "b8a1ccd3-779d-4ab7-8ad8-9ab119d7ff90",
+            "version": "1.0.0",
+        }
+        buf = self.create_import_v1_zip_file("database", databases=[db_config])
+        form_data = {
+            "formData": (buf, "database_export.zip"),
+            "passwords": json.dumps({"databases/database_1.yaml": "SECRET"}),
+        }
+        rv = self.client.post(uri, data=form_data, content_type="multipart/form-data")
+        response = json.loads(rv.data.decode("utf-8"))
+
+        assert rv.status_code == 200
+        assert response == {"message": "OK"}
+
+        database = db.session.query(Database).filter_by(uuid=db_config["uuid"]).one()
+        assert database.extra == json.dumps({"schema_options": {"expand_rows": True}})
+
+        db.session.delete(database)
+        db.session.commit()
 
     @mock.patch(
         "superset.db_engine_specs.base.BaseEngineSpec.get_function_names",

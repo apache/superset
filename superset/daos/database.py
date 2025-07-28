@@ -195,3 +195,14 @@ class DatabaseUserOAuth2TokensDAO(BaseDAO[DatabaseUserOAuth2Tokens]):
     """
     DAO for OAuth2 tokens.
     """
+
+    @classmethod
+    def get_database(cls, database_id: int) -> Database | None:
+        """
+        Returns the database.
+
+        Note that this is different from `DatabaseDAO.find_by_id(database_id)` because
+        this DAO doesn't have any filters, so it can be called even for users without
+        database access (which is necessary for OAuth2).
+        """
+        return db.session.query(Database).filter_by(id=database_id).one_or_none()

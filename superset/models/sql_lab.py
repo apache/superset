@@ -48,7 +48,7 @@ from sqlalchemy.orm import backref, relationship
 from sqlalchemy.sql.elements import ColumnElement, literal_column
 
 from superset import security_manager
-from superset.exceptions import SupersetSecurityException
+from superset.exceptions import SupersetParseError, SupersetSecurityException
 from superset.jinja_context import BaseTemplateProcessor, get_template_processor
 from superset.models.helpers import (
     AuditMixinNullable,
@@ -56,7 +56,7 @@ from superset.models.helpers import (
     ExtraJSONMixin,
     ImportExportMixin,
 )
-from superset.sql_parse import CtasMethod, extract_tables_from_jinja_sql, Table
+from superset.sql.parse import CTASMethod, extract_tables_from_jinja_sql, Table
 from superset.sqllab.limiting_factor import LimitingFactor
 from superset.utils import json
 from superset.utils.core import (
@@ -85,7 +85,7 @@ class SqlTablesMixin:  # pylint: disable=too-few-public-methods
                     self.database,  # type: ignore
                 )
             )
-        except (SupersetSecurityException, TemplateError):
+        except (SupersetSecurityException, SupersetParseError, TemplateError):
             return []
 
 
@@ -128,7 +128,7 @@ class Query(
     )
     select_as_cta = Column(Boolean)
     select_as_cta_used = Column(Boolean, default=False)
-    ctas_method = Column(String(16), default=CtasMethod.TABLE)
+    ctas_method = Column(String(16), default=CTASMethod.TABLE.name)
 
     progress = Column(Integer, default=0)  # 1..100
     # # of rows in the result set or rows modified.

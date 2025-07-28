@@ -18,12 +18,11 @@
  * under the License.
  */
 import { PathLayer } from '@deck.gl/layers';
-import { JsonObject, QueryFormData } from '@superset-ui/core';
+import { JsonObject } from '@superset-ui/core';
 import { commonLayerProps } from '../common';
 import sandboxedEval from '../../utils/sandbox';
-import { createDeckGLComponent } from '../../factory';
+import { GetLayerType, createDeckGLComponent } from '../../factory';
 import TooltipRow from '../../TooltipRow';
-import { TooltipProps } from '../../components/Tooltip';
 import { Point } from '../../types';
 
 function setTooltipContent(o: JsonObject) {
@@ -42,12 +41,15 @@ function setTooltipContent(o: JsonObject) {
   );
 }
 
-export function getLayer(
-  formData: QueryFormData,
-  payload: JsonObject,
-  onAddFilter: () => void,
-  setTooltip: (tooltip: TooltipProps['tooltip']) => void,
-) {
+export const getLayer: GetLayerType<PathLayer> = function ({
+  formData,
+  payload,
+  onContextMenu,
+  filterState,
+  setDataMask,
+  setTooltip,
+  emitCrossFilters,
+}) {
   const fd = formData;
   const c = fd.color_picker;
   const fixedColor = [c.r, c.g, c.b, 255 * c.a];
@@ -72,11 +74,19 @@ export function getLayer(
     rounded: true,
     widthScale: 1,
     widthUnits: fd.line_width_unit,
-    ...commonLayerProps(fd, setTooltip, setTooltipContent),
+    ...commonLayerProps({
+      formData: fd,
+      setTooltip,
+      setTooltipContent,
+      setDataMask,
+      filterState,
+      onContextMenu,
+      emitCrossFilters,
+    }),
   });
-}
+};
 
-function getPoints(data: JsonObject[]) {
+export function getPoints(data: JsonObject[]) {
   let points: Point[] = [];
   data.forEach(d => {
     points = points.concat(d.path);

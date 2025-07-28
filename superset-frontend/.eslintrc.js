@@ -36,6 +36,45 @@ if (process.env.NODE_ENV === 'production') {
   ];
 }
 
+const restrictedImportsRules = {
+  'no-design-icons': {
+    name: '@ant-design/icons',
+    message:
+      'Avoid importing icons directly from @ant-design/icons. Use the src/components/Icons component instead.',
+  },
+  'no-moment': {
+    name: 'moment',
+    message:
+      'Please use the dayjs library instead of moment.js. See https://day.js.org',
+  },
+  'no-lodash-memoize': {
+    name: 'lodash/memoize',
+    message: 'Lodash Memoize is unsafe! Please use memoize-one instead',
+  },
+  'no-testing-library-react': {
+    name: '@superset-ui/core/spec',
+    message: 'Please use spec/helpers/testing-library instead',
+  },
+  'no-testing-library-react-dom-utils': {
+    name: '@testing-library/react-dom-utils',
+    message: 'Please use spec/helpers/testing-library instead',
+  },
+  'no-antd': {
+    name: 'antd',
+    message: 'Please import Ant components from the index of src/components',
+  },
+  'no-superset-theme': {
+    name: '@superset-ui/core',
+    importNames: ['supersetTheme'],
+    message:
+      'Please use the theme directly from the ThemeProvider rather than importing supersetTheme.',
+  },
+  'no-query-string': {
+    name: 'query-string',
+    message: 'Please use the URLSearchParams API instead of query-string.',
+  },
+};
+
 module.exports = {
   extends: [
     'airbnb',
@@ -47,9 +86,7 @@ module.exports = {
   ],
   parser: '@babel/eslint-parser',
   parserOptions: {
-    ecmaFeatures: {
-      experimentalObjectRestSpread: true,
-    },
+    ecmaVersion: 2018,
   },
   env: {
     browser: true,
@@ -61,6 +98,15 @@ module.exports = {
         extensions: ['.js', '.jsx', '.ts', '.tsx', '.json'],
         // resolve modules from `/superset_frontend/node_modules` and `/superset_frontend`
         moduleDirectory: ['node_modules', '.'],
+      },
+      typescript: {
+        alwaysTryTypes: true,
+        project: [
+          './tsconfig.json',
+          './packages/superset-ui-core/tsconfig.json',
+          './packages/superset-ui-chart-controls/',
+          './plugins/*/tsconfig.json',
+        ],
       },
     },
     // only allow import from top level of module
@@ -74,10 +120,16 @@ module.exports = {
     'file-progress',
     'lodash',
     'theme-colors',
+    'icons',
     'i18n-strings',
     'react-prefer-function-component',
     'prettier',
   ],
+  // Add this TS ESlint rule in separate `rules` section to avoid breakages with JS/TS files in /cypress-base.
+  // TODO(hainenber): merge it to below `rules` section.
+  rules: {
+    '@typescript-eslint/prefer-optional-chain': 'error',
+  },
   overrides: [
     {
       files: ['*.ts', '*.tsx'],
@@ -111,7 +163,7 @@ module.exports = {
         '@typescript-eslint/no-non-null-assertion': 0, // disabled temporarily
         '@typescript-eslint/explicit-function-return-type': 0,
         '@typescript-eslint/explicit-module-boundary-types': 0, // re-enable up for discussion
-        '@typescript-eslint/prefer-optional-chain': 2,
+        '@typescript-eslint/no-unused-vars': 'warn', // downgrade to Warning severity for Jest v30 upgrade
         camelcase: 0,
         'class-methods-use-this': 0,
         'func-names': 0,
@@ -200,6 +252,13 @@ module.exports = {
             message: 'Wildcard imports are not allowed',
           },
         ],
+        'no-restricted-imports': [
+          'error',
+          {
+            paths: Object.values(restrictedImportsRules).filter(Boolean),
+            patterns: ['antd/*'],
+          },
+        ],
       },
       settings: {
         'import/resolver': {
@@ -208,6 +267,51 @@ module.exports = {
         react: {
           version: 'detect',
         },
+      },
+    },
+    {
+      files: ['packages/**'],
+      rules: {
+        'no-restricted-imports': [
+          'error',
+          {
+            paths: [
+              restrictedImportsRules['no-moment'],
+              restrictedImportsRules['no-lodash-memoize'],
+              restrictedImportsRules['no-superset-theme'],
+            ],
+            patterns: [],
+          },
+        ],
+      },
+    },
+    {
+      files: ['plugins/**'],
+      rules: {
+        'no-restricted-imports': [
+          'error',
+          {
+            paths: [
+              restrictedImportsRules['no-moment'],
+              restrictedImportsRules['no-lodash-memoize'],
+            ],
+            patterns: [],
+          },
+        ],
+      },
+    },
+    {
+      files: ['src/components/**', 'src/theme/**'],
+      rules: {
+        'no-restricted-imports': [
+          'error',
+          {
+            paths: Object.values(restrictedImportsRules).filter(
+              r => r.name !== 'antd',
+            ),
+            patterns: [],
+          },
+        ],
       },
     },
     {
@@ -238,7 +342,9 @@ module.exports = {
       rules: {
         'import/no-extraneous-dependencies': [
           'error',
-          { devDependencies: true },
+          {
+            devDependencies: true,
+          },
         ],
         'no-only-tests/no-only-tests': 'error',
         'max-classes-per-file': 0,
@@ -267,6 +373,7 @@ module.exports = {
               'Default React import is not required due to automatic JSX runtime in React 16.4',
           },
         ],
+        'no-restricted-imports': 0,
       },
     },
     {
@@ -280,18 +387,21 @@ module.exports = {
         'fixtures.*',
         'cypress-base/cypress/**/*',
         'Stories.tsx',
-        'packages/superset-ui-core/src/style/index.tsx',
+        'packages/superset-ui-core/src/theme/index.tsx',
       ],
       rules: {
         'theme-colors/no-literal-colors': 0,
+        'icons/no-fa-icons-usage': 0,
         'i18n-strings/no-template-vars': 0,
         'no-restricted-imports': 0,
         'react/no-void-elements': 0,
       },
     },
   ],
+  // eslint-disable-next-line no-dupe-keys
   rules: {
     'theme-colors/no-literal-colors': 'error',
+    'icons/no-fa-icons-usage': 'error',
     'i18n-strings/no-template-vars': ['error', true],
     camelcase: [
       'error',
@@ -330,42 +440,6 @@ module.exports = {
     'no-nested-ternary': 0,
     'no-prototype-builtins': 0,
     'no-restricted-properties': 0,
-    'no-restricted-imports': [
-      'error',
-      {
-        paths: [
-          {
-            name: 'antd',
-            message:
-              'Please import Ant components from the index of src/components',
-          },
-          {
-            name: 'antd-v5',
-            message:
-              'Please import Ant v5 components from the index of src/components',
-          },
-          {
-            name: '@superset-ui/core',
-            importNames: ['supersetTheme'],
-            message:
-              'Please use the theme directly from the ThemeProvider rather than importing supersetTheme.',
-          },
-          {
-            name: 'lodash/memoize',
-            message: 'Lodash Memoize is unsafe! Please use memoize-one instead',
-          },
-          {
-            name: '@testing-library/react',
-            message: 'Please use spec/helpers/testing-library instead',
-          },
-          {
-            name: '@testing-library/react-dom-utils',
-            message: 'Please use spec/helpers/testing-library instead',
-          },
-        ],
-        patterns: ['antd/*'],
-      },
-    ],
     'no-shadow': 0, // re-enable up for discussion
     'padded-blocks': 0,
     'prefer-arrow-callback': 0,
@@ -406,6 +480,13 @@ module.exports = {
     'no-promise-executor-return': 0,
     'react/no-unused-class-component-methods': 0,
     'react/react-in-jsx-scope': 0,
+    'no-restricted-imports': [
+      'error',
+      {
+        paths: Object.values(restrictedImportsRules).filter(Boolean),
+        patterns: ['antd/*'],
+      },
+    ],
   },
   ignorePatterns,
 };

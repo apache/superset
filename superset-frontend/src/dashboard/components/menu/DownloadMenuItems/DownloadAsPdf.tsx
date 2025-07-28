@@ -18,7 +18,7 @@
  */
 import { SyntheticEvent } from 'react';
 import { logging, t } from '@superset-ui/core';
-import { Menu } from 'src/components/Menu';
+import { Menu } from '@superset-ui/core/components/Menu';
 import downloadAsPdf from 'src/utils/downloadAsPdf';
 import { LOG_ACTIONS_DASHBOARD_DOWNLOAD_AS_PDF } from 'src/logger/LogUtils';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
@@ -27,6 +27,7 @@ export default function DownloadAsPdf({
   text,
   logEvent,
   dashboardTitle,
+  ...props
 }: {
   text: string;
   dashboardTitle: string;
@@ -50,6 +51,7 @@ export default function DownloadAsPdf({
       onClick={e => {
         onDownloadPdf(e.domEvent);
       }}
+      {...props}
     >
       {text}
     </Menu.Item>

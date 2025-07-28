@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 import {
   buildQueryContext,
   ensureIsArray,
@@ -24,6 +25,7 @@ import {
   QueryFormData,
 } from '@superset-ui/core';
 import {
+  aggregationOperator,
   flattenOperator,
   pivotOperator,
   resampleOperator,
@@ -31,21 +33,34 @@ import {
 } from '@superset-ui/chart-controls';
 
 export default function buildQuery(formData: QueryFormData) {
+  const isRawMetric = formData.aggregation === 'raw';
+
+  const timeColumn = isXAxisSet(formData)
+    ? ensureIsArray(getXAxisColumn(formData))
+    : [];
+
   return buildQueryContext(formData, baseQueryObject => [
     {
       ...baseQueryObject,
-      columns: [
-        ...(isXAxisSet(formData)
-          ? ensureIsArray(getXAxisColumn(formData))
-          : []),
-      ],
-      ...(isXAxisSet(formData) ? {} : { is_timeseries: true }),
+      columns: [...timeColumn],
+      ...(timeColumn.length ? {} : { is_timeseries: true }),
       post_processing: [
         pivotOperator(formData, baseQueryObject),
         rollingWindowOperator(formData, baseQueryObject),
         resampleOperator(formData, baseQueryObject),
         flattenOperator(formData, baseQueryObject),
       ],
+    },
+    {
+      ...baseQueryObject,
+      columns: [...(isRawMetric ? [] : timeColumn)],
+      is_timeseries: !isRawMetric,
+      post_processing: isRawMetric
+        ? []
+        : [
+            pivotOperator(formData, baseQueryObject),
+            aggregationOperator(formData, baseQueryObject),
+          ],
     },
   ]);
 }

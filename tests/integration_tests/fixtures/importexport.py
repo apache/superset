@@ -344,6 +344,12 @@ dashboard_metadata_config: dict[str, Any] = {
     "type": "Dashboard",
     "timestamp": "2020-11-04T21:27:44.423819+00:00",
 }
+metadata_files = {
+    "database": database_metadata_config,
+    "dataset": dataset_metadata_config,
+    "chart": chart_metadata_config,
+    "dashboard": dashboard_metadata_config,
+}
 saved_queries_metadata_config: dict[str, Any] = {
     "version": "1.0.0",
     "type": "SavedQuery",
@@ -689,4 +695,5 @@ saved_queries_config = {
     "uuid": "05b679b5-8eaf-452c-b874-a7a774cfa4e9",
     "version": "1.0.0",
     "database_uuid": "b8a1ccd3-779d-4ab7-8ad8-9ab119d7fe89",
+    "catalog": "default",
 }

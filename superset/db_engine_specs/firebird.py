@@ -20,7 +20,8 @@ from typing import Any, Optional
 from sqlalchemy import types
 
 from superset.constants import TimeGrain
-from superset.db_engine_specs.base import BaseEngineSpec, LimitMethod
+from superset.db_engine_specs.base import BaseEngineSpec
+from superset.sql.parse import LimitMethod
 
 
 class FirebirdEngineSpec(BaseEngineSpec):

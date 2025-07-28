@@ -18,9 +18,13 @@
  */
 import { useCallback, ReactNode, ReactElement, cloneElement } from 'react';
 
-import { css, SupersetTheme } from '@superset-ui/core';
-import { Tooltip } from 'src/components/Tooltip';
-import { FormItem, FormLabel } from 'src/components/Form';
+import { css, SupersetTheme, useTheme } from '@superset-ui/core';
+import {
+  Icons,
+  Tooltip,
+  FormItem,
+  FormLabel,
+} from '@superset-ui/core/components';
 
 const formItemInlineCss = css`
   .ant-form-item-control-input-content {
@@ -28,16 +32,17 @@ const formItemInlineCss = css`
     flex-direction: row;
   }
 `;
-
 interface FieldProps<V> {
   fieldKey: string;
   value?: V;
   label: string;
   description?: ReactNode;
   control: ReactElement;
+  additionalControl?: ReactElement;
   onChange: (fieldKey: string, newValue: V) => void;
   compact: boolean;
   inline: boolean;
+  errorMessage?: string | ReactElement;
 }
 
 export default function Field<V>({
@@ -46,9 +51,11 @@ export default function Field<V>({
   label,
   description = null,
   control,
+  additionalControl,
   onChange = () => {},
   compact = false,
   inline,
+  errorMessage,
 }: FieldProps<V>) {
   const onControlChange = useCallback(
     newValue => {
@@ -61,31 +68,60 @@ export default function Field<V>({
     value,
     onChange: onControlChange,
   });
+  const theme = useTheme();
+  const extra = !compact && description ? description : undefined;
+  const infoTooltip =
+    compact && description ? (
+      <Tooltip
+        css={css`
+          color: ${theme.colorTextTertiary};
+        `}
+        id="field-descr"
+        placement="right"
+        title={description}
+      >
+        <Icons.InfoCircleOutlined
+          iconSize="s"
+          css={css`
+            margin-left: ${theme.sizeUnit}px;
+          `}
+          iconColor={theme.colorTextTertiary}
+        />
+      </Tooltip>
+    ) : undefined;
+
   return (
-    <FormItem
-      label={
-        <FormLabel className="m-r-5">
-          {label || fieldKey}
-          {compact && description && (
-            <Tooltip id="field-descr" placement="right" title={description}>
-              <i className="fa fa-info-circle m-l-5" />
-            </Tooltip>
-          )}
-        </FormLabel>
+    <div
+      css={
+        additionalControl &&
+        css`
+          position: relative;
+        `
       }
-      css={inline && formItemInlineCss}
     >
-      {hookedControl}
-      {!compact && description && (
+      {additionalControl}
+      <FormItem
+        label={
+          <FormLabel>
+            {label || fieldKey}
+            {infoTooltip}
+          </FormLabel>
+        }
+        css={inline && formItemInlineCss}
+        extra={extra}
+      >
+        {hookedControl}
+      </FormItem>
+      {errorMessage && (
         <div
           css={(theme: SupersetTheme) => ({
-            color: theme.colors.grayscale.base,
-            [inline ? 'marginLeft' : 'marginTop']: theme.gridUnit,
+            color: theme.colorText,
+            [inline ? 'marginLeft' : 'marginTop']: theme.sizeUnit,
           })}
         >
-          {description}
+          {errorMessage}
         </div>
       )}
-    </FormItem>
+    </div>
   );
 }

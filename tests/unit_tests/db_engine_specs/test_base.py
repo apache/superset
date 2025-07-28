@@ -19,7 +19,7 @@
 
 from __future__ import annotations
 
-import json
+import json  # noqa: TID251
 from textwrap import dedent
 from typing import Any
 
@@ -27,10 +27,10 @@ import pytest
 from pytest_mock import MockerFixture
 from sqlalchemy import types
 from sqlalchemy.dialects import sqlite
-from sqlalchemy.engine.url import URL
+from sqlalchemy.engine.url import make_url, URL
 from sqlalchemy.sql import sqltypes
 
-from superset.sql_parse import Table
+from superset.sql.parse import Table
 from superset.superset_typing import ResultSetColumnType, SQLAColumnType
 from superset.utils.core import GenericDataType
 from tests.unit_tests.db_engine_specs.utils import assert_column_spec
@@ -47,32 +47,6 @@ def test_get_text_clause_with_colon() -> None:
         "SELECT foo FROM tbl WHERE foo = '123:456')"
     )
     assert text_clause.text == "SELECT foo FROM tbl WHERE foo = '123\\:456')"
-
-
-def test_parse_sql_single_statement() -> None:
-    """
-    `parse_sql` should properly strip leading and trailing spaces and semicolons
-    """
-
-    from superset.db_engine_specs.base import BaseEngineSpec
-
-    queries = BaseEngineSpec.parse_sql(" SELECT foo FROM tbl ; ")
-    assert queries == ["SELECT foo FROM tbl"]
-
-
-def test_parse_sql_multi_statement() -> None:
-    """
-    For string with multiple SQL-statements `parse_sql` method should return list
-    where each element represents the single SQL-statement
-    """
-
-    from superset.db_engine_specs.base import BaseEngineSpec
-
-    queries = BaseEngineSpec.parse_sql("SELECT foo FROM tbl1; SELECT bar FROM tbl2;")
-    assert queries == [
-        "SELECT foo FROM tbl1",
-        "SELECT bar FROM tbl2",
-    ]
 
 
 def test_validate_db_uri(mocker: MockerFixture) -> None:
@@ -206,9 +180,6 @@ def test_select_star(mocker: MockerFixture) -> None:
     """
     from superset.db_engine_specs.base import BaseEngineSpec
 
-    class NoLimitDBEngineSpec(BaseEngineSpec):
-        allow_limit_clause = False
-
     cols: list[ResultSetColumnType] = [
         {
             "column_name": "a",
@@ -235,7 +206,7 @@ def test_select_star(mocker: MockerFixture) -> None:
 
     sql = BaseEngineSpec.select_star(
         database=database,
-        table=Table("my_table"),
+        table=Table("my_table", "my_schema", "my_catalog"),
         engine=engine,
         limit=100,
         show_cols=True,
@@ -243,19 +214,7 @@ def test_select_star(mocker: MockerFixture) -> None:
         latest_partition=False,
         cols=cols,
     )
-    assert sql == "SELECT a\nFROM my_table\nLIMIT ?\nOFFSET ?"
-
-    sql = NoLimitDBEngineSpec.select_star(
-        database=database,
-        table=Table("my_table"),
-        engine=engine,
-        limit=100,
-        show_cols=True,
-        indent=True,
-        latest_partition=False,
-        cols=cols,
-    )
-    assert sql == "SELECT a\nFROM my_table"
+    assert sql == "SELECT\n  a\nFROM my_schema.my_table\nLIMIT ?\nOFFSET ?"
 
 
 def test_extra_table_metadata(mocker: MockerFixture) -> None:
@@ -382,3 +341,201 @@ def test_unmask_encrypted_extra() -> None:
             },
         }
     )
+
+
+def test_impersonate_user_backwards_compatible(mocker: MockerFixture) -> None:
+    """
+    Test that the `impersonate_user` method calls the original methods it replaced.
+    """
+    from superset.db_engine_specs.base import BaseEngineSpec
+
+    database = mocker.MagicMock()
+    url = make_url("sqlite://foo.db")
+    new_url = make_url("sqlite://bar.db")
+    engine_kwargs = {"connect_args": {"user": "alice"}}
+
+    get_url_for_impersonation = mocker.patch.object(
+        BaseEngineSpec,
+        "get_url_for_impersonation",
+        return_value=new_url,
+    )
+    update_impersonation_config = mocker.patch.object(
+        BaseEngineSpec,
+        "update_impersonation_config",
+    )
+    signature = mocker.patch("superset.db_engine_specs.base.signature")
+    signature().parameters = [
+        "cls",
+        "database",
+        "connect_args",
+        "uri",
+        "username",
+        "access_token",
+    ]
+
+    BaseEngineSpec.impersonate_user(database, "alice", "SECRET", url, engine_kwargs)
+
+    get_url_for_impersonation.assert_called_once_with(url, True, "alice", "SECRET")
+    update_impersonation_config.assert_called_once_with(
+        database,
+        {"user": "alice"},
+        new_url,
+        "alice",
+        "SECRET",
+    )
+
+
+def test_impersonate_user_no_database(mocker: MockerFixture) -> None:
+    """
+    Test `impersonate_user` when `update_impersonation_config` has an old signature.
+    """
+    from superset.db_engine_specs.base import BaseEngineSpec
+
+    database = mocker.MagicMock()
+    url = make_url("sqlite://foo.db")
+    new_url = make_url("sqlite://bar.db")
+    engine_kwargs = {"connect_args": {"user": "alice"}}
+
+    get_url_for_impersonation = mocker.patch.object(
+        BaseEngineSpec,
+        "get_url_for_impersonation",
+        return_value=new_url,
+    )
+    update_impersonation_config = mocker.patch.object(
+        BaseEngineSpec,
+        "update_impersonation_config",
+    )
+    signature = mocker.patch("superset.db_engine_specs.base.signature")
+    signature().parameters = [
+        "cls",
+        "connect_args",
+        "uri",
+        "username",
+        "access_token",
+    ]
+
+    BaseEngineSpec.impersonate_user(database, "alice", "SECRET", url, engine_kwargs)
+
+    get_url_for_impersonation.assert_called_once_with(url, True, "alice", "SECRET")
+    update_impersonation_config.assert_called_once_with(
+        {"user": "alice"},
+        new_url,
+        "alice",
+        "SECRET",
+    )
+
+
+def test_handle_boolean_filter_default_behavior() -> None:
+    """
+    Test that BaseEngineSpec uses IS operators for boolean filters by default.
+    """
+    from sqlalchemy import Boolean, Column
+
+    from superset.db_engine_specs.base import BaseEngineSpec
+
+    # Create a mock SQLAlchemy column
+    bool_col = Column("test_col", Boolean)
+
+    # Test IS_TRUE filter - should use IS operator by default
+    result_true = BaseEngineSpec.handle_boolean_filter(bool_col, "IS TRUE", True)
+    assert hasattr(result_true, "left")  # IS comparison has left/right attributes
+    assert hasattr(result_true, "right")
+
+    # Test IS_FALSE filter - should use IS operator by default
+    result_false = BaseEngineSpec.handle_boolean_filter(bool_col, "IS FALSE", False)
+    assert hasattr(result_false, "left")
+    assert hasattr(result_false, "right")
+
+
+def test_handle_boolean_filter_with_equality() -> None:
+    """
+    Test that BaseEngineSpec can use equality operators when configured.
+    """
+    from sqlalchemy import Boolean, Column
+
+    from superset.db_engine_specs.base import BaseEngineSpec
+
+    # Create a test engine spec that uses equality
+    class TestEngineSpec(BaseEngineSpec):
+        use_equality_for_boolean_filters = True
+
+    bool_col = Column("test_col", Boolean)
+
+    # Test with equality enabled
+    result_true = TestEngineSpec.handle_boolean_filter(bool_col, "IS TRUE", True)
+    # Equality comparison should have different structure than IS comparison
+    assert str(type(result_true)).endswith("BinaryExpression'>")
+
+    result_false = TestEngineSpec.handle_boolean_filter(bool_col, "IS FALSE", False)
+    assert str(type(result_false)).endswith("BinaryExpression'>")
+
+
+def test_handle_null_filter() -> None:
+    """
+    Test null/not null filter handling.
+    """
+    from sqlalchemy import Boolean, Column
+
+    from superset.db_engine_specs.base import BaseEngineSpec
+
+    bool_col = Column("test_col", Boolean)
+
+    # Test IS_NULL - use actual FilterOperator values
+    from superset.utils.core import FilterOperator
+
+    result_null = BaseEngineSpec.handle_null_filter(bool_col, FilterOperator.IS_NULL)
+    assert hasattr(result_null, "left")
+    assert hasattr(result_null, "right")
+
+    # Test IS_NOT_NULL
+    result_not_null = BaseEngineSpec.handle_null_filter(
+        bool_col, FilterOperator.IS_NOT_NULL
+    )
+    assert hasattr(result_not_null, "left")
+    assert hasattr(result_not_null, "right")
+
+    # Test invalid operator
+    with pytest.raises(ValueError, match="Invalid null filter operator"):
+        BaseEngineSpec.handle_null_filter(bool_col, "INVALID")  # type: ignore[arg-type]
+
+
+def test_handle_comparison_filter() -> None:
+    """
+    Test comparison filter handling for all operators.
+    """
+    from sqlalchemy import Column, Integer
+
+    from superset.db_engine_specs.base import BaseEngineSpec
+
+    int_col = Column("test_col", Integer)
+
+    # Test all comparison operators - use actual FilterOperator values
+    from superset.utils.core import FilterOperator
+
+    operators_and_values = [
+        (FilterOperator.EQUALS, 5),
+        (FilterOperator.NOT_EQUALS, 5),
+        (FilterOperator.GREATER_THAN, 5),
+        (FilterOperator.LESS_THAN, 5),
+        (FilterOperator.GREATER_THAN_OR_EQUALS, 5),
+        (FilterOperator.LESS_THAN_OR_EQUALS, 5),
+    ]
+
+    for op, value in operators_and_values:
+        result = BaseEngineSpec.handle_comparison_filter(int_col, op, value)
+        # All comparison operators should return binary expressions
+        assert str(type(result)).endswith("BinaryExpression'>")
+
+    # Test invalid operator
+    with pytest.raises(ValueError, match="Invalid comparison filter operator"):
+        BaseEngineSpec.handle_comparison_filter(int_col, "INVALID", 5)  # type: ignore[arg-type]
+
+
+def test_use_equality_for_boolean_filters_property() -> None:
+    """
+    Test that BaseEngineSpec has the correct default value for boolean filter property.
+    """
+    from superset.db_engine_specs.base import BaseEngineSpec
+
+    # Default should be False (use IS operators)
+    assert BaseEngineSpec.use_equality_for_boolean_filters is False

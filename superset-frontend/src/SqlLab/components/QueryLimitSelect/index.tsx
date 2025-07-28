@@ -17,13 +17,12 @@
  * under the License.
  */
 import { useDispatch } from 'react-redux';
-import { useTheme, t } from '@superset-ui/core';
-import { Dropdown } from 'src/components/Dropdown';
-import { Menu } from 'src/components/Menu';
-import Icons from 'src/components/Icons';
+import { t } from '@superset-ui/core';
+import { Dropdown, Button } from '@superset-ui/core/components';
+import { Menu } from '@superset-ui/core/components/Menu';
+import { Icons } from '@superset-ui/core/components/Icons';
 import { queryEditorSetQueryLimit } from 'src/SqlLab/actions/sqlLab';
 import useQueryEditor from 'src/SqlLab/hooks/useQueryEditor';
-import Button from 'src/components/Button';
 
 export interface QueryLimitSelectProps {
   queryEditorId: string;
@@ -48,14 +47,13 @@ function renderQueryLimit(
   limitDropdown.push(maxRow);
 
   return (
-    <Menu>
-      {[...new Set(limitDropdown)].map(limit => (
-        <Menu.Item key={`${limit}`} onClick={() => setQueryLimit(limit)}>
-          {/* // eslint-disable-line no-use-before-define */}
-          {convertToNumWithSpaces(limit)}{' '}
-        </Menu.Item>
-      ))}
-    </Menu>
+    <Menu
+      items={[...new Set(limitDropdown)].map(limit => ({
+        key: `${limit}`,
+        onClick: () => setQueryLimit(limit),
+        label: `${convertToNumWithSpaces(limit)} `,
+      }))}
+    />
   );
 }
 
@@ -64,7 +62,6 @@ const QueryLimitSelect = ({
   maxRow,
   defaultQueryLimit,
 }: QueryLimitSelectProps) => {
-  const theme = useTheme();
   const dispatch = useDispatch();
 
   const queryEditor = useQueryEditor(queryEditorId, ['id', 'queryLimit']);
@@ -74,15 +71,15 @@ const QueryLimitSelect = ({
 
   return (
     <Dropdown
-      dropdownRender={() => renderQueryLimit(maxRow, setQueryLimit)}
+      popupRender={() => renderQueryLimit(maxRow, setQueryLimit)}
       trigger={['click']}
     >
-      <Button size="small" showMarginRight={false} type="link">
+      <Button size="small" showMarginRight={false} buttonStyle="link">
         <span>{t('LIMIT')}:</span>
         <span className="limitDropdown">
           {convertToNumWithSpaces(queryLimit)}
         </span>
-        <Icons.TriangleDown iconColor={theme.colors.grayscale.base} />
+        <Icons.CaretDownOutlined iconSize="m" />
       </Button>
     </Dropdown>
   );

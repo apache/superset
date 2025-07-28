@@ -148,14 +148,92 @@ describe('plugin-chart-table', () => {
       expect(queries[1].extras?.time_grain_sqla).toEqual(TimeGranularity.MONTH);
       expect(queries[1].extras?.where).toEqual("(status IN ('In Process'))");
     });
-    it('should not include time_grain_sqla in extras if temporal colum is not used and keep the rest', () => {
-      const { queries } = buildQuery(extraQueryFormData);
-      // Extras in regular query
-      expect(queries[0].extras?.time_grain_sqla).toBeUndefined();
-      expect(queries[0].extras?.where).toEqual("(status IN ('In Process'))");
-      // Extras in summary query
-      expect(queries[1].extras?.time_grain_sqla).toBeUndefined();
-      expect(queries[1].extras?.where).toEqual("(status IN ('In Process'))");
+
+    describe('Percent Metric Calculation Modes', () => {
+      const baseFormDataWithPercents: TableChartFormData = {
+        ...basicFormData,
+        query_mode: QueryMode.Aggregate,
+        metrics: ['count'],
+        percent_metrics: ['sum_sales'],
+        groupby: ['category'],
+      };
+
+      it('should default to row_limit mode with single query', () => {
+        const { queries } = buildQuery(baseFormDataWithPercents);
+
+        expect(queries).toHaveLength(1);
+        expect(queries[0].metrics).toEqual(['count', 'sum_sales']);
+        expect(queries[0].post_processing).toEqual([
+          {
+            operation: 'contribution',
+            options: {
+              columns: ['sum_sales'],
+              rename_columns: ['%sum_sales'],
+            },
+          },
+        ]);
+      });
+
+      it('should create extra query in all_records mode', () => {
+        const formData = {
+          ...baseFormDataWithPercents,
+          percent_metric_calculation: 'all_records',
+        };
+
+        const { queries } = buildQuery(formData);
+
+        expect(queries).toHaveLength(2);
+
+        expect(queries[0].post_processing).toEqual([
+          {
+            operation: 'contribution',
+            options: {
+              columns: ['sum_sales'],
+              rename_columns: ['%sum_sales'],
+            },
+          },
+        ]);
+
+        expect(queries[1]).toMatchObject({
+          columns: [],
+          metrics: ['sum_sales'],
+          post_processing: [],
+          row_limit: 0,
+          row_offset: 0,
+          orderby: [],
+          is_timeseries: false,
+        });
+      });
+
+      it('should work with show_totals in all_records mode', () => {
+        const formData = {
+          ...baseFormDataWithPercents,
+          percent_metric_calculation: 'all_records',
+          show_totals: true,
+        };
+
+        const { queries } = buildQuery(formData);
+
+        expect(queries).toHaveLength(3);
+        expect(queries[1].metrics).toEqual(['sum_sales']);
+        expect(queries[2].metrics).toEqual(['count', 'sum_sales']);
+      });
+
+      it('should handle empty percent_metrics in all_records mode', () => {
+        const formData = {
+          ...basicFormData,
+          query_mode: QueryMode.Aggregate,
+          metrics: ['count'],
+          percent_metrics: [],
+          percent_metric_calculation: 'all_records',
+          groupby: ['category'],
+        };
+
+        const { queries } = buildQuery(formData);
+
+        expect(queries).toHaveLength(1);
+        expect(queries[0].post_processing).toEqual([]);
+      });
     });
   });
 });

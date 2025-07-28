@@ -64,6 +64,7 @@ database_schemas_query_schema = {
     "type": "object",
     "properties": {
         "force": {"type": "boolean"},
+        "upload_allowed": {"type": "boolean"},
         "catalog": {"type": "string"},
     },
 }
@@ -831,6 +832,7 @@ class ImportV1DatabaseExtraSchema(Schema):
     disable_drill_to_detail = fields.Boolean(required=False)
     allow_multi_catalog = fields.Boolean(required=False)
     version = fields.String(required=False, allow_none=True)
+    schema_options = fields.Dict(keys=fields.Str(), values=fields.Raw())
 
 
 class ImportV1DatabaseSchema(Schema):
@@ -1085,7 +1087,10 @@ class BaseUploadFilePostSchemaMixin(Schema):
     def validate_file_extension(self, file: FileStorage) -> None:
         allowed_extensions = current_app.config["ALLOWED_EXTENSIONS"]
         file_suffix = Path(file.filename).suffix
-        if not file_suffix or file_suffix[1:] not in allowed_extensions:
+        if not file_suffix:
+            raise ValidationError([_("File extension is not allowed.")])
+        # Make case-insensitive comparison
+        if file_suffix[1:].lower() not in [ext.lower() for ext in allowed_extensions]:
             raise ValidationError([_("File extension is not allowed.")])
 
 

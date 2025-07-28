@@ -31,7 +31,7 @@ import { Maybe } from '../../types';
 import { PostProcessingRule } from './PostProcessing';
 import { JsonObject } from '../../connection';
 import { TimeGranularity } from '../../time-format';
-import { GenericDataType } from './QueryResponse';
+import { GenericDataType, DataRecordValue } from './QueryResponse';
 
 export type BaseQueryObjectFilterClause = {
   col: QueryFormColumn;
@@ -41,13 +41,13 @@ export type BaseQueryObjectFilterClause = {
 
 export type BinaryQueryObjectFilterClause = BaseQueryObjectFilterClause & {
   op: BinaryOperator;
-  val: string | number | boolean;
+  val: DataRecordValue;
   formattedVal?: string;
 };
 
 export type SetQueryObjectFilterClause = BaseQueryObjectFilterClause & {
   op: SetOperator;
-  val: (string | number | boolean)[];
+  val: DataRecordValue[];
   formattedVal?: string[];
 };
 
@@ -71,6 +71,8 @@ export type QueryObjectExtras = Partial<{
   where?: string;
   /** Instant Time Comparison */
   instant_time_comparison_range?: string;
+
+  time_compare?: string;
 }>;
 
 export type ResidualQueryObjectData = {

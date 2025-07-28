@@ -25,7 +25,7 @@ jest.mock('@superset-ui/core', () => ({
   isFeatureEnabled: jest.fn().mockReturnValue(true),
 }));
 
-jest.mock('src/components/Switch', () => ({
+jest.mock('@superset-ui/core/components/Switch', () => ({
   Switch: ({
     checked,
     onChange,
@@ -148,9 +148,7 @@ test('Displays tooltip text on hover over the InfoTooltip', async () => {
     />,
   );
 
-  const infoTooltipTrigger = screen.getByRole('img', {
-    name: 'info-solid_small',
-  });
+  const infoTooltipTrigger = screen.getByTestId('info-tooltip-icon');
   expect(infoTooltipTrigger).toBeInTheDocument();
 
   userEvent.hover(infoTooltipTrigger);

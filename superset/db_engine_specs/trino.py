@@ -30,7 +30,6 @@ from sqlalchemy.exc import NoSuchTableError
 
 from superset import db
 from superset.constants import QUERY_CANCEL_KEY, QUERY_EARLY_CANCEL_KEY
-from superset.databases.utils import make_url_safe
 from superset.db_engine_specs.base import BaseEngineSpec, convert_inspector_columns
 from superset.db_engine_specs.exceptions import (
     SupersetDBAPIConnectionError,
@@ -40,7 +39,7 @@ from superset.db_engine_specs.exceptions import (
 )
 from superset.db_engine_specs.presto import PrestoBaseEngineSpec
 from superset.models.sql_lab import Query
-from superset.sql_parse import Table
+from superset.sql.parse import Table
 from superset.superset_typing import ResultSetColumnType
 from superset.utils import json
 from superset.utils.core import create_ssl_cert_file, get_user_agent, QuerySource
@@ -131,55 +130,27 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
         return metadata
 
     @classmethod
-    def update_impersonation_config(  # pylint: disable=too-many-arguments
+    def impersonate_user(
         cls,
         database: Database,
-        connect_args: dict[str, Any],
-        uri: str,
         username: str | None,
-        access_token: str | None,
-    ) -> None:
-        """
-        Update a configuration dictionary
-        that can set the correct properties for impersonating users
-        :param database: the Database object
-        :param connect_args: config to be updated
-        :param uri: URI string
-        :param username: Effective username
-        :param access_token: Personal access token for OAuth2
-        :return: None
-        """
-        url = make_url_safe(uri)
-        backend_name = url.get_backend_name()
+        user_token: str | None,
+        url: URL,
+        engine_kwargs: dict[str, Any],
+    ) -> tuple[URL, dict[str, Any]]:
+        if username is None:
+            return url, engine_kwargs
 
-        # Must be Trino connection, enable impersonation, and set optional param
-        # auth=LDAP|KERBEROS
-        # Set principal_username=$effective_username
-        if backend_name == "trino" and username is not None:
+        backend_name = url.get_backend_name()
+        connect_args = engine_kwargs.setdefault("connect_args", {})
+        if backend_name == "trino":
             connect_args["user"] = username
-            if access_token is not None:
+            if user_token is not None:
                 http_session = requests.Session()
-                http_session.headers.update({"Authorization": f"Bearer {access_token}"})
+                http_session.headers.update({"Authorization": f"Bearer {user_token}"})
                 connect_args["http_session"] = http_session
 
-    @classmethod
-    def get_url_for_impersonation(
-        cls,
-        url: URL,
-        impersonate_user: bool,
-        username: str | None,
-        access_token: str | None,
-    ) -> URL:
-        """
-        Return a modified URL with the username set.
-
-        :param access_token: Personal access token for OAuth2
-        :param url: SQLAlchemy URL object
-        :param impersonate_user: Flag indicating if impersonation is enabled
-        :param username: Effective username
-        """
-        # Do nothing and let update_impersonation_config take care of impersonation
-        return url
+        return url, engine_kwargs
 
     @classmethod
     def get_allow_cost_estimate(cls, extra: dict[str, Any]) -> bool:

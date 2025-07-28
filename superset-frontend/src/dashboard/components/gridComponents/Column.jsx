@@ -20,7 +20,7 @@ import { Fragment, useCallback, useState, useMemo, memo } from 'react';
 import PropTypes from 'prop-types';
 import cx from 'classnames';
 import { css, styled, t } from '@superset-ui/core';
-import Icons from 'src/components/Icons';
+import { Icons } from '@superset-ui/core/components/Icons';
 import DashboardComponent from 'src/dashboard/containers/DashboardComponent';
 import DeleteComponentButton from 'src/dashboard/components/DeleteComponentButton';
 import {
@@ -70,7 +70,7 @@ const ColumnStyles = styled.div`
       position: relative;
 
       & > :not(.hover-menu):not(:last-child) {
-        ${!editMode && `margin-bottom: ${theme.gridUnit * 4}px;`}
+        ${!editMode && `margin-bottom: ${theme.sizeUnit * 4}px;`}
       }
     }
 
@@ -83,11 +83,11 @@ const ColumnStyles = styled.div`
       left: 0;
       z-index: 1;
       pointer-events: none;
-      border: 1px dashed ${theme.colors.grayscale.light2};
+      border: 1px dashed ${theme.colorBorder};
     }
     .dashboard--editing .resizable-container--resizing:hover > &:after,
     .dashboard--editing .hover-menu:hover + &:after {
-      border: 1px dashed ${theme.colors.primary.base};
+      border: 1px dashed ${theme.colorPrimary};
       z-index: 2;
     }
 
@@ -110,13 +110,13 @@ const ColumnStyles = styled.div`
 `;
 
 const emptyColumnContentStyles = theme => css`
-  min-height: ${theme.gridUnit * 25}px;
+  min-height: ${theme.sizeUnit * 25}px;
   width: 100%;
   height: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: ${theme.colors.text.label};
+  color: ${theme.colorTextLabel};
 `;
 
 const Column = props => {
@@ -212,10 +212,13 @@ const Column = props => {
           {editMode && (
             <HoverMenu innerRef={dragSourceRef} position="top">
               <DragHandle position="top" />
-              <DeleteComponentButton onDelete={handleDeleteComponent} />
+              <DeleteComponentButton
+                iconSize="m"
+                onDelete={handleDeleteComponent}
+              />
               <IconButton
                 onClick={handleChangeFocus}
-                icon={<Icons.Cog iconSize="xl" />}
+                icon={<Icons.SettingOutlined iconSize="m" />}
               />
             </HoverMenu>
           )}

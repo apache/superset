@@ -18,7 +18,7 @@ jobs:
     runs-on: ubuntu-24.04
     strategy:
       matrix:
-        python-version: ["current", "previous"]
+        python-version: ["current", "previous", "next"]
     steps:
       - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
         uses: actions/checkout@v4
@@ -53,11 +53,18 @@ jobs:
           cd docs
           yarn install --immutable
 
+      - name: Cache pre-commit environments
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pre-commit
+          key: pre-commit-v2-${{ runner.os }}-py${{ matrix.python-version }}-${{ hashFiles('.pre-commit-config.yaml') }}
+          restore-keys: |
+            pre-commit-v2-${{ runner.os }}-py${{ matrix.python-version }}-
+
       - name: pre-commit
         run: |
           set +e  # Don't exit immediately on failure
-          # Skip auto-fixing in CI to ensure changes are committed locally
-          export SKIP_FIX=1
+          export SKIP=eslint-frontend,type-checking-frontend
           pre-commit run --all-files
           PRE_COMMIT_EXIT_CODE=$?
           git diff --quiet --exit-code

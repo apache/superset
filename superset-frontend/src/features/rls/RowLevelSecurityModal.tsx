@@ -17,22 +17,18 @@
  * under the License.
  */
 
-import {
-  css,
-  styled,
-  SupersetClient,
-  SupersetTheme,
-  t,
-} from '@superset-ui/core';
-import Modal from 'src/components/Modal';
+import { css, styled, SupersetClient, t } from '@superset-ui/core';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import Icons from 'src/components/Icons';
-import Select from 'src/components/Select/Select';
-import { TextArea } from 'src/components/Input';
-import AsyncSelect from 'src/components/Select/AsyncSelect';
+import { ModalTitleWithIcon } from 'src/components/ModalTitleWithIcon';
+import {
+  Modal,
+  Select,
+  AsyncSelect,
+  InfoTooltip,
+  LabeledErrorBoundInput,
+  Input,
+} from '@superset-ui/core/components';
 import rison from 'rison';
-import { LabeledErrorBoundInput } from 'src/components/Form';
-import InfoTooltip from 'src/components/InfoTooltip';
 import { useSingleViewResource } from 'src/views/CRUD/hooks';
 import { FILTER_OPTIONS } from './constants';
 import { FilterType, RLSObject, RoleObject, TableObject } from './types';
@@ -40,7 +36,7 @@ import { FilterType, RLSObject, RoleObject, TableObject } from './types';
 const noMargins = css`
   margin: 0;
 
-  .antd5-input {
+  .ant-input {
     margin: 0;
   }
 `;
@@ -49,65 +45,63 @@ const StyledModal = styled(Modal)`
   max-width: 1200px;
   min-width: min-content;
   width: 100%;
-  .antd5-modal-footer {
+  .ant-modal-footer {
     white-space: nowrap;
   }
 `;
 
-const StyledIcon = (theme: SupersetTheme) => css`
-  margin: auto ${theme.gridUnit * 2}px auto 0;
-  color: ${theme.colors.grayscale.base};
-`;
-
 const StyledSectionContainer = styled.div`
-  display: flex;
-  flex-direction: column;
-  padding: ${({ theme }) =>
-    `${theme.gridUnit * 3}px ${theme.gridUnit * 4}px ${theme.gridUnit * 2}px`};
-
-  label,
-  .control-label {
-    display: inline-block;
-    font-size: ${({ theme }) => theme.typography.sizes.s}px;
-    color: ${({ theme }) => theme.colors.grayscale.base};
-    vertical-align: middle;
-  }
-
-  .info-solid-small {
-    vertical-align: middle;
-    padding-bottom: ${({ theme }) => theme.gridUnit / 2}px;
-  }
-`;
-
-const StyledInputContainer = styled.div`
-  display: flex;
-  flex-direction: column;
-  margin: ${({ theme }) => theme.gridUnit}px;
-  margin-bottom: ${({ theme }) => theme.gridUnit * 4}px;
-
-  .input-container {
+  ${({ theme }) => css`
     display: flex;
-    align-items: center;
+    flex-direction: column;
+    padding: ${theme.sizeUnit * 3}px ${theme.sizeUnit * 4}px
+      ${theme.sizeUnit * 2}px;
 
-    > div {
-      width: 100%;
+    label,
+    .control-label {
+      display: flex;
+      font-size: ${theme.fontSizeSM}px;
+      color: ${theme.colorTextLabel};
+      align-items: center;
     }
-  }
 
-  input,
-  textarea {
-    flex: 1 1 auto;
-  }
+    .info-solid-small {
+      vertical-align: middle;
+      padding-bottom: ${theme.sizeUnit / 2}px;
+    }
+  `}
+`;
+const StyledInputContainer = styled.div`
+  ${({ theme }) => css`
+    display: flex;
+    flex-direction: column;
+    margin: ${theme.sizeUnit}px;
+    margin-bottom: ${theme.sizeUnit * 4}px;
 
-  .required {
-    margin-left: ${({ theme }) => theme.gridUnit / 2}px;
-    color: ${({ theme }) => theme.colors.error.base};
-  }
+    .input-container {
+      display: flex;
+      align-items: center;
+
+      > div {
+        width: 100%;
+      }
+    }
+
+    input,
+    textarea {
+      flex: 1 1 auto;
+    }
+
+    .required {
+      margin-left: ${theme.sizeUnit / 2}px;
+      color: ${theme.colorErrorText};
+    }
+  `}
 `;
 
-const StyledTextArea = styled(TextArea)`
+const StyledTextArea = styled(Input.TextArea)`
   resize: none;
-  margin-top: ${({ theme }) => theme.gridUnit}px;
+  margin-top: ${({ theme }) => theme.sizeUnit}px;
 `;
 
 export interface RowLevelSecurityModalProps {
@@ -340,14 +334,11 @@ function RowLevelSecurityModal(props: RowLevelSecurityModalProps) {
       width="30%"
       maxWidth="1450px"
       title={
-        <h4 data-test="rls-modal-title">
-          {isEditMode ? (
-            <Icons.EditAlt css={StyledIcon} />
-          ) : (
-            <Icons.PlusLarge css={StyledIcon} />
-          )}
-          {isEditMode ? t('Edit Rule') : t('Add Rule')}
-        </h4>
+        <ModalTitleWithIcon
+          isEditMode={isEditMode}
+          title={isEditMode ? t('Edit Rule') : t('Add Rule')}
+          data-test="rls-modal-title"
+        />
       }
     >
       <StyledSectionContainer>
@@ -451,25 +442,23 @@ function RowLevelSecurityModal(props: RowLevelSecurityModalProps) {
             />
           </StyledInputContainer>
           <StyledInputContainer>
-            <div className="control-label">
-              <LabeledErrorBoundInput
-                id="clause"
-                name="clause"
-                value={currentRule ? currentRule.clause : ''}
-                required
-                validationMethods={{
-                  onChange: ({ target }: { target: HTMLInputElement }) =>
-                    onTextChange(target),
-                }}
-                css={noMargins}
-                label={t('Clause')}
-                hasTooltip
-                tooltipText={t(
-                  'This is the condition that will be added to the WHERE clause. For example, to only return rows for a particular client, you might define a regular filter with the clause `client_id = 9`. To display no rows unless a user belongs to a RLS filter role, a base filter can be created with the clause `1 = 0` (always false).',
-                )}
-                data-test="clause-test"
-              />
-            </div>
+            <LabeledErrorBoundInput
+              id="clause"
+              name="clause"
+              value={currentRule ? currentRule.clause : ''}
+              required
+              validationMethods={{
+                onChange: ({ target }: { target: HTMLInputElement }) =>
+                  onTextChange(target),
+              }}
+              css={noMargins}
+              label={t('Clause')}
+              hasTooltip
+              tooltipText={t(
+                'This is the condition that will be added to the WHERE clause. For example, to only return rows for a particular client, you might define a regular filter with the clause `client_id = 9`. To display no rows unless a user belongs to a RLS filter role, a base filter can be created with the clause `1 = 0` (always false).',
+              )}
+              data-test="clause-test"
+            />
           </StyledInputContainer>
           <StyledInputContainer>
             <div className="control-label">{t('Description')}</div>

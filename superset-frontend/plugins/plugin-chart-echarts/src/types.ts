@@ -138,6 +138,7 @@ export interface BaseTransformedProps<F> {
   width: number;
   emitCrossFilters?: boolean;
   coltypeMapping?: Record<string, number>;
+  onLegendScroll?: (currentIndex: number) => void;
 }
 
 export type CrossFilterTransformedProps = {
@@ -183,7 +184,7 @@ export class EchartsChartPlugin<
     super({
       ...restProps,
       metadata: new ChartMetadata({
-        parseMethod: 'json',
+        parseMethod: 'json-bigint',
         ...metadata,
       }),
     });

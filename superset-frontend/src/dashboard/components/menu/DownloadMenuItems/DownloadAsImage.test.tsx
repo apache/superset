@@ -23,7 +23,7 @@ import {
   userEvent,
   waitFor,
 } from 'spec/helpers/testing-library';
-import { Menu } from 'src/components/Menu';
+import { Menu } from '@superset-ui/core/components/Menu';
 import downloadAsImage from 'src/utils/downloadAsImage';
 import DownloadAsImage from './DownloadAsImage';
 
@@ -31,7 +31,7 @@ const mockAddDangerToast = jest.fn();
 
 jest.mock('src/utils/downloadAsImage', () => ({
   __esModule: true,
-  default: jest.fn(() => (_e: SyntheticEvent) => {}),
+  default: jest.fn(() => (_e: SyntheticEvent) => console.log(_e)),
 }));
 
 jest.mock('src/components/MessageToasts/withToasts', () => ({

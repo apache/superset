@@ -19,7 +19,7 @@
 
 describe('Visualization > Gauge', () => {
   beforeEach(() => {
-    cy.intercept('POST', '/api/v1/chart/data*').as('getJson');
+    cy.intercept('POST', '**/api/v1/chart/data*').as('getJson');
   });
 
   const GAUGE_FORM_DATA = {
@@ -64,7 +64,7 @@ describe('Visualization > Gauge', () => {
   it('should allow type to search color schemes', () => {
     verify(GAUGE_FORM_DATA);
 
-    cy.get('#controlSections-tab-display').click();
+    cy.get('#controlSections-tab-CUSTOMIZE').click();
     cy.get('.Control[data-test="color_scheme"]').scrollIntoView();
     cy.get('.Control[data-test="color_scheme"] input[type="search"]').focus();
     cy.focused().type('bnbColors{enter}');

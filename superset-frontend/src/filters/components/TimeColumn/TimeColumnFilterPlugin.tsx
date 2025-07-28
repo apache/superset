@@ -24,9 +24,12 @@ import {
   tn,
 } from '@superset-ui/core';
 import { useEffect, useState } from 'react';
-import { Select } from 'src/components';
-import { FormItemProps } from 'antd/lib/form';
-import { FilterPluginStyle, StyledFormItem, StatusMessage } from '../common';
+import {
+  FormItem,
+  type FormItemProps,
+  Select,
+} from '@superset-ui/core/components';
+import { FilterPluginStyle, StatusMessage } from '../common';
 import { PluginFilterTimeColumnProps } from './types';
 
 export default function PluginFilterTimeColumn(
@@ -106,10 +109,7 @@ export default function PluginFilterTimeColumn(
 
   return (
     <FilterPluginStyle height={height} width={width}>
-      <StyledFormItem
-        validateStatus={filterState.validateStatus}
-        {...formItemData}
-      >
+      <FormItem validateStatus={filterState.validateStatus} {...formItemData}>
         <Select
           name={formData.nativeFilterId}
           allowClear
@@ -123,9 +123,9 @@ export default function PluginFilterTimeColumn(
           onMouseLeave={unsetHoveredFilter}
           ref={inputRef}
           options={options}
-          onDropdownVisibleChange={setFilterActive}
+          onOpenChange={setFilterActive}
         />
-      </StyledFormItem>
+      </FormItem>
     </FilterPluginStyle>
   );
 }

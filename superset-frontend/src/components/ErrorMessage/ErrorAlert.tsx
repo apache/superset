@@ -17,28 +17,17 @@
  * under the License.
  */
 import { useState } from 'react';
-import { Tooltip } from 'src/components/Tooltip';
-import Modal from 'src/components/Modal';
-import { ExclamationCircleOutlined, WarningOutlined } from '@ant-design/icons';
-import Alert from 'src/components/Alert';
 import { t, useTheme } from '@superset-ui/core';
+import {
+  Alert,
+  Icons,
+  Modal,
+  Tooltip,
+  Typography,
+} from '@superset-ui/core/components';
+import type { ErrorAlertProps } from './types';
 
-export interface ErrorAlertProps {
-  errorType?: string; // Strong text on the first line
-  message: React.ReactNode | string; // Text shown on the first line
-  type?: 'warning' | 'error' | 'info'; // Allows only 'warning' or 'error'
-  description?: React.ReactNode; // Text shown under the first line, not collapsible
-  descriptionDetails?: React.ReactNode | string; // Text shown under the first line, collapsible
-  descriptionDetailsCollapsed?: boolean; // Hides the collapsible section unless "Show more" is clicked, default true
-  descriptionPre?: boolean; // Uses pre-style to break lines, default true
-  compact?: boolean; // Shows the error icon with tooltip and modal, default false
-  children?: React.ReactNode; // Additional content to show in the modal
-  closable?: boolean; // Show close button, default true
-  showIcon?: boolean; // Show icon, default true
-  className?: string;
-}
-
-const ErrorAlert: React.FC<ErrorAlertProps> = ({
+export const ErrorAlert: React.FC<ErrorAlertProps> = ({
   errorType = t('Error'),
   message,
   type = 'error',
@@ -64,9 +53,13 @@ const ErrorAlert: React.FC<ErrorAlertProps> = ({
   const theme = useTheme();
   const renderTrigger = () => {
     const icon =
-      type === 'warning' ? <WarningOutlined /> : <ExclamationCircleOutlined />;
+      type === 'warning' ? (
+        <Icons.WarningOutlined />
+      ) : (
+        <Icons.ExclamationCircleOutlined />
+      );
     const color =
-      type === 'warning' ? theme.colors.warning.base : theme.colors.error.base;
+      type === 'warning' ? theme.colorWarningText : theme.colorErrorText;
     return (
       <div className={className} style={{ cursor: 'pointer' }}>
         <span style={{ color }}>{icon} </span>
@@ -76,19 +69,26 @@ const ErrorAlert: React.FC<ErrorAlertProps> = ({
   };
   const preStyle = {
     whiteSpace: 'pre-wrap',
-    fontFamily: theme.typography.families.sansSerif,
+    fontFamily: theme.fontFamilyCode,
+    margin: `${theme.sizeUnit}px 0`,
   };
   const renderDescription = () => (
     <div>
+      {message && <div>{message}</div>}
       {description && (
-        <p style={descriptionPre ? preStyle : {}} data-testid="description">
+        <Typography.Paragraph
+          style={descriptionPre ? preStyle : {}}
+          data-testid="description"
+        >
           {description}
-        </p>
+        </Typography.Paragraph>
       )}
       {descriptionDetails && (
         <div>
           {isDescriptionVisible && (
-            <p style={descriptionPre ? preStyle : {}}>{descriptionDetails}</p>
+            <Typography.Paragraph style={descriptionPre ? preStyle : {}}>
+              {descriptionDetails}
+            </Typography.Paragraph>
           )}
           <span
             role="button"
@@ -104,19 +104,13 @@ const ErrorAlert: React.FC<ErrorAlertProps> = ({
   );
   const renderAlert = (closable: boolean) => (
     <Alert
+      message={errorType}
       description={renderDescription()}
       type={type}
-      showIcon
+      showIcon={showIcon}
       closable={closable}
       className={className}
-    >
-      <strong>{errorType}</strong>
-      {message && (
-        <>
-          : <span>{message}</span>
-        </>
-      )}
-    </Alert>
+    />
   );
 
   if (compact) {
@@ -128,6 +122,7 @@ const ErrorAlert: React.FC<ErrorAlertProps> = ({
           </span>
         </Tooltip>
         <Modal
+          name={errorType}
           title={errorType}
           show={showModal}
           onHide={() => setShowModal(false)}
@@ -142,5 +137,3 @@ const ErrorAlert: React.FC<ErrorAlertProps> = ({
 
   return renderAlert(closable);
 };
-
-export default ErrorAlert;

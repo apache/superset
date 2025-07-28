@@ -21,6 +21,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { URL_PARAMS } from 'src/constants';
 import { getUrlParam } from 'src/utils/urlUtils';
 import { RootState } from 'src/dashboard/types';
+import { isFeatureEnabled, FeatureFlag } from '@superset-ui/core';
 import {
   useFilters,
   useNativeFiltersDataMask,
@@ -29,6 +30,9 @@ import {
 // eslint-disable-next-line import/prefer-default-export
 export const useNativeFilters = () => {
   const [isInitialized, setIsInitialized] = useState(false);
+  const showNativeFilters = useSelector<RootState, boolean>(
+    () => getUrlParam(URL_PARAMS.showFilters) ?? true,
+  );
   const canEdit = useSelector<RootState, boolean>(
     ({ dashboardInfo }) => dashboardInfo.dash_edit_perm,
   );
@@ -41,7 +45,7 @@ export const useNativeFilters = () => {
   );
 
   const nativeFiltersEnabled =
-    canEdit || (!canEdit && filterValues.length !== 0);
+    showNativeFilters && (canEdit || (!canEdit && filterValues.length !== 0));
 
   const requiredFirstFilter = useMemo(
     () => filterValues.filter(filter => filter.requiredFirst),
@@ -68,6 +72,8 @@ export const useNativeFilters = () => {
 
   useEffect(() => {
     if (
+      (isFeatureEnabled(FeatureFlag.FilterBarClosedByDefault) &&
+        expandFilters === null) ||
       expandFilters === false ||
       (filterValues.length === 0 && nativeFiltersEnabled)
     ) {

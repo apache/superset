@@ -16,16 +16,15 @@
 # under the License.
 import logging
 
-import pandas as pd
 import polyline
 from sqlalchemy import inspect, String, Text
 
 from superset import db
-from superset.sql_parse import Table
+from superset.sql.parse import Table
 from superset.utils import json
 
-from ..utils.database import get_example_database
-from .helpers import get_example_url, get_table_connector_registry
+from ..utils.database import get_example_database  # noqa: TID252
+from .helpers import get_table_connector_registry, read_example_data
 
 logger = logging.getLogger(__name__)
 
@@ -38,8 +37,9 @@ def load_bart_lines(only_metadata: bool = False, force: bool = False) -> None:
         table_exists = database.has_table(Table(tbl_name, schema))
 
         if not only_metadata and (not table_exists or force):
-            url = get_example_url("bart-lines.json.gz")
-            df = pd.read_json(url, encoding="latin-1", compression="gzip")
+            df = read_example_data(
+                "bart-lines.json.gz", encoding="latin-1", compression="gzip"
+            )
             df["path_json"] = df.path.map(json.dumps)
             df["polyline"] = df.path.map(polyline.encode)
             del df["path"]

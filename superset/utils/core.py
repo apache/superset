@@ -48,7 +48,16 @@ from enum import Enum, IntEnum
 from io import BytesIO
 from timeit import default_timer
 from types import TracebackType
-from typing import Any, Callable, cast, NamedTuple, TYPE_CHECKING, TypedDict, TypeVar
+from typing import (
+    Any,
+    Callable,
+    cast,
+    NamedTuple,
+    Optional,
+    TYPE_CHECKING,
+    TypedDict,
+    TypeVar,
+)
 from urllib.parse import unquote_plus
 from zipfile import ZipFile
 
@@ -86,7 +95,7 @@ from superset.exceptions import (
     SupersetException,
     SupersetTimeoutException,
 )
-from superset.sql_parse import sanitize_clause
+from superset.sql.parse import sanitize_clause
 from superset.superset_typing import (
     AdhocColumn,
     AdhocMetric,
@@ -119,6 +128,32 @@ JS_MAX_INTEGER = 9007199254740991  # Largest int Java Script can handle 2^53-1
 InputType = TypeVar("InputType")  # pylint: disable=invalid-name
 
 ADHOC_FILTERS_REGEX = re.compile("^adhoc_filters")
+
+TYPE_MAPPING = {
+    re.compile(r"INT", re.IGNORECASE): "integer",
+    re.compile(r"CHAR|TEXT|VARCHAR", re.IGNORECASE): "string",
+    re.compile(r"DECIMAL|NUMERIC|FLOAT|DOUBLE", re.IGNORECASE): "floating",
+    re.compile(r"BOOL", re.IGNORECASE): "boolean",
+    re.compile(r"DATE|TIME", re.IGNORECASE): "datetime64",
+}
+
+METRIC_MAP_TYPE = {
+    "SUM": "floating",
+    "AVG": "floating",
+    "COUNT": "floating",
+    "COUNT_DISTINCT": "floating",
+    "MIN": "numeric",
+    "MAX": "numeric",
+    "FIRST": "string",
+    "LAST": "string",
+    "GROUP_CONCAT": "string",
+    "ARRAY_AGG": "string",
+    "STRING_AGG": "string",
+    "MEDIAN": "floating",
+    "PERCENTILE": "floating",
+    "VARIANCE": "floating",
+    "STDDEV": "floating",
+}
 
 
 class AdhocMetricExpressionType(StrEnum):
@@ -1204,6 +1239,7 @@ def convert_legacy_filters_into_adhoc(  # pylint: disable=invalid-name
 
 def split_adhoc_filters_into_base_filters(  # pylint: disable=invalid-name
     form_data: FormData,
+    engine: str,
 ) -> None:
     """
     Mutates form data to restructure the adhoc filters in the form of the three base
@@ -1229,7 +1265,7 @@ def split_adhoc_filters_into_base_filters(  # pylint: disable=invalid-name
                     )
             elif expression_type == "SQL":
                 sql_expression = adhoc_filter.get("sqlExpression")
-                sql_expression = sanitize_clause(sql_expression)
+                sql_expression = sanitize_clause(sql_expression, engine)
                 if clause == "WHERE":
                     sql_where_filters.append(sql_expression)
                 elif clause == "HAVING":
@@ -1502,6 +1538,67 @@ def get_column_names_from_metrics(metrics: list[Metric]) -> list[str]:
     return [col for col in map(get_column_name_from_metric, metrics) if col]
 
 
+def map_sql_type_to_inferred_type(sql_type: Optional[str]) -> str:
+    """
+    Map a SQL type to a type string recognized by pandas' `infer_objects` method.
+
+    If the SQL type is not recognized, the function will return "string" as the
+    default type.
+
+    :param sql_type: SQL type to map
+    :return: string type recognized by pandas
+    """
+    if not sql_type:
+        return "string"  # If no SQL type is provided, return "string" as default
+
+    # Use regular expressions to check the SQL type. The first match is returned.
+    for pattern, inferred_type in TYPE_MAPPING.items():
+        if pattern.search(sql_type):
+            return inferred_type
+
+    return "string"  # If no match is found, return "string" as default
+
+
+def get_metric_type_from_column(column: Any, datasource: BaseDatasource | Query) -> str:
+    """
+    Determine the metric type from a given column in a datasource.
+
+    This function checks if the specified column is a metric in the provided
+    datasource. If it is, it extracts the SQL expression associated with the
+    metric and attempts to identify the aggregation operation used within
+    the expression (e.g., SUM, COUNT, etc.). It then maps the operation to
+    a corresponding GenericDataType.
+
+    :param column: The column name or identifier to check.
+    :param datasource: The datasource containing metrics to search within.
+    :return: The inferred metric type as a string, or an empty string if the
+             column is not a metric or no valid operation is found.
+    """
+
+    from superset.connectors.sqla.models import SqlMetric
+
+    metric: SqlMetric = next(
+        (metric for metric in datasource.metrics if metric.metric_name == column),
+        SqlMetric(metric_name=""),
+    )
+
+    if metric.metric_name == "":
+        return ""
+
+    expression: str = metric.expression
+
+    match = re.match(
+        r"(SUM|AVG|COUNT|COUNT_DISTINCT|MIN|MAX|FIRST|LAST)\((.*)\)", expression
+    )
+
+    if match:
+        operation = match.group(1)
+        return METRIC_MAP_TYPE.get(operation, "")
+
+    logger.warning("Unexpected metric expression type: %s", expression)
+    return ""
+
+
 def extract_dataframe_dtypes(
     df: pd.DataFrame,
     datasource: BaseDatasource | Query | None = None,
@@ -1532,7 +1629,17 @@ def extract_dataframe_dtypes(
     for column in df.columns:
         column_object = columns_by_name.get(column)
         series = df[column]
-        inferred_type = infer_dtype(series)
+        inferred_type: str = ""
+        if series.isna().all():
+            sql_type: Optional[str] = ""
+            if datasource and hasattr(datasource, "columns_types"):
+                if column in datasource.columns_types:
+                    sql_type = datasource.columns_types.get(column)
+                    inferred_type = map_sql_type_to_inferred_type(sql_type)
+                else:
+                    inferred_type = get_metric_type_from_column(column, datasource)
+        else:
+            inferred_type = infer_dtype(series)
         if isinstance(column_object, dict):
             generic_type = (
                 GenericDataType.TEMPORAL
@@ -1682,18 +1789,26 @@ def normalize_dttm_col(
                     utc=False,
                     unit=unit,
                     origin="unix",
-                    errors="raise",
+                    errors="coerce",
                     exact=False,
                 )
             else:
                 # Column has already been formatted as a timestamp.
-                df[_col.col_label] = dttm_series.apply(pd.Timestamp)
+                try:
+                    df[_col.col_label] = dttm_series.apply(
+                        lambda x: pd.Timestamp(x) if pd.notna(x) else pd.NaT
+                    )
+                except ValueError:
+                    logger.warning(
+                        "Unable to convert column %s to datetime, ignoring",
+                        _col.col_label,
+                    )
         else:
             df[_col.col_label] = pd.to_datetime(
                 df[_col.col_label],
                 utc=False,
                 format=_col.timestamp_format,
-                errors="raise",
+                errors="coerce",
                 exact=False,
             )
         if _col.offset:
@@ -1733,24 +1848,30 @@ def parse_boolean_string(bool_str: str | None) -> bool:
 
 def apply_max_row_limit(
     limit: int,
-    max_limit: int | None = None,
+    server_pagination: bool | None = None,
 ) -> int:
     """
-    Override row limit if max global limit is defined
+    Override row limit based on server pagination setting
 
     :param limit: requested row limit
-    :param max_limit: Maximum allowed row limit
+    :param server_pagination: whether server-side pagination
+    is enabled, defaults to None
     :return: Capped row limit
 
-    >>> apply_max_row_limit(100000, 10)
-    10
-    >>> apply_max_row_limit(10, 100000)
-    10
-    >>> apply_max_row_limit(0, 10000)
-    10000
+    >>> apply_max_row_limit(600000, server_pagination=True)  # Server pagination
+    500000
+    >>> apply_max_row_limit(600000, server_pagination=False)  # No pagination
+    50000
+    >>> apply_max_row_limit(5000)  # No server_pagination specified
+    5000
+    >>> apply_max_row_limit(0)  # Zero returns default max limit
+    50000
     """
-    if max_limit is None:
-        max_limit = current_app.config["SQL_MAX_ROW"]
+    max_limit = (
+        current_app.config["TABLE_VIZ_MAX_ROW_SERVER"]
+        if server_pagination
+        else current_app.config["SQL_MAX_ROW"]
+    )
     if limit != 0:
         return min(max_limit, limit)
     return max_limit

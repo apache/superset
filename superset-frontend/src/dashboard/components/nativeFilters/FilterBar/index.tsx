@@ -34,17 +34,18 @@ import {
   DataMaskWithId,
   Filter,
   DataMask,
-  SLOW_DEBOUNCE,
   isNativeFilter,
   usePrevious,
   styled,
 } from '@superset-ui/core';
+import { Constants } from '@superset-ui/core/components';
 import { useHistory } from 'react-router-dom';
-import { updateDataMask, clearDataMask } from 'src/dataMask/actions';
+import { updateDataMask } from 'src/dataMask/actions';
 import { useImmer } from 'use-immer';
 import { isEmpty, isEqual, debounce } from 'lodash';
 import { getInitialDataMask } from 'src/dataMask/reducer';
 import { URL_PARAMS } from 'src/constants';
+import { applicationRoot } from 'src/utils/getBootstrapData';
 import { getUrlParam } from 'src/utils/urlUtils';
 import { useTabId } from 'src/hooks/useTabId';
 import { logEvent } from 'src/logger/actions';
@@ -120,13 +121,22 @@ const publishDataMask = debounce(
     // replace params only when current page is /superset/dashboard
     // this prevents a race condition between updating filters and navigating to Explore
     if (window.location.pathname.includes('/superset/dashboard')) {
-      history.location.pathname = window.location.pathname;
+      // The history API is part of React router and understands that a basename may exist.
+      // Internally it treats all paths as if they are relative to the root and appends
+      // it when necessary. We strip any prefix so that history.replace adds it back and doesn't
+      // double it up.
+      const appRoot = applicationRoot();
+      let replacement_pathname = window.location.pathname;
+      if (appRoot !== '/' && replacement_pathname.startsWith(appRoot)) {
+        replacement_pathname = replacement_pathname.substring(appRoot.length);
+      }
+      history.location.pathname = replacement_pathname;
       history.replace({
         search: newParams.toString(),
       });
     }
   },
-  SLOW_DEBOUNCE,
+  Constants.SLOW_DEBOUNCE,
 );
 
 const FilterBar: FC<FiltersBarProps> = ({
@@ -161,6 +171,12 @@ const FilterBar: FC<FiltersBarProps> = ({
   >(state => state.user);
 
   const [filtersInScope] = useSelectFiltersInScope(nativeFilterValues);
+  const [clearAllTriggers, setClearAllTriggers] = useState<
+    Record<string, boolean>
+  >({});
+  const [initializedFilters, setInitializedFilters] = useState<Set<string>>(
+    new Set(),
+  );
 
   const dataMaskSelectedRef = useRef(dataMaskSelected);
   dataMaskSelectedRef.current = dataMaskSelected;
@@ -170,23 +186,49 @@ const FilterBar: FC<FiltersBarProps> = ({
       dataMask: Partial<DataMask>,
     ) => {
       setDataMaskSelected(draft => {
+        const isFirstTimeInitialization =
+          !initializedFilters.has(filter.id) &&
+          dataMaskSelectedRef.current[filter.id]?.filterState?.value ===
+            undefined;
+
         // force instant updating on initialization for filters with `requiredFirst` is true or instant filters
         if (
           // filterState.value === undefined - means that value not initialized
           dataMask.filterState?.value !== undefined &&
-          dataMaskSelectedRef.current[filter.id]?.filterState?.value ===
-            undefined &&
+          isFirstTimeInitialization &&
           filter.requiredFirst
         ) {
           dispatch(updateDataMask(filter.id, dataMask));
         }
-        draft[filter.id] = {
+
+        // Mark filter as initialized after getting its first value
+        if (
+          dataMask.filterState?.value !== undefined &&
+          !initializedFilters.has(filter.id)
+        ) {
+          setInitializedFilters(prev => new Set(prev).add(filter.id));
+        }
+
+        const baseDataMask = {
           ...(getInitialDataMask(filter.id) as DataMaskWithId),
           ...dataMask,
         };
+
+        // Recalculate validation status
+        const hasRequiredValue =
+          filter.controlValues?.enableEmptyFilter &&
+          baseDataMask.filterState?.value == null;
+
+        draft[filter.id] = {
+          ...baseDataMask,
+          filterState: {
+            ...baseDataMask.filterState,
+            validateStatus: hasRequiredValue ? 'error' : undefined,
+          },
+        };
       });
     },
-    [dispatch, setDataMaskSelected],
+    [dispatch, setDataMaskSelected, initializedFilters, setInitializedFilters],
   );
 
   useEffect(() => {
@@ -236,36 +278,39 @@ const FilterBar: FC<FiltersBarProps> = ({
 
   const handleApply = useCallback(() => {
     dispatch(logEvent(LOG_ACTIONS_CHANGE_DASHBOARD_FILTER, {}));
-    const filterIds = Object.keys(dataMaskSelected);
     setUpdateKey(1);
-    filterIds.forEach(filterId => {
-      if (dataMaskSelected[filterId]) {
-        dispatch(updateDataMask(filterId, dataMaskSelected[filterId]));
+
+    Object.entries(dataMaskSelected).forEach(([filterId, dataMask]) => {
+      if (dataMask) {
+        dispatch(updateDataMask(filterId, dataMask));
       }
     });
   }, [dataMaskSelected, dispatch]);
 
   const handleClearAll = useCallback(() => {
-    const clearDataMaskIds: string[] = [];
-    let dispatchAllowed = false;
+    const newClearAllTriggers = { ...clearAllTriggers };
     filtersInScope.filter(isNativeFilter).forEach(filter => {
       const { id } = filter;
       if (dataMaskSelected[id]) {
-        if (filter.controlValues?.enableEmptyFilter) {
-          dispatchAllowed = false;
-        }
-        clearDataMaskIds.push(id);
         setDataMaskSelected(draft => {
           if (draft[id].filterState?.value !== undefined) {
             draft[id].filterState!.value = undefined;
           }
+          draft[id].extraFormData = {};
         });
+        newClearAllTriggers[id] = true;
       }
     });
-    if (dispatchAllowed) {
-      clearDataMaskIds.forEach(id => dispatch(clearDataMask(id)));
-    }
-  }, [dataMaskSelected, dispatch, filtersInScope, setDataMaskSelected]);
+    setClearAllTriggers(newClearAllTriggers);
+  }, [dataMaskSelected, filtersInScope, setDataMaskSelected, clearAllTriggers]);
+
+  const handleClearAllComplete = useCallback((filterId: string) => {
+    setClearAllTriggers(prev => {
+      const newTriggers = { ...prev };
+      delete newTriggers[filterId];
+      return newTriggers;
+    });
+  }, []);
 
   useFilterUpdates(dataMaskSelected, setDataMaskSelected);
   const isApplyDisabled = checkIsApplyDisabled(
@@ -308,6 +353,8 @@ const FilterBar: FC<FiltersBarProps> = ({
         filterValues={filterValues}
         isInitialized={isInitialized}
         onSelectionChange={handleFilterSelectionChange}
+        clearAllTriggers={clearAllTriggers}
+        onClearAllComplete={handleClearAllComplete}
       />
     ) : verticalConfig ? (
       <Vertical
@@ -322,6 +369,8 @@ const FilterBar: FC<FiltersBarProps> = ({
         onSelectionChange={handleFilterSelectionChange}
         toggleFiltersBar={verticalConfig.toggleFiltersBar}
         width={verticalConfig.width}
+        clearAllTriggers={clearAllTriggers}
+        onClearAllComplete={handleClearAllComplete}
       />
     ) : null;
 

@@ -1257,6 +1257,14 @@ class ChartDataQueryObjectSchema(Schema):
         },
         allow_none=True,
     )
+    group_others_when_limit_reached = fields.Boolean(
+        metadata={
+            "description": "When true, groups remaining series into an 'Others' "
+            "category when series limit is reached. Prevents incomplete data."
+        },
+        load_default=False,
+        allow_none=True,
+    )
     timeseries_limit = fields.Integer(
         metadata={
             "description": "Maximum row count for timeseries queries. "
@@ -1564,6 +1572,7 @@ class ImportV1ChartSchema(Schema):
     dataset_uuid = fields.UUID(required=True)
     is_managed_externally = fields.Boolean(allow_none=True, dump_default=False)
     external_url = fields.String(allow_none=True)
+    tags = fields.List(fields.String(), allow_none=True)
 
 
 class ChartCacheWarmUpRequestSchema(Schema):

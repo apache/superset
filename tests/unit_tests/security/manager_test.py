@@ -17,7 +17,7 @@
 
 # pylint: disable=invalid-name, unused-argument, redefined-outer-name
 
-import json
+import json  # noqa: TID251
 
 import pytest
 from flask_appbuilder.security.sqla.models import Role, User
@@ -32,7 +32,7 @@ from superset.security.manager import (
     query_context_modified,
     SupersetSecurityManager,
 )
-from superset.sql_parse import Table
+from superset.sql.parse import Table
 from superset.superset_typing import AdhocColumn, AdhocMetric
 from superset.utils.core import DatasourceName, override_user
 

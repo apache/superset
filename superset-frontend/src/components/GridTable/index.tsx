@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ReactNode, useCallback, useMemo } from 'react';
+import { useCallback, useMemo } from 'react';
 import { Global } from '@emotion/react';
 import { css, useTheme } from '@superset-ui/core';
 
@@ -27,61 +27,19 @@ import 'ag-grid-community/styles/ag-grid.css';
 import 'ag-grid-community/styles/ag-theme-quartz.css';
 
 import copyTextToClipboard from 'src/utils/copy';
-import ErrorBoundary from 'src/components/ErrorBoundary';
 
 import { PIVOT_COL_ID, GridSize } from './constants';
-import Header from './Header';
+import { Header } from './Header';
+import type { TableProps } from './types';
 
 const gridComponents = {
   agColumnHeader: Header,
 };
 
-export { GridSize };
-
-export type ColDef = {
-  type: string;
-  field: string;
-};
-
-export interface TableProps<RecordType> {
-  /**
-   * Data that will populate the each row and map to the column key.
-   */
-  data: RecordType[];
-  /**
-   * Table column definitions.
-   */
-  columns: {
-    label: string;
-    headerName?: string;
-    width?: number;
-    comparator?: (valueA: string | number, valueB: string | number) => number;
-    render?: (value: any) => ReactNode;
-  }[];
-
-  size?: GridSize;
-
-  externalFilter?: AgGridReactProps['doesExternalFilterPass'];
-
-  height: number;
-
-  columnReorderable?: boolean;
-
-  sortable?: boolean;
-
-  enableActions?: boolean;
-
-  showRowNumber?: boolean;
-
-  usePagination?: boolean;
-
-  striped?: boolean;
-}
-
 const onSortChanged: AgGridReactProps['onSortChanged'] = ({ api }) =>
   api.refreshCells();
 
-function GridTable<RecordType extends object>({
+export function GridTable<RecordType extends object>({
   data,
   columns,
   sortable = true,
@@ -132,7 +90,7 @@ function GridTable<RecordType extends object>({
           field: PIVOT_COL_ID,
           valueGetter: 'node.rowIndex+1',
           cellClass: 'locked-col',
-          width: 20 + rowIndexLength * 6,
+          width: 30 + rowIndexLength * 6,
           suppressNavigable: true,
           resizable: false,
           pinned: 'left' as const,
@@ -169,7 +127,7 @@ function GridTable<RecordType extends object>({
     [columnReorderable, enableActions, sortable],
   );
 
-  const rowHeight = theme.gridUnit * (size === GridSize.Middle ? 9 : 7);
+  const rowHeight = theme.sizeUnit * (size === GridSize.Middle ? 9 : 7);
 
   const gridOptions = useMemo<GridOptions>(
     () => ({
@@ -184,26 +142,38 @@ function GridTable<RecordType extends object>({
   );
 
   return (
-    <ErrorBoundary>
+    <>
       <Global
         styles={() => css`
           #grid-table.ag-theme-quartz {
-            --ag-icon-font-family: agGridMaterial;
-            --ag-grid-size: ${theme.gridUnit}px;
-            --ag-font-size: ${theme.typography.sizes[
-              size === GridSize.Middle ? 'm' : 's'
-            ]}px;
-            --ag-font-family: ${theme.typography.families.sansSerif};
+            --ag-grid-size: ${theme.sizeUnit}px;
+            --ag-font-family: ${theme.fontFamily};
+            --ag-font-size: ${theme.fontSize}px;
             --ag-row-height: ${rowHeight}px;
+            --ag-background-color: ${theme.colorBgBase};
+            --ag-foreground-color: ${theme.colorText};
+            --ag-header-background-color: ${theme.colorBgElevated};
+            --ag-header-foreground-color: ${theme.colorTextHeading};
+            --ag-border-color: ${theme.colorBorder};
+            --ag-row-border-color: ${theme.colorSplit};
+            --ag-row-hover-color: ${theme.colorFillSecondary};
+            --ag-selected-row-background-color: ${theme.colorPrimaryBg};
+            --ag-selected-row-foreground-color: ${theme.colorPrimaryText};
+            --ag-range-selection-border-color: ${theme.colorPrimary};
+            --ag-range-selection-background-color: ${theme.colorPrimaryBg};
+            --ag-checkbox-checked-color: ${theme.colorPrimary};
+            --ag-disabled-foreground-color: ${theme.colorTextDisabled};
             ${!striped &&
-            `--ag-odd-row-background-color: ${theme.colors.grayscale.light5};`}
-            --ag-border-color: ${theme.colors.grayscale.light2};
-            --ag-row-border-color: ${theme.colors.grayscale.light2};
-            --ag-header-background-color: ${theme.colors.grayscale.light4};
+            `--ag-odd-row-background-color: ${theme.colorBgElevated};`}
+            --ag-font-size: ${GridSize.Middle === size
+              ? theme.fontSize
+              : theme.fontSizeSM}px;
           }
+
           #grid-table .ag-cell {
             -webkit-font-smoothing: antialiased;
           }
+
           .locked-col {
             background: var(--ag-row-border-color);
             padding: 0;
@@ -211,14 +181,17 @@ function GridTable<RecordType extends object>({
             font-size: calc(var(--ag-font-size) * 0.9);
             color: var(--ag-disabled-foreground-color);
           }
+
           .ag-row-hover .locked-col {
             background: var(--ag-row-hover-color);
           }
+
           .ag-header-cell {
             overflow: hidden;
           }
+
           & [role='columnheader']:hover .customHeaderAction {
-            display: block;
+            display: flex;
           }
         `}
       />
@@ -231,7 +204,6 @@ function GridTable<RecordType extends object>({
         `}
       >
         <AgGridReact
-          // TODO: migrate to Theme API - https://www.ag-grid.com/react-data-grid/theming-migration/
           rowData={data}
           columnDefs={columnDefs}
           defaultColDef={defaultColDef}
@@ -243,8 +215,8 @@ function GridTable<RecordType extends object>({
           onCellKeyDown={onKeyDown}
         />
       </div>
-    </ErrorBoundary>
+    </>
   );
 }
 
-export default GridTable;
+export type { TableProps };

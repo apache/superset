@@ -17,16 +17,19 @@
  * under the License.
  */
 import { Link } from 'react-router-dom';
-import { isFeatureEnabled, FeatureFlag, t, useTheme } from '@superset-ui/core';
+import { isFeatureEnabled, FeatureFlag, t } from '@superset-ui/core';
 import { CardStyles } from 'src/views/CRUD/utils';
-import { Dropdown } from 'src/components/Dropdown';
-import { Menu } from 'src/components/Menu';
-import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
-import ListViewCard from 'src/components/ListViewCard';
-import Icons from 'src/components/Icons';
+import {
+  Button,
+  Dropdown,
+  ConfirmStatusChange,
+  ListViewCard,
+} from '@superset-ui/core/components';
+import { MenuItem } from '@superset-ui/core/components/Menu';
+import { Icons } from '@superset-ui/core/components/Icons';
 import { Tag } from 'src/views/CRUD/types';
 import { deleteTags } from 'src/features/tags/tags';
-import { Button } from 'src/components';
+import { assetUrl } from 'src/utils/assetUrl';
 
 interface TagCardProps {
   tag: Tag;
@@ -44,10 +47,7 @@ interface TagCardProps {
 function TagCard({
   tag,
   hasPerm,
-  bulkSelectEnabled,
-  tagFilter,
   refreshData,
-  userId,
   addDangerToast,
   addSuccessToast,
   showThumbnails,
@@ -59,36 +59,35 @@ function TagCard({
     refreshData();
   };
 
-  const theme = useTheme();
-  const menu = (
-    <Menu>
-      {canDelete && (
-        <Menu.Item>
-          <ConfirmStatusChange
-            title={t('Please confirm')}
-            description={
-              <>
-                {t('Are you sure you want to delete')} <b>{tag.name}</b>?
-              </>
-            }
-            onConfirm={() => handleTagDelete(tag)}
-          >
-            {confirmDelete => (
-              <div
-                role="button"
-                tabIndex={0}
-                className="action-button"
-                onClick={confirmDelete}
-                data-test="dashboard-card-option-delete-button"
-              >
-                <Icons.Trash iconSize="l" /> {t('Delete')}
-              </div>
-            )}
-          </ConfirmStatusChange>
-        </Menu.Item>
-      )}
-    </Menu>
-  );
+  const menuItems: MenuItem[] = [];
+  if (canDelete) {
+    menuItems.push({
+      key: 'delete-tag',
+      label: (
+        <ConfirmStatusChange
+          title={t('Please confirm')}
+          description={
+            <>
+              {t('Are you sure you want to delete')} <b>{tag.name}</b>?
+            </>
+          }
+          onConfirm={() => handleTagDelete(tag)}
+        >
+          {confirmDelete => (
+            <div
+              role="button"
+              tabIndex={0}
+              className="action-button"
+              onClick={confirmDelete}
+              data-test="dashboard-card-option-delete-button"
+            >
+              <Icons.DeleteOutlined iconSize="l" /> {t('Delete')}
+            </div>
+          )}
+        </ConfirmStatusChange>
+      ),
+    });
+  }
   return (
     <CardStyles>
       <ListViewCard
@@ -100,7 +99,9 @@ function TagCard({
         }
         url={undefined}
         linkComponent={Link}
-        imgFallbackURL="/static/assets/images/dashboard-card-fallback.svg"
+        imgFallbackURL={assetUrl(
+          '/static/assets/images/dashboard-card-fallback.svg',
+        )}
         description={t('Modified %s', tag.changed_on_delta_humanized)}
         actions={
           <ListViewCard.Actions
@@ -109,9 +110,9 @@ function TagCard({
               e.preventDefault();
             }}
           >
-            <Dropdown dropdownRender={() => menu} trigger={['click', 'hover']}>
-              <Button buttonSize="xsmall" type="link">
-                <Icons.MoreVert iconColor={theme.colors.grayscale.base} />
+            <Dropdown menu={{ items: menuItems }} trigger={['click', 'hover']}>
+              <Button buttonSize="xsmall" buttonStyle="link">
+                <Icons.MoreOutlined iconSize="xl" />
               </Button>
             </Dropdown>
           </ListViewCard.Actions>

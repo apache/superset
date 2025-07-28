@@ -34,7 +34,7 @@ const props = {
   height: 100,
   updateSliceName() {},
   // from redux
-  maxRows: 666,
+  maxRows: 500, // will be overwritten with SQL_MAX_ROW from conf
   formData: chartQueries[queryId].form_data,
   datasource: mockDatasource[sliceEntities.slices[queryId].datasource],
   sliceName: sliceEntities.slices[queryId].slice_name,
@@ -74,10 +74,11 @@ const defaultState = {
   datasources: mockDatasource,
   dashboardState: { editMode: false, expandedSlices: {} },
   dashboardInfo: {
+    id: props.dashboardId,
     superset_can_explore: false,
     superset_can_share: false,
     superset_can_csv: false,
-    common: { conf: { SUPERSET_WEBSERVER_TIMEOUT: 0 } },
+    common: { conf: { SUPERSET_WEBSERVER_TIMEOUT: 0, SQL_MAX_ROW: 666 } },
   },
 };
 
@@ -165,7 +166,9 @@ test('should call exportChart when exportCSV is clicked', async () => {
   expect(stubbedExportCSV).toHaveBeenCalledTimes(1);
   expect(stubbedExportCSV).toHaveBeenCalledWith(
     expect.objectContaining({
-      formData: expect.anything(),
+      formData: expect.objectContaining({
+        dashboardId: 111,
+      }),
       resultType: 'full',
       resultFormat: 'csv',
     }),
@@ -195,6 +198,7 @@ test('should call exportChart with row_limit props.maxRows when exportFullCSV is
     expect.objectContaining({
       formData: expect.objectContaining({
         row_limit: 666,
+        dashboardId: 111,
       }),
       resultType: 'full',
       resultFormat: 'csv',
@@ -249,6 +253,7 @@ test('should call exportChart with row_limit props.maxRows when exportFullXLSX i
     expect.objectContaining({
       formData: expect.objectContaining({
         row_limit: 666,
+        dashboardId: 111,
       }),
       resultType: 'full',
       resultFormat: 'xlsx',

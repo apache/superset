@@ -15,18 +15,23 @@
 
 import logging
 from pathlib import Path, PurePosixPath
-from typing import Any, Optional
+from typing import Any, Callable, Dict, Optional, Type
 from zipfile import ZipFile
 
 import yaml
 from marshmallow import fields, Schema, validate
 from marshmallow.exceptions import ValidationError
+from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.orm import Session
 
 from superset import db
 from superset.commands.importers.exceptions import IncorrectVersionError
 from superset.databases.ssh_tunnel.models import SSHTunnel
+from superset.extensions import feature_flag_manager
 from superset.models.core import Database
+from superset.tags.models import Tag, TaggedObject
 from superset.utils.core import check_is_safe_zip
+from superset.utils.decorators import transaction
 
 METADATA_FILE_NAME = "metadata.yaml"
 IMPORT_VERSION = "1.0.0"
@@ -96,7 +101,8 @@ def validate_metadata_type(
 
 
 # pylint: disable=too-many-locals,too-many-arguments
-def load_configs(  # noqa: C901
+# ruff: noqa: C901
+def load_configs(
     contents: dict[str, str],
     schemas: dict[str, Schema],
     passwords: dict[str, str],
@@ -214,3 +220,104 @@ def get_contents_from_bundle(bundle: ZipFile) -> dict[str, str]:
         for file_name in bundle.namelist()
         if is_valid_config(file_name)
     }
+
+
+# pylint: disable=consider-using-transaction
+# ruff: noqa: C901
+@transaction()
+def import_tag(
+    target_tag_names: list[str],
+    contents: dict[str, Any],
+    object_id: int,
+    object_type: str,
+    db_session: Session,
+) -> list[int]:
+    """Handles the import logic for tags for charts and dashboards"""
+
+    if not feature_flag_manager.is_feature_enabled("TAGGING_SYSTEM"):
+        return []
+
+    tag_descriptions = {}
+    new_tag_ids = []
+
+    if "tags.yaml" in contents:
+        try:
+            tags_config = yaml.safe_load(contents["tags.yaml"])
+        except yaml.YAMLError as err:
+            logger.error("Error parsing tags.yaml: %s", err)
+            tags_config = {}
+
+        for tag_info in tags_config.get("tags", []):
+            tag_name = tag_info.get("tag_name")
+            description = tag_info.get("description", None)
+            if tag_name:
+                tag_descriptions[tag_name] = description
+
+    existing_assocs = (
+        db_session.query(TaggedObject)
+        .filter_by(object_id=object_id, object_type=object_type)
+        .all()
+    )
+
+    existing_tags = {
+        tag.name: tag
+        for tag in db_session.query(Tag).filter(Tag.name.in_(target_tag_names))
+    }
+
+    for tag_name in target_tag_names:
+        try:
+            tag = existing_tags.get(tag_name)
+
+            # If tag does not exist, create it
+            if tag is None:
+                description = tag_descriptions.get(tag_name, None)
+                tag = Tag(name=tag_name, description=description, type="custom")
+                db_session.add(tag)
+                existing_tags[tag_name] = tag  # Update the existing_tags dictionary
+
+            # Ensure the association with the object
+            tagged_object = (
+                db_session.query(TaggedObject)
+                .filter_by(object_id=object_id, object_type=object_type, tag_id=tag.id)
+                .first()
+            )
+            if not tagged_object:
+                new_tagged_object = TaggedObject(
+                    tag_id=tag.id, object_id=object_id, object_type=object_type
+                )
+                db_session.add(new_tagged_object)
+
+            new_tag_ids.append(tag.id)
+
+        except SQLAlchemyError as err:
+            logger.error(
+                "Error processing tag '%s' for %s ID %d: %s",
+                tag_name,
+                object_type,
+                object_id,
+                err,
+            )
+            continue  # No need for manual rollback, handled by transaction decorator
+
+    # Remove old tags not in the new config
+    for tag in existing_assocs:
+        if tag.tag_id not in new_tag_ids:
+            db_session.delete(tag)
+
+    return new_tag_ids
+
+
+def get_resource_mappings_batched(
+    model_class: Type[Any],
+    batch_size: int = 1000,
+    value_func: Callable[[Any], Any] = lambda x: x.id,
+) -> Dict[str, Any]:
+    offset = 0
+    mapping = {}
+    while True:
+        batch = db.session.query(model_class).limit(batch_size).offset(offset).all()
+        if not batch:
+            break
+        mapping.update({str(x.uuid): value_func(x) for x in batch})
+        offset += batch_size
+    return mapping

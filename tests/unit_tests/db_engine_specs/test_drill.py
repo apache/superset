@@ -20,15 +20,16 @@ from datetime import datetime
 from typing import Optional
 
 import pytest
+from pytest_mock import MockerFixture
 from sqlalchemy.engine.url import make_url
 
 from tests.unit_tests.db_engine_specs.utils import assert_convert_dttm
 from tests.unit_tests.fixtures.common import dttm  # noqa: F401
 
 
-def test_odbc_impersonation() -> None:
+def test_odbc_impersonation(mocker: MockerFixture) -> None:
     """
-    Test ``get_url_for_impersonation`` method when driver == odbc.
+    Test ``impersonate_user`` method when driver == odbc.
 
     The method adds the parameter ``DelegationUID`` to the query string.
     """
@@ -36,31 +37,47 @@ def test_odbc_impersonation() -> None:
 
     from superset.db_engine_specs.drill import DrillEngineSpec
 
+    database = mocker.MagicMock()
+
     url = URL.create("drill+odbc")
     username = "DoAsUser"
-    url = DrillEngineSpec.get_url_for_impersonation(url, True, username, None)
+    url, _ = DrillEngineSpec.impersonate_user(
+        database=database,
+        username=username,
+        user_token=None,
+        url=url,
+        engine_kwargs={},
+    )
     assert url.query["DelegationUID"] == username
 
 
-def test_jdbc_impersonation() -> None:
+def test_jdbc_impersonation(mocker: MockerFixture) -> None:
     """
-    Test ``get_url_for_impersonation`` method when driver == jdbc.
+    Test ``impersonate_user`` method when driver == jdbc.
 
     The method adds the parameter ``impersonation_target`` to the query string.
     """
     from sqlalchemy.engine.url import URL
 
     from superset.db_engine_specs.drill import DrillEngineSpec
+
+    database = mocker.MagicMock()
 
     url = URL.create("drill+jdbc")
     username = "DoAsUser"
-    url = DrillEngineSpec.get_url_for_impersonation(url, True, username, None)
+    url, _ = DrillEngineSpec.impersonate_user(
+        database=database,
+        username=username,
+        user_token=None,
+        url=url,
+        engine_kwargs={},
+    )
     assert url.query["impersonation_target"] == username
 
 
-def test_sadrill_impersonation() -> None:
+def test_sadrill_impersonation(mocker: MockerFixture) -> None:
     """
-    Test ``get_url_for_impersonation`` method when driver == sadrill.
+    Test ``impersonate_user`` method when driver == sadrill.
 
     The method adds the parameter ``impersonation_target`` to the query string.
     """
@@ -68,15 +85,23 @@ def test_sadrill_impersonation() -> None:
 
     from superset.db_engine_specs.drill import DrillEngineSpec
 
+    database = mocker.MagicMock()
+
     url = URL.create("drill+sadrill")
     username = "DoAsUser"
-    url = DrillEngineSpec.get_url_for_impersonation(url, True, username, None)
+    url, _ = DrillEngineSpec.impersonate_user(
+        database=database,
+        username=username,
+        user_token=None,
+        url=url,
+        engine_kwargs={},
+    )
     assert url.query["impersonation_target"] == username
 
 
-def test_invalid_impersonation() -> None:
+def test_invalid_impersonation(mocker: MockerFixture) -> None:
     """
-    Test ``get_url_for_impersonation`` method when driver == foobar.
+    Test ``impersonate_user`` method when driver == foobar.
 
     The method raises an exception because impersonation is not supported
     for drill+foobar.
@@ -86,11 +111,19 @@ def test_invalid_impersonation() -> None:
     from superset.db_engine_specs.drill import DrillEngineSpec
     from superset.db_engine_specs.exceptions import SupersetDBAPIProgrammingError
 
+    database = mocker.MagicMock()
+
     url = URL.create("drill+foobar")
     username = "DoAsUser"
 
     with pytest.raises(SupersetDBAPIProgrammingError):
-        DrillEngineSpec.get_url_for_impersonation(url, True, username, None)
+        DrillEngineSpec.impersonate_user(
+            database=database,
+            username=username,
+            user_token=None,
+            url=url,
+            engine_kwargs={},
+        )
 
 
 @pytest.mark.parametrize(
@@ -124,3 +157,19 @@ def test_get_schema_from_engine_params() -> None:
         )
         == "dfs.test"
     )
+
+
+@pytest.mark.parametrize(
+    "column_name,expected_result",
+    [
+        ("time", "time_07cc69"),
+        ("count", "count_e2942a"),
+    ],
+)
+def test_connect_make_label_compatible(column_name: str, expected_result: str) -> None:
+    from superset.db_engine_specs.drill import (
+        DrillEngineSpec as spec,  # noqa: N813
+    )
+
+    label = spec.make_label_compatible(column_name)
+    assert label == expected_result

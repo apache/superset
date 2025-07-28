@@ -18,7 +18,7 @@
  */
 
 import { t } from '@superset-ui/core';
-import { Tag } from 'antd';
+import { Tag } from 'src/components';
 import { FC } from 'react';
 import { ExtentTagProps } from './types';
 

@@ -18,23 +18,25 @@
  */
 
 import {
-  css,
   logging,
   styled,
   SupersetClient,
   SupersetClientResponse,
-  SupersetTheme,
   getClientErrorObject,
   t,
+  lruCache,
 } from '@superset-ui/core';
 import Chart from 'src/types/Chart';
 import { intersection } from 'lodash';
 import rison from 'rison';
-import { FetchDataConfig, FilterValue } from 'src/components/ListView';
+import type {
+  ListViewFetchDataConfig as FetchDataConfig,
+  ListViewFilterValue as FilterValue,
+} from 'src/components';
 import SupersetText from 'src/utils/textUtils';
 import { findPermission } from 'src/utils/findPermission';
 import { User } from 'src/types/bootstrapTypes';
-import { WelcomeTable } from 'src/features/home/types';
+import { RecentActivity, WelcomeTable } from 'src/features/home/types';
 import { Dashboard, Filter, TableTab } from './types';
 
 // Modifies the rison encoding slightly to match the backend's rison encoding/decoding. Applies globally.
@@ -230,10 +232,14 @@ export const getRecentActivityObjs = (
 ) =>
   SupersetClient.get({ endpoint: recent }).then(recentsRes => {
     const res: any = {};
+    const distinctRes = lruCache<RecentActivity>(6);
+    recentsRes.json.result.reverse().forEach((record: RecentActivity) => {
+      distinctRes.set(record.item_url, record);
+    });
     return getFilteredChartsandDashboards(addDangerToast, filters).then(
       ({ other }) => {
         res.other = other;
-        res.viewed = recentsRes.json.result;
+        res.viewed = distinctRes.values().reverse();
         return res;
       },
     );
@@ -366,14 +372,15 @@ export const CardContainer = styled.div<{
   ${({ showThumbnails, theme }) => `
     overflow: hidden;
     display: grid;
-    grid-gap: ${theme.gridUnit * 12}px ${theme.gridUnit * 4}px;
+    justify-content: start;
+    grid-gap: ${theme.sizeUnit * 12}px ${theme.sizeUnit * 4}px;
     grid-template-columns: repeat(auto-fit, 300px);
     max-height: ${showThumbnails ? '314' : '148'}px;
-    margin-top: ${theme.gridUnit * -6}px;
+    margin-top: ${theme.sizeUnit * -6}px;
     padding: ${
       showThumbnails
-        ? `${theme.gridUnit * 8 + 3}px ${theme.gridUnit * 9}px`
-        : `${theme.gridUnit * 8 + 1}px ${theme.gridUnit * 9}px`
+        ? `${theme.sizeUnit * 8 + 3}px ${theme.sizeUnit * 20}px`
+        : `${theme.sizeUnit * 8 + 1}px ${theme.sizeUnit * 20}px`
     };
   `}
 `;
@@ -383,15 +390,10 @@ export const CardStyles = styled.div`
   a {
     text-decoration: none;
   }
-  .antd5-card-cover > div {
+  .ant-card-cover > div {
     /* Height is calculated based on 300px width, to keep the same aspect ratio as the 800*450 thumbnails */
     height: 168px;
   }
-`;
-
-export const StyledIcon = (theme: SupersetTheme) => css`
-  margin: auto ${theme.gridUnit * 2}px auto 0;
-  color: ${theme.colors.grayscale.base};
 `;
 
 export /* eslint-disable no-underscore-dangle */

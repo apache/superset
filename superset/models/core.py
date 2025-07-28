@@ -75,8 +75,7 @@ from superset.extensions import (
 )
 from superset.models.helpers import AuditMixinNullable, ImportExportMixin, UUIDMixin
 from superset.result_set import SupersetResultSet
-from superset.sql.parse import SQLScript
-from superset.sql_parse import Table
+from superset.sql.parse import SQLScript, Table
 from superset.superset_typing import (
     DbapiDescription,
     OAuth2ClientConfig,
@@ -120,6 +119,18 @@ class CssTemplate(AuditMixinNullable, UUIDMixin, Model):
     id = Column(Integer, primary_key=True)
     template_name = Column(String(250))
     css = Column(utils.MediumText(), default="")
+
+
+class Theme(AuditMixinNullable, ImportExportMixin, Model):
+    """Themes for dashboards"""
+
+    __tablename__ = "themes"
+    id = Column(Integer, primary_key=True)
+    theme_name = Column(String(250))
+    json_data = Column(utils.MediumText(), default="")
+    is_system = Column(Boolean, default=False, nullable=False)
+
+    export_fields = ["theme_name", "json_data"]
 
 
 class ConfigurationMethod(StrEnum):
@@ -307,7 +318,6 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
             with suppress(TypeError, json.JSONDecodeError):
                 encrypted_config = json.loads(masked_encrypted_extra)
         try:
-            # pylint: disable=useless-suppression
             parameters = self.db_engine_spec.get_parameters_from_uri(  # type: ignore
                 masked_uri,
                 encrypted_extra=encrypted_config,
@@ -479,11 +489,12 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
         self.db_engine_spec.validate_database_uri(sqlalchemy_url)
 
         extra = self.get_extra(source)
-        params = extra.get("engine_params", {})
+        engine_kwargs = extra.get("engine_params", {})
         if nullpool:
-            params["poolclass"] = NullPool
-        connect_args = params.get("connect_args", {})
+            engine_kwargs["poolclass"] = NullPool
+        connect_args = engine_kwargs.setdefault("connect_args", {})
 
+        # modify URL/args for a specific catalog/schema
         sqlalchemy_url, connect_args = self.db_engine_spec.adjust_engine_params(
             uri=sqlalchemy_url,
             connect_args=connect_args,
@@ -508,46 +519,32 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
             if oauth2_config and hasattr(g, "user") and hasattr(g.user, "id")
             else None
         )
-        # If using MySQL or Presto for example, will set url.username
-        # If using Hive, will not do anything yet since that relies on a
-        # configuration parameter instead.
-        sqlalchemy_url = self.db_engine_spec.get_url_for_impersonation(
-            sqlalchemy_url,
-            self.impersonate_user,
-            effective_username,
-            access_token,
-        )
-
         masked_url = self.get_password_masked_url(sqlalchemy_url)
         logger.debug("Database._get_sqla_engine(). Masked URL: %s", str(masked_url))
 
         if self.impersonate_user:
-            # PR #30674 changed the signature of the method to include database.
-            # This ensures that the change is backwards compatible
-            args = [connect_args, str(sqlalchemy_url), effective_username, access_token]
-            args = self.add_database_to_signature(
-                self.db_engine_spec.update_impersonation_config,
-                args,
+            sqlalchemy_url, engine_kwargs = self.db_engine_spec.impersonate_user(
+                self,
+                effective_username,
+                access_token,
+                sqlalchemy_url,
+                engine_kwargs,
             )
-            self.db_engine_spec.update_impersonation_config(*args)
 
-        if connect_args:
-            params["connect_args"] = connect_args
-
-        self.update_params_from_encrypted_extra(params)
+        self.update_params_from_encrypted_extra(engine_kwargs)
 
         if DB_CONNECTION_MUTATOR:
             source = source or get_query_source_from_request()
 
-            sqlalchemy_url, params = DB_CONNECTION_MUTATOR(
+            sqlalchemy_url, engine_kwargs = DB_CONNECTION_MUTATOR(
                 sqlalchemy_url,
-                params,
+                engine_kwargs,
                 effective_username,
                 security_manager,
                 source,
             )
         try:
-            return create_engine(sqlalchemy_url, **params)
+            return create_engine(sqlalchemy_url, **engine_kwargs)
         except Exception as ex:
             raise self.db_engine_spec.get_dbapi_mapped_exception(ex) from ex
 
@@ -673,7 +670,7 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
         schema: str | None = None,
         mutator: Callable[[pd.DataFrame], None] | None = None,
     ) -> pd.DataFrame:
-        sqls = self.db_engine_spec.parse_sql(sql)
+        script = SQLScript(sql, self.db_engine_spec.engine)
         with self.get_sqla_engine(catalog=catalog, schema=schema) as engine:
             engine_url = engine.url
 
@@ -690,8 +687,11 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
         with self.get_raw_connection(catalog=catalog, schema=schema) as conn:
             cursor = conn.cursor()
             df = None
-            for i, sql_ in enumerate(sqls):
-                sql_ = self.mutate_sql_based_on_config(sql_, is_split=True)
+            for i, statement in enumerate(script.statements):
+                sql_ = self.mutate_sql_based_on_config(
+                    statement.format(),
+                    is_split=True,
+                )
                 _log_query(sql_)
                 with event_logger.log_context(
                     action="execute_sql",
@@ -700,7 +700,7 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
                 ):
                     self.db_engine_spec.execute(cursor, sql_, self)
 
-                rows = self.fetch_rows(cursor, i == len(sqls) - 1)
+                rows = self.fetch_rows(cursor, i == len(script.statements) - 1)
                 if rows is not None:
                     df = self.load_into_dataframe(cursor.description, rows)
 
@@ -775,11 +775,19 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
             )
 
     def apply_limit_to_sql(
-        self, sql: str, limit: int = 1000, force: bool = False
+        self,
+        sql: str,
+        limit: int = 1000,
+        force: bool = False,
     ) -> str:
-        if self.db_engine_spec.allow_limit_clause:
-            return self.db_engine_spec.apply_limit_to_sql(sql, limit, self, force=force)
-        return self.db_engine_spec.apply_top_to_sql(sql, limit)
+        script = SQLScript(sql, self.db_engine_spec.engine)
+        statement = script.statements[-1]
+        current_limit = statement.get_limit_value() or float("inf")
+
+        if limit < current_limit or force:
+            statement.set_limit_value(limit, self.db_engine_spec.limit_method)
+
+        return script.format()
 
     def safe_sqlalchemy_uri(self) -> str:
         return self.sqlalchemy_uri

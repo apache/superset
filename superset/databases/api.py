@@ -19,7 +19,7 @@
 from __future__ import annotations
 
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime
 from io import BytesIO
 from typing import Any, cast
 from zipfile import is_zipfile, ZipFile
@@ -46,6 +46,7 @@ from superset.commands.database.exceptions import (
 )
 from superset.commands.database.export import ExportDatabasesCommand
 from superset.commands.database.importers.dispatcher import ImportDatabasesCommand
+from superset.commands.database.oauth2 import OAuth2StoreTokenCommand
 from superset.commands.database.ssh_tunnel.delete import DeleteSSHTunnelCommand
 from superset.commands.database.ssh_tunnel.exceptions import (
     SSHTunnelDatabasePortError,
@@ -72,7 +73,7 @@ from superset.commands.importers.exceptions import (
 )
 from superset.commands.importers.v1.utils import get_contents_from_bundle
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
-from superset.daos.database import DatabaseDAO, DatabaseUserOAuth2TokensDAO
+from superset.daos.database import DatabaseDAO
 from superset.databases.decorators import check_table_access
 from superset.databases.filters import DatabaseFilter, DatabaseUploadEnabledFilter
 from superset.databases.schemas import (
@@ -109,7 +110,6 @@ from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
     DatabaseNotFoundException,
     InvalidPayloadSchemaError,
-    OAuth2Error,
     OAuth2RedirectError,
     SupersetErrorsException,
     SupersetException,
@@ -118,7 +118,7 @@ from superset.exceptions import (
 )
 from superset.extensions import security_manager
 from superset.models.core import Database
-from superset.sql_parse import Table
+from superset.sql.parse import Table
 from superset.superset_typing import FlaskResponse
 from superset.utils import json
 from superset.utils.core import (
@@ -776,18 +776,35 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         if not database:
             return self.response_404()
         try:
-            catalog = kwargs["rison"].get("catalog")
+            params = kwargs["rison"]
+            catalog = params.get("catalog")
             schemas = database.get_all_schema_names(
                 catalog=catalog,
                 cache=database.schema_cache_enabled,
                 cache_timeout=database.schema_cache_timeout or None,
-                force=kwargs["rison"].get("force", False),
+                force=params.get("force", False),
             )
             schemas = security_manager.get_schemas_accessible_by_user(
                 database,
                 catalog,
                 schemas,
             )
+            if params.get("upload_allowed"):
+                if not database.allow_file_upload:
+                    return self.response(200, result=[])
+                if allowed_schemas := database.get_schema_access_for_file_upload():
+                    # some databases might return the list of schemas in uppercase,
+                    # while the list of allowed schemas is manually inputted so
+                    # could be lowercase
+                    allowed_schemas = {schema.lower() for schema in allowed_schemas}
+                    return self.response(
+                        200,
+                        result=[
+                            schema
+                            for schema in schemas
+                            if schema.lower() in allowed_schemas
+                        ],
+                    )
             return self.response(200, result=list(schemas))
         except OperationalError:
             return self.response(
@@ -1016,7 +1033,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
           - in: query
             schema:
               type: string
-            name: table
+            name: name
             required: true
             description: Table name
           - in: query
@@ -1433,51 +1450,15 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
               $ref: '#/components/responses/500'
         """
         parameters = OAuth2ProviderResponseSchema().load(request.args)
+        command = OAuth2StoreTokenCommand(parameters)
+        command.run()
 
-        if "error" in parameters:
-            raise OAuth2Error(parameters["error"])
-
-        # note that when decoding the state we will perform JWT validation, preventing a
-        # malicious payload that would insert a bogus database token, or delete an
-        # existing one.
         state = decode_oauth2_state(parameters["state"])
+        tab_id = state["tab_id"]
 
-        # exchange code for access/refresh tokens
-        database = DatabaseDAO.find_by_id(state["database_id"], skip_base_filter=True)
-        if database is None:
-            return self.response_404()
-
-        oauth2_config = database.get_oauth2_config()
-        if oauth2_config is None:
-            raise OAuth2Error("No configuration found for OAuth2")
-
-        token_response = database.db_engine_spec.get_oauth2_token(
-            oauth2_config,
-            parameters["code"],
-        )
-
-        # delete old tokens
-        existing = DatabaseUserOAuth2TokensDAO.find_one_or_none(
-            user_id=state["user_id"],
-            database_id=state["database_id"],
-        )
-        if existing:
-            DatabaseUserOAuth2TokensDAO.delete([existing])
-
-        # store tokens
-        expiration = datetime.now() + timedelta(seconds=token_response["expires_in"])
-        DatabaseUserOAuth2TokensDAO.create(
-            attributes={
-                "user_id": state["user_id"],
-                "database_id": state["database_id"],
-                "access_token": token_response["access_token"],
-                "access_token_expiration": expiration,
-                "refresh_token": token_response.get("refresh_token"),
-            },
-        )
         # return blank page that closes itself
         return make_response(
-            render_template("superset/oauth2.html", tab_id=state["tab_id"]),
+            render_template("superset/oauth2.html", tab_id=tab_id),
             200,
         )
 

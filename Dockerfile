@@ -18,7 +18,7 @@
 ######################################################################
 # Node stage to deal with static asset construction
 ######################################################################
-ARG PY_VER=3.11.11-slim-bookworm
+ARG PY_VER=3.11.13-slim-bookworm
 
 # If BUILDPLATFORM is null, set it to 'amd64' (or leave as is otherwise).
 ARG BUILDPLATFORM=${BUILDPLATFORM:-amd64}
@@ -29,7 +29,7 @@ ARG BUILD_TRANSLATIONS="false"
 ######################################################################
 # superset-node-ci used as a base for building frontend assets and CI
 ######################################################################
-FROM --platform=${BUILDPLATFORM} node:20-bullseye-slim AS superset-node-ci
+FROM --platform=${BUILDPLATFORM} node:20-bookworm-slim AS superset-node-ci
 ARG BUILD_TRANSLATIONS
 ENV BUILD_TRANSLATIONS=${BUILD_TRANSLATIONS}
 ARG DEV_MODE="false"           # Skip frontend build in dev mode
@@ -167,7 +167,7 @@ RUN mkdir -p \
     && touch superset/static/version_info.json
 
 # Install Playwright and optionally setup headless browsers
-ARG INCLUDE_CHROMIUM="true"
+ARG INCLUDE_CHROMIUM="false"
 ARG INCLUDE_FIREFOX="false"
 RUN --mount=type=cache,target=${SUPERSET_HOME}/.cache/uv \
     if [ "$INCLUDE_CHROMIUM" = "true" ] || [ "$INCLUDE_FIREFOX" = "true" ]; then \
@@ -208,7 +208,7 @@ RUN rm superset/translations/*/*/*.po
 COPY --from=superset-node /app/superset/translations superset/translations
 COPY --from=python-translation-compiler /app/translations_mo superset/translations
 
-HEALTHCHECK CMD curl -f "http://localhost:${SUPERSET_PORT}/health"
+HEALTHCHECK CMD /app/docker/docker-healthcheck.sh
 CMD ["/app/docker/entrypoints/run-server.sh"]
 EXPOSE ${SUPERSET_PORT}
 
@@ -223,7 +223,7 @@ RUN --mount=type=cache,target=${SUPERSET_HOME}/.cache/uv \
     /app/docker/pip-install.sh --requires-build-essential -r requirements/base.txt
 # Install the superset package
 RUN --mount=type=cache,target=${SUPERSET_HOME}/.cache/uv \
-    uv pip install .
+    uv pip install -e .
 RUN python -m compileall /app/superset
 
 USER superset
@@ -246,7 +246,7 @@ RUN --mount=type=cache,target=${SUPERSET_HOME}/.cache/uv \
     /app/docker/pip-install.sh --requires-build-essential -r requirements/development.txt
 # Install the superset package
 RUN --mount=type=cache,target=${SUPERSET_HOME}/.cache/uv \
-    uv pip install .
+    uv pip install -e .
 
 RUN uv pip install .[postgres]
 RUN python -m compileall /app/superset

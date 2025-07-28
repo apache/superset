@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { List } from 'src/components/List';
 import { connect } from 'react-redux';
 import { PureComponent } from 'react';
 import {
@@ -28,14 +27,18 @@ import {
   t,
   withTheme,
 } from '@superset-ui/core';
-import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
-import AsyncEsmComponent from 'src/components/AsyncEsmComponent';
+import {
+  AsyncEsmComponent,
+  List,
+  InfoTooltip,
+} from '@superset-ui/core/components';
 import { getChartKey } from 'src/explore/exploreUtils';
 import { runAnnotationQuery } from 'src/components/Chart/chartAction';
 import CustomListItem from 'src/explore/components/controls/CustomListItem';
 import { ChartState, ExplorePageState } from 'src/explore/types';
 import { AnyAction } from 'redux';
 import { ThunkDispatch } from 'redux-thunk';
+import { Icons } from '@superset-ui/core/components/Icons';
 import ControlPopover, {
   getSectionContainerElement,
 } from '../ControlPopover/ControlPopover';
@@ -186,25 +189,19 @@ class AnnotationLayerControl extends PureComponent<Props, PopoverState> {
   renderInfo(anno: Annotation) {
     const { annotationError, annotationQuery, theme } = this.props;
     if (annotationQuery[anno.name]) {
-      return (
-        <i
-          className="fa fa-refresh"
-          style={{ color: theme.colors.primary.base }}
-          aria-hidden
-        />
-      );
+      return <Icons.SyncOutlined iconColor={theme.colorPrimary} iconSize="m" />;
     }
     if (annotationError[anno.name]) {
       return (
-        <InfoTooltipWithTrigger
+        <InfoTooltip
           label="validation-errors"
-          bsStyle="danger"
+          type="error"
           tooltip={annotationError[anno.name]}
         />
       );
     }
     if (!anno.show) {
-      return <span style={{ color: theme.colors.error.base }}> Hidden </span>;
+      return <span style={{ color: theme.colorError }}> Hidden </span>;
     }
     return '';
   }
@@ -244,7 +241,7 @@ class AnnotationLayerControl extends PureComponent<Props, PopoverState> {
 
     return (
       <div>
-        <List bordered css={theme => ({ borderRadius: theme.gridUnit })}>
+        <List bordered css={theme => ({ borderRadius: theme.borderRadius })}>
           {annotations}
           <ControlPopover
             trigger="click"
@@ -261,11 +258,11 @@ class AnnotationLayerControl extends PureComponent<Props, PopoverState> {
             }
           >
             <CustomListItem selectable>
-              <i
+              <Icons.PlusOutlined
+                iconSize="m"
                 data-test="add-annotation-layer-button"
-                className="fa fa-plus"
-              />{' '}
-              &nbsp; {t('Add annotation layer')}
+              />
+              {t('Add annotation layer')}
             </CustomListItem>
           </ControlPopover>
         </List>

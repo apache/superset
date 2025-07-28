@@ -76,9 +76,9 @@ const getModalTestId = testWithId<string>(FILTERS_CONFIG_MODAL_TEST_ID, true);
 const FILTER_NAME = 'Time filter 1';
 
 const addFilterFlow = async () => {
-  // open filter config modal
+  // open filter config modals
   userEvent.click(screen.getByTestId(getTestId('collapsable')));
-  userEvent.click(screen.getByLabelText('gear'));
+  userEvent.click(screen.getByLabelText('setting'));
   userEvent.click(screen.getByText('Add or edit filters'));
   // select filter
   userEvent.click(screen.getByText('Value'));
@@ -200,7 +200,9 @@ describe('FilterBar', () => {
 
   it('should render the collapse icon', () => {
     renderWrapper();
-    expect(screen.getByRole('img', { name: 'collapse' })).toBeInTheDocument();
+    expect(
+      screen.getByRole('img', { name: 'vertical-align' }),
+    ).toBeInTheDocument();
   });
 
   it('should render the filter icon', () => {
@@ -210,7 +212,9 @@ describe('FilterBar', () => {
 
   it('should toggle', () => {
     renderWrapper();
-    const collapse = screen.getByRole('img', { name: 'collapse' });
+    const collapse = screen.getByRole('img', {
+      name: 'vertical-align',
+    });
     expect(toggleFiltersBar).not.toHaveBeenCalled();
     userEvent.click(collapse);
     expect(toggleFiltersBar).toHaveBeenCalled();
@@ -298,5 +302,51 @@ describe('FilterBar', () => {
     await addFilterFlow();
 
     expect(screen.getByTestId(getTestId('apply-button'))).toBeDisabled();
+  });
+
+  it('should render without errors with proper state setup', () => {
+    const stateWithFilter = {
+      ...stateWithoutNativeFilters,
+      dashboardInfo: {
+        id: 1,
+      },
+      dataMask: {
+        'test-filter': {
+          id: 'test-filter',
+          filterState: { value: undefined },
+          extraFormData: {},
+        },
+      },
+      nativeFilters: {
+        filters: {
+          'test-filter': {
+            id: 'test-filter',
+            name: 'Test Filter',
+            filterType: 'filter_select',
+            targets: [{ datasetId: 1, column: { name: 'test_column' } }],
+            defaultDataMask: {
+              filterState: { value: undefined },
+              extraFormData: {},
+            },
+            controlValues: {
+              enableEmptyFilter: true,
+            },
+            cascadeParentIds: [],
+            scope: {
+              rootPath: ['ROOT_ID'],
+              excluded: [],
+            },
+            type: 'NATIVE_FILTER',
+            description: '',
+            chartsInScope: [],
+            tabsInScope: [],
+          },
+        },
+        filtersState: {},
+      },
+    };
+
+    const { container } = renderWrapper(openedBarProps, stateWithFilter);
+    expect(container).toBeInTheDocument();
   });
 });

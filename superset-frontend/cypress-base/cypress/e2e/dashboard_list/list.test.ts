@@ -32,12 +32,12 @@ function orderAlphabetical() {
 }
 
 function openProperties() {
-  cy.get('[aria-label="more-vert"]').first().click();
+  cy.get('[aria-label="more"]').first().click();
   cy.getBySel('dashboard-card-option-edit-button').click();
 }
 
 function openMenu() {
-  cy.get('[aria-label="more-vert"]').first().click();
+  cy.get('[aria-label="more"]').first().click();
 }
 
 function confirmDelete(bulk = false) {
@@ -79,16 +79,20 @@ describe('Dashboards list', () => {
 
     it('should sort correctly in list mode', () => {
       cy.getBySel('sort-header').eq(1).click();
+      cy.getBySel('loading-indicator').should('not.exist');
       cy.getBySel('table-row').first().contains('Supported Charts Dashboard');
       cy.getBySel('sort-header').eq(1).click();
+      cy.getBySel('loading-indicator').should('not.exist');
       cy.getBySel('table-row').first().contains("World Bank's Data");
       cy.getBySel('sort-header').eq(1).click();
     });
 
     it('should bulk select in list mode', () => {
       toggleBulkSelect();
-      cy.get('#header-toggle-all').click();
-      cy.get('[aria-label="checkbox-on"]').should('have.length', 6);
+      cy.get('[aria-label="Select all"]').click();
+      cy.get('.ant-checkbox-input')
+        .should('be.checked')
+        .should('have.length', 6);
       cy.getBySel('bulk-select-copy').contains('5 Selected');
       cy.getBySel('bulk-select-action')
         .should('have.length', 2)
@@ -97,7 +101,7 @@ describe('Dashboards list', () => {
           expect($btns).to.contain('Export');
         });
       cy.getBySel('bulk-select-deselect-all').click();
-      cy.get('[aria-label="checkbox-on"]').should('have.length', 0);
+      cy.get('input[type="checkbox"]:checked').should('have.length', 0);
       cy.getBySel('bulk-select-copy').contains('0 Selected');
       cy.getBySel('bulk-select-action').should('not.exist');
     });
@@ -158,17 +162,14 @@ describe('Dashboards list', () => {
       cy.getBySel('styled-card').first().contains('1 - Sample dashboard');
       cy.getBySel('styled-card')
         .first()
-        .find("[aria-label='favorite-unselected']")
+        .find("[aria-label='unstarred']")
         .click();
       cy.wait('@select');
-      cy.getBySel('styled-card')
-        .first()
-        .find("[aria-label='favorite-selected']")
-        .click();
+      cy.getBySel('styled-card').first().find("[aria-label='starred']").click();
       cy.wait('@unselect');
       cy.getBySel('styled-card')
         .first()
-        .find("[aria-label='favorite-selected']")
+        .find("[aria-label='starred']")
         .should('not.exist');
     });
 
@@ -198,6 +199,8 @@ describe('Dashboards list', () => {
       cy.get('[data-test="table-row"] input[type="checkbox"]').eq(1).click();
       cy.getBySel('bulk-select-action').eq(0).contains('Delete').click();
       confirmDelete(true);
+      cy.getBySel('loading-indicator').should('exist');
+      cy.getBySel('loading-indicator').should('not.exist');
       cy.getBySel('table-row')
         .eq(0)
         .should('not.contain', '3 - Sample dashboard');

@@ -635,37 +635,6 @@
         },
         "type": "object"
       },
-      "AppleHealthResponseSchema": {
-        "properties": {
-          "cache_message": {
-            "description": "Human readable status message for the cache connection",
-            "type": "string"
-          },
-          "cache_status": {
-            "description": "The status of the cache",
-            "enum": [
-              "NA",
-              "HEALTHY",
-              "ERROR"
-            ],
-            "type": "string"
-          },
-          "metastore_message": {
-            "description": "Human readable status message for the metastore connection",
-            "type": "string"
-          },
-          "metastore_status": {
-            "description": "The status of the metastore",
-            "enum": [
-              "NA",
-              "HEALTHY",
-              "ERROR"
-            ],
-            "type": "string"
-          }
-        },
-        "type": "object"
-      },
       "AvailableDomainsSchema": {
         "properties": {
           "domains": {
@@ -675,132 +644,6 @@
             "type": "array"
           }
         },
-        "type": "object"
-      },
-      "CSVMetadataUploadFilePostSchema": {
-        "properties": {
-          "delimiter": {
-            "description": "The delimiter of the CSV file",
-            "type": "string"
-          },
-          "file": {
-            "description": "The file to upload",
-            "format": "binary",
-            "type": "string"
-          },
-          "header_row": {
-            "description": "Row containing the headers to use as column names(0 is first line of data). Leave empty if there is no header row.",
-            "type": "integer"
-          }
-        },
-        "required": [
-          "file"
-        ],
-        "type": "object"
-      },
-      "CSVUploadPostSchema": {
-        "properties": {
-          "already_exists": {
-            "default": "fail",
-            "description": "What to do if the table already exists accepts: fail, replace, append",
-            "enum": [
-              "fail",
-              "replace",
-              "append"
-            ],
-            "type": "string"
-          },
-          "column_data_types": {
-            "description": "A dictionary with column names and their data types if you need to change the defaults. Example: {'user_id':'int'}. Check Python Pandas library for supported data types",
-            "type": "string"
-          },
-          "column_dates": {
-            "description": "A list of column names that should be parsed as dates. Example: date,timestamp",
-            "items": {
-              "type": "string"
-            },
-            "type": "array"
-          },
-          "columns_read": {
-            "description": "A List of the column names that should be read",
-            "items": {
-              "type": "string"
-            },
-            "type": "array"
-          },
-          "dataframe_index": {
-            "description": "Write dataframe index as a column.",
-            "type": "boolean"
-          },
-          "day_first": {
-            "description": "DD/MM format dates, international and European format",
-            "type": "boolean"
-          },
-          "decimal_character": {
-            "description": "Character to recognize as decimal point. Default is '.'",
-            "type": "string"
-          },
-          "delimiter": {
-            "description": "The delimiter of the CSV file",
-            "type": "string"
-          },
-          "file": {
-            "description": "The CSV file to upload",
-            "format": "text/csv",
-            "type": "string"
-          },
-          "header_row": {
-            "description": "Row containing the headers to use as column names(0 is first line of data). Leave empty if there is no header row.",
-            "type": "integer"
-          },
-          "index_column": {
-            "description": "Column to use as the row labels of the dataframe. Leave empty if no index column",
-            "type": "string"
-          },
-          "index_label": {
-            "description": "Index label for index column.",
-            "type": "string"
-          },
-          "null_values": {
-            "description": "A list of strings that should be treated as null. Examples: '' for empty strings, 'None', 'N/A',Warning: Hive database supports only a single value",
-            "items": {
-              "type": "string"
-            },
-            "type": "array"
-          },
-          "rows_to_read": {
-            "description": "Number of rows to read from the file. If None, reads all rows.",
-            "minimum": 1,
-            "nullable": true,
-            "type": "integer"
-          },
-          "schema": {
-            "description": "The schema to upload the data file to.",
-            "type": "string"
-          },
-          "skip_blank_lines": {
-            "description": "Skip blank lines in the CSV file.",
-            "type": "boolean"
-          },
-          "skip_initial_space": {
-            "description": "Skip spaces after delimiter.",
-            "type": "boolean"
-          },
-          "skip_rows": {
-            "description": "Number of rows to skip at start of file.",
-            "type": "integer"
-          },
-          "table_name": {
-            "description": "The name of the table to be created/appended",
-            "maxLength": 10000,
-            "minLength": 1,
-            "type": "string"
-          }
-        },
-        "required": [
-          "file",
-          "table_name"
-        ],
         "type": "object"
       },
       "CacheInvalidationRequestSchema": {
@@ -878,6 +721,14 @@
           },
           "image_url": {
             "description": "The url to fetch the screenshot",
+            "type": "string"
+          },
+          "task_status": {
+            "description": "The status of the async screenshot",
+            "type": "string"
+          },
+          "task_updated_at": {
+            "description": "The timestamp of the last change in status",
             "type": "string"
           }
         },
@@ -1898,7 +1749,7 @@
             "type": "boolean"
           },
           "owners": {
-            "$ref": "#/components/schemas/ChartDataRestApi.get.AppleUser"
+            "$ref": "#/components/schemas/ChartDataRestApi.get.User"
           },
           "params": {
             "nullable": true,
@@ -1928,26 +1779,6 @@
             "type": "string"
           }
         },
-        "type": "object"
-      },
-      "ChartDataRestApi.get.AppleUser": {
-        "properties": {
-          "first_name": {
-            "maxLength": 64,
-            "type": "string"
-          },
-          "id": {
-            "type": "integer"
-          },
-          "last_name": {
-            "maxLength": 64,
-            "type": "string"
-          }
-        },
-        "required": [
-          "first_name",
-          "last_name"
-        ],
         "type": "object"
       },
       "ChartDataRestApi.get.Dashboard": {
@@ -1986,6 +1817,26 @@
             ]
           }
         },
+        "type": "object"
+      },
+      "ChartDataRestApi.get.User": {
+        "properties": {
+          "first_name": {
+            "maxLength": 64,
+            "type": "string"
+          },
+          "id": {
+            "type": "integer"
+          },
+          "last_name": {
+            "maxLength": 64,
+            "type": "string"
+          }
+        },
+        "required": [
+          "first_name",
+          "last_name"
+        ],
         "type": "object"
       },
       "ChartDataRestApi.get_list": {
@@ -2069,10 +1920,10 @@
             "type": "string"
           },
           "last_saved_by": {
-            "$ref": "#/components/schemas/ChartDataRestApi.get_list.AppleUser"
+            "$ref": "#/components/schemas/ChartDataRestApi.get_list.User2"
           },
           "owners": {
-            "$ref": "#/components/schemas/ChartDataRestApi.get_list.AppleUser1"
+            "$ref": "#/components/schemas/ChartDataRestApi.get_list.User3"
           },
           "params": {
             "nullable": true,
@@ -2098,52 +1949,17 @@
           "url": {
             "readOnly": true
           },
+          "uuid": {
+            "format": "uuid",
+            "nullable": true,
+            "type": "string"
+          },
           "viz_type": {
             "maxLength": 250,
             "nullable": true,
             "type": "string"
           }
         },
-        "type": "object"
-      },
-      "ChartDataRestApi.get_list.AppleUser": {
-        "properties": {
-          "first_name": {
-            "maxLength": 64,
-            "type": "string"
-          },
-          "id": {
-            "type": "integer"
-          },
-          "last_name": {
-            "maxLength": 64,
-            "type": "string"
-          }
-        },
-        "required": [
-          "first_name",
-          "last_name"
-        ],
-        "type": "object"
-      },
-      "ChartDataRestApi.get_list.AppleUser1": {
-        "properties": {
-          "first_name": {
-            "maxLength": 64,
-            "type": "string"
-          },
-          "id": {
-            "type": "integer"
-          },
-          "last_name": {
-            "maxLength": 64,
-            "type": "string"
-          }
-        },
-        "required": [
-          "first_name",
-          "last_name"
-        ],
         "type": "object"
       },
       "ChartDataRestApi.get_list.Dashboard": {
@@ -2217,6 +2033,46 @@
         "type": "object"
       },
       "ChartDataRestApi.get_list.User1": {
+        "properties": {
+          "first_name": {
+            "maxLength": 64,
+            "type": "string"
+          },
+          "id": {
+            "type": "integer"
+          },
+          "last_name": {
+            "maxLength": 64,
+            "type": "string"
+          }
+        },
+        "required": [
+          "first_name",
+          "last_name"
+        ],
+        "type": "object"
+      },
+      "ChartDataRestApi.get_list.User2": {
+        "properties": {
+          "first_name": {
+            "maxLength": 64,
+            "type": "string"
+          },
+          "id": {
+            "type": "integer"
+          },
+          "last_name": {
+            "maxLength": 64,
+            "type": "string"
+          }
+        },
+        "required": [
+          "first_name",
+          "last_name"
+        ],
+        "type": "object"
+      },
+      "ChartDataRestApi.get_list.User3": {
         "properties": {
           "first_name": {
             "maxLength": 64,
@@ -2718,7 +2574,7 @@
             "type": "boolean"
           },
           "owners": {
-            "$ref": "#/components/schemas/ChartRestApi.get.AppleUser"
+            "$ref": "#/components/schemas/ChartRestApi.get.User"
           },
           "params": {
             "nullable": true,
@@ -2748,26 +2604,6 @@
             "type": "string"
           }
         },
-        "type": "object"
-      },
-      "ChartRestApi.get.AppleUser": {
-        "properties": {
-          "first_name": {
-            "maxLength": 64,
-            "type": "string"
-          },
-          "id": {
-            "type": "integer"
-          },
-          "last_name": {
-            "maxLength": 64,
-            "type": "string"
-          }
-        },
-        "required": [
-          "first_name",
-          "last_name"
-        ],
         "type": "object"
       },
       "ChartRestApi.get.Dashboard": {
@@ -2806,6 +2642,26 @@
             ]
           }
         },
+        "type": "object"
+      },
+      "ChartRestApi.get.User": {
+        "properties": {
+          "first_name": {
+            "maxLength": 64,
+            "type": "string"
+          },
+          "id": {
+            "type": "integer"
+          },
+          "last_name": {
+            "maxLength": 64,
+            "type": "string"
+          }
+        },
+        "required": [
+          "first_name",
+          "last_name"
+        ],
         "type": "object"
       },
       "ChartRestApi.get_list": {
@@ -2889,10 +2745,10 @@
             "type": "string"
           },
           "last_saved_by": {
-            "$ref": "#/components/schemas/ChartRestApi.get_list.AppleUser"
+            "$ref": "#/components/schemas/ChartRestApi.get_list.User2"
           },
           "owners": {
-            "$ref": "#/components/schemas/ChartRestApi.get_list.AppleUser1"
+            "$ref": "#/components/schemas/ChartRestApi.get_list.User3"
           },
           "params": {
             "nullable": true,
@@ -2918,52 +2774,17 @@
           "url": {
             "readOnly": true
           },
+          "uuid": {
+            "format": "uuid",
+            "nullable": true,
+            "type": "string"
+          },
           "viz_type": {
             "maxLength": 250,
             "nullable": true,
             "type": "string"
           }
         },
-        "type": "object"
-      },
-      "ChartRestApi.get_list.AppleUser": {
-        "properties": {
-          "first_name": {
-            "maxLength": 64,
-            "type": "string"
-          },
-          "id": {
-            "type": "integer"
-          },
-          "last_name": {
-            "maxLength": 64,
-            "type": "string"
-          }
-        },
-        "required": [
-          "first_name",
-          "last_name"
-        ],
-        "type": "object"
-      },
-      "ChartRestApi.get_list.AppleUser1": {
-        "properties": {
-          "first_name": {
-            "maxLength": 64,
-            "type": "string"
-          },
-          "id": {
-            "type": "integer"
-          },
-          "last_name": {
-            "maxLength": 64,
-            "type": "string"
-          }
-        },
-        "required": [
-          "first_name",
-          "last_name"
-        ],
         "type": "object"
       },
       "ChartRestApi.get_list.Dashboard": {
@@ -3037,6 +2858,46 @@
         "type": "object"
       },
       "ChartRestApi.get_list.User1": {
+        "properties": {
+          "first_name": {
+            "maxLength": 64,
+            "type": "string"
+          },
+          "id": {
+            "type": "integer"
+          },
+          "last_name": {
+            "maxLength": 64,
+            "type": "string"
+          }
+        },
+        "required": [
+          "first_name",
+          "last_name"
+        ],
+        "type": "object"
+      },
+      "ChartRestApi.get_list.User2": {
+        "properties": {
+          "first_name": {
+            "maxLength": 64,
+            "type": "string"
+          },
+          "id": {
+            "type": "integer"
+          },
+          "last_name": {
+            "maxLength": 64,
+            "type": "string"
+          }
+        },
+        "required": [
+          "first_name",
+          "last_name"
+        ],
+        "type": "object"
+      },
+      "ChartRestApi.get_list.User3": {
         "properties": {
           "first_name": {
             "maxLength": 64,
@@ -3265,68 +3126,6 @@
         },
         "type": "object"
       },
-      "ColumnarMetadataUploadFilePostSchema": {
-        "properties": {
-          "file": {
-            "description": "The file to upload",
-            "format": "binary",
-            "type": "string"
-          }
-        },
-        "required": [
-          "file"
-        ],
-        "type": "object"
-      },
-      "ColumnarUploadPostSchema": {
-        "properties": {
-          "already_exists": {
-            "default": "fail",
-            "description": "What to do if the table already exists accepts: fail, replace, append",
-            "enum": [
-              "fail",
-              "replace",
-              "append"
-            ],
-            "type": "string"
-          },
-          "columns_read": {
-            "description": "A List of the column names that should be read",
-            "items": {
-              "type": "string"
-            },
-            "type": "array"
-          },
-          "dataframe_index": {
-            "description": "Write dataframe index as a column.",
-            "type": "boolean"
-          },
-          "file": {
-            "description": "The Columnar file to upload",
-            "format": "binary",
-            "type": "string"
-          },
-          "index_label": {
-            "description": "Index label for index column.",
-            "type": "string"
-          },
-          "schema": {
-            "description": "The schema to upload the data file to.",
-            "type": "string"
-          },
-          "table_name": {
-            "description": "The name of the table to be created/appended",
-            "maxLength": 10000,
-            "minLength": 1,
-            "type": "string"
-          }
-        },
-        "required": [
-          "file",
-          "table_name"
-        ],
-        "type": "object"
-      },
       "CssTemplateRestApi.get": {
         "properties": {
           "changed_by": {
@@ -3505,6 +3304,14 @@
           "image_url": {
             "description": "The url to fetch the screenshot",
             "type": "string"
+          },
+          "task_status": {
+            "description": "The status of the async screenshot",
+            "type": "string"
+          },
+          "task_updated_at": {
+            "description": "The timestamp of the last change in status",
+            "type": "string"
           }
         },
         "type": "object"
@@ -3564,9 +3371,6 @@
               "type": "object"
             },
             "type": "array"
-          },
-          "currency_formats": {
-            "type": "object"
           },
           "database": {
             "$ref": "#/components/schemas/Database"
@@ -3769,6 +3573,7 @@
             "type": "array"
           },
           "thumbnail_url": {
+            "nullable": true,
             "type": "string"
           },
           "url": {
@@ -3845,10 +3650,6 @@
           "created_on_delta_humanized": {
             "readOnly": true
           },
-          "css": {
-            "nullable": true,
-            "type": "string"
-          },
           "dashboard_title": {
             "maxLength": 500,
             "nullable": true,
@@ -3860,16 +3661,8 @@
           "is_managed_externally": {
             "type": "boolean"
           },
-          "json_metadata": {
-            "nullable": true,
-            "type": "string"
-          },
           "owners": {
-            "$ref": "#/components/schemas/DashboardRestApi.get_list.AppleUser"
-          },
-          "position_json": {
-            "nullable": true,
-            "type": "string"
+            "$ref": "#/components/schemas/DashboardRestApi.get_list.User2"
           },
           "published": {
             "nullable": true,
@@ -3894,28 +3687,13 @@
           },
           "url": {
             "readOnly": true
-          }
-        },
-        "type": "object"
-      },
-      "DashboardRestApi.get_list.AppleUser": {
-        "properties": {
-          "first_name": {
-            "maxLength": 64,
-            "type": "string"
           },
-          "id": {
-            "type": "integer"
-          },
-          "last_name": {
-            "maxLength": 64,
+          "uuid": {
+            "format": "uuid",
+            "nullable": true,
             "type": "string"
           }
         },
-        "required": [
-          "first_name",
-          "last_name"
-        ],
         "type": "object"
       },
       "DashboardRestApi.get_list.Role": {
@@ -3975,6 +3753,26 @@
         "type": "object"
       },
       "DashboardRestApi.get_list.User1": {
+        "properties": {
+          "first_name": {
+            "maxLength": 64,
+            "type": "string"
+          },
+          "id": {
+            "type": "integer"
+          },
+          "last_name": {
+            "maxLength": 64,
+            "type": "string"
+          }
+        },
+        "required": [
+          "first_name",
+          "last_name"
+        ],
+        "type": "object"
+      },
+      "DashboardRestApi.get_list.User2": {
         "properties": {
           "first_name": {
             "maxLength": 64,
@@ -5030,10 +4828,6 @@
             },
             "type": "array"
           },
-          "currency_formats": {
-            "description": "Currency formats.",
-            "type": "object"
-          },
           "database": {
             "description": "Database associated with the dataset.",
             "type": "object"
@@ -5532,7 +5326,7 @@
             "type": "string"
           },
           "changed_by": {
-            "$ref": "#/components/schemas/DatasetRestApi.get.User1"
+            "$ref": "#/components/schemas/DatasetRestApi.get.User2"
           },
           "changed_on": {
             "format": "date-time",
@@ -5549,7 +5343,7 @@
             "$ref": "#/components/schemas/DatasetRestApi.get.TableColumn"
           },
           "created_by": {
-            "$ref": "#/components/schemas/DatasetRestApi.get.User"
+            "$ref": "#/components/schemas/DatasetRestApi.get.User1"
           },
           "created_on": {
             "format": "date-time",
@@ -5557,9 +5351,6 @@
             "type": "string"
           },
           "created_on_humanized": {
-            "readOnly": true
-          },
-          "currency_formats": {
             "readOnly": true
           },
           "database": {
@@ -5590,6 +5381,9 @@
           "filter_select_enabled": {
             "nullable": true,
             "type": "boolean"
+          },
+          "folders": {
+            "nullable": true
           },
           "granularity_sqla": {
             "readOnly": true
@@ -5630,7 +5424,7 @@
             "readOnly": true
           },
           "owners": {
-            "$ref": "#/components/schemas/DatasetRestApi.get.AppleUser"
+            "$ref": "#/components/schemas/DatasetRestApi.get.User"
           },
           "schema": {
             "maxLength": 255,
@@ -5673,26 +5467,6 @@
         ],
         "type": "object"
       },
-      "DatasetRestApi.get.AppleUser": {
-        "properties": {
-          "first_name": {
-            "maxLength": 64,
-            "type": "string"
-          },
-          "id": {
-            "type": "integer"
-          },
-          "last_name": {
-            "maxLength": 64,
-            "type": "string"
-          }
-        },
-        "required": [
-          "first_name",
-          "last_name"
-        ],
-        "type": "object"
-      },
       "DatasetRestApi.get.Database": {
         "properties": {
           "allow_multi_catalog": {
@@ -5727,9 +5501,7 @@
             "type": "string"
           },
           "currency": {
-            "maxLength": 128,
-            "nullable": true,
-            "type": "string"
+            "nullable": true
           },
           "d3format": {
             "maxLength": 128,
@@ -5756,6 +5528,11 @@
           },
           "metric_type": {
             "maxLength": 32,
+            "nullable": true,
+            "type": "string"
+          },
+          "uuid": {
+            "format": "uuid",
             "nullable": true,
             "type": "string"
           },
@@ -5861,6 +5638,9 @@
             "maxLength": 64,
             "type": "string"
           },
+          "id": {
+            "type": "integer"
+          },
           "last_name": {
             "maxLength": 64,
             "type": "string"
@@ -5873,6 +5653,23 @@
         "type": "object"
       },
       "DatasetRestApi.get.User1": {
+        "properties": {
+          "first_name": {
+            "maxLength": 64,
+            "type": "string"
+          },
+          "last_name": {
+            "maxLength": 64,
+            "type": "string"
+          }
+        },
+        "required": [
+          "first_name",
+          "last_name"
+        ],
+        "type": "object"
+      },
+      "DatasetRestApi.get.User2": {
         "properties": {
           "first_name": {
             "maxLength": 64,
@@ -5936,7 +5733,7 @@
             "readOnly": true
           },
           "owners": {
-            "$ref": "#/components/schemas/DatasetRestApi.get_list.AppleUser"
+            "$ref": "#/components/schemas/DatasetRestApi.get_list.User1"
           },
           "schema": {
             "maxLength": 255,
@@ -5950,31 +5747,16 @@
           "table_name": {
             "maxLength": 250,
             "type": "string"
+          },
+          "uuid": {
+            "format": "uuid",
+            "nullable": true,
+            "type": "string"
           }
         },
         "required": [
           "database",
           "table_name"
-        ],
-        "type": "object"
-      },
-      "DatasetRestApi.get_list.AppleUser": {
-        "properties": {
-          "first_name": {
-            "maxLength": 64,
-            "type": "string"
-          },
-          "id": {
-            "type": "integer"
-          },
-          "last_name": {
-            "maxLength": 64,
-            "type": "string"
-          }
-        },
-        "required": [
-          "first_name",
-          "last_name"
         ],
         "type": "object"
       },
@@ -5994,6 +5776,26 @@
         "type": "object"
       },
       "DatasetRestApi.get_list.User": {
+        "properties": {
+          "first_name": {
+            "maxLength": 64,
+            "type": "string"
+          },
+          "id": {
+            "type": "integer"
+          },
+          "last_name": {
+            "maxLength": 64,
+            "type": "string"
+          }
+        },
+        "required": [
+          "first_name",
+          "last_name"
+        ],
+        "type": "object"
+      },
+      "DatasetRestApi.get_list.User1": {
         "properties": {
           "first_name": {
             "maxLength": 64,
@@ -6118,6 +5920,12 @@
           "filter_select_enabled": {
             "nullable": true,
             "type": "boolean"
+          },
+          "folders": {
+            "items": {
+              "$ref": "#/components/schemas/Folder"
+            },
+            "type": "array"
           },
           "is_managed_externally": {
             "nullable": true,
@@ -6360,112 +6168,6 @@
         ],
         "type": "object"
       },
-      "ExcelMetadataUploadFilePostSchema": {
-        "properties": {
-          "file": {
-            "description": "The file to upload",
-            "format": "binary",
-            "type": "string"
-          },
-          "header_row": {
-            "description": "Row containing the headers to use as column names(0 is first line of data). Leave empty if there is no header row.",
-            "type": "integer"
-          }
-        },
-        "required": [
-          "file"
-        ],
-        "type": "object"
-      },
-      "ExcelUploadPostSchema": {
-        "properties": {
-          "already_exists": {
-            "default": "fail",
-            "description": "What to do if the table already exists accepts: fail, replace, append",
-            "enum": [
-              "fail",
-              "replace",
-              "append"
-            ],
-            "type": "string"
-          },
-          "column_dates": {
-            "description": "A list of column names that should be parsed as dates. Example: date,timestamp",
-            "items": {
-              "type": "string"
-            },
-            "type": "array"
-          },
-          "columns_read": {
-            "description": "A List of the column names that should be read",
-            "items": {
-              "type": "string"
-            },
-            "type": "array"
-          },
-          "dataframe_index": {
-            "description": "Write dataframe index as a column.",
-            "type": "boolean"
-          },
-          "decimal_character": {
-            "description": "Character to recognize as decimal point. Default is '.'",
-            "type": "string"
-          },
-          "file": {
-            "description": "The Excel file to upload",
-            "format": "binary",
-            "type": "string"
-          },
-          "header_row": {
-            "description": "Row containing the headers to use as column names(0 is first line of data). Leave empty if there is no header row.",
-            "type": "integer"
-          },
-          "index_column": {
-            "description": "Column to use as the row labels of the dataframe. Leave empty if no index column",
-            "type": "string"
-          },
-          "index_label": {
-            "description": "Index label for index column.",
-            "type": "string"
-          },
-          "null_values": {
-            "description": "A list of strings that should be treated as null. Examples: '' for empty strings, 'None', 'N/A',Warning: Hive database supports only a single value",
-            "items": {
-              "type": "string"
-            },
-            "type": "array"
-          },
-          "rows_to_read": {
-            "description": "Number of rows to read from the file. If None, reads all rows.",
-            "minimum": 1,
-            "nullable": true,
-            "type": "integer"
-          },
-          "schema": {
-            "description": "The schema to upload the data file to.",
-            "type": "string"
-          },
-          "sheet_name": {
-            "description": "Strings used for sheet names (default is the first sheet).",
-            "type": "string"
-          },
-          "skip_rows": {
-            "description": "Number of rows to skip at start of file.",
-            "type": "integer"
-          },
-          "table_name": {
-            "description": "The name of the table to be created/appended",
-            "maxLength": 10000,
-            "minLength": 1,
-            "type": "string"
-          }
-        },
-        "required": [
-          "file",
-          "table_name"
-        ],
-        "type": "object"
-      },
       "ExecutePayloadSchema": {
         "properties": {
           "catalog": {
@@ -6570,6 +6272,44 @@
         },
         "required": [
           "formData"
+        ],
+        "type": "object"
+      },
+      "Folder": {
+        "properties": {
+          "children": {
+            "items": {
+              "$ref": "#/components/schemas/Folder"
+            },
+            "nullable": true,
+            "type": "array"
+          },
+          "description": {
+            "maxLength": 1000,
+            "minLength": 0,
+            "nullable": true,
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 250,
+            "minLength": 1,
+            "type": "string"
+          },
+          "type": {
+            "enum": [
+              "metric",
+              "column",
+              "folder"
+            ],
+            "type": "string"
+          },
+          "uuid": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "uuid"
         ],
         "type": "object"
       },
@@ -6718,130 +6458,6 @@
         ],
         "type": "object"
       },
-      "IASLoginTokenRequestSchema": {
-        "properties": {
-          "access_token": {
-            "description": "IAS Access token. Can be requested by adding `token` to the `responseTypes`.",
-            "nullable": true,
-            "type": "string"
-          },
-          "client_id": {
-            "description": "IAS client id. Only needed if `refresh_token` is provided.",
-            "nullable": true,
-            "type": "string"
-          },
-          "client_secret": {
-            "description": "IAS client secret. Only needed if `refresh_token` and `client_id` is provided.",
-            "nullable": true,
-            "type": "string"
-          },
-          "id_token": {
-            "description": "IAS ID token. Can be requested by adding `id_token` to the `responseTypes`. The following scopes should be added:`iam:ds:groups`, `corpds:ds:username`, `corpds:ds:firstName`, `corpds:ds:lastName`, `corpds:ds:email`, `corpds:ds:uidNumber`, `iam:ds:explicitgroups`.",
-            "type": "string"
-          },
-          "refresh_token": {
-            "description": "IAS refresh token. This can be requested by adding `offline` to `scopes`. To be able to refresh the token, the IAS `client_id` and `client_secret` need to be added, as the same client needs to be used for refreshing as logging in.",
-            "nullable": true,
-            "type": "string"
-          }
-        },
-        "required": [
-          "id_token"
-        ],
-        "type": "object"
-      },
-      "IASLoginTokenResponseSchema": {
-        "properties": {
-          "access_token": {
-            "description": "Access that can be used access the Superset API",
-            "type": "string"
-          },
-          "refresh_token": {
-            "description": "Refresh token that can be used to refresh the `access_token`",
-            "type": "string"
-          }
-        },
-        "required": [
-          "access_token"
-        ],
-        "type": "object"
-      },
-      "IASProfileResponse": {
-        "properties": {
-          "client_id": {
-            "description": "The client id",
-            "type": "string"
-          },
-          "profile": {
-            "description": "The IAS profile",
-            "type": "string"
-          },
-          "scope": {
-            "description": "The scope of the client",
-            "type": "string"
-          }
-        },
-        "required": [
-          "client_id",
-          "profile"
-        ],
-        "type": "object"
-      },
-      "IASProfilesResponseSchema": {
-        "properties": {
-          "result": {
-            "description": "A list of all available IAS profiles",
-            "items": {
-              "$ref": "#/components/schemas/IASProfileResponse"
-            },
-            "type": "array"
-          }
-        },
-        "type": "object"
-      },
-      "IASTokenResponse": {
-        "properties": {
-          "access_token": {
-            "description": "The access token",
-            "type": "string"
-          },
-          "has_client_credentials": {
-            "description": "Are the original client credentials available or not",
-            "type": "boolean"
-          },
-          "has_refresh_token": {
-            "description": "Is there a refresh token available or not",
-            "type": "boolean"
-          },
-          "ias_profile": {
-            "description": "The IAS profile",
-            "type": "string"
-          },
-          "id_token": {
-            "description": "The id token",
-            "type": "string"
-          }
-        },
-        "required": [
-          "has_client_credentials",
-          "has_refresh_token",
-          "ias_profile",
-          "id_token"
-        ],
-        "type": "object"
-      },
-      "IASTokensResponseSchema": {
-        "properties": {
-          "result": {
-            "description": "A list of all requested tokens",
-            "items": {
-              "$ref": "#/components/schemas/IASTokenResponse"
-            },
-            "type": "array"
-          }
-        },
-        "type": "object"
-      },
       "ImportV1Database": {
         "properties": {
           "allow_csv_upload": {
@@ -6864,6 +6480,10 @@
             "type": "integer"
           },
           "database_name": {
+            "type": "string"
+          },
+          "encrypted_extra": {
+            "nullable": true,
             "type": "string"
           },
           "expose_in_sqllab": {
@@ -6948,6 +6568,10 @@
             "additionalProperties": {},
             "type": "object"
           },
+          "schema_options": {
+            "additionalProperties": {},
+            "type": "object"
+          },
           "schemas_allowed_for_csv_upload": {
             "items": {
               "type": "string"
@@ -6956,310 +6580,6 @@
           },
           "version": {
             "nullable": true,
-            "type": "string"
-          }
-        },
-        "type": "object"
-      },
-      "LakehouseCatalog": {
-        "properties": {
-          "database_id": {
-            "description": "The numerical id of the database",
-            "type": "integer"
-          },
-          "database_name": {
-            "description": "The name of the database",
-            "type": "string"
-          },
-          "id": {
-            "description": "The numerical id of the catalog",
-            "type": "integer"
-          },
-          "name": {
-            "description": "The name of the catalog",
-            "type": "string"
-          },
-          "sqlalchemy_uri": {
-            "description": "The SQLAlchemy URI",
-            "type": "string"
-          }
-        },
-        "type": "object"
-      },
-      "LakehouseConnectRequestSchema": {
-        "properties": {
-          "catalogs": {
-            "description": "A list of catalogs to connect to. If empty or undefined, connect all available catalogs.",
-            "example": [
-              "my_catalog"
-            ],
-            "items": {
-              "type": "string"
-            },
-            "nullable": true,
-            "type": "array"
-          },
-          "database_names": {
-            "description": "Custom catalog-database name mappings. If undefined, the default naming convention will be used",
-            "example": {
-              "my_catalog": "my_database"
-            },
-            "nullable": true,
-            "type": "object"
-          },
-          "dry_run": {
-            "description": "Should the task be executed in dry run mode. Useful for testing.",
-            "example": false,
-            "type": "boolean"
-          },
-          "engine_type": {
-            "description": "The type of the engine (only trino is currently supported)",
-            "enum": [
-              "trino"
-            ],
-            "example": "trino",
-            "type": "string"
-          },
-          "engine_url": {
-            "description": "The URL to the engine",
-            "example": "https://myengine.corp.apple.com",
-            "type": "string"
-          },
-          "environment": {
-            "description": "Prod or Int",
-            "enum": [
-              "int",
-              "prod"
-            ],
-            "example": "int",
-            "type": "string"
-          },
-          "name": {
-            "description": "The name of the Lakehouse (subject to change over time). If left undefined, use lakehouse id",
-            "example": "My Lakehouse",
-            "nullable": true,
-            "type": "string"
-          },
-          "superset_url": {
-            "description": "The URL of the Superset instance connecting to",
-            "example": "http://localhost:8088",
-            "type": "string"
-          }
-        },
-        "required": [
-          "engine_type",
-          "engine_url",
-          "environment",
-          "superset_url"
-        ],
-        "type": "object"
-      },
-      "LakehouseConnectResponseSchema": {
-        "properties": {
-          "task_id": {
-            "description": "The id of the connection task",
-            "type": "string"
-          }
-        },
-        "type": "object"
-      },
-      "LakehouseConnectResultResponseSchema": {
-        "properties": {
-          "existing_catalogs": {
-            "description": "A list of connected catalogs before the connect operation",
-            "items": {
-              "description": "Catalogs",
-              "items": {
-                "$ref": "#/components/schemas/LakehouseCatalog"
-              },
-              "type": "array"
-            },
-            "type": "array"
-          },
-          "lakehouse": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/LakehouseGetResponseSchema"
-              }
-            ],
-            "description": "The connected Lakehouse",
-            "nullable": true
-          },
-          "message": {
-            "description": "A message to provide additional context on what has happened",
-            "type": "string"
-          },
-          "new_catalogs": {
-            "description": "A list of newly connected catalogs after the connect operation",
-            "items": {
-              "description": "Catalogs",
-              "items": {
-                "$ref": "#/components/schemas/LakehouseCatalog"
-              },
-              "type": "array"
-            },
-            "type": "array"
-          },
-          "status": {
-            "description": "The status of the task",
-            "enum": [
-              "scheduled",
-              "running",
-              "completed",
-              "failed",
-              "reconnect_failed",
-              "cancelled"
-            ],
-            "type": "string"
-          }
-        },
-        "required": [
-          "lakehouse"
-        ],
-        "type": "object"
-      },
-      "LakehouseConnectStatusResponseSchema": {
-        "properties": {
-          "message": {
-            "description": "A message to provide additional context on what has happened",
-            "type": "string"
-          },
-          "status": {
-            "description": "The status of the task",
-            "enum": [
-              "scheduled",
-              "running",
-              "completed",
-              "failed",
-              "reconnect_failed",
-              "cancelled"
-            ],
-            "type": "string"
-          }
-        },
-        "type": "object"
-      },
-      "LakehouseDatasetListResponseSchema": {
-        "properties": {
-          "name": {
-            "description": "The name of the dataset",
-            "type": "string"
-          },
-          "schema": {
-            "description": "The schema",
-            "nullable": true,
-            "type": "string"
-          },
-          "sql": {
-            "description": "The virtual dataset query",
-            "type": "string"
-          }
-        },
-        "required": [
-          "name",
-          "sql"
-        ],
-        "type": "object"
-      },
-      "LakehouseDatasetRequestSchema": {
-        "properties": {
-          "catalog": {
-            "description": "The catalog. If left empty, uses an arbitrary connected catalog.",
-            "nullable": true,
-            "type": "string"
-          },
-          "lakehouse_id": {
-            "description": "Deprecated, not used for anything",
-            "type": "string"
-          },
-          "name": {
-            "description": "The name of the dataset to be created",
-            "type": "string"
-          },
-          "overwrite": {
-            "default": false,
-            "description": "Should the virtual dataset be overwritten if it already exists",
-            "type": "boolean"
-          },
-          "schema": {
-            "description": "The schema",
-            "nullable": true,
-            "type": "string"
-          },
-          "sql": {
-            "description": "The virtual dataset query",
-            "type": "string"
-          }
-        },
-        "required": [
-          "name",
-          "sql"
-        ],
-        "type": "object"
-      },
-      "LakehouseDatasetResponseSchema": {
-        "properties": {
-          "url": {
-            "description": "The url for exploring the virtual dataset",
-            "type": "string"
-          }
-        },
-        "required": [
-          "url"
-        ],
-        "type": "object"
-      },
-      "LakehouseDisconnectResponseSchema": {
-        "properties": {
-          "lakehouse": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/LakehouseGetResponseSchema"
-              }
-            ],
-            "description": "A list of disconnected lakehouses"
-          }
-        },
-        "type": "object"
-      },
-      "LakehouseGetListResponseSchema": {
-        "properties": {
-          "lakehouses": {
-            "description": "A list of connected lakehouses",
-            "items": {
-              "$ref": "#/components/schemas/LakehouseGetResponseSchema"
-            },
-            "type": "array"
-          }
-        },
-        "type": "object"
-      },
-      "LakehouseGetResponseSchema": {
-        "properties": {
-          "catalogs": {
-            "description": "A list of connected catalogs",
-            "items": {
-              "description": "Catalogs",
-              "items": {
-                "$ref": "#/components/schemas/LakehouseCatalog"
-              },
-              "type": "array"
-            },
-            "type": "array"
-          },
-          "engine_url": {
-            "description": "The URL uf the engine",
-            "type": "string"
-          },
-          "id": {
-            "description": "The unique id of the Lakehouse",
-            "type": "string"
-          },
-          "name": {
-            "type": "string"
-          },
-          "superset_url": {
-            "description": "The URL uf the Superset instance",
             "type": "string"
           }
         },
@@ -7299,7 +6619,7 @@
             "type": "integer"
           },
           "user": {
-            "$ref": "#/components/schemas/LogRestApi.get.AppleUser"
+            "$ref": "#/components/schemas/LogRestApi.get.User"
           },
           "user_id": {
             "nullable": true,
@@ -7308,7 +6628,7 @@
         },
         "type": "object"
       },
-      "LogRestApi.get.AppleUser": {
+      "LogRestApi.get.User": {
         "properties": {
           "username": {
             "maxLength": 64,
@@ -7354,7 +6674,7 @@
             "type": "integer"
           },
           "user": {
-            "$ref": "#/components/schemas/LogRestApi.get_list.AppleUser"
+            "$ref": "#/components/schemas/LogRestApi.get_list.User"
           },
           "user_id": {
             "nullable": true,
@@ -7363,7 +6683,7 @@
         },
         "type": "object"
       },
-      "LogRestApi.get_list.AppleUser": {
+      "LogRestApi.get_list.User": {
         "properties": {
           "username": {
             "maxLength": 64,
@@ -7401,6 +6721,162 @@
           },
           "user": {
             "nullable": true
+          }
+        },
+        "type": "object"
+      },
+      "PermissionApi.get": {
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "name": {
+            "maxLength": 100,
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "type": "object"
+      },
+      "PermissionApi.get_list": {
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "name": {
+            "maxLength": 100,
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "type": "object"
+      },
+      "PermissionApi.post": {
+        "properties": {
+          "name": {
+            "maxLength": 100,
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "type": "object"
+      },
+      "PermissionApi.put": {
+        "properties": {
+          "name": {
+            "maxLength": 100,
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "type": "object"
+      },
+      "PermissionViewMenuApi.get": {
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "permission": {
+            "$ref": "#/components/schemas/PermissionViewMenuApi.get.Permission"
+          },
+          "view_menu": {
+            "$ref": "#/components/schemas/PermissionViewMenuApi.get.ViewMenu"
+          }
+        },
+        "type": "object"
+      },
+      "PermissionViewMenuApi.get.Permission": {
+        "properties": {
+          "name": {
+            "maxLength": 100,
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "type": "object"
+      },
+      "PermissionViewMenuApi.get.ViewMenu": {
+        "properties": {
+          "name": {
+            "maxLength": 250,
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "type": "object"
+      },
+      "PermissionViewMenuApi.get_list": {
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "permission": {
+            "$ref": "#/components/schemas/PermissionViewMenuApi.get_list.Permission"
+          },
+          "view_menu": {
+            "$ref": "#/components/schemas/PermissionViewMenuApi.get_list.ViewMenu"
+          }
+        },
+        "type": "object"
+      },
+      "PermissionViewMenuApi.get_list.Permission": {
+        "properties": {
+          "name": {
+            "maxLength": 100,
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "type": "object"
+      },
+      "PermissionViewMenuApi.get_list.ViewMenu": {
+        "properties": {
+          "name": {
+            "maxLength": 250,
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "type": "object"
+      },
+      "PermissionViewMenuApi.post": {
+        "properties": {
+          "permission_id": {
+            "nullable": true,
+            "type": "integer"
+          },
+          "view_menu_id": {
+            "nullable": true,
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "PermissionViewMenuApi.put": {
+        "properties": {
+          "permission_id": {
+            "nullable": true,
+            "type": "integer"
+          },
+          "view_menu_id": {
+            "nullable": true,
+            "type": "integer"
           }
         },
         "type": "object"
@@ -8249,7 +7725,7 @@
             "type": "string"
           },
           "owners": {
-            "$ref": "#/components/schemas/ReportScheduleRestApi.get.AppleUser"
+            "$ref": "#/components/schemas/ReportScheduleRestApi.get.User"
           },
           "recipients": {
             "$ref": "#/components/schemas/ReportScheduleRestApi.get.ReportRecipients"
@@ -8290,26 +7766,6 @@
           "name",
           "recipients",
           "type"
-        ],
-        "type": "object"
-      },
-      "ReportScheduleRestApi.get.AppleUser": {
-        "properties": {
-          "first_name": {
-            "maxLength": 64,
-            "type": "string"
-          },
-          "id": {
-            "type": "integer"
-          },
-          "last_name": {
-            "maxLength": 64,
-            "type": "string"
-          }
-        },
-        "required": [
-          "first_name",
-          "last_name"
         ],
         "type": "object"
       },
@@ -8376,6 +7832,26 @@
             "type": "string"
           }
         },
+        "type": "object"
+      },
+      "ReportScheduleRestApi.get.User": {
+        "properties": {
+          "first_name": {
+            "maxLength": 64,
+            "type": "string"
+          },
+          "id": {
+            "type": "integer"
+          },
+          "last_name": {
+            "maxLength": 64,
+            "type": "string"
+          }
+        },
+        "required": [
+          "first_name",
+          "last_name"
+        ],
         "type": "object"
       },
       "ReportScheduleRestApi.get_list": {
@@ -8448,7 +7924,7 @@
             "type": "string"
           },
           "owners": {
-            "$ref": "#/components/schemas/ReportScheduleRestApi.get_list.AppleUser"
+            "$ref": "#/components/schemas/ReportScheduleRestApi.get_list.User2"
           },
           "recipients": {
             "$ref": "#/components/schemas/ReportScheduleRestApi.get_list.ReportRecipients"
@@ -8467,26 +7943,6 @@
           "name",
           "recipients",
           "type"
-        ],
-        "type": "object"
-      },
-      "ReportScheduleRestApi.get_list.AppleUser": {
-        "properties": {
-          "first_name": {
-            "maxLength": 64,
-            "type": "string"
-          },
-          "id": {
-            "type": "integer"
-          },
-          "last_name": {
-            "maxLength": 64,
-            "type": "string"
-          }
-        },
-        "required": [
-          "first_name",
-          "last_name"
         ],
         "type": "object"
       },
@@ -8527,6 +7983,26 @@
           "first_name": {
             "maxLength": 64,
             "type": "string"
+          },
+          "last_name": {
+            "maxLength": 64,
+            "type": "string"
+          }
+        },
+        "required": [
+          "first_name",
+          "last_name"
+        ],
+        "type": "object"
+      },
+      "ReportScheduleRestApi.get_list.User2": {
+        "properties": {
+          "first_name": {
+            "maxLength": 64,
+            "type": "string"
+          },
+          "id": {
+            "type": "integer"
           },
           "last_name": {
             "maxLength": 64,
@@ -10056,6 +9532,73 @@
         ],
         "type": "object"
       },
+      "RolePermissionListSchema": {
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "permission_name": {
+            "type": "string"
+          },
+          "view_menu_name": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "RolePermissionPostSchema": {
+        "properties": {
+          "permission_view_menu_ids": {
+            "description": "List of permission view menu id",
+            "items": {
+              "type": "integer"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "permission_view_menu_ids"
+        ],
+        "type": "object"
+      },
+      "RoleResponseSchema": {
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          },
+          "permission_ids": {
+            "items": {
+              "type": "integer"
+            },
+            "type": "array"
+          },
+          "user_ids": {
+            "items": {
+              "type": "integer"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "RoleUserPutSchema": {
+        "properties": {
+          "user_ids": {
+            "description": "List of user ids",
+            "items": {
+              "type": "integer"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "user_ids"
+        ],
+        "type": "object"
+      },
       "Roles": {
         "properties": {
           "id": {
@@ -10074,6 +9617,26 @@
           },
           "name": {
             "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "RolesResponseSchema": {
+        "properties": {
+          "count": {
+            "type": "integer"
+          },
+          "ids": {
+            "items": {
+              "type": "integer"
+            },
+            "type": "array"
+          },
+          "result": {
+            "items": {
+              "$ref": "#/components/schemas/RoleResponseSchema"
+            },
+            "type": "array"
           }
         },
         "type": "object"
@@ -10541,9 +10104,383 @@
         },
         "type": "object"
       },
+      "SqlLabPermalinkSchema": {
+        "properties": {
+          "autorun": {
+            "type": "boolean"
+          },
+          "catalog": {
+            "description": "The catalog name of the query",
+            "nullable": true,
+            "type": "string"
+          },
+          "dbId": {
+            "description": "The id of the database",
+            "type": "integer"
+          },
+          "name": {
+            "description": "The label of the editor tab",
+            "type": "string"
+          },
+          "schema": {
+            "description": "The schema name of the query",
+            "nullable": true,
+            "type": "string"
+          },
+          "sql": {
+            "description": "SQL query text",
+            "type": "string"
+          },
+          "templateParams": {
+            "description": "stringfied JSON string for template parameters",
+            "nullable": true,
+            "type": "string"
+          }
+        },
+        "required": [
+          "dbId",
+          "name",
+          "sql"
+        ],
+        "type": "object"
+      },
       "StopQuerySchema": {
         "properties": {
           "client_id": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "SupersetRoleApi.get": {
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "name": {
+            "maxLength": 64,
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "type": "object"
+      },
+      "SupersetRoleApi.get_list": {
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "name": {
+            "maxLength": 64,
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "type": "object"
+      },
+      "SupersetRoleApi.post": {
+        "properties": {
+          "name": {
+            "maxLength": 64,
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "type": "object"
+      },
+      "SupersetRoleApi.put": {
+        "properties": {
+          "name": {
+            "maxLength": 64,
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "type": "object"
+      },
+      "SupersetUserApi.get": {
+        "properties": {
+          "active": {
+            "nullable": true,
+            "type": "boolean"
+          },
+          "changed_by": {
+            "$ref": "#/components/schemas/SupersetUserApi.get.User1"
+          },
+          "changed_on": {
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "created_by": {
+            "$ref": "#/components/schemas/SupersetUserApi.get.User"
+          },
+          "created_on": {
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "email": {
+            "maxLength": 320,
+            "type": "string"
+          },
+          "fail_login_count": {
+            "nullable": true,
+            "type": "integer"
+          },
+          "first_name": {
+            "maxLength": 64,
+            "type": "string"
+          },
+          "id": {
+            "type": "integer"
+          },
+          "last_login": {
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "last_name": {
+            "maxLength": 64,
+            "type": "string"
+          },
+          "login_count": {
+            "nullable": true,
+            "type": "integer"
+          },
+          "roles": {
+            "$ref": "#/components/schemas/SupersetUserApi.get.Role"
+          },
+          "username": {
+            "maxLength": 64,
+            "type": "string"
+          }
+        },
+        "required": [
+          "email",
+          "first_name",
+          "last_name",
+          "username"
+        ],
+        "type": "object"
+      },
+      "SupersetUserApi.get.Role": {
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "name": {
+            "maxLength": 64,
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "type": "object"
+      },
+      "SupersetUserApi.get.User": {
+        "properties": {
+          "id": {
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "SupersetUserApi.get.User1": {
+        "properties": {
+          "id": {
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "SupersetUserApi.get_list": {
+        "properties": {
+          "active": {
+            "nullable": true,
+            "type": "boolean"
+          },
+          "changed_by": {
+            "$ref": "#/components/schemas/SupersetUserApi.get_list.User1"
+          },
+          "changed_on": {
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "created_by": {
+            "$ref": "#/components/schemas/SupersetUserApi.get_list.User"
+          },
+          "created_on": {
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "email": {
+            "maxLength": 320,
+            "type": "string"
+          },
+          "fail_login_count": {
+            "nullable": true,
+            "type": "integer"
+          },
+          "first_name": {
+            "maxLength": 64,
+            "type": "string"
+          },
+          "id": {
+            "type": "integer"
+          },
+          "last_login": {
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "last_name": {
+            "maxLength": 64,
+            "type": "string"
+          },
+          "login_count": {
+            "nullable": true,
+            "type": "integer"
+          },
+          "roles": {
+            "$ref": "#/components/schemas/SupersetUserApi.get_list.Role"
+          },
+          "username": {
+            "maxLength": 64,
+            "type": "string"
+          }
+        },
+        "required": [
+          "email",
+          "first_name",
+          "last_name",
+          "username"
+        ],
+        "type": "object"
+      },
+      "SupersetUserApi.get_list.Role": {
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "name": {
+            "maxLength": 64,
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "type": "object"
+      },
+      "SupersetUserApi.get_list.User": {
+        "properties": {
+          "id": {
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "SupersetUserApi.get_list.User1": {
+        "properties": {
+          "id": {
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "SupersetUserApi.post": {
+        "properties": {
+          "active": {
+            "description": "Is user active?It's not a good policy to remove a user, just make it inactive",
+            "type": "boolean"
+          },
+          "email": {
+            "description": "The user's email",
+            "type": "string"
+          },
+          "first_name": {
+            "description": "The user's first name",
+            "type": "string"
+          },
+          "last_name": {
+            "description": "The user's last name",
+            "type": "string"
+          },
+          "password": {
+            "description": "The user's password for authentication",
+            "type": "string"
+          },
+          "roles": {
+            "description": "The user's roles",
+            "items": {
+              "type": "integer"
+            },
+            "minItems": 1,
+            "type": "array"
+          },
+          "username": {
+            "description": "The user's username",
+            "maxLength": 250,
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "email",
+          "first_name",
+          "last_name",
+          "password",
+          "roles",
+          "username"
+        ],
+        "type": "object"
+      },
+      "SupersetUserApi.put": {
+        "properties": {
+          "active": {
+            "description": "Is user active?It's not a good policy to remove a user, just make it inactive",
+            "type": "boolean"
+          },
+          "email": {
+            "description": "The user's email",
+            "type": "string"
+          },
+          "first_name": {
+            "description": "The user's first name",
+            "type": "string"
+          },
+          "last_name": {
+            "description": "The user's last name",
+            "type": "string"
+          },
+          "password": {
+            "description": "The user's password for authentication",
+            "type": "string"
+          },
+          "roles": {
+            "description": "The user's roles",
+            "items": {
+              "type": "integer"
+            },
+            "minItems": 1,
+            "type": "array"
+          },
+          "username": {
+            "description": "The user's username",
+            "maxLength": 250,
+            "minLength": 1,
             "type": "string"
           }
         },
@@ -11234,6 +11171,154 @@
         },
         "type": "object"
       },
+      "UploadFileMetadataPostSchema": {
+        "properties": {
+          "delimiter": {
+            "description": "The character used to separate values in the CSV file (e.g., a comma, semicolon, or tab).",
+            "type": "string"
+          },
+          "file": {
+            "description": "The file to upload",
+            "format": "binary",
+            "type": "string"
+          },
+          "header_row": {
+            "description": "Row containing the headers to use as column names(0 is first line of data). Leave empty if there is no header row.",
+            "type": "integer"
+          },
+          "type": {
+            "description": "File type to upload",
+            "enum": [
+              "csv",
+              "excel",
+              "columnar"
+            ]
+          }
+        },
+        "required": [
+          "file",
+          "type"
+        ],
+        "type": "object"
+      },
+      "UploadPostSchema": {
+        "properties": {
+          "already_exists": {
+            "default": "fail",
+            "description": "What to do if the table already exists accepts: fail, replace, append",
+            "enum": [
+              "fail",
+              "replace",
+              "append"
+            ],
+            "type": "string"
+          },
+          "column_data_types": {
+            "description": "[CSV only] A dictionary with column names and their data types if you need to change the defaults. Example: {'user_id':'int'}. Check Python Pandas library for supported data types",
+            "type": "string"
+          },
+          "column_dates": {
+            "description": "[CSV and Excel only] A list of column names that should be parsed as dates. Example: date,timestamp",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "columns_read": {
+            "description": "A List of the column names that should be read",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "dataframe_index": {
+            "description": "Write dataframe index as a column.",
+            "type": "boolean"
+          },
+          "day_first": {
+            "description": "[CSV only] DD/MM format dates, international and European format",
+            "type": "boolean"
+          },
+          "decimal_character": {
+            "description": "[CSV and Excel only] Character to recognize as decimal point. Default is '.'",
+            "type": "string"
+          },
+          "delimiter": {
+            "description": "[CSV only] The character used to separate values in the CSV file (e.g., a comma, semicolon, or tab).",
+            "type": "string"
+          },
+          "file": {
+            "description": "The file to upload",
+            "format": "text/csv",
+            "type": "string"
+          },
+          "header_row": {
+            "description": "[CSV and Excel only] Row containing the headers to use as column names (0 is first line of data). Leave empty if there is no header row.",
+            "type": "integer"
+          },
+          "index_column": {
+            "description": "[CSV and Excel only] Column to use as the row labels of the dataframe. Leave empty if no index column",
+            "type": "string"
+          },
+          "index_label": {
+            "description": "Index label for index column.",
+            "type": "string"
+          },
+          "null_values": {
+            "description": "[CSV and Excel only] A list of strings that should be treated as null. Examples: '' for empty strings, 'None', 'N/A', Warning: Hive database supports only a single value",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "rows_to_read": {
+            "description": "[CSV and Excel only] Number of rows to read from the file. If None, reads all rows.",
+            "minimum": 1,
+            "nullable": true,
+            "type": "integer"
+          },
+          "schema": {
+            "description": "The schema to upload the data file to.",
+            "type": "string"
+          },
+          "sheet_name": {
+            "description": "[Excel only]] Strings used for sheet names (default is the first sheet).",
+            "type": "string"
+          },
+          "skip_blank_lines": {
+            "description": "[CSV only] Skip blank lines in the CSV file.",
+            "type": "boolean"
+          },
+          "skip_initial_space": {
+            "description": "[CSV only] Skip spaces after delimiter.",
+            "type": "boolean"
+          },
+          "skip_rows": {
+            "description": "[CSV and Excel only] Number of rows to skip at start of file.",
+            "type": "integer"
+          },
+          "table_name": {
+            "description": "The name of the table to be created/appended",
+            "maxLength": 10000,
+            "minLength": 1,
+            "type": "string"
+          },
+          "type": {
+            "description": "File type to upload",
+            "enum": [
+              "csv",
+              "excel",
+              "columnar"
+            ]
+          }
+        },
+        "required": [
+          "file",
+          "table_name",
+          "type"
+        ],
+        "type": "object"
+      },
       "User": {
         "properties": {
           "first_name": {
@@ -11366,6 +11451,60 @@
         },
         "type": "object"
       },
+      "ViewMenuApi.get": {
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "name": {
+            "maxLength": 250,
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "type": "object"
+      },
+      "ViewMenuApi.get_list": {
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "name": {
+            "maxLength": 250,
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "type": "object"
+      },
+      "ViewMenuApi.post": {
+        "properties": {
+          "name": {
+            "maxLength": 250,
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "type": "object"
+      },
+      "ViewMenuApi.put": {
+        "properties": {
+          "name": {
+            "maxLength": 250,
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "type": "object"
+      },
       "advanced_data_type_convert_schema": {
         "properties": {
           "type": {
@@ -11400,6 +11539,9 @@
             "type": "string"
           },
           "force": {
+            "type": "boolean"
+          },
+          "upload_allowed": {
             "type": "boolean"
           }
         },
@@ -12806,39 +12948,6 @@
         ]
       }
     },
-    "/api/v1/apple/health": {
-      "get": {
-        "description": "Endpoint for checking the health status of the metastore and cache",
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AppleHealthResponseSchema"
-                }
-              }
-            },
-            "description": "The"
-          },
-          "400": {
-            "$ref": "#/components/responses/400"
-          },
-          "401": {
-            "$ref": "#/components/responses/401"
-          },
-          "403": {
-            "$ref": "#/components/responses/403"
-          },
-          "500": {
-            "$ref": "#/components/responses/500"
-          }
-        },
-        "summary": "Get the health status of the metastore and cache",
-        "tags": [
-          "Apple"
-        ]
-      }
-    },
     "/api/v1/assets/export/": {
       "get": {
         "description": "Gets a ZIP file with all the Superset assets (databases, datasets, charts, dashboards, saved queries) as YAML files.",
@@ -12890,6 +12999,10 @@
                   "passwords": {
                     "description": "JSON map of passwords for each featured database in the ZIP file. If the ZIP includes a database config in the path `databases/MyDatabase.yaml`, the password should be provided in the following format: `{\"databases/MyDatabase.yaml\": \"my_password\"}`.",
                     "type": "string"
+                  },
+                  "sparse": {
+                    "description": "allow sparse update of resources",
+                    "type": "boolean"
                   },
                   "ssh_tunnel_passwords": {
                     "description": "JSON map of passwords for each ssh_tunnel associated to a featured database in the ZIP file. If the ZIP includes a ssh_tunnel config in the path `databases/MyDatabase.yaml`, the password should be provided in the following format: `{\"databases/MyDatabase.yaml\": \"my_password\"}`.",
@@ -14050,7 +14163,7 @@
           }
         ],
         "responses": {
-          "202": {
+          "200": {
             "content": {
               "application/json": {
                 "schema": {
@@ -14059,6 +14172,16 @@
               }
             },
             "description": "Chart async result"
+          },
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChartCacheScreenshotResponseSchema"
+                }
+              }
+            },
+            "description": "Chart screenshot task created"
           },
           "400": {
             "$ref": "#/components/responses/400"
@@ -14290,7 +14413,7 @@
                 }
               }
             },
-            "description": "Chart thumbnail image"
+            "description": "Chart screenshot image"
           },
           "400": {
             "$ref": "#/components/responses/400"
@@ -14329,6 +14452,7 @@
             }
           },
           {
+            "description": "A hex digest that makes this chart unique",
             "in": "path",
             "name": "digest",
             "required": true,
@@ -16235,6 +16359,83 @@
         ]
       }
     },
+    "/api/v1/dashboard/{pk}/colors": {
+      "put": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "pk",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "mark_updated",
+            "schema": {
+              "description": "Whether to update the dashboard changed_on field",
+              "type": "boolean"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DashboardColorsConfigUpdateSchema"
+              }
+            }
+          },
+          "description": "Colors configuration",
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "result": {
+                      "type": "array"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Dashboard colors updated"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          }
+        ],
+        "summary": "Update colors configuration for a dashboard.",
+        "tags": [
+          "Dashboards"
+        ]
+      }
+    },
     "/api/v1/dashboard/{pk}/favorites/": {
       "delete": {
         "parameters": [
@@ -16353,6 +16554,107 @@
         "requestBody": {
           "content": {
             "application/json": {
+              "examples": {
+                "numerical_range_filter": {
+                  "description": "**This body should be stringified and put into the value field.**",
+                  "summary": "Numerical Range Filter",
+                  "value": {
+                    "extraFormData": {
+                      "filters": [
+                        {
+                          "col": "tz_offset",
+                          "op": ">=",
+                          "val": [
+                            1000
+                          ]
+                        },
+                        {
+                          "col": "tz_offset",
+                          "op": "<=",
+                          "val": [
+                            2000
+                          ]
+                        }
+                      ]
+                    },
+                    "filterState": {
+                      "label": "1000 <= x <= 2000",
+                      "value": [
+                        1000,
+                        2000
+                      ]
+                    },
+                    "id": "NATIVE_FILTER_ID"
+                  }
+                },
+                "time_grain_filter": {
+                  "description": "**This body should be stringified and put into the value field.**",
+                  "summary": "Time Grain Filter",
+                  "value": {
+                    "extraFormData": {
+                      "time_grain_sqla": "P1W/1970-01-03T00:00:00Z"
+                    },
+                    "filterState": {
+                      "label": "Week ending Saturday",
+                      "value": [
+                        "P1W/1970-01-03T00:00:00Z"
+                      ]
+                    },
+                    "id": "NATIVE_FILTER_ID"
+                  }
+                },
+                "time_range_filter": {
+                  "description": "**This body should be stringified and put into the value field.**",
+                  "summary": "Time Range Filter",
+                  "value": {
+                    "extraFormData": {
+                      "time_range": "DATEADD(DATETIME('2025-01-16T00:00:00'), -7, day) : 2025-01-16T00:00:00"
+                    },
+                    "filterState": {
+                      "value": "DATEADD(DATETIME('2025-01-16T00:00:00'), -7, day) : 2025-01-16T00:00:00"
+                    },
+                    "id": "NATIVE_FILTER_ID"
+                  }
+                },
+                "timecolumn_filter": {
+                  "description": "**This body should be stringified and put into the value field.**",
+                  "summary": "Time Column Filter",
+                  "value": {
+                    "extraFormData": {
+                      "granularity_sqla": "order_date"
+                    },
+                    "filterState": {
+                      "value": [
+                        "order_date"
+                      ]
+                    },
+                    "id": "NATIVE_FILTER_ID"
+                  }
+                },
+                "value_filter": {
+                  "description": "**This body should be stringified and put into the value field.**",
+                  "summary": "Value Filter",
+                  "value": {
+                    "extraFormData": {
+                      "filters": [
+                        {
+                          "col": "real_name",
+                          "op": "IN",
+                          "val": [
+                            "John Doe"
+                          ]
+                        }
+                      ]
+                    },
+                    "filterState": {
+                      "value": [
+                        "John Doe"
+                      ]
+                    },
+                    "id": "NATIVE_FILTER_ID"
+                  }
+                }
+              },
               "schema": {
                 "$ref": "#/components/schemas/TemporaryCachePostSchema"
               }
@@ -16691,6 +16993,112 @@
         "requestBody": {
           "content": {
             "application/json": {
+              "examples": {
+                "numerical_range_filter": {
+                  "summary": "Numerical Range Filter",
+                  "value": {
+                    "dataMask": {
+                      "extraFormData": {
+                        "filters": [
+                          {
+                            "col": "tz_offset",
+                            "op": ">=",
+                            "val": [
+                              1000
+                            ]
+                          },
+                          {
+                            "col": "tz_offset",
+                            "op": "<=",
+                            "val": [
+                              2000
+                            ]
+                          }
+                        ]
+                      },
+                      "filterState": {
+                        "label": "1000 <= x <= 200",
+                        "value": [
+                          1000,
+                          2000
+                        ]
+                      },
+                      "id": "NATIVE_FILTER_ID"
+                    }
+                  }
+                },
+                "time_grain_filter": {
+                  "summary": "Time Grain Filter",
+                  "value": {
+                    "dataMask": {
+                      "extraFormData": {
+                        "time_grain_sqla": "P1W/1970-01-03T00:00:00Z"
+                      },
+                      "filterState": {
+                        "label": "Week ending Saturday",
+                        "value": [
+                          "P1W/1970-01-03T00:00:00Z"
+                        ]
+                      },
+                      "id": "NATIVE_FILTER_ID"
+                    }
+                  }
+                },
+                "time_range_filter": {
+                  "summary": "Time Range Filter",
+                  "value": {
+                    "dataMask": {
+                      "extraFormData": {
+                        "time_range": "DATEADD(DATETIME(\"2025-01-16T00:00:00\"), -7, day) : 2025-01-16T00:00:00"
+                      },
+                      "filterState": {
+                        "value": "DATEADD(DATETIME(\"2025-01-16T00:00:00\"), -7, day) : 2025-01-16T00:00:00"
+                      },
+                      "id": "NATIVE_FILTER_ID"
+                    }
+                  }
+                },
+                "timecolumn_filter": {
+                  "summary": "Time Column Filter",
+                  "value": {
+                    "dataMask": {
+                      "extraFormData": {
+                        "granularity_sqla": "order_date"
+                      },
+                      "filterState": {
+                        "value": [
+                          "order_date"
+                        ]
+                      },
+                      "id": "NATIVE_FILTER_ID"
+                    }
+                  }
+                },
+                "value_filter": {
+                  "summary": "Value Filter",
+                  "value": {
+                    "dataMask": {
+                      "extraFormData": {
+                        "filters": [
+                          {
+                            "col": "real_name",
+                            "op": "IN",
+                            "val": [
+                              "John Doe"
+                            ]
+                          }
+                        ]
+                      },
+                      "filterState": {
+                        "value": [
+                          "John Doe"
+                        ]
+                      },
+                      "id": "NATIVE_FILTER_ID"
+                    }
+                  }
+                }
+              },
               "schema": {
                 "$ref": "#/components/schemas/DashboardPermalinkStateSchema"
               }
@@ -16761,6 +17169,17 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "in": "query",
+            "name": "download_format",
+            "schema": {
+              "enum": [
+                "png",
+                "pdf"
+              ],
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -16819,17 +17238,6 @@
             "schema": {
               "type": "string"
             }
-          },
-          {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/thumbnail_query_schema"
-                }
-              }
-            },
-            "in": "query",
-            "name": "q"
           }
         ],
         "responses": {
@@ -17218,162 +17626,6 @@
         ]
       }
     },
-    "/api/v1/database/columnar_metadata/": {
-      "post": {
-        "requestBody": {
-          "content": {
-            "multipart/form-data": {
-              "schema": {
-                "$ref": "#/components/schemas/ColumnarMetadataUploadFilePostSchema"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "properties": {
-                    "result": {
-                      "$ref": "#/components/schemas/UploadFileMetadata"
-                    }
-                  },
-                  "type": "object"
-                }
-              }
-            },
-            "description": "Columnar upload response"
-          },
-          "400": {
-            "$ref": "#/components/responses/400"
-          },
-          "401": {
-            "$ref": "#/components/responses/401"
-          },
-          "404": {
-            "$ref": "#/components/responses/404"
-          },
-          "500": {
-            "$ref": "#/components/responses/500"
-          }
-        },
-        "security": [
-          {
-            "jwt": []
-          }
-        ],
-        "summary": "Upload a Columnar file and returns file metadata",
-        "tags": [
-          "Database"
-        ]
-      }
-    },
-    "/api/v1/database/csv_metadata/": {
-      "post": {
-        "requestBody": {
-          "content": {
-            "multipart/form-data": {
-              "schema": {
-                "$ref": "#/components/schemas/CSVMetadataUploadFilePostSchema"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "properties": {
-                    "result": {
-                      "$ref": "#/components/schemas/UploadFileMetadata"
-                    }
-                  },
-                  "type": "object"
-                }
-              }
-            },
-            "description": "Columnar upload response"
-          },
-          "400": {
-            "$ref": "#/components/responses/400"
-          },
-          "401": {
-            "$ref": "#/components/responses/401"
-          },
-          "404": {
-            "$ref": "#/components/responses/404"
-          },
-          "500": {
-            "$ref": "#/components/responses/500"
-          }
-        },
-        "security": [
-          {
-            "jwt": []
-          }
-        ],
-        "summary": "Upload an CSV file and returns file metadata",
-        "tags": [
-          "Database"
-        ]
-      }
-    },
-    "/api/v1/database/excel_metadata/": {
-      "post": {
-        "requestBody": {
-          "content": {
-            "multipart/form-data": {
-              "schema": {
-                "$ref": "#/components/schemas/ExcelMetadataUploadFilePostSchema"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "properties": {
-                    "result": {
-                      "$ref": "#/components/schemas/UploadFileMetadata"
-                    }
-                  },
-                  "type": "object"
-                }
-              }
-            },
-            "description": "Columnar upload response"
-          },
-          "400": {
-            "$ref": "#/components/responses/400"
-          },
-          "401": {
-            "$ref": "#/components/responses/401"
-          },
-          "404": {
-            "$ref": "#/components/responses/404"
-          },
-          "500": {
-            "$ref": "#/components/responses/500"
-          }
-        },
-        "security": [
-          {
-            "jwt": []
-          }
-        ],
-        "summary": "Upload an Excel file and returns file metadata",
-        "tags": [
-          "Database"
-        ]
-      }
-    },
     "/api/v1/database/export/": {
       "get": {
         "parameters": [
@@ -17674,6 +17926,58 @@
         ]
       }
     },
+    "/api/v1/database/upload_metadata/": {
+      "post": {
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/UploadFileMetadataPostSchema"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "result": {
+                      "$ref": "#/components/schemas/UploadFileMetadata"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Upload response"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          }
+        ],
+        "summary": "Upload a file and returns file metadata",
+        "tags": [
+          "Database"
+        ]
+      }
+    },
     "/api/v1/database/validate_parameters/": {
       "post": {
         "requestBody": {
@@ -17954,71 +18258,6 @@
         ]
       }
     },
-    "/api/v1/database/{pk}/columnar_upload/": {
-      "post": {
-        "parameters": [
-          {
-            "in": "path",
-            "name": "pk",
-            "required": true,
-            "schema": {
-              "type": "integer"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "multipart/form-data": {
-              "schema": {
-                "$ref": "#/components/schemas/ColumnarUploadPostSchema"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "201": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "properties": {
-                    "message": {
-                      "type": "string"
-                    }
-                  },
-                  "type": "object"
-                }
-              }
-            },
-            "description": "Columnar upload response"
-          },
-          "400": {
-            "$ref": "#/components/responses/400"
-          },
-          "401": {
-            "$ref": "#/components/responses/401"
-          },
-          "404": {
-            "$ref": "#/components/responses/404"
-          },
-          "422": {
-            "$ref": "#/components/responses/422"
-          },
-          "500": {
-            "$ref": "#/components/responses/500"
-          }
-        },
-        "security": [
-          {
-            "jwt": []
-          }
-        ],
-        "summary": "Upload a Columnar file to a database table",
-        "tags": [
-          "Database"
-        ]
-      }
-    },
     "/api/v1/database/{pk}/connection": {
       "get": {
         "parameters": [
@@ -18062,136 +18301,6 @@
           }
         ],
         "summary": "Get a database connection info",
-        "tags": [
-          "Database"
-        ]
-      }
-    },
-    "/api/v1/database/{pk}/csv_upload/": {
-      "post": {
-        "parameters": [
-          {
-            "in": "path",
-            "name": "pk",
-            "required": true,
-            "schema": {
-              "type": "integer"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "multipart/form-data": {
-              "schema": {
-                "$ref": "#/components/schemas/CSVUploadPostSchema"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "201": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "properties": {
-                    "message": {
-                      "type": "string"
-                    }
-                  },
-                  "type": "object"
-                }
-              }
-            },
-            "description": "CSV upload response"
-          },
-          "400": {
-            "$ref": "#/components/responses/400"
-          },
-          "401": {
-            "$ref": "#/components/responses/401"
-          },
-          "404": {
-            "$ref": "#/components/responses/404"
-          },
-          "422": {
-            "$ref": "#/components/responses/422"
-          },
-          "500": {
-            "$ref": "#/components/responses/500"
-          }
-        },
-        "security": [
-          {
-            "jwt": []
-          }
-        ],
-        "summary": "Upload a CSV file to a database table",
-        "tags": [
-          "Database"
-        ]
-      }
-    },
-    "/api/v1/database/{pk}/excel_upload/": {
-      "post": {
-        "parameters": [
-          {
-            "in": "path",
-            "name": "pk",
-            "required": true,
-            "schema": {
-              "type": "integer"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "multipart/form-data": {
-              "schema": {
-                "$ref": "#/components/schemas/ExcelUploadPostSchema"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "201": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "properties": {
-                    "message": {
-                      "type": "string"
-                    }
-                  },
-                  "type": "object"
-                }
-              }
-            },
-            "description": "Excel upload response"
-          },
-          "400": {
-            "$ref": "#/components/responses/400"
-          },
-          "401": {
-            "$ref": "#/components/responses/401"
-          },
-          "404": {
-            "$ref": "#/components/responses/404"
-          },
-          "422": {
-            "$ref": "#/components/responses/422"
-          },
-          "500": {
-            "$ref": "#/components/responses/500"
-          }
-        },
-        "security": [
-          {
-            "jwt": []
-          }
-        ],
-        "summary": "Upload an Excel file to a database table",
         "tags": [
           "Database"
         ]
@@ -18581,6 +18690,59 @@
         ]
       }
     },
+    "/api/v1/database/{pk}/sync_permissions/": {
+      "post": {
+        "parameters": [
+          {
+            "description": "The database connection ID",
+            "in": "path",
+            "name": "pk",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Task created to sync permissions."
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          }
+        ],
+        "summary": "Re-sync all permissions for a database connection",
+        "tags": [
+          "Database"
+        ]
+      }
+    },
     "/api/v1/database/{pk}/table/{table_name}/{schema_name}/": {
       "get": {
         "parameters": [
@@ -18736,7 +18898,7 @@
           {
             "description": "Table name",
             "in": "query",
-            "name": "table",
+            "name": "name",
             "required": true,
             "schema": {
               "type": "string"
@@ -18931,6 +19093,71 @@
           }
         ],
         "summary": "Get a list of tables for given database",
+        "tags": [
+          "Database"
+        ]
+      }
+    },
+    "/api/v1/database/{pk}/upload/": {
+      "post": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "pk",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/UploadPostSchema"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "CSV upload response"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          }
+        ],
+        "summary": "Upload a file to a database table",
         "tags": [
           "Database"
         ]
@@ -20272,6 +20499,46 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "description": "The ui config of embedded dashboard (optional).",
+            "in": "query",
+            "name": "uiConfig",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "description": "Show filters (optional).",
+            "in": "query",
+            "name": "show_filters",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "description": "Expand filters (optional).",
+            "in": "query",
+            "name": "expand_filters",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "description": "Native filters key to apply filters. (optional).",
+            "in": "query",
+            "name": "native_filters_key",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Permalink key to apply filters. (optional).",
+            "in": "query",
+            "name": "permalink_key",
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -20285,6 +20552,11 @@
                     }
                   },
                   "type": "object"
+                }
+              },
+              "text/html": {
+                "schema": {
+                  "type": "string"
                 }
               }
             },
@@ -20743,663 +21015,6 @@
         "summary": "Get chart's permanent link state",
         "tags": [
           "Explore Permanent Link"
-        ]
-      }
-    },
-    "/api/v1/ias/login_token": {
-      "post": {
-        "description": "Endpoint for exchanging IAS tokens for Superset API tokens. IAS Tokens should be requested from the `acssuperset` IAS application, typically using [client credential flow](https://docs.aci.apple.com/ias/tutorials/client_credentials/index.html). At a minimum, an `id_token` needs to be provided, but by providing a `refresh_token` Superset will be able to automatically refresh the token after the initial one expires. However, to be able to refresh the token, `client_id` and `client_secret` must be provided, as the token needs to be refreshed with the same client that was used for logging in. Unless `refresh_token`, `client_id` and `client_secret` are provided, a `refresh_token` will not be returned.\\nThe following scope should be requested in the token request: `offline openid iam:ds:groups corpds:ds:username corpds:ds:firstName corpds:ds:lastName corpds:ds:email iam:ds:explicitgroups`",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/IASLoginTokenRequestSchema"
-              }
-            }
-          },
-          "description": "Payload containing IAS tokens.",
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IASLoginTokenResponseSchema"
-                }
-              }
-            },
-            "description": "Query result"
-          },
-          "400": {
-            "$ref": "#/components/responses/400"
-          },
-          "401": {
-            "$ref": "#/components/responses/401"
-          },
-          "500": {
-            "$ref": "#/components/responses/500"
-          }
-        },
-        "tags": [
-          "IAS"
-        ]
-      }
-    },
-    "/api/v1/ias/profiles": {
-      "get": {
-        "description": "Endpoint for retrieving available IAS profiles.",
-        "parameters": [
-          {
-            "description": "The name of the IAS profile",
-            "in": "query",
-            "name": "profile",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IASProfilesResponseSchema"
-                }
-              }
-            },
-            "description": "IAS Tokens"
-          }
-        },
-        "security": [
-          {
-            "jwt": []
-          }
-        ],
-        "tags": [
-          "IAS"
-        ]
-      }
-    },
-    "/api/v1/ias/tokens": {
-      "get": {
-        "description": "Endpoint for retrieving IAS tokens for the logged in user. If no token is provided, all tokens are returned.",
-        "parameters": [
-          {
-            "description": "The name of the IAS profile",
-            "in": "query",
-            "name": "profile",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IASTokensResponseSchema"
-                }
-              }
-            },
-            "description": "IAS Tokens"
-          },
-          "400": {
-            "$ref": "#/components/responses/400"
-          }
-        },
-        "security": [
-          {
-            "jwt": []
-          }
-        ],
-        "tags": [
-          "IAS"
-        ]
-      }
-    },
-    "/api/v1/ias/tokens/{pk}": {
-      "get": {
-        "description": "Endpoint for retrieving IAS tokens for a specific user. If no token is provided, all tokens are returned. Only Admin users are able to view other users' tokens.",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "pk",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "The name of the IAS profile",
-            "in": "query",
-            "name": "profile",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IASTokensResponseSchema"
-                }
-              }
-            },
-            "description": "IAS Tokens"
-          },
-          "400": {
-            "$ref": "#/components/responses/400"
-          }
-        },
-        "security": [
-          {
-            "jwt": []
-          }
-        ],
-        "tags": [
-          "IAS"
-        ]
-      }
-    },
-    "/api/v1/lakehouse": {
-      "get": {
-        "description": "Disconnect a Lakehouse.",
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/LakehouseGetListResponseSchema"
-                }
-              }
-            },
-            "description": "Lakehouse has been deleted"
-          },
-          "401": {
-            "$ref": "#/components/responses/401"
-          },
-          "403": {
-            "$ref": "#/components/responses/403"
-          },
-          "500": {
-            "$ref": "#/components/responses/500"
-          }
-        },
-        "security": [
-          {
-            "jwt": []
-          }
-        ],
-        "summary": "Get a list of all connected Lakehouses",
-        "tags": [
-          "Lakehouse"
-        ]
-      }
-    },
-    "/api/v1/lakehouse/{lakehouse_id}": {
-      "delete": {
-        "description": "Disconnect a Lakehouse.",
-        "parameters": [
-          {
-            "description": "The unique id of the lakehouse",
-            "in": "path",
-            "name": "lakehouse_id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/LakehouseDisconnectResponseSchema"
-                }
-              }
-            },
-            "description": "Lakehouse has been deleted"
-          },
-          "401": {
-            "$ref": "#/components/responses/401"
-          },
-          "403": {
-            "$ref": "#/components/responses/403"
-          },
-          "404": {
-            "$ref": "#/components/responses/404"
-          },
-          "500": {
-            "$ref": "#/components/responses/500"
-          }
-        },
-        "security": [
-          {
-            "jwt": []
-          }
-        ],
-        "summary": "Disconnect a Lakehouse and all catalogs",
-        "tags": [
-          "Lakehouse"
-        ]
-      },
-      "get": {
-        "description": "Get information regarding a connected Lakehouse",
-        "parameters": [
-          {
-            "description": "The unique id of the lakehouse",
-            "in": "path",
-            "name": "lakehouse_id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/LakehouseGetResponseSchema"
-                }
-              }
-            },
-            "description": "Lakehouses"
-          },
-          "401": {
-            "$ref": "#/components/responses/401"
-          },
-          "403": {
-            "$ref": "#/components/responses/403"
-          },
-          "404": {
-            "$ref": "#/components/responses/404"
-          },
-          "500": {
-            "$ref": "#/components/responses/500"
-          }
-        },
-        "security": [
-          {
-            "jwt": []
-          }
-        ],
-        "summary": "Get information about a specific Lakehouse",
-        "tags": [
-          "Lakehouse"
-        ]
-      },
-      "post": {
-        "description": "Endpoint for connecting a Lakehouse and associated catalogs to the ACS Superset instance.",
-        "parameters": [
-          {
-            "description": "The unique id of the lakehouse",
-            "in": "path",
-            "name": "lakehouse_id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/LakehouseConnectRequestSchema"
-              }
-            }
-          },
-          "description": "Payload containing connection parameters.",
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/LakehouseConnectResponseSchema"
-                }
-              }
-            },
-            "description": "The connection task has been scheduled."
-          },
-          "400": {
-            "$ref": "#/components/responses/400"
-          },
-          "401": {
-            "$ref": "#/components/responses/401"
-          },
-          "403": {
-            "$ref": "#/components/responses/403"
-          },
-          "500": {
-            "$ref": "#/components/responses/500"
-          }
-        },
-        "security": [
-          {
-            "jwt": []
-          }
-        ],
-        "summary": "Schedule a task to connect a Lakehouse and catalogs",
-        "tags": [
-          "Lakehouse"
-        ]
-      }
-    },
-    "/api/v1/lakehouse/{lakehouse_id}/dataset": {
-      "get": {
-        "description": "Endpoint for listing all virtual datasets on a Lakehouse",
-        "parameters": [
-          {
-            "description": "The unique id of the lakehouse",
-            "in": "path",
-            "name": "lakehouse_id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "The catalog. Leave empty for all catalogs",
-            "in": "query",
-            "name": "catalog",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "The schema. Leave empty for all schemas",
-            "in": "query",
-            "name": "schema",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/LakehouseDatasetListResponseSchema"
-                }
-              }
-            },
-            "description": "All virtual datasets satisfying the query params."
-          },
-          "400": {
-            "$ref": "#/components/responses/400"
-          },
-          "401": {
-            "$ref": "#/components/responses/401"
-          },
-          "403": {
-            "$ref": "#/components/responses/403"
-          },
-          "500": {
-            "$ref": "#/components/responses/500"
-          }
-        },
-        "security": [
-          {
-            "jwt": []
-          }
-        ],
-        "summary": "Get a list of virtual datasets",
-        "tags": [
-          "Lakehouse"
-        ]
-      },
-      "post": {
-        "description": "Endpoint for creating a virtual dataset from a query",
-        "parameters": [
-          {
-            "description": "The unique id of the lakehouse",
-            "in": "path",
-            "name": "lakehouse_id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/LakehouseDatasetRequestSchema"
-              }
-            }
-          },
-          "description": "Payload containing virtual dataset parameters.",
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/LakehouseDatasetResponseSchema"
-                }
-              }
-            },
-            "description": "The virtual dataset has been created."
-          },
-          "400": {
-            "$ref": "#/components/responses/400"
-          },
-          "401": {
-            "$ref": "#/components/responses/401"
-          },
-          "403": {
-            "$ref": "#/components/responses/403"
-          },
-          "422": {
-            "$ref": "#/components/responses/422"
-          },
-          "500": {
-            "$ref": "#/components/responses/500"
-          }
-        },
-        "security": [
-          {
-            "jwt": []
-          }
-        ],
-        "summary": "Create a virtual dataset out of a query",
-        "tags": [
-          "Lakehouse"
-        ]
-      }
-    },
-    "/api/v1/lakehouse/{lakehouse_id}/task/{task_id}/cancel": {
-      "post": {
-        "description": "Endpoint for cancelling a scheduled connection request.",
-        "parameters": [
-          {
-            "description": "The unique id of the lakehouse",
-            "in": "path",
-            "name": "lakehouse_id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "The id of the connection task",
-            "in": "path",
-            "name": "task_id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/LakehouseConnectStatusResponseSchema"
-                }
-              }
-            },
-            "description": "The status of the task."
-          },
-          "400": {
-            "$ref": "#/components/responses/400"
-          },
-          "401": {
-            "$ref": "#/components/responses/401"
-          },
-          "403": {
-            "$ref": "#/components/responses/403"
-          },
-          "404": {
-            "$ref": "#/components/responses/404"
-          },
-          "500": {
-            "$ref": "#/components/responses/500"
-          }
-        },
-        "security": [
-          {
-            "jwt": []
-          }
-        ],
-        "summary": "Cancel a running task",
-        "tags": [
-          "Lakehouse"
-        ]
-      }
-    },
-    "/api/v1/lakehouse/{lakehouse_id}/task/{task_id}/result": {
-      "get": {
-        "description": "Endpoint for retrieving the payload of a scheduled connection request.",
-        "parameters": [
-          {
-            "description": "The unique id of the lakehouse",
-            "in": "path",
-            "name": "lakehouse_id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "The id of the connection task",
-            "in": "path",
-            "name": "task_id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/LakehouseConnectResultResponseSchema"
-                }
-              }
-            },
-            "description": "The status of the task."
-          },
-          "400": {
-            "$ref": "#/components/responses/400"
-          },
-          "401": {
-            "$ref": "#/components/responses/401"
-          },
-          "403": {
-            "$ref": "#/components/responses/404"
-          },
-          "500": {
-            "$ref": "#/components/responses/500"
-          }
-        },
-        "security": [
-          {
-            "jwt": []
-          }
-        ],
-        "summary": "Get the payload of a completed connection task",
-        "tags": [
-          "Lakehouse"
-        ]
-      }
-    },
-    "/api/v1/lakehouse/{lakehouse_id}/task/{task_id}/status": {
-      "get": {
-        "description": "Endpoint for checking what the status of a scheduled connection request is.",
-        "parameters": [
-          {
-            "description": "The unique id of the lakehouse",
-            "in": "path",
-            "name": "lakehouse_id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "The id of the connection task",
-            "in": "path",
-            "name": "task_id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/LakehouseConnectStatusResponseSchema"
-                }
-              }
-            },
-            "description": "The status of the task."
-          },
-          "400": {
-            "$ref": "#/components/responses/400"
-          },
-          "401": {
-            "$ref": "#/components/responses/401"
-          },
-          "403": {
-            "$ref": "#/components/responses/403"
-          },
-          "404": {
-            "$ref": "#/components/responses/404"
-          },
-          "500": {
-            "$ref": "#/components/responses/500"
-          }
-        },
-        "security": [
-          {
-            "jwt": []
-          }
-        ],
-        "summary": "Check the status of a connection task",
-        "tags": [
-          "Lakehouse"
         ]
       }
     },
@@ -24623,6 +24238,762 @@
         ]
       }
     },
+    "/api/v1/security/permissions-resources/": {
+      "get": {
+        "description": "Get a list of models",
+        "parameters": [
+          {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/get_list_schema"
+                }
+              }
+            },
+            "in": "query",
+            "name": "q"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "count": {
+                      "description": "The total record count on the backend",
+                      "type": "number"
+                    },
+                    "description_columns": {
+                      "properties": {
+                        "column_name": {
+                          "description": "The description for the column name. Will be translated by babel",
+                          "example": "A Nice description for the column",
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    },
+                    "ids": {
+                      "description": "A list of item ids, useful when you don't know the column id",
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    },
+                    "label_columns": {
+                      "properties": {
+                        "column_name": {
+                          "description": "The label for the column name. Will be translated by babel",
+                          "example": "A Nice label for the column",
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    },
+                    "list_columns": {
+                      "description": "A list of columns",
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    },
+                    "list_title": {
+                      "description": "A title to render. Will be translated by babel",
+                      "example": "List Items",
+                      "type": "string"
+                    },
+                    "order_columns": {
+                      "description": "A list of allowed columns to sort",
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    },
+                    "result": {
+                      "description": "The result from the get list query",
+                      "items": {
+                        "$ref": "#/components/schemas/PermissionViewMenuApi.get_list"
+                      },
+                      "type": "array"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Items from Model"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          }
+        ],
+        "tags": [
+          "Security Permissions on Resources (View Menus)"
+        ]
+      },
+      "post": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PermissionViewMenuApi.post"
+              }
+            }
+          },
+          "description": "Model schema",
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "result": {
+                      "$ref": "#/components/schemas/PermissionViewMenuApi.post"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Item inserted"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          }
+        ],
+        "tags": [
+          "Security Permissions on Resources (View Menus)"
+        ]
+      }
+    },
+    "/api/v1/security/permissions-resources/_info": {
+      "get": {
+        "description": "Get metadata information about this API resource",
+        "parameters": [
+          {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/get_info_schema"
+                }
+              }
+            },
+            "in": "query",
+            "name": "q"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "add_columns": {
+                      "type": "object"
+                    },
+                    "edit_columns": {
+                      "type": "object"
+                    },
+                    "filters": {
+                      "properties": {
+                        "column_name": {
+                          "items": {
+                            "properties": {
+                              "name": {
+                                "description": "The filter name. Will be translated by babel",
+                                "type": "string"
+                              },
+                              "operator": {
+                                "description": "The filter operation key to use on list filters",
+                                "type": "string"
+                              }
+                            },
+                            "type": "object"
+                          },
+                          "type": "array"
+                        }
+                      },
+                      "type": "object"
+                    },
+                    "permissions": {
+                      "description": "The user permissions for this API resource",
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Item from Model"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          }
+        ],
+        "tags": [
+          "Security Permissions on Resources (View Menus)"
+        ]
+      }
+    },
+    "/api/v1/security/permissions-resources/{pk}": {
+      "delete": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "pk",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Item deleted"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          }
+        ],
+        "tags": [
+          "Security Permissions on Resources (View Menus)"
+        ]
+      },
+      "get": {
+        "description": "Get an item model",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "pk",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/get_item_schema"
+                }
+              }
+            },
+            "in": "query",
+            "name": "q"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "description_columns": {
+                      "properties": {
+                        "column_name": {
+                          "description": "The description for the column name. Will be translated by babel",
+                          "example": "A Nice description for the column",
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    },
+                    "id": {
+                      "description": "The item id",
+                      "type": "string"
+                    },
+                    "label_columns": {
+                      "properties": {
+                        "column_name": {
+                          "description": "The label for the column name. Will be translated by babel",
+                          "example": "A Nice label for the column",
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    },
+                    "result": {
+                      "$ref": "#/components/schemas/PermissionViewMenuApi.get"
+                    },
+                    "show_columns": {
+                      "description": "A list of columns",
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    },
+                    "show_title": {
+                      "description": "A title to render. Will be translated by babel",
+                      "example": "Show Item Details",
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Item from Model"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          }
+        ],
+        "tags": [
+          "Security Permissions on Resources (View Menus)"
+        ]
+      },
+      "put": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "pk",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PermissionViewMenuApi.put"
+              }
+            }
+          },
+          "description": "Model schema",
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "result": {
+                      "$ref": "#/components/schemas/PermissionViewMenuApi.put"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Item changed"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          }
+        ],
+        "tags": [
+          "Security Permissions on Resources (View Menus)"
+        ]
+      }
+    },
+    "/api/v1/security/permissions/": {
+      "get": {
+        "description": "Get a list of models",
+        "parameters": [
+          {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/get_list_schema"
+                }
+              }
+            },
+            "in": "query",
+            "name": "q"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "count": {
+                      "description": "The total record count on the backend",
+                      "type": "number"
+                    },
+                    "description_columns": {
+                      "properties": {
+                        "column_name": {
+                          "description": "The description for the column name. Will be translated by babel",
+                          "example": "A Nice description for the column",
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    },
+                    "ids": {
+                      "description": "A list of item ids, useful when you don't know the column id",
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    },
+                    "label_columns": {
+                      "properties": {
+                        "column_name": {
+                          "description": "The label for the column name. Will be translated by babel",
+                          "example": "A Nice label for the column",
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    },
+                    "list_columns": {
+                      "description": "A list of columns",
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    },
+                    "list_title": {
+                      "description": "A title to render. Will be translated by babel",
+                      "example": "List Items",
+                      "type": "string"
+                    },
+                    "order_columns": {
+                      "description": "A list of allowed columns to sort",
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    },
+                    "result": {
+                      "description": "The result from the get list query",
+                      "items": {
+                        "$ref": "#/components/schemas/PermissionApi.get_list"
+                      },
+                      "type": "array"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Items from Model"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          }
+        ],
+        "tags": [
+          "Security Permissions"
+        ]
+      }
+    },
+    "/api/v1/security/permissions/_info": {
+      "get": {
+        "description": "Get metadata information about this API resource",
+        "parameters": [
+          {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/get_info_schema"
+                }
+              }
+            },
+            "in": "query",
+            "name": "q"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "add_columns": {
+                      "type": "object"
+                    },
+                    "edit_columns": {
+                      "type": "object"
+                    },
+                    "filters": {
+                      "properties": {
+                        "column_name": {
+                          "items": {
+                            "properties": {
+                              "name": {
+                                "description": "The filter name. Will be translated by babel",
+                                "type": "string"
+                              },
+                              "operator": {
+                                "description": "The filter operation key to use on list filters",
+                                "type": "string"
+                              }
+                            },
+                            "type": "object"
+                          },
+                          "type": "array"
+                        }
+                      },
+                      "type": "object"
+                    },
+                    "permissions": {
+                      "description": "The user permissions for this API resource",
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Item from Model"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          }
+        ],
+        "tags": [
+          "Security Permissions"
+        ]
+      }
+    },
+    "/api/v1/security/permissions/{pk}": {
+      "get": {
+        "description": "Get an item model",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "pk",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/get_item_schema"
+                }
+              }
+            },
+            "in": "query",
+            "name": "q"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "description_columns": {
+                      "properties": {
+                        "column_name": {
+                          "description": "The description for the column name. Will be translated by babel",
+                          "example": "A Nice description for the column",
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    },
+                    "id": {
+                      "description": "The item id",
+                      "type": "string"
+                    },
+                    "label_columns": {
+                      "properties": {
+                        "column_name": {
+                          "description": "The label for the column name. Will be translated by babel",
+                          "example": "A Nice label for the column",
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    },
+                    "result": {
+                      "$ref": "#/components/schemas/PermissionApi.get"
+                    },
+                    "show_columns": {
+                      "description": "A list of columns",
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    },
+                    "show_title": {
+                      "description": "A title to render. Will be translated by babel",
+                      "example": "Show Item Details",
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Item from Model"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          }
+        ],
+        "tags": [
+          "Security Permissions"
+        ]
+      }
+    },
     "/api/v1/security/refresh": {
       "post": {
         "description": "Use the refresh token to get a new JWT access token",
@@ -24657,6 +25028,1677 @@
         ],
         "tags": [
           "Security"
+        ]
+      }
+    },
+    "/api/v1/security/resources/": {
+      "get": {
+        "description": "Get a list of models",
+        "parameters": [
+          {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/get_list_schema"
+                }
+              }
+            },
+            "in": "query",
+            "name": "q"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "count": {
+                      "description": "The total record count on the backend",
+                      "type": "number"
+                    },
+                    "description_columns": {
+                      "properties": {
+                        "column_name": {
+                          "description": "The description for the column name. Will be translated by babel",
+                          "example": "A Nice description for the column",
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    },
+                    "ids": {
+                      "description": "A list of item ids, useful when you don't know the column id",
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    },
+                    "label_columns": {
+                      "properties": {
+                        "column_name": {
+                          "description": "The label for the column name. Will be translated by babel",
+                          "example": "A Nice label for the column",
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    },
+                    "list_columns": {
+                      "description": "A list of columns",
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    },
+                    "list_title": {
+                      "description": "A title to render. Will be translated by babel",
+                      "example": "List Items",
+                      "type": "string"
+                    },
+                    "order_columns": {
+                      "description": "A list of allowed columns to sort",
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    },
+                    "result": {
+                      "description": "The result from the get list query",
+                      "items": {
+                        "$ref": "#/components/schemas/ViewMenuApi.get_list"
+                      },
+                      "type": "array"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Items from Model"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          }
+        ],
+        "tags": [
+          "Security Resources (View Menus)"
+        ]
+      },
+      "post": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ViewMenuApi.post"
+              }
+            }
+          },
+          "description": "Model schema",
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "result": {
+                      "$ref": "#/components/schemas/ViewMenuApi.post"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Item inserted"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          }
+        ],
+        "tags": [
+          "Security Resources (View Menus)"
+        ]
+      }
+    },
+    "/api/v1/security/resources/_info": {
+      "get": {
+        "description": "Get metadata information about this API resource",
+        "parameters": [
+          {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/get_info_schema"
+                }
+              }
+            },
+            "in": "query",
+            "name": "q"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "add_columns": {
+                      "type": "object"
+                    },
+                    "edit_columns": {
+                      "type": "object"
+                    },
+                    "filters": {
+                      "properties": {
+                        "column_name": {
+                          "items": {
+                            "properties": {
+                              "name": {
+                                "description": "The filter name. Will be translated by babel",
+                                "type": "string"
+                              },
+                              "operator": {
+                                "description": "The filter operation key to use on list filters",
+                                "type": "string"
+                              }
+                            },
+                            "type": "object"
+                          },
+                          "type": "array"
+                        }
+                      },
+                      "type": "object"
+                    },
+                    "permissions": {
+                      "description": "The user permissions for this API resource",
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Item from Model"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          }
+        ],
+        "tags": [
+          "Security Resources (View Menus)"
+        ]
+      }
+    },
+    "/api/v1/security/resources/{pk}": {
+      "delete": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "pk",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Item deleted"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          }
+        ],
+        "tags": [
+          "Security Resources (View Menus)"
+        ]
+      },
+      "get": {
+        "description": "Get an item model",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "pk",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/get_item_schema"
+                }
+              }
+            },
+            "in": "query",
+            "name": "q"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "description_columns": {
+                      "properties": {
+                        "column_name": {
+                          "description": "The description for the column name. Will be translated by babel",
+                          "example": "A Nice description for the column",
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    },
+                    "id": {
+                      "description": "The item id",
+                      "type": "string"
+                    },
+                    "label_columns": {
+                      "properties": {
+                        "column_name": {
+                          "description": "The label for the column name. Will be translated by babel",
+                          "example": "A Nice label for the column",
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    },
+                    "result": {
+                      "$ref": "#/components/schemas/ViewMenuApi.get"
+                    },
+                    "show_columns": {
+                      "description": "A list of columns",
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    },
+                    "show_title": {
+                      "description": "A title to render. Will be translated by babel",
+                      "example": "Show Item Details",
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Item from Model"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          }
+        ],
+        "tags": [
+          "Security Resources (View Menus)"
+        ]
+      },
+      "put": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "pk",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ViewMenuApi.put"
+              }
+            }
+          },
+          "description": "Model schema",
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "result": {
+                      "$ref": "#/components/schemas/ViewMenuApi.put"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Item changed"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          }
+        ],
+        "tags": [
+          "Security Resources (View Menus)"
+        ]
+      }
+    },
+    "/api/v1/security/roles/": {
+      "get": {
+        "description": "Get a list of models",
+        "parameters": [
+          {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/get_list_schema"
+                }
+              }
+            },
+            "in": "query",
+            "name": "q"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "count": {
+                      "description": "The total record count on the backend",
+                      "type": "number"
+                    },
+                    "description_columns": {
+                      "properties": {
+                        "column_name": {
+                          "description": "The description for the column name. Will be translated by babel",
+                          "example": "A Nice description for the column",
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    },
+                    "ids": {
+                      "description": "A list of item ids, useful when you don't know the column id",
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    },
+                    "label_columns": {
+                      "properties": {
+                        "column_name": {
+                          "description": "The label for the column name. Will be translated by babel",
+                          "example": "A Nice label for the column",
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    },
+                    "list_columns": {
+                      "description": "A list of columns",
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    },
+                    "list_title": {
+                      "description": "A title to render. Will be translated by babel",
+                      "example": "List Items",
+                      "type": "string"
+                    },
+                    "order_columns": {
+                      "description": "A list of allowed columns to sort",
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    },
+                    "result": {
+                      "description": "The result from the get list query",
+                      "items": {
+                        "$ref": "#/components/schemas/SupersetRoleApi.get_list"
+                      },
+                      "type": "array"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Items from Model"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          }
+        ],
+        "tags": [
+          "Security Roles"
+        ]
+      },
+      "post": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SupersetRoleApi.post"
+              }
+            }
+          },
+          "description": "Model schema",
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "result": {
+                      "$ref": "#/components/schemas/SupersetRoleApi.post"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Item inserted"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          }
+        ],
+        "tags": [
+          "Security Roles"
+        ]
+      }
+    },
+    "/api/v1/security/roles/_info": {
+      "get": {
+        "description": "Get metadata information about this API resource",
+        "parameters": [
+          {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/get_info_schema"
+                }
+              }
+            },
+            "in": "query",
+            "name": "q"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "add_columns": {
+                      "type": "object"
+                    },
+                    "edit_columns": {
+                      "type": "object"
+                    },
+                    "filters": {
+                      "properties": {
+                        "column_name": {
+                          "items": {
+                            "properties": {
+                              "name": {
+                                "description": "The filter name. Will be translated by babel",
+                                "type": "string"
+                              },
+                              "operator": {
+                                "description": "The filter operation key to use on list filters",
+                                "type": "string"
+                              }
+                            },
+                            "type": "object"
+                          },
+                          "type": "array"
+                        }
+                      },
+                      "type": "object"
+                    },
+                    "permissions": {
+                      "description": "The user permissions for this API resource",
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Item from Model"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          }
+        ],
+        "tags": [
+          "Security Roles"
+        ]
+      }
+    },
+    "/api/v1/security/roles/search/": {
+      "get": {
+        "description": "Fetch a paginated list of roles with user and permission IDs.",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "q",
+            "schema": {
+              "properties": {
+                "filters": {
+                  "items": {
+                    "properties": {
+                      "col": {
+                        "enum": [
+                          "user_ids",
+                          "permission_ids",
+                          "name"
+                        ],
+                        "type": "string"
+                      },
+                      "value": {
+                        "type": "string"
+                      }
+                    },
+                    "type": "object"
+                  },
+                  "type": "array"
+                },
+                "order_column": {
+                  "default": "id",
+                  "enum": [
+                    "id",
+                    "name"
+                  ],
+                  "type": "string"
+                },
+                "order_direction": {
+                  "default": "asc",
+                  "enum": [
+                    "asc",
+                    "desc"
+                  ],
+                  "type": "string"
+                },
+                "page": {
+                  "default": 0,
+                  "type": "integer"
+                },
+                "page_size": {
+                  "default": 10,
+                  "type": "integer"
+                }
+              },
+              "type": "object"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RolesResponseSchema"
+                }
+              }
+            },
+            "description": "Successfully retrieved roles"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Bad request (invalid input)"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Forbidden"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          }
+        ],
+        "summary": "List roles",
+        "tags": [
+          "Security Roles"
+        ]
+      }
+    },
+    "/api/v1/security/roles/{pk}": {
+      "delete": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "pk",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Item deleted"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          }
+        ],
+        "tags": [
+          "Security Roles"
+        ]
+      },
+      "get": {
+        "description": "Get an item model",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "pk",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/get_item_schema"
+                }
+              }
+            },
+            "in": "query",
+            "name": "q"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "description_columns": {
+                      "properties": {
+                        "column_name": {
+                          "description": "The description for the column name. Will be translated by babel",
+                          "example": "A Nice description for the column",
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    },
+                    "id": {
+                      "description": "The item id",
+                      "type": "string"
+                    },
+                    "label_columns": {
+                      "properties": {
+                        "column_name": {
+                          "description": "The label for the column name. Will be translated by babel",
+                          "example": "A Nice label for the column",
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    },
+                    "result": {
+                      "$ref": "#/components/schemas/SupersetRoleApi.get"
+                    },
+                    "show_columns": {
+                      "description": "A list of columns",
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    },
+                    "show_title": {
+                      "description": "A title to render. Will be translated by babel",
+                      "example": "Show Item Details",
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Item from Model"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          }
+        ],
+        "tags": [
+          "Security Roles"
+        ]
+      },
+      "put": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "pk",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SupersetRoleApi.put"
+              }
+            }
+          },
+          "description": "Model schema",
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "result": {
+                      "$ref": "#/components/schemas/SupersetRoleApi.put"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Item changed"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          }
+        ],
+        "tags": [
+          "Security Roles"
+        ]
+      }
+    },
+    "/api/v1/security/roles/{role_id}/permissions": {
+      "post": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "role_id",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RolePermissionPostSchema"
+              }
+            }
+          },
+          "description": "Add role permissions schema",
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "result": {
+                      "$ref": "#/components/schemas/RolePermissionPostSchema"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Permissions added"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          }
+        ],
+        "tags": [
+          "Security Roles"
+        ]
+      }
+    },
+    "/api/v1/security/roles/{role_id}/permissions/": {
+      "get": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "role_id",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "result": {
+                      "$ref": "#/components/schemas/RolePermissionListSchema"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "List of permissions"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          }
+        ],
+        "tags": [
+          "Security Roles"
+        ]
+      }
+    },
+    "/api/v1/security/roles/{role_id}/users": {
+      "put": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "role_id",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RoleUserPutSchema"
+              }
+            }
+          },
+          "description": "Update role users schema",
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "result": {
+                      "$ref": "#/components/schemas/RoleUserPutSchema"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Role users updated"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          }
+        ],
+        "tags": [
+          "Security Roles"
+        ]
+      }
+    },
+    "/api/v1/security/users/": {
+      "get": {
+        "description": "Get a list of models",
+        "parameters": [
+          {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/get_list_schema"
+                }
+              }
+            },
+            "in": "query",
+            "name": "q"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "count": {
+                      "description": "The total record count on the backend",
+                      "type": "number"
+                    },
+                    "description_columns": {
+                      "properties": {
+                        "column_name": {
+                          "description": "The description for the column name. Will be translated by babel",
+                          "example": "A Nice description for the column",
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    },
+                    "ids": {
+                      "description": "A list of item ids, useful when you don't know the column id",
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    },
+                    "label_columns": {
+                      "properties": {
+                        "column_name": {
+                          "description": "The label for the column name. Will be translated by babel",
+                          "example": "A Nice label for the column",
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    },
+                    "list_columns": {
+                      "description": "A list of columns",
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    },
+                    "list_title": {
+                      "description": "A title to render. Will be translated by babel",
+                      "example": "List Items",
+                      "type": "string"
+                    },
+                    "order_columns": {
+                      "description": "A list of allowed columns to sort",
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    },
+                    "result": {
+                      "description": "The result from the get list query",
+                      "items": {
+                        "$ref": "#/components/schemas/SupersetUserApi.get_list"
+                      },
+                      "type": "array"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Items from Model"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          }
+        ],
+        "tags": [
+          "Security Users"
+        ]
+      },
+      "post": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SupersetUserApi.post"
+              }
+            }
+          },
+          "description": "Model schema",
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "result": {
+                      "$ref": "#/components/schemas/SupersetUserApi.post"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Item changed"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          }
+        ],
+        "tags": [
+          "Security Users"
+        ]
+      }
+    },
+    "/api/v1/security/users/_info": {
+      "get": {
+        "description": "Get metadata information about this API resource",
+        "parameters": [
+          {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/get_info_schema"
+                }
+              }
+            },
+            "in": "query",
+            "name": "q"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "add_columns": {
+                      "type": "object"
+                    },
+                    "edit_columns": {
+                      "type": "object"
+                    },
+                    "filters": {
+                      "properties": {
+                        "column_name": {
+                          "items": {
+                            "properties": {
+                              "name": {
+                                "description": "The filter name. Will be translated by babel",
+                                "type": "string"
+                              },
+                              "operator": {
+                                "description": "The filter operation key to use on list filters",
+                                "type": "string"
+                              }
+                            },
+                            "type": "object"
+                          },
+                          "type": "array"
+                        }
+                      },
+                      "type": "object"
+                    },
+                    "permissions": {
+                      "description": "The user permissions for this API resource",
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Item from Model"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          }
+        ],
+        "tags": [
+          "Security Users"
+        ]
+      }
+    },
+    "/api/v1/security/users/{pk}": {
+      "delete": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "pk",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Item deleted"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          }
+        ],
+        "tags": [
+          "Security Users"
+        ]
+      },
+      "get": {
+        "description": "Get an item model",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "pk",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/get_item_schema"
+                }
+              }
+            },
+            "in": "query",
+            "name": "q"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "description_columns": {
+                      "properties": {
+                        "column_name": {
+                          "description": "The description for the column name. Will be translated by babel",
+                          "example": "A Nice description for the column",
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    },
+                    "id": {
+                      "description": "The item id",
+                      "type": "string"
+                    },
+                    "label_columns": {
+                      "properties": {
+                        "column_name": {
+                          "description": "The label for the column name. Will be translated by babel",
+                          "example": "A Nice label for the column",
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    },
+                    "result": {
+                      "$ref": "#/components/schemas/SupersetUserApi.get"
+                    },
+                    "show_columns": {
+                      "description": "A list of columns",
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    },
+                    "show_title": {
+                      "description": "A title to render. Will be translated by babel",
+                      "example": "Show Item Details",
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Item from Model"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          }
+        ],
+        "tags": [
+          "Security Users"
+        ]
+      },
+      "put": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "pk",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SupersetUserApi.put"
+              }
+            }
+          },
+          "description": "Model schema",
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "result": {
+                      "$ref": "#/components/schemas/SupersetUserApi.put"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Item changed"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          }
+        ],
+        "tags": [
+          "Security Users"
         ]
       }
     },
@@ -24913,6 +26955,119 @@
         "summary": "Format SQL code",
         "tags": [
           "SQL Lab"
+        ]
+      }
+    },
+    "/api/v1/sqllab/permalink": {
+      "post": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ExplorePermalinkStateSchema"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "key": {
+                      "description": "The key to retrieve the permanent link data.",
+                      "type": "string"
+                    },
+                    "url": {
+                      "description": "permanent link.",
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "The permanent link was stored successfully."
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          }
+        ],
+        "summary": "Create a new permanent link",
+        "tags": [
+          "SQL Lab Permanent Link"
+        ]
+      }
+    },
+    "/api/v1/sqllab/permalink/{key}": {
+      "get": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "key",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "state": {
+                      "description": "The stored state",
+                      "type": "object"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Returns the stored form_data."
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          }
+        ],
+        "summary": "Get permanent link state for SQLLab editor.",
+        "tags": [
+          "SQL Lab Permanent Link"
         ]
       }
     },

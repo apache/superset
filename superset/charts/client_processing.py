@@ -353,6 +353,9 @@ def apply_client_processing(  # noqa: C901
         query["coltypes"] = extract_dataframe_dtypes(processed_df, datasource)
         query["rowcount"] = len(processed_df.index)
 
+        # Check if the DataFrame has a default RangeIndex, which should not be shown
+        show_default_index = not isinstance(processed_df.index, pd.RangeIndex)
+
         # Flatten hierarchical columns/index since they are represented as
         # `Tuple[str]`. Otherwise encoding to JSON later will fail because
         # maps cannot have tuples as their keys in JSON.
@@ -377,7 +380,7 @@ def apply_client_processing(  # noqa: C901
             query["data"] = processed_df.to_dict()
         elif query["result_format"] == ChartDataResultFormat.CSV:
             buf = StringIO()
-            processed_df.to_csv(buf)
+            processed_df.to_csv(buf, index=show_default_index)
             buf.seek(0)
             query["data"] = buf.getvalue()
 

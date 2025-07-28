@@ -64,6 +64,8 @@ def database_without_catalog(mocker: MockerFixture) -> MagicMock:
     database.db_engine_spec.__name__ = "test_engine"
     database.db_engine_spec.supports_catalog = False
     database.get_all_schema_names.return_value = ["schema1", "schema2"]
+    database.is_oauth2_enabled.return_value = False
+    database.db_engine_spec.needs_oauth2.return_value = False
 
     return database
 

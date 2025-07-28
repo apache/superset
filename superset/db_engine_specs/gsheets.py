@@ -44,7 +44,7 @@ from superset.utils import json
 
 if TYPE_CHECKING:
     from superset.models.core import Database
-    from superset.sql_parse import Table
+    from superset.sql.parse import Table
 
 _logger = logging.getLogger()
 
@@ -130,25 +130,23 @@ class GSheetsEngineSpec(ShillelaghEngineSpec):
     oauth2_exception = UnauthenticatedError
 
     @classmethod
-    def get_url_for_impersonation(
+    def impersonate_user(
         cls,
-        url: URL,
-        impersonate_user: bool,
+        database: Database,
         username: str | None,
-        access_token: str | None,
-    ) -> URL:
-        if not impersonate_user:
-            return url
-
+        user_token: str | None,
+        url: URL,
+        engine_kwargs: dict[str, Any],
+    ) -> tuple[URL, dict[str, Any]]:
         if username is not None:
             user = security_manager.find_user(username=username)
             if user and user.email:
                 url = url.update_query_dict({"subject": user.email})
 
-        if access_token:
-            url = url.update_query_dict({"access_token": access_token})
+        if user_token:
+            url = url.update_query_dict({"access_token": user_token})
 
-        return url
+        return url, engine_kwargs
 
     @classmethod
     def get_extra_table_metadata(
@@ -190,8 +188,10 @@ class GSheetsEngineSpec(ShillelaghEngineSpec):
         """
         Remove `oauth2_client_info` from `encrypted_extra`.
         """
-        if "oauth2_client_info" in params.get("encrypted_extra", {}):
-            del params["encrypted_extra"]["oauth2_client_info"]
+        ShillelaghEngineSpec.update_params_from_encrypted_extra(database, params)
+
+        if "oauth2_client_info" in params:
+            del params["oauth2_client_info"]
 
     @classmethod
     def get_parameters_from_uri(

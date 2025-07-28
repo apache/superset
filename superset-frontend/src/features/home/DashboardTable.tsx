@@ -36,10 +36,11 @@ import {
   handleDashboardDelete,
 } from 'src/views/CRUD/utils';
 import withToasts from 'src/components/MessageToasts/withToasts';
-import Loading from 'src/components/Loading';
-import DeleteModal from 'src/components/DeleteModal';
+import { DeleteModal, Loading } from '@superset-ui/core/components';
 import PropertiesModal from 'src/dashboard/components/PropertiesModal';
 import DashboardCard from 'src/features/dashboards/DashboardCard';
+import { Icons } from '@superset-ui/core/components/Icons';
+import { navigateTo } from 'src/utils/navigationUtils';
 import EmptyState from './EmptyState';
 import SubMenu from './SubMenu';
 import { WelcomeTable } from './types';
@@ -181,18 +182,20 @@ function DashboardTable({
     <>
       <SubMenu
         activeChild={activeTab}
+        backgroundColor="transparent"
         tabs={menuTabs}
         buttons={[
           {
-            name: (
-              <>
-                <i className="fa fa-plus" />
-                {t('Dashboard')}
-              </>
+            icon: (
+              <Icons.PlusOutlined
+                iconSize="m"
+                data-test="add-annotation-layer-button"
+              />
             ),
-            buttonStyle: 'tertiary',
+            name: t('Dashboard'),
+            buttonStyle: 'secondary',
             onClick: () => {
-              window.location.assign('/dashboard/new');
+              navigateTo('/dashboard/new', { assign: true });
             },
           },
           {

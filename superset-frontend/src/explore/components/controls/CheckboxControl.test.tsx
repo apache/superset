@@ -35,7 +35,7 @@ describe('CheckboxControl', () => {
     render(setup());
 
     const checkbox = screen.getByRole('checkbox');
-    expect(checkbox).toBeVisible();
+    expect(checkbox).toBeInTheDocument();
     expect(checkbox).not.toBeChecked();
   });
 

@@ -36,24 +36,37 @@ export const truncationCSS = css`
  * to be displayed, this hook returns a ref to attach to the text
  * element and a boolean for whether that element is currently truncated.
  */
-const useCSSTextTruncation = <T extends HTMLElement>(): [
-  RefObject<T>,
-  boolean,
-] => {
+const useCSSTextTruncation = <T extends HTMLElement>(
+  { isVertical, isHorizontal } = { isVertical: false, isHorizontal: true },
+): [RefObject<T>, boolean] => {
   const [isTruncated, setIsTruncated] = useState(true);
   const ref = useRef<T>(null);
   const [offsetWidth, setOffsetWidth] = useState(0);
   const [scrollWidth, setScrollWidth] = useState(0);
+  const [offsetHeight, setOffsetHeight] = useState(0);
+  const [scrollHeight, setScrollHeight] = useState(0);
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     setOffsetWidth(ref.current?.offsetWidth ?? 0);
     setScrollWidth(ref.current?.scrollWidth ?? 0);
+    setOffsetHeight(ref.current?.offsetHeight ?? 0);
+    setScrollHeight(ref.current?.scrollHeight ?? 0);
   });
 
   useEffect(() => {
-    setIsTruncated(offsetWidth < scrollWidth);
-  }, [offsetWidth, scrollWidth]);
+    setIsTruncated(
+      (isVertical && offsetHeight < scrollHeight) ||
+        (isHorizontal && offsetWidth < scrollWidth),
+    );
+  }, [
+    offsetWidth,
+    scrollWidth,
+    offsetHeight,
+    scrollHeight,
+    isVertical,
+    isHorizontal,
+  ]);
 
   return [ref, isTruncated];
 };

@@ -18,7 +18,7 @@
  */
 
 import { screen, fireEvent, render } from 'spec/helpers/testing-library';
-import ErrorAlert from './ErrorAlert';
+import { ErrorAlert } from './ErrorAlert';
 
 describe('ErrorAlert', () => {
   it('renders the error message correctly', () => {
