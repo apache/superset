@@ -298,5 +298,7 @@
     "# LastClick Elements": "# Elementos de último clic",
     "Publisher overview": "Descripción general del afiliado",
     "Summary": "Resumen",
-    "Show total aggregations of selected metrics. Note that row limit does not apply to the result.": "Muestra las agregaciones totales de los parámetros seleccionados. Ten en cuenta que el límite de filas no se aplica al resultado."
+    "Show total aggregations of selected metrics. Note that row limit does not apply to the result.": "Muestra la suma total de los parámetros seleccionados. Ten en cuenta que el límite de filas no se aplica al resultado.",
+    "Total PC Commission": "",
+    "Total PV Commission": ""
 }

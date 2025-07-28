@@ -298,5 +298,7 @@
     "# LastClick Elements": "Éléments (derniers clics)",
     "Publisher overview": "Aperçu des éditeurs",
     "Summary": "Résumé",
-    "Show total aggregations of selected metrics. Note that row limit does not apply to the result.": "Afficher les indicateurs agrégés pour les performances sélectionnées. Notez que le résultat ne tient pas compte de la limite applicable à chaque ligne."
+    "Show total aggregations of selected metrics. Note that row limit does not apply to the result.": "Afficher les indicateurs agrégés pour les performances sélectionnées. Notez que le résultat ne tient pas compte de la limite du nombre de lignes.",
+    "Total PC Commission": "",
+    "Total PV Commission": ""
 }
