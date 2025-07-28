@@ -14,13 +14,41 @@ uv pip install -e .
 source .venv/bin/activate
 ```
 
-### 2. Run the MCP Service
+### 2. Install Browser Dependencies (for chart screenshots)
+
+The chart preview functionality requires Firefox and geckodriver:
+
+**macOS:**
+```bash
+# Install Firefox (if not already installed)
+brew install --cask firefox
+
+# Install geckodriver
+brew install geckodriver
+```
+
+**Ubuntu/Debian:**
+```bash
+# Install Firefox
+sudo apt-get update
+sudo apt-get install firefox
+
+# Install geckodriver
+sudo apt-get install firefox-geckodriver
+```
+
+**Manual Installation:**
+- Download Firefox from https://www.mozilla.org/firefox/
+- Download geckodriver from https://github.com/mozilla/geckodriver/releases
+- Add geckodriver to your PATH
+
+### 3. Run the MCP Service
 
 ```bash
 superset mcp run --port 5008 --debug --sql-debug
 ```
 
-### 3. Test Your Setup
+### 4. Test Your Setup
 
 Run the unit and integration tests to verify your environment:
 
