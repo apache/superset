@@ -466,7 +466,7 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # When using a recent version of Druid that supports JOINs turn this on
     "DRUID_JOINS": False,
     "DYNAMIC_PLUGINS": False,
-    "ENABLE_TEMPLATE_PROCESSING": False,
+    "ENABLE_TEMPLATE_PROCESSING": True,
     # Allow for javascript controls components
     # this enables programmers to customize certain charts (like the
     # geospatial ones) by inputting javascript in controls. This exposes
@@ -617,7 +617,9 @@ DEFAULT_FEATURE_FLAGS.update(
 USER_AGENT_FUNC: Callable[[Database, QuerySource | None], str] | None = None
 
 # This is merely a default.
-FEATURE_FLAGS: dict[str, bool] = {}
+FEATURE_FLAGS: dict[str, bool] = {
+    "ENABLE_TEMPLATE_PROCESSING": True
+}
 
 # A function that receives a dict of all feature flags
 # (DEFAULT_FEATURE_FLAGS merged with FEATURE_FLAGS)

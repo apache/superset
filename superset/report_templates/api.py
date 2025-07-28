@@ -13,6 +13,7 @@ from flask import current_app
 from relatorio.templates.opendocument import Template as ODTTemplate
 from io import BytesIO
 
+from superset.commands.database.validate_sql import ValidateSQLCommand
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.extensions import event_logger
 from superset.utils import core as utils
@@ -22,10 +23,13 @@ from superset.views.base_api import (
     statsd_metrics,
     requires_form_data,
 )
-
+from jinja2 import Template
+from jinja2 import meta
+from sqlalchemy.types import String
 from .models import ReportTemplate
 
 logger = logging.getLogger(__name__)
+
 
 
 class ReportTemplateRestApi(BaseSupersetModelRestApi):
@@ -47,6 +51,7 @@ class ReportTemplateRestApi(BaseSupersetModelRestApi):
     list_columns = ["id", "name", "description", "dataset_id"]
 
     openapi_spec_tag = "Report Templates"
+
 
     @expose("/", methods=("GET",))
     @protect()
@@ -125,6 +130,18 @@ class ReportTemplateRestApi(BaseSupersetModelRestApi):
         except Exception:  # pylint: disable=broad-except
             logger.error("Unable to read template from S3 or local")
             raise
+
+    def _sanitize_params(self, params: dict[str, Any], dialect) -> dict[str, Any]:
+        """Escape user-supplied parameters to avoid SQL injection."""
+        sanitized: dict[str, Any] = {}
+        for k, v in params.items():
+            if isinstance(v, str):
+                sanitized[k] = String().literal_processor(dialect=dialect)(value=v)[
+                               1:-1
+                               ]
+            else:
+                sanitized[k] = v
+        return sanitized
 
     def _delete(self, key: str) -> None:
         cfg = current_app.config
@@ -231,17 +248,46 @@ class ReportTemplateRestApi(BaseSupersetModelRestApi):
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.generate",
         log_to_statsd=False,
     )
-    def generate(self, pk: int) -> Response:
-        """Generate a report from the given template."""
+    def generate(self, pk: int, params: dict[str, Any] | None = None) -> Response:
+        """Generate a report from the given template using Jinja parameters.
+
+        Parameters are expected as a JSON body mapping Jinja placeholders to
+        values.
+        """
         template = self.datamodel.session.get(ReportTemplate, pk)
         if not template:
             return self.response_404()
         dataset = template.dataset
+
+        # extra parameters for SQL templates are expected in request JSON
+        if params is None:
+            params = request.get_json(silent=True) or {}
+        if not isinstance(params, dict):
+            return self.response_400(message="Invalid json payload")
+        params = self._sanitize_params(params, dataset.database.get_dialect())
+
         if dataset.is_virtual and dataset.sql:
             sql = dataset.sql
+            if params:
+                template = Template(sql)
+                sql = template.render(params)
+                tp = dataset.get_template_processor()
+                if meta.find_undeclared_variables(tp.env.parse(sql)):
+                    return self.response(400, message="Unfilled templates detected")
         else:
-            sql = dataset.select_star or f"SELECT * FROM {dataset.table_name}"
+            sql = dataset.select_star or f"SELECT * FROM {dataset.table_name}"  # noqa: S608
         try:
+            try:
+                validator_errors = ValidateSQLCommand(
+                    dataset.database.id,
+                    {"sql": sql, "catalog": dataset.catalog, "schema": dataset.schema},
+                ).run()
+                if validator_errors:
+                    return self.response(400, message="Invalid SQL")
+            except Exception as e:  # pylint: disable=broad-except
+                logger.error(f"str{e}")
+                logger.warning("SQL validation skipped")
+
             df = dataset.database.get_df(sql, dataset.catalog, dataset.schema)
             context = {"data": df.to_dict(orient="records")}
             odt_bytes = self._read(template.template_path)
