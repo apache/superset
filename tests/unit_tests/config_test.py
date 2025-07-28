@@ -112,7 +112,7 @@ def test_main_dttm_col(mocker: MockerFixture, test_table: "SqlaTable") -> None:
         "dttm_columns": {"ds": {}, "event_time": {}},
     }
     mocker.patch(
-        "superset.connectors.sqla.models.config",
+        "superset.connectors.sqla.models.todo_config",
         new={
             "SQLA_TABLE_MUTATOR": partial(
                 apply_dttm_defaults,
@@ -145,7 +145,7 @@ def test_main_dttm_col_nonexistent(
         "main_dttm_col": "nonexistent",
     }
     mocker.patch(
-        "superset.connectors.sqla.models.config",
+        "superset.connectors.sqla.models.todo_config",
         new={
             "SQLA_TABLE_MUTATOR": partial(
                 apply_dttm_defaults,
@@ -179,7 +179,7 @@ def test_main_dttm_col_nondttm(
         "main_dttm_col": "id",
     }
     mocker.patch(
-        "superset.connectors.sqla.models.config",
+        "superset.connectors.sqla.models.todo_config",
         new={
             "SQLA_TABLE_MUTATOR": partial(
                 apply_dttm_defaults,
@@ -216,7 +216,7 @@ def test_python_date_format_by_column_name(
         },
     }
     mocker.patch(
-        "superset.connectors.sqla.models.config",
+        "superset.connectors.sqla.models.todo_config",
         new={
             "SQLA_TABLE_MUTATOR": partial(
                 apply_dttm_defaults,
@@ -257,7 +257,7 @@ def test_expression_by_column_name(
         },
     }
     mocker.patch(
-        "superset.connectors.sqla.models.config",
+        "superset.connectors.sqla.models.todo_config",
         new={
             "SQLA_TABLE_MUTATOR": partial(
                 apply_dttm_defaults,
@@ -294,7 +294,7 @@ def test_full_setting(
     Test the ``SQLA_TABLE_MUTATOR`` with full settings.
     """
     mocker.patch(
-        "superset.connectors.sqla.models.config",
+        "superset.connectors.sqla.models.todo_config",
         new={
             "SQLA_TABLE_MUTATOR": partial(
                 apply_dttm_defaults,
