@@ -84,8 +84,6 @@ from superset.utils.json import redact_sensitive, reveal_sensitive
 from superset.utils.network import is_hostname_valid, is_port_open
 from superset.utils.oauth2 import encode_oauth2_state
 
-conf = current_app.config
-
 if TYPE_CHECKING:
     from superset.connectors.sqla.models import TableColumn
     from superset.databases.schemas import TableMetadataResponse
@@ -459,6 +457,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
 
     @classmethod
     def is_oauth2_enabled(cls) -> bool:
+        conf = current_app.config
         return (
             cls.supports_oauth2 and cls.engine_name in conf["DATABASE_OAUTH2_CLIENTS"]
         )
@@ -513,6 +512,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         """
         Build the DB engine spec level OAuth2 client config.
         """
+        conf = current_app.config
         oauth2_config = conf["DATABASE_OAUTH2_CLIENTS"]
         if cls.engine_name not in oauth2_config:
             return None
@@ -574,6 +574,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         """
         Exchange authorization code for refresh/access tokens.
         """
+        conf = current_app.config
         timeout = conf["DATABASE_OAUTH2_TIMEOUT"].total_seconds()
         uri = config["token_request_uri"]
         req_body = {
@@ -596,6 +597,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         """
         Refresh an access token that has expired.
         """
+        conf = current_app.config
         timeout = conf["DATABASE_OAUTH2_TIMEOUT"].total_seconds()
         uri = config["token_request_uri"]
         req_body = {
@@ -872,7 +874,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
 
         ret_list = []
         time_grains = builtin_time_grains.copy()
-        time_grains.update(conf["TIME_GRAIN_ADDONS"])
+        time_grains.update(current_app.config["TIME_GRAIN_ADDONS"])
         for duration, func in cls.get_time_grain_expressions().items():
             if duration in time_grains:
                 name = time_grains[duration]
@@ -951,9 +953,9 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         """
         # TODO: use @memoize decorator or similar to avoid recomputation on every call
         time_grain_expressions = cls._time_grain_expressions.copy()
-        grain_addon_expressions = conf["TIME_GRAIN_ADDON_EXPRESSIONS"]
+        grain_addon_expressions = current_app.config["TIME_GRAIN_ADDON_EXPRESSIONS"]
         time_grain_expressions.update(grain_addon_expressions.get(cls.engine, {}))
-        denylist: list[str] = conf["TIME_GRAIN_DENYLIST"]
+        denylist: list[str] = current_app.config["TIME_GRAIN_DENYLIST"]
         for key in denylist:
             time_grain_expressions.pop(key, None)
 
@@ -2236,7 +2238,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
 
         :param sqlalchemy_uri:
         """
-        if db_engine_uri_validator := conf["DB_SQLA_URI_VALIDATOR"]:
+        if db_engine_uri_validator := current_app.config["DB_SQLA_URI_VALIDATOR"]:
             db_engine_uri_validator(sqlalchemy_uri)
 
         if existing_disallowed := cls.disallow_uri_query_params.get(

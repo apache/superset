@@ -34,10 +34,8 @@ from superset.utils.hashing import md5_sha_from_dict
 from superset.utils.json import json_int_dttm_ser
 
 if TYPE_CHECKING:
-    from superset.stats_logger import BaseStatsLogger
+    pass
 
-todo_config = app.config
-stats_logger: BaseStatsLogger = todo_config["STATS_LOGGER"]
 logger = logging.getLogger(__name__)
 
 
@@ -59,15 +57,17 @@ def set_and_log_cache(
     timeout = (
         cache_timeout
         if cache_timeout is not None
-        else todo_config["CACHE_DEFAULT_TIMEOUT"]
+        else app.config["CACHE_DEFAULT_TIMEOUT"]
     )
     try:
         dttm = datetime.utcnow().isoformat().split(".")[0]
         value = {**cache_value, "dttm": dttm}
         cache_instance.set(cache_key, value, timeout=timeout)
+        conf = app.config
+        stats_logger = conf["STATS_LOGGER"]
         stats_logger.incr("set_cache_key")
 
-        if datasource_uid and todo_config["STORE_CACHE_KEYS_IN_METADATA_DB"]:
+        if datasource_uid and app.config["STORE_CACHE_KEYS_IN_METADATA_DB"]:
             ck = CacheKey(
                 cache_key=cache_key,
                 cache_timeout=cache_timeout,
@@ -122,7 +122,7 @@ def memoized_func(key: str, cache: Cache = cache_manager.cache) -> Callable[...,
             should_cache = kwargs.pop("cache", True)
             force = kwargs.pop("force", False)
             cache_timeout = kwargs.pop(
-                "cache_timeout", todo_config["CACHE_DEFAULT_TIMEOUT"]
+                "cache_timeout", app.config["CACHE_DEFAULT_TIMEOUT"]
             )
 
             if not should_cache:
@@ -149,7 +149,7 @@ def memoized_func(key: str, cache: Cache = cache_manager.cache) -> Callable[...,
 def etag_cache(  # noqa: C901
     cache: Cache = cache_manager.cache,
     get_last_modified: Callable[..., datetime] | None = None,
-    max_age: int | float = todo_config["CACHE_DEFAULT_TIMEOUT"],
+    max_age: int | float = app.config["CACHE_DEFAULT_TIMEOUT"],
     raise_for_access: Callable[..., Any] | None = None,
     skip: Callable[..., bool] | None = None,
 ) -> Callable[..., Any]:

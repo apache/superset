@@ -22,6 +22,7 @@ from collections import defaultdict, deque
 from typing import Any, Callable
 
 import sqlalchemy as sqla
+from flask import current_app
 from flask_appbuilder import Model
 from flask_appbuilder.models.decorators import renders
 from flask_appbuilder.security.sqla.models import User
@@ -41,7 +42,7 @@ from sqlalchemy.orm import relationship, subqueryload
 from sqlalchemy.orm.mapper import Mapper
 from sqlalchemy.sql.elements import BinaryExpression
 
-from superset import app, db, is_feature_enabled, security_manager
+from superset import db, is_feature_enabled, security_manager
 from superset.connectors.sqla.models import BaseDatasource, SqlaTable
 from superset.daos.datasource import DatasourceDAO
 from superset.models.helpers import AuditMixinNullable, ImportExportMixin
@@ -53,12 +54,12 @@ from superset.thumbnails.digest import get_dashboard_digest
 from superset.utils import core as utils, json
 
 metadata = Model.metadata  # pylint: disable=no-member
-todo_config = app.config
 logger = logging.getLogger(__name__)
 
 
 def copy_dashboard(_mapper: Mapper, _connection: Connection, target: Dashboard) -> None:
-    dashboard_id = todo_config["DASHBOARD_TEMPLATE_ID"]
+    conf = current_app.config
+    dashboard_id = conf["DASHBOARD_TEMPLATE_ID"]
     if dashboard_id is None:
         return
 
