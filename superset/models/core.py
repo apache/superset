@@ -36,7 +36,7 @@ import numpy
 import pandas as pd
 import sqlalchemy as sqla
 import sshtunnel
-from flask import current_app, g
+from flask import current_app, g, has_request_context
 from flask_appbuilder import Model
 from marshmallow.exceptions import ValidationError
 from sqlalchemy import (
@@ -1061,10 +1061,13 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
             # if the URI is invalid, ignore and return a placeholder url
             # (so users see 500 less often)
             return "dialect://invalid_uri"
-        if custom_password_store := current_app.config[
-            "SQLALCHEMY_CUSTOM_PASSWORD_STORE"
-        ]:
-            conn = conn.set(password=custom_password_store(conn))
+        if has_request_context():
+            if custom_password_store := current_app.config[
+                "SQLALCHEMY_CUSTOM_PASSWORD_STORE"
+            ]:
+                conn = conn.set(password=custom_password_store(conn))
+            else:
+                conn = conn.set(password=self.password)
         else:
             conn = conn.set(password=self.password)
         return str(conn)
