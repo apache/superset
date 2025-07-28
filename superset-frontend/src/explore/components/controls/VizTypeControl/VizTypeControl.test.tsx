@@ -256,4 +256,13 @@ describe('VizTypeControl', () => {
 
     expect(defaultProps.onChange).toHaveBeenCalledWith(VizType.Line);
   });
+
+  it('Search input is focused when modal opens', async () => {
+    await waitForRenderWrapper();
+
+    const searchInput = screen.getByTestId(getTestId('search-input'));
+
+    // The search input should be focused when the modal opens
+    expect(searchInput).toHaveFocus();
+  });
 });
