@@ -244,13 +244,6 @@ function processGroupByCustomizations(
       }
 
       columnNames.forEach(columnName => {
-        if (conflictingColumns.has(columnName)) {
-          console.warn(
-            `Column "${columnName}" conflicts with existing chart columns. Skipping customization.`,
-          );
-          return;
-        }
-
         if (!groupByColumns.includes(columnName)) {
           groupByColumns.push(columnName);
         }
