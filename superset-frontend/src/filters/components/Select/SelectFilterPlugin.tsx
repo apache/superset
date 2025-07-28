@@ -31,7 +31,7 @@ import {
   tn,
   styled,
 } from '@superset-ui/core';
-import { debounce, first, isUndefined } from 'lodash';
+import { debounce, isUndefined } from 'lodash';
 import { useImmerReducer } from 'use-immer';
 import {
   FormItem,
