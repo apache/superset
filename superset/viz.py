@@ -83,10 +83,10 @@ from superset.utils.hashing import md5_sha_from_str
 if TYPE_CHECKING:
     from superset.connectors.sqla.models import BaseDatasource
 
-config = app.config
-stats_logger = config["STATS_LOGGER"]
-relative_start = config["DEFAULT_RELATIVE_START_TIME"]
-relative_end = config["DEFAULT_RELATIVE_END_TIME"]
+todo_config = app.config
+stats_logger = todo_config["STATS_LOGGER"]
+relative_start = todo_config["DEFAULT_RELATIVE_START_TIME"]
+relative_end = todo_config["DEFAULT_RELATIVE_END_TIME"]
 logger = logging.getLogger(__name__)
 
 METRIC_KEYS = [
@@ -247,7 +247,7 @@ class BaseViz:  # pylint: disable=too-many-public-methods
                 "groupby": [],
                 "metrics": [],
                 "orderby": [],
-                "row_limit": config["SAMPLES_ROW_LIMIT"],
+                "row_limit": todo_config["SAMPLES_ROW_LIMIT"],
                 "columns": [o.column_name for o in self.datasource.columns],
                 "from_dttm": None,
                 "to_dttm": None,
@@ -360,7 +360,7 @@ class BaseViz:  # pylint: disable=too-many-public-methods
         timeseries_limit_metric = self.form_data.get("timeseries_limit_metric")
 
         # apply row limit to query
-        row_limit = int(self.form_data.get("row_limit") or config["ROW_LIMIT"])
+        row_limit = int(self.form_data.get("row_limit") or todo_config["ROW_LIMIT"])
         row_limit = apply_max_row_limit(row_limit)
 
         # default order direction
@@ -433,9 +433,9 @@ class BaseViz:  # pylint: disable=too-many-public-methods
             and self.datasource.database.cache_timeout
         ) is not None:
             return self.datasource.database.cache_timeout
-        if config["DATA_CACHE_CONFIG"].get("CACHE_DEFAULT_TIMEOUT") is not None:
-            return config["DATA_CACHE_CONFIG"]["CACHE_DEFAULT_TIMEOUT"]
-        return config["CACHE_DEFAULT_TIMEOUT"]
+        if todo_config["DATA_CACHE_CONFIG"].get("CACHE_DEFAULT_TIMEOUT") is not None:
+            return todo_config["DATA_CACHE_CONFIG"]["CACHE_DEFAULT_TIMEOUT"]
+        return todo_config["CACHE_DEFAULT_TIMEOUT"]
 
     @deprecated(deprecated_in="3.0")
     def get_json(self) -> str:
@@ -678,7 +678,9 @@ class BaseViz:  # pylint: disable=too-many-public-methods
     def get_csv(self) -> str | None:
         df = self.get_df_payload()["df"]  # leverage caching logic
         include_index = not isinstance(df.index, pd.RangeIndex)
-        return csv.df_to_escaped_csv(df, index=include_index, **config["CSV_EXPORT"])
+        return csv.df_to_escaped_csv(
+            df, index=include_index, **todo_config["CSV_EXPORT"]
+        )
 
     @deprecated(deprecated_in="3.0")
     def get_data(self, df: pd.DataFrame) -> VizData:
@@ -1499,7 +1501,7 @@ class MapboxViz(BaseViz):
         return {
             "geoJSON": geo_json,
             "hasCustomMetric": has_custom_metric,
-            "mapboxApiKey": config["MAPBOX_API_KEY"],
+            "mapboxApiKey": todo_config["MAPBOX_API_KEY"],
             "mapStyle": self.form_data.get("mapbox_style"),
             "aggregatorName": self.form_data.get("pandas_aggfunc"),
             "clusteringRadius": self.form_data.get("clustering_radius"),
@@ -1636,7 +1638,7 @@ class DeckGLMultiLayer(BaseViz):
 
         return {
             "features": features,
-            "mapboxApiKey": config["MAPBOX_API_KEY"],
+            "mapboxApiKey": todo_config["MAPBOX_API_KEY"],
             "slices": [slc.data for slc in slices if slc.data is not None],
         }
 
@@ -1880,7 +1882,7 @@ class BaseDeckGLViz(BaseViz):
 
         return {
             "features": features,
-            "mapboxApiKey": config["MAPBOX_API_KEY"],
+            "mapboxApiKey": todo_config["MAPBOX_API_KEY"],
             "metricLabels": self.metric_labels,
         }
 
@@ -2205,7 +2207,7 @@ class DeckArc(BaseDeckGLViz):
 
         return {
             "features": super().get_data(df)["features"],
-            "mapboxApiKey": config["MAPBOX_API_KEY"],
+            "mapboxApiKey": todo_config["MAPBOX_API_KEY"],
         }
 
 
@@ -2549,5 +2551,5 @@ def get_subclasses(cls: type[BaseViz]) -> set[type[BaseViz]]:
 viz_types = {
     o.viz_type: o
     for o in get_subclasses(BaseViz)
-    if o.viz_type not in config["VIZ_TYPE_DENYLIST"]
+    if o.viz_type not in todo_config["VIZ_TYPE_DENYLIST"]
 }

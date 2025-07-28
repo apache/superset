@@ -114,9 +114,9 @@ from superset.views.utils import (
 )
 from superset.viz import BaseViz
 
-config = app.config
-SQLLAB_QUERY_COST_ESTIMATE_TIMEOUT = config["SQLLAB_QUERY_COST_ESTIMATE_TIMEOUT"]
-stats_logger = config["STATS_LOGGER"]
+todo_config = app.config
+SQLLAB_QUERY_COST_ESTIMATE_TIMEOUT = todo_config["SQLLAB_QUERY_COST_ESTIMATE_TIMEOUT"]
+stats_logger = todo_config["STATS_LOGGER"]
 logger = logging.getLogger(__name__)
 
 DATASOURCE_MISSING_ERR = __("The data source seems to have been deleted")
@@ -490,8 +490,10 @@ class Superset(BaseSupersetView):
             selectedColumns = form_data.pop("selectedColumns")  # noqa: N806
 
         if "viz_type" not in form_data:
-            form_data["viz_type"] = app.config["DEFAULT_VIZ_TYPE"]
-            if app.config["DEFAULT_VIZ_TYPE"] == "table":
+            from flask import current_app
+
+            form_data["viz_type"] = current_app.config["DEFAULT_VIZ_TYPE"]
+            if current_app.config["DEFAULT_VIZ_TYPE"] == "table":
                 all_columns = []
                 for x in selectedColumns:
                     all_columns.append(x["name"])

@@ -18,7 +18,7 @@ import logging
 from abc import ABC
 from typing import Optional
 
-from flask import current_app as app
+from flask import current_app
 from sqlalchemy.exc import SQLAlchemyError
 
 from superset.commands.base import BaseCommand
@@ -35,8 +35,8 @@ logger = logging.getLogger(__name__)
 class GetFormDataCommand(BaseCommand, ABC):
     def __init__(self, cmd_params: CommandParameters) -> None:
         self._cmd_params = cmd_params
-        config = app.config["EXPLORE_FORM_DATA_CACHE_CONFIG"]
-        self._refresh_timeout = config.get("REFRESH_TIMEOUT_ON_RETRIEVAL")
+        conf = current_app.config["EXPLORE_FORM_DATA_CACHE_CONFIG"]
+        self._refresh_timeout = conf.get("REFRESH_TIMEOUT_ON_RETRIEVAL")
 
     def run(self) -> Optional[str]:
         try:
