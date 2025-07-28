@@ -18,8 +18,7 @@
  */
 import { useDispatch } from 'react-redux';
 import { t } from '@superset-ui/core';
-import { Dropdown, Button } from '@superset-ui/core/components';
-import { Menu } from '@superset-ui/core/components/Menu';
+import { Dropdown, Button, Select } from '@superset-ui/core/components';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { queryEditorSetQueryLimit } from 'src/SqlLab/actions/sqlLab';
 import useQueryEditor from 'src/SqlLab/hooks/useQueryEditor';
@@ -42,17 +41,28 @@ function renderQueryLimit(
 
   // Construct limit dropdown as increasing powers of ten until we reach SQL_MAX_ROW
   for (let i = 10; i < maxRow; i *= 10) {
-    limitDropdown.push(i);
+    limitDropdown.push({
+      value: i,
+    });
   }
-  limitDropdown.push(maxRow);
+  limitDropdown.push({
+    value: maxRow,
+  });
 
   return (
-    <Menu
-      items={[...new Set(limitDropdown)].map(limit => ({
-        key: `${limit}`,
-        onClick: () => setQueryLimit(limit),
-        label: `${convertToNumWithSpaces(limit)} `,
-      }))}
+    <Select
+      options={limitDropdown}
+      className="selectLimitDropdown"
+      allowNewOptions
+      onChange={value => {
+        let limit_val = value;
+        if (limit_val === undefined) limit_val = 10;
+        limit_val = parseInt(limit_val.toString(), 10);
+        if (limit_val < 1) limit_val = 1;
+        if (limit_val > maxRow) limit_val = maxRow;
+        setQueryLimit(limit_val);
+        convertToNumWithSpaces(limit_val);
+      }}
     />
   );
 }
