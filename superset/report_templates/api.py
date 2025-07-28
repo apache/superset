@@ -231,17 +231,46 @@ class ReportTemplateRestApi(BaseSupersetModelRestApi):
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.generate",
         log_to_statsd=False,
     )
-    def generate(self, pk: int) -> Response:
-        """Generate a report from the given template."""
+    def generate(self, pk: int, params: dict[str, Any] | None = None) -> Response:
+        """Generate a report from the given template using Jinja parameters.
+
+        Parameters are expected as a JSON body mapping Jinja placeholders to
+        values.
+        """
         template = self.datamodel.session.get(ReportTemplate, pk)
         if not template:
             return self.response_404()
         dataset = template.dataset
+
+        # extra parameters for SQL templates are expected in request JSON
+        if params is None:
+            params = request.get_json(silent=True) or {}
+        if not isinstance(params, dict):
+            return self.response_400(message="Invalid json payload")
+        params = self._sanitize_params(params, dataset.database.get_dialect())
+
         if dataset.is_virtual and dataset.sql:
             sql = dataset.sql
+            if params:
+                template = Template(sql)
+                sql = template.render(params)
+                tp = dataset.get_template_processor()
+                if meta.find_undeclared_variables(tp.env.parse(sql)):
+                    return self.response(400, message="Unfilled templates detected")
         else:
-            sql = dataset.select_star or f"SELECT * FROM {dataset.table_name}"
+            sql = dataset.select_star or f"SELECT * FROM {dataset.table_name}"  # noqa: S608
         try:
+            try:
+                validator_errors = ValidateSQLCommand(
+                    dataset.database.id,
+                    {"sql": sql, "catalog": dataset.catalog, "schema": dataset.schema},
+                ).run()
+                if validator_errors:
+                    return self.response(400, message="Invalid SQL")
+            except Exception as e:  # pylint: disable=broad-except
+                logger.error(f"str{e}")
+                logger.warning("SQL validation skipped")
+
             df = dataset.database.get_df(sql, dataset.catalog, dataset.schema)
             context = {"data": df.to_dict(orient="records")}
             odt_bytes = self._read(template.template_path)
