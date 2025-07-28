@@ -8,7 +8,7 @@ echo "📦 Using project name: ${CODESPACE_NAME}"
 echo "🌐 Frontend will be available at port 9001"
 
 # Ensure we're in the right directory
-cd /workspaces/superset-2 || cd /app
+cd /workspaces/superset-2 || cd /workspaces/superset || cd .
 
 # Check if docker is running
 if ! docker info > /dev/null 2>&1; then

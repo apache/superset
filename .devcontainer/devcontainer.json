@@ -4,7 +4,7 @@
     "../docker-compose-light.yml"
   ],
   "service": "superset-node-light",
-  "workspaceFolder": "/app",
+  "workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}",
 
   // Use the light config for faster startup and lower resource usage
   "shutdownAction": "stopCompose",
@@ -71,10 +71,10 @@
   },
 
   // Run commands after container is created
-  "postCreateCommand": "chmod +x /app/.devcontainer/start-superset.sh && echo '🚀 Superset Codespace ready! Run: .devcontainer/start-superset.sh to start'",
+  "postCreateCommand": "chmod +x .devcontainer/start-superset.sh && echo '🚀 Superset Codespace ready! Run: .devcontainer/start-superset.sh to start'",
 
   // Auto-start Superset on Codespace resume
-  "postStartCommand": "cd /app && .devcontainer/start-superset.sh",
+  "postStartCommand": ".devcontainer/start-superset.sh",
 
   // Features to add to the dev container
   "features": {
