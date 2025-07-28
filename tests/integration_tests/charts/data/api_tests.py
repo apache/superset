@@ -292,7 +292,7 @@ class TestPostChartDataApi(BaseTestChartDataApi):
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     @mock.patch(
-        "superset.common.query_actions.todo_config",
+        "superset.common.query_context_factory.todo_config",
         {**app.config, "SAMPLES_ROW_LIMIT": 5, "SQL_MAX_ROW": 15},
     )
     def test_with_row_limit_as_samples__rowcount_as_row_limit(self):
