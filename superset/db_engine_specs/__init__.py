@@ -38,16 +38,14 @@ from pathlib import Path
 from typing import Any, Optional
 
 import sqlalchemy.dialects
+from flask import current_app
 from sqlalchemy.engine.default import DefaultDialect
 from sqlalchemy.exc import NoSuchModuleError
 
-from superset import app, feature_flag_manager
+from superset import feature_flag_manager
 from superset.db_engine_specs.base import BaseEngineSpec
 
 logger = logging.getLogger(__name__)
-
-# TODO: Replace with current_app.config when this module is refactored
-todo_config = app.config
 
 
 def is_engine_spec(obj: Any) -> bool:
@@ -169,7 +167,8 @@ def get_available_engine_specs() -> dict[type[BaseEngineSpec], set[str]]:  # noq
                 driver = driver.decode()
             drivers[backend].add(driver)
 
-    dbs_denylist = todo_config["DBS_AVAILABLE_DENYLIST"]
+    conf = current_app.config
+    dbs_denylist = conf["DBS_AVAILABLE_DENYLIST"]
     if not feature_flag_manager.is_feature_enabled("ENABLE_SUPERSET_META_DB"):
         dbs_denylist["superset"] = {""}
     dbs_denylist_engines = dbs_denylist.keys()
