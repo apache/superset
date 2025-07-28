@@ -27,7 +27,7 @@ from typing import Any, cast, Optional, TYPE_CHECKING, TypeVar, Union
 import backoff
 import msgpack
 from celery.exceptions import SoftTimeLimitExceeded
-from flask import current_app
+from flask import current_app, has_app_context
 from flask_babel import gettext as __
 
 from superset import (
@@ -348,11 +348,15 @@ def _serialize_and_expand_data(
     expanded_columns: list[Any]
 
     if use_msgpack:
-        conf = current_app.config
-        stats_logger = conf["STATS_LOGGER"]
-        with stats_timing(
-            "sqllab.query.results_backend_pa_serialization", stats_logger
-        ):
+        if has_app_context():
+            conf = current_app.config
+            stats_logger = conf["STATS_LOGGER"]
+            with stats_timing(
+                "sqllab.query.results_backend_pa_serialization", stats_logger
+            ):
+                data = write_ipc_buffer(result_set.pa_table).to_pybytes()
+        else:
+            # No app context, skip stats timing
             data = write_ipc_buffer(result_set.pa_table).to_pybytes()
 
         # expand when loading data from results backend
