@@ -111,7 +111,7 @@ athena = ["pyathena[pandas]>=2, <3"]
 aurora-data-api = ["preset-sqlalchemy-aurora-data-api>=0.2.8,<0.3"]
 bigquery = [
     "pandas-gbq>=0.19.1",
-    "sqlalchemy-bigquery>=1.6.1",
+    "sqlalchemy-bigquery>=1.15.0",
     "google-cloud-bigquery>=3.10.0",
 ]
 clickhouse = ["clickhouse-connect>=0.5.14, <1.0"]
