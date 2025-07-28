@@ -17,6 +17,10 @@ sudo apt-get install -y \
 echo "📦 Installing uv..."
 curl -LsSf https://astral.sh/uv/install.sh | sh
 
+# Install Claude Code CLI
+echo "🤖 Installing Claude Code..."
+curl -fsSL https://claudecode.ai/install.sh | sh
+
 # Make the start script executable
 chmod +x .devcontainer/start-superset.sh
 
