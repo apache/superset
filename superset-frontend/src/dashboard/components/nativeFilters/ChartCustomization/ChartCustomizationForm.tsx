@@ -159,6 +159,7 @@ const ChartCustomizationForm: FC<Props> = ({
   const [selectFirst, setSelectFirst] = useState(
     customization.selectFirst ?? false,
   );
+
   const [canSelectMultiple, setCanSelectMultiple] = useState(
     customization.canSelectMultiple ?? true,
   );
@@ -1236,6 +1237,7 @@ const ChartCustomizationForm: FC<Props> = ({
               )}
               onChange={checked => {
                 setSelectFirst(checked);
+
                 if (checked) {
                   setHasDefaultValue(false);
                   setIsRequired(false);
@@ -1272,7 +1274,6 @@ const ChartCustomizationForm: FC<Props> = ({
                     selectFirst: checked,
                   });
                 }
-                formChanged();
               }}
             >
               <div />
