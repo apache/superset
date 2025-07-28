@@ -29,8 +29,8 @@ from superset.advanced_data_type.types import AdvancedDataTypeResponse
 from superset.extensions import event_logger
 from superset.views.base_api import BaseSupersetApi
 
-todo_config = app.config
-ADVANCED_DATA_TYPES = todo_config["ADVANCED_DATA_TYPES"]
+conf = app.config
+ADVANCED_DATA_TYPES = conf["ADVANCED_DATA_TYPES"]
 
 
 class AdvancedDataTypeRestApi(BaseSupersetApi):

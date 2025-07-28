@@ -51,6 +51,8 @@ from superset.utils.core import DatasourceType
 from superset.utils.decorators import stats_timing
 from superset.viz import BaseViz
 
+conf = current_app.config
+
 logger = logging.getLogger(__name__)
 todo_config = app.config
 stats_logger = todo_config["STATS_LOGGER"]
@@ -285,7 +287,6 @@ def apply_display_max_row_limit(
     :returns: The mutated sql_results structure
     """
 
-    conf = current_app.config
     display_limit = rows or conf["DISPLAY_MAX_ROW"]
 
     if (
@@ -547,7 +548,6 @@ def _deserialize_results_payload(
 def get_cta_schema_name(
     database: Database, user: ab_models.User, schema: str, sql: str
 ) -> Optional[str]:
-    conf = current_app.config
     func: Optional[Callable[[Database, ab_models.User, str, str], str]] = conf[
         "SQLLAB_CTAS_SCHEMA_NAME_FUNC"
     ]

@@ -67,7 +67,7 @@ import pandas as pd
 import sqlalchemy as sa
 from cryptography.hazmat.backends import default_backend
 from cryptography.x509 import Certificate, load_pem_x509_certificate
-from flask import current_app, g, request
+from flask import g, request
 from flask_appbuilder import SQLA
 from flask_appbuilder.security.sqla.models import User
 from flask_babel import gettext as __
@@ -1381,6 +1381,9 @@ def create_ssl_cert_file(certificate: str) -> str:
     :raises CertificateException: If certificate is not valid/unparseable
     """
     filename = f"{md5_sha_from_str(certificate)}.crt"
+    # pylint: disable=import-outside-toplevel
+    from flask import current_app
+
     conf = current_app.config
     cert_dir = conf["SSL_CERT_PATH"]
     path = cert_dir if cert_dir else tempfile.gettempdir()
@@ -1429,6 +1432,9 @@ class DatasourceName(NamedTuple):
 
 
 def get_stacktrace() -> str | None:
+    # pylint: disable=import-outside-toplevel
+    from flask import current_app
+
     conf = current_app.config
     if conf["SHOW_STACKTRACE"]:
         return traceback.format_exc()
@@ -1869,6 +1875,9 @@ def apply_max_row_limit(
     >>> apply_max_row_limit(0)  # Zero returns default max limit
     50000
     """
+    # pylint: disable=import-outside-toplevel
+    from flask import current_app
+
     conf = current_app.config
     max_limit = (
         conf["TABLE_VIZ_MAX_ROW_SERVER"] if server_pagination else conf["SQL_MAX_ROW"]
@@ -1895,10 +1904,13 @@ def check_is_safe_zip(zip_file: ZipFile) -> None:
     :param zip_file:
     :return:
     """
+    # pylint: disable=import-outside-toplevel
+    from flask import current_app
+
+    conf = current_app.config
     uncompress_size = 0
     compress_size = 0
     for zip_file_element in zip_file.infolist():
-        conf = current_app.config
         if zip_file_element.file_size > conf["ZIPPED_FILE_MAX_SIZE"]:
             raise SupersetException("Found file with size above allowed threshold")
         uncompress_size += zip_file_element.file_size
@@ -1941,8 +1953,11 @@ def get_query_source_from_request() -> QuerySource | None:
 
 
 def get_user_agent(database: Database, source: QuerySource | None) -> str:
-    source = source or get_query_source_from_request()
+    # pylint: disable=import-outside-toplevel
+    from flask import current_app
+
     conf = current_app.config
+    source = source or get_query_source_from_request()
     if user_agent_func := conf["USER_AGENT_FUNC"]:
         return user_agent_func(database, source)
 

@@ -29,14 +29,16 @@ from superset.commands.temporary_cache.exceptions import TemporaryCacheGetFailed
 from superset.extensions import cache_manager
 from superset.utils.core import DatasourceType
 
+conf = current_app.config
 logger = logging.getLogger(__name__)
 
 
 class GetFormDataCommand(BaseCommand, ABC):
     def __init__(self, cmd_params: CommandParameters) -> None:
         self._cmd_params = cmd_params
-        conf = current_app.config["EXPLORE_FORM_DATA_CACHE_CONFIG"]
-        self._refresh_timeout = conf.get("REFRESH_TIMEOUT_ON_RETRIEVAL")
+        self._refresh_timeout = conf["EXPLORE_FORM_DATA_CACHE_CONFIG"].get(
+            "REFRESH_TIMEOUT_ON_RETRIEVAL"
+        )
 
     def run(self) -> Optional[str]:
         try:

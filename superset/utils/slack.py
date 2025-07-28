@@ -33,6 +33,7 @@ from superset.utils.backports import StrEnum
 from superset.utils.core import recipients_string_to_list
 
 logger = logging.getLogger(__name__)
+conf = current_app.config
 
 
 class SlackChannelTypes(StrEnum):
@@ -45,7 +46,6 @@ class SlackClientError(Exception):
 
 
 def get_slack_client() -> WebClient:
-    conf = current_app.config
     token: str = conf["SLACK_API_TOKEN"]
     if callable(token):
         token = token()
@@ -101,7 +101,6 @@ def get_channels_with_search(
     This will search by slack name or id
     """
     try:
-        conf = current_app.config
         channels = get_channels(
             force=force,
             cache_timeout=conf["SLACK_CACHE_TIMEOUT"],

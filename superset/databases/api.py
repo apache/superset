@@ -662,7 +662,8 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             pk,
             current_username,
         ).run()
-        if app.config["SYNC_DB_PERMISSIONS_IN_ASYNC_MODE"]:
+        conf = app.config
+        if conf["SYNC_DB_PERMISSIONS_IN_ASYNC_MODE"]:
             return self.response(202, message="Async task created to sync permissions")
         return self.response(200, message="Permissions successfully synced")
 
@@ -1876,7 +1877,8 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             500:
               $ref: '#/components/responses/500'
         """
-        preferred_databases: list[str] = app.config.get("PREFERRED_DATABASES", [])
+        conf = app.config
+        preferred_databases: list[str] = conf.get("PREFERRED_DATABASES", [])
         available_databases = []
         for engine_spec, drivers in get_available_engine_specs().items():
             if not drivers:

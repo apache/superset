@@ -114,7 +114,8 @@ class DatasourceRestApi(BaseSupersetApi):
         except SupersetSecurityException as ex:
             return self.response(403, message=ex.message)
 
-        row_limit = apply_max_row_limit(app.config["FILTER_SELECT_ROW_LIMIT"])
+        conf = app.config
+        row_limit = apply_max_row_limit(conf["FILTER_SELECT_ROW_LIMIT"])
         denormalize_column = not datasource.normalize_columns
         try:
             payload = datasource.values_for_column(

@@ -24,6 +24,7 @@ from importlib.resources import files
 from typing import Any, Callable, cast
 
 from flask import (
+    current_app,
     Flask,
     redirect,
     request,
@@ -50,6 +51,7 @@ from superset.utils.log import get_logger_from_status
 if typing.TYPE_CHECKING:
     from superset.views.base import BaseSupersetView
 
+conf = current_app.config
 
 logger = logging.getLogger(__name__)
 
@@ -158,9 +160,7 @@ def set_app_error_handlers(app: Flask) -> None:  # noqa: C901
     @app.errorhandler(HTTPException)
     def show_http_exception(ex: HTTPException) -> FlaskResponse:
         logger.warning("HTTPException", exc_info=True)
-        from flask import current_app
 
-        conf = current_app.config
         if (
             "text/html" in request.accept_mimetypes
             and not conf["DEBUG"]
@@ -188,9 +188,7 @@ def set_app_error_handlers(app: Flask) -> None:  # noqa: C901
         or SupersetErrorsException, with a specific status code and error type
         """
         logger.warning("CommandException", exc_info=True)
-        from flask import current_app
 
-        conf = current_app.config
         if "text/html" in request.accept_mimetypes and not conf["DEBUG"]:
             path = files("superset") / "static/assets/500.html"
             return send_file(path, max_age=0), 500
@@ -214,9 +212,7 @@ def set_app_error_handlers(app: Flask) -> None:  # noqa: C901
         """Catch-all, to ensure all errors from the backend conform to SIP-40"""
         logger.warning("Exception", exc_info=True)
         logger.exception(ex)
-        from flask import current_app
 
-        conf = current_app.config
         if "text/html" in request.accept_mimetypes and not conf["DEBUG"]:
             path = files("superset") / "static/assets/500.html"
             return send_file(path, max_age=0), 500

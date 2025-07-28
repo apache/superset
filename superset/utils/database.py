@@ -19,8 +19,6 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING
 
-from flask import current_app
-
 from superset.constants import EXAMPLES_DB_UUID
 
 if TYPE_CHECKING:
@@ -64,13 +62,19 @@ def get_or_create_db(
 
 
 def get_example_database() -> Database:
-    conf = current_app.config
-    return get_or_create_db("examples", conf["SQLALCHEMY_EXAMPLES_URI"])
+    # pylint: disable=import-outside-toplevel
+    from superset import app
+
+    todo_config = app.config
+    return get_or_create_db("examples", todo_config["SQLALCHEMY_EXAMPLES_URI"])
 
 
 def get_main_database() -> Database:
-    conf = current_app.config
-    db_uri = conf["SQLALCHEMY_DATABASE_URI"]
+    # pylint: disable=import-outside-toplevel
+    from superset import app
+
+    todo_config = app.config
+    db_uri = todo_config["SQLALCHEMY_DATABASE_URI"]
     return get_or_create_db("main", db_uri)
 
 

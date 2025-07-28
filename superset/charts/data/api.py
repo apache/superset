@@ -379,7 +379,8 @@ class ChartDataRestApi(ChartRestApi):
             # return multi-query results bundled as a zip file
             def _process_data(query_data: Any) -> Any:
                 if result_format == ChartDataResultFormat.CSV:
-                    encoding = current_app.config["CSV_EXPORT"].get("encoding", "utf-8")
+                    conf = current_app.config
+                    encoding = conf["CSV_EXPORT"].get("encoding", "utf-8")
                     return query_data.encode(encoding)
                 return query_data
 

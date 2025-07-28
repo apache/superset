@@ -494,12 +494,13 @@ class SingleStoreSpec(BasicParametersMixin, BaseEngineSpec):
         if schema:
             uri = uri.set(database=parse.quote(schema, safe=""))
 
+        conf = current_app.config
         connect_args.setdefault(
             "conn_attrs",
             {
                 "_connector_name": "SingleStore Superset Database Engine",
-                "_connector_version": current_app.config.get("VERSION_STRING", "dev"),
-                "_product_version": current_app.config.get("VERSION_STRING", "dev"),
+                "_connector_version": conf.get("VERSION_STRING", "dev"),
+                "_product_version": conf.get("VERSION_STRING", "dev"),
             },
         )
         return uri, connect_args

@@ -245,9 +245,10 @@ try:
         "*Int128",
         "string",
     )
+    conf = current_app.config
     set_setting(
         "product_name",
-        f"superset/{current_app.config.get('VERSION_STRING', 'dev')}",
+        f"superset/{conf.get('VERSION_STRING', 'dev')}",
     )
 except ImportError:  # ClickHouse Connect not installed, do nothing
     pass

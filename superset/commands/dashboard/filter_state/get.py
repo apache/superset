@@ -24,12 +24,15 @@ from superset.commands.temporary_cache.parameters import CommandParameters
 from superset.extensions import cache_manager
 from superset.temporary_cache.utils import cache_key
 
+conf = current_app.config
+
 
 class GetFilterStateCommand(GetTemporaryCacheCommand):
     def __init__(self, cmd_params: CommandParameters) -> None:
         super().__init__(cmd_params)
-        conf = current_app.config["FILTER_STATE_CACHE_CONFIG"]
-        self._refresh_timeout = conf.get("REFRESH_TIMEOUT_ON_RETRIEVAL")
+        self._refresh_timeout = conf["FILTER_STATE_CACHE_CONFIG"].get(
+            "REFRESH_TIMEOUT_ON_RETRIEVAL"
+        )
 
     def get(self, cmd_params: CommandParameters) -> Optional[str]:
         resource_id = cmd_params.resource_id

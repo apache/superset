@@ -26,6 +26,7 @@ from sqlalchemy.orm import Query
 from superset import security_manager
 
 logger = logging.getLogger(__name__)
+conf = current_app.config
 
 
 class FilterRelatedOwners(BaseFilter):  # pylint: disable=too-few-public-methods
@@ -70,7 +71,6 @@ class BaseFilterRelatedUsers(BaseFilter):  # pylint: disable=too-few-public-meth
     arg_name = "username"
 
     def apply(self, query: Query, value: Optional[Any]) -> Query:
-        conf = current_app.config
         if extra_filters := conf["EXTRA_RELATED_QUERY_FILTERS"].get(
             "user",
         ):
@@ -97,7 +97,6 @@ class BaseFilterRelatedRoles(BaseFilter):  # pylint: disable=too-few-public-meth
     arg_name = "role"
 
     def apply(self, query: Query, value: Optional[Any]) -> Query:
-        conf = current_app.config
         if extra_filters := conf["EXTRA_RELATED_QUERY_FILTERS"].get(
             "role",
         ):

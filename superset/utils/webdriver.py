@@ -42,6 +42,8 @@ from superset import feature_flag_manager
 from superset.extensions import machine_auth_provider_factory
 from superset.utils.retries import retry_call
 
+conf = current_app.config
+
 WindowSize = tuple[int, int]
 logger = logging.getLogger(__name__)
 
@@ -75,7 +77,6 @@ class WebDriverProxy(ABC):
     def __init__(self, driver_type: str, window: WindowSize | None = None):
         self._driver_type = driver_type
         self._window: WindowSize = window or (800, 600)
-        conf = current_app.config
         self._screenshot_locate_wait = conf["SCREENSHOT_LOCATE_WAIT"]
         self._screenshot_load_wait = conf["SCREENSHOT_LOAD_WAIT"]
 
@@ -141,7 +142,6 @@ class WebDriverPlaywright(WebDriverProxy):
         self, url: str, element_name: str, user: User
     ) -> bytes | None:
         with sync_playwright() as playwright:
-            conf = current_app.config
             browser_args = conf["WEBDRIVER_OPTION_ARGS"]
             browser = playwright.chromium.launch(args=browser_args)
             pixel_density = conf["WEBDRIVER_WINDOW"].get("pixel_density", 1)
@@ -242,7 +242,6 @@ class WebDriverPlaywright(WebDriverProxy):
 
 class WebDriverSelenium(WebDriverProxy):
     def create(self) -> WebDriver:
-        conf = current_app.config
         pixel_density = conf["WEBDRIVER_WINDOW"].get("pixel_density", 1)
         if self._driver_type == "firefox":
             driver_class: type[WebDriver] = firefox.webdriver.WebDriver
@@ -326,7 +325,6 @@ class WebDriverSelenium(WebDriverProxy):
 
     @staticmethod
     def find_unexpected_errors(driver: WebDriver) -> list[str]:
-        conf = current_app.config
         error_messages = []
 
         try:
@@ -386,7 +384,6 @@ class WebDriverSelenium(WebDriverProxy):
         driver.set_window_size(*self._window)
         driver.get(url)
         img: bytes | None = None
-        conf = current_app.config
         selenium_headstart = conf["SCREENSHOT_SELENIUM_HEADSTART"]
         logger.debug("Sleeping for %i seconds", selenium_headstart)
         sleep(selenium_headstart)

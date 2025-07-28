@@ -76,7 +76,8 @@ COLLECTION_TYPES = ("list", "dict", "tuple", "set")
 
 @lru_cache(maxsize=LRU_CACHE_MAX_SIZE)
 def context_addons() -> dict[str, Any]:
-    return current_app.config.get("JINJA_CONTEXT_ADDONS", {})
+    conf = current_app.config
+    return conf.get("JINJA_CONTEXT_ADDONS", {})
 
 
 class Filter(TypedDict):
@@ -888,7 +889,8 @@ DEFAULT_PROCESSORS = {
 
 @lru_cache(maxsize=LRU_CACHE_MAX_SIZE)
 def get_template_processors() -> dict[str, Any]:
-    processors = current_app.config.get("CUSTOM_TEMPLATE_PROCESSORS", {})
+    conf = current_app.config
+    processors = conf.get("CUSTOM_TEMPLATE_PROCESSORS", {})
     for engine, processor in DEFAULT_PROCESSORS.items():
         # do not overwrite engine-specific CUSTOM_TEMPLATE_PROCESSORS
         if engine not in processors:

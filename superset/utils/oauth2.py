@@ -35,6 +35,8 @@ if TYPE_CHECKING:
     from superset.db_engine_specs.base import BaseEngineSpec
     from superset.models.core import Database, DatabaseUserOAuth2Tokens
 
+conf = current_app.config
+
 JWT_EXPIRATION = timedelta(minutes=5)
 
 
@@ -126,7 +128,6 @@ def encode_oauth2_state(state: OAuth2State) -> str:
         "default_redirect_uri": state["default_redirect_uri"],
         "tab_id": state["tab_id"],
     }
-    conf = current_app.config
     encoded_state = jwt.encode(
         payload=payload,
         key=conf["SECRET_KEY"],
@@ -174,7 +175,6 @@ def decode_oauth2_state(encoded_state: str) -> OAuth2State:
     # Google OAuth2 needs periods to be escaped.
     encoded_state = encoded_state.replace("%2E", ".")
 
-    conf = current_app.config
     payload = jwt.decode(
         jwt=encoded_state,
         key=conf["SECRET_KEY"],
