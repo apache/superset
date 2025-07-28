@@ -1,13 +1,7 @@
 {
   "name": "Apache Superset Development",
-  "dockerComposeFile": [
-    "../docker-compose-light.yml"
-  ],
-  "service": "superset-node-light",
+  "image": "mcr.microsoft.com/devcontainers/base:ubuntu",
   "workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}",
-
-  // Use the light config for faster startup and lower resource usage
-  "shutdownAction": "stopCompose",
 
   // Forward ports for development
   "forwardPorts": [9001, 8088],
@@ -64,22 +58,26 @@
     "FLASK_ENV": "development",
     "SUPERSET_ENV": "development",
     "CYPRESS_CACHE_FOLDER": "/tmp/cypress_cache",
-    // Enable hot reloading
-    "FLASK_DEBUG": "1",
-    // For multiple instances, use different project names
-    "COMPOSE_PROJECT_NAME": "${localEnv:CODESPACE_NAME}"
+    "FLASK_DEBUG": "1"
   },
 
   // Run commands after container is created
-  "postCreateCommand": "chmod +x .devcontainer/start-superset.sh && echo '🚀 Superset Codespace ready! Run: .devcontainer/start-superset.sh to start'",
+  "postCreateCommand": "chmod +x .devcontainer/setup-dev.sh && .devcontainer/setup-dev.sh",
 
   // Auto-start Superset on Codespace resume
   "postStartCommand": ".devcontainer/start-superset.sh",
 
   // Features to add to the dev container
   "features": {
-    "ghcr.io/devcontainers/features/docker-in-docker:2": {},
+    "ghcr.io/devcontainers/features/docker-in-docker:2": {
+      "moby": true,
+      "installDockerBuildx": true,
+      "dockerDashComposeVersion": "v2"
+    },
     "ghcr.io/devcontainers/features/github-cli:1": {},
+    "ghcr.io/devcontainers/features/python:1": {
+      "version": "3.10"
+    },
     "ghcr.io/devcontainers/features/node:1": {
       "version": "18"
     },

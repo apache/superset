@@ -4,7 +4,8 @@
 set -e
 
 echo "🚀 Starting Superset in Codespaces..."
-echo "📦 Using project name: ${CODESPACE_NAME}"
+PROJECT_NAME="${CODESPACE_NAME:-superset-dev}"
+echo "📦 Using project name: ${PROJECT_NAME}"
 echo "🌐 Frontend will be available at port 9001"
 
 # Ensure we're in the right directory
@@ -18,11 +19,11 @@ fi
 
 # Clean up any existing containers from this project
 echo "🧹 Cleaning up existing containers..."
-docker-compose -p "${CODESPACE_NAME}" -f docker-compose-light.yml down
+docker-compose -p "${PROJECT_NAME}" -f docker-compose-light.yml down
 
 # Start services
 echo "🏗️  Building and starting services..."
-docker-compose -p "${CODESPACE_NAME}" -f docker-compose-light.yml up -d
+docker-compose -p "${PROJECT_NAME}" -f docker-compose-light.yml up -d
 
 # Wait for services to be healthy
 echo "⏳ Waiting for services to be ready..."
@@ -30,7 +31,7 @@ sleep 10
 
 # Show status
 echo "✅ Services started! Status:"
-docker-compose -p "${CODESPACE_NAME}" -f docker-compose-light.yml ps
+docker-compose -p "${PROJECT_NAME}" -f docker-compose-light.yml ps
 
 echo ""
 echo "📝 Default credentials:"
@@ -38,4 +39,4 @@ echo "   Username: admin"
 echo "   Password: admin"
 echo ""
 echo "🌐 Access Superset at the forwarded port 9001"
-echo "💡 To view logs: docker-compose -p ${CODESPACE_NAME} -f docker-compose-light.yml logs -f"
+echo "💡 To view logs: docker-compose -p ${PROJECT_NAME} -f docker-compose-light.yml logs -f"

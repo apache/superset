@@ -1,6 +1,6 @@
 # Superset GitHub Codespaces Development
 
-This configuration uses `docker-compose-light.yml` for lightweight, multi-instance development in GitHub Codespaces.
+This configuration provides a full development environment with Docker-in-Docker support, allowing you to run `docker-compose-light.yml` inside your Codespace for lightweight, multi-instance development.
 
 ## Quick Start
 
