@@ -1969,17 +1969,18 @@ def test_slack_token_callable_chart_report(
         "channels": [{"id": channel_id, "name": channel_name}]
     }
 
-    app.config["SLACK_API_TOKEN"] = Mock(return_value="cool_code")
-    # setup screenshot mock
-    screenshot_mock.return_value = SCREENSHOT_FILE
+    slack_token_mock = Mock(return_value="cool_code")
+    with patch.dict(app.config, {"SLACK_API_TOKEN": slack_token_mock}):
+        # setup screenshot mock
+        screenshot_mock.return_value = SCREENSHOT_FILE
 
-    with freeze_time("2020-01-01T00:00:00Z"):
-        AsyncExecuteReportScheduleCommand(
-            TEST_ID, create_report_slack_chart.id, datetime.utcnow()
-        ).run()
-        app.config["SLACK_API_TOKEN"].assert_called()
-        slack_client_mock_class.assert_called_with(token="cool_code", proxy=None)  # noqa: S106
-        assert_log(ReportState.SUCCESS)
+        with freeze_time("2020-01-01T00:00:00Z"):
+            AsyncExecuteReportScheduleCommand(
+                TEST_ID, create_report_slack_chart.id, datetime.utcnow()
+            ).run()
+            slack_token_mock.assert_called()
+            slack_client_mock_class.assert_called_with(token="cool_code", proxy=None)  # noqa: S106
+            assert_log(ReportState.SUCCESS)
 
 
 @pytest.mark.usefixtures("app_context")
