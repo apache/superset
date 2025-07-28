@@ -1,7 +1,6 @@
 {
   "name": "Apache Superset Development",
-  "image": "mcr.microsoft.com/devcontainers/universal:2",
-  "workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}",
+  "image": "mcr.microsoft.com/devcontainers/universal:2-linux",
 
   // Forward ports for development
   "forwardPorts": [9001, 8088],
@@ -16,68 +15,22 @@
     }
   },
 
-  // VS Code extensions for Superset development
-  "customizations": {
-    "vscode": {
-      "extensions": [
-        "ms-python.python",
-        "ms-python.vscode-pylance",
-        "ms-python.black-formatter",
-        "charliermarsh.ruff",
-        "dbaeumer.vscode-eslint",
-        "esbenp.prettier-vscode",
-        "ms-vscode.vscode-typescript-tslint-plugin",
-        "eamodio.gitlens",
-        "github.copilot",
-        "ms-azuretools.vscode-docker"
-      ],
-      "settings": {
-        "python.defaultInterpreterPath": "/usr/local/bin/python",
-        "python.linting.enabled": true,
-        "python.linting.pylintEnabled": false,
-        "python.formatting.provider": "black",
-        "editor.formatOnSave": true,
-        "editor.codeActionsOnSave": {
-          "source.fixAll.eslint": true
-        },
-        "[python]": {
-          "editor.defaultFormatter": "ms-python.black-formatter"
-        },
-        "[typescript]": {
-          "editor.defaultFormatter": "esbenp.prettier-vscode"
-        },
-        "[typescriptreact]": {
-          "editor.defaultFormatter": "esbenp.prettier-vscode"
-        }
-      }
-    }
-  },
-
-  // Environment variables for development
-  "remoteEnv": {
-    "FLASK_ENV": "development",
-    "SUPERSET_ENV": "development",
-    "CYPRESS_CACHE_FOLDER": "/tmp/cypress_cache",
-    "FLASK_DEBUG": "1"
-  },
-
   // Run commands after container is created
   "postCreateCommand": "chmod +x .devcontainer/setup-dev.sh && .devcontainer/setup-dev.sh",
 
   // Auto-start Superset on Codespace resume
   "postStartCommand": ".devcontainer/start-superset.sh",
 
-  // Features to add to the dev container
-  "features": {
-    "ghcr.io/devcontainers/features/sshd:1": {
-      "version": "latest"
+  // VS Code customizations
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-python.python",
+        "ms-python.vscode-pylance",
+        "charliermarsh.ruff",
+        "dbaeumer.vscode-eslint",
+        "esbenp.prettier-vscode"
+      ]
     }
-  },
-
-  // Memory and CPU (Codespaces will provision accordingly)
-  "hostRequirements": {
-    "cpus": 4,
-    "memory": "8gb",
-    "storage": "32gb"
   }
 }
