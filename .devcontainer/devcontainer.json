@@ -15,6 +15,9 @@
     "ghcr.io/devcontainers/features/git:1": {},
     "ghcr.io/devcontainers/features/common-utils:2": {
       "configureZshAsDefaultShell": true
+    },
+    "ghcr.io/devcontainers/features/sshd:1": {
+      "version": "latest"
     }
   },
 
