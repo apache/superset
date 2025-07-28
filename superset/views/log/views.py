@@ -37,7 +37,8 @@ class LogModelView(  # pylint: disable=too-many-ancestors
 
     @staticmethod
     def is_enabled() -> bool:
-        return app.config["FAB_ADD_SECURITY_VIEWS"] and app.config["SUPERSET_LOG_VIEW"]
+        conf = app.config
+        return conf["FAB_ADD_SECURITY_VIEWS"] and conf["SUPERSET_LOG_VIEW"]
 
     @before_request
     def ensure_enabled(self) -> None:

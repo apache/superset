@@ -158,9 +158,12 @@ def set_app_error_handlers(app: Flask) -> None:  # noqa: C901
     @app.errorhandler(HTTPException)
     def show_http_exception(ex: HTTPException) -> FlaskResponse:
         logger.warning("HTTPException", exc_info=True)
+        from flask import current_app
+
+        conf = current_app.config
         if (
             "text/html" in request.accept_mimetypes
-            and not app.config["DEBUG"]
+            and not conf["DEBUG"]
             and ex.code in {404, 500}
         ):
             path = files("superset") / f"static/assets/{ex.code}.html"
@@ -185,7 +188,10 @@ def set_app_error_handlers(app: Flask) -> None:  # noqa: C901
         or SupersetErrorsException, with a specific status code and error type
         """
         logger.warning("CommandException", exc_info=True)
-        if "text/html" in request.accept_mimetypes and not app.config["DEBUG"]:
+        from flask import current_app
+
+        conf = current_app.config
+        if "text/html" in request.accept_mimetypes and not conf["DEBUG"]:
             path = files("superset") / "static/assets/500.html"
             return send_file(path, max_age=0), 500
 
@@ -208,7 +214,10 @@ def set_app_error_handlers(app: Flask) -> None:  # noqa: C901
         """Catch-all, to ensure all errors from the backend conform to SIP-40"""
         logger.warning("Exception", exc_info=True)
         logger.exception(ex)
-        if "text/html" in request.accept_mimetypes and not app.config["DEBUG"]:
+        from flask import current_app
+
+        conf = current_app.config
+        if "text/html" in request.accept_mimetypes and not conf["DEBUG"]:
             path = files("superset") / "static/assets/500.html"
             return send_file(path, max_age=0), 500
 

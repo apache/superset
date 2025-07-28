@@ -75,8 +75,9 @@ class WebDriverProxy(ABC):
     def __init__(self, driver_type: str, window: WindowSize | None = None):
         self._driver_type = driver_type
         self._window: WindowSize = window or (800, 600)
-        self._screenshot_locate_wait = current_app.config["SCREENSHOT_LOCATE_WAIT"]
-        self._screenshot_load_wait = current_app.config["SCREENSHOT_LOAD_WAIT"]
+        conf = current_app.config
+        self._screenshot_locate_wait = conf["SCREENSHOT_LOCATE_WAIT"]
+        self._screenshot_load_wait = conf["SCREENSHOT_LOAD_WAIT"]
 
     @abstractmethod
     def get_screenshot(self, url: str, element_name: str, user: User) -> bytes | None:
@@ -140,11 +141,10 @@ class WebDriverPlaywright(WebDriverProxy):
         self, url: str, element_name: str, user: User
     ) -> bytes | None:
         with sync_playwright() as playwright:
-            browser_args = current_app.config["WEBDRIVER_OPTION_ARGS"]
+            conf = current_app.config
+            browser_args = conf["WEBDRIVER_OPTION_ARGS"]
             browser = playwright.chromium.launch(args=browser_args)
-            pixel_density = current_app.config["WEBDRIVER_WINDOW"].get(
-                "pixel_density", 1
-            )
+            pixel_density = conf["WEBDRIVER_WINDOW"].get("pixel_density", 1)
             context = browser.new_context(
                 bypass_csp=True,
                 viewport={
@@ -153,25 +153,23 @@ class WebDriverPlaywright(WebDriverProxy):
                 },
                 device_scale_factor=pixel_density,
             )
-            context.set_default_timeout(
-                current_app.config["SCREENSHOT_PLAYWRIGHT_DEFAULT_TIMEOUT"]
-            )
+            context.set_default_timeout(conf["SCREENSHOT_PLAYWRIGHT_DEFAULT_TIMEOUT"])
             self.auth(user, context)
             page = context.new_page()
             try:
                 page.goto(
                     url,
-                    wait_until=current_app.config["SCREENSHOT_PLAYWRIGHT_WAIT_EVENT"],
+                    wait_until=conf["SCREENSHOT_PLAYWRIGHT_WAIT_EVENT"],
                 )
             except PlaywrightTimeout:
                 logger.exception(
                     "Web event %s not detected. Page %s might not have been fully loaded",  # noqa: E501
-                    current_app.config["SCREENSHOT_PLAYWRIGHT_WAIT_EVENT"],
+                    conf["SCREENSHOT_PLAYWRIGHT_WAIT_EVENT"],
                     url,
                 )
 
             img: bytes | None = None
-            selenium_headstart = current_app.config["SCREENSHOT_SELENIUM_HEADSTART"]
+            selenium_headstart = conf["SCREENSHOT_SELENIUM_HEADSTART"]
             logger.debug("Sleeping for %i seconds", selenium_headstart)
             page.wait_for_timeout(selenium_headstart * 1000)
             element: Locator
@@ -212,9 +210,7 @@ class WebDriverPlaywright(WebDriverProxy):
                     )
                     raise
 
-                selenium_animation_wait = current_app.config[
-                    "SCREENSHOT_SELENIUM_ANIMATION_WAIT"
-                ]
+                selenium_animation_wait = conf["SCREENSHOT_SELENIUM_ANIMATION_WAIT"]
                 logger.debug(
                     "Wait %i seconds for chart animation", selenium_animation_wait
                 )
@@ -224,7 +220,7 @@ class WebDriverPlaywright(WebDriverProxy):
                     url,
                     user.username,
                 )
-                if current_app.config["SCREENSHOT_REPLACE_UNEXPECTED_ERRORS"]:
+                if conf["SCREENSHOT_REPLACE_UNEXPECTED_ERRORS"]:
                     unexpected_errors = WebDriverPlaywright.find_unexpected_errors(page)
                     if unexpected_errors:
                         logger.warning(
@@ -246,7 +242,8 @@ class WebDriverPlaywright(WebDriverProxy):
 
 class WebDriverSelenium(WebDriverProxy):
     def create(self) -> WebDriver:
-        pixel_density = current_app.config["WEBDRIVER_WINDOW"].get("pixel_density", 1)
+        conf = current_app.config
+        pixel_density = conf["WEBDRIVER_WINDOW"].get("pixel_density", 1)
         if self._driver_type == "firefox":
             driver_class: type[WebDriver] = firefox.webdriver.WebDriver
             service_class: type[Service] = firefox.service.Service
@@ -268,11 +265,11 @@ class WebDriverSelenium(WebDriverProxy):
             )
 
         # Prepare args for the webdriver init
-        for arg in list(current_app.config["WEBDRIVER_OPTION_ARGS"]):
+        for arg in list(conf["WEBDRIVER_OPTION_ARGS"]):
             options.add_argument(arg)
 
         # Add additional configured webdriver options
-        webdriver_conf = dict(current_app.config["WEBDRIVER_CONFIGURATION"])
+        webdriver_conf = dict(conf["WEBDRIVER_CONFIGURATION"])
 
         # Set the binary location if provided
         # We need to pop it from the dict due to selenium_version < 4.10.0
@@ -329,6 +326,7 @@ class WebDriverSelenium(WebDriverProxy):
 
     @staticmethod
     def find_unexpected_errors(driver: WebDriver) -> list[str]:
+        conf = current_app.config
         error_messages = []
 
         try:
@@ -344,7 +342,7 @@ class WebDriverSelenium(WebDriverProxy):
                 # wait for modal to show up
                 modal = WebDriverWait(
                     driver,
-                    current_app.config["SCREENSHOT_WAIT_FOR_ERROR_MODAL_VISIBLE"],
+                    conf["SCREENSHOT_WAIT_FOR_ERROR_MODAL_VISIBLE"],
                 ).until(
                     EC.visibility_of_any_elements_located(
                         (By.CLASS_NAME, "ant-modal-content")
@@ -362,7 +360,7 @@ class WebDriverSelenium(WebDriverProxy):
                 # wait until the modal becomes invisible
                 WebDriverWait(
                     driver,
-                    current_app.config["SCREENSHOT_WAIT_FOR_ERROR_MODAL_INVISIBLE"],
+                    conf["SCREENSHOT_WAIT_FOR_ERROR_MODAL_INVISIBLE"],
                 ).until(EC.invisibility_of_element(modal))
 
                 # Use HTML so that error messages are shown in the same style (color)
@@ -388,7 +386,8 @@ class WebDriverSelenium(WebDriverProxy):
         driver.set_window_size(*self._window)
         driver.get(url)
         img: bytes | None = None
-        selenium_headstart = current_app.config["SCREENSHOT_SELENIUM_HEADSTART"]
+        conf = current_app.config
+        selenium_headstart = conf["SCREENSHOT_SELENIUM_HEADSTART"]
         logger.debug("Sleeping for %i seconds", selenium_headstart)
         sleep(selenium_headstart)
 
@@ -443,9 +442,7 @@ class WebDriverSelenium(WebDriverProxy):
                 )
                 raise
 
-            selenium_animation_wait = current_app.config[
-                "SCREENSHOT_SELENIUM_ANIMATION_WAIT"
-            ]
+            selenium_animation_wait = conf["SCREENSHOT_SELENIUM_ANIMATION_WAIT"]
             logger.debug("Wait %i seconds for chart animation", selenium_animation_wait)
             sleep(selenium_animation_wait)
             logger.debug(
@@ -454,7 +451,7 @@ class WebDriverSelenium(WebDriverProxy):
                 user.username,
             )
 
-            if current_app.config["SCREENSHOT_REPLACE_UNEXPECTED_ERRORS"]:
+            if conf["SCREENSHOT_REPLACE_UNEXPECTED_ERRORS"]:
                 unexpected_errors = WebDriverSelenium.find_unexpected_errors(driver)
                 if unexpected_errors:
                     logger.warning(
@@ -483,5 +480,5 @@ class WebDriverSelenium(WebDriverProxy):
             )
             raise
         finally:
-            self.destroy(driver, current_app.config["SCREENSHOT_SELENIUM_RETRIES"])
+            self.destroy(driver, conf["SCREENSHOT_SELENIUM_RETRIES"])
         return img

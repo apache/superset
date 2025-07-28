@@ -45,10 +45,11 @@ class SlackClientError(Exception):
 
 
 def get_slack_client() -> WebClient:
-    token: str = current_app.config["SLACK_API_TOKEN"]
+    conf = current_app.config
+    token: str = conf["SLACK_API_TOKEN"]
     if callable(token):
         token = token()
-    client = WebClient(token=token, proxy=current_app.config["SLACK_PROXY"])
+    client = WebClient(token=token, proxy=conf["SLACK_PROXY"])
 
     rate_limit_handler = RateLimitErrorRetryHandler(max_retry_count=2)
     client.retry_handlers.append(rate_limit_handler)
@@ -100,9 +101,10 @@ def get_channels_with_search(
     This will search by slack name or id
     """
     try:
+        conf = current_app.config
         channels = get_channels(
             force=force,
-            cache_timeout=current_app.config["SLACK_CACHE_TIMEOUT"],
+            cache_timeout=conf["SLACK_CACHE_TIMEOUT"],
         )
     except (SlackClientError, SlackApiError) as ex:
         raise SupersetException(f"Failed to list channels: {ex}") from ex

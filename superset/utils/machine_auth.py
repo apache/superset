@@ -86,7 +86,8 @@ class MachineAuthProvider:
         if self._auth_webdriver_func_override:
             return self._auth_webdriver_func_override(browser_context, user)
 
-        url = urlparse(current_app.config["WEBDRIVER_BASEURL"])
+        conf = current_app.config
+        url = urlparse(conf["WEBDRIVER_BASEURL"])
 
         # Setting cookies requires doing a request first
         page = browser_context.new_page()

@@ -14,6 +14,8 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from flask import current_app
+
 from superset import app, talisman
 from superset.stats_logger import BaseStatsLogger
 from superset.superset_typing import FlaskResponse
@@ -24,6 +26,7 @@ from superset.superset_typing import FlaskResponse
 @app.route("/healthcheck")
 @app.route("/ping")
 def health() -> FlaskResponse:
-    stats_logger: BaseStatsLogger = app.config["STATS_LOGGER"]
+    conf = current_app.config
+    stats_logger: BaseStatsLogger = conf["STATS_LOGGER"]
     stats_logger.incr("health")
     return "OK"

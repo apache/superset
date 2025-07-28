@@ -23,9 +23,10 @@ from flask import current_app, has_request_context, url_for
 
 
 def get_url_host(user_friendly: bool = False) -> str:
+    conf = current_app.config
     if user_friendly:
-        return current_app.config["WEBDRIVER_BASEURL_USER_FRIENDLY"]
-    return current_app.config["WEBDRIVER_BASEURL"]
+        return conf["WEBDRIVER_BASEURL_USER_FRIENDLY"]
+    return conf["WEBDRIVER_BASEURL"]
 
 
 def headless_url(path: str, user_friendly: bool = False) -> str:

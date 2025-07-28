@@ -126,10 +126,11 @@ def encode_oauth2_state(state: OAuth2State) -> str:
         "default_redirect_uri": state["default_redirect_uri"],
         "tab_id": state["tab_id"],
     }
+    conf = current_app.config
     encoded_state = jwt.encode(
         payload=payload,
-        key=current_app.config["SECRET_KEY"],
-        algorithm=current_app.config["DATABASE_OAUTH2_JWT_ALGORITHM"],
+        key=conf["SECRET_KEY"],
+        algorithm=conf["DATABASE_OAUTH2_JWT_ALGORITHM"],
     )
 
     # Google OAuth2 needs periods to be escaped.
@@ -173,10 +174,11 @@ def decode_oauth2_state(encoded_state: str) -> OAuth2State:
     # Google OAuth2 needs periods to be escaped.
     encoded_state = encoded_state.replace("%2E", ".")
 
+    conf = current_app.config
     payload = jwt.decode(
         jwt=encoded_state,
-        key=current_app.config["SECRET_KEY"],
-        algorithms=[current_app.config["DATABASE_OAUTH2_JWT_ALGORITHM"]],
+        key=conf["SECRET_KEY"],
+        algorithms=[conf["DATABASE_OAUTH2_JWT_ALGORITHM"]],
     )
     state = oauth2_state_schema.load(payload)
 

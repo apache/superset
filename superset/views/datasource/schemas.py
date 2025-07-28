@@ -22,6 +22,8 @@ from superset import app
 from superset.charts.schemas import ChartDataExtrasSchema, ChartDataFilterSchema
 from superset.utils.core import DatasourceType
 
+todo_config = app.config
+
 
 class ExternalMetadataParams(TypedDict):
     datasource_type: str
@@ -100,6 +102,6 @@ class SamplesRequestSchema(Schema):
     force = fields.Boolean(load_default=False)
     page = fields.Integer(load_default=1)
     per_page = fields.Integer(
-        validate=validate.Range(min=1, max=app.config.get("SAMPLES_ROW_LIMIT", 1000)),
-        load_default=app.config.get("SAMPLES_ROW_LIMIT", 1000),
+        validate=validate.Range(min=1, max=todo_config.get("SAMPLES_ROW_LIMIT", 1000)),
+        load_default=todo_config.get("SAMPLES_ROW_LIMIT", 1000),
     )

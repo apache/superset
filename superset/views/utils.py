@@ -22,7 +22,7 @@ from typing import Any, Callable, DefaultDict, Optional, Union
 
 import msgpack
 import pyarrow as pa
-from flask import flash, g, has_request_context, redirect, request
+from flask import current_app, flash, g, has_request_context, redirect, request
 from flask_appbuilder.security.sqla import models as ab_models
 from flask_appbuilder.security.sqla.models import User
 from flask_babel import _
@@ -52,7 +52,8 @@ from superset.utils.decorators import stats_timing
 from superset.viz import BaseViz
 
 logger = logging.getLogger(__name__)
-stats_logger = app.config["STATS_LOGGER"]
+todo_config = app.config
+stats_logger = todo_config["STATS_LOGGER"]
 
 REJECTED_FORM_DATA_KEYS: list[str] = []
 if not feature_flag_manager.is_feature_enabled("ENABLE_JAVASCRIPT_CONTROLS"):
@@ -284,7 +285,8 @@ def apply_display_max_row_limit(
     :returns: The mutated sql_results structure
     """
 
-    display_limit = rows or app.config["DISPLAY_MAX_ROW"]
+    conf = current_app.config
+    display_limit = rows or conf["DISPLAY_MAX_ROW"]
 
     if (
         display_limit
@@ -545,7 +547,8 @@ def _deserialize_results_payload(
 def get_cta_schema_name(
     database: Database, user: ab_models.User, schema: str, sql: str
 ) -> Optional[str]:
-    func: Optional[Callable[[Database, ab_models.User, str, str], str]] = app.config[
+    conf = current_app.config
+    func: Optional[Callable[[Database, ab_models.User, str, str], str]] = conf[
         "SQLLAB_CTAS_SCHEMA_NAME_FUNC"
     ]
     if not func:

@@ -133,7 +133,8 @@ class ScreenshotCachePayload:
         return self.status.value
 
     def is_error_cache_ttl_expired(self) -> bool:
-        error_cache_ttl = app.config["THUMBNAIL_ERROR_CACHE_TTL"]
+        todo_config = app.config
+        error_cache_ttl = todo_config["THUMBNAIL_ERROR_CACHE_TTL"]
         return (
             datetime.now() - datetime.fromisoformat(self.get_timestamp())
         ).total_seconds() > error_cache_ttl
@@ -147,7 +148,11 @@ class ScreenshotCachePayload:
 
 
 class BaseScreenshot:
-    driver_type = current_app.config["WEBDRIVER_TYPE"]
+    @property
+    def driver_type(self) -> str:
+        conf = current_app.config
+        return conf["WEBDRIVER_TYPE"]
+
     url: str
     digest: str | None
     screenshot: bytes | None

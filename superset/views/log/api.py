@@ -87,7 +87,8 @@ class LogRestApi(LogMixin, BaseSupersetModelRestApi):
 
     @staticmethod
     def is_enabled() -> bool:
-        return app.config["FAB_ADD_SECURITY_VIEWS"] and app.config["SUPERSET_LOG_VIEW"]
+        conf = app.config
+        return conf["FAB_ADD_SECURITY_VIEWS"] and conf["SUPERSET_LOG_VIEW"]
 
     @before_request(only=["get_list", "get", "post"])
     def ensure_enabled(self) -> None:
