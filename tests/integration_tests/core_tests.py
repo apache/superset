@@ -299,13 +299,13 @@ class TestCore(SupersetTestCase):
         def custom_password_store(uri):
             return "password_store_test"
 
-        models.custom_password_store = custom_password_store
+        app.config["SQLALCHEMY_CUSTOM_PASSWORD_STORE"] = custom_password_store
         conn = sqla.engine.url.make_url(database.sqlalchemy_uri_decrypted)
         if conn_pre.password:
             assert conn.password == "password_store_test"  # noqa: S105
             assert conn.password != conn_pre.password
         # Disable for password store for later tests
-        models.custom_password_store = None
+        app.config["SQLALCHEMY_CUSTOM_PASSWORD_STORE"] = None
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_warm_up_cache_error(self) -> None:
