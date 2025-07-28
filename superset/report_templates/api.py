@@ -13,6 +13,7 @@ from flask import current_app
 from relatorio.templates.opendocument import Template as ODTTemplate
 from io import BytesIO
 
+from superset.commands.database.validate_sql import ValidateSQLCommand
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.extensions import event_logger
 from superset.utils import core as utils
@@ -22,10 +23,13 @@ from superset.views.base_api import (
     statsd_metrics,
     requires_form_data,
 )
-
+from jinja2 import Template
+from jinja2 import meta
+from sqlalchemy.types import String
 from .models import ReportTemplate
 
 logger = logging.getLogger(__name__)
+
 
 
 class ReportTemplateRestApi(BaseSupersetModelRestApi):
@@ -47,6 +51,7 @@ class ReportTemplateRestApi(BaseSupersetModelRestApi):
     list_columns = ["id", "name", "description", "dataset_id"]
 
     openapi_spec_tag = "Report Templates"
+
 
     @expose("/", methods=("GET",))
     @protect()
@@ -125,6 +130,18 @@ class ReportTemplateRestApi(BaseSupersetModelRestApi):
         except Exception:  # pylint: disable=broad-except
             logger.error("Unable to read template from S3 or local")
             raise
+
+    def _sanitize_params(self, params: dict[str, Any], dialect) -> dict[str, Any]:
+        """Escape user-supplied parameters to avoid SQL injection."""
+        sanitized: dict[str, Any] = {}
+        for k, v in params.items():
+            if isinstance(v, str):
+                sanitized[k] = String().literal_processor(dialect=dialect)(value=v)[
+                               1:-1
+                               ]
+            else:
+                sanitized[k] = v
+        return sanitized
 
     def _delete(self, key: str) -> None:
         cfg = current_app.config
