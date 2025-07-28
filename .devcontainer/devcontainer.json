@@ -1,6 +1,20 @@
 {
   "name": "Apache Superset Development",
-  "image": "mcr.microsoft.com/devcontainers/universal:2-linux",
+  "image": "mcr.microsoft.com/devcontainers/python:3.10",
+
+  "features": {
+    "ghcr.io/devcontainers/features/docker-in-docker:2": {
+      "moby": true,
+      "dockerDashComposeVersion": "v2"
+    },
+    "ghcr.io/devcontainers/features/node:1": {
+      "version": "18"
+    },
+    "ghcr.io/devcontainers/features/git:1": {},
+    "ghcr.io/devcontainers/features/common-utils:2": {
+      "configureZshAsDefaultShell": true
+    }
+  },
 
   // Forward ports for development
   "forwardPorts": [9001, 8088],
