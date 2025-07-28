@@ -149,7 +149,7 @@ def memoized_func(key: str, cache: Cache = cache_manager.cache) -> Callable[...,
 def etag_cache(  # noqa: C901
     cache: Cache = cache_manager.cache,
     get_last_modified: Callable[..., datetime] | None = None,
-    max_age: int | float = app.config["CACHE_DEFAULT_TIMEOUT"],
+    max_age: int | float | None = None,
     raise_for_access: Callable[..., Any] | None = None,
     skip: Callable[..., bool] | None = None,
 ) -> Callable[..., Any]:
@@ -169,6 +169,11 @@ def etag_cache(  # noqa: C901
     def decorator(f: Callable[..., Any]) -> Callable[..., Any]:  # noqa: C901
         @wraps(f)
         def wrapper(*args: Any, **kwargs: Any) -> Response:  # noqa: C901
+            # Set default max_age if not provided
+            nonlocal max_age
+            if max_age is None:
+                max_age = app.config["CACHE_DEFAULT_TIMEOUT"]
+
             # Check if the user can access the resource
             if raise_for_access:
                 try:

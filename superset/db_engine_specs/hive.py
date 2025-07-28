@@ -47,8 +47,6 @@ from superset.models.sql_lab import Query
 from superset.sql.parse import Table
 from superset.superset_typing import ResultSetColumnType
 
-conf = current_app.config
-
 if TYPE_CHECKING:
     from superset.models.core import Database
 
@@ -68,6 +66,7 @@ def upload_to_s3(filename: str, upload_prefix: str, table: Table) -> str:
     import boto3  # pylint: disable=all
     from boto3.s3.transfer import TransferConfig  # pylint: disable=all
 
+    conf = current_app.config
     bucket_path = conf["CSV_TO_HIVE_UPLOAD_S3_BUCKET"]
 
     if not bucket_path:
@@ -225,6 +224,7 @@ class HiveEngineSpec(PrestoEngineSpec):
             f"`{name}` {_get_hive_type(dtype)}" for name, dtype in df.dtypes.items()
         )
 
+        conf = current_app.config
         with tempfile.NamedTemporaryFile(
             dir=conf["UPLOAD_FOLDER"], suffix=".parquet"
         ) as file:
@@ -403,6 +403,7 @@ class HiveEngineSpec(PrestoEngineSpec):
                     last_log_line = len(log_lines)
                 if needs_commit:
                     db.session.commit()  # pylint: disable=consider-using-transaction
+            conf = current_app.config
             if sleep_interval := conf.get("HIVE_POLL_INTERVAL"):
                 logger.warning(
                     "HIVE_POLL_INTERVAL is deprecated and will be removed in 3.0. "
