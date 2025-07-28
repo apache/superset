@@ -1355,7 +1355,7 @@ class TestDeckGLMultiLayer(SupersetTestCase):
             "deck_slices": [1, 2],  # Use integer IDs instead of Mock objects
         }
 
-        with patch("superset.viz.config", {"MAPBOX_API_KEY": "test_key"}):
+        with patch("superset.viz.todo_config", {"MAPBOX_API_KEY": "test_key"}):
             test_viz = viz.DeckGLMultiLayer(datasource, form_data)
 
             test_viz._apply_layer_filtering = Mock(
@@ -1404,7 +1404,7 @@ class TestDeckGLMultiLayer(SupersetTestCase):
 
         form_data = {"deck_slices": [1, 2]}  # Use integer IDs instead of Mock objects
 
-        with patch("superset.viz.config", {"MAPBOX_API_KEY": "test_key"}):
+        with patch("superset.viz.todo_config", {"MAPBOX_API_KEY": "test_key"}):
             test_viz = viz.DeckGLMultiLayer(datasource, form_data)
             result = test_viz.get_data(pd.DataFrame())
 
@@ -1417,7 +1417,7 @@ class TestDeckGLMultiLayer(SupersetTestCase):
         datasource = self.get_datasource_mock()
         form_data = {"deck_slices": []}
 
-        with patch("superset.viz.config", {"MAPBOX_API_KEY": "test_key"}):
+        with patch("superset.viz.todo_config", {"MAPBOX_API_KEY": "test_key"}):
             test_viz = viz.DeckGLMultiLayer(datasource, form_data)
             result = test_viz.get_data(pd.DataFrame())
 
