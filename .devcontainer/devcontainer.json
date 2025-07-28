@@ -22,15 +22,11 @@
   },
 
   // Forward ports for development
-  "forwardPorts": [9001, 8088],
+  "forwardPorts": [9001],
   "portsAttributes": {
     "9001": {
-      "label": "Superset Frontend",
+      "label": "Superset (via Webpack Dev Server)",
       "onAutoForward": "notify"
-    },
-    "8088": {
-      "label": "Superset Backend API",
-      "onAutoForward": "silent"
     }
   },
 
