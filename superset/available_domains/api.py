@@ -24,6 +24,8 @@ from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP
 from superset.extensions import event_logger
 from superset.views.base_api import BaseSupersetApi, statsd_metrics
 
+# Shorter alias for current_app.config
+config = current_app.config
 logger = logging.getLogger(__name__)
 
 
@@ -69,6 +71,6 @@ class AvailableDomainsRestApi(BaseSupersetApi):
               $ref: '#/components/responses/403'
         """
         result = self.available_domains_schema.dump(
-            {"domains": current_app.config.get("SUPERSET_WEBSERVER_DOMAINS")}
+            {"domains": config.get("SUPERSET_WEBSERVER_DOMAINS")}
         )
         return self.response(200, result=result)

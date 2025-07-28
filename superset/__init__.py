@@ -37,7 +37,7 @@ from superset.security import SupersetSecurityManager  # noqa: F401
 # in subsequent PRs as things are migrated towards the factory pattern
 app: Flask = current_app
 cache = cache_manager.cache
-conf = LocalProxy(lambda: current_app.config)
+config = LocalProxy(lambda: current_app.config)
 get_feature_flags = feature_flag_manager.get_feature_flags
 get_manifest_files = manifest_processor.get_manifest_files
 is_feature_enabled = feature_flag_manager.is_feature_enabled

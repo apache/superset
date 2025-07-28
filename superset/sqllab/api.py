@@ -65,6 +65,7 @@ from superset.utils import core as utils, json
 from superset.views.base import CsvResponse, generate_download_headers, json_success
 from superset.views.base_api import BaseSupersetApi, requires_json, statsd_metrics
 
+# Shorter alias for current_app.config
 config = current_app.config
 logger = logging.getLogger(__name__)
 
