@@ -1257,6 +1257,7 @@ const ChartCustomizationForm: FC<Props> = ({
                       column: firstColumn.value,
                     });
                   } else {
+                    fetchDefaultValueData();
                     setFormFieldValues({
                       selectFirst: checked,
                       hasDefaultValue: false,
