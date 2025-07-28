@@ -192,7 +192,7 @@ DESC SEMANTIC VIEW {quoted_semantic_view_name}
         FROM $1
         WHERE
             "object_kind" = 'DIMENSION' AND
-            "property" IN ('DATA_TYPE', 'TABLE', 'EXPRESSION');
+            "property" IN ('DATA_TYPE', 'TABLE');
         """  # noqa: S608 (semantic_view.name is quoted)
         rows = self.execute(sql)
 
@@ -204,8 +204,7 @@ DESC SEMANTIC VIEW {quoted_semantic_view_name}
 
             table = next(iter(attributes["TABLE"]))
             dimension_name = table + "." + name
-            expression = next(iter(attributes["EXPRESSION"]))
-            column = SemanticColumn(SemanticTable(table), expression)
+            column = SemanticColumn(SemanticTable(table), name)
             type_ = self.get_type(next(iter(attributes["DATA_TYPE"])))
 
             dimensions.add(SemanticDimension(column, dimension_name, type_))
@@ -264,10 +263,26 @@ DESC SEMANTIC VIEW {quoted_semantic_view_name}
         semantic_view = exp.SemanticView(
             this=Table(this=exp.Identifier(this=semantic_view.name, quoted=True)),
             dimensions=[
-                exp.Column(this=exp.Identifier(this=dimension.name, quoted=True))
+                exp.Column(
+                    this=exp.Identifier(this=dimension.column.name, quoted=True),
+                    table=exp.Identifier(
+                        this=dimension.column.relation.name,
+                        quoted=True,
+                    ),
+                )
                 for dimension in dimensions
             ],
-            metrics=[],
+            metrics=[
+                exp.Column(
+                    this=exp.Identifier(this=table, quoted=True),
+                    table=exp.Identifier(this=column, quoted=True),
+                )
+                for table, column in (
+                    metric.name.split(".", 1)
+                    for metric in metrics
+                    if "." in metric.name
+                )
+            ],
             # where=  XXX push predicates
         )
         query = exp.Select(
@@ -293,6 +308,15 @@ DESC SEMANTIC VIEW {quoted_semantic_view_name}
             query = query.limit(limit)
 
         return query
+
+    def get_query_from_standard_sql(
+        self,
+        semantic_view: SemanticView,
+        sql: str,
+    ) -> Query:
+        statement = SQLStatement(sql, "snowflake")
+        # check if any of the tables in the statement is a semantic view
+
 
 
 class SnowflakeEngineSpec(PostgresBaseEngineSpec):
