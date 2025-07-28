@@ -34,7 +34,7 @@ from tests.integration_tests.fixtures.query_context import get_query_context
 
 class TestSchema(SupersetTestCase):
     @mock.patch(
-        "superset.common.query_context_factory.config",
+        "superset.common.query_context_factory.todo_config",
         {**app.config, "ROW_LIMIT": 5000},
     )
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
