@@ -96,7 +96,6 @@ const StyledTabsContainer = styled.div`
 
       .ant-tabs-content-holder {
         overflow: visible;
-        padding-top: ${theme.sizeUnit * 4}px;
       }
     }
 
