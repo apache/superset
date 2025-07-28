@@ -411,6 +411,7 @@ export interface ThemeControllerOptions {
   onChange?: (theme: Theme) => void;
   canUpdateTheme?: () => boolean;
   canUpdateMode?: () => boolean;
+  isGlobalContext?: boolean;
 }
 
 export interface ThemeContextType {
@@ -419,4 +420,12 @@ export interface ThemeContextType {
   setTheme: (config: AnyThemeConfig) => void;
   setThemeMode: (newMode: ThemeMode) => void;
   resetTheme: () => void;
+  setTemporaryTheme: (config: AnyThemeConfig) => void;
+  clearLocalOverrides: () => void;
+  getCurrentCrudThemeId: () => string | null;
+  hasDevOverride: () => boolean;
+  canSetMode: () => boolean;
+  canSetTheme: () => boolean;
+  canDetectOSPreference: () => boolean;
+  createDashboardThemeProvider: (themeId: string) => Promise<Theme | null>;
 }

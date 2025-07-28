@@ -110,6 +110,7 @@ export const ModalTrigger = forwardRef(
           className={className}
           show={showModal}
           onHide={close}
+          name={modalTitle}
           title={modalTitle}
           footer={modalFooter}
           hideFooter={!modalFooter}

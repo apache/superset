@@ -112,6 +112,7 @@ export type DashboardState = {
   colorScheme: string;
   sliceIds: number[];
   directPathLastUpdated: number;
+  css?: string;
   focusedFilterField?: {
     chartId: number;
     column: string;
@@ -159,6 +160,11 @@ export type DashboardInfo = {
   chartCustomizationData?: { [itemId: string]: FilterOption[] };
   chartCustomizationLoading?: { [itemId: string]: boolean };
   pendingChartCustomizations?: Record<string, ChartCustomizationItem>;
+  theme?: {
+    id: number;
+    name: string;
+  } | null;
+  theme_id?: number | null;
 };
 
 export type ChartsState = { [key: string]: Chart };

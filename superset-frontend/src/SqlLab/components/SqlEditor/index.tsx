@@ -1089,6 +1089,7 @@ const SqlEditor: FC<Props> = ({
       )}
       <Modal
         show={showCreateAsModal}
+        name={t(createViewModalTitle)}
         title={t(createViewModalTitle)}
         onHide={() => setShowCreateAsModal(false)}
         footer={

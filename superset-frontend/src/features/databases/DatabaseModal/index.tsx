@@ -21,8 +21,6 @@ import {
   styled,
   SupersetTheme,
   getExtensionsRegistry,
-  css,
-  useTheme,
 } from '@superset-ui/core';
 
 import {
@@ -69,6 +67,7 @@ import {
 import { useCommonConf } from 'src/features/databases/state';
 import { isEmpty, pick } from 'lodash';
 import { OnlyKeyWithType } from 'src/utils/types';
+import { ModalTitleWithIcon } from 'src/components/ModalTitleWithIcon';
 import {
   DatabaseObject,
   DatabaseForm,
@@ -575,7 +574,6 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   databaseId,
   dbEngine,
 }) => {
-  const theme = useTheme();
   const [db, setDB] = useReducer<
     Reducer<Partial<DatabaseObject> | null, DBReducerActionType>
   >(dbReducer, null);
@@ -1837,7 +1835,12 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         onHandledPrimaryAction={onSave}
         primaryButtonName={t('Connect')}
         show={show}
-        title={<h4>{t('Connect a database')}</h4>}
+        title={
+          <ModalTitleWithIcon
+            title={t('Connect a database')}
+            icon={<Icons.InsertRowAboveOutlined />}
+          />
+        }
         width="500px"
       >
         <ModalHeader
@@ -1877,24 +1880,17 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       centered
       show={show}
       title={
-        <h4>
-          {isEditMode ? (
-            <Icons.EditOutlined
-              iconSize="l"
-              css={css`
-                margin: auto ${theme.sizeUnit * 2}px auto 0;
-              `}
-            />
-          ) : (
-            <Icons.InsertRowAboveOutlined
-              iconSize="l"
-              css={css`
-                margin: auto ${theme.sizeUnit * 2}px auto 0;
-              `}
-            />
-          )}
-          {isEditMode ? t('Edit database') : t('Connect a database')}
-        </h4>
+        <ModalTitleWithIcon
+          isEditMode={isEditMode}
+          title={isEditMode ? t('Edit database') : t('Connect a database')}
+          icon={
+            isEditMode ? (
+              <Icons.EditOutlined iconSize="l" />
+            ) : (
+              <Icons.InsertRowAboveOutlined iconSize="l" />
+            )
+          }
+        />
       }
       footer={modalFooter}
       maskClosable={false}
@@ -2078,15 +2074,10 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       centered
       show={show}
       title={
-        <h4>
-          <Icons.InsertRowAboveOutlined
-            iconSize="l"
-            css={css`
-              margin: auto ${theme.sizeUnit * 2}px auto 0;
-            `}
-          />
-          {t('Connect a database')}
-        </h4>
+        <ModalTitleWithIcon
+          title={t('Connect a database')}
+          icon={<Icons.InsertRowAboveOutlined />}
+        />
       }
       footer={renderModalFooter()}
       maskClosable={false}

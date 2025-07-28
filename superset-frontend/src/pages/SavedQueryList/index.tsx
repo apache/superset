@@ -190,26 +190,6 @@ function SavedQueryList({
 
   const subMenuButtons: Array<ButtonProps> = [];
 
-  if (canDelete) {
-    subMenuButtons.push({
-      name: t('Bulk select'),
-      onClick: toggleBulkSelect,
-      buttonStyle: 'secondary',
-    });
-  }
-
-  subMenuButtons.push({
-    name: (
-      <>
-        <Icons.PlusOutlined iconSize="m" />
-        {t('Query')}
-      </>
-    ),
-    buttonStyle: 'primary',
-    onClick: () => {
-      history.push('/sqllab?new=true');
-    },
-  });
   if (canCreate) {
     subMenuButtons.push({
       name: (
@@ -227,6 +207,23 @@ function SavedQueryList({
       'data-test': 'import-button',
     });
   }
+
+  if (canDelete) {
+    subMenuButtons.push({
+      name: t('Bulk select'),
+      onClick: toggleBulkSelect,
+      buttonStyle: 'secondary',
+    });
+  }
+
+  subMenuButtons.push({
+    icon: <Icons.PlusOutlined iconSize="m" />,
+    name: t('Query'),
+    buttonStyle: 'primary',
+    onClick: () => {
+      history.push('/sqllab?new=true');
+    },
+  });
 
   menuData.buttons = subMenuButtons;
 

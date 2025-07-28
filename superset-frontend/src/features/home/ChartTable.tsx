@@ -17,7 +17,7 @@
  * under the License.
  */
 import { useEffect, useMemo, useState } from 'react';
-import { t, useTheme } from '@superset-ui/core';
+import { t } from '@superset-ui/core';
 import {
   useChartEditModal,
   useFavoriteStatus,
@@ -71,7 +71,6 @@ function ChartTable({
   otherTabFilters,
   otherTabTitle,
 }: ChartTableProps) {
-  const theme = useTheme();
   const history = useHistory();
   const initialTab = getItem(
     LocalStorageKeys.HomepageChartFilter,
@@ -188,16 +187,13 @@ function ChartTable({
         backgroundColor="transparent"
         buttons={[
           {
-            name: (
-              <>
-                <Icons.PlusOutlined
-                  iconSize="m"
-                  data-test="add-annotation-layer-button"
-                  iconColor={theme.colorPrimary}
-                />
-                {t('Chart')}
-              </>
+            icon: (
+              <Icons.PlusOutlined
+                iconSize="m"
+                data-test="add-annotation-layer-button"
+              />
             ),
+            name: t('Chart'),
             buttonStyle: 'secondary',
             onClick: () => {
               navigateTo('/chart/add', { assign: true });

@@ -22,6 +22,11 @@ Apache Superset is a data visualization platform with Flask/Python backend and R
 - **MyPy compliance** - Run `pre-commit run mypy` to validate
 - **SQLAlchemy typing** - Use proper model annotations
 
+### UUID Migration
+- **Prefer UUIDs over auto-incrementing IDs** - New models should use UUID primary keys
+- **External API exposure** - Use UUIDs in public APIs instead of internal integer IDs
+- **Existing models** - Add UUID fields alongside integer IDs for gradual migration
+
 ## Key Directories
 
 ```
@@ -89,6 +94,10 @@ superset/
 - **`selectOption()`** - Select component helper
 - **React Testing Library** - NO Enzyme (removed)
 
+### Test Database Patterns
+- **Mock patterns**: Use `MagicMock()` for config objects, avoid `AsyncMock` for synchronous code
+- **API tests**: Update expected columns when adding new model fields
+
 ### Running Tests
 ```bash
 # Frontend
@@ -120,6 +129,10 @@ curl -f http://localhost:8088/health || echo "❌ Setup required - see https://s
 - `pyproject.toml` - Python tooling (ruff, mypy configs)
 - `requirements/` folder - Python dependencies (base.txt, development.txt)
 
+## SQLAlchemy Query Best Practices  
+- **Use negation operator**: `~Model.field` instead of `== False` to avoid ruff E712 errors
+- **Example**: `~Model.is_active` instead of `Model.is_active == False`
+
 ## Pre-commit Validation
 
 **Use pre-commit hooks for quality validation:**
@@ -128,12 +141,42 @@ curl -f http://localhost:8088/health || echo "❌ Setup required - see https://s
 # Install hooks
 pre-commit install
 
+# IMPORTANT: Stage your changes first!
+git add .                        # Pre-commit only checks staged files
+
 # Quick validation (faster than --all-files)
-pre-commit run                    # Staged files only
+pre-commit run                   # Staged files only
 pre-commit run mypy              # Python type checking
 pre-commit run prettier          # Code formatting
 pre-commit run eslint            # Frontend linting
 ```
+
+**Important pre-commit usage notes:**
+- **Stage files first**: Run `git add .` before `pre-commit run` to check only changed files (much faster)
+- **Virtual environment**: Activate your Python virtual environment before running pre-commit
+  ```bash
+  # Common virtual environment locations (yours may differ):
+  source .venv/bin/activate      # if using .venv
+  source venv/bin/activate       # if using venv
+  source ~/venvs/superset/bin/activate  # if using a central location
+  ```
+  If you get a "command not found" error, ask the user which virtual environment to activate
+- **Auto-fixes**: Some hooks auto-fix issues (e.g., trailing whitespace). Re-run after fixes are applied
+
+## Common File Patterns
+
+### API Structure
+- **`/api.py`** - REST endpoints with decorators and OpenAPI docstrings
+- **`/schemas.py`** - Marshmallow validation schemas for OpenAPI spec
+- **`/commands/`** - Business logic classes with @transaction() decorators
+- **`/models/`** - SQLAlchemy database models
+- **OpenAPI docs**: Auto-generated at `/swagger/v1` from docstrings and schemas
+
+### Migration Files
+- **Location**: `superset/migrations/versions/`
+- **Naming**: `YYYY-MM-DD_HH-MM_hash_description.py`
+- **Utilities**: Use helpers from `superset.migrations.shared.utils` for database compatibility
+- **Pattern**: Import utilities instead of raw SQLAlchemy operations
 
 ## Platform-Specific Instructions
 

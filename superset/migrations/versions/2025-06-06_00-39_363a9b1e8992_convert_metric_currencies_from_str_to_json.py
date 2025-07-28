@@ -22,7 +22,7 @@ Create Date: 2025-06-06 00:39:00.107746
 
 """
 
-import json
+import json  # noqa: TID251
 import logging
 
 from alembic import op

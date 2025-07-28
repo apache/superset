@@ -35,6 +35,11 @@ import { useTheme, css } from '@superset-ui/core';
 import { Global } from '@emotion/react';
 
 export { getTooltipHTML } from './Tooltip';
+export { useJsonValidation } from './useJsonValidation';
+export type {
+  JsonValidationAnnotation,
+  UseJsonValidationOptions,
+} from './useJsonValidation';
 
 export interface AceCompleterKeywordData {
   name: string;
@@ -265,7 +270,7 @@ export function AsyncAceEditor(
                 /* Adjust tooltip styles */
                 .ace_tooltip {
                   margin-left: ${token.margin}px;
-                  padding: 0px;
+                  padding: ${token.sizeUnit * 2}px;
                   background-color: ${token.colorBgElevated} !important;
                   color: ${token.colorText} !important;
                   border: 1px solid ${token.colorBorderSecondary};

@@ -284,6 +284,7 @@ export const SavedQueries = ({
         ]}
         buttons={[
           {
+            icon: <Icons.PlusOutlined iconSize="m" />,
             name: (
               <Link
                 to="/sqllab?new=true"
@@ -294,10 +295,6 @@ export const SavedQueries = ({
                   }
                 `}
               >
-                <Icons.PlusOutlined
-                  iconColor={theme.colorPrimary}
-                  iconSize="m"
-                />
                 {t('SQL Query')}
               </Link>
             ),

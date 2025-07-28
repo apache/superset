@@ -30,6 +30,7 @@ import {
   CLEAR_PENDING_CHART_CUSTOMIZATION,
   CLEAR_ALL_PENDING_CHART_CUSTOMIZATIONS,
   CLEAR_ALL_CHART_CUSTOMIZATIONS,
+  SET_DASHBOARD_THEME,
 } from '../actions/dashboardInfo';
 import { HYDRATE_DASHBOARD } from '../actions/hydrate';
 
@@ -155,6 +156,12 @@ export default function dashboardStateReducer(state = {}, action) {
               },
             })) || [],
         },
+        last_modified_time: Math.round(new Date().getTime() / 1000),
+      };
+    case SET_DASHBOARD_THEME:
+      return {
+        ...state,
+        theme: action.theme,
         last_modified_time: Math.round(new Date().getTime() / 1000),
       };
     default:

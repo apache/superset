@@ -686,24 +686,8 @@ function DashboardList(props: DashboardListProps) {
   );
 
   const subMenuButtons: SubMenuProps['buttons'] = [];
-  if (canDelete || canExport) {
-    subMenuButtons.push({
-      name: t('Bulk select'),
-      buttonStyle: 'secondary',
-      'data-test': 'bulk-select',
-      onClick: toggleBulkSelect,
-    });
-  }
-  if (canCreate) {
-    subMenuButtons.push({
-      icon: <Icons.PlusOutlined iconSize="m" />,
-      name: t('Dashboard'),
-      buttonStyle: 'primary',
-      onClick: () => {
-        navigateTo('/dashboard/new', { assign: true });
-      },
-    });
 
+  if (canCreate) {
     subMenuButtons.push({
       name: (
         <Tooltip
@@ -716,6 +700,26 @@ function DashboardList(props: DashboardListProps) {
       ),
       buttonStyle: 'link',
       onClick: openDashboardImportModal,
+    });
+  }
+
+  if (canDelete || canExport) {
+    subMenuButtons.push({
+      name: t('Bulk select'),
+      buttonStyle: 'secondary',
+      'data-test': 'bulk-select',
+      onClick: toggleBulkSelect,
+    });
+  }
+
+  if (canCreate) {
+    subMenuButtons.push({
+      icon: <Icons.PlusOutlined iconSize="m" />,
+      name: t('Dashboard'),
+      buttonStyle: 'primary',
+      onClick: () => {
+        navigateTo('/dashboard/new', { assign: true });
+      },
     });
   }
   return (

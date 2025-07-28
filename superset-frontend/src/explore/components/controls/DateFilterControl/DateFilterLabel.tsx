@@ -39,6 +39,7 @@ import ControlHeader from 'src/explore/components/ControlHeader';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { useDebouncedEffect } from 'src/explore/exploreUtils';
 import { noOp } from 'src/utils/common';
+import { ModalTitleWithIcon } from 'src/components/ModalTitleWithIcon';
 import ControlPopover from '../ControlPopover/ControlPopover';
 
 import { DateFilterControlProps, FrameType } from './types';
@@ -344,19 +345,18 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
     </ContentStyleWrapper>
   );
 
-  const title = (
-    <IconWrapper>
-      <Icons.EditOutlined />
-      <span className="text">{t('Edit time range')}</span>
-    </IconWrapper>
-  );
   const popoverContent = (
     <ControlPopover
       autoAdjustOverflow={false}
       trigger="click"
       placement="right"
       content={overlayContent}
-      title={title}
+      title={
+        <IconWrapper>
+          <Icons.EditOutlined />
+          <span className="text">{t('Edit time range')}</span>
+        </IconWrapper>
+      }
       defaultOpen={show}
       open={show}
       onOpenChange={toggleOverlay}
@@ -401,7 +401,14 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
       </Tooltip>
       {/* the zIndex value is from trying so that the Modal doesn't overlay the AdhocFilter */}
       <Modal
-        title={title}
+        title={
+          <ModalTitleWithIcon
+            className="text"
+            isEditMode
+            title={t('Edit time range')}
+          />
+        }
+        name={t('Edit time range')}
         show={show}
         onHide={toggleOverlay}
         width="600px"

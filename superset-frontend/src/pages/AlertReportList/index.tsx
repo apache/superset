@@ -429,6 +429,15 @@ function AlertList({
 
   const subMenuButtons: SubMenuProps['buttons'] = [];
 
+  if (canDelete) {
+    subMenuButtons.push({
+      name: t('Bulk select'),
+      onClick: toggleBulkSelect,
+      buttonStyle: 'secondary',
+      'data-test': 'bulk-select-toggle',
+    });
+  }
+
   if (canCreate) {
     subMenuButtons.push({
       icon: <Icons.PlusOutlined iconSize="m" />,
@@ -437,14 +446,6 @@ function AlertList({
       onClick: () => {
         handleAlertEdit(null);
       },
-    });
-  }
-  if (canDelete) {
-    subMenuButtons.push({
-      name: t('Bulk select'),
-      onClick: toggleBulkSelect,
-      buttonStyle: 'secondary',
-      'data-test': 'bulk-select-toggle',
     });
   }
 

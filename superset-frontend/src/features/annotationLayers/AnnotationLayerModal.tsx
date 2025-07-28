@@ -18,10 +18,9 @@
  */
 import { FunctionComponent, useState, useEffect, ChangeEvent } from 'react';
 
-import { css, styled, t, useTheme } from '@superset-ui/core';
+import { styled, t } from '@superset-ui/core';
 import { useSingleViewResource } from 'src/views/CRUD/hooks';
-
-import { Icons } from '@superset-ui/core/components/Icons';
+import { ModalTitleWithIcon } from 'src/components/ModalTitleWithIcon';
 import { Typography } from '@superset-ui/core/components/Typography';
 import { Input, Modal } from '@superset-ui/core/components';
 import withToasts from 'src/components/MessageToasts/withToasts';
@@ -94,7 +93,6 @@ const AnnotationLayerModal: FunctionComponent<AnnotationLayerModalProps> = ({
   show,
   layer = null,
 }) => {
-  const theme = useTheme();
   const [disableSave, setDisableSave] = useState<boolean>(true);
   const [currentLayer, setCurrentLayer] =
     useState<AnnotationLayerObject | null>();
@@ -235,28 +233,21 @@ const AnnotationLayerModal: FunctionComponent<AnnotationLayerModalProps> = ({
       primaryButtonName={isEditMode ? t('Save') : t('Add')}
       show={show}
       width="55%"
+      name={
+        isEditMode
+          ? t('Edit annotation layer properties')
+          : t('Add annotation layer')
+      }
       title={
-        <Typography.Title level={4} data-test="annotation-layer-modal-title">
-          {isEditMode ? (
-            <Icons.EditOutlined
-              iconSize="l"
-              css={css`
-                margin: auto ${theme.sizeUnit * 2}px auto 0;
-              `}
-            />
-          ) : (
-            <Icons.PlusOutlined
-              iconSize="m"
-              css={css`
-                margin: auto ${theme.sizeUnit * 2}px auto 0;
-                vertical-align: text-top;
-              `}
-            />
-          )}
-          {isEditMode
-            ? t('Edit annotation layer properties')
-            : t('Add annotation layer')}
-        </Typography.Title>
+        <ModalTitleWithIcon
+          isEditMode={isEditMode}
+          title={
+            isEditMode
+              ? t('Edit annotation layer properties')
+              : t('Add annotation layer')
+          }
+          data-test="annotation-layer-modal-title"
+        />
       }
     >
       <StyledAnnotationLayerTitle>

@@ -255,6 +255,7 @@ const ChangeDatasourceModal: FunctionComponent<ChangeDatasourceModalProps> = ({
       show={show}
       onHide={onHide}
       responsive
+      name="Swap dataset"
       title={t('Swap dataset')}
       width={confirmChange ? '432px' : ''}
       height={confirmChange ? 'auto' : '540px'}
