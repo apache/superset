@@ -31,7 +31,7 @@ import {
   tn,
   styled,
 } from '@superset-ui/core';
-import { debounce, isUndefined } from 'lodash';
+import { debounce, first, isUndefined } from 'lodash';
 import { useImmerReducer } from 'use-immer';
 import {
   FormItem,
@@ -376,13 +376,14 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
     const prev = prevDataRef.current;
     const curr = data;
 
-    const stringifySafe = (val: unknown) =>
-      typeof val === 'bigint' ? val.toString() : val;
-
-    const hasDataChanged =
-      prev?.length !== curr?.length ||
-      JSON.stringify(prev?.map(row => stringifySafe(row[col]))) !==
-        JSON.stringify(curr?.map(row => stringifySafe(row[col])));
+    const hasDataChanged = prev?.length !== curr?.length ||
+      prev?.some((row, i) => {
+        const prevVal = row[col];
+        const currVal = curr[i][col];
+        return typeof prevVal === 'bigint' || typeof currVal === 'bigint'
+          ? prevVal?.toString() !== currVal?.toString()
+          : prevVal !== currVal;
+      });
 
     // If data actually changed (e.g., due to parent filter), reset flag
     if (hasDataChanged) {
@@ -395,7 +396,7 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
     if (
       isChangedByUser.current &&
       filterState.value &&
-      data.some(row => row[col] === filterState.value[0])
+      filterState.value.every((value?: any) => data.some(row => row[col] === value))
     )
       return;
 

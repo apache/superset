@@ -155,19 +155,17 @@ const FilterValue: FC<FilterControlProps> = ({
       dashboardId,
     });
     const filterOwnState = filter.dataMask?.ownState || {};
-    // if (Object.keys(dataMaskSelected))
     if (filter?.cascadeParentIds?.length) {
       // Prevent unnecessary backend requests by validating parent filter selections first
 
       let selectedParentFilterValueCounts = 0;
 
       filter?.cascadeParentIds?.forEach(pId => {
-        if (
-          dataMaskSelected?.[pId]?.extraFormData?.filters ||
-          dataMaskSelected?.[pId]?.extraFormData?.time_range
-        ) {
-          selectedParentFilterValueCounts +=
-            dataMaskSelected?.[pId]?.extraFormData?.filters?.length ?? 1;
+        const extraFormData = dataMaskSelected?.[pId]?.extraFormData;
+        if (extraFormData?.filters?.length) {
+          selectedParentFilterValueCounts += extraFormData.filters.length;
+        } else if (extraFormData?.time_range) {
+          selectedParentFilterValueCounts += 1;
         }
       });
 
@@ -178,7 +176,6 @@ const FilterValue: FC<FilterControlProps> = ({
       if (dependencies?.time_range) {
         depsCount += 1;
       }
-
       if (selectedParentFilterValueCounts !== depsCount) {
         // child filter should not request backend until it
         // has all the required information from parent filters
