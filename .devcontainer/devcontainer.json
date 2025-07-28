@@ -26,7 +26,8 @@
   "portsAttributes": {
     "9001": {
       "label": "Superset (via Webpack Dev Server)",
-      "onAutoForward": "notify"
+      "onAutoForward": "notify",
+      "visibility": "public"
     }
   },
 
