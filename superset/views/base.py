@@ -26,6 +26,7 @@ from typing import Any, Callable
 from babel import Locale
 from flask import (
     abort,
+    current_app,
     flash,
     g,
     get_flashed_messages,
@@ -50,7 +51,6 @@ from wtforms.fields.core import Field, UnboundField
 from superset import (
     app as superset_app,
     appbuilder,
-    conf,
     db,
     get_feature_flags,
     is_feature_enabled,
@@ -71,6 +71,8 @@ from superset.utils.filters import get_dataset_access_filters
 from superset.views.error_handling import json_error_response
 
 from .utils import bootstrap_user_data, get_config_value
+
+conf = current_app.config
 
 DEFAULT_THEME_SETTINGS = {
     "enforced": False,
@@ -129,7 +131,6 @@ FRONTEND_CONF_KEYS = (
 )
 
 logger = logging.getLogger(__name__)
-config = superset_app.config
 
 
 def get_error_msg() -> str:
@@ -589,11 +590,9 @@ def apply_http_headers(response: Response) -> Response:
     """Applies the configuration's http headers to all responses"""
 
     # HTTP_HEADERS is deprecated, this provides backwards compatibility
-    response.headers.extend(
-        {**config["OVERRIDE_HTTP_HEADERS"], **config["HTTP_HEADERS"]}
-    )
+    response.headers.extend({**conf["OVERRIDE_HTTP_HEADERS"], **conf["HTTP_HEADERS"]})
 
-    for k, v in config["DEFAULT_HTTP_HEADERS"].items():
+    for k, v in conf["DEFAULT_HTTP_HEADERS"].items():
         if k not in response.headers:
             response.headers[k] = v
     return response

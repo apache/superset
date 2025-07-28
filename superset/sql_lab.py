@@ -72,7 +72,7 @@ from superset.utils.rls import apply_rls
 if TYPE_CHECKING:
     from superset.models.core import Database
 
-config = app.config
+config = app.config  # TODO-CONF: module-scoped config usage with extracted values
 stats_logger = config["STATS_LOGGER"]
 SQLLAB_TIMEOUT = config["SQLLAB_ASYNC_TIME_LIMIT_SEC"]
 SQLLAB_HARD_TIMEOUT = SQLLAB_TIMEOUT + 60

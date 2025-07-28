@@ -111,10 +111,9 @@ from superset.superset_typing import (
 from superset.utils import core as utils, json
 from superset.utils.backports import StrEnum
 
-config = app.config
+config = app.config  # TODO-CONF: module-scoped config usage with extracted values
 metadata = Model.metadata  # pylint: disable=no-member
 logger = logging.getLogger(__name__)
-ADVANCED_DATA_TYPES = config["ADVANCED_DATA_TYPES"]
 VIRTUAL_TABLE_ALIAS = "virtual_table"
 
 # a non-exhaustive set of additive metrics

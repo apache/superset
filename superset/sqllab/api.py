@@ -18,13 +18,13 @@ import logging
 from typing import Any, cast, Optional
 from urllib import parse
 
-from flask import request, Response
+from flask import current_app, request, Response
 from flask_appbuilder import permission_name
 from flask_appbuilder.api import expose, protect, rison, safe
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from marshmallow import ValidationError
 
-from superset import app, is_feature_enabled
+from superset import is_feature_enabled
 from superset.commands.sql_lab.estimate import QueryEstimationCommand
 from superset.commands.sql_lab.execute import CommandResult, ExecuteSqlCommand
 from superset.commands.sql_lab.export import SqlResultExportCommand
@@ -65,7 +65,7 @@ from superset.utils import core as utils, json
 from superset.views.base import CsvResponse, generate_download_headers, json_success
 from superset.views.base_api import BaseSupersetApi, requires_json, statsd_metrics
 
-config = app.config
+config = current_app.config
 logger = logging.getLogger(__name__)
 
 
