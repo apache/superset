@@ -64,11 +64,13 @@ def get_or_create_db(
 
 
 def get_example_database() -> Database:
-    return get_or_create_db("examples", current_app.config["SQLALCHEMY_EXAMPLES_URI"])
+    conf = current_app.config
+    return get_or_create_db("examples", conf["SQLALCHEMY_EXAMPLES_URI"])
 
 
 def get_main_database() -> Database:
-    db_uri = current_app.config["SQLALCHEMY_DATABASE_URI"]
+    conf = current_app.config
+    db_uri = conf["SQLALCHEMY_DATABASE_URI"]
     return get_or_create_db("main", db_uri)
 
 

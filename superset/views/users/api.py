@@ -171,7 +171,7 @@ class CurrentUserRestApi(BaseSupersetApi):
                 setattr(g.user, key, value)
 
             self.pre_update(g.user, item)
-            db.session.commit()
+            db.session.commit()  # pylint: disable=consider-using-transaction
             return self.response(200, result=user_response_schema.dump(g.user))
         except ValidationError as error:
             return self.response_400(message=error.messages)

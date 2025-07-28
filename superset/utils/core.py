@@ -1381,7 +1381,8 @@ def create_ssl_cert_file(certificate: str) -> str:
     :raises CertificateException: If certificate is not valid/unparseable
     """
     filename = f"{md5_sha_from_str(certificate)}.crt"
-    cert_dir = current_app.config["SSL_CERT_PATH"]
+    conf = current_app.config
+    cert_dir = conf["SSL_CERT_PATH"]
     path = cert_dir if cert_dir else tempfile.gettempdir()
     path = os.path.join(path, filename)
     if not os.path.exists(path):
@@ -1428,7 +1429,8 @@ class DatasourceName(NamedTuple):
 
 
 def get_stacktrace() -> str | None:
-    if current_app.config["SHOW_STACKTRACE"]:
+    conf = current_app.config
+    if conf["SHOW_STACKTRACE"]:
         return traceback.format_exc()
     return None
 
@@ -1867,10 +1869,9 @@ def apply_max_row_limit(
     >>> apply_max_row_limit(0)  # Zero returns default max limit
     50000
     """
+    conf = current_app.config
     max_limit = (
-        current_app.config["TABLE_VIZ_MAX_ROW_SERVER"]
-        if server_pagination
-        else current_app.config["SQL_MAX_ROW"]
+        conf["TABLE_VIZ_MAX_ROW_SERVER"] if server_pagination else conf["SQL_MAX_ROW"]
     )
     if limit != 0:
         return min(max_limit, limit)
@@ -1897,12 +1898,13 @@ def check_is_safe_zip(zip_file: ZipFile) -> None:
     uncompress_size = 0
     compress_size = 0
     for zip_file_element in zip_file.infolist():
-        if zip_file_element.file_size > current_app.config["ZIPPED_FILE_MAX_SIZE"]:
+        conf = current_app.config
+        if zip_file_element.file_size > conf["ZIPPED_FILE_MAX_SIZE"]:
             raise SupersetException("Found file with size above allowed threshold")
         uncompress_size += zip_file_element.file_size
         compress_size += zip_file_element.compress_size
     compress_ratio = uncompress_size / compress_size
-    if compress_ratio > current_app.config["ZIP_FILE_MAX_COMPRESS_RATIO"]:
+    if compress_ratio > conf["ZIP_FILE_MAX_COMPRESS_RATIO"]:
         raise SupersetException("Zip compress ratio above allowed threshold")
 
 
@@ -1940,7 +1942,8 @@ def get_query_source_from_request() -> QuerySource | None:
 
 def get_user_agent(database: Database, source: QuerySource | None) -> str:
     source = source or get_query_source_from_request()
-    if user_agent_func := current_app.config["USER_AGENT_FUNC"]:
+    conf = current_app.config
+    if user_agent_func := conf["USER_AGENT_FUNC"]:
         return user_agent_func(database, source)
 
     return DEFAULT_USER_AGENT

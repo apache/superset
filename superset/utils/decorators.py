@@ -44,21 +44,18 @@ def statsd_gauge(metric_prefix: str | None = None) -> Callable[..., Any]:
 
         def wrapped(*args: Any, **kwargs: Any) -> Any:
             metric_prefix_ = metric_prefix or f.__name__
+            conf = current_app.config
             try:
                 result = f(*args, **kwargs)
-                current_app.config["STATS_LOGGER"].gauge(f"{metric_prefix_}.ok", 1)
+                conf["STATS_LOGGER"].gauge(f"{metric_prefix_}.ok", 1)
                 return result
             except Exception as ex:
                 if (
                     hasattr(ex, "status") and ex.status < 500  # pylint: disable=no-member
                 ):
-                    current_app.config["STATS_LOGGER"].gauge(
-                        f"{metric_prefix_}.warning", 1
-                    )
+                    conf["STATS_LOGGER"].gauge(f"{metric_prefix_}.warning", 1)
                 else:
-                    current_app.config["STATS_LOGGER"].gauge(
-                        f"{metric_prefix_}.error", 1
-                    )
+                    conf["STATS_LOGGER"].gauge(f"{metric_prefix_}.error", 1)
                 raise
 
         return wrapped

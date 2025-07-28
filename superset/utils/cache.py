@@ -59,7 +59,7 @@ def set_and_log_cache(
     timeout = (
         cache_timeout
         if cache_timeout is not None
-        else app.config["CACHE_DEFAULT_TIMEOUT"]
+        else todo_config["CACHE_DEFAULT_TIMEOUT"]
     )
     try:
         dttm = datetime.utcnow().isoformat().split(".")[0]
@@ -122,7 +122,7 @@ def memoized_func(key: str, cache: Cache = cache_manager.cache) -> Callable[...,
             should_cache = kwargs.pop("cache", True)
             force = kwargs.pop("force", False)
             cache_timeout = kwargs.pop(
-                "cache_timeout", app.config["CACHE_DEFAULT_TIMEOUT"]
+                "cache_timeout", todo_config["CACHE_DEFAULT_TIMEOUT"]
             )
 
             if not should_cache:
@@ -149,7 +149,7 @@ def memoized_func(key: str, cache: Cache = cache_manager.cache) -> Callable[...,
 def etag_cache(  # noqa: C901
     cache: Cache = cache_manager.cache,
     get_last_modified: Callable[..., datetime] | None = None,
-    max_age: int | float = app.config["CACHE_DEFAULT_TIMEOUT"],
+    max_age: int | float = todo_config["CACHE_DEFAULT_TIMEOUT"],
     raise_for_access: Callable[..., Any] | None = None,
     skip: Callable[..., bool] | None = None,
 ) -> Callable[..., Any]:
