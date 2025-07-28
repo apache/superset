@@ -1,8 +1,6 @@
 #!/bin/bash
 # Setup script for Superset Codespaces development environment
 
-set -e
-
 echo "🔧 Setting up Superset development environment..."
 
 # The universal image has most tools, just need Superset-specific libs
@@ -18,9 +16,13 @@ sudo apt-get install -y \
 echo "📦 Installing uv..."
 curl -LsSf https://astral.sh/uv/install.sh | sh
 
-# Install Claude Code CLI
+# Add cargo/bin to PATH for uv
+echo 'export PATH="$HOME/.cargo/bin:$PATH"' >> ~/.bashrc
+echo 'export PATH="$HOME/.cargo/bin:$PATH"' >> ~/.zshrc
+
+# Install Claude Code CLI via npm
 echo "🤖 Installing Claude Code..."
-curl -fsSL https://claudecode.ai/install.sh | sh
+npm install -g @anthropic-ai/claude-code
 
 # Make the start script executable
 chmod +x .devcontainer/start-superset.sh

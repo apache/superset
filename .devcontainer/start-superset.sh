@@ -1,15 +1,19 @@
 #!/bin/bash
 # Startup script for Superset in Codespaces
 
-set -e
-
 echo "🚀 Starting Superset in Codespaces..."
 PROJECT_NAME="${CODESPACE_NAME:-superset-dev}"
 echo "📦 Using project name: ${PROJECT_NAME}"
 echo "🌐 Frontend will be available at port 9001"
 
-# Ensure we're in the right directory
-cd /workspaces/superset-2 || cd /workspaces/superset || cd .
+# Find the workspace directory (Codespaces clones as 'superset', not 'superset-2')
+WORKSPACE_DIR=$(find /workspaces -maxdepth 1 -name "superset*" -type d | head -1)
+if [ -n "$WORKSPACE_DIR" ]; then
+    cd "$WORKSPACE_DIR"
+    echo "📁 Working in: $WORKSPACE_DIR"
+else
+    echo "📁 Using current directory: $(pwd)"
+fi
 
 # Check if docker is running
 if ! docker info > /dev/null 2>&1; then
