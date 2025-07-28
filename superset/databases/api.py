@@ -1258,6 +1258,17 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
                     properties:
                       message:
                         type: string
+                      engine_information:
+                        type: object
+                        properties:
+                          supports_file_upload:
+                            type: boolean
+                          disable_ssh_tunneling:
+                            type: boolean
+                          supports_dynamic_catalog:
+                            type: boolean
+                          supports_oauth2:
+                            type: boolean
             400:
               $ref: '#/components/responses/400'
             422:
@@ -1271,8 +1282,9 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         except ValidationError as error:
             return self.response_400(message=error.messages)
         try:
-            TestConnectionDatabaseCommand(item).run()
-            return self.response(200, message="OK")
+            database = TestConnectionDatabaseCommand(item).run()
+            engine_information = database.db_engine_spec.get_public_information()
+            return self.response(200, message="OK", engine_information=engine_information)
         except (SSHTunnelingNotEnabledError, SSHTunnelDatabasePortError) as ex:
             return self.response_400(message=str(ex))
 

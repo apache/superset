@@ -91,7 +91,7 @@ class TestConnectionDatabaseCommand(BaseCommand):
 
     def run(  # noqa: C901
         self,
-    ) -> None:  # pylint: disable=too-many-statements,too-many-branches
+    ) -> Database:  # pylint: disable=too-many-statements,too-many-branches
         self.validate()
         ex_str = ""
         ssh_tunnel = self._properties.get("ssh_tunnel")
@@ -168,6 +168,8 @@ class TestConnectionDatabaseCommand(BaseCommand):
                 action=get_log_connection_action("test_connection_success", ssh_tunnel),
                 engine=database.db_engine_spec.__name__,
             )
+            
+            return database
 
         except (NoSuchModuleError, ModuleNotFoundError) as ex:
             event_logger.log_with_context(

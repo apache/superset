@@ -50,6 +50,7 @@ const ExtraOptions = ({
   onExtraInputChange,
   onExtraEditorChange,
   extraExtension,
+  testedEngineInfo,
 }: {
   db: DatabaseObject | null;
   onInputChange: (
@@ -62,13 +63,14 @@ const ExtraOptions = ({
   ) => void;
   onExtraEditorChange: Function;
   extraExtension: DatabaseConnectionExtension | undefined;
+  testedEngineInfo?: any;
 }) => {
   const expandableModalIsOpen = !!db?.expose_in_sqllab;
   const createAsOpen = !!(db?.allow_ctas || db?.allow_cvas);
-  const isFileUploadSupportedByEngine =
-    db?.engine_information?.supports_file_upload;
-  const supportsDynamicCatalog =
-    db?.engine_information?.supports_dynamic_catalog;
+  // Use tested engine info if available, otherwise fall back to initial engine info
+  const engineInfo = testedEngineInfo || db?.engine_information;
+  const isFileUploadSupportedByEngine = engineInfo?.supports_file_upload;
+  const supportsDynamicCatalog = engineInfo?.supports_dynamic_catalog;
 
   // JSON.parse will deep parse engine_params
   // if it's an object, and we want to keep it a string
@@ -528,23 +530,29 @@ const ExtraOptions = ({
                   />
                 </div>
               </StyledInputContainer>
-              {isFileUploadSupportedByEngine && (
-                <StyledInputContainer
-                  css={!db?.allow_file_upload ? no_margin_bottom : {}}
-                >
-                  <div className="input-container">
-                    <Checkbox
-                      id="allow_file_upload"
-                      name="allow_file_upload"
-                      indeterminate={false}
-                      checked={!!db?.allow_file_upload}
-                      onChange={onInputChange}
-                    >
-                      {t('Allow file uploads to database')}
-                    </Checkbox>
-                  </div>
-                </StyledInputContainer>
-              )}
+              <StyledInputContainer
+                css={!db?.allow_file_upload ? no_margin_bottom : {}}
+              >
+                <div className="input-container">
+                  <Checkbox
+                    id="allow_file_upload"
+                    name="allow_file_upload"
+                    indeterminate={false}
+                    checked={!!db?.allow_file_upload}
+                    disabled={!isFileUploadSupportedByEngine}
+                    onChange={onInputChange}
+                  >
+                    {t('Allow file uploads to database')}
+                  </Checkbox>
+                  {!isFileUploadSupportedByEngine && (
+                    <InfoTooltip
+                      tooltip={t(
+                        'File upload is not supported for this database engine'
+                      )}
+                    />
+                  )}
+                </div>
+              </StyledInputContainer>
               {isFileUploadSupportedByEngine && !!db?.allow_file_upload && (
                 <StyledInputContainer css={no_margin_bottom}>
                   <div className="control-label">

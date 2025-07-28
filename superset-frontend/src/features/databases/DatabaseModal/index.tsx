@@ -607,6 +607,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   const [editNewDb, setEditNewDb] = useState<boolean>(false);
   const [isLoading, setLoading] = useState<boolean>(false);
   const [testInProgress, setTestInProgress] = useState<boolean>(false);
+  const [testedEngineInfo, setTestedEngineInfo] = useState<any>(null);
   const [passwords, setPasswords] = useState<Record<string, string>>({});
   const [sshTunnelPasswords, setSSHTunnelPasswords] = useState<
     Record<string, string>
@@ -735,6 +736,9 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         addSuccessToast(errorMsg);
         setHasValidated(true);
       },
+      (engineInfo: any) => {
+        setTestedEngineInfo(engineInfo);
+      },
     );
   };
 
@@ -797,6 +801,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     setSSHTunnelPrivateKeyPasswords({});
     setConfirmedOverwrite(false);
     setUseSSHTunneling(undefined);
+    setTestedEngineInfo(null);
     onHide();
   };
 
@@ -1771,6 +1776,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         <ExtraOptions
           extraExtension={dbConfigExtraExtension}
           db={db as DatabaseObject}
+          testedEngineInfo={testedEngineInfo}
           onInputChange={(
             e: CheckboxChangeEvent | React.ChangeEvent<HTMLInputElement>,
           ) => {
@@ -2020,6 +2026,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
               <ExtraOptions
                 extraExtension={dbConfigExtraExtension}
                 db={db as DatabaseObject}
+                testedEngineInfo={testedEngineInfo}
                 onInputChange={(e: CheckboxChangeEvent) => {
                   const { target } = e;
                   onChange(ActionType.InputChange, {
