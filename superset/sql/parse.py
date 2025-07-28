@@ -44,7 +44,7 @@ from sqlglot.optimizer.scope import (
 )
 
 from superset.exceptions import QueryClauseValidationException, SupersetParseError
-from superset.sql.dialects import Dremio, Firebolt
+from superset.sql.dialects import Dremio, Firebolt, Impala
 
 if TYPE_CHECKING:
     from superset.models.core import Database
@@ -81,7 +81,7 @@ SQLGLOT_DIALECTS = {
     "hana": Dialects.POSTGRES,
     "hive": Dialects.HIVE,
     # "ibmi": ???
-    # "impala": ???
+    "impala": Impala,
     # "kustosql": ???
     # "kylin": ???
     "mariadb": Dialects.MYSQL,
