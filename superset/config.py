@@ -1704,7 +1704,7 @@ WEBDRIVER_CONFIGURATION = {
 }
 
 # Additional args to be passed as arguments to the config object
-# Note: Firefox uses geckodriver and supports headless mode natively.
+# Note: If using Chrome, you'll want to add the "--marionette" arg.
 WEBDRIVER_OPTION_ARGS = ["--headless"]
 
 # The base URL to query for accessing the user interface
