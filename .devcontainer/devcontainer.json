@@ -1,6 +1,6 @@
 {
   "name": "Apache Superset Development",
-  "image": "mcr.microsoft.com/devcontainers/base:ubuntu",
+  "image": "mcr.microsoft.com/devcontainers/universal:2",
   "workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}",
 
   // Forward ports for development
@@ -69,18 +69,6 @@
 
   // Features to add to the dev container
   "features": {
-    "ghcr.io/devcontainers/features/docker-in-docker:2": {
-      "moby": true,
-      "installDockerBuildx": true,
-      "dockerDashComposeVersion": "v2"
-    },
-    "ghcr.io/devcontainers/features/github-cli:1": {},
-    "ghcr.io/devcontainers/features/python:1": {
-      "version": "3.10"
-    },
-    "ghcr.io/devcontainers/features/node:1": {
-      "version": "18"
-    },
     "ghcr.io/devcontainers/features/sshd:1": {
       "version": "latest"
     }

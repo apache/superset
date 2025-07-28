@@ -5,18 +5,13 @@ set -e
 
 echo "🔧 Setting up Superset development environment..."
 
-# Install additional system dependencies
-echo "📦 Installing system dependencies..."
+# The universal image has most tools, just need Superset-specific libs
+echo "📦 Installing Superset-specific dependencies..."
 sudo apt-get update
 sudo apt-get install -y \
-    build-essential \
-    libssl-dev \
-    libffi-dev \
     libsasl2-dev \
     libldap2-dev \
-    libpq-dev \
-    python3-pip \
-    python3-venv
+    libpq-dev
 
 # Make the start script executable
 chmod +x .devcontainer/start-superset.sh
