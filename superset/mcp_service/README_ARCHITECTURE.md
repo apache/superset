@@ -101,7 +101,7 @@ MCP_JWT_AUDIENCE = "superset-mcp-api"
 |------|----------------|
 | `list_dashboards`, `get_dashboard_info` | `dashboard:read` |
 | `list_charts`, `get_chart_info` | `chart:read` |
-| `create_chart` | `chart:write` |
+| `generate_chart` | `chart:write` |
 | `list_datasets`, `get_dataset_info` | `dataset:read` |
 | `get_superset_instance_info` | `instance:read` |
 
@@ -175,38 +175,385 @@ All security features are implemented in `auth.py` with 149 passing unit tests e
 
 ---
 
-## Data Flow
+## System Architecture Overview
 
-- Chart creation tools now support chart types including line, bar, area, scatter, and table charts with  SQL aggregator support.
-- The `create_chart` tool intelligently handles both simple metrics (like `["count"]`) and complex SQL aggregations (like `SUM`, `COUNT`, `AVG`, `MIN`, `MAX`).
+The MCP service provides a layered architecture with authentication, tool execution, and direct database access:
 
 ```mermaid
-flowchart TD
-    subgraph FastMCP Service
-        A["LLM/Agent or Client"]
-        B["FastMCP Tool Call"]
-        C["Tool Entrypoint (@mcp.tool, @mcp_auth_hook)"]
-        D1["DashboardDAO"]
-        D2["ChartDAO"]
-        D3["DatasetDAO (returns columns & metrics)"]
-        E["Superset DB"]
-        F["Superset Command (for mutations, planned)"]
+graph TB
+    subgraph "Client Layer"
+        LLM[LLM/Agent Client]
+        SDK[Claude SDK]
+        HTTP[HTTP Client]
     end
 
-    A --> B
-    B --> C
-    C -- list/count/info --> D1
-    C -- list/count/info --> D2
-    C -- list/count/info --> D3
-    D1 --> E
-    D2 --> E
-    D3 --> E
-    B -. "create/update/delete (planned)" .-> F
-    F -.uses.-> C
-    F --> D1
-    F --> D2
-    F --> D3
-    F --> E
+    subgraph "MCP Service Layer"
+        FastMCP[FastMCP Server<br/>Port 5008]
+        Auth[JWT Auth Hook<br/>@mcp_auth_hook]
+        Tools[16 MCP Tools<br/>@mcp.tool]
+    end
+
+    subgraph "Superset Integration Layer"
+        DAOs[Superset DAOs<br/>ChartDAO, DashboardDAO, DatasetDAO]
+        Commands[Superset Commands<br/>CreateChartCommand, etc.]
+        Utils[Superset Utils<br/>Screenshots, URLs, etc.]
+    end
+
+    subgraph "Data & Services Layer"
+        DB[(Superset Database<br/>PostgreSQL/MySQL)]
+        Screenshots[Firefox WebDriver<br/>Chart Screenshots]
+        Cache[Cache Layer<br/>Redis/SimpleCache]
+    end
+
+    LLM --> FastMCP
+    SDK --> FastMCP
+    HTTP --> FastMCP
+
+    FastMCP --> Auth
+    Auth --> Tools
+
+    Tools --> DAOs
+    Tools --> Commands
+    Tools --> Utils
+
+    DAOs --> DB
+    Commands --> DB
+    Utils --> Screenshots
+    Utils --> Cache
+
+    Screenshots --> DB
+```
+
+## Tool Categories & Data Flow
+
+### Dashboard Tools (5 tools)
+```mermaid
+graph LR
+    subgraph "Dashboard Operations"
+        ListDash[list_dashboards]
+        GetDash[get_dashboard_info]
+        FilterDash[get_dashboard_available_filters]
+        GenDash[generate_dashboard]
+        AddChart[add_chart_to_existing_dashboard]
+    end
+
+    subgraph "Data Access"
+        DashDAO[DashboardDAO]
+        ChartDAO[ChartDAO]
+        CreateCmd[CreateDashboardCommand]
+    end
+
+    subgraph "Database"
+        DashTable[(dashboards table)]
+        DashCharts[(dashboard_slices table)]
+    end
+
+    ListDash --> DashDAO
+    GetDash --> DashDAO
+    FilterDash --> DashDAO
+    GenDash --> CreateCmd
+    AddChart --> DashDAO
+
+    DashDAO --> DashTable
+    CreateCmd --> DashTable
+    CreateCmd --> DashCharts
+    AddChart --> DashCharts
+```
+
+### Chart Tools (6 tools)
+```mermaid
+graph LR
+    subgraph "Chart Operations"
+        ListChart[list_charts]
+        GetChart[get_chart_info]
+        FilterChart[get_chart_available_filters]
+        CreateChart[generate_chart]
+        GetData[get_chart_data]
+        GetPreview[get_chart_preview]
+    end
+
+    subgraph "Data & Services"
+        ChartDAO[ChartDAO]
+        CreateCmd[CreateChartCommand]
+        DataCmd[ChartDataCommand]
+        Screenshot[ChartScreenshot]
+    end
+
+    subgraph "Database & External"
+        ChartsTable[(slices table)]
+        WebDriver[Firefox WebDriver]
+        QueryEngine[SQL Query Engine]
+    end
+
+    ListChart --> ChartDAO
+    GetChart --> ChartDAO
+    FilterChart --> ChartDAO
+    CreateChart --> CreateCmd
+    GetData --> DataCmd
+    GetPreview --> Screenshot
+
+    ChartDAO --> ChartsTable
+    CreateCmd --> ChartsTable
+    DataCmd --> QueryEngine
+    Screenshot --> WebDriver
+```
+
+### Dataset Tools (3 tools)
+```mermaid
+graph LR
+    subgraph "Dataset Operations"
+        ListDS[list_datasets]
+        GetDS[get_dataset_info]
+        FilterDS[get_dataset_available_filters]
+    end
+
+    subgraph "Data Access"
+        DatasetDAO[DatasetDAO]
+        ColumnDAO[TableColumnDAO]
+        MetricDAO[SqlMetricDAO]
+    end
+
+    subgraph "Database Tables"
+        TablesTable[(tables table)]
+        ColumnsTable[(table_columns table)]
+        MetricsTable[(sql_metrics table)]
+    end
+
+    ListDS --> DatasetDAO
+    GetDS --> DatasetDAO
+    FilterDS --> DatasetDAO
+
+    DatasetDAO --> TablesTable
+    DatasetDAO --> ColumnDAO
+    DatasetDAO --> MetricDAO
+
+    ColumnDAO --> ColumnsTable
+    MetricDAO --> MetricsTable
+```
+
+### System & SQL Lab Tools (3 tools)
+```mermaid
+graph LR
+    subgraph "System Operations"
+        Instance[get_superset_instance_info]
+        ExploreLink[generate_explore_link]
+        SqlLab[open_sql_lab_with_context]
+    end
+
+    subgraph "Services"
+        Config[Superset Config]
+        URLGen[URL Generator]
+        DBDao[DatabaseDAO]
+    end
+
+    subgraph "Resources"
+        AppCtx[Flask App Context]
+        Database[(Database Connection)]
+    end
+
+    Instance --> Config
+    ExploreLink --> URLGen
+    SqlLab --> DBDao
+
+    Config --> AppCtx
+    URLGen --> AppCtx
+    DBDao --> Database
+```
+
+## Individual Tool Execution Flows
+
+### Chart Creation Flow
+```mermaid
+sequenceDiagram
+    participant Client as LLM Client
+    participant MCP as FastMCP Server
+    participant Auth as Auth Hook
+    participant Tool as generate_chart
+    participant DAO as ChartDAO
+    participant CMD as CreateChartCommand
+    participant DB as Database
+
+    Client->>+MCP: generate_chart(request)
+    MCP->>+Auth: @mcp_auth_hook
+    Auth->>Auth: Validate JWT & Scopes
+    Auth->>+Tool: Execute with user context
+    Tool->>Tool: Parse GenerateChartRequest
+    Tool->>+DAO: find_by_id(dataset_id)
+    DAO->>DB: SELECT from tables
+    DB-->>DAO: Dataset record
+    DAO-->>Tool: Dataset object
+    Tool->>Tool: Build form_data config
+    Tool->>+CMD: CreateChartCommand.run()
+    CMD->>DB: INSERT into slices
+    DB-->>CMD: Chart ID
+    CMD-->>Tool: Chart object
+    Tool->>Tool: Generate explore URL
+    Tool-->>Auth: ChartCreationResponse
+    Auth-->>MCP: Response with chart data
+    MCP-->>Client: JSON response
+```
+
+### Dashboard Generation Flow
+```mermaid
+sequenceDiagram
+    participant Client as LLM Client
+    participant MCP as FastMCP Server
+    participant Tool as generate_dashboard
+    participant ChartDAO as ChartDAO
+    participant DashCmd as CreateDashboardCommand
+    participant DB as Database
+
+    Client->>+MCP: generate_dashboard(request)
+    MCP->>+Tool: Execute with auth
+    Tool->>Tool: Parse chart_ids array
+
+    loop For each chart_id
+        Tool->>+ChartDAO: find_by_id(chart_id)
+        ChartDAO->>DB: SELECT from slices
+        DB-->>ChartDAO: Chart record
+        ChartDAO-->>Tool: Chart object
+    end
+
+    Tool->>Tool: Generate 2-column layout
+    Tool->>Tool: Create dashboard JSON
+    Tool->>+DashCmd: CreateDashboardCommand.run()
+    DashCmd->>DB: INSERT into dashboards
+    DashCmd->>DB: INSERT into dashboard_slices
+    DB-->>DashCmd: Dashboard ID
+    DashCmd-->>Tool: Dashboard object
+    Tool->>Tool: Generate dashboard URL
+    Tool-->>MCP: Dashboard response
+    MCP-->>Client: JSON with dashboard info
+```
+
+### Chart Preview Flow
+```mermaid
+sequenceDiagram
+    participant Client as LLM Client
+    participant MCP as FastMCP Server
+    participant Tool as get_chart_preview
+    participant DAO as ChartDAO
+    participant Screenshot as ChartScreenshot
+    participant WebDriver as Firefox WebDriver
+    participant DB as Database
+
+    Client->>+MCP: get_chart_preview(request)
+    MCP->>+Tool: Execute with auth
+    Tool->>+DAO: find_by_id(chart_id)
+    DAO->>DB: SELECT from slices
+    DB-->>DAO: Chart record
+    DAO-->>Tool: Chart object
+
+    alt format="url" or "base64"
+        Tool->>+Screenshot: ChartScreenshot(chart_url)
+        Screenshot->>+WebDriver: Launch Firefox headless
+        WebDriver->>WebDriver: Navigate to chart URL
+        WebDriver->>WebDriver: Wait for chart render
+        WebDriver->>WebDriver: Take screenshot
+        WebDriver-->>Screenshot: PNG image data
+        Screenshot-->>Tool: Image bytes
+        Tool->>Tool: Generate preview URL/base64
+    else format="ascii" or "table"
+        Tool->>Tool: Extract chart data
+        Tool->>Tool: Generate ASCII/table representation
+    end
+
+    Tool-->>MCP: ChartPreview response
+    MCP-->>Client: Preview data/URL
+```
+
+## Authentication & Authorization Flow
+
+```mermaid
+sequenceDiagram
+    participant Client as LLM Client
+    participant MCP as FastMCP Server
+    participant Auth as @mcp_auth_hook
+    participant JWT as JWT Validator
+    participant User as UserManager
+    participant Tool as MCP Tool
+    participant Audit as AuditLogger
+
+    Client->>+MCP: Tool call with JWT Bearer
+    MCP->>+Auth: @mcp_auth_hook decorator
+    Auth->>+JWT: Validate JWT token
+    JWT->>JWT: Verify signature (RS256)
+    JWT->>JWT: Check expiration
+    JWT->>JWT: Validate audience/issuer
+    JWT-->>Auth: JWT claims
+
+    Auth->>+User: Find user by JWT subject
+    User->>User: Check user active status
+    User-->>Auth: Superset User object
+
+    Auth->>Auth: Check required scopes
+    alt Scopes valid
+        Auth->>Auth: Set Flask g.user context
+        Auth->>+Audit: Log tool access
+        Audit->>Audit: Record user, tool, timestamp
+        Auth->>+Tool: Execute tool function
+        Tool->>Tool: Business logic
+        Tool-->>Auth: Tool response
+        Auth-->>MCP: Success response
+    else Scopes invalid
+        Auth->>+Audit: Log permission denied
+        Auth-->>MCP: 403 Permission Denied
+    end
+
+    MCP-->>Client: Final response
+```
+
+## Request Schema Pattern Flow
+
+```mermaid
+graph TD
+    subgraph "LLM Client Side"
+        LLM[LLM generates call]
+        Validate[Parameter validation]
+    end
+
+    subgraph "MCP Service Side"
+        Schema[Pydantic Request Schema]
+        Parse[Parse & Validate]
+        Execute[Execute Business Logic]
+    end
+
+    subgraph "Traditional Approach Problems"
+        MultiParam[Multiple parameters]
+        Ambiguity[Type ambiguity]
+        Conflicts[Parameter conflicts]
+        Errors[Validation errors]
+    end
+
+    subgraph "Request Schema Benefits"
+        SingleObj[Single request object]
+        TypeSafe[Strong typing]
+        NoConflict[No parameter conflicts]
+        ClearErrors[Clear validation messages]
+    end
+
+    LLM --> Validate
+    Validate --> Schema
+    Schema --> Parse
+    Parse --> Execute
+
+    MultiParam -.-> Ambiguity
+    Ambiguity -.-> Conflicts
+    Conflicts -.-> Errors
+
+    SingleObj --> TypeSafe
+    TypeSafe --> NoConflict
+    NoConflict --> ClearErrors
+
+    style MultiParam fill:#ffcccc
+    style Ambiguity fill:#ffcccc
+    style Conflicts fill:#ffcccc
+    style Errors fill:#ffcccc
+
+    style SingleObj fill:#ccffcc
+    style TypeSafe fill:#ccffcc
+    style NoConflict fill:#ccffcc
+    style ClearErrors fill:#ccffcc
 ```
 
 ---
@@ -217,7 +564,7 @@ flowchart TD
 |-------|-----|----------|
 | `list_dashboards`, `get_dashboard_info`, `get_dashboard_available_filters` | DashboardDAO | ID/UUID/slug lookup, UUID/slug search |
 | `list_datasets`, `get_dataset_info`, `get_dataset_available_filters` | DatasetDAO | ID/UUID lookup, columns & metrics, UUID search |
-| `list_charts`, `get_chart_info`, `get_chart_available_filters`, `create_chart` | ChartDAO | ID/UUID lookup, chart creation, UUID search |
+| `list_charts`, `get_chart_info`, `get_chart_available_filters`, `generate_chart` | ChartDAO | ID/UUID lookup, chart creation, UUID search |
 | `get_superset_instance_info` | System | Instance metadata |
 | `generate_explore_link` | Chart | Temporary chart exploration |
 
@@ -250,7 +597,7 @@ flowchart TD
 - **Service Infrastructure**: FastMCP server, CLI, configuration
 - **Production Authentication**: JWT Bearer with configurable factory pattern
 - **All List/Info Tools**: Dashboards, datasets, charts with multi-identifier support
-- **Chart Creation**: `create_chart` with line, bar, area, scatter, table support
+- **Chart Creation**: `generate_chart` with line, bar, area, scatter, table support
 - **Navigation Tools**: `generate_explore_link` for explore URLs
 - **System Tools**: Instance info and available filters
 - **Request Schema Pattern**: Eliminates LLM parameter validation issues
