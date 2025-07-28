@@ -1,6 +1,8 @@
 {
   "name": "Apache Superset Development",
-  "image": "mcr.microsoft.com/devcontainers/python:3.11-bookworm",
+  // Keep this in sync with the base image in Dockerfile (ARG PY_VER)
+  // Using the same base as Dockerfile, but non-slim for dev tools
+  "image": "python:3.11.13-bookworm",
 
   "features": {
     "ghcr.io/devcontainers/features/docker-in-docker:2": {
