@@ -1283,7 +1283,6 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
           ? [
               {
                 value: currentUser.userId,
-                // label: `${currentUser.firstName} ${currentUser.lastName}`
                 label: getOwnerDisplayName({
                   ...currentUser,
                   first_name: currentUser.firstName,
@@ -1370,8 +1369,6 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
         owners: (alert?.owners || []).map(owner => ({
           value: (owner as MetaObject).value || owner.id,
           label:
-            // (owner as MetaObject).label ||
-            // `${(owner as Owner).first_name} ${(owner as Owner).last_name}`,
             (owner as MetaObject).label || getOwnerDisplayName(owner as Owner),
         })),
         // @ts-ignore: Type not assignable
