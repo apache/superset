@@ -19,7 +19,7 @@
 Shared chart utilities for MCP tools
 
 This module contains shared logic for chart configuration mapping and explore link
-generation that can be used by both create_chart and generate_explore_link tools.
+generation that can be used by both generate_chart and generate_explore_link tools.
 """
 
 from typing import Any, Dict

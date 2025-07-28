@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 """
-MCP tool: create_chart (simplified schema)
+MCP tool: generate_chart (simplified schema)
 """
 
 from typing import Any, Dict
@@ -26,15 +26,15 @@ from superset.mcp_service.chart.chart_utils import (
     map_config_to_form_data,
 )
 from superset.mcp_service.mcp_app import mcp
-from superset.mcp_service.pydantic_schemas.chart_schemas import CreateChartRequest
+from superset.mcp_service.pydantic_schemas.chart_schemas import GenerateChartRequest
 from superset.utils import json
 
 
 @mcp.tool
 @mcp_auth_hook
-def create_chart(request: CreateChartRequest) -> Dict[str, Any]:
+def generate_chart(request: GenerateChartRequest) -> Dict[str, Any]:
     """
-    Create a new chart in Superset.
+    Generate a new chart in Superset.
 
     Args:
         request: Chart creation request with dataset_id, config, and optional
