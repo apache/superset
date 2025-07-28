@@ -13,6 +13,10 @@ sudo apt-get install -y \
     libldap2-dev \
     libpq-dev
 
+# Install uv for fast Python package management
+echo "📦 Installing uv..."
+curl -LsSf https://astral.sh/uv/install.sh | sh
+
 # Make the start script executable
 chmod +x .devcontainer/start-superset.sh
 
