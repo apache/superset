@@ -1683,7 +1683,7 @@ SLACK_CACHE_TIMEOUT = int(timedelta(days=1).total_seconds())
 # chrome:
 #   Requires: headless chrome
 #   Limitations: unable to generate screenshots of elements
-WEBDRIVER_TYPE = "chrome"
+WEBDRIVER_TYPE = "firefox"
 
 # Window size - this will impact the rendering of the data
 WEBDRIVER_WINDOW = {
@@ -1699,18 +1699,12 @@ WEBDRIVER_AUTH_FUNC = None
 
 # Any config options to be passed as-is to the webdriver
 WEBDRIVER_CONFIGURATION = {
-    "options": {
-        "capabilities": {},
-        "preferences": {},
-        "binary_location": (
-            "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
-        ),
-    },
+    "options": {"capabilities": {}, "preferences": {}, "binary_location": ""},
     "service": {"log_output": "/dev/null", "service_args": [], "port": 0, "env": {}},
 }
 
 # Additional args to be passed as arguments to the config object
-# Note: If using Chrome, you'll want to add the "--marionette" arg.
+# Note: Firefox uses geckodriver and supports headless mode natively.
 WEBDRIVER_OPTION_ARGS = ["--headless"]
 
 # The base URL to query for accessing the user interface
