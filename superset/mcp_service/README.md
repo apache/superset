@@ -73,7 +73,7 @@ All tools are modular, strongly typed, and use Pydantic v2 schemas. Every field 
 - **`list_charts`** - Advanced filtering, search, pagination with UUID support
 - **`get_chart_info`** - Supports ID and UUID lookups with full chart metadata
 - **`get_chart_available_filters`** - Dynamic filter discovery for chart queries
-- **`create_chart`** - Chart creation supporting 5 types (line, bar, area, scatter, table)
+- **`generate_chart`** - Chart creation supporting 5 types (line, bar, area, scatter, table)
 - **`get_chart_data`** - ✨ **NEW**: Retrieve chart data in multiple formats (JSON, CSV)
 - **`get_chart_preview`** - ✨ **NEW**: Generate chart previews (screenshots, ASCII art, tables)
 
@@ -160,7 +160,7 @@ list_dashboards(request={
 
 ## Chart Creation
 
-The `create_chart` tool supports chart creation with:
+The `generate_chart` tool supports chart creation with:
 
 ### Supported Chart Types
 - **Table charts** — Simple column display with filters and sorting
@@ -189,7 +189,7 @@ config = XYChartConfig(
     ],
     kind="line"
 )
-request = CreateChartRequest(dataset_id="1", config=config)
+request = GenerateChartRequest(dataset_id="1", config=config)
 
 # Create a table chart
 table_config = TableChartConfig(
@@ -199,7 +199,7 @@ table_config = TableChartConfig(
         ColumnRef(name="sales", label="Sales")
     ]
 )
-table_request = CreateChartRequest(dataset_id="1", config=table_config)
+table_request = GenerateChartRequest(dataset_id="1", config=table_config)
 ```
 
 ## Dashboard Generation & Management
@@ -303,7 +303,7 @@ get_chart_preview(request={
 ### 🔄 Phase 1 In Progress
 | Epic | Status | Description |
 |------|--------|--------------|
-| **[Implement Chart Creation Mutation](https://app.shortcut.com/preset-ext/story/90304)** | 🟡 In Review | `create_chart` tool supporting 5 chart types |
+| **[Implement Chart Creation Mutation](https://app.shortcut.com/preset-ext/story/90304)** | 🟡 In Review | `generate_chart` tool supporting 5 chart types |
 | **[Implement Navigation Actions](https://app.shortcut.com/preset-ext/story/90305)** | 🟡 In Review | `generate_explore_link` ✅, `open_sql_lab_with_context` pending |
 | **[backend rendering in the short term for embedded charts in to the chat](https://app.shortcut.com/preset-ext/story/90511)** | 🟨 In Development | Embedded charts for LLM chat integration |
 | **[Support for Bearer authentication](https://app.shortcut.com/preset-ext/story/90509)** | 🟨 In Development | Enhanced JWT authentication features |
@@ -375,7 +375,7 @@ MCP_REQUIRED_SCOPES=dashboard:read,chart:read
 |------|----------------|
 | `list_dashboards`, `get_dashboard_info` | `dashboard:read` |
 | `list_charts`, `get_chart_info` | `chart:read` |
-| `create_chart` | `chart:write` |
+| `generate_chart` | `chart:write` |
 | `list_datasets`, `get_dataset_info` | `dataset:read` |
 | `get_superset_instance_info` | `instance:read` |
 

@@ -155,9 +155,9 @@ def serialize_chart_object(chart: ChartLike | None) -> ChartInfo | None:
     )
 
 
-class CreateChartResponse(BaseModel):
+class GenerateChartResponse(BaseModel):
     """
-    Response schema for create_chart tool.
+    Response schema for generate_chart tool.
     """
 
     chart: Optional[ChartInfo] = Field(
@@ -223,7 +223,7 @@ class ChartList(BaseModel):
     model_config = ConfigDict(ser_json_timedelta="iso8601")
 
 
-# --- Simplified schemas for create_chart tool ---
+# --- Simplified schemas for generate_chart tool ---
 
 
 # Common pieces
@@ -355,7 +355,7 @@ class ListChartsRequest(BaseModel):
 
 
 # The tool input models
-class CreateChartRequest(BaseModel):
+class GenerateChartRequest(BaseModel):
     dataset_id: int | str = Field(..., description="Dataset identifier (ID, UUID)")
     config: ChartConfig = Field(..., description="Chart configuration")
     generate_preview: bool = Field(

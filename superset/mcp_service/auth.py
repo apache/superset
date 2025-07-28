@@ -137,7 +137,7 @@ def _check_jwt_scopes(
         "get_dashboard_info": ["dashboard:read"],
         "list_charts": ["chart:read"],
         "get_chart_info": ["chart:read"],
-        "create_chart": ["chart:write"],
+        "generate_chart": ["chart:write"],
         "list_datasets": ["dataset:read"],
         "get_dataset_info": ["dataset:read"],
         "get_superset_instance_info": ["instance:read"],

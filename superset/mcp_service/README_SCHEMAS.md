@@ -20,7 +20,7 @@ get_dashboard_info(request=GetDashboardInfoRequest(identifier="uuid-string"))  #
 get_dashboard_info(request=GetDashboardInfoRequest(identifier="slug-string"))  # Slug
 
 # Chart creation with detailed config
-create_chart(request=CreateChartRequest(
+generate_chart(request=GenerateChartRequest(
     dataset_id="1",
     config=XYChartConfig(
         chart_type="xy",
@@ -192,9 +192,9 @@ create_chart(request=CreateChartRequest(
 **Returns:** `ChartAvailableFiltersResponse`
 - `column_operators`: `Dict[str, Any]` — Available filter operators and metadata for each column
 
-### create_chart
+### generate_chart
 
-**Input:** `CreateChartRequest`
+**Input:** `GenerateChartRequest`
 - `dataset_id`: `str` — ID of the dataset to use
 - `config`: `ChartConfig` — Chart configuration (supports table and XY charts)
 
@@ -284,7 +284,7 @@ The tool intelligently handles two metric formats:
 
 **Input:** `GenerateExploreLinkRequest`
 - `dataset_id`: `str` — Dataset ID to explore
-- `config`: `ChartConfig` — Chart configuration (same as create_chart)
+- `config`: `ChartConfig` — Chart configuration (same as generate_chart)
 
 **Returns:** `ExploreLinkResponse`
 - `explore_url`: `str` — Full URL to Superset explore interface with chart configuration
@@ -325,7 +325,7 @@ flowchart TD
         G["TableColumnInfo"]
         H["SqlMetricInfo"]
         I["ChartConfig"]
-        J["CreateChartRequest"]
+        J["GenerateChartRequest"]
     end
     A -- owners --> D
     A -- tags --> E

@@ -130,12 +130,12 @@ class TestMCPAuth:
         assert has_permission(mock_user, mock_func) is True
 
         # Test denied access
-        mock_func.__name__ = "create_chart"
+        mock_func.__name__ = "generate_chart"
         assert has_permission(mock_user, mock_func) is False
 
     def test_has_permission_no_jwt(self, mock_user):
         """Test permission checking without JWT."""
-        mock_func = MagicMock(__name__="create_chart")
+        mock_func = MagicMock(__name__="generate_chart")
 
         # Should allow access when no JWT
         with patch(

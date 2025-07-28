@@ -17,7 +17,7 @@
 
 """
 Unit tests for MCP chart tools (list_charts, get_chart_info,
-get_chart_available_filters, create_chart)
+get_chart_available_filters, generate_chart)
 """
 
 import logging
@@ -34,8 +34,8 @@ from superset.mcp_service.pydantic_schemas.chart_schemas import (
     AxisConfig,
     ChartInfo,
     ColumnRef,
-    CreateChartRequest,
     FilterConfig,
+    GenerateChartRequest,
     LegendConfig,
     ListChartsRequest,
     TableChartConfig,
@@ -341,7 +341,7 @@ def _mock_dataset(id: int = 1) -> Mock:
 @patch("superset.daos.dataset.DatasetDAO.find_by_id")
 @patch("superset.commands.chart.create.CreateChartCommand.run")
 @pytest.mark.asyncio
-async def test_create_chart_table_success(mock_run, mock_find_dataset, mcp_server):
+async def test_generate_chart_table_success(mock_run, mock_find_dataset, mcp_server):
     mock_run.return_value = _mock_chart(id=101, viz_type="table")
     mock_find_dataset.return_value = _mock_dataset(id=1)
 
@@ -356,10 +356,12 @@ async def test_create_chart_table_success(mock_run, mock_find_dataset, mcp_serve
         sort_by=["sales"],
     )
 
-    request = CreateChartRequest(dataset_id="1", config=config)
+    request = GenerateChartRequest(dataset_id="1", config=config)
 
     async with Client(mcp_server) as client:
-        resp = await client.call_tool("create_chart", {"request": request.model_dump()})
+        resp = await client.call_tool(
+            "generate_chart", {"request": request.model_dump()}
+        )
         assert resp.data["chart"] is not None
         assert resp.data["chart"]["viz_type"] == "table"
         assert resp.data["error"] is None
@@ -369,7 +371,7 @@ async def test_create_chart_table_success(mock_run, mock_find_dataset, mcp_serve
 @patch("superset.daos.dataset.DatasetDAO.find_by_id")
 @patch("superset.commands.chart.create.CreateChartCommand.run")
 @pytest.mark.asyncio
-async def test_create_chart_xy_line_success(mock_run, mock_find_dataset, mcp_server):
+async def test_generate_chart_xy_line_success(mock_run, mock_find_dataset, mcp_server):
     mock_run.return_value = _mock_chart(id=102, viz_type="echarts_timeseries_line")
     mock_find_dataset.return_value = _mock_dataset(id=1)
 
@@ -386,10 +388,12 @@ async def test_create_chart_xy_line_success(mock_run, mock_find_dataset, mcp_ser
         filters=[FilterConfig(column="year", op="=", value=2024)],
     )
 
-    request = CreateChartRequest(dataset_id="1", config=config)
+    request = GenerateChartRequest(dataset_id="1", config=config)
 
     async with Client(mcp_server) as client:
-        resp = await client.call_tool("create_chart", {"request": request.model_dump()})
+        resp = await client.call_tool(
+            "generate_chart", {"request": request.model_dump()}
+        )
         assert resp.data["chart"] is not None
         assert resp.data["chart"]["viz_type"] == "echarts_timeseries_line"
         assert resp.data["error"] is None
@@ -399,7 +403,7 @@ async def test_create_chart_xy_line_success(mock_run, mock_find_dataset, mcp_ser
 @patch("superset.daos.dataset.DatasetDAO.find_by_id")
 @patch("superset.commands.chart.create.CreateChartCommand.run")
 @pytest.mark.asyncio
-async def test_create_chart_xy_bar_success(mock_run, mock_find_dataset, mcp_server):
+async def test_generate_chart_xy_bar_success(mock_run, mock_find_dataset, mcp_server):
     mock_run.return_value = _mock_chart(id=103, viz_type="echarts_timeseries_bar")
     mock_find_dataset.return_value = _mock_dataset(id=1)
 
@@ -413,10 +417,12 @@ async def test_create_chart_xy_bar_success(mock_run, mock_find_dataset, mcp_serv
         y_axis=AxisConfig(title="Sales", format="$,.2f"),
     )
 
-    request = CreateChartRequest(dataset_id="1", config=config)
+    request = GenerateChartRequest(dataset_id="1", config=config)
 
     async with Client(mcp_server) as client:
-        resp = await client.call_tool("create_chart", {"request": request.model_dump()})
+        resp = await client.call_tool(
+            "generate_chart", {"request": request.model_dump()}
+        )
         assert resp.data["chart"] is not None
         assert resp.data["chart"]["viz_type"] == "echarts_timeseries_bar"
         assert resp.data["error"] is None
@@ -426,7 +432,7 @@ async def test_create_chart_xy_bar_success(mock_run, mock_find_dataset, mcp_serv
 @patch("superset.daos.dataset.DatasetDAO.find_by_id")
 @patch("superset.commands.chart.create.CreateChartCommand.run")
 @pytest.mark.asyncio
-async def test_create_chart_xy_area_success(mock_run, mock_find_dataset, mcp_server):
+async def test_generate_chart_xy_area_success(mock_run, mock_find_dataset, mcp_server):
     mock_run.return_value = _mock_chart(id=104, viz_type="echarts_area")
     mock_find_dataset.return_value = _mock_dataset(id=1)
 
@@ -443,10 +449,12 @@ async def test_create_chart_xy_area_success(mock_run, mock_find_dataset, mcp_ser
         filters=[FilterConfig(column="year", op="=", value=2024)],
     )
 
-    request = CreateChartRequest(dataset_id="1", config=config)
+    request = GenerateChartRequest(dataset_id="1", config=config)
 
     async with Client(mcp_server) as client:
-        resp = await client.call_tool("create_chart", {"request": request.model_dump()})
+        resp = await client.call_tool(
+            "generate_chart", {"request": request.model_dump()}
+        )
         assert resp.data["chart"] is not None
         assert resp.data["chart"]["viz_type"] == "echarts_area"
         assert resp.data["error"] is None
@@ -456,7 +464,7 @@ async def test_create_chart_xy_area_success(mock_run, mock_find_dataset, mcp_ser
 @patch("superset.daos.dataset.DatasetDAO.find_by_id")
 @patch("superset.commands.chart.create.CreateChartCommand.run")
 @pytest.mark.asyncio
-async def test_create_chart_error(mock_run, mock_find_dataset, mcp_server):
+async def test_generate_chart_error(mock_run, mock_find_dataset, mcp_server):
     mock_run.side_effect = Exception("Chart creation failed")
     mock_find_dataset.return_value = _mock_dataset(id=1)
 
@@ -464,11 +472,11 @@ async def test_create_chart_error(mock_run, mock_find_dataset, mcp_server):
         chart_type="table", columns=[ColumnRef(name="region", label="Region")]
     )
 
-    request = CreateChartRequest(dataset_id="1", config=config)
+    request = GenerateChartRequest(dataset_id="1", config=config)
 
     async with Client(mcp_server) as client:
         result = await client.call_tool(
-            "create_chart", {"request": request.model_dump()}
+            "generate_chart", {"request": request.model_dump()}
         )
         assert result.data["error"] is not None
         assert "Chart creation failed" in result.data["error"]
@@ -477,7 +485,7 @@ async def test_create_chart_error(mock_run, mock_find_dataset, mcp_server):
 @patch("superset.daos.dataset.DatasetDAO.find_by_id")
 @patch("superset.commands.chart.create.CreateChartCommand.run")
 @pytest.mark.asyncio
-async def test_create_chart_table_minimal(mock_run, mock_find_dataset, mcp_server):
+async def test_generate_chart_table_minimal(mock_run, mock_find_dataset, mcp_server):
     mock_run.return_value = _mock_chart(id=105, viz_type="table")
     mock_find_dataset.return_value = _mock_dataset(id=1)
 
@@ -486,10 +494,12 @@ async def test_create_chart_table_minimal(mock_run, mock_find_dataset, mcp_serve
         chart_type="table", columns=[ColumnRef(name="region", label="Region")]
     )
 
-    request = CreateChartRequest(dataset_id="1", config=config)
+    request = GenerateChartRequest(dataset_id="1", config=config)
 
     async with Client(mcp_server) as client:
-        resp = await client.call_tool("create_chart", {"request": request.model_dump()})
+        resp = await client.call_tool(
+            "generate_chart", {"request": request.model_dump()}
+        )
         assert resp.data["chart"] is not None
         assert resp.data["chart"]["viz_type"] == "table"
         assert resp.data["error"] is None
@@ -499,7 +509,7 @@ async def test_create_chart_table_minimal(mock_run, mock_find_dataset, mcp_serve
 @patch("superset.daos.dataset.DatasetDAO.find_by_id")
 @patch("superset.commands.chart.create.CreateChartCommand.run")
 @pytest.mark.asyncio
-async def test_create_chart_xy_minimal(mock_run, mock_find_dataset, mcp_server):
+async def test_generate_chart_xy_minimal(mock_run, mock_find_dataset, mcp_server):
     mock_run.return_value = _mock_chart(id=106, viz_type="echarts_timeseries_line")
     mock_find_dataset.return_value = _mock_dataset(id=1)
 
@@ -511,10 +521,12 @@ async def test_create_chart_xy_minimal(mock_run, mock_find_dataset, mcp_server):
         kind="line",
     )
 
-    request = CreateChartRequest(dataset_id="1", config=config)
+    request = GenerateChartRequest(dataset_id="1", config=config)
 
     async with Client(mcp_server) as client:
-        resp = await client.call_tool("create_chart", {"request": request.model_dump()})
+        resp = await client.call_tool(
+            "generate_chart", {"request": request.model_dump()}
+        )
         assert resp.data["chart"] is not None
         assert resp.data["chart"]["viz_type"] == "echarts_timeseries_line"
         assert resp.data["error"] is None
@@ -524,7 +536,7 @@ async def test_create_chart_xy_minimal(mock_run, mock_find_dataset, mcp_server):
 @patch("superset.daos.dataset.DatasetDAO.find_by_id")
 @patch("superset.commands.chart.create.CreateChartCommand.run")
 @pytest.mark.asyncio
-async def test_create_chart_with_simple_metrics(
+async def test_generate_chart_with_simple_metrics(
     mock_run, mock_find_dataset, mcp_server
 ):
     mock_run.return_value = _mock_chart(id=107, viz_type="echarts_timeseries_bar")
@@ -541,10 +553,12 @@ async def test_create_chart_with_simple_metrics(
         kind="bar",
     )
 
-    request = CreateChartRequest(dataset_id="1", config=config)
+    request = GenerateChartRequest(dataset_id="1", config=config)
 
     async with Client(mcp_server) as client:
-        resp = await client.call_tool("create_chart", {"request": request.model_dump()})
+        resp = await client.call_tool(
+            "generate_chart", {"request": request.model_dump()}
+        )
         assert resp.data["chart"] is not None
         assert resp.data["chart"]["viz_type"] == "echarts_timeseries_bar"
         assert resp.data["error"] is None
@@ -554,7 +568,7 @@ async def test_create_chart_with_simple_metrics(
 @patch("superset.daos.dataset.DatasetDAO.find_by_id")
 @patch("superset.commands.chart.create.CreateChartCommand.run")
 @pytest.mark.asyncio
-async def test_create_chart_with_sql_aggregators(
+async def test_generate_chart_with_sql_aggregators(
     mock_run, mock_find_dataset, mcp_server
 ):
     mock_run.return_value = _mock_chart(id=108, viz_type="echarts_timeseries_line")
@@ -572,10 +586,12 @@ async def test_create_chart_with_sql_aggregators(
         kind="line",
     )
 
-    request = CreateChartRequest(dataset_id="1", config=config)
+    request = GenerateChartRequest(dataset_id="1", config=config)
 
     async with Client(mcp_server) as client:
-        resp = await client.call_tool("create_chart", {"request": request.model_dump()})
+        resp = await client.call_tool(
+            "generate_chart", {"request": request.model_dump()}
+        )
         assert resp.data["chart"] is not None
         assert resp.data["chart"]["viz_type"] == "echarts_timeseries_line"
         assert resp.data["error"] is None
@@ -585,7 +601,7 @@ async def test_create_chart_with_sql_aggregators(
 @patch("superset.daos.dataset.DatasetDAO.find_by_id")
 @patch("superset.commands.chart.create.CreateChartCommand.run")
 @pytest.mark.asyncio
-async def test_create_chart_comprehensive_metrics(
+async def test_generate_chart_comprehensive_metrics(
     mock_run, mock_find_dataset, mcp_server
 ):
     mock_run.return_value = _mock_chart(id=109, viz_type="echarts_timeseries_bar")
@@ -621,10 +637,12 @@ async def test_create_chart_comprehensive_metrics(
         ],
     )
 
-    request = CreateChartRequest(dataset_id="1", config=config)
+    request = GenerateChartRequest(dataset_id="1", config=config)
 
     async with Client(mcp_server) as client:
-        resp = await client.call_tool("create_chart", {"request": request.model_dump()})
+        resp = await client.call_tool(
+            "generate_chart", {"request": request.model_dump()}
+        )
         assert resp.data["chart"] is not None
         assert resp.data["chart"]["viz_type"] == "echarts_timeseries_bar"
         assert resp.data["error"] is None
@@ -634,7 +652,9 @@ async def test_create_chart_comprehensive_metrics(
 @patch("superset.daos.dataset.DatasetDAO.find_by_id")
 @patch("superset.commands.chart.create.CreateChartCommand.run")
 @pytest.mark.asyncio
-async def test_create_chart_xy_scatter_success(mock_run, mock_find_dataset, mcp_server):
+async def test_generate_chart_xy_scatter_success(
+    mock_run, mock_find_dataset, mcp_server
+):
     mock_run.return_value = _mock_chart(id=110, viz_type="echarts_timeseries_scatter")
     mock_find_dataset.return_value = _mock_dataset(id=1)
 
@@ -651,10 +671,12 @@ async def test_create_chart_xy_scatter_success(mock_run, mock_find_dataset, mcp_
         filters=[FilterConfig(column="year", op="=", value=2024)],
     )
 
-    request = CreateChartRequest(dataset_id="1", config=config)
+    request = GenerateChartRequest(dataset_id="1", config=config)
 
     async with Client(mcp_server) as client:
-        resp = await client.call_tool("create_chart", {"request": request.model_dump()})
+        resp = await client.call_tool(
+            "generate_chart", {"request": request.model_dump()}
+        )
         assert resp.data["chart"] is not None
         assert resp.data["chart"]["viz_type"] == "echarts_timeseries_scatter"
         assert resp.data["error"] is None

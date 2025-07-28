@@ -16,7 +16,7 @@
 # under the License.
 
 """
-Comprehensive unit tests for MCP create_chart tool
+Comprehensive unit tests for MCP generate_chart tool
 """
 
 import logging
@@ -29,8 +29,8 @@ from superset.mcp_service.mcp_app import mcp
 from superset.mcp_service.pydantic_schemas.chart_schemas import (
     AxisConfig,
     ColumnRef,
-    CreateChartRequest,
     FilterConfig,
+    GenerateChartRequest,
     LegendConfig,
     TableChartConfig,
     XYChartConfig,
@@ -63,13 +63,13 @@ def _mock_dataset(id: int = 1) -> Mock:
     return dataset
 
 
-class TestCreateChart:
-    """Comprehensive tests for create_chart MCP tool."""
+class TestGenerateChart:
+    """Comprehensive tests for generate_chart MCP tool."""
 
     @patch("superset.daos.dataset.DatasetDAO.find_by_id")
     @patch("superset.commands.chart.create.CreateChartCommand.run")
     @pytest.mark.asyncio
-    async def test_create_table_chart_minimal(
+    async def test_generate_chart_table_minimal(
         self, mock_run, mock_find_dataset, mcp_server
     ):
         """Test creating a minimal table chart."""
@@ -77,11 +77,11 @@ class TestCreateChart:
         mock_find_dataset.return_value = _mock_dataset(id=1)
 
         config = TableChartConfig(chart_type="table", columns=[ColumnRef(name="col1")])
-        request = CreateChartRequest(dataset_id="1", config=config)
+        request = GenerateChartRequest(dataset_id="1", config=config)
 
         async with Client(mcp_server) as client:
             result = await client.call_tool(
-                "create_chart", {"request": request.model_dump()}
+                "generate_chart", {"request": request.model_dump()}
             )
 
             assert result.data["error"] is None
@@ -93,7 +93,7 @@ class TestCreateChart:
     @patch("superset.daos.dataset.DatasetDAO.find_by_id")
     @patch("superset.commands.chart.create.CreateChartCommand.run")
     @pytest.mark.asyncio
-    async def test_create_table_chart_with_features(
+    async def test_generate_chart_table_with_features(
         self, mock_run, mock_find_dataset, mcp_server
     ):
         """Test creating a table chart with multiple features."""
@@ -113,11 +113,11 @@ class TestCreateChart:
             ],
             sort_by=["sales", "profit"],
         )
-        request = CreateChartRequest(dataset_id="5", config=config)
+        request = GenerateChartRequest(dataset_id="5", config=config)
 
         async with Client(mcp_server) as client:
             result = await client.call_tool(
-                "create_chart", {"request": request.model_dump()}
+                "generate_chart", {"request": request.model_dump()}
             )
 
             assert result.data["error"] is None
@@ -128,7 +128,7 @@ class TestCreateChart:
     @patch("superset.daos.dataset.DatasetDAO.find_by_id")
     @patch("superset.commands.chart.create.CreateChartCommand.run")
     @pytest.mark.asyncio
-    async def test_create_line_chart(self, mock_run, mock_find_dataset, mcp_server):
+    async def test_generate_chart_line(self, mock_run, mock_find_dataset, mcp_server):
         """Test creating a line chart."""
         mock_run.return_value = _mock_chart(id=10, viz_type="echarts_timeseries_line")
         mock_find_dataset.return_value = _mock_dataset(id=1)
@@ -139,11 +139,11 @@ class TestCreateChart:
             y=[ColumnRef(name="value", aggregate="SUM")],
             kind="line",
         )
-        request = CreateChartRequest(dataset_id="1", config=config)
+        request = GenerateChartRequest(dataset_id="1", config=config)
 
         async with Client(mcp_server) as client:
             result = await client.call_tool(
-                "create_chart", {"request": request.model_dump()}
+                "generate_chart", {"request": request.model_dump()}
             )
 
             assert result.data["error"] is None
@@ -154,7 +154,7 @@ class TestCreateChart:
     @patch("superset.daos.dataset.DatasetDAO.find_by_id")
     @patch("superset.commands.chart.create.CreateChartCommand.run")
     @pytest.mark.asyncio
-    async def test_create_bar_chart(self, mock_run, mock_find_dataset, mcp_server):
+    async def test_generate_chart_bar(self, mock_run, mock_find_dataset, mcp_server):
         """Test creating a bar chart."""
         mock_run.return_value = _mock_chart(id=20, viz_type="echarts_timeseries_bar")
         mock_find_dataset.return_value = _mock_dataset(id=1)
@@ -167,11 +167,11 @@ class TestCreateChart:
             group_by=ColumnRef(name="quarter"),
             y_axis=AxisConfig(title="Revenue ($)", format="$,.0f"),
         )
-        request = CreateChartRequest(dataset_id="7", config=config)
+        request = GenerateChartRequest(dataset_id="7", config=config)
 
         async with Client(mcp_server) as client:
             result = await client.call_tool(
-                "create_chart", {"request": request.model_dump()}
+                "generate_chart", {"request": request.model_dump()}
             )
 
             assert result.data["error"] is None
@@ -182,7 +182,7 @@ class TestCreateChart:
     @patch("superset.daos.dataset.DatasetDAO.find_by_id")
     @patch("superset.commands.chart.create.CreateChartCommand.run")
     @pytest.mark.asyncio
-    async def test_create_area_chart(self, mock_run, mock_find_dataset, mcp_server):
+    async def test_generate_chart_area(self, mock_run, mock_find_dataset, mcp_server):
         """Test creating an area chart."""
         mock_run.return_value = _mock_chart(id=30, viz_type="echarts_area")
         mock_find_dataset.return_value = _mock_dataset(id=1)
@@ -194,11 +194,11 @@ class TestCreateChart:
             kind="area",
             legend=LegendConfig(show=False),
         )
-        request = CreateChartRequest(dataset_id="2", config=config)
+        request = GenerateChartRequest(dataset_id="2", config=config)
 
         async with Client(mcp_server) as client:
             result = await client.call_tool(
-                "create_chart", {"request": request.model_dump()}
+                "generate_chart", {"request": request.model_dump()}
             )
 
             assert result.data["error"] is None
@@ -209,7 +209,9 @@ class TestCreateChart:
     @patch("superset.daos.dataset.DatasetDAO.find_by_id")
     @patch("superset.commands.chart.create.CreateChartCommand.run")
     @pytest.mark.asyncio
-    async def test_create_scatter_chart(self, mock_run, mock_find_dataset, mcp_server):
+    async def test_generate_chart_scatter(
+        self, mock_run, mock_find_dataset, mcp_server
+    ):
         """Test creating a scatter chart."""
         mock_run.return_value = _mock_chart(
             id=40, viz_type="echarts_timeseries_scatter"
@@ -223,11 +225,11 @@ class TestCreateChart:
             kind="scatter",
             group_by=ColumnRef(name="product_type"),
         )
-        request = CreateChartRequest(dataset_id="4", config=config)
+        request = GenerateChartRequest(dataset_id="4", config=config)
 
         async with Client(mcp_server) as client:
             result = await client.call_tool(
-                "create_chart", {"request": request.model_dump()}
+                "generate_chart", {"request": request.model_dump()}
             )
 
             assert result.data["error"] is None
@@ -238,7 +240,7 @@ class TestCreateChart:
     @patch("superset.daos.dataset.DatasetDAO.find_by_id")
     @patch("superset.commands.chart.create.CreateChartCommand.run")
     @pytest.mark.asyncio
-    async def test_create_chart_with_complex_config(
+    async def test_generate_chart_with_complex_config(
         self, mock_run, mock_find_dataset, mcp_server
     ):
         """Test creating chart with complex configuration."""
@@ -262,11 +264,11 @@ class TestCreateChart:
                 FilterConfig(column="date", op=">=", value="2024-01-01"),
             ],
         )
-        request = CreateChartRequest(dataset_id="3", config=config)
+        request = GenerateChartRequest(dataset_id="3", config=config)
 
         async with Client(mcp_server) as client:
             result = await client.call_tool(
-                "create_chart", {"request": request.model_dump()}
+                "generate_chart", {"request": request.model_dump()}
             )
 
             assert result.data["error"] is None
@@ -277,7 +279,7 @@ class TestCreateChart:
     @patch("superset.daos.dataset.DatasetDAO.find_by_id")
     @patch("superset.commands.chart.create.CreateChartCommand.run")
     @pytest.mark.asyncio
-    async def test_create_chart_command_failure(
+    async def test_generate_chart_command_failure(
         self, mock_run, mock_find_dataset, mcp_server
     ):
         """Test handling of CreateChartCommand failure."""
@@ -285,11 +287,11 @@ class TestCreateChart:
         mock_find_dataset.return_value = _mock_dataset(id=1)
 
         config = TableChartConfig(chart_type="table", columns=[ColumnRef(name="col1")])
-        request = CreateChartRequest(dataset_id="1", config=config)
+        request = GenerateChartRequest(dataset_id="1", config=config)
 
         async with Client(mcp_server) as client:
             result = await client.call_tool(
-                "create_chart", {"request": request.model_dump()}
+                "generate_chart", {"request": request.model_dump()}
             )
 
             assert result.data["chart"] is None
@@ -299,7 +301,7 @@ class TestCreateChart:
     @patch("superset.daos.dataset.DatasetDAO.find_by_id")
     @patch("superset.commands.chart.create.CreateChartCommand.run")
     @pytest.mark.asyncio
-    async def test_create_chart_url_format_verification(
+    async def test_generate_chart_url_format_verification(
         self, mock_run, mock_find_dataset, mcp_server
     ):
         """Test that created chart returns proper explore URL format."""
@@ -309,11 +311,11 @@ class TestCreateChart:
         config = TableChartConfig(
             chart_type="table", columns=[ColumnRef(name="test_col")]
         )
-        request = CreateChartRequest(dataset_id="1", config=config)
+        request = GenerateChartRequest(dataset_id="1", config=config)
 
         async with Client(mcp_server) as client:
             result = await client.call_tool(
-                "create_chart", {"request": request.model_dump()}
+                "generate_chart", {"request": request.model_dump()}
             )
 
             # Verify URL format is exactly as expected: /explore/?slice_id=<id>
@@ -323,7 +325,7 @@ class TestCreateChart:
     @patch("superset.daos.dataset.DatasetDAO.find_by_id")
     @patch("superset.commands.chart.create.CreateChartCommand.run")
     @pytest.mark.asyncio
-    async def test_create_chart_with_many_metrics(
+    async def test_generate_chart_with_many_metrics(
         self, mock_run, mock_find_dataset, mcp_server
     ):
         """Test creating chart with many metrics."""
@@ -337,11 +339,11 @@ class TestCreateChart:
         ]
 
         config = TableChartConfig(chart_type="table", columns=columns)
-        request = CreateChartRequest(dataset_id="1", config=config)
+        request = GenerateChartRequest(dataset_id="1", config=config)
 
         async with Client(mcp_server) as client:
             result = await client.call_tool(
-                "create_chart", {"request": request.model_dump()}
+                "generate_chart", {"request": request.model_dump()}
             )
 
             assert result.data["error"] is None
@@ -351,7 +353,7 @@ class TestCreateChart:
     @patch("superset.daos.dataset.DatasetDAO.find_by_id")
     @patch("superset.commands.chart.create.CreateChartCommand.run")
     @pytest.mark.asyncio
-    async def test_create_chart_with_many_filters(
+    async def test_generate_chart_with_many_filters(
         self, mock_run, mock_find_dataset, mcp_server
     ):
         """Test creating chart with many filters."""
@@ -375,11 +377,11 @@ class TestCreateChart:
             kind="bar",
             filters=filters,
         )
-        request = CreateChartRequest(dataset_id="1", config=config)
+        request = GenerateChartRequest(dataset_id="1", config=config)
 
         async with Client(mcp_server) as client:
             result = await client.call_tool(
-                "create_chart", {"request": request.model_dump()}
+                "generate_chart", {"request": request.model_dump()}
             )
 
             assert result.data["error"] is None
@@ -389,7 +391,7 @@ class TestCreateChart:
     @patch("superset.daos.dataset.DatasetDAO.find_by_id")
     @patch("superset.commands.chart.create.CreateChartCommand.run")
     @pytest.mark.asyncio
-    async def test_create_chart_dataset_id_types(
+    async def test_generate_chart_dataset_id_types(
         self, mock_run, mock_find_dataset, mcp_server
     ):
         """Test chart creation with different dataset_id formats."""
@@ -402,10 +404,10 @@ class TestCreateChart:
         dataset_ids = ["1", "999", "123456789"]
 
         for dataset_id in dataset_ids:
-            request = CreateChartRequest(dataset_id=dataset_id, config=config)
+            request = GenerateChartRequest(dataset_id=dataset_id, config=config)
             async with Client(mcp_server) as client:
                 result = await client.call_tool(
-                    "create_chart", {"request": request.model_dump()}
+                    "generate_chart", {"request": request.model_dump()}
                 )
                 assert result.data["error"] is None
                 assert result.data["chart"]["id"] == 200
