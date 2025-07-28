@@ -2,7 +2,7 @@
 
 The Superset Model Context Protocol (MCP) service provides a modular, schema-driven interface for programmatic access to Superset dashboards, charts, datasets, and instance metadata. It is designed for LLM agents and automation tools, and is built on the FastMCP protocol.
 
-**Status:** Phase 1 Complete (95% done). Core functionality stable, authentication production-ready, comprehensive testing coverage. See [SIP-171](https://github.com/apache/superset/issues/33870) for the roadmap.
+**Status:** Phase 1 Complete (95% done). Core functionality stable, authentication production-ready, extensive testing coverage. See [SIP-171](https://github.com/apache/superset/issues/33870) for the roadmap.
 
 ---
 
@@ -166,7 +166,7 @@ The MCP service provides enterprise-grade security features:
 - **Active User Validation**: Inactive users automatically denied access
 
 ### Audit & Monitoring
-- **Comprehensive Logging**: All tool calls logged with user context
+- **Logging**: All tool calls logged with user context
 - **JWT Context**: Access logs include JWT user, scopes, and token metadata
 - **Error Tracking**: Authentication failures logged with debug information
 - **Permission Denials**: Clear audit trail for access control decisions
@@ -236,7 +236,7 @@ flowchart TD
 ## Test Coverage
 
 - All dataset tools now have unit tests verifying columns and metrics are included in responses.
-- Chart creation tools have comprehensive tests covering all supported chart types and SQL aggregators.
+- Chart creation tools have tests covering all 5 supported chart types and SQL aggregators.
 - **Multi-identifier Testing**: All get_*_info tools have tests for ID, UUID, and slug (where applicable) lookup
 - **Request Schema Testing**: All list tools tested with new request schema pattern
 - **Validation Testing**: Tests verify that search+filters conflicts are properly prevented
@@ -254,14 +254,14 @@ flowchart TD
 - **Navigation Tools**: `generate_explore_link` for explore URLs
 - **System Tools**: Instance info and available filters
 - **Request Schema Pattern**: Eliminates LLM parameter validation issues
-- **Comprehensive Testing**: 149 unit tests, full pre-commit compliance
+- **Testing**: 185+ unit tests, full pre-commit compliance
 
 ### 🟡 Recently Completed (Phase 1 Final)
 - **Backend Chart Rendering**: Screenshot URLs for LLM chat integration ✅
 - **SQL Lab Integration**: `open_sql_lab_with_context` for pre-loaded queries ✅
 - **Dashboard Generation**: `generate_dashboard` and `add_chart_to_existing_dashboard` ✅
 - **Chart Data & Preview**: `get_chart_data` and `get_chart_preview` with multiple formats ✅
-- **BaseDAO Type Safety**: Enhanced UUID handling with comprehensive test coverage ✅
+- **BaseDAO Type Safety**: Enhanced UUID handling with extensive test coverage ✅
 
 ### 🎯 Phase 1 Stretch Goals
 - **Demo Script/Notebook**: Interactive bot capabilities showcase
@@ -273,8 +273,8 @@ flowchart TD
 ### Integration Examples
 - **Claude Agent SDK**: Create cloud agents connecting to MCP service
 - **LangChain Integration**: Use `langchain-mcp` toolkit for chatbot connections
-- **End-to-End Testing**: Synthetic environments with example database for comprehensive testing
-- **Video Demonstrations**: Complete tool workflows for community engagement
+- **End-to-End Testing**: Synthetic environments with example database for integration testing
+- **Video Demonstrations**: Tool workflow examples for community engagement
 
 ---
 

@@ -2,7 +2,7 @@
 
 This document provides a reference for the input and output schemas of all MCP tools in the Superset MCP service. All schemas are Pydantic v2 models with field descriptions for LLM/OpenAPI compatibility.
 
-**Status**: Phase 1 Complete (95% done). All core schemas stable and production-ready with comprehensive testing coverage.
+**Status**: Phase 1 Complete (95% done). All core schemas stable and production-ready with extensive testing coverage.
 
 ## FastMCP Complex Inputs Pattern
 
@@ -19,7 +19,7 @@ get_dashboard_info(request=GetDashboardInfoRequest(identifier="123"))  # ID
 get_dashboard_info(request=GetDashboardInfoRequest(identifier="uuid-string"))  # UUID
 get_dashboard_info(request=GetDashboardInfoRequest(identifier="slug-string"))  # Slug
 
-# Chart creation with comprehensive config
+# Chart creation with detailed config
 create_chart(request=CreateChartRequest(
     dataset_id="1",
     config=XYChartConfig(
@@ -365,7 +365,7 @@ All list tools use the `ModelListTool` abstraction, which enforces:
 - LLM/OpenAPI-friendly field names
 - Validation logic preventing parameter conflicts
 - Enhanced search including UUID/slug fields
-- Comprehensive metadata in responses (columns_requested, columns_loaded, etc.)
+- Detailed metadata in responses (columns_requested, columns_loaded, etc.)
 
 ## Schema Validation & Testing
 
@@ -376,7 +376,7 @@ All schemas are thoroughly tested with:
 - **Authentication integration** testing with JWT contexts
 - **Error response validation** for permission and authentication failures
 - **Chart creation testing** covering all supported chart types and aggregators
-- **Dashboard generation testing** for complete workflow validation
+- **Dashboard generation testing** for workflow validation
 - **SQL Lab integration testing** with proper parameter handling
 
 ## Future Schema Enhancements

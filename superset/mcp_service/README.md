@@ -36,7 +36,7 @@ All tools are modular, strongly typed, and use Pydantic v2 schemas. Every field 
 
 ### 📊 Dashboard Tools
 - **`list_dashboards`** - Advanced filtering, search, pagination with UUID and slug support
-- **`get_dashboard_info`** - Supports ID, UUID, and slug lookups with comprehensive metadata
+- **`get_dashboard_info`** - Supports ID, UUID, and slug lookups with detailed metadata
 - **`get_dashboard_available_filters`** - Dynamic filter discovery for dashboard queries
 - **`generate_dashboard`** - ✨ **NEW**: Create dashboards with multiple charts and automatic layout
 - **`add_chart_to_existing_dashboard`** - ✨ **NEW**: Add charts to existing dashboards with smart positioning
@@ -45,7 +45,7 @@ All tools are modular, strongly typed, and use Pydantic v2 schemas. Every field 
 - **`list_charts`** - Advanced filtering, search, pagination with UUID support
 - **`get_chart_info`** - Supports ID and UUID lookups with full chart metadata
 - **`get_chart_available_filters`** - Dynamic filter discovery for chart queries
-- **`create_chart`** - Comprehensive chart creation (line, bar, area, scatter, table charts)
+- **`create_chart`** - Chart creation supporting 5 types (line, bar, area, scatter, table)
 - **`get_chart_data`** - ✨ **NEW**: Retrieve chart data in multiple formats (JSON, CSV)
 - **`get_chart_preview`** - ✨ **NEW**: Generate chart previews (screenshots, ASCII art, tables)
 
@@ -55,7 +55,7 @@ All tools are modular, strongly typed, and use Pydantic v2 schemas. Every field 
 - **`get_dataset_available_filters`** - Dynamic filter discovery for dataset queries
 
 ### 🖥️ System Tools
-- **`get_superset_instance_info`** - Comprehensive instance statistics and health metrics
+- **`get_superset_instance_info`** - Instance statistics including version, tools, and auth status
 - **`generate_explore_link`** - Generate Superset explore URLs with pre-configured chart settings
 
 ### 🧪 SQL Lab Tools
@@ -63,6 +63,27 @@ All tools are modular, strongly typed, and use Pydantic v2 schemas. Every field 
 
 ### 🔧 Navigation & Workflow Tools
 All tools now support seamless navigation between Superset interfaces with proper URL generation and context preservation.
+
+## Available Operations
+
+The MCP service currently provides the following operations:
+
+### ✅ Read Operations (Available for all entities)
+- **List**: Get paginated lists with filtering and search
+- **Get Info**: Retrieve detailed information by ID, UUID, or slug
+- **Get Filters**: Discover available filter columns and operators
+
+### ✅ Create Operations (Limited availability)
+- **Charts**: Create new charts with 5 visualization types
+- **Dashboards**: Generate new dashboards with automatic layout
+- **Add to Dashboard**: Add existing charts to dashboards
+
+### ❌ Not Yet Available
+- **Update**: No update operations for any entity
+- **Delete**: No delete operations for any entity
+- **Execute**: SQL Lab opens sessions but doesn't execute queries
+
+This reflects Phase 1 focus on read operations and essential creation capabilities.
 
 See the architecture doc for full tool signatures and usage examples.
 
@@ -111,7 +132,7 @@ list_dashboards(request={
 
 ## Chart Creation
 
-The `create_chart` tool supports comprehensive chart creation with:
+The `create_chart` tool supports chart creation with:
 
 ### Supported Chart Types
 - **Table charts** — Simple column display with filters and sorting
@@ -155,7 +176,7 @@ table_request = CreateChartRequest(dataset_id="1", config=table_config)
 
 ## Dashboard Generation & Management
 
-New dashboard management tools provide complete workflow automation:
+New dashboard management tools provide dashboard creation and chart addition capabilities:
 
 ### Dashboard Creation
 ```python
@@ -163,7 +184,7 @@ New dashboard management tools provide complete workflow automation:
 generate_dashboard(request={
     "chart_ids": [1, 2, 3, 4],
     "dashboard_title": "Sales Analytics Dashboard",
-    "description": "Comprehensive sales performance metrics",
+    "description": "Sales performance metrics dashboard",
     "published": True
 })
 ```
@@ -254,7 +275,7 @@ get_chart_preview(request={
 ### 🔄 Phase 1 In Progress
 | Epic | Status | Description |
 |------|--------|--------------|
-| **[Implement Chart Creation Mutation](https://app.shortcut.com/preset-ext/story/90304)** | 🟡 In Review | `create_chart` tool with comprehensive chart type support |
+| **[Implement Chart Creation Mutation](https://app.shortcut.com/preset-ext/story/90304)** | 🟡 In Review | `create_chart` tool supporting 5 chart types |
 | **[Implement Navigation Actions](https://app.shortcut.com/preset-ext/story/90305)** | 🟡 In Review | `generate_explore_link` ✅, `open_sql_lab_with_context` pending |
 | **[backend rendering in the short term for embedded charts in to the chat](https://app.shortcut.com/preset-ext/story/90511)** | 🟨 In Development | Embedded charts for LLM chat integration |
 | **[Support for Bearer authentication](https://app.shortcut.com/preset-ext/story/90509)** | 🟨 In Development | Enhanced JWT authentication features |
@@ -401,7 +422,7 @@ SUPERSET_HOST_PREFIX = "https://superset.company.com"  # Production
 ### 🔧 **BaseDAO Type Safety & Performance**
 - **UUID Type Conversion**: Centralized `_convert_value_for_column()` method for type-safe UUID handling
 - **Flexible Column Support**: Enhanced `find_by_id()` and `find_by_ids()` with customizable column lookups
-- **Comprehensive Test Coverage**: 185+ passing unit tests including edge cases and error scenarios
+- **Test Coverage**: 185+ passing unit tests including edge cases and error scenarios
 - **Code Quality**: Eliminated code duplication and hardcoded string checks
 
 ### 🚀 **MCP Service Consistency & Reliability**
@@ -411,7 +432,7 @@ SUPERSET_HOST_PREFIX = "https://superset.company.com"  # Production
 - **Type Validation**: Enhanced SQLAlchemy column type inspection for safer operations
 
 ### 🆕 **New Dashboard & SQL Lab Tools**
-- **Dashboard Generation**: Complete dashboard creation with automatic chart layout
+- **Dashboard Generation**: Dashboard creation with automatic chart layout
 - **Chart Management**: Add charts to existing dashboards with intelligent positioning
 - **SQL Lab Context**: Pre-configured SQL Lab sessions with database/schema selection
 - **Preview System**: Chart screenshots, ASCII art, and data extraction capabilities
