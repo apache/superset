@@ -264,6 +264,7 @@ export default function getInitialState({
       queriesLastUpdate: Date.now(),
       editorTabLastUpdatedAt,
       queryCostEstimates: {},
+      queryCostThresholds: {},
       unsavedQueryEditor,
       lastUpdatedActiveTab,
       destroyedQueryEditors,

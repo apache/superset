@@ -1191,6 +1191,18 @@ SQLLAB_ASYNC_TIME_LIMIT_SEC = int(timedelta(hours=6).total_seconds())
 # timeout.
 SQLLAB_QUERY_COST_ESTIMATE_TIMEOUT = int(timedelta(seconds=10).total_seconds())
 
+# Query cost governance configuration
+# Enable automatic cost checking before query execution
+SQLLAB_QUERY_COST_CHECKING_ENABLED = False
+
+# Cost thresholds that trigger warnings before query execution
+# This is a dictionary where keys are database engine names and values are threshold configs
+# Each threshold config can contain:
+# - 'bytes_scanned': maximum bytes that can be scanned without warning
+# - 'cost_threshold': monetary cost threshold (engine-specific units)
+# Example: {'bigquery': {'bytes_scanned': 5 * 1024**4}, 'presto': {'cost_threshold': 1000}}
+SQLLAB_QUERY_COST_THRESHOLDS = {}
+
 # Timeout duration for SQL Lab fetching query results by the resultsKey.
 # 0 means no timeout.
 SQLLAB_QUERY_RESULT_TIMEOUT = 0
