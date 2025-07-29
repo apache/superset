@@ -262,8 +262,16 @@ class RLSAsSubqueryTransformer(RLSTransformer):
             return node
 
         if predicate := self.get_predicate(node):
-            # use alias or name
-            alias = node.alias or node.sql()
+            if node.alias:
+                alias = node.alias
+            else:
+                name = ".".join(
+                    part
+                    for part in (node.catalog or "", node.db or "", node.name)
+                    if part
+                )
+                alias = exp.TableAlias(this=exp.Identifier(this=name, quoted=True))
+
             node.set("alias", None)
             node = exp.Subquery(
                 this=exp.Select(
@@ -683,7 +691,10 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
 
         """
         return {
-            eq.this.sql(comments=False): eq.expression.sql(comments=False)
+            eq.this.sql(
+                dialect=self._dialect,
+                comments=False,
+            ): eq.expression.sql(comments=False)
             for set_item in self._parsed.find_all(exp.SetItem)
             for eq in set_item.find_all(exp.EQ)
         }
