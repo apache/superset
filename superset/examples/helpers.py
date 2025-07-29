@@ -54,6 +54,8 @@ from superset.connectors.sqla.models import SqlaTable
 from superset.models.slice import Slice
 from superset.utils import json
 
+EXAMPLES_PROTOCOL = "examples://"
+
 # ---------------------------------------------------------------------------
 # Public sample‑data mirror configuration
 # ---------------------------------------------------------------------------
@@ -131,8 +133,8 @@ def normalize_example_data_url(url: str) -> str:
     Transforms examples:// URLs to the configured CDN URL.
     Non-example URLs are returned unchanged.
     """
-    if url.startswith("examples://"):
-        relative_path = url[11:]  # Remove 'examples://'
+    if url.startswith(EXAMPLES_PROTOCOL):
+        relative_path = url[len(EXAMPLES_PROTOCOL) :]
         return get_example_url(relative_path)
 
     # Not an examples URL, return unchanged
