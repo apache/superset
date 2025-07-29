@@ -148,8 +148,8 @@ export const getColorFunction = (
           : false;
       break;
     case Comparator.NotEqual:
-      if (typeof targetValue === 'number')
-        comparatorFunction = (value: number, allValues: number[]) => {
+      comparatorFunction = (value: number, allValues: number[]) => {
+        if (typeof targetValue === 'number') {
           if (value === targetValue!) {
             return false;
           }
@@ -162,7 +162,10 @@ export const getColorFunction = (
                 ? min
                 : max,
           };
-        };
+        }
+        return false;
+      };
+
       break;
     case Comparator.Between:
       comparatorFunction = (value: number) =>
