@@ -34,8 +34,8 @@ const StyledTag = styled(Tag)`
     cursor: pointer;
     margin-right: ${theme.sizeUnit}px;
     padding: ${theme.sizeUnit}px ${theme.sizeUnit * 2}px;
-    background: ${theme.colors.grayscale.light4};
-    border: 1px solid ${theme.colors.grayscale.light3};
+    background: ${theme.colorBgContainer};
+    border: 1px solid ${theme.colorBorder};
     border-radius: 4px;
     height: 100%;
 
