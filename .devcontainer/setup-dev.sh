@@ -10,7 +10,8 @@ sudo apt-get install -y \
     libsasl2-dev \
     libldap2-dev \
     libpq-dev \
-    tmux
+    tmux \
+    gh
 
 # Install uv for fast Python package management
 echo "📦 Installing uv..."
