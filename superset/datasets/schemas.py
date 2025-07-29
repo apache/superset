@@ -305,7 +305,7 @@ class ImportV1DatasetSchema(Schema):
     metrics = fields.List(fields.Nested(ImportV1MetricSchema))
     version = fields.String(required=True)
     database_uuid = fields.UUID(required=True)
-    data = fields.URL(schemes={"http", "https", "ftp", "ftps", "examples"})
+    data = fields.URL()
     is_managed_externally = fields.Boolean(allow_none=True, dump_default=False)
     external_url = fields.String(allow_none=True)
     normalize_columns = fields.Boolean(load_default=False)
