@@ -120,6 +120,78 @@ docker volume rm superset_db_home
 docker-compose up
 ```
 
+## GitHub Codespaces (Cloud Development)
+
+GitHub Codespaces provides a complete, pre-configured development environment in the cloud. This is ideal for:
+- Quick contributions without local setup
+- Consistent development environments across team members
+- Working from devices that can't run Docker locally
+- Safe experimentation in isolated environments
+
+:::info
+We're grateful to GitHub for providing this excellent cloud development service that makes
+contributing to Apache Superset more accessible to developers worldwide.
+:::
+
+### Getting Started with Codespaces
+
+1. **Create a Codespace**: Use this pre-configured link that sets up everything you need:
+
+   [**Launch Superset Codespace →**](https://github.com/codespaces/new?skip_quickstart=true&machine=standardLinux32gb&repo=39464018&ref=codespaces&geo=UsWest&devcontainer_path=.devcontainer%2Fdevcontainer.json)
+
+   :::caution
+   **Important**: You must select at least the **4 CPU / 16GB RAM** machine type (pre-selected in the link above).
+   Smaller instances will not have sufficient resources to run Superset effectively.
+   :::
+
+2. **Wait for Setup**: The initial setup takes several minutes. The Codespace will:
+   - Build the development container
+   - Install all dependencies
+   - Start all required services (PostgreSQL, Redis, etc.)
+   - Initialize the database with example data
+
+3. **Access Superset**: Once ready, check the **PORTS** tab in VS Code for port `9001`.
+   Click the globe icon to open Superset in your browser.
+   - Default credentials: `admin` / `admin`
+
+### Key Features
+
+- **Auto-reload**: Both Python and TypeScript files auto-refresh on save
+- **Pre-installed Extensions**: VS Code extensions for Python, TypeScript, and database tools
+- **Multiple Instances**: Run multiple Codespaces for different branches/features
+- **SSH Access**: Connect via terminal using `gh cs ssh` or through the GitHub web UI
+- **VS Code Integration**: Works seamlessly with VS Code desktop app
+
+### Managing Codespaces
+
+- **List active Codespaces**: `gh cs list`
+- **SSH into a Codespace**: `gh cs ssh`
+- **Stop a Codespace**: Via GitHub UI or `gh cs stop`
+- **Delete a Codespace**: Via GitHub UI or `gh cs delete`
+
+### Debugging and Logs
+
+Since Codespaces uses `docker-compose-light.yml`, you can monitor all services:
+
+```bash
+# Stream logs from all services
+docker compose -f docker-compose-light.yml logs -f
+
+# Stream logs from a specific service
+docker compose -f docker-compose-light.yml logs -f superset
+
+# View last 100 lines and follow
+docker compose -f docker-compose-light.yml logs --tail=100 -f
+
+# List all running services
+docker compose -f docker-compose-light.yml ps
+```
+
+:::tip
+Codespaces automatically stop after 30 minutes of inactivity to save resources.
+Your work is preserved and you can restart anytime.
+:::
+
 ## Installing Development Tools
 
 :::note
