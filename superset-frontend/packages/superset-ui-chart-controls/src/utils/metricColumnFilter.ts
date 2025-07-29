@@ -43,19 +43,25 @@ export function shouldSkipMetricColumn({
   colnames,
   formData,
 }: MetricColumnFilterParams): boolean {
-  // Skip unprefixed percent metric columns if a prefixed version exists
-  // But don't skip if it's also a regular metric
-  return !!(
-    colname &&
-    !colname.startsWith('%') &&
-    colnames.includes(`%${colname}`) &&
-    formData.percent_metrics?.some(
-      (metric: QueryFormMetric) => getMetricLabel(metric) === colname,
-    ) &&
-    !formData.metrics?.some(
-      (metric: QueryFormMetric) => getMetricLabel(metric) === colname,
-    )
+  if (!colname) {
+    return false;
+  }
+
+  // Check if this column name exists as a percent metric in form data
+  const isPercentMetric = formData.percent_metrics?.some(
+    (metric: QueryFormMetric) => getMetricLabel(metric) === colname,
   );
+
+  // Check if this column name exists as a regular metric in form data
+  const isRegularMetric = formData.metrics?.some(
+    (metric: QueryFormMetric) => getMetricLabel(metric) === colname,
+  );
+
+  // Check if there's a prefixed version of this column in the column list
+  const hasPrefixedVersion = colnames.includes(`%${colname}`);
+
+  // Skip if: has prefixed version AND is percent metric AND is NOT regular metric
+  return hasPrefixedVersion && isPercentMetric && !isRegularMetric;
 }
 
 /**
@@ -85,18 +91,5 @@ export function isPercentMetric(
 ): boolean {
   return !!formData.percent_metrics?.some(
     (metric: QueryFormMetric) => `%${getMetricLabel(metric)}` === colname,
-  );
-}
-
-/**
- * Checks if a column is either a regular metric or percentage metric.
- *
- * @param colname - The column name to check
- * @param formData - The form data containing metrics and percent_metrics
- * @returns true if the column is a metric (regular or percentage), false otherwise
- */
-export function isMetric(colname: string, formData: SqlaFormData): boolean {
-  return (
-    isRegularMetric(colname, formData) || isPercentMetric(colname, formData)
   );
 }
