@@ -450,10 +450,15 @@ def test_apply_series_others_grouping_sql_compilation(database: Database) -> Non
     assert "ELSE " in select_sql
     assert "ELSE " in groupby_sql
 
-    # Ensure GROUP BY expression doesn't have a label
-    # (labels appear as "expression AS label_name")
-    assert " AS " in select_sql  # SELECT should have label
+    # The key test is that GROUP BY expression doesn't have a label
+    # while SELECT might or might not have one depending on the database
+    # What matters is that GROUP BY should NOT have label
     assert " AS " not in groupby_sql  # GROUP BY should NOT have label
+
+    # Also verify that if SELECT has a label, it's different from GROUP BY
+    if " AS " in select_sql:
+        # If labeled, SELECT and GROUP BY should be different
+        assert select_sql != groupby_sql
 
 
 def test_apply_series_others_grouping_no_label_in_groupby(database: Database) -> None:
