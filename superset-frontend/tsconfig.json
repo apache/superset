@@ -16,7 +16,9 @@
       ],
       "@superset-ui/plugin-chart-*": ["./plugins/plugin-chart-*/src"],
       "@superset-ui/preset-chart-*": ["./plugins/preset-chart-*/src"],
-      "@superset-ui/switchboard": ["./packages/superset-ui-switchboard/src"]
+      "@superset-ui/switchboard": ["./packages/superset-ui-switchboard/src"],
+      "@superset-ui/plugin-chart-hierarchical-bar": ["plugins/plugin-chart-hierarchical-bar/src"],
+      "@superset-ui/plugin-chart-hierarchical-pie": ["plugins/plugin-chart-hierarchical-pie/src"]
     },
     "typeRoots": ["src/types", "node_modules/@types"]
 

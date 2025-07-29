@@ -22,6 +22,8 @@ import {
   Preset,
   VizType,
 } from '@superset-ui/core';
+import HierarchicalBarChartPlugin from '../../../plugins/plugin-chart-hierarchical-bar/src';
+import HierarchicalPieChartPlugin from '../../../plugins/plugin-chart-hierarchical-pie/src';
 import CalendarChartPlugin from '@superset-ui/legacy-plugin-chart-calendar';
 import ChordChartPlugin from '@superset-ui/legacy-plugin-chart-chord';
 import CountryMapChartPlugin from '@superset-ui/legacy-plugin-chart-country-map';
@@ -103,6 +105,8 @@ export default class MainPreset extends Preset {
       name: 'Legacy charts',
       presets: [new DeckGLChartPreset()],
       plugins: [
+        new HierarchicalBarChartPlugin().configure({ key: 'hierarchical_bar' }),
+        new HierarchicalPieChartPlugin().configure({ key: 'hierarchical_pie' }),
         new BigNumberChartPlugin().configure({ key: VizType.BigNumber }),
         new BigNumberTotalChartPlugin().configure({
           key: VizType.BigNumberTotal,

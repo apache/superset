@@ -34,7 +34,9 @@
   "workspaces": [
     "packages/*",
     "plugins/*",
-    "src/setup/*"
+    "src/setup/*",
+    "plugins/plugin-chart-hierarchical-bar",
+    "plugins/plugin-chart-hierarchical-pie"
   ],
   "scripts": {
     "_prettier": "prettier './({src,spec,cypress-base,plugins,packages,.storybook}/**/*{.js,.jsx,.ts,.tsx,.css,.scss,.sass}|package.json)'",

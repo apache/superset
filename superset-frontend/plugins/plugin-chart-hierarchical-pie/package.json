@@ -1,0 +1,8 @@
+{
+  "name": "@superset-ui/plugin-chart-hierarchical-pie",
+  "version": "0.0.1",
+  "main": "src/index.ts",
+  "module": "src/index.ts",
+  "files": ["src"]
+}
+
