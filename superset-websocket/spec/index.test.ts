@@ -19,15 +19,26 @@
 const jwt = require('jsonwebtoken');
 const config = require('../config.test.json');
 
-import { describe, expect, test, beforeEach, afterEach } from '@jest/globals';
+import {
+  describe,
+  expect,
+  test,
+  beforeEach,
+  afterEach,
+  jest,
+} from '@jest/globals';
 import * as http from 'http';
 import * as net from 'net';
 import { WebSocket } from 'ws';
 
+interface MockedRedisXrange {
+  (): Promise<server.StreamResult[]>;
+}
+
 // NOTE: these mock variables needs to start with "mock" due to
 // calls to `jest.mock` being hoisted to the top of the file.
 // https://jestjs.io/docs/es6-class-mocks#calling-jestmock-with-the-module-factory-parameter
-const mockRedisXrange = jest.fn();
+const mockRedisXrange = jest.fn() as jest.MockedFunction<MockedRedisXrange>;
 
 jest.mock('ws');
 jest.mock('ioredis', () => {
@@ -59,7 +70,7 @@ import * as server from '../src/index';
 import { statsd } from '../src/index';
 
 describe('server', () => {
-  let statsdIncrementMock: jest.SpyInstance;
+  let statsdIncrementMock: jest.SpiedFunction<typeof statsd.increment>;
 
   beforeEach(() => {
     mockRedisXrange.mockClear();
@@ -319,10 +330,12 @@ describe('server', () => {
 
   describe('wsConnection', () => {
     let ws: WebSocket;
-    let wsEventMock: jest.SpyInstance;
-    let trackClientSpy: jest.SpyInstance;
-    let fetchRangeFromStreamSpy: jest.SpyInstance;
-    let dateNowSpy: jest.SpyInstance;
+    let wsEventMock: jest.SpiedFunction<typeof ws.on>;
+    let trackClientSpy: jest.SpiedFunction<typeof server.trackClient>;
+    let fetchRangeFromStreamSpy: jest.SpiedFunction<
+      typeof server.fetchRangeFromStream
+    >;
+    let dateNowSpy: jest.SpiedFunction<typeof Date.now>;
     let socketInstanceExpected: server.SocketInstance;
 
     const getRequest = (token: string, url: string): http.IncomingMessage => {
@@ -431,8 +444,8 @@ describe('server', () => {
 
   describe('httpUpgrade', () => {
     let socket: net.Socket;
-    let socketDestroySpy: jest.SpyInstance;
-    let wssUpgradeSpy: jest.SpyInstance;
+    let socketDestroySpy: jest.SpiedFunction<typeof socket.destroy>;
+    let wssUpgradeSpy: jest.SpiedFunction<typeof server.wss.handleUpgrade>;
 
     const getRequest = (token: string, url: string): http.IncomingMessage => {
       const request = new http.IncomingMessage(new net.Socket());
@@ -496,8 +509,8 @@ describe('server', () => {
 
   describe('checkSockets', () => {
     let ws: WebSocket;
-    let pingSpy: jest.SpyInstance;
-    let terminateSpy: jest.SpyInstance;
+    let pingSpy: jest.SpiedFunction<typeof ws.ping>;
+    let terminateSpy: jest.SpiedFunction<typeof ws.terminate>;
     let socketInstance: server.SocketInstance;
 
     beforeEach(() => {
