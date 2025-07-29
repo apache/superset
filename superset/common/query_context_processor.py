@@ -500,7 +500,8 @@ class QueryContextProcessor:
                     query_object_clone.to_dttm = offset_to_dttm
 
                     # CRITICAL: For date range offsets, we must NOT set inner bounds
-                    # These create additional WHERE clauses that conflict with our date range
+                    # These create additional WHERE clauses that conflict with our date
+                    # range
                     query_object_clone.inner_from_dttm = None
                     query_object_clone.inner_to_dttm = None
 
@@ -521,8 +522,10 @@ class QueryContextProcessor:
                     )
 
                     # For relative offsets, keep the original behavior
-                    # BUT: Don't set inner bounds that conflict with the main query range
-                    # The inner bounds should match the shifted range, not the original range
+                    # BUT: Don't set inner bounds that conflict with the
+                    # main query range
+                    # The inner bounds should match the shifted range,
+                    # not the original range
                     query_object_clone.inner_from_dttm = query_object_clone.from_dttm
                     query_object_clone.inner_to_dttm = query_object_clone.to_dttm
 
@@ -558,7 +561,7 @@ class QueryContextProcessor:
                     new_temporal_filter = {
                         "col": temporal_col,
                         "op": FilterOperator.TEMPORAL_RANGE,
-                        "val": f"{query_object_clone.from_dttm} : {query_object_clone.to_dttm}",
+                        "val": f"{query_object_clone.from_dttm} : {query_object_clone.to_dttm}",  # noqa: E501
                     }
                     query_object_clone.filter.append(new_temporal_filter)
 
@@ -585,10 +588,12 @@ class QueryContextProcessor:
                             )
                             flt["val"] = f"{new_outer_from_dttm} : {new_outer_to_dttm}"
                 else:
-                    # If it IS a datetime series, we still need to clear conflicting filters
+                    # If it IS a datetime series, we still need to clear
+                    # conflicting filters
                     query_object_clone.filter = copy.deepcopy(query_object_clone.filter)
 
-                    # For relative offsets with datetime series, ensure the temporal filter matches our range
+                    # For relative offsets with datetime series, ensure the temporal
+                    # filter matches our range
                     temporal_col = query_object_clone.granularity or x_axis_label
 
                     # Update any existing temporal filters to match our shifted range
@@ -598,7 +603,7 @@ class QueryContextProcessor:
                             and flt.get("col") == temporal_col
                         ):
                             flt["val"] = (
-                                f"{query_object_clone.from_dttm} : {query_object_clone.to_dttm}"
+                                f"{query_object_clone.from_dttm} : {query_object_clone.to_dttm}"  # noqa: E501
                             )
 
             # Remove non-temporal x-axis filters (but keep temporal ones)
@@ -746,7 +751,8 @@ class QueryContextProcessor:
 
             elif is_date_range_offset:
                 # For date range offsets, we need different join logic
-                # Remove the temporal column from join keys since dates are intentionally different
+                # Remove the temporal column from join keys since dates are
+                # intentionally different
 
                 # Identify temporal columns dynamically
                 temporal_cols = set()
