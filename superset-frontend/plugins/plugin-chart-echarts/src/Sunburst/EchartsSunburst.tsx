@@ -51,11 +51,11 @@ export default function EchartsSunburst(props: SunburstTransformedProps) {
   const getCrossFilterDataMask = useCallback(
     (treePathInfo: TreePathInfo[]) => {
       const treePath = extractTreePathInfo(treePathInfo);
-      const joinedThreePath = treePath.join(',');
+      const joinedTreePath = treePath.join(',');
       const value = treePath[treePath.length - 1];
 
       const isCurrentValueSelected =
-        Object.values(selectedValues).includes(joinedThreePath);
+        Object.values(selectedValues).includes(joinedTreePath);
 
       if (!columns?.length || isCurrentValueSelected) {
         return {
@@ -85,7 +85,7 @@ export default function EchartsSunburst(props: SunburstTransformedProps) {
           },
           filterState: {
             value,
-            selectedValues: [joinedThreePath],
+            selectedValues: [joinedTreePath],
           },
         },
         isCurrentValueSelected,
