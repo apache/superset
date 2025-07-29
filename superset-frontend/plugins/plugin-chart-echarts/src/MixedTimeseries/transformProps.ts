@@ -243,6 +243,10 @@ export default function transformProps(
   const MetricDisplayNameA = getMetricDisplayName(metrics[0], verboseMap);
   const MetricDisplayNameB = getMetricDisplayName(metricsB[0], verboseMap);
 
+  // Debug logging
+  console.log('DEBUG: show_query_identifiers =', show_query_identifiers);
+  console.log('DEBUG: formData contains:', Object.keys(formData));
+
   const [rawSeriesA, sortedTotalValuesA] = extractSeries(rebasedDataA, {
     fillNeighborValue: stack ? 0 : undefined,
     xAxis: xAxisLabel,
@@ -410,6 +414,8 @@ export default function transformProps(
         ? `${entryName} (Query A)`
         : entryName;
     }
+    
+    console.log(`DEBUG Query A: entryName="${entryName}", displayName="${displayName}", show_query_identifiers=${show_query_identifiers}`);
 
     const seriesFormatter = getFormatter(
       customFormatters,
@@ -477,6 +483,8 @@ export default function transformProps(
         ? `${entryName} (Query B)`
         : entryName;
     }
+    
+    console.log(`DEBUG Query B: entryName="${entryName}", displayName="${displayName}", show_query_identifiers=${show_query_identifiers}`);
 
     const seriesFormatter = getFormatter(
       customFormattersSecondary,
