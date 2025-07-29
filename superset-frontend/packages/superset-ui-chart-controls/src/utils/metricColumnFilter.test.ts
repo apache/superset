@@ -22,7 +22,6 @@ import {
   shouldSkipMetricColumn,
   isRegularMetric,
   isPercentMetric,
-  isMetric,
 } from './metricColumnFilter';
 
 const createMetric = (label: string): QueryFormMetric =>
@@ -131,30 +130,6 @@ describe('metricColumnFilter', () => {
     it('should return false for regular metrics', () => {
       const formData = createFormData(['metric1'], []);
       expect(isPercentMetric('metric1', formData)).toBe(false);
-    });
-  });
-
-  describe('isMetric', () => {
-    it('should return true for regular metrics', () => {
-      const formData = createFormData(['metric1'], []);
-      expect(isMetric('metric1', formData)).toBe(true);
-    });
-
-    it('should return true for percentage metrics', () => {
-      const formData = createFormData([], ['percent_metric1']);
-      expect(isMetric('%percent_metric1', formData)).toBe(true);
-    });
-
-    it('should return false for non-metrics', () => {
-      const formData = createFormData(['metric1'], []);
-      expect(isMetric('non_metric', formData)).toBe(false);
-    });
-
-    it('should handle mixed metrics and percentage metrics', () => {
-      const formData = createFormData(['metric1'], ['percent_metric1']);
-      expect(isMetric('metric1', formData)).toBe(true);
-      expect(isMetric('%percent_metric1', formData)).toBe(true);
-      expect(isMetric('non_metric', formData)).toBe(false);
     });
   });
 });
