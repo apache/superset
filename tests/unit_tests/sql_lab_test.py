@@ -259,13 +259,13 @@ FROM (
   FROM t1
   WHERE
     c1 = 1
-) AS t1, (
+) AS "t1", (
   SELECT
     *
   FROM t2
   WHERE
     c2 = 2
-) AS t2
+) AS "t2"
         """.strip()
     )
 
