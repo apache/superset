@@ -19,7 +19,7 @@
 import { memo, useMemo, useState, useRef } from 'react';
 import { useSelector } from 'react-redux';
 import { styled, t } from '@superset-ui/core';
-import { Icons, Badge, Tooltip } from '@superset-ui/core/components';
+import { Icons, Badge, Tooltip, Tag } from '@superset-ui/core/components';
 import { ChartCustomizationItem } from '../nativeFilters/ChartCustomization/types';
 import { RootState } from '../../types';
 
@@ -27,25 +27,31 @@ export interface GroupByBadgeProps {
   chartId: number;
 }
 
-const StyledGroupByCount = styled.div`
+const StyledTag = styled(Tag)`
   ${({ theme }) => `
     display: flex;
-    justify-items: center;
     align-items: center;
     cursor: pointer;
     margin-right: ${theme.sizeUnit}px;
-    padding-left: ${theme.sizeUnit * 2}px;
-    padding-right: ${theme.sizeUnit * 2}px;
+    padding: ${theme.sizeUnit}px ${theme.sizeUnit * 2}px;
     background: ${theme.colors.grayscale.light4};
+    border: 1px solid ${theme.colors.grayscale.light3};
     border-radius: 4px;
     height: 100%;
+
     .anticon {
       vertical-align: middle;
       color: ${theme.colors.grayscale.base};
+      margin-right: ${theme.sizeUnit}px;
       &:hover {
         color: ${theme.colors.grayscale.light1};
       }
     }
+
+    &:hover {
+      background: ${theme.colors.grayscale.light3};
+    }
+
     &:focus-visible {
       outline: 2px solid ${theme.colorPrimary};
     }
@@ -54,7 +60,7 @@ const StyledGroupByCount = styled.div`
 
 const StyledBadge = styled(Badge)`
   ${({ theme }) => `
-    margin-left: ${theme.sizeUnit * 2}px;
+    margin-left: ${theme.sizeUnit}px;
     &>sup.ant-badge-count {
       padding: 0 ${theme.sizeUnit}px;
       min-width: ${theme.sizeUnit * 4}px;
@@ -181,7 +187,7 @@ export const GroupByBadge = ({ chartId }: GroupByBadgeProps) => {
       onVisibleChange={setTooltipVisible}
       placement="bottom"
     >
-      <StyledGroupByCount
+      <StyledTag
         ref={triggerRef}
         aria-label={t('Group by settings (%s)', groupByCount)}
         role="button"
@@ -193,7 +199,7 @@ export const GroupByBadge = ({ chartId }: GroupByBadgeProps) => {
           count={groupByCount}
           showZero={false}
         />
-      </StyledGroupByCount>
+      </StyledTag>
     </Tooltip>
   );
 };
