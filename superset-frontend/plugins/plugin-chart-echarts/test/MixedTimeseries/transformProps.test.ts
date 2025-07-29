@@ -402,7 +402,7 @@ describe('should add the correct time formatter for the xAxis', () => {
   it('should work for years', () => {
     const formatter = getXAxisFormatter(TimeGranularity.YEAR);
     expect(formatter).toBeDefined();
-    expect(formatter(1610000000000)).toEqual(expect.stringMatching('2021'));
+    expect(formatter(1610000000000)).toEqual('2021');
   });
 });
 
@@ -476,6 +476,6 @@ describe('should add the correct time formatter for the tooltip', () => {
   it('should work for years', () => {
     const formatter = getTooltipFormatter(TimeGranularity.YEAR);
     expect(formatter).toBeDefined();
-    expect(formatter(1610000000000)).toEqual(expect.stringMatching('2021'));
+    expect(formatter(1610000000000)).toEqual('2021');
   });
 });

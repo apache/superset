@@ -38,8 +38,8 @@ export const getSmartDateDetailedFormatter = () =>
 
 export const getSmartDateFormatter = () => getTimeFormatter(SMART_DATE_ID);
 
-export const getSmartDateVerboseFormatter = () =>
-  getTimeFormatter(SMART_DATE_VERBOSE_ID);
+export const getSmartDateVerboseFormatter = (timeGrain?: TimeGranularity) =>
+  getTimeFormatter(SMART_DATE_VERBOSE_ID, timeGrain);
 
 export const getPercentFormatter = (format?: string) =>
   getNumberFormatter(
@@ -87,7 +87,7 @@ export function getTooltipTimeFormatter(
     return getTimeFormatter(undefined, timeGrain);
   }
   if (format === SMART_DATE_ID) {
-    return getTimeFormatter(SMART_DATE_VERBOSE_ID, timeGrain);
+    return getSmartDateVerboseFormatter(timeGrain);
   }
   if (format) {
     return getTimeFormatter(format, timeGrain);
