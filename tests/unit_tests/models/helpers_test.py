@@ -463,7 +463,7 @@ def test_apply_series_others_grouping_no_label_in_groupby(database: Database) ->
     This is a specific test for the bug fix where make_sqla_column_compatible
     was causing issues with literal quoting in GROUP BY clauses.
     """
-    from unittest.mock import call, Mock, patch
+    from unittest.mock import ANY, call, Mock, patch
 
     from superset.connectors.sqla.models import SqlaTable, TableColumn
 
@@ -508,8 +508,6 @@ def test_apply_series_others_grouping_no_label_in_groupby(database: Database) ->
 
         # The call should be for the SELECT expression with the column name
         # Using unittest.mock.ANY to match any CASE expression
-        from unittest.mock import ANY
-
         assert calls[0] == call(ANY, "category")
 
         # Verify the GROUP BY expression was NOT passed through
