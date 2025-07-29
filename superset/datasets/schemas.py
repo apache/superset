@@ -284,12 +284,6 @@ class ImportV1DatasetSchema(Schema):
             except ValueError:
                 data["extra"] = None
 
-        # Normalize example data URLs
-        if data.get("data") and data["data"].startswith("examples://"):
-            from superset.examples.helpers import normalize_example_data_url
-
-            data["data"] = normalize_example_data_url(data["data"])
-
         return data
 
     table_name = fields.String(required=True)
