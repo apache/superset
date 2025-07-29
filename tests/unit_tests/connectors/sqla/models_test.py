@@ -287,3 +287,321 @@ def test_normalize_prequery_result_type_custom_sql() -> None:
         sqla_table._normalize_prequery_result_type(row, dimension, columns_by_name)
         == "Car"
     )
+
+
+def test_fetch_metadata_with_comment_field_new_columns(mocker: MockerFixture) -> None:
+    """Test that fetch_metadata correctly assigns comment field to description
+    for new columns
+    """
+    # Mock database
+    database = mocker.MagicMock()
+    database.get_metrics.return_value = []
+
+    # Mock db_engine_spec
+    mock_db_engine_spec = mocker.MagicMock()
+    mock_db_engine_spec.alter_new_orm_column = mocker.MagicMock()
+    database.db_engine_spec = mock_db_engine_spec
+
+    # Create table
+    table = SqlaTable(
+        table_name="test_table",
+        database=database,
+    )
+
+    # Mock external_metadata to return columns with comment fields
+    mock_columns = [
+        {
+            "column_name": "id",
+            "type": "INTEGER",
+            "comment": "Primary key identifier",
+        },
+        {
+            "column_name": "name",
+            "type": "VARCHAR",
+            "comment": "Full name of the user",
+        },
+        {
+            "column_name": "status",
+            "type": "VARCHAR",
+            # No comment field for this column
+        },
+    ]
+
+    # Mock dependencies
+    mocker.patch.object(table, "external_metadata", return_value=mock_columns)
+    mocker.patch("superset.connectors.sqla.models.db.session")
+    mocker.patch(
+        "superset.connectors.sqla.models.config", {"SQLA_TABLE_MUTATOR": lambda x: None}
+    )
+
+    # Execute fetch_metadata
+    result = table.fetch_metadata()
+
+    # Verify results
+    assert len(result.added) == 3
+    assert set(result.added) == {"id", "name", "status"}
+
+    # Check that descriptions were set correctly from comments
+    columns_by_name = {col.column_name: col for col in table.columns}
+
+    assert columns_by_name["id"].description == "Primary key identifier"
+    assert columns_by_name["name"].description == "Full name of the user"
+    # Column without comment should have None description
+    assert columns_by_name["status"].description is None
+
+
+def test_fetch_metadata_with_comment_field_existing_columns(
+    mocker: MockerFixture,
+) -> None:
+    """Test that fetch_metadata correctly updates description for existing columns"""
+    # Mock database
+    database = mocker.MagicMock()
+    database.get_metrics.return_value = []
+
+    # Mock db_engine_spec
+    mock_db_engine_spec = mocker.MagicMock()
+    mock_db_engine_spec.alter_new_orm_column = mocker.MagicMock()
+    database.db_engine_spec = mock_db_engine_spec
+
+    # Create table with existing columns
+    table = SqlaTable(
+        table_name="test_table_existing",
+        database=database,
+    )
+    table.id = 1  # Set ID so it's treated as existing table
+
+    # Create existing columns
+    existing_col1 = TableColumn(
+        column_name="id",
+        type="INTEGER",
+        table=table,
+        description="Old description",
+    )
+    existing_col2 = TableColumn(
+        column_name="name",
+        type="VARCHAR",
+        table=table,
+    )
+    table.columns = [existing_col1, existing_col2]
+
+    # Mock external_metadata to return updated columns with comments
+    mock_columns = [
+        {
+            "column_name": "id",
+            "type": "INTEGER",
+            "comment": "Updated primary key description",
+        },
+        {
+            "column_name": "name",
+            "type": "VARCHAR",
+            "comment": "Updated name description",
+        },
+    ]
+
+    # Mock dependencies
+    mock_session = mocker.patch("superset.connectors.sqla.models.db.session")
+    mock_session.query.return_value.filter.return_value.all.return_value = [
+        existing_col1,
+        existing_col2,
+    ]
+    mocker.patch.object(table, "external_metadata", return_value=mock_columns)
+    mocker.patch(
+        "superset.connectors.sqla.models.config", {"SQLA_TABLE_MUTATOR": lambda x: None}
+    )
+
+    # Execute fetch_metadata
+    result = table.fetch_metadata()
+
+    # Verify no new columns were added
+    assert len(result.added) == 0
+
+    # Check that descriptions were updated from comments
+    columns_by_name = {col.column_name: col for col in table.columns}
+
+    assert columns_by_name["id"].description == "Updated primary key description"
+    assert columns_by_name["name"].description == "Updated name description"
+
+
+def test_fetch_metadata_mixed_comment_scenarios(mocker: MockerFixture) -> None:
+    """Test fetch_metadata with mix of new/existing columns and with/without
+    comments
+    """
+    # Mock database
+    database = mocker.MagicMock()
+    database.get_metrics.return_value = []
+
+    # Mock db_engine_spec
+    mock_db_engine_spec = mocker.MagicMock()
+    mock_db_engine_spec.alter_new_orm_column = mocker.MagicMock()
+    database.db_engine_spec = mock_db_engine_spec
+
+    # Create table with one existing column
+    table = SqlaTable(
+        table_name="test_table_mixed",
+        database=database,
+    )
+    table.id = 1
+
+    existing_col = TableColumn(
+        column_name="existing_col",
+        type="INTEGER",
+        table=table,
+        description="Existing description",
+    )
+    table.columns = [existing_col]
+
+    # Mock external_metadata with mixed scenarios
+    mock_columns = [
+        {
+            "column_name": "existing_col",
+            "type": "INTEGER",
+            "comment": "Updated existing column comment",
+        },
+        {
+            "column_name": "new_with_comment",
+            "type": "VARCHAR",
+            "comment": "New column with comment",
+        },
+        {
+            "column_name": "new_without_comment",
+            "type": "VARCHAR",
+            # No comment field
+        },
+    ]
+
+    # Mock dependencies
+    mock_session = mocker.patch("superset.connectors.sqla.models.db.session")
+    mock_session.query.return_value.filter.return_value.all.return_value = [
+        existing_col
+    ]
+    mocker.patch.object(table, "external_metadata", return_value=mock_columns)
+    mocker.patch(
+        "superset.connectors.sqla.models.config", {"SQLA_TABLE_MUTATOR": lambda x: None}
+    )
+
+    # Execute fetch_metadata
+    result = table.fetch_metadata()
+
+    # Check added columns
+    assert len(result.added) == 2
+    assert set(result.added) == {"new_with_comment", "new_without_comment"}
+
+    # Check all column descriptions
+    columns_by_name = {col.column_name: col for col in table.columns}
+
+    # Existing column should have updated description
+    assert (
+        columns_by_name["existing_col"].description == "Updated existing column comment"
+    )
+
+    # New column with comment should have description set
+    assert columns_by_name["new_with_comment"].description == "New column with comment"
+
+    # New column without comment should have None description
+    assert columns_by_name["new_without_comment"].description is None
+
+
+def test_fetch_metadata_no_comment_field_safe_handling(
+    mocker: MockerFixture,
+) -> None:
+    """Test that fetch_metadata safely handles columns with no comment field"""
+    # Mock database
+    database = mocker.MagicMock()
+    database.get_metrics.return_value = []
+
+    # Mock db_engine_spec
+    mock_db_engine_spec = mocker.MagicMock()
+    mock_db_engine_spec.alter_new_orm_column = mocker.MagicMock()
+    database.db_engine_spec = mock_db_engine_spec
+
+    # Create table
+    table = SqlaTable(
+        table_name="test_table_no_comments",
+        database=database,
+    )
+
+    # Mock external_metadata with columns that have no comment fields
+    mock_columns = [
+        {"column_name": "col1", "type": "INTEGER"},
+        {"column_name": "col2", "type": "VARCHAR"},
+    ]
+
+    # Mock dependencies
+    mocker.patch.object(table, "external_metadata", return_value=mock_columns)
+    mocker.patch("superset.connectors.sqla.models.db.session")
+    mocker.patch(
+        "superset.connectors.sqla.models.config", {"SQLA_TABLE_MUTATOR": lambda x: None}
+    )
+
+    # Execute fetch_metadata - should not raise any exceptions
+    result = table.fetch_metadata()
+
+    # Check that columns were added successfully
+    assert len(result.added) == 2
+    assert set(result.added) == {"col1", "col2"}
+
+    # Check that descriptions are None (not set)
+    columns_by_name = {col.column_name: col for col in table.columns}
+    assert columns_by_name["col1"].description is None
+    assert columns_by_name["col2"].description is None
+
+
+def test_fetch_metadata_empty_comment_field_handling(mocker: MockerFixture) -> None:
+    """Test that fetch_metadata handles empty comment fields correctly"""
+    # Mock database
+    database = mocker.MagicMock()
+    database.get_metrics.return_value = []
+
+    # Mock db_engine_spec
+    mock_db_engine_spec = mocker.MagicMock()
+    mock_db_engine_spec.alter_new_orm_column = mocker.MagicMock()
+    database.db_engine_spec = mock_db_engine_spec
+
+    # Create table
+    table = SqlaTable(
+        table_name="test_table_empty_comments",
+        database=database,
+    )
+
+    # Mock external_metadata with empty comment fields
+    mock_columns = [
+        {
+            "column_name": "col_with_empty_comment",
+            "type": "INTEGER",
+            "comment": "",  # Empty string comment
+        },
+        {
+            "column_name": "col_with_none_comment",
+            "type": "VARCHAR",
+            "comment": None,  # None comment
+        },
+        {
+            "column_name": "col_with_valid_comment",
+            "type": "VARCHAR",
+            "comment": "Valid comment",
+        },
+    ]
+
+    # Mock dependencies
+    mocker.patch.object(table, "external_metadata", return_value=mock_columns)
+    mocker.patch("superset.connectors.sqla.models.db.session")
+    mocker.patch(
+        "superset.connectors.sqla.models.config", {"SQLA_TABLE_MUTATOR": lambda x: None}
+    )
+
+    # Execute fetch_metadata
+    result = table.fetch_metadata()
+
+    # Check that all columns were added
+    assert len(result.added) == 3
+
+    columns_by_name = {col.column_name: col for col in table.columns}
+
+    # Empty string comment should not be set (falsy)
+    assert columns_by_name["col_with_empty_comment"].description is None
+
+    # None comment should not be set
+    assert columns_by_name["col_with_none_comment"].description is None
+
+    # Valid comment should be set
+    assert columns_by_name["col_with_valid_comment"].description == "Valid comment"

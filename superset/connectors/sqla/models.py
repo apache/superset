@@ -1680,6 +1680,9 @@ class SqlaTable(
                     table=self,
                 )
                 new_column.is_dttm = new_column.is_temporal
+                # Set description from comment field if available
+                if col.get("comment"):
+                    new_column.description = col["comment"]
                 db_engine_spec.alter_new_orm_column(new_column)
             else:
                 new_column = old_column
@@ -1687,6 +1690,9 @@ class SqlaTable(
                     results.modified.append(col["column_name"])
                 new_column.type = col["type"]
                 new_column.expression = ""
+                # Set description from comment field if available
+                if col.get("comment"):
+                    new_column.description = col["comment"]
             new_column.groupby = True
             new_column.filterable = True
             columns.append(new_column)
