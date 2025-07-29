@@ -39,13 +39,39 @@ from superset.mcp_service.pydantic_schemas.chart_schemas import (
 @mcp_auth_hook
 def generate_explore_link(request: GenerateExploreLinkRequest) -> Dict[str, Any]:
     """
-    Generate a Superset explore URL with pre-configured chart configuration.
+    Generate a Superset explore URL for interactive data visualization and exploration.
+
+    🎯 PREFERRED TOOL for most visualization requests.
+
+    This is the primary tool for data visualization workflows. It creates an explore
+    URL where users can interactively view, modify, and optionally save charts.
+    The explore interface allows users to adjust parameters, add filters, and
+    experiment before deciding to save.
+
+    Use this tool for:
+    - "Show me a chart of [data]"
+    - "Visualize [data] as a [chart type]"
+    - "I want to see [data] trends"
+    - "Create a visualization of [data]"
+    - "Chart [data] by [dimensions]"
+    - "Plot [data]"
+    - General data exploration and analysis
+    - When user wants to see/explore data visually
+
+    This tool provides a much better user experience because:
+    - Users can interact with the chart before saving
+    - Easy to modify parameters and see results instantly
+    - Users control when/if to save the chart permanently
+    - No database clutter from unsaved exploration charts
+
+    Only use generate_chart when user explicitly requests to save/create a
+    permanent chart.
 
     Args:
         request: Explore link generation request with dataset_id and config
 
     Returns:
-        Dictionary containing explore URL and error message if any
+        Dictionary containing explore URL for immediate use and error message if any
     """
     try:
         # Map config to form_data using shared utilities

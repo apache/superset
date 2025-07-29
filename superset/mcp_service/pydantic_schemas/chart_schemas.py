@@ -107,6 +107,63 @@ class ChartError(BaseModel):
     model_config = ConfigDict(ser_json_timedelta="iso8601")
 
 
+class ChartCapabilities(BaseModel):
+    """Describes what the chart can do for LLM understanding."""
+
+    supports_interaction: bool = Field(description="Chart supports user interaction")
+    supports_real_time: bool = Field(description="Chart supports live data updates")
+    supports_drill_down: bool = Field(
+        description="Chart supports drill-down navigation"
+    )
+    supports_export: bool = Field(description="Chart can be exported to other formats")
+    optimal_formats: List[str] = Field(description="Recommended preview formats")
+    data_types: List[str] = Field(
+        description="Types of data shown (time_series, categorical, etc)"
+    )
+
+
+class ChartSemantics(BaseModel):
+    """Semantic information for LLM reasoning."""
+
+    primary_insight: str = Field(
+        description="Main insight or pattern the chart reveals"
+    )
+    data_story: str = Field(description="Narrative description of what the data shows")
+    recommended_actions: List[str] = Field(
+        description="Suggested next steps based on data"
+    )
+    anomalies: List[str] = Field(description="Notable outliers or unusual patterns")
+    statistical_summary: Dict[str, Any] = Field(
+        description="Key statistics (mean, median, trends)"
+    )
+
+
+class PerformanceMetadata(BaseModel):
+    """Performance information for LLM cost understanding."""
+
+    query_duration_ms: int = Field(description="Query execution time")
+    estimated_cost: Optional[str] = Field(None, description="Resource cost estimate")
+    cache_status: str = Field(description="Cache hit/miss status")
+    optimization_suggestions: List[str] = Field(
+        default_factory=list, description="Performance improvement tips"
+    )
+
+
+class AccessibilityMetadata(BaseModel):
+    """Accessibility information for inclusive visualization."""
+
+    color_blind_safe: bool = Field(description="Uses colorblind-safe palette")
+    alt_text: str = Field(description="Screen reader description")
+    high_contrast_available: bool = Field(description="High contrast version available")
+
+
+class VersionedResponse(BaseModel):
+    """Base class for versioned API responses."""
+
+    schema_version: str = Field("2.0", description="Response schema version")
+    api_version: str = Field("v1", description="MCP API version")
+
+
 class GetChartInfoRequest(BaseModel):
     """Request schema for get_chart_info with support for ID or UUID."""
 
@@ -156,24 +213,50 @@ def serialize_chart_object(chart: ChartLike | None) -> ChartInfo | None:
 
 
 class GenerateChartResponse(BaseModel):
-    """
-    Response schema for generate_chart tool.
-    """
+    """Comprehensive chart creation response with rich metadata."""
 
-    chart: Optional[ChartInfo] = Field(
-        None, description="The created chart info, if successful"
+    # Core chart information
+    chart: Optional[ChartInfo] = Field(None, description="Complete chart metadata")
+
+    # Multiple preview formats available
+    previews: Dict[str, ChartPreviewContent] = Field(
+        default_factory=dict,
+        description="Available preview formats keyed by format type",
     )
-    embed_url: Optional[str] = Field(
-        None, description="URL to view or embed the chart, if requested."
+
+    # LLM-friendly capabilities
+    capabilities: Optional[ChartCapabilities] = Field(
+        None, description="Chart interaction capabilities"
     )
-    thumbnail_url: Optional[str] = Field(
-        None, description="URL to a thumbnail image of the chart, if requested."
+    semantics: Optional[ChartSemantics] = Field(
+        None, description="Semantic chart understanding"
     )
-    embed_html: Optional[str] = Field(
-        None,
-        description="HTML snippet (e.g., iframe) to embed the chart, if requested.",
+
+    # Navigation and context
+    explore_url: Optional[str] = Field(None, description="Edit chart in Superset")
+    embed_code: Optional[str] = Field(None, description="HTML embed snippet")
+    api_endpoints: Dict[str, str] = Field(
+        default_factory=dict, description="Related API endpoints for data/updates"
     )
-    error: Optional[str] = Field(None, description="Error message, if creation failed")
+
+    # Performance and accessibility
+    performance: Optional[PerformanceMetadata] = Field(
+        None, description="Performance metrics"
+    )
+    accessibility: Optional[AccessibilityMetadata] = Field(
+        None, description="Accessibility info"
+    )
+
+    # Success/error handling
+    success: bool = Field(True, description="Whether chart creation succeeded")
+    error: Optional[ChartError] = Field(
+        None, description="Error details if creation failed"
+    )
+    warnings: List[str] = Field(default_factory=list, description="Non-fatal warnings")
+
+    # Inherit versioning
+    schema_version: str = Field("2.0", description="Response schema version")
+    api_version: str = Field("v1", description="MCP API version")
 
 
 class ChartFilter(ColumnOperator):
@@ -358,15 +441,60 @@ class ListChartsRequest(BaseModel):
 class GenerateChartRequest(BaseModel):
     dataset_id: int | str = Field(..., description="Dataset identifier (ID, UUID)")
     config: ChartConfig = Field(..., description="Chart configuration")
+    save_chart: bool = Field(
+        default=True,
+        description="Whether to permanently save the chart in Superset",
+    )
     generate_preview: bool = Field(
-        default=False,
-        description="Whether to generate a preview after creating the chart",
+        default=True,
+        description="Whether to generate a preview image",
+    )
+    preview_formats: List[
+        Literal["url", "interactive", "ascii", "vega_lite", "table", "base64"]
+    ] = Field(
+        default_factory=lambda: ["url"],
+        description="List of preview formats to generate",
     )
 
 
 class GenerateExploreLinkRequest(BaseModel):
     dataset_id: int | str = Field(..., description="Dataset identifier (ID, UUID)")
     config: ChartConfig = Field(..., description="Chart configuration")
+
+
+class UpdateChartRequest(BaseModel):
+    identifier: int | str = Field(..., description="Chart identifier (ID, UUID)")
+    config: ChartConfig = Field(..., description="New chart configuration")
+    chart_name: Optional[str] = Field(
+        None,
+        description="New chart name (optional, will auto-generate if not provided)",
+    )
+    generate_preview: bool = Field(
+        default=True,
+        description="Whether to generate a preview after updating",
+    )
+    preview_formats: List[
+        Literal["url", "interactive", "ascii", "vega_lite", "table", "base64"]
+    ] = Field(
+        default_factory=lambda: ["url"],
+        description="List of preview formats to generate",
+    )
+
+
+class UpdateChartPreviewRequest(BaseModel):
+    form_data_key: str = Field(..., description="Existing form_data_key to update")
+    dataset_id: int | str = Field(..., description="Dataset identifier (ID, UUID)")
+    config: ChartConfig = Field(..., description="New chart configuration")
+    generate_preview: bool = Field(
+        default=True,
+        description="Whether to generate a preview after updating",
+    )
+    preview_formats: List[
+        Literal["url", "interactive", "ascii", "vega_lite", "table", "base64"]
+    ] = Field(
+        default_factory=lambda: ["url"],
+        description="List of preview formats to generate",
+    )
 
 
 class GetChartDataRequest(BaseModel):
@@ -378,17 +506,54 @@ class GetChartDataRequest(BaseModel):
     )
 
 
-class ChartData(BaseModel):
-    """Chart data response."""
+class DataColumn(BaseModel):
+    """Enhanced column metadata with semantic information."""
 
+    name: str = Field(..., description="Column name")
+    display_name: str = Field(..., description="Human-readable column name")
+    data_type: str = Field(..., description="Inferred data type")
+    sample_values: List[Any] = Field(description="Representative sample values")
+    null_count: int = Field(description="Number of null values")
+    unique_count: int = Field(description="Number of unique values")
+    statistics: Optional[Dict[str, Any]] = Field(
+        None, description="Column statistics if numeric"
+    )
+    semantic_type: Optional[str] = Field(
+        None, description="Semantic type (currency, percentage, etc)"
+    )
+
+
+class ChartData(BaseModel):
+    """Rich chart data response with statistical insights."""
+
+    # Basic information
     chart_id: int
     chart_name: str
     chart_type: str
-    columns: List[str] = Field(description="Column names in the data")
-    data: List[Dict[str, Any]] = Field(description="Chart data rows")
-    row_count: int = Field(description="Number of rows returned")
-    total_rows: Optional[int] = Field(description="Total rows available")
-    summary: str = Field(description="Human-readable summary of the chart data")
+
+    # Enhanced data description
+    columns: List[DataColumn] = Field(description="Rich column metadata")
+    data: List[Dict[str, Any]] = Field(description="Actual data rows")
+
+    # Data insights
+    row_count: int = Field(description="Rows returned")
+    total_rows: Optional[int] = Field(description="Total available rows")
+    data_freshness: Optional[datetime] = Field(description="When data was last updated")
+
+    # LLM-friendly summaries
+    summary: str = Field(description="Human-readable data summary")
+    insights: List[str] = Field(description="Key patterns discovered in the data")
+    data_quality: Dict[str, Any] = Field(description="Data quality assessment")
+    recommended_visualizations: List[str] = Field(
+        description="Suggested chart types for this data"
+    )
+
+    # Performance and metadata
+    performance: PerformanceMetadata = Field(description="Query performance metrics")
+
+    # Inherit versioning
+    schema_version: str = Field("2.0", description="Response schema version")
+    api_version: str = Field("v1", description="MCP API version")
 
 
 class GetChartPreviewRequest(BaseModel):
@@ -418,36 +583,125 @@ class GetChartPreviewRequest(BaseModel):
     )
 
 
+# Discriminated union preview formats for type safety
+class URLPreview(BaseModel):
+    """URL-based image preview format."""
+
+    type: Literal["url"] = "url"
+    preview_url: str = Field(..., description="Direct image URL")
+    width: int = Field(..., description="Image width in pixels")
+    height: int = Field(..., description="Image height in pixels")
+    supports_interaction: bool = Field(
+        False, description="Static image, no interaction"
+    )
+
+
+class InteractivePreview(BaseModel):
+    """Interactive HTML preview with JavaScript controls."""
+
+    type: Literal["interactive"] = "interactive"
+    html_content: str = Field(..., description="Embeddable HTML with Plotly/D3")
+    preview_url: str = Field(..., description="Iframe-compatible URL")
+    width: int = Field(..., description="Viewport width")
+    height: int = Field(..., description="Viewport height")
+    supports_pan: bool = Field(True, description="Supports pan interaction")
+    supports_zoom: bool = Field(True, description="Supports zoom interaction")
+    supports_hover: bool = Field(True, description="Supports hover details")
+
+
+class ASCIIPreview(BaseModel):
+    """ASCII art text representation."""
+
+    type: Literal["ascii"] = "ascii"
+    ascii_content: str = Field(..., description="Unicode art representation")
+    width: int = Field(..., description="Character width")
+    height: int = Field(..., description="Line height")
+    supports_color: bool = Field(False, description="Uses ANSI color codes")
+
+
+class VegaLitePreview(BaseModel):
+    """Vega-Lite grammar of graphics specification."""
+
+    type: Literal["vega_lite"] = "vega_lite"
+    specification: Dict[str, Any] = Field(..., description="Vega-Lite JSON spec")
+    data_url: Optional[str] = Field(None, description="External data URL")
+    supports_streaming: bool = Field(False, description="Supports live data updates")
+
+
+class TablePreview(BaseModel):
+    """Tabular data preview format."""
+
+    type: Literal["table"] = "table"
+    table_data: str = Field(..., description="Formatted table content")
+    row_count: int = Field(..., description="Number of rows displayed")
+    supports_sorting: bool = Field(False, description="Table supports sorting")
+
+
+class Base64Preview(BaseModel):
+    """Base64 encoded image for embedding."""
+
+    type: Literal["base64"] = "base64"
+    base64_image: str = Field(..., description="Base64 encoded PNG data")
+    width: int = Field(..., description="Image width in pixels")
+    height: int = Field(..., description="Image height in pixels")
+    mime_type: str = Field("image/png", description="Image MIME type")
+
+
+# Modern discriminated union using | syntax
+ChartPreviewContent = Annotated[
+    URLPreview
+    | InteractivePreview
+    | ASCIIPreview
+    | VegaLitePreview
+    | TablePreview
+    | Base64Preview,
+    Field(discriminator="type"),
+]
+
+
 class ChartPreview(BaseModel):
-    """Chart preview response."""
+    """Enhanced chart preview with discriminated union content."""
 
     chart_id: int
     chart_name: str
     chart_type: str = Field(description="Type of chart visualization")
-    format: str = Field(description="Format of the preview (url, ascii, table, base64)")
     explore_url: str = Field(description="URL to open chart in Superset for editing")
 
-    # Format-specific content (only one will be populated based on format)
-    preview_url: Optional[str] = Field(
-        default=None, description="Image URL for 'url' format"
-    )
-    ascii_chart: Optional[str] = Field(
-        default=None, description="ASCII art chart for 'ascii' format"
-    )
-    table_data: Optional[str] = Field(
-        default=None, description="Formatted table for 'table' format"
-    )
-    base64_image: Optional[str] = Field(
-        default=None, description="Base64 encoded PNG for 'base64' format"
+    # Type-safe preview content
+    content: ChartPreviewContent = Field(
+        description="Preview content in requested format"
     )
 
-    # Metadata
-    width: Optional[int] = Field(
-        default=None, description="Width (pixels for images, characters for ASCII)"
-    )
-    height: Optional[int] = Field(
-        default=None, description="Height (pixels for images, lines for ASCII)"
-    )
+    # Rich metadata
     chart_description: str = Field(
         description="Human-readable description of the chart"
     )
+    accessibility: AccessibilityMetadata = Field(
+        description="Accessibility information"
+    )
+    performance: PerformanceMetadata = Field(description="Performance metrics")
+
+    # Backward compatibility fields (populated based on content type)
+    format: Optional[str] = Field(
+        None, description="Format of the preview (url, ascii, table, base64)"
+    )
+    preview_url: Optional[str] = Field(None, description="Image URL for 'url' format")
+    ascii_chart: Optional[str] = Field(
+        None, description="ASCII art chart for 'ascii' format"
+    )
+    table_data: Optional[str] = Field(
+        None, description="Formatted table for 'table' format"
+    )
+    base64_image: Optional[str] = Field(
+        None, description="Base64 encoded PNG for 'base64' format"
+    )
+    width: Optional[int] = Field(
+        None, description="Width (pixels for images, characters for ASCII)"
+    )
+    height: Optional[int] = Field(
+        None, description="Height (pixels for images, lines for ASCII)"
+    )
+
+    # Inherit versioning
+    schema_version: str = Field("2.0", description="Response schema version")
+    api_version: str = Field("v1", description="MCP API version")

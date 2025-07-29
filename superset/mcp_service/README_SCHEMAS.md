@@ -370,12 +370,12 @@ All list tools use the `ModelListTool` abstraction, which enforces:
 ## Schema Validation & Testing
 
 All schemas are thoroughly tested with:
-- **185+ unit tests** covering all input/output combinations including BaseDAO enhancements
+- **194+ unit tests** covering all input/output combinations including URL utils and audit logging
 - **Multi-identifier testing** for all get_*_info tools (ID, UUID, slug)
 - **Request schema validation** preventing parameter conflicts
 - **Authentication integration** testing with JWT contexts
 - **Error response validation** for permission and authentication failures
-- **Chart creation testing** covering all supported chart types and aggregators
+- **Chart creation and update testing** covering all supported chart types and aggregators
 - **Dashboard generation testing** for workflow validation
 - **SQL Lab integration testing** with proper parameter handling
 

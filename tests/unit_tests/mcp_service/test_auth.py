@@ -23,10 +23,12 @@ import pytest
 from flask import Flask, g
 
 from superset.mcp_service.auth import (
+    get_mcp_audit_context,
     get_user_from_request,
     has_permission,
     impersonate_user,
     mcp_auth_hook,
+    sanitize_mcp_payload,
 )
 from superset.mcp_service.config import (
     create_default_mcp_auth_factory,
@@ -43,6 +45,8 @@ class TestMCPAuth:
         app = Flask(__name__)
         app.config["MCP_ADMIN_USERNAME"] = "admin"
         app.config["MCP_USER_RESOLVER"] = default_user_resolver
+        app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+        app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///:memory:"
         return app
 
     @pytest.fixture
@@ -154,13 +158,16 @@ class TestMCPAuth:
             mock_get_token.return_value = mock_token
             mock_sm.find_user = Mock(return_value=mock_user)
 
-            @mcp_auth_hook
-            def test_tool():
-                return "success"
+            # Disable event logger to avoid database issues
+            with patch("superset.mcp_service.auth.event_logger", None):
 
-            result = test_tool()
-            assert result == "success"
-            assert g.user == mock_user
+                @mcp_auth_hook
+                def test_tool():
+                    return "success"
+
+                result = test_tool()
+                assert result == "success"
+                assert g.user == mock_user
 
     def test_create_default_auth_factory(self, app):
         """Test auth factory creation."""
@@ -180,3 +187,128 @@ class TestMCPAuth:
             result = create_default_mcp_auth_factory(app)
             mock_provider.assert_called_once()
             assert result is not None
+
+    def test_sanitize_mcp_payload(self):
+        """Test MCP payload sanitization for audit logging."""
+        # Test sensitive field redaction
+        payload = {
+            "dataset_id": 123,
+            "password": "secret123",
+            "auth_token": "Bearer xyz",
+            "api_key": "key123",
+            "config": {"chart_type": "table"},
+            "normal_field": "value",
+        }
+
+        sanitized = sanitize_mcp_payload(payload)
+
+        assert sanitized["dataset_id"] == 123
+        assert sanitized["password"] == "[REDACTED]"  # noqa: S105
+        assert sanitized["auth_token"] == "[REDACTED]"  # noqa: S105
+        assert sanitized["api_key"] == "[REDACTED]"
+        assert sanitized["config"] == {"chart_type": "table"}
+        assert sanitized["normal_field"] == "value"
+
+    def test_sanitize_mcp_payload_truncation(self):
+        """Test payload truncation for large values."""
+        long_text = "x" * 1500
+        payload = {"long_field": long_text, "short_field": "short"}
+
+        sanitized = sanitize_mcp_payload(payload)
+
+        assert len(sanitized["long_field"]) == 1000 + len("...[TRUNCATED]")
+        assert sanitized["long_field"].endswith("...[TRUNCATED]")
+        assert sanitized["short_field"] == "short"
+
+    def test_get_mcp_audit_context(self, app, mock_user):
+        """Test MCP audit context generation."""
+        with app.app_context():
+            with app.test_request_context(
+                headers={
+                    "User-Agent": "Claude-3.5-Sonnet",
+                    "X-Session-ID": "session123",
+                }
+            ):
+                g.user = mock_user
+
+                def mock_tool():
+                    pass
+
+                mock_tool.__name__ = "test_tool"
+
+                kwargs = {"dataset_id": 123, "config": {"type": "chart"}}
+
+                context = get_mcp_audit_context(mock_tool, kwargs)
+
+                assert context["log_source"] == "mcp"
+                assert context["impersonation"] == "testuser"
+                assert context["mcp_tool"] == "test_tool"
+                assert context["model_info"] == "Claude-3.5-Sonnet"
+                assert context["session_info"] == "session123"
+                assert "whitelisted_payload" in context
+
+    def test_get_mcp_audit_context_no_request(self, app, mock_user):
+        """Test audit context generation when request info unavailable."""
+        with app.app_context():
+            g.user = mock_user
+
+            def mock_tool():
+                pass
+
+            mock_tool.__name__ = "test_tool"
+
+            kwargs = {"dataset_id": 123}
+
+            # No request context
+            context = get_mcp_audit_context(mock_tool, kwargs)
+
+            assert context["log_source"] == "mcp"
+            assert context["impersonation"] == "testuser"
+            assert context["mcp_tool"] == "test_tool"
+            # Should handle missing request gracefully
+
+    @patch("superset.extensions.event_logger")
+    @patch("superset.security_manager")
+    @patch("fastmcp.server.dependencies.get_access_token")
+    def test_mcp_auth_hook_with_audit_logging(
+        self, mock_get_token, mock_sm, mock_event_logger, app, mock_user, mock_token
+    ):
+        """Test auth decorator with audit logging enabled."""
+        with app.app_context():
+            mock_get_token.return_value = mock_token
+            mock_sm.find_user = Mock(return_value=mock_user)
+            mock_event_logger.log_this_with_context = Mock(return_value=lambda f: f)
+
+            # Mock the event logger to avoid database issues
+            with patch("superset.mcp_service.auth.event_logger", mock_event_logger):
+
+                @mcp_auth_hook
+                def test_tool():
+                    return "success"
+
+                result = test_tool()
+                assert result == "success"
+                assert g.user == mock_user
+                assert hasattr(g, "mcp_audit_context")
+                assert g.mcp_audit_context["log_source"] == "mcp"
+
+    @patch("superset.security_manager")
+    @patch("fastmcp.server.dependencies.get_access_token")
+    def test_mcp_auth_hook_without_event_logger(
+        self, mock_get_token, mock_sm, app, mock_user, mock_token
+    ):
+        """Test auth decorator gracefully handles missing event logger."""
+        with app.app_context():
+            mock_get_token.return_value = mock_token
+            mock_sm.find_user = Mock(return_value=mock_user)
+
+            # Event logger is None (fallback case)
+            with patch("superset.mcp_service.auth.event_logger", None):
+
+                @mcp_auth_hook
+                def test_tool():
+                    return "success"
+
+                result = test_tool()
+                assert result == "success"
+                assert g.user == mock_user

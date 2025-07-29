@@ -87,7 +87,10 @@ class TestGenerateChart:
             assert result.data["error"] is None
             assert result.data["chart"]["id"] == 1
             assert result.data["chart"]["viz_type"] == "table"
-            assert result.data["chart"]["url"] == "/explore/?slice_id=1"
+            assert (
+                result.data["chart"]["url"]
+                == "http://localhost:8088/explore/?slice_id=1"
+            )
             mock_run.assert_called_once()
 
     @patch("superset.daos.dataset.DatasetDAO.find_by_id")
@@ -122,7 +125,10 @@ class TestGenerateChart:
 
             assert result.data["error"] is None
             assert result.data["chart"]["viz_type"] == "table"
-            assert result.data["chart"]["url"] == "/explore/?slice_id=2"
+            assert (
+                result.data["chart"]["url"]
+                == "http://localhost:8088/explore/?slice_id=2"
+            )
             mock_run.assert_called_once()
 
     @patch("superset.daos.dataset.DatasetDAO.find_by_id")
@@ -148,7 +154,10 @@ class TestGenerateChart:
 
             assert result.data["error"] is None
             assert result.data["chart"]["viz_type"] == "echarts_timeseries_line"
-            assert result.data["chart"]["url"] == "/explore/?slice_id=10"
+            assert (
+                result.data["chart"]["url"]
+                == "http://localhost:8088/explore/?slice_id=10"
+            )
             mock_run.assert_called_once()
 
     @patch("superset.daos.dataset.DatasetDAO.find_by_id")
@@ -176,7 +185,10 @@ class TestGenerateChart:
 
             assert result.data["error"] is None
             assert result.data["chart"]["viz_type"] == "echarts_timeseries_bar"
-            assert result.data["chart"]["url"] == "/explore/?slice_id=20"
+            assert (
+                result.data["chart"]["url"]
+                == "http://localhost:8088/explore/?slice_id=20"
+            )
             mock_run.assert_called_once()
 
     @patch("superset.daos.dataset.DatasetDAO.find_by_id")
@@ -203,7 +215,10 @@ class TestGenerateChart:
 
             assert result.data["error"] is None
             assert result.data["chart"]["viz_type"] == "echarts_area"
-            assert result.data["chart"]["url"] == "/explore/?slice_id=30"
+            assert (
+                result.data["chart"]["url"]
+                == "http://localhost:8088/explore/?slice_id=30"
+            )
             mock_run.assert_called_once()
 
     @patch("superset.daos.dataset.DatasetDAO.find_by_id")
@@ -234,7 +249,10 @@ class TestGenerateChart:
 
             assert result.data["error"] is None
             assert result.data["chart"]["viz_type"] == "echarts_timeseries_scatter"
-            assert result.data["chart"]["url"] == "/explore/?slice_id=40"
+            assert (
+                result.data["chart"]["url"]
+                == "http://localhost:8088/explore/?slice_id=40"
+            )
             mock_run.assert_called_once()
 
     @patch("superset.daos.dataset.DatasetDAO.find_by_id")
@@ -319,7 +337,10 @@ class TestGenerateChart:
             )
 
             # Verify URL format is exactly as expected: /explore/?slice_id=<id>
-            assert result.data["chart"]["url"] == "/explore/?slice_id=12345"
+            assert (
+                result.data["chart"]["url"]
+                == "http://localhost:8088/explore/?slice_id=12345"
+            )
             assert result.data["chart"]["id"] == 12345
 
     @patch("superset.daos.dataset.DatasetDAO.find_by_id")
