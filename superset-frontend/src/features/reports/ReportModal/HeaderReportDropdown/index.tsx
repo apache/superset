@@ -139,7 +139,7 @@ export const useHeaderReportMenuItems = ({
         }),
       );
     }
-  }, [dispatch, shouldFetch, user.userId, dashboardId, resourceId]);
+  }, [dispatch, shouldFetch, user?.userId, dashboardId, resourceId]);
 
   // Don't show anything if user can't add reports
   if (!canAddReports()) {
