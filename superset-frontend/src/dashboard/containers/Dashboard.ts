@@ -18,6 +18,7 @@
  */
 import { bindActionCreators, Dispatch } from 'redux';
 import { connect } from 'react-redux';
+import { createSelector } from '@reduxjs/toolkit';
 import { RootState } from 'src/dashboard/types';
 import Dashboard from 'src/dashboard/components/Dashboard';
 import {
@@ -25,10 +26,51 @@ import {
   removeSliceFromDashboard,
 } from 'src/dashboard/actions/dashboardState';
 import { setDatasources } from 'src/dashboard/actions/datasources';
+import {
+  getAllActiveFilters,
+} from 'src/dashboard/util/activeAllDashboardFilters';
+import { getActiveFilters } from 'src/dashboard/util/activeDashboardFilters';
 
 import { triggerQuery } from 'src/components/Chart/chartAction';
 import { logEvent } from 'src/logger/actions';
 import { clearDataMaskState } from '../../dataMask/actions';
+
+const selectOwnDataCharts = createSelector(
+  (state: RootState) => state.dataMask,
+  dataMask => {
+    const ownDataCharts: Record<string, any> = {};
+    Object.keys(dataMask).forEach(key => {
+      if (dataMask[key]?.ownState) {
+        ownDataCharts[key] = dataMask[key].ownState;
+      }
+    });
+    return ownDataCharts;
+  },
+);
+
+const selectChartConfiguration = (state: RootState) =>
+  state.dashboardInfo.metadata?.chart_configuration;
+const selectNativeFilters = (state: RootState) => state.nativeFilters.filters;
+const selectDataMask = (state: RootState) => state.dataMask;
+const selectAllSliceIds = (state: RootState) => state.dashboardState.sliceIds;
+
+const selectActiveFilters = createSelector(
+  [
+    selectChartConfiguration,
+    selectNativeFilters,
+    selectDataMask,
+    selectAllSliceIds,
+  ],
+  (chartConfiguration, nativeFilters, dataMask, allSliceIds) => ({
+    ...getActiveFilters(),
+    ...getAllActiveFilters({
+      chartConfiguration,
+      nativeFilters,
+      dataMask,
+      allSliceIds,
+    }),
+  }),
+);
 
 function mapStateToProps(state: RootState) {
   const {
@@ -52,6 +94,8 @@ function mapStateToProps(state: RootState) {
     slices: sliceEntities.slices,
     layout: dashboardLayout.present,
     impressionId,
+    activeFilters: selectActiveFilters(state),
+    ownDataCharts: selectOwnDataCharts(state),
   };
 }
 

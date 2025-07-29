@@ -21,7 +21,6 @@ import { Global } from '@emotion/react';
 import { useHistory } from 'react-router-dom';
 import { t, useTheme } from '@superset-ui/core';
 import { useDispatch, useSelector } from 'react-redux';
-import { createSelector } from '@reduxjs/toolkit';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
 import { Loading } from '@superset-ui/core/components';
 import {
@@ -45,6 +44,7 @@ import {
   getFilterValue,
   getPermalinkValue,
 } from 'src/dashboard/components/nativeFilters/FilterBar/keyValue';
+import DashboardContainer from 'src/dashboard/containers/Dashboard';
 import DashboardContainer from 'src/dashboard/containers/Dashboard';
 import CrudThemeProvider from 'src/components/CrudThemeProvider';
 
@@ -267,12 +267,9 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
                   : dashboard?.theme?.id
               }
             >
-              <DashboardContainer
-                activeFilters={activeFilters}
-                ownDataCharts={relevantDataMask}
-              >
-                {DashboardBuilderComponent}
-              </DashboardContainer>
+              <DashboardContainer>
+              {DashboardBuilderComponent}
+            </DashboardContainer>
             </CrudThemeProvider>
           </DashboardPageIdContext.Provider>
         </>

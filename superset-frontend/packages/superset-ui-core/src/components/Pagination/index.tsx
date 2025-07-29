@@ -45,3 +45,4 @@ const ListViewPagination = createUltimatePagination({
 });
 
 export default ListViewPagination;
+export { ListViewPagination };
