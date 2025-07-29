@@ -74,7 +74,7 @@ RUN --mount=type=bind,source=./superset-frontend/package.json,target=./package.j
 COPY superset-frontend /app/superset-frontend
 
 ######################################################################
-# superset-node used for compile frontend assets
+# superset-node is used for compiling frontend assets
 ######################################################################
 FROM superset-node-ci AS superset-node
 
