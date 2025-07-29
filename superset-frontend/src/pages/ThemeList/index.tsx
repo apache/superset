@@ -338,6 +338,22 @@ function ThemesList({
 
   const subMenuButtons: SubMenuProps['buttons'] = [];
 
+  if (canImport) {
+    subMenuButtons.push({
+      name: (
+        <Tooltip
+          id="import-tooltip"
+          title={t('Import themes')}
+          placement="bottomRight"
+        >
+          <Icons.DownloadOutlined iconSize="l" data-test="import-button" />
+        </Tooltip>
+      ),
+      buttonStyle: 'link',
+      onClick: openThemeImportModal,
+    });
+  }
+
   if (canDelete || canExport) {
     subMenuButtons.push({
       name: t('Bulk select'),
@@ -355,22 +371,6 @@ function ThemesList({
         setCurrentTheme(null);
         setThemeModalOpen(true);
       },
-    });
-  }
-
-  if (canImport) {
-    subMenuButtons.push({
-      name: (
-        <Tooltip
-          id="import-tooltip"
-          title={t('Import themes')}
-          placement="bottomRight"
-        >
-          <Icons.DownloadOutlined iconSize="l" data-test="import-button" />
-        </Tooltip>
-      ),
-      buttonStyle: 'link',
-      onClick: openThemeImportModal,
     });
   }
 
