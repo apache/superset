@@ -17,7 +17,6 @@
 # pylint: disable=import-outside-toplevel, invalid-name, unused-argument, too-many-locals
 
 import json  # noqa: TID251
-from unittest import mock
 from uuid import UUID
 
 import pytest
@@ -65,14 +64,13 @@ def test_execute_query(mocker: MockerFixture, app: None) -> None:
     SupersetResultSet.assert_called_with([(42,)], cursor.description, db_engine_spec)
 
 
-@mock.patch.dict(
-    "superset.sql_lab.config",
-    {"SQLLAB_PAYLOAD_MAX_MB": 50},  # Set the desired config value for testing
-)
 def test_execute_sql_statement_exceeds_payload_limit(mocker: MockerFixture) -> None:
     """
     Test for `execute_sql_statements` when the result payload size exceeds the limit.
     """
+    # Mock current_app.config
+    mock_current_app = mocker.patch("superset.sql_lab.current_app")
+    mock_current_app.config = {"SQLLAB_PAYLOAD_MAX_MB": 50}
 
     # Mock the query object and database
     query = mocker.MagicMock()
@@ -116,15 +114,14 @@ def test_execute_sql_statement_exceeds_payload_limit(mocker: MockerFixture) -> N
         )
 
 
-@mock.patch.dict(
-    "superset.sql_lab.config",
-    {"SQLLAB_PAYLOAD_MAX_MB": 50},  # Set the desired config value for testing
-)
 def test_execute_sql_statement_within_payload_limit(mocker: MockerFixture) -> None:
     """
     Test for `execute_sql_statements` when the result payload size is within the limit,
     and check if the flow executes smoothly without raising any exceptions.
     """
+    # Mock current_app.config
+    mock_current_app = mocker.patch("superset.sql_lab.current_app")
+    mock_current_app.config = {"SQLLAB_PAYLOAD_MAX_MB": 50}
 
     # Mock the query object and database
     query = mocker.MagicMock()
