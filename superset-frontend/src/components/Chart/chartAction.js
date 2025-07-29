@@ -164,7 +164,7 @@ const v1ChartDataRequest = async (
   ownState,
   parseMethod,
 ) => {
-  const payload = buildV1ChartDataPayload({
+  const payload = await buildV1ChartDataPayload({
     formData,
     resultType,
     resultFormat,
@@ -255,7 +255,7 @@ export function runAnnotationQuery({
   isDashboardRequest = false,
   force = false,
 }) {
-  return function (dispatch, getState) {
+  return async function (dispatch, getState) {
     const { charts, common } = getState();
     const sliceKey = key || Object.keys(charts)[0];
     const queryTimeout = timeout || common.conf.SUPERSET_WEBSERVER_TIMEOUT;
@@ -310,17 +310,19 @@ export function runAnnotationQuery({
       fd.annotation_layers[annotationIndex].overrides = sliceFormData;
     }
 
+    const payload = await buildV1ChartDataPayload({
+      formData: fd,
+      force,
+      resultFormat: 'json',
+      resultType: 'full',
+    });
+
     return SupersetClient.post({
       url,
       signal,
       timeout: queryTimeout * 1000,
       headers: { 'Content-Type': 'application/json' },
-      jsonPayload: buildV1ChartDataPayload({
-        formData: fd,
-        force,
-        resultFormat: 'json',
-        resultType: 'full',
-      }),
+      jsonPayload: payload,
     })
       .then(({ json }) => {
         const data = json?.result?.[0]?.annotation_data?.[annotation.name];
@@ -420,6 +422,8 @@ export function exploreJSON(
     const setDataMask = dataMask => {
       dispatch(updateDataMask(formData.slice_id, dataMask));
     };
+    dispatch(chartUpdateStarted(controller, formData, key));
+
     const chartDataRequest = getChartDataRequest({
       setDataMask,
       formData,
@@ -430,8 +434,6 @@ export function exploreJSON(
       requestParams,
       ownState,
     });
-
-    dispatch(chartUpdateStarted(controller, formData, key));
 
     const [useLegacyApi] = getQuerySettings(formData);
     const chartDataRequestCaught = chartDataRequest
