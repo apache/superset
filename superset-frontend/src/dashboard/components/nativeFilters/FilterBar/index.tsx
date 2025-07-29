@@ -333,10 +333,26 @@ const FilterBar: FC<FiltersBarProps> = ({
       }
 
       dispatch(clearAllPendingChartCustomizations());
+    } else if (hasClearedChartCustomizations) {
+      const clearedChartCustomizations = chartCustomizationItems.map(item => ({
+        ...item,
+        customization: {
+          ...item.customization,
+          column: null,
+        },
+      }));
+
+      dispatch(saveChartCustomization(clearedChartCustomizations));
     }
 
     setHasClearedChartCustomizations(false);
-  }, [dataMaskSelected, dispatch, pendingChartCustomizations]);
+  }, [
+    dataMaskSelected,
+    dispatch,
+    pendingChartCustomizations,
+    hasClearedChartCustomizations,
+    chartCustomizationItems,
+  ]);
 
   const handleClearAll = useCallback(() => {
     const newClearAllTriggers = { ...clearAllTriggers };
@@ -353,45 +369,48 @@ const FilterBar: FC<FiltersBarProps> = ({
       }
     });
 
-    Object.entries(dataMaskSelected).forEach(([key, mask]) => {
+    let hasChartCustomizationsToClear = false;
+
+    const allDataMasks = { ...dataMaskSelected, ...dataMaskApplied };
+
+    Object.keys(allDataMasks).forEach(key => {
       if (key.startsWith('chart_customization_')) {
-        setDataMaskSelected(draft => {
-          if (draft[key]) {
-            if (draft[key].filterState?.value !== undefined) {
-              draft[key].filterState!.value = undefined;
-            }
-            draft[key].extraFormData = {};
-            if (draft[key].ownState) {
-              draft[key].ownState!.column = undefined;
-            }
-          }
-        });
-        newClearAllTriggers[key] = true;
-      }
-      if (/^\d+$/.test(key) && mask?.ownState?.column) {
-        setDataMaskSelected(draft => {
-          if (draft[key]) {
-            if (draft[key].filterState?.value !== undefined) {
-              draft[key].filterState!.value = undefined;
-            }
-            draft[key].extraFormData = {};
-            if (draft[key].ownState) {
-              draft[key].ownState!.column = undefined;
-            }
-          }
-        });
-        newClearAllTriggers[key] = true;
+        hasChartCustomizationsToClear = true;
       }
     });
 
+    if (!hasChartCustomizationsToClear && chartCustomizationItems.length > 0) {
+      chartCustomizationItems.forEach(item => {
+        if (item.customization?.column) {
+          const customizationFilterId = `chart_customization_${item.id}`;
+          const dataMask = {
+            filterState: {
+              value: item.customization.column,
+            },
+            ownState: {
+              column: item.customization.column,
+            },
+            extraFormData: {},
+          };
+
+          dispatch(updateDataMask(customizationFilterId, dataMask));
+          hasChartCustomizationsToClear = true;
+        }
+      });
+    }
+
+    if (hasChartCustomizationsToClear) {
+      dispatch(clearAllPendingChartCustomizations());
+      dispatch(clearAllChartCustomizationsFromMetadata());
+      setHasClearedChartCustomizations(true);
+    }
+
     setClearAllTriggers(newClearAllTriggers);
-    dispatch(clearAllPendingChartCustomizations());
-    dispatch(clearAllChartCustomizationsFromMetadata());
-    setHasClearedChartCustomizations(true);
   }, [
     dataMaskSelected,
+    dataMaskApplied,
     filtersInScope,
-    setDataMaskSelected,
+    chartCustomizationItems,
     clearAllTriggers,
     dispatch,
   ]);
@@ -418,6 +437,7 @@ const FilterBar: FC<FiltersBarProps> = ({
     ) &&
     !hasPendingChartCustomizations &&
     !hasClearedChartCustomizations;
+
   const isInitialized = useInitialization();
 
   const actions = useMemo(
