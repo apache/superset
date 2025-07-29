@@ -193,6 +193,43 @@ function processGroupByCustomizations(
     });
   }
 
+  const getConflictReason = (columnName: string): string => {
+    if (existingGroupBy.includes(columnName)) {
+      return 'groupby';
+    }
+    if (xAxisColumn === columnName) {
+      if (
+        chartType?.startsWith('echarts_timeseries') ||
+        chartType?.startsWith('echarts_area')
+      ) {
+        return 'time axis';
+      }
+      if (chartType === 'heatmap_v2') {
+        return 'x-axis';
+      }
+      return 'x-axis';
+    }
+    if (chartType === 'heatmap_v2' && chart.form_data?.groupby) {
+      const groupbyColumn = Array.isArray(chart.form_data.groupby)
+        ? chart.form_data.groupby[0]
+        : chart.form_data.groupby;
+      if (groupbyColumn === columnName) {
+        return 'y-axis';
+      }
+    }
+    if (chartType === 'pivot_table_v2') {
+      const groupbyColumns = chart.form_data?.groupbyColumns || [];
+      const groupbyRows = chart.form_data?.groupbyRows || [];
+      if (groupbyColumns.includes(columnName)) {
+        return 'pivot table columns';
+      }
+      if (groupbyRows.includes(columnName)) {
+        return 'pivot table rows';
+      }
+    }
+    return 'chart configuration';
+  };
+
   matchingCustomizations.forEach(item => {
     const { customization } = item;
     const groupById = `chart_customization_${item.id}`;
@@ -243,7 +280,29 @@ function processGroupByCustomizations(
         return;
       }
 
-      columnNames.forEach(columnName => {
+      const nonConflictingColumns = columnNames.filter(
+        columnName => !conflictingColumns.has(columnName),
+      );
+
+      const conflictingColumnsInCustomization = columnNames.filter(columnName =>
+        conflictingColumns.has(columnName),
+      );
+
+      conflictingColumnsInCustomization.forEach(conflictingColumn => {
+        const conflictReason = getConflictReason(conflictingColumn);
+        console.warn(
+          `Skipping column "${conflictingColumn}" in chart customization "${item.id}" (${customization.name || 'unnamed'}) as it conflicts with existing chart ${conflictReason}`,
+        );
+      });
+
+      if (nonConflictingColumns.length === 0) {
+        console.warn(
+          `Skipping chart customization "${item.id}" (${customization.name || 'unnamed'}) as all columns conflict with existing chart configuration`,
+        );
+        return;
+      }
+
+      nonConflictingColumns.forEach(columnName => {
         if (!groupByColumns.includes(columnName)) {
           groupByColumns.push(columnName);
         }
