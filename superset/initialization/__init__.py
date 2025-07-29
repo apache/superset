@@ -34,6 +34,7 @@ from flask_appbuilder.utils.base import get_safe_redirect
 from flask_babel import lazy_gettext as _, refresh
 from flask_compress import Compress
 from flask_session import Session
+from sqlalchemy import inspect
 from werkzeug.middleware.proxy_fix import ProxyFix
 
 from superset.constants import CHANGE_ME_SECRET_KEY
@@ -470,6 +471,31 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             icon="fa-lock",
         )
 
+    def _init_database_dependent_features(self) -> None:
+        """
+        Initialize features that require database tables to exist.
+        This is called during app initialization but checks table existence
+        to handle cases where the app starts before database migration.
+        """
+        inspector = inspect(db.engine)
+
+        # Check if core tables exist (use 'dashboards' as proxy for Superset tables)
+        if not inspector.has_table("dashboards"):
+            logger.debug(
+                "Superset tables not yet created. Skipping database-dependent "
+                "initialization. These features will be initialized after migration."
+            )
+            return
+
+        # Register SQLA event listeners for tagging system
+        if feature_flag_manager.is_feature_enabled("TAGGING_SYSTEM"):
+            register_sqla_event_listeners()
+
+        # Seed system themes from configuration
+        from superset.commands.theme.seed import SeedSystemThemesCommand
+
+        SeedSystemThemesCommand().run()
+
     def init_app_in_ctx(self) -> None:
         """
         Runs init logic in the context of the app
@@ -487,16 +513,8 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         if flask_app_mutator := self.config["FLASK_APP_MUTATOR"]:
             flask_app_mutator(self.superset_app)
 
-        if feature_flag_manager.is_feature_enabled("TAGGING_SYSTEM"):
-            register_sqla_event_listeners()
-
-        # Seed system themes from configuration
-        try:
-            from superset.commands.theme.seed import SeedSystemThemesCommand
-
-            SeedSystemThemesCommand().run()
-        except Exception:
-            logger.exception("Failed to seed system themes")
+        # Initialize database-dependent features only if database is ready
+        self._init_database_dependent_features()
 
         self.init_views()
 
