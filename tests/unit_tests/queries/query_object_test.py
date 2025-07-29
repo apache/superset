@@ -44,6 +44,7 @@ def test_default_query_object_to_dict():
         "filter": [],
         "from_dttm": None,
         "granularity": None,
+        "group_others_when_limit_reached": False,
         "inner_from_dttm": None,
         "inner_to_dttm": None,
         "is_rowcount": False,

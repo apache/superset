@@ -48,6 +48,8 @@ const mockCharts = [...new Array(3)].map((_, i) => ({
   url: 'url',
   viz_type: VizType.Bar,
   datasource_name: `ds${i}`,
+  datasource_name_text: `schema.ds${i}`,
+  datasource_url: `/dataset/${i}`,
   thumbnail_url: '/thumbnail',
 }));
 
@@ -299,6 +301,85 @@ describe('ChartList', () => {
     });
     expect(importTooltip).toBeInTheDocument();
   });
+
+  it('handles dataset name display logic correctly', async () => {
+    // Test different scenarios for datasource_name_text
+    const testCharts = [
+      {
+        ...mockCharts[0],
+        id: 100,
+        slice_name: 'Chart with schema.name',
+        datasource_name_text: 'public.users_table',
+        datasource_url: '/dataset/1',
+      },
+      {
+        ...mockCharts[1],
+        id: 101,
+        slice_name: 'Chart with just name',
+        datasource_name_text: 'simple_table',
+        datasource_url: '/dataset/2',
+      },
+      {
+        ...mockCharts[2],
+        id: 102,
+        slice_name: 'Chart with undefined name',
+        datasource_name_text: undefined,
+        datasource_url: '/dataset/3',
+      },
+    ];
+
+    // Override the charts endpoint with test data
+    fetchMock.get(
+      chartsEndpoint,
+      {
+        result: testCharts,
+        chart_count: 3,
+      },
+      { overwriteRoutes: true },
+    );
+
+    renderChartList();
+
+    // Wait for list to load
+    await screen.findByTestId('chart-list-view');
+
+    // Switch to list view to see the dataset column
+    const listViewToggle = await screen.findByRole('img', {
+      name: 'unordered-list',
+    });
+    const listViewButton = listViewToggle.closest('[role="button"]');
+    fireEvent.click(listViewButton);
+
+    // Wait for list view to be active and data to load
+    await waitFor(() => {
+      expect(screen.getByText('Chart with schema.name')).toBeInTheDocument();
+    });
+
+    // Test schema.name case - should display only the table name (after the dot)
+    await waitFor(() => {
+      const schemaNameLink = screen.getByText('users_table');
+      expect(schemaNameLink).toBeInTheDocument();
+      expect(schemaNameLink.closest('a')).toHaveAttribute('href', '/dataset/1');
+    });
+
+    // Test just name case - should display the full name
+    await waitFor(() => {
+      const justNameLink = screen.getByText('simple_table');
+      expect(justNameLink).toBeInTheDocument();
+      expect(justNameLink.closest('a')).toHaveAttribute('href', '/dataset/2');
+    });
+
+    // Test undefined case - should display empty string (no text content)
+    await waitFor(() => {
+      const undefinedNameRow = screen
+        .getByText('Chart with undefined name')
+        .closest('tr');
+      const datasetCell = undefinedNameRow.querySelector('td:nth-child(4)'); // Dataset is the 4th column
+      const linkElement = datasetCell.querySelector('a');
+      expect(linkElement).toHaveTextContent('');
+      expect(linkElement).toHaveAttribute('href', '/dataset/3');
+    });
+  });
 });
 
 describe('ChartList - anonymous view', () => {
@@ -309,6 +390,15 @@ describe('ChartList - anonymous view', () => {
       chartFavoriteStatusEndpoint,
       {
         result: [],
+      },
+      { overwriteRoutes: true },
+    );
+    // Reset charts endpoint to original mockCharts
+    fetchMock.get(
+      chartsEndpoint,
+      {
+        result: mockCharts,
+        chart_count: 3,
       },
       { overwriteRoutes: true },
     );

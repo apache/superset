@@ -128,6 +128,7 @@ export interface SliceHeaderControlsProps {
   exportXLSX?: (sliceId: number) => void;
   exportFullXLSX?: (sliceId: number) => void;
   handleToggleFullSize: () => void;
+  exportPivotExcel?: (tableSelector: string, sliceName: string) => void;
 
   addDangerToast: (message: string) => void;
   addSuccessToast: (message: string) => void;
@@ -253,6 +254,10 @@ const SliceHeaderControls = (
         props.logEvent?.(LOG_ACTIONS_CHART_DOWNLOAD_AS_IMAGE, {
           chartId: props.slice.slice_id,
         });
+        break;
+      }
+      case MenuKeys.ExportPivotXlsx: {
+        props.exportPivotExcel?.('.pvtTable', props.slice.slice_name);
         break;
       }
       case MenuKeys.CrossFilterScoping: {
@@ -483,6 +488,11 @@ const SliceHeaderControls = (
               {
                 key: MenuKeys.ExportPivotCsv,
                 label: t('Export to Pivoted .CSV'),
+                icon: <Icons.FileOutlined css={dropdownIconsStyles} />,
+              },
+              {
+                key: MenuKeys.ExportPivotXlsx,
+                label: t('Export to Pivoted Excel'),
                 icon: <Icons.FileOutlined css={dropdownIconsStyles} />,
               },
             ]

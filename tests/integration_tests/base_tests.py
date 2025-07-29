@@ -20,7 +20,7 @@ from contextlib import contextmanager
 from datetime import datetime
 from importlib.util import find_spec
 from io import BytesIO
-from typing import Any, Optional, Union
+from typing import Any, Optional
 from unittest.mock import MagicMock, Mock, patch
 from zipfile import ZipFile
 
@@ -236,8 +236,11 @@ class SupersetTestCase(TestCase):
         first_name: str = "admin",
         last_name: str = "user",
         email: str = "admin@fab.org",
-    ) -> Union[ab_models.User, bool]:
+    ) -> ab_models.User:
         role_admin = security_manager.find_role(role_name)
+        # Defensive check: return existing user if username already exists
+        if existing_user := security_manager.find_user(username):
+            return existing_user
         return security_manager.add_user(
             username, first_name, last_name, email, role_admin, password
         )
@@ -583,6 +586,16 @@ class SupersetTestCase(TestCase):
         for role in roles:
             role_obj = db.session.query(security_manager.role_model).get(role)
             obj_roles.append(role_obj)
+
+        # Defensive cleanup: remove any existing dashboard with the same slug
+        if slug:
+            existing_dashboard = (
+                db.session.query(Dashboard).filter_by(slug=slug).first()
+            )
+            if existing_dashboard:
+                db.session.delete(existing_dashboard)
+                db.session.commit()
+
         dashboard = Dashboard(
             dashboard_title=dashboard_title,
             slug=slug,
