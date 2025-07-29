@@ -67,6 +67,7 @@ from superset.utils.core import (
     is_adhoc_column,
     is_adhoc_metric,
     normalize_dttm_col,
+    QueryObjectFilterClause,
     TIME_COMPARISON,
 )
 from superset.utils.date_parser import get_past_or_future, normalize_time_delta
@@ -558,7 +559,7 @@ class QueryContextProcessor:
                 # Add our specific temporal filter
                 temporal_col = query_object_clone.granularity or x_axis_label
                 if temporal_col:
-                    new_temporal_filter = {
+                    new_temporal_filter: QueryObjectFilterClause = {
                         "col": temporal_col,
                         "op": FilterOperator.TEMPORAL_RANGE,
                         "val": f"{query_object_clone.from_dttm} : {query_object_clone.to_dttm}",  # noqa: E501
