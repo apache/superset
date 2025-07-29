@@ -38,12 +38,12 @@ def load_flights(only_metadata: bool = False, force: bool = False) -> None:
 
         if not only_metadata and (not table_exists or force):
             pdf = read_example_data(
-                "flight_data.csv.gz", encoding="latin-1", compression="gzip"
+                "examples://flight_data.csv.gz", encoding="latin-1", compression="gzip"
             )
 
             # Loading airports info to join and get lat/long
             airports = read_example_data(
-                "airports.csv.gz", encoding="latin-1", compression="gzip"
+                "examples://airports.csv.gz", encoding="latin-1", compression="gzip"
             )
             airports = airports.set_index("IATA_CODE")
 

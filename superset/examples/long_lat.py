@@ -48,7 +48,7 @@ def load_long_lat_data(only_metadata: bool = False, force: bool = False) -> None
 
         if not only_metadata and (not table_exists or force):
             pdf = read_example_data(
-                "san_francisco.csv.gz", encoding="utf-8", compression="gzip"
+                "examples://san_francisco.csv.gz", encoding="utf-8", compression="gzip"
             )
             start = datetime.datetime.now().replace(
                 hour=0, minute=0, second=0, microsecond=0

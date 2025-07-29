@@ -50,7 +50,7 @@ def load_energy(
         table_exists = database.has_table(Table(tbl_name, schema))
 
         if not only_metadata and (not table_exists or force):
-            pdf = read_example_data("energy.json.gz", compression="gzip")
+            pdf = read_example_data("examples://energy.json.gz", compression="gzip")
             pdf = pdf.head(100) if sample else pdf
             pdf.to_sql(
                 tbl_name,

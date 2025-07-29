@@ -54,6 +54,8 @@ from superset.connectors.sqla.models import SqlaTable
 from superset.models.slice import Slice
 from superset.utils import json
 
+EXAMPLES_PROTOCOL = "examples://"
+
 # ---------------------------------------------------------------------------
 # Public sample‑data mirror configuration
 # ---------------------------------------------------------------------------
@@ -125,6 +127,20 @@ def get_example_url(filepath: str) -> str:
     return f"{BASE_URL}{filepath}"
 
 
+def normalize_example_data_url(url: str) -> str:
+    """Convert example data URLs to use the configured CDN.
+
+    Transforms examples:// URLs to the configured CDN URL.
+    Non-example URLs are returned unchanged.
+    """
+    if url.startswith(EXAMPLES_PROTOCOL):
+        relative_path = url[len(EXAMPLES_PROTOCOL) :]
+        return get_example_url(relative_path)
+
+    # Not an examples URL, return unchanged
+    return url
+
+
 def read_example_data(
     filepath: str,
     max_attempts: int = 5,
@@ -132,9 +148,7 @@ def read_example_data(
     **kwargs: Any,
 ) -> pd.DataFrame:
     """Load CSV or JSON from example data mirror with retry/backoff."""
-    from superset.examples.helpers import get_example_url
-
-    url = get_example_url(filepath)
+    url = normalize_example_data_url(filepath)
     is_json = filepath.endswith(".json") or filepath.endswith(".json.gz")
 
     for attempt in range(1, max_attempts + 1):

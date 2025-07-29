@@ -55,7 +55,7 @@ def load_world_bank_health_n_pop(  # pylint: disable=too-many-locals
         table_exists = database.has_table(Table(tbl_name, schema))
 
         if not only_metadata and (not table_exists or force):
-            pdf = read_example_data("countries.json.gz", compression="gzip")
+            pdf = read_example_data("examples://countries.json.gz", compression="gzip")
             pdf.columns = [col.replace(".", "_") for col in pdf.columns]
             if database.backend == "presto":
                 pdf.year = pd.to_datetime(pdf.year)

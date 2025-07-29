@@ -190,6 +190,12 @@ def load_configs(
                         db_ssh_tunnel_priv_key_passws[config["uuid"]]
                     )
 
+                # Normalize example data URLs before schema validation
+                if prefix == "datasets" and "data" in config:
+                    from superset.examples.helpers import normalize_example_data_url
+
+                    config["data"] = normalize_example_data_url(config["data"])
+
                 schema.load(config)
                 configs[file_name] = config
             except ValidationError as exc:
