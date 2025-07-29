@@ -39,6 +39,19 @@ import {
 import { removeDataMask, updateDataMask } from 'src/dataMask/actions';
 import { onSave } from './dashboardState';
 
+const createUpdateDashboardApi = (id: number | string | undefined) => {
+  if (!id) {
+    throw new Error('Dashboard ID is required');
+  }
+  return makeApi<
+    Partial<DashboardInfo>,
+    { result: Partial<DashboardInfo>; last_modified_time: number }
+  >({
+    method: 'PUT',
+    endpoint: `/api/v1/dashboard/${id}`,
+  });
+};
+
 export interface ChartCustomizationSavePayload {
   id: string;
   title?: string;
@@ -110,14 +123,7 @@ export const saveChartConfiguration =
     });
     const { id, metadata } = getState().dashboardInfo;
 
-    // TODO extract this out when makeApi supports url parameters
-    const updateDashboard = makeApi<
-      Partial<DashboardInfo>,
-      { result: DashboardInfo }
-    >({
-      method: 'PUT',
-      endpoint: `/api/v1/dashboard/${id}`,
-    });
+    const updateDashboard = createUpdateDashboardApi(id);
 
     try {
       const response = await updateDashboard({
@@ -131,7 +137,7 @@ export const saveChartConfiguration =
       });
       dispatch(
         dashboardInfoChanged({
-          metadata: JSON.parse(response.result.json_metadata),
+          metadata: JSON.parse(response.result.json_metadata || '{}'),
         }),
       );
       dispatch({
@@ -212,16 +218,57 @@ export function setChartCustomization(
   return { type: SAVE_CHART_CUSTOMIZATION_COMPLETE, chartCustomization };
 }
 
+export const SET_DASHBOARD_THEME = 'SET_DASHBOARD_THEME';
+
+export function setDashboardTheme(theme: { id: number; name: string } | null) {
+  return { type: SET_DASHBOARD_THEME, theme };
+}
+
+export function updateDashboardTheme(themeId: number | null) {
+  return async (dispatch: Dispatch, getState: () => RootState) => {
+    const { id } = getState().dashboardInfo;
+    const updateDashboard = createUpdateDashboardApi(id);
+
+    try {
+      const response = await updateDashboard({
+        theme_id: themeId,
+      });
+
+      // Update the dashboard info with the new theme
+      if (themeId === null) {
+        // Clearing the theme
+        dispatch(setDashboardTheme(null));
+      } else if (response.result.theme) {
+        // API returned the theme object
+        dispatch(setDashboardTheme(response.result.theme));
+      } else {
+        // API didn't return theme object, create it from the themeId
+        dispatch(setDashboardTheme({ id: themeId, name: `Theme ${themeId}` }));
+      }
+
+      const lastModifiedTime = response.last_modified_time;
+      if (lastModifiedTime) {
+        dispatch(onSave(lastModifiedTime));
+      }
+    } catch (errorObject) {
+      const { error } = await getClientErrorObject(errorObject);
+      dispatch(
+        addDangerToast(
+          t(
+            'Sorry, there was an error saving this dashboard: %s',
+            error || 'Bad Request',
+          ),
+        ),
+      );
+      throw errorObject;
+    }
+  };
+}
+
 export function saveFilterBarOrientation(orientation: FilterBarOrientation) {
   return async (dispatch: Dispatch, getState: () => RootState) => {
     const { id, metadata } = getState().dashboardInfo;
-    const updateDashboard = makeApi<
-      Partial<DashboardInfo>,
-      { result: Partial<DashboardInfo>; last_modified_time: number }
-    >({
-      method: 'PUT',
-      endpoint: `/api/v1/dashboard/${id}`,
-    });
+    const updateDashboard = createUpdateDashboardApi(id);
     try {
       const response = await updateDashboard({
         json_metadata: JSON.stringify({
@@ -262,13 +309,7 @@ export function saveCrossFiltersSetting(crossFiltersEnabled: boolean) {
   ) {
     const { id, metadata } = getState().dashboardInfo;
     dispatch(setCrossFiltersEnabled(crossFiltersEnabled));
-    const updateDashboard = makeApi<
-      Partial<DashboardInfo>,
-      { result: DashboardInfo }
-    >({
-      method: 'PUT',
-      endpoint: `/api/v1/dashboard/${id}`,
-    });
+    const updateDashboard = createUpdateDashboardApi(id);
 
     try {
       const response = await updateDashboard({
@@ -279,7 +320,7 @@ export function saveCrossFiltersSetting(crossFiltersEnabled: boolean) {
       });
       dispatch(
         dashboardInfoChanged({
-          metadata: JSON.parse(response.result.json_metadata),
+          metadata: JSON.parse(response.result.json_metadata || '{}'),
         }),
       );
       return response;
@@ -326,13 +367,7 @@ export function saveChartCustomization(
 
     const simpleItems = Array.from(updatedItemsMap.values());
 
-    const updateDashboard = makeApi<
-      Partial<DashboardInfo>,
-      { result: Partial<DashboardInfo>; last_modified_time: number }
-    >({
-      method: 'PUT',
-      endpoint: `/api/v1/dashboard/${id}`,
-    });
+    const updateDashboard = createUpdateDashboardApi(id);
 
     try {
       let parsedMetadata: any = {};
