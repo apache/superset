@@ -20,8 +20,6 @@ import { Dispatch, AnyAction } from 'redux';
 import { ThunkAction, ThunkDispatch } from 'redux-thunk';
 import { makeApi, t, getClientErrorObject } from '@superset-ui/core';
 import { addDangerToast } from 'src/components/MessageToasts/actions';
-import { getChartDataRequest } from 'src/components/Chart/chartAction';
-import { getFormData } from 'src/dashboard/components/nativeFilters/utils';
 import {
   ChartConfiguration,
   DashboardInfo,
@@ -501,51 +499,7 @@ export function loadChartCustomizationData(
       return;
     }
 
-    dispatch(setChartCustomizationDataLoading(itemId, true));
-
-    try {
-      const formData = getFormData({
-        datasetId: Number(datasetId),
-        groupby: actualColumnName,
-        dashboardId: 0,
-        filterType: 'filter_select',
-      });
-
-      const response = await getChartDataRequest({
-        formData,
-      });
-
-      if (response?.json?.result) {
-        const data = response.json.result[0]?.data || [];
-        const uniqueValues = new Set();
-        const formattedData: FilterOption[] = [];
-
-        data.forEach((row: any) => {
-          const value = row[actualColumnName];
-          if (
-            value !== null &&
-            value !== undefined &&
-            !uniqueValues.has(value)
-          ) {
-            uniqueValues.add(value);
-            formattedData.push({
-              label: value.toString(),
-              value: value.toString(),
-            });
-          }
-        });
-
-        formattedData.sort((a, b) => a.label.localeCompare(b.label));
-        dispatch(setChartCustomizationData(itemId, formattedData));
-      } else {
-        dispatch(setChartCustomizationData(itemId, []));
-      }
-    } catch (error) {
-      console.warn('Failed to load chart customization data:', error);
-      dispatch(setChartCustomizationData(itemId, []));
-    } finally {
-      dispatch(setChartCustomizationDataLoading(itemId, false));
-    }
+    dispatch(setChartCustomizationDataLoading(itemId, false));
   };
 }
 
