@@ -174,7 +174,7 @@ export const SAVE_CHART_CUSTOMIZATION_COMPLETE =
 
 function getAffectedChartIdsFromCustomization(
   chartCustomization: ChartCustomizationItem[],
-  state: any,
+  state: RootState,
 ): number[] {
   const targetDatasets = chartCustomization
     .map(item => item.customization?.dataset)
