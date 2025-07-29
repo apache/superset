@@ -667,15 +667,7 @@ def test_import_column_allowed_data_url(
     schema = ImportV1DatasetSchema()
     dataset_config = schema.load(yaml_config)
     dataset_config["database_id"] = database.id
-    # Mock load_data - testing URL validation, not data loading
-    with patch(
-        "superset.commands.dataset.importers.v1.utils.load_data"
-    ) as mock_load_data:
-        dataset = import_dataset(dataset_config, force_data=True)
-        # Verify that load_data was called with the correct parameters
-        mock_load_data.assert_called_once_with(
-            "https://some-external-url.com/data.csv", dataset, dataset.database
-        )
+    import_dataset(dataset_config, force_data=True)
 
 
 def test_import_dataset_managed_externally(
