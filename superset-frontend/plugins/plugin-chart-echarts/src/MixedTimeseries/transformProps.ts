@@ -212,6 +212,7 @@ export default function transformProps(
     sortSeriesAscendingB,
     timeGrainSqla,
     percentageThreshold,
+    show_query_identifiers = false,
     metrics = [],
     metricsB = [],
   }: EchartsMixedTimeseriesFormData = { ...DEFAULT_FORM_DATA, ...formData };
@@ -395,10 +396,19 @@ export default function transformProps(
     const seriesName = inverted[entryName] || entryName;
     const colorScaleKey = getOriginalSeries(seriesName, array);
 
-    let displayName = `${entryName} (Query A)`;
+    let displayName: string;
 
     if (groupby.length > 0) {
-      displayName = `${MetricDisplayNameA} (Query A), ${entryName}`;
+      // When we have groupby, format as "metric, dimension"
+      const metricPart = show_query_identifiers
+        ? `${MetricDisplayNameA} (Query A)`
+        : MetricDisplayNameA;
+      displayName = `${metricPart}, ${entryName}`;
+    } else {
+      // When no groupby, format as just the entry name with optional query identifier
+      displayName = show_query_identifiers
+        ? `${entryName} (Query A)`
+        : entryName;
     }
 
     const seriesFormatter = getFormatter(
@@ -453,10 +463,19 @@ export default function transformProps(
     const seriesName = `${seriesEntry} (1)`;
     const colorScaleKey = getOriginalSeries(seriesEntry, array);
 
-    let displayName = `${entryName} (Query B)`;
+    let displayName: string;
 
     if (groupbyB.length > 0) {
-      displayName = `${MetricDisplayNameB} (Query B), ${entryName}`;
+      // When we have groupby, format as "metric, dimension"
+      const metricPart = show_query_identifiers
+        ? `${MetricDisplayNameB} (Query B)`
+        : MetricDisplayNameB;
+      displayName = `${metricPart}, ${entryName}`;
+    } else {
+      // When no groupby, format as just the entry name with optional query identifier
+      displayName = show_query_identifiers
+        ? `${entryName} (Query B)`
+        : entryName;
     }
 
     const seriesFormatter = getFormatter(
@@ -696,14 +715,13 @@ export default function transformProps(
         zoomable,
       ),
       // @ts-ignore
-      data: rawSeriesA
-        .concat(rawSeriesB)
+      data: series
         .filter(
           entry =>
             extractForecastSeriesContext((entry.name || '') as string).type ===
             ForecastSeriesEnum.Observation,
         )
-        .map(entry => entry.name || '')
+        .map(entry => entry.id || entry.name || '')
         .concat(extractAnnotationLabels(annotationLayers, annotationData)),
     },
     series: dedupSeries(reorderForecastSeries(series) as SeriesOption[]),
