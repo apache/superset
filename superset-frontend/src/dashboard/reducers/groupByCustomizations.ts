@@ -19,6 +19,7 @@
 /* eslint-disable no-param-reassign */
 // <- When we work with Immer, we need reassign, so disabling lint
 import { produce } from 'immer';
+import { HYDRATE_DASHBOARD } from '../actions/hydrate';
 
 export interface GroupByState {
   [groupById: string]: {
@@ -64,7 +65,15 @@ export type GroupByAction =
   | SetGroupByValuesAction
   | SetGroupByLoadingAction
   | SetGroupByOptionsAction
-  | ClearGroupByStateAction;
+  | ClearGroupByStateAction
+  | {
+      type: typeof HYDRATE_DASHBOARD;
+      data: {
+        dashboardInfo: {
+          metadata: { chart_customization_config?: unknown[] };
+        };
+      };
+    };
 
 export const setGroupByValues = (
   groupById: string,
@@ -148,6 +157,39 @@ export default function groupByCustomizationsReducer(
     case CLEAR_GROUP_BY_STATE:
       return produce(state, draft => {
         draft.groupByState = {};
+      });
+
+    case HYDRATE_DASHBOARD:
+      return produce(state, draft => {
+        const chartCustomizationItems =
+          action.data.dashboardInfo?.metadata?.chart_customization_config || [];
+
+        chartCustomizationItems.forEach((item: unknown) => {
+          if (
+            typeof item === 'object' &&
+            item !== null &&
+            'id' in item &&
+            'customization' in item &&
+            typeof item.customization === 'object' &&
+            item.customization !== null &&
+            'column' in item.customization
+          ) {
+            const customizationFilterId = `chart_customization_${(item as { id: string }).id}`;
+
+            if ((item.customization as { column: string }).column) {
+              const { defaultDataMask } = item.customization as {
+                defaultDataMask?: { filterState?: { value?: string[] } };
+              };
+
+              draft.groupByState[customizationFilterId] = {
+                id: customizationFilterId,
+                selectedValues: defaultDataMask?.filterState?.value || [],
+                isLoading: false,
+                availableOptions: [],
+              };
+            }
+          }
+        });
       });
 
     default:
