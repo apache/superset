@@ -21,17 +21,13 @@ from typing import Any, TypedDict
 
 from flask_babel import gettext as __
 
-from superset import app, db
+from superset import db
 from superset.commands.base import BaseCommand
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetErrorException, SupersetTimeoutException
 from superset.jinja_context import get_template_processor
 from superset.models.core import Database
 from superset.utils import core as utils
-
-todo_config = app.config
-SQLLAB_QUERY_COST_ESTIMATE_TIMEOUT = todo_config["SQLLAB_QUERY_COST_ESTIMATE_TIMEOUT"]
-stats_logger = todo_config["STATS_LOGGER"]
 
 logger = logging.getLogger(__name__)
 
@@ -81,7 +77,9 @@ class QueryEstimationCommand(BaseCommand):
             template_processor = get_template_processor(self._database)
             sql = template_processor.process_template(sql, **self._template_params)
 
-        timeout = SQLLAB_QUERY_COST_ESTIMATE_TIMEOUT
+        from flask import current_app
+
+        timeout = current_app.config["SQLLAB_QUERY_COST_ESTIMATE_TIMEOUT"]
         timeout_msg = f"The estimation exceeded the {timeout} seconds timeout."
         try:
             with utils.timeout(seconds=timeout, error_message=timeout_msg):
@@ -100,7 +98,9 @@ class QueryEstimationCommand(BaseCommand):
                         "The query estimation was killed after %(sqllab_timeout)s "
                         "seconds. It might be too complex, or the database might be "
                         "under heavy load.",
-                        sqllab_timeout=SQLLAB_QUERY_COST_ESTIMATE_TIMEOUT,
+                        sqllab_timeout=current_app.config[
+                            "SQLLAB_QUERY_COST_ESTIMATE_TIMEOUT"
+                        ],
                     ),
                     error_type=SupersetErrorType.SQLLAB_TIMEOUT_ERROR,
                     level=ErrorLevel.ERROR,
@@ -109,7 +109,7 @@ class QueryEstimationCommand(BaseCommand):
             ) from ex
 
         spec = self._database.db_engine_spec
-        query_cost_formatters: dict[str, Any] = app.config[
+        query_cost_formatters: dict[str, Any] = current_app.config[
             "QUERY_COST_FORMATTERS_BY_ENGINE"
         ]
         query_cost_formatter = query_cost_formatters.get(

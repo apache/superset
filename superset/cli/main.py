@@ -85,8 +85,15 @@ def init() -> None:
 @click.option("--verbose", "-v", is_flag=True, help="Show extra information")
 def version(verbose: bool) -> None:
     """Prints the current version number"""
+    from flask import current_app
+
     print(Fore.BLUE + "-=" * 15)
-    print(Fore.YELLOW + "Superset " + Fore.CYAN + f"{app.config['VERSION_STRING']}")
+    print(
+        Fore.YELLOW
+        + "Superset "
+        + Fore.CYAN
+        + f"{current_app.config['VERSION_STRING']}"
+    )
     print(Fore.BLUE + "-=" * 15)
     if verbose:
         print("[DB] : " + f"{db.engine}")
