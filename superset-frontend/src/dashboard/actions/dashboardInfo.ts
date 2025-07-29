@@ -20,10 +20,7 @@ import { Dispatch, AnyAction } from 'redux';
 import { ThunkAction, ThunkDispatch } from 'redux-thunk';
 import { makeApi, t, getClientErrorObject } from '@superset-ui/core';
 import { addDangerToast } from 'src/components/MessageToasts/actions';
-import {
-  getChartDataRequest,
-  refreshChart,
-} from 'src/components/Chart/chartAction';
+import { getChartDataRequest } from 'src/components/Chart/chartAction';
 import { getFormData } from 'src/dashboard/components/nativeFilters/utils';
 import {
   ChartConfiguration,
@@ -171,46 +168,6 @@ export function setCrossFiltersEnabled(crossFiltersEnabled: boolean) {
 
 export const SAVE_CHART_CUSTOMIZATION_COMPLETE =
   'SAVE_CHART_CUSTOMIZATION_COMPLETE';
-
-function getAffectedChartIdsFromCustomization(
-  chartCustomization: ChartCustomizationItem[],
-  state: RootState,
-): number[] {
-  const targetDatasets = chartCustomization
-    .map(item => item.customization?.dataset)
-    .filter(dataset => dataset !== null && dataset !== undefined) as string[];
-
-  const charts = state.charts || {};
-  if (targetDatasets.length === 0) {
-    return [];
-  }
-
-  return Object.keys(charts)
-    .filter(id => {
-      const chart = charts[id];
-      if (
-        !chart?.latestQueryFormData ||
-        Object.keys(chart.latestQueryFormData).length === 0
-      ) {
-        return false;
-      }
-
-      const chartDataset = chart.latestQueryFormData.datasource;
-      if (!chartDataset) {
-        return false;
-      }
-
-      const chartDatasetParts = String(chartDataset).split('__');
-      const chartDatasetId = chartDatasetParts[0];
-
-      return targetDatasets.some(targetDataset => {
-        const targetDatasetId = String(targetDataset);
-
-        return chartDatasetId === targetDatasetId;
-      });
-    })
-    .map(id => parseInt(id, 10));
-}
 
 export function setChartCustomization(
   chartCustomization: ChartCustomizationItem[],
@@ -430,30 +387,6 @@ export function saveChartCustomization(
             dispatch(updateDataMask(customizationFilterId, dataMask));
           } else {
             dispatch(removeDataMask(customizationFilterId));
-          }
-        });
-
-        const state = getState();
-        const affectedChartIds = getAffectedChartIdsFromCustomization(
-          simpleItems,
-          state,
-        );
-
-        removedItems.forEach(removedItem => {
-          if (removedItem.chartId) {
-            affectedChartIds.push(removedItem.chartId);
-          }
-        });
-
-        const uniqueAffectedChartIds = [...new Set(affectedChartIds)];
-
-        uniqueAffectedChartIds.forEach(chartId => {
-          const chart = state.charts[chartId];
-          if (
-            chart?.latestQueryFormData &&
-            Object.keys(chart.latestQueryFormData).length > 0
-          ) {
-            dispatch(refreshChart(chartId));
           }
         });
       }
