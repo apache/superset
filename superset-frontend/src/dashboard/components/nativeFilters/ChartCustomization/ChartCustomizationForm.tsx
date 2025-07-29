@@ -62,14 +62,16 @@ const StyledContainer = styled.div`
 const FORM_ITEM_WIDTH = 300;
 
 const StyledFormItem = styled(FormItem)`
-  width: ${FORM_ITEM_WIDTH}px;
-  margin-bottom: ${({ theme }) => theme.sizeUnit * 4}px;
+  ${({ theme }) => `
+    width: ${FORM_ITEM_WIDTH}px;
+    margin-bottom: ${theme.sizeUnit * 4}px;
 
-  .ant-form-item-label > label {
-    font-size: ${({ theme }) => theme.fontSizeSM}px;
-    font-weight: ${({ theme }) => theme.fontWeightNormal};
-    color: ${({ theme }) => theme.colors.grayscale.dark1};
-  }
+    .ant-form-item-label > label {
+      font-size: ${theme.fontSizeSM}px;
+      font-weight: ${theme.fontWeightNormal};
+      color: ${theme.colorText};
+    }
+  `}
 `;
 
 const CheckboxLabel = styled.span`
