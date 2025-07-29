@@ -179,6 +179,49 @@ const dataMaskReducer = produce(
           // @ts-ignore
           action.data.dataMask,
         );
+
+        {
+          const chartCustomizationItems =
+            (
+              action as {
+                data: {
+                  dashboardInfo: {
+                    metadata: { chart_customization_config?: unknown[] };
+                  };
+                };
+              }
+            ).data.dashboardInfo?.metadata?.chart_customization_config || [];
+
+          chartCustomizationItems.forEach((item: unknown) => {
+            if (
+              typeof item === 'object' &&
+              item !== null &&
+              'id' in item &&
+              'customization' in item &&
+              typeof item.customization === 'object' &&
+              item.customization !== null &&
+              'column' in item.customization
+            ) {
+              const customizationFilterId = `chart_customization_${(item as { id: string }).id}`;
+
+              if ((item.customization as { column: string }).column) {
+                const { defaultDataMask } = item.customization as {
+                  defaultDataMask?: { filterState?: { value?: string[] } };
+                };
+                cleanState[customizationFilterId] = {
+                  ...getInitialDataMask(customizationFilterId),
+                  filterState: {
+                    value: defaultDataMask?.filterState?.value || [],
+                  },
+                  ownState: {
+                    column: (item.customization as { column: string }).column,
+                  },
+                } as DataMaskWithId;
+              }
+            }
+          });
+        }
+
         return cleanState;
       case SET_DATA_MASK_FOR_FILTER_CHANGES_COMPLETE:
         updateDataMaskForFilterChanges(
