@@ -17,8 +17,7 @@
  * under the License.
  */
 import { ReactNode } from 'react';
-import { Theme } from '@superset-ui/core';
-import { ThemeContextType, ThemeMode } from '@superset-ui/core/theme/types';
+import { type ThemeContextType, Theme, ThemeMode } from '@superset-ui/core';
 import { act, render, screen } from '@superset-ui/core/spec';
 import { renderHook } from '@testing-library/react-hooks';
 import { SupersetThemeProvider, useThemeContext } from '../ThemeProvider';

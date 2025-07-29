@@ -17,13 +17,11 @@
  * under the License.
  */
 import { Fragment, useState, useEffect, FC, PureComponent } from 'react';
-
 import rison from 'rison';
 import { useSelector } from 'react-redux';
 import { Link } from 'react-router-dom';
 import { useQueryParams, BooleanParam } from 'use-query-params';
 import { get, isEmpty } from 'lodash';
-
 import {
   t,
   styled,
@@ -33,10 +31,15 @@ import {
   getExtensionsRegistry,
   useTheme,
 } from '@superset-ui/core';
-import { Menu } from '@superset-ui/core/components/Menu';
-import { Label, Tooltip } from '@superset-ui/core/components';
-import { Icons } from '@superset-ui/core/components/Icons';
-import { Typography } from '@superset-ui/core/components/Typography';
+import {
+  Label,
+  Tooltip,
+  ThemeSubMenu,
+  Menu,
+  Icons,
+  Typography,
+  TelemetryPixel,
+} from '@superset-ui/core/components';
 import { ensureAppRoot } from 'src/utils/pathUtils';
 import { findPermission } from 'src/utils/findPermission';
 import { isUserAdmin } from 'src/dashboard/util/permissionUtils';
@@ -49,9 +52,7 @@ import { RootState } from 'src/dashboard/types';
 import DatabaseModal from 'src/features/databases/DatabaseModal';
 import UploadDataModal from 'src/features/databases/UploadDataModel';
 import { uploadUserPerms } from 'src/views/CRUD/utils';
-import TelemetryPixel from '@superset-ui/core/components/TelemetryPixel';
 import { useThemeContext } from 'src/theme/ThemeProvider';
-import ThemeSelect from '@superset-ui/core/components/ThemeSelect';
 import LanguagePicker from './LanguagePicker';
 import {
   ExtensionConfigs,
@@ -138,6 +139,7 @@ const RightMenu = ({
     datasetAdded?: boolean;
   }) => void;
 }) => {
+  const theme = useTheme();
   const user = useSelector<any, UserWithPermissionsAndRoles>(
     state => state.user,
   );
@@ -371,7 +373,6 @@ const RightMenu = ({
     localStorage.removeItem('redux');
   };
 
-  const theme = useTheme();
   return (
     <StyledDiv align={align}>
       {canDatabase && (
@@ -493,16 +494,15 @@ const RightMenu = ({
             })}
           </StyledSubMenu>
         )}
+
         {canSetMode() && (
-          <span>
-            <ThemeSelect
-              setThemeMode={setThemeMode}
-              themeMode={themeMode}
-              hasLocalOverride={hasDevOverride()}
-              onClearLocalSettings={clearLocalOverrides}
-              allowOSPreference={canDetectOSPreference()}
-            />
-          </span>
+          <ThemeSubMenu
+            setThemeMode={setThemeMode}
+            themeMode={themeMode}
+            hasLocalOverride={hasDevOverride()}
+            onClearLocalSettings={clearLocalOverrides}
+            allowOSPreference={canDetectOSPreference()}
+          />
         )}
 
         <StyledSubMenu
