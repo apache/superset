@@ -202,7 +202,7 @@ export const getColorFunction = (
           ? { cutoffValue: targetValue!, extremeValue: targetValue! }
           : false;
       break;
-    case Comparator.Containg:
+    case Comparator.Containing:
       comparatorFunction = (value: string) =>
         typeof value === 'string' &&
         value

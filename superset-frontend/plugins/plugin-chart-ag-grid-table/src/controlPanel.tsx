@@ -705,12 +705,13 @@ const config: ControlPanelConfig = {
                           (colname: string, index: number) =>
                             coltypes[index] === GenericDataType.Numeric,
                         )
-                        .map((colname: string, index: number) => ({
+                        .map((colname: string) => ({
                           value: colname,
                           label: Array.isArray(verboseMap)
                             ? colname
                             : (verboseMap[colname] ?? colname),
-                          dataType: coltypes[index],
+                          dataType:
+                            colnames && coltypes[colnames?.indexOf(colname)],
                         }))
                     : [];
                 const columnOptions = explore?.controls?.time_compare?.value

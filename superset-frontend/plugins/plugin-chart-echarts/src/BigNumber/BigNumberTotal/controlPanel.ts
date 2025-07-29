@@ -104,13 +104,14 @@ export default {
                           (_: string, index: number) =>
                             coltypes[index] === GenericDataType.Numeric,
                         )
-                        .map((colname: string | number, index: number) => ({
+                        .map((colname: string | number) => ({
                           value: colname,
                           label:
                             (Array.isArray(verboseMap)
                               ? verboseMap[colname as number]
                               : verboseMap[colname as string]) ?? colname,
-                          dataType: coltypes[index],
+                          dataType:
+                            colnames && coltypes[colnames?.indexOf(colname)],
                         }))
                     : [];
                 return {

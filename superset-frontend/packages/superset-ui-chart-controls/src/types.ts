@@ -460,7 +460,7 @@ export enum Comparator {
   BetweenOrRightEqual = '< x ≤',
   BeginsWith = 'begins with',
   EndsWith = 'ends with',
-  Containg = 'containing',
+  Containing = 'containing',
   NotContaining = 'not containing',
 }
 

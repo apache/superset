@@ -86,7 +86,7 @@ const stringOperatorOptions = [
   { value: Comparator.Equal, label: '=' },
   { value: Comparator.BeginsWith, label: t('begins with') },
   { value: Comparator.EndsWith, label: t('ends with') },
-  { value: Comparator.Containg, label: t('containing') },
+  { value: Comparator.Containing, label: t('containing') },
   { value: Comparator.NotContaining, label: t('not containing') },
 ];
 
