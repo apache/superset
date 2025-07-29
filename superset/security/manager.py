@@ -331,6 +331,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         "can_external_metadata",
         "can_external_metadata_by_name",
         "can_read",
+        "can_get_drill_info",
     }
 
     ALPHA_ONLY_PERMISSIONS = {
@@ -579,17 +580,19 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         from superset import is_feature_enabled
 
         if (
-            self.can_access_dashboard(dashboard)
-            and dataset.id in {dataset.id for dataset in dashboard.datasources}
-            and (
-                (not self.is_guest_user() and is_feature_enabled("DASHBOARD_RBAC"))
-                or (
-                    self.is_guest_user()
-                    and is_feature_enabled("EMBEDDED_SUPERSET")
-                    and is_feature_enabled("DRILLING_IN_EMBEDDED")
-                )
+            (
+                is_feature_enabled("EMBEDDED_SUPERSET")
+                and self.is_guest_user()
+                and self.has_guest_access(dashboard)
             )
-        ):
+            or (
+                is_feature_enabled("DASHBOARD_RBAC")
+                and dashboard.roles
+                and dashboard.published
+                and {role.id for role in dashboard.roles}
+                & {role.id for role in self.get_user_roles()}
+            )
+        ) and dataset.id in {dataset.id for dataset in dashboard.datasources}:
             return True
 
         return False

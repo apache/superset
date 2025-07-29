@@ -160,12 +160,13 @@ class SupersetTestCase(TestCase):
         return user_to_create
 
     @contextmanager
-    def temporary_user(
+    def temporary_user(  # noqa: C901
         self,
         clone_user=None,
         username=None,
         extra_roles=None,
         extra_pvms=None,
+        pvms_to_remove=None,
         login=False,
     ):
         """
@@ -188,17 +189,14 @@ class SupersetTestCase(TestCase):
         else:
             temp_user.first_name = temp_user.last_name = username
 
-        if clone_user:
-            temp_user.roles = clone_user.roles
-
         if extra_roles:
             temp_user.roles.extend(extra_roles)
 
         pvms = []
         temp_role = None
-        if extra_pvms:
+        if extra_pvms or pvms_to_remove:
             temp_role = ab_models.Role(name=f"tmp_role_{shortid()}")
-            for pvm in extra_pvms:
+            for pvm in extra_pvms or []:
                 if isinstance(pvm, (tuple, list)):
                     pvms.append(security_manager.find_permission_view_menu(*pvm))
                 else:
@@ -207,6 +205,11 @@ class SupersetTestCase(TestCase):
             temp_user.roles.append(temp_role)
             db.session.add(temp_role)
             db.session.commit()
+
+            for pvm in pvms_to_remove or []:
+                if isinstance(pvm, (tuple, list)):
+                    pvm = security_manager.find_permission_view_menu(*pvm)
+                security_manager.del_permission_role(temp_role, pvm)
 
         # Add the temp user to the session and commit to apply changes for the test
         db.session.add(temp_user)

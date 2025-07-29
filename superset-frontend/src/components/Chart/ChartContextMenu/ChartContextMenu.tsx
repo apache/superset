@@ -55,7 +55,6 @@ import {
   cachedSupersetGet,
   supersetGetCache,
 } from 'src/utils/cachedSupersetGet';
-import { isEmbedded } from 'src/dashboard/util/isEmbedded';
 import { DrillDetailMenuItems } from '../DrillDetail';
 import { getMenuAdjustedY } from '../utils';
 import { MenuItemTooltip } from '../DisabledMenuItemTooltip';
@@ -159,16 +158,12 @@ const ChartContextMenu = (
   const showDrillToDetail =
     isFeatureEnabled(FeatureFlag.DrillToDetail) &&
     canDrillToDetail &&
-    (!isEmbedded() ||
-      (isEmbedded() && isFeatureEnabled(FeatureFlag.DrillingInEmbedded)));
-  isDisplayed(ContextMenuItem.DrillToDetail);
+    isDisplayed(ContextMenuItem.DrillToDetail);
 
   const showDrillBy =
     isFeatureEnabled(FeatureFlag.DrillBy) &&
     canDrillBy &&
-    (!isEmbedded() ||
-      (isEmbedded() && isFeatureEnabled(FeatureFlag.DrillingInEmbedded)));
-  isDisplayed(ContextMenuItem.DrillBy);
+    isDisplayed(ContextMenuItem.DrillBy);
 
   useEffect(() => {
     async function fetchDataset() {

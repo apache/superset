@@ -1216,12 +1216,6 @@ class DatasetRestApi(BaseSupersetModelRestApi):
               $ref: '#/components/responses/500'
         """
         dashboard_id = kwargs["rison"].get("dashboard_id")
-        embedded_user = security_manager.is_guest_user()
-        embedded_drilling_enabled = is_feature_enabled("DRILLING_IN_EMBEDDED")
-        # Short circuit embedded access if disabled
-        if embedded_user and not embedded_drilling_enabled:
-            return self.response_403()
-
         drill_info_select_columns = [
             "id",
             "table_name",
@@ -1237,6 +1231,8 @@ class DatasetRestApi(BaseSupersetModelRestApi):
             "columns.verbose_name",
             "columns.groupby",
         ]
+        dataset_schema = DatasetDrillInfo()
+
         # First try with regular access
         dataset: SqlaTable | None = self.datamodel.get(
             pk,
@@ -1244,27 +1240,34 @@ class DatasetRestApi(BaseSupersetModelRestApi):
             drill_info_select_columns,
             self.show_outer_default_load,
         )
-        if not dataset and dashboard_id:
-            # Lazy load the dashboard and dataset for RBAC/embedded access check
-            dashboard = DashboardDAO.find_by_id(dashboard_id, skip_base_filter=True)
-            dataset_ = DatasetDAO.find_by_id(pk, skip_base_filter=True)
-            if not dashboard or not dataset_:
-                return self.response_404()
-            if security_manager.can_drill_dataset_via_dashboard_access(
-                dataset_,
-                dashboard,
-            ):
-                # Load dataset again skipping base filters
-                # We don't use `dataset_` to avoid lazy loading columns
-                dataset = self.datamodel.get(
-                    pk,
-                    None,
-                    drill_info_select_columns,
-                    self.show_outer_default_load,
-                )
-        if not dataset:
+        if dataset:
+            return self.response(200, result=dataset_schema.dump(dataset))
+
+        # Embedded user must pass a dash ID
+        if not dashboard_id and security_manager.is_guest_user():
+            return self.response_403()
+        # RBAC user must pass a dash ID for fallback validation
+        if not dashboard_id:
             return self.response_404()
-        dataset_schema = DatasetDrillInfo()
+
+        # Lazy load the dashboard and dataset for RBAC/embedded access check
+        dashboard = DashboardDAO.find_by_id(dashboard_id, skip_base_filter=True)
+        dataset_ = DatasetDAO.find_by_id(pk, skip_base_filter=True)
+        if not (dashboard and dataset_):
+            return self.response_404()
+        if not security_manager.can_drill_dataset_via_dashboard_access(
+            dataset_,
+            dashboard,
+        ):
+            return self.response_403()
+        # Load dataset again skipping base filters
+        # We don't use `dataset_` to avoid lazy loading columns
+        dataset = self.datamodel.get(
+            pk,
+            None,
+            drill_info_select_columns,
+            self.show_outer_default_load,
+        )
         return self.response(200, result=dataset_schema.dump(dataset))
 
     @staticmethod

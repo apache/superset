@@ -117,3 +117,4 @@ class SamplesRequestSchema(Schema):
         if "per_page" not in data:
             data["per_page"] = app.config.get("SAMPLES_ROW_LIMIT", 1000)
         return data
+    dashboard_id = fields.Integer(required=False, allow_none=True, load_default=None)

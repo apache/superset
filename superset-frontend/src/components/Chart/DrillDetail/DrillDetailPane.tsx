@@ -46,6 +46,7 @@ import Table, {
   ColumnsType,
   TableSize,
 } from '@superset-ui/core/components/Table';
+import { RootState } from 'src/dashboard/types';
 import HeaderWithRadioGroup from '@superset-ui/core/components/Table/header-renderers/HeaderWithRadioGroup';
 import { useDatasetMetadataBar } from 'src/features/datasets/metadataBar/useDatasetMetadataBar';
 import { Dataset } from '../types';
@@ -97,6 +98,10 @@ export default function DrillDetailPane({
   const [timeFormatting, setTimeFormatting] = useState<
     Record<string, TimeFormatting>
   >({});
+
+  const dashboardId = useSelector<RootState, number>(
+    ({ dashboardInfo }) => dashboardInfo.id,
+  );
 
   const SAMPLES_ROW_LIMIT = useSelector(
     (state: { common: { conf: JsonObject } }) =>
@@ -234,6 +239,7 @@ export default function DrillDetailPane({
         jsonPayload,
         PAGE_SIZE,
         pageIndex + 1,
+        dashboardId,
       )
         .then(response => {
           setResultsPages(

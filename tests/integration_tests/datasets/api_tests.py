@@ -206,24 +206,6 @@ class TestDatasetApi(SupersetTestCase):
                     db.session.delete(dataset)
             db.session.commit()
 
-    @pytest.fixture
-    def gamma_role_with_drill_perm(self):
-        """
-        Add `can_get_drill_info` permission to Gamma role.
-
-        We're using the Gamma role for these tests to simulate the embedded role.
-        """
-        with self.create_app().app_context():
-            drill_info_perm = security_manager.add_permission_view_menu(
-                "can_get_drill_info", "Dataset"
-            )
-            gamma_role = security_manager.find_role("Gamma")
-            security_manager.add_permission_role(gamma_role, drill_info_perm)
-
-            yield gamma_role
-
-            security_manager.del_permission_role(gamma_role, drill_info_perm)
-
     @staticmethod
     def get_energy_usage_dataset():
         example_db = get_example_database()
@@ -3093,9 +3075,9 @@ class TestDatasetApi(SupersetTestCase):
 
         self.items_to_delete = [dataset]
 
-    def test_get_drill_info_dataset_not_found(self):
+    def test_get_drill_info_admin_user_dataset_not_found(self):
         """
-        Dataset API: Test drill_info endpoint returns 404 for non-existent dataset
+        Dataset API: Test drill_info endpoint returns 404 for non-existent dataset.
         """
         self.login(ADMIN_USERNAME)
         uri = "api/v1/dataset/99999/drill_info/"
@@ -3103,46 +3085,36 @@ class TestDatasetApi(SupersetTestCase):
 
         assert rv.status_code == 404
 
-    @pytest.mark.usefixtures("gamma_role_with_drill_perm")
+    def test_get_drill_info_no_perm_to_drill(self):
+        """
+        Dataset API: Test drill_info endpoint returns 403 for users without permission
+        to access the API.
+        """
+        dataset = self.insert_dataset(table_name="foo", owners=[], fetch_metadata=False)
+
+        # Log in as admin but remove pvm access
+        with self.temporary_user(
+            clone_user=security_manager.find_user(username=ADMIN_USERNAME),
+            pvms_to_remove=[("can_get_drill_info", "Dataset")],
+            login=True,
+        ):
+            uri = f"api/v1/dataset/{dataset.id}/drill_info/"
+            rv = self.client.get(uri)
+
+            assert rv.status_code == 403
+
+        self.items_to_delete = [dataset]
+
     @patch("superset.security.manager.SupersetSecurityManager.has_guest_access")
     @patch("superset.security.manager.SupersetSecurityManager.is_guest_user")
-    @with_feature_flags(EMBEDDED_SUPERSET=True, DRILLING_IN_EMBEDDED=False)
-    def test_get_drill_info_embedded_user_feature_disabled(
+    @with_feature_flags(EMBEDDED_SUPERSET=True)
+    def test_get_drill_info_embedded_user_no_perm_to_drill(
         self, mock_is_guest_user, mock_has_guest_access
     ):
         """
         Dataset API: Test drill_info endpoint returns 403 for embedded users when
-        FF is disabled.
+        the role does not have permission.
         """
-        # Log the user as Gamma but mock ``is_guest_user``
-        self.login(GAMMA_USERNAME)
-        mock_is_guest_user.return_value = True
-        mock_has_guest_access.return_value = True
-
-        dataset = self.insert_dataset(table_name="foo", owners=[], fetch_metadata=False)
-        uri = f"api/v1/dataset/{dataset.id}/drill_info/"
-        rv = self.client.get(uri)
-
-        assert rv.status_code == 403
-
-        self.items_to_delete = [dataset]
-
-    @pytest.mark.usefixtures("gamma_role_with_drill_perm")
-    @patch("superset.security.manager.SupersetSecurityManager.has_guest_access")
-    @patch("superset.security.manager.SupersetSecurityManager.is_guest_user")
-    @with_feature_flags(EMBEDDED_SUPERSET=True, DRILLING_IN_EMBEDDED=True)
-    def test_get_drill_info_embedded_user_with_dashboard_id(
-        self, mock_is_guest_user, mock_has_guest_access
-    ):
-        """
-        Dataset API: Test drill_info endpoint with dashboard ID parameter for
-        embedded users.
-        """
-        # Log the user as Gamma but mock ``is_guest_user``
-        self.login(GAMMA_USERNAME)
-        mock_is_guest_user.return_value = True
-        mock_has_guest_access.return_value = True
-
         dataset = self.insert_dataset(
             table_name="test_embedded_dataset",
             owners=[],
@@ -3161,32 +3133,86 @@ class TestDatasetApi(SupersetTestCase):
             ],
             fetch_metadata=False,
         )
-
         chart = self.insert_chart("Test Embedded Chart", dataset.id)
-        dashboard = self.insert_dashboard(
+        dash = self.insert_dashboard(
             "Embedded Test Dashboard", "embedded-test-dashboard", [], slices=[chart]
         )
 
-        uri = f"api/v1/dataset/{dataset.id}/drill_info/?q=(dashboard_id:{dashboard.id})"
-        rv = self.client.get(uri)
+        # Log in to role without `can_get_drill_info` permission, and mock guest checks
+        with self.temporary_user(
+            clone_user=security_manager.find_user(username=GAMMA_USERNAME),
+            pvms_to_remove=[("can_get_drill_info", "Dataset")],
+            login=True,
+        ):
+            mock_is_guest_user.return_value = True
+            mock_has_guest_access.return_value = True
 
-        assert rv.status_code == 200
-        data = json.loads(rv.data.decode("utf-8"))
-        result = data["result"]
-        assert result == {
-            "id": dataset.id,
-            "columns": [
-                {"column_name": "category", "verbose_name": "Category Column"},
-                {"column_name": "region", "verbose_name": None},
-            ],
-        }
+            uri = f"api/v1/dataset/{dataset.id}/drill_info/?q=(dashboard_id:{dash.id})"
+            rv = self.client.get(uri)
 
-        self.items_to_delete = [dataset, dashboard, chart]
+            assert rv.status_code == 403
 
-    @pytest.mark.usefixtures("gamma_role_with_drill_perm")
+        self.items_to_delete = [dash, chart, dataset]
+
     @patch("superset.security.manager.SupersetSecurityManager.has_guest_access")
     @patch("superset.security.manager.SupersetSecurityManager.is_guest_user")
-    @with_feature_flags(EMBEDDED_SUPERSET=True, DRILLING_IN_EMBEDDED=True)
+    @with_feature_flags(EMBEDDED_SUPERSET=True)
+    def test_get_drill_info_embedded_user_with_dashboard_id(
+        self, mock_is_guest_user, mock_has_guest_access
+    ):
+        """
+        Dataset API: Test drill_info endpoint with dashboard ID parameter for
+        embedded users.
+        """
+        dataset = self.insert_dataset(
+            table_name="test_embedded_dataset",
+            owners=[],
+            columns=[
+                TableColumn(
+                    column_name="category",
+                    type="VARCHAR(255)",
+                    verbose_name="Category Column",
+                    groupby=True,
+                ),
+                TableColumn(
+                    column_name="region",
+                    type="VARCHAR(255)",
+                    groupby=True,
+                ),
+            ],
+            fetch_metadata=False,
+        )
+        chart = self.insert_chart("Test Embedded Chart", dataset.id)
+        dash = self.insert_dashboard(
+            "Embedded Test Dashboard", "embedded-test-dashboard", [], slices=[chart]
+        )
+
+        with self.temporary_user(
+            clone_user=security_manager.find_user(username=GAMMA_USERNAME),
+            login=True,
+        ):
+            mock_is_guest_user.return_value = True
+            mock_has_guest_access.return_value = True
+
+            uri = f"api/v1/dataset/{dataset.id}/drill_info/?q=(dashboard_id:{dash.id})"
+            rv = self.client.get(uri)
+
+            assert rv.status_code == 200
+            data = json.loads(rv.data.decode("utf-8"))
+            result = data["result"]
+            assert result == {
+                "id": dataset.id,
+                "columns": [
+                    {"column_name": "category", "verbose_name": "Category Column"},
+                    {"column_name": "region", "verbose_name": None},
+                ],
+            }
+
+        self.items_to_delete = [dash, chart, dataset]
+
+    @patch("superset.security.manager.SupersetSecurityManager.has_guest_access")
+    @patch("superset.security.manager.SupersetSecurityManager.is_guest_user")
+    @with_feature_flags(EMBEDDED_SUPERSET=True)
     def test_get_drill_info_embedded_user_without_dashboard_parameter(
         self, mock_is_guest_user, mock_has_guest_access
     ):
@@ -3194,35 +3220,46 @@ class TestDatasetApi(SupersetTestCase):
         Dataset API: Test drill_info endpoint without dashboard ID parameter
         for embedded users.
         """
-        # Log the user as Gamma but mock ``is_guest_user``
-        self.login(GAMMA_USERNAME)
-        mock_is_guest_user.return_value = True
-        mock_has_guest_access.return_value = True
-
         dataset = self.insert_dataset(
-            table_name="test_no_dashboard_param",
+            table_name="test_embedded_dataset",
             owners=[],
             columns=[
                 TableColumn(
                     column_name="category",
+                    type="VARCHAR(255)",
+                    verbose_name="Category Column",
+                    groupby=True,
+                ),
+                TableColumn(
+                    column_name="region",
                     type="VARCHAR(255)",
                     groupby=True,
                 ),
             ],
             fetch_metadata=False,
         )
+        chart = self.insert_chart("Test Embedded Chart", dataset.id)
+        dashboard = self.insert_dashboard(
+            "Embedded Test Dashboard", "embedded-test-dashboard", [], slices=[chart]
+        )
 
-        uri = f"api/v1/dataset/{dataset.id}/drill_info/"
-        rv = self.client.get(uri)
+        with self.temporary_user(
+            clone_user=security_manager.find_user(username=GAMMA_USERNAME),
+            login=True,
+        ):
+            mock_is_guest_user.return_value = True
+            mock_has_guest_access.return_value = True
 
-        assert rv.status_code == 404
+            uri = f"api/v1/dataset/{dataset.id}/drill_info/"
+            rv = self.client.get(uri)
 
-        self.items_to_delete = [dataset]
+            assert rv.status_code == 404
 
-    @pytest.mark.usefixtures("gamma_role_with_drill_perm")
+        self.items_to_delete = [dashboard, chart, dataset]
+
     @patch("superset.security.manager.SupersetSecurityManager.has_guest_access")
     @patch("superset.security.manager.SupersetSecurityManager.is_guest_user")
-    @with_feature_flags(EMBEDDED_SUPERSET=True, DRILLING_IN_EMBEDDED=True)
+    @with_feature_flags(EMBEDDED_SUPERSET=True)
     def test_get_drill_info_embedded_user_dashboard_without_dataset(
         self, mock_is_guest_user, mock_has_guest_access
     ):
@@ -3230,11 +3267,6 @@ class TestDatasetApi(SupersetTestCase):
         Dataset API: Test drill_info with dashboard ID that user has access to but
         does not contain the dataset.
         """
-        # Log the user as Gamma but mock ``is_guest_user``
-        self.login(GAMMA_USERNAME)
-        mock_is_guest_user.return_value = True
-        mock_has_guest_access.return_value = True
-
         dataset = self.insert_dataset(
             table_name="test_d2d_table",
             owners=[],
@@ -3253,80 +3285,131 @@ class TestDatasetApi(SupersetTestCase):
             fetch_metadata=False,
         )
         chart = self.insert_chart("Dashboard Chart", dashboard_dataset.id)
-        dashboard = self.insert_dashboard(
+        dash = self.insert_dashboard(
             "Dashboard Without Test Dataset",
             "dashboard-without-test-dataset",
             [],
             slices=[chart],
         )
 
-        uri = f"api/v1/dataset/{dataset.id}/drill_info/?q=(dashboard_id:{dashboard.id})"
-        rv = self.client.get(uri)
+        with self.temporary_user(
+            clone_user=security_manager.find_user(username=GAMMA_USERNAME),
+            login=True,
+        ):
+            mock_is_guest_user.return_value = True
+            mock_has_guest_access.return_value = True
 
-        assert rv.status_code == 404
+            uri = f"api/v1/dataset/{dataset.id}/drill_info/?q=(dashboard_id:{dash.id})"
+            rv = self.client.get(uri)
 
-        self.items_to_delete = [dataset, dashboard_dataset, dashboard, chart]
+            assert rv.status_code == 403
 
-    @pytest.mark.usefixtures("gamma_role_with_drill_perm")
+        self.items_to_delete = [dash, chart, dataset, dashboard_dataset]
+
     @with_feature_flags(DASHBOARD_RBAC=True)
     def test_get_drill_info_dashboard_rbac_access_granted(self):
         """
         Dataset API: Test drill_info with dashboard parameter when user has access
         via the DASHBOARD_RBAC FF.
         """
-        self.login(GAMMA_USERNAME)
-        gamma_role = security_manager.find_role("Gamma")
+        with self.temporary_user(
+            clone_user=security_manager.find_user(username=GAMMA_USERNAME)
+        ) as test_user:
+            user_role_ids = [role.id for role in test_user.roles]
+            # Login as admin to avoid FK issues during temp account deletion
+            self.login(ADMIN_USERNAME)
+            dataset = self.insert_dataset(
+                table_name="test_rbac_dataset",
+                owners=[],
+                columns=[
+                    TableColumn(
+                        column_name="restricted_column",
+                        type="VARCHAR(255)",
+                        verbose_name="Restricted Column",
+                        groupby=True,
+                    ),
+                ],
+                fetch_metadata=False,
+            )
+            chart = self.insert_chart("Test RBAC Chart", dataset.id)
+            dash = self.insert_dashboard(
+                "RBAC Test Dashboard",
+                "rbac-test-dashboard",
+                [],
+                roles=user_role_ids,
+                slices=[chart],
+                published=True,
+            )
 
-        dataset = self.insert_dataset(
-            table_name="test_rbac_dataset",
-            owners=[],
-            columns=[
-                TableColumn(
-                    column_name="restricted_column",
-                    type="VARCHAR(255)",
-                    verbose_name="Restricted Column",
-                    groupby=True,
-                ),
-            ],
-            fetch_metadata=False,
-        )
-        chart = self.insert_chart("Test RBAC Chart", dataset.id)
-        dashboard = self.insert_dashboard(
-            "RBAC Test Dashboard",
-            "rbac-test-dashboard",
-            [],
-            roles=[gamma_role.id],
-            slices=[chart],
-            published=True,
-        )
+            self.login(test_user.username)
 
-        uri = f"api/v1/dataset/{dataset.id}/drill_info/?q=(dashboard_id:{dashboard.id})"
-        rv = self.client.get(uri)
+            uri = f"api/v1/dataset/{dataset.id}/drill_info/?q=(dashboard_id:{dash.id})"
+            rv = self.client.get(uri)
 
-        assert rv.status_code == 200
-        data = json.loads(rv.data.decode("utf-8"))
-        result = data["result"]
+            assert rv.status_code == 200
+            data = json.loads(rv.data.decode("utf-8"))
+            result = data["result"]
 
-        assert "created_by" in result
-        assert "created_on_humanized" in result
-        assert "changed_by" in result
-        assert "changed_on_humanized" in result
-        assert result["id"] == dataset.id
-        assert result["table_name"] == "test_rbac_dataset"
-        assert len(result["columns"]) == 1
-        assert result["columns"][0]["column_name"] == "restricted_column"
+            assert "created_by" in result
+            assert "created_on_humanized" in result
+            assert "changed_by" in result
+            assert "changed_on_humanized" in result
+            assert result["id"] == dataset.id
+            assert result["table_name"] == "test_rbac_dataset"
+            assert len(result["columns"]) == 1
+            assert result["columns"][0]["column_name"] == "restricted_column"
 
-        self.items_to_delete = [dashboard, chart, dataset]
+        self.items_to_delete = [dash, chart, dataset]
 
-    @pytest.mark.usefixtures("gamma_role_with_drill_perm")
     @with_feature_flags(DASHBOARD_RBAC=True)
-    def test_get_drill_info_dashboard_rbac_access_denied(self):
+    def test_get_drill_info_dashboard_rbac_no_perm_to_drill(self):
         """
         Dataset API: Test drill_info with dashboard parameter when user has
-        no access via the DASHBOARD_RBAC FF.
+        no permission to access the API.
         """
-        self.login(GAMMA_USERNAME)
+        with self.temporary_user(
+            clone_user=security_manager.find_user(username=GAMMA_USERNAME),
+            pvms_to_remove=[("can_get_drill_info", "Dataset")],
+        ) as test_user:
+            user_role_ids = [role.id for role in test_user.roles]
+            self.login(ADMIN_USERNAME)
 
+            dataset = self.insert_dataset(
+                table_name="test_rbac_dataset_denied",
+                owners=[],
+                columns=[
+                    TableColumn(
+                        column_name="restricted_column",
+                        type="VARCHAR(255)",
+                        groupby=True,
+                    ),
+                ],
+                fetch_metadata=False,
+            )
+            chart = self.insert_chart("Test RBAC Chart second", dataset.id)
+            dash = self.insert_dashboard(
+                "RBAC Test Dashboard 2",
+                "rbac-test-dashboard-2",
+                [],
+                slices=[chart],
+                roles=user_role_ids,
+                published=True,
+            )
+            self.login(test_user.username)
+
+            uri = f"api/v1/dataset/{dataset.id}/drill_info/?q=(dashboard_id:{dash.id})"
+            rv = self.client.get(uri)
+
+            assert rv.status_code == 403
+
+        self.items_to_delete = [dash, chart, dataset]
+
+    @with_feature_flags(DASHBOARD_RBAC=True)
+    def test_get_drill_info_dashboard_rbac_no_access_on_dashboard(self):
+        """
+        Dataset API: Test drill_info with dashboard parameter when user has
+        no access to the dashboard.
+        """
         dataset = self.insert_dataset(
             table_name="test_rbac_dataset_denied",
             owners=[],
@@ -3340,46 +3423,67 @@ class TestDatasetApi(SupersetTestCase):
             fetch_metadata=False,
         )
         chart = self.insert_chart("Test RBAC Chart second", dataset.id)
-        dashboard = self.insert_dashboard(
+        dash = self.insert_dashboard(
             "RBAC Test Dashboard 2",
             "rbac-test-dashboard-2",
             [],
             slices=[chart],
+            roles=[],
             published=True,
         )
 
-        uri = f"api/v1/dataset/{dataset.id}/drill_info/?q=(dashboard_id:{dashboard.id})"
-        rv = self.client.get(uri)
+        with self.temporary_user(
+            clone_user=security_manager.find_user(username=GAMMA_USERNAME),
+            login=True,
+            username="test_new_account",
+        ):
+            uri = f"api/v1/dataset/{dataset.id}/drill_info/?q=(dashboard_id:{dash.id})"
+            rv = self.client.get(uri)
 
-        assert rv.status_code == 404
+            assert rv.status_code == 403
 
-        self.items_to_delete = [dashboard, chart, dataset]
+        self.items_to_delete = [dash, chart, dataset]
 
-    @pytest.mark.usefixtures("gamma_role_with_drill_perm")
     @with_feature_flags(DASHBOARD_RBAC=True)
     def test_get_drill_info_dashboard_rbac_no_dashboard_id(self):
         """
         Dataset API: Test drill_info without dashboard ID parameter falls back
         to regular access control.
         """
-        self.login(GAMMA_USERNAME)
+        with self.temporary_user(
+            clone_user=security_manager.find_user(username=GAMMA_USERNAME),
+            extra_pvms=[("can_get_drill_info", "Dataset")],
+        ) as test_user:
+            self.login(ADMIN_USERNAME)
+            user_role_ids = [role.id for role in test_user.roles]
 
-        dataset = self.insert_dataset(
-            table_name="test_no_dashboard_id",
-            owners=[],
-            columns=[
-                TableColumn(
-                    column_name="restricted_column",
-                    type="VARCHAR(255)",
-                    groupby=True,
-                ),
-            ],
-            fetch_metadata=False,
-        )
+            dataset = self.insert_dataset(
+                table_name="test_no_dashboard_id",
+                owners=[],
+                columns=[
+                    TableColumn(
+                        column_name="restricted_column",
+                        type="VARCHAR(255)",
+                        groupby=True,
+                    ),
+                ],
+                fetch_metadata=False,
+            )
+            chart = self.insert_chart("Test RBAC Chart second", dataset.id)
+            dashboard = self.insert_dashboard(
+                "RBAC Test Dashboard 2",
+                "rbac-test-dashboard-2",
+                [],
+                slices=[chart],
+                roles=user_role_ids,
+                published=True,
+            )
 
-        uri = f"api/v1/dataset/{dataset.id}/drill_info/"
-        rv = self.client.get(uri)
+            self.login(test_user.username)
 
-        assert rv.status_code == 404
+            uri = f"api/v1/dataset/{dataset.id}/drill_info/"
+            rv = self.client.get(uri)
 
-        self.items_to_delete = [dataset]
+            assert rv.status_code == 404
+
+        self.items_to_delete = [dashboard, chart, dataset]

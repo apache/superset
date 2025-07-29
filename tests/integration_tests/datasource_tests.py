@@ -44,12 +44,16 @@ from superset.utils.database import (  # noqa: F401
 )
 from tests.integration_tests.base_tests import db_insert_temp_object, SupersetTestCase
 from tests.integration_tests.conftest import with_feature_flags
-from tests.integration_tests.constants import ADMIN_USERNAME
+from tests.integration_tests.constants import ADMIN_USERNAME, GAMMA_USERNAME
 from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,  # noqa: F401
     load_birth_names_data,  # noqa: F401
 )
 from tests.integration_tests.fixtures.datasource import get_datasource_post
+from tests.integration_tests.fixtures.world_bank_dashboard import (
+    load_world_bank_dashboard_with_slices,  # noqa: F401
+    load_world_bank_data,  # noqa: F401
+)
 
 
 @contextmanager
@@ -517,42 +521,66 @@ class TestDatasource(SupersetTestCase):
         assert resp.get("error") == "'druid' is not a valid DatasourceType"
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    @mock.patch(
+        "superset.security.manager.SupersetSecurityManager.get_guest_rls_filters"
+    )
     @mock.patch("superset.security.manager.SupersetSecurityManager.is_guest_user")
-    @with_feature_flags(DRILLING_IN_EMBEDDED=False)
-    def test_samples_endpoint_embedded_user_ff_disabled(self, mock_is_guest_user):
+    @with_feature_flags(EMBEDDED_SUPERSET=True)
+    def test_get_samples_embedded_user(self, mock_is_guest_user, mock_rls):
         """
-        Embedded user cannot access the /samples view when the DRILLING_IN_EMBEDDED
-        FF is disabled.
+        Embedded user can access the /samples view.
         """
-        # log as admin to bypass endpoint perm check
-        self.login(ADMIN_USERNAME)
+        self.login(GAMMA_USERNAME)
         mock_is_guest_user.return_value = True
+        mock_rls.return_value = []
         tbl = self.get_table(name="birth_names")
-        uri = f"/datasource/samples?datasource_id={tbl.id}&datasource_type=table"
+        dash = self.get_dash_by_slug("births")
+        uri = f"/datasource/samples?datasource_id={tbl.id}&datasource_type=table&dashboard_id={dash.id}"  # noqa: E501
         resp = self.client.post(uri, json={})
-        assert resp.status_code == 403
+        assert resp.status_code == 200
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     @mock.patch(
         "superset.security.manager.SupersetSecurityManager.get_guest_rls_filters"
     )
     @mock.patch("superset.security.manager.SupersetSecurityManager.is_guest_user")
-    @with_feature_flags(DRILLING_IN_EMBEDDED=True)
-    def test_samples_endpoint_embedded_user_ff_enabled(
+    @with_feature_flags(EMBEDDED_SUPERSET=True)
+    def test_get_samples_embedded_user_without_dash_id(
         self, mock_is_guest_user, mock_rls
     ):
         """
-        Embedded user can access the /samples view when the DRILLING_IN_EMBEDDED
-        FF is enabled.
+        Embedded user can't access the /samples view if not providing a dashboard ID.
         """
-        # log as admin to bypass endpoint perm check
-        self.login(ADMIN_USERNAME)
+        self.login(GAMMA_USERNAME)
         mock_is_guest_user.return_value = True
         mock_rls.return_value = []
         tbl = self.get_table(name="birth_names")
         uri = f"/datasource/samples?datasource_id={tbl.id}&datasource_type=table"
         resp = self.client.post(uri, json={})
-        assert resp.status_code == 200
+        assert resp.status_code == 403
+
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
+    @mock.patch(
+        "superset.security.manager.SupersetSecurityManager.get_guest_rls_filters"
+    )
+    @mock.patch("superset.security.manager.SupersetSecurityManager.is_guest_user")
+    @with_feature_flags(EMBEDDED_SUPERSET=True)
+    def test_get_samples_embedded_user_dashboard_without_dataset(
+        self, mock_is_guest_user, mock_rls
+    ):
+        """
+        Embedded user can't access the /samples view when providing a dashboard ID that
+        does not include the target dataset.
+        """
+        self.login(GAMMA_USERNAME)
+        mock_is_guest_user.return_value = True
+        mock_rls.return_value = []
+        tbl = self.get_table(name="birth_names")
+        dash = self.get_dash_by_slug("world_health")
+        uri = f"/datasource/samples?datasource_id={tbl.id}&datasource_type=table&dashboard_id={dash.id}"  # noqa: E501
+        resp = self.client.post(uri, json={})
+        assert resp.status_code == 403
 
 
 def test_get_samples(test_client, login_as_admin, virtual_dataset):
