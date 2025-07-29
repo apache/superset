@@ -101,14 +101,15 @@ export const legendSortControl: ControlSetItem = {
   name: 'legendSort',
   config: {
     type: 'SelectControl',
-    label: t('Sort'),
+    label: t('Sort legend'),
     default: null,
     renderTrigger: true,
     choices: [
       ['asc', t('Asc')],
       ['desc', t('Desc')],
+      [null, t('Sort by data')],
     ],
-    description: t('Whether to sort legend asc or desc'),
+    description: t('Changes the sort value of the items in the legend only'),
     visibility: ({ controls }: ControlPanelsContainerProps) =>
       Boolean(controls?.show_legend?.value),
   },
