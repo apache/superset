@@ -42,9 +42,9 @@ The Model Context Protocol (MCP) is a new protocol for exposing high-level, stru
 - **Multi-Identifier Support**: ID/UUID/slug lookups across all get_*_info tools
 - **Enhanced Search**: UUID/slug fields included in search and default response columns
 
-### 🛠️ Core Tools Implemented (16 Total)
+### 🛠️ Core Tools Implemented (18 Total)
 - **Dashboard Tools**: `list_dashboards`, `get_dashboard_info`, `get_dashboard_available_filters`, `generate_dashboard`, `add_chart_to_existing_dashboard`
-- **Chart Tools**: `list_charts`, `get_chart_info`, `get_chart_available_filters`, `generate_chart`, `get_chart_data`, `get_chart_preview`
+- **Chart Tools**: `list_charts`, `get_chart_info`, `get_chart_available_filters`, `generate_chart`, `update_chart`, `update_chart_preview`, `get_chart_data`, `get_chart_preview`
 - **Dataset Tools**: `list_datasets`, `get_dataset_info`, `get_dataset_available_filters`
 - **System Tools**: `get_superset_instance_info`, `generate_explore_link`
 - **SQL Lab Tools**: `open_sql_lab_with_context`
@@ -57,7 +57,9 @@ The Model Context Protocol (MCP) is a new protocol for exposing high-level, stru
 
 ### ✅ Recent Technical Completions
 - **BaseDAO Type Safety**: Enhanced UUID handling with extensive test coverage ✅
-- **Host Configuration**: `SUPERSET_HOST_PREFIX` support for proper chart/explore URL generation ✅
+- **URL Configuration**: `SUPERSET_WEBSERVER_ADDRESS` support with centralized URL management ✅
+- **MCP Audit Logging**: Comprehensive audit trails with impersonation tracking and payload sanitization ✅
+- **Chart Update Operations**: `update_chart` and `update_chart_preview` for modifying saved and cached charts ✅
 - **Schema Optimization**: Optional fields, minimal columns, null value handling ✅
 - **Chart Embedding**: Screenshot URLs and backend rendering with Firefox WebDriver for LLM chat integration ✅
 - **SQL Lab Integration**: Pre-configured SQL Lab sessions with database/schema selection ✅
@@ -128,12 +130,13 @@ The Model Context Protocol (MCP) is a new protocol for exposing high-level, stru
 **Phase 1 Core: 95% Complete** | **Stretch Goals: Available for additional polish**
 
 ## Key Metrics
-- **185+ Unit Tests**: All passing with extensive coverage including BaseDAO enhancements
-- **16 Core Tools**: List/read operations for all entities, chart creation, dashboard generation, SQL Lab integration
-- **Production Auth**: JWT Bearer with configurable factory pattern
+- **194+ Unit Tests**: All passing with extensive coverage including URL utils and audit logging
+- **18 Core Tools**: List/read/update operations for all entities, chart creation/updates, dashboard generation, SQL Lab integration
+- **Production Auth**: JWT Bearer with configurable factory pattern and MCP audit logging
 - **Zero Breaking Changes**: Stable API ready for Phase 2 enhancements
 - **Developer Experience**: Single command setup, detailed docs, clear extension points
 - **Type Safety**: Enhanced BaseDAO with UUID handling and robust error handling
+- **Enterprise Audit**: MCP-specific audit logging with impersonation tracking and payload sanitization
 
 ## Reference
 - [SIP-171: MCP Service Proposal](https://github.com/apache/superset/issues/33870)

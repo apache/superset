@@ -17,6 +17,8 @@
 
 """Tests for chart utilities module"""
 
+from unittest.mock import patch
+
 import pytest
 
 from superset.mcp_service.chart.chart_utils import (
@@ -252,12 +254,69 @@ class TestGenerateChartName:
 class TestGenerateExploreLink:
     """Test generate_explore_link function"""
 
-    def test_generate_explore_link_always_returns_url(self) -> None:
-        """Test that generate_explore_link returns a URL"""
+    @patch("superset.mcp_service.chart.chart_utils.get_superset_base_url")
+    def test_generate_explore_link_uses_base_url(self, mock_get_base_url) -> None:
+        """Test that generate_explore_link uses the configured base URL"""
+        mock_get_base_url.return_value = "https://superset.example.com"
         form_data = {"viz_type": "table", "metrics": ["count"]}
+
         result = generate_explore_link("123", form_data)
 
-        # Should always return a URL string
-        assert isinstance(result, str)
+        # Should use the configured base URL
+        assert result.startswith("https://superset.example.com")
         assert "/explore/?" in result
         assert "datasource_id=123" in result
+
+    @patch("superset.mcp_service.chart.chart_utils.get_superset_base_url")
+    def test_generate_explore_link_fallback_url(self, mock_get_base_url) -> None:
+        """Test generate_explore_link returns fallback URL when dataset not found"""
+        mock_get_base_url.return_value = "http://localhost:8088"
+        form_data = {"viz_type": "table"}
+
+        # Mock dataset not found scenario
+        with patch("superset.daos.dataset.DatasetDAO.find_by_id", return_value=None):
+            result = generate_explore_link("999", form_data)
+
+        assert (
+            result
+            == "http://localhost:8088/explore/?datasource_type=table&datasource_id=999"
+        )
+
+    @patch("superset.mcp_service.chart.chart_utils.get_superset_base_url")
+    @patch("superset.mcp_service.commands.create_form_data.MCPCreateFormDataCommand")
+    def test_generate_explore_link_with_form_data_key(
+        self, mock_command, mock_get_base_url
+    ) -> None:
+        """Test generate_explore_link creates form_data_key when dataset exists"""
+        mock_get_base_url.return_value = "http://localhost:8088"
+        mock_command.return_value.run.return_value = "test_form_data_key"
+
+        # Mock dataset exists
+        mock_dataset = type("Dataset", (), {"id": 123})()
+        with patch(
+            "superset.daos.dataset.DatasetDAO.find_by_id", return_value=mock_dataset
+        ):
+            result = generate_explore_link(123, {"viz_type": "table"})
+
+        assert (
+            result == "http://localhost:8088/explore/?form_data_key=test_form_data_key"
+        )
+        mock_command.assert_called_once()
+
+    @patch("superset.mcp_service.chart.chart_utils.get_superset_base_url")
+    def test_generate_explore_link_exception_handling(self, mock_get_base_url) -> None:
+        """Test generate_explore_link handles exceptions gracefully"""
+        mock_get_base_url.return_value = "http://localhost:8088"
+
+        # Mock exception during form_data creation
+        with patch(
+            "superset.daos.dataset.DatasetDAO.find_by_id",
+            side_effect=Exception("DB error"),
+        ):
+            result = generate_explore_link("123", {"viz_type": "table"})
+
+        # Should fallback to basic URL
+        assert (
+            result
+            == "http://localhost:8088/explore/?datasource_type=table&datasource_id=123"
+        )

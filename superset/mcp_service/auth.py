@@ -22,6 +22,8 @@ from flask import Flask
 from flask_appbuilder.security.sqla.models import User
 from mcp.server.auth.provider import AccessToken
 
+from superset.extensions import event_logger
+
 # Type variable for decorated functions
 F = TypeVar("F", bound=Callable[..., Any])
 
@@ -157,6 +159,59 @@ def _check_jwt_scopes(
     return has_access
 
 
+def sanitize_mcp_payload(kwargs: dict[str, Any]) -> dict[str, Any]:
+    """Sanitize MCP tool payload for audit logging."""
+    # Remove sensitive fields and limit payload size
+    sensitive_keys = {"password", "token", "secret", "key", "auth"}
+
+    sanitized = {}
+    for key, value in kwargs.items():
+        if any(sensitive in key.lower() for sensitive in sensitive_keys):
+            sanitized[key] = "[REDACTED]"
+        elif isinstance(value, str) and len(value) > 1000:
+            sanitized[key] = value[:1000] + "...[TRUNCATED]"
+        else:
+            sanitized[key] = value
+
+    return sanitized
+
+
+def get_mcp_audit_context(
+    tool_func: Callable[..., Any], kwargs: dict[str, Any]
+) -> dict[str, Any]:
+    """Get MCP-specific audit context for logging."""
+    from flask import g, request
+
+    # Get JWT context if available
+    jwt_context = _get_jwt_context()
+
+    context = {
+        "log_source": "mcp",
+        "impersonation": getattr(g.user, "username", "unknown")
+        if hasattr(g, "user") and g.user
+        else "unknown",
+        "mcp_tool": tool_func.__name__,
+    }
+
+    # Add ideally available fields
+    try:
+        if hasattr(request, "headers"):
+            context["model_info"] = request.headers.get("User-Agent", "unknown")
+            context["session_info"] = request.headers.get("X-Session-ID")
+
+        context["whitelisted_payload"] = sanitize_mcp_payload(kwargs)
+
+        # Add JWT context if available
+        if jwt_context:
+            context["jwt_user"] = jwt_context.get("user")
+            context["jwt_scopes"] = jwt_context.get("scopes", [])
+
+    except Exception as e:
+        logger.debug(f"Error getting MCP audit context: {e}")
+
+    return context
+
+
 def log_access(user: User, tool_name: str, args: Any, kwargs: Any) -> None:
     """Log tool access with optional JWT context."""
 
@@ -187,15 +242,31 @@ def _get_jwt_context() -> Optional[dict[str, Any]]:
 
 
 def mcp_auth_hook(tool_func: F) -> F:
-    """Authentication and authorization decorator for MCP tools."""
+    """Authentication and authorization decorator for MCP tools with audit logging."""
     import functools
 
     from flask import g
 
+    # Apply event logger decorator if available, otherwise proceed without it
+    def apply_audit_logging(func: Callable[..., Any]) -> Callable[..., Any]:
+        try:
+            if event_logger and hasattr(event_logger, "log_this_with_context"):
+                return event_logger.log_this_with_context(
+                    action=lambda *args, **kwargs: f"mcp.{tool_func.__name__}",
+                    log_to_statsd=False,
+                )(func)
+        except Exception as e:
+            logger.debug(f"Event logger not available: {e}")
+        return func
+
+    @apply_audit_logging
     @functools.wraps(tool_func)
     def wrapper(*args: Any, **kwargs: Any) -> Any:
         user = get_user_from_request()
         g.user = user
+
+        # Add MCP audit context to Flask g for event logger
+        g.mcp_audit_context = get_mcp_audit_context(tool_func, kwargs)
 
         if run_as := kwargs.get("run_as"):
             user = impersonate_user(user, run_as)

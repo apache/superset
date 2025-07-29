@@ -74,6 +74,8 @@ All tools are modular, strongly typed, and use Pydantic v2 schemas. Every field 
 - **`get_chart_info`** - Supports ID and UUID lookups with full chart metadata
 - **`get_chart_available_filters`** - Dynamic filter discovery for chart queries
 - **`generate_chart`** - Chart creation supporting 5 types (line, bar, area, scatter, table)
+- **`update_chart`** - ✨ **NEW**: Update existing saved charts with new configuration
+- **`update_chart_preview`** - ✨ **NEW**: Update cached chart previews without saving
 - **`get_chart_data`** - ✨ **NEW**: Retrieve chart data in multiple formats (JSON, CSV)
 - **`get_chart_preview`** - ✨ **NEW**: Generate chart previews (screenshots, ASCII art, tables)
 
@@ -106,8 +108,11 @@ The MCP service currently provides the following operations:
 - **Dashboards**: Generate new dashboards with automatic layout
 - **Add to Dashboard**: Add existing charts to dashboards
 
+### ✅ Update Operations (Limited availability)
+- **Charts**: Update saved charts and cached chart previews
+
 ### ❌ Not Yet Available
-- **Update**: No update operations for any entity
+- **Update**: No update operations for dashboards or datasets
 - **Delete**: No delete operations for any entity
 - **Execute**: SQL Lab opens sessions but doesn't execute queries
 
@@ -379,7 +384,7 @@ MCP_REQUIRED_SCOPES=dashboard:read,chart:read
 | `list_datasets`, `get_dataset_info` | `dataset:read` |
 | `get_superset_instance_info` | `instance:read` |
 
-**Audit Logging**: All operations logged with JWT user context
+**MCP Audit Logging**: All operations logged with MCP-specific context including impersonation tracking, source identification, and sanitized payloads
 
 **Flexible User Resolution**: Configurable JWT claim extraction
 
@@ -415,15 +420,54 @@ This authentication works with any JWT-compatible identity provider:
 
 The MCP service extracts user identity from standard JWT claims and doesn't require complex integration - just valid JWT tokens with appropriate scopes.
 
+## MCP Audit Logging
+
+The MCP service implements comprehensive audit logging to distinguish MCP requests from regular user requests in audit trails:
+
+### Required Context Fields
+- **`log_source`**: Always set to "mcp" to identify MCP requests
+- **`impersonation`**: Username of the authenticated user making the MCP request
+- **`mcp_tool`**: Name of the specific MCP tool being executed
+
+### Optional Enhanced Fields
+- **`model_info`**: LLM model information from User-Agent header
+- **`session_info`**: Session tracking from X-Session-ID header  
+- **`whitelisted_payload`**: Sanitized tool parameters (sensitive data redacted)
+
+### Payload Sanitization
+- **Sensitive keys redacted**: password, token, secret, key, auth fields
+- **Large content truncated**: Strings over 1000 characters truncated
+- **Security-first approach**: Better to over-redact than expose sensitive data
+
+### Usage
+All MCP tools automatically include audit context via the `@mcp_auth_hook` decorator:
+
+```python
+@mcp.tool
+@mcp_auth_hook  # Automatically adds MCP audit context
+def my_tool(request: MyRequest) -> Dict[str, Any]:
+    # Tool implementation
+    pass
+```
+
+This enables enterprise audit compliance and helps distinguish automated MCP requests from interactive user sessions.
+
 ## Configuration & Deployment
 
-### Host Configuration
-Configure Superset host prefix for proper URL generation:
+### URL Configuration
+The MCP service now uses centralized URL configuration for consistency across all tools:
+
 ```python
 # In superset_config.py
-SUPERSET_HOST_PREFIX = "http://localhost:8088"  # Development
-SUPERSET_HOST_PREFIX = "https://superset.company.com"  # Production
+SUPERSET_WEBSERVER_ADDRESS = "http://localhost:8088"  # Development
+SUPERSET_WEBSERVER_ADDRESS = "https://superset.company.com"  # Production
 ```
+
+**Key Features:**
+- **Centralized URL management**: All tools use `get_superset_base_url()` utility
+- **Environment flexibility**: Fallback to `SUPERSET_WEBSERVER_SCHEME`/`SUPERSET_WEBSERVER_HOST`/`SUPERSET_WEBSERVER_PORT`
+- **Screenshot service integration**: MCP service serves screenshots on same port as WSGI endpoint
+- **Configuration hierarchy**: `SUPERSET_WEBSERVER_ADDRESS` → component URLs → localhost:8088 fallback
 
 ### Agent Integration Options
 1. **Claude Agent SDK**: Create cloud agent connecting to local/deployed MCP service
@@ -476,3 +520,4 @@ SUPERSET_HOST_PREFIX = "https://superset.company.com"  # Production
 - **Request Schema Pattern**: Structured inputs eliminating LLM parameter validation issues  
 - **Multi-identifier Support**: ID, UUID, and slug lookups across all tools with type safety
 - **Professional Testing**: Integration tests, mocking patterns, and edge case coverage
+- **MCP Audit Logging**: Comprehensive audit trails with MCP context, payload sanitization, and impersonation tracking

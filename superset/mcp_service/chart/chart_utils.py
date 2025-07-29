@@ -25,15 +25,21 @@ generation that can be used by both generate_chart and generate_explore_link too
 from typing import Any, Dict
 
 from superset.mcp_service.pydantic_schemas.chart_schemas import (
+    ChartCapabilities,
+    ChartSemantics,
     ColumnRef,
     TableChartConfig,
     XYChartConfig,
 )
+from superset.mcp_service.url_utils import get_superset_base_url
 from superset.utils import json
 
 
 def generate_explore_link(dataset_id: int | str, form_data: Dict[str, Any]) -> str:
     """Generate an explore link for the given dataset and form data."""
+    base_url = get_superset_base_url()
+    numeric_dataset_id = None
+
     try:
         from superset.commands.explore.form_data.parameters import CommandParameters
 
@@ -45,7 +51,6 @@ def generate_explore_link(dataset_id: int | str, form_data: Dict[str, Any]) -> s
         from superset.utils.core import DatasourceType
 
         dataset = None
-        numeric_dataset_id = None
 
         if isinstance(dataset_id, int) or (
             isinstance(dataset_id, str) and dataset_id.isdigit()
@@ -62,7 +67,9 @@ def generate_explore_link(dataset_id: int | str, form_data: Dict[str, Any]) -> s
 
         if not dataset or numeric_dataset_id is None:
             # Fallback to basic explore URL
-            return f"/explore/?datasource_type=table&datasource_id={dataset_id}"
+            return (
+                f"{base_url}/explore/?datasource_type=table&datasource_id={dataset_id}"
+            )
 
         # Add datasource to form_data
         form_data_with_datasource = {
@@ -83,14 +90,19 @@ def generate_explore_link(dataset_id: int | str, form_data: Dict[str, Any]) -> s
         form_data_key = MCPCreateFormDataCommand(cmd_params).run()
 
         # Return URL with just the form_data_key
-        return f"/explore/?form_data_key={form_data_key}"
+        return f"{base_url}/explore/?form_data_key={form_data_key}"
 
     except Exception:
         # Fallback to basic explore URL with numeric ID if available
         if numeric_dataset_id is not None:
-            return f"/explore/?datasource_type=table&datasource_id={numeric_dataset_id}"
+            return (
+                f"{base_url}/explore/?datasource_type=table"
+                f"&datasource_id={numeric_dataset_id}"
+            )
         else:
-            return f"/explore/?datasource_type=table&datasource_id={dataset_id}"
+            return (
+                f"{base_url}/explore/?datasource_type=table&datasource_id={dataset_id}"
+            )
 
 
 def map_config_to_form_data(
@@ -242,3 +254,134 @@ def generate_chart_name(config: TableChartConfig | XYChartConfig) -> str:
         return f"{chart_type} Chart - {x_col} vs {y_cols}"
     else:
         return "Chart"
+
+
+def analyze_chart_capabilities(chart: Any | None, config: Any) -> ChartCapabilities:
+    """Analyze chart capabilities based on type and configuration."""
+    if chart:
+        viz_type = getattr(chart, "viz_type", "unknown")
+    else:
+        # Map config chart_type to viz_type
+        chart_type = getattr(config, "chart_type", "unknown")
+        if chart_type == "xy":
+            kind = getattr(config, "kind", "line")
+            viz_type_map = {
+                "line": "echarts_timeseries_line",
+                "bar": "echarts_timeseries_bar",
+                "area": "echarts_area",
+                "scatter": "echarts_timeseries_scatter",
+            }
+            viz_type = viz_type_map.get(kind, "echarts_timeseries_line")
+        elif chart_type == "table":
+            viz_type = "table"
+        else:
+            viz_type = "unknown"
+
+    # Determine interaction capabilities based on chart type
+    interactive_types = [
+        "echarts_timeseries_line",
+        "echarts_timeseries_bar",
+        "echarts_area",
+        "echarts_timeseries_scatter",
+        "deck_scatter",
+        "deck_hex",
+    ]
+
+    supports_interaction = viz_type in interactive_types
+    supports_drill_down = viz_type in ["table", "pivot_table_v2"]
+    supports_real_time = viz_type in [
+        "echarts_timeseries_line",
+        "echarts_timeseries_bar",
+    ]
+
+    # Determine optimal formats
+    optimal_formats = ["url"]  # Always include static image
+    if supports_interaction:
+        optimal_formats.extend(["interactive", "vega_lite"])
+    optimal_formats.extend(["ascii", "table"])
+
+    # Classify data types
+    data_types = []
+    if hasattr(config, "x") and config.x:
+        data_types.append("categorical" if not config.x.aggregate else "metric")
+    if hasattr(config, "y") and config.y:
+        data_types.extend(["metric"] * len(config.y))
+    if "time" in viz_type or "timeseries" in viz_type:
+        data_types.append("time_series")
+
+    return ChartCapabilities(
+        supports_interaction=supports_interaction,
+        supports_real_time=supports_real_time,
+        supports_drill_down=supports_drill_down,
+        supports_export=True,  # All charts can be exported
+        optimal_formats=optimal_formats,
+        data_types=list(set(data_types)),
+    )
+
+
+def analyze_chart_semantics(chart: Any | None, config: Any) -> ChartSemantics:
+    """Generate semantic understanding of the chart."""
+    if chart:
+        viz_type = getattr(chart, "viz_type", "unknown")
+    else:
+        # Map config chart_type to viz_type
+        chart_type = getattr(config, "chart_type", "unknown")
+        if chart_type == "xy":
+            kind = getattr(config, "kind", "line")
+            viz_type_map = {
+                "line": "echarts_timeseries_line",
+                "bar": "echarts_timeseries_bar",
+                "area": "echarts_area",
+                "scatter": "echarts_timeseries_scatter",
+            }
+            viz_type = viz_type_map.get(kind, "echarts_timeseries_line")
+        elif chart_type == "table":
+            viz_type = "table"
+        else:
+            viz_type = "unknown"
+
+    # Generate primary insight based on chart type
+    insights_map = {
+        "echarts_timeseries_line": "Shows trends and changes over time",
+        "echarts_timeseries_bar": "Compares values across categories or time periods",
+        "table": "Displays detailed data in tabular format",
+        "pie": "Shows proportional relationships within a dataset",
+        "echarts_area": "Emphasizes cumulative totals and part-to-whole relationships",
+    }
+
+    primary_insight = insights_map.get(
+        viz_type, f"Visualizes data using {viz_type} format"
+    )
+
+    # Generate data story
+    columns = []
+    if hasattr(config, "x") and config.x:
+        columns.append(config.x.name)
+    if hasattr(config, "y") and config.y:
+        columns.extend([col.name for col in config.y])
+
+    if columns:
+        ellipsis = "..." if len(columns) > 3 else ""
+        data_story = (
+            f"This {viz_type} chart analyzes {', '.join(columns[:3])}{ellipsis}"
+        )
+    else:
+        data_story = "This chart provides insights into the selected dataset"
+
+    # Generate recommended actions
+    recommended_actions = [
+        "Review data patterns and trends",
+        "Consider filtering or drilling down for more detail",
+        "Export chart for reporting or sharing",
+    ]
+
+    if viz_type in ["echarts_timeseries_line", "echarts_timeseries_bar"]:
+        recommended_actions.append("Analyze seasonal patterns or cyclical trends")
+
+    return ChartSemantics(
+        primary_insight=primary_insight,
+        data_story=data_story,
+        recommended_actions=recommended_actions,
+        anomalies=[],  # Would need actual data analysis to populate
+        statistical_summary={},  # Would need actual data analysis to populate
+    )

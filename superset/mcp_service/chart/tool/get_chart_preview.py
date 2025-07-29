@@ -25,10 +25,19 @@ from typing import Any, List, Protocol
 from superset.mcp_service.auth import mcp_auth_hook
 from superset.mcp_service.mcp_app import mcp
 from superset.mcp_service.pydantic_schemas.chart_schemas import (
+    AccessibilityMetadata,
+    ASCIIPreview,
+    Base64Preview,
     ChartError,
     ChartPreview,
     GetChartPreviewRequest,
+    InteractivePreview,
+    PerformanceMetadata,
+    TablePreview,
+    URLPreview,
+    VegaLitePreview,
 )
+from superset.mcp_service.url_utils import get_mcp_service_url, get_superset_base_url
 
 logger = logging.getLogger(__name__)
 
@@ -61,7 +70,7 @@ class PreviewFormatStrategy:
 class URLPreviewStrategy(PreviewFormatStrategy):
     """Generate URL-based image preview."""
 
-    def generate(self) -> ChartPreview | ChartError:
+    def generate(self) -> URLPreview | ChartError:
         try:
             from flask import g
 
@@ -76,24 +85,13 @@ class URLPreviewStrategy(PreviewFormatStrategy):
 
             if image_data:
                 # Use the MCP service screenshot URL
-                preview_url = (
-                    f"http://localhost:5008/screenshot/chart/{self.chart.id}.png"
-                )
+                mcp_base = get_mcp_service_url()
+                preview_url = f"{mcp_base}/screenshot/chart/{self.chart.id}.png"
 
-                return ChartPreview(
-                    chart_id=self.chart.id,
-                    chart_name=self.chart.slice_name or f"Chart {self.chart.id}",
-                    chart_type=self.chart.viz_type or "unknown",
-                    format="url",
-                    explore_url=f"http://localhost:8088/explore/?slice_id={self.chart.id}",
+                return URLPreview(
                     preview_url=preview_url,
                     width=self.request.width or 800,
                     height=self.request.height or 600,
-                    chart_description=(
-                        f"Chart image: "
-                        f"{self.chart.slice_name or f'Chart {self.chart.id}'}"
-                        f" ({self.chart.viz_type})"
-                    ),
                 )
             else:
                 return ChartError(
@@ -110,7 +108,7 @@ class URLPreviewStrategy(PreviewFormatStrategy):
 class Base64PreviewStrategy(PreviewFormatStrategy):
     """Generate base64 encoded image preview."""
 
-    def generate(self) -> ChartPreview | ChartError:
+    def generate(self) -> Base64Preview | ChartError:
         try:
             import base64
 
@@ -127,21 +125,11 @@ class Base64PreviewStrategy(PreviewFormatStrategy):
 
             if image_data:
                 base64_image = base64.b64encode(image_data).decode("utf-8")
-                data_uri = f"data:image/png;base64,{base64_image}"
 
-                return ChartPreview(
-                    chart_id=self.chart.id,
-                    chart_name=self.chart.slice_name or f"Chart {self.chart.id}",
-                    chart_type=self.chart.viz_type or "unknown",
-                    format="base64",
-                    explore_url=f"http://localhost:8088/explore/?slice_id={self.chart.id}",
-                    preview_url=data_uri,
+                return Base64Preview(
+                    base64_image=base64_image,
                     width=self.request.width or 800,
                     height=self.request.height or 600,
-                    chart_description=(
-                        f"Base64 encoded PNG of "
-                        f"{self.chart.slice_name or f'Chart {self.chart.id}'}"
-                    ),
                 )
             else:
                 return ChartError(
@@ -158,7 +146,7 @@ class Base64PreviewStrategy(PreviewFormatStrategy):
 class ASCIIPreviewStrategy(PreviewFormatStrategy):
     """Generate ASCII art preview."""
 
-    def generate(self) -> ChartPreview | ChartError:
+    def generate(self) -> ASCIIPreview | ChartError:
         try:
             from superset.commands.chart.data.get_data_command import ChartDataCommand
             from superset.common.query_context_factory import QueryContextFactory
@@ -214,20 +202,10 @@ class ASCIIPreviewStrategy(PreviewFormatStrategy):
                 self.request.ascii_height or 20,
             )
 
-            return ChartPreview(
-                chart_id=self.chart.id,
-                chart_name=self.chart.slice_name or f"Chart {self.chart.id}",
-                chart_type=self.chart.viz_type or "unknown",
-                format="ascii",
-                explore_url=f"http://localhost:8088/explore/?slice_id={self.chart.id}",
-                ascii_chart=ascii_chart,
+            return ASCIIPreview(
+                ascii_content=ascii_chart,
                 width=self.request.ascii_width or 80,
                 height=self.request.ascii_height or 20,
-                chart_description=(
-                    f"ASCII representation of "
-                    f"{self.chart.slice_name or f'Chart {self.chart.id}'} "
-                    f"({self.chart.viz_type}) - showing {len(data)} data points"
-                ),
             )
 
         except Exception as e:
@@ -241,7 +219,7 @@ class ASCIIPreviewStrategy(PreviewFormatStrategy):
 class TablePreviewStrategy(PreviewFormatStrategy):
     """Generate table preview of chart data."""
 
-    def generate(self) -> ChartPreview | ChartError:
+    def generate(self) -> TablePreview | ChartError:
         try:
             from superset.commands.chart.data.get_data_command import ChartDataCommand
             from superset.common.query_context_factory import QueryContextFactory
@@ -277,18 +255,9 @@ class TablePreviewStrategy(PreviewFormatStrategy):
 
             table_data = _generate_ascii_table(data, 120)
 
-            return ChartPreview(
-                chart_id=self.chart.id,
-                chart_name=self.chart.slice_name or f"Chart {self.chart.id}",
-                chart_type=self.chart.viz_type or "unknown",
-                format="table",
-                explore_url=f"http://localhost:8088/explore/?slice_id={self.chart.id}",
+            return TablePreview(
                 table_data=table_data,
-                chart_description=(
-                    f"Data table for "
-                    f"{self.chart.slice_name or f'Chart {self.chart.id}'} "
-                    f"- {len(data)} rows"
-                ),
+                row_count=len(data),
             )
 
         except Exception as e:
@@ -313,7 +282,17 @@ class PreviewFormatGenerator:
         self.chart = chart
         self.request = request
 
-    def generate(self) -> ChartPreview | ChartError:
+    def generate(
+        self,
+    ) -> (
+        URLPreview
+        | InteractivePreview
+        | ASCIIPreview
+        | VegaLitePreview
+        | TablePreview
+        | Base64Preview
+        | ChartError
+    ):
         """Generate preview using the appropriate strategy."""
         strategy_class = self.STRATEGIES.get(self.request.format)
 
@@ -729,9 +708,67 @@ def _get_chart_preview_internal(
             f"{chart.slice_name}"
         )
 
+        import time
+
+        start_time = time.time()
+
         # Handle different preview formats using strategy pattern
         preview_generator = PreviewFormatGenerator(chart, request)
-        return preview_generator.generate()
+        content = preview_generator.generate()
+
+        if isinstance(content, ChartError):
+            return content
+
+        # Create performance and accessibility metadata
+        execution_time = int((time.time() - start_time) * 1000)
+        performance = PerformanceMetadata(
+            query_duration_ms=execution_time,
+            cache_status="miss",
+            optimization_suggestions=[],
+        )
+
+        accessibility = AccessibilityMetadata(
+            color_blind_safe=True,
+            alt_text=f"Preview of {chart.slice_name or f'Chart {chart.id}'}",
+            high_contrast_available=False,
+        )
+
+        # Create backward-compatible response with enhanced metadata
+        result = ChartPreview(
+            chart_id=chart.id,
+            chart_name=chart.slice_name or f"Chart {chart.id}",
+            chart_type=chart.viz_type or "unknown",
+            explore_url=f"{get_superset_base_url()}/explore/?slice_id={chart.id}",
+            content=content,
+            chart_description=(
+                f"Preview of {chart.viz_type or 'chart'}: "
+                f"{chart.slice_name or f'Chart {chart.id}'}"
+            ),
+            accessibility=accessibility,
+            performance=performance,
+        )
+
+        # Add format-specific fields for backward compatibility
+        if isinstance(content, URLPreview):
+            result.format = "url"
+            result.preview_url = content.preview_url
+            result.width = content.width
+            result.height = content.height
+        elif isinstance(content, ASCIIPreview):
+            result.format = "ascii"
+            result.ascii_chart = content.ascii_content
+            result.width = content.width
+            result.height = content.height
+        elif isinstance(content, TablePreview):
+            result.format = "table"
+            result.table_data = content.table_data
+        elif isinstance(content, Base64Preview):
+            result.format = "base64"
+            result.base64_image = content.base64_image
+            result.width = content.width
+            result.height = content.height
+
+        return result
 
     except Exception as e:
         logger.error(f"Error in get_chart_preview: {e}")

@@ -85,11 +85,14 @@ class TestGetChartPreview:
             )
             assert (
                 result.data["preview_url"]
-                == "http://localhost:5008/screenshot/chart/264.png"
+                == "http://localhost:8088/screenshot/chart/264.png"
             )
             assert result.data["width"] == 800
             assert result.data["height"] == 600
-            assert "Chart image: Test Chart 264" in result.data["chart_description"]
+            assert (
+                "Preview of echarts_timeseries_bar: Test Chart 264"
+                in result.data["chart_description"]
+            )
 
             # Verify other formats are None
             assert result.data["ascii_chart"] is None
@@ -118,7 +121,7 @@ class TestGetChartPreview:
             assert result.data["format"] == "url"
             assert (
                 result.data["preview_url"]
-                == "http://localhost:5008/screenshot/chart/264.png"
+                == "http://localhost:8088/screenshot/chart/264.png"
             )
 
     @patch("superset.daos.chart.ChartDAO.find_by_id")
@@ -146,7 +149,7 @@ class TestGetChartPreview:
             assert result.data["format"] == "url"
             assert (
                 result.data["preview_url"]
-                == "http://localhost:5008/screenshot/chart/999.png"
+                == "http://localhost:8088/screenshot/chart/999.png"
             )
 
     @patch("superset.daos.chart.ChartDAO.find_by_id")
@@ -173,14 +176,20 @@ class TestGetChartPreview:
             assert result.data["format"] == "base64"
             assert result.data["width"] == 1200
             assert result.data["height"] == 800
-            # Base64 encoded data should be present in preview_url as data URI
-            assert result.data["preview_url"].startswith("data:image/png;base64,")
-            assert "Base64 encoded PNG" in result.data["chart_description"]
+            # Base64 encoded data should be present in base64_image field
+            assert result.data["base64_image"] is not None
+            assert (
+                result.data["base64_image"] == "ZmFrZV9wbmdfZGF0YQ=="
+            )  # b"fake_png_data" encoded
+            assert (
+                "Preview of echarts_timeseries_bar: Test Chart 264"
+                in result.data["chart_description"]
+            )
 
             # Verify other formats are None
             assert result.data["ascii_chart"] is None
             assert result.data["table_data"] is None
-            assert result.data["base64_image"] is None
+            assert result.data["preview_url"] is None
 
     @patch("superset.daos.chart.ChartDAO.find_by_id")
     @patch("superset.commands.chart.data.get_data_command.ChartDataCommand.run")
@@ -225,7 +234,10 @@ class TestGetChartPreview:
             assert result.data["height"] == 15
             assert result.data["ascii_chart"] is not None
             assert "ASCII Bar Chart" in result.data["ascii_chart"]
-            assert "showing 4 data points" in result.data["chart_description"]
+            assert (
+                "Preview of echarts_timeseries_bar: Test Chart 264"
+                in result.data["chart_description"]
+            )
 
             # Verify other formats are None
             assert result.data["preview_url"] is None
@@ -270,7 +282,9 @@ class TestGetChartPreview:
             assert "Data Table" in result.data["table_data"]
             assert "region" in result.data["table_data"]
             assert "sales" in result.data["table_data"]
-            assert "3 rows" in result.data["chart_description"]
+            assert (
+                "Preview of table: Test Chart 264" in result.data["chart_description"]
+            )
 
             # Verify other formats are None
             assert result.data["preview_url"] is None

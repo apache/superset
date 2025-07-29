@@ -133,13 +133,19 @@ The `@mcp_auth_hook` decorator handles user extraction, scope validation, impers
 
 ## Configuration Best Practices
 
-### URL Generation
-Configure host prefix for proper chart and explore URL generation:
+### URL Configuration
+Configure Superset base URL for proper chart and explore URL generation:
 ```python
 # In superset_config.py
-SUPERSET_HOST_PREFIX = "http://localhost:8088"  # Development
-SUPERSET_HOST_PREFIX = "https://superset.company.com"  # Production
+SUPERSET_WEBSERVER_ADDRESS = "http://localhost:8088"  # Development
+SUPERSET_WEBSERVER_ADDRESS = "https://superset.company.com"  # Production
 ```
+
+**Centralized URL Management:**
+- All MCP tools use `get_superset_base_url()` utility from `url_utils.py`
+- Fallback hierarchy: `SUPERSET_WEBSERVER_ADDRESS` → component URLs → localhost:8088
+- Screenshot service uses same port as MCP service (WSGI endpoint)
+- Environment flexibility for development and production deployments
 
 ### Schema Optimization
 - **Minimal Columns**: List tools show only essential columns by default
@@ -564,7 +570,7 @@ graph TD
 |-------|-----|----------|
 | `list_dashboards`, `get_dashboard_info`, `get_dashboard_available_filters` | DashboardDAO | ID/UUID/slug lookup, UUID/slug search |
 | `list_datasets`, `get_dataset_info`, `get_dataset_available_filters` | DatasetDAO | ID/UUID lookup, columns & metrics, UUID search |
-| `list_charts`, `get_chart_info`, `get_chart_available_filters`, `generate_chart` | ChartDAO | ID/UUID lookup, chart creation, UUID search |
+| `list_charts`, `get_chart_info`, `get_chart_available_filters`, `generate_chart`, `update_chart`, `update_chart_preview` | ChartDAO | ID/UUID lookup, chart creation/updates, UUID search |
 | `get_superset_instance_info` | System | Instance metadata |
 | `generate_explore_link` | Chart | Temporary chart exploration |
 
@@ -601,9 +607,12 @@ graph TD
 - **Navigation Tools**: `generate_explore_link` for explore URLs
 - **System Tools**: Instance info and available filters
 - **Request Schema Pattern**: Eliminates LLM parameter validation issues
-- **Testing**: 185+ unit tests, full pre-commit compliance
+- **Testing**: 194+ unit tests, full pre-commit compliance
 
 ### 🟡 Recently Completed (Phase 1 Final)
+- **Chart Update Operations**: `update_chart` and `update_chart_preview` for modifying saved and cached charts ✅
+- **Centralized URL Configuration**: `SUPERSET_WEBSERVER_ADDRESS` support with centralized URL management ✅
+- **MCP Audit Logging**: Comprehensive audit trails with impersonation tracking and payload sanitization ✅
 - **Backend Chart Rendering**: Screenshot URLs for LLM chat integration ✅
 - **SQL Lab Integration**: `open_sql_lab_with_context` for pre-loaded queries ✅
 - **Dashboard Generation**: `generate_dashboard` and `add_chart_to_existing_dashboard` ✅

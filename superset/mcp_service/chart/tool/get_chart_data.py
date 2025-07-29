@@ -26,7 +26,9 @@ from superset.mcp_service.mcp_app import mcp
 from superset.mcp_service.pydantic_schemas.chart_schemas import (
     ChartData,
     ChartError,
+    DataColumn,
     GetChartDataRequest,
+    PerformanceMetadata,
 )
 
 logger = logging.getLogger(__name__)
@@ -34,7 +36,7 @@ logger = logging.getLogger(__name__)
 
 @mcp.tool
 @mcp_auth_hook
-def get_chart_data(request: GetChartDataRequest) -> ChartData | ChartError:
+def get_chart_data(request: GetChartDataRequest) -> ChartData | ChartError:  # noqa: C901
     """
     Get the underlying data for a chart in a text-friendly format.
 
@@ -74,6 +76,10 @@ def get_chart_data(request: GetChartDataRequest) -> ChartData | ChartError:
 
         logger.info(f"Getting data for chart {chart.id}: {chart.slice_name}")
 
+        import time
+
+        start_time = time.time()
+
         try:
             # Get chart data using the existing API
             from superset.commands.chart.data.get_data_command import ChartDataCommand
@@ -107,33 +113,97 @@ def get_chart_data(request: GetChartDataRequest) -> ChartData | ChartError:
             if result and "queries" in result and len(result["queries"]) > 0:
                 query_result = result["queries"][0]
                 data = query_result.get("data", [])
-                columns = query_result.get("colnames", [])
+                raw_columns = query_result.get("colnames", [])
 
-                # Generate summary
+                # Create rich column metadata
+                columns = []
+                for col_name in raw_columns:
+                    # Sample some values for metadata
+                    sample_values = [
+                        row.get(col_name)
+                        for row in data[:3]
+                        if row.get(col_name) is not None
+                    ]
+
+                    # Infer data type
+                    data_type = "string"
+                    if sample_values:
+                        if all(isinstance(v, (int, float)) for v in sample_values):
+                            data_type = "numeric"
+                        elif all(isinstance(v, bool) for v in sample_values):
+                            data_type = "boolean"
+
+                    columns.append(
+                        DataColumn(
+                            name=col_name,
+                            display_name=col_name.replace("_", " ").title(),
+                            data_type=data_type,
+                            sample_values=sample_values[:3],
+                            null_count=sum(
+                                1 for row in data if row.get(col_name) is None
+                            ),
+                            unique_count=len({str(row.get(col_name)) for row in data}),
+                        )
+                    )
+
+                # Generate insights and recommendations
+                insights = []
+                if len(data) > 100:
+                    insights.append(
+                        "Large dataset - consider filtering for better performance"
+                    )
+                if len(raw_columns) > 10:
+                    insights.append("Many columns available - focus on key metrics")
+
+                recommended_visualizations = []
+                if any(
+                    "time" in col.lower() or "date" in col.lower()
+                    for col in raw_columns
+                ):
+                    recommended_visualizations.extend(["line chart", "time series"])
+                if len(raw_columns) <= 3:
+                    recommended_visualizations.extend(["bar chart", "scatter plot"])
+
+                # Performance metadata
+                execution_time = int((time.time() - start_time) * 1000)
+                performance = PerformanceMetadata(
+                    query_duration_ms=execution_time,
+                    cache_status="miss",
+                    optimization_suggestions=[],
+                )
+
+                # Generate comprehensive summary
                 summary_parts = [
                     f"Chart '{chart.slice_name}' ({chart.viz_type})",
-                    f"Contains {len(data)} rows of data",
+                    f"Contains {len(data)} rows across {len(raw_columns)} columns",
                 ]
-
-                if columns:
-                    summary_parts.append(f"Columns: {', '.join(columns)}")
 
                 if data and len(data) > 0:
                     summary_parts.append(
-                        f"Sample data shows values like: {str(data[0])[:200]}..."
+                        f"Sample data includes: {', '.join(raw_columns[:3])}"
                     )
 
                 summary = ". ".join(summary_parts)
 
                 return ChartData(
                     chart_id=chart.id,
-                    chart_name=chart.slice_name,
+                    chart_name=chart.slice_name or f"Chart {chart.id}",
                     chart_type=chart.viz_type or "unknown",
                     columns=columns,
                     data=data[: request.limit] if request.limit else data,
                     row_count=len(data),
                     total_rows=query_result.get("rowcount"),
                     summary=summary,
+                    insights=insights,
+                    data_quality={
+                        "completeness": 1.0
+                        - (
+                            sum(col.null_count for col in columns)
+                            / max(len(data) * len(columns), 1)
+                        )
+                    },
+                    recommended_visualizations=recommended_visualizations,
+                    performance=performance,
                 )
             else:
                 return ChartError(
