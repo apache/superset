@@ -28,6 +28,7 @@ import { commonLayerProps } from '../common';
 import { createCategoricalDeckGLComponent, GetLayerType } from '../../factory';
 import TooltipRow from '../../TooltipRow';
 import { unitToRadius } from '../../utils/geo';
+import { HIGHLIGHT_COLOR_ARRAY } from '../../utils';
 
 export function getPoints(data: JsonObject[]) {
   return data.map(d => d.position);
@@ -133,7 +134,7 @@ export const getHighlightLayer: GetLayerType<ScatterplotLayer> = function ({
     id: `scatter-highlight-layer-${fd.slice_id}` as const,
     data: dataInside,
     fp64: true,
-    getFillColor: () => [255, 0, 0, 255],
+    getFillColor: () => HIGHLIGHT_COLOR_ARRAY,
     getRadius: (d: any) => d.radius,
     radiusMinPixels: Number(fd.min_radius) || undefined,
     radiusMaxPixels: Number(fd.max_radius) || undefined,

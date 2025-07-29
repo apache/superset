@@ -25,6 +25,7 @@ import sandboxedEval from '../../utils/sandbox';
 import { GetLayerType, createDeckGLComponent } from '../../factory';
 import { ColorType } from '../../types';
 import TooltipRow from '../../TooltipRow';
+import { HIGHLIGHT_COLOR_ARRAY } from '../../utils';
 
 function setTooltipContent(o: any) {
   return (
@@ -143,8 +144,13 @@ export const getHighlightLayer: GetLayerType<PolygonLayer> = function ({
     id: `contour-highlight-layer-${fd.slice_id}`,
     data: [{ polygon: boxPolygon }],
     getPolygon: (d: any) => d.polygon,
-    getFillColor: [255, 0, 0, 100],
-    getLineColor: [255, 0, 0, 255],
+    getFillColor: [
+      HIGHLIGHT_COLOR_ARRAY[0],
+      HIGHLIGHT_COLOR_ARRAY[1],
+      HIGHLIGHT_COLOR_ARRAY[2],
+      100,
+    ],
+    getLineColor: HIGHLIGHT_COLOR_ARRAY,
     getLineWidth: 4,
     filled: true,
     stroked: true,

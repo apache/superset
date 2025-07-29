@@ -31,6 +31,7 @@ import sandboxedEval from '../../utils/sandbox';
 import { commonLayerProps, getColorRange } from '../common';
 import TooltipRow from '../../TooltipRow';
 import { GetLayerType, createDeckGLComponent } from '../../factory';
+import { HIGHLIGHT_COLOR_ARRAY, TRANSPARENT_COLOR_ARRAY } from '../../utils';
 
 export function getPoints(data: JsonObject[]) {
   return data.map(d => d.position);
@@ -145,10 +146,7 @@ const getHighlightLayer: GetLayerType<ScreenGridLayer> = function ({
     data: dataInside,
     cellSizePixels: formData.grid_size,
     colorDomain: [0, 1],
-    colorRange: [
-      [0, 0, 0, 0],
-      [255, 0, 0, 255],
-    ],
+    colorRange: [TRANSPARENT_COLOR_ARRAY, HIGHLIGHT_COLOR_ARRAY],
     outline: false,
     getWeight: aggFunc,
     colorScaleType: 'quantize',

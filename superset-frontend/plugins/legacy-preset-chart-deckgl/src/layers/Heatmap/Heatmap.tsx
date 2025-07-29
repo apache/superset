@@ -24,6 +24,7 @@ import { commonLayerProps, getColorRange } from '../common';
 import sandboxedEval from '../../utils/sandbox';
 import { GetLayerType, createDeckGLComponent } from '../../factory';
 import TooltipRow from '../../TooltipRow';
+import { HIGHLIGHT_COLOR_ARRAY } from '../../utils';
 
 function setTooltipContent(o: JsonObject) {
   return (
@@ -129,8 +130,13 @@ export const getHighlightLayer: GetLayerType<HeatmapLayer> = ({
     intensity,
     radiusPixels,
     colorRange: [
-      [255, 0, 0, 55],
-      [255, 0, 0, 255],
+      [
+        HIGHLIGHT_COLOR_ARRAY[0],
+        HIGHLIGHT_COLOR_ARRAY[1],
+        HIGHLIGHT_COLOR_ARRAY[2],
+        55,
+      ],
+      HIGHLIGHT_COLOR_ARRAY,
     ],
     aggregation: aggregation.toUpperCase(),
     getPosition: (d: { position: Position; weight: number }) => d.position,

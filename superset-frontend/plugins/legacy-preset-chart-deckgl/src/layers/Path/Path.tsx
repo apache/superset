@@ -24,6 +24,7 @@ import sandboxedEval from '../../utils/sandbox';
 import { GetLayerType, createDeckGLComponent } from '../../factory';
 import TooltipRow from '../../TooltipRow';
 import { Point } from '../../types';
+import { HIGHLIGHT_COLOR_ARRAY } from '../../utils';
 
 function setTooltipContent(o: JsonObject) {
   return (
@@ -102,7 +103,7 @@ export const getHighlightLayer: GetLayerType<PathLayer> = function ({
   filterState,
 }) {
   const fd = formData;
-  const fixedColor = [255, 0, 0, 255];
+  const fixedColor = HIGHLIGHT_COLOR_ARRAY;
   let data = payload.data.features.map((feature: JsonObject) => ({
     ...feature,
     path: feature.path,
@@ -122,7 +123,7 @@ export const getHighlightLayer: GetLayerType<PathLayer> = function ({
 
   return new PathLayer({
     id: `path-highlight-layer-${fd.slice_id}` as const,
-    getColor: () => [255, 0, 0, 255],
+    getColor: () => HIGHLIGHT_COLOR_ARRAY,
     getPath: (d: any) => d.path,
     getWidth: (d: any) => d.width,
     data: filteredData,

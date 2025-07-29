@@ -29,6 +29,7 @@ import sandboxedEval from '../../utils/sandbox';
 import { createDeckGLComponent, GetLayerType } from '../../factory';
 import TooltipRow from '../../TooltipRow';
 import { COLOR_SCHEME_TYPES } from '../../utilities/utils';
+import { HIGHLIGHT_COLOR_ARRAY, TRANSPARENT_COLOR_ARRAY } from '../../utils';
 
 function setTooltipContent(o: JsonObject) {
   return (
@@ -146,10 +147,7 @@ export const getHighlightLayer: GetLayerType<GridLayer> = function ({
     cellSize: fd.grid_size,
     extruded: fd.extruded,
     colorDomain: [0, 1],
-    colorRange: [
-      [0, 0, 0, 0],
-      [255, 0, 0, 255],
-    ],
+    colorRange: [TRANSPARENT_COLOR_ARRAY, HIGHLIGHT_COLOR_ARRAY],
     colorAggregation: 'MAX',
     outline: false,
     // @ts-ignore

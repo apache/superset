@@ -43,6 +43,7 @@ import fitViewport, { Viewport } from '../../utils/fitViewport';
 import { TooltipProps } from '../../components/Tooltip';
 import { Point } from '../../types';
 import { GetLayerType } from '../../factory';
+import { HIGHLIGHT_COLOR_ARRAY } from '../../utils';
 
 type ProcessedFeature = Feature<Geometry, GeoJsonProperties> & {
   properties: JsonObject;
@@ -125,7 +126,7 @@ const getFillColor = (feature: JsonObject, filterStateValue: unknown[]) => {
       JSON.stringify(feature.geometry.coordinates) ===
       JSON.stringify(filterStateValue?.[0])
     ) {
-      return [255, 0, 0, 255];
+      return HIGHLIGHT_COLOR_ARRAY;
     }
 
     const fillColor = feature?.properties?.fillColor;

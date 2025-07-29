@@ -42,6 +42,7 @@ import {
   getBuckets,
   getBreakPointColorScaler,
   getColorBreakpointsBuckets,
+  TRANSPARENT_COLOR_ARRAY,
 } from '../../utils';
 
 import { commonLayerProps, getColorForBreakpoints } from '../common';
@@ -181,12 +182,9 @@ export const getLayer: GetLayerType<PolygonLayer> = function ({
   const colorScaler = (d: {
     polygon: Point[];
   }): [number, number, number, number] => {
-    const baseColor = (baseColorScaler(d) as [
-      number,
-      number,
-      number,
-      number,
-    ]) || [0, 0, 0, 0];
+    const baseColor =
+      (baseColorScaler(d) as [number, number, number, number]) ||
+      TRANSPARENT_COLOR_ARRAY;
     const polygonPoints = getPointsFromPolygon(d);
 
     const isPolygonFilterSelected =

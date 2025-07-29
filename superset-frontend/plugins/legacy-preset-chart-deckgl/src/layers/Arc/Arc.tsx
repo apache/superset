@@ -18,12 +18,12 @@
  */
 import { ArcLayer } from '@deck.gl/layers';
 import { JsonObject, QueryFormData, t } from '@superset-ui/core';
-import { Color } from '@deck.gl/core';
 import { COLOR_SCHEME_TYPES } from '../../utilities/utils';
 import { commonLayerProps } from '../common';
 import { GetLayerType, createCategoricalDeckGLComponent } from '../../factory';
 import TooltipRow from '../../TooltipRow';
 import { Point } from '../../types';
+import { HIGHLIGHT_COLOR_ARRAY, TRANSPARENT_COLOR_ARRAY } from '../../utils';
 
 export function getPoints(data: JsonObject[]) {
   const points: Point[] = [];
@@ -126,10 +126,10 @@ export const getHighlightLayer: GetLayerType<ArcLayer> = function ({
       d.targetPosition[0] === targetPosition[0] &&
       d.targetPosition[1] === targetPosition[1]
     ) {
-      return [255, 0, 0, 255] as Color;
+      return HIGHLIGHT_COLOR_ARRAY;
     }
 
-    return [0, 0, 0, 0] as Color;
+    return TRANSPARENT_COLOR_ARRAY;
   };
 
   return new ArcLayer({
