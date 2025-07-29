@@ -44,7 +44,7 @@ import { isSortable } from '../utils/isSortable';
 // Aggregation choices with computation methods for plugins and controls
 export const aggregationChoices = {
   raw: {
-    label: 'Force server-side aggregation',
+    label: 'Overall value',
     compute: (data: number[]) => {
       if (!data.length) return null;
       return data[0];
