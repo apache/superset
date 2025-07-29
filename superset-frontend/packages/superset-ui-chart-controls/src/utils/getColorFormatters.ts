@@ -95,7 +95,7 @@ export const getColorFunction = (
     case Comparator.None:
       minOpacity = MIN_OPACITY_UNBOUNDED;
       comparatorFunction = (value: number | string, allValues: number[]) => {
-        if (typeof value !== 'number') {
+        if (!isNumber(value)) {
           return { cutoffValue: value!, extremeValue: value! };
         }
         const cutoffValue = Math.min(...allValues);
@@ -107,7 +107,7 @@ export const getColorFunction = (
       break;
     case Comparator.GreaterThan:
       comparatorFunction = (value: number, allValues: number[]) =>
-        typeof targetValue === 'number' && value > targetValue!
+        isNumber(targetValue) && value > targetValue!
           ? {
               cutoffValue: targetValue!,
               extremeValue: Math.max(...allValues),
@@ -116,7 +116,7 @@ export const getColorFunction = (
       break;
     case Comparator.LessThan:
       comparatorFunction = (value: number, allValues: number[]) =>
-        typeof targetValue === 'number' && value < targetValue!
+        isNumber(targetValue) && value < targetValue!
           ? {
               cutoffValue: targetValue!,
               extremeValue: Math.min(...allValues),
@@ -125,7 +125,7 @@ export const getColorFunction = (
       break;
     case Comparator.GreaterOrEqual:
       comparatorFunction = (value: number, allValues: number[]) =>
-        typeof targetValue === 'number' && value >= targetValue!
+        isNumber(targetValue) && value >= targetValue!
           ? {
               cutoffValue: targetValue!,
               extremeValue: Math.max(...allValues),
@@ -134,7 +134,7 @@ export const getColorFunction = (
       break;
     case Comparator.LessOrEqual:
       comparatorFunction = (value: number, allValues: number[]) =>
-        typeof targetValue === 'number' && value <= targetValue!
+        isNumber(targetValue) && value <= targetValue!
           ? {
               cutoffValue: targetValue!,
               extremeValue: Math.min(...allValues),
@@ -149,7 +149,7 @@ export const getColorFunction = (
       break;
     case Comparator.NotEqual:
       comparatorFunction = (value: number, allValues: number[]) => {
-        if (typeof targetValue === 'number') {
+        if (isNumber(targetValue)) {
           if (value === targetValue!) {
             return false;
           }
@@ -193,33 +193,27 @@ export const getColorFunction = (
       break;
     case Comparator.BeginsWith:
       comparatorFunction = (value: string) =>
-        typeof value === 'string' &&
-        value?.startsWith(targetValue as unknown as string)
+        isString(value) && value?.startsWith(targetValue as string)
           ? { cutoffValue: targetValue!, extremeValue: targetValue! }
           : false;
       break;
     case Comparator.EndsWith:
       comparatorFunction = (value: string) =>
-        typeof value === 'string' &&
-        value?.endsWith(targetValue as unknown as string)
+        isString(value) && value?.endsWith(targetValue as string)
           ? { cutoffValue: targetValue!, extremeValue: targetValue! }
           : false;
       break;
     case Comparator.Containing:
       comparatorFunction = (value: string) =>
-        typeof value === 'string' &&
-        value
-          ?.toLowerCase()
-          .includes((targetValue as unknown as string).toLowerCase())
+        isString(value) &&
+        value?.toLowerCase().includes((targetValue as string).toLowerCase())
           ? { cutoffValue: targetValue!, extremeValue: targetValue! }
           : false;
       break;
     case Comparator.NotContaining:
       comparatorFunction = (value: string) =>
-        typeof value === 'string' &&
-        !value
-          ?.toLowerCase()
-          .includes((targetValue as unknown as string).toLowerCase())
+        isString(value) &&
+        !value?.toLowerCase().includes((targetValue as string).toLowerCase())
           ? { cutoffValue: targetValue!, extremeValue: targetValue! }
           : false;
       break;
@@ -273,3 +267,11 @@ export const getColorFormatters = memoizeOne(
       [],
     ) ?? [],
 );
+
+function isString(value: string) {
+  return typeof value === 'string';
+}
+
+function isNumber(value: string | number | undefined) {
+  return typeof value === 'number';
+}
