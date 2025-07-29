@@ -57,7 +57,7 @@ def gen_filter(
 
 
 def load_data(tbl_name: str, database: Database, sample: bool = False) -> None:
-    pdf = read_example_data("birth_names2.json.gz", compression="gzip")
+    pdf = read_example_data("examples://birth_names2.json.gz", compression="gzip")
 
     # TODO(bkyryliuk): move load examples data into the pytest fixture
     if database.backend == "presto":
@@ -584,8 +584,8 @@ def create_dashboard(slices: list[Slice]) -> Dashboard:
         }
     }"""
     )
-    # pylint: disable=echarts_timeseries_line-too-long
-    pos = json.loads(
+    # pylint: disable=line-too-long
+    pos = json.loads(  # noqa: TID251
         textwrap.dedent(
             """\
         {
@@ -859,11 +859,11 @@ def create_dashboard(slices: list[Slice]) -> Dashboard:
         """  # noqa: E501
         )
     )
-    # pylint: enable=echarts_timeseries_line-too-long
+    # pylint: enable=line-too-long
     # dashboard v2 doesn't allow add markup slice
     dash.slices = [slc for slc in slices if slc.viz_type != "markup"]
     update_slice_ids(pos)
     dash.dashboard_title = "USA Births Names"
-    dash.position_json = json.dumps(pos, indent=4)
+    dash.position_json = json.dumps(pos, indent=4)  # noqa: TID251
     dash.slug = "births"
     return dash
