@@ -49,38 +49,53 @@ describe('BigNumberWithTrendline buildQuery', () => {
     aggregation: null,
   };
 
-  it('creates raw metric query when aggregation is null', () => {
-    const queryContext = buildQuery({ ...baseFormData });
+  it('creates raw metric query when aggregation is "raw"', () => {
+    const queryContext = buildQuery({ ...baseFormData, aggregation: 'raw' });
     const bigNumberQuery = queryContext.queries[1];
 
-    expect(bigNumberQuery.post_processing).toEqual([{ operation: 'pivot' }]);
-    expect(bigNumberQuery.is_timeseries).toBe(true);
+    expect(bigNumberQuery.post_processing).toEqual([]);
+    expect(bigNumberQuery.is_timeseries).toBe(false);
+    expect(bigNumberQuery.columns).toEqual([]);
   });
 
-  it('adds aggregation operator when aggregation is "sum"', () => {
+  it('returns single query for aggregation methods that can be computed client-side', () => {
     const queryContext = buildQuery({ ...baseFormData, aggregation: 'sum' });
-    const bigNumberQuery = queryContext.queries[1];
 
-    expect(bigNumberQuery.post_processing).toEqual([
+    expect(queryContext.queries.length).toBe(1);
+    expect(queryContext.queries[0].post_processing).toEqual([
       { operation: 'pivot' },
-      { operation: 'aggregation', options: { operator: 'sum' } },
+      { operation: 'rolling' },
+      { operation: 'resample' },
+      { operation: 'flatten' },
     ]);
-    expect(bigNumberQuery.is_timeseries).toBe(true);
   });
 
-  it('skips aggregation when aggregation is LAST_VALUE', () => {
+  it('returns single query for LAST_VALUE aggregation', () => {
     const queryContext = buildQuery({
       ...baseFormData,
       aggregation: 'LAST_VALUE',
     });
-    const bigNumberQuery = queryContext.queries[1];
 
-    expect(bigNumberQuery.post_processing).toEqual([{ operation: 'pivot' }]);
-    expect(bigNumberQuery.is_timeseries).toBe(true);
+    expect(queryContext.queries.length).toBe(1);
+    expect(queryContext.queries[0].post_processing).toEqual([
+      { operation: 'pivot' },
+      { operation: 'rolling' },
+      { operation: 'resample' },
+      { operation: 'flatten' },
+    ]);
   });
 
-  it('always returns two queries', () => {
-    const queryContext = buildQuery({ ...baseFormData });
+  it('returns two queries only for raw aggregation', () => {
+    const queryContext = buildQuery({ ...baseFormData, aggregation: 'raw' });
     expect(queryContext.queries.length).toBe(2);
+
+    const queryContextLastValue = buildQuery({
+      ...baseFormData,
+      aggregation: 'LAST_VALUE',
+    });
+    expect(queryContextLastValue.queries.length).toBe(1);
+
+    const queryContextSum = buildQuery({ ...baseFormData, aggregation: 'sum' });
+    expect(queryContextSum.queries.length).toBe(1);
   });
 });

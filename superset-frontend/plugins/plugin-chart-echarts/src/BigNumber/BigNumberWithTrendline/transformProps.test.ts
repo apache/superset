@@ -20,6 +20,41 @@ import { GenericDataType } from '@superset-ui/core';
 import transformProps from './transformProps';
 import { BigNumberWithTrendlineChartProps, BigNumberDatum } from '../types';
 
+// Mock chart-controls to avoid styled-components issues in Jest
+jest.mock('@superset-ui/chart-controls', () => ({
+  aggregationChoices: {
+    raw: {
+      label: 'Force server-side aggregation',
+      compute: (data: number[]) => data[0] ?? null,
+    },
+    LAST_VALUE: {
+      label: 'Last Value',
+      compute: (data: number[]) => data[0] ?? null,
+    },
+    sum: {
+      label: 'Total (Sum)',
+      compute: (data: number[]) => data.reduce((a, b) => a + b, 0),
+    },
+    mean: {
+      label: 'Average (Mean)',
+      compute: (data: number[]) =>
+        data.reduce((a, b) => a + b, 0) / data.length,
+    },
+    min: { label: 'Minimum', compute: (data: number[]) => Math.min(...data) },
+    max: { label: 'Maximum', compute: (data: number[]) => Math.max(...data) },
+    median: {
+      label: 'Median',
+      compute: (data: number[]) => {
+        const sorted = [...data].sort((a, b) => a - b);
+        const mid = Math.floor(sorted.length / 2);
+        return sorted.length % 2 === 0
+          ? (sorted[mid - 1] + sorted[mid]) / 2
+          : sorted[mid];
+      },
+    },
+  },
+}));
+
 jest.mock('@superset-ui/core', () => ({
   GenericDataType: { Temporal: 2, String: 1 },
   extractTimegrain: jest.fn(() => 'P1D'),
@@ -218,7 +253,7 @@ describe('BigNumberWithTrendline transformProps', () => {
           coltypes: ['NUMERIC'],
         },
       ],
-      formData: { ...baseFormData, aggregation: 'SUM' },
+      formData: { ...baseFormData, aggregation: 'sum' },
       rawFormData: baseRawFormData,
       hooks: baseHooks,
       datasource: baseDatasource,
