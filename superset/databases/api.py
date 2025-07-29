@@ -356,8 +356,8 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             "result": database_connection_schema.dump(database, many=False),
         }
         try:
-            if ssh_tunnel := DatabaseDAO.get_ssh_tunnel(pk):
-                response["result"]["ssh_tunnel"] = ssh_tunnel.data
+            if database and database.ssh_tunnel:
+                response["result"]["ssh_tunnel"] = database.ssh_tunnel.data
             return self.response(200, **response)
         except SupersetException as ex:
             return self.response(ex.status, message=ex.message)
@@ -394,9 +394,10 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         """
         data = self.get_headless(pk, **kwargs)
         try:
-            if ssh_tunnel := DatabaseDAO.get_ssh_tunnel(pk):
+            database = DatabaseDAO.find_by_id(pk)
+            if database and database.ssh_tunnel:
                 payload = data.json
-                payload["result"]["ssh_tunnel"] = ssh_tunnel.data
+                payload["result"]["ssh_tunnel"] = database.ssh_tunnel.data
                 return payload
             return data
         except SupersetException as ex:

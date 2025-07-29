@@ -168,7 +168,7 @@ class UpdateDatabaseCommand(BaseCommand):
         if not is_feature_enabled("SSH_TUNNELING"):
             raise SSHTunnelingNotEnabledError()
 
-        current_ssh_tunnel = DatabaseDAO.get_ssh_tunnel(database.id)
+        current_ssh_tunnel = database.ssh_tunnel
         ssh_tunnel_properties = self._properties["ssh_tunnel"]
 
         if ssh_tunnel_properties is None:
