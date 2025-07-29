@@ -121,7 +121,7 @@ export const aggregationControl = {
       t(label),
     ]),
     description: t(
-      'Aggregation method applied across the values in the timeseries to compute the Big Number. "Force server-side aggregation" uses server-side aggregation over the entire time period and is preferred for non-additive metrics like ratios, averages, distinct counts, etc.',
+      'Method to compute the displayed value. "Overall value" calculates a single metric across the entire filtered time period, ideal for non-additive metrics like ratios, averages, or distinct counts. Other methods operate over the time series data points.',
     ),
     provideFormDataToProps: true,
     mapStateToProps: ({ form_data }: ControlPanelState) => ({
