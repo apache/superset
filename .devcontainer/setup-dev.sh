@@ -40,13 +40,39 @@ fi
 # Make the start script executable
 chmod +x .devcontainer/start-superset.sh
 
+# Add bashrc additions for automatic venv activation
+echo "🔧 Setting up automatic environment activation..."
+if [ -f ~/.bashrc ]; then
+    # Check if we've already added our additions
+    if ! grep -q "Superset Codespaces environment setup" ~/.bashrc; then
+        echo "" >> ~/.bashrc
+        cat .devcontainer/bashrc-additions >> ~/.bashrc
+        echo "✅ Added automatic venv activation to ~/.bashrc"
+    else
+        echo "✅ Bashrc additions already present"
+    fi
+else
+    # Create bashrc if it doesn't exist
+    cat .devcontainer/bashrc-additions > ~/.bashrc
+    echo "✅ Created ~/.bashrc with automatic venv activation"
+fi
+
+# Also add to zshrc since that's the default shell
+if [ -f ~/.zshrc ] || [ -n "$ZSH_VERSION" ]; then
+    if ! grep -q "Superset Codespaces environment setup" ~/.zshrc; then
+        echo "" >> ~/.zshrc
+        cat .devcontainer/bashrc-additions >> ~/.zshrc
+        echo "✅ Added automatic venv activation to ~/.zshrc"
+    fi
+fi
+
 echo "✅ Development environment setup complete!"
 echo ""
-echo "📝 Next steps:"
-echo "1. Activate the Python virtual environment:"
-echo "   source .venv/bin/activate"
+echo "📝 The virtual environment will be automatically activated in new terminals"
 echo ""
-echo "2. Start Superset when Docker is ready:"
-echo "   .devcontainer/start-superset.sh"
+echo "🔄 To activate in this terminal, run:"
+echo "   source ~/.bashrc"
 echo ""
-echo "Note: The virtual environment is now created but not auto-activated to avoid startup issues."
+echo "🚀 To start Superset:"
+echo "   start-superset"
+echo ""

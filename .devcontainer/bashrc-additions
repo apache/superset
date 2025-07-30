@@ -1,0 +1,41 @@
+# Superset Codespaces environment setup
+# This file is appended to ~/.bashrc during Codespace setup
+
+# Find the workspace directory (handles both 'superset' and 'superset-2' names)
+WORKSPACE_DIR=$(find /workspaces -maxdepth 1 -name "superset*" -type d | head -1)
+
+if [ -n "$WORKSPACE_DIR" ]; then
+    # Check if virtual environment exists
+    if [ -d "$WORKSPACE_DIR/.venv" ]; then
+        # Activate the virtual environment
+        source "$WORKSPACE_DIR/.venv/bin/activate"
+        echo "✅ Python virtual environment activated"
+
+        # Verify pre-commit is installed
+        if command -v pre-commit &> /dev/null; then
+            echo "✅ pre-commit is available ($(pre-commit --version))"
+        else
+            echo "⚠️  pre-commit not found. Run: pip install pre-commit"
+        fi
+    else
+        echo "⚠️  Python virtual environment not found at $WORKSPACE_DIR/.venv"
+        echo "   Run: cd $WORKSPACE_DIR && .devcontainer/setup-dev.sh"
+    fi
+
+    # Always cd to the workspace directory for convenience
+    cd "$WORKSPACE_DIR"
+fi
+
+# Add helpful aliases for Superset development
+alias start-superset="$WORKSPACE_DIR/.devcontainer/start-superset.sh"
+alias setup-dev="$WORKSPACE_DIR/.devcontainer/setup-dev.sh"
+
+# Show helpful message on login
+echo ""
+echo "🚀 Superset Codespaces Environment"
+echo "=================================="
+echo "Quick commands:"
+echo "  setup-dev      - Set up Python environment (if not already done)"
+echo "  start-superset - Start Superset with Docker Compose"
+echo "  pre-commit run - Run pre-commit checks on staged files"
+echo ""

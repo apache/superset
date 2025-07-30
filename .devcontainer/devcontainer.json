@@ -34,8 +34,7 @@
   },
 
   // Run commands after container is created
-  // Made simpler to avoid failures during Codespace creation
-  "postCreateCommand": "echo '🎉 Codespace created! Run .devcontainer/setup-dev.sh to set up Python environment'",
+  "postCreateCommand": "bash .devcontainer/setup-dev.sh || echo '⚠️ Setup had issues - run .devcontainer/setup-dev.sh manually'",
 
   // Note: Superset startup is now manual to avoid Docker timing issues
   // Run `.devcontainer/start-superset.sh` when ready to start Superset
