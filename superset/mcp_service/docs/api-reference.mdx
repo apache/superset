@@ -1,0 +1,741 @@
+---
+title: API Reference
+sidebar_position: 3
+version: 1
+---
+
+# MCP Tools API Reference
+
+Complete reference for all 16 MCP tools with request/response examples.
+
+> 🚀 **First time here?** Start with [Dashboard Tools](#dashboard-tools) or [Chart Tools](#chart-tools) to see the most commonly used features.
+>
+> 🔐 **Need authentication?** See the [Authentication Guide](./authentication.mdx) for JWT setup.
+>
+> 🔧 **Want to add tools?** Check the [Development Guide](./development.mdx#adding-new-tools) for step-by-step instructions.
+
+## Dashboard Tools
+
+### list_dashboards
+
+List dashboards with search, filtering, and pagination support.
+
+**Request Schema:**
+```json
+{
+  "search": "sales",              // Optional: Search term
+  "filters": [                    // Optional: Advanced filters
+    {
+      "col": "published",
+      "opr": "eq",
+      "value": true
+    }
+  ],
+  "page": 1,                      // Optional: Page number (default: 1)
+  "page_size": 20,                // Optional: Items per page (default: 20)
+  "select_columns": [             // Optional: Specific columns
+    "id", "dashboard_title", "uuid"
+  ],
+  "use_cache": true               // Optional: Use cached data (default: true)
+}
+```
+
+**Response Example:**
+```json
+{
+  "dashboards": [
+    {
+      "id": 1,
+      "uuid": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+      "dashboard_title": "Sales Performance",
+      "url": "/superset/dashboard/1/",
+      "published": true,
+      "owners": ["admin"],
+      "created_on": "2024-01-15T10:30:00Z",
+      "changed_on": "2024-01-20T14:15:00Z"
+    }
+  ],
+  "total_count": 45,
+  "page": 1,
+  "page_size": 20,
+  "cache_status": {
+    "cache_hit": true,
+    "cache_age_seconds": 300
+  }
+}
+```
+
+### get_dashboard_info
+
+Get detailed information about a specific dashboard.
+
+**Request Schema:**
+```json
+{
+  "identifier": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",  // ID, UUID, or slug
+  "use_cache": true
+}
+```
+
+**Response Example:**
+```json
+{
+  "dashboard_id": 1,
+  "uuid": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+  "dashboard_title": "Sales Performance Dashboard",
+  "slug": "sales-performance",
+  "url": "/superset/dashboard/1/",
+  "published": true,
+  "owners": ["admin", "analyst"],
+  "roles": ["Sales Team"],
+  "charts": [
+    {
+      "id": 10,
+      "slice_name": "Monthly Revenue",
+      "viz_type": "line"
+    },
+    {
+      "id": 11,
+      "slice_name": "Regional Sales",
+      "viz_type": "bar"
+    }
+  ],
+  "filters": [
+    {
+      "column": "region",
+      "type": "select"
+    }
+  ],
+  "created_on": "2024-01-15T10:30:00Z",
+  "changed_on": "2024-01-20T14:15:00Z"
+}
+```
+
+### generate_dashboard
+
+Create a new dashboard with multiple charts.
+
+**Request Schema:**
+```json
+{
+  "chart_ids": [10, 11, 12, 13],
+  "dashboard_title": "Q4 Performance Dashboard",
+  "description": "Quarterly performance metrics and KPIs",
+  "published": true,
+  "layout_type": "grid"          // Optional: "grid" or "tabs"
+}
+```
+
+**Response Example:**
+```json
+{
+  "dashboard_id": 25,
+  "uuid": "new-dash-uuid-here",
+  "dashboard_title": "Q4 Performance Dashboard",
+  "url": "/superset/dashboard/25/",
+  "charts_added": 4,
+  "layout": {
+    "type": "grid",
+    "columns": 2,
+    "rows": 2
+  },
+  "created_on": "2024-01-25T16:45:00Z"
+}
+```
+
+## Chart Tools
+
+### list_charts
+
+List charts with advanced filtering and search capabilities.
+
+**Request Schema:**
+```json
+{
+  "search": "revenue",
+  "filters": [
+    {
+      "col": "viz_type",
+      "opr": "in",
+      "value": ["line", "bar", "area"]
+    }
+  ],
+  "page": 1,
+  "page_size": 25,
+  "select_columns": ["id", "slice_name", "viz_type", "uuid"],
+  "use_cache": true
+}
+```
+
+**Response Example:**
+```json
+{
+  "charts": [
+    {
+      "id": 10,
+      "uuid": "chart-uuid-1",
+      "slice_name": "Monthly Revenue Trend",
+      "viz_type": "line",
+      "datasource_name": "sales_data",
+      "owners": ["admin"],
+      "created_on": "2024-01-10T09:15:00Z"
+    }
+  ],
+  "total_count": 125,
+  "page": 1,
+  "page_size": 25
+}
+```
+
+### get_chart_info
+
+Get comprehensive chart information including configuration.
+
+**Request Schema:**
+```json
+{
+  "identifier": 10,                // ID or UUID
+  "include_form_data": true,       // Include chart configuration
+  "use_cache": true
+}
+```
+
+**Response Example:**
+```json
+{
+  "chart_id": 10,
+  "uuid": "chart-uuid-1",
+  "slice_name": "Monthly Revenue Trend",
+  "viz_type": "line",
+  "datasource_id": 5,
+  "datasource_name": "sales_data",
+  "datasource_type": "table",
+  "form_data": {
+    "viz_type": "line",
+    "x_axis": "month",
+    "metrics": ["sum__revenue"],
+    "time_range": "Last 12 months"
+  },
+  "query_context": {
+    "datasource": {"id": 5, "type": "table"},
+    "queries": [{"columns": [], "metrics": ["sum__revenue"]}]
+  },
+  "explore_url": "/superset/explore/?form_data=%7B%22slice_id%22%3A10%7D",
+  "owners": ["admin"],
+  "created_on": "2024-01-10T09:15:00Z",
+  "changed_on": "2024-01-15T11:30:00Z"
+}
+```
+
+### generate_chart
+
+Create a new chart with specified configuration.
+
+**Request Schema:**
+```json
+{
+  "dataset_id": "5",
+  "config": {
+    "chart_type": "xy",
+    "x": {"name": "month", "label": "Month"},
+    "y": [
+      {
+        "name": "revenue",
+        "aggregate": "SUM",
+        "label": "Total Revenue"
+      },
+      {
+        "name": "orders",
+        "aggregate": "COUNT",
+        "label": "Order Count"
+      }
+    ],
+    "kind": "line",
+    "x_axis": {
+      "title": "Month",
+      "format": "smart_date"
+    },
+    "y_axis": {
+      "title": "Revenue ($)",
+      "format": "$,.0f"
+    },
+    "legend": {
+      "show": true,
+      "position": "top"
+    }
+  },
+  "slice_name": "Revenue and Orders Trend",
+  "description": "Monthly revenue and order count comparison",
+  "save_chart": true,
+  "generate_preview": true,
+  "preview_formats": ["url", "ascii"]
+}
+```
+
+**Response Example:**
+```json
+{
+  "chart_id": 45,
+  "uuid": "new-chart-uuid",
+  "slice_name": "Revenue and Orders Trend",
+  "viz_type": "echarts_timeseries_line",
+  "datasource_id": 5,
+  "explore_url": "/superset/explore/?form_data=%7B%22slice_id%22%3A45%7D",
+  "query_executed": true,
+  "query_result": {
+    "status": "success",
+    "row_count": 12,
+    "execution_time": 0.145
+  },
+  "preview": {
+    "url": {
+      "preview_url": "http://localhost:5008/screenshot/chart/45.png",
+      "width": 800,
+      "height": 600
+    },
+    "ascii": {
+      "ascii_content": "Revenue Trend\n==============\nJan |████████████████ $125K\nFeb |██████████████████ $140K\n...",
+      "width": 80,
+      "height": 20
+    }
+  },
+  "created_on": "2024-01-25T14:20:00Z"
+}
+```
+
+### get_chart_data
+
+Export chart data in multiple formats.
+
+**Request Schema:**
+```json
+{
+  "identifier": 10,
+  "format": "json",               // "json", "csv", "excel"
+  "limit": 1000,                  // Optional: Row limit
+  "offset": 0,                    // Optional: Row offset
+  "filters": [                    // Optional: Additional filters
+    {
+      "column": "region",
+      "op": "=",
+      "value": "US"
+    }
+  ],
+  "use_cache": true,
+  "force_refresh": false
+}
+```
+
+**Response Example:**
+```json
+{
+  "data": [
+    {
+      "month": "2024-01",
+      "revenue": 125000,
+      "orders": 450
+    },
+    {
+      "month": "2024-02",
+      "revenue": 140000,
+      "orders": 520
+    }
+  ],
+  "total_rows": 12,
+  "columns": [
+    {"name": "month", "type": "DATE"},
+    {"name": "revenue", "type": "BIGINT"},
+    {"name": "orders", "type": "BIGINT"}
+  ],
+  "query": {
+    "sql": "SELECT month, SUM(revenue) as revenue, COUNT(*) as orders FROM sales_data GROUP BY month ORDER BY month",
+    "execution_time": 0.089
+  },
+  "cache_status": {
+    "cache_hit": false,
+    "cache_type": "query",
+    "refreshed": true
+  }
+}
+```
+
+### get_chart_preview
+
+Generate chart previews in multiple formats.
+
+**Request Schema:**
+```json
+{
+  "identifier": 10,
+  "format": "url",                // "url", "base64", "ascii", "table"
+  "width": 800,                   // For image formats
+  "height": 600,                  // For image formats
+  "ascii_width": 80,              // For ASCII format
+  "ascii_height": 20,             // For ASCII format
+  "use_cache": true
+}
+```
+
+**Response Examples:**
+
+**URL Format:**
+```json
+{
+  "format": "url",
+  "preview_url": "http://localhost:5008/screenshot/chart/10.png",
+  "width": 800,
+  "height": 600,
+  "supports_interaction": false,
+  "expires_at": "2024-01-26T14:20:00Z"
+}
+```
+
+**ASCII Format:**
+```json
+{
+  "format": "ascii",
+  "ascii_content": "Monthly Revenue Trend\n=====================\n\nJan |████████████████████ $125K\nFeb |██████████████████████ $140K\nMar |███████████████████ $135K\nApr |█████████████████████████ $155K\n\nRange: $125K to $155K\n▁▃▂▅▇▆▄▃▂▄▅▆▇▅▃▂",
+  "width": 80,
+  "height": 20,
+  "supports_color": false
+}
+```
+
+**Table Format:**
+```json
+{
+  "format": "table",
+  "table_data": "Monthly Revenue Data\n====================\n\nMonth    | Revenue  | Orders\n---------|----------|--------\nJan 2024 | $125,000 |    450\nFeb 2024 | $140,000 |    520\nMar 2024 | $135,000 |    495\n\nTotal: 12 rows × 3 columns",
+  "row_count": 12,
+  "supports_sorting": true
+}
+```
+
+## Dataset Tools
+
+### list_datasets
+
+List available datasets with columns and metrics.
+
+**Request Schema:**
+```json
+{
+  "search": "sales",
+  "filters": [
+    {
+      "col": "is_active",
+      "opr": "eq",
+      "value": true
+    }
+  ],
+  "include_columns": true,        // Include column metadata
+  "include_metrics": true,        // Include metric metadata
+  "page": 1,
+  "page_size": 15
+}
+```
+
+**Response Example:**
+```json
+{
+  "datasets": [
+    {
+      "id": 1,
+      "uuid": "dataset-uuid-1",
+      "table_name": "sales_data",
+      "database_name": "main_warehouse",
+      "schema": "public",
+      "owners": ["admin"],
+      "columns": [
+        {
+          "column_name": "region",
+          "type": "VARCHAR",
+          "is_active": true,
+          "is_dttm": false
+        },
+        {
+          "column_name": "revenue",
+          "type": "DECIMAL",
+          "is_active": true,
+          "is_dttm": false
+        }
+      ],
+      "metrics": [
+        {
+          "metric_name": "sum__revenue",
+          "expression": "SUM(revenue)",
+          "metric_type": "sum"
+        }
+      ],
+      "created_on": "2024-01-05T08:00:00Z"
+    }
+  ],
+  "total_count": 23,
+  "page": 1,
+  "page_size": 15
+}
+```
+
+### get_dataset_info
+
+Get detailed dataset information with full column/metric metadata.
+
+**Request Schema:**
+```json
+{
+  "identifier": "dataset-uuid-1",  // ID or UUID
+  "include_columns": true,
+  "include_metrics": true,
+  "use_cache": true
+}
+```
+
+**Response Example:**
+```json
+{
+  "dataset_id": 1,
+  "uuid": "dataset-uuid-1",
+  "table_name": "sales_data",
+  "database_name": "main_warehouse",
+  "database_id": 1,
+  "schema": "public",
+  "sql": null,
+  "is_active": true,
+  "owners": ["admin", "data_team"],
+  "columns": [
+    {
+      "id": 101,
+      "column_name": "region",
+      "type": "VARCHAR",
+      "is_active": true,
+      "is_dttm": false,
+      "groupby": true,
+      "filterable": true,
+      "description": "Geographic region"
+    },
+    {
+      "id": 102,
+      "column_name": "order_date",
+      "type": "DATE",
+      "is_active": true,
+      "is_dttm": true,
+      "groupby": true,
+      "filterable": true
+    }
+  ],
+  "metrics": [
+    {
+      "id": 201,
+      "metric_name": "sum__revenue",
+      "expression": "SUM(revenue)",
+      "metric_type": "sum",
+      "is_active": true,
+      "description": "Total revenue"
+    }
+  ],
+  "created_on": "2024-01-05T08:00:00Z",
+  "changed_on": "2024-01-18T12:30:00Z"
+}
+```
+
+## System Tools
+
+### get_superset_instance_info
+
+Get Superset instance information and statistics.
+
+**Request Schema:**
+```json
+{
+  "include_statistics": true,     // Include usage statistics
+  "include_tools": true,          // Include available MCP tools
+  "use_cache": true
+}
+```
+
+**Response Example:**
+```json
+{
+  "version": "4.1.0",
+  "build": "apache-superset-4.1.0",
+  "mcp_service_version": "1.0.0",
+  "authentication": {
+    "enabled": true,
+    "type": "jwt_bearer",
+    "required_scopes": ["dashboard:read", "chart:read"]
+  },
+  "statistics": {
+    "dashboards": {
+      "total": 45,
+      "published": 32
+    },
+    "charts": {
+      "total": 125,
+      "by_viz_type": {
+        "line": 35,
+        "bar": 28,
+        "table": 42,
+        "pie": 20
+      }
+    },
+    "datasets": {
+      "total": 23,
+      "active": 18
+    },
+    "users": {
+      "total": 15,
+      "active": 12
+    }
+  },
+  "mcp_tools": [
+    {
+      "name": "list_dashboards",
+      "description": "List dashboards with search and filtering",
+      "category": "dashboard"
+    },
+    {
+      "name": "generate_chart",
+      "description": "Create new charts programmatically",
+      "category": "chart"
+    }
+  ],
+  "database_connections": [
+    {
+      "id": 1,
+      "database_name": "main_warehouse",
+      "backend": "postgresql",
+      "status": "healthy"
+    }
+  ],
+  "cache_status": {
+    "enabled": true,
+    "backend": "redis",
+    "hit_rate": 0.85
+  }
+}
+```
+
+### generate_explore_link
+
+Generate Superset explore URLs with pre-configured chart settings.
+
+**Request Schema:**
+```json
+{
+  "dataset_id": "1",
+  "chart_config": {
+    "viz_type": "line",
+    "x_axis": "month",
+    "metrics": ["sum__revenue"],
+    "time_range": "Last 6 months"
+  },
+  "title": "Revenue Analysis",
+  "cache_form_data": true
+}
+```
+
+**Response Example:**
+```json
+{
+  "explore_url": "/superset/explore/?form_data_key=abc123def456",
+  "full_url": "http://localhost:8088/superset/explore/?form_data_key=abc123def456",
+  "form_data_key": "abc123def456",
+  "expires_at": "2024-01-26T16:45:00Z",
+  "chart_config": {
+    "viz_type": "line",
+    "datasource": "1__table",
+    "x_axis": "month",
+    "metrics": ["sum__revenue"],
+    "time_range": "Last 6 months"
+  }
+}
+```
+
+## SQL Lab Tools
+
+### open_sql_lab_with_context
+
+Open SQL Lab with pre-configured database, schema, and SQL.
+
+**Request Schema:**
+```json
+{
+  "database_connection_id": 1,
+  "schema": "public",
+  "dataset_in_context": "sales_data",
+  "sql": "SELECT region, SUM(revenue) as total_revenue\nFROM sales_data \nWHERE order_date >= '2024-01-01'\nGROUP BY region\nORDER BY total_revenue DESC",
+  "title": "Regional Sales Analysis"
+}
+```
+
+**Response Example:**
+```json
+{
+  "sql_lab_url": "/superset/sqllab/?dbid=1&schema=public&sql_template=encoded_sql_here",
+  "full_url": "http://localhost:8088/superset/sqllab/?dbid=1&schema=public&sql_template=encoded_sql_here",
+  "database_connection": {
+    "id": 1,
+    "database_name": "main_warehouse",
+    "backend": "postgresql"
+  },
+  "schema": "public",
+  "sql_template": "SELECT region, SUM(revenue) as total_revenue...",
+  "context": {
+    "dataset": "sales_data",
+    "title": "Regional Sales Analysis"
+  }
+}
+```
+
+## Error Responses
+
+All tools can return error responses with this structure:
+
+```json
+{
+  "error": "Chart not found with identifier: 999",
+  "error_type": "NotFound",
+  "suggestions": [
+    "Verify the chart ID exists",
+    "Check if you have permission to access this chart",
+    "Try using the chart UUID instead of ID"
+  ],
+  "details": {
+    "identifier": 999,
+    "identifier_type": "id"
+  }
+}
+```
+
+## Cache Status
+
+Many responses include cache status information:
+
+```json
+{
+  "cache_status": {
+    "cache_hit": true,           // Data served from cache
+    "cache_type": "query",       // Type: query, metadata, form_data
+    "cache_age_seconds": 300,    // Age of cached data
+    "refreshed": false           // Whether cache was refreshed
+  }
+}
+```
+
+This API reference provides complete documentation for integrating with the Superset MCP service, including all request schemas, response formats, and error handling patterns.
+
+## What's Next?
+
+### 🔐 **Ready for Production?**
+Set up authentication and security with the [Authentication Guide](./authentication.mdx).
+
+### 🔧 **Want to Add More Tools?**
+Learn how to extend the MCP service in the [Development Guide](./development.mdx).
+
+### 🏗️ **Need Architecture Details?**
+Understand the system design in the [Architecture Overview](./architecture.mdx).
+
+### 🏢 **Enterprise Features?**
+Explore advanced capabilities in the [Preset Integration Guide](./preset-integration.mdx).
+
+> 📖 **Back to Documentation Index**: [docs/README.md](./README.md)

@@ -2,79 +2,38 @@
 
 The Superset Model Context Protocol (MCP) service provides a modular, schema-driven interface for programmatic access to Superset dashboards, charts, datasets, and instance metadata. It is designed for LLM agents and automation tools, and is built on the FastMCP protocol.
 
-**✅ Phase 1 Complete (95% done). Core functionality stable, authentication production-ready, comprehensive testing coverage.**
+**✅ Phase 1 Complete. Core functionality stable, authentication production-ready, comprehensive testing coverage.**
 
 ## 🚀 Quickstart
 
 ### 1. Install Superset Locally
 
-Follow the official Superset installation guide: https://superset.apache.org/docs/contributing/development
-
-**Quick Setup (from Superset docs):**
 ```bash
 # Clone the repository
 git clone https://github.com/apache/superset.git
 cd superset
 
-# Create a virtual environment (using pyenv)
-pyenv virtualenv 3.9.19 superset-mcp
-pyenv activate superset-mcp
+# Create virtual environment and install (Python 3.10 or 3.11 required)
+make venv
+source venv/bin/activate
+make install
 
-# Install development requirements
-pip install -r requirements/development.txt
-pip install -e .
-
-# Initialize the database
-superset db upgrade
-
-# Create an admin user
-superset fab create-admin
-
-# Load example data (optional but recommended for testing)
-superset load-examples
-
-# Initialize Superset
-superset init
-
-# Start the development server (in a separate terminal)
+# Start Superset (in a separate terminal)
+source venv/bin/activate
 superset run -p 8088 --with-threads --reload --debugger
 ```
 
-### 2. Install Browser Dependencies (for chart screenshots)
+For alternative installation methods, see the [official Superset development guide](https://superset.apache.org/docs/contributing/development).
 
-The chart preview functionality requires Firefox and geckodriver:
-
-**macOS:**
-```bash
-# Install Firefox (if not already installed)
-brew install --cask firefox
-
-# Install geckodriver
-brew install geckodriver
-```
-
-**Ubuntu/Debian:**
-```bash
-# Install Firefox
-sudo apt-get update
-sudo apt-get install firefox
-
-# Install geckodriver
-sudo apt-get install firefox-geckodriver
-```
-
-**Manual Installation:**
-- Download Firefox from https://www.mozilla.org/firefox/
-- Download geckodriver from https://github.com/mozilla/geckodriver/releases
-- Add geckodriver to your PATH
-
-### 3. Run the MCP Service
+### 2. Run the MCP Service
 
 The MCP service runs as an HTTP server (not stdout) and requires a proxy for Claude Desktop:
 
 ```bash
 # In a new terminal, with your virtual environment activated
-pyenv activate superset-mcp  # or your venv activation command
+source venv/bin/activate  # if using make venv
+# OR
+# pyenv activate superset-mcp  # if using pyenv
 
 # Run the MCP service
 superset mcp run --port 5008 --debug
@@ -82,36 +41,20 @@ superset mcp run --port 5008 --debug
 
 The service will start on http://localhost:5008
 
-### 4. Connect to Claude Desktop
+### 3. Connect to Claude Desktop
 
 Since the MCP service runs on HTTP (not stdout), you need to use the FastMCP proxy:
 
-**Step 1: Install the FastMCP proxy**
-```bash
-pip install fastmcp
-```
+**Step 1: Configure the existing proxy script**
+The proxy script `superset/mcp_service/run_proxy.sh` is already provided. Update the paths in it if needed for your environment.
 
-**Step 2: Create the proxy script**
-Create `/Users/aming/github/superset/superset/mcp_service/run_proxy.sh`:
-```bash
-#!/bin/bash
-cd /Users/aming/github/superset
-source ~/.pyenv/versions/superset-mcp/bin/activate  # Adjust for your venv
-exec fastmcp proxy http://localhost:5008
-```
-
-Make it executable:
-```bash
-chmod +x /Users/aming/github/superset/superset/mcp_service/run_proxy.sh
-```
-
-**Step 3: Configure Claude Desktop**
+**Step 2: Configure Claude Desktop**
 Add to your Claude Desktop config (~/Library/Application Support/Claude/claude_desktop_config.json):
 ```json
 {
   "mcpServers": {
     "Superset MCP Proxy": {
-      "command": "/Users/aming/github/superset/superset/mcp_service/run_proxy.sh",
+      "command": "/path/to/your/superset/superset/mcp_service/run_proxy.sh",
       "args": [],
       "env": {}
     }
@@ -119,10 +62,20 @@ Add to your Claude Desktop config (~/Library/Application Support/Claude/claude_d
 }
 ```
 
-**Step 4: Restart Claude Desktop**
+**Step 3: Restart Claude Desktop**
 - Quit Claude Desktop completely
 - Start it again
 - The Superset MCP tools should now be available
+
+### 4. Install Browser Dependencies (Optional - for chart screenshots)
+
+The chart preview functionality requires Firefox and geckodriver. See the [Superset documentation](https://superset.apache.org/docs/contributing/development) for installation instructions.
+
+**Quick install on macOS:**
+```bash
+brew install --cask firefox
+brew install geckodriver
+```
 
 ### 5. Verify Your Setup
 
@@ -134,8 +87,12 @@ curl http://localhost:8088/health
 
 **Check that MCP service is running:**
 ```bash
-curl http://localhost:5008/
-# Should return FastMCP service info
+# Check if the MCP service port is listening
+lsof -i :5008
+# Should show the superset mcp process listening on port 5008
+
+# Or check the process directly
+ps aux | grep "superset mcp"
 ```
 
 **Test in Claude Desktop:**
@@ -144,14 +101,11 @@ curl http://localhost:5008/
 
 ### 6. Run Tests (Optional)
 
-Run the unit and integration tests to verify your environment:
+Run the unit tests to verify your environment:
 
 ```bash
 # Unit tests
 pytest tests/unit_tests/mcp_service/ --maxfail=1 -v
-
-# Integration tests (requires running Superset)
-python tests/integration_tests/mcp_service/run_mcp_tests.py
 ```
 
 ## Troubleshooting
@@ -169,65 +123,77 @@ python tests/integration_tests/mcp_service/run_mcp_tests.py
 
 ## Available Tools
 
-All tools are modular, strongly typed, and use Pydantic v2 schemas. Every field is documented for LLM/OpenAPI compatibility.
+**16 MCP tools** with Pydantic v2 schemas and comprehensive field documentation for LLM compatibility.
 
-### 📊 Dashboard Tools
-- **`list_dashboards`** - Advanced filtering, search, pagination with UUID and slug support and metadata caching
-- **`get_dashboard_info`** - Supports ID, UUID, and slug lookups with detailed metadata and cache control
-- **`get_dashboard_available_filters`** - Dynamic filter discovery for dashboard queries
-- **`generate_dashboard`** - ✨ **NEW**: Create dashboards with multiple charts and automatic layout
-- **`add_chart_to_existing_dashboard`** - ✨ **NEW**: Add charts to existing dashboards with smart positioning
+### 📊 Dashboard Tools (5)
+- **`list_dashboards`** - List with search/filters/pagination, UUID/slug support
+- **`get_dashboard_info`** - Get by ID/UUID/slug with metadata
+- **`get_dashboard_available_filters`** - Discover filterable columns
+- **`generate_dashboard`** - Create dashboards with multiple charts
+- **`add_chart_to_existing_dashboard`** - Add charts to existing dashboards
 
-### 📈 Chart Tools  
-- **`list_charts`** - Advanced filtering, search, pagination with UUID support and metadata caching
-- **`get_chart_info`** - Supports ID and UUID lookups with full chart metadata
-- **`get_chart_available_filters`** - Dynamic filter discovery for chart queries
-- **`generate_chart`** - Chart creation supporting 5 types with cache control
-- **`update_chart`** - ✨ **NEW**: Update existing saved charts with new configuration and cache control
-- **`update_chart_preview`** - ✨ **NEW**: Update cached chart previews without saving
-- **`get_chart_data`** - ✨ **NEW**: Retrieve chart data in multiple formats with advanced cache control and status reporting
-- **`get_chart_preview`** - ✨ **NEW**: Generate chart previews with cache control
+### 📈 Chart Tools (8)  
+- **`list_charts`** - List with search/filters/pagination, UUID support
+- **`get_chart_info`** - Get by ID/UUID with full metadata
+- **`get_chart_available_filters`** - Discover filterable columns
+- **`generate_chart`** - Create charts (table, line, bar, area, scatter)
+- **`update_chart`** - Update existing saved charts
+- **`update_chart_preview`** - Update cached chart previews
+- **`get_chart_data`** - Export data (JSON/CSV/Excel)
+- **`get_chart_preview`** - Screenshots, ASCII art, table previews
 
-### 🗂️ Dataset Tools
-- **`list_datasets`** - Advanced filtering, search, pagination with UUID support + columns/metrics and metadata caching
-- **`get_dataset_info`** - Supports ID and UUID lookups with columns/metrics metadata and cache control
-- **`get_dataset_available_filters`** - Dynamic filter discovery for dataset queries
+### 🗂️ Dataset Tools (3)
+- **`list_datasets`** - List with columns/metrics, UUID support
+- **`get_dataset_info`** - Get by ID/UUID with columns/metrics metadata
+- **`get_dataset_available_filters`** - Discover filterable columns
 
-### 🖥️ System Tools
-- **`get_superset_instance_info`** - Instance statistics including version, tools, and auth status with system-level metadata caching
-- **`generate_explore_link`** - Generate Superset explore URLs with pre-configured chart settings
+### 🖥️ System Tools (2)
+- **`get_superset_instance_info`** - Instance statistics and version info
+- **`generate_explore_link`** - Generate chart exploration URLs
 
-### 🧪 SQL Lab Tools
-- **`open_sql_lab_with_context`** - ✨ **NEW**: Open SQL Lab with pre-selected database, schema, and SQL
-
-### 🔧 Navigation & Workflow Tools
-All tools now support seamless navigation between Superset interfaces with proper URL generation and context preservation.
+### 🧪 SQL Lab Tools (1)
+- **`open_sql_lab_with_context`** - Pre-configured SQL Lab sessions
 
 ## Available Operations
 
-The MCP service currently provides the following operations:
-
-### ✅ Read Operations (Available for all entities)
-- **List**: Get paginated lists with filtering and search
-- **Get Info**: Retrieve detailed information by ID, UUID, or slug
+### ✅ Read Operations (All entities)
+- **List**: Paginated lists with filtering, search, and UUID/slug support
+- **Get Info**: Detailed information by ID, UUID, or slug
 - **Get Filters**: Discover available filter columns and operators
+- **Get Data**: Export chart data in multiple formats
+- **Get Previews**: Chart screenshots, ASCII art, and table representations
 
-### ✅ Create Operations (Limited availability)
-- **Charts**: Create new charts with 5 visualization types
-- **Dashboards**: Generate new dashboards with automatic layout
-- **Add to Dashboard**: Add existing charts to dashboards
+### ✅ Create Operations
+- **Charts**: Create charts with 5 visualization types (table, line, bar, area, scatter)
+- **Dashboards**: Generate dashboards with multiple charts and automatic layout
+- **Add to Dashboard**: Add existing charts to dashboards with smart positioning
 
-### ✅ Update Operations (Limited availability)
+### ✅ Update Operations
 - **Charts**: Update saved charts and cached chart previews
+- **Navigation**: Generate explore links and SQL Lab sessions
 
-### ❌ Not Yet Available
-- **Update**: No update operations for dashboards or datasets
-- **Delete**: No delete operations for any entity
-- **Execute**: SQL Lab opens sessions but doesn't execute queries
+### ❌ Not Available (Future phases)
+- **Update/Delete**: Dashboard and dataset modifications
+- **SQL Execution**: Query execution in SQL Lab (opens sessions only)
 
-This reflects Phase 1 focus on read operations and essential creation capabilities.
+## 📖 Complete Documentation
 
-See the architecture doc for full tool signatures and usage examples.
+The MCP service is fully documented on the **[official Superset documentation site](https://superset.apache.org/docs/mcp-service/intro)**:
+
+### Quick Access
+- **[🚀 MCP Service Overview](https://superset.apache.org/docs/mcp-service/intro)** - Complete introduction and features
+- **[📚 API Reference](https://superset.apache.org/docs/mcp-service/api-reference)** - All 16 tools with examples
+- **[🔧 Development Guide](https://superset.apache.org/docs/mcp-service/development)** - Adding new tools and architecture
+- **[🔐 Authentication](https://superset.apache.org/docs/mcp-service/authentication)** - Production security setup
+
+### By Role
+**👩‍💻 Developers & Integrators:** [Overview](https://superset.apache.org/docs/mcp-service/overview) → [API Reference](https://superset.apache.org/docs/mcp-service/api-reference) → [Development Guide](https://superset.apache.org/docs/mcp-service/development)
+
+**🔒 DevOps & Production:** [Authentication](https://superset.apache.org/docs/mcp-service/authentication) → [Architecture](https://superset.apache.org/docs/mcp-service/architecture)
+
+**🏢 Enterprise Teams:** [Preset Integration](https://superset.apache.org/docs/mcp-service/preset-integration)
+
+> 💡 **Local Development?** See the [local docs folder](./docs/) for markdown versions during development.
 
 ## Enhanced Parameter Handling
 
@@ -403,38 +369,22 @@ get_chart_preview(request={
 - **All tool functions must be decorated with `@mcp.tool` and `@mcp_auth_hook`.**
 - **All Superset DAOs, command classes, and most Superset modules must be imported inside the function body, not at the top of the file.** This ensures proper app context and avoids initialization errors.
 
-## Phase 1 Status
+## Current Status
 
-### ✅ Completed Features
-| Epic | Status | Description |
-|------|--------|--------------|
-| **[Implement Standalone MCP Service CLI](https://app.shortcut.com/preset-ext/story/90298)** | ✅ Complete | ASGI/FastMCP server with CLI (`superset mcp run`) |
-| **[Add Auth/RBAC Hooks](https://app.shortcut.com/preset-ext/story/90301)** | ✅ Complete | JWT Bearer authentication, RBAC hooks, logging, configurable factory pattern |
-| **[Implement list/info tools for dataset, dashboard, chart](https://app.shortcut.com/preset-ext/story/90300)** | 🟡 In QA | All list/info tools for dashboards, datasets, charts with multi-identifier support |
-| **[Define Modular, Typed Schemas](https://app.shortcut.com/preset-ext/story/90299)** | 🟡 In Review | Pydantic v2 schemas, FastMCP Complex Inputs Pattern |
-| **[Write Dev Guide and Docs](https://app.shortcut.com/preset-ext/story/90302)** | 🟡 In Review | Architecture documentation, request/response examples |
+### ✅ Phase 1 Complete
+- **FastMCP Server**: CLI with `superset mcp run`, HTTP service on port 5008
+- **Authentication**: Production-ready JWT Bearer with configurable factory pattern
+- **16 Core Tools**: All list/info/filter tools, chart creation, dashboard generation
+- **Request Schema Pattern**: Eliminates LLM parameter validation issues
+- **Cache Control**: Comprehensive control over Superset's existing cache layers
+- **Audit Logging**: MCP context tracking with impersonation and payload sanitization
+- **Testing**: 194+ unit tests with full pre-commit compliance
 
-### 🔄 Phase 1 In Progress
-| Epic | Status | Description |
-|------|--------|--------------|
-| **[Implement Chart Creation Mutation](https://app.shortcut.com/preset-ext/story/90304)** | 🟡 In Review | `generate_chart` tool supporting 5 chart types |
-| **[Implement Navigation Actions](https://app.shortcut.com/preset-ext/story/90305)** | 🟡 In Review | `generate_explore_link` ✅, `open_sql_lab_with_context` pending |
-| **[backend rendering in the short term for embedded charts in to the chat](https://app.shortcut.com/preset-ext/story/90511)** | 🟨 In Development | Embedded charts for LLM chat integration |
-| **[Support for Bearer authentication](https://app.shortcut.com/preset-ext/story/90509)** | 🟨 In Development | Enhanced JWT authentication features |
-| **[Document Preset Extension Points](https://app.shortcut.com/preset-ext/story/90303)** | 🟡 In Review | RBAC, OIDC integration design for Preset team |
-
-### 🎯 Phase 1 Stretch Goals
-| Epic | Status | Description |
-|------|--------|--------------|
-| **[Create Demo Script / Notebook](https://app.shortcut.com/preset-ext/story/90306)** | 📋 Planned | Interactive demo showing bot capabilities, video demonstrations |
-| **[In-Preset Hosted Demo (OAuth, impersonation)](https://app.shortcut.com/preset-ext/story/90397)** | 📋 Planned | User impersonation with OAuth handshake, cloud deployment |
-| **[LLM / Chat friendly backend rendered charts](https://app.shortcut.com/preset-ext/story/90508)** | 📋 Planned | Chart embedding in LLM chats, screenshot URLs, Vega-Lite/Plotly JSON |
-
-### 🚫 Out of Scope (Not Phase 1)
-| Epic | Status | Description |
-|------|--------|--------------|
-| **[Security Hooks for Tool Poisoning Attacks](https://app.shortcut.com/preset-ext/story/90398)** | 📋 Future | Tool poisoning attack prevention |
-| **[caching and refresh](https://app.shortcut.com/preset-ext/story/90510)** | 📋 Out of Scope | Leverage existing Superset cache layers |
+### 🎯 Future Enhancements
+- Demo notebooks and interactive examples
+- OAuth integration for user impersonation  
+- Enhanced chart rendering formats (Vega-Lite, Plotly JSON)
+- Advanced security features and tool poisoning prevention
 
 ## Security & Authentication
 
