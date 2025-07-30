@@ -376,7 +376,8 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
     const prev = prevDataRef.current;
     const curr = data;
 
-    const hasDataChanged = prev?.length !== curr?.length ||
+    const hasDataChanged =
+      prev?.length !== curr?.length ||
       prev?.some((row, i) => {
         const prevVal = row[col];
         const currVal = curr[i][col];
@@ -396,7 +397,9 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
     if (
       isChangedByUser.current &&
       filterState.value &&
-      filterState.value.every((value?: any) => data.some(row => row[col] === value))
+      filterState.value.every((value?: any) =>
+        data.some(row => row[col] === value),
+      )
     )
       return;
 
