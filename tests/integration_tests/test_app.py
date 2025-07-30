@@ -25,10 +25,29 @@ if TYPE_CHECKING:
     from flask.testing import FlaskClient
 
 
-superset_config_module = environ.get(
-    "SUPERSET_CONFIG", "tests.integration_tests.superset_test_config"
-)
-app = create_app(superset_config_module=superset_config_module)
+# DEPRECATED: Do not use this global app instance directly
+# Use the app fixture from conftest.py instead
+# This is kept for backward compatibility only
+def _get_app():
+    """Get app instance lazily. This function is deprecated."""
+    superset_config_module = environ.get(
+        "SUPERSET_CONFIG", "tests.integration_tests.superset_test_config"
+    )
+    return create_app(superset_config_module=superset_config_module)
+
+
+# Create app lazily to avoid issues with config at import time
+_app = None
+
+
+def __getattr__(name):
+    """Lazy load app attribute for backward compatibility."""
+    global _app
+    if name == "app":
+        if _app is None:
+            _app = _get_app()
+        return _app
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 
 
 def login(
