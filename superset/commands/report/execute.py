@@ -21,6 +21,7 @@ from uuid import UUID
 
 import pandas as pd
 from celery.exceptions import SoftTimeLimitExceeded
+from flask import current_app
 
 from superset import db, security_manager
 from superset.commands.base import BaseCommand
@@ -310,7 +311,6 @@ class BaseReportState:
         Get chart or dashboard screenshots
         :raises: ReportScheduleScreenshotFailedError
         """
-        from flask import current_app
 
         conf = current_app.config
         _, username = get_executor(
@@ -381,8 +381,6 @@ class BaseReportState:
         return pdf
 
     def _get_csv_data(self) -> bytes:
-        from flask import current_app
-
         url = self._get_url(result_format=ChartDataResultFormat.CSV)
         _, username = get_executor(
             executors=current_app.config["ALERT_REPORTS_EXECUTORS"],
@@ -412,7 +410,6 @@ class BaseReportState:
         """
         Return data as a Pandas dataframe, to embed in notifications as a table.
         """
-        from flask import current_app
 
         url = self._get_url(result_format=ChartDataResultFormat.JSON)
         _, username = get_executor(
@@ -577,8 +574,6 @@ class BaseReportState:
             notification = create_notification(recipient, notification_content)
             try:
                 try:
-                    from flask import current_app
-
                     if current_app.config["ALERT_REPORTS_NOTIFICATION_DRY_RUN"]:
                         logger.info(
                             "Would send notification for alert %s, to %s. "
@@ -889,7 +884,6 @@ class AsyncExecuteReportScheduleCommand(BaseCommand):
             self.validate()
             if not self._model:
                 raise ReportScheduleExecuteUnexpectedError()
-            from flask import current_app
 
             _, username = get_executor(
                 executors=current_app.config["ALERT_REPORTS_EXECUTORS"],

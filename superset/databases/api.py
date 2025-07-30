@@ -25,13 +25,20 @@ from typing import Any, cast
 from zipfile import is_zipfile, ZipFile
 
 from deprecation import deprecated
-from flask import make_response, render_template, request, Response, send_file
+from flask import (
+    current_app,
+    make_response,
+    render_template,
+    request,
+    Response,
+    send_file,
+)
 from flask_appbuilder.api import expose, protect, rison, safe
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from marshmallow import ValidationError
 from sqlalchemy.exc import NoSuchTableError, OperationalError, SQLAlchemyError
 
-from superset import app, event_logger
+from superset import event_logger
 from superset.commands.database.create import CreateDatabaseCommand
 from superset.commands.database.delete import DeleteDatabaseCommand
 from superset.commands.database.exceptions import (
@@ -662,7 +669,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             pk,
             current_username,
         ).run()
-        conf = app.config
+        conf = current_app.config
         if conf["SYNC_DB_PERMISSIONS_IN_ASYNC_MODE"]:
             return self.response(202, message="Async task created to sync permissions")
         return self.response(200, message="Permissions successfully synced")
@@ -1877,7 +1884,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             500:
               $ref: '#/components/responses/500'
         """
-        conf = app.config
+        conf = current_app.config
         preferred_databases: list[str] = conf.get("PREFERRED_DATABASES", [])
         available_databases = []
         for engine_spec, drivers in get_available_engine_specs().items():

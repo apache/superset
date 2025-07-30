@@ -18,7 +18,9 @@
 import logging
 from typing import Any
 
-from superset import app, db, security_manager
+from flask import current_app
+
+from superset import db, security_manager
 from superset.commands.database.utils import add_permissions
 from superset.commands.exceptions import ImportFailedError
 from superset.databases.ssh_tunnel.models import SSHTunnel
@@ -51,7 +53,7 @@ def import_database(
             "Database doesn't exist and user doesn't have permission to create databases"  # noqa: E501
         )
     # Check if this URI is allowed
-    if app.config["PREVENT_UNSAFE_DB_CONNECTIONS"]:
+    if current_app.config["PREVENT_UNSAFE_DB_CONNECTIONS"]:
         try:
             check_sqlalchemy_uri(make_url_safe(config["sqlalchemy_uri"]))
         except SupersetSecurityException as exc:

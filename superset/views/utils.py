@@ -29,7 +29,7 @@ from flask_babel import _
 from sqlalchemy.exc import NoResultFound
 from werkzeug.wrappers.response import Response
 
-from superset import app, dataframe, db, result_set, viz
+from superset import dataframe, db, result_set, viz
 from superset.common.db_query_status import QueryStatus
 from superset.daos.datasource import DatasourceDAO
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
@@ -54,8 +54,7 @@ from superset.viz import BaseViz
 conf = current_app.config
 
 logger = logging.getLogger(__name__)
-todo_config = app.config
-stats_logger = todo_config["STATS_LOGGER"]
+stats_logger = current_app.config["STATS_LOGGER"]
 
 REJECTED_FORM_DATA_KEYS: list[str] = []
 if not feature_flag_manager.is_feature_enabled("ENABLE_JAVASCRIPT_CONTROLS"):

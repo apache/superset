@@ -22,9 +22,10 @@ from typing import Any
 
 import click
 from colorama import Fore, Style
+from flask import current_app
 from flask.cli import FlaskGroup, with_appcontext
 
-from superset import app, appbuilder, cli, security_manager
+from superset import appbuilder, cli, security_manager
 from superset.extensions import db
 from superset.utils.decorators import transaction
 
@@ -44,18 +45,23 @@ def normalize_token(token_name: str) -> str:
     return token_name.replace("_", "-")
 
 
+def create_app() -> Any:
+    """Create app instance for CLI"""
+    from superset.app import create_app as create_superset_app
+
+    return create_superset_app()
+
+
 @click.group(
     cls=FlaskGroup,
+    create_app=create_app,
     context_settings={"token_normalize_func": normalize_token},
 )
 @with_appcontext
 def superset() -> None:
     """\033[1;37mThe Apache Superset CLI\033[0m"""
     # NOTE: codes above are ANSI color codes for bold white in CLI header ^^^
-
-    @app.shell_context_processor
-    def make_shell_context() -> dict[str, Any]:
-        return {"app": app, "db": db}
+    pass
 
 
 # add sub-commands
@@ -85,7 +91,6 @@ def init() -> None:
 @click.option("--verbose", "-v", is_flag=True, help="Show extra information")
 def version(verbose: bool) -> None:
     """Prints the current version number"""
-    from flask import current_app
 
     print(Fore.BLUE + "-=" * 15)
     print(

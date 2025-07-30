@@ -21,6 +21,7 @@ from typing import Any, TYPE_CHECKING
 from unittest.mock import MagicMock, patch, PropertyMock
 
 import pytest
+from flask import current_app
 from flask_appbuilder.security.sqla.models import User
 
 from superset.connectors.sqla.models import BaseDatasource, SqlaTable
@@ -235,8 +236,6 @@ def test_dashboard_digest(
     expected_result: str | Exception,
     app_context: None,
 ) -> None:
-    from flask import current_app
-
     from superset import security_manager
     from superset.models.dashboard import Dashboard
     from superset.models.slice import Slice
@@ -377,8 +376,6 @@ def test_chart_digest(
     expected_result: str | Exception,
     app_context: None,
 ) -> None:
-    from flask import current_app
-
     from superset import security_manager
     from superset.models.slice import Slice
     from superset.thumbnails.digest import get_chart_digest

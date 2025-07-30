@@ -97,8 +97,6 @@ logger = logging.getLogger(__name__)
 
 
 def get_conf() -> Any:
-    from flask import current_app
-
     return current_app.config
 
 

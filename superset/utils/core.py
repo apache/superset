@@ -67,7 +67,7 @@ import pandas as pd
 import sqlalchemy as sa
 from cryptography.hazmat.backends import default_backend
 from cryptography.x509 import Certificate, load_pem_x509_certificate
-from flask import g, request
+from flask import current_app, g, request
 from flask_appbuilder import SQLA
 from flask_appbuilder.security.sqla.models import User
 from flask_babel import gettext as __
@@ -1382,7 +1382,6 @@ def create_ssl_cert_file(certificate: str) -> str:
     """
     filename = f"{md5_sha_from_str(certificate)}.crt"
     # pylint: disable=import-outside-toplevel
-    from flask import current_app
 
     conf = current_app.config
     cert_dir = conf["SSL_CERT_PATH"]
@@ -1433,7 +1432,6 @@ class DatasourceName(NamedTuple):
 
 def get_stacktrace() -> str | None:
     # pylint: disable=import-outside-toplevel
-    from flask import current_app
 
     conf = current_app.config
     if conf["SHOW_STACKTRACE"]:
@@ -1876,7 +1874,6 @@ def apply_max_row_limit(
     50000
     """
     # pylint: disable=import-outside-toplevel
-    from flask import current_app
 
     conf = current_app.config
     max_limit = (
@@ -1905,7 +1902,6 @@ def check_is_safe_zip(zip_file: ZipFile) -> None:
     :return:
     """
     # pylint: disable=import-outside-toplevel
-    from flask import current_app
 
     conf = current_app.config
     uncompress_size = 0
@@ -1954,7 +1950,6 @@ def get_query_source_from_request() -> QuerySource | None:
 
 def get_user_agent(database: Database, source: QuerySource | None) -> str:
     # pylint: disable=import-outside-toplevel
-    from flask import current_app
 
     conf = current_app.config
     source = source or get_query_source_from_request()

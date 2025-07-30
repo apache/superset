@@ -17,7 +17,7 @@
 from datetime import datetime
 from typing import Any, Dict
 
-from flask import g, redirect, request, Response
+from flask import current_app, g, redirect, request, Response
 from flask_appbuilder.api import expose, safe
 from flask_appbuilder.security.sqla.models import User
 from flask_jwt_extended.exceptions import NoAuthorizationError
@@ -221,7 +221,6 @@ class UserRestApi(BaseSupersetApi):
         # fetch from the one-to-one relationship
         if len(user.extra_attributes) > 0:
             avatar_url = user.extra_attributes[0].avatar_url
-        from flask import current_app
 
         conf = current_app.config
         slack_token = conf.get("SLACK_API_TOKEN")

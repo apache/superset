@@ -16,10 +16,10 @@
 # under the License.
 from typing import TYPE_CHECKING
 
+from flask import current_app
 from flask_appbuilder import expose
 from flask_appbuilder.security.decorators import has_access
 
-from superset import app
 from superset.constants import MODEL_VIEW_RW_METHOD_PERMISSION_MAP
 from superset.superset_typing import FlaskResponse
 from superset.views.base import BaseSupersetView
@@ -27,13 +27,8 @@ from superset.views.base import BaseSupersetView
 if TYPE_CHECKING:
     from werkzeug.datastructures import FileStorage
 
-todo_config = app.config
-stats_logger = todo_config["STATS_LOGGER"]
-
 
 def upload_stream_write(form_file_field: "FileStorage", path: str) -> None:
-    from flask import current_app
-
     chunk_size = current_app.config["UPLOAD_CHUNK_SIZE"]
     with open(path, "bw") as file_description:
         while True:

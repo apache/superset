@@ -49,7 +49,6 @@ from sqlalchemy.orm import Query
 from wtforms.fields.core import Field, UnboundField
 
 from superset import (
-    app as superset_app,
     appbuilder,
     db,
     get_feature_flags,
@@ -444,17 +443,6 @@ def common_bootstrap_payload() -> dict[str, Any]:
     }
 
 
-@superset_app.context_processor
-def get_common_bootstrap_data() -> dict[str, Any]:
-    def serialize_bootstrap_data() -> str:
-        return json.dumps(
-            {"common": common_bootstrap_payload()},
-            default=json.pessimistic_json_iso_dttm_ser,
-        )
-
-    return {"bootstrap_data": serialize_bootstrap_data}
-
-
 class SupersetListWidget(ListWidget):  # pylint: disable=too-few-public-methods
     template = "superset/fab_overrides/list.html"
 
@@ -583,16 +571,3 @@ def bind_field(
 
 
 FlaskForm.Meta.bind_field = bind_field
-
-
-@superset_app.after_request
-def apply_http_headers(response: Response) -> Response:
-    """Applies the configuration's http headers to all responses"""
-
-    # HTTP_HEADERS is deprecated, this provides backwards compatibility
-    response.headers.extend({**conf["OVERRIDE_HTTP_HEADERS"], **conf["HTTP_HEADERS"]})
-
-    for k, v in conf["DEFAULT_HTTP_HEADERS"].items():
-        if k not in response.headers:
-            response.headers[k] = v
-    return response

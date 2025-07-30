@@ -27,6 +27,7 @@ from urllib import parse
 
 from flask import (
     abort,
+    current_app,
     flash,
     g,
     redirect,
@@ -46,7 +47,6 @@ from sqlalchemy.exc import SQLAlchemyError
 from werkzeug.utils import safe_join
 
 from superset import (
-    app,
     appbuilder,
     db,
     event_logger,
@@ -114,9 +114,6 @@ from superset.views.utils import (
 )
 from superset.viz import BaseViz
 
-todo_config = app.config
-SQLLAB_QUERY_COST_ESTIMATE_TIMEOUT = todo_config["SQLLAB_QUERY_COST_ESTIMATE_TIMEOUT"]
-stats_logger = todo_config["STATS_LOGGER"]
 logger = logging.getLogger(__name__)
 
 DATASOURCE_MISSING_ERR = __("The data source seems to have been deleted")
@@ -490,8 +487,6 @@ class Superset(BaseSupersetView):
             selectedColumns = form_data.pop("selectedColumns")  # noqa: N806
 
         if "viz_type" not in form_data:
-            from flask import current_app
-
             form_data["viz_type"] = current_app.config["DEFAULT_VIZ_TYPE"]
             if current_app.config["DEFAULT_VIZ_TYPE"] == "table":
                 all_columns = []

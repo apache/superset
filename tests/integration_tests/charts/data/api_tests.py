@@ -48,6 +48,7 @@ from superset.utils.core import (
 )
 from superset.utils.database import get_example_database, get_main_database
 from tests.common.query_context_generator import ANNOTATION_LAYERS
+from tests.conftest import with_config
 from tests.integration_tests.annotation_layers.fixtures import (
     create_annotation_layers,  # noqa: F401
 )
@@ -225,10 +226,7 @@ class TestPostChartDataApi(BaseTestChartDataApi):
         assert rv.json["result"][0]["rowcount"] == expected_row_count
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
-    @mock.patch(
-        "superset.common.query_context_factory.todo_config",
-        {**app.config, "ROW_LIMIT": 7},
-    )
+    @with_config({"ROW_LIMIT": 7})
     def test_without_row_limit__row_count_as_default_row_limit(self):
         # arrange
         expected_row_count = 7
@@ -239,10 +237,7 @@ class TestPostChartDataApi(BaseTestChartDataApi):
         self.assert_row_count(rv, expected_row_count)
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
-    @mock.patch(
-        "superset.common.query_context_factory.todo_config",
-        {**app.config, "SAMPLES_ROW_LIMIT": 5},
-    )
+    @with_config({"SAMPLES_ROW_LIMIT": 5})
     def test_as_samples_without_row_limit__row_count_as_default_samples_row_limit(self):
         # arrange
         expected_row_count = 5
@@ -291,10 +286,7 @@ class TestPostChartDataApi(BaseTestChartDataApi):
         assert "GROUP BY" not in rv.json["result"][0]["query"]
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
-    @mock.patch(
-        "superset.common.query_context_factory.todo_config",
-        {**app.config, "SAMPLES_ROW_LIMIT": 5, "SQL_MAX_ROW": 15},
-    )
+    @with_config({"SAMPLES_ROW_LIMIT": 5, "SQL_MAX_ROW": 15})
     def test_with_row_limit_as_samples__rowcount_as_row_limit(self):
         expected_row_count = 10
         self.query_context_payload["result_type"] = ChartDataResultType.SAMPLES
@@ -1355,7 +1347,7 @@ def physical_query_context(physical_dataset) -> dict[str, Any]:
 
 
 @mock.patch(
-    "superset.common.query_context_processor.todo_config",
+    "superset.common.query_context_processor.current_app.config",
     {
         **app.config,
         "CACHE_DEFAULT_TIMEOUT": 1234,
@@ -1410,7 +1402,7 @@ def test_force_cache_timeout(test_client, login_as_admin, physical_query_context
 
 
 @mock.patch(
-    "superset.common.query_context_processor.todo_config",
+    "superset.common.query_context_processor.current_app.config",
     {
         **app.config,
         "CACHE_DEFAULT_TIMEOUT": 100000,
@@ -1455,7 +1447,7 @@ def test_chart_cache_timeout(
 
 
 @mock.patch(
-    "superset.common.query_context_processor.todo_config",
+    "superset.common.query_context_processor.current_app.config",
     {
         **app.config,
         "DATA_CACHE_CONFIG": {
@@ -1482,7 +1474,7 @@ def test_chart_cache_timeout_not_present(
 
 
 @mock.patch(
-    "superset.common.query_context_processor.todo_config",
+    "superset.common.query_context_processor.current_app.config",
     {
         **app.config,
         "DATA_CACHE_CONFIG": {

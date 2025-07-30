@@ -201,6 +201,12 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         from superset.views.users_list import UsersListView
 
         set_app_error_handlers(self.superset_app)
+        self.register_request_handlers()
+
+        # Register health blueprint
+        from superset.views.health import health_blueprint
+
+        self.superset_app.register_blueprint(health_blueprint)
 
         #
         # Setup API views
@@ -552,6 +558,39 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         if self.config["SESSION_SERVER_SIDE"]:
             Session(self.superset_app)
 
+    def register_request_handlers(self) -> None:
+        """Register app-level request handlers"""
+        from flask import Response
+
+        @self.superset_app.after_request
+        def apply_http_headers(response: Response) -> Response:
+            """Applies the configuration's http headers to all responses"""
+            conf = self.superset_app.config
+
+            # HTTP_HEADERS is deprecated, this provides backwards compatibility
+            response.headers.extend(
+                {**conf["OVERRIDE_HTTP_HEADERS"], **conf["HTTP_HEADERS"]}
+            )
+
+            for k, v in conf["DEFAULT_HTTP_HEADERS"].items():
+                if k not in response.headers:
+                    response.headers[k] = v
+            return response
+
+        @self.superset_app.context_processor
+        def get_common_bootstrap_data() -> dict[str, Any]:
+            # Import here to avoid circular imports
+            from superset.utils import json
+            from superset.views.base import common_bootstrap_payload
+
+            def serialize_bootstrap_data() -> str:
+                return json.dumps(
+                    {"common": common_bootstrap_payload()},
+                    default=json.pessimistic_json_iso_dttm_ser,
+                )
+
+            return {"bootstrap_data": serialize_bootstrap_data}
+
     def init_app(self) -> None:
         """
         Main entry point which will delegate to other methods in
@@ -777,6 +816,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             async_query_manager_factory.init_app(self.superset_app)
 
     def register_blueprints(self) -> None:
+        # Register custom blueprints from config
         for bp in self.config["BLUEPRINTS"]:
             try:
                 logger.info("Registering blueprint: %s", bp.name)

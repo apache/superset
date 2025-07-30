@@ -25,9 +25,10 @@ from uuid import UUID
 import numpy as np
 import pandas as pd
 from celery.exceptions import SoftTimeLimitExceeded
+from flask import current_app
 from flask_babel import lazy_gettext as _
 
-from superset import app, jinja_context, security_manager
+from superset import jinja_context, security_manager
 from superset.commands.base import BaseCommand
 from superset.commands.report.exceptions import (
     AlertQueryError,
@@ -162,7 +163,7 @@ class AlertCommand(BaseCommand):
                 rendered_sql, ALERT_SQL_LIMIT
             )
 
-            if app.config["MUTATE_ALERT_QUERY"]:
+            if current_app.config["MUTATE_ALERT_QUERY"]:
                 limited_rendered_sql = (
                     self._report_schedule.database.mutate_sql_based_on_config(
                         limited_rendered_sql
@@ -170,7 +171,7 @@ class AlertCommand(BaseCommand):
                 )
 
             executor, username = get_executor(  # pylint: disable=unused-variable
-                executors=app.config["ALERT_REPORTS_EXECUTORS"],
+                executors=current_app.config["ALERT_REPORTS_EXECUTORS"],
                 model=self._report_schedule,
             )
             user = security_manager.find_user(username)
@@ -204,7 +205,7 @@ class AlertCommand(BaseCommand):
         df = retry_call(
             self._execute_query,
             exception=AlertQueryError,
-            max_tries=app.config["ALERT_REPORTS_QUERY_EXECUTION_MAX_TRIES"],
+            max_tries=current_app.config["ALERT_REPORTS_QUERY_EXECUTION_MAX_TRIES"],
         )
 
         if df.empty and self._is_validator_not_null:

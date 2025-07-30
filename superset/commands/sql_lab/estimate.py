@@ -19,6 +19,7 @@ from __future__ import annotations
 import logging
 from typing import Any, TypedDict
 
+from flask import current_app
 from flask_babel import gettext as __
 
 from superset import db
@@ -76,8 +77,6 @@ class QueryEstimationCommand(BaseCommand):
         if self._template_params:
             template_processor = get_template_processor(self._database)
             sql = template_processor.process_template(sql, **self._template_params)
-
-        from flask import current_app
 
         timeout = current_app.config["SQLLAB_QUERY_COST_ESTIMATE_TIMEOUT"]
         timeout_msg = f"The estimation exceeded the {timeout} seconds timeout."

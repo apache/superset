@@ -25,7 +25,7 @@ from typing import cast, TYPE_CHECKING, TypedDict
 
 from flask import current_app
 
-from superset import app, feature_flag_manager, thumbnail_cache
+from superset import feature_flag_manager, thumbnail_cache
 from superset.extensions import event_logger
 from superset.utils.hashing import md5_sha_from_dict
 from superset.utils.urls import modify_url_query
@@ -133,8 +133,7 @@ class ScreenshotCachePayload:
         return self.status.value
 
     def is_error_cache_ttl_expired(self) -> bool:
-        todo_config = app.config
-        error_cache_ttl = todo_config["THUMBNAIL_ERROR_CACHE_TTL"]
+        error_cache_ttl = current_app.config["THUMBNAIL_ERROR_CACHE_TTL"]
         return (
             datetime.now() - datetime.fromisoformat(self.get_timestamp())
         ).total_seconds() > error_cache_ttl

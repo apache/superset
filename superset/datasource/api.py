@@ -16,9 +16,10 @@
 # under the License.
 import logging
 
+from flask import current_app
 from flask_appbuilder.api import expose, protect, safe
 
-from superset import app, event_logger
+from superset import event_logger
 from superset.daos.datasource import DatasourceDAO
 from superset.daos.exceptions import DatasourceNotFound, DatasourceTypeNotSupportedError
 from superset.exceptions import SupersetSecurityException
@@ -114,7 +115,7 @@ class DatasourceRestApi(BaseSupersetApi):
         except SupersetSecurityException as ex:
             return self.response(403, message=ex.message)
 
-        conf = app.config
+        conf = current_app.config
         row_limit = apply_max_row_limit(conf["FILTER_SELECT_ROW_LIMIT"])
         denormalize_column = not datasource.normalize_columns
         try:

@@ -22,7 +22,7 @@ from datetime import datetime, timedelta
 from functools import wraps
 from typing import Any, Callable, TYPE_CHECKING
 
-from flask import current_app as app, request
+from flask import current_app, request
 from flask_caching import Cache
 from flask_caching.backends import NullCache
 from werkzeug.wrappers import Response
@@ -57,17 +57,17 @@ def set_and_log_cache(
     timeout = (
         cache_timeout
         if cache_timeout is not None
-        else app.config["CACHE_DEFAULT_TIMEOUT"]
+        else current_app.config["CACHE_DEFAULT_TIMEOUT"]
     )
     try:
         dttm = datetime.utcnow().isoformat().split(".")[0]
         value = {**cache_value, "dttm": dttm}
         cache_instance.set(cache_key, value, timeout=timeout)
-        conf = app.config
+        conf = current_app.config
         stats_logger = conf["STATS_LOGGER"]
         stats_logger.incr("set_cache_key")
 
-        if datasource_uid and app.config["STORE_CACHE_KEYS_IN_METADATA_DB"]:
+        if datasource_uid and current_app.config["STORE_CACHE_KEYS_IN_METADATA_DB"]:
             ck = CacheKey(
                 cache_key=cache_key,
                 cache_timeout=cache_timeout,
@@ -122,7 +122,7 @@ def memoized_func(key: str, cache: Cache = cache_manager.cache) -> Callable[...,
             should_cache = kwargs.pop("cache", True)
             force = kwargs.pop("force", False)
             cache_timeout = kwargs.pop(
-                "cache_timeout", app.config["CACHE_DEFAULT_TIMEOUT"]
+                "cache_timeout", current_app.config["CACHE_DEFAULT_TIMEOUT"]
             )
 
             if not should_cache:
@@ -172,7 +172,7 @@ def etag_cache(  # noqa: C901
             # Set default max_age if not provided
             nonlocal max_age
             if max_age is None:
-                max_age = app.config["CACHE_DEFAULT_TIMEOUT"]
+                max_age = current_app.config["CACHE_DEFAULT_TIMEOUT"]
 
             # Check if the user can access the resource
             if raise_for_access:
@@ -201,7 +201,7 @@ def etag_cache(  # noqa: C901
                 )
                 response = cache.get(cache_key)
             except Exception:  # pylint: disable=broad-except
-                if app.debug:
+                if current_app.debug:
                     raise
                 logger.exception("Exception possibly due to cache backend.")
 
@@ -246,7 +246,7 @@ def etag_cache(  # noqa: C901
                 try:
                     cache.set(cache_key, response, timeout=max_age)
                 except Exception:  # pylint: disable=broad-except
-                    if app.debug:
+                    if current_app.debug:
                         raise
                     logger.exception("Exception possibly due to cache backend.")
 

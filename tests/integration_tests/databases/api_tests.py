@@ -3345,10 +3345,9 @@ class TestDatabaseApi(SupersetTestCase):
             ]
         }
 
+    @with_config({"PREFERRED_DATABASES": ["PostgreSQL", "Google BigQuery"]})
     @mock.patch("superset.databases.api.get_available_engine_specs")
-    @mock.patch("superset.databases.api.app")
-    def test_available(self, app, get_available_engine_specs):
-        app.config = {"PREFERRED_DATABASES": ["PostgreSQL", "Google BigQuery"]}
+    def test_available(self, get_available_engine_specs):
         get_available_engine_specs.return_value = {
             PostgresEngineSpec: {"psycopg2"},
             BigQueryEngineSpec: {"bigquery"},
@@ -3625,10 +3624,9 @@ class TestDatabaseApi(SupersetTestCase):
             ]
         }
 
+    @with_config({"PREFERRED_DATABASES": ["MySQL"]})
     @mock.patch("superset.databases.api.get_available_engine_specs")
-    @mock.patch("superset.databases.api.app")
-    def test_available_no_default(self, app, get_available_engine_specs):
-        app.config = {"PREFERRED_DATABASES": ["MySQL"]}
+    def test_available_no_default(self, get_available_engine_specs):
         get_available_engine_specs.return_value = {
             MySQLEngineSpec: {"mysqlconnector"},
             HanaEngineSpec: {""},

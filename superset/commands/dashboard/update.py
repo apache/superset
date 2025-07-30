@@ -19,6 +19,7 @@ import textwrap
 from functools import partial
 from typing import Any, Optional
 
+from flask import current_app
 from flask_appbuilder.models.sqla import Model
 from marshmallow import ValidationError
 
@@ -171,8 +172,6 @@ class UpdateDashboardCommand(UpdateMixin, BaseCommand):
             )
             for report_owner in report.owners:
                 if email := report_owner.email:
-                    from flask import current_app
-
                     send_email_smtp(
                         to=email,
                         subject=f"[Report: {report.name}] Deactivated",

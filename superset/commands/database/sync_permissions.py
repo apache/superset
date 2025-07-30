@@ -22,7 +22,7 @@ from typing import Iterable
 
 from flask import current_app, g
 
-from superset import app, security_manager
+from superset import security_manager
 from superset.commands.base import BaseCommand
 from superset.commands.database.exceptions import (
     DatabaseConnectionFailedError,
@@ -74,7 +74,7 @@ class SyncPermissionsCommand(BaseCommand):
         self._db_connection: Database | None = db_connection
         self.db_connection_ssh_tunnel: SSHTunnel | None = ssh_tunnel
 
-        self.async_mode: bool = app.config["SYNC_DB_PERMISSIONS_IN_ASYNC_MODE"]
+        self.async_mode: bool = current_app.config["SYNC_DB_PERMISSIONS_IN_ASYNC_MODE"]
 
     @property
     def db_connection(self) -> Database:

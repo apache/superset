@@ -24,13 +24,13 @@ from typing import Any, TYPE_CHECKING, TypedDict
 
 from apispec import APISpec
 from apispec.ext.marshmallow import MarshmallowPlugin
+from flask import current_app
 from flask_babel import gettext as __
 from marshmallow import fields, Schema
 from sqlalchemy import types
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.url import URL
 
-from superset.config import VERSION_STRING as TODO_VERSION_STRING
 from superset.constants import TimeGrain
 from superset.databases.utils import make_url_safe
 from superset.db_engine_specs.base import BaseEngineSpec
@@ -39,6 +39,8 @@ from superset.utils.core import get_user_agent, QuerySource
 
 if TYPE_CHECKING:
     from superset.models.core import Database
+
+conf = current_app.config
 
 
 COLUMN_DOES_NOT_EXIST_REGEX = re.compile("no such column: (?P<column_name>.+)")
@@ -252,7 +254,7 @@ class DuckDBEngineSpec(DuckDBParametersMixin, BaseEngineSpec):
         delim = " " if custom_user_agent else ""
         user_agent = get_user_agent(database, source)
         user_agent = user_agent.replace(" ", "-").lower()
-        user_agent = f"{user_agent}/{TODO_VERSION_STRING}{delim}{custom_user_agent}"
+        user_agent = f"{user_agent}/{conf['VERSION_STRING']}{delim}{custom_user_agent}"
         config.setdefault("custom_user_agent", user_agent)
 
         return extra
