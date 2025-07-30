@@ -307,7 +307,7 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
         """Validate time_offsets configuration"""
         if not self.time_offsets:
             return
-            
+
         for offset in self.time_offsets:
             # Check if this is a date range offset (YYYY-MM-DD : YYYY-MM-DD format)
             if self._is_valid_date_range(offset):

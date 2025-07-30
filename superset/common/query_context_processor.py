@@ -145,10 +145,10 @@ class QueryContextProcessor:
         if query_obj:
             # Always validate the query object before processing
             query_obj.validate()
-            
+
         if query_obj and cache_key and not cache.is_loaded:
             try:
-                
+
                 if invalid_columns := [
                     col
                     for col in get_column_names_from_columns(query_obj.columns)
