@@ -30,7 +30,7 @@ from fastmcp import Client
 from superset.mcp_service.mcp_app import mcp
 
 # Updated imports for new simplified schemas
-from superset.mcp_service.pydantic_schemas.chart_schemas import (
+from superset.mcp_service.schemas.chart_schemas import (
     AxisConfig,
     ChartInfo,
     ColumnRef,

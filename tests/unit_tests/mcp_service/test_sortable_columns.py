@@ -33,11 +33,11 @@ from superset.mcp_service.dataset.tool.list_datasets import (
     list_datasets,
     SORTABLE_DATASET_COLUMNS,
 )
-from superset.mcp_service.pydantic_schemas.chart_schemas import ListChartsRequest
-from superset.mcp_service.pydantic_schemas.dashboard_schemas import (
+from superset.mcp_service.schemas.chart_schemas import ListChartsRequest
+from superset.mcp_service.schemas.dashboard_schemas import (
     ListDashboardsRequest,
 )
-from superset.mcp_service.pydantic_schemas.dataset_schemas import ListDatasetsRequest
+from superset.mcp_service.schemas.dataset_schemas import ListDatasetsRequest
 
 
 class TestSortableColumns:
