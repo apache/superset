@@ -1,0 +1,118 @@
+---
+title: MCP Service
+sidebar_position: 1
+version: 1
+---
+
+# Superset MCP Service
+
+The Superset Model Context Protocol (MCP) service provides programmatic access to Superset dashboards, charts, datasets, and instance metadata. Built for LLM agents and automation tools.
+
+## What is MCP?
+
+The Model Context Protocol (MCP) is an open standard that allows AI assistants to securely connect to data sources and tools. Superset's MCP service exposes **16 production-ready tools** that enable:
+
+- 📊 **Data Exploration**: List and query dashboards, charts, and datasets
+- 🔧 **Chart Creation**: Generate visualizations programmatically
+- 📈 **Data Export**: Extract data in multiple formats (JSON, CSV, Excel)
+- 🔗 **Navigation**: Generate explore links and SQL Lab sessions
+
+## Quick Start
+
+### Installation
+```bash
+# MCP service is included with Superset development setup
+git clone https://github.com/apache/superset.git
+cd superset
+make venv && source venv/bin/activate
+make install
+
+# Start Superset
+superset run -p 8088 --with-threads --reload --debugger
+
+# Start MCP service (separate terminal)
+source venv/bin/activate
+superset mcp run --port 5008 --debug
+```
+
+### Claude Desktop Integration
+```json
+{
+  "mcpServers": {
+    "Superset MCP": {
+      "command": "/path/to/superset/superset/mcp_service/run_proxy.sh",
+      "args": [],
+      "env": {}
+    }
+  }
+}
+```
+
+## Key Features
+
+### 🔧 **16 Production Tools**
+| Category | Tools | Purpose |
+|----------|-------|---------|
+| **Dashboard** (5) | List, get info, create, add charts | Dashboard management |
+| **Chart** (8) | Full CRUD, data export, previews | Chart operations |
+| **Dataset** (3) | List, get info, discover filters | Dataset exploration |
+| **System** (2) | Instance info, explore links | System integration |
+| **SQL Lab** (1) | Pre-configured sessions | SQL development |
+
+### 🔐 **Enterprise Security**
+- **JWT Bearer Authentication**: Production-ready with configurable factory pattern
+- **RBAC Integration**: Scope-based permissions with Superset's security model
+- **Audit Logging**: Comprehensive MCP context tracking
+
+### 📊 **Advanced Capabilities**
+- **Multi-format Export**: JSON, CSV, Excel data export
+- **Chart Previews**: Screenshots, ASCII art, table representations
+- **Cache Control**: Leverage Superset's existing cache infrastructure
+- **Request Schemas**: Eliminates LLM parameter validation issues
+
+## Example Usage
+
+```python
+# List dashboards
+dashboards = client.call_tool("list_dashboards", {
+    "search": "sales",
+    "page_size": 10
+})
+
+# Create a chart
+chart = client.call_tool("generate_chart", {
+    "dataset_id": "1",
+    "config": {
+        "chart_type": "line",
+        "x": {"name": "date"},
+        "y": [{"name": "revenue", "aggregate": "SUM"}]
+    }
+})
+
+# Export chart data
+data = client.call_tool("get_chart_data", {
+    "identifier": chart["chart_id"],
+    "format": "json",
+    "limit": 1000
+})
+```
+
+## Status
+
+✅ **Phase 1 Complete** - Core functionality stable, authentication production-ready, comprehensive testing coverage.
+
+## Documentation Structure
+
+### Getting Started
+- **[Overview](./overview)** - Features, use cases, and examples
+- **[API Reference](./api-reference)** - Complete tool documentation
+
+### Development
+- **[Development Guide](./development)** - Internal architecture and adding tools
+- **[Architecture](./architecture)** - System design and patterns
+
+### Production
+- **[Authentication](./authentication)** - JWT setup and security
+- **[Preset Integration](./preset-integration)** - Enterprise features
+
+> 🚀 **Ready to start?** Continue with the [Overview](./overview) for detailed examples and use cases.
