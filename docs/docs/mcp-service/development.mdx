@@ -28,14 +28,14 @@ graph TB
     end
 
     subgraph "Auth & Middleware Layer"
-        AuthHook[@mcp_auth_hook]
+        AuthHook[Auth Hook Decorator]
         JWT[JWT Validator]
         RBAC[RBAC Engine]
         Audit[Audit Logger]
     end
 
     subgraph "Tool Layer"
-        Tools[16 MCP Tools<br/>@mcp.tool decorated]
+        Tools[16 MCP Tools<br/>Tool Decorated]
         Schemas[Pydantic Schemas]
         Validation[Request Validation]
     end
@@ -95,7 +95,7 @@ Every MCP tool call follows this execution pattern:
 sequenceDiagram
     participant Client as LLM Client
     participant MCP as FastMCP Server
-    participant Auth as @mcp_auth_hook
+    participant Auth as Auth Hook
     participant Tool as MCP Tool
     participant Generic as Generic Abstraction
     participant DAO as Superset DAO
