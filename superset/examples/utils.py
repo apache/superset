@@ -117,7 +117,9 @@ def load_contents(load_test_data: bool = False) -> dict[str, Any]:
                 for child_name in (files("superset") / str(path_name)).iterdir()
             )
         elif Path(str(path_name)).suffix.lower() in YAML_EXTENSIONS:
-            if load_test_data and test_re.search(str(path_name)) is None:
+            # When load_test_data is False, skip test files
+            # When load_test_data is True, load all files (including test files)
+            if not load_test_data and test_re.search(str(path_name)) is not None:
                 continue
             contents[Path(str(path_name))] = (
                 files("superset") / str(path_name)
