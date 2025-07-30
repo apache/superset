@@ -1,9 +1,14 @@
 {
   "name": "Apache Superset Development",
-  // Use our custom Dockerfile that includes cached apt packages
+  // Option 1: Use pre-built image (update with your actual image URL)
+  // "image": "ghcr.io/YOUR_USERNAME/superset:devcontainer-base",
+
+  // Option 2: Build from Dockerfile (current approach)
   "build": {
     "dockerfile": "Dockerfile",
-    "context": "."
+    "context": ".",
+    // Force caching from your registry image
+    "cacheFrom": ["ghcr.io/YOUR_USERNAME/superset:devcontainer-base"]
   },
 
   "features": {

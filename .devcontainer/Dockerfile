@@ -1,5 +1,5 @@
 # Keep this in sync with the base image in the main Dockerfile (ARG PY_VER)
-FROM python:3.11.13-bookworm
+FROM python:3.11.13-bookworm AS base
 
 # Install system dependencies that Superset needs
 # This layer will be cached across Codespace sessions

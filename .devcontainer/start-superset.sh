@@ -29,6 +29,21 @@ while ! docker info > /dev/null 2>&1; do
 done
 echo "✅ Docker is ready!"
 
+# Check if Superset containers are already running
+if docker ps | grep -q "superset"; then
+    echo "✅ Superset containers are already running!"
+    echo ""
+    echo "🌐 You can access Superset at:"
+    echo "   - Port 8088: Superset UI"
+    echo "   - Port 8081: Alternative port"
+    echo "   - Port 9000: Frontend dev server (if running)"
+    echo ""
+    echo "To restart with the light version, first run:"
+    echo "   docker-compose down"
+    echo "   docker-compose -f docker-compose-light.yml up"
+    exit 0
+fi
+
 # Clean up any existing containers
 echo "🧹 Cleaning up existing containers..."
 docker-compose -f docker-compose-light.yml down

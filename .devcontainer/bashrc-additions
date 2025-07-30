@@ -11,9 +11,14 @@ if [ -n "$WORKSPACE_DIR" ]; then
         source "$WORKSPACE_DIR/.venv/bin/activate"
         echo "✅ Python virtual environment activated"
 
-        # Verify pre-commit is installed
+        # Verify pre-commit is installed and set up
         if command -v pre-commit &> /dev/null; then
             echo "✅ pre-commit is available ($(pre-commit --version))"
+            # Install git hooks if not already installed
+            if [ -d "$WORKSPACE_DIR/.git" ] && [ ! -f "$WORKSPACE_DIR/.git/hooks/pre-commit" ]; then
+                echo "🪝 Installing pre-commit hooks..."
+                cd "$WORKSPACE_DIR" && pre-commit install
+            fi
         else
             echo "⚠️  pre-commit not found. Run: pip install pre-commit"
         fi
