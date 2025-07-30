@@ -34,15 +34,16 @@
   },
 
   // Run commands after container is created
-  "postCreateCommand": "chmod +x .devcontainer/setup-dev.sh && .devcontainer/setup-dev.sh",
+  // Made simpler to avoid failures during Codespace creation
+  "postCreateCommand": "echo '🎉 Codespace created! Run .devcontainer/setup-dev.sh to set up Python environment'",
 
   // Note: Superset startup is now manual to avoid Docker timing issues
   // Run `.devcontainer/start-superset.sh` when ready to start Superset
 
   // Set environment variables
   "remoteEnv": {
-    "VIRTUAL_ENV": "/workspaces/${localWorkspaceFolderBasename}/.venv",
-    "PATH": "/workspaces/${localWorkspaceFolderBasename}/.venv/bin:${PATH}"
+    // Removed automatic venv activation to prevent startup issues
+    // The setup script will handle this
   },
 
   // VS Code customizations
