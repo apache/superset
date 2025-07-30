@@ -90,7 +90,7 @@ RUN --mount=type=cache,target=/root/.npm \
 # Copy translation files
 COPY superset/translations /app/superset/translations
 
-# Build the frontend if not in dev mode
+# Build translations if enabled, then cleanup localization files
 RUN if [ "$BUILD_TRANSLATIONS" = "true" ]; then \
         npm run build-translation; \
     fi; \
