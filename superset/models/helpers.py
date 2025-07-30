@@ -1290,9 +1290,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 condition = condition_factory(expr.name, expr)
 
                 # Create CASE expression: condition true -> original, else "Others"
-                case_expr = sa.case(
-                    [(condition, expr)], else_=sa.literal_column("Others")
-                )
+                case_expr = sa.case([(condition, expr)], else_=sa.literal("Others"))
                 case_expr = self.make_sqla_column_compatible(case_expr, expr.name)
                 modified_select_exprs.append(case_expr)
             else:
@@ -1308,9 +1306,13 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 # Create CASE expression for groupby
                 case_expr = sa.case(
                     [(condition, gby_expr)],
-                    else_=sa.literal_column("Others"),
+                    else_=sa.literal("Others"),
                 )
-                case_expr = self.make_sqla_column_compatible(case_expr, col_name)
+                # Don't apply make_sqla_column_compatible to GROUP BY expressions.
+                # When make_sqla_column_compatible adds a label to the expression,
+                # it can cause SQLAlchemy to incorrectly render string literals
+                # without quotes in the GROUP BY clause (e.g., "ELSE Others"
+                # instead of "ELSE 'Others'")
                 modified_groupby_all_columns[col_name] = case_expr
             else:
                 modified_groupby_all_columns[col_name] = gby_expr
