@@ -59,6 +59,7 @@ from superset.extensions import (
     talisman,
 )
 from superset.security import SupersetSecurityManager
+from superset.openapi import SupersetOpenApi,SupsersetSwaggerView
 from superset.sql.parse import SQLGLOT_DIALECTS
 from superset.superset_typing import FlaskResponse
 from superset.tags.core import register_sqla_event_listeners
@@ -367,6 +368,9 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.add_view_no_menu(ReportView)
         appbuilder.add_view_no_menu(RoleRestAPI)
         appbuilder.add_view_no_menu(UserInfoView)
+        if self.config.get("FAB_API_SWAGGER_UI_SUPERSET_APP_ROOT", False):
+            appbuilder.add_api(SupersetOpenApi)
+            appbuilder.add_view_no_menu(SupsersetSwaggerView)
 
         #
         # Add links
