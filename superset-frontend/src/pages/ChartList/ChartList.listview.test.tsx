@@ -849,4 +849,35 @@ describe('ChartList - List View Tests', () => {
       expect(screen.queryByTestId('bulk-select-copy')).not.toBeInTheDocument();
     });
   });
+
+  it('displays dataset name without schema prefix correctly', async () => {
+    // Test just name case - should display the full name when no schema prefix
+    renderChartList(mockUser);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('listview-table')).toBeInTheDocument();
+    });
+
+    const table = screen.getByTestId('listview-table');
+
+    // Wait for chart with simple dataset name to load
+    await waitFor(() => {
+      expect(
+        within(table).getByText(mockCharts[1].slice_name),
+      ).toBeInTheDocument();
+    });
+
+    // Test mockCharts[1] which has 'sales_data' (no schema prefix)
+    const chart1Row = within(table)
+      .getByText(mockCharts[1].slice_name)
+      .closest('[data-test="table-row"]') as HTMLElement;
+    const chart1DatasetLink = within(chart1Row).getByTestId('internal-link');
+
+    // Should display the full name when there's no schema prefix
+    expect(chart1DatasetLink).toHaveTextContent('sales_data');
+    expect(chart1DatasetLink).toHaveAttribute(
+      'href',
+      mockCharts[1].datasource_url,
+    );
+  });
 });
