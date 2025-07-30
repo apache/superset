@@ -19,9 +19,14 @@
 
 import { QueryFormData } from '@superset-ui/core';
 
-/**
- * Deck.gl chart types that perform aggregation and can have multiple values in tooltips
- */
+interface TooltipItem {
+  item_type?: string;
+  column_name?: string;
+  metric_name?: string;
+  label?: string;
+  verbose_name?: string;
+}
+
 export const AGGREGATED_DECK_GL_CHART_TYPES = [
   'deck_screengrid',
   'deck_heatmap',
@@ -30,9 +35,6 @@ export const AGGREGATED_DECK_GL_CHART_TYPES = [
   'deck_grid',
 ];
 
-/**
- * Chart types that do NOT aggregate data (each tooltip shows single data point)
- */
 export const NON_AGGREGATED_DECK_GL_CHART_TYPES = [
   'deck_scatter',
   'deck_arc',
@@ -41,45 +43,32 @@ export const NON_AGGREGATED_DECK_GL_CHART_TYPES = [
   'deck_geojson',
 ];
 
-/**
- * Determines if a deck.gl chart type aggregates data points
- */
 export function isAggregatedDeckGLChart(vizType: string): boolean {
   return AGGREGATED_DECK_GL_CHART_TYPES.includes(vizType);
 }
 
-/**
- * Determines if a tooltip content field might contain multiple values
- * for the given chart configuration
- */
 export function fieldHasMultipleValues(
   item: any,
   formData: QueryFormData,
 ): boolean {
-  // Only aggregated deck.gl charts can have multiple values
   if (!isAggregatedDeckGLChart(formData.viz_type)) {
     return false;
   }
 
-  // Skip metrics for now - they are typically aggregated already
   if (item?.item_type === 'metric') {
     return false;
   }
 
-  // Only screengrid reliably supports multi-value fields with individual point access
-  // Other aggregated charts (hex, grid, heatmap, contour) use different aggregation methods
   const supportsMultiValue = ['deck_screengrid'].includes(formData.viz_type);
 
   if (!supportsMultiValue) {
     return false;
   }
 
-  // Columns in aggregated charts can have multiple values
   if (item?.item_type === 'column') {
     return true;
   }
 
-  // String columns can have multiple values
   if (typeof item === 'string') {
     return true;
   }
@@ -87,34 +76,32 @@ export function fieldHasMultipleValues(
   return false;
 }
 
-/**
- * Creates a default template that limits multi-value fields
- */
+const getFieldName = (item: TooltipItem | string): string | null => {
+  if (typeof item === 'string') return item;
+  if (item?.item_type === 'column') return item.column_name ?? null;
+  if (item?.item_type === 'metric')
+    return item.metric_name ?? item.label ?? null;
+  return null;
+};
+
+const getFieldLabel = (item: TooltipItem | string): string => {
+  if (typeof item === 'string') return item;
+  if (item?.item_type === 'column') {
+    return item.verbose_name || item.column_name || 'Column';
+  }
+  if (item?.item_type === 'metric') {
+    return item.verbose_name || item.metric_name || item.label || 'Metric';
+  }
+  return 'Field';
+};
+
 export function createDefaultTemplateWithLimits(
-  tooltipContents: any[],
+  tooltipContents: (TooltipItem | string)[],
   formData: QueryFormData,
 ): string {
   if (!tooltipContents?.length) {
     return '';
   }
-
-  const getFieldName = (item: any): string | null => {
-    if (typeof item === 'string') return item;
-    if (item?.item_type === 'column') return item.column_name;
-    if (item?.item_type === 'metric') return item.metric_name || item.label;
-    return null;
-  };
-
-  const getFieldLabel = (item: any): string => {
-    if (typeof item === 'string') return item;
-    if (item?.item_type === 'column') {
-      return item.verbose_name || item.column_name || 'Column';
-    }
-    if (item?.item_type === 'metric') {
-      return item.verbose_name || item.metric_name || item.label || 'Metric';
-    }
-    return 'Field';
-  };
 
   const templateLines: string[] = [];
 
@@ -127,13 +114,11 @@ export function createDefaultTemplateWithLimits(
     const hasMultipleValues = fieldHasMultipleValues(item, formData);
 
     if (hasMultipleValues) {
-      // For multi-value fields, use the plural field name and limit helper
       const pluralFieldName = `${fieldName}s`;
       templateLines.push(
         `<div><strong>${fieldLabel}:</strong> {{#if ${pluralFieldName}}}{{limit ${pluralFieldName} 10}}{{#if ${fieldName}_count}} ({{${fieldName}_count}} total){{/if}}{{else}}N/A{{/if}}</div>`,
       );
     } else {
-      // For single-value fields, show normally
       templateLines.push(
         `<div><strong>${fieldLabel}:</strong> {{#if ${fieldName}}}{{${fieldName}}}{{else}}N/A{{/if}}</div>`,
       );
@@ -143,8 +128,5 @@ export function createDefaultTemplateWithLimits(
   return templateLines.join('\n');
 }
 
-/**
- * Warning message for multi-value tooltip fields
- */
 export const MULTI_VALUE_WARNING_MESSAGE =
   'This metric or column contains many values, they may not be able to be all displayed in the tooltip';

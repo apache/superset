@@ -18,15 +18,7 @@
  */
 
 import { useState, useCallback, useMemo, useEffect } from 'react';
-import { t, styled } from '@superset-ui/core';
-import { StyledComponents } from './TooltipTemplateEditorStyles';
-
-interface TooltipField {
-  id: string;
-  name: string;
-  label: string;
-  type: string;
-}
+import { styled, t } from '@superset-ui/core';
 
 export interface TooltipTemplateEditorProps {
   value: string;
@@ -35,6 +27,119 @@ export interface TooltipTemplateEditorProps {
   name: string;
   tooltipContents?: any[];
 }
+
+const StyledTemplateEditor = styled.div`
+  ${({ theme }) => `
+    .template-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: ${theme.sizeUnit * 2}px;
+      padding: ${theme.sizeUnit * 2}px;
+      background-color: ${theme.colors.grayscale.light5};
+      border-radius: ${theme.sizeUnit}px;
+      border: 1px solid ${theme.colors.grayscale.light2};
+    }
+
+    .available-fields {
+      display: flex;
+      flex-wrap: wrap;
+      gap: ${theme.sizeUnit}px;
+      margin-top: ${theme.sizeUnit * 2}px;
+    }
+
+    .field-tag {
+      background-color: ${theme.colors.primary.light4};
+      color: ${theme.colors.primary.dark1};
+      padding: ${theme.sizeUnit}px ${theme.sizeUnit * 2}px;
+      border-radius: ${theme.sizeUnit * 2}px;
+      font-size: ${theme.fontSizeSM}px;
+      font-family: Monaco, monospace;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      border: 1px solid ${theme.colors.primary.light2} !important;
+
+      &:hover {
+        background-color: ${theme.colors.primary.light3} !important;
+        transform: translateY(-1px);
+        box-shadow: 0 2px 4px ${theme.colors.grayscale.light1}40;
+      }
+
+      &:active {
+        transform: translateY(0);
+      }
+
+      &:focus {
+        outline: 2px solid ${theme.colors.primary.base};
+        outline-offset: 2px;
+      }
+    }
+
+    .template-editor {
+      margin-top: ${theme.sizeUnit * 2}px;
+
+      textarea {
+        width: 100%;
+        min-height: 280px;
+        padding: ${theme.sizeUnit * 2}px;
+        border: 1px solid ${theme.colors.grayscale.light2};
+        border-radius: ${theme.sizeUnit}px;
+        font-family: Monaco, 'Courier New', monospace;
+        font-size: 13px;
+        line-height: 1.4;
+        resize: vertical;
+        background-color: ${theme.colors.grayscale.light5};
+
+        &:focus {
+          outline: none;
+          border-color: ${theme.colors.primary.base};
+          box-shadow: 0 0 0 2px ${theme.colors.primary.light4};
+        }
+      }
+    }
+
+    .template-help {
+      margin-top: ${theme.sizeUnit * 2}px;
+      padding: ${theme.sizeUnit * 2}px;
+      background-color: ${theme.colors.grayscale.light5};
+      border-radius: ${theme.sizeUnit}px;
+      border: 1px solid ${theme.colors.grayscale.light2};
+      font-size: ${theme.fontSizeSM}px;
+
+      .help-section {
+        margin-bottom: ${theme.sizeUnit * 2}px;
+
+        &:last-child {
+          margin-bottom: 0;
+        }
+      }
+
+      .help-title {
+        font-weight: bold;
+        color: ${theme.colors.grayscale.dark1};
+        margin-bottom: ${theme.sizeUnit}px;
+      }
+
+      .help-example {
+        background-color: ${theme.colors.grayscale.light3};
+        padding: ${theme.sizeUnit * 2}px;
+        border-radius: ${theme.sizeUnit}px;
+        margin: ${theme.sizeUnit}px 0;
+        font-family: Monaco, monospace;
+        font-size: 12px;
+        color: ${theme.colors.grayscale.dark2};
+        white-space: pre-wrap;
+        overflow-x: auto;
+      }
+    }
+
+    .variable-counter {
+      color: ${theme.colors.grayscale.base};
+      font-size: ${theme.fontSizeSM}px;
+      font-style: italic;
+    }
+  `}
+`;
 
 const NoFieldsMessage = styled.p`
   margin-top: ${({ theme }) => theme.sizeUnit * 2}px;
@@ -64,76 +169,68 @@ const HelpToggleButton = styled.button`
   }
 `;
 
-function extractFieldFromItem(item: any, index: number): TooltipField | null {
-  let fieldName = '';
-  let label = '';
-  let type = 'string';
-
-  if (typeof item === 'string') {
-    fieldName = `tooltip_${item}`;
-    label = item;
-  } else if (item?.item_type === 'column') {
-    fieldName = `tooltip_${item.column_name}`;
-    label =
-      item.verbose_name ||
-      item.column_name ||
-      item.label ||
-      `Column ${index + 1}`;
-    type = item.type || 'string';
-  } else if (item?.item_type === 'metric') {
-    const metricName = item.metric_name || item.label;
-    fieldName = `tooltip_${metricName}`;
-    label = item.verbose_name || metricName || `Metric ${index + 1}`;
-    type = 'metric';
-  } else if (item?.column_name) {
-    fieldName = `tooltip_${item.column_name}`;
-    label = item.verbose_name || item.column_name || `Column ${index + 1}`;
-    type = item.type || 'string';
-  } else if (item?.metric_name || item?.label) {
-    const metricName = item.metric_name || item.label;
-    fieldName = `tooltip_${metricName}`;
-    label = item.verbose_name || metricName || `Metric ${index + 1}`;
-    type = 'metric';
-  }
-
-  if (!fieldName) return null;
-
-  return { id: fieldName, name: fieldName, label, type };
+interface TooltipField {
+  id: string;
+  name: string;
+  label: string;
+  type: string;
 }
 
-function extractFieldsFromTooltipContents(
+const extractFieldsFromTooltipContents = (
   tooltipContents: any[],
-): TooltipField[] {
+): TooltipField[] => {
   if (!tooltipContents || tooltipContents.length === 0) {
     return [];
   }
 
   return tooltipContents
-    .map((item, index) => extractFieldFromItem(item, index))
-    .filter((field): field is TooltipField => field !== null);
-}
+    .map((item, index) => {
+      let fieldName = '';
+      let label = '';
+      let type = 'string';
 
-function generateDefaultTemplate(fields: TooltipField[]): string {
-  const templateRows = fields.map(
-    field => `  <div><strong>${field.label}:</strong> {{${field.name}}}</div>`,
-  );
+      if (typeof item === 'string') {
+        fieldName = `tooltip_${item}`;
+        label = item;
+      } else if (item?.item_type === 'column') {
+        fieldName = `tooltip_${item.column_name}`;
+        label =
+          item.verbose_name ||
+          item.column_name ||
+          item.label ||
+          `Column ${index + 1}`;
+        type = item.type || 'string';
+      } else if (item?.item_type === 'metric') {
+        fieldName = `tooltip_${item.metric_name || item.label}`;
+        label =
+          item.verbose_name ||
+          item.metric_name ||
+          item.label ||
+          `Metric ${index + 1}`;
+        type = 'metric';
+      } else if (item?.column_name) {
+        fieldName = `tooltip_${item.column_name}`;
+        label = item.verbose_name || item.column_name || `Column ${index + 1}`;
+        type = item.type || 'string';
+      } else if (item?.metric_name || item?.label) {
+        fieldName = `tooltip_${item.metric_name || item.label}`;
+        label =
+          item.verbose_name ||
+          item.metric_name ||
+          item.label ||
+          `Metric ${index + 1}`;
+        type = 'metric';
+      }
 
-  return `<div class="custom-tooltip">
-${templateRows.join('\n')}
-</div>`;
-}
-
-function insertTextAtCursor(
-  textarea: HTMLTextAreaElement,
-  text: string,
-  currentValue: string,
-): { newValue: string; newCursorPos: number } {
-  const cursorPos = textarea.selectionStart || 0;
-  const newValue = `${currentValue.slice(0, cursorPos)}${text}${currentValue.slice(cursorPos)}`;
-  const newCursorPos = cursorPos + text.length;
-
-  return { newValue, newCursorPos };
-}
+      return {
+        id: fieldName,
+        name: fieldName,
+        label,
+        type,
+      };
+    })
+    .filter(field => field.name);
+};
 
 export function TooltipTemplateEditor({
   value,
@@ -169,24 +266,21 @@ export function TooltipTemplateEditor({
 
   const handleFieldClick = useCallback(
     (fieldName: string) => {
-      const textToInsert = `{{${fieldName}}}`;
-
       if (textareaRef) {
-        const { newValue, newCursorPos } = insertTextAtCursor(
-          textareaRef,
-          textToInsert,
-          value,
-        );
+        const cursorPos = textareaRef.selectionStart || 0;
+        const newValue = `${value.slice(0, cursorPos)}{{${fieldName}}}${value.slice(cursorPos)}`;
         onChange(newValue);
 
         setTimeout(() => {
           if (textareaRef) {
+            const newCursorPos = cursorPos + `{{${fieldName}}}`.length;
             textareaRef.focus();
             textareaRef.setSelectionRange(newCursorPos, newCursorPos);
           }
         }, 0);
       } else {
-        onChange(`${value}${textToInsert}`);
+        const newValue = `${value}{{${fieldName}}}`;
+        onChange(newValue);
       }
     },
     [value, onChange, textareaRef],
@@ -214,13 +308,21 @@ export function TooltipTemplateEditor({
       tooltipContents.length > 0 &&
       (!value || value.includes('Drop columns/metrics'))
     ) {
-      const newTemplate = generateDefaultTemplate(fieldsFromTooltipContents);
+      const templateRows = fieldsFromTooltipContents.map(
+        field =>
+          `  <div><strong>${field.label}:</strong> {{${field.name}}}</div>`,
+      );
+
+      const newTemplate = `<div class="custom-tooltip">
+${templateRows.join('\n')}
+</div>`;
+
       onChange(newTemplate);
     }
-  }, [tooltipContents, fieldsFromTooltipContents, onChange, value]);
+  }, [tooltipContents, fieldsFromTooltipContents, onChange]);
 
   return (
-    <StyledComponents>
+    <StyledTemplateEditor>
       <div className="template-header">
         <div>
           <strong>{t('Available Template Variables')}</strong>
@@ -266,8 +368,8 @@ export function TooltipTemplateEditor({
             </p>
             <div className="help-example">
               {`<div>
-  <strong>{{field_name}}:</strong> {{field_value}}
-</div>`}
+                <strong>{{field_name}}:</strong> {{field_value}}
+              </div>`}
             </div>
           </div>
 
@@ -276,10 +378,10 @@ export function TooltipTemplateEditor({
             <p>{t('Show content only when field has a value:')}</p>
             <div className="help-example">
               {`{{#if field_name}}
-  <div>Value: {{field_name}}</div>
-{{else}}
-  <div>No value available</div>
-{{/if}}`}
+                <div>Value: {{field_name}}</div>
+                {{else}}
+                  <div>No value available</div>
+                {{/if}}`}
             </div>
           </div>
 
@@ -288,27 +390,27 @@ export function TooltipTemplateEditor({
             <p>{t('Handlebars provides powerful formatting helpers:')}</p>
             <div className="help-example">
               {`<!-- Format numbers -->
-<div>{{formatNumber my_number}}</div>
+              <div>{{formatNumber my_number}}</div>
 
-<!-- Format dates -->
-<div>{{dateFormat my_date format="YYYY-MM-DD HH:mm:ss"}}</div>
+              <!-- Format dates -->
+              <div>{{dateFormat my_date format="YYYY-MM-DD HH:mm:ss"}}</div>
 
-<!-- Convert objects to JSON -->
-<div>{{stringify my_object}}</div>
+              <!-- Convert objects to JSON -->
+              <div>{{stringify my_object}}</div>
 
-<!-- Default values -->
-<div>{{default my_value "N/A"}}</div>
+              <!-- Default values -->
+              <div>{{default my_value "N/A"}}</div>
 
-<!-- Conditional display -->
-{{#ifExists my_value}}
-  <div>Value exists: {{my_value}}</div>
-{{/ifExists}}
+              <!-- Conditional display -->
+              {{#ifExists my_value}}
+                <div>Value exists: {{my_value}}</div>
+              {{/ifExists}}
 
-<!-- Truncate text -->
-<div>{{truncate my_long_text 50}}</div>
+              <!-- Truncate text -->
+              <div>{{truncate my_long_text 50}}</div>
 
-<!-- Format coordinates -->
-<div>{{formatCoordinate longitude latitude}}</div>`}
+              <!-- Format coordinates -->
+              <div>{{formatCoordinate longitude latitude}}</div>`}
             </div>
           </div>
 
@@ -317,20 +419,20 @@ export function TooltipTemplateEditor({
             <p>{t('Use CSS classes and styles for better formatting:')}</p>
             <div className="help-example">
               {`<div class="custom-tooltip">
-  <div class="tooltip-header">
-    <h4>{{title}}</h4>
-  </div>
-  <div class="tooltip-content">
-    <div class="metric-row">
-      <strong>{{label}}:</strong>
-      <span class="metric-value">{{value}}</span>
-    </div>
-  </div>
-</div>`}
+                <div class="tooltip-header">
+                  <h4>{{title}}</h4>
+                </div>
+                <div class="tooltip-content">
+                  <div class="metric-row">
+                    <strong>{{label}}:</strong>
+                    <span class="metric-value">{{value}}</span>
+                  </div>
+                </div>
+              </div>`}
             </div>
           </div>
         </div>
       )}
-    </StyledComponents>
+    </StyledTemplateEditor>
   );
 }

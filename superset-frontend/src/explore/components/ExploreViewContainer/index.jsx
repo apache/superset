@@ -500,7 +500,6 @@ function ExploreViewContainer(props) {
           ),
       );
 
-      // Handle tooltip template auto-update when tooltip_contents changes
       if (changedControlKeys.includes('tooltip_contents')) {
         const tooltipContents = props.controls.tooltip_contents?.value || [];
         const currentTemplate = props.controls.tooltip_template?.value || '';
@@ -515,7 +514,6 @@ function ExploreViewContainer(props) {
             return null;
           };
 
-          // Check if this is an aggregated chart type that needs limit formatting
           const vizType = props.form_data?.viz_type || '';
           const isAggregatedChart = isAggregatedChartType(vizType);
 
@@ -533,10 +531,8 @@ function ExploreViewContainer(props) {
                 item?.item_type === 'column' || typeof item === 'string';
 
               if (isAggregatedChart && isColumn) {
-                // For aggregated charts with columns, use limit filter with singular form
                 return `{{ limit ${fieldName} 10 }}`;
               }
-              // For metrics or non-aggregated charts, use simple variable format
               return `{{ ${fieldName} }}`;
             });
             const updatedTemplate =

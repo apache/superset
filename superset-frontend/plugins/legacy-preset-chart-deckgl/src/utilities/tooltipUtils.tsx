@@ -21,15 +21,8 @@ import { t, JsonObject, QueryFormData } from '@superset-ui/core';
 import { HandlebarsRenderer } from './HandlebarsRenderer';
 import TooltipRow from '../TooltipRow';
 import CustomTooltipWrapper from '../components/CustomTooltipWrapper';
-import {
-  isAggregatedDeckGLChart,
-  fieldHasMultipleValues,
-  createDefaultTemplateWithLimits,
-} from './multiValueUtils';
+import { createDefaultTemplateWithLimits } from './multiValueUtils';
 
-/**
- * Common tooltip components that can be reused across charts
- */
 export const CommonTooltipRows = {
   position: (o: JsonObject, position?: [number, number]) => (
     <TooltipRow
@@ -185,8 +178,8 @@ function createScreenGridData(
   const result: Record<string, any> = {};
 
   if (extractResult.allValues.length > 0) {
-    result[fieldName] = extractResult.allValues; // Use array for limit helper
-    result[`${fieldName}s`] = extractResult.allValues.join(', '); // Keep for backward compatibility
+    result[fieldName] = extractResult.allValues;
+    result[`${fieldName}s`] = extractResult.allValues.join(', ');
     result[`${fieldName}_count`] = extractResult.allValues.length;
   } else {
     const count = o.object?.count || 0;
@@ -229,8 +222,8 @@ function processTooltipContentItem(
 
   if (extractResult.allValues.length > 0) {
     return {
-      [fieldName]: extractResult.allValues, // Use array for limit helper
-      [`${fieldName}s`]: extractResult.allValues.join(', '), // Keep for backward compatibility
+      [fieldName]: extractResult.allValues,
+      [`${fieldName}s`]: extractResult.allValues.join(', '),
       [`${fieldName}_count`]: extractResult.allValues.length,
     };
   }
@@ -242,9 +235,6 @@ function processTooltipContentItem(
   return {};
 }
 
-/**
- * Helper to create Handlebars-compatible tooltip data from deck.gl object
- */
 export function createHandlebarsTooltipData(
   o: JsonObject,
   formData: QueryFormData,
@@ -315,9 +305,6 @@ export function createHandlebarsTooltipData(
   return data;
 }
 
-/**
- * Generates enhanced default template for tooltip contents with multi-value field limits
- */
 export function generateEnhancedDefaultTemplate(
   tooltipContents: any[],
   formData: QueryFormData,
@@ -325,16 +312,11 @@ export function generateEnhancedDefaultTemplate(
   return createDefaultTemplateWithLimits(tooltipContents, formData);
 }
 
-/**
- * Enhanced tooltip content generator that supports both custom tooltip templates (Handlebars)
- * and custom tooltip_contents with fallback to default tooltips for deck.gl charts
- */
 export function createTooltipContent(
   formData: QueryFormData,
   defaultTooltipGenerator: (o: JsonObject) => JSX.Element,
 ) {
   return (o: JsonObject) => {
-    // Priority 1: Custom Handlebars Template
     if (
       formData.tooltip_template?.trim() &&
       !formData.tooltip_template.includes(
@@ -354,13 +336,11 @@ export function createTooltipContent(
       );
     }
 
-    // Priority 2: Field-based Tooltips
     if (formData.tooltip_contents && formData.tooltip_contents.length > 0) {
       const tooltipItems = buildFieldBasedTooltipItems(o, formData);
       return <div className="deckgl-tooltip">{tooltipItems}</div>;
     }
 
-    // Priority 3: Default Tooltip
     return defaultTooltipGenerator(o);
   };
 }

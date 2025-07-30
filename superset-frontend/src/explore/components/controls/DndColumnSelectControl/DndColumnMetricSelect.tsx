@@ -26,6 +26,7 @@ import {
   ensureIsArray,
   Datasource,
   QueryFormMetric,
+  QueryFormData,
 } from '@superset-ui/core';
 import { ColumnMeta, isColumnMeta } from '@superset-ui/chart-controls';
 import { isString } from 'lodash';
@@ -38,7 +39,6 @@ import MetricDefinitionValue from 'src/explore/components/controls/MetricControl
 import ColumnSelectPopoverTrigger from './ColumnSelectPopoverTrigger';
 import { DndControlProps } from './types';
 
-// Multi-value utilities for deck.gl tooltips
 const AGGREGATED_DECK_GL_CHART_TYPES = [
   'deck_screengrid',
   'deck_heatmap',
@@ -50,28 +50,34 @@ const AGGREGATED_DECK_GL_CHART_TYPES = [
 const MULTI_VALUE_WARNING_MESSAGE =
   'This metric or column contains many values, they may not be able to be all displayed in the tooltip';
 
+interface TooltipItem {
+  item_type?: string;
+  column_name?: string;
+  metric_name?: string;
+  label?: string;
+}
+
 function isAggregatedDeckGLChart(vizType: string): boolean {
   return AGGREGATED_DECK_GL_CHART_TYPES.includes(vizType);
 }
 
-function fieldHasMultipleValues(item: any, formData: any): boolean {
-  // Only aggregated deck.gl charts can have multiple values
+function fieldHasMultipleValues(
+  item: TooltipItem | string,
+  formData: QueryFormData,
+): boolean {
   if (!formData?.viz_type || !isAggregatedDeckGLChart(formData.viz_type)) {
     return false;
   }
 
-  // Skip metrics for now - they are typically aggregated already
-  if (item?.item_type === 'metric') {
-    return false;
-  }
-
-  // Columns in aggregated charts can have multiple values
-  if (item?.item_type === 'column') {
+  if (typeof item === 'string') {
     return true;
   }
 
-  // String columns can have multiple values
-  if (typeof item === 'string') {
+  if (item.item_type === 'metric') {
+    return false;
+  }
+
+  if (item.item_type === 'column') {
     return true;
   }
 
@@ -84,7 +90,7 @@ type ColumnMetricValue =
   | string
   | AdhocColumn
   | AdhocMetric
-  | { metric_name: string; error_text: string; uuid: string }; // Error metric type
+  | { metric_name: string; error_text: string; uuid: string };
 
 export type DndColumnMetricSelectProps = DndControlProps<ColumnMetricValue> & {
   columns: ColumnMeta[];
@@ -125,7 +131,6 @@ function DndColumnMetricSelect(props: DndColumnMetricSelectProps) {
 
   const [newColumnPopoverVisible, setNewColumnPopoverVisible] = useState(false);
 
-  // Build combined options map for OptionSelector (for column tracking)
   const combinedOptionsMap = useMemo(() => {
     const optionsMap: Record<string, ColumnMeta> = {};
 
@@ -166,27 +171,22 @@ function DndColumnMetricSelect(props: DndColumnMetricSelectProps) {
 
     const valueArray = ensureIsArray(value);
     return valueArray.map(item => {
-      // Handle string column names
       if (isString(item) && combinedOptionsMap[item]) {
-        return item; // Keep as column name string
+        return item;
       }
 
-      // Handle saved metric names
       if (isString(item) && savedMetrics.some(m => m.metric_name === item)) {
-        return item; // Keep as metric name string
+        return item;
       }
 
-      // Handle adhoc columns
       if (isAdhocColumn(item)) {
         return item;
       }
 
-      // Handle adhoc metrics (dictionaries)
       if (isDictionaryForAdhocMetric(item)) {
         return new AdhocMetric(item);
       }
 
-      // Handle AdhocMetric instances
       if (item instanceof AdhocMetric) {
         return item;
       }
@@ -227,7 +227,6 @@ function DndColumnMetricSelect(props: DndColumnMetricSelectProps) {
     (item: DatasourcePanelDndItem) => {
       if (item.type === DndItemType.Column) {
         const columnName = (item.value as ColumnMeta).column_name;
-        // Allow columns if they exist in datasource and not already selected
         return (
           columnName in combinedOptionsMap &&
           !coercedValue.some(v => v === columnName)
@@ -237,7 +236,6 @@ function DndColumnMetricSelect(props: DndColumnMetricSelectProps) {
         const metric = item.value as Metric;
         const metricName = metric.metric_name;
 
-        // Only allow metrics that are already selected in the chart's metrics
         return (
           isMetricSelected(metricName) &&
           !coercedValue.some(v => v === metricName)
@@ -275,13 +273,11 @@ function DndColumnMetricSelect(props: DndColumnMetricSelectProps) {
   const valuesRenderer = useCallback(
     () =>
       coercedValue.map((item, idx) => {
-        // Handle column values
         if (isColumnValue(item)) {
           const column = combinedOptionsMap[item];
-          const datasourceWarningMessage = undefined; // Columns from current datasource
+          const datasourceWarningMessage = undefined;
           const withCaret = true;
 
-          // Check if this field has multiple values in deck.gl tooltips
           const columnItem = {
             item_type: 'column',
             column_name: item,
@@ -324,8 +320,6 @@ function DndColumnMetricSelect(props: DndColumnMetricSelectProps) {
             </ColumnSelectPopoverTrigger>
           );
         }
-
-        // Handle metric values (both saved metrics and adhoc metrics)
         const datasourceWarningMessage =
           (item instanceof AdhocMetric && item.datasourceWarning) ||
           (item &&
@@ -342,7 +336,6 @@ function DndColumnMetricSelect(props: DndColumnMetricSelectProps) {
             option={item}
             onMetricEdit={(changedMetric: Metric | AdhocMetric) => {
               const newValues = [...coercedValue];
-              // Convert Metric to string (metric name)
               if (changedMetric instanceof AdhocMetric) {
                 newValues[idx] = changedMetric;
               } else {
@@ -356,7 +349,7 @@ function DndColumnMetricSelect(props: DndColumnMetricSelectProps) {
             savedMetricsOptions={savedMetrics}
             datasource={datasource}
             onMoveLabel={onShiftOptions}
-            onDropLabel={() => {}} // Not needed for tooltip use case
+            onDropLabel={() => {}}
             type={`${DndItemType.AdhocMetricOption}_${name}_${label}`}
             multi={multi}
             datasourceWarningMessage={datasourceWarningMessage}
@@ -413,7 +406,6 @@ function DndColumnMetricSelect(props: DndColumnMetricSelectProps) {
       } else if (isAdhocColumn(newItem)) {
         newValues.push(newItem);
       } else if ('metric_name' in newItem && newItem.metric_name) {
-        // Handle metric selection
         newValues.push(newItem.metric_name);
       } else if (newItem instanceof AdhocMetric) {
         newValues.push(newItem);

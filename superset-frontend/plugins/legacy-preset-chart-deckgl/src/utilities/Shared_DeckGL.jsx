@@ -17,8 +17,6 @@
  * under the License.
  */
 
-// These are control configurations that are shared ONLY within the DeckGL viz plugin repo.
-
 import {
   FeatureFlag,
   isFeatureEnabled,
@@ -293,9 +291,7 @@ export const viewport = {
     label: t('Viewport'),
     renderTrigger: false,
     description: t('Parameters related to the view and perspective on the map'),
-    // default is whole world mostly centered
     default: DEFAULT_VIEWPORT,
-    // Viewport changes shouldn't prompt user to re-run query
     dontRefreshOnChange: true,
   },
 };
@@ -402,26 +398,27 @@ export const geojsonColumn = {
 };
 
 const extractMetricsFromFormData = formData => {
-  const metrics = [];
-  // Extract from controls
-  Object.values(formData).forEach(value => {
-    if (value?.type === 'metric' && value?.value) {
-      metrics.push(value.value);
+  const metrics = new Set();
+
+  if (formData.metrics) {
+    (Array.isArray(formData.metrics)
+      ? formData.metrics
+      : [formData.metrics]
+    ).forEach(metric => metrics.add(metric));
+  }
+
+  if (formData.point_radius_fixed?.value) {
+    metrics.add(formData.point_radius_fixed.value);
+  }
+
+  Object.entries(formData).forEach(([, value]) => {
+    if (!value || typeof value !== 'object') return;
+    if (value.type === 'metric' && value.value) {
+      metrics.add(value.value);
     }
   });
-  // Extract from metrics field
-  if (formData.metrics) {
-    metrics.push(
-      ...(Array.isArray(formData.metrics)
-        ? formData.metrics
-        : [formData.metrics]),
-    );
-  }
-  // Extract from point radius
-  if (formData.point_radius_fixed?.value) {
-    metrics.push(formData.point_radius_fixed.value);
-  }
-  return [...new Set(metrics)];
+
+  return Array.from(metrics).filter(metric => metric != null);
 };
 
 export const tooltipContents = {
@@ -451,7 +448,7 @@ export const tooltipContents = {
         datasource,
         selectedMetrics,
         disabledTabs: new Set(['saved', 'sqlExpression']),
-        formData, // Pass form data to enable multi-value warning detection
+        formData,
       };
     },
   },
