@@ -15,10 +15,10 @@
 # specific language governing permissions and limitations
 # under the License.
 from superset.utils import json
-from tests.integration_tests.decorators import with_config
+from tests.conftest import with_config
 
 
-@with_config(SUPERSET_WEBSERVER_DOMAINS=["a", "b"])
+@with_config({"SUPERSET_WEBSERVER_DOMAINS": ["a", "b"]})
 def test_get_available_domains(test_client, login_as_admin):
     resp = test_client.get("api/v1/available_domains/")
     assert resp.status_code == 200
