@@ -100,7 +100,7 @@ class TestDashboardRoleBasedSecurity(BaseTestDashboardSecurity):
         self.create_user_with_roles(username, [new_role], should_create_roles=True)
         slice = (
             db.session.query(Slice)  # noqa: F405
-            .filter_by(slice_name="Girl Name Cloud")
+            .filter_by(slice_name="Participants")
             .one_or_none()
         )
         dashboard_to_access = create_dashboard_to_db(published=True, slices=[slice])
@@ -141,7 +141,7 @@ class TestDashboardRoleBasedSecurity(BaseTestDashboardSecurity):
 
         slice = (
             db.session.query(Slice)  # noqa: F405
-            .filter_by(slice_name="Girl Name Cloud")
+            .filter_by(slice_name="Participants")
             .one_or_none()
         )
         dashboard = create_dashboard_to_db(published=True, slices=[slice])
@@ -164,7 +164,7 @@ class TestDashboardRoleBasedSecurity(BaseTestDashboardSecurity):
 
         slice = (
             db.session.query(Slice)  # noqa: F405
-            .filter_by(slice_name="Girl Name Cloud")
+            .filter_by(slice_name="Participants")
             .one_or_none()
         )
         dashboard = create_dashboard_to_db(published=True, slices=[slice])
@@ -192,7 +192,7 @@ class TestDashboardRoleBasedSecurity(BaseTestDashboardSecurity):
 
         slice = (
             db.session.query(Slice)  # noqa: F405
-            .filter_by(slice_name="Girl Name Cloud")
+            .filter_by(slice_name="Participants")
             .one_or_none()
         )
         dashboard_to_access = create_dashboard_to_db(published=True, slices=[slice])

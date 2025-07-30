@@ -1489,7 +1489,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
             "alpha2", "password", "Alpha", email="alpha2@superset.org"
         )
         existing_slice = (
-            db.session.query(Slice).filter_by(slice_name="Girl Name Cloud").first()
+            db.session.query(Slice).filter_by(slice_name="Participants").first()
         )
         dashboard = self.insert_dashboard(
             "title", "slug1", [user_alpha1.id], slices=[existing_slice], published=True
@@ -1515,7 +1515,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
             "alpha2", "password", "Alpha", email="alpha2@superset.org"
         )
         existing_slice = (
-            db.session.query(Slice).filter_by(slice_name="Girl Name Cloud").first()
+            db.session.query(Slice).filter_by(slice_name="Participants").first()
         )
 
         dashboard_count = 4
@@ -1985,7 +1985,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         admin = self.get_user("admin")
         slices = []
         slices.append(db.session.query(Slice).filter_by(slice_name="Trends").one())
-        slices.append(db.session.query(Slice).filter_by(slice_name="Boys").one())
+        slices.append(db.session.query(Slice).filter_by(slice_name="Genders").one())
 
         # Insert dashboard with admin as owner
         dashboard = self.insert_dashboard(
@@ -2016,7 +2016,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         assert rv.status_code == 200
 
         # Check that chart named Boys does not contain alpha 1 in its owners
-        boys = db.session.query(Slice).filter_by(slice_name="Boys").one()
+        boys = db.session.query(Slice).filter_by(slice_name="Genders").one()
         assert user_alpha1 not in boys.owners
 
         # Revert owners on slice
@@ -2223,7 +2223,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
             "alpha2", "password", "Alpha", email="alpha2@superset.org"
         )
         existing_slice = (
-            db.session.query(Slice).filter_by(slice_name="Girl Name Cloud").first()
+            db.session.query(Slice).filter_by(slice_name="Participants").first()
         )
         dashboard = self.insert_dashboard(
             "title", "slug1", [user_alpha1.id], slices=[existing_slice], published=True

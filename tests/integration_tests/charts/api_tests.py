@@ -1077,9 +1077,7 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
         """
         self.login(GAMMA_USERNAME)
         chart_no_access = (
-            db.session.query(Slice)
-            .filter_by(slice_name="Girl Name Cloud")
-            .one_or_none()
+            db.session.query(Slice).filter_by(slice_name="Trends").one_or_none()
         )
         uri = f"api/v1/chart/{chart_no_access.id}"
         rv = self.client.get(uri)
@@ -2062,7 +2060,7 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_warm_up_cache_no_datasource(self) -> None:
         self.login(ADMIN_USERNAME)
-        slc = self.get_slice("Top 10 Girl Name Share")
+        slc = self.get_slice("Genders")
 
         with mock.patch.object(
             Slice,

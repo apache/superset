@@ -426,7 +426,7 @@ class TestChartWarmUpCacheCommand(SupersetTestCase):
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     @pytest.mark.skip(reason="This test will be changed to use the api/v1/data")
     def test_warm_up_cache(self):
-        slc = self.get_slice("Top 10 Girl Name Share")
+        slc = self.get_slice("Genders")
         result = ChartWarmUpCacheCommand(slc.id, None, None).run()
         assert result == {
             "chart_id": slc.id,

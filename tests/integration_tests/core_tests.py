@@ -227,7 +227,7 @@ class TestCore(SupersetTestCase):
     def test_slice_data(self):
         # slice data should have some required attributes
         self.login(ADMIN_USERNAME)
-        slc = self.get_slice(slice_name="Top 10 Girl Name Share")
+        slc = self.get_slice(slice_name="Genders")
         slc_data_attributes = slc.data.keys()
         assert "changed_on" in slc_data_attributes
         assert "modified" in slc_data_attributes
