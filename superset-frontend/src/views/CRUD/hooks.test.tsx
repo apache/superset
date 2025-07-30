@@ -167,9 +167,9 @@ describe('useListViewResource', () => {
       const call = fetchSpy.mock.calls[1];
       const { endpoint } = call[0];
 
-      expect(endpoint).toMatch(/col:slice_name/);
-      expect(endpoint).toMatch(/opr:chart_all_text/);
-      expect(endpoint).toMatch(/value:'test chart'/);
+      expect(endpoint).toContain('col%3Aslice_name');
+      expect(endpoint).toContain('opr%3Achart_all_text');
+      expect(endpoint).toContain("value%3A'test+chart'");
     });
 
     it('converts chart-specific favorite filter', async () => {
@@ -197,7 +197,7 @@ describe('useListViewResource', () => {
 
       expect(endpoint).toMatch(/col:id/);
       expect(endpoint).toMatch(/opr:chart_is_favorite/);
-      expect(endpoint).toMatch(/value:true/);
+      expect(endpoint).toContain('value:!t');
     });
 
     it('handles multiple chart filters correctly', async () => {

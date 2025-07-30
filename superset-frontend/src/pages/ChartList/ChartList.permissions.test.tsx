@@ -231,8 +231,15 @@ describe('ChartList - Permission-based UI Tests', () => {
     await screen.findByTestId('chart-list-view');
 
     expect(screen.getByText('Actions')).toBeInTheDocument();
-    const moreButtons = screen.getAllByLabelText('more');
-    expect(moreButtons).toHaveLength(mockCharts.length);
+
+    // Wait for table to load with charts data
+    await waitFor(() => {
+      expect(screen.getByText(mockCharts[0].slice_name)).toBeInTheDocument();
+    });
+
+    // Check for action buttons using test-ids (delete, upload, edit-alt)
+    const deleteButtons = screen.getAllByTestId('delete');
+    expect(deleteButtons).toHaveLength(mockCharts.length);
   });
 
   it('hides Actions column for users with read-only permissions', async () => {
@@ -257,8 +264,15 @@ describe('ChartList - Permission-based UI Tests', () => {
     await screen.findByTestId('chart-list-view');
 
     expect(screen.getByText('Actions')).toBeInTheDocument();
-    const moreButtons = screen.getAllByLabelText('more');
-    expect(moreButtons).toHaveLength(mockCharts.length);
+
+    // Wait for table to load with charts data
+    await waitFor(() => {
+      expect(screen.getByText(mockCharts[0].slice_name)).toBeInTheDocument();
+    });
+
+    // Check for action buttons using test-ids (delete, upload, edit-alt)
+    const deleteButtons = screen.getAllByTestId('delete');
+    expect(deleteButtons).toHaveLength(mockCharts.length);
   });
 
   it('shows favorite stars for logged-in users', async () => {
