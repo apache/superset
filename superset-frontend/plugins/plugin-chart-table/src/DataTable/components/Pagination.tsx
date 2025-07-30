@@ -44,7 +44,7 @@ export default memo(
         <ListViewPagination
           currentPage={currentPage + 1} 
           totalPages={pageCount}
-          onChange={(page: number) => onPageChange(page - 1)}
+          onChange={ (page: number) => onPageChange(page - 1) }
         />
       </div>
     );
