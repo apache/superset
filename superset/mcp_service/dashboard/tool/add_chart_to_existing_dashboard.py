@@ -28,7 +28,7 @@ from pydantic import BaseModel, Field
 
 from superset.mcp_service.auth import mcp_auth_hook
 from superset.mcp_service.mcp_app import mcp
-from superset.mcp_service.pydantic_schemas.dashboard_schemas import DashboardInfo
+from superset.mcp_service.schemas.dashboard_schemas import DashboardInfo
 from superset.utils import json
 
 logger = logging.getLogger(__name__)
@@ -221,7 +221,7 @@ def add_chart_to_existing_dashboard(
         updated_dashboard = command.run()
 
         # Convert to response format
-        from superset.mcp_service.pydantic_schemas.dashboard_schemas import (
+        from superset.mcp_service.schemas.dashboard_schemas import (
             serialize_tag_object,
             serialize_user_object,
         )

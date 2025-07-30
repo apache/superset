@@ -25,7 +25,7 @@ and implementing cache control in MCP tools.
 import logging
 from typing import Any, Dict, Optional
 
-from superset.mcp_service.pydantic_schemas.cache_schemas import CacheStatus
+from superset.mcp_service.schemas.cache_schemas import CacheStatus
 
 logger = logging.getLogger(__name__)
 

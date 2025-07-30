@@ -28,7 +28,7 @@ from fastmcp import Client
 from fastmcp.exceptions import ToolError
 
 from superset.mcp_service.mcp_app import mcp
-from superset.mcp_service.pydantic_schemas.dashboard_schemas import (
+from superset.mcp_service.schemas.dashboard_schemas import (
     ListDashboardsRequest,
 )
 

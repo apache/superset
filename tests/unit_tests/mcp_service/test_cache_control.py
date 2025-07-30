@@ -21,14 +21,14 @@ from superset.mcp_service.cache_utils import (
     get_cache_status_from_result,
     should_use_metadata_cache,
 )
-from superset.mcp_service.pydantic_schemas.cache_schemas import (
+from superset.mcp_service.schemas.cache_schemas import (
     CacheControlMixin,
     CacheStatus,
     FormDataCacheControl,
     MetadataCacheControl,
     QueryCacheControl,
 )
-from superset.mcp_service.pydantic_schemas.chart_schemas import (
+from superset.mcp_service.schemas.chart_schemas import (
     GetChartDataRequest,
     ListChartsRequest,
 )

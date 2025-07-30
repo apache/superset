@@ -25,7 +25,7 @@ from fastmcp import Client
 from fastmcp.exceptions import ToolError
 
 from superset.mcp_service.mcp_app import mcp
-from superset.mcp_service.pydantic_schemas.dataset_schemas import ListDatasetsRequest
+from superset.mcp_service.schemas.dataset_schemas import ListDatasetsRequest
 from superset.utils import json
 
 logging.basicConfig(level=logging.DEBUG)
