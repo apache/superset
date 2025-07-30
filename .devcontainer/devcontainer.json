@@ -1,8 +1,15 @@
 {
   "name": "Apache Superset Development",
-  // Keep this in sync with the base image in Dockerfile (ARG PY_VER)
-  // Using the same base as Dockerfile, but non-slim for dev tools
-  "image": "python:3.11.13-bookworm",
+  // Option 1: Use pre-built image directly
+  // "image": "ghcr.io/apache/superset:devcontainer-base",
+
+  // Option 2: Build from Dockerfile with cache (current approach)
+  "build": {
+    "dockerfile": "Dockerfile",
+    "context": ".",
+    // Cache from the Apache registry image
+    "cacheFrom": ["ghcr.io/apache/superset:devcontainer-base"]
+  },
 
   "features": {
     "ghcr.io/devcontainers/features/docker-in-docker:2": {
@@ -32,10 +39,17 @@
   },
 
   // Run commands after container is created
-  "postCreateCommand": "chmod +x .devcontainer/setup-dev.sh && .devcontainer/setup-dev.sh",
+  "postCreateCommand": "bash .devcontainer/setup-dev.sh || echo '⚠️ Setup had issues - run .devcontainer/setup-dev.sh manually'",
 
-  // Auto-start Superset on Codespace resume
-  "postStartCommand": ".devcontainer/start-superset.sh",
+  // Auto-start Superset after ensuring Docker is ready
+  // Run in foreground to see any errors, but don't block on failures
+  "postStartCommand": "bash -c 'echo \"Waiting 30s for services to initialize...\"; sleep 30; .devcontainer/start-superset.sh || echo \"⚠️ Auto-start failed - run start-superset manually\"'",
+
+  // Set environment variables
+  "remoteEnv": {
+    // Removed automatic venv activation to prevent startup issues
+    // The setup script will handle this
+  },
 
   // VS Code customizations
   "customizations": {
