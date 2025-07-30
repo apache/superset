@@ -409,7 +409,7 @@ describe('UploadDataModal - Database and Schema Population', () => {
     await userEvent.click(selectSchema);
     await waitFor(() => screen.getAllByText('schema1'));
     await waitFor(() => screen.getAllByText('schema2'));
-  });
+  }, 60000);
 });
 
 describe('UploadDataModal - Form Validation', () => {
@@ -505,7 +505,7 @@ describe('UploadDataModal - Form Submission', () => {
     expect(formData.get('table_name')).toBe('table1');
     expect(formData.get('schema')).toBe('public');
     expect((formData.get('file') as File).name).toBe('test.parquet');
-  });
+  }, 60000);
 });
 
 describe('File Extension Validation', () => {
@@ -601,7 +601,7 @@ describe('File Extension Validation', () => {
 });
 
 describe('UploadDataModal Collapse Tabs', () => {
-  it('renders the collaps tab CSV correctly and resets to default tab after closing', () => {
+  it('renders the collaps tab CSV correctly and resets to default tab after closing', async () => {
     const { rerender } = render(<UploadDataModal {...csvProps} />, {
       useRedux: true,
     });
@@ -612,14 +612,16 @@ describe('UploadDataModal Collapse Tabs', () => {
     const fileSettingsTab = screen.getByRole('tab', {
       name: /collapsed File settings/i,
     });
-    userEvent.click(fileSettingsTab);
-    expect(fileSettingsTab).toHaveAttribute('aria-expanded', 'true');
+    await userEvent.click(fileSettingsTab);
+    await waitFor(() => {
+      expect(fileSettingsTab).toHaveAttribute('aria-expanded', 'true');
+    });
     rerender(<UploadDataModal {...csvProps} show={false} />);
     rerender(<UploadDataModal {...csvProps} />);
     expect(generalInfoTab).toHaveAttribute('aria-expanded', 'true');
   });
 
-  it('renders the collaps tab Excel correctly and resets to default tab after closing', () => {
+  it('renders the collaps tab Excel correctly and resets to default tab after closing', async () => {
     const { rerender } = render(<UploadDataModal {...excelProps} />, {
       useRedux: true,
     });
@@ -630,14 +632,16 @@ describe('UploadDataModal Collapse Tabs', () => {
     const fileSettingsTab = screen.getByRole('tab', {
       name: /collapsed File settings/i,
     });
-    userEvent.click(fileSettingsTab);
-    expect(fileSettingsTab).toHaveAttribute('aria-expanded', 'true');
+    await userEvent.click(fileSettingsTab);
+    await waitFor(() => {
+      expect(fileSettingsTab).toHaveAttribute('aria-expanded', 'true');
+    });
     rerender(<UploadDataModal {...excelProps} show={false} />);
     rerender(<UploadDataModal {...excelProps} />);
     expect(generalInfoTab).toHaveAttribute('aria-expanded', 'true');
   });
 
-  it('renders the collaps tab Columnar correctly and resets to default tab after closing', () => {
+  it('renders the collaps tab Columnar correctly and resets to default tab after closing', async () => {
     const { rerender } = render(<UploadDataModal {...columnarProps} />, {
       useRedux: true,
     });
@@ -648,8 +652,10 @@ describe('UploadDataModal Collapse Tabs', () => {
     const fileSettingsTab = screen.getByRole('tab', {
       name: /collapsed File settings/i,
     });
-    userEvent.click(fileSettingsTab);
-    expect(fileSettingsTab).toHaveAttribute('aria-expanded', 'true');
+    await userEvent.click(fileSettingsTab);
+    await waitFor(() => {
+      expect(fileSettingsTab).toHaveAttribute('aria-expanded', 'true');
+    });
     rerender(<UploadDataModal {...columnarProps} show={false} />);
     rerender(<UploadDataModal {...columnarProps} />);
     expect(generalInfoTab).toHaveAttribute('aria-expanded', 'true');

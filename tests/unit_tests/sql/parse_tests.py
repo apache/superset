@@ -1851,7 +1851,7 @@ FROM (
   FROM some_table
   WHERE
     id = 42
-) AS some_table
+) AS "some_table"
 WHERE
   1 = 1
             """.strip(),
@@ -1868,7 +1868,7 @@ FROM (
   FROM table
   WHERE
     id = 42
-) AS table
+) AS "table"
 WHERE
   1 = 1
             """.strip(),
@@ -1925,7 +1925,7 @@ JOIN (
   FROM other_table
   WHERE
     id = 42
-) AS other_table
+) AS "other_table"
   ON table.id = other_table.id
             """.strip(),
         ),
@@ -1961,7 +1961,7 @@ FROM (
     FROM some_table
     WHERE
       id = 42
-  ) AS some_table
+  ) AS "some_table"
 )
             """.strip(),
         ),
@@ -1977,7 +1977,7 @@ FROM (
   FROM table
   WHERE
     id = 42
-) AS table
+) AS "table"
 UNION ALL
 SELECT
   *
@@ -2000,7 +2000,7 @@ FROM (
   FROM other_table
   WHERE
     id = 42
-) AS other_table
+) AS "other_table"
             """.strip(),
         ),
         (
@@ -2038,6 +2038,22 @@ FROM (
 INNER JOIN tbl_b AS b
   ON a.col = b.col
             """.strip(),
+        ),
+        (
+            "SELECT * FROM public.flights LIMIT 100",
+            {Table("flights", "public", "catalog1"): "\"AIRLINE\" like 'A%'"},
+            """
+SELECT
+  *
+FROM (
+  SELECT
+    *
+  FROM public.flights
+  WHERE
+    "AIRLINE" LIKE 'A%'
+) AS "public.flights"
+LIMIT 100
+        """.strip(),
         ),
     ],
 )

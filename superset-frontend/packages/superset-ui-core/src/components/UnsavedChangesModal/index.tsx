@@ -16,14 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t, css, useTheme } from '@superset-ui/core';
-import {
-  Icons,
-  Modal,
-  Typography,
-  Button,
-  Flex,
-} from '@superset-ui/core/components';
+import { t } from '@superset-ui/core';
+import { Icons, Modal, Typography, Button } from '@superset-ui/core/components';
 import type { FC, ReactElement } from 'react';
 
 export type UnsavedChangesModalProps = {
@@ -42,66 +36,30 @@ export const UnsavedChangesModal: FC<UnsavedChangesModalProps> = ({
   onConfirmNavigation,
   title = 'Unsaved Changes',
   body = "If you don't save, changes will be lost.",
-}): ReactElement => {
-  const theme = useTheme();
-
-  return (
-    <Modal
-      name={title}
-      centered
-      responsive
-      onHide={onHide}
-      show={showModal}
-      width="444px"
-      title={
-        <Flex>
-          <Icons.WarningOutlined
-            iconColor={theme.colorWarning}
-            css={css`
-              margin-right: ${theme.sizeUnit * 2}px;
-            `}
-            iconSize="l"
-          />
-          <Typography.Title
-            css={css`
-              && {
-                margin: 0;
-                margin-bottom: 0;
-              }
-            `}
-            level={5}
-          >
-            {title}
-          </Typography.Title>
-        </Flex>
-      }
-      footer={
-        <Flex
-          justify="flex-end"
-          css={css`
-            width: 100%;
-          `}
-        >
-          <Button
-            htmlType="button"
-            buttonSize="small"
-            buttonStyle="secondary"
-            onClick={onConfirmNavigation}
-          >
-            {t('Discard')}
-          </Button>
-          <Button
-            htmlType="button"
-            buttonSize="small"
-            buttonStyle="primary"
-            onClick={handleSave}
-          >
-            {t('Save')}
-          </Button>
-        </Flex>
-      }
-    >
-      <Typography.Text>{body}</Typography.Text>
-    </Modal>
-  );
-};
+}: UnsavedChangesModalProps): ReactElement => (
+  <Modal
+    centered
+    responsive
+    onHide={onHide}
+    show={showModal}
+    width="444px"
+    title={
+      <>
+        <Icons.WarningOutlined iconSize="m" style={{ marginRight: 8 }} />
+        {title}
+      </>
+    }
+    footer={
+      <>
+        <Button buttonStyle="secondary" onClick={onConfirmNavigation}>
+          {t('Discard')}
+        </Button>
+        <Button buttonStyle="primary" onClick={handleSave}>
+          {t('Save')}
+        </Button>
+      </>
+    }
+  >
+    <Typography.Text>{body}</Typography.Text>
+  </Modal>
+);

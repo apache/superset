@@ -89,9 +89,9 @@ repos:
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.9.7
     hooks:
+      - id: ruff-format
       - id: ruff
         args: [--fix]
-      - id: ruff-format
   - repo: local
     hooks:
     - id: pylint
@@ -108,7 +108,7 @@ repos:
           BASE=$(git merge-base origin/"$TARGET_BRANCH" HEAD)
           files=$(git diff --name-only --diff-filter=ACM "$BASE"..HEAD | grep '^superset/.*\.py$' || true)
           if [ -n "$files" ]; then
-            pylint --rcfile=.pylintrc --load-plugins=superset.extensions.pylint $files
+            pylint --rcfile=.pylintrc --load-plugins=superset.extensions.pylint --reports=no $files
           else
             echo "No Python files to lint."
           fi

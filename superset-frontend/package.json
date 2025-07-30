@@ -72,7 +72,7 @@
     "test": "cross-env NODE_ENV=test NODE_OPTIONS=\"--max-old-space-size=8192\" jest --max-workers=80% --silent",
     "test-loud": "cross-env NODE_ENV=test NODE_OPTIONS=\"--max-old-space-size=8192\" jest --max-workers=80%",
     "type": "tsc --noEmit",
-    "update-maps": "jupyter nbconvert --to notebook --execute --inplace 'plugins/legacy-plugin-chart-country-map/scripts/Country Map GeoJSON Generator.ipynb' -Xfrozen_modules=off",
+    "update-maps": "cd plugins/legacy-plugin-chart-country-map/scripts && jupyter nbconvert --to notebook --execute --inplace --allow-errors --ExecutePreprocessor.timeout=1200 'Country Map GeoJSON Generator.ipynb'",
     "validate-release": "../RELEASING/validate_this_release.sh"
   },
   "browserslist": [
@@ -121,8 +121,8 @@
     "@visx/scale": "^3.5.0",
     "@visx/tooltip": "^3.0.0",
     "@visx/xychart": "^3.5.1",
-    "ag-grid-community": "33.1.1",
-    "ag-grid-react": "33.1.1",
+    "ag-grid-community": "^34.0.2",
+    "ag-grid-react": "34.0.2",
     "antd": "^5.24.6",
     "chrono-node": "^2.7.8",
     "classnames": "^2.2.5",
@@ -349,7 +349,7 @@
     "regenerator-runtime": "^0.14.1"
   },
   "engines": {
-    "node": "^20.16.0",
+    "node": "^20.18.1",
     "npm": "^10.8.1"
   },
   "overrides": {

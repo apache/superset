@@ -1,0 +1,52 @@
+{
+  "name": "Apache Superset Development",
+  // Keep this in sync with the base image in Dockerfile (ARG PY_VER)
+  // Using the same base as Dockerfile, but non-slim for dev tools
+  "image": "python:3.11.13-bookworm",
+
+  "features": {
+    "ghcr.io/devcontainers/features/docker-in-docker:2": {
+      "moby": true,
+      "dockerDashComposeVersion": "v2"
+    },
+    "ghcr.io/devcontainers/features/node:1": {
+      "version": "20"
+    },
+    "ghcr.io/devcontainers/features/git:1": {},
+    "ghcr.io/devcontainers/features/common-utils:2": {
+      "configureZshAsDefaultShell": true
+    },
+    "ghcr.io/devcontainers/features/sshd:1": {
+      "version": "latest"
+    }
+  },
+
+  // Forward ports for development
+  "forwardPorts": [9001],
+  "portsAttributes": {
+    "9001": {
+      "label": "Superset (via Webpack Dev Server)",
+      "onAutoForward": "notify",
+      "visibility": "public"
+    }
+  },
+
+  // Run commands after container is created
+  "postCreateCommand": "chmod +x .devcontainer/setup-dev.sh && .devcontainer/setup-dev.sh",
+
+  // Auto-start Superset on Codespace resume
+  "postStartCommand": ".devcontainer/start-superset.sh",
+
+  // VS Code customizations
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-python.python",
+        "ms-python.vscode-pylance",
+        "charliermarsh.ruff",
+        "dbaeumer.vscode-eslint",
+        "esbenp.prettier-vscode"
+      ]
+    }
+  }
+}

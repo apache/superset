@@ -57,7 +57,7 @@ from superset.key_value.types import JsonKeyValueCodec
 from superset.stats_logger import DummyStatsLogger
 from superset.superset_typing import CacheConfig
 from superset.tasks.types import ExecutorType
-from superset.themes.types import Theme, ThemeSettings
+from superset.themes.types import Theme
 from superset.utils import core as utils
 from superset.utils.core import NO_TIME_RANGE, parse_boolean_string, QuerySource
 from superset.utils.encrypt import SQLAlchemyUtilsAdapter
@@ -600,15 +600,11 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # If on, you'll want to add "https://avatars.slack-edge.com" to the list of allowed
     # domains in your TALISMAN_CONFIG
     "SLACK_ENABLE_AVATARS": False,
-    # Adds a switch to the navbar to easily switch between light and dark themes.
-    # This is intended to use for development, visual review, and theming-debugging
-    # purposes.
-    "THEME_ENABLE_DARK_THEME_SWITCH": False,
     # Adds a theme editor as a modal dialog in the navbar. Allows people to type in JSON
-    # and see the changes applied to the current theme.
-    # This is intended to use for theme creation, visual review and theming-debugging
-    # purposes.
-    "THEME_ALLOW_THEME_EDITOR_BETA": False,
+    # Enables CSS Templates functionality in Settings menu and dashboard forms.
+    # When disabled, users can still add custom CSS to dashboards but cannot use
+    # pre-built CSS templates.
+    "CSS_TEMPLATES": True,
     # Allow users to optionally specify date formats in email subjects, which will
     # be parsed if enabled
     "DATE_FORMAT_IN_EMAIL_SUBJECT": False,
@@ -724,14 +720,18 @@ EXTRA_CATEGORICAL_COLOR_SCHEMES: list[dict[str, Any]] = []
 #
 # Theme Generation:
 # - Use the Ant Design theme editor: https://ant.design/theme-editor
-# - Export or coypt the generated theme JSON and assign to the variables below
+# - Export or copy the generated theme JSON and assign to the variables below
+# - For detailed instructions: https://superset.apache.org/docs/configuration/theming/
 #
 # To expose a JSON theme editor modal that can be triggered from the navbar
 # set the `ENABLE_THEME_EDITOR` feature flag to True.
 #
 # Theme Structure:
-# Each theme should follow Ant Design's theme format
-# Example:
+# Each theme should follow Ant Design's theme format.
+# To create custom themes, use the Ant Design Theme Editor at https://ant.design/theme-editor
+# and copy the generated JSON configuration.
+#
+# Example theme definition:
 # THEME_DEFAULT = {
 #       "token": {
 #            "colorPrimary": "#2893B3",
@@ -747,26 +747,24 @@ EXTRA_CATEGORICAL_COLOR_SCHEMES: list[dict[str, Any]] = []
 
 # Default theme configuration
 # Leave empty to use Superset's default theme
-THEME_DEFAULT: Theme = {}
+THEME_DEFAULT: Theme = {"algorithm": "default"}
 
 # Dark theme configuration
 # Applied when user selects dark mode
-THEME_DARK: Theme = {}
+THEME_DARK: Theme = {"algorithm": "dark"}
 
 # Theme behavior and user preference settings
 # Controls how themes are applied and what options users have
 # - enforced: Forces the default theme always, overriding all other settings
 # - allowSwitching: Allows users to manually switch between default and dark themes.
-#   To expose a theme switcher in the UI, set `THEME_ENABLE_DARK_THEME_SWITCH` feature flag to True.  # noqa: E501
 # - allowOSPreference: Allows the app to automatically use the system's preferred theme mode  # noqa: E501
 #
 # Example:
-# THEME_SETTINGS = {
-#     "enforced": False,         # If True, forces the default theme and ignores user preferences  # noqa: E501
-#     "allowSwitching": True,    # Allows user to switch between themes (default and dark)  # noqa: E501
-#     "allowOSPreference": True, # Allows the app to Auto-detect and set system theme preference  # noqa: E501
-# }
-THEME_SETTINGS: ThemeSettings = {}
+THEME_SETTINGS = {
+    "enforced": False,  # If True, forces the default theme and ignores user preferences  # noqa: E501
+    "allowSwitching": True,  # Allows user to switch between themes (default and dark)  # noqa: E501
+    "allowOSPreference": True,  # Allows the app to Auto-detect and set system theme preference  # noqa: E501
+}
 # ---------------------------------------------------
 # EXTRA_SEQUENTIAL_COLOR_SCHEMES is used for adding custom sequential color schemes
 # EXTRA_SEQUENTIAL_COLOR_SCHEMES =  [
@@ -1160,7 +1158,7 @@ class CeleryConfig:  # pylint: disable=too-few-public-methods
     }
 
 
-CELERY_CONFIG: type[CeleryConfig] = CeleryConfig
+CELERY_CONFIG: type[CeleryConfig] | None = CeleryConfig
 
 # Set celery config to None to disable all the above configuration
 # CELERY_CONFIG = None
