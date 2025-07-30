@@ -23,14 +23,16 @@ The Model Context Protocol (MCP) is a new protocol for exposing high-level, stru
 ### ✅ Recently Completed
 | Epic ID | Name | Status | Progress |
 |---------|------|--------|---------|
-| 90300 | **Implement list/info tools for dataset, dashboard, chart** | ✅ Complete | All tools with multi-identifier support, enhanced search/filtering |
-| 90299 | **Define Modular, Typed Schemas** | ✅ Complete | Pydantic v2 schemas, FastMCP Complex Inputs Pattern |
-| 90302 | **Write Dev Guide and Docs** | ✅ Complete | Architecture docs, Mermaid diagrams, API documentation |
-| 90304 | **Implement Chart Creation Mutation** | ✅ Complete | Chart creation with 5 chart types, SQL aggregators |
-| 90305 | **Implement Navigation Actions** | ✅ Complete | `generate_explore_link` and `open_sql_lab_with_context` |
-| 90303 | **Document Preset Extension Points** | ✅ Complete | RBAC, OIDC integration design for enterprise |
-| 90511 | **Backend Chart Rendering** | ✅ Complete | Chart data/preview with screenshots, ASCII, table formats |
-| 90509 | **Dashboard Generation** | ✅ Complete | `generate_dashboard` and `add_chart_to_existing_dashboard` |
+| 90300 | **Implement list/info tools for dataset, dashboard, chart** | ✅ Completed | All tools with multi-identifier support, enhanced search/filtering |
+| 90299 | **Define Modular, Typed Schemas** | ✅ Completed | Pydantic v2 schemas, FastMCP Complex Inputs Pattern |
+| 90302 | **Write Dev Guide and Docs** | 🔧 QA | Comprehensive documentation integrated into Superset Docusaurus |
+| 90304 | **Implement Chart Creation Mutation** | 🔧 In Review | Chart creation, dashboard generation, update operations |
+| 90305 | **Implement Navigation Actions** | 🔧 In Review | `generate_explore_link` and `open_sql_lab_with_context` |
+| 90303 | **Document Preset Extension Points** | 🔧 In Review | RBAC, OIDC integration design for enterprise |
+| 90511 | **Backend Chart Rendering** | 🔧 QA | Chart data/preview with screenshots, ASCII, table formats |
+| 90509 | **Support for Bearer Authentication** | 🔧 QA | JWT Bearer authentication with configurable factory |
+| 90510 | **Caching and Refresh** | 🔧 QA | Cache control parameters leveraging Superset infrastructure |
+| 90548 | **Audit Logging** | 🔧 In Review | MCP context tracking with impersonation support |
 
 ### 🔧 Technical Achievements
 - **Service Infrastructure**: ASGI-based FastMCP server, stateless design, professional CLI
@@ -52,9 +54,9 @@ The Model Context Protocol (MCP) is a new protocol for exposing high-level, stru
 
 ## Phase 1 Completion Status
 
-**Overall Progress: 95% Complete** (All core epics complete, stretch goals available)
+**Overall Progress: 95% Complete** (All core epics complete, finalization tasks remaining)
 
-**Phase 1 Status**: Core features complete and production-ready
+**Phase 1 Status**: Core features complete, demo and testing needed for finalization
 
 ### ✅ Recent Technical Completions
 - **BaseDAO Type Safety**: Enhanced UUID handling with extensive test coverage ✅
@@ -71,37 +73,61 @@ The Model Context Protocol (MCP) is a new protocol for exposing high-level, stru
   - Form data cache control for explore link and preview tools
   - Cache status reporting in tool responses
 
-### 🎯 Phase 1 Stretch Goals
-| Epic ID | Name | Status | Description |
-|---------|------|--------|---------|
-| 90306 | Demo Script/Notebook | 📋 Planned | Interactive demo showing bot capabilities |
-| 90397 | In-Preset OAuth Demo | 📋 Planned | User impersonation with OAuth handshake |
-| 90508 | LLM-Friendly Chart Rendering | 📋 Planned | Vega-Lite/Plotly JSON for chat embedding |
+### 🎯 Phase 1 Finalization Remaining
+| Epic ID | Task | Status | Description |
+|---------|------|--------|-------------|
+| 90306 | **Create Demo Script/Notebook** | 📋 Procurement | Interactive demo showing bot capabilities |
+| 90527 | **End-to-End Prompt Testing** | 🔧 In Development | At least one complete LLM agent workflow test |
 
-### 🚫 Out of Scope (Not Phase 1)
-| Epic ID | Name | Reason | Future Phase |
-|---------|------|--------|---------|
-| 90398 | Security Hooks | Advanced security feature | Future |
-| 90510 | Caching and Refresh | Leverage existing Superset layers | Not needed |
+### 🚫 Out of Scope Items
+| Epic ID | Name | Status | Reason |
+|---------|------|--------|--------|
+| 90508 | **LLM/Chat Friendly Backend Rendered Charts** | 🔧 QA | Vega-Lite/Plotly JSON for enhanced LLM integration |
+| 90398 | **Security Hooks for Tool Poisoning Attacks** | 📋 Procurement | Advanced security feature for future phase |
+| 90397 | **In-Preset Hosted Demo (OAuth, impersonation)** | 📋 Procurement | Cloud deployment with proper authentication |
 
-## Phase 1 Stretch Goal Priorities
 
-**If time permits after core completion:**
+## Phase 1 Finalization Tasks
 
-1. **Demo Script/Notebook** ([90306](https://app.shortcut.com/preset-ext/story/90306)) - Highest priority stretch
-   - Video demonstrations of all tools working end-to-end
-   - Claude Agent SDK integration examples
-   - Showcases full MCP capabilities for community adoption
+**Remaining work to complete Phase 1:**
 
-2. **LLM-Friendly Chart Rendering** ([90508](https://app.shortcut.com/preset-ext/story/90508)) - Medium priority
-   - Chart embedding directly in LLM chat interfaces ✅ (Firefox WebDriver screenshots implemented)
-   - Screenshot URLs for immediate chart display ✅ (Available via get_chart_preview)
-   - Vega-Lite/Plotly JSON for better LLM integration (Future enhancement)
+1. **Demo Video/Script** - Create comprehensive demonstration
+   - Video walkthrough of all 16 MCP tools working end-to-end
+   - Claude Desktop integration examples
+   - Complete workflow from data exploration to chart creation
 
-3. **In-Preset OAuth Demo** ([90397](https://app.shortcut.com/preset-ext/story/90397)) - Lower priority
-   - Cloud deployment with proper authentication
-   - End-to-end testing with synthetic environments
-   - Requires coordination with Preset team for hosting
+2. **End-to-End Prompt Test** - Validate complete LLM workflow
+   - At least one complete multi-step agent interaction
+   - Test real-world use case: "Create a sales dashboard with 3 charts"
+   - Verify all tools work together seamlessly
+
+## Team Meeting Notes - Future Considerations
+
+### LangChain Integration Ideas
+1. **Create a chat bot with LangChain**
+2. **Tool Discovery**: When user chats, append/prepend message saying "hey you have these tools you can use"
+3. **Tool Mapping**: Map tools to what people want to do
+4. **Diego's Note**: This works well for lots of tools when we don't know which one to use, but for our cases we might get away without the mapping. Later we can use custom prompts to figure out exact tools
+
+### Max's Priority Areas
+1. **Reference**: https://context7.com/
+2. **Playwright MCP** - Could it be leveraged for chart generation?
+3. **Easy Setup** - Making it easy for anyone to pull branch and get going
+4. **Focus on Quality over Coverage** - Instead of coverage, focus on getting the tools we have already right
+   - **Communication Layer**:
+     - Error handling improvements
+     - Ensure LLM gives proper JSON/object format
+     - Return clear/direct messages: "hey you can't pass it with quotes you need to pass it this way"
+5. **Next 20 Tools** - Define the semantics and schemas for these tools
+6. **GitHub Codespaces** - Uses docker compose lite.yaml
+7. **Next Step**: Build UI chat in Superset
+
+### Diego's Agentic System Questions
+1. Right now we just get Claude to basically figure out what to call for us
+2. Do you think having a proper agentic system that does multiple passes on the user input and is specialized would help?
+3. Do you think it's an MCP service level thing?
+4. Would this be a middle layer? (let's work together on how this would work out)
+5. Make sure README is updated
 
 ## Future Development (Post-Phase 1)
 
