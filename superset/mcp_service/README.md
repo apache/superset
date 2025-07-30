@@ -6,12 +6,38 @@ The Superset Model Context Protocol (MCP) service provides a modular, schema-dri
 
 ## 🚀 Quickstart
 
-### 1. Install Requirements
+### 1. Install Superset Locally
 
+Follow the official Superset installation guide: https://superset.apache.org/docs/contributing/development
+
+**Quick Setup (from Superset docs):**
 ```bash
-uv pip install -r requirements/development.txt
-uv pip install -e .
-source .venv/bin/activate
+# Clone the repository
+git clone https://github.com/apache/superset.git
+cd superset
+
+# Create a virtual environment (using pyenv)
+pyenv virtualenv 3.9.19 superset-mcp
+pyenv activate superset-mcp
+
+# Install development requirements
+pip install -r requirements/development.txt
+pip install -e .
+
+# Initialize the database
+superset db upgrade
+
+# Create an admin user
+superset fab create-admin
+
+# Load example data (optional but recommended for testing)
+superset load-examples
+
+# Initialize Superset
+superset init
+
+# Start the development server (in a separate terminal)
+superset run -p 8088 --with-threads --reload --debugger
 ```
 
 ### 2. Install Browser Dependencies (for chart screenshots)
@@ -44,19 +70,102 @@ sudo apt-get install firefox-geckodriver
 
 ### 3. Run the MCP Service
 
+The MCP service runs as an HTTP server (not stdout) and requires a proxy for Claude Desktop:
+
 ```bash
-superset mcp run --port 5008 --debug --sql-debug
+# In a new terminal, with your virtual environment activated
+pyenv activate superset-mcp  # or your venv activation command
+
+# Run the MCP service
+superset mcp run --port 5008 --debug
 ```
 
-### 4. Test Your Setup
+The service will start on http://localhost:5008
+
+### 4. Connect to Claude Desktop
+
+Since the MCP service runs on HTTP (not stdout), you need to use the FastMCP proxy:
+
+**Step 1: Install the FastMCP proxy**
+```bash
+pip install fastmcp
+```
+
+**Step 2: Create the proxy script**
+Create `/Users/aming/github/superset/superset/mcp_service/run_proxy.sh`:
+```bash
+#!/bin/bash
+cd /Users/aming/github/superset
+source ~/.pyenv/versions/superset-mcp/bin/activate  # Adjust for your venv
+exec fastmcp proxy http://localhost:5008
+```
+
+Make it executable:
+```bash
+chmod +x /Users/aming/github/superset/superset/mcp_service/run_proxy.sh
+```
+
+**Step 3: Configure Claude Desktop**
+Add to your Claude Desktop config (~/Library/Application Support/Claude/claude_desktop_config.json):
+```json
+{
+  "mcpServers": {
+    "Superset MCP Proxy": {
+      "command": "/Users/aming/github/superset/superset/mcp_service/run_proxy.sh",
+      "args": [],
+      "env": {}
+    }
+  }
+}
+```
+
+**Step 4: Restart Claude Desktop**
+- Quit Claude Desktop completely
+- Start it again
+- The Superset MCP tools should now be available
+
+### 5. Verify Your Setup
+
+**Check that Superset is running:**
+```bash
+curl http://localhost:8088/health
+# Should return {"status": "OK"}
+```
+
+**Check that MCP service is running:**
+```bash
+curl http://localhost:5008/
+# Should return FastMCP service info
+```
+
+**Test in Claude Desktop:**
+- Ask Claude to "list dashboards" or "get superset instance info"
+- Claude should be able to use the MCP tools to query your Superset instance
+
+### 6. Run Tests (Optional)
 
 Run the unit and integration tests to verify your environment:
 
 ```bash
+# Unit tests
 pytest tests/unit_tests/mcp_service/ --maxfail=1 -v
-# For integration tests:
+
+# Integration tests (requires running Superset)
 python tests/integration_tests/mcp_service/run_mcp_tests.py
 ```
+
+## Troubleshooting
+
+**If Claude Desktop can't connect:**
+1. Ensure both Superset (port 8088) and MCP service (port 5008) are running
+2. Check the proxy script has the correct path to your virtual environment
+3. Look at Claude Desktop logs: `tail -f ~/Library/Logs/Claude/mcp-server-Superset MCP Proxy.log`
+4. Verify the proxy works manually: `./run_proxy.sh` (should show MCP protocol messages)
+
+**If screenshots don't work:**
+1. Ensure Firefox and geckodriver are installed and in PATH
+2. Check `which geckodriver` returns a valid path
+3. Try running Firefox manually to ensure it works
 
 ## Available Tools
 
