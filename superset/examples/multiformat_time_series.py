@@ -49,7 +49,7 @@ def load_multiformat_time_series(  # pylint: disable=too-many-locals
 
         if not only_metadata and (not table_exists or force):
             pdf = read_example_data(
-                "multiformat_time_series.json.gz", compression="gzip"
+                "examples://multiformat_time_series.json.gz", compression="gzip"
             )
 
             # TODO(bkyryliuk): move load examples data into the pytest fixture

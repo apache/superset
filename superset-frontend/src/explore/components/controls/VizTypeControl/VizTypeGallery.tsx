@@ -575,6 +575,13 @@ export default function VizTypeGallery(props: VizTypeGalleryProps) {
     setIsSearchFocused(true);
   }, []);
 
+  // Auto-focus the search input when the modal opens
+  useEffect(() => {
+    if (searchInputRef.current) {
+      searchInputRef.current.focus();
+    }
+  }, []);
+
   const changeSearch: ChangeEventHandler<HTMLInputElement> = useCallback(
     event => setSearchInputValue(event.target.value),
     [],
