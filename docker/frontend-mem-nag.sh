@@ -23,25 +23,42 @@ MIN_MEM_FREE_GB=3
 MIN_MEM_FREE_KB=$(($MIN_MEM_FREE_GB*1000000))
 
 echo_mem_warn() {
-  MEM_FREE_KB=$(awk '/MemFree/ { printf "%s \n", $2 }' /proc/meminfo)
-  MEM_FREE_GB=$(awk '/MemFree/ { printf "%s \n", $2/1024/1024 }' /proc/meminfo)
+  # Use MemAvailable if present (more accurate), fall back to MemFree
+  if grep -q MemAvailable /proc/meminfo; then
+    MEM_AVAIL_KB=$(awk '/MemAvailable/ { printf "%s \n", $2 }' /proc/meminfo)
+    MEM_AVAIL_GB=$(awk '/MemAvailable/ { printf "%s \n", $2/1024/1024 }' /proc/meminfo)
+    MEM_TYPE="available"
+  else
+    MEM_AVAIL_KB=$(awk '/MemFree/ { printf "%s \n", $2 }' /proc/meminfo)
+    MEM_AVAIL_GB=$(awk '/MemFree/ { printf "%s \n", $2/1024/1024 }' /proc/meminfo)
+    MEM_TYPE="free"
+  fi
 
-  if [[ "${MEM_FREE_KB}" -lt "${MIN_MEM_FREE_KB}" ]]; then
+  # Check if running in Codespaces
+  if [[ -n "${CODESPACES}" ]]; then
+    echo "Memory check Ok [Codespaces environment - memory dynamically allocated]"
+    return
+  fi
+
+  if [[ "${MEM_AVAIL_KB}" -lt "${MIN_MEM_FREE_KB}" ]]; then
     cat <<EOF
     ===============================================
     ========  Memory Insufficient Warning =========
     ===============================================
 
-    It looks like you only have ${MEM_FREE_GB}GB of
-    memory free. Please increase your Docker
+    It looks like you only have ${MEM_AVAIL_GB}GB of
+    memory ${MEM_TYPE}. Please increase your Docker
     resources to at least ${MIN_MEM_FREE_GB}GB
+
+    Note: During builds, available memory may be
+    temporarily low due to caching and compilation.
 
     ===============================================
     ========  Memory Insufficient Warning =========
     ===============================================
 EOF
   else
-    echo "Memory check Ok [${MEM_FREE_GB}GB free]"
+    echo "Memory check Ok [${MEM_AVAIL_GB}GB ${MEM_TYPE}]"
   fi
 }
 
