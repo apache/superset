@@ -212,7 +212,7 @@ export default function transformProps(
     sortSeriesAscendingB,
     timeGrainSqla,
     percentageThreshold,
-    show_query_identifiers = false,
+    showQueryIdentifiers = false,
     metrics = [],
     metricsB = [],
   }: EchartsMixedTimeseriesFormData = { ...DEFAULT_FORM_DATA, ...formData };
@@ -244,8 +244,7 @@ export default function transformProps(
   const MetricDisplayNameB = getMetricDisplayName(metricsB[0], verboseMap);
 
   // Debug logging
-  console.log('DEBUG: show_query_identifiers =', show_query_identifiers);
-  console.log('DEBUG: formData contains:', Object.keys(formData));
+  console.log('DEBUG: showQueryIdentifiers =', showQueryIdentifiers);
 
   const [rawSeriesA, sortedTotalValuesA] = extractSeries(rebasedDataA, {
     fillNeighborValue: stack ? 0 : undefined,
@@ -404,18 +403,18 @@ export default function transformProps(
 
     if (groupby.length > 0) {
       // When we have groupby, format as "metric, dimension"
-      const metricPart = show_query_identifiers
+      const metricPart = showQueryIdentifiers
         ? `${MetricDisplayNameA} (Query A)`
         : MetricDisplayNameA;
       displayName = `${metricPart}, ${entryName}`;
     } else {
       // When no groupby, format as just the entry name with optional query identifier
-      displayName = show_query_identifiers
+      displayName = showQueryIdentifiers
         ? `${entryName} (Query A)`
         : entryName;
     }
     
-    console.log(`DEBUG Query A: entryName="${entryName}", displayName="${displayName}", show_query_identifiers=${show_query_identifiers}`);
+    console.log(`DEBUG Query A: entryName="${entryName}", displayName="${displayName}", showQueryIdentifiers=${showQueryIdentifiers}`);
 
     const seriesFormatter = getFormatter(
       customFormatters,
@@ -473,18 +472,18 @@ export default function transformProps(
 
     if (groupbyB.length > 0) {
       // When we have groupby, format as "metric, dimension"
-      const metricPart = show_query_identifiers
+      const metricPart = showQueryIdentifiers
         ? `${MetricDisplayNameB} (Query B)`
         : MetricDisplayNameB;
       displayName = `${metricPart}, ${entryName}`;
     } else {
       // When no groupby, format as just the entry name with optional query identifier
-      displayName = show_query_identifiers
+      displayName = showQueryIdentifiers
         ? `${entryName} (Query B)`
         : entryName;
     }
     
-    console.log(`DEBUG Query B: entryName="${entryName}", displayName="${displayName}", show_query_identifiers=${show_query_identifiers}`);
+    console.log(`DEBUG Query B: entryName="${entryName}", displayName="${displayName}", showQueryIdentifiers=${showQueryIdentifiers}`);
 
     const seriesFormatter = getFormatter(
       customFormattersSecondary,
