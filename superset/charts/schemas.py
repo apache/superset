@@ -43,12 +43,19 @@ if TYPE_CHECKING:
 
 def get_time_grain_choices() -> Any:
     """Get time grain choices including addons from config"""
-    conf = current_app.config
+    try:
+        # Try to get config from current app context
+        conf = current_app.config
+        time_grain_addons = conf.get("TIME_GRAIN_ADDONS", {})
+    except RuntimeError:
+        # Outside app context, use empty addons
+        time_grain_addons = {}
+
     return [
         i
         for i in {
             **builtin_time_grains,
-            **conf.get("TIME_GRAIN_ADDONS", {}),
+            **time_grain_addons,
         }.keys()
         if i
     ]
@@ -636,9 +643,7 @@ class ChartDataProphetOptionsSchema(ChartDataPostProcessingOperationOptionsSchem
             "[ISO 8601](https://en.wikipedia.org/wiki/ISO_8601#Durations) durations.",
             "example": "P1D",
         },
-        # TODO: This validation should be dynamic based on config
-        # For now, we skip validation at field level and can add
-        # a @validates_schema method if needed
+        validate=validate.OneOf(choices=get_time_grain_choices()),
         required=True,
     )
     periods = fields.Integer(
@@ -997,9 +1002,7 @@ class ChartDataExtrasSchema(Schema):
             "[ISO 8601](https://en.wikipedia.org/wiki/ISO_8601#Durations) durations.",
             "example": "P1D",
         },
-        # TODO: This validation should be dynamic based on config
-        # For now, we skip validation at field level and can add
-        # a @validates_schema method if needed
+        validate=validate.OneOf(choices=get_time_grain_choices()),
         allow_none=True,
     )
     instant_time_comparison_range = fields.String(
