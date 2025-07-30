@@ -62,9 +62,10 @@ class EngineManager:
 
     This class handles the creation and management of SQLAlchemy engines, allowing them
     to be configured with connection pools and reused across requests. The default mode
-    is the default behavior for Superset, where we create a new engine for every
-    connection, using a NullPool. The `SINGLETON` mode allows for reusing of the
-    engines, as well as configuring the pool through the database settings.
+    is the original behavior for Superset, where we create a new engine for every
+    connection, using a NullPool. The `SINGLETON` mode, on the other hand, allows for
+    reusing of the engines, as well as configuring the pool through the database
+    settings.
     """
 
     def __init__(
