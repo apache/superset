@@ -118,6 +118,7 @@ docker/requirements-local.txt
 
 cache/
 docker/*local*
+docker/geo_db/data
 
 .temp_cache
 

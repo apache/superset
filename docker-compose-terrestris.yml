@@ -1,0 +1,14 @@
+include:
+  - 'docker-compose.yml'
+
+services:
+
+  geo-db:
+    image: postgis/postgis:17-3.5-alpine
+    environment:
+      POSTGRES_USER: geo
+      POSTGRES_PASSWORD: geo
+    volumes:
+      - ./docker/geo_db/data:/var/lib/postgresql/data
+      - ./docker/geo_db/init_data:/docker-entrypoint-initdb.d
+
