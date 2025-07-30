@@ -3,30 +3,76 @@
 
 echo "🔧 Setting up Superset development environment..."
 
-# The universal image has most tools, just need Superset-specific libs
-echo "📦 Installing Superset-specific dependencies..."
-sudo apt-get update
-sudo apt-get install -y \
-    libsasl2-dev \
-    libldap2-dev \
-    libpq-dev \
-    tmux \
-    gh
+# System dependencies and uv are now pre-installed in the Docker image
+# This speeds up Codespace creation significantly!
 
-# Install uv for fast Python package management
-echo "📦 Installing uv..."
-curl -LsSf https://astral.sh/uv/install.sh | sh
+# Create virtual environment using uv
+echo "🐍 Creating Python virtual environment..."
+if ! uv venv; then
+    echo "❌ Failed to create virtual environment"
+    exit 1
+fi
 
-# Add cargo/bin to PATH for uv
-echo 'export PATH="$HOME/.cargo/bin:$PATH"' >> ~/.bashrc
-echo 'export PATH="$HOME/.cargo/bin:$PATH"' >> ~/.zshrc
+# Install Python dependencies
+echo "📦 Installing Python dependencies..."
+if ! uv pip install -r requirements/development.txt; then
+    echo "❌ Failed to install Python dependencies"
+    echo "💡 You may need to run this manually after the Codespace starts"
+    exit 1
+fi
+
+# Install pre-commit hooks
+echo "🪝 Installing pre-commit hooks..."
+if source .venv/bin/activate && pre-commit install; then
+    echo "✅ Pre-commit hooks installed"
+else
+    echo "⚠️  Pre-commit hooks installation failed (non-critical)"
+fi
 
 # Install Claude Code CLI via npm
 echo "🤖 Installing Claude Code..."
-npm install -g @anthropic-ai/claude-code
+if npm install -g @anthropic-ai/claude-code; then
+    echo "✅ Claude Code installed"
+else
+    echo "⚠️  Claude Code installation failed (non-critical)"
+fi
 
 # Make the start script executable
 chmod +x .devcontainer/start-superset.sh
 
+# Add bashrc additions for automatic venv activation
+echo "🔧 Setting up automatic environment activation..."
+if [ -f ~/.bashrc ]; then
+    # Check if we've already added our additions
+    if ! grep -q "Superset Codespaces environment setup" ~/.bashrc; then
+        echo "" >> ~/.bashrc
+        cat .devcontainer/bashrc-additions >> ~/.bashrc
+        echo "✅ Added automatic venv activation to ~/.bashrc"
+    else
+        echo "✅ Bashrc additions already present"
+    fi
+else
+    # Create bashrc if it doesn't exist
+    cat .devcontainer/bashrc-additions > ~/.bashrc
+    echo "✅ Created ~/.bashrc with automatic venv activation"
+fi
+
+# Also add to zshrc since that's the default shell
+if [ -f ~/.zshrc ] || [ -n "$ZSH_VERSION" ]; then
+    if ! grep -q "Superset Codespaces environment setup" ~/.zshrc; then
+        echo "" >> ~/.zshrc
+        cat .devcontainer/bashrc-additions >> ~/.zshrc
+        echo "✅ Added automatic venv activation to ~/.zshrc"
+    fi
+fi
+
 echo "✅ Development environment setup complete!"
-echo "🚀 Run '.devcontainer/start-superset.sh' to start Superset"
+echo ""
+echo "📝 The virtual environment will be automatically activated in new terminals"
+echo ""
+echo "🔄 To activate in this terminal, run:"
+echo "   source ~/.bashrc"
+echo ""
+echo "🚀 To start Superset:"
+echo "   start-superset"
+echo ""
