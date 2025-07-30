@@ -68,7 +68,9 @@ class TestErrorHandling:
         import fastmcp
 
         async with fastmcp.Client(mcp_server) as client:
-            result = await client.call_tool("get_dashboard_available_filters")
+            result = await client.call_tool(
+                "get_dashboard_available_filters", {"request": {}}
+            )
             assert hasattr(result.data, "filters")
             assert hasattr(result.data, "operators")
             assert hasattr(result.data, "columns")

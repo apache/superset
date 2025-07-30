@@ -59,6 +59,61 @@ All `list_*` tools include validation to prevent conflicting parameters:
 
 ---
 
+## Cache Control & Performance
+
+The MCP service provides comprehensive cache control that leverages Superset's existing cache infrastructure:
+
+### Superset Cache Layers
+1. **Query Result Cache** - Caches actual query results from customer databases
+2. **Metadata Cache** - Caches table schemas, column info, metrics
+3. **Form Data Cache** - Caches chart configurations for explore URLs
+4. **Dashboard Cache** - Caches rendered dashboard components
+
+### Cache Control Parameters
+All tools support cache control through request schema inheritance:
+
+- **Query Cache Control** (`get_chart_data`, `generate_chart`, `update_chart`):
+  - `use_cache`: Whether to use Superset's cache layers (default: true)
+  - `force_refresh`: Force refresh cached data (default: false)
+  - `cache_timeout`: Override cache timeout for this query (seconds)
+
+- **Metadata Cache Control** (`list_*`, `get_*_info` tools):
+  - `use_cache`: Whether to use metadata cache (default: true)
+  - `refresh_metadata`: Force refresh metadata from database (default: false)
+
+- **Form Data Cache Control** (`generate_explore_link`, `update_chart_preview`):
+  - `cache_form_data`: Whether to cache form data configurations (default: true)
+
+### Cache Status Reporting
+Tools return detailed cache status to help understand data freshness:
+```json
+{
+  "cache_status": {
+    "cache_hit": true,
+    "cache_type": "query",
+    "cache_age_seconds": 300,
+    "refreshed": false
+  }
+}
+```
+
+### Implementation Pattern
+Cache control is implemented through Pydantic schema inheritance:
+```python
+class CacheControlMixin(BaseModel):
+    use_cache: bool = Field(default=True)
+    force_refresh: bool = Field(default=False)
+
+class QueryCacheControl(CacheControlMixin):
+    cache_timeout: Optional[int] = Field(default=None)
+
+class GetChartDataRequest(QueryCacheControl):
+    identifier: int | str
+    # ... other fields
+```
+
+---
+
 ## Tool Abstractions
 
 - **ModelListTool**: Generic class for list/search/filter tools (dashboards, charts, datasets). Handles pagination, column selection, and serialization. Now serializes columns and metrics for datasets. Uses FastMCP Complex Inputs Pattern with request schemas.

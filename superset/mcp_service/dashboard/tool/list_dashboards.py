@@ -16,10 +16,10 @@
 # under the License.
 
 """
-List dashboards FastMCP tool (Advanced with clear request schema)
+List dashboards FastMCP tool (Advanced with metadata cache control)
 
 This module contains the FastMCP tool for listing dashboards using
-advanced filtering with clear, unambiguous request schema.
+advanced filtering with clear, unambiguous request schema and metadata cache control.
 """
 
 import logging
@@ -89,16 +89,34 @@ DEFAULT_DASHBOARD_COLUMNS = [
     "created_on",
 ]
 
+SORTABLE_DASHBOARD_COLUMNS = [
+    "id",
+    "dashboard_title",
+    "slug",
+    "published",
+    "changed_on",
+    "created_on",
+]
+
 
 @mcp.tool
 @mcp_auth_hook
 def list_dashboards(request: ListDashboardsRequest) -> DashboardList:
     """
-    List dashboards with advanced filtering, search, and column selection.
+    List dashboards with advanced filtering, search, and metadata cache control.
 
     Uses a clear request object schema to avoid validation ambiguity with
-    arrays/strings.
-    All parameters are properly typed and have sensible defaults.
+    arrays/strings. All parameters are properly typed and have sensible defaults.
+
+    Sortable columns for order_column: id, dashboard_title, slug, published,
+    changed_on, created_on
+
+    Metadata Cache Control:
+    - use_cache: Whether to use metadata cache for faster responses
+    - refresh_metadata: Force refresh of metadata cache for fresh data
+
+    When refresh_metadata=True, the tool will fetch fresh metadata from the database
+    which is useful when database schema has changed.
     """
 
     from superset.daos.dashboard import DashboardDAO
@@ -111,11 +129,7 @@ def list_dashboards(request: ListDashboardsRequest) -> DashboardList:
         default_columns=DEFAULT_DASHBOARD_COLUMNS,
         search_columns=[
             "dashboard_title",
-            "owners",
-            "published",
-            "roles",
             "slug",
-            "tags",
             "uuid",
         ],
         list_field_name="dashboards",

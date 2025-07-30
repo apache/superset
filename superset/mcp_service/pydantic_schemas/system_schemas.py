@@ -28,6 +28,19 @@ from typing import Dict, List, Optional
 from pydantic import BaseModel, ConfigDict, Field
 
 
+class GetSupersetInstanceInfoRequest(BaseModel):
+    """
+    Request schema for get_superset_instance_info tool.
+
+    Currently has no parameters but provides consistent API for future extensibility.
+    """
+
+    model_config = ConfigDict(
+        extra="forbid",
+        str_strip_whitespace=True,
+    )
+
+
 class InstanceSummary(BaseModel):
     total_dashboards: int = Field(..., description="Total number of dashboards")
     total_charts: int = Field(..., description="Total number of charts")

@@ -40,11 +40,18 @@ logger = logging.getLogger(__name__)
 @mcp_auth_hook
 def get_dataset_info(request: GetDatasetInfoRequest) -> DatasetInfo | DatasetError:
     """
-    Get detailed information about a specific dataset.
+    Get detailed information about a specific dataset with metadata cache control.
 
     Supports lookup by:
     - Numeric ID (e.g., 123)
     - UUID string (e.g., "a1b2c3d4-e5f6-7890-abcd-ef1234567890")
+
+    Metadata Cache Control:
+    - use_cache: Whether to use metadata cache for faster responses
+    - refresh_metadata: Force refresh of metadata cache for fresh data
+
+    When refresh_metadata=True, the tool will fetch fresh column and metric
+    metadata from the database, which is useful when table schema has changed.
 
     Returns a DatasetInfo model or DatasetError on error.
     """

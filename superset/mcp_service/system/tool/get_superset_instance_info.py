@@ -29,6 +29,7 @@ from superset.mcp_service.mcp_app import mcp
 from superset.mcp_service.pydantic_schemas.system_schemas import (
     DashboardBreakdown,
     DatabaseBreakdown,
+    GetSupersetInstanceInfoRequest,
     InstanceInfo,
     InstanceSummary,
     PopularContent,
@@ -231,7 +232,7 @@ _instance_info_tool = InstanceInfoTool(
 
 @mcp.tool
 @mcp_auth_hook
-def get_superset_instance_info() -> InstanceInfo:
+def get_superset_instance_info(request: GetSupersetInstanceInfoRequest) -> InstanceInfo:
     """
     Get comprehensive high-level information about the Superset instance.
 
@@ -241,6 +242,10 @@ def get_superset_instance_info() -> InstanceInfo:
     - Dashboard status breakdown (published, certified, etc.)
     - Database type distribution
     - Popular content analysis
+
+    This tool uses system-level metadata caching for performance. The data
+    is typically cached and refreshed automatically by Superset's background
+    processes.
 
     Returns:
         InstanceInfo: Comprehensive instance statistics and metadata

@@ -27,12 +27,26 @@ from typing import Annotated, Any, Dict, List, Literal, Optional
 from pydantic import BaseModel, ConfigDict, Field, model_validator, PositiveInt
 
 from superset.daos.base import ColumnOperator, ColumnOperatorEnum
+from superset.mcp_service.pydantic_schemas.cache_schemas import MetadataCacheControl
 from superset.mcp_service.pydantic_schemas.system_schemas import (
     PaginationInfo,
     TagInfo,
     UserInfo,
 )
 from superset.utils import json
+
+
+class GetDatasetAvailableFiltersRequest(BaseModel):
+    """
+    Request schema for get_dataset_available_filters tool.
+
+    Currently has no parameters but provides consistent API for future extensibility.
+    """
+
+    model_config = ConfigDict(
+        extra="forbid",
+        str_strip_whitespace=True,
+    )
 
 
 class DatasetAvailableFilters(BaseModel):
@@ -159,7 +173,7 @@ class DatasetList(BaseModel):
     model_config = ConfigDict(ser_json_timedelta="iso8601")
 
 
-class ListDatasetsRequest(BaseModel):
+class ListDatasetsRequest(MetadataCacheControl):
     """Request schema for list_datasets with clear, unambiguous types."""
 
     filters: Annotated[
@@ -236,7 +250,7 @@ class DatasetError(BaseModel):
     model_config = ConfigDict(ser_json_timedelta="iso8601")
 
 
-class GetDatasetInfoRequest(BaseModel):
+class GetDatasetInfoRequest(MetadataCacheControl):
     """Request schema for get_dataset_info with support for ID or UUID."""
 
     identifier: Annotated[
