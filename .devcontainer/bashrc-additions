@@ -43,8 +43,9 @@ echo "=================================="
 # Check if Superset is running
 if docker ps 2>/dev/null | grep -q "superset"; then
     echo "✅ Superset is running!"
-    echo "   - UI: http://localhost:8088 (admin/admin)"
-    echo "   - Frontend dev: http://localhost:9001"
+    echo "   - Check the 'Ports' tab for your live Superset URL"
+    echo "   - Initial startup takes 10-20 minutes"
+    echo "   - Login: admin/admin"
 else
     echo "⚠️  Superset is not running. Use: start-superset"
 fi

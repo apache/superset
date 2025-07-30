@@ -33,10 +33,10 @@ echo "✅ Docker is ready!"
 if docker ps | grep -q "superset"; then
     echo "✅ Superset containers are already running!"
     echo ""
-    echo "🌐 You can access Superset at:"
-    echo "   - Port 8088: http://localhost:8088 (Superset UI)"
-    echo "   - Port 8081: http://localhost:8081 (Alternative port)"
-    echo "   - Port 9001: http://localhost:9001 (Frontend dev server for Codespaces)"
+    echo "🌐 To access Superset:"
+    echo "   1. Click the 'Ports' tab at the bottom of VS Code"
+    echo "   2. Find port 9001 and click the globe icon to open"
+    echo "   3. Wait 10-20 minutes for initial startup"
     echo ""
     echo "📝 Login credentials: admin/admin"
     exit 0
@@ -53,7 +53,10 @@ echo "📝 Once started, login with:"
 echo "   Username: admin"
 echo "   Password: admin"
 echo ""
-echo "📋 Running in foreground with live logs (Ctrl+C to stop)..."
+echo "📋 Starting Superset (this takes 10-20 minutes)..."
+echo "🌐 Once ready, check the 'Ports' tab for your live URL"
+echo ""
+echo "Running in foreground with live logs (Ctrl+C to stop)..."
 
 # Run docker-compose and capture exit code
 docker-compose -f docker-compose-light.yml up
