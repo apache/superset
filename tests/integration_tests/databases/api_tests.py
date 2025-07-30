@@ -81,7 +81,6 @@ from tests.integration_tests.fixtures.unicode_dashboard import (
 from tests.integration_tests.fixtures.users import (
     create_gamma_user_group_with_all_database,  # noqa: F401
 )
-from tests.integration_tests.test_app import app
 
 
 SQL_VALIDATORS_BY_ENGINE = {
@@ -1227,10 +1226,7 @@ class TestDatabaseApi(SupersetTestCase):
         assert rv.status_code == 400
         assert "Invalid connection string" in response["message"]["sqlalchemy_uri"][0]
 
-    @mock.patch(
-        "superset.views.core.app.config",
-        {**app.config, "PREVENT_UNSAFE_DB_CONNECTIONS": True},
-    )
+    @with_config({"PREVENT_UNSAFE_DB_CONNECTIONS": True})
     def test_create_database_fail_sqlite(self):
         """
         Database API: Test create fail with sqlite
@@ -1929,10 +1925,7 @@ class TestDatabaseApi(SupersetTestCase):
     def mock_csv_function(d, user):  # noqa: N805
         return d.get_all_schema_names()
 
-    @mock.patch(
-        "superset.views.core.app.config",
-        {**app.config, "ALLOWED_USER_CSV_SCHEMA_FUNC": mock_csv_function},
-    )
+    @with_config({"ALLOWED_USER_CSV_SCHEMA_FUNC": mock_csv_function})
     def test_get_allow_file_upload_true_csv(self):
         """
         Database API: Test filter for allow file upload checks for schemas.
