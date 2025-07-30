@@ -77,6 +77,7 @@ def test_execute_sql_statement_exceeds_payload_limit(mocker: MockerFixture) -> N
         "SQL_MAX_ROW": 100000,
         "QUERY_LOGGER": None,
         "TROUBLESHOOTING_LINK": None,
+        "STATS_LOGGER": mocker.MagicMock(),
     }
 
     # Mock the query object and database
@@ -135,6 +136,7 @@ def test_execute_sql_statement_within_payload_limit(mocker: MockerFixture) -> No
         "SQL_MAX_ROW": 100000,
         "QUERY_LOGGER": None,
         "TROUBLESHOOTING_LINK": None,
+        "STATS_LOGGER": mocker.MagicMock(),
     }
 
     # Mock the query object and database
