@@ -356,7 +356,9 @@ async def test_get_dashboard_info_access_denied(mock_info, mcp_server):
 @pytest.mark.asyncio
 async def test_get_dashboard_available_filters_success(mcp_server):
     async with Client(mcp_server) as client:
-        result = await client.call_tool("get_dashboard_available_filters", {})
+        result = await client.call_tool(
+            "get_dashboard_available_filters", {"request": {}}
+        )
         assert hasattr(result.data, "column_operators")
         assert isinstance(result.data.column_operators, dict)
 
@@ -365,7 +367,9 @@ async def test_get_dashboard_available_filters_success(mcp_server):
 async def test_get_dashboard_available_filters_exception_handling(mcp_server):
     # No exception expected in normal operation
     async with Client(mcp_server) as client:
-        result = await client.call_tool("get_dashboard_available_filters", {})
+        result = await client.call_tool(
+            "get_dashboard_available_filters", {"request": {}}
+        )
         assert hasattr(result.data, "column_operators")
 
 

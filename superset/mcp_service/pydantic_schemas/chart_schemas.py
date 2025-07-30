@@ -27,6 +27,12 @@ from typing import Annotated, Any, Dict, List, Literal, Optional, Protocol
 from pydantic import BaseModel, ConfigDict, Field, model_validator, PositiveInt
 
 from superset.daos.base import ColumnOperator, ColumnOperatorEnum
+from superset.mcp_service.pydantic_schemas.cache_schemas import (
+    CacheStatus,
+    FormDataCacheControl,
+    MetadataCacheControl,
+    QueryCacheControl,
+)
 from superset.mcp_service.pydantic_schemas.system_schemas import (
     PaginationInfo,
     TagInfo,
@@ -92,6 +98,19 @@ class ChartInfo(BaseModel):
     tags: List[TagInfo] = Field(default_factory=list, description="Chart tags")
     owners: List[UserInfo] = Field(default_factory=list, description="Chart owners")
     model_config = ConfigDict(from_attributes=True, ser_json_timedelta="iso8601")
+
+
+class GetChartAvailableFiltersRequest(BaseModel):
+    """
+    Request schema for get_chart_available_filters tool.
+
+    Currently has no parameters but provides consistent API for future extensibility.
+    """
+
+    model_config = ConfigDict(
+        extra="forbid",
+        str_strip_whitespace=True,
+    )
 
 
 class ChartAvailableFiltersResponse(BaseModel):
@@ -368,7 +387,7 @@ class XYChartConfig(BaseModel):
 ChartConfig = TableChartConfig | XYChartConfig
 
 
-class ListChartsRequest(BaseModel):
+class ListChartsRequest(MetadataCacheControl):
     """Request schema for list_charts with clear, unambiguous types."""
 
     filters: Annotated[
@@ -438,7 +457,7 @@ class ListChartsRequest(BaseModel):
 
 
 # The tool input models
-class GenerateChartRequest(BaseModel):
+class GenerateChartRequest(QueryCacheControl):
     dataset_id: int | str = Field(..., description="Dataset identifier (ID, UUID)")
     config: ChartConfig = Field(..., description="Chart configuration")
     save_chart: bool = Field(
@@ -457,12 +476,12 @@ class GenerateChartRequest(BaseModel):
     )
 
 
-class GenerateExploreLinkRequest(BaseModel):
+class GenerateExploreLinkRequest(FormDataCacheControl):
     dataset_id: int | str = Field(..., description="Dataset identifier (ID, UUID)")
     config: ChartConfig = Field(..., description="Chart configuration")
 
 
-class UpdateChartRequest(BaseModel):
+class UpdateChartRequest(QueryCacheControl):
     identifier: int | str = Field(..., description="Chart identifier (ID, UUID)")
     config: ChartConfig = Field(..., description="New chart configuration")
     chart_name: Optional[str] = Field(
@@ -481,7 +500,7 @@ class UpdateChartRequest(BaseModel):
     )
 
 
-class UpdateChartPreviewRequest(BaseModel):
+class UpdateChartPreviewRequest(FormDataCacheControl):
     form_data_key: str = Field(..., description="Existing form_data_key to update")
     dataset_id: int | str = Field(..., description="Dataset identifier (ID, UUID)")
     config: ChartConfig = Field(..., description="New chart configuration")
@@ -497,12 +516,15 @@ class UpdateChartPreviewRequest(BaseModel):
     )
 
 
-class GetChartDataRequest(BaseModel):
-    """Request for chart data."""
+class GetChartDataRequest(QueryCacheControl):
+    """Request for chart data with cache control."""
 
     identifier: int | str = Field(description="Chart identifier (ID, UUID)")
     limit: Optional[int] = Field(
         default=100, description="Maximum number of data rows to return"
+    )
+    format: Literal["json", "csv", "excel"] = Field(
+        default="json", description="Data export format"
     )
 
 
@@ -550,14 +572,17 @@ class ChartData(BaseModel):
 
     # Performance and metadata
     performance: PerformanceMetadata = Field(description="Query performance metrics")
+    cache_status: Optional[CacheStatus] = Field(
+        None, description="Cache usage information"
+    )
 
     # Inherit versioning
     schema_version: str = Field("2.0", description="Response schema version")
     api_version: str = Field("v1", description="MCP API version")
 
 
-class GetChartPreviewRequest(BaseModel):
-    """Request for chart preview."""
+class GetChartPreviewRequest(QueryCacheControl):
+    """Request for chart preview with cache control."""
 
     identifier: int | str = Field(description="Chart identifier (ID, UUID)")
     format: Literal["url", "ascii", "table", "base64"] = Field(

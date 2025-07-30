@@ -60,7 +60,9 @@ class TestSystemTools:
         mcp_server,
     ):
         async with fastmcp.Client(mcp_server) as client:
-            result = await client.call_tool("get_superset_instance_info", {})
+            result = await client.call_tool(
+                "get_superset_instance_info", {"request": {}}
+            )
             summary = result.data.instance_summary
             assert summary.total_dashboards == 10
             assert summary.total_charts == 10
@@ -91,7 +93,9 @@ class TestSystemTools:
     ):
         """Test that the tool handles DAO failures gracefully."""
         async with fastmcp.Client(mcp_server) as client:
-            result = await client.call_tool("get_superset_instance_info", {})
+            result = await client.call_tool(
+                "get_superset_instance_info", {"request": {}}
+            )
 
             # Should return a valid response even with DAO failures
             assert result.data is not None

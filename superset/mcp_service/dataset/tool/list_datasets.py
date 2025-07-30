@@ -16,10 +16,10 @@
 # under the License.
 
 """
-List datasets FastMCP tool (Advanced)
+List datasets FastMCP tool (Advanced with metadata cache control)
 
 This module contains the FastMCP tool for listing datasets using
-advanced filtering with clear, unambiguous request schema.
+advanced filtering with clear, unambiguous request schema and metadata cache control.
 """
 
 import logging
@@ -50,19 +50,35 @@ DEFAULT_DATASET_COLUMNS = [
     "columns",
 ]
 
+SORTABLE_DATASET_COLUMNS = [
+    "id",
+    "table_name",
+    "schema",
+    "changed_on",
+    "created_on",
+]
+
 
 @mcp.tool
 @mcp_auth_hook
 def list_datasets(request: ListDatasetsRequest) -> DatasetList:
     """
-    List datasets with advanced filtering, search, and column selection.
+    List datasets with advanced filtering, search, and metadata cache control.
 
     Datasets are sorted by favorites first (if user has favorites), then by
     most recently updated.
 
     Uses a clear request object schema to avoid validation ambiguity with
-    arrays/strings.
-    All parameters are properly typed and have sensible defaults.
+    arrays/strings. All parameters are properly typed and have sensible defaults.
+
+    Sortable columns for order_column: id, table_name, schema, changed_on, created_on
+
+    Metadata Cache Control:
+    - use_cache: Whether to use metadata cache for faster responses
+    - refresh_metadata: Force refresh of metadata cache for fresh data
+
+    When refresh_metadata=True, the tool will fetch fresh column and metric
+    metadata from the database, which is useful when table schema has changed.
     """
 
     from superset.daos.dataset import DatasetDAO
@@ -74,7 +90,7 @@ def list_datasets(request: ListDatasetsRequest) -> DatasetList:
         item_serializer=lambda obj, cols: serialize_dataset_object(obj),
         filter_type=DatasetFilter,
         default_columns=DEFAULT_DATASET_COLUMNS,
-        search_columns=["catalog", "schema", "sql", "table_name", "uuid", "tags"],
+        search_columns=["schema", "sql", "table_name", "uuid"],
         list_field_name="datasets",
         output_list_schema=DatasetList,
         logger=logger,

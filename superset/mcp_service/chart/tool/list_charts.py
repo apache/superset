@@ -16,7 +16,7 @@
 # under the License.
 
 """
-MCP tool: list_charts (advanced filtering with clear request schema)
+MCP tool: list_charts (advanced filtering with metadata cache control)
 """
 
 import logging
@@ -46,16 +46,36 @@ DEFAULT_CHART_COLUMNS = [
     "created_on",
 ]
 
+SORTABLE_CHART_COLUMNS = [
+    "id",
+    "slice_name",
+    "viz_type",
+    "datasource_name",
+    "description",
+    "changed_on",
+    "created_on",
+]
+
 
 @mcp.tool
 @mcp_auth_hook
 def list_charts(request: ListChartsRequest) -> ChartList:
     """
-    List charts with advanced filtering, search, and column selection.
+    List charts with advanced filtering, search, and metadata cache control.
 
     Uses a clear request object schema to avoid validation ambiguity with
-    arrays/strings.
-    All parameters are properly typed and have sensible defaults.
+    arrays/strings. All parameters are properly typed and have sensible defaults.
+
+    Search columns: slice_name, description
+    Sortable columns for order_column: id, slice_name, viz_type, datasource_name,
+    description, changed_on, created_on
+
+    Metadata Cache Control:
+    - use_cache: Whether to use metadata cache for faster responses
+    - refresh_metadata: Force refresh of metadata cache for fresh data
+
+    When refresh_metadata=True, the tool will fetch fresh metadata from the database
+    which is useful when database schema has changed.
     """
 
     from superset.daos.chart import ChartDAO
@@ -68,11 +88,7 @@ def list_charts(request: ListChartsRequest) -> ChartList:
         default_columns=DEFAULT_CHART_COLUMNS,
         search_columns=[
             "slice_name",
-            "viz_type",
-            "datasource_name",
             "description",
-            "tags",
-            "uuid",
         ],
         list_field_name="charts",
         output_list_schema=ChartList,

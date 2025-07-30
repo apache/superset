@@ -63,29 +63,29 @@ python tests/integration_tests/mcp_service/run_mcp_tests.py
 All tools are modular, strongly typed, and use Pydantic v2 schemas. Every field is documented for LLM/OpenAPI compatibility.
 
 ### 📊 Dashboard Tools
-- **`list_dashboards`** - Advanced filtering, search, pagination with UUID and slug support
-- **`get_dashboard_info`** - Supports ID, UUID, and slug lookups with detailed metadata
+- **`list_dashboards`** - Advanced filtering, search, pagination with UUID and slug support and metadata caching
+- **`get_dashboard_info`** - Supports ID, UUID, and slug lookups with detailed metadata and cache control
 - **`get_dashboard_available_filters`** - Dynamic filter discovery for dashboard queries
 - **`generate_dashboard`** - ✨ **NEW**: Create dashboards with multiple charts and automatic layout
 - **`add_chart_to_existing_dashboard`** - ✨ **NEW**: Add charts to existing dashboards with smart positioning
 
 ### 📈 Chart Tools  
-- **`list_charts`** - Advanced filtering, search, pagination with UUID support
+- **`list_charts`** - Advanced filtering, search, pagination with UUID support and metadata caching
 - **`get_chart_info`** - Supports ID and UUID lookups with full chart metadata
 - **`get_chart_available_filters`** - Dynamic filter discovery for chart queries
-- **`generate_chart`** - Chart creation supporting 5 types (line, bar, area, scatter, table)
-- **`update_chart`** - ✨ **NEW**: Update existing saved charts with new configuration
+- **`generate_chart`** - Chart creation supporting 5 types with cache control
+- **`update_chart`** - ✨ **NEW**: Update existing saved charts with new configuration and cache control
 - **`update_chart_preview`** - ✨ **NEW**: Update cached chart previews without saving
-- **`get_chart_data`** - ✨ **NEW**: Retrieve chart data in multiple formats (JSON, CSV)
-- **`get_chart_preview`** - ✨ **NEW**: Generate chart previews (screenshots, ASCII art, tables)
+- **`get_chart_data`** - ✨ **NEW**: Retrieve chart data in multiple formats with advanced cache control and status reporting
+- **`get_chart_preview`** - ✨ **NEW**: Generate chart previews with cache control
 
 ### 🗂️ Dataset Tools
-- **`list_datasets`** - Advanced filtering, search, pagination with UUID support + columns/metrics
-- **`get_dataset_info`** - Supports ID and UUID lookups with columns and metrics metadata  
+- **`list_datasets`** - Advanced filtering, search, pagination with UUID support + columns/metrics and metadata caching
+- **`get_dataset_info`** - Supports ID and UUID lookups with columns/metrics metadata and cache control
 - **`get_dataset_available_filters`** - Dynamic filter discovery for dataset queries
 
 ### 🖥️ System Tools
-- **`get_superset_instance_info`** - Instance statistics including version, tools, and auth status
+- **`get_superset_instance_info`** - Instance statistics including version, tools, and auth status with system-level metadata caching
 - **`generate_explore_link`** - Generate Superset explore URLs with pre-configured chart settings
 
 ### 🧪 SQL Lab Tools
@@ -451,6 +451,112 @@ def my_tool(request: MyRequest) -> Dict[str, Any]:
 ```
 
 This enables enterprise audit compliance and helps distinguish automated MCP requests from interactive user sessions.
+
+## Cache Control & Performance
+
+The MCP service provides comprehensive cache control that leverages Superset's existing cache infrastructure for optimal performance:
+
+### Superset Cache Layers
+
+Superset has multiple cache layers that the MCP service leverages:
+1. **Query Result Cache** - Caches actual query results from customer databases
+2. **Metadata Cache** - Caches table schemas, column info, etc.
+3. **Form Data Cache** - Caches chart configurations for explore URLs  
+4. **Dashboard Cache** - Caches rendered dashboard components
+
+### Cache Control Parameters
+
+All MCP tools support cache control through request parameters:
+
+#### Query Cache Control
+For tools that execute SQL queries (`get_chart_data`, `get_chart_data_cached`, `generate_chart`, `update_chart`):
+
+```python
+{
+  "use_cache": true,           # Whether to use Superset's cache layers
+  "force_refresh": false,      # Force refresh cached data
+  "cache_timeout": 3600        # Override cache timeout for this query (seconds)
+}
+```
+
+#### Metadata Cache Control  
+For tools that fetch metadata (`list_dashboards`, `list_charts`, `list_datasets`, `get_*_info`):
+
+```python
+{
+  "use_cache": true,           # Whether to use metadata cache
+  "refresh_metadata": false    # Force refresh metadata for datasets/tables
+}
+```
+
+#### Form Data Cache Control
+For tools that work with chart configurations (`generate_explore_link`, `update_chart_preview`):
+
+```python
+{
+  "cache_form_data": true      # Whether to cache form data configurations
+}
+```
+
+### Cache Status Information
+
+Tools return detailed cache status to help understand data freshness:
+
+```python
+{
+  "cache_status": {
+    "cache_hit": true,           # Whether data was served from cache
+    "cache_type": "query",       # Type of cache used (query, metadata, form_data)
+    "cache_age_seconds": 300,    # Age of cached data in seconds
+    "refreshed": false           # Whether cache was refreshed in this request
+  }
+}
+```
+
+### Usage Examples
+
+```python
+# Get fresh data, bypassing cache
+get_chart_data({
+  "identifier": 123,
+  "use_cache": false,
+  "force_refresh": true
+})
+
+# Use cache but with custom timeout
+get_chart_data({
+  "identifier": 123,
+  "cache_timeout": 1800,  # 30 minutes
+  "use_cache": true
+})
+
+# Refresh metadata for datasets
+list_datasets({
+  "refresh_metadata": true,
+  "use_cache": false
+})
+
+# Fast metadata queries from cache
+list_charts({
+  "use_cache": true,
+  "refresh_metadata": false
+})
+```
+
+### Performance Benefits
+
+- **Faster Response Times**: Cached queries return instantly without database execution
+- **Reduced Database Load**: Identical queries hit cache regardless of how they were created (UI vs MCP)  
+- **Smart Cache Keys**: Cache based on query hash, so identical SQL queries share cache entries
+- **Configurable TTL**: Per-dataset and global cache timeout configuration
+- **Cache Transparency**: Clear cache status reporting helps users understand data freshness
+
+### Cache Iteration Support
+
+Chart iterations can effectively utilize the cache layer:
+- When you modify a chart through MCP tools, if the underlying SQL query hasn't changed (same metrics, filters, time range), Superset serves from its query result cache
+- The cache key is based on query hash, so identical queries hit the cache regardless of how they were created (UI vs MCP)
+- This enables rapid chart iteration and preview generation
 
 ## Configuration & Deployment
 

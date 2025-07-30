@@ -37,11 +37,15 @@ logger = logging.getLogger(__name__)
 @mcp_auth_hook
 def get_chart_info(request: GetChartInfoRequest) -> ChartInfo | ChartError:
     """
-    Get detailed information about a specific chart.
+    Get detailed information about a specific chart with metadata cache control.
 
     Supports lookup by:
     - Numeric ID (e.g., 123)
     - UUID string (e.g., "a1b2c3d4-e5f6-7890-abcd-ef1234567890")
+
+    Metadata Cache Control:
+    - use_cache: Whether to use metadata cache for faster responses
+    - refresh_metadata: Force refresh of metadata cache for fresh data
 
     Returns a ChartInfo model or ChartError on error.
     """

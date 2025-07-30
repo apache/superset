@@ -41,6 +41,7 @@ The Model Context Protocol (MCP) is a new protocol for exposing high-level, stru
 - **Request Schema Pattern**: Eliminates LLM parameter validation issues with structured requests
 - **Multi-Identifier Support**: ID/UUID/slug lookups across all get_*_info tools
 - **Enhanced Search**: UUID/slug fields included in search and default response columns
+- **Cache Control**: Comprehensive cache control parameters across all tools leveraging Superset's existing cache layers
 
 ### 🛠️ Core Tools Implemented (18 Total)
 - **Dashboard Tools**: `list_dashboards`, `get_dashboard_info`, `get_dashboard_available_filters`, `generate_dashboard`, `add_chart_to_existing_dashboard`
@@ -64,6 +65,11 @@ The Model Context Protocol (MCP) is a new protocol for exposing high-level, stru
 - **Chart Embedding**: Screenshot URLs and backend rendering with Firefox WebDriver for LLM chat integration ✅
 - **SQL Lab Integration**: Pre-configured SQL Lab sessions with database/schema selection ✅
 - **Dashboard Management**: Dashboard creation and chart addition capabilities ✅
+- **Cache Control Implementation**: Integrated cache control parameters across all tools with schema inheritance pattern ✅
+  - Query cache control for chart data and generation tools
+  - Metadata cache control for list and get_info tools  
+  - Form data cache control for explore link and preview tools
+  - Cache status reporting in tool responses
 
 ### 🎯 Phase 1 Stretch Goals
 | Epic ID | Name | Status | Description |

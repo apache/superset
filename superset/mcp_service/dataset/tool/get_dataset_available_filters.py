@@ -25,6 +25,7 @@ from superset.mcp_service.generic_tools import ModelGetAvailableFiltersTool
 from superset.mcp_service.mcp_app import mcp
 from superset.mcp_service.pydantic_schemas.dataset_schemas import (
     DatasetAvailableFilters,
+    GetDatasetAvailableFiltersRequest,
 )
 
 logger = logging.getLogger(__name__)
@@ -32,7 +33,9 @@ logger = logging.getLogger(__name__)
 
 @mcp.tool
 @mcp_auth_hook
-def get_dataset_available_filters() -> DatasetAvailableFilters:
+def get_dataset_available_filters(
+    request: GetDatasetAvailableFiltersRequest,
+) -> DatasetAvailableFilters:
     """
     Dynamically get information about available dataset filters and their operators.
     Custom fields supported: tags, owner.

@@ -99,12 +99,16 @@ def get_dashboard_info(
     request: GetDashboardInfoRequest,
 ) -> DashboardInfo | DashboardError:
     """
-    Get detailed information about a specific dashboard.
+    Get detailed information about a specific dashboard with metadata cache control.
 
     Supports lookup by:
     - Numeric ID (e.g., 123)
     - UUID string (e.g., "a1b2c3d4-e5f6-7890-abcd-ef1234567890")
     - Slug string (e.g., "my-dashboard")
+
+    Metadata Cache Control:
+    - use_cache: Whether to use metadata cache for faster responses
+    - refresh_metadata: Force refresh of metadata cache for fresh data
 
     Returns a DashboardInfo model or DashboardError on error.
     """
