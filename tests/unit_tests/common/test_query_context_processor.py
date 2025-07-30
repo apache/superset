@@ -277,21 +277,24 @@ def test_processing_time_offsets_date_range_logic(processor):
     # Test that the date range validation works
     assert processor.is_valid_date_range("2023-01-01 : 2023-01-31") is True
     assert processor.is_valid_date_range("1 year ago") is False
-    
+
     # Test that static method also works
-    assert QueryContextProcessor.is_valid_date_range_static("2023-01-01 : 2023-01-31") is True
+    assert (
+        QueryContextProcessor.is_valid_date_range_static("2023-01-01 : 2023-01-31")
+        is True
+    )
     assert QueryContextProcessor.is_valid_date_range_static("1 year ago") is False
 
 
 def test_feature_flag_validation_logic():
     """Test that feature flag validation logic works as expected."""
     from superset.extensions import feature_flag_manager
-    
+
     # This tests the concept - actual feature flag value depends on config
     # The important thing is that the code checks for DATE_RANGE_TIMESHIFTS_ENABLED
     flag_name = "DATE_RANGE_TIMESHIFTS_ENABLED"
-    
-    # Test that the feature flag is being checked 
+
+    # Test that the feature flag is being checked
     # (This will vary based on actual config but tests the mechanism)
     result = feature_flag_manager.is_feature_enabled(flag_name)
     assert isinstance(result, bool)  # Should return a boolean
@@ -300,38 +303,38 @@ def test_feature_flag_validation_logic():
 def test_join_offset_dfs_date_range_basic(processor):
     """Test basic join logic for date range offsets."""
     # Create simple test data
-    main_df = pd.DataFrame({
-        "dim1": ["A", "B", "C"],
-        "metric1": [10, 20, 30]
-    })
-    
-    offset_df = pd.DataFrame({
-        "dim1": ["A", "B", "C"],
-        "metric1": [5, 10, 15]
-    })
-    
+    main_df = pd.DataFrame({"dim1": ["A", "B", "C"], "metric1": [10, 20, 30]})
+
+    offset_df = pd.DataFrame({"dim1": ["A", "B", "C"], "metric1": [5, 10, 15]})
+
     # Mock query context
     mock_query = MagicMock()
     mock_query.granularity = "date_col"
     processor._query_context.queries = [mock_query]
-    
+
     # Test basic join with date range offset
     offset_dfs = {"2023-01-01 : 2023-01-31": offset_df}
     join_keys = ["dim1"]
-    
-    with patch("superset.common.query_context_processor.feature_flag_manager") as mock_ff:
+
+    with patch(
+        "superset.common.query_context_processor.feature_flag_manager"
+    ) as mock_ff:
         mock_ff.is_feature_enabled.return_value = True
-        with patch("superset.common.query_context_processor.dataframe_utils.left_join_df") as mock_join:
-            mock_join.return_value = pd.DataFrame({
-                "dim1": ["A", "B", "C"],
-                "metric1": [10, 20, 30],
-                "metric1 2023-01-01 : 2023-01-31": [5, 10, 15]
-            })
-            
+        with patch(
+            "superset.common.query_context_processor.dataframe_utils.left_join_df"
+        ) as mock_join:
+            mock_join.return_value = pd.DataFrame(
+                {
+                    "dim1": ["A", "B", "C"],
+                    "metric1": [10, 20, 30],
+                    "metric1 2023-01-01 : 2023-01-31": [5, 10, 15],
+                }
+            )
+
             result_df = processor.join_offset_dfs(
                 main_df, offset_dfs, time_grain=None, join_keys=join_keys
             )
-            
+
             # Verify join was called
             mock_join.assert_called_once()
             assert len(result_df) == 3
@@ -341,9 +344,9 @@ def test_get_offset_custom_or_inherit_with_inherit(processor):
     """Test get_offset_custom_or_inherit with 'inherit' option."""
     from_dttm = pd.Timestamp("2024-01-01")
     to_dttm = pd.Timestamp("2024-01-10")
-    
+
     result = processor.get_offset_custom_or_inherit("inherit", from_dttm, to_dttm)
-    
+
     # Should return the difference in days
     assert result == "9 days ago"
 
@@ -352,9 +355,9 @@ def test_get_offset_custom_or_inherit_with_date(processor):
     """Test get_offset_custom_or_inherit with specific date."""
     from_dttm = pd.Timestamp("2024-01-10")
     to_dttm = pd.Timestamp("2024-01-20")
-    
+
     result = processor.get_offset_custom_or_inherit("2024-01-05", from_dttm, to_dttm)
-    
+
     # Should return difference between from_dttm and the specified date
     assert result == "5 days ago"
 
@@ -363,8 +366,8 @@ def test_get_offset_custom_or_inherit_with_invalid_date(processor):
     """Test get_offset_custom_or_inherit with invalid date format."""
     from_dttm = pd.Timestamp("2024-01-10")
     to_dttm = pd.Timestamp("2024-01-20")
-    
+
     result = processor.get_offset_custom_or_inherit("invalid-date", from_dttm, to_dttm)
-    
+
     # Should return empty string for invalid format
     assert result == ""

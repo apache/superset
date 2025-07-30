@@ -739,11 +739,10 @@ class QueryContextProcessor:
             actual_join_keys = join_keys
 
             # Check if this is a date range offset
-            is_date_range_offset = (
-                self.is_valid_date_range(offset)
-                and feature_flag_manager.is_feature_enabled(
-                    "DATE_RANGE_TIMESHIFTS_ENABLED"
-                )
+            is_date_range_offset = self.is_valid_date_range(
+                offset
+            ) and feature_flag_manager.is_feature_enabled(
+                "DATE_RANGE_TIMESHIFTS_ENABLED"
             )
 
             if time_grain and not is_date_range_offset:
@@ -870,8 +869,9 @@ class QueryContextProcessor:
             if time_grain and not is_date_range_offset:
                 # move the temporal column to the first column in df
                 if join_keys:
-                    col = df.pop(join_keys[0])
-                    df.insert(0, col.name, col)
+                    col_name = join_keys[0]
+                    col = df.pop(col_name)
+                    df.insert(0, col_name, col)
 
                 # removes columns created only for join purposes
                 df.drop(
