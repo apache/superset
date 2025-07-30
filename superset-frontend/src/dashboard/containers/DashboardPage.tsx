@@ -267,8 +267,8 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
               }
             >
               <DashboardContainer>
-              {DashboardBuilderComponent}
-            </DashboardContainer>
+                {DashboardBuilderComponent}
+              </DashboardContainer>
             </CrudThemeProvider>
           </DashboardPageIdContext.Provider>
         </>
