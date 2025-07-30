@@ -371,7 +371,7 @@ LOGO_RIGHT_TEXT: Callable[[], str] | str = ""
 
 # Enables SWAGGER UI for superset openapi spec
 # ex: http://localhost:8080/swagger/v1
-FAB_API_SWAGGER_UI_SUPERSET_APP_ROOT = True
+FAB_API_SWAGGER_UI_SUPERSET_APP_ROOT = False
 
 
 # Enables SWAGGER UI for superset openapi spec
