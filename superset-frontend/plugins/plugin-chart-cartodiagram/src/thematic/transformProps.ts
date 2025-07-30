@@ -48,7 +48,16 @@ export default function transformProps(chartProps: ChartProps) {
    * function during development with hot reloading, changes won't
    * be seen until restarting the development server.
    */
-  const { width, height, formData, hooks, theme, queriesData } = chartProps;
+  const {
+    width,
+    height,
+    formData,
+    hooks,
+    theme,
+    queriesData,
+    filterState,
+    emitCrossFilters,
+  } = chartProps;
   const {
     columns,
     geomColumn,
@@ -66,7 +75,8 @@ export default function transformProps(chartProps: ChartProps) {
     timeColumn,
     tooltipTemplate,
   } = formData;
-  const { setControlValue = () => {} } = hooks;
+
+  const { setControlValue = () => {}, setDataMask = () => {} } = hooks;
 
   const { data } = queriesData[0];
 
@@ -74,6 +84,8 @@ export default function transformProps(chartProps: ChartProps) {
     width,
     height,
     data,
+    emitCrossFilters,
+    filterState,
     geomColumn,
     geomFormat,
     columns,
@@ -85,6 +97,7 @@ export default function transformProps(chartProps: ChartProps) {
     mapExtentPadding,
     timesliderTooltipFormat,
     setControlValue,
+    setDataMask,
     showTimeslider,
     showLegend,
     showTooltip,

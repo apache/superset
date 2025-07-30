@@ -34,12 +34,22 @@ import {
   fitMapToData,
   fitMapToDataRecords,
 } from '../../util/mapUtil';
-import { createLayer } from '../../util/layerUtil';
+import {
+  createLayer,
+  createSelectionLayer,
+  getSelectedFeatures,
+  removeSelectionLayer,
+  setSelectionBackgroundOpacity,
+} from '../../util/layerUtil';
 import { LayerConf, MapMaxExtentConfigs, MapViewConfigs } from '../../types';
 import { OlChartMapProps } from '../types';
 import { isDataLayerConf } from '../../typeguards';
 import { StyledFeatureTooltip } from './FeatureTooltip';
-import { GeometryFormat } from '../../constants';
+import {
+  FULL_OPACITY,
+  GeometryFormat,
+  SELECTION_BACKGROUND_OPACITY,
+} from '../../constants';
 import { Legend } from './Legend';
 import { getMapExtentPadding } from '../../util/geometryUtil';
 
@@ -49,6 +59,8 @@ export const OlChartMap = (props: OlChartMapProps) => {
     width,
     mapId,
     data,
+    emitCrossFilters,
+    filterState,
     geomFormat,
     geomColumn,
     olMap,
@@ -59,6 +71,7 @@ export const OlChartMap = (props: OlChartMapProps) => {
     minZoom,
     mapExtentPadding,
     setControlValue,
+    setDataMask,
     timeColumn,
     timeFilter,
     tooltipTemplate,
@@ -78,12 +91,11 @@ export const OlChartMap = (props: OlChartMapProps) => {
     if (geomFormat === GeometryFormat.GEOJSON) {
       const features: Feature[] = [];
       data.forEach(item => {
-        const { [geomColumn]: unparsedGeom, ...props } = item;
-        const parsedGeom = JSON.parse(unparsedGeom as string);
+        const parsedGeom = JSON.parse(item[geomColumn] as string);
         features.push({
           type: 'Feature',
           geometry: parsedGeom,
-          properties: props,
+          properties: { ...item },
         });
       });
       return {
@@ -413,6 +425,33 @@ export const OlChartMap = (props: OlChartMapProps) => {
   }, [currentDataLayers, filteredData, geomColumn, geomFormat]);
 
   useEffect(() => {
+    removeSelectionLayer(olMap);
+
+    if (!currentDataLayers || currentDataLayers.length === 0) {
+      return;
+    }
+
+    const selectedFeatures = getSelectedFeatures(
+      currentDataLayers,
+      filterState,
+    );
+
+    if (filterState.value !== null && filterState.value !== undefined) {
+      const selectionLayer = createSelectionLayer(
+        currentDataLayers,
+        selectedFeatures,
+      );
+      olMap.addLayer(selectionLayer);
+      setSelectionBackgroundOpacity(
+        currentDataLayers,
+        SELECTION_BACKGROUND_OPACITY,
+      );
+    } else {
+      setSelectionBackgroundOpacity(currentDataLayers, FULL_OPACITY);
+    }
+  }, [filterState, currentDataLayers, olMap, filteredData]);
+
+  useEffect(() => {
     const { extentMode, fixedMaxX, fixedMaxY, fixedMinX, fixedMinY } =
       currentMapMaxExtent;
     const view = olMap.getView();
@@ -529,6 +568,100 @@ export const OlChartMap = (props: OlChartMapProps) => {
       view.fit(extent, { padding });
     }
   }, [olMap, currentMapView.mode, mapExtentPadding]);
+
+  useEffect(() => {
+    const evtKey = olMap.on('pointermove', evt => {
+      const pixel = olMap.getEventPixel(evt.originalEvent);
+
+      const hit = olMap.forEachFeatureAtPixel(
+        pixel,
+        // stop iteration after first feature
+        () => true,
+        {
+          layerFilter: layer =>
+            currentDataLayers
+              ? currentDataLayers.some(dataLayer => dataLayer === layer)
+              : false,
+        },
+      );
+
+      if (hit) {
+        // eslint-disable-next-line no-param-reassign
+        evt.originalEvent.target.style.cursor = 'pointer';
+      } else {
+        // eslint-disable-next-line no-param-reassign
+        evt.originalEvent.target.style.cursor = 'default';
+      }
+    });
+
+    return () => {
+      unByKey(evtKey);
+    };
+  }, [olMap, currentDataLayers]);
+
+  useEffect(() => {
+    if (!emitCrossFilters) {
+      return undefined;
+    }
+
+    const evtKey = olMap.on('singleclick', evt => {
+      const pixel = olMap.getEventPixel(evt.originalEvent);
+
+      const clickedFeature = olMap.forEachFeatureAtPixel(
+        pixel,
+        // stop iteration after first feature
+        (feat: OlFeature) => feat,
+        {
+          layerFilter: layer =>
+            currentDataLayers
+              ? currentDataLayers.some(dataLayer => dataLayer === layer)
+              : false,
+        },
+      );
+
+      if (clickedFeature === undefined) {
+        return;
+      }
+
+      const val = clickedFeature.get(geomColumn);
+      if (val === undefined || val === null) {
+        return;
+      }
+
+      // We reset the filter if a filtered feature is clicked again.
+      const resetFilter = filterState.selectedValues?.includes(val);
+
+      setDataMask({
+        extraFormData: {
+          filters: resetFilter
+            ? []
+            : [
+                {
+                  col: geomColumn,
+                  op: 'IN' as const,
+                  val: [val],
+                },
+              ],
+        },
+        filterState: {
+          label: resetFilter ? null : geomColumn,
+          value: resetFilter ? null : geomColumn,
+          selectedValues: resetFilter ? null : val,
+        },
+      });
+    });
+
+    return () => {
+      unByKey(evtKey);
+    };
+  }, [
+    olMap,
+    currentDataLayers,
+    setDataMask,
+    geomColumn,
+    emitCrossFilters,
+    filterState,
+  ]);
 
   return (
     <div

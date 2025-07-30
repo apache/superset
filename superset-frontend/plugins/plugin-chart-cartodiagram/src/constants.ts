@@ -33,3 +33,8 @@ export enum GeometryFormat {
 // copy of
 // superset-frontend/plugins/plugin-chart-echarts/src/constants.ts
 export const NULL_STRING = '<NULL>';
+
+export const SELECTION_LAYER_NAME = 'thematic-selection-layer';
+export const LAYER_NAME_PROP = 'layerName';
+export const SELECTION_BACKGROUND_OPACITY = 0.5;
+export const FULL_OPACITY = 1;

@@ -21,8 +21,10 @@
  * Util for layer related operations.
  */
 
-import { t } from '@superset-ui/core';
+import { FilterState, t } from '@superset-ui/core';
 import OlParser from 'geostyler-openlayers-parser';
+import Feature from 'ol/Feature';
+import Map from 'ol/Map';
 import TileLayer from 'ol/layer/Tile';
 import TileWMS from 'ol/source/TileWMS';
 import { bbox as bboxStrategy } from 'ol/loadingstrategy';
@@ -44,6 +46,7 @@ import {
   isXyzLayerConf,
 } from '../typeguards';
 import { isVersionBelow } from './serviceUtil';
+import { LAYER_NAME_PROP, SELECTION_LAYER_NAME } from '../constants';
 
 /**
  * Create a WMS layer.
@@ -201,6 +204,65 @@ export const createLayer = async (layerConf: LayerConf) => {
     console.warn('Provided layerconfig is not recognized');
   }
   return layer;
+};
+
+export const removeSelectionLayer = (olMap: Map) => {
+  const selectionLayer = olMap
+    .getLayers()
+    .getArray()
+    .filter(l => l.get(LAYER_NAME_PROP) === SELECTION_LAYER_NAME)
+    .pop();
+  if (selectionLayer) {
+    olMap.removeLayer(selectionLayer);
+  }
+};
+
+export const getSelectedFeatures = (
+  dataLayers: VectorLayer<VectorSource>[],
+  filterState: FilterState,
+) => {
+  let selectedFeatures: Feature[] = [];
+  if (
+    filterState?.value &&
+    filterState.selectedValues !== null &&
+    filterState.selectedValues !== undefined &&
+    dataLayers
+  ) {
+    selectedFeatures = dataLayers.flatMap(dataLayer =>
+      dataLayer
+        .getSource()!
+        .getFeatures()
+        .filter(f => f.get(filterState.value) === filterState.selectedValues),
+    );
+  }
+  return selectedFeatures;
+};
+
+export const setSelectionBackgroundOpacity = (
+  dataLayers: VectorLayer<VectorSource>[],
+  opacity: number,
+) => {
+  dataLayers.forEach(dataLayer => {
+    dataLayer.setOpacity(opacity);
+  });
+};
+
+export const createSelectionLayer = (
+  dataLayers: VectorLayer<VectorSource>[],
+  features: Feature[],
+) => {
+  const selectionLayer = new VectorLayer({
+    source: new VectorSource({
+      features,
+    }),
+  });
+  selectionLayer.set(LAYER_NAME_PROP, SELECTION_LAYER_NAME);
+  // TODO how can we handle multiple data layers?
+  const layerStyle = dataLayers[0].getStyle();
+  if (layerStyle) {
+    selectionLayer.setStyle(layerStyle);
+  }
+  return selectionLayer;
 };
 
 export const getDefaultStyle = () => ({

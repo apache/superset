@@ -18,6 +18,7 @@
  */
 import {
   DataRecord,
+  FilterState,
   SupersetTheme,
   TimeseriesDataRecord,
 } from '@superset-ui/core';
@@ -41,6 +42,8 @@ export interface ThematicMapPluginStylesProps {
 }
 
 interface ThematicMapPluginCustomizeProps {
+  emitCrossFilters: boolean;
+  filterState: FilterState;
   geomColumn: string;
   geomFormat: GeometryFormat;
   columns: string[];
@@ -52,6 +55,7 @@ interface ThematicMapPluginCustomizeProps {
   timesliderTooltipFormat: TimesliderTooltipFormat;
   mapMaxExtent: MapMaxExtentConfigs;
   setControlValue: Function;
+  setDataMask: Function;
   showTimeslider: boolean;
   timeColumn: string;
   tooltipTemplate: string;

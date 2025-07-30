@@ -134,7 +134,7 @@ export const dataRecordsToOlFeatures = (
   }
   const features = dataRecords
     .map(item => {
-      const { [geomColumn]: geom, ...props } = item;
+      const geom = item[geomColumn];
       if (typeof geom !== 'string') {
         return undefined;
       }
@@ -151,7 +151,7 @@ export const dataRecordsToOlFeatures = (
         }
       }
       const feature = format.readFeature(cleanedGeom, opts);
-      feature.setProperties(props);
+      feature.setProperties({ ...item });
 
       return feature;
     })
