@@ -88,7 +88,9 @@ logger = logging.getLogger(__name__)
 # reference: https://sqlparse.readthedocs.io/en/stable/extending/
 lex = Lexer.get_default_instance()
 sqlparser_sql_regex = keywords.SQL_REGEX
-sqlparser_sql_regex.insert(25, (r"'(''|\\\\|\\|[^'])*'", sqlparse.tokens.String.Single))
+sqlparser_sql_regex.insert(
+    25, (r"'(?:[^'\\]|\\\\?|'')*'", sqlparse.tokens.String.Single)
+)
 lex.set_SQL_REGEX(sqlparser_sql_regex)
 
 
