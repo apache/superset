@@ -1,0 +1,23 @@
+#
+# PRODUCTION OVERRIDE
+# Defines settings unique to the production environment.
+#
+services:
+  superset:
+    ports:
+      - "8088:8088"
+    env_file:
+      - ./rmcdocker/prod.env
+    restart: unless-stopped
+
+  db:
+    restart: unless-stopped
+
+  redis:
+    restart: unless-stopped
+
+  superset-worker:
+    restart: unless-stopped
+
+  superset-worker-beat:
+    restart: unless-stopped

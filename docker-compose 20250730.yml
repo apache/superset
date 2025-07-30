@@ -1,0 +1,94 @@
+#
+# A hybridized docker-compose file for a custom, production-ready Superset deployment
+# built from a forked repository.
+#
+version: "3.7"
+
+x-common-build:
+  &common-build # Builds the image from the Dockerfile in the current directory's root.
+  context: .
+  # CRITICAL FIX: This line explicitly tells Docker to use your custom Dockerfile.
+  dockerfile: ./rmcdocker/Dockerfile
+  # Targets the 'lean' stage, which is the optimized production build.
+  target: lean
+
+services:
+  redis:
+    image: redis:7
+    container_name: superset_redis
+    restart: unless-stopped
+    volumes:
+      - redis_data:/data
+
+  postgres:
+    image: postgres:16
+    container_name: superset_db
+    restart: unless-stopped
+    env_file: .env # Loads all database credentials from the .env file
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  superset:
+    build:
+      <<: *common-build
+    container_name: superset_app
+    command: ["/app/docker/docker-bootstrap.sh", "app-gunicorn"]
+    restart: unless-stopped
+    ports:
+      - "8088:8088"
+    env_file: .env # Loads all Superset configs from the .env file
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    volumes:
+      - superset_home:/app/superset_home
+      # Mount your custom freetds configuration
+      - ./freetds:/etc/freetds
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8088/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  superset-worker:
+      build:
+        <<: *common-build
+      container_name: superset_worker
+      command: ["celery", "--app=superset.tasks.celery_app:app", "worker", "--loglevel=INFO"]
+      restart: unless-stopped
+      env_file: .env
+      depends_on:
+        postgres:
+          condition: service_healthy
+        redis:
+          condition: service_started
+      volumes:
+        - superset_home:/app/superset_home
+
+  superset-worker-beat:
+    build:
+      <<: *common-build
+    container_name: superset_worker_beat
+    command: ["celery", "--app=superset.tasks.celery_app:app", "beat","--loglevel=INFO","--schedule", "/app/superset_home/celerybeat-schedule"]
+    restart: unless-stopped
+    env_file: .env
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    volumes:
+      - superset_home:/app/superset_home
+
+volumes:
+  superset_home:
+  db_data:
+  redis_data:

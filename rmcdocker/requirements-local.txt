@@ -1,0 +1,19 @@
+# ./production-build/requirements-local.txt
+
+# Production WSGI Server
+gunicorn
+
+# PostgreSQL Database Driver
+psycopg2-binary
+
+# Microsoft SQL Server Driver
+pyodbc
+
+#Python SQL Driver
+psycopg2-binary
+
+#Flask
+flask-cors
+
+#Python Javascript Web Tokens
+PyJWT>=2.8.0

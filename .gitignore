@@ -31,6 +31,10 @@ cover
 .DS_Store
 .eggs
 .env
+*.env
+rmcsuperset/.env
+rmcsuperset/*.env
+/rmcsuperset/*
 .envrc
 .idea
 .mypy_cache
