@@ -56,19 +56,33 @@ echo "🧹 Cleaning up existing containers..."
 docker-compose -f docker-compose-light.yml down
 
 # Start services
-echo "🏗️  Building and starting services..."
+echo "🏗️  Starting Superset in background (daemon mode)..."
 echo ""
-echo "📝 Once started, login with:"
-echo "   Username: admin"
-echo "   Password: admin"
-echo ""
-echo "📋 Starting Superset (this takes 10-20 minutes)..."
-echo "🌐 Once ready, check the 'Ports' tab for your live URL"
-echo ""
-echo "Running in foreground with live logs (Ctrl+C to stop)..."
 
-# Run docker-compose and capture exit code
-docker-compose -f docker-compose-light.yml up
+# Start in detached mode
+docker-compose -f docker-compose-light.yml up -d
+
+echo ""
+echo "✅ Docker Compose started successfully!"
+echo ""
+echo "📋 Important information:"
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo "⏱️  Initial startup takes 10-20 minutes"
+echo "🌐 Check the 'Ports' tab for your Superset URL (port 9001)"
+echo "👤 Login: admin / admin"
+echo ""
+echo "📊 Useful commands:"
+echo "   docker-compose -f docker-compose-light.yml logs -f    # Follow logs"
+echo "   docker-compose -f docker-compose-light.yml ps         # Check status"
+echo "   docker-compose -f docker-compose-light.yml down       # Stop services"
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo ""
+echo "💤 Keeping terminal open for 60 seconds to test persistence..."
+sleep 60
+echo "✅ Test complete - check if this terminal is still visible!"
+
+# Show final status
+docker-compose -f docker-compose-light.yml ps
 EXIT_CODE=$?
 
 # If it failed, provide helpful instructions
