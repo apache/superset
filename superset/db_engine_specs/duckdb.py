@@ -40,8 +40,6 @@ from superset.utils.core import get_user_agent, QuerySource
 if TYPE_CHECKING:
     from superset.models.core import Database
 
-conf = current_app.config
-
 
 COLUMN_DOES_NOT_EXIST_REGEX = re.compile("no such column: (?P<column_name>.+)")
 DEFAULT_ACCESS_TOKEN_URL = (
@@ -254,7 +252,8 @@ class DuckDBEngineSpec(DuckDBParametersMixin, BaseEngineSpec):
         delim = " " if custom_user_agent else ""
         user_agent = get_user_agent(database, source)
         user_agent = user_agent.replace(" ", "-").lower()
-        user_agent = f"{user_agent}/{conf['VERSION_STRING']}{delim}{custom_user_agent}"
+        version_string = current_app.config["VERSION_STRING"]
+        user_agent = f"{user_agent}/{version_string}{delim}{custom_user_agent}"
         config.setdefault("custom_user_agent", user_agent)
 
         return extra
