@@ -2251,6 +2251,7 @@ class TestDatabaseApi(SupersetTestCase):
         assert rv.status_code == 422
         logger_mock.warning.assert_called_once_with("Test Error", exc_info=True)
 
+    @with_config({"PREVENT_UNSAFE_DB_CONNECTIONS": False})
     def test_test_connection(self):
         """
         Database API: Test test connection
@@ -2261,8 +2262,6 @@ class TestDatabaseApi(SupersetTestCase):
             "metadata_cache_timeout": {},
             "schemas_allowed_for_file_upload": [],
         }
-        # need to temporarily allow sqlite dbs, teardown will undo this
-        app.config["PREVENT_UNSAFE_DB_CONNECTIONS"] = False
         self.login(ADMIN_USERNAME)
         example_db = get_example_database()
         # validate that the endpoint works with the password-masked sqlalchemy uri
@@ -2356,13 +2355,13 @@ class TestDatabaseApi(SupersetTestCase):
         }
         assert response == expected_response
 
+    @with_config({"PREVENT_UNSAFE_DB_CONNECTIONS": True})
     def test_test_connection_unsafe_uri(self):
         """
         Database API: Test test connection with unsafe uri
         """
         self.login(ADMIN_USERNAME)
 
-        app.config["PREVENT_UNSAFE_DB_CONNECTIONS"] = True
         data = {
             "sqlalchemy_uri": "sqlite:///home/superset/unsafe.db",
             "database_name": "unsafe",
@@ -2381,8 +2380,6 @@ class TestDatabaseApi(SupersetTestCase):
             }
         }
         assert response == expected_response
-
-        app.config["PREVENT_UNSAFE_DB_CONNECTIONS"] = False
 
     @mock.patch(
         "superset.commands.database.test_connection.DatabaseDAO.build_db_for_connection_test",
