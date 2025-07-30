@@ -22,7 +22,11 @@ import OSM from 'ol/source/OSM.js';
 import TileLayer from 'ol/layer/Tile.js';
 import View from 'ol/View.js';
 import { ChartConfig } from '../../src/types';
-import { fitMapToData, wkbToGeoJSON, wktToGeoJSON } from '../../src/util/mapUtil';
+import {
+  fitMapToData,
+  wkbToGeoJSON,
+  wktToGeoJSON,
+} from '../../src/util/mapUtil';
 
 describe('mapUtil', () => {
   describe('fitMapToCharts', () => {

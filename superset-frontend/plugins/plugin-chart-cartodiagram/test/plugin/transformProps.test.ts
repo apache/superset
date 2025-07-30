@@ -21,6 +21,7 @@ import {
   getChartTransformPropsRegistry,
   supersetTheme,
 } from '@superset-ui/core';
+import { GeometryFormat } from '../../src/constants';
 import { LayerConf, MapViewConfigs, ZoomConfigs } from '../../src/types';
 import transformProps from '../../src/plugin/transformProps';
 import {
@@ -74,12 +75,26 @@ describe('CartodiagramPlugin transformProps', () => {
   };
 
   const formData = {
-    viz_type: 'cartodiagram',
     geomColumn: 'geom',
+    geomFormat: GeometryFormat.GEOJSON,
     selectedChart: JSON.stringify(selectedChart),
     chartSize,
     layerConfigs,
+    mapExtentPadding: 0,
+    mapMaxExtent: {
+      extentMode: 'NONE',
+      maxX: 0,
+      maxY: 0,
+      minX: 0,
+      minY: 0,
+      fixedMaxX: undefined,
+      fixedMaxY: undefined,
+      fixedMinX: undefined,
+      fixedMinY: undefined,
+    },
     mapView,
+    maxZoom: 0,
+    minZoom: 0,
     chartBackgroundColor: '#000000',
     chartBackgroundBorderRadius: 5,
   };

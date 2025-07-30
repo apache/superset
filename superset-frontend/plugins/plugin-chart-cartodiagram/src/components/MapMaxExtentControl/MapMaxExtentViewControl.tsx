@@ -19,7 +19,7 @@
 import { ControlHeader } from '@superset-ui/chart-controls';
 import { css, styled, t } from '@superset-ui/core';
 import { Button, Radio } from 'antd';
-import React from 'react';
+import { FC } from 'react';
 import { mix } from 'polished';
 import { RadioChangeEvent } from 'antd/lib/radio';
 import {
@@ -64,9 +64,7 @@ export const StyledMaxExtentTag = styled(MapMaxExtentTag)`
   `}
 `;
 
-export const MapMaxExtentViewControl: React.FC<
-  MapMaxExtentConfigsControlProps
-> = ({
+export const MapMaxExtentViewControl: FC<MapMaxExtentConfigsControlProps> = ({
   value,
   onChange = () => {},
   name,

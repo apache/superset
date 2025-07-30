@@ -16,15 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { DataRecord } from '@superset-ui/core';
-import { styled } from '@superset-ui/core';
-import React, {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from 'react';
+import { DataRecord, styled } from '@superset-ui/core';
+import { FC, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Slider, Button } from 'antd';
 import { CaretRightOutlined, PauseOutlined } from '@ant-design/icons';
 
@@ -66,7 +59,7 @@ const TimeDisplay = styled.div`
   margin-left: 25px;
 `;
 
-export const TimeSlider: React.FC<TimeSliderProps> = props => {
+export const TimeSlider: FC<TimeSliderProps> = props => {
   const {
     data,
     defaultValue,

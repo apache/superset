@@ -40,11 +40,28 @@ describe('ThematicMapPlugin transformProps', () => {
   };
 
   const formData = {
-    viz_type: 'thematic_map',
     geomColumn: 'geom',
+    geomFormat: 'geojson',
     columns: ['geom', 'foo', 'bar'],
+    mapExtentPadding: 0,
+    mapMaxExtent: {
+      extentMode: 'NONE',
+      maxX: 0,
+      maxY: 0,
+      minX: 0,
+      minY: 0,
+      fixedMaxX: undefined,
+      fixedMaxY: undefined,
+      fixedMinX: undefined,
+      fixedMinY: undefined,
+    },
+    maxZoom: 0,
+    minZoom: 0,
     layerConfigs,
     mapView,
+    showLegend: true,
+    showTimeslider: false,
+    showTooltip: true,
   };
 
   const chartProps = new ChartProps({
@@ -67,11 +84,19 @@ describe('ThematicMapPlugin transformProps', () => {
         height: chartProps.height,
         geomColumn: formData.geomColumn,
         columns: ['geom', 'foo', 'bar'],
-        dataFeatureCollection: expect.objectContaining({
-          type: 'FeatureCollection',
-        }),
         layerConfigs,
         mapView,
+        data: nonTimeSeriesChartData,
+        geomFormat: formData.geomFormat,
+        mapExtentPadding: formData.mapExtentPadding,
+        mapMaxExtent: formData.mapMaxExtent,
+        maxZoom: formData.maxZoom,
+        minZoom: formData.minZoom,
+        setControlValue: expect.any(Function),
+        showLegend: formData.showLegend,
+        showTimeslider: formData.showTimeslider,
+        showTooltip: formData.showTooltip,
+        theme: chartProps.theme,
       }),
     );
   });

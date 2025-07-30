@@ -19,10 +19,10 @@
 
 import { t } from '@superset-ui/core';
 import { Tag } from 'antd';
-import React from 'react';
+import { FC } from 'react';
 import { MapMaxExtentTagProps } from '../../types';
 
-export const MapMaxExtentTag: React.FC<MapMaxExtentTagProps> = ({
+export const MapMaxExtentTag: FC<MapMaxExtentTagProps> = ({
   value,
   className,
 }) => {

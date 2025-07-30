@@ -21,7 +21,7 @@ import { css, getChartBuildQueryRegistry, styled, t } from '@superset-ui/core';
 import { Popover } from 'antd';
 import { FeatureCollection, GeoJsonGeometryTypes } from 'geojson';
 import { isEqual } from 'lodash';
-import React, { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { EditItem, LayerConf, LayerConfigsControlProps } from './types';
 import LayerConfigsPopoverContent from './LayerConfigsPopoverContent';
 import FlatLayerTree from './FlatLayerTree';

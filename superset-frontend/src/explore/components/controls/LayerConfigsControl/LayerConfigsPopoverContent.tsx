@@ -35,7 +35,7 @@ import WfsDataParser, {
   RequestParams1_1_0,
   RequestParams2_0_0,
 } from 'geostyler-wfs-parser';
-import React, { useEffect, useMemo, useState } from 'react';
+import { FC, useEffect, useMemo, useState } from 'react';
 import SldStyleParser from 'geostyler-sld-parser';
 import {
   isDataLayerConf,
@@ -166,7 +166,7 @@ export const StyledFeedbackMessage = styled.div<{ success: boolean }>`
   `}
 `;
 
-export const LayerConfigsPopoverContent: React.FC<
+export const LayerConfigsPopoverContent: FC<
   LayerConfigsPopoverContentProps
 > = ({
   onClose = () => {},

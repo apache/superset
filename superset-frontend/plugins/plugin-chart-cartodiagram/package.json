@@ -41,6 +41,7 @@
   },
   "peerDependencies": {
     "@ant-design/icons": "^5.2.6",
+    "@reduxjs/toolkit": "*",
     "@superset-ui/chart-controls": "*",
     "@superset-ui/core": "*",
     "antd": "^4.10.3",

@@ -17,7 +17,7 @@
  * under the License.
  */
 import { styled } from '@superset-ui/core';
-import React, { useEffect } from 'react';
+import { useEffect } from 'react';
 import { Feature, MapBrowserEvent } from 'ol';
 import { Pixel } from 'ol/pixel';
 import Handlebars from 'handlebars';

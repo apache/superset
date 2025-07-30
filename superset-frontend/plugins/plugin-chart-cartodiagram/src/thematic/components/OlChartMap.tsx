@@ -17,7 +17,7 @@
  * under the License.
  */
 import { DataRecord } from '@superset-ui/core';
-import React, { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 import { Feature, FeatureCollection } from 'geojson';
 import { debounce } from 'lodash';

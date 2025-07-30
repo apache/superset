@@ -18,13 +18,7 @@
  */
 import { CloseOutlined } from '@ant-design/icons';
 import { t } from '@superset-ui/core';
-import React, {
-  CSSProperties,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from 'react';
+import { CSSProperties, useEffect, useMemo, useRef, useState } from 'react';
 import Control from 'ol/control/Control.js';
 import { LegendRenderer } from 'geostyler-legend';
 import { Style } from 'geostyler-style';

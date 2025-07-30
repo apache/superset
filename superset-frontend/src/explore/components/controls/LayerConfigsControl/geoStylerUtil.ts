@@ -168,7 +168,9 @@ export const getGeoStylerLocale = (appLocale: string) => {
     const localeKey = localeKeys.find(
       l => l.split('_')[0].toLowerCase() === appLocale.toLowerCase(),
     );
-    gsLocale = localeKey ? (locale as Record<string, GeoStylerLocale>)[localeKey] : locale.en_US;
+    gsLocale = localeKey
+      ? (locale as Record<string, GeoStylerLocale>)[localeKey]
+      : locale.en_US;
   }
   return gsLocale;
 };

@@ -257,7 +257,9 @@ describe('transformPropsUtil', () => {
     let chartTransformer: jest.MockedFunction<any>;
     const geomColumn = 'geom';
     const pieChartConfig = {
-      params: {},
+      params: {
+        groupby: [],
+      },
       viz_type: 'pie',
     };
     const chartProps: any = {

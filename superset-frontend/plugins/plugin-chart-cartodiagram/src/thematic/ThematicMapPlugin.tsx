@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { createRef, useState } from 'react';
+import { createRef, useState } from 'react';
 import { styled, useTheme } from '@superset-ui/core';
 import OlMap from 'ol/Map';
 import { ThematicMapPluginProps, ThematicMapPluginStylesProps } from './types';

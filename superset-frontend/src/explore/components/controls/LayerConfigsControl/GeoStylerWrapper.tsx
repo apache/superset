@@ -23,11 +23,11 @@
  * accepts a className property.
  */
 import { CardStyle } from 'geostyler/dist/Component/CardStyle/CardStyle';
-import React from 'react';
+import { FC } from 'react';
 import { ConfigProvider } from 'antd-v5';
 import { GeoStylerWrapperProps } from './types';
 
-export const GeoStylerWrapper: React.FC<GeoStylerWrapperProps> = ({
+export const GeoStylerWrapper: FC<GeoStylerWrapperProps> = ({
   className,
   ...passThroughProps
 }) => (

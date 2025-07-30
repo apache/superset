@@ -41,7 +41,10 @@ import {
   TimePivotChartPlugin,
 } from '@superset-ui/legacy-preset-chart-nvd3';
 import { DeckGLChartPreset } from '@superset-ui/legacy-preset-chart-deckgl';
-import { CartodiagramPlugin, ThematicMapPlugin } from '@superset-ui/plugin-chart-cartodiagram';
+import {
+  CartodiagramPlugin,
+  ThematicMapPlugin,
+} from '@superset-ui/plugin-chart-cartodiagram';
 import {
   BigNumberChartPlugin,
   BigNumberTotalChartPlugin,
