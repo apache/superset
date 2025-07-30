@@ -1492,6 +1492,21 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         return tables
 
     @classmethod
+    def has_table(
+        cls,
+        database: Database,
+        inspector: Inspector,
+        table: Table,
+    ) -> bool:
+        if cls.semantic_layer:
+            semantic_layer = cls.semantic_layer(inspector.engine)
+            semantic_views = semantic_layer.get_semantic_views()
+            if table.table in {semantic_view.name for semantic_view in semantic_views}:
+                return True
+
+        return inspector.has_table(table.table, table.schema)
+
+    @classmethod
     def get_view_names(  # pylint: disable=unused-argument
         cls,
         database: Database,
@@ -1564,6 +1579,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     @classmethod
     def get_columns(  # pylint: disable=unused-argument
         cls,
+        database: Database,
         inspector: Inspector,
         table: Table,
         options: dict[str, Any] | None = None,
@@ -1588,11 +1604,15 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
                 for semantic_view in semantic_layer.get_semantic_views()
             }
             if semantic_view := semantic_views.get(table.table):
+                dialect = database.get_dialect()
                 return [
                     {
                         "name": dimension.name,
                         "column_name": dimension.name,
-                        "type": get_sqla_type_from_dimension_type(dimension.type),
+                        "type": cls.column_datatype_to_string(
+                            get_sqla_type_from_dimension_type(dimension.type),
+                            dialect,
+                        ),
                     }
                     for dimension in semantic_layer.get_dimensions(semantic_view)
                 ]
@@ -1962,7 +1982,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         :return:
         """
         if cls.semantic_layer:
-            with database.get_engine() as engine:
+            with cls.get_engine(database, schema="tpcds_sf10tcl") as engine:
                 semantic_layer = cls.semantic_layer(engine)
                 query = semantic_layer.get_query_from_standard_sql(query).sql
 

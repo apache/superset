@@ -33,9 +33,10 @@ from flask import current_app
 from flask_babel import gettext as __
 from marshmallow import fields, Schema
 from sqlalchemy import text, types
+from sqlalchemy.engine.interfaces import Dialect
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.url import URL
-from sqlglot import exp
+from sqlglot import exp, parse_one
 
 from superset.constants import TimeGrain
 from superset.databases.utils import make_url_safe
@@ -124,23 +125,23 @@ class SnowflakeSemanticLayer:
 SHOW SEMANTIC VIEWS
     ->> SELECT "name" FROM $1;
         """
-        return {row["name"] for row in self.execute(sql)}
+        return {SemanticView(row["name"]) for row in self.execute(sql)}
 
     def get_type(self, snowflake_type: str | None) -> type[SemanticType]:
         if snowflake_type is None:
             return STRING
 
         type_map = {
-            STRING: {r"VARCHAR\(\d+\)", "STRING", "TEXT", r"CHAR\(\d+\)"},
-            INTEGER: {r"NUMBER\(38,\s0\)", "INT", "INTEGER", "BIGINT"},
-            DECIMAL: {r"NUMBER\(10,\s2\)"},
-            NUMBER: {r"NUMBER\(\d+,\s\d+)", "FLOAT", "DOUBLE"},
-            BOOLEAN: {"BOOLEAN"},
-            DATE: {"DATE"},
-            DATETIME: {"TIMESTAMP_TZ", "TIMESTAMP__NTZ"},
-            TIME: {"TIME"},
-            OBJECT: {"OBJECT"},
-            BINARY: {r"BINARY\(\d+\)", r"VARBINARY\(\d+\)"},
+            STRING: {r"VARCHAR\(\d+\)$", "STRING$", "TEXT$", r"CHAR\(\d+\)$"},
+            INTEGER: {r"NUMBER\(38,\s?0\)$", "INT$", "INTEGER$", "BIGINT$"},
+            DECIMAL: {r"NUMBER\(10,\s?2\)$"},
+            NUMBER: {r"NUMBER\(\d+,\s?\d+\)$", "FLOAT$", "DOUBLE$"},
+            BOOLEAN: {"BOOLEAN$"},
+            DATE: {"DATE$"},
+            DATETIME: {"TIMESTAMP_TZ$", "TIMESTAMP__NTZ$"},
+            TIME: {"TIME$"},
+            OBJECT: {"OBJECT$"},
+            BINARY: {r"BINARY\(\d+\)$", r"VARBINARY\(\d+\)$"},
         }
         for semantic_type, patterns in type_map.items():
             if any(
@@ -149,6 +150,23 @@ SHOW SEMANTIC VIEWS
                 return semantic_type
 
         return STRING
+
+    @classmethod
+    def quote_table(cls, table: Table, dialect: Dialect) -> str:
+        """
+        Fully quote a table name, including the schema and catalog.
+        """
+        quoters = {
+            "catalog": dialect.identifier_preparer.quote_schema,
+            "schema": dialect.identifier_preparer.quote_schema,
+            "table": dialect.identifier_preparer.quote,
+        }
+
+        return ".".join(
+            function(getattr(table, key))
+            for key, function in quoters.items()
+            if getattr(table, key)
+        )
 
     def get_metrics(self, semantic_view: SemanticView) -> set[SemanticMetric]:
         quoted_semantic_view_name = self.quote_table(
@@ -161,7 +179,7 @@ DESC SEMANTIC VIEW {quoted_semantic_view_name}
         FROM $1
         WHERE
             "object_kind" = 'METRIC' AND
-            "property" IN ('EXPRESSION', 'DATA_TYPE', 'TABLE');
+            "property" IN ('DATA_TYPE', 'TABLE');
         """  # noqa: S608 (semantic_view.name is quoted)
         rows = self.execute(sql)
 
@@ -171,9 +189,10 @@ DESC SEMANTIC VIEW {quoted_semantic_view_name}
             for row in group:
                 attributes[row["property"]].add(row["property_value"])
 
-            metric_name = attributes["TABLE"] + "." + name
+            table = next(iter(attributes["TABLE"]))
+            metric_name = table + "." + name
             type_ = self.get_type(next(iter(attributes["DATA_TYPE"])))
-            sql = next(iter(attributes["EXPRESSION"]), name)
+            sql = self.engine.dialect.identifier_preparer.quote(metric_name)
             tables = frozenset(attributes["TABLE"])
             join_columns = frozenset()
 
@@ -261,7 +280,7 @@ DESC SEMANTIC VIEW {quoted_semantic_view_name}
         offset: int | None = None,
     ) -> exp.Select:
         semantic_view = exp.SemanticView(
-            this=Table(this=exp.Identifier(this=semantic_view.name, quoted=True)),
+            this=exp.Table(this=exp.Identifier(this=semantic_view.name, quoted=True)),
             dimensions=[
                 exp.Column(
                     this=exp.Identifier(this=dimension.column.name, quoted=True),
@@ -274,8 +293,8 @@ DESC SEMANTIC VIEW {quoted_semantic_view_name}
             ],
             metrics=[
                 exp.Column(
-                    this=exp.Identifier(this=table, quoted=True),
-                    table=exp.Identifier(this=column, quoted=True),
+                    this=exp.Identifier(this=column, quoted=True),
+                    table=exp.Identifier(this=table, quoted=True),
                 )
                 for table, column in (
                     metric.name.split(".", 1)
@@ -283,14 +302,13 @@ DESC SEMANTIC VIEW {quoted_semantic_view_name}
                     if "." in metric.name
                 )
             ],
-            # where=  XXX push predicates
         )
         query = exp.Select(
             expressions=[exp.Star()],
-            **{"from": exp.From(this=exp.Table(semantic_view))},
+            **{"from": exp.From(this=exp.Table(this=semantic_view))},
         )
 
-        if sort:
+        if sort.items:
             order = [
                 exp.Ordered(
                     this=exp.Column(this=exp.Identifier(this=item.field.name)),
@@ -309,14 +327,81 @@ DESC SEMANTIC VIEW {quoted_semantic_view_name}
 
         return query
 
-    def get_query_from_standard_sql(
-        self,
-        semantic_view: SemanticView,
-        sql: str,
-    ) -> Query:
-        statement = SQLStatement(sql, "snowflake")
-        # check if any of the tables in the statement is a semantic view
+    def get_query_from_standard_sql(self, sql: str) -> SemanticQuery:
+        """
+        Convert the Explore query into a proper query.
 
+        Explore will produce a pseudo-SQL query that references metrics and dimensions
+        as if they were columns in a table. This method replaces the table name with a
+        call to `SEMANTIC_VIEW`, and removes the `GROUP BY` clause, since all the
+        aggregations happen inside the `SEMANTIC_VIEW` call.
+        """
+        ast = parse_one(sql, "snowflake")
+        table = ast.find(exp.Table)
+        if not table:
+            return SemanticQuery(sql=sql)
+
+        semantic_views = self.get_semantic_views()
+        if table.name not in {semantic_view.name for semantic_view in semantic_views}:
+            return SemanticQuery(sql=sql)
+
+        # collect all metric and dimensions
+        semantic_view = SemanticView(table.name)
+        all_metrics = self.get_metrics(semantic_view)
+        all_dimensions = self.get_dimensions(semantic_view)
+
+        # collect metrics and dimensions used in the query
+        columns = {column.name for column in ast.find_all(exp.Column)}
+        metrics = [metric for metric in all_metrics if metric.name in columns]
+        dimensions = [
+            dimension for dimension in all_dimensions if dimension.name in columns
+        ]
+
+        # now replace table with a call to `SEMANTIC_VIEW`
+        udtf = exp.Table(
+            this=exp.SemanticView(
+                this=exp.Table(
+                    this=exp.Identifier(this=semantic_view.name, quoted=True)
+                ),
+                metrics=[
+                    exp.Column(
+                        this=exp.Identifier(this=column, quoted=True),
+                        table=exp.Identifier(this=table, quoted=True),
+                    )
+                    for table, column in (
+                        metric.name.split(".", 1)
+                        for metric in metrics
+                        if "." in metric.name
+                    )
+                ],
+                dimensions=[
+                    exp.Column(
+                        this=exp.Identifier(this=column, quoted=True),
+                        table=exp.Identifier(this=table, quoted=True),
+                    )
+                    for table, column in (
+                        dimension.name.split(".", 1)
+                        for dimension in dimensions
+                        if "." in dimension.name
+                    )
+                ],
+            ),
+            alias=exp.TableAlias(
+                this=exp.Identifier(this="table_alias", quoted=False),
+                columns=[
+                    exp.Identifier(this=column.name, quoted=True)
+                    for column in metrics + dimensions
+                ],
+            ),
+        )
+        table.replace(udtf)
+
+        # remove group by, since aggregations are done inside the `SEMANTIC_VIEW` call
+        del ast.args["group"]
+
+        print("BETO")
+        print(ast.sql(dialect="snowflake", pretty=True))
+        return SemanticQuery(sql=ast.sql(dialect="snowflake", pretty=True))
 
 
 class SnowflakeEngineSpec(PostgresBaseEngineSpec):

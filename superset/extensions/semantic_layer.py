@@ -333,8 +333,8 @@ TYPE_MAPPING: dict[Type, type[sqltypes.TypeEngine]] = {
 
 def get_sqla_type_from_dimension_type(
     dimension_type: Type,
-) -> type[sqltypes.TypeEngine]:
+) -> sqltypes.TypeEngine:
     """
     Get the SQLAlchemy type corresponding to the given dimension type.
     """
-    return TYPE_MAPPING.get(dimension_type, sqltypes.String)
+    return TYPE_MAPPING.get(dimension_type, sqltypes.String)()

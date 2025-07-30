@@ -75,12 +75,11 @@ class DatasetDAO(BaseDAO[SqlaTable]):
         database: Database,
         table: Table,
     ) -> bool:
-        try:
-            database.get_table(table)
-            return True
-        except SQLAlchemyError as ex:  # pragma: no cover
-            logger.warning("Got an error %s validating table: %s", str(ex), table)
-            return False
+        with database.get_inspector(
+            catalog=table.catalog,
+            schema=table.schema,
+        ) as inspector:
+            return database.db_engine_spec.has_table(database, inspector, table)
 
     @staticmethod
     def validate_uniqueness(
