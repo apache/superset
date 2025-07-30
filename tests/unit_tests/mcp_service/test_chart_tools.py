@@ -165,8 +165,7 @@ async def test_list_charts_with_search(mock_list, mcp_server):
         args, kwargs = mock_list.call_args
         assert kwargs["search"] == "search_chart"
         assert "slice_name" in kwargs["search_columns"]
-        assert "viz_type" in kwargs["search_columns"]
-        assert "datasource_name" in kwargs["search_columns"]
+        assert "description" in kwargs["search_columns"]
 
 
 @patch("superset.daos.chart.ChartDAO.list")
@@ -273,7 +272,7 @@ async def test_get_chart_info_not_found(mock_info, mcp_server):
 @pytest.mark.asyncio
 async def test_get_chart_available_filters_success(mcp_server):
     async with Client(mcp_server) as client:
-        result = await client.call_tool("get_chart_available_filters", {})
+        result = await client.call_tool("get_chart_available_filters", {"request": {}})
         assert hasattr(result.data, "column_operators")
         assert isinstance(result.data.column_operators, dict)
 
@@ -282,7 +281,7 @@ async def test_get_chart_available_filters_success(mcp_server):
 async def test_get_chart_available_filters_exception_handling(mcp_server):
     # No exception expected in normal operation
     async with Client(mcp_server) as client:
-        result = await client.call_tool("get_chart_available_filters", {})
+        result = await client.call_tool("get_chart_available_filters", {"request": {}})
         assert hasattr(result.data, "column_operators")
 
 

@@ -11,6 +11,7 @@ from superset.mcp_service.generic_tools import ModelGetAvailableFiltersTool
 from superset.mcp_service.mcp_app import mcp
 from superset.mcp_service.pydantic_schemas.dashboard_schemas import (
     DashboardAvailableFilters,
+    GetDashboardAvailableFiltersRequest,
 )
 
 logger = logging.getLogger(__name__)
@@ -18,7 +19,9 @@ logger = logging.getLogger(__name__)
 
 @mcp.tool
 @mcp_auth_hook
-def get_dashboard_available_filters() -> DashboardAvailableFilters:
+def get_dashboard_available_filters(
+    request: GetDashboardAvailableFiltersRequest,
+) -> DashboardAvailableFilters:
     """
     Get information about available dashboard filters and their operators
     Returns:

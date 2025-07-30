@@ -71,6 +71,7 @@ from typing import Annotated, Any, Dict, List, Literal, Optional
 from pydantic import BaseModel, ConfigDict, Field, model_validator, PositiveInt
 
 from superset.daos.base import ColumnOperator, ColumnOperatorEnum
+from superset.mcp_service.pydantic_schemas.cache_schemas import MetadataCacheControl
 from superset.mcp_service.pydantic_schemas.chart_schemas import ChartInfo
 from superset.mcp_service.pydantic_schemas.system_schemas import (
     PaginationInfo,
@@ -188,7 +189,7 @@ class DashboardFilter(ColumnOperator):
     )
 
 
-class ListDashboardsRequest(BaseModel):
+class ListDashboardsRequest(MetadataCacheControl):
     """Request schema for list_dashboards with clear, unambiguous types."""
 
     filters: Annotated[
@@ -254,7 +255,7 @@ class ListDashboardsRequest(BaseModel):
         return self
 
 
-class GetDashboardInfoRequest(BaseModel):
+class GetDashboardInfoRequest(MetadataCacheControl):
     """Request schema for get_dashboard_info with support for ID, UUID, or slug."""
 
     identifier: Annotated[
@@ -333,3 +334,11 @@ class DashboardList(BaseModel):
     pagination: Optional[PaginationInfo] = None
     timestamp: Optional[datetime] = None
     model_config = ConfigDict(ser_json_timedelta="iso8601")
+
+
+class GetDashboardAvailableFiltersRequest(BaseModel):
+    """
+    Request schema for get_dashboard_available_filters tool.
+    """
+
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)

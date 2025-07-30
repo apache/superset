@@ -924,7 +924,9 @@ async def test_get_dataset_info_not_found(mock_info, mcp_server):
 @pytest.mark.asyncio
 async def test_get_dataset_available_filters_success(mcp_server):
     async with Client(mcp_server) as client:
-        result = await client.call_tool("get_dataset_available_filters", {})
+        result = await client.call_tool(
+            "get_dataset_available_filters", {"request": {}}
+        )
         assert hasattr(result.data, "column_operators")
         assert isinstance(result.data.column_operators, dict)
 
@@ -937,7 +939,9 @@ async def test_get_dataset_available_filters_success(mcp_server):
 @pytest.mark.asyncio
 async def test_get_dataset_available_filters_includes_custom_fields(mcp_server):
     async with fastmcp.Client(mcp_server) as client:
-        result = await client.call_tool("get_dataset_available_filters")
+        result = await client.call_tool(
+            "get_dataset_available_filters", {"request": {}}
+        )
         filters = result.data.filters
         print("DEBUG filters type:", type(filters))
         print("DEBUG filters dir:", dir(filters))

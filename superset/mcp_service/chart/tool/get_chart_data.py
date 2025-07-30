@@ -23,6 +23,7 @@ import logging
 
 from superset.mcp_service.auth import mcp_auth_hook
 from superset.mcp_service.mcp_app import mcp
+from superset.mcp_service.pydantic_schemas.cache_schemas import CacheStatus
 from superset.mcp_service.pydantic_schemas.chart_schemas import (
     ChartData,
     ChartError,
@@ -38,7 +39,7 @@ logger = logging.getLogger(__name__)
 @mcp_auth_hook
 def get_chart_data(request: GetChartDataRequest) -> ChartData | ChartError:  # noqa: C901
     """
-    Get the underlying data for a chart in a text-friendly format.
+    Get the underlying data for a chart with advanced cache control.
 
     This tool returns the actual data behind a chart, making it easy for LLM clients
     to understand and describe the chart contents without needing image rendering.
@@ -47,7 +48,12 @@ def get_chart_data(request: GetChartDataRequest) -> ChartData | ChartError:  # n
     - Numeric ID (e.g., 123)
     - UUID string (e.g., "a1b2c3d4-e5f6-7890-abcd-ef1234567890")
 
-    Returns chart data in a structured format with summary.
+    Cache Control Features:
+    - use_cache: Whether to use Superset's query result cache
+    - force_refresh: Force refresh cached data
+    - cache_timeout: Override default cache timeout for this query
+
+    Returns chart data in a structured format with summary and detailed cache status.
     """
     try:
         from superset.daos.chart import ChartDAO
@@ -88,7 +94,7 @@ def get_chart_data(request: GetChartDataRequest) -> ChartData | ChartError:  # n
             # Parse the form_data to get query context
             form_data = utils_json.loads(chart.params) if chart.params else {}
 
-            # Create a proper QueryContext using the factory
+            # Create a proper QueryContext using the factory with cache control
             factory = QueryContextFactory()
             query_context = factory.create(
                 datasource={"id": chart.datasource_id, "type": chart.datasource_type},
@@ -99,10 +105,13 @@ def get_chart_data(request: GetChartDataRequest) -> ChartData | ChartError:  # n
                         "metrics": form_data.get("metrics", []),
                         "row_limit": request.limit or 100,
                         "order_desc": True,
+                        # Apply cache control from request
+                        "cache_timeout": request.cache_timeout,
                     }
                 ],
                 form_data=form_data,
-                force=False,
+                # Use cache unless force_refresh is True
+                force=request.force_refresh,
             )
 
             # Execute the query
@@ -146,6 +155,15 @@ def get_chart_data(request: GetChartDataRequest) -> ChartData | ChartError:  # n
                         )
                     )
 
+                # Cache status information (moved up from below)
+                cache_hit = query_result.get("is_cached", False)
+                cache_status = CacheStatus(
+                    cache_hit=cache_hit,
+                    cache_type="query" if cache_hit else "none",
+                    cache_age_seconds=query_result.get("cache_dttm"),
+                    refreshed=request.force_refresh,
+                )
+
                 # Generate insights and recommendations
                 insights = []
                 if len(data) > 100:
@@ -154,6 +172,22 @@ def get_chart_data(request: GetChartDataRequest) -> ChartData | ChartError:  # n
                     )
                 if len(raw_columns) > 10:
                     insights.append("Many columns available - focus on key metrics")
+
+                # Add cache-specific insights
+                if cache_status.cache_hit:
+                    if (
+                        cache_status.cache_age_seconds
+                        and cache_status.cache_age_seconds > 3600
+                    ):
+                        hours_old = cache_status.cache_age_seconds // 3600
+                        insights.append(
+                            f"Data is from cache ({hours_old}h old) - "
+                            "consider refreshing for latest data"
+                        )
+                    else:
+                        insights.append("Data served from cache for fast response")
+                else:
+                    insights.append("Fresh data retrieved from database")
 
                 recommended_visualizations = []
                 if any(
@@ -164,18 +198,46 @@ def get_chart_data(request: GetChartDataRequest) -> ChartData | ChartError:  # n
                 if len(raw_columns) <= 3:
                     recommended_visualizations.extend(["bar chart", "scatter plot"])
 
-                # Performance metadata
+                # Performance metadata with cache awareness
                 execution_time = int((time.time() - start_time) * 1000)
+                performance_status = (
+                    "cache_hit" if cache_status.cache_hit else "fresh_query"
+                )
+                optimization_suggestions = []
+
+                if not cache_status.cache_hit and execution_time > 5000:
+                    optimization_suggestions.append(
+                        "Consider using cache for this slow query"
+                    )
+                elif (
+                    cache_status.cache_hit
+                    and cache_status.cache_age_seconds
+                    and cache_status.cache_age_seconds > 86400
+                ):
+                    optimization_suggestions.append(
+                        "Cache is old - consider refreshing"
+                    )
+
                 performance = PerformanceMetadata(
                     query_duration_ms=execution_time,
-                    cache_status="miss",
-                    optimization_suggestions=[],
+                    cache_status=performance_status,
+                    optimization_suggestions=optimization_suggestions,
                 )
 
-                # Generate comprehensive summary
+                # Generate comprehensive summary with cache info
+                cache_info = ""
+                if cache_status.cache_hit:
+                    age_info = (
+                        f" (cached {cache_status.cache_age_seconds // 60}m ago)"
+                        if cache_status.cache_age_seconds
+                        else " (cached)"
+                    )
+                    cache_info = age_info
+
                 summary_parts = [
                     f"Chart '{chart.slice_name}' ({chart.viz_type})",
-                    f"Contains {len(data)} rows across {len(raw_columns)} columns",
+                    f"Contains {len(data)} rows across {len(raw_columns)} columns"
+                    f"{cache_info}",
                 ]
 
                 if data and len(data) > 0:
@@ -204,6 +266,7 @@ def get_chart_data(request: GetChartDataRequest) -> ChartData | ChartError:  # n
                     },
                     recommended_visualizations=recommended_visualizations,
                     performance=performance,
+                    cache_status=cache_status,
                 )
             else:
                 return ChartError(

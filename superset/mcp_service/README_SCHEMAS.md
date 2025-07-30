@@ -38,18 +38,51 @@ generate_chart(request=GenerateChartRequest(
 - **LLM-friendly**: Unambiguous types prevent common LLM validation errors
 - **Production-ready**: 185+ unit tests ensure schema reliability
 
+## Cache Control Schemas
+
+All MCP tools support cache control through schema inheritance:
+
+### CacheControlMixin
+Base mixin for all cache control:
+- `use_cache`: `bool = True` — Whether to use Superset's cache layers
+- `force_refresh`: `bool = False` — Whether to force refresh cached data
+
+### QueryCacheControl
+For tools that execute SQL queries (`get_chart_data`, `generate_chart`, `update_chart`):
+- Inherits: `CacheControlMixin`
+- `cache_timeout`: `Optional[int]` — Override cache timeout for this query (seconds)
+
+### MetadataCacheControl  
+For tools that fetch metadata (`list_*`, `get_*_info` tools):
+- Inherits: `CacheControlMixin`
+- `refresh_metadata`: `bool = False` — Force refresh metadata from database
+
+### FormDataCacheControl
+For tools working with chart configurations (`generate_explore_link`, `update_chart_preview`):
+- Inherits: `CacheControlMixin`
+- `cache_form_data`: `bool = True` — Whether to cache form data configurations
+
+### CacheStatus
+Returned by tools to indicate cache usage:
+- `cache_hit`: `bool` — Whether data was served from cache
+- `cache_type`: `Literal["query", "metadata", "form_data", "none"]` — Type of cache used
+- `cache_age_seconds`: `Optional[int]` — Age of cached data in seconds
+- `refreshed`: `bool` — Whether cache was refreshed in this request
+
 ## Dashboards
 
 ### list_dashboards
 
-**Input:** `ListDashboardsRequest`
+**Input:** `ListDashboardsRequest` (inherits `MetadataCacheControl`)
 - `filters`: `List[DashboardFilter]` — List of filter objects (cannot be used with search)
 - `search`: `Optional[str]` — Free-text search string (cannot be used with filters)
 - `select_columns`: `List[str]` — Columns to select (defaults include id, dashboard_title, slug, uuid)
-- `order_column`: `Optional[str]` — Column to order results by
+- `order_column`: `Optional[str]` — Column to order results by (valid: id, dashboard_title, slug, published, changed_on, created_on)
 - `order_direction`: `Optional[Literal['asc', 'desc']]` — Order direction
 - `page`: `int` — Page number (0-based)
 - `page_size`: `int` — Number of items per page (default 100)
+- `use_cache`: `bool = True` — Whether to use metadata cache
+- `refresh_metadata`: `bool = False` — Force refresh metadata from database
 
 **Returns:** `DashboardList`
 - `dashboards`: `List[DashboardListItem]`
@@ -80,6 +113,9 @@ generate_chart(request=GenerateChartRequest(
 
 ### get_dashboard_available_filters
 
+**Input:** `GetDashboardAvailableFiltersRequest` (API consistency)
+- No parameters required (empty request object for consistent API design)
+
 **Returns:** `DashboardAvailableFilters`
 - `column_operators`: `Dict[str, Any]` — Available filter operators and metadata for each column
 
@@ -87,14 +123,16 @@ generate_chart(request=GenerateChartRequest(
 
 ### list_datasets
 
-**Input:** `ListDatasetsRequest`
+**Input:** `ListDatasetsRequest` (inherits `MetadataCacheControl`)
 - `filters`: `List[DatasetFilter]` — List of filter objects (cannot be used with search)
 - `search`: `Optional[str]` — Free-text search string (cannot be used with filters)
 - `select_columns`: `List[str]` — Columns to select (defaults include id, table_name, uuid)
-- `order_column`: `Optional[str]` — Column to order results by
+- `order_column`: `Optional[str]` — Column to order results by (valid: id, table_name, schema, changed_on, created_on)
 - `order_direction`: `Optional[Literal['asc', 'desc']]` — Order direction
 - `page`: `int` — Page number (0-based)
 - `page_size`: `int` — Number of items per page (default 100)
+- `use_cache`: `bool = True` — Whether to use metadata cache
+- `refresh_metadata`: `bool = False` — Force refresh metadata from database
 
 **Returns:** `DatasetList`
 - `datasets`: `List[DatasetListItem]` (each includes columns and metrics)
@@ -145,6 +183,9 @@ generate_chart(request=GenerateChartRequest(
 
 ### get_dataset_available_filters
 
+**Input:** `GetDatasetAvailableFiltersRequest` (API consistency)
+- No parameters required (empty request object for consistent API design)
+
 **Returns:** `DatasetAvailableFilters`
 - `column_operators`: `Dict[str, Any]` — Available filter operators and metadata for each column
 
@@ -152,14 +193,16 @@ generate_chart(request=GenerateChartRequest(
 
 ### list_charts
 
-**Input:** `ListChartsRequest`
+**Input:** `ListChartsRequest` (inherits `MetadataCacheControl`)
 - `filters`: `List[ChartFilter]` — List of filter objects (cannot be used with search)
 - `search`: `Optional[str]` — Free-text search string (cannot be used with filters)
 - `select_columns`: `List[str]` — Columns to select (defaults include id, slice_name, uuid)
-- `order_column`: `Optional[str]` — Column to order results by
+- `order_column`: `Optional[str]` — Column to order results by (valid: id, slice_name, viz_type, datasource_name, description, changed_on, created_on)
 - `order_direction`: `Optional[Literal['asc', 'desc']]` — Order direction
 - `page`: `int` — Page number (0-based)
 - `page_size`: `int` — Number of items per page (default 100)
+- `use_cache`: `bool = True` — Whether to use metadata cache
+- `refresh_metadata`: `bool = False` — Force refresh metadata from database
 
 **Returns:** `ChartList`
 - `charts`: `List[ChartListItem]`
@@ -188,6 +231,9 @@ generate_chart(request=GenerateChartRequest(
 - **UUID**: Chart UUID string (e.g., `"a1b2c3d4-e5f6-7890-abcd-ef1234567890"`)
 
 ### get_chart_available_filters
+
+**Input:** `GetChartAvailableFiltersRequest` (API consistency)
+- No parameters required (empty request object for consistent API design)
 
 **Returns:** `ChartAvailableFiltersResponse`
 - `column_operators`: `Dict[str, Any]` — Available filter operators and metadata for each column
@@ -270,6 +316,9 @@ The tool intelligently handles two metric formats:
 ## System Tools
 
 ### get_superset_instance_info
+
+**Input:** `GetSupersetInstanceInfoRequest` (API consistency)
+- No parameters required (empty request object for consistent API design)
 
 **Returns:** `SupersetInstanceInfo`
 - `version`: `str` — Superset version
