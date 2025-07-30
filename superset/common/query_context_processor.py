@@ -649,7 +649,8 @@ class QueryContextProcessor:
             query_object_clone_dct = query_object_clone.to_dict()
 
             # rename metrics: SUM(value) => SUM(value) 1 year ago
-            # Use space separator for date range timeshifts, double underscore for relative offsets
+            # Use space separator for date range timeshifts,
+            # double underscore for relative offsets
             separator = " " if is_date_range_offset else TIME_COMPARISON
             metrics_mapping = {
                 metric: separator.join([metric, original_offset])
