@@ -32,6 +32,7 @@ import {
   Loading,
   Icons,
   Tooltip,
+  FormItem,
 } from '@superset-ui/core/components';
 import { useDispatch, useSelector } from 'react-redux';
 import { RootState } from 'src/dashboard/types';
@@ -45,6 +46,7 @@ import { ChartCustomizationItem } from './types';
 
 interface GroupByFilterCardProps {
   customizationItem: ChartCustomizationItem;
+  orientation?: 'vertical' | 'horizontal';
 }
 
 const Row = styled.div`
@@ -107,19 +109,49 @@ const FilterTitle = styled(Typography.Text)`
   }
 `;
 
-const StyledSelect = styled.div`
-  .ant-select {
+const HorizontalFormItem = styled(FormItem)`
+  && {
+    margin-bottom: 0;
+    align-items: center;
+  }
+
+  .ant-form-item-label {
+    display: flex;
+    align-items: center;
+    overflow: visible;
+    padding-bottom: 0;
+    margin-right: ${({ theme }) => theme.sizeUnit * 2}px;
+
+    & > label {
+      margin-bottom: 0;
+      padding: 0;
+      line-height: 1;
+      font-size: ${({ theme }) => theme.fontSizeSM}px;
+      font-weight: ${({ theme }) => theme.fontWeightNormal};
+      color: ${({ theme }) => theme.colorText};
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+
+      &::after {
+        display: none;
+      }
+    }
+  }
+
+  .ant-form-item-control {
+    min-width: 164px;
+    max-width: none;
+  }
+
+  .select-container {
     width: 100%;
   }
 
-  /* Ensure the dropdown is fully interactive */
-  .ant-select-selector {
-    cursor: pointer !important;
-  }
-
-  /* Make sure dropdown shows on click */
-  .ant-select-selection-search {
-    cursor: pointer;
+  /* Allow dropdown to expand beyond form item width */
+  .ant-select-dropdown {
+    min-width: 200px !important;
+    max-width: 400px !important;
   }
 `;
 
@@ -255,6 +287,7 @@ const GroupByFilterCardContent: FC<{
 
 const GroupByFilterCard: FC<GroupByFilterCardProps> = ({
   customizationItem,
+  orientation = 'vertical',
 }) => {
   const theme = useTheme();
   const { customization } = customizationItem;
@@ -268,6 +301,12 @@ const GroupByFilterCard: FC<GroupByFilterCardProps> = ({
   >([]);
 
   const dispatch = useDispatch();
+
+  const isHorizontalLayout = orientation === 'horizontal';
+
+  const hideHoverCard = useCallback(() => {
+    setIsHoverCardVisible(false);
+  }, []);
 
   const chartCustomizationLoading = useSelector<RootState, boolean>(
     state =>
@@ -396,60 +435,16 @@ const GroupByFilterCard: FC<GroupByFilterCardProps> = ({
     fetchColumnOptions();
   }, [dataset]);
 
-  const hideHoverCard = useCallback(() => {
-    setIsHoverCardVisible(false);
-  }, []);
-
   const displayTitle = columnDisplayName;
 
   const description =
     customizationItem.description?.trim() ||
     customizationItem.customization.description?.trim();
 
-  return (
-    <FilterValueContainer>
-      <Popover
-        placement="right"
-        overlayStyle={{ width: '280px' }}
-        content={
-          <GroupByFilterCardContent
-            customizationItem={customizationItem}
-            hidePopover={hideHoverCard}
-          />
-        }
-        mouseEnterDelay={0.2}
-        mouseLeaveDelay={0.2}
-        onOpenChange={visible => {
-          setIsHoverCardVisible(visible);
-        }}
-        open={isHoverCardVisible}
-        arrow={false}
-      >
-        <div>
-          <div
-            css={css`
-              display: flex;
-              align-items: center;
-            `}
-          >
-            <TooltipWithTruncation
-              title={titleElementsTruncated ? displayTitle : null}
-            >
-              <div ref={filterTitleRef}>
-                <FilterTitle>{displayTitle}</FilterTitle>
-              </div>
-            </TooltipWithTruncation>
-            {description && <DescriptionTooltip description={description} />}
-          </div>
-        </div>
-      </Popover>
-
-      <div
-        css={css`
-          margin-bottom: ${theme.sizeUnit * 2}px;
-        `}
-      >
-        <StyledSelect>
+  if (isHorizontalLayout) {
+    return (
+      <FilterValueContainer>
+        <HorizontalFormItem label={displayTitle}>
           <Select
             allowClear
             placeholder={t('Search columns...')}
@@ -486,16 +481,103 @@ const GroupByFilterCard: FC<GroupByFilterCardProps> = ({
                 .toLowerCase()
                 .includes(input.toLowerCase())
             }
+            getPopupContainer={triggerNode => triggerNode.parentNode}
+            oneLine={isHorizontalLayout}
+            className="select-container"
           />
-        </StyledSelect>
-      </div>
+        </HorizontalFormItem>
 
-      {loading && (
-        <div style={{ textAlign: 'center', marginTop: 8 }}>
-          <Loading position="inline" />
+        {loading && (
+          <div style={{ textAlign: 'center', marginTop: 8 }}>
+            <Loading position="inline" />
+          </div>
+        )}
+      </FilterValueContainer>
+    );
+  }
+
+  return (
+    <div>
+      <Popover
+        placement="right"
+        overlayStyle={{ width: '280px' }}
+        content={
+          <GroupByFilterCardContent
+            customizationItem={customizationItem}
+            hidePopover={hideHoverCard}
+          />
+        }
+        mouseEnterDelay={0.2}
+        mouseLeaveDelay={0.2}
+        onOpenChange={visible => {
+          setIsHoverCardVisible(visible);
+        }}
+        open={isHoverCardVisible}
+        arrow={false}
+      >
+        <div
+          css={css`
+            display: flex;
+            align-items: center;
+            margin-bottom: ${theme.sizeUnit}px;
+          `}
+        >
+          <TooltipWithTruncation
+            title={titleElementsTruncated ? displayTitle : null}
+          >
+            <div ref={filterTitleRef}>
+              <FilterTitle>{displayTitle}</FilterTitle>
+            </div>
+          </TooltipWithTruncation>
+          {description && <DescriptionTooltip description={description} />}
         </div>
-      )}
-    </FilterValueContainer>
+      </Popover>
+
+      {/* Column dropdown below the name */}
+      <div
+        css={css`
+          margin-bottom: ${theme.sizeUnit}px;
+        `}
+      >
+        <Select
+          allowClear
+          placeholder={t('Search columns...')}
+          value={columnName || null}
+          onChange={(value: string | string[]) => {
+            const columnValue = canSelectMultiple
+              ? Array.isArray(value)
+                ? value.length > 0
+                  ? value
+                  : null
+                : value || null
+              : typeof value === 'string'
+                ? value
+                : null;
+
+            const updatedCustomization = {
+              ...customizationItem.customization,
+              column: columnValue,
+            };
+
+            dispatch(
+              setPendingChartCustomization({
+                id: customizationItem.id,
+                title: customizationItem.title,
+                customization: updatedCustomization,
+              }),
+            );
+          }}
+          options={columnOptions}
+          showSearch
+          mode={canSelectMultiple ? 'multiple' : undefined}
+          filterOption={(input, option) =>
+            ((option?.label as string) ?? '')
+              .toLowerCase()
+              .includes(input.toLowerCase())
+          }
+        />
+      </div>
+    </div>
   );
 };
 

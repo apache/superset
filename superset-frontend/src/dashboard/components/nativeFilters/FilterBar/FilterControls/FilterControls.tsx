@@ -64,7 +64,6 @@ import CrossFilter from '../CrossFilters/CrossFilter';
 import { useFilterOutlined } from '../useFilterOutlined';
 import { useChartsVerboseMaps } from '../utils';
 import GroupByFilterCard from '../../ChartCustomization/GroupByFilterCard';
-import HorizontalGroupByControl from '../../ChartCustomization/HorizontalGroupByControl';
 import { selectChartCustomizationItems } from '../../ChartCustomization/selectors';
 
 type FilterControlsProps = {
@@ -436,7 +435,10 @@ const FilterControls: FC<FilterControlsProps> = ({
               flex-shrink: 0;
             `}
           >
-            <HorizontalGroupByControl customizationItem={item} />
+            <GroupByFilterCard
+              customizationItem={item}
+              orientation="horizontal"
+            />
           </div>
         ),
       }));
