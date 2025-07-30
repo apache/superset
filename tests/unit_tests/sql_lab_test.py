@@ -17,6 +17,7 @@
 # pylint: disable=import-outside-toplevel, invalid-name, unused-argument, too-many-locals
 
 import json  # noqa: TID251
+from unittest.mock import MagicMock
 from uuid import UUID
 
 import pytest
@@ -35,6 +36,7 @@ from superset.sql_lab import (
     get_sql_results,
 )
 from superset.utils.rls import apply_rls, get_predicates_for_table
+from tests.conftest import with_config
 from tests.unit_tests.models.core_test import oauth2_client_info
 
 
@@ -64,21 +66,23 @@ def test_execute_query(mocker: MockerFixture, app: None) -> None:
     SupersetResultSet.assert_called_with([(42,)], cursor.description, db_engine_spec)
 
 
-def test_execute_sql_statement_exceeds_payload_limit(mocker: MockerFixture) -> None:
-    """
-    Test for `execute_sql_statements` when the result payload size exceeds the limit.
-    """
-    # Mock current_app.config
-    mock_current_app = mocker.patch("superset.sql_lab.current_app")
-    mock_current_app.config = {
+@with_config(
+    {
         "SQLLAB_PAYLOAD_MAX_MB": 50,
         "DISALLOWED_SQL_FUNCTIONS": {},
         "SQLLAB_CTAS_NO_LIMIT": False,
         "SQL_MAX_ROW": 100000,
         "QUERY_LOGGER": None,
         "TROUBLESHOOTING_LINK": None,
-        "STATS_LOGGER": mocker.MagicMock(),
+        "STATS_LOGGER": MagicMock(),
     }
+)
+def test_execute_sql_statement_exceeds_payload_limit(
+    mocker: MockerFixture, app
+) -> None:
+    """
+    Test for `execute_sql_statements` when the result payload size exceeds the limit.
+    """
 
     # Mock the query object and database
     query = mocker.MagicMock()
@@ -122,22 +126,22 @@ def test_execute_sql_statement_exceeds_payload_limit(mocker: MockerFixture) -> N
         )
 
 
-def test_execute_sql_statement_within_payload_limit(mocker: MockerFixture) -> None:
-    """
-    Test for `execute_sql_statements` when the result payload size is within the limit,
-    and check if the flow executes smoothly without raising any exceptions.
-    """
-    # Mock current_app.config
-    mock_current_app = mocker.patch("superset.sql_lab.current_app")
-    mock_current_app.config = {
+@with_config(
+    {
         "SQLLAB_PAYLOAD_MAX_MB": 50,
         "DISALLOWED_SQL_FUNCTIONS": {},
         "SQLLAB_CTAS_NO_LIMIT": False,
         "SQL_MAX_ROW": 100000,
         "QUERY_LOGGER": None,
         "TROUBLESHOOTING_LINK": None,
-        "STATS_LOGGER": mocker.MagicMock(),
+        "STATS_LOGGER": MagicMock(),
     }
+)
+def test_execute_sql_statement_within_payload_limit(mocker: MockerFixture, app) -> None:
+    """
+    Test for `execute_sql_statements` when the result payload size is within the limit,
+    and check if the flow executes smoothly without raising any exceptions.
+    """
 
     # Mock the query object and database
     query = mocker.MagicMock()
