@@ -53,6 +53,11 @@ def mock_mcp_auth(request) -> Iterator[None]:
         patch("superset.mcp_service.auth.has_permission") as mock_has_permission,
         patch("superset.mcp_service.auth.impersonate_user") as mock_impersonate,
         patch("flask.g") as mock_g,
+        patch("superset.mcp_service.auth.event_logger") as mock_auth_event_logger,
+        patch(
+            "superset.mcp_service.middleware.event_logger"
+        ) as mock_middleware_event_logger,
+        patch("superset.utils.log.DBEventLogger.log"),
     ):
         # Mock user extraction to always return test user
         mock_get_user.return_value = mock_user
@@ -65,6 +70,22 @@ def mock_mcp_auth(request) -> Iterator[None]:
 
         # Mock Flask's g object
         mock_g.user = mock_user
+
+        # Mock event loggers to prevent database foreign key constraint errors
+        # Create a mock decorator that simply returns the original function
+        def mock_log_this_with_context(*args, **kwargs):
+            def decorator(func):
+                return func
+
+            return decorator
+
+        # Mock the auth event logger
+        mock_auth_event_logger.log_this_with_context = mock_log_this_with_context
+        # Also mock the log method to prevent database writes
+        mock_auth_event_logger.log = MagicMock()
+
+        # Mock the middleware event logger's log method
+        mock_middleware_event_logger.log = MagicMock()
 
         yield
 
