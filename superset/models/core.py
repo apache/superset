@@ -126,7 +126,9 @@ class ConfigurationMethod(StrEnum):
     DYNAMIC_FORM = "dynamic_form"
 
 
-class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable=too-many-public-methods
+class Database(
+    Model, AuditMixinNullable, ImportExportMixin
+):  # pylint: disable=too-many-public-methods
     """An ORM object that stores Database related information"""
 
     __tablename__ = "dbs"
@@ -400,9 +402,7 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
         return (
             username
             if (username := get_username())
-            else object_url.username
-            if self.impersonate_user
-            else None
+            else object_url.username if self.impersonate_user else None
         )
 
     @contextmanager
@@ -987,7 +987,10 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
             schema=table.schema,
         ) as inspector:
             return self.db_engine_spec.get_columns(
-                inspector, table, self.schema_options
+                self,
+                inspector,
+                table,
+                self.schema_options,
             )
 
     def get_metrics(
@@ -1076,9 +1079,11 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
         return self.perm
 
     def has_table(self, table: Table) -> bool:
-        with self.get_sqla_engine(catalog=table.catalog, schema=table.schema) as engine:
-            # do not pass "" as an empty schema; force null
-            return engine.has_table(table.table, table.schema or None)
+        with self.get_inspector(
+            catalog=table.catalog,
+            schema=table.schema,
+        ) as inspector:
+            return self.db_engine_spec.has_table(self, inspector, table)
 
     def has_view(self, table: Table) -> bool:
         with self.get_sqla_engine(catalog=table.catalog, schema=table.schema) as engine:

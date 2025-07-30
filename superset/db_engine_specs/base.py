@@ -30,6 +30,7 @@ from typing import (
     cast,
     ContextManager,
     NamedTuple,
+    Type,
     TYPE_CHECKING,
     TypedDict,
     Union,
@@ -54,7 +55,7 @@ from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.url import URL
 from sqlalchemy.ext.compiler import compiles
 from sqlalchemy.sql import literal_column, quoted_name, text
-from sqlalchemy.sql.expression import ColumnClause, Select, TextClause
+from sqlalchemy.sql.expression import BinaryExpression, ColumnClause, Select, TextClause
 from sqlalchemy.types import TypeEngine
 
 from superset import db
@@ -62,6 +63,10 @@ from superset.constants import QUERY_CANCEL_KEY, TimeGrain as TimeGrainConstants
 from superset.databases.utils import get_table_metadata, make_url_safe
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import OAuth2Error, OAuth2RedirectError
+from superset.extensions.semantic_layer import (
+    get_sqla_type_from_dimension_type,
+    SemanticLayer,
+)
 from superset.sql.parse import (
     BaseSQLStatement,
     LimitMethod,
@@ -104,6 +109,15 @@ logger = logging.getLogger()
 # generic `Exception` class, which requires a pylint disablee comment. To make it clear
 # that we know this is a necessary evil we create an alias, and catch it instead.
 GenericDBException = Exception
+
+
+class ValidColumnsType(TypedDict):
+    """
+    Type for valid columns returned by `get_valid_metrics_and_dimensions`.
+    """
+
+    dimensions: set[str]
+    metrics: set[str]
 
 
 def convert_inspector_columns(cols: list[SQLAColumnType]) -> list[ResultSetColumnType]:
@@ -188,15 +202,6 @@ class MetricType(TypedDict, total=False):
     extra: str | None
 
 
-class ValidColumnsType(TypedDict):
-    """
-    Type for valid columns returned by `get_valid_metrics_and_dimensions`.
-    """
-
-    dimensions: set[str]
-    metrics: set[str]
-
-
 class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     """Abstract class for database engine specific configurations
 
@@ -224,6 +229,9 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     sqlalchemy_uri_placeholder = (
         "engine+driver://user:password@host:port/dbname[?key=value&key=value...]"
     )
+
+    # databases can optionally specify a semantic layer
+    semantic_layer: Type[SemanticLayer] | None = None
 
     disable_ssh_tunneling = False
 
@@ -388,6 +396,10 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     disallow_uri_query_params: dict[str, set[str]] = {}
     # A Dict of query parameters that will always be used on every connection
     # by driver name
+
+    # Whether to use equality operators (= true/false) instead of IS operators
+    # for boolean filters. Some databases like Snowflake don't support IS true/false
+    use_equality_for_boolean_filters = False
     enforce_uri_query_params: dict[str, dict[str, Any]] = {}
 
     force_column_alias_quotes = False
@@ -1219,6 +1231,78 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         return None
 
     @classmethod
+    def handle_boolean_filter(
+        cls, sqla_col: Any, op: str, value: bool
+    ) -> BinaryExpression:
+        """
+        Handle boolean filter operations with engine-specific logic.
+
+        By default, uses SQLAlchemy's IS operator (column IS true/false).
+        Engines that don't support IS for boolean values can override
+        use_equality_for_boolean_filters to use equality operators instead.
+
+        :param sqla_col: SQLAlchemy column element
+        :param op: Filter operator (IS_TRUE or IS_FALSE)
+        :param value: Boolean value (True or False)
+        :return: SQLAlchemy expression for the boolean filter
+        """
+        if cls.use_equality_for_boolean_filters:
+            return sqla_col == value
+        else:
+            return sqla_col.is_(value)
+
+    @classmethod
+    def handle_null_filter(
+        cls,
+        sqla_col: Any,
+        op: utils.FilterOperator,
+    ) -> BinaryExpression:
+        """
+        Handle null/not null filter operations.
+
+        :param sqla_col: SQLAlchemy column element
+        :param op: Filter operator (IS_NULL or IS_NOT_NULL)
+        :return: SQLAlchemy expression for the null filter
+        """
+        from superset.utils import core as utils
+
+        if op == utils.FilterOperator.IS_NULL:
+            return sqla_col.is_(None)
+        elif op == utils.FilterOperator.IS_NOT_NULL:
+            return sqla_col.isnot(None)
+        else:
+            raise ValueError(f"Invalid null filter operator: {op}")
+
+    @classmethod
+    def handle_comparison_filter(
+        cls, sqla_col: Any, op: utils.FilterOperator, value: Any
+    ) -> BinaryExpression:
+        """
+        Handle comparison filter operations (=, !=, >, <, >=, <=).
+
+        :param sqla_col: SQLAlchemy column element
+        :param op: Filter operator
+        :param value: Filter value
+        :return: SQLAlchemy expression for the comparison filter
+        """
+        from superset.utils import core as utils
+
+        if op == utils.FilterOperator.EQUALS:
+            return sqla_col == value
+        elif op == utils.FilterOperator.NOT_EQUALS:
+            return sqla_col != value
+        elif op == utils.FilterOperator.GREATER_THAN:
+            return sqla_col > value
+        elif op == utils.FilterOperator.LESS_THAN:
+            return sqla_col < value
+        elif op == utils.FilterOperator.GREATER_THAN_OR_EQUALS:
+            return sqla_col >= value
+        elif op == utils.FilterOperator.LESS_THAN_OR_EQUALS:
+            return sqla_col <= value
+        else:
+            raise ValueError(f"Invalid comparison filter operator: {op}")
+
+    @classmethod
     def handle_cursor(cls, cursor: Any, query: Query) -> None:
         """Handle a live cursor between the execute and fetchall calls
 
@@ -1401,7 +1485,31 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
 
         if schema and cls.try_remove_schema_from_table_name:
             tables = {re.sub(f"^{schema}\\.", "", table) for table in tables}
+
+        # add semantic views as tables too
+        if cls.semantic_layer:
+            semantic_layer = cls.semantic_layer(inspector.engine)
+            tables.update(
+                semantic_view.name
+                for semantic_view in semantic_layer.get_semantic_views()
+            )
+
         return tables
+
+    @classmethod
+    def has_table(
+        cls,
+        database: Database,
+        inspector: Inspector,
+        table: Table,
+    ) -> bool:
+        if cls.semantic_layer:
+            semantic_layer = cls.semantic_layer(inspector.engine)
+            semantic_views = semantic_layer.get_semantic_views()
+            if table.table in {semantic_view.name for semantic_view in semantic_views}:
+                return True
+
+        return inspector.has_table(table.table, table.schema)
 
     @classmethod
     def get_view_names(  # pylint: disable=unused-argument
@@ -1476,6 +1584,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     @classmethod
     def get_columns(  # pylint: disable=unused-argument
         cls,
+        database: Database,
         inspector: Inspector,
         table: Table,
         options: dict[str, Any] | None = None,
@@ -1483,7 +1592,9 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         """
         Get all columns from a given schema and table.
 
-        The inspector will be bound to a catalog, if one was specified.
+        The inspector will be bound to a catalog, if one was specified. If the database
+        supports semantic layers the method will check if the table is a semantic view,
+        and return columns (metrics and dimensions) from it instead.
 
         :param inspector: SqlAlchemy Inspector instance
         :param table: Table instance
@@ -1491,6 +1602,26 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
                         some databases
         :return: All columns in table
         """
+        if cls.semantic_layer:
+            semantic_layer = cls.semantic_layer(inspector.engine)
+            semantic_views = {
+                semantic_view.name: semantic_view
+                for semantic_view in semantic_layer.get_semantic_views()
+            }
+            if semantic_view := semantic_views.get(table.table):
+                dialect = database.get_dialect()
+                return [
+                    {
+                        "name": dimension.name,
+                        "column_name": dimension.name,
+                        "type": cls.column_datatype_to_string(
+                            get_sqla_type_from_dimension_type(dimension.type),
+                            dialect,
+                        ),
+                    }
+                    for dimension in semantic_layer.get_dimensions(semantic_view)
+                ]
+
         return convert_inspector_columns(
             cast(
                 list[SQLAColumnType],
@@ -1508,6 +1639,22 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         """
         Get all metrics from a given schema and table.
         """
+        if cls.semantic_layer:
+            semantic_layer = cls.semantic_layer(inspector.engine)
+            semantic_views = {
+                semantic_view.name: semantic_view
+                for semantic_view in semantic_layer.get_semantic_views()
+            }
+            if semantic_view := semantic_views.get(table.table):
+                return [
+                    {
+                        "metric_name": metric.name,
+                        "verbose_name": metric.name,
+                        "expression": metric.sql,
+                    }
+                    for metric in semantic_layer.get_metrics(semantic_view)
+                ]
+
         return [
             {
                 "metric_name": "count",
@@ -1526,17 +1673,48 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         metrics: set[str],
     ) -> ValidColumnsType:
         """
-        Given a selection of columns/metrics from a datasource, return related columns.
+        Get valid metrics and dimensions.
 
-        This is a method used for semantic layers, where tables can have columns and
-        metrics that cannot be computed together. When the user selects a given metric
-        it allows the UI to filter the remaining metrics and dimensions so that only
-        valid combinations are possible.
-
-        The method should only be called when ``supports_dynamic_columns`` is set to
-        true. The default method in the base class ignores the selected columns and
-        metrics, and simply returns everything, for reference.
+        Given a datasource, and sets of selected metrics and dimensions, return the
+        sets of valid metrics and dimensions that can further be selected.
         """
+        if cls.semantic_layer:
+            with database.get_sqla_engine() as engine:
+                semantic_layer = cls.semantic_layer(engine)
+                semantic_views = {
+                    semantic_view.name: semantic_view
+                    for semantic_view in semantic_layer.get_semantic_views()
+                }
+                if semantic_view := semantic_views.get(table.table):
+                    selected_metrics = {
+                        metric
+                        for metric in semantic_layer.get_metrics(semantic_view)
+                        if metric.name in metrics
+                    }
+                    selected_dimensions = {
+                        dimension
+                        for dimension in semantic_layer.get_dimensions(semantic_view)
+                        if dimension.name in dimensions
+                    }
+                    return {
+                        "metrics": {
+                            metric.name
+                            for metric in semantic_layer.get_valid_metrics(
+                                semantic_view,
+                                selected_metrics,
+                                selected_dimensions,
+                            )
+                        },
+                        "dimensions": {
+                            dimension.name
+                            for dimension in semantic_layer.get_valid_dimensions(
+                                semantic_view,
+                                selected_metrics,
+                                selected_dimensions,
+                            )
+                        },
+                    }
+
         return {
             "dimensions": {column.column_name for column in table.columns},
             "metrics": {metric.metric_name for metric in table.metrics},
@@ -1808,6 +1986,11 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         :param kwargs: kwargs to be passed to cursor.execute()
         :return:
         """
+        if cls.semantic_layer:
+            with cls.get_engine(database, schema="tpcds_sf10tcl") as engine:
+                semantic_layer = cls.semantic_layer(engine)
+                query = semantic_layer.get_query_from_standard_sql(query).sql
+
         if cls.arraysize:
             cursor.arraysize = cls.arraysize
         try:
