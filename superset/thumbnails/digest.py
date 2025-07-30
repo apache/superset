@@ -36,8 +36,6 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
-conf = current_app.config
-
 
 def _adjust_string_for_executor(
     unique_string: str,
@@ -93,6 +91,7 @@ def _adjust_string_with_rls(
 
 
 def get_dashboard_digest(dashboard: Dashboard) -> str | None:
+    conf = current_app.config
     try:
         executor_type, executor = get_executor(
             executors=conf["THUMBNAIL_EXECUTORS"],
@@ -119,6 +118,7 @@ def get_dashboard_digest(dashboard: Dashboard) -> str | None:
 
 
 def get_chart_digest(chart: Slice) -> str | None:
+    conf = current_app.config
     try:
         executor_type, executor = get_executor(
             executors=conf["THUMBNAIL_EXECUTORS"],
