@@ -86,7 +86,7 @@ class TestMapTableConfig:
     """Test map_table_config function"""
 
     def test_map_table_config_basic(self) -> None:
-        """Test basic table config mapping"""
+        """Test basic table config mapping with aggregated columns"""
         config = TableChartConfig(
             columns=[
                 ColumnRef(name="product", aggregate="COUNT"),
@@ -97,10 +97,29 @@ class TestMapTableConfig:
         result = map_table_config(config)
 
         assert result["viz_type"] == "table"
-        assert result["all_columns"] == ["product", "revenue"]
+        assert result["query_mode"] == "aggregate"
+        # Aggregated columns should be in metrics, not all_columns
+        assert "all_columns" not in result
         assert len(result["metrics"]) == 2
         assert result["metrics"][0]["aggregate"] == "COUNT"
         assert result["metrics"][1]["aggregate"] == "SUM"
+
+    def test_map_table_config_raw_columns(self) -> None:
+        """Test table config mapping with raw columns (no aggregates)"""
+        config = TableChartConfig(
+            columns=[
+                ColumnRef(name="product"),
+                ColumnRef(name="category"),
+            ]
+        )
+
+        result = map_table_config(config)
+
+        assert result["viz_type"] == "table"
+        assert result["query_mode"] == "raw"
+        # Raw columns should be in all_columns
+        assert result["all_columns"] == ["product", "category"]
+        assert "metrics" not in result
 
     def test_map_table_config_with_filters(self) -> None:
         """Test table config mapping with filters"""

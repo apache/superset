@@ -331,9 +331,33 @@ def _mock_chart(id=1, viz_type="table", form_data=None):
 
 
 def _mock_dataset(id: int = 1) -> Mock:
-    """Create a mock dataset object."""
+    """Create a mock dataset object with all required attributes for validation."""
     dataset = Mock()
     dataset.id = id
+    dataset.table_name = "test_table"
+    dataset.schema = "public"
+
+    # Create mock database
+    mock_database = Mock()
+    mock_database.database_name = "test_db"
+    dataset.database = mock_database
+
+    # Create mock columns with all required attributes
+    mock_columns = []
+    column_names = ["region", "sales", "date", "year", "category", "quantity"]
+    for name in column_names:
+        mock_col = Mock()
+        mock_col.column_name = name
+        mock_col.type = "varchar" if name in ["region", "category"] else "integer"
+        mock_col.description = f"Mock {name} column"
+        mock_col.is_dttm = name == "date"
+        mock_col.python_date_format = None
+        mock_col.verbose_name = None
+        mock_columns.append(mock_col)
+
+    dataset.columns = mock_columns
+    dataset.metrics = []  # No metrics for simplicity
+
     return dataset
 
 
@@ -477,8 +501,11 @@ async def test_generate_chart_error(mock_run, mock_find_dataset, mcp_server):
         result = await client.call_tool(
             "generate_chart", {"request": request.model_dump()}
         )
-        assert result.data["error"] is not None
-        assert "Chart creation failed" in result.data["error"]
+        # The result should contain error information
+        assert result.data is not None
+        # generate_chart returns error response on chart creation failure
+        assert result.data.get("success") is False
+        assert "Chart creation failed" in str(result.data.get("error", ""))
 
 
 @patch("superset.daos.dataset.DatasetDAO.find_by_id")
@@ -516,7 +543,7 @@ async def test_generate_chart_xy_minimal(mock_run, mock_find_dataset, mcp_server
     config = XYChartConfig(
         chart_type="xy",
         x=ColumnRef(name="date"),
-        y=[ColumnRef(name="count")],  # Simple metric
+        y=[ColumnRef(name="sales")],  # Use existing column in mock dataset
         kind="line",
     )
 
@@ -546,7 +573,7 @@ async def test_generate_chart_with_simple_metrics(
         chart_type="xy",
         x=ColumnRef(name="region"),
         y=[
-            ColumnRef(name="count"),  # Should be passed as simple string
+            ColumnRef(name="quantity"),  # Use existing column in mock dataset
             ColumnRef(name="sales"),  # Should be passed as complex object
         ],
         kind="bar",
@@ -579,8 +606,8 @@ async def test_generate_chart_with_sql_aggregators(
         x=ColumnRef(name="date"),
         y=[
             ColumnRef(name="sales", aggregate="SUM", label="Total Sales"),
-            ColumnRef(name="orders", aggregate="COUNT", label="Order Count"),
-            ColumnRef(name="revenue", aggregate="AVG", label="Average Revenue"),
+            ColumnRef(name="quantity", aggregate="COUNT", label="Quantity Count"),
+            ColumnRef(name="sales", aggregate="AVG", label="Average Sales"),
         ],
         kind="line",
     )
@@ -611,18 +638,18 @@ async def test_generate_chart_comprehensive_metrics(
         chart_type="xy",
         x=ColumnRef(name="region"),
         y=[
-            ColumnRef(name="count"),  # Simple string metric
+            ColumnRef(name="quantity"),  # Use existing column
             ColumnRef(
                 name="sales", aggregate="SUM", label="Total Sales"
             ),  # SQL aggregator
             ColumnRef(
-                name="revenue", aggregate="AVG", label="Average Revenue"
+                name="sales", aggregate="AVG", label="Average Sales"
+            ),  # SQL aggregator with same column
+            ColumnRef(
+                name="quantity", aggregate="COUNT", label="Quantity Count"
             ),  # SQL aggregator
             ColumnRef(
-                name="orders", aggregate="COUNT", label="Order Count"
-            ),  # SQL aggregator
-            ColumnRef(
-                name="profit", aggregate="MAX", label="Max Profit"
+                name="sales", aggregate="MAX", label="Max Sales"
             ),  # SQL aggregator
         ],
         kind="bar",
@@ -632,7 +659,7 @@ async def test_generate_chart_comprehensive_metrics(
         legend=LegendConfig(show=True, position="top"),
         filters=[
             FilterConfig(column="year", op="=", value=2024),
-            FilterConfig(column="status", op="!=", value="cancelled"),
+            FilterConfig(column="category", op="!=", value="cancelled"),
         ],
     )
 
@@ -660,12 +687,12 @@ async def test_generate_chart_xy_scatter_success(
     # Create a scatter chart request
     config = XYChartConfig(
         chart_type="xy",
-        x=ColumnRef(name="order_date"),
-        y=[ColumnRef(name="count")],  # Simple metric for scatter
+        x=ColumnRef(name="date"),
+        y=[ColumnRef(name="sales")],  # Use existing column for scatter
         kind="scatter",
-        group_by=ColumnRef(name="deal_size"),
-        x_axis=AxisConfig(title="Order Date", format="smart_date"),
-        y_axis=AxisConfig(title="Count", format="SMART_NUMBER"),
+        group_by=ColumnRef(name="category"),
+        x_axis=AxisConfig(title="Date", format="smart_date"),
+        y_axis=AxisConfig(title="Sales", format="SMART_NUMBER"),
         legend=LegendConfig(show=True, position="top"),
         filters=[FilterConfig(column="year", op="=", value=2024)],
     )

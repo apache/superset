@@ -23,12 +23,21 @@ middleware. All tool modules should import mcp from here and use @mcp.tool and
 """
 
 import logging
-from typing import Any, Optional
+import time
+from typing import Any, Dict, Optional, Tuple
 
 from fastmcp import FastMCP
 from fastmcp.server.auth.providers.bearer import BearerAuthProvider
+from starlette.exceptions import HTTPException
+from starlette.responses import Response
 
 from superset.mcp_service.middleware import LoggingMiddleware, PrivateToolMiddleware
+
+logger = logging.getLogger(__name__)
+
+# Simple in-memory cache for screenshots (chart_id -> (timestamp, image_data))
+_screenshot_cache: Dict[str, Tuple[float, bytes]] = {}
+SCREENSHOT_CACHE_TTL = 300  # 5 minutes cache
 
 
 def _create_auth_provider() -> Optional[BearerAuthProvider]:
@@ -52,7 +61,6 @@ def _create_auth_provider() -> Optional[BearerAuthProvider]:
 
         return None
     except Exception as e:
-        logger = logging.getLogger(__name__)
         logger.error(f"Failed to create auth provider: {e}")
         return None
 
@@ -115,27 +123,36 @@ import superset.mcp_service.system.tool  # noqa: F401, E402
 
 
 # Add custom route for serving screenshot images
-async def serve_chart_screenshot(chart_id: str) -> Any:
+async def serve_chart_screenshot(chart_id: str) -> Any:  # noqa: C901
     """
     Serve chart screenshot images directly as PNG files.
     This endpoint provides public access to chart screenshots without authentication.
     """
-    # Import Starlette components which are available in FastMCP
-    try:
-        from starlette.exceptions import HTTPException
-        from starlette.responses import Response
-    except ImportError:
-        # Fallback error
-        raise Exception("Starlette components not available") from None
 
-    logger = logging.getLogger(__name__)
+    # Check cache first
+    current_time = time.time()
+    cache_key = f"chart_{chart_id}"
+
+    if cache_key in _screenshot_cache:
+        timestamp, cached_data = _screenshot_cache[cache_key]
+        if current_time - timestamp < SCREENSHOT_CACHE_TTL:
+            logger.info(f"Serving cached screenshot for chart {chart_id}")
+            return Response(
+                content=cached_data,
+                media_type="image/png",
+                headers={
+                    "Cache-Control": "public, max-age=300",  # 5 min cache
+                    "Content-Disposition": f"inline; filename=chart_{chart_id}.png",
+                    "X-Cache": "HIT",
+                },
+            )
 
     try:
         from flask import g
 
         from superset import app as superset_app
         from superset.daos.chart import ChartDAO
-        from superset.utils.screenshots import ChartScreenshot
+        from superset.mcp_service.pooled_screenshot import PooledChartScreenshot
         from superset.utils.urls import get_url_path
 
         # Set up Flask app context for database access
@@ -145,21 +162,39 @@ async def serve_chart_screenshot(chart_id: str) -> Any:
 
             from superset.extensions import db
 
-            mock_user = db.session.query(User).filter_by(username="amin").first()
+            # Get username from config, fallback to "admin"
+            username = superset_app.config.get("MCP_ADMIN_USERNAME", "admin")
+            mock_user = db.session.query(User).filter_by(username=username).first()
             if mock_user:
                 g.user = mock_user
+            else:
+                logger.warning(f"User '{username}' not found, screenshot may fail")
 
             # Find the chart
             chart = None
-            if chart_id.isdigit():
-                chart = ChartDAO.find_by_id(int(chart_id))
-            else:
-                # Try UUID lookup using DAO flexible method
-                chart = ChartDAO.find_by_id(chart_id, id_column="uuid")
+            try:
+                if chart_id.isdigit():
+                    chart = ChartDAO.find_by_id(int(chart_id))
+                else:
+                    # Try UUID lookup using DAO flexible method
+                    chart = ChartDAO.find_by_id(chart_id, id_column="uuid")
+            except Exception as e:
+                logger.error(f"Error looking up chart {chart_id}: {e}")
+                raise HTTPException(
+                    status_code=500,
+                    detail=(
+                        f"Database error while looking up chart {chart_id}: {str(e)}"
+                    ),
+                ) from e
 
             if not chart:
+                logger.warning(f"Chart {chart_id} not found in database")
                 raise HTTPException(
-                    status_code=404, detail=f"Chart {chart_id} not found"
+                    status_code=404,
+                    detail=(
+                        f"Chart with ID '{chart_id}' not found. "
+                        f"Please verify the chart ID exists."
+                    ),
                 )
 
             logger.info(f"Serving screenshot for chart {chart.id}: {chart.slice_name}")
@@ -168,11 +203,196 @@ async def serve_chart_screenshot(chart_id: str) -> Any:
             chart_url = get_url_path("Superset.slice", slice_id=chart.id)
 
             # Create screenshot object
-            screenshot = ChartScreenshot(chart_url, chart.digest)
+            screenshot = PooledChartScreenshot(chart_url, chart.digest)
 
             # Generate screenshot (800x600 default)
             window_size = (800, 600)
-            image_data = screenshot.get_screenshot(user=g.user, window_size=window_size)
+            try:
+                image_data = screenshot.get_screenshot(
+                    user=g.user, window_size=window_size
+                )
+            except Exception as e:
+                logger.error(f"Screenshot generation failed for chart {chart_id}: {e}")
+                raise HTTPException(
+                    status_code=500,
+                    detail=(
+                        f"Failed to generate screenshot for chart {chart_id}. "
+                        f"Error: {str(e)}"
+                    ),
+                ) from e
+
+            if image_data:
+                # Cache the screenshot
+                _screenshot_cache[cache_key] = (current_time, image_data)
+
+                # Clean up old cache entries (simple cleanup)
+                keys_to_remove = []
+                for key, (ts, _) in _screenshot_cache.items():
+                    if current_time - ts > SCREENSHOT_CACHE_TTL:
+                        keys_to_remove.append(key)
+                for key in keys_to_remove:
+                    del _screenshot_cache[key]
+
+                logger.info(f"Generated and cached screenshot for chart {chart_id}")
+
+                # Return the PNG image directly
+                return Response(
+                    content=image_data,
+                    media_type="image/png",
+                    headers={
+                        "Cache-Control": "public, max-age=300",  # 5 min cache
+                        "Content-Disposition": f"inline; filename=chart_{chart.id}.png",
+                        "X-Cache": "MISS",
+                    },
+                )
+            else:
+                logger.error(f"Screenshot returned None for chart {chart_id}")
+                raise HTTPException(
+                    status_code=500,
+                    detail=(
+                        f"Screenshot generation returned empty result for "
+                        f"chart {chart_id}. The chart may have rendering issues."
+                    ),
+                )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error serving screenshot for chart {chart_id}: {e}")
+        raise HTTPException(status_code=500, detail=str(e)) from e
+
+
+def _get_form_data_from_cache(form_data_key: str) -> str:
+    """Retrieve form data from cache using the form data key."""
+    from superset.commands.explore.form_data.get import GetFormDataCommand
+    from superset.commands.explore.form_data.parameters import (
+        CommandParameters as FormDataCommandParameters,
+    )
+
+    try:
+        parameters = FormDataCommandParameters(key=form_data_key)
+        form_data_json = GetFormDataCommand(parameters).run()
+        if not form_data_json:
+            logger.warning(f"Form data key not found in cache: {form_data_key}")
+            raise HTTPException(
+                status_code=404,
+                detail=(
+                    f"Form data key '{form_data_key}' not found or expired. "
+                    f"Please generate a new explore link."
+                ),
+            )
+        return form_data_json
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to retrieve form data for key {form_data_key}: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error retrieving form data for key '{form_data_key}': {str(e)}",
+        ) from e
+
+
+def _parse_datasource_from_form_data(form_data_json: str) -> tuple[str, str]:
+    """Parse datasource info from form data JSON."""
+    from superset.utils import json
+
+    try:
+        form_data = json.loads(form_data_json)
+        datasource = form_data.get("datasource", "")
+        if datasource and "__" in datasource:
+            datasource_id, datasource_type = datasource.split("__", 1)
+        else:
+            # Try to extract from other fields
+            datasource_id = form_data.get("datasource_id", "")
+            datasource_type = form_data.get("datasource_type", "table")
+        return datasource_id, datasource_type
+    except Exception:
+        logger.warning("Could not parse form data to get datasource info")
+        return "", "table"
+
+
+async def serve_explore_screenshot(form_data_key: str) -> Any:
+    """
+    Serve explore screenshot images from form_data_key.
+
+    Args:
+        form_data_key: The form data key for the explore view
+
+    Returns:
+        StreamingResponse with PNG image data
+    """
+    try:
+        from flask import g
+
+        from superset import app as superset_app
+        from superset.utils.urls import get_url_path
+
+        # Set up Flask app context for entire screenshot process
+        with superset_app.app_context():
+            # Create a mock user context - you might need to adjust this
+            from flask_appbuilder.security.sqla.models import User
+
+            from superset.extensions import db
+
+            # Get username from config, fallback to "admin"
+            username = superset_app.config.get("MCP_ADMIN_USERNAME", "admin")
+            mock_user = db.session.query(User).filter_by(username=username).first()
+            if mock_user:
+                g.user = mock_user
+            else:
+                logger.warning(f"User '{username}' not found, screenshot may fail")
+
+            # Look up the form data from the cache
+            form_data_json = _get_form_data_from_cache(form_data_key)
+
+            # Parse form data to get datasource info
+            datasource_id, datasource_type = _parse_datasource_from_form_data(
+                form_data_json
+            )
+
+            # Create explore URL with all necessary parameters
+            explore_url = get_url_path("Superset.explore")
+            url_params = [f"form_data_key={form_data_key}"]
+
+            # Add datasource parameters if available
+            if datasource_id:
+                url_params.append(f"datasource_id={datasource_id}")
+                url_params.append(f"datasource_type={datasource_type}")
+
+            explore_url += "?" + "&".join(url_params)
+
+            logger.info(f"Generating screenshot for explore URL: {explore_url}")
+            logger.info(
+                f"Form data retrieved: "
+                f"{form_data_json[:200] if form_data_json else 'None'}..."
+            )  # Log first 200 chars
+
+            # Use pooled screenshot for better performance
+            import hashlib
+
+            from superset.mcp_service.pooled_screenshot import PooledExploreScreenshot
+
+            digest = hashlib.sha256(form_data_key.encode()).hexdigest()
+            screenshot = PooledExploreScreenshot(explore_url, digest)
+
+            # Generate screenshot with higher resolution
+            window_size = (1600, 1200)  # Doubled resolution from 800x600
+            try:
+                image_data = screenshot.get_screenshot(
+                    user=g.user, window_size=window_size
+                )
+            except Exception as e:
+                logger.error(
+                    f"Screenshot generation failed for explore view "
+                    f"{form_data_key}: {e}"
+                )
+                raise HTTPException(
+                    status_code=500,
+                    detail=(
+                        f"Failed to generate screenshot for explore view. "
+                        f"Error: {str(e)}"
+                    ),
+                ) from e
 
             if image_data:
                 # Return the PNG image directly
@@ -181,18 +401,28 @@ async def serve_chart_screenshot(chart_id: str) -> Any:
                     media_type="image/png",
                     headers={
                         "Cache-Control": "public, max-age=3600",  # Cache for 1 hour
-                        "Content-Disposition": f"inline; filename=chart_{chart.id}.png",
+                        "Content-Disposition": (
+                            f"inline; filename=explore_{form_data_key}.png"
+                        ),
                     },
                 )
             else:
+                logger.error(
+                    f"Screenshot returned None for explore view {form_data_key}"
+                )
                 raise HTTPException(
-                    status_code=500, detail="Failed to generate screenshot"
+                    status_code=500,
+                    detail=(
+                        "Screenshot generation returned empty result for explore view. "
+                        "The view may have rendering issues or invalid parameters."
+                    ),
                 )
 
     except HTTPException:
+        # Re-raise HTTP exceptions
         raise
     except Exception as e:
-        logger.error(f"Error serving screenshot for chart {chart_id}: {e}")
+        logger.error(f"Error serving screenshot for form_data_key {form_data_key}: {e}")
         raise HTTPException(status_code=500, detail=str(e)) from e
 
 
@@ -209,6 +439,18 @@ async def serve_chart_screenshot_endpoint(request: Any) -> Any:
     return await serve_chart_screenshot(chart_id)
 
 
+@mcp.custom_route("/screenshot/explore/{form_data_key}.png", methods=["GET"])
+async def serve_explore_screenshot_endpoint(request: Any) -> Any:
+    """
+    Custom HTTP endpoint for serving explore screenshots from form_data_key.
+    """
+    # Extract form_data_key from path parameters
+    form_data_key = request.path_params["form_data_key"]
+
+    # Call our explore screenshot function
+    return await serve_explore_screenshot(form_data_key)
+
+
 def init_fastmcp_server(enable_auth_configuration: bool = True) -> FastMCP:
     """
     Initialize and configure the FastMCP server with all middleware.
@@ -217,7 +459,6 @@ def init_fastmcp_server(enable_auth_configuration: bool = True) -> FastMCP:
     Args:
         enable_auth_configuration: If True, configure auth using the factory pattern
     """
-    logger = logging.getLogger(__name__)
     logger.setLevel(logging.DEBUG)
 
     # Configure authentication using factory pattern

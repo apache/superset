@@ -119,14 +119,56 @@ def map_config_to_form_data(
 
 def map_table_config(config: TableChartConfig) -> Dict[str, Any]:
     """Map table chart config to form_data."""
-    # Convert columns to metrics - always use complex object format
-    metrics = [create_metric_object(col) for col in config.columns]
+    # Separate columns with aggregates from raw columns
+    raw_columns = []
+    aggregated_metrics = []
 
-    form_data = {
+    for col in config.columns:
+        if col.aggregate:
+            # Column has aggregation - treat as metric
+            aggregated_metrics.append(create_metric_object(col))
+        else:
+            # No aggregation - treat as raw column
+            raw_columns.append(col.name)
+
+    form_data: Dict[str, Any] = {
         "viz_type": "table",
-        "all_columns": [col.name for col in config.columns],
-        "metrics": metrics,
     }
+
+    # Handle raw columns (no aggregation)
+    if raw_columns and not aggregated_metrics:
+        # Pure raw columns - show individual rows
+        form_data.update(
+            {
+                "all_columns": raw_columns,
+                "query_mode": "raw",
+                "include_time": False,
+                "order_desc": True,
+                "row_limit": 1000,  # Reasonable limit for raw data
+            }
+        )
+
+    # Handle aggregated columns only
+    elif aggregated_metrics and not raw_columns:
+        # Pure aggregation - show totals
+        form_data.update(
+            {
+                "metrics": aggregated_metrics,
+                "query_mode": "aggregate",
+            }
+        )
+
+    # Handle mixed columns (raw + aggregated)
+    elif raw_columns and aggregated_metrics:
+        # Mixed mode - group by raw columns, aggregate metrics
+        form_data.update(
+            {
+                "all_columns": raw_columns,
+                "metrics": aggregated_metrics,
+                "groupby": raw_columns,
+                "query_mode": "aggregate",
+            }
+        )
 
     if config.filters:
         form_data["adhoc_filters"] = [

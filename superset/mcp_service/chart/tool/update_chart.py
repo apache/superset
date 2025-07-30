@@ -36,7 +36,10 @@ from superset.mcp_service.schemas.chart_schemas import (
     PerformanceMetadata,
     UpdateChartRequest,
 )
-from superset.mcp_service.url_utils import get_superset_base_url
+from superset.mcp_service.url_utils import (
+    get_chart_screenshot_url,
+    get_superset_base_url,
+)
 from superset.utils import json
 
 logger = logging.getLogger(__name__)
@@ -185,9 +188,7 @@ def update_chart(request: UpdateChartRequest) -> Dict[str, Any]:
                 "data": (
                     f"{get_superset_base_url()}/api/v1/chart/{updated_chart.id}/data/"
                 ),
-                "preview": (
-                    f"{get_superset_base_url()}/api/v1/chart/{updated_chart.id}/preview/"
-                ),
+                "preview": get_chart_screenshot_url(updated_chart.id),
                 "export": (
                     f"{get_superset_base_url()}/api/v1/chart/{updated_chart.id}/export/"
                 ),

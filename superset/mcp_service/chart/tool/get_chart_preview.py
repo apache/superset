@@ -37,7 +37,7 @@ from superset.mcp_service.schemas.chart_schemas import (
     URLPreview,
     VegaLitePreview,
 )
-from superset.mcp_service.url_utils import get_mcp_service_url, get_superset_base_url
+from superset.mcp_service.url_utils import get_superset_base_url
 
 logger = logging.getLogger(__name__)
 
@@ -74,19 +74,20 @@ class URLPreviewStrategy(PreviewFormatStrategy):
         try:
             from flask import g
 
-            from superset.utils.screenshots import ChartScreenshot
+            from superset.mcp_service.pooled_screenshot import PooledChartScreenshot
             from superset.utils.urls import get_url_path
 
             chart_url = get_url_path("Superset.slice", slice_id=self.chart.id)
-            screenshot = ChartScreenshot(chart_url, self.chart.digest)
+            screenshot = PooledChartScreenshot(chart_url, self.chart.digest)
 
             window_size = (self.request.width or 800, self.request.height or 600)
             image_data = screenshot.get_screenshot(user=g.user, window_size=window_size)
 
             if image_data:
-                # Use the MCP service screenshot URL
-                mcp_base = get_mcp_service_url()
-                preview_url = f"{mcp_base}/screenshot/chart/{self.chart.id}.png"
+                # Use the MCP service screenshot URL via centralized helper
+                from superset.mcp_service.url_utils import get_chart_screenshot_url
+
+                preview_url = get_chart_screenshot_url(self.chart.id)
 
                 return URLPreview(
                     preview_url=preview_url,
@@ -105,42 +106,7 @@ class URLPreviewStrategy(PreviewFormatStrategy):
             )
 
 
-class Base64PreviewStrategy(PreviewFormatStrategy):
-    """Generate base64 encoded image preview."""
-
-    def generate(self) -> Base64Preview | ChartError:
-        try:
-            import base64
-
-            from flask import g
-
-            from superset.utils.screenshots import ChartScreenshot
-            from superset.utils.urls import get_url_path
-
-            chart_url = get_url_path("Superset.slice", slice_id=self.chart.id)
-            screenshot = ChartScreenshot(chart_url, self.chart.digest)
-
-            window_size = (self.request.width or 800, self.request.height or 600)
-            image_data = screenshot.get_screenshot(user=g.user, window_size=window_size)
-
-            if image_data:
-                base64_image = base64.b64encode(image_data).decode("utf-8")
-
-                return Base64Preview(
-                    base64_image=base64_image,
-                    width=self.request.width or 800,
-                    height=self.request.height or 600,
-                )
-            else:
-                return ChartError(
-                    error="Failed to generate base64 image", error_type="Base64Error"
-                )
-        except Exception as e:
-            logger.error(f"Base64 preview generation failed: {e}")
-            return ChartError(
-                error=f"Failed to generate base64 preview: {str(e)}",
-                error_type="Base64Error",
-            )
+# Base64 preview support removed - we never return base64 data
 
 
 class ASCIIPreviewStrategy(PreviewFormatStrategy):
@@ -273,7 +239,6 @@ class PreviewFormatGenerator:
 
     STRATEGIES = {
         "url": URLPreviewStrategy,
-        "base64": Base64PreviewStrategy,
         "ascii": ASCIIPreviewStrategy,
         "table": TablePreviewStrategy,
     }
@@ -441,7 +406,21 @@ def _create_sparkline(values: List[float]) -> List[str]:
         else:
             sparkline += "█"
 
-    return [f"Range: {min_val:.2f} to {max_val:.2f}", sparkline]
+    # Safe formatting to avoid NaN display
+    if _is_nan_value(min_val) or _is_nan_value(max_val):
+        return ["Range: Unable to calculate from data", sparkline]
+    else:
+        return [f"Range: {min_val:.2f} to {max_val:.2f}", sparkline]
+
+
+def _is_nan_value(value: Any) -> bool:
+    """Check if a value is NaN or invalid."""
+    try:
+        import math
+
+        return math.isnan(float(value))
+    except (ValueError, TypeError):
+        return True
 
 
 def _generate_ascii_scatter_chart(data: List[Any], width: int, height: int) -> str:
@@ -762,11 +741,7 @@ def _get_chart_preview_internal(
         elif isinstance(content, TablePreview):
             result.format = "table"
             result.table_data = content.table_data
-        elif isinstance(content, Base64Preview):
-            result.format = "base64"
-            result.base64_image = content.base64_image
-            result.width = content.width
-            result.height = content.height
+        # Base64 preview support removed
 
         return result
 

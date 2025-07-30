@@ -63,12 +63,74 @@ def get_mcp_service_url() -> str:
     """
     Get the MCP service base URL where screenshot endpoints are served.
 
-    The screenshot service is served by the MCP service as a WSGI endpoint
-    on the same port as Superset (not on a separate port).
+    The MCP service auto-detects its own host and port since it's running
+    this code. Falls back to configuration if auto-detection fails.
 
     Returns:
-        Base URL for MCP service (same as Superset base URL)
+        Base URL for MCP service
     """
-    # Screenshot service is served by MCP service as WSGI endpoint
-    # on the same port as Superset
-    return get_superset_base_url()
+    try:
+        # Try to auto-detect from Flask request context
+        from flask import request
+
+        if request:
+            # Get the host and port from the current request
+            scheme = request.scheme  # http or https
+            host = request.host  # includes port if non-standard
+            return f"{scheme}://{host}"
+
+    except (RuntimeError, AttributeError):
+        # Not in request context or Flask not available
+        pass
+
+    try:
+        # Fallback: check configuration
+        config = current_app.config
+
+        # Check for explicit MCP_SERVICE_URL in config
+        mcp_service_url = config.get("MCP_SERVICE_URL")
+        if mcp_service_url:
+            return mcp_service_url
+
+        # If no explicit MCP URL, use the same as Superset base URL
+        superset_url = get_superset_base_url()
+        if superset_url and superset_url != "http://localhost:8088":
+            # Only use Superset URL if it's not the default, to avoid infinite recursion
+            return superset_url
+
+    except Exception as e:
+        # Log and fall back if config access fails
+        import logging
+
+        logging.getLogger(__name__).debug(f"Config access failed: {e}")
+
+    # Final fallback to same default as Superset
+    return "http://localhost:8088"
+
+
+def get_chart_screenshot_url(chart_id: int | str) -> str:
+    """
+    Generate a screenshot URL for a chart using the MCP service.
+
+    Args:
+        chart_id: Chart ID (numeric or string)
+
+    Returns:
+        Complete URL to the chart screenshot endpoint
+    """
+    mcp_base = get_mcp_service_url()
+    return f"{mcp_base}/screenshot/chart/{chart_id}.png"
+
+
+def get_explore_screenshot_url(form_data_key: str) -> str:
+    """
+    Generate a screenshot URL for an explore view using the MCP service.
+
+    Args:
+        form_data_key: Form data key for the explore view
+
+    Returns:
+        Complete URL to the explore screenshot endpoint
+    """
+    mcp_base = get_mcp_service_url()
+    return f"{mcp_base}/screenshot/explore/{form_data_key}.png"

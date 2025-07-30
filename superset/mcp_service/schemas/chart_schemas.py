@@ -195,13 +195,22 @@ class GetChartInfoRequest(BaseModel):
 def serialize_chart_object(chart: ChartLike | None) -> ChartInfo | None:
     if not chart:
         return None
+
+    # Generate MCP service screenshot URL instead of chart's native URL
+    from superset.mcp_service.url_utils import get_chart_screenshot_url
+
+    chart_id = getattr(chart, "id", None)
+    screenshot_url = None
+    if chart_id:
+        screenshot_url = get_chart_screenshot_url(chart_id)
+
     return ChartInfo(
-        id=getattr(chart, "id", None),
+        id=chart_id,
         slice_name=getattr(chart, "slice_name", None),
         viz_type=getattr(chart, "viz_type", None),
         datasource_name=getattr(chart, "datasource_name", None),
         datasource_type=getattr(chart, "datasource_type", None),
-        url=getattr(chart, "url", None),
+        url=screenshot_url,
         description=getattr(chart, "description", None),
         cache_timeout=getattr(chart, "cache_timeout", None),
         form_data=getattr(chart, "form_data", None),
