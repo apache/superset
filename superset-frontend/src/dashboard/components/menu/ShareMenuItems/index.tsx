@@ -19,12 +19,13 @@
 import { ComponentProps, RefObject } from 'react';
 import copyTextToClipboard from 'src/utils/copy';
 import { t, logging } from '@superset-ui/core';
-import { Menu } from '@superset-ui/core/components/Menu';
+import { Menu, MenuItem } from '@superset-ui/core/components/Menu';
 import { getDashboardPermalink } from 'src/utils/urlUtils';
 import { MenuKeys, RootState } from 'src/dashboard/types';
 import { shallowEqual, useSelector } from 'react-redux';
 
-interface ShareMenuItemProps extends ComponentProps<typeof Menu.SubMenu> {
+export interface ShareMenuItemProps
+  extends ComponentProps<typeof Menu.SubMenu> {
   url?: string;
   copyMenuItemTitle: string;
   emailMenuItemTitle: string;
@@ -40,9 +41,10 @@ interface ShareMenuItemProps extends ComponentProps<typeof Menu.SubMenu> {
   setOpenKeys?: Function;
   title: string;
   disabled?: boolean;
+  [key: string]: any;
 }
 
-const ShareMenuItems = (props: ShareMenuItemProps) => {
+export const useShareMenuItems = (props: ShareMenuItemProps): MenuItem => {
   const {
     copyMenuItemTitle,
     emailMenuItemTitle,
@@ -96,20 +98,23 @@ const ShareMenuItems = (props: ShareMenuItemProps) => {
     }
   }
 
-  return (
-    <Menu.SubMenu
-      title={title}
-      key={MenuKeys.Share}
-      disabled={disabled}
-      {...rest}
-    >
-      <Menu.Item key={MenuKeys.CopyLink} onClick={() => onCopyLink()}>
-        {copyMenuItemTitle}
-      </Menu.Item>
-      <Menu.Item key={MenuKeys.ShareByEmail} onClick={() => onShareByEmail()}>
-        {emailMenuItemTitle}
-      </Menu.Item>
-    </Menu.SubMenu>
-  );
+  return {
+    ...rest,
+    type: 'submenu',
+    label: title,
+    key: MenuKeys.Share,
+    disabled,
+    children: [
+      {
+        key: MenuKeys.CopyLink,
+        label: copyMenuItemTitle,
+        onClick: onCopyLink,
+      },
+      {
+        key: MenuKeys.ShareByEmail,
+        label: emailMenuItemTitle,
+        onClick: onShareByEmail,
+      },
+    ],
+  };
 };
-export default ShareMenuItems;

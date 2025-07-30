@@ -438,10 +438,9 @@ describe('PropertiesModal', () => {
     const props = createProps();
     const propsWithDashboardInfo = { ...props, dashboardInfo };
 
-    const open = () => waitFor(() => userEvent.click(getSelect()));
     const getSelect = () =>
       screen.getByRole('combobox', { name: SupersetCore.t('Owners') });
-
+    const open = () => waitFor(() => userEvent.click(getSelect()));
     const getElementsByClassName = (className: string) =>
       document.querySelectorAll(className)! as NodeListOf<HTMLElement>;
 

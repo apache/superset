@@ -16,16 +16,21 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { FeatureFlag, isFeatureEnabled } from '@superset-ui/core';
-import { Menu } from '@superset-ui/core/components/Menu';
+import { SyntheticEvent } from 'react';
+import { FeatureFlag, isFeatureEnabled, logging, t } from '@superset-ui/core';
+import { MenuItem } from '@superset-ui/core/components/Menu';
 import { useDownloadScreenshot } from 'src/dashboard/hooks/useDownloadScreenshot';
-import { ComponentProps } from 'react';
+import { MenuKeys } from 'src/dashboard/types';
+import downloadAsPdf from 'src/utils/downloadAsPdf';
+import downloadAsImage from 'src/utils/downloadAsImage';
+import {
+  LOG_ACTIONS_DASHBOARD_DOWNLOAD_AS_PDF,
+  LOG_ACTIONS_DASHBOARD_DOWNLOAD_AS_IMAGE,
+} from 'src/logger/LogUtils';
+import { useToasts } from 'src/components/MessageToasts/withToasts';
 import { DownloadScreenshotFormat } from './types';
-import DownloadAsPdf from './DownloadAsPdf';
-import DownloadAsImage from './DownloadAsImage';
 
-export interface DownloadMenuItemProps
-  extends ComponentProps<typeof Menu.SubMenu> {
+export interface UseDownloadMenuItemsProps {
   pdfMenuItemTitle: string;
   imageMenuItemTitle: string;
   dashboardTitle: string;
@@ -33,56 +38,81 @@ export interface DownloadMenuItemProps
   dashboardId: number;
   title: string;
   disabled?: boolean;
-  submenuKey: string;
 }
 
-const DownloadMenuItems = (props: DownloadMenuItemProps) => {
+export const useDownloadMenuItems = (
+  props: UseDownloadMenuItemsProps,
+): MenuItem => {
   const {
     pdfMenuItemTitle,
     imageMenuItemTitle,
     logEvent,
     dashboardId,
     dashboardTitle,
-    submenuKey,
     disabled,
     title,
-    ...rest
   } = props;
+
+  const { addDangerToast } = useToasts();
+  const SCREENSHOT_NODE_SELECTOR = '.dashboard';
+
   const isWebDriverScreenshotEnabled =
     isFeatureEnabled(FeatureFlag.EnableDashboardScreenshotEndpoints) &&
     isFeatureEnabled(FeatureFlag.EnableDashboardDownloadWebDriverScreenshot);
 
   const downloadScreenshot = useDownloadScreenshot(dashboardId, logEvent);
 
-  return isWebDriverScreenshotEnabled ? (
-    <Menu.SubMenu key={submenuKey} title={title} disabled={disabled} {...rest}>
-      <Menu.Item
-        key={DownloadScreenshotFormat.PDF}
-        onClick={() => downloadScreenshot(DownloadScreenshotFormat.PDF)}
-      >
-        {pdfMenuItemTitle}
-      </Menu.Item>
-      <Menu.Item
-        key={DownloadScreenshotFormat.PNG}
-        onClick={() => downloadScreenshot(DownloadScreenshotFormat.PNG)}
-      >
-        {imageMenuItemTitle}
-      </Menu.Item>
-    </Menu.SubMenu>
-  ) : (
-    <Menu.SubMenu key={submenuKey} title={title} disabled={disabled} {...rest}>
-      <DownloadAsPdf
-        text={pdfMenuItemTitle}
-        dashboardTitle={dashboardTitle}
-        logEvent={logEvent}
-      />
-      <DownloadAsImage
-        text={imageMenuItemTitle}
-        dashboardTitle={dashboardTitle}
-        logEvent={logEvent}
-      />
-    </Menu.SubMenu>
-  );
-};
+  const onDownloadPdf = async (e: SyntheticEvent) => {
+    try {
+      downloadAsPdf(SCREENSHOT_NODE_SELECTOR, dashboardTitle, true)(e);
+    } catch (error) {
+      logging.error(error);
+      addDangerToast(t('Sorry, something went wrong. Try again later.'));
+    }
+    logEvent?.(LOG_ACTIONS_DASHBOARD_DOWNLOAD_AS_PDF);
+  };
 
-export default DownloadMenuItems;
+  const onDownloadImage = async (e: SyntheticEvent) => {
+    try {
+      downloadAsImage(SCREENSHOT_NODE_SELECTOR, dashboardTitle, true)(e);
+    } catch (error) {
+      logging.error(error);
+      addDangerToast(t('Sorry, something went wrong. Try again later.'));
+    }
+    logEvent?.(LOG_ACTIONS_DASHBOARD_DOWNLOAD_AS_IMAGE);
+  };
+
+  const children: MenuItem[] = isWebDriverScreenshotEnabled
+    ? [
+        {
+          key: DownloadScreenshotFormat.PDF,
+          label: pdfMenuItemTitle,
+          onClick: () => downloadScreenshot(DownloadScreenshotFormat.PDF),
+        },
+        {
+          key: DownloadScreenshotFormat.PNG,
+          label: imageMenuItemTitle,
+          onClick: () => downloadScreenshot(DownloadScreenshotFormat.PNG),
+        },
+      ]
+    : [
+        {
+          key: 'download-pdf',
+          label: pdfMenuItemTitle,
+          onClick: (e: any) => onDownloadPdf(e.domEvent),
+        },
+        {
+          key: 'download-image',
+          label: imageMenuItemTitle,
+          onClick: (e: any) => onDownloadImage(e.domEvent),
+        },
+      ];
+
+  return {
+    key: MenuKeys.Download,
+    type: 'submenu',
+    label: title,
+    disabled,
+    children,
+  };
+};

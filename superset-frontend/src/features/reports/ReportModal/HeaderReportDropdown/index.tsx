@@ -16,24 +16,20 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ReactNode, useEffect } from 'react';
+import { useEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
-import { isEmpty } from 'lodash';
 import {
   t,
-  SupersetTheme,
-  css,
   styled,
   FeatureFlag,
   isFeatureEnabled,
   getExtensionsRegistry,
   usePrevious,
+  css,
 } from '@superset-ui/core';
-import { Icons } from '@superset-ui/core/components/Icons';
-import { Switch } from '@superset-ui/core/components/Switch';
-import { AlertObject } from 'src/features/alerts/types';
-import { Menu } from '@superset-ui/core/components/Menu';
+import { MenuItem } from '@superset-ui/core/components/Menu';
 import { Checkbox } from '@superset-ui/core/components';
+import { AlertObject } from 'src/features/alerts/types';
 import { noOp } from 'src/utils/common';
 import { ChartState } from 'src/explore/types';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
@@ -41,35 +37,14 @@ import {
   fetchUISpecificReport,
   toggleActive,
 } from 'src/features/reports/ReportModal/actions';
-import { reportSelector } from 'src/views/CRUD/hooks';
 import { MenuItemWithCheckboxContainer } from 'src/explore/components/useExploreAdditionalActionsMenu/index';
 
 const extensionsRegistry = getExtensionsRegistry();
 
-const deleteColor = (theme: SupersetTheme) => css`
-  color: ${theme.colorError};
-`;
-
-const onMenuHover = (theme: SupersetTheme) => css`
-  & .ant-menu-item {
-    padding: 5px 12px;
-    margin-top: 0px;
-    margin-bottom: 4px;
-    :hover {
-      color: ${theme.colorText};
-    }
-  }
-  :hover {
-    background-color: ${theme.colorPrimaryBg};
-  }
-`;
-
-const onMenuItemHover = (theme: SupersetTheme) => css`
-  &:hover {
-    color: ${theme.colorText};
-    background-color: ${theme.colorPrimaryBg};
-  }
-`;
+export enum CreationMethod {
+  Charts = 'charts',
+  Dashboards = 'dashboards',
+}
 
 const StyledDropdownItemWithIcon = styled.div`
   display: flex;
@@ -85,63 +60,59 @@ const DropdownItemExtension = extensionsRegistry.get(
   'report-modal.dropdown.item.icon',
 );
 
-export enum CreationMethod {
-  Charts = 'charts',
-  Dashboards = 'dashboards',
-}
 export interface HeaderReportProps {
   dashboardId?: number;
   chart?: ChartState;
-  useTextMenu?: boolean;
-  setShowReportSubMenu?: (show: boolean) => void;
-  showReportSubMenu?: boolean;
-  submenuTitle?: string;
   showReportModal: () => void;
   setCurrentReportDeleting: (report: AlertObject | null) => void;
 }
 
-// Same instance to be used in useEffects
-const EMPTY_OBJECT = {};
-
-export default function HeaderReportDropDown({
+export const useHeaderReportMenuItems = ({
   dashboardId,
   chart,
-  useTextMenu = false,
-  setShowReportSubMenu,
-  submenuTitle,
   showReportModal,
   setCurrentReportDeleting,
-}: HeaderReportProps) {
+}: HeaderReportProps): MenuItem | null => {
   const dispatch = useDispatch();
-  const report = useSelector<any, AlertObject>(state => {
-    const resourceType = dashboardId
-      ? CreationMethod.Dashboards
-      : CreationMethod.Charts;
-    return (
-      reportSelector(state, resourceType, dashboardId || chart?.id) ||
-      EMPTY_OBJECT
-    );
+  const resourceId = dashboardId || chart?.id;
+  const resourceType = dashboardId
+    ? CreationMethod.Dashboards
+    : CreationMethod.Charts;
+
+  // Select the reports state and specific report with proper reactivity
+  const report = useSelector<any, AlertObject | null>(state => {
+    if (!resourceId) return null;
+    // Select directly from the reports state to ensure reactivity
+    const reportsState = state.reports || {};
+    const resourceTypeReports = reportsState[resourceType] || {};
+    const reportData = resourceTypeReports[resourceId];
+
+    // Debug logging to understand what's happening
+    console.log('Report selector called:', {
+      resourceId,
+      resourceType,
+      reportsState: Object.keys(reportsState),
+      resourceTypeReports: Object.keys(resourceTypeReports),
+      reportData: reportData
+        ? { id: reportData.id, name: reportData.name }
+        : null,
+    });
+
+    return reportData || null;
   });
 
-  const isReportActive: boolean = report?.active || false;
   const user: UserWithPermissionsAndRoles = useSelector<
     any,
     UserWithPermissionsAndRoles
   >(state => state.user);
+
+  const prevDashboard = usePrevious(dashboardId);
+
+  // Check if user can add reports
   const canAddReports = () => {
-    if (!isFeatureEnabled(FeatureFlag.AlertReports)) {
-      return false;
-    }
-
-    if (!user?.userId) {
-      // this is in the case that there is an anonymous user.
-      return false;
-    }
-
-    // Cannot add reports if the resource is not saved
-    if (!(dashboardId || chart?.id)) {
-      return false;
-    }
+    if (!isFeatureEnabled(FeatureFlag.AlertReports)) return false;
+    if (!user?.userId) return false;
+    if (!resourceId) return false;
 
     const roles = Object.keys(user.roles || []);
     const permissions = roles.map(key =>
@@ -152,17 +123,11 @@ export default function HeaderReportDropDown({
     return permissions.some(permission => permission.length > 0);
   };
 
-  const prevDashboard = usePrevious(dashboardId);
-  const toggleActiveKey = async (data: AlertObject, checked: boolean) => {
-    if (data?.id) {
-      dispatch(toggleActive(data, checked));
-    }
-  };
-
   const shouldFetch =
     canAddReports() &&
     !!((dashboardId && prevDashboard !== dashboardId) || chart?.id);
 
+  // Fetch report data when needed
   useEffect(() => {
     if (shouldFetch) {
       dispatch(
@@ -170,113 +135,82 @@ export default function HeaderReportDropDown({
           userId: user.userId,
           filterField: dashboardId ? 'dashboard_id' : 'chart_id',
           creationMethod: dashboardId ? 'dashboards' : 'charts',
-          resourceId: dashboardId || chart?.id,
+          resourceId,
         }),
       );
     }
-  }, []);
+  }, [dispatch, shouldFetch, user?.userId, dashboardId, resourceId]);
 
-  const showReportSubMenu = report && setShowReportSubMenu && canAddReports();
+  // Don't show anything if user can't add reports
+  if (!canAddReports()) {
+    return null;
+  }
 
-  useEffect(() => {
-    if (showReportSubMenu) {
-      setShowReportSubMenu(true);
-    } else if (!report && setShowReportSubMenu) {
-      setShowReportSubMenu(false);
+  // Handler functions
+  const handleShowModal = () => showReportModal();
+  const handleDeleteReport = () => setCurrentReportDeleting(report);
+  const handleToggleActive = () => {
+    if (report?.id) {
+      dispatch(toggleActive(report, !report.active));
     }
-  }, [report]);
-
-  const handleShowMenu = () => {
-    showReportModal();
   };
 
-  const handleDeleteMenuClick = () => {
-    setCurrentReportDeleting(report);
-  };
-
-  const textMenu = () =>
-    isEmpty(report) ? (
-      <Menu.SubMenu title={submenuTitle} css={onMenuHover}>
-        <Menu.Item onClick={handleShowMenu}>
-          {DropdownItemExtension ? (
+  // If no report exists, show "Set up email report" option
+  if (!report || !report.id) {
+    return {
+      key: 'email-report-setup',
+      type: 'submenu',
+      label: t('Manage email report'),
+      children: [
+        {
+          key: 'set-up-report',
+          label: DropdownItemExtension ? (
             <StyledDropdownItemWithIcon>
               <div>{t('Set up an email report')}</div>
               <DropdownItemExtension />
             </StyledDropdownItemWithIcon>
           ) : (
             t('Set up an email report')
-          )}
-        </Menu.Item>
-        <Menu.Divider />
-      </Menu.SubMenu>
-    ) : (
-      <Menu.SubMenu
-        title={submenuTitle}
-        css={css`
-          border: none;
-        `}
-      >
-        <Menu.Item
-          css={onMenuItemHover}
-          onClick={() => toggleActiveKey(report, !isReportActive)}
-        >
+          ),
+          onClick: handleShowModal,
+        },
+      ],
+    };
+  }
+
+  // If report exists, show management options
+  return {
+    key: 'email-report-manage',
+    type: 'submenu',
+    label: t('Manage email report'),
+    children: [
+      {
+        key: 'toggle-active',
+        label: (
           <MenuItemWithCheckboxContainer>
-            <Checkbox checked={isReportActive} onChange={noOp} />
+            <Checkbox
+              checked={report.active || false}
+              onChange={noOp}
+              css={theme => css`
+                margin-right: ${theme.sizeUnit}px;
+              `}
+            />
             {t('Email reports active')}
           </MenuItemWithCheckboxContainer>
-        </Menu.Item>
-        <Menu.Item css={onMenuItemHover} onClick={handleShowMenu}>
-          {t('Edit email report')}
-        </Menu.Item>
-        <Menu.Item css={onMenuItemHover} onClick={handleDeleteMenuClick}>
-          {t('Delete email report')}
-        </Menu.Item>
-      </Menu.SubMenu>
-    );
-  const menu = (title: ReactNode) => (
-    <Menu.SubMenu
-      title={title}
-      css={css`
-        width: 200px;
-      `}
-    >
-      <Menu.Item>
-        {t('Email reports active')}
-        <Switch
-          data-test="toggle-active"
-          checked={isReportActive}
-          onClick={(checked: boolean) => toggleActiveKey(report, checked)}
-          size="small"
-          css={theme => css`
-            margin-left: ${theme.sizeUnit * 2}px;
-          `}
-        />
-      </Menu.Item>
-      <Menu.Item onClick={() => showReportModal()}>
-        {t('Edit email report')}
-      </Menu.Item>
-      <Menu.Item
-        onClick={() => setCurrentReportDeleting(report)}
-        css={deleteColor}
-      >
-        {t('Delete email report')}
-      </Menu.Item>
-    </Menu.SubMenu>
-  );
-
-  const iconMenu = () =>
-    isEmpty(report) ? (
-      <span
-        role="button"
-        title={t('Schedule email report')}
-        tabIndex={0}
-        className="action-button action-schedule-report"
-        onClick={() => showReportModal()}
-      >
-        <Icons.CalendarOutlined />
-      </span>
-    ) : (
-      menu(<Icons.CalendarOutlined />)
-    );
-  return <>{canAddReports() && (useTextMenu ? textMenu() : iconMenu())}</>;
-}
+        ),
+        onClick: handleToggleActive,
+      },
+      {
+        key: 'edit-report',
+        label: t('Edit email report'),
+        onClick: handleShowModal,
+      },
+      {
+        key: 'delete-report',
+        label: t('Delete email report'),
+        onClick: handleDeleteReport,
+        danger: true,
+      },
+    ],
+  };
+};

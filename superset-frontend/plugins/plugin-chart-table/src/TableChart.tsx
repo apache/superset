@@ -59,7 +59,6 @@ import {
   Space,
   RawAntdSelect as Select,
   Dropdown,
-  Menu,
   Tooltip,
 } from '@superset-ui/core/components';
 import {
@@ -564,52 +563,62 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     return (
       <Dropdown
         placement="bottomRight"
-        visible={showComparisonDropdown}
-        onVisibleChange={(flag: boolean) => {
+        open={showComparisonDropdown}
+        onOpenChange={(flag: boolean) => {
           setShowComparisonDropdown(flag);
         }}
-        overlay={
-          <Menu
-            multiple
-            onClick={handleOnClick}
-            onBlur={handleOnBlur}
-            selectedKeys={selectedComparisonColumns}
-          >
-            <div
-              css={css`
-                max-width: 242px;
-                padding: 0 ${theme.sizeUnit * 2}px;
-                color: ${theme.colorText};
-                font-size: ${theme.fontSizeSM}px;
-              `}
-            >
-              {t(
-                'Select columns that will be displayed in the table. You can multiselect columns.',
-              )}
-            </div>
-            {comparisonColumns.map(column => (
-              <Menu.Item key={column.key}>
-                <span
+        menu={{
+          multiple: true,
+          onClick: handleOnClick,
+          onBlur: handleOnBlur,
+          selectedKeys: selectedComparisonColumns,
+          items: [
+            {
+              key: 'all',
+              label: (
+                <div
                   css={css`
+                    max-width: 242px;
+                    padding: 0 ${theme.sizeUnit * 2}px;
                     color: ${theme.colorText};
-                  `}
-                >
-                  {column.label}
-                </span>
-                <span
-                  css={css`
-                    float: right;
                     font-size: ${theme.fontSizeSM}px;
                   `}
                 >
-                  {selectedComparisonColumns.includes(column.key) && (
-                    <CheckOutlined />
+                  {t(
+                    'Select columns that will be displayed in the table. You can multiselect columns.',
                   )}
-                </span>
-              </Menu.Item>
-            ))}
-          </Menu>
-        }
+                </div>
+              ),
+              type: 'group',
+              children: comparisonColumns.map(
+                (column: { key: string; label: string }) => ({
+                  key: column.key,
+                  label: (
+                    <>
+                      <span
+                        css={css`
+                          color: ${theme.colorText};
+                        `}
+                      >
+                        {column.label}
+                      </span>
+                      <span
+                        css={css`
+                          float: right;
+                          font-size: ${theme.fontSizeSM}px;
+                        `}
+                      >
+                        {selectedComparisonColumns.includes(column.key) && (
+                          <CheckOutlined />
+                        )}
+                      </span>
+                    </>
+                  ),
+                }),
+              ),
+            },
+          ],
+        }}
         trigger={['click']}
       >
         <span>

@@ -34,7 +34,7 @@ import { exportChart, getChartKey } from 'src/explore/exploreUtils';
 import downloadAsImage from 'src/utils/downloadAsImage';
 import { getChartPermalink } from 'src/utils/urlUtils';
 import copyTextToClipboard from 'src/utils/copy';
-import HeaderReportDropDown from 'src/features/reports/ReportModal/HeaderReportDropdown';
+import { useHeaderReportMenuItems } from 'src/features/reports/ReportModal/HeaderReportDropdown';
 import { logEvent } from 'src/logger/actions';
 import {
   LOG_ACTIONS_CHART_DOWNLOAD_AS_IMAGE,
@@ -123,11 +123,17 @@ export const useExploreAdditionalActionsMenu = (
   const theme = useTheme();
   const { addDangerToast, addSuccessToast } = useToasts();
   const dispatch = useDispatch();
-  const [showReportSubMenu, setShowReportSubMenu] = useState(null);
   const [isDropdownVisible, setIsDropdownVisible] = useState(false);
   const chart = useSelector(
     state => state.charts?.[getChartKey(state.explore)],
   );
+
+  // Use the updated report menu items hook
+  const reportMenuItem = useHeaderReportMenuItems({
+    chart,
+    showReportModal,
+    setCurrentReportDeleting,
+  });
 
   const { datasource } = latestQueryFormData;
 
@@ -203,14 +209,106 @@ export const useExploreAdditionalActionsMenu = (
     }
   }, [addDangerToast, addSuccessToast, latestQueryFormData]);
 
-  const handleMenuClick = useCallback(
-    ({ key, domEvent }) => {
-      switch (key) {
-        case MENU_KEYS.EDIT_PROPERTIES:
+  const menu = useMemo(() => {
+    const menuItems = [];
+
+    // Edit chart properties
+    if (slice) {
+      menuItems.push({
+        key: MENU_KEYS.EDIT_PROPERTIES,
+        label: t('Edit chart properties'),
+        onClick: () => {
           onOpenPropertiesModal();
           setIsDropdownVisible(false);
-          break;
-        case MENU_KEYS.EXPORT_TO_CSV:
+        },
+      });
+    }
+
+    // On dashboards submenu
+    menuItems.push({
+      key: MENU_KEYS.DASHBOARDS_ADDED_TO,
+      type: 'submenu',
+      label: t('On dashboards'),
+      children: [
+        {
+          key: 'dashboards-content',
+          label: (
+            <DashboardsSubMenu
+              chartId={slice?.slice_id}
+              dashboards={dashboards}
+            />
+          ),
+        },
+      ],
+    });
+
+    // Divider
+    menuItems.push({ type: 'divider' });
+
+    // Download submenu
+    const downloadChildren = [];
+
+    if (VIZ_TYPES_PIVOTABLE.includes(latestQueryFormData.viz_type)) {
+      downloadChildren.push(
+        {
+          key: MENU_KEYS.EXPORT_TO_CSV,
+          label: t('Export to original .CSV'),
+          icon: <Icons.FileOutlined />,
+          disabled: !canDownloadCSV,
+          onClick: () => {
+            exportCSV();
+            setIsDropdownVisible(false);
+            dispatch(
+              logEvent(LOG_ACTIONS_CHART_DOWNLOAD_AS_CSV, {
+                chartId: slice?.slice_id,
+                chartName: slice?.slice_name,
+              }),
+            );
+          },
+        },
+        {
+          key: MENU_KEYS.EXPORT_TO_CSV_PIVOTED,
+          label: t('Export to pivoted .CSV'),
+          icon: <Icons.FileOutlined />,
+          disabled: !canDownloadCSV,
+          onClick: () => {
+            exportCSVPivoted();
+            setIsDropdownVisible(false);
+            dispatch(
+              logEvent(LOG_ACTIONS_CHART_DOWNLOAD_AS_CSV_PIVOTED, {
+                chartId: slice?.slice_id,
+                chartName: slice?.slice_name,
+              }),
+            );
+          },
+        },
+        {
+          key: MENU_KEYS.EXPORT_TO_PIVOT_XLSX,
+          label: t('Export to Pivoted Excel'),
+          icon: <Icons.FileOutlined />,
+          disabled: !canDownloadCSV,
+          onClick: () => {
+            exportPivotExcel(
+              '.pvtTable',
+              slice?.slice_name ?? t('pivoted_xlsx'),
+            );
+            setIsDropdownVisible(false);
+            dispatch(
+              logEvent(LOG_ACTIONS_CHART_DOWNLOAD_AS_XLS, {
+                chartId: slice?.slice_id,
+                chartName: slice?.slice_name,
+              }),
+            );
+          },
+        },
+      );
+    } else {
+      downloadChildren.push({
+        key: MENU_KEYS.EXPORT_TO_CSV,
+        label: t('Export to .CSV'),
+        icon: <Icons.FileOutlined />,
+        disabled: !canDownloadCSV,
+        onClick: () => {
           exportCSV();
           setIsDropdownVisible(false);
           dispatch(
@@ -219,18 +317,17 @@ export const useExploreAdditionalActionsMenu = (
               chartName: slice?.slice_name,
             }),
           );
-          break;
-        case MENU_KEYS.EXPORT_TO_CSV_PIVOTED:
-          exportCSVPivoted();
-          setIsDropdownVisible(false);
-          dispatch(
-            logEvent(LOG_ACTIONS_CHART_DOWNLOAD_AS_CSV_PIVOTED, {
-              chartId: slice?.slice_id,
-              chartName: slice?.slice_name,
-            }),
-          );
-          break;
-        case MENU_KEYS.EXPORT_TO_JSON:
+        },
+      });
+    }
+
+    downloadChildren.push(
+      {
+        key: MENU_KEYS.EXPORT_TO_JSON,
+        label: t('Export to .JSON'),
+        icon: <Icons.FileOutlined />,
+        disabled: !canDownloadCSV,
+        onClick: () => {
           exportJson();
           setIsDropdownVisible(false);
           dispatch(
@@ -239,8 +336,33 @@ export const useExploreAdditionalActionsMenu = (
               chartName: slice?.slice_name,
             }),
           );
-          break;
-        case MENU_KEYS.EXPORT_TO_XLSX:
+        },
+      },
+      {
+        key: MENU_KEYS.DOWNLOAD_AS_IMAGE,
+        label: t('Download as image'),
+        icon: <Icons.FileImageOutlined />,
+        onClick: e => {
+          downloadAsImage(
+            '.panel-body .chart-container',
+            slice?.slice_name ?? t('New chart'),
+            true,
+          )(e.domEvent);
+          setIsDropdownVisible(false);
+          dispatch(
+            logEvent(LOG_ACTIONS_CHART_DOWNLOAD_AS_IMAGE, {
+              chartId: slice?.slice_id,
+              chartName: slice?.slice_name,
+            }),
+          );
+        },
+      },
+      {
+        key: MENU_KEYS.EXPORT_TO_XLSX,
+        label: t('Export to Excel'),
+        icon: <Icons.FileOutlined />,
+        disabled: !canDownloadCSV,
+        onClick: () => {
           exportExcel();
           setIsDropdownVisible(false);
           dispatch(
@@ -249,225 +371,128 @@ export const useExploreAdditionalActionsMenu = (
               chartName: slice?.slice_name,
             }),
           );
-          break;
-        case MENU_KEYS.EXPORT_TO_PIVOT_XLSX:
-          exportPivotExcel('.pvtTable', slice?.slice_name ?? t('pivoted_xlsx'));
-          setIsDropdownVisible(false);
-          dispatch(
-            logEvent(LOG_ACTIONS_CHART_DOWNLOAD_AS_XLS, {
-              chartId: slice?.slice_id,
-              chartName: slice?.slice_name,
-            }),
-          );
-          break;
-        case MENU_KEYS.DOWNLOAD_AS_IMAGE:
-          downloadAsImage(
-            '.panel-body .chart-container',
-            // eslint-disable-next-line camelcase
-            slice?.slice_name ?? t('New chart'),
-            true,
-          )(domEvent);
-          setIsDropdownVisible(false);
-          dispatch(
-            logEvent(LOG_ACTIONS_CHART_DOWNLOAD_AS_IMAGE, {
-              chartId: slice?.slice_id,
-              chartName: slice?.slice_name,
-            }),
-          );
-          break;
-        case MENU_KEYS.COPY_PERMALINK:
+        },
+      },
+    );
+
+    menuItems.push({
+      key: MENU_KEYS.DOWNLOAD_SUBMENU,
+      type: 'submenu',
+      label: t('Download'),
+      children: downloadChildren,
+    });
+
+    // Share submenu
+    const shareChildren = [
+      {
+        key: MENU_KEYS.COPY_PERMALINK,
+        label: t('Copy permalink to clipboard'),
+        onClick: () => {
           copyLink();
           setIsDropdownVisible(false);
-          break;
-        case MENU_KEYS.EMBED_CODE:
-          setIsDropdownVisible(false);
-          break;
-        case MENU_KEYS.SHARE_BY_EMAIL:
+        },
+      },
+      {
+        key: MENU_KEYS.SHARE_BY_EMAIL,
+        label: t('Share chart by email'),
+        onClick: () => {
           shareByEmail();
           setIsDropdownVisible(false);
-          break;
-        case MENU_KEYS.VIEW_QUERY:
-          setIsDropdownVisible(false);
-          break;
-        case MENU_KEYS.RUN_IN_SQL_LAB:
-          onOpenInEditor(latestQueryFormData, domEvent.metaKey);
-          setIsDropdownVisible(false);
-          break;
-        default:
-          break;
-      }
-    },
-    [
-      copyLink,
-      exportCSV,
-      exportCSVPivoted,
-      exportJson,
-      latestQueryFormData,
-      onOpenInEditor,
-      onOpenPropertiesModal,
-      shareByEmail,
-      slice?.slice_name,
-    ],
-  );
+        },
+      },
+    ];
 
-  const menu = useMemo(
-    () => (
-      <Menu onClick={handleMenuClick} selectable={false} {...rest}>
-        <>
-          {slice && (
-            <Menu.Item key={MENU_KEYS.EDIT_PROPERTIES}>
-              {t('Edit chart properties')}
-            </Menu.Item>
-          )}
-          <Menu.SubMenu
-            title={t('On dashboards')}
-            key={MENU_KEYS.DASHBOARDS_ADDED_TO}
-          >
-            <DashboardsSubMenu
-              chartId={slice?.slice_id}
-              dashboards={dashboards}
-            />
-          </Menu.SubMenu>
-          <Menu.Divider />
-        </>
-        <Menu.SubMenu title={t('Download')} key={MENU_KEYS.DOWNLOAD_SUBMENU}>
-          {VIZ_TYPES_PIVOTABLE.includes(latestQueryFormData.viz_type) ? (
-            <>
-              <Menu.Item
-                key={MENU_KEYS.EXPORT_TO_CSV}
-                icon={<Icons.FileOutlined />}
-                disabled={!canDownloadCSV}
-              >
-                {t('Export to original .CSV')}
-              </Menu.Item>
-              <Menu.Item
-                key={MENU_KEYS.EXPORT_TO_CSV_PIVOTED}
-                icon={<Icons.FileOutlined />}
-                disabled={!canDownloadCSV}
-              >
-                {t('Export to pivoted .CSV')}
-              </Menu.Item>
-            </>
-          ) : (
-            <Menu.Item
-              key={MENU_KEYS.EXPORT_TO_CSV}
-              icon={<Icons.FileOutlined />}
-              disabled={!canDownloadCSV}
-            >
-              {t('Export to .CSV')}
-            </Menu.Item>
-          )}
-          <Menu.Item
-            key={MENU_KEYS.EXPORT_TO_JSON}
-            icon={<Icons.FileOutlined />}
-            disabled={!canDownloadCSV}
-          >
-            {t('Export to .JSON')}
-          </Menu.Item>
-          <Menu.Item
-            key={MENU_KEYS.DOWNLOAD_AS_IMAGE}
-            icon={<Icons.FileImageOutlined />}
-          >
-            {t('Download as image')}
-          </Menu.Item>
-          <Menu.Item
-            key={MENU_KEYS.EXPORT_TO_XLSX}
-            icon={<Icons.FileOutlined />}
-            disabled={!canDownloadCSV}
-          >
-            {t('Export to Excel')}
-          </Menu.Item>
-          <Menu.Item
-            key={MENU_KEYS.EXPORT_TO_PIVOT_XLSX}
-            icon={<Icons.FileOutlined />}
-            disabled={!canDownloadCSV}
-          >
-            {t('Export to Pivoted Excel')}
-          </Menu.Item>
-        </Menu.SubMenu>
-        <Menu.SubMenu title={t('Share')} key={MENU_KEYS.SHARE_SUBMENU}>
-          <Menu.Item key={MENU_KEYS.COPY_PERMALINK}>
-            {t('Copy permalink to clipboard')}
-          </Menu.Item>
-          <Menu.Item key={MENU_KEYS.SHARE_BY_EMAIL}>
-            {t('Share chart by email')}
-          </Menu.Item>
-          {isFeatureEnabled(FeatureFlag.EmbeddableCharts) ? (
-            <Menu.Item key={MENU_KEYS.EMBED_CODE}>
-              <ModalTrigger
-                triggerNode={
-                  <div data-test="embed-code-button">{t('Embed code')}</div>
-                }
-                modalTitle={t('Embed code')}
-                modalBody={
-                  <EmbedCodeContent
-                    formData={latestQueryFormData}
-                    addDangerToast={addDangerToast}
-                  />
-                }
-                maxWidth={`${theme.sizeUnit * 100}px`}
-                destroyOnHidden
-                responsive
-              />
-            </Menu.Item>
-          ) : null}
-        </Menu.SubMenu>
-        <Menu.Divider />
-        {showReportSubMenu ? (
-          <>
-            <HeaderReportDropDown
-              submenuTitle={t('Manage email report')}
-              chart={chart}
-              setShowReportSubMenu={setShowReportSubMenu}
-              showReportSubMenu={showReportSubMenu}
-              showReportModal={showReportModal}
-              setCurrentReportDeleting={setCurrentReportDeleting}
-              useTextMenu
-            />
-            <Menu.Divider />
-          </>
-        ) : (
-          <HeaderReportDropDown
-            chart={chart}
-            setShowReportSubMenu={setShowReportSubMenu}
-            showReportModal={showReportModal}
-            setCurrentReportDeleting={setCurrentReportDeleting}
-            useTextMenu
-          />
-        )}
-        <Menu.Item key={MENU_KEYS.VIEW_QUERY}>
+    if (isFeatureEnabled(FeatureFlag.EmbeddableCharts)) {
+      shareChildren.push({
+        key: MENU_KEYS.EMBED_CODE,
+        label: (
           <ModalTrigger
             triggerNode={
-              <div data-test="view-query-menu-item">{t('View query')}</div>
+              <div data-test="embed-code-button">{t('Embed code')}</div>
             }
-            modalTitle={t('View query')}
+            modalTitle={t('Embed code')}
             modalBody={
-              <ViewQueryModal latestQueryFormData={latestQueryFormData} />
+              <EmbedCodeContent
+                formData={latestQueryFormData}
+                addDangerToast={addDangerToast}
+              />
             }
-            draggable
-            resizable
+            maxWidth={`${theme.sizeUnit * 100}px`}
+            destroyOnHidden
             responsive
           />
-        </Menu.Item>
-        {datasource && (
-          <Menu.Item key={MENU_KEYS.RUN_IN_SQL_LAB}>
-            {t('Run in SQL Lab')}
-          </Menu.Item>
-        )}
-      </Menu>
-    ),
-    [
-      addDangerToast,
-      canDownloadCSV,
-      chart,
-      dashboards,
-      handleMenuClick,
-      isDropdownVisible,
-      latestQueryFormData,
-      showReportSubMenu,
-      slice,
-      theme.sizeUnit,
-    ],
-  );
+        ),
+        onClick: () => setIsDropdownVisible(false),
+      });
+    }
+
+    menuItems.push({
+      key: MENU_KEYS.SHARE_SUBMENU,
+      type: 'submenu',
+      label: t('Share'),
+      children: shareChildren,
+    });
+
+    // Divider
+    menuItems.push({ type: 'divider' });
+
+    // Report menu item
+    if (reportMenuItem) {
+      menuItems.push(reportMenuItem);
+    }
+
+    // View query
+    menuItems.push({
+      key: MENU_KEYS.VIEW_QUERY,
+      label: (
+        <ModalTrigger
+          triggerNode={
+            <div data-test="view-query-menu-item">{t('View query')}</div>
+          }
+          modalTitle={t('View query')}
+          modalBody={
+            <ViewQueryModal latestQueryFormData={latestQueryFormData} />
+          }
+          draggable
+          resizable
+          responsive
+        />
+      ),
+      onClick: () => setIsDropdownVisible(false),
+    });
+
+    // Run in SQL Lab
+    if (datasource) {
+      menuItems.push({
+        key: MENU_KEYS.RUN_IN_SQL_LAB,
+        label: t('Run in SQL Lab'),
+        onClick: e => {
+          onOpenInEditor(latestQueryFormData, e.domEvent.metaKey);
+          setIsDropdownVisible(false);
+        },
+      });
+    }
+
+    return <Menu selectable={false} items={menuItems} {...rest} />;
+  }, [
+    addDangerToast,
+    canDownloadCSV,
+    copyLink,
+    dashboards,
+    datasource,
+    dispatch,
+    exportCSV,
+    exportCSVPivoted,
+    exportExcel,
+    exportJson,
+    latestQueryFormData,
+    onOpenInEditor,
+    onOpenPropertiesModal,
+    reportMenuItem,
+    shareByEmail,
+    slice,
+    theme.sizeUnit,
+  ]);
+
   return [menu, isDropdownVisible, setIsDropdownVisible];
 };
