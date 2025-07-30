@@ -98,7 +98,6 @@ const FilterControls: FC<FilterControlsProps> = ({
   const chartLayoutItems = useChartLayoutItems();
   const verboseMaps = useChartsVerboseMaps();
 
-  // Get chart customization items from Redux state
   const chartCustomizationItems = useSelector<
     RootState,
     ChartCustomizationItem[]
