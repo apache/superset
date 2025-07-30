@@ -311,7 +311,9 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
         for offset in self.time_offsets:
             # Check if this is a date range offset (YYYY-MM-DD : YYYY-MM-DD format)
             if self._is_valid_date_range(offset):
-                if not feature_flag_manager.is_feature_enabled("DATE_RANGE_TIMESHIFTS_ENABLED"):
+                if not feature_flag_manager.is_feature_enabled(
+                    "DATE_RANGE_TIMESHIFTS_ENABLED"
+                ):
                     raise QueryObjectValidationError(
                         "Date range timeshifts are not enabled. "
                         "Please contact your administrator to enable the "
