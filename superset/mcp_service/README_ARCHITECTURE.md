@@ -172,7 +172,7 @@ The `@mcp_auth_hook` decorator handles user extraction, scope validation, impers
    - Use Pydantic models for all input and output. Add `description` to every field.
    - Make info schemas have all optional fields to handle missing data gracefully.
    - Design schemas to exclude null values that weren't in the select statement.
-   - Place shared schemas in `pydantic_schemas/`.
+   - Place shared schemas in `schemas/`.
 3. **Implement the Tool**
    - Decorate with `@mcp.tool` and `@mcp_auth_hook`.
    - **Import all Superset DAOs, command classes, and most Superset modules inside the function body.**

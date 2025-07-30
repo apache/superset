@@ -24,7 +24,7 @@ from typing import Any, List, Protocol
 
 from superset.mcp_service.auth import mcp_auth_hook
 from superset.mcp_service.mcp_app import mcp
-from superset.mcp_service.pydantic_schemas.chart_schemas import (
+from superset.mcp_service.schemas.chart_schemas import (
     AccessibilityMetadata,
     ASCIIPreview,
     Base64Preview,

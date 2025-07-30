@@ -9,7 +9,7 @@ import logging
 from superset.mcp_service.auth import mcp_auth_hook
 from superset.mcp_service.generic_tools import ModelGetAvailableFiltersTool
 from superset.mcp_service.mcp_app import mcp
-from superset.mcp_service.pydantic_schemas.dashboard_schemas import (
+from superset.mcp_service.schemas.dashboard_schemas import (
     DashboardAvailableFilters,
     GetDashboardAvailableFiltersRequest,
 )

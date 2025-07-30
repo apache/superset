@@ -24,7 +24,7 @@ from fastmcp.client.client import CallToolResult
 from fastmcp.exceptions import ToolError
 from pydantic_core._pydantic_core import ValidationError
 
-from superset.mcp_service.pydantic_schemas.dashboard_schemas import (
+from superset.mcp_service.schemas.dashboard_schemas import (
     ListDashboardsRequest,
 )
 

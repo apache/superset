@@ -27,13 +27,13 @@ from typing import Annotated, Any, Dict, List, Literal, Optional, Protocol
 from pydantic import BaseModel, ConfigDict, Field, model_validator, PositiveInt
 
 from superset.daos.base import ColumnOperator, ColumnOperatorEnum
-from superset.mcp_service.pydantic_schemas.cache_schemas import (
+from superset.mcp_service.schemas.cache_schemas import (
     CacheStatus,
     FormDataCacheControl,
     MetadataCacheControl,
     QueryCacheControl,
 )
-from superset.mcp_service.pydantic_schemas.system_schemas import (
+from superset.mcp_service.schemas.system_schemas import (
     PaginationInfo,
     TagInfo,
     UserInfo,

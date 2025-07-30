@@ -30,7 +30,7 @@ from superset.mcp_service.chart.chart_utils import (
     map_table_config,
     map_xy_config,
 )
-from superset.mcp_service.pydantic_schemas.chart_schemas import (
+from superset.mcp_service.schemas.chart_schemas import (
     AxisConfig,
     ColumnRef,
     FilterConfig,

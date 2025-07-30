@@ -20,16 +20,16 @@
 import pytest
 from pydantic import ValidationError
 
-from superset.mcp_service.pydantic_schemas.chart_schemas import (
+from superset.mcp_service.schemas.chart_schemas import (
     GetChartAvailableFiltersRequest,
 )
-from superset.mcp_service.pydantic_schemas.dashboard_schemas import (
+from superset.mcp_service.schemas.dashboard_schemas import (
     GetDashboardAvailableFiltersRequest,
 )
-from superset.mcp_service.pydantic_schemas.dataset_schemas import (
+from superset.mcp_service.schemas.dataset_schemas import (
     GetDatasetAvailableFiltersRequest,
 )
-from superset.mcp_service.pydantic_schemas.system_schemas import (
+from superset.mcp_service.schemas.system_schemas import (
     GetSupersetInstanceInfoRequest,
 )
 

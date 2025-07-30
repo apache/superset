@@ -30,7 +30,7 @@ from superset.mcp_service.chart.chart_utils import (
     map_config_to_form_data,
 )
 from superset.mcp_service.mcp_app import mcp
-from superset.mcp_service.pydantic_schemas.chart_schemas import (
+from superset.mcp_service.schemas.chart_schemas import (
     AccessibilityMetadata,
     GenerateChartRequest,
     PerformanceMetadata,

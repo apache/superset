@@ -24,7 +24,7 @@ generation that can be used by both generate_chart and generate_explore_link too
 
 from typing import Any, Dict
 
-from superset.mcp_service.pydantic_schemas.chart_schemas import (
+from superset.mcp_service.schemas.chart_schemas import (
     ChartCapabilities,
     ChartSemantics,
     ColumnRef,

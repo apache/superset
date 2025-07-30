@@ -148,7 +148,7 @@ class ModelListTool:
             if obj is not None:
                 item_objs.append(obj)
         total_pages = (total_count + page_size - 1) // page_size if page_size > 0 else 0
-        from superset.mcp_service.pydantic_schemas import PaginationInfo
+        from superset.mcp_service.schemas import PaginationInfo
 
         pagination_info = PaginationInfo(
             page=page,

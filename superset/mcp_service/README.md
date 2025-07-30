@@ -289,7 +289,7 @@ get_chart_preview(request={
 
 - Tools are organized by domain: `dashboard/`, `dataset/`, `chart/`, `system/`.
 - All input/output is validated with Pydantic v2.
-- Shared schemas live in `pydantic_schemas/`.
+- Shared schemas live in `schemas/`.
 - All tool calls are logged and RBAC/auth hooks are pluggable.
 - **All tool functions must be decorated with `@mcp.tool` and `@mcp_auth_hook`.**
 - **All Superset DAOs, command classes, and most Superset modules must be imported inside the function body, not at the top of the file.** This ensures proper app context and avoids initialization errors.

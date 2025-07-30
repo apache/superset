@@ -23,8 +23,8 @@ import logging
 
 from superset.mcp_service.auth import mcp_auth_hook
 from superset.mcp_service.mcp_app import mcp
-from superset.mcp_service.pydantic_schemas.cache_schemas import CacheStatus
-from superset.mcp_service.pydantic_schemas.chart_schemas import (
+from superset.mcp_service.schemas.cache_schemas import CacheStatus
+from superset.mcp_service.schemas.chart_schemas import (
     ChartData,
     ChartError,
     DataColumn,
