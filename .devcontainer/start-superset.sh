@@ -1,6 +1,11 @@
 #!/bin/bash
 # Startup script for Superset in Codespaces
 
+# Log to a file for debugging
+LOG_FILE="/tmp/superset-startup.log"
+echo "[$(date)] Starting Superset startup script" >> "$LOG_FILE"
+echo "[$(date)] User: $(whoami), PWD: $(pwd)" >> "$LOG_FILE"
+
 echo "🚀 Starting Superset in Codespaces..."
 echo "🌐 Frontend will be available at port 9001"
 
@@ -15,19 +20,23 @@ fi
 
 # Wait for Docker to be available
 echo "⏳ Waiting for Docker to start..."
+echo "[$(date)] Waiting for Docker..." >> "$LOG_FILE"
 max_attempts=30
 attempt=0
 while ! docker info > /dev/null 2>&1; do
     if [ $attempt -eq $max_attempts ]; then
         echo "❌ Docker failed to start after $max_attempts attempts"
+        echo "[$(date)] Docker failed to start after $max_attempts attempts" >> "$LOG_FILE"
         echo "🔄 Please restart the Codespace or run this script manually later"
         exit 1
     fi
     echo "   Attempt $((attempt + 1))/$max_attempts..."
+    echo "[$(date)] Docker check attempt $((attempt + 1))/$max_attempts" >> "$LOG_FILE"
     sleep 2
     attempt=$((attempt + 1))
 done
 echo "✅ Docker is ready!"
+echo "[$(date)] Docker is ready" >> "$LOG_FILE"
 
 # Check if Superset containers are already running
 if docker ps | grep -q "superset"; then

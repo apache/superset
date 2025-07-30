@@ -48,6 +48,10 @@ if docker ps 2>/dev/null | grep -q "superset"; then
     echo "   - Login: admin/admin"
 else
     echo "⚠️  Superset is not running. Use: start-superset"
+    # Check if there's a startup log
+    if [ -f "/tmp/superset-startup.log" ]; then
+        echo "   📋 Startup log found: cat /tmp/superset-startup.log"
+    fi
 fi
 
 echo ""
