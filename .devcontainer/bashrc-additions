@@ -39,8 +39,19 @@ alias setup-dev="$WORKSPACE_DIR/.devcontainer/setup-dev.sh"
 echo ""
 echo "🚀 Superset Codespaces Environment"
 echo "=================================="
+
+# Check if Superset is running
+if docker ps 2>/dev/null | grep -q "superset"; then
+    echo "✅ Superset is running!"
+    echo "   - UI: http://localhost:8088 (admin/admin)"
+    echo "   - Frontend dev: http://localhost:9001"
+else
+    echo "⚠️  Superset is not running. Use: start-superset"
+fi
+
+echo ""
 echo "Quick commands:"
-echo "  setup-dev      - Set up Python environment (if not already done)"
 echo "  start-superset - Start Superset with Docker Compose"
+echo "  setup-dev      - Set up Python environment (if not already done)"
 echo "  pre-commit run - Run pre-commit checks on staged files"
 echo ""

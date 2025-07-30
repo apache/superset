@@ -41,8 +41,8 @@
   // Run commands after container is created
   "postCreateCommand": "bash .devcontainer/setup-dev.sh || echo '⚠️ Setup had issues - run .devcontainer/setup-dev.sh manually'",
 
-  // Note: Superset startup is now manual to avoid Docker timing issues
-  // Run `.devcontainer/start-superset.sh` when ready to start Superset
+  // Auto-start Superset after ensuring Docker is ready
+  "postStartCommand": "bash -c 'sleep 10 && .devcontainer/start-superset.sh &' || true",
 
   // Set environment variables
   "remoteEnv": {

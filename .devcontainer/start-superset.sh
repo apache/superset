@@ -34,13 +34,11 @@ if docker ps | grep -q "superset"; then
     echo "✅ Superset containers are already running!"
     echo ""
     echo "🌐 You can access Superset at:"
-    echo "   - Port 8088: Superset UI"
-    echo "   - Port 8081: Alternative port"
-    echo "   - Port 9000: Frontend dev server (if running)"
+    echo "   - Port 8088: http://localhost:8088 (Superset UI)"
+    echo "   - Port 8081: http://localhost:8081 (Alternative port)"
+    echo "   - Port 9001: http://localhost:9001 (Frontend dev server for Codespaces)"
     echo ""
-    echo "To restart with the light version, first run:"
-    echo "   docker-compose down"
-    echo "   docker-compose -f docker-compose-light.yml up"
+    echo "📝 Login credentials: admin/admin"
     exit 0
 fi
 
