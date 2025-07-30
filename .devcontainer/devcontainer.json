@@ -37,6 +37,12 @@
   // Auto-start Superset on Codespace resume
   "postStartCommand": ".devcontainer/start-superset.sh",
 
+  // Set environment variables
+  "remoteEnv": {
+    "VIRTUAL_ENV": "/workspaces/${localWorkspaceFolderBasename}/.venv",
+    "PATH": "/workspaces/${localWorkspaceFolderBasename}/.venv/bin:${PATH}"
+  },
+
   // VS Code customizations
   "customizations": {
     "vscode": {

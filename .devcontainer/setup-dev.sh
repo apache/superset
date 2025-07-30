@@ -21,6 +21,21 @@ curl -LsSf https://astral.sh/uv/install.sh | sh
 echo 'export PATH="$HOME/.cargo/bin:$PATH"' >> ~/.bashrc
 echo 'export PATH="$HOME/.cargo/bin:$PATH"' >> ~/.zshrc
 
+# Source the PATH update for the current session
+export PATH="$HOME/.cargo/bin:$PATH"
+
+# Create virtual environment using uv
+echo "🐍 Creating Python virtual environment..."
+uv venv
+
+# Install Python dependencies
+echo "📦 Installing Python dependencies..."
+uv pip install -r requirements/development.txt
+
+# Install pre-commit hooks
+echo "🪝 Installing pre-commit hooks..."
+source .venv/bin/activate && pre-commit install
+
 # Install Claude Code CLI via npm
 echo "🤖 Installing Claude Code..."
 npm install -g @anthropic-ai/claude-code
