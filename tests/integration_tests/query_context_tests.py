@@ -1383,9 +1383,9 @@ def test_date_range_timeshift_invalid_format(app_context, physical_dataset):
     )
 
     # Should raise an error for invalid date range format
-    from superset.exceptions import QueryObjectValidationError
+    from superset.commands.chart.exceptions import TimeDeltaAmbiguousError
 
-    with pytest.raises(QueryObjectValidationError):
+    with pytest.raises(TimeDeltaAmbiguousError):
         qc.get_df_payload(qc.queries[0])
 
 
@@ -1439,7 +1439,7 @@ def test_date_range_timeshift_mixed_with_relative_offsets(
     # Should have main metrics and both offset metrics columns
     assert "SUM(col1)" in df.columns
     assert "SUM(col1) 2001-01-01 : 2001-12-31" in df.columns
-    assert "SUM(col1) 1 year ago" in df.columns
+    assert "SUM(col1)__1 year ago" in df.columns
 
     # Check that all queries were generated
     sqls = query_payload["query"].split(";")
