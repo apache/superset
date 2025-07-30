@@ -25,14 +25,14 @@ MIN_MEM_FREE_KB=$(($MIN_MEM_FREE_GB*1000000))
 echo_mem_warn() {
   # Check if running in Codespaces first
   if [[ -n "${CODESPACES}" ]]; then
-    echo "Memory check Ok [Codespaces environment - memory dynamically allocated]"
+    echo "Memory available: Codespaces managed"
     return
   fi
 
   # Check if /proc/meminfo exists (Linux)
   if [[ ! -f /proc/meminfo ]]; then
-    # Not on Linux or /proc not mounted, skip the check
-    echo "Memory check skipped [/proc/meminfo not available]"
+    # Not on Linux or /proc not mounted, can't determine memory
+    echo "Memory available: Unable to determine"
     return
   fi
 
@@ -65,7 +65,7 @@ echo_mem_warn() {
     ===============================================
 EOF
   else
-    echo "Memory check Ok [${MEM_AVAIL_GB}GB ${MEM_TYPE}]"
+    echo "Memory available: ${MEM_AVAIL_GB} GB"
   fi
 }
 
