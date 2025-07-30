@@ -26,4 +26,8 @@ npm install -g @anthropic-ai/claude-code
 chmod +x .devcontainer/start-superset.sh
 
 echo "✅ Development environment setup complete!"
-echo "🚀 Run '.devcontainer/start-superset.sh' to start Superset"
+echo ""
+echo "🚀 To start Superset, run:"
+echo "   .devcontainer/start-superset.sh"
+echo ""
+echo "Note: This is now manual to ensure Docker is fully ready."

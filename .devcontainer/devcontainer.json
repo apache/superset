@@ -36,8 +36,8 @@
   // Run commands after container is created
   "postCreateCommand": "chmod +x .devcontainer/setup-dev.sh && .devcontainer/setup-dev.sh",
 
-  // Auto-start Superset on Codespace resume
-  "postStartCommand": ".devcontainer/start-superset.sh",
+  // Note: Superset startup is now manual to avoid Docker timing issues
+  // Run `.devcontainer/start-superset.sh` when ready to start Superset
 
   // Set environment variables
   "remoteEnv": {

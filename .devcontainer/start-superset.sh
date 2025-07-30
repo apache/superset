@@ -13,11 +13,21 @@ else
     echo "📁 Using current directory: $(pwd)"
 fi
 
-# Check if docker is running
-if ! docker info > /dev/null 2>&1; then
-    echo "⏳ Waiting for Docker to start..."
-    sleep 5
-fi
+# Wait for Docker to be available
+echo "⏳ Waiting for Docker to start..."
+max_attempts=30
+attempt=0
+while ! docker info > /dev/null 2>&1; do
+    if [ $attempt -eq $max_attempts ]; then
+        echo "❌ Docker failed to start after $max_attempts attempts"
+        echo "🔄 Please restart the Codespace or run this script manually later"
+        exit 1
+    fi
+    echo "   Attempt $((attempt + 1))/$max_attempts..."
+    sleep 2
+    attempt=$((attempt + 1))
+done
+echo "✅ Docker is ready!"
 
 # Clean up any existing containers
 echo "🧹 Cleaning up existing containers..."
