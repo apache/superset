@@ -103,13 +103,18 @@ superset mcp run --port 5008 --debug
 
 ### Connect to Claude Desktop
 
-The MCP service runs on HTTP and requires a proxy for Claude Desktop:
+:::note
+The MCP service runs on HTTP and requires a proxy for Claude Desktop integration.
+:::
 
 ```bash
 # Install FastMCP proxy
 pip install fastmcp
+```
 
-# Configure Claude Desktop (~/.config/Claude/claude_desktop_config.json)
+Configure Claude Desktop (`~/.config/Claude/claude_desktop_config.json`):
+
+```json
 {
   "mcpServers": {
     "Superset MCP": {

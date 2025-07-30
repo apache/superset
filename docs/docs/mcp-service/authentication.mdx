@@ -12,14 +12,20 @@ The MCP service provides enterprise-grade JWT Bearer authentication with flexibl
 
 ### Development Mode (Default)
 
-Authentication is **disabled by default** for local development:
+:::tip
+Authentication is **disabled by default** for local development - no configuration needed.
+:::
 
-```python
+```bash
 # No configuration needed - service runs without authentication
 superset mcp run --port 5008 --debug
 ```
 
 ### Production Mode
+
+:::warning
+Always enable authentication for production deployments to secure your Superset instance.
+:::
 
 Enable JWT authentication in your Superset configuration:
 
