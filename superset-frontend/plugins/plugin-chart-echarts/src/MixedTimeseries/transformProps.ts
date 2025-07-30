@@ -243,9 +243,6 @@ export default function transformProps(
   const MetricDisplayNameA = getMetricDisplayName(metrics[0], verboseMap);
   const MetricDisplayNameB = getMetricDisplayName(metricsB[0], verboseMap);
 
-  // Debug logging
-  console.log('DEBUG: showQueryIdentifiers =', showQueryIdentifiers);
-
   const [rawSeriesA, sortedTotalValuesA] = extractSeries(rebasedDataA, {
     fillNeighborValue: stack ? 0 : undefined,
     xAxis: xAxisLabel,
@@ -412,10 +409,6 @@ export default function transformProps(
       displayName = showQueryIdentifiers ? `${entryName} (Query A)` : entryName;
     }
 
-    console.log(
-      `DEBUG Query A: entryName="${entryName}", displayName="${displayName}", showQueryIdentifiers=${showQueryIdentifiers}`,
-    );
-
     const seriesFormatter = getFormatter(
       customFormatters,
       formatter,
@@ -480,10 +473,6 @@ export default function transformProps(
       // When no groupby, format as just the entry name with optional query identifier
       displayName = showQueryIdentifiers ? `${entryName} (Query B)` : entryName;
     }
-
-    console.log(
-      `DEBUG Query B: entryName="${entryName}", displayName="${displayName}", showQueryIdentifiers=${showQueryIdentifiers}`,
-    );
 
     const seriesFormatter = getFormatter(
       customFormattersSecondary,
