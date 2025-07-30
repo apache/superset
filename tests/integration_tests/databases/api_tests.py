@@ -1028,20 +1028,24 @@ class TestDatabaseApi(SupersetTestCase):
         assert model is None
 
     def test_get_table_details_with_slash_in_table_name(self):
+        from sqlalchemy import MetaData, Table, Column, String
+
         table_name = "table_with/slash"
         database = get_example_database()
 
         # Clean up if table exists from previous run
         with database.get_sqla_engine() as engine:
-            engine.execute(f'DROP TABLE IF EXISTS "{table_name}"')
-
-        query = f'CREATE TABLE IF NOT EXISTS "{table_name}" (col VARCHAR(256))'
-        if database.backend == "mysql":
-            query = query.replace('"', "`")
+            # Use SQLAlchemy's text() with proper quoting for the dialect
+            metadata = MetaData()
+            table = Table(table_name, metadata)
+            table.drop(engine, checkfirst=True)
 
         try:
             with database.get_sqla_engine() as engine:
-                engine.execute(query)
+                # Create table using SQLAlchemy's table creation
+                metadata = MetaData()
+                table = Table(table_name, metadata, Column("col", String(256)))
+                table.create(engine)
 
             self.login(ADMIN_USERNAME)
             uri = f"api/v1/database/{database.id}/table/{table_name}/null/"
@@ -1051,7 +1055,9 @@ class TestDatabaseApi(SupersetTestCase):
         finally:
             # Clean up the table
             with database.get_sqla_engine() as engine:
-                engine.execute(f'DROP TABLE IF EXISTS "{table_name}"')
+                metadata = MetaData()
+                table = Table(table_name, metadata)
+                table.drop(engine, checkfirst=True)
 
     def test_create_database_invalid_configuration_method(self):
         """
