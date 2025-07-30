@@ -72,7 +72,7 @@ def test_execute_sql_statement_exceeds_payload_limit(mocker: MockerFixture) -> N
     mock_current_app = mocker.patch("superset.sql_lab.current_app")
     mock_current_app.config = {
         "SQLLAB_PAYLOAD_MAX_MB": 50,
-        "DISALLOWED_SQL_FUNCTIONS": [],
+        "DISALLOWED_SQL_FUNCTIONS": {},
     }
 
     # Mock the query object and database
@@ -126,7 +126,7 @@ def test_execute_sql_statement_within_payload_limit(mocker: MockerFixture) -> No
     mock_current_app = mocker.patch("superset.sql_lab.current_app")
     mock_current_app.config = {
         "SQLLAB_PAYLOAD_MAX_MB": 50,
-        "DISALLOWED_SQL_FUNCTIONS": [],
+        "DISALLOWED_SQL_FUNCTIONS": {},
     }
 
     # Mock the query object and database

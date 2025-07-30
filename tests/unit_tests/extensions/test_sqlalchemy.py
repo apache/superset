@@ -129,6 +129,7 @@ def test_superset_limit(mocker: MockerFixture, app_context: None, table1: None) 
             "SUPERSET_META_DB_LIMIT": 1,
             "DATABASE_OAUTH2_CLIENTS": {},
             "SQLALCHEMY_CUSTOM_PASSWORD_STORE": None,
+            "ENGINE_CONTEXT_MANAGER": {},
         },
     )
     mocker.patch("superset.extensions.metadb.security_manager")
