@@ -260,6 +260,22 @@ SQLALCHEMY_ENGINE_OPTIONS = {}
 # SQLALCHEMY_CUSTOM_PASSWORD_STORE = lookup_password
 SQLALCHEMY_CUSTOM_PASSWORD_STORE = None
 
+# ---------------------------------------------------------
+# Engine Manager Configuration
+# ---------------------------------------------------------
+
+# Engine manager mode: "NEW" creates a new engine for every connection (default),
+# "SINGLETON" reuses engines with connection pooling
+ENGINE_MANAGER_MODE = "NEW"
+
+# Cleanup interval for abandoned locks in seconds (default: 5 minutes)
+ENGINE_MANAGER_CLEANUP_INTERVAL = 300.0
+
+# Automatically start cleanup thread for SINGLETON mode (default: True)
+ENGINE_MANAGER_AUTO_START_CLEANUP = True
+
+# ---------------------------------------------------------
+
 #
 # The EncryptedFieldTypeAdapter is used whenever we're building SqlAlchemy models
 # which include sensitive fields that should be app-encrypted BEFORE sending

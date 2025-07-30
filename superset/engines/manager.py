@@ -30,16 +30,12 @@ from sqlalchemy.engine import Engine
 from sqlalchemy.engine.url import URL
 from sshtunnel import SSHTunnelForwarder
 
-from superset import is_feature_enabled
-from superset.databases.ssh_tunnel.models import SSHTunnel
 from superset.databases.utils import make_url_safe
-from superset.extensions import security_manager
 from superset.utils.core import get_query_source_from_request, get_user_id, QuerySource
 from superset.utils.json import dumps
-from superset.utils.oauth2 import check_for_oauth2, get_oauth2_access_token
-from superset.utils.ssh_tunnel import get_default_port
 
 if TYPE_CHECKING:
+    from superset.databases.ssh_tunnel.models import SSHTunnel
     from superset.models.core import Database
 
 
@@ -111,7 +107,7 @@ class EngineManager:
     @contextmanager
     def get_engine(
         self,
-        database: Database,
+        database: "Database",
         catalog: str | None,
         schema: str | None,
         source: QuerySource | None,
@@ -125,12 +121,14 @@ class EngineManager:
         with customization(database, catalog, schema):
             # we need to check for errors indicating that OAuth2 is needed, and
             # return the proper exception so it starts the authentication flow
+            from superset.utils.oauth2 import check_for_oauth2
+
             with check_for_oauth2(database):
                 yield self._get_engine(database, catalog, schema, source)
 
     def _get_engine(
         self,
-        database: Database,
+        database: "Database",
         catalog: str | None,
         schema: str | None,
         source: QuerySource | None,
@@ -177,7 +175,7 @@ class EngineManager:
 
     def _get_engine_key(
         self,
-        database: Database,
+        database: "Database",
         catalog: str | None,
         schema: str | None,
         source: QuerySource | None,
@@ -200,7 +198,7 @@ class EngineManager:
 
     def _get_engine_args(
         self,
-        database: Database,
+        database: "Database",
         catalog: str | None,
         schema: str | None,
         source: QuerySource | None,
@@ -242,7 +240,15 @@ class EngineManager:
 
         # get effective username
         username = database.get_effective_user(uri)
-        if username and is_feature_enabled("IMPERSONATE_WITH_EMAIL_PREFIX"):
+
+        # Import here to avoid circular imports
+        from superset.extensions import security_manager
+        from superset.utils.feature_flag_manager import FeatureFlagManager
+
+        feature_flag_manager = FeatureFlagManager()
+        if username and feature_flag_manager.is_feature_enabled(
+            "IMPERSONATE_WITH_EMAIL_PREFIX"
+        ):
             user = security_manager.find_user(username=username)
             if user and user.email and "@" in user.email:
                 username = user.email.split("@")[0]
@@ -250,6 +256,9 @@ class EngineManager:
         # update URI/kwargs for user impersonation
         if database.impersonate_user:
             oauth2_config = database.get_oauth2_config()
+            # Import here to avoid circular imports
+            from superset.utils.oauth2 import get_oauth2_access_token
+
             access_token = (
                 get_oauth2_access_token(
                     oauth2_config,
@@ -275,6 +284,9 @@ class EngineManager:
         # mutate URI
         if mutator := current_app.config["DB_CONNECTION_MUTATOR"]:
             source = source or get_query_source_from_request()
+            # Import here to avoid circular imports
+            from superset.extensions import security_manager
+
             uri, kwargs = mutator(
                 uri,
                 kwargs,
@@ -290,7 +302,7 @@ class EngineManager:
 
     def _create_engine(
         self,
-        database: Database,
+        database: "Database",
         catalog: str | None,
         schema: str | None,
         source: QuerySource | None,
@@ -324,7 +336,7 @@ class EngineManager:
 
         return engine
 
-    def _get_tunnel(self, ssh_tunnel: SSHTunnel, uri: URL) -> SSHTunnelForwarder:
+    def _get_tunnel(self, ssh_tunnel: "SSHTunnel", uri: URL) -> SSHTunnelForwarder:
         tunnel_key = self._get_tunnel_key(ssh_tunnel, uri)
 
         #  tunnel exists and is healthy
@@ -345,7 +357,7 @@ class EngineManager:
     def _replace_tunnel(
         self,
         tunnel_key: str,
-        ssh_tunnel: SSHTunnel,
+        ssh_tunnel: "SSHTunnel",
         uri: URL,
         old_tunnel: SSHTunnelForwarder | None,
     ) -> SSHTunnelForwarder:
@@ -371,7 +383,7 @@ class EngineManager:
 
         return new_tunnel
 
-    def _get_tunnel_key(self, ssh_tunnel: SSHTunnel, uri: URL) -> TunnelKey:
+    def _get_tunnel_key(self, ssh_tunnel: "SSHTunnel", uri: URL) -> TunnelKey:
         """
         Build a unique key for the SSH tunnel.
         """
@@ -379,15 +391,18 @@ class EngineManager:
 
         return dumps(keys, sort_keys=True)
 
-    def _create_tunnel(self, ssh_tunnel: SSHTunnel, uri: URL) -> SSHTunnelForwarder:
+    def _create_tunnel(self, ssh_tunnel: "SSHTunnel", uri: URL) -> SSHTunnelForwarder:
         kwargs = self._get_tunnel_kwargs(ssh_tunnel, uri)
         tunnel = SSHTunnelForwarder(**kwargs)
         tunnel.start()
 
         return tunnel
 
-    def _get_tunnel_kwargs(self, ssh_tunnel: SSHTunnel, uri: URL) -> dict[str, Any]:
+    def _get_tunnel_kwargs(self, ssh_tunnel: "SSHTunnel", uri: URL) -> dict[str, Any]:
         backend = uri.get_backend_name()
+        # Import here to avoid circular imports
+        from superset.utils.ssh_tunnel import get_default_port
+
         kwargs = {
             "ssh_address_or_host": (ssh_tunnel.server_address, ssh_tunnel.server_port),
             "ssh_username": ssh_tunnel.username,
