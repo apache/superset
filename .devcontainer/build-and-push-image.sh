@@ -6,7 +6,7 @@
 # gh auth login --scopes write:packages
 
 REGISTRY="ghcr.io"
-OWNER="apache"  # or your GitHub username for testing
+OWNER="apache"
 REPO="superset"
 TAG="devcontainer-base"
 

@@ -1,14 +1,14 @@
 {
   "name": "Apache Superset Development",
-  // Option 1: Use pre-built image (update with your actual image URL)
-  // "image": "ghcr.io/YOUR_USERNAME/superset:devcontainer-base",
+  // Option 1: Use pre-built image directly
+  // "image": "ghcr.io/apache/superset:devcontainer-base",
 
-  // Option 2: Build from Dockerfile (current approach)
+  // Option 2: Build from Dockerfile with cache (current approach)
   "build": {
     "dockerfile": "Dockerfile",
     "context": ".",
-    // Force caching from your registry image
-    "cacheFrom": ["ghcr.io/YOUR_USERNAME/superset:devcontainer-base"]
+    // Cache from the Apache registry image
+    "cacheFrom": ["ghcr.io/apache/superset:devcontainer-base"]
   },
 
   "features": {
