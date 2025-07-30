@@ -40,7 +40,7 @@ export default memo(
     ref: Ref<HTMLDivElement>,
   ) {
     return (
-      <div ref={ref} className="dt-apgination" style={style}>
+      <div ref={ref} className="dt-pagination" style={style}>
         <ListViewPagination
           currentPage={currentPage + 1} 
           totalPages={pageCount}
