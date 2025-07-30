@@ -38,6 +38,7 @@ from superset.security import SupersetSecurityManager  # noqa: F401
 app: Flask = current_app
 cache = cache_manager.cache
 config = LocalProxy(lambda: current_app.config)
+conf = config  # Backward compatibility for migrations
 get_feature_flags = feature_flag_manager.get_feature_flags
 get_manifest_files = manifest_processor.get_manifest_files
 is_feature_enabled = feature_flag_manager.is_feature_enabled
