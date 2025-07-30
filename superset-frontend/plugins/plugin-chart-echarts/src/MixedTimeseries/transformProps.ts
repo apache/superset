@@ -409,12 +409,12 @@ export default function transformProps(
       displayName = `${metricPart}, ${entryName}`;
     } else {
       // When no groupby, format as just the entry name with optional query identifier
-      displayName = showQueryIdentifiers
-        ? `${entryName} (Query A)`
-        : entryName;
+      displayName = showQueryIdentifiers ? `${entryName} (Query A)` : entryName;
     }
-    
-    console.log(`DEBUG Query A: entryName="${entryName}", displayName="${displayName}", showQueryIdentifiers=${showQueryIdentifiers}`);
+
+    console.log(
+      `DEBUG Query A: entryName="${entryName}", displayName="${displayName}", showQueryIdentifiers=${showQueryIdentifiers}`,
+    );
 
     const seriesFormatter = getFormatter(
       customFormatters,
@@ -478,12 +478,12 @@ export default function transformProps(
       displayName = `${metricPart}, ${entryName}`;
     } else {
       // When no groupby, format as just the entry name with optional query identifier
-      displayName = showQueryIdentifiers
-        ? `${entryName} (Query B)`
-        : entryName;
+      displayName = showQueryIdentifiers ? `${entryName} (Query B)` : entryName;
     }
-    
-    console.log(`DEBUG Query B: entryName="${entryName}", displayName="${displayName}", showQueryIdentifiers=${showQueryIdentifiers}`);
+
+    console.log(
+      `DEBUG Query B: entryName="${entryName}", displayName="${displayName}", showQueryIdentifiers=${showQueryIdentifiers}`,
+    );
 
     const seriesFormatter = getFormatter(
       customFormattersSecondary,
