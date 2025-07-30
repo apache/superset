@@ -1933,7 +1933,7 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
 
     @parameterized.expand(
         [
-            "Pivot Table v2",  # Non-legacy charts
+            "Pivot Table",  # Non-legacy charts
         ],
     )
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
@@ -2009,7 +2009,7 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_warm_up_cache_error(self) -> None:
         self.login(ADMIN_USERNAME)
-        slc = self.get_slice("Pivot Table v2")
+        slc = self.get_slice("Pivot Table")
 
         with mock.patch.object(ChartDataCommand, "run") as mock_run:
             mock_run.side_effect = ChartDataQueryFailedError(
@@ -2037,7 +2037,7 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_warm_up_cache_no_query_context(self) -> None:
         self.login(ADMIN_USERNAME)
-        slc = self.get_slice("Pivot Table v2")
+        slc = self.get_slice("Pivot Table")
 
         with mock.patch.object(Slice, "get_query_context") as mock_get_query_context:
             mock_get_query_context.return_value = None

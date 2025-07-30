@@ -310,7 +310,7 @@ class TestCore(SupersetTestCase):
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_warm_up_cache_error(self) -> None:
         self.login(ADMIN_USERNAME)
-        slc = self.get_slice("Pivot Table v2")
+        slc = self.get_slice("Pivot Table")
 
         with mock.patch.object(
             ChartDataCommand,

@@ -48,7 +48,7 @@ class TestCache(SupersetTestCase):
         app.config["DATA_CACHE_CONFIG"] = {"CACHE_TYPE": "NullCache"}
         cache_manager.init_app(app)
 
-        slc = self.get_slice("Genders")
+        slc = self.get_slice("Pivot Table")
 
         # Get query context using the fixture
         query_context = get_query_context("birth_names")
@@ -83,7 +83,7 @@ class TestCache(SupersetTestCase):
         }
         cache_manager.init_app(app)
 
-        slc = self.get_slice("Genders")
+        slc = self.get_slice("Pivot Table")
 
         # Clear the datasource cache timeout to test fallback to DATA_CACHE_CONFIG
         datasource = db.session.query(SqlaTable).filter_by(id=slc.datasource_id).one()

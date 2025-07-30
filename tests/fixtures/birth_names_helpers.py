@@ -155,6 +155,19 @@ def create_slices(tbl: SqlaTable) -> tuple[list[Slice], list[Slice]]:
             ),
             owners=[],
         ),
+        Slice(
+            **slice_kwargs,
+            slice_name="Pivot Table",
+            viz_type="pivot_table_v2",
+            params=get_slice_json(
+                defaults,
+                viz_type="pivot_table_v2",
+                groupbyRows=["name"],
+                groupbyColumns=["state"],
+                metrics=metrics,
+            ),
+            owners=[],
+        ),
     ]
 
     misc_slices: list[Slice] = []

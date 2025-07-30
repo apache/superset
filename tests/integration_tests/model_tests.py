@@ -630,7 +630,7 @@ class TestSqlaTableModel(SupersetTestCase):
             .filter_by(
                 datasource_id=tbl.id,
                 datasource_type=tbl.type,
-                slice_name="Pivot Table v2",
+                slice_name="Pivot Table",
             )
             .first()
         )
