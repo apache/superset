@@ -296,7 +296,10 @@ def test_apply_series_others_grouping(database: Database) -> None:
         # Category (series column) should be replaced with CASE expression
         assert "category" in result_groupby_columns
         category_groupby_result = result_groupby_columns["category"]
-        assert category_groupby_result.name == "category"  # Should be made compatible
+        # After our fix, GROUP BY expressions are NOT wrapped with
+        # make_sqla_column_compatible, so it should be a raw CASE expression,
+        # not a Mock with .name attribute. Verify it's different from the original
+        assert category_groupby_result != category_expr
 
         # Other (non-series column) should remain unchanged
         assert result_groupby_columns["other_col"] == other_expr
@@ -359,7 +362,8 @@ def test_apply_series_others_grouping_with_false_condition(database: Database) -
 
         assert len(result_groupby_columns) == 1
         assert "category" in result_groupby_columns
-        assert result_groupby_columns["category"].name == "category"
+        # GROUP BY expression should be a CASE expression, not the original
+        assert result_groupby_columns["category"] != category_expr
 
 
 def test_apply_series_others_grouping_sql_compilation(database: Database) -> None:
