@@ -97,9 +97,11 @@ class MigrateViz:
     def _migrate_temporal_filter(self, rv_data: dict[str, Any]) -> None:
         """Adds a temporal filter."""
         granularity_sqla = rv_data.pop("granularity_sqla", None)
-        time_range = rv_data.pop("time_range", None) or todo_config.get(
-            "DEFAULT_TIME_FILTER"
-        )
+        try:
+            default_time_filter = todo_config["DEFAULT_TIME_FILTER"]
+        except KeyError:
+            default_time_filter = None
+        time_range = rv_data.pop("time_range", None) or default_time_filter
 
         if not granularity_sqla:
             return
