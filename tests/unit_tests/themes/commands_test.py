@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 
-from unittest.mock import MagicMock, Mock, patch
+from unittest.mock import Mock, patch
 
 import pytest
 
@@ -26,6 +26,7 @@ from superset.commands.theme.exceptions import (
 from superset.commands.theme.seed import SeedSystemThemesCommand
 from superset.commands.theme.update import UpdateThemeCommand
 from superset.models.core import Theme
+from tests.conftest import with_config
 
 
 class TestUpdateThemeCommand:
@@ -95,34 +96,30 @@ class TestUpdateThemeCommand:
 class TestSeedSystemThemesCommand:
     """Unit tests for SeedSystemThemesCommand"""
 
-    @patch("superset.commands.theme.seed.current_app")
-    def test_run_no_themes_configured(self, mock_current_app):
+    @with_config(
+        {
+            "THEME_DEFAULT": None,
+            "THEME_DARK": None,
+        }
+    )
+    def test_run_no_themes_configured(self, app):
         """Test run when no themes are configured"""
         # Arrange
-        mock_current_app.config = MagicMock()
-        mock_current_app.config.get.side_effect = lambda key: None
         command = SeedSystemThemesCommand()
 
         # Act
         command.run()  # Should complete without error
 
-        # Assert
-        mock_current_app.config.get.assert_any_call("THEME_DEFAULT")
-        mock_current_app.config.get.assert_any_call("THEME_DARK")
-
-    @patch("superset.commands.theme.seed.current_app")
+    @with_config(
+        {
+            "THEME_DEFAULT": {"algorithm": "default", "token": {}},
+            "THEME_DARK": None,
+        }
+    )
     @patch("superset.commands.theme.seed.db")
-    def test_run_with_theme_default_only(self, mock_db, mock_current_app):
+    def test_run_with_theme_default_only(self, mock_db, app):
         """Test run when only THEME_DEFAULT is configured"""
         # Arrange
-        default_theme = {"algorithm": "default", "token": {}}
-
-        def get_config(key):
-            return {"THEME_DEFAULT": default_theme, "THEME_DARK": None}.get(key)
-
-        mock_current_app.config = MagicMock()
-        mock_current_app.config.get = Mock(side_effect=get_config)
-
         mock_session = Mock()
         mock_db.session = mock_session
         mock_session.query.return_value.filter.return_value.first.return_value = None
@@ -136,19 +133,16 @@ class TestSeedSystemThemesCommand:
         mock_session.add.assert_called_once()
         # Note: commit is handled by @transaction() decorator, not directly called
 
-    @patch("superset.commands.theme.seed.current_app")
+    @with_config(
+        {
+            "THEME_DEFAULT": {"algorithm": "default", "token": {}},
+            "THEME_DARK": None,
+        }
+    )
     @patch("superset.commands.theme.seed.db")
-    def test_run_update_existing_theme(self, mock_db, mock_current_app):
+    def test_run_update_existing_theme(self, mock_db, app):
         """Test run when theme already exists and needs updating"""
         # Arrange
-        default_theme = {"algorithm": "default", "token": {}}
-
-        def get_config(key):
-            return {"THEME_DEFAULT": default_theme, "THEME_DARK": None}.get(key)
-
-        mock_current_app.config = MagicMock()
-        mock_current_app.config.get = Mock(side_effect=get_config)
-
         # Mock existing theme
         mock_existing_theme = Mock(spec=Theme)
         mock_existing_theme.json_data = '{"old": "data"}'
@@ -169,20 +163,17 @@ class TestSeedSystemThemesCommand:
         # Note: commit is handled by @transaction() decorator, not directly called
         mock_session.add.assert_not_called()  # Should not add new theme
 
-    @patch("superset.commands.theme.seed.current_app")
+    @with_config(
+        {
+            "THEME_DEFAULT": {"algorithm": "default", "token": {}},
+            "THEME_DARK": None,
+        }
+    )
     @patch("superset.commands.theme.seed.db")
     @patch("superset.commands.theme.seed.logger")
-    def test_run_handles_database_error(self, mock_logger, mock_db, mock_current_app):
+    def test_run_handles_database_error(self, mock_logger, mock_db, app):
         """Test run handles database errors gracefully"""
         # Arrange
-        default_theme = {"algorithm": "default", "token": {}}
-
-        def get_config(key):
-            return {"THEME_DEFAULT": default_theme, "THEME_DARK": None}.get(key)
-
-        mock_current_app.config = MagicMock()
-        mock_current_app.config.get = Mock(side_effect=get_config)
-
         mock_session = Mock()
         mock_db.session = mock_session
         mock_session.query.side_effect = Exception("Database error")
@@ -193,20 +184,16 @@ class TestSeedSystemThemesCommand:
         with pytest.raises(Exception, match="Database error"):
             command.run()  # Should raise exception due to @transaction() decorator
 
-    @patch("superset.commands.theme.seed.current_app")
+    @with_config(
+        {
+            "THEME_DEFAULT": {"algorithm": "default", "token": {}},
+            "THEME_DARK": {"algorithm": "dark", "token": {}},
+        }
+    )
     @patch("superset.commands.theme.seed.db")
-    def test_run_with_both_themes(self, mock_db, mock_current_app):
+    def test_run_with_both_themes(self, mock_db, app):
         """Test run when both THEME_DEFAULT and THEME_DARK are configured"""
         # Arrange
-        default_theme = {"algorithm": "default", "token": {}}
-        dark_theme = {"algorithm": "dark", "token": {}}
-
-        def get_config(key):
-            return {"THEME_DEFAULT": default_theme, "THEME_DARK": dark_theme}.get(key)
-
-        mock_current_app.config = MagicMock()
-        mock_current_app.config.get = Mock(side_effect=get_config)
-
         mock_session = Mock()
         mock_db.session = mock_session
         mock_session.query.return_value.filter.return_value.first.return_value = None
