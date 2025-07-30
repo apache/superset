@@ -1,8 +1,10 @@
 {
   "name": "Apache Superset Development",
-  // Keep this in sync with the base image in Dockerfile (ARG PY_VER)
-  // Using the same base as Dockerfile, but non-slim for dev tools
-  "image": "python:3.11.13-bookworm",
+  // Use our custom Dockerfile that includes cached apt packages
+  "build": {
+    "dockerfile": "Dockerfile",
+    "context": "."
+  },
 
   "features": {
     "ghcr.io/devcontainers/features/docker-in-docker:2": {

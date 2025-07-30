@@ -3,26 +3,8 @@
 
 echo "🔧 Setting up Superset development environment..."
 
-# The universal image has most tools, just need Superset-specific libs
-echo "📦 Installing Superset-specific dependencies..."
-sudo apt-get update
-sudo apt-get install -y \
-    libsasl2-dev \
-    libldap2-dev \
-    libpq-dev \
-    tmux \
-    gh
-
-# Install uv for fast Python package management
-echo "📦 Installing uv..."
-curl -LsSf https://astral.sh/uv/install.sh | sh
-
-# Add cargo/bin to PATH for uv
-echo 'export PATH="$HOME/.cargo/bin:$PATH"' >> ~/.bashrc
-echo 'export PATH="$HOME/.cargo/bin:$PATH"' >> ~/.zshrc
-
-# Source the PATH update for the current session
-export PATH="$HOME/.cargo/bin:$PATH"
+# System dependencies and uv are now pre-installed in the Docker image
+# This speeds up Codespace creation significantly!
 
 # Create virtual environment using uv
 echo "🐍 Creating Python virtual environment..."
