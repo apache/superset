@@ -390,7 +390,7 @@ class DatasetCacheWarmUpResponseSchema(Schema):
     )
 
 
-class DatasetColumnDrillInfo(Schema):
+class DatasetColumnDrillInfoSchema(Schema):
     column_name = fields.String(required=True)
     verbose_name = fields.String(required=False)
 
@@ -400,9 +400,9 @@ class UserSchema(Schema):
     last_name = fields.String()
 
 
-class DatasetDrillInfo(Schema):
+class DatasetDrillInfoSchema(Schema):
     id = fields.Integer()
-    columns = fields.List(fields.Nested(DatasetColumnDrillInfo))
+    columns = fields.List(fields.Nested(DatasetColumnDrillInfoSchema))
     table_name = fields.String()
     owners = fields.List(fields.Nested(UserSchema))
     created_by = fields.Nested(UserSchema)

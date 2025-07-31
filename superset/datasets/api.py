@@ -65,7 +65,7 @@ from superset.datasets.filters import DatasetCertifiedFilter, DatasetIsNullOrEmp
 from superset.datasets.schemas import (
     DatasetCacheWarmUpRequestSchema,
     DatasetCacheWarmUpResponseSchema,
-    DatasetDrillInfo,
+    DatasetDrillInfoSchema,
     DatasetDuplicateSchema,
     DatasetPostSchema,
     DatasetPutSchema,
@@ -1231,7 +1231,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
             "columns.verbose_name",
             "columns.groupby",
         ]
-        dataset_schema = DatasetDrillInfo()
+        dataset_schema = DatasetDrillInfoSchema()
 
         # First try with regular access
         dataset: SqlaTable | None = self.datamodel.get(
