@@ -47,9 +47,9 @@ COPY superset-frontend/package.json superset-frontend/package-lock.json /app/sup
 # Now, run npm install. The files are writeable inside the container.
 RUN --mount=type=cache,target=/root/.npm \
     if [ "$DEV_MODE" = "false" ]; then \
-        npm install; \
+    npm install; \
     else \
-        echo "Skipping 'npm install' in dev mode"; \
+    echo "Skipping 'npm install' in dev mode"; \
     fi
 
 # Finally, copy the rest of the frontend source code for the build step.
@@ -63,10 +63,10 @@ FROM superset-node-ci AS superset-node
 # Build the frontend if not in dev mode
 RUN --mount=type=cache,target=/root/.npm \
     if [ "$DEV_MODE" = "false" ]; then \
-        echo "Running 'npm run build'"; \
-        npm run build; \
+    echo "Running 'npm run build'"; \
+    npm run build; \
     else \
-        echo "Skipping 'npm run build' in dev mode"; \
+    echo "Skipping 'npm run build' in dev mode"; \
     fi;
 
 ######################################################################
@@ -110,23 +110,21 @@ COPY superset-frontend/package.json superset-frontend/
 
 # Some debian libs required by Superset
 RUN /app/docker/apt-install.sh \
-      curl \
-      libsasl2-dev \
-      libsasl2-modules-gssapi-mit \
-      libpq-dev \
-      libecpg-dev \
-      libldap2-dev
+    curl \
+    libsasl2-dev \
+    libsasl2-modules-gssapi-mit \
+    libpq-dev \
+    libecpg-dev \
+    libldap2-dev
 
 # Copy compiled assets from previous stage
 COPY --from=superset-node /app/superset/static/assets superset/static/assets
 COPY superset superset
 RUN rm -rf superset/translations
 
-# --- START: CRITICAL FIX ---
 # Copy the entrypoint scripts, including the missing run-server.sh
 COPY --chmod=755 docker/entrypoints /app/docker/entrypoints
 COPY --chmod=755 ./docker/entrypoints/run-server.sh /usr/bin/
-# --- END: CRITICAL FIX ---
 
 
 ######################################################################
@@ -163,11 +161,11 @@ RUN OS_VERSION_ID=$(grep VERSION_ID /etc/os-release | cut -d '"' -f 2) && \
     CONFIG_URL_BASE="https://packages.microsoft.com/config" && \
     OS_TYPE=$(grep '^ID=' /etc/os-release | cut -d'=' -f2) && \
     if [[ "$OS_TYPE" == "debian" ]]; then \
-        CONFIG_URL="${CONFIG_URL_BASE}/debian/${OS_VERSION_ID}/packages-microsoft-prod.deb"; \
+    CONFIG_URL="${CONFIG_URL_BASE}/debian/${OS_VERSION_ID}/packages-microsoft-prod.deb"; \
     elif [[ "$OS_TYPE" == "ubuntu" ]]; then \
-        CONFIG_URL="${CONFIG_URL_BASE}/ubuntu/${OS_VERSION_ID}/packages-microsoft-prod.deb"; \
+    CONFIG_URL="${CONFIG_URL_BASE}/ubuntu/${OS_VERSION_ID}/packages-microsoft-prod.deb"; \
     else \
-        echo "ERROR: Unsupported OS type ${OS_TYPE} in base image." >&2; exit 1; \
+    echo "ERROR: Unsupported OS type ${OS_TYPE} in base image." >&2; exit 1; \
     fi && \
     curl -sSL -O "${CONFIG_URL}" && \
     dpkg -i --force-confnew packages-microsoft-prod.deb && \
@@ -191,11 +189,14 @@ COPY --chown=superset:superset files/ /app/superset/static/assets/custom/
 # --- END: YOUR CUSTOMIZATIONS ---
 
 # Install the superset package itself
-RUN python -m ensurepip && pip install --upgrade pip
-
 RUN --mount=type=cache,target=${SUPERSET_HOME}/.cache/uv \
     uv pip install .
 RUN python -m compileall /app/superset
+
+# --- START: CRITICAL PERMISSION FIX ---
+# Give the superset user ownership of its home directory before switching to it
+RUN chown -R superset:superset /app/superset_home
+# --- END: CRITICAL PERMISSION FIX ---
 
 # Switch back to the non-root user for security
 USER superset
