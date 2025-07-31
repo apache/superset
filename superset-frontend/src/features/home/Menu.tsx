@@ -43,6 +43,7 @@ interface MenuProps {
 const StyledHeader = styled.header`
   ${({ theme }) => `
       background-color: ${theme.colorBgContainer};
+      border-bottom: 1px solid ${theme.colorBorderSecondary};
       z-index: 10;
 
       &:nth-last-of-type(2) nav {
