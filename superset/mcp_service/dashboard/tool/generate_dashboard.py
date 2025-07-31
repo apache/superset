@@ -59,56 +59,56 @@ class GenerateDashboardResponse(BaseModel):
     error: Optional[str] = Field(None, description="Error message, if creation failed")
 
 
-def _create_dashboard_layout(chart_ids: List[int]) -> Dict[str, Any]:
+def _create_dashboard_layout(chart_objects: List[Any]) -> Dict[str, Any]:
     """
     Create a simple dashboard layout with charts arranged in a grid.
 
     This creates a basic 2-column layout where charts are arranged
     vertically in alternating columns.
+
+    Args:
+        chart_objects: List of Chart ORM objects (not IDs)
     """
-    layout = {}
+    layout: Dict[str, Any] = {}
 
     # Grid configuration
     chart_width = 24  # Half width for 2-column layout
     chart_height = 16  # Standard chart height
 
-    for i, chart_id in enumerate(chart_ids):
+    for i, chart in enumerate(chart_objects):
         # Alternate between left (x=0) and right (x=24) columns
         x_position = 0 if i % 2 == 0 else 24
         # Stack charts vertically in each column
         y_position = (i // 2) * chart_height
 
         # Create chart component in layout
-        chart_key = f"CHART-{chart_id}"
+        chart_key = f"CHART-{chart.id}"
         layout[chart_key] = {
             "children": [],
             "id": chart_key,
             "meta": {
-                "chartId": chart_id,
+                "chartId": chart.id,
                 "height": chart_height,
-                "sliceName": f"Chart {chart_id}",
-                "uuid": f"chart-{chart_id}",
+                "sliceName": chart.slice_name or f"Chart {chart.id}",
+                "uuid": str(chart.uuid) if chart.uuid else f"chart-{chart.id}",
                 "width": chart_width,
             },
             "parents": ["ROOT_ID"],
             "type": "CHART",
         }
 
-        # Add position information to the chart meta
-        chart_meta = layout[chart_key]["meta"]
-        if isinstance(chart_meta, dict):
-            chart_meta.update(
-                {
-                    "h": chart_height,
-                    "w": chart_width,
-                    "x": x_position,
-                    "y": y_position,
-                }
-            )
+        # Add position information as separate entry (required by Superset frontend)
+        position_info = {
+            "h": chart_height,
+            "w": chart_width,
+            "x": x_position,
+            "y": y_position,
+        }
+        layout[f"{chart_key}_POSITION"] = position_info
 
     # Add root layout container
     layout["ROOT_ID"] = {
-        "children": [f"CHART-{chart_id}" for chart_id in chart_ids],
+        "children": [f"CHART-{chart.id}" for chart in chart_objects],
         "id": "ROOT_ID",
         "type": "ROOT",
     }
@@ -133,25 +133,27 @@ def generate_dashboard(request: GenerateDashboardRequest) -> GenerateDashboardRe
         GenerateDashboardResponse with the created dashboard info and URL
     """
     try:
+        # Get chart objects from IDs (required for SQLAlchemy relationships)
+        from superset import db
         from superset.commands.dashboard.create import CreateDashboardCommand
-        from superset.daos.chart import ChartDAO
+        from superset.models.slice import Slice
 
-        # Validate all chart IDs exist
-        missing_charts = []
-        for chart_id in request.chart_ids:
-            chart = ChartDAO.find_by_id(chart_id)
-            if not chart:
-                missing_charts.append(chart_id)
+        chart_objects = (
+            db.session.query(Slice).filter(Slice.id.in_(request.chart_ids)).all()
+        )
+        found_chart_ids = [chart.id for chart in chart_objects]
 
-        if missing_charts:
+        # Check if all requested charts were found
+        missing_chart_ids = set(request.chart_ids) - set(found_chart_ids)
+        if missing_chart_ids:
             return GenerateDashboardResponse(
                 dashboard=None,
                 dashboard_url=None,
-                error=f"Charts not found: {missing_charts}",
+                error=f"Charts not found: {list(missing_chart_ids)}",
             )
 
-        # Create dashboard layout
-        layout = _create_dashboard_layout(request.chart_ids)
+        # Create dashboard layout with chart objects
+        layout = _create_dashboard_layout(chart_objects)
 
         # Prepare dashboard data
         dashboard_data = {
@@ -173,7 +175,7 @@ def generate_dashboard(request: GenerateDashboardRequest) -> GenerateDashboardRe
             ),
             "position_json": json.dumps(layout),
             "published": request.published,
-            "slices": request.chart_ids,
+            "slices": chart_objects,  # Pass ORM objects, not IDs
         }
 
         if request.description:

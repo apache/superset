@@ -125,6 +125,13 @@ class ChartError(BaseModel):
     timestamp: Optional[str | datetime] = Field(None, description="Error timestamp")
     model_config = ConfigDict(ser_json_timedelta="iso8601")
 
+    @classmethod
+    def create(cls, error: str, error_type: str) -> "ChartError":
+        """Create a standardized ChartError with timestamp."""
+        from datetime import datetime
+
+        return cls(error=error, error_type=error_type, timestamp=datetime.now())
+
 
 class ChartCapabilities(BaseModel):
     """Describes what the chart can do for LLM understanding."""
@@ -583,6 +590,15 @@ class ChartData(BaseModel):
     performance: PerformanceMetadata = Field(description="Query performance metrics")
     cache_status: Optional[CacheStatus] = Field(
         None, description="Cache usage information"
+    )
+
+    # Export format fields
+    csv_data: Optional[str] = Field(None, description="CSV content when format='csv'")
+    excel_data: Optional[str] = Field(
+        None, description="Base64-encoded Excel content when format='excel'"
+    )
+    format: Optional[str] = Field(
+        None, description="Export format used (json, csv, excel)"
     )
 
     # Inherit versioning

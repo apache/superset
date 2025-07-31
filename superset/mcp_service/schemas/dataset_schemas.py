@@ -249,6 +249,13 @@ class DatasetError(BaseModel):
     timestamp: Optional[str | datetime] = Field(None, description="Error timestamp")
     model_config = ConfigDict(ser_json_timedelta="iso8601")
 
+    @classmethod
+    def create(cls, error: str, error_type: str) -> "DatasetError":
+        """Create a standardized DatasetError with timestamp."""
+        from datetime import datetime
+
+        return cls(error=error, error_type=error_type, timestamp=datetime.now())
+
 
 class GetDatasetInfoRequest(MetadataCacheControl):
     """Request schema for get_dataset_info with support for ID or UUID."""

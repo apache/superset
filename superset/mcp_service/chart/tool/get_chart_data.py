@@ -20,6 +20,7 @@ MCP tool: get_chart_data
 """
 
 import logging
+from typing import Any, Dict, List
 
 from superset.mcp_service.auth import mcp_auth_hook
 from superset.mcp_service.cache_utils import get_cache_status_from_result
@@ -251,6 +252,25 @@ def get_chart_data(request: GetChartDataRequest) -> ChartData | ChartError:  # n
 
             summary = ". ".join(summary_parts)
 
+            # Handle different export formats
+            if request.format == "csv":
+                return _export_data_as_csv(
+                    chart,
+                    data[: request.limit] if request.limit else data,
+                    raw_columns,
+                    cache_status,
+                    performance,
+                )
+            elif request.format == "excel":
+                return _export_data_as_excel(
+                    chart,
+                    data[: request.limit] if request.limit else data,
+                    raw_columns,
+                    cache_status,
+                    performance,
+                )
+
+            # Default JSON format
             return ChartData(
                 chart_id=chart.id,
                 chart_name=chart.slice_name or f"Chart {chart.id}",
@@ -286,3 +306,249 @@ def get_chart_data(request: GetChartDataRequest) -> ChartData | ChartError:  # n
         return ChartError(
             error=f"Failed to get chart data: {str(e)}", error_type="InternalError"
         )
+
+
+def _export_data_as_csv(
+    chart: Any,
+    data: List[Dict[str, Any]],
+    columns: List[str],
+    cache_status: Any,
+    performance: Any,
+) -> "ChartData":
+    """Export chart data as CSV format."""
+    import csv
+    import io
+
+    # Create CSV content
+    output = io.StringIO()
+
+    if data and columns:
+        writer = csv.DictWriter(output, fieldnames=columns)
+        writer.writeheader()
+
+        # Write data rows
+        for row in data:
+            # Ensure all values are properly formatted for CSV
+            csv_row = {}
+            for col in columns:
+                value = row.get(col, "")
+                # Handle None values and convert to string
+                if value is None:
+                    csv_row[col] = ""
+                elif isinstance(value, (list, dict)):
+                    csv_row[col] = str(value)
+                else:
+                    csv_row[col] = value
+            writer.writerow(csv_row)
+
+    csv_content = output.getvalue()
+
+    # Return as ChartData with CSV content in a special field
+    from superset.mcp_service.schemas.chart_schemas import ChartData
+
+    return ChartData(
+        chart_id=chart.id,
+        chart_name=chart.slice_name or f"Chart {chart.id}",
+        chart_type=chart.viz_type or "unknown",
+        columns=[],  # Not needed for CSV export
+        data=[],  # CSV content is in csv_data field
+        row_count=len(data),
+        total_rows=len(data),
+        summary=f"CSV export of chart '{chart.slice_name}' with {len(data)} rows",
+        insights=[f"Data exported as CSV format ({len(csv_content)} characters)"],
+        data_quality={},
+        recommended_visualizations=[],
+        data_freshness=None,
+        performance=performance,
+        cache_status=cache_status,
+        # Store CSV content in data field as string for the response
+        csv_data=csv_content,
+        format="csv",
+    )
+
+
+def _export_data_as_excel(
+    chart: Any,
+    data: List[Dict[str, Any]],
+    columns: List[str],
+    cache_status: Any,
+    performance: Any,
+) -> "ChartData | ChartError":
+    """Export chart data as Excel format."""
+    try:
+        excel_b64 = _create_excel_with_openpyxl(chart, data, columns)
+        return _create_excel_chart_data(
+            chart, data, excel_b64, performance, cache_status
+        )
+    except ImportError:
+        return _try_xlsxwriter_fallback(chart, data, columns, cache_status, performance)
+
+
+def _create_excel_with_openpyxl(
+    chart: Any, data: List[Dict[str, Any]], columns: List[str]
+) -> str:
+    """Create Excel file using openpyxl."""
+    import base64
+    import io
+
+    from openpyxl import Workbook
+
+    wb = Workbook()
+    ws = wb.active
+    ws.title = chart.slice_name[:31] if chart.slice_name else "Chart Data"
+
+    if data and columns:
+        _write_excel_headers(ws, columns)
+        _write_excel_data(ws, data, columns)
+
+    output = io.BytesIO()
+    wb.save(output)
+    output.seek(0)
+    return base64.b64encode(output.read()).decode()
+
+
+def _write_excel_headers(ws: Any, columns: List[str]) -> None:
+    """Write headers to Excel worksheet."""
+    for idx, col in enumerate(columns, 1):
+        ws.cell(row=1, column=idx, value=col)
+
+
+def _write_excel_data(ws: Any, data: List[Dict[str, Any]], columns: List[str]) -> None:
+    """Write data to Excel worksheet."""
+    for row_idx, row in enumerate(data, 2):
+        for col_idx, col in enumerate(columns, 1):
+            value = row.get(col, "")
+            if value is None:
+                value = ""
+            elif isinstance(value, (list, dict)):
+                value = str(value)
+            ws.cell(row=row_idx, column=col_idx, value=value)
+
+
+def _try_xlsxwriter_fallback(
+    chart: Any,
+    data: List[Dict[str, Any]],
+    columns: List[str],
+    cache_status: Any,
+    performance: Any,
+) -> "ChartData | ChartError":
+    """Try xlsxwriter as fallback for Excel export."""
+    try:
+        excel_b64 = _create_excel_with_xlsxwriter(chart, data, columns)
+        return _create_excel_chart_data_xlsxwriter(
+            chart, data, excel_b64, performance, cache_status
+        )
+    except ImportError:
+        from superset.mcp_service.schemas.chart_schemas import ChartError
+
+        return ChartError(
+            error="Excel export requires openpyxl or xlsxwriter package",
+            error_type="ExportError",
+        )
+
+
+def _create_excel_with_xlsxwriter(
+    chart: Any, data: List[Dict[str, Any]], columns: List[str]
+) -> str:
+    """Create Excel file using xlsxwriter."""
+    import base64
+    import io
+
+    import xlsxwriter
+
+    output = io.BytesIO()
+    workbook = xlsxwriter.Workbook(output, {"in_memory": True})
+    sheet_name = chart.slice_name[:31] if chart.slice_name else "Chart Data"
+    worksheet = workbook.add_worksheet(sheet_name)
+
+    if data and columns:
+        _write_xlsxwriter_data(worksheet, data, columns)
+
+    workbook.close()
+    output.seek(0)
+    return base64.b64encode(output.read()).decode()
+
+
+def _write_xlsxwriter_data(
+    worksheet: Any, data: List[Dict[str, Any]], columns: List[str]
+) -> None:
+    """Write data to xlsxwriter worksheet."""
+    # Write headers
+    for idx, col in enumerate(columns):
+        worksheet.write(0, idx, col)
+
+    # Write data
+    for row_idx, row in enumerate(data):
+        for col_idx, col in enumerate(columns):
+            value = row.get(col, "")
+            if value is None:
+                value = ""
+            elif isinstance(value, (list, dict)):
+                value = str(value)
+            worksheet.write(row_idx + 1, col_idx, value)
+
+
+def _create_excel_chart_data(
+    chart: Any,
+    data: List[Dict[str, Any]],
+    excel_b64: str,
+    performance: Any,
+    cache_status: Any,
+) -> "ChartData":
+    """Create ChartData response for Excel export (openpyxl)."""
+    from superset.mcp_service.schemas.chart_schemas import ChartData
+
+    chart_name = chart.slice_name or f"Chart {chart.id}"
+    summary = f"Excel export of chart '{chart.slice_name}' with {len(data)} rows"
+
+    return ChartData(
+        chart_id=chart.id,
+        chart_name=chart_name,
+        chart_type=chart.viz_type or "unknown",
+        columns=[],
+        data=[],
+        row_count=len(data),
+        total_rows=len(data),
+        summary=summary,
+        insights=["Data exported as Excel format (base64 encoded)"],
+        data_quality={},
+        recommended_visualizations=[],
+        data_freshness=None,
+        performance=performance,
+        cache_status=cache_status,
+        excel_data=excel_b64,
+        format="excel",
+    )
+
+
+def _create_excel_chart_data_xlsxwriter(
+    chart: Any,
+    data: List[Dict[str, Any]],
+    excel_b64: str,
+    performance: Any,
+    cache_status: Any,
+) -> "ChartData":
+    """Create ChartData response for Excel export (xlsxwriter)."""
+    from superset.mcp_service.schemas.chart_schemas import ChartData
+
+    chart_name = chart.slice_name or f"Chart {chart.id}"
+    summary = f"Excel export of chart '{chart.slice_name}' with {len(data)} rows"
+
+    return ChartData(
+        chart_id=chart.id,
+        chart_name=chart_name,
+        chart_type=chart.viz_type or "unknown",
+        columns=[],
+        data=[],
+        row_count=len(data),
+        total_rows=len(data),
+        summary=summary,
+        insights=["Data exported as Excel format (base64 encoded, xlsxwriter)"],
+        data_quality={},
+        recommended_visualizations=[],
+        data_freshness=None,
+        performance=performance,
+        cache_status=cache_status,
+        excel_data=excel_b64,
+        format="excel",
+    )

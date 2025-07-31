@@ -71,17 +71,21 @@ class TestGenerateDashboard:
     """Tests for generate_dashboard MCP tool."""
 
     @patch("superset.commands.dashboard.create.CreateDashboardCommand")
-    @patch("superset.daos.chart.ChartDAO.find_by_id")
+    @patch("superset.db.session")
     @pytest.mark.asyncio
     async def test_generate_dashboard_basic(
-        self, mock_find_chart, mock_create_command, mcp_server
+        self, mock_db_session, mock_create_command, mcp_server
     ):
         """Test basic dashboard generation with valid charts."""
-        # Mock charts exist
-        mock_find_chart.side_effect = [
+        # Mock database query for charts
+        mock_query = Mock()
+        mock_filter = Mock()
+        mock_query.filter.return_value = mock_filter
+        mock_filter.all.return_value = [
             _mock_chart(id=1, slice_name="Sales Chart"),
             _mock_chart(id=2, slice_name="Revenue Chart"),
         ]
+        mock_db_session.query.return_value = mock_query
 
         # Mock dashboard creation
         mock_dashboard = _mock_dashboard(id=10, title="Analytics Dashboard")
@@ -104,15 +108,19 @@ class TestGenerateDashboard:
             assert result.data.dashboard.chart_count == 2
             assert "/superset/dashboard/10/" in result.data.dashboard_url
 
-    @patch("superset.daos.chart.ChartDAO.find_by_id")
+    @patch("superset.db.session")
     @pytest.mark.asyncio
-    async def test_generate_dashboard_missing_charts(self, mock_find_chart, mcp_server):
+    async def test_generate_dashboard_missing_charts(self, mock_db_session, mcp_server):
         """Test error handling when some charts don't exist."""
-        # First chart exists, second doesn't
-        mock_find_chart.side_effect = [
+        # Mock database query returning only chart 1 (chart 2 missing)
+        mock_query = Mock()
+        mock_filter = Mock()
+        mock_query.filter.return_value = mock_filter
+        mock_filter.all.return_value = [
             _mock_chart(id=1),
-            None,  # Chart 2 doesn't exist
+            # Chart 2 is missing from the result
         ]
+        mock_db_session.query.return_value = mock_query
 
         request = {"chart_ids": [1, 2], "dashboard_title": "Test Dashboard"}
 
@@ -125,13 +133,18 @@ class TestGenerateDashboard:
             assert result.data.dashboard_url is None
 
     @patch("superset.commands.dashboard.create.CreateDashboardCommand")
-    @patch("superset.daos.chart.ChartDAO.find_by_id")
+    @patch("superset.db.session")
     @pytest.mark.asyncio
     async def test_generate_dashboard_single_chart(
-        self, mock_find_chart, mock_create_command, mcp_server
+        self, mock_db_session, mock_create_command, mcp_server
     ):
         """Test dashboard generation with a single chart."""
-        mock_find_chart.return_value = _mock_chart(id=5, slice_name="Single Chart")
+        # Mock database query for single chart
+        mock_query = Mock()
+        mock_filter = Mock()
+        mock_query.filter.return_value = mock_filter
+        mock_filter.all.return_value = [_mock_chart(id=5, slice_name="Single Chart")]
+        mock_db_session.query.return_value = mock_query
 
         mock_dashboard = _mock_dashboard(id=20, title="Single Chart Dashboard")
         mock_create_command.return_value.run.return_value = mock_dashboard
@@ -150,17 +163,21 @@ class TestGenerateDashboard:
             assert result.data.dashboard.published is True  # From mock
 
     @patch("superset.commands.dashboard.create.CreateDashboardCommand")
-    @patch("superset.daos.chart.ChartDAO.find_by_id")
+    @patch("superset.db.session")
     @pytest.mark.asyncio
     async def test_generate_dashboard_many_charts(
-        self, mock_find_chart, mock_create_command, mcp_server
+        self, mock_db_session, mock_create_command, mcp_server
     ):
         """Test dashboard generation with many charts (grid layout)."""
         # Mock 6 charts
         chart_ids = list(range(1, 7))
-        mock_find_chart.side_effect = [
+        mock_query = Mock()
+        mock_filter = Mock()
+        mock_query.filter.return_value = mock_filter
+        mock_filter.all.return_value = [
             _mock_chart(id=i, slice_name=f"Chart {i}") for i in chart_ids
         ]
+        mock_db_session.query.return_value = mock_query
 
         mock_dashboard = _mock_dashboard(id=30, title="Multi Chart Dashboard")
         mock_create_command.return_value.run.return_value = mock_dashboard
@@ -182,25 +199,37 @@ class TestGenerateDashboard:
             assert "ROOT_ID" in position_json
             assert len(position_json["ROOT_ID"]["children"]) == 6
 
-            # Check each chart has position embedded in meta
+            # Check each chart has separate position entry (new format)
             for i in chart_ids:
                 chart_key = f"CHART-{i}"
+                position_key = f"{chart_key}_POSITION"
                 assert chart_key in position_json
+                assert position_key in position_json
+
+                # Check chart component
                 chart_data = position_json[chart_key]
                 assert "meta" in chart_data
-                assert "h" in chart_data["meta"]  # Height
-                assert "w" in chart_data["meta"]  # Width
-                assert "x" in chart_data["meta"]  # X position
-                assert "y" in chart_data["meta"]  # Y position
+                assert chart_data["meta"]["chartId"] == i
+
+                # Check position data in separate entry
+                position_data = position_json[position_key]
+                assert "h" in position_data  # Height
+                assert "w" in position_data  # Width
+                assert "x" in position_data  # X position
+                assert "y" in position_data  # Y position
 
     @patch("superset.commands.dashboard.create.CreateDashboardCommand")
-    @patch("superset.daos.chart.ChartDAO.find_by_id")
+    @patch("superset.db.session")
     @pytest.mark.asyncio
     async def test_generate_dashboard_creation_failure(
-        self, mock_find_chart, mock_create_command, mcp_server
+        self, mock_db_session, mock_create_command, mcp_server
     ):
         """Test error handling when dashboard creation fails."""
-        mock_find_chart.return_value = _mock_chart(id=1)
+        mock_query = Mock()
+        mock_filter = Mock()
+        mock_query.filter.return_value = mock_filter
+        mock_filter.all.return_value = [_mock_chart(id=1)]
+        mock_db_session.query.return_value = mock_query
         mock_create_command.return_value.run.side_effect = Exception("Creation failed")
 
         request = {"chart_ids": [1], "dashboard_title": "Failed Dashboard"}
@@ -213,13 +242,18 @@ class TestGenerateDashboard:
             assert result.data.dashboard is None
 
     @patch("superset.commands.dashboard.create.CreateDashboardCommand")
-    @patch("superset.daos.chart.ChartDAO.find_by_id")
+    @patch("superset.db.session")
     @pytest.mark.asyncio
     async def test_generate_dashboard_minimal_request(
-        self, mock_find_chart, mock_create_command, mcp_server
+        self, mock_db_session, mock_create_command, mcp_server
     ):
         """Test dashboard generation with minimal required parameters."""
-        mock_find_chart.return_value = _mock_chart(id=3)
+        # Mock database query for single chart
+        mock_query = Mock()
+        mock_filter = Mock()
+        mock_query.filter.return_value = mock_filter
+        mock_filter.all.return_value = [_mock_chart(id=3)]
+        mock_db_session.query.return_value = mock_query
 
         mock_dashboard = _mock_dashboard(id=40, title="Minimal Dashboard")
         mock_create_command.return_value.run.return_value = mock_dashboard
@@ -249,10 +283,10 @@ class TestAddChartToExistingDashboard:
 
     @patch("superset.commands.dashboard.update.UpdateDashboardCommand")
     @patch("superset.daos.dashboard.DashboardDAO.find_by_id")
-    @patch("superset.daos.chart.ChartDAO.find_by_id")
+    @patch("superset.db.session")
     @pytest.mark.asyncio
     async def test_add_chart_to_dashboard_basic(
-        self, mock_find_chart, mock_find_dashboard, mock_update_command, mcp_server
+        self, mock_db_session, mock_find_dashboard, mock_update_command, mcp_server
     ):
         """Test adding a chart to an existing dashboard."""
         # Mock existing dashboard with some charts
@@ -275,7 +309,7 @@ class TestAddChartToExistingDashboard:
 
         # Mock chart to add
         mock_chart = _mock_chart(id=30, slice_name="New Chart")
-        mock_find_chart.return_value = mock_chart
+        mock_db_session.get.return_value = mock_chart
 
         # Mock updated dashboard
         updated_dashboard = _mock_dashboard(id=1, title="Existing Dashboard")
@@ -314,14 +348,14 @@ class TestAddChartToExistingDashboard:
             assert "Dashboard with ID 999 not found" in result.data.error
 
     @patch("superset.daos.dashboard.DashboardDAO.find_by_id")
-    @patch("superset.daos.chart.ChartDAO.find_by_id")
+    @patch("superset.db.session")
     @pytest.mark.asyncio
     async def test_add_chart_chart_not_found(
-        self, mock_find_chart, mock_find_dashboard, mcp_server
+        self, mock_db_session, mock_find_dashboard, mcp_server
     ):
         """Test error when chart doesn't exist."""
         mock_find_dashboard.return_value = _mock_dashboard()
-        mock_find_chart.return_value = None
+        mock_db_session.get.return_value = None
 
         request = {"dashboard_id": 1, "chart_id": 999}
 
@@ -334,17 +368,17 @@ class TestAddChartToExistingDashboard:
             assert "Chart with ID 999 not found" in result.data.error
 
     @patch("superset.daos.dashboard.DashboardDAO.find_by_id")
-    @patch("superset.daos.chart.ChartDAO.find_by_id")
+    @patch("superset.db.session")
     @pytest.mark.asyncio
     async def test_add_chart_already_in_dashboard(
-        self, mock_find_chart, mock_find_dashboard, mcp_server
+        self, mock_db_session, mock_find_dashboard, mcp_server
     ):
         """Test error when chart is already in dashboard."""
         mock_dashboard = _mock_dashboard()
         mock_dashboard.slices = [Mock(id=5)]  # Chart 5 already exists
         mock_find_dashboard.return_value = mock_dashboard
 
-        mock_find_chart.return_value = _mock_chart(id=5)
+        mock_db_session.get.return_value = _mock_chart(id=5)
 
         request = {"dashboard_id": 1, "chart_id": 5}
 
@@ -358,10 +392,10 @@ class TestAddChartToExistingDashboard:
 
     @patch("superset.commands.dashboard.update.UpdateDashboardCommand")
     @patch("superset.daos.dashboard.DashboardDAO.find_by_id")
-    @patch("superset.daos.chart.ChartDAO.find_by_id")
+    @patch("superset.db.session")
     @pytest.mark.asyncio
     async def test_add_chart_empty_dashboard(
-        self, mock_find_chart, mock_find_dashboard, mock_update_command, mcp_server
+        self, mock_db_session, mock_find_dashboard, mock_update_command, mcp_server
     ):
         """Test adding chart to dashboard with no existing layout."""
         mock_dashboard = _mock_dashboard(id=2)
@@ -370,7 +404,7 @@ class TestAddChartToExistingDashboard:
         mock_find_dashboard.return_value = mock_dashboard
 
         mock_chart = _mock_chart(id=15)
-        mock_find_chart.return_value = mock_chart
+        mock_db_session.get.return_value = mock_chart
 
         updated_dashboard = _mock_dashboard(id=2)
         updated_dashboard.slices = [Mock(id=15)]

@@ -90,6 +90,13 @@ class DashboardError(BaseModel):
 
     model_config = ConfigDict(ser_json_timedelta="iso8601")
 
+    @classmethod
+    def create(cls, error: str, error_type: str) -> "DashboardError":
+        """Create a standardized DashboardError with timestamp."""
+        from datetime import datetime
+
+        return cls(error=error, error_type=error_type, timestamp=datetime.now())
+
 
 def serialize_user_object(user: Any) -> Optional[UserInfo]:
     """Serialize a user object to UserInfo"""
