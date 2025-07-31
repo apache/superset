@@ -220,7 +220,7 @@ test('keeps apply disabled when missing required fields', async () => {
   expect(await screen.findByText('Chart A')).toBeInTheDocument();
   userEvent.click(screen.getByText('Chart A'));
   await screen.findByText(/title column/i);
-  userEvent.click(screen.getByRole('button', { name: 'Automatic Color' }));
+  userEvent.click(screen.getByRole('button', { name: 'Automatic color' }));
   userEvent.click(
     screen.getByRole('combobox', { name: 'Annotation layer title column' }),
   );

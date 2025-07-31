@@ -836,11 +836,11 @@ msgid "Add Dashboard"
 msgstr "Adicionar Painel"
 
 #, fuzzy
-msgid "Add Divider"
+msgid "Add divider"
 msgstr "Divisor"
 
 #, fuzzy
-msgid "Add Filter"
+msgid "Add filter"
 msgstr "Adicionar filtro"
 
 #, fuzzy
@@ -1879,7 +1879,7 @@ msgstr "Filtros de preenchimento automático"
 msgid "Autocomplete query predicate"
 msgstr "Predicado de consulta de preenchimento automático"
 
-msgid "Automatic Color"
+msgid "Automatic color"
 msgstr "Cor Automática"
 
 #, fuzzy
@@ -3369,7 +3369,7 @@ msgstr "Mapa do País"
 msgid "Create"
 msgstr "Criar"
 
-msgid "Create Chart"
+msgid "Create chart"
 msgstr "Criar gráfico"
 
 msgid "Create a dataset"
@@ -9042,7 +9042,7 @@ msgstr "Recurso já tem um relatório anexado."
 msgid "Resource was not found."
 msgstr "O recurso não foi encontrado."
 
-msgid "Restore Filter"
+msgid "Restore filter"
 msgstr "Restaurar filtro"
 
 msgid "Results"
