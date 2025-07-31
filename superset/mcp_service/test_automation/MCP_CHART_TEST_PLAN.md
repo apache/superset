@@ -552,6 +552,28 @@ Action: Display in a code block:
 [ASCII art will appear here]
 ```
 
+### Vega-Lite Preview (Interactive Specification)
+```
+Test: Get chart as Vega-Lite JSON specification
+Request:
+{
+  "identifier": 1,
+  "format": "vega_lite",
+  "width": 400,
+  "height": 300
+}
+Expected: Returns interactive Vega-Lite specification
+Action: DISPLAY THE VEGA-LITE SPECIFICATION - this is a JSON object that can be rendered in Vega-Lite compatible viewers:
+```
+{
+  "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+  "description": "Chart preview for [Chart Name]",
+  "data": {"values": [...]},
+  "mark": {...},
+  "encoding": {...}
+}
+```
+
 ### Table Preview
 ```
 Test: Get chart data as formatted table

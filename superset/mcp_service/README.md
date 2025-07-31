@@ -357,8 +357,17 @@ get_chart_preview(request={
 **Preview Formats:**
 - **URL**: Screenshot URLs served by MCP service
 - **Base64**: Embedded image data for direct display  
-- **ASCII**: Text-based charts for terminal/chat display
+- **ASCII**: Enhanced text-based charts with:
+  - Horizontal and vertical bar charts with gradient effects
+  - Connected line charts with trend analysis (📈 📉 ➡️)
+  - Smart table formatting with numeric summaries
+  - Professional Unicode box-drawing characters
 - **Table**: Structured data representation
+- **Vega-Lite**: Interactive chart specifications (v5) with:
+  - Support for 13+ chart types (line, bar, area, scatter, pie, etc.)
+  - Intelligent data type detection (temporal, quantitative, nominal)
+  - Proper field mapping and encoding
+  - Interactive tooltips and responsive layouts
 
 ## Modular Structure & Best Practices
 
