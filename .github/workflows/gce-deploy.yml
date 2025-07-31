@@ -131,9 +131,9 @@ jobs:
         run: |
           gcloud components install beta --quiet
 
-      - name: Set Script Permissions on GCE VM
-        run: |
-          gcloud beta compute ssh runner@${{env.GCE_VM_NAME}} --zone ${{env.GCE_ZONE}} --project ${{env.GCE_PROJECT}} --ssh-key-file=id_rsa --command "chmod +x $DIRECTORY_PATH/deploy_updated_version.sh"
+#      - name: Set Script Permissions on GCE VM
+#        run: |
+#          gcloud beta compute ssh runner@${{env.GCE_VM_NAME}} --zone ${{env.GCE_ZONE}} --project ${{env.GCE_PROJECT}} --ssh-key-file=id_rsa --command "chmod +x $DIRECTORY_PATH/deploy_updated_version.sh"
 
       - name: Run SSH Command on GCE VM
         env:
