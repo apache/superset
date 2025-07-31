@@ -358,7 +358,8 @@ describe('Total value positioning with legends', () => {
     expect(transformed.echartOptions.graphic).toEqual(
       expect.objectContaining({
         type: 'text',
-        top: expect.stringMatching(/^\d+(\.\d+)?%$/), // Should be percentage, not 'middle'
+        top: '0', // Non-donut charts use '0' as default top position
+        left: expect.stringMatching(/^\d+(\.\d+)?%$/), // Should still adjust left for right legend
       }),
     );
   });
