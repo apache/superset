@@ -72,35 +72,45 @@ def _create_dashboard_layout(chart_objects: List[Any]) -> Dict[str, Any]:
     """
     layout: Dict[str, Any] = {}
 
-    # Grid configuration
-    chart_width = 24  # Half width for 2-column layout
-    chart_height = 16  # Standard chart height
+    # Grid configuration based on real Superset dashboard patterns
+    # Use 2-chart rows with medium-sized charts (like existing dashboards)
+    charts_per_row = 2
+    chart_width = 5  # Balanced width for good proportions
+    chart_height = 50  # Good height for most chart types
 
-    # Create rows for charts (simple approach: one chart per row)
+    # Create rows with charts
     row_ids = []
-    for i, chart in enumerate(chart_objects):
-        row_id = f"ROW-{i}"
+    for i in range(0, len(chart_objects), charts_per_row):
+        row_index = i // charts_per_row
+        row_id = f"ROW-{row_index}"
         row_ids.append(row_id)
 
-        # Create chart component in layout with position data in meta
-        chart_key = f"CHART-{chart.id}"
-        layout[chart_key] = {
-            "children": [],
-            "id": chart_key,
-            "meta": {
-                "chartId": chart.id,
-                "height": chart_height,
-                "sliceName": chart.slice_name or f"Chart {chart.id}",
-                "uuid": str(chart.uuid) if chart.uuid else f"chart-{chart.id}",
-                "width": chart_width,
-            },
-            "parents": ["ROOT_ID", "GRID_ID", row_id],
-            "type": "CHART",
-        }
+        # Get charts for this row (up to 2 charts like real dashboards)
+        row_charts = chart_objects[i : i + charts_per_row]
+        chart_keys = []
 
-        # Create row for the chart
+        for chart in row_charts:
+            chart_key = f"CHART-{chart.id}"
+            chart_keys.append(chart_key)
+
+            # Create chart component with standard dimensions
+            layout[chart_key] = {
+                "children": [],
+                "id": chart_key,
+                "meta": {
+                    "chartId": chart.id,
+                    "height": chart_height,
+                    "sliceName": chart.slice_name or f"Chart {chart.id}",
+                    "uuid": str(chart.uuid) if chart.uuid else f"chart-{chart.id}",
+                    "width": chart_width,
+                },
+                "parents": ["ROOT_ID", "GRID_ID", row_id],
+                "type": "CHART",
+            }
+
+        # Create row containing the charts
         layout[row_id] = {
-            "children": [chart_key],
+            "children": chart_keys,
             "id": row_id,
             "meta": {"background": "BACKGROUND_TRANSPARENT"},
             "parents": ["ROOT_ID", "GRID_ID"],
