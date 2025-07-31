@@ -27,7 +27,7 @@ from urllib import parse
 
 from flask import (
     abort,
-    current_app,
+    current_app as app,
     flash,
     g,
     redirect,
@@ -487,8 +487,8 @@ class Superset(BaseSupersetView):
             selectedColumns = form_data.pop("selectedColumns")  # noqa: N806
 
         if "viz_type" not in form_data:
-            form_data["viz_type"] = current_app.config["DEFAULT_VIZ_TYPE"]
-            if current_app.config["DEFAULT_VIZ_TYPE"] == "table":
+            form_data["viz_type"] = app.config["DEFAULT_VIZ_TYPE"]
+            if app.config["DEFAULT_VIZ_TYPE"] == "table":
                 all_columns = []
                 for x in selectedColumns:
                     all_columns.append(x["name"])

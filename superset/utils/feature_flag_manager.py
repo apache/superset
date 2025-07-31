@@ -27,11 +27,10 @@ class FeatureFlagManager:
         self._feature_flags: dict[str, bool] = {}
 
     def init_app(self, app: Flask) -> None:
-        conf = app.config
-        self._get_feature_flags_func = conf["GET_FEATURE_FLAGS_FUNC"]
-        self._is_feature_enabled_func = conf["IS_FEATURE_ENABLED_FUNC"]
-        self._feature_flags = conf["DEFAULT_FEATURE_FLAGS"]
-        self._feature_flags.update(conf["FEATURE_FLAGS"])
+        self._get_feature_flags_func = app.config["GET_FEATURE_FLAGS_FUNC"]
+        self._is_feature_enabled_func = app.config["IS_FEATURE_ENABLED_FUNC"]
+        self._feature_flags = app.config["DEFAULT_FEATURE_FLAGS"]
+        self._feature_flags.update(app.config["FEATURE_FLAGS"])
 
     def get_feature_flags(self) -> dict[str, bool]:
         if self._get_feature_flags_func:

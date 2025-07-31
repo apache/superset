@@ -67,7 +67,7 @@ import pandas as pd
 import sqlalchemy as sa
 from cryptography.hazmat.backends import default_backend
 from cryptography.x509 import Certificate, load_pem_x509_certificate
-from flask import current_app, g, request
+from flask import current_app as app, g, request
 from flask_appbuilder import SQLA
 from flask_appbuilder.security.sqla.models import User
 from flask_babel import gettext as __
@@ -1383,8 +1383,7 @@ def create_ssl_cert_file(certificate: str) -> str:
     filename = f"{md5_sha_from_str(certificate)}.crt"
     # pylint: disable=import-outside-toplevel
 
-    conf = current_app.config
-    cert_dir = conf["SSL_CERT_PATH"]
+    cert_dir = app.config["SSL_CERT_PATH"]
     path = cert_dir if cert_dir else tempfile.gettempdir()
     path = os.path.join(path, filename)
     if not os.path.exists(path):
@@ -1433,8 +1432,7 @@ class DatasourceName(NamedTuple):
 def get_stacktrace() -> str | None:
     # pylint: disable=import-outside-toplevel
 
-    conf = current_app.config
-    if conf["SHOW_STACKTRACE"]:
+    if app.config["SHOW_STACKTRACE"]:
         return traceback.format_exc()
     return None
 
@@ -1875,9 +1873,10 @@ def apply_max_row_limit(
     """
     # pylint: disable=import-outside-toplevel
 
-    conf = current_app.config
     max_limit = (
-        conf["TABLE_VIZ_MAX_ROW_SERVER"] if server_pagination else conf["SQL_MAX_ROW"]
+        app.config["TABLE_VIZ_MAX_ROW_SERVER"]
+        if server_pagination
+        else app.config["SQL_MAX_ROW"]
     )
     if limit != 0:
         return min(max_limit, limit)
@@ -1903,16 +1902,15 @@ def check_is_safe_zip(zip_file: ZipFile) -> None:
     """
     # pylint: disable=import-outside-toplevel
 
-    conf = current_app.config
     uncompress_size = 0
     compress_size = 0
     for zip_file_element in zip_file.infolist():
-        if zip_file_element.file_size > conf["ZIPPED_FILE_MAX_SIZE"]:
+        if zip_file_element.file_size > app.config["ZIPPED_FILE_MAX_SIZE"]:
             raise SupersetException("Found file with size above allowed threshold")
         uncompress_size += zip_file_element.file_size
         compress_size += zip_file_element.compress_size
     compress_ratio = uncompress_size / compress_size
-    if compress_ratio > conf["ZIP_FILE_MAX_COMPRESS_RATIO"]:
+    if compress_ratio > app.config["ZIP_FILE_MAX_COMPRESS_RATIO"]:
         raise SupersetException("Zip compress ratio above allowed threshold")
 
 
@@ -1951,9 +1949,8 @@ def get_query_source_from_request() -> QuerySource | None:
 def get_user_agent(database: Database, source: QuerySource | None) -> str:
     # pylint: disable=import-outside-toplevel
 
-    conf = current_app.config
     source = source or get_query_source_from_request()
-    if user_agent_func := conf["USER_AGENT_FUNC"]:
+    if user_agent_func := app.config["USER_AGENT_FUNC"]:
         return user_agent_func(database, source)
 
     return DEFAULT_USER_AGENT

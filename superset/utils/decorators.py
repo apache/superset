@@ -24,7 +24,7 @@ from functools import wraps
 from typing import Any, Callable, TYPE_CHECKING
 from uuid import UUID
 
-from flask import current_app, g, Response
+from flask import current_app as app, g, Response
 from sqlalchemy.exc import SQLAlchemyError
 
 from superset.utils import core as utils
@@ -44,18 +44,17 @@ def statsd_gauge(metric_prefix: str | None = None) -> Callable[..., Any]:
 
         def wrapped(*args: Any, **kwargs: Any) -> Any:
             metric_prefix_ = metric_prefix or f.__name__
-            conf = current_app.config
             try:
                 result = f(*args, **kwargs)
-                conf["STATS_LOGGER"].gauge(f"{metric_prefix_}.ok", 1)
+                app.config["STATS_LOGGER"].gauge(f"{metric_prefix_}.ok", 1)
                 return result
             except Exception as ex:
                 if (
                     hasattr(ex, "status") and ex.status < 500  # pylint: disable=no-member
                 ):
-                    conf["STATS_LOGGER"].gauge(f"{metric_prefix_}.warning", 1)
+                    app.config["STATS_LOGGER"].gauge(f"{metric_prefix_}.warning", 1)
                 else:
-                    conf["STATS_LOGGER"].gauge(f"{metric_prefix_}.error", 1)
+                    app.config["STATS_LOGGER"].gauge(f"{metric_prefix_}.error", 1)
                 raise
 
         return wrapped

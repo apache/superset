@@ -17,7 +17,7 @@
 from datetime import datetime
 from typing import Any, Dict
 
-from flask import current_app, g, redirect, request, Response
+from flask import current_app as app, g, redirect, request, Response
 from flask_appbuilder.api import expose, safe
 from flask_appbuilder.security.sqla.models import User
 from flask_jwt_extended.exceptions import NoAuthorizationError
@@ -51,12 +51,8 @@ class CurrentUserRestApi(BaseSupersetApi):
         if "password" in data and data["password"]:
             item.password = generate_password_hash(
                 password=data["password"],
-                method=self.appbuilder.get_app.config.get(
-                    "FAB_PASSWORD_HASH_METHOD", "scrypt"
-                ),
-                salt_length=self.appbuilder.get_app.config.get(
-                    "FAB_PASSWORD_HASH_SALT_LENGTH", 16
-                ),
+                method=app.config.get("FAB_PASSWORD_HASH_METHOD", "scrypt"),
+                salt_length=app.config.get("FAB_PASSWORD_HASH_SALT_LENGTH", 16),
             )
 
     @expose("/", methods=("GET",))
@@ -222,8 +218,7 @@ class UserRestApi(BaseSupersetApi):
         if len(user.extra_attributes) > 0:
             avatar_url = user.extra_attributes[0].avatar_url
 
-        conf = current_app.config
-        slack_token = conf.get("SLACK_API_TOKEN")
+        slack_token = app.config.get("SLACK_API_TOKEN")
         if (
             not avatar_url
             and slack_token

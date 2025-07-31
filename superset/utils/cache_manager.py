@@ -63,8 +63,7 @@ class CacheManager:
     def _init_cache(
         app: Flask, cache: Cache, cache_config_key: str, required: bool = False
     ) -> None:
-        conf = app.config
-        cache_config = conf[cache_config_key]
+        cache_config = app.config[cache_config_key]
         cache_type = cache_config.get("CACHE_TYPE")
         if (required and cache_type is None) or cache_type == "SupersetMetastoreCache":
             if cache_type is None and not app.debug:
@@ -82,7 +81,7 @@ class CacheManager:
             )
 
         if cache_type is not None and "CACHE_DEFAULT_TIMEOUT" not in cache_config:
-            default_timeout = conf.get("CACHE_DEFAULT_TIMEOUT")
+            default_timeout = app.config.get("CACHE_DEFAULT_TIMEOUT")
             cache_config["CACHE_DEFAULT_TIMEOUT"] = default_timeout
 
         cache.init_app(app, cache_config)

@@ -35,7 +35,7 @@ import pandas as pd
 import pytz
 import sqlalchemy as sa
 import yaml
-from flask import current_app, g
+from flask import current_app as app, g
 from flask_appbuilder import Model
 from flask_appbuilder.models.decorators import renders
 from flask_appbuilder.models.mixins import AuditMixin
@@ -1869,7 +1869,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 )
 
                 # Get ADVANCED_DATA_TYPES from config when needed
-                ADVANCED_DATA_TYPES = current_app.config.get("ADVANCED_DATA_TYPES", {})  # noqa: N806
+                ADVANCED_DATA_TYPES = app.config.get("ADVANCED_DATA_TYPES", {})  # noqa: N806
 
                 if (
                     col_advanced_data_type != ""

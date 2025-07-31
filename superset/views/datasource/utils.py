@@ -16,7 +16,7 @@
 # under the License.
 from typing import Any, Optional
 
-from flask import current_app
+from flask import current_app as app
 
 from superset.commands.dataset.exceptions import DatasetSamplesFailedError
 from superset.common.chart_data import ChartDataResultType
@@ -29,8 +29,7 @@ from superset.views.datasource.schemas import SamplesPayloadSchema
 
 
 def get_limit_clause(page: Optional[int], per_page: Optional[int]) -> dict[str, int]:
-    conf = current_app.config
-    samples_row_limit = conf.get("SAMPLES_ROW_LIMIT", 1000)
+    samples_row_limit = app.config.get("SAMPLES_ROW_LIMIT", 1000)
     limit = samples_row_limit
     offset = 0
 

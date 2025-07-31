@@ -38,7 +38,7 @@ from pathlib import Path
 from typing import Any, Optional
 
 import sqlalchemy.dialects
-from flask import current_app
+from flask import current_app as app
 from sqlalchemy.engine.default import DefaultDialect
 from sqlalchemy.exc import NoSuchModuleError
 
@@ -167,8 +167,7 @@ def get_available_engine_specs() -> dict[type[BaseEngineSpec], set[str]]:  # noq
                 driver = driver.decode()
             drivers[backend].add(driver)
 
-    conf = current_app.config
-    dbs_denylist = conf["DBS_AVAILABLE_DENYLIST"]
+    dbs_denylist = app.config["DBS_AVAILABLE_DENYLIST"]
     if not feature_flag_manager.is_feature_enabled("ENABLE_SUPERSET_META_DB"):
         dbs_denylist["superset"] = {""}
     dbs_denylist_engines = dbs_denylist.keys()

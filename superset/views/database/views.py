@@ -16,7 +16,7 @@
 # under the License.
 from typing import TYPE_CHECKING
 
-from flask import current_app
+from flask import current_app as app
 from flask_appbuilder import expose
 from flask_appbuilder.security.decorators import has_access
 
@@ -29,7 +29,7 @@ if TYPE_CHECKING:
 
 
 def upload_stream_write(form_file_field: "FileStorage", path: str) -> None:
-    chunk_size = current_app.config["UPLOAD_CHUNK_SIZE"]
+    chunk_size = app.config["UPLOAD_CHUNK_SIZE"]
     with open(path, "bw") as file_description:
         while True:
             chunk = form_file_field.stream.read(chunk_size)

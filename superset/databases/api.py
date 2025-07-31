@@ -26,7 +26,7 @@ from zipfile import is_zipfile, ZipFile
 
 from deprecation import deprecated
 from flask import (
-    current_app,
+    current_app as app,
     make_response,
     render_template,
     request,
@@ -669,8 +669,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             pk,
             current_username,
         ).run()
-        conf = current_app.config
-        if conf["SYNC_DB_PERMISSIONS_IN_ASYNC_MODE"]:
+        if app.config["SYNC_DB_PERMISSIONS_IN_ASYNC_MODE"]:
             return self.response(202, message="Async task created to sync permissions")
         return self.response(200, message="Permissions successfully synced")
 
@@ -1884,8 +1883,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             500:
               $ref: '#/components/responses/500'
         """
-        conf = current_app.config
-        preferred_databases: list[str] = conf.get("PREFERRED_DATABASES", [])
+        preferred_databases: list[str] = app.config.get("PREFERRED_DATABASES", [])
         available_databases = []
         for engine_spec, drivers in get_available_engine_specs().items():
             if not drivers:

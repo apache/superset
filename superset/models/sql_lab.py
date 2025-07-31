@@ -25,7 +25,7 @@ from datetime import datetime
 from typing import Any, Optional, TYPE_CHECKING
 
 import sqlalchemy as sqla
-from flask import current_app
+from flask import current_app as app
 from flask_appbuilder import Model
 from flask_appbuilder.models.decorators import renders
 from flask_babel import gettext as __
@@ -334,7 +334,7 @@ class Query(
         Transform tracking url at run time because the exact URL may depend
         on query properties such as execution and finish time.
         """
-        transform = current_app.config.get("TRACKING_URL_TRANSFORMER")
+        transform = app.config.get("TRACKING_URL_TRANSFORMER")
         url = self.tracking_url_raw
         if url and transform:
             sig = inspect.signature(transform)

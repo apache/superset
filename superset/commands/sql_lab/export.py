@@ -20,7 +20,7 @@ import logging
 from typing import Any, cast, TypedDict
 
 import pandas as pd
-from flask import current_app
+from flask import current_app as app
 from flask_babel import gettext as __
 
 from superset import db, results_backend, results_backend_use_msgpack
@@ -131,9 +131,8 @@ class SqlResultExportCommand(BaseCommand):
             )[:limit]
 
         # Manual encoding using the specified encoding (default to utf-8 if not set)
-        conf = current_app.config
-        csv_string = csv.df_to_escaped_csv(df, index=False, **conf["CSV_EXPORT"])
-        csv_data = csv_string.encode(conf["CSV_EXPORT"].get("encoding", "utf-8"))
+        csv_string = csv.df_to_escaped_csv(df, index=False, **app.config["CSV_EXPORT"])
+        csv_data = csv_string.encode(app.config["CSV_EXPORT"].get("encoding", "utf-8"))
 
         return {
             "query": self._query,

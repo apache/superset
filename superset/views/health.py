@@ -14,7 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from flask import Blueprint, current_app
+from flask import Blueprint, current_app as app
 
 from superset import talisman
 from superset.stats_logger import BaseStatsLogger
@@ -28,7 +28,6 @@ health_blueprint = Blueprint("health", __name__)
 @health_blueprint.route("/ping")
 @talisman(force_https=False)
 def health() -> FlaskResponse:
-    conf = current_app.config
-    stats_logger: BaseStatsLogger = conf["STATS_LOGGER"]
+    stats_logger: BaseStatsLogger = app.config["STATS_LOGGER"]
     stats_logger.incr("health")
     return "OK"

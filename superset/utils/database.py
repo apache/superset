@@ -19,7 +19,7 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING
 
-from flask import current_app
+from flask import current_app as app
 
 from superset.constants import EXAMPLES_DB_UUID
 
@@ -66,13 +66,13 @@ def get_or_create_db(
 def get_example_database() -> Database:
     # pylint: disable=import-outside-toplevel
 
-    return get_or_create_db("examples", current_app.config["SQLALCHEMY_EXAMPLES_URI"])
+    return get_or_create_db("examples", app.config["SQLALCHEMY_EXAMPLES_URI"])
 
 
 def get_main_database() -> Database:
     # pylint: disable=import-outside-toplevel
 
-    db_uri = current_app.config["SQLALCHEMY_DATABASE_URI"]
+    db_uri = app.config["SQLALCHEMY_DATABASE_URI"]
     return get_or_create_db("main", db_uri)
 
 

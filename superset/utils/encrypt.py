@@ -54,8 +54,7 @@ class SQLAlchemyUtilsAdapter(  # pylint: disable=too-few-public-methods
         **kwargs: Optional[dict[str, Any]],
     ) -> TypeDecorator:
         if app_config:
-            conf = app_config
-            return EncryptedType(*args, conf["SECRET_KEY"], **kwargs)
+            return EncryptedType(*args, app_config["SECRET_KEY"], **kwargs)
 
         raise Exception(  # pylint: disable=broad-exception-raised
             "Missing app_config kwarg"
@@ -68,9 +67,10 @@ class EncryptedFieldFactory:
         self._config: Optional[dict[str, Any]] = None
 
     def init_app(self, app: Flask) -> None:
-        conf = app.config
-        self._config = conf
-        self._concrete_type_adapter = conf["SQLALCHEMY_ENCRYPTED_FIELD_TYPE_ADAPTER"]()
+        self._config = app.config
+        self._concrete_type_adapter = app.config[
+            "SQLALCHEMY_ENCRYPTED_FIELD_TYPE_ADAPTER"
+        ]()
 
     def create(
         self, *args: list[Any], **kwargs: Optional[dict[str, Any]]

@@ -18,7 +18,7 @@ import logging
 from abc import ABC
 from typing import Optional
 
-from flask import current_app
+from flask import current_app as app
 from sqlalchemy.exc import SQLAlchemyError
 
 from superset.commands.base import BaseCommand
@@ -29,14 +29,13 @@ from superset.commands.temporary_cache.exceptions import TemporaryCacheGetFailed
 from superset.extensions import cache_manager
 from superset.utils.core import DatasourceType
 
-conf = current_app.config
 logger = logging.getLogger(__name__)
 
 
 class GetFormDataCommand(BaseCommand, ABC):
     def __init__(self, cmd_params: CommandParameters) -> None:
         self._cmd_params = cmd_params
-        self._refresh_timeout = conf["EXPLORE_FORM_DATA_CACHE_CONFIG"].get(
+        self._refresh_timeout = app.config["EXPLORE_FORM_DATA_CACHE_CONFIG"].get(
             "REFRESH_TIMEOUT_ON_RETRIEVAL"
         )
 

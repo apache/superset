@@ -565,14 +565,15 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         @self.superset_app.after_request
         def apply_http_headers(response: Response) -> Response:
             """Applies the configuration's http headers to all responses"""
-            conf = self.superset_app.config
-
             # HTTP_HEADERS is deprecated, this provides backwards compatibility
             response.headers.extend(
-                {**conf["OVERRIDE_HTTP_HEADERS"], **conf["HTTP_HEADERS"]}
+                {
+                    **self.superset_app.config["OVERRIDE_HTTP_HEADERS"],
+                    **self.superset_app.config["HTTP_HEADERS"],
+                }
             )
 
-            for k, v in conf["DEFAULT_HTTP_HEADERS"].items():
+            for k, v in self.superset_app.config["DEFAULT_HTTP_HEADERS"].items():
                 if k not in response.headers:
                     response.headers[k] = v
             return response

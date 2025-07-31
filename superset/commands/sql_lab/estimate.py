@@ -19,7 +19,7 @@ from __future__ import annotations
 import logging
 from typing import Any, TypedDict
 
-from flask import current_app
+from flask import current_app as app
 from flask_babel import gettext as __
 
 from superset import db
@@ -78,7 +78,7 @@ class QueryEstimationCommand(BaseCommand):
             template_processor = get_template_processor(self._database)
             sql = template_processor.process_template(sql, **self._template_params)
 
-        timeout = current_app.config["SQLLAB_QUERY_COST_ESTIMATE_TIMEOUT"]
+        timeout = app.config["SQLLAB_QUERY_COST_ESTIMATE_TIMEOUT"]
         timeout_msg = f"The estimation exceeded the {timeout} seconds timeout."
         try:
             with utils.timeout(seconds=timeout, error_message=timeout_msg):
@@ -97,9 +97,7 @@ class QueryEstimationCommand(BaseCommand):
                         "The query estimation was killed after %(sqllab_timeout)s "
                         "seconds. It might be too complex, or the database might be "
                         "under heavy load.",
-                        sqllab_timeout=current_app.config[
-                            "SQLLAB_QUERY_COST_ESTIMATE_TIMEOUT"
-                        ],
+                        sqllab_timeout=app.config["SQLLAB_QUERY_COST_ESTIMATE_TIMEOUT"],
                     ),
                     error_type=SupersetErrorType.SQLLAB_TIMEOUT_ERROR,
                     level=ErrorLevel.ERROR,
@@ -108,7 +106,7 @@ class QueryEstimationCommand(BaseCommand):
             ) from ex
 
         spec = self._database.db_engine_spec
-        query_cost_formatters: dict[str, Any] = current_app.config[
+        query_cost_formatters: dict[str, Any] = app.config[
             "QUERY_COST_FORMATTERS_BY_ENGINE"
         ]
         query_cost_formatter = query_cost_formatters.get(

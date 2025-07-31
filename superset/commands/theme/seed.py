@@ -17,7 +17,7 @@
 import logging
 from typing import Any
 
-from flask import current_app
+from flask import current_app as app
 
 from superset.commands.base import BaseCommand
 from superset.daos.theme import ThemeDAO
@@ -36,9 +36,9 @@ class SeedSystemThemesCommand(BaseCommand):
         """Seed system themes defined in application configuration."""
 
         themes_to_seed = []
-        if theme_default := current_app.config.get("THEME_DEFAULT"):
+        if theme_default := app.config.get("THEME_DEFAULT"):
             themes_to_seed.append(("THEME_DEFAULT", theme_default))
-        if theme_dark := current_app.config.get("THEME_DARK"):
+        if theme_dark := app.config.get("THEME_DARK"):
             themes_to_seed.append(("THEME_DARK", theme_dark))
 
         for theme_name, theme_config in themes_to_seed:

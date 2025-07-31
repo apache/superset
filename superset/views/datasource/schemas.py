@@ -16,7 +16,7 @@
 # under the License.
 from typing import Any, Optional, TypedDict
 
-from flask import current_app
+from flask import current_app as app
 from marshmallow import fields, post_load, pre_load, Schema, validate
 
 from superset.charts.schemas import ChartDataExtrasSchema, ChartDataFilterSchema
@@ -115,5 +115,5 @@ class SamplesRequestSchema(Schema):
             data = dict(data)
 
         if "per_page" not in data:
-            data["per_page"] = current_app.config.get("SAMPLES_ROW_LIMIT", 1000)
+            data["per_page"] = app.config.get("SAMPLES_ROW_LIMIT", 1000)
         return data

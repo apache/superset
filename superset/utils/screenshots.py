@@ -23,7 +23,7 @@ from enum import Enum
 from io import BytesIO
 from typing import cast, TYPE_CHECKING, TypedDict
 
-from flask import current_app
+from flask import current_app as app
 
 from superset import feature_flag_manager, thumbnail_cache
 from superset.extensions import event_logger
@@ -133,7 +133,7 @@ class ScreenshotCachePayload:
         return self.status.value
 
     def is_error_cache_ttl_expired(self) -> bool:
-        error_cache_ttl = current_app.config["THUMBNAIL_ERROR_CACHE_TTL"]
+        error_cache_ttl = app.config["THUMBNAIL_ERROR_CACHE_TTL"]
         return (
             datetime.now() - datetime.fromisoformat(self.get_timestamp())
         ).total_seconds() > error_cache_ttl
@@ -149,8 +149,7 @@ class ScreenshotCachePayload:
 class BaseScreenshot:
     @property
     def driver_type(self) -> str:
-        conf = current_app.config
-        return conf["WEBDRIVER_TYPE"]
+        return app.config["WEBDRIVER_TYPE"]
 
     url: str
     digest: str | None

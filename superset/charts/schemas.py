@@ -45,8 +45,7 @@ def get_time_grain_choices() -> Any:
     """Get time grain choices including addons from config"""
     try:
         # Try to get config from current app context
-        conf = current_app.config
-        time_grain_addons = conf.get("TIME_GRAIN_ADDONS", {})
+        time_grain_addons = current_app.config.get("TIME_GRAIN_ADDONS", {})
     except RuntimeError:
         # Outside app context, use empty addons
         time_grain_addons = {}

@@ -24,7 +24,7 @@ from typing import Any, TYPE_CHECKING, TypedDict
 
 from apispec import APISpec
 from apispec.ext.marshmallow import MarshmallowPlugin
-from flask import current_app
+from flask import current_app as app
 from flask_babel import gettext as __
 from marshmallow import fields, Schema
 from sqlalchemy import types
@@ -252,7 +252,7 @@ class DuckDBEngineSpec(DuckDBParametersMixin, BaseEngineSpec):
         delim = " " if custom_user_agent else ""
         user_agent = get_user_agent(database, source)
         user_agent = user_agent.replace(" ", "-").lower()
-        version_string = current_app.config["VERSION_STRING"]
+        version_string = app.config["VERSION_STRING"]
         user_agent = f"{user_agent}/{version_string}{delim}{custom_user_agent}"
         config.setdefault("custom_user_agent", user_agent)
 

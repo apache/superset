@@ -19,7 +19,7 @@ from __future__ import annotations
 import logging
 from typing import Any, cast
 
-from flask import current_app
+from flask import current_app as app
 from flask_babel import gettext as __
 
 from superset import db, results_backend, results_backend_use_msgpack
@@ -61,7 +61,7 @@ class SqlExecutionResultsCommand(BaseCommand):
 
         read_from_results_backend_start = now_as_float()
         self._blob = results_backend.get(self._key)
-        current_app.config["STATS_LOGGER"].timing(
+        app.config["STATS_LOGGER"].timing(
             "sqllab.query.results_backend_read",
             now_as_float() - read_from_results_backend_start,
         )

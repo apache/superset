@@ -21,7 +21,7 @@ from datetime import datetime
 from typing import Any, Optional
 from urllib import parse
 
-from flask import current_app
+from flask import current_app as app
 from sqlalchemy import types
 from sqlalchemy.engine import URL
 
@@ -494,13 +494,12 @@ class SingleStoreSpec(BasicParametersMixin, BaseEngineSpec):
         if schema:
             uri = uri.set(database=parse.quote(schema, safe=""))
 
-        conf = current_app.config
         connect_args.setdefault(
             "conn_attrs",
             {
                 "_connector_name": "SingleStore Superset Database Engine",
-                "_connector_version": conf.get("VERSION_STRING", "dev"),
-                "_product_version": conf.get("VERSION_STRING", "dev"),
+                "_connector_version": app.config.get("VERSION_STRING", "dev"),
+                "_product_version": app.config.get("VERSION_STRING", "dev"),
             },
         )
         return uri, connect_args

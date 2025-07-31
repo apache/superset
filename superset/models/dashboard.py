@@ -22,7 +22,7 @@ from collections import defaultdict, deque
 from typing import Any, Callable
 
 import sqlalchemy as sqla
-from flask import current_app
+from flask import current_app as app
 from flask_appbuilder import Model
 from flask_appbuilder.models.decorators import renders
 from flask_appbuilder.security.sqla.models import User
@@ -58,8 +58,7 @@ logger = logging.getLogger(__name__)
 
 
 def copy_dashboard(_mapper: Mapper, _connection: Connection, target: Dashboard) -> None:
-    conf = current_app.config
-    dashboard_id = conf["DASHBOARD_TEMPLATE_ID"]
+    dashboard_id = app.config["DASHBOARD_TEMPLATE_ID"]
     if dashboard_id is None:
         return
 

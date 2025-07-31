@@ -16,7 +16,7 @@
 # under the License.
 from typing import Optional
 
-from flask import current_app
+from flask import current_app as app
 
 from superset.commands.dashboard.filter_state.utils import check_access
 from superset.commands.temporary_cache.get import GetTemporaryCacheCommand
@@ -24,13 +24,11 @@ from superset.commands.temporary_cache.parameters import CommandParameters
 from superset.extensions import cache_manager
 from superset.temporary_cache.utils import cache_key
 
-conf = current_app.config
-
 
 class GetFilterStateCommand(GetTemporaryCacheCommand):
     def __init__(self, cmd_params: CommandParameters) -> None:
         super().__init__(cmd_params)
-        self._refresh_timeout = conf["FILTER_STATE_CACHE_CONFIG"].get(
+        self._refresh_timeout = app.config["FILTER_STATE_CACHE_CONFIG"].get(
             "REFRESH_TIMEOUT_ON_RETRIEVAL"
         )
 

@@ -21,7 +21,7 @@ from uuid import UUID
 
 import pandas as pd
 from celery.exceptions import SoftTimeLimitExceeded
-from flask import current_app
+from flask import current_app as app
 
 from superset import db, security_manager
 from superset.commands.base import BaseCommand
@@ -312,19 +312,18 @@ class BaseReportState:
         :raises: ReportScheduleScreenshotFailedError
         """
 
-        conf = current_app.config
         _, username = get_executor(
-            executors=conf["ALERT_REPORTS_EXECUTORS"],
+            executors=app.config["ALERT_REPORTS_EXECUTORS"],
             model=self._report_schedule,
         )
         user = security_manager.find_user(username)
 
-        max_width = conf["ALERT_REPORTS_MAX_CUSTOM_SCREENSHOT_WIDTH"]
+        max_width = app.config["ALERT_REPORTS_MAX_CUSTOM_SCREENSHOT_WIDTH"]
 
         if self._report_schedule.chart:
             url = self._get_url()
 
-            window_width, window_height = conf["WEBDRIVER_WINDOW"]["slice"]
+            window_width, window_height = app.config["WEBDRIVER_WINDOW"]["slice"]
             width = min(max_width, self._report_schedule.custom_width or window_width)
             height = self._report_schedule.custom_height or window_height
             window_size = (width, height)
@@ -334,13 +333,13 @@ class BaseReportState:
                     url,
                     self._report_schedule.chart.digest,
                     window_size=window_size,
-                    thumb_size=conf["WEBDRIVER_WINDOW"]["slice"],
+                    thumb_size=app.config["WEBDRIVER_WINDOW"]["slice"],
                 )
             ]
         else:
             urls = self.get_dashboard_urls()
 
-            window_width, window_height = conf["WEBDRIVER_WINDOW"]["dashboard"]
+            window_width, window_height = app.config["WEBDRIVER_WINDOW"]["dashboard"]
             width = min(max_width, self._report_schedule.custom_width or window_width)
             height = self._report_schedule.custom_height or window_height
             window_size = (width, height)
@@ -350,7 +349,7 @@ class BaseReportState:
                     url,
                     self._report_schedule.dashboard.digest,
                     window_size=window_size,
-                    thumb_size=conf["WEBDRIVER_WINDOW"]["dashboard"],
+                    thumb_size=app.config["WEBDRIVER_WINDOW"]["dashboard"],
                 )
                 for url in urls
             ]
@@ -383,7 +382,7 @@ class BaseReportState:
     def _get_csv_data(self) -> bytes:
         url = self._get_url(result_format=ChartDataResultFormat.CSV)
         _, username = get_executor(
-            executors=current_app.config["ALERT_REPORTS_EXECUTORS"],
+            executors=app.config["ALERT_REPORTS_EXECUTORS"],
             model=self._report_schedule,
         )
         user = security_manager.find_user(username)
@@ -413,7 +412,7 @@ class BaseReportState:
 
         url = self._get_url(result_format=ChartDataResultFormat.JSON)
         _, username = get_executor(
-            executors=current_app.config["ALERT_REPORTS_EXECUTORS"],
+            executors=app.config["ALERT_REPORTS_EXECUTORS"],
             model=self._report_schedule,
         )
         user = security_manager.find_user(username)
@@ -574,7 +573,7 @@ class BaseReportState:
             notification = create_notification(recipient, notification_content)
             try:
                 try:
-                    if current_app.config["ALERT_REPORTS_NOTIFICATION_DRY_RUN"]:
+                    if app.config["ALERT_REPORTS_NOTIFICATION_DRY_RUN"]:
                         logger.info(
                             "Would send notification for alert %s, to %s. "
                             "ALERT_REPORTS_NOTIFICATION_DRY_RUN is enabled, "
@@ -886,7 +885,7 @@ class AsyncExecuteReportScheduleCommand(BaseCommand):
                 raise ReportScheduleExecuteUnexpectedError()
 
             _, username = get_executor(
-                executors=current_app.config["ALERT_REPORTS_EXECUTORS"],
+                executors=app.config["ALERT_REPORTS_EXECUTORS"],
                 model=self._model,
             )
             user = security_manager.find_user(username)

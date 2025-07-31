@@ -20,7 +20,7 @@ import logging
 from functools import partial
 from typing import Iterable
 
-from flask import current_app, g
+from flask import current_app as app, g
 
 from superset import security_manager
 from superset.commands.base import BaseCommand
@@ -74,7 +74,7 @@ class SyncPermissionsCommand(BaseCommand):
         self._db_connection: Database | None = db_connection
         self.db_connection_ssh_tunnel: SSHTunnel | None = ssh_tunnel
 
-        self.async_mode: bool = current_app.config["SYNC_DB_PERMISSIONS_IN_ASYNC_MODE"]
+        self.async_mode: bool = app.config["SYNC_DB_PERMISSIONS_IN_ASYNC_MODE"]
 
     @property
     def db_connection(self) -> Database:
@@ -320,7 +320,7 @@ def sync_database_permissions_task(
     """
     Celery task that triggers the SyncPermissionsCommand in async mode.
     """
-    with current_app.test_request_context():
+    with app.test_request_context():
         try:
             user = security_manager.get_user_by_username(username)
             if not user:
