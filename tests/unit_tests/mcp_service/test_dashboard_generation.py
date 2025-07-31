@@ -204,14 +204,15 @@ class TestGenerateDashboard:
             # ROOT should only contain GRID
             assert position_json["ROOT_ID"]["children"] == ["GRID_ID"]
 
-            # GRID should contain rows
+            # GRID should contain rows (6 charts = 3 rows in 2-chart layout)
             grid_children = position_json["GRID_ID"]["children"]
-            assert len(grid_children) == 6
+            assert len(grid_children) == 3
 
             # Check each chart has proper structure
             for i, chart_id in enumerate(chart_ids):
                 chart_key = f"CHART-{chart_id}"
-                row_key = f"ROW-{i}"
+                row_index = i // 2  # 2 charts per row
+                row_key = f"ROW-{row_index}"
 
                 # Chart should exist
                 assert chart_key in position_json
@@ -220,11 +221,11 @@ class TestGenerateDashboard:
                 assert "meta" in chart_data
                 assert chart_data["meta"]["chartId"] == chart_id
 
-                # Row should exist and contain the chart
+                # Row should exist and contain charts (up to 2 per row)
                 assert row_key in position_json
                 row_data = position_json[row_key]
                 assert row_data["type"] == "ROW"
-                assert row_data["children"] == [chart_key]
+                assert chart_key in row_data["children"]
 
     @patch("superset.commands.dashboard.create.CreateDashboardCommand")
     @patch("superset.db.session")

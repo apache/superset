@@ -90,8 +90,8 @@ def _add_chart_to_layout(
     """
     chart_key = f"CHART-{chart_id}"
     row_key = f"ROW-{row_index}"
-    chart_width = 24
-    chart_height = 16
+    chart_width = 5  # Balanced width for good proportions
+    chart_height = 50  # Good height for most chart types
 
     # Add chart to layout using proper Superset structure
     layout[chart_key] = {
