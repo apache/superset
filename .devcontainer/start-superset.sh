@@ -9,6 +9,11 @@ echo "[$(date)] User: $(whoami), PWD: $(pwd)" >> "$LOG_FILE"
 echo "🚀 Starting Superset in Codespaces..."
 echo "🌐 Frontend will be available at port 9001"
 
+# Check if MCP is enabled
+if [ "$ENABLE_MCP" = "true" ]; then
+    echo "🤖 MCP Service will be available at port 5008"
+fi
+
 # Find the workspace directory (Codespaces clones as 'superset', not 'superset-2')
 WORKSPACE_DIR=$(find /workspaces -maxdepth 1 -name "superset*" -type d | head -1)
 if [ -n "$WORKSPACE_DIR" ]; then
@@ -53,7 +58,7 @@ fi
 
 # Clean up any existing containers
 echo "🧹 Cleaning up existing containers..."
-docker-compose -f docker-compose-light.yml down
+docker-compose -f docker-compose-light.yml --profile mcp down
 
 # Start services
 echo "🏗️  Starting Superset in background (daemon mode)..."
@@ -81,9 +86,13 @@ echo "💤 Keeping terminal open for 60 seconds to test persistence..."
 sleep 60
 echo "✅ Test complete - check if this terminal is still visible!"
 
-# Show final status
-docker-compose -f docker-compose-light.yml ps
-EXIT_CODE=$?
+# Run docker-compose and capture exit code
+if [ "$ENABLE_MCP" = "true" ]; then
+    echo "🤖 Starting with MCP Service enabled..."
+    docker-compose -f docker-compose-light.yml --profile mcp up
+else
+    docker-compose -f docker-compose-light.yml up
+fi
 
 # If it failed, provide helpful instructions
 if [ $EXIT_CODE -ne 0 ] && [ $EXIT_CODE -ne 130 ]; then  # 130 is Ctrl+C

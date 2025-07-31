@@ -25,6 +25,12 @@
 # - Volumes are isolated by project name (e.g., project1_db_home_light, project2_db_home_light)
 # - Database name is intentionally different (superset_light) to prevent accidental cross-connections
 #
+# MCP Service (Model Context Protocol):
+# - Optional service for LLM agent integration, available under 'mcp' profile
+# - To include MCP: docker-compose -f docker-compose-light.yml --profile mcp up
+# - MCP runs on port 5008 by default (customize with MCP_PORT=5009)
+# - Enable SQL debugging with MCP_SQL_DEBUG=true
+#
 # For verbose logging during development:
 # - Set SUPERSET_LOG_LEVEL=debug in docker/.env-local for detailed Superset logs
 # -----------------------------------------------------------------------
@@ -149,6 +155,37 @@ services:
       - path: docker/.env-local # optional override
         required: false
     volumes: *superset-volumes
+
+  superset-mcp-light:
+    profiles:
+      - mcp
+    build:
+      <<: *common-build
+    command: ["/app/docker/docker-bootstrap.sh", "mcp"]
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${MCP_PORT:-5008}:5008"  # Parameterized port
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    user: *superset-user
+    depends_on:
+      superset-init-light:
+        condition: service_completed_successfully
+    volumes: *superset-volumes
+    env_file:
+      - path: docker/.env # default
+        required: true
+      - path: docker/.env-local # optional override
+        required: false
+    environment:
+      # Override DB connection for light service
+      DATABASE_HOST: db-light
+      DATABASE_DB: superset_light
+      POSTGRES_DB: superset_light
+      # Use light-specific config that disables Redis
+      SUPERSET_CONFIG_PATH: /app/docker/pythonpath_dev/superset_config_docker_light.py
+      # Enable SQL debugging for MCP if needed
+      SQLALCHEMY_DEBUG: ${MCP_SQL_DEBUG:-false}
 
 volumes:
   superset_home_light:
