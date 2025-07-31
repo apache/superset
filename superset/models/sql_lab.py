@@ -65,6 +65,7 @@ from superset.utils.core import (
     MediumText,
     QueryStatus,
     user_label,
+    activate_humanize_locale,
 )
 
 if TYPE_CHECKING:
@@ -463,10 +464,12 @@ class SavedQuery(
 
     @property
     def last_run_humanized(self) -> str:
+        activate_humanize_locale()
         return naturaltime(datetime.now() - self.changed_on)
 
     @property
     def _last_run_delta_humanized(self) -> str:
+        activate_humanize_locale()
         return naturaltime(datetime.now() - self.changed_on)
 
     @renders("changed_on")
