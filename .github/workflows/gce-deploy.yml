@@ -135,19 +135,15 @@ jobs:
 #        run: |
 #          gcloud beta compute ssh runner@${{env.GCE_VM_NAME}} --zone ${{env.GCE_ZONE}} --project ${{env.GCE_PROJECT}} --ssh-key-file=id_rsa --command "chmod +x $DIRECTORY_PATH/deploy_updated_version.sh"
 
-      - name: Run SSH Command on GCE VM
-        env:
-          SSH_KEY: ${{ secrets.SSH_PRIVATE_KEY }}  # Store your SSH private key in GitHub Secrets
-          PUBLIC_KEY: ${{ secrets.SSH_PUBLIC_KEY }} # You should also store the public SSH key
+      - name: Start SSH Agent and Add Key
         run: |
-          # Create the SSH key files
-          echo "$SSH_KEY" > id_rsa
-          echo "$PUBLIC_KEY" > id_rsa.pub
-          chmod 600 id_rsa
-          chmod 644 id_rsa.pub       
+          eval "$(ssh-agent -s)"
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" | ssh-add -
 
+      - name: Run SSH Command on GCE VM
+        run: |
           # Add the VM's public IP to known hosts to ensure SSH connects seamlessly
           GCE_IP=$(gcloud compute instances describe ${{env.GCE_VM_NAME}} --zone ${{env.GCE_ZONE}} --project ${{env.GCE_PROJECT}} --format='get(networkInterfaces[0].accessConfigs[0].natIP)')
 
           # Execute the script on the remote instance
-          gcloud beta compute ssh runner@${{env.GCE_VM_NAME}} --zone ${{env.GCE_ZONE}} --project ${{env.GCE_PROJECT}} --ssh-key-file=id_rsa --command "GIT_BRANCH=$GIT_BRANCH TAG=$TAG DIRECTORY_PATH='$DIRECTORY_PATH' INFISICAL_PATH='$INFISICAL_PATH' INFISICAL_PROJECT_ID='$INFISICAL_PROJECT_ID' INFISICAL_CLIENT_ID='$INFISICAL_CLIENT_ID' INFISICAL_CLIENT_SECRET='$INFISICAL_CLIENT_SECRET' bash $DIRECTORY_PATH/deploy_updated_version.sh" -- -v
+          gcloud beta compute ssh runner@${{env.GCE_VM_NAME}} --zone ${{env.GCE_ZONE}} --project ${{env.GCE_PROJECT}} --ssh-flag="-A" --command "GIT_BRANCH=$GIT_BRANCH TAG=$TAG DIRECTORY_PATH='$DIRECTORY_PATH' INFISICAL_PATH='$INFISICAL_PATH' INFISICAL_PROJECT_ID='$INFISICAL_PROJECT_ID' INFISICAL_CLIENT_ID='$INFISICAL_CLIENT_ID' INFISICAL_CLIENT_SECRET='$INFISICAL_CLIENT_SECRET' bash $DIRECTORY_PATH/deploy_updated_version.sh" -- -v
