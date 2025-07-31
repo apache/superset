@@ -252,6 +252,8 @@ The `generate_chart` tool supports chart creation with:
 ### Chart Creation
 The tool creates and saves permanent charts in Superset with automatically generated explore URLs.
 
+**Label Uniqueness**: All columns and metrics must have unique labels within a chart. Labels are automatically generated from column names and aggregation functions (e.g., "SUM(sales)"), or can be explicitly set using the `label` field. Duplicate labels will be rejected at the schema validation level with clear error messages.
+
 ### Intelligent Metric Handling
 The tool automatically handles two metric formats:
 1. **Simple metrics** (like `["count"]`) — Passed as simple strings

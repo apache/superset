@@ -24,7 +24,13 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Annotated, Any, Dict, List, Literal, Optional, Protocol
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator, PositiveInt
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    model_validator,
+    PositiveInt,
+)
 
 from superset.daos.base import ColumnOperator, ColumnOperatorEnum
 from superset.mcp_service.schemas.cache_schemas import (
@@ -380,15 +386,53 @@ class FilterConfig(BaseModel):
 # Actual chart types
 class TableChartConfig(BaseModel):
     chart_type: Literal["table"] = Field("table", description="Chart type")
-    columns: List[ColumnRef] = Field(..., description="Columns to display")
+    columns: List[ColumnRef] = Field(
+        ...,
+        description=(
+            "Columns to display. Each column must have a unique label "
+            "(either explicitly set via 'label' field or auto-generated "
+            "from name/aggregate)"
+        ),
+    )
     filters: Optional[List[FilterConfig]] = Field(None, description="Filters to apply")
     sort_by: Optional[List[str]] = Field(None, description="Columns to sort by")
+
+    @model_validator(mode="after")
+    def validate_unique_column_labels(self) -> "TableChartConfig":
+        """Ensure all column labels are unique."""
+        labels_seen = set()
+        duplicates = []
+
+        for i, col in enumerate(self.columns):
+            # Generate the label that will be used (same logic as create_metric_object)
+            if col.aggregate:
+                label = col.label or f"{col.aggregate}({col.name})"
+            else:
+                label = col.label or col.name
+
+            if label in labels_seen:
+                duplicates.append(f"columns[{i}]: '{label}'")
+            else:
+                labels_seen.add(label)
+
+        if duplicates:
+            raise ValueError(
+                f"Duplicate column/metric labels: {', '.join(duplicates)}. "
+                f"Please make sure all columns and metrics have a unique label. "
+                f"Use the 'label' field to provide custom names for columns."
+            )
+
+        return self
 
 
 class XYChartConfig(BaseModel):
     chart_type: Literal["xy"] = Field("xy", description="Chart type")
     x: ColumnRef = Field(..., description="X-axis column")
-    y: List[ColumnRef] = Field(..., description="Y-axis columns")
+    y: List[ColumnRef] = Field(
+        ...,
+        description="Y-axis columns (metrics). Each column must have a unique label "
+        "that doesn't conflict with x-axis or group_by labels",
+    )
     kind: Literal["line", "bar", "area", "scatter"] = Field(
         "line", description="Chart visualization type"
     )
@@ -397,6 +441,48 @@ class XYChartConfig(BaseModel):
     y_axis: Optional[AxisConfig] = Field(None, description="Y-axis configuration")
     legend: Optional[LegendConfig] = Field(None, description="Legend configuration")
     filters: Optional[List[FilterConfig]] = Field(None, description="Filters to apply")
+
+    @model_validator(mode="after")
+    def validate_unique_column_labels(self) -> "XYChartConfig":
+        """Ensure all column labels are unique across x, y, and group_by."""
+        labels_seen = {}  # label -> field_name for error reporting
+        duplicates = []
+
+        # Check X-axis label
+        x_label = self.x.label or self.x.name
+        labels_seen[x_label] = "x"
+
+        # Check Y-axis labels
+        for i, col in enumerate(self.y):
+            if col.aggregate:
+                label = col.label or f"{col.aggregate}({col.name})"
+            else:
+                label = col.label or col.name
+
+            if label in labels_seen:
+                duplicates.append(
+                    f"y[{i}]: '{label}' (conflicts with {labels_seen[label]})"
+                )
+            else:
+                labels_seen[label] = f"y[{i}]"
+
+        # Check group_by label if present
+        if self.group_by:
+            group_label = self.group_by.label or self.group_by.name
+            if group_label in labels_seen:
+                duplicates.append(
+                    f"group_by: '{group_label}' "
+                    f"(conflicts with {labels_seen[group_label]})"
+                )
+
+        if duplicates:
+            raise ValueError(
+                f"Duplicate column/metric labels: {', '.join(duplicates)}. "
+                f"Please make sure all columns and metrics have a unique label. "
+                f"Use the 'label' field to provide custom names for columns."
+            )
+
+        return self
 
 
 # Discriminated union entry point
