@@ -49,7 +49,7 @@ def get_cache_status_from_result(
     else:
         query_result = result
 
-    cache_hit = query_result.get("is_cached", False)
+    cache_hit = bool(query_result.get("is_cached", False))
 
     # Convert cache age to seconds if available
     cache_age_seconds = None
