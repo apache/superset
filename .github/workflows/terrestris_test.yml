@@ -1,0 +1,97 @@
+name: "Frontend Build CI (unit tests, linting & sanity checks)"
+
+on:
+  push:
+    branches:
+      - "5.0.0-custom"
+  pull_request:
+    types: [synchronize, opened, reopened, ready_for_review]
+
+# cancel previous workflow jobs for PRs
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: true
+
+env:
+  TAG: terrestris/superset:GHA-${{ github.run_id }}
+
+jobs:
+  frontend-build:
+    runs-on: ubuntu-24.04
+    outputs:
+      should-run: ${{ steps.check.outputs.frontend }}
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Check for File Changes
+        id: check
+        uses: ./.github/actions/change-detector/
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build Docker Image
+        if: steps.check.outputs.frontend
+        shell: bash
+        run: |
+          docker buildx build \
+            -t $TAG \
+            --target superset-node-ci \
+            .
+
+      - name: Save Docker Image as Artifact
+        if: steps.check.outputs.frontend
+        run: |
+          docker save $TAG | gzip > docker-image.tar.gz
+
+      - name: Upload Docker Image Artifact
+        if: steps.check.outputs.frontend
+        uses: actions/upload-artifact@v4
+        with:
+          name: docker-image
+          path: docker-image.tar.gz
+
+  sharded-jest-tests:
+    needs: frontend-build
+    if: needs.frontend-build.outputs.should-run == 'true'
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Download Docker Image Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: docker-image
+
+      - name: Load Docker Image
+        run: docker load < docker-image.tar.gz
+
+      - name: npm run test
+        run: |
+          docker run \
+          --rm $TAG \
+          bash -c \
+          "npm run test -- --testPathPattern=plugins/plugin-chart-cartodiagram"
+
+  lint-frontend:
+    needs: frontend-build
+    if: needs.frontend-build.outputs.should-run == 'true'
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Download Docker Image Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: docker-image
+
+      - name: Load Docker Image
+        run: docker load < docker-image.tar.gz
+
+      - name: eslint
+        run: |
+          docker run --rm $TAG bash -c \
+          "npm ci && npm run eslint -- . --quiet"
+
+      - name: tsc
+        run: |
+          docker run --rm $TAG bash -c \
+          "npm run type"
