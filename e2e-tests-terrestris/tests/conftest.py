@@ -75,7 +75,8 @@ def create_wfs_connection(page):
         expect(page.get_by_text('already exists')).to_be_visible()
     page.wait_for_load_state('networkidle')
 
-    backend_cell = page.locator('table[role="table"] tbody tr td').nth(1)
+    row = page.locator('table[role="table"] tbody tr', has_text="Other").first
+    backend_cell = row.locator('td').nth(1)  
     assert "wfs" in backend_cell.inner_text()
 
 
@@ -116,7 +117,7 @@ def create_dataset(page):
         'input[aria-label="Select database or type to search '
         'databases"]'
     ).click()
-    page.locator('div[backend="wfs"]').click()
+    page.locator('div[backend="wfs"]').first.click()
     page.wait_for_load_state('networkidle')
 
     expect(
