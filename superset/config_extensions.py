@@ -38,101 +38,8 @@ class SupersetConfig(Config):
     - JSON schema generation for UI forms
     """
 
-    # Rich metadata for configuration values
-    # This replaces scattered comments with structured documentation
-    DATABASE_SETTINGS_SCHEMA = {
-        "ROW_LIMIT": {
-            "type": "integer",
-            "minimum": 1,
-            "maximum": 1000000,
-            "default": 50000,
-            "title": "Row Limit",
-            "description": "Maximum number of rows returned from queries",
-            "category": "performance",
-            "impact": "medium",
-            "requires_restart": False,
-            "documentation_url": "https://superset.apache.org/docs/configuration/databases",
-        },
-        "SAMPLES_ROW_LIMIT": {
-            "type": "integer",
-            "minimum": 1,
-            "maximum": 10000,
-            "default": 1000,
-            "title": "Samples Row Limit",
-            "description": "Default row limit when requesting samples from datasource",
-            "category": "performance",
-            "impact": "low",
-            "requires_restart": False,
-        },
-        "NATIVE_FILTER_DEFAULT_ROW_LIMIT": {
-            "type": "integer",
-            "minimum": 1,
-            "maximum": 10000,
-            "default": 1000,
-            "title": "Native Filter Default Row Limit",
-            "description": "Default row limit for native filters",
-            "category": "performance",
-            "impact": "low",
-            "requires_restart": False,
-        },
-        "SQLLAB_TIMEOUT": {
-            "type": "integer",
-            "minimum": 1,
-            "maximum": 3600,
-            "default": 30,
-            "title": "SQL Lab Timeout",
-            "description": "Timeout duration for SQL Lab synchronous queries (seconds)",
-            "category": "performance",
-            "impact": "high",
-            "requires_restart": False,
-        },
-        "FEATURE_FLAGS": {
-            "type": "object",
-            "default": {},
-            "title": "Feature Flags",
-            "description": "Feature flags to enable/disable functionality",
-            "category": "features",
-            "impact": "high",
-            "requires_restart": True,
-        },
-        "DEFAULT_FEATURE_FLAGS": {
-            "type": "object",
-            "default": {},
-            "title": "Default Feature Flags",
-            "description": "Default feature flags (read-only)",
-            "category": "features",
-            "impact": "high",
-            "requires_restart": True,
-            "readonly": True,
-        },
-        "THEME_DEFAULT": {
-            "type": "object",
-            "default": {},
-            "title": "Default Theme",
-            "description": "Default theme configuration (Ant Design format)",
-            "category": "ui",
-            "impact": "medium",
-            "requires_restart": False,
-        },
-        "THEME_DARK": {
-            "type": "object",
-            "default": {},
-            "title": "Dark Theme",
-            "description": "Dark theme configuration (Ant Design format)",
-            "category": "ui",
-            "impact": "medium",
-            "requires_restart": False,
-        },
-        "THEME_SETTINGS": {
-            "type": "object",
-            "default": {},
-            "title": "Theme Settings",
-            "description": "Theme behavior and user preference settings",
-            "category": "ui",
-            "impact": "medium",
-            "requires_restart": False,
-        },
-    }
+    # Metadata is now stored in config_metadata.py
+    # This provides a reference to the metadata module
 
     def __init__(
         self, root_path: Optional[str] = None, defaults: Optional[Dict[str, Any]] = None
@@ -142,79 +49,82 @@ class SupersetConfig(Config):
 
     def get_setting_metadata(self, key: str) -> Optional[Dict[str, Any]]:
         """Get metadata for a configuration setting."""
-        return self.DATABASE_SETTINGS_SCHEMA.get(key)
+        try:
+            from superset.config_metadata import get_metadata
+
+            metadata = get_metadata(key)
+            if metadata:
+                return metadata.to_doc_dict()
+            return None
+        except ImportError:
+            return None
 
     def get_settings_by_category(self, category: str) -> Dict[str, Any]:
         """Get all settings for a specific category."""
-        return {
-            key: schema
-            for key, schema in self.DATABASE_SETTINGS_SCHEMA.items()
-            if schema.get("category") == category
-        }
+        try:
+            from superset.config_metadata import CONFIG_METADATA
+
+            return {
+                key: metadata.to_doc_dict()
+                for key, metadata in CONFIG_METADATA.items()
+                if metadata.category == category
+            }
+        except ImportError:
+            return {}
 
     def validate_setting(self, key: str, value: Any) -> bool:
         """Validate a setting value against its schema."""
-        schema = self.get_setting_metadata(key)
-        if not schema:
-            return True  # No schema means any value is valid
+        try:
+            from superset.config_metadata import validate_config_value
 
-        # Basic type validation
-        expected_type = schema.get("type")
-        if expected_type == "integer" and not isinstance(value, int):
-            return False
-        elif expected_type == "string" and not isinstance(value, str):
-            return False
-        elif expected_type == "boolean" and not isinstance(value, bool):
-            return False
-        elif expected_type == "object" and not isinstance(value, dict):
-            return False
-
-        # Range validation for integers
-        if expected_type == "integer":
-            minimum = schema.get("minimum")
-            maximum = schema.get("maximum")
-            if minimum is not None and value < minimum:
-                return False
-            if maximum is not None and value > maximum:
-                return False
-
-        return True
+            return validate_config_value(key, value)
+        except ImportError:
+            return True  # No validation if metadata not available
 
     def to_json_schema(self) -> Dict[str, Any]:
         """Generate JSON schema for all database settings.
 
         This can be used to generate forms in the frontend.
         """
-        properties = {}
-        required = []
+        try:
+            from superset.config_metadata import CONFIG_METADATA
 
-        for key, schema in self.DATABASE_SETTINGS_SCHEMA.items():
-            if schema.get("readonly"):
-                continue
+            properties = {}
+            required = []
 
-            property_schema = {
-                "type": schema["type"],
-                "title": schema.get("title", key),
-                "description": schema.get("description", ""),
-                "default": schema.get("default"),
+            for key, metadata in CONFIG_METADATA.items():
+                if metadata.deprecated:
+                    continue
+
+                property_schema = {
+                    "type": metadata._type_to_string().lower(),
+                    "title": key.replace("_", " ").title(),
+                    "description": metadata.description,
+                    "default": metadata.doc_default
+                    if metadata.doc_default is not None
+                    else metadata._serialize_default(),
+                }
+
+                if isinstance(metadata.type, type) and issubclass(
+                    metadata.type, (int, float)
+                ):
+                    if metadata.min_value is not None:
+                        property_schema["minimum"] = metadata.min_value
+                    if metadata.max_value is not None:
+                        property_schema["maximum"] = metadata.max_value
+
+                if metadata.choices is not None:
+                    property_schema["enum"] = metadata.choices
+
+                properties[key] = property_schema
+
+            return {
+                "type": "object",
+                "properties": properties,
+                "required": required,
             }
-
-            if schema["type"] == "integer":
-                if "minimum" in schema:
-                    property_schema["minimum"] = schema["minimum"]
-                if "maximum" in schema:
-                    property_schema["maximum"] = schema["maximum"]
-
-            properties[key] = property_schema
-
-            if schema.get("required", False):
-                required.append(key)
-
-        return {
-            "type": "object",
-            "properties": properties,
-            "required": required,
-        }
+        except ImportError:
+            return {"type": "object", "properties": {}, "required": []}
 
     def get_database_setting(self, key: str, default: Any = None) -> Any:
         """Get a setting value from the database (future implementation)."""

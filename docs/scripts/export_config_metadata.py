@@ -2,8 +2,8 @@
 """
 Export configuration metadata to JSON for documentation generation.
 
-This script loads the comprehensive configuration schema from config_schema.json
-and formats it for documentation generation.
+This script loads configuration metadata from the Python metadata module
+and exports it in JSON format for the documentation React components.
 
 This script is called by docs/scripts/generate_docs.sh as part of the
 unified documentation generation process.
@@ -84,82 +84,32 @@ def infer_requires_restart(key: str) -> bool:
 
 def export_config_metadata() -> List[Dict[str, Any]]:
     """Export configuration metadata as JSON."""
-    # Load the comprehensive configuration schema
-    schema_file = superset_root / "superset" / "config_schema.json"
+    try:
+        # Import from Python metadata module
+        from superset.config_metadata import export_for_documentation
 
-    if not schema_file.exists():
+        # Get metadata from Python source
+        metadata_export = export_for_documentation()
+
+        # Export as JSON for documentation
+        output_dir = Path(__file__).parent.parent / "src" / "resources"
+        output_dir.mkdir(exist_ok=True)
+
+        # Write the full export (includes categories, etc.)
+        with open(output_dir / "config_metadata.json", "w") as f:
+            json_module.dump(metadata_export, f, indent=2)
+
+        output_file = output_dir / "config_metadata.json"
         print(
-            "Warning: config_schema.json not found. "
-            "Please run scripts/extract_config_schema.py first."
+            f"Exported {len(metadata_export['all_settings'])} configuration settings to {output_file}"
         )
+
+        return metadata_export["all_settings"]
+
+    except ImportError as e:
+        print(f"Error importing config_metadata: {e}")
+        print("Please ensure superset/config_metadata.py exists")
         return []
-
-    with open(schema_file, "r") as f:
-        schema_data = json_module.load(f)
-
-    configs = schema_data.get("configs", {})
-
-    # Transform metadata for documentation
-    docs_metadata = []
-
-    for key, config in configs.items():
-        # Build environment variable name
-        env_var = f"SUPERSET__{key}"
-
-        # Extract nested example if available
-        nested_example = None
-        if config.get("type") == "object":
-            nested_example = f"SUPERSET__{key}__example__nested_key=value"
-
-        # Format type information (keep it simple, no boundaries)
-        type_info = str(config.get("type", "unknown"))
-
-        doc_entry = {
-            "key": key,
-            "title": key.replace("_", " ").title(),  # Convert SNAKE_CASE to Title Case
-            "description": config.get("description", ""),
-            "type": type_info,
-            "category": config.get("category", "general"),
-            "default": config.get("default"),
-            "env_var": env_var,
-            "nested_example": nested_example,
-            "impact": infer_impact(key),
-            "requires_restart": infer_requires_restart(key),
-        }
-
-        docs_metadata.append(doc_entry)
-
-    # Group by category
-    categories: Dict[str, List[Dict[str, Any]]] = {}
-    for entry in docs_metadata:
-        category = str(entry["category"])
-        if category not in categories:
-            categories[category] = []
-        categories[category].append(entry)
-
-    # Sort entries within each category
-    for category in categories:
-        categories[category].sort(key=lambda x: x["key"])
-
-    # Export as JSON
-    output_dir = Path(__file__).parent.parent / "src" / "resources"
-    output_dir.mkdir(exist_ok=True)
-
-    # Export all settings
-    with open(output_dir / "config_metadata.json", "w") as f:
-        json_module.dump(
-            {
-                "all_settings": docs_metadata,
-                "by_category": categories,
-                "categories": list(categories.keys()),
-            },
-            f,
-            indent=2,
-        )
-
-    output_file = output_dir / "config_metadata.json"
-    print(f"Exported {len(docs_metadata)} configuration settings to {output_file}")
-    return docs_metadata
 
 
 if __name__ == "__main__":
