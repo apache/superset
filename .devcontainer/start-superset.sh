@@ -4,6 +4,11 @@
 echo "🚀 Starting Superset in Codespaces..."
 echo "🌐 Frontend will be available at port 9001"
 
+# Check if MCP is enabled
+if [ "$ENABLE_MCP" = "true" ]; then
+    echo "🤖 MCP Service will be available at port 5008"
+fi
+
 # Find the workspace directory (Codespaces clones as 'superset', not 'superset-2')
 WORKSPACE_DIR=$(find /workspaces -maxdepth 1 -name "superset*" -type d | head -1)
 if [ -n "$WORKSPACE_DIR" ]; then
@@ -21,7 +26,7 @@ fi
 
 # Clean up any existing containers
 echo "🧹 Cleaning up existing containers..."
-docker-compose -f docker-compose-light.yml down
+docker-compose -f docker-compose-light.yml --profile mcp down
 
 # Start services
 echo "🏗️  Building and starting services..."
@@ -33,7 +38,12 @@ echo ""
 echo "📋 Running in foreground with live logs (Ctrl+C to stop)..."
 
 # Run docker-compose and capture exit code
-docker-compose -f docker-compose-light.yml up
+if [ "$ENABLE_MCP" = "true" ]; then
+    echo "🤖 Starting with MCP Service enabled..."
+    docker-compose -f docker-compose-light.yml --profile mcp up
+else
+    docker-compose -f docker-compose-light.yml up
+fi
 EXIT_CODE=$?
 
 # If it failed, provide helpful instructions
