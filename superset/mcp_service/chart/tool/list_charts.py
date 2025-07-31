@@ -66,6 +66,11 @@ def list_charts(request: ListChartsRequest) -> ChartList:
     Uses a clear request object schema to avoid validation ambiguity with
     arrays/strings. All parameters are properly typed and have sensible defaults.
 
+    IMPORTANT FOR LLM CLIENTS:
+    - When charts have URL fields, ALWAYS display them (e.g., "View chart at: {url}")
+    - Note: 'url' is NOT in default columns - explicitly request it with select_columns
+    - Example: select_columns=["id", "slice_name", "url"]
+
     Search columns: slice_name, description
     Sortable columns for order_column: id, slice_name, viz_type, datasource_name,
     description, changed_on, created_on

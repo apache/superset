@@ -55,10 +55,15 @@ def generate_chart(request: GenerateChartRequest) -> Dict[str, Any]:  # noqa: C9
     that can be embedded in LLM conversations. The chart appears in saved charts
     and can be added to dashboards.
 
+    IMPORTANT FOR LLM CLIENTS:
+    - ALWAYS display the returned chart URL (e.g., "Chart created! View at: {url}")
+    - When preview_url is returned, embed it as an image: ![Chart Preview](preview_url)
+    - Display the explore_url for users to edit the chart interactively
+
     Enhanced features:
     - Generates chart preview images for embedding in LLM conversations
     - Returns explore URL for interactive editing after creation
-    - Supports multiple preview formats (url, ascii, table, base64)
+    - Supports multiple preview formats (url, ascii, table)
     - Rich semantic analysis and capabilities metadata
     - Enhanced form_data caching for better explore experience
 

@@ -54,6 +54,11 @@ def update_chart_preview(request: UpdateChartPreviewRequest) -> Dict[str, Any]:
     configuration. The original form_data_key is invalidated and a new one is
     created.
 
+    IMPORTANT FOR LLM CLIENTS:
+    - ALWAYS display the explore_url for users to view/edit the preview
+    - When preview_url is returned, embed it as an image: ![Chart Preview](preview_url)
+    - Mention that this is a preview, not a saved chart
+
     Use this tool when:
     - User wants to modify a chart preview before deciding to save
     - Iterating on chart design without creating permanent charts

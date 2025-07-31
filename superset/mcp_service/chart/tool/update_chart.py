@@ -55,6 +55,11 @@ def update_chart(request: UpdateChartRequest) -> Dict[str, Any]:
     filters, or visualization parameters. The chart must already exist (created
     via generate_chart with save_chart=True).
 
+    IMPORTANT FOR LLM CLIENTS:
+    - ALWAYS display the updated chart URL (e.g., "Chart updated! View at: {url}")
+    - When preview_url is returned, embed it as an image: ![Updated Chart](preview_url)
+    - Display the explore_url for users to further edit the chart
+
     Use this tool when:
     - User wants to modify an existing saved chart
     - Updating chart title, filters, or visualization settings

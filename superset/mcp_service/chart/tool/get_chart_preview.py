@@ -762,9 +762,20 @@ def get_chart_preview(request: GetChartPreviewRequest) -> ChartPreview | ChartEr
     displayed directly in LLM clients. The URLs point to Superset's
     screenshot endpoints for proper image serving.
 
+    IMPORTANT FOR LLM CLIENTS:
+    - ALWAYS display the preview_url when format="url"
+    - Embed URL previews as images: ![Chart Preview](preview_url)
+    - For ASCII/table formats, display the content in a code block
+    - Show the explore_url so users can edit the chart
+
     Supports lookup by:
     - Numeric ID (e.g., 123)
     - UUID string (e.g., "a1b2c3d4-e5f6-7890-abcd-ef1234567890")
+
+    Supported formats:
+    - "url": Returns preview_url for image embedding
+    - "ascii": Returns ASCII art representation
+    - "table": Returns tabular data preview
 
     Returns a ChartPreview with Superset URLs for the chart image or
     ChartError on error.

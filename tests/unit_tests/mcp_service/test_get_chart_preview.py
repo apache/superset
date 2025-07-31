@@ -71,13 +71,13 @@ class TestGetChartPreview:
     async def test_url_preview_structure(self):
         """Test URLPreview response structure."""
         preview = URLPreview(
-            preview_url="http://localhost:8088/screenshot/chart/123.png",
+            preview_url="http://localhost:5008/screenshot/chart/123.png",
             width=800,
             height=600,
             supports_interaction=False,
         )
         assert preview.type == "url"
-        assert preview.preview_url == "http://localhost:8088/screenshot/chart/123.png"
+        assert preview.preview_url == "http://localhost:5008/screenshot/chart/123.png"
         assert preview.width == 800
         assert preview.height == 600
         assert preview.supports_interaction is False
