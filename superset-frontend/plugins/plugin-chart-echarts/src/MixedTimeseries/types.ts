@@ -59,6 +59,9 @@ export type EchartsMixedTimeseriesFormData = QueryFormData & {
   timeGrainSqla?: TimeGranularity;
   tooltipTimeFormat?: string;
   zoomable: boolean;
+  zoomableClipYAxis: boolean;
+  zoomableStart: number;
+  zoomableEnd: number;
   richTooltip: boolean;
   xAxisLabelRotation: number;
   xAxisLabelInterval?: number | string;

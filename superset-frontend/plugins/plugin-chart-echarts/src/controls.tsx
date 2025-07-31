@@ -173,6 +173,63 @@ export const showValueSectionWithoutStack: ControlSetRow[] = [
   [onlyTotalControl],
 ];
 
+export const zoomableControl: ControlSetItem = {
+  name: 'zoomable',
+  config: {
+    ...sharedControls.zoomable,
+    default: DEFAULT_FORM_DATA.zoomable,
+    renderTrigger: true,
+  }
+};
+
+export const zoomableClipYAxisControl: ControlSetItem = {
+  name: 'zoomable_clip_y_axis',
+  config: {
+    type: 'CheckboxControl',
+    label: t('Clip Y Axis'),
+    renderTrigger: true,
+    default: DEFAULT_FORM_DATA.zoomableClipYAxis,
+    description: t(
+      'Clip the Y axis when zooming. If unchecked, the Y axis will not be clipped.',
+    ),
+    visibility: ({ controls }: ControlPanelsContainerProps) =>
+      Boolean(controls?.zoomable?.value),
+  },
+};
+
+export const zoomableStartControl: ControlSetItem = {
+  name: 'zoomable_start',
+  config: {
+    type: 'SliderControl',
+    label: t('Zoomable Start'),
+    renderTrigger: true,
+    default: DEFAULT_FORM_DATA.zoomableStart,
+    min: 0,
+    step: 1,
+    description: t('Data zoom starting point %'),
+    visibility: ({ controls }: ControlPanelsContainerProps) =>
+      Boolean(controls?.zoomable?.value),
+  },
+};
+
+export const zoomableEndControl: ControlSetItem = {
+  name: 'zoomable_end',
+  config: {
+    type: 'SliderControl',
+    label: t('Zoomable End'),
+    renderTrigger: true,
+    default: DEFAULT_FORM_DATA.zoomableEnd,
+    max: 100,
+    step: 1,
+    description: t('Data zoom ending point %'),
+    visibility: ({ controls }: ControlPanelsContainerProps) =>
+      Boolean(controls?.zoomable?.value),
+  },
+};
+export const zoomableSection: ControlSetRow[] = [
+  [zoomableControl, zoomableClipYAxisControl],
+  [zoomableStartControl, zoomableEndControl],
+];
 const richTooltipControl: ControlSetItem = {
   name: 'rich_tooltip',
   config: {
