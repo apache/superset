@@ -46,7 +46,7 @@ from superset.exceptions import (
     QueryObjectValidationError,
     SupersetException,
 )
-from superset.extensions import cache_manager, security_manager
+from superset.extensions import cache_manager, feature_flag_manager, security_manager
 from superset.models.helpers import QueryResult
 from superset.models.sql_lab import Query
 from superset.superset_typing import AdhocColumn, AdhocMetric
@@ -495,7 +495,9 @@ class QueryContextProcessor:
                     f"is_date_range: {is_date_range_offset}"
                 )
 
-                if is_date_range_offset:
+                if is_date_range_offset and feature_flag_manager.is_feature_enabled(
+                    "DATE_RANGE_TIMESHIFTS_ENABLED"
+                ):
                     # DATE RANGE OFFSET LOGIC (like "2015-01-03 : 2015-01-04")
                     try:
                         # Parse the specified range
@@ -518,6 +520,14 @@ class QueryContextProcessor:
                     # date range
                     query_object_clone.inner_from_dttm = None
                     query_object_clone.inner_to_dttm = None
+
+                elif is_date_range_offset:
+                    # Date range timeshift feature is disabled
+                    raise QueryObjectValidationError(
+                        "Date range timeshifts are not enabled. "
+                        "Please contact your administrator to enable the "
+                        "DATE_RANGE_TIMESHIFTS_ENABLED feature flag."
+                    )
 
                 else:
                     # RELATIVE OFFSET LOGIC (like "1 day ago")
@@ -566,7 +576,9 @@ class QueryContextProcessor:
             index = (get_base_axis_labels(query_object.columns) or [DTTM_ALIAS])[0]
 
             # Handle temporal filters
-            if is_date_range_offset:
+            if is_date_range_offset and feature_flag_manager.is_feature_enabled(
+                "DATE_RANGE_TIMESHIFTS_ENABLED"
+            ):
                 # DATE RANGE OFFSETS: Clean slate approach
                 logger.info("Handling temporal filters for date range offset")
 
@@ -821,7 +833,11 @@ class QueryContextProcessor:
             actual_join_keys = join_keys
 
             # Check if this is a date range offset
-            is_date_range_offset = self.is_valid_date_range(offset)
+            is_date_range_offset = self.is_valid_date_range(
+                offset
+            ) and feature_flag_manager.is_feature_enabled(
+                "DATE_RANGE_TIMESHIFTS_ENABLED"
+            )
 
             logger.info(
                 f"Processing offset {offset}, is_date_range: {is_date_range_offset}"
