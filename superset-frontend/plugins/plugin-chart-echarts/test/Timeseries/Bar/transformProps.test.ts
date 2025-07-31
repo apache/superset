@@ -38,9 +38,9 @@ describe('Bar Chart X-axis Time Formatting', () => {
   const timeseriesData = [
     {
       data: [
-        { 'Sales': 100, __timestamp: 1609459200000 }, // 2021-01-01
-        { 'Marketing': 150, __timestamp: 1612137600000 }, // 2021-02-01
-        { 'Operations': 200, __timestamp: 1614556800000 }, // 2021-03-01
+        { Sales: 100, __timestamp: 1609459200000 }, // 2021-01-01
+        { Marketing: 150, __timestamp: 1612137600000 }, // 2021-02-01
+        { Operations: 200, __timestamp: 1614556800000 }, // 2021-03-01
       ],
       colnames: ['Sales', 'Marketing', 'Operations', '__timestamp'],
       coltypes: ['BIGINT', 'BIGINT', 'BIGINT', 'TIMESTAMP'],
@@ -67,12 +67,9 @@ describe('Bar Chart X-axis Time Formatting', () => {
 
       // Check that the x-axis has a formatter applied
       expect(transformedProps.echartOptions.xAxis).toHaveProperty('axisLabel');
-      expect(transformedProps.echartOptions.xAxis.axisLabel).toHaveProperty(
-        'formatter',
-      );
-      expect(
-        typeof transformedProps.echartOptions.xAxis.axisLabel.formatter,
-      ).toBe('function');
+      const xAxis = transformedProps.echartOptions.xAxis as any;
+      expect(xAxis.axisLabel).toHaveProperty('formatter');
+      expect(typeof xAxis.axisLabel.formatter).toBe('function');
     });
 
     it('should apply xAxisTimeFormat from DEFAULT_FORM_DATA when not explicitly set', () => {
@@ -92,9 +89,8 @@ describe('Bar Chart X-axis Time Formatting', () => {
 
       // Should still have a formatter since DEFAULT_FORM_DATA includes xAxisTimeFormat
       expect(transformedProps.echartOptions.xAxis).toHaveProperty('axisLabel');
-      expect(transformedProps.echartOptions.xAxis.axisLabel).toHaveProperty(
-        'formatter',
-      );
+      const xAxis = transformedProps.echartOptions.xAxis as any;
+      expect(xAxis.axisLabel).toHaveProperty('formatter');
     });
   });
 
@@ -116,15 +112,12 @@ describe('Bar Chart X-axis Time Formatting', () => {
 
       // Verify the formatter function exists and is applied
       expect(transformedProps.echartOptions.xAxis).toHaveProperty('axisLabel');
-      expect(transformedProps.echartOptions.xAxis.axisLabel).toHaveProperty(
-        'formatter',
-      );
-      expect(
-        typeof transformedProps.echartOptions.xAxis.axisLabel.formatter,
-      ).toBe('function');
+      const xAxis = transformedProps.echartOptions.xAxis as any;
+      expect(xAxis.axisLabel).toHaveProperty('formatter');
+      expect(typeof xAxis.axisLabel.formatter).toBe('function');
 
       // The key test is that a formatter exists - the actual formatting is handled by d3-time-format
-      const formatter = transformedProps.echartOptions.xAxis.axisLabel.formatter;
+      const { formatter } = xAxis.axisLabel;
       expect(formatter).toBeDefined();
       expect(typeof formatter).toBe('function');
     });
@@ -153,12 +146,9 @@ describe('Bar Chart X-axis Time Formatting', () => {
           chartProps as EchartsTimeseriesChartProps,
         );
 
-        expect(transformedProps.echartOptions.xAxis.axisLabel).toHaveProperty(
-          'formatter',
-        );
-        expect(
-          typeof transformedProps.echartOptions.xAxis.axisLabel.formatter,
-        ).toBe('function');
+        const xAxis = transformedProps.echartOptions.xAxis as any;
+        expect(xAxis.axisLabel).toHaveProperty('formatter');
+        expect(typeof xAxis.axisLabel.formatter).toBe('function');
       });
     });
   });
@@ -181,12 +171,9 @@ describe('Bar Chart X-axis Time Formatting', () => {
       );
 
       // In vertical orientation, time should be on x-axis
-      expect(transformedProps.echartOptions.xAxis.axisLabel).toHaveProperty(
-        'formatter',
-      );
-      expect(
-        typeof transformedProps.echartOptions.xAxis.axisLabel.formatter,
-      ).toBe('function');
+      const xAxis = transformedProps.echartOptions.xAxis as any;
+      expect(xAxis.axisLabel).toHaveProperty('formatter');
+      expect(typeof xAxis.axisLabel.formatter).toBe('function');
     });
 
     it('should apply time formatting to y-axis in horizontal bar charts', () => {
@@ -206,12 +193,9 @@ describe('Bar Chart X-axis Time Formatting', () => {
       );
 
       // In horizontal orientation, axes are swapped, so time should be on y-axis
-      expect(transformedProps.echartOptions.yAxis.axisLabel).toHaveProperty(
-        'formatter',
-      );
-      expect(
-        typeof transformedProps.echartOptions.yAxis.axisLabel.formatter,
-      ).toBe('function');
+      const yAxis = transformedProps.echartOptions.yAxis as any;
+      expect(yAxis.axisLabel).toHaveProperty('formatter');
+      expect(typeof yAxis.axisLabel.formatter).toBe('function');
     });
   });
 
@@ -233,9 +217,8 @@ describe('Bar Chart X-axis Time Formatting', () => {
         chartProps as EchartsTimeseriesChartProps,
       );
 
-      expect(transformedProps.echartOptions.xAxis.axisLabel).toHaveProperty(
-        'formatter',
-      );
+      const xAxis = transformedProps.echartOptions.xAxis as any;
+      expect(xAxis.axisLabel).toHaveProperty('formatter');
       // The xAxis should be configured with the time formatting
       expect(transformedProps.echartOptions.xAxis).toBeDefined();
     });
@@ -256,13 +239,9 @@ describe('Bar Chart X-axis Time Formatting', () => {
         chartProps as EchartsTimeseriesChartProps,
       );
 
-      expect(transformedProps.echartOptions.xAxis.axisLabel).toHaveProperty(
-        'formatter',
-      );
-      expect(transformedProps.echartOptions.xAxis.axisLabel).toHaveProperty(
-        'rotate',
-        45,
-      );
+      const xAxis = transformedProps.echartOptions.xAxis as any;
+      expect(xAxis.axisLabel).toHaveProperty('formatter');
+      expect(xAxis.axisLabel).toHaveProperty('rotate', 45);
     });
 
     it('should maintain time formatting consistency with tooltip', () => {
@@ -282,9 +261,8 @@ describe('Bar Chart X-axis Time Formatting', () => {
       );
 
       // Both axis and tooltip should have formatters
-      expect(transformedProps.echartOptions.xAxis.axisLabel).toHaveProperty(
-        'formatter',
-      );
+      const xAxis = transformedProps.echartOptions.xAxis as any;
+      expect(xAxis.axisLabel).toHaveProperty('formatter');
       expect(transformedProps.xValueFormatter).toBeDefined();
       expect(typeof transformedProps.xValueFormatter).toBe('function');
     });
@@ -308,8 +286,9 @@ describe('Bar Chart X-axis Time Formatting', () => {
       );
 
       // Verify formatter exists - this is the key fix, ensuring xAxisTimeFormat is used
-      const formatter = transformedProps.echartOptions.xAxis.axisLabel.formatter;
-      
+      const xAxis = transformedProps.echartOptions.xAxis as any;
+      const { formatter } = xAxis.axisLabel;
+
       expect(formatter).toBeDefined();
       expect(typeof formatter).toBe('function');
 
@@ -349,12 +328,15 @@ describe('Bar Chart X-axis Time Formatting', () => {
       );
 
       // Both should have formatters - the key is that they're not undefined
-      expect(smartDateProps.echartOptions.xAxis.axisLabel.formatter).toBeDefined();
-      expect(customFormatProps.echartOptions.xAxis.axisLabel.formatter).toBeDefined();
-      
+      const smartDateXAxis = smartDateProps.echartOptions.xAxis as any;
+      const customFormatXAxis = customFormatProps.echartOptions.xAxis as any;
+
+      expect(smartDateXAxis.axisLabel.formatter).toBeDefined();
+      expect(customFormatXAxis.axisLabel.formatter).toBeDefined();
+
       // Both should be functions that can format time
-      expect(typeof smartDateProps.echartOptions.xAxis.axisLabel.formatter).toBe('function');
-      expect(typeof customFormatProps.echartOptions.xAxis.axisLabel.formatter).toBe('function');
+      expect(typeof smartDateXAxis.axisLabel.formatter).toBe('function');
+      expect(typeof customFormatXAxis.axisLabel.formatter).toBe('function');
     });
 
     it('should have xAxisTimeFormat in formData by default', () => {
