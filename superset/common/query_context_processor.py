@@ -46,7 +46,7 @@ from superset.exceptions import (
     QueryObjectValidationError,
     SupersetException,
 )
-from superset.extensions import cache_manager, feature_flag_manager, security_manager
+from superset.extensions import cache_manager, security_manager
 from superset.models.helpers import QueryResult
 from superset.models.sql_lab import Query
 from superset.superset_typing import AdhocColumn, AdhocMetric
@@ -490,14 +490,21 @@ class QueryContextProcessor:
                 original_offset = offset
                 is_date_range_offset = self.is_valid_date_range(offset)
 
-                if is_date_range_offset and feature_flag_manager.is_feature_enabled(
-                    "DATE_RANGE_TIMESHIFTS_ENABLED"
-                ):
+                logger.info(
+                    f"Processing offset: {offset}, "
+                    f"is_date_range: {is_date_range_offset}"
+                )
+
+                if is_date_range_offset:
                     # DATE RANGE OFFSET LOGIC (like "2015-01-03 : 2015-01-04")
                     try:
                         # Parse the specified range
                         offset_from_dttm, offset_to_dttm = (
                             get_since_until_from_time_range(time_range=offset)
+                        )
+                        logger.info(
+                            f"Parsed date range - from: {offset_from_dttm}, "
+                            f"to: {offset_to_dttm}"
                         )
                     except ValueError as ex:
                         raise QueryObjectValidationError(str(ex)) from ex
@@ -507,18 +514,11 @@ class QueryContextProcessor:
                     query_object_clone.to_dttm = offset_to_dttm
 
                     # CRITICAL: For date range offsets, we must NOT set inner bounds
-                    # These create additional WHERE clauses that conflict with our date
-                    # range
+                    # These create additional WHERE clauses that conflict with our
+                    # date range
                     query_object_clone.inner_from_dttm = None
                     query_object_clone.inner_to_dttm = None
 
-                elif is_date_range_offset:
-                    # Date range timeshift feature is disabled
-                    raise QueryObjectValidationError(
-                        "Date range timeshifts are not enabled. "
-                        "Please contact your administrator to enable the "
-                        "DATE_RANGE_TIMESHIFTS_ENABLED feature flag."
-                    )
                 else:
                     # RELATIVE OFFSET LOGIC (like "1 day ago")
                     if self.is_valid_date(offset) or offset == "inherit":
@@ -536,16 +536,24 @@ class QueryContextProcessor:
                     )
 
                     # For relative offsets, keep the original behavior
-                    # BUT: Don't set inner bounds that conflict with the
-                    # main query range
-                    # The inner bounds should match the shifted range,
-                    # not the original range
+                    # BUT: Don't set inner bounds that conflict with the main query
+                    # range. The inner bounds should match the shifted range, not the
+                    # original range
                     query_object_clone.inner_from_dttm = query_object_clone.from_dttm
                     query_object_clone.inner_to_dttm = query_object_clone.to_dttm
 
                 x_axis_label = get_x_axis_label(query_object.columns)
                 query_object_clone.granularity = (
                     query_object_clone.granularity or x_axis_label
+                )
+
+                logger.info(
+                    f"After setting dates - from_dttm: {query_object_clone.from_dttm}, "
+                    f"to_dttm: {query_object_clone.to_dttm}"
+                )
+                logger.info(
+                    f"Inner bounds - from: {query_object_clone.inner_from_dttm}, "
+                    f"to: {query_object_clone.inner_to_dttm}"
                 )
 
             except ValueError as ex:
@@ -559,6 +567,9 @@ class QueryContextProcessor:
 
             # Handle temporal filters
             if is_date_range_offset:
+                # DATE RANGE OFFSETS: Clean slate approach
+                logger.info("Handling temporal filters for date range offset")
+
                 # Create a completely new filter list to avoid conflicts
                 query_object_clone.filter = copy.deepcopy(query_object_clone.filter)
 
@@ -575,11 +586,21 @@ class QueryContextProcessor:
                     new_temporal_filter: QueryObjectFilterClause = {
                         "col": temporal_col,
                         "op": FilterOperator.TEMPORAL_RANGE,
-                        "val": f"{query_object_clone.from_dttm} : {query_object_clone.to_dttm}",  # noqa: E501
+                        "val": (
+                            f"{query_object_clone.from_dttm} : "
+                            f"{query_object_clone.to_dttm}"
+                        ),
                     }
                     query_object_clone.filter.append(new_temporal_filter)
+                    logger.info(
+                        f"Added temporal filter for date range offset: "
+                        f"{new_temporal_filter}"
+                    )
 
             else:
+                # RELATIVE OFFSETS: Original logic but fixed
+                logger.info("Handling temporal filters for relative offset")
+
                 # The comparison is not using a temporal column so we need to modify
                 # the temporal filter so we run the query with the correct time range
                 if not dataframe_utils.is_datetime_series(df.get(index)):
@@ -593,6 +614,11 @@ class QueryContextProcessor:
                             flt.get("val"), str
                         ):
                             time_range = cast(str, flt.get("val"))
+                            logger.info(
+                                f"Updating temporal filter for relative offset from: "
+                                f"{flt['val']}"
+                            )
+
                             (
                                 new_outer_from_dttm,
                                 new_outer_to_dttm,
@@ -601,9 +627,10 @@ class QueryContextProcessor:
                                 time_shift=offset,
                             )
                             flt["val"] = f"{new_outer_from_dttm} : {new_outer_to_dttm}"
+                            logger.info(f"Updated temporal filter to: {flt['val']}")
                 else:
-                    # If it IS a datetime series, we still need to clear
-                    # conflicting filters
+                    # If it IS a datetime series, we still need to clear conflicting
+                    # filters
                     query_object_clone.filter = copy.deepcopy(query_object_clone.filter)
 
                     # For relative offsets with datetime series, ensure the temporal
@@ -617,7 +644,12 @@ class QueryContextProcessor:
                             and flt.get("col") == temporal_col
                         ):
                             flt["val"] = (
-                                f"{query_object_clone.from_dttm} : {query_object_clone.to_dttm}"  # noqa: E501
+                                f"{query_object_clone.from_dttm} : "
+                                f"{query_object_clone.to_dttm}"
+                            )
+                            logger.info(
+                                f"Updated temporal filter for datetime series: "
+                                f"{flt['val']}"
                             )
 
             # Remove non-temporal x-axis filters (but keep temporal ones)
@@ -629,6 +661,8 @@ class QueryContextProcessor:
                     and flt.get("op") != FilterOperator.TEMPORAL_RANGE
                 )
             ]
+
+            logger.info(f"Final filters: {query_object_clone.filter}")
 
             # Continue with the rest of the method...
             cached_time_offset_key = (
@@ -652,12 +686,20 @@ class QueryContextProcessor:
 
             query_object_clone_dct = query_object_clone.to_dict()
 
+            logger.info(f"Final query dict for offset {offset}:")
+            logger.info(f"  from_dttm: {query_object_clone_dct.get('from_dttm')}")
+            logger.info(f"  to_dttm: {query_object_clone_dct.get('to_dttm')}")
+            logger.info(
+                f"  inner_from_dttm: {query_object_clone_dct.get('inner_from_dttm')}"
+            )
+            logger.info(
+                f"  inner_to_dttm: {query_object_clone_dct.get('inner_to_dttm')}"
+            )
+            logger.info(f"  filters: {query_object_clone_dct.get('filter')}")
+
             # rename metrics: SUM(value) => SUM(value) 1 year ago
-            # Use space separator for date range timeshifts,
-            # double underscore for relative offsets
-            separator = " " if is_date_range_offset else TIME_COMPARISON
             metrics_mapping = {
-                metric: separator.join([metric, original_offset])
+                metric: TIME_COMPARISON.join([metric, original_offset])
                 for metric in metric_names
             }
 
@@ -673,6 +715,18 @@ class QueryContextProcessor:
             else:
                 result = self._qc_datasource.query(query_object_clone_dct)
 
+            logger.info(f"Generated SQL for offset {offset}:")
+            logger.info(result.query)
+            logger.info(f"Query returned {len(result.df)} rows")
+
+            # ADD DEBUG HERE:
+            if not result.df.empty:
+                logger.info(f"Raw result data for offset {offset}:")
+                logger.info(f"Columns: {list(result.df.columns)}")
+                logger.info(f"Raw data:\n{result.df.to_string()}")
+            else:
+                logger.info("Query returned empty DataFrame")
+
             queries.append(result.query)
             cache_keys.append(None)
 
@@ -684,6 +738,9 @@ class QueryContextProcessor:
                         for col in join_keys + list(metrics_mapping.values())
                     }
                 )
+                logger.info(
+                    f"Created empty DataFrame with NaN values for offset {offset}"
+                )
             else:
                 # 1. normalize df, set dttm column
                 offset_metrics_df = self.normalize_df(
@@ -692,6 +749,11 @@ class QueryContextProcessor:
 
                 # 2. rename extra query columns
                 offset_metrics_df = offset_metrics_df.rename(columns=metrics_mapping)
+
+                logger.info(f"After processing for offset {offset}:")
+                logger.info(f"Processed columns: {list(offset_metrics_df.columns)}")
+                logger.info(f"Processed data:\n{offset_metrics_df.to_string()}")
+                logger.info(f"Metrics mapping used: {metrics_mapping}")
 
             # cache df and query
             value = {
@@ -708,6 +770,15 @@ class QueryContextProcessor:
             offset_dfs[offset] = offset_metrics_df
 
         if offset_dfs:
+            logger.info("Before joining offset DataFrames:")
+            logger.info(f"Main DataFrame shape: {df.shape}")
+            logger.info(f"Main DataFrame:\n{df.to_string()}")
+            for offset_key, offset_df in offset_dfs.items():
+                logger.info(f"Offset '{offset_key}' DataFrame shape: {offset_df.shape}")
+                logger.info(
+                    f"Offset '{offset_key}' DataFrame:\n{offset_df.to_string()}"
+                )
+
             df = self.join_offset_dfs(
                 df,
                 offset_dfs,
@@ -715,9 +786,13 @@ class QueryContextProcessor:
                 join_keys,
             )
 
+            logger.info("After joining offset DataFrames:")
+            logger.info(f"Final DataFrame shape: {df.shape}")
+            logger.info(f"Final DataFrame:\n{df.to_string()}")
+
         return CachedTimeOffset(df=df, queries=queries, cache_keys=cache_keys)
 
-    def join_offset_dfs(  # pylint: disable=too-many-locals,too-many-statements  # noqa: C901
+    def join_offset_dfs(
         self,
         df: pd.DataFrame,
         offset_dfs: dict[str, pd.DataFrame],
@@ -746,13 +821,17 @@ class QueryContextProcessor:
             actual_join_keys = join_keys
 
             # Check if this is a date range offset
-            is_date_range_offset = self.is_valid_date_range(
-                offset
-            ) and feature_flag_manager.is_feature_enabled(
-                "DATE_RANGE_TIMESHIFTS_ENABLED"
+            is_date_range_offset = self.is_valid_date_range(offset)
+
+            logger.info(
+                f"Processing offset {offset}, is_date_range: {is_date_range_offset}"
             )
+            logger.info(f"Original join_keys: {join_keys}")
 
             if time_grain and not is_date_range_offset:
+                # ORIGINAL LOGIC for relative time offsets (like "1 day ago")
+                logger.info("Using original join logic for relative offset")
+
                 # defines a column name for the offset join column
                 column_name = OFFSET_JOIN_COLUMN_SUFFIX + offset
 
@@ -771,42 +850,25 @@ class QueryContextProcessor:
                 actual_join_keys = [column_name, *join_keys[1:]]
 
             elif is_date_range_offset:
+                # SPECIAL LOGIC for date range offsets (like "2015-01-03 : 2015-01-04")
+                logger.info("Using special join logic for date range offset")
+
                 # For date range offsets, we need different join logic
                 # Remove the temporal column from join keys since dates are
                 # intentionally different
-
-                # Identify temporal columns dynamically
-                temporal_cols = set()
-
-                # Add the granularity column (main temporal column)
-                if (
-                    hasattr(self._query_context, "queries")
-                    and self._query_context.queries
-                ):
-                    query_obj = self._query_context.queries[
-                        0
-                    ]  # Use first query as reference
-                    if query_obj.granularity:
-                        temporal_cols.add(query_obj.granularity)
-
-                # Add any columns that are datetime types in either DataFrame
-                for col in join_keys:
-                    if col in df.columns and dataframe_utils.is_datetime_series(
-                        df[col]
-                    ):
-                        temporal_cols.add(col)
-                    if col in offset_df.columns and dataframe_utils.is_datetime_series(
-                        offset_df[col]
-                    ):
-                        temporal_cols.add(col)
-
-                # Add the standard temporal alias if present
-                if DTTM_ALIAS in join_keys:
-                    temporal_cols.add(DTTM_ALIAS)
-
+                temporal_cols = [
+                    "ds",
+                    "__timestamp",
+                    "dttm",
+                ]  # common temporal column names
                 non_temporal_join_keys = [
                     key for key in join_keys if key not in temporal_cols
                 ]
+
+                logger.info(
+                    f"Non-temporal join keys for date range offset: "
+                    f"{non_temporal_join_keys}"
+                )
 
                 if non_temporal_join_keys:
                     # Join on non-temporal dimensions only
@@ -814,12 +876,15 @@ class QueryContextProcessor:
                 else:
                     # If no non-temporal join keys, we need to aggregate the offset data
                     # instead of doing a cross join that creates multiple rows
+                    logger.info(
+                        "No non-temporal join keys found, aggregating offset data"
+                    )
 
                     # Aggregate all metric columns in the offset DataFrame
-                    # Exclude temporal columns from aggregation
                     metric_columns = [
                         col for col in offset_df.columns if col not in temporal_cols
                     ]
+                    logger.info(f"Aggregating metric columns: {metric_columns}")
 
                     if metric_columns:
                         # Create a single aggregated row by summing all metric values
@@ -837,14 +902,21 @@ class QueryContextProcessor:
 
                         # Create a new DataFrame with aggregated values
                         offset_df = pd.DataFrame([aggregated_values])
+                        logger.info(
+                            f"Aggregated offset DataFrame:\n{offset_df.to_string()}"
+                        )
 
                     # Now we can do a cross join safely since we have only one row
                     actual_join_keys = []
             else:
                 # FALLBACK: Use original join keys for any other case
+                logger.info("Using fallback join logic (original join keys)")
                 actual_join_keys = join_keys
 
+            logger.info(f"Final join keys for offset {offset}: {actual_join_keys}")
+
             if actual_join_keys:
+                logger.info(f"Performing left join on keys: {actual_join_keys}")
                 df = dataframe_utils.left_join_df(
                     left_df=df,
                     right_df=offset_df,
@@ -852,6 +924,7 @@ class QueryContextProcessor:
                     rsuffix=R_SUFFIX,
                 )
             else:
+                logger.info("Performing cross join for date range offset")
                 # For cross join, we need to handle this differently
                 # Add a temporary join key to both DataFrames
                 temp_key = "__temp_join_key__"
@@ -874,11 +947,13 @@ class QueryContextProcessor:
 
             # CLEANUP: Different cleanup logic for different offset types
             if time_grain and not is_date_range_offset:
+                # ORIGINAL CLEANUP for relative offsets
+                logger.info("Applying original cleanup for relative offset")
+
                 # move the temporal column to the first column in df
                 if join_keys:
-                    col_name = join_keys[0]
-                    col = df.pop(col_name)
-                    df.insert(0, col_name, col)
+                    col = df.pop(join_keys[0])
+                    df.insert(0, col.name, col)
 
                 # removes columns created only for join purposes
                 df.drop(
@@ -887,6 +962,9 @@ class QueryContextProcessor:
                     inplace=True,
                 )
             elif is_date_range_offset:
+                # SPECIAL CLEANUP for date range offsets
+                logger.info("Applying special cleanup for date range offset")
+
                 # For date range offsets, only remove R_SUFFIX columns
                 # Don't remove OFFSET_JOIN_COLUMN_SUFFIX since we didn't create them
                 df.drop(
@@ -895,12 +973,20 @@ class QueryContextProcessor:
                     inplace=True,
                 )
             else:
+                # FALLBACK CLEANUP for other cases
+                logger.info("Applying fallback cleanup")
+
                 # Remove any suffix columns that might have been created
                 df.drop(
                     list(df.filter(regex=f"{R_SUFFIX}")),
                     axis=1,
                     inplace=True,
                 )
+
+            logger.info(
+                f"After processing offset {offset}, DataFrame shape: {df.shape}"
+            )
+            logger.info(f"DataFrame columns: {list(df.columns)}")
 
         return df
 
