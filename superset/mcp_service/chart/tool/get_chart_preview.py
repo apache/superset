@@ -236,6 +236,17 @@ class TablePreviewStrategy(PreviewFormatStrategy):
 class VegaLitePreviewStrategy(PreviewFormatStrategy):
     """Generate Vega-Lite specification for interactive chart preview."""
 
+    def _get_form_data(self) -> Dict[str, Any] | None:
+        """Extract form_data from chart params."""
+        try:
+            if hasattr(self.chart, "params") and self.chart.params:
+                from superset.utils import json as utils_json
+
+                return utils_json.loads(self.chart.params)
+            return None
+        except Exception:
+            return None
+
     def generate(self) -> VegaLitePreview | ChartError:
         """Generate Vega-Lite JSON specification from chart data."""
         try:
@@ -506,15 +517,28 @@ class VegaLitePreviewStrategy(PreviewFormatStrategy):
     ) -> Dict[str, Any]:
         """Create line chart specification."""
         field_types = field_types or {}
-        x_field = fields[0] if fields else "x"
+
+        # Try to get original field mappings from chart form_data
+        form_data = self._get_form_data()
+
+        # Extract original x/y field mappings
+        x_field = form_data.get("x_axis") if form_data else None
+        if not x_field:
+            # Fallback to guessing from aggregated fields
+            x_field = fields[0] if fields else "x"
+
+        # For y-axis, we need to use the aggregated field name from data
         y_field = fields[1] if len(fields) > 1 else fields[0] if fields else "y"
 
-        x_type = field_types.get(
-            x_field,
-            "temporal"
-            if "date" in x_field.lower() or "time" in x_field.lower()
-            else "nominal",
-        )
+        # Better type detection for x-axis
+        x_type = field_types.get(x_field, "nominal")
+        # Override if we know it's the x_axis from form_data (likely temporal)
+        if form_data and x_field == form_data.get("x_axis"):
+            if any(
+                kw in x_field.lower() for kw in ["date", "time", "year", "month", "day"]
+            ):
+                x_type = "temporal"
+
         y_type = field_types.get(y_field, "quantitative")
 
         return {
@@ -1738,7 +1762,7 @@ def _create_numeric_summaries(data: List[Any], headers: List[str]) -> List[str]:
     return summaries
 
 
-def _get_chart_preview_internal(
+def _get_chart_preview_internal(  # noqa: C901
     request: GetChartPreviewRequest,
 ) -> ChartPreview | ChartError:
     """
@@ -1759,7 +1783,7 @@ def _get_chart_preview_internal(
         from superset.daos.chart import ChartDAO
 
         # Find the chart
-        chart = None
+        chart: Any = None
         if isinstance(request.identifier, int) or (
             isinstance(request.identifier, str) and request.identifier.isdigit()
         ):
@@ -1772,6 +1796,46 @@ def _get_chart_preview_internal(
         else:
             # Try UUID lookup using DAO flexible method
             chart = ChartDAO.find_by_id(request.identifier, id_column="uuid")
+
+            # If not found and looks like a form_data_key, try to create transient chart
+            if (
+                not chart
+                and isinstance(request.identifier, str)
+                and len(request.identifier) > 8
+            ):
+                # This might be a form_data_key, try to get form data from cache
+                from superset.commands.explore.form_data.get import GetFormDataCommand
+                from superset.commands.explore.form_data.parameters import (
+                    CommandParameters,
+                )
+
+                try:
+                    cmd_params = CommandParameters(key=request.identifier)
+                    cmd = GetFormDataCommand(cmd_params)
+                    form_data_json = cmd.run()
+                    if form_data_json:
+                        from superset.utils import json as utils_json
+
+                        form_data = utils_json.loads(form_data_json)
+
+                        # Create a transient chart object from form data
+                        class TransientChart:
+                            def __init__(self, form_data: Dict[str, Any]):
+                                self.id = None
+                                self.slice_name = "Unsaved Chart Preview"
+                                self.viz_type = form_data.get("viz_type", "table")
+                                self.datasource_id = None
+                                self.datasource_type = "table"
+                                self.params = utils_json.dumps(form_data)
+                                self.form_data = form_data
+                                self.uuid = None
+
+                        chart = TransientChart(form_data)
+                except Exception as e:
+                    # Form data key not found or invalid
+                    logger.debug(
+                        f"Failed to get form data for key {request.identifier}: {e}"
+                    )
 
         if not chart:
             return ChartError(
