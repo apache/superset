@@ -2,6 +2,9 @@
 
 This document provides a comprehensive test plan for testing the MCP chart tools with Claude Desktop.
 
+**✅ Phase 1 Complete - Production Ready**  
+Covers all 9 chart tools with optimized dashboard integration and comprehensive error handling.
+
 ## Important Test Instructions
 
 ### 🔗 **ALWAYS SHOW URLs**
@@ -33,17 +36,17 @@ When testing preview tools:
 
 ## Test Coverage Overview
 
-| Tool | Basic | Advanced | Error Cases | Performance |
-|------|-------|----------|-------------|-------------|
-| list_charts | ✓ | ✓ | ✓ | ✓ |
-| get_chart_info | ✓ | ✓ | ✓ | ✓ |
-| get_chart_available_filters | ✓ | ✓ | ✓ | - |
-| generate_chart | ✓ | ✓ | ✓ | ✓ |
-| update_chart | ✓ | ✓ | ✓ | - |
-| update_chart_preview | ✓ | ✓ | ✓ | - |
-| get_chart_data | ✓ | ✓ | ✓ | ✓ |
-| get_chart_preview | ✓ | ✓ | ✓ | ✓ |
-| generate_explore_link | ✓ | ✓ | ✓ | - |
+| Tool | Basic | Advanced | Error Cases | Performance | Dashboard Integration |
+|------|-------|----------|-------------|-------------|---------------------|
+| list_charts | ✅ | ✅ | ✅ | ✅ | - |
+| get_chart_info | ✅ | ✅ | ✅ | ✅ | - |
+| get_chart_available_filters | ✅ | ✅ | ✅ | - | - |
+| generate_chart | ✅ | ✅ | ✅ | ✅ | ✅ |
+| update_chart | ✅ | ✅ | ✅ | - | ✅ |
+| update_chart_preview | ✅ | ✅ | ✅ | - | - |
+| get_chart_data | ✅ | ✅ | ✅ | ✅ | - |
+| get_chart_preview | ✅ | ✅ | ✅ | ✅ | - |
+| generate_explore_link | ✅ | ✅ | ✅ | - | ✅ |
 
 ## 1. Test list_charts
 
@@ -895,7 +898,60 @@ Request:
 Expected: Returns validation error with column suggestions
 ```
 
-## 12. Special Cases and Edge Cases
+## 12. Dashboard Integration Tests
+
+### Test generate_dashboard with Chart Integration
+```
+Test: Create dashboard with multiple charts
+Request:
+{
+  "chart_ids": [1, 2, 3, 4],  // Use existing chart IDs
+  "dashboard_title": "MCP Test Dashboard",
+  "description": "Generated via MCP for testing optimized layouts",
+  "published": true
+}
+Expected: Creates dashboard with 2-chart rows using 5-unit width layouts
+Action: DISPLAY THE DASHBOARD URL and verify layout quality
+```
+
+### Test add_chart_to_existing_dashboard
+```
+Test: Add chart to existing dashboard
+Request:
+{
+  "dashboard_id": [existing_dashboard_id],
+  "chart_id": [new_chart_id]
+}
+Expected: Adds chart with optimized positioning and proper dimensions
+Action: DISPLAY THE UPDATED DASHBOARD URL and check layout
+```
+
+### Test Dashboard Layout Optimization
+```
+Test: Create dashboard and verify chart proportions
+1. Generate dashboard with 6 charts
+   - Expected: 3 rows of 2 charts each
+   - Chart dimensions: 5 width × 50 height units
+   - DISPLAY THE DASHBOARD URL
+2. Verify charts are properly sized (not too wide/narrow)
+3. Check responsive behavior across screen sizes
+```
+
+### Test Chart-to-Dashboard Workflow
+```
+Complete Integration Test:
+1. Generate 2 new charts using generate_chart
+   - DISPLAY BOTH CHART URLs
+2. Create dashboard with these charts using generate_dashboard
+   - DISPLAY THE DASHBOARD URL
+3. Generate 1 more chart
+   - DISPLAY THE NEW CHART URL
+4. Add new chart to dashboard using add_chart_to_existing_dashboard
+   - DISPLAY THE UPDATED DASHBOARD URL
+5. Verify all charts display properly with optimized layouts
+```
+
+## 13. Special Cases and Edge Cases
 
 ### Unicode and Special Characters
 ```
@@ -1019,6 +1075,10 @@ Expected: Safely handles without executing SQL
 - [ ] Images embedded where possible
 - [ ] Performance acceptable
 - [ ] Edge cases handled
+- [ ] Dashboard integration tested
+- [ ] Chart layout optimization verified
+- [ ] Dashboard URLs properly generated
+- [ ] Chart-to-dashboard workflow validated
 
 ## Debugging Tips
 
@@ -1042,8 +1102,11 @@ Passed: X
 Failed: X
 
 Working Features:
-- ✅ Feature 1 (with URL: ...)
-- ✅ Feature 2 (with preview: ...)
+- ✅ Chart Creation (with URL: ...)
+- ✅ Dashboard Generation (with URL: ...)
+- ✅ Chart Previews (with preview: ...)
+- ✅ Dashboard Layout Optimization
+- ✅ Multi-format Data Export
 
 Issues Found:
 - ❌ Issue 1: Description
@@ -1052,6 +1115,12 @@ Issues Found:
 Performance Notes:
 - Average response time: Xs
 - Cache hit rate: X%
+- Dashboard layout quality: Excellent/Good/Needs improvement
+
+Dashboard Integration:
+- Chart positioning: Optimized/Standard
+- Layout responsiveness: Excellent/Good/Poor
+- Chart proportions: Proper/Too wide/Too narrow
 
 Recommendations:
 - ...
