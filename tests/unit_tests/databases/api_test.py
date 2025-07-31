@@ -549,7 +549,9 @@ def test_delete_ssh_tunnel(
         db.session.commit()
 
         # Get our recently created SSHTunnel
-        response_tunnel = DatabaseDAO.get_ssh_tunnel(1)
+        retrieved_database = DatabaseDAO.find_by_id(1, skip_base_filter=True)
+        assert retrieved_database is not None
+        response_tunnel = retrieved_database.ssh_tunnel
         assert response_tunnel
         assert isinstance(response_tunnel, SSHTunnel)
         assert 1 == response_tunnel.database_id
@@ -560,7 +562,9 @@ def test_delete_ssh_tunnel(
         )
         assert response_delete_tunnel.json["message"] == "OK"
 
-        response_tunnel = DatabaseDAO.get_ssh_tunnel(1)
+        retrieved_database = DatabaseDAO.find_by_id(1, skip_base_filter=True)
+        assert retrieved_database is not None
+        response_tunnel = retrieved_database.ssh_tunnel
         assert response_tunnel is None
 
 
@@ -631,12 +635,15 @@ def test_delete_ssh_tunnel_not_found(
         assert response_delete_tunnel.json["message"] == "Not found"
 
         # Get our recently created SSHTunnel
-        response_tunnel = DatabaseDAO.get_ssh_tunnel(1)
+        database1 = DatabaseDAO.find_by_id(1, skip_base_filter=True)
+        assert database1 is not None
+        response_tunnel = database1.ssh_tunnel
         assert response_tunnel
         assert isinstance(response_tunnel, SSHTunnel)
         assert 1 == response_tunnel.database_id
 
-        response_tunnel = DatabaseDAO.get_ssh_tunnel(2)
+        database2 = DatabaseDAO.find_by_id(2, skip_base_filter=True)
+        response_tunnel = database2.ssh_tunnel if database2 else None
         assert response_tunnel is None
 
 

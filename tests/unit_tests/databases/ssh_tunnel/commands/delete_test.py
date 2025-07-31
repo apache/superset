@@ -58,7 +58,9 @@ def test_delete_ssh_tunnel_command(
     from superset.daos.database import DatabaseDAO
     from superset.databases.ssh_tunnel.models import SSHTunnel
 
-    result = DatabaseDAO.get_ssh_tunnel(1)
+    database = DatabaseDAO.find_by_id(1, skip_base_filter=True)
+    assert database is not None
+    result = database.ssh_tunnel
 
     assert result
     assert isinstance(result, SSHTunnel)
@@ -68,6 +70,8 @@ def test_delete_ssh_tunnel_command(
         return_value=True,
     )
     DeleteSSHTunnelCommand(1).run()
-    result = DatabaseDAO.get_ssh_tunnel(1)
+    database = DatabaseDAO.find_by_id(1, skip_base_filter=True)
+    assert database is not None
+    result = database.ssh_tunnel
 
     assert result is None

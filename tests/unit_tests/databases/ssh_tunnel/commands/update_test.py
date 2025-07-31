@@ -60,7 +60,9 @@ def test_update_shh_tunnel_command(session_with_data: Session) -> None:
     from superset.daos.database import DatabaseDAO
     from superset.databases.ssh_tunnel.models import SSHTunnel
 
-    result = DatabaseDAO.get_ssh_tunnel(1)
+    database = DatabaseDAO.find_by_id(1, skip_base_filter=True)
+    assert database is not None
+    result = database.ssh_tunnel
 
     assert result
     assert isinstance(result, SSHTunnel)
@@ -70,7 +72,9 @@ def test_update_shh_tunnel_command(session_with_data: Session) -> None:
     update_payload = {"server_address": "Test2"}
     UpdateSSHTunnelCommand(1, update_payload).run()
 
-    result = DatabaseDAO.get_ssh_tunnel(1)
+    database = DatabaseDAO.find_by_id(1, skip_base_filter=True)
+    assert database is not None
+    result = database.ssh_tunnel
 
     assert result
     assert isinstance(result, SSHTunnel)
@@ -82,7 +86,9 @@ def test_update_shh_tunnel_invalid_params(session_with_data: Session) -> None:
     from superset.daos.database import DatabaseDAO
     from superset.databases.ssh_tunnel.models import SSHTunnel
 
-    result = DatabaseDAO.get_ssh_tunnel(1)
+    database = DatabaseDAO.find_by_id(1, skip_base_filter=True)
+    assert database is not None
+    result = database.ssh_tunnel
 
     assert result
     assert isinstance(result, SSHTunnel)
@@ -110,7 +116,9 @@ def test_update_shh_tunnel_no_port(session_with_data: Session) -> None:
     from superset.daos.database import DatabaseDAO
     from superset.databases.ssh_tunnel.models import SSHTunnel
 
-    result = DatabaseDAO.get_ssh_tunnel(1)
+    database = DatabaseDAO.find_by_id(1, skip_base_filter=True)
+    assert database is not None
+    result = database.ssh_tunnel
 
     assert result
     assert isinstance(result, SSHTunnel)
@@ -120,7 +128,9 @@ def test_update_shh_tunnel_no_port(session_with_data: Session) -> None:
     update_payload = {"server_address": "Test2"}
     UpdateSSHTunnelCommand(1, update_payload).run()
 
-    result = DatabaseDAO.get_ssh_tunnel(1)
+    database = DatabaseDAO.find_by_id(1, skip_base_filter=True)
+    assert database is not None
+    result = database.ssh_tunnel
 
     assert result
     assert isinstance(result, SSHTunnel)
@@ -138,7 +148,9 @@ def test_update_shh_tunnel_no_port_no_default(session_with_data: Session) -> Non
     from superset.daos.database import DatabaseDAO
     from superset.databases.ssh_tunnel.models import SSHTunnel
 
-    result = DatabaseDAO.get_ssh_tunnel(1)
+    database = DatabaseDAO.find_by_id(1, skip_base_filter=True)
+    assert database is not None
+    result = database.ssh_tunnel
 
     assert result
     assert isinstance(result, SSHTunnel)

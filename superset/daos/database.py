@@ -174,20 +174,6 @@ class DatabaseDAO(BaseDAO[Database]):
             .all()
         )
 
-    @classmethod
-    def get_ssh_tunnel(cls, database_id: int) -> SSHTunnel | None:
-        """
-        DEPRECATED: Use database.ssh_tunnel relationship instead.
-        This method exists only for backward compatibility with tests.
-        """
-        ssh_tunnel = (
-            db.session.query(SSHTunnel)
-            .filter(SSHTunnel.database_id == database_id)
-            .one_or_none()
-        )
-
-        return ssh_tunnel
-
 
 class SSHTunnelDAO(BaseDAO[SSHTunnel]):
     @classmethod

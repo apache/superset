@@ -100,9 +100,7 @@ class SyncPermissionsCommand(BaseCommand):
             raise DatabaseNotFoundError()
 
         if not self.db_connection_ssh_tunnel and self._db_connection:
-            self.db_connection_ssh_tunnel = DatabaseDAO.get_ssh_tunnel(
-                self.db_connection_id
-            )
+            self.db_connection_ssh_tunnel = self._db_connection.ssh_tunnel
 
         # Need user info to impersonate for OAuth2 connections
         if not self.username or not security_manager.get_user_by_username(
@@ -335,8 +333,8 @@ def sync_database_permissions_task(
             db_connection = DatabaseDAO.find_by_id(database_id)
             if not db_connection:
                 raise DatabaseNotFoundError()
-            # Query SSH tunnel separately to avoid DetachedInstanceError in Celery
-            ssh_tunnel = DatabaseDAO.get_ssh_tunnel(database_id)
+            # Use the relationship directly since we now use lazy="joined"
+            ssh_tunnel = db_connection.ssh_tunnel
 
             SyncPermissionsCommand(
                 database_id,
