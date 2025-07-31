@@ -54,7 +54,7 @@ import {
 import { InputRef } from 'antd';
 import { MenuItemTooltip } from '../DisabledMenuItemTooltip';
 import { getSubmenuYOffset } from '../utils';
-import { MenuItemWithTruncation } from '../MenuItemWithTruncation';
+import { VirtualizedMenuItem } from '../MenuItemWithTruncation';
 import { Dataset } from '../types';
 
 const SUBMENU_HEIGHT = 200;
@@ -68,6 +68,7 @@ export interface DrillByMenuItemsProps {
   submenuIndex?: number;
   onSelection?: (...args: any) => void;
   onClick?: (event: MouseEvent) => void;
+  onCloseMenu?: () => void;
   openNewModal?: boolean;
   excludedColumns?: Column[];
   open: boolean;
@@ -100,6 +101,7 @@ export const DrillByMenuItems = ({
   submenuIndex = 0,
   onSelection = () => {},
   onClick = () => {},
+  onCloseMenu = () => {},
   excludedColumns,
   openNewModal = true,
   open,
@@ -124,6 +126,7 @@ export const DrillByMenuItems = ({
       if (openNewModal && onDrillBy && dataset) {
         onDrillBy(column, dataset);
       }
+      onCloseMenu();
     },
     [drillByConfig, onClick, onSelection, openNewModal, onDrillBy, dataset],
   );
@@ -264,15 +267,14 @@ export const DrillByMenuItems = ({
     const { columns, ...rest } = data;
     const column = columns[index];
     return (
-      <MenuItemWithTruncation
-        menuKey={`drill-by-item-${column.column_name}`}
+      <VirtualizedMenuItem
         tooltipText={column.verbose_name || column.column_name}
         onClick={e => handleSelection(e, column)}
         style={style}
         {...rest}
       >
         {column.verbose_name || column.column_name}
-      </MenuItemWithTruncation>
+      </VirtualizedMenuItem>
     );
   };
 

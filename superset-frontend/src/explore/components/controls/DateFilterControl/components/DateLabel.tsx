@@ -30,10 +30,6 @@ export type DateLabelProps = {
   onClick?: (event: MouseEvent) => void;
 };
 
-// This is the color that antd components (such as Select or Input) use on hover
-// TODO: use theme.colorPrimary here and in antd components
-const ACTIVE_BORDER_COLOR = '#45BED6';
-
 const LabelContainer = styled.div<{
   isActive?: boolean;
   isPlaceholder?: boolean;
@@ -47,10 +43,9 @@ const LabelContainer = styled.div<{
 
     padding: 0 ${theme.sizeUnit * 3}px;
 
-    background-color: ${theme.colors.grayscale.light5};
+    background-color: ${theme.colorBgContainer};
 
-    border: 1px solid
-      ${isActive ? ACTIVE_BORDER_COLOR : theme.colors.grayscale.light2};
+    border: 1px solid ${isActive ? theme.colorPrimary : theme.colorBorder};
     border-radius: ${theme.borderRadius}px;
 
     cursor: pointer;
@@ -58,11 +53,11 @@ const LabelContainer = styled.div<{
     transition: border-color 0.3s cubic-bezier(0.65, 0.05, 0.36, 1);
     :hover,
     :focus {
-      border-color: ${ACTIVE_BORDER_COLOR};
+      border-color: ${theme.colorPrimary};
     }
 
     .date-label-content {
-      color: ${isPlaceholder ? theme.colors.grayscale.light1 : theme.colorText};
+      color: ${isPlaceholder ? theme.colorTextPlaceholder : theme.colorText};
       overflow: hidden;
       text-overflow: ellipsis;
       min-width: 0;
@@ -71,6 +66,7 @@ const LabelContainer = styled.div<{
     }
 
     span[role='img'] {
+      color: ${isPlaceholder ? theme.colorTextPlaceholder : theme.colorText};
       margin-left: auto;
       padding-left: ${theme.sizeUnit}px;
 
