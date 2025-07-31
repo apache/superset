@@ -63,7 +63,7 @@ export enum ContextMenuItem {
 export interface ChartContextMenuProps {
   id: number;
   formData: QueryFormData;
-  onSelection: () => void;
+  onSelection: (args?: any) => void;
   onClose: () => void;
   additionalConfig?: {
     crossFilter?: Record<string, any>;
@@ -122,6 +122,12 @@ const ChartContextMenu = (
   const [showDrillByModal, setShowDrillByModal] = useState(false);
   const [dataset, setDataset] = useState<Dataset>();
   const verboseMap = useVerboseMap(dataset);
+
+  const closeContextMenu = useCallback(() => {
+    setVisible(false);
+    setOpenKeys([]);
+    onClose();
+  }, [onClose]);
 
   const handleDrillBy = useCallback((column: Column, dataset: Dataset) => {
     setDrillByColumn(column);
@@ -263,10 +269,8 @@ const ChartContextMenu = (
     menuItems.push(
       <DrillByMenuItems
         drillByConfig={filters?.drillBy}
-        onSelection={() => {
-          onSelection();
-          setVisible(false);
-        }}
+        onSelection={onSelection}
+        onCloseMenu={closeContextMenu}
         formData={formData}
         contextMenuY={clientY}
         submenuIndex={submenuIndex}
@@ -314,6 +318,7 @@ const ChartContextMenu = (
             onOpenChange={setOpenKeys}
             onClick={() => {
               setVisible(false);
+              setOpenKeys([]);
               onClose();
             }}
           >

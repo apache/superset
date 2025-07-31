@@ -68,6 +68,7 @@ export interface DrillByMenuItemsProps {
   submenuIndex?: number;
   onSelection?: (...args: any) => void;
   onClick?: (event: MouseEvent) => void;
+  onCloseMenu?: () => void;
   openNewModal?: boolean;
   excludedColumns?: Column[];
   open: boolean;
@@ -100,6 +101,7 @@ export const DrillByMenuItems = ({
   submenuIndex = 0,
   onSelection = () => {},
   onClick = () => {},
+  onCloseMenu = () => {},
   excludedColumns,
   openNewModal = true,
   open,
@@ -124,6 +126,7 @@ export const DrillByMenuItems = ({
       if (openNewModal && onDrillBy && dataset) {
         onDrillBy(column, dataset);
       }
+      onCloseMenu();
     },
     [drillByConfig, onClick, onSelection, openNewModal, onDrillBy, dataset],
   );
