@@ -80,12 +80,12 @@ class TestUrlUtils:
             assert url == "http://localhost:8080"
 
     def test_get_mcp_service_url_default(self):
-        """Test get_mcp_service_url returns same as Superset base URL."""
+        """Test get_mcp_service_url returns MCP service default URL."""
         with patch("superset.mcp_service.url_utils.current_app") as mock_app:
             mock_app.config = MagicMock()
             mock_app.config.get.side_effect = Exception("No config")
             url = get_mcp_service_url()
-            assert url == "http://localhost:8088"  # Same as Superset default
+            assert url == "http://localhost:5008"  # MCP service default
 
     def test_get_mcp_service_url_from_config(self):
         """Test get_mcp_service_url uses same URL as Superset."""
@@ -101,15 +101,16 @@ class TestUrlUtils:
             mock_app.config = MagicMock()
             mock_app.config.get.side_effect = Exception("Config error")
             url = get_mcp_service_url()
-            assert url == "http://localhost:8088"  # Same as Superset default
+            assert url == "http://localhost:5008"  # MCP service default
 
     def test_url_functions_integration(self):
-        """Test that URL functions work together correctly."""
+        """Test that URL functions work independently."""
         with patch("superset.mcp_service.url_utils.current_app") as mock_app:
 
             def mock_config_get(key, default=None):
                 config_map = {
                     "SUPERSET_WEBSERVER_ADDRESS": "https://superset.example.com",
+                    "MCP_SERVICE_URL": "https://mcp.example.com",
                 }
                 return config_map.get(key, default)
 
@@ -120,5 +121,5 @@ class TestUrlUtils:
             mcp_url = get_mcp_service_url()
 
             assert superset_url == "https://superset.example.com"
-            assert mcp_url == "https://superset.example.com"  # Same as Superset
-            assert superset_url == mcp_url  # They are the same service
+            assert mcp_url == "https://mcp.example.com"  # Independent of Superset
+            assert superset_url != mcp_url  # They are independent services

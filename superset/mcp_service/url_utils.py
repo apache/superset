@@ -64,10 +64,10 @@ def get_mcp_service_url() -> str:
     Get the MCP service base URL where screenshot endpoints are served.
 
     The MCP service auto-detects its own host and port since it's running
-    this code. Falls back to configuration if auto-detection fails.
+    this code. Falls back to explicit configuration or default port.
 
     Returns:
-        Base URL for MCP service
+        Base URL for MCP service (always independent of Superset URL)
     """
     try:
         # Try to auto-detect from Flask request context
@@ -84,19 +84,11 @@ def get_mcp_service_url() -> str:
         pass
 
     try:
-        # Fallback: check configuration
-        config = current_app.config
-
         # Check for explicit MCP_SERVICE_URL in config
+        config = current_app.config
         mcp_service_url = config.get("MCP_SERVICE_URL")
         if mcp_service_url:
             return mcp_service_url
-
-        # If no explicit MCP URL, use the same as Superset base URL
-        superset_url = get_superset_base_url()
-        if superset_url and superset_url != "http://localhost:8088":
-            # Only use Superset URL if it's not the default, to avoid infinite recursion
-            return superset_url
 
     except Exception as e:
         # Log and fall back if config access fails
@@ -104,8 +96,8 @@ def get_mcp_service_url() -> str:
 
         logging.getLogger(__name__).debug(f"Config access failed: {e}")
 
-    # Final fallback to same default as Superset
-    return "http://localhost:8088"
+    # Always fallback to MCP service default port (never use Superset URL)
+    return "http://localhost:5008"
 
 
 def get_chart_screenshot_url(chart_id: int | str) -> str:
