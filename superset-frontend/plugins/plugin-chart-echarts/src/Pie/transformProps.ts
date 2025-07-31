@@ -95,27 +95,27 @@ function getTotalValuePadding({
     top: donut ? 'middle' : '0',
     left: 'center',
   };
-  const LEGEND_HEIGHT = 15;
-  const LEGEND_WIDTH = 215;
   if (chartPadding.top) {
     padding.top = donut
-      ? `${50 + ((chartPadding.top - LEGEND_HEIGHT) / height / 2) * 100}%`
-      : `${((chartPadding.top + LEGEND_HEIGHT) / height) * 100}%`;
+      ? `${50 + (chartPadding.top / height / 2) * 100}%`
+      : `${(chartPadding.top / height) * 100}%`;
   }
   if (chartPadding.bottom) {
     padding.top = donut
-      ? `${50 - ((chartPadding.bottom + LEGEND_HEIGHT) / height / 2) * 100}%`
+      ? `${50 - (chartPadding.bottom / height / 2) * 100}%`
       : '0';
   }
   if (chartPadding.left) {
-    padding.left = `${
-      50 + ((chartPadding.left - LEGEND_WIDTH) / width / 2) * 100
-    }%`;
+    // When legend is on the left, shift text right to center it in the available space
+    const leftPaddingPercent = (chartPadding.left / width) * 100;
+    const adjustedLeftPercent = 50 + (leftPaddingPercent * 0.25);
+    padding.left = `${adjustedLeftPercent}%`;
   }
   if (chartPadding.right) {
-    padding.left = `${
-      50 - ((chartPadding.right + LEGEND_WIDTH) / width / 2) * 100
-    }%`;
+    // When legend is on the right, shift text left to center it in the available space
+    const rightPaddingPercent = (chartPadding.right / width) * 100;
+    const adjustedLeftPercent = 50 - (rightPaddingPercent * 0.75);
+    padding.left = `${adjustedLeftPercent}%`;
   }
   return padding;
 }
