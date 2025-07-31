@@ -403,6 +403,7 @@ module.exports = {
     'theme-colors/no-literal-colors': 'error',
     'icons/no-fa-icons-usage': 'error',
     'i18n-strings/no-template-vars': ['error', true],
+    'i18n-strings/no-title-case': 'error',
     camelcase: [
       'error',
       {

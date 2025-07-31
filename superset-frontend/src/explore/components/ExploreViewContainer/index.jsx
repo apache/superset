@@ -637,7 +637,7 @@ function ExploreViewContainer(props) {
           }
         >
           <div className="title-container">
-            <span className="horizontal-text">{t('Chart Source')}</span>
+            <span className="horizontal-text">{t('Chart source')}</span>
             <span
               role="button"
               tabIndex={0}
@@ -672,7 +672,7 @@ function ExploreViewContainer(props) {
             tabIndex={0}
           >
             <span role="button" tabIndex={0} className="action-button">
-              <Tooltip title={t('Open Datasource tab')}>
+              <Tooltip title={t('Open datasource tab')}>
                 <Icons.VerticalAlignTopOutlined
                   iconSize="xl"
                   css={css`

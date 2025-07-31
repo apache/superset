@@ -575,8 +575,8 @@ function ChartList(props: ChartListProps) {
       operator: FilterOperator.ChartIsFav,
       unfilteredLabel: t('Any'),
       selects: [
-        { label: t('Yes'), value: true },
-        { label: t('No'), value: false },
+        { label: t('yes'), value: true },
+        { label: t('no'), value: false },
       ],
     }),
     [],
