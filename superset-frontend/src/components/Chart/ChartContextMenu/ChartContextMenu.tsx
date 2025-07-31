@@ -263,7 +263,10 @@ const ChartContextMenu = (
     menuItems.push(
       <DrillByMenuItems
         drillByConfig={filters?.drillBy}
-        onSelection={onSelection}
+        onSelection={() => {
+          onSelection();
+          setVisible(false);
+        }}
         formData={formData}
         contextMenuY={clientY}
         submenuIndex={submenuIndex}
