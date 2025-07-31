@@ -1,0 +1,69 @@
+### Pagination Tests
+Test: List charts with page_size=50
+Test: List with cache control use_cache=false
+### Search Tests
+Test: Search with UUID/slug search="abc-123-def"
+Test: Search with no results search="xyz123nonexistent"
+### Filter Tests
+Test: Filter by multiple conditions
+filters=[
+filters=[{"col": "viz_type", "opr": "in", "value": ["line", "bar", "area"]}]
+Test: Include UUID with select_columns=["id", "slice_name", "uuid", "url"]
+### Sort Options
+Test: Sort by updated date order_column="changed_on", order_direction="desc"
+## 2. Test get_chart_info
+Test: Get info for chart by UUID (if you have one)
+### Error Cases
+Test: Get info with invalid identifier "not-a-valid-id"
+## 3. Test get_chart_available_filters
+Request: {"identifier": 1}
+Request: {"identifier": 1, "include_filter_values": true}
+Request:
+Request:
+Request:
+Request:
+Request:
+Request:
+Request:
+Request:
+Request:
+Request:
+Request:
+Request:
+Request:
+Request:
+Request:
+Request:
+Request:
+Request:
+Request:
+Request:
+Request:
+Request:
+Request:
+Request:
+Request:
+Request:
+Request:
+Request:
+Request:
+Request:
+Request:
+Request:
+Request:
+Test: Get data with limit=50000
+### Concurrent Operations
+### Complex Aggregations
+Request:
+Request:
+Request:
+Request:
+Request:
+Request:
+Request:
+Request:
+Request:
+1. Generate dashboard with 6 charts
+Request:
+Request:
+Request:
