@@ -166,7 +166,7 @@ test('render menu item with submenu without searchbox', async () => {
   renderMenu({});
   await waitFor(() => fetchMock.called(DATASET_ENDPOINT));
   await expectDrillByEnabled();
-  
+
   // Check that each column appears in the drill-by submenu
   slicedColumns.forEach(column => {
     const submenus = screen.getAllByTestId('drill-by-submenu');
@@ -193,7 +193,9 @@ test('render menu item with submenu and searchbox', async () => {
       const submenus = screen.getAllByTestId('drill-by-submenu');
       const submenu = submenus[0];
       defaultColumns.forEach(column => {
-        expect(within(submenu).getByText(column.column_name)).toBeInTheDocument();
+        expect(
+          within(submenu).getByText(column.column_name),
+        ).toBeInTheDocument();
       });
     },
     { timeout: 10000 },
@@ -219,11 +221,13 @@ test('render menu item with submenu and searchbox', async () => {
 
   const submenus = screen.getAllByTestId('drill-by-submenu');
   const submenu = submenus[0];
-  
+
   defaultColumns
     .filter(col => !expectedFilteredColumnNames.includes(col.column_name))
     .forEach(col => {
-      expect(within(submenu).queryByText(col.column_name)).not.toBeInTheDocument();
+      expect(
+        within(submenu).queryByText(col.column_name),
+      ).not.toBeInTheDocument();
     });
 
   expectedFilteredColumnNames.forEach(colName => {
@@ -254,7 +258,9 @@ test('Do not display excluded column in the menu', async () => {
       defaultColumns
         .filter(column => !excludedColNames.includes(column.column_name))
         .forEach(column => {
-          expect(within(submenu).getByText(column.column_name)).toBeInTheDocument();
+          expect(
+            within(submenu).getByText(column.column_name),
+          ).toBeInTheDocument();
         });
     },
     { timeout: 10000 },
