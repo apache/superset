@@ -494,7 +494,8 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         # Seed system themes from configuration
         from superset.commands.theme.seed import SeedSystemThemesCommand
 
-        SeedSystemThemesCommand().run()
+        if inspector.has_table("themes"):
+            SeedSystemThemesCommand().run()
 
     def init_app_in_ctx(self) -> None:
         """
