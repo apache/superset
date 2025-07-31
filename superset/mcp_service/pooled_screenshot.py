@@ -68,12 +68,24 @@ class PooledBaseScreenshot(BaseScreenshot):
         with pool.get_driver(window_size, user.id) as driver:
             try:
                 # Authenticate the driver for this user
+                user_name = user.username if user else "None"
+                logger.debug(f"Authenticating WebDriver for user {user_name}")
                 machine_auth_provider_factory.instance.authenticate_webdriver(
                     driver, user
                 )
 
                 # Navigate to the URL
+                logger.debug(f"Navigating to screenshot URL: {self.url}")
                 driver.get(self.url)
+
+                # Check if we were redirected to login (authentication failed)
+                current_url = driver.current_url
+                if "/login" in current_url:
+                    msg = (
+                        f"Authentication failed - WebDriver redirected to login page: "
+                        f"{current_url}"
+                    )
+                    raise Exception(msg)
 
                 # Take screenshot using the specific implementation
                 return self._take_screenshot(driver, user)

@@ -128,7 +128,6 @@ def add_chart_to_existing_dashboard(
     """
     try:
         from superset.commands.dashboard.update import UpdateDashboardCommand
-        from superset.daos.chart import ChartDAO
         from superset.daos.dashboard import DashboardDAO
 
         # Validate dashboard exists
@@ -141,9 +140,12 @@ def add_chart_to_existing_dashboard(
                 error=f"Dashboard with ID {request.dashboard_id} not found",
             )
 
-        # Validate chart exists
-        chart = ChartDAO.find_by_id(request.chart_id)
-        if not chart:
+        # Get chart object for SQLAlchemy relationships and validation
+        from superset import db
+        from superset.models.slice import Slice
+
+        new_chart = db.session.get(Slice, request.chart_id)
+        if not new_chart:
             return AddChartToDashboardResponse(
                 dashboard=None,
                 dashboard_url=None,
@@ -185,8 +187,10 @@ def add_chart_to_existing_dashboard(
             "meta": {
                 "chartId": request.chart_id,
                 "height": chart_height,
-                "sliceName": chart.slice_name or f"Chart {request.chart_id}",
-                "uuid": str(chart.uuid) if chart.uuid else f"chart-{request.chart_id}",
+                "sliceName": new_chart.slice_name or f"Chart {request.chart_id}",
+                "uuid": str(new_chart.uuid)
+                if new_chart.uuid
+                else f"chart-{request.chart_id}",
                 "width": chart_width,
             },
             "parents": ["ROOT_ID"],
@@ -210,10 +214,17 @@ def add_chart_to_existing_dashboard(
                 "type": "ROOT",
             }
 
+        # Get chart objects for SQLAlchemy relationships
+        # Get existing chart objects
+        existing_chart_objects = dashboard.slices
+
+        # Combine existing and new chart objects (new_chart was retrieved above)
+        all_chart_objects = list(existing_chart_objects) + [new_chart]
+
         # Prepare update data
         update_data = {
             "position_json": json.dumps(current_layout),
-            "slices": current_chart_ids + [request.chart_id],  # Add new chart ID
+            "slices": all_chart_objects,  # Pass ORM objects, not IDs
         }
 
         # Update the dashboard
