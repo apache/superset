@@ -1223,7 +1223,7 @@ def test_date_range_timeshift_enabled(app_context, physical_dataset):
 
     # Should have both main metrics and offset metrics columns
     assert "SUM(col1)" in df.columns
-    assert "SUM(col1) 2001-01-01 : 2001-12-31" in df.columns
+    assert "SUM(col1)__2001-01-01 : 2001-12-31" in df.columns
 
     # Check that queries were generated correctly
     sqls = query_payload["query"].split(";")
@@ -1335,7 +1335,7 @@ def test_date_range_timeshift_multiple_periods(app_context, physical_dataset):
 
     # Should have main metrics and both offset metrics columns
     assert "SUM(col1)" in df.columns
-    assert "SUM(col1) 2001-01-01 : 2001-12-31" in df.columns
+    assert "SUM(col1)__2001-01-01 : 2001-12-31" in df.columns
     assert "SUM(col1) 2000-01-01 : 2000-12-31" in df.columns
 
     # Check that all queries were generated
@@ -1438,7 +1438,7 @@ def test_date_range_timeshift_mixed_with_relative_offsets(
 
     # Should have main metrics and both offset metrics columns
     assert "SUM(col1)" in df.columns
-    assert "SUM(col1) 2001-01-01 : 2001-12-31" in df.columns
+    assert "SUM(col1)__2001-01-01 : 2001-12-31" in df.columns
     assert "SUM(col1)__1 year ago" in df.columns
 
     # Check that all queries were generated
