@@ -804,6 +804,142 @@ class QueryContextProcessor:
 
         return CachedTimeOffset(df=df, queries=queries, cache_keys=cache_keys)
 
+    def _process_date_range_offset(
+        self, offset_df: pd.DataFrame, join_keys: list[str]
+    ) -> tuple[pd.DataFrame, list[str]]:
+        """Process date range offset data and return modified DataFrame and keys."""
+        temporal_cols = ["ds", "__timestamp", "dttm"]
+        non_temporal_join_keys = [key for key in join_keys if key not in temporal_cols]
+
+        logger.info(
+            f"Non-temporal join keys for date range offset: {non_temporal_join_keys}"
+        )
+
+        if non_temporal_join_keys:
+            return offset_df, non_temporal_join_keys
+
+        # Aggregate offset data for cross join
+        logger.info("No non-temporal join keys found, aggregating offset data")
+
+        metric_columns = [col for col in offset_df.columns if col not in temporal_cols]
+        logger.info(f"Aggregating metric columns: {metric_columns}")
+
+        if metric_columns:
+            aggregated_values = {}
+            for col in metric_columns:
+                if pd.api.types.is_numeric_dtype(offset_df[col]):
+                    aggregated_values[col] = offset_df[col].sum()
+                else:
+                    aggregated_values[col] = (
+                        offset_df[col].iloc[0] if not offset_df.empty else None
+                    )
+
+            offset_df = pd.DataFrame([aggregated_values])
+            logger.info(f"Aggregated offset DataFrame:\n{offset_df.to_string()}")
+
+        return offset_df, []
+
+    def _apply_cleanup_logic(
+        self,
+        df: pd.DataFrame,
+        offset: str,
+        time_grain: str | None,
+        join_keys: list[str],
+        is_date_range_offset: bool,
+    ) -> pd.DataFrame:
+        """Apply appropriate cleanup logic based on offset type."""
+        if time_grain and not is_date_range_offset:
+            logger.info("Applying original cleanup for relative offset")
+            if join_keys:
+                col = df.pop(join_keys[0])
+                df.insert(0, col.name, col)
+
+            df.drop(
+                list(df.filter(regex=f"{OFFSET_JOIN_COLUMN_SUFFIX}|{R_SUFFIX}")),
+                axis=1,
+                inplace=True,
+            )
+        elif is_date_range_offset:
+            logger.info("Applying special cleanup for date range offset")
+            df.drop(
+                list(df.filter(regex=f"{R_SUFFIX}")),
+                axis=1,
+                inplace=True,
+            )
+        else:
+            logger.info("Applying fallback cleanup")
+            df.drop(
+                list(df.filter(regex=f"{R_SUFFIX}")),
+                axis=1,
+                inplace=True,
+            )
+
+        return df
+
+    def _determine_join_keys(
+        self,
+        df: pd.DataFrame,
+        offset_df: pd.DataFrame,
+        offset: str,
+        time_grain: str | None,
+        join_keys: list[str],
+        is_date_range_offset: bool,
+        join_column_producer: Any,
+    ) -> tuple[pd.DataFrame, list[str]]:
+        """Determine appropriate join keys and modify DataFrames if needed."""
+        if time_grain and not is_date_range_offset:
+            logger.info("Using original join logic for relative offset")
+            column_name = OFFSET_JOIN_COLUMN_SUFFIX + offset
+
+            # Add offset join columns for relative time offsets
+            self.add_offset_join_column(
+                df, column_name, time_grain, offset, join_column_producer
+            )
+            self.add_offset_join_column(
+                offset_df, column_name, time_grain, None, join_column_producer
+            )
+            return offset_df, [column_name, *join_keys[1:]]
+
+        elif is_date_range_offset:
+            logger.info("Using special join logic for date range offset")
+            return self._process_date_range_offset(offset_df, join_keys)
+
+        else:
+            logger.info("Using fallback join logic (original join keys)")
+            return offset_df, join_keys
+
+    def _perform_join(
+        self, df: pd.DataFrame, offset_df: pd.DataFrame, actual_join_keys: list[str]
+    ) -> pd.DataFrame:
+        """Perform the appropriate join operation."""
+        if actual_join_keys:
+            logger.info(f"Performing left join on keys: {actual_join_keys}")
+            return dataframe_utils.left_join_df(
+                left_df=df,
+                right_df=offset_df,
+                join_keys=actual_join_keys,
+                rsuffix=R_SUFFIX,
+            )
+        else:
+            logger.info("Performing cross join for date range offset")
+            temp_key = "__temp_join_key__"
+            df[temp_key] = 1
+            offset_df[temp_key] = 1
+
+            result_df = dataframe_utils.left_join_df(
+                left_df=df,
+                right_df=offset_df,
+                join_keys=[temp_key],
+                rsuffix=R_SUFFIX,
+            )
+
+            # Remove temporary join keys
+            result_df.drop(columns=[temp_key], inplace=True, errors="ignore")
+            result_df.drop(
+                columns=[f"{temp_key}{R_SUFFIX}"], inplace=True, errors="ignore"
+            )
+            return result_df
+
     def join_offset_dfs(
         self,
         df: pd.DataFrame,
@@ -828,11 +964,7 @@ class QueryContextProcessor:
                 _("Time Grain must be specified when using Time Shift.")
             )
 
-        # iterate on offset_dfs, left join each with df
         for offset, offset_df in offset_dfs.items():
-            actual_join_keys = join_keys
-
-            # Check if this is a date range offset
             is_date_range_offset = self.is_valid_date_range(
                 offset
             ) and feature_flag_manager.is_feature_enabled(
@@ -842,167 +974,25 @@ class QueryContextProcessor:
             logger.info(
                 f"Processing offset {offset}, is_date_range: {is_date_range_offset}"
             )
-            logger.info(f"Original join_keys: {join_keys}")
 
-            if time_grain and not is_date_range_offset:
-                # ORIGINAL LOGIC for relative time offsets (like "1 day ago")
-                logger.info("Using original join logic for relative offset")
+            offset_df, actual_join_keys = self._determine_join_keys(
+                df,
+                offset_df,
+                offset,
+                time_grain,
+                join_keys,
+                is_date_range_offset,
+                join_column_producer,
+            )
 
-                # defines a column name for the offset join column
-                column_name = OFFSET_JOIN_COLUMN_SUFFIX + offset
-
-                # add offset join column to df
-                self.add_offset_join_column(
-                    df, column_name, time_grain, offset, join_column_producer
-                )
-
-                # add offset join column to offset_df
-                self.add_offset_join_column(
-                    offset_df, column_name, time_grain, None, join_column_producer
-                )
-
-                # the temporal column is the first column in the join keys
-                # so we use the join column instead of the temporal column
-                actual_join_keys = [column_name, *join_keys[1:]]
-
-            elif is_date_range_offset:
-                # SPECIAL LOGIC for date range offsets (like "2015-01-03 : 2015-01-04")
-                logger.info("Using special join logic for date range offset")
-
-                # For date range offsets, we need different join logic
-                # Remove the temporal column from join keys since dates are
-                # intentionally different
-                temporal_cols = [
-                    "ds",
-                    "__timestamp",
-                    "dttm",
-                ]  # common temporal column names
-                non_temporal_join_keys = [
-                    key for key in join_keys if key not in temporal_cols
-                ]
-
-                logger.info(
-                    f"Non-temporal join keys for date range offset: "
-                    f"{non_temporal_join_keys}"
-                )
-
-                if non_temporal_join_keys:
-                    # Join on non-temporal dimensions only
-                    actual_join_keys = non_temporal_join_keys
-                else:
-                    # If no non-temporal join keys, we need to aggregate the offset data
-                    # instead of doing a cross join that creates multiple rows
-                    logger.info(
-                        "No non-temporal join keys found, aggregating offset data"
-                    )
-
-                    # Aggregate all metric columns in the offset DataFrame
-                    metric_columns = [
-                        col for col in offset_df.columns if col not in temporal_cols
-                    ]
-                    logger.info(f"Aggregating metric columns: {metric_columns}")
-
-                    if metric_columns:
-                        # Create a single aggregated row by summing all metric values
-                        aggregated_values = {}
-                        for col in metric_columns:
-                            if pd.api.types.is_numeric_dtype(offset_df[col]):
-                                aggregated_values[col] = offset_df[col].sum()
-                            else:
-                                # For non-numeric columns, take the first value
-                                aggregated_values[col] = (
-                                    offset_df[col].iloc[0]
-                                    if not offset_df.empty
-                                    else None
-                                )
-
-                        # Create a new DataFrame with aggregated values
-                        offset_df = pd.DataFrame([aggregated_values])
-                        logger.info(
-                            f"Aggregated offset DataFrame:\n{offset_df.to_string()}"
-                        )
-
-                    # Now we can do a cross join safely since we have only one row
-                    actual_join_keys = []
-            else:
-                # FALLBACK: Use original join keys for any other case
-                logger.info("Using fallback join logic (original join keys)")
-                actual_join_keys = join_keys
-
-            logger.info(f"Final join keys for offset {offset}: {actual_join_keys}")
-
-            if actual_join_keys:
-                logger.info(f"Performing left join on keys: {actual_join_keys}")
-                df = dataframe_utils.left_join_df(
-                    left_df=df,
-                    right_df=offset_df,
-                    join_keys=actual_join_keys,
-                    rsuffix=R_SUFFIX,
-                )
-            else:
-                logger.info("Performing cross join for date range offset")
-                # For cross join, we need to handle this differently
-                # Add a temporary join key to both DataFrames
-                temp_key = "__temp_join_key__"
-                df[temp_key] = 1
-                offset_df[temp_key] = 1
-
-                df = dataframe_utils.left_join_df(
-                    left_df=df,
-                    right_df=offset_df,
-                    join_keys=[temp_key],
-                    rsuffix=R_SUFFIX,
-                )
-
-                # Remove the temporary join key
-                df.drop(columns=[temp_key], inplace=True, errors="ignore")
-                # Also remove any suffixed version
-                df.drop(
-                    columns=[f"{temp_key}{R_SUFFIX}"], inplace=True, errors="ignore"
-                )
-
-            # CLEANUP: Different cleanup logic for different offset types
-            if time_grain and not is_date_range_offset:
-                # ORIGINAL CLEANUP for relative offsets
-                logger.info("Applying original cleanup for relative offset")
-
-                # move the temporal column to the first column in df
-                if join_keys:
-                    col = df.pop(join_keys[0])
-                    df.insert(0, col.name, col)
-
-                # removes columns created only for join purposes
-                df.drop(
-                    list(df.filter(regex=f"{OFFSET_JOIN_COLUMN_SUFFIX}|{R_SUFFIX}")),
-                    axis=1,
-                    inplace=True,
-                )
-            elif is_date_range_offset:
-                # SPECIAL CLEANUP for date range offsets
-                logger.info("Applying special cleanup for date range offset")
-
-                # For date range offsets, only remove R_SUFFIX columns
-                # Don't remove OFFSET_JOIN_COLUMN_SUFFIX since we didn't create them
-                df.drop(
-                    list(df.filter(regex=f"{R_SUFFIX}")),
-                    axis=1,
-                    inplace=True,
-                )
-            else:
-                # FALLBACK CLEANUP for other cases
-                logger.info("Applying fallback cleanup")
-
-                # Remove any suffix columns that might have been created
-                df.drop(
-                    list(df.filter(regex=f"{R_SUFFIX}")),
-                    axis=1,
-                    inplace=True,
-                )
+            df = self._perform_join(df, offset_df, actual_join_keys)
+            df = self._apply_cleanup_logic(
+                df, offset, time_grain, join_keys, is_date_range_offset
+            )
 
             logger.info(
                 f"After processing offset {offset}, DataFrame shape: {df.shape}"
             )
-            logger.info(f"DataFrame columns: {list(df.columns)}")
 
         return df
 
