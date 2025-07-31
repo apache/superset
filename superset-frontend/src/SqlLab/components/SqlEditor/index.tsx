@@ -71,6 +71,7 @@ import {
   addNewQueryEditor,
   CtasEnum,
   estimateQueryCost,
+  checkCostThreshold,
   persistEditorHeight,
   postStopQuery,
   queryEditorSetAutorun,
@@ -123,6 +124,7 @@ import SouthPane from '../SouthPane';
 import SaveQuery, { QueryPayload } from '../SaveQuery';
 import ScheduleQueryButton from '../ScheduleQueryButton';
 import EstimateQueryCostButton from '../EstimateQueryCostButton';
+import CostWarningModal from '../CostWarningModal';
 import ShareSqlLabQuery from '../ShareSqlLabQuery';
 import SqlEditorLeftBar from '../SqlEditorLeftBar';
 import AceEditorWrapper from '../AceEditorWrapper';
@@ -270,6 +272,7 @@ const SqlEditor: FC<Props> = ({
     hideLeftBar,
     currentQueryEditorId,
     hasSqlStatement,
+    costThresholdData,
   } = useSelector<
     SqlLabRootState,
     {
@@ -278,8 +281,9 @@ const SqlEditor: FC<Props> = ({
       hideLeftBar?: boolean;
       currentQueryEditorId: QueryEditor['id'];
       hasSqlStatement: boolean;
+      costThresholdData?: any;
     }
-  >(({ sqlLab: { unsavedQueryEditor, databases, queries, tabHistory } }) => {
+  >(({ sqlLab: { unsavedQueryEditor, databases, queries, tabHistory, queryCostThresholds } }) => {
     let { dbId, latestQueryId, hideLeftBar } = queryEditor;
     if (unsavedQueryEditor?.id === queryEditor.id) {
       dbId = unsavedQueryEditor.dbId || dbId;
@@ -295,6 +299,7 @@ const SqlEditor: FC<Props> = ({
       latestQuery: queries[latestQueryId || ''],
       hideLeftBar,
       currentQueryEditorId: tabHistory.slice(-1)[0],
+      costThresholdData: queryCostThresholds[queryEditor.id],
     };
   }, shallowEqual);
 
@@ -317,6 +322,11 @@ const SqlEditor: FC<Props> = ({
   );
   const [showCreateAsModal, setShowCreateAsModal] = useState(false);
   const [createAs, setCreateAs] = useState('');
+  const [showCostWarningModal, setShowCostWarningModal] = useState(false);
+  const [costWarningData, setCostWarningData] = useState<{
+    warningMessage: string | null;
+    thresholdInfo?: any;
+  } | null>(null);
   const currentSQL = useRef<string>(queryEditor.sql);
   const showEmptyState = useMemo(
     () => !database || isEmpty(database),
@@ -330,7 +340,69 @@ const SqlEditor: FC<Props> = ({
 
   const isTempId = (value: unknown): boolean => Number.isNaN(Number(value));
 
+  const checkCostThresholdAndRun = useCallback(
+    (ctasArg = false, ctas_method = CtasEnum.Table) => {
+      if (!database) {
+        return;
+      }
+
+      // Check if cost threshold checking is enabled via feature flag or configuration
+      // For now, we'll implement the logic directly
+      dispatch(checkCostThreshold(queryEditor)).then(([_, response]) => {
+        if (response && response.json) {
+          const { exceeds_threshold, formatted_warning, threshold_info } = response.json;
+
+          if (exceeds_threshold && formatted_warning) {
+            // Show warning modal
+            setCostWarningData({
+              warningMessage: formatted_warning,
+              thresholdInfo: threshold_info,
+            });
+            setShowCostWarningModal(true);
+            return;
+          }
+        }
+
+        // If no threshold exceeded or checking failed, proceed with query
+        dispatch(
+          runQueryFromSqlEditor(
+            database,
+            queryEditor,
+            defaultQueryLimit,
+            ctasArg ? ctas : '',
+            ctasArg,
+            ctas_method,
+          ),
+        );
+        dispatch(setActiveSouthPaneTab('Results'));
+      }).catch(() => {
+        // If cost checking fails, proceed with query anyway
+        dispatch(
+          runQueryFromSqlEditor(
+            database,
+            queryEditor,
+            defaultQueryLimit,
+            ctasArg ? ctas : '',
+            ctasArg,
+            ctas_method,
+          ),
+        );
+        dispatch(setActiveSouthPaneTab('Results'));
+      });
+    },
+    [ctas, database, defaultQueryLimit, dispatch, queryEditor],
+  );
+
   const startQuery = useCallback(
+    (ctasArg = false, ctas_method = CtasEnum.Table) => {
+      // Use cost threshold checking for regular queries
+      checkCostThresholdAndRun(ctasArg, ctas_method);
+    },
+    [checkCostThresholdAndRun],
+  );
+
+  // Direct query execution without cost checking (for modal "proceed anyway")
+  const executeQueryDirectly = useCallback(
     (ctasArg = false, ctas_method = CtasEnum.Table) => {
       if (!database) {
         return;
@@ -1121,6 +1193,20 @@ const SqlEditor: FC<Props> = ({
         <span>{t('Name')}</span>
         <Input placeholder={createModalPlaceHolder} onChange={ctasChanged} />
       </Modal>
+      <CostWarningModal
+        visible={showCostWarningModal}
+        onHide={() => {
+          setShowCostWarningModal(false);
+          setCostWarningData(null);
+        }}
+        onProceed={() => {
+          setShowCostWarningModal(false);
+          setCostWarningData(null);
+          executeQueryDirectly();
+        }}
+        warningMessage={costWarningData?.warningMessage || null}
+        thresholdInfo={costWarningData?.thresholdInfo}
+      />
     </StyledSqlEditor>
   );
 };

@@ -97,6 +97,10 @@ export const COST_ESTIMATE_STARTED = 'COST_ESTIMATE_STARTED';
 export const COST_ESTIMATE_RETURNED = 'COST_ESTIMATE_RETURNED';
 export const COST_ESTIMATE_FAILED = 'COST_ESTIMATE_FAILED';
 
+export const COST_THRESHOLD_CHECK_STARTED = 'COST_THRESHOLD_CHECK_STARTED';
+export const COST_THRESHOLD_CHECK_RETURNED = 'COST_THRESHOLD_CHECK_RETURNED';
+export const COST_THRESHOLD_CHECK_FAILED = 'COST_THRESHOLD_CHECK_FAILED';
+
 export const CREATE_DATASOURCE_STARTED = 'CREATE_DATASOURCE_STARTED';
 export const CREATE_DATASOURCE_SUCCESS = 'CREATE_DATASOURCE_SUCCESS';
 export const CREATE_DATASOURCE_FAILED = 'CREATE_DATASOURCE_FAILED';
@@ -224,6 +228,45 @@ export function estimateQueryCost(queryEditor) {
               t('Failed at retrieving results');
             return dispatch({
               type: COST_ESTIMATE_FAILED,
+              query: queryEditor,
+              error: message,
+            });
+          }),
+        ),
+    ]);
+  };
+}
+
+export function checkCostThreshold(queryEditor) {
+  return (dispatch, getState) => {
+    const { dbId, catalog, schema, sql, selectedText, templateParams } =
+      getUpToDateQuery(getState(), queryEditor);
+    const requestSql = selectedText || sql;
+    const postPayload = {
+      database_id: dbId,
+      catalog,
+      schema,
+      sql: requestSql,
+      template_params: JSON.parse(templateParams || '{}'),
+    };
+    return Promise.all([
+      dispatch({ type: COST_THRESHOLD_CHECK_STARTED, query: queryEditor }),
+      SupersetClient.post({
+        endpoint: '/api/v1/sqllab/check_cost_threshold/',
+        body: JSON.stringify(postPayload),
+        headers: { 'Content-Type': 'application/json' },
+      })
+        .then(({ json }) =>
+          dispatch({ type: COST_THRESHOLD_CHECK_RETURNED, query: queryEditor, json }),
+        )
+        .catch(response =>
+          getClientErrorObject(response).then(error => {
+            const message =
+              error.error ||
+              error.statusText ||
+              t('Failed at checking cost threshold');
+            return dispatch({
+              type: COST_THRESHOLD_CHECK_FAILED,
               query: queryEditor,
               error: message,
             });

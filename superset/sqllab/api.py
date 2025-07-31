@@ -25,6 +25,9 @@ from flask_appbuilder.models.sqla.interface import SQLAInterface
 from marshmallow import ValidationError
 
 from superset import app, is_feature_enabled
+from superset.commands.sql_lab.check_cost_threshold import (
+    QueryCostThresholdCheckCommand,
+)
 from superset.commands.sql_lab.estimate import QueryEstimationCommand
 from superset.commands.sql_lab.execute import CommandResult, ExecuteSqlCommand
 from superset.commands.sql_lab.export import SqlResultExportCommand
@@ -187,6 +190,66 @@ class SqlLabRestApi(BaseSupersetApi):
         command = QueryEstimationCommand(model)
         result = command.run()
         return self.response(200, result=result)
+
+    @expose("/check_cost_threshold/", methods=("POST",))
+    @protect()
+    @statsd_metrics
+    @requires_json
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
+        f".check_cost_threshold",
+        log_to_statsd=False,
+    )
+    def check_cost_threshold(self) -> Response:
+        """Check if query cost exceeds configured thresholds.
+        ---
+        post:
+          summary: Check if query cost exceeds thresholds
+          requestBody:
+            description: SQL query and params
+            required: true
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/EstimateQueryCostSchema'
+          responses:
+            200:
+              description: Cost threshold check result
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      exceeds_threshold:
+                        type: boolean
+                        description: Whether query exceeds cost thresholds
+                      estimated_cost:
+                        type: array
+                        description: Detailed cost estimation
+                      threshold_info:
+                        type: object
+                        description: Information about thresholds and estimates
+                      formatted_warning:
+                        type: string
+                        nullable: true
+                        description: Human-readable warning message
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        try:
+            model = self.estimate_model_schema.load(request.json)
+        except ValidationError as error:
+            return self.response_400(message=error.messages)
+
+        command = QueryCostThresholdCheckCommand(model)
+        result = command.run()
+        return self.response(200, **result)
 
     @expose("/format_sql/", methods=("POST",))
     @statsd_metrics

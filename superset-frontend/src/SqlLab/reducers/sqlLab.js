@@ -315,6 +315,51 @@ export default function sqlLabReducer(state = {}, action) {
         },
       };
     },
+    [actions.COST_THRESHOLD_CHECK_STARTED]() {
+      return {
+        ...state,
+        queryCostThresholds: {
+          ...state.queryCostThresholds,
+          [action.query.id]: {
+            completed: false,
+            exceedsThreshold: false,
+            thresholdInfo: null,
+            formattedWarning: null,
+            error: null,
+          },
+        },
+      };
+    },
+    [actions.COST_THRESHOLD_CHECK_RETURNED]() {
+      return {
+        ...state,
+        queryCostThresholds: {
+          ...state.queryCostThresholds,
+          [action.query.id]: {
+            completed: true,
+            exceedsThreshold: action.json.exceeds_threshold,
+            thresholdInfo: action.json.threshold_info,
+            formattedWarning: action.json.formatted_warning,
+            error: null,
+          },
+        },
+      };
+    },
+    [actions.COST_THRESHOLD_CHECK_FAILED]() {
+      return {
+        ...state,
+        queryCostThresholds: {
+          ...state.queryCostThresholds,
+          [action.query.id]: {
+            completed: false,
+            exceedsThreshold: false,
+            thresholdInfo: null,
+            formattedWarning: null,
+            error: action.error,
+          },
+        },
+      };
+    },
     [actions.START_QUERY]() {
       let newState = { ...state };
       if (action.query.sqlEditorId) {
