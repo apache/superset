@@ -1087,18 +1087,27 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         onChange={setDatabaseModel}
         placeholder={t('Choose a database...')}
         options={[
-          ...(availableDbs?.databases || [])
-            .sort((a: DatabaseForm, b: DatabaseForm) =>
-              a.name.localeCompare(b.name),
-            )
-            .map((database: DatabaseForm, index: number) => ({
+          ...(availableDbs?.databases || []).map(
+            (database: DatabaseForm, index: number) => ({
               value: database.name,
               label: database.name,
               key: `database-${index}`,
-            })),
+            }),
+          ),
           { value: 'Other', label: t('Other'), key: 'Other' },
         ]}
         showSearch
+        sortComparator={(a, b) => {
+          // Always put "Other" at the end
+          if (a.value === 'Other') return 1;
+          if (b.value === 'Other') return -1;
+          // For all other options, sort alphabetically
+          return String(a.label).localeCompare(String(b.label));
+        }}
+        getPopupContainer={triggerNode =>
+          triggerNode.parentElement || document.body
+        }
+        dropdownStyle={{ maxHeight: 400, overflow: 'auto' }}
       />
       <Alert
         showIcon
