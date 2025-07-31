@@ -366,7 +366,7 @@ const config: ControlPanelConfig = {
               type: 'CheckboxControl',
               label: t('Show query identifiers'),
               description: t(
-                'Add Query A and Query B identifiers to legend and tooltip to help differentiate series',
+                'Add Query A and Query B identifiers to tooltips to help differentiate series',
               ),
               default: false,
               renderTrigger: true,
