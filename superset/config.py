@@ -762,6 +762,16 @@ THEME_SETTINGS = {
     "allowSwitching": True,  # Allows user to switch between themes (default and dark)  # noqa: E501
     "allowOSPreference": True,  # Allows the app to Auto-detect and set system theme preference  # noqa: E501
 }
+
+# Custom font configuration
+# Load external fonts at runtime without rebuilding the application
+# Example:
+# CUSTOM_FONT_URLS = [
+#     "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap",
+#     "https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;500&display=swap",
+# ]
+CUSTOM_FONT_URLS: list[str] = []
+
 # ---------------------------------------------------
 # EXTRA_SEQUENTIAL_COLOR_SCHEMES is used for adding custom sequential color schemes
 # EXTRA_SEQUENTIAL_COLOR_SCHEMES =  [

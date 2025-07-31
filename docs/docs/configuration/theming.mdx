@@ -87,8 +87,66 @@ Restart Superset to apply changes.
 3. **Apply**: Assign themes to specific dashboards or configure instance-wide
 4. **Iterate**: Modify theme JSON directly in the CRUD interface or re-import from the theme editor
 
+## Custom Fonts
+
+Superset supports custom fonts through runtime configuration, allowing you to use branded or custom typefaces without rebuilding the application.
+
+### Configuring Custom Fonts
+
+Add font URLs to your `superset_config.py`:
+
+```python
+# Load fonts from Google Fonts, Adobe Fonts, or self-hosted sources
+CUSTOM_FONT_URLS = [
+    "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap",
+    "https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap",
+]
+
+# Update CSP to allow font sources
+TALISMAN_CONFIG = {
+    "content_security_policy": {
+        "font-src": ["'self'", "https://fonts.googleapis.com", "https://fonts.gstatic.com"],
+        "style-src": ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+    }
+}
+```
+
+### Using Custom Fonts in Themes
+
+Once configured, reference the fonts in your theme configuration:
+
+```python
+THEME_DEFAULT = {
+    "token": {
+        "fontFamily": "Inter, -apple-system, BlinkMacSystemFont, sans-serif",
+        "fontFamilyCode": "JetBrains Mono, Monaco, monospace",
+        # ... other theme tokens
+    }
+}
+```
+
+Or in the CRUD interface theme JSON:
+
+```json
+{
+  "token": {
+    "fontFamily": "Inter, -apple-system, BlinkMacSystemFont, sans-serif",
+    "fontFamilyCode": "JetBrains Mono, Monaco, monospace"
+  }
+}
+```
+
+### Font Sources
+
+- **Google Fonts**: Free, CDN-hosted fonts with wide variety
+- **Adobe Fonts**: Premium fonts (requires subscription and kit ID)
+- **Self-hosted**: Place font files in `/static/assets/fonts/` and reference via CSS
+
+This feature works with the stock Docker image - no custom build required!
+
 ## Advanced Features
 
 - **System Themes**: Superset includes built-in light and dark themes
 - **Per-Dashboard Theming**: Each dashboard can have its own visual identity
 - **JSON Editor**: Edit theme configurations directly within Superset's interface
+- **Custom Fonts**: Load external fonts via configuration without rebuilding

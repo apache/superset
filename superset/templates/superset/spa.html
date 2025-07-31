@@ -47,6 +47,13 @@
         as="style"
       />
 
+      {# Load custom fonts from configuration #}
+      {% if appbuilder.app.config.get('CUSTOM_FONT_URLS') %}
+        {% for font_url in appbuilder.app.config['CUSTOM_FONT_URLS'] %}
+          <link rel="stylesheet" href="{{ font_url }}" />
+        {% endfor %}
+      {% endif %}
+
     {% endblock %}
 
     {{ js_bundle(assets_prefix, 'theme') }}
