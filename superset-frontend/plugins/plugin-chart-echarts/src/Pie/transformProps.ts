@@ -108,13 +108,13 @@ function getTotalValuePadding({
   if (chartPadding.left) {
     // When legend is on the left, shift text right to center it in the available space
     const leftPaddingPercent = (chartPadding.left / width) * 100;
-    const adjustedLeftPercent = 50 + (leftPaddingPercent * 0.25);
+    const adjustedLeftPercent = 50 + leftPaddingPercent * 0.25;
     padding.left = `${adjustedLeftPercent}%`;
   }
   if (chartPadding.right) {
     // When legend is on the right, shift text left to center it in the available space
     const rightPaddingPercent = (chartPadding.right / width) * 100;
-    const adjustedLeftPercent = 50 - (rightPaddingPercent * 0.75);
+    const adjustedLeftPercent = 50 - rightPaddingPercent * 0.75;
     padding.left = `${adjustedLeftPercent}%`;
   }
   return padding;
@@ -445,6 +445,7 @@ export default function transformProps(
             text: t('Total: %s', numberFormatter(totalValue)),
             fontSize: 16,
             fontWeight: 'bold',
+            fill: theme.colors.grayscale.dark2,
           },
           z: 10,
         }
