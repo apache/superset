@@ -6,8 +6,8 @@ This document provides a comprehensive test plan for testing the MCP chart tools
 
 ### 🔗 **ALWAYS SHOW URLs**
 When any tool returns a URL (e.g., `url`, `preview_url`, `explore_url`), **always display the complete URL** in your response. For example:
-- "Chart created successfully! View it at: http://localhost:8088/explore/?slice_id=123"
-- "Preview URL: http://localhost:8088/superset/slice/123/"
+- "Chart created successfully! View it at: http://localhost:5008/explore/?slice_id=123"
+- "Preview URL: http://localhost:5008/screenshot/chart/123"
 
 ### 🖼️ **EMBED IMAGES WHEN POSSIBLE**
 When testing preview tools:
@@ -27,6 +27,7 @@ When testing preview tools:
 - **Filter operator field**: Use `op` not `operator` in filter objects
 - **Data format**: Use `excel` not `xlsx` for Excel export
 - **Preview formats**: Only `url`, `ascii`, and `table` are supported (NOT `base64`, `interactive`, or `vega_lite`)
+- **Explore Link**: Use `generate_explore_link` tool for interactive chart exploration (preferred for visualization workflows)
 - **Column selection**: The `url` field is not in default columns - must be explicitly requested
 - **Sort parameters**: Use `order_column` and `order_direction`, not `sort_columns`
 
@@ -42,6 +43,7 @@ When testing preview tools:
 | update_chart_preview | ✓ | ✓ | ✓ | - |
 | get_chart_data | ✓ | ✓ | ✓ | ✓ |
 | get_chart_preview | ✓ | ✓ | ✓ | ✓ |
+| generate_explore_link | ✓ | ✓ | ✓ | - |
 
 ## 1. Test list_charts
 
@@ -104,10 +106,10 @@ Expected: Returns charts with UUID field populated - DISPLAY THE URL
 
 ### Sort Options
 ```
-Test: Sort by name ascending sort_columns=[{"col": "slice_name", "order": "asc"}]
+Test: Sort by name ascending order_column="slice_name", order_direction="asc"
 Expected: Charts ordered alphabetically
 
-Test: Sort by updated date sort_columns=[{"col": "changed_on", "order": "desc"}]
+Test: Sort by updated date order_column="changed_on", order_direction="desc"
 Expected: Most recently updated charts first
 ```
 
@@ -184,7 +186,7 @@ Request:
       {"name": "sales", "label": "Total Sales", "aggregate": "SUM"},
       {"name": "quantity", "label": "Avg Quantity", "aggregate": "AVG"}
     ],
-    "filters": [{"column": "year", "operator": "==", "value": 2024}],
+    "filters": [{"column": "year", "op": "=", "value": 2024}],
     "time_range": "Last quarter"
   }
 }
@@ -207,8 +209,8 @@ Request:
       {"name": "profit", "label": "Profit %", "aggregate": "AVG"}
     ],
     "filters": [
-      {"column": "region", "operator": "IN", "value": ["East", "West"]},
-      {"column": "sales", "operator": ">", "value": 1000}
+      {"column": "region", "op": "in", "value": ["East", "West"]},
+      {"column": "sales", "op": ">", "value": 1000}
     ],
     "order_by": [
       {"column": "sales", "desc": true}
@@ -218,7 +220,7 @@ Request:
     "conditional_formatting": [
       {
         "column": "profit",
-        "operator": "<",
+        "op": "<",
         "value": 0,
         "color": "#FF0000"
       }
@@ -446,19 +448,18 @@ Action: DISPLAY THE UPDATED CHART URL
 
 ### Update Visualization
 ```
-Test: Change chart type from bar to line
+Test: Update chart configuration
 Request:
 {
   "identifier": 1,
-  "updates": {
-    "viz_type": "line",
-    "params": {
-      "viz_type": "line",
-      "line_interpolation": "smooth"
-    }
+  "config": {
+    "chart_type": "xy",
+    "kind": "line",
+    "x": {"name": "date"},
+    "y": [{"name": "sales", "aggregate": "SUM"}]
   }
 }
-Expected: Changes chart visualization type
+Expected: Updates chart with new configuration
 Action: DISPLAY THE URL to see the change
 ```
 
@@ -520,16 +521,16 @@ Action: DISPLAY THE PREVIEW URL and attempt to embed the image:
 ![Chart Preview](returned_preview_url_here)
 ```
 
-### Base64 Preview
+### Base64 Preview (Not Supported)
 ```
-Test: Get chart as base64 image
+Test: Attempt to get chart as base64 image
 Request:
 {
   "identifier": 1,
   "format": "base64"
 }
-Expected: Returns base64 encoded image
-Action: Display decoded image inline if possible
+Expected: Returns error "Unsupported preview format: base64"
+Action: This is an expected error - base64 format is not implemented
 ```
 
 ### ASCII Preview
@@ -778,7 +779,123 @@ Expected: Handles complex aggregations efficiently
 Action: DISPLAY THE CHART URL
 ```
 
-## 11. Special Cases and Edge Cases
+## 11. Test generate_explore_link (Preferred Tool)
+
+### Basic Explore Link Generation
+```
+Test: Generate explore link for line chart
+Request:
+{
+  "dataset_id": 1,
+  "config": {
+    "chart_type": "xy",
+    "kind": "line",
+    "x": {"name": "date"},
+    "y": [{"name": "sales", "aggregate": "SUM"}]
+  }
+}
+Expected: Returns explore_url and form_data_key
+Action: DISPLAY THE EXPLORE URL - this is the preferred way to create visualizations
+```
+
+### Complex Chart Configuration
+```
+Test: Generate explore link with full configuration
+Request:
+{
+  "dataset_id": 1,
+  "config": {
+    "chart_type": "xy",
+    "kind": "bar",
+    "x": {"name": "category"},
+    "y": [
+      {"name": "sales", "aggregate": "SUM", "label": "Total Sales"},
+      {"name": "profit", "aggregate": "AVG", "label": "Avg Profit"}
+    ],
+    "group_by": {"name": "region"},
+    "filters": [
+      {"column": "year", "op": "=", "value": 2024}
+    ],
+    "legend": {"show": true, "position": "top"},
+    "y_axis": {"format": "$,.0f", "title": "Revenue"}
+  }
+}
+Expected: Returns explore URL with all parameters configured
+Action: DISPLAY THE EXPLORE URL for interactive editing
+```
+
+### Table Chart Explore Link
+```
+Test: Generate explore link for table visualization
+Request:
+{
+  "dataset_id": 1,
+  "config": {
+    "chart_type": "table",
+    "columns": [
+      {"name": "region"},
+      {"name": "sales", "aggregate": "SUM"},
+      {"name": "profit", "aggregate": "AVG"}
+    ],
+    "filters": [
+      {"column": "region", "op": "!=", "value": "Unknown"}
+    ],
+    "sort_by": ["sales"]
+  }
+}
+Expected: Returns explore URL for table configuration
+Action: DISPLAY THE EXPLORE URL
+```
+
+### With Cache Control
+```
+Test: Generate explore link with cache control
+Request:
+{
+  "dataset_id": 1,
+  "config": {
+    "chart_type": "xy",
+    "kind": "line",
+    "x": {"name": "date"},
+    "y": [{"name": "metric", "aggregate": "SUM"}]
+  },
+  "use_cache": false,
+  "force_refresh": true
+}
+Expected: Returns explore URL with fresh data
+Action: Note form_data_key for subsequent updates
+```
+
+### Error Cases
+```
+Test: Invalid dataset
+Request:
+{
+  "dataset_id": 99999,
+  "config": {
+    "chart_type": "xy",
+    "kind": "line",
+    "x": {"name": "date"},
+    "y": [{"name": "value"}]
+  }
+}
+Expected: Returns error with dataset not found
+
+Test: Invalid column reference
+Request:
+{
+  "dataset_id": 1,
+  "config": {
+    "chart_type": "xy",
+    "kind": "line",
+    "x": {"name": "nonexistent_column"},
+    "y": [{"name": "sales"}]
+  }
+}
+Expected: Returns validation error with column suggestions
+```
+
+## 12. Special Cases and Edge Cases
 
 ### Unicode and Special Characters
 ```
@@ -820,7 +937,7 @@ Request:
   "config": {
     "chart_type": "table",
     "columns": [{"name": "region"}],
-    "filters": [{"column": "region", "operator": "==", "value": "'; DROP TABLE users; --"}]
+    "filters": [{"column": "region", "op": "=", "value": "'; DROP TABLE users; --"}]
   }
 }
 Expected: Safely handles without executing SQL
@@ -835,7 +952,7 @@ Expected: Safely handles without executing SQL
     "id": 123,
     "slice_name": "My Chart",
     "viz_type": "table",
-    "url": "http://localhost:8088/explore/?slice_id=123",
+    "url": "http://localhost:5008/explore/?slice_id=123",
     "uuid": "abc-123-def",
     "saved": true
   },
@@ -851,7 +968,7 @@ Expected: Safely handles without executing SQL
   "format": "url",
   "content": {
     "type": "url",
-    "preview_url": "http://localhost:8088/api/v1/chart/123/screenshot/...",
+    "preview_url": "http://localhost:5008/screenshot/chart/123",
     "expires_at": "2024-01-01T12:00:00Z"
   }
 }
@@ -878,7 +995,7 @@ Expected: Safely handles without executing SQL
 ```json
 {
   "chart_id": 123,
-  "data": [...],
+  "data": [],
   "row_count": 100,
   "total_rows": 5000,
   "cache_status": {

@@ -27,7 +27,6 @@ from superset.mcp_service.mcp_app import mcp
 from superset.mcp_service.schemas.chart_schemas import (
     AccessibilityMetadata,
     ASCIIPreview,
-    Base64Preview,
     ChartError,
     ChartPreview,
     GetChartPreviewRequest,
@@ -255,7 +254,6 @@ class PreviewFormatGenerator:
         | ASCIIPreview
         | VegaLitePreview
         | TablePreview
-        | Base64Preview
         | ChartError
     ):
         """Generate preview using the appropriate strategy."""

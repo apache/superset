@@ -671,24 +671,9 @@ class TablePreview(BaseModel):
     supports_sorting: bool = Field(False, description="Table supports sorting")
 
 
-class Base64Preview(BaseModel):
-    """Base64 encoded image for embedding."""
-
-    type: Literal["base64"] = "base64"
-    base64_image: str = Field(..., description="Base64 encoded PNG data")
-    width: int = Field(..., description="Image width in pixels")
-    height: int = Field(..., description="Image height in pixels")
-    mime_type: str = Field("image/png", description="Image MIME type")
-
-
 # Modern discriminated union using | syntax
 ChartPreviewContent = Annotated[
-    URLPreview
-    | InteractivePreview
-    | ASCIIPreview
-    | VegaLitePreview
-    | TablePreview
-    | Base64Preview,
+    URLPreview | InteractivePreview | ASCIIPreview | VegaLitePreview | TablePreview,
     Field(discriminator="type"),
 ]
 
@@ -725,9 +710,6 @@ class ChartPreview(BaseModel):
     )
     table_data: Optional[str] = Field(
         None, description="Formatted table for 'table' format"
-    )
-    base64_image: Optional[str] = Field(
-        None, description="Base64 encoded PNG for 'base64' format"
     )
     width: Optional[int] = Field(
         None, description="Width (pixels for images, characters for ASCII)"
