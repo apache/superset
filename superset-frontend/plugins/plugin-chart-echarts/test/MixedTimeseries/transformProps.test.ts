@@ -116,49 +116,48 @@ const chartPropsConfig = {
   theme: supersetTheme,
 };
 
-it('should transform chart props for viz', () => {
-  const chartProps = new ChartProps(chartPropsConfig);
+it('should transform chart props for viz with showQueryIdentifiers=false', () => {
+  const chartPropsConfigWithoutIdentifiers = {
+    ...chartPropsConfig,
+    formData: {
+      ...formData,
+      showQueryIdentifiers: false,
+    },
+  };
+  const chartProps = new ChartProps(chartPropsConfigWithoutIdentifiers);
   const transformed = transformProps(chartProps as EchartsMixedTimeseriesProps);
 
-  expect(transformed).toEqual(
-    expect.objectContaining({
-      echartOptions: expect.objectContaining({
-        series: expect.arrayContaining([
-          expect.objectContaining({
-            data: [
-              [599616000000, 1],
-              [599916000000, 3],
-            ],
-            id: 'sum__num (Query A), boy',
-            stack: 'obs\na',
-          }),
-          expect.objectContaining({
-            data: [
-              [599616000000, 2],
-              [599916000000, 4],
-            ],
-            id: 'sum__num (Query A), girl',
-            stack: 'obs\na',
-          }),
-          // Query B — Bar series
-          expect.objectContaining({
-            data: [
-              [599616000000, 1],
-              [599916000000, 3],
-            ],
-            id: 'sum__num (Query B), boy',
-            stack: 'obs\nb',
-          }),
-          expect.objectContaining({
-            data: [
-              [599616000000, 2],
-              [599916000000, 4],
-            ],
-            id: 'sum__num (Query B), girl',
-            stack: 'obs\nb',
-          }),
-        ]),
-      }),
-    }),
+  // Check that series IDs don't include query identifiers
+  const seriesIds = (transformed.echartOptions.series as any[]).map(
+    (s: any) => s.id,
   );
+  expect(seriesIds).toContain('sum__num, girl');
+  expect(seriesIds).toContain('sum__num, boy');
+  expect(seriesIds).not.toContain('sum__num (Query A), girl');
+  expect(seriesIds).not.toContain('sum__num (Query A), boy');
+  expect(seriesIds).not.toContain('sum__num (Query B), girl');
+  expect(seriesIds).not.toContain('sum__num (Query B), boy');
+});
+
+it('should transform chart props for viz with showQueryIdentifiers=true', () => {
+  const chartPropsConfigWithIdentifiers = {
+    ...chartPropsConfig,
+    formData: {
+      ...formData,
+      showQueryIdentifiers: true,
+    },
+  };
+  const chartProps = new ChartProps(chartPropsConfigWithIdentifiers);
+  const transformed = transformProps(chartProps as EchartsMixedTimeseriesProps);
+
+  // Check that series IDs include query identifiers
+  const seriesIds = (transformed.echartOptions.series as any[]).map(
+    (s: any) => s.id,
+  );
+  expect(seriesIds).toContain('sum__num (Query A), girl');
+  expect(seriesIds).toContain('sum__num (Query A), boy');
+  expect(seriesIds).toContain('sum__num (Query B), girl');
+  expect(seriesIds).toContain('sum__num (Query B), boy');
+  expect(seriesIds).not.toContain('sum__num, girl');
+  expect(seriesIds).not.toContain('sum__num, boy');
 });
