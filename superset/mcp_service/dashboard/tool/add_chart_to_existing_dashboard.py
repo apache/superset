@@ -29,6 +29,7 @@ from pydantic import BaseModel, Field
 from superset.mcp_service.auth import mcp_auth_hook
 from superset.mcp_service.mcp_app import mcp
 from superset.mcp_service.schemas.dashboard_schemas import DashboardInfo
+from superset.mcp_service.url_utils import get_superset_base_url
 from superset.utils import json
 
 logger = logging.getLogger(__name__)
@@ -61,50 +62,99 @@ class AddChartToDashboardResponse(BaseModel):
     error: Optional[str] = Field(None, description="Error message, if operation failed")
 
 
-def _find_next_position(layout: Dict[str, Any]) -> tuple[int, int]:
+def _find_next_row_position(layout: Dict[str, Any]) -> int:
     """
-    Find the next available position in the dashboard layout.
+    Find the next available row position in the dashboard layout.
 
     Returns:
-        Tuple of (x, y) coordinates for the new chart
+        Row index for the new chart
     """
-    # Standard chart dimensions
+    # Find existing rows
+    row_indices = []
+    for key in layout.keys():
+        if key.startswith("ROW-") and key[4:].isdigit():
+            row_indices.append(int(key[4:]))
+
+    # Return next available row index
+    return max(row_indices) + 1 if row_indices else 0
+
+
+def _add_chart_to_layout(
+    layout: Dict[str, Any], chart: Any, chart_id: int, row_index: int
+) -> tuple[str, str]:
+    """
+    Add chart and row components to the dashboard layout.
+
+    Returns:
+        Tuple of (chart_key, row_key)
+    """
+    chart_key = f"CHART-{chart_id}"
+    row_key = f"ROW-{row_index}"
+    chart_width = 24
     chart_height = 16
-    grid_columns = 48
 
-    # Find the maximum Y position of existing charts
-    max_y = 0
-    for key, item in layout.items():
-        if key.endswith("_POSITION") and isinstance(item, dict):
-            y_pos = item.get("y", 0)
-            height = item.get("h", chart_height)
-            max_y = max(max_y, y_pos + height)
+    # Add chart to layout using proper Superset structure
+    layout[chart_key] = {
+        "children": [],
+        "id": chart_key,
+        "meta": {
+            "chartId": chart_id,
+            "height": chart_height,
+            "sliceName": chart.slice_name or f"Chart {chart_id}",
+            "uuid": str(chart.uuid) if chart.uuid else f"chart-{chart_id}",
+            "width": chart_width,
+        },
+        "parents": ["ROOT_ID", "GRID_ID", row_key],
+        "type": "CHART",
+    }
 
-    # Try to place in a 2-column layout
-    # Check if there's space in the left column at max_y
-    left_occupied = False
-    right_occupied = False
+    # Create row for the chart
+    layout[row_key] = {
+        "children": [chart_key],
+        "id": row_key,
+        "meta": {"background": "BACKGROUND_TRANSPARENT"},
+        "parents": ["ROOT_ID", "GRID_ID"],
+        "type": "ROW",
+    }
 
-    for key, item in layout.items():
-        if key.endswith("_POSITION") and isinstance(item, dict):
-            y_pos = item.get("y", 0)
-            x_pos = item.get("x", 0)
-            height = item.get("h", chart_height)
+    return chart_key, row_key
 
-            # Check if this chart occupies the position we're considering
-            if y_pos <= max_y < y_pos + height:
-                if x_pos < grid_columns // 2:  # Left column
-                    left_occupied = True
-                else:  # Right column
-                    right_occupied = True
 
-    # Choose position based on availability
-    if not left_occupied:
-        return (0, max_y)  # Left column
-    elif not right_occupied:
-        return (24, max_y)  # Right column
+def _ensure_layout_structure(layout: Dict[str, Any], row_key: str) -> None:
+    """
+    Ensure the dashboard layout has proper GRID and ROOT structure.
+    """
+    # Ensure GRID structure exists
+    if "GRID_ID" not in layout:
+        layout["GRID_ID"] = {
+            "children": [],
+            "id": "GRID_ID",
+            "parents": ["ROOT_ID"],
+            "type": "GRID",
+        }
+
+    # Add row to GRID
+    if "children" not in layout["GRID_ID"]:
+        layout["GRID_ID"]["children"] = []
+    layout["GRID_ID"]["children"].append(row_key)
+
+    # Update ROOT_ID if it exists, or create it
+    if "ROOT_ID" in layout:
+        if "children" not in layout["ROOT_ID"]:
+            layout["ROOT_ID"]["children"] = []
+        if "GRID_ID" not in layout["ROOT_ID"]["children"]:
+            layout["ROOT_ID"]["children"].append("GRID_ID")
     else:
-        return (0, max_y + chart_height)  # New row, left column
+        # Create ROOT_ID if it doesn't exist
+        layout["ROOT_ID"] = {
+            "children": ["GRID_ID"],
+            "id": "ROOT_ID",
+            "type": "ROOT",
+        }
+
+    # Ensure dashboard version
+    if "DASHBOARD_VERSION_KEY" not in layout:
+        layout["DASHBOARD_VERSION_KEY"] = "v2"
 
 
 @mcp.tool
@@ -173,46 +223,15 @@ def add_chart_to_existing_dashboard(
             current_layout = {}
 
         # Find position for new chart
-        x_pos, y_pos = _find_next_position(current_layout)
+        row_index = _find_next_row_position(current_layout)
 
-        # Create chart component key
-        chart_key = f"CHART-{request.chart_id}"
-        chart_width = 24
-        chart_height = 16
+        # Add chart and row to layout
+        chart_key, row_key = _add_chart_to_layout(
+            current_layout, new_chart, request.chart_id, row_index
+        )
 
-        # Add chart to layout
-        current_layout[chart_key] = {
-            "children": [],
-            "id": chart_key,
-            "meta": {
-                "chartId": request.chart_id,
-                "height": chart_height,
-                "sliceName": new_chart.slice_name or f"Chart {request.chart_id}",
-                "uuid": str(new_chart.uuid)
-                if new_chart.uuid
-                else f"chart-{request.chart_id}",
-                "width": chart_width,
-            },
-            "parents": ["ROOT_ID"],
-            "type": "CHART",
-        }
-
-        # Add position information
-        position_info = {"h": chart_height, "w": chart_width, "x": x_pos, "y": y_pos}
-        current_layout[f"{chart_key}_POSITION"] = position_info
-
-        # Update ROOT_ID children if it exists
-        if "ROOT_ID" in current_layout:
-            if "children" not in current_layout["ROOT_ID"]:
-                current_layout["ROOT_ID"]["children"] = []
-            current_layout["ROOT_ID"]["children"].append(chart_key)
-        else:
-            # Create ROOT_ID if it doesn't exist
-            current_layout["ROOT_ID"] = {
-                "children": [chart_key],
-                "id": "ROOT_ID",
-                "type": "ROOT",
-            }
+        # Ensure proper layout structure
+        _ensure_layout_structure(current_layout, row_key)
 
         # Get chart objects for SQLAlchemy relationships
         # Get existing chart objects
@@ -252,7 +271,7 @@ def add_chart_to_existing_dashboard(
             if updated_dashboard.changed_by
             else None,
             uuid=str(updated_dashboard.uuid) if updated_dashboard.uuid else None,
-            url=f"/superset/dashboard/{updated_dashboard.id}/",
+            url=f"{get_superset_base_url()}/superset/dashboard/{updated_dashboard.id}/",
             chart_count=len(updated_dashboard.slices),
             owners=[
                 serialize_user_object(owner)
@@ -268,12 +287,17 @@ def add_chart_to_existing_dashboard(
             charts=[],
         )
 
-        dashboard_url = f"/superset/dashboard/{updated_dashboard.id}/"
+        dashboard_url = (
+            f"{get_superset_base_url()}/superset/dashboard/{updated_dashboard.id}/"
+        )
 
         logger.info(
             f"Added chart {request.chart_id} to dashboard {request.dashboard_id} "
-            f"at position ({x_pos}, {y_pos})"
+            f"in row {row_index}"
         )
+
+        # Return position info for compatibility
+        position_info = {"row": row_index, "chart_key": chart_key, "row_key": row_key}
 
         return AddChartToDashboardResponse(
             dashboard=dashboard_info,

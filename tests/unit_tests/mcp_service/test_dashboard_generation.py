@@ -197,26 +197,34 @@ class TestGenerateDashboard:
             # Check position_json contains proper layout
             position_json = json.loads(call_args["position_json"])
             assert "ROOT_ID" in position_json
-            assert len(position_json["ROOT_ID"]["children"]) == 6
+            assert "GRID_ID" in position_json
+            assert "DASHBOARD_VERSION_KEY" in position_json
+            assert position_json["DASHBOARD_VERSION_KEY"] == "v2"
 
-            # Check each chart has separate position entry (new format)
-            for i in chart_ids:
-                chart_key = f"CHART-{i}"
-                position_key = f"{chart_key}_POSITION"
+            # ROOT should only contain GRID
+            assert position_json["ROOT_ID"]["children"] == ["GRID_ID"]
+
+            # GRID should contain rows
+            grid_children = position_json["GRID_ID"]["children"]
+            assert len(grid_children) == 6
+
+            # Check each chart has proper structure
+            for i, chart_id in enumerate(chart_ids):
+                chart_key = f"CHART-{chart_id}"
+                row_key = f"ROW-{i}"
+
+                # Chart should exist
                 assert chart_key in position_json
-                assert position_key in position_json
-
-                # Check chart component
                 chart_data = position_json[chart_key]
+                assert chart_data["type"] == "CHART"
                 assert "meta" in chart_data
-                assert chart_data["meta"]["chartId"] == i
+                assert chart_data["meta"]["chartId"] == chart_id
 
-                # Check position data in separate entry
-                position_data = position_json[position_key]
-                assert "h" in position_data  # Height
-                assert "w" in position_data  # Width
-                assert "x" in position_data  # X position
-                assert "y" in position_data  # Y position
+                # Row should exist and contain the chart
+                assert row_key in position_json
+                row_data = position_json[row_key]
+                assert row_data["type"] == "ROW"
+                assert row_data["children"] == [chart_key]
 
     @patch("superset.commands.dashboard.create.CreateDashboardCommand")
     @patch("superset.db.session")
@@ -327,8 +335,8 @@ class TestAddChartToExistingDashboard:
             assert result.data.dashboard is not None
             assert result.data.dashboard.chart_count == 3
             assert result.data.position is not None
-            assert result.data.position.get("x") == 0  # Should be positioned at (0, 16)
-            assert result.data.position.get("y") == 16
+            assert "row" in result.data.position  # Should have row info
+            assert "chart_key" in result.data.position
             assert "/superset/dashboard/1/" in result.data.dashboard_url
 
     @patch("superset.daos.dashboard.DashboardDAO.find_by_id")
@@ -418,11 +426,13 @@ class TestAddChartToExistingDashboard:
             )
 
             assert result.data.error is None
-            assert result.data.position.get("x") == 0  # Should start at (0, 0)
-            assert result.data.position.get("y") == 0
+            assert "row" in result.data.position  # Should have row info
+            assert result.data.position.get("row") == 0  # First row
 
-            # Verify update was called with ROOT_ID created
+            # Verify update was called with proper layout structure
             call_args = mock_update_command.call_args[0][1]
             layout = json.loads(call_args["position_json"])
             assert "ROOT_ID" in layout
-            assert layout["ROOT_ID"]["children"] == ["CHART-15"]
+            assert "GRID_ID" in layout
+            assert "ROW-0" in layout
+            assert "CHART-15" in layout

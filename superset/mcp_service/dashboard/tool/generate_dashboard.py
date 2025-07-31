@@ -29,6 +29,7 @@ from pydantic import BaseModel, Field
 from superset.mcp_service.auth import mcp_auth_hook
 from superset.mcp_service.mcp_app import mcp
 from superset.mcp_service.schemas.dashboard_schemas import DashboardInfo
+from superset.mcp_service.url_utils import get_superset_base_url
 from superset.utils import json
 
 logger = logging.getLogger(__name__)
@@ -75,13 +76,13 @@ def _create_dashboard_layout(chart_objects: List[Any]) -> Dict[str, Any]:
     chart_width = 24  # Half width for 2-column layout
     chart_height = 16  # Standard chart height
 
+    # Create rows for charts (simple approach: one chart per row)
+    row_ids = []
     for i, chart in enumerate(chart_objects):
-        # Alternate between left (x=0) and right (x=24) columns
-        x_position = 0 if i % 2 == 0 else 24
-        # Stack charts vertically in each column
-        y_position = (i // 2) * chart_height
+        row_id = f"ROW-{i}"
+        row_ids.append(row_id)
 
-        # Create chart component in layout
+        # Create chart component in layout with position data in meta
         chart_key = f"CHART-{chart.id}"
         layout[chart_key] = {
             "children": [],
@@ -93,25 +94,36 @@ def _create_dashboard_layout(chart_objects: List[Any]) -> Dict[str, Any]:
                 "uuid": str(chart.uuid) if chart.uuid else f"chart-{chart.id}",
                 "width": chart_width,
             },
-            "parents": ["ROOT_ID"],
+            "parents": ["ROOT_ID", "GRID_ID", row_id],
             "type": "CHART",
         }
 
-        # Add position information as separate entry (required by Superset frontend)
-        position_info = {
-            "h": chart_height,
-            "w": chart_width,
-            "x": x_position,
-            "y": y_position,
+        # Create row for the chart
+        layout[row_id] = {
+            "children": [chart_key],
+            "id": row_id,
+            "meta": {"background": "BACKGROUND_TRANSPARENT"},
+            "parents": ["ROOT_ID", "GRID_ID"],
+            "type": "ROW",
         }
-        layout[f"{chart_key}_POSITION"] = position_info
+
+    # Add GRID container
+    layout["GRID_ID"] = {
+        "children": row_ids,
+        "id": "GRID_ID",
+        "parents": ["ROOT_ID"],
+        "type": "GRID",
+    }
 
     # Add root layout container
     layout["ROOT_ID"] = {
-        "children": [f"CHART-{chart.id}" for chart in chart_objects],
+        "children": ["GRID_ID"],
         "id": "ROOT_ID",
         "type": "ROOT",
     }
+
+    # Add dashboard version
+    layout["DASHBOARD_VERSION_KEY"] = "v2"
 
     return layout
 
@@ -171,6 +183,11 @@ def generate_dashboard(request: GenerateDashboardRequest) -> GenerateDashboardRe
                     "shared_label_colors": {},
                     "color_scheme_domain": [],
                     "cross_filters_enabled": False,
+                    "native_filter_configuration": [],
+                    "global_chart_configuration": {
+                        "scope": {"rootPath": ["ROOT_ID"], "excluded": []}
+                    },
+                    "chart_configuration": {},
                 }
             ),
             "position_json": json.dumps(layout),
@@ -202,7 +219,7 @@ def generate_dashboard(request: GenerateDashboardRequest) -> GenerateDashboardRe
             created_by=dashboard.created_by.username if dashboard.created_by else None,
             changed_by=dashboard.changed_by.username if dashboard.changed_by else None,
             uuid=str(dashboard.uuid) if dashboard.uuid else None,
-            url=f"/superset/dashboard/{dashboard.id}/",
+            url=f"{get_superset_base_url()}/superset/dashboard/{dashboard.id}/",
             chart_count=len(request.chart_ids),
             owners=[
                 serialize_user_object(owner)
@@ -218,7 +235,7 @@ def generate_dashboard(request: GenerateDashboardRequest) -> GenerateDashboardRe
             charts=[],  # Chart details not needed in response
         )
 
-        dashboard_url = f"/superset/dashboard/{dashboard.id}/"
+        dashboard_url = f"{get_superset_base_url()}/superset/dashboard/{dashboard.id}/"
 
         logger.info(
             f"Created dashboard {dashboard.id} with {len(request.chart_ids)} charts"
