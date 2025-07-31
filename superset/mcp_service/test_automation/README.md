@@ -13,6 +13,11 @@ This folder contains all the automated testing infrastructure for the Superset M
 - `MCP_CHART_TEST_PLAN.md` - Comprehensive chart tool testing (all 9 tools)
 - `ENTITY_TESTING_PLAN.md` - Entity listing and filtering tests
 
+### Example Test Files
+- `test_vega_lite_example.py` - Basic Vega-Lite functionality validation
+- `test_comprehensive_vega_lite.py` - Test coverage for all 13+ supported chart types
+- `test_enhanced_ascii_charts.py` - Demonstration of enhanced ASCII visualization features
+
 ### Setup & Documentation
 - `MCP_TEST_AUTOMATION_GUIDE.md` - Complete testing documentation
 - `PROMPT_TESTING_PROPOSAL.md` - Test framework architecture and implementation
@@ -31,6 +36,11 @@ python run_mcp_tests.py MCP_CHART_TEST_PLAN.md
 
 # Run a single test
 ./run_single_test.sh "List all charts"
+
+# Run example tests
+python test_vega_lite_example.py
+python test_comprehensive_vega_lite.py
+python test_enhanced_ascii_charts.py
 ```
 
 ### CI/CD

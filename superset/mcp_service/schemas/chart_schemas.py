@@ -610,11 +610,12 @@ class GetChartPreviewRequest(QueryCacheControl):
     """Request for chart preview with cache control."""
 
     identifier: int | str = Field(description="Chart identifier (ID, UUID)")
-    format: Literal["url", "ascii", "table", "base64"] = Field(
+    format: Literal["url", "ascii", "table", "base64", "vega_lite"] = Field(
         default="url",
         description=(
             "Preview format: 'url' for image URL, 'ascii' for text art, "
-            "'table' for data table, 'base64' for embedded image"
+            "'table' for data table, 'base64' for embedded image, "
+            "'vega_lite' for interactive JSON specification"
         ),
     )
     width: Optional[int] = Field(
