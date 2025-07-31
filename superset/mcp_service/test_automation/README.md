@@ -54,3 +54,7 @@ Results are saved in the `test_results/` directory:
 - Claude CLI installed OR Anthropic API key
 - Bash shell (for shell scripts)
 - Python 3.9+ (for Python runner)
+
+## ⚠️ Known Issues
+
+**Claude CLI Parameter Limitations**: The Claude CLI has issues with MCP tool parameter passing when using `--dangerously-skip-permissions`. Tools expect structured request objects but the CLI serializes parameters incorrectly, similar to Claude Code UA limitations. Our test runners use the `--allowedTools "mcp__*"` workaround pattern.
