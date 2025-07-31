@@ -191,7 +191,7 @@ describe('PropertiesModal', () => {
     expect(
       screen.getByRole('heading', { name: 'Certification' }),
     ).toBeInTheDocument();
-    expect(screen.getAllByRole('heading')).toHaveLength(5);
+    expect(screen.getAllByRole('heading')).toHaveLength(6);
 
     expect(screen.getByRole('button', { name: 'Close' })).toBeInTheDocument();
     expect(
@@ -235,7 +235,7 @@ describe('PropertiesModal', () => {
     ).toBeInTheDocument();
     // Tags will be included since isFeatureFlag always returns true in this test
     expect(screen.getByRole('heading', { name: 'Tags' })).toBeInTheDocument();
-    expect(screen.getAllByRole('heading')).toHaveLength(5);
+    expect(screen.getAllByRole('heading')).toHaveLength(6);
 
     expect(screen.getByRole('button', { name: 'Close' })).toBeInTheDocument();
     expect(
@@ -438,10 +438,9 @@ describe('PropertiesModal', () => {
     const props = createProps();
     const propsWithDashboardInfo = { ...props, dashboardInfo };
 
-    const open = () => waitFor(() => userEvent.click(getSelect()));
     const getSelect = () =>
       screen.getByRole('combobox', { name: SupersetCore.t('Owners') });
-
+    const open = () => waitFor(() => userEvent.click(getSelect()));
     const getElementsByClassName = (className: string) =>
       document.querySelectorAll(className)! as NodeListOf<HTMLElement>;
 

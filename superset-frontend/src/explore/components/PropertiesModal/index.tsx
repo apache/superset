@@ -39,14 +39,13 @@ import {
   FeatureFlag,
   getClientErrorObject,
   ensureIsArray,
-  useTheme,
-  css,
 } from '@superset-ui/core';
-import { Icons } from '@superset-ui/core/components/Icons';
 import Chart, { Slice } from 'src/types/Chart';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import { type TagType } from 'src/components';
+import { TagTypeEnum } from 'src/components/Tag/TagType';
 import { loadTags } from 'src/components/Tag/utils';
+import { ModalTitleWithIcon } from 'src/components/ModalTitleWithIcon';
 
 export type PropertiesModalProps = {
   slice: Slice;
@@ -69,7 +68,6 @@ function PropertiesModal({
   show,
   addSuccessToast,
 }: PropertiesModalProps) {
-  const theme = useTheme();
   const [submitting, setSubmitting] = useState(false);
   const [form] = Form.useForm();
   // values of form inputs
@@ -125,7 +123,7 @@ function PropertiesModal({
         );
         if (isFeatureEnabled(FeatureFlag.TaggingSystem)) {
           const customTags = chart.tags?.filter(
-            (tag: TagType) => tag.type === 1,
+            (tag: TagType) => tag.type === TagTypeEnum.Custom,
           );
           setTags(customTags);
         }
@@ -245,16 +243,13 @@ function PropertiesModal({
     <Modal
       show={show}
       onHide={onHide}
+      name={t('Edit Chart Properties')}
       title={
-        <span>
-          <Icons.EditOutlined
-            css={css`
-              margin: auto ${theme.sizeUnit * 2}px auto 0;
-            `}
-            data-test="edit-alt"
-          />
-          {t('Edit Chart Properties')}
-        </span>
+        <ModalTitleWithIcon
+          isEditMode
+          title={t('Edit Chart Properties')}
+          data-test="edit-alt"
+        />
       }
       footer={
         <>

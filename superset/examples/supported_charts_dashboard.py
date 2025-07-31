@@ -28,7 +28,7 @@ from superset.sql.parse import Table
 from superset.utils import json
 from superset.utils.core import DatasourceType
 
-from ..utils.database import get_example_database
+from ..utils.database import get_example_database  # noqa: TID252
 from .helpers import (
     get_slice_json,
     get_table_connector_registry,

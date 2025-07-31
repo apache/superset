@@ -95,7 +95,7 @@ dependencies = [
     "slack_sdk>=3.19.0, <4",
     "sqlalchemy>=1.4, <2",
     "sqlalchemy-utils>=0.38.3, <0.39",
-    "sqlglot>=26.1.3, <27",
+    "sqlglot>=27.3.0, <28",
     # newer pandas needs 0.9+
     "tabulate>=0.9.0, <1.0",
     "typing-extensions>=4, <5",
@@ -111,7 +111,7 @@ athena = ["pyathena[pandas]>=2, <3"]
 aurora-data-api = ["preset-sqlalchemy-aurora-data-api>=0.2.8,<0.3"]
 bigquery = [
     "pandas-gbq>=0.19.1",
-    "sqlalchemy-bigquery>=1.6.1",
+    "sqlalchemy-bigquery>=1.15.0",
     "google-cloud-bigquery>=3.10.0",
 ]
 clickhouse = ["clickhouse-connect>=0.5.14, <1.0"]
@@ -311,15 +311,16 @@ select = [
     "Q",
     "S",
     "T",
+    "TID",
     "W",
 ]
+
 ignore = [
     "S101",
     "PT006",
     "T201",
     "N999",
 ]
-
 extend-select = ["I"]
 
 # Allow fix for all enabled rules (when `--fix`) is provided.
@@ -328,6 +329,16 @@ unfixable = []
 
 # Allow unused variables when underscore-prefixed.
 dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
+
+[tool.ruff.lint.per-file-ignores]
+"scripts/*" = ["TID251"]
+"setup.py" = ["TID251"]
+"superset/config.py" = ["TID251"]
+"superset/cli/update.py" = ["TID251"]
+"superset/key_value/types.py" = ["TID251"]
+"superset/translations/utils.py" = ["TID251"]
+"superset/extensions/__init__.py" = ["TID251"]
+"superset/utils/json.py" = ["TID251"]
 
 [tool.ruff.lint.isort]
 case-sensitive = false
@@ -344,6 +355,9 @@ section-order = [
     "first-party",
     "local-folder"
 ]
+
+[tool.ruff.lint.flake8-tidy-imports]
+banned-api = { json = { msg = "Use superset.utils.json instead" }, simplejson = { msg = "Use superset.utils.json instead" } }
 
 [tool.ruff.format]
 # Like Black, use double quotes for strings.

@@ -37,4 +37,4 @@ export function formatSelectOptions(options: (string | number)[]) {
 export const isColorSchemeTypeVisible = (
   controls: ControlStateMapping,
   colorSchemeType: ColorSchemeType,
-) => controls.color_scheme_type.value === colorSchemeType;
+) => controls.color_scheme_type?.value === colorSchemeType;

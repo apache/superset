@@ -1368,10 +1368,23 @@ class SqlaTable(
         return get_template_processor(table=self, database=self.database, **kwargs)
 
     def get_sqla_table(self) -> TableClause:
-        tbl = table(self.table_name)
+        # For databases that support cross-catalog queries (like BigQuery),
+        # include the catalog in the table identifier to generate
+        # project.dataset.table format
+        if self.catalog and self.database.db_engine_spec.supports_cross_catalog_queries:
+            # SQLAlchemy doesn't have built-in catalog support for TableClause,
+            # so we need to construct the full identifier manually
+            if self.schema:
+                full_name = f"{self.catalog}.{self.schema}.{self.table_name}"
+            else:
+                full_name = f"{self.catalog}.{self.table_name}"
+
+            return table(full_name)
+
         if self.schema:
-            tbl.schema = self.schema
-        return tbl
+            return table(self.table_name, schema=self.schema)
+
+        return table(self.table_name)
 
     def get_from_clause(
         self,
@@ -1680,6 +1693,9 @@ class SqlaTable(
                     table=self,
                 )
                 new_column.is_dttm = new_column.is_temporal
+                # Set description from comment field if available
+                if col.get("comment"):
+                    new_column.description = col["comment"]
                 db_engine_spec.alter_new_orm_column(new_column)
             else:
                 new_column = old_column
@@ -1687,6 +1703,9 @@ class SqlaTable(
                     results.modified.append(col["column_name"])
                 new_column.type = col["type"]
                 new_column.expression = ""
+                # Set description from comment field if available
+                if col.get("comment"):
+                    new_column.description = col["comment"]
             new_column.groupby = True
             new_column.filterable = True
             columns.append(new_column)

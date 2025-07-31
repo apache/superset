@@ -72,7 +72,7 @@
     "test": "cross-env NODE_ENV=test NODE_OPTIONS=\"--max-old-space-size=8192\" jest --max-workers=80% --silent",
     "test-loud": "cross-env NODE_ENV=test NODE_OPTIONS=\"--max-old-space-size=8192\" jest --max-workers=80%",
     "type": "tsc --noEmit",
-    "update-maps": "jupyter nbconvert --to notebook --execute --inplace 'plugins/legacy-plugin-chart-country-map/scripts/Country Map GeoJSON Generator.ipynb' -Xfrozen_modules=off",
+    "update-maps": "cd plugins/legacy-plugin-chart-country-map/scripts && jupyter nbconvert --to notebook --execute --inplace --allow-errors --ExecutePreprocessor.timeout=1200 'Country Map GeoJSON Generator.ipynb'",
     "validate-release": "../RELEASING/validate_this_release.sh"
   },
   "browserslist": [
@@ -121,8 +121,8 @@
     "@visx/scale": "^3.5.0",
     "@visx/tooltip": "^3.0.0",
     "@visx/xychart": "^3.5.1",
-    "ag-grid-community": "33.1.1",
-    "ag-grid-react": "33.1.1",
+    "ag-grid-community": "^34.0.2",
+    "ag-grid-react": "34.0.2",
     "antd": "^5.24.6",
     "chrono-node": "^2.7.8",
     "classnames": "^2.2.5",
@@ -145,7 +145,6 @@
     "geostyler-style": "7.5.0",
     "geostyler-wfs-parser": "^2.0.3",
     "googleapis": "^130.0.0",
-    "html-webpack-plugin": "^5.6.3",
     "immer": "^10.1.1",
     "interweave": "^13.1.0",
     "jquery": "^3.7.1",
@@ -317,7 +316,7 @@
     "mini-css-extract-plugin": "^2.9.0",
     "open-cli": "^8.0.0",
     "po2json": "^0.4.5",
-    "prettier": "3.5.3",
+    "prettier": "3.6.2",
     "prettier-plugin-packagejson": "^2.5.3",
     "process": "^0.11.10",
     "react-resizable": "^3.0.5",
@@ -350,7 +349,7 @@
     "regenerator-runtime": "^0.14.1"
   },
   "engines": {
-    "node": "^20.16.0",
+    "node": "^20.18.1",
     "npm": "^10.8.1"
   },
   "overrides": {

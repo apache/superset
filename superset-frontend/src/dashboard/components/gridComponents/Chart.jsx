@@ -129,6 +129,9 @@ const Chart = props => {
   );
 
   const chart = useSelector(state => state.charts[props.id] || EMPTY_OBJECT);
+  const { queriesResponse, chartUpdateEndTime, chartStatus, annotationQuery } =
+    chart;
+
   const slice = useSelector(
     state => state.sliceEntities.slices[props.id] || EMPTY_OBJECT,
   );
@@ -162,6 +165,12 @@ const Chart = props => {
       PLACEHOLDER_DATASOURCE,
   );
   const dashboardInfo = useSelector(state => state.dashboardInfo);
+
+  const isCached = useMemo(
+    // eslint-disable-next-line camelcase
+    () => queriesResponse?.map(({ is_cached }) => is_cached) || [],
+    [queriesResponse],
+  );
 
   const [descriptionHeight, setDescriptionHeight] = useState(0);
   const [height, setHeight] = useState(props.height);
@@ -214,11 +223,15 @@ const Chart = props => {
 
   const getHeaderHeight = useCallback(() => {
     if (headerRef.current) {
-      const computedStyle = getComputedStyle(
+      const computedMarginBottom = getComputedStyle(
         headerRef.current,
       ).getPropertyValue('margin-bottom');
-      const marginBottom = parseInt(computedStyle, 10) || 0;
-      return headerRef.current.offsetHeight + marginBottom;
+      const marginBottom = parseInt(computedMarginBottom, 10) || 0;
+      const computedHeight = getComputedStyle(
+        headerRef.current,
+      ).getPropertyValue('height');
+      const height = parseInt(computedHeight, 10) || DEFAULT_HEADER_HEIGHT;
+      return height + marginBottom;
     }
     return DEFAULT_HEADER_HEIGHT;
   }, [headerRef]);
@@ -245,9 +258,9 @@ const Chart = props => {
   const logExploreChart = useCallback(() => {
     boundActionCreators.logEvent(LOG_ACTIONS_EXPLORE_DASHBOARD_CHART, {
       slice_id: slice.slice_id,
-      is_cached: props.isCached,
+      is_cached: isCached,
     });
-  }, [boundActionCreators.logEvent, slice.slice_id, props.isCached]);
+  }, [boundActionCreators.logEvent, slice.slice_id, isCached]);
 
   const chartConfiguration = useSelector(
     state => state.dashboardInfo.metadata?.chart_configuration,
@@ -361,22 +374,22 @@ const Chart = props => {
           : LOG_ACTIONS_EXPORT_XLSX_DASHBOARD_CHART;
       boundActionCreators.logEvent(logAction, {
         slice_id: slice.slice_id,
-        is_cached: props.isCached,
+        is_cached: isCached,
       });
       exportChart({
         formData: isFullCSV ? { ...formData, row_limit: maxRows } : formData,
         resultType: isPivot ? 'post_processed' : 'full',
         resultFormat: format,
         force: true,
-        ownState: props.ownState,
+        ownState: dataMask[props.id]?.ownState,
       });
     },
     [
       slice.slice_id,
-      props.isCached,
+      isCached,
       formData,
       props.maxRows,
-      props.ownState,
+      dataMask[props.id]?.ownState,
       boundActionCreators.logEvent,
     ],
   );
@@ -404,7 +417,7 @@ const Chart = props => {
   const forceRefresh = useCallback(() => {
     boundActionCreators.logEvent(LOG_ACTIONS_FORCE_REFRESH_CHART, {
       slice_id: slice.slice_id,
-      is_cached: props.isCached,
+      is_cached: isCached,
     });
     return boundActionCreators.refreshChart(chart.id, true, props.dashboardId);
   }, [
@@ -412,7 +425,7 @@ const Chart = props => {
     chart.id,
     props.dashboardId,
     slice.slice_id,
-    props.isCached,
+    isCached,
     boundActionCreators.logEvent,
   ]);
 
@@ -420,11 +433,7 @@ const Chart = props => {
     return <MissingChart height={getChartHeight()} />;
   }
 
-  const { queriesResponse, chartUpdateEndTime, chartStatus, annotationQuery } =
-    chart;
   const isLoading = chartStatus === 'loading';
-  // eslint-disable-next-line camelcase
-  const isCached = queriesResponse?.map(({ is_cached }) => is_cached) || [];
   const cachedDttm =
     // eslint-disable-next-line camelcase
     queriesResponse?.map(({ cached_dttm }) => cached_dttm) || [];

@@ -25,6 +25,7 @@ import {
 } from 'spec/helpers/testing-library';
 import fetchMock from 'fetch-mock';
 import copyTextToClipboard from 'src/utils/copy';
+import { RootState } from 'src/dashboard/types';
 import ViewQuery, { ViewQueryProps } from './ViewQuery';
 
 const mockHistoryPush = jest.fn();
@@ -37,8 +38,29 @@ jest.mock('react-router-dom', () => ({
 
 jest.mock('src/utils/copy');
 
-function setup(props: ViewQueryProps) {
-  return render(<ViewQuery {...props} />, { useRouter: true, useRedux: true });
+const mockState = (
+  roles: Record<string, [string, string][]> = {
+    Admin: [['menu_access', 'SQL Lab']],
+  },
+) =>
+  ({
+    user: {
+      firstName: 'Test',
+      isActive: true,
+      isAnonymous: false,
+      lastName: 'User',
+      username: 'testuser',
+      permissions: {} as Record<string, any>,
+      roles,
+    },
+  }) as Partial<RootState>;
+
+function setup(props: ViewQueryProps, state: Partial<RootState> = mockState()) {
+  return render(<ViewQuery {...props} />, {
+    useRouter: true,
+    useRedux: true,
+    initialState: state,
+  });
 }
 
 const mockProps = {
@@ -69,7 +91,7 @@ afterEach(() => {
 });
 
 const getFormatSwitch = () =>
-  screen.getByRole('switch', { name: 'Show original SQL' });
+  screen.getByRole('switch', { name: 'formatted original' });
 
 test('renders the component with Formatted SQL and buttons', async () => {
   const { container } = setup(mockProps);
@@ -155,4 +177,16 @@ test('opens SQL Lab in a new tab when View in SQL Lab button is clicked with met
     `/sqllab?datasourceKey=${datasource}&sql=${sql}`,
     '_blank',
   );
+});
+
+test('hides View in SQL Lab button when user does not have SQL Lab access', () => {
+  setup(
+    mockProps,
+    mockState({
+      Basic: [['menu_access', 'Dashboard']],
+    }),
+  );
+
+  expect(screen.queryByText('View in SQL Lab')).not.toBeInTheDocument();
+  expect(screen.getByText('Copy')).toBeInTheDocument(); // Copy button should still be visible
 });
