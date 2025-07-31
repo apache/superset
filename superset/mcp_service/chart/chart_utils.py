@@ -249,19 +249,22 @@ def map_xy_config(config: XYChartConfig) -> Dict[str, Any]:
         "metrics": metrics,
     }
 
-    # CRITICAL FIX: For time series charts, we need to include x_axis in groupby
-    # to ensure proper time-based aggregation
+    # CRITICAL FIX: For time series charts, handle groupby carefully to avoid duplicates
+    # The x_axis field already tells Superset which column to use for time grouping
     groupby_columns = []
 
-    # Always include the X-axis column for proper grouping
-    groupby_columns.append(config.x.name)
-
-    # Add additional groupby if specified
-    if config.group_by:
+    # Only add groupby columns if there's an explicit group_by specified
+    # The x_axis column should NOT be duplicated in groupby as it causes
+    # "Duplicate column/metric labels" errors in Superset
+    # Only add group_by column if it's specified AND different from x_axis
+    # NEVER add the x_axis column to groupby as it creates duplicate labels
+    if config.group_by and config.group_by.name != config.x.name:
         groupby_columns.append(config.group_by.name)
 
-    # Set the groupby in form_data
-    form_data["groupby"] = groupby_columns
+    # Set the groupby in form_data only if we have valid columns
+    # Don't set empty groupby - let Superset handle x_axis grouping automatically
+    if groupby_columns:
+        form_data["groupby"] = groupby_columns
 
     # Add filters if specified
     if config.filters:
