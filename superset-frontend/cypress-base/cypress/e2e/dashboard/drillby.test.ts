@@ -31,6 +31,51 @@ import {
   interceptFormDataKey,
 } from '../explore/utils';
 
+const interceptDrillInfo = () => {
+  cy.intercept('GET', '**/api/v1/dataset/*/drill_info/*', {
+    statusCode: 200,
+    body: {
+      result: {
+        id: 1,
+        changed_on_humanized: '2 days ago',
+        created_on_humanized: 'a week ago',
+        table_name: 'birth_names',
+        changed_by: {
+          first_name: 'Admin',
+          last_name: 'User',
+        },
+        created_by: {
+          first_name: 'Admin',
+          last_name: 'User',
+        },
+        owners: [
+          {
+            first_name: 'Admin',
+            last_name: 'User',
+          },
+        ],
+        columns: [
+          {
+            column_name: 'state',
+            verbose_name: 'State',
+            groupby: true,
+          },
+          {
+            column_name: 'name',
+            verbose_name: 'Name',
+            groupby: true,
+          },
+          {
+            column_name: 'ds',
+            verbose_name: 'Date',
+            groupby: true,
+          },
+        ],
+      },
+    },
+  }).as('drillInfo');
+};
+
 const closeModal = () => {
   cy.get('body').then($body => {
     if ($body.find('[data-test="close-drill-by-modal"]').length) {
@@ -62,6 +107,7 @@ const drillBy = (targetDrillByColumn: string, isLegacy = false) => {
 
   cy.get(
     '.ant-dropdown-menu-submenu:not(.ant-dropdown-menu-submenu-hidden) [data-test="drill-by-submenu"]',
+    { timeout: 15000 },
   )
     .should('be.visible')
     .find('[role="menuitem"]')
@@ -235,12 +281,14 @@ describe('Drill by modal', () => {
     closeModal();
   });
   before(() => {
+    interceptDrillInfo();
     cy.visit(SUPPORTED_CHARTS_DASHBOARD);
   });
 
   describe('Modal actions + Table', () => {
     before(() => {
       closeModal();
+      interceptDrillInfo();
       openTopLevelTab('Tier 1');
       SUPPORTED_TIER1_CHARTS.forEach(waitForChartLoad);
     });
@@ -389,6 +437,7 @@ describe('Drill by modal', () => {
   describe('Tier 1 charts', () => {
     before(() => {
       closeModal();
+      interceptDrillInfo();
       openTopLevelTab('Tier 1');
       SUPPORTED_TIER1_CHARTS.forEach(waitForChartLoad);
     });
@@ -552,6 +601,7 @@ describe('Drill by modal', () => {
   describe('Tier 2 charts', () => {
     before(() => {
       closeModal();
+      interceptDrillInfo();
       openTopLevelTab('Tier 2');
       SUPPORTED_TIER2_CHARTS.forEach(waitForChartLoad);
     });

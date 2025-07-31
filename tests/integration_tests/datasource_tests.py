@@ -525,13 +525,17 @@ class TestDatasource(SupersetTestCase):
         "superset.security.manager.SupersetSecurityManager.get_guest_rls_filters"
     )
     @mock.patch("superset.security.manager.SupersetSecurityManager.is_guest_user")
+    @mock.patch("superset.security.manager.SupersetSecurityManager.has_guest_access")
     @with_feature_flags(EMBEDDED_SUPERSET=True)
-    def test_get_samples_embedded_user(self, mock_is_guest_user, mock_rls):
+    def test_get_samples_embedded_user(
+        self, mock_has_guest_access, mock_is_guest_user, mock_rls
+    ):
         """
         Embedded user can access the /samples view.
         """
-        self.login(GAMMA_USERNAME)
+        self.login(ADMIN_USERNAME)
         mock_is_guest_user.return_value = True
+        mock_has_guest_access.return_value = True
         mock_rls.return_value = []
         tbl = self.get_table(name="birth_names")
         dash = self.get_dash_by_slug("births")
