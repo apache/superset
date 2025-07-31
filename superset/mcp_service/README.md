@@ -2,7 +2,7 @@
 
 The Superset Model Context Protocol (MCP) service provides a modular, schema-driven interface for programmatic access to Superset dashboards, charts, datasets, and instance metadata. It is designed for LLM agents and automation tools, and is built on the FastMCP protocol.
 
-**✅ Phase 1 Complete - Production Ready. Core functionality stable, authentication production-ready, comprehensive testing coverage, optimized dashboard layouts.**
+**✅ Phase 1 Complete - Production Ready. Core functionality stable, authentication production-ready, comprehensive testing coverage, optimized dashboard layouts, automated test framework.**
 
 ## 🚀 Quickstart
 
@@ -654,6 +654,53 @@ SUPERSET_WEBSERVER_ADDRESS = "https://superset.company.com"  # Production
 - **Advanced Chart Types**: Support for complex visualizations (maps, 3D, custom viz)
 - **Business Intelligence**: Natural language to SQL query generation
 - **End-to-End Testing**: Synthetic environments with example database integration
+
+## 🧪 Testing & Quality Assurance
+
+### Automated Test Framework
+
+The MCP service includes comprehensive test automation for reliable AI agent interactions:
+
+#### Test Execution Options
+
+All test automation tools are located in the `test_automation/` folder:
+
+1. **Simple Test Runner** (Recommended for quick testing):
+   ```bash
+   cd superset/mcp_service/test_automation
+   ./run_tests_simple.sh
+   ```
+
+2. **Full Test Plans**:
+   ```bash
+   # Run comprehensive chart tests
+   ./run_mcp_tests.sh MCP_CHART_TEST_PLAN.md
+
+   # Run with Python script (CI/CD compatible)
+   export ANTHROPIC_API_KEY=sk-ant-...
+   python run_mcp_tests.py MCP_CHART_TEST_PLAN.md
+   ```
+
+3. **GitHub Actions** (Automated CI):
+   - Runs automatically on PRs touching MCP service
+   - Manual dispatch available for specific test plans
+   - Posts results as PR comments
+
+#### Test Plans
+
+Located in `test_automation/`:
+- `MCP_CHART_TEST_PLAN.md` - Comprehensive chart tool testing
+- `ENTITY_TESTING_PLAN.md` - Entity listing and filtering tests
+- Additional plans for dashboards, datasets, and system tools
+
+#### Test Infrastructure
+
+- **Local Testing**: Run against your development instance
+- **CI Environment**: PostgreSQL, Redis, and example data
+- **GitHub Codespaces**: Pre-configured test environment
+- **Reports**: HTML and JSON test reports with pass/fail metrics
+
+See [test_automation/README.md](./test_automation/README.md) for complete testing documentation.
 
 ## Recent Major Improvements
 

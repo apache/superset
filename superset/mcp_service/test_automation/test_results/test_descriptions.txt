@@ -1,0 +1,69 @@
+List all charts with default pagination
+List charts with page=2, page_size=5
+List charts with page_size=50
+List with cache control use_cache=false
+Search for charts with search="sales"
+Search with UUID/slug search="abc-123-def"
+Search with no results search="xyz123nonexistent"
+Filter by viz_type with filters=[{"col": "viz_type", "opr": "eq", "value": "table"}]
+Filter by multiple conditions
+Filter with IN operator
+Select specific columns with select_columns=["id", "slice_name", "viz_type", "url"]
+Include UUID with select_columns=["id", "slice_name", "uuid", "url"]
+Sort by name ascending order_column="slice_name", order_direction="asc"
+Sort by updated date order_column="changed_on", order_direction="desc"
+Get info for existing chart by numeric ID (e.g., 1)
+Get info for chart by UUID (if you have one)
+Get info for non-existent chart ID 99999
+Get info with invalid identifier "not-a-valid-id"
+Get available filters for a chart
+See interaction with existing filters
+Generate simple table chart
+Generate table with aggregated metrics
+Comprehensive table configuration
+Generate time series line chart
+Generate chart with multiple metrics
+Generate bar chart
+Generate stacked bar chart
+Generate area chart
+Generate scatter plot
+Generate chart without saving (preview only)
+Generate chart with non-existent dataset
+Generate chart with non-existent column
+Use SUM on text column
+Generate chart without required x axis
+Update chart name and description
+Update chart configuration
+Update and force cache refresh
+Refresh chart preview
+Change preview settings
+Get chart preview as URL
+Attempt to get chart as base64 image
+Get chart as ASCII art
+Get chart data as formatted table
+Force fresh preview
+Get preview for non-existent chart
+Invalid format
+Unsupported format (base64)
+Get data for existing chart
+Get data as CSV
+Get data as Excel
+Get data with insights
+Force fresh data
+Get data for big_number chart type
+Generate chart with row_limit=10000
+Get data with limit=50000
+Generate 5 charts rapidly in sequence
+Chart with multiple groupings and aggregations
+Generate explore link for line chart
+Generate explore link with full configuration
+Generate explore link for table visualization
+Generate explore link with cache control
+Invalid dataset
+Invalid column reference
+Create dashboard with multiple charts
+Add chart to existing dashboard
+Create dashboard and verify chart proportions
+Chart with unicode in name
+Chart with very long name
+Attempt SQL injection in filter
