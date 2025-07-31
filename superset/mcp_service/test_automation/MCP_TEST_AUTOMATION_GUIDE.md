@@ -180,6 +180,13 @@ tail -f /tmp/mcp.log
 - Or use `ANTHROPIC_API_KEY` with the Python script
 - CI environments use API by default
 
+### Claude CLI Parameter Issues
+Claude CLI has known limitations with MCP tool parameter passing:
+- Using `claude -p "prompt" --dangerously-skip-permissions` fails to properly invoke MCP tools with structured parameters
+- Tools expect request objects but CLI serializes parameters incorrectly
+- Similar to Claude Code UA limitations when calling MCP tools
+- **Workaround**: Use `--allowedTools "mcp__*"` pattern instead
+
 ### Test Failures
 - Check service logs for errors
 - Verify test data is loaded

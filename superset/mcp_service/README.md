@@ -702,6 +702,8 @@ Located in `test_automation/`:
 
 See [test_automation/README.md](./test_automation/README.md) for complete testing documentation.
 
+**Note**: Claude CLI has known parameter passing limitations with MCP tools. When using `--dangerously-skip-permissions` or standard patterns, structured request objects may not serialize correctly. Use the Python test runner with Anthropic API for reliable results.
+
 ## Recent Major Improvements
 
 ### 🔧 **BaseDAO Type Safety & Performance**

@@ -53,3 +53,13 @@ python run_mcp_tests.py MCP_CHART_TEST_PLAN.md
 2. **Check MCP service**: Ensure `superset mcp run --port 5008` is running
 3. **Check logs**: Look at Claude Desktop logs for connection errors
 4. **Permissions**: Make sure `run_proxy.sh` is executable (`chmod +x run_proxy.sh`)
+
+## Known Limitations
+
+**Claude CLI Parameter Issues**: Both Claude Desktop and Claude CLI have limitations with MCP tool parameter passing. When using complex MCP tools like ours that expect structured request objects, the CLI may fail to serialize parameters correctly. This affects both `--dangerously-skip-permissions` and standard usage patterns.
+
+**Workaround**: Use the Python test runner with Anthropic API instead:
+```bash
+export ANTHROPIC_API_KEY=sk-ant-...
+python run_mcp_tests.py MCP_CHART_TEST_PLAN.md
+```
