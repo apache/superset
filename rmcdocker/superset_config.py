@@ -79,14 +79,24 @@ RESULTS_BACKEND = RedisCache(
     db=2
 )
 
-# Visual Customizations
-APP_NAME = "RMC_SUPERSET_APP"
-APP_ICON = "/static/assets/custom/RMC_100.png"
-APP_ICON_WIDTH = 200
-# Path for routing when APP_ICON image is clicked
-LOGO_TARGET_PATH = 'http://www.rockymountaincare.com/' # Forwards to /superset/welcome/home
-LOGO_TOOLTIP = "rockymountaincare.com" # Text displayed when hovering.
+# # Visual Customizations
+# APP_NAME = "RMC_SUPERSET_APP"
+# APP_ICON = "/static/assets/custom/RMC_100.png"
+# APP_ICON_WIDTH = 200
+# # Path for routing when APP_ICON image is clicked
+# LOGO_TARGET_PATH = 'http://www.rockymountaincare.com/' # Forwards to /superset/welcome/home
+# LOGO_TOOLTIP = "rockymountaincare.com" # Text displayed when hovering.
+# FAVICONS = [{"href": "/static/assets/custom/RMC_100.png"}]
+
+# Visual Customizations (Modern Method)
 FAVICONS = [{"href": "/static/assets/custom/RMC_100.png"}]
+APP_FAB_UI_BRAND_INFO = {
+    "logo_icon": "/static/assets/custom/RMC_100.png",
+    "logo_icon_width": 200,
+    "logo_icon_target_path": "http://www.rockymountaincare.com/",
+    "logo_icon_tooltip": "rockymountaincare.com",
+    "brand_text": "RMC SUPERSET APP", # Optional: if you want text next to the logo
+}
 
 # Increase max number of rows included in table views and csv downloads
 SQL_MAX_ROW = 50000
@@ -267,7 +277,7 @@ class CustomSecurityManager(SupersetSecurityManager):
         return None
  
  
-# CUSTOM_SECURITY_MANAGER = CustomSecurityManager
+CUSTOM_SECURITY_MANAGER = CustomSecurityManager
  
 # Set feature flags (enable the use of async queries, Dashboard RBAC)
 FEATURE_FLAGS = {

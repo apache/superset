@@ -193,10 +193,9 @@ RUN --mount=type=cache,target=${SUPERSET_HOME}/.cache/uv \
     uv pip install .
 RUN python -m compileall /app/superset
 
-# --- START: CRITICAL PERMISSION FIX ---
-# Give the superset user ownership of its home directory before switching to it
-RUN chown -R superset:superset /app/superset_home
-# --- END: CRITICAL PERMISSION FIX ---
+# --- Fix ownership of /app/superset_home and /app/superset for Favicon loading and Celery Worker
+# Give the superset user ownership of its home directory before switching to it, Ensure the directory exists in your build context (For Favicon)
+RUN chown -R superset:superset /app/superset_home /app/superset
 
 # Switch back to the non-root user for security
 USER superset
