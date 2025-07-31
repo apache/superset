@@ -1189,6 +1189,43 @@ def test_is_mutating(sql: str, engine: str, expected: bool) -> None:
     assert SQLStatement(sql, engine).is_mutating() == expected
 
 
+@pytest.mark.parametrize(
+    "sql, expected",
+    [
+        (
+            """
+DO $$
+BEGIN
+  INSERT INTO public.users (name, real_name)
+    VALUES ('SQLLab bypass DML', 'SQLLab bypass DML');
+END;
+$$;
+            """,
+            True,
+        ),
+        (
+            """
+DO $$
+BEGIN
+    IF (SELECT COUNT(*) FROM orders WHERE status = 'pending') > 100 THEN
+        RAISE NOTICE 'High pending order volume detected';
+    END IF;
+END;
+$$;
+            """,
+            True,
+        ),
+    ],
+)
+def test_is_mutating_anonymous_block(sql: str, expected: bool) -> None:
+    """
+    Test for `is_mutating` with a Postgres anonymous block.
+
+    Since we can't parse the PL/pgSQL inside the block we always assume it is mutating.
+    """
+    assert SQLStatement(sql, "postgresql").is_mutating() == expected
+
+
 def test_optimize() -> None:
     """
     Test that the `optimize` method works as expected.

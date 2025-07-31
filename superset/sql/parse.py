@@ -654,6 +654,16 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
         if isinstance(self._parsed, exp.Command) and self._parsed.name == "ALTER":
             return True  # pragma: no cover
 
+        if (
+            self._dialect == Dialects.POSTGRES
+            and isinstance(self._parsed, exp.Command)
+            and self._parsed.name == "DO"
+        ):
+            # anonymous blocks can be written in many different languages (the default
+            # is PL/pgSQL), so parsing them it out of scope of this class; we just
+            # assume the anonymous block is mutating
+            return True
+
         # Postgres runs DMLs prefixed by `EXPLAIN ANALYZE`, see
         # https://www.postgresql.org/docs/current/sql-explain.html
         if (
