@@ -39,6 +39,10 @@ def get_chart_info(request: GetChartInfoRequest) -> ChartInfo | ChartError:
     """
     Get detailed information about a specific chart with metadata cache control.
 
+    IMPORTANT FOR LLM CLIENTS:
+    - ALWAYS display the chart URL when returned (e.g., "View chart at: {url}")
+    - The URL field contains the chart's screenshot URL for preview
+
     Supports lookup by:
     - Numeric ID (e.g., 123)
     - UUID string (e.g., "a1b2c3d4-e5f6-7890-abcd-ef1234567890")
