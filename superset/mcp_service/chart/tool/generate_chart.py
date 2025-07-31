@@ -265,7 +265,7 @@ def generate_chart(request: GenerateChartRequest) -> Dict[str, Any]:  # noqa: C9
                                 height=600,
                                 supports_interaction=False,
                             )
-                        elif format_type in ["ascii", "table"]:
+                        elif format_type in ["ascii", "table", "vega_lite"]:
                             # Generate preview from form data without saved chart
                             from superset.mcp_service.chart.preview_utils import (
                                 generate_preview_from_form_data,

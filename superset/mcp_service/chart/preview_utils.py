@@ -31,6 +31,7 @@ from superset.mcp_service.schemas.chart_schemas import (
     ASCIIPreview,
     ChartError,
     TablePreview,
+    VegaLitePreview,
 )
 
 logger = logging.getLogger(__name__)
@@ -94,6 +95,8 @@ def generate_preview_from_form_data(
             return _generate_ascii_preview_from_data(data, form_data)
         elif preview_format == "table":
             return _generate_table_preview_from_data(data, form_data)
+        elif preview_format == "vega_lite":
+            return _generate_vega_lite_preview_from_data(data, form_data)
         else:
             return ChartError(
                 error=f"Unsupported preview format: {preview_format}",
@@ -425,3 +428,132 @@ def _is_nan(value: Any) -> bool:
         return math.isnan(float(value))
     except (ValueError, TypeError):
         return False
+
+
+def _generate_vega_lite_preview_from_data(  # noqa: C901
+    data: List[Dict[str, Any]], form_data: Dict[str, Any]
+) -> VegaLitePreview:
+    """Generate Vega-Lite preview from raw data and form_data."""
+    viz_type = form_data.get("viz_type", "table")
+
+    # Map Superset viz types to Vega-Lite marks
+    viz_to_mark = {
+        "echarts_timeseries_line": "line",
+        "echarts_timeseries_bar": "bar",
+        "echarts_area": "area",
+        "echarts_timeseries_scatter": "point",
+        "bar": "bar",
+        "line": "line",
+        "area": "area",
+        "scatter": "point",
+        "pie": "arc",
+        "table": "text",
+    }
+
+    mark = viz_to_mark.get(viz_type, "bar")
+
+    # Basic Vega-Lite spec
+    spec = {
+        "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+        "data": {"values": data},
+        "mark": mark,
+    }
+
+    # Get x_axis and metrics from form_data
+    x_axis = form_data.get("x_axis")
+    metrics = form_data.get("metrics", [])
+    groupby = form_data.get("groupby", [])
+
+    # Build encoding based on available fields
+    encoding = {}
+
+    # Handle X-axis
+    if x_axis and x_axis in (data[0] if data else {}):
+        # Detect field type from data
+        field_type = "nominal"  # default
+        if data and len(data) > 0:
+            sample_val = data[0].get(x_axis)
+            if isinstance(sample_val, str):
+                # Check if it's a date/time
+                if any(char in str(sample_val) for char in ["-", "/", ":"]):
+                    field_type = "temporal"
+                else:
+                    field_type = "nominal"
+            elif isinstance(sample_val, (int, float)):
+                field_type = "quantitative"
+
+        encoding["x"] = {
+            "field": x_axis,
+            "type": field_type,
+            "title": x_axis,
+        }
+
+    # Handle Y-axis (metrics)
+    if metrics and data:
+        # Find the first metric column in the data
+        metric_col = None
+        for col in data[0].keys():
+            # Check if this is a metric column (usually has aggregation in name)
+            if any(
+                agg in str(col).upper()
+                for agg in ["SUM", "AVG", "COUNT", "MIN", "MAX", "TOTAL"]
+            ):
+                metric_col = col
+                break
+            # Or check if it's numeric
+            elif isinstance(data[0].get(col), (int, float)):
+                metric_col = col
+                break
+
+        if metric_col:
+            encoding["y"] = {
+                "field": metric_col,
+                "type": "quantitative",
+                "title": metric_col,
+            }
+
+    # Handle color encoding for groupby
+    if groupby and len(groupby) > 0 and groupby[0] in (data[0] if data else {}):
+        encoding["color"] = {
+            "field": groupby[0],
+            "type": "nominal",
+            "title": groupby[0],
+        }
+
+    # Special handling for pie charts
+    if mark == "arc" and data:
+        # For pie charts, we need theta encoding
+        if "y" in encoding:
+            encoding["theta"] = encoding.pop("y")
+            encoding["theta"]["stack"] = True
+        if "x" in encoding:
+            # Use x as color for pie
+            encoding["color"] = {
+                "field": encoding["x"]["field"],
+                "type": "nominal",
+            }
+            del encoding["x"]
+
+    # Add encoding to spec
+    if encoding:
+        spec["encoding"] = encoding
+
+    # Add responsive sizing - Vega-Lite supports "container" as a special width value
+    spec["width"] = "container"
+    spec["height"] = 400  # type: ignore
+
+    # Add interactivity
+    if mark in ["line", "point", "bar", "area"]:
+        spec["selection"] = {
+            "highlight": {
+                "type": "single",
+                "on": "mouseover",
+                "empty": "none",
+            }
+        }
+
+    return VegaLitePreview(
+        specification=spec,
+        data_url=None,
+        supports_streaming=False,
+    )

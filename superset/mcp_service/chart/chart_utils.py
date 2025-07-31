@@ -249,9 +249,19 @@ def map_xy_config(config: XYChartConfig) -> Dict[str, Any]:
         "metrics": metrics,
     }
 
-    # Add groupby if specified
+    # CRITICAL FIX: For time series charts, we need to include x_axis in groupby
+    # to ensure proper time-based aggregation
+    groupby_columns = []
+
+    # Always include the X-axis column for proper grouping
+    groupby_columns.append(config.x.name)
+
+    # Add additional groupby if specified
     if config.group_by:
-        form_data["groupby"] = [config.group_by.name]
+        groupby_columns.append(config.group_by.name)
+
+    # Set the groupby in form_data
+    form_data["groupby"] = groupby_columns
 
     # Add filters if specified
     if config.filters:
