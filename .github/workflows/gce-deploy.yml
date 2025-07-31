@@ -129,7 +129,7 @@ jobs:
 
       - name: Set Script Permissions on GCE VM
         run: |
-          gcloud compute ssh ${{env.GCE_VM_NAME}} --zone ${{env.GCE_ZONE}} --project ${{env.GCE_PROJECT}} --ssh-key-file=id_rsa --command "chmod +x $DIRECTORY_PATH/deploy_updated_version.sh"
+          gcloud beta compute ssh ${{env.GCE_VM_NAME}} --zone ${{env.GCE_ZONE}} --project ${{env.GCE_PROJECT}} --ssh-key-file=id_rsa --command "chmod +x $DIRECTORY_PATH/deploy_updated_version.sh"
 
       - name: Run SSH Command on GCE VM
         env:
@@ -146,4 +146,4 @@ jobs:
           GCE_IP=$(gcloud compute instances describe ${{env.GCE_VM_NAME}} --zone ${{env.GCE_ZONE}} --project ${{env.GCE_PROJECT}} --format='get(networkInterfaces[0].accessConfigs[0].natIP)')
 
           # Execute the script on the remote instance
-          gcloud compute ssh ${{env.GCE_VM_NAME}} --zone ${{env.GCE_ZONE}} --project ${{env.GCE_PROJECT}} --ssh-key-file=id_rsa --command "GIT_BRANCH=$GIT_BRANCH TAG=$TAG DIRECTORY_PATH='$DIRECTORY_PATH' INFISICAL_PATH='$INFISICAL_PATH' INFISICAL_PROJECT_ID='$INFISICAL_PROJECT_ID' INFISICAL_CLIENT_ID='$INFISICAL_CLIENT_ID' INFISICAL_CLIENT_SECRET='$INFISICAL_CLIENT_SECRET' bash $DIRECTORY_PATH/deploy_updated_version.sh" -- -v
+          gcloud beta compute ssh ${{env.GCE_VM_NAME}} --zone ${{env.GCE_ZONE}} --project ${{env.GCE_PROJECT}} --ssh-key-file=id_rsa --command "GIT_BRANCH=$GIT_BRANCH TAG=$TAG DIRECTORY_PATH='$DIRECTORY_PATH' INFISICAL_PATH='$INFISICAL_PATH' INFISICAL_PROJECT_ID='$INFISICAL_PROJECT_ID' INFISICAL_CLIENT_ID='$INFISICAL_CLIENT_ID' INFISICAL_CLIENT_SECRET='$INFISICAL_CLIENT_SECRET' bash $DIRECTORY_PATH/deploy_updated_version.sh" -- -v
