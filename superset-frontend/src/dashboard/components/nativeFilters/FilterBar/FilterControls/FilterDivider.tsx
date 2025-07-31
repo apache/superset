@@ -130,7 +130,7 @@ const HorizontalOverflowDivider = ({
               ${truncationCSS};
               display: block;
               font-size: ${theme.fontSizeSM}px;
-              color: ${theme.colors.grayscale.base};
+              color: ${theme.colorText};
               margin: ${theme.sizeUnit}px 0 0 0;
             `}
           >

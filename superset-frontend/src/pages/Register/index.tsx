@@ -44,7 +44,7 @@ const StyledCard = styled(Card)`
   ${({ theme }) => css`
     width: 50%;
     margin-top: ${theme.marginXL}px;
-    background: ${theme.colorBgBase};
+    background: ${theme.colorBgContainer};
     .ant-form-item-label label {
       color: ${theme.colorPrimary};
     }

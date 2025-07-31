@@ -45,20 +45,20 @@ const SyntaxHighlighterWrapper = styled.div`
     visibility: hidden;
     margin: -4px;
     padding: 4px;
-    background: ${({ theme }) => theme.colors.grayscale.light4};
+    background: ${({ theme }) => theme.colorBgContainer};
     border-radius: ${({ theme }) => theme.borderRadius}px;
-    color: ${({ theme }) => theme.colors.grayscale.base};
+    color: ${({ theme }) => theme.colorText};
     cursor: pointer;
     transition: all 0.2s ease;
 
     &:hover {
-      background: ${({ theme }) => theme.colors.grayscale.light2};
-      color: ${({ theme }) => theme.colors.grayscale.dark1};
+      background: ${({ theme }) => theme.colorBorderSecondary};
+      color: ${({ theme }) => theme.colorTextSecondary};
     }
 
     &:focus {
       visibility: visible;
-      outline: 2px solid ${({ theme }) => theme.colors.primary.base};
+      outline: 2px solid ${({ theme }) => theme.colorPrimary};
       outline-offset: 2px;
     }
   }

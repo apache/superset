@@ -173,7 +173,7 @@ export default function ColumnConfigControl<T extends ColumnConfig>({
               fontSize: theme.fontSizeXS,
               color: theme.colorTextLabel,
               ':hover': {
-                backgroundColor: theme.colors.grayscale.light4,
+                backgroundColor: theme.colorBgContainer,
               },
             }}
             onClick={() => setShowAllColumns(!showAllColumns)}

@@ -224,11 +224,7 @@ const ChartContextMenu = (
               {t('Add cross-filter')}
               <MenuItemTooltip
                 title={crossFilteringTooltipTitle}
-                color={
-                  !isCrossFilterDisabled
-                    ? theme.colors.grayscale.base
-                    : undefined
-                }
+                color={!isCrossFilterDisabled ? theme.colorText : undefined}
               />
             </div>
           )}

@@ -57,7 +57,7 @@ const DeleteFilter = styled(Icons.DeleteOutlined)`
   ${({ theme }) => `
     cursor: pointer;
     margin-left: ${theme.sizeUnit * 2}px;
-    color: ${theme.colors.grayscale.base};
+    color: ${theme.colorText};
     &:hover {
       color: ${theme.colorText};
     }
@@ -79,7 +79,7 @@ const RowPanel = styled.div`
 
 const Label = styled.div`
   font-size: ${({ theme }) => theme.fontSizeSM}px;
-  color: ${({ theme }) => theme.colors.grayscale.base};
+  color: ${({ theme }) => theme.colorText};
   margin-bottom: ${({ theme }) => theme.sizeUnit}px;
 `;
 

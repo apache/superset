@@ -398,13 +398,13 @@ export const DropdownContainer = forwardRef(
                   }
                   ::-webkit-scrollbar-thumb {
                     border-radius: 9px;
-                    background-color: ${theme.colors.grayscale.light1};
+                    background-color: ${theme.colorBorder};
                     border: 3px solid transparent;
                     background-clip: content-box;
                   }
                   ::-webkit-scrollbar-track {
-                    background-color: ${theme.colors.grayscale.light4};
-                    border-left: 1px solid ${theme.colors.grayscale.light2};
+                    background-color: ${theme.colorBgContainer};
+                    border-left: 1px solid ${theme.colorBorderSecondary};
                   }
                 }
               `}
@@ -436,7 +436,7 @@ export const DropdownContainer = forwardRef(
                     color={
                       (dropdownTriggerCount ?? overflowingCount) > 0
                         ? theme.colorPrimary
-                        : theme.colors.grayscale.light1
+                        : theme.colorBorder
                     }
                     showZero
                     css={css`
@@ -445,7 +445,7 @@ export const DropdownContainer = forwardRef(
                   />
                   <Icons.DownOutlined
                     iconSize="m"
-                    iconColor={theme.colors.grayscale.light1}
+                    iconColor={theme.colorBorder}
                     css={css`
                       .anticon {
                         display: flex;

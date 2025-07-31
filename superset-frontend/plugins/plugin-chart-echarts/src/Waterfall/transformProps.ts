@@ -359,7 +359,7 @@ export default function transformProps(
     show: showValue,
     formatter: seriesformatter,
     color: theme.colorText,
-    borderColor: theme.colorBgBase,
+    borderColor: theme.colorBgContainer,
     borderWidth: 1,
   };
   const barSeries: BarSeriesOption[] = [

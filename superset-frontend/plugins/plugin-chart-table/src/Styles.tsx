@@ -41,7 +41,7 @@ export default styled.div`
     thead > tr > th {
       padding-right: 0;
       position: relative;
-      background-color: ${theme.colorBgBase};
+      background-color: ${theme.colorBgContainer};
       text-align: left;
       border-bottom: 2px solid ${theme.colorSplit};
       color: ${theme.colorText};
@@ -159,7 +159,7 @@ export default styled.div`
 
     .dt-pagination .pagination > li > a,
     .dt-pagination .pagination > li > span {
-      background-color: ${theme.colorBgBase};
+      background-color: ${theme.colorBgContainer};
       color: ${theme.colorText};
       border-color: ${theme.colorBorderSecondary};
       padding: ${theme.paddingXXS}px ${theme.paddingXS}px;

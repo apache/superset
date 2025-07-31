@@ -24,7 +24,7 @@ import { css, styled, useTheme, t } from '@superset-ui/core';
 
 const StyledCalculatorIcon = styled(CalculatorOutlined)`
   ${({ theme }) => css`
-    color: ${theme.colors.grayscale.base};
+    color: ${theme.colorText};
     font-size: ${theme.fontSizeSM}px;
     & svg {
       margin-left: ${theme.sizeUnit}px;

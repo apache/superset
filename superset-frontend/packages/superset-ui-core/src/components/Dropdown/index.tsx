@@ -31,7 +31,7 @@ const MenuDots = styled.div`
   width: ${({ theme }) => theme.sizeUnit * 0.75}px;
   height: ${({ theme }) => theme.sizeUnit * 0.75}px;
   border-radius: 50%;
-  background-color: ${({ theme }) => theme.colors.grayscale.light1};
+  background-color: ${({ theme }) => theme.colorBorder};
 
   font-weight: ${({ theme }) => theme.fontWeightNormal};
   display: inline-flex;
@@ -53,7 +53,7 @@ const MenuDots = styled.div`
     width: ${({ theme }) => theme.sizeUnit * 0.75}px;
     height: ${({ theme }) => theme.sizeUnit * 0.75}px;
     border-radius: 50%;
-    background-color: ${({ theme }) => theme.colors.grayscale.light1};
+    background-color: ${({ theme }) => theme.colorBorder};
   }
 
   &::before {

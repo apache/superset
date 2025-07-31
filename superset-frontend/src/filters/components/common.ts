@@ -38,9 +38,7 @@ export const StatusMessage = styled.div<{
   centerText?: boolean;
 }>`
   color: ${({ theme, status = 'error' }) =>
-    status === 'help'
-      ? theme.colors.grayscale.light1
-      : theme.colors[status]?.base};
+    status === 'help' ? theme.colorBorder : theme.colors[status]?.base};
   text-align: ${({ centerText }) => (centerText ? 'center' : 'left')};
   width: 100%;
 `;

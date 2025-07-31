@@ -68,7 +68,7 @@ const TableSelectorWrapper = styled.div`
     }
 
     .table-length {
-      color: ${theme.colors.grayscale.light1};
+      color: ${theme.colorBorder};
     }
 
     .select {

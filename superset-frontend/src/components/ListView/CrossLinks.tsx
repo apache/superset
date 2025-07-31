@@ -53,7 +53,7 @@ const StyledCrossLinks = styled.div`
 
       .count {
         cursor: pointer;
-        color: ${theme.colors.grayscale.base};
+        color: ${theme.colorText};
         font-weight: ${theme.fontWeightStrong};
       }
     }

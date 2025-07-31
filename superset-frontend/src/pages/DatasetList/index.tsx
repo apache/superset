@@ -90,7 +90,7 @@ const FlexRowContainer = styled.div`
 
 const Actions = styled.div`
   ${({ theme }) => css`
-    color: ${theme.colors.grayscale.base};
+    color: ${theme.colorText};
 
     .disabled {
       svg,
@@ -101,12 +101,12 @@ const Actions = styled.div`
           }
         }
       }
-      color: ${theme.colors.grayscale.light1};
+      color: ${theme.colorBorder};
       .ant-menu-item:hover {
         cursor: default;
       }
       &::after {
-        color: ${theme.colors.grayscale.light1};
+        color: ${theme.colorBorder};
       }
     }
   `}

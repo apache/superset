@@ -41,7 +41,7 @@ export const Row = styled.div`
 
 export const RowLabel = styled.span`
   ${({ theme }) => css`
-    color: ${theme.colors.grayscale.base};
+    color: ${theme.colorText};
     padding-right: ${theme.sizeUnit * 4}px;
     margin-right: auto;
     white-space: nowrap;

@@ -51,7 +51,7 @@ interface ScopingTreePanelProps {
 const InfoText = styled.div`
   ${({ theme }) => css`
     font-size: ${theme.fontSizeSM}px;
-    color: ${theme.colors.grayscale.base};
+    color: ${theme.colorText};
     margin-bottom: ${theme.sizeUnit * 7}px;
   `}
 `;

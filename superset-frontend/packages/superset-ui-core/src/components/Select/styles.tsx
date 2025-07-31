@@ -103,17 +103,17 @@ export const StyledLoadingText = styled.div`
   ${({ theme }) => `
    margin-left: ${theme.sizeUnit * 3}px;
    line-height: ${theme.sizeUnit * 8}px;
-   color: ${theme.colors.grayscale.light1};
+   color: ${theme.colorBorder};
  `}
 `;
 
 export const StyledHelperText = styled.div`
   ${({ theme }) => `
    padding: ${theme.sizeUnit * 2}px ${theme.sizeUnit * 3}px;
-   color: ${theme.colors.grayscale.base};
+   color: ${theme.colorText};
    font-size: ${theme.fontSizeSM}px;
    cursor: default;
-   border-bottom: 1px solid ${theme.colors.grayscale.light2};
+   border-bottom: 1px solid ${theme.colorBorderSecondary};
  `}
 `;
 
@@ -139,6 +139,6 @@ export const StyledErrorMessage = styled.div`
 export const StyledBulkActionsContainer = styled(Flex)`
   ${({ theme }) => `
     padding: ${theme.sizeUnit}px;
-    border-top: 1px solid ${theme.colors.grayscale.light3};
+    border-top: 1px solid ${theme.colorFill};
   `}
 `;

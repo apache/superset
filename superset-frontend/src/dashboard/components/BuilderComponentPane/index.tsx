@@ -53,8 +53,8 @@ const BuilderComponentPane = ({ topOffset = 0 }) => (
         position: absolute;
         height: 100%;
         width: ${BUILDER_PANE_WIDTH}px;
-        box-shadow: -4px 0 4px 0 ${rgba(theme.colors.grayscale.dark2, 0.1)};
-        background-color: ${theme.colorBgBase};
+        box-shadow: -4px 0 4px 0 ${rgba(theme.colorText, 0.1)};
+        background-color: ${theme.colorBgContainer};
       `}
     >
       <Tabs
