@@ -20,6 +20,7 @@ on:
             - January
             - Caliza
             - PayFacto
+            - Meshads
 
 jobs:
   execute:
@@ -98,7 +99,16 @@ jobs:
               echo "INFISICAL_PATH=/PayFacto/BI-Tool" >> $GITHUB_ENV
               echo "TAG=latest" >> $GITHUB_ENV     
               echo "GIT_BRANCH=master" >> $GITHUB_ENV                               
-              ;;              
+              ;;    
+            Meshads)
+              echo "Setting environment for Meshads"
+              echo "GCE_VM_NAME=meshads-instance"  >> $GITHUB_ENV 
+              echo "GCE_PROJECT=meshads"  >> $GITHUB_ENV              
+              echo "DIRECTORY_PATH=/home/meshads/superset" >> $GITHUB_ENV
+              echo "INFISICAL_PATH=/Meshads/BI-Tool" >> $GITHUB_ENV
+              echo "TAG=latest" >> $GITHUB_ENV     
+              echo "GIT_BRANCH=master" >> $GITHUB_ENV                               
+              ;;                           
             *)
               echo "Unknown environment"
               exit 1
