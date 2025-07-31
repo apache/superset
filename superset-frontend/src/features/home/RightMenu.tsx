@@ -16,7 +16,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Fragment, useState, useEffect, FC, PureComponent } from 'react';
+import {
+  Fragment,
+  useState,
+  useEffect,
+  FC,
+  PureComponent,
+  useMemo,
+  useCallback,
+} from 'react';
 import rison from 'rison';
 import { useSelector } from 'react-redux';
 import { Link } from 'react-router-dom';
@@ -30,11 +38,12 @@ import {
   SupersetClient,
   getExtensionsRegistry,
   useTheme,
+  ThemeMode,
+  ThemeAlgorithm,
 } from '@superset-ui/core';
 import {
   Label,
   Tooltip,
-  ThemeSubMenu,
   Menu,
   Icons,
   Typography,
@@ -123,6 +132,20 @@ const StyledSubMenu = styled(SubMenu)`
   `}
 `;
 
+const StyledThemeMenuItem = styled(Menu.Item)<{ selected: boolean }>`
+  ${({ theme, selected }) => css`
+    &:hover {
+      color: ${theme.colorPrimary} !important;
+      cursor: pointer !important;
+    }
+    ${selected &&
+    css`
+      background-color: ${theme.colors.primary.light4} !important;
+      color: ${theme.colors.primary.dark1} !important;
+    `}
+  `}
+`;
+
 const RightMenu = ({
   align,
   settings,
@@ -191,6 +214,7 @@ const RightMenu = ({
     canSetMode,
     canDetectOSPreference,
   } = useThemeContext();
+
   const dropdownItems: MenuObjectProps[] = [
     {
       label: t('Data'),
@@ -373,6 +397,74 @@ const RightMenu = ({
     localStorage.removeItem('redux');
   };
 
+  const handleThemeSelect = useCallback(
+    (mode: ThemeMode) => {
+      setThemeMode(mode);
+    },
+    [setThemeMode],
+  );
+
+  const themeIconMap: Record<ThemeAlgorithm | ThemeMode, React.ReactNode> =
+    useMemo(
+      () => ({
+        [ThemeAlgorithm.DEFAULT]: <Icons.SunOutlined />,
+        [ThemeAlgorithm.DARK]: <Icons.MoonOutlined />,
+        [ThemeMode.SYSTEM]: <Icons.FormatPainterOutlined />,
+        [ThemeAlgorithm.COMPACT]: <Icons.CompressOutlined />,
+      }),
+      [],
+    );
+
+  const selectedThemeModeIcon = useMemo(
+    () =>
+      hasDevOverride() ? (
+        <Icons.FormatPainterOutlined
+          style={{ color: theme.colors.error.base }}
+        />
+      ) : (
+        themeIconMap[themeMode]
+      ),
+    [hasDevOverride, theme.colors.error.base, themeIconMap, themeMode],
+  );
+
+  const themeOptions = useMemo(
+    () => [
+      {
+        key: ThemeMode.DEFAULT,
+        label: t('Light'),
+        icon: <Icons.SunOutlined />,
+        onClick: () => handleThemeSelect(ThemeMode.DEFAULT),
+      },
+      {
+        key: ThemeMode.DARK,
+        label: t('Dark'),
+        icon: <Icons.MoonOutlined />,
+        onClick: () => handleThemeSelect(ThemeMode.DARK),
+      },
+      ...(canDetectOSPreference()
+        ? [
+            {
+              key: ThemeMode.SYSTEM,
+              label: t('Match system'),
+              icon: <Icons.FormatPainterOutlined />,
+              onClick: () => handleThemeSelect(ThemeMode.SYSTEM),
+            },
+          ]
+        : []),
+    ],
+    [canDetectOSPreference, handleThemeSelect],
+  );
+
+  const clearThemeOption =
+    hasDevOverride() && clearLocalOverrides
+      ? {
+          key: 'clear-local',
+          label: t('Clear local theme'),
+          icon: <Icons.ClearOutlined />,
+          onClick: clearLocalOverrides,
+        }
+      : null;
+
   return (
     <StyledDiv align={align}>
       {canDatabase && (
@@ -496,13 +588,31 @@ const RightMenu = ({
         )}
 
         {canSetMode() && (
-          <ThemeSubMenu
-            setThemeMode={setThemeMode}
-            themeMode={themeMode}
-            hasLocalOverride={hasDevOverride()}
-            onClearLocalSettings={clearLocalOverrides}
-            allowOSPreference={canDetectOSPreference()}
-          />
+          <StyledSubMenu
+            key="sub2_theme"
+            title={selectedThemeModeIcon}
+            icon={<Icons.CaretDownOutlined iconSize="xs" />}
+          >
+            <Menu.ItemGroup title={t('Theme')} />
+            {themeOptions.map(option => (
+              <StyledThemeMenuItem
+                key={option.key}
+                onClick={option.onClick}
+                selected={option.key === themeMode}
+              >
+                {option.icon} {option.label}
+              </StyledThemeMenuItem>
+            ))}
+            {clearThemeOption && [
+              <Menu.Divider key="theme-divider" />,
+              <Menu.Item
+                key={clearThemeOption.key}
+                onClick={clearThemeOption.onClick}
+              >
+                {clearThemeOption.icon} {clearThemeOption.label}
+              </Menu.Item>,
+            ]}
+          </StyledSubMenu>
         )}
 
         <StyledSubMenu
