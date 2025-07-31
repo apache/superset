@@ -191,7 +191,7 @@ export default function transformProps(
     yAxisIndexB,
     yAxisTitleSecondary,
     zoomable,
-    zoomableClipYAxis,
+    zoomableClipYAxis = false,
     zoomableStart = 0,
     zoomableEnd = 100,
     richTooltip,
