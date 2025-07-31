@@ -118,7 +118,12 @@ export const MenuItemWithTruncation = ({
       onClick={onClick}
       style={style}
     >
-      <Tooltip title={itemIsTruncated ? tooltipText : null}>
+      <Tooltip
+        title={itemIsTruncated ? tooltipText : null}
+        css={css`
+          max-width: 200px;
+        `}
+      >
         <div
           ref={itemRef}
           css={css`

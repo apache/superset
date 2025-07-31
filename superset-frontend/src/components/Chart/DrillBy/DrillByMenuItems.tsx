@@ -54,10 +54,7 @@ import {
 import { InputRef } from 'antd';
 import { MenuItemTooltip } from '../DisabledMenuItemTooltip';
 import { getSubmenuYOffset } from '../utils';
-import {
-  MenuItemWithTruncation,
-  VirtualizedMenuItem,
-} from '../MenuItemWithTruncation';
+import { VirtualizedMenuItem } from '../MenuItemWithTruncation';
 import { Dataset } from '../types';
 
 const SUBMENU_HEIGHT = 200;
