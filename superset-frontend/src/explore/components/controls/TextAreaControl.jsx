@@ -28,7 +28,6 @@ import {
 } from '@superset-ui/core/components';
 import { t, withTheme } from '@superset-ui/core';
 
-// Import Ace Editor modes
 import 'ace-builds/src-min-noconflict/mode-handlebars';
 
 import ControlHeader from 'src/explore/components/ControlHeader';
@@ -90,16 +89,33 @@ class TextAreaControl extends Component {
     }
   }
 
-  onControlChange(event) {
-    const { value } = event.target;
-    this.props.onChange(value);
+  componentDidUpdate(prevProps) {
+    if (
+      this.props.onChange !== prevProps.onChange &&
+      this.props.debounceDelay
+    ) {
+      if (this.debouncedOnChange) {
+        this.debouncedOnChange.cancel();
+      }
+      this.debouncedOnChange = debounce(
+        this.props.onChange,
+        this.props.debounceDelay,
+      );
+    }
   }
 
-  onAreaEditorChange(value) {
+  handleChange(value) {
+    const finalValue = typeof value === 'object' ? value.target.value : value;
     if (this.debouncedOnChange) {
-      this.debouncedOnChange(value);
+      this.debouncedOnChange(finalValue);
     } else {
-      this.props.onChange(value);
+      this.props.onChange(finalValue);
+    }
+  }
+
+  componentWillUnmount() {
+    if (this.debouncedOnChange) {
+      this.debouncedOnChange.cancel();
     }
   }
 
@@ -140,7 +156,7 @@ class TextAreaControl extends Component {
             readOnly={this.props.readOnly}
             key={this.props.name}
             {...this.props}
-            onChange={this.onAreaEditorChange.bind(this)}
+            onChange={this.handleChange.bind(this)}
           />
         </div>
       );
@@ -155,7 +171,7 @@ class TextAreaControl extends Component {
       <div>
         <Input.TextArea
           placeholder={t('textarea')}
-          onChange={this.onControlChange.bind(this)}
+          onChange={this.handleChange.bind(this)}
           defaultValue={this.props.initialValue}
           disabled={this.props.readOnly}
           style={{ height: this.props.height }}

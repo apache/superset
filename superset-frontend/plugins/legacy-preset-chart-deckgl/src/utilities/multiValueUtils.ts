@@ -48,24 +48,25 @@ export function isAggregatedDeckGLChart(vizType: string): boolean {
 }
 
 export function fieldHasMultipleValues(
-  item: any,
+  item: TooltipItem | string,
   formData: QueryFormData,
 ): boolean {
   if (!isAggregatedDeckGLChart(formData.viz_type)) {
     return false;
   }
 
-  if (item?.item_type === 'metric') {
+  if (typeof item === 'object' && item?.item_type === 'metric') {
     return false;
   }
 
+  // TODO: Currently only screengrid supports multi-value fields. Support for other aggregated charts will be added in future releases
   const supportsMultiValue = ['deck_screengrid'].includes(formData.viz_type);
 
   if (!supportsMultiValue) {
     return false;
   }
 
-  if (item?.item_type === 'column') {
+  if (typeof item === 'object' && item?.item_type === 'column') {
     return true;
   }
 
@@ -95,6 +96,20 @@ const getFieldLabel = (item: TooltipItem | string): string => {
   return 'Field';
 };
 
+const createMultiValueTemplate = (
+  fieldName: string,
+  fieldLabel: string,
+): string => {
+  const pluralFieldName = `${fieldName}s`;
+  return `<div><strong>${fieldLabel}:</strong> {{#if ${pluralFieldName}}}{{limit ${pluralFieldName} 10}}{{#if ${fieldName}_count}} ({{${fieldName}_count}} total){{/if}}{{else}}N/A{{/if}}</div>`;
+};
+
+const createSingleValueTemplate = (
+  fieldName: string,
+  fieldLabel: string,
+): string =>
+  `<div><strong>${fieldLabel}:</strong> {{#if ${fieldName}}}{{${fieldName}}}{{else}}N/A{{/if}}</div>`;
+
 export function createDefaultTemplateWithLimits(
   tooltipContents: (TooltipItem | string)[],
   formData: QueryFormData,
@@ -114,14 +129,9 @@ export function createDefaultTemplateWithLimits(
     const hasMultipleValues = fieldHasMultipleValues(item, formData);
 
     if (hasMultipleValues) {
-      const pluralFieldName = `${fieldName}s`;
-      templateLines.push(
-        `<div><strong>${fieldLabel}:</strong> {{#if ${pluralFieldName}}}{{limit ${pluralFieldName} 10}}{{#if ${fieldName}_count}} ({{${fieldName}_count}} total){{/if}}{{else}}N/A{{/if}}</div>`,
-      );
+      templateLines.push(createMultiValueTemplate(fieldName, fieldLabel));
     } else {
-      templateLines.push(
-        `<div><strong>${fieldLabel}:</strong> {{#if ${fieldName}}}{{${fieldName}}}{{else}}N/A{{/if}}</div>`,
-      );
+      templateLines.push(createSingleValueTemplate(fieldName, fieldLabel));
     }
   });
 

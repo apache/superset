@@ -517,6 +517,8 @@ function ExploreViewContainer(props) {
           const vizType = props.form_data?.viz_type || '';
           const isAggregatedChart = isAggregatedChartType(vizType);
 
+          const DEFAULT_TOOLTIP_LIMIT = 10; // Maximum number of values to show in aggregated tooltips
+
           const fieldNames = tooltipContents.map(getFieldName).filter(Boolean);
           const missingVariables = fieldNames.filter(
             fieldName =>
@@ -531,7 +533,7 @@ function ExploreViewContainer(props) {
                 item?.item_type === 'column' || typeof item === 'string';
 
               if (isAggregatedChart && isColumn) {
-                return `{{ limit ${fieldName} 10 }}`;
+                return `{{ limit ${fieldName} ${DEFAULT_TOOLTIP_LIMIT} }}`;
               }
               return `{{ ${fieldName} }}`;
             });
