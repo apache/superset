@@ -88,9 +88,13 @@ logger = logging.getLogger(__name__)
 # reference: https://sqlparse.readthedocs.io/en/stable/extending/
 lex = Lexer.get_default_instance()
 sqlparser_sql_regex = keywords.SQL_REGEX
-sqlparser_sql_regex.insert(
-    25, (r"'(?:[^'\\]|\\\\?|'')*'", sqlparse.tokens.String.Single)
-)
+# Replace the string pattern at position 25 to fix ReDOS vulnerability
+# Use two patterns: first for strings ending with backslash, then for general escaped
+# strings
+# Pattern 1: Match strings that end with a single backslash (like '\')
+sqlparser_sql_regex[25] = (r"'[^'\\]*\\'(?!\w)", sqlparse.tokens.String.Single)
+# Pattern 2: Match general strings with escape sequences
+sqlparser_sql_regex.insert(26, (r"'(?:[^'\\]|\\.|'')*'", sqlparse.tokens.String.Single))
 lex.set_SQL_REGEX(sqlparser_sql_regex)
 
 

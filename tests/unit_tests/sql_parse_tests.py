@@ -1309,9 +1309,13 @@ def test_sanitize_clause_multiple():
 
 
 def test_sqlparse_issue_652():
+    stmt = sqlparse.parse(r"SELECT 'Don\'t stop' FROM table")[0]
+    assert len(stmt.tokens) == 7
+    assert str(stmt.tokens[2]) == r"'Don\'t stop'"
+
     stmt = sqlparse.parse(r"foo = '\' AND bar = 'baz'")[0]
     assert len(stmt.tokens) == 5
-    assert str(stmt.tokens[0]) == "foo = '\\'"
+    assert str(stmt.tokens[0]) == r"foo = '\'"
 
 
 @pytest.mark.parametrize(
