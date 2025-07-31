@@ -54,7 +54,10 @@ import {
 import { InputRef } from 'antd';
 import { MenuItemTooltip } from '../DisabledMenuItemTooltip';
 import { getSubmenuYOffset } from '../utils';
-import { MenuItemWithTruncation } from '../MenuItemWithTruncation';
+import {
+  MenuItemWithTruncation,
+  VirtualizedMenuItem,
+} from '../MenuItemWithTruncation';
 import { Dataset } from '../types';
 
 const SUBMENU_HEIGHT = 200;
@@ -264,15 +267,14 @@ export const DrillByMenuItems = ({
     const { columns, ...rest } = data;
     const column = columns[index];
     return (
-      <MenuItemWithTruncation
-        menuKey={`drill-by-item-${column.column_name}`}
+      <VirtualizedMenuItem
         tooltipText={column.verbose_name || column.column_name}
         onClick={e => handleSelection(e, column)}
         style={style}
         {...rest}
       >
         {column.verbose_name || column.column_name}
-      </MenuItemWithTruncation>
+      </VirtualizedMenuItem>
     );
   };
 
