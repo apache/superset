@@ -139,9 +139,41 @@ def update_id_refs(  # pylint: disable=too-many-locals  # noqa: C901
             native_filter["scope"]["excluded"] = [
                 id_map[old_id] for old_id in scope_excluded if old_id in id_map
             ]
-
+    fixed=update_cross_filter_scoping(fixed,id_map)
     return fixed
 
+def update_cross_filter_scoping(config: dict[str, Any],
+    id_map: dict[int, int]
+    ) -> dict[str, Any]:
+    # fix cross filter references
+    cross_filter_global_config = config.get("metadata", {}).get(
+        "global_chart_configuration", {}
+    )
+    scope_excluded = cross_filter_global_config.get("scope", {}).get("excluded", [])
+    if scope_excluded:
+        cross_filter_global_config["scope"]["excluded"] = [
+            id_map[old_id] for old_id in scope_excluded if old_id in id_map
+        ]
+    metadata = config.get("metadata", {})
+    if "chart_configuration" in metadata:
+        # in cross_filter_scopes the key is the chart ID as a string; we need to update
+        # them to be the new ID as a string:
+        metadata["chart_configuration"] = {
+            str(id_map[int(old_id)]): columns
+            for old_id, columns in metadata["chart_configuration"].items()
+            if int(old_id) in id_map
+        }
+        # now update scope excluded to use new IDs:
+        for excluded_charts in metadata["chart_configuration"].values():
+            if excluded_charts["id"] in id_map:
+                excluded_charts["id"]=id_map[excluded_charts["id"]]
+            if isinstance(excluded_charts["crossFilters"]["scope"],dict):
+                scope_excluded=excluded_charts["crossFilters"]["scope"]["excluded"]
+                if scope_excluded:
+                    excluded_charts["crossFilters"]["scope"]["excluded"] = [
+                    id_map[old_id] for old_id in scope_excluded if old_id in id_map
+                ]
+    return config
 
 def import_dashboard(  # noqa: C901
     config: dict[str, Any],
