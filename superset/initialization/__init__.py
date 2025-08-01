@@ -509,14 +509,6 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         Runs init logic in the context of the app
         """
         self.configure_fab()
-
-        # Check if migrations are current after FAB is initialized
-        if not self.check_migrations_current():
-            print(
-                f"{Fore.RED}WARNING: Database migrations are not up to date. "
-                f"Run 'superset db upgrade' to apply migrations.{Style.RESET_ALL}"
-            )
-
         self.configure_url_map_converters()
         self.configure_data_sources()
         self.configure_auth_provider()
@@ -600,30 +592,6 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
                 )
 
             return {"bootstrap_data": serialize_bootstrap_data}
-
-    def check_migrations_current(self) -> bool:
-        """Check if database migrations are up to date"""
-        try:
-            from alembic import script
-            from alembic.runtime import migration
-
-            # Get the migrations directory
-            migrations_dir = APP_DIR + "/migrations"
-            script_dir = script.ScriptDirectory(migrations_dir)
-
-            with db.engine.begin() as connection:
-                context = migration.MigrationContext.configure(connection)
-                current_heads = context.get_current_heads()
-                script_heads = script_dir.get_heads()
-
-                # Empty tuple means no migration table/revisions
-                if not current_heads and script_heads:
-                    return False  # Need to run migrations
-
-                return set(current_heads) == set(script_heads)
-        except Exception:
-            # Can't determine migration status
-            return True  # Assume OK to avoid false warnings
 
     def check_and_warn_database_connection(self) -> None:
         """Check database connection and warn if unavailable"""
