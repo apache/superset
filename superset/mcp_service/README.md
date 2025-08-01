@@ -120,6 +120,147 @@ python comprehensive_test_runner.py MCP_CHART_TEST_PLAN.md 5  # Run first 5 test
 
 See the [MCP Integration Test README](../../../tests/integration_tests/mcp_service/README.md) for detailed test automation instructions including ngrok setup for Claude API testing.
 
+## 🌐 Using ModelContextChat.com (Web-based MCP Client)
+
+If you prefer a web-based interface instead of Claude Desktop, you can use ModelContextChat.com to interact with your Superset MCP service. This is particularly useful for quick testing or when you can't install desktop applications.
+
+> ⚠️ **Important**: This setup is intended for development, testing, and sandboxing only. Do not use this configuration for production environments.
+
+### Prerequisites
+
+1. **Running MCP Service**: Ensure your MCP service is running on port 5008
+2. **Credit Card**: Required for OpenRouter.com account (not for ModelContextChat.com)
+3. **Public Access**: Your MCP port needs to be publicly accessible
+
+### Step-by-Step Setup
+
+#### Step 1: Make Your MCP Port Public (GitHub Codespaces)
+
+If using GitHub Codespaces, you need to make port 5008 public:
+
+1. Open the **PORTS** tab in your Codespace
+2. Find port **5008** (MCP Service)
+3. Right-click on the port entry
+4. Select **Port Visibility** → **Public**
+5. Copy the public URL (it will look like `https://fictional-space-123abc-5008.app.github.dev`)
+
+> ⚠️ **Security Note**: This is for development/testing only. Never expose production MCP services publicly. Making ports public exposes your service to the internet without authentication.
+
+#### Step 2: Set Up OpenRouter Account
+
+ModelContextChat.com uses OpenRouter for AI model access:
+
+1. **Create Account**:
+   - Visit [OpenRouter.com](https://openrouter.ai)
+   - Sign up and verify your email
+
+2. **Add Credits** (OpenRouter only):
+   - Navigate to billing section in OpenRouter
+   - Add $5-10 in credits (enough for extensive testing)
+   - Credits are only needed for OpenRouter, not ModelContextChat.com
+   - OpenRouter uses pay-as-you-go pricing
+
+3. **Create API Key**:
+   - Go to API Keys section
+   - Create a new key with a descriptive name
+   - **Copy the key immediately** (won't be shown again)
+
+> 💡 **Why OpenRouter?** It's a reputable service providing access to all major AI models. Your account will be useful beyond this tutorial. The credits you add are used to pay for AI model usage.
+
+#### Step 3: Configure ModelContextChat.com
+
+1. **Open ModelContextChat**:
+   - Navigate to [ModelContextChat.com](https://modelcontextchat.com)
+
+2. **Enter API Key**:
+   - Paste your OpenRouter API key when prompted
+   - The key is stored locally in your browser
+
+3. **Select AI Model**:
+   - Choose Claude 3.5 Sonnet (recommended for MCP)
+   - Other models work but may have varying MCP support
+
+#### Step 4: Connect to Your MCP Service
+
+1. **Add MCP Connection**:
+   - Look for MCP settings or "Add Server" option
+   - Enter connection details:
+     ```
+     Name: Superset MCP
+     Server Type: Streamable HTTP
+     URL: https://your-codespace-name-5008.app.github.dev/mcp/
+     Authentication: None (leave empty)
+     ```
+
+   <img width="529" height="654" alt="Form for adding a new MCP connection in ModelContextChat.com" src="https://github.com/user-attachments/assets/0571f2f0-b2f9-45d8-927f-bc54891afe97" />
+
+   > ⚠️ **Important**:
+   > - Set Server Type as **"Streamable HTTP"**
+   > - Add `/mcp/` to the end of your URL
+   > - No authentication is required for this setup
+
+2. **Verify Connection**:
+   - You should see a green "MCP Connected" indicator
+   - If not, check that:
+     - Port is public
+     - URL ends with `/mcp/`
+     - Server Type is "Streamable HTTP"
+
+   <img width="696" height="658" alt="Configured Chat Settings Screenshot after adding the configuration to the MCP Server" src="https://github.com/user-attachments/assets/35418ff9-a571-4051-b68b-cf88c901bf25" />
+
+> 🔒 **Security Warning**: This setup is for development and sandboxing purposes only. Making your port public exposes your MCP server to the internet without authentication. Only work with public/sample data and never expose sensitive information this way. For production use, implement proper authentication, use private networking, and never make ports publicly accessible.
+
+#### Step 5: Start Interacting with Superset
+
+Once connected, try these example queries:
+
+**Basic Information**:
+```
+"List all dashboards in my Superset instance"
+"Show me the charts in the Sales Dashboard"
+"What datasets are available?"
+```
+
+**Data Exploration**:
+```
+"What columns are in the flights dataset?"
+"Show me charts using the energy_usage table"
+"Export data from the COVID Vaccine Dashboard"
+```
+
+**Advanced Operations**:
+```
+"Create a line chart showing monthly revenue"
+"Generate an explore link for the customer dataset"
+"Run a SQL query: SELECT COUNT(*) FROM flights"
+```
+
+<img width="1019" height="790" alt="Screenshot of Interacting with a model + MCP in ModelContextChat.com" src="https://github.com/user-attachments/assets/19a51bbe-7157-4c70-a9e2-218315c2c1d1" />
+
+### Troubleshooting ModelContextChat
+
+**Connection Issues**:
+- Verify MCP service is running: `curl http://localhost:5008/health`
+- Check port is public in Codespaces
+- Ensure you're using HTTPS for Codespaces URLs
+
+**No Data Returned**:
+- Confirm Superset has sample data loaded
+- Check MCP service logs for errors
+- Try simpler queries first
+
+**Cost Management**:
+- Claude 3.5 Sonnet costs ~$0.01-0.10 per conversation
+- Monitor usage in OpenRouter dashboard
+- $5-10 credit typically lasts hundreds of interactions
+
+### Alternative: Local Development
+
+For local development without Codespaces:
+1. Use ngrok to expose port 5008: `ngrok http 5008`
+2. Use the ngrok URL in ModelContextChat
+3. Follow the same setup steps above
+
 ## Troubleshooting
 
 **If Claude Desktop can't connect:**
