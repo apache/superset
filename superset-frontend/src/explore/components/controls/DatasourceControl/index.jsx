@@ -360,7 +360,10 @@ class DatasourceControl extends PureComponent {
     }
 
     const defaultDatasourceMenu = (
-      <Menu onClick={this.handleMenuItemClick} items={defaultDatasourceMenuItems} />
+      <Menu
+        onClick={this.handleMenuItemClick}
+        items={defaultDatasourceMenuItems}
+      />
     );
 
     const queryDatasourceMenuItems = [
@@ -414,7 +417,10 @@ class DatasourceControl extends PureComponent {
     });
 
     const queryDatasourceMenu = (
-      <Menu onClick={this.handleMenuItemClick} items={queryDatasourceMenuItems} />
+      <Menu
+        onClick={this.handleMenuItemClick}
+        items={queryDatasourceMenuItems}
+      />
     );
 
     const { health_check_message: healthCheckMessage } = datasource;
