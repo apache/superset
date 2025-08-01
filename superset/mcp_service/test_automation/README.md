@@ -1,70 +1,43 @@
 # MCP Test Automation
 
-This folder contains all the automated testing infrastructure for the Superset MCP service.
+## Two Ways to Test MCP
 
-## 📁 Contents
-
-### Core Test Scripts
-- `run_mcp_tests.py` - **Main test runner** supporting both Claude CLI and Anthropic API
-- `run_single_test.sh` - Run individual tests by description  
-- `run_health_check.py` - Production health check and basic functionality test
-
-### Test Plans
-- `MCP_CHART_TEST_PLAN.md` - Comprehensive chart tool testing (all 9 tools)
-- `ENTITY_TESTING_PLAN.md` - Entity listing and filtering tests
-
-### Example Test Files
-- `test_vega_lite_example.py` - Basic Vega-Lite functionality validation
-- `test_comprehensive_vega_lite.py` - Test coverage for all 13+ supported chart types
-- `test_enhanced_ascii_charts.py` - Demonstration of enhanced ASCII visualization features
-
-### Setup & Documentation
-- `MCP_TEST_AUTOMATION_GUIDE.md` - Complete testing documentation
-- `PROMPT_TESTING_PROPOSAL.md` - Test framework architecture and implementation
-- `setup_claude_desktop.sh` - Claude Desktop configuration helper
-- `CLAUDE_DESKTOP_SETUP.md` - Setup instructions for Claude Desktop
-
-## 🚀 Quick Start
-
-### Local Development
+### 1. Claude CLI (❌ Doesn't Work)
 ```bash
-# Health check first
-python run_health_check.py
+./test_claude_cli.sh
+```
+- Fails because CLI cannot serialize MCP tool parameters correctly
+- Tools expect `{"request": {...}}` but CLI sends malformed JSON
 
-# Run full test plan
-python run_mcp_tests.py MCP_CHART_TEST_PLAN.md
+### 2. Anthropic API with MCP Beta (✅ Works)
+- **Docs**: https://docs.anthropic.com/en/docs/agents-and-tools/mcp-connector
+- **Beta header**: `anthropic-beta: mcp-client-2025-04-04`
+- **Requires**: Public URL (not localhost)
 
-# Run a single test
-./run_single_test.sh "List all charts"
+## Setup for API Testing
 
-# Run example tests
-python test_vega_lite_example.py
-python test_comprehensive_vega_lite.py
-python test_enhanced_ascii_charts.py
+### 1. Install ngrok
+```bash
+brew install ngrok
 ```
 
-### CI/CD
+### 2. Expose MCP Service
 ```bash
-# With API key
-export ANTHROPIC_API_KEY=sk-ant-...
-python run_mcp_tests.py MCP_CHART_TEST_PLAN.md --output-dir results
+ngrok http 5008
+# Copy the HTTPS URL (e.g., https://abc123.ngrok-free.app)
 ```
 
-## 📊 Test Results
+### 3. Update test_mcp_beta.py
+```python
+"url": "https://YOUR-NGROK-ID.ngrok-free.app/mcp",
+```
 
-Results are saved in the `test_results/` directory:
-- Individual test outputs: `test1.out`, `test2.out`, etc.
-- HTML summary: `summary.html` or `report.html`
-- JSON report: `report.json` (Python runner only)
+### 4. Run Tests
+```bash
+python test_mcp_beta.py
+```
 
-## 🔧 Requirements
-
-- Running Superset instance (port 8088)
-- Running MCP service (port 5008)
-- Claude CLI installed OR Anthropic API key
-- Bash shell (for shell scripts)
-- Python 3.9+ (for Python runner)
-
-## ⚠️ Known Issues
-
-**Claude CLI Parameter Limitations**: The Claude CLI has issues with MCP tool parameter passing when using `--dangerously-skip-permissions`. Tools expect structured request objects but the CLI serializes parameters incorrectly, similar to Claude Code UA limitations. Our test runners use the `--allowedTools "mcp__*"` workaround pattern.
+## Requirements
+- Anthropic API key in `superset_config.py`
+- Superset running on port 8088
+- MCP service running on port 5008
