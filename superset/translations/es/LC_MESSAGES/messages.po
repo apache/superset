@@ -3138,7 +3138,7 @@ msgstr "Actualmente renderizado: %s"
 msgid "Custom"
 msgstr "Personalizado"
 
-msgid "Custom Conditional Formatting"
+msgid "Custom conditional formatting"
 msgstr "Formato condicional personalizado"
 
 msgid "Custom Plugin"
@@ -9141,7 +9141,7 @@ msgstr "Mostrar burbujas"
 msgid "Show CREATE VIEW statement"
 msgstr "Mostrar instrucción CREAR VISTA"
 
-msgid "Show Cell bars"
+msgid "Show cell bars"
 msgstr "Mostrar barras de celda"
 
 msgid "Show Dashboard"
@@ -12795,7 +12795,7 @@ msgstr "«row_offset» debe ser mayor o igual a 0"
 msgid "`width` must be greater or equal to 0"
 msgstr "«width» debe ser mayor o igual a 0"
 
-msgid "add colors to cell bars for +/-"
+msgid "Add colors to cell bars for +/-"
 msgstr "añade colores a las barras de celdas para +/-"
 
 msgid "aggregate"
@@ -12840,7 +12840,7 @@ msgstr "automático"
 msgid "background"
 msgstr "fondo"
 
-msgid "basic conditional formatting"
+msgid "Basic conditional formatting"
 msgstr "formato condicional básico"
 
 msgid "basis"
