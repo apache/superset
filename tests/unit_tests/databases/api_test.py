@@ -721,13 +721,12 @@ def test_apply_dynamic_database_filter(
         # Ensure that the filter has not been called because it's not in our config
         assert base_filter_mock.call_count == 0
 
-        with mocker.patch("flask.current_app") as mock_app:
-            original_conf = current_app.config.copy()
-            original_conf["EXTRA_DYNAMIC_QUERY_FILTERS"] = {
-                "databases": base_filter_mock
-            }
-            mock_app.config = original_conf
-
+        # Temporarily update the config
+        original_filters = current_app.config.get("EXTRA_DYNAMIC_QUERY_FILTERS", {})
+        current_app.config["EXTRA_DYNAMIC_QUERY_FILTERS"] = {
+            "databases": base_filter_mock
+        }
+        try:
             # Get filtered list
             response_databases = DatabaseDAO.find_all()
             assert response_databases
@@ -737,6 +736,9 @@ def test_apply_dynamic_database_filter(
 
             # Ensure that the filter has been called once
             assert base_filter_mock.call_count == 1
+        finally:
+            # Restore original config
+            current_app.config["EXTRA_DYNAMIC_QUERY_FILTERS"] = original_filters
 
 
 def test_oauth2_happy_path(
