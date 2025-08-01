@@ -272,6 +272,7 @@ export class ChartCreation extends PureComponent<
         id: item.id,
         value: `${item.id}__${item.datasource_type}`,
         label: DatasetSelectLabel(item),
+        customLabel: item.table_name,
       }));
       return {
         data: list,
@@ -330,7 +331,7 @@ export class ChartCreation extends PureComponent<
                   name="select-datasource"
                   onChange={this.changeDatasource}
                   options={this.loadDatasources}
-                  optionFilterProps={['id', 'label']}
+                  optionFilterProps={['id', 'customLabel']}
                   placeholder={t('Choose a dataset')}
                   showSearch
                   value={this.state.datasource}
