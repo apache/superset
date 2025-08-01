@@ -180,7 +180,6 @@ pre-commit run eslint            # Frontend linting
 
 ## Platform-Specific Instructions
 
-- **[LLMS.md](LLMS.md)** - General LLM development guide (READ THIS FIRST)
 - **[CLAUDE.md](CLAUDE.md)** - For Claude/Anthropic tools
 - **[.github/copilot-instructions.md](.github/copilot-instructions.md)** - For GitHub Copilot  
 - **[GEMINI.md](GEMINI.md)** - For Google Gemini tools
