@@ -3382,7 +3382,7 @@ msgid "Custom"
 msgstr "تقليد"
 
 #, fuzzy
-msgid "Custom Conditional Formatting"
+msgid "Custom conditional formatting"
 msgstr "التنسيق الشرطي"
 
 msgid "Custom Plugin"
@@ -9862,7 +9862,7 @@ msgid "Show CREATE VIEW statement"
 msgstr "عرض بيان إنشاء عرض"
 
 #, fuzzy
-msgid "Show Cell bars"
+msgid "Show cell bars"
 msgstr "عرض أشرطة الخلايا"
 
 msgid "Show Dashboard"
@@ -13915,7 +13915,7 @@ msgstr "يجب أن يكون `row_offset` أكبر من أو يساوي 0"
 msgid "`width` must be greater or equal to 0"
 msgstr "يجب أن يكون «العرض» أكبر أو يساوي 0"
 
-msgid "add colors to cell bars for +/-"
+msgid "Add colors to cell bars for +/-"
 msgstr ""
 
 msgid "aggregate"
@@ -13962,7 +13962,7 @@ msgid "background"
 msgstr "خلفية"
 
 #, fuzzy
-msgid "basic conditional formatting"
+msgid "Basic conditional formatting"
 msgstr "التنسيق الشرطي"
 
 msgid "basis"

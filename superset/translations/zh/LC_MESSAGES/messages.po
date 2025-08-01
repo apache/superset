@@ -3393,7 +3393,7 @@ msgid "Custom"
 msgstr "自定义"
 
 #, fuzzy
-msgid "Custom Conditional Formatting"
+msgid "Custom conditional formatting"
 msgstr "条件格式设置"
 
 msgid "Custom Plugin"
@@ -9908,7 +9908,7 @@ msgid "Show CREATE VIEW statement"
 msgstr "显示 CREATE VIEW 语句"
 
 #, fuzzy
-msgid "Show Cell bars"
+msgid "Show cell bars"
 msgstr "显示单元格的柱"
 
 msgid "Show Dashboard"
@@ -13820,7 +13820,7 @@ msgstr "`行偏移量` 必须大于或等于0"
 msgid "`width` must be greater or equal to 0"
 msgstr "`宽度` 必须大于或等于0"
 
-msgid "add colors to cell bars for +/-"
+msgid "Add colors to cell bars for +/-"
 msgstr ""
 
 msgid "aggregate"
@@ -13870,7 +13870,7 @@ msgid "background"
 msgstr "背景"
 
 #, fuzzy
-msgid "basic conditional formatting"
+msgid "Basic conditional formatting"
 msgstr "条件格式设置"
 
 #, fuzzy

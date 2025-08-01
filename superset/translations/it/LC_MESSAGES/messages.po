@@ -3374,7 +3374,7 @@ msgid "Custom"
 msgstr ""
 
 #, fuzzy
-msgid "Custom Conditional Formatting"
+msgid "Custom conditional formatting"
 msgstr "Formato Datetime"
 
 msgid "Custom Plugin"
@@ -9873,7 +9873,7 @@ msgid "Show CREATE VIEW statement"
 msgstr ""
 
 #, fuzzy
-msgid "Show Cell bars"
+msgid "Show cell bars"
 msgstr "Grafico a Proiettile"
 
 msgid "Show Dashboard"
@@ -13738,7 +13738,7 @@ msgstr ""
 msgid "`width` must be greater or equal to 0"
 msgstr ""
 
-msgid "add colors to cell bars for +/-"
+msgid "Add colors to cell bars for +/-"
 msgstr ""
 
 msgid "aggregate"
@@ -13787,7 +13787,7 @@ msgid "background"
 msgstr ""
 
 #, fuzzy
-msgid "basic conditional formatting"
+msgid "Basic conditional formatting"
 msgstr "Formato Datetime"
 
 msgid "basis"

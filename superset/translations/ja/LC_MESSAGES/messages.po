@@ -3209,7 +3209,7 @@ msgstr "現在レンダリング中: %s"
 msgid "Custom"
 msgstr "カスタム"
 
-msgid "Custom Conditional Formatting"
+msgid "Custom conditional formatting"
 msgstr "カスタム条件付き書式"
 
 msgid "Custom Plugin"
@@ -9277,7 +9277,7 @@ msgstr "バブルを表示"
 msgid "Show CREATE VIEW statement"
 msgstr "CREATE VIEW文を表示"
 
-msgid "Show Cell bars"
+msgid "Show cell bars"
 msgstr "セルバーを表示"
 
 msgid "Show Dashboard"
@@ -13058,7 +13058,7 @@ msgstr "「row_offset」は 0 以上でなければなりません。"
 msgid "`width` must be greater or equal to 0"
 msgstr "「幅」は 0 以上でなければなりません。"
 
-msgid "add colors to cell bars for +/-"
+msgid "Add colors to cell bars for +/-"
 msgstr ""
 
 msgid "aggregate"
@@ -13103,7 +13103,7 @@ msgstr "自動"
 msgid "background"
 msgstr "背景"
 
-msgid "basic conditional formatting"
+msgid "Basic conditional formatting"
 msgstr "基本的な条件付き書式"
 
 msgid "basis"

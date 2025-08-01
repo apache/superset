@@ -3436,7 +3436,7 @@ msgid "Custom"
 msgstr "Звичайний"
 
 #, fuzzy
-msgid "Custom Conditional Formatting"
+msgid "Custom conditional formatting"
 msgstr "Умовне форматування"
 
 msgid "Custom Plugin"
@@ -9968,7 +9968,7 @@ msgid "Show CREATE VIEW statement"
 msgstr "Показати заяву про створення перегляду"
 
 #, fuzzy
-msgid "Show Cell bars"
+msgid "Show cell bars"
 msgstr "Показати стільникові смуги"
 
 msgid "Show Dashboard"
@@ -14148,7 +14148,7 @@ msgstr "`row_offset` повинен бути більшим або рівним 
 msgid "`width` must be greater or equal to 0"
 msgstr "`width` повинна бути більшою або рівною 0"
 
-msgid "add colors to cell bars for +/-"
+msgid "Add colors to cell bars for +/-"
 msgstr ""
 
 msgid "aggregate"
@@ -14195,7 +14195,7 @@ msgid "background"
 msgstr "фон"
 
 #, fuzzy
-msgid "basic conditional formatting"
+msgid "Basic conditional formatting"
 msgstr "Умовне форматування"
 
 msgid "basis"

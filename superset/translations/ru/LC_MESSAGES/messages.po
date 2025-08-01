@@ -3410,7 +3410,7 @@ msgstr "Сейчас отрисовано: %s"
 msgid "Custom"
 msgstr "Пользовательский"
 
-msgid "Custom Conditional Formatting"
+msgid "Custom conditional formatting"
 msgstr "Условное форматирование"
 
 msgid "Custom Plugin"
@@ -9909,7 +9909,7 @@ msgstr "Показать пузыри"
 msgid "Show CREATE VIEW statement"
 msgstr "Показать выражение CREATE VIEW"
 
-msgid "Show Cell bars"
+msgid "Show cell bars"
 msgstr "Наложить гистограммы на ячейки"
 
 msgid "Show Dashboard"
@@ -14016,7 +14016,7 @@ msgstr ""
 msgid "`width` must be greater or equal to 0"
 msgstr "Ширина должна быть не менее нуля"
 
-msgid "add colors to cell bars for +/-"
+msgid "Add colors to cell bars for +/-"
 msgstr "Окрасить столбцы для +/-"
 
 msgid "aggregate"
@@ -14062,7 +14062,7 @@ msgstr "автоматически"
 msgid "background"
 msgstr ""
 
-msgid "basic conditional formatting"
+msgid "Basic conditional formatting"
 msgstr "Простое условное форматирование"
 
 #, fuzzy
