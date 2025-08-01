@@ -1,0 +1,1389 @@
+{
+  "meta": null,
+  "content": [
+    {
+      "type": "text",
+      "text": "{\"datasets\":[{\"id\":25,\"table_name\":\"users_channels-uzooNNtSRO\",\"schema\":\"main\",\"database_name\":\"examples\",\"description\":null,\"changed_by\":null,\"changed_on\":\"2025-07-30T15:48:20.717684\",\"changed_on_humanized\":\"a day ago\",\"created_by\":null,\"created_on\":\"2025-07-30T15:45:41.115496\",\"created_on_humanized\":\"a day ago\",\"tags\":[],\"owners\":[],\"is_virtual\":true,\"database_id\":1,\"uuid\":\"473d6113-b44a-48d8-a6ae-e0ef7e2aebb0\",\"schema_perm\":\"[examples].[main]\",\"url\":\"/tablemodelview/edit/25\",\"sql\":\"SELECT uc1.name as channel_1, uc2.name as channel_2, count(*) AS cnt FROM users_channels uc1 JOIN users_channels uc2 ON uc1.user_id = uc2.user_id GROUP BY uc1.name, uc2.name HAVING uc1.name <> uc2.name\\n\",\"main_dttm_col\":null,\"offset\":0,\"cache_timeout\":null,\"params\":null,\"template_params\":null,\"extra\":null,\"columns\":[{\"column_name\":\"channel_1\",\"verbose_name\":null,\"type\":\"STRING\",\"is_dttm\":false,\"groupby\":true,\"filterable\":true,\"description\":null},{\"column_name\":\"channel_2\",\"verbose_name\":null,\"type\":\"STRING\",\"is_dttm\":false,\"groupby\":true,\"filterable\":true,\"description\":null},{\"column_name\":\"cnt\",\"verbose_name\":null,\"type\":\"INT\",\"is_dttm\":false,\"groupby\":true,\"filterable\":true,\"description\":null}],\"metrics\":[{\"metric_name\":\"count\",\"verbose_name\":null,\"expression\":\"count(*)\",\"description\":null,\"d3format\":null}],\"is_favorite\":null},{\"id\":24,\"table_name\":\"cleaned_sales_data\",\"schema\":\"main\",\"database_name\":\"examples\",\"description\":null,\"changed_by\":null,\"changed_on\":\"2025-07-30T15:48:20.707764\",\"changed_on_humanized\":\"a day ago\",\"created_by\":null,\"created_on\":\"2025-07-30T15:45:40.058353\",\"created_on_humanized\":\"a day ago\",\"tags\":[],\"owners\":[],\"is_virtual\":false,\"database_id\":1,\"uuid\":\"e8623bb9-5e00-f531-506a-19607f5f8005\",\"schema_perm\":\"[examples].[main]\",\"url\":\"/tablemodelview/edit/24\",\"sql\":null,\"main_dttm_col\":\"order_date\",\"offset\":0,\"cache_timeout\":null,\"params\":null,\"template_params\":null,\"extra\":null,\"columns\":[{\"column_name\":\"order_date\",\"verbose_name\":null,\"type\":\"TIMESTAMP WITHOUT TIME ZONE\",\"is_dttm\":true,\"groupby\":true,\"filterable\":true,\"description\":null},{\"column_name\":\"price_each\",\"verbose_name\":null,\"type\":\"DOUBLE PRECISION\",\"is_dttm\":false,\"groupby\":true,\"filterable\":true,\"description\":null},{\"column_name\":\"sales\",\"verbose_name\":null,\"type\":\"DOUBLE PRECISION\",\"is_dttm\":false,\"groupby\":true,\"filterable\":true,\"description\":null},{\"column_name\":\"address_line1\",\"verbose_name\":null,\"type\":\"TEXT\",\"is_dttm\":false,\"groupby\":true,\"filterable\":true,\"description\":null},{\"column_name\":\"address_line2\",\"verbose_name\":null,\"type\":\"TEXT\",\"is_dttm\":false,\"groupby\":true,\"filterable\":true,\"description\":null},{\"column_name\":\"order_line_number\",\"verbose_name\":null,\"type\":\"BIGINT\",\"is_dttm\":false,\"groupby\":true,\"filterable\":true,\"description\":null},{\"column_name\":\"quantity_ordered\",\"verbose_name\":null,\"type\":\"BIGINT\",\"is_dttm\":false,\"groupby\":true,\"filterable\":true,\"description\":null},{\"column_name\":\"order_number\",\"verbose_name\":null,\"type\":\"BIGINT\",\"is_dttm\":false,\"groupby\":true,\"filterable\":true,\"description\":null},{\"column_name\":\"quarter\",\"verbose_name\":null,\"type\":\"BIGINT\",\"is_dttm\":false,\"groupby\":true,\"filterable\":true,\"description\":null},{\"column_name\":\"year\",\"verbose_name\":null,\"type\":\"BIGINT\",\"is_dttm\":false,\"groupby\":true,\"filterable\":true,\"description\":null},{\"column_name\":\"month\",\"verbose_name\":null,\"type\":\"BIGINT\",\"is_dttm\":false,\"groupby\":true,\"filterable\":true,\"description\":null},{\"column_name\":\"msrp\",\"verbose_name\":null,\"type\":\"BIGINT\",\"is_dttm\":false,\"groupby\":true,\"filterable\":true,\"description\":null},{\"column_name\":\"contact_last_name\",\"verbose_name\":null,\"type\":\"TEXT\",\"is_dttm\":false,\"groupby\":true,\"filterable\":true,\"description\":null},{\"column_name\":\"contact_first_name\",\"verbose_name\":null,\"type\":\"TEXT\",\"is_dttm\":false,\"groupby\":true,\"filterable\":true,\"description\":null},{\"column_name\":\"postal_code\",\"verbose_name\":null,\"type\":\"TEXT\",\"is_dttm\":false,\"groupby\":true,\"filterable\":true,\"description\":null},{\"column_name\":\"customer_name\",\"verbose_name\":null,\"type\":\"TEXT\",\"is_dttm\":false,\"groupby\":true,\"filterable\":true,\"description\":null},{\"column_name\":\"deal_size\",\"verbose_name\":null,\"type\":\"TEXT\",\"is_dttm\":false,\"groupby\":true,\"filterable\":true,\"description\":null},{\"column_name\":\"product_code\",\"verbose_name\":null,\"type\":\"TEXT\",\"is_dttm\":false,\"groupby\":true,\"filterable\":true,\"description\":null},{\"column_name\":\"product_line\",\"verbose_name\":null,\"type\":\"TEXT\",\"is_dttm\":false,\"groupby\":true,\"filterable\":true,\"description\":null},{\"column_name\":\"state\",\"verbose_name\":null,\"type\":\"TEXT\",\"is_dttm\":false,\"groupby\":true,\"filterable\":true,\"description\":null},{\"column_name\":\"status\",\"verbose_name\":null,\"type\":\"TEXT\",\"is_dttm\":false,\"groupby\":true,\"filterable\":true,\"description\":null},{\"column_name\":\"city\",\"verbose_name\":null,\"type\":\"TEXT\",\"is_dttm\":false,\"groupby\":true,\"filterable\":true,\"description\":null},{\"column_name\":\"country\",\"verbose_name\":null,\"type\":\"TEXT\",\"is_dttm\":false,\"groupby\":true,\"filterable\":true,\"description\":null},{\"column_name\":\"phone\",\"verbose_name\":null,\"type\":\"TEXT\",\"is_dttm\":false,\"groupby\":true,\"filterable\":true,\"description\":null},{\"column_name\":\"territory\",\"verbose_name\":null,\"type\":\"TEXT\",\"is_dttm\":false,\"groupby\":true,\"filterable\":true,\"description\":null}],\"metrics\":[{\"metric_name\":\"count\",\"verbose_name\":\"COUNT(*)\",\"expression\":\"COUNT(*)\",\"description\":null,\"d3format\":null}],\"is_favorite\":null},{\"id\":23,\"table_name\":\"users_channels\",\"schema\":\"main\",\"database_name\":\"examples\",\"description\":null,\"changed_by\":null,\"changed_on\":\"2025-07-30T15:48:20.704055\",\"changed_on_humanized\":\"a day ago\",\"created_by\":null,\"created_on\":\"2025-07-30T15:45:39.710760\",\"created_on_humanized\":\"a day ago\",\"tags\":[],\"owners\":[],\"is_virtual\":false,\"database_id\":1,\"uuid\":\"29b18573-c9d6-40bc-b8cb-f70c9a1b6244\",\"schema_perm\":\"[examples].[main]\",\"url\":\"/tablemodelview/edit/23\",\"sql\":null,\"main_dttm_col\":null,\"offset\":0,\"cache_timeout\":null,\"params\":null,\"template_params\":null,\"extra\":null,\"columns\":[{\"column_name\":\"user_id\",\"verbose_name\":null,\"type\":\"STRING\",\"is_dttm\":false,\"groupby\":true,\"filterable\":true,\"description\":null},{\"column_name\":\"name\",\"verbose_name\":null,\"type\":\"STRING\",\"is_dttm\":false,\"groupby\":true,\"filterable\":true,\"description\":null}],\"metrics\":[{\"metric_name\":\"count\",\"verbose_name\":null,\"expression\":\"count(*)\",\"description\":null,\"d3format\":null}],\"is_favorite\":null},{\"id\":22,\"table_name\":\"video_game_sales\",\"schema\":\"main\",\"database_name\":\"examples\",\"description\":null,\"changed_by\":null,\"changed_on\":\"2025-07-30T15:48:20.697311\",\"changed_on_humanized\":\"a day ago\",\"created_by\":null,\"created_on\":\"2025-07-30T15:45:37.837042\",\"created_on_humanized\":\"a day ago\",\"tags\":[],\"owners\":[],\"is_virtual\":false,\"database_id\":1,\"uuid\":\"53d47c0c-c03d-47f0-b9ac-81225f808283\",\"schema_perm\":\"[examples].[main]\",\"url\":\"/tablemodelview/edit/22\",\"sql\":\"\",\"main_dttm_col\":null,\"offset\":0,\"cache_timeout\":null,\"params\":{\"remote_id\":64,\"database_name\":\"examples\",\"import_time\":1606677834},\"template_params\":null,\"extra\":null,\"columns\":[{\"column_name\":\"year\",\"verbose_name\":null,\"type\":\"BIGINT\",\"is_dttm\":true,\"groupby\":true,\"filterable\":true,\"description\":null},{\"column_name\":\"na_sales\",\"verbose_name\":null,\"type\":\"FLOAT64\",\"is_dttm\":false,\"groupby\":true,\"filterable\":true,\"description\":null},{\"column_name\":\"eu_sales\",\"verbose_name\":null,\"type\":\"FLOAT64\",\"is_dttm\":false,\"groupby\":true,\"filterable\":true,\"description\":null},{\"column_name\":\"global_sales\",\"verbose_name\":null,\"type\":\"FLOAT64\",\"is_dttm\":false,\"groupby\":true,\"filterable\":true,\"description\":null},{\"column_name\":\"jp_sales\",\"verbose_name\":null,\"type\":\"FLOAT64\",\"is_dttm\":false,\"groupby\":true,\"filterable\":true,\"description\":null},{\"column_name\":\"other_sales\",\"verbose_name\":null,\"type\":\"FLOAT64\",\"is_dttm\":false,\"groupby\":true,\"filterable\":true,\"description\":null},{\"column_name\":\"rank\",\"verbose_name\":null,\"type\":\"BIGINT\",\"is_dttm\":false,\"groupby\":true,\"filterable\":true,\"description\":null},{\"column_name\":\"genre\",\"verbose_name\":null,\"type\":\"STRING\",\"is_dttm\":false,\"groupby\":true,\"filterable\":true,\"description\":null},{\"column_name\":\"name\",\"verbose_name\":null,\"type\":\"STRING\",\"is_dttm\":false,\"groupby\":true,\"filterable\":true,\"description\":null},{\"column_name\":\"platform\",\"verbose_name\":null,\"type\":\"STRING\",\"is_dttm\":false,\"groupby\":true,\"filterable\":true,\"description\":null},{\"column_name\":\"publisher\",\"verbose_name\":null,\"type\":\"STRING\",\"is_dttm\":false,\"groupby\":true,\"filterable\":true,\"description\":null}],\"metrics\":[{\"metric_name\":\"count\",\"verbose_name\":\"COUNT(*)\",\"expression\":\"COUNT(*)\",\"description\":null,\"d3format\":null}],\"is_favorite\":null},{\"id\":21,\"table_name\":\"users\",\"schema\":\"main\",\"database_name\":\"examples\",\"description\":null,\"changed_by\":null,\"changed_on\":\"2025-07-30T15:48:20.689384\",\"changed_on_humanized\":\"a day ago\",\"created_by\":null,\"created_on\":\"2025-07-30T15:45:37.277391\",\"created_on_humanized\":\"a day ago\",\"tags\":[],\"owners\":[],\"is_virtual\":false,\"database_id\":1,\"uuid\":\"7195db6b-2d17-7619-b7c7-26b15378df8c\",\"schema_perm\":\"[examples].[main]\",\"url\":\"/tablemodelview/edit/21\",\"sql\":null,\"main_dttm_col\":\"updated\",\"offset\":0,\"cache_timeout\":null,\"params\":null,\"template_params\":null,\"extra\":null,\"columns\":[{\"column_name\":\"updated\",\"verbose_name\":null,\"type\":\"TIMESTAMP WITHOUT TIME ZONE\",\"is_dttm\":true,\"groupby\":true,\"filterable\":true,\"description\":null},{\"column_name\":\"has_2fa\",\"verbose_name\":null,\"type\":\"BOOLEAN\",\"is_dttm\":false,\"groupby\":true,\"filterable\":true,\"description\":null},{\"column_name\":\"real_name\",\"verbose_name\":null,\"type\":\"VARCHAR\",\"is_dttm\":false,\"groupby\":true,\"filterable\":true,\"description\":null},{\"column_name\":\"tz_label\",\"verbose_name\":null,\"type\":\"VARCHAR\",\"is_dttm\":false,\"groupby\":true,\"filterable\":true,\"description\":null},{\"column_name\":\"team_id\",\"verbose_name\":null,\"type\":\"VARCHAR\",\"is_dttm\":false,\"groupby\":true,\"filterable\":true,\"description\":null},{\"column_name\":\"name\",\"verbose_name\":null,\"type\":\"VARCHAR\",\"is_dttm\":false,\"groupby\":true,\"filterable\":true,\"description\":null},{\"column_name\":\"color\",\"verbose_name\":null,\"type\":\"VARCHAR\",\"is_dttm\":false,\"groupby\":true,\"filterable\":true,\"description\":null},{\"column_name\":\"id\",\"verbose_name\":null,\"type\":\"VARCHAR\",\"is_dttm\":false,\"groupby\":true,\"filterable\":true,\"description\":null},{\"column_name\":\"tz\",\"verbose_name\":null,\"type\":\"VARCHAR\",\"is_dttm\":false,\"groupby\":true,\"filterable\":true,\"description\":null},{\"column_name\":\"is_ultra_restricted\",\"verbose_name\":null,\"type\":\"BOOLEAN\",\"is_dttm\":false,\"groupby\":true,\"filterable\":true,\"description\":null},{\"column_name\":\"is_primary_owner\",\"verbose_name\":null,\"type\":\"BOOLEAN\",\"is_dttm\":false,\"groupby\":true,\"filterable\":true,\"description\":null},{\"column_name\":\"is_app_user\",\"verbose_name\":null,\"type\":\"BOOLEAN\",\"is_dttm\":false,\"groupby\":true,\"filterable\":true,\"description\":null},{\"column_name\":\"is_admin\",\"verbose_name\":null,\"type\":\"BOOLEAN\",\"is_dttm\":false,\"groupby\":true,\"filterable\":true,\"description\":null},{\"column_name\":\"is_bot\",\"verbose_name\":null,\"type\":\"BOOLEAN\",\"is_dttm\":false,\"groupby\":true,\"filterable\":true,\"description\":null},{\"column_name\":\"is_restricted\",\"verbose_name\":null,\"type\":\"BOOLEAN\",\"is_dttm\":false,\"groupby\":true,\"filterable\":true,\"description\":null},{\"column_name\":\"is_owner\",\"verbose_name\":null,\"type\":\"BOOLEAN\",\"is_dttm\":false,\"groupby\":true,\"filterable\":true,\"description\":null},{\"column_name\":\"deleted\",\"verbose_name\":null,\"type\":\"BOOLEAN\",\"is_dttm\":false,\"groupby\":true,\"filterable\":true,\"description\":null},{\"column_name\":\"tz_offset\",\"verbose_name\":null,\"type\":\"BIGINT\",\"is_dttm\":false,\"groupby\":true,\"filterable\":true,\"description\":null}],\"metrics\":[{\"metric_name\":\"count\",\"verbose_name\":\"COUNT(*)\",\"expression\":\"COUNT(*)\",\"description\":null,\"d3format\":null}],\"is_favorite\":null},{\"id\":20,\"table_name\":\"unicode_test\",\"schema\":\"main\",\"database_name\":\"examples\",\"description\":null,\"changed_by\":null,\"changed_on\":\"2025-07-30T15:48:20.685104\",\"changed_on_humanized\":\"a day ago\",\"created_by\":null,\"created_on\":\"2025-07-30T15:45:37.025530\",\"created_on_humanized\":\"a day ago\",\"tags\":[],\"owners\":[],\"is_virtual\":false,\"database_id\":1,\"uuid\":\"a6771c73-96fc-44c6-8b6e-9d303955ea48\",\"schema_perm\":\"[examples].[main]\",\"url\":\"/tablemodelview/edit/20\",\"sql\":null,\"main_dttm_col\":\"dttm\",\"offset\":0,\"cache_timeout\":null,\"params\":null,\"template_params\":null,\"extra\":null,\"columns\":[{\"column_name\":\"with_missing\",\"verbose_name\":null,\"type\":\"VARCHAR(100)\",\"is_dttm\":false,\"groupby\":true,\"filterable\":true,\"description\":null},{\"column_name\":\"phrase\",\"verbose_name\":null,\"type\":\"VARCHAR(500)\",\"is_dttm\":false,\"groupby\":true,\"filterable\":true,\"description\":null},{\"column_name\":\"short_phrase\",\"verbose_name\":null,\"type\":\"VARCHAR(10)\",\"is_dttm\":false,\"groupby\":true,\"filterable\":true,\"description\":null},{\"column_name\":\"dttm\",\"verbose_name\":null,\"type\":\"DATE\",\"is_dttm\":true,\"groupby\":true,\"filterable\":true,\"description\":null},{\"column_name\":\"value\",\"verbose_name\":null,\"type\":\"FLOAT\",\"is_dttm\":false,\"groupby\":true,\"filterable\":true,\"description\":null}],\"metrics\":[{\"metric_name\":\"count\",\"verbose_name\":\"COUNT(*)\",\"expression\":\"COUNT(*)\",\"description\":null,\"d3format\":null}],\"is_favorite\":null},{\"id\":19,\"table_name\":\"new_members_daily\",\"schema\":\"main\",\"database_name\":\"examples\",\"description\":null,\"changed_by\":null,\"changed_on\":\"2025-07-30T15:48:20.681789\",\"changed_on_humanized\":\"a day ago\",\"created_by\":null,\"created_on\":\"2025-07-30T15:45:37.016257\",\"created_on_humanized\":\"a day ago\",\"tags\":[],\"owners\":[],\"is_virtual\":true,\"database_id\":1,\"uuid\":\"9dd99cda-ff6b-4575-9a74-684d06e871ab\",\"schema_perm\":\"[examples].[main]\",\"url\":\"/tablemodelview/edit/19\",\"sql\":\"SELECT date, total_membership - lag(total_membership) OVER (ORDER BY date) AS new_members FROM exported_stats\",\"main_dttm_col\":null,\"offset\":0,\"cache_timeout\":null,\"params\":null,\"template_params\":null,\"extra\":null,\"columns\":[{\"column_name\":\"date\",\"verbose_name\":null,\"type\":\"DATETIME\",\"is_dttm\":true,\"groupby\":true,\"filterable\":true,\"description\":null},{\"column_name\":\"new_members\",\"verbose_name\":null,\"type\":\"LONGLONG\",\"is_dttm\":false,\"groupby\":true,\"filterable\":true,\"description\":null}],\"metrics\":[{\"metric_name\":\"count\",\"verbose_name\":null,\"expression\":\"count(*)\",\"description\":null,\"d3format\":null}],\"is_favorite\":null},{\"id\":18,\"table_name\":\"threads\",\"schema\":\"main\",\"database_name\":\"examples\",\"description\":null,\"changed_by\":null,\"changed_on\":\"2025-07-30T15:48:20.674746\",\"changed_on_humanized\":\"a day ago\",\"created_by\":null,\"created_on\":\"2025-07-30T15:45:36.742909\",\"created_on_humanized\":\"a day ago\",\"tags\":[],\"owners\":[],\"is_virtual\":false,\"database_id\":1,\"uuid\":\"d7438be6-6078-17dd-cf9a-56f0ef546c80\",\"schema_perm\":\"[examples].[main]\",\"url\":\"/tablemodelview/edit/18\",\"sql\":null,\"main_dttm_col\":\"ts\",\"offset\":0,\"cache_timeout\":null,\"params\":null,\"template_params\":null,\"extra\":null,\"columns\":[{\"column_name\":\"ts\",\"verbose_name\":null,\"type\":\"TIMESTAMP WITHOUT TIME ZONE\",\"is_dttm\":true,\"groupby\":true,\"filterable\":true,\"description\":null},{\"column_name\":\"client_msg_id\",\"verbose_name\":null,\"type\":\"VARCHAR\",\"is_dttm\":false,\"groupby\":true,\"filterable\":true,\"description\":null},{\"column_name\":\"channel_id\",\"verbose_name\":null,\"type\":\"VARCHAR\",\"is_dttm\":false,\"groupby\":true,\"filterable\":true,\"description\":null},{\"column_name\":\"thread_ts\",\"verbose_name\":null,\"type\":\"VARCHAR\",\"is_dttm\":false,\"groupby\":true,\"filterable\":true,\"description\":null},{\"column_name\":\"latest_reply\",\"verbose_name\":null,\"type\":\"VARCHAR\",\"is_dttm\":false,\"groupby\":true,\"filterable\":true,\"description\":null},{\"column_name\":\"team\",\"verbose_name\":null,\"type\":\"VARCHAR\",\"is_dttm\":false,\"groupby\":true,\"filterable\":true,\"description\":null},{\"column_name\":\"type\",\"verbose_name\":null,\"type\":\"VARCHAR\",\"is_dttm\":false,\"groupby\":true,\"filterable\":true,\"description\":null},{\"column_name\":\"user\",\"verbose_name\":null,\"type\":\"VARCHAR\",\"is_dttm\":false,\"groupby\":true,\"filterable\":true,\"description\":null},{\"column_name\":\"text\",\"verbose_name\":null,\"type\":\"TEXT\",\"is_dttm\":false,\"groupby\":true,\"filterable\":true,\"description\":null},{\"column_name\":\"subscribed\",\"verbose_name\":null,\"type\":\"BOOLEAN\",\"is_dttm\":false,\"groupby\":true,\"filterable\":true,\"description\":null},{\"column_name\":\"reply_count\",\"verbose_name\":null,\"type\":\"BIGINT\",\"is_dttm\":false,\"groupby\":true,\"filterable\":true,\"description\":null},{\"column_name\":\"reply_users\",\"verbose_name\":null,\"type\":\"TEXT\",\"is_dttm\":false,\"groupby\":true,\"filterable\":true,\"description\":null},{\"column_name\":\"blocks\",\"verbose_name\":null,\"type\":\"TEXT\",\"is_dttm\":false,\"groupby\":true,\"filterable\":true,\"description\":null},{\"column_name\":\"reply_users_count\",\"verbose_name\":null,\"type\":\"BIGINT\",\"is_dttm\":false,\"groupby\":true,\"filterable\":true,\"description\":null}],\"metrics\":[{\"metric_name\":\"count\",\"verbose_name\":\"COUNT(*)\",\"expression\":\"COUNT(*)\",\"description\":null,\"d3format\":null}],\"is_favorite\":null},{\"id\":17,\"table_name\":\"exported_stats\",\"schema\":\"main\",\"database_name\":\"examples\",\"description\":null,\"changed_by\":null,\"changed_on\":\"2025-07-30T15:48:20.664428\",\"changed_on_humanized\":\"a day ago\",\"created_by\":null,\"created_on\":\"2025-07-30T15:45:36.231232\",\"created_on_humanized\":\"a day ago\",\"tags\":[],\"owners\":[],\"is_virtual\":false,\"database_id\":1,\"uuid\":\"0bd5d01c-b7d8-471b-b3a5-366ce6c920d4\",\"schema_perm\":\"[examples].[main]\",\"url\":\"/tablemodelview/edit/17\",\"sql\":\"\",\"main_dttm_col\":\"Date\",\"offset\":0,\"cache_timeout\":null,\"params\":null,\"template_params\":null,\"extra\":null,\"columns\":[{\"column_name\":\"new_members\",\"verbose_name\":\"New Members\",\"type\":\"BIGINT\",\"is_dttm\":false,\"groupby\":true,\"filterable\":true,\"description\":null},{\"column_name\":\"percent_of_messages_private_channels\",\"verbose_name\":null,\"type\":\"DOUBLE PRECISION\",\"is_dttm\":false,\"groupby\":true,\"filterable\":true,\"description\":null},{\"column_name\":\"percent_of_messages_public_channels\",\"verbose_name\":null,\"type\":\"DOUBLE PRECISION\",\"is_dttm\":false,\"groupby\":true,\"filterable\":true,\"description\":null},{\"column_name\":\"percent_of_views_private_channels\",\"verbose_name\":null,\"type\":\"DOUBLE PRECISION\",\"is_dttm\":false,\"groupby\":true,\"filterable\":true,\"description\":null},{\"column_name\":\"percent_of_views_public_channels\",\"verbose_name\":null,\"type\":\"DOUBLE PRECISION\",\"is_dttm\":false,\"groupby\":true,\"filterable\":true,\"description\":null},{\"column_name\":\"percent_of_messages_dms\",\"verbose_name\":null,\"type\":\"DOUBLE PRECISION\",\"is_dttm\":false,\"groupby\":true,\"filterable\":true,\"description\":null},{\"column_name\":\"percent_of_views_dms\",\"verbose_name\":null,\"type\":\"DOUBLE PRECISION\",\"is_dttm\":false,\"groupby\":true,\"filterable\":true,\"description\":null},{\"column_name\":\"date\",\"verbose_name\":null,\"type\":\"TIMESTAMP WITHOUT TIME ZONE\",\"is_dttm\":true,\"groupby\":true,\"filterable\":true,\"description\":null},{\"column_name\":\"daily_members_posting_messages\",\"verbose_name\":null,\"type\":\"BIGINT\",\"is_dttm\":false,\"groupby\":true,\"filterable\":true,\"description\":null},{\"column_name\":\"messages_in_shared_channels\",\"verbose_name\":null,\"type\":\"BIGINT\",\"is_dttm\":false,\"groupby\":true,\"filterable\":true,\"description\":null},{\"column_name\":\"messages_in_private_channels\",\"verbose_name\":null,\"type\":\"BIGINT\",\"is_dttm\":false,\"groupby\":true,\"filterable\":true,\"description\":null},{\"column_name\":\"messages_in_public_channels\",\"verbose_name\":null,\"type\":\"BIGINT\",\"is_dttm\":false,\"groupby\":true,\"filterable\":true,\"description\":null},{\"column_name\":\"weekly_members_posting_messages\",\"verbose_name\":null,\"type\":\"BIGINT\",\"is_dttm\":false,\"groupby\":true,\"filterable\":true,\"description\":null},{\"column_name\":\"public_channels_single_workspace\",\"verbose_name\":null,\"type\":\"BIGINT\",\"is_dttm\":false,\"groupby\":true,\"filterable\":true,\"description\":null},{\"column_name\":\"messages_in_dms\",\"verbose_name\":null,\"type\":\"BIGINT\",\"is_dttm\":false,\"groupby\":true,\"filterable\":true,\"description\":null},{\"column_name\":\"daily_active_members\",\"verbose_name\":null,\"type\":\"BIGINT\",\"is_dttm\":false,\"groupby\":true,\"filterable\":true,\"description\":null},{\"column_name\":\"weekly_active_members\",\"verbose_name\":null,\"type\":\"BIGINT\",\"is_dttm\":false,\"groupby\":true,\"filterable\":true,\"description\":null},{\"column_name\":\"full_members\",\"verbose_name\":null,\"type\":\"BIGINT\",\"is_dttm\":false,\"groupby\":true,\"filterable\":true,\"description\":null},{\"column_name\":\"messages_posted\",\"verbose_name\":null,\"type\":\"BIGINT\",\"is_dttm\":false,\"groupby\":true,\"filterable\":true,\"description\":null},{\"column_name\":\"total_membership\",\"verbose_name\":null,\"type\":\"BIGINT\",\"is_dttm\":false,\"groupby\":true,\"filterable\":true,\"description\":null},{\"column_name\":\"guests\",\"verbose_name\":null,\"type\":\"BIGINT\",\"is_dttm\":false,\"groupby\":true,\"filterable\":true,\"description\":null},{\"column_name\":\"name\",\"verbose_name\":null,\"type\":\"BIGINT\",\"is_dttm\":false,\"groupby\":true,\"filterable\":true,\"description\":null}],\"metrics\":[{\"metric_name\":\"count\",\"verbose_name\":\"COUNT(*)\",\"expression\":\"COUNT(*)\",\"description\":null,\"d3format\":null}],\"is_favorite\":null},{\"id\":16,\"table_name\":\"members_channels_2\",\"schema\":\"main\",\"database_name\":\"examples\",\"description\":null,\"changed_by\":null,\"changed_on\":\"2025-07-30T15:48:20.661351\",\"changed_on_humanized\":\"a day ago\",\"created_by\":null,\"created_on\":\"2025-07-30T15:45:36.224538\",\"created_on_humanized\":\"a day ago\",\"tags\":[],\"owners\":[],\"is_virtual\":true,\"database_id\":1,\"uuid\":\"3d9c0054-b31b-4102-92de-b1ef9f9e5e77\",\"schema_perm\":\"[examples].[main]\",\"url\":\"/tablemodelview/edit/16\",\"sql\":\"SELECT c.name AS channel_name, u.name AS member_name FROM channel_members cm JOIN channels c ON cm.channel_id = c.id JOIN users u ON cm.user_id = u.id\",\"main_dttm_col\":null,\"offset\":0,\"cache_timeout\":null,\"params\":null,\"template_params\":null,\"extra\":null,\"columns\":[{\"column_name\":\"channel_name\",\"verbose_name\":null,\"type\":null,\"is_dttm\":false,\"groupby\":true,\"filterable\":true,\"description\":null},{\"column_name\":\"member_name\",\"verbose_name\":null,\"type\":null,\"is_dttm\":false,\"groupby\":true,\"filterable\":true,\"description\":null}],\"metrics\":[{\"metric_name\":\"count\",\"verbose_name\":null,\"expression\":\"count(*)\",\"description\":null,\"d3format\":null}],\"is_favorite\":null}],\"count\":10,\"total_count\":25,\"page\":0,\"page_size\":10,\"total_pages\":3,\"has_previous\":false,\"has_next\":true,\"columns_requested\":[\"id\",\"table_name\",\"schema\",\"database_name\",\"changed_by_name\",\"changed_on\",\"created_by_name\",\"created_on\",\"metrics\",\"columns\",\"uuid\"],\"columns_loaded\":[\"id\",\"table_name\",\"schema\",\"database_name\",\"changed_by_name\",\"changed_on\",\"created_by_name\",\"created_on\",\"metrics\",\"columns\",\"uuid\"],\"filters_applied\":[],\"pagination\":{\"page\":0,\"page_size\":10,\"total_count\":25,\"total_pages\":3,\"has_next\":true,\"has_previous\":false},\"timestamp\":\"2025-08-01T02:05:43.652781Z\"}",
+      "annotations": null,
+      "meta": null
+    }
+  ],
+  "structuredContent": {
+    "datasets": [
+      {
+        "id": 25,
+        "table_name": "users_channels-uzooNNtSRO",
+        "schema": "main",
+        "database_name": "examples",
+        "description": null,
+        "changed_by": null,
+        "changed_on": "2025-07-30T15:48:20.717684",
+        "changed_on_humanized": "a day ago",
+        "created_by": null,
+        "created_on": "2025-07-30T15:45:41.115496",
+        "created_on_humanized": "a day ago",
+        "tags": [],
+        "owners": [],
+        "is_virtual": true,
+        "database_id": 1,
+        "uuid": "473d6113-b44a-48d8-a6ae-e0ef7e2aebb0",
+        "schema_perm": "[examples].[main]",
+        "url": "/tablemodelview/edit/25",
+        "sql": "SELECT uc1.name as channel_1, uc2.name as channel_2, count(*) AS cnt FROM users_channels uc1 JOIN users_channels uc2 ON uc1.user_id = uc2.user_id GROUP BY uc1.name, uc2.name HAVING uc1.name <> uc2.name\n",
+        "main_dttm_col": null,
+        "offset": 0,
+        "cache_timeout": null,
+        "params": null,
+        "template_params": null,
+        "extra": null,
+        "columns": [
+          {
+            "column_name": "channel_1",
+            "verbose_name": null,
+            "type": "STRING",
+            "is_dttm": false,
+            "groupby": true,
+            "filterable": true,
+            "description": null
+          },
+          {
+            "column_name": "channel_2",
+            "verbose_name": null,
+            "type": "STRING",
+            "is_dttm": false,
+            "groupby": true,
+            "filterable": true,
+            "description": null
+          },
+          {
+            "column_name": "cnt",
+            "verbose_name": null,
+            "type": "INT",
+            "is_dttm": false,
+            "groupby": true,
+            "filterable": true,
+            "description": null
+          }
+        ],
+        "metrics": [
+          {
+            "metric_name": "count",
+            "verbose_name": null,
+            "expression": "count(*)",
+            "description": null,
+            "d3format": null
+          }
+        ],
+        "is_favorite": null
+      },
+      {
+        "id": 24,
+        "table_name": "cleaned_sales_data",
+        "schema": "main",
+        "database_name": "examples",
+        "description": null,
+        "changed_by": null,
+        "changed_on": "2025-07-30T15:48:20.707764",
+        "changed_on_humanized": "a day ago",
+        "created_by": null,
+        "created_on": "2025-07-30T15:45:40.058353",
+        "created_on_humanized": "a day ago",
+        "tags": [],
+        "owners": [],
+        "is_virtual": false,
+        "database_id": 1,
+        "uuid": "e8623bb9-5e00-f531-506a-19607f5f8005",
+        "schema_perm": "[examples].[main]",
+        "url": "/tablemodelview/edit/24",
+        "sql": null,
+        "main_dttm_col": "order_date",
+        "offset": 0,
+        "cache_timeout": null,
+        "params": null,
+        "template_params": null,
+        "extra": null,
+        "columns": [
+          {
+            "column_name": "order_date",
+            "verbose_name": null,
+            "type": "TIMESTAMP WITHOUT TIME ZONE",
+            "is_dttm": true,
+            "groupby": true,
+            "filterable": true,
+            "description": null
+          },
+          {
+            "column_name": "price_each",
+            "verbose_name": null,
+            "type": "DOUBLE PRECISION",
+            "is_dttm": false,
+            "groupby": true,
+            "filterable": true,
+            "description": null
+          },
+          {
+            "column_name": "sales",
+            "verbose_name": null,
+            "type": "DOUBLE PRECISION",
+            "is_dttm": false,
+            "groupby": true,
+            "filterable": true,
+            "description": null
+          },
+          {
+            "column_name": "address_line1",
+            "verbose_name": null,
+            "type": "TEXT",
+            "is_dttm": false,
+            "groupby": true,
+            "filterable": true,
+            "description": null
+          },
+          {
+            "column_name": "address_line2",
+            "verbose_name": null,
+            "type": "TEXT",
+            "is_dttm": false,
+            "groupby": true,
+            "filterable": true,
+            "description": null
+          },
+          {
+            "column_name": "order_line_number",
+            "verbose_name": null,
+            "type": "BIGINT",
+            "is_dttm": false,
+            "groupby": true,
+            "filterable": true,
+            "description": null
+          },
+          {
+            "column_name": "quantity_ordered",
+            "verbose_name": null,
+            "type": "BIGINT",
+            "is_dttm": false,
+            "groupby": true,
+            "filterable": true,
+            "description": null
+          },
+          {
+            "column_name": "order_number",
+            "verbose_name": null,
+            "type": "BIGINT",
+            "is_dttm": false,
+            "groupby": true,
+            "filterable": true,
+            "description": null
+          },
+          {
+            "column_name": "quarter",
+            "verbose_name": null,
+            "type": "BIGINT",
+            "is_dttm": false,
+            "groupby": true,
+            "filterable": true,
+            "description": null
+          },
+          {
+            "column_name": "year",
+            "verbose_name": null,
+            "type": "BIGINT",
+            "is_dttm": false,
+            "groupby": true,
+            "filterable": true,
+            "description": null
+          },
+          {
+            "column_name": "month",
+            "verbose_name": null,
+            "type": "BIGINT",
+            "is_dttm": false,
+            "groupby": true,
+            "filterable": true,
+            "description": null
+          },
+          {
+            "column_name": "msrp",
+            "verbose_name": null,
+            "type": "BIGINT",
+            "is_dttm": false,
+            "groupby": true,
+            "filterable": true,
+            "description": null
+          },
+          {
+            "column_name": "contact_last_name",
+            "verbose_name": null,
+            "type": "TEXT",
+            "is_dttm": false,
+            "groupby": true,
+            "filterable": true,
+            "description": null
+          },
+          {
+            "column_name": "contact_first_name",
+            "verbose_name": null,
+            "type": "TEXT",
+            "is_dttm": false,
+            "groupby": true,
+            "filterable": true,
+            "description": null
+          },
+          {
+            "column_name": "postal_code",
+            "verbose_name": null,
+            "type": "TEXT",
+            "is_dttm": false,
+            "groupby": true,
+            "filterable": true,
+            "description": null
+          },
+          {
+            "column_name": "customer_name",
+            "verbose_name": null,
+            "type": "TEXT",
+            "is_dttm": false,
+            "groupby": true,
+            "filterable": true,
+            "description": null
+          },
+          {
+            "column_name": "deal_size",
+            "verbose_name": null,
+            "type": "TEXT",
+            "is_dttm": false,
+            "groupby": true,
+            "filterable": true,
+            "description": null
+          },
+          {
+            "column_name": "product_code",
+            "verbose_name": null,
+            "type": "TEXT",
+            "is_dttm": false,
+            "groupby": true,
+            "filterable": true,
+            "description": null
+          },
+          {
+            "column_name": "product_line",
+            "verbose_name": null,
+            "type": "TEXT",
+            "is_dttm": false,
+            "groupby": true,
+            "filterable": true,
+            "description": null
+          },
+          {
+            "column_name": "state",
+            "verbose_name": null,
+            "type": "TEXT",
+            "is_dttm": false,
+            "groupby": true,
+            "filterable": true,
+            "description": null
+          },
+          {
+            "column_name": "status",
+            "verbose_name": null,
+            "type": "TEXT",
+            "is_dttm": false,
+            "groupby": true,
+            "filterable": true,
+            "description": null
+          },
+          {
+            "column_name": "city",
+            "verbose_name": null,
+            "type": "TEXT",
+            "is_dttm": false,
+            "groupby": true,
+            "filterable": true,
+            "description": null
+          },
+          {
+            "column_name": "country",
+            "verbose_name": null,
+            "type": "TEXT",
+            "is_dttm": false,
+            "groupby": true,
+            "filterable": true,
+            "description": null
+          },
+          {
+            "column_name": "phone",
+            "verbose_name": null,
+            "type": "TEXT",
+            "is_dttm": false,
+            "groupby": true,
+            "filterable": true,
+            "description": null
+          },
+          {
+            "column_name": "territory",
+            "verbose_name": null,
+            "type": "TEXT",
+            "is_dttm": false,
+            "groupby": true,
+            "filterable": true,
+            "description": null
+          }
+        ],
+        "metrics": [
+          {
+            "metric_name": "count",
+            "verbose_name": "COUNT(*)",
+            "expression": "COUNT(*)",
+            "description": null,
+            "d3format": null
+          }
+        ],
+        "is_favorite": null
+      },
+      {
+        "id": 23,
+        "table_name": "users_channels",
+        "schema": "main",
+        "database_name": "examples",
+        "description": null,
+        "changed_by": null,
+        "changed_on": "2025-07-30T15:48:20.704055",
+        "changed_on_humanized": "a day ago",
+        "created_by": null,
+        "created_on": "2025-07-30T15:45:39.710760",
+        "created_on_humanized": "a day ago",
+        "tags": [],
+        "owners": [],
+        "is_virtual": false,
+        "database_id": 1,
+        "uuid": "29b18573-c9d6-40bc-b8cb-f70c9a1b6244",
+        "schema_perm": "[examples].[main]",
+        "url": "/tablemodelview/edit/23",
+        "sql": null,
+        "main_dttm_col": null,
+        "offset": 0,
+        "cache_timeout": null,
+        "params": null,
+        "template_params": null,
+        "extra": null,
+        "columns": [
+          {
+            "column_name": "user_id",
+            "verbose_name": null,
+            "type": "STRING",
+            "is_dttm": false,
+            "groupby": true,
+            "filterable": true,
+            "description": null
+          },
+          {
+            "column_name": "name",
+            "verbose_name": null,
+            "type": "STRING",
+            "is_dttm": false,
+            "groupby": true,
+            "filterable": true,
+            "description": null
+          }
+        ],
+        "metrics": [
+          {
+            "metric_name": "count",
+            "verbose_name": null,
+            "expression": "count(*)",
+            "description": null,
+            "d3format": null
+          }
+        ],
+        "is_favorite": null
+      },
+      {
+        "id": 22,
+        "table_name": "video_game_sales",
+        "schema": "main",
+        "database_name": "examples",
+        "description": null,
+        "changed_by": null,
+        "changed_on": "2025-07-30T15:48:20.697311",
+        "changed_on_humanized": "a day ago",
+        "created_by": null,
+        "created_on": "2025-07-30T15:45:37.837042",
+        "created_on_humanized": "a day ago",
+        "tags": [],
+        "owners": [],
+        "is_virtual": false,
+        "database_id": 1,
+        "uuid": "53d47c0c-c03d-47f0-b9ac-81225f808283",
+        "schema_perm": "[examples].[main]",
+        "url": "/tablemodelview/edit/22",
+        "sql": "",
+        "main_dttm_col": null,
+        "offset": 0,
+        "cache_timeout": null,
+        "params": {
+          "remote_id": 64,
+          "database_name": "examples",
+          "import_time": 1606677834
+        },
+        "template_params": null,
+        "extra": null,
+        "columns": [
+          {
+            "column_name": "year",
+            "verbose_name": null,
+            "type": "BIGINT",
+            "is_dttm": true,
+            "groupby": true,
+            "filterable": true,
+            "description": null
+          },
+          {
+            "column_name": "na_sales",
+            "verbose_name": null,
+            "type": "FLOAT64",
+            "is_dttm": false,
+            "groupby": true,
+            "filterable": true,
+            "description": null
+          },
+          {
+            "column_name": "eu_sales",
+            "verbose_name": null,
+            "type": "FLOAT64",
+            "is_dttm": false,
+            "groupby": true,
+            "filterable": true,
+            "description": null
+          },
+          {
+            "column_name": "global_sales",
+            "verbose_name": null,
+            "type": "FLOAT64",
+            "is_dttm": false,
+            "groupby": true,
+            "filterable": true,
+            "description": null
+          },
+          {
+            "column_name": "jp_sales",
+            "verbose_name": null,
+            "type": "FLOAT64",
+            "is_dttm": false,
+            "groupby": true,
+            "filterable": true,
+            "description": null
+          },
+          {
+            "column_name": "other_sales",
+            "verbose_name": null,
+            "type": "FLOAT64",
+            "is_dttm": false,
+            "groupby": true,
+            "filterable": true,
+            "description": null
+          },
+          {
+            "column_name": "rank",
+            "verbose_name": null,
+            "type": "BIGINT",
+            "is_dttm": false,
+            "groupby": true,
+            "filterable": true,
+            "description": null
+          },
+          {
+            "column_name": "genre",
+            "verbose_name": null,
+            "type": "STRING",
+            "is_dttm": false,
+            "groupby": true,
+            "filterable": true,
+            "description": null
+          },
+          {
+            "column_name": "name",
+            "verbose_name": null,
+            "type": "STRING",
+            "is_dttm": false,
+            "groupby": true,
+            "filterable": true,
+            "description": null
+          },
+          {
+            "column_name": "platform",
+            "verbose_name": null,
+            "type": "STRING",
+            "is_dttm": false,
+            "groupby": true,
+            "filterable": true,
+            "description": null
+          },
+          {
+            "column_name": "publisher",
+            "verbose_name": null,
+            "type": "STRING",
+            "is_dttm": false,
+            "groupby": true,
+            "filterable": true,
+            "description": null
+          }
+        ],
+        "metrics": [
+          {
+            "metric_name": "count",
+            "verbose_name": "COUNT(*)",
+            "expression": "COUNT(*)",
+            "description": null,
+            "d3format": null
+          }
+        ],
+        "is_favorite": null
+      },
+      {
+        "id": 21,
+        "table_name": "users",
+        "schema": "main",
+        "database_name": "examples",
+        "description": null,
+        "changed_by": null,
+        "changed_on": "2025-07-30T15:48:20.689384",
+        "changed_on_humanized": "a day ago",
+        "created_by": null,
+        "created_on": "2025-07-30T15:45:37.277391",
+        "created_on_humanized": "a day ago",
+        "tags": [],
+        "owners": [],
+        "is_virtual": false,
+        "database_id": 1,
+        "uuid": "7195db6b-2d17-7619-b7c7-26b15378df8c",
+        "schema_perm": "[examples].[main]",
+        "url": "/tablemodelview/edit/21",
+        "sql": null,
+        "main_dttm_col": "updated",
+        "offset": 0,
+        "cache_timeout": null,
+        "params": null,
+        "template_params": null,
+        "extra": null,
+        "columns": [
+          {
+            "column_name": "updated",
+            "verbose_name": null,
+            "type": "TIMESTAMP WITHOUT TIME ZONE",
+            "is_dttm": true,
+            "groupby": true,
+            "filterable": true,
+            "description": null
+          },
+          {
+            "column_name": "has_2fa",
+            "verbose_name": null,
+            "type": "BOOLEAN",
+            "is_dttm": false,
+            "groupby": true,
+            "filterable": true,
+            "description": null
+          },
+          {
+            "column_name": "real_name",
+            "verbose_name": null,
+            "type": "VARCHAR",
+            "is_dttm": false,
+            "groupby": true,
+            "filterable": true,
+            "description": null
+          },
+          {
+            "column_name": "tz_label",
+            "verbose_name": null,
+            "type": "VARCHAR",
+            "is_dttm": false,
+            "groupby": true,
+            "filterable": true,
+            "description": null
+          },
+          {
+            "column_name": "team_id",
+            "verbose_name": null,
+            "type": "VARCHAR",
+            "is_dttm": false,
+            "groupby": true,
+            "filterable": true,
+            "description": null
+          },
+          {
+            "column_name": "name",
+            "verbose_name": null,
+            "type": "VARCHAR",
+            "is_dttm": false,
+            "groupby": true,
+            "filterable": true,
+            "description": null
+          },
+          {
+            "column_name": "color",
+            "verbose_name": null,
+            "type": "VARCHAR",
+            "is_dttm": false,
+            "groupby": true,
+            "filterable": true,
+            "description": null
+          },
+          {
+            "column_name": "id",
+            "verbose_name": null,
+            "type": "VARCHAR",
+            "is_dttm": false,
+            "groupby": true,
+            "filterable": true,
+            "description": null
+          },
+          {
+            "column_name": "tz",
+            "verbose_name": null,
+            "type": "VARCHAR",
+            "is_dttm": false,
+            "groupby": true,
+            "filterable": true,
+            "description": null
+          },
+          {
+            "column_name": "is_ultra_restricted",
+            "verbose_name": null,
+            "type": "BOOLEAN",
+            "is_dttm": false,
+            "groupby": true,
+            "filterable": true,
+            "description": null
+          },
+          {
+            "column_name": "is_primary_owner",
+            "verbose_name": null,
+            "type": "BOOLEAN",
+            "is_dttm": false,
+            "groupby": true,
+            "filterable": true,
+            "description": null
+          },
+          {
+            "column_name": "is_app_user",
+            "verbose_name": null,
+            "type": "BOOLEAN",
+            "is_dttm": false,
+            "groupby": true,
+            "filterable": true,
+            "description": null
+          },
+          {
+            "column_name": "is_admin",
+            "verbose_name": null,
+            "type": "BOOLEAN",
+            "is_dttm": false,
+            "groupby": true,
+            "filterable": true,
+            "description": null
+          },
+          {
+            "column_name": "is_bot",
+            "verbose_name": null,
+            "type": "BOOLEAN",
+            "is_dttm": false,
+            "groupby": true,
+            "filterable": true,
+            "description": null
+          },
+          {
+            "column_name": "is_restricted",
+            "verbose_name": null,
+            "type": "BOOLEAN",
+            "is_dttm": false,
+            "groupby": true,
+            "filterable": true,
+            "description": null
+          },
+          {
+            "column_name": "is_owner",
+            "verbose_name": null,
+            "type": "BOOLEAN",
+            "is_dttm": false,
+            "groupby": true,
+            "filterable": true,
+            "description": null
+          },
+          {
+            "column_name": "deleted",
+            "verbose_name": null,
+            "type": "BOOLEAN",
+            "is_dttm": false,
+            "groupby": true,
+            "filterable": true,
+            "description": null
+          },
+          {
+            "column_name": "tz_offset",
+            "verbose_name": null,
+            "type": "BIGINT",
+            "is_dttm": false,
+            "groupby": true,
+            "filterable": true,
+            "description": null
+          }
+        ],
+        "metrics": [
+          {
+            "metric_name": "count",
+            "verbose_name": "COUNT(*)",
+            "expression": "COUNT(*)",
+            "description": null,
+            "d3format": null
+          }
+        ],
+        "is_favorite": null
+      },
+      {
+        "id": 20,
+        "table_name": "unicode_test",
+        "schema": "main",
+        "database_name": "examples",
+        "description": null,
+        "changed_by": null,
+        "changed_on": "2025-07-30T15:48:20.685104",
+        "changed_on_humanized": "a day ago",
+        "created_by": null,
+        "created_on": "2025-07-30T15:45:37.025530",
+        "created_on_humanized": "a day ago",
+        "tags": [],
+        "owners": [],
+        "is_virtual": false,
+        "database_id": 1,
+        "uuid": "a6771c73-96fc-44c6-8b6e-9d303955ea48",
+        "schema_perm": "[examples].[main]",
+        "url": "/tablemodelview/edit/20",
+        "sql": null,
+        "main_dttm_col": "dttm",
+        "offset": 0,
+        "cache_timeout": null,
+        "params": null,
+        "template_params": null,
+        "extra": null,
+        "columns": [
+          {
+            "column_name": "with_missing",
+            "verbose_name": null,
+            "type": "VARCHAR(100)",
+            "is_dttm": false,
+            "groupby": true,
+            "filterable": true,
+            "description": null
+          },
+          {
+            "column_name": "phrase",
+            "verbose_name": null,
+            "type": "VARCHAR(500)",
+            "is_dttm": false,
+            "groupby": true,
+            "filterable": true,
+            "description": null
+          },
+          {
+            "column_name": "short_phrase",
+            "verbose_name": null,
+            "type": "VARCHAR(10)",
+            "is_dttm": false,
+            "groupby": true,
+            "filterable": true,
+            "description": null
+          },
+          {
+            "column_name": "dttm",
+            "verbose_name": null,
+            "type": "DATE",
+            "is_dttm": true,
+            "groupby": true,
+            "filterable": true,
+            "description": null
+          },
+          {
+            "column_name": "value",
+            "verbose_name": null,
+            "type": "FLOAT",
+            "is_dttm": false,
+            "groupby": true,
+            "filterable": true,
+            "description": null
+          }
+        ],
+        "metrics": [
+          {
+            "metric_name": "count",
+            "verbose_name": "COUNT(*)",
+            "expression": "COUNT(*)",
+            "description": null,
+            "d3format": null
+          }
+        ],
+        "is_favorite": null
+      },
+      {
+        "id": 19,
+        "table_name": "new_members_daily",
+        "schema": "main",
+        "database_name": "examples",
+        "description": null,
+        "changed_by": null,
+        "changed_on": "2025-07-30T15:48:20.681789",
+        "changed_on_humanized": "a day ago",
+        "created_by": null,
+        "created_on": "2025-07-30T15:45:37.016257",
+        "created_on_humanized": "a day ago",
+        "tags": [],
+        "owners": [],
+        "is_virtual": true,
+        "database_id": 1,
+        "uuid": "9dd99cda-ff6b-4575-9a74-684d06e871ab",
+        "schema_perm": "[examples].[main]",
+        "url": "/tablemodelview/edit/19",
+        "sql": "SELECT date, total_membership - lag(total_membership) OVER (ORDER BY date) AS new_members FROM exported_stats",
+        "main_dttm_col": null,
+        "offset": 0,
+        "cache_timeout": null,
+        "params": null,
+        "template_params": null,
+        "extra": null,
+        "columns": [
+          {
+            "column_name": "date",
+            "verbose_name": null,
+            "type": "DATETIME",
+            "is_dttm": true,
+            "groupby": true,
+            "filterable": true,
+            "description": null
+          },
+          {
+            "column_name": "new_members",
+            "verbose_name": null,
+            "type": "LONGLONG",
+            "is_dttm": false,
+            "groupby": true,
+            "filterable": true,
+            "description": null
+          }
+        ],
+        "metrics": [
+          {
+            "metric_name": "count",
+            "verbose_name": null,
+            "expression": "count(*)",
+            "description": null,
+            "d3format": null
+          }
+        ],
+        "is_favorite": null
+      },
+      {
+        "id": 18,
+        "table_name": "threads",
+        "schema": "main",
+        "database_name": "examples",
+        "description": null,
+        "changed_by": null,
+        "changed_on": "2025-07-30T15:48:20.674746",
+        "changed_on_humanized": "a day ago",
+        "created_by": null,
+        "created_on": "2025-07-30T15:45:36.742909",
+        "created_on_humanized": "a day ago",
+        "tags": [],
+        "owners": [],
+        "is_virtual": false,
+        "database_id": 1,
+        "uuid": "d7438be6-6078-17dd-cf9a-56f0ef546c80",
+        "schema_perm": "[examples].[main]",
+        "url": "/tablemodelview/edit/18",
+        "sql": null,
+        "main_dttm_col": "ts",
+        "offset": 0,
+        "cache_timeout": null,
+        "params": null,
+        "template_params": null,
+        "extra": null,
+        "columns": [
+          {
+            "column_name": "ts",
+            "verbose_name": null,
+            "type": "TIMESTAMP WITHOUT TIME ZONE",
+            "is_dttm": true,
+            "groupby": true,
+            "filterable": true,
+            "description": null
+          },
+          {
+            "column_name": "client_msg_id",
+            "verbose_name": null,
+            "type": "VARCHAR",
+            "is_dttm": false,
+            "groupby": true,
+            "filterable": true,
+            "description": null
+          },
+          {
+            "column_name": "channel_id",
+            "verbose_name": null,
+            "type": "VARCHAR",
+            "is_dttm": false,
+            "groupby": true,
+            "filterable": true,
+            "description": null
+          },
+          {
+            "column_name": "thread_ts",
+            "verbose_name": null,
+            "type": "VARCHAR",
+            "is_dttm": false,
+            "groupby": true,
+            "filterable": true,
+            "description": null
+          },
+          {
+            "column_name": "latest_reply",
+            "verbose_name": null,
+            "type": "VARCHAR",
+            "is_dttm": false,
+            "groupby": true,
+            "filterable": true,
+            "description": null
+          },
+          {
+            "column_name": "team",
+            "verbose_name": null,
+            "type": "VARCHAR",
+            "is_dttm": false,
+            "groupby": true,
+            "filterable": true,
+            "description": null
+          },
+          {
+            "column_name": "type",
+            "verbose_name": null,
+            "type": "VARCHAR",
+            "is_dttm": false,
+            "groupby": true,
+            "filterable": true,
+            "description": null
+          },
+          {
+            "column_name": "user",
+            "verbose_name": null,
+            "type": "VARCHAR",
+            "is_dttm": false,
+            "groupby": true,
+            "filterable": true,
+            "description": null
+          },
+          {
+            "column_name": "text",
+            "verbose_name": null,
+            "type": "TEXT",
+            "is_dttm": false,
+            "groupby": true,
+            "filterable": true,
+            "description": null
+          },
+          {
+            "column_name": "subscribed",
+            "verbose_name": null,
+            "type": "BOOLEAN",
+            "is_dttm": false,
+            "groupby": true,
+            "filterable": true,
+            "description": null
+          },
+          {
+            "column_name": "reply_count",
+            "verbose_name": null,
+            "type": "BIGINT",
+            "is_dttm": false,
+            "groupby": true,
+            "filterable": true,
+            "description": null
+          },
+          {
+            "column_name": "reply_users",
+            "verbose_name": null,
+            "type": "TEXT",
+            "is_dttm": false,
+            "groupby": true,
+            "filterable": true,
+            "description": null
+          },
+          {
+            "column_name": "blocks",
+            "verbose_name": null,
+            "type": "TEXT",
+            "is_dttm": false,
+            "groupby": true,
+            "filterable": true,
+            "description": null
+          },
+          {
+            "column_name": "reply_users_count",
+            "verbose_name": null,
+            "type": "BIGINT",
+            "is_dttm": false,
+            "groupby": true,
+            "filterable": true,
+            "description": null
+          }
+        ],
+        "metrics": [
+          {
+            "metric_name": "count",
+            "verbose_name": "COUNT(*)",
+            "expression": "COUNT(*)",
+            "description": null,
+            "d3format": null
+          }
+        ],
+        "is_favorite": null
+      },
+      {
+        "id": 17,
+        "table_name": "exported_stats",
+        "schema": "main",
+        "database_name": "examples",
+        "description": null,
+        "changed_by": null,
+        "changed_on": "2025-07-30T15:48:20.664428",
+        "changed_on_humanized": "a day ago",
+        "created_by": null,
+        "created_on": "2025-07-30T15:45:36.231232",
+        "created_on_humanized": "a day ago",
+        "tags": [],
+        "owners": [],
+        "is_virtual": false,
+        "database_id": 1,
+        "uuid": "0bd5d01c-b7d8-471b-b3a5-366ce6c920d4",
+        "schema_perm": "[examples].[main]",
+        "url": "/tablemodelview/edit/17",
+        "sql": "",
+        "main_dttm_col": "Date",
+        "offset": 0,
+        "cache_timeout": null,
+        "params": null,
+        "template_params": null,
+        "extra": null,
+        "columns": [
+          {
+            "column_name": "new_members",
+            "verbose_name": "New Members",
+            "type": "BIGINT",
+            "is_dttm": false,
+            "groupby": true,
+            "filterable": true,
+            "description": null
+          },
+          {
+            "column_name": "percent_of_messages_private_channels",
+            "verbose_name": null,
+            "type": "DOUBLE PRECISION",
+            "is_dttm": false,
+            "groupby": true,
+            "filterable": true,
+            "description": null
+          },
+          {
+            "column_name": "percent_of_messages_public_channels",
+            "verbose_name": null,
+            "type": "DOUBLE PRECISION",
+            "is_dttm": false,
+            "groupby": true,
+            "filterable": true,
+            "description": null
+          },
+          {
+            "column_name": "percent_of_views_private_channels",
+            "verbose_name": null,
+            "type": "DOUBLE PRECISION",
+            "is_dttm": false,
+            "groupby": true,
+            "filterable": true,
+            "description": null
+          },
+          {
+            "column_name": "percent_of_views_public_channels",
+            "verbose_name": null,
+            "type": "DOUBLE PRECISION",
+            "is_dttm": false,
+            "groupby": true,
+            "filterable": true,
+            "description": null
+          },
+          {
+            "column_name": "percent_of_messages_dms",
+            "verbose_name": null,
+            "type": "DOUBLE PRECISION",
+            "is_dttm": false,
+            "groupby": true,
+            "filterable": true,
+            "description": null
+          },
+          {
+            "column_name": "percent_of_views_dms",
+            "verbose_name": null,
+            "type": "DOUBLE PRECISION",
+            "is_dttm": false,
+            "groupby": true,
+            "filterable": true,
+            "description": null
+          },
+          {
+            "column_name": "date",
+            "verbose_name": null,
+            "type": "TIMESTAMP WITHOUT TIME ZONE",
+            "is_dttm": true,
+            "groupby": true,
+            "filterable": true,
+            "description": null
+          },
+          {
+            "column_name": "daily_members_posting_messages",
+            "verbose_name": null,
+            "type": "BIGINT",
+            "is_dttm": false,
+            "groupby": true,
+            "filterable": true,
+            "description": null
+          },
+          {
+            "column_name": "messages_in_shared_channels",
+            "verbose_name": null,
+            "type": "BIGINT",
+            "is_dttm": false,
+            "groupby": true,
+            "filterable": true,
+            "description": null
+          },
+          {
+            "column_name": "messages_in_private_channels",
+            "verbose_name": null,
+            "type": "BIGINT",
+            "is_dttm": false,
+            "groupby": true,
+            "filterable": true,
+            "description": null
+          },
+          {
+            "column_name": "messages_in_public_channels",
+            "verbose_name": null,
+            "type": "BIGINT",
+            "is_dttm": false,
+            "groupby": true,
+            "filterable": true,
+            "description": null
+          },
+          {
+            "column_name": "weekly_members_posting_messages",
+            "verbose_name": null,
+            "type": "BIGINT",
+            "is_dttm": false,
+            "groupby": true,
+            "filterable": true,
+            "description": null
+          },
+          {
+            "column_name": "public_channels_single_workspace",
+            "verbose_name": null,
+            "type": "BIGINT",
+            "is_dttm": false,
+            "groupby": true,
+            "filterable": true,
+            "description": null
+          },
+          {
+            "column_name": "messages_in_dms",
+            "verbose_name": null,
+            "type": "BIGINT",
+            "is_dttm": false,
+            "groupby": true,
+            "filterable": true,
+            "description": null
+          },
+          {
+            "column_name": "daily_active_members",
+            "verbose_name": null,
+            "type": "BIGINT",
+            "is_dttm": false,
+            "groupby": true,
+            "filterable": true,
+            "description": null
+          },
+          {
+            "column_name": "weekly_active_members",
+            "verbose_name": null,
+            "type": "BIGINT",
+            "is_dttm": false,
+            "groupby": true,
+            "filterable": true,
+            "description": null
+          },
+          {
+            "column_name": "full_members",
+            "verbose_name": null,
+            "type": "BIGINT",
+            "is_dttm": false,
+            "groupby": true,
+            "filterable": true,
+            "description": null
+          },
+          {
+            "column_name": "messages_posted",
+            "verbose_name": null,
+            "type": "BIGINT",
+            "is_dttm": false,
+            "groupby": true,
+            "filterable": true,
+            "description": null
+          },
+          {
+            "column_name": "total_membership",
+            "verbose_name": null,
+            "type": "BIGINT",
+            "is_dttm": false,
+            "groupby": true,
+            "filterable": true,
+            "description": null
+          },
+          {
+            "column_name": "guests",
+            "verbose_name": null,
+            "type": "BIGINT",
+            "is_dttm": false,
+            "groupby": true,
+            "filterable": true,
+            "description": null
+          },
+          {
+            "column_name": "name",
+            "verbose_name": null,
+            "type": "BIGINT",
+            "is_dttm": false,
+            "groupby": true,
+            "filterable": true,
+            "description": null
+          }
+        ],
+        "metrics": [
+          {
+            "metric_name": "count",
+            "verbose_name": "COUNT(*)",
+            "expression": "COUNT(*)",
+            "description": null,
+            "d3format": null
+          }
+        ],
+        "is_favorite": null
+      },
+      {
+        "id": 16,
+        "table_name": "members_channels_2",
+        "schema": "main",
+        "database_name": "examples",
+        "description": null,
+        "changed_by": null,
+        "changed_on": "2025-07-30T15:48:20.661351",
+        "changed_on_humanized": "a day ago",
+        "created_by": null,
+        "created_on": "2025-07-30T15:45:36.224538",
+        "created_on_humanized": "a day ago",
+        "tags": [],
+        "owners": [],
+        "is_virtual": true,
+        "database_id": 1,
+        "uuid": "3d9c0054-b31b-4102-92de-b1ef9f9e5e77",
+        "schema_perm": "[examples].[main]",
+        "url": "/tablemodelview/edit/16",
+        "sql": "SELECT c.name AS channel_name, u.name AS member_name FROM channel_members cm JOIN channels c ON cm.channel_id = c.id JOIN users u ON cm.user_id = u.id",
+        "main_dttm_col": null,
+        "offset": 0,
+        "cache_timeout": null,
+        "params": null,
+        "template_params": null,
+        "extra": null,
+        "columns": [
+          {
+            "column_name": "channel_name",
+            "verbose_name": null,
+            "type": null,
+            "is_dttm": false,
+            "groupby": true,
+            "filterable": true,
+            "description": null
+          },
+          {
+            "column_name": "member_name",
+            "verbose_name": null,
+            "type": null,
+            "is_dttm": false,
+            "groupby": true,
+            "filterable": true,
+            "description": null
+          }
+        ],
+        "metrics": [
+          {
+            "metric_name": "count",
+            "verbose_name": null,
+            "expression": "count(*)",
+            "description": null,
+            "d3format": null
+          }
+        ],
+        "is_favorite": null
+      }
+    ],
+    "count": 10,
+    "total_count": 25,
+    "page": 0,
+    "page_size": 10,
+    "total_pages": 3,
+    "has_previous": false,
+    "has_next": true,
+    "columns_requested": [
+      "id",
+      "table_name",
+      "schema",
+      "database_name",
+      "changed_by_name",
+      "changed_on",
+      "created_by_name",
+      "created_on",
+      "metrics",
+      "columns",
+      "uuid"
+    ],
+    "columns_loaded": [
+      "id",
+      "table_name",
+      "schema",
+      "database_name",
+      "changed_by_name",
+      "changed_on",
+      "created_by_name",
+      "created_on",
+      "metrics",
+      "columns",
+      "uuid"
+    ],
+    "filters_applied": [],
+    "pagination": {
+      "page": 0,
+      "page_size": 10,
+      "total_count": 25,
+      "total_pages": 3,
+      "has_next": true,
+      "has_previous": false
+    },
+    "timestamp": "2025-08-01T02:05:43.652781Z"
+  },
+  "isError": false
+}

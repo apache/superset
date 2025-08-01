@@ -1,0 +1,39 @@
+{
+  "timestamp": "2025-07-31T22:05:44.203024",
+  "total_tests": 5,
+  "passed": 5,
+  "failed": 0,
+  "errors": 0,
+  "results": [
+    {
+      "test": "List charts default",
+      "status": "PASSED",
+      "timestamp": "2025-07-31T22:05:40.939206",
+      "file": "test_results_mcp/list_charts_default.json"
+    },
+    {
+      "test": "List charts page 2",
+      "status": "PASSED",
+      "timestamp": "2025-07-31T22:05:41.617892",
+      "file": "test_results_mcp/list_charts_page_2.json"
+    },
+    {
+      "test": "Search charts",
+      "status": "PASSED",
+      "timestamp": "2025-07-31T22:05:42.391403",
+      "file": "test_results_mcp/search_charts.json"
+    },
+    {
+      "test": "List dashboards",
+      "status": "PASSED",
+      "timestamp": "2025-07-31T22:05:43.119875",
+      "file": "test_results_mcp/list_dashboards.json"
+    },
+    {
+      "test": "List datasets",
+      "status": "PASSED",
+      "timestamp": "2025-07-31T22:05:44.134124",
+      "file": "test_results_mcp/list_datasets.json"
+    }
+  ]
+}
