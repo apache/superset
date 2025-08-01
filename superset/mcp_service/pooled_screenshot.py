@@ -31,6 +31,7 @@ from selenium.webdriver.support import expected_conditions
 from selenium.webdriver.support.ui import WebDriverWait
 
 from superset.extensions import machine_auth_provider_factory
+from superset.mcp_service.retry_utils import retry_screenshot_operation
 from superset.mcp_service.webdriver_pool import get_webdriver_pool
 from superset.utils.screenshots import BaseScreenshot, WindowSize
 
@@ -52,7 +53,7 @@ class PooledBaseScreenshot(BaseScreenshot):
         self, user: User, window_size: WindowSize | None = None
     ) -> bytes | None:
         """
-        Generate screenshot using pooled WebDriver for improved performance.
+        Generate screenshot using pooled WebDriver with retry logic for reliability.
 
         Args:
             user: User context for authentication
@@ -60,6 +61,17 @@ class PooledBaseScreenshot(BaseScreenshot):
 
         Returns:
             Screenshot as PNG bytes or None if failed
+        """
+        return retry_screenshot_operation(
+            self._get_screenshot_internal, user, window_size
+        )
+
+    def _get_screenshot_internal(
+        self, user: User, window_size: WindowSize | None = None
+    ) -> bytes | None:
+        """
+        Internal screenshot generation method with pooled WebDriver.
+        This method is wrapped by retry logic in get_screenshot().
         """
         window_size = window_size or self.window_size
         pool = get_webdriver_pool()
@@ -90,8 +102,12 @@ class PooledBaseScreenshot(BaseScreenshot):
                 # Take screenshot using the specific implementation
                 return self._take_screenshot(driver, user)
 
+            except (TimeoutException, WebDriverException, OSError) as e:
+                # These are retryable exceptions
+                logger.warning(f"Retryable error taking screenshot: {e}")
+                raise
             except Exception as e:
-                logger.error(f"Error taking screenshot with pooled driver: {e}")
+                logger.error(f"Non-retryable error taking screenshot: {e}")
                 raise
 
     def _take_screenshot(self, driver: Any, user: User) -> bytes | None:
