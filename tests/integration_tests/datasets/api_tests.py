@@ -3455,7 +3455,6 @@ class TestDatasetApi(SupersetTestCase):
         """
         with self.temporary_user(
             clone_user=security_manager.find_user(username=GAMMA_USERNAME),
-            extra_pvms=[("can_get_drill_info", "Dataset")],
         ) as test_user:
             self.login(ADMIN_USERNAME)
             user_role_ids = [role.id for role in test_user.roles]
