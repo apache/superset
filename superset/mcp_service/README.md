@@ -122,6 +122,8 @@ See the [MCP Integration Test README](../../../tests/integration_tests/mcp_servi
 
 ## 🌐 Using ModelContextChat.com (Web-based MCP Client)
 
+![Screenshot of Interacting with a model + MCP in ModelContextChat.com](https://github.com/user-attachments/assets/19a51bbe-7157-4c70-a9e2-218315c2c1d1)
+
 If you prefer a web-based interface instead of Claude Desktop, you can use ModelContextChat.com to interact with your Superset MCP service. This is particularly useful for quick testing or when you can't install desktop applications.
 
 > ⚠️ **Important**: This setup is intended for development, testing, and sandboxing only. Do not use this configuration for production environments.
@@ -192,7 +194,7 @@ ModelContextChat.com uses OpenRouter for AI model access:
      Authentication: None (leave empty)
      ```
 
-   ![Form for adding a new MCP connection in ModelContextChat.com](https://github.com/user-attachments/assets/0571f2f0-b2f9-45d8-927f-bc54891afe97)
+   <img src="https://github.com/user-attachments/assets/0571f2f0-b2f9-45d8-927f-bc54891afe97" alt="Form for adding a new MCP connection in ModelContextChat.com" width="400" />
 
    > ⚠️ **Important**:
    > - Set Server Type as **"Streamable HTTP"**
@@ -206,7 +208,7 @@ ModelContextChat.com uses OpenRouter for AI model access:
      - URL ends with `/mcp/`
      - Server Type is "Streamable HTTP"
 
-   ![Configured Chat Settings Screenshot after adding the configuration to the MCP Server](https://github.com/user-attachments/assets/35418ff9-a571-4051-b68b-cf88c901bf25)
+   <img src="https://github.com/user-attachments/assets/35418ff9-a571-4051-b68b-cf88c901bf25" alt="Configured Chat Settings Screenshot after adding the configuration to the MCP Server" width="400" />
 
 > 🔒 **Security Warning**: This setup is for development and sandboxing purposes only. Making your port public exposes your MCP server to the internet without authentication. Only work with public/sample data and never expose sensitive information this way. For production use, implement proper authentication, use private networking, and never make ports publicly accessible.
 
@@ -234,8 +236,6 @@ Once connected, try these example queries:
 "Generate an explore link for the customer dataset"
 "Run a SQL query: SELECT COUNT(*) FROM flights"
 ```
-
-![Screenshot of Interacting with a model + MCP in ModelContextChat.com](https://github.com/user-attachments/assets/19a51bbe-7157-4c70-a9e2-218315c2c1d1)
 
 ### Troubleshooting ModelContextChat
 
