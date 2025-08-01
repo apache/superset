@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Fragment, useState, useEffect, FC, PureComponent } from 'react';
+import { useState, useEffect, FC, PureComponent, useMemo } from 'react';
 import rison from 'rison';
 import { useSelector } from 'react-redux';
 import { Link } from 'react-router-dom';
@@ -34,12 +34,13 @@ import {
 import {
   Label,
   Tooltip,
-  ThemeSubMenu,
+  useThemeMenuItems,
   Menu,
   Icons,
   Typography,
   TelemetryPixel,
 } from '@superset-ui/core/components';
+import type { MenuItem } from '@superset-ui/core/components/Menu';
 import { ensureAppRoot } from 'src/utils/pathUtils';
 import { findPermission } from 'src/utils/findPermission';
 import { isUserAdmin } from 'src/dashboard/util/permissionUtils';
@@ -70,10 +71,6 @@ const versionInfoStyles = (theme: SupersetTheme) => css`
   white-space: nowrap;
 `;
 
-const styledDisabled = (theme: SupersetTheme) => css`
-  color: ${theme.colors.grayscale.light1};
-`;
-
 const StyledDiv = styled.div<{ align: string }>`
   display: flex;
   height: 100%;
@@ -99,27 +96,16 @@ const tagStyles = (theme: SupersetTheme) => css`
   color: ${theme.colors.grayscale.light5};
 `;
 
-const styledChildMenu = (theme: SupersetTheme) => css`
-  &:hover {
-    color: ${theme.colorPrimary} !important;
-    cursor: pointer !important;
-  }
-`;
-
-const { SubMenu } = Menu;
-
-const StyledSubMenu = styled(SubMenu)`
-  ${({ theme }) => css`
-    [data-icon='caret-down'] {
-      color: ${theme.colorIcon};
-      font-size: ${theme.fontSizeXS}px;
-      margin-left: ${theme.sizeUnit}px;
+const StyledMenuItem = styled.div<{ disabled?: boolean }>`
+  ${({ theme, disabled }) => css`
+    &&:hover {
+      color: ${!disabled && theme.colorPrimary};
+      cursor: ${!disabled ? 'pointer' : 'not-allowed'};
     }
-    &.ant-menu-submenu-active {
-      .ant-menu-title-content {
-        color: ${theme.colorPrimary};
-      }
-    }
+    ${disabled &&
+    css`
+      color: ${theme.colors.grayscale.light1};
+    `}
   `}
 `;
 
@@ -325,25 +311,23 @@ const RightMenu = ({
     "Enable 'Allow file uploads to database' in any database's settings",
   );
 
-  const buildMenuItem = (item: MenuObjectChildProps) =>
-    item.disable ? (
-      <Menu.Item key={item.name} css={styledDisabled} disabled>
+  const buildMenuItem = (item: MenuObjectChildProps): MenuItem => ({
+    key: item.name || item.label,
+    label: item.disable ? (
+      <StyledMenuItem disabled>
         <Tooltip placement="top" title={tooltipText}>
           {item.label}
         </Tooltip>
-      </Menu.Item>
+      </StyledMenuItem>
+    ) : item.url ? (
+      <Typography.Link href={ensureAppRoot(item.url)}>
+        {item.label}
+      </Typography.Link>
     ) : (
-      <Menu.Item key={item.name} css={styledChildMenu}>
-        {item.url ? (
-          <Typography.Link href={ensureAppRoot(item.url)}>
-            {' '}
-            {item.label}{' '}
-          </Typography.Link>
-        ) : (
-          item.label
-        )}
-      </Menu.Item>
-    );
+      item.label
+    ),
+    disabled: item.disable,
+  });
 
   const onMenuOpen = (openKeys: string[]) => {
     // We should query the API only if opening Data submenus
@@ -372,6 +356,251 @@ const RightMenu = ({
   const handleLogout = () => {
     localStorage.removeItem('redux');
   };
+
+  // Use the theme menu hook
+  const themeMenuItem = useThemeMenuItems({
+    setThemeMode,
+    themeMode,
+    hasLocalOverride: hasDevOverride(),
+    onClearLocalSettings: clearLocalOverrides,
+    allowOSPreference: canDetectOSPreference(),
+  });
+
+  // Build main menu items
+  const menuItems = useMemo(() => {
+    // Build menu items for the new dropdown
+    const buildNewDropdownItems = (): MenuItem[] => {
+      const items: MenuItem[] = [];
+
+      dropdownItems?.forEach(menu => {
+        const canShowChild = menu.childs?.some(
+          item => typeof item === 'object' && !!item.perm,
+        );
+
+        if (menu.childs) {
+          if (canShowChild) {
+            const childItems: MenuItem[] = [];
+            menu.childs.forEach((item, idx) => {
+              if (typeof item !== 'string' && item.name && item.perm) {
+                if (idx === 3) {
+                  childItems.push({ type: 'divider', key: `divider-${idx}` });
+                }
+                childItems.push(buildMenuItem(item));
+              }
+            });
+
+            items.push({
+              key: `sub2_${menu.label}`,
+              label: menu.label,
+              icon: menu.icon,
+              children: childItems,
+            });
+          } else if (menu.url) {
+            if (
+              findPermission(menu.perm as string, menu.view as string, roles)
+            ) {
+              items.push({
+                key: menu.label,
+                label: isFrontendRoute(menu.url) ? (
+                  <Link to={menu.url || ''}>
+                    {menu.icon} {menu.label}
+                  </Link>
+                ) : (
+                  <Typography.Link href={ensureAppRoot(menu.url || '')}>
+                    {menu.icon} {menu.label}
+                  </Typography.Link>
+                ),
+              });
+            }
+          }
+        } else if (
+          findPermission(menu.perm as string, menu.view as string, roles)
+        ) {
+          items.push({
+            key: menu.label,
+            label: isFrontendRoute(menu.url) ? (
+              <Link to={menu.url || ''}>
+                {menu.icon} {menu.label}
+              </Link>
+            ) : (
+              <Typography.Link href={ensureAppRoot(menu.url || '')}>
+                {menu.icon} {menu.label}
+              </Typography.Link>
+            ),
+          });
+        }
+      });
+
+      return items;
+    };
+
+    // Build settings menu items
+    const buildSettingsMenuItems = (): MenuItem[] => {
+      const items: MenuItem[] = [];
+
+      settings?.forEach((section, index) => {
+        const sectionItems: MenuItem[] = [];
+
+        section.childs?.forEach(child => {
+          if (typeof child !== 'string') {
+            const menuItemDisplay = RightMenuItemIconExtension ? (
+              <StyledMenuItemWithIcon>
+                {child.label}
+                <RightMenuItemIconExtension menuChild={child} />
+              </StyledMenuItemWithIcon>
+            ) : (
+              child.label
+            );
+
+            sectionItems.push({
+              key: child.label,
+              label: isFrontendRoute(child.url) ? (
+                <Link to={child.url || ''}>{menuItemDisplay}</Link>
+              ) : (
+                <Typography.Link href={child.url || ''}>
+                  {menuItemDisplay}
+                </Typography.Link>
+              ),
+            });
+          }
+        });
+
+        items.push({
+          type: 'group',
+          label: section.label,
+          key: section.label,
+          children: sectionItems,
+        });
+
+        if (index < settings.length - 1) {
+          items.push({ type: 'divider', key: `divider_${index}` });
+        }
+      });
+
+      if (!navbarRight.user_is_anonymous) {
+        items.push({ type: 'divider', key: 'user-divider' });
+
+        const userItems: MenuItem[] = [];
+        if (navbarRight.user_info_url) {
+          userItems.push({
+            key: 'info',
+            label: (
+              <Typography.Link href={navbarRight.user_info_url}>
+                {t('Info')}
+              </Typography.Link>
+            ),
+          });
+        }
+        userItems.push({
+          key: 'logout',
+          label: (
+            <Typography.Link href={navbarRight.user_logout_url}>
+              {t('Logout')}
+            </Typography.Link>
+          ),
+          onClick: handleLogout,
+        });
+
+        items.push({
+          type: 'group',
+          label: t('User'),
+          key: 'user-section',
+          children: userItems,
+        });
+      }
+
+      if (navbarRight.version_string || navbarRight.version_sha) {
+        items.push({ type: 'divider', key: 'version-info-divider' });
+
+        items.push({
+          type: 'group',
+          label: t('About'),
+          key: 'about-section',
+          children: [
+            {
+              key: 'about-info',
+              label: (
+                <div className="about-section">
+                  {navbarRight.show_watermark && (
+                    <div css={versionInfoStyles}>
+                      {t('Powered by Apache Superset')}
+                    </div>
+                  )}
+                  {navbarRight.version_string && (
+                    <div css={versionInfoStyles}>
+                      {t('Version')}: {navbarRight.version_string}
+                    </div>
+                  )}
+                  {navbarRight.version_sha && (
+                    <div css={versionInfoStyles}>
+                      {t('SHA')}: {navbarRight.version_sha}
+                    </div>
+                  )}
+                  {navbarRight.build_number && (
+                    <div css={versionInfoStyles}>
+                      {t('Build')}: {navbarRight.build_number}
+                    </div>
+                  )}
+                </div>
+              ),
+            },
+          ],
+        });
+      }
+
+      return items;
+    };
+
+    const items: MenuItem[] = [];
+
+    if (RightMenuExtension) {
+      items.push({
+        key: 'extension',
+        label: <RightMenuExtension />,
+      });
+    }
+
+    if (!navbarRight.user_is_anonymous && showActionDropdown) {
+      items.push({
+        key: 'new-dropdown',
+        label: (
+          <Icons.PlusOutlined
+            iconColor={theme.colorPrimary}
+            data-test="new-dropdown-icon"
+          />
+        ),
+        icon: <Icons.CaretDownOutlined iconSize="xs" />,
+        children: buildNewDropdownItems(),
+        ...{ 'data-test': 'new-dropdown' },
+      });
+    }
+
+    if (canSetMode()) {
+      items.push(themeMenuItem);
+    }
+
+    items.push({
+      key: 'settings',
+      label: t('Settings'),
+      icon: <Icons.CaretDownOutlined iconSize="xs" />,
+      children: buildSettingsMenuItems(),
+    });
+
+    return items;
+  }, [
+    RightMenuExtension,
+    navbarRight,
+    showActionDropdown,
+    canSetMode,
+    theme.colorPrimary,
+    themeMenuItem,
+    dropdownItems,
+    roles,
+    settings,
+    RightMenuItemIconExtension,
+    buildMenuItem,
+    handleLogout,
+  ]);
 
   return (
     <StyledDiv align={align}>
@@ -430,170 +659,14 @@ const RightMenu = ({
         onClick={handleMenuSelection}
         onOpenChange={onMenuOpen}
         disabledOverflow
-      >
-        {RightMenuExtension && <RightMenuExtension />}
-        {!navbarRight.user_is_anonymous && showActionDropdown && (
-          <StyledSubMenu
-            key="sub1"
-            data-test="new-dropdown"
-            title={
-              <Icons.PlusOutlined
-                iconColor={theme.colorPrimary}
-                data-test="new-dropdown-icon"
-              />
-            }
-            icon={<Icons.CaretDownOutlined iconSize="xs" />}
-          >
-            {dropdownItems?.map?.(menu => {
-              const canShowChild = menu.childs?.some(
-                item => typeof item === 'object' && !!item.perm,
-              );
-              if (menu.childs) {
-                if (canShowChild) {
-                  return (
-                    <StyledSubMenu
-                      key={`sub2_${menu.label}`}
-                      className="data-menu"
-                      title={menu.label}
-                      icon={menu.icon}
-                    >
-                      {menu?.childs?.map?.((item, idx) =>
-                        typeof item !== 'string' && item.name && item.perm ? (
-                          <Fragment key={item.name}>
-                            {idx === 3 && <Menu.Divider />}
-                            {buildMenuItem(item)}
-                          </Fragment>
-                        ) : null,
-                      )}
-                    </StyledSubMenu>
-                  );
-                }
-                if (!menu.url) {
-                  return null;
-                }
-              }
-              return (
-                findPermission(
-                  menu.perm as string,
-                  menu.view as string,
-                  roles,
-                ) && (
-                  <Menu.Item key={menu.label}>
-                    {isFrontendRoute(menu.url) ? (
-                      <Link to={menu.url || ''}>
-                        {menu.icon} {menu.label}
-                      </Link>
-                    ) : (
-                      <Typography.Link href={ensureAppRoot(menu.url || '')}>
-                        {menu.icon} {menu.label}
-                      </Typography.Link>
-                    )}
-                  </Menu.Item>
-                )
-              );
-            })}
-          </StyledSubMenu>
-        )}
-
-        {canSetMode() && (
-          <ThemeSubMenu
-            setThemeMode={setThemeMode}
-            themeMode={themeMode}
-            hasLocalOverride={hasDevOverride()}
-            onClearLocalSettings={clearLocalOverrides}
-            allowOSPreference={canDetectOSPreference()}
-          />
-        )}
-
-        <StyledSubMenu
-          key="sub3_settings"
-          title={t('Settings')}
-          icon={<Icons.CaretDownOutlined iconSize="xs" />}
-        >
-          {settings?.map?.((section, index) => [
-            <Menu.ItemGroup key={`${section.label}`} title={section.label}>
-              {section?.childs?.map?.(child => {
-                if (typeof child !== 'string') {
-                  const menuItemDisplay = RightMenuItemIconExtension ? (
-                    <StyledMenuItemWithIcon>
-                      {child.label}
-                      <RightMenuItemIconExtension menuChild={child} />
-                    </StyledMenuItemWithIcon>
-                  ) : (
-                    child.label
-                  );
-                  return (
-                    <Menu.Item key={`${child.label}`}>
-                      {isFrontendRoute(child.url) ? (
-                        <Link to={child.url || ''}>{menuItemDisplay}</Link>
-                      ) : (
-                        <Typography.Link href={child.url || ''}>
-                          {menuItemDisplay}
-                        </Typography.Link>
-                      )}
-                    </Menu.Item>
-                  );
-                }
-                return null;
-              })}
-            </Menu.ItemGroup>,
-            index < settings.length - 1 && (
-              <Menu.Divider key={`divider_${index}`} />
-            ),
-          ])}
-
-          {!navbarRight.user_is_anonymous && [
-            <Menu.Divider key="user-divider" />,
-            <Menu.ItemGroup key="user-section" title={t('User')}>
-              {navbarRight.user_info_url && (
-                <Menu.Item key="info">
-                  <Typography.Link href={navbarRight.user_info_url}>
-                    {t('Info')}
-                  </Typography.Link>
-                </Menu.Item>
-              )}
-              <Menu.Item key="logout" onClick={handleLogout}>
-                <Typography.Link href={navbarRight.user_logout_url}>
-                  {t('Logout')}
-                </Typography.Link>
-              </Menu.Item>
-            </Menu.ItemGroup>,
-          ]}
-          {(navbarRight.version_string || navbarRight.version_sha) && [
-            <Menu.Divider key="version-info-divider" />,
-            <Menu.ItemGroup key="about-section" title={t('About')}>
-              <div className="about-section">
-                {navbarRight.show_watermark && (
-                  <div css={versionInfoStyles}>
-                    {t('Powered by Apache Superset')}
-                  </div>
-                )}
-                {navbarRight.version_string && (
-                  <div css={versionInfoStyles}>
-                    {t('Version')}: {navbarRight.version_string}
-                  </div>
-                )}
-                {navbarRight.version_sha && (
-                  <div css={versionInfoStyles}>
-                    {t('SHA')}: {navbarRight.version_sha}
-                  </div>
-                )}
-                {navbarRight.build_number && (
-                  <div css={versionInfoStyles}>
-                    {t('Build')}: {navbarRight.build_number}
-                  </div>
-                )}
-              </div>
-            </Menu.ItemGroup>,
-          ]}
-        </StyledSubMenu>
-        {navbarRight.show_language_picker && (
-          <LanguagePicker
-            locale={navbarRight.locale}
-            languages={navbarRight.languages}
-          />
-        )}
-      </Menu>
+        items={menuItems}
+      />
+      {navbarRight.show_language_picker && (
+        <LanguagePicker
+          locale={navbarRight.locale}
+          languages={navbarRight.languages}
+        />
+      )}
       {navbarRight.documentation_url && (
         <>
           <StyledAnchor
