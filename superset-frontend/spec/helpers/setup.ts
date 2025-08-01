@@ -22,12 +22,13 @@ import React from 'react';
 // eslint-disable-next-line no-restricted-imports
 import { configure as configureTestingLibrary } from '@testing-library/react';
 import { matchers } from '@emotion/jest';
+import { DEFAULT_BOOTSTRAP_DATA } from 'src/constants';
 
 configureTestingLibrary({
   testIdAttribute: 'data-test',
 });
 
-document.body.innerHTML = '<div id="app" data-bootstrap=""></div>';
+document.body.innerHTML = `<div id="app" data-bootstrap="${JSON.stringify(DEFAULT_BOOTSTRAP_DATA).replace(/"/g, '&quot;')}"></div>`;
 expect.extend(matchers);
 
 // Allow JSX tests to have React import readily available
