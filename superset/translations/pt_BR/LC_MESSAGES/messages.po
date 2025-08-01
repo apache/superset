@@ -6048,7 +6048,7 @@ msgstr "Imagem (PNG) incorporada no e-mail"
 msgid "Image download failed, please refresh and try again."
 msgstr "Falha no download da imagem, por favor atualizar e tentar novamente."
 
-msgid "Impersonate logged in user (Presto, Trino, Drill, Hive, and GSheets)"
+msgid "Impersonate logged in user (Presto, Trino, Drill, Hive, and Google Sheets)"
 msgstr ""
 "Fazer-se passar por usuário conectado (Presto, Trino, Drill, Hive e "
 "GSheets)"
@@ -9652,7 +9652,7 @@ msgstr "Selecione o método de entrega"
 msgid "Select Tags"
 msgstr "Desmarcar tudo"
 
-msgid "Select Viz Type"
+msgid "Select chart type"
 msgstr "Selecione o tipo de visualização"
 
 msgid "Select a column"
@@ -13903,7 +13903,7 @@ msgstr "Classificação do Eixo X Por"
 msgid "X-axis"
 msgstr "Eixo X"
 
-msgid "XScale Interval"
+msgid "X-scale interval"
 msgstr "Intervalo XScale"
 
 msgid "XYZ"
@@ -13962,7 +13962,7 @@ msgstr "Eixo Y"
 msgid "Y-axis bounds"
 msgstr "Eixo Y limites"
 
-msgid "YScale Interval"
+msgid "Y-scale interval"
 msgstr "Intervalo da escala Y"
 
 msgid "Year"

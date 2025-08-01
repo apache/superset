@@ -5525,7 +5525,7 @@ msgstr "メールに埋め込まれた画像(PNG)"
 msgid "Image download failed, please refresh and try again."
 msgstr "イメージのダウンロードに失敗しました。更新して再試行してください。"
 
-msgid "Impersonate logged in user (Presto, Trino, Drill, Hive, and GSheets)"
+msgid "Impersonate logged in user (Presto, Trino, Drill, Hive, and Google Sheets)"
 msgstr "ログインユーザーの偽装 (Presto、Trino、Drill、Hive、および GSheets)"
 
 msgid "Import"
@@ -8881,7 +8881,7 @@ msgstr "配送方法の選択"
 msgid "Select Tags"
 msgstr "タグの選択"
 
-msgid "Select Viz Type"
+msgid "Select chart type"
 msgstr "Viz タイプの選択"
 
 msgid "Select a column"
@@ -12661,7 +12661,7 @@ msgstr "X 軸の並べ替え"
 msgid "X-axis"
 msgstr "X軸"
 
-msgid "XScale Interval"
+msgid "X-scale interval"
 msgstr "XSスケール間隔"
 
 msgid "XYZ"
@@ -12718,7 +12718,7 @@ msgstr "Y軸"
 msgid "Y-axis bounds"
 msgstr "Y 軸の境界"
 
-msgid "YScale Interval"
+msgid "Y-scale interval"
 msgstr "Yスケール間隔"
 
 msgid "Year"

@@ -5974,7 +5974,7 @@ msgstr ""
 "Afbeelding downloaden mislukt, gelieve te vernieuwen en probeer het "
 "opnieuw."
 
-msgid "Impersonate logged in user (Presto, Trino, Drill, Hive, and GSheets)"
+msgid "Impersonate logged in user (Presto, Trino, Drill, Hive, and Google Sheets)"
 msgstr "Inloggen als ingelogde gebruiker (Presto, Trino, Drill, Hive en GSheets)"
 
 msgid "Import"
@@ -9513,7 +9513,7 @@ msgstr "Selecteer verzendmethode"
 msgid "Select Tags"
 msgstr "Selecteer Tags"
 
-msgid "Select Viz Type"
+msgid "Select chart type"
 msgstr "Selecteer Viz Type"
 
 msgid "Select a column"
@@ -13731,7 +13731,7 @@ msgstr "X-as Sorteren Op"
 msgid "X-axis"
 msgstr "X-as"
 
-msgid "XScale Interval"
+msgid "X-scale interval"
 msgstr "XSchaal Interval"
 
 msgid "XYZ"
@@ -13789,7 +13789,7 @@ msgstr "Y-as"
 msgid "Y-axis bounds"
 msgstr "Y-as grenzen"
 
-msgid "YScale Interval"
+msgid "Y-scale interval"
 msgstr "YSchaal Interval"
 
 msgid "Year"
