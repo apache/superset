@@ -21,10 +21,10 @@ import logging
 import re
 from datetime import datetime
 from re import Pattern
-from typing import Any, Optional, TYPE_CHECKING
+from typing import Any, Callable, Optional, TYPE_CHECKING
 
 from flask_babel import gettext as __
-from sqlalchemy.dialects.postgresql import DOUBLE_PRECISION, ENUM, JSON
+from sqlalchemy.dialects.postgresql import DOUBLE_PRECISION, ENUM, INTERVAL, JSON
 from sqlalchemy.dialects.postgresql.base import PGInspector
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.url import URL
@@ -489,7 +489,16 @@ class PostgresEngineSpec(BasicParametersMixin, PostgresBaseEngineSpec):
             ENUM(),
             GenericDataType.STRING,
         ),
+        (
+            re.compile(r"^interval", re.IGNORECASE),
+            INTERVAL(),
+            GenericDataType.NUMERIC,
+        ),
     )
+
+    column_type_mutators: dict[Any, Callable[[Any], Any]] = {
+        INTERVAL: lambda v: v.total_seconds() if hasattr(v, "total_seconds") else v,
+    }
 
     @classmethod
     def get_schema_from_engine_params(

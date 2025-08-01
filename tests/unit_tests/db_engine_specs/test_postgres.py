@@ -15,13 +15,13 @@
 # specific language governing permissions and limitations
 # under the License.
 
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Any, Optional
 
 import pytest
 from pytest_mock import MockerFixture
 from sqlalchemy import column, types
-from sqlalchemy.dialects.postgresql import DOUBLE_PRECISION, ENUM, JSON
+from sqlalchemy.dialects.postgresql import DOUBLE_PRECISION, ENUM, INTERVAL, JSON
 from sqlalchemy.engine.interfaces import Dialect
 from sqlalchemy.engine.url import make_url
 
@@ -280,3 +280,18 @@ SELECT * \nFROM my_schema.my_table
  LIMIT :param_1
     """.strip()
     )
+
+
+def test_interval_type_mutator() -> None:
+    """
+    DB Eng Specs (postgres): Test INTERVAL type mutator
+    """
+    # Test timedelta conversion
+    td = timedelta(days=1, hours=2, minutes=30, seconds=45)
+    mutator = spec.column_type_mutators[INTERVAL]
+    assert mutator(td) == 95445.0  # Total seconds: 1*86400 + 2*3600 + 30*60 + 45
+
+    # Test that non-timedelta values pass through unchanged
+    assert mutator("not a timedelta") == "not a timedelta"
+    assert mutator(12345) == 12345
+    assert mutator(None) is None
