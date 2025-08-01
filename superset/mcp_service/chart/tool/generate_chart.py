@@ -271,9 +271,25 @@ def generate_chart(request: GenerateChartRequest) -> Dict[str, Any]:  # noqa: C9
                                 generate_preview_from_form_data,
                             )
 
+                            # Convert dataset_id to int only if it's numeric
+                            if (
+                                isinstance(request.dataset_id, str)
+                                and request.dataset_id.isdigit()
+                            ):
+                                dataset_id_for_preview = int(request.dataset_id)
+                            elif isinstance(request.dataset_id, int):
+                                dataset_id_for_preview = request.dataset_id
+                            else:
+                                # Skip preview generation for non-numeric dataset IDs
+                                logger.warning(
+                                    f"Cannot generate preview for non-numeric "
+                                    f"dataset_id: {request.dataset_id}"
+                                )
+                                continue
+
                             preview_result = generate_preview_from_form_data(
                                 form_data=form_data,
-                                dataset_id=int(request.dataset_id),
+                                dataset_id=dataset_id_for_preview,
                                 preview_format=format_type,
                             )
 
