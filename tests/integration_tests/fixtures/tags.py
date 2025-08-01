@@ -32,6 +32,9 @@ def with_tagging_system_feature():
         yield
         app.config["DEFAULT_FEATURE_FLAGS"]["TAGGING_SYSTEM"] = False
         clear_sqla_event_listeners()
+    else:
+        # Add yield when feature is already enabled
+        yield
 
 
 @pytest.fixture
