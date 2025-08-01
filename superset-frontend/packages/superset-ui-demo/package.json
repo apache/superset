@@ -60,7 +60,7 @@
     "babel-loader": "^10.0.0",
     "fork-ts-checker-webpack-plugin": "^9.1.0",
     "ts-loader": "^9.5.2",
-    "typescript": "^5.7.2"
+    "typescript": "^5.9.2"
   },
   "peerDependencies": {
     "@encodable/color": "=1.1.1",
