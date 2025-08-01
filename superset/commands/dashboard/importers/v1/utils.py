@@ -147,7 +147,9 @@ def update_cross_filter_scoping(
     config: dict[str, Any], id_map: dict[int, int]
 ) -> dict[str, Any]:
     # fix cross filter references
-    cross_filter_global_config = config.get("metadata", {}).get(
+    fixed = config.copy()
+
+    cross_filter_global_config = fixed.get("metadata", {}).get(
         "global_chart_configuration", {}
     )
     scope_excluded = cross_filter_global_config.get("scope", {}).get("excluded", [])
@@ -156,7 +158,7 @@ def update_cross_filter_scoping(
             id_map[old_id] for old_id in scope_excluded if old_id in id_map
         ]
 
-    if "chart_configuration" in (metadata := config.get("metadata", {})):
+    if "chart_configuration" in (metadata := fixed.get("metadata", {})):
         # in cross_filter_scopes the key is the chart ID as a string; we need to update
         # them to be the new ID as a string:
         metadata["chart_configuration"] = {
@@ -168,16 +170,17 @@ def update_cross_filter_scoping(
         for excluded_charts in metadata["chart_configuration"].values():
             if "id" in excluded_charts and excluded_charts["id"] in id_map:
                 excluded_charts["id"] = id_map[excluded_charts["id"]]
-            scope_excluded = (
-                excluded_charts.get("crossFilters", {})
-                .get("scope", {})
-                .get("excluded", [])
-            )
-            if scope_excluded:
+            scope = excluded_charts.get("crossFilters", {}).get("scope", {})
+
+            if not isinstance(scope, dict):
+                continue
+
+            excluded_scope = scope.get("excluded", [])
+            if excluded_scope:
                 excluded_charts["crossFilters"]["scope"]["excluded"] = [
-                    id_map[old_id] for old_id in scope_excluded if old_id in id_map
+                    id_map[old_id] for old_id in excluded_scope if old_id in id_map
                 ]
-    return config
+    return fixed
 
 
 def import_dashboard(  # noqa: C901
