@@ -18,11 +18,12 @@ import logging
 import os
 
 import pandas as pd
+from flask import current_app
 from sqlalchemy import DateTime, inspect, String
 from sqlalchemy.sql import column
 
 import superset.utils.database
-from superset import app, db
+from superset import db
 from superset.connectors.sqla.models import BaseDatasource, SqlMetric
 from superset.examples.helpers import (
     get_examples_folder,
@@ -155,7 +156,7 @@ def create_slices(tbl: BaseDatasource) -> list[Slice]:
         "limit": "25",
         "granularity_sqla": "year",
         "groupby": [],
-        "row_limit": app.config["ROW_LIMIT"],
+        "row_limit": current_app.config["ROW_LIMIT"],
         "since": "2014-01-01",
         "until": "2014-01-02",
         "time_range": "2014-01-01 : 2014-01-02",

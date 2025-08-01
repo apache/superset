@@ -42,7 +42,7 @@ import requests
 from apispec import APISpec
 from apispec.ext.marshmallow import MarshmallowPlugin
 from deprecation import deprecated
-from flask import current_app, g, url_for
+from flask import current_app as app, g, url_for
 from flask_appbuilder.security.sqla.models import User
 from flask_babel import gettext as __, lazy_gettext as _
 from marshmallow import fields, Schema
@@ -459,7 +459,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     def is_oauth2_enabled(cls) -> bool:
         return (
             cls.supports_oauth2
-            and cls.engine_name in current_app.config["DATABASE_OAUTH2_CLIENTS"]
+            and cls.engine_name in app.config["DATABASE_OAUTH2_CLIENTS"]
         )
 
     @classmethod
@@ -512,12 +512,12 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         """
         Build the DB engine spec level OAuth2 client config.
         """
-        oauth2_config = current_app.config["DATABASE_OAUTH2_CLIENTS"]
+        oauth2_config = app.config["DATABASE_OAUTH2_CLIENTS"]
         if cls.engine_name not in oauth2_config:
             return None
 
         db_engine_spec_config = oauth2_config[cls.engine_name]
-        redirect_uri = current_app.config.get(
+        redirect_uri = app.config.get(
             "DATABASE_OAUTH2_REDIRECT_URI",
             url_for("DatabaseRestApi.oauth2", _external=True),
         )
@@ -573,7 +573,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         """
         Exchange authorization code for refresh/access tokens.
         """
-        timeout = current_app.config["DATABASE_OAUTH2_TIMEOUT"].total_seconds()
+        timeout = app.config["DATABASE_OAUTH2_TIMEOUT"].total_seconds()
         uri = config["token_request_uri"]
         req_body = {
             "code": code,
@@ -595,7 +595,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         """
         Refresh an access token that has expired.
         """
-        timeout = current_app.config["DATABASE_OAUTH2_TIMEOUT"].total_seconds()
+        timeout = app.config["DATABASE_OAUTH2_TIMEOUT"].total_seconds()
         uri = config["token_request_uri"]
         req_body = {
             "client_id": config["id"],
@@ -871,7 +871,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
 
         ret_list = []
         time_grains = builtin_time_grains.copy()
-        time_grains.update(current_app.config["TIME_GRAIN_ADDONS"])
+        time_grains.update(app.config["TIME_GRAIN_ADDONS"])
         for duration, func in cls.get_time_grain_expressions().items():
             if duration in time_grains:
                 name = time_grains[duration]
@@ -950,9 +950,9 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         """
         # TODO: use @memoize decorator or similar to avoid recomputation on every call
         time_grain_expressions = cls._time_grain_expressions.copy()
-        grain_addon_expressions = current_app.config["TIME_GRAIN_ADDON_EXPRESSIONS"]
+        grain_addon_expressions = app.config["TIME_GRAIN_ADDON_EXPRESSIONS"]
         time_grain_expressions.update(grain_addon_expressions.get(cls.engine, {}))
-        denylist: list[str] = current_app.config["TIME_GRAIN_DENYLIST"]
+        denylist: list[str] = app.config["TIME_GRAIN_DENYLIST"]
         for key in denylist:
             time_grain_expressions.pop(key, None)
 
@@ -2235,7 +2235,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
 
         :param sqlalchemy_uri:
         """
-        if db_engine_uri_validator := current_app.config["DB_SQLA_URI_VALIDATOR"]:
+        if db_engine_uri_validator := app.config["DB_SQLA_URI_VALIDATOR"]:
             db_engine_uri_validator(sqlalchemy_uri)
 
         if existing_disallowed := cls.disallow_uri_query_params.get(

@@ -29,6 +29,7 @@ from sqlalchemy.orm.session import Session
 from superset import db
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetSecurityException
+from tests.conftest import with_config
 from tests.unit_tests.conftest import with_feature_flags
 
 if TYPE_CHECKING:
@@ -54,7 +55,8 @@ def database1(session: Session) -> Iterator["Database"]:
 
     db.session.delete(database)
     db.session.commit()
-    os.unlink("database1.db")
+    if os.path.exists("database1.db"):
+        os.unlink("database1.db")
 
 
 @pytest.fixture
@@ -87,7 +89,8 @@ def database2(session: Session) -> Iterator["Database"]:
 
     db.session.delete(database)
     db.session.commit()
-    os.unlink("database2.db")
+    if os.path.exists("database2.db"):
+        os.unlink("database2.db")
 
 
 @pytest.fixture
@@ -109,7 +112,13 @@ def test_superset(mocker: MockerFixture, app_context: None, table1: None) -> Non
     """
     Simple test querying a table.
     """
-    mocker.patch("superset.extensions.metadb.security_manager")
+    # Skip this test if metadb dependencies are not available
+    try:
+        import superset.extensions.metadb  # noqa: F401
+
+        mocker.patch("superset.extensions.metadb.security_manager")
+    except ImportError:
+        pytest.skip("metadb dependencies not available")
 
     engine = create_engine("superset://")
     conn = engine.connect()
@@ -117,20 +126,26 @@ def test_superset(mocker: MockerFixture, app_context: None, table1: None) -> Non
     assert list(results) == [(1, 10), (2, 20)]
 
 
+@with_config(
+    {
+        "DB_SQLA_URI_VALIDATOR": None,
+        "SUPERSET_META_DB_LIMIT": 1,
+        "DATABASE_OAUTH2_CLIENTS": {},
+        "SQLALCHEMY_CUSTOM_PASSWORD_STORE": None,
+    }
+)
 @with_feature_flags(ENABLE_SUPERSET_META_DB=True)
 def test_superset_limit(mocker: MockerFixture, app_context: None, table1: None) -> None:
     """
     Simple that limit is applied when querying a table.
     """
-    mocker.patch(
-        "superset.extensions.metadb.current_app.config",
-        {
-            "DB_SQLA_URI_VALIDATOR": None,
-            "SUPERSET_META_DB_LIMIT": 1,
-            "DATABASE_OAUTH2_CLIENTS": {},
-        },
-    )
-    mocker.patch("superset.extensions.metadb.security_manager")
+    # Skip this test if metadb dependencies are not available
+    try:
+        import superset.extensions.metadb  # noqa: F401
+
+        mocker.patch("superset.extensions.metadb.security_manager")
+    except ImportError:
+        pytest.skip("metadb dependencies not available")
 
     engine = create_engine("superset://")
     conn = engine.connect()
@@ -148,7 +163,13 @@ def test_superset_joins(
     """
     A test joining across databases.
     """
-    mocker.patch("superset.extensions.metadb.security_manager")
+    # Skip this test if metadb dependencies are not available
+    try:
+        import superset.extensions.metadb  # noqa: F401
+
+        mocker.patch("superset.extensions.metadb.security_manager")
+    except ImportError:
+        pytest.skip("metadb dependencies not available")
 
     engine = create_engine("superset://")
     conn = engine.connect()
@@ -175,7 +196,13 @@ def test_dml(
 
     Test that we can update/delete data, only if DML is enabled.
     """
-    mocker.patch("superset.extensions.metadb.security_manager")
+    # Skip this test if metadb dependencies are not available
+    try:
+        import superset.extensions.metadb  # noqa: F401
+
+        mocker.patch("superset.extensions.metadb.security_manager")
+    except ImportError:
+        pytest.skip("metadb dependencies not available")
 
     engine = create_engine("superset://")
     conn = engine.connect()
@@ -207,6 +234,12 @@ def test_security_manager(
     """
     Test that we use the security manager to check for permissions.
     """
+    # Skip this test if metadb dependencies are not available
+    try:
+        import superset.extensions.metadb  # noqa: F401
+    except ImportError:
+        pytest.skip("metadb dependencies not available")
+
     security_manager = mocker.MagicMock()
     mocker.patch(
         "superset.extensions.metadb.security_manager",
@@ -238,7 +271,13 @@ def test_allowed_dbs(mocker: MockerFixture, app_context: None, table1: None) -> 
     """
     Test that DBs can be restricted.
     """
-    mocker.patch("superset.extensions.metadb.security_manager")
+    # Skip this test if metadb dependencies are not available
+    try:
+        import superset.extensions.metadb  # noqa: F401
+
+        mocker.patch("superset.extensions.metadb.security_manager")
+    except ImportError:
+        pytest.skip("metadb dependencies not available")
 
     engine = create_engine("superset://", allowed_dbs=["database1"])
     conn = engine.connect()

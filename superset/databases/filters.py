@@ -23,7 +23,7 @@ from sqlalchemy.orm import Query
 from sqlalchemy.sql.expression import cast
 from sqlalchemy.sql.sqltypes import JSON
 
-from superset import app, security_manager
+from superset import security_manager
 from superset.models.core import Database
 from superset.views.base import BaseFilter
 
@@ -91,7 +91,7 @@ class DatabaseUploadEnabledFilter(BaseFilter):  # pylint: disable=too-few-public
 
         if hasattr(g, "user"):
             allowed_schemas = [
-                app.config["ALLOWED_USER_CSV_SCHEMA_FUNC"](database, g.user)
+                current_app.config["ALLOWED_USER_CSV_SCHEMA_FUNC"](database, g.user)
                 for database in datasource_access_databases
             ]
 

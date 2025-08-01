@@ -27,7 +27,7 @@ from apispec import APISpec
 from apispec.ext.marshmallow import MarshmallowPlugin
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import serialization
-from flask import current_app
+from flask import current_app as app
 from flask_babel import gettext as __
 from marshmallow import fields, Schema
 from sqlalchemy import types
@@ -411,9 +411,9 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
             )
             connect_args["private_key"] = pkb
         else:
-            allowed_extra_auths = current_app.config[
-                "ALLOWED_EXTRA_AUTHENTICATIONS"
-            ].get("snowflake", {})
+            allowed_extra_auths = app.config["ALLOWED_EXTRA_AUTHENTICATIONS"].get(
+                "snowflake", {}
+            )
             if auth_method in allowed_extra_auths:
                 snowflake_auth = allowed_extra_auths.get(auth_method)
             else:

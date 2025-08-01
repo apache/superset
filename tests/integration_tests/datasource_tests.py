@@ -22,8 +22,9 @@ from unittest import mock
 
 import prison
 import pytest
+from flask import current_app
 
-from superset import app, db
+from superset import db
 from superset.commands.dataset.exceptions import DatasetNotFoundError
 from superset.common.utils.query_cache_manager import QueryCacheManager
 from superset.connectors.sqla.models import (  # noqa: F401
@@ -212,7 +213,7 @@ class TestDatasource(SupersetTestCase):
     def test_external_metadata_by_name_for_virtual_table_uses_mutator(self):
         self.login(ADMIN_USERNAME)
         with create_and_cleanup_table() as tbl:
-            app.config["SQL_QUERY_MUTATOR"] = (
+            current_app.config["SQL_QUERY_MUTATOR"] = (
                 lambda sql, **kwargs: "SELECT 456 as intcol, 'def' as mutated_strcol"
             )
 
@@ -229,7 +230,7 @@ class TestDatasource(SupersetTestCase):
             url = f"/datasource/external_metadata_by_name/?q={params}"
             resp = self.get_json_resp(url)
             assert {o.get("column_name") for o in resp} == {"intcol", "mutated_strcol"}
-            app.config["SQL_QUERY_MUTATOR"] = None
+            current_app.config["SQL_QUERY_MUTATOR"] = None
 
     def test_external_metadata_by_name_from_sqla_inspector(self):
         self.login(ADMIN_USERNAME)
@@ -484,12 +485,12 @@ class TestDatasource(SupersetTestCase):
         def my_check(datasource):
             return "Warning message!"
 
-        app.config["DATASET_HEALTH_CHECK"] = my_check
+        current_app.config["DATASET_HEALTH_CHECK"] = my_check
         self.login(ADMIN_USERNAME)
         tbl = self.get_table(name="birth_names")
         datasource = db.session.query(SqlaTable).filter_by(id=tbl.id).one_or_none()
         assert datasource.health_check_message == "Warning message!"
-        app.config["DATASET_HEALTH_CHECK"] = None
+        current_app.config["DATASET_HEALTH_CHECK"] = None
 
     def test_get_datasource_failed(self):
         from superset.daos.datasource import DatasourceDAO
@@ -557,7 +558,7 @@ def test_get_samples(test_client, login_as_admin, virtual_dataset):
 
     sql = (
         f"select * from ({virtual_dataset.sql}) as tbl "  # noqa: S608
-        f"limit {app.config['SAMPLES_ROW_LIMIT']}"
+        f"limit {current_app.config['SAMPLES_ROW_LIMIT']}"
     )
     eager_samples = virtual_dataset.database.get_df(sql)
 
@@ -668,7 +669,7 @@ def test_get_samples_with_time_filter(test_client, login_as_admin, physical_data
             946857600000.0,  # 2000-01-03 00:00:00
         ]
     assert rv.json["result"]["page"] == 1
-    assert rv.json["result"]["per_page"] == app.config["SAMPLES_ROW_LIMIT"]
+    assert rv.json["result"]["per_page"] == current_app.config["SAMPLES_ROW_LIMIT"]
     assert rv.json["result"]["total_count"] == 2
 
 
@@ -716,11 +717,11 @@ def test_get_samples_pagination(test_client, login_as_admin, virtual_dataset):
     )
     rv = test_client.post(uri, json={})
     assert rv.json["result"]["page"] == 1
-    assert rv.json["result"]["per_page"] == app.config["SAMPLES_ROW_LIMIT"]
+    assert rv.json["result"]["per_page"] == current_app.config["SAMPLES_ROW_LIMIT"]
     assert rv.json["result"]["total_count"] == 10
 
     # 2. incorrect per_page
-    per_pages = (app.config["SAMPLES_ROW_LIMIT"] + 1, 0, "xx")
+    per_pages = (current_app.config["SAMPLES_ROW_LIMIT"] + 1, 0, "xx")
     for per_page in per_pages:
         uri = f"/datasource/samples?datasource_id={virtual_dataset.id}&datasource_type=table&per_page={per_page}"  # noqa: E501
         rv = test_client.post(uri, json={})

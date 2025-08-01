@@ -230,7 +230,7 @@ class TestThumbnails(SupersetTestCase):
         self.login(ALPHA_USERNAME)
         with (
             patch.dict(
-                "superset.thumbnails.digest.current_app.config",
+                "flask.current_app.config",
                 {
                     "THUMBNAIL_EXECUTORS": [FixedExecutor(ADMIN_USERNAME)],
                 },
@@ -258,7 +258,7 @@ class TestThumbnails(SupersetTestCase):
         self.login(username)
         with (
             patch.dict(
-                "superset.thumbnails.digest.current_app.config",
+                "flask.current_app.config",
                 {
                     "THUMBNAIL_EXECUTORS": [ExecutorType.CURRENT_USER],
                 },
@@ -308,7 +308,7 @@ class TestThumbnails(SupersetTestCase):
         self.login(ADMIN_USERNAME)
         with (
             patch.dict(
-                "superset.thumbnails.digest.current_app.config",
+                "flask.current_app.config",
                 {
                     "THUMBNAIL_EXECUTORS": [FixedExecutor(ADMIN_USERNAME)],
                 },
@@ -336,7 +336,7 @@ class TestThumbnails(SupersetTestCase):
         self.login(username)
         with (
             patch.dict(
-                "superset.thumbnails.digest.current_app.config",
+                "flask.current_app.config",
                 {
                     "THUMBNAIL_EXECUTORS": [ExecutorType.CURRENT_USER],
                 },

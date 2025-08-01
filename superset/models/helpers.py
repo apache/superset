@@ -35,7 +35,7 @@ import pandas as pd
 import pytz
 import sqlalchemy as sa
 import yaml
-from flask import g
+from flask import current_app as app, g
 from flask_appbuilder import Model
 from flask_appbuilder.models.decorators import renders
 from flask_appbuilder.models.mixins import AuditMixin
@@ -52,7 +52,7 @@ from sqlalchemy.sql.expression import Label, Select, TextAsFrom
 from sqlalchemy.sql.selectable import Alias, TableClause
 from sqlalchemy_utils import UUIDType
 
-from superset import app, db, is_feature_enabled
+from superset import db, is_feature_enabled
 from superset.advanced_data_type.types import AdvancedDataTypeResponse
 from superset.common.db_query_status import QueryStatus
 from superset.common.utils.time_range_utils import get_since_until_from_time_range
@@ -96,13 +96,10 @@ if TYPE_CHECKING:
     from superset.db_engine_specs import BaseEngineSpec
     from superset.models.core import Database
 
-
-config = app.config
 logger = logging.getLogger(__name__)
 
 VIRTUAL_TABLE_ALIAS = "virtual_table"
 SERIES_LIMIT_SUBQ_ALIAS = "series_limit"
-ADVANCED_DATA_TYPES = config["ADVANCED_DATA_TYPES"]
 
 
 def validate_adhoc_subquery(
@@ -1870,6 +1867,10 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     is_list_target=is_list_target,
                     db_engine_spec=db_engine_spec,
                 )
+
+                # Get ADVANCED_DATA_TYPES from config when needed
+                ADVANCED_DATA_TYPES = app.config.get("ADVANCED_DATA_TYPES", {})  # noqa: N806
+
                 if (
                     col_advanced_data_type != ""
                     and feature_flag_manager.is_feature_enabled(

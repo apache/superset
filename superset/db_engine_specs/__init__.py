@@ -38,10 +38,11 @@ from pathlib import Path
 from typing import Any, Optional
 
 import sqlalchemy.dialects
+from flask import current_app as app
 from sqlalchemy.engine.default import DefaultDialect
 from sqlalchemy.exc import NoSuchModuleError
 
-from superset import app, feature_flag_manager
+from superset import feature_flag_manager
 from superset.db_engine_specs.base import BaseEngineSpec
 
 logger = logging.getLogger(__name__)

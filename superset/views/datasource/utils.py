@@ -16,7 +16,8 @@
 # under the License.
 from typing import Any, Optional
 
-from superset import app
+from flask import current_app as app
+
 from superset.commands.dataset.exceptions import DatasetSamplesFailedError
 from superset.common.chart_data import ChartDataResultType
 from superset.common.query_context_factory import QueryContextFactory

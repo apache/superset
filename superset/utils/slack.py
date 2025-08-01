@@ -19,7 +19,7 @@
 import logging
 from typing import Callable, Optional
 
-from flask import current_app
+from flask import current_app as app
 from slack_sdk import WebClient
 from slack_sdk.errors import SlackApiError
 from slack_sdk.http_retry.builtin_handlers import RateLimitErrorRetryHandler
@@ -45,10 +45,10 @@ class SlackClientError(Exception):
 
 
 def get_slack_client() -> WebClient:
-    token: str = current_app.config["SLACK_API_TOKEN"]
+    token: str = app.config["SLACK_API_TOKEN"]
     if callable(token):
         token = token()
-    client = WebClient(token=token, proxy=current_app.config["SLACK_PROXY"])
+    client = WebClient(token=token, proxy=app.config["SLACK_PROXY"])
 
     rate_limit_handler = RateLimitErrorRetryHandler(max_retry_count=2)
     client.retry_handlers.append(rate_limit_handler)
@@ -102,7 +102,7 @@ def get_channels_with_search(
     try:
         channels = get_channels(
             force=force,
-            cache_timeout=current_app.config["SLACK_CACHE_TIMEOUT"],
+            cache_timeout=app.config["SLACK_CACHE_TIMEOUT"],
         )
     except (SlackClientError, SlackApiError) as ex:
         raise SupersetException(f"Failed to list channels: {ex}") from ex

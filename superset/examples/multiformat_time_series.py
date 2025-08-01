@@ -18,9 +18,10 @@ import logging
 from typing import Optional
 
 import pandas as pd
+from flask import current_app
 from sqlalchemy import BigInteger, Date, DateTime, inspect, String
 
-from superset import app, db
+from superset import db
 from superset.models.slice import Slice
 from superset.sql.parse import Table
 from superset.utils.core import DatasourceType
@@ -115,7 +116,7 @@ def load_multiformat_time_series(  # pylint: disable=too-many-locals
         slice_data = {
             "metrics": ["count"],
             "granularity_sqla": col.column_name,
-            "row_limit": app.config["ROW_LIMIT"],
+            "row_limit": current_app.config["ROW_LIMIT"],
             "since": "2015",
             "until": "2016",
             "viz_type": "cal_heatmap",

@@ -21,6 +21,7 @@ from typing import Any, TYPE_CHECKING
 from unittest.mock import MagicMock, patch, PropertyMock
 
 import pytest
+from flask import current_app
 from flask_appbuilder.security.sqla.models import User
 
 from superset.connectors.sqla.models import BaseDatasource, SqlaTable
@@ -233,8 +234,9 @@ def test_dashboard_digest(
     use_custom_digest: bool,
     rls_datasources: list[dict[str, Any]],
     expected_result: str | Exception,
+    app_context: None,
 ) -> None:
-    from superset import app, security_manager
+    from superset import security_manager
     from superset.models.dashboard import Dashboard
     from superset.models.slice import Slice
     from superset.thumbnails.digest import get_dashboard_digest
@@ -261,7 +263,7 @@ def test_dashboard_digest(
 
     with (
         patch.dict(
-            app.config,
+            current_app.config,
             {
                 "THUMBNAIL_EXECUTORS": execute_as,
                 "THUMBNAIL_DASHBOARD_DIGEST_FUNC": func,
@@ -372,8 +374,9 @@ def test_chart_digest(
     use_custom_digest: bool,
     rls_datasource: dict[str, Any] | None,
     expected_result: str | Exception,
+    app_context: None,
 ) -> None:
-    from superset import app, security_manager
+    from superset import security_manager
     from superset.models.slice import Slice
     from superset.thumbnails.digest import get_chart_digest
 
@@ -397,7 +400,7 @@ def test_chart_digest(
 
     with (
         patch.dict(
-            app.config,
+            current_app.config,
             {
                 "THUMBNAIL_EXECUTORS": execute_as,
                 "THUMBNAIL_CHART_DIGEST_FUNC": func,

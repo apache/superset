@@ -19,10 +19,11 @@ import textwrap
 from typing import Union
 
 import pandas as pd
+from flask import current_app
 from sqlalchemy import DateTime, inspect, String
 from sqlalchemy.sql import column
 
-from superset import app, db, security_manager
+from superset import db, security_manager
 from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
 from superset.models.core import Database
 from superset.models.dashboard import Dashboard
@@ -173,7 +174,7 @@ def create_slices(tbl: SqlaTable) -> tuple[list[Slice], list[Slice]]:
         "limit": "25",
         "granularity_sqla": "ds",
         "groupby": [],
-        "row_limit": app.config["ROW_LIMIT"],
+        "row_limit": current_app.config["ROW_LIMIT"],
         "time_range": "100 years ago : now",
         "viz_type": "table",
         "markup_type": "markdown",
@@ -584,8 +585,7 @@ def create_dashboard(slices: list[Slice]) -> Dashboard:
         }
     }"""
     )
-    # pylint: disable=line-too-long
-    pos = json.loads(  # noqa: TID251
+    pos = json.loads(
         textwrap.dedent(
             """\
         {
@@ -859,7 +859,6 @@ def create_dashboard(slices: list[Slice]) -> Dashboard:
         """  # noqa: E501
         )
     )
-    # pylint: enable=line-too-long
     # dashboard v2 doesn't allow add markup slice
     dash.slices = [slc for slc in slices if slc.viz_type != "markup"]
     update_slice_ids(pos)

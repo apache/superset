@@ -18,10 +18,10 @@
 import json  # noqa: TID251
 
 import pytest
+from flask import current_app
 from pytest_mock import MockerFixture
 from sqlalchemy.orm.session import Session
 
-from superset import app
 from superset.migrations.shared.catalogs import (
     downgrade_catalog_perms,
     upgrade_catalog_perms,
@@ -568,8 +568,8 @@ def test_upgrade_catalog_perms_simplified_migration(
         ("[my_db].[public]",),
     ]
 
-    with app.test_request_context():
-        app.config["CATALOGS_SIMPLIFIED_MIGRATION"] = True
+    with current_app.test_request_context():
+        current_app.config["CATALOGS_SIMPLIFIED_MIGRATION"] = True
         upgrade_catalog_perms()
         session.commit()
 

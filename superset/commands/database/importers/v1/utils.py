@@ -18,7 +18,9 @@
 import logging
 from typing import Any
 
-from superset import app, db, security_manager
+from flask import current_app as app
+
+from superset import db, security_manager
 from superset.commands.database.utils import add_permissions
 from superset.commands.exceptions import ImportFailedError
 from superset.databases.ssh_tunnel.models import SSHTunnel

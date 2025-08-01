@@ -24,10 +24,10 @@ from typing import Any, cast, ClassVar, TYPE_CHECKING, TypedDict
 
 import numpy as np
 import pandas as pd
+from flask import current_app
 from flask_babel import gettext as _
 from pandas import DateOffset
 
-from superset import app
 from superset.common.chart_data import ChartDataResultFormat
 from superset.common.db_query_status import QueryStatus
 from superset.common.query_actions import get_query_results
@@ -77,10 +77,7 @@ from superset.viz import viz_types
 if TYPE_CHECKING:
     from superset.common.query_context import QueryContext
     from superset.common.query_object import QueryObject
-    from superset.stats_logger import BaseStatsLogger
 
-config = app.config
-stats_logger: BaseStatsLogger = config["STATS_LOGGER"]
 logger = logging.getLogger(__name__)
 
 # Offset join column suffix used for joining offset results
@@ -599,7 +596,7 @@ class QueryContextProcessor:
             # to the subquery so we prevent data inconsistency due to missing records
             # in the dataframes when performing the join
             if query_object.row_limit or query_object.row_offset:
-                query_object_clone_dct["row_limit"] = config["ROW_LIMIT"]
+                query_object_clone_dct["row_limit"] = current_app.config["ROW_LIMIT"]
                 query_object_clone_dct["row_offset"] = 0
 
             if isinstance(self._qc_datasource, Query):
@@ -666,9 +663,9 @@ class QueryContextProcessor:
         :param time_grain: The time grain used to calculate the temporal join key.
         :param join_keys: The keys to join on.
         """
-        join_column_producer = config["TIME_GRAIN_JOIN_COLUMN_PRODUCERS"].get(
-            time_grain
-        )
+        join_column_producer = current_app.config[
+            "TIME_GRAIN_JOIN_COLUMN_PRODUCERS"
+        ].get(time_grain)
 
         if join_column_producer and not time_grain:
             raise QueryObjectValidationError(
@@ -775,11 +772,11 @@ class QueryContextProcessor:
             result = None
             if self._query_context.result_format == ChartDataResultFormat.CSV:
                 result = csv.df_to_escaped_csv(
-                    df, index=include_index, **config["CSV_EXPORT"]
+                    df, index=include_index, **current_app.config["CSV_EXPORT"]
                 )
             elif self._query_context.result_format == ChartDataResultFormat.XLSX:
                 excel.apply_column_types(df, coltypes)
-                result = excel.df_to_excel(df, **config["EXCEL_EXPORT"])
+                result = excel.df_to_excel(df, **current_app.config["EXCEL_EXPORT"])
             return result or ""
 
         return df.to_dict(orient="records")
@@ -870,12 +867,12 @@ class QueryContextProcessor:
         if cache_timeout_rv := self._query_context.get_cache_timeout():
             return cache_timeout_rv
         if (
-            data_cache_timeout := config["DATA_CACHE_CONFIG"].get(
+            data_cache_timeout := current_app.config["DATA_CACHE_CONFIG"].get(
                 "CACHE_DEFAULT_TIMEOUT"
             )
         ) is not None:
             return data_cache_timeout
-        return config["CACHE_DEFAULT_TIMEOUT"]
+        return current_app.config["CACHE_DEFAULT_TIMEOUT"]
 
     def cache_key(self, **extra: Any) -> str:
         """

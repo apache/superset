@@ -28,15 +28,12 @@ import sqlalchemy as sa
 from alembic import op
 from sqlalchemy_utils import UUIDType
 
-from superset import app
 from superset.extensions import encrypted_field_factory
 from superset.migrations.shared.utils import create_table
 
 # revision identifiers, used by Alembic.
 revision = "f3c2d8ec8595"
 down_revision = "4ce1d9b25135"
-
-app_config = app.config
 
 
 def upgrade():

@@ -27,6 +27,7 @@ from urllib import parse
 
 from flask import (
     abort,
+    current_app as app,
     flash,
     g,
     redirect,
@@ -46,7 +47,6 @@ from sqlalchemy.exc import SQLAlchemyError
 from werkzeug.utils import safe_join
 
 from superset import (
-    app,
     appbuilder,
     db,
     event_logger,
@@ -114,9 +114,6 @@ from superset.views.utils import (
 )
 from superset.viz import BaseViz
 
-config = app.config
-SQLLAB_QUERY_COST_ESTIMATE_TIMEOUT = config["SQLLAB_QUERY_COST_ESTIMATE_TIMEOUT"]
-stats_logger = config["STATS_LOGGER"]
 logger = logging.getLogger(__name__)
 
 DATASOURCE_MISSING_ERR = __("The data source seems to have been deleted")

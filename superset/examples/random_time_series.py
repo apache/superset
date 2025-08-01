@@ -17,10 +17,11 @@
 import logging
 
 import pandas as pd
+from flask import current_app
 from sqlalchemy import DateTime, inspect, String
 
 import superset.utils.database as database_utils
-from superset import app, db
+from superset import db
 from superset.models.slice import Slice
 from superset.sql.parse import Table
 from superset.utils.core import DatasourceType
@@ -81,7 +82,7 @@ def load_random_time_series_data(
 
     slice_data = {
         "granularity_sqla": "ds",
-        "row_limit": app.config["ROW_LIMIT"],
+        "row_limit": current_app.config["ROW_LIMIT"],
         "since": "2019-01-01",
         "until": "2019-02-01",
         "metrics": ["count"],

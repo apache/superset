@@ -721,19 +721,24 @@ def test_apply_dynamic_database_filter(
         # Ensure that the filter has not been called because it's not in our config
         assert base_filter_mock.call_count == 0
 
-        original_config = current_app.config.copy()
-        original_config["EXTRA_DYNAMIC_QUERY_FILTERS"] = {"databases": base_filter_mock}
+        # Temporarily update the config
+        original_filters = current_app.config.get("EXTRA_DYNAMIC_QUERY_FILTERS", {})
+        current_app.config["EXTRA_DYNAMIC_QUERY_FILTERS"] = {
+            "databases": base_filter_mock
+        }
+        try:
+            # Get filtered list
+            response_databases = DatabaseDAO.find_all()
+            assert response_databases
+            expected_db_names = ["second-database"]
+            actual_db_names = [db.database_name for db in response_databases]
+            assert actual_db_names == expected_db_names
 
-        mocker.patch("superset.views.filters.current_app.config", new=original_config)
-        # Get filtered list
-        response_databases = DatabaseDAO.find_all()
-        assert response_databases
-        expected_db_names = ["second-database"]
-        actual_db_names = [db.database_name for db in response_databases]
-        assert actual_db_names == expected_db_names
-
-        # Ensure that the filter has been called once
-        assert base_filter_mock.call_count == 1
+            # Ensure that the filter has been called once
+            assert base_filter_mock.call_count == 1
+        finally:
+            # Restore original config
+            current_app.config["EXTRA_DYNAMIC_QUERY_FILTERS"] = original_filters
 
 
 def test_oauth2_happy_path(
