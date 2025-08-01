@@ -46,7 +46,7 @@
     "lodash": "^4.17.21",
     "math-expression-evaluator": "^2.0.6",
     "pretty-ms": "^9.2.0",
-    "re-resizable": "^6.10.1",
+    "re-resizable": "^6.11.2",
     "react-ace": "^10.1.0",
     "react-js-cron": "^5.2.0",
     "react-draggable": "^4.4.6",
