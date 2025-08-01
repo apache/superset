@@ -17,12 +17,9 @@
  * under the License.
  */
 
-import { render, fireEvent, screen, waitFor } from 'spec/helpers/testing-library';
-import {
-  DatabaseObject,
-  ConfigurationMethod,
-} from 'src/features/databases/types';
+import { render, fireEvent, screen } from 'spec/helpers/testing-library';
 import { t } from '@superset-ui/core';
+import { DatabaseObject, ConfigurationMethod } from '../../types';
 import { EncryptedField, encryptedCredentialsMap } from './EncryptedField';
 
 // Mock the useToasts hook
@@ -34,19 +31,55 @@ jest.mock('src/components/MessageToasts/withToasts', () => ({
 }));
 
 // Mock FileReader with proper async simulation
-class MockFileReader {
-  onload: ((this: FileReader, ev: ProgressEvent<FileReader>) => any) | null = null;
-  onerror: ((this: FileReader, ev: ProgressEvent<FileReader>) => any) | null = null;
+class MockFileReader implements Partial<FileReader> {
+  onload: ((this: FileReader, ev: ProgressEvent<FileReader>) => any) | null =
+    null;
+
+  onerror: ((this: FileReader, ev: ProgressEvent<FileReader>) => any) | null =
+    null;
+
+  onabort: ((this: FileReader, ev: ProgressEvent<FileReader>) => any) | null =
+    null;
+
+  onloadend: ((this: FileReader, ev: ProgressEvent<FileReader>) => any) | null =
+    null;
+
+  onloadstart:
+    | ((this: FileReader, ev: ProgressEvent<FileReader>) => any)
+    | null = null;
+
+  onprogress:
+    | ((this: FileReader, ev: ProgressEvent<FileReader>) => any)
+    | null = null;
+
   result: string | null = null;
 
-  readAsText = jest.fn((file: File) => {
+  error: DOMException | null = null;
+
+  readyState: 0 | 1 | 2 = FileReader.DONE;
+
+  readAsText = jest.fn((_file: File) => {
     // Simulate async file reading
     setTimeout(() => {
       if (this.result !== null && this.onload) {
-        this.onload({} as ProgressEvent<FileReader>);
+        this.onload.call(this as any, {} as ProgressEvent<FileReader>);
       }
     }, 0);
   });
+
+  readAsArrayBuffer = jest.fn();
+
+  readAsBinaryString = jest.fn();
+
+  readAsDataURL = jest.fn();
+
+  abort = jest.fn();
+
+  addEventListener = jest.fn();
+
+  removeEventListener = jest.fn();
+
+  dispatchEvent = jest.fn();
 }
 
 const mockFileReader = new MockFileReader();
@@ -504,9 +537,13 @@ describe('EncryptedField', () => {
         render(<EncryptedField {...props} />);
 
         // Component renders UI but with undefined field name
-        expect(screen.getByText('How do you want to enter service account credentials?')).toBeInTheDocument();
+        expect(
+          screen.getByText(
+            'How do you want to enter service account credentials?',
+          ),
+        ).toBeInTheDocument();
         expect(screen.getByText('Upload credentials')).toBeInTheDocument();
-        
+
         // The changeMethods should have been called with undefined field name
         expect(props.changeMethods.onParametersChange).toHaveBeenCalledWith({
           target: {
@@ -602,10 +639,13 @@ describe('EncryptedField', () => {
 
         // Should have proper form label
         expect(screen.getByText('Service Account')).toBeInTheDocument();
-        
+
         const textarea = screen.getByRole('textbox');
         expect(textarea).toHaveAttribute('name', testFieldName);
-        expect(textarea).toHaveAttribute('placeholder', 'Paste content of service credentials JSON file here');
+        expect(textarea).toHaveAttribute(
+          'placeholder',
+          'Paste content of service credentials JSON file here',
+        );
 
         // Cleanup
         Object.assign(encryptedCredentialsMap, originalMap);
@@ -626,8 +666,12 @@ describe('EncryptedField', () => {
         render(<EncryptedField {...props} />);
 
         // Should have proper label for upload method selection
-        expect(screen.getByText('How do you want to enter service account credentials?')).toBeInTheDocument();
-        
+        expect(
+          screen.getByText(
+            'How do you want to enter service account credentials?',
+          ),
+        ).toBeInTheDocument();
+
         const select = screen.getByRole('combobox');
         expect(select).toBeInTheDocument();
 
@@ -647,7 +691,12 @@ describe('EncryptedField', () => {
         (encryptedCredentialsMap as any)[testEngine] = testFieldName;
 
         const mockDb = createMockDb(testEngine);
-        const props = { ...defaultProps, db: mockDb, isEditMode: true, validationErrors: null };
+        const props = {
+          ...defaultProps,
+          db: mockDb,
+          isEditMode: true,
+          validationErrors: null,
+        };
 
         render(<EncryptedField {...props} />);
 
@@ -670,13 +719,13 @@ describe('EncryptedField', () => {
 
         const mockDb = createMockDb(testEngine);
         const mockValidationErrors = {
-          [testFieldName]: 'Invalid credentials format'
+          [testFieldName]: 'Invalid credentials format',
         };
-        const props = { 
-          ...defaultProps, 
-          db: mockDb, 
-          isEditMode: true, 
-          validationErrors: mockValidationErrors 
+        const props = {
+          ...defaultProps,
+          db: mockDb,
+          isEditMode: true,
+          validationErrors: mockValidationErrors,
         };
 
         render(<EncryptedField {...props} />);
@@ -702,12 +751,16 @@ describe('EncryptedField', () => {
         // This test ensures our error message matches the actual component code
         // The toast is called from inside the Upload component's onChange handler,
         // which is difficult to trigger in unit tests
-        
-        const expectedErrorMessage = t('Unable to read the file, please refresh and try again.');
-        
+
+        const expectedErrorMessage = t(
+          'Unable to read the file, please refresh and try again.',
+        );
+
         // Verify the message is properly formed (this catches i18n key changes)
-        expect(expectedErrorMessage).toBe('Unable to read the file, please refresh and try again.');
-        
+        expect(expectedErrorMessage).toBe(
+          'Unable to read the file, please refresh and try again.',
+        );
+
         // In a real integration test, we would verify:
         // 1. File upload fails
         // 2. mockAddDangerToast is called with expectedErrorMessage
@@ -743,10 +796,36 @@ describe('EncryptedField', () => {
       });
 
       it.each([
-        ['null database', { db: null }],
-        ['database with null engine', { db: { engine: null } }],
-        ['database with undefined engine', { db: { engine: undefined } }],
-      ])('handles %s gracefully', (scenario, overrides) => {
+        ['null database', { db: undefined }],
+        [
+          'database with null engine',
+          {
+            db: {
+              configuration_method: ConfigurationMethod.DynamicForm,
+              database_name: 'test_db',
+              driver: 'test_driver',
+              id: 1,
+              name: 'test_db',
+              is_managed_externally: false,
+              engine: undefined,
+            },
+          },
+        ],
+        [
+          'database with undefined engine',
+          {
+            db: {
+              configuration_method: ConfigurationMethod.DynamicForm,
+              database_name: 'test_db',
+              driver: 'test_driver',
+              id: 1,
+              name: 'test_db',
+              is_managed_externally: false,
+              engine: undefined,
+            },
+          },
+        ],
+      ])('handles %s gracefully', (_scenario, overrides) => {
         const props = {
           ...defaultProps,
           ...overrides,
