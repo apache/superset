@@ -156,11 +156,45 @@ export default function transformProps(
     legendState,
     queriesData,
     hooks,
+    filterState,
     theme,
+    emitCrossFilters,
     inContextMenu,
   } = chartProps;
   const refs: Refs = {};
-  const { data = [] } = queriesData[0];
+  let { data = [] } = queriesData[0];
+
+  const { xAxisSortByColumn, xAxisSortByColumnOrder } = formData;
+  if (
+    xAxisSortByColumn &&
+    xAxisSortByColumnOrder &&
+    xAxisSortByColumnOrder !== 'NONE'
+  ) {
+    const sortColumn = xAxisSortByColumn;
+    const isAscending = xAxisSortByColumnOrder === 'ASC';
+
+    data = [...data].sort((a, b) => {
+      const aValue = a[sortColumn];
+      const bValue = b[sortColumn];
+
+      // Handle null/undefined values
+      if (aValue == null && bValue == null) return 0;
+      if (aValue == null) return isAscending ? -1 : 1;
+      if (bValue == null) return isAscending ? 1 : -1;
+
+      // Handle numeric values
+      if (typeof aValue === 'number' && typeof bValue === 'number') {
+        return isAscending ? aValue - bValue : bValue - aValue;
+      }
+
+      // Handle string/other values
+      const aStr = String(aValue);
+      const bStr = String(bValue);
+      const comparison = aStr.localeCompare(bStr);
+      return isAscending ? comparison : -comparison;
+    });
+  }
+
   const coltypeMapping = getColtypesMapping(queriesData[0]);
   const { setDataMask = () => {}, onContextMenu, onLegendStateChanged } = hooks;
   const {
@@ -179,6 +213,10 @@ export default function transformProps(
     xAxisLabel,
     yAxisFormat,
     showValue,
+    useFirstValueAsSubtotal,
+    boldLabels,
+    showTotal,
+    orientation,
   } = formData;
   const defaultFormatter = currencyFormat?.symbol
     ? new CurrencyFormatter({ d3Format: yAxisFormat, currency: currencyFormat })
@@ -406,7 +444,7 @@ export default function transformProps(
     },
   ];
 
-  const echartOptions: EChartsOption = {
+  const baseEchartOptions: EChartsOption = {
     grid: {
       ...defaultGrid,
       top: theme.sizeUnit * 7,
@@ -455,14 +493,301 @@ export default function transformProps(
     series: barSeries,
   };
 
+  const processSeriesData = (options: EChartsOption) => {
+    let processedOptions = { ...options };
+
+    // Handle subtotal styling
+    if (useFirstValueAsSubtotal) {
+      const processedSeries = ((options.series as any[]) || []).map(series => {
+        const newData = series.data.map((dataPoint: any, index: number) => {
+          if (index !== 0) return dataPoint;
+          if (dataPoint?.itemStyle?.color === 'transparent') return dataPoint;
+          if (dataPoint.value === '-') return dataPoint;
+
+          const updatedColor = `rgba(${totalColor.r}, ${totalColor.g}, ${totalColor.b})`;
+          return {
+            ...dataPoint,
+            itemStyle: {
+              ...dataPoint.itemStyle,
+              color: updatedColor,
+              borderColor: updatedColor,
+            },
+          };
+        });
+
+        return {
+          ...series,
+          data: newData,
+        };
+      });
+
+      processedOptions = {
+        ...processedOptions,
+        series: processedSeries,
+      };
+    }
+
+    // Handle total visibility
+    if (!showTotal) {
+      const totalsIndex =
+        ((processedOptions.series as any[]) || [])
+          .find(series => series.name === 'Total')
+          ?.data.map((dataPoint: any, index: number) =>
+            dataPoint.value !== '-' ? index : -1,
+          )
+          .filter((index: number) => index !== -1) || [];
+
+      const filteredData = [
+        ...((processedOptions.xAxis as { data: (string | number)[] }).data ||
+          []),
+      ].filter((_, index) => !totalsIndex.includes(index));
+
+      const filteredSeries = ((processedOptions.series as any[]) || []).map(
+        series => ({
+          ...series,
+          data: series.data.filter(
+            (_: any, index: number) => !totalsIndex.includes(index),
+          ),
+        }),
+      );
+
+      processedOptions = {
+        ...processedOptions,
+        xAxis: {
+          ...(processedOptions.xAxis as any),
+          data: filteredData,
+        },
+        series: filteredSeries,
+      };
+    }
+
+    // Handle orientation
+    if (orientation === 'horizontal') {
+      processedOptions = {
+        ...processedOptions,
+        xAxis: {
+          ...((processedOptions.yAxis as any) || {}),
+          type: 'value',
+        },
+        yAxis: {
+          ...((processedOptions.xAxis as any) || {}),
+          type: 'category',
+          data: [...(processedOptions.xAxis as any).data].reverse(),
+        },
+        series: Array.isArray(processedOptions.series)
+          ? processedOptions.series.map((series: any) => ({
+              ...series,
+              encode: {
+                x: series.encode?.y,
+                y: series.encode?.x,
+              },
+              data: [...series.data].reverse(),
+              label: {
+                ...(series.label || {}),
+                position: series.name === 'Decrease' ? 'left' : 'right',
+              },
+            }))
+          : [],
+      };
+    }
+
+    return processedOptions;
+  };
+
+  // adds more formatting to previous axisLabel.formatter
+  const getFormattedAxisOptions = (options: EChartsOption) => {
+    // If no formatting needed, return original options
+    if (boldLabels === 'none' && xTicksLayout !== 'flat') {
+      return options;
+    }
+
+    // Get total indices for bold formatting
+    const totalsIndex = ['total', 'both'].includes(boldLabels)
+      ? ((options.series as any[]) || [])
+          .find(series => series.name === 'Total')
+          ?.data.map((dataPoint: any, index: number) =>
+            dataPoint.value !== '-' ? index : -1,
+          )
+          .filter((index: number) => index !== -1) || []
+      : [];
+
+    const formatText = (value: string, index: number) => {
+      // Handle bold formatting first
+      let formattedValue = value;
+      if (value === TOTAL_MARK) {
+        formattedValue = TOTAL_MARK;
+      } else if (
+        coltypeMapping[xAxisColumns[index]] === GenericDataType.Temporal
+      ) {
+        if (typeof value === 'string') {
+          formattedValue = getTimeFormatter(xAxisTimeFormat)(
+            Number.parseInt(value, 10),
+          );
+        } else {
+          formattedValue = getTimeFormatter(xAxisTimeFormat)(value);
+        }
+      } else {
+        formattedValue = String(value);
+      }
+
+      if (orientation === 'vertical') {
+        if (index === 0 && ['subtotal', 'both'].includes(boldLabels)) {
+          formattedValue = `{subtotal|${formattedValue}}`;
+        } else if (
+          totalsIndex.includes(index) &&
+          ['total', 'both'].includes(boldLabels)
+        ) {
+          formattedValue = `{total|${formattedValue}}`;
+        }
+      } else {
+        const axisData = (options.yAxis as { data?: any[] })?.data || [];
+        const isLast = index === axisData.length - 1;
+        if (isLast && ['subtotal', 'both'].includes(boldLabels)) {
+          formattedValue = `{subtotal|${formattedValue}}`;
+        } else if (
+          totalsIndex.includes(index) &&
+          ['total', 'both'].includes(boldLabels)
+        ) {
+          formattedValue = `{total|${formattedValue}}`;
+        }
+      }
+
+      return formattedValue;
+    };
+
+    const richTextOptions = {
+      subtotal: ['subtotal', 'both'].includes(boldLabels)
+        ? { fontWeight: 'bold' }
+        : undefined,
+      total: ['total', 'both'].includes(boldLabels)
+        ? { fontWeight: 'bold' }
+        : undefined,
+    };
+
+    if (orientation === 'vertical') {
+      return {
+        ...options,
+        xAxis: {
+          ...(options.xAxis as any),
+          axisLabel: {
+            ...(options.xAxis as any)?.axisLabel,
+            formatter: formatText,
+            overflow: 'break',
+            interval: 0,
+            width: 70,
+            rich: {
+              ...(options.xAxis as any)?.axisLabel?.rich,
+              ...richTextOptions,
+            },
+          },
+        },
+      };
+    }
+
+    return {
+      ...options,
+      yAxis: {
+        ...(options.yAxis as any),
+        axisLabel: {
+          ...(options.yAxis as any)?.axisLabel,
+          formatter: formatText,
+          overflow: 'break',
+          rich: {
+            ...(options.yAxis as any)?.axisLabel?.rich,
+            ...richTextOptions,
+          },
+        },
+      },
+    };
+  };
+
+  const processedSeriesData = processSeriesData(baseEchartOptions);
+  const echartOptions = getFormattedAxisOptions(processedSeriesData);
+
+  const handleCrossFilter = (value: string, isCurrentValue: boolean) => {
+    if (value === 'Total') return null;
+
+    if (isCurrentValue) {
+      return {
+        extraFormData: {},
+        filterState: {
+          value: null,
+        },
+      };
+    }
+
+    return {
+      extraFormData: {
+        filters: [
+          {
+            col: xAxis,
+            op: '==',
+            val: value,
+          },
+        ],
+      },
+      filterState: {
+        value,
+      },
+    };
+  };
+
+  const getCrossFilteredSeries = (
+    series: any[],
+    filterValue: string | null,
+  ) => {
+    if (!filterValue) {
+      return series.map(s => ({
+        ...s,
+        itemStyle: {
+          ...s.itemStyle,
+          opacity: 1,
+        },
+      }));
+    }
+
+    const xAxisLabel = baseEchartOptions.xAxis as { data: (string | number)[] };
+    const valueIndex = (xAxisLabel?.data || []).indexOf(filterValue);
+
+    return series.map(s => ({
+      ...s,
+      data: s.data.map((d: any, idx: number) => ({
+        ...d,
+        itemStyle: {
+          ...d.itemStyle,
+          opacity: !Number.isNaN(d.value) && idx === valueIndex ? 1 : 0.3,
+        },
+      })),
+    }));
+  };
+
+  const crossFilteredSeries = getCrossFilteredSeries(
+    baseEchartOptions.series as any[],
+    filterState?.value || null,
+  );
+
+  const finalEchartOptions = {
+    ...echartOptions,
+    series:
+      orientation === 'horizontal'
+        ? crossFilteredSeries.map(s => ({
+            ...s,
+            data: [...s.data].reverse(),
+          }))
+        : crossFilteredSeries,
+  };
+
   return {
     refs,
     formData,
     width,
     height,
-    echartOptions,
+    echartOptions: finalEchartOptions,
     setDataMask,
     onContextMenu,
     onLegendStateChanged,
+    filterState,
+    emitCrossFilters,
+    handleCrossFilter,
   };
 }
