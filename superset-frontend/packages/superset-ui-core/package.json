@@ -24,7 +24,7 @@
     "lib"
   ],
   "dependencies": {
-    "@ant-design/icons": "^5.2.6",
+    "@ant-design/icons": "^6.0.0",
     "@babel/runtime": "^7.25.6",
     "@fontsource/fira-code": "^5.2.6",
     "@fontsource/inter": "^5.2.6",
