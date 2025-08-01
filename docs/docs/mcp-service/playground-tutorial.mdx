@@ -1,0 +1,201 @@
+---
+title: MCP Playground Tutorial
+hide_table_of_contents: false
+sidebar_position: 9
+---
+
+# Playing with a ChatBot UI + Superset MCP
+
+This tutorial walks you through setting up and using a chat interface to interact with your Superset instance via the Model Context Protocol (MCP). We'll use ModelContextChat.com as our chat interface and connect it to your Superset MCP service.
+
+## Prerequisites
+
+- A running Superset instance with MCP service
+- GitHub Codespaces or local development environment
+- Credit card for OpenRouter API access (small amount needed)
+
+## Step 1: Make Your MCP Port Public
+
+By default, your MCP service port (5008) is private. You need to make it public so ModelContextChat.com can connect to it.
+
+### In GitHub Codespaces:
+
+1. Navigate to the **PORTS** tab in your Codespace
+2. Find port **5008** (MCP Service)
+3. Right-click on the port entry
+4. Select **Port Visibility** → **Public**
+
+:::caution
+Making the port public means anyone with the URL can access your MCP service. Only do this for development/testing purposes.
+:::
+
+## Step 2: Set Up OpenRouter Account
+
+ModelContextChat.com uses OpenRouter to access various AI models. You'll need an OpenRouter account and API key.
+
+### Why OpenRouter?
+
+While this requires a credit card and some setup, OpenRouter is:
+- A reputable service that provides access to all the latest AI models
+- Useful beyond just this tutorial - you can use it for other AI projects
+- Pay-as-you-go pricing - you only pay for what you use
+- A good investment for developers working with AI
+
+### Setup Steps:
+
+1. **Create an OpenRouter Account**:
+   - Go to [OpenRouter.com](https://openrouter.ai)
+   - Sign up for an account
+   - Verify your email
+
+2. **Add Credits**:
+   - Navigate to billing/credits section
+   - Add a small amount of credits ($5-10 is plenty for testing)
+   - OpenRouter uses pay-as-you-go pricing
+
+3. **Create an API Key**:
+   - Go to API Keys section
+   - Click "Create New Key"
+   - Give it a descriptive name (e.g., "ModelContextChat")
+   - Copy the API key immediately (you won't see it again)
+
+## Step 3: Configure ModelContextChat.com
+
+Now we'll set up ModelContextChat.com to use your OpenRouter API key and connect to your MCP service.
+
+### Initial Setup:
+
+1. **Open ModelContextChat.com**:
+   - Navigate to [ModelContextChat.com](https://modelcontextchat.com)
+   - You'll be prompted for an API key
+
+2. **Enter OpenRouter API Key**:
+   - Paste the API key you copied from OpenRouter
+   - The key will be stored locally in your browser
+
+3. **Select Your Model**:
+   - Choose your preferred model (e.g., Claude 3.5 Sonnet)
+   - Different models have different costs and capabilities
+
+## Step 4: Connect to Your MCP Service
+
+Now we need to tell ModelContextChat.com how to connect to your Superset MCP service.
+
+### Create MCP Connection:
+
+1. **Access MCP Settings**:
+   - Look for MCP connection settings (usually a settings icon or "Add MCP Server")
+
+2. **Configure Connection**:
+   ```
+   Name: Superset MCP
+   URL: https://<your-codespace-url>-5008.app.github.dev
+   ```
+
+   :::tip Finding Your URL
+   In Codespaces, click on the port 5008 forwarded URL to get the full public URL.
+   It will look something like: `https://fictional-space-123abc-5008.app.github.dev`
+   :::
+
+3. **Test Connection**:
+   - ModelContextChat should show a green "Connected" indicator
+   - If not, check that port 5008 is public and the URL is correct
+
+## Step 5: Start Chatting with Your Superset Data
+
+Once connected, you can start asking questions about your Superset instance!
+
+### Example Queries to Try:
+
+#### Basic Information:
+```
+"What dashboards are available in my Superset instance?"
+"Show me all the charts in the Sales Dashboard"
+"What datasets do I have access to?"
+```
+
+#### Data Exploration:
+```
+"List all charts that use the flights dataset"
+"What columns are available in the energy_usage table?"
+"Show me the SQL query for the Revenue by Region chart"
+```
+
+#### Advanced Operations:
+```
+"Export the data from the COVID Vaccine Dashboard to CSV"
+"Create a line chart showing monthly revenue trends"
+"Generate an explore link for the customer demographics dataset"
+```
+
+## Step 6: Understanding the Interface
+
+### Key UI Elements:
+
+- **Connection Status**: Shows if you're connected to the MCP service
+- **Model Selection**: Choose which AI model to use
+- **Tool Executions**: See which MCP tools are being called
+- **Chat History**: Your conversation is saved locally
+
+### Tips for Better Results:
+
+1. **Be Specific**: Instead of "show me data", say "show me the top 10 countries by GDP from the World Bank dataset"
+2. **Use Dashboard/Chart Names**: Reference specific dashboards or charts by name
+3. **Check Tool Executions**: The UI shows which tools are being called - this helps understand what's happening
+
+## Troubleshooting
+
+### Connection Issues
+
+If you see "MCP Disconnected":
+
+1. **Verify Port is Public**:
+   - Check Codespaces PORTS tab
+   - Ensure port 5008 shows "Public"
+
+2. **Check MCP Service**:
+   ```bash
+   # In your Codespace terminal
+   curl http://localhost:5008/health
+   ```
+
+3. **Correct URL Format**:
+   - Should be HTTPS (not HTTP) for Codespaces
+   - Include the full domain with port forwarding
+
+### Authentication Errors
+
+If you get authentication errors:
+- Your MCP service might require additional auth configuration
+- Check MCP service logs for details
+
+### No Data Returned
+
+If queries return empty results:
+- Ensure your Superset instance has data
+- Check that you have proper permissions in Superset
+- Try simpler queries first
+
+## Security Considerations
+
+:::warning Production Use
+This tutorial is for development/testing only. For production:
+- Don't make MCP ports public
+- Use proper authentication
+- Consider VPN or private networking
+- Audit access logs regularly
+:::
+
+## Next Steps
+
+- Explore more [MCP tools and capabilities](api-reference)
+- Learn about [securing your MCP service](authentication)
+- Build your own MCP client application
+- Try other models available through OpenRouter
+
+## Cost Estimation
+
+Typical costs for this tutorial:
+- OpenRouter API: ~$0.01-0.10 per conversation (depends on model and length)
+- Most testing can be done with $5-10 in credits
+- Claude 3.5 Sonnet is recommended for best results with MCP tools
