@@ -192,7 +192,7 @@ ModelContextChat.com uses OpenRouter for AI model access:
      Authentication: None (leave empty)
      ```
 
-   <img width="529" height="654" alt="Form for adding a new MCP connection in ModelContextChat.com" src="https://github.com/user-attachments/assets/0571f2f0-b2f9-45d8-927f-bc54891afe97" />
+   ![Form for adding a new MCP connection in ModelContextChat.com](https://github.com/user-attachments/assets/0571f2f0-b2f9-45d8-927f-bc54891afe97)
 
    > ⚠️ **Important**:
    > - Set Server Type as **"Streamable HTTP"**
@@ -206,7 +206,7 @@ ModelContextChat.com uses OpenRouter for AI model access:
      - URL ends with `/mcp/`
      - Server Type is "Streamable HTTP"
 
-   <img width="696" height="658" alt="Configured Chat Settings Screenshot after adding the configuration to the MCP Server" src="https://github.com/user-attachments/assets/35418ff9-a571-4051-b68b-cf88c901bf25" />
+   ![Configured Chat Settings Screenshot after adding the configuration to the MCP Server](https://github.com/user-attachments/assets/35418ff9-a571-4051-b68b-cf88c901bf25)
 
 > 🔒 **Security Warning**: This setup is for development and sandboxing purposes only. Making your port public exposes your MCP server to the internet without authentication. Only work with public/sample data and never expose sensitive information this way. For production use, implement proper authentication, use private networking, and never make ports publicly accessible.
 
@@ -235,7 +235,7 @@ Once connected, try these example queries:
 "Run a SQL query: SELECT COUNT(*) FROM flights"
 ```
 
-<img width="1019" height="790" alt="Screenshot of Interacting with a model + MCP in ModelContextChat.com" src="https://github.com/user-attachments/assets/19a51bbe-7157-4c70-a9e2-218315c2c1d1" />
+![Screenshot of Interacting with a model + MCP in ModelContextChat.com](https://github.com/user-attachments/assets/19a51bbe-7157-4c70-a9e2-218315c2c1d1)
 
 ### Troubleshooting ModelContextChat
 
