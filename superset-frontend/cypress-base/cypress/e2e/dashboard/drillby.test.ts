@@ -56,21 +56,23 @@ const interceptDrillInfo = () => {
         ],
         columns: [
           {
+            column_name: 'gender',
+            verbose_name: null,
+          },
+          {
             column_name: 'state',
-            verbose_name: 'State',
-            groupby: true,
+            verbose_name: null,
           },
           {
             column_name: 'name',
-            verbose_name: 'Name',
-            groupby: true,
+            verbose_name: null,
           },
           {
             column_name: 'ds',
-            verbose_name: 'Date',
-            groupby: true,
+            verbose_name: null,
           },
         ],
+        verbose_map: {},
       },
     },
   }).as('drillInfo');

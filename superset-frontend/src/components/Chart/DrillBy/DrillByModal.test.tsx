@@ -72,9 +72,14 @@ const dataset = {
   columns: [
     {
       column_name: 'gender',
+      verbose_name: null,
     },
-    { column_name: 'name' },
+    {
+      column_name: 'name',
+      verbose_name: null,
+    },
   ],
+  verbose_map: {},
 };
 
 const renderModal = async (
@@ -164,7 +169,7 @@ test('should render alert banner when results fail to load', async () => {
 
 test('should generate Explore url', async () => {
   await renderModal({
-    column: { column_name: 'name' },
+    column: { column_name: 'name', verbose_name: null },
     drillByConfig: {
       filters: [{ col: 'gender', op: '==', val: 'boy' }],
       groupbyFieldName: 'groupby',
@@ -227,7 +232,7 @@ test('should render radio buttons', async () => {
 
 test('render breadcrumbs', async () => {
   await renderModal({
-    column: { column_name: 'name' },
+    column: { column_name: 'name', verbose_name: null },
     drillByConfig: {
       filters: [{ col: 'gender', op: '==', val: 'boy' }],
       groupbyFieldName: 'groupby',
@@ -304,7 +309,7 @@ describe('Embedded mode behavior', () => {
     (isEmbedded as jest.Mock).mockReturnValue(true);
 
     await renderModal({
-      column: { column_name: 'name' },
+      column: { column_name: 'name', verbose_name: null },
       drillByConfig: {
         filters: [{ col: 'gender', op: '==', val: 'boy' }],
         groupbyFieldName: 'groupby',
@@ -330,7 +335,7 @@ describe('Embedded mode behavior', () => {
     (isEmbedded as jest.Mock).mockReturnValue(false);
 
     await renderModal({
-      column: { column_name: 'name' },
+      column: { column_name: 'name', verbose_name: null },
       drillByConfig: {
         filters: [{ col: 'gender', op: '==', val: 'boy' }],
         groupbyFieldName: 'groupby',

@@ -24,6 +24,7 @@ import {
   useCallback,
   useEffect,
   useImperativeHandle,
+  useMemo,
   useState,
 } from 'react';
 import ReactDOM from 'react-dom';
@@ -184,23 +185,6 @@ const ChartContextMenu = (
         const { json } = response;
         const { result } = json;
 
-        // Filter columns for drill-by if needed
-        if (showDrillBy && result.columns) {
-          const filteredColumns = ensureIsArray(result.columns).filter(
-            column =>
-              // If using extensions, also filter by column.groupby since extensions might not do this
-              (!loadDrillByOptions || column.groupby) &&
-              !ensureIsArray(
-                formData[filters?.drillBy?.groupbyFieldName ?? ''],
-              ).includes(column.column_name) &&
-              column.column_name !== formData.x_axis &&
-              ensureIsArray(additionalConfig?.drillBy?.excludedColumns)?.every(
-                excludedCol => excludedCol.column_name !== column.column_name,
-              ),
-          );
-          result.columns = filteredColumns;
-        }
-
         setDataset(result);
       } catch (error) {
         logging.error('Failed to load dataset:', error);
@@ -216,8 +200,37 @@ const ChartContextMenu = (
     showDrillBy,
     showDrillToDetail,
     formData.datasource,
+    loadDrillByOptions,
+    dashboardId,
+  ]);
+
+  // Compute filtered dataset with drillable_columns whenever dataset or filters change
+  const filteredDataset = useMemo(() => {
+    if (!dataset || !showDrillBy) return dataset;
+
+    const filteredColumns = ensureIsArray(dataset.columns).filter(
+      column =>
+        // If using extensions, also filter by column.groupby since extensions might not do this
+        (!loadDrillByOptions || column.groupby) &&
+        !ensureIsArray(
+          formData[filters?.drillBy?.groupbyFieldName ?? ''],
+        ).includes(column.column_name) &&
+        column.column_name !== formData.x_axis &&
+        ensureIsArray(additionalConfig?.drillBy?.excludedColumns)?.every(
+          excludedCol => excludedCol.column_name !== column.column_name,
+        ),
+    );
+
+    return {
+      ...dataset,
+      drillable_columns: filteredColumns,
+    };
+  }, [
     dataset,
-    filters?.drillBy,
+    showDrillBy,
+    filters?.drillBy?.groupbyFieldName,
+    formData.x_axis,
+    formData[filters?.drillBy?.groupbyFieldName ?? ''],
     additionalConfig?.drillBy?.excludedColumns,
     loadDrillByOptions,
   ]);
@@ -325,7 +338,7 @@ const ChartContextMenu = (
         onSelection={onSelection}
         submenuIndex={showCrossFilters ? 2 : 1}
         setShowModal={setDrillModalIsOpen}
-        dataset={dataset}
+        dataset={filteredDataset}
         isLoadingDataset={isLoadingDataset}
         {...(additionalConfig?.drillToDetail || {})}
       />,
@@ -350,7 +363,7 @@ const ChartContextMenu = (
         open={openKeys.includes('drill-by-submenu')}
         key="drill-by-submenu"
         onDrillBy={handleDrillBy}
-        dataset={dataset}
+        dataset={filteredDataset}
         isLoadingDataset={isLoadingDataset}
         {...(additionalConfig?.drillBy || {})}
       />,
@@ -434,7 +447,7 @@ const ChartContextMenu = (
           onHideModal={() => {
             setDrillModalIsOpen(false);
           }}
-          dataset={dataset}
+          dataset={filteredDataset}
         />
       )}
       {showDrillByModal && drillByColumn && dataset && filters?.drillBy && (
@@ -443,7 +456,7 @@ const ChartContextMenu = (
           drillByConfig={filters?.drillBy}
           formData={formData}
           onHideModal={handleCloseDrillByModal}
-          dataset={{ ...dataset!, verbose_map: verboseMap }}
+          dataset={{ ...filteredDataset!, verbose_map: verboseMap }}
           canDownload={canDownload}
         />
       )}

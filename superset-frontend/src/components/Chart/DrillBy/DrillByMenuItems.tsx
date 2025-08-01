@@ -88,7 +88,7 @@ export const DrillByMenuItems = ({
   const [searchInput, setSearchInput] = useState('');
   const [debouncedSearchInput, setDebouncedSearchInput] = useState('');
   const ref = useRef<InputRef>(null);
-  const columns = dataset ? ensureIsArray(dataset.columns) : [];
+  const columns = dataset ? ensureIsArray(dataset.drillable_columns) : [];
   const showSearch = columns.length > SHOW_COLUMNS_SEARCH_THRESHOLD;
 
   const handleSelection = useCallback(
