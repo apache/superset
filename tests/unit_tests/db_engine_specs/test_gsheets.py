@@ -35,6 +35,21 @@ from superset.utils.oauth2 import decode_oauth2_state
 if TYPE_CHECKING:
     from superset.db_engine_specs.base import OAuth2State
 
+# Skip these tests if shillelagh can't import pip
+# This happens in some environments where pip is not available as a module
+skip_reason = None
+try:
+    import shillelagh.functions  # noqa: F401
+except ImportError as e:
+    if "No module named 'pip'" in str(e):
+        skip_reason = (
+            "shillelagh requires 'pip' module which is not available in this "
+            "environment"
+        )
+
+if skip_reason:
+    pytestmark = pytest.mark.skip(reason=skip_reason)
+
 
 class ProgrammingError(Exception):
     """
