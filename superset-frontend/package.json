@@ -216,7 +216,7 @@
     "@babel/plugin-transform-modules-commonjs": "^7.26.3",
     "@babel/plugin-transform-runtime": "^7.27.1",
     "@babel/preset-env": "^7.27.2",
-    "@babel/preset-react": "^7.26.3",
+    "@babel/preset-react": "^7.27.1",
     "@babel/preset-typescript": "^7.26.0",
     "@babel/register": "^7.23.7",
     "@babel/runtime": "^7.26.0",
