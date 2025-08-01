@@ -17,7 +17,7 @@
 import logging
 from typing import Any, cast, Optional
 
-from flask import current_app
+from flask import current_app as app
 from flask_appbuilder.models.filters import BaseFilter
 from flask_babel import lazy_gettext
 from sqlalchemy import and_, or_
@@ -70,15 +70,15 @@ class BaseFilterRelatedUsers(BaseFilter):  # pylint: disable=too-few-public-meth
     arg_name = "username"
 
     def apply(self, query: Query, value: Optional[Any]) -> Query:
-        if extra_filters := current_app.config["EXTRA_RELATED_QUERY_FILTERS"].get(
+        if extra_filters := app.config["EXTRA_RELATED_QUERY_FILTERS"].get(
             "user",
         ):
             query = extra_filters(query)
 
         exclude_users = (
             security_manager.get_exclude_users_from_lists()
-            if current_app.config["EXCLUDE_USERS_FROM_LISTS"] is None
-            else current_app.config["EXCLUDE_USERS_FROM_LISTS"]
+            if app.config["EXCLUDE_USERS_FROM_LISTS"] is None
+            else app.config["EXCLUDE_USERS_FROM_LISTS"]
         )
         if exclude_users:
             user_model = security_manager.user_model
@@ -96,7 +96,7 @@ class BaseFilterRelatedRoles(BaseFilter):  # pylint: disable=too-few-public-meth
     arg_name = "role"
 
     def apply(self, query: Query, value: Optional[Any]) -> Query:
-        if extra_filters := current_app.config["EXTRA_RELATED_QUERY_FILTERS"].get(
+        if extra_filters := app.config["EXTRA_RELATED_QUERY_FILTERS"].get(
             "role",
         ):
             return extra_filters(query)

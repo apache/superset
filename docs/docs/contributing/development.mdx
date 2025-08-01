@@ -421,14 +421,6 @@ Then make sure you run your WSGI server using the right worker type:
 gunicorn "superset.app:create_app()" -k "geventwebsocket.gunicorn.workers.GeventWebSocketWorker" -b 127.0.0.1:8088 --reload
 ```
 
-You can log anything to the browser console, including objects:
-
-```python
-from superset import app
-app.logger.error('An exception occurred!')
-app.logger.info(form_data)
-```
-
 ### Frontend
 
 Frontend assets (TypeScript, JavaScript, CSS, and images) must be compiled in order to properly display the web UI. The `superset-frontend` directory contains all NPM-managed frontend assets. Note that for some legacy pages there are additional frontend assets bundled with Flask-Appbuilder (e.g. jQuery and bootstrap). These are not managed by NPM and may be phased out in the future.
