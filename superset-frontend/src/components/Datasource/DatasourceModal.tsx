@@ -262,8 +262,8 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
               type="info"
               showIcon={false}
               message={t(`The dataset columns will be automatically synced
-              given the changes in your SQL query. If your changes don't
-              impact columns, you might want to skip this step.`)}
+              based on the changes in your SQL query. If your changes don't
+              impact the column definitions, you might want to skip this step.`)}
             />
             <Checkbox
               checked={syncColumnsRef.current}
