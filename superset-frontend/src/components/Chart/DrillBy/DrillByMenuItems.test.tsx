@@ -62,6 +62,7 @@ const mockDataset = {
   id: 7,
   table_name: 'test_table',
   columns: defaultColumns,
+  drillable_columns: defaultColumns,
   changed_on_humanized: '1 day ago',
   created_on_humanized: '2 days ago',
   description: 'Test dataset',
@@ -162,7 +163,7 @@ test('render enabled menu item for supported chart, no filters', async () => {
 });
 
 test('render disabled menu item for supported chart, no columns', async () => {
-  const emptyDataset = { ...mockDataset, columns: [] };
+  const emptyDataset = { ...mockDataset, columns: [], drillable_columns: [] };
   renderMenu({ dataset: emptyDataset });
   await expectDrillByEnabled();
   screen.getByText('No columns found');
@@ -170,7 +171,11 @@ test('render disabled menu item for supported chart, no columns', async () => {
 
 test('render menu item with submenu without searchbox', async () => {
   const slicedColumns = defaultColumns.slice(0, 9);
-  const datasetWithSlicedColumns = { ...mockDataset, columns: slicedColumns };
+  const datasetWithSlicedColumns = {
+    ...mockDataset,
+    columns: slicedColumns,
+    drillable_columns: slicedColumns,
+  };
   renderMenu({ dataset: datasetWithSlicedColumns });
   await expectDrillByEnabled();
 
@@ -246,6 +251,7 @@ test('Do not display excluded column in the menu', async () => {
   const datasetWithFilteredColumns = {
     ...mockDataset,
     columns: filteredColumns,
+    drillable_columns: filteredColumns,
   };
   renderMenu({
     dataset: datasetWithFilteredColumns,

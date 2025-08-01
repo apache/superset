@@ -1183,6 +1183,12 @@ class DatasetRestApi(BaseSupersetModelRestApi):
     @rison(get_drill_info_schema)
     @safe
     @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self,
+        *args,
+        **kwargs: f"{self.__class__.__name__}.get_drill_info",
+        log_to_statsd=False,
+    )
     def get_drill_info(self, pk: int, **kwargs: Any) -> Response:
         """Get dataset drill info.
         ---

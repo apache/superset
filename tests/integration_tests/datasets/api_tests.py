@@ -3094,7 +3094,7 @@ class TestDatasetApi(SupersetTestCase):
 
         # Log in as admin but remove pvm access
         with self.temporary_user(
-            clone_user=security_manager.find_user(username=ADMIN_USERNAME),
+            clone_user=security_manager.find_user(username=ALPHA_USERNAME),
             pvms_to_remove=[("can_get_drill_info", "Dataset")],
             login=True,
         ):
