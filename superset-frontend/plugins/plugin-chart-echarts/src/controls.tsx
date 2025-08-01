@@ -179,7 +179,7 @@ export const zoomableControl: ControlSetItem = {
     ...sharedControls.zoomable,
     default: DEFAULT_FORM_DATA.zoomable,
     renderTrigger: true,
-  }
+  },
 };
 
 export const zoomableClipYAxisControl: ControlSetItem = {
