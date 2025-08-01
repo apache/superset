@@ -32,11 +32,13 @@ import {
   Form,
   Tooltip,
   Alert,
+  Label,
 } from '@superset-ui/core/components';
 import { useJsonValidation } from '@superset-ui/core/components/AsyncAceEditor';
 import { Typography } from '@superset-ui/core/components/Typography';
 
 import { OnlyKeyWithType } from 'src/utils/types';
+import { CopyToClipboard } from 'src/components/CopyToClipboard';
 import { ThemeObject } from './types';
 
 interface ThemeModalProps {
@@ -339,6 +341,27 @@ const ThemeModal: FunctionComponent<ThemeModalProps> = ({
               placeholder={t('Enter theme name')}
             />
           </Form.Item>
+
+          {currentTheme?.uuid && (
+            <Form.Item label={t('UUID')}>
+              <div
+                css={css`
+                  display: flex;
+                  align-items: center;
+                  gap: ${supersetTheme.sizeUnit * 2}px;
+                `}
+              >
+                <Label monospace>{currentTheme.uuid}</Label>
+                <CopyToClipboard
+                  text={currentTheme.uuid}
+                  shouldShowText={false}
+                  wrapped={false}
+                  copyNode={<Icons.CopyOutlined iconSize="m" />}
+                  tooltipText={t('Copy UUID to clipboard')}
+                />
+              </div>
+            </Form.Item>
+          )}
 
           <Form.Item label={t('JSON Configuration')} required={!isReadOnly}>
             <Alert
