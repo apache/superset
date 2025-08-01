@@ -19,46 +19,17 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime, timezone
-from typing import Any, Callable, Dict, List, Literal, Optional, Protocol, Type, TypeVar
+from typing import Any, Callable, Dict, List, Literal, Optional, Type, TypeVar
 
 from pydantic import BaseModel
+
+from superset.mcp_service.dao import DAO
+from superset.mcp_service.retry_utils import retry_database_operation
 
 # Type variables for generic model tools
 T = TypeVar("T")  # For model objects
 S = TypeVar("S", bound=BaseModel)  # For Pydantic schemas
 F = TypeVar("F", bound=BaseModel)  # For filter types
-
-
-class DAO(Protocol):
-    """Protocol for Data Access Objects used in model tools."""
-
-    model_cls: Type[Any]
-
-    @classmethod
-    def list(
-        cls,
-        column_operators: Optional[List[Any]] = None,
-        order_column: str = "changed_on",
-        order_direction: str = "desc",
-        page: int = 0,
-        page_size: int = 100,
-        search: Optional[str] = None,
-        search_columns: Optional[List[str]] = None,
-        custom_filters: Optional[Dict[str, Any]] = None,
-        columns: Optional[List[str]] = None,
-    ) -> tuple[List[Any], int]:
-        """List method that all DAOs should implement."""
-        ...
-
-    @classmethod
-    def find_by_id(cls, id: int) -> T | None:
-        """Find by ID method that all DAOs should implement."""
-        ...
-
-    @classmethod
-    def get_filterable_columns_and_operators(cls) -> Dict[str, Any]:
-        """Get filterable columns and operators."""
-        ...
 
 
 class ModelListTool:
@@ -83,7 +54,7 @@ class ModelListTool:
 
     def __init__(
         self,
-        dao_class: Any,
+        dao_class: DAO,
         output_schema: Type[S],
         item_serializer: Callable[[T, List[str]], S | None],
         filter_type: Type[F],
@@ -129,9 +100,10 @@ class ModelListTool:
         else:
             columns_to_load = self.default_columns
             columns_requested = self.default_columns
-        # Query the DAO
+        # Query the DAO with retry logic for database resilience
         items: List[Any]
-        items, total_count = self.dao_class.list(
+        items, total_count = retry_database_operation(
+            self.dao_class.list,
             column_operators=filters,
             order_column=order_column or "changed_on",
             order_direction=order_direction or "desc",
@@ -201,7 +173,7 @@ class ModelGetInfoTool:
 
     def __init__(
         self,
-        dao_class: Any,
+        dao_class: DAO,
         output_schema: Type[BaseModel],
         error_schema: Type[BaseModel],
         serializer: Callable[[T], BaseModel],
@@ -226,15 +198,15 @@ class ModelGetInfoTool:
             return False
 
     def _find_object(self, identifier: int | str) -> Any:
-        """Find object by identifier using appropriate method."""
+        """Find object by identifier using appropriate method with retry logic."""
         # If it's an integer or string that can be converted to int, use find_by_id
         if isinstance(identifier, int):
-            return self.dao_class.find_by_id(identifier)
+            return retry_database_operation(self.dao_class.find_by_id, identifier)
 
         try:
             # Try to convert string to int
             id_val = int(identifier)
-            return self.dao_class.find_by_id(id_val)
+            return retry_database_operation(self.dao_class.find_by_id, id_val)
         except ValueError:
             pass
 
@@ -244,25 +216,32 @@ class ModelGetInfoTool:
             import uuid
 
             uuid_obj = uuid.UUID(identifier)
-            return self.dao_class.find_by_id(uuid_obj, id_column="uuid")
+            return retry_database_operation(
+                self.dao_class.find_by_id, uuid_obj, id_column="uuid"
+            )
 
         # For dashboards, also check slug
         if self.supports_slug:
             # Try to find by slug using the new flexible method
-            result = self.dao_class.find_by_id(identifier, id_column="slug")
+            result = retry_database_operation(
+                self.dao_class.find_by_id, identifier, id_column="slug"
+            )
             if result:
                 return result
 
             # Fallback to the existing id_or_slug_filter for complex cases
-            from superset.extensions import db
-            from superset.models.dashboard import id_or_slug_filter
+            def _complex_slug_query() -> Any:
+                from superset.extensions import db
+                from superset.models.dashboard import id_or_slug_filter
 
-            model_class = self.dao_class.model_cls
-            return (
-                db.session.query(model_class)
-                .filter(id_or_slug_filter(identifier))
-                .one_or_none()
-            )
+                model_class = self.dao_class.model_cls
+                return (
+                    db.session.query(model_class)
+                    .filter(id_or_slug_filter(identifier))
+                    .one_or_none()
+                )
+
+            return retry_database_operation(_complex_slug_query)
 
         # If we get here, it's an invalid identifier
         return None
@@ -307,7 +286,7 @@ class InstanceInfoTool:
 
     def __init__(
         self,
-        dao_classes: Dict[str, Any],
+        dao_classes: Dict[str, DAO],
         output_schema: Type[BaseModel],
         metric_calculators: Dict[str, Callable[..., Any]],
         time_windows: Optional[Dict[str, int]] = None,
@@ -366,28 +345,32 @@ class InstanceInfoTool:
                     continue
 
                 try:
-                    # Created count
-                    created_count = dao_class.count(
+                    # Use list() with filters (count() has no params)
+                    _, created_count = dao_class.list(
                         column_operators=[
                             ColumnOperator(
                                 col="created_on",
                                 opr=ColumnOperatorEnum.gte,
                                 value=cutoff_date,
                             )
-                        ]
+                        ],
+                        page_size=1,  # We only need the count
+                        columns=["id"],  # Minimal data transfer
                     )
                     window_metrics[f"{entity_name}_created"] = created_count
 
                     # Modified count (if changed_on exists)
                     if hasattr(dao_class.model_cls, "changed_on"):
-                        modified_count = dao_class.count(
+                        _, modified_count = dao_class.list(
                             column_operators=[
                                 ColumnOperator(
                                     col="changed_on",
                                     opr=ColumnOperatorEnum.gte,
                                     value=cutoff_date,
                                 )
-                            ]
+                            ],
+                            page_size=1,  # We only need the count
+                            columns=["id"],  # Minimal data transfer
                         )
                         window_metrics[f"{entity_name}_modified"] = modified_count
 
@@ -464,7 +447,7 @@ class ModelGetAvailableFiltersTool:
 
     def __init__(
         self,
-        dao_class: Any,
+        dao_class: DAO,
         output_schema: Type[BaseModel],
         logger: Optional[logging.Logger] = None,
     ) -> None:
@@ -480,7 +463,7 @@ class ModelGetAvailableFiltersTool:
             response = self.output_schema(column_operators=column_operators)
             self.logger.info(
                 f"Successfully retrieved available filters for "
-                f"{self.dao_class.__name__}"
+                f"{self.dao_class.__class__.__name__}"
             )
             return response
         except Exception as e:

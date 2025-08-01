@@ -101,12 +101,24 @@ ps aux | grep "superset mcp"
 
 ### 6. Run Tests (Optional)
 
-Run the unit tests to verify your environment:
+Run the tests to verify your environment:
 
 ```bash
 # Unit tests
 pytest tests/unit_tests/mcp_service/ --maxfail=1 -v
+
+# Integration tests with Anthropic API
+cd tests/integration_tests/mcp_service/
+
+# Quick smoke test (2 fixed tests)
+python smoke_test.py
+
+# Run markdown test plans
+python comprehensive_test_runner.py poc_test.md
+python comprehensive_test_runner.py MCP_CHART_TEST_PLAN.md 5  # Run first 5 tests only
 ```
+
+See the [MCP Integration Test README](../../../tests/integration_tests/mcp_service/README.md) for detailed test automation instructions including ngrok setup for Claude API testing.
 
 ## Troubleshooting
 

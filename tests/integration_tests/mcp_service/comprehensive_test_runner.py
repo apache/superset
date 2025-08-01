@@ -11,8 +11,8 @@ from typing import List, Tuple
 
 import requests
 
-# Get API key
-sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent))
+# Get API key - adjust path since we're now in tests/integration_tests/mcp_service
+sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 import superset_config
 
 API_KEY = getattr(superset_config, "ANTHROPIC_API_KEY", "")

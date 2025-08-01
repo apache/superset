@@ -31,7 +31,13 @@ from fastmcp.server.auth.providers.bearer import BearerAuthProvider
 from starlette.exceptions import HTTPException
 from starlette.responses import Response
 
-from superset.mcp_service.middleware import LoggingMiddleware, PrivateToolMiddleware
+from superset.mcp_service.middleware import (
+    FieldPermissionsMiddleware,
+    GlobalErrorHandlerMiddleware,
+    LoggingMiddleware,
+    PrivateToolMiddleware,
+    RateLimitMiddleware,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -118,6 +124,7 @@ get_superset_instance_info for a summary of the Superset instance.
 import superset.mcp_service.chart.tool  # noqa: F401, E402
 import superset.mcp_service.dashboard.tool  # noqa: F401, E402
 import superset.mcp_service.dataset.tool  # noqa: F401, E402
+import superset.mcp_service.explore.tool  # noqa: F401, E402
 import superset.mcp_service.sql_lab.tool  # noqa: F401, E402
 import superset.mcp_service.system.tool  # noqa: F401, E402
 
@@ -480,7 +487,12 @@ def init_fastmcp_server(enable_auth_configuration: bool = True) -> FastMCP:
             logger.error(f"Auth configuration failed: {e}")
             logger.info("MCP service will run without authentication")
 
-    # Add middleware
+    # Add middleware (order matters - error handler should be first to catch all errors)
+    mcp.add_middleware(GlobalErrorHandlerMiddleware())
+    mcp.add_middleware(RateLimitMiddleware())  # Rate limiting before other middleware
+    mcp.add_middleware(
+        FieldPermissionsMiddleware()
+    )  # Field filtering after rate limiting
     mcp.add_middleware(LoggingMiddleware())
     mcp.add_middleware(PrivateToolMiddleware())
 
