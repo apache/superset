@@ -61,7 +61,6 @@ def create_app() -> Any:
 def superset() -> None:
     """\033[1;37mThe Apache Superset CLI\033[0m"""
     # NOTE: codes above are ANSI color codes for bold white in CLI header ^^^
-    pass
 
 
 # add sub-commands
