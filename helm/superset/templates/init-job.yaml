@@ -50,7 +50,14 @@ spec:
           {{- toYaml .Values.init.podLabels | nindent 8 }}
         {{- end }}
       {{- end }}
+        app: {{ template "superset.name" . }}
+        chart: {{ template "superset.chart" . }}
+        release: {{ .Release.Name }}
+        job: {{ template "superset.fullname" . }}-init-db
     spec:
+      {{- if .Values.init.additionalPodSpec }}
+      {{- tpl (toYaml .Values.init.additionalPodSpec) . | nindent 6 }}
+      {{- end }}
       {{- if or (.Values.serviceAccount.create) (.Values.serviceAccountName) }}
       serviceAccountName: {{ template "superset.serviceAccountName" . }}
       {{- end }}
