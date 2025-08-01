@@ -75,6 +75,7 @@ import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import { findPermission } from 'src/utils/findPermission';
 import { navigateTo } from 'src/utils/navigationUtils';
 import { WIDER_DROPDOWN_WIDTH } from 'src/components/ListView/utils';
+import User from 'src/types/User';
 
 const PAGE_SIZE = 25;
 const PASSWORDS_NEEDED_MESSAGE = t(
@@ -93,12 +94,7 @@ const CONFIRM_OVERWRITE_MESSAGE = t(
 interface DashboardListProps {
   addDangerToast: (msg: string) => void;
   addSuccessToast: (msg: string) => void;
-  user: {
-    userId: string | number;
-    firstName: string;
-    lastName: string;
-    username: string;
-  };
+  user: User;
 }
 
 export interface Dashboard {

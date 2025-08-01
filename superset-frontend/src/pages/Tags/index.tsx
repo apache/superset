@@ -45,18 +45,14 @@ import { Link } from 'react-router-dom';
 import { deleteTags } from 'src/features/tags/tags';
 import { QueryObjectColumns, Tag } from 'src/views/CRUD/types';
 import TagModal from 'src/features/tags/TagModal';
+import User from 'src/types/User';
 
 const PAGE_SIZE = 25;
 
 interface TagListProps {
   addDangerToast: (msg: string) => void;
   addSuccessToast: (msg: string) => void;
-  user: {
-    userId: string | number;
-    firstName: string;
-    lastName: string;
-    username: string;
-  };
+  user: User;
 }
 
 function TagList(props: TagListProps) {

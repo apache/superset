@@ -78,6 +78,7 @@ import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import { findPermission } from 'src/utils/findPermission';
 import { QueryObjectColumns } from 'src/views/CRUD/types';
 import { WIDER_DROPDOWN_WIDTH } from 'src/components/ListView/utils';
+import User from 'src/types/User';
 
 const FlexRowContainer = styled.div`
   align-items: center;
@@ -150,12 +151,7 @@ const createFetchDatasets = async (
 interface ChartListProps {
   addDangerToast: (msg: string) => void;
   addSuccessToast: (msg: string) => void;
-  user: {
-    userId: string | number;
-    firstName: string;
-    lastName: string;
-    username: string;
-  };
+  user: User;
 }
 
 const StyledActions = styled.div`

@@ -39,26 +39,20 @@ import {
   DeleteModal,
 } from '@superset-ui/core/components';
 import { WIDER_DROPDOWN_WIDTH } from 'src/components/ListView/utils';
+import User from 'src/types/User';
 
 const PAGE_SIZE = 25;
 
+type UserWithRoles = User & {
+  roles: object;
+};
 interface GroupsListProps {
-  user: {
-    userId: string | number;
-    firstName: string;
-    lastName: string;
-    roles: object;
-  };
+  user: UserWithRoles
 }
 
 export type Role = {
   id: number;
   name: string;
-};
-
-export type User = {
-  id: number;
-  username: string;
 };
 
 export type GroupObject = {

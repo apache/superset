@@ -51,6 +51,7 @@ import ThemeModal from 'src/features/themes/ThemeModal';
 import { ThemeObject } from 'src/features/themes/types';
 import { QueryObjectColumns } from 'src/views/CRUD/types';
 import { Icons } from '@superset-ui/core/components/Icons';
+import User from 'src/types/User';
 
 const PAGE_SIZE = 25;
 
@@ -72,11 +73,7 @@ const CONFIRM_OVERWRITE_MESSAGE = t(
 interface ThemesListProps {
   addDangerToast: (msg: string) => void;
   addSuccessToast: (msg: string) => void;
-  user: {
-    userId: string | number;
-    firstName: string;
-    lastName: string;
-  };
+  user: User;
 }
 
 function ThemesList({
