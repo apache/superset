@@ -3253,7 +3253,7 @@ class TestDatasetApi(SupersetTestCase):
             uri = f"api/v1/dataset/{dataset.id}/drill_info/"
             rv = self.client.get(uri)
 
-            assert rv.status_code == 404
+            assert rv.status_code == 403
 
         self.items_to_delete = [dashboard, chart, dataset]
 
