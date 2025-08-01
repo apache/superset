@@ -39,6 +39,7 @@ const config: Config = {
   projectName: 'superset',
   themes: ['@saucelabs/theme-github-codeblock', '@docusaurus/theme-mermaid'],
   plugins: [
+    require.resolve('./src/webpack.extend.ts'),
     [
       'docusaurus-plugin-less',
       {
@@ -196,6 +197,90 @@ const config: Config = {
         ],
       },
     ],
+    [
+      '@docusaurus/plugin-content-docs',
+      {
+        id: 'components',
+        path: 'components',
+        routeBasePath: 'components',
+        sidebarPath: require.resolve('./sidebarComponents.js'),
+        editUrl:
+          'https://github.com/apache/superset/edit/master/docs/components',
+        remarkPlugins: [require('remark-import-partial')],
+        // Enable MDX v2
+        docItemComponent: '@theme/DocItem',
+        includeCurrentVersion: true,
+        // Show version dropdown
+        lastVersion: '1.1.0',
+        onlyIncludeVersions: ['current', '1.1.0', '1.0.0'],
+        // Set the default version to redirect to
+        versions: {
+          current: {
+            label: 'Next',
+            path: 'next',
+            banner: 'unreleased',
+          },
+          '1.1.0': {
+            label: '1.1.0',
+            path: '1.1.0',
+            banner: 'none',
+          },
+          '1.0.0': {
+            label: '1.0.0',
+            path: '1.0.0',
+            banner: 'none',
+          },
+        },
+        // This sets which version is shown when accessing /components/
+        // without a specific version
+        disableVersioning: false,
+        // Show version dropdown in navbar
+        showLastUpdateAuthor: true,
+        showLastUpdateTime: true,
+      },
+    ],
+    [
+      '@docusaurus/plugin-content-docs',
+      {
+        id: 'developer_portal',
+        path: 'developer_portal',
+        routeBasePath: 'developer_portal',
+        sidebarPath: require.resolve('./sidebarTutorials.js'),
+        editUrl:
+          'https://github.com/apache/superset/edit/master/docs/developer_portal',
+        remarkPlugins: [require('remark-import-partial')],
+        // Enable MDX v2
+        docItemComponent: '@theme/DocItem',
+        includeCurrentVersion: true,
+        // Show version dropdown
+        lastVersion: '1.1.0',
+        onlyIncludeVersions: ['current', '1.1.0', '1.0.0'],
+        // Set the default version to redirect to
+        versions: {
+          current: {
+            label: 'Next',
+            path: 'next',
+            banner: 'unreleased',
+          },
+          '1.1.0': {
+            label: '1.1.0',
+            path: '1.1.0',
+            banner: 'none',
+          },
+          '1.0.0': {
+            label: '1.0.0',
+            path: '1.0.0',
+            banner: 'none',
+          },
+        },
+        // This sets which version is shown when accessing /developer_portal/
+        // without a specific version
+        disableVersioning: false,
+        // Show version dropdown in navbar
+        showLastUpdateAuthor: true,
+        showLastUpdateTime: true,
+      },
+    ],
   ],
 
   presets: [
@@ -235,6 +320,13 @@ const config: Config = {
       apiKey: 'd0d22810f2e9b614ffac3a73b26891fe',
       indexName: 'superset-apache',
     },
+    mermaid: {
+      theme: { light: 'neutral', dark: 'dark' },
+      options: {
+        // Any Mermaid config options go here...
+        maxTextSize: 100000,
+      },
+    },
     navbar: {
       logo: {
         alt: 'Superset Logo',
@@ -257,7 +349,7 @@ const config: Config = {
           ],
         },
         {
-          label: 'Community',
+          label: 'Community Resources',
           to: '/community',
           items: [
             {
@@ -279,6 +371,44 @@ const config: Config = {
             {
               label: 'Stack Overflow',
               href: 'https://stackoverflow.com/questions/tagged/apache-superset',
+            },
+          ],
+        },
+        // Temporarily disabled Component Playground section
+        // Uncomment to re-enable
+        // {
+        //   label: 'Component Playground',
+        //   to: '/components',
+        //   items: [
+        //     {
+        //       label: 'Introduction',
+        //       to: '/components',
+        //     },
+        //     {
+        //       label: 'UI Components',
+        //       to: '/components/ui-components/button',
+        //     },
+        //     {
+        //       label: 'Chart Components',
+        //       to: '/components/chart-components/bar-chart',
+        //     },
+        //     {
+        //       label: 'Layout Components',
+        //       to: '/components/layout-components/grid',
+        //     },
+        //   ],
+        // },
+        {
+          label: 'Developer Portal',
+          to: '/developer_portal',
+          items: [
+            {
+              label: 'Introduction',
+              to: '/developer_portal',
+            },
+            {
+              label: 'Getting Started',
+              to: '/developer_portal/getting-started',
             },
           ],
         },
@@ -336,7 +466,6 @@ const config: Config = {
     //   src: 'https://www.bugherd.com/sidebarv2.js?apikey=enilpiu7bgexxsnoqfjtxa',
     //   async: true,
     // },
-    '/script/matomo.js',
     {
       src: 'https://widget.kapa.ai/kapa-widget.bundle.js',
       async: true,
