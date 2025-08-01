@@ -48,8 +48,9 @@ from typing import Any
 from urllib.error import HTTPError
 
 import pandas as pd
+from flask import current_app
 
-from superset import app, db
+from superset import db
 from superset.connectors.sqla.models import SqlaTable
 from superset.models.slice import Slice
 from superset.utils import json
@@ -80,7 +81,7 @@ def get_table_connector_registry() -> Any:
 
 def get_examples_folder() -> str:
     """Return local path to the examples folder (when vendored)."""
-    return os.path.join(app.config["BASE_DIR"], "examples")
+    return os.path.join(current_app.config["BASE_DIR"], "examples")
 
 
 def update_slice_ids(pos: dict[Any, Any]) -> list[Slice]:
