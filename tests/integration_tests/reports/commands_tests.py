@@ -1162,7 +1162,9 @@ def test_email_dashboard_report_schedule(
     screenshot_mock.return_value = SCREENSHOT_FILE
 
     with freeze_time("2020-01-01T00:00:00Z"):
-        with patch("superset.stats_logger.BaseStatsLogger.gauge") as statsd_mock:
+        with patch(
+            "superset.extensions.stats_logger_manager.instance.gauge"
+        ) as statsd_mock:
             AsyncExecuteReportScheduleCommand(
                 TEST_ID, create_report_email_dashboard.id, datetime.utcnow()
             ).run()
@@ -1979,11 +1981,7 @@ def test_slack_token_callable_chart_report(
     }
 
     slack_token_mock = Mock(return_value="cool_code")
-    with patch("flask.current_app.config.get") as mock_config_get:
-        # Return our mock only for SLACK_API_TOKEN, return None for others
-        mock_config_get.side_effect = lambda key, default=None: (
-            slack_token_mock if key == "SLACK_API_TOKEN" else default
-        )
+    with patch.dict("flask.current_app.config", {"SLACK_API_TOKEN": slack_token_mock}):
         # setup screenshot mock
         screenshot_mock.return_value = SCREENSHOT_FILE
 
