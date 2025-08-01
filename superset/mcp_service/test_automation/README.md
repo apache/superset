@@ -34,10 +34,33 @@ ngrok http 5008
 
 ### 4. Run Tests
 ```bash
-python test_mcp_beta.py
+# Quick smoke test (2 fixed tests)
+python smoke_test.py
+
+# Comprehensive test runner (markdown test plans)
+python comprehensive_test_runner.py poc_test.md
+python comprehensive_test_runner.py poc_test.md 3  # Run first 3 tests only
+```
+
+## Test Plan Format
+
+Create markdown files with this format:
+```markdown
+# Test Plan Name
+
+Test: Description here
+```
+prompt text here
+```
+
+Test: Another test
+```
+another prompt
+```
 ```
 
 ## Requirements
 - Anthropic API key in `superset_config.py`
 - Superset running on port 8088
 - MCP service running on port 5008
+- ngrok URL updated in test files
