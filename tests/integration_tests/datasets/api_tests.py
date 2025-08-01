@@ -3092,7 +3092,7 @@ class TestDatasetApi(SupersetTestCase):
         """
         dataset = self.insert_dataset(table_name="foo", owners=[], fetch_metadata=False)
 
-        # Log in as admin but remove pvm access
+        # Log in as alpha for dataset access but remove pvm access
         with self.temporary_user(
             clone_user=security_manager.find_user(username=ALPHA_USERNAME),
             pvms_to_remove=[("can_get_drill_info", "Dataset")],

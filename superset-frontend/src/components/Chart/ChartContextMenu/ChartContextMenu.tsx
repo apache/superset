@@ -146,7 +146,7 @@ const ChartContextMenu = (
     setShowDrillByModal(true);
   }, []);
 
-  const loadDrillByOptions = getExtensionsRegistry().get(
+  const loadDrillByOptionsExtension = getExtensionsRegistry().get(
     'load.drillby.options',
   );
 
@@ -175,8 +175,8 @@ const ChartContextMenu = (
         setIsLoadingDataset(true);
         let response;
 
-        if (loadDrillByOptions) {
-          response = await loadDrillByOptions(datasetId, formData);
+        if (loadDrillByOptionsExtension) {
+          response = await loadDrillByOptionsExtension(datasetId, formData);
         } else {
           const endpoint = `/api/v1/dataset/${datasetId}/drill_info/?q=(dashboard_id:${dashboardId})`;
           response = await cachedSupersetGet({ endpoint });
@@ -200,18 +200,18 @@ const ChartContextMenu = (
     showDrillBy,
     showDrillToDetail,
     formData.datasource,
-    loadDrillByOptions,
+    loadDrillByOptionsExtension,
     dashboardId,
   ]);
 
-  // Compute filtered dataset with drillable_columns whenever dataset or filters change
+  // Compute filteredDataset with all columns returned + a filtered list of valid drillable options
   const filteredDataset = useMemo(() => {
     if (!dataset || !showDrillBy) return dataset;
 
     const filteredColumns = ensureIsArray(dataset.columns).filter(
       column =>
-        // If using extensions, also filter by column.groupby since extensions might not do this
-        (!loadDrillByOptions || column.groupby) &&
+        // If using an extension, also filter by column.groupby since the extension might not do this
+        (!loadDrillByOptionsExtension || column.groupby) &&
         !ensureIsArray(
           formData[filters?.drillBy?.groupbyFieldName ?? ''],
         ).includes(column.column_name) &&
@@ -232,7 +232,7 @@ const ChartContextMenu = (
     formData.x_axis,
     formData[filters?.drillBy?.groupbyFieldName ?? ''],
     additionalConfig?.drillBy?.excludedColumns,
-    loadDrillByOptions,
+    loadDrillByOptionsExtension,
   ]);
 
   const showCrossFilters = isDisplayed(ContextMenuItem.CrossFilter);

@@ -72,7 +72,6 @@ const interceptDrillInfo = () => {
             verbose_name: null,
           },
         ],
-        verbose_map: {},
       },
     },
   }).as('drillInfo');

@@ -250,7 +250,6 @@ test('Do not display excluded column in the menu', async () => {
   );
   const datasetWithFilteredColumns = {
     ...mockDataset,
-    columns: filteredColumns,
     drillable_columns: filteredColumns,
   };
   renderMenu({
