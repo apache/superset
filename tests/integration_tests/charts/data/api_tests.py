@@ -1347,7 +1347,7 @@ def physical_query_context(physical_dataset) -> dict[str, Any]:
 
 
 @mock.patch(
-    "superset.common.query_context_processor.current_app.config",
+    "flask.current_app.config",
     {
         **app.config,
         "CACHE_DEFAULT_TIMEOUT": 1234,
@@ -1402,7 +1402,7 @@ def test_force_cache_timeout(test_client, login_as_admin, physical_query_context
 
 
 @mock.patch(
-    "superset.common.query_context_processor.current_app.config",
+    "flask.current_app.config",
     {
         **app.config,
         "CACHE_DEFAULT_TIMEOUT": 100000,
@@ -1447,7 +1447,7 @@ def test_chart_cache_timeout(
 
 
 @mock.patch(
-    "superset.common.query_context_processor.current_app.config",
+    "flask.current_app.config",
     {
         **app.config,
         "DATA_CACHE_CONFIG": {
@@ -1474,7 +1474,7 @@ def test_chart_cache_timeout_not_present(
 
 
 @mock.patch(
-    "superset.common.query_context_processor.current_app.config",
+    "flask.current_app.config",
     {
         **app.config,
         "DATA_CACHE_CONFIG": {

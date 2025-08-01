@@ -21,7 +21,6 @@ from unittest.mock import call, Mock, patch
 from uuid import uuid4
 
 import pytest
-from flask import current_app
 from flask.ctx import AppContext
 from flask_appbuilder.security.sqla.models import User
 from flask_sqlalchemy import BaseQuery
@@ -1163,7 +1162,7 @@ def test_email_dashboard_report_schedule(
     screenshot_mock.return_value = SCREENSHOT_FILE
 
     with freeze_time("2020-01-01T00:00:00Z"):
-        with patch.object(current_app.config["STATS_LOGGER"], "gauge") as statsd_mock:
+        with patch("superset.stats_logger.BaseStatsLogger.gauge") as statsd_mock:
             AsyncExecuteReportScheduleCommand(
                 TEST_ID, create_report_email_dashboard.id, datetime.utcnow()
             ).run()
@@ -1195,7 +1194,9 @@ def test_email_dashboard_report_schedule_with_tab_anchor(
     ExecuteReport Command: Test dashboard email report schedule with tab metadata
     """
     with freeze_time("2020-01-01T00:00:00Z"):
-        with patch.object(current_app.config["STATS_LOGGER"], "gauge") as statsd_mock:
+        with patch(
+            "superset.extensions.stats_logger_manager.instance.gauge"
+        ) as statsd_mock:
             # get tabbed dashboard fixture
             dashboard = db.session.query(Dashboard).all()[1]
             # build report_schedule
@@ -1242,7 +1243,9 @@ def test_email_dashboard_report_schedule_disabled_tabs(
     ExecuteReport Command: Test dashboard email report schedule with tab metadata
     """
     with freeze_time("2020-01-01T00:00:00Z"):
-        with patch.object(current_app.config["STATS_LOGGER"], "gauge") as statsd_mock:
+        with patch(
+            "superset.extensions.stats_logger_manager.instance.gauge"
+        ) as statsd_mock:
             # get tabbed dashboard fixture
             dashboard = db.session.query(Dashboard).all()[1]
             # build report_schedule
@@ -1332,7 +1335,9 @@ def test_slack_chart_report_schedule_converts_to_v2(
     ]
 
     with freeze_time("2020-01-01T00:00:00Z"):
-        with patch.object(current_app.config["STATS_LOGGER"], "gauge") as statsd_mock:
+        with patch(
+            "superset.extensions.stats_logger_manager.instance.gauge"
+        ) as statsd_mock:
             AsyncExecuteReportScheduleCommand(
                 TEST_ID, create_report_slack_chart.id, datetime.utcnow()
             ).run()
@@ -1395,7 +1400,9 @@ def test_slack_chart_report_schedule_converts_to_v2_channel_with_hash(
     ]
 
     with freeze_time("2020-01-01T00:00:00Z"):
-        with patch.object(current_app.config["STATS_LOGGER"], "gauge") as statsd_mock:
+        with patch(
+            "superset.extensions.stats_logger_manager.instance.gauge"
+        ) as statsd_mock:
             AsyncExecuteReportScheduleCommand(
                 TEST_ID, report_schedule.id, datetime.utcnow()
             ).run()
@@ -1493,7 +1500,9 @@ def test_slack_chart_report_schedule_v2(
     screenshot_mock.return_value = SCREENSHOT_FILE
 
     with freeze_time("2020-01-01T00:00:00Z"):
-        with patch.object(current_app.config["STATS_LOGGER"], "gauge") as statsd_mock:
+        with patch(
+            "superset.extensions.stats_logger_manager.instance.gauge"
+        ) as statsd_mock:
             AsyncExecuteReportScheduleCommand(
                 TEST_ID, create_report_slack_chartv2.id, datetime.utcnow()
             ).run()
@@ -1970,7 +1979,11 @@ def test_slack_token_callable_chart_report(
     }
 
     slack_token_mock = Mock(return_value="cool_code")
-    with patch.dict(app.config, {"SLACK_API_TOKEN": slack_token_mock}):
+    with patch("flask.current_app.config.get") as mock_config_get:
+        # Return our mock only for SLACK_API_TOKEN, return None for others
+        mock_config_get.side_effect = lambda key, default=None: (
+            slack_token_mock if key == "SLACK_API_TOKEN" else default
+        )
         # setup screenshot mock
         screenshot_mock.return_value = SCREENSHOT_FILE
 

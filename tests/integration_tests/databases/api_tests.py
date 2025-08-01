@@ -4283,7 +4283,7 @@ class TestDatabaseApi(SupersetTestCase):
 
         # Now we patch the config to include our filter function
         with patch.dict(
-            "superset.views.filters.current_app.config",
+            "flask.current_app.config",
             {"EXTRA_DYNAMIC_QUERY_FILTERS": {"databases": base_filter_mock}},
         ):
             uri = "api/v1/database/"  # noqa: F541

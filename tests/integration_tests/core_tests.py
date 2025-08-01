@@ -859,7 +859,7 @@ class TestCore(SupersetTestCase):
 
 class TestLocalePatch(SupersetTestCase):
     MOCK_LANGUAGES = (
-        "superset.views.filters.current_app.config",
+        "flask.current_app.config",
         {
             "LANGUAGES": {
                 "es": {"flag": "es", "name": "Español"},
