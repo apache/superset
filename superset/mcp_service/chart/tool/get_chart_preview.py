@@ -76,6 +76,13 @@ class URLPreviewStrategy(PreviewFormatStrategy):
             from superset.mcp_service.pooled_screenshot import PooledChartScreenshot
             from superset.utils.urls import get_url_path
 
+            # Check if chart.id is None
+            if self.chart.id is None:
+                return ChartError(
+                    error="Chart has no ID - cannot generate URL preview",
+                    error_type="InvalidChart",
+                )
+
             chart_url = get_url_path("Superset.slice", slice_id=self.chart.id)
             screenshot = PooledChartScreenshot(chart_url, self.chart.digest)
 
@@ -121,6 +128,15 @@ class ASCIIPreviewStrategy(PreviewFormatStrategy):
 
             logger.info(f"Chart form_data keys: {list(form_data.keys())}")
             logger.info(f"Chart viz_type: {self.chart.viz_type}")
+            logger.info(f"Chart datasource_id: {self.chart.datasource_id}")
+            logger.info(f"Chart datasource_type: {self.chart.datasource_type}")
+
+            # Check if datasource_id is None
+            if self.chart.datasource_id is None:
+                return ChartError(
+                    error="Chart has no datasource_id - cannot generate preview",
+                    error_type="InvalidChart",
+                )
 
             # Build query for chart data
             x_axis_config = form_data.get("x_axis")
@@ -192,6 +208,13 @@ class TablePreviewStrategy(PreviewFormatStrategy):
 
             form_data = utils_json.loads(self.chart.params) if self.chart.params else {}
 
+            # Check if datasource_id is None
+            if self.chart.datasource_id is None:
+                return ChartError(
+                    error="Chart has no datasource_id - cannot generate table preview",
+                    error_type="InvalidChart",
+                )
+
             factory = QueryContextFactory()
             query_context = factory.create(
                 datasource={
@@ -261,6 +284,12 @@ class VegaLitePreviewStrategy(PreviewFormatStrategy):
             if not hasattr(self.chart, "params") or not self.chart.params:
                 # Fetch full chart details
                 chart_obj = None
+                if self.chart.id is None:
+                    return ChartError(
+                        error="Chart has no ID - cannot generate Vega-Lite preview",
+                        error_type="InvalidChart",
+                    )
+
                 if isinstance(self.chart.id, int):
                     chart_obj = ChartDAO.find_by_id(self.chart.id)
                 else:
@@ -1843,9 +1872,20 @@ def _get_chart_preview_internal(  # noqa: C901
                 error_type="NotFound",
             )
 
+        # Log all chart attributes for debugging
         logger.info(
-            f"Generating preview for chart {chart.id} in {request.format} format: "
-            f"{chart.slice_name}"
+            f"Chart object type: {type(chart).__name__}, "
+            f"has id: {hasattr(chart, 'id')}, "
+            f"id value: {getattr(chart, 'id', 'NO_ID')}, "
+            f"id type: {type(getattr(chart, 'id', None))}"
+        )
+        logger.info(
+            f"Generating preview for chart {getattr(chart, 'id', 'NO_ID')} "
+            f"in {request.format} format: {getattr(chart, 'slice_name', 'NO_NAME')}"
+        )
+        logger.info(
+            f"Chart datasource_id: {getattr(chart, 'datasource_id', 'NONE')}, "
+            f"datasource_type: {getattr(chart, 'datasource_type', 'NONE')}"
         )
 
         import time

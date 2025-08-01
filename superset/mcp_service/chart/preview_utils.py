@@ -25,8 +25,7 @@ from form data without requiring a saved chart object.
 import logging
 from typing import Any, Dict, List
 
-from superset.charts.data.api import ChartDataCommand
-from superset.charts.data.query_context import QueryContext
+from superset.commands.chart.data.get_data_command import ChartDataCommand
 from superset.mcp_service.schemas.chart_schemas import (
     ASCIIPreview,
     ChartError,
@@ -62,10 +61,13 @@ def generate_preview_from_form_data(
                 error=f"Dataset {dataset_id} not found", error_type="DatasetNotFound"
             )
 
-        # Create query context from form data
-        query_context = {
-            "datasource": {"id": dataset_id, "type": "table"},
-            "queries": [
+        # Create query context from form data using factory
+        from superset.common.query_context_factory import QueryContextFactory
+
+        factory = QueryContextFactory()
+        query_context_obj = factory.create(
+            datasource={"id": dataset_id, "type": "table"},
+            queries=[
                 {
                     "columns": form_data.get("columns", []),
                     "metrics": form_data.get("metrics", []),
@@ -75,10 +77,10 @@ def generate_preview_from_form_data(
                     "time_range": form_data.get("time_range", "No filter"),
                 }
             ],
-        }
+            form_data=form_data,
+        )
 
         # Execute query
-        query_context_obj = QueryContext(**query_context)
         command = ChartDataCommand(query_context_obj)
         result = command.run()
 
