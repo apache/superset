@@ -85,8 +85,8 @@ class TestDatasetApi(SupersetTestCase):
         table_name: str,
         owners: list[int],
         database: Database,
-        sql: str | None = None,
-        schema: str | None = None,
+        sql: Optional[str] = None,
+        schema: Optional[str] = None,
         catalog: str | None = None,
         fetch_metadata: bool = True,
     ) -> SqlaTable:
@@ -2898,6 +2898,67 @@ class TestDatasetApi(SupersetTestCase):
 
         with examples_db.get_sqla_engine() as engine:
             engine.execute("DROP TABLE test_create_sqla_table_api")
+
+    def test_get_or_create_dataset_creates_table_for_different_schema(self):
+        """
+        Dataset API: Test get or create endpoint when table is created
+        """
+        self.login(ADMIN_USERNAME)
+
+        table_name = "test_create_sqla_table_for_schema_api"
+
+        examples_db = get_example_database()
+        with examples_db.get_sqla_engine() as engine:
+            engine.execute(f"DROP TABLE IF EXISTS {table_name}")
+            engine.execute(f"CREATE TABLE {table_name} AS SELECT 2 as col")
+
+        # pre populate for schema s1
+        sqla_ds_1 = self.insert_dataset(
+            table_name,
+            [self.get_user("admin").id],
+            examples_db,
+            schema="s1",
+            fetch_metadata=False,
+        )
+        # pre populate for schema s2
+        sqla_ds_2 = self.insert_dataset(
+            table_name,
+            [self.get_user("admin").id],
+            examples_db,
+            schema="s2",
+            fetch_metadata=False,
+        )
+
+        # attempt to create for a different schema
+        schema_name = None
+
+        rv = self.client.post(
+            "api/v1/dataset/get_or_create/",
+            json={
+                "table_name": table_name,
+                "schema": schema_name,
+                "database_id": examples_db.id,
+                "template_params": '{"param": 1}',
+            },
+        )
+        self.assertEqual(rv.status_code, 200)
+        response = json.loads(rv.data.decode("utf-8"))
+        table = (
+            db.session.query(SqlaTable)
+            .filter_by(table_name=table_name, schema=schema_name)
+            .one()
+        )
+        assert response["result"] == {"table_id": table.id}
+        assert table.template_params == '{"param": 1}'
+        assert table.normalize_columns is False
+
+        db.session.delete(table)
+        db.session.delete(sqla_ds_1)
+        db.session.delete(sqla_ds_2)
+        db.session.commit()
+
+        with examples_db.get_sqla_engine() as engine:
+            engine.execute(f"DROP TABLE {table_name}")
 
     @pytest.mark.usefixtures(
         "load_energy_table_with_slice", "load_birth_names_dashboard_with_slices"
