@@ -22,7 +22,6 @@ import {
   dataTestChartName,
 } from 'cypress/support/directories';
 
-import { waitForChartLoad } from 'cypress/utils';
 import {
   addParentFilterWithValue,
   applyNativeFilterValueWithIndex,
@@ -344,7 +343,7 @@ describe('Native filters', () => {
     it('User can delete a native filter', () => {
       enterNativeFilterEditModal(false);
       cy.get(nativeFilters.filtersList.removeIcon).first().click();
-      cy.contains('Restore Filter').should('not.exist', { timeout: 10000 });
+      cy.contains('Restore filter').should('not.exist', { timeout: 10000 });
     });
 
     it('User can cancel creating a new filter', () => {

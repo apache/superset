@@ -43,7 +43,7 @@ const RemovedFilter: FC<RemovedFilterProps> = ({ onClick }) => (
         buttonStyle="primary"
         onClick={onClick}
       >
-        {t('Restore Filter')}
+        {t('Restore filter')}
       </Button>
     </div>
   </RemovedContent>

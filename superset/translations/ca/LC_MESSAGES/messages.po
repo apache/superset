@@ -843,10 +843,10 @@ msgstr "Afegir plantilla CSS"
 msgid "Add Dashboard"
 msgstr "Afegir Dashboard"
 
-msgid "Add Divider"
+msgid "Add divider"
 msgstr "Afegir Divisor"
 
-msgid "Add Filter"
+msgid "Add filter"
 msgstr "Afegir Filtre"
 
 msgid "Add Layer"
@@ -1822,7 +1822,7 @@ msgstr "Filtres d'autocompletat"
 msgid "Autocomplete query predicate"
 msgstr "Predicat de consulta d'autocompletat"
 
-msgid "Automatic Color"
+msgid "Automatic color"
 msgstr "Color Automàtic"
 
 msgid "Autosize Column"
@@ -3234,7 +3234,7 @@ msgstr "Mapa de País"
 msgid "Create"
 msgstr "Crear"
 
-msgid "Create Chart"
+msgid "Create chart"
 msgstr "Crear Gràfic"
 
 msgid "Create a dataset"
@@ -8642,7 +8642,7 @@ msgstr "El recurs ja té un informe adjunt."
 msgid "Resource was not found."
 msgstr "No s'ha trobat el recurs."
 
-msgid "Restore Filter"
+msgid "Restore filter"
 msgstr "Restaurar Filtre"
 
 msgid "Results"

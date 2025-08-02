@@ -758,10 +758,10 @@ msgstr ""
 msgid "Add Dashboard"
 msgstr ""
 
-msgid "Add Divider"
+msgid "Add divider"
 msgstr ""
 
-msgid "Add Filter"
+msgid "Add filter"
 msgstr ""
 
 msgid "Add Layer"
@@ -1683,7 +1683,7 @@ msgstr ""
 msgid "Autocomplete query predicate"
 msgstr ""
 
-msgid "Automatic Color"
+msgid "Automatic color"
 msgstr ""
 
 msgid "Autosize Column"
@@ -3024,7 +3024,7 @@ msgstr ""
 msgid "Create"
 msgstr ""
 
-msgid "Create Chart"
+msgid "Create chart"
 msgstr ""
 
 msgid "Create a dataset"
@@ -8186,7 +8186,7 @@ msgstr ""
 msgid "Resource was not found."
 msgstr ""
 
-msgid "Restore Filter"
+msgid "Restore filter"
 msgstr ""
 
 msgid "Results"
