@@ -29,7 +29,10 @@ The MCP service is included with Superset development setup. FastMCP dependencie
 :::
 
 ```bash
-# MCP service is included with Superset development setup
+# Using Docker Compose (recommended)
+docker-compose -f docker-compose-light.yml --profile mcp up
+
+# Or manually with development setup
 git clone https://github.com/apache/superset.git
 cd superset
 make venv && source venv/bin/activate
@@ -43,7 +46,19 @@ source venv/bin/activate
 superset mcp run --port 5008 --debug
 ```
 
-### Claude Desktop Integration
+### Connecting to MCP
+
+#### Option 1: ModelContextChat.com (No Installation Required)
+
+The fastest way to start using Superset MCP is through [ModelContextChat.com](https://modelcontextchat.com):
+
+1. Navigate to ModelContextChat.com
+2. Configure MCP connection to `http://localhost:5008`
+3. Start chatting with Claude about your Superset data
+
+See the [MCP Service README](https://github.com/apache/superset/tree/master/superset/mcp_service#-using-modelcontextchatcom-web-based-mcp-client) for detailed instructions with screenshots.
+
+#### Option 2: Claude Desktop Integration
 
 ```json
 {
