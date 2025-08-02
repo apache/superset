@@ -78,7 +78,7 @@
     "@types/lodash": "^4.17.20",
     "@types/math-expression-evaluator": "^1.3.3",
     "@types/node": "^22.10.3",
-    "@types/prop-types": "^15.7.2",
+    "@types/prop-types": "^15.7.15",
     "@types/rison": "0.1.0",
     "@types/seedrandom": "^3.0.8",
     "fetch-mock": "^11.1.4",
