@@ -24,6 +24,7 @@ import {
   t,
   JsonObject,
   getClientErrorObject,
+  logging,
 } from '@superset-ui/core';
 
 import {
@@ -835,7 +836,7 @@ export function useDatabaseValidation() {
           });
         }
 
-        console.error('Unexpected error during validation:', error);
+        logging.error('Unexpected error during validation:', error);
         setIsValidating(false);
         setHasValidated(true);
         return {};

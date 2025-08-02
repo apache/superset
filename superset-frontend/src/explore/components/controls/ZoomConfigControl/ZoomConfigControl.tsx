@@ -17,7 +17,7 @@
  * under the License.
  */
 import { ControlHeader } from '@superset-ui/chart-controls';
-import { css, styled, t } from '@superset-ui/core';
+import { css, styled, t, logging } from '@superset-ui/core';
 import { Form } from '@superset-ui/core/components';
 import { Tag } from 'src/components';
 import { FC, useState } from 'react';
@@ -65,7 +65,7 @@ export const ZoomConfigControl: FC<ZoomConfigsControlProps> = ({
   };
 
   const onBaseWidthChange = (width: number) => {
-    console.log('now in onbasewidthcahnge');
+    logging.log('now in onbasewidthcahnge');
     setBaseWidth(width);
     if (!value) {
       return;

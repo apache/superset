@@ -27,6 +27,7 @@ import {
   JsonValue,
   QueryFormData,
   usePrevious,
+  logging,
 } from '@superset-ui/core';
 import { ErrorBoundary } from 'src/components';
 import { ExploreActions } from 'src/explore/actions/exploreActions';
@@ -107,8 +108,7 @@ export default function Control(props: ControlProps) {
       ? controlMap[type as keyof typeof controlMap]
       : type;
   if (!ControlComponent) {
-    // eslint-disable-next-line no-console
-    console.warn(`Unknown controlType: ${type}`);
+    logging.warn(`Unknown controlType: ${type}`);
     return null;
   }
 

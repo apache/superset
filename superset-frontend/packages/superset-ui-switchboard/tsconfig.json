@@ -1,8 +1,7 @@
 {
   "compilerOptions": {
     "declarationDir": "lib",
-    "outDir": "lib",
-    "rootDir": "src"
+    "outDir": "lib"
   },
   "exclude": [
     "lib",
@@ -14,5 +13,7 @@
     "types/**/*",
     "../../types/**/*"
   ],
-  "references": []
+  "references": [
+    { "path": "../superset-ui-core" },
+  ]
 }
