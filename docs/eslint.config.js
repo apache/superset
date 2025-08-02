@@ -28,6 +28,9 @@ const globals = require('globals');
 const { defineConfig, globalIgnores } = require('eslint/config');
 
 module.exports = defineConfig([
+  {
+    files: ['**/*.{js,jsx,ts,tsx}'],
+  },
   globalIgnores(['build/**/*', '.docusaurus/**/*', 'node_modules/**/*']),
   js.configs.recommended,
   ...ts.configs.recommended,
@@ -36,7 +39,7 @@ module.exports = defineConfig([
     files: ['eslint.config.js'],
     rules: {
       '@typescript-eslint/no-require-imports': 'off',
-    }
+    },
   },
   {
     languageOptions: {
@@ -68,5 +71,5 @@ module.exports = defineConfig([
         version: 'detect',
       },
     },
-  }
-])
+  },
+]);
