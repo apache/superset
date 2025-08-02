@@ -78,7 +78,12 @@ const createFetchResourceMethod =
     resource: string,
     relation: string,
     handleError: (error: Response) => void,
-    user?: { userId: string | number; firstName: string; lastName: string },
+    user?: {
+      userId: string | number;
+      firstName: string;
+      lastName: string;
+      username: string;
+    },
   ) =>
   async (filterValue = '', page: number, pageSize: number) => {
     const resourceEndpoint = `/api/v1/${resource}/${method}/${relation}`;
@@ -96,6 +101,7 @@ const createFetchResourceMethod =
       ? {
           label: `${user.firstName} ${user.lastName}`,
           value: user.userId,
+          username: user.username,
         }
       : undefined;
 
@@ -106,7 +112,8 @@ const createFetchResourceMethod =
         if (
           loggedUser &&
           value === loggedUser.value &&
-          text === loggedUser.label
+          (text === loggedUser.label ||
+            text === `${loggedUser.label} (${loggedUser.username})`)
         ) {
           fetchedLoggedUser = true;
         } else {

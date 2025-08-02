@@ -41,18 +41,14 @@ import { fetchPaginatedData } from 'src/utils/fetchOptions';
 import { fetchUserOptions } from 'src/features/groups/utils';
 import { WIDER_DROPDOWN_WIDTH } from 'src/components/ListView/utils';
 import { GroupObject } from '../GroupsList';
+import User from 'src/types/User';
 
 const PAGE_SIZE = 25;
 
 interface RolesListProps {
   addDangerToast: (msg: string) => void;
   addSuccessToast: (msg: string) => void;
-  user: {
-    userId: string | number;
-    firstName: string;
-    lastName: string;
-    roles: object;
-  };
+  user: User;
 }
 
 export type RoleObject = {

@@ -62,6 +62,7 @@ import { AlertObject, AlertState } from 'src/features/alerts/types';
 import { QueryObjectColumns } from 'src/views/CRUD/types';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { WIDER_DROPDOWN_WIDTH } from 'src/components/ListView/utils';
+import User from 'src/types/User';
 
 const extensionsRegistry = getExtensionsRegistry();
 
@@ -79,11 +80,7 @@ interface AlertListProps {
   addDangerToast: (msg: string) => void;
   addSuccessToast: (msg: string) => void;
   isReportEnabled: boolean;
-  user: {
-    userId: string | number;
-    firstName: string;
-    lastName: string;
-  };
+  user: User;
 }
 const deleteAlerts = makeApi<number[], { message: string }>({
   requestType: 'rison',

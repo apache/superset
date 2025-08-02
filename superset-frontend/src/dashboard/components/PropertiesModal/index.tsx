@@ -57,7 +57,7 @@ import {
   getColorNamespace,
   getFreshLabelsColorMapEntries,
 } from 'src/utils/colorScheme';
-import getOwnerName from 'src/utils/getOwnerName';
+import { getOwnerDisplayName } from 'src/utils/getOwnerName';
 import Owner from 'src/types/Owner';
 import { useDispatch } from 'react-redux';
 import {
@@ -85,12 +85,7 @@ type PropertiesModalProps = {
 };
 
 type Roles = { id: number; name: string }[];
-type Owners = {
-  id: number;
-  full_name?: string;
-  first_name?: string;
-  last_name?: string;
-}[];
+type Owners = Owner[];
 type DashboardInfo = {
   id: number;
   title: string;
@@ -279,7 +274,7 @@ const PropertiesModal = ({
   const handleOwnersSelectValue = () => {
     const parsedOwners = (owners || []).map((owner: Owner) => ({
       value: owner.id,
-      label: getOwnerName(owner),
+      label: getOwnerDisplayName(owner),
     }));
     return parsedOwners;
   };

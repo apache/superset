@@ -213,7 +213,12 @@ class ApiOwnersTestCaseMixin:
         assert rv.status_code == 200
         response = json.loads(rv.data.decode("utf-8"))
         users = db.session.query(security_manager.user_model).all()
-        expected_users = [str(user) for user in users]
+        expected_users = [
+            f"{user.first_name} {user.last_name} ({user.username})"
+            if user.username
+            else str(user)
+            for user in users
+        ]
         assert response["count"] == len(users)
         # This needs to be implemented like this, because ordering varies between
         # postgres and mysql
@@ -239,7 +244,7 @@ class ApiOwnersTestCaseMixin:
             assert rv.status_code == 200
             response = json.loads(rv.data.decode("utf-8"))
             response_users = [result["text"] for result in response["result"]]
-            assert response_users == ["alpha user"]
+            assert response_users == ["alpha user (alpha)"]
 
     def test_get_related_owners_paginated(self):
         """
@@ -261,7 +266,12 @@ class ApiOwnersTestCaseMixin:
         assert len(response["result"]) == min(page_size, len(users))
 
         # make sure all received users are included in the full set of users
-        all_users = [str(user) for user in users]
+        all_users = [
+            f"{user.first_name} {user.last_name} ({user.username})"
+            if user.username
+            else str(user)
+            for user in users
+        ]
         for received_user in [result["text"] for result in response["result"]]:
             assert received_user in all_users
 
@@ -290,23 +300,23 @@ class ApiOwnersTestCaseMixin:
         sorted_results = sorted(response["result"], key=lambda value: value["text"])
         expected_results = [
             {
-                "extra": {"active": True, "email": "gamma@fab.org"},
-                "text": "gamma user",
+                "extra": {"active": True, "email": "gamma@fab.org", "username": "gamma"},
+                "text": "gamma user (gamma)",
                 "value": 2,
             },
             {
-                "extra": {"active": True, "email": "gamma2@fab.org"},
-                "text": "gamma2 user",
+                "extra": {"active": True, "email": "gamma2@fab.org", "username": "gamma2"},
+                "text": "gamma2 user (gamma2)",
                 "value": 3,
             },
             {
-                "extra": {"active": True, "email": "gamma_no_csv@fab.org"},
-                "text": "gamma_no_csv user",
+                "extra": {"active": True, "email": "gamma_no_csv@fab.org", "username": "gamma_no_csv"},
+                "text": "gamma_no_csv user (gamma_no_csv)",
                 "value": 6,
             },
             {
-                "extra": {"active": True, "email": "gamma_sqllab@fab.org"},
-                "text": "gamma_sqllab user",
+                "extra": {"active": True, "email": "gamma_sqllab@fab.org", "username": "gamma_sqllab"},
+                "text": "gamma_sqllab user (gamma_sqllab)",
                 "value": 4,
             },
         ]
@@ -377,13 +387,13 @@ class ApiOwnersTestCaseMixin:
         sorted_results = sorted(response["result"], key=lambda value: value["text"])
         expected_results = [
             {
-                "extra": {"active": True, "email": "gamma@fab.org"},
-                "text": "gamma user",
+                "extra": {"active": True, "email": "gamma@fab.org", "username": "gamma"},
+                "text": "gamma user (gamma)",
                 "value": 2,
             },
             {
-                "extra": {"active": True, "email": "gamma_sqllab@fab.org"},
-                "text": "gamma_sqllab user",
+                "extra": {"active": True, "email": "gamma_sqllab@fab.org", "username": "gamma_sqllab"},
+                "text": "gamma_sqllab user (gamma_sqllab)",
                 "value": 4,
             },
         ]
@@ -404,13 +414,13 @@ class ApiOwnersTestCaseMixin:
         sorted_results = sorted(response["result"], key=lambda value: value["text"])
         expected_results = [
             {
-                "extra": {"active": True, "email": "gamma@fab.org"},
-                "text": "gamma user",
+                "extra": {"active": True, "email": "gamma@fab.org", "username": "gamma"},
+                "text": "gamma user (gamma)",
                 "value": 2,
             },
             {
-                "extra": {"active": True, "email": "gamma_sqllab@fab.org"},
-                "text": "gamma_sqllab user",
+                "extra": {"active": True, "email": "gamma_sqllab@fab.org", "username": "gamma_sqllab"},
+                "text": "gamma_sqllab user (gamma_sqllab)",
                 "value": 4,
             },
         ]
