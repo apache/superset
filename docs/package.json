@@ -15,7 +15,7 @@
     "write-translations": "docusaurus write-translations",
     "write-heading-ids": "docusaurus write-heading-ids",
     "typecheck": "tsc",
-    "eslint": "eslint . --ext .js,.jsx,.ts,.tsx"
+    "eslint": "eslint ."
   },
   "dependencies": {
     "@ant-design/icons": "^6.0.0",
