@@ -199,6 +199,7 @@ On helm this can be set on `extraSecretEnv.SUPERSET_SECRET_KEY` or `configOverri
 | supersetNode.autoscaling.minReplicas | int | `1` |  |
 | supersetNode.autoscaling.targetCPUUtilizationPercentage | int | `80` |  |
 | supersetNode.command | list | See `values.yaml` | Startup command |
+| supersetNode.connections.db_conn_params | string | `""` | If you're bringing your own PostgreSQL, you can set extra connection parameters (eg. sslmode=require). |
 | supersetNode.connections.db_host | string | `"{{ .Release.Name }}-postgresql"` |  |
 | supersetNode.connections.db_name | string | `"superset"` |  |
 | supersetNode.connections.db_pass | string | `"superset"` |  |
