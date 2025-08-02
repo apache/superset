@@ -32,7 +32,7 @@ const MIN_OPACITY_BOUNDED = 0.05;
 const MIN_OPACITY_UNBOUNDED = 0;
 const MAX_OPACITY = 1;
 export const getOpacity = (
-  value: number,
+  value: number | string,
   cutoffPoint: number | string,
   extremeValue: number | string,
   minOpacity = MIN_OPACITY_BOUNDED,
@@ -41,7 +41,8 @@ export const getOpacity = (
   if (
     extremeValue === cutoffPoint ||
     typeof cutoffPoint !== 'number' ||
-    typeof extremeValue !== 'number'
+    typeof extremeValue !== 'number' ||
+    typeof value !== 'number'
   ) {
     return maxOpacity;
   }
@@ -65,7 +66,7 @@ export const getColorFunction = (
     targetValueRight,
     colorScheme,
   }: ConditionalFormattingConfig,
-  columnValues: number[],
+  columnValues: number[] | string[],
   alpha?: boolean,
 ) => {
   let minOpacity = MIN_OPACITY_BOUNDED;
@@ -73,7 +74,7 @@ export const getColorFunction = (
 
   let comparatorFunction: (
     value: number | string,
-    allValues: number[],
+    allValues: number[] | string[],
   ) => false | { cutoffValue: number | string; extremeValue: number | string };
   if (operator === undefined || colorScheme === undefined) {
     return () => undefined;
@@ -193,26 +194,26 @@ export const getColorFunction = (
       break;
     case Comparator.BeginsWith:
       comparatorFunction = (value: string) =>
-        typeof value === 'string' && value?.startsWith(targetValue as string)
+        isString(value) && value?.startsWith(targetValue as string)
           ? { cutoffValue: targetValue!, extremeValue: targetValue! }
           : false;
       break;
     case Comparator.EndsWith:
       comparatorFunction = (value: string) =>
-        typeof value === 'string' && value?.endsWith(targetValue as string)
+        isString(value) && value?.endsWith(targetValue as string)
           ? { cutoffValue: targetValue!, extremeValue: targetValue! }
           : false;
       break;
     case Comparator.Containing:
       comparatorFunction = (value: string) =>
-        typeof value === 'string' &&
+        isString(value) &&
         value?.toLowerCase().includes((targetValue as string).toLowerCase())
           ? { cutoffValue: targetValue!, extremeValue: targetValue! }
           : false;
       break;
     case Comparator.NotContaining:
       comparatorFunction = (value: string) =>
-        typeof value === 'string' &&
+        isString(value) &&
         !value?.toLowerCase().includes((targetValue as string).toLowerCase())
           ? { cutoffValue: targetValue!, extremeValue: targetValue! }
           : false;
@@ -222,7 +223,7 @@ export const getColorFunction = (
       break;
   }
 
-  return (value: number) => {
+  return (value: number | string) => {
     const compareResult = comparatorFunction(value, columnValues);
     if (compareResult === false) return undefined;
     const { cutoffValue, extremeValue } = compareResult;
@@ -267,3 +268,7 @@ export const getColorFormatters = memoizeOne(
       [],
     ) ?? [],
 );
+
+function isString(value: string) {
+  return typeof value === 'string';
+}

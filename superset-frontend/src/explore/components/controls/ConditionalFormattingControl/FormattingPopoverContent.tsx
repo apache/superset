@@ -337,7 +337,7 @@ export const FormattingPopoverContent = ({
         {showOperatorFields ? (
           (props: GetFieldValue) => renderOperatorFields(props, columnType)
         ) : (
-          <Row style={{ display: 'none' }} gutter={12}>
+          <Row gutter={12}>
             <Col span={6}>
               {renderOperator({ showOnlyNone: true, columnType })}
             </Col>
