@@ -257,7 +257,8 @@ class MachineAuthProvider:
         )
 
         # Login with the user specified to get the reports
-        with app.test_request_context("/login"):
+        # Fixed: Use current_app instead of undefined 'app' variable
+        with current_app.test_request_context("/login"):
             try:
                 login_user(user)
                 logger.debug(f"Successfully logged in user {user.username}")
@@ -265,9 +266,9 @@ class MachineAuthProvider:
                 # A mock response object to get the cookie information from
                 response = Response()
                 # To ensure all `after_request` functions are called i.e Websockets JWT
-                app.process_response(response)
-                app.session_interface.save_session(
-                    app, session, response
+                current_app.process_response(response)
+                current_app.session_interface.save_session(
+                    current_app, session, response
                 )
 
                 logger.debug(f"Response headers count: {len(response.headers)}")

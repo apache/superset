@@ -15,8 +15,10 @@
 # specific language governing permissions and limitations
 # under the License.
 
+from .execute_sql import execute_sql
 from .open_sql_lab_with_context import open_sql_lab_with_context
 
 __all__ = [
+    "execute_sql",
     "open_sql_lab_with_context",
 ]

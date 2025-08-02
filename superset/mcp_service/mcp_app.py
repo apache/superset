@@ -52,8 +52,11 @@ def _create_auth_provider() -> Optional[BearerAuthProvider]:
     Uses app.config["MCP_AUTH_FACTORY"](app) pattern as suggested by @dpgaspar.
     """
     try:
-        from superset import app as superset_app
+        from superset.app import create_app
         from superset.mcp_service.config import DEFAULT_CONFIG
+
+        # Create Flask app instance to access config
+        superset_app = create_app()
 
         # Apply defaults to app.config if not already set
         for key, value in DEFAULT_CONFIG.items():
@@ -155,112 +158,109 @@ async def serve_chart_screenshot(chart_id: str) -> Any:  # noqa: C901
             )
 
     try:
-        from flask import g
+        from flask import current_app, g
 
-        from superset import app as superset_app
         from superset.daos.chart import ChartDAO
         from superset.mcp_service.pooled_screenshot import PooledChartScreenshot
         from superset.utils.urls import get_url_path
 
-        # Set up Flask app context for database access
-        with superset_app.app_context():
-            # Create a mock user context - you might need to adjust this
-            from flask_appbuilder.security.sqla.models import User
+        # Use current Flask app context for database access
+        # Note: This assumes we're already in a Flask app context
+        superset_app = current_app
 
-            from superset.extensions import db
+        # Create a mock user context - you might need to adjust this
+        from flask_appbuilder.security.sqla.models import User
 
-            # Get username from config, fallback to "admin"
-            username = superset_app.config.get("MCP_ADMIN_USERNAME", "admin")
-            mock_user = db.session.query(User).filter_by(username=username).first()
-            if mock_user:
-                g.user = mock_user
+        from superset.extensions import db
+
+        # Get username from config, fallback to "admin"
+        username = superset_app.config.get("MCP_ADMIN_USERNAME", "admin")
+        mock_user = db.session.query(User).filter_by(username=username).first()
+        if mock_user:
+            g.user = mock_user
+        else:
+            logger.warning(f"User '{username}' not found, screenshot may fail")
+
+        # Find the chart
+        chart = None
+        try:
+            if chart_id.isdigit():
+                chart = ChartDAO.find_by_id(int(chart_id))
             else:
-                logger.warning(f"User '{username}' not found, screenshot may fail")
+                # Try UUID lookup using DAO flexible method
+                chart = ChartDAO.find_by_id(chart_id, id_column="uuid")
+        except Exception as e:
+            logger.error(f"Error looking up chart {chart_id}: {e}")
+            raise HTTPException(
+                status_code=500,
+                detail=(f"Database error while looking up chart {chart_id}: {str(e)}"),
+            ) from e
 
-            # Find the chart
-            chart = None
-            try:
-                if chart_id.isdigit():
-                    chart = ChartDAO.find_by_id(int(chart_id))
-                else:
-                    # Try UUID lookup using DAO flexible method
-                    chart = ChartDAO.find_by_id(chart_id, id_column="uuid")
-            except Exception as e:
-                logger.error(f"Error looking up chart {chart_id}: {e}")
-                raise HTTPException(
-                    status_code=500,
-                    detail=(
-                        f"Database error while looking up chart {chart_id}: {str(e)}"
-                    ),
-                ) from e
+        if not chart:
+            logger.warning(f"Chart {chart_id} not found in database")
+            raise HTTPException(
+                status_code=404,
+                detail=(
+                    f"Chart with ID '{chart_id}' not found. "
+                    f"Please verify the chart ID exists."
+                ),
+            )
 
-            if not chart:
-                logger.warning(f"Chart {chart_id} not found in database")
-                raise HTTPException(
-                    status_code=404,
-                    detail=(
-                        f"Chart with ID '{chart_id}' not found. "
-                        f"Please verify the chart ID exists."
-                    ),
-                )
+        logger.info(f"Serving screenshot for chart {chart.id}: {chart.slice_name}")
 
-            logger.info(f"Serving screenshot for chart {chart.id}: {chart.slice_name}")
+        # Create chart URL for screenshot
+        chart_url = get_url_path("Superset.slice", slice_id=chart.id)
 
-            # Create chart URL for screenshot
-            chart_url = get_url_path("Superset.slice", slice_id=chart.id)
+        # Create screenshot object
+        screenshot = PooledChartScreenshot(chart_url, chart.digest)
 
-            # Create screenshot object
-            screenshot = PooledChartScreenshot(chart_url, chart.digest)
+        # Generate screenshot (800x600 default)
+        window_size = (800, 600)
+        try:
+            image_data = screenshot.get_screenshot(user=g.user, window_size=window_size)
+        except Exception as e:
+            logger.error(f"Screenshot generation failed for chart {chart_id}: {e}")
+            raise HTTPException(
+                status_code=500,
+                detail=(
+                    f"Failed to generate screenshot for chart {chart_id}. "
+                    f"Error: {str(e)}"
+                ),
+            ) from e
 
-            # Generate screenshot (800x600 default)
-            window_size = (800, 600)
-            try:
-                image_data = screenshot.get_screenshot(
-                    user=g.user, window_size=window_size
-                )
-            except Exception as e:
-                logger.error(f"Screenshot generation failed for chart {chart_id}: {e}")
-                raise HTTPException(
-                    status_code=500,
-                    detail=(
-                        f"Failed to generate screenshot for chart {chart_id}. "
-                        f"Error: {str(e)}"
-                    ),
-                ) from e
+        if image_data:
+            # Cache the screenshot
+            _screenshot_cache[cache_key] = (current_time, image_data)
 
-            if image_data:
-                # Cache the screenshot
-                _screenshot_cache[cache_key] = (current_time, image_data)
+            # Clean up old cache entries (simple cleanup)
+            keys_to_remove = []
+            for key, (ts, _) in _screenshot_cache.items():
+                if current_time - ts > SCREENSHOT_CACHE_TTL:
+                    keys_to_remove.append(key)
+            for key in keys_to_remove:
+                del _screenshot_cache[key]
 
-                # Clean up old cache entries (simple cleanup)
-                keys_to_remove = []
-                for key, (ts, _) in _screenshot_cache.items():
-                    if current_time - ts > SCREENSHOT_CACHE_TTL:
-                        keys_to_remove.append(key)
-                for key in keys_to_remove:
-                    del _screenshot_cache[key]
+            logger.info(f"Generated and cached screenshot for chart {chart_id}")
 
-                logger.info(f"Generated and cached screenshot for chart {chart_id}")
-
-                # Return the PNG image directly
-                return Response(
-                    content=image_data,
-                    media_type="image/png",
-                    headers={
-                        "Cache-Control": "public, max-age=300",  # 5 min cache
-                        "Content-Disposition": f"inline; filename=chart_{chart.id}.png",
-                        "X-Cache": "MISS",
-                    },
-                )
-            else:
-                logger.error(f"Screenshot returned None for chart {chart_id}")
-                raise HTTPException(
-                    status_code=500,
-                    detail=(
-                        f"Screenshot generation returned empty result for "
-                        f"chart {chart_id}. The chart may have rendering issues."
-                    ),
-                )
+            # Return the PNG image directly
+            return Response(
+                content=image_data,
+                media_type="image/png",
+                headers={
+                    "Cache-Control": "public, max-age=300",  # 5 min cache
+                    "Content-Disposition": f"inline; filename=chart_{chart.id}.png",
+                    "X-Cache": "MISS",
+                },
+            )
+        else:
+            logger.error(f"Screenshot returned None for chart {chart_id}")
+            raise HTTPException(
+                status_code=500,
+                detail=(
+                    f"Screenshot generation returned empty result for "
+                    f"chart {chart_id}. The chart may have rendering issues."
+                ),
+            )
 
     except HTTPException:
         raise
@@ -331,10 +331,11 @@ async def serve_explore_screenshot(form_data_key: str) -> Any:
     try:
         from flask import g
 
-        from superset import app as superset_app
+        from superset.app import create_app
         from superset.utils.urls import get_url_path
 
-        # Set up Flask app context for entire screenshot process
+        # Create Flask app instance and set up context
+        superset_app = create_app()
         with superset_app.app_context():
             # Create a mock user context - you might need to adjust this
             from flask_appbuilder.security.sqla.models import User

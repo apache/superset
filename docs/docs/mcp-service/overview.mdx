@@ -12,7 +12,7 @@ The Superset Model Context Protocol (MCP) service provides a modular, schema-dri
 
 ## What is MCP?
 
-The Model Context Protocol (MCP) is an open standard for connecting AI assistants to data sources and tools. Superset's MCP service exposes 16 tools that allow LLM agents to:
+The Model Context Protocol (MCP) is an open standard for connecting AI assistants to data sources and tools. Superset's MCP service exposes 17 tools that allow LLM agents to:
 
 - **Explore data**: List and query dashboards, charts, and datasets
 - **Create visualizations**: Generate charts and dashboards programmatically
@@ -21,12 +21,12 @@ The Model Context Protocol (MCP) is an open standard for connecting AI assistant
 
 ## Key Features
 
-### 🔧 **16 Production-Ready Tools**
+### 🔧 **17 Production-Ready Tools**
 - **Dashboard Tools (5)**: List, get info, create dashboards, add charts
 - **Chart Tools (8)**: Full CRUD operations, data export, screenshot previews
 - **Dataset Tools (3)**: List, get info, discover filterable columns
 - **System Tools (2)**: Instance info, explore link generation
-- **SQL Lab Tools (1)**: Pre-configured SQL sessions
+- **SQL Lab Tools (2)**: Pre-configured SQL sessions, direct SQL execution
 
 ### 🔐 **Enterprise Authentication**
 - **JWT Bearer Authentication**: Production-ready with configurable factory pattern
@@ -137,6 +137,11 @@ Configure Claude Desktop (`~/.config/Claude/claude_desktop_config.json`):
 - "Create a line chart showing revenue trends by month"
 - "Generate a table showing top 10 products by sales"
 - "Build a bar chart comparing regional performance"
+
+### SQL Execution
+- "Run a query to get total sales by region"
+- "Execute SQL to find top customers with parameters"
+- "Query the database for inventory levels"
 
 ### Data Export
 - "Export the sales data from this chart as CSV"

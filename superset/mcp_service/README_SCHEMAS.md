@@ -339,6 +339,84 @@ The tool intelligently handles two metric formats:
 - `explore_url`: `str` — Full URL to Superset explore interface with chart configuration
 - `form_data`: `Dict[str, Any]` — Serialized form data for the chart
 
+## SQL Lab Tools
+
+### open_sql_lab_with_context
+
+**Input:** `OpenSqlLabRequest`
+- `database_connection_id`: `int` — Database connection ID
+- `schema`: `Optional[str]` — Default schema to select
+- `dataset_in_context`: `Optional[str]` — Dataset/table name for context
+- `sql`: `Optional[str]` — SQL query to pre-populate
+- `title`: `Optional[str]` — Query title
+
+**Returns:** `SqlLabUrlResponse`
+- `url`: `str` — Full URL to SQL Lab with context
+- `database_id`: `int` — Database ID used
+- `schema`: `Optional[str]` — Schema selected
+- `title`: `Optional[str]` — Query title
+- `error`: `Optional[str]` — Error message if failed
+
+### execute_sql
+
+**Input:** `ExecuteSqlRequest`
+- `database_id`: `int` — Database connection ID
+- `sql`: `str` — SQL query to execute (validated for non-empty)
+- `schema`: `Optional[str]` — Schema name
+- `limit`: `int = 1000` — Result row limit (min: 1, max: 10000)
+- `timeout`: `int = 30` — Query timeout in seconds (min: 1, max: 300)
+- `parameters`: `Optional[Dict[str, Any]]` — Parameters for query substitution
+
+**Returns:** `ExecuteSqlResponse`
+- `success`: `bool` — Whether query executed successfully
+- `rows`: `Optional[Any]` — Query results (list of dictionaries)
+- `columns`: `Optional[List[ColumnInfo]]` — Column metadata
+  - `name`: `str` — Column name
+  - `type`: `str` — Column data type
+  - `is_nullable`: `Optional[bool]` — Whether column allows NULL
+- `row_count`: `Optional[int]` — Number of rows returned
+- `affected_rows`: `Optional[int]` — Number of rows affected (for DML)
+- `query_id`: `Optional[str]` — Query ID for tracking
+- `execution_time`: `Optional[float]` — Query execution time in seconds
+- `error`: `Optional[str]` — Error message if failed
+- `error_type`: `Optional[str]` — Error type classification:
+  - `SECURITY_ERROR` — Permission denied
+  - `DATABASE_NOT_FOUND_ERROR` — Database doesn't exist
+  - `DML_NOT_ALLOWED` — DML on read-only database
+  - `DISALLOWED_FUNCTION` — Blocked SQL function used
+  - `TIMEOUT` — Query exceeded timeout
+  - `INVALID_PAYLOAD_FORMAT_ERROR` — Missing parameters
+  - `EXECUTION_ERROR` — General execution failure
+
+**Example:**
+```python
+# Simple query
+execute_sql(request={
+    "database_id": 1,
+    "sql": "SELECT * FROM sales LIMIT 10"
+})
+
+# Query with parameters
+execute_sql(request={
+    "database_id": 1,
+    "sql": "SELECT * FROM {table} WHERE year = {year}",
+    "parameters": {"table": "sales", "year": "2024"},
+    "limit": 100
+})
+
+# Response format
+{
+    "success": True,
+    "rows": [{"id": 1, "amount": 1000}],
+    "columns": [
+        {"name": "id", "type": "INTEGER", "is_nullable": False},
+        {"name": "amount", "type": "DECIMAL", "is_nullable": True}
+    ],
+    "row_count": 1,
+    "execution_time": 0.123
+}
+```
+
 ## Authentication Context
 
 When authentication is enabled, all tools receive additional context:
