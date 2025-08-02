@@ -28,7 +28,7 @@
     "@superset-ui/style": "^0.14.23",
     "antd": "^5.26.7",
     "docusaurus-plugin-less": "^2.0.2",
-    "less": "^4.3.0",
+    "less": "^4.4.0",
     "less-loader": "^12.3.0",
     "prism-react-renderer": "^2.4.1",
     "react": "^18.3.1",
