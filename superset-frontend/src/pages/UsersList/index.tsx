@@ -365,12 +365,8 @@ function UsersList({ user }: UsersListProps) {
   if (isAdmin) {
     subMenuButtons.push(
       {
-        name: (
-          <>
-            <Icons.PlusOutlined iconSize="m" />
-            {t('User')}
-          </>
-        ),
+        icon: <Icons.PlusOutlined iconSize="m" />,
+        name: t('User'),
         buttonStyle: 'primary',
         onClick: () => {
           openModal(ModalType.ADD);

@@ -19,6 +19,7 @@
 from datetime import datetime
 
 import pytest
+from flask import current_app
 from pytest_mock import MockerFixture
 from sqlalchemy import (
     Column,
@@ -674,14 +675,16 @@ def test_get_schema_access_for_file_upload() -> None:
     assert database.get_schema_access_for_file_upload() == {"public"}
 
 
-def test_engine_context_manager(mocker: MockerFixture) -> None:
+def test_engine_context_manager(mocker: MockerFixture, app_context: None) -> None:
     """
     Test the engine context manager.
     """
-    engine_context_manager = mocker.MagicMock()
-    mocker.patch(
-        "superset.models.core.config",
-        new={"ENGINE_CONTEXT_MANAGER": engine_context_manager},
+    from unittest.mock import MagicMock
+
+    engine_context_manager = MagicMock()
+    mocker.patch.dict(
+        current_app.config,
+        {"ENGINE_CONTEXT_MANAGER": engine_context_manager},
     )
     _get_sqla_engine = mocker.patch.object(Database, "_get_sqla_engine")
 

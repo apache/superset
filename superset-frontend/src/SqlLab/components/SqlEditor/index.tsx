@@ -937,7 +937,7 @@ const SqlEditor: FC<Props> = ({
               </span>
               <div>{primaryContributions}</div>
               <Dropdown
-                dropdownRender={() => renderDropdown()}
+                popupRender={() => renderDropdown()}
                 trigger={['click']}
               >
                 <Button
@@ -971,7 +971,7 @@ const SqlEditor: FC<Props> = ({
       css={css`
         margin-bottom: ${theme.sizeUnit * 2}px;
         padding-top: ${theme.sizeUnit * 4}px;
-        .antd5-alert-action {
+        .ant-alert-action {
           align-self: center;
         }
       `}
@@ -1134,6 +1134,7 @@ const SqlEditor: FC<Props> = ({
       )}
       <Modal
         show={showCreateAsModal}
+        name={t(createViewModalTitle)}
         title={t(createViewModalTitle)}
         onHide={() => setShowCreateAsModal(false)}
         footer={

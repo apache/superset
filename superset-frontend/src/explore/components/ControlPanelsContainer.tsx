@@ -53,7 +53,6 @@ import {
   sections,
 } from '@superset-ui/chart-controls';
 import { useSelector } from 'react-redux';
-import { rgba } from 'emotion-rgba';
 import { kebabCase, isEqual } from 'lodash';
 
 import {
@@ -118,16 +117,11 @@ const iconStyles = css`
 
 const actionButtonsContainerStyles = (theme: SupersetTheme) => css`
   display: flex;
-  position: sticky;
-  bottom: 0;
   flex-direction: column;
   align-items: center;
   padding: ${theme.sizeUnit * 4}px;
-  z-index: 999;
-  background: linear-gradient(
-    ${rgba(theme.colorBgBase, 0)},
-    ${theme.colorBgBase} 35%
-  );
+  background: ${theme.colorBgContainer};
+  flex-shrink: 0;
 
   & > button {
     min-width: 156px;
@@ -138,14 +132,18 @@ const Styles = styled.div`
   position: relative;
   height: 100%;
   width: 100%;
+  display: flex;
+  flex-direction: column;
 
   // Resizable add overflow-y: auto as a style to this div
   // To override it, we need to use !important
   overflow: visible !important;
+
   #controlSections {
-    height: 100%;
-    overflow: visible;
+    flex: 1;
+    overflow: auto;
   }
+
   .tab-content {
     overflow: auto;
     flex: 1 1 100%;
@@ -739,7 +737,7 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
                 {showDatasourceAlert && <DatasourceAlert />}
                 <Collapse
                   defaultActiveKey={expandedQuerySections}
-                  expandIconPosition="right"
+                  expandIconPosition="end"
                   ghost
                   bordered
                   items={[...querySections.map(renderControlPanelSection)]}
@@ -755,7 +753,7 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
                   children: (
                     <Collapse
                       defaultActiveKey={expandedCustomizeSections}
-                      expandIconPosition="right"
+                      expandIconPosition="end"
                       ghost
                       bordered
                       items={[

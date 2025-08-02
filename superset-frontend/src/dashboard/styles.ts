@@ -65,7 +65,7 @@ export const chartHeaderStyles = (theme: SupersetTheme) => css`
   }
 `;
 
-export const filterCardPopoverStyle = (theme: SupersetTheme) => css`
+export const filterCardPopoverStyle = () => css`
   .filter-card-tooltip {
     &.ant-tooltip-placement-bottom {
       padding-top: 0;
@@ -100,13 +100,13 @@ export const focusStyle = (theme: SupersetTheme) => css`
       text-decoration: none;
     }
     &:not(
-        .superset-button,
-        .ant-menu-item,
-        a,
-        .fave-unfave-icon,
-        .ant-tabs-tabpane,
-        .header-controls span
-      ) {
+      .superset-button,
+      .ant-menu-item,
+      a,
+      .fave-unfave-icon,
+      .ant-tabs-tabpane,
+      .header-controls span
+    ) {
       &:focus-visible {
         padding: ${theme.sizeUnit / 2}px;
       }

@@ -213,7 +213,7 @@ flask==2.3.3
     #   flask-sqlalchemy
     #   flask-testing
     #   flask-wtf
-flask-appbuilder==4.7.0
+flask-appbuilder==4.8.0
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
@@ -231,7 +231,9 @@ flask-compress==1.17
     #   -c requirements/base-constraint.txt
     #   apache-superset
 flask-cors==4.0.2
-    # via apache-superset
+    # via
+    #   -c requirements/base-constraint.txt
+    #   apache-superset
 flask-jwt-extended==4.7.1
     # via
     #   -c requirements/base-constraint.txt
@@ -815,14 +817,14 @@ sqlalchemy==1.4.54
     #   shillelagh
     #   sqlalchemy-bigquery
     #   sqlalchemy-utils
-sqlalchemy-bigquery==1.12.0
+sqlalchemy-bigquery==1.15.0
     # via apache-superset
 sqlalchemy-utils==0.38.3
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
     #   flask-appbuilder
-sqlglot==26.28.1
+sqlglot==27.3.0
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset

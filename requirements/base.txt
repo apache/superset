@@ -113,6 +113,7 @@ flask==2.3.3
     #   flask-babel
     #   flask-caching
     #   flask-compress
+    #   flask-cors
     #   flask-jwt-extended
     #   flask-limiter
     #   flask-login
@@ -120,7 +121,7 @@ flask==2.3.3
     #   flask-session
     #   flask-sqlalchemy
     #   flask-wtf
-flask-appbuilder==4.7.0
+flask-appbuilder==4.8.0
     # via
     #   apache-superset (pyproject.toml)
     #   apache-superset-core
@@ -129,6 +130,8 @@ flask-babel==2.0.0
 flask-caching==2.3.1
     # via apache-superset (pyproject.toml)
 flask-compress==1.17
+    # via apache-superset (pyproject.toml)
+flask-cors==4.0.2
     # via apache-superset (pyproject.toml)
 flask-jwt-extended==4.7.1
     # via flask-appbuilder
@@ -386,7 +389,7 @@ sqlalchemy-utils==0.38.3
     # via
     #   apache-superset (pyproject.toml)
     #   flask-appbuilder
-sqlglot==26.28.1
+sqlglot==27.3.0
     # via apache-superset (pyproject.toml)
 sshtunnel==0.4.0
     # via apache-superset (pyproject.toml)

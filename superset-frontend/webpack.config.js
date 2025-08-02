@@ -55,6 +55,7 @@ const {
   measure = false,
   nameChunks = false,
 } = parsedArgs;
+
 const isDevMode = mode !== 'production';
 const isDevServer = process.argv[1].includes('webpack-dev-server');
 
@@ -149,7 +150,7 @@ const plugins = [
       react: {
         singleton: true,
         eager: true,
-        requiredVersion: packageConfig.dependencies['react'],
+        requiredVersion: packageConfig.dependencies.react,
       },
       'react-dom': {
         singleton: true,
@@ -158,7 +159,7 @@ const plugins = [
       },
       antd: {
         singleton: true,
-        requiredVersion: packageConfig.dependencies['antd'],
+        requiredVersion: packageConfig.dependencies.antd,
         eager: true,
       },
     },
@@ -340,6 +341,13 @@ const config = {
         path.join(
           APP_DIR,
           './node_modules/@storybook/react-dom-shim/dist/react-16',
+        ),
+      ),
+      // Workaround for react-color trying to import non-existent icon
+      '@icons/material/UnfoldMoreHorizontalIcon': path.resolve(
+        path.join(
+          APP_DIR,
+          './node_modules/@icons/material/CubeUnfoldedIcon.js',
         ),
       ),
     },
@@ -554,6 +562,11 @@ if (isDevMode) {
         runtimeErrors: error => !/ResizeObserver/.test(error.message),
       },
       logging: 'error',
+      webSocketURL: {
+        hostname: '0.0.0.0',
+        pathname: '/ws',
+        port: 0,
+      },
     },
     static: {
       directory: path.join(process.cwd(), '../static/assets'),

@@ -420,7 +420,7 @@ const getDashboardSlicesReturnValue = [21, 22, 23];
  * Tests getSliceDashboards action
  */
 
-const getSliceDashboardsEndpoint = `glob:*/api/v1/chart/${sliceId}?q=(columns:!(dashboards.id))`;
+const getSliceDashboardsEndpoint = `glob:*/api/v1/chart/${sliceId}?q=(select_columns:!(dashboards.id))`;
 test('getSliceDashboards with slice handles success', async () => {
   fetchMock.reset();
   fetchMock.get(getSliceDashboardsEndpoint, dashboardSlicesResponsePayload);

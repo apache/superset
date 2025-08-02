@@ -79,7 +79,7 @@ const defaultProps = {
 const StyledTabsContainer = styled.div`
   ${({ theme }) => css`
     width: 100%;
-    background-color: ${theme.colors.grayscale.light5};
+    background-color: ${theme.colorBgBase};
 
     .dashboard-component-tabs-content {
       min-height: ${theme.sizeUnit * 12}px;

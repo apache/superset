@@ -122,6 +122,7 @@ export default function DrillDetailModal({
           flex-direction: column;
         }
       `}
+      name={t('Drill to detail: %s', chartName)}
       title={t('Drill to detail: %s', chartName)}
       footer={
         <ModalFooter exploreChart={exploreChart} canExplore={canExplore} />
@@ -137,7 +138,7 @@ export default function DrillDetailModal({
         },
       }}
       draggable
-      destroyOnClose
+      destroyOnHidden
       maskClosable={false}
     >
       <DrillDetailPane formData={formData} initialFilters={initialFilters} />

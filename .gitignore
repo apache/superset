@@ -92,6 +92,7 @@ scripts/*.zip
 # IntelliJ
 *.iml
 venv
+.venv
 @eaDir/
 
 # PyCharm
@@ -126,4 +127,7 @@ docker/*local*
 # Jest test report
 test-report.html
 superset/static/stats/statistics.html
+
+# LLM-related
+CLAUDE.local.md
 .aider*

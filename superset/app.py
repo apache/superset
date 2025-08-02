@@ -29,7 +29,7 @@ else:
     if TYPE_CHECKING:
         from _typeshed.wsgi import StartResponse, WSGIApplication, WSGIEnvironment
 
-from flask import Flask
+from flask import Flask, Response
 from werkzeug.exceptions import NotFound
 
 from superset.extensions.local_extensions_watcher import (
@@ -83,7 +83,24 @@ def create_app(
 
 
 class SupersetApp(Flask):
-    pass
+    def send_static_file(self, filename: str) -> Response:
+        """Override to prevent webpack hot-update 404s from spamming logs.
+
+        Webpack HMR can create race conditions where the browser requests
+        hot-update files that no longer exist. Return 204 instead of 404
+        for these files to keep logs clean.
+        """
+        if ".hot-update." in filename:
+            # First try to serve it normally - it might exist
+            try:
+                return super().send_static_file(filename)
+            except NotFound:
+                logger.debug(
+                    "Webpack hot-update file not found (likely HMR "
+                    f"race condition): {filename}"
+                )
+                return Response("", status=204)  # No Content
+        return super().send_static_file(filename)
 
 
 class AppRootMiddleware:

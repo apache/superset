@@ -86,9 +86,7 @@ module.exports = {
   ],
   parser: '@babel/eslint-parser',
   parserOptions: {
-    ecmaFeatures: {
-      experimentalObjectRestSpread: true,
-    },
+    ecmaVersion: 2018,
   },
   env: {
     browser: true,
@@ -127,6 +125,11 @@ module.exports = {
     'react-prefer-function-component',
     'prettier',
   ],
+  // Add this TS ESlint rule in separate `rules` section to avoid breakages with JS/TS files in /cypress-base.
+  // TODO(hainenber): merge it to below `rules` section.
+  rules: {
+    '@typescript-eslint/prefer-optional-chain': 'error',
+  },
   overrides: [
     {
       files: ['*.ts', '*.tsx'],
@@ -160,7 +163,7 @@ module.exports = {
         '@typescript-eslint/no-non-null-assertion': 0, // disabled temporarily
         '@typescript-eslint/explicit-function-return-type': 0,
         '@typescript-eslint/explicit-module-boundary-types': 0, // re-enable up for discussion
-        '@typescript-eslint/prefer-optional-chain': 2,
+        '@typescript-eslint/no-unused-vars': 'warn', // downgrade to Warning severity for Jest v30 upgrade
         camelcase: 0,
         'class-methods-use-this': 0,
         'func-names': 0,
@@ -402,6 +405,7 @@ module.exports = {
       },
     },
   ],
+  // eslint-disable-next-line no-dupe-keys
   rules: {
     'theme-colors/no-literal-colors': 'error',
     'icons/no-fa-icons-usage': 'error',

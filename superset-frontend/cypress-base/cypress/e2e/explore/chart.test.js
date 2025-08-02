@@ -68,11 +68,13 @@ function verifyDashboardSearch() {
 function verifyDashboardLink() {
   interceptDashboardGet();
   openDashboardsAddedTo();
-  cy.get('.ant-dropdown-menu-submenu-popup').trigger('mouseover');
+  cy.get('.ant-dropdown-menu-submenu-popup').trigger('mouseover', {
+    force: true,
+  });
   cy.get('.ant-dropdown-menu-submenu-popup a')
     .first()
     .invoke('removeAttr', 'target')
-    .click();
+    .click({ force: true });
   cy.wait('@get');
 }
 
