@@ -30,10 +30,10 @@ export const DEFAULT_MAX_ROW_TABLE_SERVER = 500000;
 
 // eslint-disable-next-line import/prefer-default-export
 export const TIME_FILTER_LABELS = {
-  time_range: t('Time Range'),
-  granularity_sqla: t('Time Column'),
-  time_grain_sqla: t('Time Grain'),
-  granularity: t('Time Granularity'),
+  time_range: t('Time range'),
+  granularity_sqla: t('Time column'),
+  time_grain_sqla: t('Time grain'),
+  granularity: t('Time granularity'),
 };
 
 export const COLUMN_NAME_ALIASES: Record<string, string> = {

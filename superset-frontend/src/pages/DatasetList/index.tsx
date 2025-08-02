@@ -530,8 +530,8 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
         operator: FilterOperator.DatasetIsNullOrEmpty,
         unfilteredLabel: 'All',
         selects: [
-          { label: t('Virtual'), value: false },
-          { label: t('Physical'), value: true },
+          { label: t('virtual'), value: false },
+          { label: t('physical'), value: true },
         ],
       },
       {
@@ -598,8 +598,8 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
         operator: FilterOperator.DatasetIsCertified,
         unfilteredLabel: t('Any'),
         selects: [
-          { label: t('Yes'), value: true },
-          { label: t('No'), value: false },
+          { label: t('yes'), value: true },
+          { label: t('no'), value: false },
         ],
       },
       {
@@ -764,7 +764,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
               </p>
               {datasetCurrentlyDeleting.dashboards.count >= 1 && (
                 <>
-                  <h4>{t('Affected Dashboards')}</h4>
+                  <h4>{t('Affected dashboards')}</h4>
                   <List
                     split={false}
                     size="small"
@@ -807,7 +807,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
               )}
               {datasetCurrentlyDeleting.charts.count >= 1 && (
                 <>
-                  <h4>{t('Affected Charts')}</h4>
+                  <h4>{t('Affected charts')}</h4>
                   <List
                     split={false}
                     size="small"
@@ -860,7 +860,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
           }}
           onHide={closeDatasetDeleteModal}
           open
-          title={t('Delete Dataset?')}
+          title={t('Delete dataset?')}
         />
       )}
       {datasetCurrentlyEditing && (
@@ -931,7 +931,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
                 );
 
                 if (!selected.length) {
-                  return t('0 Selected');
+                  return t('0 selected');
                 }
                 if (virtualCount && !physicalCount) {
                   return t(

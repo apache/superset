@@ -158,7 +158,7 @@ const updateDataset = async (
   return data.json.result;
 };
 
-const UNTITLED = t('Untitled Dataset');
+const UNTITLED = t('Untitled dataset');
 
 export const SaveDatasetModal = ({
   visible,
@@ -374,10 +374,10 @@ export const SaveDatasetModal = ({
   return (
     <Modal
       show={visible}
-      name={t('Save or Overwrite Dataset')}
+      name={t('Save or overwrite dataset')}
       title={
         <ModalTitleWithIcon
-          title={t('Save or Overwrite Dataset')}
+          title={t('Save or overwrite dataset')}
           icon={<Icons.SaveOutlined />}
           data-test="save-or-overwrite-dataset-title"
         />
@@ -394,7 +394,7 @@ export const SaveDatasetModal = ({
                 }
               />
               <span style={{ marginLeft: '5px' }}>
-                {t('Include Template Parameters')}
+                {t('Include template parameters')}
               </span>
             </div>
           )}
