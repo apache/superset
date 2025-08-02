@@ -256,15 +256,18 @@ function QueryList({ addDangerToast }: QueryListProps) {
         size: 'xl',
         Cell: ({
           row: {
-            original: { status, start_time, end_time },
+            original: { status, start_time, start_running_time, end_time },
           },
         }: any) => {
           const timerType = status === QueryState.Failed ? 'danger' : status;
-          const timerTime = end_time
-            ? extendedDayjs(extendedDayjs.utc(end_time - start_time)).format(
-                TIME_WITH_MS,
-              )
-            : '00:00:00.000';
+          // Use start_running_time if available for more accurate duration
+          const startTime = start_running_time || start_time;
+          const timerTime =
+            end_time && startTime
+              ? extendedDayjs(extendedDayjs.utc(end_time - startTime)).format(
+                  TIME_WITH_MS,
+                )
+              : '00:00:00.000';
           return (
             <TimerLabel type={timerType} role="timer">
               {timerTime}
