@@ -18,9 +18,14 @@
  */
 
 import { ReactNode, CSSProperties, useCallback } from 'react';
-import { css, truncationCSS, useCSSTextTruncation } from '@superset-ui/core';
+import {
+  css,
+  truncationCSS,
+  useCSSTextTruncation,
+  useTheme,
+} from '@superset-ui/core';
 import { Menu, type ItemType } from '@superset-ui/core/components/Menu';
-import { Tooltip } from '@superset-ui/core/components';
+import { Flex, Tooltip } from '@superset-ui/core/components';
 import { MenuItemProps } from 'antd';
 
 export type MenuItemWithTruncationProps = {
@@ -113,7 +118,12 @@ export const MenuItemWithTruncation = ({
       onClick={onClick}
       style={style}
     >
-      <Tooltip title={itemIsTruncated ? tooltipText : null}>
+      <Tooltip
+        title={itemIsTruncated ? tooltipText : null}
+        css={css`
+          max-width: 200px;
+        `}
+      >
         <div
           ref={itemRef}
           css={css`
@@ -125,5 +135,52 @@ export const MenuItemWithTruncation = ({
         </div>
       </Tooltip>
     </Menu.Item>
+  );
+};
+
+export const VirtualizedMenuItem = ({
+  tooltipText,
+  children,
+  onClick,
+  style,
+}: {
+  tooltipText: ReactNode;
+  children: ReactNode;
+  onClick?: (e: React.MouseEvent) => void;
+  style?: CSSProperties;
+}) => {
+  const theme = useTheme();
+  const [itemRef, itemIsTruncated] = useCSSTextTruncation<HTMLDivElement>();
+
+  return (
+    <Flex
+      role="menuitem"
+      tabIndex={0}
+      onClick={onClick}
+      align="center"
+      style={style}
+      css={css`
+        cursor: pointer;
+        padding-left: ${theme.paddingXS}px;
+        &:hover {
+          background-color: ${theme.colorBgTextHover};
+        }
+        &:active {
+          background-color: ${theme.colorBgTextActive};
+        }
+      `}
+    >
+      <Tooltip title={itemIsTruncated ? tooltipText : null}>
+        <div
+          ref={itemRef}
+          css={css`
+            max-width: 100%;
+            ${truncationCSS};
+          `}
+        >
+          {children}
+        </div>
+      </Tooltip>
+    </Flex>
   );
 };

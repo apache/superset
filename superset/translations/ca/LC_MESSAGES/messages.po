@@ -3353,7 +3353,7 @@ msgstr "Actualment renderitzat: %s"
 msgid "Custom"
 msgstr "Personalitzat"
 
-msgid "Custom Conditional Formatting"
+msgid "Custom conditional formatting"
 msgstr "Format Condicional Personalitzat"
 
 msgid "Custom Plugin"
@@ -9647,7 +9647,7 @@ msgstr "Mostrar Bombolles"
 msgid "Show CREATE VIEW statement"
 msgstr "Mostrar sentència CREATE VIEW"
 
-msgid "Show Cell bars"
+msgid "Show cell bars"
 msgstr "Mostrar barres de cel·la"
 
 msgid "Show Dashboard"
@@ -13708,7 +13708,7 @@ msgstr "`row_offset` ha de ser major o igual a 0"
 msgid "`width` must be greater or equal to 0"
 msgstr "`width` ha de ser major o igual a 0"
 
-msgid "add colors to cell bars for +/-"
+msgid "Add colors to cell bars for +/-"
 msgstr "afegir colors a les barres de cel·la per +/-"
 
 msgid "aggregate"
@@ -13753,7 +13753,7 @@ msgstr "auto"
 msgid "background"
 msgstr "fons"
 
-msgid "basic conditional formatting"
+msgid "Basic conditional formatting"
 msgstr "formatat condicional bàsic"
 
 msgid "basis"

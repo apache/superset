@@ -28,6 +28,7 @@ from typing import Any, Callable, cast, Optional, Union
 
 import pandas as pd
 import sqlalchemy as sa
+from flask import current_app
 from flask_appbuilder import Model
 from flask_appbuilder.security.sqla.models import User
 from flask_babel import gettext as __, lazy_gettext as _
@@ -67,7 +68,7 @@ from sqlalchemy.sql.expression import Label
 from sqlalchemy.sql.selectable import Alias, TableClause
 from sqlalchemy.types import JSON
 
-from superset import app, db, is_feature_enabled, security_manager
+from superset import db, is_feature_enabled, security_manager
 from superset.commands.dataset.exceptions import DatasetNotFoundError
 from superset.common.db_query_status import QueryStatus
 from superset.connectors.sqla.utils import (
@@ -111,10 +112,9 @@ from superset.superset_typing import (
 from superset.utils import core as utils, json
 from superset.utils.backports import StrEnum
 
-config = app.config
+config = current_app.config  # Backward compatibility for tests
 metadata = Model.metadata  # pylint: disable=no-member
 logger = logging.getLogger(__name__)
-ADVANCED_DATA_TYPES = config["ADVANCED_DATA_TYPES"]
 VIRTUAL_TABLE_ALIAS = "virtual_table"
 
 # a non-exhaustive set of additive metrics
@@ -1310,7 +1310,7 @@ class SqlaTable(
 
     @property
     def health_check_message(self) -> str | None:
-        check = config["DATASET_HEALTH_CHECK"]
+        check = current_app.config["DATASET_HEALTH_CHECK"]
         return check(self) if check else None
 
     @property
@@ -1721,7 +1721,7 @@ class SqlaTable(
         self.add_missing_metrics(metrics)
 
         # Apply config supplied mutations.
-        config["SQLA_TABLE_MUTATOR"](self)
+        current_app.config["SQLA_TABLE_MUTATOR"](self)
 
         db.session.merge(self)
         return results
