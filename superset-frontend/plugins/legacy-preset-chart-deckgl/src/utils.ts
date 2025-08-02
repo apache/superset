@@ -31,6 +31,9 @@ import { BitmapLayer, PathLayer } from '@deck.gl/layers';
 import { hexToRGB } from './utils/colors';
 import { ColorBreakpointType } from './types';
 
+export const TRANSPARENT_COLOR_ARRAY = [0, 0, 0, 0] as Color;
+export const HIGHLIGHT_COLOR_ARRAY = [255, 0, 0, 255] as Color;
+
 const DEFAULT_NUM_BUCKETS = 10;
 
 export const MAPBOX_LAYER_PREFIX = 'mapbox://';
@@ -121,7 +124,7 @@ export function getBreakPointColorScaler(
     : getSequentialSchemeRegistry().get(linearColorScheme);
 
   if (!colorScheme) {
-    return () => [0, 0, 0, 0];
+    return () => TRANSPARENT_COLOR_ARRAY;
   }
   let scaler: ScaleLinear<string, string> | ScaleThreshold<number, string>;
   let maskPoint: (v: number | undefined) => boolean;
@@ -160,7 +163,7 @@ export function getBreakPointColorScaler(
   return (d: JsonObject): Color => {
     const v = accessor(d);
     if (!v) {
-      return [0, 0, 0, 0];
+      return TRANSPARENT_COLOR_ARRAY;
     }
     const c = hexToRGB(scaler(v));
     if (maskPoint(v)) {
