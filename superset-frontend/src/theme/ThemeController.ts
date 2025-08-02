@@ -25,6 +25,7 @@ import {
   Theme,
   ThemeMode,
   themeObject as supersetThemeObject,
+  logging,
 } from '@superset-ui/core';
 import {
   getAntdConfig,
@@ -56,7 +57,7 @@ export class LocalStorageAdapter implements ThemeStorage {
     try {
       return localStorage.getItem(key);
     } catch (error) {
-      console.warn('Failed to read from localStorage:', error);
+      logging.warn('Failed to read from localStorage:', error);
       return null;
     }
   }
@@ -65,7 +66,7 @@ export class LocalStorageAdapter implements ThemeStorage {
     try {
       localStorage.setItem(key, value);
     } catch (error) {
-      console.warn('Failed to write to localStorage:', error);
+      logging.warn('Failed to write to localStorage:', error);
     }
   }
 
@@ -73,7 +74,7 @@ export class LocalStorageAdapter implements ThemeStorage {
     try {
       localStorage.removeItem(key);
     } catch (error) {
-      console.warn('Failed to remove from localStorage:', error);
+      logging.warn('Failed to remove from localStorage:', error);
     }
   }
 }
@@ -320,7 +321,7 @@ export class ThemeController {
 
     const theme: AnyThemeConfig | null = this.getThemeForMode(mode);
     if (!theme) {
-      console.warn(`Theme for mode ${mode} not found, falling back to default`);
+      logging.warn(`Theme for mode ${mode} not found, falling back to default`);
       this.fallbackToDefaultMode();
       return;
     }
@@ -484,7 +485,7 @@ export class ThemeController {
         if (newTheme) this.updateTheme(newTheme);
       }
     } catch (error) {
-      console.error('Failed to handle system theme change:', error);
+      logging.error('Failed to handle system theme change:', error);
     }
   };
 
@@ -505,7 +506,7 @@ export class ThemeController {
       this.persistMode();
       this.notifyListeners();
     } catch (error) {
-      console.error('Failed to update theme:', error);
+      logging.error('Failed to update theme:', error);
       this.fallbackToDefaultMode();
     }
   }
@@ -557,7 +558,7 @@ export class ThemeController {
       this.mediaQuery = window.matchMedia(MEDIA_QUERY_DARK_SCHEME);
       this.mediaQuery.addEventListener('change', this.handleSystemThemeChange);
     } catch (error) {
-      console.warn('Failed to initialize media query listener:', error);
+      logging.warn('Failed to initialize media query listener:', error);
     }
   }
 
@@ -703,7 +704,7 @@ export class ThemeController {
 
       return null;
     } catch (error) {
-      console.warn('Failed to load saved theme mode:', error);
+      logging.warn('Failed to load saved theme mode:', error);
       return null;
     }
   }
@@ -777,7 +778,7 @@ export class ThemeController {
       const normalizedConfig = normalizeThemeConfig(theme);
       this.globalTheme.setConfig(normalizedConfig);
     } catch (error) {
-      console.error('Failed to apply theme:', error);
+      logging.error('Failed to apply theme:', error);
       this.fallbackToDefaultMode();
     }
   }
@@ -789,7 +790,7 @@ export class ThemeController {
     try {
       this.storage.setItem(this.modeStorageKey, this.currentMode);
     } catch (error) {
-      console.warn('Failed to persist theme mode:', error);
+      logging.warn('Failed to persist theme mode:', error);
     }
   }
 
@@ -801,7 +802,7 @@ export class ThemeController {
       try {
         callback(this.globalTheme);
       } catch (error) {
-        console.error('Error in theme change callback:', error);
+        logging.error('Error in theme change callback:', error);
       }
     });
   }
@@ -816,7 +817,7 @@ export class ThemeController {
         ? ThemeMode.DARK
         : ThemeMode.DEFAULT;
     } catch (error) {
-      console.warn('Failed to detect system theme preference:', error);
+      logging.warn('Failed to detect system theme preference:', error);
       return ThemeMode.DEFAULT;
     }
   }

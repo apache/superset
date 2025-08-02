@@ -143,6 +143,7 @@ module.exports = {
       ],
       plugins: ['@typescript-eslint/eslint-plugin', 'react', 'prettier'],
       rules: {
+        'no-console': 'error',
         '@typescript-eslint/ban-ts-ignore': 0,
         '@typescript-eslint/ban-ts-comment': 0, // disabled temporarily
         '@typescript-eslint/ban-types': 0, // disabled temporarily
@@ -340,6 +341,20 @@ module.exports = {
         'plugin:testing-library/react',
       ],
       rules: {
+        'no-console': 'off', // Allow console usage in test files
+        'no-restricted-imports': [
+          'error',
+          {
+            paths: [
+              {
+                name: '@superset-ui/core',
+                importNames: ['logging'],
+                message:
+                  'Do not use logging in test files. Use console statements instead for testing.',
+              },
+            ],
+          },
+        ],
         'import/no-extraneous-dependencies': [
           'error',
           {
@@ -373,7 +388,6 @@ module.exports = {
               'Default React import is not required due to automatic JSX runtime in React 16.4',
           },
         ],
-        'no-restricted-imports': 0,
       },
     },
     {
@@ -397,9 +411,16 @@ module.exports = {
         'react/no-void-elements': 0,
       },
     },
+    {
+      files: ['scripts/**/*'],
+      rules: {
+        'no-console': 'off', // Allow console usage in scripts directory
+      },
+    },
   ],
   // eslint-disable-next-line no-dupe-keys
   rules: {
+    'no-console': 'error',
     'theme-colors/no-literal-colors': 'error',
     'icons/no-fa-icons-usage': 'error',
     'i18n-strings/no-template-vars': ['error', true],
