@@ -35,7 +35,7 @@ graph TB
     end
 
     subgraph "Tool Layer"
-        Tools[16 MCP Tools<br/>Tool Decorated]
+        Tools[17 MCP Tools<br/>Tool Decorated]
         Schemas[Pydantic Schemas]
         Validation[Request Validation]
     end
@@ -148,6 +148,7 @@ from superset.mcp_service.chart.tool import *
 from superset.mcp_service.dashboard.tool import *
 from superset.mcp_service.dataset.tool import *
 from superset.mcp_service.system.tool import *
+from superset.mcp_service.sql_lab.tool import *
 ```
 
 ## Development Patterns
@@ -354,6 +355,7 @@ class ModelGetInfoTool:
    - `chart/` - Chart operations
    - `dataset/` - Dataset operations
    - `system/` - System-level operations
+   - `sql_lab/` - SQL Lab and direct SQL execution
 
 2. **Create Schemas**
 
@@ -684,6 +686,64 @@ class CreateChartRequest(BaseModel):
         """Validate chart configuration."""
         # Configuration validation
         return v
+```
+
+### SQL Execution Tools
+
+The SQL Lab tools follow special patterns for security and parameter handling:
+
+```python
+# SQL execution with parameter substitution
+@mcp.tool
+@mcp_auth_hook(['sql:execute'])
+def execute_sql(request: ExecuteSqlRequest) -> ExecuteSqlResponse:
+    """Execute SQL with security validation."""
+
+    # Import inside function
+    from superset.mcp_service.sql_lab.sql_lab_utils import (
+        execute_sql_query,
+        validate_database_access
+    )
+
+    # Validate access
+    if not validate_database_access(request.database_id):
+        return ExecuteSqlResponse(
+            success=False,
+            error="Access denied",
+            error_type="SECURITY_ERROR"
+        )
+
+    # Execute with parameter substitution
+    result = execute_sql_query(
+        database_id=request.database_id,
+        sql=request.sql,
+        schema=request.schema,
+        parameters=request.parameters,
+        limit=request.limit
+    )
+
+    return ExecuteSqlResponse(
+        success=True,
+        rows=result['rows'],
+        columns=result['columns'],
+        row_count=result['row_count']
+    )
+```
+
+### Parameter Substitution Pattern
+
+```python
+def apply_parameters(sql: str, parameters: Optional[Dict[str, Any]]) -> str:
+    """Apply parameters to SQL query safely."""
+    if not parameters:
+        return sql
+
+    try:
+        # Use Python string formatting
+        # {table_name} and {year} style parameters
+        return sql.format(**parameters)
+    except KeyError as e:
+        raise ValueError(f"Missing parameter: {e}")
 ```
 
 This development guide provides comprehensive coverage of the MCP service's internal architecture and development patterns, enabling team members to effectively extend and maintain the system.

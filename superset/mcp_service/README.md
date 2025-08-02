@@ -135,7 +135,7 @@ See the [MCP Integration Test README](../../../tests/integration_tests/mcp_servi
 
 ## Available Tools
 
-**16 MCP tools** with Pydantic v2 schemas and comprehensive field documentation for LLM compatibility.
+**17 MCP tools** with Pydantic v2 schemas and comprehensive field documentation for LLM compatibility.
 
 ### 📊 Dashboard Tools (5)
 - **`list_dashboards`** - List with search/filters/pagination, UUID/slug support
@@ -163,8 +163,9 @@ See the [MCP Integration Test README](../../../tests/integration_tests/mcp_servi
 - **`get_superset_instance_info`** - Instance statistics and version info
 - **`generate_explore_link`** - Generate chart exploration URLs
 
-### 🧪 SQL Lab Tools (1)
+### 🧪 SQL Lab Tools (2)
 - **`open_sql_lab_with_context`** - Pre-configured SQL Lab sessions
+- **`execute_sql`** - Execute SQL queries with parameter substitution and result retrieval
 
 ## Available Operations
 
@@ -186,7 +187,6 @@ See the [MCP Integration Test README](../../../tests/integration_tests/mcp_servi
 
 ### ❌ Not Available (Future phases)
 - **Update/Delete**: Dashboard and dataset modifications
-- **SQL Execution**: Query execution in SQL Lab (opens sessions only)
 
 ## 📖 Complete Documentation
 
@@ -194,7 +194,7 @@ The MCP service is fully documented on the **[official Superset documentation si
 
 ### Quick Access
 - **[🚀 MCP Service Overview](https://superset.apache.org/docs/mcp-service/intro)** - Complete introduction and features
-- **[📚 API Reference](https://superset.apache.org/docs/mcp-service/api-reference)** - All 16 tools with examples
+- **[📚 API Reference](https://superset.apache.org/docs/mcp-service/api-reference)** - All 17 tools with examples
 - **[🔧 Development Guide](https://superset.apache.org/docs/mcp-service/development)** - Adding new tools and architecture
 - **[🔐 Authentication](https://superset.apache.org/docs/mcp-service/authentication)** - Production security setup
 
@@ -295,6 +295,71 @@ table_config = TableChartConfig(
 )
 table_request = GenerateChartRequest(dataset_id="1", config=table_config)
 ```
+
+## SQL Execution
+
+The `execute_sql` tool provides direct SQL query execution with comprehensive security and parameter support:
+
+### Features
+- **Query Execution**: Execute SELECT and DML queries with proper permissions
+- **Parameter Substitution**: Safe parameter substitution using Python string formatting
+- **Result Formats**: Returns structured data with column metadata
+- **Security**: Validates database access, DML permissions, and disallowed functions
+- **Limits**: Automatic query result limiting with configurable row limits
+
+### Example Usage
+```python
+# Simple SELECT query
+execute_sql(request={
+    "database_id": 1,
+    "sql": "SELECT * FROM sales_data LIMIT 10"
+})
+
+# Query with parameters
+execute_sql(request={
+    "database_id": 1,
+    "sql": "SELECT * FROM {table_name} WHERE year = {year} AND region = '{region}'",
+    "parameters": {
+        "table_name": "sales_data",
+        "year": "2024",
+        "region": "North America"
+    },
+    "limit": 100
+})
+
+# Query with schema specification
+execute_sql(request={
+    "database_id": 1,
+    "sql": "SELECT COUNT(*) as total FROM orders",
+    "schema": "sales",
+    "limit": 1
+})
+```
+
+### Response Format
+```json
+{
+    "success": true,
+    "rows": [{"id": 1, "name": "Product A", "sales": 1000}],
+    "columns": [
+        {"name": "id", "type": "INTEGER", "is_nullable": false},
+        {"name": "name", "type": "VARCHAR", "is_nullable": true},
+        {"name": "sales", "type": "DECIMAL", "is_nullable": true}
+    ],
+    "row_count": 1,
+    "affected_rows": null,
+    "query_id": null,
+    "execution_time": 0.123,
+    "error": null,
+    "error_type": null
+}
+```
+
+### Security Considerations
+- Database access is validated against user permissions
+- DML operations require `allow_dml` to be enabled on the database
+- Disallowed SQL functions are blocked based on configuration
+- Query results are automatically limited (max 10,000 rows)
 
 ## Dashboard Generation & Management
 

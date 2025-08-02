@@ -12,12 +12,13 @@ The Superset Model Context Protocol (MCP) service provides programmatic access t
 
 ## What is MCP?
 
-The Model Context Protocol (MCP) is an open standard that allows AI assistants to securely connect to data sources and tools. Superset's MCP service exposes **16 production-ready tools** that enable:
+The Model Context Protocol (MCP) is an open standard that allows AI assistants to securely connect to data sources and tools. Superset's MCP service exposes **17 production-ready tools** that enable:
 
 - 📊 **Data Exploration**: List and query dashboards, charts, and datasets
 - 🔧 **Chart Creation**: Generate visualizations programmatically
 - 📈 **Data Export**: Extract data in multiple formats (JSON, CSV, Excel)
 - 🔗 **Navigation**: Generate explore links and SQL Lab sessions
+- 🧪 **SQL Execution**: Execute queries directly against databases
 
 ## Quick Start
 
@@ -58,14 +59,14 @@ superset mcp run --port 5008 --debug
 
 ## Key Features
 
-### 🔧 **16 Production Tools**
+### 🔧 **17 Production Tools**
 | Category | Tools | Purpose |
 |----------|-------|---------|
 | **Dashboard** (5) | List, get info, create, add charts | Dashboard management |
 | **Chart** (8) | Full CRUD, data export, previews | Chart operations |
 | **Dataset** (3) | List, get info, discover filters | Dataset exploration |
 | **System** (2) | Instance info, explore links | System integration |
-| **SQL Lab** (1) | Pre-configured sessions | SQL development |
+| **SQL Lab** (2) | Pre-configured sessions, direct SQL execution | SQL development |
 
 ### 🔐 **Enterprise Security**
 - **JWT Bearer Authentication**: Production-ready with configurable factory pattern
@@ -102,6 +103,14 @@ data = client.call_tool("get_chart_data", {
     "identifier": chart["chart_id"],
     "format": "json",
     "limit": 1000
+})
+
+# Execute SQL query
+result = client.call_tool("execute_sql", {
+    "database_id": 1,
+    "sql": "SELECT * FROM sales WHERE year = {year}",
+    "parameters": {"year": "2024"},
+    "limit": 100
 })
 ```
 

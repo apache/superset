@@ -45,12 +45,12 @@ The Model Context Protocol (MCP) is a new protocol for exposing high-level, stru
 - **Enhanced Search**: UUID/slug fields included in search and default response columns
 - **Cache Control**: Comprehensive cache control parameters across all tools leveraging Superset's existing cache layers
 
-### 🛠️ Core Tools Implemented (18 Total)
+### 🛠️ Core Tools Implemented (17 Total)
 - **Dashboard Tools**: `list_dashboards`, `get_dashboard_info`, `get_dashboard_available_filters`, `generate_dashboard`, `add_chart_to_existing_dashboard`
 - **Chart Tools**: `list_charts`, `get_chart_info`, `get_chart_available_filters`, `generate_chart`, `update_chart`, `update_chart_preview`, `get_chart_data`, `get_chart_preview`
 - **Dataset Tools**: `list_datasets`, `get_dataset_info`, `get_dataset_available_filters`
 - **System Tools**: `get_superset_instance_info`, `generate_explore_link`
-- **SQL Lab Tools**: `open_sql_lab_with_context`
+- **SQL Lab Tools**: `open_sql_lab_with_context`, `execute_sql`
 
 ## Phase 1 Completion Status
 
@@ -92,7 +92,7 @@ The Model Context Protocol (MCP) is a new protocol for exposing high-level, stru
 **Remaining work to complete Phase 1:**
 
 1. **Demo Video/Script** - Create comprehensive demonstration
-   - Video walkthrough of all 16 MCP tools working end-to-end
+   - Video walkthrough of all 17 MCP tools working end-to-end
    - Claude Desktop integration examples
    - Complete workflow from data exploration to chart creation
 
@@ -163,7 +163,7 @@ The Model Context Protocol (MCP) is a new protocol for exposing high-level, stru
 
 ## Key Metrics
 - **194+ Unit Tests**: All passing with extensive coverage including URL utils and audit logging
-- **18 Core Tools**: List/read/update operations for all entities, chart creation/updates, dashboard generation, SQL Lab integration
+- **17 Core Tools**: List/read/update operations for all entities, chart creation/updates, dashboard generation, SQL Lab integration with direct SQL execution
 - **Production Auth**: JWT Bearer with configurable factory pattern and MCP audit logging
 - **Zero Breaking Changes**: Stable API ready for Phase 2 enhancements
 - **Developer Experience**: Single command setup, detailed docs, clear extension points

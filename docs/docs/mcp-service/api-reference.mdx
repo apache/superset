@@ -6,7 +6,7 @@ version: 1
 
 # MCP Tools API Reference
 
-Complete reference for all 16 MCP tools with request/response examples.
+Complete reference for all 17 MCP tools with request/response examples.
 
 > 🚀 **First time here?** Start with [Dashboard Tools](#dashboard-tools) or [Chart Tools](#chart-tools) to see the most commonly used features.
 >
@@ -686,6 +686,94 @@ Open SQL Lab with pre-configured database, schema, and SQL.
   }
 }
 ```
+
+### execute_sql
+
+Execute SQL queries directly against Superset databases with security validation and parameter support.
+
+**Request Schema:**
+```json
+{
+  "database_id": 1,               // Required: Database connection ID
+  "sql": "SELECT * FROM sales",   // Required: SQL query to execute
+  "schema": "public",             // Optional: Schema name
+  "limit": 1000,                  // Optional: Row limit (default: 1000, max: 10000)
+  "timeout": 30,                  // Optional: Query timeout in seconds (max: 300)
+  "parameters": {                 // Optional: Query parameters
+    "year": "2024",
+    "region": "North America"
+  }
+}
+```
+
+**Response Example:**
+```json
+{
+  "success": true,
+  "rows": [
+    {"id": 1, "product": "Widget A", "sales": 1000, "region": "North America"},
+    {"id": 2, "product": "Widget B", "sales": 1500, "region": "North America"}
+  ],
+  "columns": [
+    {"name": "id", "type": "INTEGER", "is_nullable": false},
+    {"name": "product", "type": "VARCHAR", "is_nullable": true},
+    {"name": "sales", "type": "DECIMAL", "is_nullable": true},
+    {"name": "region", "type": "VARCHAR", "is_nullable": true}
+  ],
+  "row_count": 2,
+  "affected_rows": null,
+  "execution_time": 0.123
+}
+```
+
+**Parameter Substitution Example:**
+```json
+{
+  "database_id": 1,
+  "sql": "SELECT * FROM {table_name} WHERE year = {year} AND region = '{region}'",
+  "parameters": {
+    "table_name": "sales_data",
+    "year": "2024",
+    "region": "North America"
+  },
+  "limit": 100
+}
+```
+
+**DML Operation Example:**
+```json
+{
+  "database_id": 1,
+  "sql": "UPDATE inventory SET quantity = quantity - 1 WHERE product_id = 123"
+}
+// Response for DML:
+{
+  "success": true,
+  "rows": [],
+  "columns": [],
+  "row_count": 0,
+  "affected_rows": 1,
+  "execution_time": 0.045
+}
+```
+
+**Error Response Example:**
+```json
+{
+  "success": false,
+  "error": "DML operations are not allowed on this database",
+  "error_type": "DML_NOT_ALLOWED",
+  "rows": null,
+  "columns": null
+}
+```
+
+**Security Features:**
+- Database access permissions validated
+- DML operations require `allow_dml` enabled on database
+- Disallowed SQL functions blocked based on configuration
+- Query timeouts enforced
+- Result size limits applied automatically
 
 ## Error Responses
 
