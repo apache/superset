@@ -34,7 +34,7 @@ jest.mock('src/components/MessageToasts/withToasts', () => ({
 const mockFileReader = {
   result: null as string | null,
   onload: null as ((ev: ProgressEvent<FileReader>) => void) | null,
-  readAsText: jest.fn(function (this: any) {
+  readAsText: jest.fn(function (this: FileReader) {
     setTimeout(() => {
       if (this.result !== null && this.onload) {
         this.onload({} as ProgressEvent<FileReader>);
@@ -76,6 +76,15 @@ describe('EncryptedField', () => {
     onSSHTunnelParametersChange: jest.fn(),
   });
 
+  // Typed helper to safely modify encryptedCredentialsMap
+  const setCredentialMapField = (engine: string, field: string) => {
+    (encryptedCredentialsMap as Record<string, string>)[engine] = field;
+  };
+
+  const deleteCredentialMapField = (engine: string) => {
+    delete (encryptedCredentialsMap as Record<string, string>)[engine];
+  };
+
   // Helper function to manage encryptedCredentialsMap setup/teardown
   const withMockCredentialsMap = (
     mappings: Record<string, string>,
@@ -85,7 +94,7 @@ describe('EncryptedField', () => {
 
     // Setup mappings
     Object.entries(mappings).forEach(([engine, field]) => {
-      (encryptedCredentialsMap as any)[engine] = field;
+      setCredentialMapField(engine, field);
     });
 
     try {
@@ -96,7 +105,7 @@ describe('EncryptedField', () => {
       Object.assign(encryptedCredentialsMap, originalMap);
       Object.keys(mappings).forEach(engine => {
         if (!(engine in originalMap)) {
-          delete (encryptedCredentialsMap as any)[engine];
+          deleteCredentialMapField(engine);
         }
       });
     }
@@ -170,10 +179,10 @@ describe('EncryptedField', () => {
 
         render(<EncryptedField {...props} />);
 
-        // Should not crash and should call onParametersChange with undefined field name
+        // Should not crash and should call onParametersChange with null field name
         expect(props.changeMethods.onParametersChange).toHaveBeenCalledWith({
           target: {
-            name: undefined,
+            name: null,
             value: '',
           },
         });
