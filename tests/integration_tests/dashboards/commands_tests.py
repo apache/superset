@@ -612,6 +612,7 @@ class TestImportDashboardsCommand(SupersetTestCase):
         assert json.loads(dashboard.json_metadata) == {
             "color_scheme": None,
             "expanded_slices": {str(new_chart_id): True},
+            "expand_all_slices": False,
             "import_time": 1604342885,
             "native_filter_configuration": [],
             "refresh_frequency": 0,
