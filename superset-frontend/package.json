@@ -176,7 +176,7 @@
     "react-hot-loader": "^4.13.1",
     "react-intersection-observer": "^9.16.0",
     "react-json-tree": "^0.20.0",
-    "react-lines-ellipsis": "^0.15.4",
+    "react-lines-ellipsis": "^0.16.1",
     "react-loadable": "^5.5.0",
     "react-redux": "^7.2.9",
     "react-resize-detector": "^7.1.2",
