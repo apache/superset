@@ -331,6 +331,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         "can_external_metadata",
         "can_external_metadata_by_name",
         "can_read",
+        "can_get_drill_info",
     }
 
     ALPHA_ONLY_PERMISSIONS = {
@@ -569,6 +570,32 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             return False
 
         return True
+
+    def can_drill_dataset_via_dashboard_access(
+        self, dataset: "BaseDatasource", dashboard: "Dashboard"
+    ) -> bool:
+        """
+        Return True if an embedded user or DASHBOARD_RBAC user can drill a dataset.
+        """
+        from superset import is_feature_enabled
+
+        if (
+            (
+                is_feature_enabled("EMBEDDED_SUPERSET")
+                and self.is_guest_user()
+                and self.has_guest_access(dashboard)
+            )
+            or (
+                is_feature_enabled("DASHBOARD_RBAC")
+                and dashboard.roles
+                and dashboard.published
+                and {role.id for role in dashboard.roles}
+                & {role.id for role in self.get_user_roles()}
+            )
+        ) and dataset.id in {dataset.id for dataset in dashboard.datasources}:
+            return True
+
+        return False
 
     def can_access_dashboard(self, dashboard: "Dashboard") -> bool:
         """
@@ -2233,7 +2260,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         """
         # pylint: disable=import-outside-toplevel
         from superset import is_feature_enabled
-        from superset.connectors.sqla.models import SqlaTable
+        from superset.connectors.sqla.models import SqlaTable, TableColumn
         from superset.models.dashboard import Dashboard
         from superset.models.slice import Slice
         from superset.models.sql_lab import Query
@@ -2400,6 +2427,32 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                             )
                             and slc in dashboard_.slices
                             and slc.datasource == datasource
+                        )
+                        or (
+                            # D2D
+                            form_data.get("type") != "NATIVE_FILTER"
+                            and form_data.get("slice_id") == 0
+                            and (chart_id := form_data.get("chart_id"))
+                            and (
+                                slc := self.get_session.query(Slice)
+                                .filter(Slice.id == chart_id)
+                                .one_or_none()
+                            )
+                            and slc in dashboard_.slices
+                            and slc.datasource == datasource
+                            and (dimensions := form_data.get("groupby"))
+                            and (
+                                drillable_columns := {
+                                    row[0]
+                                    for row in self.get_session.query(
+                                        TableColumn.column_name
+                                    )
+                                    .filter(TableColumn.table_id == datasource.id)
+                                    .filter(TableColumn.groupby)
+                                    .all()
+                                }
+                            )
+                            and set(dimensions).issubset(drillable_columns)
                         )
                     )
                     and self.can_access_dashboard(dashboard_)
