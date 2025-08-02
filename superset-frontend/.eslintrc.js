@@ -259,6 +259,13 @@ module.exports = {
             patterns: ['antd/*'],
           },
         ],
+        'no-param-reassign': [
+          'error',
+          {
+            props: true,
+            ignorePropertyModificationsFor: ['state'],
+          },
+        ],
       },
       settings: {
         'import/resolver': {

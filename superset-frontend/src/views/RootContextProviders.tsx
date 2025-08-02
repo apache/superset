@@ -30,6 +30,7 @@ import { SupersetThemeProvider } from 'src/theme/ThemeProvider';
 import { ThemeController } from 'src/theme/ThemeController';
 import { store } from './store';
 import '../preamble';
+import { ExtensionsProvider } from 'src/extensions/ExtensionsContext';
 
 const { common } = getBootstrapData();
 const themeController = new ThemeController();
@@ -51,13 +52,15 @@ export const RootContextProviders: React.FC = ({ children }) => {
                   ReactRouterRoute={Route}
                   stringifyOptions={{ encode: false }}
                 >
-                  {RootContextProviderExtension ? (
-                    <RootContextProviderExtension>
-                      {children}
-                    </RootContextProviderExtension>
-                  ) : (
-                    children
-                  )}
+                  <ExtensionsProvider>
+                    {RootContextProviderExtension ? (
+                      <RootContextProviderExtension>
+                        {children}
+                      </RootContextProviderExtension>
+                    ) : (
+                      children
+                    )}
+                  </ExtensionsProvider>
                 </QueryParamProvider>
               </DynamicPluginProvider>
             </EmbeddedUiConfigProvider>
