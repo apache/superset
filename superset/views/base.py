@@ -62,7 +62,6 @@ from superset.extensions import cache_manager
 from superset.reports.models import ReportRecipientType
 from superset.superset_typing import FlaskResponse
 from superset.themes.utils import (
-    is_valid_theme,
     is_valid_theme_settings,
 )
 from superset.utils import core as utils, json
@@ -307,29 +306,25 @@ def menu_data(user: User) -> dict[str, Any]:
 def get_theme_bootstrap_data() -> dict[str, Any]:
     """
     Returns the theme data to be sent to the client.
+    Resolves UUID references and upserts system themes.
     """
+    from superset.commands.theme.resolve import ResolveAndUpsertThemeCommand
+
     # Get theme configs
     default_theme_config = get_config_value("THEME_DEFAULT")
     dark_theme_config = get_config_value("THEME_DARK")
     theme_settings = get_config_value("THEME_SETTINGS")
 
-    # Validate theme configurations
-    default_theme = default_theme_config
-    if not is_valid_theme(default_theme):
-        logger.warning(
-            "Invalid THEME_DEFAULT configuration: %s, using empty theme",
-            default_theme_config,
-        )
-        default_theme = {}
+    # Resolve and upsert themes - command handles all error cases
+    default_theme = ResolveAndUpsertThemeCommand(
+        default_theme_config or {}, "THEME_DEFAULT"
+    ).run()
 
-    dark_theme = dark_theme_config
-    if not is_valid_theme(dark_theme):
-        logger.warning(
-            "Invalid THEME_DARK configuration: %s, using empty theme",
-            dark_theme_config,
-        )
-        dark_theme = {}
+    dark_theme = ResolveAndUpsertThemeCommand(
+        dark_theme_config or {}, "THEME_DARK"
+    ).run()
 
+    # Validate theme settings
     if not is_valid_theme_settings(theme_settings):
         logger.warning(
             "Invalid THEME_SETTINGS configuration: %s, using defaults", theme_settings
