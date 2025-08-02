@@ -20,6 +20,10 @@ apsw==3.50.1.0
     #   shillelagh
 astroid==3.3.10
     # via pylint
+async-timeout==4.0.3
+    # via
+    #   -c requirements/base.txt
+    #   redis
 attrs==25.3.0
     # via
     #   -c requirements/base.txt
@@ -176,6 +180,13 @@ et-xmlfile==2.0.0
     # via
     #   -c requirements/base.txt
     #   openpyxl
+exceptiongroup==1.3.0
+    # via
+    #   -c requirements/base.txt
+    #   cattrs
+    #   pytest
+    #   trio
+    #   trio-websocket
 filelock==3.12.2
     # via virtualenv
 flask==2.3.3
@@ -207,7 +218,7 @@ flask-caching==2.3.1
     # via
     #   -c requirements/base.txt
     #   apache-superset
-flask-compress==1.17
+flask-compress==1.18
     # via
     #   -c requirements/base.txt
     #   apache-superset
@@ -313,6 +324,7 @@ greenlet==3.1.1
     #   apache-superset
     #   gevent
     #   shillelagh
+    #   sqlalchemy
 grpcio==1.71.0
     # via
     #   apache-superset
@@ -698,6 +710,10 @@ pyyaml==6.0.2
     #   apispec
     #   jsonschema-path
     #   pre-commit
+pyzstd==0.17.0
+    # via
+    #   -c requirements/base.txt
+    #   flask-compress
 redis==4.6.0
     # via
     #   -c requirements/base.txt
@@ -818,6 +834,11 @@ tabulate==0.9.0
     # via
     #   -c requirements/base.txt
     #   apache-superset
+tomli==2.2.1
+    # via
+    #   coverage
+    #   pylint
+    #   pytest
 tomlkit==0.13.3
     # via pylint
 tqdm==4.67.1
@@ -840,10 +861,14 @@ typing-extensions==4.14.0
     #   -c requirements/base.txt
     #   alembic
     #   apache-superset
+    #   astroid
     #   cattrs
+    #   exceptiongroup
     #   limits
     #   pyopenssl
+    #   pyzstd
     #   referencing
+    #   rich
     #   selenium
     #   shillelagh
 tzdata==2025.2
@@ -919,7 +944,3 @@ zope-event==5.0
     # via gevent
 zope-interface==5.4.0
     # via gevent
-zstandard==0.23.0
-    # via
-    #   -c requirements/base.txt
-    #   flask-compress
