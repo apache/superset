@@ -42,7 +42,6 @@ import {
   LocalStorageKeys,
   setItem,
 } from 'src/utils/localStorageHelpers';
-import { noop } from 'lodash';
 import TableElement from '../TableElement';
 
 export interface SqlEditorLeftBarProps {
@@ -86,7 +85,7 @@ const SqlEditorLeftBar = ({
     'schema',
   ]);
 
-  const [_emptyResultsWithSearch, setEmptyResultsWithSearch] = useState(false);
+  const [, setEmptyResultsWithSearch] = useState(false);
   const [userSelectedDb, setUserSelected] = useState<DatabaseObject | null>(
     null,
   );
@@ -98,8 +97,6 @@ const SqlEditorLeftBar = ({
       ),
     [allSelectedTables, dbId, schema],
   );
-
-  noop(_emptyResultsWithSearch); // This is to avoid unused variable warning, can be removed if not needed
 
   useEffect(() => {
     const bool = new URLSearchParams(window.location.search).get('db');
