@@ -382,9 +382,9 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.add_view(
             ExtensionsView,
             "Extensions",
-            label=__("Extensions"),
+            label=_("Extensions"),
             category="Manage",
-            category_label=__("Manage"),
+            category_label=_("Manage"),
             menu_cond=lambda: feature_flag_manager.is_feature_enabled(
                 "ENABLE_EXTENSIONS"
             ),
