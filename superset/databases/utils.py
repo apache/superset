@@ -71,6 +71,13 @@ def get_table_metadata(database: Any, table: Table) -> TableMetadataResponse:
     :param table: Table instance
     :return: Dict table metadata ready for API response
     """
+    # Lazy import to prevent circular dependency
+    from superset.extensions import cache_manager
+    cache_key = f"table_metadata:{database.id}:{table.catalog or ''}:{table.schema or ''}:{table.table}"
+    cached_data = cache_manager.schema_cache.get(cache_key)
+    if cached_data:
+        return cached_data
+
     keys = []
     columns = database.get_columns(table)
     primary_key = database.get_pk_constraint(table)
@@ -94,7 +101,8 @@ def get_table_metadata(database: Any, table: Table) -> TableMetadataResponse:
                 "comment": col.get("comment"),
             }
         )
-    return {
+    
+    result = {
         "name": table.table,
         "columns": payload_columns,
         "selectStar": database.select_star(
@@ -108,6 +116,8 @@ def get_table_metadata(database: Any, table: Table) -> TableMetadataResponse:
         "indexes": keys,
         "comment": table_comment,
     }
+    cache_manager.schema_cache.set(cache_key, result)
+    return result
 
 
 def make_url_safe(raw_url: str | URL) -> URL:
