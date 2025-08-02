@@ -43,11 +43,19 @@ def left_join_df(
 def full_outer_join_df(
     left_df: pd.DataFrame,
     right_df: pd.DataFrame,
+    join_keys: list[str] | None = None,
     lsuffix: str = "",
     rsuffix: str = "",
 ) -> pd.DataFrame:
-    df = left_df.join(right_df, lsuffix=lsuffix, rsuffix=rsuffix, how="outer")
-    df.reset_index(inplace=True)
+    if join_keys:
+        df = left_df.set_index(join_keys).join(
+            right_df.set_index(join_keys), lsuffix=lsuffix, rsuffix=rsuffix, how="outer"
+        )
+        df.reset_index(inplace=True)
+
+    else:
+        df = left_df.join(right_df, lsuffix=lsuffix, rsuffix=rsuffix, how="outer")
+        df.reset_index(inplace=True)
     return df
 
 

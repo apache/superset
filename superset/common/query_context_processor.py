@@ -467,6 +467,12 @@ class QueryContextProcessor:
         offset_dfs: dict[str, pd.DataFrame] = {}
 
         outer_from_dttm, outer_to_dttm = get_since_until_from_query_object(query_object)
+        # Capture the max timestamp present in the *current* data to avoid leaking
+        # shifted rows that fall beyond the available range.
+        date_column_name = (get_base_axis_labels(query_object.columns) or [DTTM_ALIAS])[0]
+        current_max_date: datetime | None = None
+        if date_column_name in df.columns and dataframe_utils.is_datetime_series(df[date_column_name]):
+            current_max_date = df[date_column_name].max()
         if not outer_from_dttm or not outer_to_dttm:
             raise QueryObjectValidationError(
                 _(
@@ -649,6 +655,15 @@ class QueryContextProcessor:
                 join_keys,
             )
 
+            if join_keys:
+                date_col = join_keys[0]
+                if date_col in df.columns:
+                    date_series = pd.to_datetime(df[date_col], errors="coerce")
+                    # Upper bound must not exceed either the query window end or the
+                    # latest date present in the current period.
+                    upper_bound = min(filter(None, [current_max_date, outer_to_dttm]))
+                    df = df[(date_series >= outer_from_dttm) & (date_series <= upper_bound)]
+
         return CachedTimeOffset(df=df, queries=queries, cache_keys=cache_keys)
 
     def join_offset_dfs(
@@ -697,8 +712,10 @@ class QueryContextProcessor:
                 # so we use the join column instead of the temporal column
                 actual_join_keys = [column_name, *join_keys[1:]]
 
+            # Use an outer join so that dates that only exist on the offset side
+            # are preserved. 
             if join_keys:
-                df = dataframe_utils.left_join_df(
+                df = dataframe_utils.full_outer_join_df(
                     left_df=df,
                     right_df=offset_df,
                     join_keys=actual_join_keys,
@@ -710,6 +727,19 @@ class QueryContextProcessor:
                     right_df=offset_df,
                     rsuffix=R_SUFFIX,
                 )
+
+            # Back-fill missing dates on the current side using the timestamp from
+            # the offset side plus the inverse of the time delta
+            if join_keys:
+                date_col = join_keys[0]
+                right_date_col = f"{date_col}{R_SUFFIX}"
+                if right_date_col in df.columns:
+                    delta_dict = normalize_time_delta(offset)
+                    inv_delta_dict = {k: -v for k, v in delta_dict.items()}
+                    df[date_col] = df[date_col].fillna(
+                        df[right_date_col] + DateOffset(**inv_delta_dict)
+                    )
+
 
             if time_grain:
                 # move the temporal column to the first column in df
