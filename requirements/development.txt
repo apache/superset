@@ -902,7 +902,10 @@ vine==5.1.0
 virtualenv==20.29.2
     # via pre-commit
 watchdog==6.0.0
-    # via apache-superset-cli
+    # via
+    #   -c requirements/base-constraint.txt
+    #   apache-superset
+    #   apache-superset-cli
 wcwidth==0.2.13
     # via
     #   -c requirements/base-constraint.txt
