@@ -6028,7 +6028,7 @@ msgstr "Bild (PNG) in E-Mail eingebettet"
 msgid "Image download failed, please refresh and try again."
 msgstr "Bilddownload fehlgeschlagen, bitte aktualisieren und erneut versuchen."
 
-msgid "Impersonate logged in user (Presto, Trino, Drill, Hive, and GSheets)"
+msgid "Impersonate logged in user (Presto, Trino, Drill, Hive, and Google Sheets)"
 msgstr ""
 "Identität von angemeldeter Benutzer*in annehmen (Presto, Trino, Drill & "
 "Hive)"
@@ -9606,7 +9606,7 @@ msgstr "Übermittlungsmethode hinzufügen"
 msgid "Select Tags"
 msgstr "Schlagwörter auswählen"
 
-msgid "Select Viz Type"
+msgid "Select chart type"
 msgstr "Visualisierungstyp wählen"
 
 msgid "Select a column"
@@ -13908,7 +13908,7 @@ msgstr "X-Achse Sortieren nach"
 msgid "X-axis"
 msgstr "X-Achse"
 
-msgid "XScale Interval"
+msgid "X-scale interval"
 msgstr "X-Skalen-Intervall"
 
 msgid "XYZ"
@@ -13965,7 +13965,7 @@ msgstr "Y-Achse"
 msgid "Y-axis bounds"
 msgstr "Grenzen der Y-Achse"
 
-msgid "YScale Interval"
+msgid "Y-scale interval"
 msgstr "Y-Skalen-Intervall"
 
 msgid "Year"

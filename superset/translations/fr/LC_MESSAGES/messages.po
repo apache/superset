@@ -6379,7 +6379,7 @@ msgstr "Image (PNG) encapsulée dans le courriel"
 msgid "Image download failed, please refresh and try again."
 msgstr "Échec du téléchargement de l’image, veuillez actualiser et réessayer."
 
-msgid "Impersonate logged in user (Presto, Trino, Drill, Hive, and GSheets)"
+msgid "Impersonate logged in user (Presto, Trino, Drill, Hive, and Google Sheets)"
 msgstr ""
 "Se faire passer pour l'utilisateur·rice connecté·e (Presto, Trino, Drill,"
 " Hive, and GSheets)"
@@ -10340,7 +10340,7 @@ msgstr "Sélectionner la méthode de livraison"
 msgid "Select Tags"
 msgstr "Tout Dé-Sélectionner"
 
-msgid "Select Viz Type"
+msgid "Select chart type"
 msgstr "Selectionner un type de visualisation"
 
 msgid "Select a column"
@@ -14991,7 +14991,7 @@ msgstr "Axe des abscisses – Trier par"
 msgid "X-axis"
 msgstr "Axe des abscisses"
 
-msgid "XScale Interval"
+msgid "X-scale interval"
 msgstr "Intervalle XScale"
 
 msgid "XYZ"
@@ -15050,7 +15050,7 @@ msgid "Y-axis bounds"
 msgstr "Limites de l’axe des ordonnées"
 
 #, fuzzy
-msgid "YScale Interval"
+msgid "Y-scale interval"
 msgstr "Intervalle YScale"
 
 msgid "Year"

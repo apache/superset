@@ -5919,7 +5919,7 @@ msgstr "صورة (PNG) مضمنة في البريد الإلكتروني"
 msgid "Image download failed, please refresh and try again."
 msgstr "فشل تنزيل الصورة، يرجى التحديث والمحاولة مرة أخرى."
 
-msgid "Impersonate logged in user (Presto, Trino, Drill, Hive, and GSheets)"
+msgid "Impersonate logged in user (Presto, Trino, Drill, Hive, and Google Sheets)"
 msgstr ""
 "انتحال شخصية المستخدم الذي قام بتسجيل الدخول (بريستو، ترينو، دريل، هايف، "
 "وGSheets)"
@@ -9431,7 +9431,7 @@ msgstr "حدد طريقة التسليم"
 msgid "Select Tags"
 msgstr "حدد العلامات"
 
-msgid "Select Viz Type"
+msgid "Select chart type"
 msgstr "حدد نوع الفيز"
 
 msgid "Select a column"
@@ -13492,7 +13492,7 @@ msgstr "فرز المحور السيني حسب"
 msgid "X-axis"
 msgstr "المحور السيني"
 
-msgid "XScale Interval"
+msgid "X-scale interval"
 msgstr "الفاصل الزمني للمقياس"
 
 msgid "XYZ"
@@ -13550,7 +13550,7 @@ msgstr "المحور الصادي"
 msgid "Y-axis bounds"
 msgstr "حدود المحور Y"
 
-msgid "YScale Interval"
+msgid "Y-scale interval"
 msgstr "الفاصل الزمني للقياس"
 
 msgid "Year"

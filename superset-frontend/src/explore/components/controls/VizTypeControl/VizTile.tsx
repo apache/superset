@@ -37,7 +37,7 @@ export const VizTile = ({
   const [showTooltip, setShowTooltip] = useState(false);
   const chartName = vizMeta.name
     ? mountedPluginMetadata[vizMeta.name]?.name || `${vizMeta.name}`
-    : t('Select Viz Type');
+    : t('Select chart type');
 
   const handleTileClick = useCallback(() => {
     onTileClick(vizMeta.name);

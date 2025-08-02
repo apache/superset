@@ -5859,7 +5859,7 @@ msgstr "تصویر (پی‌ان‌جی) درج‌شده در ایمیل"
 msgid "Image download failed, please refresh and try again."
 msgstr "دانلود تصویر ناموفق بود، لطفاً صفحه را تازه‌سازی کرده و دوباره تلاش کنید."
 
-msgid "Impersonate logged in user (Presto, Trino, Drill, Hive, and GSheets)"
+msgid "Impersonate logged in user (Presto, Trino, Drill, Hive, and Google Sheets)"
 msgstr "شخصیت کاربر وارد شده را تقلید کنید (پرستو، ترینو، دریل، هایو و جی‌اسیت)"
 
 msgid "Import"
@@ -9355,7 +9355,7 @@ msgstr "روش تحویل را انتخاب کنید"
 msgid "Select Tags"
 msgstr "برچسب‌ها را انتخاب کنید"
 
-msgid "Select Viz Type"
+msgid "Select chart type"
 msgstr "نوع بصری را انتخاب کنید"
 
 msgid "Select a column"
@@ -13465,7 +13465,7 @@ msgstr "مرتب‌سازی محور X بر اساس"
 msgid "X-axis"
 msgstr "محور X"
 
-msgid "XScale Interval"
+msgid "X-scale interval"
 msgstr "فاصله مقیاس X"
 
 msgid "XYZ"
@@ -13522,7 +13522,7 @@ msgstr "محور Y"
 msgid "Y-axis bounds"
 msgstr "محدوده‌های محور Y"
 
-msgid "YScale Interval"
+msgid "Y-scale interval"
 msgstr "فاصله مقیاس Y"
 
 msgid "Year"

@@ -5895,7 +5895,7 @@ msgstr "Slika (PNG) vključena v e-pošto"
 msgid "Image download failed, please refresh and try again."
 msgstr "Prenos slike ni uspel. Osvežite in poskusite ponovno."
 
-msgid "Impersonate logged in user (Presto, Trino, Drill, Hive, and GSheets)"
+msgid "Impersonate logged in user (Presto, Trino, Drill, Hive, and Google Sheets)"
 msgstr ""
 "Predstavljanje kot prijavljeni uporabnik (Presto, Trino, Drill, Hive in "
 "GSheets)"
@@ -9395,7 +9395,7 @@ msgstr "Izberite način dostave"
 msgid "Select Tags"
 msgstr "Izberite oznake"
 
-msgid "Select Viz Type"
+msgid "Select chart type"
 msgstr "Izberite tip vizualizacije"
 
 msgid "Select a column"
@@ -13497,7 +13497,7 @@ msgstr "\"Razvrsčanje po\" za X-os"
 msgid "X-axis"
 msgstr "X-os"
 
-msgid "XScale Interval"
+msgid "X-scale interval"
 msgstr "Interval X-osi"
 
 msgid "XYZ"
@@ -13554,7 +13554,7 @@ msgstr "Y-os"
 msgid "Y-axis bounds"
 msgstr "Meje Y-osi"
 
-msgid "YScale Interval"
+msgid "Y-scale interval"
 msgstr "Interval Y-osi"
 
 msgid "Year"
