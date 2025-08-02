@@ -429,13 +429,10 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
         to potentially establish SSH tunnels before the connection is created, and clean
         them up once the engine is no longer used.
         """
-        from superset.daos.database import (  # pylint: disable=import-outside-toplevel
-            DatabaseDAO,
-        )
 
         sqlalchemy_uri = self.sqlalchemy_uri_decrypted
 
-        ssh_tunnel = override_ssh_tunnel or DatabaseDAO.get_ssh_tunnel(self.id)
+        ssh_tunnel = override_ssh_tunnel or self.ssh_tunnel
         ssh_context_manager = (
             ssh_manager_factory.instance.create_tunnel(
                 ssh_tunnel=ssh_tunnel,

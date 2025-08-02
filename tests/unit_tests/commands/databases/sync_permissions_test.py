@@ -143,7 +143,6 @@ def test_sync_permissions_command_passing_all_values(
     assert cmmd.old_db_connection_name == "old name"
     assert cmmd.db_connection_ssh_tunnel == mock_ssh
     mock_database_dao.find_by_id.assert_not_called()
-    mock_database_dao.get_ssh_tunnel.assert_not_called()
 
 
 @with_config({"SYNC_DB_PERMISSIONS_IN_ASYNC_MODE": False})
@@ -159,7 +158,6 @@ def test_sync_permissions_command_raise(
         "superset.commands.database.sync_permissions.DatabaseDAO"
     )
     mock_database_dao.find_by_id.return_value = database_without_catalog
-    mock_database_dao.get_ssh_tunnel.return_value = mocker.MagicMock()
     mock_user = mocker.patch(
         "superset.commands.database.sync_permissions.security_manager.get_user_by_username"
     )
