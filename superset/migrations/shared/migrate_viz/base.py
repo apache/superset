@@ -28,7 +28,7 @@ from superset.migrations.shared.utils import paginated_update, try_load_json
 from superset.utils import json
 from superset.utils.date_parser import get_since_until
 
-logger = logging.getLogger("alembic")
+logger = logging.getLogger("alembic.env")
 
 Base = declarative_base()
 

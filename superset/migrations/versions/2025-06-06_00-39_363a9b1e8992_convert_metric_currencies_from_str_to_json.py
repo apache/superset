@@ -32,8 +32,7 @@ from sqlalchemy.ext.declarative import declarative_base
 from superset import db
 from superset.migrations.shared.utils import paginated_update
 
-logger = logging.getLogger("alembic")
-logger.setLevel(logging.INFO)
+logger = logging.getLogger("alembic.env")
 
 # revision identifiers, used by Alembic.
 revision = "363a9b1e8992"
