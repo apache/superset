@@ -19,10 +19,11 @@ from datetime import datetime, timedelta
 
 from flask import request, Response
 from flask_appbuilder.api import expose, permission_name, protect, safe
-from dataset_references.query_parsing import extract_tables
+from sqlglot import Dialects
 from superset_core.api import models, query
 from superset_core.api.types.rest_api import RestApi
-from sqlglot import Dialects
+
+from dataset_references.query_parsing import extract_tables
 
 
 class DatasetReferencesAPI(RestApi):

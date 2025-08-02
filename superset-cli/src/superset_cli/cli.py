@@ -246,8 +246,7 @@ def build(ctx: click.Context) -> None:
 
     init_frontend_deps(frontend_dir)
     clean_dist(cwd)
-    remote_entry = rebuild_frontend(cwd, frontend_dir)
-    if remote_entry is not None:
+    if (remote_entry := rebuild_frontend(cwd, frontend_dir)) is not None:
         pyproject = read_toml(backend_dir / "pyproject.toml")
         if pyproject:
             rebuild_backend(cwd)
@@ -319,8 +318,7 @@ def dev(ctx: click.Context) -> None:
     write_manifest(cwd, manifest)
 
     def frontend_watcher() -> None:
-        remote_entry = rebuild_frontend(cwd, frontend_dir)
-        if remote_entry is not None:
+        if (remote_entry := rebuild_frontend(cwd, frontend_dir)) is not None:
             manifest = build_manifest(cwd, remote_entry)
             write_manifest(cwd, manifest)
 

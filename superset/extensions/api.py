@@ -21,7 +21,7 @@ from zipfile import is_zipfile, ZipFile
 
 from flask import request, send_file
 from flask.wrappers import Response
-from flask_appbuilder.api import expose, protect, safe, rison
+from flask_appbuilder.api import expose, protect, rison, safe
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from marshmallow import ValidationError
 

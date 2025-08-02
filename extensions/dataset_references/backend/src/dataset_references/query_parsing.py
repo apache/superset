@@ -15,8 +15,9 @@
 # specific language governing permissions and limitations
 # under the License.
 from collections.abc import Iterable
-from sqlglot import exp, parse_one, parse, Dialects, ParseError
-from sqlglot.optimizer.scope import traverse_scope, Scope, ScopeType
+
+from sqlglot import Dialects, exp, parse, parse_one, ParseError
+from sqlglot.optimizer.scope import Scope, ScopeType, traverse_scope
 
 
 class Table:

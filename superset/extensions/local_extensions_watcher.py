@@ -40,7 +40,7 @@ class LocalExtensionFileHandler(FileSystemEventHandler):
         if event.is_directory:
             return
 
-        logger.info(f"File change detected in LOCAL_EXTENSIONS: {event.src_path} - restarting...")
+        logger.info(f"File change detected in LOCAL_EXTENSIONS: {event.src_path}")
 
         # Touch superset/__init__.py to trigger Flask's file watcher
         superset_init = Path("superset/__init__.py")

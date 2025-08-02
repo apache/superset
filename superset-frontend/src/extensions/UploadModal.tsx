@@ -59,7 +59,7 @@ const UploadModal = ({ show, onHide, onUploadSuccess }: UploadProps) => {
       const file: File = fileList[0].originFileObj as File;
       const formData = new FormData();
       formData.append('bundle', file);
-      let response = await SupersetClient.post({
+      const response = await SupersetClient.post({
         endpoint: '/api/v1/extensions/import/',
         body: formData,
         headers: { Accept: 'application/json' },
@@ -103,7 +103,7 @@ const UploadModal = ({ show, onHide, onUploadSuccess }: UploadProps) => {
       centered
       show={show}
       title={t('Upload Extension')}
-      destroyOnClose={true}
+      destroyOnClose
     >
       <Upload
         name="modelFile"

@@ -26,10 +26,10 @@ import {
   extensions,
   sqlLab,
 } from 'src/core';
-import { useExtensionsContext } from './ExtensionsContext';
-import ExtensionsManager from './ExtensionsManager';
 import { useSelector } from 'react-redux';
 import { RootState } from 'src/views/store';
+import { useExtensionsContext } from './ExtensionsContext';
+import ExtensionsManager from './ExtensionsManager';
 
 declare global {
   interface Window {

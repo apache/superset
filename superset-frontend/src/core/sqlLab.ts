@@ -24,10 +24,10 @@ import {
   querySuccess,
 } from 'src/SqlLab/actions/sqlLab';
 import { RootState, store } from 'src/views/store';
-import { Disposable, Editor, Panel, Tab } from './core';
-import { createActionListener } from './utils';
 import { AnyListenerPredicate } from '@reduxjs/toolkit';
 import type { SqlLabRootState } from 'src/SqlLab/types';
+import { Disposable, Editor, Panel, Tab } from './core';
+import { createActionListener } from './utils';
 
 const activeEditorId = () => {
   const { sqlLab }: { sqlLab: SqlLabRootState['sqlLab'] } = store.getState();

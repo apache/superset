@@ -18,9 +18,7 @@
  */
 import { extensions as extensionsType } from '@apache-superset/core';
 
-const getExtension: typeof extensionsType.getExtension = id => {
-  return undefined;
-};
+const getExtension: typeof extensionsType.getExtension = id => undefined;
 
 export const extensions = {
   getExtension,

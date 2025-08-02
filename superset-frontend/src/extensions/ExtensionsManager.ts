@@ -28,8 +28,8 @@ import {
   ViewContribution,
   core,
 } from '@apache-superset/core';
-import { ExtensionContext } from '../core/core';
 import rison from 'rison';
+import { ExtensionContext } from '../core/core';
 
 class ExtensionsManager {
   private static instance: ExtensionsManager;
@@ -144,9 +144,8 @@ class ExtensionsManager {
     const extension = this.extensionIndex.get(id);
     if (extension) {
       return this.enableExtension(extension);
-    } else {
-      logging.warn(`Extension with id ${id} not found`);
     }
+    logging.warn(`Extension with id ${id} not found`);
   }
 
   private deactivateAndCleanupExtension(extension: core.Extension) {

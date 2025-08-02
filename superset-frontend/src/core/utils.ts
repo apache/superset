@@ -18,8 +18,8 @@
  */
 import { AnyAction } from 'redux';
 import { listenerMiddleware, RootState, store } from 'src/views/store';
-import { Disposable } from '../core';
 import { AnyListenerPredicate } from '@reduxjs/toolkit';
+import { Disposable } from '.';
 
 export function createActionListener<V, S>(
   predicate: AnyListenerPredicate<S>,
