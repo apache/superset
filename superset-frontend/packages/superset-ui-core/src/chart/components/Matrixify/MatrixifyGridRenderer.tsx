@@ -18,7 +18,7 @@
  */
 
 import { useMemo } from 'react';
-import styled from '@emotion/styled';
+import { styled } from '../../../theme';
 import { MatrixifyFormData } from '../../types/matrixify';
 import { generateMatrixifyGrid } from './MatrixifyGridGenerator';
 import MatrixifyGridCell from './MatrixifyGridCell';

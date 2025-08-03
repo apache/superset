@@ -26,7 +26,7 @@ import {
   buildQueryContext,
   RequestConfig,
 } from '../..';
-import { Loading } from '../../components';
+import { Loading } from '../../components/Loading';
 import ChartClient from '../clients/ChartClient';
 import getChartBuildQueryRegistry from '../registries/ChartBuildQueryRegistrySingleton';
 import getChartMetadataRegistry from '../registries/ChartMetadataRegistrySingleton';
