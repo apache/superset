@@ -49,6 +49,21 @@ describe('isProbablyHTML', () => {
     const trickyText = 'a <= 10 and b > 10';
     expect(isProbablyHTML(trickyText)).toBe(false);
   });
+
+  it('should return false for strings with angle brackets that are not HTML', () => {
+    // Test case from issue #25561
+    expect(isProbablyHTML('<abcdef:12345>')).toBe(false);
+
+    // Other similar cases
+    expect(isProbablyHTML('<foo:bar>')).toBe(false);
+    expect(isProbablyHTML('<123>')).toBe(false);
+    expect(isProbablyHTML('<test@example.com>')).toBe(false);
+    expect(isProbablyHTML('<custom-element>')).toBe(false);
+
+    // Mathematical expressions
+    expect(isProbablyHTML('if x < 5 and y > 10')).toBe(false);
+    expect(isProbablyHTML('price < $100')).toBe(false);
+  });
 });
 
 describe('sanitizeHtmlIfNeeded', () => {
