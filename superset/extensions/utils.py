@@ -17,7 +17,6 @@
 
 import importlib.abc
 import importlib.util
-import json
 import logging
 import os
 import re
@@ -30,6 +29,7 @@ from flask import current_app
 
 from superset.extensions.models import Extension
 from superset.extensions.types import BundleFile, LoadedExtension, Manifest
+from superset.utils import json
 from superset.utils.core import check_is_safe_zip
 
 logger = logging.getLogger(__name__)
