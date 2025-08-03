@@ -96,7 +96,7 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
     inner_to_dttm: datetime | None
     is_rowcount: bool
     is_timeseries: bool
-    metrics: list[Metric] | None
+    metrics: list[Metric]
     order_desc: bool
     orderby: list[OrderBy]
     post_processing: list[dict[str, Any]]
@@ -210,9 +210,9 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
         def is_str_or_adhoc(metric: Metric) -> bool:
             return isinstance(metric, str) or is_adhoc_metric(metric)
 
-        self.metrics = metrics and [
+        self.metrics = [
             x if is_str_or_adhoc(x) else x["label"]  # type: ignore
-            for x in metrics
+            for x in (metrics or [])
         ]
 
     def _set_post_processing(
@@ -280,7 +280,7 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
     def metric_names(self) -> list[str]:
         """Return metrics names (labels), coerce adhoc metrics to strings."""
         return get_metric_names(
-            self.metrics or [],
+            self.metrics,
             (
                 self.datasource.verbose_map
                 if self.datasource and hasattr(self.datasource, "verbose_map")
@@ -293,6 +293,21 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
         """Return column names (labels). Gives priority to groupbys if both groupbys
         and metrics are non-empty, otherwise returns column labels."""
         return get_column_names(self.columns)
+
+    @property
+    def time_grain(self) -> str | None:
+        """Get time grain from extras."""
+        return (self.extras or {}).get("time_grain_sqla")
+
+    @property
+    def need_groupby(self) -> bool:
+        """Determine if GROUP BY is needed based on metrics and columns."""
+        return bool(self.metrics or self.columns)
+
+    @property
+    def groupby(self) -> list[Column]:
+        """Alias for columns (for backward compatibility/clarity)."""
+        return self.columns or []
 
     def validate(
         self, raise_exceptions: bool | None = True
@@ -368,7 +383,7 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
             "inner_to_dttm": self.inner_to_dttm,
             "is_rowcount": self.is_rowcount,
             "is_timeseries": self.is_timeseries,
-            "metrics": self.metrics,
+            "metrics": self.metrics if self.metrics else None,
             "order_desc": self.order_desc,
             "orderby": self.orderby,
             "row_limit": self.row_limit,

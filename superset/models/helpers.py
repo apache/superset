@@ -1847,11 +1847,11 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             granularity = self.main_dttm_col
 
         extras = query_obj.extras or {}
-        time_grain = extras.get("time_grain_sqla")
+        time_grain = query_obj.time_grain
 
         # Extract all other needed values from QueryObject
         columns = query_obj.columns or []
-        groupby = query_obj.columns or []  # QueryObject uses columns instead of groupby
+        groupby = query_obj.groupby  # Alias for columns
         metrics = query_obj.metrics
         from_dttm = query_obj.from_dttm
         to_dttm = query_obj.to_dttm
@@ -1911,8 +1911,8 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         template_processor = self.get_template_processor(**template_kwargs)
         prequeries: list[str] = []
         orderby = query_obj.orderby or []
-        need_groupby = bool(query_obj.metrics is not None or groupby)
-        metrics = query_obj.metrics or []
+        need_groupby = query_obj.need_groupby
+        metrics = query_obj.metrics
 
         # For backward compatibility (already handled above)
 
