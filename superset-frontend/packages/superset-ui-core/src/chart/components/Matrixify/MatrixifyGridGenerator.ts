@@ -17,6 +17,7 @@
  * under the License.
  */
 
+import Handlebars from 'handlebars';
 import type { QueryFormData } from '../../../query';
 import type { AdhocFilter } from '../../../query/types/Filter';
 import {
@@ -28,7 +29,7 @@ import {
 } from '../../types/matrixify';
 
 /**
- * Generate title from template
+ * Generate title from template using Handlebars
  */
 function generateCellTitle(
   rowLabel: string,
@@ -39,11 +40,27 @@ function generateCellTitle(
     return '';
   }
 
-  // Replace placeholders with actual values
-  return template
-    .replace(/\{row\}/g, rowLabel)
-    .replace(/\{column\}/g, colLabel)
-    .replace(/\{col\}/g, colLabel); // Support both {column} and {col}
+  try {
+    // Compile the Handlebars template
+    const compiledTemplate = Handlebars.compile(template);
+    
+    // Create context with both naming conventions for flexibility
+    const context = {
+      row: rowLabel,
+      rowLabel,
+      column: colLabel,
+      columnLabel: colLabel,
+      col: colLabel,
+      colLabel,
+    };
+    
+    // Render the template with the context
+    return compiledTemplate(context);
+  } catch (error) {
+    // If template compilation fails, return empty string
+    console.warn('Failed to compile Handlebars template:', error);
+    return '';
+  }
 }
 
 /**
