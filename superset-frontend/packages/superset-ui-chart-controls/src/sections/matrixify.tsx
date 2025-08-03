@@ -93,9 +93,9 @@ export const matrixifySection: ControlPanelSectionConfig = {
           label: t('Cell title template'),
           default: '',
           description: t(
-            'Template for cell titles. Use {row} and {column} as placeholders.',
+            'Template for cell titles. Use {row} and {column} (or {col}) as placeholders.',
           ),
-          placeholder: '{row} - {column}',
+          placeholder: 'Pop: {row}',
         },
       },
     ],
