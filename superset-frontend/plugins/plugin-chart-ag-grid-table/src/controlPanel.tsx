@@ -673,16 +673,6 @@ const config: ControlPanelConfig = {
               type: 'ConditionalFormattingControl',
               renderTrigger: true,
               label: t('Custom conditional formatting'),
-              extraColorChoices: [
-                {
-                  value: ColorSchemeEnum.Green,
-                  label: t('Green for increase, red for decrease'),
-                },
-                {
-                  value: ColorSchemeEnum.Red,
-                  label: t('Red for increase, green for decrease'),
-                },
-              ],
               description: t(
                 'Apply conditional color formatting to numeric columns',
               ),
@@ -695,6 +685,23 @@ const config: ControlPanelConfig = {
                 )
                   ? (explore?.datasource as Dataset)?.verbose_map
                   : (explore?.datasource?.columns ?? {});
+
+                // Only show increase/decrease color options when time comparison is active
+                const hasTimeComparison = !isEmpty(
+                  explore?.form_data?.time_compare,
+                );
+                const extraColorChoices = hasTimeComparison
+                  ? [
+                      {
+                        value: ColorSchemeEnum.Green,
+                        label: t('Green for increase, red for decrease'),
+                      },
+                      {
+                        value: ColorSchemeEnum.Red,
+                        label: t('Red for increase, green for decrease'),
+                      },
+                    ]
+                  : [];
                 const chartStatus = chart?.chartStatus;
                 const { colnames, coltypes } =
                   chart?.queriesResponse?.[0] ?? {};
@@ -725,6 +732,7 @@ const config: ControlPanelConfig = {
                   removeIrrelevantConditions: chartStatus === 'success',
                   columnOptions,
                   verboseMap,
+                  extraColorChoices,
                 };
               },
             },
