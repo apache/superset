@@ -17,8 +17,8 @@
  * under the License.
  */
 
-import { styled } from '@superset-ui/core';
 import cls from 'classnames';
+import { styled } from '../../theme';
 import { Loading as Loader } from '../assets';
 import type { LoadingProps } from './types';
 

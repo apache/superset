@@ -18,7 +18,7 @@
  */
 
 import { memo } from 'react';
-import styled from '@emotion/styled';
+import { styled } from '../../../theme';
 import { MatrixifyGridCell as GridCellData } from '../../types/matrixify';
 import StatefulChart from '../StatefulChart';
 
