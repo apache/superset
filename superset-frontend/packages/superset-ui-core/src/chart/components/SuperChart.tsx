@@ -39,6 +39,8 @@ import SuperChartCore, { Props as SuperChartCoreProps } from './SuperChartCore';
 import DefaultFallbackComponent from './FallbackComponent';
 import ChartProps, { ChartPropsConfig } from '../models/ChartProps';
 import NoResultsComponent from './NoResultsComponent';
+import { isMatrixifyEnabled } from '../types/matrixify';
+import MatrixifyGridRenderer from './Matrixify/MatrixifyGridRenderer';
 
 const defaultProps = {
   FallbackComponent: DefaultFallbackComponent,
@@ -185,6 +187,44 @@ class SuperChart extends PureComponent<Props, {}> {
       width,
       theme,
     });
+
+    // Check if Matrixify is enabled - use rawFormData (snake_case)
+    const matrixifyEnabled = isMatrixifyEnabled(chartProps.rawFormData);
+
+    if (matrixifyEnabled) {
+      const matrixifyChart = (
+        <MatrixifyGridRenderer
+          formData={chartProps.rawFormData}
+          datasource={chartProps.datasource}
+          width={width}
+          height={height}
+          hooks={chartProps.hooks}
+        />
+      );
+
+      // Apply wrapper if provided
+      const wrappedChart = Wrapper ? (
+        <Wrapper width={width} height={height}>
+          {matrixifyChart}
+        </Wrapper>
+      ) : (
+        matrixifyChart
+      );
+
+      // Include error boundary unless disabled
+      return disableErrorBoundary === true ? (
+        wrappedChart
+      ) : (
+        <ErrorBoundary
+          FallbackComponent={props => (
+            <FallbackComponent width={width} height={height} {...props} />
+          )}
+          onError={onErrorBoundary}
+        >
+          {wrappedChart}
+        </ErrorBoundary>
+      );
+    }
 
     let chart;
     // Render the no results component if the query data is null or empty

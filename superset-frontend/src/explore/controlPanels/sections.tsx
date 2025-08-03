@@ -273,3 +273,55 @@ export const NVD3TimeSeries: ControlPanelSectionConfig[] = [
     ],
   },
 ];
+
+function buildMatrixifySection(
+  axis: 'columns' | 'rows',
+): ControlPanelSectionConfig {
+  const baseControls = [
+    [`matrixify_mode_${axis}`],
+    [`matrixify_${axis}`],
+    [`matrixify_dimension_selection_mode_${axis}`],
+    [`matrixify_dimension_${axis}`],
+    [`matrixify_topn_value_${axis}`],
+    [`matrixify_topn_metric_${axis}`],
+    [`matrixify_topn_order_${axis}`],
+  ];
+
+  // Add specific controls for each axis
+  if (axis === 'rows') {
+    // Add row height control at the beginning
+    baseControls.unshift(['matrixify_row_height']);
+  } else if (axis === 'columns') {
+    // Add fit columns control at the beginning
+    baseControls.unshift(['matrixify_fit_columns_dynamically']);
+    // Add charts per row after fit columns control (it will be second)
+    baseControls.splice(1, 0, ['matrixify_charts_per_row']);
+  }
+
+  return {
+    label: axis === 'columns' ? t('Columns') : t('Rows'),
+    expanded: true,
+    tabOverride: 'matrixify',
+    controlSetRows: baseControls,
+  };
+}
+
+export const matrixifyRows = buildMatrixifySection('rows');
+export const matrixifyColumns = buildMatrixifySection('columns');
+
+export const matrixifyCells: ControlPanelSectionConfig = {
+  label: t('Cells'),
+  expanded: true,
+  tabOverride: 'matrixify',
+  controlSetRows: [['matrixify_cell_title_template']],
+};
+
+export const matrixifyMatrix: ControlPanelSectionConfig = {
+  label: t('Matrix'),
+  expanded: true,
+  tabOverride: 'matrixify',
+  controlSetRows: [
+    ['matrixify_show_row_labels'],
+    ['matrixify_show_column_headers'],
+  ],
+};
