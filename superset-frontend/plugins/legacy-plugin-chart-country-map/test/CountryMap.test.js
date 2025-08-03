@@ -17,9 +17,9 @@
  * under the License.
  */
 
+// eslint-disable-next-line import/no-extraneous-dependencies
 import '@testing-library/jest-dom';
 import CountryMap from '../src/CountryMap';
-import '../src/CountryMap.css';
 
 describe('CountryMap', () => {
   let container;
@@ -58,13 +58,13 @@ describe('CountryMap', () => {
 
     // Check if SVG is created
     const svg = container.querySelector('svg');
-    expect(svg).toBeTruthy();
+    expect(svg).not.toBeNull();
     expect(svg).toHaveAttribute('width', '800');
     expect(svg).toHaveAttribute('height', '600');
 
     // Check if tooltip div is created
     const tooltip = container.querySelector('.tooltip');
-    expect(tooltip).toBeTruthy();
+    expect(tooltip).not.toBeNull();
     expect(tooltip).toHaveStyle({ opacity: '0' });
   });
 
@@ -73,23 +73,23 @@ describe('CountryMap', () => {
 
     // Check if map layer exists
     const mapLayer = container.querySelector('.map-layer');
-    expect(mapLayer).toBeTruthy();
+    expect(mapLayer).not.toBeNull();
 
     // Check if text layer exists
     const textLayer = container.querySelector('.text-layer');
-    expect(textLayer).toBeTruthy();
+    expect(textLayer).not.toBeNull();
   });
 
   it('should create tooltip with proper attributes', () => {
     CountryMap(container, mockProps);
 
     const tooltip = container.querySelector('.tooltip');
-    expect(tooltip).toBeTruthy();
+    expect(tooltip).not.toBeNull();
 
     // Check if tooltip has the correct class
     expect(tooltip).toHaveClass('tooltip');
-    
+
     // Check if tooltip has opacity 0 initially
-    expect(tooltip).toHaveStyle({ opacity: 0 });
+    expect(tooltip).toHaveStyle({ opacity: '0' });
   });
 });
