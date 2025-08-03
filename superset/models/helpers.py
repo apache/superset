@@ -55,6 +55,7 @@ from sqlalchemy_utils import UUIDType
 from superset import db, is_feature_enabled
 from superset.advanced_data_type.types import AdvancedDataTypeResponse
 from superset.common.db_query_status import QueryStatus
+from superset.common.query_object import QueryObject
 from superset.common.utils.time_range_utils import get_since_until_from_time_range
 from superset.constants import EMPTY_STRING, NULL_STRING
 from superset.db_engine_specs.base import TimestampExpression
@@ -872,7 +873,10 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         query_obj: QueryObjectDict,
         mutate: bool = True,
     ) -> QueryStringExtended:
-        sqlaq = self.get_sqla_query(**query_obj)
+        from superset.common.query_object import QueryObject
+
+        query_object = QueryObject(**query_obj)
+        sqlaq = self.get_sqla_query(query_object)
         sql = self.database.compile_sqla_query(
             sqlaq.sqla_query,
             catalog=self.catalog,
@@ -1736,43 +1740,28 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
 
         return deduped
 
-    def _validate_query_params(
-        self,
-        granularity: Optional[str],
-        is_timeseries: bool,
-        metrics: Optional[list[Metric]],
-        columns: Optional[list[Column]],
-        groupby: Optional[list[Column]],
-    ) -> None:
+    def _validate_query_params(self, query_obj: QueryObject) -> None:
         """Validate query parameters and raise appropriate errors.
 
         Args:
-            granularity: Datetime column name for time-based queries
-            is_timeseries: Whether this is a timeseries query
-            metrics: List of metrics for the query
-            columns: List of columns for the query
-            groupby: List of groupby columns for the query
+            query_obj: QueryObject containing all query parameters
 
         Raises:
             QueryObjectValidationError: If validation fails
         """
-        if not granularity and is_timeseries:
+        if not query_obj.granularity and query_obj.is_timeseries:
             raise QueryObjectValidationError(
                 _(
                     "Datetime column not provided as part table configuration "
                     "and is required by this type of chart"
                 )
             )
-        if not metrics and not columns and not groupby:
+        if not query_obj.metrics and not query_obj.columns:
             raise QueryObjectValidationError(_("Empty query?"))
 
     def _build_time_filters(
         self,
-        granularity: Optional[str],
-        is_timeseries: bool,
-        from_dttm: Optional[datetime],
-        to_dttm: Optional[datetime],
-        time_grain: Optional[str],
+        query_obj: QueryObject,
         columns_by_name: dict[str, "TableColumn"],
         template_processor: BaseTemplateProcessor,
         select_exprs: list[ColumnElement],
@@ -1781,11 +1770,8 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         """Build time filters and prepare timeseries column.
 
         Args:
-            granularity: Datetime column name for time-based queries
-            is_timeseries: Whether this is a timeseries query
-            from_dttm: Start datetime for filtering
-            to_dttm: End datetime for filtering
-            time_grain: Time grain for grouping
+            query_obj: Query object containing granularity, is_timeseries, from_dttm,
+                to_dttm, and time_grain settings
             columns_by_name: Mapping of column names to TableColumn objects
             template_processor: Template processor for dynamic SQL
             select_exprs: List of select expressions (modified in place)
@@ -1797,6 +1783,15 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         """
         time_filters = []
         dttm_col = None
+
+        # Extract values from QueryObject
+        granularity = query_obj.granularity
+        is_timeseries = query_obj.is_timeseries
+        from_dttm = query_obj.from_dttm
+        to_dttm = query_obj.to_dttm
+        time_grain = (
+            query_obj.extras.get("time_grain_sqla") if query_obj.extras else None
+        )
 
         if granularity:
             if granularity not in columns_by_name:
@@ -1848,69 +1843,68 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
 
         return time_filters, dttm_col
 
-    def get_sqla_query(  # pylint: disable=too-many-arguments,too-many-locals,too-many-branches,too-many-statements  # noqa: C901
-        self,
-        apply_fetch_values_predicate: bool = False,
-        columns: Optional[list[Column]] = None,
-        extras: Optional[dict[str, Any]] = None,
-        filter: Optional[  # pylint: disable=redefined-builtin
-            list[utils.QueryObjectFilterClause]
-        ] = None,
-        from_dttm: Optional[datetime] = None,
-        granularity: Optional[str] = None,
-        groupby: Optional[list[Column]] = None,
-        inner_from_dttm: Optional[datetime] = None,
-        inner_to_dttm: Optional[datetime] = None,
-        is_rowcount: bool = False,
-        is_timeseries: bool = True,
-        metrics: Optional[list[Metric]] = None,
-        orderby: Optional[list[OrderBy]] = None,
-        order_desc: bool = True,
-        to_dttm: Optional[datetime] = None,
-        series_columns: Optional[list[Column]] = None,
-        series_limit: Optional[int] = None,
-        series_limit_metric: Optional[Metric] = None,
-        group_others_when_limit_reached: bool = False,
-        row_limit: Optional[int] = None,
-        row_offset: Optional[int] = None,
-        timeseries_limit: Optional[int] = None,
-        timeseries_limit_metric: Optional[Metric] = None,
-        time_shift: Optional[str] = None,
-    ) -> SqlaQuery:
-        """Querying any sqla table from this common interface"""
+    def get_sqla_query(self, query_obj: QueryObject) -> SqlaQuery:
+        """Build SQLAlchemy query from QueryObject (immutable)."""
+        # Extract values from QueryObject
+        granularity = query_obj.granularity
         if granularity not in self.dttm_cols and granularity is not None:
             granularity = self.main_dttm_col
 
-        extras = extras or {}
+        extras = query_obj.extras or {}
         time_grain = extras.get("time_grain_sqla")
+
+        # Extract all other needed values from QueryObject
+        columns = query_obj.columns or []
+        groupby = query_obj.columns or []  # QueryObject uses columns instead of groupby
+        metrics = query_obj.metrics
+        from_dttm = query_obj.from_dttm
+        to_dttm = query_obj.to_dttm
+        inner_from_dttm = query_obj.inner_from_dttm
+        inner_to_dttm = query_obj.inner_to_dttm
+        is_timeseries = query_obj.is_timeseries
+        order_desc = query_obj.order_desc
+        orderby = query_obj.orderby or []
+        row_limit = query_obj.row_limit
+        row_offset = query_obj.row_offset
+        series_limit = query_obj.series_limit
+        series_limit_metric = query_obj.series_limit_metric
+        group_others_when_limit_reached = query_obj.group_others_when_limit_reached
+        is_rowcount = query_obj.is_rowcount
+        apply_fetch_values_predicate = query_obj.apply_fetch_values_predicate
+        time_shift = query_obj.time_shift
+        filter = query_obj.filter
 
         # DB-specifc quoting for identifiers
         with self.database.get_sqla_engine() as engine:
             quote = engine.dialect.identifier_preparer.quote
 
         template_kwargs = {
-            "columns": columns,
-            "from_dttm": from_dttm.isoformat() if from_dttm else None,
-            "groupby": groupby,
-            "metrics": metrics,
-            "row_limit": row_limit,
-            "row_offset": row_offset,
+            "columns": query_obj.columns,
+            "from_dttm": query_obj.from_dttm.isoformat()
+            if query_obj.from_dttm
+            else None,
+            "groupby": query_obj.columns,  # QueryObject uses columns instead of groupby
+            "metrics": query_obj.metrics,
+            "row_limit": query_obj.row_limit,
+            "row_offset": query_obj.row_offset,
             "time_column": granularity,
             "time_grain": time_grain,
-            "to_dttm": to_dttm.isoformat() if to_dttm else None,
+            "to_dttm": query_obj.to_dttm.isoformat() if query_obj.to_dttm else None,
             "table_columns": [col.column_name for col in self.columns],
-            "filter": filter,
+            "filter": query_obj.filter,
         }
-        columns = columns or []
-        groupby = groupby or []
+        columns = query_obj.columns or []
+        groupby = query_obj.columns or []  # QueryObject uses columns instead of groupby
         rejected_adhoc_filters_columns: list[Union[str, ColumnTyping]] = []
         applied_adhoc_filters_columns: list[Union[str, ColumnTyping]] = []
         db_engine_spec = self.db_engine_spec
-        series_column_labels = self._normalize_column_labels(columns, series_columns)
+        series_column_labels = self._normalize_column_labels(
+            columns, query_obj.series_columns
+        )
         # deprecated, to be removed in 2.0
-        if is_timeseries and timeseries_limit:
-            series_limit = timeseries_limit
-        series_limit_metric = series_limit_metric or timeseries_limit_metric
+        is_timeseries = query_obj.is_timeseries
+        series_limit = query_obj.series_limit
+        series_limit_metric = query_obj.series_limit_metric
         template_kwargs.update(self.template_params_dict)
         extra_cache_keys: list[Any] = []
         template_kwargs["extra_cache_keys"] = extra_cache_keys
@@ -1920,13 +1914,11 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         template_kwargs["applied_filters"] = applied_template_filters
         template_processor = self.get_template_processor(**template_kwargs)
         prequeries: list[str] = []
-        orderby = orderby or []
-        need_groupby = bool(metrics is not None or groupby)
-        metrics = metrics or []
+        orderby = query_obj.orderby or []
+        need_groupby = bool(query_obj.metrics is not None or groupby)
+        metrics = query_obj.metrics or []
 
-        # For backward compatibility
-        if granularity not in self.dttm_cols and granularity is not None:
-            granularity = self.main_dttm_col
+        # For backward compatibility (already handled above)
 
         columns_by_name: dict[str, "TableColumn"] = {
             col.column_name: col for col in self.columns
@@ -1937,9 +1929,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             m.metric_name: m for m in self.metrics
         }
 
-        self._validate_query_params(
-            granularity, is_timeseries, metrics, columns, groupby
-        )
+        self._validate_query_params(query_obj)
 
         metrics_exprs: list[ColumnElement] = []
         for metric in metrics:
@@ -2084,11 +2074,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             metrics_exprs = []
 
         time_filters, dttm_col = self._build_time_filters(
-            granularity=granularity,
-            is_timeseries=is_timeseries,
-            from_dttm=from_dttm,
-            to_dttm=to_dttm,
-            time_grain=time_grain,
+            query_obj=query_obj,
             columns_by_name=columns_by_name,
             template_processor=template_processor,
             select_exprs=select_exprs,
@@ -2113,7 +2099,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         where_clause_and = []
         having_clause_and = []
 
-        for flt in filter:  # type: ignore
+        for flt in filter:
             if not all(flt.get(s) for s in ["col", "op"]):
                 continue
             flt_col = flt["col"]

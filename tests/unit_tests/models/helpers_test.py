@@ -1294,3 +1294,232 @@ def test_apply_advanced_data_type_filter(database: Database) -> None:
             )
 
         assert "Invalid spatial data" in str(exc_info.value)
+
+
+def test_validate_query_params_valid(database: Database) -> None:
+    """
+    Test the `_validate_query_params` method with valid parameters.
+    """
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="test_table",
+        columns=[TableColumn(column_name="col1", type="VARCHAR")],
+    )
+
+    # Test with valid parameters - should not raise
+    from superset.common.query_object import QueryObject
+
+    query_obj = QueryObject(
+        granularity="ts_col",
+        is_timeseries=True,
+        metrics=[{"label": "metric1"}],
+        columns=[{"label": "col1"}],
+    )
+    table._validate_query_params(query_obj)
+
+    # Test non-timeseries without granularity - should not raise
+    query_obj_no_granularity = QueryObject(
+        granularity=None,
+        is_timeseries=False,
+        metrics=[{"label": "metric1"}],
+        columns=None,
+    )
+    table._validate_query_params(query_obj_no_granularity)
+
+
+def test_validate_query_params_missing_granularity(database: Database) -> None:
+    """
+    Test the `_validate_query_params` method with missing granularity for timeseries.
+    """
+    from superset.connectors.sqla.models import SqlaTable
+    from superset.exceptions import QueryObjectValidationError
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="test_table",
+    )
+
+    with pytest.raises(QueryObjectValidationError) as exc_info:
+        from superset.common.query_object import QueryObject
+
+        query_obj = QueryObject(
+            granularity=None,
+            is_timeseries=True,
+            metrics=[{"label": "metric1"}],
+            columns=None,
+        )
+        table._validate_query_params(query_obj)
+
+    assert "Datetime column not provided" in str(exc_info.value)
+
+
+def test_validate_query_params_empty_query(database: Database) -> None:
+    """
+    Test the `_validate_query_params` method with empty query parameters.
+    """
+    from superset.connectors.sqla.models import SqlaTable
+    from superset.exceptions import QueryObjectValidationError
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="test_table",
+    )
+
+    with pytest.raises(QueryObjectValidationError) as exc_info:
+        from superset.common.query_object import QueryObject
+
+        query_obj = QueryObject(
+            granularity="ts_col",
+            is_timeseries=False,
+            metrics=None,
+            columns=None,
+        )
+        table._validate_query_params(query_obj)
+
+    assert "Empty query?" in str(exc_info.value)
+
+
+def test_build_time_filters_no_granularity(database: Database) -> None:
+    """
+    Test the `_build_time_filters` method with no granularity.
+    """
+    from superset.connectors.sqla.models import SqlaTable
+    from superset.jinja_context import BaseTemplateProcessor
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="test_table",
+    )
+
+    select_exprs: list[object] = []
+    groupby_all_columns: dict[str, object] = {}
+    template_processor = BaseTemplateProcessor(database=database)
+
+    from superset.common.query_object import QueryObject
+
+    query_obj = QueryObject(
+        granularity=None, is_timeseries=False, from_dttm=None, to_dttm=None, extras={}
+    )
+    time_filters, dttm_col = table._build_time_filters(
+        query_obj=query_obj,
+        columns_by_name={},
+        template_processor=template_processor,
+        select_exprs=select_exprs,
+        groupby_all_columns=groupby_all_columns,
+    )
+
+    assert time_filters == []
+    assert dttm_col is None
+
+
+def test_build_time_filters_with_granularity(database: Database) -> None:
+    """
+    Test the `_build_time_filters` method with granularity and timeseries.
+    """
+    from datetime import datetime
+    from unittest.mock import Mock
+
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+    from superset.jinja_context import BaseTemplateProcessor
+
+    # Create a mock datetime column
+    dttm_col = TableColumn(column_name="ts_col", type="TIMESTAMP")
+    mock_timestamp = Mock()
+    mock_timestamp.name = "__timestamp"
+    dttm_col.get_timestamp_expression = Mock(return_value=mock_timestamp)  # type: ignore[method-assign]
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="test_table",
+        columns=[dttm_col],
+    )
+    table.get_time_filter = Mock(return_value="time_filter_expr")  # type: ignore[method-assign]
+
+    columns_by_name = {"ts_col": dttm_col}
+    select_exprs: list[object] = []
+    groupby_all_columns: dict[str, object] = {}
+    template_processor = BaseTemplateProcessor(database=database)
+
+    from_dttm = datetime(2023, 1, 1)
+    to_dttm = datetime(2023, 12, 31)
+
+    from superset.common.query_object import QueryObject
+
+    query_obj = QueryObject(
+        granularity="ts_col",
+        is_timeseries=True,
+        from_dttm=from_dttm,
+        to_dttm=to_dttm,
+        extras={"time_grain_sqla": "P1D"},
+    )
+    time_filters, result_dttm_col = table._build_time_filters(
+        query_obj=query_obj,
+        columns_by_name=columns_by_name,
+        template_processor=template_processor,
+        select_exprs=select_exprs,
+        groupby_all_columns=groupby_all_columns,
+    )
+
+    # Should have added timestamp to select_exprs and groupby_all_columns
+    assert len(select_exprs) == 1
+    assert select_exprs[0] == mock_timestamp
+    assert groupby_all_columns["__timestamp"] == mock_timestamp
+
+    # Should have called get_time_filter and returned filters
+    assert len(time_filters) == 1
+    assert time_filters[0] == "time_filter_expr"
+    assert result_dttm_col == dttm_col
+
+    # Verify get_time_filter was called correctly
+    table.get_time_filter.assert_called_once_with(
+        time_col=dttm_col,
+        start_dttm=from_dttm,
+        end_dttm=to_dttm,
+        template_processor=template_processor,
+    )
+
+
+def test_build_time_filters_invalid_granularity(database: Database) -> None:
+    """
+    Test the `_build_time_filters` method with invalid granularity.
+    """
+    from superset.connectors.sqla.models import SqlaTable
+    from superset.exceptions import QueryObjectValidationError
+    from superset.jinja_context import BaseTemplateProcessor
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="test_table",
+    )
+
+    select_exprs: list[object] = []
+    groupby_all_columns: dict[str, object] = {}
+    template_processor = BaseTemplateProcessor(database=database)
+
+    with pytest.raises(QueryObjectValidationError) as exc_info:
+        from superset.common.query_object import QueryObject
+
+        query_obj = QueryObject(
+            granularity="invalid_col",
+            is_timeseries=True,
+            from_dttm=None,
+            to_dttm=None,
+            extras={},
+        )
+        table._build_time_filters(
+            query_obj=query_obj,
+            columns_by_name={},
+            template_processor=template_processor,
+            select_exprs=select_exprs,
+            groupby_all_columns=groupby_all_columns,
+        )
+
+    assert 'Time column "invalid_col" does not exist' in str(exc_info.value)
