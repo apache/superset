@@ -93,7 +93,7 @@ from superset.utils.dates import datetime_to_epoch
 from superset.utils.rls import apply_rls
 
 if TYPE_CHECKING:
-    from superset.connectors.sqla.models import SqlMetric, TableColumn
+    from superset.connectors.sqla.models import TableColumn
     from superset.db_engine_specs import BaseEngineSpec
     from superset.models.core import Database
 
@@ -1209,18 +1209,19 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
     def _get_series_orderby(
         self,
         series_limit_metric: Metric,
-        metrics_by_name: dict[str, "SqlMetric"],
-        columns_by_name: dict[str, "TableColumn"],
+        query_obj: QueryObject,
         template_processor: Optional[BaseTemplateProcessor] = None,
     ) -> Column:
         if utils.is_adhoc_metric(series_limit_metric):
             assert isinstance(series_limit_metric, dict)
-            ob = self.adhoc_metric_to_sqla(series_limit_metric, columns_by_name)
+            ob = self.adhoc_metric_to_sqla(
+                series_limit_metric, query_obj.columns_by_name
+            )
         elif (
             isinstance(series_limit_metric, str)
-            and series_limit_metric in metrics_by_name
+            and series_limit_metric in query_obj.metrics_by_name
         ):
-            ob = metrics_by_name[series_limit_metric].get_sqla_col(
+            ob = query_obj.metrics_by_name[series_limit_metric].get_sqla_col(
                 template_processor=template_processor
             )
         else:
@@ -1492,8 +1493,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
     def _build_metric_expression(
         self,
         metric: Metric,
-        columns_by_name: dict[str, "TableColumn"],
-        metrics_by_name: dict[str, "SqlMetric"],
+        query_obj: QueryObject,
         template_processor: Optional[BaseTemplateProcessor] = None,
     ) -> ColumnElement:
         """Convert a single metric (adhoc or predefined) to SQLAlchemy expression."""
@@ -1501,11 +1501,11 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             assert isinstance(metric, dict)
             return self.adhoc_metric_to_sqla(
                 metric=metric,
-                columns_by_name=columns_by_name,
+                columns_by_name=query_obj.columns_by_name,
                 template_processor=template_processor,
             )
-        elif isinstance(metric, str) and metric in metrics_by_name:
-            return metrics_by_name[metric].get_sqla_col(
+        elif isinstance(metric, str) and metric in query_obj.metrics_by_name:
+            return query_obj.metrics_by_name[metric].get_sqla_col(
                 template_processor=template_processor
             )
         else:
@@ -1554,20 +1554,18 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
 
     def _get_series_orderby_expression(
         self,
-        series_limit_metric: Optional[Metric],
+        query_obj: QueryObject,
         main_metric_expr: ColumnElement,
-        metrics_by_name: dict[str, "SqlMetric"],
-        columns_by_name: dict[str, "TableColumn"],
         template_processor: Optional[BaseTemplateProcessor] = None,
     ) -> ColumnElement:
         """Get the ORDER BY expression for series limit queries."""
+        series_limit_metric = query_obj.series_limit_metric
         if not series_limit_metric:
             return main_metric_expr
 
         return self._get_series_orderby(
             series_limit_metric=series_limit_metric,
-            metrics_by_name=metrics_by_name,
-            columns_by_name=columns_by_name,
+            query_obj=query_obj,
             template_processor=template_processor,
         )
 
@@ -1762,7 +1760,6 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
     def _build_time_filters(
         self,
         query_obj: QueryObject,
-        columns_by_name: dict[str, "TableColumn"],
         template_processor: BaseTemplateProcessor,
         select_exprs: list[ColumnElement],
         groupby_all_columns: dict[str, ColumnElement],
@@ -1771,8 +1768,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
 
         Args:
             query_obj: Query object containing granularity, is_timeseries, from_dttm,
-                to_dttm, and time_grain settings
-            columns_by_name: Mapping of column names to TableColumn objects
+                to_dttm, time_grain settings, and columns_by_name mapping
             template_processor: Template processor for dynamic SQL
             select_exprs: List of select expressions (modified in place)
             groupby_all_columns: Mapping of column names to expressions
@@ -1794,14 +1790,14 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         )
 
         if granularity:
-            if granularity not in columns_by_name:
+            if granularity not in query_obj.columns_by_name:
                 raise QueryObjectValidationError(
                     _(
                         'Time column "%(col)s" does not exist in dataset',
                         col=granularity,
                     )
                 )
-            dttm_col = columns_by_name[granularity]
+            dttm_col = query_obj.columns_by_name[granularity]
             if not dttm_col:
                 raise QueryObjectValidationError(
                     _(
@@ -1826,7 +1822,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             ):
                 time_filters.append(
                     self.get_time_filter(
-                        time_col=columns_by_name[self.main_dttm_col],
+                        time_col=query_obj.columns_by_name[self.main_dttm_col],
                         start_dttm=from_dttm,
                         end_dttm=to_dttm,
                         template_processor=template_processor,
@@ -1843,7 +1839,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
 
         return time_filters, dttm_col
 
-    def get_sqla_query(self, query_obj: QueryObject) -> SqlaQuery:
+    def get_sqla_query(self, query_obj: QueryObject) -> SqlaQuery:  # noqa: C901
         """Build SQLAlchemy query from QueryObject (immutable)."""
         # Extract values from QueryObject
         granularity = query_obj.granularity
@@ -1920,13 +1916,9 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
 
         # For backward compatibility (already handled above)
 
-        columns_by_name: dict[str, "TableColumn"] = {
-            col.column_name: col for col in self.columns
-        }
-        quoted_columns_by_name = {quote(k): v for k, v in columns_by_name.items()}
-
-        metrics_by_name: dict[str, "SqlMetric"] = {
-            m.metric_name: m for m in self.metrics
+        # Use mappings from QueryObject instead of building local ones
+        quoted_columns_by_name = {
+            quote(k): v for k, v in query_obj.columns_by_name.items()
         }
 
         self._validate_query_params(query_obj)
@@ -1936,8 +1928,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             metrics_exprs.append(
                 self._build_metric_expression(
                     metric=metric,
-                    columns_by_name=columns_by_name,
-                    metrics_by_name=metrics_by_name,
+                    query_obj=query_obj,
                     template_processor=template_processor,
                 )
             )
@@ -1969,7 +1960,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                         )
                 if utils.is_adhoc_metric(col):
                     # add adhoc sort by column to columns_by_name if not exists
-                    col = self.adhoc_metric_to_sqla(col, columns_by_name)
+                    col = self.adhoc_metric_to_sqla(col, query_obj.columns_by_name)
                     # if the adhoc metric has been defined before
                     # use the existing instance.
                     col = metrics_exprs_by_expr.get(str(col), col)
@@ -1977,14 +1968,15 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             elif col in metrics_exprs_by_label:
                 col = metrics_exprs_by_label[col]
                 need_groupby = True
-            elif col in metrics_by_name:
-                col = metrics_by_name[col].get_sqla_col(
+            elif col in query_obj.metrics_by_name:
+                col = query_obj.metrics_by_name[col].get_sqla_col(
                     template_processor=template_processor
                 )
                 need_groupby = True
-            elif col in columns_by_name:
+            elif col in query_obj.columns_by_name:
                 col = self.convert_tbl_column_to_sqla_col(
-                    columns_by_name[col], template_processor=template_processor
+                    query_obj.columns_by_name[col],
+                    template_processor=template_processor,
                 )
 
             if isinstance(col, ColumnElement):
@@ -2001,7 +1993,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
 
         # filter out the pseudo column  __timestamp from columns
         columns = [col for col in columns if col != utils.DTTM_ALIAS]
-        dttm_col = columns_by_name.get(granularity) if granularity else None
+        dttm_col = query_obj.columns_by_name.get(granularity) if granularity else None
 
         if need_groupby:
             # dedup columns while preserving order
@@ -2010,16 +2002,16 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 if isinstance(selected, str):
                     # if groupby field/expr equals granularity field/expr
                     if selected == granularity:
-                        table_col = columns_by_name[selected]
+                        table_col = query_obj.columns_by_name[selected]
                         outer = table_col.get_timestamp_expression(
                             time_grain=time_grain,
                             label=selected,
                             template_processor=template_processor,
                         )
                     # if groupby field equals a selected column
-                    elif selected in columns_by_name:
+                    elif selected in query_obj.columns_by_name:
                         outer = self.convert_tbl_column_to_sqla_col(
-                            columns_by_name[selected],
+                            query_obj.columns_by_name[selected],
                             template_processor=template_processor,
                         )
                     else:
@@ -2075,7 +2067,6 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
 
         time_filters, dttm_col = self._build_time_filters(
             query_obj=query_obj,
-            columns_by_name=columns_by_name,
             template_processor=template_processor,
             select_exprs=select_exprs,
             groupby_all_columns=groupby_all_columns,
@@ -2118,7 +2109,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     rejected_adhoc_filters_columns.append(flt_col)
                     continue
             else:
-                col_obj = columns_by_name.get(cast(str, flt_col))
+                col_obj = query_obj.columns_by_name.get(cast(str, flt_col))
             filter_grain = flt.get("grain")
 
             if get_column_name(flt_col) in removed_filters:
@@ -2348,10 +2339,8 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 subq = subq.group_by(*inner_groupby_exprs)
 
                 ob = self._get_series_orderby_expression(
-                    series_limit_metric=series_limit_metric,
+                    query_obj=query_obj,
                     main_metric_expr=inner_main_metric_expr,
-                    metrics_by_name=metrics_by_name,
-                    columns_by_name=columns_by_name,
                     template_processor=template_processor,
                 )
                 direction = sa.desc if order_desc else sa.asc
@@ -2408,10 +2397,8 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     orderby = [
                         (
                             self._get_series_orderby_expression(
-                                series_limit_metric=series_limit_metric,
+                                query_obj=query_obj,
                                 main_metric_expr=main_metric_expr,
-                                metrics_by_name=metrics_by_name,
-                                columns_by_name=columns_by_name,
                                 template_processor=template_processor,
                             ),
                             not order_desc,
@@ -2437,7 +2424,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 result = self.query(prequery_obj)
                 prequeries.append(result.query)
                 top_groups = self._build_top_groups_filter(
-                    result.df, groupby_series_columns, columns_by_name
+                    result.df, groupby_series_columns, query_obj.columns_by_name
                 )
 
                 if group_others_when_limit_reached:

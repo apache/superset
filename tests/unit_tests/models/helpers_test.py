@@ -553,24 +553,23 @@ def test_build_metric_expression_adhoc(database: Database) -> None:
         "label": "total_sales",
     }
 
-    columns_by_name = {col.column_name: col for col in table.columns}
-    metrics_by_name: dict[str, Any] = {}
-
     # Mock the adhoc_metric_to_sqla method
     expected_result = Mock()
     with patch.object(
         table, "adhoc_metric_to_sqla", return_value=expected_result
     ) as mock_adhoc:
+        from superset.common.query_object import QueryObject
+
+        query_obj = QueryObject(datasource=table)
         result = table._build_metric_expression(
             adhoc_metric,  # type: ignore[arg-type]
-            columns_by_name,
-            metrics_by_name,
+            query_obj=query_obj,
         )
 
         assert result == expected_result
         mock_adhoc.assert_called_once_with(
             metric=adhoc_metric,
-            columns_by_name=columns_by_name,
+            columns_by_name=query_obj.columns_by_name,
             template_processor=None,
         )
 
@@ -597,12 +596,11 @@ def test_build_metric_expression_named(database: Database) -> None:
         metrics=[metric],
     )
 
-    columns_by_name = {col.column_name: col for col in table.columns}
-    metrics_by_name = {m.metric_name: m for m in table.metrics}
+    from superset.common.query_object import QueryObject
 
-    result = table._build_metric_expression(
-        "avg_price", columns_by_name, metrics_by_name
-    )
+    query_obj = QueryObject(datasource=table)
+
+    result = table._build_metric_expression("avg_price", query_obj)
 
     # Should have called get_sqla_col on the metric
     metric.get_sqla_col.assert_called_once_with(template_processor=None)
@@ -623,14 +621,13 @@ def test_build_metric_expression_invalid(database: Database) -> None:
         columns=[TableColumn(column_name="sales", type="NUMERIC")],
     )
 
-    columns_by_name = {col.column_name: col for col in table.columns}
-    metrics_by_name: dict[str, Any] = {}
+    from superset.common.query_object import QueryObject
+
+    query_obj = QueryObject(datasource=table)
 
     # Test with non-existent metric name
     with pytest.raises(QueryObjectValidationError) as exc_info:
-        table._build_metric_expression(
-            "non_existent_metric", columns_by_name, metrics_by_name
-        )
+        table._build_metric_expression("non_existent_metric", query_obj)
 
     assert "Metric 'non_existent_metric' does not exist" in str(exc_info.value)
 
@@ -1098,9 +1095,6 @@ def test_get_series_orderby_expression(database: Database) -> None:
         metrics=[metric],
     )
 
-    columns_by_name: dict[str, Any] = {}
-    metrics_by_name = {"sum_sales": metric}
-
     # Mock the metric's get_sqla_col method
     mock_expr = Mock()
     mock_expr.name = "sum_sales_expr"
@@ -1110,11 +1104,12 @@ def test_get_series_orderby_expression(database: Database) -> None:
     main_metric_expr = Mock()
     main_metric_expr.name = "main_metric"
 
+    from superset.common.query_object import QueryObject
+
+    query_obj = QueryObject(datasource=table, series_limit_metric=None)
     result = table._get_series_orderby_expression(
-        series_limit_metric=None,
+        query_obj=query_obj,
         main_metric_expr=main_metric_expr,
-        metrics_by_name=metrics_by_name,
-        columns_by_name=columns_by_name,
     )
 
     # Should return the main metric expression when series_limit_metric is None
@@ -1123,19 +1118,19 @@ def test_get_series_orderby_expression(database: Database) -> None:
     # Test when series_limit_metric is provided
     mock_orderby_expr = Mock()
     with patch.object(table, "_get_series_orderby", return_value=mock_orderby_expr):
+        query_obj_with_metric = QueryObject(
+            datasource=table, series_limit_metric="sum_sales"
+        )
         result = table._get_series_orderby_expression(
-            series_limit_metric="sum_sales",
+            query_obj=query_obj_with_metric,
             main_metric_expr=Mock(name="different_metric"),
-            metrics_by_name=metrics_by_name,
-            columns_by_name=columns_by_name,
             template_processor=None,
         )
 
         # Should call _get_series_orderby
         table._get_series_orderby.assert_called_once_with(  # type: ignore[attr-defined]
             series_limit_metric="sum_sales",
-            metrics_by_name=metrics_by_name,
-            columns_by_name=columns_by_name,
+            query_obj=query_obj_with_metric,
             template_processor=None,
         )
         assert result == mock_orderby_expr
@@ -1143,11 +1138,13 @@ def test_get_series_orderby_expression(database: Database) -> None:
     # Test with adhoc metric
     adhoc_metric = {"expressionType": "SQL", "sqlExpression": "COUNT(*)"}
     with patch.object(table, "_get_series_orderby", return_value=mock_orderby_expr):
-        result = table._get_series_orderby_expression(
+        query_obj_adhoc = QueryObject(
+            datasource=table,
             series_limit_metric=adhoc_metric,  # type: ignore[arg-type]
+        )
+        result = table._get_series_orderby_expression(
+            query_obj=query_obj_adhoc,
             main_metric_expr=Mock(name="main"),
-            metrics_by_name=metrics_by_name,
-            columns_by_name=columns_by_name,
         )
         assert result == mock_orderby_expr
 
@@ -1343,15 +1340,15 @@ def test_validate_query_params_missing_granularity(database: Database) -> None:
         table_name="test_table",
     )
 
-    with pytest.raises(QueryObjectValidationError) as exc_info:
-        from superset.common.query_object import QueryObject
+    from superset.common.query_object import QueryObject
 
-        query_obj = QueryObject(
-            granularity=None,
-            is_timeseries=True,
-            metrics=[{"label": "metric1"}],
-            columns=None,
-        )
+    query_obj = QueryObject(
+        granularity=None,
+        is_timeseries=True,
+        metrics=[{"label": "metric1"}],
+        columns=None,
+    )
+    with pytest.raises(QueryObjectValidationError) as exc_info:
         table._validate_query_params(query_obj)
 
     assert "Datetime column not provided" in str(exc_info.value)
@@ -1370,15 +1367,15 @@ def test_validate_query_params_empty_query(database: Database) -> None:
         table_name="test_table",
     )
 
-    with pytest.raises(QueryObjectValidationError) as exc_info:
-        from superset.common.query_object import QueryObject
+    from superset.common.query_object import QueryObject
 
-        query_obj = QueryObject(
-            granularity="ts_col",
-            is_timeseries=False,
-            metrics=None,
-            columns=None,
-        )
+    query_obj = QueryObject(
+        granularity="ts_col",
+        is_timeseries=False,
+        metrics=None,
+        columns=None,
+    )
+    with pytest.raises(QueryObjectValidationError) as exc_info:
         table._validate_query_params(query_obj)
 
     assert "Empty query?" in str(exc_info.value)
@@ -1408,7 +1405,6 @@ def test_build_time_filters_no_granularity(database: Database) -> None:
     )
     time_filters, dttm_col = table._build_time_filters(
         query_obj=query_obj,
-        columns_by_name={},
         template_processor=template_processor,
         select_exprs=select_exprs,
         groupby_all_columns=groupby_all_columns,
@@ -1442,7 +1438,6 @@ def test_build_time_filters_with_granularity(database: Database) -> None:
     )
     table.get_time_filter = Mock(return_value="time_filter_expr")  # type: ignore[method-assign]
 
-    columns_by_name = {"ts_col": dttm_col}
     select_exprs: list[object] = []
     groupby_all_columns: dict[str, object] = {}
     template_processor = BaseTemplateProcessor(database=database)
@@ -1453,6 +1448,7 @@ def test_build_time_filters_with_granularity(database: Database) -> None:
     from superset.common.query_object import QueryObject
 
     query_obj = QueryObject(
+        datasource=table,  # Pass table as datasource so QueryObject builds mappings
         granularity="ts_col",
         is_timeseries=True,
         from_dttm=from_dttm,
@@ -1461,7 +1457,6 @@ def test_build_time_filters_with_granularity(database: Database) -> None:
     )
     time_filters, result_dttm_col = table._build_time_filters(
         query_obj=query_obj,
-        columns_by_name=columns_by_name,
         template_processor=template_processor,
         select_exprs=select_exprs,
         groupby_all_columns=groupby_all_columns,
@@ -1504,19 +1499,18 @@ def test_build_time_filters_invalid_granularity(database: Database) -> None:
     groupby_all_columns: dict[str, object] = {}
     template_processor = BaseTemplateProcessor(database=database)
 
-    with pytest.raises(QueryObjectValidationError) as exc_info:
-        from superset.common.query_object import QueryObject
+    from superset.common.query_object import QueryObject
 
-        query_obj = QueryObject(
-            granularity="invalid_col",
-            is_timeseries=True,
-            from_dttm=None,
-            to_dttm=None,
-            extras={},
-        )
+    query_obj = QueryObject(
+        granularity="invalid_col",
+        is_timeseries=True,
+        from_dttm=None,
+        to_dttm=None,
+        extras={},
+    )
+    with pytest.raises(QueryObjectValidationError) as exc_info:
         table._build_time_filters(
             query_obj=query_obj,
-            columns_by_name={},
             template_processor=template_processor,
             select_exprs=select_exprs,
             groupby_all_columns=groupby_all_columns,

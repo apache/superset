@@ -86,6 +86,8 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
     apply_fetch_values_predicate: bool
     columns: list[Column]
     datasource: BaseDatasource | None
+    columns_by_name: dict[str, Any]
+    metrics_by_name: dict[str, Any]
     extras: dict[str, Any]
     filter: list[QueryObjectFilterClause]
     from_dttm: datetime | None
@@ -141,6 +143,22 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
         self.apply_fetch_values_predicate = apply_fetch_values_predicate or False
         self.columns = columns or []
         self.datasource = datasource
+
+        # Build datasource mappings for easy lookup
+        if datasource and hasattr(datasource, "columns"):
+            self.columns_by_name: dict[str, Any] = {
+                col.column_name: col for col in datasource.columns
+            }
+        else:
+            self.columns_by_name = {}
+
+        if datasource and hasattr(datasource, "metrics"):
+            self.metrics_by_name: dict[str, Any] = {
+                metric.metric_name: metric for metric in datasource.metrics
+            }
+        else:
+            self.metrics_by_name = {}
+
         self.extras = extras or {}
         self.filter = filters or []
         self.granularity = granularity

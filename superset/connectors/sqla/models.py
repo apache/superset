@@ -71,6 +71,7 @@ from sqlalchemy.types import JSON
 from superset import db, is_feature_enabled, security_manager
 from superset.commands.dataset.exceptions import DatasetNotFoundError
 from superset.common.db_query_status import QueryStatus
+from superset.common.query_object import QueryObject
 from superset.connectors.sqla.utils import (
     get_columns_description,
     get_physical_table_metadata,
@@ -1514,18 +1515,19 @@ class SqlaTable(
     def _get_series_orderby(
         self,
         series_limit_metric: Metric,
-        metrics_by_name: dict[str, SqlMetric],
-        columns_by_name: dict[str, TableColumn],
+        query_obj: QueryObject,
         template_processor: BaseTemplateProcessor | None = None,
     ) -> Column:
         if utils.is_adhoc_metric(series_limit_metric):
             assert isinstance(series_limit_metric, dict)
-            ob = self.adhoc_metric_to_sqla(series_limit_metric, columns_by_name)
+            ob = self.adhoc_metric_to_sqla(
+                series_limit_metric, query_obj.columns_by_name
+            )
         elif (
             isinstance(series_limit_metric, str)
-            and series_limit_metric in metrics_by_name
+            and series_limit_metric in query_obj.metrics_by_name
         ):
-            ob = metrics_by_name[series_limit_metric].get_sqla_col(
+            ob = query_obj.metrics_by_name[series_limit_metric].get_sqla_col(
                 template_processor=template_processor
             )
         else:
