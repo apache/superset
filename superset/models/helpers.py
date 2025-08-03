@@ -1552,6 +1552,83 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             df, dimensions, groupby_series_columns, columns_by_name
         )
 
+    def _build_orderby_expressions(
+        self,
+        query_obj: QueryObject,
+        metrics_exprs_by_label: dict[str, ColumnElement],
+        metrics_exprs_by_expr: dict[str, ColumnElement],
+        template_processor: Optional[BaseTemplateProcessor] = None,
+    ) -> list[ColumnElement]:
+        """Build ORDER BY expressions, handling adhoc metrics and column references."""
+        orderby_exprs: list[ColumnElement] = []
+
+        for orig_col, ascending in query_obj.orderby:  # noqa: B007
+            col: Union[AdhocMetric, ColumnElement] = orig_col
+            if isinstance(col, dict):
+                col = cast(AdhocMetric, col)
+                if col.get("sqlExpression"):
+                    sql_expr = col.get("sqlExpression")
+                    if sql_expr is not None:
+                        col["sqlExpression"] = self._process_adhoc_sql_expression(
+                            expression=sql_expr,
+                            template_processor=template_processor,
+                        )
+                if utils.is_adhoc_metric(col):
+                    # add adhoc sort by column to columns_by_name if not exists
+                    col = self.adhoc_metric_to_sqla(col, query_obj.columns_by_name)
+                    # if the adhoc metric has been defined before
+                    # use the existing instance.
+                    col = metrics_exprs_by_expr.get(str(col), col)
+            elif col in metrics_exprs_by_label:
+                col = metrics_exprs_by_label[col]
+            elif col in query_obj.metrics_by_name:
+                col = query_obj.metrics_by_name[col].get_sqla_col(
+                    template_processor=template_processor
+                )
+            elif col in query_obj.columns_by_name:
+                col = self.convert_tbl_column_to_sqla_col(
+                    query_obj.columns_by_name[col],
+                    template_processor=template_processor,
+                )
+
+            if isinstance(col, ColumnElement):
+                orderby_exprs.append(col)
+            else:
+                # Could not convert a column reference to valid ColumnElement
+                raise QueryObjectValidationError(
+                    _("Unknown column used in orderby: %(col)s", col=orig_col)
+                )
+
+        return orderby_exprs
+
+    def _build_metrics_expressions(
+        self,
+        query_obj: QueryObject,
+        template_processor: Optional[BaseTemplateProcessor] = None,
+    ) -> tuple[list[ColumnElement], ColumnElement]:
+        """Build metric expressions from QueryObject metrics.
+
+        Returns:
+            Tuple of (metric expressions list, main metric expression)
+        """
+        metrics_exprs: list[ColumnElement] = []
+        for metric in query_obj.metrics:
+            metrics_exprs.append(
+                self._build_metric_expression(
+                    metric=metric,
+                    query_obj=query_obj,
+                    template_processor=template_processor,
+                )
+            )
+
+        if metrics_exprs:
+            main_metric_expr = metrics_exprs[0]
+        else:
+            main_metric_expr, label = literal_column("COUNT(*)"), "ccount"
+            main_metric_expr = self.make_sqla_column_compatible(main_metric_expr, label)
+
+        return metrics_exprs, main_metric_expr
+
     def _get_series_orderby_expression(
         self,
         query_obj: QueryObject,
@@ -1846,29 +1923,13 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         if granularity not in self.dttm_cols and granularity is not None:
             granularity = self.main_dttm_col
 
-        extras = query_obj.extras or {}
         time_grain = query_obj.time_grain
 
-        # Extract all other needed values from QueryObject
-        columns = query_obj.columns or []
-        groupby = query_obj.groupby  # Alias for columns
-        metrics = query_obj.metrics
+        # Extract values that need special handling
         from_dttm = query_obj.from_dttm
         to_dttm = query_obj.to_dttm
         inner_from_dttm = query_obj.inner_from_dttm
         inner_to_dttm = query_obj.inner_to_dttm
-        is_timeseries = query_obj.is_timeseries
-        order_desc = query_obj.order_desc
-        orderby = query_obj.orderby or []
-        row_limit = query_obj.row_limit
-        row_offset = query_obj.row_offset
-        series_limit = query_obj.series_limit
-        series_limit_metric = query_obj.series_limit_metric
-        group_others_when_limit_reached = query_obj.group_others_when_limit_reached
-        is_rowcount = query_obj.is_rowcount
-        apply_fetch_values_predicate = query_obj.apply_fetch_values_predicate
-        time_shift = query_obj.time_shift
-        filter = query_obj.filter
 
         # DB-specifc quoting for identifiers
         with self.database.get_sqla_engine() as engine:
@@ -1889,18 +1950,13 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             "table_columns": [col.column_name for col in self.columns],
             "filter": query_obj.filter,
         }
-        columns = query_obj.columns or []
-        groupby = query_obj.columns or []  # QueryObject uses columns instead of groupby
         rejected_adhoc_filters_columns: list[Union[str, ColumnTyping]] = []
         applied_adhoc_filters_columns: list[Union[str, ColumnTyping]] = []
         db_engine_spec = self.db_engine_spec
         series_column_labels = self._normalize_column_labels(
-            columns, query_obj.series_columns
+            query_obj.columns, query_obj.series_columns
         )
         # deprecated, to be removed in 2.0
-        is_timeseries = query_obj.is_timeseries
-        series_limit = query_obj.series_limit
-        series_limit_metric = query_obj.series_limit_metric
         template_kwargs.update(self.template_params_dict)
         extra_cache_keys: list[Any] = []
         template_kwargs["extra_cache_keys"] = extra_cache_keys
@@ -1910,9 +1966,6 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         template_kwargs["applied_filters"] = applied_template_filters
         template_processor = self.get_template_processor(**template_kwargs)
         prequeries: list[str] = []
-        orderby = query_obj.orderby or []
-        need_groupby = query_obj.need_groupby
-        metrics = query_obj.metrics
 
         # For backward compatibility (already handled above)
 
@@ -1923,21 +1976,9 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
 
         self._validate_query_params(query_obj)
 
-        metrics_exprs: list[ColumnElement] = []
-        for metric in metrics:
-            metrics_exprs.append(
-                self._build_metric_expression(
-                    metric=metric,
-                    query_obj=query_obj,
-                    template_processor=template_processor,
-                )
-            )
-
-        if metrics_exprs:
-            main_metric_expr = metrics_exprs[0]
-        else:
-            main_metric_expr, label = literal_column("COUNT(*)"), "ccount"
-            main_metric_expr = self.make_sqla_column_compatible(main_metric_expr, label)
+        metrics_exprs, main_metric_expr = self._build_metrics_expressions(
+            query_obj, template_processor
+        )
 
         # To ensure correct handling of the ORDER BY labeling we need to reference the
         # metric instance if defined in the SELECT clause.
@@ -1946,58 +1987,27 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         metrics_exprs_by_expr = {str(m): m for m in metrics_exprs}
 
         # Since orderby may use adhoc metrics, too; we need to process them first
-        orderby_exprs: list[ColumnElement] = []
-        for orig_col, ascending in orderby:  # noqa: B007
-            col: Union[AdhocMetric, ColumnElement] = orig_col
-            if isinstance(col, dict):
-                col = cast(AdhocMetric, col)
-                if col.get("sqlExpression"):
-                    sql_expr = col.get("sqlExpression")
-                    if sql_expr is not None:
-                        col["sqlExpression"] = self._process_adhoc_sql_expression(
-                            expression=sql_expr,
-                            template_processor=template_processor,
-                        )
-                if utils.is_adhoc_metric(col):
-                    # add adhoc sort by column to columns_by_name if not exists
-                    col = self.adhoc_metric_to_sqla(col, query_obj.columns_by_name)
-                    # if the adhoc metric has been defined before
-                    # use the existing instance.
-                    col = metrics_exprs_by_expr.get(str(col), col)
-                    need_groupby = True
-            elif col in metrics_exprs_by_label:
-                col = metrics_exprs_by_label[col]
-                need_groupby = True
-            elif col in query_obj.metrics_by_name:
-                col = query_obj.metrics_by_name[col].get_sqla_col(
-                    template_processor=template_processor
-                )
-                need_groupby = True
-            elif col in query_obj.columns_by_name:
-                col = self.convert_tbl_column_to_sqla_col(
-                    query_obj.columns_by_name[col],
-                    template_processor=template_processor,
-                )
-
-            if isinstance(col, ColumnElement):
-                orderby_exprs.append(col)
-            else:
-                # Could not convert a column reference to valid ColumnElement
-                raise QueryObjectValidationError(
-                    _("Unknown column used in orderby: %(col)s", col=orig_col)
-                )
+        orderby_exprs = self._build_orderby_expressions(
+            query_obj,
+            metrics_exprs_by_label,
+            metrics_exprs_by_expr,
+            template_processor,
+        )
 
         select_exprs: list[Union[Column, Label]] = []
         groupby_all_columns = {}
         groupby_series_columns = {}
 
         # filter out the pseudo column  __timestamp from columns
-        columns = [col for col in columns if col != utils.DTTM_ALIAS]
+        columns = [col for col in query_obj.columns if col != utils.DTTM_ALIAS]
         dttm_col = query_obj.columns_by_name.get(granularity) if granularity else None
 
-        if need_groupby:
+        # Extract is_timeseries for repeated use
+        is_timeseries = query_obj.is_timeseries
+
+        if query_obj.need_groupby:
             # dedup columns while preserving order
-            columns = groupby or columns
+            columns = query_obj.groupby or query_obj.columns
             for selected in columns:
                 if isinstance(selected, str):
                     # if groupby field/expr equals granularity field/expr
@@ -2035,8 +2045,8 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 ) or outer.name in series_column_labels:
                     groupby_series_columns[outer.name] = outer
                 select_exprs.append(outer)
-        elif columns:
-            for selected in columns:
+        elif query_obj.columns:
+            for selected in query_obj.columns:
                 if is_adhoc_column(selected):
                     _sql = selected["sqlExpression"]
                     _column_label = selected["label"]
@@ -2090,7 +2100,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         where_clause_and = []
         having_clause_and = []
 
-        for flt in filter:
+        for flt in query_obj.filter:
             if not all(flt.get(s) for s in ["col", "op"]):
                 continue
             flt_col = flt["col"]
@@ -2247,8 +2257,8 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     ):
                         _since, _until = get_since_until_from_time_range(
                             time_range=eq,
-                            time_shift=time_shift,
-                            extras=extras,
+                            time_shift=query_obj.time_shift,
+                            extras=query_obj.extras or {},
                         )
                         where_clause_and.append(
                             self.get_time_filter(
@@ -2265,8 +2275,8 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                             _("Invalid filter operation type: %(op)s", op=op)
                         )
         where_clause_and += self.get_sqla_row_level_filters(template_processor)
-        if extras:
-            where = extras.get("where")
+        if query_obj.extras:
+            where = query_obj.extras.get("where")
             if where:
                 where = self._process_sql_expression(
                     expression=where,
@@ -2276,7 +2286,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     template_processor=template_processor,
                 )
                 where_clause_and += [self.text(where)]
-            having = extras.get("having")
+            having = query_obj.extras.get("having")
             if having:
                 having = self._process_sql_expression(
                     expression=having,
@@ -2287,7 +2297,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 )
                 having_clause_and += [self.text(having)]
 
-        if apply_fetch_values_predicate and self.fetch_values_predicate:
+        if query_obj.apply_fetch_values_predicate and self.fetch_values_predicate:
             qry = qry.where(
                 self.get_fetch_values_predicate(template_processor=template_processor)
             )
@@ -2300,14 +2310,16 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         self.make_orderby_compatible(select_exprs, orderby_exprs)
 
         # Apply ORDER BY with proper direction
-        qry = self._apply_orderby_direction(qry, orderby_exprs, orderby, select_exprs)
+        qry = self._apply_orderby_direction(
+            qry, orderby_exprs, query_obj.orderby, select_exprs
+        )
 
-        if row_limit:
-            qry = qry.limit(row_limit)
-        if row_offset:
-            qry = qry.offset(row_offset)
+        if query_obj.row_limit:
+            qry = qry.limit(query_obj.row_limit)
+        if query_obj.row_offset:
+            qry = qry.offset(query_obj.row_offset)
 
-        if series_limit and groupby_series_columns:
+        if query_obj.series_limit and groupby_series_columns:
             if db_engine_spec.allows_joins and db_engine_spec.allows_subqueries:
                 # some sql dialects require for order by expressions
                 # to also be in the select clause -- others, e.g. vertica,
@@ -2343,9 +2355,9 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     main_metric_expr=inner_main_metric_expr,
                     template_processor=template_processor,
                 )
-                direction = sa.desc if order_desc else sa.asc
+                direction = sa.desc if query_obj.order_desc else sa.asc
                 subq = subq.order_by(direction(ob))
-                subq = subq.limit(series_limit)
+                subq = subq.limit(query_obj.series_limit)
 
                 on_clause = []
                 for gby_name, gby_obj in groupby_series_columns.items():
@@ -2356,7 +2368,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     on_clause.append(gby_obj == sa.column(col_name))
 
                 # Use LEFT JOIN when grouping others, INNER JOIN otherwise
-                if group_others_when_limit_reached:
+                if query_obj.group_others_when_limit_reached:
                     # Create the alias once and reuse it
                     subq_alias = subq.alias(SERIES_LIMIT_SUBQ_ALIAS)
                     tbl = tbl.join(
@@ -2393,7 +2405,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                         subq.alias(SERIES_LIMIT_SUBQ_ALIAS), and_(*on_clause)
                     )
             else:
-                if series_limit_metric:
+                if query_obj.series_limit_metric:
                     orderby = [
                         (
                             self._get_series_orderby_expression(
@@ -2401,23 +2413,23 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                                 main_metric_expr=main_metric_expr,
                                 template_processor=template_processor,
                             ),
-                            not order_desc,
+                            not query_obj.order_desc,
                         )
                     ]
 
                 # run prequery to get top groups
                 prequery_obj = {
                     "is_timeseries": False,
-                    "row_limit": series_limit,
-                    "metrics": metrics,
+                    "row_limit": query_obj.series_limit,
+                    "metrics": query_obj.metrics,
                     "granularity": granularity,
-                    "groupby": groupby,
+                    "groupby": query_obj.groupby,
                     "from_dttm": inner_from_dttm or from_dttm,
                     "to_dttm": inner_to_dttm or to_dttm,
-                    "filter": filter,
+                    "filter": query_obj.filter,
                     "orderby": orderby,
-                    "extras": extras,
-                    "columns": get_non_base_axis_columns(columns),
+                    "extras": query_obj.extras or {},
+                    "columns": get_non_base_axis_columns(query_obj.columns),
                     "order_desc": True,
                 }
 
@@ -2427,7 +2439,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     result.df, groupby_series_columns, query_obj.columns_by_name
                 )
 
-                if group_others_when_limit_reached:
+                if query_obj.group_others_when_limit_reached:
                     # Apply Others grouping using the refactored method
                     def _create_top_groups_condition(col_name: str, expr: Any) -> Any:
                         return top_groups
@@ -2451,10 +2463,12 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
 
         qry = qry.select_from(tbl)
 
-        if is_rowcount:
+        if query_obj.is_rowcount:
             qry, labels_expected = self._wrap_query_for_rowcount(qry)
 
-        filter_columns = [flt.get("col") for flt in filter] if filter else []
+        filter_columns = (
+            [flt.get("col") for flt in query_obj.filter] if query_obj.filter else []
+        )
         rejected_filter_columns = [
             col
             for col in filter_columns
