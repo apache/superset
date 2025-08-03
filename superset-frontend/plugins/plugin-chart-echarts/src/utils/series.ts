@@ -449,9 +449,6 @@ export function getLegendProps(
       color: theme.colorText,
       borderColor: theme.colorBorder,
     },
-    textStyle: {
-      color: theme.colorText,
-    },
   };
   const MIN_LEGEND_WIDTH = 0;
   const MARGIN_GUTTER = 45;
