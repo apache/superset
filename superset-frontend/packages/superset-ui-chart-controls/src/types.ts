@@ -190,7 +190,7 @@ export type InternalControlType =
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type ControlType = InternalControlType | ComponentType<any>;
 
-export type TabOverride = 'data' | 'customize' | boolean;
+export type TabOverride = 'data' | 'customize' | 'matrixify' | boolean;
 
 /**
  * Control config specifying how chart controls appear in the control panel, all

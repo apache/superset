@@ -41,6 +41,8 @@ import {
   JsonValue,
   NO_TIME_RANGE,
   usePrevious,
+  isFeatureEnabled,
+  FeatureFlag,
 } from '@superset-ui/core';
 import {
   ControlPanelSectionConfig,
@@ -59,6 +61,7 @@ import {
   Collapse,
   Modal,
   Loading,
+  Label,
   Tooltip,
 } from '@superset-ui/core/components';
 import Tabs from '@superset-ui/core/components/Tabs';
@@ -81,6 +84,7 @@ const { confirm } = Modal;
 const TABS_KEYS = {
   DATA: 'DATA',
   CUSTOMIZE: 'CUSTOMIZE',
+  MATRIXIFY: 'MATRIXIFY',
 };
 
 export type ControlPanelsContainerProps = {
@@ -186,11 +190,13 @@ function getState(
 ) {
   const querySections: ControlPanelSectionConfig[] = [];
   const customizeSections: ControlPanelSectionConfig[] = [];
+  const matrixifySections: ControlPanelSectionConfig[] = [];
 
   getSectionsToRender(vizType, datasourceType).forEach(section => {
-    // if at least one control in the section is not `renderTrigger`
-    // or asks to be displayed at the Data tab
-    if (
+    if (!section) return;
+    if (section.tabOverride === 'matrixify') {
+      matrixifySections.push(section);
+    } else if (
       section.tabOverride === 'data' ||
       section.controlSetRows.some(rows =>
         rows.some(
@@ -205,10 +211,11 @@ function getState(
       )
     ) {
       querySections.push(section);
-    } else if (section.controlSetRows.length > 0) {
+    } else if (section.controlSetRows && section.controlSetRows.length > 0) {
       customizeSections.push(section);
     }
   });
+
   const expandedQuerySections: string[] = sectionsToExpand(
     querySections,
     datasource,
@@ -217,11 +224,18 @@ function getState(
     customizeSections,
     datasource,
   );
+  const expandedMatrixifySections: string[] = sectionsToExpand(
+    matrixifySections,
+    datasource,
+  );
+
   return {
     expandedQuerySections,
     expandedCustomizeSections,
+    expandedMatrixifySections,
     querySections,
     customizeSections,
+    matrixifySections,
   };
 }
 
@@ -369,8 +383,10 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
   const {
     expandedQuerySections,
     expandedCustomizeSections,
+    expandedMatrixifySections,
     querySections,
     customizeSections,
+    matrixifySections,
   } = useMemo(
     () =>
       getState(
@@ -722,6 +738,30 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
   }
 
   const showCustomizeTab = customizeSections.length > 0;
+  const showMatrixifyTab = isFeatureEnabled(FeatureFlag.Matrixify);
+
+  // Create Matrixify tab label with Beta tag
+  const matrixifyTabLabel = (
+    <span>
+      {t('Matrixify')}{' '}
+      <Tooltip
+        title={t(
+          'This feature is experimental and may change or have limitations',
+        )}
+        placement="top"
+      >
+        <Label
+          type="info"
+          css={css`
+            margin-left: ${theme.sizeUnit}px;
+            font-size: ${theme.fontSizeSM}px;
+          `}
+        >
+          {t('beta')}
+        </Label>
+      </Tooltip>
+    </span>
+  );
 
   return (
     <Styles ref={containerRef}>
@@ -759,6 +799,25 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
                       bordered
                       items={[
                         ...customizeSections.map(renderControlPanelSection),
+                      ]}
+                    />
+                  ),
+                },
+              ]
+            : []),
+          ...(showMatrixifyTab
+            ? [
+                {
+                  key: TABS_KEYS.MATRIXIFY,
+                  label: matrixifyTabLabel,
+                  children: (
+                    <Collapse
+                      defaultActiveKey={expandedMatrixifySections}
+                      expandIconPosition="right"
+                      ghost
+                      bordered
+                      items={[
+                        ...matrixifySections.map(renderControlPanelSection),
                       ]}
                     />
                   ),
