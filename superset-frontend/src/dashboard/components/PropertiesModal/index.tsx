@@ -32,6 +32,7 @@ import {
   Row,
   Typography,
 } from '@superset-ui/core/components';
+import { useJsonValidation } from '@superset-ui/core/components/AsyncAceEditor';
 import { type TagType } from 'src/components';
 import rison from 'rison';
 import {
@@ -64,10 +65,10 @@ import {
   setDashboardMetadata,
 } from 'src/dashboard/actions/dashboardState';
 import { areObjectsEqual } from 'src/reduxUtils';
+import { ModalTitleWithIcon } from 'src/components/ModalTitleWithIcon';
 
 const StyledJsonEditor = styled(JsonEditor)`
-  border-radius: ${({ theme }) => theme.borderRadius}px;
-  border: 1px solid ${({ theme }) => theme.colorPrimaryBorder};
+  /* Border is already applied by AceEditor itself */
 `;
 
 type PropertiesModalProps = {
@@ -119,6 +120,11 @@ const PropertiesModal = ({
   const [colorScheme, setCurrentColorScheme] = useState(currentColorScheme);
   const [jsonMetadata, setJsonMetadata] = useState('');
   const [dashboardInfo, setDashboardInfo] = useState<DashboardInfo>();
+
+  // JSON validation for metadata
+  const jsonAnnotations = useJsonValidation(jsonMetadata, {
+    errorPrefix: 'Invalid JSON metadata',
+  });
   const [owners, setOwners] = useState<Owners>([]);
   const [roles, setRoles] = useState<Roles>([]);
   const saveLabel = onlyApply ? t('Apply') : t('Save');
@@ -609,7 +615,9 @@ const PropertiesModal = ({
     <Modal
       show={show}
       onHide={handleOnCancel}
-      title={t('Dashboard properties')}
+      title={
+        <ModalTitleWithIcon isEditMode title={t('Dashboard properties')} />
+      }
       footer={
         <>
           <Button
@@ -791,6 +799,7 @@ const PropertiesModal = ({
                     width="100%"
                     height="200px"
                     wrapEnabled
+                    annotations={jsonAnnotations}
                   />
                 </FormItem>
               </>

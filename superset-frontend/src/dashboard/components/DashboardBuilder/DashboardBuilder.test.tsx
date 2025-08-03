@@ -116,6 +116,7 @@ describe('DashboardBuilder', () => {
         ...overrideState,
       }),
       useDnd: true,
+      useTheme: true,
     });
   }
 

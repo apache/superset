@@ -37,6 +37,7 @@ import {
 import { useToasts } from 'src/components/MessageToasts/withToasts';
 import { EmbeddedDashboard } from 'src/dashboard/types';
 import { Typography } from '@superset-ui/core/components/Typography';
+import { ModalTitleWithIcon } from 'src/components/ModalTitleWithIcon';
 
 const extensionsRegistry = getExtensionsRegistry();
 
@@ -261,7 +262,13 @@ const DashboardEmbedModal = (props: Props) => {
   return DashboardEmbedModalExtension ? (
     <DashboardEmbedModalExtension {...props} />
   ) : (
-    <Modal show={show} onHide={onHide} title={t('Embed')} hideFooter>
+    <Modal
+      name={t('Embed')}
+      show={show}
+      onHide={onHide}
+      hideFooter
+      title={<ModalTitleWithIcon title={t('Embed')} />}
+    >
       <DashboardEmbedControls {...props} />
     </Modal>
   );

@@ -274,12 +274,8 @@ function RolesList({ addDangerToast, addSuccessToast, user }: RolesListProps) {
   if (isAdmin) {
     subMenuButtons.push(
       {
-        name: (
-          <>
-            <Icons.PlusOutlined iconSize="m" />
-            {t('Role')}
-          </>
-        ),
+        icon: <Icons.PlusOutlined iconSize="m" />,
+        name: t('Role'),
         buttonStyle: 'primary',
         onClick: () => {
           openModal(ModalType.ADD);

@@ -543,7 +543,7 @@ def test_is_oauth2_enabled_no_config(mocker: MockerFixture) -> None:
     from superset.db_engine_specs.gsheets import GSheetsEngineSpec
 
     mocker.patch(
-        "superset.db_engine_specs.base.current_app.config",
+        "flask.current_app.config",
         new={"DATABASE_OAUTH2_CLIENTS": {}},
     )
 
@@ -557,7 +557,7 @@ def test_is_oauth2_enabled_config(mocker: MockerFixture) -> None:
     from superset.db_engine_specs.gsheets import GSheetsEngineSpec
 
     mocker.patch(
-        "superset.db_engine_specs.base.current_app.config",
+        "flask.current_app.config",
         new={
             "DATABASE_OAUTH2_CLIENTS": {
                 "Google Sheets": {

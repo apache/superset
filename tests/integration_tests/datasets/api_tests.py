@@ -32,7 +32,6 @@ from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import joinedload
 from sqlalchemy.sql import func
 
-from superset import app  # noqa: F401
 from superset.commands.dataset.exceptions import DatasetCreateFailedError
 from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
 from superset.extensions import db, security_manager
@@ -973,6 +972,36 @@ class TestDatasetApi(SupersetTestCase):
         data = json.loads(rv.data.decode("utf-8"))
         assert rv.status_code == 422
         assert data == {"message": "Dataset could not be created."}
+
+    @patch("superset.commands.dataset.create.security_manager.raise_for_access")
+    def test_create_dataset_with_invalid_sql_validation(self, mock_raise_for_access):
+        """
+        Dataset API: Test create dataset with invalid SQL during validation returns 422
+        """
+        from superset.exceptions import SupersetParseError
+
+        # Mock raise_for_access to throw SupersetParseError during validation
+        mock_raise_for_access.side_effect = SupersetParseError(
+            sql="SELECT FROM WHERE AND",
+            engine="postgresql",
+            message="Invalid SQL syntax",
+        )
+
+        self.login(ADMIN_USERNAME)
+        examples_db = get_example_database()
+        dataset_data = {
+            "database": examples_db.id,
+            "schema": "",
+            "table_name": "invalid_sql_table",
+            "sql": "SELECT FROM WHERE AND",
+        }
+        uri = "api/v1/dataset/"
+        rv = self.client.post(uri, json=dataset_data)
+        data = json.loads(rv.data.decode("utf-8"))
+        # The error is caught during validation and returns 422
+        assert rv.status_code == 422
+        assert "sql" in data["message"]
+        assert "Invalid SQL:" in data["message"]["sql"][0]
 
     def test_update_dataset_preserve_ownership(self):
         """

@@ -634,28 +634,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
 
   const buttonArr: Array<ButtonProps> = [];
 
-  if (canDelete || canExport) {
-    buttonArr.push({
-      name: t('Bulk select'),
-      onClick: toggleBulkSelect,
-      buttonStyle: 'secondary',
-    });
-  }
-
   if (canCreate) {
-    buttonArr.push({
-      name: (
-        <>
-          <Icons.PlusOutlined iconSize="m" />
-          {t('Dataset')}
-        </>
-      ),
-      onClick: () => {
-        history.push('/dataset/add/');
-      },
-      buttonStyle: 'primary',
-    });
-
     buttonArr.push({
       name: (
         <Tooltip
@@ -672,6 +651,25 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
       ),
       buttonStyle: 'link',
       onClick: openDatasetImportModal,
+    });
+  }
+
+  if (canDelete || canExport) {
+    buttonArr.push({
+      name: t('Bulk select'),
+      onClick: toggleBulkSelect,
+      buttonStyle: 'secondary',
+    });
+  }
+
+  if (canCreate) {
+    buttonArr.push({
+      icon: <Icons.PlusOutlined iconSize="m" />,
+      name: t('Dataset'),
+      onClick: () => {
+        history.push('/dataset/add/');
+      },
+      buttonStyle: 'primary',
     });
   }
 

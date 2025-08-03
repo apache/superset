@@ -3376,7 +3376,7 @@ msgstr "در حال حاضر رندر شده: %s"
 msgid "Custom"
 msgstr "سفارشی"
 
-msgid "Custom Conditional Formatting"
+msgid "Custom conditional formatting"
 msgstr "قالب‌بندی شرطی سفارشی"
 
 msgid "Custom Plugin"
@@ -9784,7 +9784,7 @@ msgstr "نمایش حباب‌ها"
 msgid "Show CREATE VIEW statement"
 msgstr "بیان CREATE VIEW را نشان بدهید"
 
-msgid "Show Cell bars"
+msgid "Show cell bars"
 msgstr "نمودار میله‌ای سلول‌ها را نمایش بدهید"
 
 msgid "Show Dashboard"
@@ -13905,7 +13905,7 @@ msgstr "`row_offset` باید بزرگتر از یا برابر با ۰ باشد
 msgid "`width` must be greater or equal to 0"
 msgstr "`عرض` باید بزرگتر یا برابر با ۰ باشد."
 
-msgid "add colors to cell bars for +/-"
+msgid "Add colors to cell bars for +/-"
 msgstr "رنگ‌ها را به نوارهای سلول برای + و - اضافه کنید"
 
 msgid "aggregate"
@@ -13950,7 +13950,7 @@ msgstr "خودکار"
 msgid "background"
 msgstr "پس‌زمینه"
 
-msgid "basic conditional formatting"
+msgid "Basic conditional formatting"
 msgstr "فرمت‌بندی شرطی پایه"
 
 msgid "basis"

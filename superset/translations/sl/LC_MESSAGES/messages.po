@@ -3406,7 +3406,7 @@ msgstr "Trenutno izrisano: %s"
 msgid "Custom"
 msgstr "Prilagojen"
 
-msgid "Custom Conditional Formatting"
+msgid "Custom conditional formatting"
 msgstr "Prilagojeno pogojno oblikovanje"
 
 msgid "Custom Plugin"
@@ -9819,7 +9819,7 @@ msgstr "Prikaži mehurčke"
 msgid "Show CREATE VIEW statement"
 msgstr "Prikaži CREATE VIEW stavek"
 
-msgid "Show Cell bars"
+msgid "Show cell bars"
 msgstr "Prikaži grafe v celicah"
 
 msgid "Show Dashboard"
@@ -13928,7 +13928,7 @@ msgstr "`row_offset` mora biti večja ali enaka 0"
 msgid "`width` must be greater or equal to 0"
 msgstr "`width` mora biti večja ali enaka 0"
 
-msgid "add colors to cell bars for +/-"
+msgid "Add colors to cell bars for +/-"
 msgstr "dodajte barvo za graf v celici za +/-"
 
 msgid "aggregate"
@@ -13973,7 +13973,7 @@ msgstr "samodejno"
 msgid "background"
 msgstr "ozadje"
 
-msgid "basic conditional formatting"
+msgid "Basic conditional formatting"
 msgstr "osnovno pogojno oblikovanje"
 
 msgid "basis"

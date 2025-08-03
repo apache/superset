@@ -795,14 +795,14 @@ sqlalchemy==1.4.54
     #   shillelagh
     #   sqlalchemy-bigquery
     #   sqlalchemy-utils
-sqlalchemy-bigquery==1.12.0
+sqlalchemy-bigquery==1.15.0
     # via apache-superset
 sqlalchemy-utils==0.38.3
     # via
     #   -c requirements/base.txt
     #   apache-superset
     #   flask-appbuilder
-sqlglot==26.28.1
+sqlglot==27.3.0
     # via
     #   -c requirements/base.txt
     #   apache-superset

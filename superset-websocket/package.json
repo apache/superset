@@ -17,7 +17,7 @@
   },
   "license": "Apache-2.0",
   "dependencies": {
-    "cookie": "^0.7.0",
+    "cookie": "^1.0.2",
     "hot-shots": "^11.1.0",
     "ioredis": "^5.6.1",
     "jsonwebtoken": "^9.0.2",
@@ -28,7 +28,6 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.25.1",
-    "@types/cookie": "^0.6.0",
     "@types/eslint__js": "^8.42.3",
     "@types/ioredis": "^4.27.8",
     "@types/jest": "^29.5.14",
@@ -52,7 +51,7 @@
     "typescript-eslint": "^8.19.0"
   },
   "engines": {
-    "node": "^16.9.1",
-    "npm": "^7.5.4 || ^8.1.2"
+    "node": "^20.19.4",
+    "npm": "^10.8.2"
   }
 }

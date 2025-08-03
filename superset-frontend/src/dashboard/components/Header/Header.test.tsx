@@ -135,7 +135,11 @@ function setup(overrideState: JsonObject = {}) {
     <div className="dashboard">
       <Header />
     </div>,
-    { useRedux: true, initialState: { ...initialState, ...overrideState } },
+    {
+      useRedux: true,
+      useTheme: true,
+      initialState: { ...initialState, ...overrideState },
+    },
   );
 }
 
