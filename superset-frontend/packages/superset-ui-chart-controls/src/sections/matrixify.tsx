@@ -95,7 +95,7 @@ export const matrixifySection: ControlPanelSectionConfig = {
           description: t(
             'Template for cell titles. Use Handlebars syntax: {{row}}, {{column}}, {{rowLabel}}, {{columnLabel}}',
           ),
-          placeholder: 'Pop: {{rowLabel}}',
+          placeholder: '{{rowLabel}} by {{colLabel}}',
         },
       },
     ],
