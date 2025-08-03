@@ -59,3 +59,29 @@
   cursor: pointer;
   stroke: #eee;
 }
+
+.superset-legacy-chart-country-map .tooltip {
+  position: absolute;
+  text-align: left;
+  padding: 10px;
+  font-size: 12px;
+  background: rgba(0, 0, 0, 0.8);
+  color: white;
+  border-radius: 4px;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.superset-legacy-chart-country-map .tooltip.show {
+  opacity: 1;
+}
+
+.superset-legacy-chart-country-map .tooltip .tooltip-title {
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.superset-legacy-chart-country-map .tooltip .tooltip-value {
+  font-weight: 300;
+}
