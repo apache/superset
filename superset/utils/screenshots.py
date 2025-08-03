@@ -32,8 +32,8 @@ from superset.utils.urls import modify_url_query
 from superset.utils.webdriver import (
     ChartStandaloneMode,
     DashboardStandaloneMode,
-    WebDriver,
     WebDriverPlaywright,
+    WebDriverProxy,
     WebDriverSelenium,
     WindowSize,
 )
@@ -165,17 +165,19 @@ class BaseScreenshot:
         self.url = url
         self.screenshot = None
 
-    def driver(self, window_size: WindowSize | None = None) -> WebDriver:
+    def driver(
+        self, window_size: WindowSize | None = None, user: User | None = None
+    ) -> WebDriverProxy:
         window_size = window_size or self.window_size
         if feature_flag_manager.is_feature_enabled("PLAYWRIGHT_REPORTS_AND_THUMBNAILS"):
             return WebDriverPlaywright(self.driver_type, window_size)
-        return WebDriverSelenium(self.driver_type, window_size)
+        return WebDriverSelenium(self.driver_type, window_size, user)
 
     def get_screenshot(
         self, user: User, window_size: WindowSize | None = None
     ) -> bytes | None:
-        driver = self.driver(window_size)
-        self.screenshot = driver.get_screenshot(self.url, self.element, user)
+        driver = self.driver(window_size, user)
+        self.screenshot = driver.get_screenshot(self.url, self.element)
         return self.screenshot
 
     def get_cache_key(
