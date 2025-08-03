@@ -2373,12 +2373,6 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
 
                 result = self.query(prequery_obj)
                 prequeries.append(result.query)
-                # dimensions would be the columns not in the original query
-                # dimensions = [
-                #     c
-                #     for c in result.df.columns
-                #     if c not in metrics and c in groupby_series_columns
-                # ]
                 top_groups = self._build_top_groups_filter(
                     result.df, groupby_series_columns, columns_by_name
                 )
