@@ -1736,6 +1736,118 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
 
         return deduped
 
+    def _validate_query_params(
+        self,
+        granularity: Optional[str],
+        is_timeseries: bool,
+        metrics: Optional[list[Metric]],
+        columns: Optional[list[Column]],
+        groupby: Optional[list[Column]],
+    ) -> None:
+        """Validate query parameters and raise appropriate errors.
+
+        Args:
+            granularity: Datetime column name for time-based queries
+            is_timeseries: Whether this is a timeseries query
+            metrics: List of metrics for the query
+            columns: List of columns for the query
+            groupby: List of groupby columns for the query
+
+        Raises:
+            QueryObjectValidationError: If validation fails
+        """
+        if not granularity and is_timeseries:
+            raise QueryObjectValidationError(
+                _(
+                    "Datetime column not provided as part table configuration "
+                    "and is required by this type of chart"
+                )
+            )
+        if not metrics and not columns and not groupby:
+            raise QueryObjectValidationError(_("Empty query?"))
+
+    def _build_time_filters(
+        self,
+        granularity: Optional[str],
+        is_timeseries: bool,
+        from_dttm: Optional[datetime],
+        to_dttm: Optional[datetime],
+        time_grain: Optional[str],
+        columns_by_name: dict[str, "TableColumn"],
+        template_processor: BaseTemplateProcessor,
+        select_exprs: list[ColumnElement],
+        groupby_all_columns: dict[str, ColumnElement],
+    ) -> tuple[list[ColumnElement], Optional["TableColumn"]]:
+        """Build time filters and prepare timeseries column.
+
+        Args:
+            granularity: Datetime column name for time-based queries
+            is_timeseries: Whether this is a timeseries query
+            from_dttm: Start datetime for filtering
+            to_dttm: End datetime for filtering
+            time_grain: Time grain for grouping
+            columns_by_name: Mapping of column names to TableColumn objects
+            template_processor: Template processor for dynamic SQL
+            select_exprs: List of select expressions (modified in place)
+            groupby_all_columns: Mapping of column names to expressions
+                (modified in place)
+
+        Returns:
+            Tuple of (time_filters, dttm_col)
+        """
+        time_filters = []
+        dttm_col = None
+
+        if granularity:
+            if granularity not in columns_by_name:
+                raise QueryObjectValidationError(
+                    _(
+                        'Time column "%(col)s" does not exist in dataset',
+                        col=granularity,
+                    )
+                )
+            dttm_col = columns_by_name[granularity]
+            if not dttm_col:
+                raise QueryObjectValidationError(
+                    _(
+                        'Time column "%(col)s" does not exist in dataset',
+                        col=granularity,
+                    )
+                )
+
+            if is_timeseries:
+                timestamp = dttm_col.get_timestamp_expression(
+                    time_grain=time_grain, template_processor=template_processor
+                )
+                # always put timestamp as the first column
+                select_exprs.insert(0, timestamp)
+                groupby_all_columns[timestamp.name] = timestamp
+
+            # Use main dttm column to support index with secondary dttm columns.
+            if (
+                self.always_filter_main_dttm
+                and self.main_dttm_col in self.dttm_cols
+                and self.main_dttm_col != dttm_col.column_name
+            ):
+                time_filters.append(
+                    self.get_time_filter(
+                        time_col=columns_by_name[self.main_dttm_col],
+                        start_dttm=from_dttm,
+                        end_dttm=to_dttm,
+                        template_processor=template_processor,
+                    )
+                )
+
+            time_filter_column = self.get_time_filter(
+                time_col=dttm_col,
+                start_dttm=from_dttm,
+                end_dttm=to_dttm,
+                template_processor=template_processor,
+            )
+            time_filters.append(time_filter_column)
+
+        return time_filters, dttm_col
+
     def get_sqla_query(  # pylint: disable=too-many-arguments,too-many-locals,too-many-branches,too-many-statements  # noqa: C901
         self,
         apply_fetch_values_predicate: bool = False,
@@ -1825,15 +1937,9 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             m.metric_name: m for m in self.metrics
         }
 
-        if not granularity and is_timeseries:
-            raise QueryObjectValidationError(
-                _(
-                    "Datetime column not provided as part table configuration "
-                    "and is required by this type of chart"
-                )
-            )
-        if not metrics and not columns and not groupby:
-            raise QueryObjectValidationError(_("Empty query?"))
+        self._validate_query_params(
+            granularity, is_timeseries, metrics, columns, groupby
+        )
 
         metrics_exprs: list[ColumnElement] = []
         for metric in metrics:
@@ -1977,46 +2083,17 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 )
             metrics_exprs = []
 
-        if granularity:
-            if granularity not in columns_by_name or not dttm_col:
-                raise QueryObjectValidationError(
-                    _(
-                        'Time column "%(col)s" does not exist in dataset',
-                        col=granularity,
-                    )
-                )
-            time_filters = []
-
-            if is_timeseries:
-                timestamp = dttm_col.get_timestamp_expression(
-                    time_grain=time_grain, template_processor=template_processor
-                )
-                # always put timestamp as the first column
-                select_exprs.insert(0, timestamp)
-                groupby_all_columns[timestamp.name] = timestamp
-
-            # Use main dttm column to support index with secondary dttm columns.
-            if (
-                self.always_filter_main_dttm
-                and self.main_dttm_col in self.dttm_cols
-                and self.main_dttm_col != dttm_col.column_name
-            ):
-                time_filters.append(
-                    self.get_time_filter(
-                        time_col=columns_by_name[self.main_dttm_col],
-                        start_dttm=from_dttm,
-                        end_dttm=to_dttm,
-                        template_processor=template_processor,
-                    )
-                )
-
-            time_filter_column = self.get_time_filter(
-                time_col=dttm_col,
-                start_dttm=from_dttm,
-                end_dttm=to_dttm,
-                template_processor=template_processor,
-            )
-            time_filters.append(time_filter_column)
+        time_filters, dttm_col = self._build_time_filters(
+            granularity=granularity,
+            is_timeseries=is_timeseries,
+            from_dttm=from_dttm,
+            to_dttm=to_dttm,
+            time_grain=time_grain,
+            columns_by_name=columns_by_name,
+            template_processor=template_processor,
+            select_exprs=select_exprs,
+            groupby_all_columns=groupby_all_columns,
+        )
 
         # Deduplicate select columns
         select_exprs = self._deduplicate_select_columns(
