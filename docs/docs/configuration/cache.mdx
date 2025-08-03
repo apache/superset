@@ -80,6 +80,30 @@ instead requires a cachelib object.
 
 See [Async Queries via Celery](/docs/configuration/async-queries-celery) for details.
 
+## Celery beat
+
+Superset has a Celery task that will periodically warm up the cache based on different strategies.
+To use it, add the following to the `CELERYBEAT_SCHEDULE` section in `config.py`:
+
+```python
+SUPERSET_CACHE_WARMUP_USER = "user_with_permission_to_dashboards"
+
+CELERYBEAT_SCHEDULE = {
+    'cache-warmup-hourly': {
+        'task': 'cache-warmup',
+        'schedule': crontab(minute=0, hour='*'),  # hourly
+        'kwargs': {
+            'strategy_name': 'top_n_dashboards',
+            'top_n': 5,
+            'since': '7 days ago',
+        },
+    },
+}
+```
+
+This will cache all the charts in the top 5 most popular dashboards every hour. For other
+strategies, check the `superset/tasks/cache.py` file.
+
 ## Caching Thumbnails
 
 This is an optional feature that can be turned on by activating its [feature flag](/docs/configuration/configuring-superset#feature-flags) on config:
