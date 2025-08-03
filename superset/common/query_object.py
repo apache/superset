@@ -210,6 +210,9 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
         def is_str_or_adhoc(metric: Metric) -> bool:
             return isinstance(metric, str) or is_adhoc_metric(metric)
 
+        # Track whether metrics was originally None (for need_groupby logic)
+        self._metrics_is_not_none = metrics is not None
+
         self.metrics = [
             x if is_str_or_adhoc(x) else x["label"]  # type: ignore
             for x in (metrics or [])
@@ -302,12 +305,419 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
     @property
     def need_groupby(self) -> bool:
         """Determine if GROUP BY is needed based on metrics and columns."""
-        return bool(self.metrics or self.columns)
+        # GROUP BY is needed when there are metrics or when metrics is explicitly
+        # provided (even as empty list). When metrics=None, columns are just for
+        # selection without aggregation, so no GROUP BY needed.
+        return self._metrics_is_not_none
 
     @property
     def groupby(self) -> list[Column]:
         """Alias for columns (for backward compatibility/clarity)."""
         return self.columns or []
+
+    def get_series_limit_prequery_obj(
+        self,
+        granularity: str | None,
+        inner_from_dttm: datetime | None,
+        inner_to_dttm: datetime | None,
+        orderby: list[OrderBy] | None = None,
+    ) -> dict[str, Any]:
+        """Build prequery object for series limit queries.
+
+        This is used to determine top groups when series_limit is set.
+
+        Args:
+            granularity: The time column name
+            inner_from_dttm: Inner from datetime (if different from main query)
+            inner_to_dttm: Inner to datetime (if different from main query)
+            orderby: Optional orderby to override (for series_limit_metric)
+
+        Returns:
+            Dictionary suitable for passing to query()
+        """
+        from superset.utils.core import get_non_base_axis_columns
+
+        return {
+            "is_timeseries": False,
+            "row_limit": self.series_limit,
+            "metrics": self.metrics,
+            "granularity": granularity,
+            "groupby": self.groupby,
+            "from_dttm": inner_from_dttm or self.from_dttm,
+            "to_dttm": inner_to_dttm or self.to_dttm,
+            "filter": self.filter,
+            "orderby": orderby or [],
+            "extras": self.extras or {},
+            "columns": get_non_base_axis_columns(self.columns),
+            "order_desc": True,
+        }
+
+    def build_select_expressions(  # noqa: C901
+        self,
+        granularity: str | None,
+        series_column_labels: set[str],
+        datasource: Any,  # BaseDatasource
+        template_processor: Any,
+    ) -> tuple[list[Any], dict[str, Any], dict[str, Any]]:
+        """Build SELECT expressions for the query.
+
+        Args:
+            granularity: The time column name
+            series_column_labels: Labels of series columns
+            datasource: The datasource being queried
+            template_processor: Template processor for SQL templating
+
+        Returns:
+            Tuple of (select_exprs, groupby_all_columns, groupby_series_columns)
+        """
+        from sqlalchemy import literal_column
+
+        from superset.utils.core import (
+            DTTM_ALIAS,
+            is_adhoc_column,
+        )
+
+        select_exprs = []
+        groupby_all_columns = {}
+        groupby_series_columns = {}
+
+        # Filter out the pseudo column __timestamp from columns
+        columns = [col for col in self.columns if col != DTTM_ALIAS]
+
+        if self.need_groupby:
+            # dedup columns while preserving order
+            columns = self.groupby or self.columns
+            for selected in columns:
+                if isinstance(selected, str):
+                    # if groupby field/expr equals granularity field/expr
+                    if selected == granularity:
+                        table_col = self.columns_by_name[selected]
+                        outer = table_col.get_timestamp_expression(
+                            time_grain=self.time_grain,
+                            label=selected,
+                            template_processor=template_processor,
+                        )
+                    # if groupby field equals a selected column
+                    elif selected in self.columns_by_name:
+                        outer = datasource.convert_tbl_column_to_sqla_col(
+                            self.columns_by_name[selected],
+                            template_processor=template_processor,
+                        )
+                    else:
+                        # Import here to avoid circular imports
+                        from superset.models.helpers import validate_adhoc_subquery
+
+                        selected = validate_adhoc_subquery(
+                            selected,
+                            datasource.database,
+                            datasource.catalog,
+                            datasource.schema,
+                            datasource.database.db_engine_spec.engine,
+                        )
+                        outer = literal_column(f"({selected})")
+                        outer = datasource.make_sqla_column_compatible(outer, selected)
+                else:
+                    outer = datasource.adhoc_column_to_sqla(
+                        col=selected,
+                        template_processor=template_processor,
+                    )
+                groupby_all_columns[outer.name] = outer
+                if (
+                    self.is_timeseries and not series_column_labels
+                ) or outer.name in series_column_labels:
+                    groupby_series_columns[outer.name] = outer
+                select_exprs.append(outer)
+        elif self.columns:
+            with datasource.database.get_sqla_engine() as engine:
+                quote = engine.dialect.identifier_preparer.quote
+
+            for selected in self.columns:
+                if is_adhoc_column(selected):
+                    _sql = selected["sqlExpression"]
+                    _column_label = selected["label"]
+                elif isinstance(selected, str):
+                    _sql = quote(selected)
+                    _column_label = selected
+
+                # Import here to avoid circular imports
+                from superset.models.helpers import validate_adhoc_subquery
+
+                selected = validate_adhoc_subquery(
+                    _sql,
+                    datasource.database,
+                    datasource.catalog,
+                    datasource.schema,
+                    datasource.database.db_engine_spec.engine,
+                )
+
+                select_exprs.append(
+                    datasource.convert_tbl_column_to_sqla_col(
+                        self.columns_by_name[selected],
+                        template_processor=template_processor,
+                        label=_column_label,
+                    )
+                    if selected in self.columns_by_name
+                    else datasource.make_sqla_column_compatible(
+                        literal_column(selected), _column_label
+                    )
+                )
+
+        return select_exprs, groupby_all_columns, groupby_series_columns
+
+    def build_filter_clauses(  # noqa: C901
+        self,
+        datasource: Any,  # BaseDatasource
+        template_processor: Any,
+        time_filters: list[Any],
+        removed_filters: set[str],
+        applied_adhoc_filters_columns: list[Any],
+        rejected_adhoc_filters_columns: list[Any],
+        is_timeseries: bool,
+        dttm_col: Any,
+    ) -> tuple[list[Any], list[Any]]:
+        """Build WHERE and HAVING filter clauses for the query.
+
+        Args:
+            datasource: The datasource being queried
+            template_processor: Template processor for SQL templating
+            time_filters: Time-based filters to apply
+            removed_filters: Set of filter column names handled by Jinja templates
+            applied_adhoc_filters_columns: List to track applied adhoc filters
+            rejected_adhoc_filters_columns: List to track rejected adhoc filters
+            is_timeseries: Whether this is a timeseries query
+            dttm_col: The datetime column object
+
+        Returns:
+            Tuple of (where_clause_and, having_clause_and)
+        """
+        from flask import current_app
+        from sqlalchemy import or_
+
+        from superset import feature_flag_manager
+        from superset.common.utils.time_range_utils import (
+            get_since_until_from_time_range,
+        )
+        from superset.exceptions import QueryObjectValidationError
+        from superset.utils.core import (
+            DTTM_ALIAS,
+            FilterOperator,
+            GenericDataType,
+            get_column_name,
+            is_adhoc_column,
+        )
+
+        where_clause_and = []
+        having_clause_and = []
+
+        # Process regular filters
+        for flt in self.filter:
+            if not all(flt.get(s) for s in ["col", "op"]):
+                continue
+            flt_col = flt["col"]
+            val = flt.get("val")
+            flt_grain = flt.get("grain")
+            op = FilterOperator(flt["op"].upper())
+            col_obj = None
+            sqla_col = None
+
+            if flt_col == DTTM_ALIAS and is_timeseries and dttm_col:
+                col_obj = dttm_col
+            elif is_adhoc_column(flt_col):
+                try:
+                    sqla_col = datasource.adhoc_column_to_sqla(
+                        flt_col, force_type_check=True
+                    )
+                    applied_adhoc_filters_columns.append(flt_col)
+                except Exception:  # ColumnNotFoundException
+                    rejected_adhoc_filters_columns.append(flt_col)
+                    continue
+            else:
+                col_obj = self.columns_by_name.get(str(flt_col))
+            filter_grain = flt.get("grain")
+
+            if get_column_name(flt_col) in removed_filters:
+                # Skip generating SQLA filter when the jinja template handles it.
+                continue
+
+            if col_obj or sqla_col is not None:
+                db_engine_spec = datasource.database.db_engine_spec
+
+                if sqla_col is not None:
+                    pass
+                elif col_obj and filter_grain:
+                    sqla_col = col_obj.get_timestamp_expression(
+                        time_grain=filter_grain, template_processor=template_processor
+                    )
+                elif col_obj:
+                    sqla_col = datasource.convert_tbl_column_to_sqla_col(
+                        tbl_column=col_obj, template_processor=template_processor
+                    )
+
+                col_type = col_obj.type if col_obj else None
+                col_spec = db_engine_spec.get_column_spec(native_type=col_type)
+                is_list_target = op in (
+                    FilterOperator.IN,
+                    FilterOperator.NOT_IN,
+                )
+
+                col_advanced_data_type = col_obj.advanced_data_type if col_obj else ""
+
+                if col_spec and not col_advanced_data_type:
+                    target_generic_type = col_spec.generic_type
+                else:
+                    target_generic_type = GenericDataType.STRING
+
+                eq = datasource.filter_values_handler(
+                    values=val,
+                    operator=op,
+                    target_generic_type=target_generic_type,
+                    target_native_type=col_type,
+                    is_list_target=is_list_target,
+                    db_engine_spec=db_engine_spec,
+                )
+
+                # Get ADVANCED_DATA_TYPES from config when needed
+                ADVANCED_DATA_TYPES = current_app.config.get("ADVANCED_DATA_TYPES", {})  # noqa: N806
+
+                if (
+                    col_advanced_data_type != ""
+                    and feature_flag_manager.is_feature_enabled(
+                        "ENABLE_ADVANCED_DATA_TYPES"
+                    )
+                    and col_advanced_data_type in ADVANCED_DATA_TYPES
+                    and eq is not None
+                ):
+                    where_clause_and.append(
+                        datasource._apply_advanced_data_type_filter(
+                            sqla_col, col_advanced_data_type, op, eq
+                        )
+                    )
+                elif is_list_target:
+                    assert isinstance(eq, (tuple, list))
+                    if len(eq) == 0:
+                        raise QueryObjectValidationError(
+                            "Filter value list cannot be empty"
+                        )
+                    if len(eq) > len(
+                        eq_without_none := [x for x in eq if x is not None]
+                    ):
+                        is_null_cond = sqla_col.is_(None)
+                        if eq:
+                            cond = or_(is_null_cond, sqla_col.in_(eq_without_none))
+                        else:
+                            cond = is_null_cond
+                    else:
+                        cond = sqla_col.in_(eq)
+                    if op == FilterOperator.NOT_IN:
+                        cond = ~cond
+                    where_clause_and.append(cond)
+                elif op in {
+                    FilterOperator.IS_NULL,
+                    FilterOperator.IS_NOT_NULL,
+                }:
+                    where_clause_and.append(
+                        db_engine_spec.handle_null_filter(sqla_col, op)
+                    )
+                elif op == FilterOperator.IS_TRUE:
+                    where_clause_and.append(
+                        db_engine_spec.handle_boolean_filter(sqla_col, op, True)
+                    )
+                elif op == FilterOperator.IS_FALSE:
+                    where_clause_and.append(
+                        db_engine_spec.handle_boolean_filter(sqla_col, op, False)
+                    )
+                else:
+                    if (
+                        op
+                        not in {
+                            FilterOperator.EQUALS,
+                            FilterOperator.NOT_EQUALS,
+                        }
+                        and eq is None
+                    ):
+                        raise QueryObjectValidationError(
+                            "Must specify a value for filters with comparison operators"
+                        )
+                    if op in {
+                        FilterOperator.EQUALS,
+                        FilterOperator.NOT_EQUALS,
+                        FilterOperator.GREATER_THAN,
+                        FilterOperator.LESS_THAN,
+                        FilterOperator.GREATER_THAN_OR_EQUALS,
+                        FilterOperator.LESS_THAN_OR_EQUALS,
+                    }:
+                        where_clause_and.append(
+                            db_engine_spec.handle_comparison_filter(sqla_col, op, eq)
+                        )
+                    elif op in {
+                        FilterOperator.ILIKE,
+                        FilterOperator.LIKE,
+                    }:
+                        if target_generic_type != GenericDataType.STRING:
+                            import sqlalchemy as sa
+
+                            sqla_col = sa.cast(sqla_col, sa.String)
+
+                        if op == FilterOperator.LIKE:
+                            where_clause_and.append(sqla_col.like(eq))
+                        else:
+                            where_clause_and.append(sqla_col.ilike(eq))
+                    elif op in {FilterOperator.NOT_LIKE}:
+                        if target_generic_type != GenericDataType.STRING:
+                            import sqlalchemy as sa
+
+                            sqla_col = sa.cast(sqla_col, sa.String)
+
+                        where_clause_and.append(sqla_col.not_like(eq))
+                    elif (
+                        op == FilterOperator.TEMPORAL_RANGE
+                        and isinstance(eq, str)
+                        and col_obj is not None
+                    ):
+                        _since, _until = get_since_until_from_time_range(
+                            time_range=eq,
+                            time_shift=self.time_shift,
+                            extras=self.extras or {},
+                        )
+                        where_clause_and.append(
+                            datasource.get_time_filter(
+                                time_col=col_obj,
+                                start_dttm=_since,
+                                end_dttm=_until,
+                                time_grain=flt_grain,
+                                label=sqla_col.key,
+                                template_processor=template_processor,
+                            )
+                        )
+                    else:
+                        raise QueryObjectValidationError(
+                            f"Invalid filter operation type: {op}"
+                        )
+
+        # Process WHERE and HAVING extras
+        if self.extras:
+            where = self.extras.get("where")
+            if where:
+                where = datasource._process_sql_expression(
+                    expression=where,
+                    database_id=datasource.database_id,
+                    engine=datasource.database.backend,
+                    schema=datasource.schema,
+                    template_processor=template_processor,
+                )
+                where_clause_and += [datasource.text(where)]
+            having = self.extras.get("having")
+            if having:
+                having = datasource._process_sql_expression(
+                    expression=having,
+                    database_id=datasource.database_id,
+                    engine=datasource.database.backend,
+                    schema=datasource.schema,
+                    template_processor=template_processor,
+                )
+                having_clause_and += [datasource.text(having)]
+
+        return where_clause_and, having_clause_and
 
     def validate(
         self, raise_exceptions: bool | None = True

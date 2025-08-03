@@ -56,18 +56,15 @@ from superset import db, is_feature_enabled
 from superset.advanced_data_type.types import AdvancedDataTypeResponse
 from superset.common.db_query_status import QueryStatus
 from superset.common.query_object import QueryObject
-from superset.common.utils.time_range_utils import get_since_until_from_time_range
 from superset.constants import EMPTY_STRING, NULL_STRING
 from superset.db_engine_specs.base import TimestampExpression
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
     AdvancedDataTypeResponseError,
-    ColumnNotFoundException,
     QueryClauseValidationException,
     QueryObjectValidationError,
     SupersetSecurityException,
 )
-from superset.extensions import feature_flag_manager
 from superset.jinja_context import BaseTemplateProcessor
 from superset.sql.parse import sanitize_clause, SQLScript, SQLStatement
 from superset.superset_typing import (
@@ -82,8 +79,6 @@ from superset.superset_typing import (
 from superset.utils import core as utils, json
 from superset.utils.core import (
     GenericDataType,
-    get_column_name,
-    get_non_base_axis_columns,
     get_user_id,
     is_adhoc_column,
     MediumText,
@@ -107,7 +102,7 @@ def validate_adhoc_subquery(
     sql: str,
     database: Database,
     catalog: str | None,
-    default_schema: str,
+    default_schema: str | None,
     engine: str,
 ) -> str:
     """
@@ -132,7 +127,7 @@ def validate_adhoc_subquery(
             )
 
         # enforce RLS rules in any relevant tables
-        apply_rls(database, catalog, default_schema, parsed_statement)
+        apply_rls(database, catalog, default_schema or "", parsed_statement)
 
     return parsed_statement.format()
 
@@ -875,7 +870,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
     ) -> QueryStringExtended:
         from superset.common.query_object import QueryObject
 
-        query_object = QueryObject(**query_obj)
+        query_object = QueryObject(datasource=self, **query_obj)  # type: ignore[arg-type]
         sqlaq = self.get_sqla_query(query_object)
         sql = self.database.compile_sqla_query(
             sqlaq.sqla_query,
@@ -1957,23 +1952,24 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
 
     def get_sqla_query(self, query_obj: QueryObject) -> SqlaQuery:  # noqa: C901
         """Build SQLAlchemy query from QueryObject (immutable)."""
+        # Create short alias for frequently used object
+        qo = query_obj
+
         # Extract values from QueryObject
-        granularity = query_obj.granularity
+        granularity = qo.granularity
         if granularity not in self.dttm_cols and granularity is not None:
             granularity = self.main_dttm_col
 
         # Extract values that need special handling
-        from_dttm = query_obj.from_dttm
-        to_dttm = query_obj.to_dttm
-        inner_from_dttm = query_obj.inner_from_dttm
-        inner_to_dttm = query_obj.inner_to_dttm
+        from_dttm = qo.from_dttm
+        to_dttm = qo.to_dttm
+        inner_from_dttm = qo.inner_from_dttm
+        inner_to_dttm = qo.inner_to_dttm
 
-        # DB-specifc quoting for identifiers
-        with self.database.get_sqla_engine() as engine:
-            quote = engine.dialect.identifier_preparer.quote
+        # DB-specifc quoting for identifiers (handled in QueryObject methods)
 
         # Build template kwargs
-        template_kwargs = self._build_template_kwargs(query_obj, granularity)
+        template_kwargs = self._build_template_kwargs(qo, granularity)
         extra_cache_keys = template_kwargs["extra_cache_keys"]
         removed_filters = template_kwargs["removed_filters"]
         applied_template_filters = template_kwargs["applied_filters"]
@@ -1982,7 +1978,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         applied_adhoc_filters_columns: list[Union[str, ColumnTyping]] = []
         db_engine_spec = self.db_engine_spec
         series_column_labels = self._normalize_column_labels(
-            query_obj.columns, query_obj.series_columns
+            qo.columns, qo.series_columns
         )
 
         template_processor = self.get_template_processor(**template_kwargs)
@@ -1991,14 +1987,11 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         # For backward compatibility (already handled above)
 
         # Use mappings from QueryObject instead of building local ones
-        quoted_columns_by_name = {
-            quote(k): v for k, v in query_obj.columns_by_name.items()
-        }
 
-        self._validate_query_params(query_obj)
+        self._validate_query_params(qo)
 
         metrics_exprs, main_metric_expr = self._build_metrics_expressions(
-            query_obj, template_processor
+            qo, template_processor
         )
 
         # To ensure correct handling of the ORDER BY labeling we need to reference the
@@ -2009,95 +2002,32 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
 
         # Since orderby may use adhoc metrics, too; we need to process them first
         orderby_exprs = self._build_orderby_expressions(
-            query_obj,
+            qo,
             metrics_exprs_by_label,
             metrics_exprs_by_expr,
             template_processor,
         )
 
-        select_exprs: list[Union[Column, Label]] = []
-        groupby_all_columns = {}
-        groupby_series_columns = {}
-
-        # filter out the pseudo column  __timestamp from columns
-        columns = [col for col in query_obj.columns if col != utils.DTTM_ALIAS]
-        dttm_col = query_obj.columns_by_name.get(granularity) if granularity else None
+        # Build SELECT expressions using QueryObject
+        select_exprs, groupby_all_columns, groupby_series_columns = (
+            qo.build_select_expressions(
+                granularity=granularity,
+                series_column_labels=set(series_column_labels),
+                datasource=self,
+                template_processor=template_processor,
+            )
+        )
 
         # Extract is_timeseries for repeated use
-        is_timeseries = query_obj.is_timeseries
+        is_timeseries = qo.is_timeseries
+        dttm_col = qo.columns_by_name.get(granularity) if granularity else None
 
-        if query_obj.need_groupby:
-            # dedup columns while preserving order
-            columns = query_obj.groupby or query_obj.columns
-            for selected in columns:
-                if isinstance(selected, str):
-                    # if groupby field/expr equals granularity field/expr
-                    if selected == granularity:
-                        table_col = query_obj.columns_by_name[selected]
-                        outer = table_col.get_timestamp_expression(
-                            time_grain=query_obj.time_grain,
-                            label=selected,
-                            template_processor=template_processor,
-                        )
-                    # if groupby field equals a selected column
-                    elif selected in query_obj.columns_by_name:
-                        outer = self.convert_tbl_column_to_sqla_col(
-                            query_obj.columns_by_name[selected],
-                            template_processor=template_processor,
-                        )
-                    else:
-                        selected = validate_adhoc_subquery(
-                            selected,
-                            self.database,
-                            self.catalog,
-                            self.schema,
-                            self.database.db_engine_spec.engine,
-                        )
-                        outer = literal_column(f"({selected})")
-                        outer = self.make_sqla_column_compatible(outer, selected)
-                else:
-                    outer = self.adhoc_column_to_sqla(
-                        col=selected,
-                        template_processor=template_processor,
-                    )
-                groupby_all_columns[outer.name] = outer
-                if (
-                    is_timeseries and not series_column_labels
-                ) or outer.name in series_column_labels:
-                    groupby_series_columns[outer.name] = outer
-                select_exprs.append(outer)
-        elif query_obj.columns:
-            for selected in query_obj.columns:
-                if is_adhoc_column(selected):
-                    _sql = selected["sqlExpression"]
-                    _column_label = selected["label"]
-                elif isinstance(selected, str):
-                    _sql = quote(selected)
-                    _column_label = selected
-
-                selected = validate_adhoc_subquery(
-                    _sql,
-                    self.database,
-                    self.catalog,
-                    self.schema,
-                    self.database.db_engine_spec.engine,
-                )
-
-                select_exprs.append(
-                    self.convert_tbl_column_to_sqla_col(
-                        quoted_columns_by_name[selected],
-                        template_processor=template_processor,
-                        label=_column_label,
-                    )
-                    if selected in quoted_columns_by_name
-                    else self.make_sqla_column_compatible(
-                        literal_column(selected), _column_label
-                    )
-                )
+        # If we're not using groupby, metrics should be empty
+        if not qo.need_groupby:
             metrics_exprs = []
 
         time_filters, dttm_col = self._build_time_filters(
-            query_obj=query_obj,
+            query_obj=qo,
             template_processor=template_processor,
             select_exprs=select_exprs,
             groupby_all_columns=groupby_all_columns,
@@ -2118,207 +2048,22 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         if groupby_all_columns:
             qry = qry.group_by(*groupby_all_columns.values())
 
-        where_clause_and = []
-        having_clause_and = []
+        # Build filter clauses using QueryObject method
+        where_clause_and, having_clause_and = qo.build_filter_clauses(
+            datasource=self,
+            template_processor=template_processor,
+            time_filters=time_filters,
+            removed_filters=removed_filters,
+            applied_adhoc_filters_columns=applied_adhoc_filters_columns,
+            rejected_adhoc_filters_columns=rejected_adhoc_filters_columns,
+            is_timeseries=is_timeseries,
+            dttm_col=dttm_col,
+        )
 
-        for flt in query_obj.filter:
-            if not all(flt.get(s) for s in ["col", "op"]):
-                continue
-            flt_col = flt["col"]
-            val = flt.get("val")
-            flt_grain = flt.get("grain")
-            op = utils.FilterOperator(flt["op"].upper())
-            col_obj: Optional["TableColumn"] = None
-            sqla_col: Optional[Column] = None
-            if flt_col == utils.DTTM_ALIAS and is_timeseries and dttm_col:
-                col_obj = dttm_col
-            elif is_adhoc_column(flt_col):
-                try:
-                    sqla_col = self.adhoc_column_to_sqla(flt_col, force_type_check=True)
-                    applied_adhoc_filters_columns.append(flt_col)
-                except ColumnNotFoundException:
-                    rejected_adhoc_filters_columns.append(flt_col)
-                    continue
-            else:
-                col_obj = query_obj.columns_by_name.get(cast(str, flt_col))
-            filter_grain = flt.get("grain")
-
-            if get_column_name(flt_col) in removed_filters:
-                # Skip generating SQLA filter when the jinja template handles it.
-                continue
-
-            if col_obj or sqla_col is not None:
-                if sqla_col is not None:
-                    pass
-                elif col_obj and filter_grain:
-                    sqla_col = col_obj.get_timestamp_expression(
-                        time_grain=filter_grain, template_processor=template_processor
-                    )
-                elif col_obj:
-                    sqla_col = self.convert_tbl_column_to_sqla_col(
-                        tbl_column=col_obj, template_processor=template_processor
-                    )
-                col_type = col_obj.type if col_obj else None
-                col_spec = db_engine_spec.get_column_spec(native_type=col_type)
-                is_list_target = op in (
-                    utils.FilterOperator.IN,
-                    utils.FilterOperator.NOT_IN,
-                )
-
-                col_advanced_data_type = col_obj.advanced_data_type if col_obj else ""
-
-                if col_spec and not col_advanced_data_type:
-                    target_generic_type = col_spec.generic_type
-                else:
-                    target_generic_type = GenericDataType.STRING
-                eq = self.filter_values_handler(
-                    values=val,
-                    operator=op,
-                    target_generic_type=target_generic_type,
-                    target_native_type=col_type,
-                    is_list_target=is_list_target,
-                    db_engine_spec=db_engine_spec,
-                )
-                # Get ADVANCED_DATA_TYPES from config when needed
-                ADVANCED_DATA_TYPES = current_app.config.get("ADVANCED_DATA_TYPES", {})  # noqa: N806
-
-                if (
-                    col_advanced_data_type != ""
-                    and feature_flag_manager.is_feature_enabled(
-                        "ENABLE_ADVANCED_DATA_TYPES"
-                    )
-                    and col_advanced_data_type in ADVANCED_DATA_TYPES
-                    and eq is not None
-                ):
-                    where_clause_and.append(
-                        self._apply_advanced_data_type_filter(
-                            sqla_col, col_advanced_data_type, op, eq
-                        )
-                    )
-                elif is_list_target:
-                    assert isinstance(eq, (tuple, list))
-                    if len(eq) == 0:
-                        raise QueryObjectValidationError(
-                            _("Filter value list cannot be empty")
-                        )
-                    if len(eq) > len(
-                        eq_without_none := [x for x in eq if x is not None]
-                    ):
-                        is_null_cond = sqla_col.is_(None)
-                        if eq:
-                            cond = or_(is_null_cond, sqla_col.in_(eq_without_none))
-                        else:
-                            cond = is_null_cond
-                    else:
-                        cond = sqla_col.in_(eq)
-                    if op == utils.FilterOperator.NOT_IN:
-                        cond = ~cond
-                    where_clause_and.append(cond)
-                elif op in {
-                    utils.FilterOperator.IS_NULL,
-                    utils.FilterOperator.IS_NOT_NULL,
-                }:
-                    where_clause_and.append(
-                        db_engine_spec.handle_null_filter(sqla_col, op)
-                    )
-                elif op == utils.FilterOperator.IS_TRUE:
-                    where_clause_and.append(
-                        db_engine_spec.handle_boolean_filter(sqla_col, op, True)
-                    )
-                elif op == utils.FilterOperator.IS_FALSE:
-                    where_clause_and.append(
-                        db_engine_spec.handle_boolean_filter(sqla_col, op, False)
-                    )
-                else:
-                    if (
-                        op
-                        not in {
-                            utils.FilterOperator.EQUALS,
-                            utils.FilterOperator.NOT_EQUALS,
-                        }
-                        and eq is None
-                    ):
-                        raise QueryObjectValidationError(
-                            _(
-                                "Must specify a value for filters "
-                                "with comparison operators"
-                            )
-                        )
-                    if op in {
-                        utils.FilterOperator.EQUALS,
-                        utils.FilterOperator.NOT_EQUALS,
-                        utils.FilterOperator.GREATER_THAN,
-                        utils.FilterOperator.LESS_THAN,
-                        utils.FilterOperator.GREATER_THAN_OR_EQUALS,
-                        utils.FilterOperator.LESS_THAN_OR_EQUALS,
-                    }:
-                        where_clause_and.append(
-                            db_engine_spec.handle_comparison_filter(sqla_col, op, eq)
-                        )
-                    elif op in {
-                        utils.FilterOperator.ILIKE,
-                        utils.FilterOperator.LIKE,
-                    }:
-                        if target_generic_type != GenericDataType.STRING:
-                            sqla_col = sa.cast(sqla_col, sa.String)
-
-                        if op == utils.FilterOperator.LIKE:
-                            where_clause_and.append(sqla_col.like(eq))
-                        else:
-                            where_clause_and.append(sqla_col.ilike(eq))
-                    elif op in {utils.FilterOperator.NOT_LIKE}:
-                        if target_generic_type != GenericDataType.STRING:
-                            sqla_col = sa.cast(sqla_col, sa.String)
-
-                        where_clause_and.append(sqla_col.not_like(eq))
-                    elif (
-                        op == utils.FilterOperator.TEMPORAL_RANGE
-                        and isinstance(eq, str)
-                        and col_obj is not None
-                    ):
-                        _since, _until = get_since_until_from_time_range(
-                            time_range=eq,
-                            time_shift=query_obj.time_shift,
-                            extras=query_obj.extras or {},
-                        )
-                        where_clause_and.append(
-                            self.get_time_filter(
-                                time_col=col_obj,
-                                start_dttm=_since,
-                                end_dttm=_until,
-                                time_grain=flt_grain,
-                                label=sqla_col.key,
-                                template_processor=template_processor,
-                            )
-                        )
-                    else:
-                        raise QueryObjectValidationError(
-                            _("Invalid filter operation type: %(op)s", op=op)
-                        )
+        # Add row level filters
         where_clause_and += self.get_sqla_row_level_filters(template_processor)
-        if query_obj.extras:
-            where = query_obj.extras.get("where")
-            if where:
-                where = self._process_sql_expression(
-                    expression=where,
-                    database_id=self.database_id,
-                    engine=self.database.backend,
-                    schema=self.schema,
-                    template_processor=template_processor,
-                )
-                where_clause_and += [self.text(where)]
-            having = query_obj.extras.get("having")
-            if having:
-                having = self._process_sql_expression(
-                    expression=having,
-                    database_id=self.database_id,
-                    engine=self.database.backend,
-                    schema=self.schema,
-                    template_processor=template_processor,
-                )
-                having_clause_and += [self.text(having)]
 
-        if query_obj.apply_fetch_values_predicate and self.fetch_values_predicate:
+        if qo.apply_fetch_values_predicate and self.fetch_values_predicate:
             qry = qry.where(
                 self.get_fetch_values_predicate(template_processor=template_processor)
             )
@@ -2332,15 +2077,15 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
 
         # Apply ORDER BY with proper direction
         qry = self._apply_orderby_direction(
-            qry, orderby_exprs, query_obj.orderby, select_exprs
+            qry, orderby_exprs, qo.orderby, select_exprs
         )
 
-        if query_obj.row_limit:
-            qry = qry.limit(query_obj.row_limit)
-        if query_obj.row_offset:
-            qry = qry.offset(query_obj.row_offset)
+        if qo.row_limit:
+            qry = qry.limit(qo.row_limit)
+        if qo.row_offset:
+            qry = qry.offset(qo.row_offset)
 
-        if query_obj.series_limit and groupby_series_columns:
+        if qo.series_limit and groupby_series_columns:
             if db_engine_spec.allows_joins and db_engine_spec.allows_subqueries:
                 # some sql dialects require for order by expressions
                 # to also be in the select clause -- others, e.g. vertica,
@@ -2426,41 +2171,34 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                         subq.alias(SERIES_LIMIT_SUBQ_ALIAS), and_(*on_clause)
                     )
             else:
-                if query_obj.series_limit_metric:
+                orderby = None
+                if qo.series_limit_metric:
                     orderby = [
                         (
                             self._get_series_orderby_expression(
-                                query_obj=query_obj,
+                                query_obj=qo,
                                 main_metric_expr=main_metric_expr,
                                 template_processor=template_processor,
                             ),
-                            not query_obj.order_desc,
+                            not qo.order_desc,
                         )
                     ]
 
                 # run prequery to get top groups
-                prequery_obj = {
-                    "is_timeseries": False,
-                    "row_limit": query_obj.series_limit,
-                    "metrics": query_obj.metrics,
-                    "granularity": granularity,
-                    "groupby": query_obj.groupby,
-                    "from_dttm": inner_from_dttm or from_dttm,
-                    "to_dttm": inner_to_dttm or to_dttm,
-                    "filter": query_obj.filter,
-                    "orderby": orderby,
-                    "extras": query_obj.extras or {},
-                    "columns": get_non_base_axis_columns(query_obj.columns),
-                    "order_desc": True,
-                }
+                prequery_obj = qo.get_series_limit_prequery_obj(
+                    granularity=granularity,
+                    inner_from_dttm=inner_from_dttm,
+                    inner_to_dttm=inner_to_dttm,
+                    orderby=orderby,
+                )
 
                 result = self.query(prequery_obj)
                 prequeries.append(result.query)
                 top_groups = self._build_top_groups_filter(
-                    result.df, groupby_series_columns, query_obj.columns_by_name
+                    result.df, groupby_series_columns, qo.columns_by_name
                 )
 
-                if query_obj.group_others_when_limit_reached:
+                if qo.group_others_when_limit_reached:
                     # Apply Others grouping using the refactored method
                     def _create_top_groups_condition(col_name: str, expr: Any) -> Any:
                         return top_groups
@@ -2484,12 +2222,10 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
 
         qry = qry.select_from(tbl)
 
-        if query_obj.is_rowcount:
+        if qo.is_rowcount:
             qry, labels_expected = self._wrap_query_for_rowcount(qry)
 
-        filter_columns = (
-            [flt.get("col") for flt in query_obj.filter] if query_obj.filter else []
-        )
+        filter_columns = [flt.get("col") for flt in qo.filter] if qo.filter else []
         rejected_filter_columns = [
             col
             for col in filter_columns
