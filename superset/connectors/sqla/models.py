@@ -721,7 +721,7 @@ class AnnotationDatasource(BaseDatasource):
     def query(self, query_obj: QueryObjectDict) -> QueryResult:
         error_message = None
         qry = db.session.query(Annotation)
-        qry = qry.filter(Annotation.layer_id == query_obj["filter"][0]["val"])
+        qry = qry.filter(Annotation.layer_id == query_obj["filters"][0]["val"])
         if query_obj["from_dttm"]:
             qry = qry.filter(Annotation.start_dttm >= query_obj["from_dttm"])
         if query_obj["to_dttm"]:

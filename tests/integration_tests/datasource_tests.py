@@ -124,17 +124,6 @@ class TestDatasource(SupersetTestCase):
         else:
             return
 
-        query_obj = {
-            "columns": ["metric"],
-            "filter": [],
-            "from_dttm": datetime.now() - timedelta(days=1),
-            "granularity": "additional_dttm",
-            "orderby": [],
-            "to_dttm": datetime.now() + timedelta(days=1),
-            "series_columns": [],
-            "row_limit": 1000,
-            "row_offset": 0,
-        }
         table = SqlaTable(
             table_name="dummy_sql_table",
             database=database,
@@ -149,13 +138,28 @@ class TestDatasource(SupersetTestCase):
             sql=sql,
         )
 
+        from superset.common.query_object import QueryObject
+
+        query_obj = QueryObject(
+            columns=["metric"],
+            filters=[],
+            from_dttm=datetime.now() - timedelta(days=1),
+            granularity="additional_dttm",
+            orderby=[],
+            to_dttm=datetime.now() + timedelta(days=1),
+            series_columns=[],
+            row_limit=1000,
+            row_offset=0,
+            datasource=table,
+        )
+
         with create_and_cleanup_table(table):
             table.always_filter_main_dttm = False
-            result = str(table.get_sqla_query(**query_obj).sqla_query.whereclause)
+            result = str(table.get_sqla_query(query_obj).sqla_query.whereclause)
             assert "default_dttm" not in result and "additional_dttm" in result  # noqa: PT018
 
             table.always_filter_main_dttm = True
-            result = str(table.get_sqla_query(**query_obj).sqla_query.whereclause)
+            result = str(table.get_sqla_query(query_obj).sqla_query.whereclause)
             assert "default_dttm" in result and "additional_dttm" in result  # noqa: PT018
 
     def test_external_metadata_for_virtual_table(self):

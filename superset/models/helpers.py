@@ -870,6 +870,11 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
     ) -> QueryStringExtended:
         from superset.common.query_object import QueryObject
 
+        # Handle the filter -> filters migration
+        if "filter" in query_obj and "filters" not in query_obj:
+            query_obj = query_obj.copy()  # Don't mutate the original
+            query_obj["filters"] = query_obj.pop("filter")
+
         query_object = QueryObject(datasource=self, **query_obj)  # type: ignore[arg-type]
         sqlaq = self.get_sqla_query(query_object)
         sql = self.database.compile_sqla_query(
@@ -2060,6 +2065,26 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             dttm_col=dttm_col,
         )
 
+        # Build applied/rejected filter columns (like original code)
+        filter_columns = [flt.get("col") for flt in qo.filter] if qo.filter else []
+
+        rejected_filter_columns = [
+            col
+            for col in filter_columns
+            if col
+            and not is_adhoc_column(col)
+            and col not in self.column_names
+            and col not in applied_template_filters
+        ] + rejected_adhoc_filters_columns
+
+        applied_filter_columns = [
+            col
+            for col in filter_columns
+            if col
+            and not is_adhoc_column(col)
+            and (col in self.column_names or col in applied_template_filters)
+        ] + applied_adhoc_filters_columns
+
         # Add row level filters
         where_clause_and += self.get_sqla_row_level_filters(template_processor)
 
@@ -2224,24 +2249,6 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
 
         if qo.is_rowcount:
             qry, labels_expected = self._wrap_query_for_rowcount(qry)
-
-        filter_columns = [flt.get("col") for flt in qo.filter] if qo.filter else []
-        rejected_filter_columns = [
-            col
-            for col in filter_columns
-            if col
-            and not is_adhoc_column(col)
-            and col not in self.column_names
-            and col not in applied_template_filters
-        ] + rejected_adhoc_filters_columns
-
-        applied_filter_columns = [
-            col
-            for col in filter_columns
-            if col
-            and not is_adhoc_column(col)
-            and (col in self.column_names or col in applied_template_filters)
-        ] + applied_adhoc_filters_columns
 
         return SqlaQuery(
             applied_template_filters=applied_template_filters,
