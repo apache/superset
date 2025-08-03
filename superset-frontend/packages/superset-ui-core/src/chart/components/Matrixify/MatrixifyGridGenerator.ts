@@ -43,7 +43,7 @@ function generateCellTitle(
   try {
     // Compile the Handlebars template
     const compiledTemplate = Handlebars.compile(template);
-    
+
     // Create context with both naming conventions for flexibility
     const context = {
       row: rowLabel,
@@ -53,7 +53,7 @@ function generateCellTitle(
       col: colLabel,
       colLabel,
     };
-    
+
     // Render the template with the context
     return compiledTemplate(context);
   } catch (error) {
