@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 
-import json
+import json  # noqa: TID251
 import re
 import shutil
 import subprocess
@@ -114,7 +114,7 @@ def clean_dist_frontend(cwd: Path) -> None:
         shutil.rmtree(frontend_dist)
 
 
-def build_manifest(cwd: Path, remote_entry: str) -> Manifest:
+def build_manifest(cwd: Path, remote_entry: str | None) -> Manifest:
     extension: Metadata = cast(Metadata, read_json(cwd / "extension.json"))
     if not extension:
         click.secho("❌ extension.json not found.", err=True, fg="red")
@@ -126,10 +126,15 @@ def build_manifest(cwd: Path, remote_entry: str) -> Manifest:
         "permissions": extension["permissions"],
         "dependencies": extension.get("dependencies", []),
     }
-    if frontend := extension.get("frontend"):
+    if (
+        (frontend := extension.get("frontend"))
+        and (contributions := frontend.get("contributions"))
+        and (module_federation := frontend.get("moduleFederation"))
+        and remote_entry
+    ):
         manifest["frontend"] = {
-            "contributions": frontend["contributions"],
-            "moduleFederation": frontend["moduleFederation"],
+            "contributions": contributions,
+            "moduleFederation": module_federation,
             "remoteEntry": remote_entry,
         }
 

@@ -14,7 +14,6 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-import json
 from base64 import b64decode
 
 from flask_appbuilder import Model
@@ -22,6 +21,7 @@ from sqlalchemy import Boolean, Column, DateTime, Integer, String, Text
 
 from superset.extensions.types import Manifest
 from superset.models.helpers import AuditMixinNullable, ImportExportMixin
+from superset.utils import json
 
 
 def _decode_assets(value: str | None) -> dict[str, bytes] | None:

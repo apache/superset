@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 
-import json
+import json  # noqa: TID251
 from pathlib import Path
 from typing import Any
 

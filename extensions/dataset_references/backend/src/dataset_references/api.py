@@ -72,7 +72,7 @@ class DatasetReferencesAPI(RestApi):
                                 reltuples::BIGINT AS estimated_row_count
                             FROM pg_class
                             WHERE relname IN ({table_names})
-                        """
+                        """  # noqa: S608
                 )
                 for _, row in count_estimates.iterrows():
                     table_name = row["table_name"]
@@ -81,7 +81,7 @@ class DatasetReferencesAPI(RestApi):
             else:
                 # For other databases, we simulate row counts
                 for table in tables:
-                    row_counts[table] = random.randint(0, 100_000)
+                    row_counts[table] = random.randint(0, 100_000)  # noqa: S311
 
         result = []
         for table_name in tables:
