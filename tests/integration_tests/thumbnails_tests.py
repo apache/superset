@@ -172,7 +172,7 @@ class TestWebDriverSelenium(SupersetTestCase):
         webdriver = WebDriverSelenium("firefox", user=user)
         url = get_url_path("Superset.slice", slice_id=1, standalone="true")
         webdriver.get_screenshot(url, "chart-container")
-        assert mock_webdriver_wait.call_args_list[1] == call(ANY, 15)
+        assert mock_webdriver_wait.call_args_list[2] == call(ANY, 15)
 
     @patch("superset.utils.webdriver.WebDriverWait")
     @patch("superset.utils.webdriver.firefox")
