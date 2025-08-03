@@ -32,6 +32,20 @@ import {
   BuggyChartPlugin,
 } from './MockChartPlugins';
 
+// Mock Matrixify imports
+jest.mock('../../../src/chart/types/matrixify', () => ({
+  isMatrixifyEnabled: jest.fn(() => false),
+  getMatrixifyConfig: jest.fn(() => null),
+}));
+
+jest.mock(
+  '../../../src/chart/components/Matrixify/MatrixifyGridRenderer',
+  () => ({
+    __esModule: true,
+    default: jest.fn(() => null),
+  }),
+);
+
 const DEFAULT_QUERY_DATA = { data: ['foo', 'bar'] };
 const DEFAULT_QUERIES_DATA = [
   { data: ['foo', 'bar'] },
