@@ -1706,6 +1706,47 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             )
         return and_(*filters) if filters else sa.true()
 
+    def _build_template_kwargs(
+        self,
+        query_obj: QueryObject,
+        granularity: str | None,
+    ) -> dict[str, Any]:
+        """Build template kwargs from QueryObject and datasource.
+
+        Args:
+            query_obj: QueryObject containing query parameters
+            granularity: The time column name (may be adjusted from
+                query_obj.granularity)
+
+        Returns:
+            Dictionary of template parameters
+        """
+        template_kwargs = {
+            "columns": query_obj.columns,
+            "from_dttm": query_obj.from_dttm.isoformat()
+            if query_obj.from_dttm
+            else None,
+            "groupby": query_obj.columns,  # QueryObject uses columns instead of groupby
+            "metrics": query_obj.metrics,
+            "row_limit": query_obj.row_limit,
+            "row_offset": query_obj.row_offset,
+            "time_column": granularity,
+            "time_grain": query_obj.time_grain,
+            "to_dttm": query_obj.to_dttm.isoformat() if query_obj.to_dttm else None,
+            "table_columns": [col.column_name for col in self.columns],
+            "filter": query_obj.filter,
+        }
+
+        # Add deprecated template params (to be removed in 2.0)
+        template_kwargs.update(self.template_params_dict)
+
+        # Add mutable tracking lists
+        template_kwargs["extra_cache_keys"] = []
+        template_kwargs["removed_filters"] = []
+        template_kwargs["applied_filters"] = []
+
+        return template_kwargs
+
     def _wrap_query_for_rowcount(
         self,
         qry: Select,
@@ -1862,9 +1903,6 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         is_timeseries = query_obj.is_timeseries
         from_dttm = query_obj.from_dttm
         to_dttm = query_obj.to_dttm
-        time_grain = (
-            query_obj.extras.get("time_grain_sqla") if query_obj.extras else None
-        )
 
         if granularity:
             if granularity not in query_obj.columns_by_name:
@@ -1885,7 +1923,8 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
 
             if is_timeseries:
                 timestamp = dttm_col.get_timestamp_expression(
-                    time_grain=time_grain, template_processor=template_processor
+                    time_grain=query_obj.time_grain,
+                    template_processor=template_processor,
                 )
                 # always put timestamp as the first column
                 select_exprs.insert(0, timestamp)
@@ -1923,8 +1962,6 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         if granularity not in self.dttm_cols and granularity is not None:
             granularity = self.main_dttm_col
 
-        time_grain = query_obj.time_grain
-
         # Extract values that need special handling
         from_dttm = query_obj.from_dttm
         to_dttm = query_obj.to_dttm
@@ -1935,35 +1972,19 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         with self.database.get_sqla_engine() as engine:
             quote = engine.dialect.identifier_preparer.quote
 
-        template_kwargs = {
-            "columns": query_obj.columns,
-            "from_dttm": query_obj.from_dttm.isoformat()
-            if query_obj.from_dttm
-            else None,
-            "groupby": query_obj.columns,  # QueryObject uses columns instead of groupby
-            "metrics": query_obj.metrics,
-            "row_limit": query_obj.row_limit,
-            "row_offset": query_obj.row_offset,
-            "time_column": granularity,
-            "time_grain": time_grain,
-            "to_dttm": query_obj.to_dttm.isoformat() if query_obj.to_dttm else None,
-            "table_columns": [col.column_name for col in self.columns],
-            "filter": query_obj.filter,
-        }
+        # Build template kwargs
+        template_kwargs = self._build_template_kwargs(query_obj, granularity)
+        extra_cache_keys = template_kwargs["extra_cache_keys"]
+        removed_filters = template_kwargs["removed_filters"]
+        applied_template_filters = template_kwargs["applied_filters"]
+
         rejected_adhoc_filters_columns: list[Union[str, ColumnTyping]] = []
         applied_adhoc_filters_columns: list[Union[str, ColumnTyping]] = []
         db_engine_spec = self.db_engine_spec
         series_column_labels = self._normalize_column_labels(
             query_obj.columns, query_obj.series_columns
         )
-        # deprecated, to be removed in 2.0
-        template_kwargs.update(self.template_params_dict)
-        extra_cache_keys: list[Any] = []
-        template_kwargs["extra_cache_keys"] = extra_cache_keys
-        removed_filters: list[str] = []
-        applied_template_filters: list[str] = []
-        template_kwargs["removed_filters"] = removed_filters
-        template_kwargs["applied_filters"] = applied_template_filters
+
         template_processor = self.get_template_processor(**template_kwargs)
         prequeries: list[str] = []
 
@@ -2014,7 +2035,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     if selected == granularity:
                         table_col = query_obj.columns_by_name[selected]
                         outer = table_col.get_timestamp_expression(
-                            time_grain=time_grain,
+                            time_grain=query_obj.time_grain,
                             label=selected,
                             template_processor=template_processor,
                         )
