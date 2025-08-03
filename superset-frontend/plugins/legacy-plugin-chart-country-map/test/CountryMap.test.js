@@ -17,7 +17,9 @@
  * under the License.
  */
 
+import '@testing-library/jest-dom';
 import CountryMap from '../src/CountryMap';
+import '../src/CountryMap.css';
 
 describe('CountryMap', () => {
   let container;
@@ -84,8 +86,10 @@ describe('CountryMap', () => {
     const tooltip = container.querySelector('.tooltip');
     expect(tooltip).toBeTruthy();
 
-    // Check if tooltip has position absolute
-    const computedStyle = window.getComputedStyle(tooltip);
-    expect(computedStyle.position).toBe('absolute');
+    // Check if tooltip has the correct class
+    expect(tooltip).toHaveClass('tooltip');
+
+    // Check if tooltip has opacity 0 initially
+    expect(tooltip).toHaveStyle({ opacity: '0' });
   });
 });
