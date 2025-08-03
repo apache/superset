@@ -16,7 +16,6 @@
 # under the License.
 from __future__ import annotations
 
-import json
 import logging
 from base64 import b64encode
 from typing import Any, cast
@@ -26,6 +25,7 @@ from superset_core.extensions.types import Manifest
 from superset import db
 from superset.daos.base import BaseDAO
 from superset.extensions.models import Extension
+from superset.utils import json
 
 logger = logging.getLogger(__name__)
 
@@ -54,8 +54,8 @@ class ExtensionDAO(BaseDAO[Extension]):
     def upsert(
         name: str,
         manifest: Manifest,
-        frontend: dict[str, bytes],
-        backend: dict[str, bytes],
+        frontend: dict[str, bytes] | None,
+        backend: dict[str, bytes] | None,
         enabled: bool,
     ) -> Extension:
         manifest_str = json_dumps_compact(cast(dict[str, Any], manifest))

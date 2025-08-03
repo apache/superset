@@ -40,5 +40,9 @@ class ExtensionUpdateFailedError(UpdateFailedError):
     message = _("An error occurred while updating the extension.")
 
 
+class ExtensionUpsertFailedError(UpdateFailedError):
+    message = _("An error occurred while upserting the extension.")
+
+
 class BundleValidationError(Exception):
     pass

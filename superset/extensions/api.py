@@ -25,7 +25,8 @@ from flask_appbuilder.api import expose, protect, rison, safe
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from marshmallow import ValidationError
 
-from superset import db
+from superset.commands.extension.delete import DeleteExtensionCommand
+from superset.commands.extension.upsert import UpsertExtensionCommand
 from superset.daos.extension import ExtensionDAO
 from superset.extensions import event_logger
 from superset.extensions.models import Extension
@@ -238,7 +239,6 @@ class ExtensionsRestApi(BaseSupersetModelRestApi):
             500:
               $ref: '#/components/responses/500'
         """
-        # TODO: Move code to command with @transaction
         upload = request.files.get("bundle")
         if not upload or not is_zipfile(upload):
             return self.response_400(message="Missing extensions bundle")
@@ -247,18 +247,18 @@ class ExtensionsRestApi(BaseSupersetModelRestApi):
             try:
                 files = get_bundle_files_from_zip(uploaded_file)
                 extension = get_loaded_extension(files)
-                result = ExtensionDAO.upsert(
-                    name=extension.name,
-                    manifest=extension.manifest,
-                    frontend=extension.frontend,
-                    backend=extension.backend,
-                    enabled=True,
-                )
-                db.session.commit()
+                result = UpsertExtensionCommand(
+                    {
+                        "name": extension.name,
+                        "manifest": extension.manifest,
+                        "frontend": extension.frontend,
+                        "backend": extension.backend,
+                        "enabled": True,
+                    }
+                ).run()
+                return self.response(200, id=result.id)
             except Exception as ex:
-                self.response_400(message=str(ex))
-
-        return self.response(200, id=result.id)
+                return self.response_400(message=str(ex))
 
     @expose("/<int:pk>", methods=("PUT",))
     @protect()
@@ -362,6 +362,5 @@ class ExtensionsRestApi(BaseSupersetModelRestApi):
         if not ids or not isinstance(ids, list):
             return self.response_400(message="Invalid or missing ids")
 
-        ExtensionDAO.remove_by_ids(ids)
-        db.session.commit()
+        DeleteExtensionCommand(ids).run()
         return self.response(200, result=True)

@@ -17,7 +17,7 @@
 
 from typing import Any
 
-from sqlglot import Dialects
+from sqlglot import Dialects  # pylint: disable=disallowed-sql-import
 from superset_core.api.types.query import CoreQueryApi
 
 from superset.sql.parse import SQLGLOT_DIALECTS

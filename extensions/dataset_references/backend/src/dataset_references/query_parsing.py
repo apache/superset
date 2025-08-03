@@ -44,8 +44,11 @@ def is_cte(source: exp.Table, scope: Scope) -> bool:
     return source.name in ctes_in_scope
 
 
-def extract_tables(sql, dialect: Dialects | None = None) -> list[Table]:
+def extract_tables(sql: str, dialect: Dialects | None = None) -> list[str]:
     statements = parse(sql, dialect=dialect)
+    if statements is None:
+        return []
+
     return [
         table.table
         for statement in statements
