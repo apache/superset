@@ -113,18 +113,19 @@ class TestConnectionDatabaseCommand(BaseCommand):
         ssh_tunnel_properties = self._properties.get("ssh_tunnel")
         if ssh_tunnel_properties and self._model and self._model.ssh_tunnel:
             # unmask password while allowing for updated values
-            ssh_tunnel_attributes = unmask_password_info(
+            ssh_tunnel_properties = unmask_password_info(
                 ssh_tunnel_properties,
                 self._model.ssh_tunnel,
             )
 
+        database: Database | None = None
         try:
             database = DatabaseDAO.build_db_for_connection_test(
                 server_cert=self._properties.get("server_cert", ""),
                 extra=self._properties.get("extra", "{}"),
                 impersonate_user=self._properties.get("impersonate_user", False),
                 encrypted_extra=serialized_encrypted_extra,
-                ssh_tunnel=ssh_tunnel_attributes,
+                ssh_tunnel=ssh_tunnel_properties,
             )
 
             database.set_sqlalchemy_uri(self._uri)
@@ -186,8 +187,9 @@ class TestConnectionDatabaseCommand(BaseCommand):
                 engine=engine,
             )
             raise DatabaseTestConnectionDriverError(
-                message=_("Could not load database driver: {}").format(
-                    database.db_engine_spec.__name__
+                message=_(
+                    "Could not load database driver for: %(engine)s",
+                    engine=engine,
                 ),
             ) from ex
         except DBAPIError as ex:
@@ -199,6 +201,9 @@ class TestConnectionDatabaseCommand(BaseCommand):
                 ),
                 engine=engine,
             )
+
+            if not database:
+                raise
             # check for custom errors (wrong username, wrong password, etc)
             errors = database.db_engine_spec.extract_errors(
                 ex, self._context, database_name=database.unique_name
@@ -228,6 +233,9 @@ class TestConnectionDatabaseCommand(BaseCommand):
             # bubble up the exception to return proper status code
             raise
         except Exception as ex:
+            if not database:
+                raise
+
             if database.is_oauth2_enabled() and database.db_engine_spec.needs_oauth2(
                 ex
             ):

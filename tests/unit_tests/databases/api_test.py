@@ -308,6 +308,7 @@ def test_database_connection(
             },
             "server_cert": None,
             "sqlalchemy_uri": "gsheets://",
+            "ssh_tunnel": None,
             "uuid": "02feae18-2dd6-4bb4-a9c0-49e9d4f29d58",
         },
     }
@@ -705,10 +706,6 @@ def test_apply_dynamic_database_filter(
         # mock the lookup so that we don't need to include the driver
         mocker.patch("sqlalchemy.engine.URL.get_driver_name", return_value="gsheets")
         mocker.patch("superset.utils.log.DBEventLogger.log")
-        mocker.patch(
-            "superset.commands.database.ssh_tunnel.delete.is_feature_enabled",
-            return_value=False,
-        )
 
         def _base_filter(query):
             from superset.models.core import Database
