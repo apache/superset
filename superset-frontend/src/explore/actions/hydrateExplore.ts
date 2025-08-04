@@ -77,6 +77,68 @@ export const hydrateExplore =
       initialFormData.time_range =
         common?.conf?.DEFAULT_TIME_FILTER || NO_TIME_RANGE;
     }
+
+    // Apply dataset chart defaults if this is a new chart (no existing slice)
+    const isNewChart = !initialSlice?.slice_id;
+    if (isNewChart && dataset?.extra) {
+      try {
+        const datasetExtra = JSON.parse(
+          typeof dataset.extra === 'string' ? dataset.extra : '{}',
+        );
+        const chartDefaults = datasetExtra?.default_chart_metadata || {};
+
+        // Apply default metric
+        if (chartDefaults.default_metric && !initialFormData.metrics?.length) {
+          const defaultMetric = dataset.metrics?.find(
+            metric => metric.metric_name === chartDefaults.default_metric,
+          );
+          if (defaultMetric) {
+            initialFormData.metrics = [chartDefaults.default_metric];
+          }
+        }
+
+        // Apply default dimension/groupby
+        if (
+          chartDefaults.default_dimension &&
+          !initialFormData.groupby?.length
+        ) {
+          const defaultColumn = dataset.columns?.find(
+            col =>
+              col.column_name === chartDefaults.default_dimension &&
+              col.groupby,
+          );
+          if (defaultColumn) {
+            initialFormData.groupby = [chartDefaults.default_dimension];
+          }
+        }
+
+        // Apply default time grain
+        if (
+          chartDefaults.default_time_grain &&
+          !initialFormData.time_grain_sqla
+        ) {
+          initialFormData.time_grain_sqla = chartDefaults.default_time_grain;
+        }
+
+        // Apply default time range (but don't override if already set above)
+        if (
+          chartDefaults.default_time_range &&
+          initialFormData.time_range ===
+            (common?.conf?.DEFAULT_TIME_FILTER || NO_TIME_RANGE)
+        ) {
+          initialFormData.time_range = chartDefaults.default_time_range;
+        }
+
+        // Apply default row limit
+        if (chartDefaults.default_row_limit && !initialFormData.row_limit) {
+          initialFormData.row_limit = chartDefaults.default_row_limit;
+        }
+      } catch (error) {
+        // Silently ignore JSON parsing errors - defaults will not be applied
+        console.warn('Failed to parse dataset chart defaults:', error);
+      }
+    }
+
     if (
       initialFormData.include_time &&
       initialFormData.granularity_sqla &&

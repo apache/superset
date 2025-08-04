@@ -827,11 +827,18 @@ class DatasourceEditor extends PureComponent {
         newCols,
         this.props.addSuccessToast,
       );
+
+      // Update columns
+      const updatedDatabaseColumns = columnChanges.finalColumns.filter(
+        col => !col.expression, // remove calculated columns
+      );
       this.setColumns({
-        databaseColumns: columnChanges.finalColumns.filter(
-          col => !col.expression, // remove calculated columns
-        ),
+        databaseColumns: updatedDatabaseColumns,
       });
+
+      // Clean up chart defaults that may reference removed columns
+      this.cleanupChartDefaults(updatedDatabaseColumns, columnChanges.removed);
+
       this.props.addSuccessToast(t('Metadata has been synced'));
       this.setState({ metadataLoading: false });
     } catch (error) {
@@ -841,6 +848,46 @@ class DatasourceEditor extends PureComponent {
         clientError || statusText || t('An error has occurred'),
       );
       this.setState({ metadataLoading: false });
+    }
+  }
+
+  cleanupChartDefaults(updatedColumns, removedColumnNames) {
+    const { datasource } = this.state;
+    if (!datasource.extra) return;
+
+    try {
+      const extra = JSON.parse(datasource.extra);
+      const chartDefaults = extra.default_chart_metadata || {};
+      let needsUpdate = false;
+
+      // Check if default dimension was removed
+      if (
+        chartDefaults.default_dimension &&
+        removedColumnNames.includes(chartDefaults.default_dimension)
+      ) {
+        delete chartDefaults.default_dimension;
+        needsUpdate = true;
+        this.props.addDangerToast(
+          t(
+            'Default dimension "%s" was removed during metadata sync',
+            chartDefaults.default_dimension,
+          ),
+        );
+      }
+
+      // Note: We don't check metrics here since they're not part of column sync
+      // Metrics are managed separately and won't be affected by column metadata sync
+
+      if (needsUpdate) {
+        extra.default_chart_metadata = chartDefaults;
+        this.onDatasourcePropChange('extra', JSON.stringify(extra));
+      }
+    } catch (error) {
+      // Ignore JSON parsing errors
+      console.warn(
+        'Failed to parse dataset extra during chart defaults cleanup:',
+        error,
+      );
     }
   }
 
@@ -913,86 +960,266 @@ class DatasourceEditor extends PureComponent {
   renderSettingsFieldset() {
     const { datasource } = this.state;
     return (
-      <Fieldset
-        title={t('Basic')}
-        item={datasource}
-        onChange={this.onDatasourceChange}
-      >
-        <Field
-          fieldKey="description"
-          label={t('Description')}
-          control={
-            <TextAreaControl
-              language="markdown"
-              offerEditInModal={false}
-              resize="vertical"
-            />
-          }
-        />
-        <Field
-          fieldKey="default_endpoint"
-          label={t('Default URL')}
-          description={t(
-            `Default URL to redirect to when accessing from the dataset list page.
-            Accepts relative URLs such as <span style=„white-space: nowrap;”>/superset/dashboard/{id}/</span>`,
-          )}
-          control={<TextControl controlId="default_endpoint" />}
-        />
-        <Field
-          inline
-          fieldKey="filter_select_enabled"
-          label={t('Autocomplete filters')}
-          description={t('Whether to populate autocomplete filters options')}
-          control={<CheckboxControl />}
-        />
-        {this.state.isSqla && (
+      <>
+        <Fieldset
+          title={t('Basic')}
+          item={datasource}
+          onChange={this.onDatasourceChange}
+        >
           <Field
-            fieldKey="fetch_values_predicate"
-            label={t('Autocomplete query predicate')}
-            description={t(
-              'When using "Autocomplete filters", this can be used to improve performance ' +
-                'of the query fetching the values. Use this option to apply a ' +
-                'predicate (WHERE clause) to the query selecting the distinct ' +
-                'values from the table. Typically the intent would be to limit the scan ' +
-                'by applying a relative time filter on a partitioned or indexed time-related field.',
-            )}
+            fieldKey="description"
+            label={t('Description')}
             control={
               <TextAreaControl
-                language="sql"
-                controlId="fetch_values_predicate"
-                minLines={5}
-                resize="vertical"
-              />
-            }
-          />
-        )}
-        {this.state.isSqla && (
-          <Field
-            fieldKey="extra"
-            label={t('Extra')}
-            description={t(
-              'Extra data to specify table metadata. Currently supports ' +
-                'metadata of the format: `{ "certification": { "certified_by": ' +
-                '"Data Platform Team", "details": "This table is the source of truth." ' +
-                '}, "warning_markdown": "This is a warning." }`.',
-            )}
-            control={
-              <TextAreaControl
-                controlId="extra"
-                language="json"
+                language="markdown"
                 offerEditInModal={false}
                 resize="vertical"
               />
             }
           />
-        )}
-        <OwnersSelector
-          datasource={datasource}
-          onChange={newOwners => {
-            this.onDatasourceChange({ ...datasource, owners: newOwners });
-          }}
-        />
-      </Fieldset>
+          <Field
+            fieldKey="default_endpoint"
+            label={t('Default URL')}
+            description={t(
+              `Default URL to redirect to when accessing from the dataset list page.
+            Accepts relative URLs such as <span style=„white-space: nowrap;”>/superset/dashboard/{id}/</span>`,
+            )}
+            control={<TextControl controlId="default_endpoint" />}
+          />
+          <Field
+            inline
+            fieldKey="filter_select_enabled"
+            label={t('Autocomplete filters')}
+            description={t('Whether to populate autocomplete filters options')}
+            control={<CheckboxControl />}
+          />
+          {this.state.isSqla && (
+            <Field
+              fieldKey="fetch_values_predicate"
+              label={t('Autocomplete query predicate')}
+              description={t(
+                'When using "Autocomplete filters", this can be used to improve performance ' +
+                  'of the query fetching the values. Use this option to apply a ' +
+                  'predicate (WHERE clause) to the query selecting the distinct ' +
+                  'values from the table. Typically the intent would be to limit the scan ' +
+                  'by applying a relative time filter on a partitioned or indexed time-related field.',
+              )}
+              control={
+                <TextAreaControl
+                  language="sql"
+                  controlId="fetch_values_predicate"
+                  minLines={5}
+                  resize="vertical"
+                />
+              }
+            />
+          )}
+          {this.state.isSqla && (
+            <Field
+              fieldKey="extra"
+              label={t('Extra')}
+              description={t(
+                'Extra data to specify table metadata. Currently supports ' +
+                  'metadata of the format: `{ "certification": { "certified_by": ' +
+                  '"Data Platform Team", "details": "This table is the source of truth." ' +
+                  '}, "warning_markdown": "This is a warning." }`.',
+              )}
+              control={
+                <TextAreaControl
+                  controlId="extra"
+                  language="json"
+                  offerEditInModal={false}
+                  resize="vertical"
+                />
+              }
+            />
+          )}
+          <OwnersSelector
+            datasource={datasource}
+            onChange={newOwners => {
+              this.onDatasourceChange({ ...datasource, owners: newOwners });
+            }}
+          />
+        </Fieldset>
+        <Fieldset
+          title={t('Chart Defaults')}
+          item={datasource}
+          onChange={this.onDatasourceChange}
+        >
+          <Field
+            fieldKey="default_metric"
+            label={t('Default Metric')}
+            description={t(
+              'Pre-populate this metric when creating new charts from this dataset',
+            )}
+            control={
+              <Select
+                name="default_metric"
+                options={
+                  datasource?.metrics?.map(metric => ({
+                    value: metric.metric_name,
+                    label: metric.verbose_name || metric.metric_name,
+                  })) || []
+                }
+                value={
+                  datasource.extra &&
+                  JSON.parse(datasource.extra || '{}')?.default_chart_metadata
+                    ?.default_metric
+                }
+                onChange={value => {
+                  const extra = JSON.parse(datasource.extra || '{}');
+                  if (!extra.default_chart_metadata) {
+                    extra.default_chart_metadata = {};
+                  }
+                  extra.default_chart_metadata.default_metric = value;
+                  this.onDatasourcePropChange('extra', JSON.stringify(extra));
+                }}
+                placeholder={t('Select a metric')}
+                allowClear
+              />
+            }
+          />
+          <Field
+            fieldKey="default_dimension"
+            label={t('Default Dimension')}
+            description={t(
+              'Pre-populate this dimension/groupby when creating new charts from this dataset',
+            )}
+            control={
+              <Select
+                name="default_dimension"
+                options={
+                  datasource?.columns
+                    ?.filter(col => col.groupby)
+                    ?.map(column => ({
+                      value: column.column_name,
+                      label: column.verbose_name || column.column_name,
+                    })) || []
+                }
+                value={
+                  datasource.extra &&
+                  JSON.parse(datasource.extra || '{}')?.default_chart_metadata
+                    ?.default_dimension
+                }
+                onChange={value => {
+                  const extra = JSON.parse(datasource.extra || '{}');
+                  if (!extra.default_chart_metadata) {
+                    extra.default_chart_metadata = {};
+                  }
+                  extra.default_chart_metadata.default_dimension = value;
+                  this.onDatasourcePropChange('extra', JSON.stringify(extra));
+                }}
+                placeholder={t('Select a dimension')}
+                allowClear
+              />
+            }
+          />
+          <Field
+            fieldKey="default_time_grain"
+            label={t('Default Time Grain')}
+            description={t(
+              'Pre-populate this time grain when creating new charts from this dataset',
+            )}
+            control={
+              <Select
+                name="default_time_grain"
+                options={[
+                  { value: 'PT1S', label: t('Second') },
+                  { value: 'PT1M', label: t('Minute') },
+                  { value: 'PT5M', label: t('5 Minutes') },
+                  { value: 'PT10M', label: t('10 Minutes') },
+                  { value: 'PT15M', label: t('15 Minutes') },
+                  { value: 'PT30M', label: t('30 Minutes') },
+                  { value: 'PT1H', label: t('Hour') },
+                  { value: 'P1D', label: t('Day') },
+                  { value: 'P1W', label: t('Week') },
+                  { value: 'P1M', label: t('Month') },
+                  { value: 'P1Y', label: t('Year') },
+                ]}
+                value={
+                  datasource.extra &&
+                  JSON.parse(datasource.extra || '{}')?.default_chart_metadata
+                    ?.default_time_grain
+                }
+                onChange={value => {
+                  const extra = JSON.parse(datasource.extra || '{}');
+                  if (!extra.default_chart_metadata) {
+                    extra.default_chart_metadata = {};
+                  }
+                  extra.default_chart_metadata.default_time_grain = value;
+                  this.onDatasourcePropChange('extra', JSON.stringify(extra));
+                }}
+                placeholder={t('Select a time grain')}
+                allowClear
+              />
+            }
+          />
+          <Field
+            fieldKey="default_time_range"
+            label={t('Default Time Range')}
+            description={t(
+              'Pre-populate this time range when creating new charts from this dataset',
+            )}
+            control={
+              <Select
+                name="default_time_range"
+                options={[
+                  { value: 'Last day', label: t('Last day') },
+                  { value: 'Last 7 days', label: t('Last 7 days') },
+                  { value: 'Last 30 days', label: t('Last 30 days') },
+                  { value: 'Last 90 days', label: t('Last 90 days') },
+                  { value: 'Last year', label: t('Last year') },
+                  { value: 'No filter', label: t('No filter') },
+                ]}
+                value={
+                  datasource.extra &&
+                  JSON.parse(datasource.extra || '{}')?.default_chart_metadata
+                    ?.default_time_range
+                }
+                onChange={value => {
+                  const extra = JSON.parse(datasource.extra || '{}');
+                  if (!extra.default_chart_metadata) {
+                    extra.default_chart_metadata = {};
+                  }
+                  extra.default_chart_metadata.default_time_range = value;
+                  this.onDatasourcePropChange('extra', JSON.stringify(extra));
+                }}
+                placeholder={t('Select a time range')}
+                allowClear
+              />
+            }
+          />
+          <Field
+            fieldKey="default_row_limit"
+            label={t('Default Row Limit')}
+            description={t(
+              'Pre-populate this row limit when creating new charts from this dataset',
+            )}
+            control={
+              <TextControl
+                name="default_row_limit"
+                value={
+                  datasource.extra &&
+                  JSON.parse(datasource.extra || '{}')?.default_chart_metadata
+                    ?.default_row_limit
+                }
+                onChange={value => {
+                  const extra = JSON.parse(datasource.extra || '{}');
+                  if (!extra.default_chart_metadata) {
+                    extra.default_chart_metadata = {};
+                  }
+                  extra.default_chart_metadata.default_row_limit = value
+                    ? parseInt(value, 10)
+                    : null;
+                  this.onDatasourcePropChange('extra', JSON.stringify(extra));
+                }}
+                placeholder={t('e.g., 1000')}
+                type="number"
+              />
+            }
+          />
+        </Fieldset>
+      </>
     );
   }
 
