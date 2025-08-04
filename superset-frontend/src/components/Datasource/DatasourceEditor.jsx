@@ -685,6 +685,7 @@ class DatasourceEditor extends PureComponent {
     this.onChangeEditMode = this.onChangeEditMode.bind(this);
     this.onDatasourcePropChange = this.onDatasourcePropChange.bind(this);
     this.onDatasourceChange = this.onDatasourceChange.bind(this);
+    this.onChartDefaultChange = this.onChartDefaultChange.bind(this);
     this.tableChangeAndSyncMetadata =
       this.tableChangeAndSyncMetadata.bind(this);
     this.syncMetadata = this.syncMetadata.bind(this);
@@ -705,6 +706,10 @@ class DatasourceEditor extends PureComponent {
     // Currently the logic to know whether the source is
     // physical or virtual is based on whether SQL is empty or not.
     const { datasourceType, datasource } = this.state;
+    console.log(
+      'onChange() - this.state.datasource.extra:',
+      this.state.datasource.extra,
+    );
     const sql =
       datasourceType === DATASOURCE_TYPES.physical.key ? '' : datasource.sql;
     const newDatasource = {
@@ -712,6 +717,7 @@ class DatasourceEditor extends PureComponent {
       sql,
       columns: [...this.state.databaseColumns, ...this.state.calculatedColumns],
     };
+    console.log('onChange() - newDatasource.extra:', newDatasource.extra);
     this.props.onChange(newDatasource, this.state.errors);
   }
 
@@ -745,6 +751,19 @@ class DatasourceEditor extends PureComponent {
         }
       },
     );
+  }
+
+  // Helper method to update chart defaults in extra field
+  onChartDefaultChange(defaultKey, value) {
+    console.log(`onChartDefaultChange: ${defaultKey} =`, value);
+    const extra = { ...parseExtra(this.state.datasource.extra) };
+    if (!extra.default_chart_metadata) {
+      extra.default_chart_metadata = {};
+    }
+    extra.default_chart_metadata[defaultKey] = value;
+    const stringified = JSON.stringify(extra);
+    console.log('onChartDefaultChange - saving extra as:', stringified);
+    this.onDatasourcePropChange('extra', stringified);
   }
 
   onDatasourceTypeChange(datasourceType) {
@@ -1083,6 +1102,13 @@ class DatasourceEditor extends PureComponent {
             description={t(
               'Pre-populate this metric when creating new charts from this dataset',
             )}
+            value={
+              parseExtra(datasource.extra).default_chart_metadata
+                ?.default_metric
+            }
+            onChange={(fieldKey, value) =>
+              this.onChartDefaultChange('default_metric', value)
+            }
             control={
               <Select
                 name="default_metric"
@@ -1092,21 +1118,6 @@ class DatasourceEditor extends PureComponent {
                     label: metric.verbose_name || metric.metric_name,
                   })) || []
                 }
-                value={
-                  parseExtra(datasource.extra).default_chart_metadata
-                    ?.default_metric
-                }
-                onChange={value => {
-                  console.log('Setting default_metric to:', value);
-                  const extra = { ...parseExtra(datasource.extra) };
-                  if (!extra.default_chart_metadata) {
-                    extra.default_chart_metadata = {};
-                  }
-                  extra.default_chart_metadata.default_metric = value;
-                  const stringified = JSON.stringify(extra);
-                  console.log('Saving extra as:', stringified);
-                  this.onDatasourcePropChange('extra', stringified);
-                }}
                 placeholder={t('Select a metric')}
                 allowClear
               />
