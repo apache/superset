@@ -195,6 +195,28 @@ describe('MatrixifyGridGenerator', () => {
       expect(grid!.colHeaders).toEqual(['avg', 'max']);
     });
 
+    it('should not escape HTML entities in cell titles', () => {
+      const formDataWithSpecialChars: TestFormData = {
+        viz_type: 'table',
+        datasource: '1__table',
+        matrixify_mode_rows: 'metrics',
+        matrixify_mode_columns: 'metrics',
+        matrixify_rows: [createAdhocMetric('Sales & Revenue')],
+        matrixify_columns: [createAdhocMetric('Q1 > Q2')],
+        matrixify_cell_title_template: '{{row}} < {{column}}',
+      };
+
+      const grid = generateMatrixifyGrid(formDataWithSpecialChars);
+
+      expect(grid).not.toBeNull();
+      const firstCell = grid!.cells[0][0];
+      // Should NOT escape HTML entities
+      expect(firstCell!.title).toBe('Sales & Revenue < Q1 > Q2');
+      expect(firstCell!.title).not.toContain('&amp;');
+      expect(firstCell!.title).not.toContain('&lt;');
+      expect(firstCell!.title).not.toContain('&gt;');
+    });
+
     it('should apply chart-specific configurations', () => {
       const chartConfigFormData: TestFormData = {
         ...baseFormData,

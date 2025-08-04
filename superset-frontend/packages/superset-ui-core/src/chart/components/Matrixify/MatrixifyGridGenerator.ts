@@ -41,8 +41,8 @@ function generateCellTitle(
   }
 
   try {
-    // Compile the Handlebars template
-    const compiledTemplate = Handlebars.compile(template);
+    // Compile the Handlebars template with noEscape option to prevent HTML entity encoding
+    const compiledTemplate = Handlebars.compile(template, { noEscape: true });
 
     // Create context with both naming conventions for flexibility
     const context = {
