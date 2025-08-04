@@ -3168,7 +3168,7 @@ msgstr ""
 msgid "Custom"
 msgstr ""
 
-msgid "Custom Conditional Formatting"
+msgid "Custom conditional formatting"
 msgstr ""
 
 msgid "Custom Plugin"
@@ -9249,7 +9249,7 @@ msgid "Show CREATE VIEW statement"
 msgstr ""
 
 #, fuzzy
-msgid "Show Cell bars"
+msgid "Show cell bars"
 msgstr "Importovať dashboard"
 
 msgid "Show Dashboard"
@@ -12929,7 +12929,7 @@ msgstr ""
 msgid "`width` must be greater or equal to 0"
 msgstr ""
 
-msgid "add colors to cell bars for +/-"
+msgid "Add colors to cell bars for +/-"
 msgstr ""
 
 msgid "aggregate"
@@ -12974,7 +12974,7 @@ msgstr ""
 msgid "background"
 msgstr ""
 
-msgid "basic conditional formatting"
+msgid "Basic conditional formatting"
 msgstr ""
 
 msgid "basis"

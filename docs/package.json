@@ -15,7 +15,7 @@
     "write-translations": "docusaurus write-translations",
     "write-heading-ids": "docusaurus write-heading-ids",
     "typecheck": "tsc",
-    "eslint": "eslint . --ext .js,.jsx,.ts,.tsx"
+    "eslint": "eslint ."
   },
   "dependencies": {
     "@ant-design/icons": "^6.0.0",
@@ -26,33 +26,33 @@
     "@emotion/styled": "^10.0.27",
     "@saucelabs/theme-github-codeblock": "^0.3.0",
     "@superset-ui/style": "^0.14.23",
-    "antd": "^5.26.3",
+    "antd": "^5.26.7",
     "docusaurus-plugin-less": "^2.0.2",
-    "less": "^4.3.0",
+    "less": "^4.4.0",
     "less-loader": "^12.3.0",
     "prism-react-renderer": "^2.4.1",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-github-btn": "^1.4.0",
     "react-svg-pan-zoom": "^3.13.1",
-    "swagger-ui-react": "^5.26.0"
+    "swagger-ui-react": "^5.27.1"
   },
   "devDependencies": {
     "@docusaurus/module-type-aliases": "^3.8.1",
     "@docusaurus/tsconfig": "^3.8.1",
-    "@eslint/js": "^9.31.0",
+    "@eslint/js": "^9.32.0",
     "@types/react": "^19.1.8",
     "@typescript-eslint/eslint-plugin": "^8.37.0",
     "@typescript-eslint/parser": "^8.37.0",
     "eslint": "^9.31.0",
-    "eslint-config-prettier": "^10.1.5",
+    "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-prettier": "^5.5.1",
     "eslint-plugin-react": "^7.37.5",
     "globals": "^16.3.0",
     "prettier": "^3.6.2",
     "typescript": "~5.8.3",
     "typescript-eslint": "^8.37.0",
-    "webpack": "^5.99.9"
+    "webpack": "^5.101.0"
   },
   "browserslist": {
     "production": [

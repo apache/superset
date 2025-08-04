@@ -646,7 +646,7 @@ const config: ControlPanelConfig = {
             name: 'show_cell_bars',
             config: {
               type: 'CheckboxControl',
-              label: t('Show Cell bars'),
+              label: t('Show cell bars'),
               renderTrigger: true,
               default: true,
               description: t(
@@ -674,7 +674,7 @@ const config: ControlPanelConfig = {
             name: 'color_pn',
             config: {
               type: 'CheckboxControl',
-              label: t('add colors to cell bars for +/-'),
+              label: t('Add colors to cell bars for +/-'),
               renderTrigger: true,
               default: true,
               description: t(
@@ -688,7 +688,7 @@ const config: ControlPanelConfig = {
             name: 'comparison_color_enabled',
             config: {
               type: 'CheckboxControl',
-              label: t('basic conditional formatting'),
+              label: t('Basic conditional formatting'),
               renderTrigger: true,
               visibility: ({ controls }) =>
                 !isEmpty(controls?.time_compare?.value),
@@ -729,7 +729,7 @@ const config: ControlPanelConfig = {
             config: {
               type: 'ConditionalFormattingControl',
               renderTrigger: true,
-              label: t('Custom Conditional Formatting'),
+              label: t('Custom conditional formatting'),
               extraColorChoices: [
                 {
                   value: ColorSchemeEnum.Green,
