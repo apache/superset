@@ -491,8 +491,8 @@ describe('getSlicePayload', () => {
     dashboards: [],
   };
 
-  test('should return the correct payload when no adhoc_filters are present in formDataWithNativeFilters', () => {
-    const result = getSlicePayload(
+  test('should return the correct payload when no adhoc_filters are present in formDataWithNativeFilters', async () => {
+    const result = await getSlicePayload(
       sliceName,
       formDataWithNativeFilters,
       dashboards,
@@ -515,7 +515,7 @@ describe('getSlicePayload', () => {
     );
   });
 
-  test('should return the correct payload when adhoc_filters are present in formDataWithNativeFilters', () => {
+  test('should return the correct payload when adhoc_filters are present in formDataWithNativeFilters', async () => {
     const formDataWithAdhocFilters: QueryFormData = {
       ...formDataWithNativeFilters,
       adhoc_filters: [
@@ -528,7 +528,7 @@ describe('getSlicePayload', () => {
         },
       ],
     };
-    const result = getSlicePayload(
+    const result = await getSlicePayload(
       sliceName,
       formDataWithAdhocFilters,
       dashboards,
@@ -551,7 +551,7 @@ describe('getSlicePayload', () => {
     );
   });
 
-  test('should return the correct payload when formDataWithNativeFilters has a filter with isExtra set to true', () => {
+  test('should return the correct payload when formDataWithNativeFilters has a filter with isExtra set to true', async () => {
     const formDataWithAdhocFiltersWithExtra: QueryFormData = {
       ...formDataWithNativeFilters,
       adhoc_filters: [
@@ -564,7 +564,7 @@ describe('getSlicePayload', () => {
         },
       ],
     };
-    const result = getSlicePayload(
+    const result = await getSlicePayload(
       sliceName,
       formDataWithAdhocFiltersWithExtra,
       dashboards,
@@ -587,7 +587,7 @@ describe('getSlicePayload', () => {
     );
   });
 
-  test('should return the correct payload when formDataWithNativeFilters has a filter with isExtra set to true in mixed chart', () => {
+  test('should return the correct payload when formDataWithNativeFilters has a filter with isExtra set to true in mixed chart', async () => {
     const formDataFromSliceWithAdhocFilterB: QueryFormData = {
       ...formDataFromSlice,
       adhoc_filters_b: [
@@ -625,7 +625,7 @@ describe('getSlicePayload', () => {
         },
       ],
     };
-    const result = getSlicePayload(
+    const result = await getSlicePayload(
       sliceName,
       formDataWithAdhocFiltersWithExtra,
       dashboards,
@@ -641,7 +641,7 @@ describe('getSlicePayload', () => {
     );
   });
 
-  test('should return the correct payload when formDataFromSliceWithAdhocFilter has no time range filters in mixed chart', () => {
+  test('should return the correct payload when formDataFromSliceWithAdhocFilter has no time range filters in mixed chart', async () => {
     const formDataFromSliceWithAdhocFilterB: QueryFormData = {
       ...formDataFromSlice,
       adhoc_filters: [],
@@ -672,7 +672,7 @@ describe('getSlicePayload', () => {
         },
       ],
     };
-    const result = getSlicePayload(
+    const result = await getSlicePayload(
       sliceName,
       formDataWithAdhocFiltersWithExtra,
       dashboards,
@@ -690,7 +690,7 @@ describe('getSlicePayload', () => {
     expect(hasTemporalRange).toBe(true);
   });
 
-  test('should reset isExtra flag to false for temporal filter when saving as a new chart', () => {
+  test('should reset isExtra flag to false for temporal filter when saving as a new chart', async () => {
     const formDataWithTemporalFilterWithExtra: QueryFormData = {
       ...formDataWithNativeFilters,
       adhoc_filters: [
@@ -705,7 +705,7 @@ describe('getSlicePayload', () => {
       ],
     };
 
-    const result = getSlicePayload(
+    const result = await getSlicePayload(
       sliceName,
       formDataWithTemporalFilterWithExtra,
       dashboards,
