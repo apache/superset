@@ -31,6 +31,7 @@ import {
   ChartCustomizationItem,
   FilterOption,
 } from 'src/dashboard/components/nativeFilters/ChartCustomization/types';
+import { triggerQuery } from 'src/components/Chart/chartAction';
 import { removeDataMask, updateDataMask } from 'src/dataMask/actions';
 import { onSave } from './dashboardState';
 
@@ -322,6 +323,46 @@ export function saveChartCustomization(
 
     const simpleItems = Array.from(updatedItemsMap.values());
 
+    dispatch(setChartCustomization(simpleItems));
+
+    const removedItems = currentChartCustomizationItems.filter(
+      existingItem => !updatedItemsMap.has(existingItem.id),
+    );
+
+    removedItems.forEach(removedItem => {
+      const customizationFilterId = `chart_customization_${removedItem.id}`;
+      dispatch(removeDataMask(customizationFilterId));
+    });
+
+    simpleItems.forEach(item => {
+      const customizationFilterId = `chart_customization_${item.id}`;
+
+      if (item.customization?.column) {
+        const existingDataMask = getState().dataMask[customizationFilterId];
+
+        const existingFilterState = existingDataMask?.filterState;
+
+        dispatch(removeDataMask(customizationFilterId));
+
+        const dataMask = {
+          extraFormData: {},
+          filterState: {
+            value:
+              existingFilterState?.value ||
+              item.customization?.defaultDataMask?.filterState?.value ||
+              [],
+          },
+          ownState: {
+            column: item.customization.column,
+          },
+        };
+
+        dispatch(updateDataMask(customizationFilterId, dataMask));
+      } else {
+        dispatch(removeDataMask(customizationFilterId));
+      }
+    });
+
     const updateDashboard = createUpdateDashboardApi(id);
 
     try {
@@ -351,46 +392,18 @@ export function saveChartCustomization(
         json_metadata: JSON.stringify(updatedMetadata),
       });
 
-      const updatedDashboard = response.result;
       const lastModifiedTime = response.last_modified_time;
-
-      if (updatedDashboard.json_metadata) {
-        dispatch(setChartCustomization(simpleItems));
-
-        const removedItems = currentChartCustomizationItems.filter(
-          existingItem => !updatedItemsMap.has(existingItem.id),
-        );
-
-        removedItems.forEach(removedItem => {
-          const customizationFilterId = `chart_customization_${removedItem.id}`;
-          dispatch(removeDataMask(customizationFilterId));
-        });
-
-        simpleItems.forEach(item => {
-          const customizationFilterId = `chart_customization_${item.id}`;
-
-          if (item.customization?.column) {
-            dispatch(removeDataMask(customizationFilterId));
-
-            const dataMask = {
-              extraFormData: {},
-              filterState: {
-                value:
-                  item.customization?.defaultDataMask?.filterState?.value || [],
-              },
-              ownState: {
-                column: item.customization.column,
-              },
-            };
-            dispatch(updateDataMask(customizationFilterId, dataMask));
-          } else {
-            dispatch(removeDataMask(customizationFilterId));
-          }
-        });
-      }
 
       if (lastModifiedTime) {
         dispatch(onSave(lastModifiedTime));
+      }
+
+      const { dashboardState } = getState();
+      const chartIds = dashboardState.sliceIds || [];
+      if (chartIds.length > 0) {
+        chartIds.forEach(chartId => {
+          dispatch(triggerQuery(true, chartId));
+        });
       }
 
       return response;
