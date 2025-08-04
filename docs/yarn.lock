@@ -3993,6 +3993,26 @@ address@^1.0.1:
   resolved "https://registry.yarnpkg.com/address/-/address-1.2.2.tgz#2b5248dac5485a6390532c6a517fda2e3faac89e"
   integrity sha512-4B/qKCfeE/ODUaAUpSwfzazo5x29WD4r3vXiWsB7I2mSDAihwEqKO+g8GELZUQSSAo5e1XTYh3ZVfLyxBc12nA==
 
+ag-charts-types@12.1.0:
+  version "12.1.0"
+  resolved "https://registry.yarnpkg.com/ag-charts-types/-/ag-charts-types-12.1.0.tgz#75104b90e5f6ae01b7248ec3f6a8dabc65c3cbb6"
+  integrity sha512-qeODwJ1EqKjpwEbp0mQ2wQ0arRNYaZo2BafdAGfcuOwjOBlagSwJvUg5MCvAYZ/W/mg2uEmt7jKMNfDy4ul4+Q==
+
+ag-grid-community@34.1.0, ag-grid-community@^34.1.0:
+  version "34.1.0"
+  resolved "https://registry.yarnpkg.com/ag-grid-community/-/ag-grid-community-34.1.0.tgz#6356562b3a544a50bbab6a3d0929029567bbd7bc"
+  integrity sha512-3rZiOyyCGqSNqqTsrWafDVj1WfK43jfb53Ka5sqzdOG/yu6ySUFmdc0h/OuGLnkzwW5PC29coQwbS2rkb4c9dA==
+  dependencies:
+    ag-charts-types "12.1.0"
+
+ag-grid-react@^34.1.0:
+  version "34.1.0"
+  resolved "https://registry.yarnpkg.com/ag-grid-react/-/ag-grid-react-34.1.0.tgz#9d89a75f5994a5187cbdf1f44132eb06c2741623"
+  integrity sha512-CY1p4/JnvcwOt2HipmsqME9CWz7M21nb3OB1DhJGOvNUaxo1wF6Hb/pKpa20F3F/E93wQCNmCz+gfrSLPuJrQw==
+  dependencies:
+    ag-grid-community "34.1.0"
+    prop-types "^15.8.1"
+
 aggregate-error@^3.0.0:
   version "3.1.0"
   resolved "https://registry.yarnpkg.com/aggregate-error/-/aggregate-error-3.1.0.tgz#92670ff50f5359bdb7a3e0d40d0ec30c5737687a"
@@ -7219,6 +7239,11 @@ html-tags@^3.3.1:
   version "3.3.1"
   resolved "https://registry.yarnpkg.com/html-tags/-/html-tags-3.3.1.tgz#a04026a18c882e4bba8a01a3d39cfe465d40b5ce"
   integrity sha512-ztqyC3kLto0e9WbNp0aeP+M3kTt+nbaIveGmUxAtZa+8iFgKLUOD4YKM5j+f3QD89bra7UeumolZHKuOXnTmeQ==
+
+html-url-attributes@^3.0.0:
+  version "3.0.1"
+  resolved "https://registry.yarnpkg.com/html-url-attributes/-/html-url-attributes-3.0.1.tgz#83b052cd5e437071b756cd74ae70f708870c2d87"
+  integrity sha512-ol6UPyBWqsrO6EJySPz2O7ZSr856WDrEzM5zMqp+FJJLGMW35cLYmmZnl0vztAZxRUoNZJFTCohfjuIJ8I4QBQ==
 
 html-void-elements@^3.0.0:
   version "3.0.0"
@@ -10886,6 +10911,23 @@ react-loadable-ssr-addon-v5-slorber@^1.0.1:
   integrity sha512-YMMxTUQV/QFSnbgrP3tjDzLHRg7vsbMn8e9HAa8o/1iXoiomo48b7sk/kkmWEuWNDPJVlKSJRB6Y2fHqdJk+SQ==
   dependencies:
     "@types/react" "*"
+
+react-markdown@^10.1.0:
+  version "10.1.0"
+  resolved "https://registry.yarnpkg.com/react-markdown/-/react-markdown-10.1.0.tgz#e22bc20faddbc07605c15284255653c0f3bad5ca"
+  integrity sha512-qKxVopLT/TyA6BX3Ue5NwabOsAzm0Q7kAPwq6L+wWDwisYs7R8vZ0nRXqq6rkueboxpkjvLGU9fWifiX/ZZFxQ==
+  dependencies:
+    "@types/hast" "^3.0.0"
+    "@types/mdast" "^4.0.0"
+    devlop "^1.0.0"
+    hast-util-to-jsx-runtime "^2.0.0"
+    html-url-attributes "^3.0.0"
+    mdast-util-to-hast "^13.0.0"
+    remark-parse "^11.0.0"
+    remark-rehype "^11.0.0"
+    unified "^11.0.0"
+    unist-util-visit "^5.0.0"
+    vfile "^6.0.0"
 
 react-redux@^9.2.0:
   version "9.2.0"

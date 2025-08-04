@@ -40,7 +40,7 @@ const EnvironmentVariablesExample: React.FC<
   const settings = getSettings();
   const displaySettings = showAll ? settings : settings.slice(0, 5);
 
-  const formatDefaultForEnv = (value: any): string => {
+  const formatDefaultForEnv = (value: unknown): string => {
     if (value === null || value === undefined) return '""';
     if (typeof value === 'object') {
       return `'${JSON.stringify(value)}'`;
@@ -55,7 +55,7 @@ const EnvironmentVariablesExample: React.FC<
     navigator.clipboard.writeText(text);
   };
 
-  const generateEnvExample = (setting: any): string => {
+  const generateEnvExample = (setting: { default: unknown; env_var: string }): string => {
     const example = formatDefaultForEnv(setting.default);
     return `export ${setting.env_var}=${example}`;
   };

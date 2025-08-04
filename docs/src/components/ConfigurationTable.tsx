@@ -17,460 +17,313 @@
  * under the License.
  */
 
-import React, { useState } from 'react';
-import ReactMarkdown from 'react-markdown';
+import React, { useState, useMemo, useCallback } from 'react';
+import { AgGridReact } from 'ag-grid-react';
+import { ColDef, GridReadyEvent, GridApi, ModuleRegistry, AllCommunityModule } from 'ag-grid-community';
+import 'ag-grid-community/styles/ag-grid.css';
+import 'ag-grid-community/styles/ag-theme-material.css';
 import configMetadata from '../resources/config_metadata.json';
 
-interface ConfigSetting {
-  key: string;
-  title: string;
-  description: string;
-  type: string;
-  category: string;
-  impact: string;
-  requires_restart: boolean;
-  default: any;
-  env_var: string;
-  nested_example: string | null;
-  documentation_url: string | null;
-}
+// Register AG Grid modules
+ModuleRegistry.registerModules([AllCommunityModule]);
+
+// ConfigSetting interface is defined for type safety but not directly used
+// as AG Grid uses dynamic property access
+// interface ConfigSetting {
+//   key: string;
+//   title: string;
+//   description: string;
+//   details: string;
+//   type: string;
+//   category: string;
+//   group: string;
+//   default: any;
+//   env_var: string;
+//   external: boolean;
+//   source: string;
+//   supports_callable: boolean;
+// }
 
 interface ConfigurationTableProps {
   category?: string;
   showEnvironmentVariables?: boolean;
 }
 
-const ImpactBadge: React.FC<{ impact: string }> = ({ impact }) => {
-  const colors = {
-    low: '#52c41a',
-    medium: '#faad14',
-    high: '#ff4d4f',
-  };
+// Custom cell renderers
 
-  return (
-    <span
-      style={{
-        backgroundColor: colors[impact] || '#d9d9d9',
-        color: 'white',
-        padding: '1px 6px',
-        borderRadius: '3px',
-        fontSize: '10px',
-        fontWeight: 'bold',
-      }}
-    >
-      {impact.toUpperCase()}
-    </span>
-  );
+const KeyCellRenderer = (props: { value: string }) => {
+  return <span style={{ fontWeight: 'bold' }}>{props.value}</span>;
 };
 
-const RestartBadge: React.FC<{ requiresRestart: boolean }> = ({
-  requiresRestart,
-}) => {
-  if (!requiresRestart) return null;
-
-  return (
-    <span
-      style={{
-        backgroundColor: '#ff7875',
-        color: 'white',
-        padding: '1px 6px',
-        borderRadius: '3px',
-        fontSize: '10px',
-        fontWeight: 'bold',
-        marginLeft: '6px',
-      }}
-    >
-      RESTART
-    </span>
-  );
+const TypeCellRenderer = (props: { value: string }) => {
+  return <code>{props.value}</code>;
 };
 
-const ConfigurationTable: React.FC<ConfigurationTableProps> = ({
-  category,
-  showEnvironmentVariables = false,
-}) => {
-  const [selectedCategory, setSelectedCategory] = useState<string>(
-    category || 'all',
-  );
-  const [searchTerm, setSearchTerm] = useState<string>('');
-
-  // Get settings based on selected category
-  const getSettings = (): ConfigSetting[] => {
-    if (selectedCategory === 'all') {
-      return configMetadata.all_settings;
-    }
-    return configMetadata.by_category[selectedCategory] || [];
-  };
-
-  // Filter settings based on search term
-  const filteredSettings = getSettings().filter(setting => {
-    if (!searchTerm) return true;
-    const searchLower = searchTerm.toLowerCase();
-    return (
-      setting.key.toLowerCase().includes(searchLower) ||
-      setting.description.toLowerCase().includes(searchLower)
-    );
-  });
-
-  const settings = filteredSettings;
-
-  const formatDefault = (value: any): string => {
-    if (value === null || value === undefined) return 'None';
+const DefaultCellRenderer = (props: { value: unknown }) => {
+  const formatDefault = (value: unknown): string => {
+    if (value === null || value === undefined || value === 'None') return 'None';
     if (typeof value === 'object') {
-      return JSON.stringify(value, null, 2);
+      try {
+        return JSON.stringify(value, null, 2);
+      } catch {
+        return String(value);
+      }
     }
     return String(value);
   };
 
-  const copyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text);
-  };
+  const formatted = formatDefault(props.value);
+  const isLong = formatted.length > 50;
 
   return (
-    <div style={{ margin: '20px 0' }}>
-      {/* Search and Category controls */}
-      <div
-        style={{
-          marginBottom: '20px',
-          display: 'flex',
-          gap: '15px',
-          alignItems: 'center',
-          flexWrap: 'wrap',
-        }}
-      >
-        {/* Search input */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <label style={{ fontWeight: 'bold', fontSize: '14px' }}>
-            Search:
-          </label>
-          <input
-            type="text"
-            placeholder="Filter by name or description..."
-            value={searchTerm}
-            onChange={e => setSearchTerm(e.target.value)}
-            style={{
-              padding: '6px 10px',
-              border: '1px solid #ddd',
-              borderRadius: '4px',
-              fontSize: '14px',
-              minWidth: '250px',
-            }}
-          />
-          {searchTerm && (
-            <button
-              onClick={() => setSearchTerm('')}
-              style={{
-                background: 'none',
-                border: 'none',
-                cursor: 'pointer',
-                fontSize: '16px',
-                color: '#666',
-                padding: '2px',
-              }}
-              title="Clear search"
-            >
-              ✕
-            </button>
-          )}
-        </div>
+    <code
+      style={{
+        whiteSpace: isLong ? 'pre-wrap' : 'nowrap',
+        wordBreak: isLong ? 'break-all' : 'normal',
+      }}
+      title={isLong ? formatted : undefined}
+    >
+      {isLong ? formatted.substring(0, 50) + '...' : formatted}
+    </code>
+  );
+};
 
-        {/* Category selector */}
-        {!category && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <label style={{ fontWeight: 'bold', fontSize: '14px' }}>
-              Category:
-            </label>
-            <select
-              value={selectedCategory}
-              onChange={e => setSelectedCategory(e.target.value)}
-              style={{
-                padding: '6px 10px',
-                border: '1px solid #ddd',
-                borderRadius: '4px',
-                fontSize: '14px',
-              }}
-            >
-              <option value="all">All Categories</option>
-              {configMetadata.categories.map(cat => (
-                <option key={cat} value={cat}>
-                  {cat.charAt(0).toUpperCase() + cat.slice(1)}
-                </option>
-              ))}
-            </select>
-          </div>
-        )}
+const BooleanCellRenderer = (props: { value: boolean }) => {
+  return props.value ? '✅ Yes' : '❌ No';
+};
 
-        {/* Results count */}
-        <span style={{ fontSize: '14px', color: '#666', marginLeft: 'auto' }}>
-          {searchTerm
-            ? `Found ${settings.length} matching settings`
-            : `Showing ${settings.length} configuration settings`}
-        </span>
-      </div>
+const GroupCellRenderer = (props: { value: string | null }) => {
+  if (!props.value) return null;
+  return (
+    <span
+      style={{
+        backgroundColor: '#f0f0f0',
+        padding: '2px 8px',
+        borderRadius: '4px',
+        fontSize: '0.9em',
+      }}
+    >
+      {props.value}
+    </span>
+  );
+};
 
-      {/* Table */}
-      <div style={{ overflowX: 'auto' }}>
-        <table
+const DescriptionCellRenderer = (props: { value: string; data: { details?: string } }) => {
+  const hasDetails = props.data.details && props.data.details.trim() !== '';
+
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+      <span>{props.value || 'No description available'}</span>
+      {hasDetails && (
+        <span
           style={{
-            width: '100%',
-            borderCollapse: 'collapse',
-            border: '1px solid #ddd',
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            width: '16px',
+            height: '16px',
+            backgroundColor: '#e8e8e8',
+            color: '#666',
+            borderRadius: '50%',
+            fontSize: '0.8em',
+            fontWeight: 'bold',
+            cursor: 'help',
+            flexShrink: 0,
+            border: '1px solid #d0d0d0',
           }}
+          title={props.data.details}
         >
-          <thead>
-            <tr style={{ backgroundColor: '#f5f5f5' }}>
-              <th
-                style={{
-                  padding: '8px',
-                  border: '1px solid #ddd',
-                  textAlign: 'left',
-                  fontSize: '13px',
-                  fontWeight: 'bold',
-                }}
-              >
-                Setting
-              </th>
-              <th
-                style={{
-                  padding: '8px',
-                  border: '1px solid #ddd',
-                  textAlign: 'left',
-                  fontSize: '13px',
-                  fontWeight: 'bold',
-                }}
-              >
-                Description
-              </th>
-              <th
-                style={{
-                  padding: '8px',
-                  border: '1px solid #ddd',
-                  textAlign: 'left',
-                  fontSize: '13px',
-                  fontWeight: 'bold',
-                }}
-              >
-                Type
-              </th>
-              <th
-                style={{
-                  padding: '8px',
-                  border: '1px solid #ddd',
-                  textAlign: 'left',
-                  fontSize: '13px',
-                  fontWeight: 'bold',
-                }}
-              >
-                Default
-              </th>
-              {showEnvironmentVariables && (
-                <th
-                  style={{
-                    padding: '8px',
-                    border: '1px solid #ddd',
-                    textAlign: 'left',
-                    fontSize: '13px',
-                    fontWeight: 'bold',
-                  }}
-                >
-                  Environment Variable
-                </th>
-              )}
-              <th
-                style={{
-                  padding: '8px',
-                  border: '1px solid #ddd',
-                  textAlign: 'left',
-                  fontSize: '13px',
-                  fontWeight: 'bold',
-                }}
-              >
-                Impact
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {settings.map((setting: ConfigSetting) => (
-              <tr key={setting.key}>
-                <td
-                  style={{
-                    padding: '8px',
-                    border: '1px solid #ddd',
-                    verticalAlign: 'top',
-                    fontSize: '13px',
-                  }}
-                >
-                  <div>
-                    <code style={{ fontSize: '13px', fontWeight: 'bold' }}>
-                      {setting.key}
-                    </code>
-                    {setting.documentation_url && (
-                      <div style={{ marginTop: '2px' }}>
-                        <a
-                          href={setting.documentation_url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          style={{ fontSize: '11px' }}
-                        >
-                          📖 Docs
-                        </a>
-                      </div>
-                    )}
-                  </div>
-                </td>
-                <td
-                  style={{
-                    padding: '8px',
-                    border: '1px solid #ddd',
-                    verticalAlign: 'top',
-                    fontSize: '12px',
-                  }}
-                >
-                  <ReactMarkdown
-                    components={{
-                      // Customize rendering for table context
-                      p: ({ children }) => <span>{children}</span>,
-                      a: ({ href, children }) => (
-                        <a
-                          href={href}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          style={{ color: '#1890ff', textDecoration: 'none' }}
-                        >
-                          {children}
-                        </a>
-                      ),
-                      strong: ({ children }) => (
-                        <strong style={{ fontWeight: 'bold' }}>
-                          {children}
-                        </strong>
-                      ),
-                      em: ({ children }) => (
-                        <em style={{ fontStyle: 'italic' }}>{children}</em>
-                      ),
-                      code: ({ children }) => (
-                        <code
-                          style={{
-                            backgroundColor: '#f5f5f5',
-                            padding: '1px 3px',
-                            borderRadius: '2px',
-                            fontSize: '11px',
-                            fontFamily: 'monospace',
-                          }}
-                        >
-                          {children}
-                        </code>
-                      ),
-                    }}
-                  >
-                    {setting.description || 'No description available'}
-                  </ReactMarkdown>
-                </td>
-                <td
-                  style={{
-                    padding: '8px',
-                    border: '1px solid #ddd',
-                    verticalAlign: 'top',
-                    fontSize: '12px',
-                  }}
-                >
-                  <code style={{ fontSize: '12px' }}>{setting.type}</code>
-                </td>
-                <td
-                  style={{
-                    padding: '8px',
-                    border: '1px solid #ddd',
-                    verticalAlign: 'top',
-                    fontSize: '12px',
-                  }}
-                >
-                  <code style={{ fontSize: '11px' }}>
-                    {formatDefault(setting.default)}
-                  </code>
-                </td>
-                {showEnvironmentVariables && (
-                  <td
-                    style={{
-                      padding: '8px',
-                      border: '1px solid #ddd',
-                      verticalAlign: 'top',
-                      fontSize: '12px',
-                    }}
-                  >
-                    <div style={{ display: 'flex', alignItems: 'center' }}>
-                      <code style={{ fontSize: '11px', marginRight: '6px' }}>
-                        {setting.env_var}
-                      </code>
-                      <button
-                        onClick={() => copyToClipboard(setting.env_var)}
-                        style={{
-                          background: 'none',
-                          border: 'none',
-                          cursor: 'pointer',
-                          fontSize: '11px',
-                          color: '#1890ff',
-                        }}
-                        title="Copy to clipboard"
-                      >
-                        📋
-                      </button>
-                    </div>
-                    {setting.nested_example && (
-                      <div style={{ marginTop: '2px' }}>
-                        <code style={{ fontSize: '10px', color: '#666' }}>
-                          {setting.nested_example}
-                        </code>
-                      </div>
-                    )}
-                  </td>
-                )}
-                <td
-                  style={{
-                    padding: '8px',
-                    border: '1px solid #ddd',
-                    verticalAlign: 'top',
-                    fontSize: '12px',
-                  }}
-                >
-                  <ImpactBadge impact={setting.impact} />
-                  <RestartBadge requiresRestart={setting.requires_restart} />
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
-      {settings.length === 0 && (
-        <div style={{ textAlign: 'center', padding: '20px', color: '#666' }}>
-          {searchTerm ? (
-            <div>
-              <p>No configuration settings found matching {searchTerm}.</p>
-              <p style={{ fontSize: '14px', marginTop: '10px' }}>
-                Try adjusting your search term or{' '}
-                <button
-                  onClick={() => setSearchTerm('')}
-                  style={{
-                    background: 'none',
-                    border: 'none',
-                    color: '#1890ff',
-                    cursor: 'pointer',
-                    textDecoration: 'underline',
-                    fontSize: '14px',
-                  }}
-                >
-                  clear the search
-                </button>
-                .
-              </p>
-            </div>
-          ) : (
-            'No configuration settings found for the selected category.'
-          )}
-        </div>
+          i
+        </span>
       )}
     </div>
   );
 };
+
+const ConfigurationTable: React.FC<ConfigurationTableProps> = ({
+  category, // eslint-disable-line @typescript-eslint/no-unused-vars
+  showEnvironmentVariables = false,
+}) => {
+  const [gridApi, setGridApi] = useState<GridApi | null>(null);
+  const [searchText, setSearchText] = useState('');
+
+  // Process data to include only enriched configs
+  const rowData = useMemo(() => {
+    return configMetadata.all_settings;
+  }, []);
+
+  // Column definitions
+  const columnDefs = useMemo<ColDef[]>(() => {
+    const columns: ColDef[] = [
+      {
+        field: 'key',
+        headerName: 'Configuration Key',
+        cellRenderer: KeyCellRenderer,
+        width: 280,
+        pinned: 'left',
+        filter: 'agTextColumnFilter',
+        floatingFilter: true,
+      },
+      {
+        field: 'description',
+        headerName: 'Description',
+        cellRenderer: DescriptionCellRenderer,
+        flex: 2,
+        minWidth: 300,
+        wrapText: true,
+        autoHeight: true,
+        filter: 'agTextColumnFilter',
+        floatingFilter: true,
+      },
+      {
+        field: 'type',
+        headerName: 'Type',
+        cellRenderer: TypeCellRenderer,
+        width: 120,
+        filter: 'agTextColumnFilter',
+      },
+      {
+        field: 'default',
+        headerName: 'Default',
+        cellRenderer: DefaultCellRenderer,
+        width: 200,
+        filter: 'agTextColumnFilter',
+      },
+      {
+        field: 'category',
+        headerName: 'Category',
+        width: 120,
+        filter: 'agTextColumnFilter',
+        floatingFilter: true,
+      },
+      {
+        field: 'group',
+        headerName: 'Group',
+        cellRenderer: GroupCellRenderer,
+        width: 180,
+        filter: 'agTextColumnFilter',
+        floatingFilter: true,
+      },
+    ];
+
+    if (showEnvironmentVariables) {
+      columns.push({
+        field: 'env_var',
+        headerName: 'Environment Variable',
+        width: 250,
+        filter: 'agTextColumnFilter',
+        cellRenderer: (props: { value: string }) => (
+          <code>{props.value}</code>
+        ),
+      });
+    }
+
+    columns.push(
+      {
+        field: 'external',
+        headerName: 'External',
+        cellRenderer: BooleanCellRenderer,
+        width: 100,
+        filter: true,
+      },
+    );
+
+    return columns;
+  }, [showEnvironmentVariables]);
+
+  const defaultColDef = useMemo<ColDef>(() => ({
+    sortable: true,
+    resizable: true,
+  }), []);
+
+  const onGridReady = useCallback((params: GridReadyEvent) => {
+    setGridApi(params.api);
+  }, []);
+
+  const onFilterTextBoxChanged = useCallback(() => {
+    if (gridApi) {
+      gridApi.setGridOption('quickFilterText', searchText);
+    }
+  }, [gridApi, searchText]);
+
+  const exportToCsv = useCallback(() => {
+    if (gridApi) {
+      gridApi.exportDataAsCsv({
+        fileName: 'superset_configuration.csv',
+      });
+    }
+  }, [gridApi]);
+
+  return (
+    <div style={{ width: '100%', height: '800px' }}>
+      {/* Controls */}
+      <div style={{ marginBottom: '20px', display: 'flex', gap: '15px', alignItems: 'center' }}>
+        <div style={{ flex: 1 }}>
+          <input
+            type="text"
+            placeholder="Quick filter across all columns..."
+            value={searchText}
+            onChange={(e) => {
+              setSearchText(e.target.value);
+              onFilterTextBoxChanged();
+            }}
+            style={{
+              padding: '8px 12px',
+              border: '1px solid #ddd',
+              borderRadius: '4px',
+              width: '100%',
+              maxWidth: '400px',
+            }}
+          />
+        </div>
+
+        <button
+          onClick={exportToCsv}
+          style={{
+            padding: '8px 16px',
+            backgroundColor: '#1890ff',
+            color: 'white',
+            border: 'none',
+            borderRadius: '4px',
+            cursor: 'pointer',
+            fontSize: '14px',
+          }}
+        >
+          Export to CSV
+        </button>
+
+        <div style={{ color: '#666' }}>
+          {rowData.length} configurations
+        </div>
+      </div>
+
+      {/* AG Grid */}
+      <div className="ag-theme-material" style={{ height: '100%', width: '100%' }}>
+        <AgGridReact
+          rowData={rowData}
+          columnDefs={columnDefs}
+          defaultColDef={defaultColDef}
+          onGridReady={onGridReady}
+          animateRows={true}
+          enableCellTextSelection={true}
+          ensureDomOrder={true}
+          tooltipShowDelay={500}
+          pagination={true}
+          paginationPageSize={50}
+          paginationPageSizeSelector={[20, 50, 100, 200]}
+        />
+      </div>
+
+      {/* Help text */}
+      <div style={{ marginTop: '15px', color: '#666' }}>
+        <p>
+          <strong>Tips:</strong> Click column headers to sort. Use the filter row below headers for column-specific filtering.
+          Hold Shift to sort by multiple columns. Right-click headers for more options.
+        </p>
+      </div>
+    </div>
+  );
+};
+
 
 export default ConfigurationTable;

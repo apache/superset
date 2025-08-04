@@ -27,6 +27,8 @@
     "@emotion/styled": "^10.0.27",
     "@saucelabs/theme-github-codeblock": "^0.3.0",
     "@superset-ui/style": "^0.14.23",
+    "ag-grid-community": "^34.1.0",
+    "ag-grid-react": "^34.1.0",
     "antd": "^5.26.3",
     "docusaurus-plugin-less": "^2.0.2",
     "less": "^4.3.0",

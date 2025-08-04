@@ -1,6 +1,6 @@
 {
   "metadata": {
-    "generated_from": "/Users/max/code/superset/superset/config_defaults.py",
+    "generated_from": "/Users/max/code/superset-worktree/flask_config/docs/../superset/config_defaults.py",
     "total_configs": 218,
     "description": "Superset configuration schema extracted from config_defaults.py"
   },
@@ -31,19 +31,19 @@
     },
     "BASE_DIR": {
       "type": "string",
-      "default": "<unknown>",
+      "default": "<files()>",
       "description": "Base directory path for Superset installation. Auto-detected from package location.",
       "category": "general"
     },
     "VERSION_INFO_FILE": {
       "type": "string",
-      "default": "<unknown>",
+      "default": "<BinOp>",
       "description": "Path to version information JSON file. Contains build metadata.",
       "category": "general"
     },
     "PACKAGE_JSON_FILE": {
       "type": "string",
-      "default": "<unknown>",
+      "default": "<BinOp>",
       "description": "Path to package.json file for frontend build information.",
       "category": "general"
     },
@@ -125,7 +125,7 @@
     },
     "SUPERSET_WEBSERVER_TIMEOUT": {
       "type": "string",
-      "default": "<unknown>",
+      "default": "<int()>",
       "description": "Request timeout in seconds for the Superset web server. Increase for slow-running queries.",
       "category": "performance"
     },
@@ -388,19 +388,19 @@
     },
     "THUMBNAIL_ERROR_CACHE_TTL": {
       "type": "string",
-      "default": "<unknown>",
+      "default": "<int()>",
       "description": "Cache timeout in seconds for thumbnail generation errors.",
       "category": "performance"
     },
     "SCREENSHOT_LOCATE_WAIT": {
       "type": "string",
-      "default": "<unknown>",
+      "default": "<int()>",
       "description": "Wait time in seconds for elements to be located during screenshot capture.",
       "category": "general"
     },
     "SCREENSHOT_LOAD_WAIT": {
       "type": "string",
-      "default": "<unknown>",
+      "default": "<int()>",
       "description": "Wait time in seconds for page to load during screenshot capture.",
       "category": "general"
     },
@@ -448,7 +448,7 @@
     },
     "SCREENSHOT_PLAYWRIGHT_DEFAULT_TIMEOUT": {
       "type": "string",
-      "default": "<unknown>",
+      "default": "<int()>",
       "description": "Default timeout in seconds for Playwright operations.",
       "category": "performance"
     },
@@ -466,7 +466,7 @@
     },
     "CACHE_DEFAULT_TIMEOUT": {
       "type": "string",
-      "default": "<unknown>",
+      "default": "<int()>",
       "description": "Default cache timeout in seconds. Applies to all cache backends unless specifically overridden.",
       "category": "performance"
     },
@@ -701,13 +701,13 @@
     },
     "SQLLAB_TIMEOUT": {
       "type": "string",
-      "default": "<unknown>",
+      "default": "<int()>",
       "description": "Timeout in seconds for synchronous SQL Lab queries.",
       "category": "performance"
     },
     "SQLLAB_VALIDATION_TIMEOUT": {
       "type": "string",
-      "default": "<unknown>",
+      "default": "<int()>",
       "description": "Timeout in seconds for SQL validation in SQL Lab.",
       "category": "performance"
     },
@@ -719,13 +719,13 @@
     },
     "SQLLAB_ASYNC_TIME_LIMIT_SEC": {
       "type": "string",
-      "default": "<unknown>",
+      "default": "<int()>",
       "description": "**[Distributed task queue for async processing](https://docs.celeryq.dev/)**: Maximum duration (in seconds) a SQL query can run before being killed by Celery worker.",
       "category": "performance"
     },
     "SQLLAB_QUERY_COST_ESTIMATE_TIMEOUT": {
       "type": "string",
-      "default": "<unknown>",
+      "default": "<int()>",
       "description": "Timeout in seconds for query cost estimation.",
       "category": "performance"
     },
@@ -893,7 +893,7 @@
     },
     "WTF_CSRF_TIME_LIMIT": {
       "type": "string",
-      "default": "<unknown>",
+      "default": "<int()>",
       "description": "",
       "category": "performance"
     },
@@ -911,7 +911,7 @@
     },
     "PRESTO_POLL_INTERVAL": {
       "type": "string",
-      "default": "<unknown>",
+      "default": "<int()>",
       "description": "",
       "category": "general"
     },
@@ -965,13 +965,13 @@
     },
     "ALERT_REPORTS_WORKING_TIME_OUT_LAG": {
       "type": "string",
-      "default": "<unknown>",
+      "default": "<int()>",
       "description": "Lag time in seconds before killing long-running alerts/reports.",
       "category": "general"
     },
     "ALERT_REPORTS_WORKING_SOFT_TIME_OUT_LAG": {
       "type": "string",
-      "default": "<unknown>",
+      "default": "<int()>",
       "description": "Soft timeout lag in seconds for alerts/reports.",
       "category": "general"
     },
@@ -1019,13 +1019,13 @@
     },
     "ALERT_MINIMUM_INTERVAL": {
       "type": "string",
-      "default": "<unknown>",
+      "default": "<int()>",
       "description": "",
       "category": "general"
     },
     "REPORT_MINIMUM_INTERVAL": {
       "type": "string",
-      "default": "<unknown>",
+      "default": "<int()>",
       "description": "",
       "category": "general"
     },
@@ -1049,7 +1049,7 @@
     },
     "SLACK_CACHE_TIMEOUT": {
       "type": "string",
-      "default": "<unknown>",
+      "default": "<int()>",
       "description": "",
       "category": "performance"
     },
@@ -1115,7 +1115,7 @@
     },
     "EMAIL_PAGE_RENDER_WAIT": {
       "type": "string",
-      "default": "<unknown>",
+      "default": "<int()>",
       "description": "",
       "category": "email"
     },
@@ -1322,7 +1322,7 @@
     },
     "SEND_FILE_MAX_AGE_DEFAULT": {
       "type": "string",
-      "default": "<unknown>",
+      "default": "<int()>",
       "description": "",
       "category": "general"
     },
@@ -1420,7 +1420,7 @@
     },
     "GLOBAL_ASYNC_QUERIES_POLLING_DELAY": {
       "type": "string",
-      "default": "<unknown>",
+      "default": "<int()>",
       "description": "",
       "category": "async"
     },
@@ -1677,19 +1677,19 @@
     "general": {
       "BASE_DIR": {
         "type": "string",
-        "default": "<unknown>",
+        "default": "<files()>",
         "description": "Base directory path for Superset installation. Auto-detected from package location.",
         "category": "general"
       },
       "VERSION_INFO_FILE": {
         "type": "string",
-        "default": "<unknown>",
+        "default": "<BinOp>",
         "description": "Path to version information JSON file. Contains build metadata.",
         "category": "general"
       },
       "PACKAGE_JSON_FILE": {
         "type": "string",
-        "default": "<unknown>",
+        "default": "<BinOp>",
         "description": "Path to package.json file for frontend build information.",
         "category": "general"
       },
@@ -1852,13 +1852,13 @@
       },
       "SCREENSHOT_LOCATE_WAIT": {
         "type": "string",
-        "default": "<unknown>",
+        "default": "<int()>",
         "description": "Wait time in seconds for elements to be located during screenshot capture.",
         "category": "general"
       },
       "SCREENSHOT_LOAD_WAIT": {
         "type": "string",
-        "default": "<unknown>",
+        "default": "<int()>",
         "description": "Wait time in seconds for page to load during screenshot capture.",
         "category": "general"
       },
@@ -2135,7 +2135,7 @@
       },
       "PRESTO_POLL_INTERVAL": {
         "type": "string",
-        "default": "<unknown>",
+        "default": "<int()>",
         "description": "",
         "category": "general"
       },
@@ -2171,13 +2171,13 @@
       },
       "ALERT_REPORTS_WORKING_TIME_OUT_LAG": {
         "type": "string",
-        "default": "<unknown>",
+        "default": "<int()>",
         "description": "Lag time in seconds before killing long-running alerts/reports.",
         "category": "general"
       },
       "ALERT_REPORTS_WORKING_SOFT_TIME_OUT_LAG": {
         "type": "string",
-        "default": "<unknown>",
+        "default": "<int()>",
         "description": "Soft timeout lag in seconds for alerts/reports.",
         "category": "general"
       },
@@ -2213,13 +2213,13 @@
       },
       "ALERT_MINIMUM_INTERVAL": {
         "type": "string",
-        "default": "<unknown>",
+        "default": "<int()>",
         "description": "",
         "category": "general"
       },
       "REPORT_MINIMUM_INTERVAL": {
         "type": "string",
-        "default": "<unknown>",
+        "default": "<int()>",
         "description": "",
         "category": "general"
       },
@@ -2447,7 +2447,7 @@
       },
       "SEND_FILE_MAX_AGE_DEFAULT": {
         "type": "string",
-        "default": "<unknown>",
+        "default": "<int()>",
         "description": "",
         "category": "general"
       },
@@ -2589,7 +2589,7 @@
       },
       "SUPERSET_WEBSERVER_TIMEOUT": {
         "type": "string",
-        "default": "<unknown>",
+        "default": "<int()>",
         "description": "Request timeout in seconds for the Superset web server. Increase for slow-running queries.",
         "category": "performance"
       },
@@ -2657,19 +2657,19 @@
       },
       "THUMBNAIL_ERROR_CACHE_TTL": {
         "type": "string",
-        "default": "<unknown>",
+        "default": "<int()>",
         "description": "Cache timeout in seconds for thumbnail generation errors.",
         "category": "performance"
       },
       "SCREENSHOT_PLAYWRIGHT_DEFAULT_TIMEOUT": {
         "type": "string",
-        "default": "<unknown>",
+        "default": "<int()>",
         "description": "Default timeout in seconds for Playwright operations.",
         "category": "performance"
       },
       "CACHE_DEFAULT_TIMEOUT": {
         "type": "string",
-        "default": "<unknown>",
+        "default": "<int()>",
         "description": "Default cache timeout in seconds. Applies to all cache backends unless specifically overridden.",
         "category": "performance"
       },
@@ -2687,25 +2687,25 @@
       },
       "SQLLAB_TIMEOUT": {
         "type": "string",
-        "default": "<unknown>",
+        "default": "<int()>",
         "description": "Timeout in seconds for synchronous SQL Lab queries.",
         "category": "performance"
       },
       "SQLLAB_VALIDATION_TIMEOUT": {
         "type": "string",
-        "default": "<unknown>",
+        "default": "<int()>",
         "description": "Timeout in seconds for SQL validation in SQL Lab.",
         "category": "performance"
       },
       "SQLLAB_ASYNC_TIME_LIMIT_SEC": {
         "type": "string",
-        "default": "<unknown>",
+        "default": "<int()>",
         "description": "**[Distributed task queue for async processing](https://docs.celeryq.dev/)**: Maximum duration (in seconds) a SQL query can run before being killed by Celery worker.",
         "category": "performance"
       },
       "SQLLAB_QUERY_COST_ESTIMATE_TIMEOUT": {
         "type": "string",
-        "default": "<unknown>",
+        "default": "<int()>",
         "description": "Timeout in seconds for query cost estimation.",
         "category": "performance"
       },
@@ -2723,7 +2723,7 @@
       },
       "WTF_CSRF_TIME_LIMIT": {
         "type": "string",
-        "default": "<unknown>",
+        "default": "<int()>",
         "description": "",
         "category": "performance"
       },
@@ -2735,7 +2735,7 @@
       },
       "SLACK_CACHE_TIMEOUT": {
         "type": "string",
-        "default": "<unknown>",
+        "default": "<int()>",
         "description": "",
         "category": "performance"
       },
@@ -3002,7 +3002,7 @@
       },
       "GLOBAL_ASYNC_QUERIES_POLLING_DELAY": {
         "type": "string",
-        "default": "<unknown>",
+        "default": "<int()>",
         "description": "",
         "category": "async"
       },
@@ -3070,7 +3070,7 @@
       },
       "EMAIL_PAGE_RENDER_WAIT": {
         "type": "string",
-        "default": "<unknown>",
+        "default": "<int()>",
         "description": "",
         "category": "email"
       }
