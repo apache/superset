@@ -393,3 +393,5 @@ export const DropdownContainer = forwardRef(
     );
   },
 );
+
+export { DropdownItem, DropdownContainerProps, DropdownRef } from './types';
