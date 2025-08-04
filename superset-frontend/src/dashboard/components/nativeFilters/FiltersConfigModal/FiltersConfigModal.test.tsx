@@ -82,7 +82,7 @@ const bigIntChartDataState = () => {
     ...state,
     charts: {
       ...state.charts,
-      [999]: {
+      999: {
         queriesResponse: [
           {
             status: 'success',
@@ -93,8 +93,8 @@ const bigIntChartDataState = () => {
             ],
             applied_filters: [{ column: 'name' }],
           },
-        ]
-      }
+        ],
+      },
     },
   };
 };
