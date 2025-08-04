@@ -21,7 +21,7 @@ import rison from 'rison';
 import { useSelector } from 'react-redux';
 import { Link } from 'react-router-dom';
 import { useQueryParams, BooleanParam } from 'use-query-params';
-import { get, isEmpty } from 'lodash';
+import { isEmpty } from 'lodash';
 import {
   t,
   styled,
@@ -32,7 +32,7 @@ import {
   useTheme,
 } from '@superset-ui/core';
 import {
-  Label,
+  Tag,
   Tooltip,
   useThemeMenuItems,
   Menu,
@@ -90,10 +90,6 @@ const StyledMenuItemWithIcon = styled.div`
 const StyledAnchor = styled.a`
   padding-right: ${({ theme }) => theme.sizeUnit}px;
   padding-left: ${({ theme }) => theme.sizeUnit}px;
-`;
-
-const tagStyles = (theme: SupersetTheme) => css`
-  color: ${theme.colors.grayscale.light5};
 `;
 
 const StyledMenuItem = styled.div<{ disabled?: boolean }>`
@@ -646,18 +642,32 @@ const RightMenu = ({
           type="columnar"
         />
       )}
-      {environmentTag?.text && (
-        <Label
-          css={{ borderRadius: `${theme.sizeUnit * 125}px` }}
-          color={
-            /^#(?:[0-9a-f]{3}){1,2}$/i.test(environmentTag.color)
-              ? environmentTag.color
-              : get(theme.colors, environmentTag.color)
-          }
-        >
-          <span css={tagStyles}>{environmentTag.text}</span>
-        </Label>
-      )}
+      {environmentTag?.text &&
+        (() => {
+          // Map color values to Ant Design semantic colors
+          const validAntDesignColors = [
+            'error',
+            'warning',
+            'success',
+            'processing',
+            'default',
+          ];
+
+          const tagColor = validAntDesignColors.includes(environmentTag.color)
+            ? environmentTag.color
+            : 'default';
+
+          return (
+            <Tag
+              color={tagColor}
+              css={css`
+                border-radius: ${theme.sizeUnit * 125}px;
+              `}
+            >
+              {environmentTag.text}
+            </Tag>
+          );
+        })()}
       <Menu
         css={css`
           display: flex;

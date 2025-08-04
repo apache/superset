@@ -18,7 +18,7 @@
  */
 import { useMemo } from 'react';
 import { MenuItem } from '@superset-ui/core/components/Menu';
-import { styled } from '@superset-ui/core';
+import { styled, t } from '@superset-ui/core';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { Typography } from '@superset-ui/core/components/Typography';
 
@@ -73,7 +73,7 @@ export const useLanguageMenuItems = ({
       key: 'language-submenu',
       type: 'submenu' as const,
       label: (
-        <span className="f16">
+        <span className="f16" aria-label={t('Languages')}>
           <i className={`flag ${languages[locale].flag}`} />
         </span>
       ),

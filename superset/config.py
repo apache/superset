@@ -2062,16 +2062,16 @@ ZIPPED_FILE_MAX_SIZE = 100 * 1024 * 1024  # 100MB
 ZIP_FILE_MAX_COMPRESS_RATIO = 200.0
 
 # Configuration for environment tag shown on the navbar. Setting 'text' to '' will hide the tag.  # noqa: E501
-# 'color' can either be a hex color code, or a dot-indexed theme color (e.g. error.base)
+# 'color' support only Ant Design semantic colors (e.g., 'error', 'warning', 'success', 'processing', 'default)
 ENVIRONMENT_TAG_CONFIG = {
     "variable": "SUPERSET_ENV",
     "values": {
         "debug": {
-            "color": "error.base",
+            "color": "error",
             "text": "flask-debug",
         },
         "development": {
-            "color": "error.base",
+            "color": "error",
             "text": "Development",
         },
         "production": {
