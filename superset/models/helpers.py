@@ -1734,7 +1734,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             "time_grain": query_obj.time_grain,
             "to_dttm": query_obj.to_dttm.isoformat() if query_obj.to_dttm else None,
             "table_columns": [col.column_name for col in self.columns],
-            "filter": query_obj.filter,
+            "filters": query_obj.filter,
         }
 
         # Add deprecated template params (to be removed in 2.0)
