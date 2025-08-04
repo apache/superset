@@ -1,0 +1,40 @@
+# Claude Code RC for matrixify
+
+This is a claudette-managed Apache Superset development environment.
+
+## Project: matrixify
+- Worktree Path: /Users/max/.claudette/worktrees/matrixify
+- Frontend Port: 9003
+- Frontend URL: http://localhost:9003
+
+## Quick Commands
+
+Start services:
+```bash
+claudette docker up
+```
+
+Access frontend:
+```bash
+open http://localhost:9003
+```
+
+Run tests:
+```bash
+# Backend
+pytest tests/unit_tests/
+
+# Frontend
+cd superset-frontend && npm test
+```
+
+## Environment Details
+- Python venv: `.venv/` (auto-activated in claudette shell)
+- Node modules: `superset-frontend/node_modules/`
+- Docker prefix: `matrixify_`
+
+## Development Tips
+- Always use `claudette shell` to work in this project
+- Run `pre-commit run --all-files` before committing
+- Use `claudette docker` instead of docker-compose directly
+- The frontend dev server runs on port 9003 to avoid conflicts
