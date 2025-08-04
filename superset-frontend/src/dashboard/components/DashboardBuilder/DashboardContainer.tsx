@@ -154,7 +154,7 @@ const DashboardContainer: FC<DashboardContainerProps> = ({ topLevelTabs }) => {
     const scopes = nativeFilterScopes.map(filterScope => {
       if (
         filterScope.id.startsWith(NATIVE_FILTER_DIVIDER_PREFIX) ||
-        (filterScope as any).type === 'CHART_CUSTOMIZATION'
+        filterScope.id.startsWith('chart_customization_')
       ) {
         return {
           filterId: filterScope.id,
