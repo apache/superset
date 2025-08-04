@@ -14,6 +14,6 @@
     }
   },
 
-  // Auto-start Superset after ensuring Docker is ready
-  "postStartCommand": "bash -c 'echo \"Waiting 30s for services to initialize...\"; sleep 30; .devcontainer/start-superset.sh || echo \"⚠️ Auto-start failed - run start-superset manually\"'"
+  // Auto-start Superset on Codespace resume
+  "postStartCommand": ".devcontainer/start-superset.sh"
 }

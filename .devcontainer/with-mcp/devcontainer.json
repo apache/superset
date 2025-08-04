@@ -19,8 +19,8 @@
     }
   },
 
-  // Auto-start Superset with MCP after ensuring Docker is ready
-  "postStartCommand": "bash -c 'echo \"Waiting 30s for services to initialize...\"; sleep 30; ENABLE_MCP=true .devcontainer/start-superset.sh || echo \"⚠️ Auto-start failed - run start-superset manually\"'",
+  // Auto-start Superset with MCP on Codespace resume
+  "postStartCommand": "ENABLE_MCP=true .devcontainer/start-superset.sh",
 
   // Environment variables
   "containerEnv": {

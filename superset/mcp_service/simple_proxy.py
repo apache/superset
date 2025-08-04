@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Simple MCP proxy server that connects to FastMCP server on localhost:5009
+Simple MCP proxy server that connects to FastMCP server on localhost:5008
 """
 
 import logging

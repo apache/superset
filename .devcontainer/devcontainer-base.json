@@ -1,13 +1,8 @@
 {
   "name": "Apache Superset Development",
-
-  // Build from Dockerfile with cache (matching Apache master)
-  "build": {
-    "dockerfile": "Dockerfile",
-    "context": ".",
-    // Cache from the Apache registry image
-    "cacheFrom": ["ghcr.io/apache/superset:devcontainer-base"]
-  },
+  // Keep this in sync with the base image in Dockerfile (ARG PY_VER)
+  // Using the same base as Dockerfile, but non-slim for dev tools
+  "image": "python:3.11.13-bookworm",
 
   "features": {
     "ghcr.io/devcontainers/features/docker-in-docker:2": {
@@ -27,7 +22,7 @@
   },
 
   // Run commands after container is created
-  "postCreateCommand": "bash .devcontainer/setup-dev.sh || echo '⚠️ Setup had issues - run .devcontainer/setup-dev.sh manually'",
+  "postCreateCommand": "chmod +x .devcontainer/setup-dev.sh && .devcontainer/setup-dev.sh",
 
   // VS Code customizations
   "customizations": {
