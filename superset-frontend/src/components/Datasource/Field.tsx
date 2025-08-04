@@ -26,12 +26,6 @@ import {
   FormLabel,
 } from '@superset-ui/core/components';
 
-const formItemInlineCss = css`
-  .ant-form-item-control-input-content {
-    display: flex;
-    flex-direction: row;
-  }
-`;
 interface FieldProps<V> {
   fieldKey: string;
   value?: V;
@@ -79,7 +73,7 @@ export default function Field<V>({
         <Icons.InfoCircleOutlined
           iconSize="s"
           css={css`
-            margin-left: ${theme.sizeUnit}px;
+            margin-left: ${theme.marginXXS}px;
           `}
           iconColor={theme.colorTextTertiary}
         />
@@ -107,14 +101,24 @@ export default function Field<V>({
       }
     >
       {additionalControl}
-      <FormItem css={inline && formItemInlineCss} extra={extra}>
+      <FormItem
+        extra={extra}
+        css={
+          !inline &&
+          css`
+            .ControlHeader {
+              margin-bottom: ${theme.marginXXS}px;
+            }
+          `
+        }
+      >
         {hookedControl}
       </FormItem>
       {errorMessage && (
         <div
           css={(theme: SupersetTheme) => ({
             color: theme.colorText,
-            [inline ? 'marginLeft' : 'marginTop']: theme.sizeUnit,
+            [inline ? 'marginLeft' : 'marginTop']: theme.marginXXS,
           })}
         >
           {errorMessage}
