@@ -519,7 +519,7 @@ function UsersList({ user }: UsersListProps) {
 
   return (
     <>
-      <SubMenu name={t('List Users')} buttons={subMenuButtons} />
+      <SubMenu name={t('List users')} buttons={subMenuButtons} />
       <UserListAddModal
         onHide={() => closeModal(ModalType.ADD)}
         show={modalState.add}
@@ -554,7 +554,7 @@ function UsersList({ user }: UsersListProps) {
           }}
           onHide={() => setUserCurrentlyDeleting(null)}
           open
-          title={t('Delete User?')}
+          title={t('Delete user?')}
         />
       )}
       <ConfirmStatusChange

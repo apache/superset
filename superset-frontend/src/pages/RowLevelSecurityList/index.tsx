@@ -65,7 +65,7 @@ function RowLevelSecurityList(props: RLSProps) {
     toggleBulkSelect,
   } = useListViewResource<RLSObject>(
     'rowlevelsecurity',
-    t('Row Level Security'),
+    t('Row level security'),
     addDangerToast,
     true,
     undefined,
@@ -130,13 +130,13 @@ function RowLevelSecurityList(props: RLSProps) {
       },
       {
         accessor: 'filter_type',
-        Header: t('Filter Type'),
+        Header: t('Filter type'),
         size: 'xl',
         id: 'filter_type',
       },
       {
         accessor: 'group_key',
-        Header: t('Group Key'),
+        Header: t('Group key'),
         size: 'xl',
         id: 'group_key',
       },
@@ -246,7 +246,7 @@ function RowLevelSecurityList(props: RLSProps) {
   );
 
   const emptyState = {
-    title: t('No Rules yet'),
+    title: t('No rules yet'),
     image: 'filter-results.svg',
     buttonAction: () => handleRuleEdit(null),
     buttonIcon: canEdit ? (
@@ -265,7 +265,7 @@ function RowLevelSecurityList(props: RLSProps) {
         operator: FilterOperator.StartsWith,
       },
       {
-        Header: t('Filter Type'),
+        Header: t('Filter type'),
         key: 'filter_type',
         id: 'filter_type',
         input: 'select',
@@ -277,7 +277,7 @@ function RowLevelSecurityList(props: RLSProps) {
         ],
       },
       {
-        Header: t('Group Key'),
+        Header: t('Group key'),
         key: 'search',
         id: 'group_key',
         input: 'search',
@@ -329,7 +329,7 @@ function RowLevelSecurityList(props: RLSProps) {
 
   return (
     <>
-      <SubMenu name={t('Row Level Security')} buttons={subMenuButtons} />
+      <SubMenu name={t('Row level security')} buttons={subMenuButtons} />
       <ConfirmStatusChange
         title={t('Please confirm')}
         description={t('Are you sure you want to delete the selected rules?')}

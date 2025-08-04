@@ -46,7 +46,7 @@ const ExploreResultsButton = ({
       tooltip={t('Explore the result set in the data exploration view')}
       data-test="explore-results-button"
     >
-      {t('Create Chart')}
+      {t('Create chart')}
     </Button>
   );
 };

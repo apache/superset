@@ -530,8 +530,8 @@ function DashboardList(props: DashboardListProps) {
       operator: FilterOperator.DashboardIsFav,
       unfilteredLabel: t('Any'),
       selects: [
-        { label: t('Yes'), value: true },
-        { label: t('No'), value: false },
+        { label: t('yes'), value: true },
+        { label: t('no'), value: false },
       ],
     }),
     [],
@@ -604,8 +604,8 @@ function DashboardList(props: DashboardListProps) {
         operator: FilterOperator.DashboardIsCertified,
         unfilteredLabel: t('Any'),
         selects: [
-          { label: t('Yes'), value: true },
-          { label: t('No'), value: false },
+          { label: t('yes'), value: true },
+          { label: t('no'), value: false },
         ],
       },
       {

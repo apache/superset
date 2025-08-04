@@ -51,7 +51,7 @@ export const KEY_MAP: Record<KeyboardShortcut, string | undefined> = {
   [KeyboardShortcut.CtrlE]: userOS !== 'MacOS' ? t('Stop query') : undefined,
   [KeyboardShortcut.CtrlQ]: userOS === 'Windows' ? t('New tab') : undefined,
   [KeyboardShortcut.CtrlT]: userOS !== 'Windows' ? t('New tab') : undefined,
-  [KeyboardShortcut.CtrlP]: t('Previous Line'),
+  [KeyboardShortcut.CtrlP]: t('Previous line'),
   [KeyboardShortcut.CtrlShiftF]: t('Format SQL'),
   [KeyboardShortcut.CtrlLeft]: t('Switch to the previous tab'),
   [KeyboardShortcut.CtrlRight]: t('Switch to the next tab'),

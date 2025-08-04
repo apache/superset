@@ -370,7 +370,7 @@ class SaveModal extends Component<SaveModalProps, SaveModalState> {
           />
         </FormItem>
         {this.props.datasource?.type === 'query' && (
-          <FormItem label={t('Dataset Name')} required>
+          <FormItem label={t('Dataset name')} required>
             <InfoTooltip
               tooltip={t('A reusable dataset will be saved with your chart.')}
               placement="right"
