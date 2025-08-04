@@ -8,11 +8,11 @@ version: 1
 
 The Superset Model Context Protocol (MCP) service provides programmatic access to Superset dashboards, charts, datasets, and instance metadata. Built for LLM agents and automation tools.
 
-**✅ Phase 1 Complete - Production Ready**
+**✅ Phase 1 Complete - Production Ready** with 17 tools, 2 prompts, and 2 resources.
 
 ## What is MCP?
 
-The Model Context Protocol (MCP) is an open standard that allows AI assistants to securely connect to data sources and tools. Superset's MCP service exposes **17 production-ready tools** that enable:
+The Model Context Protocol (MCP) is an open standard that allows AI assistants to securely connect to data sources and tools. Superset's MCP service exposes **17 production-ready tools**, **2 guided prompts**, and **2 contextual resources** that enable:
 
 - 📊 **Data Exploration**: List and query dashboards, charts, and datasets
 - 🔧 **Chart Creation**: Generate visualizations programmatically
@@ -74,14 +74,14 @@ See the [MCP Service README](https://github.com/apache/superset/tree/master/supe
 
 ## Key Features
 
-### 🔧 **17 Production Tools**
-| Category | Tools | Purpose |
-|----------|-------|---------|
-| **Dashboard** (5) | List, get info, create, add charts | Dashboard management |
-| **Chart** (8) | Full CRUD, data export, previews | Chart operations |
-| **Dataset** (3) | List, get info, discover filters | Dataset exploration |
-| **System** (2) | Instance info, explore links | System integration |
-| **SQL Lab** (2) | Pre-configured sessions, direct SQL execution | SQL development |
+### 🔧 **17 Production Tools, 2 Prompts, 2 Resources**
+| Category | Tools | Prompts | Resources | Purpose |
+|----------|-------|---------|-----------|---------|
+| **Dashboard** (5) | List, get info, create, add charts | - | - | Dashboard management |
+| **Chart** (8) | Full CRUD, data export, previews | Create guided | Templates | Chart operations |
+| **Dataset** (3) | List, get info, discover filters | - | - | Dataset exploration |
+| **System** (2) | Instance info, explore links | Quickstart | Instance metadata | System integration |
+| **SQL Lab** (2) | Pre-configured sessions, direct SQL execution | - | - | SQL development |
 
 ### 🔐 **Enterprise Security**
 - **JWT Bearer Authentication**: Production-ready with configurable factory pattern
@@ -96,6 +96,7 @@ See the [MCP Service README](https://github.com/apache/superset/tree/master/supe
 
 ## Example Usage
 
+### Tools
 ```python
 # List dashboards
 dashboards = client.call_tool("list_dashboards", {
@@ -127,6 +128,32 @@ result = client.call_tool("execute_sql", {
     "parameters": {"year": "2024"},
     "limit": 100
 })
+```
+
+### Prompts
+```python
+# Get personalized onboarding
+prompt = client.get_prompt("superset_quickstart", {
+    "user_type": "analyst",
+    "focus_area": "sales"
+})
+
+# Get chart creation guidance
+prompt = client.get_prompt("create_chart_guided", {
+    "chart_type": "bar",
+    "business_goal": "reporting"
+})
+```
+
+### Resources
+```python
+# Get instance metadata
+metadata = client.read_resource("superset://instance/metadata")
+# Returns instance stats, popular datasets, recent dashboards
+
+# Get chart templates
+templates = client.read_resource("superset://chart/templates")
+# Returns pre-configured templates, color schemes, best practices
 ```
 
 ## Status

@@ -2,6 +2,11 @@
 
 The Superset Model Context Protocol (MCP) service provides a modular, schema-driven interface for programmatic access to Superset dashboards, charts, datasets, and instance metadata. It is designed for LLM agents and automation tools, and is built on the FastMCP protocol.
 
+**Key Features:**
+- **17 Tools** - Comprehensive operations for dashboards, charts, datasets, SQL execution
+- **2 Prompts** - Guided workflows for onboarding and chart creation
+- **2 Resources** - Contextual metadata and templates for enhanced LLM understanding
+
 **✅ Phase 1 Complete - Production Ready. Core functionality stable, authentication production-ready, comprehensive testing coverage, optimized dashboard layouts, automated test framework.**
 
 ## 🚀 Quickstart
@@ -97,7 +102,8 @@ ps aux | grep "superset mcp"
 
 **Test in Claude Desktop:**
 - Ask Claude to "list dashboards" or "get superset instance info"
-- Claude should be able to use the MCP tools to query your Superset instance
+- Try "Help me get started with Superset" to trigger the quickstart prompt
+- Claude should be able to use the MCP tools, prompts, and resources to interact with your Superset instance
 
 ### 6. Run Tests (Optional)
 
@@ -274,9 +280,9 @@ For local development without Codespaces:
 2. Check `which geckodriver` returns a valid path
 3. Try running Firefox manually to ensure it works
 
-## Available Tools
+## Available Tools, Prompts, and Resources
 
-**17 MCP tools** with Pydantic v2 schemas and comprehensive field documentation for LLM compatibility.
+**17 MCP tools**, **2 prompts**, and **2 resources** with Pydantic v2 schemas and comprehensive field documentation for LLM compatibility.
 
 ### 📊 Dashboard Tools (5)
 - **`list_dashboards`** - List with search/filters/pagination, UUID/slug support
@@ -307,6 +313,39 @@ For local development without Codespaces:
 ### 🧪 SQL Lab Tools (2)
 - **`open_sql_lab_with_context`** - Pre-configured SQL Lab sessions
 - **`execute_sql`** - Execute SQL queries with parameter substitution and result retrieval
+
+## Available Prompts
+
+**2 MCP prompts** for guided workflows and common scenarios:
+
+### 🚀 System Prompts
+- **`superset_quickstart`** - Personalized onboarding for new users
+  - Parameters: `user_type` (analyst/executive/developer), `focus_area` (sales/marketing/operations/general)
+  - Guides through data exploration, chart creation, and dashboard building
+
+### 📈 Chart Prompts  
+- **`create_chart_guided`** - Step-by-step chart creation guidance
+  - Parameters: `chart_type` (auto/bar/line/pie/table), `business_goal` (exploration/reporting/monitoring)
+  - Helps select appropriate visualizations for specific business needs
+
+## Available Resources
+
+**2 MCP resources** providing contextual information and templates:
+
+### 🌐 System Resources
+- **`superset://instance/metadata`** - Comprehensive instance metadata
+  - Instance statistics (dataset/dashboard/chart/database counts)
+  - Popular datasets ranked by usage
+  - Recent dashboards and available chart types
+  - Sample queries and database engines
+  - Configuration features and usage tips
+
+### 📊 Chart Resources
+- **`superset://chart/templates`** - Chart configuration templates and best practices
+  - Pre-configured templates for common chart types (line, bar, pie, table, scatter)
+  - Color schemes and styling options
+  - Performance optimization tips
+  - Chart selection guide for different data scenarios
 
 ## Available Operations
 
@@ -589,13 +628,55 @@ get_chart_preview(request={
   - Proper field mapping and encoding
   - Interactive tooltips and responsive layouts
 
+## Using Prompts and Resources
+
+### Prompts - Guided Workflows
+
+MCP prompts provide pre-built conversation starters that guide users through common tasks:
+
+```python
+# Get the quickstart prompt for a new analyst
+prompt = await client.get_prompt("superset_quickstart", {
+    "user_type": "analyst",
+    "focus_area": "sales"
+})
+
+# Get guided chart creation help
+prompt = await client.get_prompt("create_chart_guided", {
+    "chart_type": "bar",
+    "business_goal": "reporting"
+})
+```
+
+**In Claude Desktop:** Simply ask "Help me get started with Superset" or "Guide me through creating a chart" and Claude will automatically use the appropriate prompts.
+
+### Resources - Contextual Information
+
+MCP resources provide direct access to Superset metadata and templates:
+
+```python
+# Get instance metadata
+metadata = await client.read_resource("superset://instance/metadata")
+# Returns: instance stats, popular datasets, recent dashboards, sample queries
+
+# Get chart templates
+templates = await client.read_resource("superset://chart/templates")  
+# Returns: pre-configured chart templates, color schemes, best practices
+```
+
+**In Claude Desktop:** Resources are automatically accessed when Claude needs contextual information about your Superset instance or chart configuration best practices.
+
 ## Modular Structure & Best Practices
 
 - Tools are organized by domain: `dashboard/`, `dataset/`, `chart/`, `system/`.
+- Prompts are organized by domain: `dashboard/prompts/`, `chart/prompts/`, etc.
+- Resources are organized by domain: `dashboard/resources/`, `chart/resources/`, etc.
 - All input/output is validated with Pydantic v2.
 - Shared schemas live in `schemas/`.
 - All tool calls are logged and RBAC/auth hooks are pluggable.
 - **All tool functions must be decorated with `@mcp.tool` and `@mcp_auth_hook`.**
+- **All prompt functions must be decorated with `@mcp.prompt` and `@mcp_auth_hook`.**
+- **All resource functions must be decorated with `@mcp.resource` and `@mcp_auth_hook`.**
 - **All Superset DAOs, command classes, and most Superset modules must be imported inside the function body, not at the top of the file.** This ensures proper app context and avoids initialization errors.
 
 ## Current Status
@@ -603,12 +684,14 @@ get_chart_preview(request={
 ### ✅ Phase 1 Complete - Production Ready
 - **FastMCP Server**: CLI with `superset mcp run`, HTTP service on port 5008
 - **Authentication**: Production-ready JWT Bearer with configurable factory pattern
-- **16 Core Tools**: All list/info/filter tools, chart creation, dashboard generation
+- **17 Core Tools**: All list/info/filter tools, chart creation, dashboard generation, SQL execution
+- **2 Prompts**: Guided workflows for onboarding and chart creation
+- **2 Resources**: Instance metadata and chart templates for enhanced LLM context
 - **Request Schema Pattern**: Eliminates LLM parameter validation issues
 - **Cache Control**: Comprehensive control over Superset's existing cache layers
 - **Audit Logging**: MCP context tracking with impersonation and payload sanitization
 - **Optimized Layouts**: Dashboard layouts based on real Superset patterns for proper chart sizing
-- **Testing**: 200+ unit tests with full pre-commit compliance and integration testing
+- **Testing**: 290+ unit tests with full pre-commit compliance and integration testing
 
 ### 🎯 Future Enhancements
 - Demo notebooks and interactive examples

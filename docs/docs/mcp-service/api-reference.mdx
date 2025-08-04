@@ -4,9 +4,9 @@ sidebar_position: 3
 version: 1
 ---
 
-# MCP Tools API Reference
+# MCP API Reference
 
-Complete reference for all 17 MCP tools with request/response examples.
+Complete reference for all 17 MCP tools, 2 prompts, and 2 resources with request/response examples.
 
 > 🚀 **First time here?** Start with [Dashboard Tools](#dashboard-tools) or [Chart Tools](#chart-tools) to see the most commonly used features.
 >
@@ -774,6 +774,150 @@ Execute SQL queries directly against Superset databases with security validation
 - Disallowed SQL functions blocked based on configuration
 - Query timeouts enforced
 - Result size limits applied automatically
+
+## MCP Prompts
+
+### superset_quickstart
+
+Personalized onboarding prompt that guides new users through their first Superset experience.
+
+**Parameters:**
+```json
+{
+  "user_type": "analyst",         // Options: analyst, executive, developer
+  "focus_area": "sales"          // Options: sales, marketing, operations, general
+}
+```
+
+**Response Example:**
+The prompt returns a personalized message that:
+- Welcomes the user based on their role
+- Focuses on relevant datasets for their area
+- Lists the tools that will be used
+- Provides a step-by-step guide for getting started
+
+**Usage in Claude Desktop:**
+Simply ask "Help me get started with Superset" and Claude will automatically use this prompt.
+
+### create_chart_guided
+
+Step-by-step guidance for creating charts based on business goals.
+
+**Parameters:**
+```json
+{
+  "chart_type": "bar",           // Options: auto, bar, line, pie, table
+  "business_goal": "reporting"   // Options: exploration, reporting, monitoring
+}
+```
+
+**Response Example:**
+The prompt returns guidance that:
+- Explains why the chosen chart type fits the goal
+- Lists required data structure
+- Provides configuration examples
+- Suggests best practices for the visualization
+
+**Usage in Claude Desktop:**
+Ask "Guide me through creating a bar chart for reporting" and Claude will use this prompt.
+
+## MCP Resources
+
+### superset://instance/metadata
+
+Provides comprehensive metadata about the Superset instance, including statistics, popular content, and configuration.
+
+**Response Schema:**
+```json
+{
+  "instance_stats": {
+    "dataset_count": 45,
+    "dashboard_count": 12,
+    "chart_count": 78,
+    "database_count": 3
+  },
+  "popular_datasets": [
+    {
+      "name": "public.sales_data",
+      "chart_count": 15
+    }
+  ],
+  "recent_dashboards": [
+    {
+      "id": 1,
+      "title": "Sales Overview",
+      "slug": "sales-overview"
+    }
+  ],
+  "available_chart_types": [
+    "line", "bar", "area", "scatter", "pie", "table",
+    "pivot_table", "heatmap", "box_plot", "histogram"
+  ],
+  "database_engines": ["postgresql", "mysql", "sqlite"],
+  "sample_queries": [
+    {
+      "description": "Top 10 by metric",
+      "template": "SELECT dimension, SUM(metric) as total..."
+    }
+  ],
+  "features": {
+    "sql_lab_enabled": true,
+    "csv_upload_enabled": true,
+    "thumbnails_enabled": false
+  },
+  "tips": [
+    "Use list_datasets to see all available datasets",
+    "Popular datasets often have well-defined metrics"
+  ]
+}
+```
+
+**Usage in Claude Desktop:**
+This resource is automatically accessed when Claude needs context about your Superset instance.
+
+### superset://chart/templates
+
+Provides pre-configured chart templates, color schemes, and best practices for creating effective visualizations.
+
+**Response Schema:**
+```json
+{
+  "templates": {
+    "line_chart": {
+      "description": "Best for time series and trends",
+      "viz_type": "echarts_timeseries_line",
+      "configuration": {
+        "x_axis": "temporal column",
+        "y_axis": "metric or numeric column",
+        "group_by": "optional dimension"
+      },
+      "best_practices": [
+        "Use for continuous data over time",
+        "Limit to 5-7 lines for clarity"
+      ]
+    },
+    "bar_chart": { /* similar structure */ },
+    "pie_chart": { /* similar structure */ }
+  },
+  "color_schemes": {
+    "default": ["#1f77b4", "#ff7f0e", "#2ca02c"],
+    "colorblind_safe": ["#0173B2", "#CC78BC", "#029E73"]
+  },
+  "performance_tips": [
+    "Use time grain for large date ranges",
+    "Apply filters to reduce data volume"
+  ],
+  "chart_selection_guide": {
+    "comparison": ["bar", "table"],
+    "trends": ["line", "area"],
+    "composition": ["pie", "stacked_bar"],
+    "distribution": ["histogram", "box_plot"]
+  }
+}
+```
+
+**Usage in Claude Desktop:**
+This resource is automatically accessed when Claude helps you create or optimize charts.
 
 ## Error Responses
 

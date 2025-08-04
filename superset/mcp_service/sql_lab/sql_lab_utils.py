@@ -240,4 +240,4 @@ def _process_select_results(cursor: Any, results: dict[str, Any], limit: int) ->
 def _process_dml_results(cursor: Any, conn: Any, results: dict[str, Any]) -> None:
     """Process DML query results."""
     results["affected_rows"] = cursor.rowcount
-    conn.commit()
+    conn.commit()  # pylint: disable=consider-using-transaction

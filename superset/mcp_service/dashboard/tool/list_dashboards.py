@@ -122,7 +122,7 @@ def list_dashboards(request: ListDashboardsRequest) -> DashboardList:
     from superset.daos.dashboard import DashboardDAO
 
     tool = ModelListTool(
-        dao_class=DashboardDAO,
+        dao_class=DashboardDAO,  # type: ignore[arg-type]
         output_schema=DashboardInfo,
         item_serializer=lambda obj, cols: serialize_dashboard_object(obj),
         filter_type=DashboardFilter,
