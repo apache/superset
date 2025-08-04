@@ -2110,11 +2110,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         if qo.row_offset:
             qry = qry.offset(qo.row_offset)
 
-        if (
-            qo.series_limit is not None
-            and qo.series_limit > 0
-            and groupby_series_columns
-        ):
+        if qo.series_limit and groupby_series_columns:
             if db_engine_spec.allows_joins and db_engine_spec.allows_subqueries:
                 # some sql dialects require for order by expressions
                 # to also be in the select clause -- others, e.g. vertica,
