@@ -359,7 +359,8 @@
     "underscore": "^1.13.7",
     "jspdf": "^3.0.1",
     "nwsapi": "^2.2.13",
-    "@deck.gl/core": "9.1.13"
+    "@deck.gl/core": "9.1.13",
+    "query-string": "^7.1.3"
   },
   "readme": "ERROR: No README data found!",
   "scarfSettings": {
