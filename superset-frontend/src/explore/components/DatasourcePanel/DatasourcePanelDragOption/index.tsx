@@ -91,7 +91,9 @@ export default function DatasourcePanelDragOption(
       ) : (
         <StyledMetricOption metric={value as MetricOption} {...optionProps} />
       )}
-      <Icons.Drag />
+      <Icons.Drag 
+        style={{ height: '20px' }}
+      />
     </DatasourceItemContainer>
   );
 }
