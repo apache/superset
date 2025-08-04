@@ -77,6 +77,17 @@ import { fetchSyncedColumns, updateColumns } from './utils';
 
 const extensionsRegistry = getExtensionsRegistry();
 
+// Helper function to safely parse extra field
+const parseExtra = extra => {
+  if (!extra) return {};
+  if (typeof extra === 'object') return extra;
+  try {
+    return JSON.parse(extra);
+  } catch {
+    return {};
+  }
+};
+
 const DatasourceContainer = styled.div`
   .change-warning {
     margin: 16px 10px 0;
@@ -1061,22 +1072,12 @@ class DatasourceEditor extends PureComponent {
                     label: metric.verbose_name || metric.metric_name,
                   })) || []
                 }
-                value={(() => {
-                  try {
-                    const extra =
-                      typeof datasource.extra === 'string'
-                        ? JSON.parse(datasource.extra || '{}')
-                        : datasource.extra || {};
-                    return extra.default_chart_metadata?.default_metric;
-                  } catch {
-                    return undefined;
-                  }
-                })()}
+                value={
+                  parseExtra(datasource.extra).default_chart_metadata
+                    ?.default_metric
+                }
                 onChange={value => {
-                  const extra =
-                    typeof datasource.extra === 'string'
-                      ? JSON.parse(datasource.extra || '{}')
-                      : { ...(datasource.extra || {}) };
+                  const extra = { ...parseExtra(datasource.extra) };
                   if (!extra.default_chart_metadata) {
                     extra.default_chart_metadata = {};
                   }
@@ -1105,22 +1106,12 @@ class DatasourceEditor extends PureComponent {
                       label: column.verbose_name || column.column_name,
                     })) || []
                 }
-                value={(() => {
-                  try {
-                    const extra =
-                      typeof datasource.extra === 'string'
-                        ? JSON.parse(datasource.extra || '{}')
-                        : datasource.extra || {};
-                    return extra.default_chart_metadata?.default_dimension;
-                  } catch {
-                    return undefined;
-                  }
-                })()}
+                value={
+                  parseExtra(datasource.extra).default_chart_metadata
+                    ?.default_dimension
+                }
                 onChange={value => {
-                  const extra =
-                    typeof datasource.extra === 'string'
-                      ? JSON.parse(datasource.extra || '{}')
-                      : { ...(datasource.extra || {}) };
+                  const extra = { ...parseExtra(datasource.extra) };
                   if (!extra.default_chart_metadata) {
                     extra.default_chart_metadata = {};
                   }
@@ -1154,22 +1145,12 @@ class DatasourceEditor extends PureComponent {
                   { value: 'P1M', label: t('Month') },
                   { value: 'P1Y', label: t('Year') },
                 ]}
-                value={(() => {
-                  try {
-                    const extra =
-                      typeof datasource.extra === 'string'
-                        ? JSON.parse(datasource.extra || '{}')
-                        : datasource.extra || {};
-                    return extra.default_chart_metadata?.default_time_grain;
-                  } catch {
-                    return undefined;
-                  }
-                })()}
+                value={
+                  parseExtra(datasource.extra).default_chart_metadata
+                    ?.default_time_grain
+                }
                 onChange={value => {
-                  const extra =
-                    typeof datasource.extra === 'string'
-                      ? JSON.parse(datasource.extra || '{}')
-                      : { ...(datasource.extra || {}) };
+                  const extra = { ...parseExtra(datasource.extra) };
                   if (!extra.default_chart_metadata) {
                     extra.default_chart_metadata = {};
                   }
@@ -1198,22 +1179,12 @@ class DatasourceEditor extends PureComponent {
                   { value: 'Last year', label: t('Last year') },
                   { value: 'No filter', label: t('No filter') },
                 ]}
-                value={(() => {
-                  try {
-                    const extra =
-                      typeof datasource.extra === 'string'
-                        ? JSON.parse(datasource.extra || '{}')
-                        : datasource.extra || {};
-                    return extra.default_chart_metadata?.default_time_range;
-                  } catch {
-                    return undefined;
-                  }
-                })()}
+                value={
+                  parseExtra(datasource.extra).default_chart_metadata
+                    ?.default_time_range
+                }
                 onChange={value => {
-                  const extra =
-                    typeof datasource.extra === 'string'
-                      ? JSON.parse(datasource.extra || '{}')
-                      : { ...(datasource.extra || {}) };
+                  const extra = { ...parseExtra(datasource.extra) };
                   if (!extra.default_chart_metadata) {
                     extra.default_chart_metadata = {};
                   }
@@ -1234,22 +1205,12 @@ class DatasourceEditor extends PureComponent {
             control={
               <TextControl
                 name="default_row_limit"
-                value={(() => {
-                  try {
-                    const extra =
-                      typeof datasource.extra === 'string'
-                        ? JSON.parse(datasource.extra || '{}')
-                        : datasource.extra || {};
-                    return extra.default_chart_metadata?.default_row_limit;
-                  } catch {
-                    return undefined;
-                  }
-                })()}
+                value={
+                  parseExtra(datasource.extra).default_chart_metadata
+                    ?.default_row_limit
+                }
                 onChange={value => {
-                  const extra =
-                    typeof datasource.extra === 'string'
-                      ? JSON.parse(datasource.extra || '{}')
-                      : { ...(datasource.extra || {}) };
+                  const extra = { ...parseExtra(datasource.extra) };
                   if (!extra.default_chart_metadata) {
                     extra.default_chart_metadata = {};
                   }
