@@ -54,6 +54,9 @@ const createMockFileReader = (): MockFileReader => ({
 // Create a properly typed Jest mock constructor
 const mockFileReaderConstructor = jest.fn(() => createMockFileReader());
 
+// Save the original FileReader to restore later
+const originalFileReader = global.FileReader;
+
 Object.defineProperty(global, 'FileReader', {
   writable: true,
   value: mockFileReaderConstructor,
@@ -137,17 +140,21 @@ describe('EncryptedField', () => {
     db: createMockDb('test-engine'),
   };
 
-  beforeEach(() => {
-    jest.clearAllMocks();
-  });
-
   afterEach(() => {
     jest.clearAllMocks();
   });
 
+  afterAll(() => {
+    // Restore the original FileReader to prevent global side effects
+    Object.defineProperty(global, 'FileReader', {
+      writable: true,
+      value: originalFileReader,
+    });
+  });
+
   describe('Core Logic Tests', () => {
     describe('Field Name Resolution', () => {
-      it('resolves field name from credentials map and engine', () => {
+      it('resolves field name from engine', () => {
         const testEngine = 'mock-test-engine';
         const testFieldName = 'mock_credential_field';
 
@@ -173,7 +180,6 @@ describe('EncryptedField', () => {
 
         render(<EncryptedField {...props} />);
 
-        // Should not crash and should call onParametersChange with undefined field name
         expect(props.changeMethods.onParametersChange).toHaveBeenCalledWith({
           target: {
             name: undefined,
@@ -188,7 +194,6 @@ describe('EncryptedField', () => {
 
         render(<EncryptedField {...props} />);
 
-        // Should not crash and should call onParametersChange with null field name
         expect(props.changeMethods.onParametersChange).toHaveBeenCalledWith({
           target: {
             name: null,
@@ -204,7 +209,6 @@ describe('EncryptedField', () => {
 
         render(<EncryptedField {...props} />);
 
-        // Should not crash and should call onParametersChange with undefined field name
         expect(props.changeMethods.onParametersChange).toHaveBeenCalledWith({
           target: {
             name: undefined,
@@ -215,7 +219,7 @@ describe('EncryptedField', () => {
     });
 
     describe('Parameter Value Processing', () => {
-      it('converts object values to JSON string for any field', () => {
+      it('converts objects to JSON', () => {
         const testEngine = 'mock-engine';
         const testFieldName = 'mock_field';
         const testCredentials = { key: 'value', nested: { data: 'test' } };
@@ -233,7 +237,7 @@ describe('EncryptedField', () => {
         });
       });
 
-      it('converts boolean values to string for any field', () => {
+      it('converts booleans to strings', () => {
         const testEngine = 'mock-engine';
         const testFieldName = 'mock_field';
 
@@ -250,7 +254,7 @@ describe('EncryptedField', () => {
         });
       });
 
-      it('handles string values unchanged for any field', () => {
+      it('preserves string values', () => {
         const testEngine = 'mock-engine';
         const testFieldName = 'mock_field';
         const testValue = 'test-string-value';
@@ -268,7 +272,7 @@ describe('EncryptedField', () => {
         });
       });
 
-      it('handles null/undefined values for any field', () => {
+      it('renders empty for null/undefined', () => {
         const testEngine = 'mock-engine';
         const testFieldName = 'mock_field';
 
@@ -295,7 +299,7 @@ describe('EncryptedField', () => {
 
   describe('State Management Tests', () => {
     describe('Upload Option State', () => {
-      it('initializes upload option to JsonUpload by default', () => {
+      it('defaults to JsonUpload', () => {
         const testEngine = 'mock-engine';
         const testFieldName = 'mock_field';
 
@@ -311,7 +315,7 @@ describe('EncryptedField', () => {
         });
       });
 
-      it('switches upload options independent of engine', () => {
+      it('switches upload options', () => {
         const testEngine = 'mock-engine';
         const testFieldName = 'mock_field';
 
@@ -341,7 +345,7 @@ describe('EncryptedField', () => {
     });
 
     describe('Change Handler Integration', () => {
-      it('calls onParametersChange with correct dynamic field name', () => {
+      it('uses dynamic field name', () => {
         const testEngine = 'mock-engine';
         const testFieldName = 'mock_dynamic_field';
 
@@ -368,7 +372,7 @@ describe('EncryptedField', () => {
         });
       });
 
-      it('maintains form field contract regardless of engine', () => {
+      it('maintains form contract', () => {
         const engines = [
           { engine: 'test-engine-1', field: 'field_1' },
           { engine: 'test-engine-2', field: 'field_2' },
@@ -409,7 +413,7 @@ describe('EncryptedField', () => {
 
   describe('Component Behavior Tests', () => {
     describe('Rendering Logic', () => {
-      it('shows upload selector when showCredentialsInfo is true', () => {
+      it('shows upload selector in create mode', () => {
         const testEngine = 'mock-engine';
         const testFieldName = 'mock_field';
 
@@ -429,7 +433,7 @@ describe('EncryptedField', () => {
         });
       });
 
-      it('hides upload selector when showCredentialsInfo is false (edit mode)', () => {
+      it('hides upload selector in edit mode', () => {
         const testEngine = 'mock-engine';
         const testFieldName = 'mock_field';
 
@@ -452,7 +456,7 @@ describe('EncryptedField', () => {
         });
       });
 
-      it('shows textarea when editNewDb is true regardless of engine', () => {
+      it('shows textarea when editNewDb', () => {
         const testEngines = ['engine-1', 'engine-2', 'engine-3'];
         const mappings = testEngines.reduce(
           (acc, engine, index) => ({ ...acc, [engine]: `field_${index}` }),
@@ -480,14 +484,13 @@ describe('EncryptedField', () => {
         });
       });
 
-      it('renders UI even when engine has no encrypted credentials mapping', () => {
+      it('renders with unmapped engine', () => {
         const unmappedEngine = 'unsupported-engine';
         const mockDb = createMockDb(unmappedEngine);
         const props = { ...defaultProps, db: mockDb };
 
         render(<EncryptedField {...props} />);
 
-        // Component renders UI but with undefined field name
         expect(
           screen.getByText(
             'How do you want to enter service account credentials?',
@@ -506,7 +509,7 @@ describe('EncryptedField', () => {
     });
 
     describe('Form Integration Behavior', () => {
-      it('integrates with form validation using any field name', () => {
+      it('integrates with form validation', () => {
         const testCases = [
           { engine: 'validation-engine-1', field: 'validation_field_1' },
           { engine: 'validation-engine-2', field: 'validation_field_2' },
@@ -537,7 +540,7 @@ describe('EncryptedField', () => {
         });
       });
 
-      it('maintains consistent UI structure across different engines', () => {
+      it('maintains consistent UI structure', () => {
         const engines = ['ui-engine-1', 'ui-engine-2', 'ui-engine-3'];
         const mappings = engines.reduce(
           (acc, engine, index) => ({ ...acc, [engine]: `ui_field_${index}` }),
@@ -682,8 +685,10 @@ describe('EncryptedField', () => {
           expect(textarea).toBeInTheDocument();
           expect(textarea).toHaveAttribute('name', testFieldName);
 
-          // For now, just verify the component renders without crashing with validation errors
-          // Note: The actual validation error display would depend on how the parent form handles it
+          // Note: The EncryptedField component doesn't directly render validation errors.
+          // It receives them as props but doesn't display them in the UI.
+          // The parent form component is responsible for displaying validation errors.
+          // This test verifies the component handles validation errors gracefully.
           expect(screen.getByText('Service Account')).toBeInTheDocument();
         });
       });
@@ -800,7 +805,6 @@ describe('EncryptedField', () => {
           ...overrides,
         };
 
-        // Should not crash
         expect(() => render(<EncryptedField {...props} />)).not.toThrow();
       });
 
@@ -815,7 +819,6 @@ describe('EncryptedField', () => {
           };
           const props = { ...defaultProps, db: mockDb, isEditMode: true };
 
-          // Should render without crashing
           expect(() => render(<EncryptedField {...props} />)).not.toThrow();
 
           const textarea = screen.getByRole('textbox');
