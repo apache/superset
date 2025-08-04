@@ -19,12 +19,12 @@
 
 import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
-import { ThemeProvider, supersetTheme } from '../../../../src';
-import MatrixifyGridCell from '../../../../src/chart/components/Matrixify/MatrixifyGridCell';
-import { MatrixifyGridCell as MatrixifyGridCellType } from '../../../../src/chart/types/matrixify';
+import { ThemeProvider, supersetTheme } from '../../..';
+import MatrixifyGridCell from './MatrixifyGridCell';
+import { MatrixifyGridCell as MatrixifyGridCellType } from '../../types/matrixify';
 
 // Mock StatefulChart component
-jest.mock('../../../../src/chart/components/StatefulChart', () => {
+jest.mock('../StatefulChart', () => {
   /* eslint-disable no-restricted-syntax, global-require, @typescript-eslint/no-var-requires */
   const React = require('react');
   /* eslint-enable no-restricted-syntax, global-require, @typescript-eslint/no-var-requires */
