@@ -116,7 +116,7 @@ def get_dashboard_info(
     from superset.daos.dashboard import DashboardDAO
 
     tool = ModelGetInfoTool(
-        dao_class=DashboardDAO,
+        dao_class=DashboardDAO,  # type: ignore[arg-type]
         output_schema=DashboardInfo,
         error_schema=DashboardError,
         serializer=dashboard_serializer,

@@ -12,7 +12,7 @@ The Superset Model Context Protocol (MCP) service provides a modular, schema-dri
 
 ## What is MCP?
 
-The Model Context Protocol (MCP) is an open standard for connecting AI assistants to data sources and tools. Superset's MCP service exposes 17 tools that allow LLM agents to:
+The Model Context Protocol (MCP) is an open standard for connecting AI assistants to data sources and tools. Superset's MCP service exposes 17 tools, 2 prompts, and 2 resources that allow LLM agents to:
 
 - **Explore data**: List and query dashboards, charts, and datasets
 - **Create visualizations**: Generate charts and dashboards programmatically
@@ -27,6 +27,14 @@ The Model Context Protocol (MCP) is an open standard for connecting AI assistant
 - **Dataset Tools (3)**: List, get info, discover filterable columns
 - **System Tools (2)**: Instance info, explore link generation
 - **SQL Lab Tools (2)**: Pre-configured SQL sessions, direct SQL execution
+
+### 🚀 **2 Guided Prompts**
+- **Quickstart**: Personalized onboarding for analysts, executives, and developers
+- **Chart Creation**: Step-by-step guidance based on business goals
+
+### 🌐 **2 Contextual Resources**
+- **Instance Metadata**: Real-time stats, popular content, and configuration
+- **Chart Templates**: Pre-configured templates and best practices
 
 ### 🔐 **Enterprise Authentication**
 - **JWT Bearer Authentication**: Production-ready with configurable factory pattern
@@ -185,10 +193,34 @@ data = client.call_tool("get_chart_data", {
 })
 ```
 
+### Using Prompts and Resources
+
+```python
+# Get personalized onboarding
+prompt = client.get_prompt("superset_quickstart", {
+    "user_type": "analyst",
+    "focus_area": "sales"
+})
+# Claude receives a customized introduction focusing on sales analytics
+
+# Access instance metadata
+metadata = client.read_resource("superset://instance/metadata")
+# Returns real-time stats, popular datasets, and configuration
+
+# Get chart best practices
+templates = client.read_resource("superset://chart/templates")
+# Returns pre-configured templates and visualization guidelines
+```
+
+In Claude Desktop, these work automatically:
+- Ask "Help me get started with Superset" → triggers quickstart prompt
+- Ask "What data is available?" → uses instance metadata resource
+- Ask "How should I visualize sales trends?" → uses chart templates resource
+
 ## Next Steps
 
 ### Ready to Use MCP?
-- **[📚 API Reference](./api-reference)** - Try all 16 tools with request/response examples
+- **[📚 API Reference](./api-reference)** - Try all 17 tools, 2 prompts, and 2 resources with examples
 - **[🔐 Authentication](./authentication)** - Set up JWT security for production use
 
 ### Want to Extend MCP?

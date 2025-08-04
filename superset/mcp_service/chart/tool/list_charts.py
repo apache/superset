@@ -86,7 +86,7 @@ def list_charts(request: ListChartsRequest) -> ChartList:
     from superset.daos.chart import ChartDAO
 
     tool = ModelListTool(
-        dao_class=ChartDAO,
+        dao_class=ChartDAO,  # type: ignore[arg-type]
         output_schema=ChartInfo,
         item_serializer=lambda obj, cols: serialize_chart_object(obj) if obj else None,  # type: ignore[arg-type]
         filter_type=ChartFilter,

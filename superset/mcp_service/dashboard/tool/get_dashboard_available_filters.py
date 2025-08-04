@@ -30,7 +30,7 @@ def get_dashboard_available_filters(
     from superset.daos.dashboard import DashboardDAO
 
     tool = ModelGetAvailableFiltersTool(
-        dao_class=DashboardDAO,
+        dao_class=DashboardDAO,  # type: ignore[arg-type]
         output_schema=DashboardAvailableFilters,
         logger=logger,
     )

@@ -85,7 +85,7 @@ def list_datasets(request: ListDatasetsRequest) -> DatasetList:
 
     # Create tool with standard serialization
     tool = ModelListTool(
-        dao_class=DatasetDAO,
+        dao_class=DatasetDAO,  # type: ignore[arg-type]
         output_schema=DatasetInfo,
         item_serializer=lambda obj, cols: serialize_dataset_object(obj),
         filter_type=DatasetFilter,

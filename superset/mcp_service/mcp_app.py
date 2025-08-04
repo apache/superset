@@ -124,11 +124,22 @@ get_superset_instance_info for a summary of the Superset instance.
 
 # Import all tool modules to ensure registration (must be after mcp is defined)
 # These imports register the tools with the mcp instance
+import superset.mcp_service.chart.prompts  # noqa: F401, E402
+import superset.mcp_service.chart.resources  # noqa: F401, E402
 import superset.mcp_service.chart.tool  # noqa: F401, E402
+import superset.mcp_service.dashboard.prompts  # noqa: F401, E402
+import superset.mcp_service.dashboard.resources  # noqa: F401, E402
 import superset.mcp_service.dashboard.tool  # noqa: F401, E402
+import superset.mcp_service.dataset.prompts  # noqa: F401, E402
+import superset.mcp_service.dataset.resources  # noqa: F401, E402
 import superset.mcp_service.dataset.tool  # noqa: F401, E402
 import superset.mcp_service.explore.tool  # noqa: F401, E402
 import superset.mcp_service.sql_lab.tool  # noqa: F401, E402
+
+# Import prompts and resources modules (must be after mcp is defined)
+# These imports register the prompts and resources with the mcp instance
+import superset.mcp_service.system.prompts  # noqa: F401, E402
+import superset.mcp_service.system.resources  # noqa: F401, E402
 import superset.mcp_service.system.tool  # noqa: F401, E402
 
 
@@ -497,5 +508,7 @@ def init_fastmcp_server(enable_auth_configuration: bool = True) -> FastMCP:
     mcp.add_middleware(LoggingMiddleware())
     mcp.add_middleware(PrivateToolMiddleware())
 
-    logger.info("MCP Server initialized with modular tools structure")
+    logger.info(
+        "MCP Server initialized with modular tools structure, prompts, and resources"
+    )
     return mcp

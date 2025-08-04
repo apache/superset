@@ -59,7 +59,7 @@ def get_dataset_info(request: GetDatasetInfoRequest) -> DatasetInfo | DatasetErr
     from superset.daos.dataset import DatasetDAO
 
     tool = ModelGetInfoTool(
-        dao_class=DatasetDAO,
+        dao_class=DatasetDAO,  # type: ignore[arg-type]
         output_schema=DatasetInfo,
         error_schema=DatasetError,
         serializer=serialize_dataset_object,

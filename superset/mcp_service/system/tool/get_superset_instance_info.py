@@ -206,12 +206,12 @@ def calculate_popular_content(
 # Configure the instance info tool
 _instance_info_tool = InstanceInfoTool(
     dao_classes={
-        "dashboards": None,  # Will be set at runtime
-        "charts": None,
-        "datasets": None,
-        "databases": None,
-        "users": None,
-        "tags": None,
+        "dashboards": None,  # type: ignore[dict-item]  # Will be set at runtime
+        "charts": None,  # type: ignore[dict-item]
+        "datasets": None,  # type: ignore[dict-item]
+        "databases": None,  # type: ignore[dict-item]
+        "users": None,  # type: ignore[dict-item]
+        "tags": None,  # type: ignore[dict-item]
     },
     output_schema=InstanceInfo,
     metric_calculators={
@@ -261,12 +261,12 @@ def get_superset_instance_info(request: GetSupersetInstanceInfoRequest) -> Insta
 
         # Configure DAO classes at runtime
         _instance_info_tool.dao_classes = {
-            "dashboards": DashboardDAO,
-            "charts": ChartDAO,
-            "datasets": DatasetDAO,
-            "databases": DatabaseDAO,
-            "users": UserDAO,
-            "tags": TagDAO,
+            "dashboards": DashboardDAO,  # type: ignore[dict-item]
+            "charts": ChartDAO,  # type: ignore[dict-item]
+            "datasets": DatasetDAO,  # type: ignore[dict-item]
+            "databases": DatabaseDAO,  # type: ignore[dict-item]
+            "users": UserDAO,  # type: ignore[dict-item]
+            "tags": TagDAO,  # type: ignore[dict-item]
         }
 
         # Run the configurable tool

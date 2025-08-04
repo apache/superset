@@ -43,7 +43,7 @@ def get_chart_available_filters(
     from superset.daos.chart import ChartDAO
 
     tool = ModelGetAvailableFiltersTool(
-        dao_class=ChartDAO,
+        dao_class=ChartDAO,  # type: ignore[arg-type]
         output_schema=ChartAvailableFiltersResponse,
         logger=logger,
     )

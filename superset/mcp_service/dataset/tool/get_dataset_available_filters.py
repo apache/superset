@@ -44,7 +44,7 @@ def get_dataset_available_filters(
     from superset.daos.dataset import DatasetDAO
 
     tool = ModelGetAvailableFiltersTool(
-        dao_class=DatasetDAO,
+        dao_class=DatasetDAO,  # type: ignore[arg-type]
         output_schema=DatasetAvailableFilters,
         logger=logger,
     )

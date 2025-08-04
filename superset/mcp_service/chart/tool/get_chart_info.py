@@ -56,7 +56,7 @@ def get_chart_info(request: GetChartInfoRequest) -> ChartInfo | ChartError:
     from superset.daos.chart import ChartDAO
 
     tool = ModelGetInfoTool(
-        dao_class=ChartDAO,
+        dao_class=ChartDAO,  # type: ignore[arg-type]
         output_schema=ChartInfo,
         error_schema=ChartError,
         serializer=serialize_chart_object,
