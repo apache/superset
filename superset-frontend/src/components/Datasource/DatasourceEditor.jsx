@@ -1061,13 +1061,22 @@ class DatasourceEditor extends PureComponent {
                     label: metric.verbose_name || metric.metric_name,
                   })) || []
                 }
-                value={
-                  datasource.extra &&
-                  JSON.parse(datasource.extra || '{}')?.default_chart_metadata
-                    ?.default_metric
-                }
+                value={(() => {
+                  try {
+                    const extra =
+                      typeof datasource.extra === 'string'
+                        ? JSON.parse(datasource.extra || '{}')
+                        : datasource.extra || {};
+                    return extra.default_chart_metadata?.default_metric;
+                  } catch {
+                    return undefined;
+                  }
+                })()}
                 onChange={value => {
-                  const extra = JSON.parse(datasource.extra || '{}');
+                  const extra =
+                    typeof datasource.extra === 'string'
+                      ? JSON.parse(datasource.extra || '{}')
+                      : { ...(datasource.extra || {}) };
                   if (!extra.default_chart_metadata) {
                     extra.default_chart_metadata = {};
                   }
@@ -1096,13 +1105,22 @@ class DatasourceEditor extends PureComponent {
                       label: column.verbose_name || column.column_name,
                     })) || []
                 }
-                value={
-                  datasource.extra &&
-                  JSON.parse(datasource.extra || '{}')?.default_chart_metadata
-                    ?.default_dimension
-                }
+                value={(() => {
+                  try {
+                    const extra =
+                      typeof datasource.extra === 'string'
+                        ? JSON.parse(datasource.extra || '{}')
+                        : datasource.extra || {};
+                    return extra.default_chart_metadata?.default_dimension;
+                  } catch {
+                    return undefined;
+                  }
+                })()}
                 onChange={value => {
-                  const extra = JSON.parse(datasource.extra || '{}');
+                  const extra =
+                    typeof datasource.extra === 'string'
+                      ? JSON.parse(datasource.extra || '{}')
+                      : { ...(datasource.extra || {}) };
                   if (!extra.default_chart_metadata) {
                     extra.default_chart_metadata = {};
                   }
@@ -1136,13 +1154,22 @@ class DatasourceEditor extends PureComponent {
                   { value: 'P1M', label: t('Month') },
                   { value: 'P1Y', label: t('Year') },
                 ]}
-                value={
-                  datasource.extra &&
-                  JSON.parse(datasource.extra || '{}')?.default_chart_metadata
-                    ?.default_time_grain
-                }
+                value={(() => {
+                  try {
+                    const extra =
+                      typeof datasource.extra === 'string'
+                        ? JSON.parse(datasource.extra || '{}')
+                        : datasource.extra || {};
+                    return extra.default_chart_metadata?.default_time_grain;
+                  } catch {
+                    return undefined;
+                  }
+                })()}
                 onChange={value => {
-                  const extra = JSON.parse(datasource.extra || '{}');
+                  const extra =
+                    typeof datasource.extra === 'string'
+                      ? JSON.parse(datasource.extra || '{}')
+                      : { ...(datasource.extra || {}) };
                   if (!extra.default_chart_metadata) {
                     extra.default_chart_metadata = {};
                   }
@@ -1171,13 +1198,22 @@ class DatasourceEditor extends PureComponent {
                   { value: 'Last year', label: t('Last year') },
                   { value: 'No filter', label: t('No filter') },
                 ]}
-                value={
-                  datasource.extra &&
-                  JSON.parse(datasource.extra || '{}')?.default_chart_metadata
-                    ?.default_time_range
-                }
+                value={(() => {
+                  try {
+                    const extra =
+                      typeof datasource.extra === 'string'
+                        ? JSON.parse(datasource.extra || '{}')
+                        : datasource.extra || {};
+                    return extra.default_chart_metadata?.default_time_range;
+                  } catch {
+                    return undefined;
+                  }
+                })()}
                 onChange={value => {
-                  const extra = JSON.parse(datasource.extra || '{}');
+                  const extra =
+                    typeof datasource.extra === 'string'
+                      ? JSON.parse(datasource.extra || '{}')
+                      : { ...(datasource.extra || {}) };
                   if (!extra.default_chart_metadata) {
                     extra.default_chart_metadata = {};
                   }
@@ -1198,13 +1234,22 @@ class DatasourceEditor extends PureComponent {
             control={
               <TextControl
                 name="default_row_limit"
-                value={
-                  datasource.extra &&
-                  JSON.parse(datasource.extra || '{}')?.default_chart_metadata
-                    ?.default_row_limit
-                }
+                value={(() => {
+                  try {
+                    const extra =
+                      typeof datasource.extra === 'string'
+                        ? JSON.parse(datasource.extra || '{}')
+                        : datasource.extra || {};
+                    return extra.default_chart_metadata?.default_row_limit;
+                  } catch {
+                    return undefined;
+                  }
+                })()}
                 onChange={value => {
-                  const extra = JSON.parse(datasource.extra || '{}');
+                  const extra =
+                    typeof datasource.extra === 'string'
+                      ? JSON.parse(datasource.extra || '{}')
+                      : { ...(datasource.extra || {}) };
                   if (!extra.default_chart_metadata) {
                     extra.default_chart_metadata = {};
                   }
