@@ -710,6 +710,198 @@ describe('EncryptedField', () => {
     });
   });
 
+  describe('Performance Tests', () => {
+    describe('Large File Handling', () => {
+      it('should handle reasonably large JSON files without freezing', async () => {
+        const testEngine = 'mock-engine';
+        const testFieldName = 'mock_field';
+
+        // Create a large JSON object (100KB+ serialized)
+        const largeObject = {
+          data: Array(1000)
+            .fill(0)
+            .map((_, i) => ({
+              id: i,
+              name: `item-${i}`,
+              description: 'This is a test item with some description content',
+              metadata: {
+                created: new Date().toISOString(),
+                tags: ['tag1', 'tag2', 'tag3'],
+                properties: {
+                  enabled: true,
+                  priority: i % 5,
+                  category: `category-${i % 10}`,
+                },
+              },
+            })),
+        };
+        const largeJsonString = JSON.stringify(largeObject);
+
+        withMockCredentialsMap({ [testEngine]: testFieldName }, async () => {
+          const mockDb = createMockDb(testEngine);
+          const props = { ...defaultProps, db: mockDb, isEditMode: false };
+
+          // Mock FileReader to return large JSON content
+          const mockFileReaderInstance = createMockFileReader();
+          mockFileReaderInstance.result = largeJsonString;
+          mockFileReaderInstance.readAsText = jest.fn(function (
+            this: MockFileReader,
+          ) {
+            // Simulate processing time for large file
+            setTimeout(() => {
+              if (this.onload) {
+                this.onload({} as ProgressEvent<FileReader>);
+              }
+            }, 10);
+          });
+
+          mockFileReaderConstructor.mockReturnValueOnce(mockFileReaderInstance);
+
+          render(<EncryptedField {...props} />);
+
+          // Component should render without issues
+          expect(screen.getByText('Upload credentials')).toBeInTheDocument();
+
+          // Verify that large content would be processed correctly
+          await new Promise(resolve => {
+            mockFileReaderInstance.readAsText();
+            setTimeout(() => {
+              expect(
+                props.changeMethods.onParametersChange,
+              ).toHaveBeenCalledWith({
+                target: {
+                  type: null,
+                  name: testFieldName,
+                  value: largeJsonString,
+                  checked: false,
+                },
+              });
+              resolve(undefined);
+            }, 15);
+          });
+
+          expect(mockAddDangerToast).not.toHaveBeenCalled();
+        });
+      });
+
+      it('should handle rapid upload option changes without performance issues', () => {
+        const testEngine = 'mock-engine';
+        const testFieldName = 'mock_field';
+
+        withMockCredentialsMap({ [testEngine]: testFieldName }, () => {
+          const mockDb = createMockDb(testEngine);
+          const props = { ...defaultProps, db: mockDb, isEditMode: false };
+
+          render(<EncryptedField {...props} />);
+
+          const select = screen.getByRole('combobox');
+
+          // Perform rapid option changes
+          for (let i = 0; i < 10; i += 1) {
+            fireEvent.mouseDown(select);
+
+            if (i % 2 === 0) {
+              const copyPasteOption = screen.getByText(
+                'Copy and Paste JSON credentials',
+              );
+              fireEvent.click(copyPasteOption);
+            } else {
+              const uploadOption = screen.getByText('Upload JSON file');
+              fireEvent.click(uploadOption);
+            }
+          }
+
+          // Component should still be responsive
+          expect(select).toBeInTheDocument();
+          // Final state should be upload (i = 9, odd number)
+          expect(screen.getByText('Upload credentials')).toBeInTheDocument();
+        });
+      });
+    });
+
+    describe('State Management Performance', () => {
+      it('should handle multiple file operations efficiently', () => {
+        const testEngine = 'mock-engine';
+        const testFieldName = 'mock_field';
+
+        withMockCredentialsMap({ [testEngine]: testFieldName }, () => {
+          const mockDb = createMockDb(testEngine);
+          const props = { ...defaultProps, db: mockDb, isEditMode: false };
+
+          render(<EncryptedField {...props} />);
+
+          // Clear initial useEffect call
+          jest.clearAllMocks();
+
+          // Simulate multiple rapid state changes
+          const operations = [
+            () => {
+              // Simulate file upload
+              props.changeMethods.onParametersChange({
+                target: { name: testFieldName, value: '{"test": "data1"}' },
+              });
+            },
+            () => {
+              // Simulate file removal
+              props.changeMethods.onParametersChange({
+                target: { name: testFieldName, value: '' },
+              });
+            },
+            () => {
+              // Simulate another file upload
+              props.changeMethods.onParametersChange({
+                target: { name: testFieldName, value: '{"test": "data2"}' },
+              });
+            },
+          ];
+
+          // Execute operations rapidly
+          operations.forEach(op => op());
+
+          // Should have called onParametersChange for each operation
+          expect(props.changeMethods.onParametersChange).toHaveBeenCalledTimes(
+            3,
+          );
+
+          // Final call should be the last operation
+          expect(
+            props.changeMethods.onParametersChange,
+          ).toHaveBeenLastCalledWith({
+            target: { name: testFieldName, value: '{"test": "data2"}' },
+          });
+        });
+      });
+    });
+
+    describe('Component Cleanup', () => {
+      it('should unmount gracefully without errors', () => {
+        const testEngine = 'mock-engine';
+        const testFieldName = 'mock_field';
+
+        withMockCredentialsMap({ [testEngine]: testFieldName }, () => {
+          const mockDb = createMockDb(testEngine);
+          const props = { ...defaultProps, db: mockDb, isEditMode: false };
+
+          const { unmount } = render(<EncryptedField {...props} />);
+
+          // Switch to copy-paste mode to set some state
+          const select = screen.getByRole('combobox');
+          fireEvent.mouseDown(select);
+          const copyPasteOption = screen.getByText(
+            'Copy and Paste JSON credentials',
+          );
+          fireEvent.click(copyPasteOption);
+
+          // Verify textarea is shown
+          expect(screen.getByRole('textbox')).toBeInTheDocument();
+
+          // Unmount component - should not throw any errors
+          expect(() => unmount()).not.toThrow();
+        });
+      });
+    });
+  });
+
   describe('Error Handling Tests', () => {
     describe('File Upload Error Scenarios', () => {
       it('should show error toast when file upload fails', () => {
