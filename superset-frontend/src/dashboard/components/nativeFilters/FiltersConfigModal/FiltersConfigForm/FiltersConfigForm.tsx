@@ -676,7 +676,7 @@ const FiltersConfigForm = (
     });
     return excluded;
   }, [
-    JSON.stringify(charts),
+    JSON.stringify(Object.values(charts).map(chart => chart.id)),
     formFilter?.dataset?.value,
     JSON.stringify(loadedDatasets),
   ]);

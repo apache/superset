@@ -76,6 +76,29 @@ const noTemporalColumnsState = () => {
   };
 };
 
+const bigIntChartDataState = () => {
+  const state = defaultState();
+  return {
+    ...state,
+    charts: {
+      ...state.charts,
+      999: {
+        queriesResponse: [
+          {
+            status: 'success',
+            data: [
+              { name: 'Abigail', count: 228 },
+              { name: 'Aaron', count: 123012930123123n },
+              { name: 'Adam', count: 454 },
+            ],
+            applied_filters: [{ column: 'name' }],
+          },
+        ],
+      },
+    },
+  };
+};
+
 const datasetResult = (id: number) => ({
   description_columns: {},
   id,
@@ -590,4 +613,25 @@ test('modifies the name of a filter', async () => {
       }),
     ),
   );
+});
+
+test('renders a filter with a chart containing BigInt values', async () => {
+  const nativeFilterState = [
+    buildNativeFilter('NATIVE_FILTER-1', 'state', ['NATIVE_FILTER-2']),
+    buildNativeFilter('NATIVE_FILTER-2', 'country', []),
+    buildNativeFilter('NATIVE_FILTER-3', 'product', []),
+  ];
+  const state = {
+    ...bigIntChartDataState(),
+    dashboardInfo: {
+      metadata: { native_filter_configuration: nativeFilterState },
+    },
+    dashboardLayout,
+  };
+  defaultRender(state, {
+    ...props,
+    createNewOnOpen: false,
+  });
+
+  expect(screen.getByText(FILTER_TYPE_REGEX)).toBeInTheDocument();
 });
