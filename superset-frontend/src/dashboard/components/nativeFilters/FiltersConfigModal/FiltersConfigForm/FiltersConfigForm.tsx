@@ -659,6 +659,10 @@ const FiltersConfigForm = (
     showDataset,
   ]);
 
+  const chartIds = useMemo(() => {
+    return Object.values(charts).map(chart => chart.id);
+  }, [charts]);
+
   const initiallyExcludedCharts = useMemo(() => {
     const excluded: number[] = [];
     if (formFilter?.dataset?.value === undefined) {
@@ -676,7 +680,7 @@ const FiltersConfigForm = (
     });
     return excluded;
   }, [
-    JSON.stringify(charts),
+    JSON.stringify(chartIds),
     formFilter?.dataset?.value,
     JSON.stringify(loadedDatasets),
   ]);
