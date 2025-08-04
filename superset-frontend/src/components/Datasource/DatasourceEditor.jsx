@@ -70,6 +70,8 @@ import {
   resetDatabaseState,
 } from 'src/database/actions';
 import Mousetrap from 'mousetrap';
+import DateFilterLabel from 'src/explore/components/controls/DateFilterControl/DateFilterLabel';
+import AdhocFilterControl from 'src/explore/components/controls/FilterControl/AdhocFilterControl';
 import { DatabaseSelector } from '../DatabaseSelector';
 import CollectionTable from './CollectionTable';
 import Fieldset from './Fieldset';
@@ -80,15 +82,11 @@ const extensionsRegistry = getExtensionsRegistry();
 
 // Helper function to safely parse extra field
 const parseExtra = extra => {
-  console.log('parseExtra called with:', extra, typeof extra);
   if (!extra) return {};
   if (typeof extra === 'object') return extra;
   try {
-    const parsed = JSON.parse(extra);
-    console.log('parseExtra parsed JSON:', parsed);
-    return parsed;
+    return JSON.parse(extra);
   } catch {
-    console.log('parseExtra failed to parse JSON, returning empty object');
     return {};
   }
 };
@@ -636,11 +634,6 @@ const ResultTable =
 class DatasourceEditor extends PureComponent {
   constructor(props) {
     super(props);
-    console.log(
-      'DatasourceEditor constructor - props.datasource.extra:',
-      props.datasource.extra,
-      typeof props.datasource.extra,
-    );
     this.state = {
       datasource: {
         ...props.datasource,
@@ -707,10 +700,6 @@ class DatasourceEditor extends PureComponent {
     // Currently the logic to know whether the source is
     // physical or virtual is based on whether SQL is empty or not.
     const { datasourceType, datasource } = this.state;
-    console.log(
-      'onChange() - this.state.datasource.extra:',
-      this.state.datasource.extra,
-    );
     const sql =
       datasourceType === DATASOURCE_TYPES.physical.key ? '' : datasource.sql;
     const newDatasource = {
@@ -718,7 +707,6 @@ class DatasourceEditor extends PureComponent {
       sql,
       columns: [...this.state.databaseColumns, ...this.state.calculatedColumns],
     };
-    console.log('onChange() - newDatasource.extra:', newDatasource.extra);
     this.props.onChange(newDatasource, this.state.errors);
   }
 
@@ -728,43 +716,30 @@ class DatasourceEditor extends PureComponent {
   }
 
   onDatasourceChange(datasource, callback = this.validateAndChange) {
-    console.log(
-      'onDatasourceChange sending to modal - datasource.extra:',
-      datasource.extra,
-    );
     this.setState({ datasource }, callback);
   }
 
   onDatasourcePropChange(attr, value) {
-    console.log(`onDatasourcePropChange: ${attr} =`, value);
     if (value === undefined) return; // if value is undefined do not update state
     const datasource = { ...this.state.datasource, [attr]: value };
     this.setState(
       prevState => ({
         datasource: { ...prevState.datasource, [attr]: value },
       }),
-      () => {
-        console.log('Updated datasource.extra:', this.state.datasource.extra);
-        if (attr === 'table_name') {
-          this.onDatasourceChange(datasource, this.tableChangeAndSyncMetadata);
-        } else {
-          this.onDatasourceChange(datasource, this.validateAndChange);
-        }
-      },
+      attr === 'table_name'
+        ? this.onDatasourceChange(datasource, this.tableChangeAndSyncMetadata)
+        : this.onDatasourceChange(datasource, this.validateAndChange),
     );
   }
 
   // Helper method to update chart defaults in extra field
   onChartDefaultChange(defaultKey, value) {
-    console.log(`onChartDefaultChange: ${defaultKey} =`, value);
     const extra = { ...parseExtra(this.state.datasource.extra) };
     if (!extra.default_chart_metadata) {
       extra.default_chart_metadata = {};
     }
     extra.default_chart_metadata[defaultKey] = value;
-    const stringified = JSON.stringify(extra);
-    console.log('onChartDefaultChange - saving extra as:', stringified);
-    this.onDatasourcePropChange('extra', stringified);
+    this.onDatasourcePropChange('extra', JSON.stringify(extra));
   }
 
   onDatasourceTypeChange(datasourceType) {
@@ -1106,10 +1081,9 @@ class DatasourceEditor extends PureComponent {
               parseExtra(datasource.extra).default_chart_metadata
                 ?.default_metric
             }
-            onChange={(fieldKey, value) => {
-              console.log('Field onChange called with:', fieldKey, value);
-              this.onChartDefaultChange('default_metric', value);
-            }}
+            onChange={(fieldKey, value) =>
+              this.onChartDefaultChange('default_metric', value)
+            }
             control={
               <Select
                 name="default_metric"
@@ -1130,6 +1104,13 @@ class DatasourceEditor extends PureComponent {
             description={t(
               'Pre-populate this dimension/groupby when creating new charts from this dataset',
             )}
+            value={
+              parseExtra(datasource.extra).default_chart_metadata
+                ?.default_dimension
+            }
+            onChange={(fieldKey, value) =>
+              this.onChartDefaultChange('default_dimension', value)
+            }
             control={
               <Select
                 name="default_dimension"
@@ -1141,18 +1122,6 @@ class DatasourceEditor extends PureComponent {
                       label: column.verbose_name || column.column_name,
                     })) || []
                 }
-                value={
-                  parseExtra(datasource.extra).default_chart_metadata
-                    ?.default_dimension
-                }
-                onChange={value => {
-                  const extra = { ...parseExtra(datasource.extra) };
-                  if (!extra.default_chart_metadata) {
-                    extra.default_chart_metadata = {};
-                  }
-                  extra.default_chart_metadata.default_dimension = value;
-                  this.onDatasourcePropChange('extra', JSON.stringify(extra));
-                }}
                 placeholder={t('Select a dimension')}
                 allowClear
               />
@@ -1162,103 +1131,93 @@ class DatasourceEditor extends PureComponent {
             fieldKey="default_time_grain"
             label={t('Default Time Grain')}
             description={t(
-              'Pre-populate this time grain when creating new charts from this dataset',
+              'Pre-populate this time grain when creating new charts from this dataset. ' +
+                'Options are database-specific.',
             )}
+            value={
+              parseExtra(datasource.extra).default_chart_metadata
+                ?.default_time_grain
+            }
+            onChange={(fieldKey, value) =>
+              this.onChartDefaultChange('default_time_grain', value)
+            }
             control={
               <Select
                 name="default_time_grain"
-                options={[
-                  { value: 'PT1S', label: t('Second') },
-                  { value: 'PT1M', label: t('Minute') },
-                  { value: 'PT5M', label: t('5 Minutes') },
-                  { value: 'PT10M', label: t('10 Minutes') },
-                  { value: 'PT15M', label: t('15 Minutes') },
-                  { value: 'PT30M', label: t('30 Minutes') },
-                  { value: 'PT1H', label: t('Hour') },
-                  { value: 'P1D', label: t('Day') },
-                  { value: 'P1W', label: t('Week') },
-                  { value: 'P1M', label: t('Month') },
-                  { value: 'P1Y', label: t('Year') },
-                ]}
-                value={
-                  parseExtra(datasource.extra).default_chart_metadata
-                    ?.default_time_grain
+                options={
+                  datasource.time_grain_sqla?.map(([value, label]) => ({
+                    value,
+                    label,
+                  })) || []
                 }
-                onChange={value => {
-                  const extra = { ...parseExtra(datasource.extra) };
-                  if (!extra.default_chart_metadata) {
-                    extra.default_chart_metadata = {};
-                  }
-                  extra.default_chart_metadata.default_time_grain = value;
-                  this.onDatasourcePropChange('extra', JSON.stringify(extra));
-                }}
                 placeholder={t('Select a time grain')}
                 allowClear
               />
             }
           />
-          <Field
-            fieldKey="default_time_range"
+          <Form.Item
             label={t('Default Time Range')}
-            description={t(
+            extra={t(
               'Pre-populate this time range when creating new charts from this dataset',
             )}
-            control={
-              <Select
-                name="default_time_range"
-                options={[
-                  { value: 'Last day', label: t('Last day') },
-                  { value: 'Last 7 days', label: t('Last 7 days') },
-                  { value: 'Last 30 days', label: t('Last 30 days') },
-                  { value: 'Last 90 days', label: t('Last 90 days') },
-                  { value: 'Last year', label: t('Last year') },
-                  { value: 'No filter', label: t('No filter') },
-                ]}
-                value={
-                  parseExtra(datasource.extra).default_chart_metadata
-                    ?.default_time_range
-                }
-                onChange={value => {
-                  const extra = { ...parseExtra(datasource.extra) };
-                  if (!extra.default_chart_metadata) {
-                    extra.default_chart_metadata = {};
-                  }
-                  extra.default_chart_metadata.default_time_range = value;
-                  this.onDatasourcePropChange('extra', JSON.stringify(extra));
-                }}
-                placeholder={t('Select a time range')}
-                allowClear
-              />
-            }
-          />
+          >
+            <DateFilterLabel
+              name="default_time_range"
+              onChange={value =>
+                this.onChartDefaultChange('default_time_range', value)
+              }
+              value={
+                parseExtra(datasource.extra).default_chart_metadata
+                  ?.default_time_range || 'No filter'
+              }
+              overlayStyle="Modal"
+            />
+          </Form.Item>
           <Field
             fieldKey="default_row_limit"
             label={t('Default Row Limit')}
             description={t(
               'Pre-populate this row limit when creating new charts from this dataset',
             )}
+            value={
+              parseExtra(datasource.extra).default_chart_metadata
+                ?.default_row_limit
+            }
+            onChange={(fieldKey, value) =>
+              this.onChartDefaultChange(
+                'default_row_limit',
+                value ? parseInt(value, 10) : null,
+              )
+            }
             control={
               <TextControl
                 name="default_row_limit"
-                value={
-                  parseExtra(datasource.extra).default_chart_metadata
-                    ?.default_row_limit
-                }
-                onChange={value => {
-                  const extra = { ...parseExtra(datasource.extra) };
-                  if (!extra.default_chart_metadata) {
-                    extra.default_chart_metadata = {};
-                  }
-                  extra.default_chart_metadata.default_row_limit = value
-                    ? parseInt(value, 10)
-                    : null;
-                  this.onDatasourcePropChange('extra', JSON.stringify(extra));
-                }}
                 placeholder={t('e.g., 1000')}
                 type="number"
               />
             }
           />
+          <Form.Item
+            label={t('Default Filters')}
+            extra={t(
+              'Pre-populate these filters when creating new charts from this dataset',
+            )}
+            style={{ marginTop: '16px' }}
+          >
+            <AdhocFilterControl
+              name="default_filters"
+              onChange={filters =>
+                this.onChartDefaultChange('default_filters', filters)
+              }
+              value={
+                parseExtra(datasource.extra).default_chart_metadata
+                  ?.default_filters || []
+              }
+              datasource={datasource}
+              columns={datasource.columns}
+              savedMetrics={datasource.metrics}
+            />
+          </Form.Item>
         </Form.Item>
       </>
     );

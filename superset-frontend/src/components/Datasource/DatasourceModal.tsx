@@ -106,11 +106,6 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
   const dialog = useRef<any>(null);
   const [modal, contextHolder] = Modal.useModal();
   const buildPayload = (datasource: Record<string, any>) => {
-    console.log(
-      'buildPayload - datasource.extra:',
-      datasource.extra,
-      typeof datasource.extra,
-    );
     const payload: Record<string, any> = {
       table_name: datasource.table_name,
       database_id: datasource.database?.id,
@@ -187,10 +182,6 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
   };
   const onConfirmSave = async () => {
     // Pull out extra fields into the extra object
-    console.log(
-      'Before save - currentDatasource.extra:',
-      currentDatasource.extra,
-    );
     setIsSaving(true);
     const overrideColumns = datasource.sql !== currentDatasource.sql;
     try {
@@ -202,11 +193,6 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
       const { json } = await SupersetClient.get({
         endpoint: `/api/v1/dataset/${currentDatasource?.id}`,
       });
-      console.log(
-        'After save GET - json.result.extra:',
-        json.result.extra,
-        typeof json.result.extra,
-      );
       addSuccessToast(t('The dataset has been saved'));
       // eslint-disable-next-line no-param-reassign
       json.result.type = 'table';
@@ -242,19 +228,13 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
   };
 
   const onDatasourceChange = (data: DatasetObject, err: Array<any>) => {
-    console.log('DatasourceModal received - data.extra:', data.extra);
-    const newDatasource = {
+    setCurrentDatasource({
       ...data,
       metrics: data?.metrics.map((metric: DatasetObject['metrics'][0]) => ({
         ...metric,
         is_certified: metric?.certified_by || metric?.certification_details,
       })),
-    };
-    console.log(
-      'DatasourceModal setting currentDatasource.extra to:',
-      newDatasource.extra,
-    );
-    setCurrentDatasource(newDatasource);
+    });
     setErrors(err);
   };
 

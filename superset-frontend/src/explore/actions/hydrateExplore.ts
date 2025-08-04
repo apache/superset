@@ -133,6 +133,14 @@ export const hydrateExplore =
         if (chartDefaults.default_row_limit && !initialFormData.row_limit) {
           initialFormData.row_limit = chartDefaults.default_row_limit;
         }
+
+        // Apply default filters
+        if (
+          chartDefaults.default_filters?.length &&
+          !initialFormData.adhoc_filters?.length
+        ) {
+          initialFormData.adhoc_filters = chartDefaults.default_filters;
+        }
       } catch (error) {
         // Silently ignore JSON parsing errors - defaults will not be applied
         console.warn('Failed to parse dataset chart defaults:', error);
