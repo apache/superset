@@ -79,11 +79,15 @@ const extensionsRegistry = getExtensionsRegistry();
 
 // Helper function to safely parse extra field
 const parseExtra = extra => {
+  console.log('parseExtra called with:', extra, typeof extra);
   if (!extra) return {};
   if (typeof extra === 'object') return extra;
   try {
-    return JSON.parse(extra);
+    const parsed = JSON.parse(extra);
+    console.log('parseExtra parsed JSON:', parsed);
+    return parsed;
   } catch {
+    console.log('parseExtra failed to parse JSON, returning empty object');
     return {};
   }
 };
@@ -631,9 +635,15 @@ const ResultTable =
 class DatasourceEditor extends PureComponent {
   constructor(props) {
     super(props);
+    console.log(
+      'DatasourceEditor constructor - props.datasource.extra:',
+      props.datasource.extra,
+      typeof props.datasource.extra,
+    );
     this.state = {
       datasource: {
         ...props.datasource,
+        extra: props.datasource.extra || '{}', // Initialize null extra as empty JSON object
         owners: props.datasource.owners.map(owner => ({
           value: owner.value || owner.id,
           label: owner.label || `${owner.first_name} ${owner.last_name}`,
@@ -711,19 +721,29 @@ class DatasourceEditor extends PureComponent {
   }
 
   onDatasourceChange(datasource, callback = this.validateAndChange) {
+    console.log(
+      'onDatasourceChange sending to modal - datasource.extra:',
+      datasource.extra,
+    );
     this.setState({ datasource }, callback);
   }
 
   onDatasourcePropChange(attr, value) {
+    console.log(`onDatasourcePropChange: ${attr} =`, value);
     if (value === undefined) return; // if value is undefined do not update state
     const datasource = { ...this.state.datasource, [attr]: value };
     this.setState(
       prevState => ({
         datasource: { ...prevState.datasource, [attr]: value },
       }),
-      attr === 'table_name'
-        ? this.onDatasourceChange(datasource, this.tableChangeAndSyncMetadata)
-        : this.onDatasourceChange(datasource, this.validateAndChange),
+      () => {
+        console.log('Updated datasource.extra:', this.state.datasource.extra);
+        if (attr === 'table_name') {
+          this.onDatasourceChange(datasource, this.tableChangeAndSyncMetadata);
+        } else {
+          this.onDatasourceChange(datasource, this.validateAndChange);
+        }
+      },
     );
   }
 
@@ -1077,12 +1097,15 @@ class DatasourceEditor extends PureComponent {
                     ?.default_metric
                 }
                 onChange={value => {
+                  console.log('Setting default_metric to:', value);
                   const extra = { ...parseExtra(datasource.extra) };
                   if (!extra.default_chart_metadata) {
                     extra.default_chart_metadata = {};
                   }
                   extra.default_chart_metadata.default_metric = value;
-                  this.onDatasourcePropChange('extra', JSON.stringify(extra));
+                  const stringified = JSON.stringify(extra);
+                  console.log('Saving extra as:', stringified);
+                  this.onDatasourcePropChange('extra', stringified);
                 }}
                 placeholder={t('Select a metric')}
                 allowClear
