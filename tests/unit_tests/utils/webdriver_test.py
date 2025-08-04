@@ -39,15 +39,15 @@ def mock_app():
 class TestWebDriverSelenium:
     """Test WebDriverSelenium timeout handling for urllib3 2.x compatibility."""
 
-    @patch("superset.utils.webdriver.current_app")
+    @patch("superset.utils.webdriver.app")
     @patch("superset.utils.webdriver.firefox")
     @patch("superset.utils.webdriver.chrome")
     def test_timeout_conversion_to_float(
-        self, mock_chrome, mock_firefox, mock_current_app, mock_app
+        self, mock_chrome, mock_firefox, mock_app_patch, mock_app
     ):
         """Test that timeout values are properly converted to float."""
-        # Set up current_app mock to be used throughout
-        mock_current_app.config = {
+        # Set up app mock to be used throughout
+        mock_app_patch.config = {
             "WEBDRIVER_TYPE": "chrome",
             "WEBDRIVER_OPTION_ARGS": [],
             "SCREENSHOT_LOCATE_WAIT": 10,
@@ -81,11 +81,11 @@ class TestWebDriverSelenium:
         assert call_kwargs["read_timeout"] == 15.0
         assert call_kwargs["command_executor_timeout"] == 25.0
 
-    @patch("superset.utils.webdriver.current_app")
+    @patch("superset.utils.webdriver.app")
     @patch("superset.utils.webdriver.chrome")
-    def test_timeout_none_handling(self, mock_chrome, mock_current_app, mock_app):
+    def test_timeout_none_handling(self, mock_chrome, mock_app_patch, mock_app):
         """Test that None, 'None', and 'null' timeout values are set to None."""
-        mock_current_app.config = {
+        mock_app_patch.config = {
             "WEBDRIVER_TYPE": "chrome",
             "WEBDRIVER_OPTION_ARGS": [],
             "SCREENSHOT_LOCATE_WAIT": 10,
@@ -115,14 +115,14 @@ class TestWebDriverSelenium:
         assert call_kwargs["connect_timeout"] is None
         assert call_kwargs["socket_timeout"] is None
 
-    @patch("superset.utils.webdriver.current_app")
+    @patch("superset.utils.webdriver.app")
     @patch("superset.utils.webdriver.chrome")
     @patch("superset.utils.webdriver.logger")
     def test_invalid_timeout_warning(
-        self, mock_logger, mock_chrome, mock_current_app, mock_app
+        self, mock_logger, mock_chrome, mock_app_patch, mock_app
     ):
         """Test that invalid timeout values log warnings and are set to None."""
-        mock_current_app.config = {
+        mock_app_patch.config = {
             "WEBDRIVER_TYPE": "chrome",
             "WEBDRIVER_OPTION_ARGS": [],
             "SCREENSHOT_LOCATE_WAIT": 10,
@@ -164,13 +164,11 @@ class TestWebDriverSelenium:
             "Invalid timeout value for Page_Load_Timeout: abc123, setting to None"
         )
 
-    @patch("superset.utils.webdriver.current_app")
+    @patch("superset.utils.webdriver.app")
     @patch("superset.utils.webdriver.chrome")
-    def test_non_timeout_config_preserved(
-        self, mock_chrome, mock_current_app, mock_app
-    ):
+    def test_non_timeout_config_preserved(self, mock_chrome, mock_app_patch, mock_app):
         """Test that non-timeout configuration values are preserved."""
-        mock_current_app.config = {
+        mock_app_patch.config = {
             "WEBDRIVER_TYPE": "chrome",
             "WEBDRIVER_OPTION_ARGS": [],
             "SCREENSHOT_LOCATE_WAIT": 10,
@@ -202,13 +200,11 @@ class TestWebDriverSelenium:
         assert call_kwargs["another_option"] == 123
         assert call_kwargs["boolean_option"] is True
 
-    @patch("superset.utils.webdriver.current_app")
+    @patch("superset.utils.webdriver.app")
     @patch("superset.utils.webdriver.chrome")
-    def test_timeout_key_case_insensitive(
-        self, mock_chrome, mock_current_app, mock_app
-    ):
+    def test_timeout_key_case_insensitive(self, mock_chrome, mock_app_patch, mock_app):
         """Test that timeout detection is case-insensitive."""
-        mock_current_app.config = {
+        mock_app_patch.config = {
             "WEBDRIVER_TYPE": "chrome",
             "WEBDRIVER_OPTION_ARGS": [],
             "SCREENSHOT_LOCATE_WAIT": 10,
