@@ -512,12 +512,26 @@ test('opens the select without any data', async () => {
 });
 
 test('displays the loading indicator when opening', async () => {
-  render(<AsyncSelect {...defaultProps} />);
-  await waitFor(async () => {
-    await userEvent.click(getSelect());
-    expect(screen.getByText(LOADING)).toBeInTheDocument();
+  // Use an async function that takes time to resolve
+  const slowLoadOptions = jest.fn(
+    () =>
+      new Promise(resolve => {
+        setTimeout(() => {
+          resolve(loadOptions());
+        }, 100);
+      }),
+  );
+  
+  render(<AsyncSelect {...defaultProps} options={slowLoadOptions} />);
+  await userEvent.click(getSelect());
+  
+  // The loading state should be shown when the dropdown opens
+  expect(screen.getByText(LOADING)).toBeInTheDocument();
+  
+  // After loading completes, the loading text should disappear
+  await waitFor(() => {
+    expect(screen.queryByText(LOADING)).not.toBeInTheDocument();
   });
-  expect(screen.queryByText(LOADING)).not.toBeInTheDocument();
 });
 
 test('makes a selection in single mode', async () => {
