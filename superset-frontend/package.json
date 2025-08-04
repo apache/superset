@@ -121,7 +121,7 @@
     "@visx/scale": "^3.5.0",
     "@visx/tooltip": "^3.0.0",
     "@visx/xychart": "^3.5.1",
-    "ag-grid-community": "^34.0.2",
+    "ag-grid-community": "34.0.2",
     "ag-grid-react": "34.0.2",
     "antd": "^5.24.6",
     "chrono-node": "^2.7.8",
@@ -358,7 +358,8 @@
     "puppeteer": "^22.4.1",
     "underscore": "^1.13.7",
     "jspdf": "^3.0.1",
-    "nwsapi": "^2.2.13"
+    "nwsapi": "^2.2.13",
+    "@deck.gl/core": "9.1.13"
   },
   "readme": "ERROR: No README data found!",
   "scarfSettings": {
