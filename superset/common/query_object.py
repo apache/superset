@@ -145,19 +145,27 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
         self.datasource = datasource
 
         # Build datasource mappings for easy lookup
-        if datasource and hasattr(datasource, "columns"):
-            self.columns_by_name: dict[str, Any] = {
-                col.column_name: col for col in datasource.columns
-            }
-        else:
-            self.columns_by_name = {}
+        self.columns_by_name: dict[str, Any] = {}
+        self.metrics_by_name: dict[str, Any] = {}
 
-        if datasource and hasattr(datasource, "metrics"):
-            self.metrics_by_name: dict[str, Any] = {
-                metric.metric_name: metric for metric in datasource.metrics
-            }
-        else:
-            self.metrics_by_name = {}
+        if datasource:
+            try:
+                if hasattr(datasource, "columns") and datasource.columns is not None:
+                    self.columns_by_name = {
+                        col.column_name: col for col in datasource.columns
+                    }
+            except (TypeError, AttributeError):
+                # Handle mocked datasources or other non-iterable cases
+                pass
+
+            try:
+                if hasattr(datasource, "metrics") and datasource.metrics is not None:
+                    self.metrics_by_name = {
+                        metric.metric_name: metric for metric in datasource.metrics
+                    }
+            except (TypeError, AttributeError):
+                # Handle mocked datasources or other non-iterable cases
+                pass
 
         self.extras = extras or {}
         self.filter = filters or []
