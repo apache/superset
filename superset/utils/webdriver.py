@@ -23,7 +23,7 @@ from enum import Enum
 from time import sleep
 from typing import Any, TYPE_CHECKING
 
-from flask import app as app
+from flask import current_app as app
 from packaging import version
 from selenium import __version__ as selenium_version
 from selenium.common.exceptions import (
