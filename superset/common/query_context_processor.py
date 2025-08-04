@@ -733,9 +733,9 @@ class QueryContextProcessor:
                 if right_date_col in df.columns:
                     delta_dict = normalize_time_delta(offset)
                     inv_delta_dict = {k: -v for k, v in delta_dict.items()}
-                    df[date_col] = df[date_col].fillna(
-                        df[right_date_col] + DateOffset(**inv_delta_dict)
-                    )
+                    right_series = pd.to_datetime(df[right_date_col], errors="coerce")
+                    shifted_series = right_series + DateOffset(**inv_delta_dict)
+                    df[date_col] = df[date_col].fillna(shifted_series)
 
 
             if time_grain:
