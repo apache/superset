@@ -54,7 +54,7 @@ import DatabaseModal from 'src/features/databases/DatabaseModal';
 import UploadDataModal from 'src/features/databases/UploadDataModel';
 import { uploadUserPerms } from 'src/views/CRUD/utils';
 import { useThemeContext } from 'src/theme/ThemeProvider';
-import LanguagePicker from './LanguagePicker';
+import { useLanguageMenuItems } from './LanguagePicker';
 import {
   ExtensionConfigs,
   GlobalMenuDataOptions,
@@ -366,6 +366,11 @@ const RightMenu = ({
     allowOSPreference: canDetectOSPreference(),
   });
 
+  const languageMenuItem = useLanguageMenuItems({
+    locale: navbarRight.locale || 'en',
+    languages: navbarRight.languages || {},
+  });
+
   // Build main menu items
   const menuItems = useMemo(() => {
     // Build menu items for the new dropdown
@@ -579,6 +584,10 @@ const RightMenu = ({
       items.push(themeMenuItem);
     }
 
+    if (navbarRight.show_language_picker && languageMenuItem) {
+      items.push(languageMenuItem);
+    }
+
     items.push({
       key: 'settings',
       label: t('Settings'),
@@ -594,6 +603,7 @@ const RightMenu = ({
     canSetMode,
     theme.colorPrimary,
     themeMenuItem,
+    languageMenuItem,
     dropdownItems,
     roles,
     settings,
@@ -661,12 +671,6 @@ const RightMenu = ({
         disabledOverflow
         items={menuItems}
       />
-      {navbarRight.show_language_picker && (
-        <LanguagePicker
-          locale={navbarRight.locale}
-          languages={navbarRight.languages}
-        />
-      )}
       {navbarRight.documentation_url && (
         <>
           <StyledAnchor

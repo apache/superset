@@ -17,8 +17,8 @@
  * under the License.
  */
 import { render, screen, userEvent } from 'spec/helpers/testing-library';
-import { MainNav as Menu } from '@superset-ui/core/components/Menu';
-import LanguagePicker from './LanguagePicker';
+import { Menu } from '@superset-ui/core/components/Menu';
+import { useLanguageMenuItems } from './LanguagePicker';
 
 const mockedProps = {
   locale: 'en',
@@ -36,31 +36,34 @@ const mockedProps = {
   },
 };
 
-test('should render', async () => {
-  const { container } = render(
-    <Menu>
-      <LanguagePicker {...mockedProps} />
-    </Menu>,
+// Test component to use the hook
+const TestLanguagePicker = ({ locale, languages }: typeof mockedProps) => {
+  const languageMenuItem = useLanguageMenuItems({ locale, languages });
+
+  return (
+    <Menu aria-label="Languages" items={[languageMenuItem]} mode="horizontal" />
   );
+};
+
+test('should render', async () => {
+  const { container } = render(<TestLanguagePicker {...mockedProps} />, {
+    useRouter: true,
+  });
   expect(await screen.findByRole('menu')).toBeInTheDocument();
   expect(container).toBeInTheDocument();
 });
 
 test('should render the language picker', async () => {
-  render(
-    <Menu>
-      <LanguagePicker {...mockedProps} />
-    </Menu>,
-  );
+  render(<TestLanguagePicker {...mockedProps} />, {
+    useRouter: true,
+  });
   expect(await screen.findByLabelText('Languages')).toBeInTheDocument();
 });
 
 test('should render the items', async () => {
-  render(
-    <Menu>
-      <LanguagePicker {...mockedProps} />
-    </Menu>,
-  );
+  render(<TestLanguagePicker {...mockedProps} />, {
+    useRouter: true,
+  });
   userEvent.hover(screen.getByRole('menuitem'));
   expect(await screen.findByText('English')).toBeInTheDocument();
   expect(await screen.findByText('Italian')).toBeInTheDocument();
