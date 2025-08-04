@@ -236,11 +236,11 @@ class TestWebDriverSelenium:
         assert call_kwargs["SOCKET_TIMEOUT"] == 30.0
         assert call_kwargs["connection_timeout_ms"] == 5000.0
 
-    @patch("superset.utils.webdriver.current_app")
+    @patch("superset.utils.webdriver.app")
     @patch("superset.utils.webdriver.chrome")
-    def test_empty_webdriver_config(self, mock_chrome, mock_current_app, mock_app):
+    def test_empty_webdriver_config(self, mock_chrome, mock_app_patch, mock_app):
         """Test handling of empty webdriver configuration."""
-        mock_current_app.config = {
+        mock_app_patch.config = {
             "WEBDRIVER_TYPE": "chrome",
             "WEBDRIVER_OPTION_ARGS": [],
             "SCREENSHOT_LOCATE_WAIT": 10,
