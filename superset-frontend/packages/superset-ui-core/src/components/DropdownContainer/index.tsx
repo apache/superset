@@ -35,7 +35,7 @@ import {
 import { Global } from '@emotion/react';
 import { css, t, useTheme, usePrevious } from '@superset-ui/core';
 import { useResizeDetector } from 'react-resize-detector';
-import { Badge, Icons, Button, Tooltip, Popover } from '..';
+import { Badge, Icons, Button, Tooltip, Popover, IconType } from '..';
 /**
  * Container item.
  */
@@ -87,7 +87,7 @@ export interface DropdownContainerProps {
   /**
    * Icon of the dropdown trigger.
    */
-  dropdownTriggerIcon?: ReactElement;
+  dropdownTriggerIcon?: IconType;
   /**
    * Text of the dropdown trigger.
    */
@@ -428,8 +428,13 @@ export const DropdownContainer = forwardRef(
                 <Button
                   buttonStyle="secondary"
                   data-test="dropdown-container-btn"
+                  icon={dropdownTriggerIcon}
+                  css={css`
+                    padding-left: ${theme.paddingXS}px;
+                    padding-right: ${theme.paddingXXS}px;
+                    gap: ${theme.sizeXXS}px;
+                  `}
                 >
-                  {dropdownTriggerIcon}
                   {dropdownTriggerText}
                   <Badge
                     count={dropdownTriggerCount ?? overflowingCount}
