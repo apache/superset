@@ -256,14 +256,19 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
                 )
                 value = kwargs[field.old_name]
                 if value is not None:
-                    if hasattr(self, field.new_name):
+                    # Only override if the new field is not already populated with data
+                    current_value = getattr(self, field.new_name, None)
+                    if (
+                        current_value
+                    ):  # If field already has truthy data, don't override
                         logger.warning(
                             "The field `%s` is already populated, "
-                            "replacing value with contents from `%s`.",
+                            "not replacing with contents from deprecated `%s`.",
                             field.new_name,
                             field.old_name,
                         )
-                    setattr(self, field.new_name, value)
+                    else:
+                        setattr(self, field.new_name, value)
 
     def _move_deprecated_extra_fields(self, kwargs: dict[str, Any]) -> None:
         # move deprecated extras fields to extras
@@ -276,8 +281,8 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
                     field.new_name,
                 )
                 value = kwargs[field.old_name]
-                if value is not None:
-                    if hasattr(self.extras, field.new_name):
+                if value is not None and value != "":  # Don't add empty string values
+                    if field.new_name in self.extras:
                         logger.warning(
                             "The field `%s` is already populated in "
                             "`extras`, replacing value with contents "

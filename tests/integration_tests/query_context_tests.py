@@ -297,11 +297,14 @@ class TestQueryContext(SupersetTestCase):
         payload["queries"][0]["timeseries_limit"] = 99
         payload["queries"][0]["timeseries_limit_metric"] = "sum__num"
         del payload["queries"][0]["columns"]
+        # Remove granularity so granularity_sqla can be used
+        del payload["queries"][0]["granularity"]
         payload["queries"][0]["granularity_sqla"] = "timecol"
         payload["queries"][0]["having_filters"] = [{"col": "a", "op": "==", "val": "b"}]
         query_context = ChartDataQueryContextSchema().load(payload)
         assert len(query_context.queries) == 1
         query_object = query_context.queries[0]
+        # granularity should be set from granularity_sqla since granularity was not set
         assert query_object.granularity == "timecol"
         assert query_object.columns == columns
         assert query_object.series_limit == 99
@@ -638,7 +641,9 @@ class TestQueryContext(SupersetTestCase):
     def test_time_offsets_accuracy(self):
         payload = get_query_context("birth_names")
         payload["queries"][0]["metrics"] = ["sum__num"]
-        payload["queries"][0]["groupby"] = ["state"]
+        payload["queries"][0]["columns"] = [
+            "state"
+        ]  # Use columns instead of deprecated groupby
         payload["queries"][0]["is_timeseries"] = True
         payload["queries"][0]["timeseries_limit"] = 5
         payload["queries"][0]["time_offsets"] = []
@@ -713,10 +718,10 @@ class TestQueryContext(SupersetTestCase):
                 "sqlExpression": "ds",
                 "label": "ds",
                 "expressionType": "SQL",
-            }
+            },
+            "name",  # Add name to columns instead of using deprecated groupby
         ]
         payload["queries"][0]["metrics"] = ["sum__num"]
-        payload["queries"][0]["groupby"] = ["name"]
         payload["queries"][0]["is_timeseries"] = True
         payload["queries"][0]["row_limit"] = 100
         payload["queries"][0]["row_offset"] = 10
