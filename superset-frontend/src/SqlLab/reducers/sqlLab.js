@@ -409,6 +409,61 @@ export default function sqlLabReducer(state = {}, action) {
       };
       return alterInObject(state, 'queries', action.query, alts);
     },
+    [actions.START_GENERATE_SQL]() {
+      const queryEditors = state.queryEditors.map(qe => {
+        if (qe.id === action.queryEditorId) {
+          return {
+            ...qe,
+            queryGenerator: {
+              ...qe.queryGenerator,
+              isGeneratingQuery: true,
+            },
+          };
+        }
+        return qe;
+      });
+      return {
+        ...state,
+        queryEditors,
+      };
+    },
+    [actions.GENERATE_SQL_DONE]() {
+      const queryEditors = state.queryEditors.map(qe => {
+        if (qe.id === action.queryEditorId) {
+          return {
+            ...qe,
+            queryGenerator: {
+              ...qe.queryGenerator,
+              isGeneratingQuery: false,
+              prompt: action.prompt,
+            },
+          };
+        }
+        return qe;
+      });
+      return {
+        ...state,
+        queryEditors,
+      };
+    },
+    [actions.GENERATE_SQL_SET_PROMPT]() {
+      const queryEditors = state.queryEditors.map(qe => {
+        if (qe.id === action.queryEditorId) {
+          return {
+            ...qe,
+            queryGenerator: {
+              ...qe.queryGenerator,
+              prompt: action.prompt,
+            },
+          };
+        }
+        return qe;
+      });
+      return {
+        ...state,
+        queryEditors,
+      };
+    },
     [actions.SET_ACTIVE_QUERY_EDITOR]() {
       const qeIds = state.queryEditors.map(qe => qe.id);
       if (
@@ -783,8 +838,10 @@ export default function sqlLabReducer(state = {}, action) {
       return { ...state, lastUpdatedActiveTab: action.queryEditorId };
     },
   };
+  // console.log('Handling action', action.type);
   if (action.type in actionHandlers) {
     return actionHandlers[action.type]();
   }
+  // console.log('No handler found for action', action.type);
   return state;
 }

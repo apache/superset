@@ -129,6 +129,7 @@ export function DatabaseSelector({
   schema,
   readOnly = false,
   sqlLabMode = false,
+  schemaSelectMode = 'single',
 }: DatabaseSelectorProps) {
   const showCatalogSelector = !!db?.allow_multi_catalog;
   const [currentDb, setCurrentDb] = useState<DatabaseValue | undefined>();
@@ -138,9 +139,9 @@ export function DatabaseSelector({
   >(catalog ? { label: catalog, value: catalog, title: catalog } : undefined);
   const catalogRef = useRef(catalog);
   catalogRef.current = catalog;
-  const [currentSchema, setCurrentSchema] = useState<SchemaOption | undefined>(
-    schema ? { label: schema, value: schema, title: schema } : undefined,
-  );
+  const [currentSchema, setCurrentSchema] = useState<
+    SchemaOption | SchemaOption[] | undefined
+  >(undefined);
   const schemaRef = useRef(schema);
   schemaRef.current = schema;
   const { addSuccessToast } = useToasts();
@@ -149,6 +150,28 @@ export function DatabaseSelector({
       itemA.order - itemB.order,
     [],
   );
+
+  useEffect(() => {
+    if (schemaSelectMode === 'single') {
+      setCurrentSchema(
+        schema && !Array.isArray(schema)
+          ? { label: schema, value: schema, title: schema }
+          : undefined,
+      );
+    } else {
+      setCurrentSchema(
+        Array.isArray(schema)
+          ? schema.map(schema => ({
+              label: schema,
+              value: schema,
+              title: schema,
+            }))
+          : typeof schema === 'string' && schema
+            ? [{ label: schema, value: schema, title: schema }]
+            : [],
+      );
+    }
+  }, [schema]);
 
   const loadDatabases = useMemo(
     () =>
@@ -231,10 +254,15 @@ export function DatabaseSelector({
     );
   }, [db]);
 
-  function changeSchema(schema: SchemaOption | undefined) {
+  function changeSchema(schema?: SchemaOption | SchemaOption[]) {
     setCurrentSchema(schema);
-    if (onSchemaChange && schema?.value !== schemaRef.current) {
-      onSchemaChange(schema?.value);
+    if (Array.isArray(schema)) {
+      const schema_values = schema.map(schema => schema.value);
+      if (onSchemaChange && schema_values !== schemaRef.current) {
+        onSchemaChange(schema_values);
+      }
+    } else {
+      onSchemaChange && onSchemaChange(schema?.value);
     }
   }
 
@@ -272,7 +300,7 @@ export function DatabaseSelector({
 
   function changeCatalog(catalog: CatalogOption | null | undefined) {
     setCurrentCatalog(catalog);
-    setCurrentSchema(undefined);
+    setCurrentSchema(schemaSelectMode === 'single' ? undefined : []);
     if (onCatalogChange && catalog?.value !== catalogRef.current) {
       onCatalogChange(catalog?.value);
     }
@@ -324,7 +352,7 @@ export function DatabaseSelector({
     const databaseWithId = { ...database, id: database.value };
     setCurrentDb(databaseWithId);
     setCurrentCatalog(undefined);
-    setCurrentSchema(undefined);
+    setCurrentSchema(schemaSelectMode === 'single' ? undefined : []);
     if (onDbChange) {
       onDbChange(databaseWithId);
     }
@@ -332,7 +360,7 @@ export function DatabaseSelector({
       onCatalogChange(undefined);
     }
     if (onSchemaChange) {
-      onSchemaChange(undefined);
+      onSchemaChange(schemaSelectMode === 'single' ? undefined : []);
     }
   }
 
@@ -409,11 +437,12 @@ export function DatabaseSelector({
         name="select-schema"
         notFoundContent={t('No compatible schema found')}
         placeholder={t('Select schema or type to search schemas')}
-        onChange={item => changeSchema(item as SchemaOption)}
+        onChange={items => changeSchema(items as SchemaOption[])}
         options={schemaOptions}
         showSearch
         value={currentSchema}
         allowClear
+        mode={schemaSelectMode}
       />,
       refreshIcon,
     );

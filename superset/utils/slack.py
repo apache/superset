@@ -31,6 +31,7 @@ from superset.reports.schemas import SlackChannelSchema
 from superset.utils import cache as cache_util
 from superset.utils.backports import StrEnum
 from superset.utils.core import recipients_string_to_list
+from superset.utils.core import recipients_string_to_list
 
 logger = logging.getLogger(__name__)
 

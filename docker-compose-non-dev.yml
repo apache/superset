@@ -137,6 +137,29 @@ services:
     healthcheck:
       disable: true
 
+  celery-flower:
+    build:
+      <<: *common-build
+    container_name: celery_flower
+    command: ["/app/docker/docker-bootstrap.sh", "flower"]
+    env_file:
+      - path: docker/.env # default
+        required: true
+      - path: docker/.env-local # optional override
+        required: false
+    environment:
+      SUPERSET_LOG_LEVEL: "${SUPERSET_LOG_LEVEL:-info}"
+    restart: unless-stopped
+    ports:
+      - 5555:5555
+    depends_on:
+      superset-init:
+        condition: service_completed_successfully
+    user: "root"
+    volumes: *superset-volumes
+    healthcheck:
+      test: ["CMD-SHELL", "celery -A superset.tasks.celery_app:app inspect ping -d celery@$$HOSTNAME"]
+
 volumes:
   superset_home:
     external: false

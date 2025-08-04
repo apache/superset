@@ -459,6 +459,16 @@ function DatabaseList({
         id: 'expose_in_sqllab',
       },
       {
+        accessor: 'llm_available',
+        Header: t('AI Assistant'),
+        Cell: ({
+          row: {
+            original: { llm_available: llmAvailable },
+          },
+        }: any) => <BooleanDisplay value={!!llmAvailable} />,
+        size: 'md',
+      },
+      {
         Cell: ({
           row: {
             original: {

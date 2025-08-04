@@ -87,6 +87,7 @@ from superset.views.base_api import (
 )
 from superset.views.error_handling import handle_api_exception
 from superset.views.filters import BaseFilterRelatedUsers, FilterRelatedOwners
+from superset.views.utils import sanitize_datasource_data
 
 logger = logging.getLogger(__name__)
 
@@ -341,6 +342,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
             500:
               $ref: '#/components/responses/500'
         """
+
         try:
             item = self.add_model_schema.load(request.json)
         # This validates custom Schema with custom validations
@@ -349,7 +351,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
 
         try:
             new_model = CreateDatasetCommand(item).run()
-            return self.response(201, id=new_model.id, result=item, data=new_model.data)
+            return self.response(201, id=new_model.id, result=item, data=sanitize_datasource_data(new_model.data))
         except DatasetInvalidError as ex:
             return self.response_422(message=ex.normalized_messages())
         except DatasetCreateFailedError as ex:

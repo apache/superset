@@ -87,7 +87,268 @@ describe('DatabaseModal', () => {
       },
       json: 'foo',
     });
+const databaseFixture: DatabaseObject = {
+  id: 123,
+  backend: 'postgres',
+  configuration_method: ConfigurationMethod.DynamicForm,
+  database_name: 'Postgres',
+  name: 'PostgresDB',
+  is_managed_externally: false,
+  driver: 'psycopg2',
+};
 
+describe('DatabaseModal', () => {
+  beforeEach(() => {
+    fetchMock.post(DATABASE_CONNECT_ENDPOINT, {
+      id: 10,
+      result: {
+        configuration_method: 'sqlalchemy_form',
+        database_name: 'Other2',
+        driver: 'apsw',
+        expose_in_sqllab: true,
+        extra: '{"allows_virtual_table_explore":true}',
+        sqlalchemy_uri: 'gsheets://',
+      },
+      json: 'foo',
+    });
+
+    fetchMock.get(DATABASE_FETCH_ENDPOINT, {
+      result: {
+        id: 10,
+        database_name: 'my database',
+        expose_in_sqllab: false,
+        allow_ctas: false,
+        allow_cvas: false,
+        configuration_method: 'sqlalchemy_form',
+      },
+    });
+    fetchMock.mock(AVAILABLE_DB_ENDPOINT, {
+      databases: [
+        {
+          available_drivers: ['psycopg2'],
+          default_driver: 'psycopg2',
+          engine: 'postgresql',
+          name: 'PostgreSQL',
+          parameters: {
+            properties: {
+              database: {
+                description: 'Database name',
+                type: 'string',
+              },
+              encryption: {
+                description: 'Use an encrypted connection to the database',
+                type: 'boolean',
+              },
+              host: {
+                description: 'Hostname or IP address',
+                type: 'string',
+              },
+              password: {
+                description: 'Password',
+                nullable: true,
+                type: 'string',
+              },
+              port: {
+                description: 'Database port',
+                format: 'int32',
+                maximum: 65536,
+                minimum: 0,
+                type: 'integer',
+              },
+              query: {
+                additionalProperties: {},
+                description: 'Additional parameters',
+                type: 'object',
+              },
+              ssh: {
+                description: 'Create SSH Tunnel',
+                type: 'boolean',
+              },
+              username: {
+                description: 'Username',
+                nullable: true,
+                type: 'string',
+              },
+            },
+            required: ['database', 'host', 'port', 'username'],
+            type: 'object',
+          },
+          preferred: true,
+          sqlalchemy_uri_placeholder:
+            'postgresql://user:password@host:port/dbname[?key=value&key=value...]',
+          engine_information: {
+            supports_file_upload: true,
+            disable_ssh_tunneling: false,
+          },
+        },
+        {
+          available_drivers: ['rest'],
+          engine: 'presto',
+          name: 'Presto',
+          preferred: true,
+          engine_information: {
+            supports_file_upload: true,
+            disable_ssh_tunneling: false,
+          },
+        },
+        {
+          available_drivers: ['mysqldb'],
+          default_driver: 'mysqldb',
+          engine: 'mysql',
+          name: 'MySQL',
+          parameters: {
+            properties: {
+              database: {
+                description: 'Database name',
+                type: 'string',
+              },
+              encryption: {
+                description: 'Use an encrypted connection to the database',
+                type: 'boolean',
+              },
+              host: {
+                description: 'Hostname or IP address',
+                type: 'string',
+              },
+              password: {
+                description: 'Password',
+                nullable: true,
+                type: 'string',
+              },
+              port: {
+                description: 'Database port',
+                format: 'int32',
+                maximum: 65536,
+                minimum: 0,
+                type: 'integer',
+              },
+              query: {
+                additionalProperties: {},
+                description: 'Additional parameters',
+                type: 'object',
+              },
+              username: {
+                description: 'Username',
+                nullable: true,
+                type: 'string',
+              },
+            },
+            required: ['database', 'host', 'port', 'username'],
+            type: 'object',
+          },
+          preferred: true,
+          sqlalchemy_uri_placeholder:
+            'mysql://user:password@host:port/dbname[?key=value&key=value...]',
+          engine_information: {
+            supports_file_upload: true,
+            disable_ssh_tunneling: false,
+          },
+        },
+        {
+          available_drivers: ['pysqlite'],
+          engine: 'sqlite',
+          name: 'SQLite',
+          preferred: true,
+          engine_information: {
+            supports_file_upload: true,
+            disable_ssh_tunneling: false,
+          },
+        },
+        {
+          available_drivers: ['rest'],
+          engine: 'druid',
+          name: 'Apache Druid',
+          preferred: false,
+          engine_information: {
+            supports_file_upload: true,
+            disable_ssh_tunneling: false,
+          },
+        },
+        {
+          available_drivers: ['bigquery'],
+          default_driver: 'bigquery',
+          engine: 'bigquery',
+          name: 'Google BigQuery',
+          parameters: {
+            properties: {
+              credentials_info: {
+                description: 'Contents of BigQuery JSON credentials.',
+                type: 'string',
+                'x-encrypted-extra': true,
+              },
+              query: {
+                type: 'object',
+              },
+            },
+            type: 'object',
+          },
+          preferred: false,
+          sqlalchemy_uri_placeholder: 'bigquery://{project_id}',
+          engine_information: {
+            supports_file_upload: true,
+            disable_ssh_tunneling: true,
+          },
+        },
+        {
+          available_drivers: ['rest'],
+          default_driver: 'apsw',
+          engine: 'gsheets',
+          name: 'Google Sheets',
+          preferred: false,
+          engine_information: {
+            supports_file_upload: false,
+            disable_ssh_tunneling: true,
+          },
+        },
+        {
+          available_drivers: ['connector'],
+          default_driver: 'connector',
+          engine: 'databricks',
+          name: 'Databricks',
+          parameters: {
+            properties: {
+              access_token: {
+                type: 'string',
+              },
+              database: {
+                type: 'string',
+              },
+              host: {
+                type: 'string',
+              },
+              http_path: {
+                type: 'string',
+              },
+              port: {
+                format: 'int32',
+                type: 'integer',
+              },
+            },
+            required: ['access_token', 'database', 'host', 'http_path', 'port'],
+            type: 'object',
+          },
+          preferred: true,
+          sqlalchemy_uri_placeholder:
+            'databricks+connector://token:{access_token}@{host}:{port}/{database_name}',
+        },
+      ],
+    });
+    fetchMock.post(VALIDATE_PARAMS_ENDPOINT, {
+      message: 'OK',
+    });
+  });
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+  afterEach(() => {
+    fetchMock.restore();
+  });
+
+  const setup = (propsOverwrite: Partial<DatabaseModalProps> = {}) =>
+    render(<DatabaseModal {...dbProps} {...propsOverwrite} />, {
+      useRedux: true,
+    });
     fetchMock.get(DATABASE_FETCH_ENDPOINT, {
       result: {
         id: 10,
@@ -330,6 +591,9 @@ describe('DatabaseModal', () => {
     test('renders the initial load of Step 1 correctly', async () => {
       setup();
 
+    test('renders the initial load of Step 1 correctly', async () => {
+      setup();
+
       // ---------- Components ----------
       // <TabHeader> - AntD header
       const closeButtons = await screen.findAllByLabelText('Close');
@@ -419,9 +683,12 @@ describe('DatabaseModal', () => {
       });
       // there should be a footer but it should not have any buttons in it
       expect(footer).toBeEmptyDOMElement();
+      expect(footer).toBeEmptyDOMElement();
     });
 
     test('renders the "Basic" tab of SQL Alchemy form (step 2 of 2) correctly', async () => {
+      setup();
+
       setup();
 
       // On step 1, click dbButton to access SQL Alchemy form
@@ -467,6 +734,7 @@ describe('DatabaseModal', () => {
       // <SSHTunnelForm> - Basic tab's SSH Tunnel Form
       const SSHTunnelingToggle = screen.getByTestId('ssh-tunnel-switch');
       userEvent.click(SSHTunnelingToggle);
+    
       const SSHTunnelServerAddressInput = await screen.findByTestId(
         'ssh-tunnel-server_address-input',
       );
@@ -535,6 +803,8 @@ describe('DatabaseModal', () => {
     });
 
     test('renders the unexpanded "Advanced" tab correctly', async () => {
+      setup();
+
       setup();
 
       // On step 1, click dbButton to access step 2
@@ -614,6 +884,8 @@ describe('DatabaseModal', () => {
     test('renders the "Advanced" - SQL LAB tab correctly (unexpanded)', async () => {
       setup();
 
+      setup();
+
       // ---------- Components ----------
       // On step 1, click dbButton to access step 2
       userEvent.click(
@@ -622,6 +894,7 @@ describe('DatabaseModal', () => {
         }),
       );
       // Click the "Advanced" tab
+      userEvent.click(await screen.findByRole('tab', { name: /advanced/i }));
       userEvent.click(await screen.findByRole('tab', { name: /advanced/i }));
       // Click the "SQL Lab" tab
       userEvent.click(screen.getByTestId('sql-lab-label-test'));
@@ -777,6 +1050,8 @@ describe('DatabaseModal', () => {
     test('renders the "Advanced" - PERFORMANCE tab correctly', async () => {
       setup();
 
+      setup();
+
       // ---------- Components ----------
       // On step 1, click dbButton to access step 2
       userEvent.click(
@@ -832,6 +1107,8 @@ describe('DatabaseModal', () => {
     });
 
     test('renders the "Advanced" - SECURITY tab correctly', async () => {
+      setup();
+
       setup();
 
       // ---------- Components ----------
@@ -908,6 +1185,8 @@ describe('DatabaseModal', () => {
     });
 
     it('renders the "Advanced" - SECURITY tab correctly after selecting Allow file uploads', async () => {
+      setup();
+
       setup();
 
       // ---------- Components ----------
@@ -988,6 +1267,8 @@ describe('DatabaseModal', () => {
     test('renders the "Advanced" - OTHER tab correctly', async () => {
       setup();
 
+      setup();
+
       // ---------- Components ----------
       // On step 1, click dbButton to access step 2
       userEvent.click(
@@ -1049,6 +1330,8 @@ describe('DatabaseModal', () => {
     test('Dynamic form', async () => {
       setup();
 
+      setup();
+
       // ---------- Components ----------
       // On step 1, click dbButton to access step 2
       userEvent.click(
@@ -1064,6 +1347,8 @@ describe('DatabaseModal', () => {
 
   describe('Functional: Create new database', () => {
     test('directs databases to the appropriate form (dynamic vs. SQL Alchemy)', async () => {
+      setup();
+
       setup();
 
       // ---------- Dynamic example (3-step form)
@@ -1100,6 +1385,8 @@ describe('DatabaseModal', () => {
       test('enters step 2 of 2 when proper database is selected', async () => {
         setup();
 
+        setup();
+
         userEvent.click(
           await screen.findByRole('button', {
             name: /sqlite/i,
@@ -1128,6 +1415,8 @@ describe('DatabaseModal', () => {
 
       describe('step 2 component interaction', () => {
         test('properly interacts with textboxes', async () => {
+          setup();
+
           setup();
 
           userEvent.click(
@@ -1176,6 +1465,8 @@ describe('DatabaseModal', () => {
         test('properly interacts with SSH Tunnel form textboxes for dynamic form', async () => {
           setup();
 
+          setup();
+
           userEvent.click(
             await screen.findByRole('button', {
               name: /postgresql/i,
@@ -1211,6 +1502,8 @@ describe('DatabaseModal', () => {
         });
 
         test('properly interacts with SSH Tunnel form textboxes', async () => {
+          setup();
+
           setup();
 
           userEvent.click(
@@ -1251,6 +1544,8 @@ describe('DatabaseModal', () => {
         test('if the SSH Tunneling toggle is not true, no inputs are displayed', async () => {
           setup();
 
+          setup();
+
           userEvent.click(
             await screen.findByRole('button', {
               name: /sqlite/i,
@@ -1279,6 +1574,8 @@ describe('DatabaseModal', () => {
         });
 
         test('If user changes the login method, the inputs change', async () => {
+          setup();
+
           setup();
 
           userEvent.click(
@@ -1321,6 +1618,8 @@ describe('DatabaseModal', () => {
       test('enters step 2 of 3 when proper database is selected', async () => {
         setup();
 
+        setup();
+
         expect(await screen.findByText(/step 1 of 3/i)).toBeInTheDocument();
         userEvent.click(
           screen.getByRole('button', {
@@ -1331,6 +1630,8 @@ describe('DatabaseModal', () => {
       });
 
       test('enters form credentials and runs fetchResource when "Connect" is clicked', async () => {
+        setup();
+
         setup();
 
         userEvent.click(
@@ -1381,7 +1682,6 @@ describe('DatabaseModal', () => {
     describe('Import database flow', () => {
       test('imports a file', async () => {
         setup();
-
         const importDbButton = (await screen.findByTestId(
           'import-database-btn',
         )) as HTMLInputElement;
@@ -1405,11 +1705,17 @@ describe('DatabaseModal', () => {
     test('enters step 2 of 3 when proper database is selected', async () => {
       setup({ dbEngine: 'PostgreSQL' });
       const step2of3text = await screen.findByText(/step 2 of 3/i);
+    test('enters step 2 of 3 when proper database is selected', async () => {
+      setup({ dbEngine: 'PostgreSQL' });
+      const step2of3text = await screen.findByText(/step 2 of 3/i);
       expect(step2of3text).toBeInTheDocument();
     });
   });
 
   describe('DatabaseModal w/ GSheet Engine', () => {
+    it('enters step 2 of 2 when proper database is selected', async () => {
+      setup({ dbEngine: 'Google Sheets' });
+      const step2of2text = await screen.findByText(/step 2 of 2/i);
     it('enters step 2 of 2 when proper database is selected', async () => {
       setup({ dbEngine: 'Google Sheets' });
       const step2of2text = await screen.findByText(/step 2 of 2/i);
@@ -1419,7 +1725,10 @@ describe('DatabaseModal', () => {
     it('renders the "Advanced" - SECURITY tab without Allow File Upload Checkbox', async () => {
       setup({ dbEngine: 'Google Sheets' });
 
+      setup({ dbEngine: 'Google Sheets' });
+
       // Click the "Advanced" tab
+      userEvent.click(await screen.findByRole('tab', { name: /advanced/i }));
       userEvent.click(await screen.findByRole('tab', { name: /advanced/i }));
       // Click the "Security" tab
       userEvent.click(screen.getByTestId('security-label-test'));
@@ -1455,6 +1764,8 @@ describe('DatabaseModal', () => {
     });
 
     it('if the SSH Tunneling toggle is not displayed, nothing should get displayed', async () => {
+      setup({ dbEngine: 'Google Sheets' });
+
       setup({ dbEngine: 'Google Sheets' });
 
       const SSHTunnelingToggle = screen.queryByTestId('ssh-tunnel-switch');
@@ -1518,7 +1829,6 @@ describe('DatabaseModal', () => {
 
     test('Error displays when it is a string', async () => {
       setup({ dbEngine: 'PostgreSQL' });
-
       const step2of3text = await screen.findByText(/step 2 of 3/i);
       const errorTitleMessage = screen.getByText(/Database Creation Error/i);
       expect(errorTitleMessage).toBeInTheDocument();
@@ -1532,6 +1842,7 @@ describe('DatabaseModal', () => {
 
   describe('DatabaseModal w Extensions', () => {
     beforeAll(() => {
+    beforeAll(() => {
       const extensionsRegistry = getExtensionsRegistry();
 
       extensionsRegistry.set('ssh_tunnel.form.switch', () => (
@@ -1541,6 +1852,8 @@ describe('DatabaseModal', () => {
       setupExtensions();
     });
 
+    test('should render an extension component if one is supplied', async () => {
+      setup({ dbEngine: 'SQLite' });
     test('should render an extension component if one is supplied', async () => {
       setup({ dbEngine: 'SQLite' });
       expect(
@@ -2039,4 +2352,4 @@ describe('dbReducer', () => {
       ssh_tunnel: undefined,
     });
   });
-});
+  });

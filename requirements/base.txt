@@ -4,6 +4,16 @@ alembic==1.15.2
     # via flask-migrate
 amqp==5.3.1
     # via kombu
+annotated-types==0.7.0
+    # via pydantic
+anthropic==0.52.0
+    # via apache-superset (pyproject.toml)
+anyio==4.9.0
+    # via
+    #   anthropic
+    #   google-genai
+    #   httpx
+    #   openai
 apispec==6.6.1
     # via
     #   -r requirements/base.in
@@ -46,6 +56,8 @@ celery==5.5.2
     # via apache-superset (pyproject.toml)
 certifi==2025.6.15
     # via
+    #   httpcore
+    #   httpx
     #   requests
     #   selenium
 cffi==1.17.1
@@ -91,6 +103,10 @@ deprecated==1.2.18
     # via limits
 deprecation==2.1.0
     # via apache-superset (pyproject.toml)
+distro==1.9.0
+    # via
+    #   anthropic
+    #   openai
 dnspython==2.7.0
     # via email-validator
 email-validator==2.2.0
@@ -149,24 +165,40 @@ geographiclib==2.0
 geopy==2.4.1
     # via apache-superset (pyproject.toml)
 google-auth==2.40.3
-    # via shillelagh
+    # via
+    #   google-genai
+    #   shillelagh
+google-genai==1.16.1
+    # via apache-superset (pyproject.toml)
 greenlet==3.1.1
     # via
     #   apache-superset (pyproject.toml)
     #   shillelagh
+    #   sqlalchemy
 gunicorn==23.0.0
     # via apache-superset (pyproject.toml)
 h11==0.16.0
-    # via wsproto
+    # via
+    #   httpcore
+    #   wsproto
 hashids==1.3.1
     # via apache-superset (pyproject.toml)
 holidays==0.25
     # via apache-superset (pyproject.toml)
+httpcore==1.0.9
+    # via httpx
+httpx==0.28.1
+    # via
+    #   anthropic
+    #   google-genai
+    #   openai
 humanize==4.12.3
     # via apache-superset (pyproject.toml)
 idna==3.10
     # via
+    #   anyio
     #   email-validator
+    #   httpx
     #   requests
     #   trio
     #   url-normalize
@@ -180,6 +212,10 @@ jinja2==3.1.6
     # via
     #   flask
     #   flask-babel
+jiter==0.10.0
+    # via
+    #   anthropic
+    #   openai
 jsonpath-ng==1.7.0
     # via apache-superset (pyproject.toml)
 jsonschema==4.23.0
@@ -237,6 +273,8 @@ numpy==1.26.4
     #   pandas
 odfpy==1.4.1
     # via pandas
+openai==1.82.0
+    # via apache-superset (pyproject.toml)
 openapi-schema-validator==0.6.3
     # via -r requirements/base.in
 openpyxl==3.1.5
@@ -286,6 +324,13 @@ pyasn1-modules==0.4.2
     # via google-auth
 pycparser==2.22
     # via cffi
+pydantic==2.11.5
+    # via
+    #   anthropic
+    #   google-genai
+    #   openai
+pydantic-core==2.33.2
+    # via pydantic
 pygments==2.19.1
     # via rich
 pyjwt==2.10.1
@@ -331,10 +376,14 @@ referencing==0.36.2
     # via
     #   jsonschema
     #   jsonschema-specifications
+regex==2024.11.6
+    # via tiktoken
 requests==2.32.4
     # via
+    #   google-genai
     #   requests-cache
     #   shillelagh
+    #   tiktoken
 requests-cache==1.2.1
     # via shillelagh
 rfc3339-validator==0.1.4
@@ -362,7 +411,11 @@ six==1.17.0
 slack-sdk==3.35.0
     # via apache-superset (pyproject.toml)
 sniffio==1.3.1
-    # via trio
+    # via
+    #   anthropic
+    #   anyio
+    #   openai
+    #   trio
 sortedcontainers==2.4.0
     # via trio
 sqlalchemy==1.4.54
@@ -380,10 +433,16 @@ sqlalchemy-utils==0.38.3
     #   flask-appbuilder
 sqlglot==27.3.0
     # via apache-superset (pyproject.toml)
+sqlparse==0.5.2
+    # via apache-superset (pyproject.toml)
 sshtunnel==0.4.0
     # via apache-superset (pyproject.toml)
 tabulate==0.9.0
     # via apache-superset (pyproject.toml)
+tiktoken==0.9.0
+    # via apache-superset (pyproject.toml)
+tqdm==4.67.1
+    # via openai
 trio==0.30.0
     # via
     #   selenium
@@ -394,12 +453,19 @@ typing-extensions==4.14.0
     # via
     #   apache-superset (pyproject.toml)
     #   alembic
-    #   cattrs
+    #   anthropic
+    #   anyio
+    #   flask-limiter
+    #   google-genai
     #   limits
-    #   pyopenssl
-    #   referencing
+    #   openai
+    #   pydantic
+    #   pydantic-core
     #   selenium
     #   shillelagh
+    #   typing-inspection
+typing-inspection==0.4.1
+    # via pydantic
 tzdata==2025.2
     # via
     #   kombu
@@ -421,6 +487,8 @@ wcwidth==0.2.13
     # via prompt-toolkit
 websocket-client==1.8.0
     # via selenium
+websockets==15.0.1
+    # via google-genai
 werkzeug==3.1.3
     # via
     #   -r requirements/base.in

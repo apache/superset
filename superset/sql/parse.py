@@ -866,6 +866,23 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
         transformer = transformers[method](catalog, schema, predicates)
         self._parsed = self._parsed.transform(transformer)
 
+    def check_functions_present(self, functions: set[str]) -> bool:
+        """
+        Check if any of the given functions are present in the script.
+
+        :param functions: List of functions to check for
+        :return: True if any of the functions are present
+        """
+        present = {
+            (
+                function.sql_name()
+                if function.sql_name() != "ANONYMOUS"
+                else function.name.upper()
+            )
+            for function in self._parsed.find_all(Func)
+        }
+        return any(function.upper() in present for function in functions)
+
 
 class KQLSplitState(enum.Enum):
     """
@@ -1197,6 +1214,16 @@ class KustoKQLStatement(BaseSQLStatement[str]):
         :return: The parsed predicate.
         """
         return predicate
+
+    def check_functions_present(self, functions: set[str]) -> bool:
+        """
+        Check if any of the given functions are present in the script.
+
+        :param functions: List of functions to check for
+        :return: True if any of the functions are present
+        """
+        logger.warning("Kusto KQL doesn't support checking for functions present.")
+        return True
 
 
 class SQLScript:
