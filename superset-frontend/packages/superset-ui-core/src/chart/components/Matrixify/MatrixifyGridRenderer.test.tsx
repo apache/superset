@@ -19,36 +19,30 @@
 
 import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
-import { ThemeProvider, supersetTheme } from '../../../../src';
-import MatrixifyGridRenderer from '../../../../src/chart/components/Matrixify/MatrixifyGridRenderer';
-import { MatrixifyGrid } from '../../../../src/chart/types/matrixify';
-import { AdhocMetric } from '../../../../src/query/types/Metric';
+import { ThemeProvider, supersetTheme } from '../../..';
+import MatrixifyGridRenderer from './MatrixifyGridRenderer';
+import { MatrixifyGrid } from '../../types/matrixify';
+import { AdhocMetric } from '../../../query/types/Metric';
 
-import { generateMatrixifyGrid } from '../../../../src/chart/components/Matrixify/MatrixifyGridGenerator';
+import { generateMatrixifyGrid } from './MatrixifyGridGenerator';
 
 // Use 'any' to bypass strict typing in tests
 type TestFormData = any;
 
 // Mock MatrixifyGridCell component
-jest.mock(
-  '../../../../src/chart/components/Matrixify/MatrixifyGridCell',
-  () => ({
-    __esModule: true,
-    default: ({ cell }: any) => (
-      <div data-testid={`cell-${cell.id}`} className="matrixify-cell">
-        {cell.title || `${cell.rowLabel}-${cell.colLabel}`}
-      </div>
-    ),
-  }),
-);
+jest.mock('./MatrixifyGridCell', () => ({
+  __esModule: true,
+  default: ({ cell }: any) => (
+    <div data-testid={`cell-${cell.id}`} className="matrixify-cell">
+      {cell.title || `${cell.rowLabel}-${cell.colLabel}`}
+    </div>
+  ),
+}));
 
 // Mock generateMatrixifyGrid function
-jest.mock(
-  '../../../../src/chart/components/Matrixify/MatrixifyGridGenerator',
-  () => ({
-    generateMatrixifyGrid: jest.fn(),
-  }),
-);
+jest.mock('./MatrixifyGridGenerator', () => ({
+  generateMatrixifyGrid: jest.fn(),
+}));
 
 const mockedGenerateMatrixifyGrid =
   generateMatrixifyGrid as jest.MockedFunction<typeof generateMatrixifyGrid>;

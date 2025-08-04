@@ -17,8 +17,8 @@
  * under the License.
  */
 
-import { generateMatrixifyGrid } from '../../../../src/chart/components/Matrixify/MatrixifyGridGenerator';
-import { AdhocMetric } from '../../../../src/query/types/Metric';
+import { generateMatrixifyGrid } from './MatrixifyGridGenerator';
+import { AdhocMetric } from '../../../query/types/Metric';
 
 // Use 'any' to bypass strict typing in tests
 type TestFormData = any;
