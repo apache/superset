@@ -64,10 +64,6 @@ export default function Field<V>({
     [onChange, fieldKey],
   );
 
-  const hookedControl = cloneElement(control, {
-    value,
-    onChange: onControlChange,
-  });
   const theme = useTheme();
   const extra = !compact && description ? description : undefined;
   const infoTooltip =
@@ -90,6 +86,17 @@ export default function Field<V>({
       </Tooltip>
     ) : undefined;
 
+  const hookedControl = cloneElement(control, {
+    value,
+    onChange: onControlChange,
+    label: (
+      <FormLabel>
+        {label || fieldKey}
+        {infoTooltip}
+      </FormLabel>
+    ),
+  });
+
   return (
     <div
       css={
@@ -100,16 +107,7 @@ export default function Field<V>({
       }
     >
       {additionalControl}
-      <FormItem
-        label={
-          <FormLabel>
-            {label || fieldKey}
-            {infoTooltip}
-          </FormLabel>
-        }
-        css={inline && formItemInlineCss}
-        extra={extra}
-      >
+      <FormItem css={inline && formItemInlineCss} extra={extra}>
         {hookedControl}
       </FormItem>
       {errorMessage && (
