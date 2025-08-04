@@ -12,7 +12,7 @@ The Superset Model Context Protocol (MCP) service provides a modular, schema-dri
 
 ## What is MCP?
 
-The Model Context Protocol (MCP) is an open standard for connecting AI assistants to data sources and tools. Superset's MCP service exposes 17 tools, 2 prompts, and 2 resources that allow LLM agents to:
+The Model Context Protocol (MCP) is an open standard for connecting AI assistants to data sources and tools. Superset's MCP service exposes 20 tools, 2 prompts, and 2 resources that allow LLM agents to:
 
 - **Explore data**: List and query dashboards, charts, and datasets
 - **Create visualizations**: Generate charts and dashboards programmatically
@@ -21,11 +21,12 @@ The Model Context Protocol (MCP) is an open standard for connecting AI assistant
 
 ## Key Features
 
-### 🔧 **17 Production-Ready Tools**
+### 🔧 **20 Production-Ready Tools**
 - **Dashboard Tools (5)**: List, get info, create dashboards, add charts
-- **Chart Tools (8)**: Full CRUD operations, data export, screenshot previews
+- **Chart Tools (8)**: Full CRUD operations, data export, visual previews
 - **Dataset Tools (3)**: List, get info, discover filterable columns
-- **System Tools (2)**: Instance info, explore link generation
+- **Explore Tools (1)**: Interactive visualization workflow (PREFERRED)
+- **System Tools (1)**: Comprehensive instance statistics
 - **SQL Lab Tools (2)**: Pre-configured SQL sessions, direct SQL execution
 
 ### 🚀 **2 Guided Prompts**
@@ -60,7 +61,7 @@ graph TB
     subgraph "MCP Service Layer"
         FastMCP[FastMCP Server<br/>Port 5008]
         Auth[JWT Auth Hook]
-        Tools[16 MCP Tools]
+        Tools[20 MCP Tools]
     end
 
     subgraph "Superset Integration"
@@ -220,7 +221,7 @@ In Claude Desktop, these work automatically:
 ## Next Steps
 
 ### Ready to Use MCP?
-- **[📚 API Reference](./api-reference)** - Try all 17 tools, 2 prompts, and 2 resources with examples
+- **[📚 API Reference](./api-reference)** - Try all 20 tools, 2 prompts, and 2 resources with examples
 - **[🔐 Authentication](./authentication)** - Set up JWT security for production use
 
 ### Want to Extend MCP?

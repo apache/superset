@@ -82,43 +82,59 @@ mcp = FastMCP(
     instructions="""
 You are connected to the Apache Superset MCP (Model Context Protocol) service.
 This service provides programmatic access to Superset dashboards, charts, datasets,
-and instance metadata via a set of high-level tools.
+SQL Lab, and instance metadata via a comprehensive set of tools.
 
-Available tools include:
-- list_dashboards: Dashboard listing with advanced filters (use 'filters' for
-  advanced queries, 1-based pagination)
-- get_dashboard_info: Get detailed information about a dashboard by its integer ID
-- get_superset_instance_info: Get high-level statistics and metadata about the
-  Superset instance (no arguments)
-- get_dashboard_available_filters: List all available dashboard filter fields and
-  operators
-- list_datasets: DatasetInfo listing with advanced filters (use 'filters' for
-  advanced queries, 1-based pagination)
-- get_dataset_info: Get detailed information about a dataset by its integer ID
-- get_dataset_available_filters: List all available dataset filter fields and
-  operators
-- list_charts: Chart listing with advanced filters (use 'filters' for advanced
-  queries, 1-based pagination)
-- get_chart_info: Get detailed information about a chart by its integer ID
-- get_chart_preview: Get a visual preview of a chart with image URL for display
-- get_chart_data: Get the underlying data for a chart in text-friendly format
-- get_chart_available_filters: List all available chart filter fields and operators
-- generate_explore_link: Generate a pre-configured explore URL with specified
-  dataset, metrics, dimensions, and filters for direct navigation
+Available tools:
 
+Dashboard Management:
+- list_dashboards: List dashboards with advanced filters (1-based pagination)
+- get_dashboard_info: Get detailed dashboard information by ID
+- get_dashboard_available_filters: List available dashboard filter fields/operators
+- generate_dashboard: Automatically create a dashboard from datasets with AI
+- add_chart_to_existing_dashboard: Add a chart to an existing dashboard
+
+Dataset Management:
+- list_datasets: List datasets with advanced filters (1-based pagination)
+- get_dataset_info: Get detailed dataset information by ID
+- get_dataset_available_filters: List available dataset filter fields/operators
+
+Chart Management:
+- list_charts: List charts with advanced filters (1-based pagination)
+- get_chart_info: Get detailed chart information by ID
+- get_chart_preview: Get a visual preview of a chart with image URL
+- get_chart_data: Get underlying chart data in text-friendly format
+- get_chart_available_filters: List available chart filter fields/operators
+- generate_chart: Create a new chart with AI assistance
+- update_chart: Update existing chart configuration
+- update_chart_preview: Update chart and get preview in one operation
+
+SQL Lab Integration:
+- execute_sql: Execute SQL queries and get results
+- open_sql_lab_with_context: Generate SQL Lab URL with pre-filled query
+
+Explore & Analysis:
+- generate_explore_link: Create pre-configured explore URL with dataset/metrics/filters
+
+System Information:
+- get_superset_instance_info: Get instance-wide statistics and metadata
+
+Available Resources:
+- superset://instance/metadata: Access instance configuration and metadata
+- superset://chart/templates: Access chart configuration templates
+
+Available Prompts:
+- superset_quickstart: Interactive guide for getting started with the MCP service
+- create_chart_guided: Step-by-step chart creation wizard
 
 General usage tips:
-- For listing tools, 'page' is 1-based (first page is 1)
-- Use 'filters' to narrow down results (see get_dashboard_available_filters,
-  get_dataset_available_filters, get_chart_available_filters for supported fields
-  and operators)
-- Use get_dashboard_info, get_dataset_info, get_chart_info with a valid ID from
-  the listing tools
-- For instance-wide stats, call get_superset_instance_info with no arguments
+- All listing tools use 1-based pagination (first page is 1)
+- Use 'filters' parameter for advanced queries (see *_available_filters tools)
+- IDs can be integer or UUID format where supported
 - All tools return structured, Pydantic-typed responses
+- Chart previews are served as PNG images via custom screenshot endpoints
 
-If you are unsure which tool to use, start with list_dashboards or
-get_superset_instance_info for a summary of the Superset instance.
+If you are unsure which tool to use, start with get_superset_instance_info
+or use the superset_quickstart prompt for an interactive guide.
 """,
 )
 

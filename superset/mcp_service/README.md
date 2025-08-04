@@ -3,9 +3,9 @@
 The Superset Model Context Protocol (MCP) service provides a modular, schema-driven interface for programmatic access to Superset dashboards, charts, datasets, and instance metadata. It is designed for LLM agents and automation tools, and is built on the FastMCP protocol.
 
 **Key Features:**
-- **17 Tools** - Comprehensive operations for dashboards, charts, datasets, SQL execution
+- **20 Tools** - Complete CRUD operations for dashboards, charts, datasets, plus interactive exploration and SQL execution
 - **2 Prompts** - Guided workflows for onboarding and chart creation
-- **2 Resources** - Contextual metadata and templates for enhanced LLM understanding
+- **2 Resources** - Real-time instance metadata and visualization templates for enhanced LLM context
 
 **✅ Phase 1 Complete - Production Ready. Core functionality stable, authentication production-ready, comprehensive testing coverage, optimized dashboard layouts, automated test framework.**
 
@@ -101,9 +101,23 @@ ps aux | grep "superset mcp"
 ```
 
 **Test in Claude Desktop:**
-- Ask Claude to "list dashboards" or "get superset instance info"
+- Ask Claude to "list dashboards" or "get superset instance info"  
 - Try "Help me get started with Superset" to trigger the quickstart prompt
-- Claude should be able to use the MCP tools, prompts, and resources to interact with your Superset instance
+- For visualizations, ask "Create an interactive chart" (uses `generate_explore_link` - preferred workflow)
+- Claude can access 20 tools, 2 prompts, and 2 resources to interact with your Superset instance
+
+## 🎯 Key Workflows
+
+### For LLM Interactions (Claude Desktop)
+1. **Data Exploration**: `list_datasets` → `get_dataset_info` → explore columns and metrics
+2. **Interactive Visualization** (Recommended): `generate_explore_link` → user explores in Superset UI → `generate_chart` to save
+3. **Direct Chart Creation**: `generate_chart` → `get_chart_preview` → `get_chart_data` for export
+4. **Dashboard Building**: Create multiple charts → `generate_dashboard` with automatic layout
+5. **SQL Analysis**: `execute_sql` with parameters → `open_sql_lab_with_context` for further exploration
+
+### Prompts & Resources (Automatic)
+- **Prompts**: Triggered by questions like "Help me get started" or "Guide me through creating charts"
+- **Resources**: Accessed automatically when Claude needs context about your instance or visualization best practices
 
 ### 6. Run Tests (Optional)
 
@@ -282,37 +296,39 @@ For local development without Codespaces:
 
 ## Available Tools, Prompts, and Resources
 
-**17 MCP tools**, **2 prompts**, and **2 resources** with Pydantic v2 schemas and comprehensive field documentation for LLM compatibility.
+**20 MCP tools**, **2 prompts**, and **2 resources** with Pydantic v2 schemas and comprehensive field documentation for LLM compatibility.
 
 ### 📊 Dashboard Tools (5)
-- **`list_dashboards`** - List with search/filters/pagination, UUID/slug support
-- **`get_dashboard_info`** - Get by ID/UUID/slug with metadata
-- **`get_dashboard_available_filters`** - Discover filterable columns
-- **`generate_dashboard`** - Create dashboards with multiple charts
-- **`add_chart_to_existing_dashboard`** - Add charts to existing dashboards
+- **`list_dashboards`** - List with advanced filtering, search, pagination, UUID/slug support
+- **`get_dashboard_info`** - Get detailed info by ID/UUID/slug with metadata
+- **`get_dashboard_available_filters`** - Discover filterable columns and operators
+- **`generate_dashboard`** - Create dashboards with multiple charts and automatic layout
+- **`add_chart_to_existing_dashboard`** - Add charts to existing dashboards with smart positioning
 
 ### 📈 Chart Tools (8)  
-- **`list_charts`** - List with search/filters/pagination, UUID support
-- **`get_chart_info`** - Get by ID/UUID with full metadata
-- **`get_chart_available_filters`** - Discover filterable columns
-- **`generate_chart`** - Create charts (table, line, bar, area, scatter)
-- **`update_chart`** - Update existing saved charts
-- **`update_chart_preview`** - Update cached chart previews
-- **`get_chart_data`** - Export data (JSON/CSV/Excel)
-- **`get_chart_preview`** - Screenshots, ASCII art, table previews
+- **`list_charts`** - List with advanced filtering, search, pagination, UUID support, cache control
+- **`get_chart_info`** - Get detailed info by ID/UUID with full metadata
+- **`get_chart_available_filters`** - Discover filterable columns and operators
+- **`generate_chart`** - Create and save charts (table, line, bar, area, scatter) with preview
+- **`update_chart`** - Update existing saved charts with preview generation
+- **`update_chart_preview`** - Update cached chart previews without saving
+- **`get_chart_data`** - Export underlying data (JSON/CSV/Excel) with cache control
+- **`get_chart_preview`** - Visual previews (screenshots, ASCII art, table, VegaLite)
 
 ### 🗂️ Dataset Tools (3)
-- **`list_datasets`** - List with columns/metrics, UUID support
-- **`get_dataset_info`** - Get by ID/UUID with columns/metrics metadata
-- **`get_dataset_available_filters`** - Discover filterable columns
+- **`list_datasets`** - List with columns/metrics, advanced filtering, UUID support, cache control
+- **`get_dataset_info`** - Get detailed info by ID/UUID with columns/metrics metadata
+- **`get_dataset_available_filters`** - Discover filterable columns and operators
 
-### 🖥️ System Tools (2)
-- **`get_superset_instance_info`** - Instance statistics and version info
-- **`generate_explore_link`** - Generate chart exploration URLs
+### 🔍 Explore Tools (1)
+- **`generate_explore_link`** - Generate pre-configured interactive explore URLs (PREFERRED for visualization)
+
+### 🖥️ System Tools (1)
+- **`get_superset_instance_info`** - Comprehensive instance statistics and configuration
 
 ### 🧪 SQL Lab Tools (2)
-- **`open_sql_lab_with_context`** - Pre-configured SQL Lab sessions
-- **`execute_sql`** - Execute SQL queries with parameter substitution and result retrieval
+- **`open_sql_lab_with_context`** - Generate pre-configured SQL Lab session URLs
+- **`execute_sql`** - Direct SQL execution with security validation, parameters, timeouts
 
 ## Available Prompts
 
@@ -368,13 +384,193 @@ For local development without Codespaces:
 ### ❌ Not Available (Future phases)
 - **Update/Delete**: Dashboard and dataset modifications
 
+## 🔄 Complete Workflows & Usage Patterns
+
+### Data Discovery Workflow
+```python
+# 1. Get instance overview
+instance_info = call_tool("get_superset_instance_info", {})
+
+# 2. Discover available datasets  
+datasets = call_tool("list_datasets", {
+    "page_size": 20,
+    "use_cache": True
+})
+
+# 3. Explore a specific dataset
+dataset_info = call_tool("get_dataset_info", {
+    "identifier": "sales_data_uuid"
+})
+
+# 4. Check what filters are available
+filters = call_tool("get_dataset_available_filters", {})
+```
+
+### Interactive Visualization Workflow (Recommended)
+```python
+# 1. Generate explore link for interactive visualization
+explore_url = call_tool("generate_explore_link", {
+    "dataset_id": "1",
+    "config": {
+        "chart_type": "xy",
+        "x": {"name": "date"},
+        "y": [{"name": "revenue", "aggregate": "SUM"}],
+        "kind": "line"
+    }
+})
+# User can now explore interactively in Superset UI before saving
+
+# 2. If satisfied, save the chart
+chart = call_tool("generate_chart", {
+    "dataset_id": "1",
+    "config": explore_config,
+    "save_chart": True,
+    "generate_preview": True
+})
+```
+
+### Chart Creation & Management Workflow
+```python
+# 1. Create chart with preview
+chart = call_tool("generate_chart", {
+    "dataset_id": "1",
+    "config": {
+        "chart_type": "table",
+        "columns": [
+            {"name": "region", "label": "Region"},
+            {"name": "sales", "label": "Total Sales"}
+        ]
+    },
+    "save_chart": True,
+    "generate_preview": True
+})
+
+# 2. Get chart preview in multiple formats
+preview = call_tool("get_chart_preview", {
+    "identifier": chart["chart_id"],
+    "format": "url",  # or "ascii", "table", "vegalite"
+    "width": 800,
+    "height": 600
+})
+
+# 3. Export chart data
+data = call_tool("get_chart_data", {
+    "identifier": chart["chart_id"],
+    "format": "json",  # or "csv", "excel"
+    "limit": 1000
+})
+
+# 4. Update chart configuration
+updated = call_tool("update_chart", {
+    "identifier": chart["chart_id"],
+    "config": modified_config,
+    "generate_preview": True
+})
+```
+
+### Dashboard Creation Workflow
+```python
+# 1. Create multiple charts first
+chart_ids = []
+for config in chart_configs:
+    chart = call_tool("generate_chart", {
+        "dataset_id": "1",
+        "config": config,
+        "save_chart": True
+    })
+    chart_ids.append(chart["chart_id"])
+
+# 2. Create dashboard with automatic layout
+dashboard = call_tool("generate_dashboard", {
+    "chart_ids": chart_ids,
+    "dashboard_title": "Sales Analytics Dashboard",
+    "description": "Comprehensive sales performance metrics",
+    "published": True
+})
+
+# 3. Add more charts to existing dashboard
+call_tool("add_chart_to_existing_dashboard", {
+    "dashboard_id": dashboard["dashboard_id"],
+    "chart_id": new_chart_id,
+    "target_tab": "Overview"
+})
+```
+
+### SQL Analysis Workflow
+```python
+# 1. Execute exploratory SQL
+result = call_tool("execute_sql", {
+    "database_id": 1,
+    "sql": "SELECT region, COUNT(*) as orders FROM {table} WHERE year = {year} GROUP BY region",
+    "parameters": {
+        "table": "sales_data",
+        "year": "2024"
+    },
+    "limit": 100
+})
+
+# 2. Open SQL Lab with context for further exploration
+sql_lab = call_tool("open_sql_lab_with_context", {
+    "database_connection_id": 1,
+    "schema": "public",
+    "dataset_in_context": "sales_data",
+    "sql": "SELECT * FROM sales_data WHERE region = 'US'",
+    "title": "US Sales Analysis"
+})
+```
+
+### Advanced Filtering & Search
+```python
+# Search across entities
+dashboards = call_tool("list_dashboards", {
+    "search": "sales",  # Searches title, description, slug
+    "page_size": 20
+})
+
+# Complex filtering (cannot combine with search)
+charts = call_tool("list_charts", {
+    "filters": [
+        {"col": "viz_type", "opr": "eq", "value": "echarts_timeseries_line"},
+        {"col": "changed_on", "opr": "gt", "value": "2024-01-01"}
+    ],
+    "order_column": "changed_on",
+    "order_direction": "desc"
+})
+
+# Discover available filter options
+available_filters = call_tool("get_chart_available_filters", {})
+```
+
+### Cache Control Strategies
+```python
+# Force fresh data (bypass all caches)
+data = call_tool("get_chart_data", {
+    "identifier": chart_id,
+    "use_cache": False,
+    "force_refresh": True
+})
+
+# Use cache with custom timeout
+data = call_tool("get_chart_data", {
+    "identifier": chart_id,
+    "cache_timeout": 1800,  # 30 minutes
+    "use_cache": True
+})
+
+# Refresh metadata caches
+datasets = call_tool("list_datasets", {
+    "refresh_metadata": True,
+    "use_cache": False
+})
+```
+
 ## 📖 Complete Documentation
 
 The MCP service is fully documented on the **[official Superset documentation site](https://superset.apache.org/docs/mcp-service/intro)**:
 
 ### Quick Access
 - **[🚀 MCP Service Overview](https://superset.apache.org/docs/mcp-service/intro)** - Complete introduction and features
-- **[📚 API Reference](https://superset.apache.org/docs/mcp-service/api-reference)** - All 17 tools with examples
+- **[📚 API Reference](https://superset.apache.org/docs/mcp-service/api-reference)** - All 20 tools, 2 prompts, 2 resources with examples
 - **[🔧 Development Guide](https://superset.apache.org/docs/mcp-service/development)** - Adding new tools and architecture
 - **[🔐 Authentication](https://superset.apache.org/docs/mcp-service/authentication)** - Production security setup
 
@@ -684,7 +880,8 @@ templates = await client.read_resource("superset://chart/templates")
 ### ✅ Phase 1 Complete - Production Ready
 - **FastMCP Server**: CLI with `superset mcp run`, HTTP service on port 5008
 - **Authentication**: Production-ready JWT Bearer with configurable factory pattern
-- **17 Core Tools**: All list/info/filter tools, chart creation, dashboard generation, SQL execution
+- **20 Core Tools**: Complete CRUD operations, data export, interactive visualization, SQL execution
+- **1 Explore Tool**: Interactive visualization workflow (PREFERRED for chart creation)
 - **2 Prompts**: Guided workflows for onboarding and chart creation
 - **2 Resources**: Instance metadata and chart templates for enhanced LLM context
 - **Request Schema Pattern**: Eliminates LLM parameter validation issues
