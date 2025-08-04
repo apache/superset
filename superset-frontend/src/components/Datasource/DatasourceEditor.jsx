@@ -54,6 +54,7 @@ import {
   Col,
   Divider,
   EditableTitle,
+  Form,
   FormLabel,
   Icons,
   Loading,
@@ -1091,11 +1092,10 @@ class DatasourceEditor extends PureComponent {
             }}
           />
         </Fieldset>
-        <Fieldset
-          title={t('Chart Defaults')}
-          item={datasource}
-          onChange={this.onDatasourceChange}
-        >
+        <Form.Item>
+          <Typography.Title level={5}>
+            {t('Chart Defaults')} <Divider />
+          </Typography.Title>
           <Field
             fieldKey="default_metric"
             label={t('Default Metric')}
@@ -1106,9 +1106,10 @@ class DatasourceEditor extends PureComponent {
               parseExtra(datasource.extra).default_chart_metadata
                 ?.default_metric
             }
-            onChange={(fieldKey, value) =>
-              this.onChartDefaultChange('default_metric', value)
-            }
+            onChange={(fieldKey, value) => {
+              console.log('Field onChange called with:', fieldKey, value);
+              this.onChartDefaultChange('default_metric', value);
+            }}
             control={
               <Select
                 name="default_metric"
@@ -1258,7 +1259,7 @@ class DatasourceEditor extends PureComponent {
               />
             }
           />
-        </Fieldset>
+        </Form.Item>
       </>
     );
   }
