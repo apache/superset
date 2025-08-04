@@ -76,6 +76,7 @@ export { CronPicker, type CronError } from './CronPicker';
 export * from './DatePicker';
 export { DeleteModal, type DeleteModalProps } from './DeleteModal';
 export { Divider, type DividerProps } from './Divider';
+export { Drawer, type DrawerProps } from './Drawer';
 export {
   Dropdown,
   MenuDotsDropdown,
