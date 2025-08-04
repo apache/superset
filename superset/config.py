@@ -2062,7 +2062,7 @@ ZIPPED_FILE_MAX_SIZE = 100 * 1024 * 1024  # 100MB
 ZIP_FILE_MAX_COMPRESS_RATIO = 200.0
 
 # Configuration for environment tag shown on the navbar. Setting 'text' to '' will hide the tag.  # noqa: E501
-# 'color' support only Ant Design semantic colors (e.g., 'error', 'warning', 'success', 'processing', 'default)
+# 'color' support only Ant Design semantic colors (e.g., 'error', 'warning', 'success', 'processing', 'default)  # noqa: E501
 ENVIRONMENT_TAG_CONFIG = {
     "variable": "SUPERSET_ENV",
     "values": {

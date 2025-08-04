@@ -36,7 +36,6 @@ const mockedProps = {
   },
 };
 
-// Test component to use the hook
 const TestLanguagePicker = ({ locale, languages }: typeof mockedProps) => {
   const languageMenuItem = useLanguageMenuItems({ locale, languages });
 
@@ -53,11 +52,11 @@ test('should render', async () => {
   expect(container).toBeInTheDocument();
 });
 
-test('should render the language picker', async () => {
+test('should render the language picker', () => {
   render(<TestLanguagePicker {...mockedProps} />, {
     useRouter: true,
   });
-  expect(await screen.findByLabelText('Languages')).toBeInTheDocument();
+  expect(screen.getByRole('menu', { name: 'Languages' })).toBeInTheDocument();
 });
 
 test('should render the items', async () => {

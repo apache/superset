@@ -333,7 +333,7 @@ class DatasourceControl extends PureComponent {
           editText
         ),
         disabled: !allowEdit,
-        ...{ 'data-test': 'edit-dataset' }, // TypeScript hack for non-standard props
+        ...{ 'data-test': 'edit-dataset' },
       });
     }
 

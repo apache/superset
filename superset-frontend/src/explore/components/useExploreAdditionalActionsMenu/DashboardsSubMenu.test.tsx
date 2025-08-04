@@ -21,7 +21,6 @@ import type { MenuItemType } from '@superset-ui/core/components';
 import { useDashboardsMenuItems } from './DashboardsSubMenu';
 import { SEARCH_THRESHOLD } from './index';
 
-// Test component to use the hook
 const TestDashboardsMenuItems = ({
   chartId,
   dashboards,
