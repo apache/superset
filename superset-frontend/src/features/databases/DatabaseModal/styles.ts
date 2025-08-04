@@ -30,7 +30,7 @@ export const no_margin_bottom = css`
 `;
 
 export const labelMarginBottom = (theme: SupersetTheme) => css`
-  margin-bottom: ${theme.sizeUnit * 2}px;
+  margin-bottom: ${theme.marginXS}px;
 `;
 
 export const marginBottom = (theme: SupersetTheme) => css`
@@ -214,7 +214,7 @@ export const validatedFormStyles = (theme: SupersetTheme) => css`
   label {
     color: ${theme.colorText};
     font-size: ${theme.fontSizeSM}px;
-    margin-bottom: 0;
+    margin-bottom: ${theme.marginXS}px;
   }
 `;
 
@@ -238,8 +238,8 @@ export const StyledInputContainer = styled.div`
 
       label {
         display: flex;
-        margin-left: ${theme.sizeUnit * 2}px;
-        margin-top: ${theme.sizeUnit * 0.75}px;
+        margin-left: ${theme.marginXS}px;
+        margin-top: ${theme.marginXS}px;
         font-family: ${theme.fontFamily};
         font-size: ${theme.fontSize}px;
       }

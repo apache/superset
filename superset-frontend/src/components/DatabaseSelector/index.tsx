@@ -55,8 +55,8 @@ const DatabaseSelectorWrapper = styled.div`
       display: flex;
       align-items: center;
       width: 30px;
-      margin-left: ${theme.sizeUnit}px;
-      margin-top: ${theme.sizeUnit * 5}px;
+      margin-left: ${theme.marginXS}px;
+      margin-top: ${theme.marginXS}px;
     }
 
     .section {
@@ -71,7 +71,7 @@ const DatabaseSelectorWrapper = styled.div`
     }
 
     & > div {
-      margin-bottom: ${theme.sizeUnit * 4}px;
+      margin-bottom: ${theme.marginXS}px;
     }
   `}
 `;
@@ -80,7 +80,7 @@ const LabelStyle = styled.div`
   display: flex;
   flex-direction: row;
   align-items: center;
-  margin-left: ${({ theme }) => theme.sizeUnit - 2}px;
+  margin-left: ${({ theme }) => theme.marginXS}px;
 
   .backend {
     overflow: visible;

@@ -51,7 +51,7 @@ export const StyledBottomSection = styled.div`
 
 export const StyledIconWrapper = styled.span`
   span {
-    margin-right: ${({ theme }) => theme.sizeUnit * 2}px;
+    margin-right: ${({ theme }) => theme.marginXS}px;
     vertical-align: middle;
   }
   .text {
@@ -63,12 +63,12 @@ export const StyledScheduleTitle = styled.div`
   margin-bottom: ${({ theme }) => theme.sizeUnit * 7}px;
 
   h4 {
-    margin-bottom: ${({ theme }) => theme.sizeUnit * 3}px;
+    margin-bottom: ${({ theme }) => theme.marginXS}px;
   }
 `;
 
 export const StyledCronPicker = styled(CronPicker)`
-  margin-bottom: ${({ theme }) => theme.sizeUnit * 3}px;
+  margin-bottom: ${({ theme }) => theme.marginXS}px;
   width: ${({ theme }) => theme.sizeUnit * 120}px;
 `;
 

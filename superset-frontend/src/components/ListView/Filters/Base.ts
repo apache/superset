@@ -31,7 +31,7 @@ export const FilterContainer = styled(Flex)<FilterContainerProps>`
       display: block;
       font-size: ${theme.fontSizeSM}px;
       color: ${theme.colorTextLabel};
-      margin-bottom: ${theme.sizeUnit}px;
+      margin-bottom: ${theme.marginXS}px;
     }
     .anticon-info-circle {
       margin: 0px 0px ${theme.sizeUnit}px ${theme.sizeUnit}px;

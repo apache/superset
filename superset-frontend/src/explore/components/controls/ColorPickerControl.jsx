@@ -47,7 +47,7 @@ const StyledSwatch = styled.div`
       width: 50px;
       height: 20px;
       position: relative;
-      padding: ${theme.sizeUnit}px;
+      padding: ${theme.marginXS}px;
       borderRadius: ${theme.borderRadius}px;
       display: inline-block;
       cursor: pointer;

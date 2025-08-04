@@ -52,8 +52,8 @@ const TableSelectorWrapper = styled.div`
       display: flex;
       align-items: center;
       width: ${REFRESH_WIDTH}px;
-      margin-left: ${theme.sizeUnit}px;
-      margin-top: ${theme.sizeUnit * 5}px;
+      margin-left: ${theme.marginXS}px;
+      margin-top: ${theme.marginXS}px;
     }
 
     .section {
@@ -85,7 +85,7 @@ const TableLabel = styled.span`
 
   svg,
   small {
-    margin-right: ${({ theme }) => theme.sizeUnit}px;
+    margin-right: ${({ theme }) => theme.marginXS}px;
   }
 `;
 

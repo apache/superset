@@ -29,7 +29,7 @@ import { FEATURED_CHARTS } from './constants';
 export const antdIconProps = {
   iconSize: 'l' as const,
   css: (theme: SupersetTheme) => css`
-    padding: ${theme.sizeUnit}px;
+    padding: ${theme.marginXS}px;
     & > * {
       line-height: 0;
     }

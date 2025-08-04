@@ -262,7 +262,7 @@ export default class SelectControl extends PureComponent {
       <div
         css={theme => css`
           .type-label {
-            margin-right: ${theme.sizeUnit * 2}px;
+            margin-right: ${theme.marginXS}px;
           }
           .Select__multi-value__label > span,
           .Select__option > span,

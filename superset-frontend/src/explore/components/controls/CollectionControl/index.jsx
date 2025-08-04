@@ -120,7 +120,7 @@ class CollectionControl extends Component {
               css={theme => ({
                 justifyContent: 'flex-start',
                 display: '-webkit-flex',
-                paddingInline: theme.sizeUnit * 3,
+                paddingInline: theme.marginXS,
               })}
               key={this.props.keyAccessor(o)}
               index={i}
@@ -129,8 +129,8 @@ class CollectionControl extends Component {
               <div
                 css={theme => ({
                   flex: 1,
-                  marginLeft: theme.sizeUnit * 2,
-                  marginRight: theme.sizeUnit * 2,
+                  marginLeft: theme.marginXS,
+                  marginRight: theme.marginXS,
                 })}
               >
                 <Control

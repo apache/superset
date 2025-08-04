@@ -80,7 +80,7 @@ const colTypeOptions = [
 ];
 
 const StyledRow = styled(Row)`
-  margin-top: ${({ theme }) => theme.sizeUnit * 2}px;
+  margin-top: ${({ theme }) => theme.marginXS}px;
   display: flex;
   align-items: center;
 `;
@@ -91,12 +91,12 @@ const StyledCol = styled(Col)`
 `;
 
 const StyledTooltip = styled(InfoTooltip)`
-  margin-left: ${({ theme }) => theme.sizeUnit}px;
+  margin-left: ${({ theme }) => theme.marginXS}px;
   color: ${({ theme }) => theme.colors.grayscale.light1};
 `;
 
 const ButtonBar = styled.div`
-  margin-top: ${({ theme }) => theme.sizeUnit * 5}px;
+  margin-top: ${({ theme }) => theme.marginXS}px;
   display: flex;
   justify-content: center;
 `;

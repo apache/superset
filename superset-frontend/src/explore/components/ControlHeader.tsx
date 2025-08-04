@@ -117,7 +117,7 @@ const ControlHeader: FC<ControlHeaderProps> = ({
       <div className="pull-left">
         <FormLabel
           css={(theme: SupersetTheme) => css`
-            margin-bottom: ${theme.sizeUnit * 0.5}px;
+            margin-bottom: ${theme.marginXS}px;
             position: relative;
             font-size: ${theme.fontSizeSM}px;
           `}

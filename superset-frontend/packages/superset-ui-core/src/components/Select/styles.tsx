@@ -27,7 +27,8 @@ export const StyledHeader = styled.span<{ headerPosition: string }>`
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    margin-right: ${headerPosition === 'left' ? theme.sizeUnit * 2 : 0}px;
+    margin-right: ${headerPosition === 'left' ? theme.marginXS : 0}px;
+    margin-bottom: ${headerPosition === 'top' ? theme.marginXS : 0}px;
   `}
 `;
 

@@ -42,7 +42,7 @@ export const FormItem = styled(Form.Item)`
       }
     }
     .ant-form-item-extra {
-      margin-top: ${theme.sizeUnit}px;
+      margin-top: ${theme.marginXS}px;
       font-size: ${theme.fontSizeSM}px;
     }
   `}

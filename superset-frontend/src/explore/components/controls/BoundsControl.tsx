@@ -35,12 +35,12 @@ const StyledDiv = styled.div`
 
 const MinInput = styled(InputNumber)`
   flex: 1;
-  margin-right: ${({ theme }) => theme.sizeUnit}px;
+  margin-right: ${({ theme }) => theme.marginXS}px;
 `;
 
 const MaxInput = styled(InputNumber)`
   flex: 1;
-  margin-left: ${({ theme }) => theme.sizeUnit}px;
+  margin-left: ${({ theme }) => theme.marginXS}px;
 `;
 
 const parseNumber = (value: undefined | number | string | null) => {

@@ -39,7 +39,7 @@ const CheckBoxControlWrapper = styled.div`
       color: ${theme.colorText};
     }
     span:has(label) {
-      padding-right: ${theme.sizeUnit * 2}px;
+      padding-right: ${theme.marginXS}px;
     }
   `}
 `;

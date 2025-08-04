@@ -39,7 +39,7 @@ const TooltipContent = styled.div`
     }
 
     .tooltip-description {
-      margin-top: ${theme.sizeUnit * 2}px;
+      margin-top: ${theme.marginXS}px;
       display: -webkit-box;
       -webkit-line-clamp: 20;
       -webkit-box-orient: vertical;
@@ -51,8 +51,8 @@ const TooltipContent = styled.div`
 
 const StyledLabelContainer = styled.div`
   ${({ theme }) => `
-    left: ${theme.sizeUnit * 3}px;
-    right: ${theme.sizeUnit * 3}px;
+    left: ${theme.marginXS}px;
+    right: ${theme.marginXS}px;
     overflow: hidden;
     text-overflow: ellipsis;
     display: block;
@@ -61,8 +61,8 @@ const StyledLabelContainer = styled.div`
 
 const StyledLabel = styled.span`
   ${({ theme }) => `
-    left: ${theme.sizeUnit * 3}px;
-    right: ${theme.sizeUnit * 3}px;
+    left: ${theme.marginXS}px;
+    right: ${theme.marginXS}px;
     overflow: hidden;
     text-overflow: ellipsis;
     display: block;

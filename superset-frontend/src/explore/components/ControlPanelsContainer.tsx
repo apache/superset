@@ -155,7 +155,7 @@ const Styles = styled.div`
     max-width: 100%;
   }
   .type-label {
-    margin-right: ${({ theme }) => theme.sizeUnit * 3}px;
+    margin-right: ${({ theme }) => theme.marginXS}px;
     width: ${({ theme }) => theme.sizeUnit * 7}px;
     display: inline-block;
     text-align: center;
