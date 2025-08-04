@@ -615,7 +615,7 @@ test('modifies the name of a filter', async () => {
   );
 });
 
-test.only('renders a filter with a chart containing BigInt values', async () => {
+test('renders a filter with a chart containing BigInt values', async () => {
   const nativeFilterState = [
     buildNativeFilter('NATIVE_FILTER-1', 'state', ['NATIVE_FILTER-2']),
     buildNativeFilter('NATIVE_FILTER-2', 'country', []),
