@@ -294,8 +294,8 @@ class TestQueryContext(SupersetTestCase):
         payload = get_query_context("birth_names")
         columns = payload["queries"][0]["columns"]
         payload["queries"][0]["groupby"] = columns
-        payload["queries"][0]["timeseries_limit"] = 99
-        payload["queries"][0]["timeseries_limit_metric"] = "sum__num"
+        payload["queries"][0]["series_limit"] = 99
+        payload["queries"][0]["series_limit_metric"] = "sum__num"
         del payload["queries"][0]["columns"]
         # Remove granularity so granularity_sqla can be used
         del payload["queries"][0]["granularity"]
@@ -523,7 +523,7 @@ class TestQueryContext(SupersetTestCase):
         payload["queries"][0]["metrics"] = ["sum__num"]
         payload["queries"][0]["groupby"] = ["name"]
         payload["queries"][0]["is_timeseries"] = True
-        payload["queries"][0]["timeseries_limit"] = 5
+        payload["queries"][0]["series_limit"] = 5
         payload["queries"][0]["time_offsets"] = ["1 year ago", "1 year later"]
         payload["queries"][0]["time_range"] = "1990 : 1991"
         query_context = ChartDataQueryContextSchema().load(payload)
@@ -559,7 +559,7 @@ class TestQueryContext(SupersetTestCase):
         # due to "name" is random generated, each time_offset slice will be empty
         payload["queries"][0]["groupby"] = ["name"]
         payload["queries"][0]["is_timeseries"] = True
-        payload["queries"][0]["timeseries_limit"] = 5
+        payload["queries"][0]["series_limit"] = 5
         payload["queries"][0]["time_offsets"] = []
         payload["queries"][0]["time_range"] = "1990 : 1991"
         payload["queries"][0]["granularity"] = "ds"
@@ -612,7 +612,7 @@ class TestQueryContext(SupersetTestCase):
         payload["queries"][0]["metrics"] = ["sum__num"]
         payload["queries"][0]["groupby"] = ["state"]
         payload["queries"][0]["is_timeseries"] = True
-        payload["queries"][0]["timeseries_limit"] = 5
+        payload["queries"][0]["series_limit"] = 5
         payload["queries"][0]["time_offsets"] = []
         payload["queries"][0]["time_range"] = "1980 : 1991"
         payload["queries"][0]["granularity"] = "ds"
@@ -645,7 +645,7 @@ class TestQueryContext(SupersetTestCase):
             "state"
         ]  # Use columns instead of deprecated groupby
         payload["queries"][0]["is_timeseries"] = True
-        payload["queries"][0]["timeseries_limit"] = 5
+        payload["queries"][0]["series_limit"] = 5
         payload["queries"][0]["time_offsets"] = []
         payload["queries"][0]["time_range"] = "1980 : 1991"
         payload["queries"][0]["granularity"] = "ds"
