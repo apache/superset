@@ -1861,7 +1861,7 @@ class SqlaTable(
         if self.has_extra_cache_key_calls(query_obj):
             from superset.common.query_object import QueryObject
 
-            query_object = QueryObject(**query_obj)
+            query_object = QueryObject(datasource=self, **query_obj)
             sqla_query = self.get_sqla_query(query_object)
             extra_cache_keys += sqla_query.extra_cache_keys
         return list(set(extra_cache_keys))
