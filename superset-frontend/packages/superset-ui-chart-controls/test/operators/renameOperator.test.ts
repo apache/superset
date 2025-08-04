@@ -54,17 +54,6 @@ test('should skip renameOperator for empty metrics', () => {
   ).toEqual(undefined);
 });
 
-test('should skip renameOperator if series does not exist', () => {
-  expect(
-    renameOperator(formData, {
-      ...queryObject,
-      ...{
-        columns: [],
-      },
-    }),
-  ).toEqual(undefined);
-});
-
 test('should skip renameOperator if does not exist x_axis and is_timeseries', () => {
   expect(
     renameOperator(
@@ -88,6 +77,20 @@ test('should skip renameOperator if not is_timeseries and multi metrics', () => 
 
 test('should add renameOperator', () => {
   expect(renameOperator(formData, queryObject)).toEqual({
+    operation: 'rename',
+    options: { columns: { 'count(*)': null }, inplace: true, level: 0 },
+  });
+});
+
+test('should add renameOperator only if a metric exists and no series columns are present', () => {
+  expect(
+    renameOperator(formData, {
+      ...queryObject,
+      ...{
+        columns: [],
+      },
+    }),
+  ).toEqual({
     operation: 'rename',
     options: { columns: { 'count(*)': null }, inplace: true, level: 0 },
   });

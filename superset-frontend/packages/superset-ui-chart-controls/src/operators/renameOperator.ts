@@ -42,12 +42,10 @@ export const renameOperator: PostProcessingFactory<PostProcessingRename> = (
 
   // remove or rename top level of column name(metric name) in the MultiIndex when
   // 1) at least 1 metric
-  // 2) dimension exist
-  // 3) xAxis exist
-  // 4) truncate_metric in form_data and truncate_metric is true
+  // 2) xAxis exist
+  // 3) truncate_metric in form_data and truncate_metric is true
   if (
     metrics.length > 0 &&
-    columns.length > 0 &&
     xAxisLabel &&
     truncate_metric !== undefined &&
     !!truncate_metric
