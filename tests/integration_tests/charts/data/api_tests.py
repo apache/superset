@@ -902,6 +902,9 @@ class TestPostChartDataApi(BaseTestChartDataApi):
         request_payload["queries"][0]["columns"] = ["foo", "bar", "state"]
         request_payload["queries"][0]["where"] = "':abc' != ':xyz:qwerty'"
         request_payload["queries"][0]["orderby"] = None
+        request_payload["queries"][0]["granularity"] = (
+            None  # Virtual table has no time column
+        )
         request_payload["queries"][0]["metrics"] = [
             {
                 "expressionType": AdhocMetricExpressionType.SQL,
