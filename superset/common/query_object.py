@@ -255,7 +255,7 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
                     field.new_name,
                 )
                 value = kwargs[field.old_name]
-                if value:
+                if value is not None:
                     if hasattr(self, field.new_name):
                         logger.warning(
                             "The field `%s` is already populated, "
@@ -276,7 +276,7 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
                     field.new_name,
                 )
                 value = kwargs[field.old_name]
-                if value:
+                if value is not None:
                     if hasattr(self.extras, field.new_name):
                         logger.warning(
                             "The field `%s` is already populated in "
