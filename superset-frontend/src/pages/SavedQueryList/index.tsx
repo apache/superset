@@ -315,6 +315,7 @@ function SavedQueryList({
       {
         accessor: 'label',
         Header: t('Name'),
+        size: 'xxl',
         Cell: ({
           row: {
             original: { id, label },
@@ -325,12 +326,13 @@ function SavedQueryList({
       {
         accessor: 'description',
         Header: t('Description'),
+        size: 'xl',
         id: 'description',
       },
       {
         accessor: 'database.database_name',
         Header: t('Database'),
-        size: 'xl',
+        size: 'lg',
         id: 'database.database_name',
       },
       {
@@ -342,7 +344,7 @@ function SavedQueryList({
       {
         accessor: 'schema',
         Header: t('Schema'),
-        size: 'xl',
+        size: 'lg',
         id: 'schema',
       },
       {
@@ -380,7 +382,7 @@ function SavedQueryList({
         },
         accessor: 'sql_tables',
         Header: t('Tables'),
-        size: 'xl',
+        size: 'lg',
         disableSortBy: true,
         id: 'sql_tables',
       },

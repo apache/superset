@@ -387,12 +387,13 @@ function DatabaseList({
       {
         accessor: 'database_name',
         Header: t('Name'),
+        size: 'xxl',
         id: 'database_name',
       },
       {
         accessor: 'backend',
         Header: t('Backend'),
-        size: 'lg',
+        size: 'xl',
         disableSortBy: true, // TODO: api support for sorting by 'backend'
         id: 'backend',
       },

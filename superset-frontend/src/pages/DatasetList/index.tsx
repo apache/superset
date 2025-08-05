@@ -347,6 +347,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
         },
         Header: t('Name'),
         accessor: 'table_name',
+        size: 'xxl',
         id: 'table_name',
       },
       {
@@ -358,13 +359,13 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
         Header: t('Type'),
         accessor: 'kind',
         disableSortBy: true,
-        size: 'md',
+        size: 'sm',
         id: 'kind',
       },
       {
         Header: t('Database'),
         accessor: 'database.database_name',
-        size: 'lg',
+        size: 'xl',
         id: 'database.database_name',
       },
       {
