@@ -121,10 +121,10 @@ function ThemesList({
 
   // Get theme settings from bootstrap data
   const bootstrapData = getBootstrapData();
-  const themeSettings = bootstrapData?.common?.theme?.settings || {};
+  const themeData = bootstrapData?.common?.theme || {};
 
   const canSetSystemThemes =
-    canEdit && (themeSettings as any)?.enableUiThemeAdministration;
+    canEdit && (themeData as any)?.enableUiThemeAdministration;
 
   const [themeCurrentlyDeleting, setThemeCurrentlyDeleting] =
     useState<ThemeObject | null>(null);
