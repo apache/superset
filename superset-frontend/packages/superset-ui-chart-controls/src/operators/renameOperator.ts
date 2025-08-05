@@ -85,7 +85,8 @@ export const renameOperator: PostProcessingFactory<PostProcessingRename> = (
         ComparisonType.Percentage,
         ComparisonType.Ratio,
       ].includes(formData.comparison_type) &&
-      metrics.length === 1
+      metrics.length === 1 &&
+      renamePairs.length === 0
     ) {
       renamePairs.push([getMetricLabel(metrics[0]), null]);
     }
