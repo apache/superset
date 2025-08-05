@@ -56,6 +56,7 @@ import {
 } from 'src/logger/LogUtils';
 import { findPermission } from 'src/utils/findPermission';
 import { getQuerySettings } from 'src/explore/exploreUtils';
+import { isEmbedded } from 'src/dashboard/util/isEmbedded';
 import { Dataset, DrillByType } from '../types';
 import DrillByChart from './DrillByChart';
 import { ContextMenuItem } from '../ChartContextMenu/ChartContextMenu';
@@ -93,6 +94,8 @@ const ModalFooter = ({ formData, closeModal }: ModalFooterProps) => {
 
   const [datasource_id, datasource_type] = formData.datasource.split('__');
   useEffect(() => {
+    // short circuit if the user is embedded as explore is not available
+    if (isEmbedded()) return;
     postFormData(Number(datasource_id), datasource_type, formData, 0)
       .then(key => {
         setUrl(
@@ -113,28 +116,30 @@ const ModalFooter = ({ formData, closeModal }: ModalFooterProps) => {
 
   return (
     <>
-      <Button
-        buttonStyle="secondary"
-        buttonSize="small"
-        onClick={onEditChartClick}
-        disabled={isEditDisabled}
-        tooltip={
-          isEditDisabled
-            ? t('You do not have sufficient permissions to edit the chart')
-            : undefined
-        }
-      >
-        <Link
-          css={css`
-            &:hover {
-              text-decoration: none;
-            }
-          `}
-          to={url}
+      {!isEmbedded() && (
+        <Button
+          buttonStyle="secondary"
+          buttonSize="small"
+          onClick={onEditChartClick}
+          disabled={isEditDisabled}
+          tooltip={
+            isEditDisabled
+              ? t('You do not have sufficient permissions to edit the chart')
+              : undefined
+          }
         >
-          {t('Edit chart')}
-        </Link>
-      </Button>
+          <Link
+            css={css`
+              &:hover {
+                text-decoration: none;
+              }
+            `}
+            to={url}
+          >
+            {t('Edit chart')}
+          </Link>
+        </Button>
+      )}
 
       <Button
         buttonStyle="primary"
