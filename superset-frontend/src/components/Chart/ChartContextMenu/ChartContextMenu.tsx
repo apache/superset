@@ -22,7 +22,9 @@ import {
   ReactNode,
   RefObject,
   useCallback,
+  useEffect,
   useImperativeHandle,
+  useMemo,
   useState,
 } from 'react';
 import ReactDOM from 'react-dom';
@@ -35,7 +37,9 @@ import {
   ensureIsArray,
   FeatureFlag,
   getChartMetadataRegistry,
+  getExtensionsRegistry,
   isFeatureEnabled,
+  logging,
   QueryFormData,
   t,
   useTheme,
@@ -48,6 +52,10 @@ import { updateDataMask } from 'src/dataMask/actions';
 import DrillByModal from 'src/components/Chart/DrillBy/DrillByModal';
 import { useVerboseMap } from 'src/hooks/apiResources/datasets';
 import { Dataset } from 'src/components/Chart/types';
+import {
+  cachedSupersetGet,
+  supersetGetCache,
+} from 'src/utils/cachedSupersetGet';
 import { DrillDetailMenuItems } from '../DrillDetail';
 import { getMenuAdjustedY } from '../utils';
 import { MenuItemTooltip } from '../DisabledMenuItemTooltip';
@@ -99,6 +107,9 @@ const ChartContextMenu = (
   const crossFiltersEnabled = useSelector<RootState, boolean>(
     ({ dashboardInfo }) => dashboardInfo.crossFiltersEnabled,
   );
+  const dashboardId = useSelector<RootState, number>(
+    ({ dashboardInfo }) => dashboardInfo.id,
+  );
   const [openKeys, setOpenKeys] = useState<Key[]>([]);
 
   const [modalFilters, setFilters] = useState<BinaryQueryObjectFilterClause[]>(
@@ -121,6 +132,7 @@ const ChartContextMenu = (
   const [drillByColumn, setDrillByColumn] = useState<Column>();
   const [showDrillByModal, setShowDrillByModal] = useState(false);
   const [dataset, setDataset] = useState<Dataset>();
+  const [isLoadingDataset, setIsLoadingDataset] = useState(false);
   const verboseMap = useVerboseMap(dataset);
 
   const closeContextMenu = useCallback(() => {
@@ -129,11 +141,14 @@ const ChartContextMenu = (
     onClose();
   }, [onClose]);
 
-  const handleDrillBy = useCallback((column: Column, dataset: Dataset) => {
+  const handleDrillBy = useCallback((column: Column) => {
     setDrillByColumn(column);
-    setDataset(dataset); // Save dataset when drilling
     setShowDrillByModal(true);
   }, []);
+
+  const loadDrillByOptionsExtension = getExtensionsRegistry().get(
+    'load.drillby.options',
+  );
 
   const handleCloseDrillByModal = useCallback(() => {
     setShowDrillByModal(false);
@@ -150,6 +165,75 @@ const ChartContextMenu = (
     isFeatureEnabled(FeatureFlag.DrillBy) &&
     canDrillBy &&
     isDisplayed(ContextMenuItem.DrillBy);
+
+  useEffect(() => {
+    async function fetchDataset() {
+      if (!visible || dataset || (!showDrillBy && !showDrillToDetail)) return;
+
+      const datasetId = Number(formData.datasource.split('__')[0]);
+      try {
+        setIsLoadingDataset(true);
+        let response;
+
+        if (loadDrillByOptionsExtension) {
+          response = await loadDrillByOptionsExtension(datasetId, formData);
+        } else {
+          const endpoint = `/api/v1/dataset/${datasetId}/drill_info/?q=(dashboard_id:${dashboardId})`;
+          response = await cachedSupersetGet({ endpoint });
+        }
+
+        const { json } = response;
+        const { result } = json;
+
+        setDataset(result);
+      } catch (error) {
+        logging.error('Failed to load dataset:', error);
+        supersetGetCache.delete(`/api/v1/dataset/${datasetId}/drill_info/`);
+      } finally {
+        setIsLoadingDataset(false);
+      }
+    }
+
+    fetchDataset();
+  }, [
+    visible,
+    showDrillBy,
+    showDrillToDetail,
+    formData.datasource,
+    loadDrillByOptionsExtension,
+    dashboardId,
+  ]);
+
+  // Compute filteredDataset with all columns returned + a filtered list of valid drillable options
+  const filteredDataset = useMemo(() => {
+    if (!dataset || !showDrillBy) return dataset;
+
+    const filteredColumns = ensureIsArray(dataset.columns).filter(
+      column =>
+        // If using an extension, also filter by column.groupby since the extension might not do this
+        (!loadDrillByOptionsExtension || column.groupby) &&
+        !ensureIsArray(
+          formData[filters?.drillBy?.groupbyFieldName ?? ''],
+        ).includes(column.column_name) &&
+        column.column_name !== formData.x_axis &&
+        ensureIsArray(additionalConfig?.drillBy?.excludedColumns)?.every(
+          excludedCol => excludedCol.column_name !== column.column_name,
+        ),
+    );
+
+    return {
+      ...dataset,
+      drillable_columns: filteredColumns,
+    };
+  }, [
+    dataset,
+    showDrillBy,
+    filters?.drillBy?.groupbyFieldName,
+    formData.x_axis,
+    formData[filters?.drillBy?.groupbyFieldName ?? ''],
+    additionalConfig?.drillBy?.excludedColumns,
+    loadDrillByOptionsExtension,
+  ]);
 
   const showCrossFilters = isDisplayed(ContextMenuItem.CrossFilter);
 
@@ -254,6 +338,8 @@ const ChartContextMenu = (
         onSelection={onSelection}
         submenuIndex={showCrossFilters ? 2 : 1}
         setShowModal={setDrillModalIsOpen}
+        dataset={filteredDataset}
+        isLoadingDataset={isLoadingDataset}
         {...(additionalConfig?.drillToDetail || {})}
       />,
     );
@@ -277,6 +363,8 @@ const ChartContextMenu = (
         open={openKeys.includes('drill-by-submenu')}
         key="drill-by-submenu"
         onDrillBy={handleDrillBy}
+        dataset={filteredDataset}
+        isLoadingDataset={isLoadingDataset}
         {...(additionalConfig?.drillBy || {})}
       />,
     );
@@ -359,6 +447,7 @@ const ChartContextMenu = (
           onHideModal={() => {
             setDrillModalIsOpen(false);
           }}
+          dataset={filteredDataset}
         />
       )}
       {showDrillByModal && drillByColumn && dataset && filters?.drillBy && (
@@ -367,7 +456,7 @@ const ChartContextMenu = (
           drillByConfig={filters?.drillBy}
           formData={formData}
           onHideModal={handleCloseDrillByModal}
-          dataset={{ ...dataset!, verbose_map: verboseMap }}
+          dataset={{ ...filteredDataset!, verbose_map: verboseMap }}
           canDownload={canDownload}
         />
       )}
