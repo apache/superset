@@ -126,23 +126,25 @@ function RowLevelSecurityList(props: RLSProps) {
       {
         accessor: 'name',
         Header: t('Name'),
+        size: 'xxl',
         id: 'name',
       },
       {
         accessor: 'filter_type',
         Header: t('Filter Type'),
-        size: 'xl',
+        size: 'lg',
         id: 'filter_type',
       },
       {
         accessor: 'group_key',
         Header: t('Group Key'),
-        size: 'xl',
+        size: 'lg',
         id: 'group_key',
       },
       {
         accessor: 'clause',
         Header: t('Clause'),
+        size: 'xl',
         id: 'clause',
       },
       {
@@ -226,6 +228,7 @@ function RowLevelSecurityList(props: RLSProps) {
         id: 'actions',
         hidden: !canEdit && !canWrite && !canExport,
         disableSortBy: true,
+        size: 'lg',
       },
       {
         accessor: QueryObjectColumns.ChangedBy,

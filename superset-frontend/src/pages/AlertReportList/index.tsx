@@ -284,7 +284,7 @@ function AlertList({
       {
         accessor: 'name',
         Header: t('Name'),
-        size: 'xl',
+        size: 'xxl',
         id: 'name',
       },
       {
@@ -317,7 +317,7 @@ function AlertList({
         accessor: 'recipients',
         Header: t('Notification method'),
         disableSortBy: true,
-        size: 'xl',
+        size: 'lg',
         id: 'recipients',
       },
       {
@@ -364,7 +364,7 @@ function AlertList({
         Header: t('Active'),
         accessor: 'active',
         id: 'active',
-        size: 'xl',
+        size: 'sm',
       },
       {
         Cell: ({ row: { original } }: any) => {
@@ -416,7 +416,7 @@ function AlertList({
         id: 'actions',
         hidden: !canEdit && !canDelete,
         disableSortBy: true,
-        size: 'xl',
+        size: 'lg',
       },
       {
         accessor: QueryObjectColumns.ChangedBy,

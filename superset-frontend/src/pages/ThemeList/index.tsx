@@ -57,6 +57,7 @@ const PAGE_SIZE = 25;
 const FlexRowContainer = styled.div`
   align-items: center;
   display: flex;
+  gap: ${({ theme }) => theme.sizeUnit}px;
 
   .ant-tag {
     margin-left: ${({ theme }) => theme.sizeUnit * 2}px;

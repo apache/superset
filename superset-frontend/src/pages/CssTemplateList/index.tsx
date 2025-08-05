@@ -132,6 +132,7 @@ function CssTemplatesList({
       {
         accessor: 'template_name',
         Header: t('Name'),
+        size: 'xxl',
         id: 'template_name',
       },
       {

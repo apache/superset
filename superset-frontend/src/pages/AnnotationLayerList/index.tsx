@@ -158,11 +158,13 @@ function AnnotationLayersList({
             </Typography.Link>
           );
         },
+        size: 'xxl',
         id: 'name',
       },
       {
         accessor: 'descr',
         Header: t('Description'),
+        size: 'xl',
         id: 'descr',
       },
       {
