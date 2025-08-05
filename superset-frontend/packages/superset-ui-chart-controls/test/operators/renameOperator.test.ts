@@ -210,7 +210,6 @@ test('should add renameOperator if exist "actual value" time comparison', () => 
     operation: 'rename',
     options: {
       columns: {
-        'count(*)': null,
         'count(*)__1 year ago': '1 year ago',
         'count(*)__1 year later': '1 year later',
       },
