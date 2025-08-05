@@ -24,6 +24,9 @@ GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
+# Ensure PYTHONPATH includes current directory so superset_config.py is loaded
+export PYTHONPATH="${PYTHONPATH:+$PYTHONPATH:}."
+
 echo -e "${GREEN}=== MCP Service Setup ===${NC}"
 
 # Install Python dependencies
