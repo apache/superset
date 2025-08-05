@@ -118,7 +118,11 @@ def map_config_to_form_data(
 
 
 def map_table_config(config: TableChartConfig) -> Dict[str, Any]:
-    """Map table chart config to form_data."""
+    """Map table chart config to form_data with defensive validation."""
+    # Early validation to prevent empty charts
+    if not config.columns:
+        raise ValueError("Table chart must have at least one column")
+
     # Separate columns with aggregates from raw columns
     raw_columns = []
     aggregated_metrics = []
@@ -130,6 +134,10 @@ def map_table_config(config: TableChartConfig) -> Dict[str, Any]:
         else:
             # No aggregation - treat as raw column
             raw_columns.append(col.name)
+
+    # Final validation - ensure we have some data to display
+    if not raw_columns and not aggregated_metrics:
+        raise ValueError("Table chart configuration resulted in no displayable columns")
 
     form_data: Dict[str, Any] = {
         "viz_type": "table",
@@ -188,18 +196,36 @@ def map_table_config(config: TableChartConfig) -> Dict[str, Any]:
 
 
 def create_metric_object(col: ColumnRef) -> Dict[str, Any]:
-    """Create a metric object for a column."""
+    """Create a metric object for a column with enhanced validation."""
+    # Ensure aggregate is valid - default to SUM if not specified or invalid
+    valid_aggregates = {
+        "SUM",
+        "COUNT",
+        "AVG",
+        "MIN",
+        "MAX",
+        "COUNT_DISTINCT",
+        "STDDEV",
+        "VAR",
+        "MEDIAN",
+        "PERCENTILE",
+    }
     aggregate = col.aggregate or "SUM"
+
+    # Validate aggregate function (final safety check)
+    if aggregate.upper() not in valid_aggregates:
+        aggregate = "SUM"  # Safe fallback
+
     return {
-        "aggregate": aggregate,
+        "aggregate": aggregate.upper(),
         "column": {
             "column_name": col.name,
         },
         "expressionType": "SIMPLE",
-        "label": col.label or f"{aggregate}({col.name})",
+        "label": col.label or f"{aggregate.upper()}({col.name})",
         "optionName": f"metric_{col.name}",
         "sqlExpression": None,
-        "hasCustomLabel": False,
+        "hasCustomLabel": bool(col.label),
         "datasourceWarning": False,
     }
 
@@ -231,7 +257,11 @@ def add_legend_config(form_data: Dict[str, Any], config: XYChartConfig) -> None:
 
 
 def map_xy_config(config: XYChartConfig) -> Dict[str, Any]:
-    """Map XY chart config to form_data."""
+    """Map XY chart config to form_data with defensive validation."""
+    # Early validation to prevent empty charts
+    if not config.y:
+        raise ValueError("XY chart must have at least one Y-axis metric")
+
     # Map chart kind to viz_type
     viz_type_map = {
         "line": "echarts_timeseries_line",
@@ -240,8 +270,16 @@ def map_xy_config(config: XYChartConfig) -> Dict[str, Any]:
         "scatter": "echarts_timeseries_scatter",
     }
 
-    # Convert Y columns to metrics
-    metrics = [create_metric_object(col) for col in config.y]
+    # Convert Y columns to metrics with validation
+    metrics = []
+    for col in config.y:
+        if not col.name.strip():  # Validate column name is not empty
+            raise ValueError("Y-axis column name cannot be empty")
+        metrics.append(create_metric_object(col))
+
+    # Final validation - ensure we have metrics to display
+    if not metrics:
+        raise ValueError("XY chart configuration resulted in no displayable metrics")
 
     form_data: Dict[str, Any] = {
         "viz_type": viz_type_map.get(config.kind, "echarts_timeseries_line"),

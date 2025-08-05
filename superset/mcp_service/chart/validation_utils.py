@@ -291,12 +291,45 @@ def validate_aggregate_compatibility(
     errors = []
 
     # Define aggregates that work with different types
-    numeric_aggregates = {"SUM", "AVG", "MIN", "MAX", "STDDEV", "VAR"}
-    # text_aggregates = {"COUNT", "COUNT_DISTINCT"}  # Not used
-    # datetime_aggregates = {"MIN", "MAX", "COUNT", "COUNT_DISTINCT"}  # Not used
+    numeric_aggregates = {
+        "SUM",
+        "AVG",
+        "MIN",
+        "MAX",
+        "STDDEV",
+        "VAR",
+        "MEDIAN",
+        "PERCENTILE",
+    }
+    count_aggregates = {"COUNT", "COUNT_DISTINCT"}
 
     column_type = column_info.get("type", "").lower()
     aggregate = column.aggregate.upper() if column.aggregate else "COUNT"
+
+    # First validate that the aggregate function is supported
+    if aggregate not in (all_valid_aggregates := numeric_aggregates | count_aggregates):
+        errors.append(
+            ValidationError(
+                field=field_name,
+                provided_value=aggregate,
+                error_type="invalid_aggregate_function",
+                message=(
+                    f"Aggregate function '{aggregate}' is not supported. "
+                    f"Only these functions are allowed: "
+                    f"{', '.join(sorted(all_valid_aggregates))}"
+                ),
+                suggestions=[
+                    ColumnSuggestion(
+                        name=valid_agg,
+                        type="aggregate_function",
+                        similarity_score=1.0 if valid_agg in count_aggregates else 0.8,
+                        description="Valid aggregate function",
+                    )
+                    for valid_agg in sorted(all_valid_aggregates)
+                ],
+            )
+        )
+        return errors  # Return early if aggregate is invalid
 
     # Check compatibility - expanded numeric type detection
     numeric_indicators = [
@@ -321,25 +354,22 @@ def validate_aggregate_compatibility(
     is_text = not is_numeric and not is_datetime
 
     incompatible = False
-    suggestions = []
 
     if is_text and aggregate in numeric_aggregates:
         incompatible = True
-        suggestions = [
-            "Use COUNT or COUNT_DISTINCT for text columns",
-            "SUM/AVG only work with numeric data types",
-        ]
     elif is_datetime and aggregate in numeric_aggregates - {"MIN", "MAX"}:
         incompatible = True
-        suggestions = [
-            "Use MIN, MAX, COUNT, or COUNT_DISTINCT for datetime columns",
-            "SUM/AVG are not meaningful for dates and times",
-        ]
     elif is_numeric and aggregate in numeric_aggregates:
         # This is valid - numeric column with numeric aggregate
         incompatible = False
 
     if incompatible:
+        valid_functions = count_aggregates.copy()
+        if is_datetime:
+            valid_functions.update({"MIN", "MAX"})
+        elif is_numeric:
+            valid_functions.update(numeric_aggregates)
+
         errors.append(
             ValidationError(
                 field=field_name,
@@ -347,16 +377,17 @@ def validate_aggregate_compatibility(
                 error_type="aggregate_type_mismatch",
                 message=(
                     f"Aggregate '{aggregate}' is not compatible with column type "
-                    f"'{column_type}'"
+                    f"'{column_type}'. Valid functions: "
+                    f"{', '.join(sorted(valid_functions))}"
                 ),
                 suggestions=[
                     ColumnSuggestion(
-                        name=suggestion,
+                        name=valid_func,
                         type="aggregate_function",
                         similarity_score=1.0,
                         description=f"Compatible aggregate for {column_type} columns",
                     )
-                    for suggestion in suggestions
+                    for valid_func in sorted(valid_functions)
                 ],
             )
         )

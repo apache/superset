@@ -21,13 +21,16 @@ Pydantic schemas for chart-related responses
 
 from __future__ import annotations
 
+import html
+import re
 from datetime import datetime
-from typing import Annotated, Any, Dict, List, Literal, Optional, Protocol
+from typing import Annotated, Any, Dict, List, Literal, Optional, Protocol, Union
 
 from pydantic import (
     BaseModel,
     ConfigDict,
     Field,
+    field_validator,
     model_validator,
     PositiveInt,
 )
@@ -355,9 +358,72 @@ class ColumnRef(BaseModel):
     name: str = Field(..., description="Column name")
     label: Optional[str] = Field(None, description="Display label for the column")
     dtype: Optional[str] = Field(None, description="Data type hint")
-    aggregate: Optional[str] = Field(
-        None, description="SQL aggregation function (SUM, COUNT, AVG, MIN, MAX, etc.)"
+    aggregate: Optional[
+        Literal[
+            "SUM",
+            "COUNT",
+            "AVG",
+            "MIN",
+            "MAX",
+            "COUNT_DISTINCT",
+            "STDDEV",
+            "VAR",
+            "MEDIAN",
+            "PERCENTILE",
+        ]
+    ] = Field(
+        None,
+        description="SQL aggregation function. Only these validated functions are "
+        "supported to prevent SQL errors.",
     )
+
+    @field_validator("name")
+    @classmethod
+    def sanitize_name(cls, v: str) -> str:
+        """Sanitize column name to prevent XSS and SQL injection."""
+        if not v or not v.strip():
+            raise ValueError("Column name cannot be empty")
+
+        # Remove HTML tags and decode entities
+        sanitized = html.escape(v.strip())
+
+        # Check for script content
+        if re.search(r"<script[^>]*>.*?</script>", v, re.IGNORECASE | re.DOTALL):
+            raise ValueError(
+                "Column name contains potentially malicious script content"
+            )
+
+        # Basic SQL injection patterns (basic protection)
+        dangerous_patterns = [
+            r"(;|\||&|\$|`)",
+            r"\b(DROP|DELETE|INSERT|UPDATE|CREATE|ALTER|EXEC|EXECUTE)\b",
+            r"--",
+            r"/\*.*\*/",
+        ]
+
+        for pattern in dangerous_patterns:
+            if re.search(pattern, v, re.IGNORECASE):
+                raise ValueError(
+                    "Column name contains potentially unsafe characters or SQL keywords"
+                )
+
+        return sanitized
+
+    @field_validator("label")
+    @classmethod
+    def sanitize_label(cls, v: Optional[str]) -> Optional[str]:
+        """Sanitize display label to prevent XSS."""
+        if v is None:
+            return v
+
+        # Remove HTML tags and decode entities
+        sanitized = html.escape(v.strip())
+
+        # Check for script content
+        if re.search(r"<script[^>]*>.*?</script>", v, re.IGNORECASE | re.DOTALL):
+            raise ValueError("Label contains potentially malicious script content")
+
+        return sanitized if sanitized else None
 
 
 class AxisConfig(BaseModel):
@@ -382,14 +448,52 @@ class FilterConfig(BaseModel):
     )
     value: str | int | float | bool = Field(..., description="Filter value")
 
+    @field_validator("column")
+    @classmethod
+    def sanitize_column(cls, v: str) -> str:
+        """Sanitize filter column name to prevent injection attacks."""
+        if not v or not v.strip():
+            raise ValueError("Filter column name cannot be empty")
+
+        # Remove HTML tags and decode entities
+        sanitized = html.escape(v.strip())
+
+        # Check for dangerous patterns
+        if re.search(r"<script[^>]*>.*?</script>", v, re.IGNORECASE | re.DOTALL):
+            raise ValueError(
+                "Filter column contains potentially malicious script content"
+            )
+
+        return sanitized
+
+    @field_validator("value")
+    @classmethod
+    def sanitize_value(cls, v: str | int | float | bool) -> str | int | float | bool:
+        """Sanitize filter value if it's a string."""
+        if isinstance(v, str):
+            # Remove HTML tags and decode entities for string values
+            sanitized = html.escape(v.strip())
+
+            # Check for script content
+            if re.search(r"<script[^>]*>.*?</script>", v, re.IGNORECASE | re.DOTALL):
+                raise ValueError(
+                    "Filter value contains potentially malicious script content"
+                )
+
+            return sanitized
+
+        return v  # Return non-string values as-is
+
 
 # Actual chart types
 class TableChartConfig(BaseModel):
     chart_type: Literal["table"] = Field("table", description="Chart type")
     columns: List[ColumnRef] = Field(
         ...,
+        min_length=1,
         description=(
-            "Columns to display. Each column must have a unique label "
+            "Columns to display. Must have at least one column. Each column must have "
+            "a unique label "
             "(either explicitly set via 'label' field or auto-generated "
             "from name/aggregate)"
         ),
@@ -430,7 +534,9 @@ class XYChartConfig(BaseModel):
     x: ColumnRef = Field(..., description="X-axis column")
     y: List[ColumnRef] = Field(
         ...,
-        description="Y-axis columns (metrics). Each column must have a unique label "
+        min_length=1,
+        description="Y-axis columns (metrics). Must have at least one Y-axis column. "
+        "Each column must have a unique label "
         "that doesn't conflict with x-axis or group_by labels",
     )
     kind: Literal["line", "bar", "area", "scatter"] = Field(
@@ -485,8 +591,14 @@ class XYChartConfig(BaseModel):
         return self
 
 
-# Discriminated union entry point
-ChartConfig = TableChartConfig | XYChartConfig
+# Discriminated union entry point with custom error handling
+ChartConfig = Annotated[
+    Union[XYChartConfig, TableChartConfig],
+    Field(
+        discriminator="chart_type",
+        description="Chart configuration - specify chart_type as 'xy' or 'table'",
+    ),
+]
 
 
 class ListChartsRequest(MetadataCacheControl):
@@ -576,6 +688,19 @@ class GenerateChartRequest(QueryCacheControl):
         default_factory=lambda: ["url"],
         description="List of preview formats to generate",
     )
+
+    @model_validator(mode="after")
+    def validate_cache_timeout(self) -> "GenerateChartRequest":
+        """Validate cache timeout is non-negative."""
+        if (
+            hasattr(self, "cache_timeout")
+            and self.cache_timeout is not None
+            and self.cache_timeout < 0
+        ):
+            raise ValueError(
+                "cache_timeout must be non-negative (0 or positive integer)"
+            )
+        return self
 
 
 class GenerateExploreLinkRequest(FormDataCacheControl):
