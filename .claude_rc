@@ -1,0 +1,40 @@
+# Claude Code RC for docker-pytest
+
+This is a claudette-managed Apache Superset development environment.
+
+## Project: docker-pytest
+- Worktree Path: /Users/max/.claudette/worktrees/docker-pytest
+- Frontend Port: 9007
+- Frontend URL: http://localhost:9007
+
+## Quick Commands
+
+Start services:
+```bash
+claudette docker up
+```
+
+Access frontend:
+```bash
+open http://localhost:9007
+```
+
+Run tests:
+```bash
+# Backend
+pytest tests/unit_tests/
+
+# Frontend
+cd superset-frontend && npm test
+```
+
+## Environment Details
+- Python venv: `.venv/` (auto-activated in claudette shell)
+- Node modules: `superset-frontend/node_modules/`
+- Docker prefix: `docker-pytest_`
+
+## Development Tips
+- Always use `claudette shell` to work in this project
+- Run `pre-commit run --all-files` before committing
+- Use `claudette docker` instead of docker-compose directly
+- The frontend dev server runs on port 9007 to avoid conflicts

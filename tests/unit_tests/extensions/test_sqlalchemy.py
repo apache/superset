@@ -139,7 +139,7 @@ def test_superset_limit(mocker: MockerFixture, app_context: None, table1: None) 
     Simple that limit is applied when querying a table.
     """
     mocker.patch(
-        "superset.extensions.metadb.current_app.config",
+        "flask.current_app.config",
         {
             "DB_SQLA_URI_VALIDATOR": None,
             "SUPERSET_META_DB_LIMIT": 1,
@@ -246,7 +246,7 @@ def test_security_manager(
 
     security_manager = mocker.MagicMock()
     mocker.patch(
-        "superset.extensions.metadb.security_manager",
+        "superset.security_manager",
         new=security_manager,
     )
     security_manager.raise_for_access.side_effect = SupersetSecurityException(

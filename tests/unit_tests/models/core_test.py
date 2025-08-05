@@ -659,6 +659,14 @@ def test_get_schema_access_for_file_upload() -> None:
     """
     Test the `get_schema_access_for_file_upload` method.
     """
+    # Skip if gsheets dialect is not available (Shillelagh not installed in Docker)
+    try:
+        from sqlalchemy import create_engine
+
+        create_engine("gsheets://")
+    except Exception:
+        pytest.skip("gsheets:// dialect not available (Shillelagh not installed)")
+
     database = Database(
         database_name="first-database",
         sqlalchemy_uri="gsheets://",
