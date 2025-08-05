@@ -30,6 +30,7 @@ from werkzeug.datastructures import FileStorage
 from superset.commands.importers.v1.utils import get_contents_from_bundle
 from superset.commands.theme.delete import DeleteThemeCommand
 from superset.commands.theme.exceptions import (
+    SystemThemeInUseError,
     SystemThemeProtectedError,
     ThemeDeleteFailedError,
     ThemeNotFoundError,
@@ -203,6 +204,8 @@ class ThemeRestApi(BaseSupersetModelRestApi):
             return self.response_404()
         except SystemThemeProtectedError:
             return self.response_403()
+        except SystemThemeInUseError as ex:
+            return self.response_422(message=str(ex))
         except ThemeDeleteFailedError as ex:
             logger.exception(f"Theme delete failed for ID: {pk}")
             return self.response_422(message=str(ex))
@@ -262,6 +265,8 @@ class ThemeRestApi(BaseSupersetModelRestApi):
             return self.response_404()
         except SystemThemeProtectedError:
             return self.response_403()
+        except SystemThemeInUseError as ex:
+            return self.response_422(message=str(ex))
         except ThemeDeleteFailedError as ex:
             logger.exception(f"Theme delete failed for IDs: {item_ids}")
             return self.response_422(message=str(ex))
@@ -603,8 +608,8 @@ class ThemeRestApi(BaseSupersetModelRestApi):
         from superset import security_manager
 
         if not security_manager.is_admin():
-            return self.response_403(
-                message="Only administrators can set system themes"
+            return self.response(
+                403, message="Only administrators can set system themes"
             )
 
         # Check if UI theme administration is enabled
@@ -615,7 +620,7 @@ class ThemeRestApi(BaseSupersetModelRestApi):
             enable_ui_admin = theme_settings.get("enableUiThemeAdministration", False)
 
         if not enable_ui_admin:
-            return self.response_403(message="UI theme administration is not enabled")
+            return self.response(403, message="UI theme administration is not enabled")
 
         try:
             command = SetSystemDefaultThemeCommand(pk)
@@ -676,8 +681,8 @@ class ThemeRestApi(BaseSupersetModelRestApi):
         from superset import security_manager
 
         if not security_manager.is_admin():
-            return self.response_403(
-                message="Only administrators can set system themes"
+            return self.response(
+                403, message="Only administrators can set system themes"
             )
 
         # Check if UI theme administration is enabled
@@ -688,7 +693,7 @@ class ThemeRestApi(BaseSupersetModelRestApi):
             enable_ui_admin = theme_settings.get("enableUiThemeAdministration", False)
 
         if not enable_ui_admin:
-            return self.response_403(message="UI theme administration is not enabled")
+            return self.response(403, message="UI theme administration is not enabled")
 
         try:
             command = SetSystemDarkThemeCommand(pk)
@@ -735,8 +740,8 @@ class ThemeRestApi(BaseSupersetModelRestApi):
         from superset import security_manager
 
         if not security_manager.is_admin():
-            return self.response_403(
-                message="Only administrators can set system themes"
+            return self.response(
+                403, message="Only administrators can set system themes"
             )
 
         # Check if UI theme administration is enabled
@@ -747,7 +752,7 @@ class ThemeRestApi(BaseSupersetModelRestApi):
             enable_ui_admin = theme_settings.get("enableUiThemeAdministration", False)
 
         if not enable_ui_admin:
-            return self.response_403(message="UI theme administration is not enabled")
+            return self.response(403, message="UI theme administration is not enabled")
 
         try:
             ClearSystemDefaultThemeCommand().run()
@@ -791,8 +796,8 @@ class ThemeRestApi(BaseSupersetModelRestApi):
         from superset import security_manager
 
         if not security_manager.is_admin():
-            return self.response_403(
-                message="Only administrators can set system themes"
+            return self.response(
+                403, message="Only administrators can set system themes"
             )
 
         # Check if UI theme administration is enabled
@@ -803,7 +808,7 @@ class ThemeRestApi(BaseSupersetModelRestApi):
             enable_ui_admin = theme_settings.get("enableUiThemeAdministration", False)
 
         if not enable_ui_admin:
-            return self.response_403(message="UI theme administration is not enabled")
+            return self.response(403, message="UI theme administration is not enabled")
 
         try:
             ClearSystemDarkThemeCommand().run()
