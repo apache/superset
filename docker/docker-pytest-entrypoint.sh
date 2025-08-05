@@ -27,16 +27,17 @@ try:
     conn = psycopg2.connect(host='db-light', user='superset', password='superset', database='superset_light')
     conn.close()
     print('Database is ready!')
-    exit(0)
 except:
-    if $i == 30:
-        print('Database connection timeout after 30 seconds')
-        exit(1)
     exit(1)
 " 2>/dev/null; then
+    echo "Database connection established!"
     break
   fi
   echo "Waiting for database... ($i/30)"
+  if [ $i -eq 30 ]; then
+    echo "Database connection timeout after 30 seconds"
+    exit 1
+  fi
   sleep 1
 done
 
