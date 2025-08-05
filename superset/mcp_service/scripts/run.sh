@@ -24,6 +24,9 @@ GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
+# Ensure PYTHONPATH includes current directory so superset_config.py is loaded
+export PYTHONPATH="${PYTHONPATH:+$PYTHONPATH:}."
+
 # Extract webserver address from config
 WEBSERVER_ADDRESS=$(grep -oE "SUPERSET_WEBSERVER_ADDRESS\s*=\s*['\"]([^'\"]+)['\"]" superset_config.py 2>/dev/null | sed -E "s/.*['\"]([^'\"]+)['\"]/\1/" || echo "http://localhost:8088")
 
