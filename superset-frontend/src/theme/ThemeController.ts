@@ -550,20 +550,14 @@ export class ThemeController {
       common: { theme = {} as BootstrapThemeDataConfig },
     } = getBootstrapData();
 
-    const {
-      default: defaultTheme,
-      dark: darkTheme,
-      settings: themeSettings,
-    } = theme;
+    const { default: defaultTheme, dark: darkTheme } = theme;
 
     const hasValidDefault: boolean = this.isNonEmptyObject(defaultTheme);
     const hasValidDark: boolean = this.isNonEmptyObject(darkTheme);
-    const hasValidSettings: boolean = this.isNonEmptyObject(themeSettings);
 
     return {
       bootstrapDefaultTheme: hasValidDefault ? defaultTheme : null,
       bootstrapDarkTheme: hasValidDark ? darkTheme : null,
-      bootstrapThemeSettings: hasValidSettings ? themeSettings : null,
       hasCustomThemes: hasValidDefault || hasValidDark,
     };
   }

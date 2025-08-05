@@ -30,21 +30,14 @@ describe('Theme Bootstrap Data', () => {
       theme: {
         default: { colors: { primary: '#1890ff' } },
         dark: { colors: { primary: '#000000' } },
-        settings: {
-          enforced: false,
-          allowSwitching: true,
-          allowOSPreference: true,
-          enableUiThemeAdministration: true,
-        },
+        enableUiThemeAdministration: true,
       },
     };
 
     it('should load themes from database when available', () => {
       // This tests that when enableUiThemeAdministration is true,
       // the system attempts to load themes from the database
-      expect(mockBootstrapData.theme.settings.enableUiThemeAdministration).toBe(
-        true,
-      );
+      expect(mockBootstrapData.theme.enableUiThemeAdministration).toBe(true);
       expect(mockBootstrapData.theme.default).toBeDefined();
       expect(mockBootstrapData.theme.dark).toBeDefined();
     });
@@ -52,15 +45,9 @@ describe('Theme Bootstrap Data', () => {
     it('should have proper theme structure', () => {
       expect(mockBootstrapData.theme).toHaveProperty('default');
       expect(mockBootstrapData.theme).toHaveProperty('dark');
-      expect(mockBootstrapData.theme).toHaveProperty('settings');
-    });
-
-    it('should have all required settings', () => {
-      const { settings } = mockBootstrapData.theme;
-      expect(settings).toHaveProperty('enforced');
-      expect(settings).toHaveProperty('allowSwitching');
-      expect(settings).toHaveProperty('allowOSPreference');
-      expect(settings).toHaveProperty('enableUiThemeAdministration');
+      expect(mockBootstrapData.theme).toHaveProperty(
+        'enableUiThemeAdministration',
+      );
     });
   });
 
@@ -69,21 +56,14 @@ describe('Theme Bootstrap Data', () => {
       theme: {
         default: { colors: { primary: '#1890ff' } },
         dark: { colors: { primary: '#000000' } },
-        settings: {
-          enforced: false,
-          allowSwitching: true,
-          allowOSPreference: true,
-          enableUiThemeAdministration: false,
-        },
+        enableUiThemeAdministration: false,
       },
     };
 
     it('should use config-based themes', () => {
       // When enableUiThemeAdministration is false,
       // themes should come from configuration files
-      expect(mockBootstrapData.theme.settings.enableUiThemeAdministration).toBe(
-        false,
-      );
+      expect(mockBootstrapData.theme.enableUiThemeAdministration).toBe(false);
       expect(mockBootstrapData.theme.default).toBeDefined();
       expect(mockBootstrapData.theme.dark).toBeDefined();
     });
@@ -95,12 +75,7 @@ describe('Theme Bootstrap Data', () => {
         theme: {
           default: {},
           dark: {},
-          settings: {
-            enforced: false,
-            allowSwitching: true,
-            allowOSPreference: true,
-            enableUiThemeAdministration: true,
-          },
+          enableUiThemeAdministration: true,
         },
       };
 
@@ -114,18 +89,13 @@ describe('Theme Bootstrap Data', () => {
         theme: {
           default: {},
           dark: {},
-          settings: {
-            enforced: false,
-            allowSwitching: true,
-            allowOSPreference: true,
-            enableUiThemeAdministration: false,
-          },
+          enableUiThemeAdministration: false,
         },
       };
 
       // Should fall back to defaults when settings are invalid
-      expect(mockBootstrapData.theme.settings).toBeDefined();
-      expect(mockBootstrapData.theme.settings.enforced).toBe(false);
+      expect(mockBootstrapData.theme.enableUiThemeAdministration).toBeDefined();
+      expect(mockBootstrapData.theme.enableUiThemeAdministration).toBe(false);
     });
   });
 
@@ -135,20 +105,13 @@ describe('Theme Bootstrap Data', () => {
         theme: {
           default: {},
           dark: {},
-          settings: {
-            enforced: false,
-            allowSwitching: true,
-            allowOSPreference: true,
-            enableUiThemeAdministration: true,
-          },
+          enableUiThemeAdministration: true,
         },
       };
 
       // When UI theme administration is enabled,
       // only admins should be able to modify system themes
-      expect(mockBootstrapData.theme.settings.enableUiThemeAdministration).toBe(
-        true,
-      );
+      expect(mockBootstrapData.theme.enableUiThemeAdministration).toBe(true);
     });
 
     it('should allow all users to view themes', () => {
@@ -156,12 +119,7 @@ describe('Theme Bootstrap Data', () => {
         theme: {
           default: { colors: { primary: '#1890ff' } },
           dark: { colors: { primary: '#000000' } },
-          settings: {
-            enforced: false,
-            allowSwitching: true,
-            allowOSPreference: true,
-            enableUiThemeAdministration: true,
-          },
+          enableUiThemeAdministration: true,
         },
       };
 

@@ -71,11 +71,6 @@ from superset.views.error_handling import json_error_response
 
 from .utils import bootstrap_user_data, get_config_value
 
-# Deprecated: Only kept for backward compatibility
-DEFAULT_THEME_SETTINGS = {
-    "enableUiThemeAdministration": False,
-}
-
 FRONTEND_CONF_KEYS = (
     "SUPERSET_WEBSERVER_TIMEOUT",
     "SUPERSET_DASHBOARD_POSITION_DATA_LIMIT",
@@ -308,15 +303,7 @@ def get_theme_bootstrap_data() -> dict[str, Any]:
     Returns the theme data to be sent to the client.
     """
     # Check if UI theme administration is enabled
-    # First check new boolean config, then fall back to deprecated THEME_SETTINGS
-    enable_ui_admin = get_config_value("ENABLE_UI_THEME_ADMINISTRATION")
-    if enable_ui_admin is None:
-        # Fall back to deprecated THEME_SETTINGS for backward compatibility
-        theme_settings = get_config_value("THEME_SETTINGS")
-        if theme_settings and isinstance(theme_settings, dict):
-            enable_ui_admin = theme_settings.get("enableUiThemeAdministration", False)
-        else:
-            enable_ui_admin = False
+    enable_ui_admin = app.config.get("ENABLE_UI_THEME_ADMINISTRATION", False)
 
     if enable_ui_admin:
         # Try to load themes from database
@@ -369,17 +356,11 @@ def get_theme_bootstrap_data() -> dict[str, Any]:
         )
         dark_theme = {}
 
-    # Build simplified theme settings
-    # Only include enableUiThemeAdministration for backward compatibility
-    theme_settings = {
-        "enableUiThemeAdministration": enable_ui_admin,
-    }
-
     return {
         "theme": {
             "default": default_theme,
             "dark": dark_theme,
-            "settings": theme_settings,
+            "enableUiThemeAdministration": enable_ui_admin,
         }
     }
 

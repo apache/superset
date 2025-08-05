@@ -763,12 +763,6 @@ THEME_DARK: Theme = {"algorithm": "dark"}
 # Enable UI-based theme administration for admins
 ENABLE_UI_THEME_ADMINISTRATION = True  # Allows admins to set system themes via UI
 
-# Deprecated: THEME_SETTINGS will be removed in a future version
-# For backward compatibility only
-THEME_SETTINGS = {
-    "enableUiThemeAdministration": True,  # Use ENABLE_UI_THEME_ADMINISTRATION instead
-}
-
 # Custom font configuration
 # Load external fonts at runtime without rebuilding the application
 # Example:

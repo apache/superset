@@ -613,13 +613,7 @@ class ThemeRestApi(BaseSupersetModelRestApi):
             )
 
         # Check if UI theme administration is enabled
-        # Check new boolean config first, then fall back to deprecated THEME_SETTINGS
-        enable_ui_admin = app.config.get("ENABLE_UI_THEME_ADMINISTRATION")
-        if enable_ui_admin is None:
-            theme_settings = app.config.get("THEME_SETTINGS", {})
-            enable_ui_admin = theme_settings.get("enableUiThemeAdministration", False)
-
-        if not enable_ui_admin:
+        if not app.config.get("ENABLE_UI_THEME_ADMINISTRATION", False):
             return self.response(403, message="UI theme administration is not enabled")
 
         try:
@@ -686,13 +680,7 @@ class ThemeRestApi(BaseSupersetModelRestApi):
             )
 
         # Check if UI theme administration is enabled
-        # Check new boolean config first, then fall back to deprecated THEME_SETTINGS
-        enable_ui_admin = app.config.get("ENABLE_UI_THEME_ADMINISTRATION")
-        if enable_ui_admin is None:
-            theme_settings = app.config.get("THEME_SETTINGS", {})
-            enable_ui_admin = theme_settings.get("enableUiThemeAdministration", False)
-
-        if not enable_ui_admin:
+        if not app.config.get("ENABLE_UI_THEME_ADMINISTRATION", False):
             return self.response(403, message="UI theme administration is not enabled")
 
         try:
@@ -745,13 +733,7 @@ class ThemeRestApi(BaseSupersetModelRestApi):
             )
 
         # Check if UI theme administration is enabled
-        # Check new boolean config first, then fall back to deprecated THEME_SETTINGS
-        enable_ui_admin = app.config.get("ENABLE_UI_THEME_ADMINISTRATION")
-        if enable_ui_admin is None:
-            theme_settings = app.config.get("THEME_SETTINGS", {})
-            enable_ui_admin = theme_settings.get("enableUiThemeAdministration", False)
-
-        if not enable_ui_admin:
+        if not app.config.get("ENABLE_UI_THEME_ADMINISTRATION", False):
             return self.response(403, message="UI theme administration is not enabled")
 
         try:
@@ -801,13 +783,7 @@ class ThemeRestApi(BaseSupersetModelRestApi):
             )
 
         # Check if UI theme administration is enabled
-        # Check new boolean config first, then fall back to deprecated THEME_SETTINGS
-        enable_ui_admin = app.config.get("ENABLE_UI_THEME_ADMINISTRATION")
-        if enable_ui_admin is None:
-            theme_settings = app.config.get("THEME_SETTINGS", {})
-            enable_ui_admin = theme_settings.get("enableUiThemeAdministration", False)
-
-        if not enable_ui_admin:
+        if not app.config.get("ENABLE_UI_THEME_ADMINISTRATION", False):
             return self.response(403, message="UI theme administration is not enabled")
 
         try:

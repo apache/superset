@@ -90,7 +90,7 @@ class TestThemeAPIPermissions(SupersetTestCase):
         theme = db.session.query(Theme).filter_by(id=self.regular_theme.id).first()
         assert theme.is_system_default is True
 
-    @with_config({"THEME_SETTINGS": {"enableUiThemeAdministration": True}})
+    @with_config({"ENABLE_UI_THEME_ADMINISTRATION": True})
     def test_non_admin_cannot_set_system_default(self):
         """Test that non-admin users cannot set system themes"""
         # Login as gamma user
@@ -126,7 +126,7 @@ class TestThemeAPIPermissions(SupersetTestCase):
         data = response.get_json()
         assert "UI theme administration is not enabled" in data["message"]
 
-    @with_config({"THEME_SETTINGS": {"enableUiThemeAdministration": True}})
+    @with_config({"ENABLE_UI_THEME_ADMINISTRATION": True})
     def test_admin_can_set_system_dark(self):
         """Test that admin can set a theme as system dark"""
         # Login as admin
@@ -144,7 +144,7 @@ class TestThemeAPIPermissions(SupersetTestCase):
         theme = db.session.query(Theme).filter_by(id=self.regular_theme.id).first()
         assert theme.is_system_dark is True
 
-    @with_config({"THEME_SETTINGS": {"enableUiThemeAdministration": True}})
+    @with_config({"ENABLE_UI_THEME_ADMINISTRATION": True})
     def test_admin_can_unset_system_default(self):
         """Test that admin can unset system default theme"""
         # First set a theme as system default
@@ -164,7 +164,7 @@ class TestThemeAPIPermissions(SupersetTestCase):
         theme = db.session.query(Theme).filter_by(id=self.regular_theme.id).first()
         assert theme.is_system_default is False
 
-    @with_config({"THEME_SETTINGS": {"enableUiThemeAdministration": True}})
+    @with_config({"ENABLE_UI_THEME_ADMINISTRATION": True})
     def test_admin_can_unset_system_dark(self):
         """Test that admin can unset system dark theme"""
         # First set a theme as system dark
@@ -184,7 +184,7 @@ class TestThemeAPIPermissions(SupersetTestCase):
         theme = db.session.query(Theme).filter_by(id=self.regular_theme.id).first()
         assert theme.is_system_dark is False
 
-    @with_config({"THEME_SETTINGS": {"enableUiThemeAdministration": True}})
+    @with_config({"ENABLE_UI_THEME_ADMINISTRATION": True})
     def test_only_one_system_default_allowed(self):
         """Test that only one theme can be system default at a time"""
         # Create another theme
