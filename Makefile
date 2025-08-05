@@ -113,44 +113,15 @@ report-celery-beat:
 admin-user:
 	superset fab create-admin
 
-# MCP Service Setup - Complete setup from fresh clone
+# MCP Service Commands - Using external scripts for maintainability
 mcp-setup: venv
-	# Activate virtual environment and run setup
-	. venv/bin/activate && \
-	echo "Installing Python dependencies..." && \
-	pip install -r requirements/development.txt && \
-	pip install -e . && \
-	echo "✓ Python dependencies installed" && \
-	if ! superset db current 2>/dev/null | grep -q "head"; then \
-		echo "Initializing database..." && \
-		superset db upgrade && \
-		superset init && \
-		echo "✓ Database initialized"; \
-	fi && \
-	if [ ! -d "superset-frontend/node_modules" ]; then \
-		echo "Installing frontend dependencies..." && \
-		cd superset-frontend && npm ci && cd .. && \
-		echo "✓ Frontend dependencies installed"; \
-	fi && \
-	superset mcp setup
+	@. venv/bin/activate && bash superset/mcp_service/scripts/setup.sh
 
-# Quick MCP service runner
-mcp-run:
-	@echo "Starting MCP service..."
-	. venv/bin/activate && superset mcp run
+mcp-run: venv
+	@. venv/bin/activate && bash superset/mcp_service/scripts/run.sh
 
-# Check MCP service health
+mcp-stop:
+	@bash superset/mcp_service/scripts/stop.sh
+
 mcp-check:
-	@echo "Checking MCP service setup..."
-	@echo ""
-	@test -f superset_config.py && echo "✓ superset_config.py exists" || echo "✗ superset_config.py missing"
-	@grep -q "SECRET_KEY" superset_config.py 2>/dev/null && echo "✓ SECRET_KEY configured" || echo "✗ SECRET_KEY not configured"
-	@grep -q "ANTHROPIC_API_KEY" superset_config.py 2>/dev/null && echo "✓ Anthropic API key configured" || echo "⚠ Anthropic API key not configured (MCP features limited)"
-	@grep -q "SUPERSET_WEBSERVER_ADDRESS" superset_config.py 2>/dev/null && echo "✓ SUPERSET_WEBSERVER_ADDRESS configured" || echo "⚠ Using default http://localhost:8088"
-	@test -d superset/mcp_service && echo "✓ MCP service directory exists" || echo "✗ MCP service directory missing"
-	@echo ""
-	@echo "Checking if Superset is running..."
-	@curl -s -f http://localhost:8088/health >/dev/null 2>&1 && echo "✓ Superset is running at http://localhost:8088" || echo "⚠ Superset is not running (start with: make flask-app)"
-	@echo ""
-	@echo "To set up MCP service, run: make mcp-setup"
-	@echo "To start MCP service, run: make mcp-run"
+	@bash superset/mcp_service/scripts/check.sh
