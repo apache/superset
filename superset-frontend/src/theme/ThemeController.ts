@@ -126,9 +126,8 @@ export class ThemeController {
 
     // Set themes based on bootstrap data availability
     if (this.hasCustomThemes) {
-      this.darkTheme = bootstrapDarkTheme || bootstrapDefaultTheme || null;
-      this.defaultTheme =
-        bootstrapDefaultTheme || bootstrapDarkTheme || defaultTheme;
+      this.darkTheme = bootstrapDarkTheme;
+      this.defaultTheme = bootstrapDefaultTheme || defaultTheme;
     } else {
       this.darkTheme = null;
       this.defaultTheme = defaultTheme;
