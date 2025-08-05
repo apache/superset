@@ -42,6 +42,7 @@ import { RootState } from 'src/dashboard/types';
 import { getSubmenuYOffset } from '../utils';
 import { MenuItemTooltip } from '../DisabledMenuItemTooltip';
 import { MenuItemWithTruncation } from '../MenuItemWithTruncation';
+import { Dataset } from '../types';
 
 const DRILL_TO_DETAIL = t('Drill to detail');
 const DRILL_TO_DETAIL_BY = t('Drill to detail by');
@@ -113,6 +114,8 @@ export type DrillDetailMenuItemsProps = {
   setShowModal: (show: boolean) => void;
   key?: string;
   forceSubmenuRender?: boolean;
+  dataset?: Dataset;
+  isLoadingDataset?: boolean;
 };
 
 const DrillDetailMenuItems = ({

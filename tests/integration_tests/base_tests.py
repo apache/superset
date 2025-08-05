@@ -160,12 +160,13 @@ class SupersetTestCase(TestCase):
         return user_to_create
 
     @contextmanager
-    def temporary_user(
+    def temporary_user(  # noqa: C901
         self,
         clone_user=None,
         username=None,
         extra_roles=None,
         extra_pvms=None,
+        pvms_to_remove=None,
         login=False,
     ):
         """
@@ -180,33 +181,39 @@ class SupersetTestCase(TestCase):
         temp_user = ab_models.User(
             username=username, email=f"{username}@temp.com", active=True
         )
+        pvms = []
+
         if clone_user:
-            temp_user.roles = clone_user.roles
             temp_user.first_name = clone_user.first_name
             temp_user.last_name = clone_user.last_name
             temp_user.password = clone_user.password
+            if clone_user.roles:
+                for role in clone_user.roles:
+                    pvms.extend(role.permissions)
         else:
             temp_user.first_name = temp_user.last_name = username
 
-        if clone_user:
-            temp_user.roles = clone_user.roles
-
         if extra_roles:
-            temp_user.roles.extend(extra_roles)
+            for role in extra_roles:
+                pvms.extend(role.permissions)
 
-        pvms = []
-        temp_role = None
-        if extra_pvms:
-            temp_role = ab_models.Role(name=f"tmp_role_{shortid()}")
-            for pvm in extra_pvms:
-                if isinstance(pvm, (tuple, list)):
-                    pvms.append(security_manager.find_permission_view_menu(*pvm))
-                else:
-                    pvms.append(pvm)
-            temp_role.permissions = pvms
-            temp_user.roles.append(temp_role)
-            db.session.add(temp_role)
-            db.session.commit()
+        for pvm in extra_pvms or []:
+            if isinstance(pvm, (tuple, list)):
+                pvms.append(security_manager.find_permission_view_menu(*pvm))
+            else:
+                pvms.append(pvm)
+
+        for pvm in pvms_to_remove or []:
+            if isinstance(pvm, (tuple, list)):
+                pvm = security_manager.find_permission_view_menu(*pvm)
+            if pvm in pvms:
+                pvms.remove(pvm)
+
+        temp_role = ab_models.Role(name=f"tmp_role_{shortid()}")
+        temp_role.permissions = pvms
+        temp_user.roles.append(temp_role)
+        db.session.add(temp_role)
+        db.session.commit()
 
         # Add the temp user to the session and commit to apply changes for the test
         db.session.add(temp_user)

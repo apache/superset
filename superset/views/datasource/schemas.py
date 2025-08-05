@@ -103,6 +103,7 @@ class SamplesRequestSchema(Schema):
         validate=validate.Range(min=1, max=1000),
         load_default=None,
     )
+    dashboard_id = fields.Integer(required=False, allow_none=True, load_default=None)
 
     @pre_load
     def set_default_per_page(
