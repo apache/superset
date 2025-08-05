@@ -435,7 +435,7 @@ test('renders tab selection when Dashboard is selected', async () => {
   expect(
     screen.getByRole('combobox', { name: /dashboard/i }),
   ).toBeInTheDocument();
-  expect(screen.getAllByText(/select tab/i)).toHaveLength(2);
+  expect(screen.getAllByText(/select tab/i)).toHaveLength(1);
 });
 
 test('changes to content options when chart is selected', async () => {
