@@ -47,12 +47,12 @@ const buildTextAndIcon = (
 ): { text: string; icon?: IconType } => {
   let text = t('Run');
   let icon: IconType | undefined;
+  if (selectedText) {
+    text = t('Run selection');
+  }
   if (shouldShowStopButton) {
     text = t('Stop');
     icon = <Icons.Square iconSize="xs" iconColor={theme.colorIcon} />;
-  }
-  if (selectedText) {
-    text = t('Run selection');
   }
   return {
     text,
