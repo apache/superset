@@ -110,7 +110,10 @@ def setup(
             load_examples()
             click.echo(f"{Fore.GREEN}✓ Example datasets loaded{Style.RESET_ALL}")
 
-    # 4. Show final instructions
+    # 4. Verify Superset configuration
+    _verify_superset_config()
+
+    # 5. Show final instructions
     click.echo()
     click.echo(f"{Fore.GREEN}=== Setup Complete! ==={Style.RESET_ALL}")
     click.echo()
@@ -265,3 +268,99 @@ def _check_csrf_issue() -> bool:
         return current_app.config.get("WTF_CSRF_ENABLED", True)
     except Exception:  # noqa: S110
         return True
+
+
+def _verify_superset_config() -> None:
+    """Verify Superset configuration and check if it's running"""
+    click.echo()
+    click.echo("Verifying configuration...")
+
+    # Check if config file exists and has required settings
+    config_path = Path("superset_config.py")
+    if not config_path.exists():
+        click.echo(f"{Fore.RED}✗ superset_config.py not found{Style.RESET_ALL}")
+        return
+
+    content = config_path.read_text()
+    _check_config_settings(content)
+
+    # Check if Superset is running
+    webserver_address = _get_webserver_address(content)
+    _check_superset_running(webserver_address)
+
+
+def _check_config_settings(content: str) -> None:
+    """Check required configuration settings"""
+    settings_status = []
+
+    if "SECRET_KEY" in content:
+        settings_status.append(f"{Fore.GREEN}✓ SECRET_KEY configured{Style.RESET_ALL}")
+    else:
+        settings_status.append(f"{Fore.RED}✗ SECRET_KEY missing{Style.RESET_ALL}")
+
+    if "SUPERSET_WEBSERVER_ADDRESS" in content:
+        settings_status.append(
+            f"{Fore.GREEN}✓ SUPERSET_WEBSERVER_ADDRESS configured{Style.RESET_ALL}"
+        )
+    else:
+        settings_status.append(
+            f"{Fore.YELLOW}⚠ SUPERSET_WEBSERVER_ADDRESS not set "
+            f"(defaulting to http://localhost:8088){Style.RESET_ALL}"
+        )
+
+    if "ANTHROPIC_API_KEY" in content:
+        settings_status.append(
+            f"{Fore.GREEN}✓ ANTHROPIC_API_KEY configured{Style.RESET_ALL}"
+        )
+    else:
+        settings_status.append(
+            f"{Fore.YELLOW}⚠ ANTHROPIC_API_KEY not set "
+            f"(MCP features will be limited){Style.RESET_ALL}"
+        )
+
+    for status in settings_status:
+        click.echo(f"  {status}")
+
+
+def _get_webserver_address(content: str) -> str:
+    """Extract webserver address from config or use default"""
+    import re
+
+    if "SUPERSET_WEBSERVER_ADDRESS" in content:
+        match = re.search(
+            r'SUPERSET_WEBSERVER_ADDRESS\s*=\s*["\']([^"\']+)["\']', content
+        )
+        if match:
+            return match.group(1)
+    return "http://localhost:8088"
+
+
+def _check_superset_running(webserver_address: str) -> None:
+    """Check if Superset is running at the given address"""
+    import requests
+
+    click.echo()
+    click.echo("Checking if Superset is running...")
+
+    try:
+        response = requests.get(f"{webserver_address}/health", timeout=2)
+        if response.status_code == 200:
+            click.echo(
+                f"{Fore.GREEN}✓ Superset is running at "
+                f"{webserver_address}{Style.RESET_ALL}"
+            )
+        else:
+            click.echo(
+                f"{Fore.YELLOW}⚠ Superset responded with "
+                f"status {response.status_code}{Style.RESET_ALL}"
+            )
+    except requests.exceptions.ConnectionError:
+        click.echo(
+            f"{Fore.YELLOW}⚠ Superset is not running at "
+            f"{webserver_address}{Style.RESET_ALL}"
+        )
+        click.echo("  Start it with: make flask-app (in another terminal)")
+    except Exception as e:
+        click.echo(
+            f"{Fore.YELLOW}⚠ Could not check Superset status: {e}{Style.RESET_ALL}"
+        )
