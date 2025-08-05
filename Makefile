@@ -121,23 +121,17 @@ mcp-setup: venv
 	pip install -r requirements/development.txt && \
 	pip install -e . && \
 	echo "✓ Python dependencies installed" && \
-	\
-	# Ensure database is initialized before running MCP setup
 	if ! superset db current 2>/dev/null | grep -q "head"; then \
 		echo "Initializing database..." && \
 		superset db upgrade && \
 		superset init && \
 		echo "✓ Database initialized"; \
 	fi && \
-	\
-	# Install frontend dependencies if needed
 	if [ ! -d "superset-frontend/node_modules" ]; then \
 		echo "Installing frontend dependencies..." && \
 		cd superset-frontend && npm ci && cd .. && \
 		echo "✓ Frontend dependencies installed"; \
 	fi && \
-	\
-	# Run the MCP setup CLI command
 	superset mcp setup
 
 # Quick MCP service runner
