@@ -74,6 +74,8 @@ export const SingleQueryResultPane = ({
         isLoading={false}
         canDownload={canDownload}
       />
+      {/* key={filterText} resets TableView when filter changes, preventing
+          "currentPage > totalPages" errors when filtering reduces page count */}
       <TableView
         columns={columns}
         size={TableSize.Small}
@@ -85,6 +87,8 @@ export const SingleQueryResultPane = ({
         isPaginationSticky
         showRowCount={false}
         small
+        initialPageIndex={0}
+        key={filterText}
       />
     </>
   );
