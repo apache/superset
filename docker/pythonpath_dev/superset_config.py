@@ -40,6 +40,9 @@ from flask_appbuilder.security.manager import AUTH_OAUTH
 
 logger = logging.getLogger()
 
+# 2 hours
+GUEST_TOKEN_JWT_EXP_SECONDS = 7200
+
 DATABASE_DIALECT = os.getenv("DATABASE_DIALECT")
 DATABASE_USER = os.getenv("DATABASE_USER")
 DATABASE_PASSWORD = os.getenv("DATABASE_PASSWORD")
@@ -323,5 +326,4 @@ try:
     )
 except ImportError:
     logger.info("Using default Docker config...")
-
 
