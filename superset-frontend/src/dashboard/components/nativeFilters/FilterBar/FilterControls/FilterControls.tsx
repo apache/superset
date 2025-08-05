@@ -58,6 +58,7 @@ import DropdownContainer, {
   Ref as DropdownContainerRef,
 } from 'src/components/DropdownContainer';
 import Icons from 'src/components/Icons';
+import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import { FiltersOutOfScopeCollapsible } from '../FiltersOutOfScopeCollapsible';
 import { useFilterControlFactory } from '../useFilterControlFactory';
 import { FiltersDropdownContent } from '../FiltersDropdownContent';
@@ -113,10 +114,25 @@ const FilterControls: FC<FilterControlsProps> = ({
         : [],
     [chartConfiguration, dashboardLayout, dataMask, isCrossFiltersEnabled],
   );
+
+  const user: UserWithPermissionsAndRoles = useSelector<
+    RootState,
+    UserWithPermissionsAndRoles
+  >(state => state.user); // Check if user has 'Public' role - hide filters for public users
+
+  const isPublicUser =
+    'roles' in user &&
+    Object.keys(user.roles || {}).some(role => role.toLowerCase() === 'public');
+
   const { filterControlFactory, filtersWithValues } = useFilterControlFactory(
     dataMaskSelected,
     onFilterSelectionChange,
+    isPublicUser
+      ? (filter: Filter | Divider) =>
+          'filterType' in filter && filter.filterType === 'filter_time'
+      : undefined,
   );
+
   const portalNodes = useMemo(() => {
     const nodes = new Array(filtersWithValues.length);
     for (let i = 0; i < filtersWithValues.length; i += 1) {
