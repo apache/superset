@@ -18,6 +18,28 @@
 
 set -e
 
+# Wait for PostgreSQL to be ready
+echo "Waiting for database to be ready..."
+for i in {1..30}; do
+  if python3 -c "
+import psycopg2
+try:
+    conn = psycopg2.connect(host='db-light', user='superset', password='superset', database='superset_light')
+    conn.close()
+    print('Database is ready!')
+    exit(0)
+except:
+    if $i == 30:
+        print('Database connection timeout after 30 seconds')
+        exit(1)
+    exit(1)
+" 2>/dev/null; then
+    break
+  fi
+  echo "Waiting for database... ($i/30)"
+  sleep 1
+done
+
 # Handle database setup based on FORCE_RELOAD
 if [ "${FORCE_RELOAD}" = "true" ]; then
   echo "Force reload requested - resetting test database"
@@ -93,19 +115,24 @@ except:
 "
 fi
 
-# Initialize test environment directly
+# Always run database migrations to ensure schema is up to date
+echo "Running database migrations..."
+cd /app
+superset db upgrade
+
+# Initialize test environment if needed
 if [ "${FORCE_RELOAD}" = "true" ] || [ ! -f "/app/superset_home/.test_initialized" ]; then
   echo "Initializing test environment..."
-  # Run the same commands that scripts/tests/run.sh would run
-  cd /app
-  superset db upgrade 2>/dev/null || true
-  superset init 2>/dev/null || true
-  superset load-test-users 2>/dev/null || true
+  # Run initialization commands
+  superset init
+  echo "Loading test users..."
+  superset load-test-users
 
   # Mark as initialized
   touch /app/superset_home/.test_initialized
 else
-  echo "Test environment already initialized"
+  echo "Test environment already initialized (skipping init and load-test-users)"
+  echo "Tip: Use FORCE_RELOAD=true to reinitialize the test database"
 fi
 
 # If arguments provided, execute them
