@@ -305,6 +305,27 @@ describe('plugin-chart-table', () => {
       expect(cells[4]).toHaveTextContent('$ 2.47k');
     });
 
+    it('render data with a bigint value in a raw record mode', () => {
+      render(
+        ProviderWrapper({
+          children: (
+            <TableChart
+              {...transformProps(testData.bigint)}
+              sticky={false}
+              isRawRecords
+            />
+          ),
+        }),
+      );
+      const cells = document.querySelectorAll('td');
+      expect(document.querySelectorAll('th')[0]).toHaveTextContent('name');
+      expect(document.querySelectorAll('th')[1]).toHaveTextContent('id');
+      expect(cells[0]).toHaveTextContent('Michael');
+      expect(cells[1]).toHaveTextContent('4312');
+      expect(cells[2]).toHaveTextContent('John');
+      expect(cells[3]).toHaveTextContent('1234567890123456789');
+    });
+
     it('render raw data', () => {
       const props = transformProps({
         ...testData.raw,
