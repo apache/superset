@@ -152,16 +152,16 @@ msgstr " pour visualiser vos données."
 msgid "!= (Is not equal)"
 msgstr "!= (N'est pas égal)"
 
-#, fuzzy, python-format
-msgid "% calculation"
+#, fuzzy
+msgid "%% calculation"
 msgstr "Choisir un type de calcul"
 
-#, fuzzy, python-format
-msgid "% of parent"
+#, fuzzy
+msgid "%% of parent"
 msgstr "Parent"
 
-#, fuzzy, python-format
-msgid "% of total"
+#, fuzzy
+msgid "%% of total"
 msgstr "Afficher le total"
 
 #, python-format
@@ -237,7 +237,7 @@ msgstr[1] ""
 
 #, fuzzy, python-format
 msgid "%(type)s File"
-msgstr "%(prefix)s %(title)s"
+msgstr "Fichier %(type)s"
 
 #, python-format
 msgid ""
@@ -318,7 +318,7 @@ msgstr "%s option(s)"
 
 #, fuzzy, python-format
 msgid "%s recipients"
-msgstr "récents"
+msgstr "%s destinataires"
 
 #, fuzzy, python-format
 msgid "%s row"
@@ -1211,14 +1211,14 @@ msgstr "La requête d’alerte a retourné plus d'une colonne."
 
 #, fuzzy, python-format
 msgid "Alert query returned more than one column. %(num_cols)s columns returned"
-msgstr "La requête a retourné plus d'une colonne. %s colonnes retournées"
+msgstr "La requête a retourné plus d'une colonne. %(num_cols)s colonnes retournées"
 
 msgid "Alert query returned more than one row."
 msgstr "La requête d’alerte a retourné plus d'une rangée."
 
 #, fuzzy, python-format
 msgid "Alert query returned more than one row. %(num_rows)s rows returned"
-msgstr "La requête a retourné plus d'une ligne. %s lignes retournées"
+msgstr "La requête a retourné plus d'une ligne. %(num_rows)s lignes retournées"
 
 msgid "Alert running"
 msgstr "Alerte en cours"
@@ -1762,7 +1762,7 @@ msgstr "Filtres appliqués (%d)"
 
 #, fuzzy, python-format
 msgid "Applied filters (%s)"
-msgstr "Filtres appliqués (%d)"
+msgstr "Filtres appliqués (%s)"
 
 #, python-format
 msgid "Applied filters: %s"
@@ -3843,7 +3843,7 @@ msgstr ""
 
 #, fuzzy, python-format
 msgid "Data for %s"
-msgstr "Données supplémentaires pour JS"
+msgstr "Données pour %s"
 
 msgid "Data preview"
 msgstr "Prévisualiser les données"
@@ -3956,7 +3956,7 @@ msgstr "Ensemble de données"
 
 #, fuzzy, python-format
 msgid "Dataset %(table)s already exists"
-msgstr "L’ensemble de données %(name)s existe déjà"
+msgstr "L’ensemble de données %(table)s existe déjà"
 
 #, fuzzy
 msgid "Dataset Name"
@@ -6336,7 +6336,7 @@ msgstr "Inclure une description qui sera envoyée avec votre rapport"
 
 #, fuzzy, python-format
 msgid "Include description to be sent with %s"
-msgstr "Inclure une description qui sera envoyée avec votre rapport"
+msgstr "Inclure une description qui sera envoyée avec %s"
 
 msgid "Include series name as an axis"
 msgstr "Inclure le nom de la série comme axe"
@@ -6532,7 +6532,7 @@ msgstr "rolling_type invalide : %(type)s"
 
 #, fuzzy, python-format
 msgid "Invalid spatial point encountered: %(latlong)s"
-msgstr "Point géographique invalide : %s"
+msgstr "Point géographique invalide : %(latlong)s"
 
 #, fuzzy
 msgid "Invalid state."
@@ -9997,7 +9997,7 @@ msgstr "Rechercher"
 
 #, fuzzy, python-format
 msgid "Search %s records"
-msgstr "Registres bruts"
+msgstr "Rechercher %s enregistrements"
 
 msgid "Search / Filter"
 msgstr "Rechercher / Filtrer"
@@ -10545,7 +10545,7 @@ msgstr "Afficher"
 
 #, fuzzy, python-format
 msgid "Show %s entries"
-msgstr "Afficher la mesure"
+msgstr "Afficher %s entrées"
 
 #, fuzzy
 msgid "Show Bubbles"
@@ -11396,8 +11396,8 @@ msgid ""
 "Table [%(table)s] could not be found, please double check your database "
 "connection, schema, and table name"
 msgstr ""
-"La tableau [%(table_name)s] n'a pu être trouvé, vérifiez à nouveau votre "
-"connexion à votre base de données, le schéma et le nom du tableau"
+"La table [%(table)s] n'a pu être trouvée, vérifiez à nouveau votre "
+"connexion à votre base de données, le schéma et le nom de la table"
 
 msgid ""
 "Table already exists. You can change your 'if table already exists' "
@@ -12421,7 +12421,7 @@ msgstr "Il y a des alertes ou des rapports associés"
 
 #, fuzzy, python-format
 msgid "There are associated alerts or reports: %(report_names)s"
-msgstr "Il y a des alertes ou des rapports associés : %s,"
+msgstr "Il y a des alertes ou des rapports associés : %(report_names)s"
 
 msgid "There are no charts added to this dashboard"
 msgstr "Il n'y a pas de graphiques ajouté dans ce tableau de bord"
@@ -13492,7 +13492,7 @@ msgstr "Aucune expression sauvegardée n'a été trouvée"
 
 #, fuzzy, python-format
 msgid "Unexpected time range: %(error)s"
-msgstr "Intervalle de temps inattendu: %s"
+msgstr "Intervalle de temps inattendu: %(error)s"
 
 msgid "Unknown"
 msgstr "Inconnu"
@@ -14076,7 +14076,7 @@ msgstr "MER"
 
 #, fuzzy, python-format
 msgid "Waiting on %s"
-msgstr "Affichage de %s sur %s"
+msgstr "En attente de %s"
 
 #, fuzzy
 msgid "Waiting on database..."
