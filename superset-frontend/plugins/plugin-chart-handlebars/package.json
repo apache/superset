@@ -44,6 +44,6 @@
   "devDependencies": {
     "@types/jest": "^30.0.0",
     "@types/lodash": "^4.17.20",
-    "jest": "^30.0.4"
+    "jest": "^30.0.5"
   }
 }
