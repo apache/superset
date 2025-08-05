@@ -33,6 +33,8 @@ from superset.commands.dataset.exceptions import (
 from superset.commands.utils import populate_owner_list
 from superset.connectors.sqla.models import SqlaTable
 from superset.connectors.sqla.utils import get_physical_table_metadata
+from superset.daos.dashboard import DashboardDAO
+from superset.daos.dataset import DatasetDAO
 from superset.daos.datasource import DatasourceDAO
 from superset.exceptions import SupersetException, SupersetSecurityException
 from superset.models.core import Database
@@ -199,6 +201,23 @@ class Datasource(BaseSupersetView):
             payload = SamplesPayloadSchema().load(request.json)
         except ValidationError as err:
             return json_error_response(err.messages, status=400)
+
+        if security_manager.is_guest_user():
+            if not params["dashboard_id"]:
+                return json_error_response(_("Forbidden"), status=403)
+            dataset = DatasetDAO.find_by_id(
+                params["datasource_id"], skip_base_filter=True
+            )
+            dashboard = DashboardDAO.find_by_id(
+                params["dashboard_id"], skip_base_filter=True
+            )
+            if not (dashboard and dataset):
+                return self.response_404()
+            if not security_manager.can_drill_dataset_via_dashboard_access(
+                dataset,
+                dashboard,
+            ):
+                return json_error_response(_("Forbidden"), status=403)
 
         rv = get_samples(
             datasource_type=params["datasource_type"],
