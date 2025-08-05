@@ -82,6 +82,7 @@ const DatasetDeleteRelatedExtension = extensionsRegistry.get(
 const FlexRowContainer = styled.div`
   align-items: center;
   display: flex;
+  gap: ${({ theme }) => theme.sizeUnit}px;
 
   svg {
     margin-right: ${({ theme }) => theme.sizeUnit}px;

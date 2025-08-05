@@ -82,6 +82,7 @@ import { WIDER_DROPDOWN_WIDTH } from 'src/components/ListView/utils';
 const FlexRowContainer = styled.div`
   align-items: center;
   display: flex;
+  gap: ${({ theme }) => theme.sizeUnit}px;
 
   a {
     overflow: hidden;
