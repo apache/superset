@@ -2449,20 +2449,6 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                     </AntdForm>
                   </StyledInputContainer>
                 )}
-                {tabsEnabled && contentType === ContentType.Dashboard && (
-                  <StyledInputContainer>
-                    <>
-                      <div className="control-label">{t('Select tab')}</div>
-                      <StyledTreeSelect
-                        disabled={tabOptions?.length === 0}
-                        treeData={tabOptions}
-                        value={currentAlert?.extra?.dashboard?.anchor}
-                        onSelect={updateAnchorState}
-                        placeholder={t('Select a tab')}
-                      />
-                    </>
-                  </StyledInputContainer>
-                )}
                 {isScreenshot && (
                   <StyledInputContainer
                     css={
