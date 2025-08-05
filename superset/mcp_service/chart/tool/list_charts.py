@@ -22,14 +22,15 @@ MCP tool: list_charts (advanced filtering with metadata cache control)
 import logging
 
 from superset.mcp_service.auth import mcp_auth_hook
-from superset.mcp_service.generic_tools import ModelListTool
-from superset.mcp_service.mcp_app import mcp
-from superset.mcp_service.schemas import ChartInfo, ChartList
-from superset.mcp_service.schemas.chart_schemas import (
+from superset.mcp_service.chart.schemas import (
     ChartFilter,
+    ChartInfo,
+    ChartList,
     ListChartsRequest,
     serialize_chart_object,
 )
+from superset.mcp_service.generic_tools import ModelListTool
+from superset.mcp_service.mcp_app import mcp
 
 logger = logging.getLogger(__name__)
 

@@ -25,14 +25,15 @@ advanced filtering with clear, unambiguous request schema and metadata cache con
 import logging
 
 from superset.mcp_service.auth import mcp_auth_hook
-from superset.mcp_service.generic_tools import ModelListTool
-from superset.mcp_service.mcp_app import mcp
-from superset.mcp_service.schemas import DatasetInfo, DatasetList
-from superset.mcp_service.schemas.dataset_schemas import (
+from superset.mcp_service.dataset.schemas import (
     DatasetFilter,
+    DatasetInfo,
+    DatasetList,
     ListDatasetsRequest,
     serialize_dataset_object,
 )
+from superset.mcp_service.generic_tools import ModelListTool
+from superset.mcp_service.mcp_app import mcp
 
 logger = logging.getLogger(__name__)
 

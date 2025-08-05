@@ -23,8 +23,7 @@ import logging
 from typing import Any, Dict, List, Protocol
 
 from superset.mcp_service.auth import mcp_auth_hook
-from superset.mcp_service.mcp_app import mcp
-from superset.mcp_service.schemas.chart_schemas import (
+from superset.mcp_service.chart.schemas import (
     AccessibilityMetadata,
     ASCIIPreview,
     ChartError,
@@ -36,7 +35,8 @@ from superset.mcp_service.schemas.chart_schemas import (
     URLPreview,
     VegaLitePreview,
 )
-from superset.mcp_service.url_utils import get_superset_base_url
+from superset.mcp_service.mcp_app import mcp
+from superset.mcp_service.utils.url_utils import get_superset_base_url
 
 logger = logging.getLogger(__name__)
 
@@ -73,7 +73,9 @@ class URLPreviewStrategy(PreviewFormatStrategy):
         try:
             from flask import g
 
-            from superset.mcp_service.pooled_screenshot import PooledChartScreenshot
+            from superset.mcp_service.screenshot.pooled_screenshot import (
+                PooledChartScreenshot,
+            )
             from superset.utils.urls import get_url_path
 
             # Check if chart.id is None
@@ -91,7 +93,9 @@ class URLPreviewStrategy(PreviewFormatStrategy):
 
             if image_data:
                 # Use the MCP service screenshot URL via centralized helper
-                from superset.mcp_service.url_utils import get_chart_screenshot_url
+                from superset.mcp_service.utils.url_utils import (
+                    get_chart_screenshot_url,
+                )
 
                 preview_url = get_chart_screenshot_url(self.chart.id)
 

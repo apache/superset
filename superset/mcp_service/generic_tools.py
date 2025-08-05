@@ -24,7 +24,7 @@ from typing import Any, Callable, Dict, List, Literal, Optional, Type, TypeVar
 from pydantic import BaseModel
 
 from superset.mcp_service.dao import DAO
-from superset.mcp_service.retry_utils import retry_database_operation
+from superset.mcp_service.utils.retry_utils import retry_database_operation
 
 # Type variables for generic model tools
 T = TypeVar("T")  # For model objects
@@ -120,7 +120,7 @@ class ModelListTool:
             if obj is not None:
                 item_objs.append(obj)
         total_pages = (total_count + page_size - 1) // page_size if page_size > 0 else 0
-        from superset.mcp_service.schemas import PaginationInfo
+        from superset.mcp_service.system.schemas import PaginationInfo
 
         pagination_info = PaginationInfo(
             page=page,

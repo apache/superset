@@ -90,6 +90,24 @@ def mock_mcp_auth(request) -> Iterator[None]:
         yield
 
 
+@pytest.fixture(autouse=True)
+def disable_rate_limiting():
+    """
+    Disable rate limiting for tests to prevent rate limit errors.
+
+    This fixture patches the RateLimitMiddleware to always allow requests
+    through without rate limiting checks.
+    """
+    with patch(
+        "superset.mcp_service.middleware.RateLimitMiddleware._is_rate_limited",
+        return_value=(
+            False,
+            {"limit": 100, "remaining": 100, "reset_time": 0, "window_seconds": 60},
+        ),
+    ):
+        yield
+
+
 @pytest.fixture
 def test_user() -> User:
     """Provide a test user for tests that need one."""

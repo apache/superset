@@ -23,15 +23,15 @@ import logging
 from typing import Any, Dict, List
 
 from superset.mcp_service.auth import mcp_auth_hook
-from superset.mcp_service.cache_utils import get_cache_status_from_result
-from superset.mcp_service.mcp_app import mcp
-from superset.mcp_service.schemas.chart_schemas import (
+from superset.mcp_service.chart.schemas import (
     ChartData,
     ChartError,
     DataColumn,
     GetChartDataRequest,
     PerformanceMetadata,
 )
+from superset.mcp_service.mcp_app import mcp
+from superset.mcp_service.utils.cache_utils import get_cache_status_from_result
 
 logger = logging.getLogger(__name__)
 
@@ -344,7 +344,7 @@ def _export_data_as_csv(
     csv_content = output.getvalue()
 
     # Return as ChartData with CSV content in a special field
-    from superset.mcp_service.schemas.chart_schemas import ChartData
+    from superset.mcp_service.chart.schemas import ChartData
 
     return ChartData(
         chart_id=chart.id,
@@ -439,7 +439,7 @@ def _try_xlsxwriter_fallback(
             chart, data, excel_b64, performance, cache_status
         )
     except ImportError:
-        from superset.mcp_service.schemas.chart_schemas import ChartError
+        from superset.mcp_service.chart.schemas import ChartError
 
         return ChartError(
             error="Excel export requires openpyxl or xlsxwriter package",
@@ -496,7 +496,7 @@ def _create_excel_chart_data(
     cache_status: Any,
 ) -> "ChartData":
     """Create ChartData response for Excel export (openpyxl)."""
-    from superset.mcp_service.schemas.chart_schemas import ChartData
+    from superset.mcp_service.chart.schemas import ChartData
 
     chart_name = chart.slice_name or f"Chart {chart.id}"
     summary = f"Excel export of chart '{chart.slice_name}' with {len(data)} rows"
@@ -529,7 +529,7 @@ def _create_excel_chart_data_xlsxwriter(
     cache_status: Any,
 ) -> "ChartData":
     """Create ChartData response for Excel export (xlsxwriter)."""
-    from superset.mcp_service.schemas.chart_schemas import ChartData
+    from superset.mcp_service.chart.schemas import ChartData
 
     chart_name = chart.slice_name or f"Chart {chart.id}"
     summary = f"Excel export of chart '{chart.slice_name}' with {len(data)} rows"
