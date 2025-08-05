@@ -49,52 +49,88 @@ logger = logging.getLogger(__name__)
 @mcp_auth_hook
 def generate_chart(request: GenerateChartRequest) -> Dict[str, Any]:  # noqa: C901
     """
-    Create and SAVE a new chart in Superset with enhanced preview capabilities.
+    l    Create and SAVE a new chart in Superset with enhanced validation and
+    security features.
 
-    This tool creates a permanent chart in Superset and generates preview images
-    that can be embedded in LLM conversations. The chart appears in saved charts
-    and can be added to dashboards.
+        This tool creates a permanent chart in Superset with comprehensive 5-layer
+        validation
+        pipeline to prevent common errors and security issues identified in testing:
 
-    IMPORTANT FOR LLM CLIENTS:
-    - ALWAYS display the returned chart URL (e.g., "Chart created! View at: {url}")
-    - When preview_url is returned, embed it as an image: ![Chart Preview](preview_url)
-    - Display the explore_url for users to edit the chart interactively
+        SECURITY FEATURES (CRITICAL):
+        - Input sanitization prevents XSS attacks (HTML/script tag filtering)
+        - SQL injection protection for column names and filter values
+        - Malicious content detection and rejection
 
-    Enhanced features:
-    - Generates chart preview images for embedding in LLM conversations
-    - Returns explore URL for interactive editing after creation
-    - Supports multiple preview formats (url, ascii, table)
-    - Rich semantic analysis and capabilities metadata
-    - Enhanced form_data caching for better explore experience
+        VALIDATION LAYERS:
+        1. Pydantic Schema Validation - Type checking and required field validation
+        2. Business Logic Validation - Cache parameters, preview formats, structure
+        3. Dataset Schema Validation - Column existence, fuzzy matching suggestions
+        4. Superset Compatibility - Label conflicts, naming restrictions
+        5. Runtime Preview Validation - Form data generation and empty chart detection
 
-    Default behavior (save_chart=True):
-    - Permanently saves chart in Superset
-    - Generates preview images
-    - Returns chart ID and metadata
-    - Provides explore URL for further editing
+        ENHANCED ERROR HANDLING:
+        - Context-aware error messages instead of generic Pydantic errors
+        - Specific suggestions for missing fields (e.g., "Missing 'y' field for XY
+        charts")
+        - Aggregate function validation with type compatibility checking
+        - Dataset column suggestions using fuzzy matching
+        - Clear distinction between table and XY chart requirements
 
-    Optional behavior (save_chart=False):
-    - Creates temporary visualization only
-    - Caches configuration server-side
-    - Returns preview + explore link
-    - No permanent chart saved
+        IMPORTANT FOR LLM CLIENTS:
+        - ALWAYS display the returned chart URL (e.g., "Chart created! View at: {url}")
+        - When preview_url is returned, embed it as an image: ![Chart Preview](
+        preview_url)
+        - Display the explore_url for users to edit the chart interactively
+        - Check the 'error' field for validation failures with detailed suggestions
 
-    Args:
-        request: Chart creation request with dataset_id, config, save_chart flag,
-            and preview options
+        Enhanced features:
+        - Generates chart preview images for embedding in LLM conversations
+        - Returns explore URL for interactive editing after creation
+        - Supports multiple preview formats (url, ascii, table)
+        - Rich semantic analysis and capabilities metadata
+        - Enhanced form_data caching for better explore experience
+        - Comprehensive error handling with contextual suggestions
 
-    Returns:
-        Response with saved chart info, preview images, and explore URL
+        Default behavior (save_chart=True):
+        - Permanently saves chart in Superset after validation
+        - Generates preview images
+        - Returns chart ID and metadata
+        - Provides explore URL for further editing
+
+        Optional behavior (save_chart=False):
+        - Creates temporary visualization only after validation
+        - Caches configuration server-side
+        - Returns preview + explore link
+        - No permanent chart saved
+
+        COMMON ERRORS PREVENTED:
+        - Security: Script injection in labels ("<script>alert('xss')</script>" now
+        rejected)
+        - Validation: Invalid aggregation functions ("INVALID_AGG" caught at schema
+        level)
+        - Runtime: Empty Y-axis arrays that create meaningless charts (detected early)
+        - Runtime: Empty column arrays that display no data (pre-validated)
+        - Business Logic: Negative cache timeouts (validated before processing)
+        - Dataset: Column/aggregate type mismatches (compatibility checked)
+        - User Experience: Generic "'table' was expected" errors (now context-specific)
+
+        Args:
+            request: Chart creation request with dataset_id, config, save_chart flag,
+                and preview options
+
+        Returns:
+            Response with saved chart info, preview images, explore URL, or detailed
+            error info
     """
     start_time = time.time()
 
     try:
-        # Validate chart configuration first
-        from superset.mcp_service.chart.validation_utils import validate_chart_config
-
-        is_valid, validation_error = validate_chart_config(
-            request.config, request.dataset_id
+        # Run comprehensive validation pipeline
+        from superset.mcp_service.chart.validation_pipeline import (
+            ChartValidationPipeline,
         )
+
+        is_valid, validation_error = ChartValidationPipeline.validate_request(request)
         if not is_valid:
             execution_time = int((time.time() - start_time) * 1000)
             assert validation_error is not None  # Type narrowing for mypy
@@ -348,61 +384,28 @@ def generate_chart(request: GenerateChartRequest) -> Dict[str, Any]:  # noqa: C9
         return result
 
     except Exception as e:
-        from superset.mcp_service.schemas.error_schemas import ChartGenerationError
+        from superset.mcp_service.chart.error_handler import ChartErrorHandler
 
-        execution_time = int((time.time() - start_time) * 1000)
+        logger.exception(f"Chart generation failed: {str(e)}")
 
-        # Analyze exception to provide better error context
-        error_type = "chart_creation_error"
-        suggestions = [
-            "Check that all column names are spelled correctly",
-            "Verify the dataset has data",
-            "Try with a simpler chart configuration",
-            "Check server logs for detailed error information",
-        ]
+        # Use centralized error handler for consistent error responses
+        # Extract chart_type from different sources for better error context
+        chart_type = "unknown"
+        try:
+            if hasattr(request, "config") and hasattr(request.config, "chart_type"):
+                chart_type = request.config.chart_type
+        except Exception as extract_error:
+            # Ignore errors when extracting chart type for error context
+            logger.debug(f"Could not extract chart type: {extract_error}")
 
-        # Enhance error message based on exception type
-        if "permission" in str(e).lower() or "access" in str(e).lower():
-            error_type = "permission_error"
-            suggestions = [
-                "Check that you have access to the dataset",
-                "Verify your user permissions in Superset",
-                "Contact your administrator for dataset access",
-            ]
-        elif "sql" in str(e).lower() or "query" in str(e).lower():
-            error_type = "query_execution_error"
-            suggestions = [
-                "Check that column names exist in the dataset",
-                "Verify filter values are valid for their column types",
-                "Try a simpler query first",
-                "Check the dataset's underlying data source",
-            ]
-        elif "timeout" in str(e).lower():
-            error_type = "query_timeout_error"
-            suggestions = [
-                "Try reducing the data range or adding filters",
-                "Consider using a smaller sample of data",
-                "Check if the database is responding slowly",
-                "Contact your administrator about query performance",
-            ]
-
-        error = ChartGenerationError(
-            error_type=error_type,
-            message="Chart creation failed",
-            details=f"An error occurred while creating the chart: {str(e)}",
-            suggestions=suggestions,
-            error_code="CHART_CREATION_FAILED",
-        )
-
-        return {
-            "chart": None,
-            "error": error.model_dump(),
-            "performance": {
-                "query_duration_ms": execution_time,
-                "cache_status": "error",
-                "optimization_suggestions": [],
-            },
-            "success": False,
-            "schema_version": "2.0",
-            "api_version": "v1",
+        context = {
+            "dataset_id": request.dataset_id,
+            "chart_type": chart_type,
+            "save_chart": request.save_chart,
         }
+
+        return ChartErrorHandler.create_standardized_error_response(
+            error=e,
+            start_time=start_time,
+            context=context,
+        )
