@@ -107,7 +107,7 @@ test('should add renameOperator', () => {
   });
 });
 
-test('should add renameOperator if a metric exists and multiple time shift ', () => {
+test('should add renameOperator if a metric exists and multiple time shift', () => {
   expect(
     renameOperator(
       {
