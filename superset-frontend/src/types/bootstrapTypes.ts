@@ -149,6 +149,7 @@ export interface SerializableThemeSettings {
   enforced?: boolean;
   allowSwitching?: boolean;
   allowOSPreference?: boolean;
+  enableUiThemeAdministration?: boolean;
 }
 
 export interface BootstrapThemeDataConfig {

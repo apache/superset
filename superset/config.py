@@ -755,16 +755,18 @@ THEME_DEFAULT: Theme = {"algorithm": "default"}
 THEME_DARK: Theme = {"algorithm": "dark"}
 
 # Theme behavior and user preference settings
-# Controls how themes are applied and what options users have
-# - enforced: Forces the default theme always, overriding all other settings
-# - allowSwitching: Allows users to manually switch between default and dark themes.
-# - allowOSPreference: Allows the app to automatically use the system's preferred theme mode  # noqa: E501
+# To force a single theme on all users, set THEME_DARK = None
+# When both THEME_DEFAULT and THEME_DARK are defined:
+# - Users can manually switch between themes
+# - OS preference detection is automatically enabled
 #
-# Example:
+# Enable UI-based theme administration for admins
+ENABLE_UI_THEME_ADMINISTRATION = True  # Allows admins to set system themes via UI
+
+# Deprecated: THEME_SETTINGS will be removed in a future version
+# For backward compatibility only
 THEME_SETTINGS = {
-    "enforced": False,  # If True, forces the default theme and ignores user preferences  # noqa: E501
-    "allowSwitching": True,  # Allows user to switch between themes (default and dark)  # noqa: E501
-    "allowOSPreference": True,  # Allows the app to Auto-detect and set system theme preference  # noqa: E501
+    "enableUiThemeAdministration": True,  # Use ENABLE_UI_THEME_ADMINISTRATION instead
 }
 
 # Custom font configuration

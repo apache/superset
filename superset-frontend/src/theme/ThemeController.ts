@@ -33,15 +33,8 @@ import {
 import type {
   BootstrapThemeData,
   BootstrapThemeDataConfig,
-  SerializableThemeSettings,
 } from 'src/types/bootstrapTypes';
 import getBootstrapData from 'src/utils/getBootstrapData';
-
-const DEFAULT_THEME_SETTINGS = {
-  enforced: false,
-  allowSwitching: true,
-  allowOSPreference: true,
-} as const;
 
 const STORAGE_KEYS = {
   THEME_MODE: 'superset-theme-mode',
@@ -90,8 +83,6 @@ export class ThemeController {
 
   private darkTheme: AnyThemeConfig | null;
 
-  private themeSettings: SerializableThemeSettings;
-
   private systemMode: ThemeMode.DARK | ThemeMode.DEFAULT;
 
   private currentMode: ThemeMode;
@@ -128,12 +119,10 @@ export class ThemeController {
     const {
       bootstrapDefaultTheme,
       bootstrapDarkTheme,
-      bootstrapThemeSettings,
       hasCustomThemes,
     }: BootstrapThemeData = this.loadBootstrapData();
 
     this.hasCustomThemes = hasCustomThemes;
-    this.themeSettings = bootstrapThemeSettings || {};
 
     // Set themes based on bootstrap data availability
     if (this.hasCustomThemes) {
@@ -186,16 +175,18 @@ export class ThemeController {
 
   /**
    * Check if the user can update the theme.
+   * Always true now - theme enforcement is done via THEME_DARK = None
    */
   public canSetTheme(): boolean {
-    return !this.themeSettings?.enforced;
+    return true;
   }
 
   /**
    * Check if the user can update the theme mode.
+   * Only possible if dark theme is available
    */
   public canSetMode(): boolean {
-    return this.isModeUpdatable();
+    return this.darkTheme !== null;
   }
 
   /**
@@ -417,11 +408,10 @@ export class ThemeController {
 
   /**
    * Checks if OS preference detection is allowed.
+   * Allowed when both themes are available
    */
   public canDetectOSPreference(): boolean {
-    const { allowOSPreference = DEFAULT_THEME_SETTINGS.allowOSPreference } =
-      this.themeSettings || {};
-    return allowOSPreference === true;
+    return this.darkTheme !== null;
   }
 
   /**
@@ -434,12 +424,6 @@ export class ThemeController {
     this.defaultTheme = config.theme_default;
     this.darkTheme = config.theme_dark || null;
     this.hasCustomThemes = true;
-
-    this.themeSettings = {
-      enforced: config.theme_settings?.enforced ?? false,
-      allowSwitching: config.theme_settings?.allowSwitching ?? true,
-      allowOSPreference: config.theme_settings?.allowOSPreference ?? true,
-    };
 
     let newMode: ThemeMode;
     try {
@@ -539,14 +523,11 @@ export class ThemeController {
 
   /**
    * Determines whether the MediaQueryList listener for system theme changes should be initialized.
-   * This checks if OS preference detection is enabled in the theme settings.
+   * This checks if both themes are available to enable OS preference detection.
    * @returns {boolean} True if the media query listener should be initialized, false otherwise
    */
   private shouldInitializeMediaQueryListener(): boolean {
-    const { allowOSPreference = DEFAULT_THEME_SETTINGS.allowOSPreference } =
-      this.themeSettings || {};
-
-    return allowOSPreference === true;
+    return this.darkTheme !== null;
   }
 
   /**
@@ -599,18 +580,6 @@ export class ThemeController {
   }
 
   /**
-   * Determines if mode updates are allowed.
-   */
-  private isModeUpdatable(): boolean {
-    const {
-      enforced = DEFAULT_THEME_SETTINGS.enforced,
-      allowSwitching = DEFAULT_THEME_SETTINGS.allowSwitching,
-    } = this.themeSettings || {};
-
-    return !enforced && allowSwitching;
-  }
-
-  /**
    * Normalizes the theme configuration to ensure it has a valid algorithm.
    * @param theme - The theme configuration to normalize
    * @returns An object with normalized mode and algorithm.
@@ -633,13 +602,11 @@ export class ThemeController {
     }
 
     // Priority 2: System theme based on mode (applies to all contexts)
-    const { allowOSPreference = DEFAULT_THEME_SETTINGS.allowOSPreference } =
-      this.themeSettings;
-
     let resolvedMode: ThemeMode = mode;
 
     if (mode === ThemeMode.SYSTEM) {
-      if (!allowOSPreference) return null;
+      // OS preference is allowed when dark theme exists
+      if (this.darkTheme === null) return null;
       resolvedMode = ThemeController.getSystemPreferredMode();
     }
 
@@ -661,35 +628,18 @@ export class ThemeController {
    * Determines the initial theme mode with error recovery.
    */
   private determineInitialMode(): ThemeMode {
-    const {
-      enforced = DEFAULT_THEME_SETTINGS.enforced,
-      allowOSPreference = DEFAULT_THEME_SETTINGS.allowOSPreference,
-      allowSwitching = DEFAULT_THEME_SETTINGS.allowSwitching,
-    } = this.themeSettings;
-
-    // Enforced mode always takes precedence
-    if (enforced) {
+    // If no dark theme is available, force default mode
+    if (this.darkTheme === null) {
       this.storage.removeItem(this.modeStorageKey);
       return ThemeMode.DEFAULT;
-    }
-
-    // When OS preference is allowed but switching is not
-    // This means the user MUST follow OS preference and cannot override it
-    if (allowOSPreference && !allowSwitching) {
-      // Clear any saved preference since switching is not allowed
-      this.storage.removeItem(this.modeStorageKey);
-      return ThemeMode.SYSTEM;
     }
 
     // Try to restore saved mode
     const savedMode: ThemeMode | null = this.loadSavedMode();
     if (savedMode && this.isValidThemeMode(savedMode)) return savedMode;
 
-    // Fallback to system preference if allowed and available
-    if (allowOSPreference && this.getThemeForMode(this.systemMode))
-      return ThemeMode.SYSTEM;
-
-    return ThemeMode.DEFAULT;
+    // Default to system preference when both themes are available
+    return ThemeMode.SYSTEM;
   }
 
   /**
@@ -724,7 +674,7 @@ export class ThemeController {
       case ThemeMode.DEFAULT:
         return !!this.defaultTheme;
       case ThemeMode.SYSTEM:
-        return this.themeSettings?.allowOSPreference !== false;
+        return this.darkTheme !== null;
       default:
         return true;
     }
@@ -742,28 +692,13 @@ export class ThemeController {
    * Validates permission to update mode.
    * @param newMode - The new mode to validate
    * @throws {Error} If the user does not have permission to update the theme mode
-   * @throws {Error} If the new mode is SYSTEM and OS preference is not allowed
    */
   private validateModeUpdatePermission(newMode: ThemeMode): void {
-    const {
-      allowOSPreference = DEFAULT_THEME_SETTINGS.allowOSPreference,
-      allowSwitching = DEFAULT_THEME_SETTINGS.allowSwitching,
-    } = this.themeSettings;
-
-    // If OS preference is allowed but switching is not,
-    // don't allow any mode changes
-    if (allowOSPreference && !allowSwitching)
-      throw new Error(
-        'Theme mode changes are not allowed when OS preference is enforced',
-      );
-
-    // Check if user can set a new theme mode
+    // Check if user can set a new theme mode (dark theme must exist)
     if (!this.canSetMode())
-      throw new Error('User does not have permission to update the theme mode');
-
-    // Check if user has permissions to set OS preference as a theme mode
-    if (newMode === ThemeMode.SYSTEM && !allowOSPreference)
-      throw new Error('System theme mode is not allowed');
+      throw new Error(
+        'Theme mode changes are not allowed when only one theme is available',
+      );
   }
 
   /**

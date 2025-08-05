@@ -27,6 +27,7 @@ import {
   Alert,
   Tooltip,
   Space,
+  Modal,
 } from '@superset-ui/core/components';
 
 import rison from 'rison';
@@ -36,6 +37,7 @@ import withToasts from 'src/components/MessageToasts/withToasts';
 import { useThemeContext } from 'src/theme/ThemeProvider';
 import SubMenu, { SubMenuProps } from 'src/features/home/SubMenu';
 import handleResourceExport from 'src/utils/export';
+import getBootstrapData from 'src/utils/getBootstrapData';
 import {
   ModifiedInfo,
   ListView,
@@ -51,6 +53,12 @@ import ThemeModal from 'src/features/themes/ThemeModal';
 import { ThemeObject } from 'src/features/themes/types';
 import { QueryObjectColumns } from 'src/views/CRUD/types';
 import { Icons } from '@superset-ui/core/components/Icons';
+import {
+  setSystemDefaultTheme,
+  setSystemDarkTheme,
+  unsetSystemDefaultTheme,
+  unsetSystemDarkTheme,
+} from 'src/features/themes/api';
 
 const PAGE_SIZE = 25;
 
@@ -111,6 +119,13 @@ function ThemesList({
   const canImport = hasPerm('can_write');
   const canApply = hasPerm('can_write'); // Only users with write permission can apply themes
 
+  // Get theme settings from bootstrap data
+  const bootstrapData = getBootstrapData();
+  const themeSettings = bootstrapData?.common?.theme?.settings || {};
+
+  const canSetSystemThemes =
+    canEdit && (themeSettings as any)?.enableUiThemeAdministration;
+
   const [themeCurrentlyDeleting, setThemeCurrentlyDeleting] =
     useState<ThemeObject | null>(null);
 
@@ -132,8 +147,11 @@ function ThemesList({
   };
 
   const handleBulkThemeDelete = (themesToDelete: ThemeObject[]) => {
-    // Filter out system themes from deletion
-    const deletableThemes = themesToDelete.filter(theme => !theme.is_system);
+    // Filter out system themes and themes that are set as system themes
+    const deletableThemes = themesToDelete.filter(
+      theme =>
+        !theme.is_system && !theme.is_system_default && !theme.is_system_dark,
+    );
 
     if (deletableThemes.length === 0) {
       addDangerToast(t('Cannot delete system themes'));
@@ -216,6 +234,96 @@ function ThemesList({
     addSuccessToast(t('Theme imported'));
   };
 
+  const handleSetSystemDefault = (theme: ThemeObject) => {
+    Modal.confirm({
+      title: t('Set System Default Theme'),
+      content: t(
+        'Are you sure you want to set "%s" as the system default theme? This will apply to all users who haven\'t set a personal preference.',
+        theme.theme_name,
+      ),
+      onOk: () => {
+        setSystemDefaultTheme(theme.id!)
+          .then(() => {
+            refreshData();
+            addSuccessToast(
+              t('"%s" is now the system default theme', theme.theme_name),
+            );
+          })
+          .catch(err => {
+            addDangerToast(
+              t('Failed to set system default theme: %s', err.message),
+            );
+          });
+      },
+    });
+  };
+
+  const handleSetSystemDark = (theme: ThemeObject) => {
+    Modal.confirm({
+      title: t('Set System Dark Theme'),
+      content: t(
+        'Are you sure you want to set "%s" as the system dark theme? This will apply to all users who haven\'t set a personal preference.',
+        theme.theme_name,
+      ),
+      onOk: () => {
+        setSystemDarkTheme(theme.id!)
+          .then(() => {
+            refreshData();
+            addSuccessToast(
+              t('"%s" is now the system dark theme', theme.theme_name),
+            );
+          })
+          .catch(err => {
+            addDangerToast(
+              t('Failed to set system dark theme: %s', err.message),
+            );
+          });
+      },
+    });
+  };
+
+  const handleUnsetSystemDefault = () => {
+    Modal.confirm({
+      title: t('Remove System Default Theme'),
+      content: t(
+        'Are you sure you want to remove the system default theme? The application will fall back to the configuration file default.',
+      ),
+      onOk: () => {
+        unsetSystemDefaultTheme()
+          .then(() => {
+            refreshData();
+            addSuccessToast(t('System default theme removed'));
+          })
+          .catch(err => {
+            addDangerToast(
+              t('Failed to remove system default theme: %s', err.message),
+            );
+          });
+      },
+    });
+  };
+
+  const handleUnsetSystemDark = () => {
+    Modal.confirm({
+      title: t('Remove System Dark Theme'),
+      content: t(
+        'Are you sure you want to remove the system dark theme? The application will fall back to the configuration file dark theme.',
+      ),
+      onOk: () => {
+        unsetSystemDarkTheme()
+          .then(() => {
+            refreshData();
+            addSuccessToast(t('System dark theme removed'));
+          })
+          .catch(err => {
+            addDangerToast(
+              t('Failed to remove system dark theme: %s', err.message),
+            );
+          });
+      },
+    });
+  };
+
   const initialSort = [{ id: 'theme_name', desc: true }];
   const columns = useMemo(
     () => [
@@ -234,12 +342,26 @@ function ThemesList({
                 <Tooltip
                   title={t('This theme is set locally for your session')}
                 >
-                  <Tag color="green">{t('Local')}</Tag>
+                  <Tag color="success">{t('Local')}</Tag>
                 </Tooltip>
               )}
               {original.is_system && (
                 <Tooltip title={t('Defined through system configuration.')}>
-                  <Tag color="blue">{t('System')}</Tag>
+                  <Tag color="processing">{t('System')}</Tag>
+                </Tooltip>
+              )}
+              {original.is_system_default && (
+                <Tooltip title={t('This is the system default theme')}>
+                  <Tag color="warning">
+                    <Icons.SunOutlined /> {t('Default')}
+                  </Tag>
+                </Tooltip>
+              )}
+              {original.is_system_dark && (
+                <Tooltip title={t('This is the system dark theme')}>
+                  <Tag color="default">
+                    <Icons.MoonOutlined /> {t('Dark')}
+                  </Tag>
                 </Tooltip>
               )}
             </FlexRowContainer>
@@ -267,7 +389,17 @@ function ThemesList({
       {
         Cell: ({ row: { original } }: any) => {
           const handleEdit = () => handleThemeEdit(original);
-          const handleDelete = () => setThemeCurrentlyDeleting(original);
+          const handleDelete = () => {
+            if (original.is_system_default || original.is_system_dark) {
+              addDangerToast(
+                t(
+                  'Cannot delete theme that is set as system default or dark theme',
+                ),
+              );
+              return;
+            }
+            setThemeCurrentlyDeleting(original);
+          };
           const handleApply = () => handleThemeApply(original);
           const handleExport = () => handleBulkThemeExport([original]);
 
@@ -303,6 +435,42 @@ function ThemesList({
                   onClick: handleExport,
                 }
               : null,
+            canSetSystemThemes && !original.is_system_default
+              ? {
+                  label: 'set-default-action',
+                  tooltip: t('Set as system default theme'),
+                  placement: 'bottom',
+                  icon: 'SunOutlined',
+                  onClick: () => handleSetSystemDefault(original),
+                }
+              : null,
+            canSetSystemThemes && original.is_system_default
+              ? {
+                  label: 'unset-default-action',
+                  tooltip: t('Remove as system default theme'),
+                  placement: 'bottom',
+                  icon: 'StopOutlined',
+                  onClick: () => handleUnsetSystemDefault(),
+                }
+              : null,
+            canSetSystemThemes && !original.is_system_dark
+              ? {
+                  label: 'set-dark-action',
+                  tooltip: t('Set as system dark theme'),
+                  placement: 'bottom',
+                  icon: 'MoonOutlined',
+                  onClick: () => handleSetSystemDark(original),
+                }
+              : null,
+            canSetSystemThemes && original.is_system_dark
+              ? {
+                  label: 'unset-dark-action',
+                  tooltip: t('Remove as system dark theme'),
+                  placement: 'bottom',
+                  icon: 'StopOutlined',
+                  onClick: () => handleUnsetSystemDark(),
+                }
+              : null,
             canDelete && !original.is_system
               ? {
                   label: 'delete-action',
@@ -330,7 +498,14 @@ function ThemesList({
         id: QueryObjectColumns.ChangedBy,
       },
     ],
-    [canDelete, canCreate, canApply, canExport, appliedThemeId],
+    [
+      canDelete,
+      canCreate,
+      canApply,
+      canExport,
+      canSetSystemThemes,
+      appliedThemeId,
+    ],
   );
 
   const menuData: SubMenuProps = {

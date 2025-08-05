@@ -20,7 +20,7 @@ from io import BytesIO
 from typing import Any
 from zipfile import ZipFile
 
-from flask import request, Response, send_file
+from flask import current_app as app, request, Response, send_file
 from flask_appbuilder.api import expose, protect, rison, safe
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_babel import ngettext
@@ -36,6 +36,12 @@ from superset.commands.theme.exceptions import (
 )
 from superset.commands.theme.export import ExportThemesCommand
 from superset.commands.theme.importers.dispatcher import ImportThemesCommand
+from superset.commands.theme.set_system_theme import (
+    ClearSystemDarkThemeCommand,
+    ClearSystemDefaultThemeCommand,
+    SetSystemDarkThemeCommand,
+    SetSystemDefaultThemeCommand,
+)
 from superset.commands.theme.update import UpdateThemeCommand
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.extensions import event_logger
@@ -67,9 +73,19 @@ class ThemeRestApi(BaseSupersetModelRestApi):
         RouteMethod.IMPORT,
         RouteMethod.RELATED,
         "bulk_delete",  # not using RouteMethod since locally defined
+        "set_system_default",
+        "set_system_dark",
+        "unset_system_default",
+        "unset_system_dark",
     }
     class_permission_name = "Theme"
-    method_permission_name = MODEL_API_RW_METHOD_PERMISSION_MAP
+    method_permission_name = {
+        **MODEL_API_RW_METHOD_PERMISSION_MAP,
+        "set_system_default": "write",
+        "set_system_dark": "write",
+        "unset_system_default": "write",
+        "unset_system_dark": "write",
+    }
 
     resource_name = "theme"
     allow_browser_login = True
@@ -85,6 +101,8 @@ class ThemeRestApi(BaseSupersetModelRestApi):
         "json_data",
         "id",
         "is_system",
+        "is_system_default",
+        "is_system_dark",
         "theme_name",
         "uuid",
     ]
@@ -101,6 +119,8 @@ class ThemeRestApi(BaseSupersetModelRestApi):
         "json_data",
         "id",
         "is_system",
+        "is_system_default",
+        "is_system_dark",
         "theme_name",
         "uuid",
     ]
@@ -531,4 +551,262 @@ class ThemeRestApi(BaseSupersetModelRestApi):
             return self.response_400(message=str(err))
         except Exception as ex:
             logger.exception("Unexpected error importing themes")
+            return self.response_422(message=str(ex))
+
+    @expose("/<int:pk>/set_system_default", methods=("PUT",))
+    @protect()
+    @safe
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self,
+        *args,
+        **kwargs: f"{self.__class__.__name__}.set_system_default",
+        log_to_statsd=False,
+    )
+    def set_system_default(self, pk: int) -> Response:
+        """Set a theme as the system default theme.
+        ---
+        put:
+          summary: Set a theme as the system default theme
+          parameters:
+          - in: path
+            schema:
+              type: integer
+            description: The theme id
+            name: pk
+          responses:
+            200:
+              description: Theme successfully set as system default
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      id:
+                        type: integer
+                      result:
+                        type: string
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
+            404:
+              $ref: '#/components/responses/404'
+            422:
+              $ref: '#/components/responses/422'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        # Check if user is admin
+        from superset import security_manager
+
+        if not security_manager.is_admin():
+            return self.response_403(
+                message="Only administrators can set system themes"
+            )
+
+        # Check if UI theme administration is enabled
+        # Check new boolean config first, then fall back to deprecated THEME_SETTINGS
+        enable_ui_admin = app.config.get("ENABLE_UI_THEME_ADMINISTRATION")
+        if enable_ui_admin is None:
+            theme_settings = app.config.get("THEME_SETTINGS", {})
+            enable_ui_admin = theme_settings.get("enableUiThemeAdministration", False)
+
+        if not enable_ui_admin:
+            return self.response_403(message="UI theme administration is not enabled")
+
+        try:
+            command = SetSystemDefaultThemeCommand(pk)
+            theme = command.run()
+            return self.response(200, id=theme.id, result="success")
+        except ThemeNotFoundError:
+            return self.response_404()
+        except Exception as ex:
+            return self.response_422(message=str(ex))
+
+    @expose("/<int:pk>/set_system_dark", methods=("PUT",))
+    @protect()
+    @safe
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self,
+        *args,
+        **kwargs: f"{self.__class__.__name__}.set_system_dark",
+        log_to_statsd=False,
+    )
+    def set_system_dark(self, pk: int) -> Response:
+        """Set a theme as the system dark theme.
+        ---
+        put:
+          summary: Set a theme as the system dark theme
+          parameters:
+          - in: path
+            schema:
+              type: integer
+            description: The theme id
+            name: pk
+          responses:
+            200:
+              description: Theme successfully set as system dark
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      id:
+                        type: integer
+                      result:
+                        type: string
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
+            404:
+              $ref: '#/components/responses/404'
+            422:
+              $ref: '#/components/responses/422'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        # Check if user is admin
+        from superset import security_manager
+
+        if not security_manager.is_admin():
+            return self.response_403(
+                message="Only administrators can set system themes"
+            )
+
+        # Check if UI theme administration is enabled
+        # Check new boolean config first, then fall back to deprecated THEME_SETTINGS
+        enable_ui_admin = app.config.get("ENABLE_UI_THEME_ADMINISTRATION")
+        if enable_ui_admin is None:
+            theme_settings = app.config.get("THEME_SETTINGS", {})
+            enable_ui_admin = theme_settings.get("enableUiThemeAdministration", False)
+
+        if not enable_ui_admin:
+            return self.response_403(message="UI theme administration is not enabled")
+
+        try:
+            command = SetSystemDarkThemeCommand(pk)
+            theme = command.run()
+            return self.response(200, id=theme.id, result="success")
+        except ThemeNotFoundError:
+            return self.response_404()
+        except Exception as ex:
+            return self.response_422(message=str(ex))
+
+    @expose("/unset_system_default", methods=("DELETE",))
+    @protect()
+    @safe
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self,
+        *args,
+        **kwargs: f"{self.__class__.__name__}.unset_system_default",
+        log_to_statsd=False,
+    )
+    def unset_system_default(self) -> Response:
+        """Clear the system default theme.
+        ---
+        delete:
+          summary: Clear the system default theme
+          responses:
+            200:
+              description: System default theme cleared
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      result:
+                        type: string
+            401:
+              $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        # Check if user is admin
+        from superset import security_manager
+
+        if not security_manager.is_admin():
+            return self.response_403(
+                message="Only administrators can set system themes"
+            )
+
+        # Check if UI theme administration is enabled
+        # Check new boolean config first, then fall back to deprecated THEME_SETTINGS
+        enable_ui_admin = app.config.get("ENABLE_UI_THEME_ADMINISTRATION")
+        if enable_ui_admin is None:
+            theme_settings = app.config.get("THEME_SETTINGS", {})
+            enable_ui_admin = theme_settings.get("enableUiThemeAdministration", False)
+
+        if not enable_ui_admin:
+            return self.response_403(message="UI theme administration is not enabled")
+
+        try:
+            ClearSystemDefaultThemeCommand().run()
+            return self.response(200, result="success")
+        except Exception as ex:
+            return self.response_422(message=str(ex))
+
+    @expose("/unset_system_dark", methods=("DELETE",))
+    @protect()
+    @safe
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self,
+        *args,
+        **kwargs: f"{self.__class__.__name__}.unset_system_dark",
+        log_to_statsd=False,
+    )
+    def unset_system_dark(self) -> Response:
+        """Clear the system dark theme.
+        ---
+        delete:
+          summary: Clear the system dark theme
+          responses:
+            200:
+              description: System dark theme cleared
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      result:
+                        type: string
+            401:
+              $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        # Check if user is admin
+        from superset import security_manager
+
+        if not security_manager.is_admin():
+            return self.response_403(
+                message="Only administrators can set system themes"
+            )
+
+        # Check if UI theme administration is enabled
+        # Check new boolean config first, then fall back to deprecated THEME_SETTINGS
+        enable_ui_admin = app.config.get("ENABLE_UI_THEME_ADMINISTRATION")
+        if enable_ui_admin is None:
+            theme_settings = app.config.get("THEME_SETTINGS", {})
+            enable_ui_admin = theme_settings.get("enableUiThemeAdministration", False)
+
+        if not enable_ui_admin:
+            return self.response_403(message="UI theme administration is not enabled")
+
+        try:
+            ClearSystemDarkThemeCommand().run()
+            return self.response(200, result="success")
+        except Exception as ex:
             return self.response_422(message=str(ex))

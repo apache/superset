@@ -49,9 +49,7 @@ class ThemeSettings(TypedDict, total=False):
     Represents the settings for themes in the application.
     """
 
-    enforced: Optional[bool]
-    allowSwitching: Optional[bool]
-    allowOSPreference: Optional[bool]
+    enableUiThemeAdministration: Optional[bool]
 
 
 class ThemeMode(str, Enum):
@@ -62,6 +60,4 @@ class ThemeMode(str, Enum):
 
 
 class ThemeSettingsKey(str, Enum):
-    ENFORCED = "enforced"
-    ALLOW_SWITCHING = "allowSwitching"
-    ALLOW_OS_PREFERENCE = "allowOSPreference"
+    ENABLE_UI_THEME_ADMINISTRATION = "enableUiThemeAdministration"

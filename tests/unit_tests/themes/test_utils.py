@@ -18,7 +18,7 @@
 
 import pytest
 
-from superset.themes.types import ThemeMode, ThemeSettingsKey
+from superset.themes.types import ThemeMode
 from superset.themes.utils import (
     _is_valid_algorithm,
     _is_valid_theme_mode,
@@ -84,9 +84,9 @@ def test_is_valid_theme(theme, expected):
         ([], False),  # not a dict
         ("string", False),
         ({}, True),  # empty
-        ({key.value: True for key in ThemeSettingsKey}, True),
-        ({"enforced": True, "foo": False}, False),  # invalid key
-        ({"enforced": "yes"}, False),  # invalid value type
+        ({"enableUiThemeAdministration": True}, True),
+        ({"enableUiThemeAdministration": True, "foo": False}, False),  # invalid key
+        ({"enableUiThemeAdministration": "yes"}, False),  # invalid value type
     ],
 )
 def test_is_valid_theme_settings(settings, expected):
