@@ -26,6 +26,7 @@ import {
   within,
 } from '@superset-ui/core/spec';
 import { AsyncSelect } from '.';
+import type { SelectOptionsTypePage } from './types';
 
 const ARIA_LABEL = 'Test';
 const NEW_OPTION = 'Kyle';
@@ -514,20 +515,20 @@ test('opens the select without any data', async () => {
 test('displays the loading indicator when opening', async () => {
   // Use an async function that takes time to resolve
   const slowLoadOptions = jest.fn(
-    () =>
-      new Promise(resolve => {
+    (search: string, page: number, pageSize: number) =>
+      new Promise<SelectOptionsTypePage>(resolve => {
         setTimeout(() => {
-          resolve(loadOptions());
+          resolve(loadOptions(search, page, pageSize));
         }, 100);
       }),
   );
-  
+
   render(<AsyncSelect {...defaultProps} options={slowLoadOptions} />);
   await userEvent.click(getSelect());
-  
+
   // The loading state should be shown when the dropdown opens
   expect(screen.getByText(LOADING)).toBeInTheDocument();
-  
+
   // After loading completes, the loading text should disappear
   await waitFor(() => {
     expect(screen.queryByText(LOADING)).not.toBeInTheDocument();
