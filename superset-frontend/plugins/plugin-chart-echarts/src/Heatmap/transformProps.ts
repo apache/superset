@@ -100,6 +100,8 @@ export default function transformProps(
     yAxisFormat,
     xAxisTimeFormat,
     currencyFormat,
+    sort_x_axis: sortXAxis,
+    sort_y_axis: sortYAxis,
   } = formData;
   const metricLabel = getMetricLabel(metric);
   const xAxisLabel = getColumnLabel(xAxis);
@@ -142,6 +144,73 @@ export default function transformProps(
       (maxBy(data, row => row[colorColumn])?.[colorColumn] as number) ||
       DEFAULT_ECHARTS_BOUNDS[1];
   }
+
+  // Extract unique values for each axis
+  const xValues = Array.from(new Set(data.map(row => row[xAxisLabel])));
+  const yValues = Array.from(new Set(data.map(row => row[yAxisLabel])));
+
+  // Sort axis values based on configuration
+  const sortAxisValues = (
+    values: any[],
+    sortConfig: string | undefined,
+    axisLabel: string,
+  ) => {
+    if (!sortConfig) {
+      return values;
+    }
+
+    const isMetricSort = sortConfig.includes('value');
+    const isAscending = sortConfig.includes('asc');
+
+    if (isMetricSort) {
+      // Create a map of axis value to metric sum for sorting by metric
+      const metricSums: Record<string, number> = {};
+      data.forEach(row => {
+        const axisValue = row[axisLabel];
+        const metricValue = row[metricLabel];
+        if (typeof metricValue === 'number' && axisValue != null) {
+          const key = String(axisValue);
+          metricSums[key] = (metricSums[key] || 0) + metricValue;
+        }
+      });
+
+      values.sort((a, b) => {
+        const keyA = String(a);
+        const keyB = String(b);
+        const sumA = metricSums[keyA] || 0;
+        const sumB = metricSums[keyB] || 0;
+        return isAscending ? sumA - sumB : sumB - sumA;
+      });
+    } else {
+      // Sort alphabetically/numerically
+      values.sort((a, b) => {
+        // Handle null/undefined values
+        if (a === null || a === undefined) return isAscending ? -1 : 1;
+        if (b === null || b === undefined) return isAscending ? 1 : -1;
+
+        // Convert to strings for comparison
+        const strA = String(a);
+        const strB = String(b);
+
+        // Try numeric comparison first
+        const numA = Number(strA);
+        const numB = Number(strB);
+        if (!Number.isNaN(numA) && !Number.isNaN(numB)) {
+          return isAscending ? numA - numB : numB - numA;
+        }
+
+        // Fall back to string comparison
+        return isAscending
+          ? strA.localeCompare(strB)
+          : strB.localeCompare(strA);
+      });
+    }
+
+    return values;
+  };
+
+  const sortedXValues = sortAxisValues(xValues, sortXAxis, xAxisLabel);
+  const sortedYValues = sortAxisValues(yValues, sortYAxis, yAxisLabel);
 
   const series: HeatmapSeriesOption[] = [
     {
@@ -248,6 +317,9 @@ export default function transformProps(
     },
     xAxis: {
       type: 'category',
+      data: sortedXValues.map(v =>
+        v === null || v === undefined ? NULL_STRING : v,
+      ),
       axisLabel: {
         formatter: xAxisFormatter,
         interval: xscaleInterval === -1 ? 'auto' : xscaleInterval - 1,
@@ -255,6 +327,9 @@ export default function transformProps(
     },
     yAxis: {
       type: 'category',
+      data: sortedYValues.map(v =>
+        v === null || v === undefined ? NULL_STRING : v,
+      ),
       axisLabel: {
         formatter: yAxisFormatter,
         interval: yscaleInterval === -1 ? 'auto' : yscaleInterval - 1,
