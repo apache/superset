@@ -28,7 +28,10 @@ import {
   supersetTheme,
   TimeseriesAnnotationLayer,
 } from '@superset-ui/core';
-import { EchartsTimeseriesChartProps } from '../../src/types';
+import {
+  EchartsTimeseriesChartProps,
+  EchartsTimeseriesLineStyle,
+} from '../../src/types';
 import transformProps from '../../src/Timeseries/transformProps';
 
 describe('EchartsTimeseries transformProps', () => {
@@ -413,6 +416,7 @@ describe('Does transformProps transform series correctly', () => {
     label: { show: boolean; formatter: labelFormatterType };
     data: seriesDataType[];
     name: string;
+    lineStyle: { type: EchartsTimeseriesLineStyle };
   };
 
   const formData: SqlaFormData = {
@@ -631,6 +635,26 @@ describe('Does transformProps transform series correctly', () => {
       '1 year ago, foo2, bar2': ['foo2', 'bar2'],
       'foo1, bar1': ['foo1', 'bar1'],
       'foo2, bar2': ['foo2', 'bar2'],
+    });
+  });
+
+  it('should apply line style for all series when an overrideLineStyle is chosen', () => {
+    const updatedChartPropsConfig = {
+      ...chartPropsConfig,
+      formData: {
+        ...formData,
+        overrideLineStyle: EchartsTimeseriesLineStyle.Dashed,
+      },
+    };
+
+    const chartProps = new ChartProps(updatedChartPropsConfig);
+
+    const transformedSeries = transformProps(
+      chartProps as EchartsTimeseriesChartProps,
+    ).echartOptions.series as seriesType[];
+
+    transformedSeries.forEach(series => {
+      expect(series.lineStyle.type).toEqual(EchartsTimeseriesLineStyle.Dashed);
     });
   });
 });
