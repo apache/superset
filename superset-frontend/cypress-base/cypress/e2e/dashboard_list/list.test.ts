@@ -16,15 +16,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { DASHBOARD_LIST } from 'cypress/utils/urls';
 import { setGridMode, toggleBulkSelect } from 'cypress/utils';
+import { DASHBOARD_LIST } from 'cypress/utils/urls';
 import {
-  setFilter,
   interceptBulkDelete,
-  interceptUpdate,
   interceptDelete,
   interceptFav,
   interceptUnfav,
+  interceptUpdate,
+  setFilter,
 } from '../dashboard/utils';
 
 function orderAlphabetical() {
@@ -72,9 +72,10 @@ describe('Dashboards list', () => {
       cy.getBySel('listview-table').should('be.visible');
       cy.getBySel('sort-header').eq(1).contains('Name');
       cy.getBySel('sort-header').eq(2).contains('Status');
-      cy.getBySel('sort-header').eq(3).contains('Owners');
-      cy.getBySel('sort-header').eq(4).contains('Last modified');
-      cy.getBySel('sort-header').eq(5).contains('Actions');
+      cy.getBySel('sort-header').eq(3).contains('Tags');
+      cy.getBySel('sort-header').eq(4).contains('Owners');
+      cy.getBySel('sort-header').eq(5).contains('Last modified');
+      cy.getBySel('sort-header').eq(6).contains('Actions');
     });
 
     it('should sort correctly in list mode', () => {
