@@ -597,6 +597,47 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
         return False
 
+    def has_drill_by_access(
+        self,
+        form_data: dict[str, Any],
+        dashboard: "Dashboard",
+        datasource: "BaseDatasource",
+    ) -> bool:
+        """
+        Return True if the form_data is performing a supported drill by operation,
+        False otherwise.
+
+        :param form_data: The form_data included in the request.
+        :param dashboard: The dashboard the user is drilling from.
+        :returns: Whether the user has drill byaccess.
+        """
+
+        from superset.connectors.sqla.models import TableColumn
+
+        return bool(
+            form_data.get("type") != "NATIVE_FILTER"
+            and form_data.get("slice_id") == 0
+            and (chart_id := form_data.get("chart_id"))
+            and (
+                slc := self.get_session.query(Slice)
+                .filter(Slice.id == chart_id)
+                .one_or_none()
+            )
+            and slc in dashboard.slices
+            and slc.datasource == datasource
+            and (dimensions := form_data.get("groupby"))
+            and (
+                drillable_columns := {
+                    row[0]
+                    for row in self.get_session.query(TableColumn.column_name)
+                    .filter(TableColumn.table_id == datasource.id)
+                    .filter(TableColumn.groupby)
+                    .all()
+                }
+            )
+            and set(dimensions).issubset(drillable_columns)
+        )
+
     def can_access_dashboard(self, dashboard: "Dashboard") -> bool:
         """
         Return True if the user can access the specified dashboard, False otherwise.
@@ -2260,7 +2301,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         """
         # pylint: disable=import-outside-toplevel
         from superset import is_feature_enabled
-        from superset.connectors.sqla.models import SqlaTable, TableColumn
+        from superset.connectors.sqla.models import SqlaTable
         from superset.models.dashboard import Dashboard
         from superset.models.slice import Slice
         from superset.models.sql_lab import Query
@@ -2428,32 +2469,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                             and slc in dashboard_.slices
                             and slc.datasource == datasource
                         )
-                        or (
-                            # D2D
-                            form_data.get("type") != "NATIVE_FILTER"
-                            and form_data.get("slice_id") == 0
-                            and (chart_id := form_data.get("chart_id"))
-                            and (
-                                slc := self.get_session.query(Slice)
-                                .filter(Slice.id == chart_id)
-                                .one_or_none()
-                            )
-                            and slc in dashboard_.slices
-                            and slc.datasource == datasource
-                            and (dimensions := form_data.get("groupby"))
-                            and (
-                                drillable_columns := {
-                                    row[0]
-                                    for row in self.get_session.query(
-                                        TableColumn.column_name
-                                    )
-                                    .filter(TableColumn.table_id == datasource.id)
-                                    .filter(TableColumn.groupby)
-                                    .all()
-                                }
-                            )
-                            and set(dimensions).issubset(drillable_columns)
-                        )
+                        or self.has_drill_by_access(form_data, dashboard_, datasource)
                     )
                     and self.can_access_dashboard(dashboard_)
                 )
