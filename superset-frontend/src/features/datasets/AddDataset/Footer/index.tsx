@@ -121,8 +121,8 @@ function Footer({
     onSave(false);
   };
 
-  const CREATE_DATASET_TEXT = t('Create dataset and create chart');
-  const CREATE_DATASET_ONLY_TEXT = t('Create dataset only');
+  const CREATE_DATASET_TEXT = t('Create and explore dataset');
+  const CREATE_DATASET_ONLY_TEXT = t('Create dataset');
   const disabledCheck =
     !datasetObject?.table_name ||
     !hasColumns ||
