@@ -37,7 +37,7 @@ def load_paris_iris_geojson(only_metadata: bool = False, force: bool = False) ->
         table_exists = database.has_table(Table(tbl_name, schema))
 
         if not only_metadata and (not table_exists or force):
-            df = read_example_data("paris_iris.json.gz", compression="gzip")
+            df = read_example_data("examples://paris_iris.json.gz", compression="gzip")
             df["features"] = df.features.map(json.dumps)
 
             df.to_sql(

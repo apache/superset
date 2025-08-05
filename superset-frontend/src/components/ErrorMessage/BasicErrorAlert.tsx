@@ -16,7 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ErrorLevel, styled, themeObject, useTheme } from '@superset-ui/core';
+import {
+  ErrorLevel,
+  styled,
+  useTheme,
+  getColorVariants,
+} from '@superset-ui/core';
 import { Icons } from '@superset-ui/core/components';
 
 const StyledContent = styled.div`
@@ -42,7 +47,7 @@ export function BasicErrorAlert({
   title,
 }: BasicErrorAlertProps) {
   const theme = useTheme();
-  const variants = themeObject.getColorVariants(level);
+  const variants = getColorVariants(theme, level);
   const style: React.CSSProperties = {
     backgroundColor: variants.bg,
     borderColor: variants.border,

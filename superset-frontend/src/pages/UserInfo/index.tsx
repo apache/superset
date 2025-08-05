@@ -54,11 +54,11 @@ const DescriptionsContainer = styled.div`
 
 const StyledLayout = styled.div`
   ${({ theme }) => css`
-    .antd5-row {
+    .ant-row {
       margin: 0px ${theme.sizeUnit * 3}px ${theme.sizeUnit * 6}px
         ${theme.sizeUnit * 3}px;
     }
-    && .menu > .antd5-menu {
+    && .menu > .ant-menu {
       padding: 0px;
     }
     && .nav-right {
@@ -136,7 +136,6 @@ export function UserInfo({ user }: { user: UserWithPermissionsAndRoles }) {
       name: (
         <>
           <Icons.FormOutlined
-            iconColor={theme.colorIcon}
             iconSize="m"
             css={css`
               margin: auto ${theme.sizeUnit * 2}px auto 0;

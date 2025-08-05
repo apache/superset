@@ -57,6 +57,7 @@ from superset.key_value.types import JsonKeyValueCodec
 from superset.stats_logger import DummyStatsLogger
 from superset.superset_typing import CacheConfig
 from superset.tasks.types import ExecutorType
+from superset.themes.types import Theme
 from superset.utils import core as utils
 from superset.utils.core import NO_TIME_RANGE, parse_boolean_string, QuerySource
 from superset.utils.encrypt import SQLAlchemyUtilsAdapter
@@ -165,6 +166,17 @@ SAMPLES_ROW_LIMIT = 1000
 NATIVE_FILTER_DEFAULT_ROW_LIMIT = 1000
 # max rows retrieved by filter select auto complete
 FILTER_SELECT_ROW_LIMIT = 10000
+
+# SupersetClient HTTP retry configuration
+# Controls retry behavior for all HTTP requests made through SupersetClient
+# This helps handle transient server errors (like 502 Bad Gateway) automatically
+SUPERSET_CLIENT_RETRY_ATTEMPTS = 3  # Maximum number of retry attempts
+SUPERSET_CLIENT_RETRY_DELAY = 1000  # Initial retry delay in milliseconds
+SUPERSET_CLIENT_RETRY_BACKOFF_MULTIPLIER = 2  # Exponential backoff multiplier
+SUPERSET_CLIENT_RETRY_MAX_DELAY = 10000  # Maximum retry delay cap in milliseconds
+SUPERSET_CLIENT_RETRY_JITTER_MAX = 1000  # Maximum random jitter in milliseconds
+# HTTP status codes that should trigger retries (502, 503, 504 gateway errors)
+SUPERSET_CLIENT_RETRY_STATUS_CODES = [502, 503, 504]
 # default time filter in explore
 # values may be "Last day", "Last week", "<ISO date> : now", etc.
 DEFAULT_TIME_FILTER = NO_TIME_RANGE
@@ -267,10 +279,11 @@ WTF_CSRF_ENABLED = True
 
 # Add endpoints that need to be exempt from CSRF protection
 WTF_CSRF_EXEMPT_LIST = [
-    "superset.views.core.log",
-    "superset.views.core.explore_json",
     "superset.charts.data.api.data",
     "superset.dashboards.api.cache_dashboard_screenshot",
+    "superset.views.core.explore_json",
+    "superset.views.core.log",
+    "superset.views.datasource.views.samples",
 ]
 
 # Whether to run the web server in debug mode or not
@@ -421,6 +434,28 @@ class D3Format(TypedDict, total=False):
 
 D3_FORMAT: D3Format = {}
 
+# Override the default mapbox tiles
+# Default values are equivalent to
+# DECKGL_BASE_MAP = [
+#   ['https://tile.openstreetmap.org/{z}/{x}/{y}.png', 'Streets (OSM)'],
+#   ['https://tile.osm.ch/osm-swiss-style/{z}/{x}/{y}.png', 'Topography (OSM)'],
+#   ['mapbox://styles/mapbox/streets-v9', 'Streets'],
+#   ['mapbox://styles/mapbox/dark-v9', 'Dark'],
+#   ['mapbox://styles/mapbox/light-v9', 'Light'],
+#   ['mapbox://styles/mapbox/satellite-streets-v9', 'Satellite Streets'],
+#   ['mapbox://styles/mapbox/satellite-v9', 'Satellite'],
+#   ['mapbox://styles/mapbox/outdoors-v9', 'Outdoors'],
+# ]
+# for adding your own map tiles, you can use the following format:
+# - tile:// + your_personal_url or openstreetmap_url
+#   example:
+#   DECKGL_BASE_MAP = [
+#       ['tile://https://c.tile.openstreetmap.org/{z}/{x}/{y}.png', 'OpenStreetMap']
+#    ]
+# Enable CORS and set map url in origins option.
+# Add also map url in connect-src of TALISMAN_CONFIG variable
+DECKGL_BASE_MAP: list[list[str, str]] = None
+
 
 # Override the default d3 locale for time format
 # Default values are equivalent to
@@ -532,6 +567,8 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     "DRILL_TO_DETAIL": True,  # deprecated
     "DRILL_BY": True,
     "DATAPANEL_CLOSED_BY_DEFAULT": False,
+    # When you open the dashboard, the filter panel will be closed
+    "FILTERBAR_CLOSED_BY_DEFAULT": False,
     # The feature is off by default, and currently only supported in Presto and Postgres,  # noqa: E501
     # and Bigquery.
     # It also needs to be enabled on a per-database basis, by adding the key/value pair
@@ -565,15 +602,11 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # If on, you'll want to add "https://avatars.slack-edge.com" to the list of allowed
     # domains in your TALISMAN_CONFIG
     "SLACK_ENABLE_AVATARS": False,
-    # Adds a switch to the navbar to easily switch between light and dark themes.
-    # This is intended to use for development, visual review, and theming-debugging
-    # purposes.
-    "THEME_ENABLE_DARK_THEME_SWITCH": False,
     # Adds a theme editor as a modal dialog in the navbar. Allows people to type in JSON
-    # and see the changes applied to the current theme.
-    # This is intended to use for theme creation, visual review and theming-debugging
-    # purposes.
-    "THEME_ALLOW_THEME_EDITOR_BETA": False,
+    # Enables CSS Templates functionality in Settings menu and dashboard forms.
+    # When disabled, users can still add custom CSS to dashboards but cannot use
+    # pre-built CSS templates.
+    "CSS_TEMPLATES": True,
     # Allow users to optionally specify date formats in email subjects, which will
     # be parsed if enabled
     "DATE_FORMAT_IN_EMAIL_SUBJECT": False,
@@ -584,6 +617,9 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     "AG_GRID_TABLE_ENABLED": False,
     # Enable Table v2 time comparison feature
     "TABLE_V2_TIME_COMPARISON_ENABLED": False,
+    # Enable support for date range timeshifts (e.g., "2015-01-03 : 2015-01-04")
+    # in addition to relative timeshifts (e.g., "1 day ago")
+    "DATE_RANGE_TIMESHIFTS_ENABLED": False,
 }
 
 # ------------------------------
@@ -678,18 +714,70 @@ COMMON_BOOTSTRAP_OVERRIDES_FUNC: Callable[  # noqa: E731
 # This is merely a default
 EXTRA_CATEGORICAL_COLOR_SCHEMES: list[dict[str, Any]] = []
 
-# THEME is used for setting a custom theme to Superset, it follows the ant design
-# theme structure
-# You can use the AntDesign theme editor to generate a theme structure
-# https://ant.design/theme-editor
+# ---------------------------------------------------
+# Theme Configuration for Superset
+# ---------------------------------------------------
+# Superset supports custom theming through Ant Design's theme structure.
+# This allows users to customize colors, fonts, and other UI elements.
+#
+# Theme Generation:
+# - Use the Ant Design theme editor: https://ant.design/theme-editor
+# - Export or copy the generated theme JSON and assign to the variables below
+# - For detailed instructions: https://superset.apache.org/docs/configuration/theming/
+#
 # To expose a JSON theme editor modal that can be triggered from the navbar
 # set the `ENABLE_THEME_EDITOR` feature flag to True.
 #
-# To set up the dark theme:
-# THEME = {"algorithm": "dark"}
+# Theme Structure:
+# Each theme should follow Ant Design's theme format.
+# To create custom themes, use the Ant Design Theme Editor at https://ant.design/theme-editor
+# and copy the generated JSON configuration.
+#
+# Example theme definition:
+# THEME_DEFAULT = {
+#       "token": {
+#            "colorPrimary": "#2893B3",
+#            "colorSuccess": "#5ac189",
+#            "colorWarning": "#fcc700",
+#            "colorError": "#e04355",
+#            "fontFamily": "'Inter', Helvetica, Arial",
+#            ... # other tokens
+#       },
+#       ... # other theme properties
+# }
 
-THEME: dict[str, Any] = {}
 
+# Default theme configuration
+# Leave empty to use Superset's default theme
+THEME_DEFAULT: Theme = {"algorithm": "default"}
+
+# Dark theme configuration
+# Applied when user selects dark mode
+THEME_DARK: Theme = {"algorithm": "dark"}
+
+# Theme behavior and user preference settings
+# Controls how themes are applied and what options users have
+# - enforced: Forces the default theme always, overriding all other settings
+# - allowSwitching: Allows users to manually switch between default and dark themes.
+# - allowOSPreference: Allows the app to automatically use the system's preferred theme mode  # noqa: E501
+#
+# Example:
+THEME_SETTINGS = {
+    "enforced": False,  # If True, forces the default theme and ignores user preferences  # noqa: E501
+    "allowSwitching": True,  # Allows user to switch between themes (default and dark)  # noqa: E501
+    "allowOSPreference": True,  # Allows the app to Auto-detect and set system theme preference  # noqa: E501
+}
+
+# Custom font configuration
+# Load external fonts at runtime without rebuilding the application
+# Example:
+# CUSTOM_FONT_URLS = [
+#     "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap",
+#     "https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;500&display=swap",
+# ]
+CUSTOM_FONT_URLS: list[str] = []
+
+# ---------------------------------------------------
 # EXTRA_SEQUENTIAL_COLOR_SCHEMES is used for adding custom sequential color schemes
 # EXTRA_SEQUENTIAL_COLOR_SCHEMES =  [
 #     {
@@ -835,8 +923,13 @@ STORE_CACHE_KEYS_IN_METADATA_DB = False
 # CORS Options
 # NOTE: enabling this requires installing the cors-related python dependencies
 # `pip install .[cors]` or `pip install apache_superset[cors]`, depending
-ENABLE_CORS = False
-CORS_OPTIONS: dict[Any, Any] = {}
+ENABLE_CORS = True
+CORS_OPTIONS: dict[Any, Any] = {
+    "origins": [
+        "https://tile.openstreetmap.org",
+        "https://tile.osm.ch",
+    ]
+}
 
 # Sanitizes the HTML content used in markdowns to allow its rendering in a safe manner.
 # Disabling this option is not recommended for security reasons. If you wish to allow
@@ -877,7 +970,7 @@ ALLOWED_EXTENSIONS = {*EXCEL_EXTENSIONS, *CSV_EXTENSIONS, *COLUMNAR_EXTENSIONS}
 # CSV Options: key/value pairs that will be passed as argument to DataFrame.to_csv
 # method.
 # note: index option should not be overridden
-CSV_EXPORT = {"encoding": "utf-8"}
+CSV_EXPORT = {"encoding": "utf-8-sig"}
 
 # Excel Options: key/value pairs that will be passed as argument to DataFrame.to_excel
 # method.
@@ -1077,7 +1170,7 @@ class CeleryConfig:  # pylint: disable=too-few-public-methods
     }
 
 
-CELERY_CONFIG: type[CeleryConfig] = CeleryConfig
+CELERY_CONFIG: type[CeleryConfig] | None = CeleryConfig
 
 # Set celery config to None to disable all the above configuration
 # CELERY_CONFIG = None
@@ -1378,18 +1471,97 @@ DB_SQLA_URI_VALIDATOR: Callable[[URL], None] | None = None
 # unsafe SQL functions in SQL Lab and Charts. The keys of the dictionary are the engine
 # names, and the values are sets of disallowed functions.
 DISALLOWED_SQL_FUNCTIONS: dict[str, set[str]] = {
+    # PostgreSQL functions that could reveal sensitive information
     "postgresql": {
-        "database_to_xml",
+        # System information functions
+        "current_database",
+        "current_schema",
+        "current_user",
+        "session_user",
+        "current_setting",
+        "version",
+        # Network/server information functions
         "inet_client_addr",
+        "inet_client_port",
         "inet_server_addr",
+        "inet_server_port",
+        # File system functions
+        "pg_read_file",
+        "pg_ls_dir",
+        "pg_read_binary_file",
+        # XML functions that can execute SQL
+        "database_to_xml",
+        "database_to_xmlschema",
         "query_to_xml",
-        "query_to_xml_and_xmlschema",
+        "query_to_xmlschema",
         "table_to_xml",
         "table_to_xml_and_xmlschema",
-        "version",
+        "query_to_xml_and_xmlschema",
+        "table_to_xmlschema",
+        # Other potentially dangerous functions
+        "pg_sleep",
+        "pg_terminate_backend",
     },
-    "clickhouse": {"url", "version", "currentDatabase", "hostName"},
-    "mysql": {"version"},
+    # MySQL functions and variables that could reveal sensitive information
+    "mysql": {
+        # Functions
+        "database",
+        "schema",
+        "current_user",
+        "session_user",
+        "system_user",
+        "user",
+        "version",
+        "connection_id",
+        "load_file",
+        "sleep",
+        "benchmark",
+        "kill",
+    },
+    # SQLite functions that could reveal sensitive information
+    "sqlite": {
+        "sqlite_version",
+        "sqlite_source_id",
+        "sqlite_offset",
+        "sqlite_compileoption_used",
+        "sqlite_compileoption_get",
+        "load_extension",
+    },
+    # Microsoft SQL Server functions
+    "mssql": {
+        "db_name",
+        "suser_sname",
+        "user_name",
+        "host_name",
+        "host_id",
+        "suser_id",
+        "system_user",
+        "current_user",
+        "original_login",
+        "xp_cmdshell",
+        "xp_regread",
+        "xp_fileexist",
+        "xp_dirtree",
+        "serverproperty",
+        "is_srvrolemember",
+        "has_dbaccess",
+        "fn_virtualfilestats",
+        "fn_servershareddrives",
+    },
+    # Clickhouse functions
+    "clickhouse": {
+        "currentUser",
+        "currentDatabase",
+        "hostName",
+        "currentRoles",
+        "version",
+        "buildID",
+        "url",
+        "filesystemPath",
+        "getOSInformation",
+        "getMacro",
+        "getSetting",
+    },
 }
 
 
@@ -1665,6 +1837,8 @@ TALISMAN_CONFIG = {
             "'self'",
             "https://api.mapbox.com",
             "https://events.mapbox.com",
+            "https://tile.openstreetmap.org",
+            "https://tile.osm.ch",
         ],
         "object-src": "'none'",
         "style-src": [
@@ -1697,6 +1871,8 @@ TALISMAN_DEV_CONFIG = {
             "'self'",
             "https://api.mapbox.com",
             "https://events.mapbox.com",
+            "https://tile.openstreetmap.org",
+            "https://tile.osm.ch",
         ],
         "object-src": "'none'",
         "style-src": [
