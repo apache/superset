@@ -52,6 +52,7 @@ import { Tooltip } from 'src/components/Tooltip';
 import { commonMenuData } from 'src/features/home/commonMenuData';
 import { QueryObjectColumns, SavedQueryObject } from 'src/views/CRUD/types';
 import Tag from 'src/types/TagType';
+import copyTextToClipboard from 'src/utils/copy';
 import ImportModelsModal from 'src/components/ImportModal/index';
 import { ModifiedInfo } from 'src/components/AuditInfo';
 import { loadTags } from 'src/components/Tags/utils';
@@ -231,6 +232,21 @@ function SavedQueryList({
     }
   };
 
+  const copySavedQueryLink = useCallback(
+    (id: number) => {
+      copyTextToClipboard(() =>
+        Promise.resolve(`${window.location.origin}/sqllab?savedQueryId=${id}`),
+      )
+        .then(() => {
+          addSuccessToast(t('Link Copied!'));
+        })
+        .catch(() => {
+          addDangerToast(t('Sorry, your browser does not support copying.'));
+        });
+    },
+    [addDangerToast, addSuccessToast],
+  );
+
   const copyQueryLink = useCallback(
     async (savedQuery: SavedQueryObject) => {
       try {
@@ -407,6 +423,7 @@ function SavedQueryList({
           };
           const handleEdit = ({ metaKey }: MouseEvent) =>
             openInSqlLab(original.id, Boolean(metaKey));
+          const handleCopyLink = () => copySavedQueryLink(original.id);
           const handleCopy = () => copyQueryLink(original);
           const handleExport = () => handleBulkSavedQueryExport([original]);
           const handleDelete = () => setQueryCurrentlyDeleting(original);
@@ -427,8 +444,15 @@ function SavedQueryList({
               onClick: handleEdit,
             },
             {
+              label: 'copy-link-action',
+              tooltip: t('Share link'),
+              placement: 'bottom',
+              icon: 'Link',
+              onClick: handleCopyLink,
+            },
+            {
               label: 'copy-action',
-              tooltip: t('Copy query URL'),
+              tooltip: t('Copy current query URL'),
               placement: 'bottom',
               icon: 'Copy',
               onClick: handleCopy,
