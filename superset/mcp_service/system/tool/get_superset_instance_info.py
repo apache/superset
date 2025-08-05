@@ -26,7 +26,7 @@ from typing import Any, Dict
 from superset.mcp_service.auth import mcp_auth_hook
 from superset.mcp_service.generic_tools import InstanceInfoTool
 from superset.mcp_service.mcp_app import mcp
-from superset.mcp_service.schemas.system_schemas import (
+from superset.mcp_service.system.schemas import (
     DashboardBreakdown,
     DatabaseBreakdown,
     GetSupersetInstanceInfoRequest,

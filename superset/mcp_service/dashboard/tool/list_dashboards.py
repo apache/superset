@@ -26,17 +26,15 @@ import logging
 from typing import Any
 
 from superset.mcp_service.auth import mcp_auth_hook
-from superset.mcp_service.generic_tools import ModelListTool
-from superset.mcp_service.mcp_app import mcp
-from superset.mcp_service.schemas import (
+from superset.mcp_service.chart.schemas import serialize_chart_object
+from superset.mcp_service.dashboard.schemas import (
     DashboardFilter,
     DashboardInfo,
     DashboardList,
-)
-from superset.mcp_service.schemas.chart_schemas import serialize_chart_object
-from superset.mcp_service.schemas.dashboard_schemas import (
     ListDashboardsRequest,
 )
+from superset.mcp_service.generic_tools import ModelListTool
+from superset.mcp_service.mcp_app import mcp
 
 logger = logging.getLogger(__name__)
 

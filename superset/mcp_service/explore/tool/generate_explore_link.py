@@ -29,10 +29,10 @@ from superset.mcp_service.chart.chart_utils import (
     generate_explore_link as generate_url,
     map_config_to_form_data,
 )
-from superset.mcp_service.mcp_app import mcp
-from superset.mcp_service.schemas.chart_schemas import (
+from superset.mcp_service.chart.schemas import (
     GenerateExploreLinkRequest,
 )
+from superset.mcp_service.mcp_app import mcp
 
 
 @mcp.tool

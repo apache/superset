@@ -26,7 +26,7 @@ import logging
 from typing import Any, Dict, List
 
 from superset.commands.chart.data.get_data_command import ChartDataCommand
-from superset.mcp_service.schemas.chart_schemas import (
+from superset.mcp_service.chart.schemas import (
     ASCIIPreview,
     ChartError,
     TablePreview,

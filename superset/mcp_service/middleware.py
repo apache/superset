@@ -507,7 +507,7 @@ class FieldPermissionsMiddleware(Middleware):
         Returns:
             Filtered response
         """
-        from superset.mcp_service.permissions_utils import filter_sensitive_data
+        from superset.mcp_service.utils.permissions_utils import filter_sensitive_data
 
         if not response:
             return response

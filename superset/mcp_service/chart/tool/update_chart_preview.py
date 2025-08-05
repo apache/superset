@@ -31,14 +31,14 @@ from superset.mcp_service.chart.chart_utils import (
     generate_explore_link,
     map_config_to_form_data,
 )
-from superset.mcp_service.mcp_app import mcp
-from superset.mcp_service.schemas.chart_schemas import (
+from superset.mcp_service.chart.schemas import (
     AccessibilityMetadata,
     PerformanceMetadata,
     UpdateChartPreviewRequest,
     URLPreview,
 )
-from superset.mcp_service.url_utils import get_mcp_service_url
+from superset.mcp_service.mcp_app import mcp
+from superset.mcp_service.utils.url_utils import get_mcp_service_url
 
 logger = logging.getLogger(__name__)
 

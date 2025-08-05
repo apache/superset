@@ -26,14 +26,15 @@ import logging
 from typing import Any
 
 from superset.mcp_service.auth import mcp_auth_hook
-from superset.mcp_service.generic_tools import ModelGetInfoTool
-from superset.mcp_service.mcp_app import mcp
-from superset.mcp_service.schemas import DashboardError, DashboardInfo
-from superset.mcp_service.schemas.chart_schemas import serialize_chart_object
-from superset.mcp_service.schemas.dashboard_schemas import (
+from superset.mcp_service.chart.schemas import serialize_chart_object
+from superset.mcp_service.dashboard.schemas import (
+    DashboardError,
+    DashboardInfo,
     GetDashboardInfoRequest,
 )
-from superset.mcp_service.schemas.system_schemas import (
+from superset.mcp_service.generic_tools import ModelGetInfoTool
+from superset.mcp_service.mcp_app import mcp
+from superset.mcp_service.system.schemas import (
     RoleInfo,
     TagInfo,
     UserInfo,

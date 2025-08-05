@@ -26,11 +26,11 @@ import logging
 
 from superset.mcp_service.auth import mcp_auth_hook
 from superset.mcp_service.mcp_app import mcp
-from superset.mcp_service.schemas.sql_lab_schemas import (
+from superset.mcp_service.sql_lab.schemas import (
     ExecuteSqlRequest,
     ExecuteSqlResponse,
 )
-from superset.mcp_service.sql_lab.execute_sql_tool import ExecuteSqlTool
+from superset.mcp_service.sql_lab.tool.execute_sql_tool import ExecuteSqlTool
 
 logger = logging.getLogger(__name__)
 

@@ -188,7 +188,9 @@ async def serve_chart_screenshot(chart_id: str) -> Any:  # noqa: C901
         from flask import current_app, g
 
         from superset.daos.chart import ChartDAO
-        from superset.mcp_service.pooled_screenshot import PooledChartScreenshot
+        from superset.mcp_service.screenshot.pooled_screenshot import (
+            PooledChartScreenshot,
+        )
         from superset.utils.urls import get_url_path
 
         # Use current Flask app context for database access
@@ -405,7 +407,9 @@ async def serve_explore_screenshot(form_data_key: str) -> Any:
             # Use pooled screenshot for better performance
             import hashlib
 
-            from superset.mcp_service.pooled_screenshot import PooledExploreScreenshot
+            from superset.mcp_service.screenshot.pooled_screenshot import (
+                PooledExploreScreenshot,
+            )
 
             digest = hashlib.sha256(form_data_key.encode()).hexdigest()
             screenshot = PooledExploreScreenshot(explore_url, digest)

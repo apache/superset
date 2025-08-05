@@ -24,14 +24,14 @@ generation that can be used by both generate_chart and generate_explore_link too
 
 from typing import Any, Dict
 
-from superset.mcp_service.schemas.chart_schemas import (
+from superset.mcp_service.chart.schemas import (
     ChartCapabilities,
     ChartSemantics,
     ColumnRef,
     TableChartConfig,
     XYChartConfig,
 )
-from superset.mcp_service.url_utils import get_superset_base_url
+from superset.mcp_service.utils.url_utils import get_superset_base_url
 from superset.utils import json
 
 
@@ -181,6 +181,7 @@ def map_table_config(config: TableChartConfig) -> Dict[str, Any]:
     if config.filters:
         form_data["adhoc_filters"] = [
             {
+                "clause": "WHERE",
                 "expressionType": "SIMPLE",
                 "subject": filter_config.column,
                 "operator": map_filter_operator(filter_config.op),
@@ -308,6 +309,7 @@ def map_xy_config(config: XYChartConfig) -> Dict[str, Any]:
     if config.filters:
         form_data["adhoc_filters"] = [
             {
+                "clause": "WHERE",
                 "expressionType": "SIMPLE",
                 "subject": filter_config.column,
                 "operator": map_filter_operator(filter_config.op),

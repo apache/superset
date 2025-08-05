@@ -30,13 +30,13 @@ from superset.mcp_service.chart.chart_utils import (
     generate_chart_name,
     map_config_to_form_data,
 )
-from superset.mcp_service.mcp_app import mcp
-from superset.mcp_service.schemas.chart_schemas import (
+from superset.mcp_service.chart.schemas import (
     AccessibilityMetadata,
     PerformanceMetadata,
     UpdateChartRequest,
 )
-from superset.mcp_service.url_utils import (
+from superset.mcp_service.mcp_app import mcp
+from superset.mcp_service.utils.url_utils import (
     get_chart_screenshot_url,
     get_superset_base_url,
 )

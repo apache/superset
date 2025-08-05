@@ -29,14 +29,14 @@ from superset.mcp_service.chart.chart_utils import (
     generate_chart_name,
     map_config_to_form_data,
 )
-from superset.mcp_service.mcp_app import mcp
-from superset.mcp_service.schemas.chart_schemas import (
+from superset.mcp_service.chart.schemas import (
     AccessibilityMetadata,
     GenerateChartRequest,
     PerformanceMetadata,
     URLPreview,
 )
-from superset.mcp_service.url_utils import (
+from superset.mcp_service.mcp_app import mcp
+from superset.mcp_service.utils.url_utils import (
     get_chart_screenshot_url,
     get_superset_base_url,
 )
@@ -126,11 +126,14 @@ def generate_chart(request: GenerateChartRequest) -> Dict[str, Any]:  # noqa: C9
 
     try:
         # Run comprehensive validation pipeline
-        from superset.mcp_service.chart.validation_pipeline import (
-            ChartValidationPipeline,
-        )
+        from superset.mcp_service.chart.validation import ValidationPipeline
 
-        is_valid, validation_error = ChartValidationPipeline.validate_request(request)
+        is_valid, parsed_request, validation_error = (
+            ValidationPipeline.validate_request(request.model_dump())
+        )
+        if is_valid and parsed_request is not None:
+            # Use the validated request going forward
+            request = parsed_request
         if not is_valid:
             execution_time = int((time.time() - start_time) * 1000)
             assert validation_error is not None  # Type narrowing for mypy
@@ -180,7 +183,7 @@ def generate_chart(request: GenerateChartRequest) -> Dict[str, Any]:  # noqa: C9
                 dataset = DatasetDAO.find_by_id(request.dataset_id, id_column="uuid")
 
             if not dataset:
-                from superset.mcp_service.schemas.error_schemas import (
+                from superset.mcp_service.common.error_schemas import (
                     ChartGenerationError,
                 )
 
@@ -290,7 +293,7 @@ def generate_chart(request: GenerateChartRequest) -> Dict[str, Any]:  # noqa: C9
                         # For preview-only mode (save_chart=false)
                         if format_type == "url" and form_data_key:
                             # Generate screenshot URL using centralized helper
-                            from superset.mcp_service.url_utils import (
+                            from superset.mcp_service.utils.url_utils import (
                                 get_explore_screenshot_url,
                             )
 
@@ -384,11 +387,10 @@ def generate_chart(request: GenerateChartRequest) -> Dict[str, Any]:  # noqa: C9
         return result
 
     except Exception as e:
-        from superset.mcp_service.chart.error_handler import ChartErrorHandler
+        from superset.mcp_service.chart.error_handling import ChartErrorBuilder
 
         logger.exception(f"Chart generation failed: {str(e)}")
 
-        # Use centralized error handler for consistent error responses
         # Extract chart_type from different sources for better error context
         chart_type = "unknown"
         try:
@@ -398,14 +400,29 @@ def generate_chart(request: GenerateChartRequest) -> Dict[str, Any]:  # noqa: C9
             # Ignore errors when extracting chart type for error context
             logger.debug(f"Could not extract chart type: {extract_error}")
 
-        context = {
-            "dataset_id": request.dataset_id,
-            "chart_type": chart_type,
-            "save_chart": request.save_chart,
-        }
+        execution_time = int((time.time() - start_time) * 1000)
 
-        return ChartErrorHandler.create_standardized_error_response(
-            error=e,
-            start_time=start_time,
-            context=context,
+        # Build standardized error response
+        error = ChartErrorBuilder.build_error(
+            error_type="chart_generation_error",
+            template_key="generation_failed",
+            template_vars={
+                "reason": str(e),
+                "dataset_id": str(request.dataset_id),
+                "chart_type": chart_type,
+            },
+            error_code="CHART_GENERATION_FAILED",
         )
+
+        return {
+            "chart": None,
+            "error": error.model_dump(),
+            "performance": {
+                "query_duration_ms": execution_time,
+                "cache_status": "error",
+                "optimization_suggestions": [],
+            },
+            "success": False,
+            "schema_version": "2.0",
+            "api_version": "v1",
+        }
