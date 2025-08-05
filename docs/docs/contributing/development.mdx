@@ -373,6 +373,32 @@ $ make superset
 $ make pre-commit
 ```
 
+#### Quick Setup with MCP Service
+
+For a streamlined setup that includes the MCP (Model Context Protocol) service for AI-powered features:
+
+```bash
+# Complete setup including MCP service (interactive)
+$ make mcp-setup
+
+# This command will:
+# - Create a virtual environment
+# - Install all dependencies
+# - Set up configuration file
+# - Initialize the database
+# - Create admin user (admin/admin)
+# - Optionally load example datasets
+# - Configure MCP service
+
+# After setup, start the services:
+$ make flask-app    # Terminal 1: Backend
+$ make node-app     # Terminal 2: Frontend
+$ make mcp-run      # Terminal 3: MCP service (optional)
+```
+
+The MCP service provides AI-powered capabilities including natural language chart generation.
+See the [MCP Service Documentation](/docs/configuration/mcp-service) for more details.
+
 **Note: the FLASK_APP env var should not need to be set, as it's currently controlled
 via `.flaskenv`, however, if needed, it should be set to `superset.app:create_app()`**
 

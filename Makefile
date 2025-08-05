@@ -112,3 +112,46 @@ report-celery-beat:
 
 admin-user:
 	superset fab create-admin
+
+# MCP Service Setup - Complete setup from fresh clone
+mcp-setup: venv
+	# Activate virtual environment and run setup
+	. venv/bin/activate && \
+	echo "Installing Python dependencies..." && \
+	pip install -r requirements/development.txt && \
+	pip install -e . && \
+	echo "✓ Python dependencies installed" && \
+	\
+	# Ensure database is initialized before running MCP setup
+	if ! superset db current 2>/dev/null | grep -q "head"; then \
+		echo "Initializing database..." && \
+		superset db upgrade && \
+		superset init && \
+		echo "✓ Database initialized"; \
+	fi && \
+	\
+	# Install frontend dependencies if needed
+	if [ ! -d "superset-frontend/node_modules" ]; then \
+		echo "Installing frontend dependencies..." && \
+		cd superset-frontend && npm ci && cd .. && \
+		echo "✓ Frontend dependencies installed"; \
+	fi && \
+	\
+	# Run the MCP setup CLI command
+	superset mcp setup
+
+# Quick MCP service runner
+mcp-run:
+	@echo "Starting MCP service..."
+	superset mcp run
+
+# Check MCP service health
+mcp-check:
+	@echo "Checking MCP service setup..."
+	@echo ""
+	@test -f superset_config.py && echo "✓ superset_config.py exists" || echo "✗ superset_config.py missing"
+	@grep -q "ANTHROPIC_API_KEY" superset_config.py 2>/dev/null && echo "✓ Anthropic API key configured" || echo "✗ Anthropic API key not configured"
+	@test -d superset/mcp_service && echo "✓ MCP service directory exists" || echo "✗ MCP service directory missing"
+	@test -f superset/mcp_service/run_mcp_server.py && echo "✓ MCP server script exists" || echo "✗ MCP server script missing"
+	@echo ""
+	@echo "To set up MCP service, run: make mcp-setup"

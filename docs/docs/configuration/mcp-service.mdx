@@ -1,0 +1,261 @@
+---
+title: MCP Service
+sidebar_position: 12
+version: 1
+---
+
+# MCP Service
+
+The Model Context Protocol (MCP) service provides AI-powered capabilities for Apache Superset, enabling natural language interactions for chart generation, data exploration, and dashboard creation.
+
+## Overview
+
+The MCP service integrates with AI models (currently supporting Anthropic's Claude) to provide:
+- Natural language chart generation
+- Intelligent data exploration
+- Automated dashboard creation
+- Context-aware data analysis
+
+## Quick Start
+
+### Prerequisites
+
+- Python 3.10 or 3.11
+- Node.js 18+
+- An Anthropic API key (for Claude integration)
+
+### Installation
+
+The easiest way to set up Superset with MCP service for local development:
+
+```bash
+# Clone the repository
+git clone https://github.com/apache/superset.git
+cd superset
+
+# Run the interactive setup
+make mcp-setup
+```
+
+This command will:
+1. Create a Python virtual environment
+2. Install all Python and Node.js dependencies
+3. Set up a `superset_config.py` with secure defaults
+4. Initialize the database
+5. Create an admin user (username: `admin`, password: `admin`)
+6. Optionally load example datasets
+7. Configure the MCP service
+
+### Starting the Services
+
+After setup, start Superset and the MCP service:
+
+```bash
+# Terminal 1: Start the Flask backend
+make flask-app
+
+# Terminal 2: Start the React frontend
+make node-app
+
+# Terminal 3: Start the MCP service (optional)
+make mcp-run
+```
+
+Access Superset at http://localhost:8088 and login with admin/admin.
+
+## Configuration
+
+### Basic Configuration
+
+The MCP service configuration is stored in `superset_config.py`:
+
+```python
+# MCP Service Configuration
+MCP_ADMIN_USERNAME = 'admin'
+MCP_DEV_USERNAME = 'admin'
+SUPERSET_WEBSERVER_ADDRESS = 'http://localhost:8088'
+
+# Anthropic API Configuration
+ANTHROPIC_API_KEY = 'your-api-key-here'
+```
+
+### Advanced Configuration
+
+You can also configure the MCP service using environment variables:
+
+```bash
+export ANTHROPIC_API_KEY="your-api-key-here"
+export MCP_HOST="127.0.0.1"
+export MCP_PORT="5008"
+```
+
+### CSRF Configuration
+
+If you encounter login loops, you may need to disable CSRF protection for local development:
+
+```python
+# In superset_config.py
+WTF_CSRF_ENABLED = False  # Only for local development!
+```
+
+## CLI Commands
+
+The MCP service provides several CLI commands:
+
+### Setup Command
+
+```bash
+superset mcp setup [OPTIONS]
+
+Options:
+  --force           Force setup even if configuration exists
+  --skip-config     Skip configuration file setup
+  --skip-examples   Skip loading example datasets
+  --api-key TEXT    Anthropic API key for MCP service
+  --help            Show this message and exit
+```
+
+Examples:
+
+```bash
+# Interactive setup
+superset mcp setup
+
+# Non-interactive with API key
+superset mcp setup --api-key "your-api-key" --skip-examples
+
+# Force reconfiguration
+superset mcp setup --force
+```
+
+### Run Command
+
+```bash
+superset mcp run [OPTIONS]
+
+Options:
+  --host TEXT       Host to bind to  [default: 127.0.0.1]
+  --port INTEGER    Port to bind to  [default: 5008]
+  --debug           Enable debug mode
+  --sql-debug       Enable SQL query logging
+  --help            Show this message and exit
+```
+
+Examples:
+
+```bash
+# Run with default settings
+superset mcp run
+
+# Run with debug mode
+superset mcp run --debug
+
+# Run on different port
+superset mcp run --port 6000
+```
+
+## Using the MCP Service
+
+### With Claude Desktop
+
+The MCP service integrates with Claude Desktop application. After starting the service, configure Claude Desktop to connect to:
+
+```
+http://localhost:5008
+```
+
+### Available Tools
+
+The MCP service provides numerous tools for interacting with Superset:
+
+#### Chart Management
+- `generate_chart` - Create charts using natural language
+- `list_charts` - List existing charts
+- `get_chart_info` - Get chart details
+- `get_chart_preview` - Generate chart previews
+- `update_chart` - Update existing charts
+
+#### Dataset Management
+- `list_datasets` - List available datasets
+- `get_dataset_info` - Get dataset schema and metadata
+
+#### Dashboard Management
+- `generate_dashboard` - Create dashboards from charts
+- `list_dashboards` - List existing dashboards
+- `add_chart_to_existing_dashboard` - Add charts to dashboards
+
+#### SQL Lab Integration
+- `execute_sql` - Execute SQL queries
+- `open_sql_lab_with_context` - Open SQL Lab with pre-filled query
+
+## Troubleshooting
+
+### Common Issues
+
+1. **Login Loop**: If you can't login due to CSRF errors:
+   ```python
+   # In superset_config.py
+   WTF_CSRF_ENABLED = False
+   ```
+
+2. **Database Not Initialized**: Run:
+   ```bash
+   superset db upgrade
+   superset init
+   ```
+
+3. **Missing Dependencies**: Ensure you're in the virtual environment:
+   ```bash
+   source venv/bin/activate  # or . venv/bin/activate
+   ```
+
+4. **Port Already in Use**: Change the MCP service port:
+   ```bash
+   superset mcp run --port 6000
+   ```
+
+### Checking MCP Service Health
+
+```bash
+make mcp-check
+```
+
+This will verify:
+- Configuration file exists
+- API key is configured
+- MCP service files are present
+- Database is initialized
+
+## Development
+
+### Project Structure
+
+```
+superset/
+├── mcp_service/
+│   ├── server.py              # Main MCP server
+│   ├── run_mcp_server.py      # Server runner script
+│   ├── chart/                 # Chart generation tools
+│   ├── dashboard/             # Dashboard management tools
+│   ├── dataset/               # Dataset tools
+│   └── sql_lab/               # SQL Lab integration
+└── cli/
+    └── mcp.py                 # CLI commands
+```
+
+### Adding New Tools
+
+To add new MCP tools, create a new module in the appropriate directory and register it with the MCP server.
+
+## Security Considerations
+
+1. **API Keys**: Store API keys securely and never commit them to version control
+2. **CSRF Protection**: Only disable for local development, never in production
+3. **Database Access**: The MCP service uses the same security context as the logged-in user
+4. **Network Security**: By default, the MCP service only binds to localhost
+
+## Next Steps
+
+- Explore the [MCP Protocol Documentation](https://modelcontextprotocol.io/docs)
+- Check out example use cases in the test files
+- Join the Superset community to share your MCP experiences
