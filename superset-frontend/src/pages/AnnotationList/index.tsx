@@ -165,6 +165,7 @@ function AnnotationList({
       {
         accessor: 'short_descr',
         Header: t('Name'),
+        size: 'xxl',
         id: 'short_descr',
       },
       {
