@@ -137,7 +137,7 @@ mcp-setup: venv
 # Quick MCP service runner
 mcp-run:
 	@echo "Starting MCP service..."
-	superset mcp run
+	. venv/bin/activate && superset mcp run
 
 # Check MCP service health
 mcp-check:
