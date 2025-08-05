@@ -23,6 +23,7 @@ from flask import current_app as app
 from superset import db, security_manager
 from superset.commands.database.utils import add_permissions
 from superset.commands.exceptions import ImportFailedError
+from superset.databases.ssh_tunnel.models import SSHTunnel
 from superset.databases.utils import make_url_safe
 from superset.db_engine_specs.exceptions import SupersetDBAPIConnectionError
 from superset.exceptions import SupersetSecurityException
@@ -67,14 +68,23 @@ def import_database(
     # TODO (betodealmeida): move this logic to import_from_dict
     config["extra"] = json.dumps(config["extra"])
 
+    ssh_tunnel_config = config.pop("ssh_tunnel", None)
+
     # set SQLAlchemy URI via `set_sqlalchemy_uri` so that the password gets masked
     sqlalchemy_uri = config.pop("sqlalchemy_uri")
     # TODO (betodealmeida): we should use the `CreateDatabaseCommand` for imports
-    database: Database = Database.import_from_dict(config, recursive=True)
+    database: Database = Database.import_from_dict(config, recursive=False)
     database.set_sqlalchemy_uri(sqlalchemy_uri)
 
     if database.id is None:
         db.session.flush()
+
+    if ssh_tunnel_config:
+        ssh_tunnel_config["database_id"] = database.id
+        database.ssh_tunnel = SSHTunnel.import_from_dict(
+            ssh_tunnel_config,
+            recursive=False,
+        )
 
     try:
         add_permissions(database)

@@ -446,7 +446,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             item = self.add_model_schema.load(request.json)
         # This validates custom Schema with custom validations
         except ValidationError as error:
-            return self.response_400(message=error.messages)
+            return self.response_422(message=error.messages)
         try:
             new_model = CreateDatabaseCommand(item).run()
             item["uuid"] = new_model.uuid
@@ -551,7 +551,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
                 item["parameters"] = changed_model.parameters
             # Return SSH Tunnel and hide passwords if any
             if item.get("ssh_tunnel"):
-                item["ssh_tunnel"] = mask_password_info(changed_model.ssh_tunnel)
+                item["ssh_tunnel"] = mask_password_info(item["ssh_tunnel"])
             return self.response(200, id=changed_model.id, result=item)
         except DatabaseNotFoundError:
             return self.response_404()

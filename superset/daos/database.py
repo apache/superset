@@ -122,6 +122,10 @@ class DatabaseDAO(BaseDAO[Database]):
                     item.ssh_tunnel,
                 )
 
+                # delete existing SSH tunnel first
+                item.ssh_tunnel = None
+                db.session.flush()
+
             ssh_tunnel = SSHTunnel(**ssh_tunnel_attributes)
 
         database = super().update(item, attributes)
