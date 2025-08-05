@@ -22,47 +22,14 @@ import { DatabaseObject, ConfigurationMethod } from '../../types';
 import { EncryptedField, encryptedCredentialsMap } from './EncryptedField';
 
 // Mock the useToasts hook
-const mockAddDangerToast = jest.fn();
 jest.mock('src/components/MessageToasts/withToasts', () => ({
   useToasts: () => ({
-    addDangerToast: mockAddDangerToast,
+    addDangerToast: jest.fn(),
   }),
 }));
 
-// TypeScript interface for FileReader mock
-interface MockFileReader {
-  result: string | null;
-  onload: ((ev: ProgressEvent<FileReader>) => void) | null;
-  onerror: ((ev: ProgressEvent<FileReader>) => void) | null;
-  readAsText: jest.MockedFunction<() => void>;
-}
-
-// FileReader mock factory - creates new instances to prevent test interference
-const createMockFileReader = (): MockFileReader => ({
-  result: null,
-  onload: null,
-  onerror: null,
-  readAsText: jest.fn(function (this: MockFileReader) {
-    // Synchronously trigger onload if result is set and onload handler exists
-    if (this.result !== null && this.onload) {
-      this.onload({} as ProgressEvent<FileReader>);
-    }
-  }),
-});
-
-// Create a properly typed Jest mock constructor
-const mockFileReaderConstructor = jest.fn(() => createMockFileReader());
-
-// Save the original FileReader to restore later
-const originalFileReader = global.FileReader;
-
-Object.defineProperty(global, 'FileReader', {
-  writable: true,
-  value: mockFileReaderConstructor,
-});
-
 describe('EncryptedField', () => {
-  // Generic test utilities
+  // Test utilities
   const createMockDb = (
     engine: string | null | undefined,
     parameters: Record<string, any> = {},
@@ -89,39 +56,22 @@ describe('EncryptedField', () => {
     onSSHTunnelParametersChange: jest.fn(),
   });
 
-  // Typed helper to safely modify encryptedCredentialsMap
-  const setCredentialMapField = (engine: string, field: string): void => {
-    (encryptedCredentialsMap as Record<string, string>)[engine] = field;
-  };
-
-  const deleteCredentialMapField = (engine: string): void => {
-    delete (encryptedCredentialsMap as Record<string, string>)[engine];
-  };
-
-  // Helper function to manage encryptedCredentialsMap setup/teardown
-  const withMockCredentialsMap = (
-    mappings: Record<string, string>,
-    testFn: () => void,
-  ): void => {
-    const originalMap: Record<string, string> = { ...encryptedCredentialsMap };
-
-    // Setup mappings
-    Object.entries(mappings).forEach(([engine, field]: [string, string]) => {
-      setCredentialMapField(engine, field);
-    });
-
-    try {
-      // Run test
-      testFn();
-    } finally {
-      // Cleanup - restore original map
-      Object.assign(encryptedCredentialsMap, originalMap);
-      Object.keys(mappings).forEach((engine: string) => {
-        if (!(engine in originalMap)) {
-          deleteCredentialMapField(engine);
-        }
-      });
-    }
+  // Helper function to assert onParametersChange calls
+  const expectParametersChange = (
+    changeMethods: ReturnType<typeof createMockChangeMethods>,
+    fieldName: string | undefined,
+    value: string,
+    callIndex = 0,
+  ) => {
+    expect(changeMethods.onParametersChange).toHaveBeenNthCalledWith(
+      callIndex + 1,
+      expect.objectContaining({
+        target: expect.objectContaining({
+          name: fieldName,
+          value,
+        }),
+      }),
+    );
   };
 
   const defaultProps = {
@@ -136,1045 +86,283 @@ describe('EncryptedField', () => {
     isValidating: false,
     isEditMode: false,
     editNewDb: false,
-    db: createMockDb('test-engine'),
+    db: createMockDb('gsheets'),
   };
 
-  afterEach(() => {
+  // Use actual encryptedCredentialsMap for data-driven tests
+  const supportedEngines = Object.entries(encryptedCredentialsMap);
+
+  beforeEach(() => {
     jest.clearAllMocks();
   });
 
-  afterAll(() => {
-    // Restore the original FileReader to prevent global side effects
-    Object.defineProperty(global, 'FileReader', {
-      writable: true,
-      value: originalFileReader,
-    });
-  });
-
-  describe('Core Logic Tests', () => {
-    describe('Field Name Resolution', () => {
-      it('resolves field name from engine', () => {
-        const testEngine = 'mock-test-engine';
-        const testFieldName = 'mock_credential_field';
-
-        withMockCredentialsMap({ [testEngine]: testFieldName }, () => {
-          const mockDb = createMockDb(testEngine);
-          const props = { ...defaultProps, db: mockDb };
-
-          render(<EncryptedField {...props} />);
-
-          // Verify the component initialized with correct field name
-          expect(props.changeMethods.onParametersChange).toHaveBeenCalledWith({
-            target: {
-              name: testFieldName,
-              value: '',
-            },
-          });
-        });
-      });
-
-      it.each([
-        [
-          'undefined engine',
-          { ...createMockDb('test-engine'), engine: undefined },
-          undefined,
-        ],
-        ['null engine', createMockDb(null), null],
-        ['unmapped engine', createMockDb('unknown-engine-xyz'), undefined],
-      ])('handles %s gracefully', (_description, mockDb, expectedFieldName) => {
-        const props = { ...defaultProps, db: mockDb };
-
-        expect(() => render(<EncryptedField {...props} />)).not.toThrow();
-
-        expect(props.changeMethods.onParametersChange).toHaveBeenCalledWith({
-          target: {
-            name: expectedFieldName,
-            value: '',
-          },
-        });
-      });
-    });
-
-    describe('Component Initialization', () => {
-      it('calls onParametersChange with empty value on mount', () => {
-        const testEngine = 'mock-engine';
-        const testFieldName = 'mock_field';
-
-        withMockCredentialsMap({ [testEngine]: testFieldName }, () => {
-          const mockDb = createMockDb(testEngine);
-          const props = { ...defaultProps, db: mockDb };
-
-          render(<EncryptedField {...props} />);
-
-          // Verify useEffect called onParametersChange with empty value on mount
-          expect(props.changeMethods.onParametersChange).toHaveBeenCalledWith({
-            target: {
-              name: testFieldName,
-              value: '',
-            },
-          });
-        });
-      });
-
-      it('initializes with correct field name even for unmapped engines', () => {
-        const unmappedEngine = 'unknown-engine';
-        const mockDb = createMockDb(unmappedEngine);
+  describe('Engine-to-Field Mapping', () => {
+    it.each(supportedEngines)(
+      'resolves field name for %s engine → %s field',
+      (engine, expectedField) => {
+        const mockDb = createMockDb(engine);
         const props = { ...defaultProps, db: mockDb };
 
         render(<EncryptedField {...props} />);
 
-        // Should call onParametersChange with undefined field name for unmapped engines
-        expect(props.changeMethods.onParametersChange).toHaveBeenCalledWith({
-          target: {
-            name: undefined,
-            value: '',
-          },
-        });
-      });
+        expectParametersChange(props.changeMethods, expectedField, '');
+        expect(props.changeMethods.onParametersChange).toHaveBeenCalledTimes(1);
+      },
+    );
+
+    it('handles unmapped engines gracefully', () => {
+      const unmappedEngine = 'unknown-engine-xyz';
+      const mockDb = createMockDb(unmappedEngine);
+      const props = { ...defaultProps, db: mockDb };
+
+      expect(() => render(<EncryptedField {...props} />)).not.toThrow();
+
+      expectParametersChange(props.changeMethods, undefined, '');
+      expect(props.changeMethods.onParametersChange).toHaveBeenCalledTimes(1);
     });
 
-    describe('Parameter Value Processing', () => {
-      it('converts objects to JSON', () => {
-        const testEngine = 'mock-engine';
-        const testFieldName = 'mock_field';
-        const testCredentials = { key: 'value', nested: { data: 'test' } };
+    it.each([
+      ['null engine', null],
+      ['undefined engine', undefined],
+      ['empty string engine', ''],
+    ])('handles %s gracefully', (_description, engine) => {
+      const mockDb = createMockDb(engine);
+      const props = { ...defaultProps, db: mockDb };
 
-        withMockCredentialsMap({ [testEngine]: testFieldName }, () => {
-          const mockDb = createMockDb(testEngine, {
-            [testFieldName]: testCredentials,
-          });
-          const props = { ...defaultProps, db: mockDb, isEditMode: true };
+      expect(() => render(<EncryptedField {...props} />)).not.toThrow();
 
-          const { container } = render(<EncryptedField {...props} />);
-          const textarea = container.querySelector('textarea');
-
-          expect(textarea?.value).toBe(JSON.stringify(testCredentials));
-        });
-      });
-
-      it('converts booleans to strings', () => {
-        const testEngine = 'mock-engine';
-        const testFieldName = 'mock_field';
-
-        withMockCredentialsMap({ [testEngine]: testFieldName }, () => {
-          const mockDb = createMockDb(testEngine, {
-            [testFieldName]: true,
-          });
-          const props = { ...defaultProps, db: mockDb, isEditMode: true };
-
-          const { container } = render(<EncryptedField {...props} />);
-          const textarea = container.querySelector('textarea');
-
-          expect(textarea?.value).toBe('true');
-        });
-      });
-
-      it('preserves string values', () => {
-        const testEngine = 'mock-engine';
-        const testFieldName = 'mock_field';
-        const testValue = 'test-string-value';
-
-        withMockCredentialsMap({ [testEngine]: testFieldName }, () => {
-          const mockDb = createMockDb(testEngine, {
-            [testFieldName]: testValue,
-          });
-          const props = { ...defaultProps, db: mockDb, isEditMode: true };
-
-          const { container } = render(<EncryptedField {...props} />);
-          const textarea = container.querySelector('textarea');
-
-          expect(textarea?.value).toBe(testValue);
-        });
-      });
-
-      it('renders empty for null/undefined', () => {
-        const testEngine = 'mock-engine';
-        const testFieldName = 'mock_field';
-
-        withMockCredentialsMap({ [testEngine]: testFieldName }, () => {
-          // Test with undefined
-          const mockDbUndefined = createMockDb(testEngine, {});
-          const propsUndefined = {
-            ...defaultProps,
-            db: mockDbUndefined,
-            isEditMode: true,
-          };
-
-          const { container: containerUndefined } = render(
-            <EncryptedField {...propsUndefined} />,
-          );
-          const textareaUndefined =
-            containerUndefined.querySelector('textarea');
-
-          expect(textareaUndefined?.value).toBe('');
-        });
-      });
+      expectParametersChange(props.changeMethods, undefined, '');
+      expect(props.changeMethods.onParametersChange).toHaveBeenCalledTimes(1);
     });
   });
 
-  describe('State Management Tests', () => {
-    describe('Upload Option State', () => {
-      it('defaults to JsonUpload', () => {
-        const testEngine = 'mock-engine';
-        const testFieldName = 'mock_field';
+  describe('Parameter Value Processing', () => {
+    const testCases = [
+      {
+        input: { key: 'value', nested: { data: 'test' } },
+        expected: '{"key":"value","nested":{"data":"test"}}',
+        description: 'objects to JSON strings',
+      },
+      {
+        input: true,
+        expected: 'true',
+        description: 'booleans to strings',
+      },
+      {
+        input: false,
+        expected: 'false',
+        description: 'false booleans to strings',
+      },
+      {
+        input: 'test-string',
+        expected: 'test-string',
+        description: 'string values unchanged',
+      },
+      {
+        input: 123,
+        expected: '123',
+        description: 'numbers to strings',
+      },
+    ];
 
-        withMockCredentialsMap({ [testEngine]: testFieldName }, () => {
-          const mockDb = createMockDb(testEngine);
-          const props = { ...defaultProps, db: mockDb };
-
-          render(<EncryptedField {...props} />);
-
-          // Should show upload UI by default (not textarea)
-          expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
-          expect(screen.getByText('Upload credentials')).toBeInTheDocument();
+    it.each(testCases)(
+      'processes $description correctly',
+      ({ input, expected }) => {
+        const mockDb = createMockDb('gsheets', {
+          service_account_info: input,
         });
-      });
+        const props = { ...defaultProps, db: mockDb, isEditMode: true };
 
-      it('switches upload options', () => {
-        const testEngine = 'mock-engine';
-        const testFieldName = 'mock_field';
+        const { container } = render(<EncryptedField {...props} />);
+        const textarea = container.querySelector('textarea');
 
-        withMockCredentialsMap({ [testEngine]: testFieldName }, () => {
-          const mockDb = createMockDb(testEngine);
-          const props = { ...defaultProps, db: mockDb };
+        expect(textarea?.value).toBe(expected);
+      },
+    );
 
-          render(<EncryptedField {...props} />);
+    it('handles null/undefined parameters', () => {
+      const mockDb = createMockDb('gsheets', {});
+      const props = { ...defaultProps, db: mockDb, isEditMode: true };
 
-          // Find and click the select dropdown
-          const select = screen.getByRole('combobox');
-          fireEvent.mouseDown(select);
+      const { container } = render(<EncryptedField {...props} />);
+      const textarea = container.querySelector('textarea');
 
-          // Click the "Copy and Paste JSON credentials" option
-          const copyPasteOption = screen.getByText(
-            'Copy and Paste JSON credentials',
-          );
-          fireEvent.click(copyPasteOption);
-
-          // Should now show textarea instead of upload UI
-          expect(screen.getByRole('textbox')).toBeInTheDocument();
-          expect(
-            screen.queryByText('Upload credentials'),
-          ).not.toBeInTheDocument();
-        });
-      });
-    });
-
-    describe('Change Handler Integration', () => {
-      it('uses dynamic field name', () => {
-        const testEngine = 'mock-engine';
-        const testFieldName = 'mock_dynamic_field';
-
-        withMockCredentialsMap({ [testEngine]: testFieldName }, () => {
-          const mockDb = createMockDb(testEngine);
-          const props = { ...defaultProps, db: mockDb, isEditMode: true };
-
-          render(<EncryptedField {...props} />);
-
-          const textarea = screen.getByRole('textbox');
-          const testValue = 'test credential content';
-
-          fireEvent.change(textarea, { target: { value: testValue } });
-
-          // Should call onParametersChange with the dynamic field name
-          expect(props.changeMethods.onParametersChange).toHaveBeenCalledWith(
-            expect.objectContaining({
-              target: expect.objectContaining({
-                name: testFieldName,
-                value: testValue,
-              }),
-            }),
-          );
-        });
-      });
-
-      it('maintains form contract', () => {
-        const engines = [
-          { engine: 'test-engine-1', field: 'field_1' },
-          { engine: 'test-engine-2', field: 'field_2' },
-        ];
-
-        const mappings = engines.reduce(
-          (acc, { engine, field }) => ({ ...acc, [engine]: field }),
-          {},
-        );
-
-        withMockCredentialsMap(mappings, () => {
-          engines.forEach(({ engine, field }) => {
-            const mockDb = createMockDb(engine);
-            const props = { ...defaultProps, db: mockDb, isEditMode: true };
-
-            const { unmount } = render(<EncryptedField {...props} />);
-
-            const textarea = screen.getByRole('textbox');
-            fireEvent.change(textarea, { target: { value: 'test' } });
-
-            // Should maintain the same event structure regardless of engine
-            expect(props.changeMethods.onParametersChange).toHaveBeenCalledWith(
-              expect.objectContaining({
-                target: expect.objectContaining({
-                  name: field,
-                  value: 'test',
-                }),
-              }),
-            );
-
-            unmount();
-            jest.clearAllMocks();
-          });
-        });
-      });
+      expect(textarea?.value).toBe('');
     });
   });
 
-  describe('Component Behavior Tests', () => {
-    describe('Rendering Logic', () => {
-      it('shows upload selector in create mode', () => {
-        const testEngine = 'mock-engine';
-        const testFieldName = 'mock_field';
+  describe('Conditional Rendering Logic', () => {
+    it('shows upload selector in create mode', () => {
+      const props = { ...defaultProps, isEditMode: false, editNewDb: false };
 
-        withMockCredentialsMap({ [testEngine]: testFieldName }, () => {
-          const mockDb = createMockDb(testEngine);
-          const props = { ...defaultProps, db: mockDb, isEditMode: false };
+      render(<EncryptedField {...props} />);
 
-          render(<EncryptedField {...props} />);
+      expect(
+        screen.getByText(
+          'How do you want to enter service account credentials?',
+        ),
+      ).toBeInTheDocument();
+      expect(screen.getByRole('combobox')).toBeInTheDocument();
+      expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
+    });
 
-          // Should show the upload method selection
-          expect(
-            screen.getByText(
-              'How do you want to enter service account credentials?',
-            ),
-          ).toBeInTheDocument();
-          expect(screen.getByRole('combobox')).toBeInTheDocument();
-        });
-      });
+    it('shows textarea in edit mode', () => {
+      const props = { ...defaultProps, isEditMode: true, editNewDb: false };
 
-      it('hides upload selector in edit mode', () => {
-        const testEngine = 'mock-engine';
-        const testFieldName = 'mock_field';
+      render(<EncryptedField {...props} />);
 
-        withMockCredentialsMap({ [testEngine]: testFieldName }, () => {
-          const mockDb = createMockDb(testEngine);
-          const props = { ...defaultProps, db: mockDb, isEditMode: true };
+      expect(
+        screen.queryByText(
+          'How do you want to enter service account credentials?',
+        ),
+      ).not.toBeInTheDocument();
+      expect(screen.queryByRole('combobox')).not.toBeInTheDocument();
+      expect(screen.getByRole('textbox')).toBeInTheDocument();
+    });
 
-          render(<EncryptedField {...props} />);
+    it('shows textarea when editNewDb is true', () => {
+      const props = { ...defaultProps, isEditMode: false, editNewDb: true };
 
-          // Should NOT show the upload method selection
-          expect(
-            screen.queryByText(
-              'How do you want to enter service account credentials?',
-            ),
-          ).not.toBeInTheDocument();
-          expect(screen.queryByRole('combobox')).not.toBeInTheDocument();
+      render(<EncryptedField {...props} />);
 
-          // Should show textarea directly
-          expect(screen.getByRole('textbox')).toBeInTheDocument();
-        });
-      });
+      expect(
+        screen.queryByText(
+          'How do you want to enter service account credentials?',
+        ),
+      ).not.toBeInTheDocument();
+      expect(screen.queryByRole('combobox')).not.toBeInTheDocument();
+      expect(screen.getByRole('textbox')).toBeInTheDocument();
+    });
+  });
 
-      it('shows textarea when editNewDb', () => {
-        const testEngines = ['engine-1', 'engine-2', 'engine-3'];
-        const mappings = testEngines.reduce(
-          (acc, engine, index) => ({ ...acc, [engine]: `field_${index}` }),
-          {},
-        );
+  describe('Upload Option State Management', () => {
+    it('defaults to upload option', () => {
+      const props = { ...defaultProps, isEditMode: false };
 
-        withMockCredentialsMap(mappings, () => {
-          testEngines.forEach(engine => {
-            const mockDb = createMockDb(engine);
-            const props = {
-              ...defaultProps,
-              db: mockDb,
-              editNewDb: true,
-              isEditMode: false,
-            };
+      render(<EncryptedField {...props} />);
 
-            const { unmount } = render(<EncryptedField {...props} />);
+      expect(screen.getByText('Upload credentials')).toBeInTheDocument();
+      expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
+    });
 
-            // Should show textarea even though not in edit mode
-            expect(screen.getByRole('textbox')).toBeInTheDocument();
-            expect(screen.getByText('Service Account')).toBeInTheDocument();
+    it('switches to copy-paste option', () => {
+      const props = { ...defaultProps, isEditMode: false };
 
-            unmount();
-          });
-        });
-      });
+      render(<EncryptedField {...props} />);
 
-      it('renders with unmapped engine', () => {
-        const unmappedEngine = 'unsupported-engine';
-        const mockDb = createMockDb(unmappedEngine);
-        const props = { ...defaultProps, db: mockDb };
+      const select = screen.getByRole('combobox');
+      fireEvent.mouseDown(select);
+
+      const copyPasteOption = screen.getByText(
+        'Copy and Paste JSON credentials',
+      );
+      fireEvent.click(copyPasteOption);
+
+      expect(screen.getByRole('textbox')).toBeInTheDocument();
+      expect(screen.queryByText('Upload credentials')).not.toBeInTheDocument();
+    });
+  });
+
+  describe('Form Integration Contract', () => {
+    it.each(supportedEngines)(
+      'calls onParametersChange with correct field name for %s engine',
+      (engine, fieldName) => {
+        const mockDb = createMockDb(engine);
+        const props = { ...defaultProps, db: mockDb, isEditMode: true };
 
         render(<EncryptedField {...props} />);
 
-        expect(
-          screen.getByText(
-            'How do you want to enter service account credentials?',
-          ),
-        ).toBeInTheDocument();
-        expect(screen.getByText('Upload credentials')).toBeInTheDocument();
+        const textarea = screen.getByRole('textbox');
+        const testValue = 'test credential content';
 
-        // The changeMethods should have been called with undefined field name
-        expect(props.changeMethods.onParametersChange).toHaveBeenCalledWith({
-          target: {
-            name: undefined,
-            value: '',
-          },
-        });
-      });
+        fireEvent.change(textarea, { target: { value: testValue } });
+
+        expectParametersChange(props.changeMethods, fieldName, testValue, 1);
+      },
+    );
+
+    it('initializes with empty value on mount', () => {
+      const props = { ...defaultProps };
+
+      render(<EncryptedField {...props} />);
+
+      expectParametersChange(
+        props.changeMethods,
+        'service_account_info', // gsheets default
+        '',
+      );
     });
 
-    describe('Form Integration Behavior', () => {
-      it('integrates with form validation', () => {
-        const testCases = [
-          { engine: 'validation-engine-1', field: 'validation_field_1' },
-          { engine: 'validation-engine-2', field: 'validation_field_2' },
-        ];
+    it('renders correctly with default props', () => {
+      const props = { ...defaultProps };
 
-        const mappings = testCases.reduce(
-          (acc, { engine, field }) => ({ ...acc, [engine]: field }),
-          {},
-        );
+      expect(() => render(<EncryptedField {...props} />)).not.toThrow();
 
-        withMockCredentialsMap(mappings, () => {
-          testCases.forEach(({ engine, field }) => {
-            const mockDb = createMockDb(engine);
-            const props = { ...defaultProps, db: mockDb, isEditMode: true };
-
-            const { unmount } = render(<EncryptedField {...props} />);
-
-            const textarea = screen.getByRole('textbox');
-
-            // Should have the correct name attribute
-            expect(textarea).toHaveAttribute('name', field);
-
-            // Should integrate with form field structure
-            expect(screen.getByText('Service Account')).toBeInTheDocument();
-
-            unmount();
-          });
-        });
-      });
-
-      it('maintains consistent UI structure', () => {
-        const engines = ['ui-engine-1', 'ui-engine-2', 'ui-engine-3'];
-        const mappings = engines.reduce(
-          (acc, engine, index) => ({ ...acc, [engine]: `ui_field_${index}` }),
-          {},
-        );
-
-        withMockCredentialsMap(mappings, () => {
-          engines.forEach(engine => {
-            const mockDb = createMockDb(engine);
-            const props = { ...defaultProps, db: mockDb };
-
-            const { unmount } = render(<EncryptedField {...props} />);
-
-            // All engines should have the same basic UI structure
-            expect(
-              screen.getByText(
-                'How do you want to enter service account credentials?',
-              ),
-            ).toBeInTheDocument();
-            expect(screen.getByRole('combobox')).toBeInTheDocument();
-            expect(screen.getByText('Upload credentials')).toBeInTheDocument();
-
-            unmount();
-          });
-        });
-      });
-    });
-
-    describe('Accessibility', () => {
-      it('has proper form labels for textarea input', () => {
-        const testEngine = 'mock-engine';
-        const testFieldName = 'mock_field';
-
-        withMockCredentialsMap({ [testEngine]: testFieldName }, () => {
-          const mockDb = createMockDb(testEngine);
-          const props = { ...defaultProps, db: mockDb, isEditMode: true };
-
-          render(<EncryptedField {...props} />);
-
-          // Should have proper form label
-          expect(screen.getByText('Service Account')).toBeInTheDocument();
-
-          const textarea = screen.getByRole('textbox');
-          expect(textarea).toHaveAttribute('name', testFieldName);
-          expect(textarea).toHaveAttribute(
-            'placeholder',
-            'Paste content of service credentials JSON file here',
-          );
-        });
-      });
-
-      it('has proper form labels for upload method selection', () => {
-        const testEngine = 'mock-engine';
-        const testFieldName = 'mock_field';
-
-        withMockCredentialsMap({ [testEngine]: testFieldName }, () => {
-          const mockDb = createMockDb(testEngine);
-          const props = { ...defaultProps, db: mockDb, isEditMode: false };
-
-          render(<EncryptedField {...props} />);
-
-          // Should have proper label for upload method selection
-          expect(
-            screen.getByText(
-              'How do you want to enter service account credentials?',
-            ),
-          ).toBeInTheDocument();
-
-          const select = screen.getByRole('combobox');
-          expect(select).toBeInTheDocument();
-        });
-      });
-    });
-
-    describe('Validation Error Handling', () => {
-      it('renders without validation errors when none provided', () => {
-        const testEngine = 'mock-engine';
-        const testFieldName = 'mock_field';
-
-        withMockCredentialsMap({ [testEngine]: testFieldName }, () => {
-          const mockDb = createMockDb(testEngine);
-          const props = {
-            ...defaultProps,
-            db: mockDb,
-            isEditMode: true,
-            validationErrors: null,
-          };
-
-          render(<EncryptedField {...props} />);
-
-          // Should render normally without errors
-          expect(screen.getByRole('textbox')).toBeInTheDocument();
-          expect(screen.getByText('Service Account')).toBeInTheDocument();
-        });
-      });
-
-      it('handles validation errors prop gracefully', () => {
-        const testEngine = 'mock-engine';
-        const testFieldName = 'mock_field';
-
-        withMockCredentialsMap({ [testEngine]: testFieldName }, () => {
-          const mockDb = createMockDb(testEngine);
-          const mockValidationErrors = {
-            [testFieldName]: 'Invalid credentials format',
-          };
-          const props = {
-            ...defaultProps,
-            db: mockDb,
-            isEditMode: true,
-            validationErrors: mockValidationErrors,
-          };
-
-          render(<EncryptedField {...props} />);
-
-          // Component should still render despite validation errors
-          expect(screen.getByRole('textbox')).toBeInTheDocument();
-          expect(screen.getByText('Service Account')).toBeInTheDocument();
-        });
-      });
-
-      it('should display validation errors in the UI when provided', () => {
-        const testEngine = 'mock-engine';
-        const testFieldName = 'mock_field';
-        const errorMessage = 'Invalid credentials format';
-
-        withMockCredentialsMap({ [testEngine]: testFieldName }, () => {
-          const mockDb = createMockDb(testEngine);
-          const mockValidationErrors = {
-            [testFieldName]: errorMessage,
-          };
-          const props = {
-            ...defaultProps,
-            db: mockDb,
-            isEditMode: true,
-            validationErrors: mockValidationErrors,
-          };
-
-          render(<EncryptedField {...props} />);
-
-          // Component should render the textarea
-          const textarea = screen.getByRole('textbox');
-          expect(textarea).toBeInTheDocument();
-          expect(textarea).toHaveAttribute('name', testFieldName);
-
-          // Note: The EncryptedField component doesn't directly render validation errors.
-          // It receives them as props but doesn't display them in the UI.
-          // The parent form component is responsible for displaying validation errors.
-          // This test verifies the component handles validation errors gracefully.
-          expect(screen.getByText('Service Account')).toBeInTheDocument();
-        });
-      });
+      // Should render upload UI by default
+      expect(
+        screen.getByText(
+          'How do you want to enter service account credentials?',
+        ),
+      ).toBeInTheDocument();
+      expect(screen.getByRole('combobox')).toBeInTheDocument();
+      expect(screen.getByText('Upload credentials')).toBeInTheDocument();
     });
   });
 
-  describe('Performance Tests', () => {
-    describe('Large File Handling', () => {
-      it('should handle reasonably large JSON files without freezing', async () => {
-        const testEngine = 'mock-engine';
-        const testFieldName = 'mock_field';
+  describe('Error Boundaries', () => {
+    it('renders gracefully when database prop is missing', () => {
+      const props = { ...defaultProps, db: undefined };
 
-        // Create a large JSON object (100KB+ serialized)
-        const largeObject = {
-          data: Array(1000)
-            .fill(0)
-            .map((_, i) => ({
-              id: i,
-              name: `item-${i}`,
-              description: 'This is a test item with some description content',
-              metadata: {
-                created: new Date().toISOString(),
-                tags: ['tag1', 'tag2', 'tag3'],
-                properties: {
-                  enabled: true,
-                  priority: i % 5,
-                  category: `category-${i % 10}`,
-                },
-              },
-            })),
-        };
-        const largeJsonString = JSON.stringify(largeObject);
+      expect(() => render(<EncryptedField {...props} />)).not.toThrow();
 
-        withMockCredentialsMap({ [testEngine]: testFieldName }, async () => {
-          const mockDb = createMockDb(testEngine);
-          const props = { ...defaultProps, db: mockDb, isEditMode: false };
-
-          // Mock FileReader to return large JSON content
-          const mockFileReaderInstance = createMockFileReader();
-          mockFileReaderInstance.result = largeJsonString;
-          mockFileReaderInstance.readAsText = jest.fn(function (
-            this: MockFileReader,
-          ) {
-            // Simulate processing time for large file
-            setTimeout(() => {
-              if (this.onload) {
-                this.onload({} as ProgressEvent<FileReader>);
-              }
-            }, 10);
-          });
-
-          mockFileReaderConstructor.mockReturnValueOnce(mockFileReaderInstance);
-
-          render(<EncryptedField {...props} />);
-
-          // Component should render without issues
-          expect(screen.getByText('Upload credentials')).toBeInTheDocument();
-
-          // Verify that large content would be processed correctly
-          await new Promise(resolve => {
-            mockFileReaderInstance.readAsText();
-            setTimeout(() => {
-              expect(
-                props.changeMethods.onParametersChange,
-              ).toHaveBeenCalledWith({
-                target: {
-                  type: null,
-                  name: testFieldName,
-                  value: largeJsonString,
-                  checked: false,
-                },
-              });
-              resolve(undefined);
-            }, 15);
-          });
-
-          expect(mockAddDangerToast).not.toHaveBeenCalled();
-        });
-      });
-
-      it('should handle rapid upload option changes without performance issues', () => {
-        const testEngine = 'mock-engine';
-        const testFieldName = 'mock_field';
-
-        withMockCredentialsMap({ [testEngine]: testFieldName }, () => {
-          const mockDb = createMockDb(testEngine);
-          const props = { ...defaultProps, db: mockDb, isEditMode: false };
-
-          render(<EncryptedField {...props} />);
-
-          const select = screen.getByRole('combobox');
-
-          // Perform rapid option changes
-          for (let i = 0; i < 10; i += 1) {
-            fireEvent.mouseDown(select);
-
-            if (i % 2 === 0) {
-              const copyPasteOption = screen.getByText(
-                'Copy and Paste JSON credentials',
-              );
-              fireEvent.click(copyPasteOption);
-            } else {
-              const uploadOption = screen.getByText('Upload JSON file');
-              fireEvent.click(uploadOption);
-            }
-          }
-
-          // Component should still be responsive
-          expect(select).toBeInTheDocument();
-          // Final state should be upload (i = 9, odd number)
-          expect(screen.getByText('Upload credentials')).toBeInTheDocument();
-        });
-      });
+      // Should still render the upload UI with undefined field name
+      expectParametersChange(props.changeMethods, undefined, '');
     });
 
-    describe('State Management Performance', () => {
-      it('should handle multiple file operations efficiently', () => {
-        const testEngine = 'mock-engine';
-        const testFieldName = 'mock_field';
-
-        withMockCredentialsMap({ [testEngine]: testFieldName }, () => {
-          const mockDb = createMockDb(testEngine);
-          const props = { ...defaultProps, db: mockDb, isEditMode: false };
-
-          render(<EncryptedField {...props} />);
-
-          // Clear initial useEffect call
-          jest.clearAllMocks();
-
-          // Simulate multiple rapid state changes
-          const operations = [
-            () => {
-              // Simulate file upload
-              props.changeMethods.onParametersChange({
-                target: { name: testFieldName, value: '{"test": "data1"}' },
-              });
-            },
-            () => {
-              // Simulate file removal
-              props.changeMethods.onParametersChange({
-                target: { name: testFieldName, value: '' },
-              });
-            },
-            () => {
-              // Simulate another file upload
-              props.changeMethods.onParametersChange({
-                target: { name: testFieldName, value: '{"test": "data2"}' },
-              });
-            },
-          ];
-
-          // Execute operations rapidly
-          operations.forEach(op => op());
-
-          // Should have called onParametersChange for each operation
-          expect(props.changeMethods.onParametersChange).toHaveBeenCalledTimes(
-            3,
-          );
-
-          // Final call should be the last operation
-          expect(
-            props.changeMethods.onParametersChange,
-          ).toHaveBeenLastCalledWith({
-            target: { name: testFieldName, value: '{"test": "data2"}' },
-          });
-        });
+    it('renders gracefully with malformed database parameters', () => {
+      const mockDb = createMockDb('gsheets', {
+        service_account_info: Symbol('test-symbol'),
       });
-    });
+      const props = { ...defaultProps, db: mockDb, isEditMode: true };
 
-    describe('Component Cleanup', () => {
-      it('should unmount gracefully without errors', () => {
-        const testEngine = 'mock-engine';
-        const testFieldName = 'mock_field';
+      expect(() => render(<EncryptedField {...props} />)).not.toThrow();
 
-        withMockCredentialsMap({ [testEngine]: testFieldName }, () => {
-          const mockDb = createMockDb(testEngine);
-          const props = { ...defaultProps, db: mockDb, isEditMode: false };
-
-          const { unmount } = render(<EncryptedField {...props} />);
-
-          // Switch to copy-paste mode to set some state
-          const select = screen.getByRole('combobox');
-          fireEvent.mouseDown(select);
-          const copyPasteOption = screen.getByText(
-            'Copy and Paste JSON credentials',
-          );
-          fireEvent.click(copyPasteOption);
-
-          // Verify textarea is shown
-          expect(screen.getByRole('textbox')).toBeInTheDocument();
-
-          // Unmount component - should not throw any errors
-          expect(() => unmount()).not.toThrow();
-        });
-      });
+      // Should still render textarea in edit mode
+      const { container } = render(<EncryptedField {...props} />);
+      const textarea = container.querySelector('textarea');
+      expect(textarea).toBeInTheDocument();
     });
   });
 
-  describe('Error Handling Tests', () => {
-    describe('File Upload Error Scenarios', () => {
-      it('should show error toast when file upload fails', () => {
-        const testEngine = 'mock-engine';
-        const testFieldName = 'mock_field';
+  describe('Accessibility', () => {
+    it('provides proper form labels and attributes', () => {
+      const props = { ...defaultProps, isEditMode: true };
 
-        withMockCredentialsMap({ [testEngine]: testFieldName }, () => {
-          const mockDb = createMockDb(testEngine);
-          const props = { ...defaultProps, db: mockDb, isEditMode: false };
+      render(<EncryptedField {...props} />);
 
-          // Mock FileReader to simulate a read error
-          const mockFileReaderInstance = createMockFileReader();
-          mockFileReaderInstance.readAsText = jest.fn(function (
-            this: MockFileReader,
-          ) {
-            // Simulate readTextFile Promise rejection by throwing an error
-            throw new Error('File read failed');
-          });
+      expect(screen.getByText('Service Account')).toBeInTheDocument();
 
-          mockFileReaderConstructor.mockReturnValueOnce(mockFileReaderInstance);
-
-          const { container } = render(<EncryptedField {...props} />);
-
-          // Verify the upload button exists
-          const uploadButton = screen.getByText('Upload credentials');
-          expect(uploadButton).toBeInTheDocument();
-
-          // Find the Upload component input (it's typically a hidden input)
-          const uploadInput = container.querySelector('input[type="file"]');
-          expect(uploadInput).toBeInTheDocument();
-
-          // We can simulate the async error by directly testing the readTextFile promise rejection
-          // Since the actual Upload component's onChange is hard to trigger in tests,
-          // this test verifies the error handling logic exists and is properly structured
-          expect(mockAddDangerToast).not.toHaveBeenCalled();
-
-          // The test validates that error handling infrastructure is in place
-          // In a real scenario, the readTextFile promise rejection would trigger addDangerToast
-        });
-      });
-
-      it('should handle successful file upload', async () => {
-        const testEngine = 'mock-engine';
-        const testFieldName = 'mock_field';
-        const fileContent = '{"key": "test-credentials", "value": "secret"}';
-
-        withMockCredentialsMap({ [testEngine]: testFieldName }, async () => {
-          const mockDb = createMockDb(testEngine);
-          const props = { ...defaultProps, db: mockDb, isEditMode: false };
-
-          // Mock FileReader to return successful content
-          const mockFileReaderInstance = createMockFileReader();
-          mockFileReaderInstance.result = fileContent;
-          mockFileReaderInstance.readAsText = jest.fn(function (
-            this: MockFileReader,
-          ) {
-            // Immediately trigger onload with successful result
-            if (this.onload) {
-              this.onload({} as ProgressEvent<FileReader>);
-            }
-          });
-
-          mockFileReaderConstructor.mockReturnValueOnce(mockFileReaderInstance);
-
-          const { container } = render(<EncryptedField {...props} />);
-
-          // Find the upload input to verify component structure
-          const uploadInput = container.querySelector('input[type="file"]');
-          expect(uploadInput).toBeInTheDocument();
-
-          // Get the Upload component to verify it's rendered
-          const uploadComponent = container.querySelector('.ant-upload');
-          expect(uploadComponent).toBeInTheDocument();
-
-          // Simulate the async file processing that would happen
-          await new Promise(resolve => {
-            // Simulate file processing - this mimics what our onChange handler does
-            mockFileReaderInstance.readAsText();
-
-            // Verify onParametersChange was called with file content
-            expect(props.changeMethods.onParametersChange).toHaveBeenCalledWith(
-              {
-                target: {
-                  type: null,
-                  name: testFieldName,
-                  value: fileContent,
-                  checked: false,
-                },
-              },
-            );
-
-            resolve(undefined);
-          });
-
-          // Verify no error toast was shown
-          expect(mockAddDangerToast).not.toHaveBeenCalled();
-        });
-      });
-
-      it('should handle file removal', () => {
-        const testEngine = 'mock-engine';
-        const testFieldName = 'mock_field';
-
-        withMockCredentialsMap({ [testEngine]: testFieldName }, () => {
-          const mockDb = createMockDb(testEngine);
-          const props = { ...defaultProps, db: mockDb, isEditMode: false };
-
-          render(<EncryptedField {...props} />);
-
-          // Verify upload component is present
-          const uploadButton = screen.getByText('Upload credentials');
-          expect(uploadButton).toBeInTheDocument();
-
-          // The onRemove function should clear fileList and call onParametersChange
-          // We can test this by checking the component's behavior
-          // Note: In a real scenario, the onRemove handler would be called when user clicks remove
-
-          // Clear existing mock calls from useEffect
-          jest.clearAllMocks();
-
-          // Simulate what the onRemove handler does:
-          // 1. setFileList([])
-          // 2. changeMethods.onParametersChange with empty value
-          // 3. return true
-
-          // Test the onRemove logic by calling it directly
-          // This tests our business logic, not the Upload component behavior
-          const result = (() => {
-            // This simulates the onRemove handler in the component
-            props.changeMethods.onParametersChange({
-              target: {
-                name: testFieldName,
-                value: '',
-              },
-            });
-            return true; // onRemove returns true to allow removal
-          })();
-
-          // Verify onParametersChange was called with empty value
-          expect(props.changeMethods.onParametersChange).toHaveBeenCalledWith({
-            target: {
-              name: testFieldName,
-              value: '',
-            },
-          });
-
-          // Verify removal was allowed
-          expect(result).toBe(true);
-        });
-      });
-
-      it('should handle empty file list in onChange', () => {
-        const testEngine = 'mock-engine';
-        const testFieldName = 'mock_field';
-
-        withMockCredentialsMap({ [testEngine]: testFieldName }, () => {
-          const mockDb = createMockDb(testEngine);
-          const props = { ...defaultProps, db: mockDb, isEditMode: false };
-
-          render(<EncryptedField {...props} />);
-
-          // Verify upload component is present
-          const uploadButton = screen.getByText('Upload credentials');
-          expect(uploadButton).toBeInTheDocument();
-
-          // Clear existing mock calls from useEffect
-          jest.clearAllMocks();
-
-          // Simulate the onChange handler when there's no file
-          // This tests the else branch in the onChange handler (lines 175-182)
-          // When info.fileList has no originFileObj, it should call onParametersChange with empty value
-
-          // Test the empty file logic by simulating what the onChange handler does
-          // when there's no file in the fileList
-          // Simulate what happens in the else branch of onChange
-          props.changeMethods.onParametersChange({
-            target: {
-              name: testFieldName,
-              value: '',
-            },
-          });
-
-          // Verify onParametersChange was called with empty value
-          expect(props.changeMethods.onParametersChange).toHaveBeenCalledWith({
-            target: {
-              name: testFieldName,
-              value: '',
-            },
-          });
-
-          // Verify no error toast was shown for empty file scenario
-          expect(mockAddDangerToast).not.toHaveBeenCalled();
-        });
-      });
+      const textarea = screen.getByRole('textbox');
+      expect(textarea).toHaveAttribute('name', 'service_account_info');
+      expect(textarea).toHaveAttribute(
+        'placeholder',
+        'Paste content of service credentials JSON file here',
+      );
     });
 
-    describe('Parameter Handling Error Scenarios', () => {
-      it('requires changeMethods for proper initialization', () => {
-        const testEngine = 'mock-engine';
-        const testFieldName = 'mock_field';
+    it('provides proper labels for upload method selection', () => {
+      const props = { ...defaultProps, isEditMode: false };
 
-        withMockCredentialsMap({ [testEngine]: testFieldName }, () => {
-          const mockDb = createMockDb(testEngine);
-          const props = { ...defaultProps, db: mockDb, isEditMode: true };
+      render(<EncryptedField {...props} />);
 
-          render(<EncryptedField {...props} />);
+      expect(
+        screen.getByText(
+          'How do you want to enter service account credentials?',
+        ),
+      ).toBeInTheDocument();
 
-          // Should call onParametersChange during initialization
-          expect(props.changeMethods.onParametersChange).toHaveBeenCalledWith({
-            target: {
-              name: testFieldName,
-              value: '',
-            },
-          });
-        });
-      });
-
-      it.each([
-        ['null database', { db: undefined }],
-        [
-          'database with null engine',
-          {
-            db: {
-              configuration_method: ConfigurationMethod.DynamicForm,
-              database_name: 'test_db',
-              driver: 'test_driver',
-              id: 1,
-              name: 'test_db',
-              is_managed_externally: false,
-              engine: undefined,
-            },
-          },
-        ],
-        [
-          'database with undefined engine',
-          {
-            db: {
-              configuration_method: ConfigurationMethod.DynamicForm,
-              database_name: 'test_db',
-              driver: 'test_driver',
-              id: 1,
-              name: 'test_db',
-              is_managed_externally: false,
-              engine: undefined,
-            },
-          },
-        ],
-      ])('handles %s gracefully', (_scenario, overrides) => {
-        const props = {
-          ...defaultProps,
-          ...overrides,
-        };
-
-        expect(() => render(<EncryptedField {...props} />)).not.toThrow();
-      });
-
-      it('handles undefined parameters gracefully', () => {
-        const testEngine = 'mock-engine';
-        const testFieldName = 'mock_field';
-
-        withMockCredentialsMap({ [testEngine]: testFieldName }, () => {
-          const mockDb = {
-            ...createMockDb(testEngine),
-            parameters: undefined,
-          };
-          const props = { ...defaultProps, db: mockDb, isEditMode: true };
-
-          expect(() => render(<EncryptedField {...props} />)).not.toThrow();
-
-          const textarea = screen.getByRole('textbox');
-          expect(textarea).toHaveValue('');
-        });
-      });
+      const select = screen.getByRole('combobox');
+      expect(select).toBeInTheDocument();
     });
   });
 });
