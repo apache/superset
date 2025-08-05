@@ -865,6 +865,14 @@ SCREENSHOT_PLAYWRIGHT_DEFAULT_TIMEOUT = int(
     timedelta(seconds=60).total_seconds() * 1000
 )
 
+# Tiled screenshot configuration for large dashboards
+SCREENSHOT_TILED_ENABLED = True  # Enable tiled screenshots for large dashboards
+SCREENSHOT_TILED_CHART_THRESHOLD = 20  # Minimum charts to trigger tiled screenshots
+SCREENSHOT_TILED_HEIGHT_THRESHOLD = (
+    5000  # Minimum height (px) to trigger tiled screenshots
+)
+SCREENSHOT_TILED_VIEWPORT_HEIGHT = 2000  # Height of each tile in pixels
+
 # ---------------------------------------------------
 # Image and file configuration
 # ---------------------------------------------------
