@@ -67,9 +67,14 @@ def upgrade():
     )
 
     # Now make the columns non-nullable
+    # MySQL requires explicit type specification for CHANGE/MODIFY operations
     with op.batch_alter_table("themes") as batch_op:
-        batch_op.alter_column("is_system_default", nullable=False)
-        batch_op.alter_column("is_system_dark", nullable=False)
+        batch_op.alter_column(
+            "is_system_default", existing_type=sa.Boolean(), nullable=False
+        )
+        batch_op.alter_column(
+            "is_system_dark", existing_type=sa.Boolean(), nullable=False
+        )
 
     # Create indexes
     create_index("themes", "idx_theme_is_system_default", ["is_system_default"])

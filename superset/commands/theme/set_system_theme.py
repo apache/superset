@@ -50,7 +50,6 @@ class SetSystemDefaultThemeCommand(BaseCommand):
         # Set the new system default
         self._theme.is_system_default = True
         db.session.add(self._theme)
-        db.session.commit()
 
         logger.info(f"Set theme {self._theme_id} as system default")
 
@@ -82,7 +81,6 @@ class SetSystemDarkThemeCommand(BaseCommand):
         # Set the new system dark theme
         self._theme.is_system_dark = True
         db.session.add(self._theme)
-        db.session.commit()
 
         logger.info(f"Set theme {self._theme_id} as system dark")
 
@@ -103,7 +101,6 @@ class ClearSystemDefaultThemeCommand(BaseCommand):
             .where(Theme.is_system_default.is_(True))
             .values(is_system_default=False)
         )
-        db.session.commit()
 
         logger.info("Cleared system default theme")
 
@@ -121,7 +118,6 @@ class ClearSystemDarkThemeCommand(BaseCommand):
             .where(Theme.is_system_dark.is_(True))
             .values(is_system_dark=False)
         )
-        db.session.commit()
 
         logger.info("Cleared system dark theme")
 
