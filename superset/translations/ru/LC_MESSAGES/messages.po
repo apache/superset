@@ -5918,7 +5918,7 @@ msgstr ""
 "Произошла ошибка скачивания изображения. Обновите страницу и попробуйте "
 "заново."
 
-msgid "Impersonate logged in user (Presto, Trino, Drill, Hive, and GSheets)"
+msgid "Impersonate logged in user (Presto, Trino, Drill, Hive, and Google Sheets)"
 msgstr ""
 "Имперсонировать пользователя (Presto, Trino, Drill, Hive, и Google "
 "Таблицы)"
@@ -9473,7 +9473,7 @@ msgstr "Выберите способ отправки"
 msgid "Select Tags"
 msgstr "Выбрать теги"
 
-msgid "Select Viz Type"
+msgid "Select chart type"
 msgstr "Выберите тип визуализации"
 
 msgid "Select a column"
@@ -13587,7 +13587,7 @@ msgstr "Сортировать ось X"
 msgid "X-axis"
 msgstr "Ось X"
 
-msgid "XScale Interval"
+msgid "X-scale interval"
 msgstr "Интервал оси X"
 
 msgid "XYZ"
@@ -13645,7 +13645,7 @@ msgstr "Ось Y"
 msgid "Y-axis bounds"
 msgstr "Границы оси Y"
 
-msgid "YScale Interval"
+msgid "Y-scale interval"
 msgstr "Интервал оси Y"
 
 msgid "Year"

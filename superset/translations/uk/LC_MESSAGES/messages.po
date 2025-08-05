@@ -5963,7 +5963,7 @@ msgstr "Зображення (PNG), вбудоване в електронну �
 msgid "Image download failed, please refresh and try again."
 msgstr "Завантажити зображення не вдалося, оновити та повторіть спробу."
 
-msgid "Impersonate logged in user (Presto, Trino, Drill, Hive, and GSheets)"
+msgid "Impersonate logged in user (Presto, Trino, Drill, Hive, and Google Sheets)"
 msgstr "Видання себе в системі в системі (Presto, Trino, Drill, Hive та Gsheets)"
 
 msgid "Import"
@@ -9531,7 +9531,7 @@ msgstr "Виберіть метод доставки"
 msgid "Select Tags"
 msgstr "Скасувати всі"
 
-msgid "Select Viz Type"
+msgid "Select chart type"
 msgstr "Виберіть тип ITE"
 
 msgid "Select a column"
@@ -13703,7 +13703,7 @@ msgstr "X-осі сорт"
 msgid "X-axis"
 msgstr "X-вісь"
 
-msgid "XScale Interval"
+msgid "X-scale interval"
 msgstr "Xscale Interval"
 
 msgid "XYZ"
@@ -13762,7 +13762,7 @@ msgstr "Y-вісь"
 msgid "Y-axis bounds"
 msgstr "Y-осі межі"
 
-msgid "YScale Interval"
+msgid "Y-scale interval"
 msgstr "ІНСПАЛЬНИЙ ІНТЕРВАЛЬ"
 
 msgid "Year"

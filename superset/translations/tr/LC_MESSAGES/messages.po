@@ -5524,7 +5524,7 @@ msgstr ""
 msgid "Image download failed, please refresh and try again."
 msgstr ""
 
-msgid "Impersonate logged in user (Presto, Trino, Drill, Hive, and GSheets)"
+msgid "Impersonate logged in user (Presto, Trino, Drill, Hive, and Google Sheets)"
 msgstr ""
 
 msgid "Import"
@@ -8883,7 +8883,7 @@ msgstr ""
 msgid "Select Tags"
 msgstr ""
 
-msgid "Select Viz Type"
+msgid "Select chart type"
 msgstr ""
 
 msgid "Select a column"
@@ -12582,7 +12582,7 @@ msgstr ""
 msgid "X-axis"
 msgstr ""
 
-msgid "XScale Interval"
+msgid "X-scale interval"
 msgstr ""
 
 msgid "XYZ"
@@ -12639,7 +12639,7 @@ msgstr ""
 msgid "Y-axis bounds"
 msgstr ""
 
-msgid "YScale Interval"
+msgid "Y-scale interval"
 msgstr ""
 
 msgid "Year"

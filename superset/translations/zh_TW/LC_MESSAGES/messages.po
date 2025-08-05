@@ -5888,7 +5888,7 @@ msgstr "使用郵箱發送圖片(PNG)"
 msgid "Image download failed, please refresh and try again."
 msgstr "圖片發送失敗，請刷新或重試"
 
-msgid "Impersonate logged in user (Presto, Trino, Drill, Hive, and GSheets)"
+msgid "Impersonate logged in user (Presto, Trino, Drill, Hive, and Google Sheets)"
 msgstr "模拟登入用戶 (Presto, Trino, Drill & Hive)"
 
 msgid "Import"
@@ -9488,7 +9488,7 @@ msgstr "增加通知方法"
 msgid "Select Tags"
 msgstr "選擇標籤"
 
-msgid "Select Viz Type"
+msgid "Select chart type"
 msgstr "選擇一個可視化類型"
 
 msgid "Select a column"
@@ -13421,7 +13421,7 @@ msgstr "X 軸排序"
 msgid "X-axis"
 msgstr "X 軸"
 
-msgid "XScale Interval"
+msgid "X-scale interval"
 msgstr "X 軸比例尺間隔"
 
 msgid "XYZ"
@@ -13483,7 +13483,7 @@ msgstr "Y 軸"
 msgid "Y-axis bounds"
 msgstr "Y 軸界限"
 
-msgid "YScale Interval"
+msgid "Y-scale interval"
 msgstr "Y 軸比例尺間隔"
 
 msgid "Year"
