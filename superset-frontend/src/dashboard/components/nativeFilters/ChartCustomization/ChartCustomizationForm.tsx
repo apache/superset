@@ -1128,7 +1128,7 @@ const ChartCustomizationForm: FC<Props> = ({
               tooltip={t(
                 "When using this option, default value can't be set. Using this option may impact the load times for your dashboard.",
               )}
-              onChange={checked => {
+              onChange={async checked => {
                 setSelectFirst(checked);
 
                 if (checked) {
@@ -1152,7 +1152,7 @@ const ChartCustomizationForm: FC<Props> = ({
                       column: firstColumn.value,
                     });
                   } else {
-                    fetchDefaultValueData();
+                    await fetchDefaultValueData();
                     setFormFieldValues({
                       selectFirst: checked,
                       hasDefaultValue: false,
@@ -1167,6 +1167,7 @@ const ChartCustomizationForm: FC<Props> = ({
                     selectFirst: checked,
                   });
                 }
+                formChanged();
               }}
             >
               <div />
