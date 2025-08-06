@@ -114,7 +114,7 @@ flask==2.3.3
     #   flask-wtf
 flask-appbuilder==5.0.0a9
     # via apache-superset (pyproject.toml)
-flask-babel==3.1.1
+flask-babel==3.1.0
     # via flask-appbuilder
 flask-caching==2.3.1
     # via apache-superset (pyproject.toml)

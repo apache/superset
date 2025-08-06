@@ -199,7 +199,7 @@ flask-appbuilder==5.0.0a9
     # via
     #   -c requirements/base.txt
     #   apache-superset
-flask-babel==3.1.1
+flask-babel==3.1.0
     # via
     #   -c requirements/base.txt
     #   flask-appbuilder
