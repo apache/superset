@@ -60,7 +60,7 @@ class BaseDAO(Generic[T]):
         """
         query = db.session.query(cls.model_cls)
         if cls.base_filter and not skip_base_filter:
-            data_model = SQLAInterface(cls.model_cls)
+            data_model = SQLAInterface(cls.model_cls, db.session)
             query = cls.base_filter(  # pylint: disable=not-callable
                 cls.id_column_name, data_model
             ).apply(query, None)
@@ -85,7 +85,7 @@ class BaseDAO(Generic[T]):
             return []
         query = db.session.query(cls.model_cls).filter(id_col.in_(model_ids))
         if cls.base_filter and not skip_base_filter:
-            data_model = SQLAInterface(cls.model_cls)
+            data_model = SQLAInterface(cls.model_cls, db.session)
             query = cls.base_filter(  # pylint: disable=not-callable
                 cls.id_column_name, data_model
             ).apply(query, None)
@@ -98,7 +98,7 @@ class BaseDAO(Generic[T]):
         """
         query = db.session.query(cls.model_cls)
         if cls.base_filter:
-            data_model = SQLAInterface(cls.model_cls)
+            data_model = SQLAInterface(cls.model_cls, db.session)
             query = cls.base_filter(  # pylint: disable=not-callable
                 cls.id_column_name, data_model
             ).apply(query, None)
@@ -111,7 +111,7 @@ class BaseDAO(Generic[T]):
         """
         query = db.session.query(cls.model_cls)
         if cls.base_filter:
-            data_model = SQLAInterface(cls.model_cls)
+            data_model = SQLAInterface(cls.model_cls, db.session)
             query = cls.base_filter(  # pylint: disable=not-callable
                 cls.id_column_name, data_model
             ).apply(query, None)
