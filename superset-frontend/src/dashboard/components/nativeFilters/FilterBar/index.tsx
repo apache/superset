@@ -158,12 +158,6 @@ const FilterBar: FC<FiltersBarProps> = ({
     UserWithPermissionsAndRoles
   >(state => state.user); // Check if user has 'Public' role - hide filters for public users
 
-  const isPublicUser =
-    'roles' in user &&
-    Object.keys(user.roles || {}).some(role => role.toLowerCase() === 'public');
-
-  if (isPublicUser) return null;
-
   const [filtersInScope] = useSelectFiltersInScope(nativeFilterValues);
 
   const dataMaskSelectedRef = useRef(dataMaskSelected);

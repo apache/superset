@@ -33,17 +33,17 @@ import FilterDivider from './FilterControls/FilterDivider';
 export const useFilterControlFactory = (
   dataMaskSelected: DataMaskStateWithId,
   onFilterSelectionChange: (filter: Filter, dataMask: DataMask) => void,
+  filterPredicate?: (filter: Filter | Divider) => boolean,
 ) => {
   const filters = useFilters();
   const filterValues = useMemo(() => Object.values(filters), [filters]);
-  const filtersWithValues: (Filter | Divider)[] = useMemo(
-    () =>
-      filterValues.map(filter => ({
-        ...filter,
-        dataMask: dataMaskSelected[filter.id],
-      })),
-    [filterValues, dataMaskSelected],
-  );
+  const filtersWithValues: (Filter | Divider)[] = useMemo(() => {
+    const result = filterValues.map(filter => ({
+      ...filter,
+      dataMask: dataMaskSelected[filter.id],
+    }));
+    return filterPredicate ? result.filter(filterPredicate) : result;
+  }, [filterValues, dataMaskSelected, filterPredicate]);
 
   const filterControlFactory = useCallback(
     (
