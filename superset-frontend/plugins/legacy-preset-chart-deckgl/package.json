@@ -27,7 +27,7 @@
     "@deck.gl/aggregation-layers": "^9.1.14",
     "@deck.gl/core": "^9.1.14",
     "@deck.gl/geo-layers": "^9.1.13",
-    "@deck.gl/layers": "^9.1.13",
+    "@deck.gl/layers": "^9.1.14",
     "@deck.gl/react": "^9.1.14",
     "@luma.gl/constants": "^9.1.9",
     "@luma.gl/core": "^9.1.9",
