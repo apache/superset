@@ -833,11 +833,11 @@ msgid "Add Dashboard"
 msgstr "افزودن داشبورد"
 
 #, fuzzy
-msgid "Add Divider"
+msgid "Add divider"
 msgstr "تقسیم‌کننده"
 
 #, fuzzy
-msgid "Add Filter"
+msgid "Add filter"
 msgstr "فیلتر اضافه کنید"
 
 #, fuzzy
@@ -1817,7 +1817,7 @@ msgstr "فیلترهای تکمیل خودکار"
 msgid "Autocomplete query predicate"
 msgstr "پیشنهاد خودکار کوئری"
 
-msgid "Automatic Color"
+msgid "Automatic color"
 msgstr "رنگ خودکار"
 
 #, fuzzy
@@ -3255,7 +3255,7 @@ msgstr "نقشه کشور"
 msgid "Create"
 msgstr "ایجاد کنید"
 
-msgid "Create Chart"
+msgid "Create chart"
 msgstr "چارت ایجاد کن"
 
 msgid "Create a dataset"
@@ -8767,7 +8767,7 @@ msgstr "منبع قبلاً یک گزارش ضمایم شده دارد."
 msgid "Resource was not found."
 msgstr "منبع پیدا نشد."
 
-msgid "Restore Filter"
+msgid "Restore filter"
 msgstr "بازیابی فیلتر"
 
 msgid "Results"

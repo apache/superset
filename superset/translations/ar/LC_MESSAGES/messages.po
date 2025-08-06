@@ -816,11 +816,11 @@ msgid "Add Dashboard"
 msgstr "إضافة لوحة معلومات"
 
 #, fuzzy
-msgid "Add Divider"
+msgid "Add divider"
 msgstr "مقسم"
 
 #, fuzzy
-msgid "Add Filter"
+msgid "Add filter"
 msgstr "إضافة فلتر"
 
 #, fuzzy
@@ -1804,7 +1804,7 @@ msgstr "فلاتر الإكمال التلقائي"
 msgid "Autocomplete query predicate"
 msgstr "استعلام الإكمال التلقائي المسند"
 
-msgid "Automatic Color"
+msgid "Automatic color"
 msgstr "اللون التلقائي"
 
 #, fuzzy
@@ -3253,7 +3253,7 @@ msgstr "خريطة البلد"
 msgid "Create"
 msgstr "خلق"
 
-msgid "Create Chart"
+msgid "Create chart"
 msgstr "إنشاء مخطط"
 
 msgid "Create a dataset"
@@ -8839,7 +8839,7 @@ msgstr "يحتوي المورد بالفعل على تقرير مرفق."
 msgid "Resource was not found."
 msgstr "لم يتم العثور على المورد."
 
-msgid "Restore Filter"
+msgid "Restore filter"
 msgstr "عامل تصفية الاستعادة"
 
 msgid "Results"

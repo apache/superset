@@ -849,7 +849,7 @@ class AnnotationLayer extends PureComponent {
               buttonSize="xsmall"
               onClick={() => this.setState({ color: AUTOMATIC_COLOR })}
             >
-              {t('Automatic Color')}
+              {t('Automatic color')}
             </Button>
           </div>
         </div>

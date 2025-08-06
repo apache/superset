@@ -826,11 +826,11 @@ msgid "Add Dashboard"
 msgstr "Додайте Інформаційну панель"
 
 #, fuzzy
-msgid "Add Divider"
+msgid "Add divider"
 msgstr "Роздільник"
 
 #, fuzzy
-msgid "Add Filter"
+msgid "Add filter"
 msgstr "Додати фільтр"
 
 #, fuzzy
@@ -1834,7 +1834,7 @@ msgstr "Автоматичні фільтри"
 msgid "Autocomplete query predicate"
 msgstr "Auto -Complete Query Prediac"
 
-msgid "Automatic Color"
+msgid "Automatic color"
 msgstr "Автоматичний колір"
 
 #, fuzzy
@@ -3305,7 +3305,7 @@ msgstr "Карта країни"
 msgid "Create"
 msgstr "Створити"
 
-msgid "Create Chart"
+msgid "Create chart"
 msgstr "Створити діаграму"
 
 msgid "Create a dataset"
@@ -8928,7 +8928,7 @@ msgstr "Ресурс вже має доданий звіт."
 msgid "Resource was not found."
 msgstr "Ресурс не був знайдений."
 
-msgid "Restore Filter"
+msgid "Restore filter"
 msgstr "Відновити фільтр"
 
 msgid "Results"

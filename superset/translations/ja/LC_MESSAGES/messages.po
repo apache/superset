@@ -788,10 +788,10 @@ msgstr "CSSテンプレートを追加"
 msgid "Add Dashboard"
 msgstr "ダッシュボードを追加"
 
-msgid "Add Divider"
+msgid "Add divider"
 msgstr "仕切りを追加"
 
-msgid "Add Filter"
+msgid "Add filter"
 msgstr "フィルターを追加"
 
 msgid "Add Layer"
@@ -1722,7 +1722,7 @@ msgstr "自動補完 フィルタ"
 msgid "Autocomplete query predicate"
 msgstr "自動補完のクエリ述語"
 
-msgid "Automatic Color"
+msgid "Automatic color"
 msgstr "自動カラー"
 
 msgid "Autosize Column"
@@ -3090,7 +3090,7 @@ msgstr "国別地図"
 msgid "Create"
 msgstr "作成"
 
-msgid "Create Chart"
+msgid "Create chart"
 msgstr "チャートを作成"
 
 msgid "Create a dataset"
@@ -8313,7 +8313,7 @@ msgstr "リソースにはすでにレポートが添付されています。"
 msgid "Resource was not found."
 msgstr "リソースが見つかりませんでした。"
 
-msgid "Restore Filter"
+msgid "Restore filter"
 msgstr "フィルタを復元"
 
 msgid "Results"
