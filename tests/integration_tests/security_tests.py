@@ -1956,7 +1956,7 @@ class TestSecurityManager(SupersetTestCase):
 
 class TestDatasources(SupersetTestCase):
     @patch("superset.security.SupersetSecurityManager.can_access_database")
-    @patch("superset.security.manager.db.session")
+    @patch("superset.security.SupersetSecurityManager.session")
     def test_get_user_datasources_admin(self, mock_session, mock_can_access_database):
         Datasource = namedtuple("Datasource", ["database", "schema", "name"])
         mock_can_access_database.return_value = True
@@ -1979,7 +1979,7 @@ class TestDatasources(SupersetTestCase):
                 ]
 
     @patch("superset.security.SupersetSecurityManager.can_access_database")
-    @patch("superset.security.manager.db.session")
+    @patch("superset.security.SupersetSecurityManager.session")
     def test_get_user_datasources_gamma(self, mock_session, mock_can_access_database):
         Datasource = namedtuple("Datasource", ["database", "schema", "name"])
         mock_can_access_database.return_value = False
@@ -1998,7 +1998,7 @@ class TestDatasources(SupersetTestCase):
                 assert datasources == []
 
     @patch("superset.security.SupersetSecurityManager.can_access_database")
-    @patch("superset.security.manager.db.session")
+    @patch("superset.security.SupersetSecurityManager.session")
     def test_get_user_datasources_gamma_with_schema(
         self, mock_session, mock_can_access_database
     ):
