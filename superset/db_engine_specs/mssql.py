@@ -25,6 +25,7 @@ from typing import Any, Optional
 from flask_babel import gettext as __
 from sqlalchemy import types
 from sqlalchemy.dialects.mssql.base import SMALLDATETIME
+from sqlalchemy.sql import Select
 
 from superset.constants import TimeGrain
 from superset.db_engine_specs.base import BaseEngineSpec
@@ -163,7 +164,24 @@ class MssqlEngineSpec(BaseEngineSpec):
             )
         return f"{cls.engine} error: {cls._extract_error_message(ex)}"
 
+    @classmethod
+    def adjust_query_for_offset(cls, qry: Select) -> Select:
+        """
+        Modify SQLAlchemy query to add ORDER BY when OFFSET is present.
 
+        MSSQL requires an ORDER BY clause when using OFFSET. If no ORDER BY
+        is present but OFFSET is specified, we add a default ORDER BY clause.
+        """
+        # Check if this query has OFFSET but no ORDER BY
+        if qry._offset is not None and (not qry._order_by or len(qry._order_by) == 0):
+            # Add a default ORDER BY clause using the first column
+            columns = qry.selected_columns
+            if columns:
+                # Use the first selected column for ordering
+                first_col = list(columns)[0]
+                qry = qry.order_by(first_col)
+
+        return qry
 
 
 class AzureSynapseSpec(MssqlEngineSpec):
