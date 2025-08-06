@@ -3442,7 +3442,7 @@ msgid "Custom"
 msgstr "Aangepast"
 
 #, fuzzy
-msgid "Custom Conditional Formatting"
+msgid "Custom conditional formatting"
 msgstr "Voorwaardelijke opmaak"
 
 msgid "Custom Plugin"
@@ -5974,7 +5974,7 @@ msgstr ""
 "Afbeelding downloaden mislukt, gelieve te vernieuwen en probeer het "
 "opnieuw."
 
-msgid "Impersonate logged in user (Presto, Trino, Drill, Hive, and GSheets)"
+msgid "Impersonate logged in user (Presto, Trino, Drill, Hive, and Google Sheets)"
 msgstr "Inloggen als ingelogde gebruiker (Presto, Trino, Drill, Hive en GSheets)"
 
 msgid "Import"
@@ -9513,7 +9513,7 @@ msgstr "Selecteer verzendmethode"
 msgid "Select Tags"
 msgstr "Selecteer Tags"
 
-msgid "Select Viz Type"
+msgid "Select chart type"
 msgstr "Selecteer Viz Type"
 
 msgid "Select a column"
@@ -9958,7 +9958,7 @@ msgid "Show CREATE VIEW statement"
 msgstr "Toon CREATE VIEW statement"
 
 #, fuzzy
-msgid "Show Cell bars"
+msgid "Show cell bars"
 msgstr "Toon cel balken"
 
 msgid "Show Dashboard"
@@ -13731,7 +13731,7 @@ msgstr "X-as Sorteren Op"
 msgid "X-axis"
 msgstr "X-as"
 
-msgid "XScale Interval"
+msgid "X-scale interval"
 msgstr "XSchaal Interval"
 
 msgid "XYZ"
@@ -13789,7 +13789,7 @@ msgstr "Y-as"
 msgid "Y-axis bounds"
 msgstr "Y-as grenzen"
 
-msgid "YScale Interval"
+msgid "Y-scale interval"
 msgstr "YSchaal Interval"
 
 msgid "Year"
@@ -14170,7 +14170,7 @@ msgstr "`rij_offset` moet groter zijn dan of gelijk aan 0"
 msgid "`width` must be greater or equal to 0"
 msgstr "`breedte` moet groter of gelijk zijn aan 0"
 
-msgid "add colors to cell bars for +/-"
+msgid "Add colors to cell bars for +/-"
 msgstr ""
 
 msgid "aggregate"
@@ -14217,7 +14217,7 @@ msgid "background"
 msgstr "achtergrond"
 
 #, fuzzy
-msgid "basic conditional formatting"
+msgid "Basic conditional formatting"
 msgstr "Voorwaardelijke opmaak"
 
 msgid "basis"

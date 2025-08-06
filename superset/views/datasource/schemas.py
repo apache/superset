@@ -16,9 +16,9 @@
 # under the License.
 from typing import Any, Optional, TypedDict
 
+from flask import current_app as app
 from marshmallow import fields, post_load, pre_load, Schema, validate
 
-from superset import app
 from superset.charts.schemas import ChartDataExtrasSchema, ChartDataFilterSchema
 from superset.utils.core import DatasourceType
 
@@ -100,6 +100,21 @@ class SamplesRequestSchema(Schema):
     force = fields.Boolean(load_default=False)
     page = fields.Integer(load_default=1)
     per_page = fields.Integer(
-        validate=validate.Range(min=1, max=app.config.get("SAMPLES_ROW_LIMIT", 1000)),
-        load_default=app.config.get("SAMPLES_ROW_LIMIT", 1000),
+        validate=validate.Range(min=1, max=1000),
+        load_default=None,
     )
+    dashboard_id = fields.Integer(required=False, allow_none=True, load_default=None)
+
+    @pre_load
+    def set_default_per_page(
+        self, data: dict[str, Any], **kwargs: Any
+    ) -> dict[str, Any]:
+        # Create a mutable copy if data is immutable (e.g., request.args)
+        if hasattr(data, "to_dict"):
+            data = data.to_dict()
+        elif not isinstance(data, dict):
+            data = dict(data)
+
+        if "per_page" not in data:
+            data["per_page"] = app.config.get("SAMPLES_ROW_LIMIT", 1000)
+        return data

@@ -3416,7 +3416,7 @@ msgid "Custom"
 msgstr ""
 
 #, fuzzy
-msgid "Custom Conditional Formatting"
+msgid "Custom conditional formatting"
 msgstr "Metadados adicionais"
 
 msgid "Custom Plugin"
@@ -5947,7 +5947,7 @@ msgid "Image download failed, please refresh and try again."
 msgstr ""
 
 #, fuzzy
-msgid "Impersonate logged in user (Presto, Trino, Drill, Hive, and GSheets)"
+msgid "Impersonate logged in user (Presto, Trino, Drill, Hive, and Google Sheets)"
 msgstr "Personificar o utilizador conectado"
 
 msgid "Import"
@@ -9575,7 +9575,7 @@ msgid "Select Tags"
 msgstr "Repor Estado"
 
 #, fuzzy
-msgid "Select Viz Type"
+msgid "Select chart type"
 msgstr "Selecione um tipo de visualização"
 
 #, fuzzy
@@ -10009,7 +10009,7 @@ msgid "Show CREATE VIEW statement"
 msgstr ""
 
 #, fuzzy
-msgid "Show Cell bars"
+msgid "Show cell bars"
 msgstr "Gráfico de bala"
 
 msgid "Show Dashboard"
@@ -13528,7 +13528,7 @@ msgstr ""
 msgid "X-axis"
 msgstr ""
 
-msgid "XScale Interval"
+msgid "X-scale interval"
 msgstr ""
 
 msgid "XYZ"
@@ -13588,7 +13588,7 @@ msgstr ""
 msgid "Y-axis bounds"
 msgstr ""
 
-msgid "YScale Interval"
+msgid "Y-scale interval"
 msgstr ""
 
 #, fuzzy
@@ -13939,7 +13939,7 @@ msgstr ""
 msgid "`width` must be greater or equal to 0"
 msgstr ""
 
-msgid "add colors to cell bars for +/-"
+msgid "Add colors to cell bars for +/-"
 msgstr ""
 
 msgid "aggregate"
@@ -13987,7 +13987,7 @@ msgid "background"
 msgstr ""
 
 #, fuzzy
-msgid "basic conditional formatting"
+msgid "Basic conditional formatting"
 msgstr "Metadados adicionais"
 
 msgid "basis"

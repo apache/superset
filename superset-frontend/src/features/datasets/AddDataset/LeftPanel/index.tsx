@@ -43,7 +43,7 @@ const LeftPanelStyle = styled.div`
   ${({ theme }) => `
     padding: ${theme.sizeUnit * 4}px;
     height: 100%;
-    background-color: ${theme.colors.grayscale.light5};
+    background-color: ${theme.colorBgContainer};
     position: relative;
     .emptystate {
       height: auto;

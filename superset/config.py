@@ -279,10 +279,11 @@ WTF_CSRF_ENABLED = True
 
 # Add endpoints that need to be exempt from CSRF protection
 WTF_CSRF_EXEMPT_LIST = [
-    "superset.views.core.log",
-    "superset.views.core.explore_json",
     "superset.charts.data.api.data",
     "superset.dashboards.api.cache_dashboard_screenshot",
+    "superset.views.core.explore_json",
+    "superset.views.core.log",
+    "superset.views.datasource.views.samples",
 ]
 
 # Whether to run the web server in debug mode or not
@@ -615,6 +616,9 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     "AG_GRID_TABLE_ENABLED": False,
     # Enable Table v2 time comparison feature
     "TABLE_V2_TIME_COMPARISON_ENABLED": False,
+    # Enable support for date range timeshifts (e.g., "2015-01-03 : 2015-01-04")
+    # in addition to relative timeshifts (e.g., "1 day ago")
+    "DATE_RANGE_TIMESHIFTS_ENABLED": False,
 }
 
 # ------------------------------

@@ -68,9 +68,87 @@ export function isProbablyHTML(text: string) {
     return true;
   }
 
+  // Check if the string contains common HTML patterns
+  if (!hasHtmlTagPattern(text)) {
+    return false;
+  }
+
   const parser = new DOMParser();
   const doc = parser.parseFromString(cleanedStr, 'text/html');
-  return Array.from(doc.body.childNodes).some(({ nodeType }) => nodeType === 1);
+
+  // Check if parsing created actual HTML elements (not just text nodes)
+  const elements = Array.from(doc.body.childNodes).filter(
+    node => node.nodeType === 1,
+  ) as Element[];
+
+  // If no elements were created, it's not HTML
+  if (elements.length === 0) {
+    return false;
+  }
+
+  // Check if the elements are known HTML tags (not custom/unknown tags)
+  // This prevents strings like "<abcdef:12345>" from being treated as HTML
+  return elements.some(element => {
+    const tagName = element.tagName.toLowerCase();
+    // List of common HTML tags we want to recognize
+    const knownHtmlTags = [
+      'div',
+      'span',
+      'p',
+      'a',
+      'b',
+      'i',
+      'u',
+      'em',
+      'strong',
+      'h1',
+      'h2',
+      'h3',
+      'h4',
+      'h5',
+      'h6',
+      'table',
+      'tr',
+      'td',
+      'th',
+      'tbody',
+      'thead',
+      'tfoot',
+      'ul',
+      'ol',
+      'li',
+      'img',
+      'br',
+      'hr',
+      'pre',
+      'code',
+      'blockquote',
+      'section',
+      'article',
+      'nav',
+      'header',
+      'footer',
+      'form',
+      'input',
+      'button',
+      'select',
+      'option',
+      'textarea',
+      'label',
+      'fieldset',
+      'legend',
+      'video',
+      'audio',
+      'canvas',
+      'iframe',
+      'script',
+      'style',
+      'link',
+      'meta',
+      'title',
+    ];
+    return knownHtmlTags.includes(tagName);
+  });
 }
 
 export function sanitizeHtmlIfNeeded(htmlString: string) {

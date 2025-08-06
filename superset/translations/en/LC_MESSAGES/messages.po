@@ -3138,7 +3138,7 @@ msgstr ""
 msgid "Custom"
 msgstr ""
 
-msgid "Custom Conditional Formatting"
+msgid "Custom conditional formatting"
 msgstr ""
 
 msgid "Custom Plugin"
@@ -5437,7 +5437,7 @@ msgstr ""
 msgid "Image download failed, please refresh and try again."
 msgstr ""
 
-msgid "Impersonate logged in user (Presto, Trino, Drill, Hive, and GSheets)"
+msgid "Impersonate logged in user (Presto, Trino, Drill, Hive, and Google Sheets)"
 msgstr ""
 
 msgid "Import"
@@ -8752,7 +8752,7 @@ msgstr ""
 msgid "Select Tags"
 msgstr ""
 
-msgid "Select Viz Type"
+msgid "Select chart type"
 msgstr ""
 
 msgid "Select a column"
@@ -9141,7 +9141,7 @@ msgstr ""
 msgid "Show CREATE VIEW statement"
 msgstr ""
 
-msgid "Show Cell bars"
+msgid "Show cell bars"
 msgstr ""
 
 msgid "Show Dashboard"
@@ -12407,7 +12407,7 @@ msgstr ""
 msgid "X-axis"
 msgstr ""
 
-msgid "XScale Interval"
+msgid "X-scale interval"
 msgstr ""
 
 msgid "XYZ"
@@ -12464,7 +12464,7 @@ msgstr ""
 msgid "Y-axis bounds"
 msgstr ""
 
-msgid "YScale Interval"
+msgid "Y-scale interval"
 msgstr ""
 
 msgid "Year"
@@ -12795,7 +12795,7 @@ msgstr ""
 msgid "`width` must be greater or equal to 0"
 msgstr ""
 
-msgid "add colors to cell bars for +/-"
+msgid "Add colors to cell bars for +/-"
 msgstr ""
 
 msgid "aggregate"
@@ -12840,7 +12840,7 @@ msgstr ""
 msgid "background"
 msgstr ""
 
-msgid "basic conditional formatting"
+msgid "Basic conditional formatting"
 msgstr ""
 
 msgid "basis"

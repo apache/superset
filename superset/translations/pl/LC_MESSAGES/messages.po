@@ -3557,7 +3557,7 @@ msgid "Custom"
 msgstr "Niestandardowy"
 
 #, fuzzy
-msgid "Custom Conditional Formatting"
+msgid "Custom conditional formatting"
 msgstr "Niestandardowe formatowanie warunkowe"
 
 msgid "Custom Plugin"
@@ -6237,7 +6237,7 @@ msgstr "Obraz (PNG) osadzony w e-mailu"
 msgid "Image download failed, please refresh and try again."
 msgstr "Pobieranie obrazu nie powiodło się, odśwież i spróbuj ponownie."
 
-msgid "Impersonate logged in user (Presto, Trino, Drill, Hive, and GSheets)"
+msgid "Impersonate logged in user (Presto, Trino, Drill, Hive, and Google Sheets)"
 msgstr ""
 "Podszywanie się pod zalogowanego użytkownika (Presto, Trino, Drill, Hive,"
 " i GSheets)"
@@ -9914,7 +9914,7 @@ msgstr "Wybierz metodę dostawy"
 msgid "Select Tags"
 msgstr "Wybierz tagi"
 
-msgid "Select Viz Type"
+msgid "Select chart type"
 msgstr "Wybierz typ wizualizacji"
 
 msgid "Select a column"
@@ -10392,7 +10392,7 @@ msgid "Show CREATE VIEW statement"
 msgstr "Pokaż instrukcję CREATE VIEW"
 
 #, fuzzy
-msgid "Show Cell bars"
+msgid "Show cell bars"
 msgstr "Pokaż paski komórek"
 
 msgid "Show Dashboard"
@@ -14326,7 +14326,7 @@ msgid "X-axis"
 msgstr "Oś X"
 
 #, fuzzy
-msgid "XScale Interval"
+msgid "X-scale interval"
 msgstr "Przedział XScale"
 
 msgid "XYZ"
@@ -14389,7 +14389,7 @@ msgid "Y-axis bounds"
 msgstr "Granice osi Y"
 
 #, fuzzy
-msgid "YScale Interval"
+msgid "Y-scale interval"
 msgstr "Przedział YScale"
 
 msgid "Year"
@@ -14786,7 +14786,7 @@ msgstr "`row_offset` musi być większe lub równe 0"
 msgid "`width` must be greater or equal to 0"
 msgstr "`width` musi być większe lub równe 0"
 
-msgid "add colors to cell bars for +/-"
+msgid "Add colors to cell bars for +/-"
 msgstr "dodaj kolory do pasków komórek dla +/-"
 
 msgid "aggregate"
@@ -14835,7 +14835,7 @@ msgid "background"
 msgstr "tło"
 
 #, fuzzy
-msgid "basic conditional formatting"
+msgid "Basic conditional formatting"
 msgstr "Podstawowe formatowanie warunkowe"
 
 #, fuzzy

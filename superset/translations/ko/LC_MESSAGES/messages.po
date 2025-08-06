@@ -3352,7 +3352,7 @@ msgid "Custom"
 msgstr ""
 
 #, fuzzy
-msgid "Custom Conditional Formatting"
+msgid "Custom conditional formatting"
 msgstr "주석"
 
 msgid "Custom Plugin"
@@ -5798,7 +5798,7 @@ msgstr ""
 msgid "Image download failed, please refresh and try again."
 msgstr ""
 
-msgid "Impersonate logged in user (Presto, Trino, Drill, Hive, and GSheets)"
+msgid "Impersonate logged in user (Presto, Trino, Drill, Hive, and Google Sheets)"
 msgstr ""
 
 msgid "Import"
@@ -9345,7 +9345,7 @@ msgid "Select Tags"
 msgstr "테이블 선택"
 
 #, fuzzy
-msgid "Select Viz Type"
+msgid "Select chart type"
 msgstr "시각화 유형"
 
 #, fuzzy
@@ -9773,7 +9773,7 @@ msgid "Show CREATE VIEW statement"
 msgstr ""
 
 #, fuzzy
-msgid "Show Cell bars"
+msgid "Show cell bars"
 msgstr "차트 추가"
 
 msgid "Show Dashboard"
@@ -13200,7 +13200,7 @@ msgid "X-axis"
 msgstr ""
 
 #, fuzzy
-msgid "XScale Interval"
+msgid "X-scale interval"
 msgstr "새로고침 간격"
 
 msgid "XYZ"
@@ -13258,7 +13258,7 @@ msgid "Y-axis bounds"
 msgstr ""
 
 #, fuzzy
-msgid "YScale Interval"
+msgid "Y-scale interval"
 msgstr "새로고침 간격"
 
 msgid "Year"
@@ -13592,7 +13592,7 @@ msgstr ""
 msgid "`width` must be greater or equal to 0"
 msgstr ""
 
-msgid "add colors to cell bars for +/-"
+msgid "Add colors to cell bars for +/-"
 msgstr ""
 
 msgid "aggregate"
@@ -13641,7 +13641,7 @@ msgid "background"
 msgstr ""
 
 #, fuzzy
-msgid "basic conditional formatting"
+msgid "Basic conditional formatting"
 msgstr "주석"
 
 msgid "basis"

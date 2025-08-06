@@ -310,7 +310,7 @@ test('Drill to detail modal is under featureflag', () => {
   expect(screen.queryByText('Drill to detail')).not.toBeInTheDocument();
 });
 
-test('Should show "Drill to detail" with `can_explore` & `can_samples` perms', () => {
+test('Should show "Drill to detail" with `can_explore`, `can_samples` & `can_get_drill_info` perms', () => {
   (global as any).featureFlags = {
     [FeatureFlag.DrillToDetail]: true,
   };
@@ -320,13 +320,14 @@ test('Should show "Drill to detail" with `can_explore` & `can_samples` perms', (
     Admin: [
       ['can_samples', 'Datasource'],
       ['can_explore', 'Superset'],
+      ['can_get_drill_info', 'Dataset'],
     ],
   });
   openMenu();
   expect(screen.getByText('Drill to detail')).toBeInTheDocument();
 });
 
-test('Should show "Drill to detail" with `can_drill` & `can_samples` perms', () => {
+test('Should show "Drill to detail" with `can_drill` & `can_samples` & `can_get_drill_info` perms', () => {
   (global as any).featureFlags = {
     [FeatureFlag.DrillToDetail]: true,
   };
@@ -339,13 +340,14 @@ test('Should show "Drill to detail" with `can_drill` & `can_samples` perms', () 
     Admin: [
       ['can_samples', 'Datasource'],
       ['can_drill', 'Dashboard'],
+      ['can_get_drill_info', 'Dataset'],
     ],
   });
   openMenu();
   expect(screen.getByText('Drill to detail')).toBeInTheDocument();
 });
 
-test('Should show "Drill to detail" with both `canexplore` + `can_drill` & `can_samples` perms', () => {
+test('Should show "Drill to detail" with both `canexplore` + `can_drill` & `can_samples` & `can_get_drill_info` perms', () => {
   (global as any).featureFlags = {
     [FeatureFlag.DrillToDetail]: true,
   };
@@ -357,7 +359,9 @@ test('Should show "Drill to detail" with both `canexplore` + `can_drill` & `can_
   renderWrapper(props, {
     Admin: [
       ['can_samples', 'Datasource'],
+      ['can_explore', 'Superset'],
       ['can_drill', 'Dashboard'],
+      ['can_get_drill_info', 'Dataset'],
     ],
   });
   openMenu();
@@ -380,7 +384,7 @@ test('Should not show "Drill to detail" with neither of required perms', () => {
   expect(screen.queryByText('Drill to detail')).not.toBeInTheDocument();
 });
 
-test('Should not show "Drill to detail" only `can_dril` perm', () => {
+test('Should not show "Drill to detail" only `can_drill` perm', () => {
   (global as any).featureFlags = {
     [FeatureFlag.DrillToDetail]: true,
   };
@@ -391,6 +395,64 @@ test('Should not show "Drill to detail" only `can_dril` perm', () => {
   props.slice.slice_id = 18;
   renderWrapper(props, {
     Admin: [['can_drill', 'Dashboard']],
+  });
+  openMenu();
+  expect(screen.queryByText('Drill to detail')).not.toBeInTheDocument();
+});
+
+test('Should not show "Drill to detail" with only `can_drill` & `can_samples` perms', () => {
+  (global as any).featureFlags = {
+    [FeatureFlag.DrillToDetail]: true,
+  };
+  const props = {
+    ...createProps(),
+    supersetCanExplore: false,
+  };
+  props.slice.slice_id = 18;
+  renderWrapper(props, {
+    Admin: [
+      ['can_drill', 'Dashboard'],
+      ['can_samples', 'Datasource'],
+    ],
+  });
+  openMenu();
+  expect(screen.queryByText('Drill to detail')).not.toBeInTheDocument();
+});
+
+test('Should not show "Drill to detail" with only `can_explore` & `can_samples` perms', () => {
+  (global as any).featureFlags = {
+    [FeatureFlag.DrillToDetail]: true,
+  };
+  const props = {
+    ...createProps(),
+    supersetCanExplore: false,
+  };
+  props.slice.slice_id = 18;
+  renderWrapper(props, {
+    Admin: [
+      ['can_explore', 'Superset'],
+      ['can_samples', 'Datasource'],
+    ],
+  });
+  openMenu();
+  expect(screen.queryByText('Drill to detail')).not.toBeInTheDocument();
+});
+
+test('Should not show "Drill to detail" with only `can_explore`, `can_drill` & `can_samples` perms', () => {
+  (global as any).featureFlags = {
+    [FeatureFlag.DrillToDetail]: true,
+  };
+  const props = {
+    ...createProps(),
+    supersetCanExplore: false,
+  };
+  props.slice.slice_id = 18;
+  renderWrapper(props, {
+    Admin: [
+      ['can_explore', 'Superset'],
+      ['can_samples', 'Datasource'],
+      ['can_drill', 'Dashboard'],
+    ],
   });
   openMenu();
   expect(screen.queryByText('Drill to detail')).not.toBeInTheDocument();
