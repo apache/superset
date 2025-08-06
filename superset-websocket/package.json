@@ -24,7 +24,7 @@
     "lodash": "^4.17.21",
     "uuid": "^11.1.0",
     "winston": "^3.17.0",
-    "ws": "^8.18.0"
+    "ws": "^8.18.3"
   },
   "devDependencies": {
     "@eslint/js": "^9.25.1",
@@ -35,7 +35,7 @@
     "@types/lodash": "^4.17.20",
     "@types/node": "^22.10.3",
     "@types/uuid": "^10.0.0",
-    "@types/ws": "^8.5.12",
+    "@types/ws": "^8.18.1",
     "@typescript-eslint/eslint-plugin": "^8.26.0",
     "@typescript-eslint/parser": "^8.33.0",
     "eslint": "^9.30.0",
