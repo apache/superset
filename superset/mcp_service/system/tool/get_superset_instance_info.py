@@ -195,8 +195,7 @@ def calculate_popular_content(
     dao_classes: Dict[str, Any],
 ) -> PopularContent:
     """Calculate popular content metrics (placeholder implementation)."""
-    # TODO: Implement actual popular content calculation
-    # This could include most viewed dashboards, top creators, etc.
+
     return PopularContent(
         top_tags=[],
         top_creators=[],
