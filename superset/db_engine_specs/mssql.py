@@ -23,7 +23,7 @@ from re import Pattern
 from typing import Any, Optional
 
 from flask_babel import gettext as __
-from sqlalchemy import types
+from sqlalchemy import literal, types
 from sqlalchemy.dialects.mssql.base import SMALLDATETIME
 from sqlalchemy.sql import Select
 
@@ -172,14 +172,18 @@ class MssqlEngineSpec(BaseEngineSpec):
         MSSQL requires an ORDER BY clause when using OFFSET. If no ORDER BY
         is present but OFFSET is specified, we add a default ORDER BY clause.
         """
-        # Check if this query has OFFSET but no ORDER BY
-        if qry._offset is not None and (not qry._order_by or len(qry._order_by) == 0):
-            # Add a default ORDER BY clause using the first column
-            columns = qry.selected_columns
-            if columns:
-                # Use the first selected column for ordering
-                first_col = list(columns)[0]
-                qry = qry.order_by(first_col)
+        # Check if this query has OFFSET but no ORDER BY by inspecting query structure
+        try:
+            # Try to access the internal query structure safely
+            has_offset = getattr(qry, "_offset", None) is not None
+            has_order_by = getattr(qry, "_order_by", None) is not None
+
+            if has_offset and not has_order_by:
+                # Add a default ORDER BY clause using literal(1) for consistent ordering
+                qry = qry.order_by(literal(1))
+        except AttributeError:
+            # If we can't inspect the query safely, just return it unchanged
+            pass
 
         return qry
 
