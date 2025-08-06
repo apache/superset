@@ -19,6 +19,11 @@ from datetime import datetime
 import pytz
 
 EPOCH = datetime(1970, 1, 1)
+# JavaScript's Date object can safely represent dates within this range
+# These are the min/max values that can be represented as milliseconds since epoch
+# without overflowing JavaScript's Number type (±2^53)
+JS_DATE_RANGE_MIN = datetime(1938, 4, 24, 22, 13, 20, 0)
+JS_DATE_RANGE_MAX = datetime(2286, 11, 20, 17, 46, 39, 999000)
 
 
 def datetime_to_epoch(dttm: datetime) -> float:
