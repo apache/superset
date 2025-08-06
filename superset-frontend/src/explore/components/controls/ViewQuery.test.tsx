@@ -154,7 +154,8 @@ test('navigates to SQL Lab when View in SQL Lab button is clicked', () => {
   const viewInSQLLabButton = screen.getByText('View in SQL Lab');
   fireEvent.click(viewInSQLLabButton);
 
-  expect(mockHistoryPush).toHaveBeenCalledWith('/sqllab', {
+  expect(mockHistoryPush).toHaveBeenCalledWith({
+    pathname: '/sqllab',
     state: {
       requestedQuery: {
         datasourceKey: mockProps.datasource,
@@ -174,7 +175,7 @@ test('opens SQL Lab in a new tab when View in SQL Lab button is clicked with met
 
   const { datasource, sql } = mockProps;
   expect(window.open).toHaveBeenCalledWith(
-    `/sqllab?datasourceKey=${datasource}&sql=${sql}`,
+    `/sqllab?datasourceKey=${datasource}&sql=${encodeURIComponent(sql)}`,
     '_blank',
   );
 });
