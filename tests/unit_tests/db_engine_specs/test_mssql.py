@@ -430,3 +430,86 @@ def test_denormalize_name(name: str, expected_result: str):
     from superset.db_engine_specs.mssql import MssqlEngineSpec as spec  # noqa: N813
 
     assert spec.denormalize_name(mssql.dialect(), name) == expected_result
+
+
+def test_adjust_query_for_offset_no_offset():
+    """Test that queries without OFFSET are not modified."""
+    from superset.db_engine_specs.mssql import MssqlEngineSpec
+
+    # Query without offset should remain unchanged
+    qry = select([column("col1")]).select_from(table("test_table"))
+    result = MssqlEngineSpec.adjust_query_for_offset(qry)
+
+    # Should return the same query object
+    assert qry is result
+
+
+def test_adjust_query_for_offset_with_existing_order_by():
+    """Test that queries with both OFFSET and ORDER BY are not modified."""
+    from superset.db_engine_specs.mssql import MssqlEngineSpec
+
+    # Query with both offset and order by should remain unchanged
+    qry = (
+        select([column("col1")])
+        .select_from(table("test_table"))
+        .order_by(column("col1"))
+        .offset(10)
+    )
+    result = MssqlEngineSpec.adjust_query_for_offset(qry)
+
+    # Should return the same query object since it already has ORDER BY
+    assert qry is result
+
+
+def test_adjust_query_for_offset_adds_order_by():
+    """Test that queries with OFFSET but no ORDER BY get ORDER BY added."""
+    from superset.db_engine_specs.mssql import MssqlEngineSpec
+
+    # Query with offset but no order by should get order by added
+    qry = select([column("col1")]).select_from(table("test_table")).offset(10)
+    result = MssqlEngineSpec.adjust_query_for_offset(qry)
+
+    # Should return a different query object with ORDER BY added
+    assert qry is not result
+
+    # Check that the result has order by clauses
+    assert hasattr(result, "_order_by_clauses")
+    assert len(result._order_by_clauses) > 0
+
+    # Check that it has the expected cast(literal("1"), String) order by
+    order_by_clause = result._order_by_clauses[0]
+    assert hasattr(order_by_clause, "type")  # Should be a Cast object
+
+
+def test_adjust_query_for_offset_with_limit():
+    """Test that queries with both LIMIT and OFFSET get ORDER BY added."""
+    from superset.db_engine_specs.mssql import MssqlEngineSpec
+
+    # Query with limit and offset but no order by should get order by added
+    qry = (
+        select([column("col1")]).select_from(table("test_table")).limit(100).offset(10)
+    )
+    result = MssqlEngineSpec.adjust_query_for_offset(qry)
+
+    # Should return a different query object with ORDER BY added
+    assert qry is not result
+
+    # Should preserve the original limit and offset
+    assert getattr(result, "_limit", None) == 100
+    assert getattr(result, "_offset", None) == 10
+
+    # Should have order by clauses added
+    assert len(getattr(result, "_order_by_clauses", ())) > 0
+
+
+def test_adjust_query_for_offset_exception_handling():
+    """Test that the method handles exceptions gracefully."""
+    from superset.db_engine_specs.mssql import MssqlEngineSpec
+
+    # Create a mock query object that will raise an exception when accessing attributes
+    mock_qry = mock.Mock()
+    mock_qry._offset = mock.PropertyMock(side_effect=AttributeError("Test error"))
+
+    # Should return the original query object when exceptions occur
+    result = MssqlEngineSpec.adjust_query_for_offset(mock_qry)
+    assert result is mock_qry

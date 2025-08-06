@@ -865,6 +865,94 @@ WHERE
     )
 
 
+def test_compile_sqla_query_calls_adjust_query_for_offset():
+    """
+    Test that compile_sqla_query calls adjust_query_for_offset
+    when the engine spec has it.
+    """
+    from unittest.mock import MagicMock, Mock, patch
+
+    from sqlalchemy import column, table
+
+    from superset.db_engine_specs.mssql import MssqlEngineSpec
+    from superset.models.core import Database
+
+    # Create a database with MSSQL engine spec
+    database = Database(
+        database_name="mssql_db",
+        sqlalchemy_uri="mssql+pyodbc://server/db",
+    )
+
+    # Create a query with offset
+    qry = select([column("col1")]).select_from(table("test_table")).offset(10)
+
+    # Mock the database engine and compilation
+    mock_engine = MagicMock()
+    mock_compiled = MagicMock()
+    mock_compiled.compile.return_value = Mock(statement="SELECT * FROM test")
+    qry.compile = Mock(return_value=mock_compiled)
+
+    # Mock the get_db_engine_spec method to return MssqlEngineSpec
+    with patch.object(Database, "get_db_engine_spec", return_value=MssqlEngineSpec):
+        # Mock the get_sqla_engine to avoid actual database connection
+        with patch.object(database, "get_sqla_engine") as mock_get_engine:
+            mock_get_engine.return_value.__enter__.return_value = mock_engine
+            mock_get_engine.return_value.__exit__.return_value = None
+
+            # Mock the adjust_query_for_offset method to track if it's called
+            with patch.object(
+                MssqlEngineSpec, "adjust_query_for_offset", return_value=qry
+            ) as mock_adjust:
+                database.compile_sqla_query(qry)
+
+                # Assert that adjust_query_for_offset was called
+                mock_adjust.assert_called_once_with(qry)
+
+
+def test_compile_sqla_query_skips_adjust_when_no_offset():
+    """
+    Test that compile_sqla_query doesn't call adjust_query_for_offset
+    when query has no offset.
+    """
+    from unittest.mock import MagicMock, Mock, patch
+
+    from sqlalchemy import column, table
+
+    from superset.db_engine_specs.mssql import MssqlEngineSpec
+    from superset.models.core import Database
+
+    # Create a database with MSSQL engine spec
+    database = Database(
+        database_name="mssql_db",
+        sqlalchemy_uri="mssql+pyodbc://server/db",
+    )
+
+    # Create a query without offset
+    qry = select([column("col1")]).select_from(table("test_table"))
+
+    # Mock the database engine and compilation
+    mock_engine = MagicMock()
+    mock_compiled = MagicMock()
+    mock_compiled.compile.return_value = Mock(statement="SELECT * FROM test")
+    qry.compile = Mock(return_value=mock_compiled)
+
+    # Mock the get_db_engine_spec method to return MssqlEngineSpec
+    with patch.object(Database, "get_db_engine_spec", return_value=MssqlEngineSpec):
+        # Mock the get_sqla_engine to avoid actual database connection
+        with patch.object(database, "get_sqla_engine") as mock_get_engine:
+            mock_get_engine.return_value.__enter__.return_value = mock_engine
+            mock_get_engine.return_value.__exit__.return_value = None
+
+            # Mock the adjust_query_for_offset method to track if it's called
+            with patch.object(
+                MssqlEngineSpec, "adjust_query_for_offset", return_value=qry
+            ) as mock_adjust:
+                database.compile_sqla_query(qry)
+
+                # Verify adjust_query_for_offset was NOT called
+                mock_adjust.assert_not_called()
+
+
 def test_get_all_table_names_in_schema(mocker: MockerFixture) -> None:
     """
     Test the `get_all_table_names_in_schema` method.
