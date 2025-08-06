@@ -143,15 +143,8 @@ def test_superset_limit(mocker: MockerFixture, app_context: None, table1: None) 
     """
     Simple that limit is applied when querying a table.
     """
-    mocker.patch(
-        "flask.current_app.config",
-        {
-            "DB_SQLA_URI_VALIDATOR": None,
-            "SUPERSET_META_DB_LIMIT": 1,
-            "DATABASE_OAUTH2_CLIENTS": {},
-            "SQLALCHEMY_CUSTOM_PASSWORD_STORE": None,
-        },
-    )
+    # Note: We don't patch flask.current_app.config directly anymore
+    # The @with_config decorator handles the config patching
     mocker.patch("superset.security_manager")
 
     # Mock Flask g.user for security checks
@@ -265,9 +258,16 @@ def test_security_manager(
     except ImportError:
         pytest.skip("metadb dependencies not available")
 
+    # Mock Flask g.user first to avoid AttributeError
+    g = mocker.patch("flask.g")
+    g.user = mocker.MagicMock()
+    g.user.is_anonymous = False
+
+    # Then patch the security_manager to raise an exception
     security_manager = mocker.MagicMock()
+    # Patch it in the metadb module where it's actually used
     mocker.patch(
-        "superset.security_manager",
+        "superset.extensions.metadb.security_manager",
         new=security_manager,
     )
     security_manager.raise_for_access.side_effect = SupersetSecurityException(
@@ -280,11 +280,6 @@ def test_security_manager(
             level=ErrorLevel.ERROR,
         )
     )
-
-    # Mock Flask g.user for security checks
-    g = mocker.patch("flask.g")
-    g.user = mocker.MagicMock()
-    g.user.is_anonymous = False
 
     try:
         engine = create_engine("superset://")
