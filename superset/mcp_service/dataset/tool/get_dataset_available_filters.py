@@ -1,0 +1,51 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+"""
+Get available dataset filters FastMCP tool
+"""
+
+import logging
+
+from superset.mcp_service.auth import mcp_auth_hook
+from superset.mcp_service.dataset.schemas import (
+    DatasetAvailableFilters,
+    GetDatasetAvailableFiltersRequest,
+)
+from superset.mcp_service.generic_tools import ModelGetAvailableFiltersTool
+from superset.mcp_service.mcp_app import mcp
+
+logger = logging.getLogger(__name__)
+
+
+@mcp.tool
+@mcp_auth_hook
+def get_dataset_available_filters(
+    request: GetDatasetAvailableFiltersRequest,
+) -> DatasetAvailableFilters:
+    """
+    Dynamically get information about available dataset filters and their operators.
+    Custom fields supported: tags, owner.
+    Returns a DatasetAvailableFilters object with column_operators.
+    """
+    from superset.daos.dataset import DatasetDAO
+
+    tool = ModelGetAvailableFiltersTool(
+        dao_class=DatasetDAO,  # type: ignore[arg-type]
+        output_schema=DatasetAvailableFilters,
+        logger=logger,
+    )
+    return tool.run()
