@@ -303,12 +303,13 @@ describe('ThemeController', () => {
     // Clear the call from initialization
     jest.clearAllMocks();
 
-    controller.setThemeMode(ThemeMode.DARK);
-
-    expect(mockSetConfig).toHaveBeenCalledTimes(1);
-    expect(mockSetConfig).toHaveBeenCalledWith(
-      expect.objectContaining(DEFAULT_THEME),
+    // Should throw when trying to change mode with only one theme
+    expect(() => controller.setThemeMode(ThemeMode.DARK)).toThrow(
+      'Theme mode changes are not allowed when only one theme is available',
     );
+
+    // Config should not have been called since the error was thrown
+    expect(mockSetConfig).not.toHaveBeenCalled();
   });
 
   it('should handle only dark theme', () => {
@@ -323,13 +324,22 @@ describe('ThemeController', () => {
       themeObject: mockThemeObject,
     });
 
+    // When only dark theme is available, controller uses the default fallback theme initially
     expect(mockSetConfig).toHaveBeenCalledTimes(1);
-    expect(mockSetConfig).toHaveBeenCalledWith(
-      expect.objectContaining({
-        ...DARK_THEME,
-        algorithm: antdThemeImport.darkAlgorithm,
-      }),
-    );
+
+    const calledWith = mockSetConfig.mock.calls[0][0];
+
+    // Should use the default theme fallback (not dark) for initial load
+    expect(calledWith.colorBgBase).toBe('#fff');
+    expect(calledWith.colorTextBase).toBe('#000');
+
+    // Should allow mode changes since dark theme exists
+    expect(controller.canSetMode()).toBe(true);
+
+    // Should be able to switch to dark mode
+    jest.clearAllMocks();
+    controller.setThemeMode(ThemeMode.DARK);
+    expect(mockSetConfig).toHaveBeenCalledTimes(1);
   });
 
   it('should handle completely empty BootstrapData', () => {
@@ -448,9 +458,13 @@ describe('ThemeController', () => {
         themeObject: mockThemeObject,
       });
 
-      controller.setThemeMode(ThemeMode.DARK);
+      // Should throw when trying to set mode with only one theme
+      expect(() => controller.setThemeMode(ThemeMode.DARK)).toThrow(
+        'Theme mode changes are not allowed when only one theme is available',
+      );
 
-      expect(controller.getCurrentMode()).toBe(ThemeMode.DARK);
+      // Mode should remain unchanged
+      expect(controller.getCurrentMode()).toBe(ThemeMode.DEFAULT);
       expect(consoleSpy).not.toHaveBeenCalled();
     });
 
