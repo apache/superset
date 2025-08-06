@@ -476,9 +476,32 @@ def test_adjust_query_for_offset_adds_order_by():
     assert hasattr(result, "_order_by_clauses")
     assert len(result._order_by_clauses) > 0
 
-    # Check that it has the expected cast(literal("1"), String) order by
+    # Check that it uses the first column for ordering, not a literal
     order_by_clause = result._order_by_clauses[0]
-    assert hasattr(order_by_clause, "type")  # Should be a Cast object
+    # The order by should be the column itself, not a cast literal
+    assert str(order_by_clause).lower() == "col1"
+
+
+def test_adjust_query_for_offset_fallback_to_literal():
+    """Test that queries without selected columns fall back to literal ordering."""
+    from unittest import mock
+
+    from superset.db_engine_specs.mssql import MssqlEngineSpec
+
+    # Create a mock query with offset but no selected columns
+    mock_qry = mock.Mock()
+    mock_qry._offset = 10
+    mock_qry._order_by_clauses = ()
+    mock_qry.selected_columns = []  # Empty selected columns
+    mock_qry.order_by = mock.Mock(return_value="ordered_query")
+
+    MssqlEngineSpec.adjust_query_for_offset(mock_qry)
+
+    # Should call order_by with the cast literal fallback
+    mock_qry.order_by.assert_called_once()
+    # The call should be with a Cast object (literal fallback)
+    call_args = mock_qry.order_by.call_args[0][0]
+    assert hasattr(call_args, "type")  # Should be a Cast object
 
 
 def test_adjust_query_for_offset_with_limit():
