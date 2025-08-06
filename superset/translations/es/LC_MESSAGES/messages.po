@@ -752,10 +752,10 @@ msgstr "Añadir plantilla CSS"
 msgid "Add Dashboard"
 msgstr "Añadir panel de control"
 
-msgid "Add Divider"
+msgid "Add divider"
 msgstr "Añadir separador"
 
-msgid "Add Filter"
+msgid "Add filter"
 msgstr "Añadir filtro"
 
 msgid "Add Layer"
@@ -1679,7 +1679,7 @@ msgstr "Autocompletar filtros"
 msgid "Autocomplete query predicate"
 msgstr "Autocompletar predicado de consulta"
 
-msgid "Automatic Color"
+msgid "Automatic color"
 msgstr "Color automático"
 
 msgid "Autosize Column"
@@ -3020,7 +3020,7 @@ msgstr "Mapa del país"
 msgid "Create"
 msgstr "Crear"
 
-msgid "Create Chart"
+msgid "Create chart"
 msgstr "Crear gráfico"
 
 #, -ERR:PROP-NOT-FOUND-
@@ -8192,7 +8192,7 @@ msgstr "El recurso ya tiene un informe adjunto."
 msgid "Resource was not found."
 msgstr "No se ha encontrado el recurso."
 
-msgid "Restore Filter"
+msgid "Restore filter"
 msgstr "Restablecer filtro"
 
 msgid "Results"
