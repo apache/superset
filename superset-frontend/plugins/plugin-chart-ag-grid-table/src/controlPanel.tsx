@@ -36,18 +36,19 @@ import {
   QueryModeLabel,
   sections,
   sharedControls,
+  shouldSkipMetricColumn,
+  isRegularMetric,
+  isPercentMetric,
 } from '@superset-ui/chart-controls';
 import {
   ensureIsArray,
   FeatureFlag,
   GenericDataType,
-  getMetricLabel,
   isAdhocColumn,
   isFeatureEnabled,
   isPhysicalColumn,
   legacyValidateInteger,
   QueryFormColumn,
-  QueryFormMetric,
   QueryMode,
   SMART_DATE_ID,
   t,
@@ -533,14 +534,25 @@ const config: ControlPanelConfig = {
                     )
                     .forEach((colname, index) => {
                       if (
-                        explore.form_data.metrics?.some(
-                          metric => getMetricLabel(metric) === colname,
-                        ) ||
-                        explore.form_data.percent_metrics?.some(
-                          (metric: QueryFormMetric) =>
-                            getMetricLabel(metric) === colname,
-                        )
+                        shouldSkipMetricColumn({
+                          colname,
+                          colnames,
+                          formData: explore.form_data,
+                        })
                       ) {
+                        return;
+                      }
+
+                      const isMetric = isRegularMetric(
+                        colname,
+                        explore.form_data,
+                      );
+                      const isPercentMetricValue = isPercentMetric(
+                        colname,
+                        explore.form_data,
+                      );
+
+                      if (isMetric || isPercentMetricValue) {
                         const comparisonColumns =
                           generateComparisonColumns(colname);
                         comparisonColumns.forEach((name, idx) => {

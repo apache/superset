@@ -101,8 +101,8 @@ export default memo(function ColumnConfigItem({
       )}
       trigger="click"
       placement="right"
-      styles={{ body: { width, height } }}
-      rootClassName="column-config-popover"
+      style={{ width, height }}
+      className="column-config-popover"
     >
       <div css={outerContainerStyle}>
         <div css={nameContainerStyle}>
@@ -117,7 +117,7 @@ export default memo(function ColumnConfigItem({
               iconColor={colors.grayscale.base}
             />
           )}
-          <Icons.CaretRightOutlined css={caretIconStyle} />
+          <Icons.RightOutlined css={caretIconStyle} />
         </div>
       </div>
     </Popover>
