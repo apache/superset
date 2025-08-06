@@ -71,7 +71,6 @@ dependencies = [
     "nh3>=0.2.11, <0.3",
     "numpy>1.23.5, <2.3",
     "packaging",
-    "Pillow==11.3.0",
     # --------------------------
     # pandas and related (wanting pandas[performance] without numba as it's 100+MB and not needed)
     "pandas[excel]>=2.0.3, <2.1",
@@ -80,6 +79,7 @@ dependencies = [
     "parsedatetime",
     "paramiko>=3.4.0",
     "pgsanity",
+    "Pillow==11.3.0",
     "polyline>=2.0.0, <3.0",
     "pyparsing>=3.0.6, <4",
     "python-dateutil",
