@@ -36,6 +36,7 @@ from flask_babel import lazy_gettext as _, refresh
 from flask_compress import Compress
 from flask_session import Session
 from sqlalchemy import inspect
+from sqlalchemy.exc import OperationalError
 from werkzeug.middleware.proxy_fix import ProxyFix
 
 from superset.constants import CHANGE_ME_SECRET_KEY
@@ -484,13 +485,22 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         This is called during app initialization but checks table existence
         to handle cases where the app starts before database migration.
         """
-        inspector = inspect(db.engine)
+        try:
+            inspector = inspect(db.engine)
 
-        # Check if core tables exist (use 'dashboards' as proxy for Superset tables)
-        if not inspector.has_table("dashboards"):
+            # Check if core tables exist (use 'dashboards' as proxy for Superset tables)
+            if not inspector.has_table("dashboards"):
+                logger.debug(
+                    "Superset tables not yet created. Skipping database-dependent "
+                    "initialization. These features will be initialized after "
+                    "migration."
+                )
+                return
+        except OperationalError as e:
             logger.debug(
-                "Superset tables not yet created. Skipping database-dependent "
-                "initialization. These features will be initialized after migration."
+                "Error inspecting database tables. Skipping database-dependent "
+                "initialization: %s",
+                e,
             )
             return
 
