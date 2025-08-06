@@ -142,6 +142,10 @@ if [ ! -f "/app/scripts/tag_latest_release.sh" ]; then
   cp /app/docker/tag_latest_release.sh /app/scripts/tag_latest_release.sh 2>/dev/null || true
 fi
 
+# Install pip module for Shillelagh compatibility (aligns with CI environment)
+echo "Installing pip module for Shillelagh compatibility..."
+uv pip install pip
+
 # If arguments provided, execute them
 if [ $# -gt 0 ]; then
   exec "$@"

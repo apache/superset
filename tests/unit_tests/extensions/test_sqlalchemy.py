@@ -114,6 +114,11 @@ def test_superset(mocker: MockerFixture, app_context: None, table1: None) -> Non
     """
     mocker.patch("superset.security_manager")
 
+    # Mock Flask g.user for security checks
+    g = mocker.patch("flask.g")
+    g.user = mocker.MagicMock()
+    g.user.is_anonymous = False
+
     try:
         engine = create_engine("superset://")
     except Exception as e:
@@ -144,9 +149,15 @@ def test_superset_limit(mocker: MockerFixture, app_context: None, table1: None) 
             "DB_SQLA_URI_VALIDATOR": None,
             "SUPERSET_META_DB_LIMIT": 1,
             "DATABASE_OAUTH2_CLIENTS": {},
+            "SQLALCHEMY_CUSTOM_PASSWORD_STORE": None,
         },
     )
     mocker.patch("superset.security_manager")
+
+    # Mock Flask g.user for security checks
+    g = mocker.patch("flask.g")
+    g.user = mocker.MagicMock()
+    g.user.is_anonymous = False
 
     try:
         engine = create_engine("superset://")
@@ -170,6 +181,11 @@ def test_superset_joins(
     A test joining across databases.
     """
     mocker.patch("superset.security_manager")
+
+    # Mock Flask g.user for security checks
+    g = mocker.patch("flask.g")
+    g.user = mocker.MagicMock()
+    g.user.is_anonymous = False
 
     try:
         engine = create_engine("superset://")
@@ -202,6 +218,11 @@ def test_dml(
     Test that we can update/delete data, only if DML is enabled.
     """
     mocker.patch("superset.security_manager")
+
+    # Mock Flask g.user for security checks
+    g = mocker.patch("flask.g")
+    g.user = mocker.MagicMock()
+    g.user.is_anonymous = False
 
     try:
         engine = create_engine("superset://")
@@ -260,6 +281,11 @@ def test_security_manager(
         )
     )
 
+    # Mock Flask g.user for security checks
+    g = mocker.patch("flask.g")
+    g.user = mocker.MagicMock()
+    g.user.is_anonymous = False
+
     try:
         engine = create_engine("superset://")
     except Exception as e:
@@ -281,6 +307,11 @@ def test_allowed_dbs(mocker: MockerFixture, app_context: None, table1: None) -> 
     Test that DBs can be restricted.
     """
     mocker.patch("superset.security_manager")
+
+    # Mock Flask g.user for security checks
+    g = mocker.patch("flask.g")
+    g.user = mocker.MagicMock()
+    g.user.is_anonymous = False
 
     try:
         engine = create_engine("superset://", allowed_dbs=["database1"])
