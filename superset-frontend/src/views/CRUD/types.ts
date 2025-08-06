@@ -104,6 +104,7 @@ export interface QueryObject {
     username: string;
   };
   start_time: number;
+  start_running_time: number | null;
   end_time: number;
   rows: number;
   tmp_table_name: string;
@@ -125,6 +126,7 @@ export enum QueryObjectColumns {
   User = 'user',
   UserFirstName = 'user.first_name',
   StartTime = 'start_time',
+  StartRunningTime = 'start_running_time',
   EndTime = 'end_time',
   Rows = 'rows',
   TmpTableName = 'tmp_table_name',
