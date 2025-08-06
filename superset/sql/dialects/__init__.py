@@ -17,5 +17,6 @@
 
 from .dremio import Dremio
 from .firebolt import Firebolt, FireboltOld
+from .mssql import MSSQL
 
-__all__ = ["Dremio", "Firebolt", "FireboltOld"]
+__all__ = ["Dremio", "Firebolt", "FireboltOld", "MSSQL"]

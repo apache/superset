@@ -163,6 +163,38 @@ class MssqlEngineSpec(BaseEngineSpec):
             )
         return f"{cls.engine} error: {cls._extract_error_message(ex)}"
 
+    @classmethod
+    def get_query_with_default_order_by(
+        cls, query_dict: dict[str, Any], datasource: Any = None
+    ) -> dict[str, Any]:
+        """
+        Ensure MSSQL queries with OFFSET have an ORDER BY clause.
+
+        MSSQL requires ORDER BY when using OFFSET. This method adds a default
+        ORDER BY clause if one is missing and OFFSET is present.
+        """
+        # Create a copy to avoid modifying the original
+        query_dict = query_dict.copy()
+
+        # Check if we have OFFSET but no ORDER BY
+        if query_dict.get("row_offset", 0) > 0 and not query_dict.get("orderby"):
+            # Add a default ORDER BY using the first column
+            columns = query_dict.get("columns", [])
+            if columns:
+                # Use the first column for ordering
+                first_column = columns[0]
+                if isinstance(first_column, dict):
+                    column_name = first_column.get("column_name") or first_column.get(
+                        "label"
+                    )
+                else:
+                    column_name = str(first_column)
+
+                if column_name:
+                    query_dict["orderby"] = [(column_name, True)]  # True = ascending
+
+        return query_dict
+
 
 class AzureSynapseSpec(MssqlEngineSpec):
     engine = "mssql"

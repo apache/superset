@@ -44,7 +44,7 @@ from sqlglot.optimizer.scope import (
 )
 
 from superset.exceptions import QueryClauseValidationException, SupersetParseError
-from superset.sql.dialects import Dremio, Firebolt
+from superset.sql.dialects import Dremio, Firebolt, MSSQL
 
 if TYPE_CHECKING:
     from superset.models.core import Database
@@ -86,7 +86,7 @@ SQLGLOT_DIALECTS = {
     # "kylin": ???
     "mariadb": Dialects.MYSQL,
     "motherduck": Dialects.DUCKDB,
-    "mssql": Dialects.TSQL,
+    "mssql": MSSQL,
     "mysql": Dialects.MYSQL,
     "netezza": Dialects.POSTGRES,
     "oceanbase": Dialects.MYSQL,
