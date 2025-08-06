@@ -101,18 +101,21 @@ describe('getCrossFilterDataMask', () => {
           filters: [
             {
               col: 'LON',
-              op: '==',
-              val: -122.4205965,
+              op: 'IN',
+              val: [-122.4205965, -122.4215375],
             },
             {
               col: 'LAT',
-              op: '==',
-              val: 37.8054735,
+              op: 'IN',
+              val: [37.8054735, 37.8058583],
             },
           ],
         },
         filterState: {
-          value: [-122.4205965, 37.8054735],
+          value: [
+            [-122.4205965, 37.8054735],
+            [-122.4215375, 37.8058583],
+          ],
           customColumnLabel: 'LON, LAT',
         },
       },
@@ -157,7 +160,12 @@ describe('getCrossFilterDataMask', () => {
     const dataMask = getCrossFilterDataMask({
       formData: latlongFormData,
       data: latlongPickingData,
-      filterState: { value: [-122.4205965, 37.8054735] },
+      filterState: {
+        value: [
+          [-122.4205965, 37.8054735],
+          [-122.4215375, 37.8058583],
+        ],
+      },
     });
 
     const expected = {
@@ -213,13 +221,13 @@ describe('getCrossFilterDataMask', () => {
           filters: [
             {
               col: 'LONLAT',
-              op: '==',
-              val: `-122.4205965,37.8054735`,
+              op: 'IN',
+              val: [`-122.4205965,37.8054735`, `-122.4215375,37.8058583`],
             },
           ],
         },
         filterState: {
-          value: [`-122.4205965,37.8054735`],
+          value: [`-122.4205965,37.8054735`, `-122.4215375,37.8058583`],
         },
       },
       isCurrentValueSelected: false,
@@ -267,13 +275,13 @@ describe('getCrossFilterDataMask', () => {
           filters: [
             {
               col: 'LONLAT',
-              op: '==',
-              val: `37.8054735,-122.4205965`,
+              op: 'IN',
+              val: [`37.8054735,-122.4205965`, `37.8058583,-122.4215375`],
             },
           ],
         },
         filterState: {
-          value: [`37.8054735,-122.4205965`],
+          value: [`37.8054735,-122.4205965`, `37.8058583,-122.4215375`],
         },
       },
       isCurrentValueSelected: false,
@@ -316,8 +324,8 @@ describe('getCrossFilterDataMask', () => {
           filters: [
             {
               col: 'geohash',
-              op: '==',
-              val: `9q8zn620c751`,
+              op: 'IN',
+              val: [`9q8zn620c751`],
             },
           ],
         },

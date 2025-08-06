@@ -22,11 +22,16 @@
 import { ScreenGridLayer } from '@deck.gl/aggregation-layers';
 import { CategoricalColorNamespace, JsonObject, t } from '@superset-ui/core';
 import { Color } from '@deck.gl/core';
-import { COLOR_SCHEME_TYPES, ColorSchemeType } from '../../utilities/utils';
+import {
+  COLOR_SCHEME_TYPES,
+  ColorSchemeType,
+  isPointInBonds,
+} from '../../utilities/utils';
 import sandboxedEval from '../../utils/sandbox';
 import { commonLayerProps, getColorRange } from '../common';
 import TooltipRow from '../../TooltipRow';
 import { GetLayerType, createDeckGLComponent } from '../../factory';
+import { HIGHLIGHT_COLOR_ARRAY, TRANSPARENT_COLOR_ARRAY } from '../../utils';
 
 export function getPoints(data: JsonObject[]) {
   return data.map(d => d.position);
@@ -113,7 +118,39 @@ export const getLayer: GetLayerType<ScreenGridLayer> = function ({
     }),
     getWeight: aggFunc,
     colorScaleType: colorSchemeType === 'default' ? 'linear' : 'quantize',
+    opacity: filterState?.value ? 0.3 : 1,
   });
 };
 
-export default createDeckGLComponent(getLayer, getPoints);
+const getHighlightLayer: GetLayerType<ScreenGridLayer> = function ({
+  formData,
+  filterState,
+  payload,
+}) {
+  const fd = formData;
+  let data = payload.data.features;
+
+  if (fd.js_data_mutator) {
+    // Applying user defined data mutator if defined
+    const jsFnMutator = sandboxedEval(fd.js_data_mutator);
+    data = jsFnMutator(data);
+  }
+  const dataInside = data.filter((d: JsonObject) =>
+    isPointInBonds(d.position, filterState?.value),
+  );
+
+  const aggFunc = (d: JsonObject) => d.weight || 0;
+
+  return new ScreenGridLayer({
+    id: `screengrid-highlight-layer-${formData.slice_id}` as const,
+    data: dataInside,
+    cellSizePixels: formData.grid_size,
+    colorDomain: [0, 1],
+    colorRange: [TRANSPARENT_COLOR_ARRAY, HIGHLIGHT_COLOR_ARRAY],
+    outline: false,
+    getWeight: aggFunc,
+    colorScaleType: 'quantize',
+  });
+};
+
+export default createDeckGLComponent(getLayer, getPoints, getHighlightLayer);

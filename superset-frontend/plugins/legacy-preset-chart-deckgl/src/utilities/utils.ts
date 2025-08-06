@@ -38,3 +38,19 @@ export const isColorSchemeTypeVisible = (
   controls: ControlStateMapping,
   colorSchemeType: ColorSchemeType,
 ) => controls.color_scheme_type?.value === colorSchemeType;
+
+export const isPointInBonds = (
+  position: [number, number],
+  area: [[number, number], [number, number]],
+) => {
+  const [lon, lat] = position;
+  const fromLonLat = area[0];
+  const toLatLon = area[1];
+
+  return (
+    lon >= fromLonLat[0] &&
+    lon <= toLatLon[0] &&
+    lat >= fromLonLat[1] &&
+    lat <= toLatLon[1]
+  );
+};
