@@ -41,13 +41,9 @@ class MSSQL(TSQL):
             MSSQL requires an ORDER BY clause when using OFFSET. If no ORDER BY
             is present but OFFSET is specified, we add a default ORDER BY clause.
             """
-            # Check if this SELECT has LIMIT with OFFSET but no ORDER BY
-            limit_expr = expression.args.get("limit")
-            if (
-                limit_expr
-                and limit_expr.args.get("offset")
-                and not expression.args.get("order")
-            ):
+            # Check if this SELECT has OFFSET but no ORDER BY
+            offset_expr = expression.args.get("offset")
+            if offset_expr and not expression.args.get("order"):
                 # Create a copy to avoid modifying the original expression
                 expression = expression.copy()
 
